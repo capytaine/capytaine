@@ -2,28 +2,18 @@
 # coding: utf-8
 
 import numpy as np
-from numpy.linalg import matmul, solve
+from NemohCore._Wavenumber import invert_xtanhx
 
-class RadiationProblem():
-    def __init__(bodies, frequency=1.0, rho=1000.0, g=9.81):
+class RadiationProblem:
+    def __init__(self, bodies, omega=1.0, depth=np.infty, rho=1000.0, g=9.81):
         self.bodies = bodies
         self.rho = rho
         self.g = g
-        self.frequency = frequency
+        self.omega = omega
+        self.depth = depth
 
-    def solve(self):
-
-        S, V = self.build_matrices()
-
-        for body in self.bodies:
-            for dof in body.dof:
-                sources = solve(V, body.dof[dof])
-                potential = matmul(S, problem.sources)
-                print(potential)
-
-    def build_matrices(self):
-        pass
-
-class Nemoh():
-
+        if depth == np.infty or omega**2*depth/g > 20:
+            self.wavenumber = omega**2/g
+        else:
+            self.wavenumber = invert_xtanhx(omega**2*depth/g)/depth
 

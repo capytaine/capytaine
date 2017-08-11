@@ -129,8 +129,9 @@ CONTAINS
   ! ===============================
 
   SUBROUTINE VAV                  &
-      ( X0I, Face_nodes, Face_Center, Face_Normal, Face_area, Face_radius, &
-      I, J, depth, MK, &
+      ( X0I, &
+      Face_nodes, Face_Center, Face_Normal, Face_area, Face_radius, &
+      depth, MK, &
       FSP, FSM, VSP, VSM)
     ! Main subroutine of the module, called in SOLVE_BEM.f90 and FREESURFACE.f90.
 
@@ -139,8 +140,6 @@ CONTAINS
     REAL, DIMENSION(3, 5), INTENT(IN) :: Face_nodes
     REAL, DIMENSION(3),    INTENT(IN) :: Face_center, Face_Normal
     REAL,                  INTENT(IN) :: Face_area, Face_radius
-    INTEGER,               INTENT(IN) :: I    ! Index of the source panel.
-    INTEGER,               INTENT(IN) :: J    ! Index of the integration panel.
     REAL,                  INTENT(IN) :: depth
     INTEGER,               INTENT(IN) :: MK
 
@@ -155,9 +154,6 @@ CONTAINS
 
     XI(:) = X0I(:)
     CALL COMPUTE_S0(XI, Face_nodes, Face_Center, Face_Normal, Face_area, Face_radius, S0, VS0)
-    IF (I == J) THEN
-      VS0(:) = VS0(:) - 2*PI*Face_Normal(:)
-    END IF
 
     ! Reflected problem across the free surface/sea bottom.
     XI(:) = X0I(:)

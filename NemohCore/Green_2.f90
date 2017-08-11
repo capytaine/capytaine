@@ -211,10 +211,10 @@ CONTAINS
     COMPLEX, DIMENSION(3), INTENT(OUT) :: VSP, VSM ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
-    INTEGER                                :: KE
-    REAL                                   :: AMH, AKH, A, COF1, COF2, COF3, COF4
-    REAL                                   :: AQT, RRR
-    REAL, DIMENSION(3)                     :: XI, XJ
+    INTEGER                     :: KE
+    REAL                        :: AMH, AKH, A, COF1, COF2, COF3, COF4
+    REAL                        :: AQT, RRR
+    REAL, DIMENSION(3)          :: XI, XJ
     REAL, DIMENSION(4, 1)       :: FTS, PSR
     REAL, DIMENSION(3, 4, 1)    :: VTS
     COMPLEX, DIMENSION(4, 1)    :: FS
