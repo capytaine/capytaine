@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""
+Exemple computation.
+"""
 
-import numpy as np
 from bodies import HorizontalCylinder
 from capytaine import RadiationProblem
 from Nemoh import Nemoh
 
-cylinder = HorizontalCylinder(length=1.0, radius=1.0, z0=-2.0, nx=10, nr=2, ntheta=10)
-cylinder.dof["Heave"] = cylinder.normal @ (0,0,1)
+cylinder = HorizontalCylinder(length=1.0, radius=1.0, nx=10, nr=2, ntheta=10)
+cylinder.translate_z(-2.0)
+cylinder.dof["Heave"] = cylinder.faces_normals @ (0, 0, 1)
 
 test_case = RadiationProblem(bodies=[cylinder], omega=0.1)
 

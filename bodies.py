@@ -1,15 +1,16 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import numpy as np
-from numpy.linalg import norm
+import sys
 from itertools import product
 
-import sys
-sys.path.append("/home/ancellin/meshmagick/")
+import numpy as np
+from numpy.linalg import norm
 
+sys.path.append("/home/ancellin/meshmagick/")
 from meshmagick.mesh import Mesh, Plane
 from meshmagick.mesh_clipper import MeshClipper
+
 
 class FloattingBody(Mesh):
     def __init__(self, *args, **kwargs):
@@ -24,7 +25,7 @@ class FloattingBody(Mesh):
     @property
     def faces_radiuses(self):
         """Get the array of faces radiuses of the mesh
-        
+
         Returns
         -------
         ndarray
@@ -48,7 +49,8 @@ class FloattingBody(Mesh):
 
 
     def keep_only_immerged_part(self, depth=np.infty):
-        """Use Meshmagick mesh clipper to remove the part of the mesh above the free surface and he part of the mesh below the sea bottom.
+        """Use Meshmagick mesh clipper to remove the part of the mesh above the
+        free surface and he part of the mesh below the sea bottom.
         """
         clipped_mesh = MeshClipper(self, plane=Plane(normal=(0.0, 0.0, 1.0), scalar=0.0)).clipped_mesh
 
@@ -115,7 +117,7 @@ class HorizontalCylinder(FloattingBody):
             panels[k, :] = (j+i*nx, j+(i+1)*nx, j+1+(i+1)*nx, j+1+i*nx)
 
         for k, (i, j) in enumerate(product(range(0, nr-1), range(ntheta*nx, ntheta*nx+ntheta-1))):
-            panels[(ntheta-1)*(nx-1)+k, :] = (j+i*ntheta,  j+1+i*ntheta, j+1+(i+1)*ntheta,j+(i+1)*ntheta)
+            panels[(ntheta-1)*(nx-1)+k, :] = (j+i*ntheta,  j+1+i*ntheta, j+1+(i+1)*ntheta, j+(i+1)*ntheta)
 
         for k, (i, j) in enumerate(product(range(0, nr-1), range(ntheta*(nx+nr), ntheta*(nx+nr)+ntheta-1))):
             panels[(ntheta-1)*((nx-1)+(nr-1))+k, :] = (j+i*ntheta, j+(i+1)*ntheta, j+1+(i+1)*ntheta, j+1+i*ntheta)
@@ -131,8 +133,8 @@ class OneSidedRectangle(FloattingBody):
         X = np.linspace(-length/2, length/2, nl)
         Z = np.linspace(z0, z0+height, nh)
 
-        nodes   = np.zeros((nl*nh, 3), dtype=np.float32)
-        panels  = np.zeros(((nl-1)*(nh-1), 4), dtype=np.int)
+        nodes = np.zeros((nl*nh, 3), dtype=np.float32)
+        panels = np.zeros(((nl-1)*(nh-1), 4), dtype=np.int)
 
         for i, (x, y, z) in enumerate(product(X, [0.0], Z)):
             nodes[i, :] = x, y, z
