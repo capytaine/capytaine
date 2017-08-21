@@ -4,6 +4,9 @@ MODULE Green_1
 
   REAL, PARAMETER :: PI = 3.141592653588979 ! π
 
+  ! The index of the following node when going around a face.
+  INTEGER, PRIVATE, DIMENSION(4), PARAMETER :: NEXT_NODE = (/ 2, 3 ,4 ,1 /)
+
 CONTAINS
 
   SUBROUTINE COMPUTE_S0 &
@@ -18,7 +21,7 @@ CONTAINS
 
     ! Inputs
     REAL, DIMENSION(3),    INTENT(IN) :: M
-    REAL, DIMENSION(3, 5), INTENT(IN) :: Face_nodes
+    REAL, DIMENSION(3, 4), INTENT(IN) :: Face_nodes
     REAL, DIMENSION(3),    INTENT(IN) :: Face_center, Face_Normal
     REAL,                  INTENT(IN) :: Face_area, Face_radius
 
@@ -29,8 +32,8 @@ CONTAINS
     ! Local variables
     INTEGER               :: L
     REAL                  :: RO, GZ, DK, GY
-    REAL, DIMENSION(5)    :: RR
-    REAL, DIMENSION(3, 5) :: DRX
+    REAL, DIMENSION(4)    :: RR
+    REAL, DIMENSION(3, 4) :: DRX
     REAL                  :: ANT, DNT, ANL, DNL, ALDEN, AT
     REAL, DIMENSION(3)    :: PJ, GYX, ANTX, ANLX, DNTX
 
@@ -45,7 +48,7 @@ CONTAINS
 
       GZ = DOT_PRODUCT(M(1:3) - Face_center(1:3), Face_normal(1:3)) ! Called Z in [Del]
 
-      DO L = 1, 5
+      DO L = 1, 4
         RR(L) = NORM2(M(1:3) - Face_nodes(1:3, L))       ! Distance from vertices of Face to M.
         DRX(:, L) = (M(1:3) - Face_nodes(1:3, L))/RR(L)  ! Normed vector from vertices of Face to M.
       END DO
@@ -54,9 +57,9 @@ CONTAINS
       VS0(:) = 0.0
 
       DO L = 1, 4
-        DK = NORM2(Face_nodes(:, L+1) - Face_nodes(:, L))    ! Distance between two consecutive points, called d_k in [Del]
+        DK = NORM2(Face_nodes(:, NEXT_NODE(L)) - Face_nodes(:, L))    ! Distance between two consecutive points, called d_k in [Del]
         IF (DK >= 1E-3*Face_radius) THEN
-          PJ(:) = (Face_nodes(:, L+1) - Face_nodes(:, L))/DK ! Normed vector from one corner to the next
+          PJ(:) = (Face_nodes(:, NEXT_NODE(L)) - Face_nodes(:, L))/DK ! Normed vector from one corner to the next
           ! Called (a,b,c) in [Del]
           GYX(1) = Face_normal(2)*PJ(3) - Face_normal(3)*PJ(2)
           GYX(2) = Face_normal(3)*PJ(1) - Face_normal(1)*PJ(3)
@@ -64,9 +67,9 @@ CONTAINS
           GY = DOT_PRODUCT(M - Face_nodes(:, L), GYX) ! Called Y_k in  [Del]
 
           ANT = 2*GY*DK                                                  ! Called N^t_k in [Del]
-          DNT = (RR(L+1)+RR(L))**2 - DK*DK + 2.0*ABS(GZ)*(RR(L+1)+RR(L)) ! Called D^t_k in [Del]
-          ANL = RR(L+1) + RR(L) + DK                                     ! Called N^l_k in [Del]
-          DNL = RR(L+1) + RR(L) - DK                                     ! Called D^l_k in [Del]
+          DNT = (RR(NEXT_NODE(L))+RR(L))**2 - DK*DK + 2.0*ABS(GZ)*(RR(NEXT_NODE(L))+RR(L)) ! Called D^t_k in [Del]
+          ANL = RR(NEXT_NODE(L)) + RR(L) + DK                                     ! Called N^l_k in [Del]
+          DNL = RR(NEXT_NODE(L)) + RR(L) - DK                                     ! Called D^l_k in [Del]
           ALDEN = ALOG(ANL/DNL)
 
           IF (ABS(GZ) >= 1.E-4*Face_radius) THEN
@@ -75,11 +78,11 @@ CONTAINS
             AT = 0.
           ENDIF
 
-          ANLX(:) = DRX(:, L+1) + DRX(:, L)                    ! Called N^l_k_{x,y,z} in [Del]
+          ANLX(:) = DRX(:, NEXT_NODE(L)) + DRX(:, L)                    ! Called N^l_k_{x,y,z} in [Del]
 
           ANTX(:) = 2*DK*GYX(:)                                ! Called N^t_k_{x,y,z} in [Del]
-          DNTX(:) = 2*(RR(L+1) + RR(L) + ABS(GZ))*ANLX(:) &
-            + 2*SIGN(1.0, GZ)*(RR(L+1) + RR(L))*Face_normal(:) ! Called D^t_k_{x,y,z} in [Del]
+          DNTX(:) = 2*(RR(NEXT_NODE(L)) + RR(L) + ABS(GZ))*ANLX(:) &
+            + 2*SIGN(1.0, GZ)*(RR(NEXT_NODE(L)) + RR(L))*Face_normal(:) ! Called D^t_k_{x,y,z} in [Del]
 
           S0 = S0 + GY*ALDEN - 2*AT*ABS(GZ)
 
@@ -137,7 +140,7 @@ CONTAINS
 
     ! Inputs
     REAL, DIMENSION(3),    INTENT(IN) :: X0I  ! Coordinates of the source point.
-    REAL, DIMENSION(3, 5), INTENT(IN) :: Face_nodes
+    REAL, DIMENSION(3, 4), INTENT(IN) :: Face_nodes
     REAL, DIMENSION(3),    INTENT(IN) :: Face_center, Face_Normal
     REAL,                  INTENT(IN) :: Face_area, Face_radius
     REAL,                  INTENT(IN) :: depth
