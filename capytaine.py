@@ -10,6 +10,8 @@ from NemohCore._Wavenumber import invert_xtanhx
 
 
 class RadiationProblem:
+    """A radiation problem to be solved by the BEM solver."""
+
     def __init__(self, bodies, omega=1.0, depth=np.infty, rho=1000.0, g=9.81):
         self.bodies = bodies
         self.rho = rho

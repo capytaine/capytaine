@@ -73,6 +73,9 @@ class Nemoh:
         return S, V
 
     def solve(self, problem):
+        """Solve the BEM problem using Nemoh.
+        Return the added mass and added damping.
+        """
 
         S, V = self.build_matrices(
             problem.bodies,
@@ -88,8 +91,8 @@ class Nemoh:
                 sources = solve(V + identity/2, body.dof[dof])
                 potential = S @ sources
 
-                c = - problem.rho * potential @ \
-                        (body.dof[dof] * body.faces_areas)
-                added_mass = c.real
-                added_damping = problem.omega * c.imag
+                complex_coef = - problem.rho * potential @ \
+                    (body.dof[dof] * body.faces_areas)
+                added_mass = complex_coef.real
+                added_damping = problem.omega * complex_coef.imag
         return added_mass, added_damping

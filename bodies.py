@@ -1,5 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""Floatting bodies to be used in radiation-diffraction problems.
+
+class FloattingBody
+class Sphere
+class HorizontalCylinder
+class OneSidedRectangle
+class TwoSidedRectangle
+class OpenRectangularParallelepiped
+class RectangularParallelepiped
+"""
 
 import sys
 from itertools import product
@@ -13,6 +23,9 @@ from meshmagick.mesh_clipper import MeshClipper
 
 
 class FloattingBody(Mesh):
+    """A floatting body composed of a mesh (inherited from Meshmagick) and
+    several degrees of freedom (dof)."""
+
     def __init__(self, *args, **kwargs):
         Mesh.__init__(self, *args, **kwargs)
         self.dof = {}
@@ -39,36 +52,44 @@ class FloattingBody(Mesh):
         faces_radiuses = np.zeros(self.nb_faces, dtype=np.float32)
         for j in range(self.nb_faces): # TODO: optimize by array broadcasting
             faces_radiuses[j] = max(
-                    norm(self.faces_centers[j, 0:3] - self.vertices[self.faces[j, 0], 0:3]),
-                    norm(self.faces_centers[j, 0:3] - self.vertices[self.faces[j, 1], 0:3]),
-                    norm(self.faces_centers[j, 0:3] - self.vertices[self.faces[j, 2], 0:3]),
-                    norm(self.faces_centers[j, 0:3] - self.vertices[self.faces[j, 3], 0:3]),
-                    )
+                norm(self.faces_centers[j, 0:3] -
+                     self.vertices[self.faces[j, 0], 0:3]),
+                norm(self.faces_centers[j, 0:3] -
+                     self.vertices[self.faces[j, 1], 0:3]),
+                norm(self.faces_centers[j, 0:3] -
+                     self.vertices[self.faces[j, 2], 0:3]),
+                norm(self.faces_centers[j, 0:3] -
+                     self.vertices[self.faces[j, 3], 0:3]),
+                )
 
         self.__internals__["faces_radiuses"] = faces_radiuses
 
-
-    def keep_only_immerged_part(self, depth=np.infty):
+    def immerged_part(self, depth=np.infty):
         """Use Meshmagick mesh clipper to remove the part of the mesh above the
         free surface and he part of the mesh below the sea bottom.
         """
-        clipped_mesh = MeshClipper(self, plane=Plane(normal=(0.0, 0.0, 1.0), scalar=0.0)).clipped_mesh
+        clipped_mesh = MeshClipper(self,
+                                   plane=Plane(normal=(0.0, 0.0, 1.0),
+                                               scalar=0.0)).clipped_mesh
 
         if depth < np.infty:
-            clipped_mesh = MeshClipper(clipped_mesh, plane=Plane(normal=(0.0, 0.0, -1.0), scalar=depth)).clipped_mesh
+            clipped_mesh = MeshClipper(clipped_mesh,
+                                       plane=Plane(normal=(0.0, 0.0, -1.0),
+                                                   scalar=depth)).clipped_mesh
 
-        self.vertices = clipped_mesh.vertices
-        self.faces    = clipped_mesh.faces
+        return FloattingBody(clipped_mesh.vertices, clipped_mesh.faces)
 
 
 class Sphere(FloattingBody):
+    """Floatting body of the shape of a sphere."""
+
     def __init__(self, radius=1.0, ntheta=11, nphi=11, z0=0.0):
 
         theta = np.linspace(-np.pi, np.pi, ntheta)
         phi = np.linspace(-np.pi/2, np.pi/2, nphi)
 
         # Nodes
-        nodes  = np.zeros((ntheta*nphi, 3), dtype=np.float32)
+        nodes = np.zeros((ntheta*nphi, 3), dtype=np.float32)
 
         for i, (t, p) in enumerate(product(theta, phi)):
             # The sign of theta below is a trick to get the correct orientation of the normal vectors...
@@ -89,6 +110,8 @@ class Sphere(FloattingBody):
 
 
 class HorizontalCylinder(FloattingBody):
+    """Floatting body of the shape of a cylinder of axis Ox."""
+
     def __init__(self, length=1.0, radius=1.0, nx=11, nr=3, ntheta=11, z0=0.0):
 
         X = np.linspace(0.0, length, nx)
@@ -96,8 +119,7 @@ class HorizontalCylinder(FloattingBody):
         theta = np.linspace(-np.pi, np.pi, ntheta)
 
         # Nodes
-        nnodes = ntheta*(nx+2*nr)
-        nodes  = np.zeros((nnodes, 3), dtype=np.float32)
+        nodes = np.zeros((ntheta*(nx+2*nr), 3), dtype=np.float32)
 
         for i, (t, x) in enumerate(product(theta, X)):
             y = radius * np.sin(t)
@@ -117,7 +139,7 @@ class HorizontalCylinder(FloattingBody):
             panels[k, :] = (j+i*nx, j+(i+1)*nx, j+1+(i+1)*nx, j+1+i*nx)
 
         for k, (i, j) in enumerate(product(range(0, nr-1), range(ntheta*nx, ntheta*nx+ntheta-1))):
-            panels[(ntheta-1)*(nx-1)+k, :] = (j+i*ntheta,  j+1+i*ntheta, j+1+(i+1)*ntheta, j+(i+1)*ntheta)
+            panels[(ntheta-1)*(nx-1)+k, :] = (j+i*ntheta, j+1+i*ntheta, j+1+(i+1)*ntheta, j+(i+1)*ntheta)
 
         for k, (i, j) in enumerate(product(range(0, nr-1), range(ntheta*(nx+nr), ntheta*(nx+nr)+ntheta-1))):
             panels[(ntheta-1)*((nx-1)+(nr-1))+k, :] = (j+i*ntheta, j+(i+1)*ntheta, j+1+(i+1)*ntheta, j+1+i*ntheta)
@@ -128,6 +150,8 @@ class HorizontalCylinder(FloattingBody):
 
 
 class OneSidedRectangle(FloattingBody):
+    """Rectangular panel with cartesian mesh."""
+
     def __init__(self, height=2.0, length=10.0, nh=5, nl=5, z0=0.0):
 
         X = np.linspace(-length/2, length/2, nl)
@@ -146,25 +170,30 @@ class OneSidedRectangle(FloattingBody):
 
 
 class TwoSidedRectangle(FloattingBody):
+    """Rectangular panel with cartesian mesh.
+    Each face is defined twice with two opposite normal vectors."""
+
     def __init__(self, height=2.0, length=10.0, nh=5, nl=5, z0=0.0):
 
         X = np.linspace(-length/2, length/2, nl)
         Z = np.linspace(z0, z0+height, nh)
 
-        nodes   = np.zeros((nl*nh, 3), dtype=np.float32)
-        panels  = np.zeros((2*(nl-1)*(nh-1), 4), dtype=np.int)
+        nodes = np.zeros((nl*nh, 3), dtype=np.float32)
+        panels = np.zeros((2*(nl-1)*(nh-1), 4), dtype=np.int)
 
         for i, (x, y, z) in enumerate(product(X, [0.0], Z)):
             nodes[i, :] = x, y, z
 
         for k, (i, j) in enumerate(product(range(0, nl-1), range(0, nh-1))):
             panels[k, :] = (j+i*nh, j+1+i*nh, j+1+(i+1)*nh, j+(i+1)*nh)
-            panels[(nl-1)*(nh-1)+k, :] = (j+i*nh, j+(i+1)*nh, j+1+(i+1)*nh,  j+1+i*nh, )
+            panels[(nl-1)*(nh-1)+k, :] = (j+i*nh, j+(i+1)*nh, j+1+(i+1)*nh, j+1+i*nh)
 
         FloattingBody.__init__(self, nodes, panels)
 
 
 class OpenRectangularParallelepiped(FloattingBody):
+    """Four panels forming a parallelepiped without top nor bottom."""
+
     def __init__(self, height=10.0, length=10.0, thickness=2.0, nh=5, nl=5, nth=3, z0=0.0):
         front = OneSidedRectangle(height=height, length=length, nh=nh, nl=nl, z0=z0)
         back = front.copy()
@@ -173,7 +202,7 @@ class OpenRectangularParallelepiped(FloattingBody):
         back.rotate_z(np.pi)
         back.translate_y(-thickness/2)
 
-        side  = OneSidedRectangle(height=height, length=thickness, nh=nh, nl=nth, z0=z0)
+        side = OneSidedRectangle(height=height, length=thickness, nh=nh, nl=nth, z0=z0)
         other_side = side.copy()
 
         side.rotate_z(np.pi/2)
@@ -189,6 +218,8 @@ class OpenRectangularParallelepiped(FloattingBody):
 
 
 class RectangularParallelepiped(FloattingBody):
+    """Six panels forming a complete parallelepiped."""
+
     def __init__(self, height=10.0, length=10.0, thickness=2.0, nh=5, nl=5, nth=3):
         sides = OpenRectangularParallelepiped(height=height, length=length, thickness=thickness, nh=nh, nl=nl, nth=nth)
         top = OneSidedRectangle(height=thickness, length=length, nh=nth, nl=nl)
@@ -205,11 +236,3 @@ class RectangularParallelepiped(FloattingBody):
         combine.heal_triangles()
 
         FloattingBody.__init__(self, combine.vertices, combine.faces)
-
-
-if __name__ == "__main__":
-    from meshmagick.mmio import write_mesh
-
-    rp = RectangularParallelepiped(height=10.0, length=10.0, thickness=10.0, nh=6, nl=6, nth=6)
-    # rp.show_matplotlib()
-    # write_mesh("test.dat", rp.vertices, rp.faces, "mar")
