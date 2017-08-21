@@ -7,23 +7,31 @@ from itertools import product
 import sys
 sys.path.append("/home/ancellin/meshmagick/")
 
-from meshmagick.mesh import Mesh
+from meshmagick.mesh import Mesh, Plane
+from meshmagick.mesh_clipper import MeshClipper
 
 class FloattingBody(Mesh):
-    pass
+    def __add__(self, body_to_add):
+        new_body = Mesh.__add__(self, body_to_add)
+        new_body.__class__ = FloattingBody
+        return new_body
+
+    def keep_only_immerged_part(self, depth=np.infty):
+        """Use Meshmagick mesh clipper to remove the part of the mesh above the free surface and he part of the mesh below the sea bottom.
+        """
+        clipped_mesh = MeshClipper(self, plane=Plane(normal=(0.0, 0.0, 1.0), scalar=0.0)).clipped_mesh
+
+        if depth < np.infty:
+            clipped_mesh = MeshClipper(clipped_mesh, plane=Plane(normal=(0.0, 0.0, -1.0), scalar=depth)).clipped_mesh
+
+        self.vertices = clipped_mesh.vertices
+        self.faces    = clipped_mesh.faces
 
 
 class Sphere(FloattingBody):
     def __init__(self, radius=1.0, ntheta=11, nphi=11, z0=0.0):
 
-        # if z0 < -radius: # fully immerged
-        theta_max = np.pi
-        # elif z0 < radius:
-        #     theta_max = np.arccos(z0/radius)
-        # else:
-        #     raise Exception("Sphere out of the water")
-
-        theta = np.linspace(-theta_max, theta_max, ntheta)
+        theta = np.linspace(-np.pi, np.pi, ntheta)
         phi = np.linspace(-np.pi/2, np.pi/2, nphi)
 
         # Nodes
@@ -50,16 +58,9 @@ class Sphere(FloattingBody):
 class HorizontalCylinder(FloattingBody):
     def __init__(self, length=1.0, radius=1.0, nx=11, nr=3, ntheta=11, z0=0.0):
 
-        # if z0 < -radius: # fully immerged
-        theta_max = np.pi
-        # elif z0 < radius:
-        #     theta_max = np.arccos(z0/radius)
-        # else:
-        #     raise Exception("Cylinder out of the water")
-
         X = np.linspace(0.0, length, nx)
         R = np.linspace(0.0, radius, nr)
-        theta = np.linspace(-theta_max, theta_max, ntheta)
+        theta = np.linspace(-np.pi, np.pi, ntheta)
 
         # Nodes
         nnodes = ntheta*(nx+2*nr)
@@ -130,78 +131,51 @@ class TwoSidedRectangle(FloattingBody):
         Mesh.__init__(self, nodes, panels)
 
 
-# class OpenRectangularParallelepiped(FloattingBody):
-#     def __init__(self, height=2.0, length=10.0, thickness=0.5, nh=5, nl=5, nth=3, z0=0.0):
-#     def generate_nodes_and_panels(self, height=2, length=10, thickness=0.5, z0=-1.0, nh=3, nl=11, nth=7):
-#         if z0 < 0:
-#             height = min(height, -z0)
-#         else:
-#             raise Exception("Parallelepiped out of the water")
+class OpenRectangularParallelepiped(FloattingBody):
+    def __init__(self, height=10.0, length=10.0, thickness=2.0, nh=5, nl=5, nth=3, z0=0.0):
+        front = OneSidedRectangle(height=height, length=length, nh=nh, nl=nl, z0=z0)
+        back = front.copy()
 
-#         X = np.linspace(-length/2, length/2, nl)
-#         Z = np.linspace(z0, z0+height, nh)
+        front.translate_y(thickness/2)
+        back.rotate_z(np.pi)
+        back.translate_y(-thickness/2)
 
-#         if self.y_sym:
-#             if not nth % 2 == 1:
-#                 raise Exception("Need an odd number of points to use y-symmetry")
-#             nth = nth//2+1
-#             Y = np.linspace(0, thickness/2, nth)
-#             # nnodes  = 2*(nth*nl + nl*nh + nh*nth)
-#             # npanels = 2*((nth-1)*(nl-1) + (nl-1)*(nh-1) + (nh-1)*(nth-1))
-#         else:
-#             Y = np.linspace(-thickness/2, thickness/2, nth)
-#             # nnodes  = nl*nh + 2*(nth*nl + nh*nth)
-#             # npanels = 2*((nth-1)*(nl-1) + (nl-1)*(nh-1) + (nh-1)*(nth-1))
+        side  = OneSidedRectangle(height=height, length=thickness, nh=nh, nl=nth, z0=z0)
+        other_side = side.copy()
 
-#         # Nodes and panels
-#         nodes   = np.zeros((nnodes, 3), dtype=np.float32)
-#         panels  = np.zeros((npanels, 5), dtype=np.int32)
+        side.rotate_z(np.pi/2)
+        side.translate_x(-length/2)
+        other_side.rotate_z(-np.pi/2)
+        other_side.translate_x(length/2)
 
-#         # Top panel
-#         i0 = 0
-#         nodes[:, :] = product(X, Y, [z0+height])
-#         panels[:, :] = 
-#         for i in range(nl-1):
-#             for j in range(1, nth):
-#                 connectivites.append(f"{i0+j+i*nth}\t{i0+j+(i+1)*nth}\t{i0+j+1+(i+1)*nth}\t{i0+j+1+i*nth}\n")
+        combine = front + side + other_side + back
+        combine.merge_duplicates()
+        combine.heal_triangles()
 
-#         # Side panel
-#         points.extend(product([-length/2], Y, Z))
-#         for i in range(nth-1):
-#             for j in range(1, nh):
-#                 connectivites.append(f"{i0+j+i*nh}\t{i0+j+1+i*nh}\t{i0+j+1+(i+1)*nh}\t{i0+j+(i+1)*nh}\n")
+        Mesh.__init__(self, combine.vertices, combine.faces)
 
-#         # Side panel
-#         i0 = len(points)
-#         points.extend(product([length/2], Y, Z))
-#         for i in range(nth-1):
-#             for j in range(1, nh):
-#                 connectivites.append(f"{i0+j+i*nh}\t{i0+j+(i+1)*nh}\t{i0+j+1+(i+1)*nh}\t{i0+j+1+i*nh}\n")
 
-#         # Front panel
-#         i0 = len(points)
-#         points.extend(product(X, [thickness/2], Z))
-#         for i in range(nl-1):
-#             for j in range(1, nh):
-#                 connectivites.append(f"{i0+j+i*nh}\t{i0+j+1+i*nh}\t{i0+j+1+(i+1)*nh}\t{i0+j+(i+1)*nh}\n")
+class RectangularParallelepiped(FloattingBody):
+    def __init__(self, height=10.0, length=10.0, thickness=2.0, nh=5, nl=5, nth=3):
+        sides = OpenRectangularParallelepiped(height=height, length=length, thickness=thickness, nh=nh, nl=nl, nth=nth)
+        top = OneSidedRectangle(height=thickness, length=length, nh=nth, nl=nl)
+        bottom = top.copy()
 
-#         if not self.y_sym:
-#             # Back panel
-#             i0 = len(points)
-#             points.extend(product(X, [-thickness/2], Z))
-#             for i in range(nl-1):
-#                 for j in range(1, nh):
-#                     connectivites.append(f"{i0+j+i*nh}\t{i0+j+(i+1)*nh}\t{i0+j+1+(i+1)*nh}\t{i0+j+1+i*nh}\n")
+        top.rotate_x(np.pi/2)
+        top.translate_y(thickness/2)
+        top.translate_z(height)
+        bottom.rotate_x(-np.pi/2)
+        bottom.translate_y(-thickness/2)
 
+        combine = sides + top + bottom
+        combine.merge_duplicates()
+        combine.heal_triangles()
+
+        Mesh.__init__(self, combine.vertices, combine.faces)
 
 if __name__ == "__main__":
     # hc = HorizontalCylinder()
     # hc.show_matplotlib()
 
-    # sp = Sphere(radius=1.0, ntheta=11, nphi=11)
-    # sp.show_matplotlib()
-
-    bd = TwoSidedRectangle()
-    bd.translate_y(3.0)
-    bd = bd + TwoSidedRectangle()
-    bd.show_matplotlib()
+    rp = RectangularParallelepiped()
+    rp.show_matplotlib()
