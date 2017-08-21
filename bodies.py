@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import numpy as np
+from numpy.linalg import norm
 from itertools import product
 
 import sys
@@ -11,10 +12,40 @@ from meshmagick.mesh import Mesh, Plane
 from meshmagick.mesh_clipper import MeshClipper
 
 class FloattingBody(Mesh):
+    def __init__(self, *args, **kwargs):
+        Mesh.__init__(self, *args, **kwargs)
+        self.dof = {}
+
     def __add__(self, body_to_add):
         new_body = Mesh.__add__(self, body_to_add)
         new_body.__class__ = FloattingBody
         return new_body
+
+    @property
+    def faces_radiuses(self):
+        """Get the array of faces radiuses of the mesh
+        
+        Returns
+        -------
+        ndarray
+        """
+        if 'faces_radiuses' not in self.__internals__:
+            self._compute_radiuses()
+        return self.__internals__['faces_radiuses']
+
+    def _compute_radiuses(self):
+        """Update face radiuses"""
+        faces_radiuses = np.zeros(self.nb_faces, dtype=np.float32)
+        for j in range(self.nb_faces): # TODO: optimize by array broadcasting
+            faces_radiuses[j] = max(
+                    norm(self.faces_centers[j, 0:3] - self.vertices[self.faces[j, 0], 0:3]),
+                    norm(self.faces_centers[j, 0:3] - self.vertices[self.faces[j, 1], 0:3]),
+                    norm(self.faces_centers[j, 0:3] - self.vertices[self.faces[j, 2], 0:3]),
+                    norm(self.faces_centers[j, 0:3] - self.vertices[self.faces[j, 3], 0:3]),
+                    )
+
+        self.__internals__["faces_radiuses"] = faces_radiuses
+
 
     def keep_only_immerged_part(self, depth=np.infty):
         """Use Meshmagick mesh clipper to remove the part of the mesh above the free surface and he part of the mesh below the sea bottom.
@@ -50,7 +81,7 @@ class Sphere(FloattingBody):
         for k, (i, j) in enumerate(product(range(0, ntheta-1), range(0, nphi-1))):
             panels[k, :] = (j+i*nphi, j+(i+1)*nphi, j+1+(i+1)*nphi, j+1+i*nphi)
 
-        Mesh.__init__(self, nodes, panels)
+        FloattingBody.__init__(self, nodes, panels)
         self.merge_duplicates()
         self.heal_triangles()
 
@@ -89,7 +120,7 @@ class HorizontalCylinder(FloattingBody):
         for k, (i, j) in enumerate(product(range(0, nr-1), range(ntheta*(nx+nr), ntheta*(nx+nr)+ntheta-1))):
             panels[(ntheta-1)*((nx-1)+(nr-1))+k, :] = (j+i*ntheta, j+(i+1)*ntheta, j+1+(i+1)*ntheta, j+1+i*ntheta)
 
-        Mesh.__init__(self, nodes, panels)
+        FloattingBody.__init__(self, nodes, panels)
         self.merge_duplicates()
         self.heal_triangles()
 
@@ -109,7 +140,7 @@ class OneSidedRectangle(FloattingBody):
         for k, (i, j) in enumerate(product(range(0, nl-1), range(0, nh-1))):
             panels[k, :] = (j+i*nh, j+1+i*nh, j+1+(i+1)*nh, j+(i+1)*nh)
 
-        Mesh.__init__(self, nodes, panels)
+        FloattingBody.__init__(self, nodes, panels)
 
 
 class TwoSidedRectangle(FloattingBody):
@@ -128,7 +159,7 @@ class TwoSidedRectangle(FloattingBody):
             panels[k, :] = (j+i*nh, j+1+i*nh, j+1+(i+1)*nh, j+(i+1)*nh)
             panels[(nl-1)*(nh-1)+k, :] = (j+i*nh, j+(i+1)*nh, j+1+(i+1)*nh,  j+1+i*nh, )
 
-        Mesh.__init__(self, nodes, panels)
+        FloattingBody.__init__(self, nodes, panels)
 
 
 class OpenRectangularParallelepiped(FloattingBody):
@@ -152,7 +183,7 @@ class OpenRectangularParallelepiped(FloattingBody):
         combine.merge_duplicates()
         combine.heal_triangles()
 
-        Mesh.__init__(self, combine.vertices, combine.faces)
+        FloattingBody.__init__(self, combine.vertices, combine.faces)
 
 
 class RectangularParallelepiped(FloattingBody):
@@ -171,11 +202,12 @@ class RectangularParallelepiped(FloattingBody):
         combine.merge_duplicates()
         combine.heal_triangles()
 
-        Mesh.__init__(self, combine.vertices, combine.faces)
+        FloattingBody.__init__(self, combine.vertices, combine.faces)
+
 
 if __name__ == "__main__":
-    # hc = HorizontalCylinder()
-    # hc.show_matplotlib()
+    from meshmagick.mmio import write_mesh
 
-    rp = RectangularParallelepiped()
-    rp.show_matplotlib()
+    rp = RectangularParallelepiped(height=10.0, length=10.0, thickness=10.0, nh=6, nl=6, nth=6)
+    # rp.show_matplotlib()
+    # write_mesh("test.dat", rp.vertices, rp.faces, "mar")
