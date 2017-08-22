@@ -9,8 +9,8 @@ MODULE Green_1
 
 CONTAINS
 
-  SUBROUTINE COMPUTE_S0 &
-      (M, &
+  SUBROUTINE COMPUTE_S0                                             &
+      (M,                                                           &
       Face_nodes, Face_Center, Face_Normal, Face_area, Face_radius, &
       S0, VS0)
     ! Estimate the integral over the face S0 = ∫∫ 1/MM' dS(M')
@@ -21,7 +21,7 @@ CONTAINS
 
     ! Inputs
     REAL, DIMENSION(3),    INTENT(IN) :: M
-    REAL, DIMENSION(3, 4), INTENT(IN) :: Face_nodes
+    REAL, DIMENSION(4, 3), INTENT(IN) :: Face_nodes
     REAL, DIMENSION(3),    INTENT(IN) :: Face_center, Face_Normal
     REAL,                  INTENT(IN) :: Face_area, Face_radius
 
@@ -49,22 +49,22 @@ CONTAINS
       GZ = DOT_PRODUCT(M(1:3) - Face_center(1:3), Face_normal(1:3)) ! Called Z in [Del]
 
       DO L = 1, 4
-        RR(L) = NORM2(M(1:3) - Face_nodes(1:3, L))       ! Distance from vertices of Face to M.
-        DRX(:, L) = (M(1:3) - Face_nodes(1:3, L))/RR(L)  ! Normed vector from vertices of Face to M.
+        RR(L) = NORM2(M(1:3) - Face_nodes(L, 1:3))       ! Distance from vertices of Face to M.
+        DRX(:, L) = (M(1:3) - Face_nodes(L, 1:3))/RR(L)  ! Normed vector from vertices of Face to M.
       END DO
 
       S0 = 0.0
       VS0(:) = 0.0
 
       DO L = 1, 4
-        DK = NORM2(Face_nodes(:, NEXT_NODE(L)) - Face_nodes(:, L))    ! Distance between two consecutive points, called d_k in [Del]
+        DK = NORM2(Face_nodes(NEXT_NODE(L), :) - Face_nodes(L, :))    ! Distance between two consecutive points, called d_k in [Del]
         IF (DK >= 1E-3*Face_radius) THEN
-          PJ(:) = (Face_nodes(:, NEXT_NODE(L)) - Face_nodes(:, L))/DK ! Normed vector from one corner to the next
+          PJ(:) = (Face_nodes(NEXT_NODE(L), :) - Face_nodes(L, :))/DK ! Normed vector from one corner to the next
           ! Called (a,b,c) in [Del]
           GYX(1) = Face_normal(2)*PJ(3) - Face_normal(3)*PJ(2)
           GYX(2) = Face_normal(3)*PJ(1) - Face_normal(1)*PJ(3)
           GYX(3) = Face_normal(1)*PJ(2) - Face_normal(2)*PJ(1)
-          GY = DOT_PRODUCT(M - Face_nodes(:, L), GYX) ! Called Y_k in  [Del]
+          GY = DOT_PRODUCT(M - Face_nodes(L, :), GYX) ! Called Y_k in  [Del]
 
           ANT = 2*GY*DK                                                  ! Called N^t_k in [Del]
           DNT = (RR(NEXT_NODE(L))+RR(L))**2 - DK*DK + 2.0*ABS(GZ)*(RR(NEXT_NODE(L))+RR(L)) ! Called D^t_k in [Del]
@@ -99,8 +99,8 @@ CONTAINS
   ! =========================
 
   SUBROUTINE COMPUTE_ASYMPTOTIC_S0 &
-      (M, &
-      Face_Center, Face_area, &
+      (M,                          &
+      Face_Center, Face_area,      &
       S0, VS0)
     ! Same as above, but always use the approximate aymptotic value.
 
@@ -131,16 +131,16 @@ CONTAINS
 
   ! ===============================
 
-  SUBROUTINE VAV                  &
-      ( X0I, &
+  SUBROUTINE VAV                                                    &
+      ( X0I,                                                        &
       Face_nodes, Face_Center, Face_Normal, Face_area, Face_radius, &
-      depth, MK, &
+      depth, MK,                                                    &
       FSP, FSM, VSP, VSM)
     ! Main subroutine of the module, called in SOLVE_BEM.f90 and FREESURFACE.f90.
 
     ! Inputs
     REAL, DIMENSION(3),    INTENT(IN) :: X0I  ! Coordinates of the source point.
-    REAL, DIMENSION(3, 4), INTENT(IN) :: Face_nodes
+    REAL, DIMENSION(4, 3), INTENT(IN) :: Face_nodes
     REAL, DIMENSION(3),    INTENT(IN) :: Face_center, Face_Normal
     REAL,                  INTENT(IN) :: Face_area, Face_radius
     REAL,                  INTENT(IN) :: depth

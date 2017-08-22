@@ -19,7 +19,31 @@ class Nemoh:
     def __init__(self):
         _Green.initialize_green_2.initialize_green()
 
-    def build_matrices(self, bodies, wavenumber, omega, depth, g):
+    def f90_build_matrices(self, bodies, wavenumber, omega, depth, g):
+
+        if depth < np.infty:
+            _Green.initialize_green_2.lisc(omega**2*depth/g, wavenumber*depth)
+        else:
+            depth = 0.0
+
+        # for body1, body2 in product(bodies, repeat=2):
+        body1 = bodies[0]
+        body2 = bodies[0]
+
+        return _Green.build_matrices(
+                body1.faces_centers,
+                body1.faces_normals,
+                body2.vertices,
+                body2.faces + 1,
+                body2.faces_centers,
+                body2.faces_normals,
+                body2.faces_areas,
+                body2.faces_radiuses,
+                wavenumber,
+                depth
+                )
+
+    def py_build_matrices(self, bodies, wavenumber, omega, depth, g):
 
         if depth < np.infty:
             _Green.initialize_green_2.lisc(omega**2*depth/g, wavenumber*depth)
@@ -37,7 +61,7 @@ class Nemoh:
             if depth == np.infty:
                 SP1, SM1, VSP1, VSM1 = _Green.green_1.vav(
                     body1.faces_centers[i, :],
-                    body2.vertices[body2.faces[j, :], :].T,
+                    body2.vertices[body2.faces[j, :], :],
                     body2.faces_centers[j, :],
                     body2.faces_normals[j, :],
                     body2.faces_areas[j],
@@ -53,7 +77,7 @@ class Nemoh:
             else:
                 SP1, SM1, VSP1, VSM1 = _Green.green_1.vav(
                     body1.faces_centers[i, :],
-                    body2.vertices[body2.faces[j, :], :].T,
+                    body2.vertices[body2.faces[j, :], :],
                     body2.faces_centers[j, :],
                     body2.faces_normals[j, :],
                     body2.faces_areas[j],
@@ -77,7 +101,7 @@ class Nemoh:
         Return the added mass and added damping.
         """
 
-        S, V = self.build_matrices(
+        S, V = self.f90_build_matrices(
             problem.bodies,
             problem.wavenumber,
             problem.omega,
@@ -95,4 +119,5 @@ class Nemoh:
                     (body.dof[dof] * body.faces_areas)
                 added_mass = complex_coef.real
                 added_damping = problem.omega * complex_coef.imag
+
         return added_mass, added_damping

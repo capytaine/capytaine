@@ -4,7 +4,8 @@
 Exemple computation.
 """
 
-from numpy import linspace, array, savetxt
+import numpy as np
+import matplotlib.pyplot as plt
 
 from bodies import HorizontalCylinder
 from capytaine import RadiationProblem
@@ -16,7 +17,7 @@ cylinder.dof["Heave"] = cylinder.faces_normals @ (0, 0, 1)
 
 solver = Nemoh()
 
-omega_range = linspace(0.1, 5.0, 1)
+omega_range = np.linspace(0.1, 5.0, 10)
 
 problems = [RadiationProblem(bodies=[cylinder], omega=omega) for omega in omega_range]
 
@@ -24,10 +25,10 @@ results = []
 for problem in problems:
     results.append(solver.solve(problem))
 
-results = array(results)
-savetxt("results.csv", results)
+results = np.array(results)
 
-# plt.figure()
-# plt.plot(omega_range, results[:, 0], label="Added mass")
-# plt.plot(omega_range, results[:, 1], label="Added damping")
-# plt.show()
+plt.figure()
+plt.plot(omega_range, results[:, 0], label="Added mass")
+plt.plot(omega_range, results[:, 1], label="Added damping")
+plt.legend()
+plt.show()
