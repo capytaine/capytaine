@@ -9,30 +9,26 @@ SUBROUTINE BUILD_MATRICES(                                          &
   USE GREEN_2, ONLY: VNSFD, VNSINFD
   USE INITIALIZE_GREEN_2, ONLY: LISC
 
-  INTEGER,                        INTENT(IN) :: nb_faces_1, nb_faces_2, nb_vertices_2
-  REAL, DIMENSION(nb_faces_1, 3), INTENT(IN) :: centers_1
-  REAL, DIMENSION(nb_faces_1, 3), INTENT(IN) :: normals_1
-  REAL, DIMENSION(nb_vertices_2, 3), INTENT(IN) :: vertices_2
-  INTEGER, DIMENSION(nb_faces_2, 4), INTENT(IN) :: faces_2
-  REAL, DIMENSION(nb_faces_2, 3), INTENT(IN) :: centers_2
-  REAL, DIMENSION(nb_faces_2, 3), INTENT(IN) :: normals_2
-  REAL, DIMENSION(nb_faces_2),    INTENT(IN) :: areas_2, radiuses_2
-  REAL,                           INTENT(IN) :: wavenumber, depth
+  INTEGER,                              INTENT(IN) :: nb_faces_1, nb_faces_2, nb_vertices_2
+  REAL,    DIMENSION(nb_faces_1, 3),    INTENT(IN) :: centers_1
+  REAL,    DIMENSION(nb_faces_1, 3),    INTENT(IN) :: normals_1
+  REAL,    DIMENSION(nb_vertices_2, 3), INTENT(IN) :: vertices_2
+  INTEGER, DIMENSION(nb_faces_2, 4),    INTENT(IN) :: faces_2
+  REAL,    DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2
+  REAL,    DIMENSION(nb_faces_2, 3),    INTENT(IN) :: normals_2
+  REAL,    DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2, radiuses_2
+  REAL,                                 INTENT(IN) :: wavenumber, depth
 
   COMPLEX, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
-  COMPLEX, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V 
+  COMPLEX, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
 
+  ! Local variables
   INTEGER :: I, J
 
-  ! Return of GREEN_1 module
-  REAL :: SP1, SM1
-  REAL, DIMENSION(3) :: VSP1, VSM1
-
-  ! Return of GREEN_2 module
-  COMPLEX :: SP2, SM2
+  REAL                  :: SP1,  SM1
+  REAL, DIMENSION(3)    :: VSP1, VSM1
+  COMPLEX               :: SP2,  SM2
   COMPLEX, DIMENSION(3) :: VSP2, VSM2
-
-  print*, vertices_2(faces_2(1, :), :)
 
   DO I = 1, nb_faces_1
     DO J = 1, nb_faces_2
@@ -83,6 +79,7 @@ SUBROUTINE BUILD_MATRICES(                                          &
       ! Store into influence matrix
       S(I, J) = SP1 + SP2                              ! Green function
       V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP1 + VSP2) ! Gradient of the Green function
+
     END DO
   END DO
 

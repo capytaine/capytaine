@@ -17,7 +17,7 @@ cylinder.dof["Heave"] = cylinder.faces_normals @ (0, 0, 1)
 
 solver = Nemoh()
 
-omega_range = np.linspace(0.1, 5.0, 10)
+omega_range = np.linspace(0.1, 5.0, 120)
 
 problems = [RadiationProblem(bodies=[cylinder], omega=omega) for omega in omega_range]
 
@@ -26,9 +26,10 @@ for problem in problems:
     results.append(solver.solve(problem))
 
 results = np.array(results)
+np.savetxt("results.csv", results)
 
-plt.figure()
-plt.plot(omega_range, results[:, 0], label="Added mass")
-plt.plot(omega_range, results[:, 1], label="Added damping")
-plt.legend()
-plt.show()
+# plt.figure()
+# plt.plot(omega_range, results[:, 0], label="Added mass")
+# plt.plot(omega_range, results[:, 1], label="Added damping")
+# plt.legend()
+# plt.show()
