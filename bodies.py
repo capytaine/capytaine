@@ -31,7 +31,7 @@ class FloattingBody(Mesh):
     @staticmethod
     def from_file(filename, file_format):
         from meshmagick.mmio import load_mesh
-        
+
         vertices, faces = load_mesh(filename, file_format)
 
         return FloattingBody(vertices, faces, name="mesh_from_"+filename)
@@ -92,6 +92,35 @@ class FloattingBody(Mesh):
 
         return FloattingBody(clipped_mesh.vertices, clipped_mesh.faces)
 
+    def show_matplotlib(self, dof=None):
+        """Poor man's viewer with matplotlib
+        To be deleted when the VTK viewer is fully working with Python 3?"""
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection="3d")
+
+        faces = []
+        for face in self.faces:
+            vertices = []
+            for index_vertex in face:
+                vertices.append(self.vertices[int(index_vertex), :])
+            faces.append(vertices)
+        ax.add_collection3d(Poly3DCollection(faces, facecolor=(0.3, 0.3, 0.3, 0.3), edgecolor='k'))
+
+        # Plot normal vectors.
+        if dof:
+            normals = [self.dof[dof][j] * normal for j, normal in enumerate(self.faces_normals)]
+            ax.quiver(*zip(*self.faces_centers), *zip(*normals), length=0.2)
+
+        plt.xlabel("x")
+        plt.ylabel("y")
+        plt.xlim(min(self.vertices[:, 0]), max(self.vertices[:, 0]))
+        plt.ylim(min(self.vertices[:, 1]), max(self.vertices[:, 1]))
+        plt.gca().set_zlim(min(self.vertices[:, 2]), max(self.vertices[:, 2]))
+        plt.show()
 
 class Sphere(FloattingBody):
     """Floatting body of the shape of a sphere."""
@@ -227,8 +256,8 @@ class TwoSidedRectangle(FloattingBody):
 class OpenRectangularParallelepiped(FloattingBody):
     """Four panels forming a parallelepiped without top nor bottom."""
 
-    def __init__(self, height=10.0, length=10.0, thickness=2.0, nh=5, nl=5, nth=3, z0=0.0):
-        front = OneSidedRectangle(height=height, length=length, nh=nh, nl=nl, z0=z0)
+    def __init__(self, height=10.0, width=10.0, thickness=2.0, nh=5, nw=5, nth=3, z0=0.0):
+        front = OneSidedRectangle(height=height, length=width, nh=nh, nl=nw, z0=z0)
         back = front.copy()
 
         front.translate_y(thickness/2)
@@ -239,9 +268,9 @@ class OpenRectangularParallelepiped(FloattingBody):
         other_side = side.copy()
 
         side.rotate_z(np.pi/2)
-        side.translate_x(-length/2)
+        side.translate_x(-width/2)
         other_side.rotate_z(-np.pi/2)
-        other_side.translate_x(length/2)
+        other_side.translate_x(width/2)
 
         combine = front + side + other_side + back
         combine.merge_duplicates()
