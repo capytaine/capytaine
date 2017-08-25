@@ -60,3 +60,8 @@ class Nemoh:
                 added_damping = problem.omega * complex_coef.imag
 
         return added_mass, added_damping
+
+    def solve_all(self, problems, processes=1):
+        from multiprocessing import Pool
+        pool = Pool(processes=processes)
+        return pool.map(self.solve, problems)
