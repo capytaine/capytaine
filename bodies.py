@@ -15,11 +15,9 @@ import sys
 from itertools import product
 
 import numpy as np
-from numpy.linalg import norm
 
 sys.path.append("/home/ancellin/meshmagick/")
-from meshmagick.mesh import Mesh, Plane
-from meshmagick.mesh_clipper import MeshClipper
+from meshmagick.mesh import Mesh
 
 
 class FloattingBody(Mesh):
@@ -29,6 +27,14 @@ class FloattingBody(Mesh):
     def __init__(self, *args, **kwargs):
         Mesh.__init__(self, *args, **kwargs)
         self.dof = {}
+
+    @staticmethod
+    def from_file(filename, file_format):
+        from meshmagick.mmio import load_mesh
+        
+        vertices, faces = load_mesh(filename, file_format)
+
+        return FloattingBody(vertices, faces, name="mesh_from_"+filename)
 
     def __add__(self, body_to_add):
         new_body = Mesh.__add__(self, body_to_add)
@@ -49,6 +55,8 @@ class FloattingBody(Mesh):
 
     def _compute_radiuses(self):
         """Update face radiuses"""
+        from numpy.linalg import norm
+
         faces_radiuses = np.zeros(self.nb_faces, dtype=np.float32)
         for j in range(self.nb_faces): # TODO: optimize by array broadcasting
             faces_radiuses[j] = max(
@@ -64,10 +72,13 @@ class FloattingBody(Mesh):
 
         self.__internals__["faces_radiuses"] = faces_radiuses
 
-    def immerged_part(self, depth=np.infty):
+    def get_immerged_part(self, depth=np.infty):
         """Use Meshmagick mesh clipper to remove the part of the mesh above the
-        free surface and he part of the mesh below the sea bottom.
+        free surface and the part of the mesh below the sea bottom.
         """
+        from meshmagick.geometry import Plane
+        from meshmagick.mesh_clipper import MeshClipper
+
         clipped_mesh = MeshClipper(self,
                                    plane=Plane(normal=(0.0, 0.0, 1.0),
                                                scalar=0.0)).clipped_mesh
@@ -77,15 +88,27 @@ class FloattingBody(Mesh):
                                        plane=Plane(normal=(0.0, 0.0, -1.0),
                                                    scalar=depth)).clipped_mesh
 
+        clipped_mesh.remove_unused_vertices()
+
         return FloattingBody(clipped_mesh.vertices, clipped_mesh.faces)
 
 
 class Sphere(FloattingBody):
     """Floatting body of the shape of a sphere."""
 
-    def __init__(self, radius=1.0, ntheta=11, nphi=11, z0=0.0):
+    def __init__(self, radius=1.0, ntheta=11, nphi=11, z0=0.0, clip_free_surface=False):
 
-        theta = np.linspace(-np.pi, np.pi, ntheta)
+        if clip_free_surface:
+            if z0 < -radius: # fully immerged
+                theta_max = np.pi
+            elif z0 < radius:
+                theta_max = np.arccos(z0/radius)
+            else:
+                raise Exception("Sphere out of the water")
+        else:
+            theta_max = np.pi
+
+        theta = np.linspace(-theta_max, theta_max, ntheta)
         phi = np.linspace(-np.pi/2, np.pi/2, nphi)
 
         # Nodes
@@ -105,18 +128,28 @@ class Sphere(FloattingBody):
             panels[k, :] = (j+i*nphi, j+(i+1)*nphi, j+1+(i+1)*nphi, j+1+i*nphi)
 
         FloattingBody.__init__(self, nodes, panels)
-        self.merge_duplicates()
-        self.heal_triangles()
+        # self.merge_duplicates()
+        # self.heal_triangles()
 
 
 class HorizontalCylinder(FloattingBody):
     """Floatting body of the shape of a cylinder of axis Ox."""
 
-    def __init__(self, length=1.0, radius=1.0, nx=11, nr=3, ntheta=11, z0=0.0):
+    def __init__(self, length=1.0, radius=1.0, nx=11, nr=3, ntheta=11, z0=0.0, clip_free_surface=False):
 
+        if clip_free_surface:
+            if z0 < -radius: # fully immerged
+                theta_max = np.pi
+            elif z0 < radius:
+                theta_max = np.arccos(z0/radius)
+            else:
+                raise Exception("Sphere out of the water")
+        else:
+            theta_max = np.pi
+
+        theta = np.linspace(-theta_max, theta_max, ntheta)
         X = np.linspace(0.0, length, nx)
         R = np.linspace(0.0, radius, nr)
-        theta = np.linspace(-np.pi, np.pi, ntheta)
 
         # Nodes
         nodes = np.zeros((ntheta*(nx+2*nr), 3), dtype=np.float32)
