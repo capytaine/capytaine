@@ -43,7 +43,7 @@ SUBROUTINE BUILD_MATRICES(                                          &
           radiuses_2(J),                &
           depth,                        &
           -1,                           &
-          SP1, VSP1 &
+          SP1, VSP1                     &
           )
 
         CALL VNSINFD                    &
@@ -51,7 +51,7 @@ SUBROUTINE BUILD_MATRICES(                                          &
           centers_1(I, :),              &
           centers_2(J, :),              &
           areas_2(J),                   &
-          SP2, VSP2 &
+          SP2, VSP2                     &
           )
       ELSE
         CALL VAV                        &
@@ -63,7 +63,7 @@ SUBROUTINE BUILD_MATRICES(                                          &
           radiuses_2(J),                &
           depth,                        &
           1,                            &
-          SP1, VSP1           &
+          SP1, VSP1                     &
           )
 
         CALL VNSFD                      &
@@ -72,7 +72,7 @@ SUBROUTINE BUILD_MATRICES(                                          &
           centers_2(J, :),              &
           areas_2(J),                   &
           depth,                        &
-          SP2, VSP2           &
+          SP2, VSP2                     &
           )
       END IF
 
