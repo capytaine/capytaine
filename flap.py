@@ -9,11 +9,8 @@ from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import *
 
 T_range, mu, nu = np.loadtxt("pytest/data/mathematica_mu_nu.tsv").T
-# plt.figure()
-# plt.plot(T_range, mu, linestyle="--", label="Reference added mass")
-# plt.plot(T_range, nu, linestyle="--", label="Reference added damping")
 
-resolutions = [6, 8]
+resolutions = [2, 4]
 for i, resolution in enumerate(resolutions):
     depth = 10.9
     flap = OpenRectangularParallelepiped(
@@ -36,13 +33,3 @@ for i, resolution in enumerate(resolutions):
 
     np.savetxt(f"Results_{30*resolution**2}_cells.tsv", np.asarray(results))
 
-    # plt.plot(
-    #     T_range,
-    #     results[:, 0],
-    #     color=f'{1-(i+1)/len(resolutions)}',
-    #     label=f"Added mass ({30*resolution**2} cells)"
-    # )
-
-# plt.legend()
-# plt.tight_layout()
-# plt.show()
