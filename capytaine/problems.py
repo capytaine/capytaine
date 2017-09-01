@@ -7,7 +7,7 @@ Definition of the problems to solve with the BEM.
 import numpy as np
 from warnings import warn
 
-from capytaine.NemohCore._Wavenumber import invert_xtanhx 
+from capytaine._Wavenumber import invert_xtanhx 
 
 class RadiationProblem:
     """A radiation problem to be solved by the BEM solver."""
