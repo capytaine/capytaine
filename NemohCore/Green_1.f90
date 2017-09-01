@@ -135,7 +135,7 @@ CONTAINS
       ( X0I,                                                        &
       Face_nodes, Face_Center, Face_Normal, Face_area, Face_radius, &
       depth, MK,                                                    &
-      FSP, FSM, VSP, VSM)
+      FSP, VSP)
     ! Main subroutine of the module, called in SOLVE_BEM.f90 and FREESURFACE.f90.
 
     ! Inputs
@@ -147,8 +147,8 @@ CONTAINS
     INTEGER,               INTENT(IN) :: MK
 
     ! Outputs
-    REAL,               INTENT(OUT) :: FSP, FSM ! Integral of the Green function over the panel.
-    REAL, DIMENSION(3), INTENT(OUT) :: VSP, VSM ! Gradient of the integral of the Green function with respect to X0I.
+    REAL,               INTENT(OUT) :: FSP ! Integral of the Green function over the panel.
+    REAL, DIMENSION(3), INTENT(OUT) :: VSP ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
     REAL, DIMENSION(3)  :: XI
@@ -164,48 +164,12 @@ CONTAINS
     CALL COMPUTE_S0(XI, Face_nodes, Face_Center, Face_Normal, Face_area, Face_radius, S1, VS1)
     VS1(3) = -VS1(3)
 
-    ! IF (Mesh%Isym == NO_Y_SYMMETRY) THEN
     ! Add up the contributions of the two problems.
     FSP    = -S0     - MK*S1
     VSP(:) = -VS0(:) - MK*VS1(:)
-    FSM    = 0.0
-    VSM(:) = 0.0
-
-    ! ELSE IF (Mesh%Isym == Y_SYMMETRY) THEN
-    !   ! Add up the contributions of the two problems...
-    !   FSP    = -S0     - MK*S1
-    !   VSP(:) = -VS0(:) - MK*VS1(:)
-    !   FSM    = -S0     - MK*S1
-    !   VSM(:) = -VS0(:) - MK*VS1(:)
-
-    !   !... and do some more.
-
-    !   ! Reflected problem across the symmetry plane (xOz)
-    !   XI(1) = X0I(1)
-    !   XI(2) = -X0I(2)
-    !   XI(3) = X0I(3)
-    !   CALL COMPUTE_S0(XI, Face, S0, VS0)
-    !   VS0(2) = -VS0(2)
-
-    !   ! Reflected problem across the symmetry plane (xOz) and across the free surface/sea bottom.
-    !   XI(1) = X0I(1)
-    !   XI(2) = -X0I(2)
-    !   XI(3) = -X0I(3) - 2*depth
-    !   CALL COMPUTE_S0(XI, Face, S1, VS1)
-    !   VS1(2:3) = -VS1(2:3)
-
-    !   ! Add up the new results.
-    !   FSP    = FSP    - S0     - MK*S1
-    !   VSP(:) = VSP(:) - VS0(:) - MK*VS1(:)
-    !   FSM    = FSM    + S0     + MK*S1
-    !   VSM(:) = VSM(:) + VS0(:) + MK*VS1(:)
-
-    ! END IF
 
     FSP    = FSP/(4*PI)
-    FSM    = FSM/(4*PI)
     VSP(:) = VSP(:)/(4*PI)
-    VSM(:) = VSM(:)/(4*PI)
 
     RETURN
   END SUBROUTINE VAV

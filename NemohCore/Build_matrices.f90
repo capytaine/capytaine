@@ -25,10 +25,10 @@ SUBROUTINE BUILD_MATRICES(                                          &
   ! Local variables
   INTEGER :: I, J
 
-  REAL                  :: SP1,  SM1
-  REAL, DIMENSION(3)    :: VSP1, VSM1
-  COMPLEX               :: SP2,  SM2
-  COMPLEX, DIMENSION(3) :: VSP2, VSM2
+  REAL                  :: SP1
+  REAL, DIMENSION(3)    :: VSP1
+  COMPLEX               :: SP2
+  COMPLEX, DIMENSION(3) :: VSP2
 
   DO I = 1, nb_faces_1
     DO J = 1, nb_faces_2
@@ -43,7 +43,7 @@ SUBROUTINE BUILD_MATRICES(                                          &
           radiuses_2(J),                &
           depth,                        &
           -1,                           &
-          SP1, SM1, VSP1, VSM1          &
+          SP1, VSP1 &
           )
 
         CALL VNSINFD                    &
@@ -51,7 +51,7 @@ SUBROUTINE BUILD_MATRICES(                                          &
           centers_1(I, :),              &
           centers_2(J, :),              &
           areas_2(J),                   &
-          SP2, SM2, VSP2, VSM2          &
+          SP2, VSP2 &
           )
       ELSE
         CALL VAV                        &
@@ -63,7 +63,7 @@ SUBROUTINE BUILD_MATRICES(                                          &
           radiuses_2(J),                &
           depth,                        &
           1,                            &
-          SP1, SM1, VSP1, VSM1          &
+          SP1, VSP1           &
           )
 
         CALL VNSFD                      &
@@ -72,7 +72,7 @@ SUBROUTINE BUILD_MATRICES(                                          &
           centers_2(J, :),              &
           areas_2(J),                   &
           depth,                        &
-          SP2, SM2, VSP2, VSM2          &
+          SP2, VSP2           &
           )
       END IF
 

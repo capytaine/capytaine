@@ -137,9 +137,11 @@ CONTAINS
     RETURN
   END SUBROUTINE COMPUTE_S2
 
+  ! =========================
+
   SUBROUTINE VNSINFD             &
       (wavenumber, X0I, X0J, AJ, &
-      SP, SM, VSP, VSM)
+      SP, VSP)
     ! Compute the frequency-dependent part of the Green function in the infinite depth case.
 
     ! Inputs
@@ -148,11 +150,11 @@ CONTAINS
     REAL, DIMENSION(3), INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
 
     ! Outputs
-    COMPLEX,               INTENT(OUT) :: SP, SM   ! Integral of the Green function over the panel.
-    COMPLEX, DIMENSION(3), INTENT(OUT) :: VSP, VSM ! Gradient of the integral of the Green function with respect to X0I.
+    COMPLEX,               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
+    COMPLEX, DIMENSION(3), INTENT(OUT) :: VSP ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
-    REAL                               :: ADPI, ADPI2, AKDPI, AKDPI2
+    REAL                     :: ADPI, ADPI2, AKDPI, AKDPI2
     REAL, DIMENSION(3)       :: XI
     COMPLEX, DIMENSION(1)    :: FS
     COMPLEX, DIMENSION(3, 1) :: VS
@@ -164,21 +166,6 @@ CONTAINS
     ! IF (Mesh%Isym == 0) THEN
     SP       = FS(1)
     VSP(1:3) = VS(1:3, 1)
-    SM       = CMPLX(0.0, 0.0)
-    VSM      = CMPLX(0.0, 0.0)
-
-    ! ELSE IF (Mesh%Isym == 1) THEN
-    !   ! Reflect the source point across the (xOz) plane and compute another coefficient
-    !   XI(2) = -X0I(2)
-    !   CALL COMPUTE_S2(XI, X0J, wavenumber, FS(2), VS(:, 2))
-    !   VS(2, 2) = -VS(2, 2) ! Reflection of the output vector
-
-    !   ! Assemble the two results
-    !   SP       = FS(1)      + FS(2)
-    !   VSP(1:3) = VS(1:3, 1) + VS(1:3, 2)
-    !   SM       = FS(1)      - FS(2)
-    !   VSM(1:3) = VS(1:3, 1) - VS(1:3, 2)
-    ! END IF
 
     ADPI2  = wavenumber*AJ/DPI2
     ADPI   = wavenumber*AJ/DPI
@@ -188,17 +175,14 @@ CONTAINS
     SP  = CMPLX(REAL(SP)*ADPI2,   AIMAG(SP)*ADPI)
     VSP = CMPLX(REAL(VSP)*AKDPI2, AIMAG(VSP)*AKDPI)
 
-    ! IF (Mesh%ISym == Y_SYMMETRY) THEN
-    !   SM  = CMPLX(REAL(SM)*ADPI2,   AIMAG(SM)*ADPI)
-    !   VSM = CMPLX(REAL(VSM)*AKDPI2, AIMAG(VSM)*AKDPI)
-    ! END IF
-
     RETURN
   END SUBROUTINE VNSINFD
 
+  ! ======================
+
   SUBROUTINE VNSFD &
       (wavenumber, X0I, X0J, AJ, depth, &
-      SP, SM, VSP, VSM)
+      SP, VSP)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
 
     ! Inputs
@@ -207,8 +191,8 @@ CONTAINS
     REAL, DIMENSION(3), INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
 
     ! Outputs
-    COMPLEX,               INTENT(OUT) :: SP, SM   ! Integral of the Green function over the panel.
-    COMPLEX, DIMENSION(3), INTENT(OUT) :: VSP, VSM ! Gradient of the integral of the Green function with respect to X0I.
+    COMPLEX,               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
+    COMPLEX, DIMENSION(3), INTENT(OUT) :: VSP ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
     INTEGER                     :: KE
@@ -259,59 +243,9 @@ CONTAINS
 
     PSR(4, 1) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
 
-    ! IF (Mesh%ISym == NO_Y_SYMMETRY) THEN
-      ! Add up the results of the four problems
-      SP       = -SUM(FS(1:4, 1)) - SUM(PSR(1:4, 1))
-      VSP(1:3) = -SUM(VS(1:3, 1:4, 1), 2)
-      SM       = CMPLX(0.0, 0.0)
-      VSM      = CMPLX(0.0, 0.0)
-
-    ! ELSE IF (Mesh%ISym == Y_SYMMETRY) THEN
-    !   ! If the y-symmetry is used, the four symmetric problems have to be solved
-    !   XI(:) = X0I(:)
-    !   XI(2) = -XI(2)
-    !   ! XI(3) = MIN(X0I(3), -EPS*Mesh%xy_diameter)
-    !   XJ(:) = X0J(:)
-
-    !   RRR = NORM2(XI(1:2) - XJ(1:2))
-
-    !   ! 1.a' First infinite depth problem
-    !   CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, FS(1, 2), VS(:, 1, 2))
-
-    !   PSR(1, 2) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
-
-    !   ! 1.b' Shift and reflect XI and compute another value of the Green function
-    !   XI(3) = -X0I(3) - 2*depth
-    !   XJ(3) =  X0J(3)
-    !   CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, FS(2, 2), VS(:, 2, 2))
-    !   VS(3, 2, 2) = -VS(3, 2, 2)
-
-    !   PSR(2, 2) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
-
-    !   ! 1.c' Shift and reflect XJ and compute another value of the Green function
-    !   XI(3) =  X0I(3)
-    !   XJ(3) = -X0J(3) - 2*depth
-    !   CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, FS(3, 2), VS(:, 3, 2))
-
-    !   PSR(3, 2) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
-
-    !   ! 1.d' Shift and reflect both XI and XJ and compute another value of the Green function
-    !   XI(3) = -X0I(3) - 2*depth
-    !   XJ(3) = -X0J(3) - 2*depth
-    !   CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, FS(4, 2), VS(:, 4, 2))
-    !   VS(3, 4, 2) = -VS(3, 4, 2)
-
-    !   PSR(4, 2) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
-
-    !   ! Reflection of the four output vectors around xOz plane
-    !   VS(2, 1:4, 2) = -VS(2, 1:4, 2)
-
-    !   ! Add up the results of the 2×4 problems
-    !   SP       = -SUM(FS(1:4, 1)) - SUM(PSR(1:4, 1)) - SUM(FS(1:4, 2)) - SUM(PSR(1:4, 2))
-    !   VSP(1:3) = -SUM(VS(1:3, 1:4, 1), 2)            - SUM(VS(1:3, 1:4, 2), 2)
-    !   SM       = -SUM(FS(1:4, 1)) - SUM(PSR(1:4, 1)) + SUM(FS(1:4, 2)) + SUM(PSR(1:4, 2))
-    !   VSM(1:3) = -SUM(VS(1:3, 1:4, 1), 2)            + SUM(VS(1:3, 1:4, 2), 2)
-    ! END IF
+    ! Add up the results of the four problems
+    SP       = -SUM(FS(1:4, 1)) - SUM(PSR(1:4, 1))
+    VSP(1:3) = -SUM(VS(1:3, 1:4, 1), 2)
 
     ! Multiply by some coefficients
     AMH  = wavenumber*depth
@@ -324,11 +258,6 @@ CONTAINS
 
     SP  = CMPLX(REAL(SP)*COF1,  AIMAG(SP)*COF2)
     VSP = CMPLX(REAL(VSP)*COF3, AIMAG(VSP)*COF4)
-
-    ! IF (Mesh%ISym == Y_SYMMETRY) THEN
-    !   SM  = CMPLX(REAL(SM)*COF1,  AIMAG(SM)*COF2)
-    !   VSM = CMPLX(REAL(VSM)*COF3, AIMAG(VSM)*COF4)
-    ! END IF
 
     !=====================================================
     ! Part 2: Integrate (NEXP+1)×4 terms of the form 1/MM'
@@ -360,44 +289,10 @@ CONTAINS
 
       AQT = -AR(KE)/(8*PI)
 
-      ! IF (Mesh%ISym == NO_Y_SYMMETRY) THEN
-        ! Add all the contributions
-        SP     = SP     + AQT*SUM(FTS(1:4, 1))
-        VSP(:) = VSP(:) + AQT*SUM(VTS(1:3, 1:4, 1), 2)
+      ! Add all the contributions
+      SP     = SP     + AQT*SUM(FTS(1:4, 1))
+      VSP(:) = VSP(:) + AQT*SUM(VTS(1:3, 1:4, 1), 2)
 
-      ! ELSE IF (Mesh%ISym == Y_SYMMETRY) THEN
-      !   ! If the y-symmetry is used, the four symmetric problems have to be solved
-      !   XI = X0I(:)
-      !   XI(2) = -X0I(2)
-
-      !   ! 2.a' Shift observation point and compute integral
-      !   XI(3) =  X0I(3) + depth*AMBDA(KE) - 2*depth
-      !   CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), AJ, FTS(1, 2), VTS(:, 1, 2))
-
-      !   ! 2.b' Shift and reflect observation point and compute integral
-      !   XI(3) = -X0I(3) - depth*AMBDA(KE)
-      !   CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), AJ, FTS(2, 2), VTS(:, 2, 2))
-      !   VTS(3, 2, 2) = -VTS(3, 2, 2) ! Reflection of the output vector
-
-      !   ! 2.c' Shift and reflect observation point and compute integral
-      !   XI(3) = -X0I(3) + depth*AMBDA(KE) - 4*depth
-      !   CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), AJ, FTS(3, 2), VTS(:, 3, 2))
-      !   VTS(3, 3, 2) = -VTS(3, 3, 2) ! Reflection of the output vector
-
-      !   ! 2.d' Shift observation point and compute integral
-      !   XI(3) =  X0I(3) - depth*AMBDA(KE) + 2*depth
-      !   CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), AJ, FTS(4, 2), VTS(:, 4, 2))
-
-      !   ! Reflection of the output vector around the xOz plane
-      !   VTS(2, 1:4, 2) = -VTS(2, 1:4, 2)
-
-      !   ! Add all the contributions
-      !   SP     = SP     + AQT*(SUM(FTS(1:4, 1))         + SUM(FTS(1:4, 2)))
-      !   VSP(:) = VSP(:) + AQT*(SUM(VTS(1:3, 1:4, 1), 2) + SUM(VTS(1:3, 1:4, 2), 2))
-      !   SM     = SM     + AQT*(SUM(FTS(1:4, 1))         - SUM(FTS(1:4, 2)))
-      !   VSM(:) = VSM(:) + AQT*(SUM(VTS(1:3, 1:4, 1), 2) - SUM(VTS(1:3, 1:4, 2), 2))
-
-      ! END IF
     END DO
 
     RETURN
