@@ -7,7 +7,7 @@ Solver for the BEM problem based on Nemoh's Green function.
 import numpy as np
 from numpy.linalg import solve
 
-import NemohCore._Green as _Green
+import capytaine.NemohCore._Green as _Green
 
 
 class Nemoh:

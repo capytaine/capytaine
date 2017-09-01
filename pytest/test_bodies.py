@@ -3,7 +3,7 @@
 
 import pytest
 import numpy as np
-from bodies import *
+from capytaine.bodies import *
 
 @pytest.mark.parametrize("size", np.linspace(1, 10, 2))
 @pytest.mark.parametrize("ncells", [6 ,11, 16])

@@ -7,9 +7,9 @@ Exemple computation.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from bodies import HorizontalCylinder
-from problems import RadiationProblem
-from Nemoh import Nemoh
+from capytaine.bodies import HorizontalCylinder
+from capytaine.problems import RadiationProblem
+from capytaine.Nemoh import Nemoh
 
 rho = 1000
 

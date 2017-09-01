@@ -16,7 +16,6 @@ from itertools import product
 
 import numpy as np
 
-sys.path.append("/home/ancellin/meshmagick/")
 from meshmagick.mesh import Mesh
 
 
@@ -282,9 +281,9 @@ class OpenRectangularParallelepiped(FloattingBody):
 class RectangularParallelepiped(FloattingBody):
     """Six panels forming a complete parallelepiped."""
 
-    def __init__(self, height=10.0, length=10.0, thickness=2.0, nh=5, nl=5, nth=3):
-        sides = OpenRectangularParallelepiped(height=height, length=length, thickness=thickness, nh=nh, nl=nl, nth=nth)
-        top = OneSidedRectangle(height=thickness, length=length, nh=nth, nl=nl)
+    def __init__(self, height=10.0, width=10.0, thickness=2.0, nh=5, nl=5, nth=3):
+        sides = OpenRectangularParallelepiped(height=height, width=width, thickness=thickness, nh=nh, nl=nl, nth=nth)
+        top = OneSidedRectangle(height=thickness, length=width, nh=nth, nl=nl)
         bottom = top.copy()
 
         top.rotate_x(np.pi/2)
