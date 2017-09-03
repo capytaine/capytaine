@@ -213,18 +213,18 @@ class HorizontalCylinder(FloattingBody):
 class OneSidedRectangle(FloattingBody):
     """Rectangular panel with cartesian mesh."""
 
-    def __init__(self, height=2.0, length=10.0, nh=5, nl=5, z0=0.0):
+    def __init__(self, height=2.0, width=10.0, nh=5, nw=5, z0=0.0):
 
-        X = np.linspace(-length/2, length/2, nl)
+        X = np.linspace(-width/2, width/2, nw)
         Z = np.linspace(z0, z0+height, nh)
 
-        nodes = np.zeros((nl*nh, 3), dtype=np.float32)
-        panels = np.zeros(((nl-1)*(nh-1), 4), dtype=np.int)
+        nodes = np.zeros((nw*nh, 3), dtype=np.float32)
+        panels = np.zeros(((nw-1)*(nh-1), 4), dtype=np.int)
 
         for i, (x, y, z) in enumerate(product(X, [0.0], Z)):
             nodes[i, :] = x, y, z
 
-        for k, (i, j) in enumerate(product(range(0, nl-1), range(0, nh-1))):
+        for k, (i, j) in enumerate(product(range(0, nw-1), range(0, nh-1))):
             panels[k, :] = (j+i*nh, j+1+i*nh, j+1+(i+1)*nh, j+(i+1)*nh)
 
         FloattingBody.__init__(self, nodes, panels)
@@ -234,20 +234,20 @@ class TwoSidedRectangle(FloattingBody):
     """Rectangular panel with cartesian mesh.
     Each face is defined twice with two opposite normal vectors."""
 
-    def __init__(self, height=2.0, length=10.0, nh=5, nl=5, z0=0.0):
+    def __init__(self, height=2.0, width=10.0, nh=5, nw=5, z0=0.0):
 
-        X = np.linspace(-length/2, length/2, nl)
+        X = np.linspace(-width/2, width/2, nw)
         Z = np.linspace(z0, z0+height, nh)
 
-        nodes = np.zeros((nl*nh, 3), dtype=np.float32)
-        panels = np.zeros((2*(nl-1)*(nh-1), 4), dtype=np.int)
+        nodes = np.zeros((nw*nh, 3), dtype=np.float32)
+        panels = np.zeros((2*(nw-1)*(nh-1), 4), dtype=np.int)
 
         for i, (x, y, z) in enumerate(product(X, [0.0], Z)):
             nodes[i, :] = x, y, z
 
-        for k, (i, j) in enumerate(product(range(0, nl-1), range(0, nh-1))):
+        for k, (i, j) in enumerate(product(range(0, nw-1), range(0, nh-1))):
             panels[k, :] = (j+i*nh, j+1+i*nh, j+1+(i+1)*nh, j+(i+1)*nh)
-            panels[(nl-1)*(nh-1)+k, :] = (j+i*nh, j+(i+1)*nh, j+1+(i+1)*nh, j+1+i*nh)
+            panels[(nw-1)*(nh-1)+k, :] = (j+i*nh, j+(i+1)*nh, j+1+(i+1)*nh, j+1+i*nh)
 
         FloattingBody.__init__(self, nodes, panels)
 
@@ -256,14 +256,14 @@ class OpenRectangularParallelepiped(FloattingBody):
     """Four panels forming a parallelepiped without top nor bottom."""
 
     def __init__(self, height=10.0, width=10.0, thickness=2.0, nh=5, nw=5, nth=3, z0=0.0):
-        front = OneSidedRectangle(height=height, length=width, nh=nh, nl=nw, z0=z0)
+        front = OneSidedRectangle(height=height, width=width, nh=nh, nw=nw, z0=z0)
         back = front.copy()
 
         front.translate_y(thickness/2)
         back.rotate_z(np.pi)
         back.translate_y(-thickness/2)
 
-        side = OneSidedRectangle(height=height, length=thickness, nh=nh, nl=nth, z0=z0)
+        side = OneSidedRectangle(height=height, width=thickness, nh=nh, nw=nth, z0=z0)
         other_side = side.copy()
 
         side.rotate_z(np.pi/2)
@@ -281,9 +281,9 @@ class OpenRectangularParallelepiped(FloattingBody):
 class RectangularParallelepiped(FloattingBody):
     """Six panels forming a complete parallelepiped."""
 
-    def __init__(self, height=10.0, width=10.0, thickness=2.0, nh=5, nl=5, nth=3):
-        sides = OpenRectangularParallelepiped(height=height, width=width, thickness=thickness, nh=nh, nl=nl, nth=nth)
-        top = OneSidedRectangle(height=thickness, length=width, nh=nth, nl=nl)
+    def __init__(self, height=10.0, width=10.0, thickness=2.0, nh=5, nw=5, nth=3):
+        sides = OpenRectangularParallelepiped(height=height, width=width, thickness=thickness, nh=nh, nw=nw, nth=nth)
+        top = OneSidedRectangle(height=thickness, width=width, nh=nth, nw=nw)
         bottom = top.copy()
 
         top.rotate_x(np.pi/2)

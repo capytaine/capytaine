@@ -9,7 +9,7 @@ from capytaine.bodies import *
 @pytest.mark.parametrize("ncells", [6 ,11, 16])
 def test_parallelepiped(size, ncells):
     rp = RectangularParallelepiped(
-            height=size, length=size, thickness=size, nh=ncells, nl=ncells, nth=ncells)
+            height=size, width=size, thickness=size, nh=ncells, nw=ncells, nth=ncells)
     assert np.allclose(
             rp.faces_areas, [(size/(ncells-1))**2] * rp.nb_faces, rtol=1e-3)
     assert np.allclose(
