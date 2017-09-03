@@ -1,6 +1,6 @@
 package:
   name: capytaine
-  version: 0.0
+  version: 0.1
 
 source:
   path: /home/ancellin/capytaine/
@@ -9,14 +9,15 @@ requirements:
   build:
     - python
     - setuptools
+	- numpy
 
   run:
     - python
     - numpy
 
-test:
-  imports:
-    - capytaine
+# test:
+#   imports:
+#     - capytaine
 
 about:
   home: https://github.com/mancellin/capytaine
