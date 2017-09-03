@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 """
-Exemple computation.
+Exemple computation: added mass and damping of an horizontal cylinder.
 """
 
 import numpy as np

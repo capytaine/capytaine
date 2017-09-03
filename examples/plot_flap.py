@@ -5,7 +5,7 @@ import glob
 import numpy as np
 import matplotlib.pyplot as plt
 
-T_range, mu, nu = np.loadtxt("pytest/data/mathematica_mu_nu.tsv").T
+T_range, mu, nu = np.loadtxt("data/flap_mu_nu.tsv").T
 
 plt.figure(1)
 plt.plot(T_range, mu, linestyle="--", label="Reference added mass")

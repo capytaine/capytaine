@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""
+Exemple computation: added mass and damping of an oscillating flap.
+"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,9 +11,9 @@ from capytaine.bodies import *
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import *
 
-T_range, mu, nu = np.loadtxt("pytest/data/mathematica_mu_nu.tsv").T
+T_range, mu, nu = np.loadtxt("data/flap_mu_nu.tsv").T
 
-resolutions = [2, 4]
+resolutions = [2]
 for i, resolution in enumerate(resolutions):
     depth = 10.9
     flap = OpenRectangularParallelepiped(
