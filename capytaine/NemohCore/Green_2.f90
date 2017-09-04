@@ -1,7 +1,7 @@
 MODULE Green_2
 
-  USE Green_1, ONLY: COMPUTE_ASYMPTOTIC_S0
   USE Initialize_Green_2
+  USE Green_1, ONLY: COMPUTE_ASYMPTOTIC_S0
 
   IMPLICIT NONE
 
@@ -297,5 +297,60 @@ CONTAINS
 
     RETURN
   END SUBROUTINE
+
+  ! =====================================================================
+
+  SUBROUTINE BUILD_MATRIX_2(            &
+      nb_faces_1, centers_1, normals_1, &
+      nb_faces_2,                       &
+      centers_2, areas_2,               &
+      wavenumber, depth,                &
+      S, V)
+
+    INTEGER,                              INTENT(IN) :: nb_faces_1, nb_faces_2
+    REAL,    DIMENSION(nb_faces_1, 3),    INTENT(IN) :: normals_1, centers_1
+    REAL,    DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2
+    REAL,    DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2
+    REAL,                                 INTENT(IN) :: wavenumber, depth
+
+    COMPLEX, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
+    COMPLEX, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
+
+    ! Local variables
+    INTEGER :: I, J
+    COMPLEX               :: SP2
+    COMPLEX, DIMENSION(3) :: VSP2
+
+    DO I = 1, nb_faces_1
+      DO J = 1, nb_faces_2
+
+        IF (depth == 0.0) THEN
+          CALL VNSINFD                    &
+            (wavenumber,                  &
+            centers_1(I, :),              &
+            centers_2(J, :),              &
+            areas_2(J),                   &
+            SP2, VSP2                     &
+            )
+        ELSE
+          CALL VNSFD                      &
+            (wavenumber,                  &
+            centers_1(I, :),              &
+            centers_2(J, :),              &
+            areas_2(J),                   &
+            depth,                        &
+            SP2, VSP2                     &
+            )
+        END IF
+
+        S(I, J) = SP2                                ! Green function
+        V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2) ! Gradient of the Green function
+
+      END DO
+    END DO
+
+  END SUBROUTINE
+
+  ! =====================================================================
 
 END MODULE Green_2

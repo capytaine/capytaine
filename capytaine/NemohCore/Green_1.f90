@@ -129,48 +129,51 @@ CONTAINS
 
   END SUBROUTINE COMPUTE_ASYMPTOTIC_S0
 
-  ! ===============================
+  ! ====================================
 
-  SUBROUTINE VAV                                                    &
-      ( X0I,                                                        &
-      Face_nodes, Face_Center, Face_Normal, Face_area, Face_radius, &
-      depth, MK,                                                    &
-      FSP, VSP)
-    ! Main subroutine of the module, called in SOLVE_BEM.f90 and FREESURFACE.f90.
+  SUBROUTINE BUILD_MATRIX_0(                                          &
+      nb_faces_1, centers_1, normals_1,                               &
+      nb_vertices_2, nb_faces_2,                                      &
+      vertices_2, faces_2, centers_2, normals_2, areas_2, radiuses_2, &
+      S, V)
 
-    ! Inputs
-    REAL, DIMENSION(3),    INTENT(IN) :: X0I  ! Coordinates of the source point.
-    REAL, DIMENSION(4, 3), INTENT(IN) :: Face_nodes
-    REAL, DIMENSION(3),    INTENT(IN) :: Face_center, Face_Normal
-    REAL,                  INTENT(IN) :: Face_area, Face_radius
-    REAL,                  INTENT(IN) :: depth
-    INTEGER,               INTENT(IN) :: MK
+    INTEGER,                              INTENT(IN) :: nb_faces_1, nb_faces_2, nb_vertices_2
+    REAL,    DIMENSION(nb_faces_1, 3),    INTENT(IN) :: centers_1, normals_1
+    REAL,    DIMENSION(nb_vertices_2, 3), INTENT(IN) :: vertices_2
+    INTEGER, DIMENSION(nb_faces_2, 4),    INTENT(IN) :: faces_2
+    REAL,    DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2, normals_2
+    REAL,    DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2, radiuses_2
 
-    ! Outputs
-    REAL,               INTENT(OUT) :: FSP ! Integral of the Green function over the panel.
-    REAL, DIMENSION(3), INTENT(OUT) :: VSP ! Gradient of the integral of the Green function with respect to X0I.
+    REAL, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
+    REAL, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
 
     ! Local variables
-    REAL, DIMENSION(3)  :: XI
-    REAL                :: S0, S1
-    REAL, DIMENSION(3)  :: VS0, VS1
+    INTEGER :: I, J
+    REAL                  :: SP1
+    REAL, DIMENSION(3)    :: VSP1
 
-    XI(:) = X0I(:)
-    CALL COMPUTE_S0(XI, Face_nodes, Face_Center, Face_Normal, Face_area, Face_radius, S0, VS0)
+    DO I = 1, nb_faces_1
+      DO J = 1, nb_faces_2
 
-    ! Reflected problem across the free surface/sea bottom.
-    XI(:) = X0I(:)
-    XI(3) = -X0I(3) - 2*depth
-    CALL COMPUTE_S0(XI, Face_nodes, Face_Center, Face_Normal, Face_area, Face_radius, S1, VS1)
-    VS1(3) = -VS1(3)
+        CALL COMPUTE_S0                 &
+          (centers_1(I, :),             &
+          vertices_2(faces_2(J, :), :), &
+          centers_2(J, :),              &
+          normals_2(J, :),              &
+          areas_2(J),                   &
+          radiuses_2(J),                &
+          SP1, VSP1                     &
+          )
 
-    ! Add up the contributions of the two problems.
-    FSP    = -S0     - MK*S1
-    VSP(:) = -VS0(:) - MK*VS1(:)
+        ! Store into influence matrix
+        S(I, J) = -SP1/(4*PI)                                ! Green function
+        V(I, J) = DOT_PRODUCT(normals_1(I, :), -VSP1)/(4*PI) ! Gradient of the Green function
 
-    FSP    = FSP/(4*PI)
-    VSP(:) = VSP(:)/(4*PI)
+      END DO
+    END DO
 
-    RETURN
-  END SUBROUTINE VAV
+  END SUBROUTINE
+
+  ! ====================================
+
 END MODULE Green_1

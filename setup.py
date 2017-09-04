@@ -9,7 +9,6 @@ Green = Extension(
         "capytaine/NemohCore/Green_1.f90",
         "capytaine/NemohCore/Initialize_Green_2.f90",
         "capytaine/NemohCore/Green_2.f90",
-        "capytaine/NemohCore/Build_matrices.f90",
     ]
 )
 
