@@ -71,7 +71,7 @@ class FloattingBody(Mesh):
 
         self.__internals__["faces_radiuses"] = faces_radiuses
 
-    def get_immerged_part(self, depth=np.infty):
+    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
         """Use Meshmagick mesh clipper to remove the part of the mesh above the
         free surface and the part of the mesh below the sea bottom.
         """
@@ -80,12 +80,12 @@ class FloattingBody(Mesh):
 
         clipped_mesh = MeshClipper(self,
                                    plane=Plane(normal=(0.0, 0.0, 1.0),
-                                               scalar=0.0)).clipped_mesh
+                                               scalar=free_surface)).clipped_mesh
 
-        if depth < np.infty:
+        if sea_bottom > -np.infty:
             clipped_mesh = MeshClipper(clipped_mesh,
                                        plane=Plane(normal=(0.0, 0.0, -1.0),
-                                                   scalar=depth)).clipped_mesh
+                                                   scalar=-sea_bottom)).clipped_mesh
 
         clipped_mesh.remove_unused_vertices()
 
