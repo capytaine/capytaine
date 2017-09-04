@@ -21,7 +21,7 @@ solver = Nemoh()
 
 omega_range = np.linspace(0.1, 5.0, 40)
 
-problems = [RadiationProblem(bodies=[cylinder], rho=rho, depth=np.infty, omega=omega) for omega in omega_range]
+problems = [RadiationProblem(bodies=[cylinder], rho=rho, omega=omega) for omega in omega_range]
 
 results = solver.solve_all(problems, processes=4)
 
