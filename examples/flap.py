@@ -7,7 +7,7 @@ Exemple computation: added mass and damping of an oscillating flap.
 import numpy as np
 import matplotlib.pyplot as plt
 
-from capytaine.bodies import *
+from capytaine.reference_bodies import OpenRectangularParallelepiped
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import *
 

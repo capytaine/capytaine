@@ -2,7 +2,7 @@
 # coding: utf-8
 
 import numpy as np
-from capytaine.bodies import *
+from capytaine.reference_bodies import *
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import *
 
