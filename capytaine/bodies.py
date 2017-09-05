@@ -64,16 +64,73 @@ class FloattingBody(Mesh):
         self.__internals__["faces_radiuses"] = faces_radiuses
 
     def _build_matrices_0(self):
-        if 'S0' not in self.__internals__:
+        if 'Green0' not in self.__internals__:
             S0, V0 = _Green.green_1.build_matrix_0(
                 self.faces_centers, self.faces_normals,
                 self.vertices,      self.faces + 1,
                 self.faces_centers, self.faces_normals,
                 self.faces_areas,   self.faces_radiuses,
                 )
-            self.__internals__['S0'] = S0
-            self.__internals__['V0'] = V0
-        return self.__internals__['S0'], self.__internals__['V0']
+            self.__internals__['Green0'] = (S0, V0)
+        return self.__internals__['Green0']
+
+    def _build_matrices_1(self, free_surface, sea_bottom):
+        if 'Green1' not in self.__internals__:
+            self.__internals__['Green1'] = {}
+
+        depth = free_surface-sea_bottom
+        if depth not in self.__internals__['Green1']:
+            def reflect_vector(x):
+                y = x.copy()
+                y[:, 2] = -x[:, 2]
+                return y
+
+            if depth == np.infty:
+                def reflect_point(x):
+                    y = x.copy()
+                    y[:, 2] = 2*free_surface - x[:, 2] 
+                    return y
+            else:
+                def reflect_point(x):
+                    y = x.copy()
+                    y[:, 2] = 2*sea_bottom - x[:, 2]
+                    return y
+
+            S1, V1 = _Green.green_1.build_matrix_0(
+                reflect_point(self.faces_centers), reflect_vector(self.faces_normals),
+                self.vertices,      self.faces + 1,
+                self.faces_centers, self.faces_normals,
+                self.faces_areas,   self.faces_radiuses,
+                )
+
+            if depth == np.infty:
+                self.__internals__['Green1'][np.infty] = (-S1, -V1)
+            else:
+                self.__internals__['Green1'][depth] = (S1, V1)
+
+        return self.__internals__['Green1'][depth]
+
+    def _build_matrices_2(self, free_surface, sea_bottom, wavenumber):
+        if 'Green2' not in self.__internals__:
+            self.__internals__['Green2'] = {}
+
+        depth = free_surface - sea_bottom
+        if (depth, wavenumber) not in self.__internals__['Green1']:
+            if depth == np.infty:
+                S2, V2 = _Green.green_2.build_matrix_2(
+                    self.faces_centers, self.faces_normals,
+                    self.faces_centers, self.faces_areas,  
+                    wavenumber,       0.0
+                    )
+            else:
+                S2, V2 = _Green.green_2.build_matrix_2(
+                    self.faces_centers, self.faces_normals,
+                    self.faces_centers, self.faces_areas,  
+                    wavenumber,         depth
+                    )
+            self.__internals__['Green1'][(depth, wavenumber)] = (S2, V2)
+
+        return self.__internals__['Green1'][(depth, wavenumber)]
 
     def build_matrices(self, free_surface, sea_bottom, wavenumber):
         """Build the matrices of Green coefficients.
@@ -87,66 +144,13 @@ class FloattingBody(Mesh):
 
         if free_surface < np.infty:
 
-            if sea_bottom == -np.infty:
+            S1, V1 = self._build_matrices_1(free_surface, sea_bottom)
+            S += S1
+            V += V1
 
-                def reflect_point(x):
-                    y = x.copy()
-                    y[:, 2] = 2*free_surface - x[:, 2] 
-                    return y
-                def reflect_vector(x):
-                    y = x.copy()
-                    y[:, 2] = -x[:, 2]
-                    return y
-
-                S1, V1 = _Green.green_1.build_matrix_0(
-                    reflect_point(self.faces_centers), reflect_vector(self.faces_normals),
-                    self.vertices,      self.faces + 1,
-                    self.faces_centers, self.faces_normals,
-                    self.faces_areas,   self.faces_radiuses,
-                    )
-
-                S += -S1
-                V += -V1
-
-                S2, V2 = _Green.green_2.build_matrix_2(
-                    self.faces_centers, self.faces_normals,
-                    self.faces_centers, self.faces_areas,  
-                    wavenumber,       0.0
-                    )
-
-                S += S2
-                V += V2
-                
-            else:
-
-                def reflect_point(x):
-                    y = x.copy()
-                    y[:, 2] = 2*sea_bottom - x[:, 2]
-                    return y
-                def reflect_vector(x):
-                    y = x.copy()
-                    y[:, 2] = -x[:, 2]
-                    return y
-
-                S1, V1 = _Green.green_1.build_matrix_0(
-                    reflect_point(self.faces_centers), reflect_vector(self.faces_normals),
-                    self.vertices,      self.faces + 1,
-                    self.faces_centers, self.faces_normals,
-                    self.faces_areas,   self.faces_radiuses,
-                    )
-
-                S += S1
-                V += V1
-
-
-                S2, V2 = _Green.green_2.build_matrix_2(
-                    self.faces_centers, self.faces_normals,
-                    self.faces_centers, self.faces_areas,  
-                    wavenumber,         free_surface - sea_bottom
-                    )
-
-                S += S2
-                V += V2
+            S2, V2 = self._build_matrices_2(free_surface, sea_bottom, wavenumber)
+            S += S2
+            V += V2
 
         return S, V
 
