@@ -9,6 +9,8 @@ import numpy as np
 
 from meshmagick.mesh import Mesh
 
+import capytaine._Green as _Green
+
 class FloattingBody(Mesh):
     """A floatting body composed of a mesh (inherited from Meshmagick) and
     several degrees of freedom (dof)."""
@@ -60,6 +62,93 @@ class FloattingBody(Mesh):
                 )
 
         self.__internals__["faces_radiuses"] = faces_radiuses
+
+    def _build_matrices_0(self):
+        if 'S0' not in self.__internals__:
+            S0, V0 = _Green.green_1.build_matrix_0(
+                self.faces_centers, self.faces_normals,
+                self.vertices,      self.faces + 1,
+                self.faces_centers, self.faces_normals,
+                self.faces_areas,   self.faces_radiuses,
+                )
+            self.__internals__['S0'] = S0
+            self.__internals__['V0'] = V0
+        return self.__internals__['S0'], self.__internals__['V0']
+
+    def build_matrices(self, free_surface, sea_bottom, wavenumber):
+        """Build the matrices of Green coefficients.
+        """
+        S = np.zeros((self.nb_faces, self.nb_faces), dtype=np.complex64)
+        V = np.zeros((self.nb_faces, self.nb_faces), dtype=np.complex64)
+
+        S0, V0 = self._build_matrices_0()
+        S += S0
+        V += V0
+
+        if free_surface < np.infty:
+
+            if sea_bottom == -np.infty:
+
+                def reflect_point(x):
+                    y = x.copy()
+                    y[:, 2] = 2*free_surface - x[:, 2] 
+                    return y
+                def reflect_vector(x):
+                    y = x.copy()
+                    y[:, 2] = -x[:, 2]
+                    return y
+
+                S1, V1 = _Green.green_1.build_matrix_0(
+                    reflect_point(self.faces_centers), reflect_vector(self.faces_normals),
+                    self.vertices,      self.faces + 1,
+                    self.faces_centers, self.faces_normals,
+                    self.faces_areas,   self.faces_radiuses,
+                    )
+
+                S += -S1
+                V += -V1
+
+                S2, V2 = _Green.green_2.build_matrix_2(
+                    self.faces_centers, self.faces_normals,
+                    self.faces_centers, self.faces_areas,  
+                    wavenumber,       0.0
+                    )
+
+                S += S2
+                V += V2
+                
+            else:
+
+                def reflect_point(x):
+                    y = x.copy()
+                    y[:, 2] = 2*sea_bottom - x[:, 2]
+                    return y
+                def reflect_vector(x):
+                    y = x.copy()
+                    y[:, 2] = -x[:, 2]
+                    return y
+
+                S1, V1 = _Green.green_1.build_matrix_0(
+                    reflect_point(self.faces_centers), reflect_vector(self.faces_normals),
+                    self.vertices,      self.faces + 1,
+                    self.faces_centers, self.faces_normals,
+                    self.faces_areas,   self.faces_radiuses,
+                    )
+
+                S += S1
+                V += V1
+
+
+                S2, V2 = _Green.green_2.build_matrix_2(
+                    self.faces_centers, self.faces_normals,
+                    self.faces_centers, self.faces_areas,  
+                    wavenumber,         free_surface - sea_bottom
+                    )
+
+                S += S2
+                V += V2
+
+        return S, V
 
     def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
         """Use Meshmagick mesh clipper to remove the part of the mesh above the
