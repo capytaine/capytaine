@@ -11,6 +11,7 @@ from meshmagick.mesh import Mesh
 
 import capytaine._Green as _Green
 
+
 class FloattingBody(Mesh):
     """A floatting body composed of a mesh (inherited from Meshmagick) and
     several degrees of freedom (dof)."""
@@ -63,23 +64,31 @@ class FloattingBody(Mesh):
 
         self.__internals__["faces_radiuses"] = faces_radiuses
 
-    def _build_matrices_0(self):
+    def _build_matrices_0(self, body):
+        """Compute the influence of self on body"""
+
         if 'Green0' not in self.__internals__:
+            self.__internals__['Green0'] = {}
+
+        if body not in self.__internals__['Green0']:
             S0, V0 = _Green.green_1.build_matrix_0(
                 self.faces_centers, self.faces_normals,
-                self.vertices,      self.faces + 1,
-                self.faces_centers, self.faces_normals,
-                self.faces_areas,   self.faces_radiuses,
+                body.vertices,      body.faces + 1,
+                body.faces_centers, body.faces_normals,
+                body.faces_areas,   body.faces_radiuses,
                 )
-            self.__internals__['Green0'] = (S0, V0)
-        return self.__internals__['Green0']
+            self.__internals__['Green0'][body] = (S0, V0)
 
-    def _build_matrices_1(self, free_surface, sea_bottom):
+        return self.__internals__['Green0'][body]
+
+    def _build_matrices_1(self, body, free_surface, sea_bottom):
         if 'Green1' not in self.__internals__:
             self.__internals__['Green1'] = {}
+        if body not in self.__internals__['Green1']:
+            self.__internals__['Green1'][body] = {}
 
         depth = free_surface-sea_bottom
-        if depth not in self.__internals__['Green1']:
+        if depth not in self.__internals__['Green1'][body]:
             def reflect_vector(x):
                 y = x.copy()
                 y[:, 2] = -x[:, 2]
@@ -98,57 +107,59 @@ class FloattingBody(Mesh):
 
             S1, V1 = _Green.green_1.build_matrix_0(
                 reflect_point(self.faces_centers), reflect_vector(self.faces_normals),
-                self.vertices,      self.faces + 1,
-                self.faces_centers, self.faces_normals,
-                self.faces_areas,   self.faces_radiuses,
+                body.vertices,      body.faces + 1,
+                body.faces_centers, body.faces_normals,
+                body.faces_areas,   body.faces_radiuses,
                 )
 
             if depth == np.infty:
-                self.__internals__['Green1'][np.infty] = (-S1, -V1)
+                self.__internals__['Green1'][body][np.infty] = (-S1, -V1)
             else:
-                self.__internals__['Green1'][depth] = (S1, V1)
+                self.__internals__['Green1'][body][depth] = (S1, V1)
 
-        return self.__internals__['Green1'][depth]
+        return self.__internals__['Green1'][body][depth]
 
-    def _build_matrices_2(self, free_surface, sea_bottom, wavenumber):
+    def _build_matrices_2(self, body, free_surface, sea_bottom, wavenumber):
         if 'Green2' not in self.__internals__:
             self.__internals__['Green2'] = {}
+        if body not in self.__internals__['Green2']:
+            self.__internals__['Green2'][body] = {}
 
         depth = free_surface - sea_bottom
-        if (depth, wavenumber) not in self.__internals__['Green1']:
+        if (depth, wavenumber) not in self.__internals__['Green2'][body]:
             if depth == np.infty:
                 S2, V2 = _Green.green_2.build_matrix_2(
                     self.faces_centers, self.faces_normals,
-                    self.faces_centers, self.faces_areas,  
+                    body.faces_centers, body.faces_areas,  
                     wavenumber,       0.0
                     )
             else:
                 S2, V2 = _Green.green_2.build_matrix_2(
                     self.faces_centers, self.faces_normals,
-                    self.faces_centers, self.faces_areas,  
+                    body.faces_centers, body.faces_areas,  
                     wavenumber,         depth
                     )
-            self.__internals__['Green1'][(depth, wavenumber)] = (S2, V2)
+            self.__internals__['Green2'][body][(depth, wavenumber)] = (S2, V2)
 
-        return self.__internals__['Green1'][(depth, wavenumber)]
+        return self.__internals__['Green2'][body][(depth, wavenumber)]
 
-    def build_matrices(self, free_surface, sea_bottom, wavenumber):
+    def build_matrices(self, body, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
         """Build the matrices of Green coefficients.
         """
         S = np.zeros((self.nb_faces, self.nb_faces), dtype=np.complex64)
         V = np.zeros((self.nb_faces, self.nb_faces), dtype=np.complex64)
 
-        S0, V0 = self._build_matrices_0()
+        S0, V0 = self._build_matrices_0(body)
         S += S0
         V += V0
 
         if free_surface < np.infty:
 
-            S1, V1 = self._build_matrices_1(free_surface, sea_bottom)
+            S1, V1 = self._build_matrices_1(body, free_surface, sea_bottom)
             S += S1
             V += V1
 
-            S2, V2 = self._build_matrices_2(free_surface, sea_bottom, wavenumber)
+            S2, V2 = self._build_matrices_2(body, free_surface, sea_bottom, wavenumber)
             S += S2
             V += V2
 

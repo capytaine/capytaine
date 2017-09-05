@@ -34,6 +34,10 @@ class RadiationProblem:
                 warn(f"""The mesh of the body {body.name} is not inside the domain.\nUse body.get_immersed_part() to clip the mesh.""")
         self.bodies = bodies
 
+        self.nb_total_dofs = sum([len(body.dof) for body in self.bodies])
+        # self.added_mass    = np.zeros((nb_total_dofs, nb_total_dofs), dtype=np.float32)
+        # self.added_damping = np.zeros((nb_total_dofs, nb_total_dofs), dtype=np.float32)
+
     @property
     def depth(self):
         return self.free_surface - self.sea_bottom
