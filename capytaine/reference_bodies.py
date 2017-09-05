@@ -17,7 +17,10 @@ from capytaine.bodies import *
 class Sphere(FloattingBody):
     """Floatting body of the shape of a sphere."""
 
-    def __init__(self, radius=1.0, ntheta=11, nphi=11, z0=0.0, clip_free_surface=False):
+    def __init__(self,
+            radius=1.0, ntheta=11, nphi=11,
+            z0=0.0, clip_free_surface=False,
+            half=False):
 
         if clip_free_surface:
             if z0 < -radius: # fully immerged
@@ -29,7 +32,10 @@ class Sphere(FloattingBody):
         else:
             theta_max = np.pi
 
-        theta = np.linspace(-theta_max, theta_max, ntheta)
+        if half:
+            theta = np.linspace(-theta_max, 0.0, ntheta)
+        else:
+            theta = np.linspace(-theta_max, theta_max, ntheta)
         phi = np.linspace(-np.pi/2, np.pi/2, nphi)
 
         # Nodes
@@ -49,8 +55,15 @@ class Sphere(FloattingBody):
             panels[k, :] = (j+i*nphi, j+(i+1)*nphi, j+1+(i+1)*nphi, j+1+i*nphi)
 
         FloattingBody.__init__(self, nodes, panels)
-        # self.merge_duplicates()
-        # self.heal_triangles()
+        self.merge_duplicates()
+        self.heal_triangles()
+
+
+class HalfSphere(FloattingBody):
+    """Floatting body of the shape of half a sphere."""
+
+    def __init__(self, **kwargs):
+        Sphere.__init__(self, half=True, **kwargs)
 
 
 class HorizontalCylinder(FloattingBody):
