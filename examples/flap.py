@@ -25,12 +25,12 @@ for i, resolution in enumerate(resolutions):
         nth=2
     )
     flap.translate_z(-depth)
-    flap.dof["Oscillation"] = np.asarray([
+    flap.dofs["Oscillation"] = np.asarray([
         flap.faces_normals[j, 1] *
         (flap.faces_centers[j, 2] + 9.4) * np.heaviside(flap.faces_centers[j, 2] + 9.4, 0.0)
         for j in range(flap.nb_faces)])
 
-    problems = [RadiationProblem(bodies=[flap], omega=omega, sea_bottom=-depth) for omega in 2*np.pi/T_range]
+    problems = [RadiationProblem(body=flap, omega=omega, sea_bottom=-depth) for omega in 2*np.pi/T_range]
     solver = Nemoh()
     results = np.asarray(solver.solve_all(problems, processes=3))
 

@@ -29,38 +29,28 @@ class Nemoh:
 
         added_masses, added_dampings = [], []
 
-        for radiating_body in problem.bodies:
-            S, V = radiating_body.build_matrices(
-                radiating_body,
-                problem.free_surface,
-                problem.sea_bottom,
-                problem.wavenumber
-            )
+        S, V = problem.body.build_matrices(
+            problem.body,
+            problem.free_surface,
+            problem.sea_bottom,
+            problem.wavenumber
+        )
 
-            identity = np.identity(V.shape[0], dtype=np.float32)
+        identity = np.identity(V.shape[0], dtype=np.float32)
 
-            for dof_name, radiating_dof in radiating_body.dof.items():
-                sources = solve(V + identity/2, radiating_dof)
+        for _, radiating_dof in problem.body.dofs.items():
+            sources = solve(V + identity/2, radiating_dof)
+            potential = S @ sources
 
-                for influenced_body in problem.bodies:
-                    S, V = radiating_body.build_matrices(
-                        influenced_body,
-                        problem.free_surface,
-                        problem.sea_bottom,
-                        problem.wavenumber
-                    )
-                    potential = S @ sources
+            for _, influenced_dof in problem.body.dofs.items():
+                complex_coef = - problem.rho * \
+                    potential @ (influenced_dof * problem.body.faces_areas)
 
-                    for dof_name, influenced_dof in influenced_body.dof.items():
+                added_masses.append(complex_coef.real)
+                added_dampings.append(problem.omega * complex_coef.imag)
 
-                        complex_coef = - problem.rho * \
-                            potential @ (influenced_dof * influenced_body.faces_areas)
-
-                        added_masses.append(complex_coef.real)
-                        added_dampings.append(problem.omega * complex_coef.imag)
-
-        return np.array(added_masses).reshape((problem.nb_total_dofs, problem.nb_total_dofs)), \
-               np.array(added_dampings).reshape((problem.nb_total_dofs, problem.nb_total_dofs))
+        return np.array(added_masses).reshape((problem.body.nb_dofs, problem.body.nb_dofs)), \
+               np.array(added_dampings).reshape((problem.body.nb_dofs, problem.body.nb_dofs))
 
     def solve_all(self, problems, processes=1):
         from multiprocessing import Pool

@@ -15,13 +15,13 @@ rho = 1000
 
 cylinder = HorizontalCylinder(length=10.0, radius=1.0, nx=80, nr=2, ntheta=20)
 cylinder.translate_z(-2.0)
-cylinder.dof["Heave"] = cylinder.faces_normals @ (0, 0, 1)
+cylinder.dofs["Heave"] = cylinder.faces_normals @ (0, 0, 1)
 
 solver = Nemoh()
 
 omega_range = np.linspace(0.1, 5.0, 40)
 
-problems = [RadiationProblem(bodies=[cylinder], rho=rho, omega=omega) for omega in omega_range]
+problems = [RadiationProblem(body=cylinder, rho=rho, omega=omega) for omega in omega_range]
 
 # results = solver.solve_all(problems, processes=4)
 results = [solver.solve(pb) for pb in problems]

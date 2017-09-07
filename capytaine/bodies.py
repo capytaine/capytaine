@@ -18,7 +18,7 @@ class FloattingBody(Mesh):
 
     def __init__(self, *args, **kwargs):
         Mesh.__init__(self, *args, **kwargs)
-        self.dof = {}
+        self.dofs = {}
 
     @staticmethod
     def from_file(filename, file_format):
@@ -31,7 +31,33 @@ class FloattingBody(Mesh):
     def __add__(self, body_to_add):
         new_body = Mesh.__add__(self, body_to_add)
         new_body.__class__ = FloattingBody
+
+        new_body.dofs = {}
+        for name, dof in self.dofs.items():
+            new_body.dofs['_'.join([name, self.name])] = np.r_[dof, np.zeros(body_to_add.nb_faces)]
+        for name, dof in body_to_add.dofs.items():
+            new_body.dofs['_'.join([name, body_to_add.name])] = np.r_[np.zeros(self.nb_faces), dof]
         return new_body
+
+    def extract_faces(self, id_faces_to_extract, return_index=False):
+        if return_index:
+            new_body, id_v = Mesh.extract_faces(self, id_faces_to_extract, return_index)
+        else:
+            new_body = Mesh.extract_faces(self, id_faces_to_extract, return_index)
+        new_body.__class__ = FloattingBody
+
+        new_body.dofs = {}
+        for name, dof in self.dofs.items():
+            new_body.dofs[name] = dof[id_faces_to_extract]
+
+        if return_index:
+            return new_body, id_v
+        else:
+            return new_body
+
+    @property
+    def nb_dofs(self):
+        return len(self.dofs)
 
     @property
     def faces_radiuses(self):
@@ -146,8 +172,8 @@ class FloattingBody(Mesh):
     def build_matrices(self, body, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
         """Build the matrices of Green coefficients.
         """
-        S = np.zeros((self.nb_faces, self.nb_faces), dtype=np.complex64)
-        V = np.zeros((self.nb_faces, self.nb_faces), dtype=np.complex64)
+        S = np.zeros((self.nb_faces, body.nb_faces), dtype=np.complex64)
+        V = np.zeros((self.nb_faces, body.nb_faces), dtype=np.complex64)
 
         S0, V0 = self._build_matrices_0(body)
         S += S0
@@ -184,34 +210,3 @@ class FloattingBody(Mesh):
         clipped_mesh.remove_unused_vertices()
 
         return FloattingBody(clipped_mesh.vertices, clipped_mesh.faces)
-
-    def show_matplotlib(self, dof=None):
-        """Poor man's viewer with matplotlib
-        To be deleted when the VTK viewer is fully working with Python 3?"""
-        import matplotlib.pyplot as plt
-        from mpl_toolkits.mplot3d import Axes3D
-        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection="3d")
-
-        faces = []
-        for face in self.faces:
-            vertices = []
-            for index_vertex in face:
-                vertices.append(self.vertices[int(index_vertex), :])
-            faces.append(vertices)
-        ax.add_collection3d(Poly3DCollection(faces, facecolor=(0.3, 0.3, 0.3, 0.3), edgecolor='k'))
-
-        # Plot normal vectors.
-        if dof:
-            normals = [self.dof[dof][j] * normal for j, normal in enumerate(self.faces_normals)]
-            ax.quiver(*zip(*self.faces_centers), *zip(*normals), length=0.2)
-
-        plt.xlabel("x")
-        plt.ylabel("y")
-        plt.xlim(min(self.vertices[:, 0]), max(self.vertices[:, 0]))
-        plt.ylim(min(self.vertices[:, 1]), max(self.vertices[:, 1]))
-        plt.gca().set_zlim(min(self.vertices[:, 2]), max(self.vertices[:, 2]))
-        plt.show()
-

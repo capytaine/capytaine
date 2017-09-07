@@ -4,15 +4,16 @@
 Definition of the problems to solve with the BEM.
 """
 
-import numpy as np
 from warnings import warn
+
+import numpy as np
 
 from capytaine._Wavenumber import invert_xtanhx 
 
 class RadiationProblem:
     """A radiation problem to be solved by the BEM solver."""
 
-    def __init__(self, bodies, free_surface=0.0, sea_bottom=-np.infty, omega=1.0, rho=1000.0, g=9.81):
+    def __init__(self, body, free_surface=0.0, sea_bottom=-np.infty, omega=1.0, rho=1000.0, g=9.81):
         self.rho = rho
         self.g = g
         self.omega = omega
@@ -28,15 +29,9 @@ class RadiationProblem:
         else:
             self.wavenumber = invert_xtanhx(omega**2*self.depth/g)/self.depth
 
-        # Clip bodies mesh
-        for body in bodies:
-            if any(body.vertices[:, 2] > free_surface) or any(body.vertices[:, 2] < sea_bottom):
-                warn(f"""The mesh of the body {body.name} is not inside the domain.\nUse body.get_immersed_part() to clip the mesh.""")
-        self.bodies = bodies
-
-        self.nb_total_dofs = sum([len(body.dof) for body in self.bodies])
-        # self.added_mass    = np.zeros((nb_total_dofs, nb_total_dofs), dtype=np.float32)
-        # self.added_damping = np.zeros((nb_total_dofs, nb_total_dofs), dtype=np.float32)
+        if any(body.vertices[:, 2] > free_surface) or any(body.vertices[:, 2] < sea_bottom):
+            warn(f"""The mesh of the body {body.name} is not inside the domain.\nUse body.get_immersed_part() to clip the mesh.""")
+        self.body = body
 
     @property
     def depth(self):
