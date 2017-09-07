@@ -6,7 +6,7 @@ import numpy as np
 from capytaine.reference_bodies import *
 
 @pytest.mark.parametrize("size", np.linspace(1, 10, 2))
-@pytest.mark.parametrize("ncells", [6 ,11, 16])
+@pytest.mark.parametrize("ncells", [6, 11, 16])
 def test_parallelepiped(size, ncells):
     rp = RectangularParallelepiped(
             height=size, width=size, thickness=size, nh=ncells, nw=ncells, nth=ncells)

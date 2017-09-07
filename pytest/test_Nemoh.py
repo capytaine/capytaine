@@ -27,15 +27,6 @@ def test_floatting_sphere_finite_freq():
     assert np.isclose(mass,    1819.6, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(damping, 379.39, atol=1e-3*sphere.volume*problem.rho)
 
-def test_floatting_sphere_finite_freq_symmetry():
-    half_sphere = HalfSphere(radius=1.0, ntheta=4, nphi=11, clip_free_surface=True)
-    sphere = PlanarSymmetry(half_sphere, xOz_Plane)
-    sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
-    problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
-    mass, damping = Nemoh().solve(problem)
-    assert np.isclose(mass,    1819.6, atol=1e-3*2*half_sphere.volume*problem.rho)
-    assert np.isclose(damping, 379.39, atol=1e-3*2*half_sphere.volume*problem.rho)
-
 def test_alien_sphere():
     sphere = Sphere(radius=1.0, ntheta=7, nphi=7, clip_free_surface=True)
     sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
