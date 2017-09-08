@@ -7,12 +7,15 @@ class OneSidedRectangle
 class TwoSidedRectangle
 class OpenRectangularParallelepiped
 class RectangularParallelepiped
+class DummyBody
 """
 
 from itertools import product
+
 import numpy as np
 
-from capytaine.bodies import *
+from capytaine.bodies import FloattingBody
+
 
 class Sphere(FloattingBody):
     """Floatting body of the shape of a sphere."""
@@ -203,3 +206,8 @@ class RectangularParallelepiped(FloattingBody):
         combine.heal_triangles()
 
         FloattingBody.__init__(self, combine.vertices, combine.faces)
+
+
+class DummyBody(FloattingBody):
+    def __init__(self):
+        FloattingBody.__init__(self, np.zeros((0, 3)), np.zeros((0, 4)))

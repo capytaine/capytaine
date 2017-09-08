@@ -39,9 +39,10 @@ class PlanarSymmetry(FloattingBody):
     def vertices(self):
         return np.r_[
                 self.half.vertices,
-                np.asarray(
-                    [reflect_point(point, self.symmetry_plane) for point in self.half.vertices]
-                    )
+                self.half.vertices - 2*np.outer(
+                    np.dot(self.half.vertices, self.symmetry_plane.normal) - self.symmetry_plane.c,
+                    self.symmetry_plane.normal
+                )
                 ]
 
     @property
@@ -57,9 +58,10 @@ class PlanarSymmetry(FloattingBody):
         """
         return np.r_[
                 self.half.faces_normals,
-                np.asarray(
-                    [reflect_vector(vector, self.symmetry_plane) for vector in self.half.faces_normals]
-                    )
+                self.half.faces_normals - 2*np.outer(
+                    np.dot(self.half.faces_normals, self.symmetry_plane.normal),
+                    self.symmetry_plane.normal
+                )
                 ]
 
     @property
@@ -73,9 +75,10 @@ class PlanarSymmetry(FloattingBody):
     def faces_centers(self):
         return np.r_[
                 self.half.faces_centers,
-                np.asarray(
-                    [reflect_point(point, self.symmetry_plane) for point in self.half.faces_centers]
-                    )
+                self.half.faces_centers - 2*np.outer(
+                    np.dot(self.half.faces_centers, self.symmetry_plane.normal) - self.symmetry_plane.c,
+                    self.symmetry_plane.normal
+                )
                 ]
 
     @property
@@ -84,6 +87,18 @@ class PlanarSymmetry(FloattingBody):
                 self.half.faces_radiuses,
                 self.half.faces_radiuses,
                 ]
+
+    def mirror(self, plane):
+        """Mirrors the mesh instance with respect to a plane.
+
+        Parameters
+        ----------
+        plane : Plane
+            The mirroring plane
+        """
+        self.half.mirror(plane)
+        # TODO: also mirror the plane
+        return
 
     def build_matrices(self, body, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
 

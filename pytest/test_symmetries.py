@@ -39,23 +39,32 @@ def test_panels():
     assert np.allclose(S1, S2, atol=1e-5)
     assert np.allclose(V1, V2, atol=1e-5)
 
-@pytest.mark.parametrize("reso", range(3, 6))
+@pytest.mark.parametrize("reso", range(2, 5))
 def test_floatting_sphere(reso):
-    full_sphere = Sphere(radius=1.0, ntheta=2*reso+1, nphi=reso+1, clip_free_surface=True)
+    full_sphere = Sphere(radius=1.0, ntheta=2*reso+1, nphi=2*reso+1, clip_free_surface=True)
     full_sphere.dofs["Heave"] = full_sphere.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=full_sphere, omega=1.0, sea_bottom=-np.infty)
     mass1, damping1 = Nemoh().solve(problem)
 
-    half_sphere = HalfSphere(radius=1.0, ntheta=reso+1, nphi=reso+1, clip_free_surface=True)
+    half_sphere = HalfSphere(radius=1.0, ntheta=reso+1, nphi=2*reso+1, clip_free_surface=True)
+    # half_sphere = full_sphere.extract_faces(np.where(full_sphere.faces_centers[:, 1] > 0)[0])
     two_halves_sphere = PlanarSymmetry(half_sphere, xOz_Plane)
     two_halves_sphere.dofs["Heave"] = two_halves_sphere.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=two_halves_sphere, omega=1.0, sea_bottom=-np.infty)
     mass2, damping2 = Nemoh().solve(problem)
 
-    # (half_sphere + full_sphere).show_matplotlib()
+    quarter_sphere = half_sphere.extract_faces(np.where(half_sphere.faces_centers[:, 0] > 0)[0])
+    four_quarter_sphere = PlanarSymmetry(PlanarSymmetry(quarter_sphere, yOz_Plane), xOz_Plane)
+    four_quarter_sphere.dofs["Heave"] = four_quarter_sphere.faces_normals @ (0, 0, 1)
+    problem = RadiationProblem(body=four_quarter_sphere, omega=1.0, sea_bottom=-np.infty)
+    mass3, damping3 = Nemoh().solve(problem)
+
+    # (quarter_sphere + half_sphere + full_sphere).show_matplotlib()
 
     assert np.isclose(mass1, mass2, atol=1e-4*full_sphere.volume*problem.rho)
     assert np.isclose(damping1, damping2, atol=1e-4*full_sphere.volume*problem.rho)
+    assert np.isclose(mass1, mass3, atol=1e-4*full_sphere.volume*problem.rho)
+    assert np.isclose(damping1, damping3, atol=1e-4*full_sphere.volume*problem.rho)
 
 # print(Counter(np.around(np.real(S1.flatten()), decimals=2)))
 # print(Counter(np.around(np.real(S3.flatten()), decimals=2)))
