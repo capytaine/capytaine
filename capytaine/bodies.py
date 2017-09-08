@@ -11,6 +11,7 @@ from meshmagick.mesh import Mesh
 
 import capytaine._Green as _Green
 
+
 class FloattingBody(Mesh):
     """A floatting body composed of a mesh (inherited from Meshmagick) and
     several degrees of freedom (dof)."""

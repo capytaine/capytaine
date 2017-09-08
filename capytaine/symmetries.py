@@ -25,6 +25,10 @@ class PlanarSymmetry(FloattingBody):
 
         self.half = half
         self.symmetry_plane = plane
+
+        self.other_half = self.half.copy()
+        self.other_half.mirror(self.symmetry_plane)
+
         self.dofs = {}
 
     @property
@@ -102,12 +106,9 @@ class PlanarSymmetry(FloattingBody):
 
     def build_matrices(self, body, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
 
-        other_half = self.half.copy()
-        other_half.mirror(self.symmetry_plane)
-
         if body == self:
             Sh, Vh = self.half.build_matrices(self.half, free_surface, sea_bottom, wavenumber)
-            Soh, Voh = self.half.build_matrices(other_half, free_surface, sea_bottom, wavenumber)
+            Soh, Voh = self.half.build_matrices(self.other_half, free_surface, sea_bottom, wavenumber)
             S = np.r_[
                 np.c_[Sh, Soh],
                 np.c_[Soh, Sh]
@@ -119,7 +120,7 @@ class PlanarSymmetry(FloattingBody):
 
         else:
             S1, V1 = self.half.build_matrices(body, free_surface, sea_bottom, wavenumber)
-            S2, V2 = other_half.build_matrices(body, free_surface, sea_bottom, wavenumber)
+            S2, V2 = self.other_half.build_matrices(body, free_surface, sea_bottom, wavenumber)
 
             S = np.r_[S1, S2]
             V = np.r_[V1, V2]
