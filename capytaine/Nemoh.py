@@ -31,9 +31,9 @@ class Nemoh:
 
         S, V = problem.body.build_matrices(
             problem.body,
-            problem.free_surface,
-            problem.sea_bottom,
-            problem.wavenumber
+            free_surface=problem.free_surface,
+            sea_bottom=problem.sea_bottom,
+            wavenumber=problem.wavenumber
         )
 
         identity = np.identity(V.shape[0], dtype=np.float32)

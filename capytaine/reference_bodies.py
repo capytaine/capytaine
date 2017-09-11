@@ -80,7 +80,7 @@ class HorizontalCylinder(FloattingBody):
             elif z0 < radius:
                 theta_max = np.arccos(z0/radius)
             else:
-                raise Exception("Sphere out of the water")
+                raise Exception("Cylinder out of the water")
         else:
             theta_max = np.pi
 
@@ -102,7 +102,7 @@ class HorizontalCylinder(FloattingBody):
             nodes[ntheta*nx+i, :] = (x, y, z)
 
         # Connectivities
-        npanels = (ntheta-1)*((nx-1)+2*(nr-1))
+        npanels = (ntheta-1)*((nx-1)+2*max(0, (nr-1)))
         panels = np.zeros((npanels, 4), dtype=np.int)
 
         for k, (i, j) in enumerate(product(range(0, ntheta-1), range(0, nx-1))):
