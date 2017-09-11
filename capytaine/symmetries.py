@@ -103,9 +103,11 @@ class TranslationSymmetry(FloattingBody):
     def __init__(self, body_slice, translation, nb_repetitions=1):
 
         assert isinstance(body_slice, FloattingBody)
-        assert translation.shape == (3,)
         assert isinstance(nb_repetitions, int)
         assert nb_repetitions >= 1
+
+        translation = np.asarray(translation)
+        assert translation.shape == (3,)
 
         self.slices = []
         for i in range(nb_repetitions+1):

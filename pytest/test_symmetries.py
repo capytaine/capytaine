@@ -61,10 +61,27 @@ def test_floatting_sphere(reso):
 
     # (quarter_sphere + half_sphere + full_sphere).show_matplotlib()
 
-    assert np.isclose(mass1, mass2, atol=1e-4*full_sphere.volume*problem.rho)
+    assert np.isclose(mass1,    mass2,    atol=1e-4*full_sphere.volume*problem.rho)
     assert np.isclose(damping1, damping2, atol=1e-4*full_sphere.volume*problem.rho)
-    assert np.isclose(mass1, mass3, atol=1e-4*full_sphere.volume*problem.rho)
+    assert np.isclose(mass1,    mass3,    atol=1e-4*full_sphere.volume*problem.rho)
     assert np.isclose(damping1, damping3, atol=1e-4*full_sphere.volume*problem.rho)
+
+def test_horizontal_cylinder():
+    cylinder = HorizontalCylinder(length=10.0, radius=1.0, ntheta=11, nr=0, nx=11)
+    cylinder.translate_z(-3.0)
+    cylinder.dofs["Heave"] = cylinder.faces_normals @ (0, 0, 1)
+    problem = RadiationProblem(body=cylinder, omega=1.0, sea_bottom=-np.infty)
+    mass1, damping1 = Nemoh().solve(problem)
+
+    ring = HorizontalCylinder(length=1.0, radius=1.0, ntheta=11, nr=0, nx=2)
+    ring.translate_z(-3.0)
+    sym_cylinder = TranslationSymmetry(ring, translation=(1.0, 0.0, 0.0), nb_repetitions=9)
+    sym_cylinder.dofs["Heave"] = sym_cylinder.faces_normals @ (0, 0, 1)
+    problem = RadiationProblem(body=sym_cylinder, omega=1.0, sea_bottom=-np.infty)
+    mass2, damping2 = Nemoh().solve(problem)
+
+    assert np.isclose(mass1,    mass2,    atol=1e-4*cylinder.volume*problem.rho)
+    assert np.isclose(damping1, damping2, atol=1e-4*cylinder.volume*problem.rho)
 
 # print(Counter(np.around(np.real(S1.flatten()), decimals=2)))
 # print(Counter(np.around(np.real(S3.flatten()), decimals=2)))
