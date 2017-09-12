@@ -29,8 +29,10 @@ class PlanarSymmetry(FloattingBody):
         # )
 
         self.dofs = {}
-        for name, dof in half.dofs:
-            self.dofs['Mirrored_' + name] = np.concatenate([dof, -dof])
+        for name, dof in half.dofs.items():
+            self.dofs['mirrored_' + name] = np.concatenate([dof, -dof])
+
+        self._name = "mirrored_" + half.name
 
     @property
     def nb_vertices(self):
@@ -118,6 +120,8 @@ class TranslationSymmetry(FloattingBody):
         self.dofs = {}
         for name, dof in body_slice.dofs.items():
             self.dofs["Translated_" + name] = np.concatenate([dof]*nb_repetitions)
+
+        self._name = "translated_" + body_slice.name
 
     @property
     def nb_slices(self):
