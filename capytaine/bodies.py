@@ -11,6 +11,7 @@ from meshmagick.mesh import Mesh
 
 import capytaine._Green as _Green
 
+KEEP_ALL_MATRICES = False
 
 class FloattingBody(Mesh):
     """A floatting body composed of a mesh (inherited from Meshmagick) and
@@ -103,6 +104,9 @@ class FloattingBody(Mesh):
                 body.faces_centers, body.faces_normals,
                 body.faces_areas,   body.faces_radiuses,
                 )
+
+            if not KEEP_ALL_MATRICES:
+                self.__internals__['Green0'].clear()
             self.__internals__['Green0'][body] = (S0, V0)
 
         return self.__internals__['Green0'][body]
@@ -138,6 +142,9 @@ class FloattingBody(Mesh):
                 body.faces_areas,   body.faces_radiuses,
                 )
 
+            if not KEEP_ALL_MATRICES:
+                self.__internals__['Green1'].clear()
+                self.__internals__['Green1'][body] = {}
             if depth == np.infty:
                 self.__internals__['Green1'][body][np.infty] = (-S1, -V1)
             else:
@@ -165,6 +172,10 @@ class FloattingBody(Mesh):
                     body.faces_centers, body.faces_areas,  
                     wavenumber,         depth
                     )
+
+            if not KEEP_ALL_MATRICES:
+                self.__internals__['Green2'].clear()
+                self.__internals__['Green2'][body] = {}
             self.__internals__['Green2'][body][(depth, wavenumber)] = (S2, V2)
 
         return self.__internals__['Green2'][body][(depth, wavenumber)]

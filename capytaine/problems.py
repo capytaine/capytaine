@@ -9,7 +9,7 @@ from warnings import warn
 import numpy as np
 
 from capytaine._Wavenumber import invert_xtanhx
-from capytaine.symmetries import PlanarSymmetry
+from capytaine.symmetries import ReflectionSymmetry
 
 class RadiationProblem:
     """A radiation problem to be solved by the BEM solver."""
@@ -51,7 +51,7 @@ class RadiationProblem:
             os.path.join(directory_name, f'{self.body.name}.dat'),
             self.body.vertices,
             self.body.faces,
-            xOz_symmetry=isinstance(self.body, PlanarSymmetry)
+            xOz_symmetry=isinstance(self.body, ReflectionSymmetry)
         )
 
 

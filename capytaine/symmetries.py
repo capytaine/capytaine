@@ -11,7 +11,7 @@ yOz_Plane = Plane(normal=(1.0, 0.0, 0.0), scalar=0.0)
 xOz_Plane = Plane(normal=(0.0, 1.0, 0.0), scalar=0.0)
 xOy_Plane = Plane(normal=(0.0, 0.0, 1.0), scalar=0.0)
 
-class PlanarSymmetry(FloattingBody):
+class ReflectionSymmetry(FloattingBody):
 
     def __init__(self, half, plane):
         assert isinstance(half, FloattingBody)
@@ -71,6 +71,11 @@ class PlanarSymmetry(FloattingBody):
         self.other_half.mirror(plane)
         return
 
+    def translate(self, vector):
+        self.half.translate(vector)
+        self.other_half.translate(vector)
+        return
+
     def build_matrices(self, body, force_full_computation=False, **kwargs):
 
         if body == self and not force_full_computation:
@@ -100,7 +105,7 @@ class PlanarSymmetry(FloattingBody):
         return S, V
 
 
-class TranslationSymmetry(FloattingBody):
+class TranslationalSymmetry(FloattingBody):
 
     def __init__(self, body_slice, translation, nb_repetitions=1):
 

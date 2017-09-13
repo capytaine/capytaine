@@ -30,7 +30,7 @@ def trans_Capytaine(nb_slices, nb_theta, omega_range):
     ring = HorizontalCylinder(length=10.0/nb_slices, radius=1.0, nx=2, nr=0, ntheta=nb_theta+1)
     ring.translate_x(-5.0)
     ring.translate_z(-2.0)
-    trans_cylinder = TranslationSymmetry(ring, translation=np.asarray([10.0/nb_slices, 0.0, 0.0]), nb_repetitions=nb_slices-1)
+    trans_cylinder = TranslationalSymmetry(ring, translation=np.asarray([10.0/nb_slices, 0.0, 0.0]), nb_repetitions=nb_slices-1)
     trans_cylinder.dofs["Heave"] = trans_cylinder.faces_normals @ (0, 0, 1)
     return profile_capytaine(trans_cylinder, omega_range, f"{WORKING_DIRECTORY}/Trans_capy_{nb_theta*nb_slices}")
 
@@ -39,7 +39,7 @@ def trans_Capytaine(nb_slices, nb_theta, omega_range):
 #     half_ring = ring.extract_faces(np.where(ring.faces_centers[:, 1] > 0)[0])
 #     half_ring.translate_x(-5.0)
 #     half_ring.translate_z(-2.0)
-#     trans_cylinder = PlanarSymmetry(TranslationSymmetry(half_ring, translation=np.asarray([10.0/nb_slices, 0.0, 0.0]), nb_repetitions=nb_slices-1), xOz_Plane)
+#     trans_cylinder = ReflectionSymmetry(TranslationalSymmetry(half_ring, translation=np.asarray([10.0/nb_slices, 0.0, 0.0]), nb_repetitions=nb_slices-1), xOz_Plane)
 #     trans_cylinder.dofs["Heave"] = trans_cylinder.faces_normals @ (0, 0, 1)
 #     return profile_capytaine(trans_cylinder, omega_range, f"{WORKING_DIRECTORY}/trans_sym_capy_{nb_theta*nb_slices}")
 
@@ -48,7 +48,7 @@ def trans_Capytaine(nb_slices, nb_theta, omega_range):
 #     half_ring = ring.extract_faces(np.where(ring.faces_centers[:, 1] > 0)[0])
 #     half_ring.translate_x(-5.0)
 #     half_ring.translate_z(-2.0)
-#     trans_cylinder = TranslationSymmetry(PlanarSymmetry(half_ring, xOz_Plane), translation=np.asarray([10.0/nb_slices, 0.0, 0.0]), nb_repetitions=nb_slices-1)
+#     trans_cylinder = TranslationalSymmetry(ReflectionSymmetry(half_ring, xOz_Plane), translation=np.asarray([10.0/nb_slices, 0.0, 0.0]), nb_repetitions=nb_slices-1)
 #     trans_cylinder.dofs["Heave"] = trans_cylinder.faces_normals @ (0, 0, 1)
 #     return profile_capytaine(trans_cylinder, omega_range, f"{WORKING_DIRECTORY}/sym_trans_capy_{nb_theta*nb_slices}")
 

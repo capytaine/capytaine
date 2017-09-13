@@ -18,7 +18,7 @@ def test_panels():
     panel = OneSidedRectangle(height=1.0, width=1.0, nh=7, nw=3)
     panel.translate_z(-1.0)
     half_panel = panel.extract_faces(np.where(panel.faces_centers[:, 0] > 0)[0])
-    symmetric_panel = PlanarSymmetry(half_panel, yOz_Plane)
+    symmetric_panel = ReflectionSymmetry(half_panel, yOz_Plane)
 
     # symmetric_panel.show_matplotlib()
 
@@ -48,13 +48,13 @@ def test_floatting_sphere(reso):
 
     half_sphere = HalfSphere(radius=1.0, ntheta=reso+1, nphi=2*reso+1, clip_free_surface=True)
     # half_sphere = full_sphere.extract_faces(np.where(full_sphere.faces_centers[:, 1] > 0)[0])
-    two_halves_sphere = PlanarSymmetry(half_sphere, xOz_Plane)
+    two_halves_sphere = ReflectionSymmetry(half_sphere, xOz_Plane)
     two_halves_sphere.dofs["Heave"] = two_halves_sphere.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=two_halves_sphere, omega=1.0, sea_bottom=-np.infty)
     mass2, damping2 = Nemoh().solve(problem)
 
     quarter_sphere = half_sphere.extract_faces(np.where(half_sphere.faces_centers[:, 0] > 0)[0])
-    four_quarter_sphere = PlanarSymmetry(PlanarSymmetry(quarter_sphere, yOz_Plane), xOz_Plane)
+    four_quarter_sphere = ReflectionSymmetry(ReflectionSymmetry(quarter_sphere, yOz_Plane), xOz_Plane)
     four_quarter_sphere.dofs["Heave"] = four_quarter_sphere.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=four_quarter_sphere, omega=1.0, sea_bottom=-np.infty)
     mass3, damping3 = Nemoh().solve(problem)
@@ -75,7 +75,7 @@ def test_horizontal_cylinder():
 
     ring = HorizontalCylinder(length=1.0, radius=1.0, ntheta=11, nr=0, nx=2)
     ring.translate_z(-3.0)
-    sym_cylinder = TranslationSymmetry(ring, translation=(1.0, 0.0, 0.0), nb_repetitions=9)
+    sym_cylinder = TranslationalSymmetry(ring, translation=(1.0, 0.0, 0.0), nb_repetitions=9)
     sym_cylinder.dofs["Heave"] = sym_cylinder.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=sym_cylinder, omega=1.0, sea_bottom=-np.infty)
     mass2, damping2 = Nemoh().solve(problem)
