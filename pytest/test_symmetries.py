@@ -40,7 +40,7 @@ def test_panels():
     assert np.allclose(V1, V2, atol=1e-5)
 
 @pytest.mark.parametrize("reso", range(2, 5))
-def test_floatting_sphere(reso):
+def test_floating_sphere(reso):
     full_sphere = Sphere(radius=1.0, ntheta=2*reso+1, nphi=2*reso+1, clip_free_surface=True)
     full_sphere.dofs["Heave"] = full_sphere.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=full_sphere, omega=1.0, sea_bottom=-np.infty)

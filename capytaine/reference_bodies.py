@@ -8,25 +8,46 @@ class TwoSidedRectangle
 class OpenRectangularParallelepiped
 class RectangularParallelepiped
 class DummyBody
+
+TODO: Do we really need class and not just generating functions?
 """
 
 from itertools import product
 
 import numpy as np
 
-from capytaine.bodies import FloattingBody
+from capytaine.bodies import FloatingBody
 
 
-class Sphere(FloattingBody):
+class Sphere(FloatingBody):
     """Floatting body of the shape of a sphere."""
 
     def __init__(self,
-            radius=1.0, ntheta=11, nphi=11,
-            z0=0.0, clip_free_surface=False,
-            half=False):
+                 radius=1.0, ntheta=11, nphi=11,
+                 z0=0.0, clip_free_surface=False,
+                 half=False
+                ):
+        """Generate the mesh.
+
+        Parameters
+        ----------
+        radius: float
+            radius of the sphere
+        ntheta: int
+            number of points along a meridian (or number of parallels)
+        nphi: int
+            number of points along a parallel (or number of meridian)
+        z0: float
+            depth of the center of mass of the sphere
+        clip_free_surface: bool
+            if True, only mesh the part of the sphere where z < 0,
+            can be used with z0 to obtain any clipped sphere.
+        half: bool
+            if True, only mesh the part of the sphere where y > 0
+        """
 
         if clip_free_surface:
-            if z0 < -radius: # fully immerged
+            if z0 < -radius: # fully immersed
                 theta_max = np.pi
             elif z0 < radius:
                 theta_max = np.arccos(z0/radius)
@@ -57,25 +78,49 @@ class Sphere(FloattingBody):
         for k, (i, j) in enumerate(product(range(0, ntheta-1), range(0, nphi-1))):
             panels[k, :] = (j+i*nphi, j+(i+1)*nphi, j+1+(i+1)*nphi, j+1+i*nphi)
 
-        FloattingBody.__init__(self, nodes, panels)
+        FloatingBody.__init__(self, nodes, panels)
         self.merge_duplicates()
         self.heal_triangles()
 
 
-class HalfSphere(FloattingBody):
-    """Floatting body of the shape of half a sphere."""
+class HalfSphere(FloatingBody):
+    """Floating body of the shape of half a sphere."""
 
     def __init__(self, **kwargs):
         Sphere.__init__(self, half=True, **kwargs)
 
 
-class HorizontalCylinder(FloattingBody):
-    """Floatting body of the shape of a cylinder of axis Ox."""
+class HorizontalCylinder(FloatingBody):
+    """Floating body of the shape of a cylinder oriented along the x axis."""
 
-    def __init__(self, length=1.0, radius=1.0, nx=11, nr=3, ntheta=11, z0=0.0, clip_free_surface=False):
+    def __init__(self,
+                 length=1.0, radius=1.0,
+                 nx=11, nr=3, ntheta=11,
+                 z0=0.0, clip_free_surface=False
+                ):
+        """Generate the mesh.
+
+        Parameters
+        ----------
+        length: float
+            length of the cylinder
+        radius: float
+            radius of the cylinder
+        nx: int
+            number of circular slices
+        nr: int
+            at the ends of the cylinder, number of points along a radius
+        ntheta: int
+            number of points along a circular slice of the cylinder
+        z0: float
+            depth of the bottom of the cylinder
+        clip_free_surface: bool
+            if True, only mesh the part of the cylinder where z < 0,
+            can be used with z0 to obtain any clipped cylinder
+        """
 
         if clip_free_surface:
-            if z0 < -radius: # fully immerged
+            if z0 < -radius: # fully immersed
                 theta_max = np.pi
             elif z0 < radius:
                 theta_max = np.arccos(z0/radius)
@@ -105,24 +150,59 @@ class HorizontalCylinder(FloattingBody):
         npanels = (ntheta-1)*((nx-1)+2*max(0, (nr-1)))
         panels = np.zeros((npanels, 4), dtype=np.int)
 
-        for k, (i, j) in enumerate(product(range(0, ntheta-1), range(0, nx-1))):
-            panels[k, :] = (j+i*nx, j+(i+1)*nx, j+1+(i+1)*nx, j+1+i*nx)
+        for k, (i, j) in enumerate(product(range(0, ntheta-1),
+                                           range(0, nx-1))):
+            panels[k, :] = (
+                j+i*nx,
+                j+(i+1)*nx,
+                j+1+(i+1)*nx,
+                j+1+i*nx
+            )
 
-        for k, (i, j) in enumerate(product(range(0, nr-1), range(ntheta*nx, ntheta*nx+ntheta-1))):
-            panels[(ntheta-1)*(nx-1)+k, :] = (j+i*ntheta, j+1+i*ntheta, j+1+(i+1)*ntheta, j+(i+1)*ntheta)
+        for k, (i, j) in enumerate(product(range(0, nr-1),
+                                           range(ntheta*nx, ntheta*nx+ntheta-1))):
+            panels[(ntheta-1)*(nx-1)+k, :] = (
+                j+i*ntheta,
+                j+1+i*ntheta,
+                j+1+(i+1)*ntheta,
+                j+(i+1)*ntheta
+            )
 
-        for k, (i, j) in enumerate(product(range(0, nr-1), range(ntheta*(nx+nr), ntheta*(nx+nr)+ntheta-1))):
-            panels[(ntheta-1)*((nx-1)+(nr-1))+k, :] = (j+i*ntheta, j+(i+1)*ntheta, j+1+(i+1)*ntheta, j+1+i*ntheta)
+        for k, (i, j) in enumerate(product(range(0, nr-1),
+                                           range(ntheta*(nx+nr), ntheta*(nx+nr)+ntheta-1))):
+            panels[(ntheta-1)*((nx-1)+(nr-1))+k, :] = (
+                j+i*ntheta,
+                j+(i+1)*ntheta,
+                j+1+(i+1)*ntheta,
+                j+1+i*ntheta
+            )
 
-        FloattingBody.__init__(self, nodes, panels)
+        FloatingBody.__init__(self, nodes, panels)
         self.merge_duplicates()
         self.heal_triangles()
 
 
-class OneSidedRectangle(FloattingBody):
-    """Rectangular panel with cartesian mesh."""
+class OneSidedRectangle(FloatingBody):
+    """Rectangular panel with Cartesian mesh."""
 
     def __init__(self, height=2.0, width=10.0, nh=5, nw=5, z0=0.0):
+        """Generate the mesh.
+
+        Normals are oriented in the positive y direction.
+
+        Parameters
+        ----------
+        height: float
+            height of the panel (size along z)
+        width: float
+            width of the panel (size along x)
+        nh: int
+            number of points in the z direction
+        nw: int
+            number of points in the x direction
+        z0: float
+            depth of the bottom of the panel
+        """
 
         X = np.linspace(-width/2, width/2, nw)
         Z = np.linspace(z0, z0+height, nh)
@@ -136,14 +216,28 @@ class OneSidedRectangle(FloattingBody):
         for k, (i, j) in enumerate(product(range(0, nw-1), range(0, nh-1))):
             panels[k, :] = (j+i*nh, j+1+i*nh, j+1+(i+1)*nh, j+(i+1)*nh)
 
-        FloattingBody.__init__(self, nodes, panels)
+        FloatingBody.__init__(self, nodes, panels)
 
 
-class TwoSidedRectangle(FloattingBody):
-    """Rectangular panel with cartesian mesh.
-    Each face is defined twice with two opposite normal vectors."""
+class TwoSidedRectangle(FloatingBody):
+    """Rectangular panel with Cartesian mesh."""
 
     def __init__(self, height=2.0, width=10.0, nh=5, nw=5, z0=0.0):
+        """Generate the mesh.
+
+        Parameters
+        ----------
+        height: float
+            height of the panel (size along z)
+        width: float
+            width of the panel (size along x)
+        nh: int
+            number of points in the z direction
+        nw: int
+            number of points in the x direction
+        z0: float
+            depth of the bottom of the panel
+        """
 
         X = np.linspace(-width/2, width/2, nw)
         Z = np.linspace(z0, z0+height, nh)
@@ -158,13 +252,36 @@ class TwoSidedRectangle(FloattingBody):
             panels[k, :] = (j+i*nh, j+1+i*nh, j+1+(i+1)*nh, j+(i+1)*nh)
             panels[(nw-1)*(nh-1)+k, :] = (j+i*nh, j+(i+1)*nh, j+1+(i+1)*nh, j+1+i*nh)
 
-        FloattingBody.__init__(self, nodes, panels)
+        FloatingBody.__init__(self, nodes, panels)
 
 
-class OpenRectangularParallelepiped(FloattingBody):
+class OpenRectangularParallelepiped(FloatingBody):
     """Four panels forming a parallelepiped without top nor bottom."""
 
-    def __init__(self, height=10.0, width=10.0, thickness=2.0, nh=5, nw=5, nth=3, z0=0.0):
+    def __init__(self,
+                 height=10.0, width=10.0, thickness=2.0,
+                 nh=5, nw=5, nth=3,
+                 z0=0.0
+                ):
+        """Generate the mesh.
+
+        Parameters
+        ----------
+        height: float
+            height of the object (size along z)
+        width: float
+            width of the object (size along x)
+        thickness: float
+            thickness of the object (size along y)
+        nh: int
+            number of points in the z direction
+        nw: int
+            number of points in the x direction
+        nth: int
+            number of points in the y direction
+        z0: float
+            depth of the bottom of the object
+        """
         front = OneSidedRectangle(height=height, width=width, nh=nh, nw=nw, z0=z0)
         back = front.copy()
 
@@ -184,14 +301,34 @@ class OpenRectangularParallelepiped(FloattingBody):
         combine.merge_duplicates()
         combine.heal_triangles()
 
-        FloattingBody.__init__(self, combine.vertices, combine.faces)
+        FloatingBody.__init__(self, combine.vertices, combine.faces)
 
 
-class RectangularParallelepiped(FloattingBody):
-    """Six panels forming a complete parallelepiped."""
+class RectangularParallelepiped(FloatingBody):
+    """Six panels forming a complete rectangular parallelepiped."""
 
     def __init__(self, height=10.0, width=10.0, thickness=2.0, nh=5, nw=5, nth=3):
-        sides = OpenRectangularParallelepiped(height=height, width=width, thickness=thickness, nh=nh, nw=nw, nth=nth)
+        """Generate the mesh.
+
+        Parameters
+        ----------
+        height: float
+            height of the object (size along z)
+        width: float
+            width of the object (size along x)
+        thickness: float
+            thickness of the object (size along y)
+        nh: int
+            number of points in the z direction
+        nw: int
+            number of points in the x direction
+        nth: int
+            number of points in the y direction
+        z0: float
+            depth of the bottom of the object
+        """
+        sides = OpenRectangularParallelepiped(height=height, width=width, thickness=thickness,
+                                              nh=nh, nw=nw, nth=nth)
         top = OneSidedRectangle(height=thickness, width=width, nh=nth, nw=nw)
         bottom = top.copy()
 
@@ -205,9 +342,11 @@ class RectangularParallelepiped(FloattingBody):
         combine.merge_duplicates()
         combine.heal_triangles()
 
-        FloattingBody.__init__(self, combine.vertices, combine.faces)
+        FloatingBody.__init__(self, combine.vertices, combine.faces)
 
 
-class DummyBody(FloattingBody):
+class DummyBody(FloatingBody):
+    """Body without any faces. For debugging."""
+
     def __init__(self):
-        FloattingBody.__init__(self, np.zeros((0, 3)), np.zeros((0, 4)))
+        FloatingBody.__init__(self, np.zeros((0, 3)), np.zeros((0, 4)))

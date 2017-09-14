@@ -1,36 +1,40 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""Special floating bodies using the symmetries of the mesh to speed up the
+computations.
+"""
 
 import numpy as np
 
 from meshmagick.geometry import Plane
 
-from capytaine.bodies import FloattingBody
+from capytaine.bodies import FloatingBody
 
+
+# Useful aliases
 yOz_Plane = Plane(normal=(1.0, 0.0, 0.0), scalar=0.0)
 xOz_Plane = Plane(normal=(0.0, 1.0, 0.0), scalar=0.0)
 xOy_Plane = Plane(normal=(0.0, 0.0, 1.0), scalar=0.0)
 
-class ReflectionSymmetry(FloattingBody):
+
+class ReflectionSymmetry(FloatingBody):
+    """A body composed of two symmetrical halves."""
 
     def __init__(self, half, plane):
-        assert isinstance(half, FloattingBody)
+        """ """
+        assert isinstance(half, FloatingBody)
         assert isinstance(plane, Plane)
 
         self.half = half
+
         self.other_half = self.half.copy()
         self.other_half.mirror(plane)
 
         self.symmetry_plane = plane
 
-        # self.half.vertices - 2*np.outer(
-        #     np.dot(self.half.vertices, self.symmetry_plane.normal) - self.symmetry_plane.c,
-        #     self.symmetry_plane.normal
-        # )
-
         self.dofs = {}
         for name, dof in half.dofs.items():
-            self.dofs['mirrored_' + name] = np.concatenate([dof, -dof])
+            self.dofs['mirrored_' + name] = np.concatenate([dof, dof])
 
         self._name = "mirrored_" + half.name
 
@@ -77,39 +81,32 @@ class ReflectionSymmetry(FloattingBody):
         return
 
     def build_matrices(self, body, force_full_computation=False, **kwargs):
-
+        """Return the influence matrices of self on body."""
         if body == self and not force_full_computation:
             Sh, Vh = self.half.build_matrices(self.half, **kwargs)
             Soh, Voh = self.half.build_matrices(self.other_half, **kwargs)
 
-            S = np.concatenate(
-                    [np.concatenate([Sh, Soh], axis=1),
-                        np.concatenate([Soh, Sh], axis=1)],
-                    axis=0)
-            V = np.concatenate(
-                    [np.concatenate([Vh, Voh], axis=1),
-                        np.concatenate([Voh, Vh], axis=1)],
-                    axis=0)
-
+            S = np.concatenate([np.concatenate([Sh, Soh], axis=1),
+                                np.concatenate([Soh, Sh], axis=1)],
+                               axis=0)
+            V = np.concatenate([np.concatenate([Vh, Voh], axis=1),
+                                np.concatenate([Voh, Vh], axis=1)],
+                               axis=0)
         else:
             S1, V1 = self.half.build_matrices(body, **kwargs)
             S2, V2 = self.other_half.build_matrices(body, **kwargs)
 
-            S = np.concatenate(
-                    [S1, S2],
-                    axis=0)
-            V = np.concatenate(
-                    [V1, V2],
-                    axis=0)
-
+            S = np.concatenate([S1, S2], axis=0)
+            V = np.concatenate([V1, V2], axis=0)
         return S, V
 
 
-class TranslationalSymmetry(FloattingBody):
+class TranslationalSymmetry(FloatingBody):
+    """A body composed of a pattern repeated and translated."""
 
     def __init__(self, body_slice, translation, nb_repetitions=1):
-
-        assert isinstance(body_slice, FloattingBody)
+        """ """
+        assert isinstance(body_slice, FloatingBody)
         assert isinstance(nb_repetitions, int)
         assert nb_repetitions >= 1
 
@@ -124,7 +121,7 @@ class TranslationalSymmetry(FloattingBody):
 
         self.dofs = {}
         for name, dof in body_slice.dofs.items():
-            self.dofs["Translated_" + name] = np.concatenate([dof]*nb_repetitions)
+            self.dofs["translated_" + name] = np.concatenate([dof]*nb_repetitions)
 
         self._name = "translated_" + body_slice.name
 
@@ -175,7 +172,8 @@ class TranslationalSymmetry(FloattingBody):
     def build_matrices(self, body, force_full_computation=False, **kwargs):
         """Compute the influence matrix of `self` on `body`.
 
-        force_full_computation (boolean): if True, do not use the symmetry (for debugging).
+        force_full_computation: boolean
+            if True, do not use the symmetry (for debugging).
         """
 
         if body == self and not force_full_computation:

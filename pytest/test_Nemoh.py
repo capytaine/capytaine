@@ -19,7 +19,7 @@ def test_immersed_sphere():
     assert np.isclose(mass,    2187, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(damping, 0.0,  atol=1e-3*sphere.volume*problem.rho)
 
-def test_floatting_sphere_finite_freq():
+def test_floating_sphere_finite_freq():
     sphere = Sphere(radius=1.0, ntheta=7, nphi=7, clip_free_surface=True)
     sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
@@ -35,7 +35,7 @@ def test_alien_sphere():
     assert np.isclose(mass,    515, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(damping, 309, atol=1e-3*sphere.volume*problem.rho)
 
-def test_floatting_sphere_finite_depth():
+def test_floating_sphere_finite_depth():
     sphere = Sphere(radius=1.0, ntheta=7, nphi=7, clip_free_surface=True)
     sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
