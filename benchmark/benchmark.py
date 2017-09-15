@@ -17,13 +17,13 @@ def profile_capytaine(body, omega_range, result_dir):
         os.makedirs(result_dir)
 
     pr = cProfile.Profile()
-    pr.enable() #========================
+    pr.enable() #==Start profiler==
 
     problems = [RadiationProblem(body=body, rho=1000, omega=omega) for omega in omega_range]
     solver = Nemoh()
     results = [solver.solve(pb) for pb in problems]
 
-    pr.disable() #========================
+    pr.disable() #=================
 
     results = np.asarray(results)
     np.savetxt(f'{result_dir}/results.csv', results)
