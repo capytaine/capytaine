@@ -83,21 +83,29 @@ class ReflectionSymmetry(FloatingBody):
     def build_matrices(self, body, force_full_computation=False, **kwargs):
         """Return the influence matrices of self on body."""
         if body == self and not force_full_computation:
-            Sh, Vh = self.half.build_matrices(self.half, **kwargs)
-            Soh, Voh = self.half.build_matrices(self.other_half, **kwargs)
+            S = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
+            V = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
 
-            S = np.concatenate([np.concatenate([Sh, Soh], axis=1),
-                                np.concatenate([Soh, Sh], axis=1)],
-                               axis=0)
-            V = np.concatenate([np.concatenate([Vh, Voh], axis=1),
-                                np.concatenate([Voh, Vh], axis=1)],
-                               axis=0)
+            top_left     = (slice(None, self.nb_faces//2), slice(None, self.nb_faces//2))
+            top_right    = (slice(None, self.nb_faces//2), slice(self.nb_faces//2, None))
+            bottom_left  = (slice(self.nb_faces//2, None), slice(None, self.nb_faces//2))
+            bottom_right = (slice(self.nb_faces//2, None), slice(self.nb_faces//2, None))
+
+            S[top_left], V[top_left] = self.half.build_matrices(self.half, **kwargs)
+            S[top_right], V[top_right] = self.half.build_matrices(self.other_half, **kwargs)
+            S[bottom_left], V[bottom_left] = S[top_right], V[top_right]
+            S[bottom_right], V[bottom_right] = S[top_left], V[top_left]
+
         else:
-            S1, V1 = self.half.build_matrices(body, **kwargs)
-            S2, V2 = self.other_half.build_matrices(body, **kwargs)
+            S = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
+            V = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
 
-            S = np.concatenate([S1, S2], axis=0)
-            V = np.concatenate([V1, V2], axis=0)
+            top    = (slice(None, self.nb_faces//2), slice(None, None))
+            bottom = (slice(self.nb_faces//2, None), slice(None, None))
+
+            S[top], V[top] = self.half.build_matrices(body, **kwargs)
+            S[bottom], V[bottom] = self.other_half.build_matrices(body, **kwargs)
+
         return S, V
 
 
