@@ -9,7 +9,7 @@ class MaxLengthDict(OrderedDict):
     """
     def __init__(self, *args, max_length=1, **kwargs):
         assert isinstance(max_length, int)
-        assert max_length > 0
+        assert max_length >= 0
         self.__max_length__ = max_length
         OrderedDict.__init__(self, *args, **kwargs)
 

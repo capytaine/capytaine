@@ -21,3 +21,8 @@ def test_MaxLengthDict():
     dc2 = MaxLengthDict({'a':1, 'b':5, 'c':3}, max_length=1)
     assert dc2.__max_length__ == 1
     assert list(dc2.keys()) == ['c']
+
+    dc3 = MaxLengthDict({'a':1, 'b':5, 'c':3}, max_length=0)
+    assert dc3 == {}
+    dc3['d'] = 8
+    assert dc3 == {}
