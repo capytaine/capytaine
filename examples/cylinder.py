@@ -13,7 +13,7 @@ from capytaine.Nemoh import Nemoh
 
 rho = 1000
 
-cylinder = HorizontalCylinder(length=10.0, radius=1.0, nx=80, nr=2, ntheta=20)
+cylinder = HorizontalCylinder(length=10.0, radius=1.0, nx=20, nr=2, ntheta=20)
 cylinder.translate_z(-2.0)
 cylinder.dofs["Heave"] = cylinder.faces_normals @ (0, 0, 1)
 
@@ -29,7 +29,7 @@ results = np.array(results)
 np.savetxt("results.csv", results)
 
 plt.figure()
-plt.plot(omega_range, results[:, 0]/(rho*cylinder.volume), label="Added mass")
-plt.plot(omega_range, results[:, 1]/(rho*cylinder.volume), label="Added damping")
+plt.plot(omega_range, results[:, 0, 0, 0]/(rho*cylinder.volume), label="Added mass")
+plt.plot(omega_range, results[:, 1, 0, 0]/(rho*cylinder.volume), label="Added damping")
 plt.legend()
 plt.show()
