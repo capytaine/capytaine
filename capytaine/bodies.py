@@ -24,9 +24,6 @@ class FloatingBody(Mesh):
     length equal to the number of faces in the mesh.
     """
 
-    __nb_matrices_to_keep__ = 1
-    # TODO: test the effect on RAM and CPU of keeping the influence matrices.
-
     #######################################
     #  Initialisation and transformation  #
     #######################################
@@ -34,6 +31,7 @@ class FloatingBody(Mesh):
     def __init__(self, *args, **kwargs):
         Mesh.__init__(self, *args, **kwargs)
         self._compute_radiuses()
+        self.nb_matrices_to_keep = 1
         self.dofs = {}
 
     @staticmethod
@@ -47,6 +45,7 @@ class FloatingBody(Mesh):
         """Create a new FloatingBody from the combination of two of them."""
         new_body = Mesh.__add__(self, body_to_add)
         new_body.__class__ = FloatingBody
+        new_body.nb_matrices_to_keep = self.nb_matrices_to_keep
 
         new_body.dofs = {}
         for name, dof in self.dofs.items():
@@ -62,6 +61,7 @@ class FloatingBody(Mesh):
         else:
             new_body = Mesh.extract_faces(self, id_faces_to_extract, return_index)
         new_body.__class__ = FloatingBody
+        new_body.nb_matrices_to_keep = self.nb_matrices_to_keep
 
         new_body.dofs = {}
         for name, dof in self.dofs.items():
@@ -130,7 +130,7 @@ class FloatingBody(Mesh):
     def _build_matrices_0(self, body):
         """Compute the first part of the influence matrices of self on body."""
         if 'Green0' not in self.__internals__:
-            self.__internals__['Green0'] = MaxLengthDict({}, max_length=self.__nb_matrices_to_keep__)
+            self.__internals__['Green0'] = MaxLengthDict({}, max_length=self.nb_matrices_to_keep)
 
         if body not in self.__internals__['Green0']:
             S0, V0 = _Green.green_1.build_matrix_0(
@@ -149,7 +149,7 @@ class FloatingBody(Mesh):
     def _build_matrices_1(self, body, free_surface, sea_bottom):
         """Compute the second part of the influence matrices of self on body."""
         if 'Green1' not in self.__internals__:
-            self.__internals__['Green1'] = MaxLengthDict({}, max_length=self.__nb_matrices_to_keep__)
+            self.__internals__['Green1'] = MaxLengthDict({}, max_length=self.nb_matrices_to_keep)
 
         depth = free_surface-sea_bottom
         if (body, depth) not in self.__internals__['Green1']:
@@ -188,7 +188,7 @@ class FloatingBody(Mesh):
     def _build_matrices_2(self, body, free_surface, sea_bottom, wavenumber):
         """Compute the third part of the influence matrices of self on body."""
         if 'Green2' not in self.__internals__:
-            self.__internals__['Green2'] = MaxLengthDict({}, max_length=self.__nb_matrices_to_keep__)
+            self.__internals__['Green2'] = MaxLengthDict({}, max_length=self.nb_matrices_to_keep)
 
         depth = free_surface - sea_bottom
         if (body, depth, wavenumber) not in self.__internals__['Green2']:
@@ -196,7 +196,7 @@ class FloatingBody(Mesh):
                 S2, V2 = _Green.green_2.build_matrix_2(
                     self.faces_centers, self.faces_normals,
                     body.faces_centers, body.faces_areas,
-                    wavenumber,       0.0
+                    wavenumber,         0.0
                     )
             else:
                 S2, V2 = _Green.green_2.build_matrix_2(

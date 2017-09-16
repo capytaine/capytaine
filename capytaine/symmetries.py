@@ -26,6 +26,7 @@ class ReflectionSymmetry(FloatingBody):
         assert isinstance(plane, Plane)
 
         self.half = half
+        self.half.nb_matrices_to_keep *= 2
 
         self.other_half = self.half.copy()
         self.other_half.mirror(plane)
@@ -37,6 +38,15 @@ class ReflectionSymmetry(FloatingBody):
             self.dofs['mirrored_' + name] = np.concatenate([dof, dof])
 
         self._name = "mirrored_" + half.name
+
+    @property
+    def nb_matrices_to_keep(self):
+        return self.half.nb_matrices_to_keep
+
+    @nb_matrices_to_keep.setter
+    def nb_matrices_to_keep(self, value):
+        self.half.nb_matrices_to_keep = value
+        self.other_half.nb_matrices_to_keep = value
 
     @property
     def nb_vertices(self):
@@ -125,6 +135,7 @@ class TranslationalSymmetry(FloatingBody):
         for i in range(nb_repetitions+1):
             new_slice = body_slice.copy()
             new_slice.translate(i*translation)
+            new_slice.nb_matrices_to_keep *= nb_repetitions+1
             self.slices.append(new_slice)
 
         self.dofs = {}
@@ -132,6 +143,15 @@ class TranslationalSymmetry(FloatingBody):
             self.dofs["translated_" + name] = np.concatenate([dof]*nb_repetitions)
 
         self._name = "translated_" + body_slice.name
+
+    @property
+    def nb_matrices_to_keep(self):
+        return self.slices[0].nb_matrices_to_keep
+
+    @nb_matrices_to_keep.setter
+    def nb_matrices_to_keep(self, value):
+        for body_slice in self.slices:
+            body_slice.nb_matrices_to_keep = value
 
     @property
     def nb_slices(self):
