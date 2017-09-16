@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 """
-Exemple computation: added mass and damping of an horizontal cylinder.
+Example computation: added mass and damping of an horizontal cylinder.
 """
 
 import numpy as np
@@ -23,14 +23,13 @@ omega_range = np.linspace(0.1, 5.0, 40)
 
 problems = [RadiationProblem(body=cylinder, rho=rho, omega=omega) for omega in omega_range]
 
-# results = solver.solve_all(problems, processes=4)
 results = [solver.solve(pb) for pb in problems]
 
-# results = np.array(results)
-# np.savetxt("results.csv", results)
+results = np.array(results)
+np.savetxt("results.csv", results)
 
-# plt.figure()
-# plt.plot(omega_range, results[:, 0]/(rho*cylinder.volume), label="Added mass")
-# plt.plot(omega_range, results[:, 1]/(rho*cylinder.volume), label="Added damping")
-# plt.legend()
-# plt.show()
+plt.figure()
+plt.plot(omega_range, results[:, 0]/(rho*cylinder.volume), label="Added mass")
+plt.plot(omega_range, results[:, 1]/(rho*cylinder.volume), label="Added damping")
+plt.legend()
+plt.show()
