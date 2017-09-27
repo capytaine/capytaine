@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import os
+import logging
 import subprocess
 import cProfile, pstats, io
 
@@ -15,6 +16,15 @@ from capytaine.problems import RadiationProblem
 def profile_capytaine(body, omega_range, result_dir):
     if not os.path.isdir(result_dir):
         os.makedirs(result_dir)
+
+    if logging.root:
+        del logging.root.handlers[:]
+
+    logging.basicConfig(
+        filename=f"{result_dir}/capytaine.log",
+        level=logging.DEBUG,
+        format="%(levelname)s:\t%(message)s"
+    )
 
     pr = cProfile.Profile()
     pr.enable() #==Start profiler==
