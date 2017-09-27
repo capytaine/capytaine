@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Special floating bodies using the symmetries of the mesh to speed up the
-computations.
+"""Special bodies using symmetries to speed up the computations.
 """
 
 import numpy as np
@@ -21,7 +20,15 @@ class ReflectionSymmetry(FloatingBody):
     """A body composed of two symmetrical halves."""
 
     def __init__(self, half, plane):
-        """ """
+        """Initialize the body.
+        
+        Parameters
+        ----------
+        half: FloatingBody
+            a FloatingBody instance describing half of the body
+        plane: Plane
+            the symmetry plane across which the half body is mirrored
+        """
         assert isinstance(half, FloatingBody)
         assert isinstance(plane, Plane)
 
@@ -93,20 +100,28 @@ class ReflectionSymmetry(FloatingBody):
     def build_matrices(self, body, force_full_computation=False, **kwargs):
         """Return the influence matrices of self on body."""
         if body == self and not force_full_computation:
+            # Use symmetry to speed up the evaluation of the matrix
+
             S = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
             V = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
 
+            # Indices ranges of the four quarters of the matrix
             top_left     = (slice(None, self.nb_faces//2), slice(None, self.nb_faces//2))
             top_right    = (slice(None, self.nb_faces//2), slice(self.nb_faces//2, None))
             bottom_left  = (slice(self.nb_faces//2, None), slice(None, self.nb_faces//2))
             bottom_right = (slice(self.nb_faces//2, None), slice(self.nb_faces//2, None))
 
+            # Evaluation of two of the quarters
             S[top_left], V[top_left] = self.half.build_matrices(self.half, **kwargs)
             S[top_right], V[top_right] = self.half.build_matrices(self.other_half, **kwargs)
+
+            # Copy the values in the two other quarters
             S[bottom_left], V[bottom_left] = S[top_right], V[top_right]
             S[bottom_right], V[bottom_right] = S[top_left], V[top_left]
 
         else:
+            # Do not use symmetry to speed up the evaluation of the matrix
+
             S = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
             V = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
 
@@ -123,7 +138,17 @@ class TranslationalSymmetry(FloatingBody):
     """A body composed of a pattern repeated and translated."""
 
     def __init__(self, body_slice, translation, nb_repetitions=1):
-        """ """
+        """Initialize the body.
+        
+        Parameters
+        ----------
+        body_slice: FloatingBody
+            the pattern that will be repeated to form the whole body
+        translation: array(3)
+            the vector of the translation
+        nb_repetitions: int
+            the number of repetitions of the pattern (excluding the original one)
+        """
         assert isinstance(body_slice, FloatingBody)
         assert isinstance(nb_repetitions, int)
         assert nb_repetitions >= 1
@@ -200,39 +225,47 @@ class TranslationalSymmetry(FloatingBody):
     def build_matrices(self, body, force_full_computation=False, **kwargs):
         """Compute the influence matrix of `self` on `body`.
 
+        Parameters
+        ----------
+        body: FloatingBody
+            the body interacting with `self`
         force_full_computation: boolean
             if True, do not use the symmetry (for debugging).
         """
 
         if body == self and not force_full_computation:
-            Ss, Vs = [], []
+            # Use symmetry to speed up the evaluation of the matrix
+
+            # Compute interactions of all slices with the first one
+            Slist, Vlist = [], []
             for body_slice in self.slices:
                 Si, Vi = self.slices[0].build_matrices(body_slice, **kwargs)
-                Ss.append(Si)
-                Vs.append(Vi)
+                Slist.append(Si)
+                Vlist.append(Vi)
 
-            Ss = Ss[:0:-1] + Ss
-
+            # Concatenate elements of the list to build the matrix
+            Slist = Slist[:0:-1] + Slist
             S = np.concatenate(
                     [
                         np.concatenate(
-                            Ss[i:i+self.nb_slices],
+                            Slist[i:i+self.nb_slices],
                             axis=1)
                         for i in range(self.nb_slices-1, -1, -1)
                         ],
                     axis=0)
 
-            Vs = Vs[:0:-1] + Vs
+            Vlist = Vlist[:0:-1] + Vlist
             V = np.concatenate(
                     [
                         np.concatenate(
-                            Vs[i:i+self.nb_slices],
+                            Vlist[i:i+self.nb_slices],
                             axis=1)
                         for i in range(self.nb_slices-1, -1, -1)
                         ],
                     axis=0)
 
         else:
+            # Do not use symmetry to speed up the evaluation of the matrix
 
             Slist, Vlist = [], []
             for body_slice in self.slices:
