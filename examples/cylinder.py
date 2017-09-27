@@ -4,12 +4,16 @@
 Example computation: added mass and damping of an horizontal cylinder.
 """
 
+import logging
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 from capytaine.reference_bodies import HorizontalCylinder
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import Nemoh
+
+logging.basicConfig(level=logging.INFO)
 
 rho = 1000
 

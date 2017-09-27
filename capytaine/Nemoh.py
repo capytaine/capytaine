@@ -4,10 +4,16 @@
 Solver for the BEM problem based on Nemoh's Green function.
 """
 
+import logging
+
 import numpy as np
 from numpy.linalg import solve
 
 import capytaine._Green as _Green
+
+
+LOG = logging.getLogger(__name__)
+
 
 class Nemoh:
     """
@@ -15,17 +21,21 @@ class Nemoh:
     """
     def __init__(self):
         _Green.initialize_green_2.initialize_green()
+        LOG.info("Initialize Nemoh's Green function.")
 
     def solve(self, problem):
         """Solve the BEM problem using Nemoh.
         Return the added mass and added damping.
         """
 
+        LOG.info(f"Solve {problem}.")
+
         if problem.depth < np.infty:
             _Green.initialize_green_2.lisc(
                 problem.omega**2*problem.depth/problem.g,
                 problem.wavenumber*problem.depth
             )
+            LOG.info("Initialize Nemoh's finite depth Green function for omega={omega:.2e} and depth={depth:.2e}.")
 
         added_masses, added_dampings = [], []
 

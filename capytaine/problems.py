@@ -34,6 +34,12 @@ class RadiationProblem:
             warn(f"""The mesh of the body {body.name} is not inside the domain.\nUse body.get_immersed_part() to clip the mesh.""")
         self.body = body
 
+    def __str__(self):
+        return f"RadiationProblem(body={self.body.name}, depth={self.free_surface-self.sea_bottom:.2e}, omega={self.omega:.2e}, rho={self.rho}, g={self.g})"
+
+    def __repr__(self):
+        return f"RadiationProblem(body={self.body.name}, free_surface={self.free_surface}, sea_bottom={self.sea_bottom}, omega={self.omega}, rho={self.rho}, g={self.g})"
+
     @property
     def depth(self):
         return self.free_surface - self.sea_bottom

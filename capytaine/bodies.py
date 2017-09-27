@@ -5,6 +5,8 @@
 class FloatingBody
 """
 
+import logging
+
 import numpy as np
 
 from meshmagick.mesh import Mesh
@@ -13,6 +15,9 @@ from meshmagick.mesh_clipper import MeshClipper
 
 import capytaine._Green as _Green
 from capytaine.tools import MaxLengthDict
+
+
+LOG = logging.getLogger(__name__)
 
 
 class FloatingBody(Mesh):
@@ -33,6 +38,7 @@ class FloatingBody(Mesh):
         self._compute_radiuses()
         self.nb_matrices_to_keep = 1
         self.dofs = {}
+        LOG.info(f"New floating body: {self.name}.")
 
     @staticmethod
     def from_file(filename, file_format):
@@ -46,12 +52,14 @@ class FloatingBody(Mesh):
         new_body = Mesh.__add__(self, body_to_add)
         new_body.__class__ = FloatingBody
         new_body.nb_matrices_to_keep = self.nb_matrices_to_keep
+        LOG.info(f"Fusion floating bodies {self.name} and {body_to_add.name}.")
 
         new_body.dofs = {}
         for name, dof in self.dofs.items():
             new_body.dofs['_'.join([self.name, name])] = np.r_[dof, np.zeros(body_to_add.nb_faces)]
         for name, dof in body_to_add.dofs.items():
             new_body.dofs['_'.join([body_to_add.name, name])] = np.r_[np.zeros(self.nb_faces), dof]
+
         return new_body
 
     def extract_faces(self, id_faces_to_extract, return_index=False):
@@ -62,6 +70,7 @@ class FloatingBody(Mesh):
             new_body = Mesh.extract_faces(self, id_faces_to_extract, return_index)
         new_body.__class__ = FloatingBody
         new_body.nb_matrices_to_keep = self.nb_matrices_to_keep
+        LOG.info(f"Extract floating body from {self.name}.")
 
         new_body.dofs = {}
         for name, dof in self.dofs.items():
@@ -85,6 +94,7 @@ class FloatingBody(Mesh):
 
         clipped_mesh.remove_unused_vertices()
 
+        LOG.info(f"Clip floating body {self.name}.")
         return FloatingBody(clipped_mesh.vertices, clipped_mesh.faces)
 
     ########################
@@ -131,8 +141,10 @@ class FloatingBody(Mesh):
         """Compute the first part of the influence matrices of self on body."""
         if 'Green0' not in self.__internals__:
             self.__internals__['Green0'] = MaxLengthDict({}, max_length=self.nb_matrices_to_keep)
+            LOG.debug(f"Create Green0 dict (max_length={self.nb_matrices_to_keep}) in {self.name}")
 
         if body not in self.__internals__['Green0']:
+            LOG.debug(f"Computing matrix 0 of {self.name} on {body.name}")
             S0, V0 = _Green.green_1.build_matrix_0(
                 self.faces_centers, self.faces_normals,
                 body.vertices,      body.faces + 1,
@@ -142,6 +154,7 @@ class FloatingBody(Mesh):
 
             self.__internals__['Green0'][body] = (S0, V0)
         else:
+            LOG.debug(f"Retrieving stored matrix 0 of {self.name} on {body.name}")
             S0, V0 = self.__internals__['Green0'][body]
 
         return S0, V0
@@ -150,9 +163,11 @@ class FloatingBody(Mesh):
         """Compute the second part of the influence matrices of self on body."""
         if 'Green1' not in self.__internals__:
             self.__internals__['Green1'] = MaxLengthDict({}, max_length=self.nb_matrices_to_keep)
+            LOG.debug(f"Create Green1 dict (max_length={self.nb_matrices_to_keep}) in {self.name}")
 
         depth = free_surface - sea_bottom
         if (body, depth) not in self.__internals__['Green1']:
+            LOG.debug(f"Computing matrix 1 of {self.name} on {body.name} for depth={depth:.2e}")
             def reflect_vector(x):
                 y = x.copy()
                 y[:, 2] = -x[:, 2]
@@ -184,6 +199,7 @@ class FloatingBody(Mesh):
                 return S1, V1
         else:
             S1, V1 = self.__internals__['Green1'][(body, depth)]
+            LOG.debug(f"Retrieving stored matrix 1 of {self.name} on {body.name} for depth={depth:.2e}")
             return S1, V1
 
 
@@ -191,9 +207,11 @@ class FloatingBody(Mesh):
         """Compute the third part of the influence matrices of self on body."""
         if 'Green2' not in self.__internals__:
             self.__internals__['Green2'] = MaxLengthDict({}, max_length=self.nb_matrices_to_keep)
+            LOG.debug(f"Create Green2 dict (max_length={self.nb_matrices_to_keep}) in {self.name}")
 
         depth = free_surface - sea_bottom
         if (body, depth, wavenumber) not in self.__internals__['Green2']:
+            LOG.debug(f"Computing matrix 2 of {self.name} on {body.name} for depth={depth:.2e} and k={wavenumber:.2e}")
             if depth == np.infty:
                 S2, V2 = _Green.green_2.build_matrix_2(
                     self.faces_centers, self.faces_normals,
@@ -210,11 +228,15 @@ class FloatingBody(Mesh):
             self.__internals__['Green2'][(body, depth, wavenumber)] = (S2, V2)
         else:
             S2, V2 = self.__internals__['Green2'][(body, depth, wavenumber)]
+            LOG.debug(f"Retrieving stored matrix 2 of {self.name} on {body.name} for depth={depth:.2e} and k={wavenumber:.2e}")
 
         return S2, V2
 
     def build_matrices(self, body, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
         """Return the influence matrices of self on body."""
+
+        LOG.debug(f"Evaluating matrix of {self.name} on {body.name} for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
+
         S = np.zeros((self.nb_faces, body.nb_faces), dtype=np.complex64)
         V = np.zeros((self.nb_faces, body.nb_faces), dtype=np.complex64)
 
