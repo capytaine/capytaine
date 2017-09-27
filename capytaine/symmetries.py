@@ -3,11 +3,16 @@
 """Special bodies using symmetries to speed up the computations.
 """
 
+import logging
+
 import numpy as np
 
 from meshmagick.geometry import Plane
 
 from capytaine.bodies import FloatingBody
+
+
+LOG = logging.getLogger(__name__)
 
 
 # Useful aliases
@@ -35,8 +40,12 @@ class ReflectionSymmetry(FloatingBody):
         self.half = half
         self.half.nb_matrices_to_keep *= 2
 
+        self._name = "mirrored_" + half.name
+        LOG.info(f"New mirror symmetry: {self.name}.")
+
         self.other_half = self.half.copy()
         self.other_half.mirror(plane)
+        self.other_half.name = "other_half_of_" + self.name
 
         self.symmetry_plane = plane
 
@@ -44,7 +53,6 @@ class ReflectionSymmetry(FloatingBody):
         for name, dof in half.dofs.items():
             self.dofs['mirrored_' + name] = np.concatenate([dof, dof])
 
-        self._name = "mirrored_" + half.name
 
     @property
     def nb_matrices_to_keep(self):
@@ -101,6 +109,7 @@ class ReflectionSymmetry(FloatingBody):
         """Return the influence matrices of self on body."""
         if body == self and not force_full_computation:
             # Use symmetry to speed up the evaluation of the matrix
+            LOG.debug(f"Evaluating matrix of {self.name} on itself using mirror symmetry.")
 
             S = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
             V = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
@@ -121,6 +130,7 @@ class ReflectionSymmetry(FloatingBody):
 
         else:
             # Do not use symmetry to speed up the evaluation of the matrix
+            LOG.debug(f"Evaluating matrix of {self.name} on {body}.")
 
             S = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
             V = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
@@ -156,18 +166,21 @@ class TranslationalSymmetry(FloatingBody):
         translation = np.asarray(translation)
         assert translation.shape == (3,)
 
-        self.slices = []
-        for i in range(nb_repetitions+1):
+        self._name = "translated_" + body_slice.name
+        LOG.info(f"New translation symmetry: {self.name}.")
+
+        body_slice.nb_matrices_to_keep *= nb_repetitions
+        self.slices = [body_slice]
+        for i in range(1, nb_repetitions+1):
             new_slice = body_slice.copy()
             new_slice.translate(i*translation)
             new_slice.nb_matrices_to_keep *= nb_repetitions+1
+            new_slice.name = f"repetition_{i}_of_{body_slice.name}"
             self.slices.append(new_slice)
 
         self.dofs = {}
         for name, dof in body_slice.dofs.items():
             self.dofs["translated_" + name] = np.concatenate([dof]*nb_repetitions)
-
-        self._name = "translated_" + body_slice.name
 
     @property
     def nb_matrices_to_keep(self):
@@ -235,6 +248,7 @@ class TranslationalSymmetry(FloatingBody):
 
         if body == self and not force_full_computation:
             # Use symmetry to speed up the evaluation of the matrix
+            LOG.debug(f"Evaluating matrix of {self.name} on itself using translation symmetry.")
 
             # Compute interactions of all slices with the first one
             Slist, Vlist = [], []
@@ -266,6 +280,7 @@ class TranslationalSymmetry(FloatingBody):
 
         else:
             # Do not use symmetry to speed up the evaluation of the matrix
+            LOG.debug(f"Evaluating matrix of {self.name} on {body}.")
 
             Slist, Vlist = [], []
             for body_slice in self.slices:

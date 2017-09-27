@@ -35,7 +35,7 @@ class RadiationProblem:
         self.body = body
 
     def __str__(self):
-        return f"RadiationProblem(body={self.body.name}, depth={self.free_surface-self.sea_bottom:.2e}, omega={self.omega:.2e}, rho={self.rho}, g={self.g})"
+        return f"Radiation problem of {self.body.name} with depth={self.free_surface-self.sea_bottom:.1e} and omega={self.omega:.3f}"
 
     def __repr__(self):
         return f"RadiationProblem(body={self.body.name}, free_surface={self.free_surface}, sea_bottom={self.sea_bottom}, omega={self.omega}, rho={self.rho}, g={self.g})"

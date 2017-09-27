@@ -12,7 +12,7 @@ class DummyBody
 TODO: Do we really need class and not just generating functions?
 """
 
-from itertools import product
+from itertools import product, count
 
 import numpy as np
 
@@ -21,6 +21,8 @@ from capytaine.bodies import FloatingBody
 
 class Sphere(FloatingBody):
     """Floatting body of the shape of a sphere."""
+
+    _ids = count(0)
 
     def __init__(self,
                  radius=1.0, ntheta=11, nphi=11,
@@ -78,7 +80,7 @@ class Sphere(FloatingBody):
         for k, (i, j) in enumerate(product(range(0, ntheta-1), range(0, nphi-1))):
             panels[k, :] = (j+i*nphi, j+(i+1)*nphi, j+1+(i+1)*nphi, j+1+i*nphi)
 
-        FloatingBody.__init__(self, nodes, panels)
+        FloatingBody.__init__(self, nodes, panels, name=f"sphere_{next(self._ids)}")
         self.merge_duplicates()
         self.heal_triangles()
 
@@ -92,6 +94,8 @@ class HalfSphere(FloatingBody):
 
 class HorizontalCylinder(FloatingBody):
     """Floating body of the shape of a cylinder oriented along the x axis."""
+
+    _ids = count(0)
 
     def __init__(self,
                  length=1.0, radius=1.0,
@@ -177,13 +181,15 @@ class HorizontalCylinder(FloatingBody):
                 j+1+i*ntheta
             )
 
-        FloatingBody.__init__(self, nodes, panels)
+        FloatingBody.__init__(self, nodes, panels, name=f"cylinder_{next(self._ids)}")
         self.merge_duplicates()
         self.heal_triangles()
 
 
 class OneSidedRectangle(FloatingBody):
     """Rectangular panel with Cartesian mesh."""
+
+    _ids = count(0)
 
     def __init__(self, height=2.0, width=10.0, nh=5, nw=5, z0=0.0):
         """Generate the mesh.
@@ -216,7 +222,7 @@ class OneSidedRectangle(FloatingBody):
         for k, (i, j) in enumerate(product(range(0, nw-1), range(0, nh-1))):
             panels[k, :] = (j+i*nh, j+1+i*nh, j+1+(i+1)*nh, j+(i+1)*nh)
 
-        FloatingBody.__init__(self, nodes, panels)
+        FloatingBody.__init__(self, nodes, panels, name=f"rectangle_{next(self._ids)}")
 
 
 class TwoSidedRectangle(FloatingBody):
@@ -252,11 +258,13 @@ class TwoSidedRectangle(FloatingBody):
             panels[k, :] = (j+i*nh, j+1+i*nh, j+1+(i+1)*nh, j+(i+1)*nh)
             panels[(nw-1)*(nh-1)+k, :] = (j+i*nh, j+(i+1)*nh, j+1+(i+1)*nh, j+1+i*nh)
 
-        FloatingBody.__init__(self, nodes, panels)
+        FloatingBody.__init__(self, nodes, panels, name=f"rectangle_{next(OneSidedRectangle._ids)}")
 
 
 class OpenRectangularParallelepiped(FloatingBody):
     """Four panels forming a parallelepiped without top nor bottom."""
+
+    _ids = count(0)
 
     def __init__(self,
                  height=10.0, width=10.0, thickness=2.0,
@@ -301,7 +309,7 @@ class OpenRectangularParallelepiped(FloatingBody):
         combine.merge_duplicates()
         combine.heal_triangles()
 
-        FloatingBody.__init__(self, combine.vertices, combine.faces)
+        FloatingBody.__init__(self, combine.vertices, combine.faces, name=f"parallelepiped_{next(self._ids)}")
 
 
 class RectangularParallelepiped(FloatingBody):
@@ -342,11 +350,11 @@ class RectangularParallelepiped(FloatingBody):
         combine.merge_duplicates()
         combine.heal_triangles()
 
-        FloatingBody.__init__(self, combine.vertices, combine.faces)
+        FloatingBody.__init__(self, combine.vertices, combine.faces, name=f"parallelepiped_{next(OpenRectangularParallelepiped._ids)}")
 
 
 class DummyBody(FloatingBody):
     """Body without any faces. For debugging."""
 
     def __init__(self):
-        FloatingBody.__init__(self, np.zeros((0, 3)), np.zeros((0, 4)))
+        FloatingBody.__init__(self, np.zeros((0, 3)), np.zeros((0, 4)), name="dummy_body")
