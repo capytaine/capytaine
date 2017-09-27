@@ -151,7 +151,7 @@ class FloatingBody(Mesh):
         if 'Green1' not in self.__internals__:
             self.__internals__['Green1'] = MaxLengthDict({}, max_length=self.nb_matrices_to_keep)
 
-        depth = free_surface-sea_bottom
+        depth = free_surface - sea_bottom
         if (body, depth) not in self.__internals__['Green1']:
             def reflect_vector(x):
                 y = x.copy()
@@ -178,12 +178,14 @@ class FloatingBody(Mesh):
 
             if depth == np.infty:
                 self.__internals__['Green1'][(body, np.infty)] = (-S1, -V1)
+                return -S1, -V1
             else:
                 self.__internals__['Green1'][(body, depth)] = (S1, V1)
+                return S1, V1
         else:
             S1, V1 = self.__internals__['Green1'][(body, depth)]
+            return S1, V1
 
-        return S1, V1
 
     def _build_matrices_2(self, body, free_surface, sea_bottom, wavenumber):
         """Compute the third part of the influence matrices of self on body."""
