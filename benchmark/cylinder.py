@@ -39,6 +39,17 @@ def sym_Capytaine(nb_slices, nb_theta, omega_range):
     sym_cylinder.dofs["Heave"] = sym_cylinder.faces_normals @ (0, 0, 1)
     return profile_capytaine(sym_cylinder, omega_range, f"{WORKING_DIRECTORY}/{next(ID)}_sym_capy_{nb_theta*nb_slices}")
 
+def sym_sym_Capytaine(nb_slices, nb_theta, omega_range):
+    cylinder = HorizontalCylinder(length=10.0, radius=1.0, nx=nb_slices+1, nr=0, ntheta=nb_theta+1)
+    cylinder.translate_x(-5.0)
+    cylinder.translate_z(-2.0)
+    half_cylinder = cylinder.extract_faces(np.where(cylinder.faces_centers[:, 1] > 0)[0])
+    quarter_cylinder = half_cylinder.extract_faces(np.where(half_cylinder.faces_centers[:, 0] > 0)[0])
+    quarter_cylinder.name = "quarter_cylinder"
+    sym_sym_cylinder = ReflectionSymmetry(ReflectionSymmetry(quarter_cylinder, xOz_Plane), yOz_Plane)
+    sym_sym_cylinder.dofs["Heave"] = sym_sym_cylinder.faces_normals @ (0, 0, 1)
+    return profile_capytaine(sym_sym_cylinder, omega_range, f"{WORKING_DIRECTORY}/{next(ID)}_sym_sym_capy_{nb_theta*nb_slices}")
+
 def trans_Capytaine(nb_slices, nb_theta, omega_range):
     ring = HorizontalCylinder(length=10.0/nb_slices, radius=1.0, nx=2, nr=0, ntheta=nb_theta+1)
     ring.translate_x(-5.0)
@@ -73,17 +84,18 @@ def sym_trans_Capytaine(nb_slices, nb_theta, omega_range):
 # ===============================================================
 
 nb_repetitions = 1
-nb_theta = 10
-nb_slices_range = range(10, 40, 10)
-omega_range = np.linspace(0.1, 4.0, 10)
+nb_theta = 30
+nb_slices_range = range(10, 70, 10)
+omega_range = [1.0] # np.linspace(0.1, 4.0, 10)
 
 cases = {
     # "Nemoh 2.0":                           full_resolution_Nemoh,
-    "Refactored":                          full_Capytaine,
-    "Refactored + symmetry":               sym_Capytaine,
-    "Refactored + translation":            trans_Capytaine,
-    # "Refactored + translation + symmetry": trans_sym_Capytaine,
-    # "Refactored + symmetry + translation": sym_trans_Capytaine,
+    "Capytaine":                          full_Capytaine,
+    "Capytaine + symmetry":               sym_Capytaine,
+    # "Capytaine + 2 symmetries":           sym_sym_Capytaine,
+    "Capytaine + translation":            trans_Capytaine,
+    "Capytaine + translation + symmetry": trans_sym_Capytaine,
+    "Capytaine + symmetry + translation": sym_trans_Capytaine,
     }
 
 # ===========================

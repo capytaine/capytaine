@@ -10,7 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 times = pd.DataFrame.from_csv(os.path.join(sys.argv[1], 'times.csv'))
-ax = times.plot()
+ax = times.plot(x='nb_cells')
 ax.set(xlabel='number of cells in mesh', ylabel='time (seconds)')
 plt.grid()
 
