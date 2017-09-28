@@ -216,13 +216,15 @@ class FloatingBody(Mesh):
                 S2, V2 = _Green.green_2.build_matrix_2(
                     self.faces_centers, self.faces_normals,
                     body.faces_centers, body.faces_areas,
-                    wavenumber,         0.0
+                    wavenumber,         0.0,
+                    self is body
                     )
             else:
                 S2, V2 = _Green.green_2.build_matrix_2(
                     self.faces_centers, self.faces_normals,
                     body.faces_centers, body.faces_areas,
-                    wavenumber,         depth
+                    wavenumber,         depth,
+                    self is body
                     )
 
             self.__internals__['Green2'][(body, depth, wavenumber)] = (S2, V2)

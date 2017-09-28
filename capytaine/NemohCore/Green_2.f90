@@ -298,6 +298,7 @@ CONTAINS
       nb_faces_2,                       &
       centers_2, areas_2,               &
       wavenumber, depth,                &
+      same_body,                        &
       S, V)
 
     INTEGER,                              INTENT(IN) :: nb_faces_1, nb_faces_2
@@ -305,42 +306,75 @@ CONTAINS
     REAL,    DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2
     REAL,    DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2
     REAL,                                 INTENT(IN) :: wavenumber, depth
+    LOGICAL,                              INTENT(IN) :: same_body
 
     COMPLEX, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
     COMPLEX, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
 
     ! Local variables
-    INTEGER :: I, J
+    INTEGER               :: I, J
     COMPLEX               :: SP2
     COMPLEX, DIMENSION(3) :: VSP2
 
-    DO I = 1, nb_faces_1
-      DO J = 1, nb_faces_2
+    IF (SAME_BODY) THEN
+      DO I = 1, nb_faces_1
+        DO J = I, nb_faces_2
 
-        IF (depth == 0.0) THEN
-          CALL VNSINFD                    &
-            (wavenumber,                  &
-            centers_1(I, :),              &
-            centers_2(J, :),              &
-            areas_2(J),                   &
-            SP2, VSP2                     &
-            )
-        ELSE
-          CALL VNSFD                      &
-            (wavenumber,                  &
-            centers_1(I, :),              &
-            centers_2(J, :),              &
-            areas_2(J),                   &
-            depth,                        &
-            SP2, VSP2                     &
-            )
-        END IF
+          IF (depth == 0.0) THEN
+            CALL VNSINFD                    &
+              (wavenumber,                  &
+              centers_1(I, :),              &
+              centers_2(J, :),              &
+              areas_2(J),                   &
+              SP2, VSP2                     &
+              )
+          ELSE
+            CALL VNSFD                      &
+              (wavenumber,                  &
+              centers_1(I, :),              &
+              centers_2(J, :),              &
+              areas_2(J),                   &
+              depth,                        &
+              SP2, VSP2                     &
+              )
+          END IF
 
-        S(I, J) = SP2                                ! Green function
-        V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2) ! Gradient of the Green function
-
+          S(I, J) = SP2                                ! Green function
+          V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2) ! Gradient of the Green function
+          S(J, I) = S(I, J)
+          V(J, I) = V(I, J)
+        END DO
       END DO
-    END DO
+
+    ELSE
+      DO I = 1, nb_faces_1
+        DO J = 1, nb_faces_2
+
+          IF (depth == 0.0) THEN
+            CALL VNSINFD                    &
+              (wavenumber,                  &
+              centers_1(I, :),              &
+              centers_2(J, :),              &
+              areas_2(J),                   &
+              SP2, VSP2                     &
+              )
+          ELSE
+            CALL VNSFD                      &
+              (wavenumber,                  &
+              centers_1(I, :),              &
+              centers_2(J, :),              &
+              areas_2(J),                   &
+              depth,                        &
+              SP2, VSP2                     &
+              )
+          END IF
+
+          S(I, J) = SP2                                ! Green function
+          V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2) ! Gradient of the Green function
+
+        END DO
+      END DO
+    END IF
 
   END SUBROUTINE
 
