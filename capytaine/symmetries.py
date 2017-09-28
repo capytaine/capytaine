@@ -45,7 +45,7 @@ class ReflectionSymmetry(FloatingBody):
 
         self.other_half = self.half.copy()
         self.other_half.mirror(plane)
-        self.other_half.name = "other_half_of_" + self.name
+        self.other_half.name = "mirror_of_" + self.half.name
 
         self.symmetry_plane = plane
 
@@ -130,7 +130,7 @@ class ReflectionSymmetry(FloatingBody):
 
         else:
             # Do not use symmetry to speed up the evaluation of the matrix
-            LOG.debug(f"Evaluating matrix of {self.name} on {body}.")
+            LOG.debug(f"Evaluating matrix of {self.name} on {body.name}.")
 
             S = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
             V = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
@@ -166,7 +166,7 @@ class TranslationalSymmetry(FloatingBody):
         translation = np.asarray(translation)
         assert translation.shape == (3,)
 
-        self._name = "translated_" + body_slice.name
+        self._name = "repeated_" + body_slice.name
         LOG.info(f"New translation symmetry: {self.name}.")
 
         body_slice.nb_matrices_to_keep *= nb_repetitions
@@ -280,7 +280,7 @@ class TranslationalSymmetry(FloatingBody):
 
         else:
             # Do not use symmetry to speed up the evaluation of the matrix
-            LOG.debug(f"Evaluating matrix of {self.name} on {body}.")
+            LOG.debug(f"Evaluating matrix of {self.name} on {body.name}.")
 
             Slist, Vlist = [], []
             for body_slice in self.slices:
