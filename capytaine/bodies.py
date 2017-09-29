@@ -48,19 +48,12 @@ class FloatingBody(Mesh):
         return FloatingBody(vertices, faces, name=filename)
 
     def __add__(self, body_to_add):
-        """Create a new FloatingBody from the combination of two of them."""
-        new_body = Mesh.__add__(self, body_to_add)
-        new_body.__class__ = FloatingBody
-        new_body.nb_matrices_to_keep = self.nb_matrices_to_keep
-        LOG.info(f"Fusion floating bodies {self.name} and {body_to_add.name}.")
+        """Create a new CollectionOfFloatingBody from the combination of two of them."""
+        from capytaine.bodies_collection import CollectionOfFloatingBodies
+        return CollectionOfFloatingBodies([self, body_to_add])
 
-        new_body.dofs = {}
-        for name, dof in self.dofs.items():
-            new_body.dofs['_'.join([self.name, name])] = np.r_[dof, np.zeros(body_to_add.nb_faces)]
-        for name, dof in body_to_add.dofs.items():
-            new_body.dofs['_'.join([body_to_add.name, name])] = np.r_[np.zeros(self.nb_faces), dof]
-
-        return new_body
+    def as_FloatingBody(self):
+        return self
 
     def extract_faces(self, id_faces_to_extract, return_index=False):
         """Create a new FloatingBody by extracting some faces from the mesh."""

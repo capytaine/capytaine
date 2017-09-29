@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Special bodies using symmetries to speed up the computations."""
+"""Special bodies using their symmetries to speed up the computations."""
 
 import logging
 from itertools import chain, accumulate
@@ -10,119 +10,15 @@ import numpy as np
 from meshmagick.geometry import Plane
 
 from capytaine.bodies import FloatingBody
+from capytaine.bodies_collection import CollectionOfFloatingBodies
 
 
 LOG = logging.getLogger(__name__)
-
 
 # Useful aliases
 yOz_Plane = Plane(normal=(1.0, 0.0, 0.0), scalar=0.0)
 xOz_Plane = Plane(normal=(0.0, 1.0, 0.0), scalar=0.0)
 xOy_Plane = Plane(normal=(0.0, 0.0, 1.0), scalar=0.0)
-
-
-class CollectionOfFloatingBodies(FloatingBody):
-    """A body composed of several floating bodies."""
-
-    def __init__(self, bodies):
-        """Initialize the body."""
-
-        for body in bodies:
-            assert isinstance(body, FloatingBody)
-
-        self.subbodies = bodies
-
-        # Name of the body collection.
-        self.name = "union_of_{name_list}_and_{last_body_name}".format(
-                name_list='_'.join((body.name for body in bodies[:-1])),
-                last_body_name=bodies[-1].name
-                )
-        LOG.info(f"New body: {self.name}.")
-
-        # Combine the degrees of freedom of the subbodies.
-        self.dofs = {}
-        nb_faces = accumulate(chain([0], (body.nb_vertices for body in self.subbodies[:-1])))
-        total_nb_faces = sum(nb_faces)
-        for nbf, body in zip(nb_faces, bodies):
-            for name, dof in body.dofs.items():
-                self.dofs['_'.join([body.name, name])] = np.r_[
-                    np.zeros(nbf),
-                    dof,
-                    np.zeros(total_nb_faces - len(dof) - nbf),
-                ]
-
-    @property
-    def nb_matrices_to_keep(self):
-        return max([body.nb_matrices_to_keep for body in self.subbodies])
-
-    @nb_matrices_to_keep.setter
-    def nb_matrices_to_keep(self, value):
-        for body in self.subbodies:
-            body.nb_matrices_to_keep = value
-
-    @property
-    def nb_subbodies(self):
-        return len(self.subbodies)
-
-    @property
-    def nb_vertices(self):
-        return sum(body.nb_vertices for body in self.subbodies)
-
-    @property
-    def nb_faces(self):
-        return sum(body.nb_faces for body in self.subbodies)
-
-    @property
-    def vertices(self):
-        return np.concatenate([body.vertices for body in self.subbodies])
-
-    @property
-    def faces(self):
-        """Return the indices of the verices forming each of the faces. For the
-        later subbodies, the indices of the vertices has to be shifted to
-        correspond to their index in the concatenated array self.vertices.
-        """
-        nb_vertices = accumulate(chain([0], (body.nb_vertices for body in self.subbodies[:-1])))
-        return np.concatenate([body.faces + nbv for body, nbv in zip(self.subbodies, nb_vertices)])
-
-    @property
-    def faces_normals(self):
-        return np.concatenate([body.faces_normals for body in self.subbodies])
-
-    @property
-    def faces_areas(self):
-        return np.concatenate([body.faces_areas for body in self.subbodies])
-
-    @property
-    def faces_centers(self):
-        return np.concatenate([body.faces_centers for body in self.subbodies])
-
-    @property
-    def faces_radiuses(self):
-        return np.concatenate([body.faces_radiuses for body in self.subbodies])
-
-    def mirror(self, plane):
-        for body in self.subbodies:
-            body.mirror(plane)
-        return
-
-    def translate(self, vector):
-        for body in self.subbodies:
-            body.translate(vector)
-        return
-
-    def build_matrices(self, other_body, **kwargs):
-        LOG.debug(f"Evaluating matrix of {self.name} on {other_body.name}.")
-
-        S = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
-        V = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
-
-        nb_faces = list(accumulate(chain([0], (body.nb_faces for body in self.subbodies))))
-        for (i, j), body in zip(zip(nb_faces, nb_faces[1:]), self.subbodies):
-            matrix_slice = (slice(i, j), slice(None, None))
-            S[matrix_slice], V[matrix_slice] = body.build_matrices(other_body, **kwargs)
-
-        return S, V
 
 
 class ReflectionSymmetry(CollectionOfFloatingBodies):
@@ -266,5 +162,3 @@ class TranslationalSymmetry(CollectionOfFloatingBodies):
 
         else:
             return CollectionOfFloatingBodies.build_matrices(self, body, **kwargs)
-
-

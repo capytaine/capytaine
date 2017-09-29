@@ -306,8 +306,7 @@ class OpenRectangularParallelepiped(FloatingBody):
         other_side.translate_x(width/2)
 
         combine = front + side + other_side + back
-        combine.merge_duplicates()
-        combine.heal_triangles()
+        combine = combine.as_FloatingBody()
 
         FloatingBody.__init__(self, combine.vertices, combine.faces, name=f"parallelepiped_{next(self._ids)}")
 
@@ -347,8 +346,7 @@ class RectangularParallelepiped(FloatingBody):
         bottom.translate_y(-thickness/2)
 
         combine = sides + top + bottom
-        combine.merge_duplicates()
-        combine.heal_triangles()
+        combine = combine.as_FloatingBody()
 
         FloatingBody.__init__(self, combine.vertices, combine.faces, name=f"parallelepiped_{next(OpenRectangularParallelepiped._ids)}")
 
