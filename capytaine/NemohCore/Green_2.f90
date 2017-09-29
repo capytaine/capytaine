@@ -140,12 +140,12 @@ CONTAINS
   ! =========================
 
   SUBROUTINE VNSINFD             &
-      (wavenumber, X0I, X0J, AJ, &
+      (wavenumber, X0I, X0J,     &
       SP, VSP)
     ! Compute the frequency-dependent part of the Green function in the infinite depth case.
 
     ! Inputs
-    REAL,               INTENT(IN)  :: wavenumber, AJ
+    REAL,               INTENT(IN)  :: wavenumber
     REAL, DIMENSION(3), INTENT(IN)  :: X0I   ! Coordinates of the source point
     REAL, DIMENSION(3), INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
 
@@ -161,10 +161,10 @@ CONTAINS
     ! XI(3) = MIN(X0I(3), -1e-5*Mesh%xy_diameter)
     CALL COMPUTE_S2(XI, X0J, 0.0, wavenumber, SP, VSP(:))
 
-    ADPI2  = wavenumber*AJ/DPI2
-    ADPI   = wavenumber*AJ/DPI
-    AKDPI2 = wavenumber**2*AJ/DPI2
-    AKDPI  = wavenumber**2*AJ/DPI
+    ADPI2  = wavenumber/DPI2
+    ADPI   = wavenumber/DPI
+    AKDPI2 = wavenumber**2/DPI2
+    AKDPI  = wavenumber**2/DPI
 
     SP  = CMPLX(REAL(SP)*ADPI2,   AIMAG(SP)*ADPI)
     VSP = CMPLX(REAL(VSP)*AKDPI2, AIMAG(VSP)*AKDPI)
@@ -175,12 +175,12 @@ CONTAINS
   ! ======================
 
   SUBROUTINE VNSFD &
-      (wavenumber, X0I, X0J, AJ, depth, &
+      (wavenumber, X0I, X0J, depth, &
       SP, VSP)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
 
     ! Inputs
-    REAL,               INTENT(IN)  :: wavenumber, AJ, depth
+    REAL,               INTENT(IN)  :: wavenumber, depth
     REAL, DIMENSION(3), INTENT(IN)  :: X0I   ! Coordinates of the source point
     REAL, DIMENSION(3), INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
 
@@ -244,8 +244,8 @@ CONTAINS
     AMH  = wavenumber*depth
     AKH  = AMH*TANH(AMH)
     A    = (AMH+AKH)**2/(depth*(AMH**2-AKH**2+AKH))
-    COF1 = -A/(8*PI**2)*AJ
-    COF2 = -A/(8*PI)   *AJ
+    COF1 = -A/(8*PI**2)
+    COF2 = -A/(8*PI)
     COF3 = wavenumber*COF1
     COF4 = wavenumber*COF2
 
@@ -264,21 +264,21 @@ CONTAINS
 
       ! 2.a Shift observation point and compute integral
       XI(3) =  X0I(3) + depth*AMBDA(KE) - 2*depth
-      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), AJ, FTS(1), VTS(:, 1))
+      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), 1.0, FTS(1), VTS(:, 1))
 
       ! 2.b Shift and reflect observation point and compute integral
       XI(3) = -X0I(3) - depth*AMBDA(KE)
-      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), AJ, FTS(2), VTS(:, 2))
+      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), 1.0, FTS(2), VTS(:, 2))
       VTS(3, 2) = -VTS(3, 2) ! Reflection of the output vector
 
       ! 2.c Shift and reflect observation point and compute integral
       XI(3) = -X0I(3) + depth*AMBDA(KE) - 4*depth
-      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), AJ, FTS(3), VTS(:, 3))
+      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), 1.0, FTS(3), VTS(:, 3))
       VTS(3, 3) = -VTS(3, 3) ! Reflection of the output vector
 
       ! 2.d Shift observation point and compute integral
       XI(3) =  X0I(3) - depth*AMBDA(KE) + 2*depth
-      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), AJ, FTS(4), VTS(:, 4))
+      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), 1.0, FTS(4), VTS(:, 4))
 
       AQT = -AR(KE)/(8*PI)
 
@@ -317,6 +317,7 @@ CONTAINS
     COMPLEX, DIMENSION(3) :: VSP2
 
     IF (SAME_BODY) THEN
+
       DO I = 1, nb_faces_1
         DO J = I, nb_faces_2
 
@@ -325,7 +326,6 @@ CONTAINS
               (wavenumber,                  &
               centers_1(I, :),              &
               centers_2(J, :),              &
-              areas_2(J),                   &
               SP2, VSP2                     &
               )
           ELSE
@@ -333,20 +333,25 @@ CONTAINS
               (wavenumber,                  &
               centers_1(I, :),              &
               centers_2(J, :),              &
-              areas_2(J),                   &
               depth,                        &
               SP2, VSP2                     &
               )
           END IF
 
-          S(I, J) = SP2                                ! Green function
-          V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2) ! Gradient of the Green function
-          S(J, I) = S(I, J)
-          V(J, I) = V(I, J)
+          S(I, J) = SP2*areas_2(J)                                ! Green function
+          V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2)*areas_2(J) ! Gradient of the Green function
+
+          IF (.NOT. I==J) THEN
+            VSP2(1:2) = -VSP2(1:2)
+            S(J, I) = SP2*areas_2(I)
+            V(J, I) = DOT_PRODUCT(normals_1(J, :), VSP2)*areas_2(I)
+          END IF
+
         END DO
       END DO
 
     ELSE
+
       DO I = 1, nb_faces_1
         DO J = 1, nb_faces_2
 
@@ -355,7 +360,6 @@ CONTAINS
               (wavenumber,                  &
               centers_1(I, :),              &
               centers_2(J, :),              &
-              areas_2(J),                   &
               SP2, VSP2                     &
               )
           ELSE
@@ -363,15 +367,13 @@ CONTAINS
               (wavenumber,                  &
               centers_1(I, :),              &
               centers_2(J, :),              &
-              areas_2(J),                   &
               depth,                        &
               SP2, VSP2                     &
               )
           END IF
 
-          S(I, J) = SP2                                ! Green function
-          V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2) ! Gradient of the Green function
-
+          S(I, J) = SP2*areas_2(J)                                ! Green function
+          V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2)*areas_2(J) ! Gradient of the Green function
         END DO
       END DO
     END IF
