@@ -111,6 +111,19 @@ class CollectionOfFloatingBodies(FloatingBody):
             body.translate(vector)
         return
 
+    def build_matrices(self, other_body, **kwargs):
+        LOG.debug(f"Evaluating matrix of {self.name} on {other_body.name}.")
+
+        S = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
+        V = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
+
+        nb_faces = list(accumulate(chain([0], (body.nb_faces for body in self.subbodies))))
+        for (i, j), body in zip(zip(nb_faces, nb_faces[1:]), self.subbodies):
+            matrix_slice = (slice(i, j), slice(None, None))
+            S[matrix_slice], V[matrix_slice] = body.build_matrices(other_body, **kwargs)
+
+        return S, V
+
 
 class ReflectionSymmetry(CollectionOfFloatingBodies):
     """A body composed of two symmetrical halves."""
@@ -143,14 +156,14 @@ class ReflectionSymmetry(CollectionOfFloatingBodies):
         for name, dof in half.dofs.items():
             self.dofs['mirrored_' + name] = np.concatenate([dof, dof])
 
-    def build_matrices(self, body, force_full_computation=False, **kwargs):
-        """Return the influence matrices of self on body."""
-        if body == self and not force_full_computation:
+    def build_matrices(self, other_body, force_full_computation=False, **kwargs):
+        """Return the influence matrices of self on other_body."""
+        if other_body == self and not force_full_computation:
             # Use symmetry to speed up the evaluation of the matrix
             LOG.debug(f"Evaluating matrix of {self.name} on itself using mirror symmetry.")
 
-            S = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
-            V = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
+            S = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
+            V = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
 
             # Indices ranges of the four quarters of the matrix
             top_left     = (slice(None, self.nb_faces//2), slice(None, self.nb_faces//2))
@@ -166,23 +179,13 @@ class ReflectionSymmetry(CollectionOfFloatingBodies):
             S[bottom_left], V[bottom_left] = S[top_right], V[top_right]
             S[bottom_right], V[bottom_right] = S[top_left], V[top_left]
 
+            return S, V
+
         else:
-            # Do not use symmetry to speed up the evaluation of the matrix
-            LOG.debug(f"Evaluating matrix of {self.name} on {body.name}.")
-
-            S = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
-            V = np.empty((self.nb_faces, body.nb_faces), dtype=np.complex64)
-
-            top    = (slice(None, self.nb_faces//2), slice(None, None))
-            bottom = (slice(self.nb_faces//2, None), slice(None, None))
-
-            S[top], V[top] = self.subbodies[0].build_matrices(body, **kwargs)
-            S[bottom], V[bottom] = self.subbodies[1].build_matrices(body, **kwargs)
-
-        return S, V
+            return CollectionOfFloatingBodies.build_matrices(self, other_body, **kwargs)
 
 
-class TranslationalSymmetry(FloatingBody):
+class TranslationalSymmetry(CollectionOfFloatingBodies):
     """A body composed of a pattern repeated and translated."""
 
     def __init__(self, body_slice, translation, nb_repetitions=1):
@@ -204,76 +207,25 @@ class TranslationalSymmetry(FloatingBody):
         translation = np.asarray(translation)
         assert translation.shape == (3,)
 
-        self._name = "repeated_" + body_slice.name
-        LOG.info(f"New translation symmetry: {self.name}.")
-
         body_slice.nb_matrices_to_keep *= nb_repetitions
-        self.slices = [body_slice]
+        slices = [body_slice]
         for i in range(1, nb_repetitions+1):
             new_slice = body_slice.copy()
             new_slice.translate(i*translation)
             new_slice.nb_matrices_to_keep *= nb_repetitions+1
             new_slice.name = f"repetition_{i}_of_{body_slice.name}"
-            self.slices.append(new_slice)
+            slices.append(new_slice)
+
+        CollectionOfFloatingBodies.__init__(self, slices)
+
+        self.name = "repeated_" + body_slice.name
+        LOG.info(f"New translation symmetry: {self.name}.")
 
         self.dofs = {}
         for name, dof in body_slice.dofs.items():
             self.dofs["translated_" + name] = np.concatenate([dof]*nb_repetitions)
 
-    @property
-    def nb_matrices_to_keep(self):
-        return self.slices[0].nb_matrices_to_keep
-
-    @nb_matrices_to_keep.setter
-    def nb_matrices_to_keep(self, value):
-        for body_slice in self.slices:
-            body_slice.nb_matrices_to_keep = value
-
-    @property
-    def nb_slices(self):
-        return len(self.slices)
-
-    @property
-    def nb_vertices(self):
-        return self.slices[0].nb_vertices * self.nb_slices
-
-    @property
-    def nb_faces(self):
-        return self.slices[0].nb_faces * self.nb_slices
-
-    @property
-    def vertices(self):
-        return np.concatenate([body_slice.vertices for body_slice in self.slices])
-
-    @property
-    def faces(self):
-        return np.concatenate([
-            body_slice.faces + i*self.slices[0].nb_vertices
-            for i, body_slice in enumerate(self.slices)
-        ])
-
-    @property
-    def faces_normals(self):
-        return np.concatenate([body_slice.faces_normals for body_slice in self.slices])
-
-    @property
-    def faces_areas(self):
-        return np.concatenate([body_slice.faces_areas for body_slice in self.slices])
-
-    @property
-    def faces_centers(self):
-        return np.concatenate([body_slice.faces_centers for body_slice in self.slices])
-
-    @property
-    def faces_radiuses(self):
-        return np.concatenate([body_slice.faces_radiuses for body_slice in self.slices])
-
-    def mirror(self, plane):
-        for body_slice in self.slices:
-            body_slice.mirror(plane)
-        return
-
-    def build_matrices(self, body, force_full_computation=False, **kwargs):
+    def build_matrices(self, other_body, force_full_computation=False, **kwargs):
         """Compute the influence matrix of `self` on `body`.
 
         Parameters
@@ -284,51 +236,35 @@ class TranslationalSymmetry(FloatingBody):
             if True, do not use the symmetry (for debugging).
         """
 
-        if body == self and not force_full_computation:
+        if other_body == self and not force_full_computation:
             # Use symmetry to speed up the evaluation of the matrix
             LOG.debug(f"Evaluating matrix of {self.name} on itself using translation symmetry.")
 
-            # Compute interactions of all slices with the first one
-            Slist, Vlist = [], []
-            for body_slice in self.slices:
-                Si, Vi = self.slices[0].build_matrices(body_slice, **kwargs)
-                Slist.append(Si)
-                Vlist.append(Vi)
+            S = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
+            V = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
 
-            # Concatenate elements of the list to build the matrix
-            Slist = Slist[:0:-1] + Slist
-            S = np.concatenate(
-                    [
-                        np.concatenate(
-                            Slist[i:i+self.nb_slices],
-                            axis=1)
-                        for i in range(self.nb_slices-1, -1, -1)
-                        ],
-                    axis=0)
+            # Compute the indices of each block composing the block matrix
+            nb_faces = list(accumulate(chain([0], (body.nb_faces for body in self.subbodies))))
+            matrix_blocks = []
+            for i, j in zip(nb_faces, nb_faces[1:]):
+                line_of_blocks = []
+                for k, l in zip(nb_faces, nb_faces[1:]):
+                    line_of_blocks.append((slice(i, j), slice(k, l)))
+                matrix_blocks.append(line_of_blocks)
 
-            Vlist = Vlist[:0:-1] + Vlist
-            V = np.concatenate(
-                    [
-                        np.concatenate(
-                            Vlist[i:i+self.nb_slices],
-                            axis=1)
-                        for i in range(self.nb_slices-1, -1, -1)
-                        ],
-                    axis=0)
+            # Compute the values of the first column of blocks
+            for matrix_block, body in zip(matrix_blocks[0], self.subbodies):
+                S[matrix_block], V[matrix_block] = self.subbodies[0].build_matrices(body, **kwargs)
+
+            # Copy in the rest of the matrix
+            for i in range(1, len(matrix_blocks)):
+                for j in range(len(matrix_blocks[i])):
+                    S[matrix_blocks[i][j]] = S[matrix_blocks[0][abs(j-i)]]
+                    V[matrix_blocks[i][j]] = V[matrix_blocks[0][abs(j-i)]]
+
+            return S, V
 
         else:
-            # Do not use symmetry to speed up the evaluation of the matrix
-            LOG.debug(f"Evaluating matrix of {self.name} on {body.name}.")
-
-            Slist, Vlist = [], []
-            for body_slice in self.slices:
-                Si, Vi = body_slice.build_matrices(body, **kwargs)
-                Slist.append(Si)
-                Vlist.append(Vi)
-
-            S = np.concatenate(Slist)
-            V = np.concatenate(Vlist)
-
-        return S, V
+            return CollectionOfFloatingBodies.build_matrices(self, body, **kwargs)
 
 

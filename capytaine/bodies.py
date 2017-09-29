@@ -234,7 +234,7 @@ class FloatingBody(Mesh):
 
         return S2, V2
 
-    def build_matrices(self, body, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
+    def build_matrices(self, body, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0, **kwargs):
         """Return the influence matrices of self on body."""
 
         LOG.debug(f"\tEvaluating matrix of {self.name} on {body.name} for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
