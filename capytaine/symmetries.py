@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Special bodies using symmetries to speed up the computations.
-"""
+"""Special bodies using symmetries to speed up the computations."""
 
 import logging
+from itertools import chain, accumulate
 
 import numpy as np
 
@@ -21,12 +21,103 @@ xOz_Plane = Plane(normal=(0.0, 1.0, 0.0), scalar=0.0)
 xOy_Plane = Plane(normal=(0.0, 0.0, 1.0), scalar=0.0)
 
 
-class ReflectionSymmetry(FloatingBody):
+class CollectionOfFloatingBodies(FloatingBody):
+    """A body composed of several floating bodies."""
+
+    def __init__(self, bodies):
+        """Initialize the body."""
+
+        for body in bodies:
+            assert isinstance(body, FloatingBody)
+
+        self.subbodies = bodies
+
+        # Name of the body collection.
+        self.name = "union_of_{name_list}_and_{last_body_name}".format(
+                name_list='_'.join((body.name for body in bodies[:-1])),
+                last_body_name=bodies[-1].name
+                )
+        LOG.info(f"New body: {self.name}.")
+
+        # Combine the degrees of freedom of the subbodies.
+        self.dofs = {}
+        nb_faces = accumulate(chain([0], (body.nb_vertices for body in self.subbodies[:-1])))
+        total_nb_faces = sum(nb_faces)
+        for nbf, body in zip(nb_faces, bodies):
+            for name, dof in body.dofs.items():
+                self.dofs['_'.join([body.name, name])] = np.r_[
+                    np.zeros(nbf),
+                    dof,
+                    np.zeros(total_nb_faces - len(dof) - nbf),
+                ]
+
+    @property
+    def nb_matrices_to_keep(self):
+        return max([body.nb_matrices_to_keep for body in self.subbodies])
+
+    @nb_matrices_to_keep.setter
+    def nb_matrices_to_keep(self, value):
+        for body in self.subbodies:
+            body.nb_matrices_to_keep = value
+
+    @property
+    def nb_subbodies(self):
+        return len(self.subbodies)
+
+    @property
+    def nb_vertices(self):
+        return sum(body.nb_vertices for body in self.subbodies)
+
+    @property
+    def nb_faces(self):
+        return sum(body.nb_faces for body in self.subbodies)
+
+    @property
+    def vertices(self):
+        return np.concatenate([body.vertices for body in self.subbodies])
+
+    @property
+    def faces(self):
+        """Return the indices of the verices forming each of the faces. For the
+        later subbodies, the indices of the vertices has to be shifted to
+        correspond to their index in the concatenated array self.vertices.
+        """
+        nb_vertices = accumulate(chain([0], (body.nb_vertices for body in self.subbodies[:-1])))
+        return np.concatenate([body.faces + nbv for body, nbv in zip(self.subbodies, nb_vertices)])
+
+    @property
+    def faces_normals(self):
+        return np.concatenate([body.faces_normals for body in self.subbodies])
+
+    @property
+    def faces_areas(self):
+        return np.concatenate([body.faces_areas for body in self.subbodies])
+
+    @property
+    def faces_centers(self):
+        return np.concatenate([body.faces_centers for body in self.subbodies])
+
+    @property
+    def faces_radiuses(self):
+        return np.concatenate([body.faces_radiuses for body in self.subbodies])
+
+    def mirror(self, plane):
+        for body in self.subbodies:
+            body.mirror(plane)
+        return
+
+    def translate(self, vector):
+        for body in self.subbodies:
+            body.translate(vector)
+        return
+
+
+class ReflectionSymmetry(CollectionOfFloatingBodies):
     """A body composed of two symmetrical halves."""
 
     def __init__(self, half, plane):
         """Initialize the body.
-        
+
         Parameters
         ----------
         half: FloatingBody
@@ -37,73 +128,20 @@ class ReflectionSymmetry(FloatingBody):
         assert isinstance(half, FloatingBody)
         assert isinstance(plane, Plane)
 
-        self.half = half
-        self.half.nb_matrices_to_keep *= 2
+        half.nb_matrices_to_keep *= 2
 
-        self._name = "mirrored_" + half.name
+        other_half = half.copy()
+        other_half.mirror(plane)
+        other_half.name = "mirror_of_" + half.name
+
+        CollectionOfFloatingBodies.__init__(self, [half, other_half])
+
+        self.name = "mirrored_" + half.name
         LOG.info(f"New mirror symmetry: {self.name}.")
-
-        self.other_half = self.half.copy()
-        self.other_half.mirror(plane)
-        self.other_half.name = "mirror_of_" + self.half.name
-
-        self.symmetry_plane = plane
 
         self.dofs = {}
         for name, dof in half.dofs.items():
             self.dofs['mirrored_' + name] = np.concatenate([dof, dof])
-
-
-    @property
-    def nb_matrices_to_keep(self):
-        return self.half.nb_matrices_to_keep
-
-    @nb_matrices_to_keep.setter
-    def nb_matrices_to_keep(self, value):
-        self.half.nb_matrices_to_keep = value
-        self.other_half.nb_matrices_to_keep = value
-
-    @property
-    def nb_vertices(self):
-        return 2*self.half.nb_vertices
-
-    @property
-    def nb_faces(self):
-        return 2*self.half.nb_faces
-
-    @property
-    def vertices(self):
-        return np.concatenate([self.half.vertices, self.other_half.vertices])
-
-    @property
-    def faces(self):
-        return np.concatenate([self.half.faces, self.other_half.faces + self.half.nb_vertices])
-
-    @property
-    def faces_normals(self):
-        return np.concatenate([self.half.faces_normals, self.other_half.faces_normals])
-
-    @property
-    def faces_areas(self):
-        return np.concatenate([self.half.faces_areas, self.other_half.faces_areas])
-
-    @property
-    def faces_centers(self):
-        return np.concatenate([self.half.faces_centers, self.other_half.faces_centers])
-
-    @property
-    def faces_radiuses(self):
-        return np.concatenate([self.half.faces_radiuses, self.other_half.faces_radiuses])
-
-    def mirror(self, plane):
-        self.half.mirror(plane)
-        self.other_half.mirror(plane)
-        return
-
-    def translate(self, vector):
-        self.half.translate(vector)
-        self.other_half.translate(vector)
-        return
 
     def build_matrices(self, body, force_full_computation=False, **kwargs):
         """Return the influence matrices of self on body."""
@@ -121,8 +159,8 @@ class ReflectionSymmetry(FloatingBody):
             bottom_right = (slice(self.nb_faces//2, None), slice(self.nb_faces//2, None))
 
             # Evaluation of two of the quarters
-            S[top_left], V[top_left] = self.half.build_matrices(self.half, **kwargs)
-            S[top_right], V[top_right] = self.half.build_matrices(self.other_half, **kwargs)
+            S[top_left], V[top_left] = self.subbodies[0].build_matrices(self.subbodies[0], **kwargs)
+            S[top_right], V[top_right] = self.subbodies[0].build_matrices(self.subbodies[1], **kwargs)
 
             # Copy the values in the two other quarters
             S[bottom_left], V[bottom_left] = S[top_right], V[top_right]
@@ -138,8 +176,8 @@ class ReflectionSymmetry(FloatingBody):
             top    = (slice(None, self.nb_faces//2), slice(None, None))
             bottom = (slice(self.nb_faces//2, None), slice(None, None))
 
-            S[top], V[top] = self.half.build_matrices(body, **kwargs)
-            S[bottom], V[bottom] = self.other_half.build_matrices(body, **kwargs)
+            S[top], V[top] = self.subbodies[0].build_matrices(body, **kwargs)
+            S[bottom], V[bottom] = self.subbodies[1].build_matrices(body, **kwargs)
 
         return S, V
 
@@ -149,7 +187,7 @@ class TranslationalSymmetry(FloatingBody):
 
     def __init__(self, body_slice, translation, nb_repetitions=1):
         """Initialize the body.
-        
+
         Parameters
         ----------
         body_slice: FloatingBody
@@ -292,3 +330,5 @@ class TranslationalSymmetry(FloatingBody):
             V = np.concatenate(Vlist)
 
         return S, V
+
+
