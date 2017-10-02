@@ -18,9 +18,11 @@ directory = sys.argv[1]
 
 times = pd.DataFrame.from_csv(os.path.join(directory, 'times.csv'))
 
-times = times.groupby('nb_cells').aggregate(np.mean)
+print(times.groupby('nb_cells').aggregate(np.std))
+
+times = times.groupby('nb_cells').aggregate(np.min)
 ax = times.plot()
-ax.set(xlabel='number of cells in mesh', ylabel='time (seconds)')
+ax.set(xlabel='number of cells in mesh', ylabel='computation time (seconds)')
 
 plt.grid()
 
