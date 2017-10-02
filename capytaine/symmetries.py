@@ -15,13 +15,19 @@ from capytaine.bodies_collection import CollectionOfFloatingBodies
 
 LOG = logging.getLogger(__name__)
 
+
+class _SymmetricBody(CollectionOfFloatingBodies):
+    def __add__(self, body_to_add):
+        return CollectionOfFloatingBodies([self, body_to_add])
+
+
 # Useful aliases
 yOz_Plane = Plane(normal=(1.0, 0.0, 0.0), scalar=0.0)
 xOz_Plane = Plane(normal=(0.0, 1.0, 0.0), scalar=0.0)
 xOy_Plane = Plane(normal=(0.0, 0.0, 1.0), scalar=0.0)
 
 
-class ReflectionSymmetry(CollectionOfFloatingBodies):
+class ReflectionSymmetry(_SymmetricBody):
     """A body composed of two symmetrical halves."""
 
     def __init__(self, half, plane):
@@ -81,7 +87,7 @@ class ReflectionSymmetry(CollectionOfFloatingBodies):
             return CollectionOfFloatingBodies.build_matrices(self, other_body, **kwargs)
 
 
-class TranslationalSymmetry(CollectionOfFloatingBodies):
+class TranslationalSymmetry(_SymmetricBody):
     """A body composed of a pattern repeated and translated."""
 
     def __init__(self, body_slice, translation, nb_repetitions=1):
