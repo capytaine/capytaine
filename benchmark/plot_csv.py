@@ -9,31 +9,47 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-times = pd.DataFrame.from_csv(os.path.join(sys.argv[1], 'times.csv'))
-ax = times.plot(x='nb_cells')
+directory = sys.argv[1]
+# directory = '2017-10-02_173227/'
+
+#######################################################################
+#                              Plot time                              #
+#######################################################################
+
+times = pd.DataFrame.from_csv(os.path.join(directory, 'times.csv'))
+
+times = times.groupby('nb_cells').aggregate(np.mean)
+ax = times.plot()
 ax.set(xlabel='number of cells in mesh', ylabel='time (seconds)')
+
 plt.grid()
 
-# omega_range = np.linspace(0.1, 4.0, 40)
+#######################################################################
+#                            Check values                             #
+#######################################################################
+omega_range = np.linspace(0.1, 4.0, 40)
 
-# mesh_to_plot = '600'
-# plt.figure()
-# for nemoh_dir in glob.glob(os.path.join(sys.argv[1], f'*Nemoh*{mesh_to_plot}*')):
-#     mesh = int(nemoh_dir.split('_')[-1])
-#     results = np.genfromtxt(os.path.join(nemoh_dir, "results", "Forces.dat"))
-#     added_mass = results[::2]
-#     damping = results[1::2]
+nemoh_dirs = glob.glob(os.path.join(directory, '*Nemoh*'))
+capy_dirs = glob.glob(os.path.join(directory, '*capy*'))
 
-#     plt.plot(omega_range, added_mass, label=nemoh_dir)
+case_names = sorted(os.path.basename(name) for name in nemoh_dirs+capy_dirs) 
 
-# for capy_dir in glob.glob(os.path.join(sys.argv[1], f'*capy*{mesh_to_plot}*')):
-#     mesh = int(capy_dir.split('_')[-1])
-#     results = np.genfromtxt(os.path.join(capy_dir, "results.csv"))
-#     added_mass = results[:, 0]
-#     damping = results[:, 1]
+added_mass = pd.DataFrame(index=omega_range, columns=case_names)
+damping = pd.DataFrame(index=omega_range, columns=case_names)
 
-#     plt.plot(omega_range, added_mass, label=capy_dir)
+for nemoh_dir in nemoh_dirs:
+    mesh = int(nemoh_dir.split('_')[-1])
+    results = np.genfromtxt(os.path.join(nemoh_dir, "results", "Forces.dat"))
+    added_mass[os.path.basename(nemoh_dir)] = results[::2]
+    damping[os.path.basename(nemoh_dir)] = results[1::2]
 
-# plt.legend()
+for capy_dir in capy_dirs:
+    mesh = int(capy_dir.split('_')[-1])
+    results = np.genfromtxt(os.path.join(capy_dir, "results.csv"))
+    added_mass[os.path.basename(capy_dir)] = results[:, 0]
+    damping[os.path.basename(capy_dir)] = results[:, 1]
+
+# added_mass.plot(y=[name for name in case_names if '600' in name])
+# print(added_mass[[name for name in case_names if '600' in name]])
 
 plt.show()
