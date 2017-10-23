@@ -10,6 +10,7 @@ import numpy as np
 
 from capytaine._Wavenumber import invert_xtanhx
 
+
 class PotentialFlowProblem:
 
     def __init__(self, body, free_surface=0.0, sea_bottom=-np.infty, omega=1.0, rho=1000.0, g=9.81):
@@ -49,12 +50,12 @@ class DiffractionProblem(PotentialFlowProblem):
     def __repr__(self):
         return f"DiffractionProblem(body={self.body.name}, free_surface={self.free_surface}, sea_bottom={self.sea_bottom}, angle={self.angle}, omega={self.omega}, rho={self.rho}, g={self.g})"
 
-    def airy_wave(self, X):
-        x, y, z = X
+    def Airy_wave(self, X):
+        x, y, z = X.T
         k = self.wavenumber
         h = self.depth
 
-        wbar = np.dot([x, y], [np.cos(self.angle), np.sin(self.angle)])
+        wbar = x*np.cos(self.angle) + y*np.sin(self.angle)
 
         if k*h < 20 and k*h >= 0:
             cih = np.cosh(k*(z+h))/np.cosh(k*h)
@@ -67,9 +68,9 @@ class DiffractionProblem(PotentialFlowProblem):
                 np.exp(1j * k * wbar) * \
                 np.array([np.cos(self.angle)*cih, np.sin(self.angle)*cih, -1j*sih])
 
-        p = self.rho * self.g * cih * np.exp(1j * k * wbar)
+        # p = self.rho * self.g * cih * np.exp(1j * k * wbar)
 
-        return p, v
+        return v.T
 
 
 class RadiationProblem(PotentialFlowProblem):

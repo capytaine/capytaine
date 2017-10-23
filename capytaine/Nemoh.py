@@ -9,6 +9,7 @@ import logging
 import numpy as np
 from numpy.linalg import solve
 
+from capytaine.problems import RadiationProblem, DiffractionProblem
 import capytaine._Green as _Green
 
 
@@ -48,19 +49,35 @@ class Nemoh:
 
         identity = np.identity(V.shape[0], dtype=np.float32)
 
-        for _, radiating_dof in problem.body.dofs.items():
-            sources = solve(V + identity/2, radiating_dof)
+        if isinstance(problem, RadiationProblem):
+            for _, radiating_dof in problem.body.dofs.items():
+                sources = solve(V + identity/2, radiating_dof)
+                potential = S @ sources
+
+                for _, influenced_dof in problem.body.dofs.items():
+                    complex_coef = - problem.rho * \
+                        potential @ (influenced_dof * problem.body.faces_areas)
+
+                    added_masses.append(complex_coef.real)
+                    added_dampings.append(problem.omega * complex_coef.imag)
+
+            return np.array(added_masses).reshape((problem.body.nb_dofs, problem.body.nb_dofs)), \
+                   np.array(added_dampings).reshape((problem.body.nb_dofs, problem.body.nb_dofs))
+
+        elif isinstance(problem, DiffractionProblem):
+            normal_velocities = -(problem.Airy_wave(problem.body.faces_centers) *
+                                  problem.body.faces_normals
+                                  ).sum(axis=1)
+            sources = solve(V + identity/2, normal_velocities)
             potential = S @ sources
 
+            forces = []
             for _, influenced_dof in problem.body.dofs.items():
-                complex_coef = - problem.rho * \
+                force = - problem.rho * \
                     potential @ (influenced_dof * problem.body.faces_areas)
+                forces.append(force)
 
-                added_masses.append(complex_coef.real)
-                added_dampings.append(problem.omega * complex_coef.imag)
-
-        return np.array(added_masses).reshape((problem.body.nb_dofs, problem.body.nb_dofs)), \
-               np.array(added_dampings).reshape((problem.body.nb_dofs, problem.body.nb_dofs))
+            return np.array(forces)
 
     def solve_all(self, problems, processes=1):
         from multiprocessing import Pool

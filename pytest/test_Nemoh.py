@@ -8,8 +8,9 @@ import numpy as np
 
 from capytaine.reference_bodies import *
 from capytaine.symmetries import *
-from capytaine.problems import RadiationProblem
+from capytaine.problems import DiffractionProblem, RadiationProblem
 from capytaine.Nemoh import Nemoh
+
 
 def test_immersed_sphere():
     sphere = Sphere(radius=1.0, ntheta=21, nphi=21)
@@ -19,29 +20,48 @@ def test_immersed_sphere():
     assert np.isclose(mass,    2187, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(damping, 0.0,  atol=1e-3*sphere.volume*problem.rho)
 
+
 def test_floating_sphere_finite_freq():
     sphere = Sphere(radius=1.0, ntheta=7, nphi=7, clip_free_surface=True)
     sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
+
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
     mass, damping = Nemoh().solve(problem)
     assert np.isclose(mass,    1819.6, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(damping, 379.39, atol=1e-3*sphere.volume*problem.rho)
 
+    problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
+    force = Nemoh().solve(problem)
+    assert np.isclose(force, 1834.9 * np.exp(-2.933j) * -1j, rtol=1e-3)
+
+
 def test_alien_sphere():
     sphere = Sphere(radius=1.0, ntheta=7, nphi=7, clip_free_surface=True)
     sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
+
     problem = RadiationProblem(body=sphere, rho=450.0, g=1.625, omega=1.0, sea_bottom=-np.infty)
     mass, damping = Nemoh().solve(problem)
     assert np.isclose(mass,    515, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(damping, 309, atol=1e-3*sphere.volume*problem.rho)
 
+    problem = DiffractionProblem(body=sphere, rho=450.0, g=1.625, omega=1.0, sea_bottom=-np.infty)
+    force = Nemoh().solve(problem)
+    assert np.isclose(force, 548.5 * np.exp(-2.521j) * -1j, rtol=1e-2)
+
+
 def test_floating_sphere_finite_depth():
     sphere = Sphere(radius=1.0, ntheta=7, nphi=7, clip_free_surface=True)
     sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
+
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
     mass, damping = Nemoh().solve(problem)
     assert np.isclose(mass,    1740.6, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(damping, 380.46, rtol=1e-3*sphere.volume*problem.rho)
+
+    problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
+    force = Nemoh().solve(problem)
+    assert np.isclose(force, 1749.4 * np.exp(-2.922j) * -1j, rtol=1e-3)
+
 
 def test_multibody():
     sphere = Sphere(radius=1.0, ntheta=11, nphi=11)
