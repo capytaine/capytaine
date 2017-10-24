@@ -10,6 +10,7 @@ import numpy as np
 from meshmagick.geometry import Plane
 
 from capytaine.bodies import FloatingBody
+from capytaine.Toeplitz_matrices import BlockToeplitzMatrix
 from capytaine.bodies_collection import CollectionOfFloatingBodies
 
 
@@ -142,29 +143,36 @@ class TranslationalSymmetry(_SymmetricBody):
             # Use symmetry to speed up the evaluation of the matrix
             LOG.debug(f"Evaluating matrix of {self.name} on itself using translation symmetry.")
 
-            S = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
-            V = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
+            # S = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
+            # V = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
 
-            # Compute the indices of each block composing the block matrix
-            nb_faces = list(accumulate(chain([0], (body.nb_faces for body in self.subbodies))))
-            matrix_blocks = []
-            for i, j in zip(nb_faces, nb_faces[1:]):
-                line_of_blocks = []
-                for k, l in zip(nb_faces, nb_faces[1:]):
-                    line_of_blocks.append((slice(i, j), slice(k, l)))
-                matrix_blocks.append(line_of_blocks)
+            # # Compute the indices of each block composing the block matrix
+            # nb_faces = list(accumulate(chain([0], (body.nb_faces for body in self.subbodies))))
+            # matrix_blocks = []
+            # for i, j in zip(nb_faces, nb_faces[1:]):
+            #     line_of_blocks = []
+            #     for k, l in zip(nb_faces, nb_faces[1:]):
+            #         line_of_blocks.append((slice(i, j), slice(k, l)))
+            #     matrix_blocks.append(line_of_blocks)
 
-            # Compute the values of the first column of blocks
-            for matrix_block, body in zip(matrix_blocks[0], self.subbodies):
-                S[matrix_block], V[matrix_block] = self.subbodies[0].build_matrices(body, **kwargs)
+            # # Compute the values of the first column of blocks
+            # for matrix_block, body in zip(matrix_blocks[0], self.subbodies):
+            #     S[matrix_block], V[matrix_block] = self.subbodies[0].build_matrices(body, **kwargs)
 
-            # Copy in the rest of the matrix
-            for i in range(1, len(matrix_blocks)):
-                for j in range(len(matrix_blocks[i])):
-                    S[matrix_blocks[i][j]] = S[matrix_blocks[0][abs(j-i)]]
-                    V[matrix_blocks[i][j]] = V[matrix_blocks[0][abs(j-i)]]
+            # # Copy in the rest of the matrix
+            # for i in range(1, len(matrix_blocks)):
+            #     for j in range(len(matrix_blocks[i])):
+            #         S[matrix_blocks[i][j]] = S[matrix_blocks[0][abs(j-i)]]
+            #         V[matrix_blocks[i][j]] = V[matrix_blocks[0][abs(j-i)]]
 
-            return S, V
+            # return S, V
+
+            S_list, V_list = [], []
+            for body in self.subbodies:
+                S, V = self.subbodies[0].build_matrices(body, **kwargs)
+                S_list.append(S)
+                V_list.append(V)
+            return BlockToeplitzMatrix(S_list).full_matrix(), BlockToeplitzMatrix(V_list).full_matrix()
 
         else:
             return CollectionOfFloatingBodies.build_matrices(self, body, **kwargs)

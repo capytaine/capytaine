@@ -7,9 +7,9 @@ Solver for the BEM problem based on Nemoh's Green function.
 import logging
 
 import numpy as np
-from numpy.linalg import solve
 
 from capytaine.problems import RadiationProblem, DiffractionProblem
+from capytaine.Toeplitz_matrices import solve
 import capytaine._Green as _Green
 
 
