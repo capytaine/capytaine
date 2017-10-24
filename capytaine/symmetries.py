@@ -134,7 +134,7 @@ class TranslationalSymmetry(_SymmetricBody):
                 S, V = self.subbodies[0].build_matrices(body, **kwargs)
                 S_list.append(S)
                 V_list.append(V)
-            return BlockToeplitzMatrix(S_list).full_matrix(), BlockToeplitzMatrix(V_list).full_matrix()
+            return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
 
         else:
             return CollectionOfFloatingBodies.build_matrices(self, body, **kwargs)

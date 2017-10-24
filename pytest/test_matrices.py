@@ -37,7 +37,10 @@ def test_BlockToeplitz():
     B = np.random.rand(5, 5)
     assert np.all(A + B == A.full_matrix() + B)
     assert np.all(A * B == A.full_matrix() * B)
-    assert np.all(A @ B == A.full_matrix() @ B)
+
+    x = np.array([10, 11, 12, 13 ,14])
+    assert np.all(A @ x == A.full_matrix() @ x)
+    assert np.all(A @ A.full_matrix() == A.full_matrix() @ A.full_matrix())
 
     C = np.random.rand(30, 30)
     Z = BlockToeplitzMatrix([np.zeros((3, 3)) for _ in range(10)])

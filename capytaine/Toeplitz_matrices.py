@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import logging
+from itertools import product
 
 import numpy as np
 
@@ -103,7 +104,13 @@ class BlockToeplitzMatrix:
 
     def __matmul__(self, other):
         if isinstance(other, np.ndarray):
-            return self.full_matrix() @ other
+            if self.nb_blocks*self.block_size != other.shape[0]:
+                raise Exception("Size of the matrices does not match!")
+            result = np.zeros(other.shape, dtype=self.dtype)
+            for i, j in product(range(self.nb_blocks), repeat=2):
+                result[i*self.block_size:(i+1)*self.block_size] += \
+                    self.blocks[abs(i-j)] @ other[j*self.block_size:(j+1)*self.block_size]
+            return result
         else:
             raise NotImplemented
 
@@ -147,6 +154,8 @@ class BlockToeplitzMatrix:
 
 
 def block_Toeplitz_identity(nb_blocks, block_size, **kwargs):
+    """Return the identity matrix as a block Toeplitz matrix of specified
+    size."""
     return BlockToeplitzMatrix(
         [np.identity(block_size, **kwargs)] +
         [np.zeros((block_size, block_size), **kwargs) for i in range(nb_blocks - 1)]
@@ -157,17 +166,20 @@ def solve(A, b):
     """Solve the linear system Ax = b"""
     if isinstance(A, BlockToeplitzMatrix):
         if A.nb_blocks == 2:
+            LOG.debug("\tSolve system of 2x2 BlockToeplitzMatrix (block size: %i)", A.block_size)
             A1, A2 = A.blocks
             b1, b2 = b[:len(b)//2], b[len(b)//2:]
-            x_plus = np.linalg.solve(A1 + A2, b1 + b2)
-            x_minus = np.linalg.solve(A1 - A2, b1 - b2)
+            x_plus = solve(A1 + A2, b1 + b2)
+            x_minus = solve(A1 - A2, b1 - b2)
             return np.concatenate([x_plus + x_minus, x_plus - x_minus])/2
 
         else:
+            LOG.debug("\tSolve linear system %ix%i BlockToeplitzMatrix (block size: %i)", A.nb_blocks, A.nb_blocks, A.block_size)
             # Not implemented yet
             return np.linalg.solve(A.full_matrix(), b)
 
     elif isinstance(A, np.ndarray):
+        LOG.debug("\tSolve linear system (size: %i) with numpy.", A.shape[0])
         return np.linalg.solve(A, b)
 
     else:
