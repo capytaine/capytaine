@@ -9,9 +9,16 @@ LOG = logging.getLogger(__name__)
 
 
 class BlockToeplitzMatrix:
-    """A block Toeplitz matrix stored as a list of matrices (the blocks)."""
+    """A symmetric block Toeplitz matrix stored as a list of matrices.
+    """
 
     def __init__(self, blocks):
+        """
+        Parameters
+        ----------
+        blocks: list of square matrices
+            the blocks of the first row (or the first column) of the block matrix.
+        """
 
         self.blocks = blocks
         self.dtype = blocks[0].dtype
@@ -37,9 +44,8 @@ class BlockToeplitzMatrix:
 
         for i in range(self.nb_blocks):
             for j in range(self.nb_blocks):
-                full_matrix[(slice(i*self.block_size, (i+1)*self.block_size),
-                             slice(j*self.block_size, (j+1)*self.block_size),
-                             )] = self.blocks[abs(j-i)]
+                full_matrix[i*self.block_size:(i+1)*self.block_size,
+                            j*self.block_size:(j+1)*self.block_size] = self.blocks[abs(j-i)]
 
         return full_matrix
 
@@ -48,12 +54,15 @@ def solve(A, b):
     """Solve the linear system Ax = b"""
     if isinstance(A, BlockToeplitzMatrix):
         if A.nb_blocks == 2:
-            # Not implemented yet
-            return np.linalg.solve(A, b)
+            A1, A2 = A.blocks
+            b1, b2 = b[:len(b)//2], b[len(b)//2:]
+            x_plus = np.linalg.solve(A1 + A2, b1 + b2)
+            x_minus = np.linalg.solve(A1 - A2, b1 - b2)
+            return np.concatenate([x_plus + x_minus, x_plus - x_minus])/2
 
         else:
             # Not implemented yet
-            return np.linalg.solve(A, b)
+            return np.linalg.solve(A.full_matrix(), b)
 
     elif isinstance(A, np.ndarray):
         return np.linalg.solve(A, b)

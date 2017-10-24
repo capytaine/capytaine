@@ -65,24 +65,11 @@ class ReflectionSymmetry(_SymmetricBody):
             # Use symmetry to speed up the evaluation of the matrix
             LOG.debug(f"Evaluating matrix of {self.name} on itself using mirror symmetry.")
 
-            S = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
-            V = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
+            S_a, V_a = self.subbodies[0].build_matrices(self.subbodies[0], **kwargs)
+            S_b, V_b = self.subbodies[0].build_matrices(self.subbodies[1], **kwargs)
 
-            # Indices ranges of the four quarters of the matrix
-            top_left     = (slice(None, self.nb_faces//2), slice(None, self.nb_faces//2))
-            top_right    = (slice(None, self.nb_faces//2), slice(self.nb_faces//2, None))
-            bottom_left  = (slice(self.nb_faces//2, None), slice(None, self.nb_faces//2))
-            bottom_right = (slice(self.nb_faces//2, None), slice(self.nb_faces//2, None))
-
-            # Evaluation of two of the quarters
-            S[top_left], V[top_left] = self.subbodies[0].build_matrices(self.subbodies[0], **kwargs)
-            S[top_right], V[top_right] = self.subbodies[0].build_matrices(self.subbodies[1], **kwargs)
-
-            # Copy the values in the two other quarters
-            S[bottom_left], V[bottom_left] = S[top_right], V[top_right]
-            S[bottom_right], V[bottom_right] = S[top_left], V[top_left]
-
-            return S, V
+            return (BlockToeplitzMatrix([S_a, S_b]).full_matrix(),
+                    BlockToeplitzMatrix([V_a, V_b]).full_matrix())
 
         else:
             return CollectionOfFloatingBodies.build_matrices(self, other_body, **kwargs)
@@ -142,30 +129,6 @@ class TranslationalSymmetry(_SymmetricBody):
         if other_body == self and not force_full_computation:
             # Use symmetry to speed up the evaluation of the matrix
             LOG.debug(f"Evaluating matrix of {self.name} on itself using translation symmetry.")
-
-            # S = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
-            # V = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
-
-            # # Compute the indices of each block composing the block matrix
-            # nb_faces = list(accumulate(chain([0], (body.nb_faces for body in self.subbodies))))
-            # matrix_blocks = []
-            # for i, j in zip(nb_faces, nb_faces[1:]):
-            #     line_of_blocks = []
-            #     for k, l in zip(nb_faces, nb_faces[1:]):
-            #         line_of_blocks.append((slice(i, j), slice(k, l)))
-            #     matrix_blocks.append(line_of_blocks)
-
-            # # Compute the values of the first column of blocks
-            # for matrix_block, body in zip(matrix_blocks[0], self.subbodies):
-            #     S[matrix_block], V[matrix_block] = self.subbodies[0].build_matrices(body, **kwargs)
-
-            # # Copy in the rest of the matrix
-            # for i in range(1, len(matrix_blocks)):
-            #     for j in range(len(matrix_blocks[i])):
-            #         S[matrix_blocks[i][j]] = S[matrix_blocks[0][abs(j-i)]]
-            #         V[matrix_blocks[i][j]] = V[matrix_blocks[0][abs(j-i)]]
-
-            # return S, V
 
             S_list, V_list = [], []
             for body in self.subbodies:
