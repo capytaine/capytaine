@@ -36,8 +36,8 @@ def test_panels():
     # plt.colorbar()
     # plt.show()
 
-    assert np.allclose(S1, S2, atol=1e-5)
-    assert np.allclose(V1, V2, atol=1e-5)
+    assert np.allclose(S1, S2.full_matrix(), atol=1e-5)
+    assert np.allclose(V1, V2.full_matrix(), atol=1e-5)
 
 @pytest.mark.parametrize("reso", range(2, 5))
 def test_floating_sphere(reso):

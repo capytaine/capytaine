@@ -68,8 +68,7 @@ class ReflectionSymmetry(_SymmetricBody):
             S_a, V_a = self.subbodies[0].build_matrices(self.subbodies[0], **kwargs)
             S_b, V_b = self.subbodies[0].build_matrices(self.subbodies[1], **kwargs)
 
-            return (BlockToeplitzMatrix([S_a, S_b]).full_matrix(),
-                    BlockToeplitzMatrix([V_a, V_b]).full_matrix())
+            return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
 
         else:
             return CollectionOfFloatingBodies.build_matrices(self, other_body, **kwargs)
