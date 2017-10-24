@@ -21,10 +21,10 @@ def export_as_Nemoh_directory(problem, directory_name, omega_range=None):
         os.makedirs(directory_name)
 
     write_MAR(
-        os.path.join(directory_name, f'{self.body.name}.dat'),
-        self.body.vertices,
-        self.body.faces,
-        xOz_symmetry=isinstance(self.body, ReflectionSymmetry)
+        os.path.join(directory_name, f'{problem.body.name}.dat'),
+        problem.body.vertices,
+        problem.body.faces,
+        xOz_symmetry=isinstance(problem.body, ReflectionSymmetry)
     )
 
     if omega_range is None:
@@ -39,12 +39,12 @@ def export_as_Nemoh_directory(problem, directory_name, omega_range=None):
     with open(os.path.join(directory_name, "Nemoh.cal"), "w") as nemoh_cal:
         nemoh_cal.write(
                 DEFAULT_NEMOH_CAL.format(
-                    rho=self.rho,
-                    g=self.g,
-                    depth=self.depth,
-                    mesh_filename=f'{self.body.name}.dat',
-                    mesh_vertices=self.body.nb_vertices,
-                    mesh_faces=self.body.nb_faces,
+                    rho=problem.rho,
+                    g=problem.g,
+                    depth=problem.depth,
+                    mesh_filename=f'{problem.body.name}.dat',
+                    mesh_vertices=problem.body.nb_vertices,
+                    mesh_faces=problem.body.nb_faces,
                     omega_nb_steps=omega_nb_steps,
                     omega_start=omega_start,
                     omega_stop=omega_stop,

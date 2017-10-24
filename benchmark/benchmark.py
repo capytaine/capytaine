@@ -11,6 +11,7 @@ import pandas as pd
 
 from capytaine.Nemoh import Nemoh
 from capytaine.problems import RadiationProblem
+from capytaine.exporter import export_as_Nemoh_directory
 
 
 def profile_capytaine(body, omega_range, result_dir):
@@ -51,7 +52,7 @@ def profile_capytaine(body, omega_range, result_dir):
 
 def profile_Nemoh(body, omega_range, result_dir, nemoh_bin_dir="~/nemoh/bin"):
     problem = RadiationProblem(body=body, rho=1000, omega=0.0)
-    problem.export_as_Nemoh_directory(result_dir, omega_range)
+    export_as_Nemoh_directory(problem, result_dir, omega_range)
 
     subprocess.run(
         f'cd {result_dir} && ' + os.path.join(nemoh_bin_dir, 'preProc'),
