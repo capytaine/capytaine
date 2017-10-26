@@ -13,10 +13,8 @@ from capytaine.reference_bodies import HorizontalCylinder
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import Nemoh
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(levelname)s:\t%(message)s"
-)
+logging.basicConfig(level=logging.INFO,
+                    format="%(levelname)s:\t%(message)s")
 
 rho = 1000
 

@@ -29,14 +29,14 @@ class Nemoh:
         Return the added mass and added damping.
         """
 
-        LOG.info(f"Solve {problem}.")
+        LOG.info("Solve %s.", problem)
 
         if problem.depth < np.infty:
             _Green.initialize_green_2.lisc(
                 problem.omega**2*problem.depth/problem.g,
                 problem.wavenumber*problem.depth
             )
-            LOG.info("Initialize Nemoh's finite depth Green function for omega={omega:.2e} and depth={depth:.2e}.")
+            LOG.debug(f"Initialize Nemoh's finite depth Green function for omega=%.2e and depth=%.2e", problem.omega, problem.depth)
 
         added_masses, added_dampings = [], []
 
