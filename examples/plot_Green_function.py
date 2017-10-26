@@ -29,7 +29,7 @@ else:
 
 source = np.asarray([0.0,  0.0, -5.0])
 
-X_range = np.linspace(-2/wavenumber, 2/wavenumber, mesh_resolution)
+X_range = np.linspace(-4/wavenumber, 4/wavenumber, mesh_resolution)
 if depth == np.infty:
     Z_range = np.linspace(-10.0, 0.1, mesh_resolution)
 else:
@@ -49,13 +49,13 @@ for i, x in enumerate(X_range):
             p_mirror = np.array([x, 0.0, -z])
             green[i, j] += 1/(norm(source-p_mirror))
 
-            green[i, j] += _G.green_2.vnsinfd(wavenumber, source, p, 1.0)[0]
+            green[i, j] += _G.green_2.vnsinfd(wavenumber, source, p)[0]
 
         else:
             p_mirror = np.array([x, 0.0, -2*depth-z])
             green[i, j] += 1/(norm(source-p_mirror))
 
-            green[i, j] += _G.green_2.vnsfd(wavenumber, source, p, 1.0, depth)[0]
+            green[i, j] += _G.green_2.vnsfd(wavenumber, source, p, depth)[0]
 
 ##########
 #  Plot  #
@@ -65,30 +65,30 @@ plt.figure()
 plt.contourf(
     X_mesh,
     Z_mesh,
-    np.log(np.real(green.T)),
+    np.log(np.abs(green.T)),
     10
 )
 plt.colorbar()
 plt.title("Green function")
 
-plt.figure()
-CS = plt.contour(
-    X_mesh,
-    Z_mesh,
-    np.gradient(np.real(green.T), axis=0),
-    levels=np.arange(-0.05, 0.05, 0.01),
-)
-plt.clabel(CS)
-plt.title("Green function gradient w.r.t. $z$")
+# plt.figure()
+# CS = plt.contour(
+#     X_mesh,
+#     Z_mesh,
+#     np.gradient(np.real(green.T), axis=0),
+#     levels=np.arange(-0.05, 0.05, 0.01),
+# )
+# plt.clabel(CS)
+# plt.title("Green function gradient w.r.t. $z$")
 
-plt.figure()
-CS = plt.contour(
-    X_mesh,
-    Z_mesh,
-    omega**2/g * np.real(green.T) - np.gradient(np.real(green.T), axis=0),
-    levels=np.arange(-0.05, 0.05, 0.01),
-)
-plt.clabel(CS)
-plt.title("Green function, free surface boundary condition")
+# plt.figure()
+# CS = plt.contour(
+#     X_mesh,
+#     Z_mesh,
+#     omega**2/g * np.real(green.T) - np.gradient(np.real(green.T), axis=0),
+#     levels=np.arange(-0.05, 0.05, 0.01),
+# )
+# plt.clabel(CS)
+# plt.title("Green function, free surface boundary condition")
 
 plt.show()
