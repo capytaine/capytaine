@@ -173,6 +173,10 @@ class CollectionOfFloatingBodies(FloatingBody):
             body.rotate(vector)
         return
 
+    def indices_of_body(self, body_index):
+        start = sum((body.nb_faces for body in self.subbodies[:body_index]))
+        return slice(start, start + self.subbodies[body_index].nb_faces)
+
     #######################################
     #  Computation of influence matrices  #
     #######################################

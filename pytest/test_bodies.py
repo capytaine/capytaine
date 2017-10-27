@@ -26,6 +26,9 @@ def test_collection():
     assert isinstance(coll.as_FloatingBody(), FloatingBody)
     assert coll.name == 'union_of_body_1_and_body_2'
 
+    assert np.all(coll.faces_areas[coll.indices_of_body(0)] == body_1.faces_areas)
+    assert np.all(coll.faces_areas[coll.indices_of_body(1)] == body_2.faces_areas)
+
     # Test dofs
     assert len(coll.dofs) == 3
     for name, dof in coll.dofs.items():
