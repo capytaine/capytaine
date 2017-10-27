@@ -76,6 +76,11 @@ class DiffractionProblem(PotentialFlowProblem):
 class RadiationProblem(PotentialFlowProblem):
     """A radiation problem to be solved by the BEM solver."""
 
+    def __init__(self, *args, angle=0.0, **kwargs):
+        self.sources = {}
+        self.potential = {}
+        PotentialFlowProblem.__init__(self, *args, **kwargs)
+
     def __str__(self):
         return f"Radiation problem of {self.body.name} with depth={self.free_surface-self.sea_bottom:.1e} and omega={self.omega:.3f}"
 

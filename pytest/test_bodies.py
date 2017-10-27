@@ -74,6 +74,8 @@ def test_reference_bodies():
     # cylinder.show()
     rectangle = generate_one_sided_rectangle()
     # rectangle.show()
+    free_surface = generate_free_surface()
+    # free_surface.show()
     parallelepiped = generate_open_rectangular_parallelepiped()
     # parallelepiped.show()
     parallelepiped = generate_rectangular_parallelepiped()

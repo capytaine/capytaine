@@ -212,6 +212,21 @@ def generate_one_sided_rectangle(height=5.0, width=5.0, nh=5, nw=5):
 
     return FloatingBody(nodes, panels, name=f"rectangle_{next(FloatingBody._ids)}")
 
+def generate_free_surface(width=100, length=100, nw=10, nl=10):
+    """ """
+    X = np.linspace(-width, width, nw+1)
+    Y = np.linspace(-length, length, nl+1)
+
+    nodes = np.zeros(((nw+1)*(nl+1), 3), dtype=np.float32)
+    panels = np.zeros((nw*nl, 4), dtype=np.int)
+
+    for i, (x, y, z) in enumerate(product(X, Y, [0.0])):
+        nodes[i, :] = x, y, z
+
+    for k, (i, j) in enumerate(product(range(0, nw), range(0, nl))):
+        panels[k, :] = (j+i*(nl+1), j+1+i*(nl+1), j+1+(i+1)*(nl+1), j+(i+1)*(nl+1))
+
+    return FloatingBody(nodes, panels, name=f"free_surface_{next(FloatingBody._ids)}")
 
 def generate_open_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0,
                                              nh=5, nw=5, nth=1):
