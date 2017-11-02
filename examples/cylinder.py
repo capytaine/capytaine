@@ -9,7 +9,7 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from capytaine.reference_bodies import HorizontalCylinder
+from capytaine.reference_bodies import generate_horizontal_cylinder
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import Nemoh
 
@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO,
 
 rho = 1000
 
-cylinder = HorizontalCylinder(length=10.0, radius=1.0, nx=20, nr=2, ntheta=20)
+cylinder = generate_horizontal_cylinder(length=10.0, radius=1.0, nx=20, nr=2, ntheta=20)
 cylinder.translate_z(-2.0)
 cylinder.dofs["Heave"] = cylinder.faces_normals @ (0, 0, 1)
 

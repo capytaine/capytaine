@@ -15,7 +15,7 @@ from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import Nemoh
 
 def test_panels():
-    panel = OneSidedRectangle(height=1.0, width=1.0, nh=7, nw=3)
+    panel = generate_one_sided_rectangle(height=1.0, width=1.0, nh=6, nw=2)
     panel.translate_z(-1.0)
     half_panel = panel.extract_faces(np.where(panel.faces_centers[:, 0] > 0)[0])
     symmetric_panel = ReflectionSymmetry(half_panel, yOz_Plane)
@@ -41,12 +41,12 @@ def test_panels():
 
 @pytest.mark.parametrize("reso", range(2, 5))
 def test_floating_sphere(reso):
-    full_sphere = Sphere(radius=1.0, ntheta=2*reso+1, nphi=2*reso+1, clip_free_surface=True)
+    full_sphere = generate_sphere(radius=1.0, ntheta=2*reso, nphi=2*reso, clip_free_surface=True)
     full_sphere.dofs["Heave"] = full_sphere.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=full_sphere, omega=1.0, sea_bottom=-np.infty)
     mass1, damping1 = Nemoh().solve(problem)
 
-    half_sphere = HalfSphere(radius=1.0, ntheta=reso+1, nphi=2*reso+1, clip_free_surface=True)
+    half_sphere = generate_half_sphere(radius=1.0, ntheta=reso, nphi=2*reso, clip_free_surface=True)
     # half_sphere = full_sphere.extract_faces(np.where(full_sphere.faces_centers[:, 1] > 0)[0])
     two_halves_sphere = ReflectionSymmetry(half_sphere, xOz_Plane)
     two_halves_sphere.dofs["Heave"] = two_halves_sphere.faces_normals @ (0, 0, 1)
@@ -67,13 +67,13 @@ def test_floating_sphere(reso):
     assert np.isclose(damping1, damping3, atol=1e-4*full_sphere.volume*problem.rho)
 
 def test_horizontal_cylinder():
-    cylinder = HorizontalCylinder(length=10.0, radius=1.0, ntheta=11, nr=0, nx=11)
+    cylinder = generate_horizontal_cylinder(length=10.0, radius=1.0, ntheta=10, nr=0, nx=10)
     cylinder.translate_z(-3.0)
     cylinder.dofs["Heave"] = cylinder.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=cylinder, omega=1.0, sea_bottom=-np.infty)
     mass1, damping1 = Nemoh().solve(problem)
 
-    ring = HorizontalCylinder(length=1.0, radius=1.0, ntheta=11, nr=0, nx=2)
+    ring = generate_horizontal_cylinder(length=1.0, radius=1.0, ntheta=10, nr=0, nx=1)
     ring.translate_z(-3.0)
     sym_cylinder = TranslationalSymmetry(ring, translation=(1.0, 0.0, 0.0), nb_repetitions=9)
     sym_cylinder.dofs["Heave"] = sym_cylinder.faces_normals @ (0, 0, 1)

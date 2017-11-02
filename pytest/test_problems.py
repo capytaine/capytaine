@@ -8,9 +8,9 @@ import pytest
 import numpy as np
 
 from capytaine.problems import *
-from capytaine.reference_bodies import DummyBody
+from capytaine.reference_bodies import generate_dummy_floating_body
 
-dummy = DummyBody()
+dummy = generate_dummy_floating_body()
 
 def test_depth():
     assert PotentialFlowProblem(dummy, free_surface=np.infty, sea_bottom=-np.infty).depth == np.infty

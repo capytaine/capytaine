@@ -13,7 +13,7 @@ from capytaine.Nemoh import Nemoh
 
 
 def test_immersed_sphere():
-    sphere = Sphere(radius=1.0, ntheta=21, nphi=21)
+    sphere = generate_sphere(radius=1.0, ntheta=20, nphi=20)
     sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=sphere, free_surface=np.infty, sea_bottom=-np.infty)
     mass, damping = Nemoh().solve(problem)
@@ -22,7 +22,7 @@ def test_immersed_sphere():
 
 
 def test_floating_sphere_finite_freq():
-    sphere = Sphere(radius=1.0, ntheta=7, nphi=7, clip_free_surface=True)
+    sphere = generate_sphere(radius=1.0, ntheta=6, nphi=6, clip_free_surface=True)
     sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
 
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
@@ -36,7 +36,7 @@ def test_floating_sphere_finite_freq():
 
 
 def test_alien_sphere():
-    sphere = Sphere(radius=1.0, ntheta=7, nphi=7, clip_free_surface=True)
+    sphere = generate_sphere(radius=1.0, ntheta=6, nphi=6, clip_free_surface=True)
     sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
 
     problem = RadiationProblem(body=sphere, rho=450.0, g=1.625, omega=1.0, sea_bottom=-np.infty)
@@ -50,7 +50,7 @@ def test_alien_sphere():
 
 
 def test_floating_sphere_finite_depth():
-    sphere = Sphere(radius=1.0, ntheta=7, nphi=7, clip_free_surface=True)
+    sphere = generate_sphere(radius=1.0, ntheta=6, nphi=6, clip_free_surface=True)
     sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
 
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
@@ -64,12 +64,12 @@ def test_floating_sphere_finite_depth():
 
 
 def test_multibody():
-    sphere = Sphere(radius=1.0, ntheta=11, nphi=11)
+    sphere = generate_sphere(radius=1.0, ntheta=10, nphi=10)
     sphere.translate_z(-2.0)
     sphere.dofs["Surge"] = sphere.faces_normals @ (1, 0, 0)
     sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
 
-    cylinder = HorizontalCylinder(length=5.0, radius=1.0, nx=11, nr=2, ntheta=11)
+    cylinder = generate_horizontal_cylinder(length=5.0, radius=1.0, nx=10, nr=1, ntheta=10)
     cylinder.translate([-1.0, 3.0, -3.0])
     cylinder.dofs["Surge"] = cylinder.faces_normals @ (1, 0, 0)
     cylinder.dofs["Heave"] = cylinder.faces_normals @ (0, 0, 1)

@@ -58,6 +58,7 @@ class CollectionOfFloatingBodies(FloatingBody):
         new_body.__class__ = FloatingBody
         new_body.name = self.name
         new_body.dofs = self.dofs
+        new_body.nb_matrices_to_keep = 1
         return new_body
 
     def __add__(self, body_to_add):

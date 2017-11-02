@@ -1,15 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 """
-class Sphere
-class HorizontalCylinder
-class OneSidedRectangle
-class TwoSidedRectangle
-class OpenRectangularParallelepiped
-class RectangularParallelepiped
-class DummyBody
-
-TODO: Do we really need class and not just generating functions?
+Generate mesh for some simple geometric shapes.
 """
 
 from itertools import product, count
@@ -17,287 +9,240 @@ from itertools import product, count
 import numpy as np
 
 from capytaine.bodies import FloatingBody
+from capytaine.symmetries import TranslationalSymmetry
 
+#############
+#  Spheres  #
+#############
 
-class Sphere(FloatingBody):
-    """Floatting body of the shape of a sphere."""
+def generate_sphere(radius=1.0, ntheta=10, nphi=10,
+                    z0=0.0, clip_free_surface=False, half=False):
+    """Generate the mesh of a sphere.
 
-    _ids = count(0)
+    Parameters
+    ----------
+    radius: float
+        radius of the sphere
+    ntheta: int
+        number of panels along a meridian (or number of parallels-1)
+    nphi: int
+        number of panels along a parallel (or number of meridian-1)
+    z0: float
+        depth of the center of mass of the sphere
+    clip_free_surface: bool
+        if True, only mesh the part of the sphere where z < 0,
+        can be used with z0 to obtain any clipped sphere.
+    half: bool
+        if True, only mesh the part of the sphere where y > 0
+    """
 
-    def __init__(self,
-                 radius=1.0, ntheta=11, nphi=11,
-                 z0=0.0, clip_free_surface=False,
-                 half=False
-                ):
-        """Generate the mesh.
-
-        Parameters
-        ----------
-        radius: float
-            radius of the sphere
-        ntheta: int
-            number of points along a meridian (or number of parallels)
-        nphi: int
-            number of points along a parallel (or number of meridian)
-        z0: float
-            depth of the center of mass of the sphere
-        clip_free_surface: bool
-            if True, only mesh the part of the sphere where z < 0,
-            can be used with z0 to obtain any clipped sphere.
-        half: bool
-            if True, only mesh the part of the sphere where y > 0
-        """
-
-        if clip_free_surface:
-            if z0 < -radius: # fully immersed
-                theta_max = np.pi
-            elif z0 < radius:
-                theta_max = np.arccos(z0/radius)
-            else:
-                raise Exception("Sphere out of the water")
-        else:
+    if clip_free_surface:
+        if z0 < -radius: # fully immersed
             theta_max = np.pi
-
-        if half:
-            theta = np.linspace(-theta_max, 0.0, ntheta)
+        elif z0 < radius:
+            theta_max = np.arccos(z0/radius)
         else:
-            theta = np.linspace(-theta_max, theta_max, ntheta)
-        phi = np.linspace(-np.pi/2, np.pi/2, nphi)
+            raise Exception("Sphere out of the water")
+    else:
+        theta_max = np.pi
 
-        # Nodes
-        nodes = np.zeros((ntheta*nphi, 3), dtype=np.float32)
+    if half:
+        theta = np.linspace(0.0, theta_max, ntheta+1)
+    else:
+        theta = np.linspace(-theta_max, theta_max, ntheta+1)
+    phi = np.linspace(-np.pi/2, np.pi/2, nphi+1)
 
-        for i, (t, p) in enumerate(product(theta, phi)):
-            # The sign of theta below is a trick to get the correct orientation of the normal vectors...
-            x =      radius * np.sin(t) * np.sin(np.sign(t)*p)
-            y =      radius * np.sin(t) * np.cos(np.sign(t)*p)
-            z = z0 - radius * np.cos(t)
-            nodes[i, :] = (x, y, z)
+    # Nodes
+    nodes = np.zeros(((ntheta+1)*(nphi+1), 3), dtype=np.float32)
 
-        # Connectivities
-        panels = np.zeros(((ntheta-1)*(nphi-1), 4), dtype=np.int)
+    for i, (t, p) in enumerate(product(theta, phi)):
+        # The sign of theta below is a trick to get the correct orientation of the normal vectors...
+        x =      radius * np.sin(t) * np.sin(np.sign(t)*p)
+        y =      radius * np.sin(t) * np.cos(np.sign(t)*p)
+        z = z0 - radius * np.cos(t)
+        nodes[i, :] = (x, y, z)
 
-        for k, (i, j) in enumerate(product(range(0, ntheta-1), range(0, nphi-1))):
-            panels[k, :] = (j+i*nphi, j+(i+1)*nphi, j+1+(i+1)*nphi, j+1+i*nphi)
+    # Connectivities
+    panels = np.zeros((ntheta*nphi, 4), dtype=np.int)
 
-        FloatingBody.__init__(self, nodes, panels, name=f"sphere_{next(self._ids)}")
-        self.merge_duplicates()
-        self.heal_triangles()
+    for k, (i, j) in enumerate(product(range(0, ntheta), range(0, nphi))):
+        panels[k, :] = (j+i*(nphi+1), j+(i+1)*(nphi+1), j+1+(i+1)*(nphi+1), j+1+i*(nphi+1))
+
+    sphere = FloatingBody(nodes, panels, name=f"sphere_{next(FloatingBody._ids)}")
+    sphere.merge_duplicates()
+    sphere.heal_triangles()
+
+    return sphere
+
+def generate_half_sphere(**kwargs):
+    return generate_sphere(half=True, **kwargs)
 
 
-class HalfSphere(FloatingBody):
-    """Floating body of the shape of half a sphere."""
+###############
+#  Cylinders  #
+###############
 
-    def __init__(self, **kwargs):
-        Sphere.__init__(self, half=True, **kwargs)
+def generate_horizontal_cylinder(length=10.0, radius=1.0,
+                                 nx=10, nr=2, ntheta=10,
+                                 z0=0.0, clip_free_surface=False):
+    """Generate the mesh of an horizontal cylinder.
 
+    Parameters
+    ----------
+    length: float
+        length of the cylinder
+    radius: float
+        radius of the cylinder
+    nx: int
+        number of circular slices
+    nr: int
+        at the ends of the cylinder, number of panels along a radius
+    ntheta: int
+        number of panels along a circular slice of the cylinder
+    z0: float
+        depth of the bottom of the cylinder
+    clip_free_surface: bool
+        if True, only mesh the part of the cylinder where z < 0,
+        can be used with z0 to obtain any clipped cylinder
+    """
 
-class HorizontalCylinder(FloatingBody):
-    """Floating body of the shape of a cylinder oriented along the x axis."""
-
-    _ids = count(0)
-
-    def __init__(self,
-                 length=1.0, radius=1.0,
-                 nx=11, nr=3, ntheta=11,
-                 z0=0.0, clip_free_surface=False
-                ):
-        """Generate the mesh.
-
-        Parameters
-        ----------
-        length: float
-            length of the cylinder
-        radius: float
-            radius of the cylinder
-        nx: int
-            number of circular slices
-        nr: int
-            at the ends of the cylinder, number of points along a radius
-        ntheta: int
-            number of points along a circular slice of the cylinder
-        z0: float
-            depth of the bottom of the cylinder
-        clip_free_surface: bool
-            if True, only mesh the part of the cylinder where z < 0,
-            can be used with z0 to obtain any clipped cylinder
-        """
-
-        if clip_free_surface:
-            if z0 < -radius: # fully immersed
-                theta_max = np.pi
-            elif z0 < radius:
-                theta_max = np.arccos(z0/radius)
-            else:
-                raise Exception("Cylinder out of the water")
-        else:
+    if clip_free_surface:
+        if z0 < -radius: # fully immersed
             theta_max = np.pi
+        elif z0 < radius:
+            theta_max = np.arccos(z0/radius)
+        else:
+            raise Exception("Cylinder out of the water")
+    else:
+        theta_max = np.pi
 
-        theta = np.linspace(-theta_max, theta_max, ntheta)
-        X = np.linspace(0.0, length, nx)
-        R = np.linspace(0.0, radius, nr)
+    theta = np.linspace(-theta_max, theta_max, ntheta+1)
+    X = np.linspace(0.0, length, nx+1)
+    R = np.linspace(0.0, radius, nr+1)
 
-        # Nodes
-        nodes = np.zeros((ntheta*(nx+2*nr), 3), dtype=np.float32)
+    # Nodes
+    nodes = np.zeros(((ntheta+1)*(nx+2*nr+3), 3), dtype=np.float32)
 
-        for i, (t, x) in enumerate(product(theta, X)):
-            y = radius * np.sin(t)
-            z = z0 - radius * np.cos(t)
-            nodes[i, :] = (x, y, z)
+    for i, (t, x) in enumerate(product(theta, X)):
+        y = radius * np.sin(t)
+        z = z0 - radius * np.cos(t)
+        nodes[i, :] = (x, y, z)
 
-        for i, (x, r, t) in enumerate(product([0, length], R, theta)):
-            y = r * np.sin(t)
-            z = z0 - r * np.cos(t)
-            nodes[ntheta*nx+i, :] = (x, y, z)
+    for i, (x, r, t) in enumerate(product([0, length], R, theta)):
+        y = r * np.sin(t)
+        z = z0 - r * np.cos(t)
+        nodes[(ntheta+1)*(nx+1)+i, :] = (x, y, z)
 
-        # Connectivities
-        npanels = (ntheta-1)*((nx-1)+2*max(0, (nr-1)))
-        panels = np.zeros((npanels, 4), dtype=np.int)
+    # Connectivities
+    panels = np.zeros((ntheta*(nx+2*nr), 4), dtype=np.int)
 
-        for k, (i, j) in enumerate(product(range(0, ntheta-1),
-                                           range(0, nx-1))):
-            panels[k, :] = (
-                j+i*nx,
-                j+(i+1)*nx,
-                j+1+(i+1)*nx,
-                j+1+i*nx
-            )
+    for k, (i, j) in enumerate(product(range(0, ntheta),
+                                       range(0, nx))):
+        panels[k, :] = (
+            j+i*(nx+1),
+            j+(i+1)*(nx+1),
+            j+1+(i+1)*(nx+1),
+            j+1+i*(nx+1)
+        )
 
-        for k, (i, j) in enumerate(product(range(0, nr-1),
-                                           range(ntheta*nx, ntheta*nx+ntheta-1))):
-            panels[(ntheta-1)*(nx-1)+k, :] = (
-                j+i*ntheta,
-                j+1+i*ntheta,
-                j+1+(i+1)*ntheta,
-                j+(i+1)*ntheta
-            )
+    for k, (i, j) in enumerate(product(range(0, nr),
+                                       range((ntheta+1)*(nx+1), (ntheta+1)*(nx+1)+ntheta))):
+        panels[ntheta*nx+k, :] = (
+            j+i*(ntheta+1),
+            j+1+i*(ntheta+1),
+            j+1+(i+1)*(ntheta+1),
+            j+(i+1)*(ntheta+1)
+        )
 
-        for k, (i, j) in enumerate(product(range(0, nr-1),
-                                           range(ntheta*(nx+nr), ntheta*(nx+nr)+ntheta-1))):
-            panels[(ntheta-1)*((nx-1)+(nr-1))+k, :] = (
-                j+i*ntheta,
-                j+(i+1)*ntheta,
-                j+1+(i+1)*ntheta,
-                j+1+i*ntheta
-            )
+    for k, (i, j) in enumerate(product(range(0, nr),
+                                       range((ntheta+1)*((nx+1)+(nr+1)), (ntheta+1)*((nx+1)+(nr+1))+ntheta))):
+        panels[ntheta*(nx+nr)+k, :] = (
+            j+i*(ntheta+1),
+            j+(i+1)*(ntheta+1),
+            j+1+(i+1)*(ntheta+1),
+            j+1+i*(ntheta+1)
+        )
 
-        FloatingBody.__init__(self, nodes, panels, name=f"cylinder_{next(self._ids)}")
-        self.merge_duplicates()
-        self.heal_triangles()
+    cylinder = FloatingBody(nodes, panels, name=f"cylinder_{next(FloatingBody._ids)}")
+    cylinder.merge_duplicates()
+    cylinder.heal_triangles()
 
+    return cylinder
 
-class OneSidedRectangle(FloatingBody):
-    """Rectangular panel with Cartesian mesh."""
+def generate_ring(**kwargs):
+    return generate_horizontal_cylinder(nx=1, **kwargs)
 
-    _ids = count(0)
-
-    def __init__(self, height=2.0, width=10.0, nh=5, nw=5, z0=0.0):
-        """Generate the mesh.
-
-        Normals are oriented in the positive y direction.
-
-        Parameters
-        ----------
-        height: float
-            height of the panel (size along z)
-        width: float
-            width of the panel (size along x)
-        nh: int
-            number of points in the z direction
-        nw: int
-            number of points in the x direction
-        z0: float
-            depth of the bottom of the panel
-        """
-
-        X = np.linspace(-width/2, width/2, nw)
-        Z = np.linspace(z0, z0+height, nh)
-
-        nodes = np.zeros((nw*nh, 3), dtype=np.float32)
-        panels = np.zeros(((nw-1)*(nh-1), 4), dtype=np.int)
-
-        for i, (x, y, z) in enumerate(product(X, [0.0], Z)):
-            nodes[i, :] = x, y, z
-
-        for k, (i, j) in enumerate(product(range(0, nw-1), range(0, nh-1))):
-            panels[k, :] = (j+i*nh, j+1+i*nh, j+1+(i+1)*nh, j+(i+1)*nh)
-
-        FloatingBody.__init__(self, nodes, panels, name=f"rectangle_{next(self._ids)}")
+def generate_clever_horizontal_cylinder(length=10, nx=10, **kwargs):
+    ring = generate_ring(length=length/nx, nr=0, **kwargs)
+    return TranslationalSymmetry(ring, translation=np.asarray([length/nx, 0.0, 0.0]), nb_repetitions=nx-1)
 
 
-class TwoSidedRectangle(FloatingBody):
-    """Rectangular panel with Cartesian mesh."""
+################
+#  Rectangles  #
+################
 
-    def __init__(self, height=2.0, width=10.0, nh=5, nw=5, z0=0.0):
-        """Generate the mesh.
+def generate_one_sided_rectangle(height=5.0, width=5.0, nh=5, nw=5):
+    """Generate the mesh of a rectangle.
 
-        Parameters
-        ----------
-        height: float
-            height of the panel (size along z)
-        width: float
-            width of the panel (size along x)
-        nh: int
-            number of points in the z direction
-        nw: int
-            number of points in the x direction
-        z0: float
-            depth of the bottom of the panel
-        """
+    Normals are oriented in the positive y direction.
 
-        X = np.linspace(-width/2, width/2, nw)
-        Z = np.linspace(z0, z0+height, nh)
+    Parameters
+    ----------
+    height: float
+        height of the panel (size along z)
+    width: float
+        width of the panel (size along x)
+    nh: int
+        number of panels in the z direction
+    nw: int
+        number of panels in the x direction
+    """
 
-        nodes = np.zeros((nw*nh, 3), dtype=np.float32)
-        panels = np.zeros((2*(nw-1)*(nh-1), 4), dtype=np.int)
+    X = np.linspace(-width/2, width/2, nw+1)
+    Z = np.linspace(0, height, nh+1)
 
-        for i, (x, y, z) in enumerate(product(X, [0.0], Z)):
-            nodes[i, :] = x, y, z
+    nodes = np.zeros(((nw+1)*(nh+1), 3), dtype=np.float32)
+    panels = np.zeros((nw*nh, 4), dtype=np.int)
 
-        for k, (i, j) in enumerate(product(range(0, nw-1), range(0, nh-1))):
-            panels[k, :] = (j+i*nh, j+1+i*nh, j+1+(i+1)*nh, j+(i+1)*nh)
-            panels[(nw-1)*(nh-1)+k, :] = (j+i*nh, j+(i+1)*nh, j+1+(i+1)*nh, j+1+i*nh)
+    for i, (x, y, z) in enumerate(product(X, [0.0], Z)):
+        nodes[i, :] = x, y, z
 
-        FloatingBody.__init__(self, nodes, panels, name=f"rectangle_{next(OneSidedRectangle._ids)}")
+    for k, (i, j) in enumerate(product(range(0, nw), range(0, nh))):
+        panels[k, :] = (j+i*(nh+1), j+1+i*(nh+1), j+1+(i+1)*(nh+1), j+(i+1)*(nh+1))
+
+    return FloatingBody(nodes, panels, name=f"rectangle_{next(FloatingBody._ids)}")
 
 
-class OpenRectangularParallelepiped(FloatingBody):
-    """Four panels forming a parallelepiped without top nor bottom."""
+def generate_open_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0,
+                                             nh=5, nw=5, nth=1):
+    """Generate the mesh of four panels forming a parallelepiped without top nor bottom.
 
-    _ids = count(0)
+    Parameters
+    ----------
+    height: float
+        height of the object (size along z)
+    width: float
+        width of the object (size along x)
+    thickness: float
+        thickness of the object (size along y)
+    nh: int
+        number of panels in the z direction
+    nw: int
+        number of panels in the x direction
+    nth: int
+        number of panels in the y direction
+    """
+    front = generate_one_sided_rectangle(height=height, width=width, nh=nh, nw=nw)
+    back = front.copy()
 
-    def __init__(self,
-                 height=10.0, width=10.0, thickness=2.0,
-                 nh=5, nw=5, nth=3,
-                 z0=0.0
-                ):
-        """Generate the mesh.
+    front.translate_y(thickness/2)
+    back.rotate_z(np.pi)
+    back.translate_y(-thickness/2)
 
-        Parameters
-        ----------
-        height: float
-            height of the object (size along z)
-        width: float
-            width of the object (size along x)
-        thickness: float
-            thickness of the object (size along y)
-        nh: int
-            number of points in the z direction
-        nw: int
-            number of points in the x direction
-        nth: int
-            number of points in the y direction
-        z0: float
-            depth of the bottom of the object
-        """
-        front = OneSidedRectangle(height=height, width=width, nh=nh, nw=nw, z0=z0)
-        back = front.copy()
+    parallelepiped = front + back
 
-        front.translate_y(thickness/2)
-        back.rotate_z(np.pi)
-        back.translate_y(-thickness/2)
-
-        side = OneSidedRectangle(height=height, width=thickness, nh=nh, nw=nth, z0=z0)
+    if nth > 0:
+        side = generate_one_sided_rectangle(height=height, width=thickness, nh=nh, nw=nth)
         other_side = side.copy()
 
         side.rotate_z(np.pi/2)
@@ -305,54 +250,56 @@ class OpenRectangularParallelepiped(FloatingBody):
         other_side.rotate_z(-np.pi/2)
         other_side.translate_x(width/2)
 
-        combine = front + side + other_side + back
-        combine = combine.as_FloatingBody()
+        parallelepiped = parallelepiped + side + other_side
 
-        FloatingBody.__init__(self, combine.vertices, combine.faces, name=f"parallelepiped_{next(self._ids)}")
+    parallelepiped = parallelepiped.as_FloatingBody()
+    parallelepiped.name = f"parallelepiped_{next(FloatingBody._ids)}"
+    parallelepiped.merge_duplicates()
+    parallelepiped.heal_triangles()
 
+    return parallelepiped
 
-class RectangularParallelepiped(FloatingBody):
-    """Six panels forming a complete rectangular parallelepiped."""
+def generate_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0, nh=5, nw=5, nth=1):
+    """Generate the mesh of six rectangles forming a complete rectangular parallelepiped.
+    Parameters
+    ----------
+    height: float
+        height of the object (size along z)
+    width: float
+        width of the object (size along x)
+    thickness: float
+        thickness of the object (size along y)
+    nh: int
+        number of panels in the z direction
+    nw: int
+        number of panels in the x direction
+    nth: int
+        number of panels in the y direction
+    z0: float
+        depth of the bottom of the object
+    """
+    sides = generate_open_rectangular_parallelepiped(height=height, width=width, thickness=thickness,
+                                          nh=nh, nw=nw, nth=nth)
+    top = generate_one_sided_rectangle(height=thickness, width=width, nh=nth, nw=nw)
+    bottom = top.copy()
 
-    def __init__(self, height=10.0, width=10.0, thickness=2.0, nh=5, nw=5, nth=3):
-        """Generate the mesh.
+    top.rotate_x(np.pi/2)
+    top.translate_y(thickness/2)
+    top.translate_z(height)
+    bottom.rotate_x(-np.pi/2)
+    bottom.translate_y(-thickness/2)
 
-        Parameters
-        ----------
-        height: float
-            height of the object (size along z)
-        width: float
-            width of the object (size along x)
-        thickness: float
-            thickness of the object (size along y)
-        nh: int
-            number of points in the z direction
-        nw: int
-            number of points in the x direction
-        nth: int
-            number of points in the y direction
-        z0: float
-            depth of the bottom of the object
-        """
-        sides = OpenRectangularParallelepiped(height=height, width=width, thickness=thickness,
-                                              nh=nh, nw=nw, nth=nth)
-        top = OneSidedRectangle(height=thickness, width=width, nh=nth, nw=nw)
-        bottom = top.copy()
+    parallelepiped = sides + top + bottom
+    parallelepiped = parallelepiped.as_FloatingBody()
+    parallelepiped.name = f"parallelepiped_{next(FloatingBody._ids)}"
+    parallelepiped.merge_duplicates()
+    parallelepiped.heal_triangles()
 
-        top.rotate_x(np.pi/2)
-        top.translate_y(thickness/2)
-        top.translate_z(height)
-        bottom.rotate_x(-np.pi/2)
-        bottom.translate_y(-thickness/2)
+    return parallelepiped
 
-        combine = sides + top + bottom
-        combine = combine.as_FloatingBody()
+###########
+#  Other  #
+###########
 
-        FloatingBody.__init__(self, combine.vertices, combine.faces, name=f"parallelepiped_{next(OpenRectangularParallelepiped._ids)}")
-
-
-class DummyBody(FloatingBody):
-    """Body without any faces. For debugging."""
-
-    def __init__(self):
-        FloatingBody.__init__(self, np.zeros((0, 3)), np.zeros((0, 4)), name="dummy_body")
+def generate_dummy_floating_body():
+    return FloatingBody(np.zeros((0, 3)), np.zeros((0, 4)), name="dummy_body")
