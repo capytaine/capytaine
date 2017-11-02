@@ -133,9 +133,44 @@ class CollectionOfFloatingBodies(FloatingBody):
             body.mirror(plane)
         return
 
+    def translate_x(self, value):
+        for body in self.subbodies:
+            body.translate_x(value)
+        return
+
+    def translate_y(self, value):
+        for body in self.subbodies:
+            body.translate_y(value)
+        return
+
+    def translate_z(self, value):
+        for body in self.subbodies:
+            body.translate_z(value)
+        return
+
     def translate(self, vector):
         for body in self.subbodies:
             body.translate(vector)
+        return
+
+    def rotate_x(self, value):
+        for body in self.subbodies:
+            body.rotate_x(value)
+        return
+
+    def rotate_y(self, value):
+        for body in self.subbodies:
+            body.rotate_y(value)
+        return
+
+    def rotate_z(self, value):
+        for body in self.subbodies:
+            body.rotate_z(value)
+        return
+
+    def rotate(self, vector):
+        for body in self.subbodies:
+            body.rotate(vector)
         return
 
     #######################################
