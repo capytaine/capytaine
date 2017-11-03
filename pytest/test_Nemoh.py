@@ -31,14 +31,8 @@ def test_floating_sphere_finite_freq():
     assert np.isclose(mass,    1819.6, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(damping, 379.39, atol=1e-3*sphere.volume*problem.rho)
 
-    eta = solver.get_free_surface(problem)
-    # print(eta)
-
-    import matplotlib.pyplot as plt
-    plt.figure()
-    plt.imshow(np.real(eta))
-    plt.colorbar()
-
+    free_surface = generate_free_surface(width=125, length=125, nw=5, nl=5)
+    eta = solver.get_free_surface(problem, free_surface, dof="Heave")
     ref = np.array(
             [[-0.4340802E-02-0.4742809E-03j, -0.7986111E-03+0.4840984E-02j, 0.2214827E-02+0.4700642E-02j, -0.7986111E-03+0.4840984E-02j, -0.4340803E-02-0.4742807E-03j],
              [ -0.7986111E-03+0.4840984E-02j, 0.5733187E-02-0.2179381E-02j, 0.9460892E-03-0.7079404E-02j, 0.5733186E-02-0.2179381E-02j, -0.7986110E-03+0.4840984E-02j],
@@ -46,17 +40,11 @@ def test_floating_sphere_finite_freq():
              [ -0.7986111E-03+0.4840984E-02j, 0.5733186E-02-0.2179381E-02j, 0.9460891E-03-0.7079404E-02j, 0.5733187E-02-0.2179380E-02j, -0.7986113E-03+0.4840984E-02j],
              [ -0.4340803E-02-0.4742807E-03j, -0.7986111E-03+0.4840984E-02j, 0.2214827E-02+0.4700643E-02j, -0.7986113E-03+0.4840983E-02j, -0.4340803E-02-0.4742809E-03j]]
         )
-
-    plt.figure()
-    plt.imshow(np.real(ref))
-    plt.colorbar()
-    plt.show()
+    assert np.allclose(eta.reshape((5, 5)), ref, rtol=1e-4)
 
     problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
     force = Nemoh().solve(problem)
     assert np.isclose(force, 1834.9 * np.exp(-2.933j) * -1j, rtol=1e-3)
-
-test_floating_sphere_finite_freq()
 
 def test_alien_sphere():
     sphere = generate_sphere(radius=1.0, ntheta=6, nphi=6, clip_free_surface=True)

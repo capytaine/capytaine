@@ -9,7 +9,7 @@ import logging
 import numpy as np
 from numpy.linalg import norm
 
-from capytaine.reference_bodies import FreeSurface
+from capytaine.reference_bodies import generate_free_surface
 from capytaine.problems import RadiationProblem, DiffractionProblem
 from capytaine.Toeplitz_matrices import BlockToeplitzMatrix, block_Toeplitz_identity, solve
 import capytaine._Green as _Green
@@ -92,58 +92,23 @@ class Nemoh:
 
             return np.array(forces)
 
-    # def get_potential_at_point(self, problem, point):
-    #     if not problem.sources:
-    #         raise Exception("Need to solve the problem")
-
-    #     s = np.zeros((len(problem.body.faces_centers)), dtype=np.complex64)
-
-    #     for i in range(problem.body.nb_faces):
-    #         s[i] += -_Green.green_1.compute_s0(point,
-    #                                            problem.body.vertices[problem.body.faces[i, :], :],
-    #                                            problem.body.faces_centers[i, :],
-    #                                            problem.body.faces_normals[i, :],
-    #                                            problem.body.faces_areas[i],
-    #                                            problem.body.faces_radiuses[i],
-    #                                            )[0]/(4*np.pi)
-
-    #         if problem.depth == np.infty:
-    #             p_mirror = point.copy()
-    #             p_mirror[2] = -p_mirror[2]
-    #             s[i] += -_Green.green_1.compute_s0(p_mirror,
-    #                                                problem.body.vertices[problem.body.faces[i, :], :],
-    #                                                problem.body.faces_centers[i, :],
-    #                                                problem.body.faces_normals[i, :],
-    #                                                problem.body.faces_areas[i],
-    #                                                problem.body.faces_radiuses[i],
-    #                                                )[0]/(4*np.pi)
-
-    #             s[i] += _Green.green_2.vnsinfd(problem.wavenumber, problem.body.faces_centers[i, :], point)[0]
-
-    #         else:
-    #             p_mirror = point.copy()
-    #             p_mirror[2] = -2*problem.depth - p_mirror[2]
-    #             s[i] += _Green.green_1.compute_s0(p_mirror,
-    #                                                problem.body.vertices[problem.body.faces[i, :], :],
-    #                                                problem.body.faces_centers[i, :],
-    #                                                problem.body.faces_normals[i, :],
-    #                                                problem.body.faces_areas[i],
-    #                                                problem.body.faces_radiuses[i],
-    #                                                )[0]/(4*np.pi)
-
-    #             s[i] += _Green.green_2.vnsfd(problem.wavenumber, problem.body.faces_centers[i, :], point, problem.depth)[0]
-
-    #     return s @ problem.sources["Heave"]
-
-    def get_free_surface(self, problem):
-        S, _ = FreeSurface().build_matrices(
+    def get_free_surface(self, problem, free_surface, dof=None):
+        S, _ = free_surface.build_matrices(
             problem.body,
             free_surface=problem.free_surface,
             sea_bottom=problem.sea_bottom,
             wavenumber=problem.wavenumber
         )
-        phi = S @ problem.sources["Heave"]
-        return 1j*problem.omega/problem.g * phi.reshape(15, 15)
+
+        if isinstance(problem, RadiationProblem):
+            if dof is None:
+                raise Exception("Please chose a degree of freedom.")
+            else:
+                phi = S @ problem.sources[dof]
+        elif isinstance(problem, DiffractionProblem):
+            phi = S @ problem.sources
+
+        return 1j*problem.omega/problem.g * phi
 
     def solve_all(self, problems, processes=1):
         from multiprocessing import Pool

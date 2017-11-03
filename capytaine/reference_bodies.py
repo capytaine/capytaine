@@ -214,8 +214,8 @@ def generate_one_sided_rectangle(height=5.0, width=5.0, nh=5, nw=5):
 
 def generate_free_surface(width=100, length=100, nw=10, nl=10):
     """ """
-    X = np.linspace(-width, width, nw+1)
-    Y = np.linspace(-length, length, nl+1)
+    X = np.linspace(-width/2, width/2, nw+1)
+    Y = np.linspace(-length/2, length/2, nl+1)
 
     nodes = np.zeros(((nw+1)*(nl+1), 3), dtype=np.float32)
     panels = np.zeros((nw*nl, 4), dtype=np.int)
