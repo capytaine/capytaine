@@ -24,6 +24,7 @@ def compare_all_total_times(directory):
         ylabel='computation time (seconds)',
     )
     plt.grid()
+    plt.tight_layout()
 
 
 #######################################################################
@@ -52,18 +53,16 @@ def plot_detailed_time(directory):
 
     detailed_time['other'] = detailed_time['total'] - detailed_time['evaluate matrices'] - detailed_time['solve linear problem']
     detailed_time = detailed_time.sort_values(by='nb_cells')
+    detailed_time = detailed_time.groupby(['type', 'nb_cells']).aggregate(np.min)
 
-    for name, group in detailed_time.groupby('type'):
-        ax = group.plot.area(
-            x='nb_cells',
-            y=['solve linear problem', 'evaluate matrices', 'other'],
-        )
+    for test_type in detailed_time.index.levels[0]:
+        ax = detailed_time.T[test_type].T.plot.area(y=['solve linear problem', 'evaluate matrices', 'other'])
         ax.set(
-            ylim=(0.0, 60.0),
-            title=name,
+            ylim=(0.0, 80.0),
             xlabel='number of cells in mesh',
             ylabel='computation time (seconds)',
         )
+        plt.tight_layout()
         plt.grid(zorder=3)
 
 
@@ -93,11 +92,17 @@ def compare_results(directory):
         added_mass[os.path.basename(capy_dir)] = results[:, 0]
         damping[os.path.basename(capy_dir)] = results[:, 1]
 
-    # added_mass.plot(y=[name for name in case_names if '600' in name])
+    added_mass.plot(y=[name for name in case_names if '600' in name])
     # print(added_mass[[name for name in case_names if '600' in name]])
 
 
 if __name__ == "__main__":
-    plot_detailed_time(sys.argv[1])
+    # plot_detailed_time(sys.argv[1])
+    # compare_all_total_times(sys.argv[1])
+    # compare_results(sys.argv[1])
+
+    plot_detailed_time("2017-11-06_153544/")
+    compare_all_total_times("2017-11-06_153544/")
+
     plt.show()
 
