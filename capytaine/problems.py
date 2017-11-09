@@ -37,6 +37,14 @@ class PotentialFlowProblem:
     def depth(self):
         return self.free_surface - self.sea_bottom
 
+    @property
+    def wavelength(self):
+        return 2*np.pi/self.wavenumber
+
+    @property
+    def period(self):
+        return 2*np.pi/self.omega
+
 
 class DiffractionProblem(PotentialFlowProblem):
 
@@ -50,7 +58,46 @@ class DiffractionProblem(PotentialFlowProblem):
     def __repr__(self):
         return f"DiffractionProblem(body={self.body.name}, free_surface={self.free_surface}, sea_bottom={self.sea_bottom}, angle={self.angle}, omega={self.omega}, rho={self.rho}, g={self.g})"
 
-    def Airy_wave(self, X):
+    def Airy_wave_potential(self, X):
+        """Compute the potential for Airy waves at a given point (or array of points).
+
+        Parameters
+        ----------
+        X: array (3) or (N x 3)
+            The coordinates of the points in which to evaluate the potential.
+
+        Returns
+        -------
+        array (1) or (N x 1)
+            The potential
+        """
+        x, y, z = X.T
+        k = self.wavenumber
+        h = self.depth
+        wbar = x*np.cos(self.angle) + y*np.sin(self.angle)
+
+        if k*h < 20 and k*h >= 0:
+            cih = np.cosh(k*(z+h))/np.cosh(k*h)
+            sih = np.sinh(k*(z+h))/np.cosh(k*h)
+        else:
+            cih = np.exp(k*z)
+            sih = np.exp(k*z)
+
+        return -1j*self.g/self.omega * cih * np.exp(1j * k * wbar)
+
+    def Airy_wave_velocity(self, X):
+        """Compute the fluid velocity for Airy waves at a given point (or array of points).
+
+        Parameters
+        ----------
+        X: array (3) or (N x 3)
+            The coordinates of the points in which to evaluate the velocity.
+
+        Returns
+        -------
+        array (3) or (N x 3)
+            The velocity vectors
+        """
         x, y, z = X.T
         k = self.wavenumber
         h = self.depth
@@ -67,8 +114,6 @@ class DiffractionProblem(PotentialFlowProblem):
         v = self.g*k/self.omega * \
                 np.exp(1j * k * wbar) * \
                 np.array([np.cos(self.angle)*cih, np.sin(self.angle)*cih, -1j*sih])
-
-        # p = self.rho * self.g * cih * np.exp(1j * k * wbar)
 
         return v.T
 

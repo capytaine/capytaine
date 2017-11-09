@@ -34,8 +34,8 @@ def test_Airy():
         Phi, k, h, g, rho = sp.symbols("Phi, k, h, g, rho")
 
         omega = sp.sqrt(g*k*sp.tanh(k*h))
-        Phi = g/omega * sp.cosh(k*(z+h))/sp.cosh(k*h) * sp.sin(k*x - omega*t)
-        u = gradient(Phi, R)
+        phi = g/omega * sp.cosh(k*(z+h))/sp.cosh(k*h) * sp.sin(k*x - omega*t)
+        u = gradient(phi, R)
         p = -rho*Phi.diff(t)
 
         for depth in np.linspace(100.0, 10.0, 2):
@@ -51,23 +51,22 @@ def test_Airy():
                     parameters = {t:t_val, x:x_val, y:y_val, z:z_val,
                                   omega:dp.omega, k:dp.wavenumber,
                                   h:dp.depth, g:dp.g, rho:dp.rho}
-                    u_num = dp.Airy_wave(np.array((x_val, y_val, z_val)))
 
+                    phi_num = dp.Airy_wave_potential(np.array((x_val, y_val, z_val)))
+                    assert np.isclose(float(phi.subs(parameters)),
+                                      np.real(phi_num*np.exp(-1j * dp.omega * t_val)),
+                                      rtol=1e-3)
+
+                    u_num = dp.Airy_wave_velocity(np.array((x_val, y_val, z_val)))
                     assert np.isclose(float(u.dot(R.x).subs(parameters)),
                                       np.real(u_num[0]*np.exp(-1j * dp.omega * t_val)),
-                                      rtol=1e-3
-                                      )
+                                      rtol=1e-3)
                     assert np.isclose(float(u.dot(R.y).subs(parameters)),
                                       np.real(u_num[1]*np.exp(-1j * dp.omega * t_val)),
-                                      rtol=1e-3
-                                      )
+                                      rtol=1e-3)
                     assert np.isclose(float(u.dot(R.z).subs(parameters)),
                                       np.real(u_num[2]*np.exp(-1j * dp.omega * t_val)),
-                                      rtol=1e-3
-                                      )
-                    # assert np.isclose(float(p.subs(parameters)),
-                    #                   np.real(p_num*np.exp(-1j * dp.omega * t_val)),
-                    #                   rtol=1e-3
-                    #                   )
+                                      rtol=1e-3)
+
     except ImportError:
-        pass
+        print("Not tested with sympy.")

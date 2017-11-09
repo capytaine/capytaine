@@ -78,7 +78,7 @@ class Nemoh:
                    np.array(added_dampings).reshape((problem.body.nb_dofs, problem.body.nb_dofs))
 
         elif isinstance(problem, DiffractionProblem):
-            normal_velocities = -(problem.Airy_wave(problem.body.faces_centers) *
+            normal_velocities = -(problem.Airy_wave_velocity(problem.body.faces_centers) *
                                   problem.body.faces_normals
                                   ).sum(axis=1)
             sources = solve(V + identity/2, normal_velocities)
