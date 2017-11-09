@@ -84,6 +84,10 @@ class Nemoh:
             sources = solve(V + identity/2, normal_velocities)
             potential = S @ sources
 
+            if keep_details:
+                problem.sources = sources
+                problem.potential = potential
+
             forces = []
             for _, influenced_dof in problem.body.dofs.items():
                 force = - problem.rho * \
