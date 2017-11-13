@@ -96,7 +96,7 @@ class TranslationalSymmetry(_SymmetricBody):
         translation = np.asarray(translation)
         assert translation.shape == (3,)
 
-        body_slice.nb_matrices_to_keep *= nb_repetitions
+        body_slice.nb_matrices_to_keep *= nb_repetitions+1
         slices = [body_slice]
         for i in range(1, nb_repetitions+1):
             new_slice = body_slice.copy()
@@ -115,7 +115,7 @@ class TranslationalSymmetry(_SymmetricBody):
             self.dofs["translated_" + name] = np.concatenate([dof]*nb_repetitions)
 
     def build_matrices(self, other_body, force_full_computation=False, **kwargs):
-        """Compute the influence matrix of `self` on `body`.
+        """Compute the influence matrix of `self` on `other_body`.
 
         Parameters
         ----------
@@ -128,6 +128,74 @@ class TranslationalSymmetry(_SymmetricBody):
         if other_body == self and not force_full_computation:
             # Use symmetry to speed up the evaluation of the matrix
             LOG.debug(f"Evaluating matrix of {self.name} on itself using translation symmetry.")
+
+            S_list, V_list = [], []
+            for body in self.subbodies:
+                S, V = self.subbodies[0].build_matrices(body, **kwargs)
+                S_list.append(S)
+                V_list.append(V)
+            return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
+
+        else:
+            return CollectionOfFloatingBodies.build_matrices(self, body, **kwargs)
+
+
+class AxialSymmetry(_SymmetricBody):
+    """A body composed of a pattern rotated around a vertical axis."""
+
+    def __init__(self, body_slice, point_on_rotation_axis, nb_repetitions=1):
+        """Initialize the body.
+
+        Parameters
+        ----------
+        body_slice: FloatingBody
+            the pattern that will be repeated to form the whole body
+        point_on_rotation_axis: array(3)
+            one point on the rotation axis. The axis is supposed to be vertical.
+        nb_repetitions: int
+            the number of repetitions of the pattern (excluding the original one)
+        """
+        assert isinstance(body_slice, FloatingBody)
+        assert isinstance(nb_repetitions, int)
+        assert nb_repetitions >= 1
+
+        point_on_rotation_axis = np.asarray(point_on_rotation_axis)
+        assert point_on_rotation_axis.shape == (3,)
+
+        body_slice.nb_matrices_to_keep *= nb_repetitions+1
+        slices = [body_slice]
+        for i in range(1, nb_repetitions+1):
+            new_slice = body_slice.copy()
+            new_slice.translate(-point_on_rotation_axis)
+            new_slice.rotates_z(2*i*np.pi/(nb_repetitions+1))
+            new_slice.translate(point_on_rotation_axis)
+            new_slice.nb_matrices_to_keep *= nb_repetitions+1
+            new_slice.name = f"rotation_{i}_of_{body_slice.name}"
+            slices.append(new_slice)
+
+        CollectionOfFloatingBodies.__init__(self, slices)
+
+        self.name = "rotated_" + body_slice.name
+        LOG.info(f"New rotation symmetry: {self.name}.")
+
+        self.dofs = {}
+        for name, dof in body_slice.dofs.items():
+            self.dofs["rotated_" + name] = np.concatenate([dof]*nb_repetitions)
+
+    def build_matrices(self, other_body, force_full_computation=False, **kwargs):
+        """Compute the influence matrix of `self` on `other_body`.
+
+        Parameters
+        ----------
+        body: FloatingBody
+            the body interacting with `self`
+        force_full_computation: boolean
+            if True, do not use the symmetry (for debugging).
+        """
+
+        if other_body == self and not force_full_computation:
+            # Use symmetry to speed up the evaluation of the matrix
+            LOG.debug(f"Evaluating matrix of {self.name} on itself using rotation symmetry.")
 
             S_list, V_list = [], []
             for body in self.subbodies:

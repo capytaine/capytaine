@@ -54,6 +54,22 @@ def test_BlockToeplitz():
     assert np.all(Z @ C == Z.full_matrix())
     # assert np.all(C @ Z == Z.full_matrix())
 
+
+def test_Circulant():
+    A = BlockCirculantMatrix([np.array([[i]]) for i in range(4)])
+    assert A.nb_blocks == 6
+    assert A.block_size == 1
+    assert np.all(A == A.full_matrix())
+    assert np.all(A == np.array([[0, 1, 2, 3, 2, 1],
+                                 [1, 0, 1, 2, 3, 2],
+                                 [2, 1, 0, 1, 2, 3],
+                                 [3, 2, 1, 0, 1, 2],
+                                 [2, 3, 2, 1, 0, 1],
+                                 [1, 2, 3, 2, 1, 0],
+                                 ])
+                  )
+
+
 def test_solve():
     # 2x2 blocks
     A1 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])

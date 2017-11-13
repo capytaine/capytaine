@@ -38,6 +38,10 @@ class BlockToeplitzMatrix:
             assert block.dtype == self.dtype
 
     @property
+    def shape(self):
+        return (self.nb_blocks*self.block_size, self.nb_blocks*self.block_size)
+
+    @property
     def nb_blocks(self):
         return len(self.blocks)
 
@@ -140,16 +144,31 @@ class BlockToeplitzMatrix:
 
     def full_matrix(self):
         """Return the matrix as an usual array not using the symmetry."""
-
-        full_matrix = np.empty((self.nb_blocks*self.block_size,
-                                self.nb_blocks*self.block_size,
-                                ), dtype=self.dtype)
-
+        full_matrix = np.empty(self.shape, dtype=self.dtype)
         for i in range(self.nb_blocks):
             for j in range(self.nb_blocks):
                 full_matrix[i*self.block_size:(i+1)*self.block_size,
                             j*self.block_size:(j+1)*self.block_size] = self.blocks[abs(j-i)]
+        return full_matrix
 
+
+class BlockCirculantMatrix(BlockToeplitzMatrix):
+
+    @property
+    def nb_blocks(self):
+        return 2*(len(self.blocks)-1)
+
+    def full_matrix(self):
+        """Return the matrix as an usual array not using the symmetry."""
+        full_matrix = np.empty(self.shape, dtype=self.dtype)
+        for i in range(self.nb_blocks):
+            for j in range(self.nb_blocks):
+                if abs(i-j) < self.nb_blocks//2 + 1:
+                    i_block = abs(i-j)
+                else:
+                    i_block = self.nb_blocks - abs(i-j)
+                full_matrix[i*self.block_size:(i+1)*self.block_size,
+                            j*self.block_size:(j+1)*self.block_size] = self.blocks[i_block]
         return full_matrix
 
 
