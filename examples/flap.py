@@ -11,7 +11,7 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from capytaine.reference_bodies import generate_open_rectangular_parallelepiped
+from capytaine.reference_bodies import generate_open_rectangular_parallelepiped, generate_clever_open_rectangular_parallelepiped
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import Nemoh
 
@@ -24,24 +24,18 @@ def solve_flap(resolution=2):
     resolution: int
         the number of cells in the mesh will be proportional to this coefficient
     """
-    # Set up log
-    logging.basicConfig(level=logging.INFO,
-                        format="%(levelname)s:\t%(message)s")
-
     # Load reference range of frequencies
     T_range, _, _ = np.loadtxt(os.path.join(os.path.dirname(__file__), "data/flap_mu_nu.tsv")).T
 
     depth = 10.9
 
     # Create mesh
-    flap = generate_open_rectangular_parallelepiped(
-        height=depth,
-        width=3.0,
-        thickness=0.001,
-        nh=int(3*resolution),
-        nw=int(10*resolution),
-        nth=1
-    )
+    # flap = generate_open_rectangular_parallelepiped(
+    #     height=depth, width=3.0, thickness=0.001,
+    #     nh=int(3*resolution), nw=int(10*resolution))
+    flap = generate_clever_open_rectangular_parallelepiped(
+        height=depth, width=3.0, thickness=0.001,
+        nh=int(3*resolution), nw=int(10*resolution))
     flap.translate_z(-depth)
 
     # Set oscillation degree of freedom
@@ -55,7 +49,7 @@ def solve_flap(resolution=2):
     solver = Nemoh()
 
     # Solve problems
-    results = np.asarray(solver.solve_all(problems, processes=8))
+    results = np.asarray(solver.solve_all(problems, processes=1))
 
     # Create directory to store results
     if not os.path.isdir(result_directory):
@@ -98,6 +92,18 @@ def plot_flap_results():
     plt.show()
 
 if __name__ == "__main__":
-    solve_flap(resolution=2)
+    import datetime
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s:\t%(message)s")
+    LOG = logging.getLogger(__name__)
+
+    start_time = datetime.datetime.now()
+    LOG.info(f"Start computation: {start_time.time()}")
+
+    solve_flap(resolution=12)
+
+    end_time = datetime.datetime.now()
+    LOG.info(f"End of the computation: {end_time.time()}")
+    LOG.info(f"Duration: {end_time - start_time}")
+
     plot_flap_results()
 

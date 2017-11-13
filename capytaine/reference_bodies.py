@@ -173,6 +173,7 @@ def generate_ring(**kwargs):
     return generate_horizontal_cylinder(nx=1, **kwargs)
 
 def generate_clever_horizontal_cylinder(length=10, nx=10, **kwargs):
+    """Open horizontal cylinder using the symmetry to speed up the computations"""
     ring = generate_ring(length=length/nx, nr=0, **kwargs)
     return TranslationalSymmetry(ring, translation=np.asarray([length/nx, 0.0, 0.0]), nb_repetitions=nx-1)
 
@@ -211,6 +212,10 @@ def generate_one_sided_rectangle(height=5.0, width=5.0, nh=5, nw=5):
         panels[k, :] = (j+i*(nh+1), j+1+i*(nh+1), j+1+(i+1)*(nh+1), j+(i+1)*(nh+1))
 
     return FloatingBody(nodes, panels, name=f"rectangle_{next(FloatingBody._ids)}")
+
+def generate_clever_one_sided_rectangle(width=5.0, nw=5, **kwargs):
+    strip = generate_one_sided_rectangle(width=width/nw, nw=1, **kwargs)
+    return TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=nw-1)
 
 def generate_free_surface(width=100, length=100, nw=10, nl=10):
     """ """
@@ -274,6 +279,10 @@ def generate_open_rectangular_parallelepiped(height=10.0, width=10.0, thickness=
 
     return parallelepiped
 
+def generate_clever_open_rectangular_parallelepiped(width=5.0, nw=5, **kwargs):
+    strip = generate_open_rectangular_parallelepiped(width=width/nw, nw=1, nth=0, **kwargs)
+    return TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=nw-1)
+
 def generate_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0, nh=5, nw=5, nth=1):
     """Generate the mesh of six rectangles forming a complete rectangular parallelepiped.
     Parameters
@@ -293,9 +302,13 @@ def generate_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0, 
     z0: float
         depth of the bottom of the object
     """
-    sides = generate_open_rectangular_parallelepiped(height=height, width=width, thickness=thickness,
-                                          nh=nh, nw=nw, nth=nth)
-    top = generate_one_sided_rectangle(height=thickness, width=width, nh=nth, nw=nw)
+    sides = generate_open_rectangular_parallelepiped(
+        height=height, width=width, thickness=thickness,
+        nh=nh, nw=nw, nth=nth)
+
+    top = generate_one_sided_rectangle(
+        height=thickness, width=width,
+        nh=nth, nw=nw)
     bottom = top.copy()
 
     top.rotate_x(np.pi/2)
@@ -311,6 +324,17 @@ def generate_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0, 
     parallelepiped.heal_triangles()
 
     return parallelepiped
+
+def generate_horizontal_open_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0, nh=5, nw=5, nth=1):
+    orp = generate_open_rectangular_parallelepiped(
+        height=width, width=height, thickness=thickness,
+        nh=nw, nw=nh, nth=nth)
+    orp.rotate_y(-np.pi/2)
+    return orp
+
+def generate_clever_horizontal_open_rectangular_parallelepiped(width=10.0, nw=5, **kwargs):
+    strip = generate_horizontal_open_rectangular_parallelepiped(width=width/nw, nw=1, **kwargs)
+    return TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=nw-1)
 
 ###########
 #  Other  #
