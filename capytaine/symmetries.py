@@ -143,7 +143,7 @@ class TranslationalSymmetry(_SymmetricBody):
 class AxialSymmetry(_SymmetricBody):
     """A body composed of a pattern rotated around a vertical axis."""
 
-    def __init__(self, body_slice, point_on_rotation_axis, nb_repetitions=1):
+    def __init__(self, body_slice, point_on_rotation_axis=np.zeros(3), nb_repetitions=1):
         """Initialize the body.
 
         Parameters
@@ -167,7 +167,7 @@ class AxialSymmetry(_SymmetricBody):
         for i in range(1, nb_repetitions+1):
             new_slice = body_slice.copy()
             new_slice.translate(-point_on_rotation_axis)
-            new_slice.rotates_z(2*i*np.pi/(nb_repetitions+1))
+            new_slice.rotate_z(2*i*np.pi/(nb_repetitions+1))
             new_slice.translate(point_on_rotation_axis)
             new_slice.nb_matrices_to_keep *= nb_repetitions+1
             new_slice.name = f"rotation_{i}_of_{body_slice.name}"

@@ -9,7 +9,7 @@ from itertools import product, count
 import numpy as np
 
 from capytaine.bodies import FloatingBody
-from capytaine.symmetries import TranslationalSymmetry
+from capytaine.symmetries import TranslationalSymmetry, AxialSymmetry
 
 #############
 #  Spheres  #
@@ -37,7 +37,7 @@ def generate_sphere(radius=1.0, ntheta=10, nphi=10,
     """
 
     if clip_free_surface:
-        if z0 < -radius: # fully immersed
+        if z0 < -radius:  # fully immersed
             theta_max = np.pi
         elif z0 < radius:
             theta_max = np.arccos(z0/radius)
@@ -74,13 +74,35 @@ def generate_sphere(radius=1.0, ntheta=10, nphi=10,
 
     return sphere
 
+
 def generate_half_sphere(**kwargs):
     return generate_sphere(half=True, **kwargs)
+
+
+def generate_axi_symmetric_body(profile, point_on_rotation_axis=np.zeros(3), nth=20):
+    profile = np.asarray(profile)
+    assert len(profile.shape) == 2
+    assert profile.shape[1] == 3
+
+    n = profile.shape[0]
+    angle = 2*np.pi/nth
+
+    rotated_profile = FloatingBody(profile, np.zeros((0, 4)))
+    rotated_profile.rotate_z(angle)
+
+    nodes_slice = np.concatenate([profile, rotated_profile.vertices])
+    faces_slice = np.array([[i, i+n, i+n+1, i+1] for i in range(n-1)])
+    body_slice = FloatingBody(nodes_slice, faces_slice)
+    body_slice.merge_duplicates()
+    body_slice.heal_triangles()
+
+    return AxialSymmetry(body_slice, point_on_rotation_axis=point_on_rotation_axis, nb_repetitions=nth-1)
 
 
 ###############
 #  Cylinders  #
 ###############
+
 
 def generate_horizontal_cylinder(length=10.0, radius=1.0,
                                  nx=10, nr=2, ntheta=10,
