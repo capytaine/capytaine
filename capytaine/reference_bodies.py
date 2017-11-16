@@ -79,18 +79,26 @@ def generate_half_sphere(**kwargs):
     return generate_sphere(half=True, **kwargs)
 
 
-def generate_axi_symmetric_body(profile, point_on_rotation_axis=np.zeros(3), nth=20):
-    profile = np.asarray(profile)
-    assert len(profile.shape) == 2
-    assert profile.shape[1] == 3
+def generate_axi_symmetric_body(profile,
+                                z_range=np.linspace(-5, 0, 20),
+                                point_on_rotation_axis=np.zeros(3),
+                                nth=20,
+                                ):
+    if callable(profile):
+        x_values = [profile(z) for z in z_range]
+        profile_array = np.stack([x_values, np.zeros(len(z_range)), z_range]).T
+    else:
+        profile_array = np.asarray(profile)
+    assert len(profile_array.shape) == 2
+    assert profile_array.shape[1] == 3
 
-    n = profile.shape[0]
+    n = profile_array.shape[0]
     angle = 2*np.pi/nth
 
-    rotated_profile = FloatingBody(profile, np.zeros((0, 4)))
+    rotated_profile = FloatingBody(profile_array, np.zeros((0, 4)))
     rotated_profile.rotate_z(angle)
 
-    nodes_slice = np.concatenate([profile, rotated_profile.vertices])
+    nodes_slice = np.concatenate([profile_array, rotated_profile.vertices])
     faces_slice = np.array([[i, i+n, i+n+1, i+1] for i in range(n-1)])
     body_slice = FloatingBody(nodes_slice, faces_slice)
     body_slice.merge_duplicates()
