@@ -19,6 +19,7 @@ class BlockToeplitzMatrix:
         ----------
         blocks: list of square matrices
             the blocks of the first row (or the first column) of the block matrix.
+            they should be square matrices of the same size and the same type.
         """
 
         self.blocks = []
@@ -39,7 +40,7 @@ class BlockToeplitzMatrix:
 
     @property
     def shape(self):
-        return (self.nb_blocks*self.block_size, self.nb_blocks*self.block_size)
+        return self.nb_blocks*self.block_size, self.nb_blocks*self.block_size
 
     @property
     def nb_blocks(self):
@@ -52,7 +53,7 @@ class BlockToeplitzMatrix:
     def __eq__(self, other):
         if isinstance(other, BlockToeplitzMatrix):
             # Return true if the content is the same
-            # even if the decompostion is not the same
+            # even if the decomposition is not the same
             return self.full_matrix() == other.full_matrix()
         elif isinstance(other, np.ndarray):
             return self.full_matrix() == other
@@ -153,6 +154,18 @@ class BlockToeplitzMatrix:
 
 
 class BlockCirculantMatrix(BlockToeplitzMatrix):
+    """A symmetric block circulant matrix stored as a list of matrices.
+    """
+
+    def __init__(self, blocks):
+        """
+        Parameters
+        ----------
+        blocks: list of square matrices
+            half of the blocks of the first row (or the first column) of the block matrix.
+            they should be square matrices of the same size and the same type.
+        """
+        BlockToeplitzMatrix.__init__(self, blocks)
 
     @property
     def nb_blocks(self):
@@ -177,13 +190,23 @@ def block_Toeplitz_identity(nb_blocks, block_size, **kwargs):
     size."""
     return BlockToeplitzMatrix(
         [np.identity(block_size, **kwargs)] +
-        [np.zeros((block_size, block_size), **kwargs) for i in range(nb_blocks - 1)]
+        [np.zeros((block_size, block_size), **kwargs) for _ in range(nb_blocks - 1)]
     )
 
 
 def solve(A, b):
     """Solve the linear system Ax = b"""
-    if isinstance(A, BlockToeplitzMatrix):
+    if isinstance(A, BlockCirculantMatrix):
+        LOG.debug("\tSolve linear system %ix%i BlockCirculantMatrix (block size: %i)", A.nb_blocks, A.nb_blocks, A.block_size)
+        AA = np.stack(A.blocks + A.blocks[-2:0:-1])
+        AAt = np.fft.fft(AA, axis=0)
+        b = np.reshape(b, (A.nb_blocks, A.block_size))
+        bt = np.fft.fft(b, axis=0)
+        xt = solve(AAt, bt)
+        x = np.fft.ifft(xt, axis=0)
+        return x.reshape(A.nb_blocks*A.block_size)
+
+    elif isinstance(A, BlockToeplitzMatrix):
         if A.nb_blocks == 2:
             LOG.debug("\tSolve system of 2x2 BlockToeplitzMatrix (block size: %i)", A.block_size)
             A1, A2 = A.blocks

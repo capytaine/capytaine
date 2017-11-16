@@ -82,3 +82,14 @@ def test_solve():
 
     assert np.allclose(x_toe, x_dumb, rtol=1e-6)
 
+    # Block Circulant Matrix
+    A1 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    A2 = np.array([[5, 4, 2], [8, 0, 1], [6, 7, 3]])
+    A3 = np.array([[0, 0, 3], [9, 3, 5], [7, 5, 6]])
+    A = BlockCirculantMatrix([A1, A2, A3])
+    b = np.array([3, 5, 7, 11, 13, 17, 55, 0, 55, 4, 4, 8])
+
+    x_toe = solve(A, b)
+    x_dumb = np.linalg.solve(A.full_matrix(), b)
+
+    assert np.allclose(x_toe, x_dumb, rtol=1e-6)
