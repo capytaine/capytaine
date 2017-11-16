@@ -97,12 +97,12 @@ def compare_results(directory):
 
 
 if __name__ == "__main__":
-    # plot_detailed_time(sys.argv[1])
-    # compare_all_total_times(sys.argv[1])
-    # compare_results(sys.argv[1])
+    plot_detailed_time(sys.argv[1])
+    compare_all_total_times(sys.argv[1])
+    compare_results(sys.argv[1])
 
-    plot_detailed_time("2017-11-06_153544/")
-    compare_all_total_times("2017-11-06_153544/")
+    # plot_detailed_time("2017-11-06_153544/")
+    # compare_all_total_times("2017-11-06_153544/")
 
     plt.show()
 
