@@ -24,7 +24,7 @@ def shape(z):
 #     profile=[[0, 0, -5], [1, 0, -4], [1.5, 0, -3], [2.0, 0, -2], [1.3, 0, -1], [0, 0, -0.5]]
 # )
 
-buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, 20), nth=20)
+buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, 20), nphi=20)
 # buoy.show()
 
 buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)

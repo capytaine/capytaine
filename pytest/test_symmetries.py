@@ -4,7 +4,6 @@
 Tests for the computation of the Green function and the resolution of the BEM problem.
 """
 
-from collections import Counter
 import pytest
 
 import numpy as np
@@ -14,15 +13,15 @@ from capytaine.symmetries import *
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import Nemoh
 
+
 def test_panels():
     panel = generate_one_sided_rectangle(height=1.0, width=1.0, nh=6, nw=2)
     panel.translate_z(-1.0)
     half_panel = panel.extract_faces(np.where(panel.faces_centers[:, 0] > 0)[0])
     symmetric_panel = ReflectionSymmetry(half_panel, yOz_Plane)
+    # symmetric_panel.show()
 
-    # symmetric_panel.show_matplotlib()
-
-    # Next lines only to set up LISC...
+    # Next lines only to set up LISC in Nemoh's Core...
     problem = RadiationProblem(body=panel, omega=0.1, free_surface=0.0, sea_bottom=-np.infty)
     Nemoh().solve(problem)
 
@@ -39,14 +38,15 @@ def test_panels():
     assert np.allclose(S1, S2.full_matrix(), atol=1e-5)
     assert np.allclose(V1, V2.full_matrix(), atol=1e-5)
 
+
 @pytest.mark.parametrize("reso", range(2, 5))
 def test_floating_sphere(reso):
-    full_sphere = generate_sphere(radius=1.0, ntheta=2*reso, nphi=2*reso, clip_free_surface=True)
+    full_sphere = generate_sphere(radius=1.0, ntheta=2*reso, nphi=4*reso, clip_free_surface=True)
     full_sphere.dofs["Heave"] = full_sphere.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=full_sphere, omega=1.0, sea_bottom=-np.infty)
     mass1, damping1 = Nemoh().solve(problem)
 
-    half_sphere = generate_half_sphere(radius=1.0, ntheta=reso, nphi=2*reso, clip_free_surface=True)
+    half_sphere = generate_half_sphere(radius=1.0, ntheta=reso, nphi=4*reso, clip_free_surface=True)
     # half_sphere = full_sphere.extract_faces(np.where(full_sphere.faces_centers[:, 1] > 0)[0])
     two_halves_sphere = ReflectionSymmetry(half_sphere, xOz_Plane)
     two_halves_sphere.dofs["Heave"] = two_halves_sphere.faces_normals @ (0, 0, 1)
@@ -59,12 +59,20 @@ def test_floating_sphere(reso):
     problem = RadiationProblem(body=four_quarter_sphere, omega=1.0, sea_bottom=-np.infty)
     mass3, damping3 = Nemoh().solve(problem)
 
-    # (quarter_sphere + half_sphere + full_sphere).show_matplotlib()
+    clever_sphere = generate_clever_sphere(radius=1.0, ntheta=reso, nphi=4*reso, clip_free_surface=True)
+    clever_sphere.dofs['Heave'] = clever_sphere.faces_normals @ (0, 0, 1)
+    problem = RadiationProblem(body=clever_sphere, omega=1.0, sea_bottom=-np.infty)
+    mass4, damping4 = Nemoh().solve(problem)
+
+    # (quarter_sphere + half_sphere + full_sphere + clever_sphere).show()
 
     assert np.isclose(mass1,    mass2,    atol=1e-4*full_sphere.volume*problem.rho)
     assert np.isclose(damping1, damping2, atol=1e-4*full_sphere.volume*problem.rho)
     assert np.isclose(mass1,    mass3,    atol=1e-4*full_sphere.volume*problem.rho)
     assert np.isclose(damping1, damping3, atol=1e-4*full_sphere.volume*problem.rho)
+    assert np.isclose(mass1,    mass4,    atol=1e-4*full_sphere.volume*problem.rho)
+    assert np.isclose(damping1, damping4, atol=1e-4*full_sphere.volume*problem.rho)
+
 
 def test_horizontal_cylinder():
     cylinder = generate_horizontal_cylinder(length=10.0, radius=1.0, ntheta=10, nr=0, nx=10)
@@ -82,7 +90,4 @@ def test_horizontal_cylinder():
 
     assert np.isclose(mass1,    mass2,    atol=1e-4*cylinder.volume*problem.rho)
     assert np.isclose(damping1, damping2, atol=1e-4*cylinder.volume*problem.rho)
-
-# print(Counter(np.around(np.real(S1.flatten()), decimals=2)))
-# print(Counter(np.around(np.real(S3.flatten()), decimals=2)))
 

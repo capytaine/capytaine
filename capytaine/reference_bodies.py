@@ -4,12 +4,13 @@
 Generate mesh for some simple geometric shapes.
 """
 
-from itertools import product, count
+from itertools import product
 
 import numpy as np
 
 from capytaine.bodies import FloatingBody
 from capytaine.symmetries import TranslationalSymmetry, AxialSymmetry
+
 
 #############
 #  Spheres  #
@@ -35,6 +36,8 @@ def generate_sphere(radius=1.0, ntheta=10, nphi=10,
     half: bool
         if True, only mesh the part of the sphere where y > 0
     """
+
+    nphi = nphi//2
 
     if clip_free_surface:
         if z0 < -radius:  # fully immersed
@@ -62,7 +65,7 @@ def generate_sphere(radius=1.0, ntheta=10, nphi=10,
         z = z0 - radius * np.cos(t)
         nodes[i, :] = (x, y, z)
 
-    # Connectivities
+    # Connectivity
     panels = np.zeros((ntheta*nphi, 4), dtype=np.int)
 
     for k, (i, j) in enumerate(product(range(0, ntheta), range(0, nphi))):
@@ -82,8 +85,24 @@ def generate_half_sphere(**kwargs):
 def generate_axi_symmetric_body(profile,
                                 z_range=np.linspace(-5, 0, 20),
                                 point_on_rotation_axis=np.zeros(3),
-                                nth=20,
+                                nphi=20,
                                 ):
+    """Return a floating body using the axial symmetry.
+    The shape of the body can be defined either with a function defining the profile as [f(z), 0, z] for z in z_range.
+    Alternatively, the profile can be defined as a list of points.
+    The number of vertices along the vertical direction is len(z_range) in the first case and profile.shape[0] in the second case.
+
+    Parameters
+    ----------
+    profile: function(float) → float  or  array(N, 3)
+        define the shape of the body either as a function or a list of points.
+    z_range: array(N)
+        used only if the profile is defined as a function.
+    point_on_rotation_axis: array(3)
+        a single point to define the rotation axis (the direction is always vertical)
+    nphi: int
+        number of vertical slices forming the body
+    """
     if callable(profile):
         x_values = [profile(z) for z in z_range]
         profile_array = np.stack([x_values, np.zeros(len(z_range)), z_range]).T
@@ -93,7 +112,7 @@ def generate_axi_symmetric_body(profile,
     assert profile_array.shape[1] == 3
 
     n = profile_array.shape[0]
-    angle = 2*np.pi/nth
+    angle = 2 * np.pi / nphi
 
     rotated_profile = FloatingBody(profile_array, np.zeros((0, 4)))
     rotated_profile.rotate_z(angle)
@@ -104,13 +123,35 @@ def generate_axi_symmetric_body(profile,
     body_slice.merge_duplicates()
     body_slice.heal_triangles()
 
-    return AxialSymmetry(body_slice, point_on_rotation_axis=point_on_rotation_axis, nb_repetitions=nth-1)
+    return AxialSymmetry(body_slice, point_on_rotation_axis=point_on_rotation_axis, nb_repetitions=nphi - 1)
+
+
+def generate_clever_sphere(radius=1.0, ntheta=10, nphi=10,
+                           z0=0.0, clip_free_surface=False):
+    """Generate the floating body of a sphere using its axial symmetry.
+
+    Same arguments as `generate_sphere`."""
+    if clip_free_surface:
+        if z0 < -radius:  # fully immersed
+            theta_max = np.pi
+        elif z0 < radius:
+            theta_max = np.arccos(z0/radius)
+        else:
+            raise Exception("Sphere out of the water")
+    else:
+        theta_max = np.pi
+    theta = np.linspace(0, theta_max, ntheta+1)
+    circle_profile = np.empty((ntheta+1, 3), dtype=np.float32)
+    for i, t in enumerate(theta):
+        x = radius * np.sin(t)
+        z = z0 - radius * np.cos(t)
+        circle_profile[i, :] = (x, 0, z)
+    return generate_axi_symmetric_body(circle_profile, point_on_rotation_axis=np.zeros(3), nphi=nphi)
 
 
 ###############
 #  Cylinders  #
 ###############
-
 
 def generate_horizontal_cylinder(length=10.0, radius=1.0,
                                  nx=10, nr=2, ntheta=10,

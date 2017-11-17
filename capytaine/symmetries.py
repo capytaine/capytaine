@@ -3,14 +3,13 @@
 """Special bodies using their symmetries to speed up the computations."""
 
 import logging
-from itertools import chain, accumulate
 
 import numpy as np
 
 from meshmagick.geometry import Plane
 
 from capytaine.bodies import FloatingBody
-from capytaine.Toeplitz_matrices import BlockToeplitzMatrix
+from capytaine.Toeplitz_matrices import BlockToeplitzMatrix, BlockCirculantMatrix
 from capytaine.bodies_collection import CollectionOfFloatingBodies
 
 
@@ -187,7 +186,7 @@ class AxialSymmetry(_SymmetricBody):
 
         Parameters
         ----------
-        body: FloatingBody
+        other_body: FloatingBody
             the body interacting with `self`
         force_full_computation: boolean
             if True, do not use the symmetry (for debugging).
@@ -198,11 +197,11 @@ class AxialSymmetry(_SymmetricBody):
             LOG.debug(f"Evaluating matrix of {self.name} on itself using rotation symmetry.")
 
             S_list, V_list = [], []
-            for body in self.subbodies:
+            for body in self.subbodies[:self.nb_subbodies//2+1]:
                 S, V = self.subbodies[0].build_matrices(body, **kwargs)
                 S_list.append(S)
                 V_list.append(V)
-            return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
+            return BlockToeplitzMatrix(S_list + S_list[-2:0:-1]), BlockToeplitzMatrix(V_list + V_list[-2:0:-1])
 
         else:
-            return CollectionOfFloatingBodies.build_matrices(self, body, **kwargs)
+            return CollectionOfFloatingBodies.build_matrices(self, other_body, **kwargs)

@@ -10,8 +10,7 @@ LOG = logging.getLogger(__name__)
 
 
 class BlockToeplitzMatrix:
-    """A symmetric block Toeplitz matrix stored as a list of matrices.
-    """
+    """A symmetric block Toeplitz matrix stored as a list of matrices."""
 
     def __init__(self, blocks):
         """
@@ -153,6 +152,14 @@ class BlockToeplitzMatrix:
         return full_matrix
 
 
+def block_Toeplitz_identity(nb_blocks, block_size, **kwargs):
+    """Return the identity matrix as a block Toeplitz matrix of specified size."""
+    return BlockToeplitzMatrix(
+        [np.identity(block_size, **kwargs)] +
+        [np.zeros((block_size, block_size), **kwargs) for _ in range(nb_blocks - 1)]
+    )
+
+
 class BlockCirculantMatrix(BlockToeplitzMatrix):
     """A symmetric block circulant matrix stored as a list of matrices.
     """
@@ -165,40 +172,40 @@ class BlockCirculantMatrix(BlockToeplitzMatrix):
             half of the blocks of the first row (or the first column) of the block matrix.
             they should be square matrices of the same size and the same type.
         """
-        BlockToeplitzMatrix.__init__(self, blocks)
+        BlockToeplitzMatrix.__init__(self, blocks + blocks[-2:0:-1])
 
-    @property
-    def nb_blocks(self):
-        return 2*(len(self.blocks)-1)
+    # @property
+    # def nb_blocks(self):
+    #     return 2*(len(self.blocks)-1)
 
-    def full_matrix(self):
-        """Return the matrix as an usual array not using the symmetry."""
-        full_matrix = np.empty(self.shape, dtype=self.dtype)
-        for i in range(self.nb_blocks):
-            for j in range(self.nb_blocks):
-                if abs(i-j) < self.nb_blocks//2 + 1:
-                    i_block = abs(i-j)
-                else:
-                    i_block = self.nb_blocks - abs(i-j)
-                full_matrix[i*self.block_size:(i+1)*self.block_size,
-                            j*self.block_size:(j+1)*self.block_size] = self.blocks[i_block]
-        return full_matrix
+    # def full_matrix(self):
+    #     """Return the matrix as an usual array not using the symmetry."""
+    #     full_matrix = np.empty(self.shape, dtype=self.dtype)
+    #     for i in range(self.nb_blocks):
+    #         for j in range(self.nb_blocks):
+    #             if abs(i-j) < self.nb_blocks//2 + 1:
+    #                 i_block = abs(i-j)
+    #             else:
+    #                 i_block = self.nb_blocks - abs(i-j)
+    #             full_matrix[i*self.block_size:(i+1)*self.block_size,
+    #                         j*self.block_size:(j+1)*self.block_size] = self.blocks[i_block]
+    #     return full_matrix
 
 
-def block_Toeplitz_identity(nb_blocks, block_size, **kwargs):
-    """Return the identity matrix as a block Toeplitz matrix of specified
-    size."""
-    return BlockToeplitzMatrix(
-        [np.identity(block_size, **kwargs)] +
-        [np.zeros((block_size, block_size), **kwargs) for _ in range(nb_blocks - 1)]
-    )
+# def block_circulant_identity(nb_blocks, block_size, **kwargs):
+#     """Return the identity matrix as a block Circulant matrix of specified size."""
+#     return BlockCirculantMatrix(
+#         [np.identity(block_size, **kwargs)] +
+#         [np.zeros((block_size, block_size), **kwargs) for _ in range(nb_blocks//2 - 1)]
+#     )
 
 
 def solve(A, b):
     """Solve the linear system Ax = b"""
     if isinstance(A, BlockCirculantMatrix):
-        LOG.debug("\tSolve linear system %ix%i BlockCirculantMatrix (block size: %i)", A.nb_blocks, A.nb_blocks, A.block_size)
-        AA = np.stack(A.blocks + A.blocks[-2:0:-1])
+        LOG.debug("\tSolve linear system %ix%i BlockCirculantMatrix (block size: %i)",
+                  A.nb_blocks, A.nb_blocks, A.block_size)
+        AA = np.stack(A.blocks)
         AAt = np.fft.fft(AA, axis=0)
         b = np.reshape(b, (A.nb_blocks, A.block_size))
         bt = np.fft.fft(b, axis=0)
@@ -225,4 +232,4 @@ def solve(A, b):
         return np.linalg.solve(A, b)
 
     else:
-        raise ValueError(f"Unreognized type of {A} in solve")
+        raise ValueError(f"Unrecognized type of {A} in solve")
