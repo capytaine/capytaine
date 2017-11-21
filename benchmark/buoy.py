@@ -4,6 +4,7 @@
 import datetime
 from itertools import count, product
 
+import numpy as np
 import pandas as pd
 
 from capytaine.reference_bodies import generate_axi_symmetric_body
@@ -20,21 +21,21 @@ def shape(z):
 
 
 def full_resolution_Nemoh(nb_slices, nz, omega_range):
-    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz), nth=nb_slices)
+    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz), nphi=nb_slices)
     buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
     return profile_Nemoh(buoy.as_FloatingBody(), omega_range,
                          f"{WORKING_DIRECTORY}/{next(ID):03}_Nemoh_{nz*nb_slices}")
 
 
 def full_Capytaine(nb_slices, nz, omega_range):
-    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz), nth=nb_slices)
+    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz), nphi=nb_slices)
     buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
     return profile_capytaine(buoy.as_FloatingBody(), omega_range,
                              f"{WORKING_DIRECTORY}/{next(ID):03}_capy_{nz*nb_slices}")
 
 
 def rot_Capytaine(nb_slices, nz, omega_range):
-    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz), nth=nb_slices)
+    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz), nphi=nb_slices)
     buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
     return profile_capytaine(buoy, omega_range,
                              f"{WORKING_DIRECTORY}/{next(ID):03}_rot_capy_{nz*nb_slices}")
@@ -47,14 +48,14 @@ def rot_Capytaine(nb_slices, nz, omega_range):
 if __name__ == "__main__":
 
     nb_repetitions = 1
-    nz = 10
-    nb_slices_range = range(10, 100, 10)
+    nz = 30
+    nb_slices_range = range(60, 90, 10)
     omega_range = np.linspace(0.1, 4.0, 40)
 
     cases = {
-        "Nemoh 2.0":                          full_resolution_Nemoh,
-        "Capytaine":                          full_Capytaine,
-        "Capytaine + axisymmetry":            rot_Capytaine,
+        "Nemoh 2.0":                full_resolution_Nemoh,
+        "Capytaine":                full_Capytaine,
+        "Capytaine + axisymmetry":  rot_Capytaine,
         }
 
     # ===========================
