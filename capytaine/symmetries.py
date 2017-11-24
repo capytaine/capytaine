@@ -136,7 +136,7 @@ class TranslationalSymmetry(_SymmetricBody):
             return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
 
         else:
-            return CollectionOfFloatingBodies.build_matrices(self, body, **kwargs)
+            return CollectionOfFloatingBodies.build_matrices(self, other_body, **kwargs)
 
 
 class AxialSymmetry(_SymmetricBody):
