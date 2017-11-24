@@ -73,6 +73,21 @@ def test_floating_sphere(reso):
     assert np.isclose(mass1,    mass4,    atol=1e-4*full_sphere.volume*problem.rho)
     assert np.isclose(damping1, damping4, atol=1e-4*full_sphere.volume*problem.rho)
 
+def test_odd_axial_symmetry():
+    """Buoy with odd number of slices."""
+    def shape(z):
+            return 0.1*(-(z+1)**2 + 16)
+    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, 9), nphi=5)
+    buoy.dofs['Heave'] = buoy.faces_normals @ (0, 0, 1)
+
+    problem = RadiationProblem(body=buoy, omega=2.0)
+    mass1, damping1 = Nemoh().solve(problem)
+
+    problem = RadiationProblem(body=buoy.as_FloatingBody(), omega=2.0)
+    mass2, damping2 = Nemoh().solve(problem)
+
+    assert np.isclose(mass1,    mass2,    atol=1e-4*buoy.volume*problem.rho)
+    assert np.isclose(damping1, damping2, atol=1e-4*buoy.volume*problem.rho)
 
 def test_horizontal_cylinder():
     cylinder = generate_horizontal_cylinder(length=10.0, radius=1.0, ntheta=10, nr=0, nx=10)
