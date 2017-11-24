@@ -9,7 +9,7 @@ from itertools import product
 import numpy as np
 
 from capytaine.bodies import FloatingBody
-from capytaine.symmetries import TranslationalSymmetry, AxialSymmetry
+from capytaine.symmetries import yOz_Plane, TranslationalSymmetry, AxialSymmetry
 
 
 #############
@@ -148,14 +148,56 @@ def generate_clever_sphere(radius=1.0, ntheta=10, nphi=10,
         circle_profile[i, :] = (x, 0, z)
     return generate_axi_symmetric_body(circle_profile, point_on_rotation_axis=np.zeros(3), nphi=nphi)
 
+##########
+#  Disk  #
+##########
+
+def generate_disk(radius=1.0, nr=3, ntheta=5,
+                  z0=0.0, clip_free_surface=False):
+
+    if clip_free_surface:
+        if z0 < -radius: # fully immersed
+            theta_max = np.pi
+        elif z0 < radius:
+            theta_max = np.arccos(z0/radius)
+        else:
+            raise Exception("Disk out of the water")
+    else:
+        theta_max = np.pi
+
+    theta = np.linspace(-theta_max, theta_max, ntheta+1)
+    R = np.linspace(0.0, radius, nr+1)
+
+    nodes = np.zeros(((ntheta+1)*(nr+1), 3), dtype=np.float32)
+
+    for i, (r, t) in enumerate(product(R, theta)):
+        y = r * np.sin(t)
+        z = z0 - r * np.cos(t)
+        nodes[i, :] = (0, y, z)
+
+    panels = np.zeros((ntheta*nr, 4), dtype=np.int)
+
+    for k, (i, j) in enumerate(product(range(0, nr), range(0, ntheta))):
+        panels[k, :] = (
+            j+i*(ntheta+1),
+            j+1+i*(ntheta+1),
+            j+1+(i+1)*(ntheta+1),
+            j+(i+1)*(ntheta+1)
+        )
+
+    disk = FloatingBody(nodes, panels, name=f"disk_{next(FloatingBody._ids)}")
+    disk.merge_duplicates()
+    disk.heal_triangles()
+
+    return disk
 
 ###############
 #  Cylinders  #
 ###############
 
-def generate_horizontal_cylinder(length=10.0, radius=1.0,
-                                 nx=10, nr=2, ntheta=10,
-                                 z0=0.0, clip_free_surface=False):
+def generate_open_horizontal_cylinder(length=10.0, radius=1.0,
+                                      nx=10, ntheta=10,
+                                      z0=0.0, clip_free_surface=False):
     """Generate the mesh of an horizontal cylinder.
 
     Parameters
@@ -166,8 +208,6 @@ def generate_horizontal_cylinder(length=10.0, radius=1.0,
         radius of the cylinder
     nx: int
         number of circular slices
-    nr: int
-        at the ends of the cylinder, number of panels along a radius
     ntheta: int
         number of panels along a circular slice of the cylinder
     z0: float
@@ -189,23 +229,17 @@ def generate_horizontal_cylinder(length=10.0, radius=1.0,
 
     theta = np.linspace(-theta_max, theta_max, ntheta+1)
     X = np.linspace(0.0, length, nx+1)
-    R = np.linspace(0.0, radius, nr+1)
 
     # Nodes
-    nodes = np.zeros(((ntheta+1)*(nx+2*nr+3), 3), dtype=np.float32)
+    nodes = np.zeros(((ntheta+1)*(nx+1), 3), dtype=np.float32)
 
     for i, (t, x) in enumerate(product(theta, X)):
         y = radius * np.sin(t)
         z = z0 - radius * np.cos(t)
         nodes[i, :] = (x, y, z)
 
-    for i, (x, r, t) in enumerate(product([0, length], R, theta)):
-        y = r * np.sin(t)
-        z = z0 - r * np.cos(t)
-        nodes[(ntheta+1)*(nx+1)+i, :] = (x, y, z)
-
     # Connectivities
-    panels = np.zeros((ntheta*(nx+2*nr), 4), dtype=np.int)
+    panels = np.zeros((ntheta*nx, 4), dtype=np.int)
 
     for k, (i, j) in enumerate(product(range(0, ntheta),
                                        range(0, nx))):
@@ -216,38 +250,67 @@ def generate_horizontal_cylinder(length=10.0, radius=1.0,
             j+1+i*(nx+1)
         )
 
-    for k, (i, j) in enumerate(product(range(0, nr),
-                                       range((ntheta+1)*(nx+1), (ntheta+1)*(nx+1)+ntheta))):
-        panels[ntheta*nx+k, :] = (
-            j+i*(ntheta+1),
-            j+1+i*(ntheta+1),
-            j+1+(i+1)*(ntheta+1),
-            j+(i+1)*(ntheta+1)
-        )
-
-    for k, (i, j) in enumerate(product(range(0, nr),
-                                       range((ntheta+1)*((nx+1)+(nr+1)), (ntheta+1)*((nx+1)+(nr+1))+ntheta))):
-        panels[ntheta*(nx+nr)+k, :] = (
-            j+i*(ntheta+1),
-            j+(i+1)*(ntheta+1),
-            j+1+(i+1)*(ntheta+1),
-            j+1+i*(ntheta+1)
-        )
-
     cylinder = FloatingBody(nodes, panels, name=f"cylinder_{next(FloatingBody._ids)}")
     cylinder.merge_duplicates()
     cylinder.heal_triangles()
 
     return cylinder
 
-def generate_ring(**kwargs):
-    return generate_horizontal_cylinder(nx=1, **kwargs)
-
 def generate_clever_horizontal_cylinder(length=10, nx=10, **kwargs):
     """Open horizontal cylinder using the symmetry to speed up the computations"""
-    ring = generate_ring(length=length/nx, nr=0, **kwargs)
+    ring = generate_ring(length=length/nx, **kwargs)
     return TranslationalSymmetry(ring, translation=np.asarray([length/nx, 0.0, 0.0]), nb_repetitions=nx-1)
 
+def generate_ring(**kwargs):
+    return generate_open_horizontal_cylinder(nx=1, **kwargs)
+
+def generate_horizontal_cylinder(length=10.0, radius=1.0,
+                                 nx=10, nr=2, ntheta=10,
+                                 z0=0.0, clip_free_surface=False):
+    """Generate the mesh of a closed horizontal cylinder.
+
+    Parameters
+    ----------
+    length: float
+        length of the cylinder
+    radius: float
+        radius of the cylinder
+    nx: int
+        number of circular slices
+    nr: int
+        at the ends of the cylinder, number of panels along a radius
+    ntheta: int
+        number of panels along a circular slice of the cylinder
+    z0: float
+        depth of the bottom of the cylinder
+    clip_free_surface: bool
+        if True, only mesh the part of the cylinder where z < 0,
+        can be used with z0 to obtain any clipped cylinder
+    """
+    open_cylinder = generate_open_horizontal_cylinder(
+        length=length, radius=radius,
+        nx=nx, ntheta=ntheta,
+        z0=z0, clip_free_surface=clip_free_surface,
+    )
+
+    side = generate_disk(
+        radius=radius,
+        nr=nr, ntheta=ntheta,
+        z0=z0, clip_free_surface=clip_free_surface,
+    )
+
+    other_side = side.copy()
+    other_side.mirror(yOz_Plane)
+    other_side.translate_x(length)
+
+    cylinder = open_cylinder + side + other_side
+
+    cylinder = cylinder.as_FloatingBody()
+    cylinder.name = f"cylinder_{next(FloatingBody._ids)}"
+    cylinder.merge_duplicates()
+    cylinder.heal_triangles()
+
+    return cylinder
 
 ################
 #  Rectangles  #

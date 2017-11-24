@@ -87,9 +87,9 @@ def test_multibody():
     cylinder.dofs["Heave"] = cylinder.faces_normals @ (0, 0, 1)
 
     both = cylinder + sphere
-    # both.show_matplotlib()
+    # both.show()
 
-    problem = RadiationProblem(body=both, omega=1.0, free_surface=0.0, sea_bottom=-np.infty) 
+    problem = RadiationProblem(body=both, omega=1.0, free_surface=0.0, sea_bottom=-np.infty)
     mass, damping = Nemoh().solve(problem)
 
     Nemoh_2 = np.array([
