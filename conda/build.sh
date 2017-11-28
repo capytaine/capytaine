@@ -1,2 +1,1 @@
-$PYTHON setup.py build
-$PYTHON setup.py install
+$PYTHON setup.py install --record=record.txt

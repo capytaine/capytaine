@@ -1,25 +1,23 @@
+{% set data = load_setuptools()%}
 package:
   name: capytaine
-  version: 0.1
+  version: {{data.get('version')}}
 
 source:
-  path: /home/ancellin/capytaine/
+  path: ../
 
 requirements:
   build:
     - python
     - setuptools
     - numpy
-
   run:
     - python
     - numpy
-
-# test:
-#   imports:
-#     - capytaine
+    - meshmagick >=1.1
 
 about:
-  home: https://github.com/mancellin/capytaine
-  license: GPL
-  license_file: LICENSE
+  home: {{data.get('url')}}
+  license: {{data.get('license')}}
+  license_file: LICENCE
+  summary: {{data.get('description')}}

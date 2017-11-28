@@ -23,7 +23,7 @@ if __name__ == "__main__":
     setup(name='capytaine',
           version='0.1',
           description='Nemoh python wrapper',
-          # url='http://github.com/mancellin/capytaine',
+          url='http://github.com/mancellin/capytaine',
           author='Matthieu Ancellin',
           author_email='matthieu.ancellin@ucd.ie',
           license='GPLv3',
