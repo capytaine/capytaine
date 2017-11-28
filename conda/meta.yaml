@@ -19,5 +19,5 @@ requirements:
 about:
   home: {{data.get('url')}}
   license: {{data.get('license')}}
-  license_file: LICENCE
+  license_file: LICENSE
   summary: {{data.get('description')}}
