@@ -13,8 +13,8 @@ For users, it can be used in a similar way as Nemoh's Matlab interface. Due to s
 
 ## Installation
 
-Capytaine is still under development and no stable version is available yet. Install and use it at your own risks.
-You might need [this development branch of meshmagick](https://github.com/mancellin/meshmagick/tree/refactoring) to run the current development version of Capytaine.
+[An installation guide is available in the wiki.](https://github.com/mancellin/capytaine/wiki/Installation)
+Capytaine is still under development, please report any bug or lacking feature.
 
 ## License
 
