@@ -16,7 +16,7 @@ $(SOFILES): $(F90FILES)
 update_fortran: $(SOFILES)
 
 develop: $(SOFILES)
-	conda develop .
+	pip install -e .
 
 clean:
 	rm -rf build
