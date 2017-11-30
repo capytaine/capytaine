@@ -29,7 +29,7 @@ class PotentialFlowProblem:
         else:
             self.wavenumber = invert_xtanhx(omega**2*self.depth/g)/self.depth
 
-        if any(body.vertices[:, 2] > free_surface) or any(body.vertices[:, 2] < sea_bottom):
+        if any(body.vertices[:, 2] > free_surface + 1e-3) or any(body.vertices[:, 2] < sea_bottom - 1e-3):
             warn(f"""The mesh of the body {body.name} is not inside the domain.\nUse body.get_immersed_part() to clip the mesh.""")
         self.body = body
 

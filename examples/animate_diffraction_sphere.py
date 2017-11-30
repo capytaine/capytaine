@@ -10,16 +10,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
-from capytaine.reference_bodies import generate_sphere, generate_free_surface
+from capytaine.reference_bodies import generate_clever_sphere, generate_free_surface
 from capytaine.problems import DiffractionProblem
 from capytaine.Nemoh import Nemoh
 from matplotlib.patches import Circle
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format="%(levelname)s:\t%(message)s")
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s:\t%(message)s", datefmt="%H:%M:%S")
 
 # Initialize mesh and solver
-sphere = generate_sphere(radius=5, ntheta=40, nphi=40, z0=-1.0, clip_free_surface=True)
+sphere = generate_clever_sphere(radius=5, ntheta=40, nphi=40, z0=-1.0, clip_free_surface=True)
 solver = Nemoh()
 
 # Solve diffraction problem

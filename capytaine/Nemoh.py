@@ -72,6 +72,8 @@ class Nemoh:
                     added_masses.append(complex_coef.real)
                     added_dampings.append(problem.omega * complex_coef.imag)
 
+            LOG.info("Done solving %s.", problem)
+
             return np.array(added_masses).reshape((problem.body.nb_dofs, problem.body.nb_dofs)), \
                    np.array(added_dampings).reshape((problem.body.nb_dofs, problem.body.nb_dofs))
 
@@ -92,9 +94,14 @@ class Nemoh:
                     potential @ (influenced_dof * problem.body.faces_areas)
                 forces.append(force)
 
+            LOG.info("Done solving %s.", problem)
+
             return np.array(forces)
 
     def get_free_surface(self, problem, free_surface, dof=None):
+
+        LOG.info(f"Compute free surface elevation on {free_surface.name} for {problem}.")
+
         S, _ = free_surface.build_matrices(
             problem.body,
             free_surface=problem.free_surface,
@@ -109,6 +116,8 @@ class Nemoh:
                 phi = S @ problem.sources[dof]
         elif isinstance(problem, DiffractionProblem):
             phi = S @ problem.sources
+
+        LOG.info(f"Done computing free surface elevation on {free_surface.name} for {problem}.")
 
         return 1j*problem.omega/problem.g * phi
 
