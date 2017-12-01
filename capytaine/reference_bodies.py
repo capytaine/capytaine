@@ -17,7 +17,8 @@ from capytaine.symmetries import yOz_Plane, TranslationalSymmetry, AxialSymmetry
 #############
 
 def generate_sphere(radius=1.0, ntheta=10, nphi=10,
-                    z0=0.0, clip_free_surface=False, half=False):
+                    z0=0.0, clip_free_surface=False, half=False,
+                    name=None):
     """Generate the mesh of a sphere.
 
     Parameters
@@ -35,6 +36,8 @@ def generate_sphere(radius=1.0, ntheta=10, nphi=10,
         can be used with z0 to obtain any clipped sphere.
     half: bool
         if True, only mesh the part of the sphere where y > 0
+    name: string
+        a name identifying the sphere (default: "sphere_id" where id is an unique integer).
     """
 
     nphi = nphi//2
@@ -71,7 +74,9 @@ def generate_sphere(radius=1.0, ntheta=10, nphi=10,
     for k, (i, j) in enumerate(product(range(0, ntheta), range(0, nphi))):
         panels[k, :] = (j+i*(nphi+1), j+(i+1)*(nphi+1), j+1+(i+1)*(nphi+1), j+1+i*(nphi+1))
 
-    sphere = FloatingBody(nodes, panels, name=f"sphere_{next(FloatingBody._ids)}")
+    if name is None:
+        name = f"sphere_{next(FloatingBody._ids)}"
+    sphere = FloatingBody(nodes, panels, name=name)
     sphere.merge_duplicates()
     sphere.heal_triangles()
 
@@ -86,7 +91,7 @@ def generate_axi_symmetric_body(profile,
                                 z_range=np.linspace(-5, 0, 20),
                                 point_on_rotation_axis=np.zeros(3),
                                 nphi=20,
-                                ):
+                                name=None):
     """Return a floating body using the axial symmetry.
     The shape of the body can be defined either with a function defining the profile as [f(z), 0, z] for z in z_range.
     Alternatively, the profile can be defined as a list of points.
@@ -102,7 +107,12 @@ def generate_axi_symmetric_body(profile,
         a single point to define the rotation axis (the direction is always vertical)
     nphi: int
         number of vertical slices forming the body
+    name: string
+        a name identifying the body (default: "repeated_slice_id" where id is an unique integer).
     """
+    if name is None:
+        name = f"axi-symmetric_body_{next(FloatingBody._ids)}"
+
     if callable(profile):
         x_values = [profile(z) for z in z_range]
         profile_array = np.stack([x_values, np.zeros(len(z_range)), z_range]).T
@@ -114,20 +124,21 @@ def generate_axi_symmetric_body(profile,
     n = profile_array.shape[0]
     angle = 2 * np.pi / nphi
 
-    rotated_profile = FloatingBody(profile_array, np.zeros((0, 4)))
+    rotated_profile = FloatingBody(profile_array, np.zeros((0, 4)), name="rotated_profile")
     rotated_profile.rotate_z(angle)
 
     nodes_slice = np.concatenate([profile_array, rotated_profile.vertices])
     faces_slice = np.array([[i, i+n, i+n+1, i+1] for i in range(n-1)])
-    body_slice = FloatingBody(nodes_slice, faces_slice)
+    body_slice = FloatingBody(nodes_slice, faces_slice, name=f"slice_of_{name}")
     body_slice.merge_duplicates()
     body_slice.heal_triangles()
 
-    return AxialSymmetry(body_slice, point_on_rotation_axis=point_on_rotation_axis, nb_repetitions=nphi - 1)
+    return AxialSymmetry(body_slice, point_on_rotation_axis=point_on_rotation_axis, nb_repetitions=nphi-1, name=name)
 
 
 def generate_clever_sphere(radius=1.0, ntheta=10, nphi=10,
-                           z0=0.0, clip_free_surface=False):
+                           z0=0.0, clip_free_surface=False,
+                           name=None):
     """Generate the floating body of a sphere using its axial symmetry.
 
     Same arguments as `generate_sphere`."""
@@ -146,14 +157,19 @@ def generate_clever_sphere(radius=1.0, ntheta=10, nphi=10,
         x = radius * np.sin(t)
         z = z0 - radius * np.cos(t)
         circle_profile[i, :] = (x, 0, z)
-    return generate_axi_symmetric_body(circle_profile, point_on_rotation_axis=np.zeros(3), nphi=nphi)
+
+    if name is None:
+        name = f"sphere_{next(FloatingBody._ids)}"
+    return generate_axi_symmetric_body(circle_profile, point_on_rotation_axis=np.zeros(3), nphi=nphi, name=name)
+
 
 ##########
 #  Disk  #
 ##########
 
 def generate_disk(radius=1.0, nr=3, ntheta=5,
-                  z0=0.0, clip_free_surface=False):
+                  z0=0.0, clip_free_surface=False,
+                  name=None):
 
     if clip_free_surface:
         if z0 < -radius: # fully immersed
@@ -185,11 +201,14 @@ def generate_disk(radius=1.0, nr=3, ntheta=5,
             j+(i+1)*(ntheta+1)
         )
 
-    disk = FloatingBody(nodes, panels, name=f"disk_{next(FloatingBody._ids)}")
+    if name is None:
+        name = f"disk_{next(FloatingBody._ids)}"
+    disk = FloatingBody(nodes, panels, name=name)
     disk.merge_duplicates()
     disk.heal_triangles()
 
     return disk
+
 
 ###############
 #  Cylinders  #
@@ -197,7 +216,8 @@ def generate_disk(radius=1.0, nr=3, ntheta=5,
 
 def generate_open_horizontal_cylinder(length=10.0, radius=1.0,
                                       nx=10, ntheta=10,
-                                      z0=0.0, clip_free_surface=False):
+                                      z0=0.0, clip_free_surface=False,
+                                      name=None):
     """Generate the mesh of an horizontal cylinder.
 
     Parameters
@@ -250,23 +270,33 @@ def generate_open_horizontal_cylinder(length=10.0, radius=1.0,
             j+1+i*(nx+1)
         )
 
-    cylinder = FloatingBody(nodes, panels, name=f"cylinder_{next(FloatingBody._ids)}")
+    if name is None:
+        name = f"cylinder_{next(FloatingBody._ids)}"
+    cylinder = FloatingBody(nodes, panels, name=name)
     cylinder.merge_duplicates()
     cylinder.heal_triangles()
 
     return cylinder
 
-def generate_clever_horizontal_cylinder(length=10, nx=10, **kwargs):
-    """Open horizontal cylinder using the symmetry to speed up the computations"""
-    ring = generate_ring(length=length/nx, **kwargs)
-    return TranslationalSymmetry(ring, translation=np.asarray([length/nx, 0.0, 0.0]), nb_repetitions=nx-1)
 
 def generate_ring(**kwargs):
+    if 'name' not in kwargs:
+        kwargs['name'] = f"ring_{next(FloatingBody._ids)}"
     return generate_open_horizontal_cylinder(nx=1, **kwargs)
+
+
+def generate_clever_horizontal_cylinder(length=10, nx=10, name=None, **kwargs):
+    """Open horizontal cylinder using the symmetry to speed up the computations"""
+    if name is None:
+        name = f"horizontal_cylinder_{next(FloatingBody._ids)}"
+    ring = generate_ring(length=length/nx, name="slice_of_{name}", **kwargs)
+    return TranslationalSymmetry(ring, translation=np.asarray([length/nx, 0.0, 0.0]), nb_repetitions=nx-1, name=name)
+
 
 def generate_horizontal_cylinder(length=10.0, radius=1.0,
                                  nx=10, nr=2, ntheta=10,
-                                 z0=0.0, clip_free_surface=False):
+                                 z0=0.0, clip_free_surface=False,
+                                 name=None):
     """Generate the mesh of a closed horizontal cylinder.
 
     Parameters
@@ -287,36 +317,42 @@ def generate_horizontal_cylinder(length=10.0, radius=1.0,
         if True, only mesh the part of the cylinder where z < 0,
         can be used with z0 to obtain any clipped cylinder
     """
+
+    if name is None:
+        name = f"cylinder_{next(FloatingBody._ids)}"
+
     open_cylinder = generate_open_horizontal_cylinder(
         length=length, radius=radius,
         nx=nx, ntheta=ntheta,
         z0=z0, clip_free_surface=clip_free_surface,
+        name=f"body_of_{name}"
     )
 
     side = generate_disk(
         radius=radius,
         nr=nr, ntheta=ntheta,
         z0=z0, clip_free_surface=clip_free_surface,
+        name=f"side_of_{name}"
     )
 
-    other_side = side.copy()
+    other_side = side.copy(name=f"other_side_of_{name}")
     other_side.mirror(yOz_Plane)
     other_side.translate_x(length)
 
     cylinder = open_cylinder + side + other_side
 
-    cylinder = cylinder.as_FloatingBody()
-    cylinder.name = f"cylinder_{next(FloatingBody._ids)}"
+    cylinder = cylinder.as_FloatingBody(name=name)
     cylinder.merge_duplicates()
     cylinder.heal_triangles()
 
     return cylinder
 
+
 ################
 #  Rectangles  #
 ################
 
-def generate_one_sided_rectangle(height=5.0, width=5.0, nh=5, nw=5):
+def generate_one_sided_rectangle(height=5.0, width=5.0, nh=5, nw=5, name=None):
     """Generate the mesh of a rectangle.
 
     Normals are oriented in the positive y direction.
@@ -345,13 +381,19 @@ def generate_one_sided_rectangle(height=5.0, width=5.0, nh=5, nw=5):
     for k, (i, j) in enumerate(product(range(0, nw), range(0, nh))):
         panels[k, :] = (j+i*(nh+1), j+1+i*(nh+1), j+1+(i+1)*(nh+1), j+(i+1)*(nh+1))
 
-    return FloatingBody(nodes, panels, name=f"rectangle_{next(FloatingBody._ids)}")
+    if name is None:
+        name = f"rectangle_{next(FloatingBody._ids)}"
+    return FloatingBody(nodes, panels, name=name)
 
-def generate_clever_one_sided_rectangle(width=5.0, nw=5, **kwargs):
-    strip = generate_one_sided_rectangle(width=width/nw, nw=1, **kwargs)
-    return TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=nw-1)
 
-def generate_free_surface(width=100, length=100, nw=10, nl=10):
+def generate_clever_one_sided_rectangle(width=5.0, nw=5, name=None, **kwargs):
+    if name is None:
+        name = f"rectangle_{next(FloatingBody._ids)}"
+    strip = generate_one_sided_rectangle(width=width/nw, nw=1, name=f"strip_of_{name}", **kwargs)
+    return TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=nw-1, name=name)
+
+
+def generate_free_surface(width=100, length=100, nw=10, nl=10, name=None):
     """ """
     X = np.linspace(-width/2, width/2, nw+1)
     Y = np.linspace(-length/2, length/2, nl+1)
@@ -365,10 +407,14 @@ def generate_free_surface(width=100, length=100, nw=10, nl=10):
     for k, (i, j) in enumerate(product(range(0, nw), range(0, nl))):
         panels[k, :] = (j+i*(nl+1), j+1+i*(nl+1), j+1+(i+1)*(nl+1), j+(i+1)*(nl+1))
 
-    return FloatingBody(nodes, panels, name=f"free_surface_{next(FloatingBody._ids)}")
+    if name is None:
+        name = f"free_surface_{next(FloatingBody._ids)}"
+    return FloatingBody(nodes, panels, name=name)
+
 
 def generate_open_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0,
-                                             nh=5, nw=5, nth=1):
+                                             nh=5, nw=5, nth=1,
+                                             name=None):
     """Generate the mesh of four panels forming a parallelepiped without top nor bottom.
 
     Parameters
@@ -386,8 +432,12 @@ def generate_open_rectangular_parallelepiped(height=10.0, width=10.0, thickness=
     nth: int
         number of panels in the y direction
     """
-    front = generate_one_sided_rectangle(height=height, width=width, nh=nh, nw=nw)
-    back = front.copy()
+
+    if name is None:
+        name = f"open_parallelepiped_{next(FloatingBody._ids)}"
+
+    front = generate_one_sided_rectangle(height=height, width=width, nh=nh, nw=nw, name=f"front_of_{name}")
+    back = front.copy(name=f"back_of_{name}")
 
     front.translate_y(thickness/2)
     back.rotate_z(np.pi)
@@ -396,8 +446,8 @@ def generate_open_rectangular_parallelepiped(height=10.0, width=10.0, thickness=
     parallelepiped = front + back
 
     if nth > 0:
-        side = generate_one_sided_rectangle(height=height, width=thickness, nh=nh, nw=nth)
-        other_side = side.copy()
+        side = generate_one_sided_rectangle(height=height, width=thickness, nh=nh, nw=nth, name=f"side_of_{name}")
+        other_side = side.copy(name=f"other_side_of_{name}")
 
         side.rotate_z(np.pi/2)
         side.translate_x(-width/2)
@@ -406,19 +456,23 @@ def generate_open_rectangular_parallelepiped(height=10.0, width=10.0, thickness=
 
         parallelepiped = parallelepiped + side + other_side
 
-    parallelepiped = parallelepiped.as_FloatingBody()
-    parallelepiped.name = f"parallelepiped_{next(FloatingBody._ids)}"
+    parallelepiped = parallelepiped.as_FloatingBody(name=name)
     parallelepiped.merge_duplicates()
     parallelepiped.heal_triangles()
 
     return parallelepiped
 
-def generate_clever_open_rectangular_parallelepiped(width=5.0, nw=5, **kwargs):
-    strip = generate_open_rectangular_parallelepiped(width=width/nw, nw=1, nth=0, **kwargs)
-    return TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=nw-1)
 
-def generate_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0, nh=5, nw=5, nth=1):
+def generate_clever_open_rectangular_parallelepiped(width=5.0, nw=5, name=None, **kwargs):
+    if name is None:
+        name = f"open_parallelepiped_{next(FloatingBody._ids)}"
+    strip = generate_open_rectangular_parallelepiped(width=width/nw, nw=1, nth=0, name=f"strip_of_{name}", **kwargs)
+    return TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=nw-1, name=name)
+
+
+def generate_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0, nh=5, nw=5, nth=1, name=None):
     """Generate the mesh of six rectangles forming a complete rectangular parallelepiped.
+
     Parameters
     ----------
     height: float
@@ -436,14 +490,20 @@ def generate_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0, 
     z0: float
         depth of the bottom of the object
     """
+
+    if name is None:
+        name = f"parallelepiped_{next(FloatingBody._ids)}"
+
     sides = generate_open_rectangular_parallelepiped(
         height=height, width=width, thickness=thickness,
-        nh=nh, nw=nw, nth=nth)
+        nh=nh, nw=nw, nth=nth,
+        name=f"sides_of_{name}")
 
     top = generate_one_sided_rectangle(
         height=thickness, width=width,
-        nh=nth, nw=nw)
-    bottom = top.copy()
+        nh=nth, nw=nw,
+        name=f"top_of_{name}")
+    bottom = top.copy(name=f"bottom_of_{name}")
 
     top.rotate_x(np.pi/2)
     top.translate_y(thickness/2)
@@ -452,23 +512,30 @@ def generate_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0, 
     bottom.translate_y(-thickness/2)
 
     parallelepiped = sides + top + bottom
-    parallelepiped = parallelepiped.as_FloatingBody()
-    parallelepiped.name = f"parallelepiped_{next(FloatingBody._ids)}"
+    parallelepiped = parallelepiped.as_FloatingBody(name=name)
     parallelepiped.merge_duplicates()
     parallelepiped.heal_triangles()
 
     return parallelepiped
 
-def generate_horizontal_open_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0, nh=5, nw=5, nth=1):
+
+def generate_horizontal_open_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0,
+                                                        nh=5, nw=5, nth=1,
+                                                        **kwargs):
     orp = generate_open_rectangular_parallelepiped(
         height=width, width=height, thickness=thickness,
-        nh=nw, nw=nh, nth=nth)
+        nh=nw, nw=nh, nth=nth,
+        **kwargs)
     orp.rotate_y(-np.pi/2)
     return orp
 
-def generate_clever_horizontal_open_rectangular_parallelepiped(width=10.0, nw=5, **kwargs):
-    strip = generate_horizontal_open_rectangular_parallelepiped(width=width/nw, nw=1, **kwargs)
-    return TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=nw-1)
+
+def generate_clever_horizontal_open_rectangular_parallelepiped(width=10.0, nw=5, name=None, **kwargs):
+    if name is None:
+        name = f"open_parallelepiped_{next(FloatingBody._ids)}"
+    strip = generate_horizontal_open_rectangular_parallelepiped(width=width/nw, nw=1, name=f"strip_of_{name}", **kwargs)
+    return TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=nw-1, name=name)
+
 
 ###########
 #  Other  #

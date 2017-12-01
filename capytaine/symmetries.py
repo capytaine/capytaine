@@ -30,7 +30,7 @@ xOy_Plane = Plane(normal=(0.0, 0.0, 1.0), scalar=0.0)
 class ReflectionSymmetry(_SymmetricBody):
     """A body composed of two symmetrical halves."""
 
-    def __init__(self, half, plane):
+    def __init__(self, half, plane, name=None):
         """Initialize the body.
 
         Parameters
@@ -51,8 +51,11 @@ class ReflectionSymmetry(_SymmetricBody):
 
         CollectionOfFloatingBodies.__init__(self, [half, other_half])
 
-        self.name = "mirrored_" + half.name
-        LOG.info(f"New mirror symmetry: {self.name}.")
+        if name is None:
+            self.name = f"ReflectionSymmetry({half.name})"
+        else:
+            self.name = name
+        LOG.info(f"New mirror symmetric body: {self.name}.")
 
         self.dofs = {}
         for name, dof in half.dofs.items():
@@ -76,7 +79,7 @@ class ReflectionSymmetry(_SymmetricBody):
 class TranslationalSymmetry(_SymmetricBody):
     """A body composed of a pattern repeated and translated."""
 
-    def __init__(self, body_slice, translation, nb_repetitions=1):
+    def __init__(self, body_slice, translation, nb_repetitions=1, name=None):
         """Initialize the body.
 
         Parameters
@@ -98,16 +101,18 @@ class TranslationalSymmetry(_SymmetricBody):
         body_slice.nb_matrices_to_keep *= nb_repetitions+1
         slices = [body_slice]
         for i in range(1, nb_repetitions+1):
-            new_slice = body_slice.copy()
+            new_slice = body_slice.copy(name=f"repetition_{i}_of_{body_slice.name}")
             new_slice.translate(i*translation)
             new_slice.nb_matrices_to_keep *= nb_repetitions+1
-            new_slice.name = f"repetition_{i}_of_{body_slice.name}"
             slices.append(new_slice)
 
         CollectionOfFloatingBodies.__init__(self, slices)
 
-        self.name = "repeated_" + body_slice.name
-        LOG.info(f"New translation symmetry: {self.name}.")
+        if name is None:
+            self.name = f"TranslationSymmetry({body_slice.name})"
+        else:
+            self.name = name
+        LOG.info(f"New translation symmetric body: {self.name}.")
 
         self.dofs = {}
         for name, dof in body_slice.dofs.items():
@@ -142,7 +147,7 @@ class TranslationalSymmetry(_SymmetricBody):
 class AxialSymmetry(_SymmetricBody):
     """A body composed of a pattern rotated around a vertical axis."""
 
-    def __init__(self, body_slice, point_on_rotation_axis=np.zeros(3), nb_repetitions=1):
+    def __init__(self, body_slice, point_on_rotation_axis=np.zeros(3), nb_repetitions=1, name=None):
         """Initialize the body.
 
         Parameters
@@ -164,18 +169,20 @@ class AxialSymmetry(_SymmetricBody):
         body_slice.nb_matrices_to_keep *= nb_repetitions+1
         slices = [body_slice]
         for i in range(1, nb_repetitions+1):
-            new_slice = body_slice.copy()
+            new_slice = body_slice.copy(name=f"rotation_{i}_of_{body_slice.name}")
             new_slice.translate(-point_on_rotation_axis)
             new_slice.rotate_z(2*i*np.pi/(nb_repetitions+1))
             new_slice.translate(point_on_rotation_axis)
             new_slice.nb_matrices_to_keep *= nb_repetitions+1
-            new_slice.name = f"rotation_{i}_of_{body_slice.name}"
             slices.append(new_slice)
 
         CollectionOfFloatingBodies.__init__(self, slices)
 
-        self.name = "rotated_" + body_slice.name
-        LOG.info(f"New rotation symmetry: {self.name}.")
+        if name is None:
+            self.name = f"AxialSymmetry({body_slice.name})"
+        else:
+            self.name = name
+        LOG.info(f"New rotation symmetric body: {self.name}.")
 
         self.dofs = {}
         for name, dof in body_slice.dofs.items():

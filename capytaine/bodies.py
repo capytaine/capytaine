@@ -6,6 +6,7 @@ class FloatingBody
 """
 
 import logging
+import copy
 
 import numpy as np
 
@@ -52,8 +53,21 @@ class FloatingBody(Mesh):
         from capytaine.bodies_collection import CollectionOfFloatingBodies
         return CollectionOfFloatingBodies([self, body_to_add])
 
-    def as_FloatingBody(self):
+    def as_FloatingBody(self, name=None):
+        if name is not None:
+            LOG.debug(f"Rename {self.name} as {name}.")
+            self.name = name
         return self
+
+    def copy(self, name=None):
+        new_body = copy.deepcopy(self)
+        if name is None:
+            new_body.name = f"copy_of_{self.name}"
+            LOG.debug(f"Copy {self.name}.")
+        else:
+            new_body.name = name
+            LOG.debug(f"Copy {self.name} under the name {name}.")
+        return new_body
 
     def extract_faces(self, id_faces_to_extract, return_index=False):
         """Create a new FloatingBody by extracting some faces from the mesh."""

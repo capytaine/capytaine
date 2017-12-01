@@ -24,7 +24,7 @@ def test_collection():
     coll = body_1 + body_2
     assert isinstance(coll, CollectionOfFloatingBodies)
     assert isinstance(coll.as_FloatingBody(), FloatingBody)
-    assert coll.name == 'union_of_body_1_and_body_2'
+    assert coll.name == 'CollectionOfFloatingBodies([body_1, body_2])'
 
     assert np.all(coll.faces_areas[coll.indices_of_body(0)] == body_1.faces_areas)
     assert np.all(coll.faces_areas[coll.indices_of_body(1)] == body_2.faces_areas)
@@ -41,7 +41,7 @@ def test_collection():
     body_3.name = 'body_3'
     coll = body_1 + body_2 + body_3
     assert isinstance(coll, CollectionOfFloatingBodies)
-    assert coll.name == 'union_of_body_1_body_2_and_body_3'
+    assert coll.name == 'CollectionOfFloatingBodies([body_1, body_2, body_3])'
     assert body_1 in coll.subbodies
     assert body_2 in coll.subbodies
     assert body_3 in coll.subbodies

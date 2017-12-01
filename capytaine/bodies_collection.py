@@ -13,6 +13,8 @@ from capytaine.bodies import FloatingBody
 
 LOG = logging.getLogger(__name__)
 
+NAME_MAX_LENGTH = 180
+
 
 class CollectionOfFloatingBodies(FloatingBody):
     """A body composed of several floating bodies."""
@@ -29,12 +31,12 @@ class CollectionOfFloatingBodies(FloatingBody):
 
         self.subbodies = bodies
 
-        # Name of the body collection.
-        self.name = "union_of_{name_list}_and_{last_body_name}".format(
-                name_list='_'.join((body.name for body in bodies[:-1])),
-                last_body_name=bodies[-1].name
-                )
-        LOG.info(f"New body: {self.name}.")
+        names_of_subbodies = ', '.join(body.name for body in self.subbodies)
+        if len(names_of_subbodies) > NAME_MAX_LENGTH:
+            names_of_subbodies = names_of_subbodies[:NAME_MAX_LENGTH-3] + "..."
+        self.name = f"CollectionOfFloatingBodies([{names_of_subbodies}])"
+
+        LOG.debug(f"New collection of bodies: {self.name}.")
 
         # Combine the degrees of freedom of the subbodies.
         self.dofs = {}
@@ -48,17 +50,25 @@ class CollectionOfFloatingBodies(FloatingBody):
                         np.zeros(total_nb_faces - len(dof) - nbf),
                         ]
 
-    def as_FloatingBody(self):
+    def as_FloatingBody(self, name=None):
         """Merge the mesh of the bodies of the collection into one mesh."""
-        new_body = self.subbodies[0].as_FloatingBody().copy()
+
+        if name is None:
+            name = f"union_of_{'_and_'.join((body.name for body in self.subbodies))}"
+            if len(name) > NAME_MAX_LENGTH:
+                name = name[:NAME_MAX_LENGTH-3] + "..."
+
+        new_body = self.subbodies[0].as_FloatingBody().copy(name=name)
         for body in self.subbodies[1:]:
             new_body = Mesh.__add__(new_body, body.as_FloatingBody())
+            LOG.debug(f"Add mesh of {body.name} to {name}.")
+        new_body.name = name
         new_body.merge_duplicates()
         new_body.heal_triangles()
         new_body.__class__ = FloatingBody
-        new_body.name = self.name
         new_body.dofs = self.dofs
         new_body.nb_matrices_to_keep = 1
+        LOG.info(f"Merged collection of bodies {self.name} into floating body {new_body.name}.")
         return new_body
 
     def __add__(self, body_to_add):
