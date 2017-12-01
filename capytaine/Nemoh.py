@@ -72,7 +72,7 @@ class Nemoh:
                     added_masses.append(complex_coef.real)
                     added_dampings.append(problem.omega * complex_coef.imag)
 
-            LOG.info("Done solving %s.", problem)
+            LOG.info("Problem solved!")
 
             return np.array(added_masses).reshape((problem.body.nb_dofs, problem.body.nb_dofs)), \
                    np.array(added_dampings).reshape((problem.body.nb_dofs, problem.body.nb_dofs))
@@ -94,15 +94,27 @@ class Nemoh:
                     potential @ (influenced_dof * problem.body.faces_areas)
                 forces.append(force)
 
-            LOG.info("Done solving %s.", problem)
+            LOG.info("Problem solved!")
 
             return np.array(forces)
 
-    def get_free_surface(self, problem, free_surface, dof=None):
+    def solve_all(self, problems, processes=1):
+        from multiprocessing import Pool
+        pool = Pool(processes=processes)
+        return pool.map(self.solve, problems)
 
-        LOG.info(f"Compute free surface elevation on {free_surface.name} for {problem}.")
+    def get_potential_on_mesh(self, problem, mesh, dof=None):
+        LOG.info(f"Compute potential on {mesh.name} for {problem}.")
 
-        S, _ = free_surface.build_matrices(
+        if len(problem.sources) == 0:
+            if not problem.keep_details:
+                raise Exception(f"""The detail of the sources of {problem} are not stored by the solver 
+                so they can't be used for later computation of the potential. 
+                Please run the solver with keep_details=True.""")
+            else:
+                raise Exception(f"{problem} need to be solved with Nemoh.solve before computing potential anywhere.")
+
+        S, _ = mesh.build_matrices(
             problem.body,
             free_surface=problem.free_surface,
             sea_bottom=problem.sea_bottom,
@@ -117,11 +129,10 @@ class Nemoh:
         elif isinstance(problem, DiffractionProblem):
             phi = S @ problem.sources
 
-        LOG.info(f"Done computing free surface elevation on {free_surface.name} for {problem}.")
+        LOG.info(f"Done computing potential on {mesh.name} for {problem}.")
 
-        return 1j*problem.omega/problem.g * phi
+        return phi
 
-    def solve_all(self, problems, processes=1):
-        from multiprocessing import Pool
-        pool = Pool(processes=processes)
-        return pool.map(self.solve, problems)
+    def get_free_surface(self, problem, free_surface, dof=None):
+        return 1j*problem.omega/problem.g * self.get_potential_on_mesh(problem, free_surface, dof=dof)
+

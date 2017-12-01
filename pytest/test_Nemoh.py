@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 """
-Tests for the computation of the Green function and the resolution of the BEM problem.
+Compare results of Capytaine with results from Nemoh 2.0.
 """
 
 import numpy as np
