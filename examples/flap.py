@@ -36,12 +36,12 @@ def solve_flap(clever=True, resolution=2):
         # Use prismatic shape to speed up computations.
         flap = generate_clever_open_rectangular_parallelepiped(
             height=depth, width=3.0, thickness=0.001,
-            nh=int(3*resolution), nw=int(10*resolution))
+            nh=int(10*resolution), nw=int(3*resolution))
     else:
         # Do not use prismatic shape to speed up computations.
         flap = generate_open_rectangular_parallelepiped(
             height=depth, width=3.0, thickness=0.001,
-            nh=int(3*resolution), nw=int(10*resolution))
+            nh=int(10*resolution), nw=int(3*resolution))
 
     flap.translate_z(-depth)
 
@@ -98,12 +98,14 @@ def plot_flap_results():
 
     plt.figure(1)
     plt.xlabel("Wave period (s)")
+    plt.legend()
+    plt.tight_layout()
 
     plt.figure(2)
     plt.xlabel("Wave period (s)")
-
     plt.legend()
     plt.tight_layout()
+
     plt.show()
 
 
@@ -114,7 +116,7 @@ if __name__ == "__main__":
     LOG = logging.getLogger(__name__)
 
     start_time = datetime.now()
-    solve_flap(resolution=4, clever=True)
+    solve_flap(resolution=2, clever=True)
     end_time = datetime.now()
     LOG.info(f"Duration: {end_time - start_time}")
 
