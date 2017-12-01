@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 """
-Exemple computation: added mass and damping of an oscillating flap.
+Example computation: added mass and damping of an oscillating flap.
 """
 
 import os
@@ -11,13 +11,15 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from capytaine.reference_bodies import generate_open_rectangular_parallelepiped, generate_clever_open_rectangular_parallelepiped
+from capytaine.reference_bodies import (generate_open_rectangular_parallelepiped,
+                                        generate_clever_open_rectangular_parallelepiped)
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import Nemoh
 
 result_directory = os.path.join(os.path.dirname(__file__), "flap_results")
 
-def solve_flap(resolution=2):
+
+def solve_flap(clever=True, resolution=2):
     """Solve the flap problem for a given resolution.
 
     Parameters:
@@ -30,12 +32,17 @@ def solve_flap(resolution=2):
     depth = 10.9
 
     # Create mesh
-    # flap = generate_open_rectangular_parallelepiped(
-    #     height=depth, width=3.0, thickness=0.001,
-    #     nh=int(3*resolution), nw=int(10*resolution))
-    flap = generate_clever_open_rectangular_parallelepiped(
-        height=depth, width=3.0, thickness=0.001,
-        nh=int(3*resolution), nw=int(10*resolution))
+    if clever:
+        # Use prismatic shape to speed up computations.
+        flap = generate_clever_open_rectangular_parallelepiped(
+            height=depth, width=3.0, thickness=0.001,
+            nh=int(3*resolution), nw=int(10*resolution))
+    else:
+        # Do not use prismatic shape to speed up computations.
+        flap = generate_open_rectangular_parallelepiped(
+            height=depth, width=3.0, thickness=0.001,
+            nh=int(3*resolution), nw=int(10*resolution))
+
     flap.translate_z(-depth)
 
     # Set oscillation degree of freedom
@@ -56,10 +63,12 @@ def solve_flap(resolution=2):
         os.mkdir(result_directory)
 
     # Save result in csv file
-    np.savetxt(
-        os.path.join(os.path.dirname(__file__), "flap_results", f"Results_{30*resolution**2}_cells.csv"),
-        np.asarray(results),
-    )
+    result_file_path = os.path.join(os.path.dirname(__file__), "flap_results",
+                                    f"Results_{'clever_' if clever else ''}{30*resolution**2}_cells.csv")
+    if os.path.exists(result_file_path):
+        LOG.warning(f"Overwriting {result_file_path}")
+
+    np.savetxt(result_file_path, np.asarray(results))
 
 
 def plot_flap_results():
@@ -87,23 +96,26 @@ def plot_flap_results():
         plt.figure(2)
         plt.plot(T_range, nu, label=f"Added damping ({nb_cells} cells)")
 
+    plt.figure(1)
+    plt.xlabel("Wave period (s)")
+
+    plt.figure(2)
+    plt.xlabel("Wave period (s)")
+
     plt.legend()
     plt.tight_layout()
     plt.show()
 
+
 if __name__ == "__main__":
-    import datetime
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s:\t%(message)s")
+    from datetime import datetime
+
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s:\t%(message)s", datefmt="%H:%M:%S")
     LOG = logging.getLogger(__name__)
 
-    start_time = datetime.datetime.now()
-    LOG.info(f"Start computation: {start_time.time()}")
-
-    solve_flap(resolution=12)
-
-    end_time = datetime.datetime.now()
-    LOG.info(f"End of the computation: {end_time.time()}")
+    start_time = datetime.now()
+    solve_flap(resolution=4, clever=True)
+    end_time = datetime.now()
     LOG.info(f"Duration: {end_time - start_time}")
 
     plot_flap_results()
-
