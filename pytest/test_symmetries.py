@@ -107,6 +107,6 @@ def test_horizontal_cylinder(depth):
     problem = RadiationProblem(body=sym_cylinder, omega=1.0, sea_bottom=-depth)
     mass2, damping2 = Nemoh().solve(problem)
 
-    assert np.isclose(mass1,    mass2,    atol=1e-4*cylinder.volume*problem.rho)
-    assert np.isclose(damping1, damping2, atol=1e-4*cylinder.volume*problem.rho)
-
+    cylinder_volume = 10*1.0*2*np.pi
+    assert np.isclose(mass1,    mass2,    atol=1e-4*cylinder_volume*problem.rho)
+    assert np.isclose(damping1, damping2, atol=1e-4*cylinder_volume*problem.rho)

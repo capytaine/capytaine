@@ -316,41 +316,42 @@ CONTAINS
     COMPLEX               :: SP2
     COMPLEX, DIMENSION(3) :: VSP2
 
-    IF (SAME_BODY) THEN
-
-      DO I = 1, nb_faces_1
-        DO J = I, nb_faces_2
-
-          IF (depth == 0.0) THEN
-            CALL VNSINFD                    &
-              (wavenumber,                  &
-              centers_1(I, :),              &
-              centers_2(J, :),              &
-              SP2, VSP2                     &
-              )
-          ELSE
-            CALL VNSFD                      &
-              (wavenumber,                  &
-              centers_1(I, :),              &
-              centers_2(J, :),              &
-              depth,                        &
-              SP2, VSP2                     &
-              )
-          END IF
-
-          S(I, J) = SP2*areas_2(J)                                ! Green function
-          V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2)*areas_2(J) ! Gradient of the Green function
-
-          IF (.NOT. I==J) THEN
-            VSP2(1:2) = -VSP2(1:2)
-            S(J, I) = SP2*areas_2(I)
-            V(J, I) = DOT_PRODUCT(normals_1(J, :), VSP2)*areas_2(I)
-          END IF
-
-        END DO
-      END DO
-
-    ELSE
+!    IF (SAME_BODY) THEN
+!      ! Use the symmetry of SP2 and VSP2
+!
+!      DO I = 1, nb_faces_1
+!        DO J = I, nb_faces_2
+!
+!          IF (depth == 0.0) THEN
+!            CALL VNSINFD                    &
+!              (wavenumber,                  &
+!              centers_1(I, :),              &
+!              centers_2(J, :),              &
+!              SP2, VSP2                     &
+!              )
+!          ELSE
+!            CALL VNSFD                      &
+!              (wavenumber,                  &
+!              centers_1(I, :),              &
+!              centers_2(J, :),              &
+!              depth,                        &
+!              SP2, VSP2                     &
+!              )
+!          END IF
+!
+!          S(I, J) = SP2*areas_2(J)                                ! Green function
+!          V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2)*areas_2(J) ! Gradient of the Green function
+!
+!          IF (.NOT. I==J) THEN
+!            VSP2(1:3) = -VSP2(1:3)
+!            S(J, I) = SP2*areas_2(I)
+!            V(J, I) = DOT_PRODUCT(normals_1(J, :), VSP2)*areas_2(I)
+!          END IF
+!
+!        END DO
+!      END DO
+!
+!    ELSE
 
       DO I = 1, nb_faces_1
         DO J = 1, nb_faces_2
@@ -374,9 +375,10 @@ CONTAINS
 
           S(I, J) = SP2*areas_2(J)                                ! Green function
           V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2)*areas_2(J) ! Gradient of the Green function
+
         END DO
       END DO
-    END IF
+!    END IF
 
   END SUBROUTINE
 
