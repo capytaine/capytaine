@@ -9,7 +9,7 @@ from itertools import product
 import numpy as np
 
 from capytaine.bodies import FloatingBody
-from capytaine.symmetries import yOz_Plane, TranslationalSymmetry, AxialSymmetry
+from capytaine.symmetries import xOz_Plane, yOz_Plane, ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
 
 
 #############
@@ -217,6 +217,7 @@ def generate_disk(radius=1.0, nr=3, ntheta=5,
 def generate_open_horizontal_cylinder(length=10.0, radius=1.0,
                                       nx=10, ntheta=10,
                                       z0=0.0, clip_free_surface=False,
+                                      half=False,
                                       name=None):
     """Generate the mesh of an horizontal cylinder.
 
@@ -235,6 +236,8 @@ def generate_open_horizontal_cylinder(length=10.0, radius=1.0,
     clip_free_surface: bool
         if True, only mesh the part of the cylinder where z < 0,
         can be used with z0 to obtain any clipped cylinder
+    half: bool
+        if True, only mesh the part of the cylinder where y > 0
     """
 
     if clip_free_surface:
@@ -247,7 +250,10 @@ def generate_open_horizontal_cylinder(length=10.0, radius=1.0,
     else:
         theta_max = np.pi
 
-    theta = np.linspace(-theta_max, theta_max, ntheta+1)
+    if half:
+        theta = np.linspace(0.0, theta_max, ntheta+1)
+    else:
+        theta = np.linspace(-theta_max, theta_max, ntheta+1)
     X = np.linspace(0.0, length, nx+1)
 
     # Nodes
@@ -285,11 +291,12 @@ def generate_ring(**kwargs):
     return generate_open_horizontal_cylinder(nx=1, **kwargs)
 
 
-def generate_clever_horizontal_cylinder(length=10, nx=10, name=None, **kwargs):
+def generate_clever_horizontal_cylinder(length=10, nx=10, name=None, ntheta=10, **kwargs):
     """Open horizontal cylinder using the symmetry to speed up the computations"""
     if name is None:
         name = f"horizontal_cylinder_{next(FloatingBody._ids)}"
-    ring = generate_ring(length=length/nx, name="slice_of_{name}", **kwargs)
+    half_ring = generate_ring(length=length/nx, name="half_slice_of_{name}", half=True, ntheta=ntheta//2, **kwargs)
+    ring = ReflectionSymmetry(half_ring, plane=xOz_Plane)
     return TranslationalSymmetry(ring, translation=np.asarray([length/nx, 0.0, 0.0]), nb_repetitions=nx-1, name=name)
 
 
