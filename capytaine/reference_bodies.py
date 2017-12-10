@@ -295,7 +295,7 @@ def generate_clever_horizontal_cylinder(length=10, nx=10, name=None, ntheta=10, 
     """Open horizontal cylinder using the symmetry to speed up the computations"""
     if name is None:
         name = f"horizontal_cylinder_{next(FloatingBody._ids)}"
-    half_ring = generate_ring(length=length/nx, name="half_slice_of_{name}", half=True, ntheta=ntheta//2, **kwargs)
+    half_ring = generate_ring(length=length/nx, name=f"half_slice_of_{name}", half=True, ntheta=ntheta//2, **kwargs)
     ring = ReflectionSymmetry(half_ring, plane=xOz_Plane)
     return TranslationalSymmetry(ring, translation=np.asarray([length/nx, 0.0, 0.0]), nb_repetitions=nx-1, name=name)
 
