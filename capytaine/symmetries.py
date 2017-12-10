@@ -45,6 +45,8 @@ class ReflectionSymmetry(_SymmetricBody):
 
         half.nb_matrices_to_keep *= 2
 
+        self.plane = plane
+
         other_half = half.copy()
         other_half.mirror(plane)
         other_half.name = "mirror_of_" + half.name
@@ -63,12 +65,15 @@ class ReflectionSymmetry(_SymmetricBody):
 
     def build_matrices(self, other_body, force_full_computation=False, **kwargs):
         """Return the influence matrices of self on other_body."""
-        if other_body == self and not force_full_computation:
+        if isinstance(other_body, ReflectionSymmetry) and other_body.plane == self.plane and not force_full_computation:
             # Use symmetry to speed up the evaluation of the matrix
-            LOG.debug(f"Evaluating matrix of {self.name} on itself using mirror symmetry.")
+            if other_body == self:
+                LOG.debug(f"Evaluating matrix of {self.name} on itself using mirror symmetry.")
+            else:
+                LOG.debug(f"Evaluating matrix of {self.name} on {other_body.name} itself using mirror symmetry.")
 
-            S_a, V_a = self.subbodies[0].build_matrices(self.subbodies[0], **kwargs)
-            S_b, V_b = self.subbodies[0].build_matrices(self.subbodies[1], **kwargs)
+            S_a, V_a = self.subbodies[0].build_matrices(other_body.subbodies[0], **kwargs)
+            S_b, V_b = self.subbodies[0].build_matrices(other_body.subbodies[1], **kwargs)
 
             return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
 
@@ -97,6 +102,8 @@ class TranslationalSymmetry(_SymmetricBody):
 
         translation = np.asarray(translation)
         assert translation.shape == (3,)
+
+        self.translation = translation
 
         body_slice.nb_matrices_to_keep *= nb_repetitions+1
         slices = [body_slice]
@@ -129,12 +136,18 @@ class TranslationalSymmetry(_SymmetricBody):
             if True, do not use the symmetry (for debugging).
         """
 
-        if other_body == self and not force_full_computation:
+        if (isinstance(other_body, TranslationalSymmetry)
+                and np.isclose(other_body.translation @ self.translation, 1.0)
+                and other_body.nb_subbodies == self.nb_subbodies
+                and not force_full_computation):
             # Use symmetry to speed up the evaluation of the matrix
-            LOG.debug(f"Evaluating matrix of {self.name} on itself using translation symmetry.")
+            if other_body == self:
+                LOG.debug(f"Evaluating matrix of {self.name} on itself using translation symmetry.")
+            else:
+                LOG.debug(f"Evaluating matrix of {self.name} on {other_body.name} itself using translation symmetry.")
 
             S_list, V_list = [], []
-            for body in self.subbodies:
+            for body in other_body.subbodies:
                 S, V = self.subbodies[0].build_matrices(body, **kwargs)
                 S_list.append(S)
                 V_list.append(V)
