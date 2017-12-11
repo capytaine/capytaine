@@ -32,15 +32,17 @@ def compare_all_total_times(directory):
 #######################################################################
 def plot_detailed_time(directory):
     dirs = glob.glob(os.path.join(directory, '*capy*'))
+
+    # Initialization
     detailed_time = pd.DataFrame(
         index=dirs,
-        columns=['type', 'nb_cells', 'evaluate matrices', 'solve linear problem', 'total'],
+        columns=['solver', 'nb_cells', 'evaluate matrices', 'solve linear problem', 'total'],
     )
 
     for result_dir in dirs:
 
         detailed_time['nb_cells'][result_dir] = int(result_dir.split('_')[-1])
-        detailed_time['type'][result_dir] = '_'.join(result_dir.split('_')[2:-1])
+        detailed_time['solver'][result_dir] = '_'.join(result_dir.split('_')[2:-1])
 
         with open(os.path.join(result_dir, 'profile.log'), 'r') as profile_file:
             for entry in profile_file.readlines():
@@ -53,17 +55,19 @@ def plot_detailed_time(directory):
 
     detailed_time['other'] = detailed_time['total'] - detailed_time['evaluate matrices'] - detailed_time['solve linear problem']
     detailed_time = detailed_time.sort_values(by='nb_cells')
-    detailed_time = detailed_time.groupby(['type', 'nb_cells']).aggregate(np.min)
+    detailed_time = detailed_time.groupby(['solver', 'nb_cells']).aggregate(np.min)
 
-    for test_type in detailed_time.index.levels[0]:
-        ax = detailed_time.T[test_type].T.plot.area(y=['solve linear problem', 'evaluate matrices', 'other'])
+    for solver in detailed_time.index.levels[0]:
+        ax = detailed_time.T[solver].T.plot.area(y=['solve linear problem', 'evaluate matrices', 'other'])
         ax.set(
-            ylim=(0.0, 80.0),
+            # ylim=(0.0, 80.0),
+            ylim=(0.0, 2.5),
             xlabel='number of cells in mesh',
             ylabel='computation time (seconds)',
         )
-        plt.tight_layout()
+        plt.title(solver)
         plt.grid(zorder=3)
+        plt.tight_layout()
 
 
 #######################################################################
@@ -99,7 +103,7 @@ def compare_results(directory):
 if __name__ == "__main__":
     plot_detailed_time(sys.argv[1])
     compare_all_total_times(sys.argv[1])
-    compare_results(sys.argv[1])
+    # compare_results(sys.argv[1])
 
     # plot_detailed_time("2017-11-06_153544/")
     # compare_all_total_times("2017-11-06_153544/")
