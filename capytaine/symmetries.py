@@ -137,7 +137,7 @@ class TranslationalSymmetry(_SymmetricBody):
         """
 
         if (isinstance(other_body, TranslationalSymmetry)
-                and np.isclose(other_body.translation @ self.translation, 1.0)
+                and np.allclose(other_body.translation, self.translation)
                 and other_body.nb_subbodies == self.nb_subbodies
                 and not force_full_computation):
             # Use symmetry to speed up the evaluation of the matrix
