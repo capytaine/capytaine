@@ -9,7 +9,9 @@ import logging
 import numpy as np
 
 from capytaine.problems import RadiationProblem, DiffractionProblem
-from capytaine.Toeplitz_matrices import BlockToeplitzMatrix, block_Toeplitz_identity, solve
+from capytaine.Toeplitz_matrices import (BlockCirculantMatrix, block_circulant_identity,
+                                         BlockToeplitzMatrix, block_Toeplitz_identity,
+                                         solve)
 import capytaine._Green as _Green
 
 
@@ -51,7 +53,9 @@ class Nemoh:
             problem.S = S
             problem.V = V
 
-        if isinstance(S, BlockToeplitzMatrix):
+        if isinstance(S, BlockCirculantMatrix):
+            identity = block_circulant_identity(V.nb_blocks, V.block_size, dtype=np.float32)
+        elif isinstance(S, BlockToeplitzMatrix):
             identity = block_Toeplitz_identity(V.nb_blocks, V.block_size, dtype=np.float32)
         else:
             identity = np.identity(V.shape[0], dtype=np.float32)
