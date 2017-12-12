@@ -6,6 +6,7 @@ import os
 import glob
 
 import numpy as np
+from scipy.stats import linregress
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -13,9 +14,9 @@ import matplotlib.pyplot as plt
 #                              Plot time                              #
 #######################################################################
 def compare_all_total_times(directory):
-    times = pd.DataFrame.from_csv(os.path.join(directory, 'times.csv'))
+    times = pd.read_csv(os.path.join(directory, 'times.csv'), index_col=0)
 
-    # print(times.groupby('nb_cells').aggregate(np.std))
+    # print(times)
 
     times = times.groupby('nb_cells').aggregate(np.min)
     ax = times.plot()
@@ -33,39 +34,64 @@ def compare_all_total_times(directory):
 def plot_detailed_time(directory):
     dirs = glob.glob(os.path.join(directory, '*capy*'))
 
-    # Initialization
+    # Initialization.
     detailed_time = pd.DataFrame(
         index=dirs,
-        columns=['solver', 'nb_cells', 'evaluate matrices', 'solve linear problem', 'total'],
+        columns=['method', 'nb_cells', 'evaluate matrices', 'solve linear problem', 'total', 'other'],
     )
 
     for result_dir in dirs:
 
+        # Get the number of cells and the method from the directory name.
         detailed_time['nb_cells'][result_dir] = int(result_dir.split('_')[-1])
-        detailed_time['solver'][result_dir] = '_'.join(result_dir.split('_')[2:-1])
+        detailed_time['method'][result_dir] = '_'.join(result_dir.split('_')[2:-1])
 
+        # Read profile log.
         with open(os.path.join(result_dir, 'profile.log'), 'r') as profile_file:
             for entry in profile_file.readlines():
                 if '(build_matrices)' in entry:
                     detailed_time['evaluate matrices'][result_dir] = float(entry.split()[3])
-                elif '(solve)' in entry and 'numpy/linalg' in entry:
+                elif '(solve)' in entry and 'Toeplitz_matrices' in entry:
                     detailed_time['solve linear problem'][result_dir] = float(entry.split()[3])
-                elif '(solve)' in entry and 'Nemoh.py' in entry:
+                elif 'benchmark.py:35' in entry:
                     detailed_time['total'][result_dir] = float(entry.split()[3])
 
-    detailed_time['other'] = detailed_time['total'] - detailed_time['evaluate matrices'] - detailed_time['solve linear problem']
-    detailed_time = detailed_time.sort_values(by='nb_cells')
-    detailed_time = detailed_time.groupby(['solver', 'nb_cells']).aggregate(np.min)
 
-    for solver in detailed_time.index.levels[0]:
-        ax = detailed_time.T[solver].T.plot.area(y=['solve linear problem', 'evaluate matrices', 'other'])
+    # Deduce other computation time.
+    detailed_time['other'] = detailed_time['total'] - detailed_time['evaluate matrices'] - detailed_time['solve linear problem']
+
+    # For each method and mesh, keep only the fastest computation
+    detailed_time = detailed_time.sort_values(by='nb_cells')
+    idx = detailed_time.groupby(["method", "nb_cells"])['total'].transform(min) == detailed_time['total']
+    detailed_time = detailed_time[idx]
+
+    # Just regroup data.
+    detailed_time = detailed_time.groupby(['method', 'nb_cells']).aggregate(np.min)
+
+    # print(detailed_time)
+
+    # linreg = {}
+    # for method in detailed_time.index.levels[0]:
+    #     linreg[method] = {}
+    #     for column in ['solve linear problem', 'evaluate matrices']:
+    #         dt = detailed_time.T[method].T[column]
+    #         linreg[method][column] = linregress(np.log(dt.index), np.log(np.asarray(dt)))
+
+    max_time = detailed_time['total'].max()
+    for method in detailed_time.index.levels[0]:
+        dt = detailed_time.T[method].T
+        ax = dt.plot.area(y=['solve linear problem', 'evaluate matrices', 'other'])
         ax.set(
-            # ylim=(0.0, 80.0),
-            ylim=(0.0, 2.5),
+            ylim=(0.0, max_time),
             xlabel='number of cells in mesh',
             ylabel='computation time (seconds)',
         )
-        plt.title(solver)
+        plt.title(method)
+
+        # alpha1 = linreg[method]['evaluate matrices'].slope
+        # alpha2 = linreg[method]['solve linear problem'].slope
+        # plt.title(f"{method} {alpha1:.2f} {alpha2:.2f}")
+
         plt.grid(zorder=3)
         plt.tight_layout()
 
@@ -101,12 +127,13 @@ def compare_results(directory):
 
 
 if __name__ == "__main__":
-    plot_detailed_time(sys.argv[1])
-    compare_all_total_times(sys.argv[1])
-    # compare_results(sys.argv[1])
-
-    # plot_detailed_time("2017-11-06_153544/")
-    # compare_all_total_times("2017-11-06_153544/")
+    if len(sys.argv) > 1:
+        compare_all_total_times(sys.argv[1])
+        plot_detailed_time(sys.argv[1])
+        compare_results(sys.argv[1])
+    else:
+        directory = max([path for path in os.listdir() if "2017" in path])
+        plot_detailed_time(directory)
 
     plt.show()
 

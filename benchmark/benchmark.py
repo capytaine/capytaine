@@ -18,6 +18,8 @@ def profile_capytaine(body, omega_range, result_dir):
     if not os.path.isdir(result_dir):
         os.makedirs(result_dir)
 
+    subprocess.call("export MKL_NUM_THREADS=1", shell=True)
+
     if logging.root:
         del logging.root.handlers[:]
 
@@ -46,6 +48,8 @@ def profile_capytaine(body, omega_range, result_dir):
     profiler_results = s.getvalue()
     with open(f'{result_dir}/profile.log', 'w') as log:
         log.write(profiler_results)
+
+    subprocess.call("export MKL_NUM_THREADS=4", shell=True)
 
     return float(profiler_results.split('\n')[0].split('in')[1].strip('seconds\n'))
 

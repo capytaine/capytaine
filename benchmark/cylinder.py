@@ -76,18 +76,18 @@ def sym_trans_Capytaine(nb_slices, nb_theta, omega_range):
 # ===============================================================
 
 nb_repetitions = 3
-nb_theta = 20
+nb_theta = 50
 nb_slices_range = range(10, 100, 10)
-omega_range = np.linspace(0.1, 4.0, 40)
+omega_range = np.linspace(0.1, 4.0, 1)
 
 cases = {
-    "Nemoh 2.0":                           full_resolution_Nemoh,
+    # "Nemoh 2.0":                          full_resolution_Nemoh,
     "Capytaine":                          full_Capytaine,
-    # "Capytaine + symmetry":               sym_Capytaine,
-    # "Capytaine + 2 symmetries":           sym_sym_Capytaine,
+    "Capytaine + symmetry":               sym_Capytaine,
+    "Capytaine + 2 symmetries":           sym_sym_Capytaine,
     "Capytaine + translation":            trans_Capytaine,
-    # "Capytaine + translation + symmetry": trans_sym_Capytaine,
-    # "Capytaine + symmetry + translation": sym_trans_Capytaine,
+    "Capytaine + translation + symmetry": trans_sym_Capytaine,
+    "Capytaine + symmetry + translation": sym_trans_Capytaine,
     }
 
 # ===========================
