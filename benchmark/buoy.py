@@ -22,7 +22,7 @@ def shape(z):
 
 
 def full_resolution_Nemoh(nb_slices, nz, omega_range):
-    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz), nphi=nb_slices)
+    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
     buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
     buoy = buoy.as_FloatingBody(name="buoy")
     return profile_Nemoh(buoy, omega_range,
@@ -30,7 +30,7 @@ def full_resolution_Nemoh(nb_slices, nz, omega_range):
 
 
 def full_Capytaine(nb_slices, nz, omega_range):
-    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz), nphi=nb_slices)
+    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
     buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
     buoy = buoy.as_FloatingBody(name="buoy")
     return profile_capytaine(buoy, omega_range,
@@ -38,7 +38,7 @@ def full_Capytaine(nb_slices, nz, omega_range):
 
 
 def sym_Capytaine(nb_slices, nz, omega_range):
-    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz), nphi=nb_slices)
+    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
     buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
     buoy = buoy.as_FloatingBody()
     half_buoy = buoy.extract_faces(np.where(buoy.faces_centers[:, 1] > 0)[0]) # Keep y > 0
@@ -49,7 +49,7 @@ def sym_Capytaine(nb_slices, nz, omega_range):
 
 
 def rot_Capytaine(nb_slices, nz, omega_range):
-    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz), nphi=nb_slices)
+    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
     buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
     buoy.name = "buoy"
     return profile_capytaine(buoy, omega_range,
@@ -62,8 +62,8 @@ def rot_Capytaine(nb_slices, nz, omega_range):
 
 if __name__ == "__main__":
 
-    nb_repetitions = 2
-    nb_cells_range = 2*(np.sqrt(np.linspace(200, 2000, 12))//2)
+    nb_repetitions = 3
+    nb_cells_range = 2*(np.sqrt(np.linspace(200, 3000, 15))//2)
     nz_range = [int(x) for x in nb_cells_range]
     nb_slices_range = [int(x) for x in nb_cells_range]
     omega_range = np.linspace(0.1, 4.0, 40)

@@ -7,6 +7,7 @@ import glob
 
 import numpy as np
 from scipy.stats import linregress
+from scipy.optimize import curve_fit
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -19,11 +20,39 @@ def compare_all_total_times(directory):
     # print(times)
 
     times = times.groupby('nb_cells').aggregate(np.min)
-    ax = times.plot()
+    ax = times.plot(logx=True, logy=True)
     ax.set(
-        xlabel='number of cells in mesh',
+        xlabel='number of cells in mesh $N$',
         ylabel='computation time (seconds)',
     )
+
+    # labels = []
+
+    # def expFunc(x, a, b):
+    #     return a * np.power(x, b)
+
+    # x = np.asarray(times.index)
+    # for column in times.columns:
+    #     y = np.asarray(times[column])
+    #     popt, pcov = curve_fit(expFunc, x, y)
+
+    #     # plt.plot(x, expFunc(x, *popt), 'k--',
+    #     #          label="({0:.3f}*N**{1:.3f}) + {2:.3f}".format(*popt))
+
+    #     if column == 'Capytaine':
+    #         # labels.append('No symmetry ($\sim {0:.1e} \cdot N^{{{1:.2f}}}$)'.format(*popt))
+    #         # labels.append('No symmetry ($\sim N^{{{1:.2f}}}$)'.format(*popt))
+    #         labels.append('No symmetry')
+    #     elif '+ symmetry' in column:
+    #         # labels.append('One vertical symmetry plane ($\sim {0:.1e} \cdot N^{{{1:.2f}}}$)'.format(*popt))
+    #         # labels.append('One vertical symmetry plane ($\sim N^{{{1:.2f}}}$)'.format(*popt))
+    #         labels.append('One vertical symmetry plane')
+    #     else:
+    #         # labels.append('Axial symmetry ($\sim {0:.1e} \cdot N^{{{1:.2f}}}$)'.format(*popt))
+    #         # labels.append('Axial symmetry ($\sim N^{{{1:.2f}}}$)'.format(*popt))
+    #         labels.append('Axial symmetry')
+
+    # plt.legend(labels=labels)
     plt.grid()
     plt.tight_layout()
 
@@ -53,12 +82,15 @@ def plot_detailed_time(directory):
                     detailed_time['evaluate matrices'][result_dir] = float(entry.split()[3])
                 elif '(solve)' in entry and 'Toeplitz_matrices' in entry:
                     detailed_time['solve linear problem'][result_dir] = float(entry.split()[3])
-                elif 'benchmark.py:35' in entry:
-                    detailed_time['total'][result_dir] = float(entry.split()[3])
-
+                # elif 'benchmark.py:35' in entry:
+                #     detailed_time['total'][result_dir] = float(entry.split()[3])
+                elif 'function calls' in entry:
+                    detailed_time['total'][result_dir] = float(entry.split()[-2])
 
     # Deduce other computation time.
     detailed_time['other'] = detailed_time['total'] - detailed_time['evaluate matrices'] - detailed_time['solve linear problem']
+
+    # print(detailed_time)
 
     # For each method and mesh, keep only the fastest computation
     detailed_time = detailed_time.sort_values(by='nb_cells')
@@ -68,7 +100,7 @@ def plot_detailed_time(directory):
     # Just regroup data.
     detailed_time = detailed_time.groupby(['method', 'nb_cells']).aggregate(np.min)
 
-    # print(detailed_time)
+    print(detailed_time)
 
     # linreg = {}
     # for method in detailed_time.index.levels[0]:
@@ -78,22 +110,30 @@ def plot_detailed_time(directory):
     #         linreg[method][column] = linregress(np.log(dt.index), np.log(np.asarray(dt)))
 
     max_time = detailed_time['total'].max()
-    for method in detailed_time.index.levels[0]:
+    nb_methods = len(detailed_time.index.levels[0])
+    fig, axs = plt.subplots(1, nb_methods, sharex=True, sharey=True)
+
+    for i, method in enumerate(detailed_time.index.levels[0]):
         dt = detailed_time.T[method].T
-        ax = dt.plot.area(y=['solve linear problem', 'evaluate matrices', 'other'])
-        ax.set(
-            ylim=(0.0, max_time),
+        dt.plot.area(
+            ax=axs[i],
+            y=['solve linear problem', 'evaluate matrices', 'other'],
+            legend=False,
+        )
+        axs[i].set(
+            ylim=(0.0, 1.05*max_time),
             xlabel='number of cells in mesh',
             ylabel='computation time (seconds)',
         )
-        plt.title(method)
 
         # alpha1 = linreg[method]['evaluate matrices'].slope
         # alpha2 = linreg[method]['solve linear problem'].slope
         # plt.title(f"{method} {alpha1:.2f} {alpha2:.2f}")
 
-        plt.grid(zorder=3)
-        plt.tight_layout()
+        axs[i].grid(zorder=3)
+
+    axs[-1].legend()
+    plt.tight_layout()
 
 
 #######################################################################
@@ -122,18 +162,21 @@ def compare_results(directory):
         added_mass[os.path.basename(capy_dir)] = results[:, 0]
         damping[os.path.basename(capy_dir)] = results[:, 1]
 
-    added_mass.plot(y=[name for name in case_names if '600' in name])
+    added_mass.plot(y=[name for name in case_names if '900' in name])
     # print(added_mass[[name for name in case_names if '600' in name]])
+    damping.plot(y=[name for name in case_names if '900' in name])
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         compare_all_total_times(sys.argv[1])
-        plot_detailed_time(sys.argv[1])
-        compare_results(sys.argv[1])
+        # plot_detailed_time(sys.argv[1])
+        # compare_results(sys.argv[1])
     else:
-        directory = max([path for path in os.listdir() if "2017" in path])
-        plot_detailed_time(directory)
+        directory = max([path for path in os.listdir() if "201" in path])
+        compare_all_total_times(directory)
+        # plot_detailed_time(directory)
+        # compare_results(directory)
 
     plt.show()
 
