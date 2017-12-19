@@ -104,6 +104,21 @@ class FloatingBody(Mesh):
         LOG.info(f"Clip floating body {self.name}.")
         return FloatingBody(clipped_mesh.vertices, clipped_mesh.faces)
 
+    def add_translation_dof(self, direction=(1.0, 0.0, 0.0), name=None):
+        if name is None:
+            name = f"Translation_dof_{self.nb_dofs}"
+        self.dofs[name] = self.faces_normals @ direction
+
+    def add_rotation_dof(self, axis_direction=(0.0, 0.0, 1.0), axis_point=(0.0, 0.0, 0.0), name=None):
+        if name is None:
+            name = f"Rotation_dof_{self.nb_dofs}"
+
+        # TODO: Rewrite more efficiently and/or elegantly
+        dof = np.empty((self.nb_faces, ), dtype=np.float32)
+        for i, (cdg, normal) in enumerate(zip(self.faces_centers, self.faces_normals)):
+            dof[i] = np.cross(axis_point - cdg, axis_direction) @ normal
+        self.dofs[name] = dof
+
     ########################
     #  Various properties  #
     ########################
@@ -143,6 +158,7 @@ class FloatingBody(Mesh):
     #######################################
     #  Computation of influence matrices  #
     #######################################
+    # TODO: move to Nemoh.py?
 
     def _build_matrices_0(self, body):
         """Compute the first part of the influence matrices of self on body."""
