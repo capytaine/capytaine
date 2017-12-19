@@ -11,7 +11,7 @@ import pandas as pd
 
 from capytaine.Nemoh import Nemoh
 from capytaine.problems import RadiationProblem
-from capytaine.exporter import export_as_Nemoh_directory
+from capytaine.import_export import export_as_Nemoh_directory
 
 
 def profile_capytaine(body, omega_range, result_dir, **problem_kwargs):

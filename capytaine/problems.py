@@ -121,7 +121,7 @@ class DiffractionProblem(PotentialFlowProblem):
 class RadiationProblem(PotentialFlowProblem):
     """A radiation problem to be solved by the BEM solver."""
 
-    def __init__(self, *args, angle=0.0, **kwargs):
+    def __init__(self, *args, **kwargs):
         self.sources = {}
         self.potential = {}
         PotentialFlowProblem.__init__(self, *args, **kwargs)

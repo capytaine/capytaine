@@ -8,9 +8,11 @@ import pytest
 import numpy as np
 
 from capytaine.problems import *
+from capytaine.import_export import import_cal_file
 from capytaine.reference_bodies import generate_dummy_floating_body
 
 dummy = generate_dummy_floating_body()
+
 
 def test_depth():
     assert PotentialFlowProblem(dummy, free_surface=np.infty, sea_bottom=-np.infty).depth == np.infty
@@ -19,6 +21,24 @@ def test_depth():
 
     with pytest.raises(Exception):
         PotentialFlowProblem(dummy, free_surface=0.0, sea_bottom=1.0)
+
+
+def test_import_cal_file():
+    """Test the importation of legacy Nemoh.cal files."""
+    problems = import_cal_file("examples/data/Nemoh.cal")
+    assert len(problems) == 4
+    for problem in problems:
+        assert problem.rho == 1000.0
+        assert problem.g == 9.81
+        assert problem.depth == np.infty
+        assert problem.body.nb_subbodies == 1
+        assert problem.body.nb_dofs == 6
+        assert problem.body.nb_vertices == 540
+        assert problem.body.nb_faces == 300
+        assert problem.omega == 0.1 or problem.omega == 2.0
+        if isinstance(problem, DiffractionProblem):
+            assert problem.angle == 0.0
+
 
 def test_Airy():
     """Compare finite depth Airy wave expression with results from analytical

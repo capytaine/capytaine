@@ -1,10 +1,104 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""
+Import or export Nemoh.cal files for backward compatibility with Nemoh 2.
+"""
 
 import os
 
+import numpy as np
+
 from meshmagick.mmio import write_MAR
-from capytaine.symmetries import ReflectionSymmetry
+from capytaine.bodies import FloatingBody
+from capytaine.problems import DiffractionProblem, RadiationProblem
+from capytaine.bodies_collection import CollectionOfFloatingBodies
+
+def import_cal_file(filepath):
+    """
+    Read a Nemoh.cal file and return a list of problems.
+    """
+
+    with open(filepath, 'r') as cal_file:
+
+        cal_file.readline() # Unused line.
+        rho = float(cal_file.readline().split()[0])
+        g = float(cal_file.readline().split()[0])
+        depth = float(cal_file.readline().split()[0])
+        if depth == 0.0:
+            sea_bottom = -np.infty
+        else:
+            sea_bottom = -depth
+        xeff, yeff = (float(x) for x in cal_file.readline().split()[0:2])
+
+        bodies = []
+
+        cal_file.readline() # Unused line.
+        nb_bodies = int(cal_file.readline().split()[0])
+        for i_body in range(nb_bodies):
+            cal_file.readline() # Unused line.
+            mesh_file = cal_file.readline().split()[0].strip()
+            cal_file.readline() # Number of points, number of panels (unused)
+
+            body = FloatingBody.from_file(
+                os.path.join(os.path.dirname(filepath), mesh_file), # mesh path are relative to Nemoh.cal
+                'mar')
+
+            nb_dofs = int(cal_file.readline().split()[0])
+            for i_dof in range(nb_dofs):
+                dof_data = cal_file.readline().split()
+                if int(dof_data[0]) == 1:
+                    direction = np.array([float(x) for x in dof_data[1:4]])
+                    body.add_translation_dof(direction=direction)
+                elif int(dof_data[0]) == 2:
+                    direction = np.array([float(x) for x in dof_data[1:4]])
+                    center_of_mass = np.array([float(x) for x in dof_data[4:7]])
+                    body.add_rotation_dof(axis_direction=direction, axis_point=center_of_mass)
+
+            nb_forces = int(cal_file.readline().split()[0])
+            for i_force in range(nb_forces):
+                force_data = cal_file.readline().split()
+                if int(force_data[0]) == 1:
+                    direction = np.array([float(x) for x in force_data[1:4]])
+                elif int(force_data[0]) == 2:
+                    direction = np.array([float(x) for x in force_data[1:4]])
+                    center_of_mass = np.array([float(x) for x in force_data[4:7]])
+            # TODO: use the generalize forces.
+
+            nb_additional_lines = int(cal_file.readline().split()[0])
+            for _ in range(nb_additional_lines):
+                cal_file.readline() # The additional lines are just ignored.
+
+            bodies.append(body)
+
+        bodies = CollectionOfFloatingBodies(bodies)
+
+        cal_file.readline() # Unused line.
+        frequency_data = cal_file.readline().split()
+        omega_range = np.linspace(float(frequency_data[1]), float(frequency_data[2]), int(frequency_data[0]))
+
+        direction_data = cal_file.readline().split()
+        direction_range = np.linspace(float(direction_data[1]), float(direction_data[2]), int(direction_data[0]))
+
+        # The options below are not implemented yet.
+
+        cal_file.readline() # Unused line.
+        irf_data = cal_file.readline()
+        show_pressure = cal_file.readline().split()[0] == "1"
+        kochin_data = cal_file.readline().split()
+        kochin_range = np.linspace(float(kochin_data[1]), float(kochin_data[2]), int(kochin_data[0]))
+        free_surface_data = cal_file.readline().split()
+
+    # Generate Capytaine's problem objects
+    env_args = dict(body=bodies, rho=rho, sea_bottom=sea_bottom, g=g)
+    problems = []
+    for omega in omega_range:
+        for direction in direction_range:
+            problems.append(DiffractionProblem(angle=direction, omega=omega, **env_args))
+        if bodies.nb_dofs > 0:
+            problems.append(RadiationProblem(omega=omega, **env_args))
+
+    return problems
+
 
 def export_as_Nemoh_directory(problem, directory_name, omega_range=None):
     """
