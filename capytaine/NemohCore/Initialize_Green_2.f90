@@ -5,7 +5,7 @@ MODULE Initialize_Green_2
   PUBLIC :: INITIALIZE_GREEN
   PUBLIC :: GG
 
-  PUBLIC  :: LISC   ! Initialization of AMBDA and AR
+  PUBLIC :: LISC   ! Initialization of AMBDA and AR
   PUBLIC :: EXPORS ! Called by LISC
   PUBLIC :: MCAS   ! Called by EXPORS
   PUBLIC :: SPRBM  ! Called by EXPORS
@@ -20,7 +20,6 @@ MODULE Initialize_Green_2
   INTEGER, PARAMETER      :: NPINTE = 251
   INTEGER, PARAMETER      :: IR = 328
   INTEGER, PARAMETER      :: JZ = 46
-  REAL, DIMENSION(IR)     :: XR
   REAL, DIMENSION(JZ)     :: XZ
   REAL, DIMENSION(IR, JZ) :: APD1X, APD1Z, APD2X, APD2Z
 
@@ -79,11 +78,14 @@ CONTAINS
     END IF
   END FUNCTION
 
-  SUBROUTINE INITIALIZE_GREEN()
+  SUBROUTINE INITIALIZE_GREEN(XR)
     ! Initialize XR, XZ, APD1X, APD2X, APD1Z, APD2Z
     ! Those parameters are independent of the depth and the frequency.
     ! Thus, they are initialized only once at the beginning of the execution of the code.
     ! Other parameters are initialized in LISC below.
+
+    ! Output
+    REAL, DIMENSION(328), INTENT(OUT)  :: XR
 
     ! Local variables
     INTEGER :: I, J, K

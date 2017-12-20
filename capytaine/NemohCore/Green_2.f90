@@ -16,11 +16,14 @@ CONTAINS
     RETURN
   END FUNCTION
 
-  SUBROUTINE COMPUTE_S2(XI, XJ, depth, wavenumber, FS, VS)
+  SUBROUTINE COMPUTE_S2(XI, XJ, depth, wavenumber, &
+                        XR,                        &
+                        FS, VS)
 
     ! Inputs
     REAL, DIMENSION(3),    INTENT(IN)  :: XI, XJ
     REAL,                  INTENT(IN)  :: depth, wavenumber
+    REAL, DIMENSION(328),   INTENT(IN)  :: XR
 
     ! Outputs
     COMPLEX,               INTENT(OUT) :: FS
@@ -140,7 +143,7 @@ CONTAINS
   ! =========================
 
   SUBROUTINE VNSINFD             &
-      (wavenumber, X0I, X0J,     &
+      (wavenumber, X0I, X0J, XR, &
       SP, VSP)
     ! Compute the frequency-dependent part of the Green function in the infinite depth case.
 
@@ -148,6 +151,7 @@ CONTAINS
     REAL,               INTENT(IN)  :: wavenumber
     REAL, DIMENSION(3), INTENT(IN)  :: X0I   ! Coordinates of the source point
     REAL, DIMENSION(3), INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
+    REAL, DIMENSION(328), INTENT(IN)  :: XR
 
     ! Outputs
     COMPLEX,               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
@@ -159,7 +163,7 @@ CONTAINS
 
     XI(:) = X0I(:)
     ! XI(3) = MIN(X0I(3), -1e-5*Mesh%xy_diameter)
-    CALL COMPUTE_S2(XI, X0J, 0.0, wavenumber, SP, VSP(:))
+    CALL COMPUTE_S2(XI, X0J, 0.0, wavenumber, XR, SP, VSP(:))
 
     ADPI2  = wavenumber/DPI2
     ADPI   = wavenumber/DPI
@@ -175,7 +179,7 @@ CONTAINS
   ! ======================
 
   SUBROUTINE VNSFD &
-      (wavenumber, X0I, X0J, depth, &
+      (wavenumber, X0I, X0J, depth, XR, &
       SP, VSP)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
 
@@ -183,6 +187,7 @@ CONTAINS
     REAL,               INTENT(IN)  :: wavenumber, depth
     REAL, DIMENSION(3), INTENT(IN)  :: X0I   ! Coordinates of the source point
     REAL, DIMENSION(3), INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
+    REAL, DIMENSION(328), INTENT(IN)  :: XR
 
     ! Outputs
     COMPLEX,               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
@@ -209,14 +214,14 @@ CONTAINS
     RRR = NORM2(XI(1:2) - XJ(1:2))
 
     ! 1.a First infinite depth problem
-    CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, FS(1), VS(:, 1))
+    CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, XR, FS(1), VS(:, 1))
 
     PSR(1) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) =  X0J(3)
-    CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, FS(2), VS(:, 2))
+    CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, XR, FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
     PSR(2) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
@@ -224,14 +229,14 @@ CONTAINS
     ! 1.c Shift and reflect XJ and compute another value of the Green function
     XI(3) =  X0I(3)
     XJ(3) = -X0J(3) - 2*depth
-    CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, FS(3), VS(:, 3))
+    CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, XR, FS(3), VS(:, 3))
 
     PSR(3) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) = -X0J(3) - 2*depth
-    CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, FS(4), VS(:, 4))
+    CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, XR, FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
     PSR(4) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
@@ -298,6 +303,7 @@ CONTAINS
       nb_faces_2,                       &
       centers_2, areas_2,               &
       wavenumber, depth,                &
+      XR, &
       same_body,                        &
       S, V)
 
@@ -306,6 +312,7 @@ CONTAINS
     REAL,    DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2
     REAL,    DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2
     REAL,                                 INTENT(IN) :: wavenumber, depth
+    REAL, DIMENSION(328),   INTENT(IN)  :: XR
     LOGICAL,                              INTENT(IN) :: same_body
 
     COMPLEX, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
@@ -361,6 +368,7 @@ CONTAINS
               (wavenumber,                  &
               centers_1(I, :),              &
               centers_2(J, :),              &
+              XR, &
               SP2, VSP2                     &
               )
           ELSE
@@ -369,6 +377,7 @@ CONTAINS
               centers_1(I, :),              &
               centers_2(J, :),              &
               depth,                        &
+              XR, &
               SP2, VSP2                     &
               )
           END IF

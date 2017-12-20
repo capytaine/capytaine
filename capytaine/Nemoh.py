@@ -24,7 +24,7 @@ class Nemoh:
     Solver for the BEM problem based on Nemoh's Green function.
     """
     def __init__(self):
-        _Green.initialize_green_2.initialize_green()
+        self.XR = _Green.initialize_green_2.initialize_green()
         LOG.info("Initialize Nemoh's Green function.")
 
     def solve(self, problem, keep_details=False):
@@ -103,6 +103,16 @@ class Nemoh:
             LOG.info("Problem solved!")
 
             return np.array(forces)
+
+    def solve_all(self, problems, processes=1):
+        from multiprocessing import Pool
+        pool = Pool(processes=processes)
+        return pool.map(self.solve, problems)
+
+
+    #######################
+    #  Building matrices  #
+    #######################
 
     def _build_matrices_0(self, body1, body2):
         """Compute the first part of the influence matrices of self on body."""
@@ -183,7 +193,7 @@ class Nemoh:
                     body1.faces_centers, body1.faces_normals,
                     body2.faces_centers, body2.faces_areas,
                     wavenumber,         0.0,
-                    # body1.XR,
+                    self.XR,
                     body1 is body2
                     )
             else:
@@ -191,7 +201,7 @@ class Nemoh:
                     body1.faces_centers, body1.faces_normals,
                     body2.faces_centers, body2.faces_areas,
                     wavenumber,         depth,
-                    # body1.XR,
+                    self.XR,
                     body1 is body2
                     )
 
@@ -202,18 +212,17 @@ class Nemoh:
 
         return S2, V2
 
-    def solve_all(self, problems, processes=1):
-        from multiprocessing import Pool
-        pool = Pool(processes=processes)
-        return pool.map(self.solve, problems)
+    #######################
+    #  Compute potential  #
+    #######################
 
     def get_potential_on_mesh(self, problem, mesh, dof=None):
         LOG.info(f"Compute potential on {mesh.name} for {problem}.")
 
         if len(problem.sources) == 0:
             if not problem.keep_details:
-                raise Exception(f"""The detail of the sources of {problem} are not stored by the solver 
-                so they can't be used for later computation of the potential. 
+                raise Exception(f"""The detail of the sources of {problem} are not stored by the solver
+                so they can't be used for later computation of the potential.
                 Please run the solver with keep_details=True.""")
             else:
                 raise Exception(f"{problem} need to be solved with Nemoh.solve before computing potential anywhere.")
