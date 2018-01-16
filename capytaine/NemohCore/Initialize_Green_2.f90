@@ -2,16 +2,16 @@ MODULE Initialize_Green_2
 
   IMPLICIT NONE
 
-  PUBLIC :: INITIALIZE_GREEN
   PUBLIC :: GG
+  PUBLIC :: INITIALIZE_GREEN
 
   PUBLIC :: LISC   ! Initialization of AMBDA and AR
+  PUBLIC :: FF     ! Called by LISC
   PUBLIC :: EXPORS ! Called by LISC
   PUBLIC :: MCAS   ! Called by EXPORS
+  PUBLIC :: HOUSRS ! Called by EXPORS and MCAS
   PUBLIC :: SPRBM  ! Called by EXPORS
   PUBLIC :: SPQFB  ! Called by SPRBM
-  PUBLIC :: HOUSRS ! Called by EXPORS and MCAS
-  PUBLIC :: FF     ! Called by LISC
 
   REAL, PARAMETER :: PI = 3.141592653588979 ! π
   COMPLEX, PARAMETER :: II = (0, 1)         ! Imaginary unit
@@ -73,6 +73,8 @@ CONTAINS
       GG = GG + II*PI*CEX
     END IF
   END FUNCTION
+
+!---------------------------------------------------------------------
 
   SUBROUTINE INITIALIZE_GREEN(XR)
     ! Initialize XR, XZ, APD1X, APD2X, APD1Z, APD2Z
@@ -153,7 +155,7 @@ CONTAINS
 
   SUBROUTINE LISC(AK0, wavenumber, &
                   AMBDA, AR, NEXP)
-    ! Compute AMBDA and AR
+    ! Compute AMBDA and AR and test their values
 
     INTEGER, PARAMETER :: NEXR = 31
     INTEGER, PARAMETER :: NMAX = 4*(31-1)
@@ -230,31 +232,60 @@ CONTAINS
 
   END SUBROUTINE LISC
 
+!---------------------------------------------------------------------
+
+  FUNCTION FF(XTT, AK, AM)
+
+    ! Input
+    REAL, INTENT(IN) :: XTT, AK, AM
+
+    ! Local variables
+    REAL :: COEF, TOL, A, B, C, D, E, F, FF
+
+    COEF = (AM+AK)**2/(AM**2-AK**2+AK)
+
+    TOL = MAX(0.1, 0.1*AM)
+    IF (ABS(XTT-AM) > TOL) THEN
+      FF = (XTT+AK)*EXP(XTT)/(XTT*SINH(XTT)-AK*COSH(XTT)) - COEF/(XTT-AM) - 2
+    ELSE
+      A = AM - TOL
+      B = AM
+      C = AM + TOL
+      D = (A+AK)*EXP(A)/(A*SINH(A)-AK*COSH(A)) - COEF/(A-AM) - 2
+      E = COEF/(AM+AK)*(AM+AK+1)               - (COEF/(AM+AK))**2*AM - 2
+      F = (C+AK)*EXP(C)/(C*SINH(C)-AK*COSH(C)) - COEF/(C-AM) - 2
+      FF = D*(XTT-B)*(XTT-C)/((A-B)*(A-C)) + &
+           E*(XTT-C)*(XTT-A)/((B-C)*(B-A)) + &
+           F*(XTT-A)*(XTT-B)/((C-A)*(C-B))
+    ENDIF
+    
+    RETURN
+  END FUNCTION FF
+
 !-------------------------------------------------------------------------------!
 
   SUBROUTINE EXPORS(XT, YT, NM, NMAX, AMBDA, AR)
-
-    INTEGER::I,J,K,JJ,II,IJ,MN, NEXP
-    INTEGER::IS,IER
-    REAL::H,EPS
+    ! Compute AMBDA and AR based on XT and YT
 
     INTEGER, INTENT(IN) :: NMAX
-    REAL, INTENT(IN)  :: XT(4*(31-1)+1), YT(4*(31-1)+1)
+    REAL, INTENT(IN)    :: XT(4*(31-1)+1), YT(4*(31-1)+1)
 
     INTEGER, INTENT(INOUT) :: NM
 
     REAL, INTENT(OUT) :: AR(31), AMBDA(31)
 
     ! Local variables
-    INTEGER :: NPP, NJ
+    INTEGER :: NPP
 
-    REAL :: SC(31), VR(31), VC(31), POL(31)
-    REAL :: S(4*(31-1), 31+1)
-    COMPLEX:: COM(31)
+    REAL    :: SC(31), VR(31), VC(31)
+    REAL    :: S(4*(31-1), 31+1)
+    COMPLEX :: COM(31)
 
-    NJ=4*NM
-    NPP=NJ+1
-    H=(XT(NPP)-XT(1))/NJ
+    INTEGER::I,J,K,JJ,II,IJ,MN,NEXP
+    REAL::H,EPS
+
+    NPP=4*NM+1
+    H=(XT(NPP)-XT(1))/(4*NM)
     K=NPP-NM
     DO I=1,K
       DO J=1,NM
@@ -264,16 +295,16 @@ CONTAINS
       II=NM+I
       S(I,NM+1)=-YT(II)
     END DO
-    EPS=1.E-20
 
-    CALL HOUSRS(S,NMAX,K,NM,1,EPS)
+    CALL HOUSRS(S,NMAX,K,NM,1)
+
     DO I=1,NM
       IJ=NM-I+1
       SC(IJ)=S(I,NM+1)
     END DO
     MN=NM+1
     SC(MN)=1.
-    CALL SPRBM(SC,MN,VR,VC,POL,IS,IER)
+    CALL SPRBM(SC,MN,VR,VC)
     DO I=1,NM
       COM(I)=CMPLX(VR(I),VC(I))
       COM(I)=CLOG(COM(I))/H
@@ -317,53 +348,119 @@ CONTAINS
 
   SUBROUTINE MCAS(AMBDA,XT,YT,NPP,AR,A,NMAX,NEXP)
 
-    REAL, INTENT(IN) :: AMBDA(31)
-    REAL, INTENT(OUT) :: AR(31)
-
-    INTEGER:: NPP,NMAX,NEXP
-    REAL::XT(4*(31-1)+1),YT(4*(31-1)+1),A(4*(31-1),31+1)
+    REAL, INTENT(IN)    :: AMBDA(31), XT(4*(31-1)+1), YT(4*(31-1)+1)
+    INTEGER, INTENT(IN) :: NPP, NMAX, NEXP
+    REAL, INTENT(INOUT) :: A(4*(31-1),31+1)
+    REAL, INTENT(OUT)   :: AR(31)
 
     INTEGER::I,J,L,M,N
-    REAL::S,TT,TTT,EPS
+    REAL::S,TT,TTT
 
-      EPS=1.E-20
-      DO 1 I=1,NEXP
-      DO 1 J=1,NEXP
-      S=0
-      DO 3 L=1,NPP
-      TT=(AMBDA(I)+AMBDA(J))*XT(L)
-      IF(TT+30)3,4,4
-    4 S=S+EXP(TT)
-    3 CONTINUE
-      A(I,J)=S
-    1 CONTINUE
-      DO 5 I=1,NEXP
+    DO I=1,NEXP
+      DO J=1,NEXP
+        S=0
+        DO 3 L=1,NPP
+          TT=(AMBDA(I)+AMBDA(J))*XT(L)
+          IF(TT+30)3,4,4
+          4 S=S+EXP(TT)
+        3 CONTINUE
+        A(I,J)=S
+      END DO
+    END DO
+
+    DO I=1,NEXP
       S=0
       DO 6 L=1,NPP
-      TTT=AMBDA(I)*XT(L)
-      IF(TTT+30)6,7,7
-    7 S=S+EXP(TTT)*YT(L)
-    6 CONTINUE
+        TTT=AMBDA(I)*XT(L)
+        IF(TTT+30)6,7,7
+        7 S=S+EXP(TTT)*YT(L)
+      6 CONTINUE
       A(I,NEXP+1)=S
-    5 CONTINUE
-      N=NEXP
-      M=N+1
-      CALL HOUSRS(A,NMAX,N,N,1,EPS)
+    END DO
+    N=NEXP
+    M=N+1
+    CALL HOUSRS(A,NMAX,N,N,1)
 
-      DO I=1,NEXP
-        AR(I)=A(I,NEXP+1)
-      END DO
+    DO I=1,NEXP
+      AR(I)=A(I,NEXP+1)
+    END DO
 
-      RETURN
+    RETURN
 
   END SUBROUTINE MCAS
 
+!---------------------------------------------------------------------
+
+  SUBROUTINE HOUSRS(A,NMAX,NL,NCC,NS)
+
+    INTEGER, INTENT(IN) :: NMAX, NL, NCC, NS
+    REAL, INTENT(INOUT) :: A(NMAX, 31+1)
+
+    REAL, PARAMETER :: EPS = 1e-20
+
+    INTEGER :: I, J, K, L, M, NCJ, NTC, KP1
+    REAL    :: E, E0, AR, BA, ETA
+    INTEGER :: I1
+
+      NTC=NCC+NS
+      IF(NCC.GT.NL)THEN
+        WRITE(*,3010)
+  3010 FORMAT(' NBRE DE COLONNES > NBRES DE LIGNES')
+        STOP
+      ENDIF
+      DO 13 K=1,NCC
+        E=0
+        DO 1101 I=K,NL
+          E=E+A(I,K)**2
+   1101 CONTINUE
+        E0=SQRT(E)
+        IF(E0.LT.EPS)THEN
+          WRITE(*,201)EPS
+      201 FORMAT(1X,'NORME INFERIEURE A ',1PE16.6/)
+          STOP
+        ENDIF
+        IF(A(K,K).EQ.0)THEN
+          AR=-E0
+        ELSE
+          AR=-SIGN(E0,A(K,K))
+        ENDIF
+        ETA=AR*(AR-A(K,K))
+        KP1=K+1
+        DO 10 J=KP1,NTC
+          BA=(A(K,K)-AR)*A(K,J)
+          DO 9 I=KP1,NL
+            BA=BA+A(I,K)*A(I,J)
+        9 CONTINUE
+          A(K,J)=A(K,J)+BA/AR
+          DO 11 I=KP1,NL
+            A(I,J)=A(I,J)-A(I,K)*BA/ETA
+       11 CONTINUE
+     10 CONTINUE
+        A(K,K)=AR
+        DO 12 I=KP1,NL
+  12   A(I,K)=0
+ 13   CONTINUE
+      DO 1006 J=1,NS
+        NCJ=NCC+J
+        A(NCC,NCJ)=A(NCC,NCJ)/A(NCC,NCC)
+        DO 1005 L=2,NCC
+          I1=NCC+1-L
+          M=I1+1
+          DO 1004 I=M,NCC
+      1004 A(I1,NCJ)=A(I1,NCJ)-A(I1,I)*A(I,NCJ)
+    1005 A(I1,NCJ)=A(I1,NCJ)/A(I1,I1)
+ 1006 CONTINUE
+      RETURN
+
+  END SUBROUTINE HOUSRS
+
 !----------------------------------------------------------------------
 
-  SUBROUTINE SPRBM(C,IC,RR,RC,POL,IR,IER)
+  SUBROUTINE SPRBM(C,IC,RR,RC)
 
     INTEGER::IC,IR,IER
-    REAL:: C(31),RR(31),RC(31),POL(31)
+    REAL :: C(31), RR(31), RC(31)
+    REAL :: POL(31)
     INTEGER::I,J,L,N,LIM,IST
     REAL::A,B,H
     REAL::EPS,Q1,Q2,Q(4)
@@ -634,91 +731,7 @@ CONTAINS
    45 RETURN
 
   END SUBROUTINE SPQFB
-!---------------------------------------------------------------------
 
-  SUBROUTINE HOUSRS(A,NMAX,NL,NCC,NS,EPS)
+!----------------------------------------------------------------
 
-    INTEGER::NMAX,NL,NCC,NS
-    REAL:: A(NMAX,31+1),EPS
-    INTEGER::I,J,K,L,M,NCJ,NTC,KP1
-    REAL::E,E0,AR,BA,ETA
-    INTEGER :: I1
-
-      NTC=NCC+NS
-      IF(NCC.GT.NL)THEN
-        WRITE(*,3010)
-  3010 FORMAT(' NBRE DE COLONNES > NBRES DE LIGNES')
-        STOP
-      ENDIF
-      DO 13 K=1,NCC
-        E=0
-        DO 1101 I=K,NL
-          E=E+A(I,K)**2
-   1101 CONTINUE
-        E0=SQRT(E)
-        IF(E0.LT.EPS)THEN
-          WRITE(*,201)EPS
-      201 FORMAT(1X,'NORME INFERIEURE A ',1PE16.6/)
-          STOP
-        ENDIF
-        IF(A(K,K).EQ.0)THEN
-          AR=-E0
-        ELSE
-          AR=-SIGN(E0,A(K,K))
-        ENDIF
-        ETA=AR*(AR-A(K,K))
-        KP1=K+1
-        DO 10 J=KP1,NTC
-          BA=(A(K,K)-AR)*A(K,J)
-          DO 9 I=KP1,NL
-            BA=BA+A(I,K)*A(I,J)
-        9 CONTINUE
-          A(K,J)=A(K,J)+BA/AR
-          DO 11 I=KP1,NL
-            A(I,J)=A(I,J)-A(I,K)*BA/ETA
-       11 CONTINUE
-     10 CONTINUE
-        A(K,K)=AR
-        DO 12 I=KP1,NL
-  12   A(I,K)=0
- 13   CONTINUE
-      DO 1006 J=1,NS
-        NCJ=NCC+J
-        A(NCC,NCJ)=A(NCC,NCJ)/A(NCC,NCC)
-        DO 1005 L=2,NCC
-          I1=NCC+1-L
-          M=I1+1
-          DO 1004 I=M,NCC
-      1004 A(I1,NCJ)=A(I1,NCJ)-A(I1,I)*A(I,NCJ)
-    1005 A(I1,NCJ)=A(I1,NCJ)/A(I1,I1)
- 1006 CONTINUE
-      RETURN
-
-  END SUBROUTINE HOUSRS
-
-!---------------------------------------------------------------------
-
-  FUNCTION FF(XTT, AK, AM)
-
-    REAL::XTT,AK,AM
-    REAL::COEF,TOL,A,B,C,D,E,F,FF
-
-    COEF=(AM+AK)**2/(AM**2-AK**2+AK)
-
-    TOL=AMAX1(0.1,0.1*AM)
-    IF (ABS(XTT-AM) > TOL) THEN
-      FF=(XTT+AK)*EXP(XTT)/(XTT*SINH(XTT)-AK*COSH(XTT))-COEF/(XTT-AM)-2.
-    ELSE
-      A=AM-TOL
-      B=AM
-      C=AM+TOL
-      D=(A+AK)*EXP(A)/(A*SINH(A)-AK*COSH(A))-COEF/(A-AM)-2
-      E=COEF/(AM+AK)*(AM+AK+1)-(COEF/(AM+AK))**2*AM-2
-      F=(C+AK)*EXP(C)/(C*SINH(C)-AK*COSH(C))-COEF/(C-AM)-2
-      FF=(XTT-B)*(XTT-C)*D/((A-B)*(A-C))+(XTT-C)*(XTT-A)*E/((B-C)*(B-A))+&
-        & (XTT-A)*(XTT-B)*F/((C-A)*(C-B))
-    ENDIF
-    RETURN
-
-  END FUNCTION FF
 END MODULE Initialize_Green_2
