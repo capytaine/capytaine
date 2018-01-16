@@ -155,85 +155,76 @@ CONTAINS
 ! This part of the code is still in old-fashionned style.
 ! TODO: clean that up.
 
-  SUBROUTINE LISC(AK0,wavenumber)
+  SUBROUTINE LISC(AK0, wavenumber)
     ! Compute AMBDA and AR
 
-    INTEGER :: I,J,NJ,NPP, NM
-    REAL:: AK0,wavenumber
-    REAL:: POL(31),A,B,depth
-    REAL:: S(4*(31-1),31+1),XT(4*(31-1)+1),YT(4*(31-1)+1)
-    REAL:: SC(31),VR(31),VC(31)
-    INTEGER::ISTIR,NMAX,NK,ISOR,NPI,NMO,NEXR
-    REAL:: PRECI,ERMAX,ERMOY,XX,YY,TT,DIF,RT
-    COMPLEX:: COM(31)
+    INTEGER, PARAMETER :: NEXR = 31
+    INTEGER, PARAMETER :: NMAX = 4*(31-1)
 
-    AMBDA=0.0
+    ! Range on which the function FF is tabulated
+    REAL, PARAMETER :: A = -0.1
+    REAL, PARAMETER :: B = 20.0
 
-    S=0.
-    SC=0.
-    AR=0.
-    NEXR=31
-    PRECI=1.E-02
-    ISTIR=0
-    NMAX=4*(NEXR-1)
-    NK=4
-    A=-0.1
-    B=20.
+    REAL, PARAMETER :: PRECI = 1.0e-2
+
+    REAL, INTENT(IN) :: AK0, wavenumber
+
+    ! Tabulation of FF
+    REAL :: XT(4*(31-1)+1), YT(4*(31-1)+1)
+
+    ! Local vairables
+    LOGICAL :: ISOR
+    INTEGER :: I, J 
+    INTEGER :: NK, NM, NMO
+    REAL :: XX, YY, TT
+
+    ! Initialize variables to be computed
+    AMBDA = 0.0
+    AR = 0.0
+
+    ! Number of points in the tabulation (first try)
+    NK = 4
+
 62 CONTINUE
-    NM=NK
-    NJ=4*NM
-    NPP=NJ+1
-    depth=(B-A)/NJ
-    DO I=1,NPP
-      XT(I)=A+(I-1)*depth
-      YT(I)=FF(XT(I),AK0,wavenumber)
+
+    ! Tabulate the function FF
+    DO I = 1, (4*NK)+1
+      XT(I) = A + (B-A)*(I-1)/(4*NK)
+      YT(I) = FF(XT(I), AK0, wavenumber)
     END DO
-    ISOR=0
-    CALL EXPORS(XT,YT,NJ,NM,AMBDA,NMAX,S,SC,VR,VC,COM,POL,AR)
 
-    NPI=2
-    NMO=NPI*NPP-NPI+1
-    ERMAX=0.
-    ERMOY=0.
-    DO I=1,NMO
-      XX=(I-1)*B/(NMO-1)
-      YY=FF(XX,AK0,wavenumber)
-      TT=0.
-      DO J=1,NM
-        RT=AMBDA(J)*XX
-        IF(RT.GT.-20.)THEN
-          TT=TT+AR(J)*EXP(RT)
-        ENDIF
+    ! Compute AMBDA and AR
+    NM = NK
+    CALL EXPORS(XT, YT, NM, NMAX, AMBDA, AR)
+
+    ! Test values of AMBDA and AR
+    ISOR = .False.
+    NMO = 8*NM+1
+
+    DO I = 1, NMO
+      XX = (I-1)*B/(NMO-1)
+
+      ! Exact value
+      YY = FF(XX, AK0, wavenumber)
+
+      ! Compute the series
+      TT = 0.0
+      DO J = 1, NM
+        TT = TT + AR(J)*EXP(AMBDA(J)*XX)
       END DO
-      DIF=YY-TT
-      ERMOY=ERMOY+DIF
-      ERMAX=AMAX1(ERMAX,ABS(DIF))
-      IF(ABS(DIF).GT.PRECI) ISOR=1
+
+      ! Compare
+      IF (ABS(YY-TT) > PRECI) ISOR = .True.
     END DO
-    ERMOY=ERMOY/NMO
 
-    ! WRITE(*,1111) NM,ERMAX,ERMOY
-    ! 1111 FORMAT(5X,I2,'EXPONENTIELLES  ECART MAXI = ',E10.3,'ECART MOYEN = ',E10.3/)
-
-    IF ((ISTIR .NE. 1) .AND. (ISOR .NE. 0)) THEN
-      NK=NK+2
-      IF (NK-(NEXR-1)>0) THEN
-        ! WRITE(*,6500) PRECI,NM
-        ! 6500 FORMAT(/5X,'PRECISION = ',E10.3,'  NON ATTEINTE AVEC ',I2,'  EXPONENTIELLES')
-        ! STOP
-      ELSE
-        GOTO 62
-      ENDIF
-
-    ELSE
-      DO J=1,NM
-        ! WRITE(*,1100) AR(J),AMBDA(J)
-        ! 1100 FORMAT(5X,E16.7,'EXP(',E16.7,')')
-        IF (AMBDA(J).GT.0.) STOP
-      END DO
+    ! An error war higher than the wanted precision
+    IF (ISOR .AND. (NK <= NEXR-2)) THEN
+      ! Add more coefficients and restart
+      NK = NK+2
+      GOTO 62
     END IF
 
-    NEXP=NM
+    NEXP = NM
 
     RETURN
 
@@ -241,16 +232,27 @@ CONTAINS
 
 !-------------------------------------------------------------------------------!
 
-  SUBROUTINE EXPORS(XT,YT,NJ,NM,VCOM,NMAX,S,SC,VR,VC,COM,POL,AR)
+  SUBROUTINE EXPORS(XT, YT, NM, NMAX, AMBDA, AR)
 
-    INTEGER::NJ,NM,NMAX
-    REAL:: VCOM(31),POL(31),AR(31),SC(31),VR(31),VC(31)
-    REAL:: S(4*(31-1),31+1),XT(4*(31-1)+1),YT(4*(31-1)+1)
-    COMPLEX:: COM(31)
-    INTEGER::I,J,K,NPP,JJ,II,IJ,MN
+    INTEGER::I,J,K,JJ,II,IJ,MN
     INTEGER::IS,IER
     REAL::H,EPS
 
+    INTEGER, INTENT(IN) :: NMAX
+    REAL, INTENT(IN)  :: XT(4*(31-1)+1), YT(4*(31-1)+1)
+
+    INTEGER, INTENT(INOUT) :: NM
+
+    REAL, INTENT(OUT) :: AR(31), AMBDA(31)
+
+    ! Local variables
+    INTEGER :: NPP, NJ
+
+    REAL :: SC(31), VR(31), VC(31), POL(31)
+    REAL :: S(4*(31-1), 31+1)
+    COMPLEX:: COM(31)
+
+    NJ=4*NM
     NPP=NJ+1
     H=(XT(NPP)-XT(1))/NJ
     K=NPP-NM
@@ -283,40 +285,44 @@ CONTAINS
       J=0
   100 IF(VC(I))110,111,110
   111 J=J+1
-      VCOM(J)=VR(I)
+      AMBDA(J)=VR(I)
       I=I+1
       GO TO 101
   110 IF(ABS(VR(I)-VR(I+1))-1.E-5)120,120,121
   120 J=J+1
-      VCOM(J)=VR(I)
+      AMBDA(J)=VR(I)
       I=I+2
       GO TO 101
   121 J=J+1
-      VCOM(J)=VR(I)
+      AMBDA(J)=VR(I)
       I=I+1
   101 IF(I-NM)100,100,102
   102 NEXP=J
       J=0
       DO 300 I=1,NEXP
       J=J+1
-      IF(VCOM(I).GE.0.)GOTO 301
-      IF(VCOM(I)+20.)301,301,302
+      IF(AMBDA(I).GE.0.)GOTO 301
+      IF(AMBDA(I)+20.)301,301,302
   301 J=J-1
       GO TO 300
-  302 VCOM(J)=VCOM(I)
+  302 AMBDA(J)=AMBDA(I)
   300 CONTINUE
       NEXP=J
       NM=NEXP
-      CALL MCAS(VCOM,XT,YT,NPP,AR,S,NMAX)
+      CALL MCAS(AMBDA,XT,YT,NPP,AR,S,NMAX)
 
     RETURN
   END SUBROUTINE EXPORS
 !----------------------------------------------------------------------------
 
-  SUBROUTINE MCAS(TEXP,XT,YT,NPP,AR,A,NMAX)
+  SUBROUTINE MCAS(AMBDA,XT,YT,NPP,AR,A,NMAX)
+
+    REAL, INTENT(IN) :: AMBDA(31)
+    REAL, INTENT(OUT) :: AR(31)
 
     INTEGER:: NPP,NMAX
-    REAL::XT(4*(31-1)+1),YT(4*(31-1)+1),A(4*(31-1),31+1),AR(31),TEXP(31)
+    REAL::XT(4*(31-1)+1),YT(4*(31-1)+1),A(4*(31-1),31+1)
+
     INTEGER::I,J,L,M,N
     REAL::S,TT,TTT,EPS
 
@@ -325,7 +331,7 @@ CONTAINS
       DO 1 J=1,NEXP
       S=0
       DO 3 L=1,NPP
-      TT=(TEXP(I)+TEXP(J))*XT(L)
+      TT=(AMBDA(I)+AMBDA(J))*XT(L)
       IF(TT+30)3,4,4
     4 S=S+EXP(TT)
     3 CONTINUE
@@ -334,7 +340,7 @@ CONTAINS
       DO 5 I=1,NEXP
       S=0
       DO 6 L=1,NPP
-      TTT=TEXP(I)*XT(L)
+      TTT=AMBDA(I)*XT(L)
       IF(TTT+30)6,7,7
     7 S=S+EXP(TTT)*YT(L)
     6 CONTINUE
@@ -343,8 +349,11 @@ CONTAINS
       N=NEXP
       M=N+1
       CALL HOUSRS(A,NMAX,N,N,1,EPS)
-      DO 10 I=1,NEXP
-   10 AR(I)=A(I,NEXP+1)
+
+      DO I=1,NEXP
+        AR(I)=A(I,NEXP+1)
+      END DO
+
       RETURN
 
   END SUBROUTINE MCAS
@@ -689,15 +698,15 @@ CONTAINS
 
 !---------------------------------------------------------------------
 
-  FUNCTION FF(XTT,AK,AM)
+  FUNCTION FF(XTT, AK, AM)
 
     REAL::XTT,AK,AM
-    REAL::COEF,TOL,H,A,B,C,D,E,F,FF
+    REAL::COEF,TOL,A,B,C,D,E,F,FF
 
     COEF=(AM+AK)**2/(AM**2-AK**2+AK)
-    H=XTT-AM
+
     TOL=AMAX1(0.1,0.1*AM)
-    IF(ABS(H).GT.TOL)THEN
+    IF (ABS(XTT-AM) > TOL) THEN
       FF=(XTT+AK)*EXP(XTT)/(XTT*SINH(XTT)-AK*COSH(XTT))-COEF/(XTT-AM)-2.
     ELSE
       A=AM-TOL

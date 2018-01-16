@@ -18,9 +18,12 @@ update_fortran: $(SOFILES)
 develop: $(SOFILES)
 	pip install -e .
 
+test: develop
+	python -m pytest
+
 clean:
 	rm -rf build
 	rm -f capytaine/*.so
 	rm -rf */__pycache__
 
-.PHONY: update_fortran develop clean
+.PHONY: update_fortran develop test clean

@@ -23,6 +23,7 @@ class Nemoh:
     """
     Solver for the BEM problem based on Nemoh's Green function.
     """
+
     def __init__(self):
         self.XR = _Green.initialize_green_2.initialize_green()
         LOG.info("Initialize Nemoh's Green function.")
