@@ -24,10 +24,11 @@ def test_panels(depth):
 
     # Next lines only to set up LISC in Nemoh's Core...
     problem = RadiationProblem(body=panel, omega=0.1, free_surface=0.0, sea_bottom=-depth)
-    Nemoh().solve(problem)
+    solver = Nemoh()
+    solver.solve(problem)
 
-    S1, V1 = panel.build_matrices(panel)
-    S2, V2 = symmetric_panel.build_matrices(symmetric_panel)
+    S1, V1 = panel.build_matrices(solver, panel)
+    S2, V2 = symmetric_panel.build_matrices(solver, symmetric_panel)
 
     # import matplotlib.pyplot as plt
     # plt.matshow(np.real(S1), vmin=-0.1, vmax=0)

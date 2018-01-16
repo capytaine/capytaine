@@ -14,9 +14,6 @@ from meshmagick.mesh import Mesh
 from meshmagick.geometry import Plane
 from meshmagick.mesh_clipper import MeshClipper
 
-import capytaine._Green as _Green
-from capytaine.tools import MaxLengthDict
-
 
 LOG = logging.getLogger(__name__)
 
@@ -158,124 +155,26 @@ class FloatingBody(Mesh):
     #######################################
     #  Computation of influence matrices  #
     #######################################
-    # TODO: move to Nemoh.py?
 
-    def _build_matrices_0(self, body):
-        """Compute the first part of the influence matrices of self on body."""
-        if 'Green0' not in self.__internals__:
-            self.__internals__['Green0'] = MaxLengthDict({}, max_length=self.nb_matrices_to_keep)
-            LOG.debug(f"\t\tCreate Green0 dict (max_length={self.nb_matrices_to_keep}) in {self.name}")
+    def build_matrices(self, solver, other_body, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0, **kwargs):
+        """Return the influence matrices of self on other_body."""
 
-        if body not in self.__internals__['Green0']:
-            LOG.debug(f"\t\tComputing matrix 0 of {self.name} on {body.name}")
-            S0, V0 = _Green.green_1.build_matrix_0(
-                self.faces_centers, self.faces_normals,
-                body.vertices,      body.faces + 1,
-                body.faces_centers, body.faces_normals,
-                body.faces_areas,   body.faces_radiuses,
-                )
+        LOG.debug(f"\tEvaluating matrix of {self.name} on {other_body.name} for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
 
-            self.__internals__['Green0'][body] = (S0, V0)
-        else:
-            LOG.debug(f"\t\tRetrieving stored matrix 0 of {self.name} on {body.name}")
-            S0, V0 = self.__internals__['Green0'][body]
+        S = np.zeros((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
+        V = np.zeros((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
 
-        return S0, V0
-
-    def _build_matrices_1(self, body, free_surface, sea_bottom):
-        """Compute the second part of the influence matrices of self on body."""
-        if 'Green1' not in self.__internals__:
-            self.__internals__['Green1'] = MaxLengthDict({}, max_length=self.nb_matrices_to_keep)
-            LOG.debug(f"\t\tCreate Green1 dict (max_length={self.nb_matrices_to_keep}) in {self.name}")
-
-        depth = free_surface - sea_bottom
-        if (body, depth) not in self.__internals__['Green1']:
-            LOG.debug(f"\t\tComputing matrix 1 of {self.name} on {body.name} for depth={depth:.2e}")
-            def reflect_vector(x):
-                y = x.copy()
-                y[:, 2] = -x[:, 2]
-                return y
-
-            if depth == np.infty:
-                def reflect_point(x):
-                    y = x.copy()
-                    y[:, 2] = 2*free_surface - x[:, 2]
-                    return y
-            else:
-                def reflect_point(x):
-                    y = x.copy()
-                    y[:, 2] = 2*sea_bottom - x[:, 2]
-                    return y
-
-            S1, V1 = _Green.green_1.build_matrix_0(
-                reflect_point(self.faces_centers), reflect_vector(self.faces_normals),
-                body.vertices,      body.faces + 1,
-                body.faces_centers, body.faces_normals,
-                body.faces_areas,   body.faces_radiuses,
-                )
-
-            if depth == np.infty:
-                self.__internals__['Green1'][(body, np.infty)] = (-S1, -V1)
-                return -S1, -V1
-            else:
-                self.__internals__['Green1'][(body, depth)] = (S1, V1)
-                return S1, V1
-        else:
-            S1, V1 = self.__internals__['Green1'][(body, depth)]
-            LOG.debug(f"\t\tRetrieving stored matrix 1 of {self.name} on {body.name} for depth={depth:.2e}")
-            return S1, V1
-
-
-    def _build_matrices_2(self, body, free_surface, sea_bottom, wavenumber):
-        """Compute the third part of the influence matrices of self on body."""
-        if 'Green2' not in self.__internals__:
-            self.__internals__['Green2'] = MaxLengthDict({}, max_length=self.nb_matrices_to_keep)
-            LOG.debug(f"\t\tCreate Green2 dict (max_length={self.nb_matrices_to_keep}) in {self.name}")
-
-        depth = free_surface - sea_bottom
-        if (body, depth, wavenumber) not in self.__internals__['Green2']:
-            LOG.debug(f"\t\tComputing matrix 2 of {self.name} on {body.name} for depth={depth:.2e} and k={wavenumber:.2e}")
-            if depth == np.infty:
-                S2, V2 = _Green.green_2.build_matrix_2(
-                    self.faces_centers, self.faces_normals,
-                    body.faces_centers, body.faces_areas,
-                    wavenumber,         0.0,
-                    self is body
-                    )
-            else:
-                S2, V2 = _Green.green_2.build_matrix_2(
-                    self.faces_centers, self.faces_normals,
-                    body.faces_centers, body.faces_areas,
-                    wavenumber,         depth,
-                    self is body
-                    )
-
-            self.__internals__['Green2'][(body, depth, wavenumber)] = (S2, V2)
-        else:
-            S2, V2 = self.__internals__['Green2'][(body, depth, wavenumber)]
-            LOG.debug(f"\t\tRetrieving stored matrix 2 of {self.name} on {body.name} for depth={depth:.2e} and k={wavenumber:.2e}")
-
-        return S2, V2
-
-    def build_matrices(self, body, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0, **kwargs):
-        """Return the influence matrices of self on body."""
-
-        LOG.debug(f"\tEvaluating matrix of {self.name} on {body.name} for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
-
-        S = np.zeros((self.nb_faces, body.nb_faces), dtype=np.complex64)
-        V = np.zeros((self.nb_faces, body.nb_faces), dtype=np.complex64)
-
-        S0, V0 = self._build_matrices_0(body)
+        S0, V0 = solver._build_matrices_0(self, other_body)
         S += S0
         V += V0
 
         if free_surface < np.infty:
 
-            S1, V1 = self._build_matrices_1(body, free_surface, sea_bottom)
+            S1, V1 = solver._build_matrices_1(self, other_body, free_surface, sea_bottom)
             S += S1
             V += V1
 
-            S2, V2 = self._build_matrices_2(body, free_surface, sea_bottom, wavenumber)
+            S2, V2 = solver._build_matrices_2(self, other_body, free_surface, sea_bottom, wavenumber)
             S += S2
             V += V2
 

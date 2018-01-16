@@ -191,7 +191,7 @@ class CollectionOfFloatingBodies(FloatingBody):
     #  Computation of influence matrices  #
     #######################################
 
-    def build_matrices(self, other_body, **kwargs):
+    def build_matrices(self, solver, other_body, **kwargs):
         """Return the influence matrices of self on other body."""
         LOG.debug(f"Evaluating matrix of {self.name} on {other_body.name}.")
 
@@ -201,7 +201,7 @@ class CollectionOfFloatingBodies(FloatingBody):
         nb_faces = list(accumulate(chain([0], (body.nb_faces for body in self.subbodies))))
         for (i, j), body in zip(zip(nb_faces, nb_faces[1:]), self.subbodies):
             matrix_slice = (slice(i, j), slice(None, None))
-            S[matrix_slice], V[matrix_slice] = body.build_matrices(other_body, **kwargs)
+            S[matrix_slice], V[matrix_slice] = body.build_matrices(solver, other_body, **kwargs)
 
         return S, V
 
