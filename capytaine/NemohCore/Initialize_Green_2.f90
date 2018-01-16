@@ -23,10 +23,6 @@ MODULE Initialize_Green_2
   REAL, DIMENSION(JZ)     :: XZ
   REAL, DIMENSION(IR, JZ) :: APD1X, APD1Z, APD2X, APD2Z
 
-  ! Dependant of Omega
-  INTEGER                 :: NEXP
-  REAL, DIMENSION(31)     :: AMBDA, AR
-
 CONTAINS
 
   COMPLEX FUNCTION GG(Z, CEX)
@@ -155,7 +151,8 @@ CONTAINS
 ! This part of the code is still in old-fashionned style.
 ! TODO: clean that up.
 
-  SUBROUTINE LISC(AK0, wavenumber)
+  SUBROUTINE LISC(AK0, wavenumber, &
+                  AMBDA, AR, NEXP)
     ! Compute AMBDA and AR
 
     INTEGER, PARAMETER :: NEXR = 31
@@ -167,16 +164,19 @@ CONTAINS
 
     REAL, PARAMETER :: PRECI = 1.0e-2
 
-    REAL, INTENT(IN) :: AK0, wavenumber
+    ! Inputs
+    REAL, INTENT(IN)                 :: AK0, wavenumber
 
-    ! Tabulation of FF
-    REAL :: XT(4*(31-1)+1), YT(4*(31-1)+1)
+    ! Outputs
+    INTEGER, INTENT(OUT)             :: NEXP
+    REAL, DIMENSION(31), INTENT(OUT) :: AMBDA, AR
 
-    ! Local vairables
+    ! Local variables
     LOGICAL :: ISOR
     INTEGER :: I, J 
     INTEGER :: NK, NM, NMO
     REAL :: XX, YY, TT
+    REAL :: XT(4*(31-1)+1), YT(4*(31-1)+1) ! Tabulation of FF
 
     ! Initialize variables to be computed
     AMBDA = 0.0
@@ -234,7 +234,7 @@ CONTAINS
 
   SUBROUTINE EXPORS(XT, YT, NM, NMAX, AMBDA, AR)
 
-    INTEGER::I,J,K,JJ,II,IJ,MN
+    INTEGER::I,J,K,JJ,II,IJ,MN, NEXP
     INTEGER::IS,IER
     REAL::H,EPS
 
@@ -309,18 +309,18 @@ CONTAINS
   300 CONTINUE
       NEXP=J
       NM=NEXP
-      CALL MCAS(AMBDA,XT,YT,NPP,AR,S,NMAX)
+      CALL MCAS(AMBDA,XT,YT,NPP,AR,S,NMAX,NEXP)
 
     RETURN
   END SUBROUTINE EXPORS
 !----------------------------------------------------------------------------
 
-  SUBROUTINE MCAS(AMBDA,XT,YT,NPP,AR,A,NMAX)
+  SUBROUTINE MCAS(AMBDA,XT,YT,NPP,AR,A,NMAX,NEXP)
 
     REAL, INTENT(IN) :: AMBDA(31)
     REAL, INTENT(OUT) :: AR(31)
 
-    INTEGER:: NPP,NMAX
+    INTEGER:: NPP,NMAX,NEXP
     REAL::XT(4*(31-1)+1),YT(4*(31-1)+1),A(4*(31-1),31+1)
 
     INTEGER::I,J,L,M,N

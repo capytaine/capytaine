@@ -179,7 +179,8 @@ CONTAINS
   ! ======================
 
   SUBROUTINE VNSFD &
-      (wavenumber, X0I, X0J, depth, XR, &
+      (wavenumber, X0I, X0J, depth, &
+      XR, AMBDA, AR, NEXP, &
       SP, VSP)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
 
@@ -187,7 +188,10 @@ CONTAINS
     REAL,               INTENT(IN)  :: wavenumber, depth
     REAL, DIMENSION(3), INTENT(IN)  :: X0I   ! Coordinates of the source point
     REAL, DIMENSION(3), INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
+
     REAL, DIMENSION(328), INTENT(IN)  :: XR
+    INTEGER, INTENT(IN) :: NEXP
+    REAL, DIMENSION(31), INTENT(INOUT)  :: AMBDA, AR
 
     ! Outputs
     COMPLEX,               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
@@ -303,7 +307,7 @@ CONTAINS
       nb_faces_2,                       &
       centers_2, areas_2,               &
       wavenumber, depth,                &
-      XR, &
+      XR, AMBDA, AR, NEXP,              &
       same_body,                        &
       S, V)
 
@@ -312,7 +316,11 @@ CONTAINS
     REAL,    DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2
     REAL,    DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2
     REAL,                                 INTENT(IN) :: wavenumber, depth
-    REAL, DIMENSION(328),   INTENT(IN)  :: XR
+
+    REAL,    DIMENSION(328),              INTENT(IN) :: XR
+    INTEGER,                              INTENT(IN) :: NEXP
+    REAL,    DIMENSION(31),               INTENT(INOUT) :: AMBDA, AR
+
     LOGICAL,                              INTENT(IN) :: same_body
 
     COMPLEX, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
@@ -364,21 +372,21 @@ CONTAINS
         DO J = 1, nb_faces_2
 
           IF (depth == 0.0) THEN
-            CALL VNSINFD                    &
-              (wavenumber,                  &
-              centers_1(I, :),              &
-              centers_2(J, :),              &
-              XR, &
-              SP2, VSP2                     &
+            CALL VNSINFD           &
+              (wavenumber,         &
+              centers_1(I, :),     &
+              centers_2(J, :),     &
+              XR,                  &
+              SP2, VSP2            &
               )
           ELSE
-            CALL VNSFD                      &
-              (wavenumber,                  &
-              centers_1(I, :),              &
-              centers_2(J, :),              &
-              depth,                        &
-              XR, &
-              SP2, VSP2                     &
+            CALL VNSFD             &
+              (wavenumber,         &
+              centers_1(I, :),     &
+              centers_2(J, :),     &
+              depth,               &
+              XR, AMBDA, AR, NEXP, &
+              SP2, VSP2            &
               )
           END IF
 

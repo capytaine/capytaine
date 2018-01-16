@@ -36,11 +36,15 @@ class Nemoh:
         LOG.info("Solve %s.", problem)
 
         if problem.depth < np.infty:
-            _Green.initialize_green_2.lisc(
+            self.ambda, self.ar, self.nexp = _Green.initialize_green_2.lisc(
                 problem.omega**2*problem.depth/problem.g,
                 problem.wavenumber*problem.depth
             )
             LOG.debug(f"Initialize Nemoh's finite depth Green function for omega=%.2e and depth=%.2e", problem.omega, problem.depth)
+        else:
+            self.ambda = np.empty(31, dtype=np.float32)
+            self.ar = np.empty(31, dtype=np.float32)
+            self.nexp = 31
 
         added_masses, added_dampings = [], []
 
@@ -194,7 +198,7 @@ class Nemoh:
                     body1.faces_centers, body1.faces_normals,
                     body2.faces_centers, body2.faces_areas,
                     wavenumber,         0.0,
-                    self.XR,
+                    self.XR, self.ambda, self.ar, self.nexp,
                     body1 is body2
                     )
             else:
@@ -202,7 +206,7 @@ class Nemoh:
                     body1.faces_centers, body1.faces_normals,
                     body2.faces_centers, body2.faces_areas,
                     wavenumber,         depth,
-                    self.XR,
+                    self.XR, self.ambda, self.ar, self.nexp,
                     body1 is body2
                     )
 
