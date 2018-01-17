@@ -284,174 +284,192 @@ CONTAINS
     INTEGER::I,J,K,JJ,II,IJ,MN,NEXP
     REAL::H,EPS
 
-    NPP=4*NM+1
-    H=(XT(NPP)-XT(1))/(4*NM)
-    K=NPP-NM
-    DO I=1,K
-      DO J=1,NM
-        JJ=NM-J+I
-        S(I,J)=YT(JJ)
+    NPP = 4*NM+1
+    H = (XT(NPP) - XT(1))/(4*NM)
+    K = NPP-NM
+    DO I = 1, K
+      DO J = 1, NM
+        JJ = NM - J + I
+        S(I, J) = YT(JJ)
       END DO
-      II=NM+I
-      S(I,NM+1)=-YT(II)
+      II = NM + I
+      S(I, NM+1) = -YT(II)
     END DO
 
-    CALL HOUSRS(S,NMAX,K,NM,1)
+    CALL HOUSRS(S, NMAX, K, NM)
 
-    DO I=1,NM
-      IJ=NM-I+1
-      SC(IJ)=S(I,NM+1)
+    DO I = 1, NM
+      IJ = NM-I+1
+      SC(IJ) = S(I, NM+1)
     END DO
-    MN=NM+1
-    SC(MN)=1.
-    CALL SPRBM(SC,MN,VR,VC)
-    DO I=1,NM
-      COM(I)=CMPLX(VR(I),VC(I))
-      COM(I)=CLOG(COM(I))/H
-      VR(I)=REAL(COM(I))
-      VC(I)=AIMAG(COM(I))
+    MN = NM+1
+    SC(MN) = 1.0
+    CALL SPRBM(SC, MN, VR, VC)
+    DO I = 1, NM
+      COM(I) = CMPLX(VR(I), VC(I))
+      COM(I) = CLOG(COM(I))/H
+      VR(I) = REAL(COM(I))
+      VC(I) = AIMAG(COM(I))
     END DO
 
       I=1
       J=0
   100 IF(VC(I))110,111,110
+  ! 100 IF (VC(I) == 0) THEN
   111 J=J+1
       AMBDA(J)=VR(I)
       I=I+1
       GO TO 101
+    ! ELSE
   110 IF(ABS(VR(I)-VR(I+1))-1.E-5)120,120,121
+      ! IF (ABS(VR(I)-VR(I+1)) <= -1.E-5) THEN
   120 J=J+1
       AMBDA(J)=VR(I)
       I=I+2
       GO TO 101
+    ! ELSE
   121 J=J+1
       AMBDA(J)=VR(I)
       I=I+1
+    ! END IF
+    ! END IF
   101 IF(I-NM)100,100,102
   102 NEXP=J
-      J=0
-      DO 300 I=1,NEXP
-      J=J+1
-      IF(AMBDA(I).GE.0.)GOTO 301
-      IF(AMBDA(I)+20.)301,301,302
-  301 J=J-1
-      GO TO 300
-  302 AMBDA(J)=AMBDA(I)
-  300 CONTINUE
-      NEXP=J
-      NM=NEXP
-      CALL MCAS(AMBDA,XT,YT,NPP,AR,S,NMAX,NEXP)
+
+    ! Rewrite AMBDA while keeping only the values between -20.0 and 0.0
+    J = 0
+    DO I = 1, NEXP
+      IF ((AMBDA(I) > -20.0) .AND. (AMBDA(I) <= 0.0)) THEN
+        J = J+1
+        AMBDA(J) = AMBDA(I)
+      END IF
+    END DO
+
+    ! Number of relevant values in AMBDA
+    NEXP = J
+    NM = NEXP
+
+    CALL MCAS(AMBDA, XT, YT, NPP, AR, S, NMAX, NEXP)
 
     RETURN
   END SUBROUTINE EXPORS
+
 !----------------------------------------------------------------------------
 
-  SUBROUTINE MCAS(AMBDA,XT,YT,NPP,AR,A,NMAX,NEXP)
+  SUBROUTINE MCAS(AMBDA, XT, YT, NPP, AR, A, NMAX, NEXP)
+    ! Compute AR
 
     REAL, INTENT(IN)    :: AMBDA(31), XT(4*(31-1)+1), YT(4*(31-1)+1)
     INTEGER, INTENT(IN) :: NPP, NMAX, NEXP
-    REAL, INTENT(INOUT) :: A(4*(31-1),31+1)
+    REAL, INTENT(INOUT) :: A(4*(31-1), 31+1)
     REAL, INTENT(OUT)   :: AR(31)
 
-    INTEGER::I,J,L,M,N
-    REAL::S,TT,TTT
+    ! Local variables
+    INTEGER :: I, J, L
+    REAL :: S, TT, TTT
 
-    DO I=1,NEXP
-      DO J=1,NEXP
-        S=0
-        DO 3 L=1,NPP
-          TT=(AMBDA(I)+AMBDA(J))*XT(L)
-          IF(TT+30)3,4,4
-          4 S=S+EXP(TT)
-        3 CONTINUE
-        A(I,J)=S
+    DO I = 1, NEXP
+      DO J = 1, NEXP
+        S = 0
+        DO L = 1, NPP
+          TT = (AMBDA(I)+AMBDA(J))*XT(L)
+          IF(TT >= -30) THEN
+            S = S + EXP(TT)
+          END IF
+        END DO
+        A(I,J) = S
       END DO
     END DO
 
-    DO I=1,NEXP
-      S=0
-      DO 6 L=1,NPP
-        TTT=AMBDA(I)*XT(L)
-        IF(TTT+30)6,7,7
-        7 S=S+EXP(TTT)*YT(L)
-      6 CONTINUE
-      A(I,NEXP+1)=S
+    DO I = 1, NEXP
+      S = 0
+      DO L = 1, NPP
+        TTT = AMBDA(I)*XT(L)
+        IF(TTT >= -30) THEN
+          S = S + EXP(TTT)*YT(L)
+        END IF
+      END DO
+      A(I, NEXP+1) = S
     END DO
-    N=NEXP
-    M=N+1
-    CALL HOUSRS(A,NMAX,N,N,1)
 
-    DO I=1,NEXP
-      AR(I)=A(I,NEXP+1)
+    CALL HOUSRS(A, NMAX, NEXP, NEXP)
+
+    DO I = 1, NEXP
+      AR(I) = A(I, NEXP+1)
     END DO
 
     RETURN
-
   END SUBROUTINE MCAS
 
 !---------------------------------------------------------------------
 
-  SUBROUTINE HOUSRS(A,NMAX,NL,NCC,NS)
+  SUBROUTINE HOUSRS(A, NMAX, NL, NCC)
 
-    INTEGER, INTENT(IN) :: NMAX, NL, NCC, NS
+    ! NCC : Number of columns
+    ! NL: Number of lines
+
+    INTEGER, INTENT(IN) :: NMAX, NL, NCC
     REAL, INTENT(INOUT) :: A(NMAX, 31+1)
 
+    ! Local variables
+    INTEGER, PARAMETER :: NS = 1
     REAL, PARAMETER :: EPS = 1e-20
 
-    INTEGER :: I, J, K, L, M, NCJ, NTC, KP1
+    INTEGER :: I, J, K, L
     REAL    :: E, E0, AR, BA, ETA
-    INTEGER :: I1
 
-      NTC=NCC+NS
-      IF(NCC.GT.NL)THEN
-        WRITE(*,3010)
-  3010 FORMAT(' NBRE DE COLONNES > NBRES DE LIGNES')
-        STOP
+    IF (NCC > NL) THEN
+      PRINT*, ('Error in HOUSRS: number of columns > number of lines')
+      STOP
+    ENDIF
+
+    DO K = 1, NCC
+      E = 0.0
+      DO I = K, NL
+        E = E + A(I, K)**2
+      END DO
+      
+      E0 = SQRT(E)
+      ! IF(E0.LT.EPS)THEN
+      !   WRITE(*, 201)EPS
+    ! 201 FORMAT(1X, 'NORME INFERIEURE A ', 1PE16.6/)
+      !   STOP
+      ! ENDIF
+      IF (A(K, K) == 0) THEN
+        AR = -E0
+      ELSE
+        AR = -SIGN(1.0, A(K, K)) * E0
       ENDIF
-      DO 13 K=1,NCC
-        E=0
-        DO 1101 I=K,NL
-          E=E+A(I,K)**2
-   1101 CONTINUE
-        E0=SQRT(E)
-        IF(E0.LT.EPS)THEN
-          WRITE(*,201)EPS
-      201 FORMAT(1X,'NORME INFERIEURE A ',1PE16.6/)
-          STOP
-        ENDIF
-        IF(A(K,K).EQ.0)THEN
-          AR=-E0
-        ELSE
-          AR=-SIGN(E0,A(K,K))
-        ENDIF
-        ETA=AR*(AR-A(K,K))
-        KP1=K+1
-        DO 10 J=KP1,NTC
-          BA=(A(K,K)-AR)*A(K,J)
-          DO 9 I=KP1,NL
-            BA=BA+A(I,K)*A(I,J)
-        9 CONTINUE
-          A(K,J)=A(K,J)+BA/AR
-          DO 11 I=KP1,NL
-            A(I,J)=A(I,J)-A(I,K)*BA/ETA
-       11 CONTINUE
-     10 CONTINUE
-        A(K,K)=AR
-        DO 12 I=KP1,NL
-  12   A(I,K)=0
- 13   CONTINUE
-      DO 1006 J=1,NS
-        NCJ=NCC+J
-        A(NCC,NCJ)=A(NCC,NCJ)/A(NCC,NCC)
-        DO 1005 L=2,NCC
-          I1=NCC+1-L
-          M=I1+1
-          DO 1004 I=M,NCC
-      1004 A(I1,NCJ)=A(I1,NCJ)-A(I1,I)*A(I,NCJ)
-    1005 A(I1,NCJ)=A(I1,NCJ)/A(I1,I1)
- 1006 CONTINUE
-      RETURN
 
+      ETA = AR*(AR - A(K, K))
+      DO J = K+1, NCC+NS
+        BA = (A(K, K)-AR)*A(K, J)
+        DO I = K+1, NL
+          BA = BA+A(I, K)*A(I, J)
+        END DO
+        A(K, J) = A(K, J)+BA/AR
+        DO I = K+1, NL
+          A(I, J) = A(I, J)-A(I, K)*BA/ETA
+        END DO
+      END DO
+
+      A(K, K) = AR
+      DO I = K+1, NL
+        A(I, K) = 0
+      END DO
+    END DO
+
+    DO J = 1, NS
+      A(NCC, NCC+J) = A(NCC, NCC+J)/A(NCC, NCC)
+      DO L = 2, NCC
+        DO I = NCC+2-L, NCC
+          A(NCC+1-L, NCC+J) = A(NCC+1-L, NCC+J) - A(NCC+1-L, I)*A(I, NCC+J)
+        END DO
+        A(NCC+1-L, NCC+J) = A(NCC+1-L, NCC+J)/A(NCC+1-L, NCC+1-L)
+      END DO
+    END DO
+
+    RETURN
   END SUBROUTINE HOUSRS
 
 !----------------------------------------------------------------------
