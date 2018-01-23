@@ -31,7 +31,7 @@ problems = [RadiationProblem(body=cylinder, rho=rho, omega=omega) for omega in o
 results = [solver.solve(pb) for pb in problems]
 
 results = np.array(results)
-np.savetxt("results.csv", results)
+np.savetxt("results.csv", results[:, :, 0, 0])
 
 plt.figure()
 plt.plot(omega_range, results[:, 0, 0, 0]/(rho*cylinder.volume), label="Added mass")
