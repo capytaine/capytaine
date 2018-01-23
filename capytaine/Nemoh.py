@@ -14,6 +14,7 @@ from capytaine.Toeplitz_matrices import (BlockCirculantMatrix, block_circulant_i
                                          solve)
 import capytaine._Green as _Green
 from capytaine.tools import MaxLengthDict
+from capytaine.exponential_decomposition import exponential_decomposition, error_exponential_decomposition
 
 
 LOG = logging.getLogger(__name__)
@@ -36,15 +37,22 @@ class Nemoh:
         LOG.info("Solve %s.", problem)
 
         if problem.depth < np.infty:
-            self.ambda, self.ar, self.nexp = _Green.initialize_green_2.lisc(
-                problem.omega**2*problem.depth/problem.g,
-                problem.wavenumber*problem.depth
-            )
             LOG.debug(f"Initialize Nemoh's finite depth Green function for omega=%.2e and depth=%.2e", problem.omega, problem.depth)
+            self.a_exp, self.lamda_exp = self.get_exponential_decomposition(problem)
+            self.n_exp = len(self.a_exp) # = len(self.lamda_exp)
+
+            # Convert to precision wanted by Fortran code.
+            self.a_exp = self.a_exp.astype(np.float32)
+            self.lamda_exp = self.lamda_exp.astype(np.float32)
+
+            # Temporary trick: expand arrays to fix size hard-coded in Fortran module.
+            self.a_exp = np.r_[self.a_exp, np.empty(31-self.n_exp, dtype=np.float32)]
+            self.lamda_exp = np.r_[self.lamda_exp, np.empty(31-self.n_exp, dtype=np.float32)]
+
         else:
-            self.ambda = np.empty(31, dtype=np.float32)
-            self.ar = np.empty(31, dtype=np.float32)
-            self.nexp = 31
+            self.lamda_exp = np.empty(31, dtype=np.float32)
+            self.a_exp = np.empty(31, dtype=np.float32)
+            self.n_exp = 31
 
         added_masses, added_dampings = [], []
 
@@ -115,10 +123,37 @@ class Nemoh:
         return pool.map(self.solve, problems)
 
 
+    ####################
+    #  Initialization  #
+    ####################
+    def get_exponential_decomposition(self, problem):
+        """Return the decomposition a part of the finite depth Green function as a sum of
+        exponentials."""
+
+        # The function that will be approximated.
+        @np.vectorize
+        def f(x):
+            return _Green.initialize_green_2.ff(x, problem.dimensionless_omega,
+                                                problem.dimensionless_wavenumber)
+
+        # Try different increasing number of exponentials
+        for n_exp in range(4, 31, 2):
+
+            # The coefficients are computed on a resolution of 4*n_exp+1 ...
+            X = np.linspace(-0.1, 20.0, 4*n_exp+1)
+            a, lamda = exponential_decomposition(X, f(X), n_exp)
+
+            # ... and they are evaluated on a finer discretization.
+            X = np.linspace(-0.1, 20.0, 8*n_exp+1)
+            if error_exponential_decomposition(X, f(X), a, lamda) < 1e-4:
+                return a, lamda
+
+        LOG.warning(f"No suitable exponential decomposition has been found for {problem}.")
+        return a, lamda
+
     #######################
     #  Building matrices  #
     #######################
-
     def _build_matrices_0(self, body1, body2):
         """Compute the first part of the influence matrices of self on body."""
         if 'Green0' not in body1.__internals__:
@@ -198,7 +233,7 @@ class Nemoh:
                     body1.faces_centers, body1.faces_normals,
                     body2.faces_centers, body2.faces_areas,
                     wavenumber,         0.0,
-                    self.XR, self.ambda, self.ar, self.nexp,
+                    self.XR, self.lamda_exp, self.a_exp, self.n_exp,
                     body1 is body2
                     )
             else:
@@ -206,7 +241,7 @@ class Nemoh:
                     body1.faces_centers, body1.faces_normals,
                     body2.faces_centers, body2.faces_areas,
                     wavenumber,         depth,
-                    self.XR, self.ambda, self.ar, self.nexp,
+                    self.XR, self.lamda_exp, self.a_exp, self.n_exp,
                     body1 is body2
                     )
 

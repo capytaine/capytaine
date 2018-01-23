@@ -45,6 +45,14 @@ class PotentialFlowProblem:
     def period(self):
         return 2*np.pi/self.omega
 
+    @property
+    def dimensionless_omega(self):
+        return self.omega**2*self.depth/self.g
+
+    @property
+    def dimensionless_wavenumber(self):
+        return self.wavenumber*self.depth
+
 
 class DiffractionProblem(PotentialFlowProblem):
 
