@@ -4,9 +4,9 @@ MODULE Initialize_Green_2
 
   PUBLIC :: GG
   PUBLIC :: INITIALIZE_GREEN
+  PUBLIC :: FF
 
   PUBLIC :: LISC   ! Initialization of AMBDA and AR
-  PUBLIC :: FF     ! Called by LISC
   PUBLIC :: EXPORS ! Called by LISC
   PUBLIC :: MCAS   ! Called by EXPORS
   PUBLIC :: HOUSRS ! Called by EXPORS and MCAS
@@ -80,7 +80,6 @@ CONTAINS
     ! Initialize XR, XZ, APD1X, APD2X, APD1Z, APD2Z
     ! Those parameters are independent of the depth and the frequency.
     ! Thus, they are initialized only once at the beginning of the execution of the code.
-    ! Other parameters are initialized in LISC below.
 
     ! Output
     REAL, DIMENSION(328), INTENT(OUT)  :: XR
@@ -149,9 +148,42 @@ CONTAINS
 
 !-------------------------------------------------------------------------------!
 
-! The subroutine below initialize AMBDA and AR which are dependent on the wave number.
-! This part of the code is still in old-fashionned style.
-! TODO: clean that up.
+  FUNCTION FF(XTT, AK, AM)
+
+    ! Input
+    REAL, INTENT(IN) :: XTT, AK, AM
+
+    ! Local variables
+    REAL :: COEF, TOL, A, B, C, D, E, F, FF
+
+    COEF = (AM+AK)**2/(AM**2-AK**2+AK)
+
+    TOL = MAX(0.1, 0.1*AM)
+    IF (ABS(XTT-AM) > TOL) THEN
+      FF = (XTT+AK)*EXP(XTT)/(XTT*SINH(XTT)-AK*COSH(XTT)) - COEF/(XTT-AM) - 2
+    ELSE
+      A = AM - TOL
+      B = AM
+      C = AM + TOL
+      D = (A+AK)*EXP(A)/(A*SINH(A)-AK*COSH(A)) - COEF/(A-AM) - 2
+      E = COEF/(AM+AK)*(AM+AK+1)               - (COEF/(AM+AK))**2*AM - 2
+      F = (C+AK)*EXP(C)/(C*SINH(C)-AK*COSH(C)) - COEF/(C-AM) - 2
+      FF = D*(XTT-B)*(XTT-C)/((A-B)*(A-C)) + &
+           E*(XTT-C)*(XTT-A)/((B-C)*(B-A)) + &
+           F*(XTT-A)*(XTT-B)/((C-A)*(C-B))
+    ENDIF
+    
+    RETURN
+  END FUNCTION FF
+
+!-------------------------------------------------------------------------------!
+
+! The code below perform the approximation of the function FF above as a sum of
+! exponentials. They have been partially commented and refactored. A more
+! readable and maintainable Python version has been implemented in Nemoh.py.
+! However, as of today (January 2018), the python version is ~100 times slower
+! than the Fortran version below. Thus, the code below has been preserved. It
+! could become useful if ever this part of the code would become time critical.
 
   SUBROUTINE LISC(AK0, wavenumber, &
                   AMBDA, AR, NEXP)
@@ -195,37 +227,37 @@ CONTAINS
       YT(I) = FF(XT(I), AK0, wavenumber)
     END DO
 
-    ! Compute AMBDA and AR
+    ! Compute AMBDA and AR based on this tabulation
     NM = NK
     CALL EXPORS(XT, YT, NM, NMAX, AMBDA, AR)
 
     ! Test values of AMBDA and AR
     ISOR = .False.
     NMO = 8*NM+1
-
     DO I = 1, NMO
       XX = (I-1)*B/(NMO-1)
 
       ! Exact value
       YY = FF(XX, AK0, wavenumber)
 
-      ! Compute the series
+      ! Compute the sum of exponentials
       TT = 0.0
       DO J = 1, NM
         TT = TT + AR(J)*EXP(AMBDA(J)*XX)
       END DO
 
-      ! Compare
+      ! Compare the error to a threshold
       IF (ABS(YY-TT) > PRECI) ISOR = .True.
     END DO
 
-    ! An error war higher than the wanted precision
+    ! The error was higher than the wanted precision
     IF (ISOR .AND. (NK <= NEXR-2)) THEN
-      ! Add more coefficients and restart
+      ! Add more exponentials to the sum and restart
       NK = NK+2
       GOTO 62
     END IF
 
+    ! Final number of exponentials in the sum
     NEXP = NM
 
     RETURN
@@ -234,43 +266,15 @@ CONTAINS
 
 !---------------------------------------------------------------------
 
-  FUNCTION FF(XTT, AK, AM)
-
-    ! Input
-    REAL, INTENT(IN) :: XTT, AK, AM
-
-    ! Local variables
-    REAL :: COEF, TOL, A, B, C, D, E, F, FF
-
-    COEF = (AM+AK)**2/(AM**2-AK**2+AK)
-
-    TOL = MAX(0.1, 0.1*AM)
-    IF (ABS(XTT-AM) > TOL) THEN
-      FF = (XTT+AK)*EXP(XTT)/(XTT*SINH(XTT)-AK*COSH(XTT)) - COEF/(XTT-AM) - 2
-    ELSE
-      A = AM - TOL
-      B = AM
-      C = AM + TOL
-      D = (A+AK)*EXP(A)/(A*SINH(A)-AK*COSH(A)) - COEF/(A-AM) - 2
-      E = COEF/(AM+AK)*(AM+AK+1)               - (COEF/(AM+AK))**2*AM - 2
-      F = (C+AK)*EXP(C)/(C*SINH(C)-AK*COSH(C)) - COEF/(C-AM) - 2
-      FF = D*(XTT-B)*(XTT-C)/((A-B)*(A-C)) + &
-           E*(XTT-C)*(XTT-A)/((B-C)*(B-A)) + &
-           F*(XTT-A)*(XTT-B)/((C-A)*(C-B))
-    ENDIF
-    
-    RETURN
-  END FUNCTION FF
-
-!-------------------------------------------------------------------------------!
-
   SUBROUTINE EXPORS(XT, YT, NM, NMAX, AMBDA, AR)
-    ! Compute AMBDA and AR based on XT and YT
+    ! Compute AMBDA and AR based on XT and YT using Prony's method.
 
     INTEGER, INTENT(IN) :: NMAX
     REAL, INTENT(IN)    :: XT(4*(31-1)+1), YT(4*(31-1)+1)
 
-    INTEGER, INTENT(INOUT) :: NM
+    INTEGER, INTENT(INOUT) :: NM ! Number of exponentials in the sum.
+    ! The number of exponentials will change during the computation, for
+    ! instance if some roots of the polynomial are double and thus merged.
 
     REAL, INTENT(OUT) :: AR(31), AMBDA(31)
 
@@ -284,6 +288,7 @@ CONTAINS
     INTEGER::I,J,K,JJ,II,IJ,MN,NEXP
     REAL::H,EPS
 
+    ! Assemble an over-determined linear system
     NPP = 4*NM+1
     H = (XT(NPP) - XT(1))/(4*NM)
     K = NPP-NM
@@ -296,22 +301,27 @@ CONTAINS
       S(I, NM+1) = -YT(II)
     END DO
 
+    ! Solve the system
     CALL HOUSRS(S, NMAX, K, NM)
 
+    ! Assemble the coefficients of the polynomial
     DO I = 1, NM
       IJ = NM-I+1
       SC(IJ) = S(I, NM+1)
     END DO
     MN = NM+1
     SC(MN) = 1.0
-    CALL SPRBM(SC, MN, VR, VC)
-    DO I = 1, NM
-      COM(I) = CMPLX(VR(I), VC(I))
-      COM(I) = CLOG(COM(I))/H
-      VR(I) = REAL(COM(I))
-      VC(I) = AIMAG(COM(I))
-    END DO
 
+    ! Get roots of the polynomial
+    CALL SPRBM(SC, MN, VR, VC)
+
+    COM(1:NM) = CMPLX(VR(1:NM), VC(1:NM))
+    COM(1:NM) = CLOG(COM(1:NM))/H
+    VR(1:NM) = REAL(COM(1:NM))
+    VC(1:NM) = AIMAG(COM(1:NM))
+
+    ! Keep only the real part of the roots.
+    ! In case of a double root, keep only one.
       I=1
       J=0
   100 IF(VC(I))110,111,110
@@ -349,6 +359,7 @@ CONTAINS
     NEXP = J
     NM = NEXP
 
+    ! Compute AR
     CALL MCAS(AMBDA, XT, YT, NPP, AR, S, NMAX, NEXP)
 
     RETURN
@@ -357,7 +368,7 @@ CONTAINS
 !----------------------------------------------------------------------------
 
   SUBROUTINE MCAS(AMBDA, XT, YT, NPP, AR, A, NMAX, NEXP)
-    ! Compute AR
+    ! Compute AR as the least-square solution of an over-determined system.
 
     REAL, INTENT(IN)    :: AMBDA(31), XT(4*(31-1)+1), YT(4*(31-1)+1)
     INTEGER, INTENT(IN) :: NPP, NMAX, NEXP
@@ -368,6 +379,7 @@ CONTAINS
     INTEGER :: I, J, L
     REAL :: S, TT, TTT
 
+    ! Assemble the system
     DO I = 1, NEXP
       DO J = 1, NEXP
         S = 0
@@ -392,8 +404,10 @@ CONTAINS
       A(I, NEXP+1) = S
     END DO
 
+    ! Solve it
     CALL HOUSRS(A, NMAX, NEXP, NEXP)
 
+    ! Extract results
     DO I = 1, NEXP
       AR(I) = A(I, NEXP+1)
     END DO
@@ -404,7 +418,7 @@ CONTAINS
 !---------------------------------------------------------------------
 
   SUBROUTINE HOUSRS(A, NMAX, NL, NCC)
-
+    ! Least-square solver for over-determined system.
     ! NCC : Number of columns
     ! NL: Number of lines
 
@@ -475,6 +489,7 @@ CONTAINS
 !----------------------------------------------------------------------
 
   SUBROUTINE SPRBM(C,IC,RR,RC)
+    ! Somehow get the roots of a polynomial.
 
     INTEGER::IC,IR,IER
     REAL :: C(31), RR(31), RC(31)
