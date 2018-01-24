@@ -29,6 +29,8 @@ class Nemoh:
         self.XR = _Green.initialize_green_2.initialize_green()
         LOG.info("Initialize Nemoh's Green function.")
 
+        self.exponential_decompositions = MaxLengthDict(max_length=10)
+
     def solve(self, problem, keep_details=False):
         """Solve the BEM problem using Nemoh.
         """
@@ -36,22 +38,7 @@ class Nemoh:
         LOG.info("Solve %s.", problem)
 
         if problem.depth < np.infty:
-            LOG.debug(f"Initialize Nemoh's finite depth Green function for omega=%.2e and depth=%.2e", problem.omega, problem.depth)
-            self.a_exp, self.lamda_exp = self.get_exponential_decomposition(problem)
-            self.n_exp = len(self.a_exp) # = len(self.lamda_exp)
-
-            # Convert to precision wanted by Fortran code.
-            self.a_exp = self.a_exp.astype(np.float32)
-            self.lamda_exp = self.lamda_exp.astype(np.float32)
-
-            # Temporary trick: expand arrays to fix size hard-coded in Fortran module.
-            self.a_exp = np.r_[self.a_exp, np.empty(31-self.n_exp, dtype=np.float32)]
-            self.lamda_exp = np.r_[self.lamda_exp, np.empty(31-self.n_exp, dtype=np.float32)]
-
-        else:
-            self.lamda_exp = np.empty(31, dtype=np.float32)
-            self.a_exp = np.empty(31, dtype=np.float32)
-            self.n_exp = 31
+            self.compute_exponential_decomposition(problem)
 
         S, V = problem.body.build_matrices(
             self,
@@ -96,30 +83,46 @@ class Nemoh:
     ####################
     #  Initialization  #
     ####################
-    def get_exponential_decomposition(self, problem):
+    def compute_exponential_decomposition(self, pb):
         """Return the decomposition a part of the finite depth Green function as a sum of
         exponentials."""
 
-        # The function that will be approximated.
-        @np.vectorize
-        def f(x):
-            return _Green.initialize_green_2.ff(x, problem.dimensionless_omega,
-                                                problem.dimensionless_wavenumber)
+        LOG.debug(f"Initialize Nemoh's finite depth Green function for omega=%.2e and depth=%.2e", pb.omega, pb.depth)
+        if (pb.dimensionless_omega, pb.dimensionless_wavenumber) not in self.exponential_decompositions:
 
-        # Try different increasing number of exponentials
-        for n_exp in range(4, 31, 2):
+            # The function that will be approximated.
+            @np.vectorize
+            def f(x):
+                return _Green.initialize_green_2.ff(x, pb.dimensionless_omega,
+                                                    pb.dimensionless_wavenumber)
 
-            # The coefficients are computed on a resolution of 4*n_exp+1 ...
-            X = np.linspace(-0.1, 20.0, 4*n_exp+1)
-            a, lamda = exponential_decomposition(X, f(X), n_exp)
+            # Try different increasing number of exponentials
+            for n_exp in range(4, 31, 2):
 
-            # ... and they are evaluated on a finer discretization.
-            X = np.linspace(-0.1, 20.0, 8*n_exp+1)
-            if error_exponential_decomposition(X, f(X), a, lamda) < 1e-4:
-                return a, lamda
+                # The coefficients are computed on a resolution of 4*n_exp+1 ...
+                X = np.linspace(-0.1, 20.0, 4*n_exp+1)
+                a, lamda = exponential_decomposition(X, f(X), n_exp)
 
-        LOG.warning(f"No suitable exponential decomposition has been found for {problem}.")
-        return a, lamda
+                # ... and they are evaluated on a finer discretization.
+                X = np.linspace(-0.1, 20.0, 8*n_exp+1)
+                if error_exponential_decomposition(X, f(X), a, lamda) < 1e-4:
+                    break
+
+            else:
+                LOG.warning(f"No suitable exponential decomposition has been found for {pb}.")
+
+            # Convert to precision wanted by Fortran code.
+            a = a.astype(np.float32)
+            lamda = lamda.astype(np.float32)
+
+            # Temporary trick: expand arrays to fix size hard-coded in Fortran module.
+            a = np.r_[a, np.zeros(31-len(a), dtype=np.float32)]
+            lamda = np.r_[lamda, np.zeros(31-len(lamda), dtype=np.float32)]
+
+            self.exponential_decompositions[(pb.dimensionless_omega, pb.dimensionless_wavenumber)] = (a, lamda)
+
+        else:
+            self.exponential_decompositions.move_to_end(key=(pb.dimensionless_omega, pb.dimensionless_wavenumber), last=True)
 
     #######################
     #  Building matrices  #
@@ -200,19 +203,27 @@ class Nemoh:
         if (body2, depth, wavenumber) not in body1.__internals__['Green2']:
             LOG.debug(f"\t\tComputing matrix 2 of {body1.name} on {body2.name} for depth={depth:.2e} and k={wavenumber:.2e}")
             if depth == np.infty:
+                lamda_exp = np.empty(31, dtype=np.float32)
+                a_exp = np.empty(31, dtype=np.float32)
+                n_exp = 31
+
                 S2, V2 = _Green.green_2.build_matrix_2(
                     body1.faces_centers, body1.faces_normals,
                     body2.faces_centers, body2.faces_areas,
                     wavenumber,         0.0,
-                    self.XR, self.lamda_exp, self.a_exp, self.n_exp,
+                    self.XR, lamda_exp, a_exp, n_exp,
                     body1 is body2
                     )
             else:
+                # Get the last computed exponential decomposition.
+                a_exp, lamda_exp= next(reversed(self.exponential_decompositions.values()))
+                n_exp = 31
+
                 S2, V2 = _Green.green_2.build_matrix_2(
                     body1.faces_centers, body1.faces_normals,
                     body2.faces_centers, body2.faces_areas,
                     wavenumber,         depth,
-                    self.XR, self.lamda_exp, self.a_exp, self.n_exp,
+                    self.XR, lamda_exp, a_exp, n_exp,
                     body1 is body2
                     )
 
