@@ -17,7 +17,7 @@ from capytaine.tools.Airy_wave import Airy_wave_velocity
 LOG = logging.getLogger(__name__)
 
 
-@attrs
+@attrs(slots=True)
 class LinearPotentialFlowProblem:
     """General class of a potential flow problem.
 
@@ -98,7 +98,7 @@ class LinearPotentialFlowProblem:
         return LinearPotentialFlowResult(self)
 
 
-@attrs
+@attrs(slots=True)
 class DiffractionProblem(LinearPotentialFlowProblem):
     """Particular LinearPotentialFlowProblem whose boundary conditions have
     been computed from an incoming Airy wave."""
@@ -122,7 +122,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
         return DiffractionResult(self)
 
 
-@attrs
+@attrs(slots=True)
 class RadiationProblem(LinearPotentialFlowProblem):
     """Particular LinearPotentialFlowProblem whose boundary conditions have
     been computed from the degree of freedom of the body."""
