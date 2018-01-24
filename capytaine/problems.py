@@ -89,6 +89,11 @@ class LinearPotentialFlowProblem:
     def dimensionless_wavenumber(self):
         return self.wavenumber*self.depth
 
+    @property
+    def influenced_dofs(self):
+        # TODO: let the user choose the influenced dofs
+        return self.body.dofs
+
     def make_results_container(self):
         return LinearPotentialFlowResult(self)
 
