@@ -29,7 +29,9 @@ if __name__ == "__main__":
           license='GPLv3',
           packages=['capytaine'],
           install_requires=[
+              'attrs',
               'numpy',
+              'scipy',
               'meshmagick',
               ],
           ext_modules=[
