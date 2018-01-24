@@ -33,7 +33,7 @@ def test_floating_sphere_finite_freq():
     assert np.isclose(result.radiation_dampings["Heave"], 379.39, atol=1e-3*sphere.volume*problem.rho)
 
     free_surface = generate_free_surface(width=125, length=125, nw=5, nl=5)
-    eta = solver.get_free_surface(result, free_surface, dof="Heave")
+    eta = solver.get_free_surface_elevation(result, free_surface)
     ref = np.array(
             [[-0.4340802E-02-0.4742809E-03j, -0.7986111E-03+0.4840984E-02j, 0.2214827E-02+0.4700642E-02j, -0.7986111E-03+0.4840984E-02j, -0.4340803E-02-0.4742807E-03j],
              [-0.7986111E-03+0.4840984E-02j, 0.5733187E-02-0.2179381E-02j, 0.9460892E-03-0.7079404E-02j, 0.5733186E-02-0.2179381E-02j, -0.7986110E-03+0.4840984E-02j],

@@ -28,7 +28,7 @@ results = solver.solve(problem, keep_details=True)
 
 # Compute free surface elevation
 fs_mesh = generate_free_surface(width=100.0, length=100.0, nw=100, nl=100)
-fs = solver.get_free_surface(problem, fs_mesh)
+fs = solver.get_free_surface_elevation(problem, fs_mesh)
 
 # Add incoming waves
 fs = fs + 1j*problem.omega/problem.g * problem.Airy_wave_potential(fs_mesh.faces_centers)

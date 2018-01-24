@@ -61,9 +61,9 @@ class Nemoh:
         results = problem.make_results_container()
 
         if keep_details:
-            results.keep_details = True
-            results.S = S
-            results.V = V
+            # results.keep_details = True
+            # results.S = S
+            # results.V = V
             results.sources = sources
             results.potential = potential
 
@@ -83,6 +83,7 @@ class Nemoh:
     ####################
     #  Initialization  #
     ####################
+
     def compute_exponential_decomposition(self, pb):
         """Return the decomposition a part of the finite depth Green function as a sum of
         exponentials."""
@@ -127,6 +128,7 @@ class Nemoh:
     #######################
     #  Building matrices  #
     #######################
+
     def _build_matrices_0(self, body1, body2):
         """Compute the first part of the influence matrices of self on body."""
         if 'Green0' not in body1.__internals__:
@@ -238,16 +240,27 @@ class Nemoh:
     #  Compute potential  #
     #######################
 
-    def get_potential_on_mesh(self, solved_problem, mesh, dof=None):
+    def get_potential_on_mesh(self, solved_problem, mesh):
+        """Compute the potential on a mesh for the potential field of a previously solved problem.
+
+        Parameters
+        ----------
+        solved_problem: LinearPotentialFlowResult
+            the return of Nemoh's solver
+        mesh: FloatingBody
+            a meshed floating body
+
+        Returns
+        -------
+        phi: array
+            potential on the faces of the mesh
+        """
         LOG.info(f"Compute potential on {mesh.name} for {solved_problem}.")
 
-        if len(solved_problem.sources) == 0:
-            if not solved_problem.keep_details:
-                raise Exception(f"""The detail of the sources of {solved_problem} are not stored by the solver
-                so they can't be used for later computation of the potential.
-                Please run the solver with keep_details=True.""")
-            else:
-                raise Exception(f"{solved_problem} need to be solved with Nemoh.solve before computing potential anywhere.")
+        if solved_problem.sources is None:
+            raise Exception(f"""The values of the sources of {solved_problem} cannot been found.
+            They probably have not been stored by the solver because the option keep_details=True have not been set.
+            Please re-run the resolution with this option.""")
 
         S, _ = mesh.build_matrices(
             self,
@@ -263,6 +276,20 @@ class Nemoh:
 
         return phi
 
-    def get_free_surface(self, solved_problem, free_surface, dof=None):
-        return 1j*solved_problem.omega/solved_problem.g * self.get_potential_on_mesh(solved_problem, free_surface, dof=dof)
+    def get_free_surface_elevation(self, solved_problem, free_surface):
+        """Compute the elevation of the free surface on a mesh for a previously solved problem.
+
+        Parameters
+        ----------
+        solved_problem: LinearPotentialFlowResult
+            the return of Nemoh's solver
+       free_surface: FloatingBody
+            a meshed free surface
+
+        Returns
+        -------
+        array
+            the free surface elevation on each faces of the meshed free surface
+        """
+        return 1j*solved_problem.omega/solved_problem.g * self.get_potential_on_mesh(solved_problem, free_surface)
 
