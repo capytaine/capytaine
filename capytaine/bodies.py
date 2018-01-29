@@ -38,6 +38,9 @@ class FloatingBody(Mesh):
         self.dofs = {}
         LOG.info(f"New floating body: {self.name}.")
 
+    def __repr__(self):
+        return self.name
+
     @staticmethod
     def from_file(filename, file_format):
         """Create a FloatingBody from a mesh file using meshmagick."""

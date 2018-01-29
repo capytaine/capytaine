@@ -33,9 +33,14 @@ if __name__ == "__main__":
               'numpy',
               'scipy',
               'meshmagick',
+          ],
+          entry_points={
+              'console_scripts': [
+                  'capytaine=capytaine.cli:main',
               ],
+          },
           ext_modules=[
               Green,
               Wavenumber
           ],
-         )
+          )

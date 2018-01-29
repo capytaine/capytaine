@@ -62,7 +62,7 @@ def import_cal_file(filepath):
                 elif int(force_data[0]) == 2:
                     direction = np.array([float(x) for x in force_data[1:4]])
                     center_of_mass = np.array([float(x) for x in force_data[4:7]])
-            # TODO: use the generalize forces.
+            # TODO: use the generalized forces.
 
             nb_additional_lines = int(cal_file.readline().split()[0])
             for _ in range(nb_additional_lines):
@@ -70,7 +70,10 @@ def import_cal_file(filepath):
 
             bodies.append(body)
 
-        bodies = CollectionOfFloatingBodies(bodies)
+        if nb_bodies > 1:
+            bodies = CollectionOfFloatingBodies(bodies)
+        else:
+            bodies = bodies[0]
 
         cal_file.readline() # Unused line.
         frequency_data = cal_file.readline().split()
@@ -94,8 +97,8 @@ def import_cal_file(filepath):
     for omega in omega_range:
         for direction in direction_range:
             problems.append(DiffractionProblem(angle=direction, omega=omega, **env_args))
-        if bodies.nb_dofs > 0:
-            problems.append(RadiationProblem(omega=omega, **env_args))
+        for dof in bodies.dofs:
+            problems.append(RadiationProblem(radiating_dof=dof, omega=omega, **env_args))
 
     return problems
 

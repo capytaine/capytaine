@@ -8,7 +8,6 @@ import logging
 
 import numpy as np
 
-from capytaine.problems import RadiationProblem, DiffractionProblem
 from capytaine.Toeplitz_matrices import (BlockCirculantMatrix, block_circulant_identity,
                                          BlockToeplitzMatrix, block_Toeplitz_identity,
                                          solve)
@@ -72,6 +71,8 @@ class Nemoh:
             results.store_force(influenced_dof_name, force)
             # Depending of the type of problem, the force will be kept as a complex-valued Froude-Krylov force
             # or stored as a couple of added mass and damping radiation coefficients.
+
+        LOG.info("Done!")
 
         return results
 
