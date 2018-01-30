@@ -67,6 +67,8 @@ def assemble_radiation_results_matrices(results):
 
     import xarray as xr
 
+    LOG.info(f"Assemble radiation results from {len(results)} simulations results.")
+
     omegas = set()
     radiating_dofs = []
     influenced_dofs = []
@@ -97,3 +99,49 @@ def assemble_radiation_results_matrices(results):
                                             influenced_dof=dof)] = result.radiation_dampings[dof]
 
     return added_masses, radiation_dampings
+
+def assemble_diffraction_results(results):
+    """Combine the results of several diffraction problems into an array of diffraction forces.
+
+    Parameters
+    ----------
+    results: list of DiffractionResults
+        The results container from which to extract the date.
+        If objects other than DiffractionResults are in the list, they are silently ignored.
+
+    Returns
+    -------
+    forces: 3D xarray
+        the complex values diffraction forces for each dof, each angle and each wave frequencies.
+    """
+
+    import xarray as xr
+
+    LOG.info(f"Assemble diffraction results from {len(results)} simulations results.")
+
+    omegas = set()
+    angles = set()
+    influenced_dofs = []
+    for result in results:
+        if isinstance(result, DiffractionResult):
+            omegas.add(result.omega)
+            angles.add(result.angle)
+            for dof in result.influenced_dofs:
+                if dof not in influenced_dofs:
+                    influenced_dofs.append(dof)
+
+    omegas = sorted(list(omegas))
+    angles = sorted(list(angles))
+
+    forces = xr.DataArray(np.empty((len(omegas), len(angles), len(influenced_dofs)), dtype=np.complex64),
+                          dims=('omega', 'angle', 'influenced_dof'),
+                          coords={'omega': omegas, 'angle': angles, 'influenced_dof': influenced_dofs})
+
+    for result in results:
+        if isinstance(result, DiffractionResult):
+            for dof in result.influenced_dofs:
+                forces.loc[dict(omega=result.omega,
+                                angle=result.angle,
+                                influenced_dof=dof)] = result.forces[dof]
+
+    return forces
