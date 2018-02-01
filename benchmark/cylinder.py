@@ -26,6 +26,7 @@ CYLINDER_POSITION = np.array((-5.0, 0.0, -3.0))
 def full_resolution_Nemoh(nb_slices, nb_theta, omega_range):
     cylinder = generate_open_horizontal_cylinder(length=10.0, radius=1.0, nx=nb_slices, ntheta=nb_theta)
     cylinder.translate(CYLINDER_POSITION)
+    cylinder.dofs["Heave"] = cylinder.faces_normals @ (0, 0, 1)
     return profile_Nemoh(cylinder,
                          omega_range,
                          f"{WORKING_DIRECTORY}/{next(ID):03}_Nemoh_{nb_theta*nb_slices}",

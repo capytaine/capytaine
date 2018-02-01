@@ -11,6 +11,7 @@ import pandas as pd
 
 from capytaine.Nemoh import Nemoh
 from capytaine.problems import RadiationProblem
+from capytaine.results import assemble_radiation_results_matrices
 from capytaine.import_export import export_as_Nemoh_directory
 
 
@@ -38,8 +39,8 @@ def profile_capytaine(body, omega_range, result_dir, **problem_kwargs):
 
     pr.disable() #=================
 
-    results = np.asarray(results)
-    np.savetxt(f'{result_dir}/results.csv', results)
+    added_mass, dampings = assemble_radiation_results_matrices(results)
+    np.savetxt(f'{result_dir}/results.csv', np.c_[added_mass.values[:, 0, 0], dampings.values[:, 0, 0]])
 
     s = io.StringIO()
     sortby = 'time'
@@ -54,7 +55,7 @@ def profile_capytaine(body, omega_range, result_dir, **problem_kwargs):
     return float(profiler_results.split('\n')[0].split('in')[1].strip('seconds\n'))
 
 
-def profile_Nemoh(body, omega_range, result_dir, nemoh_bin_dir="~/nemoh/bin", **problem_args):
+def profile_Nemoh(body, omega_range, result_dir, nemoh_bin_dir="~/work/code/nemoh/bin", **problem_args):
     """Use Nemoh 2.0 to solve a problem and mesure computation time."""
     problem = RadiationProblem(body=body, omega=0.0, **problem_args)
     export_as_Nemoh_directory(problem, result_dir, omega_range)
@@ -70,6 +71,11 @@ def profile_Nemoh(body, omega_range, result_dir, nemoh_bin_dir="~/nemoh/bin", **
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         encoding='utf8'
+    )
+    subprocess.run(
+        f'cd {result_dir} && ' + os.path.join(nemoh_bin_dir, 'postProc'),
+        shell=True,
+        stdout=subprocess.PIPE,
     )
 
     with open(f'{result_dir}/profile.log', 'w') as log:

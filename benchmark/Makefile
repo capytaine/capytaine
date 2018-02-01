@@ -1,2 +1,2 @@
 clean:
-	rm -rf 2017*
+	rm -rf 2018*
