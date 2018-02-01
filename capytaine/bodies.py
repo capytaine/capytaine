@@ -14,7 +14,6 @@ from meshmagick.mesh import Mesh
 from meshmagick.geometry import Plane
 from meshmagick.mesh_clipper import MeshClipper
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -45,8 +44,19 @@ class FloatingBody(Mesh):
     def from_file(filename, file_format):
         """Create a FloatingBody from a mesh file using meshmagick."""
         from meshmagick.mmio import load_mesh
+        from capytaine.symmetries import ReflectionSymmetry, xOz_Plane
+
         vertices, faces = load_mesh(filename, file_format)
-        return FloatingBody(vertices, faces, name=filename)
+        body = FloatingBody(vertices, faces, name=filename)
+
+        if file_format == 'mar':
+            with open(filename, 'r') as fi:
+                header = fi.readline()
+                _, sym = header.split()
+                if int(sym) == 1:
+                    body = ReflectionSymmetry(body, plane=xOz_Plane)
+
+        return body
 
     def __add__(self, body_to_add):
         """Create a new CollectionOfFloatingBody from the combination of two of them."""
