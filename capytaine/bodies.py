@@ -106,12 +106,12 @@ class FloatingBody(Mesh):
 
     def add_translation_dof(self, direction=(1.0, 0.0, 0.0), name=None):
         if name is None:
-            name = f"Translation_dof_{self.nb_dofs}"
+            name = f"dof_{self.nb_dofs}_translation"
         self.dofs[name] = self.faces_normals @ direction
 
     def add_rotation_dof(self, axis_direction=(0.0, 0.0, 1.0), axis_point=(0.0, 0.0, 0.0), name=None):
         if name is None:
-            name = f"Rotation_dof_{self.nb_dofs}"
+            name = f"dof_{self.nb_dofs}_rotation"
 
         # TODO: Rewrite more efficiently and/or elegantly
         dof = np.empty((self.nb_faces, ), dtype=np.float32)

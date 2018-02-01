@@ -44,7 +44,7 @@ def main():
             LOG.warning("The 'results' directory already exists. You might be overwriting existing data.")
 
         LOG.info("Write radiation coefficients in legacy tecplot format.")
-        with open(os.path.join(results_directory, 'RadiationCoefficients2.tec'), 'w') as fi:
+        with open(os.path.join(results_directory, 'RadiationCoefficients.tec'), 'w') as fi:
             for i in range(len(added_mass.radiating_dof)+1):
                 fi.write(f'...\n')
             for dof in added_mass.influenced_dof:
@@ -59,7 +59,7 @@ def main():
                     fi.write('\n')
 
         LOG.info("Write excitation forces in legacy tecplot format.")
-        with open(os.path.join(results_directory, 'ExcitationForce2.tec'), 'w') as fi:
+        with open(os.path.join(results_directory, 'ExcitationForce.tec'), 'w') as fi:
             for i in range(len(forces.influenced_dof)+1):
                 fi.write(f'...\n')
             for angle in forces.angle.values:
