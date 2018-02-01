@@ -59,7 +59,7 @@ def main():
                     fi.write('\n')
 
         LOG.info("Write excitation forces in legacy tecplot format.")
-        with open(os.path.join(results_directory, 'ExcitationForce.tec'), 'w') as fi:
+        with open(os.path.join(results_directory, 'DiffractionForce.tec'), 'w') as fi:
             for i in range(len(forces.influenced_dof)+1):
                 fi.write(f'...\n')
             for angle in forces.angle.values:
