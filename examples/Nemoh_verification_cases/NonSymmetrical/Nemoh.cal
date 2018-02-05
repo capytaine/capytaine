@@ -1,0 +1,34 @@
+--- Environment ------------------------------------------------------------------------------------------------------------------
+1000.0				! RHO 			! KG/M**3 	! Fluid specific volume 
+9.81				! G			! M/S**2	! Gravity
+0.				! DEPTH			! M		! Water depth
+0.	0.			! XEFF YEFF		! M		! Wave measurement point
+--- Description of floating bodies -----------------------------------------------------------------------------------------------
+1				! Number of bodies
+--- Body 1 -----------------------------------------------------------------------------------------------------------------------
+NonSymmetrical.dat		! Name of mesh file
+351	280			! Number of points and number of panels 	
+6				! Number of degrees of freedom
+1 1. 0.	0. 0. 0. 0.		! Surge
+1 0. 1.	0. 0. 0. 0.		! Sway
+1 0. 0. 1. 0. 0. 0.		! Heave
+2 1. 0. 0. 0. 0. 0.		! Roll about rotation point
+2 0. 1. 0. 0. 0. 0.		! Pitch about rotation point
+2 0. 0. 1. 0. 0. 0.		! Yaw about rotation point
+6				! Number of resulting generalised forces
+1 1. 0.	0. 0. 0. 0.		! Force in x direction
+1 0. 1.	0. 0. 0. 0.		! Force in y direction
+1 0. 0. 1. 0. 0. 0.		! Force in z direction
+2 1. 0. 0. 0. 0. 0.		! Moment force in x direction about rotation point
+2 0. 1. 0. 0. 0. 0.		! Moment force in y direction about rotation point
+2 0. 0. 1. 0. 0. 0.		! Moment force in z direction about rotation point
+0				! Number of lines of additional information 
+--- Load cases to be solved -------------------------------------------------------------------------------------------------------
+41	0.1	2.0		! Number of wave frequencies, Min, and Max (rad/s)
+1	0.	0.		! Number of wave directions, Min and Max (degrees)
+--- Post processing ---------------------------------------------------------------------------------------------------------------
+0	0.1	10.		! IRF 				! IRF calculation (0 for no calculation), time step and duration
+0				! Show pressure
+0	0.	180.		! Kochin function 		! Number of directions of calculation (0 for no calculations), Min and Max (degrees)
+0	2	1000.	2.	! Free surface elevation 	! Number of points in x direction (0 for no calcutions) and y direction and dimensions of domain in x and y direction	
+
