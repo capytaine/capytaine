@@ -45,7 +45,7 @@ def test_floating_sphere_finite_freq():
 
     problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
     result = solver.solve(problem)
-    assert np.isclose(result.forces["Heave"], 1834.9 * np.exp(-2.933j) * -1j, rtol=1e-3)
+    assert np.isclose(result.forces["Heave"], 1834.9 * np.exp(-2.933j), rtol=1e-3)
 
 
 def test_alien_sphere():
@@ -54,12 +54,12 @@ def test_alien_sphere():
 
     problem = RadiationProblem(body=sphere, rho=450.0, g=1.625, omega=1.0, sea_bottom=-np.infty)
     result = Nemoh().solve(problem)
-    assert np.isclose(result.added_masses["Heave"], 515, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.added_masses["Heave"],       515, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"], 309, atol=1e-3*sphere.volume*problem.rho)
 
     problem = DiffractionProblem(body=sphere, rho=450.0, g=1.625, omega=1.0, sea_bottom=-np.infty)
     result = Nemoh().solve(problem)
-    assert np.isclose(result.forces["Heave"], 548.5 * np.exp(-2.521j) * -1j, rtol=1e-2)
+    assert np.isclose(result.forces["Heave"], 548.5 * np.exp(-2.521j), rtol=1e-2)
 
 
 def test_floating_sphere_finite_depth():
@@ -68,12 +68,12 @@ def test_floating_sphere_finite_depth():
 
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
     result = Nemoh().solve(problem)
-    assert np.isclose(result.added_masses["Heave"],    1740.6, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.added_masses["Heave"],       1740.6, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"], 380.46, rtol=1e-3*sphere.volume*problem.rho)
 
     problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
     result = Nemoh().solve(problem)
-    assert np.isclose(result.forces["Heave"], 1749.4 * np.exp(-2.922j) * -1j, rtol=1e-3)
+    assert np.isclose(result.forces["Heave"], 1749.4 * np.exp(-2.922j), rtol=1e-3)
 
 
 def test_multibody():
