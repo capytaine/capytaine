@@ -23,7 +23,7 @@ class LinearPotentialFlowResult:
     potential = attrib(default=None, init=False, repr=False)
 
     def store_force(self, dof, force):
-        self.forces[dof] = force
+        self.forces[dof] = 1j*self.omega*force
 
     def __getattr__(self, name):
         try:

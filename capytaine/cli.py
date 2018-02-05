@@ -68,11 +68,12 @@ def main():
                     fi.write(f'  {o:e}  ')
                     for dof in forces.influenced_dof.values:
                         val = forces.sel(omega=o, angle=angle, influenced_dof=dof).values
-                        fi.write(f'{o*abs(val):e}')
+                        fi.write(f'{np.abs(val):e}')
                         fi.write('  ')
                         fi.write(f'{np.angle(val):e}')
                         fi.write('  ')
                     fi.write('\n')
+
 
 if __name__ == '__main__':
     main()
