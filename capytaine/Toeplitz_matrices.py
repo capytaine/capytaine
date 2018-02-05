@@ -197,6 +197,15 @@ def block_circulant_identity(nb_blocks, block_size, **kwargs):
     return I
 
 
+def identity_matrix_of_same_shape_as(matrix):
+    if isinstance(matrix, BlockCirculantMatrix):
+        return block_circulant_identity(matrix.nb_blocks, matrix.block_size, dtype=np.float32)
+    elif isinstance(matrix, BlockToeplitzMatrix):
+        return block_Toeplitz_identity(matrix.nb_blocks, matrix.block_size, dtype=np.float32)
+    else:
+        return np.identity(matrix.shape[0], dtype=np.float32)
+
+
 def solve(A, b):
     """Solve the linear system Ax = b"""
     if isinstance(A, BlockCirculantMatrix):

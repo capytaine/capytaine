@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 # coding: utf-8
 """
+Nemoh.py
+--------
 Solver for the BEM problem based on Nemoh's Green function.
+
+This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 """
 
 import logging
 
 import numpy as np
 
-from capytaine.Toeplitz_matrices import (BlockCirculantMatrix, block_circulant_identity,
-                                         BlockToeplitzMatrix, block_Toeplitz_identity,
-                                         solve)
+from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve
 import capytaine._Green as _Green
 from capytaine.tools.max_length_dict import MaxLengthDict
 from capytaine.tools.exponential_decomposition import exponential_decomposition, error_exponential_decomposition
@@ -40,35 +43,22 @@ class Nemoh:
             self.compute_exponential_decomposition(problem)
 
         S, V = problem.body.build_matrices(
-            self,
-            problem.body,
-            free_surface=problem.free_surface,
-            sea_bottom=problem.sea_bottom,
-            wavenumber=problem.wavenumber
+            self, problem.body,
+            free_surface=problem.free_surface, sea_bottom=problem.sea_bottom, wavenumber=problem.wavenumber
         )
 
-        if isinstance(S, BlockCirculantMatrix):
-            identity = block_circulant_identity(V.nb_blocks, V.block_size, dtype=np.float32)
-        elif isinstance(S, BlockToeplitzMatrix):
-            identity = block_Toeplitz_identity(V.nb_blocks, V.block_size, dtype=np.float32)
-        else:
-            identity = np.identity(V.shape[0], dtype=np.float32)
-
+        identity = identity_matrix_of_same_shape_as(V)
         sources = solve(V + identity/2, problem.boundary_condition)
         potential = S @ sources
 
         results = problem.make_results_container()
-
         if keep_details:
-            # results.keep_details = True
-            # results.S = S
-            # results.V = V
             results.sources = sources
             results.potential = potential
 
         for influenced_dof_name, influenced_dof in problem.body.dofs.items():
-            force = - problem.rho * potential @ (influenced_dof * problem.body.faces_areas)
-            results.store_force(influenced_dof_name, force)
+            integrated_potential = - problem.rho * potential @ (influenced_dof * problem.body.faces_areas)
+            results.store_force(influenced_dof_name, integrated_potential)
             # Depending of the type of problem, the force will be kept as a complex-valued Froude-Krylov force
             # or stored as a couple of added mass and damping radiation coefficients.
 
@@ -87,7 +77,7 @@ class Nemoh:
 
     def compute_exponential_decomposition(self, pb):
         """Return the decomposition a part of the finite depth Green function as a sum of
-        exponentials."""
+        exponential functions."""
 
         LOG.debug(f"Initialize Nemoh's finite depth Green function for omega=%.2e and depth=%.2e", pb.omega, pb.depth)
         if (pb.dimensionless_omega, pb.dimensionless_wavenumber) not in self.exponential_decompositions:
@@ -124,7 +114,8 @@ class Nemoh:
             self.exponential_decompositions[(pb.dimensionless_omega, pb.dimensionless_wavenumber)] = (a, lamda)
 
         else:
-            self.exponential_decompositions.move_to_end(key=(pb.dimensionless_omega, pb.dimensionless_wavenumber), last=True)
+            self.exponential_decompositions.move_to_end(
+                key=(pb.dimensionless_omega, pb.dimensionless_wavenumber), last=True)
 
     #######################
     #  Building matrices  #
