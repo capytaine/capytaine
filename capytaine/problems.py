@@ -37,6 +37,13 @@ class LinearPotentialFlowProblem:
 
     boundary_condition = attrib(default=None, repr=False)
 
+    @free_surface.validator
+    def _check_free_surface(self, attribute, free_surface):
+        if free_surface not in [0, np.infty]:
+            raise NotImplementedError(
+                "Only z=0 and z=∞ are accepted values for the free surface position at the moment."
+            )
+
     @sea_bottom.validator
     def _check_depth(self, attribute, sea_bottom):
         if self.free_surface < sea_bottom:
