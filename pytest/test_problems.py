@@ -1,35 +1,33 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import logging
+import os
 
 import pytest
 
 import numpy as np
 
-from capytaine.problems import *
-from capytaine.results import *
-from capytaine.import_export import import_cal_file
+from capytaine.bodies import FloatingBody
+from capytaine.symmetries import ReflectionSymmetry
 from capytaine.reference_bodies import generate_sphere
+from capytaine.problems import *
+from capytaine.results import LinearPotentialFlowResult
+from capytaine.import_export import import_cal_file
 
 
 def test_LinearPotentialFlowProblem():
+    # Without a body
     pb = LinearPotentialFlowProblem(omega=1.0)
     assert pb.omega == 1.0
     assert pb.wavenumber == 1.0/9.81
     assert pb.wavelength == 9.81*2*np.pi
 
-    res = pb.make_results_container()
-    assert isinstance(res, LinearPotentialFlowResult)
-    assert res.problem is pb
-    assert res.omega == pb.omega
-    assert res.dimensionless_omega == pb.dimensionless_omega
-    assert res.body is pb.body
-    assert res.forces == {}
-
     assert LinearPotentialFlowProblem(free_surface=np.infty, sea_bottom=-np.infty).depth == np.infty
     assert LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=-np.infty).depth == np.infty
     assert LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=-1.0).depth == 1.0
+
+    with pytest.raises(NotImplementedError):
+        LinearPotentialFlowProblem(free_surface=2.0)
 
     with pytest.raises(ValueError):
         LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=1.0)
@@ -40,7 +38,21 @@ def test_LinearPotentialFlowProblem():
     with pytest.raises(TypeError):
         LinearPotentialFlowProblem(radiating_dof="Heave")
 
-    # LinearPotentialFlowProblem(boundary_condition=[1, 1, 1])
+    # With a body
+    sphere = generate_sphere(z0=-2.0)
+    sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
+    pb = LinearPotentialFlowProblem(body=sphere,
+                                    boundary_condition=sphere.faces_normals @ (1, 1, 1))
+    assert list(pb.influenced_dofs.keys()) == ['Heave']
+
+    # Test transformation to result class
+    res = pb.make_results_container()
+    assert isinstance(res, LinearPotentialFlowResult)
+    assert res.problem is pb
+    assert res.omega == pb.omega
+    assert res.dimensionless_omega == pb.dimensionless_omega
+    assert res.body is pb.body
+    assert res.forces == {}
 
 
 def test_diffraction_problem():
@@ -80,21 +92,49 @@ def test_radiation_problem(caplog):
     assert res.radiation_dampings == {}
 
 
-# def test_import_cal_file():
-#     """Test the importation of legacy Nemoh.cal files."""
-#     problems = import_cal_file("examples/data/Nemoh.cal")
-#     assert len(problems) == 4
-#     for problem in problems:
-#         assert problem.rho == 1000.0
-#         assert problem.g == 9.81
-#         assert problem.depth == np.infty
-#         assert problem.body.nb_subbodies == 1
-#         assert problem.body.nb_dofs == 6
-#         assert problem.body.nb_vertices == 540
-#         assert problem.body.nb_faces == 300
-#         assert problem.omega == 0.1 or problem.omega == 2.0
-#         if isinstance(problem, DiffractionProblem):
-#             assert problem.angle == 0.0
+def test_import_cal_file():
+    """Test the importation of legacy Nemoh.cal files."""
+    current_file_path = os.path.dirname(os.path.abspath(__file__))
 
+    # Non symmetrical body
+    cal_file_path = os.path.join(current_file_path, "..",
+                                 "examples",
+                                 "Nemoh_verification_cases",
+                                 "NonSymmetrical", "Nemoh.cal")
+    problems = import_cal_file(cal_file_path)
+
+    assert len(problems) == 6*41+41
+    for problem in problems:
+        assert problem.rho == 1000.0
+        assert problem.g == 9.81
+        assert problem.depth == np.infty
+        assert isinstance(problem.body, FloatingBody)
+        assert problem.body.nb_dofs == 6
+        assert problem.body.nb_vertices == 351
+        assert problem.body.nb_faces == 280
+        assert problem.omega in np.linspace(0.1, 2.0, 41)
+        if isinstance(problem, DiffractionProblem):
+            assert problem.angle == 0.0
+
+    # Symmetrical cylinder
+    cal_file_path = os.path.join(current_file_path, "..",
+                                 "examples",
+                                 "Nemoh_verification_cases",
+                                 "Cylinder", "Nemoh.cal")
+    problems = import_cal_file(cal_file_path)
+
+    assert len(problems) == 6*2+2
+    for problem in problems:
+        assert problem.rho == 1000.0
+        assert problem.g == 9.81
+        assert problem.depth == np.infty
+        assert isinstance(problem.body, ReflectionSymmetry)
+        assert isinstance(problem.body.subbodies[0], FloatingBody)
+        assert problem.body.nb_dofs == 6
+        assert problem.body.nb_vertices == 2*540
+        assert problem.body.nb_faces == 2*300
+        assert problem.omega == 0.1 or problem.omega == 2.0
+        if isinstance(problem, DiffractionProblem):
+            assert problem.angle == 0.0
 
 
