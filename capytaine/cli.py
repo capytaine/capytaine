@@ -35,7 +35,8 @@ def main():
         solver = Nemoh()
         results = [solver.solve(pb) for pb in problems]
         added_mass, radiation_damping = assemble_radiation_results_matrices(results)
-        forces = assemble_diffraction_results(results)
+        FK, diff_forces = assemble_diffraction_results(results)
+        print(added_mass)
 
         results_directory = os.path.join(os.path.dirname(paramfile), 'results')
         try:
@@ -58,8 +59,9 @@ def main():
                         fi.write('  ')
                     fi.write('\n')
 
+        forces = FK + diff_forces
         LOG.info("Write excitation forces in legacy tecplot format.")
-        with open(os.path.join(results_directory, 'DiffractionForce.tec'), 'w') as fi:
+        with open(os.path.join(results_directory, 'ExcitationForce.tec'), 'w') as fi:
             for i in range(len(forces.influenced_dof)+1):
                 fi.write(f'...\n')
             for angle in forces.angle.values:

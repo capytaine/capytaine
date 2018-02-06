@@ -9,6 +9,7 @@ import logging
 from attr import attrs, attrib, Factory
 import numpy as np
 
+from capytaine.tools.Airy_wave import Froude_Krylov_force
 
 
 LOG = logging.getLogger(__name__)
@@ -100,6 +101,7 @@ def assemble_radiation_results_matrices(results):
 
     return added_masses, radiation_dampings
 
+
 def assemble_diffraction_results(results):
     """Combine the results of several diffraction problems into an array of diffraction forces.
 
@@ -133,15 +135,21 @@ def assemble_diffraction_results(results):
     omegas = sorted(list(omegas))
     angles = sorted(list(angles))
 
-    forces = xr.DataArray(np.empty((len(omegas), len(angles), len(influenced_dofs)), dtype=np.complex64),
-                          dims=('omega', 'angle', 'influenced_dof'),
-                          coords={'omega': omegas, 'angle': angles, 'influenced_dof': influenced_dofs})
+    diffraction_forces = xr.DataArray(np.empty((len(omegas), len(angles), len(influenced_dofs)), dtype=np.complex64),
+                                      dims=('omega', 'angle', 'influenced_dof'),
+                                      coords={'omega': omegas, 'angle': angles, 'influenced_dof': influenced_dofs})
+    FK_forces = diffraction_forces.copy(deep=True)
 
     for result in results:
         if isinstance(result, DiffractionResult):
+            FK = Froude_Krylov_force(result)
             for dof in result.influenced_dofs:
-                forces.loc[dict(omega=result.omega,
-                                angle=result.angle,
-                                influenced_dof=dof)] = result.forces[dof]
 
-    return forces
+                diffraction_forces.loc[dict(omega=result.omega,
+                                            angle=result.angle,
+                                            influenced_dof=dof)] = result.forces[dof]
+                FK_forces.loc[dict(omega=result.omega,
+                                   angle=result.angle,
+                                   influenced_dof=dof)] = FK[dof]
+
+    return FK_forces, diffraction_forces
