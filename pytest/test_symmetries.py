@@ -18,12 +18,12 @@ from capytaine.Nemoh import Nemoh
 @pytest.mark.parametrize("reso", range(1, 3))
 @pytest.mark.parametrize("depth", [10.0, np.infty])
 def test_floating_sphere(reso, depth):
-    full_sphere = generate_sphere(radius=1.0, ntheta=2*reso, nphi=4*reso, clip_free_surface=True)
+    full_sphere = generate_sphere(radius=1.0, ntheta=reso, nphi=4*reso, clip_free_surface=True)
     full_sphere.dofs["Heave"] = full_sphere.faces_normals @ (0, 0, 1)
     problem = RadiationProblem(body=full_sphere, omega=1.0, sea_bottom=-depth)
     result1 = Nemoh().solve(problem)
 
-    half_sphere = generate_half_sphere(radius=1.0, ntheta=reso, nphi=4*reso, clip_free_surface=True)
+    half_sphere = generate_half_sphere(radius=1.0, ntheta=reso, nphi=2*reso, clip_free_surface=True)
     # half_sphere = full_sphere.extract_faces(np.where(full_sphere.faces_centers[:, 1] > 0)[0])
     two_halves_sphere = ReflectionSymmetry(half_sphere, xOz_Plane)
     two_halves_sphere.dofs["Heave"] = two_halves_sphere.faces_normals @ (0, 0, 1)

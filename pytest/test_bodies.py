@@ -54,12 +54,12 @@ def test_collection():
 
 
 def test_symmetric_bodies():
-    half_sphere = generate_half_sphere(ntheta=5)
+    half_sphere = generate_half_sphere(nphi=5)
     half_sphere.name = 'half_sphere'
     full_sphere = ReflectionSymmetry(half_sphere, xOz_Plane)
     assert isinstance(full_sphere, CollectionOfFloatingBodies)
     assert half_sphere in full_sphere.subbodies
-    assert full_sphere.as_FloatingBody().nb_vertices == generate_sphere(ntheta=10).nb_vertices
+    assert full_sphere.as_FloatingBody().nb_vertices == generate_sphere(nphi=10).nb_vertices
 
     other_sphere = generate_sphere(z0=-5.0)
     coll = full_sphere + other_sphere
@@ -67,9 +67,11 @@ def test_symmetric_bodies():
 
 
 def test_reference_bodies():
-    sphere = generate_sphere()
+    sphere = generate_sphere(ntheta=10, nphi=10)
     # sphere.show()
-    half_sphere = generate_half_sphere()
+    sphere = generate_sphere(ntheta=10, nphi=10, clip_free_surface=True)
+    # sphere.show()
+    half_sphere = generate_half_sphere(ntheta=10, nphi=10)
     # half_sphere.show()
     cylinder = generate_horizontal_cylinder()
     cylinder.add_rotation_dof(axis_point=(5, 0, 0))

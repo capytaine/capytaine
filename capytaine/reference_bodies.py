@@ -40,8 +40,6 @@ def generate_sphere(radius=1.0, ntheta=10, nphi=10,
         a name identifying the sphere (default: "sphere_id" where id is an unique integer).
     """
 
-    nphi = nphi//2
-
     if clip_free_surface:
         if z0 < -radius:  # fully immersed
             theta_max = np.pi
@@ -52,11 +50,11 @@ def generate_sphere(radius=1.0, ntheta=10, nphi=10,
     else:
         theta_max = np.pi
 
+    theta = np.linspace(0.0, theta_max, ntheta+1)
     if half:
-        theta = np.linspace(0.0, theta_max, ntheta+1)
+        phi = np.linspace(-np.pi/2, np.pi/2, nphi+1)
     else:
-        theta = np.linspace(-theta_max, theta_max, ntheta+1)
-    phi = np.linspace(-np.pi/2, np.pi/2, nphi+1)
+        phi = np.linspace(-np.pi, np.pi, nphi+1)
 
     # Nodes
     nodes = np.zeros(((ntheta+1)*(nphi+1), 3), dtype=np.float32)
@@ -151,7 +149,7 @@ def generate_clever_sphere(radius=1.0, ntheta=10, nphi=10,
             raise Exception("Sphere out of the water")
     else:
         theta_max = np.pi
-    theta = np.linspace(0, theta_max, ntheta+1)
+    theta = np.linspace(0.0, theta_max, ntheta+1)
     circle_profile = np.empty((ntheta+1, 3), dtype=np.float32)
     for i, t in enumerate(theta):
         x = radius * np.sin(t)
