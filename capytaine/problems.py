@@ -119,6 +119,16 @@ class DiffractionProblem(LinearPotentialFlowProblem):
             LOG.warning(f"In {self}: the body has no degrees of freedom defined.\n"
                         f"The problem will be solved but the Froude-Krylov forces won't be computed.")
 
+    def __str__(self):
+        parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, angle={self.angle}, "]
+        if not self.free_surface == 0.0:
+            parameters.append(f"free_surface={self.free_surface}, ")
+        if not self.g == 9.81:
+            parameters.append(f"g={self.g}, ")
+        if not self.rho == 1000:
+            parameters.append(f"rho={self.rho}, ")
+        return "DiffractionProblem(" + ''.join(parameters)[:-2] + ")"
+
     def __attrs_post_init__(self):
         if self.body is not None:
             self.boundary_condition = -(
@@ -142,6 +152,16 @@ class RadiationProblem(LinearPotentialFlowProblem):
         if len(body.dofs) == 0:
             LOG.error(f"In {self}: the body has no degrees of freedom defined.")
             raise ValueError("The body in a radiation problem needs to have degrees of freedom")
+
+    def __str__(self):
+        parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, radiating_dof={self.radiating_dof}, "]
+        if not self.free_surface == 0.0:
+            parameters.append(f"free_surface={self.free_surface}, ")
+        if not self.g == 9.81:
+            parameters.append(f"g={self.g}, ")
+        if not self.rho == 1000:
+            parameters.append(f"rho={self.rho}, ")
+        return "RadiationProblem(" + ''.join(parameters)[:-2] + ")"
 
     def __attrs_post_init__(self):
         """Set the boundary condition"""
