@@ -70,3 +70,12 @@ def Airy_wave_velocity(X, pb):
         np.array([np.cos(pb.angle)*cih, np.sin(pb.angle)*cih, -1j*sih])
 
     return v.T
+
+
+def Froude_Krylov_force(problem):
+    pressure = -1j * problem.omega * problem.rho * Airy_wave_potential(problem.body.faces_centers, problem)
+    forces = {}
+    for dof in problem.influenced_dofs:
+        forces[dof] = pressure @ (problem.body.dofs[dof] * problem.body.faces_areas)
+    return forces
+

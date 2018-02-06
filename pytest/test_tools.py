@@ -31,6 +31,24 @@ def test_MaxLengthDict():
     assert dc3 == {}
 
 
+def test_Froude_Krylov():
+    from capytaine.tools.Airy_wave import Froude_Krylov_force
+    from capytaine.reference_bodies import generate_clever_sphere
+    from capytaine.problems import DiffractionProblem
+
+    sphere = generate_clever_sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
+    sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
+
+    problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
+    assert np.isclose(Froude_Krylov_force(problem)['Heave'], 27596, rtol=1e-3)
+
+    problem = DiffractionProblem(body=sphere, omega=2.0, sea_bottom=-np.infty)
+    assert np.isclose(Froude_Krylov_force(problem)['Heave'], 22491, rtol=1e-3)
+
+    problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
+    assert np.isclose(Froude_Krylov_force(problem)['Heave'], 27610, rtol=1e-3)
+
+
 def test_Airy():
     """Compare finite depth Airy wave expression with results from analytical
     expression"""
