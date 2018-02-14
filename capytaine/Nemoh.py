@@ -27,11 +27,11 @@ class Nemoh:
     Solver for the BEM problem based on Nemoh's Green function.
     """
 
-    def __init__(self):
+    def __init__(self, max_stored_exponential_decompositions=50):
         self.XR = _Green.initialize_green_2.initialize_green()
         LOG.info("Initialize Nemoh's Green function.")
 
-        self.exponential_decompositions = MaxLengthDict(max_length=10)
+        self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)
 
     def solve(self, problem, keep_details=False):
         """Solve the BEM problem using Nemoh.
