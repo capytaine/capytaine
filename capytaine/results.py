@@ -18,13 +18,9 @@ LOG = logging.getLogger(__name__)
 @attrs(slots=True)
 class LinearPotentialFlowResult:
     problem = attrib()
-    forces = attrib(default=Factory(dict), init=False, repr=False)
 
     sources = attrib(default=None, init=False, repr=False)
     potential = attrib(default=None, init=False, repr=False)
-
-    def store_force(self, dof, force):
-        self.forces[dof] = 1j*self.omega*force
 
     def __getattr__(self, name):
         try:
@@ -35,12 +31,14 @@ class LinearPotentialFlowResult:
 
 @attrs(slots=True)
 class DiffractionResult(LinearPotentialFlowResult):
-    pass
+    forces = attrib(default=Factory(dict), init=False, repr=False)
+
+    def store_force(self, dof, force):
+        self.forces[dof] = 1j*self.omega*force
 
 
 @attrs(slots=True)
 class RadiationResult(LinearPotentialFlowResult):
-    forces = attrib(default=None, init=False, repr=False)
     added_masses = attrib(default=Factory(dict), init=False, repr=False)
     radiation_dampings = attrib(default=Factory(dict), init=False, repr=False)
 

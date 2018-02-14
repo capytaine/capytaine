@@ -52,7 +52,6 @@ def test_LinearPotentialFlowProblem():
     assert res.omega == pb.omega
     assert res.dimensionless_omega == pb.dimensionless_omega
     assert res.body is pb.body
-    assert res.forces == {}
 
 
 def test_diffraction_problem():
@@ -72,7 +71,7 @@ def test_diffraction_problem():
 
 
 def test_radiation_problem(caplog):
-    sphere = generate_sphere(radius=1.0, ntheta=20, nphi=40)
+    sphere = generate_sphere(radius=1.0, ntheta=20, nphi=40, clip_free_surface=True)
 
     # with pytest.raises(ValueError):
     #     RadiationProblem(body=sphere)
@@ -87,7 +86,7 @@ def test_radiation_problem(caplog):
 
     res = pb.make_results_container()
     assert isinstance(res, RadiationResult)
-    assert res.forces is None
+    assert 'forces' not in res.__slots__
     assert res.added_masses == {}
     assert res.radiation_dampings == {}
 
