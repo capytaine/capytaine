@@ -40,6 +40,9 @@ class FloatingBody(Mesh):
     def __repr__(self):
         return self.name
 
+    def __lt__(self, other):
+        return self.name < other.name
+
     @staticmethod
     def from_file(filename, file_format):
         """Create a FloatingBody from a mesh file using meshmagick."""

@@ -109,15 +109,15 @@ class LinearPotentialFlowProblem:
 class DiffractionProblem(LinearPotentialFlowProblem):
     """Particular LinearPotentialFlowProblem whose boundary conditions have
     been computed from an incoming Airy wave."""
-    body = attrib(default=None)
+    # body = attrib(default=None)
     angle = attrib(default=0.0)  # Angle of the incoming wave.
     boundary_condition = attrib(default=None, init=False, repr=False)
 
-    @body.validator
-    def _check_dofs(self, attribute, body):
-        if body is not None and len(self.body.dofs) == 0:
-            LOG.warning(f"In {self}: the body has no degrees of freedom defined.\n"
-                        f"The problem will be solved but the Froude-Krylov forces won't be computed.")
+    # @body.validator
+    # def _check_dofs(self, attribute, body):
+    #     if body is not None and len(self.body.dofs) == 0:
+    #         LOG.warning(f"In {self}: the body has no degrees of freedom defined.\n"
+    #                     f"The problem will be solved but the Froude-Krylov forces won't be computed.")
 
     def __str__(self):
         parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, angle={self.angle}, "]
@@ -143,15 +143,15 @@ class DiffractionProblem(LinearPotentialFlowProblem):
 class RadiationProblem(LinearPotentialFlowProblem):
     """Particular LinearPotentialFlowProblem whose boundary conditions have
     been computed from the degree of freedom of the body."""
-    body = attrib(default=None)
+    # body = attrib(default=None)
     radiating_dof = attrib(default=None)
     boundary_condition = attrib(default=None, init=False, repr=False)
 
-    @body.validator
-    def _check_dofs(self, attribute, body):
-        if len(body.dofs) == 0:
-            LOG.error(f"In {self}: the body has no degrees of freedom defined.")
-            raise ValueError("The body in a radiation problem needs to have degrees of freedom")
+    # @body.validator
+    # def _check_dofs(self, attribute, body):
+    #     if len(body.dofs) == 0:
+    #         LOG.error(f"In {self}: the body has no degrees of freedom defined.")
+    #         raise ValueError("The body in a radiation problem needs to have degrees of freedom")
 
     def __str__(self):
         parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, radiating_dof={self.radiating_dof}, "]
