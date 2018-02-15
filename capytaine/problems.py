@@ -17,7 +17,7 @@ from capytaine.tools.Airy_wave import Airy_wave_velocity
 LOG = logging.getLogger(__name__)
 
 
-@attrs(slots=True)
+@attrs(slots=True, cmp=False)
 class LinearPotentialFlowProblem:
     """General class of a potential flow problem.
 
@@ -68,6 +68,12 @@ class LinearPotentialFlowProblem:
                 LOG.warning(f"""The size of the boundary condition in {problem} does not match the
                             number of faces in the body.""")
 
+    def __lt__(self, other):
+        if isinstance(other, LinearPotentialFlowProblem):
+            return attr.astuple(self)[:6] < attr.astuple(other)[:6]
+        else:
+            return NotImplemented
+
     @property
     def depth(self):
         return self.free_surface - self.sea_bottom
@@ -105,7 +111,7 @@ class LinearPotentialFlowProblem:
         return LinearPotentialFlowResult(self)
 
 
-@attrs(slots=True)
+@attrs(slots=True, cmp=False)
 class DiffractionProblem(LinearPotentialFlowProblem):
     """Particular LinearPotentialFlowProblem whose boundary conditions have
     been computed from an incoming Airy wave."""
@@ -139,7 +145,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
         return DiffractionResult(self)
 
 
-@attrs(slots=True)
+@attrs(slots=True, cmp=False)
 class RadiationProblem(LinearPotentialFlowProblem):
     """Particular LinearPotentialFlowProblem whose boundary conditions have
     been computed from the degree of freedom of the body."""
