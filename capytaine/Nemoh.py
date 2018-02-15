@@ -42,6 +42,9 @@ class Nemoh:
         if problem.depth < np.infty:
             self.compute_exponential_decomposition(problem)
 
+        if problem.wavelength < 8*problem.body.faces_radiuses.max():
+            LOG.warning("Resolution of the mesh might be insufficient for this wavelength!")
+
         S, V = problem.body.build_matrices(
             self, problem.body,
             free_surface=problem.free_surface, sea_bottom=problem.sea_bottom, wavenumber=problem.wavenumber
