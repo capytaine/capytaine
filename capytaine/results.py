@@ -36,6 +36,10 @@ class DiffractionResult(LinearPotentialFlowResult):
     def store_force(self, dof, force):
         self.forces[dof] = 1j*self.omega*force
 
+    def records(self):
+        return [dict(omega=self.omega, influenced_dof=dof, angle=self.angle, force=self.forces[dof])
+                for dof in self.influenced_dofs]
+
 
 @attrs(slots=True)
 class RadiationResult(LinearPotentialFlowResult):
@@ -45,6 +49,16 @@ class RadiationResult(LinearPotentialFlowResult):
     def store_force(self, dof, force):
         self.added_masses[dof] = force.real
         self.radiation_dampings[dof] = self.problem.omega * force.imag
+
+    def records(self):
+        return [dict(omega=self.omega, influenced_dof=dof, radiating_dof=self.radiating_dof,
+                     added_mass=self.added_masses[dof], radiation_damping=self.radiation_dampings[dof])
+                for dof in self.influenced_dofs]
+
+
+def assemble_dataframe(results):
+    import pandas as pd
+    return pd.DataFrame([record for result in results for record in result.records()])
 
 
 def assemble_radiation_results_matrices(results):
@@ -66,7 +80,7 @@ def assemble_radiation_results_matrices(results):
 
     import xarray as xr
 
-    LOG.info(f"Assemble radiation results from {len(results)} simulations results.")
+    # LOG.info(f"Assemble radiation results from {len(results)} simulations results.")
 
     omegas = set()
     radiating_dofs = []
@@ -117,7 +131,7 @@ def assemble_diffraction_results(results):
 
     import xarray as xr
 
-    LOG.info(f"Assemble diffraction results from {len(results)} simulations results.")
+    # LOG.info(f"Assemble diffraction results from {len(results)} simulations results.")
 
     omegas = set()
     angles = set()
