@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Special bodies using their symmetries to speed up the computations."""
+"""Special bodies using their symmetries to speed up the computations.
+
+This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
+"""
 
 import logging
 
@@ -35,10 +39,12 @@ class ReflectionSymmetry(_SymmetricBody):
 
         Parameters
         ----------
-        half: FloatingBody
+        half : FloatingBody
             a FloatingBody instance describing half of the body
-        plane: Plane
+        plane : Plane
             the symmetry plane across which the half body is mirrored
+        name : string, optional
+            a name for the body
         """
         assert isinstance(half, FloatingBody)
         assert isinstance(plane, Plane)
@@ -89,12 +95,14 @@ class TranslationalSymmetry(_SymmetricBody):
 
         Parameters
         ----------
-        body_slice: FloatingBody
+        body_slice : FloatingBody
             the pattern that will be repeated to form the whole body
-        translation: array(3)
+        translation : array(3)
             the vector of the translation
-        nb_repetitions: int
-            the number of repetitions of the pattern (excluding the original one)
+        nb_repetitions : int, optional
+            the number of repetitions of the pattern (excluding the original one, default: 1)
+        name : string, optional
+            a name for the body
         """
         assert isinstance(body_slice, FloatingBody)
         assert isinstance(nb_repetitions, int)
@@ -130,10 +138,11 @@ class TranslationalSymmetry(_SymmetricBody):
 
         Parameters
         ----------
-        body: FloatingBody
+        body : FloatingBody
             the body interacting with `self`
-        force_full_computation: boolean
-            if True, do not use the symmetry (for debugging).
+        force_full_computation : boolean, optional
+            if True, do not use the symmetry (default: False).
+            to use for debugging
         """
 
         if (isinstance(other_body, TranslationalSymmetry)
@@ -165,12 +174,14 @@ class AxialSymmetry(_SymmetricBody):
 
         Parameters
         ----------
-        body_slice: FloatingBody
+        body_slice : FloatingBody
             the pattern that will be repeated to form the whole body
-        point_on_rotation_axis: array(3)
+        point_on_rotation_axis : array(3)
             one point on the rotation axis. The axis is supposed to be vertical.
-        nb_repetitions: int
-            the number of repetitions of the pattern (excluding the original one)
+        nb_repetitions : int, optional
+            the number of repetitions of the pattern (excluding the original one, default: 1)
+        name : string, optional
+            a name for the body
         """
         assert isinstance(body_slice, FloatingBody)
         assert isinstance(nb_repetitions, int)
@@ -206,10 +217,13 @@ class AxialSymmetry(_SymmetricBody):
 
         Parameters
         ----------
-        other_body: FloatingBody
+        other_body : FloatingBody
             the body interacting with `self`
-        force_full_computation: boolean
-            if True, do not use the symmetry (for debugging).
+        force_full_computation : boolean, optional
+            if True, do not use the symmetry (default: True).
+            to use for debugging
+
+        Further keyword arguments are passed to CollectionOfFloatingBodies.build_matrices()
         """
 
         if other_body == self and not force_full_computation:

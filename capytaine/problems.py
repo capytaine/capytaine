@@ -2,6 +2,9 @@
 # coding: utf-8
 """
 Definition of the problems to solve with the BEM solver.
+
+This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 """
 
 import logging
@@ -26,7 +29,8 @@ class LinearPotentialFlowProblem:
     * the shape of the domain (position of the free surface and of the sea bottom),
     * the frequency of interest,
     * the meshed floating body,
-    * the Neumann boundary conditions on the body."""
+    * the Neumann boundary conditions on the body.
+    """
 
     body = attrib(default=None)
     free_surface = attrib(default=0.0)

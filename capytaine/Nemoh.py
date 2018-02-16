@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 """
-Nemoh.py
---------
 Solver for the BEM problem based on Nemoh's Green function.
 
 This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
@@ -23,9 +21,7 @@ LOG = logging.getLogger(__name__)
 
 
 class Nemoh:
-    """
-    Solver for the BEM problem based on Nemoh's Green function.
-    """
+    """Solver for the BEM problem based on Nemoh's Green function."""
 
     def __init__(self, max_stored_exponential_decompositions=50):
         self.XR = _Green.initialize_green_2.initialize_green()
@@ -34,8 +30,7 @@ class Nemoh:
         self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)
 
     def solve(self, problem, keep_details=False):
-        """Solve the BEM problem using Nemoh.
-        """
+        """Solve the BEM problem using Nemoh."""
 
         LOG.info("Solve %s.", problem)
 
@@ -80,7 +75,8 @@ class Nemoh:
 
     def compute_exponential_decomposition(self, pb):
         """Return the decomposition a part of the finite depth Green function as a sum of
-        exponential functions."""
+        exponential functions.
+        """
 
         LOG.debug(f"Initialize Nemoh's finite depth Green function for omega=%.2e and depth=%.2e", pb.omega, pb.depth)
         if (pb.dimensionless_omega, pb.dimensionless_wavenumber) not in self.exponential_decompositions:
@@ -240,14 +236,14 @@ class Nemoh:
 
         Parameters
         ----------
-        solved_problem: LinearPotentialFlowResult
+        solved_problem : LinearPotentialFlowResult
             the return of Nemoh's solver
-        mesh: FloatingBody
+        mesh : FloatingBody
             a meshed floating body
 
         Returns
         -------
-        phi: array
+        array
             potential on the faces of the mesh
         """
         LOG.info(f"Compute potential on {mesh.name} for {solved_problem}.")
@@ -276,9 +272,9 @@ class Nemoh:
 
         Parameters
         ----------
-        solved_problem: LinearPotentialFlowResult
+        solved_problem : LinearPotentialFlowResult
             the return of Nemoh's solver
-       free_surface: FloatingBody
+        free_surface : FloatingBody
             a meshed free surface
 
         Returns

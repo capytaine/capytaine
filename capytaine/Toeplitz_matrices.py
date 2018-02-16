@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""
+Tool to store and invert block Toeplitz matrices.
+
+This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
+"""
 
 import logging
 from itertools import product
@@ -16,9 +22,12 @@ class BlockToeplitzMatrix:
         """
         Parameters
         ----------
-        blocks: list of square matrices
+        blocks : list of square matrices
             the blocks of the first row (or the first column) of the block matrix.
             they should be square matrices of the same size and the same type.
+        size : int, optional
+            the number of blocks on a line (or a column) of the block matrix
+            the `size` first matrices from `blocks` are kept(default: all)
         """
 
         if size is not None:
@@ -176,9 +185,11 @@ class BlockCirculantMatrix(BlockToeplitzMatrix):
         """
         Parameters
         ----------
-        blocks: list of square matrices
+        blocks : list of square matrices
             half of the blocks of the first row (or the first column) of the block matrix.
             they should be square matrices of the same size and the same type.
+        size : int, optional
+            the number of blocks on a line (or a column) of the block matrix
         """
         if size is None:
             BlockToeplitzMatrix.__init__(self, blocks + blocks[-2:0:-1])

@@ -2,6 +2,9 @@
 # coding: utf-8
 """
 Definition of the objects storing the results of a LinearPotentialFlowProblem.
+
+This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 """
 
 import logging
@@ -66,15 +69,15 @@ def assemble_radiation_results_matrices(results):
 
     Parameters
     ----------
-    results: list of RadiationResults
+    results : list of RadiationResults
         The results container from which to extract the date.
         If objects other than RadiationResults are in the list, they are silently ignored.
 
     Returns
     -------
-    added_masses: 3D xarray
+    added_masses : 3D xarray
         the added masses organised by frequencies and dofs
-    radiation_dampings: 3D xarray
+    radiation_dampings : 3D xarray
         the radiations_dampings organised by frequencies and dofs
     """
 
@@ -119,14 +122,16 @@ def assemble_diffraction_results(results):
 
     Parameters
     ----------
-    results: list of DiffractionResults
+    results : list of DiffractionResults
         The results container from which to extract the date.
         If objects other than DiffractionResults are in the list, they are silently ignored.
 
     Returns
     -------
-    forces: 3D xarray
-        the complex values diffraction forces for each dof, each angle and each wave frequencies.
+    FK_forces : 3D xarray
+        the complex valued Froude_Krylov forces for each dof, each angle and each wave frequencies.
+    diffraction_forces : 3D xarray
+        the complex valued diffraction forces for each dof, each angle and each wave frequencies.
     """
 
     import xarray as xr

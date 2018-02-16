@@ -2,6 +2,9 @@
 # coding: utf-8
 """
 Generate mesh for some simple geometric shapes.
+
+This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 """
 
 from itertools import product
@@ -23,21 +26,26 @@ def generate_sphere(radius=1.0, ntheta=10, nphi=10,
 
     Parameters
     ----------
-    radius: float
+    radius : float
         radius of the sphere
-    ntheta: int
+    ntheta : int
         number of panels along a meridian (or number of parallels-1)
-    nphi: int
+    nphi : int
         number of panels along a parallel (or number of meridian-1)
-    z0: float
+    z0 : float
         depth of the center of mass of the sphere
-    clip_free_surface: bool
+    clip_free_surface : bool
         if True, only mesh the part of the sphere where z < 0,
         can be used with z0 to obtain any clipped sphere.
-    half: bool
+    half : bool
         if True, only mesh the part of the sphere where y > 0
-    name: string
+    name : string
         a name identifying the sphere (default: "sphere_id" where id is an unique integer).
+
+    Returns
+    -------
+    FloatingBody
+        the generated body
     """
 
     if clip_free_surface:
@@ -97,16 +105,21 @@ def generate_axi_symmetric_body(profile,
 
     Parameters
     ----------
-    profile: function(float) → float  or  array(N, 3)
+    profile : function(float) → float  or  array(N, 3)
         define the shape of the body either as a function or a list of points.
     z_range: array(N)
         used only if the profile is defined as a function.
     point_on_rotation_axis: array(3)
         a single point to define the rotation axis (the direction is always vertical)
-    nphi: int
+    nphi : int
         number of vertical slices forming the body
-    name: string
+    name : string
         a name identifying the body (default: "repeated_slice_id" where id is an unique integer).
+
+    Returns
+    -------
+    FloatingBody
+        the generated body
     """
     if name is None:
         name = f"axi-symmetric_body_{next(FloatingBody._ids)}"
@@ -221,21 +234,26 @@ def generate_open_horizontal_cylinder(length=10.0, radius=1.0,
 
     Parameters
     ----------
-    length: float
+    length : float
         length of the cylinder
-    radius: float
+    radius : float
         radius of the cylinder
-    nx: int
+    nx : int
         number of circular slices
-    ntheta: int
+    ntheta : int
         number of panels along a circular slice of the cylinder
-    z0: float
+    z0 : float
         depth of the bottom of the cylinder
-    clip_free_surface: bool
+    clip_free_surface : bool
         if True, only mesh the part of the cylinder where z < 0,
         can be used with z0 to obtain any clipped cylinder
-    half: bool
+    half : bool
         if True, only mesh the part of the cylinder where y > 0
+
+    Returns
+    -------
+    FloatingBody
+        the generated body
     """
 
     if clip_free_surface:
@@ -306,21 +324,26 @@ def generate_horizontal_cylinder(length=10.0, radius=1.0,
 
     Parameters
     ----------
-    length: float
+    length : float
         length of the cylinder
-    radius: float
+    radius : float
         radius of the cylinder
-    nx: int
+    nx : int
         number of circular slices
-    nr: int
+    nr : int
         at the ends of the cylinder, number of panels along a radius
-    ntheta: int
+    ntheta : int
         number of panels along a circular slice of the cylinder
-    z0: float
+    z0 : float
         depth of the bottom of the cylinder
-    clip_free_surface: bool
+    clip_free_surface : bool
         if True, only mesh the part of the cylinder where z < 0,
         can be used with z0 to obtain any clipped cylinder
+
+    Returns
+    -------
+    FloatingBody
+        the generated body
     """
 
     if name is None:
@@ -364,14 +387,19 @@ def generate_one_sided_rectangle(height=5.0, width=5.0, nh=5, nw=5, name=None):
 
     Parameters
     ----------
-    height: float
+    height : float
         height of the panel (size along z)
-    width: float
+    width : float
         width of the panel (size along x)
-    nh: int
+    nh : int
         number of panels in the z direction
-    nw: int
+    nw : int
         number of panels in the x direction
+
+    Returns
+    -------
+    FloatingBody
+        the generated body
     """
 
     X = np.linspace(-width/2, width/2, nw+1)
@@ -399,7 +427,7 @@ def generate_clever_one_sided_rectangle(width=5.0, nw=5, name=None, **kwargs):
 
 
 def generate_free_surface(width=100, length=100, nw=10, nl=10, name=None):
-    """ """
+    """Special body for the meshing of the free surface."""
     X = np.linspace(-width/2, width/2, nw+1)
     Y = np.linspace(-length/2, length/2, nl+1)
 
@@ -424,18 +452,23 @@ def generate_open_rectangular_parallelepiped(height=10.0, width=10.0, thickness=
 
     Parameters
     ----------
-    height: float
+    height : float
         height of the object (size along z)
-    width: float
+    width : float
         width of the object (size along x)
-    thickness: float
+    thickness : float
         thickness of the object (size along y)
-    nh: int
+    nh : int
         number of panels in the z direction
-    nw: int
+    nw : int
         number of panels in the x direction
-    nth: int
+    nth : int
         number of panels in the y direction
+
+    Returns
+    -------
+    FloatingBody
+        the generated body
     """
 
     if name is None:
@@ -480,20 +513,25 @@ def generate_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0, 
 
     Parameters
     ----------
-    height: float
+    height : float
         height of the object (size along z)
-    width: float
+    width : float
         width of the object (size along x)
-    thickness: float
+    thickness : float
         thickness of the object (size along y)
-    nh: int
+    nh : int
         number of panels in the z direction
-    nw: int
+    nw : int
         number of panels in the x direction
-    nth: int
+    nth : int
         number of panels in the y direction
-    z0: float
+    z0 : float
         depth of the bottom of the object
+
+    Returns
+    -------
+    FloatingBody
+        the generated body
     """
 
     if name is None:

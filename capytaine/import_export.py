@@ -14,9 +14,7 @@ from capytaine.problems import DiffractionProblem, RadiationProblem
 from capytaine.bodies_collection import CollectionOfFloatingBodies
 
 def import_cal_file(filepath):
-    """
-    Read a Nemoh.cal file and return a list of problems.
-    """
+    """Read a Nemoh.cal file and return a list of problems."""
 
     with open(filepath, 'r') as cal_file:
 
@@ -104,18 +102,17 @@ def import_cal_file(filepath):
 
 
 def export_as_Nemoh_directory(problem, directory_name, omega_range=None):
-    """
-    Export radiation problems as Nemoh 2.0 directory (experimental).
+    """Export radiation problems as Nemoh 2.0 directory (experimental).
 
     TODO: Diffraction problem.
 
     Parameters
     ----------
-    problem: RadiationProblem
+    problem : RadiationProblem
         the problem that should be exported
-    directory_name: string
+    directory_name : string
         path to the directory
-    omega_range: list of float or array of float
+    omega_range : list of float or array of float, optional
         the exported problem will be set up with the following linear range:
         linspace(min(omega_range), max(omega_range), len(omega_range))
     """
