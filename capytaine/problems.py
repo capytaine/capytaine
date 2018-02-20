@@ -9,7 +9,7 @@ It has been written by Matthieu Ancellin and is released under the terms of the 
 
 import logging
 
-from attr import attrs, attrib
+from attr import attrs, attrib, astuple
 import numpy as np
 
 from capytaine._Wavenumber import invert_xtanhx
@@ -76,7 +76,7 @@ class LinearPotentialFlowProblem:
 
     def __lt__(self, other):
         if isinstance(other, LinearPotentialFlowProblem):
-            return attr.astuple(self)[:6] < attr.astuple(other)[:6]
+            return astuple(self)[:6] < astuple(other)[:6]
         else:
             return NotImplemented
 
