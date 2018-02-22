@@ -40,7 +40,9 @@ class DiffractionResult(LinearPotentialFlowResult):
         self.forces[dof] = 1j*self.omega*force
 
     def records(self):
-        return [dict(omega=self.omega, influenced_dof=dof, angle=self.angle, force=self.forces[dof])
+        FK = Froude_Krylov_force(self.problem)
+        return [dict(omega=self.omega, influenced_dof=dof, angle=self.angle,
+                     diffraction_force=self.forces[dof], Froude_Krylov_force=FK[dof])
                 for dof in self.influenced_dofs]
 
 
@@ -59,114 +61,25 @@ class RadiationResult(LinearPotentialFlowResult):
                 for dof in self.influenced_dofs]
 
 
-def assemble_dataframe(results):
+def assemble_dataset(results):
     import pandas as pd
-    return pd.DataFrame([record for result in results for record in result.records()])
-
-
-def assemble_radiation_results_matrices(results):
-    """Combine the results of several radiation problems into an array of added masses and an array of radiation dampings.
-
-    Parameters
-    ----------
-    results : list of RadiationResults
-        The results container from which to extract the date.
-        If objects other than RadiationResults are in the list, they are silently ignored.
-
-    Returns
-    -------
-    added_masses : 3D xarray
-        the added masses organised by frequencies and dofs
-    radiation_dampings : 3D xarray
-        the radiations_dampings organised by frequencies and dofs
-    """
-
     import xarray as xr
 
-    # LOG.info(f"Assemble radiation results from {len(results)} simulations results.")
+    df = pd.DataFrame([record for result in results for record in result.records()])
 
-    omegas = set()
-    radiating_dofs = []
-    influenced_dofs = []
-    for result in results:
-        if isinstance(result, RadiationResult):
-            omegas.add(result.omega)
-            if result.radiating_dof not in radiating_dofs:
-                radiating_dofs.append(result.radiating_dof)
-            for dof in result.influenced_dofs:
-                if dof not in influenced_dofs:
-                    influenced_dofs.append(dof)
+    dataset = xr.Dataset()
 
-    omegas = sorted(list(omegas))
+    if 'added_mass' in df.columns:
+        radiation_cases = df[df['added_mass'].notnull()].dropna(1)
+        radiation_cases = radiation_cases.set_index(['omega', 'radiating_dof', 'influenced_dof'])
+        radiation_cases = radiation_cases.to_xarray()
+        dataset = xr.merge([dataset, radiation_cases])
 
-    added_masses = xr.DataArray(np.empty((len(omegas), len(radiating_dofs), len(influenced_dofs))),
-                                dims=('omega', 'radiating_dof', 'influenced_dof'),
-                                coords={'omega': omegas, 'radiating_dof': radiating_dofs, 'influenced_dof': influenced_dofs})
-    radiation_dampings = added_masses.copy(deep=True)
+    if 'diffraction_force' in df.columns:
+        diffraction_cases = df[df['diffraction_force'].notnull()].dropna(1)
+        diffraction_cases = diffraction_cases.set_index(['omega', 'angle', 'influenced_dof'])
+        diffraction_cases = diffraction_cases.to_xarray()
+        dataset = xr.merge([dataset, diffraction_cases])
 
-    for result in results:
-        if isinstance(result, RadiationResult):
-            for dof in result.influenced_dofs:
-                added_masses.loc[dict(omega=result.omega,
-                                      radiating_dof=result.radiating_dof,
-                                      influenced_dof=dof)] = result.added_masses[dof]
-                radiation_dampings.loc[dict(omega=result.omega,
-                                            radiating_dof=result.radiating_dof,
-                                            influenced_dof=dof)] = result.radiation_dampings[dof]
+    return dataset
 
-    return added_masses, radiation_dampings
-
-
-def assemble_diffraction_results(results):
-    """Combine the results of several diffraction problems into an array of diffraction forces.
-
-    Parameters
-    ----------
-    results : list of DiffractionResults
-        The results container from which to extract the date.
-        If objects other than DiffractionResults are in the list, they are silently ignored.
-
-    Returns
-    -------
-    FK_forces : 3D xarray
-        the complex valued Froude_Krylov forces for each dof, each angle and each wave frequencies.
-    diffraction_forces : 3D xarray
-        the complex valued diffraction forces for each dof, each angle and each wave frequencies.
-    """
-
-    import xarray as xr
-
-    # LOG.info(f"Assemble diffraction results from {len(results)} simulations results.")
-
-    omegas = set()
-    angles = set()
-    influenced_dofs = []
-    for result in results:
-        if isinstance(result, DiffractionResult):
-            omegas.add(result.omega)
-            angles.add(result.angle)
-            for dof in result.influenced_dofs:
-                if dof not in influenced_dofs:
-                    influenced_dofs.append(dof)
-
-    omegas = sorted(list(omegas))
-    angles = sorted(list(angles))
-
-    diffraction_forces = xr.DataArray(np.empty((len(omegas), len(angles), len(influenced_dofs)), dtype=np.complex64),
-                                      dims=('omega', 'angle', 'influenced_dof'),
-                                      coords={'omega': omegas, 'angle': angles, 'influenced_dof': influenced_dofs})
-    FK_forces = diffraction_forces.copy(deep=True)
-
-    for result in results:
-        if isinstance(result, DiffractionResult):
-            FK = Froude_Krylov_force(result)
-            for dof in result.influenced_dofs:
-
-                diffraction_forces.loc[dict(omega=result.omega,
-                                            angle=result.angle,
-                                            influenced_dof=dof)] = result.forces[dof]
-                FK_forces.loc[dict(omega=result.omega,
-                                   angle=result.angle,
-                                   influenced_dof=dof)] = FK[dof]
-
-    return FK_forces, diffraction_forces
