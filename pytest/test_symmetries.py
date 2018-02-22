@@ -10,8 +10,7 @@ import numpy as np
 
 from capytaine.reference_bodies import *
 from capytaine.symmetries import *
-from capytaine.problems import LinearPotentialFlowProblem, RadiationProblem
-from capytaine.results import assemble_radiation_results_matrices
+from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import Nemoh
 
 

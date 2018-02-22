@@ -9,7 +9,7 @@ import numpy as np
 from capytaine.reference_bodies import generate_clever_sphere, generate_horizontal_cylinder, generate_free_surface
 from capytaine.symmetries import *
 from capytaine.problems import DiffractionProblem, RadiationProblem
-from capytaine.results import assemble_radiation_results_matrices
+from capytaine.results import assemble_dataset
 from capytaine.Nemoh import Nemoh
 
 
@@ -146,7 +146,7 @@ def test_multibody():
                 for dof in both.dofs]
     solver = Nemoh()
     results = [solver.solve(problem) for problem in problems]
-    mass, damping = assemble_radiation_results_matrices(results)
+    data = assemble_dataset(results)
 
     Nemoh_2 = np.array([
         [3961.86548, 50.0367661, -3.32347107, 6.36901855E-02, 172.704819, 19.2018471, -5.67303181, -2.98873377],
@@ -155,5 +155,8 @@ def test_multibody():
         [-5.02560759, -2.75930357, 419.927460, 63.3179016, 1.23501396, 0.416424811, 2341.57593, 15.8266096],
     ])
 
-    assert np.allclose(mass[0, :, :].values,    Nemoh_2[:, ::2],  atol=1e-3*both.volume*problems[0].rho)
-    assert np.allclose(damping[0, :, :].values, Nemoh_2[:, 1::2], atol=1e-3*both.volume*problems[0].rho)
+    dofs_names = list(both.dofs.keys())
+    assert np.allclose(data['added_mass'].sel(omega=1.0, radiating_dof=dofs_names, influenced_dof=dofs_names).values,
+                       Nemoh_2[:, ::2],  atol=1e-3*both.volume*problems[0].rho)
+    assert np.allclose(data['radiation_damping'].sel(omega=1.0, radiating_dof=dofs_names, influenced_dof=dofs_names).values,
+                       Nemoh_2[:, 1::2], atol=1e-3*both.volume*problems[0].rho)

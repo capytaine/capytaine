@@ -16,7 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from capytaine.import_export import import_cal_file
-from capytaine.results import assemble_radiation_results_matrices, assemble_diffraction_results
+from capytaine.results import assemble_dataset
 from capytaine.Nemoh import Nemoh
 
 logging.basicConfig(level=logging.INFO,
@@ -37,9 +37,8 @@ def main():
         problems = import_cal_file(paramfile)
         solver = Nemoh()
         results = [solver.solve(pb) for pb in problems]
-        added_mass, radiation_damping = assemble_radiation_results_matrices(results)
-        FK, diff_forces = assemble_diffraction_results(results)
-        print(added_mass)
+        data = assemble_dataset(results)
+        print(data)
 
         results_directory = os.path.join(os.path.dirname(paramfile), 'results')
         try:
@@ -48,36 +47,38 @@ def main():
             LOG.warning("The 'results' directory already exists. You might be overwriting existing data.")
 
         LOG.info("Write radiation coefficients in legacy tecplot format.")
-        with open(os.path.join(results_directory, 'RadiationCoefficients.tec'), 'w') as fi:
-            for i in range(len(added_mass.radiating_dof)+1):
-                fi.write(f'...\n')
-            for dof in added_mass.influenced_dof:
-                fi.write(f'{dof.values}\n')
-                for o in added_mass.omega:
-                    fi.write(f'  {o.values:e}  ')
-                    for dof2 in added_mass.influenced_dof:
-                        fi.write(f'{added_mass.sel(omega=o, radiating_dof=dof, influenced_dof=dof2).values:e}')
-                        fi.write('  ')
-                        fi.write(f'{radiation_damping.sel(omega=o, radiating_dof=dof, influenced_dof=dof2).values:e}')
-                        fi.write('  ')
-                    fi.write('\n')
+        if 'added_mass' in data:
+            with open(os.path.join(results_directory, 'RadiationCoefficients.tec'), 'w') as fi:
+                for i in range(len(data['radiating_dof'])+1):
+                    fi.write(f'...\n')
+                for dof in data.influenced_dof:
+                    fi.write(f'{dof.values}\n')
+                    for o in data.omega:
+                        fi.write(f'  {o.values:e}  ')
+                        for dof2 in data.influenced_dof:
+                            fi.write(f"{data['added_mass'].sel(omega=o, radiating_dof=dof, influenced_dof=dof2).values:e}")
+                            fi.write('  ')
+                            fi.write(f"{data['radiation_damping'].sel(omega=o, radiating_dof=dof, influenced_dof=dof2).values:e}")
+                            fi.write('  ')
+                        fi.write('\n')
 
-        forces = FK + diff_forces
-        LOG.info("Write excitation forces in legacy tecplot format.")
-        with open(os.path.join(results_directory, 'ExcitationForce.tec'), 'w') as fi:
-            for i in range(len(forces.influenced_dof)+1):
-                fi.write(f'...\n')
-            for angle in forces.angle.values:
-                fi.write(f'angle={angle}\n')
-                for o in forces.omega.values:
-                    fi.write(f'  {o:e}  ')
-                    for dof in forces.influenced_dof.values:
-                        val = forces.sel(omega=o, angle=angle, influenced_dof=dof).values
-                        fi.write(f'{np.abs(val):e}')
-                        fi.write('  ')
-                        fi.write(f'{np.angle(val):e}')
-                        fi.write('  ')
-                    fi.write('\n')
+        if 'diffraction_force' in data:
+            data['total_force'] = data['Froude_Krylov_force'] + data['diffraction_force']
+            LOG.info("Write excitation forces in legacy tecplot format.")
+            with open(os.path.join(results_directory, 'ExcitationForce.tec'), 'w') as fi:
+                for i in range(len(data.influenced_dof)+1):
+                    fi.write(f'...\n')
+                for angle in data.angle.values:
+                    fi.write(f'angle={angle}\n')
+                    for o in data.omega.values:
+                        fi.write(f'  {o:e}  ')
+                        for dof in data.influenced_dof:
+                            val = data['total_force'].sel(omega=o, angle=angle, influenced_dof=dof).values
+                            fi.write(f'{np.abs(val):e}')
+                            fi.write('  ')
+                            fi.write(f'{np.angle(val):e}')
+                            fi.write('  ')
+                        fi.write('\n')
 
 
 if __name__ == '__main__':
