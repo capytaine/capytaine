@@ -13,6 +13,7 @@ from matplotlib import animation
 from capytaine.reference_bodies import generate_clever_sphere, generate_free_surface
 from capytaine.problems import DiffractionProblem
 from capytaine.Nemoh import Nemoh
+from capytaine.tools.Airy_wave import Airy_wave_potential
 from matplotlib.patches import Circle
 
 # Set up logging
@@ -24,14 +25,14 @@ solver = Nemoh()
 
 # Solve diffraction problem
 problem = DiffractionProblem(body=sphere, angle=0.0, omega=2.0)
-results = solver.solve(problem, keep_details=True)
+result = solver.solve(problem, keep_details=True)
 
 # Compute free surface elevation
 fs_mesh = generate_free_surface(width=100.0, length=100.0, nw=100, nl=100)
-fs = solver.get_free_surface_elevation(problem, fs_mesh)
+fs = solver.get_free_surface_elevation(result, fs_mesh)
 
 # Add incoming waves
-fs = fs + 1j*problem.omega/problem.g * problem.Airy_wave_potential(fs_mesh.faces_centers)
+fs = fs + 1j*problem.omega/problem.g * Airy_wave_potential(fs_mesh.faces_centers, result)
 
 # Plot free surface elevation
 X = fs_mesh.faces_centers[:, 0].reshape(100, 100)

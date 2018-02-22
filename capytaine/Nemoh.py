@@ -231,12 +231,12 @@ class Nemoh:
     #  Compute potential  #
     #######################
 
-    def get_potential_on_mesh(self, solved_problem, mesh):
+    def get_potential_on_mesh(self, result, mesh):
         """Compute the potential on a mesh for the potential field of a previously solved problem.
 
         Parameters
         ----------
-        solved_problem : LinearPotentialFlowResult
+        result : LinearPotentialFlowResult
             the return of Nemoh's solver
         mesh : FloatingBody
             a meshed floating body
@@ -246,33 +246,33 @@ class Nemoh:
         array
             potential on the faces of the mesh
         """
-        LOG.info(f"Compute potential on {mesh.name} for {solved_problem}.")
+        LOG.info(f"Compute potential on {mesh.name} for {result}.")
 
-        if solved_problem.sources is None:
-            raise Exception(f"""The values of the sources of {solved_problem} cannot been found.
+        if result.sources is None:
+            raise Exception(f"""The values of the sources of {result} cannot been found.
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
         S, _ = mesh.build_matrices(
             self,
-            solved_problem.body,
-            free_surface=solved_problem.free_surface,
-            sea_bottom=solved_problem.sea_bottom,
-            wavenumber=solved_problem.wavenumber
+            result.body,
+            free_surface=result.free_surface,
+            sea_bottom=result.sea_bottom,
+            wavenumber=result.wavenumber
         )
 
-        phi = S @ solved_problem.sources
+        phi = S @ result.sources
 
-        LOG.info(f"Done computing potential on {mesh.name} for {solved_problem}.")
+        LOG.info(f"Done computing potential on {mesh.name} for {result}.")
 
         return phi
 
-    def get_free_surface_elevation(self, solved_problem, free_surface):
+    def get_free_surface_elevation(self, result, free_surface):
         """Compute the elevation of the free surface on a mesh for a previously solved problem.
 
         Parameters
         ----------
-        solved_problem : LinearPotentialFlowResult
+        result : LinearPotentialFlowResult
             the return of Nemoh's solver
         free_surface : FloatingBody
             a meshed free surface
@@ -282,5 +282,5 @@ class Nemoh:
         array
             the free surface elevation on each faces of the meshed free surface
         """
-        return 1j*solved_problem.omega/solved_problem.g * self.get_potential_on_mesh(solved_problem, free_surface)
+        return 1j*result.omega/result.g * self.get_potential_on_mesh(result, free_surface)
 
