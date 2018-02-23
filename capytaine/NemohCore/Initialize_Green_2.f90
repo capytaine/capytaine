@@ -81,21 +81,25 @@ CONTAINS
     ! Those parameters are independent of the depth and the frequency.
     ! Thus, they are initialized only once at the beginning of the execution of the code.
 
+    ! References:
+    ! [1] Delhommeau, Amélioration des codes de calcul de diffraction-radiation, 2èmes journées de l'hydrodynamique, 1989
+    ! [2] Babarit and Delhommeau, Theoretical and numerical aspects of the open source BEM solver NEMOH, EWTEC 2015
+
     ! Output
     REAL, DIMENSION(328), INTENT(OUT)  :: XR
 
     ! Local variables
     INTEGER :: I, J, K
-    REAL :: QQT(NPINTE), CQT(NPINTE)
+    REAL :: THETA(NPINTE), CQT(NPINTE)
     REAL :: CT
-    COMPLEX :: C1, C2, ZIK, CEX
+    COMPLEX :: C1, C2, ZETA, CEX
 
-    ! Initialize XZ
+    ! Initialize XZ (named Z(J) in [1, 2])
     DO J = 1, JZ
       XZ(J) = -AMIN1(10**(J/5.0-6), 10**(J/8.0-4.5), 16.)
     END DO
 
-    ! Initialize XR
+    ! Initialize XR (named X(I) in [1, 2])
     XR(1) = 0.0
     DO I = 2, IR
       IF (I < 40) THEN
@@ -105,10 +109,10 @@ CONTAINS
       ENDIF
     END DO
 
-    ! Initialize QQT and CQT
+    ! Initialize THETA and CQT for the integration between -pi/2 and pi/2 with the Simpson rule.
     DO K = 1, NPINTE
-      QQT(K) = -PI/2 + (K-1.0)/(NPINTE-1.0)*PI
-      IF ((K <= 1) .OR. (K >= NPINTE)) THEN
+      THETA(K) = -PI/2 + (K-1)/(NPINTE-1.0)*PI
+      IF ((K == 1) .OR. (K == NPINTE)) THEN
         CQT(K) = PI/(3*(NPINTE-1))
       ELSEIF (MOD(K,2)==0) THEN
         CQT(K) = 4.0/(3*(NPINTE-1))*PI
@@ -118,21 +122,21 @@ CONTAINS
     ENDDO
 
     ! Initialize APD..
-    APD1X(:, :) = 0.0
-    APD1Z(:, :) = 0.0
-    APD2X(:, :) = 0.0
-    APD2Z(:, :) = 0.0
+    APD1X(:, :) = 0.0 ! named D_1(Z, X) in [1, 2]
+    APD1Z(:, :) = 0.0 ! named D_2(Z, X) in [1, 2]
+    APD2X(:, :) = 0.0 ! named Z_1(Z, X) in [1, 2]
+    APD2Z(:, :) = 0.0 ! named Z_2(Z, X) in [1, 2]
     DO J = 1, JZ
       DO I = 1, IR
         DO K = 1, NPINTE
-          CT = COS(QQT(K))
-          ZIK = CMPLX(XZ(J), XR(I)*CT)
-          IF (REAL(ZIK) <= -30.0) THEN
+          CT = COS(THETA(K))
+          ZETA = CMPLX(XZ(J), XR(I)*CT)
+          IF (REAL(ZETA) <= -30.0) THEN
             CEX = (0.0, 0.0)
           ELSE
-            CEX = CEXP(ZIK)
+            CEX = CEXP(ZETA)
           ENDIF
-          C1 = CQT(K)*(GG(ZIK, CEX) - 1.0/ZIK)
+          C1 = CQT(K)*(GG(ZETA, CEX) - 1.0/ZETA)
           C2 = CQT(K)*CEX
           APD1X(I, J) = APD1X(I, J) + CT*AIMAG(C1)
           APD1Z(I, J) = APD1Z(I, J) + REAL(C1)
