@@ -181,7 +181,7 @@ CONTAINS
   SUBROUTINE VNSFD &
       (wavenumber, X0I, X0J, depth, &
       XR, AMBDA, AR, NEXP, &
-      SP, VSP)
+      SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
 
     ! Inputs
@@ -195,7 +195,7 @@ CONTAINS
 
     ! Outputs
     COMPLEX,               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
-    COMPLEX, DIMENSION(3), INTENT(OUT) :: VSP ! Gradient of the integral of the Green function with respect to X0I.
+    COMPLEX, DIMENSION(3), INTENT(OUT) :: VSP_SYM, VSP_ANTISYM ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
     INTEGER                     :: KE
@@ -246,8 +246,9 @@ CONTAINS
     PSR(4) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
 
     ! Add up the results of the four problems
-    SP       = -SUM(FS(1:4)) - SUM(PSR(1:4))
-    VSP(1:3) = -SUM(VS(1:3, 1:4), 2)
+    SP               = -SUM(FS(1:4)) - SUM(PSR(1:4))
+    VSP_SYM(1:3)     = -VS(1:3, 1) - VS(1:3, 4)
+    VSP_ANTISYM(1:3) = -VS(1:3, 2) - VS(1:3, 3)
 
     ! Multiply by some coefficients
     AMH  = wavenumber*depth
@@ -258,8 +259,9 @@ CONTAINS
     COF3 = wavenumber*COF1
     COF4 = wavenumber*COF2
 
-    SP  = CMPLX(REAL(SP)*COF1,  AIMAG(SP)*COF2)
-    VSP = CMPLX(REAL(VSP)*COF3, AIMAG(VSP)*COF4)
+    SP          = CMPLX(REAL(SP)*COF1,          AIMAG(SP)*COF2)
+    VSP_ANTISYM = CMPLX(REAL(VSP_ANTISYM)*COF3, AIMAG(VSP_ANTISYM)*COF4)
+    VSP_SYM     = CMPLX(REAL(VSP_SYM)*COF3,     AIMAG(VSP_SYM)*COF4)
 
     !=====================================================
     ! Part 2: Integrate (NEXP+1)×4 terms of the form 1/MM'
@@ -292,8 +294,9 @@ CONTAINS
       AQT = -AR(KE)/(8*PI)
 
       ! Add all the contributions
-      SP       = SP       + AQT*SUM(FTS(1:4))
-      VSP(1:3) = VSP(1:3) + AQT*SUM(VTS(1:3, 1:4), 2)
+      SP               = SP               + AQT*SUM(FTS(1:4))
+      VSP_ANTISYM(1:3) = VSP_ANTISYM(1:3) + AQT*(VTS(1:3, 1) + VTS(1:3, 4))
+      VSP_SYM(1:3)     = VSP_SYM(1:3)     + AQT*(VTS(1:3, 2) + VTS(1:3, 3))
 
     END DO
 
@@ -329,73 +332,83 @@ CONTAINS
     ! Local variables
     INTEGER               :: I, J
     COMPLEX               :: SP2
-    COMPLEX, DIMENSION(3) :: VSP2
+    COMPLEX, DIMENSION(3) :: VSP2_SYM, VSP2_ANTISYM
 
-!    IF (SAME_BODY) THEN
-!      ! Use the symmetry of SP2 and VSP2
-!
-!      DO I = 1, nb_faces_1
-!        DO J = I, nb_faces_2
-!
-!          IF (depth == 0.0) THEN
-!            CALL VNSINFD                    &
-!              (wavenumber,                  &
-!              centers_1(I, :),              &
-!              centers_2(J, :),              &
-!              SP2, VSP2                     &
-!              )
-!          ELSE
-!            CALL VNSFD                      &
-!              (wavenumber,                  &
-!              centers_1(I, :),              &
-!              centers_2(J, :),              &
-!              depth,                        &
-!              SP2, VSP2                     &
-!              )
-!          END IF
-!
-!          S(I, J) = SP2*areas_2(J)                                ! Green function
-!          V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2)*areas_2(J) ! Gradient of the Green function
-!
-!          IF (.NOT. I==J) THEN
-!            VSP2(1:3) = -VSP2(1:3)
-!            S(J, I) = SP2*areas_2(I)
-!            V(J, I) = DOT_PRODUCT(normals_1(J, :), VSP2)*areas_2(I)
-!          END IF
-!
-!        END DO
-!      END DO
-!
-!    ELSE
+    IF (SAME_BODY) THEN
+      ! Use the symmetry of SP2 and VSP2
+
+      DO I = 1, nb_faces_1
+        DO J = I, nb_faces_2
+
+          IF (depth == 0.0) THEN
+            CALL VNSINFD                  &
+              (wavenumber,                &
+              centers_1(I, :),            &
+              centers_2(J, :),            &
+              XR,                         &
+              SP2, VSP2_SYM               &
+              )
+            VSP2_ANTISYM(:) = 0
+          ELSE
+            CALL VNSFD                    &
+              (wavenumber,                &
+              centers_1(I, :),            &
+              centers_2(J, :),            &
+              depth,                      &
+              XR, AMBDA, AR, NEXP,        &
+              SP2, VSP2_SYM, VSP2_ANTISYM &
+              )
+          END IF
+
+          S(I, J) = SP2*areas_2(J)
+          V(I, J) = DOT_PRODUCT(normals_1(I, :),         &
+                                VSP2_SYM + VSP2_ANTISYM) &
+                                *areas_2(J)
+
+          IF (.NOT. I==J) THEN
+            VSP2_SYM(1:2) = -VSP2_SYM(1:2)
+            S(J, I) = SP2*areas_2(I)
+            V(J, I) = DOT_PRODUCT(normals_1(J, :),         &
+                                  VSP2_SYM - VSP2_ANTISYM) &
+                                  *areas_2(I)
+          END IF
+
+        END DO
+      END DO
+
+    ELSE
 
       DO I = 1, nb_faces_1
         DO J = 1, nb_faces_2
 
           IF (depth == 0.0) THEN
-            CALL VNSINFD           &
-              (wavenumber,         &
-              centers_1(I, :),     &
-              centers_2(J, :),     &
-              XR,                  &
-              SP2, VSP2            &
+            CALL VNSINFD                  &
+              (wavenumber,                &
+              centers_1(I, :),            &
+              centers_2(J, :),            &
+              XR,                         &
+              SP2, VSP2_SYM               &
               )
+            VSP2_ANTISYM(:) = 0
           ELSE
-            CALL VNSFD             &
-              (wavenumber,         &
-              centers_1(I, :),     &
-              centers_2(J, :),     &
-              depth,               &
-              XR, AMBDA, AR, NEXP, &
-              SP2, VSP2            &
+            CALL VNSFD                    &
+              (wavenumber,                &
+              centers_1(I, :),            &
+              centers_2(J, :),            &
+              depth,                      &
+              XR, AMBDA, AR, NEXP,        &
+              SP2, VSP2_SYM, VSP2_ANTISYM &
               )
           END IF
 
           S(I, J) = SP2*areas_2(J)                                ! Green function
-          V(I, J) = DOT_PRODUCT(normals_1(I, :), VSP2)*areas_2(J) ! Gradient of the Green function
+          V(I, J) = DOT_PRODUCT(normals_1(I, :),         &
+                                VSP2_SYM + VSP2_ANTISYM) &
+                                *areas_2(J) ! Gradient of the Green function
 
         END DO
       END DO
-!    END IF
+   END IF
 
   END SUBROUTINE
 
