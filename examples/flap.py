@@ -9,11 +9,13 @@ import glob
 import logging
 
 import numpy as np
+import xarray as xr
 import matplotlib.pyplot as plt
 
 from capytaine.reference_bodies import (generate_open_rectangular_parallelepiped,
                                         generate_clever_open_rectangular_parallelepiped)
 from capytaine.problems import RadiationProblem
+from capytaine.results import assemble_dataset
 from capytaine.Nemoh import Nemoh
 
 result_directory = os.path.join(os.path.dirname(__file__), "flap_results")
@@ -52,23 +54,12 @@ def solve_flap(clever=True, resolution=2):
         for j in range(flap.nb_faces)])
 
     # Set up problems and initialise solver
-    problems = [RadiationProblem(body=flap, omega=omega, sea_bottom=-depth) for omega in 2*np.pi/T_range]
+    problems = [RadiationProblem(body=flap, omega=omega, radiating_dof="Oscillation", sea_bottom=-depth) for omega in 2*np.pi/T_range]
     solver = Nemoh()
 
     # Solve problems
-    results = np.asarray(solver.solve_all(problems, processes=1))
-
-    # Create directory to store results
-    if not os.path.isdir(result_directory):
-        os.mkdir(result_directory)
-
-    # Save result in csv file
-    result_file_path = os.path.join(os.path.dirname(__file__), "flap_results",
-                                    f"Results_{'clever_' if clever else ''}{30*resolution**2}_cells.csv")
-    if os.path.exists(result_file_path):
-        LOG.warning(f"Overwriting {result_file_path}")
-
-    np.savetxt(result_file_path, np.asarray(results))
+    results = [solver.solve(problem) for problem in problems]
+    return assemble_dataset(results)
 
 
 def plot_flap_results():
@@ -85,16 +76,16 @@ def plot_flap_results():
     plt.plot(T_range, nu, linestyle="--", label="Reference added damping")
 
     # Plot all results in result directory
-    for fichier in glob.glob(os.path.join(result_directory, "*.csv")):
-        mu, nu = np.loadtxt(fichier).T
+    for fichier in glob.glob(os.path.join(result_directory, "*.nc")):
+        dataset = xr.open_dataset(fichier)
 
         nb_cells = int(fichier.split('_')[-2])
 
         plt.figure(1)
-        plt.plot(T_range, mu, label=f"Added mass ({nb_cells} cells)")
+        plt.plot(T_range, dataset['added_mass'][::-1, 0, 0], label=f"Added mass ({nb_cells} cells)")
 
         plt.figure(2)
-        plt.plot(T_range, nu, label=f"Added damping ({nb_cells} cells)")
+        plt.plot(T_range, dataset['radiation_damping'][::-1, 0, 0], label=f"Added damping ({nb_cells} cells)")
 
     plt.figure(1)
     plt.xlabel("Wave period (s)")
@@ -110,14 +101,27 @@ def plot_flap_results():
 
 
 if __name__ == "__main__":
+    resolution = 2
+    clever = True
+
     from datetime import datetime
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s:\t%(message)s", datefmt="%H:%M:%S")
     LOG = logging.getLogger(__name__)
 
+    # Create directory to store results
+    if not os.path.isdir(result_directory):
+        os.mkdir(result_directory)
+    result_file_path = os.path.join(os.path.dirname(__file__), "flap_results",
+                                    f"Results_{'clever_' if clever else ''}{30*resolution**2}_cells.nc")
+    if os.path.exists(result_file_path):
+        LOG.warning(f"Overwriting {result_file_path}")
+
     start_time = datetime.now()
-    solve_flap(resolution=2, clever=True)
+    dataset = solve_flap(resolution, clever)
+    dataset.to_netcdf(result_file_path)
     end_time = datetime.now()
     LOG.info(f"Duration: {end_time - start_time}")
 
     plot_flap_results()
+
