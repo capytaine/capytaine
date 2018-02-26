@@ -36,18 +36,18 @@ def test_green_function(omega, depth):
     else:
         wavenumber = invert_xtanhx(omega**2 * depth/g) / depth
 
-    XR = _Green.initialize_green_2.initialize_green()
+    XR, XZ, APD = _Green.initialize_green_2.initialize_green()
     if depth < np.infty:
         ambda, ar, nexp = _Green.initialize_green_2.lisc(omega**2 * depth/g, wavenumber * depth)
 
     def g(w, Xi, Xj):
         if depth == np.infty:
-            return _Green.green_2.vnsinfd(w, Xi, Xj, XR)[0]
+            return _Green.green_2.vnsinfd(w, Xi, Xj, XR, XZ, APD)[0]
         else:
-            return _Green.green_2.vnsfd(w, Xi, Xj, depth, XR, ambda, ar, nexp)[0]
+            return _Green.green_2.vnsfd(w, Xi, Xj, depth, XR, XZ, APD, ambda, ar, nexp)[0]
 
     def dg(w, Xi, Xj):
-        return _Green.green_2.vnsinfd(w, Xi, Xj, XR)[1]
+        return _Green.green_2.vnsinfd(w, Xi, Xj, XR, XZ, APD)[1]
 
     def reflect(X):
         Y = X.copy()

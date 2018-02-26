@@ -24,7 +24,7 @@ class Nemoh:
     """Solver for the BEM problem based on Nemoh's Green function."""
 
     def __init__(self, max_stored_exponential_decompositions=50):
-        self.XR = _Green.initialize_green_2.initialize_green()
+        self.XR, self.XZ, self.APD = _Green.initialize_green_2.initialize_green()
         LOG.info("Initialize Nemoh's Green function.")
 
         self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)
@@ -204,7 +204,8 @@ class Nemoh:
                     body1.faces_centers, body1.faces_normals,
                     body2.faces_centers, body2.faces_areas,
                     wavenumber,         0.0,
-                    self.XR, lamda_exp, a_exp, n_exp,
+                    self.XR, self.XZ, self.APD,
+                    lamda_exp, a_exp, n_exp,
                     body1 is body2
                     )
             else:
@@ -216,7 +217,8 @@ class Nemoh:
                     body1.faces_centers, body1.faces_normals,
                     body2.faces_centers, body2.faces_areas,
                     wavenumber,         depth,
-                    self.XR, lamda_exp, a_exp, n_exp,
+                    self.XR, self.XZ, self.APD,
+                    lamda_exp, a_exp, n_exp,
                     body1 is body2
                     )
 

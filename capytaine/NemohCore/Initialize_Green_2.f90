@@ -20,8 +20,6 @@ MODULE Initialize_Green_2
   INTEGER, PARAMETER      :: NPINTE = 251
   INTEGER, PARAMETER      :: IR = 328
   INTEGER, PARAMETER      :: JZ = 46
-  REAL, DIMENSION(JZ)     :: XZ
-  REAL, DIMENSION(IR, JZ) :: APD1X, APD1Z, APD2X, APD2Z
 
 CONTAINS
 
@@ -76,8 +74,8 @@ CONTAINS
 
 !---------------------------------------------------------------------
 
-  SUBROUTINE INITIALIZE_GREEN(XR)
-    ! Initialize XR, XZ, APD1X, APD2X, APD1Z, APD2Z
+  SUBROUTINE INITIALIZE_GREEN(XR, XZ, APD)
+    ! Initialize XR, XZ and APD
     ! Those parameters are independent of the depth and the frequency.
     ! Thus, they are initialized only once at the beginning of the execution of the code.
 
@@ -86,7 +84,9 @@ CONTAINS
     ! [2] Babarit and Delhommeau, Theoretical and numerical aspects of the open source BEM solver NEMOH, EWTEC 2015
 
     ! Output
-    REAL, DIMENSION(328), INTENT(OUT)  :: XR
+    REAL, DIMENSION(328), INTENT(OUT)     :: XR
+    REAL, DIMENSION(46),  INTENT(OUT)     :: XZ
+    REAL, DIMENSION(328, 46, 2, 2), INTENT(OUT) :: APD
 
     ! Local variables
     INTEGER :: I, J, K
@@ -122,10 +122,7 @@ CONTAINS
     ENDDO
 
     ! Initialize APD..
-    APD1X(:, :) = 0.0 ! named D_1(Z, X) in [1, 2]
-    APD1Z(:, :) = 0.0 ! named D_2(Z, X) in [1, 2]
-    APD2X(:, :) = 0.0 ! named Z_1(Z, X) in [1, 2]
-    APD2Z(:, :) = 0.0 ! named Z_2(Z, X) in [1, 2]
+    APD(:, :, :, :) = 0.0
     DO J = 1, JZ
       DO I = 1, IR
         DO K = 1, NPINTE
@@ -138,10 +135,10 @@ CONTAINS
           ENDIF
           C1 = CQT(K)*(GG(ZETA, CEX) - 1.0/ZETA)
           C2 = CQT(K)*CEX
-          APD1X(I, J) = APD1X(I, J) + CT*AIMAG(C1)
-          APD1Z(I, J) = APD1Z(I, J) + REAL(C1)
-          APD2X(I, J) = APD2X(I, J) + CT*AIMAG(C2)
-          APD2Z(I, J) = APD2Z(I, J) + REAL(C2)
+          APD(I, J, 1, 1) = APD(I, J, 1, 1) + CT*AIMAG(C1) ! named D_1(Z, X) in [1, 2]
+          APD(I, J, 1, 2) = APD(I, J, 1, 2) + REAL(C1)     ! named D_2(Z, X) in [1, 2]
+          APD(I, J, 2, 1) = APD(I, J, 2, 1) + CT*AIMAG(C2) ! named Z_1(Z, X) in [1, 2]
+          APD(I, J, 2, 2) = APD(I, J, 2, 2) + REAL(C2)     ! named Z_2(Z, X) in [1, 2]
         END DO
       END DO
     END DO
