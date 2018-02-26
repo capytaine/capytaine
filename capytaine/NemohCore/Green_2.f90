@@ -10,11 +10,47 @@ MODULE Green_2
 
 CONTAINS
 
-  REAL FUNCTION PL2(U1,U2,U3,XU)
-    REAL::U1,U2,U3,XU
-    PL2=((XU-U1)*(XU-U2))/((U3-U1)*(U3-U2))
-    RETURN
-  END FUNCTION
+  ! =====================================================================
+
+  SUBROUTINE LAGRANGE_POLYNOMIAL_INTERPOLATION &
+    (AKR, AKZ,                                 &
+     XR, XZ, APD,                              &
+     PD1X, PD2X, PD1Z, PD2Z)
+
+    REAL, INTENT(IN) :: AKR, AKZ
+
+    REAL, DIMENSION(3), INTENT(IN) :: XR
+    REAL, DIMENSION(3),  INTENT(IN) :: XZ
+    REAL, DIMENSION(3, 3, 2, 2), INTENT(IN) :: APD
+
+    REAL, INTENT(OUT) :: PD1X, PD2X, PD1Z, PD2Z
+
+    ! Local variable
+    REAL, DIMENSION(3) :: XL, ZL
+
+    XL(1) = PL2(XR(2), XR(3), XR(1), AKR)
+    XL(2) = PL2(XR(3), XR(1), XR(2), AKR)
+    XL(3) = PL2(XR(1), XR(2), XR(3), AKR)
+    ZL(1) = PL2(XZ(2), XZ(3), XZ(1), AKZ)
+    ZL(2) = PL2(XZ(3), XZ(1), XZ(2), AKZ)
+    ZL(3) = PL2(XZ(1), XZ(2), XZ(3), AKZ)
+
+    PD1Z = DOT_PRODUCT(XL, MATMUL(APD(:, :, 1, 2), ZL))
+    PD2Z = DOT_PRODUCT(XL, MATMUL(APD(:, :, 2, 2), ZL))
+    PD1X = DOT_PRODUCT(XL, MATMUL(APD(:, :, 1, 1), ZL))
+    PD2X = DOT_PRODUCT(XL, MATMUL(APD(:, :, 2, 1), ZL))
+
+  CONTAINS
+
+    REAL FUNCTION PL2(U1, U2, U3, XU)
+      REAL :: U1, U2, U3, XU
+      PL2 = ((XU-U1)*(XU-U2))/((U3-U1)*(U3-U2))
+      RETURN
+    END FUNCTION
+
+  END SUBROUTINE LAGRANGE_POLYNOMIAL_INTERPOLATION
+
+  ! =====================================================================
 
   SUBROUTINE COMPUTE_S2(XI, XJ, depth, wavenumber, &
                         XR, XZ, APD,               &
@@ -37,7 +73,6 @@ CONTAINS
     REAL                               :: RRR, AKR, ZZZ, AKZ, DD, PSURR
     REAL                               :: SIK, CSK, SQ, EPZ
     REAL                               :: PD1X, PD2X, PD1Z, PD2Z
-    REAL, DIMENSION(3)                 :: XL, ZL
 
     RRR = NORM2(XI(1:2) - XJ(1:2))
     AKR = wavenumber*RRR
@@ -57,44 +92,35 @@ CONTAINS
     !   WRITE(*,*)'AKZ < -1.5 E-6' ! Not a very explicit warning...
     ! END IF
 
-    IF (AKZ > -16) THEN             !   -16 < AKZ < -1.5e-6
+    !================================================
+    ! Evaluate PDnX and PDnZ depending on AKZ and AKR
+    !================================================
 
-      !================================================
-      ! Evaluate PDnX and PDnZ depending on AKZ and AKR
-      !================================================
+    IF ((MINVAL(XZ) < AKZ) .AND. (AKZ < MAXVAL(XZ))) THEN
 
-      IF (AKR < 99.7) THEN          !     0 < AKR < 99.7
+      IF ((MINVAL(XR) <= AKR) .AND. (AKR < MAXVAL(XR))) THEN
 
-        IF (AKZ < -1e-2) THEN       !   -16 < AKZ < -1e-2
-          KJ = INT(8*(ALOG10(-AKZ)+4.5))
-        ELSE                        ! -1e-2 < AKZ < -1.5e-6
-          KJ = INT(5*(ALOG10(-AKZ)+6))
-        ENDIF
-        KJ = MAX(MIN(KJ, 45), 2)
-
-        IF (AKR < 1) THEN           !     0 < AKR < 1
+        IF (AKR < 1) THEN
           KI = INT(5*(ALOG10(AKR+1e-20)+6)+1)
-        ELSE                        !     1 < AKR < 99.7
+        ELSE
           KI = INT(3*AKR+28)
         ENDIF
         KI = MAX(MIN(KI, 327), 2)
 
-        XL(1) = PL2(XR(KI),   XR(KI+1), XR(KI-1), AKR)
-        XL(2) = PL2(XR(KI+1), XR(KI-1), XR(KI),   AKR)
-        XL(3) = PL2(XR(KI-1), XR(KI),   XR(KI+1), AKR)
-        ZL(1) = PL2(XZ(KJ),   XZ(KJ+1), XZ(KJ-1), AKZ)
-        ZL(2) = PL2(XZ(KJ+1), XZ(KJ-1), XZ(KJ),   AKZ)
-        ZL(3) = PL2(XZ(KJ-1), XZ(KJ),   XZ(KJ+1), AKZ)
+        IF (AKZ < -1e-2) THEN
+          KJ = INT(8*(ALOG10(-AKZ)+4.5))
+        ELSE
+          KJ = INT(5*(ALOG10(-AKZ)+6))
+        ENDIF
+        KJ = MAX(MIN(KJ, 45), 2)
 
-        PD1Z = DOT_PRODUCT(XL, MATMUL(APD(KI-1:KI+1, KJ-1:KJ+1, 1, 2), ZL))
-        PD2Z = DOT_PRODUCT(XL, MATMUL(APD(KI-1:KI+1, KJ-1:KJ+1, 2, 2), ZL))
+        CALL LAGRANGE_POLYNOMIAL_INTERPOLATION   &
+                (AKR, AKZ,                       &
+                XR(KI-1:KI+1), XZ(KJ-1:KJ+1),    &
+                APD(KI-1:KI+1, KJ-1:KJ+1, :, :), &
+                PD1X, PD2X, PD1Z, PD2Z)
 
-        IF (RRR > 1e-5) THEN
-          PD1X = DOT_PRODUCT(XL, MATMUL(APD(KI-1:KI+1, KJ-1:KJ+1, 1, 1), ZL))
-          PD2X = DOT_PRODUCT(XL, MATMUL(APD(KI-1:KI+1, KJ-1:KJ+1, 2, 1), ZL))
-        END IF
-
-      ELSE  ! 99.7 < AKR
+      ELSE  ! MAXVAL(XR) < AKR
 
         EPZ  = EXP(AKZ)
         SQ   = SQRT(2*PI/AKR)
@@ -105,7 +131,6 @@ CONTAINS
         PD2Z =                EPZ*SQ*CSK
 
         IF (RRR > 1e-5) THEN
-          ! PD1X=-PSURR*AKR-PI*EPZ*SQ*(CSK-0.5/AKR*SIK) ! correction par GD le 17/09/2010
           PD1X = PI*EPZ*SQ*(CSK - 0.5*SIK/AKR) - PSURR*AKR
           PD2X =    EPZ*SQ*(SIK + 0.5*CSK/AKR)
         END IF
@@ -135,7 +160,7 @@ CONTAINS
         VS(1:2) = CMPLX(0.0, 0.0)
       END IF
 
-    ELSE ! AKZ < -16
+    ELSE ! AKZ < MINVAL(XZ)
       FS      = CMPLX(-PSURR*AKZ, 0.0)
       VS(1:3) = CMPLX(0.0, 0.0)
     ENDIF
