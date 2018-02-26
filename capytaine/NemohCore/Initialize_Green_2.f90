@@ -16,11 +16,6 @@ MODULE Initialize_Green_2
   REAL, PARAMETER :: PI = 3.141592653588979 ! π
   COMPLEX, PARAMETER :: II = (0, 1)         ! Imaginary unit
 
-  ! Independent of Omega
-  INTEGER, PARAMETER      :: NPINTE = 251
-  INTEGER, PARAMETER      :: IR = 328
-  INTEGER, PARAMETER      :: JZ = 46
-
 CONTAINS
 
   COMPLEX FUNCTION GG(Z, CEX)
@@ -74,8 +69,8 @@ CONTAINS
 
 !---------------------------------------------------------------------
 
-  SUBROUTINE INITIALIZE_GREEN(XR, XZ, APD)
-    ! Initialize XR, XZ and APD
+  SUBROUTINE INITIALIZE_GREEN(IR, JZ, NPINTE, XR, XZ, APD)
+    ! Initialize XR, XZ and APD.
     ! Those parameters are independent of the depth and the frequency.
     ! Thus, they are initialized only once at the beginning of the execution of the code.
 
@@ -83,10 +78,16 @@ CONTAINS
     ! [1] Delhommeau, Amélioration des codes de calcul de diffraction-radiation, 2èmes journées de l'hydrodynamique, 1989
     ! [2] Babarit and Delhommeau, Theoretical and numerical aspects of the open source BEM solver NEMOH, EWTEC 2015
 
-    ! Output
-    REAL, DIMENSION(328), INTENT(OUT)     :: XR
-    REAL, DIMENSION(46),  INTENT(OUT)     :: XZ
-    REAL, DIMENSION(328, 46, 2, 2), INTENT(OUT) :: APD
+
+    ! Inputs
+    INTEGER, INTENT(IN) :: IR     != 328
+    INTEGER, INTENT(IN) :: JZ     != 46
+    INTEGER, INTENT(IN) :: NPINTE != 251
+
+    ! Outputs
+    REAL, DIMENSION(IR),           INTENT(OUT) :: XR
+    REAL, DIMENSION(JZ),           INTENT(OUT) :: XZ
+    REAL, DIMENSION(IR, JZ, 2, 2), INTENT(OUT) :: APD
 
     ! Local variables
     INTEGER :: I, J, K

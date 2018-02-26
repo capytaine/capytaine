@@ -36,7 +36,7 @@ def test_green_function(omega, depth):
     else:
         wavenumber = invert_xtanhx(omega**2 * depth/g) / depth
 
-    XR, XZ, APD = _Green.initialize_green_2.initialize_green()
+    XR, XZ, APD = _Green.initialize_green_2.initialize_green(328, 46, 251)
     if depth < np.infty:
         ambda, ar, nexp = _Green.initialize_green_2.lisc(omega**2 * depth/g, wavenumber * depth)
 

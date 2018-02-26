@@ -23,8 +23,8 @@ LOG = logging.getLogger(__name__)
 class Nemoh:
     """Solver for the BEM problem based on Nemoh's Green function."""
 
-    def __init__(self, max_stored_exponential_decompositions=50):
-        self.XR, self.XZ, self.APD = _Green.initialize_green_2.initialize_green()
+    def __init__(self, npinte=251, max_stored_exponential_decompositions=50):
+        self.XR, self.XZ, self.APD = _Green.initialize_green_2.initialize_green(328, 46, npinte)
         LOG.info("Initialize Nemoh's Green function.")
 
         self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)
