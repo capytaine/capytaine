@@ -8,7 +8,7 @@ import numpy as np
 
 from meshmagick.mesh import Mesh
 
-from capytaine.bodies import FloatingBody
+from capytaine.bodies import CMesh, FloatingBody
 
 
 LOG = logging.getLogger(__name__)
@@ -60,14 +60,15 @@ class CollectionOfFloatingBodies(FloatingBody):
 
         new_body = self.subbodies[0].as_FloatingBody().copy(name=name)
         for body in self.subbodies[1:]:
-            new_body = Mesh.__add__(new_body, body.as_FloatingBody())
+            new_body.mesh = Mesh.__add__(new_body.mesh, body.as_FloatingBody().mesh)
             LOG.debug(f"Add mesh of {body.name} to {name}.")
+        new_body.mesh.__class__ = CMesh
+        new_body.mesh.merge_duplicates()
+        new_body.mesh.heal_triangles()
         new_body.name = name
-        new_body.merge_duplicates()
-        new_body.heal_triangles()
-        new_body.__class__ = FloatingBody
-        new_body.dofs = self.dofs
+        new_body.dofs = self.dofs  # TODO: is broken if the subbodies have faces in common.
         new_body.nb_matrices_to_keep = 1
+        new_body.__internals__ = {}
         LOG.info(f"Merged collection of bodies {self.name} into floating body {new_body.name}.")
         return new_body
 
@@ -80,9 +81,6 @@ class CollectionOfFloatingBodies(FloatingBody):
     ########################
     #  Various properties  #
     ########################
-
-    def __str__(self):
-        return self.name
 
     @property
     def nb_matrices_to_keep(self):
@@ -184,8 +182,8 @@ class CollectionOfFloatingBodies(FloatingBody):
         return
 
     def indices_of_body(self, body_index):
-        start = sum((body.nb_faces for body in self.subbodies[:body_index]))
-        return slice(start, start + self.subbodies[body_index].nb_faces)
+        start = sum((body.mesh.nb_faces for body in self.subbodies[:body_index]))
+        return slice(start, start + self.subbodies[body_index].mesh.nb_faces)
 
     #######################################
     #  Computation of influence matrices  #

@@ -18,7 +18,36 @@ from meshmagick.mesh_clipper import MeshClipper
 LOG = logging.getLogger(__name__)
 
 
-class FloatingBody(Mesh):
+class CMesh(Mesh):
+    @property
+    def faces_radiuses(self):
+        """Get the array of faces radiuses of the mesh."""
+        if 'faces_radiuses' not in self.__internals__:
+            self._compute_radiuses()
+        return self.__internals__['faces_radiuses']
+
+    def _compute_radiuses(self):
+        """Compute the radiuses of the faces of the mesh.
+
+        The radius is defined here as the maximal distance between the center
+        of mass of a cell and one of its points."""
+        from numpy.linalg import norm
+        faces_radiuses = np.zeros(self.nb_faces, dtype=np.float32)
+        for j in range(self.nb_faces):  # TODO: optimize by array broadcasting
+            faces_radiuses[j] = max(
+                norm(self.faces_centers[j, 0:3] -
+                     self.vertices[self.faces[j, 0], 0:3]),
+                norm(self.faces_centers[j, 0:3] -
+                     self.vertices[self.faces[j, 1], 0:3]),
+                norm(self.faces_centers[j, 0:3] -
+                     self.vertices[self.faces[j, 2], 0:3]),
+                norm(self.faces_centers[j, 0:3] -
+                     self.vertices[self.faces[j, 3], 0:3]),
+            )
+        self.__internals__["faces_radiuses"] = faces_radiuses
+
+
+class FloatingBody:
     """A floating body described as a mesh and some degrees of freedom.
 
     The mesh structure is inherited from meshmagick Mesh class (see
@@ -32,17 +61,23 @@ class FloatingBody(Mesh):
     #######################################
 
     def __init__(self, *args, **kwargs):
-        Mesh.__init__(self, *args, **kwargs)
-        self._compute_radiuses()
-        self.nb_matrices_to_keep = 1
+        if len(args) >= 1 and (isinstance(args[0], Mesh) or isinstance(args[0], CMesh)):
+            self.mesh = args[0]
+            self.mesh.__class__ = CMesh
+        else:
+            self.mesh = CMesh(*args, **kwargs)
+
+        if 'name' in kwargs:
+            self.name = kwargs['name']
+        else:
+            self.name = self.mesh.name
+
         self.dofs = {}
+
+        self.__internals__ = {}
+        self.nb_matrices_to_keep = 1
+
         LOG.info(f"New floating body: {self.name}.")
-
-    def __repr__(self):
-        return self.name
-
-    def __lt__(self, other):
-        return self.name < other.name
 
     @staticmethod
     def from_file(filename, file_format):
@@ -61,6 +96,15 @@ class FloatingBody(Mesh):
                     body = ReflectionSymmetry(body, plane=xOz_Plane)
 
         return body
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+    def __lt__(self, other):
+        return self.name < other.name
 
     def __add__(self, body_to_add):
         """Create a new CollectionOfFloatingBody from the combination of two of them."""
@@ -86,10 +130,10 @@ class FloatingBody(Mesh):
     def extract_faces(self, id_faces_to_extract, return_index=False):
         """Create a new FloatingBody by extracting some faces from the mesh."""
         if return_index:
-            new_body, id_v = Mesh.extract_faces(self, id_faces_to_extract, return_index)
+            new_mesh, id_v = Mesh.extract_faces(self.mesh, id_faces_to_extract, return_index)
         else:
-            new_body = Mesh.extract_faces(self, id_faces_to_extract, return_index)
-        new_body.__class__ = FloatingBody
+            new_mesh = Mesh.extract_faces(self.mesh, id_faces_to_extract, return_index)
+        new_body = FloatingBody(new_mesh)
         new_body.nb_matrices_to_keep = self.nb_matrices_to_keep
         LOG.info(f"Extract floating body from {self.name}.")
 
@@ -102,21 +146,93 @@ class FloatingBody(Mesh):
         else:
             return new_body
 
-    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        """Remove the parts of the body above the free surface or below the sea bottom."""
-        clipped_mesh = MeshClipper(self,
-                                   plane=Plane(normal=(0.0, 0.0, 1.0),
-                                               scalar=free_surface)).clipped_mesh
+    # Interface to mesh
 
-        if sea_bottom > -np.infty:
-            clipped_mesh = MeshClipper(clipped_mesh,
-                                       plane=Plane(normal=(0.0, 0.0, -1.0),
-                                                   scalar=-sea_bottom)).clipped_mesh
+    @property
+    def nb_vertices(self):
+        return self.mesh.nb_vertices
 
-        clipped_mesh.remove_unused_vertices()
+    @property
+    def nb_faces(self):
+        return self.mesh.nb_faces
 
-        LOG.info(f"Clip floating body {self.name}.")
-        return FloatingBody(clipped_mesh.vertices, clipped_mesh.faces)
+    @property
+    def vertices(self):
+        return self.mesh.vertices
+
+    @property
+    def faces(self):
+        return self.mesh.faces
+
+    @property
+    def faces_areas(self):
+        return self.mesh.faces_areas
+
+    @property
+    def faces_centers(self):
+        return self.mesh.faces_centers
+
+    @property
+    def faces_normals(self):
+        return self.mesh.faces_normals
+
+    @property
+    def faces_radiuses(self):
+        return self.mesh.faces_radiuses
+
+    @property
+    def volume(self):
+        return self.mesh.volume
+
+    def mirror(self, *args):
+        return self.mesh.mirror(*args)
+
+    def translate_x(self, *args):
+        return self.mesh.translate_x(*args)
+
+    def translate_y(self, *args):
+        return self.mesh.translate_y(*args)
+
+    def translate_z(self, *args):
+        return self.mesh.translate_z(*args)
+
+    def translate(self, *args):
+        return self.mesh.translate(*args)
+
+    def rotate_x(self, *args):
+        return self.mesh.rotate_x(*args)
+
+    def rotate_y(self, *args):
+        return self.mesh.rotate_y(*args)
+
+    def rotate_z(self, *args):
+        return self.mesh.rotate_z(*args)
+
+    def rotate(self, *args):
+        return self.mesh.rotate(*args)
+
+    # def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
+    #     """Remove the parts of the body above the free surface or below the sea bottom."""
+    #     clipped_mesh = MeshClipper(self,
+    #                                plane=Plane(normal=(0.0, 0.0, 1.0),
+    #                                            scalar=free_surface)).clipped_mesh
+    #
+    #     if sea_bottom > -np.infty:
+    #         clipped_mesh = MeshClipper(clipped_mesh,
+    #                                    plane=Plane(normal=(0.0, 0.0, -1.0),
+    #                                                scalar=-sea_bottom)).clipped_mesh
+    #
+    #     clipped_mesh.remove_unused_vertices()
+    #
+    #     LOG.info(f"Clip floating body {self.name}.")
+    #     return FloatingBody(clipped_mesh.vertices, clipped_mesh.faces)
+
+    # Dofs
+
+    @property
+    def nb_dofs(self):
+        """Number of degrees of freedom."""
+        return len(self.dofs)
 
     def add_translation_dof(self, direction=(1.0, 0.0, 0.0), name=None):
         if name is None:
@@ -132,42 +248,6 @@ class FloatingBody(Mesh):
         for i, (cdg, normal) in enumerate(zip(self.faces_centers, self.faces_normals)):
             dof[i] = np.cross(axis_point - cdg, axis_direction) @ normal
         self.dofs[name] = dof
-
-    ########################
-    #  Various properties  #
-    ########################
-
-    @property
-    def nb_dofs(self):
-        """Number of degrees of freedom."""
-        return len(self.dofs)
-
-    @property
-    def faces_radiuses(self):
-        """Get the array of faces radiuses of the mesh."""
-        if 'faces_radiuses' not in self.__internals__:
-            self._compute_radiuses()
-        return self.__internals__['faces_radiuses']
-
-    def _compute_radiuses(self):
-        """Compute the radiuses of the faces of the mesh.
-
-        The radius is defined here as the maximal distance between the center
-        of mass of a cell and one of its points."""
-        from numpy.linalg import norm
-        faces_radiuses = np.zeros(self.nb_faces, dtype=np.float32)
-        for j in range(self.nb_faces): # TODO: optimize by array broadcasting
-            faces_radiuses[j] = max(
-                norm(self.faces_centers[j, 0:3] -
-                     self.vertices[self.faces[j, 0], 0:3]),
-                norm(self.faces_centers[j, 0:3] -
-                     self.vertices[self.faces[j, 1], 0:3]),
-                norm(self.faces_centers[j, 0:3] -
-                     self.vertices[self.faces[j, 2], 0:3]),
-                norm(self.faces_centers[j, 0:3] -
-                     self.vertices[self.faces[j, 3], 0:3]),
-                )
-        self.__internals__["faces_radiuses"] = faces_radiuses
 
     #######################################
     #  Computation of influence matrices  #

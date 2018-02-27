@@ -60,7 +60,7 @@ class Nemoh:
             # Depending of the type of problem, the force will be kept as a complex-valued Froude-Krylov force
             # or stored as a couple of added mass and damping radiation coefficients.
 
-        LOG.info("Done!")
+        LOG.debug("Done!")
 
         return results
 
@@ -216,7 +216,7 @@ class Nemoh:
                 S2, V2 = _Green.green_2.build_matrix_2(
                     body1.faces_centers, body1.faces_normals,
                     body2.faces_centers, body2.faces_areas,
-                    wavenumber,         depth,
+                    wavenumber, depth,
                     self.XR, self.XZ, self.APD,
                     lamda_exp, a_exp, n_exp,
                     body1 is body2
