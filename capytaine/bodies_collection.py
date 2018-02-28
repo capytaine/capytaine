@@ -78,10 +78,6 @@ class CollectionOfFloatingBodies(FloatingBody):
         else:
             return CollectionOfFloatingBodies(self.subbodies + [body_to_add])
 
-    ########################
-    #  Various properties  #
-    ########################
-
     @property
     def nb_matrices_to_keep(self):
         return max([body.nb_matrices_to_keep for body in self.subbodies])
@@ -94,6 +90,15 @@ class CollectionOfFloatingBodies(FloatingBody):
     @property
     def nb_subbodies(self):
         return len(self.subbodies)
+
+    #######################
+    #  Interface to mesh  #
+    #######################
+
+    @property
+    def mesh(self):
+        meshes = [body.mesh for body in self.subbodies]
+        return sum(meshes[1:], meshes[0])
 
     @property
     def nb_vertices(self):
@@ -180,6 +185,9 @@ class CollectionOfFloatingBodies(FloatingBody):
         for body in self.subbodies:
             body.rotate(vector)
         return
+
+    def get_immersed_part(self, **kwargs):
+        return CollectionOfFloatingBodies([body.get_immersed_part(**kwargs) for body in self.subbodies])
 
     def indices_of_body(self, body_index):
         start = sum((body.mesh.nb_faces for body in self.subbodies[:body_index]))

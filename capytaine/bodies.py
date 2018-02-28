@@ -19,6 +19,7 @@ LOG = logging.getLogger(__name__)
 
 
 class CMesh(Mesh):
+    # TODO: merge with meshmagick Mesh class.
     @property
     def faces_radiuses(self):
         """Get the array of faces radiuses of the mesh."""
@@ -61,7 +62,7 @@ class FloatingBody:
     #######################################
 
     def __init__(self, *args, **kwargs):
-        if len(args) >= 1 and (isinstance(args[0], Mesh) or isinstance(args[0], CMesh)):
+        if len(args) >= 1 and isinstance(args[0], Mesh):
             self.mesh = args[0]
             self.mesh.__class__ = CMesh
         else:
@@ -104,14 +105,16 @@ class FloatingBody:
         return self.name
 
     def __lt__(self, other):
+        """Arbitrary order. The point is that problems involving the same body get sorted together."""
         return self.name < other.name
 
     def __add__(self, body_to_add):
-        """Create a new CollectionOfFloatingBody from the combination of two of them."""
+        """Create a new CollectionOfFloatingBody from the combination of two FloatingBodies."""
         from capytaine.bodies_collection import CollectionOfFloatingBodies
         return CollectionOfFloatingBodies([self, body_to_add])
 
     def as_FloatingBody(self, name=None):
+        """Does basically nothing. Will be redefined in inheriting classes."""
         if name is not None:
             LOG.debug(f"Rename {self.name} as {name}.")
             self.name = name
@@ -146,7 +149,35 @@ class FloatingBody:
         else:
             return new_body
 
-    # Interface to mesh
+    ##########
+    #  Dofs  #
+    ##########
+
+    @property
+    def nb_dofs(self):
+        """Number of degrees of freedom."""
+        return len(self.dofs)
+
+    def add_translation_dof(self, direction=(1.0, 0.0, 0.0), name=None):
+        """Helper to define a new translation dof."""
+        if name is None:
+            name = f"dof_{self.nb_dofs}_translation"
+        self.dofs[name] = self.faces_normals @ direction
+
+    def add_rotation_dof(self, axis_direction=(0.0, 0.0, 1.0), axis_point=(0.0, 0.0, 0.0), name=None):
+        """Helper to define a new rotation dof."""
+        if name is None:
+            name = f"dof_{self.nb_dofs}_rotation"
+
+        # TODO: Rewrite more efficiently and/or elegantly
+        dof = np.empty((self.nb_faces, ), dtype=np.float32)
+        for i, (cdg, normal) in enumerate(zip(self.faces_centers, self.faces_normals)):
+            dof[i] = np.cross(axis_point - cdg, axis_direction) @ normal
+        self.dofs[name] = dof
+
+    #######################
+    #  Interface to mesh  #
+    #######################
 
     @property
     def nb_vertices(self):
@@ -211,43 +242,27 @@ class FloatingBody:
     def rotate(self, *args):
         return self.mesh.rotate(*args)
 
-    # def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-    #     """Remove the parts of the body above the free surface or below the sea bottom."""
-    #     clipped_mesh = MeshClipper(self,
-    #                                plane=Plane(normal=(0.0, 0.0, 1.0),
-    #                                            scalar=free_surface)).clipped_mesh
-    #
-    #     if sea_bottom > -np.infty:
-    #         clipped_mesh = MeshClipper(clipped_mesh,
-    #                                    plane=Plane(normal=(0.0, 0.0, -1.0),
-    #                                                scalar=-sea_bottom)).clipped_mesh
-    #
-    #     clipped_mesh.remove_unused_vertices()
-    #
-    #     LOG.info(f"Clip floating body {self.name}.")
-    #     return FloatingBody(clipped_mesh.vertices, clipped_mesh.faces)
+    def show(self):
+        return self.mesh.show()
 
-    # Dofs
+    def show_matplotlib(self):
+        return self.mesh.show_matplotlib()
 
-    @property
-    def nb_dofs(self):
-        """Number of degrees of freedom."""
-        return len(self.dofs)
+    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
+        """Remove the parts of the body above the free surface or below the sea bottom.
+        Dofs are lost in the process."""
+        clipped_mesh = MeshClipper(self.mesh,
+                                   plane=Plane(normal=(0.0, 0.0, 1.0),
+                                               scalar=free_surface)).clipped_mesh
 
-    def add_translation_dof(self, direction=(1.0, 0.0, 0.0), name=None):
-        if name is None:
-            name = f"dof_{self.nb_dofs}_translation"
-        self.dofs[name] = self.faces_normals @ direction
+        if sea_bottom > -np.infty:
+            clipped_mesh = MeshClipper(clipped_mesh,
+                                       plane=Plane(normal=(0.0, 0.0, -1.0),
+                                                   scalar=-sea_bottom)).clipped_mesh
 
-    def add_rotation_dof(self, axis_direction=(0.0, 0.0, 1.0), axis_point=(0.0, 0.0, 0.0), name=None):
-        if name is None:
-            name = f"dof_{self.nb_dofs}_rotation"
-
-        # TODO: Rewrite more efficiently and/or elegantly
-        dof = np.empty((self.nb_faces, ), dtype=np.float32)
-        for i, (cdg, normal) in enumerate(zip(self.faces_centers, self.faces_normals)):
-            dof[i] = np.cross(axis_point - cdg, axis_direction) @ normal
-        self.dofs[name] = dof
+        clipped_mesh.remove_unused_vertices()
+        LOG.info(f"Clip floating body {self.name}.")
+        return FloatingBody(clipped_mesh, name=f"{self.name}_clipped")
 
     #######################################
     #  Computation of influence matrices  #
