@@ -242,11 +242,11 @@ class FloatingBody:
     def rotate(self, *args):
         return self.mesh.rotate(*args)
 
-    def show(self):
-        return self.mesh.show()
+    def show(self, *args, **kwargs):
+        return self.mesh.show(*args, **kwargs)
 
-    def show_matplotlib(self):
-        return self.mesh.show_matplotlib()
+    def show_matplotlib(self, *args, **kwargs):
+        return self.mesh.show_matplotlib(*args, **kwargs)
 
     def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
         """Remove the parts of the body above the free surface or below the sea bottom.
