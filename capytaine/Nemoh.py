@@ -265,7 +265,7 @@ class Nemoh:
 
         phi = S @ result.sources
 
-        LOG.info(f"Done computing potential on {mesh.name} for {result}.")
+        LOG.debug(f"Done computing potential on {mesh.name} for {result}.")
 
         return phi
 

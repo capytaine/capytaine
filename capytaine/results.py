@@ -36,6 +36,16 @@ class LinearPotentialFlowResult:
 class DiffractionResult(LinearPotentialFlowResult):
     forces = attrib(default=Factory(dict), init=False, repr=False)
 
+    def __str__(self):
+        parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, angle={self.angle}, "]
+        if not self.free_surface == 0.0:
+            parameters.append(f"free_surface={self.free_surface}, ")
+        if not self.g == 9.81:
+            parameters.append(f"g={self.g}, ")
+        if not self.rho == 1000:
+            parameters.append(f"rho={self.rho}, ")
+        return "DiffractionResult(" + ''.join(parameters)[:-2] + ")"
+
     def store_force(self, dof, force):
         self.forces[dof] = 1j*self.omega*force
 
@@ -50,6 +60,16 @@ class DiffractionResult(LinearPotentialFlowResult):
 class RadiationResult(LinearPotentialFlowResult):
     added_masses = attrib(default=Factory(dict), init=False, repr=False)
     radiation_dampings = attrib(default=Factory(dict), init=False, repr=False)
+
+    def __str__(self):
+        parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, radiating_dof={self.radiating_dof}, "]
+        if not self.free_surface == 0.0:
+            parameters.append(f"free_surface={self.free_surface}, ")
+        if not self.g == 9.81:
+            parameters.append(f"g={self.g}, ")
+        if not self.rho == 1000:
+            parameters.append(f"rho={self.rho}, ")
+        return "RadiationResult(" + ''.join(parameters)[:-2] + ")"
 
     def store_force(self, dof, force):
         self.added_masses[dof] = force.real
