@@ -9,10 +9,7 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from capytaine.reference_bodies import generate_clever_horizontal_cylinder
-from capytaine.problems import *
-from capytaine.results import assemble_dataset
-from capytaine.Nemoh import Nemoh
+from capytaine import *
 
 logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s:\t%(message)s")
@@ -33,7 +30,7 @@ problems = [RadiationProblem(body=cylinder, radiating_dof=dof, rho=rho, omega=om
 results = [solver.solve(pb) for pb in sorted(problems)]
 data = assemble_dataset(results)
 
-np.savetxt("added_masses.csv", data['added_mass'].sel(radiating_dof='Heave', influenced_dof='Heave'))
+# np.savetxt("added_masses.csv", data['added_mass'].sel(radiating_dof='Heave', influenced_dof='Heave'))
 
 plt.figure()
 plt.plot(omega_range,

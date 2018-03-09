@@ -6,9 +6,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from capytaine.reference_bodies import *
-from capytaine.symmetries import *
-from capytaine.Nemoh import Nemoh
+from capytaine import *
 
 cylinder = generate_clever_horizontal_cylinder(length=10.0, radius=1.0, nx=5, ntheta=10)
 cylinder.translate_z(-2.0)

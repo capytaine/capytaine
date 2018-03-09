@@ -9,10 +9,7 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
-from capytaine.reference_bodies import generate_axi_symmetric_body
-from capytaine.problems import RadiationProblem
-from capytaine.results import assemble_dataset
-from capytaine.Nemoh import Nemoh
+from capytaine import *
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:\t%(message)s")
 

@@ -12,11 +12,7 @@ import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 
-from capytaine.reference_bodies import (generate_open_rectangular_parallelepiped,
-                                        generate_clever_open_rectangular_parallelepiped)
-from capytaine.problems import RadiationProblem
-from capytaine.results import assemble_dataset
-from capytaine.Nemoh import Nemoh
+from capytaine import *
 
 result_directory = os.path.join(os.path.dirname(__file__), "flap_results")
 
