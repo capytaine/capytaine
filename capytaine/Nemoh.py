@@ -38,7 +38,8 @@ class Nemoh:
             self.compute_exponential_decomposition(problem)
 
         if problem.wavelength < 8*problem.body.faces_radiuses.max():
-            LOG.warning("Resolution of the mesh might be insufficient for this wavelength!")
+            LOG.warning(f"Resolution of the mesh (max_radius={problem.body.faces_radiuses.max():.2e}) "
+                        f"might be insufficient for this wavelength (wavelength/8={problem.wavelength/8:.2e})!")
 
         S, V = problem.body.build_matrices(
             self, problem.body,
