@@ -172,7 +172,9 @@ class FloatingBody:
         # TODO: Rewrite more efficiently and/or elegantly
         dof = np.empty((self.nb_faces, ), dtype=np.float32)
         for i, (cdg, normal) in enumerate(zip(self.faces_centers, self.faces_normals)):
-            dof[i] = np.cross(axis_point - cdg, axis_direction) @ normal
+            motion = np.cross(axis_point - cdg, axis_direction)
+            motion /= np.linalg.norm(motion)
+            dof[i] = motion @ normal
         self.dofs[name] = dof
 
     #######################
