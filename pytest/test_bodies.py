@@ -10,6 +10,26 @@ from capytaine.bodies_collection import CollectionOfFloatingBodies
 from capytaine.symmetries import ReflectionSymmetry, xOz_Plane
 from capytaine.reference_bodies import *
 
+
+def test_dof():
+    nodes = np.array([[0, 0, 0], [0, 0, 1], [1, 0, 1], [1, 0, 0]])
+    faces = np.array([[0, 1, 2, 3]])
+    body = FloatingBody(nodes, faces, name="one_face")
+    assert body.dofs == {}
+
+    body.add_translation_dof(direction=(1.0, 0.0, 0.0), name="1")
+    assert body.dofs["1"] == np.array([0.0])
+
+    body.add_translation_dof(direction=(0.0, 1.0, 0.0), name="2")
+    assert body.dofs["2"] == np.array([1.0])
+
+    body.add_rotation_dof(axis_direction=(0.0, 0.0, 1.0), name="3")
+    assert body.dofs["3"] == np.array([1.0])
+
+    body.add_rotation_dof(axis_point=(0.5, 0, 0), axis_direction=(0.0, 0.0, 1.0), name="4")
+    assert body.dofs["4"] == np.array([0.0])
+
+
 def test_collection():
     body_1 = generate_sphere()
     body_1.name = 'body_1'

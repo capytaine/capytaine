@@ -50,10 +50,10 @@ class CMesh(Mesh):
 class FloatingBody:
     """A floating body described as a mesh and some degrees of freedom.
 
-    The mesh structure is inherited from meshmagick Mesh class (see
-    documentation of this class for more details). The degrees of freedom
-    (dofs) are stored as a dict associating a name to a 1 dimensional array of
-    length equal to the number of faces in the mesh.
+    The mesh structure is stored in a meshmagick Mesh (see documentation of
+    this class for more details). The degrees of freedom (dofs) are stored as a
+    dict associating a name to a 1 dimensional array of length equal to the
+    number of faces in the mesh.
     """
 
     #######################################
@@ -104,7 +104,7 @@ class FloatingBody:
         return self.name
 
     def __lt__(self, other):
-        """Arbitrary order. The point is that problems involving the same body get sorted together."""
+        """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name
 
     def __add__(self, body_to_add):
@@ -168,12 +168,13 @@ class FloatingBody:
         if name is None:
             name = f"dof_{self.nb_dofs}_rotation"
 
-        # TODO: Rewrite more efficiently and/or elegantly
-        dof = np.empty((self.nb_faces, ), dtype=np.float32)
-        for i, (cdg, normal) in enumerate(zip(self.faces_centers, self.faces_normals)):
-            motion = np.cross(axis_point - cdg, axis_direction)
-            motion /= np.linalg.norm(motion)
-            dof[i] = motion @ normal
+        axis_direction = np.asarray(axis_direction)
+        axis_point = np.asarray(axis_point)
+
+        motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
+        motion[motion != 0] /= np.linalg.norm(motion[motion != 0])
+        dof = np.sum(motion * self.mesh.faces_normals, axis=1)
+
         self.dofs[name] = dof
 
     #######################
