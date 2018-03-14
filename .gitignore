@@ -5,6 +5,7 @@ benchmark/201*
 *.csv
 *.tsv
 *.7z
+.pytest_cache/
 
 # Created by https://www.gitignore.io/api/python,fortran
 
