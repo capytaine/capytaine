@@ -33,18 +33,17 @@ class CMesh(Mesh):
         The radius is defined here as the maximal distance between the center
         of mass of a cell and one of its points."""
         from numpy.linalg import norm
-        faces_radiuses = np.zeros(self.nb_faces, dtype=np.float32)
-        for j in range(self.nb_faces):  # TODO: optimize by array broadcasting
-            faces_radiuses[j] = max(
-                norm(self.faces_centers[j, 0:3] -
-                     self.vertices[self.faces[j, 0], 0:3]),
-                norm(self.faces_centers[j, 0:3] -
-                     self.vertices[self.faces[j, 1], 0:3]),
-                norm(self.faces_centers[j, 0:3] -
-                     self.vertices[self.faces[j, 2], 0:3]),
-                norm(self.faces_centers[j, 0:3] -
-                     self.vertices[self.faces[j, 3], 0:3]),
-            )
+
+        faces_vertices = self.vertices[self.faces[:, :], :]
+        # faces_vertices.shape == (nb_faces, 4, 3)
+
+        radial_vector = self.faces_centers - np.moveaxis(faces_vertices, 0, 1)
+        # radial_vector contains all the vectors between the center of a face and its vertices.
+        # radial_vector.shape == (4, nb_faces, 3)
+
+        faces_radiuses = np.max(norm(radial_vector, axis=2), axis=0)
+        # faces_radiuses.shape = (nb_faces)
+
         self.__internals__["faces_radiuses"] = faces_radiuses
 
 
