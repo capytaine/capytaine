@@ -54,7 +54,7 @@ def test_odd_axial_symmetry():
     """Buoy with odd number of slices."""
     def shape(z):
             return 0.1*(-(z+1)**2 + 16)
-    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, 9), nphi=5)
+    buoy = AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, 9), nphi=5)
     buoy.dofs['Heave'] = buoy.faces_normals @ (0, 0, 1)
 
     problem = RadiationProblem(body=buoy, omega=2.0)
