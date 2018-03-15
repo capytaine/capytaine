@@ -44,7 +44,6 @@ class FloatingBody:
 
         self.dofs = {}
 
-        self.__internals__ = {}
         self.nb_matrices_to_keep = 1
 
         LOG.info(f"New floating body: {self.name}.")

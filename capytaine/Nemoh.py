@@ -29,6 +29,8 @@ class Nemoh:
 
         self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)
 
+        self.__cache__ = {'Green0': {}, 'Green1': {}, 'Green2': {}}
+
     def solve(self, problem, keep_details=False):
         """Solve the BEM problem using Nemoh."""
 
@@ -123,11 +125,11 @@ class Nemoh:
 
     def _build_matrices_0(self, body1, body2):
         """Compute the first part of the influence matrices of self on body."""
-        if 'Green0' not in body1.__internals__:
-            body1.__internals__['Green0'] = MaxLengthDict({}, max_length=body1.nb_matrices_to_keep)
-            LOG.debug(f"\t\tCreate Green0 dict (max_length={body1.nb_matrices_to_keep}) in {body1.name}")
+        if body1 not in self.__cache__['Green0']:
+            self.__cache__['Green0'][body1] = MaxLengthDict({}, max_length=body1.nb_matrices_to_keep)
+            LOG.debug(f"\t\tCreate Green0 cache (max_length={body1.nb_matrices_to_keep}) for {body1.name}")
 
-        if body2 not in body1.__internals__['Green0']:
+        if body2 not in self.__cache__['Green0'][body1]:
             LOG.debug(f"\t\tComputing matrix 0 of {body1.name} on {body2.name}")
             S0, V0 = _Green.green_1.build_matrix_0(
                 body1.faces_centers, body1.faces_normals,
@@ -136,21 +138,21 @@ class Nemoh:
                 body2.faces_areas,   body2.faces_radiuses,
                 )
 
-            body1.__internals__['Green0'][body2] = (S0, V0)
+            self.__cache__['Green0'][body1][body2] = (S0, V0)
         else:
             LOG.debug(f"\t\tRetrieving stored matrix 0 of {body1.name} on {body2.name}")
-            S0, V0 = body1.__internals__['Green0'][body2]
+            S0, V0 = self.__cache__['Green0'][body1][body2]
 
         return S0, V0
 
     def _build_matrices_1(self, body1, body2, free_surface, sea_bottom):
         """Compute the second part of the influence matrices of body1 on body2."""
-        if 'Green1' not in body1.__internals__:
-            body1.__internals__['Green1'] = MaxLengthDict({}, max_length=body1.nb_matrices_to_keep)
-            LOG.debug(f"\t\tCreate Green1 dict (max_length={body1.nb_matrices_to_keep}) in {body1.name}")
+        if body1 not in self.__cache__['Green1']:
+            self.__cache__['Green1'][body1] = MaxLengthDict({}, max_length=body1.nb_matrices_to_keep)
+            LOG.debug(f"\t\tCreate Green1 cache (max_length={body1.nb_matrices_to_keep}) for {body1.name}")
 
         depth = free_surface - sea_bottom
-        if (body2, depth) not in body1.__internals__['Green1']:
+        if (body2, depth) not in self.__cache__['Green1'][body1]:
             LOG.debug(f"\t\tComputing matrix 1 of {body1.name} on {body2.name} for depth={depth:.2e}")
 
             def reflect_vector(x):
@@ -177,25 +179,26 @@ class Nemoh:
                 )
 
             if depth == np.infty:
-                body1.__internals__['Green1'][(body2, np.infty)] = (-S1, -V1)
+                self.__cache__['Green1'][body1][(body2, np.infty)] = (-S1, -V1)
                 return -S1, -V1
             else:
-                body1.__internals__['Green1'][(body2, depth)] = (S1, V1)
+                self.__cache__['Green1'][body1][(body2, depth)] = (S1, V1)
                 return S1, V1
         else:
-            S1, V1 = body1.__internals__['Green1'][(body2, depth)]
+            S1, V1 = self.__cache__['Green1'][body1][(body2, depth)]
             LOG.debug(f"\t\tRetrieving stored matrix 1 of {body1.name} on {body2.name} for depth={depth:.2e}")
             return S1, V1
 
     def _build_matrices_2(self, body1, body2, free_surface, sea_bottom, wavenumber):
         """Compute the third part of the influence matrices of body1 on body2."""
-        if 'Green2' not in body1.__internals__:
-            body1.__internals__['Green2'] = MaxLengthDict({}, max_length=body1.nb_matrices_to_keep)
-            LOG.debug(f"\t\tCreate Green2 dict (max_length={body1.nb_matrices_to_keep}) in {body1.name}")
+        if body1 not in self.__cache__['Green2']:
+            self.__cache__['Green2'][body1] = MaxLengthDict({}, max_length=body1.nb_matrices_to_keep)
+            LOG.debug(f"\t\tCreate Green2 cache (max_length={body1.nb_matrices_to_keep}) for {body1.name}")
 
         depth = free_surface - sea_bottom
-        if (body2, depth, wavenumber) not in body1.__internals__['Green2']:
-            LOG.debug(f"\t\tComputing matrix 2 of {body1.name} on {body2.name} for depth={depth:.2e} and k={wavenumber:.2e}")
+        if (body2, depth, wavenumber) not in self.__cache__['Green2'][body1]:
+            LOG.debug(f"\t\tComputing matrix 2 of {body1.name} on {body2.name} "
+                      "for depth={depth:.2e} and k={wavenumber:.2e}")
             if depth == np.infty:
                 lamda_exp = np.empty(31, dtype=np.float32)
                 a_exp = np.empty(31, dtype=np.float32)
@@ -223,9 +226,9 @@ class Nemoh:
                     body1 is body2
                     )
 
-            body1.__internals__['Green2'][(body2, depth, wavenumber)] = (S2, V2)
+            self.__cache__['Green2'][body1][(body2, depth, wavenumber)] = (S2, V2)
         else:
-            S2, V2 = body1.__internals__['Green2'][(body2, depth, wavenumber)]
+            S2, V2 = self.__cache__['Green2'][body1][(body2, depth, wavenumber)]
             LOG.debug(f"\t\tRetrieving stored matrix 2 of {body1.name} on {body2.name} for depth={depth:.2e} and k={wavenumber:.2e}")
 
         return S2, V2
