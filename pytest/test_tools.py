@@ -33,7 +33,7 @@ def test_MaxLengthDict():
 
 def test_Froude_Krylov():
     from capytaine.tools.Airy_wave import Froude_Krylov_force
-    from capytaine.reference_bodies import generate_clever_sphere
+    from capytaine.geometric_bodies.sphere import generate_clever_sphere
     from capytaine.problems import DiffractionProblem
 
     sphere = generate_clever_sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)

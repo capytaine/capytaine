@@ -6,7 +6,8 @@ Compare results of Capytaine with results from Nemoh 2.0.
 
 import numpy as np
 
-from capytaine.reference_bodies import generate_clever_sphere, generate_horizontal_cylinder, generate_free_surface
+from capytaine.geometric_bodies.sphere import generate_clever_sphere
+from capytaine.reference_bodies import generate_horizontal_cylinder, generate_free_surface
 from capytaine.symmetries import *
 from capytaine.problems import DiffractionProblem, RadiationProblem
 from capytaine.results import assemble_dataset

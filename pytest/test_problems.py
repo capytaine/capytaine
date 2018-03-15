@@ -9,7 +9,7 @@ import numpy as np
 
 from capytaine.bodies import FloatingBody
 from capytaine.symmetries import ReflectionSymmetry
-from capytaine.reference_bodies import generate_sphere
+from capytaine.geometric_bodies.sphere import generate_sphere
 from capytaine.problems import *
 from capytaine.results import LinearPotentialFlowResult
 from capytaine.import_export import import_cal_file
