@@ -9,7 +9,12 @@ Green = Extension(
         "capytaine/NemohCore/Green_1.f90",
         "capytaine/NemohCore/Initialize_Green_2.f90",
         "capytaine/NemohCore/Green_2.f90",
-    ]
+    ],
+    # # Uncomment the following lines to get more verbose output from f2py.
+    # define_macros=[
+    #     ('F2PY_REPORT_ATEXIT', 1),
+    #     ('F2PY_REPORT_ON_ARRAY_COPY', 1),
+    # ],
 )
 
 Wavenumber = Extension(
