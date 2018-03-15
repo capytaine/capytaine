@@ -128,7 +128,7 @@ class Nemoh:
 
     def build_matrices(self, body1, body2,
                        free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0,
-                       force_full_computation=False):
+                       force_full_computation=False, _rec_depth=1):
         """Assemble the influence matrices.
         The method is basically an ugly multiple dispatch on the kind of bodies.
         For symmetric structures, the method is called recursively on the sub-bodies.
@@ -147,6 +147,8 @@ class Nemoh:
             wavenumber (default: 1)
         force_full_computation: bool
             if True, the symmetries are not used to speed up the computation (default: False)
+        _rec_depth: int
+            internal parameter: recursion depth for pretty log printing
 
         Returns
         -------
@@ -161,14 +163,15 @@ class Nemoh:
                 and body1.plane == body2.plane
                 and not force_full_computation):
 
-            LOG.debug(f"\tEvaluating matrix of {body1.name} on {'itself' if body2 == self else body2.name} "
+            LOG.debug("\t"*_rec_depth +
+                      f"Evaluating matrix of {body1.name} on {'itself' if body2 is body1 else body2.name} "
                       f"using mirror symmetry "
                       f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
 
             S_a, V_a = self.build_matrices(body1.subbodies[0], body2.subbodies[0],
-                                           free_surface, sea_bottom, wavenumber, force_full_computation)
+                                           free_surface, sea_bottom, wavenumber, force_full_computation, _rec_depth+1)
             S_b, V_b = self.build_matrices(body1.subbodies[0], body2.subbodies[1],
-                                           free_surface, sea_bottom, wavenumber, force_full_computation)
+                                           free_surface, sea_bottom, wavenumber, force_full_computation, _rec_depth+1)
 
             return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
 
@@ -178,14 +181,15 @@ class Nemoh:
               and body1.nb_subbodies == body2.nb_subbodies
               and not force_full_computation):
 
-            LOG.debug(f"\tEvaluating matrix of {body1.name} on {'itself' if body2 == self else body2.name} "
+            LOG.debug("\t"*_rec_depth +
+                      f"Evaluating matrix of {body1.name} on {'itself' if body2 is body1 else body2.name} "
                       f"using translational symmetry "
                       f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
 
             S_list, V_list = [], []
             for subbody2 in body2.subbodies:
                 S, V = self.build_matrices(body1.subbodies[0], subbody2,
-                                           free_surface, sea_bottom, wavenumber, force_full_computation)
+                                           free_surface, sea_bottom, wavenumber, force_full_computation, _rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
             return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
@@ -194,14 +198,15 @@ class Nemoh:
               and body1 is body2
               and not force_full_computation):
 
-            LOG.debug(f"\tEvaluating matrix of {body1.name} on {'itself' if body2 == self else body2.name} "
+            LOG.debug("\t"*_rec_depth +
+                      f"Evaluating matrix of {body1.name} on itself "
                       f"using rotation symmetry "
                       f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
 
             S_list, V_list = [], []
             for subbody2 in body2.subbodies[:body2.nb_subbodies//2+1]:
                 S, V = self.build_matrices(body1.subbodies[0], subbody2,
-                                           free_surface, sea_bottom, wavenumber, force_full_computation)
+                                           free_surface, sea_bottom, wavenumber, force_full_computation, _rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
 
@@ -222,36 +227,39 @@ class Nemoh:
         #     return S, V
 
         else:
-            LOG.debug(f"\tEvaluating matrix of {body1.name} on {'itself' if body2 == self else body2.name} "
+            LOG.debug("\t"*_rec_depth +
+                      f"Evaluating matrix of {body1.name} on {'itself' if body2 is body1 else body2.name} "
                       f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
 
             S = np.zeros((body1.nb_faces, body2.nb_faces), dtype=np.complex64)
             V = np.zeros((body1.nb_faces, body2.nb_faces), dtype=np.complex64)
 
-            S0, V0 = self._build_matrices_0(body1, body2)
+            S0, V0 = self._build_matrices_0(body1, body2, _rec_depth)
             S += S0
             V += V0
 
             if free_surface < np.infty:
 
-                S1, V1 = self._build_matrices_1(body1, body2, free_surface, sea_bottom)
+                S1, V1 = self._build_matrices_1(body1, body2, free_surface, sea_bottom, _rec_depth)
                 S += S1
                 V += V1
 
-                S2, V2 = self._build_matrices_2(body1, body2, free_surface, sea_bottom, wavenumber)
+                S2, V2 = self._build_matrices_2(body1, body2, free_surface, sea_bottom, wavenumber, _rec_depth)
                 S += S2
                 V += V2
 
             return S, V
 
-    def _build_matrices_0(self, body1, body2):
+    def _build_matrices_0(self, body1, body2, _rec_depth=1):
         """Compute the first part of the influence matrices of self on body."""
         if body1 not in self.__cache__['Green0']:
             self.__cache__['Green0'][body1] = MaxLengthDict({}, max_length=body1.nb_matrices_to_keep)
-            LOG.debug(f"\t\tCreate Green0 cache (max_length={body1.nb_matrices_to_keep}) for {body1.name}")
+            LOG.debug("\t"*_rec_depth +
+                      f"\tCreate Green0 cache (max_length={body1.nb_matrices_to_keep}) for {body1.name}")
 
         if body2 not in self.__cache__['Green0'][body1]:
-            LOG.debug(f"\t\tComputing matrix 0 of {body1.name} on {body2.name}")
+            LOG.debug("\t"*_rec_depth +
+                      f"\tComputing matrix 0 of {body1.name} on {'itself' if body2 is body1 else body2.name}")
             S0, V0 = _Green.green_1.build_matrix_0(
                 body1.faces_centers, body1.faces_normals,
                 body2.vertices,      body2.faces + 1,
@@ -261,20 +269,24 @@ class Nemoh:
 
             self.__cache__['Green0'][body1][body2] = (S0, V0)
         else:
-            LOG.debug(f"\t\tRetrieving stored matrix 0 of {body1.name} on {body2.name}")
+            LOG.debug("\t"*_rec_depth +
+                      f"\tRetrieving stored matrix 0 of {body1.name} on {'itself' if body2 is body1 else body2.name}")
             S0, V0 = self.__cache__['Green0'][body1][body2]
 
         return S0, V0
 
-    def _build_matrices_1(self, body1, body2, free_surface, sea_bottom):
+    def _build_matrices_1(self, body1, body2, free_surface, sea_bottom, _rec_depth=1):
         """Compute the second part of the influence matrices of body1 on body2."""
         if body1 not in self.__cache__['Green1']:
             self.__cache__['Green1'][body1] = MaxLengthDict({}, max_length=body1.nb_matrices_to_keep)
-            LOG.debug(f"\t\tCreate Green1 cache (max_length={body1.nb_matrices_to_keep}) for {body1.name}")
+            LOG.debug("\t"*_rec_depth +
+                      f"\tCreate Green1 cache (max_length={body1.nb_matrices_to_keep}) for {body1.name}")
 
         depth = free_surface - sea_bottom
         if (body2, depth) not in self.__cache__['Green1'][body1]:
-            LOG.debug(f"\t\tComputing matrix 1 of {body1.name} on {body2.name} for depth={depth:.2e}")
+            LOG.debug("\t"*_rec_depth +
+                      f"\tComputing matrix 1 of {body1.name} on {'itself' if body2 is body1 else body2.name} "
+                      f"for depth={depth:.2e}")
 
             def reflect_vector(x):
                 y = x.copy()
@@ -307,18 +319,22 @@ class Nemoh:
                 return S1, V1
         else:
             S1, V1 = self.__cache__['Green1'][body1][(body2, depth)]
-            LOG.debug(f"\t\tRetrieving stored matrix 1 of {body1.name} on {body2.name} for depth={depth:.2e}")
+            LOG.debug("\t"*_rec_depth +
+                      f"\tRetrieving stored matrix 1 of {body1.name} on {'itself' if body2 is body1 else body2.name} "
+                      f"for depth={depth:.2e}")
             return S1, V1
 
-    def _build_matrices_2(self, body1, body2, free_surface, sea_bottom, wavenumber):
+    def _build_matrices_2(self, body1, body2, free_surface, sea_bottom, wavenumber, _rec_depth=1):
         """Compute the third part of the influence matrices of body1 on body2."""
         if body1 not in self.__cache__['Green2']:
             self.__cache__['Green2'][body1] = MaxLengthDict({}, max_length=body1.nb_matrices_to_keep)
-            LOG.debug(f"\t\tCreate Green2 cache (max_length={body1.nb_matrices_to_keep}) for {body1.name}")
+            LOG.debug("\t"*_rec_depth +
+                      f"\tCreate Green2 cache (max_length={body1.nb_matrices_to_keep}) for {body1.name}")
 
         depth = free_surface - sea_bottom
         if (body2, depth, wavenumber) not in self.__cache__['Green2'][body1]:
-            LOG.debug(f"\t\tComputing matrix 2 of {body1.name} on {body2.name} "
+            LOG.debug("\t"*_rec_depth +
+                      f"\tComputing matrix 2 of {body1.name} on {'itself' if body2 is body1 else body2.name} "
                       f"for depth={depth:.2e} and k={wavenumber:.2e}")
             if depth == np.infty:
                 lamda_exp = np.empty(31, dtype=np.float32)
@@ -350,7 +366,8 @@ class Nemoh:
             self.__cache__['Green2'][body1][(body2, depth, wavenumber)] = (S2, V2)
         else:
             S2, V2 = self.__cache__['Green2'][body1][(body2, depth, wavenumber)]
-            LOG.debug(f"\t\tRetrieving stored matrix 2 of {body1.name} on {body2.name} "
+            LOG.debug("\t"*_rec_depth +
+                      f"\tRetrieving stored matrix 2 of {body1.name} on {'itself' if body2 is body1 else body2.name} "
                       f"for depth={depth:.2e} and k={wavenumber:.2e}")
 
         return S2, V2
