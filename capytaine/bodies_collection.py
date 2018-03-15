@@ -8,7 +8,7 @@ import numpy as np
 
 from meshmagick.mesh import Mesh
 
-from capytaine.bodies import CMesh, FloatingBody
+from capytaine.bodies import FloatingBody
 
 
 LOG = logging.getLogger(__name__)
@@ -62,7 +62,6 @@ class CollectionOfFloatingBodies(FloatingBody):
         for body in self.subbodies[1:]:
             new_body.mesh = Mesh.__add__(new_body.mesh, body.as_FloatingBody().mesh)
             LOG.debug(f"Add mesh of {body.name} to {name}.")
-        new_body.mesh.__class__ = CMesh
         new_body.mesh.merge_duplicates()
         new_body.mesh.heal_triangles()
         new_body.name = name

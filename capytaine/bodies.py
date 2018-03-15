@@ -18,35 +18,6 @@ from meshmagick.mesh_clipper import MeshClipper
 LOG = logging.getLogger(__name__)
 
 
-class CMesh(Mesh):
-    # TODO: merge with meshmagick Mesh class.
-    @property
-    def faces_radiuses(self):
-        """Get the array of faces radiuses of the mesh."""
-        if 'faces_radiuses' not in self.__internals__:
-            self._compute_radiuses()
-        return self.__internals__['faces_radiuses']
-
-    def _compute_radiuses(self):
-        """Compute the radiuses of the faces of the mesh.
-
-        The radius is defined here as the maximal distance between the center
-        of mass of a cell and one of its points."""
-        from numpy.linalg import norm
-
-        faces_vertices = self.vertices[self.faces[:, :], :]
-        # faces_vertices.shape == (nb_faces, 4, 3)
-
-        radial_vector = self.faces_centers - np.moveaxis(faces_vertices, 0, 1)
-        # radial_vector contains all the vectors between the center of a face and its vertices.
-        # radial_vector.shape == (4, nb_faces, 3)
-
-        faces_radiuses = np.max(norm(radial_vector, axis=2), axis=0)
-        # faces_radiuses.shape = (nb_faces)
-
-        self.__internals__["faces_radiuses"] = faces_radiuses
-
-
 class FloatingBody:
     """A floating body described as a mesh and some degrees of freedom.
 
@@ -63,9 +34,8 @@ class FloatingBody:
     def __init__(self, *args, **kwargs):
         if len(args) >= 1 and isinstance(args[0], Mesh):
             self.mesh = args[0]
-            self.mesh.__class__ = CMesh
         else:
-            self.mesh = CMesh(*args, **kwargs)
+            self.mesh = Mesh(*args, **kwargs)
 
         if 'name' in kwargs:
             self.name = kwargs['name']
