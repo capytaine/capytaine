@@ -8,13 +8,16 @@ It has been written by Matthieu Ancellin and is released under the terms of the 
 """
 
 import logging
+# from itertools import chain, accumulate
 
 import numpy as np
 
-from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve
-import capytaine._Green as _Green
+from capytaine.Toeplitz_matrices import (identity_matrix_of_same_shape_as, solve,
+                                         BlockToeplitzMatrix, BlockCirculantMatrix)
+from capytaine.symmetries import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
 from capytaine.tools.max_length_dict import MaxLengthDict
 from capytaine.tools.exponential_decomposition import exponential_decomposition, error_exponential_decomposition
+import capytaine._Green as _Green
 
 
 LOG = logging.getLogger(__name__)
@@ -43,8 +46,8 @@ class Nemoh:
             LOG.warning(f"Resolution of the mesh (max_radius={problem.body.faces_radiuses.max():.2e}) "
                         f"might be insufficient for this wavelength (wavelength/8={problem.wavelength/8:.2e})!")
 
-        S, V = problem.body.build_matrices(
-            self, problem.body,
+        S, V = self.build_matrices(
+            problem.body, problem.body,
             free_surface=problem.free_surface, sea_bottom=problem.sea_bottom, wavenumber=problem.wavenumber
         )
 
@@ -52,20 +55,20 @@ class Nemoh:
         sources = solve(V + identity/2, problem.boundary_condition)
         potential = S @ sources
 
-        results = problem.make_results_container()
+        result = problem.make_results_container()
         if keep_details:
-            results.sources = sources
-            results.potential = potential
+            result.sources = sources
+            result.potential = potential
 
         for influenced_dof_name, influenced_dof in problem.body.dofs.items():
             integrated_potential = - problem.rho * potential @ (influenced_dof * problem.body.faces_areas)
-            results.store_force(influenced_dof_name, integrated_potential)
+            result.store_force(influenced_dof_name, integrated_potential)
             # Depending of the type of problem, the force will be kept as a complex-valued Froude-Krylov force
             # or stored as a couple of added mass and damping radiation coefficients.
 
         LOG.debug("Done!")
 
-        return results
+        return result
 
     def solve_all(self, problems, processes=1):
         from multiprocessing import Pool
@@ -122,6 +125,124 @@ class Nemoh:
     #######################
     #  Building matrices  #
     #######################
+
+    def build_matrices(self, body1, body2,
+                       free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0,
+                       force_full_computation=False):
+        """Assemble the influence matrices.
+        The method is basically an ugly multiple dispatch on the kind of bodies.
+        For symmetric structures, the method is called recursively on the sub-bodies.
+
+        Parameters
+        ----------
+        body1: FloatingBody
+            radiating body (center of the Green functions)
+        body2: FloatingBody
+            influenced body (body on which the coefficients are integrated)
+        free_surface: float
+            position of the free surface (default: z = 0)
+        sea_bottom: float
+            position of the sea bottom (default: z = -∞)
+        wavenumber: float
+            wavenumber (default: 1)
+        force_full_computation: bool
+            if True, the symmetries are not used to speed up the computation (default: False)
+
+        Returns
+        -------
+        S: array of shape (body1.nb_faces, body2.nb_faces)
+            influence matrix (integral of the Green function)
+        V: array of shape (body1.nb_faces, body2.nb_faces)
+            influence matrix (integral of the derivative of the Green function)
+        """
+
+        if (isinstance(body1, ReflectionSymmetry)
+                and isinstance(body2, ReflectionSymmetry)
+                and body1.plane == body2.plane
+                and not force_full_computation):
+
+            LOG.debug(f"\tEvaluating matrix of {body1.name} on {'itself' if body2 == self else body2.name} "
+                      f"using mirror symmetry "
+                      f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
+
+            S_a, V_a = self.build_matrices(body1.subbodies[0], body2.subbodies[0],
+                                           free_surface, sea_bottom, wavenumber, force_full_computation)
+            S_b, V_b = self.build_matrices(body1.subbodies[0], body2.subbodies[1],
+                                           free_surface, sea_bottom, wavenumber, force_full_computation)
+
+            return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
+
+        elif (isinstance(body1, TranslationalSymmetry)
+              and isinstance(body2, TranslationalSymmetry)
+              and np.allclose(body1.translation, body2.translation)
+              and body1.nb_subbodies == body2.nb_subbodies
+              and not force_full_computation):
+
+            LOG.debug(f"\tEvaluating matrix of {body1.name} on {'itself' if body2 == self else body2.name} "
+                      f"using translational symmetry "
+                      f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
+
+            S_list, V_list = [], []
+            for subbody2 in body2.subbodies:
+                S, V = self.build_matrices(body1.subbodies[0], subbody2,
+                                           free_surface, sea_bottom, wavenumber, force_full_computation)
+                S_list.append(S)
+                V_list.append(V)
+            return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
+
+        elif (isinstance(body1, AxialSymmetry)
+              and body1 is body2
+              and not force_full_computation):
+
+            LOG.debug(f"\tEvaluating matrix of {body1.name} on {'itself' if body2 == self else body2.name} "
+                      f"using rotation symmetry "
+                      f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
+
+            S_list, V_list = [], []
+            for subbody2 in body2.subbodies[:body2.nb_subbodies//2+1]:
+                S, V = self.build_matrices(body1.subbodies[0], subbody2,
+                                           free_surface, sea_bottom, wavenumber, force_full_computation)
+                S_list.append(S)
+                V_list.append(V)
+
+            if body1.nb_subbodies % 2 == 0:
+                return BlockCirculantMatrix(S_list, size=body1.nb_subbodies), BlockCirculantMatrix(V_list, size=body1.nb_subbodies)
+            else:
+                return BlockCirculantMatrix(S_list, size=body1.nb_subbodies), BlockCirculantMatrix(V_list, size=body1.nb_subbodies)
+
+        #   elif (isinstance(body1, CollectionOfFloatingBodies)):
+        #     S = np.empty((body1.nb_faces, body2.nb_faces), dtype=np.complex64)
+        #     V = np.empty((body1.nb_faces, body2.nb_faces), dtype=np.complex64)
+        #
+        #     nb_faces = list(accumulate(chain([0], (body.nb_faces for body in body1.subbodies))))
+        #     for (i, j), body in zip(zip(nb_faces, nb_faces[1:]), body1.subbodies):
+        #         matrix_slice = (slice(i, j), slice(None, None))
+        #         S[matrix_slice], V[matrix_slice] = self.build_matrices(body1, body2, **kwargs)
+        #
+        #     return S, V
+
+        else:
+            LOG.debug(f"\tEvaluating matrix of {body1.name} on {'itself' if body2 == self else body2.name} "
+                      f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
+
+            S = np.zeros((body1.nb_faces, body2.nb_faces), dtype=np.complex64)
+            V = np.zeros((body1.nb_faces, body2.nb_faces), dtype=np.complex64)
+
+            S0, V0 = self._build_matrices_0(body1, body2)
+            S += S0
+            V += V0
+
+            if free_surface < np.infty:
+
+                S1, V1 = self._build_matrices_1(body1, body2, free_surface, sea_bottom)
+                S += S1
+                V += V1
+
+                S2, V2 = self._build_matrices_2(body1, body2, free_surface, sea_bottom, wavenumber)
+                S += S2
+                V += V2
+
+            return S, V
 
     def _build_matrices_0(self, body1, body2):
         """Compute the first part of the influence matrices of self on body."""
@@ -198,7 +319,7 @@ class Nemoh:
         depth = free_surface - sea_bottom
         if (body2, depth, wavenumber) not in self.__cache__['Green2'][body1]:
             LOG.debug(f"\t\tComputing matrix 2 of {body1.name} on {body2.name} "
-                      "for depth={depth:.2e} and k={wavenumber:.2e}")
+                      f"for depth={depth:.2e} and k={wavenumber:.2e}")
             if depth == np.infty:
                 lamda_exp = np.empty(31, dtype=np.float32)
                 a_exp = np.empty(31, dtype=np.float32)
@@ -229,7 +350,8 @@ class Nemoh:
             self.__cache__['Green2'][body1][(body2, depth, wavenumber)] = (S2, V2)
         else:
             S2, V2 = self.__cache__['Green2'][body1][(body2, depth, wavenumber)]
-            LOG.debug(f"\t\tRetrieving stored matrix 2 of {body1.name} on {body2.name} for depth={depth:.2e} and k={wavenumber:.2e}")
+            LOG.debug(f"\t\tRetrieving stored matrix 2 of {body1.name} on {body2.name} "
+                      f"for depth={depth:.2e} and k={wavenumber:.2e}")
 
         return S2, V2
 
@@ -259,8 +381,8 @@ class Nemoh:
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        S, _ = mesh.build_matrices(
-            self,
+        S, _ = self.build_matrices(
+            mesh,
             result.body,
             free_surface=result.free_surface,
             sea_bottom=result.sea_bottom,

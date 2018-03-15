@@ -235,30 +235,3 @@ class FloatingBody:
         LOG.info(f"Clip floating body {self.name}.")
         return FloatingBody(clipped_mesh, name=f"{self.name}_clipped")
 
-    #######################################
-    #  Computation of influence matrices  #
-    #######################################
-
-    def build_matrices(self, solver, other_body, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0, **kwargs):
-        """Return the influence matrices of self on other_body."""
-
-        LOG.debug(f"\tEvaluating matrix of {self.name} on {other_body.name} for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
-
-        S = np.zeros((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
-        V = np.zeros((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
-
-        S0, V0 = solver._build_matrices_0(self, other_body)
-        S += S0
-        V += V0
-
-        if free_surface < np.infty:
-
-            S1, V1 = solver._build_matrices_1(self, other_body, free_surface, sea_bottom)
-            S += S1
-            V += V1
-
-            S2, V2 = solver._build_matrices_2(self, other_body, free_surface, sea_bottom, wavenumber)
-            S += S2
-            V += V2
-
-        return S, V

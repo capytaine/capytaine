@@ -14,7 +14,7 @@ cylinder.translate_z(-2.0)
 
 solver = Nemoh()
 
-S, V = cylinder.build_matrices(solver, cylinder, free_surface=np.infty)
+S, V = solver.build_matrices(cylinder, cylinder, free_surface=np.infty)
 # S, V = cylinder.build_matrices(cylinder)
 
 plt.imshow(np.abs(V.full_matrix()))

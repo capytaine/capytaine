@@ -13,7 +13,6 @@ import numpy as np
 from meshmagick.geometry import Plane
 
 from capytaine.bodies import FloatingBody
-from capytaine.Toeplitz_matrices import BlockToeplitzMatrix, BlockCirculantMatrix
 from capytaine.bodies_collection import CollectionOfFloatingBodies
 
 
@@ -69,23 +68,6 @@ class ReflectionSymmetry(_SymmetricBody):
         for name, dof in half.dofs.items():
             self.dofs['mirrored_' + name] = np.concatenate([dof, dof])
 
-    def build_matrices(self, solver, other_body, force_full_computation=False, **kwargs):
-        """Return the influence matrices of self on other_body."""
-        if isinstance(other_body, ReflectionSymmetry) and other_body.plane == self.plane and not force_full_computation:
-            # Use symmetry to speed up the evaluation of the matrix
-            if other_body == self:
-                LOG.debug(f"Evaluating matrix of {self.name} on itself using mirror symmetry.")
-            else:
-                LOG.debug(f"Evaluating matrix of {self.name} on {other_body.name} itself using mirror symmetry.")
-
-            S_a, V_a = self.subbodies[0].build_matrices(solver, other_body.subbodies[0], **kwargs)
-            S_b, V_b = self.subbodies[0].build_matrices(solver, other_body.subbodies[1], **kwargs)
-
-            return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
-
-        else:
-            return CollectionOfFloatingBodies.build_matrices(self, solver, other_body, **kwargs)
-
 
 class TranslationalSymmetry(_SymmetricBody):
     """A body composed of a pattern repeated and translated."""
@@ -133,38 +115,6 @@ class TranslationalSymmetry(_SymmetricBody):
         for name, dof in body_slice.dofs.items():
             self.dofs["translated_" + name] = np.concatenate([dof]*nb_repetitions)
 
-    def build_matrices(self, solver, other_body, force_full_computation=False, **kwargs):
-        """Compute the influence matrix of `self` on `other_body`.
-
-        Parameters
-        ----------
-        body : FloatingBody
-            the body interacting with `self`
-        force_full_computation : boolean, optional
-            if True, do not use the symmetry (default: False).
-            to use for debugging
-        """
-
-        if (isinstance(other_body, TranslationalSymmetry)
-                and np.allclose(other_body.translation, self.translation)
-                and other_body.nb_subbodies == self.nb_subbodies
-                and not force_full_computation):
-            # Use symmetry to speed up the evaluation of the matrix
-            if other_body == self:
-                LOG.debug(f"Evaluating matrix of {self.name} on itself using translation symmetry.")
-            else:
-                LOG.debug(f"Evaluating matrix of {self.name} on {other_body.name} itself using translation symmetry.")
-
-            S_list, V_list = [], []
-            for body in other_body.subbodies:
-                S, V = self.subbodies[0].build_matrices(solver, body, **kwargs)
-                S_list.append(S)
-                V_list.append(V)
-            return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
-
-        else:
-            return CollectionOfFloatingBodies.build_matrices(self, solver, other_body, **kwargs)
-
 
 class AxialSymmetry(_SymmetricBody):
     """A body composed of a pattern rotated around a vertical axis."""
@@ -211,35 +161,3 @@ class AxialSymmetry(_SymmetricBody):
         self.dofs = {}
         for name, dof in body_slice.dofs.items():
             self.dofs["rotated_" + name] = np.concatenate([dof]*nb_repetitions)
-
-    def build_matrices(self, solver, other_body, force_full_computation=False, **kwargs):
-        """Compute the influence matrix of `self` on `other_body`.
-
-        Parameters
-        ----------
-        other_body : FloatingBody
-            the body interacting with `self`
-        force_full_computation : boolean, optional
-            if True, do not use the symmetry (default: True).
-            to use for debugging
-
-        Further keyword arguments are passed to CollectionOfFloatingBodies.build_matrices()
-        """
-
-        if other_body == self and not force_full_computation:
-            # Use symmetry to speed up the evaluation of the matrix
-            LOG.debug(f"Evaluating matrix of {self.name} on itself using rotation symmetry.")
-
-            S_list, V_list = [], []
-            for body in self.subbodies[:self.nb_subbodies//2+1]:
-                S, V = self.subbodies[0].build_matrices(solver, body, **kwargs)
-                S_list.append(S)
-                V_list.append(V)
-
-            if self.nb_subbodies % 2 == 0:
-                return BlockCirculantMatrix(S_list, size=self.nb_subbodies), BlockCirculantMatrix(V_list, size=self.nb_subbodies)
-            else:
-                return BlockCirculantMatrix(S_list, size=self.nb_subbodies), BlockCirculantMatrix(V_list, size=self.nb_subbodies)
-
-        else:
-            return CollectionOfFloatingBodies.build_matrices(self, solver, other_body, **kwargs)

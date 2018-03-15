@@ -24,7 +24,13 @@ class CollectionOfFloatingBodies(FloatingBody):
     #######################################
 
     def __init__(self, bodies):
-        """Initialize the body."""
+        """Initialize the body.
+
+        Parameters
+        ----------
+        bodies: list (or any iterable) of FloatingBody
+            the bodies composing the collection
+        """
 
         for body in bodies:
             assert isinstance(body, FloatingBody)
@@ -43,6 +49,8 @@ class CollectionOfFloatingBodies(FloatingBody):
         cum_nb_faces = accumulate(chain([0], (body.nb_faces for body in self.subbodies)))
         total_nb_faces = sum(body.nb_faces for body in self.subbodies)
         for body, nbf in zip(bodies, cum_nb_faces):
+            # nbf is the cumulative number of faces of the previous subbodies,
+            # that is the offset of the indices of the faces of the current body.
             for name, dof in body.dofs.items():
                 self.dofs['_'.join([body.name, name])] = np.r_[
                         np.zeros(nbf),
@@ -58,16 +66,14 @@ class CollectionOfFloatingBodies(FloatingBody):
             if len(name) > NAME_MAX_LENGTH:
                 name = name[:NAME_MAX_LENGTH-3] + "..."
 
-        new_body = self.subbodies[0].as_FloatingBody().copy(name=name)
+        new_mesh = self.subbodies[0].as_FloatingBody().mesh
         for body in self.subbodies[1:]:
-            new_body.mesh = Mesh.__add__(new_body.mesh, body.as_FloatingBody().mesh)
+            new_mesh = Mesh.__add__(new_mesh, body.as_FloatingBody().mesh)
             LOG.debug(f"Add mesh of {body.name} to {name}.")
-        new_body.mesh.merge_duplicates()
-        new_body.mesh.heal_triangles()
-        new_body.name = name
+        new_mesh.merge_duplicates()
+        new_mesh.heal_triangles()
+        new_body = FloatingBody(new_mesh, name=name)
         new_body.dofs = self.dofs  # TODO: is broken if the subbodies have faces in common.
-        new_body.nb_matrices_to_keep = 1
-        new_body.__internals__ = {}
         LOG.info(f"Merged collection of bodies {self.name} into floating body {new_body.name}.")
         return new_body
 
@@ -117,7 +123,7 @@ class CollectionOfFloatingBodies(FloatingBody):
 
     @property
     def faces(self):
-        """Return the indices of the verices forming each of the faces. For the
+        """Return the indices of the vertices forming each of the faces. For the
         later subbodies, the indices of the vertices has to be shifted to
         correspond to their index in the concatenated array self.vertices.
         """
@@ -191,22 +197,4 @@ class CollectionOfFloatingBodies(FloatingBody):
     def indices_of_body(self, body_index):
         start = sum((body.mesh.nb_faces for body in self.subbodies[:body_index]))
         return slice(start, start + self.subbodies[body_index].mesh.nb_faces)
-
-    #######################################
-    #  Computation of influence matrices  #
-    #######################################
-
-    def build_matrices(self, solver, other_body, **kwargs):
-        """Return the influence matrices of self on other body."""
-        LOG.debug(f"Evaluating matrix of {self.name} on {other_body.name}.")
-
-        S = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
-        V = np.empty((self.nb_faces, other_body.nb_faces), dtype=np.complex64)
-
-        nb_faces = list(accumulate(chain([0], (body.nb_faces for body in self.subbodies))))
-        for (i, j), body in zip(zip(nb_faces, nb_faces[1:]), self.subbodies):
-            matrix_slice = (slice(i, j), slice(None, None))
-            S[matrix_slice], V[matrix_slice] = body.build_matrices(solver, other_body, **kwargs)
-
-        return S, V
 
