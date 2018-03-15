@@ -47,6 +47,7 @@ class ReflectionSymmetry(_SymmetricBody):
         """
         assert isinstance(half, FloatingBody)
         assert isinstance(plane, Plane)
+        assert plane.normal[2] == 0  # Only vertical reflection planes are supported
 
         half.nb_matrices_to_keep *= 2
 
@@ -92,6 +93,7 @@ class TranslationalSymmetry(_SymmetricBody):
 
         translation = np.asarray(translation)
         assert translation.shape == (3,)
+        assert translation[2] == 0  # Only horizontal translation are supported.
 
         self.translation = translation
 
