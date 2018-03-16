@@ -23,7 +23,7 @@ class CollectionOfFloatingBodies(FloatingBody):
     #  Initialisation and transformation  #
     #######################################
 
-    def __init__(self, bodies):
+    def __init__(self, bodies, name=None):
         """Initialize the body.
 
         Parameters
@@ -37,10 +37,13 @@ class CollectionOfFloatingBodies(FloatingBody):
 
         self.subbodies = bodies
 
-        names_of_subbodies = ', '.join(body.name for body in self.subbodies)
-        if len(names_of_subbodies) > NAME_MAX_LENGTH:
-            names_of_subbodies = names_of_subbodies[:NAME_MAX_LENGTH-3] + "..."
-        self.name = f"CollectionOfFloatingBodies([{names_of_subbodies}])"
+        if name is None:
+            names_of_subbodies = ', '.join(body.name for body in self.subbodies)
+            if len(names_of_subbodies) > NAME_MAX_LENGTH:
+                names_of_subbodies = names_of_subbodies[:NAME_MAX_LENGTH-3] + "..."
+            self.name = f"CollectionOfFloatingBodies([{names_of_subbodies}])"
+        else:
+            self.name = name
 
         LOG.debug(f"New collection of bodies: {self.name}.")
 
@@ -192,7 +195,8 @@ class CollectionOfFloatingBodies(FloatingBody):
         return
 
     def get_immersed_part(self, **kwargs):
-        return CollectionOfFloatingBodies([body.get_immersed_part(**kwargs) for body in self.subbodies])
+        return CollectionOfFloatingBodies([body.get_immersed_part(**kwargs) for body in self.subbodies],
+                                          name=f"{self.name}_clipped")
 
     def indices_of_body(self, body_index):
         start = sum((body.mesh.nb_faces for body in self.subbodies[:body_index]))

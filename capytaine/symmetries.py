@@ -70,6 +70,10 @@ class ReflectionSymmetry(_SymmetricBody):
         for name, dof in half.dofs.items():
             self.dofs['mirrored_' + name] = np.concatenate([dof, dof])
 
+    def get_immersed_part(self, **kwargs):
+        return ReflectionSymmetry(self.subbodies[0].get_immersed_part(**kwargs),
+                                  plane=self.plane,
+                                  name=f"{self.name}_clipped")
 
 class TranslationalSymmetry(_SymmetricBody):
     """A body composed of a pattern repeated and translated."""
@@ -118,6 +122,11 @@ class TranslationalSymmetry(_SymmetricBody):
         for name, dof in body_slice.dofs.items():
             self.dofs["translated_" + name] = np.concatenate([dof]*nb_repetitions)
 
+    def get_immersed_part(self, **kwargs):
+        return TranslationalSymmetry(self.subbodies[0].get_immersed_part(**kwargs),
+                                     translation=self.translation,
+                                     nb_repetitions=self.nb_subbodies-1,
+                                     name=f"{self.name}_clipped")
 
 class AxialSymmetry(_SymmetricBody):
     """A body composed of a pattern rotated around a vertical axis."""
@@ -131,6 +140,7 @@ class AxialSymmetry(_SymmetricBody):
             the pattern that will be repeated to form the whole body
         point_on_rotation_axis : array(3)
             one point on the rotation axis. The axis is supposed to be vertical.
+            TODO: Use an Axis class.
         nb_repetitions : int, optional
             the number of repetitions of the pattern (excluding the original one, default: 1)
         name : string, optional
@@ -142,6 +152,7 @@ class AxialSymmetry(_SymmetricBody):
 
         point_on_rotation_axis = np.asarray(point_on_rotation_axis)
         assert point_on_rotation_axis.shape == (3,)
+        self.point_on_rotation_axis = point_on_rotation_axis
 
         body_slice.nb_matrices_to_keep *= nb_repetitions+1
         slices = [body_slice]
@@ -218,4 +229,10 @@ class AxialSymmetry(_SymmetricBody):
         body_slice.mesh.heal_triangles()
 
         return AxialSymmetry(body_slice, point_on_rotation_axis=point_on_rotation_axis, nb_repetitions=nphi-1, name=name)
+
+    def get_immersed_part(self, **kwargs):
+        return AxialSymmetry(self.subbodies[0].get_immersed_part(**kwargs),
+                             point_on_rotation_axis=self.point_on_rotation_axis,
+                             nb_repetitions=self.nb_subbodies-1,
+                             name=f"{self.name}_clipped")
 
