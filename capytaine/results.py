@@ -10,7 +10,6 @@ It has been written by Matthieu Ancellin and is released under the terms of the 
 import logging
 
 from attr import attrs, attrib, Factory
-import numpy as np
 
 from capytaine.tools.Airy_wave import Froude_Krylov_force
 

@@ -28,7 +28,7 @@ def generate_disk(radius=1.0, nr=3, ntheta=5,
                   name=None):
 
     if clip_free_surface:
-        if z0 < -radius: # fully immersed
+        if z0 < -radius:  # fully immersed
             theta_max = np.pi
         elif z0 < radius:
             theta_max = np.arccos(z0/radius)
@@ -102,7 +102,7 @@ def generate_open_horizontal_cylinder(length=10.0, radius=1.0,
     """
 
     if clip_free_surface:
-        if z0 < -radius: # fully immersed
+        if z0 < -radius:  # fully immersed
             theta_max = np.pi
         elif z0 < radius:
             theta_max = np.arccos(z0/radius)

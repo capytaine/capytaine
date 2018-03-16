@@ -5,6 +5,7 @@ Import or export Nemoh.cal files for backward compatibility with Nemoh 2.
 """
 
 import os
+import logging
 
 import numpy as np
 
@@ -13,12 +14,15 @@ from capytaine.bodies import FloatingBody
 from capytaine.problems import DiffractionProblem, RadiationProblem
 from capytaine.bodies_collection import CollectionOfFloatingBodies
 
+LOG = logging.getLogger(__name__)
+
+
 def import_cal_file(filepath):
     """Read a Nemoh.cal file and return a list of problems."""
 
     with open(filepath, 'r') as cal_file:
 
-        cal_file.readline() # Unused line.
+        cal_file.readline()  # Unused line.
         rho = float(cal_file.readline().split()[0])
         g = float(cal_file.readline().split()[0])
         depth = float(cal_file.readline().split()[0])
@@ -30,15 +34,15 @@ def import_cal_file(filepath):
 
         bodies = []
 
-        cal_file.readline() # Unused line.
+        cal_file.readline()  # Unused line.
         nb_bodies = int(cal_file.readline().split()[0])
         for i_body in range(nb_bodies):
-            cal_file.readline() # Unused line.
+            cal_file.readline()  # Unused line.
             mesh_file = cal_file.readline().split()[0].strip()
-            cal_file.readline() # Number of points, number of panels (unused)
+            cal_file.readline()  # Number of points, number of panels (unused)
 
             body = FloatingBody.from_file(
-                os.path.join(os.path.dirname(filepath), mesh_file), # mesh path are relative to Nemoh.cal
+                os.path.join(os.path.dirname(filepath), mesh_file),  # mesh path are relative to Nemoh.cal
                 'mar')
 
             nb_dofs = int(cal_file.readline().split()[0])
@@ -64,7 +68,7 @@ def import_cal_file(filepath):
 
             nb_additional_lines = int(cal_file.readline().split()[0])
             for _ in range(nb_additional_lines):
-                cal_file.readline() # The additional lines are just ignored.
+                cal_file.readline()  # The additional lines are just ignored.
 
             bodies.append(body)
 
@@ -73,7 +77,7 @@ def import_cal_file(filepath):
         else:
             bodies = bodies[0]
 
-        cal_file.readline() # Unused line.
+        cal_file.readline()  # Unused line.
         frequency_data = cal_file.readline().split()
         omega_range = np.linspace(float(frequency_data[1]), float(frequency_data[2]), int(frequency_data[0]))
 
@@ -82,7 +86,7 @@ def import_cal_file(filepath):
 
         # The options below are not implemented yet.
 
-        cal_file.readline() # Unused line.
+        cal_file.readline()  # Unused line.
         irf_data = cal_file.readline()
         show_pressure = cal_file.readline().split()[0] == "1"
         kochin_data = cal_file.readline().split()
@@ -118,7 +122,7 @@ def export_as_Nemoh_directory(problem, directory_name, omega_range=None):
     """
 
     if os.path.isdir(directory_name):
-        warn(f"""Exporting problem in already existing directory: {directory_name}
+        LOG.warning(f"""Exporting problem in already existing directory: {directory_name}
              You might be overwriting existing files!""")
     else:
         os.makedirs(directory_name)
@@ -134,8 +138,8 @@ def export_as_Nemoh_directory(problem, directory_name, omega_range=None):
     # Set range of frequencies
     if omega_range is None:
         omega_nb_steps = 1
-        omega_start = omega
-        omega_stop = omega
+        omega_start = problem.omega
+        omega_stop = problem.omega
     else:
         omega_nb_steps = len(omega_range)
         omega_start = min(omega_range)
@@ -191,7 +195,7 @@ DEFAULT_NEMOH_CAL = """--- Environment -----------------------------------------
 0	0	100.	100.	! Free surface elevation	! Number of points in x direction (0 for no calcutions) and y direction and dimensions of domain in x and y direction
 """
 
-DEFAULT_INPUT_TXT="""--- Calculation parameters ------------------------------------------------------------------------------------
+DEFAULT_INPUT_TXT = """--- Calculation parameters ------------------------------------------------------------------------------------
 1				! Indiq_solver		! -		! Solver (0) Direct Gauss (1) GMRES (2) GMRES with FMM acceleration (2 not implemented yet)
 20				! IRES			! -		! Restart parameter for GMRES
 5.E-07				! TOL_GMRES		! -		! Stopping criterion for GMRES

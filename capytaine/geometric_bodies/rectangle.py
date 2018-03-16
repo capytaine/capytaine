@@ -142,8 +142,6 @@ def generate_rectangular_parallelepiped(height=10.0, width=10.0, thickness=2.0, 
         number of panels in the x direction
     nth : int
         number of panels in the y direction
-    z0 : float
-        depth of the bottom of the object
 
     Returns
     -------

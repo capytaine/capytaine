@@ -4,15 +4,16 @@
 import os
 import logging
 import subprocess
-import cProfile, pstats, io
+import cProfile
+import pstats
+import io
 
 import numpy as np
-import pandas as pd
 
 from capytaine.Nemoh import Nemoh
 from capytaine.problems import RadiationProblem
-from capytaine.results import assemble_radiation_results_matrices
-from capytaine.import_export import export_as_Nemoh_directory
+from capytaine.results import assemble_dataset
+from capytaine.tools.import_export import export_as_Nemoh_directory
 
 
 def profile_capytaine(body, omega_range, result_dir, **problem_kwargs):
@@ -31,16 +32,17 @@ def profile_capytaine(body, omega_range, result_dir, **problem_kwargs):
     )
 
     pr = cProfile.Profile()
-    pr.enable() #==Start profiler==
+    pr.enable()  #==Start profiler==
 
     problems = [RadiationProblem(body=body, omega=omega, **problem_kwargs) for omega in omega_range]
     solver = Nemoh()
     results = [solver.solve(pb) for pb in problems]
 
-    pr.disable() #=================
+    pr.disable()  #=================
 
-    added_mass, dampings = assemble_radiation_results_matrices(results)
-    np.savetxt(f'{result_dir}/results.csv', np.c_[added_mass.values[:, 0, 0], dampings.values[:, 0, 0]])
+    dataset = assemble_dataset(results)
+    np.savetxt(f'{result_dir}/results.csv', np.c_[dataset['added_mass'].values[:, 0, 0],
+                                                  dataset['radiation_damping'].values[:, 0, 0]])
 
     s = io.StringIO()
     sortby = 'time'

@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+
 from collections import OrderedDict
+
 
 class MaxLengthDict(OrderedDict):
     """Dictionary with limited number of entries. When maximum size is

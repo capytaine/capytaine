@@ -351,7 +351,7 @@ class Nemoh:
                     )
             else:
                 # Get the last computed exponential decomposition.
-                a_exp, lamda_exp= next(reversed(self.exponential_decompositions.values()))
+                a_exp, lamda_exp = next(reversed(self.exponential_decompositions.values()))
                 n_exp = 31
 
                 S2, V2 = _Green.green_2.build_matrix_2(

@@ -6,7 +6,6 @@ Example computation: added mass and damping of an oscillating flap.
 
 import os
 import glob
-import logging
 
 import numpy as np
 import xarray as xr
@@ -100,6 +99,7 @@ if __name__ == "__main__":
     resolution = 2
     clever = True
 
+    import logging
     from datetime import datetime
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s:\t%(message)s", datefmt="%H:%M:%S")

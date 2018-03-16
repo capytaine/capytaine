@@ -7,8 +7,7 @@ from itertools import count, product
 import numpy as np
 import pandas as pd
 
-from capytaine.symmetries import ReflectionSymmetry, xOz_Plane
-from capytaine.geometric_bodies.rectangle import generate_axi_symmetric_body
+from capytaine.symmetries import AxialSymmetry, ReflectionSymmetry, xOz_Plane
 
 WORKING_DIRECTORY = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
@@ -20,7 +19,7 @@ def shape(z):
 
 
 def full_resolution_Nemoh(nb_slices, nz, omega_range):
-    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
+    buoy = AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
     buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
     buoy = buoy.as_FloatingBody(name="buoy")
     return profile_Nemoh(buoy, omega_range,
@@ -28,7 +27,7 @@ def full_resolution_Nemoh(nb_slices, nz, omega_range):
 
 
 def full_Capytaine(nb_slices, nz, omega_range):
-    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
+    buoy = AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
     buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
     buoy = buoy.as_FloatingBody(name="buoy")
     return profile_capytaine(buoy, omega_range,
@@ -36,7 +35,7 @@ def full_Capytaine(nb_slices, nz, omega_range):
 
 
 def sym_Capytaine(nb_slices, nz, omega_range):
-    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
+    buoy = AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
     buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
     buoy = buoy.as_FloatingBody()
     half_buoy = buoy.extract_faces(np.where(buoy.faces_centers[:, 1] > 0)[0]) # Keep y > 0
@@ -47,7 +46,7 @@ def sym_Capytaine(nb_slices, nz, omega_range):
 
 
 def rot_Capytaine(nb_slices, nz, omega_range):
-    buoy = generate_axi_symmetric_body(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
+    buoy = AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
     buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
     buoy.name = "buoy"
     return profile_capytaine(buoy, omega_range,

@@ -69,8 +69,8 @@ def generate_sphere(radius=1.0, ntheta=10, nphi=10,
 
     for i, (t, p) in enumerate(product(theta, phi)):
         # The sign of theta below is a trick to get the correct orientation of the normal vectors...
-        x =      radius * np.sin(t) * np.sin(np.sign(t)*p)
-        y =      radius * np.sin(t) * np.cos(np.sign(t)*p)
+        x = radius * np.sin(t) * np.sin(np.sign(t)*p)
+        y = radius * np.sin(t) * np.cos(np.sign(t)*p)
         z = z0 - radius * np.cos(t)
         nodes[i, :] = (x, y, z)
 

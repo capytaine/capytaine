@@ -213,8 +213,8 @@ class FloatingBody:
     def rotate(self, *args):
         return self.mesh.rotate(*args)
 
-    def show(self, *args, **kwargs):
-        return self.mesh.show(*args, **kwargs)
+    def show(self):
+        return self.mesh.show()
 
     def show_matplotlib(self, *args, **kwargs):
         return self.mesh.show_matplotlib(*args, **kwargs)

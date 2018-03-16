@@ -75,6 +75,7 @@ class ReflectionSymmetry(_SymmetricBody):
                                   plane=self.plane,
                                   name=f"{self.name}_clipped")
 
+
 class TranslationalSymmetry(_SymmetricBody):
     """A body composed of a pattern repeated and translated."""
 
@@ -127,6 +128,7 @@ class TranslationalSymmetry(_SymmetricBody):
                                      translation=self.translation,
                                      nb_repetitions=self.nb_subbodies-1,
                                      name=f"{self.name}_clipped")
+
 
 class AxialSymmetry(_SymmetricBody):
     """A body composed of a pattern rotated around a vertical axis."""

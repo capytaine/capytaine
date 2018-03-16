@@ -44,7 +44,7 @@ def exponential_decomposition(X, F, m):
     roots = polynomial.polyroots(coeffs)
 
     # Discard values where log is undefined
-    roots = roots[np.logical_or(np.imag(roots) != 0.0, np.real(roots) >=0.0)]
+    roots = roots[np.logical_or(np.imag(roots) != 0.0, np.real(roots) >= 0.0)]
 
     # Deduce lamda and keep only interesting values
     lamda = np.real(np.log(roots)/(X[1] - X[0]))
@@ -54,8 +54,8 @@ def exponential_decomposition(X, F, m):
     # Fit the values of 'a' on the curve
     def f(x, *ar):
         ar = np.asarray(ar)[:, np.newaxis]
-        l = lamda[:, np.newaxis]
-        return np.sum(ar * np.exp(l * x), axis=0)
+        la = lamda[:, np.newaxis]
+        return np.sum(ar * np.exp(la * x), axis=0)
     a, *_ = curve_fit(f, X, F, p0=np.zeros(lamda.shape))
 
     return a, lamda
@@ -83,6 +83,7 @@ def error_exponential_decomposition(X, F, a, lamda):
     """
     a = np.asarray(a)[:, np.newaxis]
     lamda = np.asarray(lamda)[:, np.newaxis]
+
     def f(x):
         return np.sum(a * np.exp(lamda*x), axis=0)
 

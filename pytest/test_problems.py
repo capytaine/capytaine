@@ -5,14 +5,12 @@ import os
 
 import pytest
 
-import numpy as np
-
 from capytaine.bodies import FloatingBody
 from capytaine.symmetries import ReflectionSymmetry
 from capytaine.geometric_bodies.sphere import generate_sphere
 from capytaine.problems import *
 from capytaine.results import LinearPotentialFlowResult
-from capytaine.import_export import import_cal_file
+from capytaine.tools.import_export import import_cal_file
 
 
 def test_LinearPotentialFlowProblem():

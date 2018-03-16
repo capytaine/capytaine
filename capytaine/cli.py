@@ -8,14 +8,12 @@ It has been written by Matthieu Ancellin and is released under the terms of the 
 """
 
 import argparse
-from itertools import chain
 import logging
 import os
 
 import numpy as np
-import matplotlib.pyplot as plt
 
-from capytaine.import_export import import_cal_file
+from capytaine.tools.import_export import import_cal_file
 from capytaine.results import assemble_dataset
 from capytaine.Nemoh import Nemoh
 

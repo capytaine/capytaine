@@ -6,7 +6,7 @@ from itertools import count
 
 import pandas as pd
 
-from capytaine.geometric_bodies.rectangle import *
+from capytaine.geometric_bodies import *
 from capytaine.symmetries import *
 
 from benchmark import profile_Nemoh, profile_capytaine

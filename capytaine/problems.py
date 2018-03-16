@@ -13,7 +13,7 @@ from attr import attrs, attrib, astuple
 import numpy as np
 
 from capytaine._Wavenumber import invert_xtanhx
-from capytaine.results import *
+from capytaine.results import LinearPotentialFlowResult, DiffractionResult, RadiationResult
 from capytaine.tools.Airy_wave import Airy_wave_velocity
 
 
@@ -42,7 +42,7 @@ class LinearPotentialFlowProblem:
     boundary_condition = attrib(default=None, repr=False)
 
     @free_surface.validator
-    def _check_free_surface(self, attribute, free_surface):
+    def _check_free_surface(self, _, free_surface):
         if free_surface not in [0, np.infty]:
             raise NotImplementedError(
                 "Only z=0 and z=∞ are accepted values for the free surface position at the moment.")
@@ -51,12 +51,12 @@ class LinearPotentialFlowProblem:
                 "The case without free surface but with a sea bottom has not been implemented yet.")
 
     @sea_bottom.validator
-    def _check_depth(self, attribute, sea_bottom):
+    def _check_depth(self, _, sea_bottom):
         if self.free_surface < sea_bottom:
             raise ValueError("Sea bottom is above the free surface.")
 
     @body.validator
-    def _check_body_position(self, attribute, body):
+    def _check_body_position(self, _, body):
         if body is not None:
             if (any(body.vertices[:, 2] > self.free_surface + 1e-3)
                     or any(body.vertices[:, 2] < self.sea_bottom - 1e-3)):
@@ -65,13 +65,13 @@ class LinearPotentialFlowProblem:
                                 or use body.get_immersed_part() to clip the mesh.""")
 
     @boundary_condition.validator
-    def _check_size_of_boundary_condition(self, attribute, bc):
+    def _check_size_of_boundary_condition(self, _, bc):
         if self.body is None:
             if bc is not None:
                 LOG.warning(f"""The problem {self} has no body but has a boundary condition.""")
         else:
             if bc is not None and len(bc) != self.body.nb_faces:
-                LOG.warning(f"""The size of the boundary condition in {problem} does not match the
+                LOG.warning(f"""The size of the boundary condition in {self} does not match the
                             number of faces in the body.""")
 
     def __lt__(self, other):
