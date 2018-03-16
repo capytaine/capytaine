@@ -6,10 +6,7 @@ Tests for the computation of the Green function and the resolution of the BEM pr
 
 import pytest
 
-import numpy as np
-
-from capytaine.geometric_bodies.sphere import generate_sphere, generate_half_sphere, generate_clever_sphere
-from capytaine.reference_bodies import *
+from capytaine.geometric_bodies import *
 from capytaine.symmetries import *
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import Nemoh

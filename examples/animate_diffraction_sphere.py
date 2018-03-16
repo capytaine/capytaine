@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
-from capytaine.reference_bodies import generate_clever_sphere, generate_free_surface
+from capytaine.geometric_bodies import generate_clever_sphere, generate_free_surface
 from capytaine.problems import DiffractionProblem
 from capytaine.Nemoh import Nemoh
 from capytaine.tools.Airy_wave import Airy_wave_potential

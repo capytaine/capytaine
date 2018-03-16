@@ -235,3 +235,7 @@ class FloatingBody:
         LOG.info(f"Clip floating body {self.name}.")
         return FloatingBody(clipped_mesh, name=f"{self.name}_clipped")
 
+
+def generate_dummy_floating_body():
+    return FloatingBody(np.zeros((0, 3)), np.zeros((0, 4)), name="dummy_body")
+

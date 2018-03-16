@@ -1,15 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import pytest
-
-import numpy as np
-
-from capytaine.bodies import FloatingBody
 from capytaine.bodies_collection import CollectionOfFloatingBodies
-from capytaine.symmetries import ReflectionSymmetry, xOz_Plane
-from capytaine.geometric_bodies.sphere import generate_sphere, generate_half_sphere
-from capytaine.reference_bodies import *
+from capytaine.geometric_bodies import *
+from capytaine.symmetries import ReflectionSymmetry
 
 
 def test_dof():

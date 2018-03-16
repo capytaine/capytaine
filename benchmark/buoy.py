@@ -8,9 +8,7 @@ import numpy as np
 import pandas as pd
 
 from capytaine.symmetries import ReflectionSymmetry, xOz_Plane
-from capytaine.reference_bodies import generate_axi_symmetric_body
-
-from benchmark import *
+from capytaine.geometric_bodies.rectangle import generate_axi_symmetric_body
 
 WORKING_DIRECTORY = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
