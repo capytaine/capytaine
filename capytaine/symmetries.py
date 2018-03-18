@@ -79,7 +79,7 @@ class ReflectionSymmetry(_SymmetricBody):
 class TranslationalSymmetry(_SymmetricBody):
     """A body composed of a pattern repeated and translated."""
 
-    def __init__(self, body_slice, translation, nb_repetitions=1, name=None):
+    def __init__(self, body_slice, translation, nb_repetitions=1, dof='extend', name=None):
         """Initialize the body.
 
         Parameters
@@ -120,8 +120,13 @@ class TranslationalSymmetry(_SymmetricBody):
         LOG.info(f"New translation symmetric body: {self.name}.")
 
         self.dofs = {}
-        for name, dof in body_slice.dofs.items():
-            self.dofs["translated_" + name] = np.concatenate([dof]*nb_repetitions)
+        if dof == 'extend':
+            for name, dof in body_slice.dofs.items():
+                self.dofs["translated_" + name] = np.concatenate([dof]*nb_repetitions)
+        elif dof == 'repeat':
+            self.dofs = CollectionOfFloatingBodies.repeat_dof(self.subbodies)
+        else:
+            LOG.warning("Unrecognized extension of the dof in TranslationalSymmetry.")
 
     def get_immersed_part(self, **kwargs):
         return TranslationalSymmetry(self.subbodies[0].get_immersed_part(**kwargs),

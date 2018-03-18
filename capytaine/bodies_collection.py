@@ -47,19 +47,24 @@ class CollectionOfFloatingBodies(FloatingBody):
 
         LOG.debug(f"New collection of bodies: {self.name}.")
 
-        # Combine the degrees of freedom of the subbodies.
-        self.dofs = {}
-        cum_nb_faces = accumulate(chain([0], (body.nb_faces for body in self.subbodies)))
-        total_nb_faces = sum(body.nb_faces for body in self.subbodies)
+        self.dofs = CollectionOfFloatingBodies.repeat_dof(bodies)
+
+    @staticmethod
+    def repeat_dof(bodies):
+        """Combine the degrees of freedom of the subbodies."""
+        dofs = {}
+        cum_nb_faces = accumulate(chain([0], (body.nb_faces for body in bodies)))
+        total_nb_faces = sum(body.nb_faces for body in bodies)
         for body, nbf in zip(bodies, cum_nb_faces):
             # nbf is the cumulative number of faces of the previous subbodies,
             # that is the offset of the indices of the faces of the current body.
             for name, dof in body.dofs.items():
-                self.dofs['_'.join([body.name, name])] = np.r_[
-                        np.zeros(nbf),
-                        dof,
-                        np.zeros(total_nb_faces - len(dof) - nbf),
-                        ]
+                dofs['_'.join([body.name, name])] = np.r_[
+                    np.zeros(nbf),
+                    dof,
+                    np.zeros(total_nb_faces - len(dof) - nbf),
+                ]
+        return dofs
 
     def as_FloatingBody(self, name=None):
         """Merge the mesh of the bodies of the collection into one mesh."""
