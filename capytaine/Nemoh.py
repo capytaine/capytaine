@@ -136,9 +136,9 @@ class Nemoh:
         Parameters
         ----------
         body1: FloatingBody
-            radiating body (center of the Green functions)
+            receiving body (where the potential is measured)
         body2: FloatingBody
-            influenced body (body on which the coefficients are integrated)
+            source body (over which the source distribution is integrated)
         free_surface: float
             position of the free surface (default: z = 0)
         sea_bottom: float
@@ -146,7 +146,7 @@ class Nemoh:
         wavenumber: float
             wavenumber (default: 1)
         force_full_computation: bool
-            if True, the symmetries are not used to speed up the computation (default: False)
+            if True, the symmetries are NOT used to speed up the computation (default: False)
         _rec_depth: int
             internal parameter: recursion depth for pretty log printing
 
@@ -195,7 +195,7 @@ class Nemoh:
             return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
 
         elif (isinstance(body1, AxialSymmetry)
-              and body1 is body2
+              and body1 is body2  # TODO: Generalize: if body1.axis == body2.axis
               and not force_full_computation):
 
             LOG.debug("\t"*_rec_depth +
