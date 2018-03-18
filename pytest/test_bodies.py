@@ -9,7 +9,7 @@ from capytaine.symmetries import ReflectionSymmetry
 def test_dof():
     nodes = np.array([[0, 0, 0], [0, 0, 1], [1, 0, 1], [1, 0, 0]])
     faces = np.array([[0, 1, 2, 3]])
-    body = FloatingBody(nodes, faces, name="one_face")
+    body = FloatingBody(Mesh(nodes, faces), name="one_face")
     assert body.dofs == {}
 
     body.add_translation_dof(direction=(1.0, 0.0, 0.0), name="1")

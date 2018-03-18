@@ -31,14 +31,11 @@ class FloatingBody:
     #  Initialisation and transformation  #
     #######################################
 
-    def __init__(self, *args, **kwargs):
-        if len(args) >= 1 and isinstance(args[0], Mesh):
-            self.mesh = args[0]
-        else:
-            self.mesh = Mesh(*args, **kwargs)
+    def __init__(self, mesh, name=None):
+        self.mesh = mesh
 
-        if 'name' in kwargs:
-            self.name = kwargs['name']
+        if name is not None:
+            self.name = name
         else:
             self.name = self.mesh.name
 
@@ -55,7 +52,7 @@ class FloatingBody:
         from capytaine.symmetries import ReflectionSymmetry, xOz_Plane
 
         vertices, faces = load_mesh(filename, file_format)
-        body = FloatingBody(vertices, faces, name=filename)
+        body = FloatingBody(Mesh(vertices, faces, name=f"{filename}_mesh"), name=filename)
 
         if file_format == 'mar':
             with open(filename, 'r') as fi:
@@ -237,5 +234,5 @@ class FloatingBody:
 
 
 def generate_dummy_floating_body():
-    return FloatingBody(np.zeros((0, 3)), np.zeros((0, 4)), name="dummy_body")
+    return FloatingBody(Mesh(np.zeros((0, 3)), np.zeros((0, 4))), name="dummy_body")
 

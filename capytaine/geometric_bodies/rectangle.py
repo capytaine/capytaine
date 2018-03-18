@@ -52,7 +52,7 @@ def generate_one_sided_rectangle(height=5.0, width=5.0, nh=5, nw=5, name=None):
 
     if name is None:
         name = f"rectangle_{next(Mesh._ids)}"
-    return FloatingBody(nodes, panels, name=name)
+    return FloatingBody(Mesh(nodes, panels, name=f"{name}_mesh"), name=name)
 
 
 def generate_clever_one_sided_rectangle(width=5.0, nw=5, name=None, **kwargs):

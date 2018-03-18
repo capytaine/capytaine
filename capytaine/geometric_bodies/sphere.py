@@ -82,7 +82,7 @@ def generate_sphere(radius=1.0, ntheta=10, nphi=10,
 
     if name is None:
         name = f"sphere_{next(Mesh._ids)}"
-    sphere = FloatingBody(nodes, panels, name=name)
+    sphere = FloatingBody(Mesh(nodes, panels, name=f"{name}_mesh"), name=name)
     sphere.mesh.merge_duplicates()
     sphere.mesh.heal_triangles()
 

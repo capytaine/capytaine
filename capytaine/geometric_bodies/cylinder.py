@@ -59,7 +59,7 @@ def generate_disk(radius=1.0, nr=3, ntheta=5,
 
     if name is None:
         name = f"disk_{next(Mesh._ids)}"
-    disk = FloatingBody(nodes, panels, name=name)
+    disk = FloatingBody(Mesh(nodes, panels, name=f"{name}_mesh"), name=name)
     disk.mesh.merge_duplicates()
     disk.mesh.heal_triangles()
 
@@ -139,7 +139,7 @@ def generate_open_horizontal_cylinder(length=10.0, radius=1.0,
 
     if name is None:
         name = f"cylinder_{next(Mesh._ids)}"
-    cylinder = FloatingBody(nodes, panels, name=name)
+    cylinder = FloatingBody(Mesh(nodes, panels, name=f"{name}_mesh"), name=name)
     cylinder.mesh.merge_duplicates()
     cylinder.mesh.heal_triangles()
 

@@ -10,6 +10,8 @@ It has been written by Matthieu Ancellin and is released under the terms of the 
 import logging
 from itertools import product
 
+from attr import attrs, attrib
+
 import numpy as np
 
 from meshmagick.mesh import Mesh
@@ -18,13 +20,12 @@ from capytaine.bodies import FloatingBody
 LOG = logging.getLogger(__name__)
 
 
-# @attrs
-# class FreeSurface(FloatingBody):
+# class FreeSurface():
 #     width = attrib()
 #     length = attrib()
 #     nw = attrib()
 #     nl = attrib()
-#
+
 #     @staticmethod
 #     def with_same_symmetries_as(body):
 #         pass
@@ -46,4 +47,4 @@ def generate_free_surface(width=100, length=100, nw=10, nl=10, name=None):
 
     if name is None:
         name = f"free_surface_{next(Mesh._ids)}"
-    return FloatingBody(nodes, panels, name=name)
+    return FloatingBody(Mesh(nodes, panels), name=name)

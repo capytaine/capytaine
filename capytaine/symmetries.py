@@ -221,12 +221,12 @@ class AxialSymmetry(_SymmetricBody):
         n = profile_array.shape[0]
         angle = 2 * np.pi / nphi
 
-        rotated_profile = FloatingBody(profile_array, np.zeros((0, 4)), name="rotated_profile")
+        rotated_profile = FloatingBody(Mesh(profile_array, np.zeros((0, 4)), name="rotated_profile_mesh"), name="rotated_profile")
         rotated_profile.rotate_z(angle)
 
         nodes_slice = np.concatenate([profile_array, rotated_profile.vertices])
         faces_slice = np.array([[i, i+n, i+n+1, i+1] for i in range(n-1)])
-        body_slice = FloatingBody(nodes_slice, faces_slice, name=f"slice_of_{name}")
+        body_slice = FloatingBody(Mesh(nodes_slice, faces_slice, name=f"slice_of_{name}_mesh"), name=f"slice_of_{name}")
         body_slice.mesh.merge_duplicates()
         body_slice.mesh.heal_triangles()
 
