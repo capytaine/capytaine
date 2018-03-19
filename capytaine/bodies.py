@@ -8,6 +8,8 @@ It has been written by Matthieu Ancellin and is released under the terms of the 
 
 import logging
 import copy
+from itertools import chain, accumulate
+
 
 import numpy as np
 
@@ -74,9 +76,27 @@ class FloatingBody:
         """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name
 
-    # def __add__(self, body_to_add):
-    #     """Create a new CollectionOfFloatingBody from the combination of two FloatingBodies."""
-    #     return FloatingBody(CollectionOfMeshes([self.mesh, self.CollectionOfFloatingBodies([self, body_to_add])
+    @staticmethod
+    def combine_dofs(bodies):
+        """Combine the degrees of freedom of several bodies."""
+        dofs = {}
+        cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in bodies)))
+        total_nb_faces = sum(body.mesh.nb_faces for body in bodies)
+        for body, nbf in zip(bodies, cum_nb_faces):
+            # nbf is the cumulative number of faces of the previous subbodies,
+            # that is the offset of the indices of the faces of the current body.
+            for name, dof in body.dofs.items():
+                dofs['_'.join([body.name, name])] = np.r_[np.zeros(nbf),
+                                                          dof,
+                                                          np.zeros(total_nb_faces - len(dof) - nbf)]
+        return dofs
+
+    def __add__(self, body_to_add):
+        """Create a new CollectionOfFloatingBody from the combination of two FloatingBodies."""
+        meshes = CollectionOfMeshes([self.mesh, body_to_add.mesh])
+        new_body = FloatingBody(meshes, name=f"{self.name}+{body_to_add.name}")
+        new_body.dofs = FloatingBody.combine_dofs([self, body_to_add])
+        return new_body
 
     ##########
     #  Dofs  #
@@ -195,17 +215,4 @@ class FloatingBody:
     def show_matplotlib(self, *args, **kwargs):
         return self.mesh.show_matplotlib(*args, **kwargs)
 
-#     @staticmethod
-#     def repeat_dof(bodies):
-#         """Combine the degrees of freedom of the subbodies."""
-#         dofs = {}
-#         cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in bodies)))
-#         total_nb_faces = sum(body.mesh.nb_faces for body in bodies)
-#         for body, nbf in zip(bodies, cum_nb_faces):
-#             # nbf is the cumulative number of faces of the previous subbodies,
-#             # that is the offset of the indices of the faces of the current body.
-#             for name, dof in body.dofs.items():
-#                 dofs['_'.join([body.name, name])] = np.r_[np.zeros(nbf),
-#                                                           dof,
-#                                                           np.zeros(total_nb_faces - len(dof) - nbf)]
-#         return dofs
+

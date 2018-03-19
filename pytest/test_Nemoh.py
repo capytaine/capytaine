@@ -4,7 +4,7 @@
 Compare results of Capytaine with results from Nemoh 2.0.
 """
 
-from capytaine.geometric_bodies.sphere import generate_clever_sphere
+from capytaine.geometric_bodies.sphere import Sphere
 from capytaine.geometric_bodies.cylinder import generate_horizontal_cylinder
 from capytaine.geometric_bodies.free_surface import FreeSurface
 from capytaine.symmetries import *
@@ -19,39 +19,37 @@ def test_immersed_sphere():
     The test is ran for two degrees of freedom; due to the symmetries of the problem, the results should be the same.
     They are slightly different due to the meshing of the sphere.
     """
-    sphere = generate_clever_sphere(radius=1.0, ntheta=10, nphi=40)
-    volume = 4/3*np.pi
+    sphere = Sphere(radius=1.0, ntheta=10, nphi=40, clip_free_surface=False)
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     solver = Nemoh()
 
     problem = RadiationProblem(body=sphere, radiating_dof="Heave", free_surface=np.infty, sea_bottom=-np.infty)
     result = solver.solve(problem)
-    assert np.isclose(result.added_masses["Heave"],       2187, atol=1e-3*volume*problem.rho)
-    assert np.isclose(result.added_masses["Surge"],        0.0, atol=1e-3*volume*problem.rho)
-    assert np.isclose(result.radiation_dampings["Heave"],  0.0, atol=1e-3*volume*problem.rho)
-    assert np.isclose(result.radiation_dampings["Surge"],  0.0, atol=1e-3*volume*problem.rho)
+    assert np.isclose(result.added_masses["Heave"],       2187, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.added_masses["Surge"],        0.0, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.radiation_dampings["Heave"],  0.0, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.radiation_dampings["Surge"],  0.0, atol=1e-3*sphere.volume*problem.rho)
 
     problem = RadiationProblem(body=sphere, radiating_dof="Surge", free_surface=np.infty, sea_bottom=-np.infty)
     result = solver.solve(problem)
-    assert np.isclose(result.added_masses["Surge"],       2194, atol=1e-3*volume*problem.rho)
-    assert np.isclose(result.added_masses["Heave"],        0.0, atol=1e-3*volume*problem.rho)
-    assert np.isclose(result.radiation_dampings["Surge"],  0.0, atol=1e-3*volume*problem.rho)
-    assert np.isclose(result.radiation_dampings["Heave"],  0.0, atol=1e-3*volume*problem.rho)
+    assert np.isclose(result.added_masses["Surge"],       2194, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.added_masses["Heave"],        0.0, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.radiation_dampings["Surge"],  0.0, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.radiation_dampings["Heave"],  0.0, atol=1e-3*sphere.volume*problem.rho)
 
 
 def test_floating_sphere_finite_freq():
     """Compare with Nemoh 2.0 for some cases of a heaving sphere at the free surface in infinite depth."""
-    sphere = generate_clever_sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
-    volume = 4/3*np.pi
+    sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     solver = Nemoh()
 
     # omega = 1, radiation
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
     result = solver.solve(problem, keep_details=True)
-    assert np.isclose(result.added_masses["Heave"],       1819.6, atol=1e-3*volume*problem.rho)
-    assert np.isclose(result.radiation_dampings["Heave"], 379.39, atol=1e-3*volume*problem.rho)
+    assert np.isclose(result.added_masses["Heave"],       1819.6, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.radiation_dampings["Heave"], 379.39, atol=1e-3*sphere.volume*problem.rho)
 
     # omega = 1, free surface
     free_surface = FreeSurface(x_range=(-62.5, 62.5), nx=5, y_range=(-62.5, 62.5), ny=5)
@@ -73,8 +71,8 @@ def test_floating_sphere_finite_freq():
     # omega = 2, radiation
     problem = RadiationProblem(body=sphere, omega=2.0, sea_bottom=-np.infty)
     result = solver.solve(problem)
-    assert np.isclose(result.added_masses["Heave"],       1369.3, atol=1e-3*volume*problem.rho)
-    assert np.isclose(result.radiation_dampings["Heave"], 1425.6, atol=1e-3*volume*problem.rho)
+    assert np.isclose(result.added_masses["Heave"],       1369.3, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.radiation_dampings["Heave"], 1425.6, atol=1e-3*sphere.volume*problem.rho)
 
     # omega = 2, diffraction
     problem = DiffractionProblem(body=sphere, omega=2.0, sea_bottom=-np.infty)
@@ -85,16 +83,15 @@ def test_floating_sphere_finite_freq():
 def test_alien_sphere():
     """Compare with Nemoh 2.0 for some cases of a heaving sphere at the free surface in infinite depth
     for a non-usual gravity and density."""
-    sphere = generate_clever_sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
-    volume = 4/3*np.pi
+    sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
 
     # radiation
     problem = RadiationProblem(body=sphere, rho=450.0, g=1.625, omega=1.0, radiating_dof="Heave")
     result = Nemoh().solve(problem)
-    assert np.isclose(result.added_masses["Heave"],       515, atol=1e-3*volume*problem.rho)
-    assert np.isclose(result.radiation_dampings["Heave"], 309, atol=1e-3*volume*problem.rho)
+    assert np.isclose(result.added_masses["Heave"],       515, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.radiation_dampings["Heave"], 309, atol=1e-3*sphere.volume*problem.rho)
 
     # diffraction
     problem = DiffractionProblem(body=sphere, rho=450.0, g=1.625, omega=1.0, sea_bottom=-np.infty)
@@ -104,16 +101,15 @@ def test_alien_sphere():
 
 def test_floating_sphere_finite_depth():
     """Compare with Nemoh 2.0 for some cases of a heaving sphere at the free surface in finite depth."""
-    sphere = generate_clever_sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
-    volume = 4/3*np.pi
+    sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     solver = Nemoh()
 
     # omega = 1, radiation
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
     result = solver.solve(problem)
-    assert np.isclose(result.added_masses["Heave"],       1740.6, atol=1e-3*volume*problem.rho)
-    assert np.isclose(result.radiation_dampings["Heave"], 380.46, rtol=1e-3*volume*problem.rho)
+    assert np.isclose(result.added_masses["Heave"],       1740.6, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.radiation_dampings["Heave"], 380.46, rtol=1e-3*sphere.volume*problem.rho)
 
     # omega = 1, diffraction
     problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
@@ -123,8 +119,8 @@ def test_floating_sphere_finite_depth():
     # omega = 2, radiation
     problem = RadiationProblem(body=sphere, omega=2.0, sea_bottom=-10.0)
     result = Nemoh().solve(problem)
-    assert np.isclose(result.added_masses["Heave"],       1375.0, atol=1e-3*volume*problem.rho)
-    assert np.isclose(result.radiation_dampings["Heave"], 1418.0, rtol=1e-3*volume*problem.rho)
+    assert np.isclose(result.added_masses["Heave"],       1375.0, atol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.radiation_dampings["Heave"], 1418.0, rtol=1e-3*sphere.volume*problem.rho)
 
     # omega = 2, diffraction
     problem = DiffractionProblem(body=sphere, omega=2.0, sea_bottom=-10.0)
@@ -134,7 +130,7 @@ def test_floating_sphere_finite_depth():
 
 def test_multibody():
     """Compare with Nemoh 2.0 for two bodies."""
-    sphere = generate_clever_sphere(radius=1.0, ntheta=5, nphi=20)
+    sphere = Sphere(radius=1.0, ntheta=5, nphi=20)
     sphere.translate_z(-2.0)
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
@@ -145,11 +141,10 @@ def test_multibody():
     cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     both = cylinder + sphere
-    total_volume = 4/3*np.pi + 5*np.pi
+    total_volume = sphere.volume + 5*np.pi
     # both.show()
 
-    problems = [RadiationProblem(body=both, radiating_dof=dof, omega=1.0, free_surface=0.0, sea_bottom=-np.infty)
-                for dof in both.dofs]
+    problems = [RadiationProblem(body=both, radiating_dof=dof, omega=1.0) for dof in both.dofs]
     solver = Nemoh()
     results = [solver.solve(problem) for problem in problems]
     data = assemble_dataset(results)
