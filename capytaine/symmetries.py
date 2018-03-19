@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Special bodies using their symmetries to speed up the computations.
+"""Special meshes with symmetries, useful to speed up the computations.
 
 This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
 It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
@@ -24,14 +24,18 @@ class SymmetricMesh(CollectionOfMeshes):
 
 class ReflectionSymmetry(SymmetricMesh):
     def __init__(self, half, plane, name=None):
-        """
+        """A mesh with one vertical symmetry plane.
+
         Parameters
         ----------
-        half : Mesh or CollectionOfMesh
+        half : Mesh or CollectionOfMeshes
             a mesh describing half of the body
         plane : Plane
             the symmetry plane across which the half body is mirrored
+        name :str, optional
+            a name for the mesh
         """
+        assert isinstance(half, Mesh) or isinstance(half, CollectionOfMeshes)
         assert isinstance(plane, Plane)
         assert plane.normal[2] == 0  # Only vertical reflection planes are supported
 
@@ -44,25 +48,22 @@ class ReflectionSymmetry(SymmetricMesh):
         CollectionOfMeshes.__init__(self, (half, other_half))
 
         if name is None:
-            self.name = self.format_name(half.name)
+            self.name = CollectionOfMeshes.format_name(self, half.name)
         else:
             self.name = name
         LOG.info(f"New mirror symmetric body: {self.name}.")
 
-#         self.dofs = {}
-#         for name, dof in half.dofs.items():
-#             self.dofs['mirrored_' + name] = np.concatenate([dof, dof])
-#
-#     def get_immersed_part(self, **kwargs):
-#         return ReflectionSymmetry(self.subbodies[0].get_immersed_part(**kwargs),
-#                                   plane=self.plane,
-#                                   name=f"{self.name}_clipped")
-#
+    # def get_clipped_mesh(self, **kwargs):
+    #     return ReflectionSymmetry(self.subbodies[0].get_clipped_mesh(**kwargs),
+    #                               plane=self.plane,
+    #                               name=f"{self.name}_clipped")
+
 
 
 class TranslationalSymmetry(SymmetricMesh):
     def __init__(self, mesh_slice, translation, nb_repetitions=1, name=None):
-        """
+        """A mesh with a repeating pattern by translation.
+
         Parameters
         ----------
         mesh_slice : Mesh or CollectionOfMeshes
@@ -71,6 +72,8 @@ class TranslationalSymmetry(SymmetricMesh):
             the vector of the translation
         nb_repetitions : int, optional
             the number of repetitions of the pattern (excluding the original one, default: 1)
+        name : str, optional
+            a name for the mesh
         """
         assert isinstance(mesh_slice, Mesh) or isinstance(mesh_slice, CollectionOfMeshes)
         assert isinstance(nb_repetitions, int)
@@ -85,37 +88,29 @@ class TranslationalSymmetry(SymmetricMesh):
         slices = [mesh_slice]
         for i in range(1, nb_repetitions+1):
             new_slice = mesh_slice.copy()
-            # new_slice.name = f"repetition_{i}_of_{mesh_slice.name}"
+            new_slice.name = f"repetition_{i}_of_{mesh_slice.name}"
             new_slice.translate(i*translation)
             slices.append(new_slice)
 
-        CollectionOfMeshes.__init__(self, tuple(slices))
+        CollectionOfMeshes.__init__(self, slices)
 
         if name is None:
-            self.name = self.format_name(mesh_slice.name)
+            self.name = CollectionOfMeshes.format_name(self, mesh_slice.name)
         else:
             self.name = name
         LOG.info(f"New translation symmetric body: {self.name}.")
 
-    #         self.dofs = {}
-    #         if dof == 'extend':
-    #             for name, dof in body_slice.dofs.items():
-    #                 self.dofs["translated_" + name] = np.concatenate([dof]*nb_repetitions)
-    #         elif dof == 'repeat':
-    #             self.dofs = CollectionOfFloatingBodies.repeat_dof(self.subbodies)
-    #         else:
-    #             LOG.warning("Unrecognized extension of the dof in TranslationalSymmetry.")
-    #
-    #     def get_immersed_part(self, **kwargs):
-    #         return TranslationalSymmetry(self.subbodies[0].get_immersed_part(**kwargs),
-    #                                      translation=self.translation,
-    #                                      nb_repetitions=self.nb_subbodies-1,
-    #                                      name=f"{self.name}_clipped")
+    # def get_clipped_mesh(self, **kwargs):
+    #     return TranslationalSymmetry(self.subbodies[0].get_clipped_mesh(**kwargs),
+    #                                  translation=self.translation,
+    #                                  nb_repetitions=self.nb_subbodies-1,
+    #                                  name=f"{self.name}_clipped")
 
 
 class AxialSymmetry(SymmetricMesh):
     def __init__(self, mesh_slice, point_on_rotation_axis=np.zeros(3), nb_repetitions=1, name=None):
-        """
+        """A mesh with a repeating pattern by rotation.
+
         Parameters
         ----------
         mesh_slice : Mesh or CollectionOfMeshes
@@ -125,6 +120,8 @@ class AxialSymmetry(SymmetricMesh):
             TODO: Use an Axis class.
         nb_repetitions : int, optional
             the number of repetitions of the pattern (excluding the original one, default: 1)
+        name : str, optional
+            a name for the mesh
         """
         assert isinstance(mesh_slice, Mesh) or isinstance(mesh_slice, CollectionOfMeshes)
         assert isinstance(nb_repetitions, int)
@@ -132,6 +129,7 @@ class AxialSymmetry(SymmetricMesh):
 
         point_on_rotation_axis = np.asarray(point_on_rotation_axis)
         assert point_on_rotation_axis.shape == (3,)
+
         self.point_on_rotation_axis = point_on_rotation_axis
 
         slices = [mesh_slice]
@@ -146,7 +144,7 @@ class AxialSymmetry(SymmetricMesh):
         CollectionOfMeshes.__init__(self, tuple(slices))
 
         if name is None:
-            self.name = self.format_name(mesh_slice.name)
+            self.name = CollectionOfMeshes.format_name(self, mesh_slice.name)
         else:
             self.name = name
         LOG.info(f"New rotation symmetric body: {self.name}.")
@@ -164,15 +162,15 @@ class AxialSymmetry(SymmetricMesh):
 
         Parameters
         ----------
-        profile : function(float) → float  or  array(N, 3)
+        profile : function(float → float)  or  array(N, 3)
             define the shape of the body either as a function or a list of points.
-        z_range: array(N)
+        z_range: array(N), optional
             used only if the profile is defined as a function.
-        point_on_rotation_axis: array(3)
+        point_on_rotation_axis: array(3), optional
             a single point to define the rotation axis (the direction is always vertical)
-        nphi : int
+        nphi : int, optional
             number of vertical slices forming the body
-        name : str
+        name : str, optional
             name of the generated body (optional)
 
         Returns
@@ -182,13 +180,14 @@ class AxialSymmetry(SymmetricMesh):
         """
 
         if name is None:
-            name = "axisymmetric"
+            name = "axisymmetric_mesh"
 
         if callable(profile):
             x_values = [profile(z) for z in z_range]
             profile_array = np.stack([x_values, np.zeros(len(z_range)), z_range]).T
         else:
             profile_array = np.asarray(profile)
+
         assert len(profile_array.shape) == 2
         assert profile_array.shape[1] == 3
 
@@ -206,8 +205,8 @@ class AxialSymmetry(SymmetricMesh):
 
         return AxialSymmetry(body_slice, point_on_rotation_axis=point_on_rotation_axis, nb_repetitions=nphi-1, name=name)
 
-#     def get_immersed_part(self, **kwargs):
-#         return AxialSymmetry(self.subbodies[0].get_immersed_part(**kwargs),
-#                              point_on_rotation_axis=self.point_on_rotation_axis,
-#                              nb_repetitions=self.nb_subbodies-1,
-#                              name=f"{self.name}_clipped")
+    # def get_clipped_mesh(self, **kwargs):
+    #     return AxialSymmetry(self.subbodies[0].get_clipped_mesh(**kwargs),
+    #                          point_on_rotation_axis=self.point_on_rotation_axis,
+    #                          nb_repetitions=self.nb_subbodies-1,
+    #                          name=f"{self.name}_clipped")

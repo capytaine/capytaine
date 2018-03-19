@@ -10,54 +10,67 @@ import logging
 import copy
 from itertools import chain, accumulate
 
-
 import numpy as np
 
 from meshmagick.mesh import Mesh
-from meshmagick.geometry import Plane
+from meshmagick.mmio import load_mesh
 from meshmagick.mesh_clipper import MeshClipper
+from meshmagick.geometry import xOz_Plane, Plane
 
 from capytaine.meshes_collection import CollectionOfMeshes
+from capytaine.symmetries import ReflectionSymmetry
 
 LOG = logging.getLogger(__name__)
 
 
 class FloatingBody:
-    """A floating body described as a mesh and some degrees of freedom.
 
-    The mesh structure is stored in a meshmagick Mesh (see documentation of
-    this class for more details). The degrees of freedom (dofs) are stored as a
-    dict associating a name to a 1 dimensional array of length equal to the
-    number of faces in the mesh.
-    """
+    def __init__(self, mesh=None, dofs=None, name=None):
+        """A floating body described as a mesh and some degrees of freedom.
 
-    def __init__(self, mesh=None, name=None):
+        The mesh structure is stored as an instance from the Mesh class of meshmagick (see
+        documentation of this class for more details) or as a CollectionOfMeshes from
+        capytaine.meshes_collection. The latter is a tuple of meshes or of other collections.
+
+        The degrees of freedom (dofs) are stored as a dict associating a name to a 1 dimensional array
+        of length equal to the number of faces in the mesh.
+
+        Parameters
+        ----------
+        mesh : Mesh or CollectionOfMeshes, optional
+            the mesh describing the geometry of the floating body.
+            If none is given, a empty one is created.
+        dofs : dict, optional
+            the degrees of freedom of the body.
+            If none is given, a empty dictionary is initialized.
+        name : str, optional
+            a name for the body.
+            If none is given, the one of the mesh is used.
+        """
         if mesh is None:
-            self.mesh = Mesh(np.zeros((0, 3)), np.zeros((0, 4)))  # Dummy mesh
-        else:
-            assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
-            self.mesh = mesh
+            mesh = Mesh(np.zeros((0, 3)), np.zeros((0, 4)), name="dummy")
+
+        if dofs is None:
+            dofs = {}
 
         if name is None:
-            self.name = self.mesh.name
-        else:
-            self.name = name
+            name = self.mesh.name
 
-        self.dofs = {}
+        assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
+        self.mesh = mesh
+        self.dofs = dofs
+        self.name = name
 
         LOG.info(f"New floating body: {self.name}.")
 
     @staticmethod
-    def from_file(filename, file_format="mar"):
+    def from_file(filename: str, file_format="mar": str) -> FloatingBody:
         """Create a FloatingBody from a mesh file using meshmagick."""
-        from meshmagick.mmio import load_mesh
-        from meshmagick.geometry import xOz_Plane
-        from capytaine.symmetries import ReflectionSymmetry
 
         vertices, faces = load_mesh(filename, file_format)
         mesh = Mesh(vertices, faces, name=f"{filename}_mesh")
 
-        if file_format == 'mar':
+        if file_format == "mar":
             with open(filename, 'r') as fi:
                 header = fi.readline()
                 _, sym = header.split()
@@ -72,23 +85,23 @@ class FloatingBody:
     def __repr__(self):
         return self.name
 
-    def __lt__(self, other):
+    def __lt__(self, other: FloatingBody) -> bool:
         """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name
 
-    def __add__(self, body_to_add):
+    def __add__(self, body_to_add: FloatingBody) -> FloatingBody:
         """Create a new CollectionOfFloatingBody from the combination of two FloatingBodies."""
         return FloatingBody.join_bodies([self, body_to_add])
 
     @staticmethod
-    def join_bodies(bodies):
+    def join_bodies(bodies) -> FloatingBody:
         meshes = CollectionOfMeshes([body.mesh for body in bodies])
-        new_body = FloatingBody(meshes, name="+".join(body.name for body in bodies))
-        new_body.dofs = FloatingBody.combine_dofs(bodies)
-        return new_body
+        dofs = FloatingBody.combine_dofs(bodies)
+        name = name="+".join(body.name for body in bodies)
+        return FloatingBody(mesh=meshes, dofs=dofs, name=name)
 
     @staticmethod
-    def combine_dofs(bodies):
+    def combine_dofs(bodies) -> dict:
         """Combine the degrees of freedom of several bodies."""
         dofs = {}
         cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in bodies)))
@@ -97,8 +110,7 @@ class FloatingBody:
             # nbf is the cumulative number of faces of the previous subbodies,
             # that is the offset of the indices of the faces of the current body.
             for name, dof in body.dofs.items():
-                dofs['_'.join([body.name, name])] = np.r_[np.zeros(nbf),
-                                                          dof,
+                dofs['_'.join([body.name, name])] = np.r_[np.zeros(nbf), dof,
                                                           np.zeros(total_nb_faces - len(dof) - nbf)]
         return dofs
 
@@ -107,26 +119,52 @@ class FloatingBody:
     ##########
 
     @property
-    def nb_dofs(self):
+    def nb_dofs(self) -> int:
         """Number of degrees of freedom."""
         return len(self.dofs)
 
-    def add_translation_dof(self, direction=(1.0, 0.0, 0.0), name=None):
-        """Helper to define a new translation dof."""
+    def add_translation_dof(self, direction=np.array((1.0, 0.0, 0.0)), name=None):
+        """Add a new translation dof (in place).
+
+        Parameters
+        ----------
+        direction : array of shape (3,)
+            the direction of the translation
+        name : str, optional
+            a name for the degree of freedom
+        """
         if name is None:
             name = f"dof_{self.nb_dofs}_translation"
+
+        direction = np.asarray(direction)
+        assert direction.shape == (3,)
+
         self.dofs[name] = self.mesh.faces_normals @ direction
 
     def add_rotation_dof(self, axis_direction=(0.0, 0.0, 1.0), axis_point=(0.0, 0.0, 0.0), name=None):
-        """Helper to define a new rotation dof."""
+        """Add a new rotation dof (in place).
+
+        Parameters
+        ----------
+        axis_direction : array of shape (3,)
+            vector directing the rotation axis
+        axis_point : array of shape (3,)
+            a point on the rotation axis
+            TODO: Use Axis class?
+        name : str, optional
+            a name for the degree of freedom
+        """
         if name is None:
             name = f"dof_{self.nb_dofs}_rotation"
 
         axis_direction = np.asarray(axis_direction)
         axis_point = np.asarray(axis_point)
 
+        assert axis_direction.shape == (3,)
+        assert axis_point.shape == (3,)
+
         motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
-        motion[motion != 0] /= np.linalg.norm(motion[motion != 0])
+        motion[motion != 0] /= np.linalg.norm(motion[motion != 0])  # Normalize
         dof = np.sum(motion * self.mesh.faces_normals, axis=1)
 
         self.dofs[name] = dof
@@ -135,7 +173,14 @@ class FloatingBody:
     # Transformations #
     ###################
 
-    def copy(self, name=None):
+    def copy(self, name=None) -> FloatingBody:
+        """Return a deep copy of the body.
+
+        Parameters
+        ----------
+        name : str, optional
+            a name for the new copy
+        """
         new_body = copy.deepcopy(self)
         if name is None:
             new_body.name = f"copy_of_{self.name}"
@@ -145,26 +190,13 @@ class FloatingBody:
             LOG.debug(f"Copy {self.name} under the name {name}.")
         return new_body
 
-    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        """Remove the parts of the body above the free surface or below the sea bottom.
-        Dofs are lost in the process."""
-        # TODO: Also clip dofs
-        clipped_mesh = MeshClipper(self.mesh,
-                                   plane=Plane(normal=(0.0, 0.0, 1.0),
-                                               scalar=free_surface)).clipped_mesh
-
-        if sea_bottom > -np.infty:
-            clipped_mesh = MeshClipper(clipped_mesh,
-                                       plane=Plane(normal=(0.0, 0.0, -1.0),
-                                                   scalar=-sea_bottom)).clipped_mesh
-
-        clipped_mesh.remove_unused_vertices()
-        LOG.info(f"Clip floating body {self.name}.")
-        return FloatingBody(clipped_mesh, name=f"{self.name}_clipped")
-
     def extract_faces(self, id_faces_to_extract, return_index=False):
-        """Create a new FloatingBody by extracting some faces from the mesh."""
-        # TODO: CollectionOfMeshes
+        """Create a new FloatingBody by extracting some faces from the mesh.
+        The dofs evolve accordingly.
+        """
+        if isinstance(self.mesh, CollectionOfMeshes):
+            raise NotImplemented()  # TODO
+
         if return_index:
             new_mesh, id_v = Mesh.extract_faces(self.mesh, id_faces_to_extract, return_index)
         else:
@@ -180,6 +212,28 @@ class FloatingBody:
             return new_body, id_v
         else:
             return new_body
+
+    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
+        """Return a body for which the parts of the mesh above the free surface or below the sea
+        bottom have been removed.
+        Dofs are lost in the process.
+        TODO: Also clip dofs.
+        """
+        if isinstance(self.mesh, CollectionOfMeshes):
+            raise NotImplemented()  # TODO
+
+        clipped_mesh = MeshClipper(self.mesh,
+                                   plane=Plane(normal=(0.0, 0.0, 1.0),
+                                               scalar=free_surface)).clipped_mesh
+
+        if sea_bottom > -np.infty:
+            clipped_mesh = MeshClipper(clipped_mesh,
+                                       plane=Plane(normal=(0.0, 0.0, -1.0),
+                                                   scalar=-sea_bottom)).clipped_mesh
+
+        clipped_mesh.remove_unused_vertices()
+        LOG.info(f"Clip floating body {self.name}.")
+        return FloatingBody(clipped_mesh, name=f"{self.name}_clipped")
 
     def mirror(self, *args):
         return self.mesh.mirror(*args)
@@ -218,5 +272,4 @@ class FloatingBody:
 
     def show_matplotlib(self, *args, **kwargs):
         return self.mesh.show_matplotlib(*args, **kwargs)
-
 
