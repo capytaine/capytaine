@@ -231,8 +231,8 @@ class Nemoh:
                       f"Evaluating matrix of {body1.name} on {'itself' if body2 is body1 else body2.name} "
                       f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
 
-            S = np.zeros((body1.nb_faces, body2.nb_faces), dtype=np.complex64)
-            V = np.zeros((body1.nb_faces, body2.nb_faces), dtype=np.complex64)
+            S = np.zeros((body1.mesh.nb_faces, body2.mesh.nb_faces), dtype=np.complex64)
+            V = np.zeros((body1.mesh.nb_faces, body2.mesh.nb_faces), dtype=np.complex64)
 
             S0, V0 = self._build_matrices_0(body1, body2, _rec_depth)
             S += S0
@@ -261,10 +261,10 @@ class Nemoh:
             LOG.debug("\t"*_rec_depth +
                       f"\tComputing matrix 0 of {body1.name} on {'itself' if body2 is body1 else body2.name}")
             S0, V0 = _Green.green_1.build_matrix_0(
-                body1.faces_centers, body1.faces_normals,
-                body2.vertices,      body2.faces + 1,
-                body2.faces_centers, body2.faces_normals,
-                body2.faces_areas,   body2.faces_radiuses,
+                body1.mesh.faces_centers, body1.mesh.faces_normals,
+                body2.mesh.vertices,      body2.mesh.faces + 1,
+                body2.mesh.faces_centers, body2.mesh.faces_normals,
+                body2.mesh.faces_areas,   body2.mesh.faces_radiuses,
                 )
 
             self.__cache__['Green0'][body1][body2] = (S0, V0)
@@ -305,10 +305,10 @@ class Nemoh:
                     return y
 
             S1, V1 = _Green.green_1.build_matrix_0(
-                reflect_point(body1.faces_centers), reflect_vector(body1.faces_normals),
-                body2.vertices,      body2.faces + 1,
-                body2.faces_centers, body2.faces_normals,
-                body2.faces_areas,   body2.faces_radiuses,
+                reflect_point(body1.mesh.faces_centers), reflect_vector(body1.mesh.faces_normals),
+                body2.mesh.vertices,      body2.mesh.faces + 1,
+                body2.mesh.faces_centers, body2.mesh.faces_normals,
+                body2.mesh.faces_areas,   body2.mesh.faces_radiuses,
                 )
 
             if depth == np.infty:
@@ -342,8 +342,8 @@ class Nemoh:
                 n_exp = 31
 
                 S2, V2 = _Green.green_2.build_matrix_2(
-                    body1.faces_centers, body1.faces_normals,
-                    body2.faces_centers, body2.faces_areas,
+                    body1.mesh.faces_centers, body1.mesh.faces_normals,
+                    body2.mesh.faces_centers, body2.mesh.faces_areas,
                     wavenumber,         0.0,
                     self.XR, self.XZ, self.APD,
                     lamda_exp, a_exp, n_exp,
@@ -355,8 +355,8 @@ class Nemoh:
                 n_exp = 31
 
                 S2, V2 = _Green.green_2.build_matrix_2(
-                    body1.faces_centers, body1.faces_normals,
-                    body2.faces_centers, body2.faces_areas,
+                    body1.mesh.faces_centers, body1.mesh.faces_normals,
+                    body2.mesh.faces_centers, body2.mesh.faces_areas,
                     wavenumber, depth,
                     self.XR, self.XZ, self.APD,
                     lamda_exp, a_exp, n_exp,

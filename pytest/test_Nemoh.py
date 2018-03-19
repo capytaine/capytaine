@@ -6,7 +6,7 @@ Compare results of Capytaine with results from Nemoh 2.0.
 
 from capytaine.geometric_bodies.sphere import generate_clever_sphere
 from capytaine.geometric_bodies.cylinder import generate_horizontal_cylinder
-from capytaine.geometric_bodies.free_surface import  generate_free_surface
+from capytaine.geometric_bodies.free_surface import FreeSurface
 from capytaine.symmetries import *
 from capytaine.problems import DiffractionProblem, RadiationProblem
 from capytaine.results import assemble_dataset
@@ -52,7 +52,7 @@ def test_floating_sphere_finite_freq():
     assert np.isclose(result.radiation_dampings["Heave"], 379.39, atol=1e-3*sphere.volume*problem.rho)
 
     # omega = 1, free surface
-    free_surface = generate_free_surface(width=125, length=125, nw=5, nl=5)
+    free_surface = FreeSurface(x_range=(-62.5, 62.5), nx=5, y_range=(-62.5, 62.5), ny=5)
     eta = solver.get_free_surface_elevation(result, free_surface)
     ref = np.array(
             [[-0.4340802E-02-0.4742809E-03j, -0.7986111E-03+0.4840984E-02j, 0.2214827E-02+0.4700642E-02j, -0.7986111E-03+0.4840984E-02j, -0.4340803E-02-0.4742807E-03j],

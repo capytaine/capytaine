@@ -97,8 +97,6 @@ def test_reference_bodies():
     # rectangle.show()
     clever_rectangle = generate_clever_one_sided_rectangle()
     # clever_rectangle.show()
-    free_surface = generate_free_surface()
-    # free_surface.show()
     parallelepiped = generate_open_rectangular_parallelepiped()
     # parallelepiped.show()
     parallelepiped = generate_clever_open_rectangular_parallelepiped()
