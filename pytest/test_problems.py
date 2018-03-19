@@ -5,12 +5,18 @@ import os
 
 import pytest
 
+import numpy as np
+
+from meshmagick.mesh import Mesh
+
+from capytaine.tools.import_export import import_cal_file
+
 from capytaine.bodies import FloatingBody
 from capytaine.symmetries import ReflectionSymmetry
 from capytaine.geometric_bodies.sphere import Sphere
-from capytaine.problems import *
-from capytaine.results import LinearPotentialFlowResult
-from capytaine.tools.import_export import import_cal_file
+
+from capytaine.problems import LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem
+from capytaine.results import LinearPotentialFlowResult, DiffractionResult, RadiationResult
 
 
 def test_LinearPotentialFlowProblem():
@@ -125,8 +131,8 @@ def test_import_cal_file():
         assert problem.rho == 1000.0
         assert problem.g == 9.81
         assert problem.depth == np.infty
-        assert isinstance(problem.body, ReflectionSymmetry)
-        assert isinstance(problem.body.subbodies[0], FloatingBody)
+        assert isinstance(problem.body.mesh, ReflectionSymmetry)
+        assert isinstance(problem.body.mesh.submeshes[0], Mesh)
         assert problem.body.nb_dofs == 6
         # assert problem.body.mesh.nb_vertices == 2*540
         assert problem.body.mesh.nb_faces == 2*300

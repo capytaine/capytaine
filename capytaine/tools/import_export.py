@@ -71,10 +71,10 @@ def import_cal_file(filepath):
 
             bodies.append(body)
 
-        # if nb_bodies > 1:
-        #     bodies = CollectionOfFloatingBodies(bodies)
-        # else:
-        #     bodies = bodies[0]
+        if nb_bodies > 1:
+            bodies = FloatingBody.join_bodies(bodies)
+        else:
+            bodies = bodies[0]
 
         cal_file.readline()  # Unused line.
         frequency_data = cal_file.readline().split()

@@ -55,16 +55,16 @@ class FloatingBody:
         from capytaine.symmetries import ReflectionSymmetry
 
         vertices, faces = load_mesh(filename, file_format)
-        body = FloatingBody(Mesh(vertices, faces, name=f"{filename}_mesh"), name=filename)
+        mesh = Mesh(vertices, faces, name=f"{filename}_mesh")
 
         if file_format == 'mar':
             with open(filename, 'r') as fi:
                 header = fi.readline()
                 _, sym = header.split()
                 if int(sym) == 1:
-                    body = ReflectionSymmetry(body, plane=xOz_Plane)
+                    mesh = ReflectionSymmetry(mesh, plane=xOz_Plane)
 
-        return body
+        return FloatingBody(mesh, name=filename)
 
     def __str__(self):
         return self.name
@@ -75,6 +75,17 @@ class FloatingBody:
     def __lt__(self, other):
         """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name
+
+    def __add__(self, body_to_add):
+        """Create a new CollectionOfFloatingBody from the combination of two FloatingBodies."""
+        return FloatingBody.join_bodies([self, body_to_add])
+
+    @staticmethod
+    def join_bodies(bodies):
+        meshes = CollectionOfMeshes([body.mesh for body in bodies])
+        new_body = FloatingBody(meshes, name="+".join(body.name for body in bodies))
+        new_body.dofs = FloatingBody.combine_dofs(bodies)
+        return new_body
 
     @staticmethod
     def combine_dofs(bodies):
@@ -90,13 +101,6 @@ class FloatingBody:
                                                           dof,
                                                           np.zeros(total_nb_faces - len(dof) - nbf)]
         return dofs
-
-    def __add__(self, body_to_add):
-        """Create a new CollectionOfFloatingBody from the combination of two FloatingBodies."""
-        meshes = CollectionOfMeshes([self.mesh, body_to_add.mesh])
-        new_body = FloatingBody(meshes, name=f"{self.name}+{body_to_add.name}")
-        new_body.dofs = FloatingBody.combine_dofs([self, body_to_add])
-        return new_body
 
     ##########
     #  Dofs  #
