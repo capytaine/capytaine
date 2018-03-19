@@ -14,7 +14,6 @@ import numpy as np
 
 from capytaine.Toeplitz_matrices import (identity_matrix_of_same_shape_as, solve,
                                          BlockToeplitzMatrix, BlockCirculantMatrix)
-from capytaine.meshes_collection import MeshType
 from capytaine.symmetries import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
 from capytaine.tools.max_length_dict import MaxLengthDict
 from capytaine.tools.exponential_decomposition import exponential_decomposition, error_exponential_decomposition
@@ -127,7 +126,7 @@ class Nemoh:
     #  Building matrices  #
     #######################
 
-    def build_matrices(self, mesh1: MeshType, mesh2: MeshType,
+    def build_matrices(self, mesh1, mesh2,
                        free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0,
                        force_full_computation=False, _rec_depth=(1,)):
         """Assemble the influence matrices.
@@ -255,7 +254,7 @@ class Nemoh:
 
             return S, V
 
-    def _build_matrices_0(self, mesh1: MeshType, mesh2: MeshType, _rec_depth=(1,)):
+    def _build_matrices_0(self, mesh1, mesh2, _rec_depth=(1,)):
         """Compute the first part of the influence matrices of self on body."""
         if mesh1 not in self.__cache__['Green0']:
             self.__cache__['Green0'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))

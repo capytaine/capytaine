@@ -2,9 +2,8 @@
 # coding: utf-8
 
 import copy
-from typing import TypeVar
-
 from itertools import chain, accumulate
+# from typing import Union, Iterable
 
 import numpy as np
 
@@ -14,19 +13,33 @@ NAME_MAX_LENGTH = 180
 
 
 class CollectionOfMeshes:
-    """A list of meshes"""
+    name: str
+    # submeshes: Iterable[Union[Mesh, CollectionOfMeshes]]
 
     def __init__(self, meshes, name=None):
-        for mesh in meshes:
+        """A list of meshes.
+        It gives access to all the vertices of all the sub-meshes as if it were a mesh itself.
+        Collections can be nested to store meshes in a tree structure.
+
+        Parameters
+        ----------
+        meshes : iterable of Mesh or of CollectionOfMeshes
+            the meshes contained in the collection
+        name : str
+            a name for the collection (optional)
+        """
+        self.submeshes = tuple(meshes)
+        for mesh in self.submeshes:
             assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
-        self.submeshes = meshes
 
         if name is None:
             self.name = self.format_name(", ".join((mesh.name for mesh in meshes))[:-2])
         else:
             self.name = name
 
-    def format_name(self, options_string):
+    def format_name(self, options_string: str) -> str:
+        """Helper function to generate a name for the collection.
+        Is expected to be used also in child classes."""
         if len(options_string) > NAME_MAX_LENGTH:
             options_string = options_string[:-3] + "..."
         return f"{self.__class__.__name__}({options_string})"
@@ -40,7 +53,9 @@ class CollectionOfMeshes:
     def copy(self):
         return copy.deepcopy(self)
 
-    # Properties
+    ##############
+    # Properties #
+    ##############
 
     @property
     def nb_submeshes(self):
@@ -87,14 +102,19 @@ class CollectionOfMeshes:
     def faces_radiuses(self):
         return np.concatenate([mesh.faces_radiuses for mesh in self.submeshes])
 
-    def indices_of_mesh(self, mesh_index):
-        start = sum((mesh.nb_faces for mesh in self.submeshes[:mesh_index]))
+    def indices_of_mesh(self, mesh_index: int) -> slice:
+        """Return the indices of the faces for the sub-mesh given as argument."""
+        start = sum((mesh.nb_faces for mesh in self.submeshes[:mesh_index]))  # Number of faces in previous meshes
         return slice(start, start + self.submeshes[mesh_index].nb_faces)
 
-    # Transformation
+    ##################
+    # Transformation #
+    ##################
 
     def merge(self) -> Mesh:
-        components = (mesh.merge() if isinstance(mesh, CollectionOfMeshes) else mesh for mesh in self.submeshes)  # Ensure components have been merged
+        """Merge the sub-meshes and return a full mesh.
+        If the collection contains other collections, they are merged recursively."""
+        components = (mesh if isinstance(mesh, Mesh) else mesh.merge() for mesh in self.submeshes)
         init = next(components)
         merged = sum(components, init)
         merged.merge_duplicates()
@@ -104,50 +124,41 @@ class CollectionOfMeshes:
     def mirror(self, plane):
         for mesh in self.submeshes:
             mesh.mirror(plane)
-        return
 
     def translate_x(self, value):
         for mesh in self.submeshes:
             mesh.translate_x(value)
-        return
 
     def translate_y(self, value):
         for mesh in self.submeshes:
             mesh.translate_y(value)
-        return
 
     def translate_z(self, value):
         for mesh in self.submeshes:
             mesh.translate_z(value)
-        return
 
     def translate(self, vector):
         for mesh in self.submeshes:
             mesh.translate(vector)
-        return
 
     def rotate_x(self, value):
         for mesh in self.submeshes:
             mesh.rotate_x(value)
-        return
 
     def rotate_y(self, value):
         for mesh in self.submeshes:
             mesh.rotate_y(value)
-        return
 
     def rotate_z(self, value):
         for mesh in self.submeshes:
             mesh.rotate_z(value)
-        return
 
     def rotate(self, vector):
         for mesh in self.submeshes:
             mesh.rotate(vector)
-        return
 
     def show(self):
         self.merge().show()
 
-
-MeshType = TypeVar('MeshType', Mesh, CollectionOfMeshes)
+    def show_matplotlib(self, *args, **kwargs):
+        self.merge().show_matplotlib(*args, **kwargs)
