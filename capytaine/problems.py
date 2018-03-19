@@ -55,14 +55,14 @@ class LinearPotentialFlowProblem:
         if self.free_surface < sea_bottom:
             raise ValueError("Sea bottom is above the free surface.")
 
-    @body.validator
-    def _check_body_position(self, _, body):
-        if body is not None:
-            if (any(body.mesh.vertices[:, 2] > self.free_surface + 1e-3)
-                    or any(body.mesh.vertices[:, 2] < self.sea_bottom - 1e-3)):
-                LOG.warning(f"""The mesh of the body {body.name} is not inside the domain.\n
-                                Check the values of free_surface and sea_bottom\n
-                                or use body.get_immersed_part() to clip the mesh.""")
+    # @body.validator
+    # def _check_body_position(self, _, body):
+    #     if body is not None:
+    #         if (any(body.mesh.vertices[:, 2] > self.free_surface + 1e-3)
+    #                 or any(body.mesh.vertices[:, 2] < self.sea_bottom - 1e-3)):
+    #             LOG.warning(f"""The mesh of the body {body.name} is not inside the domain.\n
+    #                             Check the values of free_surface and sea_bottom\n
+    #                             or use body.get_immersed_part() to clip the mesh.""")
 
     @boundary_condition.validator
     def _check_size_of_boundary_condition(self, _, bc):

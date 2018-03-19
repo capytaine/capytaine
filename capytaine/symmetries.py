@@ -13,44 +13,27 @@ import numpy as np
 from meshmagick.mesh import Mesh
 from meshmagick.geometry import Plane
 
-from capytaine.bodies import FloatingBody
-from capytaine.bodies_collection import CollectionOfFloatingBodies
-
+from capytaine.meshes_collection import CollectionOfMeshes
 
 LOG = logging.getLogger(__name__)
 
 
-class _SymmetricBody(CollectionOfFloatingBodies):
-    def __add__(self, body_to_add):
-        return CollectionOfFloatingBodies([self, body_to_add])
+class SymmetricMesh(CollectionOfMeshes):
+    pass
 
 
-# Useful aliases
-yOz_Plane = Plane(normal=(1.0, 0.0, 0.0), scalar=0.0)
-xOz_Plane = Plane(normal=(0.0, 1.0, 0.0), scalar=0.0)
-xOy_Plane = Plane(normal=(0.0, 0.0, 1.0), scalar=0.0)
-
-
-class ReflectionSymmetry(_SymmetricBody):
-    """A body composed of two symmetrical halves."""
-
+class ReflectionSymmetry(SymmetricMesh):
     def __init__(self, half, plane, name=None):
-        """Initialize the body.
-
+        """
         Parameters
         ----------
-        half : FloatingBody
-            a FloatingBody instance describing half of the body
+        half : Mesh or CollectionOfMesh
+            a mesh describing half of the body
         plane : Plane
             the symmetry plane across which the half body is mirrored
-        name : string, optional
-            a name for the body
         """
-        assert isinstance(half, FloatingBody)
         assert isinstance(plane, Plane)
         assert plane.normal[2] == 0  # Only vertical reflection planes are supported
-
-        half.nb_matrices_to_keep *= 2
 
         self.plane = plane
 
@@ -58,42 +41,38 @@ class ReflectionSymmetry(_SymmetricBody):
         other_half.mirror(plane)
         other_half.name = "mirror_of_" + half.name
 
-        CollectionOfFloatingBodies.__init__(self, [half, other_half])
+        CollectionOfMeshes.__init__(self, (half, other_half))
 
         if name is None:
-            self.name = f"ReflectionSymmetry({half.name})"
+            self.name = self.format_name(half.name)
         else:
             self.name = name
         LOG.info(f"New mirror symmetric body: {self.name}.")
 
-        self.dofs = {}
-        for name, dof in half.dofs.items():
-            self.dofs['mirrored_' + name] = np.concatenate([dof, dof])
+#         self.dofs = {}
+#         for name, dof in half.dofs.items():
+#             self.dofs['mirrored_' + name] = np.concatenate([dof, dof])
+#
+#     def get_immersed_part(self, **kwargs):
+#         return ReflectionSymmetry(self.subbodies[0].get_immersed_part(**kwargs),
+#                                   plane=self.plane,
+#                                   name=f"{self.name}_clipped")
+#
 
-    def get_immersed_part(self, **kwargs):
-        return ReflectionSymmetry(self.subbodies[0].get_immersed_part(**kwargs),
-                                  plane=self.plane,
-                                  name=f"{self.name}_clipped")
 
-
-class TranslationalSymmetry(_SymmetricBody):
-    """A body composed of a pattern repeated and translated."""
-
-    def __init__(self, body_slice, translation, nb_repetitions=1, dof='extend', name=None):
-        """Initialize the body.
-
+class TranslationalSymmetry(SymmetricMesh):
+    def __init__(self, mesh_slice, translation, nb_repetitions=1, name=None):
+        """
         Parameters
         ----------
-        body_slice : FloatingBody
+        mesh_slice : Mesh or CollectionOfMeshes
             the pattern that will be repeated to form the whole body
         translation : array(3)
             the vector of the translation
         nb_repetitions : int, optional
             the number of repetitions of the pattern (excluding the original one, default: 1)
-        name : string, optional
-            a name for the body
         """
-        assert isinstance(body_slice, FloatingBody)
+        assert isinstance(mesh_slice, Mesh) or isinstance(mesh_slice, CollectionOfMeshes)
         assert isinstance(nb_repetitions, int)
         assert nb_repetitions >= 1
 
@@ -103,57 +82,51 @@ class TranslationalSymmetry(_SymmetricBody):
 
         self.translation = translation
 
-        body_slice.nb_matrices_to_keep *= nb_repetitions+1
-        slices = [body_slice]
+        slices = [mesh_slice]
         for i in range(1, nb_repetitions+1):
-            new_slice = body_slice.copy(name=f"repetition_{i}_of_{body_slice.name}")
+            new_slice = mesh_slice.copy()
+            # new_slice.name = f"repetition_{i}_of_{mesh_slice.name}"
             new_slice.translate(i*translation)
-            new_slice.nb_matrices_to_keep *= nb_repetitions+1
             slices.append(new_slice)
 
-        CollectionOfFloatingBodies.__init__(self, slices)
+        CollectionOfMeshes.__init__(self, tuple(slices))
 
         if name is None:
-            self.name = f"TranslationSymmetry({body_slice.name})"
+            self.name = self.format_name(mesh_slice.name)
         else:
             self.name = name
         LOG.info(f"New translation symmetric body: {self.name}.")
 
-        self.dofs = {}
-        if dof == 'extend':
-            for name, dof in body_slice.dofs.items():
-                self.dofs["translated_" + name] = np.concatenate([dof]*nb_repetitions)
-        elif dof == 'repeat':
-            self.dofs = CollectionOfFloatingBodies.repeat_dof(self.subbodies)
-        else:
-            LOG.warning("Unrecognized extension of the dof in TranslationalSymmetry.")
+    #         self.dofs = {}
+    #         if dof == 'extend':
+    #             for name, dof in body_slice.dofs.items():
+    #                 self.dofs["translated_" + name] = np.concatenate([dof]*nb_repetitions)
+    #         elif dof == 'repeat':
+    #             self.dofs = CollectionOfFloatingBodies.repeat_dof(self.subbodies)
+    #         else:
+    #             LOG.warning("Unrecognized extension of the dof in TranslationalSymmetry.")
+    #
+    #     def get_immersed_part(self, **kwargs):
+    #         return TranslationalSymmetry(self.subbodies[0].get_immersed_part(**kwargs),
+    #                                      translation=self.translation,
+    #                                      nb_repetitions=self.nb_subbodies-1,
+    #                                      name=f"{self.name}_clipped")
 
-    def get_immersed_part(self, **kwargs):
-        return TranslationalSymmetry(self.subbodies[0].get_immersed_part(**kwargs),
-                                     translation=self.translation,
-                                     nb_repetitions=self.nb_subbodies-1,
-                                     name=f"{self.name}_clipped")
 
-
-class AxialSymmetry(_SymmetricBody):
-    """A body composed of a pattern rotated around a vertical axis."""
-
-    def __init__(self, body_slice, point_on_rotation_axis=np.zeros(3), nb_repetitions=1, name=None):
-        """Initialize the body.
-
+class AxialSymmetry(SymmetricMesh):
+    def __init__(self, mesh_slice, point_on_rotation_axis=np.zeros(3), nb_repetitions=1, name=None):
+        """
         Parameters
         ----------
-        body_slice : FloatingBody
+        mesh_slice : Mesh or CollectionOfMeshes
             the pattern that will be repeated to form the whole body
         point_on_rotation_axis : array(3)
             one point on the rotation axis. The axis is supposed to be vertical.
             TODO: Use an Axis class.
         nb_repetitions : int, optional
             the number of repetitions of the pattern (excluding the original one, default: 1)
-        name : string, optional
-            a name for the body
         """
-        assert isinstance(body_slice, FloatingBody)
+        assert isinstance(mesh_slice, Mesh) or isinstance(mesh_slice, CollectionOfMeshes)
         assert isinstance(nb_repetitions, int)
         assert nb_repetitions >= 1
 
@@ -161,27 +134,22 @@ class AxialSymmetry(_SymmetricBody):
         assert point_on_rotation_axis.shape == (3,)
         self.point_on_rotation_axis = point_on_rotation_axis
 
-        body_slice.nb_matrices_to_keep *= nb_repetitions+1
-        slices = [body_slice]
+        slices = [mesh_slice]
         for i in range(1, nb_repetitions+1):
-            new_slice = body_slice.copy(name=f"rotation_{i}_of_{body_slice.name}")
+            new_slice = mesh_slice.copy()
+            new_slice.name = f"rotation_{i}_of_{mesh_slice.name}"
             new_slice.translate(-point_on_rotation_axis)
             new_slice.rotate_z(2*i*np.pi/(nb_repetitions+1))
             new_slice.translate(point_on_rotation_axis)
-            new_slice.nb_matrices_to_keep *= nb_repetitions+1
             slices.append(new_slice)
 
-        CollectionOfFloatingBodies.__init__(self, slices)
+        CollectionOfMeshes.__init__(self, tuple(slices))
 
         if name is None:
-            self.name = f"AxialSymmetry({body_slice.name})"
+            self.name = self.format_name(mesh_slice.name)
         else:
             self.name = name
         LOG.info(f"New rotation symmetric body: {self.name}.")
-
-        self.dofs = {}
-        for name, dof in body_slice.dofs.items():
-            self.dofs["rotated_" + name] = np.concatenate([dof]*nb_repetitions)
 
     @staticmethod
     def from_profile(profile,
@@ -204,16 +172,17 @@ class AxialSymmetry(_SymmetricBody):
             a single point to define the rotation axis (the direction is always vertical)
         nphi : int
             number of vertical slices forming the body
-        name : string
-            a name identifying the body (default: "repeated_slice_id" where id is an unique integer).
+        name : str
+            name of the generated body (optional)
 
         Returns
         -------
         AxialSymmetry
-            the generated body
+            the generated mesh
         """
+
         if name is None:
-            name = f"axi-symmetric_body_{next(Mesh._ids)}"
+            name = "axisymmetric"
 
         if callable(profile):
             x_values = [profile(z) for z in z_range]
@@ -226,20 +195,19 @@ class AxialSymmetry(_SymmetricBody):
         n = profile_array.shape[0]
         angle = 2 * np.pi / nphi
 
-        rotated_profile = FloatingBody(Mesh(profile_array, np.zeros((0, 4)), name="rotated_profile_mesh"), name="rotated_profile")
+        rotated_profile = Mesh(profile_array, np.zeros((0, 4)), name="rotated_profile_mesh")
         rotated_profile.rotate_z(angle)
 
-        nodes_slice = np.concatenate([profile_array, rotated_profile.mesh.vertices])
+        nodes_slice = np.concatenate([profile_array, rotated_profile.vertices])
         faces_slice = np.array([[i, i+n, i+n+1, i+1] for i in range(n-1)])
-        body_slice = FloatingBody(Mesh(nodes_slice, faces_slice, name=f"slice_of_{name}_mesh"), name=f"slice_of_{name}")
-        body_slice.mesh.merge_duplicates()
-        body_slice.mesh.heal_triangles()
+        body_slice = Mesh(nodes_slice, faces_slice, name=f"slice_of_{name}_mesh")
+        body_slice.merge_duplicates()
+        body_slice.heal_triangles()
 
         return AxialSymmetry(body_slice, point_on_rotation_axis=point_on_rotation_axis, nb_repetitions=nphi-1, name=name)
 
-    def get_immersed_part(self, **kwargs):
-        return AxialSymmetry(self.subbodies[0].get_immersed_part(**kwargs),
-                             point_on_rotation_axis=self.point_on_rotation_axis,
-                             nb_repetitions=self.nb_subbodies-1,
-                             name=f"{self.name}_clipped")
-
+#     def get_immersed_part(self, **kwargs):
+#         return AxialSymmetry(self.subbodies[0].get_immersed_part(**kwargs),
+#                              point_on_rotation_axis=self.point_on_rotation_axis,
+#                              nb_repetitions=self.nb_subbodies-1,
+#                              name=f"{self.name}_clipped")

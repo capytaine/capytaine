@@ -24,10 +24,10 @@ def shape(z):
 #     profile=[[0, 0, -5], [1, 0, -4], [1.5, 0, -3], [2.0, 0, -2], [1.3, 0, -1], [0, 0, -0.5]]
 # )
 
-buoy = AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, 30), nphi=40)
+buoy = FloatingBody(AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, 30), nphi=40))
 # buoy.show()
 
-buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
+buoy.dofs["Heave"] = buoy.mesh.faces_normals @ (0, 0, 1)
 
 solver = Nemoh()
 
@@ -40,10 +40,10 @@ dataset = assemble_dataset(results)
 
 plt.figure()
 plt.plot(omega_range,
-         dataset['added_mass'].sel(radiating_dof='Heave', influenced_dof='Heave')/(rho*buoy.volume),
+         dataset['added_mass'].sel(radiating_dof='Heave', influenced_dof='Heave')/(rho*buoy.mesh.volume),
          label="Added mass")
 plt.plot(omega_range,
-         dataset['radiation_damping'].sel(radiating_dof='Heave', influenced_dof='Heave')/(rho*buoy.volume),
+         dataset['radiation_damping'].sel(radiating_dof='Heave', influenced_dof='Heave')/(rho*buoy.mesh.volume),
          label="Added damping")
 plt.grid()
 plt.legend()

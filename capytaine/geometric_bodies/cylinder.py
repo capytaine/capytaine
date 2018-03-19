@@ -13,8 +13,10 @@ from itertools import product
 import numpy as np
 
 from meshmagick.mesh import Mesh
+from meshmagick.geometry import xOz_Plane, yOz_Plane
 from capytaine.bodies import FloatingBody
-from capytaine.symmetries import xOz_Plane, yOz_Plane, TranslationalSymmetry, ReflectionSymmetry
+from capytaine.meshes_collection import CollectionOfMeshes
+from capytaine.symmetries import TranslationalSymmetry, ReflectionSymmetry
 
 LOG = logging.getLogger(__name__)
 
@@ -156,9 +158,11 @@ def generate_clever_horizontal_cylinder(length=10, nx=10, name=None, ntheta=10, 
     """Open horizontal cylinder using the symmetry to speed up the computations"""
     if name is None:
         name = f"horizontal_cylinder_{next(Mesh._ids)}"
-    half_ring = generate_ring(length=length/nx, name=f"half_slice_of_{name}", half=True, ntheta=ntheta//2, **kwargs)
+    half_ring = generate_ring(length=length/nx, name=f"half_slice_of_{name}",
+                              half=True, ntheta=ntheta//2, **kwargs).mesh
     ring = ReflectionSymmetry(half_ring, plane=xOz_Plane)
-    return TranslationalSymmetry(ring, translation=np.asarray([length/nx, 0.0, 0.0]), nb_repetitions=nx-1, name=name)
+    cylinder_mesh = TranslationalSymmetry(ring, translation=np.asarray([length/nx, 0.0, 0.0]), nb_repetitions=nx-1)
+    return FloatingBody(cylinder_mesh, name=name)
 
 
 def generate_horizontal_cylinder(length=10.0, radius=1.0,
@@ -212,9 +216,9 @@ def generate_horizontal_cylinder(length=10.0, radius=1.0,
     other_side.mirror(yOz_Plane)
     other_side.translate_x(length)
 
-    cylinder = open_cylinder + side + other_side
+    cylinder = CollectionOfMeshes((open_cylinder, side, other_side)).merge()
 
-    cylinder = cylinder.as_FloatingBody(name=name)
+    cylinder = FloatingBody(cylinder, name=name)
     cylinder.mesh.merge_duplicates()
     cylinder.mesh.heal_triangles()
 

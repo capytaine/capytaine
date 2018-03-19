@@ -12,7 +12,6 @@ import numpy as np
 from meshmagick.mmio import write_MAR
 from capytaine.bodies import FloatingBody
 from capytaine.problems import DiffractionProblem, RadiationProblem
-from capytaine.bodies_collection import CollectionOfFloatingBodies
 
 LOG = logging.getLogger(__name__)
 
@@ -72,10 +71,10 @@ def import_cal_file(filepath):
 
             bodies.append(body)
 
-        if nb_bodies > 1:
-            bodies = CollectionOfFloatingBodies(bodies)
-        else:
-            bodies = bodies[0]
+        # if nb_bodies > 1:
+        #     bodies = CollectionOfFloatingBodies(bodies)
+        # else:
+        #     bodies = bodies[0]
 
         cal_file.readline()  # Unused line.
         frequency_data = cal_file.readline().split()

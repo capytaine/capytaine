@@ -15,6 +15,8 @@ from meshmagick.mesh import Mesh
 from meshmagick.geometry import Plane
 from meshmagick.mesh_clipper import MeshClipper
 
+from capytaine.meshes_collection import CollectionOfMeshes
+
 LOG = logging.getLogger(__name__)
 
 
@@ -27,29 +29,28 @@ class FloatingBody:
     number of faces in the mesh.
     """
 
-    #######################################
-    #  Initialisation and transformation  #
-    #######################################
-
-    def __init__(self, mesh, name=None):
-        self.mesh = mesh
-
-        if name is not None:
-            self.name = name
+    def __init__(self, mesh=None, name=None):
+        if mesh is None:
+            self.mesh = Mesh(np.zeros((0, 3)), np.zeros((0, 4)))  # Dummy mesh
         else:
+            assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
+            self.mesh = mesh
+
+        if name is None:
             self.name = self.mesh.name
+        else:
+            self.name = name
 
         self.dofs = {}
 
-        self.nb_matrices_to_keep = 1
-
-        LOG.debug(f"New floating body: {self.name}.")
+        LOG.info(f"New floating body: {self.name}.")
 
     @staticmethod
-    def from_file(filename, file_format):
+    def from_file(filename, file_format="mar"):
         """Create a FloatingBody from a mesh file using meshmagick."""
         from meshmagick.mmio import load_mesh
-        from capytaine.symmetries import ReflectionSymmetry, xOz_Plane
+        from meshmagick.geometry import xOz_Plane
+        from capytaine.symmetries import ReflectionSymmetry
 
         vertices, faces = load_mesh(filename, file_format)
         body = FloatingBody(Mesh(vertices, faces, name=f"{filename}_mesh"), name=filename)
@@ -73,46 +74,9 @@ class FloatingBody:
         """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name
 
-    def __add__(self, body_to_add):
-        """Create a new CollectionOfFloatingBody from the combination of two FloatingBodies."""
-        from capytaine.bodies_collection import CollectionOfFloatingBodies
-        return CollectionOfFloatingBodies([self, body_to_add])
-
-    def as_FloatingBody(self, name=None):
-        """Does basically nothing. Will be redefined in inheriting classes."""
-        if name is not None:
-            LOG.debug(f"Rename {self.name} as {name}.")
-            self.name = name
-        return self
-
-    def copy(self, name=None):
-        new_body = copy.deepcopy(self)
-        if name is None:
-            new_body.name = f"copy_of_{self.name}"
-            LOG.debug(f"Copy {self.name}.")
-        else:
-            new_body.name = name
-            LOG.debug(f"Copy {self.name} under the name {name}.")
-        return new_body
-
-    def extract_faces(self, id_faces_to_extract, return_index=False):
-        """Create a new FloatingBody by extracting some faces from the mesh."""
-        if return_index:
-            new_mesh, id_v = Mesh.extract_faces(self.mesh, id_faces_to_extract, return_index)
-        else:
-            new_mesh = Mesh.extract_faces(self.mesh, id_faces_to_extract, return_index)
-        new_body = FloatingBody(new_mesh)
-        new_body.nb_matrices_to_keep = self.nb_matrices_to_keep
-        LOG.info(f"Extract floating body from {self.name}.")
-
-        new_body.dofs = {}
-        for name, dof in self.dofs.items():
-            new_body.dofs[name] = dof[id_faces_to_extract]
-
-        if return_index:
-            return new_body, id_v
-        else:
-            return new_body
+    # def __add__(self, body_to_add):
+    #     """Create a new CollectionOfFloatingBody from the combination of two FloatingBodies."""
+    #     return FloatingBody(CollectionOfMeshes([self.mesh, self.CollectionOfFloatingBodies([self, body_to_add])
 
     ##########
     #  Dofs  #
@@ -143,42 +107,19 @@ class FloatingBody:
 
         self.dofs[name] = dof
 
-    # Transformations
+    ###################
+    # Transformations #
+    ###################
 
-    def mirror(self, *args):
-        return self.mesh.mirror(*args)
-
-    def translate_x(self, *args):
-        return self.mesh.translate_x(*args)
-
-    def translate_y(self, *args):
-        return self.mesh.translate_y(*args)
-
-    def translate_z(self, *args):
-        return self.mesh.translate_z(*args)
-
-    def translate(self, *args):
-        return self.mesh.translate(*args)
-
-    def rotate_x(self, *args):
-        return self.mesh.rotate_x(*args)
-
-    def rotate_y(self, *args):
-        return self.mesh.rotate_y(*args)
-
-    def rotate_z(self, *args):
-        return self.mesh.rotate_z(*args)
-
-    def rotate(self, *args):
-        # TODO: Also rotate dofs
-        return self.mesh.rotate(*args)
-
-    def show(self):
-        # TODO: Also show dofs
-        return self.mesh.show()
-
-    def show_matplotlib(self, *args, **kwargs):
-        return self.mesh.show_matplotlib(*args, **kwargs)
+    def copy(self, name=None):
+        new_body = copy.deepcopy(self)
+        if name is None:
+            new_body.name = f"copy_of_{self.name}"
+            LOG.debug(f"Copy {self.name}.")
+        else:
+            new_body.name = name
+            LOG.debug(f"Copy {self.name} under the name {name}.")
+        return new_body
 
     def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
         """Remove the parts of the body above the free surface or below the sea bottom.
@@ -197,7 +138,74 @@ class FloatingBody:
         LOG.info(f"Clip floating body {self.name}.")
         return FloatingBody(clipped_mesh, name=f"{self.name}_clipped")
 
+    def extract_faces(self, id_faces_to_extract, return_index=False):
+        """Create a new FloatingBody by extracting some faces from the mesh."""
+        # TODO: CollectionOfMeshes
+        if return_index:
+            new_mesh, id_v = Mesh.extract_faces(self.mesh, id_faces_to_extract, return_index)
+        else:
+            new_mesh = Mesh.extract_faces(self.mesh, id_faces_to_extract, return_index)
+        new_body = FloatingBody(new_mesh)
+        LOG.info(f"Extract floating body from {self.name}.")
 
-def generate_dummy_floating_body():
-    return FloatingBody(Mesh(np.zeros((0, 3)), np.zeros((0, 4))), name="dummy_body")
+        new_body.dofs = {}
+        for name, dof in self.dofs.items():
+            new_body.dofs[name] = dof[id_faces_to_extract]
 
+        if return_index:
+            return new_body, id_v
+        else:
+            return new_body
+
+    def mirror(self, *args):
+        return self.mesh.mirror(*args)
+
+    def translate_x(self, *args):
+        return self.mesh.translate_x(*args)
+
+    def translate_y(self, *args):
+        return self.mesh.translate_y(*args)
+
+    def translate_z(self, *args):
+        return self.mesh.translate_z(*args)
+
+    def translate(self, *args):
+        return self.mesh.translate(*args)
+
+    def rotate_x(self, *args):
+        # TODO: Also rotate dofs
+        return self.mesh.rotate_x(*args)
+
+    def rotate_y(self, *args):
+        # TODO: Also rotate dofs
+        return self.mesh.rotate_y(*args)
+
+    def rotate_z(self, *args):
+        # TODO: Also rotate dofs
+        return self.mesh.rotate_z(*args)
+
+    def rotate(self, *args):
+        # TODO: Also rotate dofs
+        return self.mesh.rotate(*args)
+
+    def show(self):
+        # TODO: Also show dofs
+        return self.mesh.show()
+
+    def show_matplotlib(self, *args, **kwargs):
+        return self.mesh.show_matplotlib(*args, **kwargs)
+
+#     @staticmethod
+#     def repeat_dof(bodies):
+#         """Combine the degrees of freedom of the subbodies."""
+#         dofs = {}
+#         cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in bodies)))
+#         total_nb_faces = sum(body.mesh.nb_faces for body in bodies)
+#         for body, nbf in zip(bodies, cum_nb_faces):
+#             # nbf is the cumulative number of faces of the previous subbodies,
+#             # that is the offset of the indices of the faces of the current body.
+#             for name, dof in body.dofs.items():
+#                 dofs['_'.join([body.name, name])] = np.r_[np.zeros(nbf),
+#                                                           dof,
+#                                                           np.zeros(total_nb_faces - len(dof) - nbf)]
+#         return dofs
