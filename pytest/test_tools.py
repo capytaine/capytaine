@@ -37,7 +37,7 @@ def test_Froude_Krylov():
     from capytaine.problems import DiffractionProblem
 
     sphere = generate_clever_sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
-    sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
+    sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
     assert np.isclose(Froude_Krylov_force(problem)['Heave'], 27596, rtol=1e-3)

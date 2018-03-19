@@ -58,8 +58,8 @@ class LinearPotentialFlowProblem:
     @body.validator
     def _check_body_position(self, _, body):
         if body is not None:
-            if (any(body.vertices[:, 2] > self.free_surface + 1e-3)
-                    or any(body.vertices[:, 2] < self.sea_bottom - 1e-3)):
+            if (any(body.mesh.vertices[:, 2] > self.free_surface + 1e-3)
+                    or any(body.mesh.vertices[:, 2] < self.sea_bottom - 1e-3)):
                 LOG.warning(f"""The mesh of the body {body.name} is not inside the domain.\n
                                 Check the values of free_surface and sea_bottom\n
                                 or use body.get_immersed_part() to clip the mesh.""")
@@ -70,7 +70,7 @@ class LinearPotentialFlowProblem:
             if bc is not None:
                 LOG.warning(f"""The problem {self} has no body but has a boundary condition.""")
         else:
-            if bc is not None and len(bc) != self.body.nb_faces:
+            if bc is not None and len(bc) != self.body.mesh.nb_faces:
                 LOG.warning(f"""The size of the boundary condition in {self} does not match the
                             number of faces in the body.""")
 
@@ -144,7 +144,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     def __attrs_post_init__(self):
         if self.body is not None:
             self.boundary_condition = -(
-                    Airy_wave_velocity(self.body.faces_centers, self) * self.body.faces_normals
+                    Airy_wave_velocity(self.body.mesh.faces_centers, self) * self.body.mesh.faces_normals
                                        ).sum(axis=1)
 
     def make_results_container(self):

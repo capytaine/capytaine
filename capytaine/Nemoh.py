@@ -42,8 +42,8 @@ class Nemoh:
         if problem.depth < np.infty:
             self.compute_exponential_decomposition(problem)
 
-        if problem.wavelength < 8*problem.body.faces_radiuses.max():
-            LOG.warning(f"Resolution of the mesh (max_radius={problem.body.faces_radiuses.max():.2e}) "
+        if problem.wavelength < 8*problem.body.mesh.faces_radiuses.max():
+            LOG.warning(f"Resolution of the mesh (max_radius={problem.body.mesh.faces_radiuses.max():.2e}) "
                         f"might be insufficient for this wavelength (wavelength/8={problem.wavelength/8:.2e})!")
 
         S, V = self.build_matrices(
@@ -61,7 +61,7 @@ class Nemoh:
             result.potential = potential
 
         for influenced_dof_name, influenced_dof in problem.body.dofs.items():
-            integrated_potential = - problem.rho * potential @ (influenced_dof * problem.body.faces_areas)
+            integrated_potential = - problem.rho * potential @ (influenced_dof * problem.body.mesh.faces_areas)
             result.store_force(influenced_dof_name, integrated_potential)
             # Depending of the type of problem, the force will be kept as a complex-valued Froude-Krylov force
             # or stored as a couple of added mass and damping radiation coefficients.
@@ -169,9 +169,9 @@ class Nemoh:
                       f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
 
             S_a, V_a = self.build_matrices(body1.subbodies[0], body2.subbodies[0],
-                                           free_surface, sea_bottom, wavenumber, force_full_computation, _rec_depth+1)
+                                           free_surface, sea_bottom, wavenumber, force_full_computation, _rec_depth + 1)
             S_b, V_b = self.build_matrices(body1.subbodies[0], body2.subbodies[1],
-                                           free_surface, sea_bottom, wavenumber, force_full_computation, _rec_depth+1)
+                                           free_surface, sea_bottom, wavenumber, force_full_computation, _rec_depth + 1)
 
             return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
 
@@ -187,9 +187,9 @@ class Nemoh:
                       f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
 
             S_list, V_list = [], []
-            for subbody2 in body2.subbodies:
-                S, V = self.build_matrices(body1.subbodies[0], subbody2,
-                                           free_surface, sea_bottom, wavenumber, force_full_computation, _rec_depth+1)
+            for subbody in body2.subbodies:
+                S, V = self.build_matrices(body1.subbodies[0], subbody,
+                                           free_surface, sea_bottom, wavenumber, force_full_computation, _rec_depth + 1)
                 S_list.append(S)
                 V_list.append(V)
             return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
@@ -198,15 +198,15 @@ class Nemoh:
               and body1 is body2  # TODO: Generalize: if body1.axis == body2.axis
               and not force_full_computation):
 
-            LOG.debug("\t"*_rec_depth +
+            LOG.debug("\t" * _rec_depth +
                       f"Evaluating matrix of {body1.name} on itself "
                       f"using rotation symmetry "
                       f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
 
             S_list, V_list = [], []
-            for subbody2 in body2.subbodies[:body2.nb_subbodies//2+1]:
-                S, V = self.build_matrices(body1.subbodies[0], subbody2,
-                                           free_surface, sea_bottom, wavenumber, force_full_computation, _rec_depth+1)
+            for subbody in body2.subbodies[:body2.nb_subbodies // 2 + 1]:
+                S, V = self.build_matrices(body1.subbodies[0], subbody,
+                                           free_surface, sea_bottom, wavenumber, force_full_computation, _rec_depth + 1)
                 S_list.append(S)
                 V_list.append(V)
 
@@ -227,7 +227,7 @@ class Nemoh:
         #     return S, V
 
         else:
-            LOG.debug("\t"*_rec_depth +
+            LOG.debug("\t" * _rec_depth +
                       f"Evaluating matrix of {body1.name} on {'itself' if body2 is body1 else body2.name} "
                       f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
 

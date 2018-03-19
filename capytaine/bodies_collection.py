@@ -53,17 +53,15 @@ class CollectionOfFloatingBodies(FloatingBody):
     def repeat_dof(bodies):
         """Combine the degrees of freedom of the subbodies."""
         dofs = {}
-        cum_nb_faces = accumulate(chain([0], (body.nb_faces for body in bodies)))
-        total_nb_faces = sum(body.nb_faces for body in bodies)
+        cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in bodies)))
+        total_nb_faces = sum(body.mesh.nb_faces for body in bodies)
         for body, nbf in zip(bodies, cum_nb_faces):
             # nbf is the cumulative number of faces of the previous subbodies,
             # that is the offset of the indices of the faces of the current body.
             for name, dof in body.dofs.items():
-                dofs['_'.join([body.name, name])] = np.r_[
-                    np.zeros(nbf),
-                    dof,
-                    np.zeros(total_nb_faces - len(dof) - nbf),
-                ]
+                dofs['_'.join([body.name, name])] = np.r_[np.zeros(nbf),
+                                                          dof,
+                                                          np.zeros(total_nb_faces - len(dof) - nbf)]
         return dofs
 
     def as_FloatingBody(self, name=None):
@@ -111,48 +109,8 @@ class CollectionOfFloatingBodies(FloatingBody):
     @property
     def mesh(self):
         meshes = [body.mesh for body in self.subbodies]
+        LOG.debug(f"Sum meshes in {self.name}")
         return sum(meshes[1:], meshes[0])
-
-    @property
-    def nb_vertices(self):
-        return sum(body.nb_vertices for body in self.subbodies)
-
-    @property
-    def nb_faces(self):
-        return sum(body.nb_faces for body in self.subbodies)
-
-    @property
-    def volume(self):
-        return sum(body.volume for body in self.subbodies)
-
-    @property
-    def vertices(self):
-        return np.concatenate([body.vertices for body in self.subbodies])
-
-    @property
-    def faces(self):
-        """Return the indices of the vertices forming each of the faces. For the
-        later subbodies, the indices of the vertices has to be shifted to
-        correspond to their index in the concatenated array self.vertices.
-        """
-        nb_vertices = accumulate(chain([0], (body.nb_vertices for body in self.subbodies[:-1])))
-        return np.concatenate([body.faces + nbv for body, nbv in zip(self.subbodies, nb_vertices)])
-
-    @property
-    def faces_normals(self):
-        return np.concatenate([body.faces_normals for body in self.subbodies])
-
-    @property
-    def faces_areas(self):
-        return np.concatenate([body.faces_areas for body in self.subbodies])
-
-    @property
-    def faces_centers(self):
-        return np.concatenate([body.faces_centers for body in self.subbodies])
-
-    @property
-    def faces_radiuses(self):
-        return np.concatenate([body.faces_radiuses for body in self.subbodies])
 
     def mirror(self, plane):
         for body in self.subbodies:
@@ -206,4 +164,3 @@ class CollectionOfFloatingBodies(FloatingBody):
     def indices_of_body(self, body_index):
         start = sum((body.mesh.nb_faces for body in self.subbodies[:body_index]))
         return slice(start, start + self.subbodies[body_index].mesh.nb_faces)
-

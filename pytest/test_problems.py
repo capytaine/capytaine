@@ -38,9 +38,9 @@ def test_LinearPotentialFlowProblem():
 
     # With a body
     sphere = generate_sphere(z0=-2.0)
-    sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
+    sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     pb = LinearPotentialFlowProblem(body=sphere,
-                                    boundary_condition=sphere.faces_normals @ (1, 1, 1))
+                                    boundary_condition=sphere.mesh.faces_normals @ (1, 1, 1))
     assert list(pb.influenced_dofs.keys()) == ['Heave']
 
     # Test transformation to result class
@@ -56,10 +56,10 @@ def test_diffraction_problem():
     assert DiffractionProblem().body is None
 
     sphere = generate_sphere(radius=1.0, ntheta=20, nphi=40)
-    sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
+    sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     pb = DiffractionProblem(body=sphere, angle=1.0)
-    assert len(pb.boundary_condition) == sphere.nb_faces
+    assert len(pb.boundary_condition) == sphere.mesh.nb_faces
 
     with pytest.raises(TypeError):
         DiffractionProblem(boundary_conditions=[0, 0, 0])
@@ -74,11 +74,11 @@ def test_radiation_problem(caplog):
     # with pytest.raises(ValueError):
     #     RadiationProblem(body=sphere)
 
-    sphere.dofs["Heave"] = sphere.faces_normals @ (0, 0, 1)
+    sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     pb = RadiationProblem(body=sphere)
-    assert len(pb.boundary_condition) == sphere.nb_faces
+    assert len(pb.boundary_condition) == sphere.mesh.nb_faces
 
-    sphere.dofs["Surge"] = sphere.faces_normals @ (1, 0, 0)
+    sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     pb2 = RadiationProblem(body=sphere, radiating_dof="Heave")
     assert np.all(pb.boundary_condition == pb2.boundary_condition)
 
@@ -107,8 +107,8 @@ def test_import_cal_file():
         assert problem.depth == np.infty
         assert isinstance(problem.body, FloatingBody)
         assert problem.body.nb_dofs == 6
-        assert problem.body.nb_vertices == 351
-        assert problem.body.nb_faces == 280
+        assert problem.body.mesh.nb_vertices == 351
+        assert problem.body.mesh.nb_faces == 280
         assert problem.omega in np.linspace(0.1, 2.0, 41)
         if isinstance(problem, DiffractionProblem):
             assert problem.angle == 0.0
@@ -128,8 +128,8 @@ def test_import_cal_file():
         assert isinstance(problem.body, ReflectionSymmetry)
         assert isinstance(problem.body.subbodies[0], FloatingBody)
         assert problem.body.nb_dofs == 6
-        assert problem.body.nb_vertices == 2*540
-        assert problem.body.nb_faces == 2*300
+        # assert problem.body.mesh.nb_vertices == 2*540
+        assert problem.body.mesh.nb_faces == 2*300
         assert problem.omega == 0.1 or problem.omega == 2.0
         if isinstance(problem, DiffractionProblem):
             assert problem.angle == 0.0

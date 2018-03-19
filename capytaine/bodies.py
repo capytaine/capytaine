@@ -43,7 +43,7 @@ class FloatingBody:
 
         self.nb_matrices_to_keep = 1
 
-        LOG.info(f"New floating body: {self.name}.")
+        LOG.debug(f"New floating body: {self.name}.")
 
     @staticmethod
     def from_file(filename, file_format):
@@ -127,7 +127,7 @@ class FloatingBody:
         """Helper to define a new translation dof."""
         if name is None:
             name = f"dof_{self.nb_dofs}_translation"
-        self.dofs[name] = self.faces_normals @ direction
+        self.dofs[name] = self.mesh.faces_normals @ direction
 
     def add_rotation_dof(self, axis_direction=(0.0, 0.0, 1.0), axis_point=(0.0, 0.0, 0.0), name=None):
         """Helper to define a new rotation dof."""
@@ -143,45 +143,7 @@ class FloatingBody:
 
         self.dofs[name] = dof
 
-    #######################
-    #  Interface to mesh  #
-    #######################
-
-    @property
-    def nb_vertices(self):
-        return self.mesh.nb_vertices
-
-    @property
-    def nb_faces(self):
-        return self.mesh.nb_faces
-
-    @property
-    def vertices(self):
-        return self.mesh.vertices
-
-    @property
-    def faces(self):
-        return self.mesh.faces
-
-    @property
-    def faces_areas(self):
-        return self.mesh.faces_areas
-
-    @property
-    def faces_centers(self):
-        return self.mesh.faces_centers
-
-    @property
-    def faces_normals(self):
-        return self.mesh.faces_normals
-
-    @property
-    def faces_radiuses(self):
-        return self.mesh.faces_radiuses
-
-    @property
-    def volume(self):
-        return self.mesh.volume
+    # Transformations
 
     def mirror(self, *args):
         return self.mesh.mirror(*args)
@@ -208,9 +170,11 @@ class FloatingBody:
         return self.mesh.rotate_z(*args)
 
     def rotate(self, *args):
+        # TODO: Also rotate dofs
         return self.mesh.rotate(*args)
 
     def show(self):
+        # TODO: Also show dofs
         return self.mesh.show()
 
     def show_matplotlib(self, *args, **kwargs):
@@ -219,6 +183,7 @@ class FloatingBody:
     def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
         """Remove the parts of the body above the free surface or below the sea bottom.
         Dofs are lost in the process."""
+        # TODO: Also clip dofs
         clipped_mesh = MeshClipper(self.mesh,
                                    plane=Plane(normal=(0.0, 0.0, 1.0),
                                                scalar=free_surface)).clipped_mesh
