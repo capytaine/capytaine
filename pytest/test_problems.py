@@ -7,7 +7,7 @@ import pytest
 
 from capytaine.bodies import FloatingBody
 from capytaine.symmetries import ReflectionSymmetry
-from capytaine.geometric_bodies.sphere import generate_sphere
+from capytaine.geometric_bodies.sphere import Sphere
 from capytaine.problems import *
 from capytaine.results import LinearPotentialFlowResult
 from capytaine.tools.import_export import import_cal_file
@@ -37,7 +37,7 @@ def test_LinearPotentialFlowProblem():
         LinearPotentialFlowProblem(radiating_dof="Heave")
 
     # With a body
-    sphere = generate_sphere(z0=-2.0)
+    sphere = Sphere(center=(0, 0, -2.0))
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     pb = LinearPotentialFlowProblem(body=sphere,
                                     boundary_condition=sphere.mesh.faces_normals @ (1, 1, 1))
@@ -55,7 +55,7 @@ def test_LinearPotentialFlowProblem():
 def test_diffraction_problem():
     assert DiffractionProblem().body is None
 
-    sphere = generate_sphere(radius=1.0, ntheta=20, nphi=40)
+    sphere = Sphere(radius=1.0, ntheta=20, nphi=40)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     pb = DiffractionProblem(body=sphere, angle=1.0)
@@ -69,7 +69,7 @@ def test_diffraction_problem():
 
 
 def test_radiation_problem(caplog):
-    sphere = generate_sphere(radius=1.0, ntheta=20, nphi=40, clip_free_surface=True)
+    sphere = Sphere(radius=1.0, ntheta=20, nphi=40, clip_free_surface=True)
 
     # with pytest.raises(ValueError):
     #     RadiationProblem(body=sphere)

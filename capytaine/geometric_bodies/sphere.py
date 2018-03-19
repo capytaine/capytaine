@@ -31,7 +31,7 @@ class Sphere(FloatingBody):
         radius : float
             radius of the sphere
         center : 3-ple or array of shape (3,)
-            position of the center of sphere
+            position of the center of the sphere
         ntheta : int
             number of panels along a meridian (or number of parallels-1)
         nphi : int
@@ -47,17 +47,17 @@ class Sphere(FloatingBody):
         self.radius = radius
         self.center = np.asarray(center)
 
-        if not clever:
-            mesh = self.generate_sphere_mesh(ntheta, nphi, clip_free_surface, name)
-        else:
-            mesh = self.generate_clever_sphere_mesh(ntheta, nphi, clip_free_surface, name)
-
         if name is None:
             name = f"sphere_{next(Mesh._ids)}"
 
+        if not clever:
+            mesh = self._generate_sphere_mesh(ntheta, nphi, clip_free_surface, name)
+        else:
+            mesh = self._generate_clever_sphere_mesh(ntheta, nphi, clip_free_surface, name)
+
         FloatingBody.__init__(self, mesh, name)
 
-    def generate_sphere_mesh(self, ntheta=10, nphi=10, clip_free_surface=False, name=None):
+    def _generate_sphere_mesh(self, ntheta, nphi, clip_free_surface=False, name=None):
         if clip_free_surface:
             if self.center[2] < -self.radius:  # fully immersed
                 theta_max = np.pi
@@ -95,7 +95,7 @@ class Sphere(FloatingBody):
 
         return mesh
 
-    def generate_clever_sphere_mesh(self, ntheta=10, nphi=10, clip_free_surface=False, name=None):
+    def _generate_clever_sphere_mesh(self, ntheta=10, nphi=10, clip_free_surface=False, name=None):
         if clip_free_surface:
             if self.center[2] < -self.radius:  # fully immersed
                 theta_max = np.pi

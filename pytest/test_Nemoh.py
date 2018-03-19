@@ -5,7 +5,7 @@ Compare results of Capytaine with results from Nemoh 2.0.
 """
 
 from capytaine.geometric_bodies.sphere import Sphere
-from capytaine.geometric_bodies.cylinder import generate_horizontal_cylinder
+from capytaine.geometric_bodies.cylinder import HorizontalCylinder
 from capytaine.geometric_bodies.free_surface import FreeSurface
 from capytaine.symmetries import *
 from capytaine.problems import DiffractionProblem, RadiationProblem
@@ -135,13 +135,14 @@ def test_multibody():
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
-    cylinder = generate_horizontal_cylinder(length=5.0, radius=1.0, nx=10, nr=1, ntheta=10)
+    cylinder = HorizontalCylinder(length=5.0, radius=1.0, center=(-2.5, 0, 0),
+                                  nx=10, nr=1, ntheta=10)
     cylinder.translate([-1.0, 3.0, -3.0])
     cylinder.add_translation_dof(direction=(1, 0, 0), name="Surge")
     cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     both = cylinder + sphere
-    total_volume = sphere.volume + 5*np.pi
+    total_volume = cylinder.volume + sphere.volume
     # both.show()
 
     problems = [RadiationProblem(body=both, radiating_dof=dof, omega=1.0) for dof in both.dofs]

@@ -31,9 +31,9 @@ class FreeSurface():
         else:
             self.name = name
 
-        self.mesh = self.generate_mesh()
+        self.mesh = self._generate_mesh()
 
-    def generate_mesh(self):
+    def _generate_mesh(self):
         nodes = np.zeros(((self.nx+1)*(self.ny+1), 3), dtype=np.float32)
         panels = np.zeros((self.nx*self.ny, 4), dtype=np.int)
 

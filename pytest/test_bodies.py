@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import numpy as np
+
+from meshmagick.mesh import Mesh
+
+from capytaine.bodies import FloatingBody
 from capytaine.meshes_collection import CollectionOfMeshes
-from capytaine.geometric_bodies import *
-from capytaine.symmetries import ReflectionSymmetry
 
 
 def test_collection_of_meshes():
     vertices = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], dtype=np.float)
     dummy_mesh = Mesh(vertices, [[0, 1, 2, 3]])
     coll = CollectionOfMeshes([dummy_mesh, dummy_mesh.copy()])
-    assert len(coll) == 2
+    assert coll.nb_submeshes == 2
     assert coll.nb_vertices == 8
     assert coll.nb_faces == 2
     assert coll.submeshes[1].nb_faces == 1
@@ -93,16 +96,16 @@ def test_dof():
     # # Test the merging of identical vertices
     # assert (generate_sphere() + generate_sphere()).as_FloatingBody().mesh.nb_vertices == generate_sphere().mesh.nb_vertices
 
-
-def test_symmetric_bodies():
-    half_sphere = generate_half_sphere(nphi=5)
-    half_sphere.name = 'half_sphere'
-    full_sphere = ReflectionSymmetry(half_sphere, xOz_Plane)
-    assert isinstance(full_sphere, CollectionOfFloatingBodies)
-    assert half_sphere in full_sphere.subbodies
-    assert full_sphere.as_FloatingBody().mesh.nb_vertices == generate_sphere(nphi=10).mesh.nb_vertices
-
-    other_sphere = generate_sphere(z0=-5.0)
-    coll = full_sphere + other_sphere
-    assert full_sphere in coll.subbodies
+#
+# def test_symmetric_bodies():
+#     half_sphere = generate_half_sphere(nphi=5)
+#     half_sphere.name = 'half_sphere'
+#     full_sphere = ReflectionSymmetry(half_sphere, xOz_Plane)
+#     assert isinstance(full_sphere, CollectionOfFloatingBodies)
+#     assert half_sphere in full_sphere.subbodies
+#     assert full_sphere.as_FloatingBody().mesh.nb_vertices == generate_sphere(nphi=10).mesh.nb_vertices
+#
+#     other_sphere = generate_sphere(z0=-5.0)
+#     coll = full_sphere + other_sphere
+#     assert full_sphere in coll.subbodies
 

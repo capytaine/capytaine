@@ -14,6 +14,7 @@ import numpy as np
 
 from capytaine.Toeplitz_matrices import (identity_matrix_of_same_shape_as, solve,
                                          BlockToeplitzMatrix, BlockCirculantMatrix)
+from capytaine.meshes_collection import MeshType
 from capytaine.symmetries import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
 from capytaine.tools.max_length_dict import MaxLengthDict
 from capytaine.tools.exponential_decomposition import exponential_decomposition, error_exponential_decomposition
@@ -126,7 +127,7 @@ class Nemoh:
     #  Building matrices  #
     #######################
 
-    def build_matrices(self, mesh1, mesh2,
+    def build_matrices(self, mesh1: MeshType, mesh2: MeshType,
                        free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0,
                        force_full_computation=False, _rec_depth=(1,)):
         """Assemble the influence matrices.
@@ -147,8 +148,8 @@ class Nemoh:
             wavenumber (default: 1)
         force_full_computation: bool
             if True, the symmetries are NOT used to speed up the computation (default: False)
-        _rec_depth: int
-            internal parameter: recursion depth for pretty log printing
+        _rec_depth: tuple
+            internal parameter: recursion accumulator for pretty log printing and cache sizing
 
         Returns
         -------
@@ -219,7 +220,7 @@ class Nemoh:
             else:
                 return BlockCirculantMatrix(S_list, size=mesh1.nb_submeshes), BlockCirculantMatrix(V_list, size=mesh1.nb_submeshes)
 
-        #   elif (isinstance(mesh1, CollectionOfFloatingBodies)):
+        #   elif (isinstance(mesh1, CollectionOfMeshes)):
         #     S = np.empty((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
         #     V = np.empty((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
         #
@@ -254,7 +255,7 @@ class Nemoh:
 
             return S, V
 
-    def _build_matrices_0(self, mesh1, mesh2, _rec_depth=(1,)):
+    def _build_matrices_0(self, mesh1: MeshType, mesh2: MeshType, _rec_depth=(1,)):
         """Compute the first part of the influence matrices of self on body."""
         if mesh1 not in self.__cache__['Green0']:
             self.__cache__['Green0'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
@@ -270,8 +271,8 @@ class Nemoh:
                 mesh2.faces_centers, mesh2.faces_normals,
                 mesh2.faces_areas,   mesh2.faces_radiuses,
                 )
-
             self.__cache__['Green0'][mesh1][mesh2] = (S0, V0)
+
         else:
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tRetrieving stored matrix 0 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}")
@@ -321,6 +322,7 @@ class Nemoh:
             else:
                 self.__cache__['Green1'][mesh1][(mesh2, depth)] = (S1, V1)
                 return S1, V1
+
         else:
             S1, V1 = self.__cache__['Green1'][mesh1][(mesh2, depth)]
             LOG.debug("\t" * len(_rec_depth) +
@@ -366,8 +368,8 @@ class Nemoh:
                     lamda_exp, a_exp, n_exp,
                     mesh1 is mesh2
                     )
-
             self.__cache__['Green2'][mesh1][(mesh2, depth, wavenumber)] = (S2, V2)
+
         else:
             S2, V2 = self.__cache__['Green2'][mesh1][(mesh2, depth, wavenumber)]
             LOG.debug("\t" * len(_rec_depth) +
@@ -431,5 +433,5 @@ class Nemoh:
         array
             the free surface elevation on each faces of the meshed free surface
         """
-        return 1j*result.omega/result.g * self.get_potential_on_mesh(result, free_surface)
+        return 1j*result.omega/result.g * self.get_potential_on_mesh(result, free_surface.mesh)
 

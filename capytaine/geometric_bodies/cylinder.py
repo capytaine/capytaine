@@ -14,6 +14,7 @@ import numpy as np
 
 from meshmagick.mesh import Mesh
 from meshmagick.geometry import xOz_Plane, yOz_Plane
+
 from capytaine.bodies import FloatingBody
 from capytaine.meshes_collection import CollectionOfMeshes
 from capytaine.symmetries import TranslationalSymmetry, ReflectionSymmetry
@@ -25,201 +26,133 @@ LOG = logging.getLogger(__name__)
 #  Disk  #
 ##########
 
-def generate_disk(radius=1.0, nr=3, ntheta=5,
-                  z0=0.0, clip_free_surface=False,
-                  name=None):
+class Disk(FloatingBody):
+    def __init__(self, radius=1.0, center=(0, 0, 0), nr=3, ntheta=5, name=None):
+        self.radius = radius
+        self.center = np.asarray(center)
 
-    if clip_free_surface:
-        if z0 < -radius:  # fully immersed
-            theta_max = np.pi
-        elif z0 < radius:
-            theta_max = np.arccos(z0/radius)
-        else:
-            raise Exception("Disk out of the water")
-    else:
+        if name is None:
+            name = f"disk_{next(Mesh._ids)}"
+
+        mesh = self.generate_disk_mesh(nr, ntheta, name)
+
+        FloatingBody.__init__(self, mesh, name)
+
+    def generate_disk_mesh(self, nr: int, ntheta: int, name=None):
         theta_max = np.pi
-
-    theta = np.linspace(-theta_max, theta_max, ntheta+1)
-    R = np.linspace(0.0, radius, nr+1)
-
-    nodes = np.zeros(((ntheta+1)*(nr+1), 3), dtype=np.float32)
-
-    for i, (r, t) in enumerate(product(R, theta)):
-        y = r * np.sin(t)
-        z = z0 - r * np.cos(t)
-        nodes[i, :] = (0, y, z)
-
-    panels = np.zeros((ntheta*nr, 4), dtype=np.int)
-
-    for k, (i, j) in enumerate(product(range(0, nr), range(0, ntheta))):
-        panels[k, :] = (
-            j+i*(ntheta+1),
-            j+1+i*(ntheta+1),
-            j+1+(i+1)*(ntheta+1),
-            j+(i+1)*(ntheta+1)
-        )
-
-    if name is None:
-        name = f"disk_{next(Mesh._ids)}"
-    disk = FloatingBody(Mesh(nodes, panels, name=f"{name}_mesh"), name=name)
-    disk.mesh.merge_duplicates()
-    disk.mesh.heal_triangles()
-
-    return disk
-
-
-###############
-#  Cylinders  #
-###############
-
-def generate_open_horizontal_cylinder(length=10.0, radius=1.0,
-                                      nx=10, ntheta=10,
-                                      z0=0.0, clip_free_surface=False,
-                                      half=False,
-                                      name=None):
-    """Generate the mesh of an horizontal cylinder.
-
-    Parameters
-    ----------
-    length : float
-        length of the cylinder
-    radius : float
-        radius of the cylinder
-    nx : int
-        number of circular slices
-    ntheta : int
-        number of panels along a circular slice of the cylinder
-    z0 : float
-        depth of the bottom of the cylinder
-    clip_free_surface : bool
-        if True, only mesh the part of the cylinder where z < 0,
-        can be used with z0 to obtain any clipped cylinder
-    half : bool
-        if True, only mesh the part of the cylinder where y > 0
-
-    Returns
-    -------
-    FloatingBody
-        the generated body
-    """
-
-    if clip_free_surface:
-        if z0 < -radius:  # fully immersed
-            theta_max = np.pi
-        elif z0 < radius:
-            theta_max = np.arccos(z0/radius)
-        else:
-            raise Exception("Cylinder out of the water")
-    else:
-        theta_max = np.pi
-
-    if half:
-        theta = np.linspace(0.0, theta_max, ntheta+1)
-    else:
         theta = np.linspace(-theta_max, theta_max, ntheta+1)
-    X = np.linspace(0.0, length, nx+1)
+        R = np.linspace(0.0, self.radius, nr+1)
 
-    # Nodes
-    nodes = np.zeros(((ntheta+1)*(nx+1), 3), dtype=np.float32)
+        nodes = np.zeros(((ntheta+1)*(nr+1), 3), dtype=np.float32)
 
-    for i, (t, x) in enumerate(product(theta, X)):
-        y = radius * np.sin(t)
-        z = z0 - radius * np.cos(t)
-        nodes[i, :] = (x, y, z)
+        for i, (r, t) in enumerate(product(R, theta)):
+            y = +r * np.sin(t)
+            z = -r * np.cos(t)
+            nodes[i, :] = (0, y, z)
+        nodes += self.center
 
-    # Connectivities
-    panels = np.zeros((ntheta*nx, 4), dtype=np.int)
+        panels = np.zeros((ntheta*nr, 4), dtype=np.int)
 
-    for k, (i, j) in enumerate(product(range(0, ntheta),
-                                       range(0, nx))):
-        panels[k, :] = (
-            j+i*(nx+1),
-            j+(i+1)*(nx+1),
-            j+1+(i+1)*(nx+1),
-            j+1+i*(nx+1)
-        )
+        for k, (i, j) in enumerate(product(range(0, nr), range(0, ntheta))):
+            panels[k, :] = (
+                j+i*(ntheta+1),
+                j+1+i*(ntheta+1),
+                j+1+(i+1)*(ntheta+1),
+                j+(i+1)*(ntheta+1)
+            )
 
-    if name is None:
-        name = f"cylinder_{next(Mesh._ids)}"
-    cylinder = FloatingBody(Mesh(nodes, panels, name=f"{name}_mesh"), name=name)
-    cylinder.mesh.merge_duplicates()
-    cylinder.mesh.heal_triangles()
+        mesh = Mesh(nodes, panels, name=f"{name}_mesh")
+        mesh.merge_duplicates()
+        mesh.heal_triangles()
 
-    return cylinder
+        return mesh
 
 
-def generate_ring(**kwargs):
-    if 'name' not in kwargs:
-        kwargs['name'] = f"ring_{next(Mesh._ids)}"
-    return generate_open_horizontal_cylinder(nx=1, **kwargs)
+##############
+#  Cylinder  #
+##############
 
+class HorizontalCylinder(FloatingBody):
+    def __init__(self, length=10.0, radius=1.0, center=(0, 0, 0),
+                 nx=10, ntheta=10, nr=2,
+                 clever=True, clip_free_surface=False,
+                 name=None):
+        """Generate the mesh of an horizontal cylinder.
 
-def generate_clever_horizontal_cylinder(length=10, nx=10, name=None, ntheta=10, **kwargs):
-    """Open horizontal cylinder using the symmetry to speed up the computations"""
-    if name is None:
-        name = f"horizontal_cylinder_{next(Mesh._ids)}"
-    half_ring = generate_ring(length=length/nx, name=f"half_slice_of_{name}",
-                              half=True, ntheta=ntheta//2, **kwargs).mesh
-    ring = ReflectionSymmetry(half_ring, plane=xOz_Plane)
-    cylinder_mesh = TranslationalSymmetry(ring, translation=np.asarray([length/nx, 0.0, 0.0]), nb_repetitions=nx-1)
-    return FloatingBody(cylinder_mesh, name=name)
+        Parameters
+        ----------
+        length : float
+            length of the cylinder
+        radius : float
+            radius of the cylinder
+        center : 3-ple or array of shape (3,)
+            position of the center of the cylinder
+        nx : int
+            number of circular slices
+        ntheta : int
+            number of panels along a circular slice of the cylinder
+        clip_free_surface : bool
+            if True, only mesh the part of the cylinder where z < 0,
+            can be used with z0 to obtain any clipped cylinder
+        """
+        self.length = length
+        self.radius = radius
+        self.center = np.asarray(center)
 
+        if name is None:
+            name = f"cylinder_{next(Mesh._ids)}"
 
-def generate_horizontal_cylinder(length=10.0, radius=1.0,
-                                 nx=10, nr=2, ntheta=10,
-                                 z0=0.0, clip_free_surface=False,
-                                 name=None):
-    """Generate the mesh of a closed horizontal cylinder.
+        open_cylinder = self._generate_open_cylinder_mesh(nx, ntheta, name)
 
-    Parameters
-    ----------
-    length : float
-        length of the cylinder
-    radius : float
-        radius of the cylinder
-    nx : int
-        number of circular slices
-    nr : int
-        at the ends of the cylinder, number of panels along a radius
-    ntheta : int
-        number of panels along a circular slice of the cylinder
-    z0 : float
-        depth of the bottom of the cylinder
-    clip_free_surface : bool
-        if True, only mesh the part of the cylinder where z < 0,
-        can be used with z0 to obtain any clipped cylinder
+        if nr > 0:
+            side = Disk(radius=radius, center=(-np.array([length/2, 0, 0])),
+                        nr=nr, ntheta=ntheta, name=f"side_of_{name}").mesh
 
-    Returns
-    -------
-    FloatingBody
-        the generated body
-    """
+            other_side = side.copy()
+            other_side.name = f"other_side_of_{name}"
+            other_side.mirror(yOz_Plane)
 
-    if name is None:
-        name = f"cylinder_{next(Mesh._ids)}"
+            mesh = CollectionOfMeshes((open_cylinder, side, other_side))
 
-    open_cylinder = generate_open_horizontal_cylinder(
-        length=length, radius=radius,
-        nx=nx, ntheta=ntheta,
-        z0=z0, clip_free_surface=clip_free_surface,
-        name=f"body_of_{name}"
-    )
+            if not clever:
+                mesh = mesh.merge()
+                mesh.merge_duplicates()
+                mesh.heal_triangles()
+        else:
+            mesh = open_cylinder
 
-    side = generate_disk(
-        radius=radius,
-        nr=nr, ntheta=ntheta,
-        z0=z0, clip_free_surface=clip_free_surface,
-        name=f"side_of_{name}"
-    )
+        mesh.translate(-self.center)
 
-    other_side = side.copy(name=f"other_side_of_{name}")
-    other_side.mirror(yOz_Plane)
-    other_side.translate_x(length)
+        FloatingBody.__init__(self, mesh, name)
 
-    cylinder = CollectionOfMeshes((open_cylinder, side, other_side)).merge()
+    def _generate_open_cylinder_mesh(self, nx, ntheta, name=None):
+        """Open horizontal cylinder using the symmetry to speed up the computations"""
+        theta_max = np.pi
+        theta = np.linspace(0, theta_max, ntheta//2+1)
+        X = np.array([0, self.length/nx])
 
-    cylinder = FloatingBody(cylinder, name=name)
-    cylinder.mesh.merge_duplicates()
-    cylinder.mesh.heal_triangles()
+        # Nodes
+        nodes = np.zeros(((ntheta//2+1)*2, 3), dtype=np.float32)
 
-    return cylinder
+        for i, (t, x) in enumerate(product(theta, X)):
+            y = + self.radius * np.sin(t)
+            z = - self.radius * np.cos(t)
+            nodes[i, :] = (x, y, z)
+        nodes += -np.array([self.length/2, 0, 0])
+
+        # Connectivities
+        panels = np.zeros((ntheta//2, 4), dtype=np.int)
+
+        for k, i in enumerate(range(0, ntheta//2)):
+            panels[k, :] = (2*i, 2*i+2, 2*i+3, 2*i+1)
+        half_ring = Mesh(nodes, panels, name=f"half_ring_of_{name}_mesh")
+
+        ring = ReflectionSymmetry(half_ring, plane=xOz_Plane, name=f"ring_of_{name}_mesh")
+
+        return TranslationalSymmetry(ring, translation=np.asarray([self.length/nx, 0.0, 0.0]),
+                                     nb_repetitions=nx-1, name=f"{name}_mesh")
+
+    @property
+    def volume(self):
+        return self.length*np.pi*self.radius**2
+

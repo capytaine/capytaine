@@ -3,7 +3,8 @@
 
 from capytaine.bodies import FloatingBody
 from capytaine.symmetries import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
-from capytaine.geometric_bodies import *
+from capytaine.geometric_bodies.sphere import Sphere
+from capytaine.geometric_bodies.cylinder import HorizontalCylinder, Disk
 
 from capytaine.problems import RadiationProblem, DiffractionProblem
 from capytaine.results import assemble_dataset

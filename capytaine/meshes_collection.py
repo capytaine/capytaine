@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import copy
+from typing import TypeVar
 
 from itertools import chain, accumulate
 
@@ -95,7 +96,10 @@ class CollectionOfMeshes:
     def merge(self) -> Mesh:
         components = (mesh.merge() if isinstance(mesh, CollectionOfMeshes) else mesh for mesh in self.submeshes)  # Ensure components have been merged
         init = next(components)
-        return sum(components, init)
+        merged = sum(components, init)
+        merged.merge_duplicates()
+        merged.heal_triangles()
+        return merged
 
     def mirror(self, plane):
         for mesh in self.submeshes:
@@ -146,4 +150,4 @@ class CollectionOfMeshes:
         self.merge().show()
 
 
-
+MeshType = TypeVar('MeshType', Mesh, CollectionOfMeshes)
