@@ -22,6 +22,9 @@ from capytaine.symmetries import ReflectionSymmetry
 
 LOG = logging.getLogger(__name__)
 
+TRANSLATION_DOFS_DIRECTIONS = {"surge": (1, 0, 0), "sway": (0, 1, 0), "heave": (0, 0, 1)}
+ROTATION_DOFS_AXIS = {"roll": (1, 0, 0), "pitch": (0, 1, 0), "yaw": (0, 0, 1)}
+
 
 class FloatingBody:
 
@@ -123,16 +126,23 @@ class FloatingBody:
         """Number of degrees of freedom."""
         return len(self.dofs)
 
-    def add_translation_dof(self, direction=np.array((1.0, 0.0, 0.0)), name=None):
+    def add_translation_dof(self, direction=None, name=None):
         """Add a new translation dof (in place).
+        If no direction is given, the code tries to infer it from the name.
 
         Parameters
         ----------
-        direction : array of shape (3,)
+        direction : array of shape (3,), optional
             the direction of the translation
         name : str, optional
             a name for the degree of freedom
         """
+        if direction is None:
+            if name is not None and name.lower() in TRANSLATION_DOFS_DIRECTIONS:
+                direction = TRANSLATION_DOFS_DIRECTIONS[name.lower()]
+            else:
+                raise ValueError("A direction needs to be specified for the dof.")
+
         if name is None:
             name = f"dof_{self.nb_dofs}_translation"
 
@@ -141,20 +151,26 @@ class FloatingBody:
 
         self.dofs[name] = self.mesh.faces_normals @ direction
 
-    def add_rotation_dof(self, axis_direction=np.array((0.0, 0.0, 1.0)),
-                         axis_point=np.array((0.0, 0.0, 0.0)), name=None):
+    def add_rotation_dof(self, axis_point=np.array((0.0, 0.0, 0.0)),
+                         axis_direction=None, name=None):
         """Add a new rotation dof (in place).
+        If no axis direction is given, the code tries to infer it from the name.
 
         Parameters
         ----------
-        axis_direction : array of shape (3,)
-            vector directing the rotation axis
         axis_point : array of shape (3,)
             a point on the rotation axis
+        axis_direction : array of shape (3,), optional
+            vector directing the rotation axis
             TODO: Use Axis class?
         name : str, optional
             a name for the degree of freedom
         """
+        if axis_direction is None:
+            if name is not None and name.lower() in ROTATION_DOFS_AXIS:
+                axis_direction = ROTATION_DOFS_AXIS[name.lower()]
+            else:
+                raise ValueError("A direction needs to be specified for the dof.")
         if name is None:
             name = f"dof_{self.nb_dofs}_rotation"
 
