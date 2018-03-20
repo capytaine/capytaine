@@ -141,7 +141,8 @@ class FloatingBody:
 
         self.dofs[name] = self.mesh.faces_normals @ direction
 
-    def add_rotation_dof(self, axis_direction=(0.0, 0.0, 1.0), axis_point=(0.0, 0.0, 0.0), name=None):
+    def add_rotation_dof(self, axis_direction=np.array((0.0, 0.0, 1.0)),
+                         axis_point=np.array((0.0, 0.0, 0.0)), name=None):
         """Add a new rotation dof (in place).
 
         Parameters

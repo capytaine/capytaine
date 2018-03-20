@@ -19,8 +19,11 @@ result_directory = os.path.join(os.path.dirname(__file__), "flap_results")
 def solve_flap(clever=True, resolution=2):
     """Solve the flap problem for a given resolution.
 
-    Parameters:
-    resolution: int
+    Parameters
+    ----------
+    clever : bool, optional
+        if True, use the prismatic symmetry of the flap to speed up the computations
+    resolution: int, optional
         the number of cells in the mesh will be proportional to this coefficient
     """
     # Load reference range of frequencies
@@ -43,10 +46,10 @@ def solve_flap(clever=True, resolution=2):
     flap.translate_z(-depth)
 
     # Set oscillation degree of freedom
-    flap.dofs["Oscillation"] = np.asarray([
-        flap.faces_normals[j, 1] *
-        (flap.faces_centers[j, 2] + 9.4) * np.heaviside(flap.faces_centers[j, 2] + 9.4, 0.0)
-        for j in range(flap.nb_faces)])
+    # The upper part of the flap rotation around an horizontal axis.
+    # The lower part is fixed.
+    flap.add_rotation_dof(axis_direction=(0, 1, 0), axis_point=(0, 0, -9.4), name="Oscillation")
+    flap.dofs["Oscillation"][flap.mesh.faces_centers[:, 2] < -9.4] = 0.0
 
     # Set up problems and initialise solver
     problems = [RadiationProblem(body=flap, omega=omega, radiating_dof="Oscillation", sea_bottom=-depth) for omega in 2*np.pi/T_range]

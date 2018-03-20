@@ -16,7 +16,7 @@ logging.basicConfig(level=logging.INFO,
 
 rho = 1000
 
-cylinder = HorizontalCylinder(length=10.0, radius=1.0, nr=0, nx=30, ntheta=30)
+cylinder = HorizontalCylinder(length=10.0, radius=1.0, nr=0, nx=30, ntheta=30, clever=True)
 cylinder.translate_z(-2.0)
 cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
 cylinder.add_translation_dof(direction=(0, 1, 0), name="Sway")
@@ -34,10 +34,10 @@ data = assemble_dataset(results)
 
 plt.figure()
 plt.plot(omega_range,
-         data['added_mass'].sel(radiating_dof='Heave', influenced_dof='Heave')/(rho*cylinder.mesh.volume),
+         data['added_mass'].sel(radiating_dof='Heave', influenced_dof='Heave')/(rho*cylinder.volume),
          label="Added mass")
 plt.plot(omega_range,
-         data['radiation_damping'].sel(radiating_dof='Heave', influenced_dof='Heave')/(rho*cylinder.mesh.volume),
+         data['radiation_damping'].sel(radiating_dof='Heave', influenced_dof='Heave')/(rho*cylinder.volume),
          label="Added damping")
 plt.legend()
 plt.show()
