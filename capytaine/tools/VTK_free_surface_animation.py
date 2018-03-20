@@ -21,6 +21,7 @@ class Animation:
                  free_surface: FreeSurface,
                  complex_node_elevation=None,
                  fps: int = 24,
+                 display_body=None,
                  ):
 
         if complex_node_elevation is None:
@@ -29,7 +30,10 @@ class Animation:
 
         # Create an object for the floating body
         mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputData(result.body.mesh._vtk_polydata())
+        if display_body is None:
+            mapper.SetInputData(result.body.mesh._vtk_polydata())
+        else:
+            mapper.SetInputData(display_body.mesh._vtk_polydata())
 
         self.body_actor = vtk.vtkActor()
         self.body_actor.GetProperty().SetColor((1, 1, 0))
