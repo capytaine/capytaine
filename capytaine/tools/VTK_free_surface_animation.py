@@ -10,7 +10,8 @@ It has been written by Matthieu Ancellin and is released under the terms of the 
 import numpy as np
 import vtk
 
-from capytaine.results import LinearPotentialFlowResult
+from capytaine.bodies import TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
+from capytaine.results import RadiationResult, LinearPotentialFlowResult
 from capytaine.geometric_bodies.free_surface import FreeSurface
 
 
@@ -51,17 +52,21 @@ class Animation:
         self.fs_actor.GetProperty().SetInterpolationToGouraud()
         self.fs_actor.SetMapper(mapper)
 
+        self.current_frame = 0
+
         # Precompute data before loop
         self.fps = fps
         self.frames_per_period = int(fps * result.period)
-        base_polydata = self.fs_actor.GetMapper().GetInput()
-        self.polydatas = []
+
+        base_fs_polydata = self.fs_actor.GetMapper().GetInput()
+        self.fs_polydatas = []
 
         for i_frame in range(self.frames_per_period):
-            current_node_elevation = np.abs(complex_node_elevation) * np.cos(np.angle(complex_node_elevation) - 2 * np.pi * i_frame / self.frames_per_period)
+            current_node_elevation = np.abs(complex_node_elevation) * np.cos(np.angle(complex_node_elevation)
+                                                                             - 2*np.pi*i_frame/self.frames_per_period)
 
             new_polydata = vtk.vtkPolyData()
-            new_polydata.DeepCopy(base_polydata)
+            new_polydata.DeepCopy(base_fs_polydata)
             points = new_polydata.GetPoints()
             for j in range(len(complex_node_elevation)):
                 point = points.GetPoint(j)
@@ -73,16 +78,58 @@ class Animation:
             ef.Update()
             new_polydata = ef.GetPolyDataOutput()
 
-            self.polydatas.append(new_polydata)
+            self.fs_polydatas.append(new_polydata)
 
-        self.current_frame = 0
+        # Body polydata
+        if isinstance(result, RadiationResult):
+            if result.radiating_dof.lower() in TRANSLATION_DOFS_DIRECTIONS:
+                direction = np.asarray(TRANSLATION_DOFS_DIRECTIONS[result.radiating_dof.lower()])
+                def translation_motion(self, frame):
+                    nonlocal direction
+                    pos = np.asarray(self.body_actor.GetPosition())
+                    pos = (1 - direction) * pos + \
+                          direction * np.cos(2*np.pi*(frame % self.frames_per_period)/self.frames_per_period)
+                    self.body_actor.SetPosition(*pos)
+                self.update_body_position = translation_motion
+
+            elif result.radiating_dof.lower() in ROTATION_DOFS_AXIS:
+                direction = np.asarray(ROTATION_DOFS_AXIS[result.radiating_dof.lower()])
+                def rotation_motion(self, frame):
+                    nonlocal direction
+                    pos = np.asarray(self.body_actor.GetOrientation())
+                    pos = (1 - direction) * pos + \
+                          direction * np.cos(2*np.pi*(frame % self.frames_per_period)/self.frames_per_period)
+                    self.body_actor.SetOrientation(*pos)
+                self.update_body_position = rotation_motion
+
+            else:
+                base_body_polydata = self.body_actor.GetMapper().GetInput()
+                self.body_polydatas = []
+                for i_frame in range(self.frames_per_period):
+                    complex_deformation = result.body.motion[result.radiating_dof]
+                    current_deformation = np.abs(complex_deformation) * np.cos(np.angle(complex_deformation)
+                                                                                     - 2*np.pi*i_frame/self.frames_per_period)
+                    new_polydata = vtk.vtkPolyData()
+                    new_polydata.DeepCopy(base_body_polydata)
+                    points = new_polydata.GetPoints()
+                    for j in range(len(complex_deformation)):
+                        point = points.GetPoint(j)
+                        point = np.asarray(point)[0:3] + current_deformation[j] * result.body.mesh.faces_normals[j, 0:3]
+                        points.SetPoint(j, tuple(point))
+                    self.body_polydatas.append(new_polydata)
+
+                def fetch_polydata(self, frame):
+                    self.body_actor.GetMapper().SetInputData(self.body_polydatas[frame % self.frames_per_period])
+                self.update_body_position = fetch_polydata
+        else:
+            def do_nothing(self, *args):
+                pass
+            self.update_body_position = do_nothing
 
     def callback(self, renderer, event):
-        # Update body position and free surface elevation
-        # update_position(self.body,
-        #                 2 * np.pi * (self.current_frame % self.frames_per_period) / self.frames_per_period)
+        self.update_body_position(self, self.current_frame)
 
-        self.fs_actor.GetMapper().SetInputData(self.polydatas[self.current_frame % self.frames_per_period])
+        self.fs_actor.GetMapper().SetInputData(self.fs_polydatas[self.current_frame % self.frames_per_period])
 
         if hasattr(self, 'writer') and self.current_frame < self.frames_per_period:
             self.imageFilter.Modified()
@@ -148,3 +195,4 @@ class Animation:
 
         del render_window_interactor
         del render_window
+
