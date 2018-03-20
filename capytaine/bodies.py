@@ -54,7 +54,7 @@ class FloatingBody:
             dofs = {}
 
         if name is None:
-            name = self.mesh.name
+            name = mesh.name
 
         assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
         self.mesh = mesh
@@ -64,7 +64,7 @@ class FloatingBody:
         LOG.info(f"New floating body: {self.name}.")
 
     @staticmethod
-    def from_file(filename: str, file_format="mar": str) -> FloatingBody:
+    def from_file(filename: str, file_format: str ="mar") -> 'FloatingBody':
         """Create a FloatingBody from a mesh file using meshmagick."""
 
         vertices, faces = load_mesh(filename, file_format)
@@ -85,16 +85,16 @@ class FloatingBody:
     def __repr__(self):
         return self.name
 
-    def __lt__(self, other: FloatingBody) -> bool:
+    def __lt__(self, other: 'FloatingBody') -> bool:
         """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name
 
-    def __add__(self, body_to_add: FloatingBody) -> FloatingBody:
+    def __add__(self, body_to_add: 'FloatingBody') -> 'FloatingBody':
         """Create a new CollectionOfFloatingBody from the combination of two FloatingBodies."""
         return FloatingBody.join_bodies([self, body_to_add])
 
     @staticmethod
-    def join_bodies(bodies) -> FloatingBody:
+    def join_bodies(bodies) -> 'FloatingBody':
         meshes = CollectionOfMeshes([body.mesh for body in bodies])
         dofs = FloatingBody.combine_dofs(bodies)
         name = name="+".join(body.name for body in bodies)
@@ -174,7 +174,7 @@ class FloatingBody:
     # Transformations #
     ###################
 
-    def copy(self, name=None) -> FloatingBody:
+    def copy(self, name=None) -> 'FloatingBody':
         """Return a deep copy of the body.
 
         Parameters

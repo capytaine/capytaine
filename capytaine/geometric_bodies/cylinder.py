@@ -36,7 +36,7 @@ class Disk(FloatingBody):
 
         mesh = self.generate_disk_mesh(nr, ntheta, name)
 
-        FloatingBody.__init__(self, mesh, name)
+        FloatingBody.__init__(self, mesh=mesh, name=name)
 
     def generate_disk_mesh(self, nr: int, ntheta: int, name=None):
         theta_max = np.pi
@@ -123,7 +123,7 @@ class HorizontalCylinder(FloatingBody):
 
         mesh.translate(-self.center)
 
-        FloatingBody.__init__(self, mesh, name)
+        FloatingBody.__init__(self, mesh=mesh, name=name)
 
     def _generate_open_cylinder_mesh(self, nx, ntheta, name=None):
         """Open horizontal cylinder using the symmetry to speed up the computations"""

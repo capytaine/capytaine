@@ -55,7 +55,7 @@ class Sphere(FloatingBody):
         else:
             mesh = self._generate_clever_sphere_mesh(ntheta, nphi, clip_free_surface, name)
 
-        FloatingBody.__init__(self, mesh, name)
+        FloatingBody.__init__(self, mesh=mesh, name=name)
 
     def _generate_sphere_mesh(self, ntheta, nphi, clip_free_surface=False, name=None):
         if clip_free_surface:
