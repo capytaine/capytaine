@@ -6,8 +6,9 @@ from itertools import count
 
 import pandas as pd
 
-from capytaine.geometric_bodies import *
-from capytaine.symmetries import *
+from capytaine.bodies import FloatingBody
+from capytaine.geometric_bodies.cylinder import HorizontalCylinder
+from capytaine.symmetries import ReflectionSymmetry
 
 from benchmark import profile_Nemoh, profile_capytaine
 
@@ -20,81 +21,83 @@ PROBLEM_ARGS = {
     "rho": 1000,
 }
 
-CYLINDER_POSITION = np.array((-5.0, 0.0, -3.0))
+CYLINDER_POSITION = np.array((-0.0, 0.0, -3.0))
 
 def full_resolution_Nemoh(nb_slices, nb_theta, omega_range):
-    cylinder = generate_open_horizontal_cylinder(length=10.0, radius=1.0, nx=nb_slices, ntheta=nb_theta)
-    cylinder.translate(CYLINDER_POSITION)
-    cylinder.dofs["Heave"] = cylinder.faces_normals @ (0, 0, 1)
-    return profile_Nemoh(cylinder,
-                         omega_range,
+    cylinder = HorizontalCylinder(length=10.0, radius=1.0, center=CYLINDER_POSITION,
+                                  clever=False, nx=nb_slices, nr=0, ntheta=nb_theta)
+    cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
+    return profile_Nemoh(cylinder, omega_range,
                          f"{WORKING_DIRECTORY}/{next(ID):03}_Nemoh_{nb_theta*nb_slices}",
                          **PROBLEM_ARGS)
 
 
 def full_Capytaine(nb_slices, nb_theta, omega_range):
-    cylinder = generate_open_horizontal_cylinder(length=10.0, radius=1.0, nx=nb_slices, ntheta=nb_theta)
-    cylinder.translate(CYLINDER_POSITION)
-    cylinder.dofs["Heave"] = cylinder.faces_normals @ (0, 0, 1)
-    return profile_capytaine(cylinder,
-                             omega_range,
+    cylinder = HorizontalCylinder(length=10.0, radius=1.0, center=CYLINDER_POSITION,
+                                  clever=False, nx=nb_slices, nr=0, ntheta=nb_theta)
+    cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
+    return profile_capytaine(cylinder, omega_range,
                              f"{WORKING_DIRECTORY}/{next(ID):03}_capy_{nb_theta*nb_slices}",
                              **PROBLEM_ARGS)
 
 
 def sym_Capytaine(nb_slices, nb_theta, omega_range):
-    half_cylinder = generate_open_horizontal_cylinder(length=10.0, radius=1.0, nx=nb_slices, ntheta=nb_theta//2, half=True)
-    half_cylinder.translate(CYLINDER_POSITION)
-    sym_cylinder = ReflectionSymmetry(half_cylinder, xOz_Plane)
-    sym_cylinder.dofs["Heave"] = sym_cylinder.faces_normals @ (0, 0, 1)
-    return profile_capytaine(sym_cylinder,
-                             omega_range,
+    cylinder = HorizontalCylinder(length=10.0, radius=1.0, center=CYLINDER_POSITION,
+                                  clever=False, nx=nb_slices, nr=0, ntheta=nb_theta)
+    half_cylinder_mesh = cylinder.mesh.extract_faces(np.where(cylinder.mesh.faces_centers[:, 1] > 0)[0]) # Keep y > 0
+    half_cylinder.name = "half_cylinder"
+    sym_cylinder = FloatingBody(ReflectionSymmetry(half_cylinder_mesh, plane=xOz_Plane))
+    sym_cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
+    return profile_capytaine(sym_cylinder, omega_range,
                              f"{WORKING_DIRECTORY}/{next(ID):03}_sym_capy_{nb_theta*nb_slices}",
                              **PROBLEM_ARGS)
 
 
 def sym_sym_Capytaine(nb_slices, nb_theta, omega_range):
-    half_cylinder = generate_open_horizontal_cylinder(length=10.0, radius=1.0, nx=nb_slices, ntheta=nb_theta//2, half=True)
-    half_cylinder.translate(CYLINDER_POSITION)
-    quarter_cylinder = half_cylinder.extract_faces(np.where(half_cylinder.faces_centers[:, 0] > 0)[0]) # Keep x > 0
+    cylinder = HorizontalCylinder(length=10.0, radius=1.0, center=CYLINDER_POSITION,
+                                  clever=False, nx=nb_slices, nr=0, ntheta=nb_theta)
+    half_cylinder_mesh = cylinder.mesh.extract_faces(np.where(cylinder.mesh.faces_centers[:, 1] > 0)[0]) # Keep y > 0
+    quarter_cylinder_mesh = half_cylinder_mesh.extract_faces(np.where(half_cylinder_mesh.faces_centers[:, 0] > 0)[0]) # Keep x > 0
     quarter_cylinder.name = "quarter_cylinder"
-    sym_sym_cylinder = ReflectionSymmetry(ReflectionSymmetry(quarter_cylinder, xOz_Plane), yOz_Plane)
-    sym_sym_cylinder.dofs["Heave"] = sym_sym_cylinder.faces_normals @ (0, 0, 1)
-    return profile_capytaine(sym_sym_cylinder,
-                             omega_range,
+    sym_sym_cylinder = ReflectionSymmetry(ReflectionSymmetry(quarter_cylinder, plane=xOz_Plane), plane=yOz_Plane)
+    sym_sym_cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
+    return profile_capytaine(sym_sym_cylinder, omega_range,
                              f"{WORKING_DIRECTORY}/{next(ID):03}_sym_sym_capy_{nb_theta*nb_slices}",
                              **PROBLEM_ARGS)
 
 
 def trans_Capytaine(nb_slices, nb_theta, omega_range):
-    ring = generate_ring(length=10.0/nb_slices, radius=1.0, ntheta=nb_theta)
-    trans_cylinder = TranslationalSymmetry(ring, translation=np.asarray([10.0/nb_slices, 0.0, 0.0]), nb_repetitions=nb_slices-1)
-    trans_cylinder.translate(CYLINDER_POSITION)
-    trans_cylinder.dofs["Heave"] = trans_cylinder.faces_normals @ (0, 0, 1)
-    return profile_capytaine(trans_cylinder,
-                             omega_range,
+    ring = HorizontalCylinder(length=10.0/nb_slices, radius=1.0, center=CYLINDER_POSITION - np.array((5.0, 0, 0),
+                                  clever=False, nx=1, nr=0, ntheta=nb_theta)
+    trans_cylinder = FloatingBody(TranslationalSymmetry(ring, translation=(10.0/nb_slices, 0.0, 0.0), nb_repetitions=nb_slices-1))
+    trans_cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
+    return profile_capytaine(trans_cylinder, omega_range,
                              f"{WORKING_DIRECTORY}/{next(ID):03}_trans_capy_{nb_theta*nb_slices}",
                              **PROBLEM_ARGS)
 
 
 def trans_sym_Capytaine(nb_slices, nb_theta, omega_range):
-    half_ring = generate_ring(length=10.0/nb_slices, radius=1.0, ntheta=nb_theta//2, half=True)
-    half_ring.translate(CYLINDER_POSITION)
-    trans_cylinder = ReflectionSymmetry(TranslationalSymmetry(half_ring, translation=np.asarray([10.0/nb_slices, 0.0, 0.0]), nb_repetitions=nb_slices-1), xOz_Plane)
-    trans_cylinder.dofs["Heave"] = trans_cylinder.faces_normals @ (0, 0, 1)
-    return profile_capytaine(trans_cylinder,
-                             omega_range,
+    ring = HorizontalCylinder(length=10.0/nb_slices, radius=1.0, center=CYLINDER_POSITION - np.array((5.0, 0, 0),
+                                  clever=False, nx=1, nr=0, ntheta=nb_theta)
+    half_ring_mesh = ring.mesh.extract_faces(np.where(ring.mesh.faces_centers[:, 1] > 0)[0]) # Keep y > 0
+    half_cylinder_mesh = TranslationalSymmetry(half_ring_mesh, translation=(10.0/nb_slices, 0.0, 0.0), nb_repetitions=nb_slices-1)
+    trans_cylinder_mesh = ReflectionSymmetry(half_cylinder_mesh, xOz_Plane)
+    trans_cylinder = FloatingBody(trans_cylinder_mesh)
+    trans_cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
+    return profile_capytaine(trans_cylinder, omega_range,
                              f"{WORKING_DIRECTORY}/{next(ID):03}_trans_sym_capy_{nb_theta*nb_slices}",
                              **PROBLEM_ARGS)
 
 
 def sym_trans_Capytaine(nb_slices, nb_theta, omega_range):
-    half_ring = generate_ring(length=10.0/nb_slices, radius=1.0, ntheta=nb_theta//2, half=True)
-    half_ring.translate(CYLINDER_POSITION)
-    trans_cylinder = TranslationalSymmetry(ReflectionSymmetry(half_ring, xOz_Plane), translation=np.asarray([10.0/nb_slices, 0.0, 0.0]), nb_repetitions=nb_slices-1)
-    trans_cylinder.dofs["Heave"] = trans_cylinder.faces_normals @ (0, 0, 1)
-    return profile_capytaine(trans_cylinder,
-                             omega_range,
+    ring = HorizontalCylinder(length=10.0/nb_slices, radius=1.0, center=CYLINDER_POSITION - np.array((5.0, 0, 0),
+                                  clever=False, nx=1, nr=0, ntheta=nb_theta)
+    half_ring_mesh = ring.mesh.extract_faces(np.where(ring.mesh.faces_centers[:, 1] > 0)[0]) # Keep y > 0
+    ring_mesh = ReflectionSymmetry(half_ring_mesh, xOz_Plane)
+    trans_cylinder_mesh = TranslationalSymmetry(ring_mesh, translation=(10.0/nb_slices, 0.0, 0.0), nb_repetitions=nb_slices-1)
+    trans_cylinder = FloatingBody(trans_cylinder_mesh)
+    trans_cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
+    return profile_capytaine(trans_cylinder, omega_range,
                              f"{WORKING_DIRECTORY}/{next(ID):03}_sym_trans_capy_{nb_theta*nb_slices}",
                              **PROBLEM_ARGS)
 

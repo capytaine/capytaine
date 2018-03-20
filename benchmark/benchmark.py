@@ -49,17 +49,17 @@ def profile_capytaine(body, omega_range, result_dir, **problem_kwargs):
     ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
     ps.print_stats()
     profiler_results = s.getvalue()
-    with open(f'{result_dir}/profile.log', 'w') as log:
-        log.write(profiler_results)
+    with open(f'{result_dir}/profile.log', 'w') as profile_file:
+        profile_file.write(profiler_results)
 
     os.environ["MKL_NUM_THREADS"] = "4"
 
     return float(profiler_results.split('\n')[0].split('in')[1].strip('seconds\n'))
 
 
-def profile_Nemoh(body, omega_range, result_dir, nemoh_bin_dir="~/work/code/nemoh/bin", **problem_args):
+def profile_Nemoh(body, omega_range, result_dir, nemoh_bin_dir="~/work/code/nemoh/bin", **problem_kwargs):
     """Use Nemoh 2.0 to solve a problem and mesure computation time."""
-    problem = RadiationProblem(body=body, omega=0.0, **problem_args)
+    problem = RadiationProblem(body=body, omega=0.0, **problem_kwargs)
     export_as_Nemoh_directory(problem, result_dir, omega_range)
 
     subprocess.run(
