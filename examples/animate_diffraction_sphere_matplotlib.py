@@ -32,7 +32,7 @@ result = solver.solve(problem, keep_details=True)
 
 # Compute free surface elevation
 fs = FreeSurface(x_range=(-50, 50), y_range=(-50, 50), nx=100, ny=100)
-fs_elevation = solver.get_free_surface_elevation(result, fs)
+fs_elevation = solver.get_free_surface_elevation(result, fs, keep_details=True)
 
 # Add incoming waves
 fs_elevation = fs_elevation + 1j * problem.omega / problem.g * Airy_wave_potential(fs.mesh.faces_centers, result)
@@ -46,7 +46,7 @@ scale = np.abs(fs_elevation).max()
 fig = plt.figure()
 ax = plt.gca()
 
-nbi = 40 # Number of images in the animation
+nbi = 40  # Number of images in the animation
 
 
 def animate(i):

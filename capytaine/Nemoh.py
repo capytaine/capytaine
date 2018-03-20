@@ -417,7 +417,7 @@ class Nemoh:
 
         return phi
 
-    def get_free_surface_elevation(self, result, free_surface):
+    def get_free_surface_elevation(self, result, free_surface, keep_details=False):
         """Compute the elevation of the free surface on a mesh for a previously solved problem.
 
         Parameters
@@ -426,11 +426,16 @@ class Nemoh:
             the return of Nemoh's solver
         free_surface : FreeSurface
             a meshed free surface
+        keep_details : bool, optional
+            if True, keep the free surface elevation in the LinearPotentialFlowResult
 
         Returns
         -------
         array
             the free surface elevation on each faces of the meshed free surface
         """
-        return 1j*result.omega/result.g * self.get_potential_on_mesh(result, free_surface.mesh)
+        fs_elevation = 1j*result.omega/result.g * self.get_potential_on_mesh(result, free_surface.mesh)
+        if keep_details:
+            result.fs_elevation[free_surface] = fs_elevation
+        return fs_elevation
 

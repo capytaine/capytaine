@@ -14,6 +14,9 @@ import numpy as np
 
 from meshmagick.mesh import Mesh
 
+from capytaine.problems import DiffractionProblem
+from capytaine.tools.Airy_wave import Airy_wave_potential
+
 LOG = logging.getLogger(__name__)
 
 
@@ -63,3 +66,20 @@ class FreeSurface():
     def with_same_symmetries_as(body):
         raise NotImplemented()
 
+    # Tools for plotting of the free surface elevation
+
+    def elevation_at_nodes(self, fs_faces: np.ndarray) -> np.ndarray:
+        """From a free surface elevation computed at the center of the faces of the mesh,
+        return a free surface elevation computed on the nodes of the mesh."""
+        z_nodes = np.zeros((self.mesh.vertices.shape[0]), dtype=np.complex)
+        faces_near_nodes = np.zeros((self.mesh.vertices.shape[0]), dtype=np.int)
+        for i, vertices in enumerate(self.mesh.faces):
+            for vertex in vertices:
+                faces_near_nodes[vertex] += 1
+                z_nodes[vertex] += fs_faces[i]
+        z_nodes /= faces_near_nodes
+        return z_nodes
+
+    def incoming_waves(self, problem: DiffractionProblem) -> np.ndarray:
+        """Free surface elevation of incoming wave for diffraction problem."""
+        return 1j*problem.omega/problem.g * Airy_wave_potential(self.mesh.faces_centers, problem)

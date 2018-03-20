@@ -157,6 +157,9 @@ class CollectionOfMeshes:
         for mesh in self.submeshes:
             mesh.rotate(vector)
 
+    def _vtk_polydata(self):
+        return self.merge()._vtk_polydata()
+
     def show(self):
         self.merge().show()
 
