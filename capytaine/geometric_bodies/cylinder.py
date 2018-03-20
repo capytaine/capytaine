@@ -121,7 +121,7 @@ class HorizontalCylinder(FloatingBody):
         else:
             mesh = open_cylinder
 
-        mesh.translate(-self.center)
+        mesh.translate(self.center)
 
         FloatingBody.__init__(self, mesh=mesh, name=name)
 
