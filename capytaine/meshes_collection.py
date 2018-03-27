@@ -50,8 +50,11 @@ class CollectionOfMeshes:
     def __str__(self):
         return self.name
 
-    def copy(self):
-        return copy.deepcopy(self)
+    def copy(self, name=None):
+        new_mesh = copy.deepcopy(self)
+        if name is not None:
+            new_mesh.name = name
+        return new_mesh
 
     ##############
     # Properties #
@@ -111,14 +114,17 @@ class CollectionOfMeshes:
     # Transformation #
     ##################
 
-    def merge(self) -> Mesh:
+    def merge(self, name: str=None) -> Mesh:
         """Merge the sub-meshes and return a full mesh.
-        If the collection contains other collections, they are merged recursively."""
+        If the collection contains other collections, they are merged recursively.
+        Optionally, a new name can be given to the resulting mesh."""
         components = (mesh if isinstance(mesh, Mesh) else mesh.merge() for mesh in self.submeshes)
         init = next(components)
         merged = sum(components, init)
         merged.merge_duplicates()
         merged.heal_triangles()
+        if name is not None:
+            merged.name = name
         return merged
 
     def mirror(self, plane):

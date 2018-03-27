@@ -6,8 +6,12 @@ import numpy as np
 from meshmagick.mesh import Mesh
 
 from capytaine.bodies import FloatingBody
-from capytaine.geometric_bodies.sphere import Sphere
+
 from capytaine.meshes_collection import CollectionOfMeshes
+from capytaine.symmetries import TranslationalSymmetry
+
+from capytaine.geometric_bodies.sphere import Sphere
+from capytaine.geometric_bodies.rectangle import Rectangle, OpenRectangularParallelepiped, RectangularParallelepiped
 
 
 def test_collection_of_meshes():
@@ -82,58 +86,64 @@ def test_dof_name_inference():
         assert np.allclose(body.dofs[dofname], body.dofs['Surge_2'])
 
 
-# def test_collection():
-    # body_1 = generate_sphere()
-    # body_1.name = 'body_1'
-    # body_1.dofs['Dummy'] = body_1.mesh.faces_normals @ (0, 0, 0)
-    # body_1.dofs['Heave'] = body_1.mesh.faces_normals @ (0, 0, 1)
-    # assert isinstance(body_1, FloatingBody)
-    # assert isinstance(body_1.as_FloatingBody(), FloatingBody)
-    #
-    # body_2 = generate_sphere(z0=-5.0)
-    # body_2.name = 'body_2'
-    # body_2.dofs['Surge'] = body_2.mesh.faces_normals @ (1, 0, 0)
-    # coll = body_1 + body_2
-    # assert isinstance(coll, CollectionOfFloatingBodies)
-    # assert isinstance(coll.as_FloatingBody(), FloatingBody)
-    # assert coll.name == 'CollectionOfFloatingBodies([body_1, body_2])'
-    #
-    # assert np.all(coll.mesh.faces_areas[coll.indices_of_body(0)] == body_1.mesh.faces_areas)
-    # assert np.all(coll.mesh.faces_areas[coll.indices_of_body(1)] == body_2.mesh.faces_areas)
-    #
-    # # Test dofs
-    # assert len(coll.dofs) == 3
-    # for name, dof in coll.dofs.items():
-    #     assert name in ['body_1_Dummy', 'body_1_Heave', 'body_2_Surge']
-    #     assert dof.shape[0] == coll.mesh.faces_normals.shape[0]
-    #     assert np.all(dof[:dof.shape[0]//2] == np.zeros(coll.mesh.faces_normals.shape[0]//2)) \
-    #             or np.all(dof[dof.shape[0]//2:] == np.zeros(coll.mesh.faces_normals.shape[0]//2))
-    #
-    # body_3 = generate_sphere(z0=-10.0)
-    # body_3.name = 'body_3'
-    # coll = body_1 + body_2 + body_3
-    # assert isinstance(coll, CollectionOfFloatingBodies)
-    # assert coll.name == 'CollectionOfFloatingBodies([body_1, body_2, body_3])'
-    # assert body_1 in coll.subbodies
-    # assert body_2 in coll.subbodies
-    # assert body_3 in coll.subbodies
-    #
-    # assert coll.mesh.nb_vertices == coll.as_FloatingBody().mesh.nb_vertices == generate_sphere().mesh.nb_vertices*3
-    # assert coll.mesh.nb_faces == coll.as_FloatingBody().mesh.nb_faces == generate_sphere().mesh.nb_faces*3
-    #
-    # # Test the merging of identical vertices
-    # assert (generate_sphere() + generate_sphere()).as_FloatingBody().mesh.nb_vertices == generate_sphere().mesh.nb_vertices
+def test_rectangle_generation():
+    rec = Rectangle(size=(10, 10), resolution=(5, 2), clever=False, center=(0, 0, -5), name="test")
+    assert rec.name == "test"
+    assert isinstance(rec.mesh, Mesh)
+    assert rec.mesh.name == "test_mesh"
+    assert np.allclose(rec.size, np.array([10.0, 10.0]))
+    assert np.allclose(rec.center, np.array([0, 0, -5.0]))
+    assert rec.mesh.nb_faces == 10
+    assert rec.mesh.nb_vertices == 18
+    assert rec.area == 100
 
-#
-# def test_symmetric_bodies():
-#     half_sphere = generate_half_sphere(nphi=5)
-#     half_sphere.name = 'half_sphere'
-#     full_sphere = ReflectionSymmetry(half_sphere, xOz_Plane)
-#     assert isinstance(full_sphere, CollectionOfFloatingBodies)
-#     assert half_sphere in full_sphere.subbodies
-#     assert full_sphere.as_FloatingBody().mesh.nb_vertices == generate_sphere(nphi=10).mesh.nb_vertices
-#
-#     other_sphere = generate_sphere(z0=-5.0)
-#     coll = full_sphere + other_sphere
-#     assert full_sphere in coll.subbodies
+    assert np.all(rec.mesh.vertices[:, 0:2] <= 5.0)
+    assert np.all(rec.mesh.vertices[:, 0:2] >= -5.0)
+    assert np.all(rec.mesh.vertices[:, 2] <= 0.0)
+    assert np.all(rec.mesh.vertices[:, 2] >= -10.0)
 
+    # rec.show()
+
+    rec2 = Rectangle(size=(10, 10), resolution=(5, 2), clever=True, center=(0, 0, -5), name="clever_test")
+    assert isinstance(rec2.mesh, TranslationalSymmetry)
+    assert rec2.mesh.nb_submeshes == 5
+    assert rec2.mesh.nb_faces == 10
+
+    merged_mesh = rec2.mesh.merge()
+    assert merged_mesh.nb_vertices == 18
+    assert merged_mesh.nb_faces == 10
+
+
+def test_parallelepiped_generation():
+    para = OpenRectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
+                                         resolution=(5, 2, 3),
+                                         clever=False, name="test")
+    assert para.name == "test"
+    assert isinstance(para.mesh, Mesh)
+    assert para.mesh.name == "test_mesh"
+    assert para.mesh.nb_faces == 42
+
+    assert np.isclose(np.abs(para.mesh.vertices[:, 0]).max(), 2.5)
+    assert np.isclose(np.abs(para.mesh.vertices[:, 1]).max(), 0.5)
+    assert np.all(para.mesh.vertices[:, 2] <= 0.0)
+    assert np.all(para.mesh.vertices[:, 2] >= -3.0)
+
+    clever_para = OpenRectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
+                                                resolution=(5, 2, 3),
+                                                clever=True, name="clever_test")
+
+    assert clever_para.mesh.nb_faces == 42
+    assert isinstance(clever_para.mesh, CollectionOfMeshes)
+    assert any(isinstance(mesh, TranslationalSymmetry)for mesh in clever_para.mesh.submeshes)
+
+    full_para = RectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
+                                          resolution=(5, 2, 3),
+                                          clever=False, name="full_test")
+    assert full_para.mesh.nb_faces == 62
+    # full_para.show()
+
+    clever_full_para = RectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
+                                                 resolution=(5, 2, 3),
+                                                 clever=True, name="clever_full_test")
+    assert clever_full_para.mesh.nb_faces == 62
+    # clever_full_para.show()
