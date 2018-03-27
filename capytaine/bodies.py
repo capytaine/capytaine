@@ -11,6 +11,7 @@ import copy
 from itertools import chain, accumulate
 
 import numpy as np
+# from numpy.linalg import norm
 
 from meshmagick.mesh import Mesh
 from meshmagick.mmio import load_mesh
@@ -181,7 +182,9 @@ class FloatingBody:
         assert axis_point.shape == (3,)
 
         motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
-        motion[motion != 0] /= np.linalg.norm(motion[motion != 0])  # Normalize
+        # for face_motion in motion:
+        #     if norm(face_motion) > 0.0:
+        #         face_motion /= norm(face_motion)
         dof = np.sum(motion * self.mesh.faces_normals, axis=1)
 
         self.dofs[name] = dof

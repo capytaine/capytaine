@@ -30,26 +30,20 @@ def solve_flap(clever=True, resolution=2):
     T_range, _, _ = np.loadtxt(os.path.join(os.path.dirname(__file__), "data/flap_mu_nu.tsv")).T
 
     depth = 10.9
+    hinge_position = -9.4
 
     # Create mesh
-    if clever:
-        # Use prismatic shape to speed up computations.
-        flap = generate_clever_open_rectangular_parallelepiped(
-            height=depth, width=3.0, thickness=0.001,
-            nh=int(10*resolution), nw=int(3*resolution))
-    else:
-        # Do not use prismatic shape to speed up computations.
-        flap = generate_open_rectangular_parallelepiped(
-            height=depth, width=3.0, thickness=0.001,
-            nh=int(10*resolution), nw=int(3*resolution))
-
-    flap.translate_z(-depth)
+    flap = OpenRectangularParallelepiped(
+        size=(3.0, 0.1, depth),
+        resolution=(int(3*resolution), 0, int(10*resolution)),
+        center=(0, 0, -depth/2),
+        clever=clever)
 
     # Set oscillation degree of freedom
-    # The upper part of the flap rotation around an horizontal axis.
+    # The upper part of the flap rotates around an horizontal axis.
     # The lower part is fixed.
-    flap.add_rotation_dof(axis_direction=(0, 1, 0), axis_point=(0, 0, -9.4), name="Oscillation")
-    flap.dofs["Oscillation"][flap.mesh.faces_centers[:, 2] < -9.4] = 0.0
+    flap.add_rotation_dof(axis_direction=(1, 0, 0), axis_point=(0, 0, hinge_position), name="Oscillation")
+    flap.dofs["Oscillation"][flap.mesh.faces_centers[:, 2] < hinge_position] = 0.0
 
     # Set up problems and initialise solver
     problems = [RadiationProblem(body=flap, omega=omega, radiating_dof="Oscillation", sea_bottom=-depth) for omega in 2*np.pi/T_range]
@@ -99,7 +93,7 @@ def plot_flap_results():
 
 
 if __name__ == "__main__":
-    resolution = 2
+    resolution = 3
     clever = True
 
     import logging
@@ -117,7 +111,7 @@ if __name__ == "__main__":
         LOG.warning(f"Overwriting {result_file_path}")
 
     start_time = datetime.now()
-    dataset = solve_flap(resolution, clever)
+    dataset = solve_flap(resolution=resolution, clever=clever)
     dataset.to_netcdf(result_file_path)
     end_time = datetime.now()
     LOG.info(f"Duration: {end_time - start_time}")
