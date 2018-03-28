@@ -127,7 +127,7 @@ class FloatingBody:
         """Number of degrees of freedom."""
         return len(self.dofs)
 
-    def add_translation_dof(self, direction=None, name=None):
+    def add_translation_dof(self, direction=None, name=None, amplitude=1.0):
         """Add a new translation dof (in place).
         If no direction is given, the code tries to infer it from the name.
 
@@ -137,6 +137,8 @@ class FloatingBody:
             the direction of the translation
         name : str, optional
             a name for the degree of freedom
+        amplitude : float, optional
+            amplitude of the dof (default: 1.0 m/s)
         """
         if direction is None:
             if name is not None and name.lower() in TRANSLATION_DOFS_DIRECTIONS:
@@ -150,10 +152,11 @@ class FloatingBody:
         direction = np.asarray(direction)
         assert direction.shape == (3,)
 
-        self.dofs[name] = self.mesh.faces_normals @ direction
+        self.dofs[name] = amplitude * self.mesh.faces_normals @ direction
 
     def add_rotation_dof(self, axis_point=np.array((0.0, 0.0, 0.0)),
-                         axis_direction=None, name=None):
+                         axis_direction=None, name=None,
+                         amplitude=1.0):
         """Add a new rotation dof (in place).
         If no axis direction is given, the code tries to infer it from the name.
 
@@ -166,6 +169,8 @@ class FloatingBody:
             TODO: Use Axis class?
         name : str, optional
             a name for the degree of freedom
+        amplitude : float, optional
+            amplitude of the dof (default: 1.0)
         """
         if axis_direction is None:
             if name is not None and name.lower() in ROTATION_DOFS_AXIS:
@@ -182,12 +187,9 @@ class FloatingBody:
         assert axis_point.shape == (3,)
 
         motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
-        # for face_motion in motion:
-        #     if norm(face_motion) > 0.0:
-        #         face_motion /= norm(face_motion)
         dof = np.sum(motion * self.mesh.faces_normals, axis=1)
 
-        self.dofs[name] = dof
+        self.dofs[name] = amplitude * dof
 
     ###################
     # Transformations #
