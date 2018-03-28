@@ -46,7 +46,7 @@ class Rectangle(FloatingBody):
         assert len(center) == 3
 
         assert len(resolution) == 2
-        assert all([isinstance(i, int) for i in resolution])
+        assert all([i == int(i) for i in resolution])
 
         self.size = np.asarray(size, dtype=np.float)
         width, height = self.size
@@ -110,7 +110,7 @@ class OpenRectangularParallelepiped(FloatingBody):
         assert len(center) == 3
 
         assert len(resolution) == 3
-        assert all([isinstance(i, int) for i in resolution])
+        assert all([i == int(i) for i in resolution])
 
         self.size = np.asarray(size, dtype=np.float)
         self.center = np.asarray(center, dtype=np.float)
@@ -176,7 +176,7 @@ class RectangularParallelepiped(FloatingBody):
         assert len(center) == 3
 
         assert len(resolution) == 3
-        assert all([isinstance(i, int) for i in resolution])
+        assert all([i == int(i) for i in resolution])
 
         self.size = np.asarray(size, dtype=np.float)
         self.center = np.asarray(center, dtype=np.float)
