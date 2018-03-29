@@ -98,10 +98,11 @@ class FloatingBody:
         return FloatingBody.join_bodies([self, body_to_add])
 
     @staticmethod
-    def join_bodies(bodies) -> 'FloatingBody':
+    def join_bodies(bodies, name=None) -> 'FloatingBody':
         meshes = CollectionOfMeshes([body.mesh for body in bodies])
         dofs = FloatingBody.combine_dofs(bodies)
-        name = name="+".join(body.name for body in bodies)
+        if name is None:
+            name = name="+".join(body.name for body in bodies)
         return FloatingBody(mesh=meshes, dofs=dofs, name=name)
 
     @staticmethod
@@ -235,7 +236,7 @@ class FloatingBody:
         else:
             return new_body
 
-    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
+    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty, name=None):
         """Return a body for which the parts of the mesh above the free surface or below the sea
         bottom have been removed.
         Dofs are lost in the process.
@@ -254,8 +255,11 @@ class FloatingBody:
                                                    scalar=-sea_bottom)).clipped_mesh
 
         clipped_mesh.remove_unused_vertices()
-        LOG.info(f"Clip floating body {self.name}.")
-        return FloatingBody(clipped_mesh, name=f"{self.name}_clipped")
+        if name is None:
+            name = f"{self.name}_clipped"
+        LOG.info(f"Clip floating body {self.name} to create {name}.")
+
+        return FloatingBody(clipped_mesh, name=name)
 
     def mirror(self, *args):
         return self.mesh.mirror(*args)
