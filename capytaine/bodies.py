@@ -20,6 +20,7 @@ from meshmagick.geometry import xOz_Plane, Plane
 
 from capytaine.meshes_collection import CollectionOfMeshes
 from capytaine.symmetries import ReflectionSymmetry
+from capytaine.tools.VTK_mesh_viewer import FloatingBodyViewer
 
 LOG = logging.getLogger(__name__)
 
@@ -64,6 +65,8 @@ class FloatingBody:
         self.mesh = mesh
         self.dofs = dofs
         self.name = name
+
+        self.motion = {}
 
         LOG.info(f"New floating body: {self.name}.")
 
@@ -155,6 +158,10 @@ class FloatingBody:
 
         self.dofs[name] = amplitude * self.mesh.faces_normals @ direction
 
+        motion = np.empty((self.mesh.nb_faces, 3))
+        motion[:, :] = direction
+        self.motion[name] = motion
+
     def add_rotation_dof(self, axis_point=np.array((0.0, 0.0, 0.0)),
                          axis_direction=None, name=None,
                          amplitude=1.0):
@@ -190,6 +197,7 @@ class FloatingBody:
         motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
         dof = np.sum(motion * self.mesh.faces_normals, axis=1)
 
+        self.motion[name] = motion
         self.dofs[name] = amplitude * dof
 
     ###################
@@ -262,6 +270,7 @@ class FloatingBody:
         return FloatingBody(clipped_mesh, name=name)
 
     def mirror(self, *args):
+        # TODO: Also mirror dofs
         return self.mesh.mirror(*args)
 
     def translate_x(self, *args):
@@ -292,9 +301,23 @@ class FloatingBody:
         # TODO: Also rotate dofs
         return self.mesh.rotate(*args)
 
-    def show(self):
+    def show(self, dof=None):
         # TODO: Also show dofs
-        return self.mesh.show()
+        import vtk
+        vtk_polydata = self.mesh._vtk_polydata()
+
+        if dof is not None:
+            vtk_data_array = vtk.vtkFloatArray()
+            vtk_data_array.SetNumberOfComponents(3)
+            vtk_data_array.SetNumberOfTuples(self.mesh.nb_faces)
+            for i, vector in enumerate(self.motion[dof]):
+                vtk_data_array.SetTuple3(i, *vector)
+            vtk_polydata.GetCellData().SetVectors(vtk_data_array)
+
+        viewer = FloatingBodyViewer()
+        viewer.add_polydata(vtk_polydata)
+        viewer.show()
+        viewer.finalize()
 
     def show_matplotlib(self, *args, **kwargs):
         return self.mesh.show_matplotlib(*args, **kwargs)
