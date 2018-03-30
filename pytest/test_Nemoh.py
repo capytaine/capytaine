@@ -135,9 +135,9 @@ def test_multibody():
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
-    cylinder = HorizontalCylinder(length=5.0, radius=1.0, center=(-2.5, 0, 0),
+    cylinder = HorizontalCylinder(length=5.0, radius=1.0,
                                   nx=10, nr=1, ntheta=10)
-    cylinder.translate([-1.0, 3.0, -3.0])
+    cylinder.translate([+1.5, 3.0, -3.0])
     cylinder.add_translation_dof(direction=(1, 0, 0), name="Surge")
     cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
