@@ -210,11 +210,11 @@ def block_circulant_identity(nb_blocks, block_size, **kwargs):
 
 def identity_matrix_of_same_shape_as(matrix):
     if isinstance(matrix, BlockCirculantMatrix):
-        return block_circulant_identity(matrix.nb_blocks, matrix.block_size, dtype=np.float32)
+        return block_circulant_identity(matrix.nb_blocks, matrix.block_size, dtype=np.float)
     elif isinstance(matrix, BlockToeplitzMatrix):
-        return block_Toeplitz_identity(matrix.nb_blocks, matrix.block_size, dtype=np.float32)
+        return block_Toeplitz_identity(matrix.nb_blocks, matrix.block_size, dtype=np.float)
     else:
-        return np.identity(matrix.shape[0], dtype=np.float32)
+        return np.identity(matrix.shape[0], dtype=np.float)
 
 
 def solve(A, b):

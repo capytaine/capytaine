@@ -70,7 +70,7 @@ class Rectangle(FloatingBody):
         X = np.linspace(-width/2, width/2, nw+1)
         Z = np.linspace(-height/2, height/2, nh+1)
 
-        nodes = np.zeros(((nw+1)*(nh+1), 3), dtype=np.float32)
+        nodes = np.zeros(((nw+1)*(nh+1), 3), dtype=np.float)
         panels = np.zeros((nw*nh, 4), dtype=np.int)
 
         for i, (x, y, z) in enumerate(product(X, [0.0], Z)):

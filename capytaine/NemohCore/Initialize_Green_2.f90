@@ -1,20 +1,19 @@
 MODULE Initialize_Green_2
 
+  USE PRECISION
+
   IMPLICIT NONE
 
   PUBLIC :: GG
   PUBLIC :: INITIALIZE_GREEN
   PUBLIC :: FF
 
-  PUBLIC :: LISC   ! Initialization of AMBDA and AR
-  PUBLIC :: EXPORS ! Called by LISC
-  PUBLIC :: MCAS   ! Called by EXPORS
-  PUBLIC :: HOUSRS ! Called by EXPORS and MCAS
-  PUBLIC :: SPRBM  ! Called by EXPORS
-  PUBLIC :: SPQFB  ! Called by SPRBM
-
-  REAL, PARAMETER :: PI = 3.141592653588979 ! π
-  COMPLEX, PARAMETER :: II = (0, 1)         ! Imaginary unit
+  ! PUBLIC :: LISC   ! Initialization of AMBDA and AR
+  ! PUBLIC :: EXPORS ! Called by LISC
+  ! PUBLIC :: MCAS   ! Called by EXPORS
+  ! PUBLIC :: HOUSRS ! Called by EXPORS and MCAS
+  ! PUBLIC :: SPRBM  ! Called by EXPORS
+  ! PUBLIC :: SPQFB  ! Called by SPRBM
 
 CONTAINS
 
@@ -132,7 +131,7 @@ CONTAINS
           IF (REAL(ZETA) <= -30.0) THEN
             CEX = (0.0, 0.0)
           ELSE
-            CEX = CEXP(ZETA)
+            CEX = EXP(ZETA)
           ENDIF
           C1 = CQT(K)*(GG(ZETA, CEX) - 1.0/ZETA)
           C2 = CQT(K)*CEX

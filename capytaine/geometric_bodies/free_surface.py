@@ -37,7 +37,7 @@ class FreeSurface():
         self.mesh = self._generate_mesh()
 
     def _generate_mesh(self):
-        nodes = np.zeros(((self.nx+1)*(self.ny+1), 3), dtype=np.float32)
+        nodes = np.zeros(((self.nx+1)*(self.ny+1), 3), dtype=np.float)
         panels = np.zeros((self.nx*self.ny, 4), dtype=np.int)
 
         X = np.linspace(*self.x_range, self.nx+1)

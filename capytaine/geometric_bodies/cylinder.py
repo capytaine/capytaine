@@ -43,7 +43,7 @@ class Disk(FloatingBody):
         theta = np.linspace(-theta_max, theta_max, ntheta+1)
         R = np.linspace(0.0, self.radius, nr+1)
 
-        nodes = np.zeros(((ntheta+1)*(nr+1), 3), dtype=np.float32)
+        nodes = np.zeros(((ntheta+1)*(nr+1), 3), dtype=np.float)
 
         for i, (r, t) in enumerate(product(R, theta)):
             y = +r * np.sin(t)
@@ -132,7 +132,7 @@ class HorizontalCylinder(FloatingBody):
         X = np.array([0, self.length/nx])
 
         # Nodes
-        nodes = np.zeros(((ntheta//2+1)*2, 3), dtype=np.float32)
+        nodes = np.zeros(((ntheta//2+1)*2, 3), dtype=np.float)
 
         for i, (t, x) in enumerate(product(theta, X)):
             y = + self.radius * np.sin(t)

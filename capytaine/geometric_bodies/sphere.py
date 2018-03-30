@@ -72,7 +72,7 @@ class Sphere(FloatingBody):
         phi = np.linspace(-np.pi, np.pi, nphi+1)
 
         # Nodes
-        nodes = np.zeros(((ntheta+1)*(nphi+1), 3), dtype=np.float32)
+        nodes = np.zeros(((ntheta+1)*(nphi+1), 3), dtype=np.float)
 
         for i, (t, p) in enumerate(product(theta, phi)):
             # The sign of theta below is a trick to get the correct orientation of the normal vectors...
@@ -108,7 +108,7 @@ class Sphere(FloatingBody):
 
         theta = np.linspace(0.0, theta_max, ntheta+1)
 
-        circle_profile = np.zeros((ntheta+1, 3), dtype=np.float32)
+        circle_profile = np.zeros((ntheta+1, 3), dtype=np.float)
         circle_profile[:, 0] = np.sin(theta)
         circle_profile[:, 2] = -np.cos(theta)
         circle_profile *= self.radius

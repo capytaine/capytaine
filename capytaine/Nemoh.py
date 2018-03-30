@@ -111,12 +111,12 @@ class Nemoh:
                 LOG.warning(f"No suitable exponential decomposition has been found for {pb}.")
 
             # Convert to precision wanted by Fortran code.
-            a = a.astype(np.float32)
-            lamda = lamda.astype(np.float32)
+            # a = a.astype(np.float)
+            # lamda = lamda.astype(np.float)
 
-            # Temporary trick: expand arrays to fix size hard-coded in Fortran module.
-            a = np.r_[a, np.zeros(31-len(a), dtype=np.float32)]
-            lamda = np.r_[lamda, np.zeros(31-len(lamda), dtype=np.float32)]
+            # Temporary trick: expand arrays to fixed size hard-coded in Fortran module.
+            a = np.r_[a, np.zeros(31-len(a), dtype=np.float64)]
+            lamda = np.r_[lamda, np.zeros(31-len(lamda), dtype=np.float64)]
 
             self.exponential_decompositions[(pb.dimensionless_omega, pb.dimensionless_wavenumber)] = (a, lamda)
 
@@ -344,8 +344,8 @@ class Nemoh:
                       f"\tComputing matrix 2 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
                       f"for depth={depth:.2e} and k={wavenumber:.2e}")
             if depth == np.infty:
-                lamda_exp = np.empty(31, dtype=np.float32)
-                a_exp = np.empty(31, dtype=np.float32)
+                lamda_exp = np.empty(31, dtype=np.float64)
+                a_exp = np.empty(31, dtype=np.float64)
                 n_exp = 31
 
                 S2, V2 = _Green.green_2.build_matrix_2(
