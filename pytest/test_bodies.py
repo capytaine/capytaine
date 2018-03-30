@@ -70,7 +70,7 @@ def test_dof():
     assert body.dofs["2"] == np.array([1.0])
 
     body.add_rotation_dof(axis_direction=(0.0, 0.0, 1.0), name="3")
-    assert body.dofs["3"] == np.array([1.0])
+    assert body.dofs["3"] == np.array([0.5])
 
     body.add_rotation_dof(axis_point=(0.5, 0, 0), axis_direction=(0.0, 0.0, 1.0), name="4")
     assert body.dofs["4"] == np.array([0.0])
