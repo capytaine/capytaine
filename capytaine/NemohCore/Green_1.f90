@@ -1,8 +1,10 @@
 MODULE Green_1
 
+  USE PRECISION
+
   IMPLICIT NONE
 
-  REAL, PARAMETER :: PI = 3.141592653588979 ! π
+  REAL(KIND=PRE), PARAMETER :: PI = 3.141592653588979 ! π
 
   ! The index of the following node when going around a face.
   INTEGER, PRIVATE, DIMENSION(4), PARAMETER :: NEXT_NODE = (/ 2, 3 ,4 ,1 /)
@@ -20,22 +22,22 @@ CONTAINS
     ! in G. Delhommeau thesis (referenced below as [Del]).
 
     ! Inputs
-    REAL, DIMENSION(3),    INTENT(IN) :: M
-    REAL, DIMENSION(4, 3), INTENT(IN) :: Face_nodes
-    REAL, DIMENSION(3),    INTENT(IN) :: Face_center, Face_Normal
-    REAL,                  INTENT(IN) :: Face_area, Face_radius
+    REAL(KIND=PRE), DIMENSION(3),    INTENT(IN) :: M
+    REAL(KIND=PRE), DIMENSION(4, 3), INTENT(IN) :: Face_nodes
+    REAL(KIND=PRE), DIMENSION(3),    INTENT(IN) :: Face_center, Face_Normal
+    REAL(KIND=PRE),                  INTENT(IN) :: Face_area, Face_radius
 
     ! Outputs
-    REAL,               INTENT(OUT) :: S0
-    REAL, DIMENSION(3), INTENT(OUT) :: VS0
+    REAL(KIND=PRE),               INTENT(OUT) :: S0
+    REAL(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VS0
 
     ! Local variables
     INTEGER               :: L
-    REAL                  :: RO, GZ, DK, GY
-    REAL, DIMENSION(4)    :: RR
-    REAL, DIMENSION(3, 4) :: DRX
-    REAL                  :: ANT, DNT, ANL, DNL, ALDEN, AT
-    REAL, DIMENSION(3)    :: PJ, GYX, ANTX, ANLX, DNTX
+    REAL(KIND=PRE)                  :: RO, GZ, DK, GY
+    REAL(KIND=PRE), DIMENSION(4)    :: RR
+    REAL(KIND=PRE), DIMENSION(3, 4) :: DRX
+    REAL(KIND=PRE)                  :: ANT, DNT, ANL, DNL, ALDEN, AT
+    REAL(KIND=PRE), DIMENSION(3)    :: PJ, GYX, ANTX, ANLX, DNTX
 
     RO = NORM2(M(1:3) - Face_center(1:3)) ! Distance from center of mass of the face to M.
 
@@ -53,12 +55,12 @@ CONTAINS
         DRX(:, L) = (M(1:3) - Face_nodes(L, 1:3))/RR(L)  ! Normed vector from vertices of Face to M.
       END DO
 
-      S0 = 0.0
-      VS0(:) = 0.0
+      S0 = ZERO
+      VS0(:) = ZERO
 
       DO L = 1, 4
         DK = NORM2(Face_nodes(NEXT_NODE(L), :) - Face_nodes(L, :))    ! Distance between two consecutive points, called d_k in [Del]
-        IF (DK >= 1E-3*Face_radius) THEN
+        IF (DK >= REAL(1e-3, PRE)*Face_radius) THEN
           PJ(:) = (Face_nodes(NEXT_NODE(L), :) - Face_nodes(L, :))/DK ! Normed vector from one corner to the next
           ! Called (a,b,c) in [Del]
           GYX(1) = Face_normal(2)*PJ(3) - Face_normal(3)*PJ(2)
@@ -67,12 +69,12 @@ CONTAINS
           GY = DOT_PRODUCT(M - Face_nodes(L, :), GYX) ! Called Y_k in  [Del]
 
           ANT = 2*GY*DK                                                  ! Called N^t_k in [Del]
-          DNT = (RR(NEXT_NODE(L))+RR(L))**2 - DK*DK + 2.0*ABS(GZ)*(RR(NEXT_NODE(L))+RR(L)) ! Called D^t_k in [Del]
+          DNT = (RR(NEXT_NODE(L))+RR(L))**2 - DK*DK + 2*ABS(GZ)*(RR(NEXT_NODE(L))+RR(L)) ! Called D^t_k in [Del]
           ANL = RR(NEXT_NODE(L)) + RR(L) + DK                                     ! Called N^l_k in [Del]
           DNL = RR(NEXT_NODE(L)) + RR(L) - DK                                     ! Called D^l_k in [Del]
-          ALDEN = ALOG(ANL/DNL)
+          ALDEN = LOG(ANL/DNL)
 
-          IF (ABS(GZ) >= 1.E-4*Face_radius) THEN
+          IF (ABS(GZ) >= REAL(1e-4, PRE)*Face_radius) THEN
             AT = ATAN(ANT/DNT)
           ELSE
             AT = 0.
@@ -82,12 +84,12 @@ CONTAINS
 
           ANTX(:) = 2*DK*GYX(:)                                ! Called N^t_k_{x,y,z} in [Del]
           DNTX(:) = 2*(RR(NEXT_NODE(L)) + RR(L) + ABS(GZ))*ANLX(:) &
-            + 2*SIGN(1.0, GZ)*(RR(NEXT_NODE(L)) + RR(L))*Face_normal(:) ! Called D^t_k_{x,y,z} in [Del]
+            + 2*SIGN(ONE, GZ)*(RR(NEXT_NODE(L)) + RR(L))*Face_normal(:) ! Called D^t_k_{x,y,z} in [Del]
 
           S0 = S0 + GY*ALDEN - 2*AT*ABS(GZ)
 
           VS0(:) = VS0(:) + ALDEN*GYX(:)     &
-            - 2*SIGN(1.0, GZ)*AT*Face_normal(:)   &
+            - 2*SIGN(ONE, GZ)*AT*Face_normal(:)   &
             + GY*(DNL-ANL)/(ANL*DNL)*ANLX(:) &
             - 2*ABS(GZ)*(ANTX(:)*DNT - DNTX(:)*ANT)/(ANT*ANT+DNT*DNT)
         END IF
@@ -138,19 +140,19 @@ CONTAINS
       S, V)
 
     INTEGER,                              INTENT(IN) :: nb_faces_1, nb_faces_2, nb_vertices_2
-    REAL,    DIMENSION(nb_faces_1, 3),    INTENT(IN) :: centers_1, normals_1
-    REAL,    DIMENSION(nb_vertices_2, 3), INTENT(IN) :: vertices_2
+    REAL(KIND=PRE),    DIMENSION(nb_faces_1, 3),    INTENT(IN) :: centers_1, normals_1
+    REAL(KIND=PRE),    DIMENSION(nb_vertices_2, 3), INTENT(IN) :: vertices_2
     INTEGER, DIMENSION(nb_faces_2, 4),    INTENT(IN) :: faces_2
-    REAL,    DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2, normals_2
-    REAL,    DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2, radiuses_2
+    REAL(KIND=PRE),    DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2, normals_2
+    REAL(KIND=PRE),    DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2, radiuses_2
 
-    REAL, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
-    REAL, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
+    REAL(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
+    REAL(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
 
     ! Local variables
     INTEGER :: I, J
-    REAL                  :: SP1
-    REAL, DIMENSION(3)    :: VSP1
+    REAL(KIND=PRE)                  :: SP1
+    REAL(KIND=PRE), DIMENSION(3)    :: VSP1
 
     DO I = 1, nb_faces_1
       DO J = 1, nb_faces_2

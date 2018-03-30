@@ -6,6 +6,7 @@ from numpy.distutils.core import Extension, setup
 Green = Extension(
     name="capytaine._Green",
     sources=[
+        "capytaine/NemohCore/precision.f90",
         "capytaine/NemohCore/Green_1.f90",
         "capytaine/NemohCore/Initialize_Green_2.f90",
         "capytaine/NemohCore/Green_2.f90",
