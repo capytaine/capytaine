@@ -72,8 +72,9 @@ class Nemoh:
 
     def solve_all(self, problems, processes=1):
         from multiprocessing import Pool
-        pool = Pool(processes=processes)
-        return pool.map(self.solve, problems)
+        with Pool(processes=processes) as pool:
+            results = pool.map(self.solve, problems)
+        return results
 
     ####################
     #  Initialization  #
