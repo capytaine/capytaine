@@ -33,11 +33,12 @@ if __name__ == "__main__":
           author='Matthieu Ancellin',
           author_email='matthieu.ancellin@ucd.ie',
           license='GPLv3',
-          packages=['capytaine'],
+          packages=['capytaine', 'capytaine.tools', 'capytaine.geometric_bodies'],
           install_requires=[
               'attrs',
               'numpy',
               'scipy',
+              'xarray',
               'meshmagick',
           ],
           entry_points={
