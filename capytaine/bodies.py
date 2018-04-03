@@ -20,7 +20,7 @@ from meshmagick.geometry import xOz_Plane, Plane
 
 from capytaine.meshes_collection import CollectionOfMeshes
 from capytaine.symmetries import ReflectionSymmetry
-from capytaine.tools.VTK_mesh_viewer import FloatingBodyViewer
+from capytaine.tools.vtk.mesh_viewer import FloatingBodyViewer
 
 LOG = logging.getLogger(__name__)
 

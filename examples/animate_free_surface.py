@@ -37,7 +37,7 @@ if isinstance(problem, DiffractionProblem):
 
 # Animation
 if "vtk" in sys.modules:
-    from capytaine.tools.VTK_free_surface_animation import Animation
+    from capytaine.tools.vtk.free_surface_animation import Animation
     Animation(result, fs, fs.elevation_at_nodes(fs_elevation)).run()
 
 else:

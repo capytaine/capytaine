@@ -13,6 +13,7 @@ import vtk
 from capytaine.bodies import TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
 from capytaine.results import RadiationResult, LinearPotentialFlowResult
 from capytaine.geometric_bodies.free_surface import FreeSurface
+from capytaine.tools.vtk import compute_node_data
 
 
 class Animation:
@@ -110,15 +111,18 @@ class Animation:
                 base_body_polydata = self.body_actor.GetMapper().GetInput()
                 self.body_polydatas = []
                 for i_frame in range(self.frames_per_period):
-                    complex_deformation = result.body.motion[result.radiating_dof]
-                    current_deformation = np.abs(complex_deformation) * np.cos(np.angle(complex_deformation)
-                                                                                     - 2*np.pi*i_frame/self.frames_per_period)
+                    face_deformation = result.body.motion[result.radiating_dof]
+
+                    complex_node_deformation = compute_node_data(result.body.mesh, face_deformation)
+                    current_deformation = np.abs(complex_node_deformation) * np.cos(np.angle(complex_node_deformation)
+                                                                                    - 2*np.pi*i_frame/self.frames_per_period)
                     new_polydata = vtk.vtkPolyData()
                     new_polydata.DeepCopy(base_body_polydata)
                     points = new_polydata.GetPoints()
-                    for j in range(len(complex_deformation)):
+
+                    for j in range(len(complex_node_deformation)):
                         point = points.GetPoint(j)
-                        point = np.asarray(point)[0:3] + current_deformation[j] * result.body.mesh.faces_normals[j, 0:3]
+                        point = np.asarray(point)[0:3] + current_deformation[j, 0:3]
                         points.SetPoint(j, tuple(point))
                     self.body_polydatas.append(new_polydata)
 

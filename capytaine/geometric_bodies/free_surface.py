@@ -71,14 +71,8 @@ class FreeSurface():
     def elevation_at_nodes(self, fs_faces: np.ndarray) -> np.ndarray:
         """From a free surface elevation computed at the center of the faces of the mesh,
         return a free surface elevation computed on the nodes of the mesh."""
-        z_nodes = np.zeros((self.mesh.vertices.shape[0]), dtype=np.complex)
-        faces_near_nodes = np.zeros((self.mesh.vertices.shape[0]), dtype=np.int)
-        for i, vertices in enumerate(self.mesh.faces):
-            for vertex in vertices:
-                faces_near_nodes[vertex] += 1
-                z_nodes[vertex] += fs_faces[i]
-        z_nodes /= faces_near_nodes
-        return z_nodes
+        from capytaine.tools.vtk import compute_node_data
+        return compute_node_data(self.mesh, fs_faces)
 
     def incoming_waves(self, problem: DiffractionProblem) -> np.ndarray:
         """Free surface elevation of incoming wave for diffraction problem."""
