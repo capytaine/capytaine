@@ -178,7 +178,8 @@ class RadiationProblem(LinearPotentialFlowProblem):
     def __attrs_post_init__(self):
         """Set the boundary condition"""
         if self.radiating_dof is None:
-            self.boundary_condition = self.body.dofs[next(iter(self.body.dofs))]
+            self.radiating_dof = next(iter(self.body.dofs))
+            self.boundary_condition = self.body.dofs[self.radiating_dof]
         elif self.radiating_dof in self.body.dofs:
             self.boundary_condition = self.body.dofs[self.radiating_dof]
         else:
@@ -186,9 +187,6 @@ class RadiationProblem(LinearPotentialFlowProblem):
                       f"the degrees of freedom of the body.\n"
                       f"The dofs of the body are {list(self.body.dofs.keys)}")
             raise ValueError("Unrecognized degree of freedom name.")
-
-            # return np.array(added_masses).reshape((problem.body.nb_dofs, problem.body.nb_dofs)), \
-            #        np.array(added_dampings).reshape((problem.body.nb_dofs, problem.body.nb_dofs))
 
     def make_results_container(self):
         return RadiationResult(self)
