@@ -23,6 +23,7 @@ class Animation:
                  complex_node_elevation=None,
                  fps: int = 24,
                  display_body=None,
+                 display_dof=None,
                  ):
 
         if complex_node_elevation is None:
@@ -32,9 +33,8 @@ class Animation:
         # Create an object for the floating body
         mapper = vtk.vtkPolyDataMapper()
         if display_body is None:
-            mapper.SetInputData(result.body.mesh._vtk_polydata())
-        else:
-            mapper.SetInputData(display_body.mesh._vtk_polydata())
+            display_body = result.body
+        mapper.SetInputData(display_body.mesh._vtk_polydata())
 
         self.body_actor = vtk.vtkActor()
         self.body_actor.GetProperty().SetColor((1, 1, 0))
@@ -87,8 +87,11 @@ class Animation:
 
         # Body polydata
         if isinstance(result, RadiationResult):
-            if result.radiating_dof.lower() in TRANSLATION_DOFS_DIRECTIONS:
-                direction = np.asarray(TRANSLATION_DOFS_DIRECTIONS[result.radiating_dof.lower()])
+            if display_dof is None:
+                display_dof = result.radiating_dof
+
+            if display_dof.lower() in TRANSLATION_DOFS_DIRECTIONS:
+                direction = np.asarray(TRANSLATION_DOFS_DIRECTIONS[display_dof.lower()])
                 def translation_motion(self, frame):
                     nonlocal direction
                     pos = np.asarray(self.body_actor.GetPosition())
@@ -97,8 +100,8 @@ class Animation:
                     self.body_actor.SetPosition(*pos)
                 self.update_body_position = translation_motion
 
-            elif result.radiating_dof.lower() in ROTATION_DOFS_AXIS:
-                direction = np.asarray(ROTATION_DOFS_AXIS[result.radiating_dof.lower()])
+            elif display_dof.lower() in ROTATION_DOFS_AXIS:
+                direction = np.asarray(ROTATION_DOFS_AXIS[display_dof.lower()])
                 def rotation_motion(self, frame):
                     nonlocal direction
                     pos = np.asarray(self.body_actor.GetOrientation())
@@ -110,10 +113,12 @@ class Animation:
             else:
                 base_body_polydata = self.body_actor.GetMapper().GetInput()
                 self.body_polydatas = []
-                for i_frame in range(self.frames_per_period):
-                    face_deformation = result.body.motion[result.radiating_dof]
 
-                    complex_node_deformation = compute_node_data(result.body.mesh, face_deformation)
+                face_deformation = display_body.motion[display_dof]
+
+                complex_node_deformation = compute_node_data(display_body.mesh, face_deformation)
+
+                for i_frame in range(self.frames_per_period):
                     current_deformation = np.abs(complex_node_deformation) * np.cos(np.angle(complex_node_deformation)
                                                                                     - 2*np.pi*i_frame/self.frames_per_period)
                     new_polydata = vtk.vtkPolyData()
