@@ -1,11 +1,11 @@
 MODULE Green_1
 
-  USE PRECISION
+  USE CONSTANTS
 
   IMPLICIT NONE
 
   ! The index of the following node when going around a face.
-  INTEGER, PRIVATE, DIMENSION(4), PARAMETER :: NEXT_NODE = (/ 2, 3 ,4 ,1 /)
+  INTEGER, PRIVATE, DIMENSION(4), PARAMETER :: NEXT_NODE = (/ 2, 3, 4, 1 /)
 
 CONTAINS
 
@@ -30,7 +30,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VS0
 
     ! Local variables
-    INTEGER               :: L
+    INTEGER                         :: L
     REAL(KIND=PRE)                  :: RO, GZ, DK, GY
     REAL(KIND=PRE), DIMENSION(4)    :: RR
     REAL(KIND=PRE), DIMENSION(3, 4) :: DRX

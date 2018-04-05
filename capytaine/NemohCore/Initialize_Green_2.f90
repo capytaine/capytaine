@@ -1,6 +1,6 @@
 MODULE Initialize_Green_2
 
-  USE PRECISION
+  USE CONSTANTS
 
   IMPLICIT NONE
 

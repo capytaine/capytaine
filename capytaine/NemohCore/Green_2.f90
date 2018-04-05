@@ -1,6 +1,6 @@
 MODULE Green_2
 
-  USE PRECISION
+  USE CONSTANTS
   USE Initialize_Green_2
   USE Green_1, ONLY: COMPUTE_ASYMPTOTIC_S0
 
