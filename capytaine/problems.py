@@ -179,9 +179,11 @@ class RadiationProblem(LinearPotentialFlowProblem):
         """Set the boundary condition"""
         if self.radiating_dof is None:
             self.radiating_dof = next(iter(self.body.dofs))
-            self.boundary_condition = self.body.dofs[self.radiating_dof]
+            dof = self.body.dofs[self.radiating_dof]
+            self.boundary_condition = np.sum(dof * self.body.mesh.faces_normals, axis=1)
         elif self.radiating_dof in self.body.dofs:
-            self.boundary_condition = self.body.dofs[self.radiating_dof]
+            dof = self.body.dofs[self.radiating_dof]
+            self.boundary_condition = np.sum(dof * self.body.mesh.faces_normals, axis=1)
         else:
             LOG.error(f"In {self}: the radiating degree of freedom {self.radiating_dof} is not one of"
                       f"the degrees of freedom of the body.\n"

@@ -97,7 +97,7 @@ class HorizontalCylinder(FloatingBody):
         """
         self.length = length
         self.radius = radius
-        self.center = np.asarray(center)
+        self.center = np.asarray(center, dtype=np.float)
 
         if name is None:
             name = f"cylinder_{next(Mesh._ids)}"

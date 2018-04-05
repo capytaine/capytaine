@@ -76,6 +76,7 @@ def Froude_Krylov_force(problem):
     pressure = -1j * problem.omega * problem.rho * Airy_wave_potential(problem.body.mesh.faces_centers, problem)
     forces = {}
     for dof in problem.influenced_dofs:
-        forces[dof] = pressure @ (problem.body.dofs[dof] * problem.body.mesh.faces_areas)
+        influenced_dof = np.sum(problem.body.dofs[dof] * problem.body.mesh.faces_normals, axis=1)
+        forces[dof] = pressure @ (influenced_dof * problem.body.mesh.faces_areas)
     return forces
 

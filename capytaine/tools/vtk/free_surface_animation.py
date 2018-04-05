@@ -114,7 +114,7 @@ class Animation:
                 base_body_polydata = self.body_actor.GetMapper().GetInput()
                 self.body_polydatas = []
 
-                face_deformation = display_body.motion[display_dof]
+                face_deformation = display_body.dofs[display_dof]
 
                 complex_node_deformation = compute_node_data(display_body.mesh, face_deformation)
 

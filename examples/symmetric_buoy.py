@@ -27,7 +27,7 @@ def shape(z):
 buoy = FloatingBody(AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, 30), nphi=40))
 # buoy.show()
 
-buoy.dofs["Heave"] = buoy.mesh.faces_normals @ (0, 0, 1)
+buoy.add_translation_dof(name="Heave")
 
 solver = Nemoh()
 

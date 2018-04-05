@@ -61,6 +61,7 @@ class Nemoh:
             result.potential = potential
 
         for influenced_dof_name, influenced_dof in problem.body.dofs.items():
+            influenced_dof = np.sum(influenced_dof * problem.body.mesh.faces_normals, axis=1)
             integrated_potential = - problem.rho * potential @ (influenced_dof * problem.body.mesh.faces_areas)
             result.store_force(influenced_dof_name, integrated_potential)
             # Depending of the type of problem, the force will be kept as a complex-valued Froude-Krylov force

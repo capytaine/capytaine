@@ -37,8 +37,8 @@ class FloatingBody:
         documentation of this class for more details) or as a CollectionOfMeshes from
         capytaine.meshes_collection. The latter is a tuple of meshes or of other collections.
 
-        The degrees of freedom (dofs) are stored as a dict associating a name to a 1 dimensional array
-        of length equal to the number of faces in the mesh.
+        The degrees of freedom (dofs) are stored as a dict associating a name to an array
+        of shape (nb_faces, 3) associating a vector to each face of the body.
 
         Parameters
         ----------
@@ -65,8 +65,6 @@ class FloatingBody:
         self.mesh = mesh
         self.dofs = dofs
         self.name = name
-
-        self.motion = {}
 
         LOG.info(f"New floating body: {self.name}.")
 
@@ -118,8 +116,9 @@ class FloatingBody:
             # nbf is the cumulative number of faces of the previous subbodies,
             # that is the offset of the indices of the faces of the current body.
             for name, dof in body.dofs.items():
-                dofs['_'.join([body.name, name])] = np.r_[np.zeros(nbf), dof,
-                                                          np.zeros(total_nb_faces - len(dof) - nbf)]
+                new_dof = np.zeros((total_nb_faces, 3))
+                new_dof[nbf:nbf+len(dof), :] = dof
+                dofs['_'.join([body.name, name])] = new_dof
         return dofs
 
     ##########
@@ -156,11 +155,9 @@ class FloatingBody:
         direction = np.asarray(direction)
         assert direction.shape == (3,)
 
-        self.dofs[name] = amplitude * self.mesh.faces_normals @ direction
-
         motion = np.empty((self.mesh.nb_faces, 3))
         motion[:, :] = direction
-        self.motion[name] = motion
+        self.dofs[name] = amplitude * motion
 
     def add_rotation_dof(self, axis_point=np.array((0.0, 0.0, 0.0)),
                          axis_direction=None, name=None,
@@ -195,10 +192,7 @@ class FloatingBody:
         assert axis_point.shape == (3,)
 
         motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
-        dof = np.sum(motion * self.mesh.faces_normals, axis=1)
-
-        self.motion[name] = motion
-        self.dofs[name] = amplitude * dof
+        self.dofs[name] = amplitude * motion
 
     ###################
     # Transformations #
@@ -237,7 +231,7 @@ class FloatingBody:
 
         new_body.dofs = {}
         for name, dof in self.dofs.items():
-            new_body.dofs[name] = dof[id_faces_to_extract]
+            new_body.dofs[name] = dof[id_faces_to_extract, :]
 
         if return_index:
             return new_body, id_v
@@ -274,15 +268,23 @@ class FloatingBody:
         return self.mesh.mirror(*args)
 
     def translate_x(self, *args):
+        if hasattr(self, 'center'):
+            self.center[0] += args[0]
         return self.mesh.translate_x(*args)
 
     def translate_y(self, *args):
+        if hasattr(self, 'center'):
+            self.center[1] += args[0]
         return self.mesh.translate_y(*args)
 
     def translate_z(self, *args):
+        if hasattr(self, 'center'):
+            self.center[2] += args[0]
         return self.mesh.translate_z(*args)
 
     def translate(self, *args):
+        if hasattr(self, 'center'):
+            self.center += args[0]
         return self.mesh.translate(*args)
 
     def rotate_x(self, *args):
