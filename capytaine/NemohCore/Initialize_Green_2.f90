@@ -20,6 +20,8 @@ CONTAINS
   COMPLEX FUNCTION GG(Z, CEX)
     ! Estimation of ∫_z^∞ exp(-t)/t dt
     ! See p.367 of G. Delhommeau thesis (referenced as [Del]).
+    !
+    ! TODO: Compute in double precision.
 
     COMPLEX, INTENT(IN) :: Z, CEX
     COMPLEX             :: Y
@@ -72,6 +74,7 @@ CONTAINS
     ! Initialize XR, XZ and APD.
     ! Those parameters are independent of the depth and the frequency.
     ! Thus, they are initialized only once at the beginning of the execution of the code.
+    ! TODO: Compute also in double precision.
 
     ! References:
     ! [1] Delhommeau, Amélioration des codes de calcul de diffraction-radiation, 2èmes journées de l'hydrodynamique, 1989
@@ -150,6 +153,7 @@ CONTAINS
 !-------------------------------------------------------------------------------!
 
   FUNCTION FF(XTT, AK, AM)
+    ! TODO: Compute also in double precision.
 
     ! Input
     REAL, INTENT(IN) :: XTT, AK, AM

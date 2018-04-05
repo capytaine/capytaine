@@ -15,12 +15,13 @@ CONTAINS
      XR, XZ, APD,                              &
      PD1X, PD2X, PD1Z, PD2Z)
 
-    REAL(KIND=PRE), INTENT(IN) :: AKR, AKZ
-
-    REAL(KIND=PRE), DIMENSION(3), INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(3),  INTENT(IN) :: XZ
+    ! Inputs
+    REAL(KIND=PRE),                        INTENT(IN) :: AKR, AKZ
+    REAL(KIND=PRE), DIMENSION(3),          INTENT(IN) :: XR
+    REAL(KIND=PRE), DIMENSION(3),          INTENT(IN) :: XZ
     REAL(KIND=PRE), DIMENSION(3, 3, 2, 2), INTENT(IN) :: APD
 
+    ! Output
     REAL(KIND=PRE), INTENT(OUT) :: PD1X, PD2X, PD1Z, PD2Z
 
     ! Local variable
@@ -55,22 +56,22 @@ CONTAINS
                         FS, VS)
 
     ! Inputs
-    REAL(KIND=PRE), DIMENSION(3),    INTENT(IN)  :: XI, XJ
-    REAL(KIND=PRE),                  INTENT(IN)  :: depth, wavenumber
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: XI, XJ
+    REAL(KIND=PRE),                           INTENT(IN) :: depth, wavenumber
 
-    REAL(KIND=PRE), DIMENSION(328), INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(46),  INTENT(IN) :: XZ
+    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
+    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
     REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
 
     ! Outputs
-    COMPLEX(KIND=PRE),               INTENT(OUT) :: FS
-    COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VS
+    COMPLEX(KIND=PRE),                        INTENT(OUT) :: FS
+    COMPLEX(KIND=PRE), DIMENSION(3),          INTENT(OUT) :: VS
 
     ! Local variables
-    INTEGER                            :: KI, KJ
-    REAL(KIND=PRE)                               :: RRR, AKR, ZZZ, AKZ, DD, PSURR
-    REAL(KIND=PRE)                               :: SIK, CSK, SQ, EPZ
-    REAL(KIND=PRE)                               :: PD1X, PD2X, PD1Z, PD2Z
+    INTEGER        :: KI, KJ
+    REAL(KIND=PRE) :: RRR, AKR, ZZZ, AKZ, DD, PSURR
+    REAL(KIND=PRE) :: SIK, CSK, SQ, EPZ
+    REAL(KIND=PRE) :: PD1X, PD2X, PD1Z, PD2Z
 
     RRR = NORM2(XI(1:2) - XJ(1:2))
     AKR = wavenumber*RRR
@@ -175,12 +176,12 @@ CONTAINS
     ! Compute the frequency-dependent part of the Green function in the infinite depth case.
 
     ! Inputs
-    REAL(KIND=PRE),               INTENT(IN)  :: wavenumber
-    REAL(KIND=PRE), DIMENSION(3), INTENT(IN)  :: X0I   ! Coordinates of the source point
-    REAL(KIND=PRE), DIMENSION(3), INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
+    REAL(KIND=PRE),                           INTENT(IN)  :: wavenumber
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0I   ! Coordinates of the source point
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
 
-    REAL(KIND=PRE), DIMENSION(328), INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(46),  INTENT(IN) :: XZ
+    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
+    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
     REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
 
 
@@ -189,8 +190,8 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
-    REAL(KIND=PRE)                     :: ADPI, ADPI2, AKDPI, AKDPI2
-    REAL(KIND=PRE), DIMENSION(3)       :: XI
+    REAL(KIND=PRE)               :: ADPI, ADPI2, AKDPI, AKDPI2
+    REAL(KIND=PRE), DIMENSION(3) :: XI
 
     XI(:) = X0I(:)
     ! XI(3) = MIN(X0I(3), -1e-5*Mesh%xy_diameter)
@@ -217,31 +218,31 @@ CONTAINS
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
 
     ! Inputs
-    REAL(KIND=PRE),               INTENT(IN)  :: wavenumber, depth
-    REAL(KIND=PRE), DIMENSION(3), INTENT(IN)  :: X0I   ! Coordinates of the source point
-    REAL(KIND=PRE), DIMENSION(3), INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
+    REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I  ! Coordinates of the source point
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
 
-    REAL(KIND=PRE), DIMENSION(328), INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(46),  INTENT(IN) :: XZ
+    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
+    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
     REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
 
-    INTEGER, INTENT(IN) :: NEXP
-    REAL(KIND=PRE), DIMENSION(31), INTENT(IN)  :: REF_AMBDA, REF_AR
+    INTEGER,                                  INTENT(IN) :: NEXP
+    REAL(KIND=PRE), DIMENSION(31),            INTENT(IN) :: REF_AMBDA, REF_AR
 
     ! Outputs
     COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
     COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP_SYM, VSP_ANTISYM ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
-    INTEGER                     :: KE
-    REAL(KIND=PRE)                        :: AMH, AKH, A, COF1, COF2, COF3, COF4
-    REAL(KIND=PRE)                        :: AQT, RRR
-    REAL(KIND=PRE), DIMENSION(3)          :: XI, XJ
-    REAL(KIND=PRE), DIMENSION(4)          :: FTS, PSR
-    REAL(KIND=PRE), DIMENSION(3, 4)       :: VTS
-    REAL(KIND=PRE), DIMENSION(31)         :: AMBDA, AR
-    COMPLEX(KIND=PRE), DIMENSION(4)       :: FS
-    COMPLEX(KIND=PRE), DIMENSION(3, 4)    :: VS
+    INTEGER                            :: KE
+    REAL(KIND=PRE)                     :: AMH, AKH, A, COF1, COF2, COF3, COF4
+    REAL(KIND=PRE)                     :: AQT, RRR
+    REAL(KIND=PRE),    DIMENSION(3)    :: XI, XJ
+    REAL(KIND=PRE),    DIMENSION(4)    :: FTS, PSR
+    REAL(KIND=PRE),    DIMENSION(3, 4) :: VTS
+    REAL(KIND=PRE),    DIMENSION(31)   :: AMBDA, AR
+    COMPLEX(KIND=PRE), DIMENSION(4)    :: FS
+    COMPLEX(KIND=PRE), DIMENSION(3, 4) :: VS
 
     !========================================
     ! Part 1: Solve 4 infinite depth problems
@@ -354,25 +355,26 @@ CONTAINS
       same_body,                        &
       S, V)
 
-    INTEGER,                              INTENT(IN) :: nb_faces_1, nb_faces_2
-    REAL(KIND=PRE),    DIMENSION(nb_faces_1, 3),    INTENT(IN) :: normals_1, centers_1
-    REAL(KIND=PRE),    DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2
-    REAL(KIND=PRE),    DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2
-    REAL(KIND=PRE),                                 INTENT(IN) :: wavenumber, depth
+    INTEGER,                                  INTENT(IN) :: nb_faces_1, nb_faces_2
+    REAL(KIND=PRE), DIMENSION(nb_faces_1, 3), INTENT(IN) :: normals_1, centers_1
+    REAL(KIND=PRE), DIMENSION(nb_faces_2, 3), INTENT(IN) :: centers_2
+    REAL(KIND=PRE), DIMENSION(nb_faces_2),    INTENT(IN) :: areas_2
+    REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
 
-    REAL(KIND=PRE), DIMENSION(328), INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(46),  INTENT(IN) :: XZ
+    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
+    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
     REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
-    INTEGER,                              INTENT(IN) :: NEXP
-    REAL(KIND=PRE),    DIMENSION(31),               INTENT(INOUT) :: AMBDA, AR
 
-    LOGICAL,                              INTENT(IN) :: same_body
+    INTEGER,                                  INTENT(IN) :: NEXP
+    REAL(KIND=PRE), DIMENSION(31),            INTENT(IN) :: AMBDA, AR
+
+    LOGICAL,                                  INTENT(IN) :: same_body
 
     COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
     COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
 
     ! Local variables
-    INTEGER               :: I, J
+    INTEGER                         :: I, J
     COMPLEX(KIND=PRE)               :: SP2
     COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2_SYM, VSP2_ANTISYM
 
