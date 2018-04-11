@@ -133,7 +133,10 @@ class FloatingBody:
     @property
     def center_of_gravity(self):
         # TODO
-        return [0, 0, 0]
+        if hasattr(self, 'center'):
+            return self.center
+        else:
+            return np.asarray([0, 0, 0])
 
     ##########
     #  Dofs  #
@@ -173,15 +176,13 @@ class FloatingBody:
         motion[:, :] = direction
         self.dofs[name] = amplitude * motion
 
-    def add_rotation_dof(self, axis_point=np.array((0.0, 0.0, 0.0)),
-                         axis_direction=None, name=None,
-                         amplitude=1.0):
+    def add_rotation_dof(self, axis_point=None, axis_direction=None, name=None, amplitude=1.0):
         """Add a new rotation dof (in place).
         If no axis direction is given, the code tries to infer it from the name.
 
         Parameters
         ----------
-        axis_point : array of shape (3,)
+        axis_point : array of shape (3,), optional
             a point on the rotation axis
         axis_direction : array of shape (3,), optional
             vector directing the rotation axis
@@ -200,6 +201,15 @@ class FloatingBody:
             name = f"dof_{self.nb_dofs}_rotation"
 
         axis_direction = np.asarray(axis_direction)
+
+        if axis_point is None:
+            if hasattr(self, 'center_of_gravity'):
+                axis_point = self.center_of_gravity
+                LOG.info(f"The rotation dof {name} have been initialized around the center of gravity of {self.name}.")
+            else:
+                axis_point = np.array([0, 0, 0])
+                LOG.warning(f"The rotation dof {name} have been initialized around the origin of the domain (0, 0, 0).")
+
         axis_point = np.asarray(axis_point)
 
         assert axis_direction.shape == (3,)
@@ -207,6 +217,14 @@ class FloatingBody:
 
         motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
         self.dofs[name] = amplitude * motion
+
+    def add_all_rigid_body_dofs(self):
+        self.add_translation_dof(name="Surge")
+        self.add_translation_dof(name="Sway")
+        self.add_translation_dof(name="Heave")
+        self.add_rotation_dof(name="Roll")
+        self.add_rotation_dof(name="Pitch")
+        self.add_rotation_dof(name="Yaw")
 
     ###################
     # Transformations #
