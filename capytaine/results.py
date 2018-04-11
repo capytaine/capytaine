@@ -86,9 +86,15 @@ def assemble_dataset(results):
     import pandas as pd
     import xarray as xr
 
-    df = pd.DataFrame([record for result in results for record in result.records()])
-
     dataset = xr.Dataset()
+
+    assert len(set([result.depth for result in results])) <= 1  # Check if all results have same depth
+    dataset.attrs['depth'] = results[0].depth
+
+    assert len(set([result.body.name for result in results])) <= 1  # Check if all results have same bodies
+    dataset.attrs['body_name'] = results[0].body.name
+
+    df = pd.DataFrame([record for result in results for record in result.records()])
 
     if 'added_mass' in df.columns:
         radiation_cases = df[df['added_mass'].notnull()].dropna(1)
@@ -103,4 +109,3 @@ def assemble_dataset(results):
         dataset = xr.merge([dataset, diffraction_cases])
 
     return dataset
-

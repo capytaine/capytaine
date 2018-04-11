@@ -15,6 +15,7 @@ import numpy as np
 
 from meshmagick.mesh import Mesh
 from meshmagick.mmio import load_mesh
+from meshmagick.hydrostatics import Hydrostatics
 from meshmagick.mesh_clipper import MeshClipper
 from meshmagick.geometry import xOz_Plane, Plane
 
@@ -120,6 +121,19 @@ class FloatingBody:
                 new_dof[nbf:nbf+len(dof), :] = dof
                 dofs['_'.join([body.name, name])] = new_dof
         return dofs
+
+    @property
+    def center_of_buoyancy(self):
+        return Hydrostatics(self.mesh).buoyancy_center
+
+    @property
+    def displacement_volume(self):
+        return Hydrostatics(self.mesh).displacement_volume
+
+    @property
+    def center_of_gravity(self):
+        # TODO
+        return [0, 0, 0]
 
     ##########
     #  Dofs  #
