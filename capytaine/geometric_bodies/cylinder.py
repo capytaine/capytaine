@@ -75,8 +75,7 @@ class Disk(FloatingBody):
 class HorizontalCylinder(FloatingBody):
     def __init__(self, length=10.0, radius=1.0, center=(0, 0, 0),
                  nx=10, ntheta=10, nr=2,
-                 clever=True, clip_free_surface=False,
-                 name=None):
+                 clever=True, name=None):
         """Generate the mesh of an horizontal cylinder.
 
         Parameters
@@ -114,12 +113,13 @@ class HorizontalCylinder(FloatingBody):
 
             mesh = CollectionOfMeshes((open_cylinder, side, other_side))
 
-            if not clever:
-                mesh = mesh.merge()
-                mesh.merge_duplicates()
-                mesh.heal_triangles()
         else:
             mesh = open_cylinder
+
+        if not clever:
+            mesh = mesh.merge()
+            mesh.merge_duplicates()
+            mesh.heal_triangles()
 
         mesh.translate(self.center)
 
