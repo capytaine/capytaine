@@ -51,7 +51,7 @@ class ReflectionSymmetry(SymmetricMesh):
             self.name = CollectionOfMeshes.format_name(self, half.name)
         else:
             self.name = name
-        LOG.info(f"New mirror symmetric body: {self.name}.")
+        LOG.info(f"New mirror symmetric mesh: {self.name}.")
 
     # def get_clipped_mesh(self, **kwargs):
     #     return ReflectionSymmetry(self.subbodies[0].get_clipped_mesh(**kwargs),
@@ -98,7 +98,7 @@ class TranslationalSymmetry(SymmetricMesh):
             self.name = CollectionOfMeshes.format_name(self, mesh_slice.name)
         else:
             self.name = name
-        LOG.info(f"New translation symmetric body: {self.name}.")
+        LOG.info(f"New translation symmetric mesh: {self.name}.")
 
     # def get_clipped_mesh(self, **kwargs):
     #     return TranslationalSymmetry(self.subbodies[0].get_clipped_mesh(**kwargs),
@@ -147,7 +147,7 @@ class AxialSymmetry(SymmetricMesh):
             self.name = CollectionOfMeshes.format_name(self, mesh_slice.name)
         else:
             self.name = name
-        LOG.info(f"New rotation symmetric body: {self.name}.")
+        LOG.info(f"New rotation symmetric mesh: {self.name}.")
 
     @staticmethod
     def from_profile(profile,
