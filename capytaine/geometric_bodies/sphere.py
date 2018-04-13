@@ -57,6 +57,8 @@ class Sphere(FloatingBody):
 
         FloatingBody.__init__(self, mesh=mesh, name=name)
 
+        self.translate(center)
+
     def _generate_sphere_mesh(self, ntheta, nphi, clip_free_surface=False, name=None):
         if clip_free_surface:
             if self.center[2] < -self.radius:  # fully immersed
@@ -81,7 +83,6 @@ class Sphere(FloatingBody):
             z = - np.cos(t)
             nodes[i, :] = (x, y, z)
         nodes *= self.radius
-        nodes += self.center
 
         # Connectivity
         panels = np.zeros((ntheta*nphi, 4), dtype=np.int)
@@ -112,9 +113,8 @@ class Sphere(FloatingBody):
         circle_profile[:, 0] = np.sin(theta)
         circle_profile[:, 2] = -np.cos(theta)
         circle_profile *= self.radius
-        circle_profile += self.center
 
-        return AxialSymmetry.from_profile(circle_profile, point_on_rotation_axis=self.center,
+        return AxialSymmetry.from_profile(circle_profile, point_on_rotation_axis=(0, 0, 0),
                                           nphi=nphi, name=f"{name}_mesh")
 
     @property
