@@ -47,21 +47,21 @@ def to_bemio_file(dataset, body, filepath):
         h5file.create_dataset('simulation_parameters/T', (nb_freq,))
         h5file['simulation_parameters/T'][:] = 2*np.pi/dataset.coords['omega'].values
 
-        for i_body in range(nb_bodies):
-            h5file.create_dataset(f"body{i_body}/properties/name", (len(body.name),), dtype='S10')
-            h5file[f"body{i_body}/properties/name"] = body.name
+        for i_body in range(1, nb_bodies+1):
+            # h5file.create_dataset(f"body{i_body}/properties/name", (len(body.name),), dtype='S10')
+            # h5file[f"body{i_body}/properties/name"] = bytes(body.name)
 
             h5file.create_dataset(f"body{i_body}/properties/body_number", (1,), dtype=np.int)
             h5file[f"body{i_body}/properties/body_number"][0] = i_body
 
             h5file.create_dataset(f"body{i_body}/properties/cg", (3,))  # Center of gravity
-            h5file[f"body{i_body}/properties/cb"][:] = body.center_of_gravity[:]
+            h5file[f"body{i_body}/properties/cg"][:] = body.center_of_gravity
 
             h5file.create_dataset(f"body{i_body}/properties/cb", (3,))  # Center of buoyancy
-            h5file[f"body{i_body}/properties/cb"][:] = body.center_of_buoyancy[:]
+            h5file[f"body{i_body}/properties/cb"][:] = body.center_of_buoyancy
 
             h5file.create_dataset(f"body{i_body}/properties/disp_vol", (1,))
-            h5file[f"body{i_body}/properties/cb"][:] = body.displacement_volume
+            h5file[f"body{i_body}/properties/disp_vol"][:] = body.displacement_volume
 
             h5file.create_dataset(f"body{i_body}/hydro_coeffs/linear_restoring_stiffness", (nb_dofs_per_body, nb_dofs_per_body))
             # h5file[f"body{i_body}/hydro_coeffs/linear_restoring_stiffness"][:] = body.
@@ -74,12 +74,12 @@ def to_bemio_file(dataset, body, filepath):
                 h5file[f"body{i_body}/hydro_coeffs/excitation/im"][:] = np.imag(dataset['excitation_force'].values)
 
             h5file.create_dataset(f"body{i_body}/hydro_coeffs/added_mass/all", (nb_freq, nb_bodies*nb_dofs_per_body, nb_dofs_per_body))
-            h5file[f"body{i_body}/hydro_coeffs/added_mass/all"] = dataset['added_mass'].values
+            h5file[f"body{i_body}/hydro_coeffs/added_mass/all"][:] = dataset['added_mass'].values
 
             h5file.create_dataset(f"body{i_body}/hydro_coeffs/added_mass/inf_freq", (nb_bodies*nb_dofs_per_body, nb_dofs_per_body))
-            h5file[f"body{i_body}/hydro_coeffs/added_mass/inf_freq"] = dataset['added_mass'].sel(omega=max(dataset.coords['omega'].values)).values
+            h5file[f"body{i_body}/hydro_coeffs/added_mass/inf_freq"][:] = dataset['added_mass'].sel(omega=max(dataset.coords['omega'].values)).values
 
             h5file.create_dataset(f"body{i_body}/hydro_coeffs/radiation_damping/all", (nb_freq, nb_bodies*nb_dofs_per_body, nb_dofs_per_body))
-            h5file[f"body{i_body}/hydro_coeffs/radiation_damping/all"] = dataset['radiation_damping'].values
+            h5file[f"body{i_body}/hydro_coeffs/radiation_damping/all"][:] = dataset['radiation_damping'].values
 
 

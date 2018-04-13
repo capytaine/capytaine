@@ -88,12 +88,6 @@ def assemble_dataset(results):
 
     dataset = xr.Dataset()
 
-    assert len(set([result.depth for result in results])) <= 1  # Check if all results have same depth
-    dataset.attrs['depth'] = results[0].depth
-
-    assert len(set([result.body.name for result in results])) <= 1  # Check if all results have same bodies
-    dataset.attrs['body_name'] = results[0].body.name
-
     df = pd.DataFrame([record for result in results for record in result.records()])
 
     if 'added_mass' in df.columns:
@@ -107,5 +101,11 @@ def assemble_dataset(results):
         diffraction_cases = diffraction_cases.set_index(['omega', 'angle', 'influenced_dof'])
         diffraction_cases = diffraction_cases.to_xarray()
         dataset = xr.merge([dataset, diffraction_cases])
+
+    assert len(set([result.depth for result in results])) <= 1  # Check if all results have same depth
+    dataset.attrs['depth'] = results[0].depth
+
+    assert len(set([result.body.name for result in results])) <= 1  # Check if all results have same bodies
+    dataset.attrs['body_name'] = results[0].body.name
 
     return dataset
