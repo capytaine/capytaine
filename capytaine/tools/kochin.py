@@ -14,15 +14,15 @@ def compute_Kochin(result, theta, ref_point=(0.0, 0.0)):
     ----------
     result: LinearPotentialFlowResult
         solved potential flow problem
-    theta: float
-        angle at which the coefficient is computed
+    theta: float or 1-dim array of floats
+        angles at which the coefficient is computed
     ref_point: couple of float, optional
         point of reference around which the far field coefficient is computed
 
     Returns
     -------
-    H: float
-        value of the Kochin function
+    H: same type as theta
+        values of the Kochin function
     """
 
     if result.sources is None:
@@ -33,6 +33,7 @@ def compute_Kochin(result, theta, ref_point=(0.0, 0.0)):
     k = result.wavenumber
     h = result.depth
 
+    # omega_bar.shape = (nb_faces, 2) @ (2, nb_theta)
     omega_bar = (result.body.mesh.faces_centers[:, 0:2] - ref_point) @ (np.cos(theta), np.sin(theta))
 
     if 0 <= k*h < 20:
@@ -40,6 +41,11 @@ def compute_Kochin(result, theta, ref_point=(0.0, 0.0)):
     else:
         cih = np.exp(k*result.body.mesh.faces_centers[:, 2])
 
-    zs = cih[:] * np.exp(-1j * k * omega_bar[:]) * result.body.mesh.faces_areas[:]
+    # cih.shape = (nb_faces,)
+    # omega_bar.T.shape = (nb_theta, nb_faces)
+    # result.body.mesh.faces_areas.shape = (nb_faces,)
+    zs = cih * np.exp(-1j * k * omega_bar.T) * result.body.mesh.faces_areas
 
-    return result.sources @ zs/(4*np.pi)
+    # zs.shape = (nb_theta, nb_faces)
+    # result.sources.shape = (nb_faces,)
+    return zs @ result.sources/(4*np.pi)

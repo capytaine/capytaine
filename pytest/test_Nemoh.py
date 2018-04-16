@@ -73,7 +73,7 @@ def test_floating_sphere_finite_freq():
 
     # omega = 1, Kochin function of diffraction problem
 
-    kochin = np.asarray([compute_Kochin(result, theta) for theta in np.linspace(0, np.pi, 10)])
+    kochin = compute_Kochin(result, np.linspace(0, np.pi, 10))
 
     ref_kochin = np.array([
         0.20229*np.exp(-1.5872j), 0.20369*np.exp(-1.5871j),
@@ -128,7 +128,7 @@ def test_floating_sphere_finite_depth():
     assert np.isclose(result.added_masses["Heave"],       1740.6, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"], 380.46, rtol=1e-3*sphere.volume*problem.rho)
 
-    kochin = [compute_Kochin(result, theta) for theta in np.linspace(0, np.pi, 3)]
+    kochin = compute_Kochin(result, np.linspace(0, np.pi, 3))
     assert np.allclose(kochin, np.roll(kochin, 1))  # The far field is the same in all directions.
     assert np.isclose(kochin[0], -0.2267+3.49e-3j, rtol=1e-3)
 
