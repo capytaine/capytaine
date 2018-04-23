@@ -14,8 +14,12 @@ requirements:
   run:
     - python
     - numpy
+    - scipy
     - attrs
+    - pandas
     - xarray
+    - matplotlib
+    - vtk
     # - meshmagick >=1.1
 
 about:

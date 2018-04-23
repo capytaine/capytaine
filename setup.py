@@ -27,7 +27,7 @@ Wavenumber = Extension(
 
 if __name__ == "__main__":
     setup(name='capytaine',
-          version='0.3',
+          version='0.3.1',
           description='Nemoh python wrapper',
           url='http://github.com/mancellin/capytaine',
           author='Matthieu Ancellin',
@@ -38,7 +38,10 @@ if __name__ == "__main__":
               'attrs',
               'numpy',
               'scipy',
+              'pandas',
               'xarray',
+              'matplotlib',
+              'vtk',
               'meshmagick',
           ],
           entry_points={
