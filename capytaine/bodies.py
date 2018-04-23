@@ -124,11 +124,13 @@ class FloatingBody:
 
     @property
     def center_of_buoyancy(self):
-        return Hydrostatics(self.mesh).buoyancy_center
+        mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
+        return Hydrostatics(mesh).buoyancy_center
 
     @property
     def displacement_volume(self):
-        return Hydrostatics(self.mesh).displacement_volume
+        mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
+        return Hydrostatics(mesh).displacement_volume
 
     @property
     def center_of_gravity(self):
@@ -277,7 +279,7 @@ class FloatingBody:
         TODO: Also clip dofs.
         """
         if isinstance(self.mesh, CollectionOfMeshes):
-            raise NotImplemented()  # TODO
+            raise NotImplemented  # TODO
 
         clipped_mesh = MeshClipper(self.mesh,
                                    plane=Plane(normal=(0.0, 0.0, 1.0),
