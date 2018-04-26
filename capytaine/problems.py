@@ -187,7 +187,7 @@ class RadiationProblem(LinearPotentialFlowProblem):
         else:
             LOG.error(f"In {self}: the radiating degree of freedom {self.radiating_dof} is not one of"
                       f"the degrees of freedom of the body.\n"
-                      f"The dofs of the body are {list(self.body.dofs.keys)}")
+                      f"The dofs of the body are {list(self.body.dofs.keys())}")
             raise ValueError("Unrecognized degree of freedom name.")
 
     def make_results_container(self):

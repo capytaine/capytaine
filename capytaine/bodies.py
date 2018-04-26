@@ -346,7 +346,7 @@ class FloatingBody:
             vtk_data_array = vtk.vtkFloatArray()
             vtk_data_array.SetNumberOfComponents(3)
             vtk_data_array.SetNumberOfTuples(self.mesh.nb_faces)
-            for i, vector in enumerate(self.motion[dof]):
+            for i, vector in enumerate(self.dofs[dof]):
                 vtk_data_array.SetTuple3(i, *vector)
             vtk_polydata.GetCellData().SetVectors(vtk_data_array)
 
