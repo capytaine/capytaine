@@ -278,24 +278,39 @@ class FloatingBody:
         Dofs are lost in the process.
         TODO: Also clip dofs.
         """
-        if isinstance(self.mesh, CollectionOfMeshes):
-            raise NotImplemented  # TODO
+        if isinstance(self.mesh, Mesh):
+            meshes_to_clip = [self.mesh]
+        elif isinstance(self.mesh, CollectionOfMeshes):
+            meshes_to_clip = self.mesh.submeshes
 
-        clipped_mesh = MeshClipper(self.mesh,
-                                   plane=Plane(normal=(0.0, 0.0, 1.0),
-                                               scalar=free_surface)).clipped_mesh
+        clipped_meshes = []
+        for mesh in meshes_to_clip:
+            try:
+                clipped_mesh = MeshClipper(mesh,
+                                           plane=Plane(normal=(0.0, 0.0, 1.0),
+                                                       scalar=free_surface)).clipped_mesh
 
-        if sea_bottom > -np.infty:
-            clipped_mesh = MeshClipper(clipped_mesh,
-                                       plane=Plane(normal=(0.0, 0.0, -1.0),
-                                                   scalar=-sea_bottom)).clipped_mesh
+                if sea_bottom > -np.infty:
+                    clipped_mesh = MeshClipper(clipped_mesh,
+                                               plane=Plane(normal=(0.0, 0.0, -1.0),
+                                                           scalar=-sea_bottom)).clipped_mesh
+            except IndexError: # The mesh was not intersecting with the plane... TODO: Fix in meshmagick.
+                clipped_mesh = mesh
 
-        clipped_mesh.remove_unused_vertices()
+            clipped_mesh.remove_unused_vertices()
+            clipped_meshes.append(clipped_mesh)
+
+        if isinstance(self.mesh, Mesh):
+            new_body_mesh = clipped_meshes[0]
+        elif isinstance(self.mesh, CollectionOfMeshes):
+            new_body_mesh = self.mesh.copy()
+            new_body_mesh.submeshes = clipped_meshes
+
         if name is None:
-            name = f"{self.name}_clipped"
+            name = f"{mesh.name}_clipped"
         LOG.info(f"Clip floating body {self.name} to create {name}.")
 
-        return FloatingBody(clipped_mesh, name=name)
+        return FloatingBody(new_body_mesh, name=name)
 
     def mirror(self, *args):
         # TODO: Also mirror dofs
