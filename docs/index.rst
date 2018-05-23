@@ -3,17 +3,37 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to capytaine's documentation!
-=====================================
+Capytaine: a Python-based rewrite of Nemoh
+==========================================
+
+User manual
+-----------
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
+   user_manual/installation.rst
+   user_manual/tutorial.rst
+   user_manual/cookbook.rst
 
+Developer manual
+----------------
+
+.. toctree::
+   :maxdepth: 2
+
+   developer_manual/code_structure.rst
+
+Theory manual
+-------------
+
+.. toctree::
+   :maxdepth: 2
+
+   theory_manual/theory.rst
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
