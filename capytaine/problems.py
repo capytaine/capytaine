@@ -132,7 +132,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     #                     f"The problem will be solved but the Froude-Krylov forces won't be computed.")
 
     def __str__(self):
-        parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, angle={self.angle}, "]
+        parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, angle={self.angle:.3f}, "]
         if not self.free_surface == 0.0:
             parameters.append(f"free_surface={self.free_surface}, ")
         if not self.g == 9.81:
