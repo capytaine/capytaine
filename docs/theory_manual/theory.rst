@@ -1,8 +1,15 @@
-Nemoh theory manual
-===================
+=============
+Theory manual
+=============
 
-.. warning::
-   Work in progress...
+.. warning:: Work in progress...
+
+.. contents:: Contents
+
+See [Del87]_ [Del89]_ [Del93]_ [PKR17]_ [AD18]_
+
+Linear boundary value problem
+=============================
 
 Hypotheses
 ----------
@@ -14,8 +21,8 @@ Hypotheses
 5. The amplitude of the body motion is small with respect to its dimension.
 6. The sea bottom is flat. The water depth is denoted :math:`h`.
 
-Linear boundary value problem
------------------------------
+Mathematical problem
+--------------------
 
 The mass conservation equation can be rewritten as the Laplace equation
 
@@ -61,13 +68,13 @@ where :math:`n` denotes the normal vector at the surface of the floating body.
 The normal velocity on the floating body surface is the input of the problem.
 It depends on the type of problem:
 
-Radiation problem:
+**Radiation problem**:
     For the radiation problem, the normal velocity on the body surface corresponds to the motion of the body along one of its degree of freedom.
-    The resolution of the Laplace problem allows to derive the added mass and the radiation damping associated with this degree of freedom.
+    The resolution of the Laplace problem allows to derive the added mass and the radiation damping associated with this degree of freedom (see also Post-processing_).
 
-Diffraction problem:
+**Diffraction problem**:
     For the diffraction problem, the velocity on the floating body is given by the velocity of Airy's wave field (see below).
-    Once the problem has been solved, the linear Froude-Krylov force is computed by the integration of the pressure (:math:`p = i \rho \omega \Phi`) on the floating body.
+    Once the problem has been solved, the linear Froude-Krylov force is computed by the integration of the pressure (:math:`p = i \rho \omega \Phi`) on the floating body (see also Post-processing_).
 
 The incoming wave fields is given by
 
@@ -132,7 +139,7 @@ The first term of :eq:`green_function` is invariant under all rotations and tran
 
 
 Discretization
---------------
+==============
 
 The equations :eq:`continuous_source_formulation` and :eq:`diff_continuous_source_formulation` can be discretized using a collocation method.
 Considering a mesh of the surface of the floating body :math:`\Gamma = \cup_i \Gamma_i`:
@@ -155,12 +162,14 @@ The matrices :math:`S` and :math:`V` relates the vectors :math:`\Phi`, :math:`u`
 
 The resolution of the discrete problem with Nemoh consists of two main steps:
 
-1. The evaluation of the coefficients of the complex-valued matrices $S$ and $V$
+1. The evaluation of the coefficients of the complex-valued matrices :math:`S` and :math:`V`
 2. The resolution of the complex-valued linear problem :math:`\left( \frac{\mathbb{I}}{2} + V \right) \sigma = u`.
 
 Once :math:`\sigma` has been computed, :math:`\Phi` can be easily deduced.
 Then other magnitudes such as the Froude-Krylov forces or the added mass can be derived.
 
-.. [Del87] Delhommeau, *Problèmes de diffraction-radiation et de résistance des vagues : étude théorique et résolution numérique par la méthode des singularités*, PhD Thesis, École Nationale Supérieure de Mécanique de Nantes, 1987
+Post-processing
+===============
 
-.. [BD15] Babarit and Delhommeau, *Theoretical and numerical aspects of the open source BEM solver NEMOH*, Proceedings of the 11th European Wave and Tidal Energy Conference (EWTEC2015), 2015.
+TODO
+

@@ -1,3 +1,4 @@
+==============
 Code structure
 ==============
 
@@ -27,7 +28,4 @@ User interface
 
 The file ``cli.py`` contains an experimental command-line interface.
 The module ``tools.import_export`` contains also some helper functions to interface with Nemoh 2 format.
-
-
-.. [AD18] Ancellin and Dias, *Using the floating body symmetries to speed up the numerical computation of hydrodynamics coefficients with Nemoh*, Proceedings of OMAE2018, to appear.
 
