@@ -1,10 +1,12 @@
 Installation for developers
 ===========================
 
-It is recommended to use a [conda environment](https://conda.io/docs/user-guide/tasks/manage-environments.html).
+It is recommended to use a `conda environment`_.
 Capytaine requires **Python 3.6**.
 
 Install the dependencies of Capytaine.
+
+.. _`conda environment`: https://conda.io/docs/user-guide/tasks/manage-environments.html
 
 ::
 

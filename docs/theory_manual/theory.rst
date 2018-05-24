@@ -1,6 +1,8 @@
 Nemoh theory manual
 ===================
 
+.. warning::
+   Work in progress...
 
 Hypotheses
 ----------

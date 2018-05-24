@@ -28,8 +28,9 @@ Then the code itself can be installed by the following command:
 
     conda install -c mancellin capytaine
 
-All the required dependencies should be automatically installed with the previous command.
-In case you get an error message because of a missing module, you can try running
+All the necessary code from Nemoh is already included into Capytaine and all the other required dependencies should be automatically installed.
+
+In case you get an error message because of a missing module, you can try to run
 
 ::
 
@@ -37,7 +38,6 @@ In case you get an error message because of a missing module, you can try runnin
 
 to install them all manually.
 
-All the necessary code from Nemoh is already included into Capytaine.
 
 On Mac
 ------

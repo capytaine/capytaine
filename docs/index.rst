@@ -30,8 +30,8 @@ Features
 
 .. _conda: https://www.anaconda.com/download/
 
-Planned feature
-~~~~~~~~~~~~~~~
+Planned features
+~~~~~~~~~~~~~~~~
 
 * Output in BEMIO (WEC-SIM) format.
 * Hydrostatics.
