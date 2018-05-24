@@ -7,12 +7,12 @@ Nemoh theory manual
 Hypotheses
 ----------
 
-1. the fluid is inviscid
-2. the fluid is incompressible: :math:`\nabla \cdot u = 0` with :math:`u` the flow velocity. 
-3. the flow is irrotational: :math:`\nabla \times u = 0`.
-4. the wave amplitude is small with respect to the wavelength.
-5. the amplitude of the body motion is small with respect to its dimension.
-6. the sea bottom is flat. The water depth is denoted :math:`h`.
+1. The fluid is inviscid.
+2. The fluid is incompressible: :math:`\nabla \cdot u = 0` with :math:`u` the flow velocity. 
+3. The flow is irrotational: :math:`\nabla \times u = 0`.
+4. The wave amplitude is small with respect to the wavelength.
+5. The amplitude of the body motion is small with respect to its dimension.
+6. The sea bottom is flat. The water depth is denoted :math:`h`.
 
 Linear boundary value problem
 -----------------------------
@@ -50,6 +50,7 @@ The partial differential equation :eq:`laplace` is completed with the following 
 .. math::
    \nabla \Phi \cdot n = u \cdot n, \qquad \text{on } \Gamma,
    :label: bc_body
+
 where :math:`n` denotes the normal vector at the surface of the floating body.
 
 .. * in the far field, 
@@ -100,7 +101,7 @@ With the help of this Green function :math:`G`, the potential of the surface of 
 
 The integral on the other boundaries of the domain is zero due to the properties of the Green function.
 
-The differentiation of :eq:`continuous_source_formulation` leads to the following equation \cite{delhommeau_problemes_1987}:
+The differentiation of :eq:`continuous_source_formulation` leads to the following equation [Del87]_:
 
 .. math::
    (u \cdot n)(x) = \frac{\sigma(x)}{2} + \iint_\Gamma \sigma(y) \, (\nabla_x G(x, y) \cdot n) \, \mathrm{dS}(y).
@@ -117,15 +118,15 @@ The Green function can be written under the following form
    G(\xi, x) = -\frac{1}{4\pi |x - \xi|} + g_{(h, \omega)}\left((x_1 - \xi_1)^2 +(x_2 - \xi_2)^2, x_3, \xi_3\right)
    :label: green_function
 
-where :math:`x = (x_1, x_2, x_3)` and :math:`\xi = (\xi_1, \xi_2, \xi_3)`. (The coordinate with index :math:`3` is the vertical coordinate.) \cite{delhommeau_problemes_1987}
+where :math:`x = (x_1, x_2, x_3)` and :math:`\xi = (\xi_1, \xi_2, \xi_3)`. (The coordinate with index :math:`3` is the vertical coordinate.) [Del87]_
 
 The first term is the classical 3D Green function for the Laplace equation.
 The second term :math:`g_{(h, \omega)}` is complex-valued.
 It is introduced to satisfy the boundary conditions :eq:`bc_fs` and :eq:`bc_bottom`.
 It depends on the water depth :math:`h` and the wave frequency :math:`\omega`.
-We refer to \cite{babarit_theoretical_2015, delhommeau_problemes_1987} for details on its derivation and its evaluation.
+We refer to [BD15]_ and [Del87]_ for details on its derivation and its evaluation.
 (Note that in these references :math:`G` is split into three to four terms.
-For the sake of simplicity, several of these terms have been merged into $g$ in this paper.) 
+For the sake of simplicity, several of these terms have been merged into :math:`g` in this paper.) 
 
 The first term of :eq:`green_function` is invariant under all rotations and translations, whereas the second term is invariant under isometric transformations that don't change the vertical coordinate (reflection across a vertical plane, rotation around a vertical axis, translation following an horizontal vector).
 
@@ -159,3 +160,7 @@ The resolution of the discrete problem with Nemoh consists of two main steps:
 
 Once :math:`\sigma` has been computed, :math:`\Phi` can be easily deduced.
 Then other magnitudes such as the Froude-Krylov forces or the added mass can be derived.
+
+.. [Del87] Delhommeau, *Problèmes de diffraction-radiation et de résistance des vagues : étude théorique et résolution numérique par la méthode des singularités*, PhD Thesis, École Nationale Supérieure de Mécanique de Nantes, 1987
+
+.. [BD15] Babarit and Delhommeau, *Theoretical and numerical aspects of the open source BEM solver NEMOH*, Proceedings of the 11th European Wave and Tidal Energy Conference (EWTEC2015), 2015.

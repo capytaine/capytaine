@@ -22,20 +22,27 @@ Features
 * Python object oriented API.
 * A **cleaner code** with unit tests, more comments, no Fortran 77 and no global variables.
 * **2 to 8 times faster** than Nemoh 2.0.
-* Various input mesh formats suported via meshmagick_.
+* Various input mesh formats supported via meshmagick_.
 * Output in legacy Nemoh Tecplot format or NetCDF format.
 * Computation of the **free surface elevation** and the **Kochin function**.
-* Input via legacy ``Nemoh.cal`` files (experimental).
-* 3D animations of the free surface elevation (experimental).
 
 .. _conda: https://www.anaconda.com/download/
+
+Experimental features
+~~~~~~~~~~~~~~~~~~~~~
+
+* Input via legacy ``Nemoh.cal`` files.
+* Faster simulations using the symmetries of the floating bodies.
+* 3D animations of the free surface elevation.
+
 
 Planned features
 ~~~~~~~~~~~~~~~~
 
+* Fast simulation of array of identical floating bodies.
 * Output in BEMIO (WEC-SIM) format.
 * Hydrostatics.
-* Map of pressure of the body surface.
+* Pressure map on the body surface.
 
 User manual
 -----------
@@ -44,8 +51,9 @@ User manual
    :maxdepth: 1
 
    user_manual/installation.rst
-   user_manual/tutorial.rst
    user_manual/cookbook.rst
+
+..   user_manual/tutorial.rst
 
 Developer manual
 ----------------
