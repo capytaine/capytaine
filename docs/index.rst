@@ -10,7 +10,7 @@ User manual
 -----------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    user_manual/installation.rst
    user_manual/tutorial.rst
@@ -20,21 +20,31 @@ Developer manual
 ----------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
+   developer_manual/installation.rst
    developer_manual/code_structure.rst
 
 Theory manual
 -------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    theory_manual/theory.rst
 
-Indices and tables
-------------------
+License
+-------
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+The code ``Capytaine`` is distributed under the terms of the GNU General Public License (GPL) v3.0. See the ``LICENSE`` file in the code repository.
+
+This documentation is licensed under the `Creative Commons Attribution-ShareAlike 4.0 International License`_ |CCBYSA|.
+
+.. |CCBYSA| image:: https://i.creativecommons.org/l/by-sa/4.0/80x15.png
+.. _`Creative Commons Attribution-ShareAlike 4.0 International License`: http://creativecommons.org/licenses/by-sa/4.0/
+
+.. Indices and tables
+   ------------------
+   * :ref:`genindex`
+   * :ref:`modindex`
+   * :ref:`search`
