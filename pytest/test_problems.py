@@ -100,10 +100,7 @@ def test_import_cal_file():
     current_file_path = os.path.dirname(os.path.abspath(__file__))
 
     # Non symmetrical body
-    cal_file_path = os.path.join(current_file_path, "..",
-                                 "examples",
-                                 "Nemoh_verification_cases",
-                                 "NonSymmetrical", "Nemoh.cal")
+    cal_file_path = os.path.join(current_file_path, "Nemoh_verification_cases", "NonSymmetrical", "Nemoh.cal")
     problems = import_cal_file(cal_file_path)
 
     assert len(problems) == 6*41+41
@@ -120,10 +117,7 @@ def test_import_cal_file():
             assert problem.angle == 0.0
 
     # Symmetrical cylinder
-    cal_file_path = os.path.join(current_file_path, "..",
-                                 "examples",
-                                 "Nemoh_verification_cases",
-                                 "Cylinder", "Nemoh.cal")
+    cal_file_path = os.path.join(current_file_path, "Nemoh_verification_cases", "Cylinder", "Nemoh.cal")
     problems = import_cal_file(cal_file_path)
 
     assert len(problems) == 6*2+2
