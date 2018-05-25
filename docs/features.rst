@@ -19,7 +19,7 @@ Main features
 * Windows and Linux binaries, distributed via conda_.
 * Python object oriented API.
 * A **cleaner code** with unit tests, more comments, no Fortran 77 and no global variables.
-* **2 to 8 times faster** than Nemoh 2.0.
+* **2 to 8 times faster** than Nemoh 2.0 [#]_.
 * Various input mesh formats supported via meshmagick_.
 * Output in legacy Nemoh Tecplot format or NetCDF format.
 * Computation of the **free surface elevation** and the **Kochin function**.
@@ -42,5 +42,9 @@ Planned features
 * Output in BEMIO (WEC-SIM) format.
 * Hydrostatics.
 * Pressure map on the body surface.
+* IRF computations.
 
 
+.. rubric:: Footnotes
+
+.. [#] Part of the speedup is obtained by storing intermediate computations. If your use of Nemoh is limited by the RAM usage, it might not help you.
