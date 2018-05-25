@@ -32,6 +32,7 @@ Experimental features
 ~~~~~~~~~~~~~~~~~~~~~
 
 * Input via legacy ``Nemoh.cal`` files.
+* Computations in single or double precision.
 * Faster simulations using the symmetries of the floating bodies.
 * 3D animations of the free surface elevation.
 
