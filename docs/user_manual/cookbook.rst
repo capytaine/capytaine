@@ -26,13 +26,22 @@ Load a mesh from a file and display it with VTK.
 The resulting body can be used to define a :code:`RadiationProblem` or a
 :code:`DiffractionProblem`.
 
+Symmetric body
+--------------
+
+This example loads a mesh from a file, keep only a part of it and define a symmetric body from this
+half.
+
+.. include:: examples/symmetric_body.py
+   :code: python
+
 Axisymmetric body
 -----------------
 
 This example generate an axisymmetric mesh from a profile function and solve radiation problems for
 this floating body.
 
-.. include:: examples/symmetric_buoy.py
+.. include:: examples/axisymmetric_buoy.py
    :code: python
 
 Custom degree of freedom
