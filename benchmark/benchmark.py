@@ -15,6 +15,8 @@ from capytaine.problems import RadiationProblem
 from capytaine.results import assemble_dataset
 from capytaine.tools.import_export import export_as_Nemoh_directory
 
+# NEMOH_BIN_DIR = "~/work/code/nemoh/bin"
+NEMOH_BIN_DIR = "~/pro/ucd/nemoh/bin"
 
 def profile_capytaine(body, omega_range, result_dir, **problem_kwargs):
     if not os.path.isdir(result_dir):
@@ -28,7 +30,7 @@ def profile_capytaine(body, omega_range, result_dir, **problem_kwargs):
     logging.basicConfig(
         filename=f"{result_dir}/capytaine.log",
         level=logging.DEBUG,
-        format="%(levelname)s:\t%(message)s"
+        format="%(asctime)-%(levelname)s:\t%(message)s"
     )
 
     pr = cProfile.Profile()
@@ -52,12 +54,12 @@ def profile_capytaine(body, omega_range, result_dir, **problem_kwargs):
     with open(f'{result_dir}/profile.log', 'w') as profile_file:
         profile_file.write(profiler_results)
 
-    os.environ["MKL_NUM_THREADS"] = "4"
+    # os.environ["MKL_NUM_THREADS"] = "4"
 
     return float(profiler_results.split('\n')[0].split('in')[1].strip('seconds\n'))
 
 
-def profile_Nemoh(body, omega_range, result_dir, nemoh_bin_dir="~/work/code/nemoh/bin", **problem_kwargs):
+def profile_Nemoh(body, omega_range, result_dir, nemoh_bin_dir=NEMOH_BIN_DIR, **problem_kwargs):
     """Use Nemoh 2.0 to solve a problem and mesure computation time."""
     problem = RadiationProblem(body=body, omega=0.0, **problem_kwargs)
     export_as_Nemoh_directory(problem, result_dir, omega_range)

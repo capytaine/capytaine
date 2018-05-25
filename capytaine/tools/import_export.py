@@ -129,8 +129,8 @@ def export_as_Nemoh_directory(problem, directory_name, omega_range=None):
     # Export the mesh
     write_MAR(
         os.path.join(directory_name, f'{problem.body.name}.dat'),
-        problem.body.vertices,
-        problem.body.faces,
+        problem.body.mesh.vertices,
+        problem.body.mesh.faces,
         # xOz_symmetry=isinstance(problem.body, ReflectionSymmetry)
     )
 

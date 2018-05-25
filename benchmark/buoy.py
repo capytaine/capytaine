@@ -7,7 +7,11 @@ from itertools import count, product
 import numpy as np
 import pandas as pd
 
-from capytaine.symmetries import AxialSymmetry, ReflectionSymmetry, xOz_Plane
+from meshmagick.geometry import xOz_Plane
+from capytaine.symmetries import AxialSymmetry, ReflectionSymmetry
+from capytaine import FloatingBody
+
+from benchmark import profile_Nemoh, profile_capytaine
 
 WORKING_DIRECTORY = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
@@ -19,36 +23,37 @@ def shape(z):
 
 
 def full_resolution_Nemoh(nb_slices, nz, omega_range):
-    buoy = AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
-    buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
-    buoy = buoy.as_FloatingBody(name="buoy")
+    buoy = FloatingBody(
+        AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices).merge(),
+        name="buoy")
+    buoy.add_translation_dof(name="Heave")
     return profile_Nemoh(buoy, omega_range,
                          f"{WORKING_DIRECTORY}/{next(ID):03}_Nemoh_{nz*nb_slices}")
 
 
 def full_Capytaine(nb_slices, nz, omega_range):
-    buoy = AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
-    buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
-    buoy = buoy.as_FloatingBody(name="buoy")
+    buoy = FloatingBody(
+        AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices).merge(),
+        name="buoy")
+    buoy.add_translation_dof(name="Heave")
     return profile_capytaine(buoy, omega_range,
                              f"{WORKING_DIRECTORY}/{next(ID):03}_capy_{nz*nb_slices}")
 
 
 def sym_Capytaine(nb_slices, nz, omega_range):
-    buoy = AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
-    buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
-    buoy = buoy.as_FloatingBody()
-    half_buoy = buoy.extract_faces(np.where(buoy.faces_centers[:, 1] > 0)[0]) # Keep y > 0
-    buoy = ReflectionSymmetry(half_buoy, xOz_Plane)
-    buoy.name = "buoy"
+    full_buoy_mesh = AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices).merge()
+    half_buoy_mesh = full_buoy_mesh.extract_faces(np.where(full_buoy_mesh.faces_centers[:, 1] > 0)[0])  # Keep y > 0
+    buoy = FloatingBody(ReflectionSymmetry(half_buoy_mesh, xOz_Plane), name="buoy")
+    buoy.add_translation_dof(name="Heave")
     return profile_capytaine(buoy, omega_range,
                              f"{WORKING_DIRECTORY}/{next(ID):03}_sym_capy_{nz*nb_slices}")
 
 
 def rot_Capytaine(nb_slices, nz, omega_range):
-    buoy = AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices)
-    buoy.dofs["Heave"] = buoy.faces_normals @ (0, 0, 1)
-    buoy.name = "buoy"
+    buoy = FloatingBody(
+        AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, nz+1), nphi=nb_slices),
+        name="buoy")
+    buoy.add_translation_dof(name="Heave")
     return profile_capytaine(buoy, omega_range,
                              f"{WORKING_DIRECTORY}/{next(ID):03}_rot_capy_{nz*nb_slices}")
 
@@ -60,13 +65,13 @@ def rot_Capytaine(nb_slices, nz, omega_range):
 if __name__ == "__main__":
 
     nb_repetitions = 3
-    nb_cells_range = 2*(np.sqrt(np.linspace(200, 3000, 15))//2)
+    nb_cells_range = 2*(np.sqrt(np.linspace(200, 3000, 5))//2)
     nz_range = [int(x) for x in nb_cells_range]
     nb_slices_range = [int(x) for x in nb_cells_range]
-    omega_range = np.linspace(0.1, 4.0, 40)
+    omega_range = np.linspace(0.1, 4.0, 10)
 
     cases = {
-        # "Nemoh 2.0":                full_resolution_Nemoh,
+        "Nemoh 2.0":                full_resolution_Nemoh,
         "Capytaine":                full_Capytaine,
         "Capytaine + symmetry":     sym_Capytaine,
         "Capytaine + axisymmetry":  rot_Capytaine,
