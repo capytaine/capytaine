@@ -1,9 +1,24 @@
+========
 Cookbook
 ========
 
-This page contains several example of Capytaine's features.
+This page contains several examples of Capytaine's features.
 
 .. contents:: Content
+
+Base examples
+=============
+
+Importing a mesh
+----------------
+
+This example loads a mesh from a file and displays it with VTK.
+
+.. include:: examples/import_mesh.py
+   :code: python
+
+The resulting body can be used to define a :code:`RadiationProblem` or a
+:code:`DiffractionProblem`.
 
 Custom degree of freedom
 ------------------------
@@ -25,16 +40,14 @@ rigid body degrees of freedom and then plots the computed added mass.
 .. include:: examples/radiation_cylinder.py
    :code: python
 
-Importing a mesh
-----------------
+Simulation with several bodies
+------------------------------
 
-This example loads a mesh from a file and displays it with VTK.
+TODO
 
-.. include:: examples/import_mesh.py
-   :code: python
 
-The resulting body can be used to define a :code:`RadiationProblem` or a
-:code:`DiffractionProblem`.
+Intermediate examples
+=====================
 
 Symmetric body
 --------------
@@ -54,11 +67,6 @@ this floating body.
 .. include:: examples/axisymmetric_buoy.py
    :code: python
 
-Simulation with several bodies
-------------------------------
-
-TODO
-
 Animated free surface elevation
 -------------------------------
 
@@ -72,6 +80,9 @@ Kochin function
 ---------------
 
 TODO
+
+Advanced examples
+=================
 
 Plot the influence matrix
 -------------------------
