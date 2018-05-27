@@ -28,13 +28,16 @@ FLOAT_PRECISION = np.float64
 class Nemoh:
     """Solver for the BEM problem based on Nemoh's Green function."""
 
-    def __init__(self, npinte=251, max_stored_exponential_decompositions=50):
+    def __init__(self, keep_matrices=True, npinte=251, max_stored_exponential_decompositions=50):
         self.XR, self.XZ, self.APD = _Green.initialize_green_2.initialize_green(328, 46, npinte)
         LOG.info("Initialize Nemoh's Green function.")
 
         self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)
 
-        self.__cache__ = {'Green0': {}, 'Green1': {}, 'Green2': {}}
+        self.keep_matrices = keep_matrices
+        if self.keep_matrices:
+            self.__cache__ = {'Green0': {}, 'Green1': {}, 'Green2': {}}
+
 
     def solve(self, problem, keep_details=False):
         """Solve the BEM problem using Nemoh."""
@@ -260,12 +263,12 @@ class Nemoh:
 
     def _build_matrices_0(self, mesh1, mesh2, _rec_depth=(1,)):
         """Compute the first part of the influence matrices of self on body."""
-        if mesh1 not in self.__cache__['Green0']:
+        if self.keep_matrices and mesh1 not in self.__cache__['Green0']:
             self.__cache__['Green0'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tCreate Green0 cache (max_length={int(np.product(_rec_depth))}) for {mesh1.name}")
 
-        if mesh2 not in self.__cache__['Green0'][mesh1]:
+        if not self.keep_matrices or mesh2 not in self.__cache__['Green0'][mesh1]:
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tComputing matrix 0 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}")
             S0, V0 = _Green.green_1.build_matrix_0(
@@ -274,7 +277,9 @@ class Nemoh:
                 mesh2.faces_centers, mesh2.faces_normals,
                 mesh2.faces_areas,   mesh2.faces_radiuses,
                 )
-            self.__cache__['Green0'][mesh1][mesh2] = (S0, V0)
+
+            if self.keep_matrices:
+                self.__cache__['Green0'][mesh1][mesh2] = (S0, V0)
 
         else:
             LOG.debug("\t" * len(_rec_depth) +
@@ -285,13 +290,13 @@ class Nemoh:
 
     def _build_matrices_1(self, mesh1, mesh2, free_surface, sea_bottom, _rec_depth=(1,)):
         """Compute the second part of the influence matrices of mesh1 on mesh2."""
-        if mesh1 not in self.__cache__['Green1']:
+        if self.keep_matrices and mesh1 not in self.__cache__['Green1']:
             self.__cache__['Green1'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tCreate Green1 cache (max_length={int(np.product(_rec_depth))}) for {mesh1.name}")
 
         depth = free_surface - sea_bottom
-        if (mesh2, depth) not in self.__cache__['Green1'][mesh1]:
+        if not self.keep_matrices or (mesh2, depth) not in self.__cache__['Green1'][mesh1]:
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tComputing matrix 1 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
                       f"for depth={depth:.2e}")
@@ -320,10 +325,12 @@ class Nemoh:
                 )
 
             if depth == np.infty:
-                self.__cache__['Green1'][mesh1][(mesh2, np.infty)] = (-S1, -V1)
+                if self.keep_matrices:
+                    self.__cache__['Green1'][mesh1][(mesh2, np.infty)] = (-S1, -V1)
                 return -S1, -V1
             else:
-                self.__cache__['Green1'][mesh1][(mesh2, depth)] = (S1, V1)
+                if self.keep_matrices:
+                    self.__cache__['Green1'][mesh1][(mesh2, depth)] = (S1, V1)
                 return S1, V1
 
         else:
@@ -335,13 +342,13 @@ class Nemoh:
 
     def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth=(1,)):
         """Compute the third part of the influence matrices of mesh1 on mesh2."""
-        if mesh1 not in self.__cache__['Green2']:
+        if self.keep_matrices and mesh1 not in self.__cache__['Green2']:
             self.__cache__['Green2'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tCreate Green2 cache (max_length={int(np.product(_rec_depth))}) for {mesh1.name}")
 
         depth = free_surface - sea_bottom
-        if (mesh2, depth, wavenumber) not in self.__cache__['Green2'][mesh1]:
+        if not self.keep_matrices or (mesh2, depth, wavenumber) not in self.__cache__['Green2'][mesh1]:
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tComputing matrix 2 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
                       f"for depth={depth:.2e} and k={wavenumber:.2e}")
@@ -371,7 +378,9 @@ class Nemoh:
                     lamda_exp, a_exp, n_exp,
                     mesh1 is mesh2
                     )
-            self.__cache__['Green2'][mesh1][(mesh2, depth, wavenumber)] = (S2, V2)
+
+            if self.keep_matrices:
+                self.__cache__['Green2'][mesh1][(mesh2, depth, wavenumber)] = (S2, V2)
 
         else:
             S2, V2 = self.__cache__['Green2'][mesh1][(mesh2, depth, wavenumber)]
