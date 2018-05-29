@@ -28,8 +28,8 @@ This example defines arbitrary degrees of freedom for a sphere and solves a diff
 .. literalinclude:: examples/custom_dofs.py
    :language: python
 
-The force on the "Heave" and "Bulge" dofs should be the same for both incoming wave directions.
-The force on the "x-shear" dof is zero when the wave comes from the y direction.
+The diffraction force on the "Heave" and "Bulge" dofs should be the same for both incoming wave directions.
+The diffraction force on the "x-shear" dof is zero when the wave comes from the y direction.
 
 Added mass of a rigid body
 --------------------------
@@ -39,6 +39,11 @@ rigid-body degrees of freedom and then plots the added mass.
 
 .. literalinclude:: examples/radiation_cylinder.py
    :language: python
+
+Influence of the water depth
+----------------------------
+
+TODO
 
 Simulation with several bodies
 ------------------------------

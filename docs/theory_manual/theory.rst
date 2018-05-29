@@ -6,7 +6,7 @@ Theory manual
 
 .. contents:: Contents
 
-See [Del87]_ [Del89]_ [Del93]_ [PKR17]_ [AD18]_
+See [Del87]_ [Del89]_ [Del93]_ [BD15]_ [PKR17]_ [AD18]_
 
 Linear boundary value problem
 =============================
@@ -119,21 +119,92 @@ where :math:`n` is the normal vector on the floating body surface :math:`\Gamma`
 Expression for the Green function
 ---------------------------------
 
-The Green function can be written under the following form 
+In infinite depth
+~~~~~~~~~~~~~~~~~
+
+The Green function can be written as the sum of three terms:
 
 .. math::
-   G(\xi, x) = -\frac{1}{4\pi |x - \xi|} + g_{(h, \omega)}\left((x_1 - \xi_1)^2 +(x_2 - \xi_2)^2, x_3, \xi_3\right)
+   G(\xi, x) = - \frac{1}{4 \pi} \left( G_0(\xi, x) + G_1(\xi, x) + G_2(\xi, x) \right)
    :label: green_function
 
-where :math:`x = (x_1, x_2, x_3)` and :math:`\xi = (\xi_1, \xi_2, \xi_3)`. (The coordinate with index :math:`3` is the vertical coordinate.) [Del87]_
+The first term
 
-The first term is the classical 3D Green function for the Laplace equation.
-The second term :math:`g_{(h, \omega)}` is complex-valued.
-It is introduced to satisfy the boundary conditions :eq:`bc_fs` and :eq:`bc_bottom`.
-It depends on the water depth :math:`h` and the wave frequency :math:`\omega`.
-We refer to [BD15]_ and [Del87]_ for details on its derivation and its evaluation.
-(Note that in these references :math:`G` is split into three to four terms.
-For the sake of simplicity, several of these terms have been merged into :math:`g` in this paper.) 
+.. math::
+    G_0(\xi, x) = \frac{1}{\|x - \xi\|}
+
+is the usual Green function for the 3D Laplace equation without our specific boundary conditions.
+
+The second part reads
+
+.. math::
+    G_1(\xi, x) = - \frac{1}{\|s(x) - \xi\|} 
+
+where :math:`s(x_1, x_2, x_3) = (x_1, x_2, -x_3)` is the reflection accross the free surface.
+
+Finally, this last part is complex-valued and it is introduced to satisfy the boundary conditions :eq:`bc_fs`.
+It depends on the water depth :math:`h` and the wave frequency :math:`\omega` (via the wave number :math:`k_0`).
+
+.. math::
+    G_2(\xi, x)  & = 
+    \frac{2 k_0}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, \mathrm{d} \theta \right) +
+    2 i k_0 \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, \mathrm{d} \theta \right) \\
+    \text{where }
+    J(\zeta) & = 
+    \begin{cases}
+    e^\zeta \left[ E_1(\zeta) + i\pi \right] \quad \text{if} ~ \Im(\zeta) \ge 0 \\
+    e^\zeta \left[ E_1(\zeta) - i\pi \right] \quad \text{if} ~ \Im(\zeta) < 0
+    \end{cases} \\
+    \text{and } \zeta (\theta)  & = k_0 \left( x_3 + \xi_3 + i \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2} \cos \theta \right)
+
+where :math:`E_1` is the first order exponential integral.
+
+.. note::
+   The function :math:`G` is symmetric in the sense of :math:`G(x, \xi) = G(\xi, x)`.
+
+
+.. .. math::
+  \bar{\omega} & = (x_1 - \xi_1) \cos(\theta) + (x_2 - \xi_2) \sin(\theta)  \\
+               & = \Re \left( \left( x_1 - \xi_1  + i (x_2 - \xi_2) \right) e^{-i \theta} \right) \\
+               & = \Re \left( r e^{i (\alpha - \theta)} \right) \\
+               & = r \cos \left( \alpha - \theta \right) \\
+
+.. .. math::
+  (x_1 - \xi_1)  + i (x_2 - \xi_2) = r e^{i \alpha}.
+
+.. .. math::
+  \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f(x_3 + \xi_3 + i \bar{\omega}) \mathrm{d} \theta
+
+The derivative of the Green function can be written as
+
+.. math::
+   \nabla_x G(\xi, x) = - \frac{1}{4 \pi} \left( \nabla_x G_0(\xi, x) + \nabla_x G_1(\xi, x) + \nabla_x G_2(\xi, x) \right)
+
+.. math::
+    \nabla G_0(\xi, x) = \frac{x - \xi}{\|x - \xi\|^3}
+
+.. math::
+    \nabla G_1(\xi, x) = \frac{s(x) - \xi}{\|s(x) - \xi\|^3}
+
+.. math::
+    \nabla G_2(\xi, x) = & 
+    \frac{2 k_0}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} (\nabla_x \zeta) (\theta) \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, \mathrm{d} \theta \right) \\
+    & - 2 k_0^2 \frac{s(x) - \xi}{\|s(x) - \xi\|^3} + 2 i k_0 \Re \left( \int^{\pi/2}_{-\pi/2} (\nabla_x \zeta) (\theta)  e^{\zeta (\theta)} \, \mathrm{d} \theta \right) \\
+
+where
+
+.. math::
+    (\nabla_x \zeta) (\theta) = k_0
+    \begin{pmatrix}
+    \frac{x_1 - \xi_1}{r} i \cos \theta \\
+    \frac{x_2 - \xi_2}{r} i \cos \theta \\
+    1
+    \end{pmatrix}
+
+The derivative wrt :math:`x_1` and :math:`x_2` are antisymmetric.
+
+Symmetries
+~~~~~~~~~~
 
 The first term of :eq:`green_function` is invariant under all rotations and translations, whereas the second term is invariant under isometric transformations that don't change the vertical coordinate (reflection across a vertical plane, rotation around a vertical axis, translation following an horizontal vector).
 
