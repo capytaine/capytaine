@@ -88,6 +88,10 @@ in finite depth, where the wave number :math:`m_0` is defined by the dispersion 
 
 in infinite depth, where the wave number :math:`k_0` is defined by :math:`\omega^2 = k_0 g`.
 
+In the above equations, :math:`\beta` is the angle of the incoming wave.
+The angle :math:`\beta = 0` corresponds to waves propagating in the :math:`x` direction from :math:`x=-\infty` to :math:`x=+\infty`.
+The angle :math:`\beta = \pi/2` corresponds to waves propagating in the :math:`y` direction from :math:`y=-\infty` to :math:`y=+\infty`.
+
 
 Integral problem
 ----------------
@@ -96,11 +100,13 @@ The partial differential equation can be rewritten as a boundary integral proble
 Let us introduce the Green function :math:`G(\xi, \cdot)`, which is solution of the partial differential equation:
 
 .. math::
-   \nabla^2 G(\xi, x) = \delta(\xi - x), \qquad \forall x,
+   \nabla^2_x G(\xi, x) = \delta(\xi - x), \qquad \forall x,
 
 associated with the boundary condition :eq:`bc_fs` and :eq:`bc_bottom`, where :math:`\xi` is a given point in the domain and :math:`\delta` is the Dirac distribution.
 
-With the help of this Green function :math:`G`, the potential of the surface of the floating body :math:`\Gamma` can be rewritten as a function of a source distribution :math:`\sigma`:
+With the help of this Green function :math:`G`, the potential of the surface of the floating body :math:`\Gamma` can be rewritten as a function [#]_ of a source distribution :math:`\sigma`:
+
+.. [#] There is a typo in this equation in [BD15]_.
 
 .. math::
    \Phi(x) = \iint_\Gamma \sigma(y) G(x, y) \, \mathrm{dS}(y).
@@ -175,33 +181,48 @@ where :math:`E_1` is the first order exponential integral.
 .. .. math::
   \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f(x_3 + \xi_3 + i \bar{\omega}) \mathrm{d} \theta
 
-The derivative of the Green function can be written as
+.. proof:lemma::
 
-.. math::
-   \nabla_x G(\xi, x) = - \frac{1}{4 \pi} \left( \nabla_x G_0(\xi, x) + \nabla_x G_1(\xi, x) + \nabla_x G_2(\xi, x) \right)
+    The gradient of the Green function can be written as
 
-.. math::
-    \nabla G_0(\xi, x) = \frac{x - \xi}{\|x - \xi\|^3}
+    .. math::
+       \nabla_x G(\xi, x) = - \frac{1}{4 \pi} \left( \nabla_x G_0(\xi, x) + \nabla_x G_1(\xi, x) + \nabla_x G_2(\xi, x) \right)
 
-.. math::
-    \nabla G_1(\xi, x) = \frac{s(x) - \xi}{\|s(x) - \xi\|^3}
+    where
 
-.. math::
-    \nabla G_2(\xi, x) = & 
-    \frac{2 k_0}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} (\nabla_x \zeta) (\theta) \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, \mathrm{d} \theta \right) \\
-    & - 2 k_0^2 \frac{s(x) - \xi}{\|s(x) - \xi\|^3} + 2 i k_0 \Re \left( \int^{\pi/2}_{-\pi/2} (\nabla_x \zeta) (\theta)  e^{\zeta (\theta)} \, \mathrm{d} \theta \right) \\
+    .. math::
+        \nabla G_0(\xi, x) = \frac{x - \xi}{\|x - \xi\|^3}\,,
 
-where
+    .. math::
+        \nabla G_1(\xi, x) = \frac{s(x) - \xi}{\|s(x) - \xi\|^3}\,,
 
-.. math::
-    (\nabla_x \zeta) (\theta) = k_0
-    \begin{pmatrix}
-    \frac{x_1 - \xi_1}{r} i \cos \theta \\
-    \frac{x_2 - \xi_2}{r} i \cos \theta \\
-    1
-    \end{pmatrix}
+    and 
 
-The derivative wrt :math:`x_1` and :math:`x_2` are antisymmetric.
+    .. math::
+        \nabla G_2(\xi, x) = & 
+        \frac{2 k_0}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} (\nabla_x \zeta) (\theta) \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, \mathrm{d} \theta \right) \\
+        & - 2 k_0^2 \frac{s(x) - \xi}{\|s(x) - \xi\|^3} + 2 i k_0 \Re \left( \int^{\pi/2}_{-\pi/2} (\nabla_x \zeta) (\theta)  e^{\zeta (\theta)} \, \mathrm{d} \theta \right) \\
+
+    where
+
+    .. math::
+        (\nabla_x \zeta) (\theta) = k_0
+        \begin{pmatrix}
+        \frac{x_1 - \xi_1}{r} i \cos \theta \\
+        \frac{x_2 - \xi_2}{r} i \cos \theta \\
+        1
+        \end{pmatrix}.
+
+.. [#] There is a typo in this equation in [Del89]_ [BD15]_.
+
+.. proof:proof::
+
+    blah
+
+.. proof:property::
+
+    The derivative with respect to :math:`x_1` and :math:`x_2` are antisymmetric.
+    The derivative wrt :math:`x_3` has an antisymmtric part (:math:`G_{2a}`) and a symmetric part (:math:`G_{2b}`).
 
 Symmetries
 ~~~~~~~~~~
