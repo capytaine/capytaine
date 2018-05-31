@@ -74,10 +74,10 @@ It depends on the type of problem:
     The resolution of the Laplace problem allows to derive the added mass and the radiation damping associated with this degree of freedom (see also Post-processing_).
 
 **Diffraction problem**:
-    For the diffraction problem, the velocity on the floating body is given by the velocity of Airy's wave field (see below).
+    For the diffraction problem, the velocity on the floating body is given by the velocity of Airy's wave field.
     Once the problem has been solved, the linear Froude-Krylov force is computed by the integration of the pressure (:math:`p = i \rho \omega \Phi`) on the floating body (see also Post-processing_).
 
-    The incoming wave fields is given by
+    The incoming Airy's wave fields is given by
 
     .. math::
        \Phi_0 = - i \frac{g}{\omega} \frac{\cosh (m_0 (z+h))}{\cosh (m_0 h)} e^{i m_0 (x \cos \beta + y \sin \beta)}
@@ -157,7 +157,7 @@ The second part reads
     G_1(\xi, x) = - \frac{1}{\|s(\xi) - x\|} 
     :label: green_function_inf_depth_1
 
-where :math:`s(\xi_1, \xi_2, \xi_3) = (\xi_1, \xi_2, -\xi_3)` is the reflection accross the free surface.
+where :math:`s(\xi_1, \xi_2, \xi_3) = (\xi_1, \xi_2, -\xi_3)` is the reflection of :math:`\xi` accross the free surface.
 
 Finally, this last part is complex-valued and it is introduced to satisfy the boundary conditions :eq:`bc_fs`.
 It depends on the water depth :math:`h` and the wave frequency :math:`\omega` (via the wave number :math:`k_0`).
@@ -177,16 +177,32 @@ where
     e^\zeta \left[ E_1(\zeta) - i\pi \right] \quad \text{if} ~ \Im(\zeta) < 0
     \end{cases}
 
-where :math:`E_1` is the first exponential integral, and
+where :math:`E_1` is the first exponential integral, defined as
+
+.. math::
+   
+    E_1(z) = \int_z^\infty \frac{e^{-t}}{t} dt,
+
+and
 
 .. math::
     \zeta (\theta) = k_0 \left( x_3 + \xi_3 + i \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2} \cos \theta \right)
+    :label: def_zeta
 
 
-.. note::
-   The function :math:`G` is symmetric in the sense of :math:`G(x, \xi) = G(\xi, x)`.
+.. proof:property::
 
-.. note::
+   The function :math:`G` is symmetric in the sense of 
+
+   .. math::
+   
+        \forall x, \xi, \quad G(x, \xi) = G(\xi, x).
+
+Variants of the formulation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. proof:lemma::
+
    An althernative expression for the first term of :eq:`green_function_inf_depth_2` can be derived using the following equality [Del89]_ :
 
    .. math::
@@ -197,21 +213,56 @@ where :math:`E_1` is the first exponential integral, and
 
     TODO
 
-.. note::
+.. proof:lemma::
 
-   .. math::
-      \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f(x_3 + \xi_3 + i \bar{\omega}) \mathrm{d} \theta
+    For any function :math:`f`, the following two formulations of the integral are equivalent:
 
-   .. math::
-      \bar{\omega} & = (x_1 - \xi_1) \cos(\theta) + (x_2 - \xi_2) \sin(\theta)  \\
-                   & = \Re \left( \left( x_1 - \xi_1  + i (x_2 - \xi_2) \right) e^{-i \theta} \right) \\
-                   & = \Re \left( r e^{i (\alpha - \theta)} \right) \\
-                   & = r \cos \left( \alpha - \theta \right) \\
+    .. math::
+        \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\zeta(\theta) \right) \mathrm{d} \theta = 
+        \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\tilde{\zeta}(\theta) \right) \mathrm{d} \theta
 
-   .. math::
-      (x_1 - \xi_1)  + i (x_2 - \xi_2) = r e^{i \alpha}.
+    where :math:`\zeta` is defined in :eq:`def_zeta` and :math:`\tilde{\zeta}` is defined as
+
+    .. math::
+       \tilde{\zeta} (\theta) = k_0 \left( x_3 + \xi_3 + i \left( (x_1 - \xi_1) \cos\theta + (x_2 - \xi_2) \sin\theta \right) \right).
 
 .. proof:proof::
+
+   .. math::
+      :nowrap:
+
+      \begin{align*}
+      (x_1 - \xi_1) \cos(\theta) + (x_2 - \xi_2) \sin(\theta) & = \Re \left( \left( x_1 - \xi_1  + i (x_2 - \xi_2) \right) e^{-i \theta} \right) \\
+                   & = \Re \left( r e^{i (\alpha - \theta)} \right) \\
+                   & = r \cos \left( \alpha - \theta \right) \\
+      \end{align*}
+
+   where :math:`r` and :math:`\alpha` are defined by
+
+   .. math::
+      :nowrap:
+
+      \[
+          r e^{i \alpha} = (x_1 - \xi_1)  + i (x_2 - \xi_2).
+      \]
+
+   Finally note that:
+
+    .. math::
+        :nowrap:
+
+        \[
+            \int_{-\frac{\pi}{2}-\alpha}^{\frac{\pi}{2}-\alpha} f \left(\zeta(\theta) \right) \mathrm{d} \theta = 
+            \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\zeta(\theta) \right) \mathrm{d} \theta
+        \]
+
+.. proof:property:: 
+    Limit for high frequency
+
+    TODO
+
+.. proof:property::
+    Limit for low frequency
 
     TODO
 
@@ -334,6 +385,19 @@ Then other magnitudes such as the Froude-Krylov forces or the added mass can be 
 
 Post-processing
 ===============
+
+Forces on the body
+------------------
+
+TODO
+
+Free surface elevation
+----------------------
+
+TODO
+
+Far-field coefficients
+----------------------
 
 TODO
 
