@@ -2,11 +2,12 @@
 Theory manual
 =============
 
+This document presents several aspects of the theoretical background for Nemoh and Capytaine.
+We refer also to [Del87]_ [Del89]_ [Del93]_ [BD15]_ and [AD18]_.
+
 .. warning:: Work in progress...
 
 .. contents:: Contents
-
-See [Del87]_ [Del89]_ [Del93]_ [BD15]_ [PKR17]_ [AD18]_
 
 Linear boundary value problem
 =============================
@@ -76,21 +77,21 @@ It depends on the type of problem:
     For the diffraction problem, the velocity on the floating body is given by the velocity of Airy's wave field (see below).
     Once the problem has been solved, the linear Froude-Krylov force is computed by the integration of the pressure (:math:`p = i \rho \omega \Phi`) on the floating body (see also Post-processing_).
 
-The incoming wave fields is given by
+    The incoming wave fields is given by
 
-.. math::
-   \Phi_0 = - i \frac{g}{\omega} \frac{\cosh (m_0 (z+h))}{\cosh (m_0 h)} e^{i m_0 (x \cos \beta + y \sin \beta)}
+    .. math::
+       \Phi_0 = - i \frac{g}{\omega} \frac{\cosh (m_0 (z+h))}{\cosh (m_0 h)} e^{i m_0 (x \cos \beta + y \sin \beta)}
 
-in finite depth, where the wave number :math:`m_0` is defined by the dispersion relation :math:`\omega^2 = m_0 g \tanh (m_0 h)`, and by
+    in finite depth, where the wave number :math:`m_0` is defined by the dispersion relation :math:`\omega^2 = m_0 g \tanh (m_0 h)`, and by
 
-.. math::
-   \Phi_0 = - i \frac{g}{\omega} e^{k_0 z} e^{i k_0 (x \cos \beta + y \sin \beta)}
+    .. math::
+       \Phi_0 = - i \frac{g}{\omega} e^{k_0 z} e^{i k_0 (x \cos \beta + y \sin \beta)}
 
-in infinite depth, where the wave number :math:`k_0` is defined by :math:`\omega^2 = k_0 g`.
+    in infinite depth, where the wave number :math:`k_0` is defined by :math:`\omega^2 = k_0 g`.
 
-In the above equations, :math:`\beta` is the angle of the incoming wave.
-The angle :math:`\beta = 0` corresponds to waves propagating in the :math:`x` direction from :math:`x=-\infty` to :math:`x=+\infty`.
-The angle :math:`\beta = \pi/2` corresponds to waves propagating in the :math:`y` direction from :math:`y=-\infty` to :math:`y=+\infty`.
+    In the above equations, :math:`\beta` is the angle of the incoming wave.
+    The angle :math:`\beta = 0` corresponds to waves propagating in the :math:`x` direction from :math:`x=-\infty` to :math:`x=+\infty`.
+    The angle :math:`\beta = \pi/2` corresponds to waves propagating in the :math:`y` direction from :math:`y=-\infty` to :math:`y=+\infty`.
 
 
 Integral problem
@@ -104,13 +105,13 @@ Let us introduce the Green function :math:`G(\xi, \cdot)`, which is solution of 
 
 associated with the boundary condition :eq:`bc_fs` and :eq:`bc_bottom`, where :math:`\xi` is a given point in the domain and :math:`\delta` is the Dirac distribution.
 
-With the help of this Green function :math:`G`, the potential of the surface of the floating body :math:`\Gamma` can be rewritten as a function [#]_ of a source distribution :math:`\sigma`:
-
-.. [#] There is a typo in this equation in [BD15]_.
+With the help of this Green function :math:`G`, the potential of the surface of the floating body :math:`\Gamma` can be rewritten as a function of a source distribution :math:`\sigma`:
 
 .. math::
    \Phi(x) = \iint_\Gamma \sigma(y) G(x, y) \, \mathrm{dS}(y).
    :label: continuous_source_formulation
+
+.. note:: There is a typo in this equation in [BD15]_.
 
 The integral on the other boundaries of the domain is zero due to the properties of the Green function.
 
@@ -122,11 +123,19 @@ The differentiation of :eq:`continuous_source_formulation` leads to the followin
 
 where :math:`n` is the normal vector on the floating body surface :math:`\Gamma`.
 
-Expression for the Green function
----------------------------------
+
+Expression of the Green function
+================================
 
 In infinite depth
-~~~~~~~~~~~~~~~~~
+-----------------
+
+The integral problem above relates the potential :math:`\Phi` to the normal velocity
+:math:`u \cdot n` via the Green function :math:`G`. Let us know discuss the evaluation of this
+function for an infinite water depth.
+
+Green function
+~~~~~~~~~~~~~~
 
 The Green function can be written as the sum of three terms:
 
@@ -137,95 +146,158 @@ The Green function can be written as the sum of three terms:
 The first term
 
 .. math::
-    G_0(\xi, x) = \frac{1}{\|x - \xi\|}
+    G_0(\xi, x) = \frac{1}{\|\xi - x\|}
+    :label: green_function_inf_depth_0
 
 is the usual Green function for the 3D Laplace equation without our specific boundary conditions.
 
 The second part reads
 
 .. math::
-    G_1(\xi, x) = - \frac{1}{\|s(x) - \xi\|} 
+    G_1(\xi, x) = - \frac{1}{\|s(\xi) - x\|} 
+    :label: green_function_inf_depth_1
 
-where :math:`s(x_1, x_2, x_3) = (x_1, x_2, -x_3)` is the reflection accross the free surface.
+where :math:`s(\xi_1, \xi_2, \xi_3) = (\xi_1, \xi_2, -\xi_3)` is the reflection accross the free surface.
 
 Finally, this last part is complex-valued and it is introduced to satisfy the boundary conditions :eq:`bc_fs`.
 It depends on the water depth :math:`h` and the wave frequency :math:`\omega` (via the wave number :math:`k_0`).
 
 .. math::
-    G_2(\xi, x)  & = 
-    \frac{2 k_0}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, \mathrm{d} \theta \right) +
-    2 i k_0 \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, \mathrm{d} \theta \right) \\
-    \text{where }
-    J(\zeta) & = 
+    G_2(\xi, x) & = 
+    \frac{2 k_0}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, \mathrm{d} \theta \right) \\
+    & \qquad \qquad \qquad \qquad + 2 i k_0 \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, \mathrm{d} \theta \right)
+    :label: green_function_inf_depth_2
+
+where
+
+.. math::
+    J(\zeta) = 
     \begin{cases}
     e^\zeta \left[ E_1(\zeta) + i\pi \right] \quad \text{if} ~ \Im(\zeta) \ge 0 \\
     e^\zeta \left[ E_1(\zeta) - i\pi \right] \quad \text{if} ~ \Im(\zeta) < 0
-    \end{cases} \\
-    \text{and } \zeta (\theta)  & = k_0 \left( x_3 + \xi_3 + i \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2} \cos \theta \right)
+    \end{cases}
 
-where :math:`E_1` is the first order exponential integral.
+where :math:`E_1` is the first exponential integral, and
+
+.. math::
+    \zeta (\theta) = k_0 \left( x_3 + \xi_3 + i \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2} \cos \theta \right)
+
 
 .. note::
    The function :math:`G` is symmetric in the sense of :math:`G(x, \xi) = G(\xi, x)`.
 
+.. note::
+   An althernative expression for the first term of :eq:`green_function_inf_depth_2` can be derived using the following equality [Del89]_ :
 
-.. .. math::
-  \bar{\omega} & = (x_1 - \xi_1) \cos(\theta) + (x_2 - \xi_2) \sin(\theta)  \\
-               & = \Re \left( \left( x_1 - \xi_1  + i (x_2 - \xi_2) \right) e^{-i \theta} \right) \\
-               & = \Re \left( r e^{i (\alpha - \theta)} \right) \\
-               & = r \cos \left( \alpha - \theta \right) \\
-
-.. .. math::
-  (x_1 - \xi_1)  + i (x_2 - \xi_2) = r e^{i \alpha}.
-
-.. .. math::
-  \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f(x_3 + \xi_3 + i \bar{\omega}) \mathrm{d} \theta
-
-.. proof:lemma::
-
-    The gradient of the Green function can be written as
-
-    .. math::
-       \nabla_x G(\xi, x) = - \frac{1}{4 \pi} \left( \nabla_x G_0(\xi, x) + \nabla_x G_1(\xi, x) + \nabla_x G_2(\xi, x) \right)
-
-    where
-
-    .. math::
-        \nabla G_0(\xi, x) = \frac{x - \xi}{\|x - \xi\|^3}\,,
-
-    .. math::
-        \nabla G_1(\xi, x) = \frac{s(x) - \xi}{\|s(x) - \xi\|^3}\,,
-
-    and 
-
-    .. math::
-        \nabla G_2(\xi, x) = & 
-        \frac{2 k_0}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} (\nabla_x \zeta) (\theta) \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, \mathrm{d} \theta \right) \\
-        & - 2 k_0^2 \frac{s(x) - \xi}{\|s(x) - \xi\|^3} + 2 i k_0 \Re \left( \int^{\pi/2}_{-\pi/2} (\nabla_x \zeta) (\theta)  e^{\zeta (\theta)} \, \mathrm{d} \theta \right) \\
-
-    where
-
-    .. math::
-        (\nabla_x \zeta) (\theta) = k_0
-        \begin{pmatrix}
-        \frac{x_1 - \xi_1}{r} i \cos \theta \\
-        \frac{x_2 - \xi_2}{r} i \cos \theta \\
-        1
-        \end{pmatrix}.
-
-.. [#] There is a typo in this equation in [Del89]_ [BD15]_.
+   .. math::
+       \int^{\pi/2}_{-\pi/2} \frac{1}{\zeta(\theta)} \, \mathrm{d} \theta = - \pi \frac{1}{\|s(\xi) - x\|}.
+       :label: int_1_over_zeta
 
 .. proof:proof::
 
-    blah
+    TODO
 
-.. proof:property::
+.. note::
 
-    The derivative with respect to :math:`x_1` and :math:`x_2` are antisymmetric.
-    The derivative wrt :math:`x_3` has an antisymmtric part (:math:`G_{2a}`) and a symmetric part (:math:`G_{2b}`).
+   .. math::
+      \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f(x_3 + \xi_3 + i \bar{\omega}) \mathrm{d} \theta
+
+   .. math::
+      \bar{\omega} & = (x_1 - \xi_1) \cos(\theta) + (x_2 - \xi_2) \sin(\theta)  \\
+                   & = \Re \left( \left( x_1 - \xi_1  + i (x_2 - \xi_2) \right) e^{-i \theta} \right) \\
+                   & = \Re \left( r e^{i (\alpha - \theta)} \right) \\
+                   & = r \cos \left( \alpha - \theta \right) \\
+
+   .. math::
+      (x_1 - \xi_1)  + i (x_2 - \xi_2) = r e^{i \alpha}.
+
+.. proof:proof::
+
+    TODO
+
+Gradient of the Green function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The gradient of the Green function can be written as
+
+.. math::
+   \nabla_x G(\xi, x) = - \frac{1}{4 \pi} \left( \nabla_x G_0(\xi, x) + \nabla_x G_1(\xi, x) + \nabla_x G_2(\xi, x) \right)
+
+where
+
+.. math::
+    \nabla_x G_0(\xi, x) = \frac{x - \xi}{\|x - \xi\|^3}\,,
+    :label: green_function_inf_depth_deriv_0
+
+.. math::
+    \nabla_x G_1(\xi, x) = \frac{x - s(\xi)}{\|x - s(\xi)\|^3}\,,
+    :label: green_function_inf_depth_deriv_1
+
+and 
+
+.. math::
+    \nabla_x G_2(\xi, x) = & 
+    \frac{2 k_0}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta \right) \\
+    & - 2 k_0^2 \frac{s(x) - \xi}{\|s(x) - \xi\|^3} 
+    + 2 i k_0 \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta \right) \\
+    :label: green_function_inf_depth_deriv_2
+
+where
+
+.. math::
+   :nowrap:
+
+   \[
+   (\nabla_x \zeta) (\theta) = k_0
+   \begin{pmatrix}
+   \frac{x_1 - \xi_1}{r} i \cos \theta \\
+   \frac{x_2 - \xi_2}{r} i \cos \theta \\
+   1
+   \end{pmatrix}.
+   \]
+
+.. proof:proof::
+
+    The derivation of :eq:`green_function_inf_depth_deriv_0` and :eq:`green_function_inf_depth_deriv_1` are straightforward.
+
+    Let us discuss the derivation of :eq:`green_function_inf_depth_deriv_2`:
+
+    * its first term can be split up using :eq:`int_1_over_zeta`
+
+        * Using the equality :math:`J'(\zeta) = J(\zeta) - 1/\zeta`, the first term of :eq:`green_function_inf_depth_deriv_2` can be derived.
+
+        * 
+
+.. note:: There is a typo in the second term of :eq:`green_function_inf_depth_deriv_2` in [Del89]_ and [BD15]_.
+
+.. note::
+    The derivative of :math:`G` with respect to :math:`x_1` and :math:`x_2` are antisymmetric in the sense of 
+
+    .. math::
+       :nowrap:
+
+        \[
+        \frac{\partial G}{\partial x_1} (\xi, x) = - \frac{\partial G}{\partial x_1}(x, \xi).
+        \]
+
+    Its derivative with respect to :math:`x_3` can be decomposed into an antisymmetric term and a symmetric term.
+
+In finite depth
+---------------
+
+Green function
+~~~~~~~~~~~~~~
+
+TODO
+
+Gradient of the Green function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+TODO
+
 
 Symmetries
-~~~~~~~~~~
+----------
 
 The first term of :eq:`green_function` is invariant under all rotations and translations, whereas the second term is invariant under isometric transformations that don't change the vertical coordinate (reflection across a vertical plane, rotation around a vertical axis, translation following an horizontal vector).
 
