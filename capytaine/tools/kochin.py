@@ -3,6 +3,8 @@
 """
 Computation of the Kochin function.
 """
+# This file is part of "capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import numpy as np
 

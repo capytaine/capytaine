@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-Import or export Nemoh.cal files for backward compatibility with Nemoh 2.
-"""
+"""Import or export Nemoh.cal files for backward compatibility with Nemoh 2."""
+# This file is part of "capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import os
 import logging

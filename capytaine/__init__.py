@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+__author__ = 'Matthieu Ancellin'
+__license__ = 'GPLv3'
+
 from capytaine.bodies import FloatingBody
 from capytaine.symmetries import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
 from capytaine.geometric_bodies.sphere import Sphere

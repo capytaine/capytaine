@@ -1,17 +1,14 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Floating bodies to be used in radiation-diffraction problems.
-
-This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
-It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
-"""
+"""Floating bodies to be used in radiation-diffraction problems."""
+# This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import logging
 import copy
 from itertools import chain, accumulate
 
 import numpy as np
-# from numpy.linalg import norm
 
 from meshmagick.mesh import Mesh
 from meshmagick.mmio import load_mesh

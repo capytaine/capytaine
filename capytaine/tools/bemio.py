@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-Output of the result as BEMIO hdf5 file.
+"""Output of the result as BEMIO hdf5 file.
 
 [1]: https://wec-sim.github.io/WEC-Sim/advanced_features.html#bemio
-
-This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
-It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 """
+# This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import h5py
 import numpy as np
