@@ -22,11 +22,27 @@ FLOAT_PRECISION = np.float64
 
 
 class Nemoh:
-    """Solver for the BEM problem based on Nemoh's Green function."""
+    """Solver for the BEM problem based on Nemoh's Green function.
+
+    Attributes
+    ----------
+    npinte: int
+        Number of points for the evaluation of the integral w.r.t. theta in the Green function
+    XR, XZ, APD: arrays
+        Tabulated integrals for the Green functions
+    max_stored_exponential_decompositions: int
+        Number of stored exponential decompostion
+    exponential_decompositions: MaxLengthDict of arrays
+        Store last computed exponential decomposition
+    keep_matrices: bool
+        If True, store influences matrices in __cache__
+    __cache__: dict of dict of arrays
+        Store last computations of influence matrices
+    """
 
     def __init__(self, keep_matrices=True, npinte=251, max_stored_exponential_decompositions=50):
-        self.XR, self.XZ, self.APD = _Green.initialize_green_2.initialize_green(328, 46, npinte)
         LOG.info("Initialize Nemoh's Green function.")
+        self.XR, self.XZ, self.APD = _Green.initialize_green_2.initialize_green(328, 46, npinte)
 
         self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)
 
@@ -36,7 +52,20 @@ class Nemoh:
 
 
     def solve(self, problem, keep_details=False):
-        """Solve the BEM problem using Nemoh."""
+        """Solve the BEM problem using Nemoh.
+
+        Parameters
+        ----------
+        problem: LinearPotentialFlowProblem
+            the problem to be solved
+        keep_details: bool, optional
+            if True, store the sources and the potential on the floating body in the output
+
+        Returns
+        -------
+        LinearPotentialFlowResult
+            a result object created from the input problem
+        """
 
         LOG.info("Solve %s.", problem)
 
@@ -44,8 +73,8 @@ class Nemoh:
             self.compute_exponential_decomposition(problem)
 
         if problem.wavelength < 8*problem.body.mesh.faces_radiuses.max():
-            LOG.warning(f"Resolution of the mesh (max_radius={problem.body.mesh.faces_radiuses.max():.2e}) "
-                        f"might be insufficient for this wavelength (wavelength/8={problem.wavelength/8:.2e})!")
+            LOG.warning(f"Resolution of the mesh (8×max_radius={8*problem.body.mesh.faces_radiuses.max():.2e}) "
+                        f"might be insufficient for this wavelength (wavelength={problem.wavelength:.2e})!")
 
         S, V = self.build_matrices(
             problem.body.mesh, problem.body.mesh,
@@ -73,6 +102,20 @@ class Nemoh:
         return result
 
     def solve_all(self, problems, processes=1):
+        """Solve several problems in parallel.
+
+        Parameters
+        ----------
+        problems: list of LinearPotentialFlowProblem
+            several problems to be solved
+        processes: int, optional
+            number of parallel processes
+
+        Return
+        ------
+        list of LinearPotentialFlowResult
+            the solved problems
+        """
         from multiprocessing import Pool
         with Pool(processes=processes) as pool:
             results = pool.map(self.solve, problems)
@@ -83,8 +126,14 @@ class Nemoh:
     ####################
 
     def compute_exponential_decomposition(self, pb):
-        """Return the decomposition a part of the finite depth Green function as a sum of
-        exponential functions.
+        """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
+
+        The decomposition is stored in `self.exponential_decompositions`.
+
+        Parameters
+        ----------
+        pb: LinearPotentialFlowProblem
+            Problem from which the frequency and depth will be used.
         """
 
         LOG.debug(f"Initialize Nemoh's finite depth Green function for omega=%.2e and depth=%.2e", pb.omega, pb.depth)
@@ -133,6 +182,7 @@ class Nemoh:
                        free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0,
                        force_full_computation=False, _rec_depth=(1,)):
         """Assemble the influence matrices.
+
         The method is basically an ugly multiple dispatch on the kind of bodies.
         For symmetric structures, the method is called recursively on the sub-bodies.
 
@@ -402,8 +452,12 @@ class Nemoh:
 
         Returns
         -------
-        array
+        array of shape (mesh.nb_faces,)
             potential on the faces of the mesh
+
+        Raises
+        ------
+        Exception: if the source distribution was not stored in the `Result` object by the solver.
         """
         LOG.info(f"Compute potential on {mesh.name} for {result}.")
 
@@ -440,8 +494,12 @@ class Nemoh:
 
         Returns
         -------
-        array
+        array of shape (free_surface.nb_faces,)
             the free surface elevation on each faces of the meshed free surface
+
+        Raises
+        ------
+        Exception: if the source distribution was not stored in the `Result` object by the solver.
         """
         fs_elevation = 1j*result.omega/result.g * self.get_potential_on_mesh(result, free_surface.mesh)
         if keep_details:
