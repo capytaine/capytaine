@@ -43,7 +43,10 @@ rigid-body degrees of freedom and then plots the added mass.
 Influence of the water depth
 ----------------------------
 
-TODO
+This example runs the same simulation for several water depth and plot the results.
+
+.. literalinclude:: examples/finite_depth_cylinder.py
+   :language: python
 
 Simulation with several bodies
 ------------------------------
