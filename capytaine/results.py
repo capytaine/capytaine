@@ -50,6 +50,7 @@ class DiffractionResult(LinearPotentialFlowResult):
     def records(self):
         FK = Froude_Krylov_force(self.problem)
         return [dict(omega=self.omega, influenced_dof=dof, angle=self.angle,
+                     water_depth=self.depth, body_name=self.body.name, g=self.g, rho=self.rho,
                      diffraction_force=self.forces[dof], Froude_Krylov_force=FK[dof])
                 for dof in self.influenced_dofs]
 
@@ -75,6 +76,7 @@ class RadiationResult(LinearPotentialFlowResult):
 
     def records(self):
         return [dict(omega=self.omega, influenced_dof=dof, radiating_dof=self.radiating_dof,
+                     water_depth=self.depth, body_name=self.body.name, g=self.g, rho=self.rho,
                      added_mass=self.added_masses[dof], radiation_damping=self.radiation_dampings[dof])
                 for dof in self.influenced_dofs]
 
@@ -87,22 +89,42 @@ def assemble_dataset(results):
 
     df = pd.DataFrame([record for result in results for record in result.records()])
 
+    optional_vars = ['water_depth', 'body_name', 'rho', 'g']
+
     if 'added_mass' in df.columns:
         radiation_cases = df[df['added_mass'].notnull()].dropna(1)
-        radiation_cases = radiation_cases.set_index(['omega', 'radiating_dof', 'influenced_dof'])
+
+        dimensions = ['omega', 'radiating_dof', 'influenced_dof']
+        for optional_var in optional_vars:
+            optional_var_range = df[optional_var].unique()
+            if len(optional_var_range) > 1:
+                dimensions = [optional_var] + dimensions
+            else:
+                radiation_cases = radiation_cases.drop(optional_var, axis=1)
+
+        radiation_cases = radiation_cases.set_index(dimensions)
         radiation_cases = radiation_cases.to_xarray()
         dataset = xr.merge([dataset, radiation_cases])
 
     if 'diffraction_force' in df.columns:
         diffraction_cases = df[df['diffraction_force'].notnull()].dropna(1)
-        diffraction_cases = diffraction_cases.set_index(['omega', 'angle', 'influenced_dof'])
+
+        dimensions = ['omega', 'angle', 'influenced_dof']
+        for optional_var in optional_vars:
+            optional_var_range = df[optional_var].unique()
+            if len(optional_var_range) > 1:
+                dimensions = [optional_var] + dimensions
+            else:
+                diffraction_cases = diffraction_cases.drop(optional_var, axis=1)
+
+        diffraction_cases = diffraction_cases.set_index(dimensions)
         diffraction_cases = diffraction_cases.to_xarray()
         dataset = xr.merge([dataset, diffraction_cases])
 
-    assert len(set([result.depth for result in results])) <= 1  # Check if all results have same depth
-    dataset.attrs['depth'] = results[0].depth
-
-    assert len(set([result.body.name for result in results])) <= 1  # Check if all results have same bodies
-    dataset.attrs['body_name'] = results[0].body.name
+    for optional_var in optional_vars:
+        optional_var_range = df[optional_var].unique()
+        if len(optional_var_range) == 1:
+            dataset.attrs[optional_var] = optional_var_range[0]
 
     return dataset
+
