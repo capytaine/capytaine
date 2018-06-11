@@ -22,9 +22,9 @@ LOG = logging.getLogger(__name__)
 class Rectangle(FloatingBody):
     """(One-sided) rectangle"""
 
-    def __init__(self, size=(5.0, 5.0), resolution=(5, 5), clever=False,
-                 center=(0, 0, 0), name=None):
-        """Generate the mesh of a vertical rectangle.
+    def __init__(self, size=(5.0, 5.0), resolution=(5, 5), center=(0, 0, 0),
+                 clever=False, name=None):
+        """Generate the mesh of a vertical rectangle (along x and z).
 
         Normals are oriented in the positive y direction.
 
@@ -35,7 +35,7 @@ class Rectangle(FloatingBody):
         resolution : tuple of  ints
             number of faces along each of the two directions
         clever : bool
-            if True, use the translation symmetry to speed up the computations
+            if True, use the translation symmetry along the x axis to speed up the computations
         center : tuple of floats
             position of the center of the rectangle
         """
@@ -56,7 +56,7 @@ class Rectangle(FloatingBody):
         if clever and nw > 1:
             strip = self.generate_rectangle_mesh(width=width/nw, height=height, nw=1, nh=nh, name=f"strip_of_{name}")
             strip.translate_x(-width/2 + width/(2*nw))
-            mesh = TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=nw-1, name=name)
+            mesh = TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=int(nw)-1, name=name)
         else:
             mesh = self.generate_rectangle_mesh(width, height, nh, nw, name)
         mesh.translate(center)
@@ -86,8 +86,9 @@ class Rectangle(FloatingBody):
 
 
 class OpenRectangularParallelepiped(FloatingBody):
-    def __init__(self, size=(5.0, 5.0, 5.0), resolution=(5, 5, 5), clever=False,
-                 center=(0, 0, 0), name=None):
+    def __init__(self, size=(5.0, 5.0, 5.0), resolution=(5, 5, 5), center=(0, 0, 0),
+                 clever=False,
+                 name=None):
         """Generate the mesh of four panels forming a parallelepiped without top nor bottom.
 
         Parameters
@@ -96,10 +97,11 @@ class OpenRectangularParallelepiped(FloatingBody):
             dimensions of the parallelepiped (width, thickness, height)
         resolution : tuple of ints
             number of faces along the three directions
-        clever : bool
-            if True, use the symmetry to speed up the computations
         center : tuple of floats
             coordinates of the center of the parallelepiped
+        clever : bool
+            if True, use the translation symmetry in the x direction to speed up the computations
+            To use the translation symmetry in the y direction, create a x-symmetric body and then rotate it by pi/2.
         name : string, optional
             a name for the body
         """
@@ -117,8 +119,8 @@ class OpenRectangularParallelepiped(FloatingBody):
         if name is None:
             name = f"open_rectangular_parallelepiped_{next(Mesh._ids)}"
 
-        front = Rectangle(size=(width, height), resolution=(nw, nh), clever=clever,
-                          center=(0, 0, 0), name=f"front_of_{name}").mesh
+        front = Rectangle(size=(width, height), resolution=(nw, nh), center=(0, 0, 0),
+                          clever=clever, name=f"front_of_{name}").mesh
         back = front.copy(name=f"back_of_{name}")
 
         front.translate_y(thickness/2)
@@ -126,7 +128,8 @@ class OpenRectangularParallelepiped(FloatingBody):
         back.translate_y(-thickness/2)
 
         if nth > 0:
-            side = Rectangle(size=(thickness, height), resolution=(nth, nh), clever=clever, name=f"side_of_{name}").mesh
+            side = Rectangle(size=(thickness, height), resolution=(nth, nh), center=(0, 0, 0),
+                             clever=False, name=f"side_of_{name}").mesh
             other_side = side.copy(name=f"other_side_of_{name}")
 
             side.rotate_z(np.pi/2)
@@ -152,8 +155,8 @@ class OpenRectangularParallelepiped(FloatingBody):
 
 
 class RectangularParallelepiped(FloatingBody):
-    def __init__(self, size=(5.0, 5.0, 5.0), resolution=(5, 5, 5), clever=False,
-                 center=(0, 0, 0), name=None):
+    def __init__(self, size=(5.0, 5.0, 5.0), resolution=(5, 5, 5), center=(0, 0, 0),
+                 clever=False, name=None):
         """Generate the mesh of four panels forming a parallelepiped without top nor bottom.
 
         Parameters
@@ -162,10 +165,11 @@ class RectangularParallelepiped(FloatingBody):
             dimensions of the parallelepiped (width, thickness, height)
         resolution : tuple of ints
             number of faces along the three directions
-        clever : bool
-            if True, use the symmetry to speed up the computations
         center : tuple of floats
             coordinates of the center of the parallelepiped
+        clever : bool
+            if True, use the translation symmetry in the x direction to speed up the computations
+            To use the translation symmetry in the y direction, create a x-symmetric body and then rotate it by pi/2.
         name : string, optional
             a name for the body
         """
