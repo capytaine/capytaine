@@ -13,8 +13,7 @@ import numpy as np
 from meshmagick.mesh import Mesh
 from meshmagick.mmio import load_mesh
 from meshmagick.hydrostatics import Hydrostatics
-from meshmagick.mesh_clipper import MeshClipper
-from meshmagick.geometry import xOz_Plane, Plane
+from meshmagick.geometry import xOz_Plane
 
 from capytaine.meshes_collection import CollectionOfMeshes
 from capytaine.symmetries import ReflectionSymmetry
@@ -269,39 +268,24 @@ class FloatingBody:
         else:
             return new_body
 
-    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty, name=None):
+    def get_immersed_part(self, name=None, **kwargs):
         """Return a body for which the parts of the mesh above the free surface or below the sea
         bottom have been removed.
         Dofs are lost in the process.
         TODO: Also clip dofs.
         """
         if isinstance(self.mesh, Mesh):
-            meshes_to_clip = [self.mesh]
+            collection_of_meshes_to_clip = CollectionOfMeshes([self.mesh])
         elif isinstance(self.mesh, CollectionOfMeshes):
-            meshes_to_clip = self.mesh.submeshes
+            collection_of_meshes_to_clip = self.mesh
 
-        clipped_meshes = []
-        for mesh in meshes_to_clip:
-            try:
-                clipped_mesh = MeshClipper(mesh,
-                                           plane=Plane(normal=(0.0, 0.0, 1.0),
-                                                       scalar=free_surface)).clipped_mesh
-
-                if sea_bottom > -np.infty:
-                    clipped_mesh = MeshClipper(clipped_mesh,
-                                               plane=Plane(normal=(0.0, 0.0, -1.0),
-                                                           scalar=-sea_bottom)).clipped_mesh
-            except IndexError: # The mesh was not intersecting with the plane... TODO: Fix in meshmagick.
-                clipped_mesh = mesh
-
-            clipped_mesh.remove_unused_vertices()
-            clipped_meshes.append(clipped_mesh)
+        collection_of_clipped_meshes = collection_of_meshes_to_clip.get_immersed_part(**kwargs)
 
         if isinstance(self.mesh, Mesh):
-            new_body_mesh = clipped_meshes[0]
+            new_body_mesh = collection_of_clipped_meshes.submeshes[0]
         elif isinstance(self.mesh, CollectionOfMeshes):
             new_body_mesh = self.mesh.copy()
-            new_body_mesh.submeshes = clipped_meshes
+            new_body_mesh.submeshes = collection_of_clipped_meshes.submeshes
 
         if name is None:
             name = f"{mesh.name}_clipped"
