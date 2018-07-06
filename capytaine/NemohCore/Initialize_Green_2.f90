@@ -10,8 +10,10 @@ MODULE Initialize_Green_2
 
 CONTAINS
 
+!------------------------------------------------------------------------------
+
   COMPLEX(KIND=PRE) FUNCTION GG(Z)
-    ! Estimation of ∫_z^∞ exp(-t)/t dt
+    ! Estimation of exp(z)·E1(z) where E1(z) = ∫_z^∞ exp(-t)/t dt
     ! See p.367 of G. Delhommeau thesis (referenced as [Del]).
 
     COMPLEX(KIND=PRE), INTENT(IN) :: Z
@@ -54,18 +56,16 @@ CONTAINS
     END IF
   END FUNCTION
 
-!---------------------------------------------------------------------
+!------------------------------------------------------------------------------
 
   SUBROUTINE INITIALIZE_GREEN(IR, JZ, NPINTE, XR, XZ, APD)
     ! Initialize XR, XZ and APD.
     ! Those parameters are independent of the depth and the frequency.
     ! Thus, they are initialized only once at the beginning of the execution of the code.
-    ! TODO: Compute also in double precision.
 
     ! References:
     ! [1] Delhommeau, Amélioration des codes de calcul de diffraction-radiation, 2èmes journées de l'hydrodynamique, 1989
     ! [2] Babarit and Delhommeau, Theoretical and numerical aspects of the open source BEM solver NEMOH, EWTEC 2015
-
 
     ! Inputs
     INTEGER, INTENT(IN) :: IR     != 328

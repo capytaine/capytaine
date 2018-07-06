@@ -7,7 +7,9 @@ Tests for the computation of the Green function and the resolution of the BEM pr
 from itertools import product, combinations
 
 import pytest
+
 import numpy as np
+from scipy.special import exp1
 
 import capytaine._Green as _Green
 from capytaine._Wavenumber import invert_xtanhx
@@ -17,7 +19,11 @@ def test_GG():
     # Test some properties of the function according to [Del, p.367].
 
     def E1(z):
-        return _Green.initialize_green_2.gg(z)
+        return np.exp(-z)*_Green.initialize_green_2.gg(z)
+
+    for x, y in product(np.linspace(-10, 10, 10), np.linspace(-10, 10, 10)):
+        z = x + 1j*y
+        assert np.isclose(E1(z), exp1(z), rtol=1e-3)
 
     # (A3.5)
     for x, y in product(np.linspace(-10, 10, 10), np.linspace(-10, 10, 10)):
