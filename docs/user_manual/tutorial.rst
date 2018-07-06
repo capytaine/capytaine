@@ -31,7 +31,7 @@ Main concepts
     A problem is a collection of several parameters: a :code:`FloatingBody`, the wave frequency
     :math:`\omega`,the water depth :math:`h`, the water density :math:`\rho` and the gravity
     acceleration :math:`g`.
-    
+
     The abstract class :code:`LinearPotentialFlowProblem` has two child classes:
     :code:`RadiationProblem` (that requires also the name of the dof that is radiating) and
     :code:`DiffractionProblem` (that requires the angle of the incoming wave field :math:`\beta`).
@@ -69,19 +69,18 @@ Load a mesh
 -----------
 
 For this tutorial we will use one of the mesh generators included into Capytaine for simple
-geometric shapes. Users can also import mesh from various file formats as shown in the cookbook::
+geometric shapes::
 
     sphere = Sphere(radius=1.0, center=(0, 0, -2), name="my buoy")
 
-The mesh is stored is the :code:`Mesh` object. You can for instance access of coordinates of some
-of the vertices, faces centers or faces normal vectors using the following syntax:: 
+Users can also import mesh from various file formats as shown in the cookbook. The mesh is stored is the :code:`Mesh` object. You can for instance access of coordinates of some
+of the vertices, faces centers or faces normal vectors using the following syntax::
 
     sphere.mesh.vertices[:10]  # First ten vertices.
     sphere.mesh.faces_centers[5]  # Center of the sixth face (Python arrays starts at 0).
     sphere.mesh.faces_normals[5]  # Normal vector of the sixth face.
 
-The mesh can be displayed in 3D using the following command. See the documentation of meshmagick
-for more details::
+The mesh can be displayed in 3D using the following command::
 
     sphere.show()
 
@@ -105,10 +104,11 @@ body. It can be done in several ways:
 
   See also :code:`FloatingBody.add_rotation_dof` and :code:`FloatingBody.add_all_rigid_body_dofs`.
 
-The degrees of freedoms are stored in the `dofs` dictionary. To access the name of the dofs of a
+The degrees of freedoms are stored in the :code:`dofs` dictionary. To access the name of the dofs of a
 body, you can use for instance::
 
-    print(sphere.dofs.keys())  # => dict_keys(['Surge', 'Heave'])
+    print(sphere.dofs.keys())
+    # dict_keys(['Surge', 'Heave'])
 
 Defining linear potential flow problems.
 ----------------------------------------
@@ -127,8 +127,10 @@ Since we are using their default value, we could have defined the radiation prob
 
 Some more parameters are automatically computed, such as::
 
-    print(problem.wavenumber)  # => 0.1019367991845056
-    print(problem.period)  # => 6.283185307179586
+    print(problem.wavenumber)
+    # 0.1019367991845056
+    print(problem.period)
+    # 6.283185307179586
 
 Solve the problem
 -----------------
@@ -141,10 +143,14 @@ Let us initialize the solver Nemoh and solve the problem we defined earlier::
 The :code:`solve` method return a result object. The result object contains all of the data from
 the problem it comes from::
 
-    print(result.omega)  # => 1.0
-    print(result.body.name)  # => "my buoy"
-    print(result.radiating_dof)  # => "Heave"
-    print(result.period)  # => 6.283185307179586
+    print(result.omega)
+    # 1.0
+    print(result.body.name)
+    # "my buoy"
+    print(result.radiating_dof)
+    # "Heave"
+    print(result.period)
+    # 6.283185307179586
 
 Of course, it also stores some output data. Since we solved a radiation problem, we can now access
 the added mass and radiation damping::
