@@ -17,11 +17,11 @@ def test_GG():
     # Test some properties of the function according to [Del, p.367].
 
     def E1(z):
-        return _Green.initialize_green_2.gg(z, 0j)
+        return _Green.initialize_green_2.gg(z)
 
     # (A3.5)
     for x, y in product(np.linspace(-10, 10, 10), np.linspace(-10, 10, 10)):
-        assert E1(x - 1j*y) == np.conjugate(E1(x + 1j*y))
+        assert np.isclose(E1(x - 1j*y), np.conjugate(E1(x + 1j*y)))
 
     # TODO: test if d/dz (e^z E1(z)) = e^z E1(z) - 1/z
 
@@ -38,7 +38,7 @@ def test_green_function(omega, depth):
 
     XR, XZ, APD = _Green.initialize_green_2.initialize_green(328, 46, 251)
     if depth < np.infty:
-        ambda, ar, nexp = _Green.initialize_green_2.lisc(omega**2 * depth/g, wavenumber * depth)
+        ambda, ar, nexp = _Green.old_prony_decomposition.lisc(omega**2 * depth/g, wavenumber * depth)
 
     def g(w, Xi, Xj):
         if depth == np.infty:
