@@ -24,6 +24,11 @@ Main concepts
     .. Rigid-body dofs can be generated with the :code:`add_translation_dof` and
        :code:`add_rotation_dof` methods.
 
+.. note:: For mathematicians in the field of Galerkin Boundary Element Method, the concept
+    of degree of freedom might have a different meaning (a basis function of the Galerkin
+    decomposition). Here, the degrees of freedom are the physical degrees of freedom of the
+    floating body, typically the rigid body translations and rotations.
+
 **FloatingBody**:
     A :code:`FloatingBody` is simply the reunion of a :code:`Mesh` and some degrees of freedom.
 
