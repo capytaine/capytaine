@@ -1,6 +1,6 @@
 MODULE CONSTANTS
 
-  INTEGER, PARAMETER :: PRE = KIND(1e0) ! Floating point numbers precision
+  INTEGER, PARAMETER :: PRE = KIND(1d0) ! Floating point numbers precision
 
   REAL(KIND=PRE), PARAMETER :: ZERO = 0
   REAL(KIND=PRE), PARAMETER :: ONE = 1

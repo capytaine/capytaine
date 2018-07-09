@@ -15,19 +15,18 @@ import capytaine._Green as _Green
 from capytaine._Wavenumber import invert_xtanhx
 
 
-def test_GG():
+def E1(z):
+    return np.exp(-z)*_Green.initialize_green_2.gg(z)
+
+@pytest.mark.parametrize("x", np.linspace(-20, -1, 4))
+@pytest.mark.parametrize("y", np.linspace(-10, 10, 4))
+def test_GG(x, y):
     # Test some properties of the function according to [Del, p.367].
-
-    def E1(z):
-        return np.exp(-z)*_Green.initialize_green_2.gg(z)
-
-    for x, y in product(np.linspace(-10, 10, 10), np.linspace(-10, 10, 10)):
-        z = x + 1j*y
-        assert np.isclose(E1(z), exp1(z), rtol=1e-3)
+    z = x + 1j*y
+    assert np.isclose(E1(z), exp1(z), rtol=1e-3)
 
     # (A3.5)
-    for x, y in product(np.linspace(-10, 10, 10), np.linspace(-10, 10, 10)):
-        assert np.isclose(E1(x - 1j*y), np.conjugate(E1(x + 1j*y)))
+    assert np.isclose(E1(x - 1j*y), np.conjugate(E1(x + 1j*y)), rtol=1e-3)
 
     # TODO: test if d/dz (e^z E1(z)) = e^z E1(z) - 1/z
 
