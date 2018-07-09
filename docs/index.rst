@@ -1,6 +1,6 @@
-==========================================
-Capytaine: a Python-based rewrite of Nemoh
-==========================================
+===============================================
+Capytaine: a Python-based distribution of Nemoh
+===============================================
 
 .. raw:: html
 
@@ -9,7 +9,9 @@ Capytaine: a Python-based rewrite of Nemoh
     </video>
     </div>
 
-Capytaine is an open source Boundary Element Method (BEM) solver for the linear potential flow wave theory, written in Python and Fortran 90.
+Capytaine is Python package for the simulation of the interaction between water waves and floating bodies in frequency domain.
+
+It is build around a full rewrite of the open source Boundary Element Method (BEM) solver Nemoh_ for the linear potential flow wave theory.
 
 .. toctree::
    :maxdepth: 1
@@ -43,6 +45,17 @@ Available `on Github`_
 
 License
 =======
+
+.. raw:: html
+
+    <div style="float: right;">
+    <a href="http://www.ucd.ie/">
+    <img src="_static/UCD-logo-nobg-mini.png" height="100" alt="UCD">
+    </a>
+    <a href="http://www.marei.ie/">
+    <img src="_static/MaREI-Centre-logo-mini.png" height="100" alt="MaREI">
+    </a>
+    </div>
 
 Capytaine has been developped by `Matthieu Ancellin`_ (University College Dublin) and is distributed under the terms of the GNU General Public License (GPL) v3.0. See the ``LICENSE`` file in the `code repository`_.
 
