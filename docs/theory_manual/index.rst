@@ -6,5 +6,6 @@ Theory manual
    :maxdepth: 2
 
    theory.rst
-   glossary.rst
    bibliography.rst
+
+.. glossary.rst

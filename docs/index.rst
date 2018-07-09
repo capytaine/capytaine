@@ -2,13 +2,6 @@
 Capytaine: a Python-based distribution of Nemoh
 ===============================================
 
-.. raw:: html
-
-    <div style="float: right;">
-    <video src="_static/diffraction.ogv" loop autoplay width="320" height="240">
-    </video>
-    </div>
-
 Capytaine is Python package for the simulation of the interaction between water waves and floating bodies in frequency domain.
 
 It is build around a full rewrite of the open source Boundary Element Method (BEM) solver Nemoh_ for the linear potential flow wave theory.
@@ -17,6 +10,13 @@ It is build around a full rewrite of the open source Boundary Element Method (BE
    :maxdepth: 1
 
    features.rst
+
+.. raw:: html
+
+    <div style="float: right;">
+    <video src="_static/diffraction.ogv" loop autoplay width="320" height="240">
+    </video>
+    </div>
 
 Documentation
 =============
