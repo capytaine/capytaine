@@ -1,8 +1,17 @@
-#!/usr/bin/env python
 # coding: utf-8
-"""Solver for the BEM problem based on Nemoh's Green function."""
 # This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
+"""Solver for the BEM problem based on Nemoh's Green function.
+
+Example
+-------
+
+::
+
+    problem = RadiationProblem(...)
+    result = Nemoh().solve(problem)
+
+"""
 
 import logging
 
@@ -24,22 +33,26 @@ FLOAT_PRECISION = np.float64
 class Nemoh:
     """Solver for the BEM problem based on Nemoh's Green function.
 
+    Parameters
+    ----------
+    keep_matrices: bool, optional
+        If True, store the last computed influence matrices in __cache__ for later reuse (default: True)
+    npinte: int, optional
+        Number of points for the evaluation of the integral w.r.t. :math:`theta` in the Green function (default: 251)
+    max_stored_exponential_decompositions: int, optional
+        Number of stored exponential decomposition (default: 50)
+
     Attributes
     ----------
-    npinte: int
-        Number of points for the evaluation of the integral w.r.t. theta in the Green function
-    XR, XZ, APD: arrays
+    XR: array of shape (328)
+    XZ: array of shape (46)
+    APD: array of shape (328, 46, 2, 2)
         Tabulated integrals for the Green functions
-    max_stored_exponential_decompositions: int
-        Number of stored exponential decompostion
     exponential_decompositions: MaxLengthDict of arrays
         Store last computed exponential decomposition
-    keep_matrices: bool
-        If True, store influences matrices in __cache__
     __cache__: dict of dict of arrays
         Store last computations of influence matrices
     """
-
     def __init__(self, keep_matrices=True, npinte=251, max_stored_exponential_decompositions=50):
         LOG.info("Initialize Nemoh's Green function.")
         self.XR, self.XZ, self.APD = _Green.initialize_green_2.initialize_green(328, 46, npinte)
@@ -50,7 +63,6 @@ class Nemoh:
         if self.keep_matrices:
             self.__cache__ = {'Green0': {}, 'Green1': {}, 'Green2': {}}
 
-
     def solve(self, problem, keep_details=False):
         """Solve the BEM problem using Nemoh.
 
@@ -59,18 +71,18 @@ class Nemoh:
         problem: LinearPotentialFlowProblem
             the problem to be solved
         keep_details: bool, optional
-            if True, store the sources and the potential on the floating body in the output
+            if True, store the sources and the potential on the floating body in the output object (default: False)
 
         Returns
         -------
         LinearPotentialFlowResult
-            a result object created from the input problem
+            an object storing the problem data and its results
         """
 
         LOG.info("Solve %s.", problem)
 
         if problem.depth < np.infty:
-            self.compute_exponential_decomposition(problem)
+            self._compute_exponential_decomposition(problem)
 
         if problem.wavelength < 8*problem.body.mesh.faces_radiuses.max():
             LOG.warning(f"Resolution of the mesh (8×max_radius={8*problem.body.mesh.faces_radiuses.max():.2e}) "
@@ -104,12 +116,22 @@ class Nemoh:
     def solve_all(self, problems, processes=1):
         """Solve several problems in parallel.
 
+        Running::
+
+            solver.solve_all(problems)
+
+        is more or less equivalent to::
+
+             [solver.solve(problem) for problem in problems]
+
+        but in parallel with some optimizations for faster resolution.
+
         Parameters
         ----------
         problems: list of LinearPotentialFlowProblem
             several problems to be solved
         processes: int, optional
-            number of parallel processes
+            number of parallel processes (default: 1)
 
         Return
         ------
@@ -118,17 +140,16 @@ class Nemoh:
         """
         from multiprocessing import Pool
         with Pool(processes=processes) as pool:
-            results = pool.map(self.solve, problems)
+            results = pool.map(self.solve, sorted(problems))
         return results
 
     ####################
     #  Initialization  #
     ####################
 
-    def compute_exponential_decomposition(self, pb):
+    def _compute_exponential_decomposition(self, pb):
         """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
-
-        The decomposition is stored in `self.exponential_decompositions`.
+        The decomposition is stored in :code:`self.exponential_decompositions`.
 
         Parameters
         ----------
@@ -192,22 +213,22 @@ class Nemoh:
             mesh of the receiving body (where the potential is measured)
         mesh2: Mesh or CollectionOfMeshes
             mesh of the source body (over which the source distribution is integrated)
-        free_surface: float
-            position of the free surface (default: z = 0)
-        sea_bottom: float
-            position of the sea bottom (default: z = -∞)
-        wavenumber: float
+        free_surface: float, optional
+            position of the free surface (default: :math:`z = 0`)
+        sea_bottom: float, optional
+            position of the sea bottom (default: :math:`z = -\infty`)
+        wavenumber: float, optional
             wavenumber (default: 1)
-        force_full_computation: bool
+        force_full_computation: bool, optional
             if True, the symmetries are NOT used to speed up the computation (default: False)
-        _rec_depth: tuple
+        _rec_depth: tuple, optional
             internal parameter: recursion accumulator for pretty log printing and cache sizing
 
         Returns
         -------
-        S: array of shape (mesh1.nb_faces, body2.nb_faces)
+        S: array of shape (mesh1.nb_faces, mesh2.nb_faces)
             influence matrix (integral of the Green function)
-        V: array of shape (mesh1.nb_faces, body2.nb_faces)
+        V: array of shape (mesh1.nb_faces, mesh2.nb_faces)
             influence matrix (integral of the derivative of the Green function)
         """
 
@@ -457,7 +478,7 @@ class Nemoh:
 
         Raises
         ------
-        Exception: if the source distribution was not stored in the `Result` object by the solver.
+        Exception: if the :code:`Result` object given as input does not contain the source distribution.
         """
         LOG.info(f"Compute potential on {mesh.name} for {result}.")
 
@@ -490,7 +511,7 @@ class Nemoh:
         free_surface : FreeSurface
             a meshed free surface
         keep_details : bool, optional
-            if True, keep the free surface elevation in the LinearPotentialFlowResult
+            if True, keep the free surface elevation in the LinearPotentialFlowResult (default:False)
 
         Returns
         -------
@@ -499,7 +520,7 @@ class Nemoh:
 
         Raises
         ------
-        Exception: if the source distribution was not stored in the `Result` object by the solver.
+        Exception: if the :code:`Result` object given as input does not contain the source distribution.
         """
         fs_elevation = 1j*result.omega/result.g * self.get_potential_on_mesh(result, free_surface.mesh)
         if keep_details:
