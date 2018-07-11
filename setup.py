@@ -3,6 +3,8 @@
 
 from numpy.distutils.core import Extension, setup
 
+VERSION = '0.4a'
+
 Green = Extension(
     name="capytaine._Green",
     sources=[
@@ -28,7 +30,7 @@ Wavenumber = Extension(
 
 if __name__ == "__main__":
     setup(name='capytaine',
-          version='0.3',
+          version=VERSION,
           description='Nemoh python wrapper',
           url='http://github.com/mancellin/capytaine',
           author='Matthieu Ancellin',

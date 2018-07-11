@@ -15,6 +15,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../'))
+from setup import VERSION
 
 
 # -- Project information -----------------------------------------------------
@@ -24,9 +25,9 @@ copyright = '2018, Matthieu Ancellin'
 author = 'Matthieu Ancellin'
 
 # The short X.Y version
-version = '0.4'
+version = VERSION
 # The full version, including alpha/beta/rc tags
-release = '0.4'
+release = VERSION
 
 
 # -- General configuration ---------------------------------------------------
@@ -67,7 +68,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.

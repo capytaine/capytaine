@@ -12,6 +12,8 @@ Capytaine is based on
 .. _meshmagick: https://github.com/LHEEA/meshmagick
 .. _`Python scientific ecosystem`: https://scipy.org/
 
+Below some features of the latest version (|version|) of Capytaine are listed.
+
 Main features
 -------------
 
