@@ -74,6 +74,13 @@ def test_diffraction_problem():
     assert isinstance(res, DiffractionResult)
 
 
+def test_wamit_convention():
+    sphere = Sphere()
+    pb1 = DiffractionProblem(body=sphere, convention="Nemoh")
+    pb2 = DiffractionProblem(body=sphere, convention="WAMIT")
+    assert np.allclose(pb1.boundary_condition, np.conjugate(pb2.boundary_condition))
+
+
 def test_radiation_problem(caplog):
     sphere = Sphere(radius=1.0, ntheta=20, nphi=40, clip_free_surface=True)
 

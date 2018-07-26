@@ -121,6 +121,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     # body = attrib(default=None)
     angle = attrib(default=0.0)  # Angle of the incoming wave.
     boundary_condition = attrib(default=None, init=False, repr=False)
+    convention = attrib(default="Nemoh", repr=False)
 
     # @body.validator
     # def _check_dofs(self, attribute, body):
@@ -141,8 +142,9 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     def __attrs_post_init__(self):
         if self.body is not None:
             self.boundary_condition = -(
-                    Airy_wave_velocity(self.body.mesh.faces_centers, self) * self.body.mesh.faces_normals
-                                       ).sum(axis=1)
+                Airy_wave_velocity(self.body.mesh.faces_centers, self, convention=self.convention)
+                * self.body.mesh.faces_normals
+            ).sum(axis=1)
 
     def make_results_container(self):
         return DiffractionResult(self)
