@@ -288,7 +288,7 @@ class FloatingBody:
             new_body_mesh.submeshes = collection_of_clipped_meshes.submeshes
 
         if name is None:
-            name = f"{mesh.name}_clipped"
+            name = f"{self.name}_clipped"
         LOG.info(f"Clip floating body {self.name} to create {name}.")
 
         return FloatingBody(new_body_mesh, name=name)
