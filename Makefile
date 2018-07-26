@@ -24,7 +24,8 @@ test: develop
 
 clean:
 	rm -rf build
+	rm -rf capytaine.egg-info/
 	rm -f capytaine/*.so
-	rm -rf */__pycache__
+	rm -rf __pycache__ */__pycache__ */*/__pycache__
 
 .PHONY: update_fortran develop test clean
