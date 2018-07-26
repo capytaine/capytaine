@@ -227,22 +227,22 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
 
     INTEGER,                                  INTENT(IN) :: NEXP
-    REAL(KIND=PRE), DIMENSION(31),            INTENT(IN) :: REF_AMBDA, REF_AR
+    REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: REF_AMBDA, REF_AR
 
     ! Outputs
     COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
     COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP_SYM, VSP_ANTISYM ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
-    INTEGER                            :: KE
-    REAL(KIND=PRE)                     :: AMH, AKH, A, COF1, COF2, COF3, COF4
-    REAL(KIND=PRE)                     :: AQT, RRR
-    REAL(KIND=PRE),    DIMENSION(3)    :: XI, XJ
-    REAL(KIND=PRE),    DIMENSION(4)    :: FTS, PSR
-    REAL(KIND=PRE),    DIMENSION(3, 4) :: VTS
-    REAL(KIND=PRE),    DIMENSION(31)   :: AMBDA, AR
-    COMPLEX(KIND=PRE), DIMENSION(4)    :: FS
-    COMPLEX(KIND=PRE), DIMENSION(3, 4) :: VS
+    INTEGER                              :: KE
+    REAL(KIND=PRE)                       :: AMH, AKH, A, COF1, COF2, COF3, COF4
+    REAL(KIND=PRE)                       :: AQT, RRR
+    REAL(KIND=PRE),    DIMENSION(3)      :: XI, XJ
+    REAL(KIND=PRE),    DIMENSION(4)      :: FTS, PSR
+    REAL(KIND=PRE),    DIMENSION(3, 4)   :: VTS
+    REAL(KIND=PRE),    DIMENSION(NEXP+1) :: AMBDA, AR
+    COMPLEX(KIND=PRE), DIMENSION(4)      :: FS
+    COMPLEX(KIND=PRE), DIMENSION(3, 4)   :: VS
 
     !========================================
     ! Part 1: Solve 4 infinite depth problems
@@ -304,8 +304,8 @@ CONTAINS
     ! Part 2: Integrate (NEXP+1)×4 terms of the form 1/MM'
     !=====================================================
 
-    AMBDA(:) = REF_AMBDA(:)
-    AR(:) = REF_AR(:)
+    AMBDA(1:31) = REF_AMBDA(1:31)
+    AR(1:31) = REF_AR(1:31)
 
     AMBDA(NEXP+1) = 0
     AR(NEXP+1)    = 2

@@ -49,7 +49,7 @@ def test_green_function(omega, depth):
         if depth == np.infty:
             return _Green.green_2.vnsinfd(w, Xi, Xj, XR, XZ, APD)[0]
         else:
-            return _Green.green_2.vnsfd(w, Xi, Xj, depth, XR, XZ, APD, ambda, ar, nexp)[0]
+            return _Green.green_2.vnsfd(w, Xi, Xj, depth, XR, XZ, APD, ambda, ar, 31)[0]
 
     def dg(w, Xi, Xj):
         return _Green.green_2.vnsinfd(w, Xi, Xj, XR, XZ, APD)[1]
