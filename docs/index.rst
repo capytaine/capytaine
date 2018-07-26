@@ -38,6 +38,11 @@ Documentation
 
    theory_manual/index.rst
 
+.. toctree::
+   :maxdepth: 1
+
+   changelog.rst
+
 Source code
 ===========
 
