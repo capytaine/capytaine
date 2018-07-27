@@ -22,6 +22,7 @@ Main features
 * Python object oriented API.
 * A **cleaner code** with unit tests, more comments, no Fortran 77 and no global variables.
 * **2 to 8 times faster** than Nemoh 2.0 [#]_.
+* Double precision computations by default. (Single precision also possible.)
 * Various input mesh formats supported via meshmagick_.
 * Output in legacy Nemoh Tecplot format or NetCDF format.
 * Computation of the **free surface elevation** and the **Kochin function**.
@@ -32,7 +33,6 @@ Experimental features
 ---------------------
 
 * Input via legacy ``Nemoh.cal`` files.
-* Computations in single or double precision.
 * Faster simulations using the symmetries of the floating bodies.
 * 3D animations of the free surface elevation.
 
