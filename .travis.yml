@@ -1,0 +1,37 @@
+language: python
+
+sudo: required
+
+python:
+  - "3.6"
+
+before_install:
+  - sudo apt-get update
+  - sudo apt-get install gfortran
+  - wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - chmod +x miniconda.sh
+  - ./miniconda.sh -b -p $HOME/miniconda
+  - export PATH=$HOME/miniconda/bin:$PATH
+  - conda config --set always_yes true
+  - conda config --set anaconda_upload no
+  - conda update -q conda
+  - conda install -q python=$TRAVIS_PYTHON_VERSION pip conda-build conda-verify anaconda-client
+  - conda install -q numpy
+
+install:
+  - conda build .
+  - conda install --use-local capytaine
+
+before_script:
+  - conda install -c mancellin meshmagick
+  - conda install -q pytest
+
+script:
+  - pytest
+
+deploy:
+  provider: script
+  script: deploy.sh
+  on:
+    branch: master
+  skip_cleanup: true
