@@ -146,8 +146,11 @@ class HorizontalCylinder(FloatingBody):
 
         ring = ReflectionSymmetry(half_ring, plane=xOz_Plane, name=f"ring_of_{name}_mesh")
 
-        return TranslationalSymmetry(ring, translation=np.asarray([self.length/nx, 0.0, 0.0]),
-                                     nb_repetitions=nx-1, name=f"{name}_mesh")
+        if nx == 1:
+            return ring
+        else:
+            return TranslationalSymmetry(ring, translation=np.asarray([self.length/nx, 0.0, 0.0]),
+                                         nb_repetitions=nx-1, name=f"{name}_mesh")
 
     @property
     def volume(self):
