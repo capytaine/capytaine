@@ -23,6 +23,8 @@ class LinearPotentialFlowResult:
 
     fs_elevation = attrib(default=Factory(dict), init=False, repr=False)
 
+    kochin = attrib(default=None, init=False, repr=False)
+
     def __getattr__(self, name):
         try:
             return getattr(self.problem, name)
