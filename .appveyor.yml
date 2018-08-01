@@ -2,30 +2,33 @@ version: 0.4.{build}
 
 shallow_clone: true
 
+image: Visual Studio 2015
+
+platform:
+    - x64
+
 environment:
    matrix:
-      # - PYTHON_VERSION: "3.6"
-      #   ARCH: 32
-      #   MINICONDA: C:\Miniconda3
       - PYTHON_VERSION: "3.6"
         ARCH: 64
-        MINICONDA: C:\Miniconda3-x64
+        MINICONDA: "C:\\Miniconda3-x64"
+        MINGW: "C:\\mingw-w64\\x86_64-7.2.0-posix-seh-rt_v5-rev1\\mingw64\\bin"
 
 init:
-    - ECHO %PYTHON_VERSION% %MINICONDA% %ARCH%
+    - echo %PYTHON_VERSION% %MINICONDA% %ARCH%
 
 install:
     - set PATH=%MINICONDA%;%MINICONDA%\\Scripts;%PATH%
-    - set PATH=C:\MinGW\bin\;%PATH%
+    - set PATH=%MINGW%;%PATH%
     - conda config --set always_yes yes
     - conda config --set changeps1 no
     - conda config --set anaconda_upload no
-    - conda update -q conda
     - conda install -q python=%PYTHON_VERSION% pip conda-build conda-verify numpy
-    - mingw-get install gfortran
-    - python setup.py build_ext
+    - echo [build]           >> %MINICONDA%\Lib\distutils\distutils.cfg
+    - echo compiler=mingw32  >> %MINICONDA%\Lib\distutils\distutils.cfg
+    - python setup.py build_ext #--inplace
     - python setup.py install
-    - conda build .\conda
+    - conda build .
     - conda install --use-local capytaine
     - move %MINICONDA%\conda-bld\win-%ARCH%\capytaine*.tar.bz2 .\ # Copy the build output to be catched as artifact
 
@@ -40,4 +43,4 @@ test_script:
 
 artifacts:
     # Archive the generated conda package in the ci.appveyor.com build report.
-    - path: '*.tar.gz'
+    - path: '*.tar.bz2'
