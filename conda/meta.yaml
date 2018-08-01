@@ -18,7 +18,7 @@ requirements:
     - xarray
     - scipy
     - vtk
-    # - meshmagick >=1.1
+    # - meshmagick >=1.2
 
 build:
   entry_points:

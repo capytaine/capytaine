@@ -42,19 +42,19 @@ if __name__ == "__main__":
               'capytaine.tools.vtk',
               'capytaine.geometric_bodies',
           ],
-          install_requires=[
-              'attrs',
-              'numpy',
-              'scipy',
-              'xarray',
-              'meshmagick',
-              'vtk',
-          ],
-          entry_points={
-              'console_scripts': [
-                  'capytaine=capytaine.cli:main',
-              ],
-          },
+          # install_requires=[
+          #     'attrs',
+          #     'numpy',
+          #     'scipy',
+          #     'xarray',
+          #     'vtk',
+          #     'meshmagick>=1.2',
+          # ],
+          # entry_points={
+          #     'console_scripts': [
+          #         'capytaine=capytaine.cli:main',
+          #     ],
+          # },
           ext_modules=[
               Green,
               Wavenumber
