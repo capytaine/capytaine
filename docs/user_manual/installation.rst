@@ -2,8 +2,8 @@
 Installation for users
 ======================
 
-On Windows or Linux
--------------------
+On Windows or Linux with conda
+------------------------------
 
 The easiest way to install the package is through Conda_.
 Download and install the `Anaconda distribution`_ or its lightweight counterpart Miniconda_.
@@ -39,6 +39,11 @@ In case you get an error message because of a missing module, you can try to run
 
 to install them all manually.
 
+With pip
+--------
+
+Binaries are not available on PyPI (:code:`pip install`) at the moment.
+If you need them, please let me know.
 
 On Mac
 ------
