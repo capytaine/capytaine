@@ -30,8 +30,8 @@ script:
   - pytest
 
 deploy:
-  provider: script
-  script: deploy.sh
-  on:
-    branch: master
-  skip_cleanup: true
+    - provider: script
+      script: bash conda/conda_upload.sh
+      on:
+          all_branches: true
+      skip_cleanup: true
