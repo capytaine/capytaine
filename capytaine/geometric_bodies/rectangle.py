@@ -30,14 +30,16 @@ class Rectangle(FloatingBody):
 
         Parameters
         ----------
-        size : tuple of  floats
+        size : tuple of  floats, optional
             dimensions of the rectangle (width and height)
-        resolution : tuple of  ints
+        resolution : tuple of  ints, optional
             number of faces along each of the two directions
-        clever : bool
-            if True, use the translation symmetry along the x axis to speed up the computations
-        center : tuple of floats
+        center : tuple of floats, optional
             position of the center of the rectangle
+        clever : bool, optional
+            if True, use the translation symmetry along the x axis to speed up the computations
+        name : string, optional
+            a name for the body
         """
         assert len(size) == 2
         assert len(center) == 3
@@ -93,13 +95,13 @@ class OpenRectangularParallelepiped(FloatingBody):
 
         Parameters
         ----------
-        size : tuple of floats
-            dimensions of the parallelepiped (width, thickness, height)
-        resolution : tuple of ints
+        size : tuple of floats, optional
+            dimensions of the parallelepiped (width, thickness, height) or (dx, dy, dz)
+        resolution : tuple of ints, optional
             number of faces along the three directions
-        center : tuple of floats
+        center : tuple of floats, optional
             coordinates of the center of the parallelepiped
-        clever : bool
+        clever : bool, optional
             if True, use the translation symmetry in the x direction to speed up the computations
             To use the translation symmetry in the y direction, create a x-symmetric body and then rotate it by pi/2.
         name : string, optional
