@@ -4,6 +4,10 @@ shallow_clone: true
 
 image: Visual Studio 2015
 
+branches:
+    only:
+        - master
+
 platform:
     - x64
 
