@@ -2,8 +2,10 @@
 
 import numpy as np
 
+from meshmagick.geometry import xOz_Plane
+
 from capytaine import FloatingBody
-from capytaine.symmetries import ReflectionSymmetry, xOz_Plane
+from capytaine.symmetries import ReflectionSymmetry
 
 # Load a mesh from a file.
 mesh_from_file = FloatingBody.from_file("example.dat").mesh

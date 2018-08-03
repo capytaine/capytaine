@@ -22,4 +22,5 @@ import matplotlib.pyplot as plt
 plt.imshow(np.abs(V))
 plt.colorbar()
 plt.title("$|V|$")
+plt.tight_layout()
 plt.show()

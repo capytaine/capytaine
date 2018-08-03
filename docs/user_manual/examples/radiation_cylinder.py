@@ -57,4 +57,5 @@ for dof in cylinder.dofs:
 plt.xlabel('omega')
 plt.ylabel('added mass')
 plt.legend()
+plt.tight_layout()
 plt.show()
