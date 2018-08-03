@@ -40,7 +40,7 @@ Experimental features
 Planned features
 ----------------
 
-* Fast simulation of array of identical floating bodies.
+* Faster simulation of regular arrays of identical floating bodies.
 * Output in BEMIO (WEC-SIM) format.
 * Hydrostatics.
 * Pressure map on the body surface.

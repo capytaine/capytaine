@@ -41,7 +41,7 @@ Main concepts
     :code:`RadiationProblem` (that requires also the name of the dof that is radiating) and
     :code:`DiffractionProblem` (that requires the angle of the incoming wave field :math:`\beta`).
 
-    Most of the parameters are optionals. A default value is used when they are not provided.
+    Most of the parameters are optional. A default value is used when they are not provided.
 
 **Solver**
     The core of the code. It has a :code:`solve` method that takes a
@@ -51,6 +51,10 @@ Main concepts
     The class storing the results is similar to the class storing a problem, with some
     supplementary data such as :code:`result.added_masses` and :code:`result.radiation_dampings`
     for radiation problems and :code:`result.forces` for diffraction problems.
+    The forces are stored as a dictionary associating the name of a degree of freedom to a value.
+    The value is the integral of the force along this degree of freedom.
+    For example, to retrieve the components of the force vector in Cartesian coordinates, check the
+    value of the force with respect to surge, sway and heave.
 
 Step-by-step example
 ====================
@@ -60,7 +64,7 @@ All the main features of Capytaine can be loaded with::
 
     from capytaine import *
 
-Note that Capytaine uses the logging module from Python. Optionally, you can get some feedback on
+Note that Capytaine uses the logging module from Python. Then, you can optionally get some feedback on
 what the code is doing by initializing the logging module with the following commands::
 
     import logging
@@ -68,7 +72,7 @@ what the code is doing by initializing the logging module with the following com
 
 Replace :code:`INFO` by :code:`DEBUG` to get more information on everything that is happening
 inside the solver. On the other hand, if you set the level to :code:`WARNING`, only important
-information will be printed out by the solver.
+warnings will be printed out by the solver.
 
 Load a mesh
 -----------
@@ -78,8 +82,9 @@ geometric shapes::
 
     sphere = Sphere(radius=1.0, center=(0, 0, -2), name="my buoy")
 
-Users can also import mesh from various file formats as shown in the cookbook. The mesh is stored is the :code:`Mesh` object. You can for instance access of coordinates of some
-of the vertices, faces centers or faces normal vectors using the following syntax::
+Users can also import mesh from various file formats as shown in the cookbook. The mesh is stored
+is the :code:`Mesh` object. You can for instance access of coordinates of some of the vertices,
+faces centers or faces normal vectors using the following syntax::
 
     sphere.mesh.vertices[:10]  # First ten vertices.
     sphere.mesh.faces_centers[5]  # Center of the sixth face (Python arrays starts at 0).
@@ -107,7 +112,7 @@ body. It can be done in several ways:
 
     sphere.add_translation_dof(name="Heave")
 
-  See also :code:`FloatingBody.add_rotation_dof` and :code:`FloatingBody.add_all_rigid_body_dofs`.
+  See the documentation of :code:`FloatingBody.add_rotation_dof` and :code:`FloatingBody.add_all_rigid_body_dofs`.
 
 The degrees of freedoms are stored in the :code:`dofs` dictionary. To access the name of the dofs of a
 body, you can use for instance::
@@ -123,7 +128,7 @@ Let us define a radiation problem for the heave of our sphere::
     problem = RadiationProblem(body=sphere, radiating_dof="Heave", omega=1.0, sea_bottom=-np.infty, g=9.81, rho=1000)
 
 The argument `radiating_dof` must be the name of one of the dofs of the floating body given as the
-`body` argument. The wave frequency has been set arbitrarily as :math:`\omega = 1 \text{rad/s}`.
+`body` argument. The wave frequency has been set arbitrarily as :math:`\omega = 1 \, \text{rad/s}`.
 The water depth is infinite, the gravity acceleration is :math:`g = 9.81` and the water density has
 been chosen as :math:`\rho = 1000 \text{kg/m}^3`. These last parameters are actually optional.
 Since we are using their default value, we could have defined the radiation problem as::
@@ -192,5 +197,5 @@ radiation damping from the result objects in an organized way. In our example, i
 
     dataset['added_mass'].sel(radiating_dof=["Surge", "Heave"], influenced_dof=["Surge", "Heave"], omega=1.0)
 
-See the more advanced examples for more complex cases.
+See the example section of the documentation for more complex cases.
 

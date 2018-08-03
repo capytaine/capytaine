@@ -26,7 +26,7 @@ In the main directory of Capytaine (where ``setup.py`` is located), run the foll
 
     python setup.py build_ext --inplace
 
-Re-run this command to recompile the code if you change one of the Fortran files.
+Re-run this command later to recompile the code if you change one of the Fortran files.
 
 Add the current directory to the Python path with the following command.
 
