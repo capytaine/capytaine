@@ -3,7 +3,7 @@
 
 from numpy.distutils.core import Extension, setup
 
-VERSION = '0.4'
+VERSION = '0.5-dev'
 
 Green = Extension(
     name="capytaine._Green",
