@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Special meshes with symmetries, useful to speed up the computations.
-
-This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
-It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
-"""
+"""Special meshes with symmetries, useful to speed up the computations."""
+# This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import logging
 
@@ -51,7 +49,7 @@ class ReflectionSymmetry(SymmetricMesh):
             self.name = CollectionOfMeshes.format_name(self, half.name)
         else:
             self.name = name
-        LOG.info(f"New mirror symmetric body: {self.name}.")
+        LOG.info(f"New mirror symmetric mesh: {self.name}.")
 
     # def get_clipped_mesh(self, **kwargs):
     #     return ReflectionSymmetry(self.subbodies[0].get_clipped_mesh(**kwargs),
@@ -98,7 +96,7 @@ class TranslationalSymmetry(SymmetricMesh):
             self.name = CollectionOfMeshes.format_name(self, mesh_slice.name)
         else:
             self.name = name
-        LOG.info(f"New translation symmetric body: {self.name}.")
+        LOG.info(f"New translation symmetric mesh: {self.name}.")
 
     # def get_clipped_mesh(self, **kwargs):
     #     return TranslationalSymmetry(self.subbodies[0].get_clipped_mesh(**kwargs),
@@ -147,7 +145,7 @@ class AxialSymmetry(SymmetricMesh):
             self.name = CollectionOfMeshes.format_name(self, mesh_slice.name)
         else:
             self.name = name
-        LOG.info(f"New rotation symmetric body: {self.name}.")
+        LOG.info(f"New rotation symmetric mesh: {self.name}.")
 
     @staticmethod
     def from_profile(profile,

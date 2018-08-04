@@ -1,14 +1,19 @@
-#!/usr/bin/env python
 # coding: utf-8
-"""
-Solver for the BEM problem based on Nemoh's Green function.
+# This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
+"""Solver for the BEM problem based on Nemoh's Green function.
 
-This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
-It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
+Example
+-------
+
+::
+
+    problem = RadiationProblem(...)
+    result = Nemoh().solve(problem)
+
 """
 
 import logging
-# from itertools import chain, accumulate
 
 import numpy as np
 
@@ -22,29 +27,66 @@ import capytaine._Green as _Green
 
 LOG = logging.getLogger(__name__)
 
+FLOAT_PRECISION = np.float64
+
 
 class Nemoh:
-    """Solver for the BEM problem based on Nemoh's Green function."""
+    """Solver for the BEM problem based on Nemoh's Green function.
 
-    def __init__(self, npinte=251, max_stored_exponential_decompositions=50):
-        self.XR, self.XZ, self.APD = _Green.initialize_green_2.initialize_green(328, 46, npinte)
+    Parameters
+    ----------
+    keep_matrices: bool, optional
+        If True, store the last computed influence matrices in __cache__ for later reuse (default: True)
+    npinte: int, optional
+        Number of points for the evaluation of the integral w.r.t. :math:`theta` in the Green function (default: 251)
+    max_stored_exponential_decompositions: int, optional
+        Number of stored exponential decomposition (default: 50)
+
+    Attributes
+    ----------
+    XR: array of shape (328)
+    XZ: array of shape (46)
+    APD: array of shape (328, 46, 2, 2)
+        Tabulated integrals for the Green functions
+    exponential_decompositions: MaxLengthDict of arrays
+        Store last computed exponential decomposition
+    __cache__: dict of dict of arrays
+        Store last computations of influence matrices
+    """
+    def __init__(self, keep_matrices=True, npinte=251, max_stored_exponential_decompositions=50):
         LOG.info("Initialize Nemoh's Green function.")
+        self.XR, self.XZ, self.APD = _Green.initialize_green_2.initialize_green(328, 46, npinte)
 
         self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)
 
-        self.__cache__ = {'Green0': {}, 'Green1': {}, 'Green2': {}}
+        self.keep_matrices = keep_matrices
+        if self.keep_matrices:
+            self.__cache__ = {'Green0': {}, 'Green1': {}, 'Green2': {}}
 
     def solve(self, problem, keep_details=False):
-        """Solve the BEM problem using Nemoh."""
+        """Solve the BEM problem using Nemoh.
+
+        Parameters
+        ----------
+        problem: LinearPotentialFlowProblem
+            the problem to be solved
+        keep_details: bool, optional
+            if True, store the sources and the potential on the floating body in the output object (default: False)
+
+        Returns
+        -------
+        LinearPotentialFlowResult
+            an object storing the problem data and its results
+        """
 
         LOG.info("Solve %s.", problem)
 
         if problem.depth < np.infty:
-            self.compute_exponential_decomposition(problem)
+            self._compute_exponential_decomposition(problem)
 
         if problem.wavelength < 8*problem.body.mesh.faces_radiuses.max():
-            LOG.warning(f"Resolution of the mesh (max_radius={problem.body.mesh.faces_radiuses.max():.2e}) "
-                        f"might be insufficient for this wavelength (wavelength/8={problem.wavelength/8:.2e})!")
+            LOG.warning(f"Resolution of the mesh (8×max_radius={8*problem.body.mesh.faces_radiuses.max():.2e}) "
+                        f"might be insufficient for this wavelength (wavelength={problem.wavelength:.2e})!")
 
         S, V = self.build_matrices(
             problem.body.mesh, problem.body.mesh,
@@ -61,6 +103,7 @@ class Nemoh:
             result.potential = potential
 
         for influenced_dof_name, influenced_dof in problem.body.dofs.items():
+            influenced_dof = np.sum(influenced_dof * problem.body.mesh.faces_normals, axis=1)
             integrated_potential = - problem.rho * potential @ (influenced_dof * problem.body.mesh.faces_areas)
             result.store_force(influenced_dof_name, integrated_potential)
             # Depending of the type of problem, the force will be kept as a complex-valued Froude-Krylov force
@@ -71,18 +114,47 @@ class Nemoh:
         return result
 
     def solve_all(self, problems, processes=1):
+        """Solve several problems in parallel.
+
+        Running::
+
+            solver.solve_all(problems)
+
+        is more or less equivalent to::
+
+             [solver.solve(problem) for problem in problems]
+
+        but in parallel with some optimizations for faster resolution.
+
+        Parameters
+        ----------
+        problems: list of LinearPotentialFlowProblem
+            several problems to be solved
+        processes: int, optional
+            number of parallel processes (default: 1)
+
+        Return
+        ------
+        list of LinearPotentialFlowResult
+            the solved problems
+        """
         from multiprocessing import Pool
         with Pool(processes=processes) as pool:
-            results = pool.map(self.solve, problems)
+            results = pool.map(self.solve, sorted(problems))
         return results
 
     ####################
     #  Initialization  #
     ####################
 
-    def compute_exponential_decomposition(self, pb):
-        """Return the decomposition a part of the finite depth Green function as a sum of
-        exponential functions.
+    def _compute_exponential_decomposition(self, pb):
+        """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
+        The decomposition is stored in :code:`self.exponential_decompositions`.
+
+        Parameters
+        ----------
+        pb: LinearPotentialFlowProblem
+            Problem from which the frequency and depth will be used.
         """
 
         LOG.debug(f"Initialize Nemoh's finite depth Green function for omega=%.2e and depth=%.2e", pb.omega, pb.depth)
@@ -110,12 +182,12 @@ class Nemoh:
                 LOG.warning(f"No suitable exponential decomposition has been found for {pb}.")
 
             # Convert to precision wanted by Fortran code.
-            a = a.astype(np.float32)
-            lamda = lamda.astype(np.float32)
+            a = a.astype(FLOAT_PRECISION)
+            lamda = lamda.astype(FLOAT_PRECISION)
 
-            # Temporary trick: expand arrays to fix size hard-coded in Fortran module.
-            a = np.r_[a, np.zeros(31-len(a), dtype=np.float32)]
-            lamda = np.r_[lamda, np.zeros(31-len(lamda), dtype=np.float32)]
+            # Temporary trick: expand arrays to fixed size hard-coded in Fortran module.
+            a = np.r_[a, np.zeros(31-len(a), dtype=FLOAT_PRECISION)]
+            lamda = np.r_[lamda, np.zeros(31-len(lamda), dtype=FLOAT_PRECISION)]
 
             self.exponential_decompositions[(pb.dimensionless_omega, pb.dimensionless_wavenumber)] = (a, lamda)
 
@@ -131,6 +203,7 @@ class Nemoh:
                        free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0,
                        force_full_computation=False, _rec_depth=(1,)):
         """Assemble the influence matrices.
+
         The method is basically an ugly multiple dispatch on the kind of bodies.
         For symmetric structures, the method is called recursively on the sub-bodies.
 
@@ -140,22 +213,22 @@ class Nemoh:
             mesh of the receiving body (where the potential is measured)
         mesh2: Mesh or CollectionOfMeshes
             mesh of the source body (over which the source distribution is integrated)
-        free_surface: float
-            position of the free surface (default: z = 0)
-        sea_bottom: float
-            position of the sea bottom (default: z = -∞)
-        wavenumber: float
+        free_surface: float, optional
+            position of the free surface (default: :math:`z = 0`)
+        sea_bottom: float, optional
+            position of the sea bottom (default: :math:`z = -\infty`)
+        wavenumber: float, optional
             wavenumber (default: 1)
-        force_full_computation: bool
+        force_full_computation: bool, optional
             if True, the symmetries are NOT used to speed up the computation (default: False)
-        _rec_depth: tuple
+        _rec_depth: tuple, optional
             internal parameter: recursion accumulator for pretty log printing and cache sizing
 
         Returns
         -------
-        S: array of shape (mesh1.nb_faces, body2.nb_faces)
+        S: array of shape (mesh1.nb_faces, mesh2.nb_faces)
             influence matrix (integral of the Green function)
-        V: array of shape (mesh1.nb_faces, body2.nb_faces)
+        V: array of shape (mesh1.nb_faces, mesh2.nb_faces)
             influence matrix (integral of the derivative of the Green function)
         """
 
@@ -257,12 +330,12 @@ class Nemoh:
 
     def _build_matrices_0(self, mesh1, mesh2, _rec_depth=(1,)):
         """Compute the first part of the influence matrices of self on body."""
-        if mesh1 not in self.__cache__['Green0']:
+        if self.keep_matrices and mesh1 not in self.__cache__['Green0']:
             self.__cache__['Green0'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tCreate Green0 cache (max_length={int(np.product(_rec_depth))}) for {mesh1.name}")
 
-        if mesh2 not in self.__cache__['Green0'][mesh1]:
+        if not self.keep_matrices or mesh2 not in self.__cache__['Green0'][mesh1]:
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tComputing matrix 0 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}")
             S0, V0 = _Green.green_1.build_matrix_0(
@@ -271,7 +344,9 @@ class Nemoh:
                 mesh2.faces_centers, mesh2.faces_normals,
                 mesh2.faces_areas,   mesh2.faces_radiuses,
                 )
-            self.__cache__['Green0'][mesh1][mesh2] = (S0, V0)
+
+            if self.keep_matrices:
+                self.__cache__['Green0'][mesh1][mesh2] = (S0, V0)
 
         else:
             LOG.debug("\t" * len(_rec_depth) +
@@ -282,13 +357,13 @@ class Nemoh:
 
     def _build_matrices_1(self, mesh1, mesh2, free_surface, sea_bottom, _rec_depth=(1,)):
         """Compute the second part of the influence matrices of mesh1 on mesh2."""
-        if mesh1 not in self.__cache__['Green1']:
+        if self.keep_matrices and mesh1 not in self.__cache__['Green1']:
             self.__cache__['Green1'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tCreate Green1 cache (max_length={int(np.product(_rec_depth))}) for {mesh1.name}")
 
         depth = free_surface - sea_bottom
-        if (mesh2, depth) not in self.__cache__['Green1'][mesh1]:
+        if not self.keep_matrices or (mesh2, depth) not in self.__cache__['Green1'][mesh1]:
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tComputing matrix 1 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
                       f"for depth={depth:.2e}")
@@ -317,10 +392,12 @@ class Nemoh:
                 )
 
             if depth == np.infty:
-                self.__cache__['Green1'][mesh1][(mesh2, np.infty)] = (-S1, -V1)
+                if self.keep_matrices:
+                    self.__cache__['Green1'][mesh1][(mesh2, np.infty)] = (-S1, -V1)
                 return -S1, -V1
             else:
-                self.__cache__['Green1'][mesh1][(mesh2, depth)] = (S1, V1)
+                if self.keep_matrices:
+                    self.__cache__['Green1'][mesh1][(mesh2, depth)] = (S1, V1)
                 return S1, V1
 
         else:
@@ -332,19 +409,19 @@ class Nemoh:
 
     def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth=(1,)):
         """Compute the third part of the influence matrices of mesh1 on mesh2."""
-        if mesh1 not in self.__cache__['Green2']:
+        if self.keep_matrices and mesh1 not in self.__cache__['Green2']:
             self.__cache__['Green2'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tCreate Green2 cache (max_length={int(np.product(_rec_depth))}) for {mesh1.name}")
 
         depth = free_surface - sea_bottom
-        if (mesh2, depth, wavenumber) not in self.__cache__['Green2'][mesh1]:
+        if not self.keep_matrices or (mesh2, depth, wavenumber) not in self.__cache__['Green2'][mesh1]:
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tComputing matrix 2 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
                       f"for depth={depth:.2e} and k={wavenumber:.2e}")
             if depth == np.infty:
-                lamda_exp = np.empty(31, dtype=np.float32)
-                a_exp = np.empty(31, dtype=np.float32)
+                lamda_exp = np.empty(31, dtype=FLOAT_PRECISION)
+                a_exp = np.empty(31, dtype=FLOAT_PRECISION)
                 n_exp = 31
 
                 S2, V2 = _Green.green_2.build_matrix_2(
@@ -368,7 +445,9 @@ class Nemoh:
                     lamda_exp, a_exp, n_exp,
                     mesh1 is mesh2
                     )
-            self.__cache__['Green2'][mesh1][(mesh2, depth, wavenumber)] = (S2, V2)
+
+            if self.keep_matrices:
+                self.__cache__['Green2'][mesh1][(mesh2, depth, wavenumber)] = (S2, V2)
 
         else:
             S2, V2 = self.__cache__['Green2'][mesh1][(mesh2, depth, wavenumber)]
@@ -394,8 +473,12 @@ class Nemoh:
 
         Returns
         -------
-        array
+        array of shape (mesh.nb_faces,)
             potential on the faces of the mesh
+
+        Raises
+        ------
+        Exception: if the :code:`Result` object given as input does not contain the source distribution.
         """
         LOG.info(f"Compute potential on {mesh.name} for {result}.")
 
@@ -428,12 +511,16 @@ class Nemoh:
         free_surface : FreeSurface
             a meshed free surface
         keep_details : bool, optional
-            if True, keep the free surface elevation in the LinearPotentialFlowResult
+            if True, keep the free surface elevation in the LinearPotentialFlowResult (default:False)
 
         Returns
         -------
-        array
+        array of shape (free_surface.nb_faces,)
             the free surface elevation on each faces of the meshed free surface
+
+        Raises
+        ------
+        Exception: if the :code:`Result` object given as input does not contain the source distribution.
         """
         fs_elevation = 1j*result.omega/result.g * self.get_potential_on_mesh(result, free_surface.mesh)
         if keep_details:

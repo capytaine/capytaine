@@ -1,12 +1,10 @@
 MODULE Green_2
 
+  USE CONSTANTS
   USE Initialize_Green_2
   USE Green_1, ONLY: COMPUTE_ASYMPTOTIC_S0
 
   IMPLICIT NONE
-
-  REAL, PARAMETER :: DPI  = 6.283185307179586 ! 2π
-  REAL, PARAMETER :: DPI2 = 19.73920880217871 ! 2π²
 
 CONTAINS
 
@@ -17,16 +15,17 @@ CONTAINS
      XR, XZ, APD,                              &
      PD1X, PD2X, PD1Z, PD2Z)
 
-    REAL, INTENT(IN) :: AKR, AKZ
+    ! Inputs
+    REAL(KIND=PRE),                        INTENT(IN) :: AKR, AKZ
+    REAL(KIND=PRE), DIMENSION(3),          INTENT(IN) :: XR
+    REAL(KIND=PRE), DIMENSION(3),          INTENT(IN) :: XZ
+    REAL(KIND=PRE), DIMENSION(3, 3, 2, 2), INTENT(IN) :: APD
 
-    REAL, DIMENSION(3), INTENT(IN) :: XR
-    REAL, DIMENSION(3),  INTENT(IN) :: XZ
-    REAL, DIMENSION(3, 3, 2, 2), INTENT(IN) :: APD
-
-    REAL, INTENT(OUT) :: PD1X, PD2X, PD1Z, PD2Z
+    ! Output
+    REAL(KIND=PRE), INTENT(OUT) :: PD1X, PD2X, PD1Z, PD2Z
 
     ! Local variable
-    REAL, DIMENSION(3) :: XL, ZL
+    REAL(KIND=PRE), DIMENSION(3) :: XL, ZL
 
     XL(1) = PL2(XR(2), XR(3), XR(1), AKR)
     XL(2) = PL2(XR(3), XR(1), XR(2), AKR)
@@ -42,8 +41,8 @@ CONTAINS
 
   CONTAINS
 
-    REAL FUNCTION PL2(U1, U2, U3, XU)
-      REAL :: U1, U2, U3, XU
+    REAL(KIND=PRE) FUNCTION PL2(U1, U2, U3, XU)
+      REAL(KIND=PRE) :: U1, U2, U3, XU
       PL2 = ((XU-U1)*(XU-U2))/((U3-U1)*(U3-U2))
       RETURN
     END FUNCTION
@@ -57,22 +56,22 @@ CONTAINS
                         FS, VS)
 
     ! Inputs
-    REAL, DIMENSION(3),    INTENT(IN)  :: XI, XJ
-    REAL,                  INTENT(IN)  :: depth, wavenumber
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: XI, XJ
+    REAL(KIND=PRE),                           INTENT(IN) :: depth, wavenumber
 
-    REAL, DIMENSION(328), INTENT(IN) :: XR
-    REAL, DIMENSION(46),  INTENT(IN) :: XZ
-    REAL, DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
+    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
+    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
+    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
 
     ! Outputs
-    COMPLEX,               INTENT(OUT) :: FS
-    COMPLEX, DIMENSION(3), INTENT(OUT) :: VS
+    COMPLEX(KIND=PRE),                        INTENT(OUT) :: FS
+    COMPLEX(KIND=PRE), DIMENSION(3),          INTENT(OUT) :: VS
 
     ! Local variables
-    INTEGER                            :: KI, KJ
-    REAL                               :: RRR, AKR, ZZZ, AKZ, DD, PSURR
-    REAL                               :: SIK, CSK, SQ, EPZ
-    REAL                               :: PD1X, PD2X, PD1Z, PD2Z
+    INTEGER        :: KI, KJ
+    REAL(KIND=PRE) :: RRR, AKR, ZZZ, AKZ, DD, PSURR
+    REAL(KIND=PRE) :: SIK, CSK, SQ, EPZ
+    REAL(KIND=PRE) :: PD1X, PD2X, PD1Z, PD2Z
 
     RRR = NORM2(XI(1:2) - XJ(1:2))
     AKR = wavenumber*RRR
@@ -101,16 +100,16 @@ CONTAINS
       IF ((MINVAL(XR) <= AKR) .AND. (AKR < MAXVAL(XR))) THEN
 
         IF (AKR < 1) THEN
-          KI = INT(5*(ALOG10(AKR+1e-20)+6)+1)
+          KI = INT(5*(LOG10(AKR+1e-20)+6)+1)
         ELSE
           KI = INT(3*AKR+28)
         ENDIF
         KI = MAX(MIN(KI, 327), 2)
 
         IF (AKZ < -1e-2) THEN
-          KJ = INT(8*(ALOG10(-AKZ)+4.5))
+          KJ = INT(8*(LOG10(-AKZ)+4.5))
         ELSE
-          KJ = INT(5*(ALOG10(-AKZ)+6))
+          KJ = INT(5*(LOG10(-AKZ)+6))
         ENDIF
         KJ = MAX(MIN(KJ, 45), 2)
 
@@ -130,7 +129,7 @@ CONTAINS
         PD1Z = PSURR*AKZ - PI*EPZ*SQ*SIK
         PD2Z =                EPZ*SQ*CSK
 
-        IF (RRR > 1e-5) THEN
+        IF (RRR > REAL(1e-5, KIND=PRE)) THEN
           PD1X = PI*EPZ*SQ*(CSK - 0.5*SIK/AKR) - PSURR*AKR
           PD2X =    EPZ*SQ*(SIK + 0.5*CSK/AKR)
         END IF
@@ -141,28 +140,28 @@ CONTAINS
       ! Deduce FS ans VS from PDnX and PDnZ
       !====================================
 
-      FS    = -CMPLX(PD1Z, PD2Z)
+      FS    = -CMPLX(PD1Z, PD2Z, KIND=PRE)
       IF (depth == 0.0) THEN
-        VS(3) = -CMPLX(PD1Z-PSURR*AKZ, PD2Z)
+        VS(3) = -CMPLX(PD1Z-PSURR*AKZ, PD2Z, KIND=PRE)
       ELSE
-        VS(3) = -CMPLX(PD1Z, PD2Z)
+        VS(3) = -CMPLX(PD1Z, PD2Z, KIND=PRE)
       END IF
 
       IF (RRR > 1e-5) THEN
         IF (depth == 0.0) THEN
-          VS(1) = (XI(1) - XJ(1))/RRR * CMPLX(PD1X+PSURR*AKR, PD2X)
-          VS(2) = (XI(2) - XJ(2))/RRR * CMPLX(PD1X+PSURR*AKR, PD2X)
+          VS(1) = (XI(1) - XJ(1))/RRR * CMPLX(PD1X+PSURR*AKR, PD2X, KIND=PRE)
+          VS(2) = (XI(2) - XJ(2))/RRR * CMPLX(PD1X+PSURR*AKR, PD2X, KIND=PRE)
         ELSE
-          VS(1) = (XI(1) - XJ(1))/RRR * CMPLX(PD1X, PD2X)
-          VS(2) = (XI(2) - XJ(2))/RRR * CMPLX(PD1X, PD2X)
+          VS(1) = (XI(1) - XJ(1))/RRR * CMPLX(PD1X, PD2X, KIND=PRE)
+          VS(2) = (XI(2) - XJ(2))/RRR * CMPLX(PD1X, PD2X, KIND=PRE)
         END IF
       ELSE
-        VS(1:2) = CMPLX(0.0, 0.0)
+        VS(1:2) = CMPLX(0.0, 0.0, KIND=PRE)
       END IF
 
     ELSE ! AKZ < MINVAL(XZ)
-      FS      = CMPLX(-PSURR*AKZ, 0.0)
-      VS(1:3) = CMPLX(0.0, 0.0)
+      FS      = CMPLX(-PSURR*AKZ, 0.0, KIND=PRE)
+      VS(1:3) = CMPLX(0.0, 0.0, KIND=PRE)
     ENDIF
 
     RETURN
@@ -177,34 +176,34 @@ CONTAINS
     ! Compute the frequency-dependent part of the Green function in the infinite depth case.
 
     ! Inputs
-    REAL,               INTENT(IN)  :: wavenumber
-    REAL, DIMENSION(3), INTENT(IN)  :: X0I   ! Coordinates of the source point
-    REAL, DIMENSION(3), INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
+    REAL(KIND=PRE),                           INTENT(IN)  :: wavenumber
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0I   ! Coordinates of the source point
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
 
-    REAL, DIMENSION(328), INTENT(IN) :: XR
-    REAL, DIMENSION(46),  INTENT(IN) :: XZ
-    REAL, DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
+    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
+    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
+    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
 
 
     ! Outputs
-    COMPLEX,               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
-    COMPLEX, DIMENSION(3), INTENT(OUT) :: VSP ! Gradient of the integral of the Green function with respect to X0I.
+    COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
+    COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
-    REAL                     :: ADPI, ADPI2, AKDPI, AKDPI2
-    REAL, DIMENSION(3)       :: XI
+    REAL(KIND=PRE)               :: ADPI, ADPI2, AKDPI, AKDPI2
+    REAL(KIND=PRE), DIMENSION(3) :: XI
 
     XI(:) = X0I(:)
     ! XI(3) = MIN(X0I(3), -1e-5*Mesh%xy_diameter)
-    CALL COMPUTE_S2(XI, X0J, 0.0, wavenumber, XR, XZ, APD, SP, VSP(:))
+    CALL COMPUTE_S2(XI, X0J, INFINITE_DEPTH, wavenumber, XR, XZ, APD, SP, VSP(:))
 
-    ADPI2  = wavenumber/DPI2
-    ADPI   = wavenumber/DPI
-    AKDPI2 = wavenumber**2/DPI2
-    AKDPI  = wavenumber**2/DPI
+    ADPI2  = wavenumber/(2*PI**2)
+    ADPI   = wavenumber/(2*PI)
+    AKDPI2 = wavenumber**2/(2*PI**2)
+    AKDPI  = wavenumber**2/(2*PI)
 
-    SP  = CMPLX(REAL(SP)*ADPI2,   AIMAG(SP)*ADPI)
-    VSP = CMPLX(REAL(VSP)*AKDPI2, AIMAG(VSP)*AKDPI)
+    SP  = CMPLX(REAL(SP)*ADPI2,   AIMAG(SP)*ADPI,   KIND=PRE)
+    VSP = CMPLX(REAL(VSP)*AKDPI2, AIMAG(VSP)*AKDPI, KIND=PRE)
 
     RETURN
   END SUBROUTINE VNSINFD
@@ -214,35 +213,36 @@ CONTAINS
   SUBROUTINE VNSFD &
       (wavenumber, X0I, X0J, depth, &
       XR, XZ, APD,  &
-      AMBDA, AR, NEXP, &
+      REF_AMBDA, REF_AR, NEXP, &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
 
     ! Inputs
-    REAL,               INTENT(IN)  :: wavenumber, depth
-    REAL, DIMENSION(3), INTENT(IN)  :: X0I   ! Coordinates of the source point
-    REAL, DIMENSION(3), INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
+    REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I  ! Coordinates of the source point
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
 
-    REAL, DIMENSION(328), INTENT(IN) :: XR
-    REAL, DIMENSION(46),  INTENT(IN) :: XZ
-    REAL, DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
+    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
+    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
+    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
 
-    INTEGER, INTENT(IN) :: NEXP
-    REAL, DIMENSION(31), INTENT(INOUT)  :: AMBDA, AR
+    INTEGER,                                  INTENT(IN) :: NEXP
+    REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: REF_AMBDA, REF_AR
 
     ! Outputs
-    COMPLEX,               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
-    COMPLEX, DIMENSION(3), INTENT(OUT) :: VSP_SYM, VSP_ANTISYM ! Gradient of the integral of the Green function with respect to X0I.
+    COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
+    COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP_SYM, VSP_ANTISYM ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
-    INTEGER                     :: KE
-    REAL                        :: AMH, AKH, A, COF1, COF2, COF3, COF4
-    REAL                        :: AQT, RRR
-    REAL, DIMENSION(3)          :: XI, XJ
-    REAL, DIMENSION(4)          :: FTS, PSR
-    REAL, DIMENSION(3, 4)       :: VTS
-    COMPLEX, DIMENSION(4)       :: FS
-    COMPLEX, DIMENSION(3, 4)    :: VS
+    INTEGER                              :: KE
+    REAL(KIND=PRE)                       :: AMH, AKH, A, COF1, COF2, COF3, COF4
+    REAL(KIND=PRE)                       :: AQT, RRR
+    REAL(KIND=PRE),    DIMENSION(3)      :: XI, XJ
+    REAL(KIND=PRE),    DIMENSION(4)      :: FTS, PSR
+    REAL(KIND=PRE),    DIMENSION(3, 4)   :: VTS
+    REAL(KIND=PRE),    DIMENSION(NEXP+1) :: AMBDA, AR
+    COMPLEX(KIND=PRE), DIMENSION(4)      :: FS
+    COMPLEX(KIND=PRE), DIMENSION(3, 4)   :: VS
 
     !========================================
     ! Part 1: Solve 4 infinite depth problems
@@ -296,13 +296,16 @@ CONTAINS
     COF3 = wavenumber*COF1
     COF4 = wavenumber*COF2
 
-    SP          = CMPLX(REAL(SP)*COF1,          AIMAG(SP)*COF2)
-    VSP_ANTISYM = CMPLX(REAL(VSP_ANTISYM)*COF3, AIMAG(VSP_ANTISYM)*COF4)
-    VSP_SYM     = CMPLX(REAL(VSP_SYM)*COF3,     AIMAG(VSP_SYM)*COF4)
+    SP          = CMPLX(REAL(SP)*COF1,          AIMAG(SP)*COF2, KIND=PRE)
+    VSP_ANTISYM = CMPLX(REAL(VSP_ANTISYM)*COF3, AIMAG(VSP_ANTISYM)*COF4, KIND=PRE)
+    VSP_SYM     = CMPLX(REAL(VSP_SYM)*COF3,     AIMAG(VSP_SYM)*COF4, KIND=PRE)
 
     !=====================================================
     ! Part 2: Integrate (NEXP+1)×4 terms of the form 1/MM'
     !=====================================================
+
+    AMBDA(1:31) = REF_AMBDA(1:31)
+    AR(1:31) = REF_AR(1:31)
 
     AMBDA(NEXP+1) = 0
     AR(NEXP+1)    = 2
@@ -312,21 +315,21 @@ CONTAINS
 
       ! 2.a Shift observation point and compute integral
       XI(3) =  X0I(3) + depth*AMBDA(KE) - 2*depth
-      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), 1.0, FTS(1), VTS(:, 1))
+      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), ONE, FTS(1), VTS(:, 1))
 
       ! 2.b Shift and reflect observation point and compute integral
       XI(3) = -X0I(3) - depth*AMBDA(KE)
-      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), 1.0, FTS(2), VTS(:, 2))
+      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), ONE, FTS(2), VTS(:, 2))
       VTS(3, 2) = -VTS(3, 2) ! Reflection of the output vector
 
       ! 2.c Shift and reflect observation point and compute integral
       XI(3) = -X0I(3) + depth*AMBDA(KE) - 4*depth
-      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), 1.0, FTS(3), VTS(:, 3))
+      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), ONE, FTS(3), VTS(:, 3))
       VTS(3, 3) = -VTS(3, 3) ! Reflection of the output vector
 
       ! 2.d Shift observation point and compute integral
       XI(3) =  X0I(3) - depth*AMBDA(KE) + 2*depth
-      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), 1.0, FTS(4), VTS(:, 4))
+      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), ONE, FTS(4), VTS(:, 4))
 
       AQT = -AR(KE)/(8*PI)
 
@@ -352,27 +355,28 @@ CONTAINS
       same_body,                        &
       S, V)
 
-    INTEGER,                              INTENT(IN) :: nb_faces_1, nb_faces_2
-    REAL,    DIMENSION(nb_faces_1, 3),    INTENT(IN) :: normals_1, centers_1
-    REAL,    DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2
-    REAL,    DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2
-    REAL,                                 INTENT(IN) :: wavenumber, depth
+    INTEGER,                                  INTENT(IN) :: nb_faces_1, nb_faces_2
+    REAL(KIND=PRE), DIMENSION(nb_faces_1, 3), INTENT(IN) :: normals_1, centers_1
+    REAL(KIND=PRE), DIMENSION(nb_faces_2, 3), INTENT(IN) :: centers_2
+    REAL(KIND=PRE), DIMENSION(nb_faces_2),    INTENT(IN) :: areas_2
+    REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
 
-    REAL, DIMENSION(328), INTENT(IN) :: XR
-    REAL, DIMENSION(46),  INTENT(IN) :: XZ
-    REAL, DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
-    INTEGER,                              INTENT(IN) :: NEXP
-    REAL,    DIMENSION(31),               INTENT(INOUT) :: AMBDA, AR
+    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
+    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
+    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
 
-    LOGICAL,                              INTENT(IN) :: same_body
+    INTEGER,                                  INTENT(IN) :: NEXP
+    REAL(KIND=PRE), DIMENSION(31),            INTENT(IN) :: AMBDA, AR
 
-    COMPLEX, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
-    COMPLEX, DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
+    LOGICAL,                                  INTENT(IN) :: same_body
+
+    COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
+    COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
 
     ! Local variables
-    INTEGER               :: I, J
-    COMPLEX               :: SP2
-    COMPLEX, DIMENSION(3) :: VSP2_SYM, VSP2_ANTISYM
+    INTEGER                         :: I, J
+    COMPLEX(KIND=PRE)               :: SP2
+    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2_SYM, VSP2_ANTISYM
 
     IF (SAME_BODY) THEN
       ! Use the symmetry of SP2 and VSP2
@@ -380,7 +384,7 @@ CONTAINS
       DO I = 1, nb_faces_1
         DO J = I, nb_faces_2
 
-          IF (depth == 0.0) THEN
+          IF (depth == INFINITE_DEPTH) THEN
             CALL VNSINFD                  &
               (wavenumber,                &
               centers_1(I, :),            &
@@ -388,7 +392,7 @@ CONTAINS
               XR, XZ, APD,                &
               SP2, VSP2_SYM               &
               )
-            VSP2_ANTISYM(:) = 0
+            VSP2_ANTISYM(:) = ZERO
           ELSE
             CALL VNSFD                    &
               (wavenumber,                &
@@ -422,7 +426,7 @@ CONTAINS
       DO I = 1, nb_faces_1
         DO J = 1, nb_faces_2
 
-          IF (depth == 0.0) THEN
+          IF (depth == INFINITE_DEPTH) THEN
             CALL VNSINFD                  &
               (wavenumber,                &
               centers_1(I, :),            &
@@ -430,7 +434,7 @@ CONTAINS
               XR, XZ, APD,                &
               SP2, VSP2_SYM               &
               )
-            VSP2_ANTISYM(:) = 0
+            VSP2_ANTISYM(:) = ZERO 
           ELSE
             CALL VNSFD                    &
               (wavenumber,                &

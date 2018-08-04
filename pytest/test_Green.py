@@ -7,21 +7,26 @@ Tests for the computation of the Green function and the resolution of the BEM pr
 from itertools import product, combinations
 
 import pytest
+
 import numpy as np
+from scipy.special import exp1
 
 import capytaine._Green as _Green
 from capytaine._Wavenumber import invert_xtanhx
 
 
-def test_GG():
-    # Test some properties of the function according to [Del, p.367].
+def E1(z):
+    return np.exp(-z)*_Green.initialize_green_2.gg(z)
 
-    def E1(z):
-        return _Green.initialize_green_2.gg(z, 0j)
+@pytest.mark.parametrize("x", np.linspace(-20, -1, 4))
+@pytest.mark.parametrize("y", np.linspace(-10, 10, 4))
+def test_GG(x, y):
+    # Test some properties of the function according to [Del, p.367].
+    z = x + 1j*y
+    assert np.isclose(E1(z), exp1(z), rtol=1e-3)
 
     # (A3.5)
-    for x, y in product(np.linspace(-10, 10, 10), np.linspace(-10, 10, 10)):
-        assert E1(x - 1j*y) == np.conjugate(E1(x + 1j*y))
+    assert np.isclose(E1(x - 1j*y), np.conjugate(E1(x + 1j*y)), rtol=1e-3)
 
     # TODO: test if d/dz (e^z E1(z)) = e^z E1(z) - 1/z
 
@@ -38,13 +43,13 @@ def test_green_function(omega, depth):
 
     XR, XZ, APD = _Green.initialize_green_2.initialize_green(328, 46, 251)
     if depth < np.infty:
-        ambda, ar, nexp = _Green.initialize_green_2.lisc(omega**2 * depth/g, wavenumber * depth)
+        ambda, ar, nexp = _Green.old_prony_decomposition.lisc(omega**2 * depth/g, wavenumber * depth)
 
     def g(w, Xi, Xj):
         if depth == np.infty:
             return _Green.green_2.vnsinfd(w, Xi, Xj, XR, XZ, APD)[0]
         else:
-            return _Green.green_2.vnsfd(w, Xi, Xj, depth, XR, XZ, APD, ambda, ar, nexp)[0]
+            return _Green.green_2.vnsfd(w, Xi, Xj, depth, XR, XZ, APD, ambda, ar, 31)[0]
 
     def dg(w, Xi, Xj):
         return _Green.green_2.vnsinfd(w, Xi, Xj, XR, XZ, APD)[1]

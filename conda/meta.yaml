@@ -1,4 +1,4 @@
-{% set data = load_setuptools()%}
+{% set data = load_setup_py_data()%}
 package:
   name: capytaine
   version: {{data.get('version')}}
@@ -18,9 +18,14 @@ requirements:
     - attrs
     - pandas
     - xarray
+    - scipy
     - matplotlib
     - vtk
-    # - meshmagick >=1.1
+    # - meshmagick >=1.2
+
+build:
+  entry_points:
+    - capytaine = capytaine.cli:main
 
 about:
   home: {{data.get('url')}}

@@ -1,13 +1,11 @@
 MODULE Green_1
 
-  USE PRECISION
+  USE CONSTANTS
 
   IMPLICIT NONE
 
-  REAL(KIND=PRE), PARAMETER :: PI = 3.141592653588979 ! π
-
   ! The index of the following node when going around a face.
-  INTEGER, PRIVATE, DIMENSION(4), PARAMETER :: NEXT_NODE = (/ 2, 3 ,4 ,1 /)
+  INTEGER, PRIVATE, DIMENSION(4), PARAMETER :: NEXT_NODE = (/ 2, 3, 4, 1 /)
 
 CONTAINS
 
@@ -32,7 +30,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VS0
 
     ! Local variables
-    INTEGER               :: L
+    INTEGER                         :: L
     REAL(KIND=PRE)                  :: RO, GZ, DK, GY
     REAL(KIND=PRE), DIMENSION(4)    :: RR
     REAL(KIND=PRE), DIMENSION(3, 4) :: DRX
@@ -107,26 +105,26 @@ CONTAINS
     ! Same as above, but always use the approximate aymptotic value.
 
     ! Inputs
-    REAL, DIMENSION(3),    INTENT(IN) :: M
-    REAL, DIMENSION(3),    INTENT(IN) :: Face_center
-    REAL,                  INTENT(IN) :: Face_area
+    REAL(KIND=PRE), DIMENSION(3), INTENT(IN) :: M
+    REAL(KIND=PRE), DIMENSION(3), INTENT(IN) :: Face_center
+    REAL(KIND=PRE),               INTENT(IN) :: Face_area
 
     ! Outputs
-    REAL,               INTENT(OUT) :: S0
-    REAL, DIMENSION(3), INTENT(OUT) :: VS0
+    REAL(KIND=PRE),               INTENT(OUT) :: S0
+    REAL(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VS0
 
     ! Local variables
-    REAL                  :: RO
+    REAL(KIND=PRE) :: RO
 
     RO = NORM2(M(1:3) - Face_center(1:3)) ! Distance from center of mass of the face to M.
 
-    IF (RO > 1e-7) THEN
+    IF (RO > REAL(1e-7, KIND=PRE)) THEN
       ! Asymptotic value if face far away from M
       S0       = Face_area/RO
       VS0(1:3) = (Face_center(1:3) - M)*S0/RO**2
     ELSE
-      S0 = 0.0
-      VS0(1:3) = 0.0
+      S0 = ZERO
+      VS0(1:3) = ZERO
     END IF
 
   END SUBROUTINE COMPUTE_ASYMPTOTIC_S0
@@ -139,20 +137,20 @@ CONTAINS
       vertices_2, faces_2, centers_2, normals_2, areas_2, radiuses_2, &
       S, V)
 
-    INTEGER,                              INTENT(IN) :: nb_faces_1, nb_faces_2, nb_vertices_2
-    REAL(KIND=PRE),    DIMENSION(nb_faces_1, 3),    INTENT(IN) :: centers_1, normals_1
-    REAL(KIND=PRE),    DIMENSION(nb_vertices_2, 3), INTENT(IN) :: vertices_2
-    INTEGER, DIMENSION(nb_faces_2, 4),    INTENT(IN) :: faces_2
-    REAL(KIND=PRE),    DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2, normals_2
-    REAL(KIND=PRE),    DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2, radiuses_2
+    INTEGER,                                     INTENT(IN) :: nb_faces_1, nb_faces_2, nb_vertices_2
+    REAL(KIND=PRE), DIMENSION(nb_faces_1, 3),    INTENT(IN) :: centers_1, normals_1
+    REAL(KIND=PRE), DIMENSION(nb_vertices_2, 3), INTENT(IN) :: vertices_2
+    INTEGER,        DIMENSION(nb_faces_2, 4),    INTENT(IN) :: faces_2
+    REAL(KIND=PRE), DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2, normals_2
+    REAL(KIND=PRE), DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2, radiuses_2
 
     REAL(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
     REAL(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
 
     ! Local variables
     INTEGER :: I, J
-    REAL(KIND=PRE)                  :: SP1
-    REAL(KIND=PRE), DIMENSION(3)    :: VSP1
+    REAL(KIND=PRE)               :: SP1
+    REAL(KIND=PRE), DIMENSION(3) :: VSP1
 
     DO I = 1, nb_faces_1
       DO J = 1, nb_faces_2

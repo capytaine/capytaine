@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-Generate meshed free surface.
-
-This file is part of "capytaine" (https://github.com/mancellin/capytaine).
-It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
-"""
+"""Generate meshed free surface."""
+# This file is part of "capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import logging
 from itertools import product
@@ -37,7 +34,7 @@ class FreeSurface():
         self.mesh = self._generate_mesh()
 
     def _generate_mesh(self):
-        nodes = np.zeros(((self.nx+1)*(self.ny+1), 3), dtype=np.float32)
+        nodes = np.zeros(((self.nx+1)*(self.ny+1), 3), dtype=np.float)
         panels = np.zeros((self.nx*self.ny, 4), dtype=np.int)
 
         X = np.linspace(*self.x_range, self.nx+1)
@@ -71,14 +68,8 @@ class FreeSurface():
     def elevation_at_nodes(self, fs_faces: np.ndarray) -> np.ndarray:
         """From a free surface elevation computed at the center of the faces of the mesh,
         return a free surface elevation computed on the nodes of the mesh."""
-        z_nodes = np.zeros((self.mesh.vertices.shape[0]), dtype=np.complex)
-        faces_near_nodes = np.zeros((self.mesh.vertices.shape[0]), dtype=np.int)
-        for i, vertices in enumerate(self.mesh.faces):
-            for vertex in vertices:
-                faces_near_nodes[vertex] += 1
-                z_nodes[vertex] += fs_faces[i]
-        z_nodes /= faces_near_nodes
-        return z_nodes
+        from capytaine.tools.vtk import compute_node_data
+        return compute_node_data(self.mesh, fs_faces)
 
     def incoming_waves(self, problem: DiffractionProblem) -> np.ndarray:
         """Free surface elevation of incoming wave for diffraction problem."""

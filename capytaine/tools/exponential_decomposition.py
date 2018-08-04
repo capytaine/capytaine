@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-Tool to approximate a function as a sum of exponentials.
-"""
+"""Tool to approximate a function as a sum of exponentials."""
+# This file is part of "capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import numpy as np
 from numpy.polynomial import polynomial

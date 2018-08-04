@@ -1,26 +1,23 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Floating bodies to be used in radiation-diffraction problems.
-
-This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
-It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
-"""
+"""Floating bodies to be used in radiation-diffraction problems."""
+# This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import logging
 import copy
 from itertools import chain, accumulate
 
 import numpy as np
-# from numpy.linalg import norm
 
 from meshmagick.mesh import Mesh
 from meshmagick.mmio import load_mesh
-from meshmagick.mesh_clipper import MeshClipper
-from meshmagick.geometry import xOz_Plane, Plane
+from meshmagick.hydrostatics import Hydrostatics
+from meshmagick.geometry import xOz_Plane
 
 from capytaine.meshes_collection import CollectionOfMeshes
 from capytaine.symmetries import ReflectionSymmetry
-from capytaine.tools.VTK_mesh_viewer import FloatingBodyViewer
+from capytaine.tools.vtk.mesh_viewer import FloatingBodyViewer
 
 LOG = logging.getLogger(__name__)
 
@@ -37,8 +34,8 @@ class FloatingBody:
         documentation of this class for more details) or as a CollectionOfMeshes from
         capytaine.meshes_collection. The latter is a tuple of meshes or of other collections.
 
-        The degrees of freedom (dofs) are stored as a dict associating a name to a 1 dimensional array
-        of length equal to the number of faces in the mesh.
+        The degrees of freedom (dofs) are stored as a dict associating a name to an array
+        of shape (nb_faces, 3) associating a vector to each face of the body.
 
         Parameters
         ----------
@@ -65,8 +62,6 @@ class FloatingBody:
         self.mesh = mesh
         self.dofs = dofs
         self.name = name
-
-        self.motion = {}
 
         LOG.info(f"New floating body: {self.name}.")
 
@@ -118,9 +113,28 @@ class FloatingBody:
             # nbf is the cumulative number of faces of the previous subbodies,
             # that is the offset of the indices of the faces of the current body.
             for name, dof in body.dofs.items():
-                dofs['_'.join([body.name, name])] = np.r_[np.zeros(nbf), dof,
-                                                          np.zeros(total_nb_faces - len(dof) - nbf)]
+                new_dof = np.zeros((total_nb_faces, 3))
+                new_dof[nbf:nbf+len(dof), :] = dof
+                dofs['_'.join([body.name, name])] = new_dof
         return dofs
+
+    @property
+    def center_of_buoyancy(self):
+        mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
+        return Hydrostatics(mesh).buoyancy_center
+
+    @property
+    def displacement_volume(self):
+        mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
+        return Hydrostatics(mesh).displacement_volume
+
+    @property
+    def center_of_gravity(self):
+        # TODO
+        if hasattr(self, 'center'):
+            return self.center
+        else:
+            return np.asarray([0, 0, 0])
 
     ##########
     #  Dofs  #
@@ -156,21 +170,17 @@ class FloatingBody:
         direction = np.asarray(direction)
         assert direction.shape == (3,)
 
-        self.dofs[name] = amplitude * self.mesh.faces_normals @ direction
-
         motion = np.empty((self.mesh.nb_faces, 3))
         motion[:, :] = direction
-        self.motion[name] = motion
+        self.dofs[name] = amplitude * motion
 
-    def add_rotation_dof(self, axis_point=np.array((0.0, 0.0, 0.0)),
-                         axis_direction=None, name=None,
-                         amplitude=1.0):
+    def add_rotation_dof(self, axis_point=None, axis_direction=None, name=None, amplitude=1.0):
         """Add a new rotation dof (in place).
         If no axis direction is given, the code tries to infer it from the name.
 
         Parameters
         ----------
-        axis_point : array of shape (3,)
+        axis_point : array of shape (3,), optional
             a point on the rotation axis
         axis_direction : array of shape (3,), optional
             vector directing the rotation axis
@@ -189,16 +199,30 @@ class FloatingBody:
             name = f"dof_{self.nb_dofs}_rotation"
 
         axis_direction = np.asarray(axis_direction)
+
+        if axis_point is None:
+            if hasattr(self, 'center_of_gravity'):
+                axis_point = self.center_of_gravity
+                LOG.info(f"The rotation dof {name} have been initialized around the center of gravity of {self.name}.")
+            else:
+                axis_point = np.array([0, 0, 0])
+                LOG.warning(f"The rotation dof {name} have been initialized around the origin of the domain (0, 0, 0).")
+
         axis_point = np.asarray(axis_point)
 
         assert axis_direction.shape == (3,)
         assert axis_point.shape == (3,)
 
         motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
-        dof = np.sum(motion * self.mesh.faces_normals, axis=1)
+        self.dofs[name] = amplitude * motion
 
-        self.motion[name] = motion
-        self.dofs[name] = amplitude * dof
+    def add_all_rigid_body_dofs(self):
+        self.add_translation_dof(name="Surge")
+        self.add_translation_dof(name="Sway")
+        self.add_translation_dof(name="Heave")
+        self.add_rotation_dof(name="Roll")
+        self.add_rotation_dof(name="Pitch")
+        self.add_rotation_dof(name="Yaw")
 
     ###################
     # Transformations #
@@ -237,52 +261,60 @@ class FloatingBody:
 
         new_body.dofs = {}
         for name, dof in self.dofs.items():
-            new_body.dofs[name] = dof[id_faces_to_extract]
+            new_body.dofs[name] = dof[id_faces_to_extract, :]
 
         if return_index:
             return new_body, id_v
         else:
             return new_body
 
-    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty, name=None):
+    def get_immersed_part(self, name=None, **kwargs):
         """Return a body for which the parts of the mesh above the free surface or below the sea
         bottom have been removed.
         Dofs are lost in the process.
         TODO: Also clip dofs.
         """
-        if isinstance(self.mesh, CollectionOfMeshes):
-            raise NotImplemented()  # TODO
+        if isinstance(self.mesh, Mesh):
+            collection_of_meshes_to_clip = CollectionOfMeshes([self.mesh])
+        elif isinstance(self.mesh, CollectionOfMeshes):
+            collection_of_meshes_to_clip = self.mesh
 
-        clipped_mesh = MeshClipper(self.mesh,
-                                   plane=Plane(normal=(0.0, 0.0, 1.0),
-                                               scalar=free_surface)).clipped_mesh
+        collection_of_clipped_meshes = collection_of_meshes_to_clip.get_immersed_part(**kwargs)
 
-        if sea_bottom > -np.infty:
-            clipped_mesh = MeshClipper(clipped_mesh,
-                                       plane=Plane(normal=(0.0, 0.0, -1.0),
-                                                   scalar=-sea_bottom)).clipped_mesh
+        if isinstance(self.mesh, Mesh):
+            new_body_mesh = collection_of_clipped_meshes.submeshes[0]
+        elif isinstance(self.mesh, CollectionOfMeshes):
+            new_body_mesh = self.mesh.copy()
+            new_body_mesh.submeshes = collection_of_clipped_meshes.submeshes
 
-        clipped_mesh.remove_unused_vertices()
         if name is None:
             name = f"{self.name}_clipped"
         LOG.info(f"Clip floating body {self.name} to create {name}.")
 
-        return FloatingBody(clipped_mesh, name=name)
+        return FloatingBody(new_body_mesh, name=name)
 
     def mirror(self, *args):
         # TODO: Also mirror dofs
         return self.mesh.mirror(*args)
 
     def translate_x(self, *args):
+        if hasattr(self, 'center'):
+            self.center[0] += args[0]
         return self.mesh.translate_x(*args)
 
     def translate_y(self, *args):
+        if hasattr(self, 'center'):
+            self.center[1] += args[0]
         return self.mesh.translate_y(*args)
 
     def translate_z(self, *args):
+        if hasattr(self, 'center'):
+            self.center[2] += args[0]
         return self.mesh.translate_z(*args)
 
     def translate(self, *args):
+        if hasattr(self, 'center'):
+            self.center += args[0]
         return self.mesh.translate(*args)
 
     def rotate_x(self, *args):
@@ -310,7 +342,7 @@ class FloatingBody:
             vtk_data_array = vtk.vtkFloatArray()
             vtk_data_array.SetNumberOfComponents(3)
             vtk_data_array.SetNumberOfTuples(self.mesh.nb_faces)
-            for i, vector in enumerate(self.motion[dof]):
+            for i, vector in enumerate(self.dofs[dof]):
                 vtk_data_array.SetTuple3(i, *vector)
             vtk_polydata.GetCellData().SetVectors(vtk_data_array)
 

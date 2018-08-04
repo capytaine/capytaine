@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-Generate meshes of cylinders and disks
-
-This file is part of "capytaine" (https://github.com/mancellin/capytaine).
-It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
-"""
+"""Generate meshes of cylinders and disks"""
+# This file is part of "capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import logging
 from itertools import product
@@ -43,7 +40,7 @@ class Disk(FloatingBody):
         theta = np.linspace(-theta_max, theta_max, ntheta+1)
         R = np.linspace(0.0, self.radius, nr+1)
 
-        nodes = np.zeros(((ntheta+1)*(nr+1), 3), dtype=np.float32)
+        nodes = np.zeros(((ntheta+1)*(nr+1), 3), dtype=np.float)
 
         for i, (r, t) in enumerate(product(R, theta)):
             y = +r * np.sin(t)
@@ -75,8 +72,7 @@ class Disk(FloatingBody):
 class HorizontalCylinder(FloatingBody):
     def __init__(self, length=10.0, radius=1.0, center=(0, 0, 0),
                  nx=10, ntheta=10, nr=2,
-                 clever=True, clip_free_surface=False,
-                 name=None):
+                 clever=True, name=None):
         """Generate the mesh of an horizontal cylinder.
 
         Parameters
@@ -97,7 +93,7 @@ class HorizontalCylinder(FloatingBody):
         """
         self.length = length
         self.radius = radius
-        self.center = np.asarray(center)
+        self.center = np.asarray(center, dtype=np.float)
 
         if name is None:
             name = f"cylinder_{next(Mesh._ids)}"
@@ -114,12 +110,13 @@ class HorizontalCylinder(FloatingBody):
 
             mesh = CollectionOfMeshes((open_cylinder, side, other_side))
 
-            if not clever:
-                mesh = mesh.merge()
-                mesh.merge_duplicates()
-                mesh.heal_triangles()
         else:
             mesh = open_cylinder
+
+        if not clever:
+            mesh = mesh.merge()
+            mesh.merge_duplicates()
+            mesh.heal_triangles()
 
         mesh.translate(self.center)
 
@@ -132,7 +129,7 @@ class HorizontalCylinder(FloatingBody):
         X = np.array([0, self.length/nx])
 
         # Nodes
-        nodes = np.zeros(((ntheta//2+1)*2, 3), dtype=np.float32)
+        nodes = np.zeros(((ntheta//2+1)*2, 3), dtype=np.float)
 
         for i, (t, x) in enumerate(product(theta, X)):
             y = + self.radius * np.sin(t)
@@ -149,8 +146,11 @@ class HorizontalCylinder(FloatingBody):
 
         ring = ReflectionSymmetry(half_ring, plane=xOz_Plane, name=f"ring_of_{name}_mesh")
 
-        return TranslationalSymmetry(ring, translation=np.asarray([self.length/nx, 0.0, 0.0]),
-                                     nb_repetitions=nx-1, name=f"{name}_mesh")
+        if nx == 1:
+            return ring
+        else:
+            return TranslationalSymmetry(ring, translation=np.asarray([self.length/nx, 0.0, 0.0]),
+                                         nb_repetitions=nx-1, name=f"{name}_mesh")
 
     @property
     def volume(self):

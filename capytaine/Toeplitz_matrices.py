@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-Tool to store and invert block Toeplitz matrices.
-
-This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
-It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
-"""
+"""Tool to store and invert block Toeplitz matrices."""
+# This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import logging
 from itertools import product
@@ -210,11 +207,11 @@ def block_circulant_identity(nb_blocks, block_size, **kwargs):
 
 def identity_matrix_of_same_shape_as(matrix):
     if isinstance(matrix, BlockCirculantMatrix):
-        return block_circulant_identity(matrix.nb_blocks, matrix.block_size, dtype=np.float32)
+        return block_circulant_identity(matrix.nb_blocks, matrix.block_size, dtype=np.float)
     elif isinstance(matrix, BlockToeplitzMatrix):
-        return block_Toeplitz_identity(matrix.nb_blocks, matrix.block_size, dtype=np.float32)
+        return block_Toeplitz_identity(matrix.nb_blocks, matrix.block_size, dtype=np.float)
     else:
-        return np.identity(matrix.shape[0], dtype=np.float32)
+        return np.identity(matrix.shape[0], dtype=np.float)
 
 
 def solve(A, b):

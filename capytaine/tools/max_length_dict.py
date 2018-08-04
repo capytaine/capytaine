@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-
+"""Dictionaries with limited number of items."""
+# This file is part of "capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 from collections import OrderedDict
 

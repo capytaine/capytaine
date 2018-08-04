@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-Command-line interface for capytaine.
-
-This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
-It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
-"""
+"""Command-line interface for capytaine."""
+# This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import argparse
 import logging
@@ -61,7 +58,7 @@ def main():
                         fi.write('\n')
 
         if 'diffraction_force' in data:
-            data['total_force'] = data['Froude_Krylov_force'] + data['diffraction_force']
+            data['excitation_force'] = data['Froude_Krylov_force'] + data['diffraction_force']
             LOG.info("Write excitation forces in legacy tecplot format.")
             with open(os.path.join(results_directory, 'ExcitationForce.tec'), 'w') as fi:
                 for i in range(len(data.influenced_dof)+1):
@@ -71,7 +68,7 @@ def main():
                     for o in data.omega.values:
                         fi.write(f'  {o:e}  ')
                         for dof in data.influenced_dof:
-                            val = data['total_force'].sel(omega=o, angle=angle, influenced_dof=dof).values
+                            val = data['excitation_force'].sel(omega=o, angle=angle, influenced_dof=dof).values
                             fi.write(f'{np.abs(val):e}')
                             fi.write('  ')
                             fi.write(f'{np.angle(val):e}')

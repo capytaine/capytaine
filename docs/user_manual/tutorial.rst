@@ -1,0 +1,201 @@
+========
+Tutorial
+========
+
+Main concepts
+=============
+
+**Mesh**:
+    The mesh of a floating body in its averaged position. It is stored as a :code:`Mesh` class
+    from meshmagick.
+
+    The mesh is defined as a list of vertices (a vertex is a triplet of real-valued coordinates)
+    and a list of faces (a face is a quadruplet of indices of vertices). By default, faces are
+    assumed to be quadrangular. Triangular faces are supported as a quadrangle with two identical
+    vertices.
+
+    The :code:`Mesh` class also stores some data computed from the vertices and the faces: the
+    faces normals, the faces centers and the faces areas.
+
+**Dof**:
+    A degree of freedom (or dof) defines a small motion or a deformation of the floating body
+    around its averaged position. It is stored as a vector at the center of each faces of the mesh.
+
+    .. Rigid-body dofs can be generated with the :code:`add_translation_dof` and
+       :code:`add_rotation_dof` methods.
+
+.. note:: For mathematicians in the field of Galerkin Boundary Element Method, the concept
+    of degree of freedom might have a different meaning (a basis function of the Galerkin
+    decomposition). Here, the degrees of freedom are the physical degrees of freedom of the
+    floating body, typically the rigid body translations and rotations.
+
+**FloatingBody**:
+    A :code:`FloatingBody` is simply the reunion of a :code:`Mesh` and some degrees of freedom.
+
+**LinearPotentialFlowProblem**:
+    A problem is a collection of several parameters: a :code:`FloatingBody`, the wave frequency
+    :math:`\omega`,the water depth :math:`h`, the water density :math:`\rho` and the gravity
+    acceleration :math:`g`.
+
+    The abstract class :code:`LinearPotentialFlowProblem` has two child classes:
+    :code:`RadiationProblem` (that requires also the name of the dof that is radiating) and
+    :code:`DiffractionProblem` (that requires the angle of the incoming wave field :math:`\beta`).
+
+    Most of the parameters are optional. A default value is used when they are not provided.
+
+**Solver**
+    The core of the code. It has a :code:`solve` method that takes a
+    :code:`LinearPotentialFlowProblem` as input and returns a :code:`LinearPotentialFlowResult`.
+
+**LinearPotentialFlowResult**:
+    The class storing the results is similar to the class storing a problem, with some
+    supplementary data such as :code:`result.added_masses` and :code:`result.radiation_dampings`
+    for radiation problems and :code:`result.forces` for diffraction problems.
+    The forces are stored as a dictionary associating the name of a degree of freedom to a value.
+    The value is the integral of the force along this degree of freedom.
+    For example, to retrieve the components of the force vector in Cartesian coordinates, check the
+    value of the force with respect to surge, sway and heave.
+
+Step-by-step example
+====================
+
+Launch an interactive Python console such as :code:`ipython`.
+All the main features of Capytaine can be loaded with::
+
+    from capytaine import *
+
+Note that Capytaine uses the logging module from Python. Then, you can optionally get some feedback on
+what the code is doing by initializing the logging module with the following commands::
+
+    import logging
+    logging.basicConfig(level=logging.INFO)
+
+Replace :code:`INFO` by :code:`DEBUG` to get more information on everything that is happening
+inside the solver. On the other hand, if you set the level to :code:`WARNING`, only important
+warnings will be printed out by the solver.
+
+Load a mesh
+-----------
+
+For this tutorial we will use one of the mesh generators included into Capytaine for simple
+geometric shapes::
+
+    sphere = Sphere(radius=1.0, center=(0, 0, -2), name="my buoy")
+
+Users can also import mesh from various file formats as shown in the cookbook. The mesh is stored
+is the :code:`Mesh` object. You can for instance access of coordinates of some of the vertices,
+faces centers or faces normal vectors using the following syntax::
+
+    sphere.mesh.vertices[:10]  # First ten vertices.
+    sphere.mesh.faces_centers[5]  # Center of the sixth face (Python arrays starts at 0).
+    sphere.mesh.faces_normals[5]  # Normal vector of the sixth face.
+
+The mesh can be displayed in 3D using the following command::
+
+    sphere.show()
+
+Defining dofs
+-------------
+
+Before solving a diffraction or radiation problem, we need to define the degrees of freedom (dofs) of our
+body. It can be done in several ways:
+
+* The manual way: define a list a vectors where each vector is the displacement/deformation of the
+  body at the center of a face. The example below is the simplest example of a rigid body motion in
+  the :math:`x` direction::
+
+    sphere.dofs['Surge'] = [(1, 0, 0) for face in sphere.mesh.faces]
+
+* Helpers functions are available to define rigid body translations and rotations. For instance for
+  the motion in the :math:`z` direction, we can use :code:`FloatingBody.add_translation_dof`. It can recognize
+  some dof names such as "Surge", "Sway" and "Heave"::
+
+    sphere.add_translation_dof(name="Heave")
+
+  See the documentation of :code:`FloatingBody.add_rotation_dof` and :code:`FloatingBody.add_all_rigid_body_dofs`.
+
+The degrees of freedoms are stored in the :code:`dofs` dictionary. To access the name of the dofs of a
+body, you can use for instance::
+
+    print(sphere.dofs.keys())
+    # dict_keys(['Surge', 'Heave'])
+
+Defining linear potential flow problems.
+----------------------------------------
+
+Let us define a radiation problem for the heave of our sphere::
+
+    problem = RadiationProblem(body=sphere, radiating_dof="Heave", omega=1.0, sea_bottom=-np.infty, g=9.81, rho=1000)
+
+The argument `radiating_dof` must be the name of one of the dofs of the floating body given as the
+`body` argument. The wave frequency has been set arbitrarily as :math:`\omega = 1 \, \text{rad/s}`.
+The water depth is infinite, the gravity acceleration is :math:`g = 9.81` and the water density has
+been chosen as :math:`\rho = 1000 \text{kg/m}^3`. These last parameters are actually optional.
+Since we are using their default value, we could have defined the radiation problem as::
+
+    problem = RadiationProblem(body=sphere, radiating_dof="Heave", omega=1.0)
+
+Some more parameters are automatically computed, such as::
+
+    print(problem.wavenumber)
+    # 0.1019367991845056
+    print(problem.period)
+    # 6.283185307179586
+
+Solve the problem
+-----------------
+
+Let us initialize the solver Nemoh and solve the problem we defined earlier::
+
+    solver = Nemoh()
+    result = solver.solve(problem)
+
+The :code:`solve` method return a result object. The result object contains all of the data from
+the problem it comes from::
+
+    print(result.omega)
+    # 1.0
+    print(result.body.name)
+    # "my buoy"
+    print(result.radiating_dof)
+    # "Heave"
+    print(result.period)
+    # 6.283185307179586
+
+Of course, it also stores some output data. Since we solved a radiation problem, we can now access
+the added mass and radiation damping::
+
+    print(result.added_masses)
+    # {'Surge': 9.154531598110083e-06, 'Heave': 2207.8423200090374}
+
+In this example, the radiating dof is heave. The :code:`added_masses` dictionary stores the
+influence of heaving on all the dofs of the body. Here, it mainly affects heave itself.
+
+::
+
+    print(result.radiation_dampings)
+    # {'Surge': -5.792518686098536e-07, 'Heave': 13.62318484050783}
+
+Gather results in arrays
+------------------------
+
+Let us compute the added mass and radiation damping for surge::
+
+    other_problem = RadiationProblem(body=sphere, radiating_dof="Surge", omega=1.0)
+    other_result = solver.solve(other_problem)
+
+Note that this second resolution should be faster than the first one. The solver has stored some
+intermediate data for this body and will reuse them to solve this other problem.
+
+The results can be gathered together as follow::
+
+    dataset = assemble_dataset([result, other_result])
+
+The new object is a NetCDF-like dataset from the xarray package. It is storing the added mass and
+radiation damping from the result objects in an organized way. In our example, it is basically two
+2x2 matrices. The matrices can be accessed for instance in the following way::
+
+    dataset['added_mass'].sel(radiating_dof=["Surge", "Heave"], influenced_dof=["Surge", "Heave"], omega=1.0)
+
+See the example section of the documentation for more complex cases.
+

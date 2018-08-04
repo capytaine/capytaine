@@ -1,13 +1,17 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""Storing a set of meshes."""
+# This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import copy
 from itertools import chain, accumulate
-# from typing import Union, Iterable
 
 import numpy as np
 
 from meshmagick.mesh import Mesh
+from meshmagick.mesh_clipper import MeshClipper
+from meshmagick.geometry import Plane
 
 NAME_MAX_LENGTH = 180
 
@@ -126,6 +130,34 @@ class CollectionOfMeshes:
         if name is not None:
             merged.name = name
         return merged
+
+    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty) -> 'CollectionOfMeshes':
+        clipped_meshes = []
+        for mesh in self.submeshes:
+            if mesh.vertices[:, 2].min() > free_surface or mesh.vertices[:, 2].max() < sea_bottom:
+                # The mesh has no wet part.
+                pass
+            elif mesh.vertices[:, 2].min() > sea_bottom and mesh.vertices[:, 2].max() < free_surface:
+                # The mesh is completely immersed. Non need for clipping.
+                clipped_meshes.append(mesh)
+            else:
+                if isinstance(mesh, CollectionOfMeshes):
+                    clipped_meshes.append(mesh.get_immersed_part(free_surface=free_surface, sea_bottom=sea_bottom))
+
+                else:  # isinstance(mesh, Mesh)
+                    clipped_mesh = MeshClipper(mesh,
+                                               plane=Plane(normal=(0.0, 0.0, 1.0),
+                                                           scalar=free_surface)).clipped_mesh
+
+                    if sea_bottom > -np.infty:
+                        clipped_mesh = MeshClipper(clipped_mesh,
+                                                   plane=Plane(normal=(0.0, 0.0, -1.0),
+                                                               scalar=-sea_bottom)).clipped_mesh
+
+                    clipped_mesh.remove_unused_vertices()
+                    clipped_meshes.append(clipped_mesh)
+
+        return CollectionOfMeshes(clipped_meshes)
 
     def mirror(self, plane):
         for mesh in self.submeshes:

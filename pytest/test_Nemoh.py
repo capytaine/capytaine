@@ -8,9 +8,12 @@ from capytaine.geometric_bodies.sphere import Sphere
 from capytaine.geometric_bodies.cylinder import HorizontalCylinder
 from capytaine.geometric_bodies.free_surface import FreeSurface
 from capytaine.symmetries import *
+
 from capytaine.problems import DiffractionProblem, RadiationProblem
 from capytaine.results import assemble_dataset
 from capytaine.Nemoh import Nemoh
+
+from capytaine.tools.kochin import compute_Kochin
 
 
 def test_immersed_sphere():
@@ -65,8 +68,22 @@ def test_floating_sphere_finite_freq():
 
     # omega = 1, diffraction
     problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
-    result = solver.solve(problem)
+    result = solver.solve(problem, keep_details=True)
     assert np.isclose(result.forces["Heave"], 1834.9 * np.exp(-2.933j), rtol=1e-3)
+
+    # omega = 1, Kochin function of diffraction problem
+
+    kochin = compute_Kochin(result, np.linspace(0, np.pi, 10))
+
+    ref_kochin = np.array([
+        0.20229*np.exp(-1.5872j), 0.20369*np.exp(-1.5871j),
+        0.20767*np.exp(-1.5868j), 0.21382*np.exp(-1.5863j),
+        0.22132*np.exp(-1.5857j), 0.22931*np.exp(-1.5852j),
+        0.23680*np.exp(-1.5847j), 0.24291*np.exp(-1.5843j),
+        0.24688*np.exp(-1.5841j), 0.24825*np.exp(-1.5840j),
+        ])
+
+    assert np.allclose(kochin, ref_kochin, rtol=1e-3)
 
     # omega = 2, radiation
     problem = RadiationProblem(body=sphere, omega=2.0, sea_bottom=-np.infty)
@@ -107,9 +124,13 @@ def test_floating_sphere_finite_depth():
 
     # omega = 1, radiation
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
-    result = solver.solve(problem)
+    result = solver.solve(problem, keep_details=True)
     assert np.isclose(result.added_masses["Heave"],       1740.6, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"], 380.46, rtol=1e-3*sphere.volume*problem.rho)
+
+    kochin = compute_Kochin(result, np.linspace(0, np.pi, 3))
+    assert np.allclose(kochin, np.roll(kochin, 1))  # The far field is the same in all directions.
+    assert np.isclose(kochin[0], -0.2267+3.49e-3j, rtol=1e-3)
 
     # omega = 1, diffraction
     problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-10.0)

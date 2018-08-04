@@ -1,11 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-Definition of the problems to solve with the BEM solver.
-
-This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
-It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
-"""
+"""Definition of the problems to solve with the BEM solver."""
+# This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
+# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import logging
 
@@ -124,6 +121,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     # body = attrib(default=None)
     angle = attrib(default=0.0)  # Angle of the incoming wave.
     boundary_condition = attrib(default=None, init=False, repr=False)
+    convention = attrib(default="Nemoh", repr=False)
 
     # @body.validator
     # def _check_dofs(self, attribute, body):
@@ -132,7 +130,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     #                     f"The problem will be solved but the Froude-Krylov forces won't be computed.")
 
     def __str__(self):
-        parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, angle={self.angle}, "]
+        parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, angle={self.angle:.3f}, "]
         if not self.free_surface == 0.0:
             parameters.append(f"free_surface={self.free_surface}, ")
         if not self.g == 9.81:
@@ -144,8 +142,9 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     def __attrs_post_init__(self):
         if self.body is not None:
             self.boundary_condition = -(
-                    Airy_wave_velocity(self.body.mesh.faces_centers, self) * self.body.mesh.faces_normals
-                                       ).sum(axis=1)
+                Airy_wave_velocity(self.body.mesh.faces_centers, self, convention=self.convention)
+                * self.body.mesh.faces_normals
+            ).sum(axis=1)
 
     def make_results_container(self):
         return DiffractionResult(self)
@@ -178,17 +177,17 @@ class RadiationProblem(LinearPotentialFlowProblem):
     def __attrs_post_init__(self):
         """Set the boundary condition"""
         if self.radiating_dof is None:
-            self.boundary_condition = self.body.dofs[next(iter(self.body.dofs))]
+            self.radiating_dof = next(iter(self.body.dofs))
+            dof = self.body.dofs[self.radiating_dof]
+            self.boundary_condition = np.sum(dof * self.body.mesh.faces_normals, axis=1)
         elif self.radiating_dof in self.body.dofs:
-            self.boundary_condition = self.body.dofs[self.radiating_dof]
+            dof = self.body.dofs[self.radiating_dof]
+            self.boundary_condition = np.sum(dof * self.body.mesh.faces_normals, axis=1)
         else:
             LOG.error(f"In {self}: the radiating degree of freedom {self.radiating_dof} is not one of"
                       f"the degrees of freedom of the body.\n"
-                      f"The dofs of the body are {list(self.body.dofs.keys)}")
+                      f"The dofs of the body are {list(self.body.dofs.keys())}")
             raise ValueError("Unrecognized degree of freedom name.")
-
-            # return np.array(added_masses).reshape((problem.body.nb_dofs, problem.body.nb_dofs)), \
-            #        np.array(added_dampings).reshape((problem.body.nb_dofs, problem.body.nb_dofs))
 
     def make_results_container(self):
         return RadiationResult(self)

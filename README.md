@@ -1,25 +1,26 @@
-# Capytaine: Python refactoring of Nemoh 
+# Capytaine: a Python-based distribution of Nemoh
 
-Capytaine is a prototype of Boundary Element Method (BEM) solver for the potential flow linear wave theory, written in Python and Fortran.
+[![Travis Build Status](https://travis-ci.org/mancellin/capytaine.svg?branch=master)](https://travis-ci.org/mancellin/capytaine)
+![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/mancellin/capytaine?branch=master&svg=true)
 
-It is based on
-* [Nemoh](https://lheea.ec-nantes.fr/logiciels-et-brevets/nemoh-presentation-192863.kjsp)'s Fortran core routines for the computation of the Green function,
-* [meshmagick](https://github.com/mancellin/meshmagick) for the manipulation of meshes,
-* and various tools from the [Python scientific stack](https://scipy.org/).
-
-It's main purpose is to give developers and researchers an easier access to the inside gears of Nemoh.
-
-For users, it can be used in a similar way as Nemoh's Matlab interface. Due to some experimental optimizations, it is significantly faster than Nemoh 2.0. See `example/cylinder.py` for an example of configuration and usage.
+Capytaine is Python package for the simulation of the interaction between water waves and floating bodies in frequency domain.
+It is build around a full rewrite of the open source Boundary Element Method (BEM) solver Nemoh for the linear potential flow wave theory.
 
 ## Installation
 
-[An installation guide is available in the wiki.](https://github.com/mancellin/capytaine/wiki/Installation)
-Capytaine is still under development, please report any bug or lacking feature.
+```bash
+conda install -c mancellin meshmagick
+conda install -c mancellin capytaine
+```
+See [the documentation](https://ancell.in/capytaine) for more informations.
 
 ## License
 
-Capytaine is developed by [Matthieu Ancellin](http://ancell.in) (University College
-Dublin).
-It is licensed under the GNU General Public License v3.0.
+Copyright (C) 2017-2018, Matthieu Ancellin
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 It is based on [Nemoh](https://lheea.ec-nantes.fr/logiciels-et-brevets/nemoh-presentation-192863.kjsp), which has been developed by Gérard Delhommeau, Aurélien Babarit et al., (École Centrale de Nantes) and is distributed under the Apache License 2.0.
+

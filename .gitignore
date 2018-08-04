@@ -1,10 +1,6 @@
 .idea/
 examples/**/results*
-benchmark/201*
-*.nc
-*.csv
-*.tsv
-*.7z
+docs/_static/
 .pytest_cache/
 
 # Created by https://www.gitignore.io/api/python,fortran
