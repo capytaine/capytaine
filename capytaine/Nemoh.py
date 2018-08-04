@@ -20,8 +20,9 @@ import numpy as np
 from capytaine.Toeplitz_matrices import (identity_matrix_of_same_shape_as, solve,
                                          BlockToeplitzMatrix, BlockCirculantMatrix)
 from capytaine.symmetries import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
-from capytaine.tools.max_length_dict import MaxLengthDict
 from capytaine.tools.exponential_decomposition import exponential_decomposition, error_exponential_decomposition
+from capytaine.tools.max_length_dict import MaxLengthDict
+from capytaine.tools.cache_decorator import keep_in_cache
 import capytaine._Green as _Green
 
 
@@ -35,7 +36,7 @@ class Nemoh:
 
     Parameters
     ----------
-    keep_matrices: bool, optional
+    store_matrices_in_cache: bool, optional
         If True, store the last computed influence matrices in __cache__ for later reuse (default: True)
     npinte: int, optional
         Number of points for the evaluation of the integral w.r.t. :math:`theta` in the Green function (default: 251)
@@ -53,14 +54,15 @@ class Nemoh:
     __cache__: dict of dict of arrays
         Store last computations of influence matrices
     """
-    def __init__(self, keep_matrices=True, npinte=251, max_stored_exponential_decompositions=50):
+    def __init__(self, store_matrices_in_cache=True, npinte=251, max_stored_exponential_decompositions=50):
         LOG.info("Initialize Nemoh's Green function.")
         self.XR, self.XZ, self.APD = _Green.initialize_green_wave.initialize_tabulated_integrals(328, 46, npinte)
 
-        self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)  # To be used for finite depth...
+        self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)
+        # To be used for finite depth...
 
-        self.keep_matrices = keep_matrices
-        if self.keep_matrices:
+        self.use_cache = store_matrices_in_cache
+        if self.use_cache:
             self.__cache__ = {'Green0': {}, 'Green1': {}, 'Green2': {}}
 
     def solve(self, problem, keep_details=False):
@@ -312,148 +314,95 @@ class Nemoh:
             S = np.zeros((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
             V = np.zeros((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
 
-            S0, V0 = self._build_matrices_0(mesh1, mesh2, _rec_depth)
+            S0, V0 = self._build_matrices_0(mesh1, mesh2, _rec_depth=_rec_depth)
             S += S0
             V += V0
 
             if free_surface < np.infty:
 
-                S1, V1 = self._build_matrices_1(mesh1, mesh2, free_surface, sea_bottom, _rec_depth)
+                S1, V1 = self._build_matrices_1(mesh1, mesh2, free_surface, sea_bottom, _rec_depth=_rec_depth)
                 S += S1
                 V += V1
 
-                S2, V2 = self._build_matrices_2(mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth)
+                S2, V2 = self._build_matrices_2(mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth=_rec_depth)
                 S += S2
                 V += V2
 
             return S, V
 
+    @keep_in_cache(cache_name="Green0")
     def _build_matrices_0(self, mesh1, mesh2, _rec_depth=(1,)):
         """Compute the first part of the influence matrices of self on body."""
-        if self.keep_matrices and mesh1 not in self.__cache__['Green0']:
-            self.__cache__['Green0'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tCreate Green0 cache (max_length={int(np.product(_rec_depth))}) for {mesh1.name}")
+        return _Green.green_rankine.build_matrices_rankine_source(
+            mesh1.faces_centers, mesh1.faces_normals,
+            mesh2.vertices,      mesh2.faces + 1,
+            mesh2.faces_centers, mesh2.faces_normals,
+            mesh2.faces_areas,   mesh2.faces_radiuses,
+            )
 
-        if not self.keep_matrices or mesh2 not in self.__cache__['Green0'][mesh1]:
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tComputing matrix 0 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}")
-            S0, V0 = _Green.green_rankine.build_matrices_rankine_source(
-                mesh1.faces_centers, mesh1.faces_normals,
-                mesh2.vertices,      mesh2.faces + 1,
-                mesh2.faces_centers, mesh2.faces_normals,
-                mesh2.faces_areas,   mesh2.faces_radiuses,
-                )
-
-            if self.keep_matrices:
-                self.__cache__['Green0'][mesh1][mesh2] = (S0, V0)
-
-        else:
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tRetrieving stored matrix 0 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}")
-            S0, V0 = self.__cache__['Green0'][mesh1][mesh2]
-
-        return S0, V0
-
+    @keep_in_cache(cache_name="Green1")
     def _build_matrices_1(self, mesh1, mesh2, free_surface, sea_bottom, _rec_depth=(1,)):
         """Compute the second part of the influence matrices of mesh1 on mesh2."""
-        if self.keep_matrices and mesh1 not in self.__cache__['Green1']:
-            self.__cache__['Green1'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tCreate Green1 cache (max_length={int(np.product(_rec_depth))}) for {mesh1.name}")
-
         depth = free_surface - sea_bottom
-        if not self.keep_matrices or (mesh2, depth) not in self.__cache__['Green1'][mesh1]:
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tComputing matrix 1 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"for depth={depth:.2e}")
 
-            def reflect_vector(x):
+        def reflect_vector(x):
+            y = x.copy()
+            y[:, 2] = -x[:, 2]
+            return y
+
+        if depth == np.infty:
+            def reflect_point(x):
                 y = x.copy()
-                y[:, 2] = -x[:, 2]
+                y[:, 2] = 2*free_surface - x[:, 2]
+                return y
+        else:
+            def reflect_point(x):
+                y = x.copy()
+                y[:, 2] = 2*sea_bottom - x[:, 2]
                 return y
 
-            if depth == np.infty:
-                def reflect_point(x):
-                    y = x.copy()
-                    y[:, 2] = 2*free_surface - x[:, 2]
-                    return y
-            else:
-                def reflect_point(x):
-                    y = x.copy()
-                    y[:, 2] = 2*sea_bottom - x[:, 2]
-                    return y
+        S1, V1 = _Green.green_rankine.build_matrices_rankine_source(
+            reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
+            mesh2.vertices,      mesh2.faces + 1,
+            mesh2.faces_centers, mesh2.faces_normals,
+            mesh2.faces_areas,   mesh2.faces_radiuses,
+            )
 
-            S1, V1 = _Green.green_rankine.build_matrices_rankine_source(
-                reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
-                mesh2.vertices,      mesh2.faces + 1,
-                mesh2.faces_centers, mesh2.faces_normals,
-                mesh2.faces_areas,   mesh2.faces_radiuses,
-                )
-
-            if depth == np.infty:
-                if self.keep_matrices:
-                    self.__cache__['Green1'][mesh1][(mesh2, np.infty)] = (-S1, -V1)
-                return -S1, -V1
-            else:
-                if self.keep_matrices:
-                    self.__cache__['Green1'][mesh1][(mesh2, depth)] = (S1, V1)
-                return S1, V1
-
+        if depth == np.infty:
+            return -S1, -V1
         else:
-            S1, V1 = self.__cache__['Green1'][mesh1][(mesh2, depth)]
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tRetrieving stored matrix 1 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"for depth={depth:.2e}")
             return S1, V1
 
+    @keep_in_cache(cache_name="Green2")
     def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth=(1,)):
         """Compute the third part (wave part) of the influence matrices of mesh1 on mesh2."""
-        if self.keep_matrices and mesh1 not in self.__cache__['Green2']:
-            self.__cache__['Green2'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tCreate Green2 cache (max_length={int(np.product(_rec_depth))}) for {mesh1.name}")
-
         depth = free_surface - sea_bottom
-        if not self.keep_matrices or (mesh2, depth, wavenumber) not in self.__cache__['Green2'][mesh1]:
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tComputing matrix 2 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"for depth={depth:.2e} and k={wavenumber:.2e}")
-            if depth == np.infty:
-                lamda_exp = np.empty(31, dtype=FLOAT_PRECISION)
-                a_exp = np.empty(31, dtype=FLOAT_PRECISION)
-                n_exp = 31
+        if depth == np.infty:
+            lamda_exp = np.empty(31, dtype=FLOAT_PRECISION)
+            a_exp = np.empty(31, dtype=FLOAT_PRECISION)
+            n_exp = 31
 
-                S2, V2 = _Green.green_wave.build_matrices_wave_source(
-                    mesh1.faces_centers, mesh1.faces_normals,
-                    mesh2.faces_centers, mesh2.faces_areas,
-                    wavenumber,         0.0,
-                    self.XR, self.XZ, self.APD,
-                    lamda_exp, a_exp, n_exp,
-                    mesh1 is mesh2
-                    )
-            else:
-                # Get the last computed exponential decomposition.
-                a_exp, lamda_exp = next(reversed(self.exponential_decompositions.values()))
-                n_exp = 31
-
-                S2, V2 = _Green.green_wave.build_matrices_wave_source(
-                    mesh1.faces_centers, mesh1.faces_normals,
-                    mesh2.faces_centers, mesh2.faces_areas,
-                    wavenumber, depth,
-                    self.XR, self.XZ, self.APD,
-                    lamda_exp, a_exp, n_exp,
-                    mesh1 is mesh2
-                    )
-
-            if self.keep_matrices:
-                self.__cache__['Green2'][mesh1][(mesh2, depth, wavenumber)] = (S2, V2)
-
+            S2, V2 = _Green.green_wave.build_matrices_wave_source(
+                mesh1.faces_centers, mesh1.faces_normals,
+                mesh2.faces_centers, mesh2.faces_areas,
+                wavenumber,         0.0,
+                self.XR, self.XZ, self.APD,
+                lamda_exp, a_exp, n_exp,
+                mesh1 is mesh2
+                )
         else:
-            S2, V2 = self.__cache__['Green2'][mesh1][(mesh2, depth, wavenumber)]
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tRetrieving stored matrix 2 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"for depth={depth:.2e} and k={wavenumber:.2e}")
+            # Get the last computed exponential decomposition.
+            a_exp, lamda_exp = next(reversed(self.exponential_decompositions.values()))
+            n_exp = 31
+
+            S2, V2 = _Green.green_wave.build_matrices_wave_source(
+                mesh1.faces_centers, mesh1.faces_normals,
+                mesh2.faces_centers, mesh2.faces_areas,
+                wavenumber, depth,
+                self.XR, self.XZ, self.APD,
+                lamda_exp, a_exp, n_exp,
+                mesh1 is mesh2
+                )
 
         return S2, V2
 
