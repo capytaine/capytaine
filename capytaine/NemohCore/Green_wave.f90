@@ -227,7 +227,7 @@ CONTAINS
   SUBROUTINE WAVE_PART_FINITE_DEPTH &
       (wavenumber, X0I, X0J, depth, &
       XR, XZ, APD,                  &
-      REF_AMBDA, REF_AR, NEXP,      &
+      NEXP, REF_AMBDA, REF_AR,      &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
 
@@ -318,11 +318,11 @@ CONTAINS
     ! Part 2: Integrate (NEXP+1)×4 terms of the form 1/MM'
     !=====================================================
 
-    AMBDA(1:31) = REF_AMBDA(1:31)
-    AR(1:31) = REF_AR(1:31)
-
+    AMBDA(1:NEXP) = REF_AMBDA(1:NEXP)
     AMBDA(NEXP+1) = 0
-    AR(NEXP+1)    = 2
+
+    AR(1:NEXP) = REF_AR(1:NEXP)
+    AR(NEXP+1) = 2
 
     DO KE = 1, NEXP+1
       XI(:) = X0I(:)
@@ -365,7 +365,7 @@ CONTAINS
       centers_2, areas_2,                &
       wavenumber, depth,                 &
       XR, XZ, APD,                       &
-      AMBDA, AR, NEXP,                   &
+      NEXP, AMBDA, AR,                   &
       same_body,                         &
       S, V)
 
@@ -384,7 +384,7 @@ CONTAINS
 
     ! Prony decomposition for finite depth
     INTEGER,                                  INTENT(IN) :: NEXP
-    REAL(KIND=PRE), DIMENSION(31),            INTENT(IN) :: AMBDA, AR
+    REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
 
     ! Trick to save some time
     LOGICAL,                                  INTENT(IN) :: same_body
@@ -423,7 +423,7 @@ CONTAINS
               centers_2(J, :),            &
               depth,                      &
               XR, XZ, APD,                &
-              AMBDA, AR, NEXP,            &
+              NEXP, AMBDA, AR,            &
               SP2, VSP2_SYM, VSP2_ANTISYM &
               )
           END IF
@@ -466,7 +466,7 @@ CONTAINS
               centers_2(J, :),            &
               depth,                      &
               XR, XZ, APD,                &
-              AMBDA, AR, NEXP,            &
+              NEXP, AMBDA, AR,            &
               SP2, VSP2_SYM, VSP2_ANTISYM &
               )
           END IF

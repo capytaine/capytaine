@@ -183,14 +183,6 @@ class Nemoh:
             else:
                 LOG.warning(f"No suitable exponential decomposition has been found for {pb}.")
 
-            # Convert to precision wanted by Fortran code.
-            a = a.astype(FLOAT_PRECISION)
-            lamda = lamda.astype(FLOAT_PRECISION)
-
-            # Temporary trick: expand arrays to fixed size hard-coded in Fortran module.
-            a = np.r_[a, np.zeros(31-len(a), dtype=FLOAT_PRECISION)]
-            lamda = np.r_[lamda, np.zeros(31-len(lamda), dtype=FLOAT_PRECISION)]
-
             self.exponential_decompositions[(pb.dimensionless_omega, pb.dimensionless_wavenumber)] = (a, lamda)
 
         else:
@@ -378,29 +370,24 @@ class Nemoh:
         """Compute the third part (wave part) of the influence matrices of mesh1 on mesh2."""
         depth = free_surface - sea_bottom
         if depth == np.infty:
-            lamda_exp = np.empty(31, dtype=FLOAT_PRECISION)
-            a_exp = np.empty(31, dtype=FLOAT_PRECISION)
-            n_exp = 31
-
             S2, V2 = _Green.green_wave.build_matrices_wave_source(
                 mesh1.faces_centers, mesh1.faces_normals,
                 mesh2.faces_centers, mesh2.faces_areas,
-                wavenumber,         0.0,
+                wavenumber, 0.0,
                 self.XR, self.XZ, self.APD,
-                lamda_exp, a_exp, n_exp,
+                np.empty(1), np.empty(1),  # Dummy arrays that won't actually be used by the fortran code.
                 mesh1 is mesh2
                 )
         else:
             # Get the last computed exponential decomposition.
             a_exp, lamda_exp = next(reversed(self.exponential_decompositions.values()))
-            n_exp = 31
 
             S2, V2 = _Green.green_wave.build_matrices_wave_source(
                 mesh1.faces_centers, mesh1.faces_normals,
                 mesh2.faces_centers, mesh2.faces_areas,
                 wavenumber, depth,
                 self.XR, self.XZ, self.APD,
-                lamda_exp, a_exp, n_exp,
+                lamda_exp, a_exp,
                 mesh1 is mesh2
                 )
 
