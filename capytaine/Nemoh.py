@@ -55,9 +55,9 @@ class Nemoh:
     """
     def __init__(self, keep_matrices=True, npinte=251, max_stored_exponential_decompositions=50):
         LOG.info("Initialize Nemoh's Green function.")
-        self.XR, self.XZ, self.APD = _Green.initialize_green_2.initialize_green(328, 46, npinte)
+        self.XR, self.XZ, self.APD = _Green.initialize_green_wave.initialize_tabulated_integrals(328, 46, npinte)
 
-        self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)
+        self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)  # To be used for finite depth...
 
         self.keep_matrices = keep_matrices
         if self.keep_matrices:
@@ -163,8 +163,8 @@ class Nemoh:
             # The function that will be approximated.
             @np.vectorize
             def f(x):
-                return _Green.initialize_green_2.ff(x, pb.dimensionless_omega,
-                                                    pb.dimensionless_wavenumber)
+                return _Green.initialize_green_wave.ff(x, pb.dimensionless_omega,
+                                                       pb.dimensionless_wavenumber)
 
             # Try different increasing number of exponentials
             for n_exp in range(4, 31, 2):
@@ -338,7 +338,7 @@ class Nemoh:
         if not self.keep_matrices or mesh2 not in self.__cache__['Green0'][mesh1]:
             LOG.debug("\t" * len(_rec_depth) +
                       f"\tComputing matrix 0 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}")
-            S0, V0 = _Green.green_1.build_matrix_0(
+            S0, V0 = _Green.green_rankine.build_matrices_rankine_source(
                 mesh1.faces_centers, mesh1.faces_normals,
                 mesh2.vertices,      mesh2.faces + 1,
                 mesh2.faces_centers, mesh2.faces_normals,
@@ -384,7 +384,7 @@ class Nemoh:
                     y[:, 2] = 2*sea_bottom - x[:, 2]
                     return y
 
-            S1, V1 = _Green.green_1.build_matrix_0(
+            S1, V1 = _Green.green_rankine.build_matrices_rankine_source(
                 reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
                 mesh2.vertices,      mesh2.faces + 1,
                 mesh2.faces_centers, mesh2.faces_normals,
@@ -408,7 +408,7 @@ class Nemoh:
             return S1, V1
 
     def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth=(1,)):
-        """Compute the third part of the influence matrices of mesh1 on mesh2."""
+        """Compute the third part (wave part) of the influence matrices of mesh1 on mesh2."""
         if self.keep_matrices and mesh1 not in self.__cache__['Green2']:
             self.__cache__['Green2'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
             LOG.debug("\t" * len(_rec_depth) +
@@ -424,7 +424,7 @@ class Nemoh:
                 a_exp = np.empty(31, dtype=FLOAT_PRECISION)
                 n_exp = 31
 
-                S2, V2 = _Green.green_2.build_matrix_2(
+                S2, V2 = _Green.green_wave.build_matrices_wave_source(
                     mesh1.faces_centers, mesh1.faces_normals,
                     mesh2.faces_centers, mesh2.faces_areas,
                     wavenumber,         0.0,
@@ -437,7 +437,7 @@ class Nemoh:
                 a_exp, lamda_exp = next(reversed(self.exponential_decompositions.values()))
                 n_exp = 31
 
-                S2, V2 = _Green.green_2.build_matrix_2(
+                S2, V2 = _Green.green_wave.build_matrices_wave_source(
                     mesh1.faces_centers, mesh1.faces_normals,
                     mesh2.faces_centers, mesh2.faces_areas,
                     wavenumber, depth,

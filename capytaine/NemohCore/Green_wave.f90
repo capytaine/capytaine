@@ -1,10 +1,23 @@
-MODULE Green_2
+MODULE GREEN_WAVE
 
   USE CONSTANTS
-  USE Initialize_Green_2
-  USE Green_1, ONLY: COMPUTE_ASYMPTOTIC_S0
+  USE INITIALIZE_GREEN_2
+  USE GREEN_RANKINE, ONLY: COMPUTE_ASYMPTOTIC_RANKINE_SOURCE
 
   IMPLICIT NONE
+
+  ! Dependancies between the functions of this module:
+  ! (from top to bottom: "is called by")
+  !
+  !            LAGRANGE_POLYNOMIAL_INTERPOLATION
+  !                          |
+  !              COMPUTE_INTEGRAL_WRT_THETA       (COMPUTE_ASYMPTOTIC_RANKINE_SOURCE)
+  !                        /   \                    /
+  ! WAVE_PART_INFINITE_DEPTH   WAVE_PART_FINITE_DEPTH
+  !                        \   /
+  !              BUILD_MATRICES_WAVE_SOURCE
+  !                          |
+  !                    (python code)
 
 CONTAINS
 
@@ -14,6 +27,7 @@ CONTAINS
     (AKR, AKZ,                                 &
      XR, XZ, APD,                              &
      PD1X, PD2X, PD1Z, PD2Z)
+   ! Helper function used in the following subroutine to interpolate between the tabulated integrals.
 
     ! Inputs
     REAL(KIND=PRE),                        INTENT(IN) :: AKR, AKZ
@@ -51,14 +65,18 @@ CONTAINS
 
   ! =====================================================================
 
-  SUBROUTINE COMPUTE_S2(XI, XJ, depth, wavenumber, &
-                        XR, XZ, APD,               &
-                        FS, VS)
+  SUBROUTINE COMPUTE_INTEGRAL_WRT_THETA &
+      (XI, XJ, depth, wavenumber,       &
+      XR, XZ, APD,                      &
+      FS, VS)
+    ! Compute the integral with respect to theta and its derivative.
+    ! This integral is also called S^2 in Eq. (9) of [Babarit and Delhommeau, 2015]
 
     ! Inputs
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: XI, XJ
     REAL(KIND=PRE),                           INTENT(IN) :: depth, wavenumber
 
+    ! Tabulated data
     REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
     REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
     REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
@@ -86,10 +104,6 @@ CONTAINS
     ELSE
       PSURR = 0.0
     ENDIF
-
-    ! IF (AKZ > -1.5e-6) THEN
-    !   WRITE(*,*)'AKZ < -1.5 E-6' ! Not a very explicit warning...
-    ! END IF
 
     !================================================
     ! Evaluate PDnX and PDnZ depending on AKZ and AKR
@@ -165,25 +179,26 @@ CONTAINS
     ENDIF
 
     RETURN
-  END SUBROUTINE COMPUTE_S2
+  END SUBROUTINE COMPUTE_INTEGRAL_WRT_THETA
 
   ! =========================
 
-  SUBROUTINE VNSINFD         &
-      (wavenumber, X0I, X0J, &
-      XR, XZ, APD,           &
+  SUBROUTINE WAVE_PART_INFINITE_DEPTH &
+      (wavenumber, X0I, X0J,          &
+      XR, XZ, APD,                    &
       SP, VSP)
     ! Compute the frequency-dependent part of the Green function in the infinite depth case.
+    ! This is basically just the integral computed by the subroutine above.
 
     ! Inputs
     REAL(KIND=PRE),                           INTENT(IN)  :: wavenumber
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0I   ! Coordinates of the source point
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
 
+    ! Tabulated data
     REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
     REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
     REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
-
 
     ! Outputs
     COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
@@ -194,8 +209,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3) :: XI
 
     XI(:) = X0I(:)
-    ! XI(3) = MIN(X0I(3), -1e-5*Mesh%xy_diameter)
-    CALL COMPUTE_S2(XI, X0J, INFINITE_DEPTH, wavenumber, XR, XZ, APD, SP, VSP(:))
+    CALL COMPUTE_INTEGRAL_WRT_THETA(XI, X0J, INFINITE_DEPTH, wavenumber, XR, XZ, APD, SP, VSP(:))
 
     ADPI2  = wavenumber/(2*PI**2)
     ADPI   = wavenumber/(2*PI)
@@ -206,14 +220,14 @@ CONTAINS
     VSP = CMPLX(REAL(VSP)*AKDPI2, AIMAG(VSP)*AKDPI, KIND=PRE)
 
     RETURN
-  END SUBROUTINE VNSINFD
+  END SUBROUTINE WAVE_PART_INFINITE_DEPTH
 
   ! ======================
 
-  SUBROUTINE VNSFD &
+  SUBROUTINE WAVE_PART_FINITE_DEPTH &
       (wavenumber, X0I, X0J, depth, &
-      XR, XZ, APD,  &
-      REF_AMBDA, REF_AR, NEXP, &
+      XR, XZ, APD,                  &
+      REF_AMBDA, REF_AR, NEXP,      &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
 
@@ -255,14 +269,14 @@ CONTAINS
     RRR = NORM2(XI(1:2) - XJ(1:2))
 
     ! 1.a First infinite depth problem
-    CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(1), VS(:, 1))
+    CALL COMPUTE_INTEGRAL_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(1), VS(:, 1))
 
     PSR(1) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) =  X0J(3)
-    CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(2), VS(:, 2))
+    CALL COMPUTE_INTEGRAL_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
     PSR(2) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
@@ -270,14 +284,14 @@ CONTAINS
     ! 1.c Shift and reflect XJ and compute another value of the Green function
     XI(3) =  X0I(3)
     XJ(3) = -X0J(3) - 2*depth
-    CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(3), VS(:, 3))
+    CALL COMPUTE_INTEGRAL_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(3), VS(:, 3))
 
     PSR(3) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) = -X0J(3) - 2*depth
-    CALL COMPUTE_S2(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(4), VS(:, 4))
+    CALL COMPUTE_INTEGRAL_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
     PSR(4) = PI/(wavenumber*SQRT(RRR**2+(XI(3)+XJ(3))**2))
@@ -315,21 +329,21 @@ CONTAINS
 
       ! 2.a Shift observation point and compute integral
       XI(3) =  X0I(3) + depth*AMBDA(KE) - 2*depth
-      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), ONE, FTS(1), VTS(:, 1))
+      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(1), VTS(:, 1))
 
       ! 2.b Shift and reflect observation point and compute integral
       XI(3) = -X0I(3) - depth*AMBDA(KE)
-      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), ONE, FTS(2), VTS(:, 2))
+      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(2), VTS(:, 2))
       VTS(3, 2) = -VTS(3, 2) ! Reflection of the output vector
 
       ! 2.c Shift and reflect observation point and compute integral
       XI(3) = -X0I(3) + depth*AMBDA(KE) - 4*depth
-      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), ONE, FTS(3), VTS(:, 3))
+      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(3), VTS(:, 3))
       VTS(3, 3) = -VTS(3, 3) ! Reflection of the output vector
 
       ! 2.d Shift observation point and compute integral
       XI(3) =  X0I(3) - depth*AMBDA(KE) + 2*depth
-      CALL COMPUTE_ASYMPTOTIC_S0(XI(:), X0J(:), ONE, FTS(4), VTS(:, 4))
+      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(4), VTS(:, 4))
 
       AQT = -AR(KE)/(8*PI)
 
@@ -345,31 +359,37 @@ CONTAINS
 
   ! =====================================================================
 
-  SUBROUTINE BUILD_MATRIX_2(            &
-      nb_faces_1, centers_1, normals_1, &
-      nb_faces_2,                       &
-      centers_2, areas_2,               &
-      wavenumber, depth,                &
-      XR, XZ, APD,                      &
-      AMBDA, AR, NEXP,                  &
-      same_body,                        &
+  SUBROUTINE BUILD_MATRICES_WAVE_SOURCE  &
+      (nb_faces_1, centers_1, normals_1, &
+      nb_faces_2,                        &
+      centers_2, areas_2,                &
+      wavenumber, depth,                 &
+      XR, XZ, APD,                       &
+      AMBDA, AR, NEXP,                   &
+      same_body,                         &
       S, V)
 
+    ! Mesh data
     INTEGER,                                  INTENT(IN) :: nb_faces_1, nb_faces_2
     REAL(KIND=PRE), DIMENSION(nb_faces_1, 3), INTENT(IN) :: normals_1, centers_1
     REAL(KIND=PRE), DIMENSION(nb_faces_2, 3), INTENT(IN) :: centers_2
     REAL(KIND=PRE), DIMENSION(nb_faces_2),    INTENT(IN) :: areas_2
+
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
 
+    ! Tabulated integrals
     REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
     REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
     REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
 
+    ! Prony decomposition for finite depth
     INTEGER,                                  INTENT(IN) :: NEXP
     REAL(KIND=PRE), DIMENSION(31),            INTENT(IN) :: AMBDA, AR
 
+    ! Trick to save some time
     LOGICAL,                                  INTENT(IN) :: same_body
 
+    ! Output
     COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
     COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
 
@@ -379,13 +399,16 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2_SYM, VSP2_ANTISYM
 
     IF (SAME_BODY) THEN
-      ! Use the symmetry of SP2 and VSP2
+      ! If we are computing the influence of some cells upon themselves, the resulting matrices have some symmetries.
+      ! This is due to the symmetry of the Green function, and the way the integral on the face is approximated.
+      ! (More precisely, the Green function is symmetric and its derivative is the sum of a symmetric part and an anti-symmetric
+      ! part.)
 
       DO I = 1, nb_faces_1
         DO J = I, nb_faces_2
 
           IF (depth == INFINITE_DEPTH) THEN
-            CALL VNSINFD                  &
+            CALL WAVE_PART_INFINITE_DEPTH &
               (wavenumber,                &
               centers_1(I, :),            &
               centers_2(J, :),            &
@@ -394,7 +417,7 @@ CONTAINS
               )
             VSP2_ANTISYM(:) = ZERO
           ELSE
-            CALL VNSFD                    &
+            CALL WAVE_PART_FINITE_DEPTH   &
               (wavenumber,                &
               centers_1(I, :),            &
               centers_2(J, :),            &
@@ -422,12 +445,13 @@ CONTAINS
       END DO
 
     ELSE
+      ! General case: if we are computing the influence of a some cells on other cells, we have to compute all the coefficients.
 
       DO I = 1, nb_faces_1
         DO J = 1, nb_faces_2
 
           IF (depth == INFINITE_DEPTH) THEN
-            CALL VNSINFD                  &
+            CALL WAVE_PART_INFINITE_DEPTH &
               (wavenumber,                &
               centers_1(I, :),            &
               centers_2(J, :),            &
@@ -436,7 +460,7 @@ CONTAINS
               )
             VSP2_ANTISYM(:) = ZERO 
           ELSE
-            CALL VNSFD                    &
+            CALL WAVE_PART_FINITE_DEPTH   &
               (wavenumber,                &
               centers_1(I, :),            &
               centers_2(J, :),            &
@@ -460,4 +484,4 @@ CONTAINS
 
   ! =====================================================================
 
-END MODULE Green_2
+END MODULE GREEN_WAVE

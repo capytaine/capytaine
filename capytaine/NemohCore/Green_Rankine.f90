@@ -1,4 +1,4 @@
-MODULE Green_1
+MODULE GREEN_RANKINE
 
   USE CONSTANTS
 
@@ -9,9 +9,9 @@ MODULE Green_1
 
 CONTAINS
 
-  SUBROUTINE COMPUTE_S0                                             &
+  SUBROUTINE COMPUTE_INTEGRAL_OF_RANKINE_SOURCE                     &
       (M,                                                           &
-      Face_nodes, Face_Center, Face_Normal, Face_area, Face_radius, &
+      Face_nodes, Face_center, Face_normal, Face_area, Face_radius, &
       S0, VS0)
     ! Estimate the integral over the face S0 = ∫∫ 1/MM' dS(M')
     ! and its derivative with respect to M.
@@ -22,7 +22,7 @@ CONTAINS
     ! Inputs
     REAL(KIND=PRE), DIMENSION(3),    INTENT(IN) :: M
     REAL(KIND=PRE), DIMENSION(4, 3), INTENT(IN) :: Face_nodes
-    REAL(KIND=PRE), DIMENSION(3),    INTENT(IN) :: Face_center, Face_Normal
+    REAL(KIND=PRE), DIMENSION(3),    INTENT(IN) :: Face_center, Face_normal
     REAL(KIND=PRE),                  INTENT(IN) :: Face_area, Face_radius
 
     ! Outputs
@@ -60,16 +60,16 @@ CONTAINS
         DK = NORM2(Face_nodes(NEXT_NODE(L), :) - Face_nodes(L, :))    ! Distance between two consecutive points, called d_k in [Del]
         IF (DK >= REAL(1e-3, PRE)*Face_radius) THEN
           PJ(:) = (Face_nodes(NEXT_NODE(L), :) - Face_nodes(L, :))/DK ! Normed vector from one corner to the next
-          ! Called (a,b,c) in [Del]
+          ! The following GYX(1:3) are called (a,b,c) in [Del]
           GYX(1) = Face_normal(2)*PJ(3) - Face_normal(3)*PJ(2)
           GYX(2) = Face_normal(3)*PJ(1) - Face_normal(1)*PJ(3)
           GYX(3) = Face_normal(1)*PJ(2) - Face_normal(2)*PJ(1)
-          GY = DOT_PRODUCT(M - Face_nodes(L, :), GYX) ! Called Y_k in  [Del]
+          GY = DOT_PRODUCT(M - Face_nodes(L, :), GYX)                                    ! Called Y_k in  [Del]
 
-          ANT = 2*GY*DK                                                  ! Called N^t_k in [Del]
+          ANT = 2*GY*DK                                                                  ! Called N^t_k in [Del]
           DNT = (RR(NEXT_NODE(L))+RR(L))**2 - DK*DK + 2*ABS(GZ)*(RR(NEXT_NODE(L))+RR(L)) ! Called D^t_k in [Del]
-          ANL = RR(NEXT_NODE(L)) + RR(L) + DK                                     ! Called N^l_k in [Del]
-          DNL = RR(NEXT_NODE(L)) + RR(L) - DK                                     ! Called D^l_k in [Del]
+          ANL = RR(NEXT_NODE(L)) + RR(L) + DK                                            ! Called N^l_k in [Del]
+          DNL = RR(NEXT_NODE(L)) + RR(L) - DK                                            ! Called D^l_k in [Del]
           ALDEN = LOG(ANL/DNL)
 
           IF (ABS(GZ) >= REAL(1e-4, PRE)*Face_radius) THEN
@@ -80,7 +80,7 @@ CONTAINS
 
           ANLX(:) = DRX(:, NEXT_NODE(L)) + DRX(:, L)                    ! Called N^l_k_{x,y,z} in [Del]
 
-          ANTX(:) = 2*DK*GYX(:)                                ! Called N^t_k_{x,y,z} in [Del]
+          ANTX(:) = 2*DK*GYX(:)                                         ! Called N^t_k_{x,y,z} in [Del]
           DNTX(:) = 2*(RR(NEXT_NODE(L)) + RR(L) + ABS(GZ))*ANLX(:) &
             + 2*SIGN(ONE, GZ)*(RR(NEXT_NODE(L)) + RR(L))*Face_normal(:) ! Called D^t_k_{x,y,z} in [Del]
 
@@ -94,13 +94,13 @@ CONTAINS
       END DO
     END IF
 
-  END SUBROUTINE COMPUTE_S0
+  END SUBROUTINE COMPUTE_INTEGRAL_OF_RANKINE_SOURCE
 
   ! =========================
 
-  SUBROUTINE COMPUTE_ASYMPTOTIC_S0 &
-      (M,                          &
-      Face_Center, Face_area,      &
+  SUBROUTINE COMPUTE_ASYMPTOTIC_RANKINE_SOURCE &
+      (M,                                      &
+      Face_center, Face_area,                  &
       S0, VS0)
     ! Same as above, but always use the approximate aymptotic value.
 
@@ -123,16 +123,18 @@ CONTAINS
       S0       = Face_area/RO
       VS0(1:3) = (Face_center(1:3) - M)*S0/RO**2
     ELSE
+      ! Singularity...
       S0 = ZERO
       VS0(1:3) = ZERO
     END IF
 
-  END SUBROUTINE COMPUTE_ASYMPTOTIC_S0
+  END SUBROUTINE COMPUTE_ASYMPTOTIC_RANKINE_SOURCE
 
   ! ====================================
 
-  SUBROUTINE BUILD_MATRIX_0(                                          &
-      nb_faces_1, centers_1, normals_1,                               &
+  SUBROUTINE BUILD_MATRICES_RANKINE_SOURCE                            &
+      (nb_faces_1,                                                    &
+      centers_1, normals_1,                                           &
       nb_vertices_2, nb_faces_2,                                      &
       vertices_2, faces_2, centers_2, normals_2, areas_2, radiuses_2, &
       S, V)
@@ -155,19 +157,19 @@ CONTAINS
     DO I = 1, nb_faces_1
       DO J = 1, nb_faces_2
 
-        CALL COMPUTE_S0                 &
-          (centers_1(I, :),             &
-          vertices_2(faces_2(J, :), :), &
-          centers_2(J, :),              &
-          normals_2(J, :),              &
-          areas_2(J),                   &
-          radiuses_2(J),                &
-          SP1, VSP1                     &
+        CALL COMPUTE_INTEGRAL_OF_RANKINE_SOURCE &
+          (centers_1(I, :),                     &
+          vertices_2(faces_2(J, :), :),         &
+          centers_2(J, :),                      &
+          normals_2(J, :),                      &
+          areas_2(J),                           &
+          radiuses_2(J),                        &
+          SP1, VSP1                             &
           )
 
         ! Store into influence matrix
         S(I, J) = -SP1/(4*PI)                                ! Green function
-        V(I, J) = DOT_PRODUCT(normals_1(I, :), -VSP1)/(4*PI) ! Gradient of the Green function
+        V(I, J) = -DOT_PRODUCT(normals_1(I, :), VSP1)/(4*PI) ! Gradient of the Green function
 
       END DO
     END DO
@@ -176,4 +178,4 @@ CONTAINS
 
   ! ====================================
 
-END MODULE Green_1
+END MODULE GREEN_RANKINE

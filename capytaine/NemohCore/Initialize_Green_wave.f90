@@ -1,11 +1,11 @@
-MODULE Initialize_Green_2
+MODULE INITIALIZE_GREEN_WAVE
 
   USE CONSTANTS
 
   IMPLICIT NONE
 
   PUBLIC :: GG
-  PUBLIC :: INITIALIZE_GREEN
+  PUBLIC :: INITIALIZE_TABULATED_INTEGRALS
   PUBLIC :: FF
 
 CONTAINS
@@ -15,6 +15,8 @@ CONTAINS
   FUNCTION GG(ZZ)
     ! Estimation of exp(z)·E1(z) where E1(z) = ∫_z^∞ exp(-t)/t dt
     ! See p.367 of G. Delhommeau thesis (referenced as [Del]).
+
+    ! This routine is only used in the following subroutine to compute the tabulated integrals
 
     ! The computation is done is single precision.
 
@@ -64,10 +66,10 @@ CONTAINS
 
 !------------------------------------------------------------------------------
 
-  SUBROUTINE INITIALIZE_GREEN(IR, JZ, NPINTE, XR, XZ, APD)
-    ! Initialize XR, XZ and APD.
-    ! Those parameters are independent of the depth and the frequency.
-    ! Thus, they are initialized only once at the beginning of the execution of the code.
+  SUBROUTINE INITIALIZE_TABULATED_INTEGRALS(IR, JZ, NPINTE, XR, XZ, APD)
+    ! Compute the tabulated integral for the wave part of the Green function.
+    ! These tables are independant of the mesh and of the frequency.
+    ! They are only initialised once at the beginning of the computation.
 
     ! References:
     ! [1] Delhommeau, Amélioration des codes de calcul de diffraction-radiation, 2èmes journées de l'hydrodynamique, 1989
@@ -144,11 +146,13 @@ CONTAINS
 
     RETURN
 
-  END SUBROUTINE INITIALIZE_GREEN
+  END SUBROUTINE INITIALIZE_TABULATED_INTEGRALS
 
 !-------------------------------------------------------------------------------!
 
   FUNCTION FF(XTT, AK, AM)
+    ! A function that will be Prony-decomposed for the finite-depth Green function.
+    ! See the method "compute_exponential_decomposition" in Nemoh.py.
 
     ! Input
     REAL(KIND=PRE), INTENT(IN) :: XTT, AK, AM
@@ -178,4 +182,4 @@ CONTAINS
 
 !----------------------------------------------------------------
 
-END MODULE Initialize_Green_2
+END MODULE INITIALIZE_GREEN_WAVE

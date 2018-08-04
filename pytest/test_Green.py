@@ -16,7 +16,7 @@ from capytaine._Wavenumber import invert_xtanhx
 
 
 def E1(z):
-    return np.exp(-z)*_Green.initialize_green_2.gg(z)
+    return np.exp(-z)*_Green.initialize_green_wave.gg(z)
 
 @pytest.mark.parametrize("x", np.linspace(-20, -1, 4))
 @pytest.mark.parametrize("y", np.linspace(-10, 10, 4))
@@ -41,18 +41,18 @@ def test_green_function(omega, depth):
     else:
         wavenumber = invert_xtanhx(omega**2 * depth/g) / depth
 
-    XR, XZ, APD = _Green.initialize_green_2.initialize_green(328, 46, 251)
+    XR, XZ, APD = _Green.initialize_green_wave.initialize_tabulated_integrals(328, 46, 251)
     if depth < np.infty:
         ambda, ar, nexp = _Green.old_prony_decomposition.lisc(omega**2 * depth/g, wavenumber * depth)
 
     def g(w, Xi, Xj):
         if depth == np.infty:
-            return _Green.green_2.vnsinfd(w, Xi, Xj, XR, XZ, APD)[0]
+            return _Green.green_wave.wave_part_infinite_depth(w, Xi, Xj, XR, XZ, APD)[0]
         else:
-            return _Green.green_2.vnsfd(w, Xi, Xj, depth, XR, XZ, APD, ambda, ar, 31)[0]
+            return _Green.green_wave.wave_part_finite_depth(w, Xi, Xj, depth, XR, XZ, APD, ambda, ar, 31)[0]
 
     def dg(w, Xi, Xj):
-        return _Green.green_2.vnsinfd(w, Xi, Xj, XR, XZ, APD)[1]
+        return _Green.green_wave.wave_part_infinite_depth(w, Xi, Xj, XR, XZ, APD)[1]
 
     def reflect(X):
         Y = X.copy()
