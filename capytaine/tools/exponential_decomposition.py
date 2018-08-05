@@ -1,13 +1,58 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Tool to approximate a function as a sum of exponentials."""
+"""Prony decomposition: tool to approximate a function as a sum of exponentials."""
 # This file is part of "capytaine" (https://github.com/mancellin/capytaine).
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
+
+import logging
+from functools import lru_cache
 
 import numpy as np
 from numpy.polynomial import polynomial
 from scipy.optimize import curve_fit
 from scipy.linalg import toeplitz
+
+import capytaine._Green as _Green
+
+LOG = logging.getLogger(__name__)
+
+PYTHON_METHOD = False
+
+
+@lru_cache(maxsize=128)
+def find_best_exponential_decomposition(dimensionless_omega, dimensionless_wavenumber):
+    """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
+    Results are cached."""
+
+    LOG.debug(f"Compute Nemoh's finite depth Green function for dimless_omega=%.2e and dimless_wavenumber=%.2e",
+              dimensionless_omega, dimensionless_wavenumber)
+
+    if PYTHON_METHOD:
+        # The function that will be approximated.
+        @np.vectorize
+        def f(x):
+            return _Green.initialize_green_wave.ff(x, dimensionless_omega, dimensionless_wavenumber)
+
+        # Try different increasing number of exponentials
+        for n_exp in range(4, 31, 2):
+
+            # The coefficients are computed on a resolution of 4*n_exp+1 ...
+            X = np.linspace(-0.1, 20.0, 4*n_exp+1)
+            a, lamda = exponential_decomposition(X, f(X), n_exp)
+
+            # ... and they are evaluated on a finer discretization.
+            X = np.linspace(-0.1, 20.0, 8*n_exp+1)
+            if error_exponential_decomposition(X, f(X), a, lamda) < 1e-4:
+                break
+
+        else:
+            LOG.warning(f"No suitable exponential decomposition has been found for dimless_omega=%.2e and dimless_wavenumber=%.2e",
+                        dimensionless_omega, dimensionless_wavenumber)
+
+    else:
+        lamda, a, _ = _Green.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
+
+    return a, lamda
 
 
 def exponential_decomposition(X, F, m):

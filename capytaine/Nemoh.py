@@ -18,7 +18,7 @@ import logging
 import numpy as np
 from copy import deepcopy
 
-from capytaine.tools.exponential_decomposition import exponential_decomposition, error_exponential_decomposition
+from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
 from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve
 
 from capytaine.symmetries import use_symmetries_to_compute
@@ -51,17 +51,12 @@ class Nemoh:
     XZ: array of shape (46)
     APD: array of shape (328, 46, 2, 2)
         Tabulated integrals for the Green functions
-    exponential_decompositions: MaxLengthDict of arrays
-        Store last computed exponential decomposition
     __cache__: dict of dict of arrays
         Store last computations of influence matrices
     """
-    def __init__(self, store_matrices_in_cache=True, npinte=251, max_stored_exponential_decompositions=50):
+    def __init__(self, store_matrices_in_cache=True, npinte=251):
         LOG.info("Initialize Nemoh's Green function.")
         self.XR, self.XZ, self.APD = _Green.initialize_green_wave.initialize_tabulated_integrals(328, 46, npinte)
-
-        self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)
-        # To be used for finite depth...
 
         self.use_cache = store_matrices_in_cache
         if self.use_cache:
@@ -84,9 +79,6 @@ class Nemoh:
         """
 
         LOG.info("Solve %s.", problem)
-
-        if problem.depth < np.infty:
-            self._compute_exponential_decomposition(problem)
 
         if problem.wavelength < 8*problem.body.mesh.faces_radiuses.max():
             LOG.warning(f"Resolution of the mesh (8×max_radius={8*problem.body.mesh.faces_radiuses.max():.2e}) "
@@ -147,55 +139,11 @@ class Nemoh:
             results = pool.map(self.solve, sorted(problems))
         return results
 
-    ####################
-    #  Initialization  #
-    ####################
-
-    def _compute_exponential_decomposition(self, pb):
-        """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
-        The decomposition is stored in :code:`self.exponential_decompositions`.
-
-        Parameters
-        ----------
-        pb: LinearPotentialFlowProblem
-            Problem from which the frequency and depth will be used.
-        """
-
-        LOG.debug(f"Initialize Nemoh's finite depth Green function for omega=%.2e and depth=%.2e", pb.omega, pb.depth)
-        if (pb.dimensionless_omega, pb.dimensionless_wavenumber) not in self.exponential_decompositions:
-
-            # The function that will be approximated.
-            @np.vectorize
-            def f(x):
-                return _Green.initialize_green_wave.ff(x, pb.dimensionless_omega,
-                                                       pb.dimensionless_wavenumber)
-
-            # Try different increasing number of exponentials
-            for n_exp in range(4, 31, 2):
-
-                # The coefficients are computed on a resolution of 4*n_exp+1 ...
-                X = np.linspace(-0.1, 20.0, 4*n_exp+1)
-                a, lamda = exponential_decomposition(X, f(X), n_exp)
-
-                # ... and they are evaluated on a finer discretization.
-                X = np.linspace(-0.1, 20.0, 8*n_exp+1)
-                if error_exponential_decomposition(X, f(X), a, lamda) < 1e-4:
-                    break
-
-            else:
-                LOG.warning(f"No suitable exponential decomposition has been found for {pb}.")
-
-            self.exponential_decompositions[(pb.dimensionless_omega, pb.dimensionless_wavenumber)] = (a, lamda)
-
-        else:
-            self.exponential_decompositions.move_to_end(
-                key=(pb.dimensionless_omega, pb.dimensionless_wavenumber), last=True)
-
     #######################
     #  Building matrices  #
     #######################
 
-    def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
+    def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0, g=9.81):
         """
         mesh1: Mesh or CollectionOfMeshes
             mesh of the receiving body (where the potential is measured)
@@ -286,8 +234,8 @@ class Nemoh:
                 mesh1 is mesh2
                 )
         else:
-            # Get the last computed exponential decomposition.
-            a_exp, lamda_exp = next(reversed(self.exponential_decompositions.values()))
+            a_exp, lamda_exp = find_best_exponential_decomposition(wavenumber*depth*np.tanh(wavenumber*depth),
+                                                                   wavenumber*depth)
 
             S2, V2 = _Green.green_wave.build_matrices_wave_source(
                 mesh1.faces_centers, mesh1.faces_normals,
