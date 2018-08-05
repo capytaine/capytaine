@@ -22,7 +22,7 @@ import numpy as np
 from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
 from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve
 from capytaine.symmetries import use_symmetries
-import capytaine._Green as _Green
+import capytaine.NemohCore as NemohCore
 
 
 LOG = logging.getLogger(__name__)
@@ -53,7 +53,7 @@ class Nemoh:
     """
     def __init__(self, npinte=251):
         LOG.info("Initialize Nemoh's Green function.")
-        self.XR, self.XZ, self.APD = _Green.initialize_green_wave.initialize_tabulated_integrals(328, 46, npinte)
+        self.XR, self.XZ, self.APD = NemohCore.initialize_green_wave.initialize_tabulated_integrals(328, 46, npinte)
 
     def solve(self, problem, keep_details=False):
         """Solve the BEM problem using Nemoh.
@@ -183,7 +183,7 @@ class Nemoh:
     @use_symmetries
     def _build_matrices_0(self, mesh1, mesh2):
         """Compute the first part of the influence matrices of mesh1 on mesh2."""
-        S, V = _Green.green_rankine.build_matrices_rankine_source(
+        S, V = NemohCore.green_rankine.build_matrices_rankine_source(
             mesh1.faces_centers, mesh1.faces_normals,
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
@@ -215,7 +215,7 @@ class Nemoh:
                 y[:, 2] = 2*sea_bottom - x[:, 2]
                 return y
 
-        S1, V1 = _Green.green_rankine.build_matrices_rankine_source(
+        S1, V1 = NemohCore.green_rankine.build_matrices_rankine_source(
             reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
@@ -233,7 +233,7 @@ class Nemoh:
         """Compute the third part (wave part) of the influence matrices of mesh1 on mesh2."""
         depth = free_surface - sea_bottom
         if depth == np.infty:
-            S2, V2 = _Green.green_wave.build_matrices_wave_source(
+            S2, V2 = NemohCore.green_wave.build_matrices_wave_source(
                 mesh1.faces_centers, mesh1.faces_normals,
                 mesh2.faces_centers, mesh2.faces_areas,
                 wavenumber, 0.0,
@@ -245,7 +245,7 @@ class Nemoh:
             a_exp, lamda_exp = find_best_exponential_decomposition(wavenumber*depth*np.tanh(wavenumber*depth),
                                                                    wavenumber*depth)
 
-            S2, V2 = _Green.green_wave.build_matrices_wave_source(
+            S2, V2 = NemohCore.green_wave.build_matrices_wave_source(
                 mesh1.faces_centers, mesh1.faces_normals,
                 mesh2.faces_centers, mesh2.faces_areas,
                 wavenumber, depth,

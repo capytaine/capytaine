@@ -12,7 +12,7 @@ from numpy.polynomial import polynomial
 from scipy.optimize import curve_fit
 from scipy.linalg import toeplitz
 
-import capytaine._Green as _Green
+import capytaine.NemohCore as NemohCore
 
 LOG = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ def find_best_exponential_decomposition(dimensionless_omega, dimensionless_waven
         # The function that will be approximated.
         @np.vectorize
         def f(x):
-            return _Green.initialize_green_wave.ff(x, dimensionless_omega, dimensionless_wavenumber)
+            return NemohCore.initialize_green_wave.ff(x, dimensionless_omega, dimensionless_wavenumber)
 
         # Try different increasing number of exponentials
         for n_exp in range(4, 31, 2):
@@ -50,7 +50,7 @@ def find_best_exponential_decomposition(dimensionless_omega, dimensionless_waven
                         dimensionless_omega, dimensionless_wavenumber)
 
     else:
-        lamda, a, _ = _Green.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
+        lamda, a, _ = NemohCore.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
 
     return a, lamda
 

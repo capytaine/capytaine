@@ -8,7 +8,7 @@ capytaine/NemohCore/Wavenumber.f90            \
 capytaine/NemohCore/old_Prony_decomposition.f90
 
 SOFILES = \
-capytaine/_Green.cpython-36m-x86_64-linux-gnu.so \
+capytaine/NemohCore.cpython-36m-x86_64-linux-gnu.so \
 capytaine/_Wavenumber.cpython-36m-x86_64-linux-gnu.so
 
 $(SOFILES): $(F90FILES)
