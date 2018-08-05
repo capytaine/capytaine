@@ -28,7 +28,10 @@ def test_LinearPotentialFlowProblem():
 
     assert LinearPotentialFlowProblem(free_surface=np.infty, sea_bottom=-np.infty).depth == np.infty
     assert LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=-np.infty).depth == np.infty
-    assert LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=-1.0).depth == 1.0
+
+    pb = LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=-1.0, omega=1.0)
+    assert pb.depth == 1.0
+    assert np.isclose(pb.omega**2, pb.g*pb.wavenumber*np.tanh(pb.wavenumber*pb.depth))
 
     with pytest.raises(NotImplementedError):
         LinearPotentialFlowProblem(free_surface=2.0)
