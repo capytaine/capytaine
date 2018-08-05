@@ -23,8 +23,6 @@ from capytaine.tools.exponential_decomposition import find_best_exponential_deco
 from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve
 
 from capytaine.symmetries import use_symmetries
-from capytaine.tools.max_length_dict import MaxLengthDict
-from capytaine.tools.cache_decorator import keep_in_cache
 
 import capytaine._Green as _Green
 
@@ -55,13 +53,9 @@ class Nemoh:
     __cache__: dict of dict of arrays
         Store last computations of influence matrices
     """
-    def __init__(self, store_matrices_in_cache=True, npinte=251):
+    def __init__(self, npinte=251):
         LOG.info("Initialize Nemoh's Green function.")
         self.XR, self.XZ, self.APD = _Green.initialize_green_wave.initialize_tabulated_integrals(328, 46, npinte)
-
-        self.use_cache = store_matrices_in_cache
-        if self.use_cache:
-            self.__cache__ = {'Green0': {}, 'Green1': {}, 'Green2': {}}
 
     def solve(self, problem, keep_details=False):
         """Solve the BEM problem using Nemoh.
@@ -186,8 +180,7 @@ class Nemoh:
 
     @lru_cache(maxsize=1)
     @use_symmetries
-    # @keep_in_cache(cache_name="Green0")
-    def _build_matrices_0(self, mesh1, mesh2):
+    def _build_matrices_0(self, mesh1, mesh2, _rec_depth=0):
         """Compute the first part of the influence matrices of self on body."""
         S, V = _Green.green_rankine.build_matrices_rankine_source(
             mesh1.faces_centers, mesh1.faces_normals,
@@ -201,8 +194,7 @@ class Nemoh:
 
     @lru_cache(maxsize=1)
     @use_symmetries
-    # @keep_in_cache(cache_name="Green1")
-    def _build_matrices_1(self, mesh1, mesh2, free_surface, sea_bottom):
+    def _build_matrices_1(self, mesh1, mesh2, free_surface, sea_bottom, _rec_depth=0):
         """Compute the second part of the influence matrices of mesh1 on mesh2."""
         depth = free_surface - sea_bottom
 
@@ -236,8 +228,7 @@ class Nemoh:
 
     @lru_cache(maxsize=1)
     @use_symmetries
-    # @keep_in_cache(cache_name="Green2")
-    def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
+    def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth=0):
         """Compute the third part (wave part) of the influence matrices of mesh1 on mesh2."""
         depth = free_surface - sea_bottom
         if depth == np.infty:

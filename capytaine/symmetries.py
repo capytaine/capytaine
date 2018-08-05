@@ -312,7 +312,7 @@ def use_symmetries(build_matrices):
             LOG.debug("\t" * len(_rec_depth) +
                       f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}.")
 
-            return build_matrices(solver, mesh1, mesh2, *args)
+            return build_matrices(solver, mesh1, mesh2, *args, _rec_depth=_rec_depth)
 
     return build_matrices_with_symmetries
 
