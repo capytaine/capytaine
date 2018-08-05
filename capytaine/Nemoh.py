@@ -16,13 +16,15 @@ Example
 import logging
 
 import numpy as np
+from copy import deepcopy
 
-from capytaine.Toeplitz_matrices import (identity_matrix_of_same_shape_as, solve,
-                                         BlockToeplitzMatrix, BlockCirculantMatrix)
-from capytaine.symmetries import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
 from capytaine.tools.exponential_decomposition import exponential_decomposition, error_exponential_decomposition
+from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve
+
+from capytaine.symmetries import use_symmetries_to_compute
 from capytaine.tools.max_length_dict import MaxLengthDict
 from capytaine.tools.cache_decorator import keep_in_cache
+
 import capytaine._Green as _Green
 
 
@@ -193,16 +195,8 @@ class Nemoh:
     #  Building matrices  #
     #######################
 
-    def build_matrices(self, mesh1, mesh2,
-                       free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0,
-                       force_full_computation=False, _rec_depth=(1,)):
-        """Assemble the influence matrices.
-
-        The method is basically an ugly multiple dispatch on the kind of bodies.
-        For symmetric structures, the method is called recursively on the sub-bodies.
-
-        Parameters
-        ----------
+    def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
+        """
         mesh1: Mesh or CollectionOfMeshes
             mesh of the receiving body (where the potential is measured)
         mesh2: Mesh or CollectionOfMeshes
@@ -213,124 +207,37 @@ class Nemoh:
             position of the sea bottom (default: :math:`z = -\infty`)
         wavenumber: float, optional
             wavenumber (default: 1)
-        force_full_computation: bool, optional
-            if True, the symmetries are NOT used to speed up the computation (default: False)
-        _rec_depth: tuple, optional
-            internal parameter: recursion accumulator for pretty log printing and cache sizing
-
-        Returns
-        -------
-        S: array of shape (mesh1.nb_faces, mesh2.nb_faces)
-            influence matrix (integral of the Green function)
-        V: array of shape (mesh1.nb_faces, mesh2.nb_faces)
-            influence matrix (integral of the derivative of the Green function)
         """
 
-        if (isinstance(mesh1, ReflectionSymmetry)
-                and isinstance(mesh2, ReflectionSymmetry)
-                and mesh1.plane == mesh2.plane
-                and not force_full_computation):
+        S0, V0 = use_symmetries_to_compute(Nemoh._build_matrices_0, self, mesh1, mesh2)
+        S = deepcopy(S0)
+        V = deepcopy(V0)
+        # Do a copy to avoid interfering with the cache. TODO: fix that when both matrices are in a single array.
 
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"using mirror symmetry "
-                      f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
+        if free_surface < np.infty:
 
-            S_a, V_a = self.build_matrices(mesh1.submeshes[0], mesh2.submeshes[0],
-                                           free_surface, sea_bottom, wavenumber,
-                                           force_full_computation, _rec_depth + (2,))
-            S_b, V_b = self.build_matrices(mesh1.submeshes[0], mesh2.submeshes[1],
-                                           free_surface, sea_bottom, wavenumber,
-                                           force_full_computation, _rec_depth + (2,))
+            S1, V1 = use_symmetries_to_compute(Nemoh._build_matrices_1, self, mesh1, mesh2, free_surface, sea_bottom)
+            S += S1
+            V += V1
 
-            return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
+            S2, V2 = use_symmetries_to_compute(Nemoh._build_matrices_2, self, mesh1, mesh2, free_surface, sea_bottom, wavenumber)
+            S += S2
+            V += V2
 
-        elif (isinstance(mesh1, TranslationalSymmetry)
-              and isinstance(mesh2, TranslationalSymmetry)
-              and np.allclose(mesh1.translation, mesh2.translation)
-              and mesh1.nb_submeshes == mesh2.nb_submeshes
-              and not force_full_computation):
-
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"using translational symmetry "
-                      f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
-
-            S_list, V_list = [], []
-            for subbody in mesh2.submeshes:
-                S, V = self.build_matrices(mesh1.submeshes[0], subbody,
-                                           free_surface, sea_bottom, wavenumber,
-                                           force_full_computation, _rec_depth + (mesh2.nb_submeshes,))
-                S_list.append(S)
-                V_list.append(V)
-            return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
-
-        elif (isinstance(mesh1, AxialSymmetry)
-              and mesh1 is mesh2  # TODO: Generalize: if mesh1.axis == mesh2.axis
-              and not force_full_computation):
-
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"Evaluating matrix of {mesh1.name} on itself "
-                      f"using rotation symmetry "
-                      f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
-
-            S_list, V_list = [], []
-            for subbody in mesh2.submeshes[:mesh2.nb_submeshes // 2 + 1]:
-                S, V = self.build_matrices(mesh1.submeshes[0], subbody,
-                                           free_surface, sea_bottom, wavenumber,
-                                           force_full_computation, _rec_depth + (mesh2.nb_submeshes // 2 + 1,))
-                S_list.append(S)
-                V_list.append(V)
-
-            if mesh1.nb_submeshes % 2 == 0:
-                return BlockCirculantMatrix(S_list, size=mesh1.nb_submeshes), BlockCirculantMatrix(V_list, size=mesh1.nb_submeshes)
-            else:
-                return BlockCirculantMatrix(S_list, size=mesh1.nb_submeshes), BlockCirculantMatrix(V_list, size=mesh1.nb_submeshes)
-
-        #   elif (isinstance(mesh1, CollectionOfMeshes)):
-        #     S = np.empty((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
-        #     V = np.empty((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
-        #
-        #     nb_faces = list(accumulate(chain([0], (body.nb_faces for body in mesh1.submeshes))))
-        #     for (i, j), body in zip(zip(nb_faces, nb_faces[1:]), mesh1.submeshes):
-        #         matrix_slice = (slice(i, j), slice(None, None))
-        #         S[matrix_slice], V[matrix_slice] = self.build_matrices(mesh1, mesh2, **kwargs)
-        #
-        #     return S, V
-
-        else:
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
-
-            S = np.zeros((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
-            V = np.zeros((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
-
-            S0, V0 = self._build_matrices_0(mesh1, mesh2, _rec_depth=_rec_depth)
-            S += S0
-            V += V0
-
-            if free_surface < np.infty:
-
-                S1, V1 = self._build_matrices_1(mesh1, mesh2, free_surface, sea_bottom, _rec_depth=_rec_depth)
-                S += S1
-                V += V1
-
-                S2, V2 = self._build_matrices_2(mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth=_rec_depth)
-                S += S2
-                V += V2
-
-            return S, V
+        return S, V
 
     @keep_in_cache(cache_name="Green0")
     def _build_matrices_0(self, mesh1, mesh2, _rec_depth=(1,)):
         """Compute the first part of the influence matrices of self on body."""
-        return _Green.green_rankine.build_matrices_rankine_source(
+        S, V = _Green.green_rankine.build_matrices_rankine_source(
             mesh1.faces_centers, mesh1.faces_normals,
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
             mesh2.faces_areas,   mesh2.faces_radiuses,
             )
+        return S.astype(np.complex128), V.astype(np.complex128)
+        # The real valued matrices are converted to complex to ease the combination with the other matrices later.
+        # TODO: Move the conversion outside of the scope of the cache.
 
     @keep_in_cache(cache_name="Green1")
     def _build_matrices_1(self, mesh1, mesh2, free_surface, sea_bottom, _rec_depth=(1,)):
@@ -361,9 +268,9 @@ class Nemoh:
             )
 
         if depth == np.infty:
-            return -S1, -V1
+            return -S1.astype(np.complex128), -V1.astype(np.complex128)
         else:
-            return S1, V1
+            return S1.astype(np.complex128), V1.astype(np.complex128)
 
     @keep_in_cache(cache_name="Green2")
     def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth=(1,)):
