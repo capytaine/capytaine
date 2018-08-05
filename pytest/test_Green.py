@@ -10,9 +10,9 @@ import pytest
 
 import numpy as np
 from scipy.special import exp1
+from scipy.optimize import newton
 
 import capytaine.NemohCore as NemohCore
-from capytaine._Wavenumber import invert_xtanhx
 
 
 def E1(z):
@@ -39,7 +39,7 @@ def test_green_function(omega, depth):
     if depth == np.infty:
         wavenumber = omega**2 / g
     else:
-        wavenumber = invert_xtanhx(omega**2 * depth/g) / depth
+        wavenumber = newton(lambda x: x*np.tanh(x) - omega**2*depth/g, x0=1.0)/depth
 
     XR, XZ, APD = NemohCore.initialize_green_wave.initialize_tabulated_integrals(328, 46, 251)
     if depth < np.infty:

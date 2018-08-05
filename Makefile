@@ -4,12 +4,10 @@ F90FILES = \
 capytaine/NemohCore/Green_Rankine.f90         \
 capytaine/NemohCore/Green_wave.f90            \
 capytaine/NemohCore/Initialize_Green_wave.f90 \
-capytaine/NemohCore/Wavenumber.f90            \
 capytaine/NemohCore/old_Prony_decomposition.f90
 
 SOFILES = \
-capytaine/NemohCore.cpython-36m-x86_64-linux-gnu.so \
-capytaine/_Wavenumber.cpython-36m-x86_64-linux-gnu.so
+capytaine/NemohCore.cpython-36m-x86_64-linux-gnu.so
 
 $(SOFILES): $(F90FILES)
 	python setup.py build_ext --inplace

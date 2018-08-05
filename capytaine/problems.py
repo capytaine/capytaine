@@ -5,11 +5,13 @@
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import logging
+from functools import lru_cache
 
 from attr import attrs, attrib, astuple
-import numpy as np
 
-from capytaine._Wavenumber import invert_xtanhx
+import numpy as np
+from scipy.optimize import newton
+
 from capytaine.results import LinearPotentialFlowResult, DiffractionResult, RadiationResult
 from capytaine.tools.Airy_wave import Airy_wave_velocity
 
@@ -82,12 +84,12 @@ class LinearPotentialFlowProblem:
         return self.free_surface - self.sea_bottom
 
     @property
+    @lru_cache(maxsize=128)
     def wavenumber(self):
-        # TODO: Store the value?
         if self.depth == np.infty or self.omega**2*self.depth/self.g > 20:
             return self.omega**2/self.g
         else:
-            return invert_xtanhx(self.omega**2*self.depth/self.g)/self.depth
+            return newton(lambda x: x*np.tanh(x) - self.omega**2*self.depth/self.g, x0=1.0)/self.depth
 
     @property
     def wavelength(self):

@@ -5,7 +5,7 @@ from numpy.distutils.core import Extension, setup
 
 VERSION = '0.5dev'
 
-Green = Extension(
+NemohCore = Extension(
     name="capytaine.NemohCore",
     sources=[
         "capytaine/NemohCore/constants.f90",
@@ -19,13 +19,6 @@ Green = Extension(
     #     ('F2PY_REPORT_ATEXIT', 1),
     #     ('F2PY_REPORT_ON_ARRAY_COPY', 1),
     # ],
-)
-
-Wavenumber = Extension(
-    name="capytaine._Wavenumber",
-    sources=[
-        "capytaine/NemohCore/Wavenumber.f90"
-    ]
 )
 
 if __name__ == "__main__":
@@ -57,8 +50,5 @@ if __name__ == "__main__":
                   'capytaine=capytaine.cli:main',
               ],
           },
-          ext_modules=[
-              Green,
-              Wavenumber
-          ],
+          ext_modules=[NemohCore],
           )
