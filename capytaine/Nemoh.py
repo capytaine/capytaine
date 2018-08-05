@@ -35,12 +35,9 @@ class Nemoh:
 
     Parameters
     ----------
-    store_matrices_in_cache: bool, optional
-        If True, store the last computed influence matrices in __cache__ for later reuse (default: True)
     npinte: int, optional
-        Number of points for the evaluation of the integral w.r.t. :math:`theta` in the Green function (default: 251)
-    max_stored_exponential_decompositions: int, optional
-        Number of stored exponential decomposition (default: 50)
+        Number of points for the evaluation of the integral w.r.t. :math:`theta` in the Green
+        function (default: 251)
 
     Attributes
     ----------
@@ -48,8 +45,6 @@ class Nemoh:
     XZ: array of shape (46)
     APD: array of shape (328, 46, 2, 2)
         Tabulated integrals for the Green functions
-    __cache__: dict of dict of arrays
-        Store last computations of influence matrices
     """
     def __init__(self, npinte=251):
         LOG.info("Initialize Nemoh's Green function.")
@@ -63,7 +58,8 @@ class Nemoh:
         problem: LinearPotentialFlowProblem
             the problem to be solved
         keep_details: bool, optional
-            if True, store the sources and the potential on the floating body in the output object (default: False)
+            if True, store the sources and the potential on the floating body in the output object
+            (default: False)
 
         Returns
         -------
@@ -138,6 +134,8 @@ class Nemoh:
 
     def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
         """
+        Build the influence matrices between mesh1 and mesh2.
+
         Parameters
         ----------
         mesh1: Mesh or CollectionOfMeshes
