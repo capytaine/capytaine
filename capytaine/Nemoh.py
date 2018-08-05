@@ -21,9 +21,7 @@ import numpy as np
 
 from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
 from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve
-
 from capytaine.symmetries import use_symmetries
-
 import capytaine._Green as _Green
 
 
@@ -159,6 +157,9 @@ class Nemoh:
             couple of influence matrices
         """
 
+        LOG.debug(f"\tEvaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}"
+                  f"for depth={free_surface-sea_bottom} and wavenumber={wavenumber}.")
+
         # S, V = self._build_matrices_0(mesh1, mesh2)
         S0, V0 = self._build_matrices_0(mesh1, mesh2)
         S = deepcopy(S0)
@@ -180,8 +181,8 @@ class Nemoh:
 
     @lru_cache(maxsize=1)
     @use_symmetries
-    def _build_matrices_0(self, mesh1, mesh2, _rec_depth=0):
-        """Compute the first part of the influence matrices of self on body."""
+    def _build_matrices_0(self, mesh1, mesh2):
+        """Compute the first part of the influence matrices of mesh1 on mesh2."""
         S, V = _Green.green_rankine.build_matrices_rankine_source(
             mesh1.faces_centers, mesh1.faces_normals,
             mesh2.vertices,      mesh2.faces + 1,
@@ -194,7 +195,7 @@ class Nemoh:
 
     @lru_cache(maxsize=1)
     @use_symmetries
-    def _build_matrices_1(self, mesh1, mesh2, free_surface, sea_bottom, _rec_depth=0):
+    def _build_matrices_1(self, mesh1, mesh2, free_surface, sea_bottom):
         """Compute the second part of the influence matrices of mesh1 on mesh2."""
         depth = free_surface - sea_bottom
 
@@ -228,7 +229,7 @@ class Nemoh:
 
     @lru_cache(maxsize=1)
     @use_symmetries
-    def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth=0):
+    def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
         """Compute the third part (wave part) of the influence matrices of mesh1 on mesh2."""
         depth = free_surface - sea_bottom
         if depth == np.infty:

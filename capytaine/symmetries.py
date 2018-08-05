@@ -228,7 +228,7 @@ def use_symmetries(build_matrices):
     """
 
     @wraps(build_matrices)
-    def build_matrices_with_symmetries(solver, mesh1, mesh2, *args, _rec_depth=(1,)):
+    def build_matrices_with_symmetries(solver, mesh1, mesh2, *args, _rec_depth=1):
         """Assemble the influence matrices using symmetries of the body.⎈
 
         The method is basically an ugly multiple dispatch on the kind of bodies.
@@ -257,16 +257,16 @@ def use_symmetries(build_matrices):
                 and isinstance(mesh2, ReflectionSymmetry)
                 and mesh1.plane == mesh2.plane):
 
-            LOG.debug("\t" * len(_rec_depth) +
+            LOG.debug("\t" * _rec_depth +
                       f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
                       f"using mirror symmetry.")
 
             S_a, V_a = build_matrices_with_symmetries(
                 solver, mesh1.submeshes[0], mesh2.submeshes[0], *args,
-                _rec_depth=_rec_depth + (2,))
+                _rec_depth=_rec_depth+1)
             S_b, V_b = build_matrices_with_symmetries(
                 solver, mesh1.submeshes[0], mesh2.submeshes[1], *args,
-                _rec_depth=_rec_depth + (2,))
+                _rec_depth=_rec_depth+1)
 
             return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
 
@@ -275,7 +275,7 @@ def use_symmetries(build_matrices):
               and np.allclose(mesh1.translation, mesh2.translation)
               and mesh1.nb_submeshes == mesh2.nb_submeshes):
 
-            LOG.debug("\t" * len(_rec_depth) +
+            LOG.debug("\t" * _rec_depth +
                       f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
                       "using translational symmetry.")
 
@@ -283,7 +283,7 @@ def use_symmetries(build_matrices):
             for subbody in mesh2.submeshes:
                 S, V = build_matrices_with_symmetries(
                     solver, mesh1.submeshes[0], subbody, *args,
-                    _rec_depth=_rec_depth + (mesh2.nb_submeshes,))
+                    _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
 
@@ -292,16 +292,15 @@ def use_symmetries(build_matrices):
         elif (isinstance(mesh1, AxialSymmetry)
               and mesh1 is mesh2):  # TODO: Generalize: if mesh1.axis == mesh2.axis
 
-            LOG.debug("\t" * len(_rec_depth) +
+            LOG.debug("\t" * _rec_depth +
                       f"Evaluating matrix of {mesh1.name} on itself "
                       f"using rotation symmetry.")
 
             S_list, V_list = [], []
             for subbody in mesh2.submeshes[:mesh2.nb_submeshes // 2 + 1]:
                 S, V = build_matrices_with_symmetries(
-                    solver,
-                    mesh1.submeshes[0], subbody, *args,
-                    _rec_depth=_rec_depth + (mesh2.nb_submeshes // 2 + 1,))
+                    solver, mesh1.submeshes[0], subbody, *args,
+                    _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
 
@@ -309,10 +308,11 @@ def use_symmetries(build_matrices):
 
         else:
             #Actual evaluation of coefficients using the Green function.
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}.")
+            LOG.debug("\t" * _rec_depth +
+                      f"Computation of the Green function between {mesh1.name} "
+                      f"and {'itself' if mesh2 is mesh1 else mesh2.name}.")
 
-            return build_matrices(solver, mesh1, mesh2, *args, _rec_depth=_rec_depth)
+            return build_matrices(solver, mesh1, mesh2, *args)
 
     return build_matrices_with_symmetries
 

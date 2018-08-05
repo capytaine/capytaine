@@ -9,7 +9,7 @@ New in version 0.5
 Minor changes
 -------------
 
-* In :code:`Nemoh`, rename optional argument :code:`keep_matrices` as :code:`store_matrices_in_cache`.
+* Reorganization of the internals of the solver. The initialization options :code:`keep_matrices` and :code:`max_stored_exponential_decompositions` have been removed.
 
 ------------------
 New in version 0.4
