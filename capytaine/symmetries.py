@@ -5,6 +5,7 @@
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import logging
+from functools import wraps
 
 import numpy as np
 
@@ -211,118 +212,107 @@ class AxialSymmetry(SymmetricMesh):
     #                          name=f"{self.name}_clipped")
 
 
-def use_symmetries_to_compute(
-        evaluating_function,
-        solver, mesh1, mesh2, *args,
-        force_full_computation=False, _rec_depth=(1,)):
-    """Assemble the influence matrices.
-
-    The method is basically an ugly multiple dispatch on the kind of bodies.
-    For symmetric structures, the method is called recursively on the sub-bodies.
+def use_symmetries(build_matrices):
+    """Decorator for the matrix building functions.
 
     Parameters
     ----------
-    evaluating_function: function
-        ...
-    mesh1: Mesh or CollectionOfMeshes
-        mesh of the receiving body (where the potential is measured)
-    mesh2: Mesh or CollectionOfMeshes
-        mesh of the source body (over which the source distribution is integrated)
-    force_full_computation: bool, optional
-        if True, the symmetries are NOT used to speed up the computation (default: False)
-    _rec_depth: tuple, optional
-        internal parameter: recursion accumulator for pretty log printing and cache sizing
+    build_matrices: function
+        Function that takes as argument two meshes and several other parameters and returns an
+        influence matrix.
 
     Returns
     -------
-    array of shape (..., mesh1.nb_faces, mesh2.nb_faces)
-        influence matrix (integral of the Green function)
+    function
+        A similar function that returns a block matrix based on the symmetries of the meshes.
     """
 
-    if (isinstance(mesh1, ReflectionSymmetry)
-            and isinstance(mesh2, ReflectionSymmetry)
-            and mesh1.plane == mesh2.plane
-            and not force_full_computation):
+    @wraps(build_matrices)
+    def build_matrices_with_symmetries(solver, mesh1, mesh2, *args, _rec_depth=(1,)):
+        """Assemble the influence matrices using symmetries of the body.⎈
 
-        LOG.debug("\t" * len(_rec_depth) +
-                  f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                  f"using mirror symmetry "
-                  )
+        The method is basically an ugly multiple dispatch on the kind of bodies.
+        For symmetric structures, the method is called recursively on all of the sub-bodies.
 
-        S_a, V_a = use_symmetries_to_compute(
-            evaluating_function, solver,
-            mesh1.submeshes[0], mesh2.submeshes[0], *args,
-            force_full_computation=force_full_computation,
-            _rec_depth=_rec_depth + (2,))
-        S_b, V_b = use_symmetries_to_compute(
-            evaluating_function, solver,
-            mesh1.submeshes[0], mesh2.submeshes[1], *args,
-            force_full_computation=force_full_computation,
-            _rec_depth=_rec_depth + (2,))
+        Parameters
+        ----------
+        solver
+            Passed to the actual evaluation of the coefficients
+        mesh1: Mesh or CollectionOfMeshes
+            mesh of the receiving body (where the potential is measured)
+        mesh2: Mesh or CollectionOfMeshes
+            mesh of the source body (over which the source distribution is integrated)
+        *args
+            Passed to the actual evaluation of the coefficients
+        _rec_depth: tuple, optional
+            internal parameter: recursion accumulator for pretty log printing
 
-        return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
+        Returns
+        -------
+        matrix-like
+            influence matrix (integral of the Green function)
+        """
 
-    elif (isinstance(mesh1, TranslationalSymmetry)
-          and isinstance(mesh2, TranslationalSymmetry)
-          and np.allclose(mesh1.translation, mesh2.translation)
-          and mesh1.nb_submeshes == mesh2.nb_submeshes
-          and not force_full_computation):
+        if (isinstance(mesh1, ReflectionSymmetry)
+                and isinstance(mesh2, ReflectionSymmetry)
+                and mesh1.plane == mesh2.plane):
 
-        LOG.debug("\t" * len(_rec_depth) +
-                  f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                  "using translational symmetry")
+            LOG.debug("\t" * len(_rec_depth) +
+                      f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
+                      f"using mirror symmetry.")
 
-        S_list, V_list = [], []
-        for subbody in mesh2.submeshes:
-            S, V = use_symmetries_to_compute(
-                evaluating_function, solver,
-                mesh1.submeshes[0], subbody, *args,
-                force_full_computation=force_full_computation,
-                _rec_depth=_rec_depth + (mesh2.nb_submeshes,))
-            S_list.append(S)
-            V_list.append(V)
+            S_a, V_a = build_matrices_with_symmetries(
+                solver, mesh1.submeshes[0], mesh2.submeshes[0], *args,
+                _rec_depth=_rec_depth + (2,))
+            S_b, V_b = build_matrices_with_symmetries(
+                solver, mesh1.submeshes[0], mesh2.submeshes[1], *args,
+                _rec_depth=_rec_depth + (2,))
 
-        return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
+            return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
 
-    elif (isinstance(mesh1, AxialSymmetry)
-          and mesh1 is mesh2  # TODO: Generalize: if mesh1.axis == mesh2.axis
-          and not force_full_computation):
+        elif (isinstance(mesh1, TranslationalSymmetry)
+              and isinstance(mesh2, TranslationalSymmetry)
+              and np.allclose(mesh1.translation, mesh2.translation)
+              and mesh1.nb_submeshes == mesh2.nb_submeshes):
 
-        LOG.debug("\t" * len(_rec_depth) +
-                  f"Evaluating matrix of {mesh1.name} on itself "
-                  f"using rotation symmetry")
+            LOG.debug("\t" * len(_rec_depth) +
+                      f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
+                      "using translational symmetry.")
 
-        S_list, V_list = [], []
-        for subbody in mesh2.submeshes[:mesh2.nb_submeshes // 2 + 1]:
-            S, V = use_symmetries_to_compute(
-                evaluating_function, solver,
-                mesh1.submeshes[0], subbody, *args,
-                force_full_computation=force_full_computation,
-                _rec_depth=_rec_depth + (mesh2.nb_submeshes // 2 + 1,))
-            S_list.append(S)
-            V_list.append(V)
+            S_list, V_list = [], []
+            for subbody in mesh2.submeshes:
+                S, V = build_matrices_with_symmetries(
+                    solver, mesh1.submeshes[0], subbody, *args,
+                    _rec_depth=_rec_depth + (mesh2.nb_submeshes,))
+                S_list.append(S)
+                V_list.append(V)
 
-        if mesh1.nb_submeshes % 2 == 0:
+            return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
+
+        elif (isinstance(mesh1, AxialSymmetry)
+              and mesh1 is mesh2):  # TODO: Generalize: if mesh1.axis == mesh2.axis
+
+            LOG.debug("\t" * len(_rec_depth) +
+                      f"Evaluating matrix of {mesh1.name} on itself "
+                      f"using rotation symmetry.")
+
+            S_list, V_list = [], []
+            for subbody in mesh2.submeshes[:mesh2.nb_submeshes // 2 + 1]:
+                S, V = build_matrices_with_symmetries(
+                    solver,
+                    mesh1.submeshes[0], subbody, *args,
+                    _rec_depth=_rec_depth + (mesh2.nb_submeshes // 2 + 1,))
+                S_list.append(S)
+                V_list.append(V)
+
             return BlockCirculantMatrix(S_list, size=mesh1.nb_submeshes), BlockCirculantMatrix(V_list, size=mesh1.nb_submeshes)
+
         else:
-            return BlockCirculantMatrix(S_list, size=mesh1.nb_submeshes), BlockCirculantMatrix(V_list, size=mesh1.nb_submeshes)
+            #Actual evaluation of coefficients using the Green function.
+            LOG.debug("\t" * len(_rec_depth) +
+                      f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}.")
 
-    #   elif (isinstance(mesh1, CollectionOfMeshes)):
-    #     S = np.empty((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
-    #     V = np.empty((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
-    #
-    #     nb_faces = list(accumulate(chain([0], (body.nb_faces for body in mesh1.submeshes))))
-    #     for (i, j), body in zip(zip(nb_faces, nb_faces[1:]), mesh1.submeshes):
-    #         matrix_slice = (slice(i, j), slice(None, None))
-    #         S[matrix_slice], V[matrix_slice] = self.build_matrices(mesh1, mesh2, **kwargs)
-    #
-    #     return S, V
+            return build_matrices(solver, mesh1, mesh2, *args)
 
-    else:
-        LOG.debug("\t" * len(_rec_depth) +
-                  f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} .")
-
-        S, V = evaluating_function(solver, mesh1, mesh2, *args, _rec_depth=_rec_depth)
-
-        return S, V
+    return build_matrices_with_symmetries
 

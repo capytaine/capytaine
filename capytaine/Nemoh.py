@@ -14,14 +14,15 @@ Example
 """
 
 import logging
+from functools import lru_cache
+from copy import deepcopy
 
 import numpy as np
-from copy import deepcopy
 
 from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
 from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve
 
-from capytaine.symmetries import use_symmetries_to_compute
+from capytaine.symmetries import use_symmetries
 from capytaine.tools.max_length_dict import MaxLengthDict
 from capytaine.tools.cache_decorator import keep_in_cache
 
@@ -143,8 +144,10 @@ class Nemoh:
     #  Building matrices  #
     #######################
 
-    def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0, g=9.81):
+    def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
         """
+        Parameters
+        ----------
         mesh1: Mesh or CollectionOfMeshes
             mesh of the receiving body (where the potential is measured)
         mesh2: Mesh or CollectionOfMeshes
@@ -154,28 +157,37 @@ class Nemoh:
         sea_bottom: float, optional
             position of the sea bottom (default: :math:`z = -\infty`)
         wavenumber: float, optional
-            wavenumber (default: 1)
+            wavenumber (default: 1.0)
+
+        Returns
+        -------
+        matrix-like
+            couple of influence matrices
         """
 
-        S0, V0 = use_symmetries_to_compute(Nemoh._build_matrices_0, self, mesh1, mesh2)
+        # S, V = self._build_matrices_0(mesh1, mesh2)
+        S0, V0 = self._build_matrices_0(mesh1, mesh2)
         S = deepcopy(S0)
         V = deepcopy(V0)
-        # Do a copy to avoid interfering with the cache. TODO: fix that when both matrices are in a single array.
+        # Do a copy to avoid interfering with the cache. 
+        # TODO: fix that when both matrices are in a single array.
 
         if free_surface < np.infty:
 
-            S1, V1 = use_symmetries_to_compute(Nemoh._build_matrices_1, self, mesh1, mesh2, free_surface, sea_bottom)
+            S1, V1 = self._build_matrices_1(mesh1, mesh2, free_surface, sea_bottom)
             S += S1
             V += V1
 
-            S2, V2 = use_symmetries_to_compute(Nemoh._build_matrices_2, self, mesh1, mesh2, free_surface, sea_bottom, wavenumber)
+            S2, V2 = self._build_matrices_2(mesh1, mesh2, free_surface, sea_bottom, wavenumber)
             S += S2
             V += V2
 
         return S, V
 
-    @keep_in_cache(cache_name="Green0")
-    def _build_matrices_0(self, mesh1, mesh2, _rec_depth=(1,)):
+    @lru_cache(maxsize=1)
+    @use_symmetries
+    # @keep_in_cache(cache_name="Green0")
+    def _build_matrices_0(self, mesh1, mesh2):
         """Compute the first part of the influence matrices of self on body."""
         S, V = _Green.green_rankine.build_matrices_rankine_source(
             mesh1.faces_centers, mesh1.faces_normals,
@@ -187,8 +199,10 @@ class Nemoh:
         # The real valued matrices are converted to complex to ease the combination with the other matrices later.
         # TODO: Move the conversion outside of the scope of the cache.
 
-    @keep_in_cache(cache_name="Green1")
-    def _build_matrices_1(self, mesh1, mesh2, free_surface, sea_bottom, _rec_depth=(1,)):
+    @lru_cache(maxsize=1)
+    @use_symmetries
+    # @keep_in_cache(cache_name="Green1")
+    def _build_matrices_1(self, mesh1, mesh2, free_surface, sea_bottom):
         """Compute the second part of the influence matrices of mesh1 on mesh2."""
         depth = free_surface - sea_bottom
 
@@ -220,8 +234,10 @@ class Nemoh:
         else:
             return S1.astype(np.complex128), V1.astype(np.complex128)
 
-    @keep_in_cache(cache_name="Green2")
-    def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth=(1,)):
+    @lru_cache(maxsize=1)
+    @use_symmetries
+    # @keep_in_cache(cache_name="Green2")
+    def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
         """Compute the third part (wave part) of the influence matrices of mesh1 on mesh2."""
         depth = free_surface - sea_bottom
         if depth == np.infty:
