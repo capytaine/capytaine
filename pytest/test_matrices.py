@@ -19,6 +19,7 @@ def test_BlockToeplitz():
                                  [3, 2, 1, 0, 1],
                                  [4, 3, 2, 1, 0]])
                   )
+    assert A.astype(np.complex128).full_matrix().dtype == np.complex128
     assert isinstance(A + 0.1, BlockToeplitzMatrix)
     assert isinstance(0.1 + A, BlockToeplitzMatrix)
     assert isinstance(A - 1, BlockToeplitzMatrix)

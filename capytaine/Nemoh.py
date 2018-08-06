@@ -158,12 +158,9 @@ class Nemoh:
         LOG.debug(f"\tEvaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}"
                   f"for depth={free_surface-sea_bottom} and wavenumber={wavenumber}.")
 
-        # S, V = self._build_matrices_0(mesh1, mesh2)
         S0, V0 = self._build_matrices_0(mesh1, mesh2)
-        S = deepcopy(S0)
-        V = deepcopy(V0)
-        # Do a copy to avoid interfering with the cache. 
-        # TODO: fix that when both matrices are in a single array.
+        S = S0.astype(np.complex128)
+        V = V0.astype(np.complex128)
 
         if free_surface < np.infty:
 
@@ -181,15 +178,12 @@ class Nemoh:
     @use_symmetries
     def _build_matrices_0(self, mesh1, mesh2):
         """Compute the first part of the influence matrices of mesh1 on mesh2."""
-        S, V = NemohCore.green_rankine.build_matrices_rankine_source(
+        return NemohCore.green_rankine.build_matrices_rankine_source(
             mesh1.faces_centers, mesh1.faces_normals,
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
             mesh2.faces_areas,   mesh2.faces_radiuses,
             )
-        return S.astype(np.complex128), V.astype(np.complex128)
-        # The real valued matrices are converted to complex to ease the combination with the other matrices later.
-        # TODO: Move the conversion outside of the scope of the cache.
 
     @lru_cache(maxsize=1)
     @use_symmetries

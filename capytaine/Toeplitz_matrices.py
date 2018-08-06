@@ -156,6 +156,9 @@ class BlockToeplitzMatrix:
         else:
             raise NotImplemented
 
+    def astype(self, dtype):
+        return self.__class__([block.astype(dtype) for block in self.blocks], size=self.nb_blocks)
+
     def full_matrix(self):
         """Return the matrix as an usual array not using the symmetry."""
         full_matrix = np.empty(self.shape, dtype=self.dtype)
