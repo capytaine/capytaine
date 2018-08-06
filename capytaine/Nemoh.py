@@ -158,25 +158,41 @@ class Nemoh:
         LOG.debug(f"\tEvaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}"
                   f"for depth={free_surface-sea_bottom} and wavenumber={wavenumber}.")
 
-        S0, V0 = self._build_matrices_0(mesh1, mesh2)
-        S = S0.astype(np.complex128)
-        V = V0.astype(np.complex128)
+        Srankine, Vrankine = self._build_matrices_rankine(mesh1, mesh2)
+        S = Srankine.astype(np.complex128)
+        V = Vrankine.astype(np.complex128)
 
-        if free_surface < np.infty:
+        if free_surface == np.infty:
+            # No free surface, no more terms in the Green function
+            return S, V
 
-            S1, V1 = self._build_matrices_1(mesh1, mesh2, free_surface, sea_bottom)
-            S += S1
-            V += V1
+        if free_surface - sea_bottom == np.infty:
+            # Infinite depth
+            Srefl, Vrefl = self._build_matrices_rankine_reflection_across_free_surface(mesh1, mesh2, free_surface)
+            if wavenumber == 0.0:
+                S += Srefl
+                V += Vrefl
+            else:
+                S -= Srefl
+                V -= Vrefl
+        else:
+            # Finite depth
+            Srefl, Vrefl = self._build_matrices_rankine_reflection_across_sea_bottom(mesh1, mesh2, sea_bottom)
+            S += Srefl
+            V += Vrefl
+            if wavenumber in (0, np.infty):
+                raise NotImplemented
 
-            S2, V2 = self._build_matrices_2(mesh1, mesh2, free_surface, sea_bottom, wavenumber)
-            S += S2
-            V += V2
+        if wavenumber not in (0, np.infty):
+            Swave, Vwave = self._build_matrices_wave(mesh1, mesh2, free_surface, sea_bottom, wavenumber)
+            S += Swave
+            V += Vwave
 
         return S, V
 
     @lru_cache(maxsize=1)
     @use_symmetries
-    def _build_matrices_0(self, mesh1, mesh2):
+    def _build_matrices_rankine(self, mesh1, mesh2):
         """Compute the first part of the influence matrices of mesh1 on mesh2."""
         return NemohCore.green_rankine.build_matrices_rankine_source(
             mesh1.faces_centers, mesh1.faces_normals,
@@ -187,45 +203,53 @@ class Nemoh:
 
     @lru_cache(maxsize=1)
     @use_symmetries
-    def _build_matrices_1(self, mesh1, mesh2, free_surface, sea_bottom):
-        """Compute the second part of the influence matrices of mesh1 on mesh2."""
-        depth = free_surface - sea_bottom
+    def _build_matrices_rankine_reflection_across_free_surface(self, mesh1, mesh2, free_surface):
 
         def reflect_vector(x):
             y = x.copy()
             y[:, 2] = -x[:, 2]
             return y
 
-        if depth == np.infty:
-            def reflect_point(x):
-                y = x.copy()
-                y[:, 2] = 2*free_surface - x[:, 2]
-                return y
-        else:
-            def reflect_point(x):
-                y = x.copy()
-                y[:, 2] = 2*sea_bottom - x[:, 2]
-                return y
+        def reflect_point(x):
+            y = x.copy()
+            y[:, 2] = 2*free_surface - x[:, 2]
+            return y
 
-        S1, V1 = NemohCore.green_rankine.build_matrices_rankine_source(
+        return NemohCore.green_rankine.build_matrices_rankine_source(
             reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
             mesh2.faces_areas,   mesh2.faces_radiuses,
             )
 
-        if depth == np.infty:
-            return -S1.astype(np.complex128), -V1.astype(np.complex128)
-        else:
-            return S1.astype(np.complex128), V1.astype(np.complex128)
+    @lru_cache(maxsize=1)
+    @use_symmetries
+    def _build_matrices_rankine_reflection_across_sea_bottom(self, mesh1, mesh2, sea_bottom):
+
+        def reflect_vector(x):
+            y = x.copy()
+            y[:, 2] = -x[:, 2]
+            return y
+
+        def reflect_point(x):
+            y = x.copy()
+            y[:, 2] = 2*sea_bottom - x[:, 2]
+            return y
+
+        return NemohCore.green_rankine.build_matrices_rankine_source(
+            reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
+            mesh2.vertices,      mesh2.faces + 1,
+            mesh2.faces_centers, mesh2.faces_normals,
+            mesh2.faces_areas,   mesh2.faces_radiuses,
+            )
 
     @lru_cache(maxsize=1)
     @use_symmetries
-    def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
-        """Compute the third part (wave part) of the influence matrices of mesh1 on mesh2."""
+    def _build_matrices_wave(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
+        """Compute the last part (wave part) of the influence matrices of mesh1 on mesh2."""
         depth = free_surface - sea_bottom
         if depth == np.infty:
-            S2, V2 = NemohCore.green_wave.build_matrices_wave_source(
+            return NemohCore.green_wave.build_matrices_wave_source(
                 mesh1.faces_centers, mesh1.faces_normals,
                 mesh2.faces_centers, mesh2.faces_areas,
                 wavenumber, 0.0,
@@ -237,7 +261,7 @@ class Nemoh:
             a_exp, lamda_exp = find_best_exponential_decomposition(wavenumber*depth*np.tanh(wavenumber*depth),
                                                                    wavenumber*depth)
 
-            S2, V2 = NemohCore.green_wave.build_matrices_wave_source(
+            return NemohCore.green_wave.build_matrices_wave_source(
                 mesh1.faces_centers, mesh1.faces_normals,
                 mesh2.faces_centers, mesh2.faces_areas,
                 wavenumber, depth,
@@ -245,8 +269,6 @@ class Nemoh:
                 lamda_exp, a_exp,
                 mesh1 is mesh2
                 )
-
-        return S2, V2
 
     #######################
     #  Compute potential  #
