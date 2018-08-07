@@ -98,7 +98,7 @@ class Nemoh:
 
         return result
 
-    def solve_all(self, problems, processes=1):
+    def solve_all(self, problems, processes=4):
         """Solve several problems in parallel.
 
         Running::
@@ -109,7 +109,7 @@ class Nemoh:
 
              [solver.solve(problem) for problem in problems]
 
-        but in parallel with some optimizations for faster resolution.
+        but in parallel.
 
         Parameters
         ----------
@@ -151,7 +151,7 @@ class Nemoh:
 
         Returns
         -------
-        matrix-like
+        couple of matrix-like objects (either 2D arrays or BlockToeplitzMatrix objects)
             couple of influence matrices
         """
 
@@ -193,7 +193,11 @@ class Nemoh:
     @lru_cache(maxsize=1)
     @use_symmetries
     def _build_matrices_rankine(self, mesh1, mesh2):
-        """Compute the first part of the influence matrices of mesh1 on mesh2."""
+        """Compute the first part of the influence matrices of mesh1 on mesh2.
+
+        Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
+        If the @use_symmetries decorator is present, the result may actually be a couple
+        of BlockToeplitz matrices of the same size."""
         return NemohCore.green_rankine.build_matrices_rankine_source(
             mesh1.faces_centers, mesh1.faces_normals,
             mesh2.vertices,      mesh2.faces + 1,
@@ -204,6 +208,11 @@ class Nemoh:
     @lru_cache(maxsize=1)
     @use_symmetries
     def _build_matrices_rankine_reflection_across_free_surface(self, mesh1, mesh2, free_surface):
+        """Compute the second part of the influence matrices of mesh1 on mesh2 (for infinite depth).
+
+        Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
+        If the @use_symmetries decorator is present, the result may actually be a couple
+        of BlockToeplitz matrices of the same size."""
 
         def reflect_vector(x):
             y = x.copy()
@@ -225,6 +234,11 @@ class Nemoh:
     @lru_cache(maxsize=1)
     @use_symmetries
     def _build_matrices_rankine_reflection_across_sea_bottom(self, mesh1, mesh2, sea_bottom):
+        """Compute the second part of the influence matrices of mesh1 on mesh2 (for finite depth).
+
+        Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
+        If the @use_symmetries decorator is present, the result may actually be a couple
+        of BlockToeplitz matrices of the same size."""
 
         def reflect_vector(x):
             y = x.copy()
@@ -246,7 +260,11 @@ class Nemoh:
     @lru_cache(maxsize=1)
     @use_symmetries
     def _build_matrices_wave(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
-        """Compute the last part (wave part) of the influence matrices of mesh1 on mesh2."""
+        """Compute the third part of the influence matrices of mesh1 on mesh2.
+
+        Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
+        If the @use_symmetries decorator is present, the result may actually be a couple
+        of BlockToeplitz matrices of the same size."""
         depth = free_surface - sea_bottom
         if depth == np.infty:
             return NemohCore.green_wave.build_matrices_wave_source(
