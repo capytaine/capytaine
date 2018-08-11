@@ -132,6 +132,7 @@ class Nemoh:
     #  Building matrices  #
     #######################
 
+    @lru_cache(maxsize=1)
     def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
         """
         Build the influence matrices between mesh1 and mesh2.
@@ -257,7 +258,6 @@ class Nemoh:
             mesh2.faces_areas,   mesh2.faces_radiuses,
             )
 
-    @lru_cache(maxsize=1)
     @use_symmetries
     def _build_matrices_wave(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
         """Compute the third part of the influence matrices of mesh1 on mesh2.
