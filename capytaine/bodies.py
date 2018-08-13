@@ -274,18 +274,9 @@ class FloatingBody:
         Dofs are lost in the process.
         TODO: Also clip dofs.
         """
-        if isinstance(self.mesh, Mesh):
-            collection_of_meshes_to_clip = CollectionOfMeshes([self.mesh])
-        elif isinstance(self.mesh, CollectionOfMeshes):
-            collection_of_meshes_to_clip = self.mesh
-
-        collection_of_clipped_meshes = collection_of_meshes_to_clip.get_immersed_part(**kwargs)
-
-        if isinstance(self.mesh, Mesh):
-            new_body_mesh = collection_of_clipped_meshes.submeshes[0]
-        elif isinstance(self.mesh, CollectionOfMeshes):
-            new_body_mesh = self.mesh.copy()
-            new_body_mesh.submeshes = collection_of_clipped_meshes.submeshes
+        new_body_mesh = self.mesh.get_immersed_part(**kwargs)
+        if new_body_mesh is None:
+            raise Exception(f"Trying to clip the mesh of {self.name}, but it does not have any wet faces")
 
         if name is None:
             name = f"{self.name}_clipped"

@@ -100,21 +100,27 @@ class TranslationalSymmetry(SymmetricMesh):
             self.name = name
         LOG.info(f"New translation symmetric mesh: {self.name}.")
 
-    # def get_clipped_mesh(self, **kwargs):
-    #     return TranslationalSymmetry(self.subbodies[0].get_clipped_mesh(**kwargs),
-    #                                  translation=self.translation,
-    #                                  nb_repetitions=self.nb_subbodies-1,
-    #                                  name=f"{self.name}_clipped")
+    def get_immersed_part(self, **kwargs):
+        clipped_mesh = CollectionOfMeshes.get_immersed_part(self, **kwargs)
+        if clipped_mesh is not None:
+            return TranslationalSymmetry(
+                clipped_mesh,
+                translation=self.translation,
+                nb_repetitions=self.nb_submeshes-1,
+                name=f"{self.name}_clipped",
+            )
+        else:
+            return None
 
     def join(*meshes):
         """Experimental routine to merge similar symmetries."""
         assert all([isinstance(mesh, TranslationalSymmetry) for mesh in meshes])
         assert all([np.allclose(meshes[0].translation, mesh.translation) for mesh in meshes[1:]])
-        assert all([len(meshes[0].submeshes) == len(mesh.submeshes) for mesh in meshes[1:]])
+        assert all([meshes[0].nb_submeshes == mesh.nb_submeshes for mesh in meshes[1:]])
         return TranslationalSymmetry(
             sum([mesh.submeshes[0].merge() for mesh in meshes[1:]],
                 meshes[0].submeshes[0].merge()),
-            meshes[0].translation, len(meshes[0].submeshes),
+            meshes[0].translation, meshes[0].nb_submeshes,
         )
 
 
