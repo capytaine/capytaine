@@ -77,6 +77,13 @@ def test_odd_axial_symmetry():
     assert np.isclose(result1.radiation_dampings["Heave"], result2.radiation_dampings["Heave"], atol=1e-4*volume*problem.rho)
 
 
+def test_join_translational_cylinders():
+    mesh1 = HorizontalCylinder(length=10.0, radius=1.0, center=(0, 5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
+    mesh2 = HorizontalCylinder(length=10.0, radius=2.0, center=(0, -5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
+    joined = mesh1.join(mesh2)
+    assert isinstance(joined, TranslationalSymmetry)
+
+
 @pytest.mark.parametrize("depth", [10.0, np.infty])
 def test_horizontal_cylinder(depth):
     cylinder = HorizontalCylinder(length=10.0, radius=1.0, clever=False, nr=2, ntheta=10, nx=10)

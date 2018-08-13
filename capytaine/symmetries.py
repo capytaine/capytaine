@@ -106,6 +106,17 @@ class TranslationalSymmetry(SymmetricMesh):
     #                                  nb_repetitions=self.nb_subbodies-1,
     #                                  name=f"{self.name}_clipped")
 
+    def join(*meshes):
+        """Experimental routine to merge similar symmetries."""
+        assert all([isinstance(mesh, TranslationalSymmetry) for mesh in meshes])
+        assert all([np.allclose(meshes[0].translation, mesh.translation) for mesh in meshes[1:]])
+        assert all([len(meshes[0].submeshes) == len(mesh.submeshes) for mesh in meshes[1:]])
+        return TranslationalSymmetry(
+            sum([mesh.submeshes[0].merge() for mesh in meshes[1:]],
+                meshes[0].submeshes[0].merge()),
+            meshes[0].translation, len(meshes[0].submeshes),
+        )
+
 
 class AxialSymmetry(SymmetricMesh):
     def __init__(self, mesh_slice, point_on_rotation_axis=np.zeros(3), nb_repetitions=1, name=None):
