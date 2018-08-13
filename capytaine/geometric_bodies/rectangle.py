@@ -89,8 +89,7 @@ class Rectangle(FloatingBody):
 
 class OpenRectangularParallelepiped(FloatingBody):
     def __init__(self, size=(5.0, 5.0, 5.0), resolution=(5, 5, 5), center=(0, 0, 0),
-                 clever=False,
-                 name=None):
+                 clever=False, name=None):
         """Generate the mesh of four panels forming a parallelepiped without top nor bottom.
 
         Parameters
@@ -121,13 +120,14 @@ class OpenRectangularParallelepiped(FloatingBody):
         if name is None:
             name = f"open_rectangular_parallelepiped_{next(Mesh._ids)}"
 
-        front = Rectangle(size=(width, height), resolution=(nw, nh), center=(0, 0, 0),
-                          clever=clever, name=f"front_of_{name}").mesh
-        back = front.copy(name=f"back_of_{name}")
+        front_panel = Rectangle(size=(width/nw, height), resolution=(1, nh), center=(0, 0, 0),
+                                clever=False, name=f"panel_of_front_of_{name}").mesh
+        back_panel = front_panel.copy(name=f"back_of_{name}")
+        front_panel.translate((-width/2 + width/(2*nw), thickness/2, 0))
+        back_panel.rotate_z(np.pi)
+        back_panel.translate((-width/2 + width/(2*nw), -thickness/2, 0))
 
-        front.translate_y(thickness/2)
-        back.rotate_z(np.pi)
-        back.translate_y(-thickness/2)
+        front_and_back = TranslationalSymmetry(front_panel + back_panel, translation=(width/nw, 0, 0), nb_repetitions=int(nw)-1)
 
         if nth > 0:
             side = Rectangle(size=(thickness, height), resolution=(nth, nh), center=(0, 0, 0),
@@ -139,9 +139,9 @@ class OpenRectangularParallelepiped(FloatingBody):
             other_side.rotate_z(-np.pi/2)
             other_side.translate_x(width/2)
 
-            parallelepiped = CollectionOfMeshes([front, back, side, other_side])
+            parallelepiped = CollectionOfMeshes([front_and_back, side, other_side])
         else:
-            parallelepiped = CollectionOfMeshes([front, back])
+            parallelepiped = CollectionOfMeshes([front_and_back])
 
         if not clever:
             parallelepiped = parallelepiped.merge(name=f"{name}_mesh")
@@ -189,22 +189,40 @@ class RectangularParallelepiped(FloatingBody):
         if name is None:
             name = f"rectangular_parallelepiped_{next(Mesh._ids)}"
 
-        sides = OpenRectangularParallelepiped(size=size, resolution=resolution,
-                                              clever=clever, name=f"sides_of_{name}").mesh
+        front_panel = Rectangle(size=(width/nw, height), resolution=(1, nh), center=(0, 0, 0),
+                                clever=False, name=f"panel_of_front_of_{name}").mesh
+        back_panel = front_panel.copy(name=f"back_of_{name}")
+        front_panel.translate((-width/2 + width/(2*nw), thickness/2, 0))
+        back_panel.rotate_z(np.pi)
+        back_panel.translate((-width/2 + width/(2*nw), -thickness/2, 0))
 
         if nth > 0:
-            top = Rectangle(size=(width, thickness), resolution=(nw, nth),
-                            clever=clever, name=f"top_of_{name}").mesh
+            top = Rectangle(size=(width/nw, thickness), resolution=(1, nth),
+                            clever=False, name=f"top_of_{name}").mesh
             bottom = top.copy(name=f"bottom_of_{name}_mesh")
 
+            top.translate_x(-width/2 + width/(2*nw))
             top.rotate_x(np.pi/2)
             top.translate_z(height/2)
+            bottom.translate_x(-width/2 + width/(2*nw))
             bottom.rotate_x(-np.pi/2)
             bottom.translate_z(-height/2)
 
-            parallelepiped = CollectionOfMeshes([sides, top, bottom])
+            fron_back_top_bottom = TranslationalSymmetry(front_panel + back_panel + top + bottom, translation=(width/nw, 0, 0), nb_repetitions=int(nw)-1)
+
+            side = Rectangle(size=(thickness, height), resolution=(nth, nh), center=(0, 0, 0),
+                             clever=False, name=f"side_of_{name}").mesh
+            other_side = side.copy(name=f"other_side_of_{name}")
+
+            side.rotate_z(np.pi/2)
+            side.translate_x(-width/2)
+            other_side.rotate_z(-np.pi/2)
+            other_side.translate_x(width/2)
+
+            parallelepiped = CollectionOfMeshes([fron_back_top_bottom, side, other_side])
         else:
-            parallelepiped = sides
+            front_and_back = TranslationalSymmetry(front_panel + back_panel, translation=(width/nw, 0, 0), nb_repetitions=int(nw)-1)
+            parallelepiped = CollectionOfMeshes([front_and_back])
 
         if not clever:
             parallelepiped = parallelepiped.merge(name=f"{name}_mesh")
