@@ -10,6 +10,7 @@ Minor changes
 -------------
 
 * Reorganization of the internals of the solver. The initialization options :code:`keep_matrices` and :code:`max_stored_exponential_decompositions` have been removed.
+* New function :code:`write_dataset_as_tecplot_files` in :code:`capytaine.tools`.
 
 ------------------
 New in version 0.4
