@@ -6,10 +6,17 @@ Changelog
 New in version 0.5
 ------------------
 
+Major changes
+-------------
+
+* Integration of a subset of Meshmagick into Capytaine as the :code:`mesh` submodule.
+  Meshmagick is not a dependancy any more.
+  The modules :code:`meshes_collection.py` and :code:`symmetries.py` have been moved to the :code:`mesh` submodule.
+
 Minor changes
 -------------
 
-* Reorganization of the internals of the solver. The initialization options :code:`keep_matrices` and :code:`max_stored_exponential_decompositions` have been removed.
+* Reorganization of the internals of the solver :code:`Nemoh.py`. The initialization options :code:`keep_matrices` and :code:`max_stored_exponential_decompositions` have been removed.
 * New function :code:`write_dataset_as_tecplot_files` in :code:`capytaine.tools`.
 
 ------------------
