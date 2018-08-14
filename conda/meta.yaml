@@ -21,7 +21,6 @@ requirements:
     - scipy
     - matplotlib
     - vtk
-    # - meshmagick >=1.2
 
 build:
   entry_points:

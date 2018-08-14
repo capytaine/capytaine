@@ -31,6 +31,7 @@ if __name__ == "__main__":
           license='GPLv3',
           packages=[
               'capytaine',
+              'capytaine.mesh',
               'capytaine.tools',
               'capytaine.tools.vtk',
               'capytaine.geometric_bodies',
@@ -43,7 +44,6 @@ if __name__ == "__main__":
               'xarray',
               'matplotlib',
               'vtk',
-              'meshmagick>=1.2',
           ],
           entry_points={
               'console_scripts': [
