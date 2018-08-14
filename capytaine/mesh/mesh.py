@@ -3,14 +3,13 @@
 """
 This module concerns mesh data structures.
 
-Based on the code meshmagick from François Rongère (EC Nantes).
+Based on Meshmagick by Francois Rongere (EC Nantes).
 """
 
 import logging
 from itertools import count
 
 import numpy as np
-import vtk
 
 from capytaine.mesh.faces_properties import compute_faces_properties
 from capytaine.tools.geometry import Plane
@@ -74,7 +73,6 @@ class Mesh:
     @vertices.setter
     def vertices(self, value):
         self._vertices = np.asarray(value, dtype=np.float).copy()
-        # self._vertices.setflags(write=False)
         self.__internals__.clear()
         return
 
@@ -101,7 +99,6 @@ class Mesh:
     @faces.setter
     def faces(self, value):
         self._faces = np.asarray(value, dtype=np.int).copy()
-        # self._faces.setflags(write=False)
         self.__internals__.clear()
         return
 
@@ -125,10 +122,11 @@ class Mesh:
         return new_mesh
 
     def merge(self):
-        """Dummy method for collection of meshes."""
+        """Dummy method to be generalized for collections of meshes."""
         return self
 
     def to_meshmagick(self):
+        """Convert the Mesh object as an object from meshmagick."""
         from meshmagick.mesh import Mesh
         return Mesh(self.vertices, self.faces, name=self.name)
 
@@ -799,7 +797,7 @@ class Mesh:
             return None  # The mesh has no wet faces.
 
         elif self.vertices[:, 2].min() > sea_bottom and self.vertices[:, 2].max() < free_surface:
-            return self.copy()  # The mesh is completely immersed. Non need for clipping.
+            return self.copy(name=f"{self.name}_clipped")  # The mesh is completely immersed. Non need for clipping.
 
         else:
             clipped_mesh = MeshClipper(self,
@@ -812,6 +810,7 @@ class Mesh:
                                                        scalar=-sea_bottom)).clipped_mesh
 
             clipped_mesh.remove_unused_vertices()
+            clipped_mesh.name = f"{self.name}_clipped"
             return clipped_mesh
 
     ####################

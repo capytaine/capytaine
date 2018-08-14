@@ -1,7 +1,10 @@
 #!/usr/bin/env python
-#  -*- coding: utf-8 -*-
+# coding: utf-8
 
-"""This module holds a tools to clip meshes against a plane"""
+"""This module holds a tools to clip meshes against a plane.
+
+Based on Meshmagick by Francois Rongere (EC Nantes).
+"""
 
 from capytaine.mesh.mesh import *
 from capytaine.tools.geometry import *

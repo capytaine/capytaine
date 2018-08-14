@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Tools for surface integrals."""
+"""Tools for surface integrals.
+
+Based on Meshmagick by Francois Rongere (EC Nantes).
+"""
 
 import numpy as np
 
 
 def compute_faces_integrals(mesh):
-    """ """
+    """Compute intergrals on the faces."""
 
     surface_integrals = np.zeros((15, mesh.nb_faces), dtype=np.float)
 

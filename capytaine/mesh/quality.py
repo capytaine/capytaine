@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Tools for mesh quality and mesh healing."""
+"""Tools for mesh quality and mesh healing.
+
+Based on Meshmagick by Francois Rongere (EC Nantes).
+"""
 
 import logging
 
@@ -10,7 +13,7 @@ LOG = logging.getLogger(__name__)
 
 
 def merge_duplicates(mesh, atol=1e-8):
-    """Merges the duplicate vertices of the mesh.
+    """Merges the duplicate vertices of the mesh in place.
 
     Parameters
     ----------
@@ -265,7 +268,7 @@ def heal_normals(mesh):
 
 
 def remove_unused_vertices(mesh):
-    """Removes unused vertices in the mesh.
+    """Removes unused vertices in the mesh in place.
 
     Those are vertices that are not used by any face connectivity.
     """
@@ -300,7 +303,7 @@ def remove_unused_vertices(mesh):
 
 
 def heal_triangles(mesh):
-    """Makes the triangle connectivity consistent.
+    """Makes the triangle connectivity consistent (in place).
 
     A general face is stored internally as a 4 integer array. It allows to describe indices of a quadrangle's vertices. For triangles, the first index should be equal to the last. This method ensures that this rule is applied everywhere and correct bad triangles description.
     """
@@ -334,7 +337,7 @@ def heal_triangles(mesh):
     return
 
 def remove_degenerated_faces(mesh, rtol=1e-5):
-    """Removes tiny triangles from the mesh.
+    """Removes tiny triangles from the mesh (in place).
 
     Tiny triangles are those whose area is lower than the mean triangle area in the mesh times the relative
     tolerance given.
@@ -369,7 +372,8 @@ def remove_degenerated_faces(mesh, rtol=1e-5):
 
 
 def print_quality(mesh):
-    """Returns data on the mesh quality
+    """Returns data on the mesh quality.
+    Needs to be tested...
 
     It uses VTK and is reproduced from
     http://vtk.org/gitweb?p=VTK.git;a=blob;f=Filters/Verdict/Testing/Python/MeshQuality.py

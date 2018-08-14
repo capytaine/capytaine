@@ -1,16 +1,20 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""Helper functions to study the connectivities of the mesh.
+
+Based on Meshmagick by Francois Rongere (EC Nantes).
+"""
 
 def connectivity(mesh):
-    """Updates the connectivities of the mesh.
+    """Compute the connectivities of the mesh.
 
     It concerns further connectivity than simple faces/vertices connectivities. It computes the vertices / vertices, vertices / faces and faces / faces connectivities.
 
     Note
     ----
-
     Note that if the mesh is not conformal, the algorithm may not perform correctly
     """
+
     nv = mesh.nb_vertices
     nf = mesh.nb_faces
 

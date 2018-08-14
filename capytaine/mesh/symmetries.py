@@ -51,10 +51,14 @@ class ReflectionSymmetry(SymmetricMesh):
             self.name = name
         LOG.info(f"New mirror symmetric mesh: {self.name}.")
 
-    # def get_clipped_mesh(self, **kwargs):
-    #     return ReflectionSymmetry(self.subbodies[0].get_clipped_mesh(**kwargs),
-    #                               plane=self.plane,
-    #                               name=f"{self.name}_clipped")
+    def get_immersed_part(self, **kwargs):
+        clipped_submesh = self.subbodies[0].get_immersed_part(self, **kwargs)
+        if clipped_submesh is not None:
+            return ReflectionSymmetry(clipped_submesh,
+                                      plane=self.plane,
+                                      name=f"{self.name}_clipped")
+        else:
+            return None
 
 
 
@@ -99,14 +103,12 @@ class TranslationalSymmetry(SymmetricMesh):
         LOG.info(f"New translation symmetric mesh: {self.name}.")
 
     def get_immersed_part(self, **kwargs):
-        clipped_mesh = CollectionOfMeshes.get_immersed_part(self, **kwargs)
-        if clipped_mesh is not None:
-            return TranslationalSymmetry(
-                clipped_mesh,
-                translation=self.translation,
-                nb_repetitions=self.nb_submeshes-1,
-                name=f"{self.name}_clipped",
-            )
+        clipped_submesh = self.submeshes[0].get_immersed_part(**kwargs)
+        if clipped_submesh is not None:
+            return TranslationalSymmetry(clipped_submesh,
+                                         translation=self.translation,
+                                         nb_repetitions=self.nb_submeshes-1,
+                                         name=f"{self.name}_clipped")
         else:
             return None
 
@@ -164,6 +166,16 @@ class AxialSymmetry(SymmetricMesh):
             self.name = name
         LOG.info(f"New rotation symmetric mesh: {self.name}.")
 
+    def get_immersed_part(self, **kwargs):
+        clipped_submesh = self.submeshes[0].get_immersed_part(**kwargs)
+        if clipped_submesh is not None:
+            return AxialSymmetry(clipped_submesh,
+                                 point_on_rotation_axis=self.point_on_rotation_axis,
+                                 nb_repetitions=self.nb_submeshes-1,
+                                 name=f"{self.name}_clipped")
+        else:
+            return None
+
     @staticmethod
     def from_profile(profile,
                      z_range=np.linspace(-5, 0, 20),
@@ -220,12 +232,10 @@ class AxialSymmetry(SymmetricMesh):
 
         return AxialSymmetry(body_slice, point_on_rotation_axis=point_on_rotation_axis, nb_repetitions=nphi-1, name=name)
 
-    # def get_clipped_mesh(self, **kwargs):
-    #     return AxialSymmetry(self.subbodies[0].get_clipped_mesh(**kwargs),
-    #                          point_on_rotation_axis=self.point_on_rotation_axis,
-    #                          nb_repetitions=self.nb_subbodies-1,
-    #                          name=f"{self.name}_clipped")
 
+###################################################################################################
+#                          Application for hierarchical matrix building                           #
+###################################################################################################
 
 def use_symmetries(build_matrices):
     """Decorator for the matrix building functions.

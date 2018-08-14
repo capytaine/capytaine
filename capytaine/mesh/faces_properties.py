@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Helper functions to compute the properties of the faces in the mesh."""
+"""Helper functions to compute the properties of the faces in the mesh.
+
+Based on Meshmagick by Francois Rongere (EC Nantes).
+"""
 
 import numpy as np
 
 
 def compute_faces_properties(mesh):
-    """Updates the faces properties of the mesh"""
+    """Compute the faces properties of the mesh"""
 
     # faces_areas, faces_normals, faces_centers = mm.get_all_faces_properties(mesh._vertices, mesh._faces)
     nf = mesh.nb_faces
