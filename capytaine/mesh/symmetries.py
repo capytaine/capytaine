@@ -9,11 +9,9 @@ from functools import wraps
 
 import numpy as np
 
-from meshmagick.mesh import Mesh
-from meshmagick.geometry import Plane
-
-from capytaine.meshes_collection import CollectionOfMeshes
-from capytaine.Toeplitz_matrices import BlockCirculantMatrix, BlockToeplitzMatrix
+from capytaine.mesh.mesh import Mesh
+from capytaine.mesh.meshes_collection import CollectionOfMeshes
+from capytaine.tools.geometry import Plane
 
 LOG = logging.getLogger(__name__)
 
@@ -243,6 +241,7 @@ def use_symmetries(build_matrices):
     function
         A similar function that returns a block matrix based on the symmetries of the meshes.
     """
+    from capytaine.Toeplitz_matrices import BlockCirculantMatrix, BlockToeplitzMatrix
 
     @wraps(build_matrices)
     def build_matrices_with_symmetries(solver, mesh1, mesh2, *args, _rec_depth=1):

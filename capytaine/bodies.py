@@ -10,13 +10,11 @@ from itertools import chain, accumulate
 
 import numpy as np
 
-from meshmagick.mesh import Mesh
-from meshmagick.mmio import load_mesh
-from meshmagick.hydrostatics import Hydrostatics
-from meshmagick.geometry import xOz_Plane
+from capytaine.mesh.mesh import Mesh
+from capytaine.mesh.meshes_collection import CollectionOfMeshes
+from capytaine.mesh.symmetries import ReflectionSymmetry
 
-from capytaine.meshes_collection import CollectionOfMeshes
-from capytaine.symmetries import ReflectionSymmetry
+from capytaine.tools.geometry import xOz_Plane
 from capytaine.tools.vtk.mesh_viewer import FloatingBodyViewer
 
 LOG = logging.getLogger(__name__)
@@ -68,6 +66,7 @@ class FloatingBody:
     @staticmethod
     def from_file(filename: str, file_format: str ="mar") -> 'FloatingBody':
         """Create a FloatingBody from a mesh file using meshmagick."""
+        from capytaine.mesh.mmio import load_mesh
 
         vertices, faces = load_mesh(filename, file_format)
         mesh = Mesh(vertices, faces, name=f"{filename}_mesh")
@@ -118,15 +117,15 @@ class FloatingBody:
                 dofs['_'.join([body.name, name])] = new_dof
         return dofs
 
-    @property
-    def center_of_buoyancy(self):
-        mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
-        return Hydrostatics(mesh).buoyancy_center
+    # @property
+    # def center_of_buoyancy(self):
+    #     mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
+    #     return Hydrostatics(mesh).buoyancy_center
 
-    @property
-    def displacement_volume(self):
-        mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
-        return Hydrostatics(mesh).displacement_volume
+    # @property
+    # def displacement_volume(self):
+    #     mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
+    #     return Hydrostatics(mesh).displacement_volume
 
     @property
     def center_of_gravity(self):

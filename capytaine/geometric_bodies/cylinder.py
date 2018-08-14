@@ -9,12 +9,11 @@ from itertools import product
 
 import numpy as np
 
-from meshmagick.mesh import Mesh
-from meshmagick.geometry import xOz_Plane, yOz_Plane
-
+from capytaine.mesh.mesh import Mesh
+from capytaine.mesh.meshes_collection import CollectionOfMeshes
+from capytaine.mesh.symmetries import TranslationalSymmetry, ReflectionSymmetry
 from capytaine.bodies import FloatingBody
-from capytaine.meshes_collection import CollectionOfMeshes
-from capytaine.symmetries import TranslationalSymmetry, ReflectionSymmetry
+from capytaine.tools.geometry import xOz_Plane, yOz_Plane
 
 LOG = logging.getLogger(__name__)
 

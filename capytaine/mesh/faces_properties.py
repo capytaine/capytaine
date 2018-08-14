@@ -53,7 +53,7 @@ def compute_faces_properties(mesh):
     faces_centers[quads_id] = (np.array(([a1, ] * 3)).T * c1 + np.array(([a2, ] * 3)).T * c2)
     faces_centers[quads_id] /= np.array(([faces_areas[quads_id], ] * 3)).T
 
-    faces_radiuses = compute_radiuses(mesh)
+    faces_radiuses = compute_radiuses(mesh, faces_centers)
 
     return {'faces_areas': faces_areas,
             'faces_normals': faces_normals,
@@ -61,7 +61,7 @@ def compute_faces_properties(mesh):
             'faces_radiuses': faces_radiuses,
             }
 
-def compute_radiuses(mesh):
+def compute_radiuses(mesh, faces_centers):
     """Compute the radiuses of the faces of the mesh.
 
     The radius is defined here as the maximal distance between the center
@@ -76,7 +76,7 @@ def compute_radiuses(mesh):
     # faces_vertices.shape == (4, nb_faces, 3)
 
     # Get all the vectors between the center of faces and their vertices.
-    radial_vector = mesh.faces_centers - faces_vertices
+    radial_vector = faces_centers - faces_vertices
     # radial_vector.shape == (4, nb_faces, 3)
 
     # Keep the maximum length

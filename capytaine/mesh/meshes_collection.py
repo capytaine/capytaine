@@ -9,8 +9,8 @@ from itertools import chain, accumulate
 
 import numpy as np
 
-from meshmagick.mesh import Mesh
-from meshmagick.geometry import Plane
+from capytaine.mesh.mesh import Mesh
+from capytaine.tools.geometry import Plane
 
 NAME_MAX_LENGTH = 180
 

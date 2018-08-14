@@ -8,18 +8,18 @@ import pytest
 
 import numpy as np
 
-from meshmagick.mesh import Mesh
-from meshmagick.geometry import xOz_Plane, yOz_Plane
+from capytaine.mesh.mesh import Mesh
+from capytaine.mesh.meshes_collection import CollectionOfMeshes
+from capytaine.mesh.symmetries import AxialSymmetry, ReflectionSymmetry, TranslationalSymmetry
 
 from capytaine.bodies import FloatingBody
-from capytaine.meshes_collection import CollectionOfMeshes
-from capytaine.symmetries import AxialSymmetry, ReflectionSymmetry, TranslationalSymmetry
 from capytaine.geometric_bodies.sphere import Sphere
 from capytaine.geometric_bodies.cylinder import HorizontalCylinder
 
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import Nemoh
 
+from capytaine.tools.geometry import xOz_Plane, yOz_Plane
 
 @pytest.mark.parametrize("reso", range(1, 3))
 @pytest.mark.parametrize("depth", [10.0, np.infty])

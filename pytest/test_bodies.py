@@ -3,13 +3,11 @@
 
 import numpy as np
 
-from meshmagick.mesh import Mesh
+from capytaine.mesh.mesh import Mesh
+from capytaine.mesh.meshes_collection import CollectionOfMeshes
+from capytaine.mesh.symmetries import TranslationalSymmetry
 
 from capytaine.bodies import FloatingBody
-
-from capytaine.meshes_collection import CollectionOfMeshes
-from capytaine.symmetries import TranslationalSymmetry
-
 from capytaine.geometric_bodies.sphere import Sphere
 from capytaine.geometric_bodies.rectangle import Rectangle, OpenRectangularParallelepiped, RectangularParallelepiped
 

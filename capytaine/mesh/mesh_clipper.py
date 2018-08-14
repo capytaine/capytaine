@@ -3,8 +3,8 @@
 
 """This module holds a tools to clip meshes against a plane"""
 
-from meshmagick.mesh import *
-from meshmagick.geometry import *
+from capytaine.mesh.mesh import *
+from capytaine.tools.geometry import *
 
 
 class MeshClipper:

@@ -9,10 +9,9 @@ from itertools import product
 
 import numpy as np
 
-from meshmagick.mesh import Mesh
-
+from capytaine.mesh.mesh import Mesh
+from capytaine.mesh.symmetries import AxialSymmetry
 from capytaine.bodies import FloatingBody
-from capytaine.symmetries import AxialSymmetry
 
 LOG = logging.getLogger(__name__)
 

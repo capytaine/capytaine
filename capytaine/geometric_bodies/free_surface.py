@@ -9,8 +9,7 @@ from itertools import product
 
 import numpy as np
 
-from meshmagick.mesh import Mesh
-
+from capytaine.mesh.mesh import Mesh
 from capytaine.problems import DiffractionProblem
 from capytaine.tools.Airy_wave import Airy_wave_potential
 

@@ -21,7 +21,7 @@ import numpy as np
 
 from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
 from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve
-from capytaine.symmetries import use_symmetries
+from capytaine.mesh.symmetries import use_symmetries
 import capytaine.NemohCore as NemohCore
 
 

@@ -4,10 +4,11 @@
 Compare results of Capytaine with results from Nemoh 2.0.
 """
 
+from capytaine.mesh.symmetries import *
+
 from capytaine.geometric_bodies.sphere import Sphere
 from capytaine.geometric_bodies.cylinder import HorizontalCylinder
 from capytaine.geometric_bodies.free_surface import FreeSurface
-from capytaine.symmetries import *
 
 from capytaine.problems import DiffractionProblem, RadiationProblem
 from capytaine.results import assemble_dataset
@@ -19,7 +20,7 @@ from capytaine.tools.kochin import compute_Kochin
 def test_immersed_sphere():
     """Compare with Nemoh 2.0 for a sphere in infinite fluid.
 
-    The test is ran for two degrees of freedom; due to the symmetries of the problem, the results should be the same.
+    The test is ran for two degrees of freedom; due to the mesh.symmetries of the problem, the results should be the same.
     They are slightly different due to the meshing of the sphere.
     """
     sphere = Sphere(radius=1.0, ntheta=10, nphi=40, clip_free_surface=False)

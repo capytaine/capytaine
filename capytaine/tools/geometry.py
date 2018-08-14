@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 #  -*- coding: utf-8 -*-
 """
+From meshmagick.
 """
 
 import numpy as np
+from math import atan2
 
 # TODO: voir si on ne peut pas mettre ces fonctions dans un module dedie --> module rotation !!!
 
@@ -235,7 +237,7 @@ class Plane:
                 theta_x = np.pi
                 theta_y = 0.
         else:
-            theta = np.atan2(stheta, ctheta)
+            theta = atan2(stheta, ctheta)
             theta_stheta = theta / stheta
 
             theta_x = -theta_stheta * ny

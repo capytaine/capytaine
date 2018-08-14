@@ -11,8 +11,8 @@ from itertools import count
 import numpy as np
 import vtk
 
-from capytaine.mesh.geometry import Plane
 from capytaine.mesh.faces_properties import compute_faces_properties
+from capytaine.tools.geometry import Plane
 
 
 class Mesh:
@@ -37,8 +37,8 @@ class Mesh:
         assert np.array(vertices).shape[1] == 3
         assert np.array(faces).shape[1] == 4
 
-        self.vertices = np.array(vertices, dtype=np.float)
-        self.faces = np.array(faces, dtype=np.int)
+        self._vertices = np.array(vertices, dtype=np.float)
+        self._faces = np.array(faces, dtype=np.int)
         self._id = next(self._ids)
 
         if not name:
@@ -57,7 +57,24 @@ class Mesh:
         -------
         int
         """
-        return self.vertices.shape[0]
+        return self._vertices.shape[0]
+
+    @property
+    def vertices(self):
+        """Get the vertices array coordinate of the mesh
+
+        Returns
+        -------
+        ndarray
+        """
+        return self._vertices
+
+    @vertices.setter
+    def vertices(self, value):
+        self._vertices = np.asarray(value, dtype=np.float).copy()
+        # self._vertices.setflags(write=False)
+        self.__internals__.clear()
+        return
 
     @property
     def nb_faces(self):
@@ -67,7 +84,24 @@ class Mesh:
         -------
         int
         """
-        return self.faces.shape[0]
+        return self._faces.shape[0]
+
+    @property
+    def faces(self):
+        """Get the faces connectivity array of the mesh
+
+        Returns
+        -------
+        ndarray
+        """
+        return self._faces
+
+    @faces.setter
+    def faces(self, value):
+        self._faces = np.asarray(value, dtype=np.int).copy()
+        # self._faces.setflags(write=False)
+        self.__internals__.clear()
+        return
 
     def copy(self, name=None):
         """Get a copy of the current mesh instance.
@@ -142,7 +176,6 @@ class Mesh:
         faces_extracted = new_id__v[faces_extracted.flatten()].reshape((len(id_faces_to_extract), 4))
 
         extracted_mesh = Mesh(v_extracted, faces_extracted)
-        extracted_mesh._verbose = self._verbose
 
         extracted_mesh.name = 'mesh_extracted_from_%s' % self.name
 
@@ -479,8 +512,6 @@ class Mesh:
         ndarray
             The (3x3) rotation matrix that has been applied to rotate the mesh
         """
-        if self.has_surface_integrals():
-            self._remove_surface_integrals()
         # TODO: docstring
         # FIXME : code en doublon par rapport a la fonction _rodrigues du module geometry
 
@@ -580,8 +611,8 @@ class Mesh:
             centers[:, 2] += tz
             self.__internals__['faces_centers'] = centers
 
-        if self.has_surface_integrals():
-            self._remove_surface_integrals()
+        # if self.has_surface_integrals():
+        #     self._remove_surface_integrals()
 
         return
 
@@ -675,8 +706,8 @@ class Mesh:
         if self._has_faces_properties():
             self.__internals__['faces_normals'] *= -1
 
-        if self.has_surface_integrals():
-            self._remove_surface_integrals()
+        # if self.has_surface_integrals():
+        #     self._remove_surface_integrals()
 
         return
 
@@ -732,10 +763,7 @@ class Mesh:
         faces = np.concatenate((faces, np.fliplr(faces.copy() + self.nb_vertices)))
 
         self._vertices, self._faces = vertices, faces
-        verbose = self.verbose
-        self.verbose_off()
         self.merge_duplicates()
-        self.verbose = verbose
 
         self.__internals__.clear()
 
@@ -810,7 +838,7 @@ class Mesh:
     #  Mesh quality  #
     ##################
 
-    def merge_duplicate(self, **kwargs):
+    def merge_duplicates(self, **kwargs):
         from capytaine.mesh.quality import merge_duplicates
         return merge_duplicates(self, **kwargs)
 
