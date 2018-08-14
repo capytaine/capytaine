@@ -666,7 +666,7 @@ class MeshClipper:
 
         # TODO: faire un merge uniquement sur la liste instersections et non sur tout le maillage clipped_crown
         # FIXME: potentiellement, un bug a ete introduit ici !!! --> l'update n'est plus bon sur les dictionnaires...
-        new_id = clipped_crown_mesh.merge_duplicates(return_index=True, atol=1e-5)  # Warning: choosing a lower value
+        new_id = clipped_crown_mesh.merge_duplicates(atol=1e-5)  # Warning: choosing a lower value
 
         # Updating dictionaries
         direct_boundary_edges = dict(

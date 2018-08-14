@@ -6,6 +6,7 @@ This module concerns mesh data structures.
 Based on the code meshmagick from François Rongère (EC Nantes).
 """
 
+import logging
 from itertools import count
 
 import numpy as np
@@ -14,6 +15,7 @@ import vtk
 from capytaine.mesh.faces_properties import compute_faces_properties
 from capytaine.tools.geometry import Plane
 
+LOG = logging.getLogger(__name__)
 
 class Mesh:
     """A class to handle unstructured meshes.
@@ -121,6 +123,14 @@ class Mesh:
         if name is not None:
             new_mesh.name = name
         return new_mesh
+
+    def merge(self):
+        """Dummy method for collection of meshes."""
+        return self
+
+    def to_meshmagick(self):
+        from meshmagick.mesh import Mesh
+        return Mesh(self.vertices, self.faces, name=self.name)
 
     ##################
     #  Extract face  #
@@ -784,7 +794,7 @@ class Mesh:
 
     def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
         """Clip the mesh with two horizontal planes."""
-        from meshmagick.mesh_clipper import MeshClipper
+        from capytaine.mesh.mesh_clipper import MeshClipper
         if self.vertices[:, 2].min() > free_surface or self.vertices[:, 2].max() < sea_bottom:
             return None  # The mesh has no wet faces.
 
@@ -878,3 +888,157 @@ class Mesh:
         self.heal_normals()
         return
 
+    #################
+    #  Edges stats  #
+    #################
+
+    def _edges_stats(self):
+        """Computes the min, max, and mean of the mesh's edge length"""
+        vertices = self.vertices[self.faces]
+        edge_length = np.zeros((self.nb_faces, 4), dtype=np.float)
+        for i in range(4):
+            edge = vertices[:, i, :] - vertices[:, i-1, :]
+            edge_length[:, i] = np.sqrt(np.einsum('ij, ij -> i', edge, edge))
+
+        return edge_length.min(), edge_length.max(), edge_length.mean()
+
+    @property
+    def min_edge_length(self):
+        """The mesh's minimum edge length"""
+        return self._edges_stats()[0]
+
+    @property
+    def max_edge_length(self):
+        """The mesh's maximum edge length"""
+        return self._edges_stats()[1]
+
+    @property
+    def mean_edge_length(self):
+        """The mesh's mean edge length"""
+        return self._edges_stats()[2]
+
+    #######################
+    #  Surface integrals  #
+    #######################
+
+    def has_surface_integrals(self):
+        return 'surface_integrals' in self.__internals__
+
+    def get_surface_integrals(self):
+        """Get the mesh surface integrals
+
+        Returns
+        -------
+        ndarray
+            The mesh surface inegrals array
+        """
+        if not self.has_surface_integrals():
+            from capytaine.mesh.surface_integrals import compute_faces_integrals
+            self.__internals__['surface_integrals'] = compute_faces_integrals(self)
+        return self.__internals__['surface_integrals']
+
+    def _remove_surface_integrals(self):
+        if 'surface_integrals' in self.__internals__:
+            del self.__internals__['surface_integrals']
+        return
+
+    @property
+    def volume(self):
+        """Get the mesh enclosed volume
+
+        Returns
+        -------
+        float
+            The mesh volume
+        """
+        normals = self.faces_normals
+        sigma_0_2 = self.get_surface_integrals()[:3]
+
+        return (normals.T * sigma_0_2).sum() / 3.
+
+    ####################
+    #  Connectivities  #
+    ####################
+
+    def _has_connectivity(self):
+        return 'v_v' in self.__internals__
+
+    def _remove_connectivity(self):
+        if 'v_v' in self.__internals__:
+            del self.__internals__['v_v']
+            del self.__internals__['v_f']
+            del self.__internals__['f_f']
+            del self.__internals__['boundaries']
+        return
+
+    @property
+    def vv(self):
+        """Get the vertex / vertex connectivity dictionary.
+
+        Returns
+        -------
+        dict
+        """
+        if 'v_v' not in self.__internals__:
+            from capytaine.mesh.connectivity import connectivity
+            self.__internals__.update(connectivity(self))
+        return self.__internals__['v_v']
+
+    @property
+    def vf(self):
+        """Get the vertex / faces connectivity dictionary.
+
+        Returns
+        -------
+        dict
+        """
+        if 'v_f' not in self.__internals__:
+            from capytaine.mesh.connectivity import connectivity
+            self.__internals__.update(connectivity(self))
+        return self.__internals__['v_f']
+
+    @property
+    def ff(self):
+        """Get the face / faces connectivity dictionary
+
+        Returns
+        -------
+        dict
+        """
+        if 'f_f' not in self.__internals__:
+            from capytaine.mesh.connectivity import connectivity
+            self.__internals__.update(connectivity(self))
+        return self.__internals__['f_f']
+
+    @property
+    def boundaries(self):
+        """Get the list of boundaries of the mesh.
+
+        Returns
+        -------
+        list
+            list that stores lists of boundary connected vertices
+
+
+        Note
+        ----
+        The computation of boundaries should be in the future computed with help of VTK
+        """
+        if 'boundaries' not in self.__internals__:
+            from capytaine.mesh.connectivity import connectivity
+            self.__internals__.update(connectivity(self))
+        return self.__internals__['boundaries']
+
+    @property
+    def nb_boundaries(self):
+        """Get the number of boundaries in the mesh
+
+        Returns
+        -------
+        list
+            Number of boundaries
+        """
+        if 'boundaries' not in self.__internals__:
+            from capytaine.mesh.connectivity import connectivity
+            self.__internals__.update(connectivity(self))
+        return len(self.__internals__['boundaries'])

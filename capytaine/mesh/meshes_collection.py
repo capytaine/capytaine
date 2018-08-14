@@ -121,7 +121,7 @@ class CollectionOfMeshes:
         """Merge the sub-meshes and return a full mesh.
         If the collection contains other collections, they are merged recursively.
         Optionally, a new name can be given to the resulting mesh."""
-        components = (mesh if isinstance(mesh, Mesh) else mesh.merge() for mesh in self.submeshes)
+        components = (mesh.merge() for mesh in self.submeshes)
         init = next(components)
         merged = sum(components, init)
         merged.merge_duplicates()
@@ -177,9 +177,6 @@ class CollectionOfMeshes:
     def rotate(self, vector):
         for mesh in self.submeshes:
             mesh.rotate(vector)
-
-    def _vtk_polydata(self):
-        return self.merge()._vtk_polydata()
 
     def show(self):
         self.merge().show()
