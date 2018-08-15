@@ -7,7 +7,7 @@
 import numpy as np
 import vtk
 
-from meshmagick.MMviewer import MMViewer
+from capytaine.mesh.MMviewer import MMViewer
 
 
 class FloatingBodyViewer(MMViewer):
