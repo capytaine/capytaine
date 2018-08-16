@@ -1,7 +1,7 @@
-capytaine.tools.max\_length\_dict module
+capytaine.mesh.surface\_integrals module
 ========================================
 
-.. automodule:: capytaine.tools.max_length_dict
+.. automodule:: capytaine.mesh.surface_integrals
     :members:
     :undoc-members:
     :show-inheritance:

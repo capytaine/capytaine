@@ -1,17 +1,13 @@
 capytaine package
 =================
 
-.. automodule:: capytaine
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Subpackages
 -----------
 
 .. toctree::
 
     capytaine.geometric_bodies
+    capytaine.mesh
     capytaine.tools
 
 Submodules
@@ -23,8 +19,13 @@ Submodules
    capytaine.Toeplitz_matrices
    capytaine.bodies
    capytaine.cli
-   capytaine.meshes_collection
    capytaine.problems
    capytaine.results
-   capytaine.symmetries
 
+Module contents
+---------------
+
+.. automodule:: capytaine
+    :members:
+    :undoc-members:
+    :show-inheritance:

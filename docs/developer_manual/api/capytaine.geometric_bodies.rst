@@ -1,11 +1,6 @@
 capytaine.geometric\_bodies package
 ===================================
 
-.. automodule:: capytaine.geometric_bodies
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Submodules
 ----------
 
@@ -16,3 +11,10 @@ Submodules
    capytaine.geometric_bodies.rectangle
    capytaine.geometric_bodies.sphere
 
+Module contents
+---------------
+
+.. automodule:: capytaine.geometric_bodies
+    :members:
+    :undoc-members:
+    :show-inheritance:
