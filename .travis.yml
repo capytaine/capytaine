@@ -31,7 +31,7 @@ script:
 
 deploy:
     - provider: script
-      script: bash conda/conda_upload.sh
+      script: bash conda/conda_upload.sh $TRAVIS_BRANCH
       on:
           all_branches: true
       skip_cleanup: true
