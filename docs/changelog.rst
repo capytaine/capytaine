@@ -19,6 +19,7 @@ Major changes
   capytaine.tools.vtk -> capytaine.ui.vtk
 
 * Reorganization of the internals of the solver :code:`Nemoh.py`. The initialization options :code:`keep_matrices` and :code:`max_stored_exponential_decompositions` have been removed.
+* :code:`CollectionOfMeshes` and its subclasses are now subclasses from :code:`tuple`.
 
 Minor changes
 -------------

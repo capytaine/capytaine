@@ -25,7 +25,7 @@ def test_collection_of_meshes():
     assert coll.nb_submeshes == 2
     assert coll.nb_vertices == 8
     assert coll.nb_faces == 2
-    assert coll.submeshes[1].nb_faces == 1
+    assert coll[1].nb_faces == 1
     assert np.all(coll.faces_areas == np.asarray([1.0, 1.0]))
     assert np.all(coll.faces == np.asarray([[0, 1, 2, 3], [4, 5, 6, 7]]))
     assert np.all(coll.indices_of_mesh(1) == slice(1, 2))
@@ -47,7 +47,7 @@ def test_collection_of_meshes():
     assert big_coll.nb_submeshes == 2
 
     # Move one object in one of the sub-meshes
-    copy_coll.submeshes[1].translate_x(1.0)
+    copy_coll[1].translate_x(1.0)
     assert big_coll.vertices[:, 0].max() == 3.0
 
     # Merging the big collection
@@ -130,7 +130,7 @@ def test_parallelepiped_generation():
 
     assert clever_para.mesh.nb_faces == 42
     assert isinstance(clever_para.mesh, CollectionOfMeshes)
-    assert any(isinstance(mesh, TranslationalSymmetry)for mesh in clever_para.mesh.submeshes)
+    assert any(isinstance(submesh, TranslationalSymmetry)for submesh in clever_para.mesh)
 
     full_para = RectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
                                           resolution=(5, 2, 3),

@@ -95,7 +95,7 @@ def test_horizontal_cylinder(depth):
 
     sym_cylinder = HorizontalCylinder(length=10.0, radius=1.0, clever=True, nr=2, ntheta=10, nx=10)
     assert isinstance(sym_cylinder.mesh, CollectionOfMeshes)
-    assert isinstance(sym_cylinder.mesh.submeshes[0], TranslationalSymmetry)
+    assert isinstance(sym_cylinder.mesh[0], TranslationalSymmetry)
     sym_cylinder.translate_z(-3.0)
     sym_cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
     problem = RadiationProblem(body=sym_cylinder, omega=1.0, sea_bottom=-depth)

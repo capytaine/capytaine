@@ -136,7 +136,7 @@ def test_import_cal_file():
         assert problem.g == 9.81
         assert problem.depth == np.infty
         assert isinstance(problem.body.mesh, ReflectionSymmetry)
-        assert isinstance(problem.body.mesh.submeshes[0], Mesh)
+        assert isinstance(problem.body.mesh[0], Mesh)
         assert problem.body.nb_dofs == 6
         # assert problem.body.mesh.nb_vertices == 2*540
         assert problem.body.mesh.nb_faces == 2*300

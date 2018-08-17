@@ -4,41 +4,40 @@
 # This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
-import copy
 from itertools import chain, accumulate
 
 import numpy as np
 
 from capytaine.mesh.mesh import Mesh
-from capytaine.tools.geometry import Plane
 
 NAME_MAX_LENGTH = 180
 
 
-class CollectionOfMeshes:
-    name: str
-    # submeshes: Iterable[Union[Mesh, CollectionOfMeshes]]
+class CollectionOfMeshes(tuple):
+    """A tuple of meshes.
+    It gives access to all the vertices of all the sub-meshes as if it were a mesh itself.
+    Collections can be nested to store meshes in a tree structure.
 
-    def __init__(self, meshes, name=None):
-        """A list of meshes.
-        It gives access to all the vertices of all the sub-meshes as if it were a mesh itself.
-        Collections can be nested to store meshes in a tree structure.
+    Parameters
+    ----------
+    meshes: Mesh or CollectionOfMeshes
 
-        Parameters
-        ----------
-        meshes : iterable of Mesh or of CollectionOfMeshes
-            the meshes contained in the collection
-        name : str
-            a name for the collection (optional)
-        """
-        self.submeshes = tuple(meshes)
-        for mesh in self.submeshes:
+    name : str, optional
+        a name for the collection
+    """
+
+    def __new__(cls, meshes, name=None):
+        self = super().__new__(cls, meshes)
+
+        for mesh in self:
             assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
 
         if name is None:
             self.name = self.format_name(", ".join((mesh.name for mesh in meshes))[:-2])
         else:
             self.name = name
+
+        return self
 
     def format_name(self, options_string: str) -> str:
         """Helper function to generate a name for the collection.
@@ -54,7 +53,8 @@ class CollectionOfMeshes:
         return self.name
 
     def copy(self, name=None):
-        new_mesh = copy.deepcopy(self)
+        from copy import deepcopy
+        new_mesh = deepcopy(self)
         if name is not None:
             new_mesh.name = name
         return new_mesh
@@ -65,53 +65,53 @@ class CollectionOfMeshes:
 
     @property
     def nb_submeshes(self):
-        return len(self.submeshes)
+        return len(self)
 
     @property
     def nb_vertices(self):
-        return sum(mesh.nb_vertices for mesh in self.submeshes)
+        return sum(mesh.nb_vertices for mesh in self)
 
     @property
     def nb_faces(self):
-        return sum(mesh.nb_faces for mesh in self.submeshes)
+        return sum(mesh.nb_faces for mesh in self)
 
     @property
     def volume(self):
-        return sum(mesh.volume for mesh in self.submeshes)
+        return sum(mesh.volume for mesh in self)
 
     @property
     def vertices(self):
-        return np.concatenate([mesh.vertices for mesh in self.submeshes])
+        return np.concatenate([mesh.vertices for mesh in self])
 
     @property
     def faces(self):
         """Return the indices of the vertices forming each of the faces. For the
-        later subbodies, the indices of the vertices has to be shifted to
+        later submeshes, the indices of the vertices has to be shifted to
         correspond to their index in the concatenated array self.vertices.
         """
-        nb_vertices = accumulate(chain([0], (mesh.nb_vertices for mesh in self.submeshes[:-1])))
-        return np.concatenate([mesh.faces + nbv for mesh, nbv in zip(self.submeshes, nb_vertices)])
+        nb_vertices = accumulate(chain([0], (mesh.nb_vertices for mesh in self[:-1])))
+        return np.concatenate([mesh.faces + nbv for mesh, nbv in zip(self, nb_vertices)])
 
     @property
     def faces_normals(self):
-        return np.concatenate([mesh.faces_normals for mesh in self.submeshes])
+        return np.concatenate([mesh.faces_normals for mesh in self])
 
     @property
     def faces_areas(self):
-        return np.concatenate([mesh.faces_areas for mesh in self.submeshes])
+        return np.concatenate([mesh.faces_areas for mesh in self])
 
     @property
     def faces_centers(self):
-        return np.concatenate([mesh.faces_centers for mesh in self.submeshes])
+        return np.concatenate([mesh.faces_centers for mesh in self])
 
     @property
     def faces_radiuses(self):
-        return np.concatenate([mesh.faces_radiuses for mesh in self.submeshes])
+        return np.concatenate([mesh.faces_radiuses for mesh in self])
 
     def indices_of_mesh(self, mesh_index: int) -> slice:
         """Return the indices of the faces for the sub-mesh given as argument."""
-        start = sum((mesh.nb_faces for mesh in self.submeshes[:mesh_index]))  # Number of faces in previous meshes
-        return slice(start, start + self.submeshes[mesh_index].nb_faces)
+        start = sum((mesh.nb_faces for mesh in self[:mesh_index]))  # Number of faces in previous meshes
+        return slice(start, start + self[mesh_index].nb_faces)
 
     ##################
     # Transformation #
@@ -121,7 +121,7 @@ class CollectionOfMeshes:
         """Merge the sub-meshes and return a full mesh.
         If the collection contains other collections, they are merged recursively.
         Optionally, a new name can be given to the resulting mesh."""
-        components = (mesh.merge() for mesh in self.submeshes)
+        components = (mesh.merge() for mesh in self)
         init = next(components)
         merged = sum(components, init)
         merged.merge_duplicates()
@@ -132,7 +132,7 @@ class CollectionOfMeshes:
 
     def get_immersed_part(self, **kwargs):
         clipped_meshes = []
-        for mesh in self.submeshes:
+        for mesh in self:
             m = mesh.get_immersed_part(**kwargs)
             if m is not None:
                 clipped_meshes.append(m)
@@ -143,39 +143,39 @@ class CollectionOfMeshes:
             return None
 
     def mirror(self, plane):
-        for mesh in self.submeshes:
+        for mesh in self:
             mesh.mirror(plane)
 
     def translate_x(self, value):
-        for mesh in self.submeshes:
+        for mesh in self:
             mesh.translate_x(value)
 
     def translate_y(self, value):
-        for mesh in self.submeshes:
+        for mesh in self:
             mesh.translate_y(value)
 
     def translate_z(self, value):
-        for mesh in self.submeshes:
+        for mesh in self:
             mesh.translate_z(value)
 
     def translate(self, vector):
-        for mesh in self.submeshes:
+        for mesh in self:
             mesh.translate(vector)
 
     def rotate_x(self, value):
-        for mesh in self.submeshes:
+        for mesh in self:
             mesh.rotate_x(value)
 
     def rotate_y(self, value):
-        for mesh in self.submeshes:
+        for mesh in self:
             mesh.rotate_y(value)
 
     def rotate_z(self, value):
-        for mesh in self.submeshes:
+        for mesh in self:
             mesh.rotate_z(value)
 
     def rotate(self, vector):
-        for mesh in self.submeshes:
+        for mesh in self:
             mesh.rotate(vector)
 
     def show(self):

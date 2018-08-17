@@ -21,7 +21,7 @@ class SymmetricMesh(CollectionOfMeshes):
 
 
 class ReflectionSymmetry(SymmetricMesh):
-    def __init__(self, half, plane, name=None):
+    def __new__(cls, half, plane, name=None):
         """A mesh with one vertical symmetry plane.
 
         Parameters
@@ -37,22 +37,32 @@ class ReflectionSymmetry(SymmetricMesh):
         assert isinstance(plane, Plane)
         assert plane.normal[2] == 0  # Only vertical reflection planes are supported
 
-        self.plane = plane
-
         other_half = half.copy()
         other_half.mirror(plane)
         other_half.name = "mirror_of_" + half.name
 
-        CollectionOfMeshes.__init__(self, (half, other_half))
+        self = super().__new__(cls, (half, other_half))
+
+        self.plane = plane
 
         if name is None:
             self.name = CollectionOfMeshes.format_name(self, half.name)
         else:
             self.name = name
+
         LOG.info(f"New mirror symmetric mesh: {self.name}.")
 
+        return self
+
+    @property
+    def half(self):
+        return self[0]
+
+    def __deepcopy__(self, *args):
+        return ReflectionSymmetry(self.half.copy(), self.plane, name=self.name)
+
     def get_immersed_part(self, **kwargs):
-        clipped_submesh = self.subbodies[0].get_immersed_part(self, **kwargs)
+        clipped_submesh = self.half.get_immersed_part(self, **kwargs)
         if clipped_submesh is not None:
             return ReflectionSymmetry(clipped_submesh,
                                       plane=self.plane,
@@ -61,9 +71,8 @@ class ReflectionSymmetry(SymmetricMesh):
             return None
 
 
-
 class TranslationalSymmetry(SymmetricMesh):
-    def __init__(self, mesh_slice, translation, nb_repetitions=1, name=None):
+    def __new__(cls, mesh_slice, translation, nb_repetitions=1, name=None):
         """A mesh with a repeating pattern by translation.
 
         Parameters
@@ -85,8 +94,6 @@ class TranslationalSymmetry(SymmetricMesh):
         assert translation.shape == (3,)
         assert translation[2] == 0  # Only horizontal translation are supported.
 
-        self.translation = translation
-
         slices = [mesh_slice]
         for i in range(1, nb_repetitions+1):
             new_slice = mesh_slice.copy()
@@ -94,7 +101,9 @@ class TranslationalSymmetry(SymmetricMesh):
             new_slice.translate(i*translation)
             slices.append(new_slice)
 
-        CollectionOfMeshes.__init__(self, slices)
+        self = super().__new__(cls, slices)
+
+        self.translation = translation
 
         if name is None:
             self.name = CollectionOfMeshes.format_name(self, mesh_slice.name)
@@ -102,8 +111,17 @@ class TranslationalSymmetry(SymmetricMesh):
             self.name = name
         LOG.info(f"New translation symmetric mesh: {self.name}.")
 
+        return self
+
+    @property
+    def first_slice(self):
+        return self[0]
+
+    def __deepcopy__(self, *args):
+        return TranslationalSymmetry(self.first_slice.copy(), self.translation, nb_repetitions=len(self)-1, name=self.name)
+
     def get_immersed_part(self, **kwargs):
-        clipped_submesh = self.submeshes[0].get_immersed_part(**kwargs)
+        clipped_submesh = self.first_slice.get_immersed_part(**kwargs)
         if clipped_submesh is not None:
             return TranslationalSymmetry(clipped_submesh,
                                          translation=self.translation,
@@ -112,20 +130,20 @@ class TranslationalSymmetry(SymmetricMesh):
         else:
             return None
 
-    def join(*meshes):
+    def join(*list_of_symmetric_meshes):
         """Experimental routine to merge similar symmetries."""
-        assert all([isinstance(mesh, TranslationalSymmetry) for mesh in meshes])
-        assert all([np.allclose(meshes[0].translation, mesh.translation) for mesh in meshes[1:]])
-        assert all([meshes[0].nb_submeshes == mesh.nb_submeshes for mesh in meshes[1:]])
+        assert all([isinstance(mesh, TranslationalSymmetry) for mesh in list_of_symmetric_meshes])
+        assert all([np.allclose(list_of_symmetric_meshes[0].translation, mesh.translation) for mesh in list_of_symmetric_meshes[1:]])
+        assert all([list_of_symmetric_meshes[0].nb_submeshes == mesh.nb_submeshes for mesh in list_of_symmetric_meshes[1:]])
         return TranslationalSymmetry(
-            sum([mesh.submeshes[0].merge() for mesh in meshes[1:]],
-                meshes[0].submeshes[0].merge()),
-            meshes[0].translation, meshes[0].nb_submeshes,
+            sum([mesh.first_slice.merge() for mesh in list_of_symmetric_meshes[1:]],
+                list_of_symmetric_meshes[0].first_slice.merge()),
+            list_of_symmetric_meshes[0].translation, list_of_symmetric_meshes[0].nb_submeshes,
         )
 
 
 class AxialSymmetry(SymmetricMesh):
-    def __init__(self, mesh_slice, point_on_rotation_axis=np.zeros(3), nb_repetitions=1, name=None):
+    def __new__(cls, mesh_slice, point_on_rotation_axis=np.zeros(3), nb_repetitions=1, name=None):
         """A mesh with a repeating pattern by rotation.
 
         Parameters
@@ -147,8 +165,6 @@ class AxialSymmetry(SymmetricMesh):
         point_on_rotation_axis = np.asarray(point_on_rotation_axis)
         assert point_on_rotation_axis.shape == (3,)
 
-        self.point_on_rotation_axis = point_on_rotation_axis
-
         slices = [mesh_slice]
         for i in range(1, nb_repetitions+1):
             new_slice = mesh_slice.copy()
@@ -158,7 +174,9 @@ class AxialSymmetry(SymmetricMesh):
             new_slice.translate(point_on_rotation_axis)
             slices.append(new_slice)
 
-        CollectionOfMeshes.__init__(self, tuple(slices))
+        self = super().__new__(cls, slices)
+
+        self.point_on_rotation_axis = point_on_rotation_axis
 
         if name is None:
             self.name = CollectionOfMeshes.format_name(self, mesh_slice.name)
@@ -166,8 +184,17 @@ class AxialSymmetry(SymmetricMesh):
             self.name = name
         LOG.info(f"New rotation symmetric mesh: {self.name}.")
 
+        return self
+
+    @property
+    def first_slice(self):
+        return self[0]
+
+    def __deepcopy__(self, *args):
+        return AxialSymmetry(self.first_slice.copy(), self.point_on_rotation_axis, nb_repetitions=len(self)-1, name=self.name)
+
     def get_immersed_part(self, **kwargs):
-        clipped_submesh = self.submeshes[0].get_immersed_part(**kwargs)
+        clipped_submesh = self.first_slice.get_immersed_part(**kwargs)
         if clipped_submesh is not None:
             return AxialSymmetry(clipped_submesh,
                                  point_on_rotation_axis=self.point_on_rotation_axis,
@@ -288,10 +315,10 @@ def use_symmetries(build_matrices):
                       f"using mirror symmetry.")
 
             S_a, V_a = build_matrices_with_symmetries(
-                solver, mesh1.submeshes[0], mesh2.submeshes[0], *args,
+                solver, mesh1[0], mesh2[0], *args,
                 _rec_depth=_rec_depth+1)
             S_b, V_b = build_matrices_with_symmetries(
-                solver, mesh1.submeshes[0], mesh2.submeshes[1], *args,
+                solver, mesh1[0], mesh2[1], *args,
                 _rec_depth=_rec_depth+1)
 
             return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
@@ -306,9 +333,9 @@ def use_symmetries(build_matrices):
                       "using translational symmetry.")
 
             S_list, V_list = [], []
-            for subbody in mesh2.submeshes:
+            for submesh in mesh2:
                 S, V = build_matrices_with_symmetries(
-                    solver, mesh1.submeshes[0], subbody, *args,
+                    solver, mesh1[0], submesh, *args,
                     _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
@@ -323,9 +350,9 @@ def use_symmetries(build_matrices):
                       f"using rotation symmetry.")
 
             S_list, V_list = [], []
-            for subbody in mesh2.submeshes[:mesh2.nb_submeshes // 2 + 1]:
+            for submesh in mesh2[:mesh2.nb_submeshes // 2 + 1]:
                 S, V = build_matrices_with_symmetries(
-                    solver, mesh1.submeshes[0], subbody, *args,
+                    solver, mesh1[0], submesh, *args,
                     _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
