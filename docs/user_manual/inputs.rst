@@ -77,14 +77,33 @@ The formats currently supported by Meshmagick are the following.
 Legacy Nemoh.cal parameters files
 ---------------------------------
 
-The legacy parameters files from Nemoh can be read by a dedicated function::
+The `legacy parameters files from Nemoh`_ can be read by a dedicated function::
 
     from capytaine.tools.import_export import import_cal_file
 
     list_of_problems = import_cal_file("path/to/Nemoh.cal")
 
+.. _`legacy parameters files from Nemoh`: https://lheea.ec-nantes.fr/logiciels-et-brevets/nemoh-running-192930.kjsp
+
 The function returns a list of :code:`LinearPotentialFlowProblems`.
 
 .. warning:: This feature is experimental.
     Some of the settings in the files (such as the free surface computation or the Kochin function) are ignored for the moment.
+
+
+Command-line interface
+----------------------
+
+.. warning:: This feature is experimental.
+
+Capytaine comes with a command-line command :code:`capytaine` which can be used as::
+
+    $ capytaine path/to/directory/parameter.cal
+
+The parameter file (in :code:`Nemoh.cal` format) passed as argument is read and legacy tecplot output file are written in the directory :code:`path/to/directory/results/`.
+
+.. warning:: If results files already exist, they will be overwritten!
+
+If no argument is provided to the command, the code looks for a file :code:`Nemoh.cal` in the current directory.
+
 

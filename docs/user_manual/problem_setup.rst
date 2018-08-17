@@ -2,9 +2,13 @@
 Setting up a problem
 ====================
 
+.. note:: Work in progress...
 
-Main parameters of a :code:`LinearPotentialFlowProblem`
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The :code:`LinearPotentialFlowProblem` class
+--------------------------------------------
+
+Main parameters
+~~~~~~~~~~~~~~~
 
 +---------------+------------------------------------------+------------------------+ 
 | Parameter     | Description (unit)                       | Default value          |
@@ -25,6 +29,9 @@ Main parameters of a :code:`LinearPotentialFlowProblem`
 | radiating_dof | Name of radiating dof                    | first one found        |
 |               | (only for radiation)                     |                        |
 +---------------+------------------------------------------+------------------------+
+
+The wave height is implicitely assumed to be :math:`1` m.
+Since all computations are linear, any wave height or motion amplitude can be retrieved by multiplying the result by the desired value.
 
 Derived parameters
 ~~~~~~~~~~~~~~~~~~
