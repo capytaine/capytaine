@@ -10,7 +10,7 @@ import vtk
 from capytaine.bodies import TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
 from capytaine.results import RadiationResult, LinearPotentialFlowResult
 from capytaine.geometric_bodies.free_surface import FreeSurface
-from capytaine.tools.vtk import compute_node_data
+from capytaine.ui.vtk import compute_node_data
 
 
 class Animation:

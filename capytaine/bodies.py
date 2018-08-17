@@ -15,7 +15,7 @@ from capytaine.mesh.meshes_collection import CollectionOfMeshes
 from capytaine.mesh.symmetries import ReflectionSymmetry
 
 from capytaine.tools.geometry import xOz_Plane
-from capytaine.tools.vtk.mesh_viewer import FloatingBodyViewer
+from capytaine.ui.vtk.mesh_viewer import FloatingBodyViewer
 
 LOG = logging.getLogger(__name__)
 

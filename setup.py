@@ -32,9 +32,10 @@ if __name__ == "__main__":
           packages=[
               'capytaine',
               'capytaine.mesh',
-              'capytaine.tools',
-              'capytaine.tools.vtk',
               'capytaine.geometric_bodies',
+              'capytaine.tools',
+              'capytaine.ui',
+              'capytaine.ui.vtk',
           ],
           install_requires=[
               'attrs',
@@ -47,7 +48,7 @@ if __name__ == "__main__":
           ],
           entry_points={
               'console_scripts': [
-                  'capytaine=capytaine.cli:main',
+                  'capytaine=capytaine.ui.cli:main',
               ],
           },
           ext_modules=[NemohCore],

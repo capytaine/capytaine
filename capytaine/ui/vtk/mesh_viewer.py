@@ -4,10 +4,9 @@
 # This file is part of "capytaine" (https://github.com/mancellin/capytaine).
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
-import numpy as np
 import vtk
 
-from capytaine.mesh.MMviewer import MMViewer
+from capytaine.ui.vtk.MMviewer import MMViewer
 
 
 class FloatingBodyViewer(MMViewer):

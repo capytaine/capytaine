@@ -2,9 +2,9 @@
 
 import logging
 
-from capytaine import Nemoh, DiffractionProblem, RadiationProblem
+from capytaine import Nemoh, DiffractionProblem
 from capytaine.geometric_bodies import Sphere, FreeSurface
-from capytaine.tools.vtk.free_surface_animation import Animation
+from capytaine.ui.vtk.free_surface_animation import Animation
 
 logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s:\t%(message)s")

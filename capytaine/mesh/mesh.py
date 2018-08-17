@@ -385,7 +385,7 @@ class Mesh:
 
     def show_vtk(self):
         """Shows the mesh in the meshmagick viewer"""
-        from capytaine.mesh.MMviewer import compute_vtk_polydata, MMViewer
+        from capytaine.ui.vtk.MMviewer import compute_vtk_polydata, MMViewer
 
         vtk_polydata = compute_vtk_polydata(self)
         self.viewer = MMViewer()
@@ -413,7 +413,6 @@ class Mesh:
         Other parameters are passed to Poly3DCollection.
         """
         import matplotlib.pyplot as plt
-        from mpl_toolkits.mplot3d import Axes3D
         from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
         default_axis = ax is None
