@@ -15,6 +15,9 @@ The dataset can be reloaded by::
     dataset = xr.open_dataset("path/to/dataset.nc", engine="h5netcdf")
 
 See also the `documentation of xarray`_ for more details and options.
+Note that the code above requires the package :code:`h5netcdf`, which can be installed with::
+
+    $ pip install h5netcdf
 
 .. _`documentation of xarray`: http://xarray.pydata.org/en/stable/io.html
 
