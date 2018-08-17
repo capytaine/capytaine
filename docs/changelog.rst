@@ -25,6 +25,7 @@ Minor changes
 -------------
 
 * New function :code:`write_dataset_as_tecplot_files` in :code:`capytaine.tools`.
+* New method :code:`tree_view()` for meshes to display the structure of hierarchical collections of meshes.
 
 ------------------
 New in version 0.4

@@ -52,6 +52,21 @@ class CollectionOfMeshes(tuple):
     def __str__(self):
         return self.name
 
+    def tree_view(self, **kwargs):
+        new_lines = []
+        for mesh in self:
+            lines = mesh.tree_view(**kwargs).splitlines()
+            for line in lines:
+                if line[0] == ' ':
+                    new_lines.append(' | ' + line)
+                else:
+                    new_lines.append(' ├─' + line)
+
+        def replace_last(s, old, new):
+            return new.join(s.rsplit(old, 1))
+
+        return replace_last(self.name + '\n' + '\n'.join(new_lines), '├─', '└─')
+
     def copy(self, name=None):
         from copy import deepcopy
         new_mesh = deepcopy(self)

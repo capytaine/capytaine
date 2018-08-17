@@ -58,6 +58,13 @@ class ReflectionSymmetry(SymmetricMesh):
     def half(self):
         return self[0]
 
+    def tree_view(self, fold_symmetry=True, **kwargs):
+        if fold_symmetry:
+            return (self.name + '\n' + ' ├─' + self.half.tree_view().replace('\n', '\n | ') + '\n'
+                    + f" └─mirrored copy of the above {self.half.name}")
+        else:
+            return CollectionOfMeshes.tree_view(self, **kwargs)
+
     def __deepcopy__(self, *args):
         return ReflectionSymmetry(self.half.copy(), self.plane, name=self.name)
 
@@ -116,6 +123,13 @@ class TranslationalSymmetry(SymmetricMesh):
     @property
     def first_slice(self):
         return self[0]
+
+    def tree_view(self, fold_symmetry=True, **kwargs):
+        if fold_symmetry:
+            return (self.name + '\n' + ' ├─' + self.first_slice.tree_view().replace('\n', '\n | ') + '\n'
+                    + f" └─{len(self)-1} translated copies of the above {self.first_slice.name}")
+        else:
+            return CollectionOfMeshes.tree_view(self, **kwargs)
 
     def __deepcopy__(self, *args):
         return TranslationalSymmetry(self.first_slice.copy(), self.translation, nb_repetitions=len(self)-1, name=self.name)
@@ -189,6 +203,13 @@ class AxialSymmetry(SymmetricMesh):
     @property
     def first_slice(self):
         return self[0]
+
+    def tree_view(self, fold_symmetry=True, **kwargs):
+        if fold_symmetry:
+            return (self.name + '\n' + ' ├─' + self.first_slice.tree_view().replace('\n', '\n | ') + '\n'
+                    + f" └─{len(self)-1} rotated copies of the above {self.first_slice.name}")
+        else:
+            return CollectionOfMeshes.tree_view(self, **kwargs)
 
     def __deepcopy__(self, *args):
         return AxialSymmetry(self.first_slice.copy(), self.point_on_rotation_axis, nb_repetitions=len(self)-1, name=self.name)

@@ -125,6 +125,10 @@ class Mesh:
         """Dummy method to be generalized for collections of meshes."""
         return self
 
+    def tree_view(self, **kwargs):
+        """Dummy method to be generalized for collections of meshes."""
+        return self.name
+
     def to_meshmagick(self):
         """Convert the Mesh object as an object from meshmagick."""
         from meshmagick.mesh import Mesh
