@@ -9,6 +9,7 @@ Subpackages
     capytaine.geometric_bodies
     capytaine.mesh
     capytaine.tools
+    capytaine.ui
 
 Submodules
 ----------
@@ -18,7 +19,6 @@ Submodules
    capytaine.Nemoh
    capytaine.Toeplitz_matrices
    capytaine.bodies
-   capytaine.cli
    capytaine.problems
    capytaine.results
 

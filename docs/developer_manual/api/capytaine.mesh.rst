@@ -6,7 +6,6 @@ Submodules
 
 .. toctree::
 
-   capytaine.mesh.MMviewer
    capytaine.mesh.connectivity
    capytaine.mesh.faces_properties
    capytaine.mesh.mesh

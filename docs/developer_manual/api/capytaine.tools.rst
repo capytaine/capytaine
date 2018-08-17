@@ -1,13 +1,6 @@
 capytaine.tools package
 =======================
 
-Subpackages
------------
-
-.. toctree::
-
-    capytaine.tools.vtk
-
 Submodules
 ----------
 
