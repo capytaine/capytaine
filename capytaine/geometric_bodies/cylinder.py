@@ -24,6 +24,21 @@ LOG = logging.getLogger(__name__)
 
 class Disk(FloatingBody):
     def __init__(self, radius=1.0, center=(0, 0, 0), nr=3, ntheta=5, name=None):
+        """Generate the mesh of a vertical disk.
+
+        Parameters
+        ----------
+        radius : float, optional
+            radius of the disk
+        center : 3-ple or array of shape (3,), optional
+            position of the center of the disk
+        nr : int, optional
+            number of panels along a radius
+        ntheta : int, optional
+            number of panels around the disk
+        name : str, optional
+            a string naming the floating body
+        """
         self.radius = radius
         self.center = np.asarray(center)
 
@@ -76,19 +91,22 @@ class HorizontalCylinder(FloatingBody):
 
         Parameters
         ----------
-        length : float
+        length : float, optional
             length of the cylinder
-        radius : float
+        radius : float, optional
             radius of the cylinder
-        center : 3-ple or array of shape (3,)
+        center : 3-ple or array of shape (3,), optional
             position of the center of the cylinder
-        nx : int
+        nx : int, optional
             number of circular slices
-        ntheta : int
+        ntheta : int, optional
             number of panels along a circular slice of the cylinder
-        clip_free_surface : bool
-            if True, only mesh the part of the cylinder where z < 0,
-            can be used with z0 to obtain any clipped cylinder
+        nr : int, optional
+            number of panels along a radius on the extremities of the cylinder
+        clever : bool, optional
+            if True, uses the mesh symmetries
+        name : str, optional
+            a string naming the floating body
         """
         self.length = length
         self.radius = radius
@@ -97,14 +115,13 @@ class HorizontalCylinder(FloatingBody):
         if name is None:
             name = f"cylinder_{next(Mesh._ids)}"
 
-        open_cylinder = self._generate_open_cylinder_mesh(nx, ntheta, name)
+        open_cylinder = self._generate_open_cylinder_mesh(nx, ntheta, f"body_of_{name}")
 
         if nr > 0:
             side = Disk(radius=radius, center=(-np.array([length/2, 0, 0])),
                         nr=nr, ntheta=ntheta, name=f"side_of_{name}").mesh
 
-            other_side = side.copy()
-            other_side.name = f"other_side_of_{name}"
+            other_side = side.copy(name=f"other_side_of_{name}_mesh")
             other_side.mirror(yOz_Plane)
 
             mesh = CollectionOfMeshes((open_cylinder, side, other_side))
@@ -118,6 +135,7 @@ class HorizontalCylinder(FloatingBody):
             mesh.heal_triangles()
 
         mesh.translate(self.center)
+        mesh.name = f"{name}_mesh"
 
         FloatingBody.__init__(self, mesh=mesh, name=name)
 

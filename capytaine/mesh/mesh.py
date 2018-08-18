@@ -40,10 +40,9 @@ class Mesh:
 
         self._vertices = np.array(vertices, dtype=np.float)
         self._faces = np.array(faces, dtype=np.int)
-        self._id = next(self._ids)
 
         if not name:
-            self.name = f'mesh_{self._id}'
+            self.name = f'mesh_{next(Mesh._ids)}'
         else:
             self.name = str(name)
 

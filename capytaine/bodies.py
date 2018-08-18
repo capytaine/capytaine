@@ -96,10 +96,10 @@ class FloatingBody:
 
     @staticmethod
     def join_bodies(bodies, name=None) -> 'FloatingBody':
-        meshes = CollectionOfMeshes([body.mesh for body in bodies])
-        dofs = FloatingBody.combine_dofs(bodies)
         if name is None:
             name = name="+".join(body.name for body in bodies)
+        meshes = CollectionOfMeshes([body.mesh for body in bodies], name=f"{name}_mesh")
+        dofs = FloatingBody.combine_dofs(bodies)
         return FloatingBody(mesh=meshes, dofs=dofs, name=name)
 
     @staticmethod
