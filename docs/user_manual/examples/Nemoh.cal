@@ -1,0 +1,34 @@
+--- Environment ---
+1000                    ! RHO         ! KG/M**3   ! Fluid specific volume 
+9.81                    ! G           ! M/S**2    ! Gravity
+0                       ! DEPTH       ! M         ! Water depth
+0     0                 ! Wave measurement point !! This line is ignored !!
+--- Description of floating bodies ---
+1                       ! Number of bodies
+--- Body 1 ---
+Cylinder.dat            ! Name of mesh file
+540    300              ! Number of vertices and panels in mesh !! This line is ignored !!
+6                       ! Number of degrees of freedom
+1  1  0  0  0  0  0     ! Surge
+1  0  1  0  0  0  0     ! Sway
+1  0  0  1  0  0  0     ! Heave
+2  1  0  0  0  0  -7.5  ! Roll about CdG
+2  0  1  0  0  0  -7.5  ! Pitch about CdG
+2  0  0  1  0  0  -7.5  ! Yaw about CdG
+6                       ! Number of resulting generalised forces
+1  1  0  0  0  0  0     ! Force in x direction !! This line is ignored !!
+1  0  1  0  0  0  0     ! Force in y direction !! This line is ignored !!
+1  0  0  1  0  0  0     ! Force in z direction !! This line is ignored !!
+2  1  0  0  0  0  -7.5  ! Moment force in x direction about CdG !! This line is ignored !!
+2  0  1  0  0  0  -7.5  ! Moment force in y direction about CdG !! This line is ignored !!
+2  0  0  1  0  0  -7.5  ! Moment force in z direction about CdG !! This line is ignored !!
+0                       ! Number of lines of additional information !! All the additional informations are ignored !!
+--- Load cases to be solved ---
+2  0.1  2.0             ! Number of wave frequencies, Min, and Max (rad/s)
+1  0.0  0.0             ! Number of wave directions, Min and Max (degrees)
+--- Post processing ---
+0  0.1  10              ! IRF !! This line is ignored !!
+0                       ! Show pressure !! This line is ignored !!
+0  0  180               ! Kochin function !! This line is ignored !!
+0 10  100  100          ! Free surface elevation !! This line ignored !!
+
