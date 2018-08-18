@@ -18,7 +18,7 @@ def _check_file(filename):
     return
 
 
-def load_mesh(filename, file_format):
+def load_mesh(filename, file_format=None):
     """Driver function that loads every mesh file format known by meshmagick and returns the node list and the
     connectivity array
 
@@ -26,7 +26,7 @@ def load_mesh(filename, file_format):
     ----------
     filename: str
         name of the meh file on disk
-    file_format: str
+    file_format: str, optional
         format of the mesh defined in the extension_dict dictionary
 
     Returns
@@ -37,6 +37,9 @@ def load_mesh(filename, file_format):
         numpy array of the faces' nodes connectivities
     """
     _check_file(filename)
+
+    if file_format is None:
+        _, file_format = os.path.splitext(filename)
 
     if file_format not in extension_dict:
         raise IOError('Extension ".%s" is not known' % file_format)

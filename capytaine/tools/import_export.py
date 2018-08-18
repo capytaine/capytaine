@@ -35,14 +35,20 @@ def import_cal_file(filepath):
 
         cal_file.readline()  # Unused line.
         nb_bodies = int(cal_file.readline().split()[0])
-        for i_body in range(nb_bodies):
+        for _ in range(nb_bodies):
             cal_file.readline()  # Unused line.
             mesh_file = cal_file.readline().split()[0].strip()
+            mesh_file = os.path.join(os.path.dirname(filepath), mesh_file)  # mesh path are relative to Nemoh.cal
             cal_file.readline()  # Number of points, number of panels (unused)
 
-            body = FloatingBody.from_file(
-                os.path.join(os.path.dirname(filepath), mesh_file),  # mesh path are relative to Nemoh.cal
-                'mar')
+            if os.path.splitext(mesh_file)[1] == '.py':
+                from importlib.util import spec_from_file_location, module_from_spec
+                spec = spec_from_file_location("body_initialization_module", mesh_file)
+                body_initialization = module_from_spec(spec)
+                spec.loader.exec_module(body_initialization)
+                body = body_initialization.body
+            else:
+                body = FloatingBody.from_file(mesh_file)
 
             nb_dofs = int(cal_file.readline().split()[0])
             for i_dof in range(nb_dofs):

@@ -64,7 +64,7 @@ class FloatingBody:
         LOG.info(f"New floating body: {self.name}.")
 
     @staticmethod
-    def from_file(filename: str, file_format: str ="mar") -> 'FloatingBody':
+    def from_file(filename: str, file_format=None) -> 'FloatingBody':
         """Create a FloatingBody from a mesh file using meshmagick."""
         from capytaine.mesh.mmio import load_mesh
 
