@@ -53,19 +53,19 @@ class CollectionOfMeshes(tuple):
         return self.name
 
     def tree_view(self, **kwargs):
-        new_lines = []
-        for mesh in self:
-            lines = mesh.tree_view(**kwargs).splitlines()
-            for line in lines:
-                if line[0] == ' ':
-                    new_lines.append(' | ' + line)
-                else:
-                    new_lines.append(' ├─' + line)
 
-        def replace_last(s, old, new):
-            return new.join(s.rsplit(old, 1))
+        body_tree_views = []
+        for i, mesh in enumerate(self):
+            tree_view = mesh.tree_view(**kwargs)
+            if i == len(self)-1:
+                prefix = ' └─'
+                shift  = '   '
+            else:
+                prefix = ' ├─'
+                shift  = ' │ '
+            body_tree_views.append(prefix + tree_view.replace('\n', '\n' + shift))
 
-        return replace_last(self.name + '\n' + '\n'.join(new_lines), '├─', '└─')
+        return self.name + '\n' + '\n'.join(body_tree_views)
 
     def copy(self, name=None):
         from copy import deepcopy
@@ -153,7 +153,7 @@ class CollectionOfMeshes(tuple):
                 clipped_meshes.append(m)
 
         if len(clipped_meshes) > 0:
-            return CollectionOfMeshes(clipped_meshes)
+            return CollectionOfMeshes(clipped_meshes, name=f"{self.name}_clipped")
         else:
             return None
 
