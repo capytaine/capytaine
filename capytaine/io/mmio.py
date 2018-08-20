@@ -40,6 +40,7 @@ def load_mesh(filename, file_format=None):
 
     if file_format is None:
         _, file_format = os.path.splitext(filename)
+        file_format = file_format.strip('.')
 
     if file_format not in extension_dict:
         raise IOError('Extension ".%s" is not known' % file_format)
@@ -1561,6 +1562,7 @@ def know_extension(ext):
     return ext in extension_dict
 
 extension_dict = {  # keyword,  reader,   writer
+    'dat': (load_MAR, write_MAR),
     'mar': (load_MAR, write_MAR),
     'nemoh': (load_MAR, write_MAR),
     'wamit': (load_GDF, write_GDF),

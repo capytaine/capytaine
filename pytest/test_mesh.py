@@ -39,7 +39,6 @@ def test_faces():
     faces_tmp = cylinder.faces
     # assert np.all(faces == faces_tmp)
     cylinder.faces = faces_tmp
-    cylinder._id
     return
 
 def test_vertices():
