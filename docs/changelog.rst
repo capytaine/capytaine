@@ -17,7 +17,9 @@ Major changes
   capytaine.symmetries -> capytaine.mesh.symmetries
   capytaine.cli -> capytaine.ui.cli
   capytaine.tools.vtk -> capytaine.ui.vtk
+  capytaine.tools.mpl_free_surface_animation -> capytaine.ui.mpl_free_surface_animation
   capytaine.tools.import_export -> capytaine.io.legacy
+  capytaine.tools.bemio -> capytaine.io.bemio
   meshmagick.mmio -> capytaine.io.mesh_loaders and capytaine.io.mesh_writers
 
 * Reorganization of the internals of the solver :code:`Nemoh.py`. The initialization options :code:`keep_matrices` and :code:`max_stored_exponential_decompositions` have been removed.
