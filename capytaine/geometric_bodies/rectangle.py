@@ -21,8 +21,7 @@ LOG = logging.getLogger(__name__)
 class Rectangle(FloatingBody):
     """(One-sided) rectangle"""
 
-    def __init__(self, size=(5.0, 5.0), resolution=(5, 5), center=(0, 0, 0),
-                 clever=False, name=None):
+    def __init__(self, size=(5.0, 5.0), resolution=(5, 5), center=(0, 0, 0), clever=False, name=None):
         """Generate the mesh of a vertical rectangle (along x and z).
 
         Normals are oriented in the positive y direction.
@@ -55,16 +54,17 @@ class Rectangle(FloatingBody):
             name = f"rectangle_{next(Mesh._ids)}"
 
         if clever and nw > 1:
-            strip = self.generate_rectangle_mesh(width=width/nw, height=height, nw=1, nh=nh, name=f"strip_of_{name}")
+            strip = Rectangle.generate_rectangle_mesh(width=width/nw, height=height, nw=1, nh=nh, name=f"strip_of_{name}")
             strip.translate_x(-width/2 + width/(2*nw))
             mesh = TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=int(nw)-1, name=name)
         else:
-            mesh = self.generate_rectangle_mesh(width, height, nh, nw, name)
+            mesh = Rectangle.generate_rectangle_mesh(width, height, nh, nw, name)
         mesh.translate(center)
 
         FloatingBody.__init__(self, mesh=mesh, name=name)
 
-    def generate_rectangle_mesh(self, width=5.0, height=5.0, nh=5, nw=5, name=None):
+    @staticmethod
+    def generate_rectangle_mesh(width=5.0, height=5.0, nw=5, nh=5, name=None):
         X = np.linspace(-width/2, width/2, nw+1)
         Z = np.linspace(-height/2, height/2, nh+1)
 
@@ -119,22 +119,27 @@ class OpenRectangularParallelepiped(FloatingBody):
         if name is None:
             name = f"open_rectangular_parallelepiped_{next(Mesh._ids)}"
 
-        front_panel = Rectangle(size=(width/nw, height), resolution=(1, nh), center=(0, 0, 0),
-                                clever=False, name=f"front_panel_of_{name}").mesh
+        front_panel = Rectangle.generate_rectangle_mesh(
+            width=width/nw, height=height, nw=1, nh=nh, name=f"front_panel_of_{name}_mesh"
+        )
         back_panel = front_panel.copy(name=f"back_panel_of_{name}_mesh")
         front_panel.translate((-width/2 + width/(2*nw), thickness/2, 0))
         back_panel.rotate_z(np.pi)
         back_panel.translate((-width/2 + width/(2*nw), -thickness/2, 0))
-        front_and_back_panel = CollectionOfMeshes([front_panel, back_panel], name="front_and_back_panels_of_{name}_mesh")
+        front_and_back_panel = CollectionOfMeshes(
+            [front_panel, back_panel], name="front_and_back_panels_of_{name}_mesh"
+        )
 
-        front_and_back = TranslationalSymmetry(front_and_back_panel,
-                                               translation=(width/nw, 0, 0),
-                                               nb_repetitions=int(nw)-1,
-                                               name=f"front_and_back_of_{name}_mesh")
+        front_and_back = TranslationalSymmetry(
+            front_and_back_panel,
+            translation=(width/nw, 0, 0), nb_repetitions=int(nw)-1,
+            name=f"front_and_back_of_{name}_mesh"
+        )
 
         if nth > 0:
-            side = Rectangle(size=(thickness, height), resolution=(nth, nh), center=(0, 0, 0),
-                             clever=False, name=f"side_of_{name}").mesh
+            side = Rectangle.generate_rectangle_mesh(
+                width=thickness, height=height, nw=nth, nh=nh, name=f"side_of_{name}_mesh"
+            )
             other_side = side.copy(name=f"other_side_of_{name}_mesh")
 
             side.rotate_z(np.pi/2)
@@ -193,16 +198,18 @@ class RectangularParallelepiped(FloatingBody):
         if name is None:
             name = f"rectangular_parallelepiped_{next(Mesh._ids)}"
 
-        front_panel = Rectangle(size=(width/nw, height), resolution=(1, nh), center=(0, 0, 0),
-                                clever=False, name=f"front_panel_of_{name}").mesh
+        front_panel = Rectangle.generate_rectangle_mesh(
+            width=width/nw, height=height, nw=1, nh=nh, name=f"front_panel_of_{name}_mesh"
+        )
         back_panel = front_panel.copy(name=f"back_panel_of_{name}_mesh")
         front_panel.translate((-width/2 + width/(2*nw), thickness/2, 0))
         back_panel.rotate_z(np.pi)
         back_panel.translate((-width/2 + width/(2*nw), -thickness/2, 0))
 
         if nth > 0:
-            top = Rectangle(size=(width/nw, thickness), resolution=(1, nth),
-                            clever=False, name=f"top_panel_of_{name}").mesh
+            top = Rectangle.generate_rectangle_mesh(
+                width=width/nw, height=thickness, nw=1, nh=nth, name=f"top_panel_of_{name}_mesh"
+            )
             bottom = top.copy(name=f"bottom_panel_of_{name}_mesh")
 
             top.translate_x(-width/2 + width/(2*nw))
@@ -212,15 +219,19 @@ class RectangularParallelepiped(FloatingBody):
             bottom.rotate_x(-np.pi/2)
             bottom.translate_z(-height/2)
 
-            four_panels = CollectionOfMeshes([front_panel, back_panel, top, bottom], name=f"ring_of_{name}_mesh")
+            four_panels = CollectionOfMeshes(
+                [front_panel, back_panel, top, bottom], name=f"ring_of_{name}_mesh"
+            )
 
-            front_back_top_bottom = TranslationalSymmetry(four_panels,
-                                                          translation=(width/nw, 0, 0),
-                                                          nb_repetitions=int(nw)-1,
-                                                          name=f"body_of_{name}_mesh")
+            front_back_top_bottom = TranslationalSymmetry(
+                four_panels,
+                translation=(width/nw, 0, 0), nb_repetitions=int(nw)-1,
+                name=f"body_of_{name}_mesh"
+            )
 
-            side = Rectangle(size=(thickness, height), resolution=(nth, nh), center=(0, 0, 0),
-                             clever=False, name=f"side_of_{name}").mesh
+            side = Rectangle.generate_rectangle_mesh(
+                width=thickness, height=height, nw=nth, nh=nh, name=f"side_of_{name}_mesh"
+            )
             other_side = side.copy(name=f"other_side_of_{name}_mesh")
 
             side.rotate_z(np.pi/2)
@@ -228,10 +239,10 @@ class RectangularParallelepiped(FloatingBody):
             other_side.rotate_z(-np.pi/2)
             other_side.translate_x(width/2)
 
-            parallelepiped = CollectionOfMeshes([front_back_top_bottom, side, other_side])
+            parallelepiped = CollectionOfMeshes([front_back_top_bottom, side, other_side], name=f"{name}_mesh")
         else:
             front_and_back = TranslationalSymmetry(front_panel + back_panel, translation=(width/nw, 0, 0), nb_repetitions=int(nw)-1)
-            parallelepiped = CollectionOfMeshes([front_and_back])
+            parallelepiped = CollectionOfMeshes([front_and_back], name=f"{name}_mesh")
 
         if not clever:
             parallelepiped = parallelepiped.merge(name=f"{name}_mesh")
@@ -239,7 +250,6 @@ class RectangularParallelepiped(FloatingBody):
             parallelepiped.heal_triangles()
 
         parallelepiped.translate(center)
-        parallelepiped.name = f"{name}_mesh"
         FloatingBody.__init__(self, mesh=parallelepiped, name=name)
 
     @property
