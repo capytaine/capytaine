@@ -649,7 +649,7 @@ class MeshClipper:
 
             else:
                 try:
-                    from . import mmio
+                    from capytaine.io import mmio
                     mmio.write_VTP('full_debug.vtp', self.source_mesh.vertices, self.source_mesh.faces)
                     # mmio.write_VTP('clipped_crown_debug.vtp', clipped_crown_mesh.vertices, clipped_crown_mesh.faces)
                     mmio.write_VTP('crown_debug.vtp', crown_mesh.vertices, crown_mesh.faces)
@@ -728,7 +728,7 @@ class MeshClipper:
                 if self._assert_closed_boundaries:
                     if len(open_lines) > 0:
                         try:
-                            from . import mmio
+                            from capytaine.io import mmio
                             mmio.write_VTP('full_debug.vtp', self.source_mesh.vertices, self.source_mesh.faces)
                             mmio.write_VTP('clipped_crown_debug.vtp', clipped_crown_mesh.vertices, clipped_crown_mesh.faces)
                             mmio.write_VTP('crown_debug.vtp', crown_mesh.vertices, crown_mesh.faces)

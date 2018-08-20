@@ -8,9 +8,7 @@ import argparse
 import logging
 import os
 
-import numpy as np
-
-from capytaine.tools.import_export import import_cal_file, write_dataset_as_tecplot_files
+from capytaine.io.legacy import import_cal_file, write_dataset_as_tecplot_files
 from capytaine.results import assemble_dataset
 from capytaine.Nemoh import Nemoh
 

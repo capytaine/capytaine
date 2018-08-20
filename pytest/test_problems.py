@@ -16,7 +16,7 @@ from capytaine.geometric_bodies.sphere import Sphere
 from capytaine.problems import LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem
 from capytaine.results import LinearPotentialFlowResult, DiffractionResult, RadiationResult
 
-from capytaine.tools.import_export import import_cal_file
+from capytaine.io.legacy import import_cal_file
 
 
 def test_LinearPotentialFlowProblem():

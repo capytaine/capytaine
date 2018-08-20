@@ -66,7 +66,7 @@ class FloatingBody:
     @staticmethod
     def from_file(filename: str, file_format=None) -> 'FloatingBody':
         """Create a FloatingBody from a mesh file using meshmagick."""
-        from capytaine.mesh.mmio import load_mesh
+        from capytaine.io.mmio import load_mesh
 
         vertices, faces = load_mesh(filename, file_format)
         mesh = Mesh(vertices, faces, name=f"{filename}_mesh")
