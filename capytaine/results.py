@@ -83,6 +83,23 @@ class RadiationResult(LinearPotentialFlowResult):
                 for dof in self.influenced_dofs]
 
 
+##############################################################################################
+#                                     xarray assembling                                      #
+##############################################################################################
+
+ATTRIBUTE_RATHER_THAN_COORD = False
+# If True, the coordinates with a single value are replaced by attributes in the dataset.
+
+
+def _squeeze_dimensions(data_array, dimensions=None):
+    if dimensions is None:
+        dimensions = data_array.dims
+    for dim in dimensions:
+        if len(data_array[dim]) == 1:
+            data_array = data_array.squeeze(dim, drop=ATTRIBUTE_RATHER_THAN_COORD)
+    return data_array
+
+
 def assemble_dataset(results):
     import pandas as pd
     import xarray as xr
@@ -91,42 +108,43 @@ def assemble_dataset(results):
 
     df = pd.DataFrame([record for result in results for record in result.records()])
 
-    optional_vars = ['water_depth', 'body_name', 'rho', 'g']
+    optional_vars = ['g', 'rho', 'body_name', 'water_depth']
 
+    # RADIATION RESULTS
     if 'added_mass' in df.columns:
         radiation_cases = df[df['added_mass'].notnull()].dropna(1)
 
         dimensions = ['omega', 'radiating_dof', 'influenced_dof']
-        for optional_var in optional_vars:
-            optional_var_range = df[optional_var].unique()
-            if len(optional_var_range) > 1:
-                dimensions = [optional_var] + dimensions
-            else:
-                radiation_cases = radiation_cases.drop(optional_var, axis=1)
-
-        radiation_cases = radiation_cases.set_index(dimensions)
+        radiation_cases = radiation_cases.set_index(optional_vars + dimensions)
         radiation_cases = radiation_cases.to_xarray()
+        radiation_cases = _squeeze_dimensions(radiation_cases, dimensions=optional_vars)
         dataset = xr.merge([dataset, radiation_cases])
 
+    # DIFFRACTION RESULTS
     if 'diffraction_force' in df.columns:
         diffraction_cases = df[df['diffraction_force'].notnull()].dropna(1)
 
         dimensions = ['omega', 'angle', 'influenced_dof']
-        for optional_var in optional_vars:
-            optional_var_range = df[optional_var].unique()
-            if len(optional_var_range) > 1:
-                dimensions = [optional_var] + dimensions
-            else:
-                diffraction_cases = diffraction_cases.drop(optional_var, axis=1)
-
-        diffraction_cases = diffraction_cases.set_index(dimensions)
+        diffraction_cases = diffraction_cases.set_index(optional_vars + dimensions)
         diffraction_cases = diffraction_cases.to_xarray()
+        diffraction_cases = _squeeze_dimensions(diffraction_cases, dimensions=optional_vars)
         dataset = xr.merge([dataset, diffraction_cases])
 
-    for optional_var in optional_vars:
-        optional_var_range = df[optional_var].unique()
-        if len(optional_var_range) == 1:
-            dataset.attrs[optional_var] = optional_var_range[0]
+    # BODIES PROPERTIES
+    bodies = list({result.body for result in results})
+    for body_property in ['mass', 'hydrostatic_stiffness']:
+        bodies_properties = {body.name: body.__getattribute__(body_property) for body in bodies if hasattr(body, body_property)}
+        if len(bodies_properties) > 0:
+            bodies_properties = xr.concat(bodies_properties.values(), pd.Index(bodies_properties.keys(), name='body_name'))
+            bodies_properties = _squeeze_dimensions(bodies_properties, dimensions=['body_name'])
+            dataset = xr.merge([dataset, {body_property: bodies_properties}])
+
+    # ATTRIBUTES
+    if ATTRIBUTE_RATHER_THAN_COORD:
+        for optional_var in optional_vars:
+            optional_var_range = df[optional_var].unique()
+            if len(optional_var_range) == 1:
+                dataset.attrs[optional_var] = optional_var_range[0]
 
     return dataset
 

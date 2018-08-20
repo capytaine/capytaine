@@ -30,6 +30,7 @@ Minor changes
 
 * New function :code:`write_dataset_as_tecplot_files` in :code:`capytaine.tools`.
 * New method :code:`tree_view()` for meshes to display the structure of hierarchical collections of meshes.
+* Some body properties are stored in xarray dataset if they are available.
 
 ------------------
 New in version 0.4
