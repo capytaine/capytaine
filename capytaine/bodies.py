@@ -12,9 +12,7 @@ import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.mesh.symmetries import ReflectionSymmetry
 
-from capytaine.tools.geometry import xOz_Plane
 from capytaine.ui.vtk.mesh_viewer import FloatingBodyViewer
 
 LOG = logging.getLogger(__name__)
@@ -64,21 +62,13 @@ class FloatingBody:
         LOG.info(f"New floating body: {self.name}.")
 
     @staticmethod
-    def from_file(filename: str, file_format=None) -> 'FloatingBody':
+    def from_file(filename: str, file_format=None, name=None) -> 'FloatingBody':
         """Create a FloatingBody from a mesh file using meshmagick."""
-        from capytaine.io.mmio import load_mesh
-
-        vertices, faces = load_mesh(filename, file_format)
-        mesh = Mesh(vertices, faces, name=f"{filename}_mesh")
-
-        if file_format == "mar":
-            with open(filename, 'r') as fi:
-                header = fi.readline()
-                _, sym = header.split()
-                if int(sym) == 1:
-                    mesh = ReflectionSymmetry(mesh, plane=xOz_Plane)
-
-        return FloatingBody(mesh, name=filename)
+        from capytaine.io.mesh_loaders import load_mesh
+        if name is None:
+            name = filename
+        mesh = load_mesh(filename, file_format, name=f"{name}_mesh")
+        return FloatingBody(mesh, name=name)
 
     def __str__(self):
         return self.name

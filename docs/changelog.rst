@@ -18,7 +18,7 @@ Major changes
   capytaine.cli -> capytaine.ui.cli
   capytaine.tools.vtk -> capytaine.ui.vtk
   capytaine.tools.import_export -> capytaine.io.legacy
-  meshmagick.mmio -> capytaine.io.mmio
+  meshmagick.mmio -> capytaine.io.mesh_loaders and capytaine.io.mesh_writers
 
 * Reorganization of the internals of the solver :code:`Nemoh.py`. The initialization options :code:`keep_matrices` and :code:`max_stored_exponential_decompositions` have been removed.
 * :code:`CollectionOfMeshes` and its subclasses are now subclasses from :code:`tuple`.

@@ -649,10 +649,10 @@ class MeshClipper:
 
             else:
                 try:
-                    from capytaine.io import mmio
-                    mmio.write_VTP('full_debug.vtp', self.source_mesh.vertices, self.source_mesh.faces)
-                    # mmio.write_VTP('clipped_crown_debug.vtp', clipped_crown_mesh.vertices, clipped_crown_mesh.faces)
-                    mmio.write_VTP('crown_debug.vtp', crown_mesh.vertices, crown_mesh.faces)
+                    from capytaine.io import mesh_writers
+                    mesh_writers.write_VTP('full_debug.vtp', self.source_mesh.vertices, self.source_mesh.faces)
+                    # meshio.write_VTP('clipped_crown_debug.vtp', clipped_crown_mesh.vertices, clipped_crown_mesh.faces)
+                    mesh_writers.write_VTP('crown_debug.vtp', crown_mesh.vertices, crown_mesh.faces)
                 except:
                     pass
                 raise Exception("Face %u clipping case %s not known." % (face_id, face_type))
@@ -728,10 +728,10 @@ class MeshClipper:
                 if self._assert_closed_boundaries:
                     if len(open_lines) > 0:
                         try:
-                            from capytaine.io import mmio
-                            mmio.write_VTP('full_debug.vtp', self.source_mesh.vertices, self.source_mesh.faces)
-                            mmio.write_VTP('clipped_crown_debug.vtp', clipped_crown_mesh.vertices, clipped_crown_mesh.faces)
-                            mmio.write_VTP('crown_debug.vtp', crown_mesh.vertices, crown_mesh.faces)
+                            from capytaine.io import mesh_writers
+                            mesh_writers.write_VTP('full_debug.vtp', self.source_mesh.vertices, self.source_mesh.faces)
+                            mesh_writers.write_VTP('clipped_crown_debug.vtp', clipped_crown_mesh.vertices, clipped_crown_mesh.faces)
+                            mesh_writers.write_VTP('crown_debug.vtp', crown_mesh.vertices, crown_mesh.faces)
                         except:
                             pass
 

@@ -9,7 +9,7 @@ import logging
 
 import numpy as np
 
-from capytaine.io.mmio import write_MAR
+from capytaine.io.mesh_writers import write_MAR
 from capytaine.bodies import FloatingBody
 from capytaine.problems import DiffractionProblem, RadiationProblem
 
