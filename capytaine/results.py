@@ -23,8 +23,6 @@ class LinearPotentialFlowResult:
 
     fs_elevation = attrib(default=Factory(dict), init=False, repr=False)
 
-    kochin = attrib(default=None, init=False, repr=False)
-
     def __getattr__(self, name):
         try:
             return getattr(self.problem, name)
@@ -49,10 +47,14 @@ class DiffractionResult(LinearPotentialFlowResult):
     def store_force(self, dof, force):
         self.forces[dof] = 1j*self.omega*force
 
+    @property
+    def settings_dict(self):
+        return dict(omega=self.omega, angle=self.angle,
+                    water_depth=self.depth, body_name=self.body.name, g=self.g, rho=self.rho)
+
+    @property
     def records(self):
-        FK = Froude_Krylov_force(self.problem)
-        return [dict(omega=self.omega, influenced_dof=dof, angle=self.angle,
-                     water_depth=self.depth, body_name=self.body.name, g=self.g, rho=self.rho,
+        return [dict(self.settings_dict, influenced_dof=dof,
                      diffraction_force=self.forces[dof], Froude_Krylov_force=FK[dof])
                 for dof in self.influenced_dofs]
 
@@ -76,9 +78,14 @@ class RadiationResult(LinearPotentialFlowResult):
         self.added_masses[dof] = force.real
         self.radiation_dampings[dof] = self.problem.omega * force.imag
 
+    @property
+    def settings_dict(self):
+            return dict(omega=self.omega, radiating_dof=self.radiating_dof,
+                        water_depth=self.depth, body_name=self.body.name, g=self.g, rho=self.rho)
+
+    @property
     def records(self):
-        return [dict(omega=self.omega, influenced_dof=dof, radiating_dof=self.radiating_dof,
-                     water_depth=self.depth, body_name=self.body.name, g=self.g, rho=self.rho,
+        return [dict(self.settings_dict, influenced_dof=dof,
                      added_mass=self.added_masses[dof], radiation_damping=self.radiation_dampings[dof])
                 for dof in self.influenced_dofs]
 
@@ -87,7 +94,7 @@ class RadiationResult(LinearPotentialFlowResult):
 #                                     xarray assembling                                      #
 ##############################################################################################
 
-ATTRIBUTE_RATHER_THAN_COORD = False
+ATTRIBUTE_RATHER_THAN_COORD = True
 # If True, the coordinates with a single value are replaced by attributes in the dataset.
 
 
@@ -100,13 +107,21 @@ def _squeeze_dimensions(data_array, dimensions=None):
     return data_array
 
 
+def add_wavenumber_coord(dataset, results):
+    import pandas as pd
+    wavenumbers = [dict(g=result.g, water_depth=result.depth, omega=result.omega, wavenumber=result.wavenumber) for result in results]
+    df = pd.DataFrame(wavenumbers).drop_duplicates()
+    df = df.set_index(['g', 'water_depth', 'omega'])
+    dataset.coords['wavenumber'] = (['g', 'water_depth', 'omega'], df.to_xarray()['wavenumber'].data)
+
+
 def assemble_dataset(results):
     import pandas as pd
     import xarray as xr
 
     dataset = xr.Dataset()
 
-    df = pd.DataFrame([record for result in results for record in result.records()])
+    df = pd.DataFrame([record for result in results for record in result.records])
 
     optional_vars = ['g', 'rho', 'body_name', 'water_depth']
 
