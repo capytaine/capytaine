@@ -8,7 +8,7 @@ from itertools import chain, accumulate
 
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh
+from capytaine.mesh.mesh import Mesh, inplace_or_not
 
 NAME_MAX_LENGTH = 180
 
@@ -157,38 +157,47 @@ class CollectionOfMeshes(tuple):
         else:
             return None
 
+    @inplace_or_not
     def mirror(self, plane):
         for mesh in self:
             mesh.mirror(plane)
 
+    @inplace_or_not
     def translate_x(self, value):
         for mesh in self:
             mesh.translate_x(value)
 
+    @inplace_or_not
     def translate_y(self, value):
         for mesh in self:
             mesh.translate_y(value)
 
+    @inplace_or_not
     def translate_z(self, value):
         for mesh in self:
             mesh.translate_z(value)
 
+    @inplace_or_not
     def translate(self, vector):
         for mesh in self:
             mesh.translate(vector)
 
+    @inplace_or_not
     def rotate_x(self, value):
         for mesh in self:
             mesh.rotate_x(value)
 
+    @inplace_or_not
     def rotate_y(self, value):
         for mesh in self:
             mesh.rotate_y(value)
 
+    @inplace_or_not
     def rotate_z(self, value):
         for mesh in self:
             mesh.rotate_z(value)
 
+    @inplace_or_not
     def rotate(self, vector):
         for mesh in self:
             mesh.rotate(vector)

@@ -16,6 +16,21 @@ from capytaine.tools.geometry import Plane
 
 LOG = logging.getLogger(__name__)
 
+
+def inplace_or_not(inplace_function):
+    """Decorator for mesh transformation methods.
+    Add the optional argument to return a new mesh instead of doing the transformation in place."""
+    def inplace_function_with_option(self, *args, inplace=True, name=None, **kwargs):
+        if not inplace:
+            mesh = self.copy(name=name)
+        else:
+            mesh = self
+        inplace_function(mesh, *args, **kwargs)
+        if not inplace:
+            return mesh
+    return inplace_function_with_option
+
+
 class Mesh:
     """A class to handle unstructured meshes.
 
@@ -462,8 +477,8 @@ class Mesh:
     #  Transformation of the mesh  #
     ################################
 
-    ## Rotate
-
+    # ROTATE
+    @inplace_or_not
     def rotate_x(self, thetax):
         """Rotates the mesh around Ox axis.
 
@@ -479,6 +494,7 @@ class Mesh:
         """
         return self.rotate([thetax, 0., 0.])
 
+    @inplace_or_not
     def rotate_y(self, thetay):
         """Rotates the mesh around Oy axis.
 
@@ -494,6 +510,7 @@ class Mesh:
         """
         return self.rotate([0., thetay, 0.])
 
+    @inplace_or_not
     def rotate_z(self, thetaz):
         """Rotates the mesh around Oz axis.
 
@@ -509,6 +526,7 @@ class Mesh:
         """
         return self.rotate([0., 0., thetaz])
 
+    @inplace_or_not
     def rotate(self, angles):
         """Rotates the mesh in 3D giving the 3 rotation angles that are defined around fixed axes.
 
@@ -566,8 +584,8 @@ class Mesh:
 
         return rot_matrix
 
-    ## Translate
-
+    # TRANSLATE
+    @inplace_or_not
     def translate_x(self, tx):
         """Translates the mesh along the Ox axis.
 
@@ -578,6 +596,7 @@ class Mesh:
         """
         return self.translate([tx, 0.0, 0.0])
 
+    @inplace_or_not
     def translate_y(self, ty):
         """Translates the mesh along the Oy axis.
 
@@ -588,6 +607,7 @@ class Mesh:
         """
         return self.translate([0.0, ty, 0.0])
 
+    @inplace_or_not
     def translate_z(self, tz):
         """Translates the mesh along the Oz axis.
 
@@ -598,6 +618,7 @@ class Mesh:
         """
         return self.translate([0.0, 0.0, tz])
 
+    @inplace_or_not
     def translate(self, t):
         """Translates the mesh in 3D giving the 3 distances along coordinate axes.
 
@@ -626,8 +647,8 @@ class Mesh:
 
         return
 
-    ## Scale
-
+    # SCALE
+    @inplace_or_not
     def scale(self, alpha):
         """Scales the mesh.
 
@@ -648,6 +669,7 @@ class Mesh:
 
         return
 
+    @inplace_or_not
     def scalex(self, alpha):
         """Scales the mesh along the x axis.
 
@@ -667,6 +689,7 @@ class Mesh:
 
         return
 
+    @inplace_or_not
     def scaley(self, alpha):
         """Scales the mesh along the y axis.
 
@@ -686,6 +709,7 @@ class Mesh:
 
         return
 
+    @inplace_or_not
     def scalez(self, alpha):
         """Scales the mesh along the z axis.
 
@@ -705,8 +729,8 @@ class Mesh:
 
         return
 
-    ## Other
-
+    # OTHER
+    @inplace_or_not
     def flip_normals(self):
         """Flips every normals of the mesh."""
 
@@ -719,7 +743,61 @@ class Mesh:
         # if self.has_surface_integrals():
         #     self._remove_surface_integrals()
 
-        return
+    @inplace_or_not
+    def symmetrize(self, plane):
+        """Symmetrize the mesh with respect to a plane.
+
+        Parameters
+        ----------
+        plane : Plane
+            The plane of symmetry
+        """
+        # Symmetrizing the nodes
+        vertices, faces = self._vertices, self._faces
+
+        vertices = np.concatenate((vertices, vertices - 2 * np.outer(np.dot(vertices, plane.normal) - plane.c, plane.normal)))
+        faces = np.concatenate((faces, np.fliplr(faces.copy() + self.nb_vertices)))
+
+        self._vertices, self._faces = vertices, faces
+        self.merge_duplicates()
+
+        self.__internals__.clear()
+
+    @inplace_or_not
+    def mirror(self, plane):
+        """Mirrors the mesh instance with respect to a plane.
+
+        Parameters
+        ----------
+        plane : Plane
+            The mirroring plane
+        """
+        self._vertices -= 2 * np.outer(np.dot(self._vertices, plane.normal) - plane.c, plane.normal)
+        self.flip_normals()
+        self.__internals__.clear()
+
+    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
+        """Clip the mesh with two horizontal planes."""
+        from capytaine.mesh.mesh_clipper import MeshClipper
+        if self.vertices[:, 2].min() > free_surface or self.vertices[:, 2].max() < sea_bottom:
+            return None  # The mesh has no wet faces.
+
+        elif self.vertices[:, 2].min() > sea_bottom and self.vertices[:, 2].max() < free_surface:
+            return self.copy(name=f"{self.name}_clipped")  # The mesh is completely immersed. Non need for clipping.
+
+        else:
+            clipped_mesh = MeshClipper(self,
+                                       plane=Plane(normal=(0.0, 0.0, 1.0),
+                                                   scalar=free_surface)).clipped_mesh
+
+            if sea_bottom > -np.infty:
+                clipped_mesh = MeshClipper(clipped_mesh,
+                                           plane=Plane(normal=(0.0, 0.0, -1.0),
+                                                       scalar=-sea_bottom)).clipped_mesh
+
+            clipped_mesh.remove_unused_vertices()
+            clipped_mesh.name = f"{self.name}_clipped"
+            return clipped_mesh
 
     def triangulate_quadrangles(self):
         """Triangulates every quadrangles of the mesh by simple spliting.
@@ -757,63 +835,6 @@ class Mesh:
         self._faces = faces
 
         return faces
-
-    def symmetrize(self, plane):
-        """Symmetrize the mesh with respect to a plane.
-
-        Parameters
-        ----------
-        plane : Plane
-            The plane of symmetry
-        """
-        # Symmetrizing the nodes
-        vertices, faces = self._vertices, self._faces
-
-        vertices = np.concatenate((vertices, vertices - 2 * np.outer(np.dot(vertices, plane.normal) - plane.c, plane.normal)))
-        faces = np.concatenate((faces, np.fliplr(faces.copy() + self.nb_vertices)))
-
-        self._vertices, self._faces = vertices, faces
-        self.merge_duplicates()
-
-        self.__internals__.clear()
-
-        return
-
-    def mirror(self, plane):
-        """Mirrors the mesh instance with respect to a plane.
-
-        Parameters
-        ----------
-        plane : Plane
-            The mirroring plane
-        """
-        self._vertices -= 2 * np.outer(np.dot(self._vertices, plane.normal) - plane.c, plane.normal)
-        self.flip_normals()
-        self.__internals__.clear()
-        return
-
-    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        """Clip the mesh with two horizontal planes."""
-        from capytaine.mesh.mesh_clipper import MeshClipper
-        if self.vertices[:, 2].min() > free_surface or self.vertices[:, 2].max() < sea_bottom:
-            return None  # The mesh has no wet faces.
-
-        elif self.vertices[:, 2].min() > sea_bottom and self.vertices[:, 2].max() < free_surface:
-            return self.copy(name=f"{self.name}_clipped")  # The mesh is completely immersed. Non need for clipping.
-
-        else:
-            clipped_mesh = MeshClipper(self,
-                                       plane=Plane(normal=(0.0, 0.0, 1.0),
-                                                   scalar=free_surface)).clipped_mesh
-
-            if sea_bottom > -np.infty:
-                clipped_mesh = MeshClipper(clipped_mesh,
-                                           plane=Plane(normal=(0.0, 0.0, -1.0),
-                                                       scalar=-sea_bottom)).clipped_mesh
-
-            clipped_mesh.remove_unused_vertices()
-            clipped_mesh.name = f"{self.name}_clipped"
-            return clipped_mesh
 
     ####################
     #  Combine meshes  #

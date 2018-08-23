@@ -96,5 +96,7 @@ def test_symmetrize():
     return
 
 def test_mirror():
+    new_cylinder = cylinder.mirror(Plane(), inplace=False)
     cylinder.mirror(Plane())
+    # assert new_cylinder == cylinder
 

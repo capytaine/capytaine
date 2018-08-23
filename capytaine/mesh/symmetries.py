@@ -36,9 +36,7 @@ class ReflectionSymmetry(SymmetricMesh):
         assert isinstance(plane, Plane)
         assert plane.normal[2] == 0  # Only vertical reflection planes are supported
 
-        other_half = half.copy()
-        other_half.mirror(plane)
-        other_half.name = "mirror_of_" + half.name
+        other_half = half.mirror(plane, inplace=False, name=f"mirror_of_{half.name}")
 
         self = super().__new__(cls, (half, other_half))
 
