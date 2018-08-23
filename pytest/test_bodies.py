@@ -5,11 +5,9 @@ import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.mesh.symmetries import TranslationalSymmetry
 
 from capytaine.bodies import FloatingBody
 from capytaine.geometric_bodies.sphere import Sphere
-from capytaine.geometric_bodies.rectangle import Rectangle, OpenRectangularParallelepiped, RectangularParallelepiped
 
 
 def test_collection_of_meshes():
@@ -81,65 +79,3 @@ def test_dof_name_inference():
         body.add_translation_dof(name=dofname)
         assert np.allclose(body.dofs[dofname], body.dofs['Surge_1'])
 
-
-def test_rectangle_generation():
-    rec = Rectangle(size=(10, 10), resolution=(5, 2), clever=False, center=(0, 0, -5), name="test")
-    assert rec.name == "test"
-    assert isinstance(rec.mesh, Mesh)
-    assert rec.mesh.name == "test_mesh"
-    assert np.allclose(rec.size, np.array([10.0, 10.0]))
-    assert np.allclose(rec.center, np.array([0, 0, -5.0]))
-    assert rec.mesh.nb_faces == 10
-    assert rec.mesh.nb_vertices == 18
-    assert rec.area == 100
-
-    assert np.all(rec.mesh.vertices[:, 0:2] <= 5.0)
-    assert np.all(rec.mesh.vertices[:, 0:2] >= -5.0)
-    assert np.all(rec.mesh.vertices[:, 2] <= 0.0)
-    assert np.all(rec.mesh.vertices[:, 2] >= -10.0)
-
-    # rec.show()
-
-    rec2 = Rectangle(size=(10, 10), resolution=(5, 2), clever=True, center=(0, 0, -5), name="clever_test")
-    assert isinstance(rec2.mesh, TranslationalSymmetry)
-    assert rec2.mesh.nb_submeshes == 5
-    assert rec2.mesh.nb_faces == 10
-
-    merged_mesh = rec2.mesh.merge()
-    assert merged_mesh.nb_vertices == 18
-    assert merged_mesh.nb_faces == 10
-
-
-def test_parallelepiped_generation():
-    para = OpenRectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
-                                         resolution=(5, 2, 3),
-                                         clever=False, name="test")
-    assert para.name == "test"
-    assert isinstance(para.mesh, Mesh)
-    assert para.mesh.name == "test_mesh"
-    assert para.mesh.nb_faces == 42
-
-    assert np.isclose(np.abs(para.mesh.vertices[:, 0]).max(), 2.5)
-    assert np.isclose(np.abs(para.mesh.vertices[:, 1]).max(), 0.5)
-    assert np.all(para.mesh.vertices[:, 2] <= 0.0)
-    assert np.all(para.mesh.vertices[:, 2] >= -3.0)
-
-    clever_para = OpenRectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
-                                                resolution=(5, 2, 3),
-                                                clever=True, name="clever_test")
-
-    assert clever_para.mesh.nb_faces == 42
-    assert isinstance(clever_para.mesh, CollectionOfMeshes)
-    assert any(isinstance(submesh, TranslationalSymmetry)for submesh in clever_para.mesh)
-
-    full_para = RectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
-                                          resolution=(5, 2, 3),
-                                          clever=False, name="full_test")
-    assert full_para.mesh.nb_faces == 62
-    # full_para.show()
-
-    clever_full_para = RectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
-                                                 resolution=(5, 2, 3),
-                                                 clever=True, name="clever_full_test")
-    assert clever_full_para.mesh.nb_faces == 62
-    # clever_full_para.show()
