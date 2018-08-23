@@ -9,6 +9,34 @@ from math import atan2
 
 # TODO: voir si on ne peut pas mettre ces fonctions dans un module dedie --> module rotation !!!
 
+
+def _rotation_matrix(angles):
+    angles = np.asarray(angles, dtype=np.float)
+    theta = np.linalg.norm(angles)
+    if theta == 0.:
+        return np.eye(3)
+
+    ctheta = np.cos(theta)
+    stheta = np.sin(theta)
+
+    nx, ny, nz = angles/theta
+    nxny = nx*ny
+    nxnz = nx*nz
+    nynz = ny*nz
+    nx2 = nx*nx
+    ny2 = ny*ny
+    nz2 = nz*nz
+
+    return (ctheta*np.eye(3)
+           + (1-ctheta) * np.array([[nx2, nxny, nxnz],
+                                    [nxny, ny2, nynz],
+                                    [nxnz, nynz, nz2]])
+           + stheta * np.array([[0., -nz, ny],
+                                [nz, 0., -nx],
+                                [-ny, nx, 0.]])
+            )
+
+
 def _rodrigues(thetax, thetay):
     """
     Computes the rotation matrix corresponding to angles thetax and thetay using the Olinde-Rodrigues formula
@@ -178,6 +206,11 @@ class Plane:
     def c(self, value):
         """Set the scalar parameter of the plane equation"""
         self._scalar = float(value)
+
+    def rotate(self, angles):
+        rot_matrix = _rotation_matrix(angles)
+        self.normal = rot_matrix @ self.normal
+        self._rot = rot_matrix @ self._rot
 
     def rotate_normal(self, theta_x, theta_y):
         """

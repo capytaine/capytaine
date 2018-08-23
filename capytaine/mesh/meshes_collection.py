@@ -158,49 +158,43 @@ class CollectionOfMeshes(tuple):
             return None
 
     @inplace_or_not
-    def mirror(self, plane):
-        for mesh in self:
-            mesh.mirror(plane)
-
-    @inplace_or_not
-    def translate_x(self, value):
-        for mesh in self:
-            mesh.translate_x(value)
-
-    @inplace_or_not
-    def translate_y(self, value):
-        for mesh in self:
-            mesh.translate_y(value)
-
-    @inplace_or_not
-    def translate_z(self, value):
-        for mesh in self:
-            mesh.translate_z(value)
-
-    @inplace_or_not
     def translate(self, vector):
         for mesh in self:
             mesh.translate(vector)
 
     @inplace_or_not
-    def rotate_x(self, value):
-        for mesh in self:
-            mesh.rotate_x(value)
+    def translate_x(self, value):
+        self.translate((value, 0, 0))
 
     @inplace_or_not
-    def rotate_y(self, value):
-        for mesh in self:
-            mesh.rotate_y(value)
+    def translate_y(self, value):
+        self.translate((0, value, 0))
 
     @inplace_or_not
-    def rotate_z(self, value):
-        for mesh in self:
-            mesh.rotate_z(value)
+    def translate_z(self, value):
+        self.translate((0, 0, value))
 
     @inplace_or_not
     def rotate(self, vector):
         for mesh in self:
             mesh.rotate(vector)
+
+    @inplace_or_not
+    def rotate_x(self, theta):
+        self.rotate((theta, 0, 0))
+
+    @inplace_or_not
+    def rotate_y(self, theta):
+        self.rotate((0, theta, 0))
+
+    @inplace_or_not
+    def rotate_z(self, theta):
+        self.rotate((0, 0, theta))
+
+    @inplace_or_not
+    def mirror(self, plane):
+        for mesh in self:
+            mesh.mirror(plane)
 
     def show(self):
         self.merge().show()

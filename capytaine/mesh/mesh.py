@@ -12,7 +12,7 @@ from itertools import count
 import numpy as np
 
 from capytaine.mesh.faces_properties import compute_faces_properties
-from capytaine.tools.geometry import Plane
+from capytaine.tools.geometry import Plane, _rotation_matrix
 
 LOG = logging.getLogger(__name__)
 
@@ -540,47 +540,19 @@ class Mesh:
         ndarray
             The (3x3) rotation matrix that has been applied to rotate the mesh
         """
-        # TODO: docstring
-        # FIXME : code en doublon par rapport a la fonction _rodrigues du module geometry
+        rot_matrix = _rotation_matrix(angles)
 
-        angles = np.asarray(angles, dtype=np.float)
-        theta = np.linalg.norm(angles)
-        if theta == 0.:
-            return np.eye(3)
-
-        ctheta = np.cos(theta)
-        stheta = np.sin(theta)
-
-        nx, ny, nz = angles/theta
-        nxny = nx*ny
-        nxnz = nx*nz
-        nynz = ny*nz
-        nx2 = nx*nx
-        ny2 = ny*ny
-        nz2 = nz*nz
-
-        rot_matrix = ctheta*np.eye(3) \
-            + (1-ctheta) * np.array([[nx2, nxny, nxnz],
-                                     [nxny, ny2, nynz],
-                                     [nxnz, nynz, nz2]]) \
-            + stheta * np.array([[0., -nz, ny],
-                                [nz, 0., -nx],
-                                [-ny, nx, 0.]])
-
-        # TODO: travailler avec une classe rotation
         self._vertices = np.transpose(np.dot(rot_matrix, self._vertices.copy().T))
 
         # Updating faces properties if any
-        # TODO: use traitlets...
         if self._has_faces_properties():
-            # Rotating normals and centers too
             normals = self.__internals__['faces_normals']
             centers = self.__internals__['faces_centers']
             self.__internals__['faces_normals'] = np.transpose(np.dot(rot_matrix, normals.T))
             self.__internals__['faces_centers'] = np.transpose(np.dot(rot_matrix, centers.T))
 
-        # if self.has_surface_integrals():
-        #     self._remove_surface_integrals()
+        if self.has_surface_integrals():
+            self._remove_surface_integrals()
 
         return rot_matrix
 
@@ -642,8 +614,8 @@ class Mesh:
             centers[:, 2] += tz
             self.__internals__['faces_centers'] = centers
 
-        # if self.has_surface_integrals():
-        #     self._remove_surface_integrals()
+        if self.has_surface_integrals():
+            self._remove_surface_integrals()
 
         return
 
@@ -740,8 +712,8 @@ class Mesh:
         if self._has_faces_properties():
             self.__internals__['faces_normals'] *= -1
 
-        # if self.has_surface_integrals():
-        #     self._remove_surface_integrals()
+        if self.has_surface_integrals():
+            self._remove_surface_integrals()
 
     @inplace_or_not
     def symmetrize(self, plane):

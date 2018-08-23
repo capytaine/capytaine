@@ -8,7 +8,7 @@ import logging
 
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh
+from capytaine.mesh.mesh import Mesh, inplace_or_not
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
 from capytaine.tools.geometry import Plane
 
@@ -73,6 +73,17 @@ class ReflectionSymmetry(SymmetricMesh):
                                       name=f"{self.name}_clipped")
         else:
             return None
+
+    @inplace_or_not
+    def rotate(self, angles):
+        self.plane.rotate(angles)
+        super().rotate(angles)
+
+    # def translate(self, vector):
+    #     raise NotImplemented
+    #
+    # def mirror(self, plane):
+    #     raise NotImplemented
 
 
 class TranslationalSymmetry(SymmetricMesh):
