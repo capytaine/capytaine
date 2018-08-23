@@ -25,7 +25,7 @@ def test_rectangle_generation():
 
     # Test mesh with symmetry
     rec = Rectangle(size=(10, 10), resolution=(6, 2),
-                    reflection_symmetry=False, translation_symmetry=False,
+                    reflection_symmetry=False, translational_symmetry=False,
                     center=(0, 0, -5), name="test")
 
     assert rec.name == "test"
@@ -38,11 +38,11 @@ def test_rectangle_generation():
     assert rec.area == 100
 
     # x coordinate
-    assert np.all(rec.mesh.vertices[:, 0] <= 5.0)
-    assert np.all(rec.mesh.vertices[:, 0] >= -5.0)
+    assert np.all(rec.mesh.vertices[:, 0] == 0.0)
 
     # y coordinate
-    assert np.all(rec.mesh.vertices[:, 1] == 0.0)
+    assert np.all(rec.mesh.vertices[:, 1] <= 5.0)
+    assert np.all(rec.mesh.vertices[:, 1] >= -5.0)
 
     # z coordinate
     assert np.all(rec.mesh.vertices[:, 2] <= 0.0)
@@ -50,7 +50,7 @@ def test_rectangle_generation():
 
     # Test mesh with reflection symmetry
     sym_rec = Rectangle(size=(10, 10), resolution=(6, 2),
-                        translation_symmetry=False, reflection_symmetry=True,
+                        translational_symmetry=False, reflection_symmetry=True,
                         center=(0, 0, -5))
     assert isinstance(sym_rec.mesh, ReflectionSymmetry)
     assert sym_rec.mesh.nb_submeshes == 2
@@ -62,7 +62,7 @@ def test_rectangle_generation():
 
     # Test mesh with translation symmetry
     trans_rec = Rectangle(size=(10, 10), resolution=(6, 2),
-                          translation_symmetry=True, reflection_symmetry=False,
+                          translational_symmetry=True, reflection_symmetry=False,
                           center=(0, 0, -5))
     assert isinstance(trans_rec.mesh, TranslationalSymmetry)
     assert trans_rec.mesh.nb_submeshes == 6
@@ -76,7 +76,7 @@ def test_rectangle_generation():
 def test_parallelepiped_generation():
     para = OpenRectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
                                          resolution=(5, 2, 3),
-                                         clever=False, name="test")
+                                         translational_symmetry=False, name="test")
     assert para.name == "test"
     assert isinstance(para.mesh, Mesh)
     assert para.mesh.name == "test_mesh"
@@ -89,7 +89,7 @@ def test_parallelepiped_generation():
 
     clever_para = OpenRectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
                                                 resolution=(5, 2, 3),
-                                                clever=True, name="clever_test")
+                                                translational_symmetry=True, name="clever_test")
 
     assert clever_para.mesh.nb_faces == 42
     assert isinstance(clever_para.mesh, CollectionOfMeshes)
@@ -97,12 +97,12 @@ def test_parallelepiped_generation():
 
     full_para = RectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
                                           resolution=(5, 2, 3),
-                                          clever=False, name="full_test")
+                                          translational_symmetry=False, name="full_test")
     assert full_para.mesh.nb_faces == 62
     # full_para.show()
 
     clever_full_para = RectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
                                                  resolution=(5, 2, 3),
-                                                 clever=True, name="clever_full_test")
+                                                 translational_symmetry=True, name="clever_full_test")
     assert clever_full_para.mesh.nb_faces == 62
     # clever_full_para.show()

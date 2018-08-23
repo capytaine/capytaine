@@ -32,6 +32,7 @@ Minor changes
 * New method :code:`tree_view()` for meshes to display the structure of hierarchical collections of meshes.
 * Some body properties are stored in xarray dataset if they are available.
 * Various improvements in :code:`geometric_bodies` submodule.
+  Optional argument :code:`clever` has been renamed to more pertinent names depending on the case.
 
 ------------------
 New in version 0.4
