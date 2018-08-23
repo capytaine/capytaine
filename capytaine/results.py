@@ -54,6 +54,7 @@ class DiffractionResult(LinearPotentialFlowResult):
 
     @property
     def records(self):
+        FK = Froude_Krylov_force(self.problem)
         return [dict(self.settings_dict, influenced_dof=dof,
                      diffraction_force=self.forces[dof], Froude_Krylov_force=FK[dof])
                 for dof in self.influenced_dofs]
