@@ -71,40 +71,9 @@ class FloatingBody(Abstract3DObject):
         mesh = load_mesh(filename, file_format, name=f"{name}_mesh")
         return FloatingBody(mesh, name=name)
 
-    def __str__(self):
-        return self.name
-
-    def __repr__(self):
-        return self.name
-
     def __lt__(self, other: 'FloatingBody') -> bool:
         """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name
-
-    def __add__(self, body_to_add: 'FloatingBody') -> 'FloatingBody':
-        return self.join_bodies(body_to_add)
-
-    def join_bodies(*bodies, name=None) -> 'FloatingBody':
-        if name is None:
-            name = "+".join(body.name for body in bodies)
-        meshes = CollectionOfMeshes([body.mesh for body in bodies], name=f"{name}_mesh")
-        dofs = FloatingBody.combine_dofs(bodies)
-        return FloatingBody(mesh=meshes, dofs=dofs, name=name)
-
-    @staticmethod
-    def combine_dofs(bodies) -> dict:
-        """Combine the degrees of freedom of several bodies."""
-        dofs = {}
-        cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in bodies)))
-        total_nb_faces = sum(body.mesh.nb_faces for body in bodies)
-        for body, nbf in zip(bodies, cum_nb_faces):
-            # nbf is the cumulative number of faces of the previous subbodies,
-            # that is the offset of the indices of the faces of the current body.
-            for name, dof in body.dofs.items():
-                new_dof = np.zeros((total_nb_faces, 3))
-                new_dof[nbf:nbf+len(dof), :] = dof
-                dofs['_'.join([body.name, name])] = new_dof
-        return dofs
 
     # @property
     # def center_of_buoyancy(self):
@@ -207,6 +176,31 @@ class FloatingBody(Abstract3DObject):
     # Transformations #
     ###################
 
+    def __add__(self, body_to_add: 'FloatingBody') -> 'FloatingBody':
+        return self.join_bodies(body_to_add)
+
+    def join_bodies(*bodies, name=None) -> 'FloatingBody':
+        if name is None:
+            name = "+".join(body.name for body in bodies)
+        meshes = CollectionOfMeshes([body.mesh for body in bodies], name=f"{name}_mesh")
+        dofs = FloatingBody.combine_dofs(bodies)
+        return FloatingBody(mesh=meshes, dofs=dofs, name=name)
+
+    @staticmethod
+    def combine_dofs(bodies) -> dict:
+        """Combine the degrees of freedom of several bodies."""
+        dofs = {}
+        cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in bodies)))
+        total_nb_faces = sum(body.mesh.nb_faces for body in bodies)
+        for body, nbf in zip(bodies, cum_nb_faces):
+            # nbf is the cumulative number of faces of the previous subbodies,
+            # that is the offset of the indices of the faces of the current body.
+            for name, dof in body.dofs.items():
+                new_dof = np.zeros((total_nb_faces, 3))
+                new_dof[nbf:nbf+len(dof), :] = dof
+                dofs['_'.join([body.name, name])] = new_dof
+        return dofs
+
     def copy(self, name=None) -> 'FloatingBody':
         """Return a deep copy of the body.
 
@@ -283,8 +277,19 @@ class FloatingBody(Abstract3DObject):
         LOG.warning(f"The dofs of {self.name} have not been rotated with its mesh.")
         return self.mesh.rotate(*args)
 
+    #############
+    #  Display  #
+    #############
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return (f"{self.__class__.__name__}(mesh={self.mesh.name}, "
+                f"dofs={{{', '.join(self.dofs.keys())}}}, name={self.name})")
+
     def show(self, dof=None):
-        # TODO: Also show dofs
+        # TODO: Broken. Rewrite with display of dofs.
         import vtk
         vtk_polydata = self.mesh._vtk_polydata()
 
