@@ -25,77 +25,73 @@ class Mesh(Abstract3DObject):
     Parameters
     ----------
     vertices : array_like of shape (nv, 3)
-        Array of mesh vertices coordinates. Each line of the array represents one vertex coordinates
+        Array of mesh vertices coordinates. Each line of the array represents one vertex
+        coordinates
     faces : array_like of shape (nf, 4)
-        Arrays of mesh connectivities for faces. Each line of the array represents indices of vertices that form the
-        face, expressed in counterclockwise order to ensure outward normals description.
+        Arrays of mesh connectivities for faces. Each line of the array represents indices of
+        vertices that form the face, expressed in counterclockwise order to ensure outward normals
+        description.
     name : str, optional
         The mesh's name. If None, mesh is given an automatic name based on its internal ID.
     """
     _ids = count(0)
 
-    def __init__(self, vertices, faces, name=None):
+    def __init__(self, vertices=None, faces=None, name=None):
 
-        self.__internals__ = dict()
+        if vertices is None:
+            vertices = np.zeros((0, 3))
 
-        assert np.array(vertices).shape[1] == 3
-        assert np.array(faces).shape[1] == 4
+        if faces is None:
+            faces = np.zeros((0, 4))
 
-        self._vertices = np.array(vertices, dtype=np.float)
-        self._faces = np.array(faces, dtype=np.int)
-
-        if not name:
+        if name is None:
             self.name = f'mesh_{next(Mesh._ids)}'
         else:
             self.name = str(name)
 
+        assert all(int(vertex_id) == vertex_id >= 0 for face in faces for vertex_id in face), \
+            "Faces of a mesh should be provided as positive integers (ids of vertices)"
+
+        self._vertices = np.array(vertices, dtype=np.float)
+        self._faces = np.array(faces, dtype=np.int)
+
+        assert self._vertices.shape[1] == 3, \
+            "Vertices of a mesh should be provided as a sequence of 3-ple."
+        assert self._faces.shape[1] == 4, \
+            "Faces of a mesh should be provided as a sequence of 4-ple."
+        assert len(self._faces) == 0 or self._faces.max()+1 <= len(self._vertices), \
+            "The array of faces references vertices that are not in the mesh."
+
+        self.__internals__ = dict()
+
     def __str__(self):
-        return self.name
+        return (f"{self.__class__.__name__}(nb_vertices={self.nb_vertices}, "
+                f"nb_faces={self.nb_faces}, name={self.name})")
 
     @property
-    def nb_vertices(self):
-        """Get the number of vertices in the mesh
-
-        Returns
-        -------
-        int
-        """
+    def nb_vertices(self) -> int:
+        """Get the number of vertices in the mesh."""
         return self._vertices.shape[0]
 
     @property
-    def vertices(self):
-        """Get the vertices array coordinate of the mesh
-
-        Returns
-        -------
-        ndarray
-        """
+    def vertices(self) -> np.ndarray:
+        """Get the vertices array coordinate of the mesh."""
         return self._vertices
 
     @vertices.setter
-    def vertices(self, value):
+    def vertices(self, value) -> None:
         self._vertices = np.asarray(value, dtype=np.float).copy()
         self.__internals__.clear()
         return
 
     @property
-    def nb_faces(self):
-        """Get the number of faces in the mesh
-
-        Returns
-        -------
-        int
-        """
+    def nb_faces(self) -> int:
+        """Get the number of faces in the mesh."""
         return self._faces.shape[0]
 
     @property
-    def faces(self):
-        """Get the faces connectivity array of the mesh
-
-        Returns
-        -------
-        ndarray
-        """
+    def faces(self) -> np.ndarray:
+        """Get the faces connectivity array of the mesh."""
         return self._faces
 
     @faces.setter
@@ -104,13 +100,13 @@ class Mesh(Abstract3DObject):
         self.__internals__.clear()
         return
 
-    def copy(self, name=None):
+    def copy(self, name=None) -> 'Mesh':
         """Get a copy of the current mesh instance.
 
         Parameters
         ----------
         name : string, optional
-            a new name for the new mesh
+            a name for the new mesh
 
         Returns
         -------
@@ -132,7 +128,8 @@ class Mesh(Abstract3DObject):
         return self.name
 
     def to_meshmagick(self):
-        """Convert the Mesh object as an object from meshmagick."""
+        """Convert the Mesh object as a Mesh object from meshmagick.
+        Mostly for debugging."""
         from meshmagick.mesh import Mesh
         return Mesh(self.vertices, self.faces, name=self.name)
 
@@ -141,7 +138,7 @@ class Mesh(Abstract3DObject):
     ##################
 
     def get_face(self, face_id):
-        """Get the face described by its vertices connectivity
+        """Get the face described by its vertices connectivity.
 
         Parameters
         ----------
@@ -665,6 +662,10 @@ class Mesh(Abstract3DObject):
             return NotImplemented
         else:
             return self.as_set_of_faces() == other.as_set_of_faces()
+
+    def __hash__(self):
+        # Really not optimal...
+        return hash(frozenset(self.as_set_of_faces()))
 
     ##################
     #  Mesh quality  #

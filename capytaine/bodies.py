@@ -47,7 +47,7 @@ class FloatingBody(Abstract3DObject):
             If none is given, the one of the mesh is used.
         """
         if mesh is None:
-            mesh = Mesh(np.zeros((0, 3)), np.zeros((0, 4)), name="dummy")
+            mesh = Mesh(name="dummy_mesh")
 
         if dofs is None:
             dofs = {}
