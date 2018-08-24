@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #  -*- coding: utf-8 -*-
 """
-From meshmagick.
+Freely adapted from meshmagick.
 """
 
 from abc import ABC, abstractmethod
@@ -19,8 +19,7 @@ def inplace_or_not(inplace_function):
         else:
             mesh = self
         inplace_function(mesh, *args, **kwargs)
-        if not inplace:
-            return mesh
+        return mesh
     return inplace_function_with_option
 
 
@@ -30,28 +29,16 @@ class Abstract3DObject(ABC):
     then more routines such as translate_x are automatically defined."""
 
     @abstractmethod
-    def mirror(self, plane):
-        pass
-
-    @abstractmethod
-    def rotate(self, angles):
-        pass
-
-    @abstractmethod
     def translate(self, vector):
         pass
 
-    @inplace_or_not
-    def rotate_x(self, thetax):
-        return self.rotate((thetax, 0., 0.))
+    @abstractmethod
+    def rotate(self, axis, angle):
+        pass
 
-    @inplace_or_not
-    def rotate_y(self, thetay):
-        return self.rotate((0., thetay, 0.))
-
-    @inplace_or_not
-    def rotate_z(self, thetaz):
-        return self.rotate((0., 0., thetaz))
+    @abstractmethod
+    def mirror(self, plane):
+        pass
 
     @inplace_or_not
     def translate_x(self, tx):
@@ -65,142 +52,57 @@ class Abstract3DObject(ABC):
     def translate_z(self, tz):
         return self.translate((0., 0., tz))
 
+    @inplace_or_not
+    def rotate_x(self, thetax):
+        return self.rotate(Ox_axis, thetax)
 
-# TODO: voir si on ne peut pas mettre ces fonctions dans un module dedie --> module rotation !!!
-def _rotation_matrix(angles):
-    angles = np.asarray(angles, dtype=np.float)
-    theta = np.linalg.norm(angles)
-    if theta == 0.:
-        return np.eye(3)
+    @inplace_or_not
+    def rotate_y(self, thetay):
+        return self.rotate(Oy_axis, thetay)
 
-    ctheta = np.cos(theta)
-    stheta = np.sin(theta)
+    @inplace_or_not
+    def rotate_z(self, thetaz):
+        return self.rotate(Oz_axis, thetaz)
 
-    nx, ny, nz = angles/theta
-    nxny = nx*ny
-    nxnz = nx*nz
-    nynz = ny*nz
-    nx2 = nx*nx
-    ny2 = ny*ny
-    nz2 = nz*nz
-
-    return (ctheta*np.eye(3)
-           + (1-ctheta) * np.array([[nx2, nxny, nxnz],
-                                    [nxny, ny2, nynz],
-                                    [nxnz, nynz, nz2]])
-           + stheta * np.array([[0., -nz, ny],
-                                [nz, 0., -nx],
-                                [-ny, nx, 0.]])
-            )
+    @inplace_or_not
+    def rotate_angles(self, angles):
+        thetax, thetay, thetaz = angles
+        self.rotate(Ox_axis, thetax)
+        self.rotate(Oy_axis, thetay)
+        self.rotate(Oz_axis, thetaz)
+        return self
 
 
-def _rodrigues(thetax, thetay):
-    """
-    Computes the rotation matrix corresponding to angles thetax and thetay using the Olinde-Rodrigues formula
+class Axis(Abstract3DObject):
+    def __init__(self, vector, point=(0, 0, 0)):
+        self.vector = vector
+        self.point = point
 
-    Parameters
-    ----------
-    thetax : float
-        Angle around Ox axe (rad)
-    thetay
-        Angle around Oy axe (rad)
-    Returns
-    -------
-    rot : ndarray
-        Rotation matrix
-    """
+    def rotation_matrix(self, theta):
+        """Rotation matrix around the vector according to Rodrigues' formula."""
+        ux, uy, uz = self.vector
+        W = np.array([[0, -uz, uy],
+                      [uz, 0, -ux],
+                      [-uy, ux, 0]])
+        return np.identity(3) + np.sin(theta)*W + 2*np.sin(theta/2)**2 * (W @ W)
 
-    theta = np.sqrt(thetax*thetax + thetay*thetay)
-    if theta == 0.:
-        nx = ny = 0.
-        ctheta = 1.
-        stheta = 0.
-    else:
-        nx, ny = thetax/theta, thetay/theta
-        ctheta = np.cos(theta)
-        stheta = np.sin(theta)
-    nxny = nx*ny
+    @inplace_or_not
+    def translate(self, vector):
+        self.point += vector
+        return
 
-    # Olinde Rodrigues formulae
-    # FIXME: S'assurer qu'on a effectivement pas de Ctheta devant le I3 !! et repercuter sur l'hydrostatique
-    rot = ctheta*np.eye(3) \
-        + (1-ctheta) * np.array([[nx*nx, nxny, 0.],
-                                 [nxny, ny*ny, 0.],
-                                 [0., 0., 0.]]) \
-        + stheta * np.array([[0., 0.,  ny],
-                             [0., 0., -nx],
-                             [-ny, nx, 0.]])
-    return rot
+    @inplace_or_not
+    def rotate(self, axis, angle):
+        raise NotImplemented
+
+    @inplace_or_not
+    def mirror(self, plane):
+        raise NotImplemented
 
 
-def _cardan(phi, theta):
-    """
-    Computes the rotation matrix corresponding to angles phi (roll) and theta (pitch) using Cardan angles convention
-
-    Parameters
-    ----------
-    phi : float
-        Roll angle (rad)
-    theta : float
-        Pitch angel (rad)
-
-    Returns
-    -------
-    R : ndarray
-        Rotation matrix
-    """
-
-    # Rotation matrix
-    cphi = np.cos(phi)
-    sphi = np.sin(phi)
-    ctheta = np.cos(theta)
-    stheta = np.sin(theta)
-
-    rot_e0 = np.zeros((3, 3), dtype=float)
-    rot_e0[0] = [ctheta, 0., -stheta]
-    rot_e0[1] = [sphi*stheta, cphi, sphi*ctheta]
-    rot_e0[2] = [cphi*stheta, -sphi, cphi*ctheta]
-
-    return rot_e0
-
-
-def _get_rotation_matrix(theta_x, theta_y, atype='fixed'):
-    """
-    Computes rotation matrix using different angle conventions
-
-    Parameters
-    ----------
-    theta_x : float
-        Angle around x (rad)
-    theta_y : float
-        Angle around y (rad)
-    atype : {'fixed', 'cardan'}, optional
-        Angle convention to use. Default to 'fixed' (fixed axes)
-
-    Returns
-    -------
-    ndarray
-        Rotation matrix
-
-    """
-    if atype == 'fixed':
-        rot_matrix = _rodrigues(theta_x, theta_y)
-    elif atype == 'cardan':
-        rot_matrix = _cardan(theta_x, theta_y)
-    else:
-        raise AttributeError('Unknown angle convention: %s' % atype)
-
-    return rot_matrix
-
-
-def _get_axis_angle_from_rotation_matrix(rot_matrix):
-    """Returns the angle and unit rotation axis from a rotation matrix"""
-    warn('Fonction _get_axis_angle_from_rotation_matrix a verifier !!!')
-    theta = np.acos((np.trace(rot_matrix) - 1.) * 0.5)
-    direction = (1./(2.*np.sin(theta))) * np.array([rot_matrix[2, 1] - rot_matrix[1, 2],
-                                                      rot_matrix[0, 2] - rot_matrix[2, 0],
-                                                      rot_matrix[1, 0] - rot_matrix[0, 1]])
-    return theta, direction
+Ox_axis = Axis(vector=(1, 0, 0), point=(0, 0, 0))
+Oy_axis = Axis(vector=(0, 1, 0), point=(0, 0, 0))
+Oz_axis = Axis(vector=(0, 0, 1), point=(0, 0, 0))
 
 
 class Plane:
@@ -223,11 +125,6 @@ class Plane:
 
         self._normal = normal / np.linalg.norm(normal)
         self._scalar = float(scalar)
-
-        # Storing rotation matrix (redundant !) to speedup computations
-        # Shall be _update in methods !!! --> using decorator ?
-        theta_x, theta_y = self.get_normal_orientation_wrt_z()
-        self._rot = _get_rotation_matrix(theta_x, theta_y)
 
         self.name = str(name)
 
@@ -264,27 +161,9 @@ class Plane:
         """Set the scalar parameter of the plane equation"""
         self._scalar = float(value)
 
-    def rotate(self, angles):
-        rot_matrix = _rotation_matrix(angles)
+    def rotate(self, axis, angle):
+        rot_matrix = axis.rotation_matrix(angle)
         self.normal = rot_matrix @ self.normal
-        self._rot = rot_matrix @ self._rot
-
-    def rotate_normal(self, theta_x, theta_y):
-        """
-        Rotates the current plane normal by fixed angles theta_x and theta_y.
-
-        Parameters
-        ----------
-        theta_x : float
-            Angle of rotation around Ox (rad)
-        theta_y : float
-            Angle of rotation around Oy (rad)
-        """
-        rot_matrix = _get_rotation_matrix(theta_x, theta_y)
-        self.normal = np.dot(rot_matrix, self.normal)
-
-        # updating self._rot
-        self._rot = np.dot(rot_matrix, self._rot)
 
     def set_normal_from_angles(self, theta_x, theta_y):
         """Set the normal orientation given angles theta_x and theta_y.
@@ -301,17 +180,12 @@ class Plane:
 
         if theta == 0.:
             self.normal[:] = [0., 0., 1.]
-
-            # updating self._rot
-            self._rot = np.eye(3)
         else:
             stheta_theta = np.sin(theta) / theta
             ctheta = np.cos(theta)
             self.normal[:] = np.array([stheta_theta * theta_y,
                                        -stheta_theta * theta_x,
                                        ctheta])
-            # Updating self._rot
-            self._rot = _get_rotation_matrix(theta_x, theta_y)
 
     def get_normal_orientation_wrt_z(self):
         """Returns the angles theta_x and theta_y giving the orientation of the plane normal"""
@@ -376,26 +250,6 @@ class Plane:
         """
         self.normal *= -1
         theta_x, theta_y = self.get_normal_orientation_wrt_z()
-        self._rot = _get_rotation_matrix(theta_x, theta_y)
-
-    def coord_in_plane(self, points):
-        """
-        Return the coordinates of points in the frame of the plane
-
-        Parameters
-        ----------
-        points : ndarray
-            Array of points coordinates
-
-        Returns
-        -------
-        output : ndarray
-            Array of points coordinates in the frame of the plane
-        """
-
-        # TODO: verifier effectivement que si on prend des points se trouvant dans le plan, leurs coordonnees dans le
-        #  plan n'ont pas de composante z
-        return -self._scalar * self.normal + np.transpose(np.dot(self._rot, points.T))
 
     def get_edge_intersection(self, p0, p1):
         """
@@ -453,3 +307,32 @@ yOz_Plane = Plane(normal=(1.0, 0.0, 0.0), scalar=0.0)
 xOz_Plane = Plane(normal=(0.0, 1.0, 0.0), scalar=0.0)
 xOy_Plane = Plane(normal=(0.0, 0.0, 1.0), scalar=0.0)
 
+def _cardan(phi, theta):
+    """
+    Computes the rotation matrix corresponding to angles phi (roll) and theta (pitch) using Cardan angles convention
+
+    Parameters
+    ----------
+    phi : float
+        Roll angle (rad)
+    theta : float
+        Pitch angel (rad)
+
+    Returns
+    -------
+    R : ndarray
+        Rotation matrix
+    """
+
+    # Rotation matrix
+    cphi = np.cos(phi)
+    sphi = np.sin(phi)
+    ctheta = np.cos(theta)
+    stheta = np.sin(theta)
+
+    rot_e0 = np.zeros((3, 3), dtype=float)
+    rot_e0[0] = [ctheta, 0., -stheta]
+    rot_e0[1] = [sphi*stheta, cphi, sphi*ctheta]
+    rot_e0[2] = [cphi*stheta, -sphi, cphi*ctheta]
+
+    return rot_e0

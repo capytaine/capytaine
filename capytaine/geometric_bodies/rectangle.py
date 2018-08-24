@@ -98,7 +98,7 @@ class Rectangle(FloatingBody):
         else:
             mesh = Rectangle.generate_rectangle_mesh(width=width, height=height, nw=nw, nh=nh, name=name)
 
-        mesh.rotate(normal_angles)
+        mesh.rotate_angles(normal_angles)
         mesh.translate(center)
         FloatingBody.__init__(self, mesh=mesh, name=name)
 
@@ -121,7 +121,7 @@ class Rectangle(FloatingBody):
             name = f"rectangle_{next(Mesh._ids)}"
 
         mesh = Mesh(nodes, panels, name=f"{name}_mesh")
-        mesh.rotate(normal_angles)
+        mesh.rotate_angles(normal_angles)
         mesh.translate(center)
 
         return mesh

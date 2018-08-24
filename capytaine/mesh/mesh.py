@@ -12,7 +12,7 @@ from itertools import count
 import numpy as np
 
 from capytaine.mesh.faces_properties import compute_faces_properties
-from capytaine.tools.geometry import Abstract3DObject, Plane, _rotation_matrix, inplace_or_not
+from capytaine.tools.geometry import Abstract3DObject, Plane, inplace_or_not
 
 LOG = logging.getLogger(__name__)
 
@@ -464,20 +464,8 @@ class Mesh(Abstract3DObject):
     ################################
 
     @inplace_or_not
-    def rotate(self, angles):
-        """Rotates the mesh in 3D giving the 3 rotation angles that are defined around fixed axes.
-
-        Parameters
-        ----------
-        angles : array_like
-            The 3 angles of the 3D rotation (rad)
-
-        Returns
-        -------
-        ndarray
-            The (3x3) rotation matrix that has been applied to rotate the mesh
-        """
-        rot_matrix = _rotation_matrix(angles)
+    def rotate(self, axis, angle):
+        rot_matrix = axis.rotation_matrix(angle)
 
         self._vertices = np.transpose(np.dot(rot_matrix, self._vertices.copy().T))
 
@@ -491,7 +479,7 @@ class Mesh(Abstract3DObject):
         if self.has_surface_integrals():
             self._remove_surface_integrals()
 
-        return rot_matrix
+        return self
 
     @inplace_or_not
     def translate(self, t):
@@ -520,7 +508,7 @@ class Mesh(Abstract3DObject):
         if self.has_surface_integrals():
             self._remove_surface_integrals()
 
-        return
+        return self
 
     # SCALE
     @inplace_or_not

@@ -75,9 +75,9 @@ class ReflectionSymmetry(SymmetricMesh):
             return None
 
     @inplace_or_not
-    def rotate(self, angles):
-        self.plane.rotate(angles)
-        super().rotate(angles)
+    def rotate(self, axis, angle):
+        self.plane.rotate(axis, angle)
+        super().rotate(axis, angle)
 
     # def translate(self, vector):
     #     raise NotImplemented

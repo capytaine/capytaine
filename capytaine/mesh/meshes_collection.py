@@ -164,9 +164,9 @@ class CollectionOfMeshes(tuple, Abstract3DObject):
             mesh.translate(vector)
 
     @inplace_or_not
-    def rotate(self, vector):
+    def rotate(self, axis, angle):
         for mesh in self:
-            mesh.rotate(vector)
+            mesh.rotate(axis, angle)
 
     @inplace_or_not
     def mirror(self, plane):

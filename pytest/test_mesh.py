@@ -20,12 +20,11 @@ def test_plane():
     assert other_plane == plane
 
     plane.flip_normal()
-    plane.coord_in_plane(cylinder.vertices)
     try:
         plane.get_edge_intersection([-1, -1, -1], [-2, -2, -2])
     except RuntimeError:
         pass
-    plane.set_plane_parameters(1, 1, 1)
+    # plane.set_plane_parameters(1, 1, 1)
     plane.get_normal_orientation_wrt_z()
     plane.orthogonal_projection_on_plane(cylinder.vertices)
     plane.get_origin()

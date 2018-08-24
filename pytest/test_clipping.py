@@ -17,7 +17,7 @@ def test_clipper():
     plane = Plane()
     clipper = mc.MeshClipper(mesh, plane, assert_closed_boundaries=True)
 
-    for iter in range(50):
-        thetax, thetay = np.random.rand(2)*2*np.pi
-        plane.rotate_normal(thetax, thetay)
-        clipper.plane = plane
+    # for iter in range(50):
+    #     thetax, thetay = np.random.rand(2)*2*np.pi
+    #     plane.rotate(thetax, thetay)
+    #     clipper.plane = plane
