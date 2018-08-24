@@ -54,7 +54,6 @@ class CollectionOfMeshes(tuple, Abstract3DObject):
         return self.name
 
     def tree_view(self, **kwargs):
-
         body_tree_views = []
         for i, mesh in enumerate(self):
             tree_view = mesh.tree_view(**kwargs)
@@ -133,17 +132,15 @@ class CollectionOfMeshes(tuple, Abstract3DObject):
     # Transformation #
     ##################
 
-    def merge(self, name: str=None) -> Mesh:
+    def merge(self, name=None) -> Mesh:
         """Merge the sub-meshes and return a full mesh.
         If the collection contains other collections, they are merged recursively.
         Optionally, a new name can be given to the resulting mesh."""
-        components = (mesh.merge() for mesh in self)
-        init = next(components)
-        merged = sum(components, init)
+        if name is None:
+            name = '+'.join(mesh.name for mesh in self)
+        merged = Mesh(self.vertices, self.faces, name=name)
         merged.merge_duplicates()
         merged.heal_triangles()
-        if name is not None:
-            merged.name = name
         return merged
 
     def get_immersed_part(self, **kwargs):

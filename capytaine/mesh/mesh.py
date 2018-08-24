@@ -11,7 +11,9 @@ from itertools import count
 
 import numpy as np
 
-from capytaine.mesh.faces_properties import compute_faces_properties
+from capytaine.mesh.mesh_properties import compute_faces_properties, connectivity
+from capytaine.mesh.mesh_quality import (merge_duplicates, heal_normals, remove_unused_vertices,
+                                         heal_triangles, remove_degenerated_faces)
 from capytaine.tools.geometry import Abstract3DObject, Plane, inplace_or_not
 
 LOG = logging.getLogger(__name__)
@@ -464,10 +466,48 @@ class Mesh(Abstract3DObject):
     ################################
 
     @inplace_or_not
+    def translate(self, vector):
+        """Translates the mesh in 3D giving the 3 distances along coordinate axes.
+
+        Parameters
+        ----------
+        vector : array_like
+            translation vector
+
+        Return
+        ------
+        Mesh
+        """
+        vector = np.asarray(vector, dtype=np.float)
+        assert vector.shape == (3,), "The translation vector should be given as a 3-ple of values."
+
+        self.vertices += vector
+
+        # Updating properties if any
+        if self._has_faces_properties():
+            self.__internals__['faces_centers'] += vector
+
+        if self.has_surface_integrals():
+            self._remove_surface_integrals()
+
+        return self
+
+    @inplace_or_not
     def rotate(self, axis, angle):
+        """Rotate the mesh of a given angle around an axis.
+
+        Parameters
+        ----------
+        axis : Axis
+        angle : float
+
+        Return
+        ------
+        Mesh
+        """
         rot_matrix = axis.rotation_matrix(angle)
 
-        self._vertices = np.transpose(np.dot(rot_matrix, self._vertices.copy().T))
+        self._vertices = np.transpose(np.dot(rot_matrix, self._vertices.T))
 
         # Updating faces properties if any
         if self._has_faces_properties():
@@ -481,124 +521,12 @@ class Mesh(Abstract3DObject):
 
         return self
 
-    @inplace_or_not
-    def translate(self, t):
-        """Translates the mesh in 3D giving the 3 distances along coordinate axes.
-
-        Parameters
-        ----------
-        t : array_like
-            translation vector
-        """
-        tx, ty, tz = t
-        V = self.vertices.copy() # FIXME: why doing a copy ???
-        V[:, 0] += tx
-        V[:, 1] += ty
-        V[:, 2] += tz
-        self.vertices = V
-
-        # Updating properties if any
-        if self._has_faces_properties():
-            centers = self.__internals__['faces_centers']
-            centers[:, 0] += tx
-            centers[:, 1] += ty
-            centers[:, 2] += tz
-            self.__internals__['faces_centers'] = centers
-
-        if self.has_surface_integrals():
-            self._remove_surface_integrals()
-
-        return self
-
-    # SCALE
-    @inplace_or_not
-    def scale(self, alpha):
-        """Scales the mesh.
-
-        Parameters
-        ----------
-        alpha : float
-            A positive scaling factor
-        """
-        assert 0 < alpha
-
-        # TODO: voir pourquoi il est fait une copie ici...
-        vertices = self._vertices.copy()
-        vertices *= float(alpha)
-        self._vertices = vertices
-
-        if self._has_faces_properties():
-            self._remove_faces_properties()
-
-        return
-
-    @inplace_or_not
-    def scalex(self, alpha):
-        """Scales the mesh along the x axis.
-
-        Parameters
-        ----------
-        alpha : float
-            A positive scaling factor
-        """
-        assert 0 < alpha
-
-        vertices = self._vertices.copy()
-        vertices[:, 0] *= float(alpha)
-        self._vertices = vertices
-
-        if self._has_faces_properties():
-            self._remove_faces_properties()
-
-        return
-
-    @inplace_or_not
-    def scaley(self, alpha):
-        """Scales the mesh along the y axis.
-
-        Parameters
-        ----------
-        alpha : float
-            A positive scaling factor
-        """
-        assert 0 < alpha
-
-        vertices = self._vertices.copy()
-        vertices[:, 1] *= float(alpha)
-        self._vertices = vertices
-
-        if self._has_faces_properties():
-            self._remove_faces_properties()
-
-        return
-
-    @inplace_or_not
-    def scalez(self, alpha):
-        """Scales the mesh along the z axis.
-
-        Parameters
-        ----------
-        alpha : float
-            A positive scaling factor
-        """
-        assert 0 < alpha
-
-        vertices = self._vertices.copy()
-        vertices[:, 2] *= float(alpha)
-        self._vertices = vertices
-
-        if self._has_faces_properties():
-            self._remove_faces_properties()
-
-        return
-
     # OTHER
     @inplace_or_not
     def flip_normals(self):
         """Flips every normals of the mesh."""
 
-        faces = self._faces.copy()
-        self._faces = np.fliplr(faces)
+        self._faces = np.fliplr(self._faces)
 
         if self._has_faces_properties():
             self.__internals__['faces_normals'] *= -1
@@ -606,25 +534,7 @@ class Mesh(Abstract3DObject):
         if self.has_surface_integrals():
             self._remove_surface_integrals()
 
-    @inplace_or_not
-    def symmetrize(self, plane):
-        """Symmetrize the mesh with respect to a plane.
-
-        Parameters
-        ----------
-        plane : Plane
-            The plane of symmetry
-        """
-        # Symmetrizing the nodes
-        vertices, faces = self._vertices, self._faces
-
-        vertices = np.concatenate((vertices, vertices - 2 * np.outer(np.dot(vertices, plane.normal) - plane.c, plane.normal)))
-        faces = np.concatenate((faces, np.fliplr(faces.copy() + self.nb_vertices)))
-
-        self._vertices, self._faces = vertices, faces
-        self.merge_duplicates()
-
-        self.__internals__.clear()
+        return self
 
     @inplace_or_not
     def mirror(self, plane):
@@ -635,9 +545,10 @@ class Mesh(Abstract3DObject):
         plane : Plane
             The mirroring plane
         """
-        self._vertices -= 2 * np.outer(np.dot(self._vertices, plane.normal) - plane.c, plane.normal)
+        self.vertices -= 2 * np.outer(np.dot(self.vertices, plane.normal) - plane.c, plane.normal)
         self.flip_normals()
         self.__internals__.clear()
+        return self
 
     def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
         """Clip the mesh with two horizontal planes."""
@@ -703,54 +614,30 @@ class Mesh(Abstract3DObject):
     #  Combine meshes  #
     ####################
 
+    def join_meshes(*meshes, name=None):
+        from capytaine.mesh.meshes_collection import CollectionOfMeshes
+        return CollectionOfMeshes(meshes, name=name).merge()
+
     def __add__(self, mesh_to_add):
-        """Adds two meshes
-
-        Parameters
-        ----------
-        mesh_to_add : Mesh
-            The other mesh instance to add to the current instance
-
-        Returns
-        -------
-        Mesh
-            The composite mesh
-
-        Note
-        ----
-        This method should not be called as is but it overides the + binary operator for convenience.
-        """
-
-        assert isinstance(mesh_to_add, Mesh)
-        vertices = np.concatenate((self._vertices, mesh_to_add._vertices), axis=0)
-        faces = np.concatenate((self._faces, mesh_to_add._faces + self.nb_vertices), axis=0)
-        new_mesh = Mesh(vertices, faces, name='_'.join([self.name, mesh_to_add.name]))
-        new_mesh.merge_duplicates()
-
-        return new_mesh
+        return self.join_meshes(mesh_to_add)
 
     ##################
     #  Mesh quality  #
     ##################
 
     def merge_duplicates(self, **kwargs):
-        from capytaine.mesh.quality import merge_duplicates
         return merge_duplicates(self, **kwargs)
 
     def heal_normals(self, **kwargs):
-        from capytaine.mesh.quality import heal_normals
         return heal_normals(self, **kwargs)
 
     def remove_unused_vertices(self, **kwargs):
-        from capytaine.mesh.quality import remove_unused_vertices
         return remove_unused_vertices(self, **kwargs)
 
     def heal_triangles(self, **kwargs):
-        from capytaine.mesh.quality import heal_triangles
         return heal_triangles(self, **kwargs)
 
     def remove_degenerated_faces(self, **kwargs):
-        from capytaine.mesh.quality import remove_degenerated_faces
         return remove_degenerated_faces(self, **kwargs)
 
     def heal_mesh(self):
@@ -865,7 +752,6 @@ class Mesh(Abstract3DObject):
         dict
         """
         if 'v_v' not in self.__internals__:
-            from capytaine.mesh.connectivity import connectivity
             self.__internals__.update(connectivity(self))
         return self.__internals__['v_v']
 
@@ -878,7 +764,6 @@ class Mesh(Abstract3DObject):
         dict
         """
         if 'v_f' not in self.__internals__:
-            from capytaine.mesh.connectivity import connectivity
             self.__internals__.update(connectivity(self))
         return self.__internals__['v_f']
 
@@ -891,7 +776,6 @@ class Mesh(Abstract3DObject):
         dict
         """
         if 'f_f' not in self.__internals__:
-            from capytaine.mesh.connectivity import connectivity
             self.__internals__.update(connectivity(self))
         return self.__internals__['f_f']
 
@@ -910,7 +794,6 @@ class Mesh(Abstract3DObject):
         The computation of boundaries should be in the future computed with help of VTK
         """
         if 'boundaries' not in self.__internals__:
-            from capytaine.mesh.connectivity import connectivity
             self.__internals__.update(connectivity(self))
         return self.__internals__['boundaries']
 
@@ -924,6 +807,5 @@ class Mesh(Abstract3DObject):
             Number of boundaries
         """
         if 'boundaries' not in self.__internals__:
-            from capytaine.mesh.connectivity import connectivity
             self.__internals__.update(connectivity(self))
         return len(self.__internals__['boundaries'])

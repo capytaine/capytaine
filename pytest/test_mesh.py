@@ -75,23 +75,12 @@ def test_translate():
     cylinder.translate([0, 0, 0])
     return
 
-def test_scale():
-    cylinder.scalex(1)
-    cylinder.scaley(1)
-    cylinder.scalez(1)
-    cylinder.scale(1)
-    return
-
 def test_merge_duplicate():
     cylinder.merge_duplicates(atol=1e-5)
     return
 
 def test_triangulate_quadrangles():
     cylinder.triangulate_quadrangles()
-    return
-
-def test_symmetrize():
-    cylinder.symmetrize(Plane())
     return
 
 def test_mirror():
