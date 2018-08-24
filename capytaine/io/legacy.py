@@ -79,7 +79,7 @@ def import_cal_file(filepath):
             bodies.append(body)
 
         if nb_bodies > 1:
-            bodies = FloatingBody.join_bodies(bodies)
+            bodies = FloatingBody.join_bodies(*bodies)
         else:
             bodies = bodies[0]
 

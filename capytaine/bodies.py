@@ -82,10 +82,9 @@ class FloatingBody(Abstract3DObject):
         return self.name < other.name
 
     def __add__(self, body_to_add: 'FloatingBody') -> 'FloatingBody':
-        return FloatingBody.join_bodies([self, body_to_add])
+        return self.join_bodies(body_to_add)
 
-    @staticmethod
-    def join_bodies(bodies, name=None) -> 'FloatingBody':
+    def join_bodies(*bodies, name=None) -> 'FloatingBody':
         if name is None:
             name = "+".join(body.name for body in bodies)
         meshes = CollectionOfMeshes([body.mesh for body in bodies], name=f"{name}_mesh")
@@ -119,11 +118,8 @@ class FloatingBody(Abstract3DObject):
 
     @property
     def center_of_gravity(self):
-        # TODO
         if hasattr(self, 'center'):
             return self.center
-        else:
-            return np.asarray([0, 0, 0])
 
     ##########
     #  Dofs  #
