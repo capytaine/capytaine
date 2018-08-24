@@ -41,7 +41,7 @@ class Sphere(FloatingBody):
             a name identifying the sphere (default: "sphere_id" where id is an unique integer).
         """
         self.radius = radius
-        self.center = np.asarray(center)
+        self.center = np.array(center, dtype=np.float)
 
         if name is None:
             name = f"sphere_{next(Mesh._ids)}"

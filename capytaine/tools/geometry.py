@@ -4,12 +4,69 @@
 From meshmagick.
 """
 
-import numpy as np
+from abc import ABC, abstractmethod
 from math import atan2
 
+import numpy as np
+
+
+def inplace_or_not(inplace_function):
+    """Decorator for mesh transformation methods.
+    Add the optional argument to return a new mesh instead of doing the transformation in place."""
+    def inplace_function_with_option(self, *args, inplace=True, name=None, **kwargs):
+        if not inplace:
+            mesh = self.copy(name=name)
+        else:
+            mesh = self
+        inplace_function(mesh, *args, **kwargs)
+        if not inplace:
+            return mesh
+    return inplace_function_with_option
+
+
+class Abstract3DObject(ABC):
+    """Abstract class for 3d objects that can be transformed in 3d.
+    The child class have to define mirror, rotate and translate,
+    then more routines such as translate_x are automatically defined."""
+
+    @abstractmethod
+    def mirror(self, plane):
+        pass
+
+    @abstractmethod
+    def rotate(self, angles):
+        pass
+
+    @abstractmethod
+    def translate(self, vector):
+        pass
+
+    @inplace_or_not
+    def rotate_x(self, thetax):
+        return self.rotate((thetax, 0., 0.))
+
+    @inplace_or_not
+    def rotate_y(self, thetay):
+        return self.rotate((0., thetay, 0.))
+
+    @inplace_or_not
+    def rotate_z(self, thetaz):
+        return self.rotate((0., 0., thetaz))
+
+    @inplace_or_not
+    def translate_x(self, tx):
+        return self.translate((tx, 0., 0.))
+
+    @inplace_or_not
+    def translate_y(self, ty):
+        return self.translate((0., ty, 0.))
+
+    @inplace_or_not
+    def translate_z(self, tz):
+        return self.translate((0., 0., tz))
+
+
 # TODO: voir si on ne peut pas mettre ces fonctions dans un module dedie --> module rotation !!!
-
-
 def _rotation_matrix(angles):
     angles = np.asarray(angles, dtype=np.float)
     theta = np.linalg.norm(angles)

@@ -8,12 +8,13 @@ from itertools import chain, accumulate
 
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh, inplace_or_not
+from capytaine.mesh.mesh import Mesh
+from capytaine.tools.geometry import Abstract3DObject, inplace_or_not
 
 NAME_MAX_LENGTH = 180
 
 
-class CollectionOfMeshes(tuple):
+class CollectionOfMeshes(tuple, Abstract3DObject):
     """A tuple of meshes.
     It gives access to all the vertices of all the sub-meshes as if it were a mesh itself.
     Collections can be nested to store meshes in a tree structure.
@@ -163,33 +164,9 @@ class CollectionOfMeshes(tuple):
             mesh.translate(vector)
 
     @inplace_or_not
-    def translate_x(self, value):
-        self.translate((value, 0, 0))
-
-    @inplace_or_not
-    def translate_y(self, value):
-        self.translate((0, value, 0))
-
-    @inplace_or_not
-    def translate_z(self, value):
-        self.translate((0, 0, value))
-
-    @inplace_or_not
     def rotate(self, vector):
         for mesh in self:
             mesh.rotate(vector)
-
-    @inplace_or_not
-    def rotate_x(self, theta):
-        self.rotate((theta, 0, 0))
-
-    @inplace_or_not
-    def rotate_y(self, theta):
-        self.rotate((0, theta, 0))
-
-    @inplace_or_not
-    def rotate_z(self, theta):
-        self.rotate((0, 0, theta))
 
     @inplace_or_not
     def mirror(self, plane):

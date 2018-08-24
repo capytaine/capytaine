@@ -8,9 +8,9 @@ import logging
 
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh, inplace_or_not
+from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.tools.geometry import Plane
+from capytaine.tools.geometry import Plane, inplace_or_not
 
 LOG = logging.getLogger(__name__)
 

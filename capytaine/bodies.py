@@ -12,6 +12,7 @@ import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
+from capytaine.tools.geometry import Abstract3DObject, inplace_or_not
 
 from capytaine.ui.vtk.mesh_viewer import FloatingBodyViewer
 
@@ -21,7 +22,7 @@ TRANSLATION_DOFS_DIRECTIONS = {"surge": (1, 0, 0), "sway": (0, 1, 0), "heave": (
 ROTATION_DOFS_AXIS = {"roll": (1, 0, 0), "pitch": (0, 1, 0), "yaw": (0, 0, 1)}
 
 
-class FloatingBody:
+class FloatingBody(Abstract3DObject):
 
     def __init__(self, mesh=None, dofs=None, name=None):
         """A floating body described as a mesh and some degrees of freedom.
@@ -81,13 +82,12 @@ class FloatingBody:
         return self.name < other.name
 
     def __add__(self, body_to_add: 'FloatingBody') -> 'FloatingBody':
-        """Create a new CollectionOfFloatingBody from the combination of two FloatingBodies."""
         return FloatingBody.join_bodies([self, body_to_add])
 
     @staticmethod
     def join_bodies(bodies, name=None) -> 'FloatingBody':
         if name is None:
-            name = name="+".join(body.name for body in bodies)
+            name = "+".join(body.name for body in bodies)
         meshes = CollectionOfMeshes([body.mesh for body in bodies], name=f"{name}_mesh")
         dofs = FloatingBody.combine_dofs(bodies)
         return FloatingBody(mesh=meshes, dofs=dofs, name=name)
@@ -273,44 +273,24 @@ class FloatingBody:
 
         return FloatingBody(new_body_mesh, name=name)
 
+    @inplace_or_not
     def mirror(self, *args):
+        self.mesh.mirror(*args)
         # TODO: Also mirror dofs
-        return self.mesh.mirror(*args)
+        LOG.warning(f"The dofs of {self.name} have not been mirrored with its mesh.")
+        return
 
-    def translate_x(self, *args):
-        if hasattr(self, 'center'):
-            self.center[0] += args[0]
-        return self.mesh.translate_x(*args)
-
-    def translate_y(self, *args):
-        if hasattr(self, 'center'):
-            self.center[1] += args[0]
-        return self.mesh.translate_y(*args)
-
-    def translate_z(self, *args):
-        if hasattr(self, 'center'):
-            self.center[2] += args[0]
-        return self.mesh.translate_z(*args)
-
+    @inplace_or_not
     def translate(self, *args):
         if hasattr(self, 'center'):
             self.center += args[0]
-        return self.mesh.translate(*args)
+        self.mesh.translate(*args)
+        return
 
-    def rotate_x(self, *args):
-        # TODO: Also rotate dofs
-        return self.mesh.rotate_x(*args)
-
-    def rotate_y(self, *args):
-        # TODO: Also rotate dofs
-        return self.mesh.rotate_y(*args)
-
-    def rotate_z(self, *args):
-        # TODO: Also rotate dofs
-        return self.mesh.rotate_z(*args)
-
+    @inplace_or_not
     def rotate(self, *args):
         # TODO: Also rotate dofs
+        LOG.warning(f"The dofs of {self.name} have not been rotated with its mesh.")
         return self.mesh.rotate(*args)
 
     def show(self, dof=None):

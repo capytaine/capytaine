@@ -12,26 +12,12 @@ from itertools import count
 import numpy as np
 
 from capytaine.mesh.faces_properties import compute_faces_properties
-from capytaine.tools.geometry import Plane, _rotation_matrix
+from capytaine.tools.geometry import Abstract3DObject, Plane, _rotation_matrix, inplace_or_not
 
 LOG = logging.getLogger(__name__)
 
 
-def inplace_or_not(inplace_function):
-    """Decorator for mesh transformation methods.
-    Add the optional argument to return a new mesh instead of doing the transformation in place."""
-    def inplace_function_with_option(self, *args, inplace=True, name=None, **kwargs):
-        if not inplace:
-            mesh = self.copy(name=name)
-        else:
-            mesh = self
-        inplace_function(mesh, *args, **kwargs)
-        if not inplace:
-            return mesh
-    return inplace_function_with_option
-
-
-class Mesh:
+class Mesh(Abstract3DObject):
     """A class to handle unstructured meshes.
 
     Parameters
@@ -477,55 +463,6 @@ class Mesh:
     #  Transformation of the mesh  #
     ################################
 
-    # ROTATE
-    @inplace_or_not
-    def rotate_x(self, thetax):
-        """Rotates the mesh around Ox axis.
-
-        Parameters
-        ----------
-        thetax : float
-            Angle (rad)
-
-        Returns
-        -------
-        ndarray
-            The (3x3) rotation matrix that has been applied to rotate the mesh
-        """
-        return self.rotate([thetax, 0., 0.])
-
-    @inplace_or_not
-    def rotate_y(self, thetay):
-        """Rotates the mesh around Oy axis.
-
-        Parameters
-        ----------
-        thetay : float
-            Angle (rad)
-
-        Returns
-        -------
-        ndarray
-            The (3x3) rotation matrix that has been applied to rotate the mesh
-        """
-        return self.rotate([0., thetay, 0.])
-
-    @inplace_or_not
-    def rotate_z(self, thetaz):
-        """Rotates the mesh around Oz axis.
-
-        Parameters
-        ----------
-        thetaz : float
-            Angle (rad)
-
-        Returns
-        -------
-        ndarray
-            The (3x3) rotation matrix that has been applied to rotate the mesh
-        """
-        return self.rotate([0., 0., thetaz])
-
     @inplace_or_not
     def rotate(self, angles):
         """Rotates the mesh in 3D giving the 3 rotation angles that are defined around fixed axes.
@@ -555,40 +492,6 @@ class Mesh:
             self._remove_surface_integrals()
 
         return rot_matrix
-
-    # TRANSLATE
-    @inplace_or_not
-    def translate_x(self, tx):
-        """Translates the mesh along the Ox axis.
-
-        Parameters
-        ----------
-        tx : float
-            Distance
-        """
-        return self.translate([tx, 0.0, 0.0])
-
-    @inplace_or_not
-    def translate_y(self, ty):
-        """Translates the mesh along the Oy axis.
-
-        Parameters
-        ----------
-        ty : float
-            Distance
-        """
-        return self.translate([0.0, ty, 0.0])
-
-    @inplace_or_not
-    def translate_z(self, tz):
-        """Translates the mesh along the Oz axis.
-
-        Parameters
-        ----------
-        tz : float
-            Distance
-        """
-        return self.translate([0.0, 0.0, tz])
 
     @inplace_or_not
     def translate(self, t):
