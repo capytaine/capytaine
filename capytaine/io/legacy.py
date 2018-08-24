@@ -12,6 +12,7 @@ import numpy as np
 from capytaine.io.mesh_writers import write_MAR
 from capytaine.bodies import FloatingBody
 from capytaine.problems import DiffractionProblem, RadiationProblem
+from capytaine.tools.geometry import Axis
 
 LOG = logging.getLogger(__name__)
 
@@ -59,7 +60,7 @@ def import_cal_file(filepath):
                 elif int(dof_data[0]) == 2:
                     direction = np.array([float(x) for x in dof_data[1:4]])
                     center_of_mass = np.array([float(x) for x in dof_data[4:7]])
-                    body.add_rotation_dof(axis_direction=direction, axis_point=center_of_mass)
+                    body.add_rotation_dof(Axis(vector=direction, point=center_of_mass))
 
             nb_forces = int(cal_file.readline().split()[0])
             for i_force in range(nb_forces):

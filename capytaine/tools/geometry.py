@@ -75,8 +75,12 @@ class Abstract3DObject(ABC):
 
 class Axis(Abstract3DObject):
     def __init__(self, vector, point=(0, 0, 0)):
-        self.vector = vector
-        self.point = point
+
+        assert len(vector) == 3, "Vector of an axis should be given as a 3-ple of values."
+        assert len(point) == 3, "Point of an axis should be given as a 3-ple of values."
+
+        self.vector = np.array(vector, np.float)
+        self.point = np.array(point, np.float)
 
     def rotation_matrix(self, theta):
         """Rotation matrix around the vector according to Rodrigues' formula."""

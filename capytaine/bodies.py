@@ -163,44 +163,38 @@ class FloatingBody(Abstract3DObject):
         motion[:, :] = direction
         self.dofs[name] = amplitude * motion
 
-    def add_rotation_dof(self, axis_point=None, axis_direction=None, name=None, amplitude=1.0):
+    def add_rotation_dof(self, axis=None, name=None, amplitude=1.0):
         """Add a new rotation dof (in place).
-        If no axis direction is given, the code tries to infer it from the name.
+        If no axis is given, the code tries to infer it from the name.
 
         Parameters
         ----------
-        axis_point : array of shape (3,), optional
-            a point on the rotation axis
-        axis_direction : array of shape (3,), optional
-            vector directing the rotation axis
-            TODO: Use Axis class?
+        axis: Axis, optional
+            the axis of the rotation
         name : str, optional
             a name for the degree of freedom
         amplitude : float, optional
             amplitude of the dof (default: 1.0)
         """
-        if axis_direction is None:
+        if axis is None:
             if name is not None and name.lower() in ROTATION_DOFS_AXIS:
                 axis_direction = ROTATION_DOFS_AXIS[name.lower()]
+                if hasattr(self, 'center_of_gravity'):
+                    axis_point = self.center_of_gravity
+                    LOG.info(f"The rotation dof {name} have been initialized "
+                             f"around the center of gravity of {self.name}.")
+                else:
+                    axis_point = np.array([0, 0, 0])
+                    LOG.warning(f"The rotation dof {name} have been initialized "
+                                f"around the origin of the domain (0, 0, 0).")
             else:
                 raise ValueError("A direction needs to be specified for the dof.")
+        else:
+            axis_point = axis.point
+            axis_direction = axis.vector
+
         if name is None:
             name = f"dof_{self.nb_dofs}_rotation"
-
-        axis_direction = np.asarray(axis_direction)
-
-        if axis_point is None:
-            if hasattr(self, 'center_of_gravity'):
-                axis_point = self.center_of_gravity
-                LOG.info(f"The rotation dof {name} have been initialized around the center of gravity of {self.name}.")
-            else:
-                axis_point = np.array([0, 0, 0])
-                LOG.warning(f"The rotation dof {name} have been initialized around the origin of the domain (0, 0, 0).")
-
-        axis_point = np.asarray(axis_point)
-
-        assert axis_direction.shape == (3,)
-        assert axis_point.shape == (3,)
 
         motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
         self.dofs[name] = amplitude * motion
