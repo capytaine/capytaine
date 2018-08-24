@@ -88,3 +88,6 @@ def test_mirror():
     cylinder.mirror(Plane())
     # assert new_cylinder == cylinder
 
+def test_set_of_faces():
+    assert cylinder == cylinder
+    assert Mesh.from_set_of_faces(cylinder.as_set_of_faces()) == cylinder

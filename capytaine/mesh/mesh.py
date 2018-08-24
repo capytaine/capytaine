@@ -621,6 +621,51 @@ class Mesh(Abstract3DObject):
     def __add__(self, mesh_to_add):
         return self.join_meshes(mesh_to_add)
 
+    ####################
+    #  Compare meshes  #
+    ####################
+    # The objective is to write a mesh as a set of faces in order to check for equality or to
+    # compute differences of meshes. Each face can be represented as a 4x3 array (4 triplets of
+    # coordinates).
+    # However, it is tricky on several aspects:
+    #   * The builtin set class compares the hashes of its objects. Since numpy ndarray are not
+    #   hashable, the 4x3 array can be transformed into a tuple of tuples (which is hashable).
+    #   * Two faces with different numbering of the faces (but the same ordering) are recorded as
+    #   different.
+    #   * Two vertices equal up to machine precision can be recorded as different, due to rounding
+    #   errors.
+    #
+    # A possible solution is to define a Face class and a Vertex class with the appropriate __eq__
+    # and __hash__.
+    #
+    # The current implementation below is a rough draft.
+    # However, the equality shall still be use for testing.
+
+    def as_set_of_faces(self):
+        return set(tuple(tuple(vertex) for vertex in face) for face in self.vertices[self.faces])
+
+    @staticmethod
+    def from_set_of_faces(set_of_faces):
+        faces = []
+        vertices = []
+        for face in set_of_faces:
+            face_ids = []
+            for vertex in face:
+                if vertex in vertices:
+                    i = vertices.index(vertex)
+                else:
+                    i = len(vertices)
+                    vertices.append(vertex)
+                face_ids.append(i)
+            faces.append(face_ids)
+        return Mesh(vertices=vertices, faces=faces)
+
+    def __eq__(self, other):
+        if not isinstance(other, Mesh):
+            return NotImplemented
+        else:
+            return self.as_set_of_faces() == other.as_set_of_faces()
+
     ##################
     #  Mesh quality  #
     ##################
