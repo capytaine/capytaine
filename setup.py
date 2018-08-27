@@ -36,6 +36,7 @@ if __name__ == "__main__":
               'capytaine.tools',
               'capytaine.ui',
               'capytaine.ui.vtk',
+              'capytaine.io',
           ],
           install_requires=[
               'attrs',
