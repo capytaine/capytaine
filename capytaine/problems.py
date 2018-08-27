@@ -61,7 +61,7 @@ class LinearPotentialFlowProblem:
     #                 or any(body.mesh.vertices[:, 2] < self.sea_bottom - 1e-3)):
     #             LOG.warning(f"""The mesh of the body {body.name} is not inside the domain.\n
     #                             Check the values of free_surface and sea_bottom\n
-    #                             or use body.get_immersed_part() to clip the mesh.""")
+    #                             or use body.keep_immersed_part() to clip the mesh.""")
 
     @boundary_condition.validator
     def _check_size_of_boundary_condition(self, _, bc):

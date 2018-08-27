@@ -65,25 +65,23 @@ class ReflectionSymmetry(SymmetricMesh):
     def __deepcopy__(self, *args):
         return ReflectionSymmetry(self.half.copy(), self.plane, name=self.name)
 
-    def get_immersed_part(self, **kwargs):
-        clipped_submesh = self.half.get_immersed_part(self, **kwargs)
-        if clipped_submesh is not None:
-            return ReflectionSymmetry(clipped_submesh,
-                                      plane=self.plane,
-                                      name=f"{self.name}_clipped")
-        else:
-            return None
-
     @inplace_transformation
     def rotate(self, axis, angle):
         self.plane.rotate(axis, angle)
         super().rotate(axis, angle)
 
+    @inplace_transformation
+    def mirror(self, plane):
+        if plane.normal @ self.plane.normal == 0:  # Orthogonal planes
+            return super().mirror(plane=plane)
+        else:
+            raise NotImplementedError
+
     # def translate(self, vector):
-    #     raise NotImplemented
-    #
-    # def mirror(self, plane):
-    #     raise NotImplemented
+    #     if vector @ self.plane.normal == 0:  # Translation along the plane
+    #         return super().translate(vector)
+    #     else:
+    #         raise NotImplementedError
 
 
 class TranslationalSymmetry(SymmetricMesh):
@@ -142,16 +140,6 @@ class TranslationalSymmetry(SymmetricMesh):
     def __deepcopy__(self, *args):
         return TranslationalSymmetry(self.first_slice.copy(), self.translation, nb_repetitions=len(self)-1, name=self.name)
 
-    def get_immersed_part(self, **kwargs):
-        clipped_submesh = self.first_slice.get_immersed_part(**kwargs)
-        if clipped_submesh is not None:
-            return TranslationalSymmetry(clipped_submesh,
-                                         translation=self.translation,
-                                         nb_repetitions=self.nb_submeshes-1,
-                                         name=f"{self.name}_clipped")
-        else:
-            return None
-
     def join(*list_of_symmetric_meshes):
         """Experimental routine to merge similar symmetries."""
         assert all([isinstance(mesh, TranslationalSymmetry) for mesh in list_of_symmetric_meshes])
@@ -162,6 +150,15 @@ class TranslationalSymmetry(SymmetricMesh):
                 list_of_symmetric_meshes[0].first_slice.merge()),
             list_of_symmetric_meshes[0].translation, list_of_symmetric_meshes[0].nb_submeshes,
         )
+
+    # def rotate(self, axis, angle):
+    #     raise NotImplementedError
+    #
+    # def translate(self, vector):
+    #     raise NotImplementedError
+    #
+    # def mirror(self, plane):
+    #     raise NotImplementedError
 
 
 class AxialSymmetry(SymmetricMesh):
@@ -222,15 +219,14 @@ class AxialSymmetry(SymmetricMesh):
     def __deepcopy__(self, *args):
         return AxialSymmetry(self.first_slice.copy(), self.point_on_rotation_axis, nb_repetitions=len(self)-1, name=self.name)
 
-    def get_immersed_part(self, **kwargs):
-        clipped_submesh = self.first_slice.get_immersed_part(**kwargs)
-        if clipped_submesh is not None:
-            return AxialSymmetry(clipped_submesh,
-                                 point_on_rotation_axis=self.point_on_rotation_axis,
-                                 nb_repetitions=self.nb_submeshes-1,
-                                 name=f"{self.name}_clipped")
-        else:
-            return None
+    # def rotate(self, axis, angle):
+    #     raise NotImplementedError
+    #
+    # def translate(self, vector):
+    #     raise NotImplementedError
+    #
+    # def mirror(self, plane):
+    #     raise NotImplementedError
 
     @staticmethod
     def from_profile(profile,

@@ -448,14 +448,17 @@ class Mesh(Abstract3DObject):
         self.flip_normals()
         return self
 
-    def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
+    @inplace_transformation
+    def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty) -> 'Mesh':
         """Clip the mesh with two horizontal planes."""
         from capytaine.mesh.mesh_clipper import MeshClipper
         if self.vertices[:, 2].min() > free_surface or self.vertices[:, 2].max() < sea_bottom:
-            return None  # The mesh has no wet faces.
+            LOG.warning("Trying to get the immersed clipped mesh of a mesh without wet panels.")
+            self.vertices = np.zeros((0, 3))
+            self.faces = np.zeros((0, 4))
 
         elif self.vertices[:, 2].min() > sea_bottom and self.vertices[:, 2].max() < free_surface:
-            return self.copy(name=f"{self.name}_clipped")  # The mesh is completely immersed. Non need for clipping.
+            pass  # The mesh is completely immersed. Non need for clipping.
 
         else:
             clipped_mesh = MeshClipper(self,
@@ -468,8 +471,9 @@ class Mesh(Abstract3DObject):
                                                        scalar=-sea_bottom)).clipped_mesh
 
             clipped_mesh.remove_unused_vertices()
-            clipped_mesh.name = f"{self.name}_clipped"
-            return clipped_mesh
+            self.vertices = clipped_mesh.vertices
+            self.faces = clipped_mesh.faces
+        return self
 
     @inplace_transformation
     def triangulate_quadrangles(self) -> 'Mesh':

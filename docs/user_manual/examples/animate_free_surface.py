@@ -16,7 +16,7 @@ full_sphere = Sphere(
 )
 
 # Keep only the immersed part of the mesh
-sphere = full_sphere.get_immersed_part()
+sphere = full_sphere.keep_immersed_part(inplace=False)
 
 # Set up and solve problem
 problem = DiffractionProblem(body=sphere, angle=0.0, omega=2.0)

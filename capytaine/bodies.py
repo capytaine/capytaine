@@ -55,6 +55,7 @@ class FloatingBody(Abstract3DObject):
 
         assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
         self.mesh = mesh
+        self.full_mesh = mesh
         self.dofs = dofs
         self.name = name
 
@@ -221,7 +222,7 @@ class FloatingBody(Abstract3DObject):
         The dofs evolve accordingly.
         """
         if isinstance(self.mesh, CollectionOfMeshes):
-            raise NotImplemented()  # TODO
+            raise NotImplementedError  # TODO
 
         if return_index:
             new_mesh, id_v = Mesh.extract_faces(self.mesh, id_faces_to_extract, return_index)
@@ -239,41 +240,39 @@ class FloatingBody(Abstract3DObject):
         else:
             return new_body
 
-    def get_immersed_part(self, name=None, **kwargs):
-        """Return a body for which the parts of the mesh above the free surface or below the sea
-        bottom have been removed.
-        Dofs are lost in the process.
-        TODO: Also clip dofs.
-        """
-        new_body_mesh = self.mesh.get_immersed_part(**kwargs)
-        if new_body_mesh is None:
-            raise Exception(f"Trying to clip the mesh of {self.name}, but it does not have any wet faces")
-
-        if name is None:
-            name = f"{self.name}_clipped"
-        LOG.info(f"Clip floating body {self.name} to create {name}.")
-
-        return FloatingBody(new_body_mesh, name=name)
-
     @inplace_transformation
     def mirror(self, *args):
         self.mesh.mirror(*args)
         # TODO: Also mirror dofs
-        LOG.warning(f"The dofs of {self.name} have not been mirrored with its mesh.")
-        return
+        if len(self.dofs) > 0:
+            LOG.warning(f"The dofs of {self.name} have not been mirrored with its mesh.")
+        return self
 
     @inplace_transformation
     def translate(self, *args):
         if hasattr(self, 'center'):
             self.center += args[0]
         self.mesh.translate(*args)
-        return
+        return self
 
     @inplace_transformation
     def rotate(self, *args):
+        self.mesh.rotate(*args)
         # TODO: Also rotate dofs
-        LOG.warning(f"The dofs of {self.name} have not been rotated with its mesh.")
-        return self.mesh.rotate(*args)
+        if len(self.dofs) > 0:
+            LOG.warning(f"The dofs of {self.name} have not been rotated with its mesh.")
+        return self
+
+    @inplace_transformation
+    def keep_immersed_part(self, **kwargs):
+        """Remove the parts of the mesh above the sea bottom and below the free surface.
+        """
+        self.full_mesh = self.mesh.copy()
+        self.mesh.keep_immersed_part(**kwargs)
+        # TODO: Also clip dofs
+        if len(self.dofs) > 0:
+            LOG.warning(f"The dofs of {self.name} have not been clipped with its mesh.")
+        return self
 
     #############
     #  Display  #

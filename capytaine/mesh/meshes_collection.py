@@ -143,18 +143,6 @@ class CollectionOfMeshes(tuple, Abstract3DObject):
         merged.heal_triangles()
         return merged
 
-    def get_immersed_part(self, **kwargs):
-        clipped_meshes = []
-        for mesh in self:
-            m = mesh.get_immersed_part(**kwargs)
-            if m is not None:
-                clipped_meshes.append(m)
-
-        if len(clipped_meshes) > 0:
-            return CollectionOfMeshes(clipped_meshes, name=f"{self.name}_clipped")
-        else:
-            return None
-
     @inplace_transformation
     def translate(self, vector):
         for mesh in self:
@@ -169,6 +157,18 @@ class CollectionOfMeshes(tuple, Abstract3DObject):
     def mirror(self, plane):
         for mesh in self:
             mesh.mirror(plane)
+
+    @inplace_transformation
+    def keep_immersed_part(self, **kwargs):
+        for mesh in self:
+            mesh.keep_immersed_part(**kwargs)
+        # TODO: Prune empty meshes?
+
+    # @inplace_transformation
+    # def prune_empty_meshes(self):
+    #     """Remove empty meshes from the collection."""
+    #     for mesh in self:
+    #         if mesh.nb_faces == 0 and mesh.nb_vertices == 0:
 
     def show(self):
         self.merge().show()
