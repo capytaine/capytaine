@@ -277,8 +277,8 @@ class RectangularParallelepiped(FloatingBody):
 
         half_side = Rectangle.generate_rectangle_mesh(
             width=thickness/2, height=height, nw=nth//2, nh=nh,
-            center=(width/2, thickness/4, 0),
-            normal_angles=(0, 0, -np.pi),
+            center=(-width/2, thickness/4, 0),
+            normal_angles=(0, 0, 0),
             name=f"half_side_of_{name}_mesh"
         )
 
@@ -289,8 +289,8 @@ class RectangularParallelepiped(FloatingBody):
             panels.append(quarter_of_bottom)
         quarter_of_mesh = CollectionOfMeshes(panels, name=f"quarter_of_{name}_mesh").merge()
 
-        half_mesh = ReflectionSymmetry(quarter_of_mesh, plane=xOz_Plane, name=f"half_of_{name}_mesh")
-        return ReflectionSymmetry(half_mesh, plane=yOz_Plane, name=f"{name}_mesh")
+        half_mesh = ReflectionSymmetry(quarter_of_mesh, plane=yOz_Plane, name=f"half_of_{name}_mesh")
+        return ReflectionSymmetry(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
 
     @property
     def volume(self):

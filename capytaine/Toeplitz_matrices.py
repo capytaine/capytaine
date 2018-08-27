@@ -10,7 +10,7 @@ from itertools import product
 
 import numpy as np
 
-from capytaine import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
+from capytaine import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry, CollectionOfMeshes
 from capytaine.mesh.symmetries import LOG
 
 LOG = logging.getLogger(__name__)
@@ -294,7 +294,7 @@ def use_symmetries(build_matrices):
             mesh of the source body (over which the source distribution is integrated)
         *args
             Passed to the actual evaluation of the coefficients
-        _rec_depth: tuple, optional
+        _rec_depth: int, optional
             internal parameter: recursion accumulator for pretty log printing
 
         Returns

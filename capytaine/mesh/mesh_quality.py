@@ -44,7 +44,7 @@ def merge_duplicates(mesh, atol=1e-8):
     else:
         LOG.debug("\t--> Initial number of vertices : %u", nv_init)
         LOG.debug("\t--> Final number of vertices   : %u", nv_final)
-        LOG.debug("\t--> %u vertices have been merged\n", delta_n)
+        LOG.debug("\t--> %u vertices have been merged", delta_n)
 
     # if mesh._has_connectivity():
     #     mesh._remove_connectivity()
