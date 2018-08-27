@@ -10,7 +10,7 @@ import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.tools.geometry import Plane, inplace_transformation
+from capytaine.tools.geometry import Axis, Plane, Oz_axis, inplace_transformation
 
 LOG = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ class ReflectionSymmetry(SymmetricMesh):
 
         self = super().__new__(cls, (half, other_half))
 
-        self.plane = plane
+        self.plane = plane.copy()
 
         if name is None:
             self.name = CollectionOfMeshes.format_name(self, half.name)
@@ -66,22 +66,22 @@ class ReflectionSymmetry(SymmetricMesh):
         return ReflectionSymmetry(self.half.copy(), self.plane, name=self.name)
 
     @inplace_transformation
+    def translate(self, vector):
+        self.plane.translate(vector)
+        CollectionOfMeshes.translate(self, vector)
+        return self
+
+    @inplace_transformation
     def rotate(self, axis, angle):
         self.plane.rotate(axis, angle)
-        super().rotate(axis, angle)
+        CollectionOfMeshes.rotate(self, axis, angle)
+        return self
 
     @inplace_transformation
     def mirror(self, plane):
-        if plane.normal @ self.plane.normal == 0:  # Orthogonal planes
-            return super().mirror(plane=plane)
-        else:
-            raise NotImplementedError
-
-    # def translate(self, vector):
-    #     if vector @ self.plane.normal == 0:  # Translation along the plane
-    #         return super().translate(vector)
-    #     else:
-    #         raise NotImplementedError
+        self.plane.mirror(plane)
+        CollectionOfMeshes.mirror(self, plane)
+        return self
 
 
 class TranslationalSymmetry(SymmetricMesh):
@@ -103,16 +103,13 @@ class TranslationalSymmetry(SymmetricMesh):
         assert isinstance(nb_repetitions, int)
         assert nb_repetitions >= 1
 
-        translation = np.asarray(translation)
+        translation = np.asarray(translation).copy()
         assert translation.shape == (3,)
         assert translation[2] == 0  # Only horizontal translation are supported.
 
         slices = [mesh_slice]
         for i in range(1, nb_repetitions+1):
-            new_slice = mesh_slice.copy()
-            new_slice.name = f"repetition_{i}_of_{mesh_slice.name}"
-            new_slice.translate(i*translation)
-            slices.append(new_slice)
+            slices.append(mesh_slice.translated(vector=i*translation, name=f"repetition_{i}_of_{mesh_slice.name}"))
 
         self = super().__new__(cls, slices)
 
@@ -140,6 +137,23 @@ class TranslationalSymmetry(SymmetricMesh):
     def __deepcopy__(self, *args):
         return TranslationalSymmetry(self.first_slice.copy(), self.translation, nb_repetitions=len(self)-1, name=self.name)
 
+    @inplace_transformation
+    def translate(self, vector):
+        CollectionOfMeshes.translate(self, vector)
+        return self
+
+    @inplace_transformation
+    def rotate(self, axis, angle):
+        self.translation = axis.rotation_matrix(angle) @ self.translation
+        CollectionOfMeshes.rotate(self, axis, angle)
+        return self
+
+    @inplace_transformation
+    def mirror(self, plane):
+        self.translation -= 2 * (self.translation @ plane.normal) * plane.normal
+        CollectionOfMeshes.mirror(self, plane)
+        return self
+
     def join(*list_of_symmetric_meshes):
         """Experimental routine to merge similar symmetries."""
         assert all([isinstance(mesh, TranslationalSymmetry) for mesh in list_of_symmetric_meshes])
@@ -151,27 +165,17 @@ class TranslationalSymmetry(SymmetricMesh):
             list_of_symmetric_meshes[0].translation, list_of_symmetric_meshes[0].nb_submeshes,
         )
 
-    # def rotate(self, axis, angle):
-    #     raise NotImplementedError
-    #
-    # def translate(self, vector):
-    #     raise NotImplementedError
-    #
-    # def mirror(self, plane):
-    #     raise NotImplementedError
-
 
 class AxialSymmetry(SymmetricMesh):
-    def __new__(cls, mesh_slice, point_on_rotation_axis=np.zeros(3), nb_repetitions=1, name=None):
+    def __new__(cls, mesh_slice, axis=Oz_axis, nb_repetitions=1, name=None):
         """A mesh with a repeating pattern by rotation.
 
         Parameters
         ----------
         mesh_slice : Mesh or CollectionOfMeshes
             the pattern that will be repeated to form the whole body
-        point_on_rotation_axis : array(3)
-            one point on the rotation axis. The axis is supposed to be vertical.
-            TODO: Use an Axis class.
+        axis : Axis, optional
+            symmetry axis
         nb_repetitions : int, optional
             the number of repetitions of the pattern (excluding the original one, default: 1)
         name : str, optional
@@ -180,22 +184,20 @@ class AxialSymmetry(SymmetricMesh):
         assert isinstance(mesh_slice, Mesh) or isinstance(mesh_slice, CollectionOfMeshes)
         assert isinstance(nb_repetitions, int)
         assert nb_repetitions >= 1
+        assert isinstance(axis, Axis)
 
-        point_on_rotation_axis = np.asarray(point_on_rotation_axis)
-        assert point_on_rotation_axis.shape == (3,)
+        if not axis == Oz_axis:
+            LOG.warning("Initialization of an axi-symmetric mesh along another axis than Oz. "
+                        "It may not be useful for the resolution of the BEM problem")
 
         slices = [mesh_slice]
         for i in range(1, nb_repetitions+1):
-            new_slice = mesh_slice.copy()
-            new_slice.name = f"rotation_{i}_of_{mesh_slice.name}"
-            new_slice.translate(-point_on_rotation_axis)
-            new_slice.rotate_z(2*i*np.pi/(nb_repetitions+1))
-            new_slice.translate(point_on_rotation_axis)
-            slices.append(new_slice)
+            slices.append(mesh_slice.rotated(axis, angle=2*i*np.pi/(nb_repetitions+1),
+                                       name=f"rotation_{i}_of_{mesh_slice.name}"))
 
         self = super().__new__(cls, slices)
 
-        self.point_on_rotation_axis = point_on_rotation_axis
+        self.axis = axis.copy()
 
         if name is None:
             self.name = CollectionOfMeshes.format_name(self, mesh_slice.name)
@@ -205,33 +207,10 @@ class AxialSymmetry(SymmetricMesh):
 
         return self
 
-    @property
-    def first_slice(self):
-        return self[0]
-
-    def tree_view(self, fold_symmetry=True, **kwargs):
-        if fold_symmetry:
-            return (self.name + '\n' + ' ├─' + self.first_slice.tree_view().replace('\n', '\n │ ') + '\n'
-                    + f" └─{len(self)-1} rotated copies of the above {self.first_slice.name}")
-        else:
-            return CollectionOfMeshes.tree_view(self, **kwargs)
-
-    def __deepcopy__(self, *args):
-        return AxialSymmetry(self.first_slice.copy(), self.point_on_rotation_axis, nb_repetitions=len(self)-1, name=self.name)
-
-    # def rotate(self, axis, angle):
-    #     raise NotImplementedError
-    #
-    # def translate(self, vector):
-    #     raise NotImplementedError
-    #
-    # def mirror(self, plane):
-    #     raise NotImplementedError
-
     @staticmethod
     def from_profile(profile,
                      z_range=np.linspace(-5, 0, 20),
-                     point_on_rotation_axis=np.zeros(3),
+                     axis=Oz_axis,
                      nphi=20,
                      name=None):
         """Return a floating body using the axial symmetry.
@@ -245,8 +224,8 @@ class AxialSymmetry(SymmetricMesh):
             define the shape of the body either as a function or a list of points.
         z_range: array(N), optional
             used only if the profile is defined as a function.
-        point_on_rotation_axis: array(3), optional
-            a single point to define the rotation axis (the direction is always vertical)
+        axis : Axis
+            symmetry axis
         nphi : int, optional
             number of vertical slices forming the body
         name : str, optional
@@ -282,6 +261,37 @@ class AxialSymmetry(SymmetricMesh):
         body_slice.merge_duplicates()
         body_slice.heal_triangles()
 
-        return AxialSymmetry(body_slice, point_on_rotation_axis=point_on_rotation_axis, nb_repetitions=nphi-1, name=name)
+        return AxialSymmetry(body_slice, axis=axis, nb_repetitions=nphi-1, name=name)
 
+    @property
+    def first_slice(self):
+        return self[0]
+
+    def tree_view(self, fold_symmetry=True, **kwargs):
+        if fold_symmetry:
+            return (self.name + '\n' + ' ├─' + self.first_slice.tree_view().replace('\n', '\n │ ') + '\n'
+                    + f" └─{len(self)-1} rotated copies of the above {self.first_slice.name}")
+        else:
+            return CollectionOfMeshes.tree_view(self, **kwargs)
+
+    def __deepcopy__(self, *args):
+        return AxialSymmetry(self.first_slice.copy(), axis=self.axis.copy(), nb_repetitions=len(self)-1, name=self.name)
+
+    @inplace_transformation
+    def translate(self, vector):
+        self.axis.translate(vector)
+        CollectionOfMeshes.translate(self, vector)
+        return self
+
+    @inplace_transformation
+    def rotate(self, other_axis, angle):
+        self.axis.rotate(other_axis, angle)
+        CollectionOfMeshes.rotate(self, other_axis, angle)
+        return self
+
+    @inplace_transformation
+    def mirror(self, plane):
+        self.axis.mirror(plane)
+        CollectionOfMeshes.mirror(self, plane)
+        return self
 

@@ -269,7 +269,7 @@ class Plane(Abstract3DObject):
     @inplace_transformation
     def mirror(self, plane):
         self.point -= 2 * (self.point @ plane.normal - plane.c) * plane.normal
-        self.normal -= 2 * (self.vector @ plane.normal) * plane.normal
+        self.normal -= 2 * (self.normal @ plane.normal) * plane.normal
         return self
 
     ###########

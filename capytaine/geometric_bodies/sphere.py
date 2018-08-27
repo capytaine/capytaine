@@ -110,8 +110,7 @@ class Sphere(FloatingBody):
         circle_profile[:, 2] = -np.cos(theta)
         circle_profile *= self.radius
 
-        return AxialSymmetry.from_profile(circle_profile, point_on_rotation_axis=(0, 0, 0),
-                                          nphi=nphi, name=f"{name}_mesh")
+        return AxialSymmetry.from_profile(circle_profile, nphi=nphi, name=f"{name}_mesh")
 
     @property
     def volume(self):
