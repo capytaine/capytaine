@@ -11,6 +11,7 @@ from capytaine.bodies import TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
 from capytaine.results import RadiationResult, LinearPotentialFlowResult
 from capytaine.geometric_bodies.free_surface import FreeSurface
 from capytaine.ui.vtk import compute_node_data
+from capytaine.ui.vtk.MMviewer import compute_vtk_polydata
 
 
 class Animation:
@@ -31,7 +32,7 @@ class Animation:
         mapper = vtk.vtkPolyDataMapper()
         if display_body is None:
             display_body = result.body
-        mapper.SetInputData(display_body.mesh._vtk_polydata())
+        mapper.SetInputData(compute_vtk_polydata(display_body.mesh))
 
         self.body_actor = vtk.vtkActor()
         self.body_actor.GetProperty().SetColor((1, 1, 0))
@@ -47,7 +48,7 @@ class Animation:
         lut.Build()
 
         mapper = vtk.vtkPolyDataMapper()
-        mapper.SetInputData(free_surface.mesh._vtk_polydata())
+        mapper.SetInputData(compute_vtk_polydata(free_surface.mesh))
         mapper.SetLookupTable(lut)
 
         self.fs_actor = vtk.vtkActor()
