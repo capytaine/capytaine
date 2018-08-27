@@ -51,20 +51,9 @@ class Mesh(Abstract3DObject):
         else:
             self.name = str(name)
 
-        assert all(int(vertex_id) == vertex_id >= 0 for face in faces for vertex_id in face), \
-            "Faces of a mesh should be provided as positive integers (ids of vertices)"
-
-        self._vertices = np.array(vertices, dtype=np.float).copy()
-        self._faces = np.array(faces, dtype=np.int).copy()
-
-        assert self._vertices.shape[1] == 3, \
-            "Vertices of a mesh should be provided as a sequence of 3-ple."
-        assert self._faces.shape[1] == 4, \
-            "Faces of a mesh should be provided as a sequence of 4-ple."
-        assert len(self._faces) == 0 or self._faces.max()+1 <= len(self._vertices), \
-            "The array of faces references vertices that are not in the mesh."
-
         self.__internals__ = dict()
+        self.vertices = vertices
+        self.faces = faces
 
     def __str__(self):
         return (f"{self.__class__.__name__}(nb_vertices={self.nb_vertices}, "
@@ -83,6 +72,8 @@ class Mesh(Abstract3DObject):
     @vertices.setter
     def vertices(self, value) -> None:
         self._vertices = np.asarray(value, dtype=np.float).copy()
+        assert self._vertices.shape[1] == 3, \
+            "Vertices of a mesh should be provided as a sequence of 3-ple."
         self.__internals__.clear()
 
     @property
@@ -96,8 +87,15 @@ class Mesh(Abstract3DObject):
         return self._faces
 
     @faces.setter
-    def faces(self, value):
-        self._faces = np.asarray(value, dtype=np.int).copy()
+    def faces(self, faces):
+        assert all(int(vertex_id) == vertex_id >= 0 for face in faces for vertex_id in face), \
+            "Faces of a mesh should be provided as positive integers (ids of vertices)"
+        faces = np.asarray(faces, dtype=np.int).copy()
+        assert faces.shape[1] == 4, \
+            "Faces of a mesh should be provided as a sequence of 4-ple."
+        assert len(faces) == 0 or faces.max()+1 <= self.nb_vertices, \
+            "The array of faces should only reference vertices that are in the mesh."
+        self._faces = faces
         self.__internals__.clear()
 
     def copy(self, name=None) -> 'Mesh':
