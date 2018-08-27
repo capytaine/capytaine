@@ -31,6 +31,7 @@ def test_plane_translations():
 
 def test_plane_rotations():
     rotated_plane = xOz_Plane.rotate(Oy_axis, angle=np.pi/12, inplace=False)
+    assert rotated_plane == xOz_Plane.rotated(Oy_axis, angle=np.pi/12)
     assert xOz_Plane is not rotated_plane
     assert xOz_Plane == rotated_plane
 

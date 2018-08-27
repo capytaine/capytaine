@@ -29,8 +29,8 @@ def inplace_transformation(inplace_function):
 
 class Abstract3DObject(ABC):
     """Abstract class for 3d objects that can be transformed in 3d.
-    The child class have to define mirror, rotate and translate,
-    then more routines such as translate_x are automatically defined."""
+    The child classes have to define `mirror`, `rotate` and `translate`,
+    then more routines such as `translate_x` and `translated` are automatically available."""
 
     @abstractmethod
     def translate(self, vector):
@@ -75,6 +75,36 @@ class Abstract3DObject(ABC):
         self.rotate(Oy_axis, thetay)
         self.rotate(Oz_axis, thetaz)
         return self
+
+    def translated(self, *args, **kwargs):
+        return self.translate(*args, inplace=False, **kwargs)
+
+    def rotated(self, *args, **kwargs):
+        return self.rotate(*args, inplace=False, **kwargs)
+
+    def mirrored(self, *args, **kwargs):
+        return self.mirror(*args, inplace=False, **kwargs)
+
+    def translated_x(self, *args, **kwargs):
+        return self.translate_x(*args, inplace=False, **kwargs)
+
+    def translated_y(self, *args, **kwargs):
+        return self.translate_y(*args, inplace=False, **kwargs)
+
+    def translated_z(self, *args, **kwargs):
+        return self.translate_z(*args, inplace=False, **kwargs)
+
+    def rotated_x(self, *args, **kwargs):
+        return self.rotate_x(*args, inplace=False, **kwargs)
+
+    def rotated_y(self, *args, **kwargs):
+        return self.rotate_y(*args, inplace=False, **kwargs)
+
+    def rotated_z(self, *args, **kwargs):
+        return self.rotate_z(*args, inplace=False, **kwargs)
+
+    def rotated_angles(self, *args, **kwargs):
+        return self.rotate_angles(*args, inplace=False, **kwargs)
 
 
 class Axis(Abstract3DObject):
@@ -129,7 +159,7 @@ Oy_axis = Axis(vector=(0, 1, 0), point=(0, 0, 0))
 Oz_axis = Axis(vector=(0, 0, 1), point=(0, 0, 0))
 
 
-class Plane:
+class Plane(Abstract3DObject):
     """Class to handle plane geometry.
 
     A plane is represented by the equation :math:`\\vec{n}.\\vec{x} = c` where :math:`\\vec{n}` is the plane's normal,

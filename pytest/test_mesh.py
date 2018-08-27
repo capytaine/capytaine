@@ -52,16 +52,23 @@ def test_vertices():
 def test_bbox():
     assert (-5, 5, -5, 5, -5, 5) == cylinder.squared_axis_aligned_bbox
 
-def test_rotate():
-    cylinder.rotate_x(np.pi)
-    cylinder.rotate_y(np.pi)
-    cylinder.rotate_z(np.pi)
-
 def test_translate():
     cylinder.translate_x(0)
     cylinder.translate_y(0)
     cylinder.translate_z(0)
     cylinder.translate([0, 0, 0])
+    cylinder.translated_x(0)
+    cylinder.translated_y(0)
+    cylinder.translated_z(0)
+    cylinder.translated([0, 0, 0])
+
+def test_rotate():
+    cylinder.rotate_x(np.pi)
+    cylinder.rotate_y(np.pi)
+    cylinder.rotate_z(np.pi)
+    cylinder.rotated_x(np.pi)
+    cylinder.rotated_y(np.pi)
+    cylinder.rotated_z(np.pi)
 
 def test_merge_duplicate():
     cylinder.merge_duplicates(atol=1e-5)
