@@ -122,7 +122,7 @@ class MeshClipper:
         Classifies vertices with respect to the clipping plane
         """
 
-        vertices_distances = self._plane.get_point_dist_wrt_plane(self._source_mesh.vertices)
+        vertices_distances = self._plane.distance_to_point(self._source_mesh.vertices)
 
         vertices_positions = {'vertices_distances': vertices_distances,
                               'vertices_above_mask': vertices_distances > self._vicinity_tol,
