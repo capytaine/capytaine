@@ -5,10 +5,13 @@ Freely adapted from meshmagick.
 """
 
 from abc import ABC, abstractmethod
-from math import atan2
 
 import numpy as np
 
+
+###########################################
+#  DECORATOR FOR INPLACE TRANSFORMATIONS  #
+###########################################
 
 def inplace_transformation(inplace_function):
     """Decorator for methods transforming 3D objects:
@@ -26,6 +29,10 @@ def inplace_transformation(inplace_function):
         return object3d
     return enhanced_inplace_function
 
+
+##############################
+#  ABSTRACT 3D OBJECT CLASS  #
+##############################
 
 class Abstract3DObject(ABC):
     """Abstract class for 3d objects that can be transformed in 3d.
@@ -107,30 +114,82 @@ class Abstract3DObject(ABC):
         return self.rotate_angles(*args, inplace=False, **kwargs)
 
 
-class Axis(Abstract3DObject):
-    def __init__(self, vector, point=(0, 0, 0)):
+######################
+#  HELPER FUNCTIONS  #
+######################
 
+def test_orthogonal_vectors(vec1, vec2) -> bool:
+    return np.isclose(np.linalg.norm(np.asarray(vec1) @ np.asarray(vec2)), 0.0, atol=1e-6)
+
+
+def test_parallel_vectors(vec1, vec2) -> bool:
+    return np.isclose(np.linalg.norm(np.cross(vec1, vec2)), 0.0, atol=1e-6)
+
+
+################
+#  AXIS CLASS  #
+################
+
+class Axis(Abstract3DObject):
+    def __init__(self, vector=(1, 0, 0), point=(0, 0, 0)):
         assert len(vector) == 3, "Vector of an axis should be given as a 3-ple of values."
         assert len(point) == 3, "Point of an axis should be given as a 3-ple of values."
-
-        self.vector = np.array(vector, np.float)
+        vector = np.array(vector, np.float)
+        self.vector = vector / np.linalg.norm(vector)
         self.point = np.array(point, np.float)
 
-    def copy(self, name=None):
-        return Axis(vector=self.vector, point=self.point)
+    def __repr__(self):
+        return f"Axis(vector={self.vector}, point={self.point})"
 
-    def __contains__(self, point):
-        assert len(point) == 3, "Points should be given as a 3-ple of values."
-        point = np.asarray(point, dtype=np.float)
-        return np.isclose(np.linalg.norm(np.cross(point - self.point, self.vector)), 0)
+    def __contains__(self, other_point):
+        if len(other_point) == 3:
+            other_point = np.asarray(other_point, dtype=np.float)
+            return test_parallel_vectors(other_point - self.point, self.vector)
+        else:
+            raise NotImplementedError
+
+    def __eq__(self, other):
+        if isinstance(self, Axis):
+            return self.point in other and test_parallel_vectors(self.vector, other.vector)
+        else:
+            return NotImplemented
 
     def is_orthogonal_to(self, item):
-        if isinstance(item, Axis):
+        if isinstance(item, Plane):
+            return test_parallel_vectors(self.vector, item.normal)
+        elif len(item) == 3:  # The item is supposed to be a vector given as a 3-ple
+            return test_orthogonal_vectors(self.vector, item)
+        else:
             raise NotImplementedError
-        elif isinstance(item, Plane):
-            return np.isclose(np.linalg.norm(np.cross(self.vector, item.normal)), 0.0)
-        else:  # The item is supposed to be a vector given as a 3-ple
-            return np.isclose(np.linalg.norm(self.vector @ item), 0.0)
+
+    ################################
+    #  Transformation of the axis  #
+    ################################
+
+    def copy(self, name=None):
+        return Axis(vector=self.vector.copy(), point=self.point.copy())
+
+    @inplace_transformation
+    def translate(self, vector):
+        self.point += vector
+        return self
+
+    @inplace_transformation
+    def rotate(self, axis, angle):
+        rot_matrix = axis.rotation_matrix(angle)
+        self.point = rot_matrix @ self.point
+        self.vector = rot_matrix @ self.vector
+        return self
+
+    @inplace_transformation
+    def mirror(self, plane):
+        self.point -= 2 * (self.point @ plane.normal - plane.c) * plane.normal
+        self.vector -= 2 * (self.vector @ plane.normal) * plane.normal
+        return self
+
+    ###########
+    #  Other  #
+    ###########
 
     def rotation_matrix(self, theta):
         """Rotation matrix around the vector according to Rodrigues' formula."""
@@ -140,106 +199,82 @@ class Axis(Abstract3DObject):
                       [-uy, ux, 0]])
         return np.identity(3) + np.sin(theta)*W + 2*np.sin(theta/2)**2 * (W @ W)
 
-    @inplace_transformation
-    def translate(self, vector):
-        self.point += vector
-        return
-
-    @inplace_transformation
-    def rotate(self, axis, angle):
-        raise NotImplemented
-
-    @inplace_transformation
-    def mirror(self, plane):
-        raise NotImplemented
-
 
 Ox_axis = Axis(vector=(1, 0, 0), point=(0, 0, 0))
 Oy_axis = Axis(vector=(0, 1, 0), point=(0, 0, 0))
 Oz_axis = Axis(vector=(0, 0, 1), point=(0, 0, 0))
 
 
+#################
+#  PLANE CLASS  #
+#################
+
 class Plane(Abstract3DObject):
-    """Class to handle plane geometry.
-
-    A plane is represented by the equation :math:`\\vec{n}.\\vec{x} = c` where :math:`\\vec{n}` is the plane's normal,
-    :math:`\\vec{x}` a point in the space and :math:`c` a scalar parameter being the signed distance between the
-    reference frame origin and the its otrhogonal projection on the plane.
-
-    Parameters
-    ----------
-    normal : array_like
-        3 component vector of the plane normal
-    scalar : float
-        The scalar parameter of the plane
-    """
-    def __init__(self, normal=(0.0, 0.0, 1.0), scalar=0.0, name=None):
-        self.normal = normal
-        self.c = float(scalar)
-        self.name = str(name)
-
-    @property
-    def normal(self):
-        """Get the plane's normal"""
-        return self._normal
-
-    @normal.setter
-    def normal(self, value):
-        """Set the plane's normal"""
-        value = np.asarray(value, dtype=np.float)
-        self._normal = value / np.linalg.norm(value)
+    def __init__(self, normal=(0.0, 0.0, 1.0), point=(0.0, 0.0, 0.0)):
+        normal = np.asarray(normal, dtype=np.float)
+        self.normal = normal / np.linalg.norm(normal)
+        self.point = np.asarray(point, dtype=np.float)
 
     def __repr__(self):
-        return f"Plane(normal=({self.normal[0]}, {self.normal[1]}, {self.normal[2]}), scalar={self.c})"
+        return f"Plane(normal={self.normal}, point={self.point})"
+
+    def __contains__(self, other):
+        if isinstance(other, Axis):
+            return other.point in self and test_orthogonal_vectors(self.normal, other.vector)
+        elif len(other) == 3:
+            return test_orthogonal_vectors(other - self.point, self.normal)
+        else:
+            raise NotImplementedError
 
     def __eq__(self, other):
         if isinstance(other, Plane):
-            return (np.isclose(self.c, other.c, atol=1e-5) and
-                    np.isclose(self.normal @ other.normal, 1.0, atol=1e-5))
+            return other.point in self and test_parallel_vectors(self.normal, other.normal)
         else:
             return NotImplemented
 
-    def copy(self, name=None):
-        if name is None:
-            name = self.name
-        return Plane(normal=self.normal, scalar=self.c, name=name)
-
-    @property
-    def origin(self):
-        """Get the coordinates of the plane's origin"""
-        return self.c * self.normal
-
-    def __contains__(self, item):
-        if isinstance(item, Axis):
-            return item.point in self and item.vector
-        assert len(item) == 3, "Points should be given as a 3-ple of values."
-        point = np.asarray(point, dtype=np.float)
-        return np.isclose(np.linalg.norm(np.cross(point - self.point, self.vector)), 0)
-
     def is_orthogonal_to(self, other):
         if isinstance(other, Axis):
-            return np.isclose(np.linalg.norm(np.cross(self.normal, other.vector)), 0.0)
+            return test_parallel_vectors(self.normal, other.vector)
         elif isinstance(other, Plane):
-            return np.isclose(np.linalg.norm(self.normal @ other.normal), 0.0)
-        else:  # The other is supposed to be a vector given as a 3-ple
-            return np.isclose(np.linalg.norm(np.cross(self.normal, other)), 0.0)
+            return test_orthogonal_vectors(self.normal, other.normal)
+        elif len(other) == 3:  # The other is supposed to be a vector given as a 3-ple
+            return test_parallel_vectors(self.normal, other)
+        else:
+            raise NotImplementedError
+
+    @property
+    def c(self):
+        """Distance from plane to origin."""
+        return np.linalg.norm(self.normal @ self.point)
+
+    #################################
+    #  Transformation of the plane  #
+    #################################
+
+    def copy(self, name=None):
+        return Plane(normal=self.normal.copy(), point=self.point.copy())
+
+    @inplace_transformation
+    def translate(self, vector):
+        self.point = self.point + np.asarray(vector)
+        return self
 
     @inplace_transformation
     def rotate(self, axis, angle):
-        if self.c != 0.0 or (0, 0, 0) not in axis:
-            raise NotImplementedError
         rot_matrix = axis.rotation_matrix(angle)
+        self.point = rot_matrix @ self.point
         self.normal = rot_matrix @ self.normal
         return self
 
     @inplace_transformation
-    def translate(self, vector):
-        self.c = self.c + self.normal @ np.asarray(vector)
+    def mirror(self, plane):
+        self.point -= 2 * (self.point @ plane.normal - plane.c) * plane.normal
+        self.normal -= 2 * (self.vector @ plane.normal) * plane.normal
         return self
 
-    @inplace_transformation
-    def mirror(self, plane):
-        raise NotImplementedError
+    ###########
+    #  Other  #
+    ###########
 
     def distance_to_point(self, points):
         """
@@ -255,8 +290,7 @@ class Plane(Abstract3DObject):
         dist : ndarray
             Array of distances of points with respect to the plane
         """
-
-        return np.dot(points, self._normal) - self.c
+        return np.dot(points, self.normal) - self.c
 
     def get_edge_intersection(self, p0, p1):
         """
@@ -284,8 +318,7 @@ class Plane(Abstract3DObject):
         return (1-t) * p0 + t * p1
 
 
-# Useful aliases
-yOz_Plane = Plane(normal=(1.0, 0.0, 0.0), scalar=0.0)
-xOz_Plane = Plane(normal=(0.0, 1.0, 0.0), scalar=0.0)
-xOy_Plane = Plane(normal=(0.0, 0.0, 1.0), scalar=0.0)
+yOz_Plane = Plane(normal=(1, 0, 0), point=(0, 0, 0))
+xOz_Plane = Plane(normal=(0, 1, 0), point=(0, 0, 0))
+xOy_Plane = Plane(normal=(0, 0, 1), point=(0, 0, 0))
 
