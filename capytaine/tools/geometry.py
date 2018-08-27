@@ -10,17 +10,21 @@ from math import atan2
 import numpy as np
 
 
-def inplace_or_not(inplace_function):
-    """Decorator for mesh transformation methods.
-    Add the optional argument to return a new mesh instead of doing the transformation in place."""
-    def inplace_function_with_option(self, *args, inplace=True, name=None, **kwargs):
+def inplace_transformation(inplace_function):
+    """Decorator for methods transforming 3D objects:
+    * Add the optional argument `inplace` to return a new object instead of doing the transformation in place.
+    * If the object has properties cached in an "__internals__" dict, they are deleted.
+    """
+    def enhanced_inplace_function(self, *args, inplace=True, name=None, **kwargs):
         if not inplace:
-            mesh = self.copy(name=name)
+            object3d = self.copy(name=name)
         else:
-            mesh = self
-        inplace_function(mesh, *args, **kwargs)
-        return mesh
-    return inplace_function_with_option
+            object3d = self
+        inplace_function(object3d, *args, **kwargs)
+        if hasattr(object3d, '__internals__'):
+            object3d.__internals__.clear()
+        return object3d
+    return enhanced_inplace_function
 
 
 class Abstract3DObject(ABC):
@@ -40,31 +44,31 @@ class Abstract3DObject(ABC):
     def mirror(self, plane):
         pass
 
-    @inplace_or_not
+    @inplace_transformation
     def translate_x(self, tx):
         return self.translate((tx, 0., 0.))
 
-    @inplace_or_not
+    @inplace_transformation
     def translate_y(self, ty):
         return self.translate((0., ty, 0.))
 
-    @inplace_or_not
+    @inplace_transformation
     def translate_z(self, tz):
         return self.translate((0., 0., tz))
 
-    @inplace_or_not
+    @inplace_transformation
     def rotate_x(self, thetax):
         return self.rotate(Ox_axis, thetax)
 
-    @inplace_or_not
+    @inplace_transformation
     def rotate_y(self, thetay):
         return self.rotate(Oy_axis, thetay)
 
-    @inplace_or_not
+    @inplace_transformation
     def rotate_z(self, thetaz):
         return self.rotate(Oz_axis, thetaz)
 
-    @inplace_or_not
+    @inplace_transformation
     def rotate_angles(self, angles):
         thetax, thetay, thetaz = angles
         self.rotate(Ox_axis, thetax)
@@ -90,16 +94,16 @@ class Axis(Abstract3DObject):
                       [-uy, ux, 0]])
         return np.identity(3) + np.sin(theta)*W + 2*np.sin(theta/2)**2 * (W @ W)
 
-    @inplace_or_not
+    @inplace_transformation
     def translate(self, vector):
         self.point += vector
         return
 
-    @inplace_or_not
+    @inplace_transformation
     def rotate(self, axis, angle):
         raise NotImplemented
 
-    @inplace_or_not
+    @inplace_transformation
     def mirror(self, plane):
         raise NotImplemented
 

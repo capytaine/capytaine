@@ -90,14 +90,16 @@ def compute_radiuses(mesh, faces_centers):
     return faces_radiuses
 
 
-def connectivity(mesh):
+def compute_connectivity(mesh):
     """Compute the connectivities of the mesh.
 
     It concerns further connectivity than simple faces/vertices connectivities. It computes the vertices / vertices, vertices / faces and faces / faces connectivities.
 
     Note
     ----
-    Note that if the mesh is not conformal, the algorithm may not perform correctly
+    * Note that if the mesh is not conformal, the algorithm may not perform correctly
+
+    TODO: The computation of boundaries should be in the future computed with help of VTK
     """
 
     nv = mesh.nb_vertices

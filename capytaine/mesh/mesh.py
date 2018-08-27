@@ -11,10 +11,12 @@ from itertools import count
 
 import numpy as np
 
-from capytaine.mesh.mesh_properties import compute_faces_properties, connectivity
+from capytaine.tools.geometry import Abstract3DObject, Plane, inplace_transformation
+
+from capytaine.mesh.mesh_properties import compute_faces_properties, compute_connectivity
 from capytaine.mesh.mesh_quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                          heal_triangles, remove_degenerated_faces)
-from capytaine.tools.geometry import Abstract3DObject, Plane, inplace_or_not
+from capytaine.mesh.surface_integrals import compute_faces_integrals
 
 LOG = logging.getLogger(__name__)
 
@@ -52,8 +54,8 @@ class Mesh(Abstract3DObject):
         assert all(int(vertex_id) == vertex_id >= 0 for face in faces for vertex_id in face), \
             "Faces of a mesh should be provided as positive integers (ids of vertices)"
 
-        self._vertices = np.array(vertices, dtype=np.float)
-        self._faces = np.array(faces, dtype=np.int)
+        self._vertices = np.array(vertices, dtype=np.float).copy()
+        self._faces = np.array(faces, dtype=np.int).copy()
 
         assert self._vertices.shape[1] == 3, \
             "Vertices of a mesh should be provided as a sequence of 3-ple."
@@ -82,7 +84,6 @@ class Mesh(Abstract3DObject):
     def vertices(self, value) -> None:
         self._vertices = np.asarray(value, dtype=np.float).copy()
         self.__internals__.clear()
-        return
 
     @property
     def nb_faces(self) -> int:
@@ -98,7 +99,6 @@ class Mesh(Abstract3DObject):
     def faces(self, value):
         self._faces = np.asarray(value, dtype=np.int).copy()
         self.__internals__.clear()
-        return
 
     def copy(self, name=None) -> 'Mesh':
         """Get a copy of the current mesh instance.
@@ -199,61 +199,30 @@ class Mesh(Abstract3DObject):
     #  Faces properties  #
     ######################
 
-    def _has_faces_properties(self):
-        return 'faces_areas' in self.__internals__
-
-    def _remove_faces_properties(self):
-        if self._has_faces_properties():
-            del self.__internals__['faces_areas']
-            del self.__internals__['faces_centers']
-            del self.__internals__['faces_normals']
-            del self.__internals__['faces_radiuses']
-        return
-
     @property
-    def faces_areas(self):
-        """Get the array of faces areas of the mesh
-
-        Returns
-        -------
-        ndarray
-        """
+    def faces_areas(self) -> np.ndarray:
+        """Get the array of faces areas of the mesh."""
         if 'faces_areas' not in self.__internals__:
             self.__internals__.update(compute_faces_properties(self))
         return self.__internals__['faces_areas']
 
     @property
-    def faces_centers(self):
-        """Get the array of faces centers of the mesh
-
-        Returns
-        -------
-        ndarray
-        """
+    def faces_centers(self) -> np.ndarray:
+        """Get the array of faces centers of the mesh."""
         if 'faces_centers' not in self.__internals__:
             self.__internals__.update(compute_faces_properties(self))
         return self.__internals__['faces_centers']
 
     @property
-    def faces_normals(self):
-        """Get the array of faces normals of the mesh
-
-        Returns
-        -------
-        ndarray
-        """
+    def faces_normals(self) -> np.ndarray:
+        """Get the array of faces normals of the mesh."""
         if 'faces_normals' not in self.__internals__:
             self.__internals__.update(compute_faces_properties(self))
         return self.__internals__['faces_normals']
 
     @property
-    def faces_radiuses(self):
-        """Get the array of faces radiuses of the mesh.
-
-        Returns
-        -------
-        ndarray
-        """
+    def faces_radiuses(self) -> np.ndarray:
+        """Get the array of faces radiuses of the mesh."""
         if 'faces_radiuses' not in self.__internals__:
             self.__internals__.update(compute_faces_properties(self))
         return self.__internals__['faces_radiuses']
@@ -262,85 +231,50 @@ class Mesh(Abstract3DObject):
     #  Triangles and quadrangles  #
     ###############################
 
-    def is_triangle(self, face_id):
+    def is_triangle(self, face_id) -> bool:
         """Returns if a face is a triangle
 
         Parameters
         ----------
         face_id : int
             Face id
-
-        Returns
-        -------
-        bool
-            True if the face with id face_id is a triangle
         """
         assert 0 <= face_id < self.nb_faces
         return self._faces[face_id, 0] == self._faces[face_id, -1]
 
-    def _triangles_quadrangles(self):
+    def _compute_triangles_quadrangles(self):
         triangle_mask = (self._faces[:, 0] == self._faces[:, -1])
         quadrangles_mask = np.invert(triangle_mask)
         triangles_quadrangles = {'triangles_ids': np.where(triangle_mask)[0],
                                  'quadrangles_ids': np.where(quadrangles_mask)[0]}
         self.__internals__.update(triangles_quadrangles)
-        return
-
-    def _has_triangles_quadrangles(self):
-        return 'triangles_ids' in self.__internals__
-
-    def _remove_triangles_quadrangles(self):
-        if 'triangles_ids' in self.__internals__:
-            del self.__internals__['triangles_ids']
-            del self.__internals__['quadrangles_ids']
-        return
 
     @property
-    def triangles_ids(self):
-        """Get the array of ids of triangle shaped faces
-
-        Returns
-        -------
-        ndarray
-        """
+    def triangles_ids(self) -> np.ndarray:
+        """Get the array of ids of triangle shaped faces."""
         if 'triangles_ids' not in self.__internals__:
-            self._triangles_quadrangles()
+            self._compute_triangles_quadrangles()
         return self.__internals__['triangles_ids']
 
     @property
-    def nb_triangles(self):
-        """Get the number of triangles in the mesh
-
-        Returns
-        -------
-        int
-        """
+    def nb_triangles(self) -> int:
+        """Get the number of triangles in the mesh."""
         if 'triangles_ids'not in self.__internals__:
-            self._triangles_quadrangles()
+            self._compute_triangles_quadrangles()
         return len(self.__internals__['triangles_ids'])
 
     @property
-    def quadrangles_ids(self):
-        """Get the array of ids of quadrangle shaped faces
-
-        Returns
-        -------
-        ndarray
-        """
+    def quadrangles_ids(self) -> np.ndarray:
+        """Get the array of ids of quadrangle shaped faces."""
         if 'triangles_ids' not in self.__internals__:
-            self._triangles_quadrangles()
+            self._compute_triangles_quadrangles()
         return self.__internals__['quadrangles_ids']
 
     @property
-    def nb_quadrangles(self):
-        """Get the number of quadrangles in the mesh
-
-        Returns
-        -------
-        int
-        """
+    def nb_quadrangles(self) -> int:
+        """Get the number of quadrangles in the mesh."""
         if 'triangles_ids' not in self.__internals__:
-            self._triangles_quadrangles()
+            self._compute_triangles_quadrangles()
         return len(self.__internals__['quadrangles_ids'])
 
     #############
@@ -375,7 +309,8 @@ class Mesh(Abstract3DObject):
 
         Note
         ----
-        This method differs from `axis_aligned_bbox()` by the fact that the bounding box that is returned is squared but have the same center as the AABB
+        This method differs from `axis_aligned_bbox()` by the fact that
+        the bounding box that is returned is squared but have the same center as the `axis_aligned_bbox()`.
         """
         xmin, xmax, ymin, ymax, zmin, zmax = self.axis_aligned_bbox
         (x0, y0, z0) = np.array([xmin+xmax, ymin+ymax, zmin+zmax]) * 0.5
@@ -462,79 +397,48 @@ class Mesh(Abstract3DObject):
     #  Transformation of the mesh  #
     ################################
 
-    @inplace_or_not
-    def translate(self, vector):
+    @inplace_transformation
+    def translate(self, vector) -> 'Mesh':
         """Translates the mesh in 3D giving the 3 distances along coordinate axes.
 
         Parameters
         ----------
         vector : array_like
             translation vector
-
-        Return
-        ------
-        Mesh
         """
         vector = np.asarray(vector, dtype=np.float)
         assert vector.shape == (3,), "The translation vector should be given as a 3-ple of values."
 
         self.vertices += vector
 
-        # Updating properties if any
-        if self._has_faces_properties():
-            self.__internals__['faces_centers'] += vector
-
-        if self.has_surface_integrals():
-            self._remove_surface_integrals()
-
         return self
 
-    @inplace_or_not
-    def rotate(self, axis, angle):
+    @inplace_transformation
+    def rotate(self, axis, angle) -> 'Mesh':
         """Rotate the mesh of a given angle around an axis.
 
         Parameters
         ----------
         axis : Axis
         angle : float
-
-        Return
-        ------
-        Mesh
         """
         rot_matrix = axis.rotation_matrix(angle)
 
         self._vertices = np.transpose(np.dot(rot_matrix, self._vertices.T))
 
-        # Updating faces properties if any
-        if self._has_faces_properties():
-            normals = self.__internals__['faces_normals']
-            centers = self.__internals__['faces_centers']
-            self.__internals__['faces_normals'] = np.transpose(np.dot(rot_matrix, normals.T))
-            self.__internals__['faces_centers'] = np.transpose(np.dot(rot_matrix, centers.T))
-
-        if self.has_surface_integrals():
-            self._remove_surface_integrals()
-
         return self
 
     # OTHER
-    @inplace_or_not
-    def flip_normals(self):
+    @inplace_transformation
+    def flip_normals(self) -> 'Mesh':
         """Flips every normals of the mesh."""
 
         self._faces = np.fliplr(self._faces)
 
-        if self._has_faces_properties():
-            self.__internals__['faces_normals'] *= -1
-
-        if self.has_surface_integrals():
-            self._remove_surface_integrals()
-
         return self
 
-    @inplace_or_not
-    def mirror(self, plane):
+    @inplace_transformation
+    def mirror(self, plane) -> 'Mesh':
         """Mirrors the mesh instance with respect to a plane.
 
         Parameters
@@ -544,7 +448,6 @@ class Mesh(Abstract3DObject):
         """
         self.vertices -= 2 * np.outer(np.dot(self.vertices, plane.normal) - plane.c, plane.normal)
         self.flip_normals()
-        self.__internals__.clear()
         return self
 
     def get_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
@@ -570,17 +473,15 @@ class Mesh(Abstract3DObject):
             clipped_mesh.name = f"{self.name}_clipped"
             return clipped_mesh
 
-    def triangulate_quadrangles(self):
+    @inplace_transformation
+    def triangulate_quadrangles(self) -> 'Mesh':
         """Triangulates every quadrangles of the mesh by simple spliting.
-
         Each quadrangle gives two triangles.
 
         Note
         ----
-        No checking is made on the triangle quality is done.
+        No checking on the triangle quality is done.
         """
-        # TODO: Ensure the best quality aspect ratio of generated triangles
-
         # Defining both triangles id lists to be generated from quadrangles
         t1 = (0, 1, 2)
         t2 = (0, 2, 3)
@@ -601,11 +502,9 @@ class Mesh(Abstract3DObject):
         if self.nb_quadrangles != 0:
             LOG.info('\t-->{:d} quadrangles have been split in triangles'.format(self.nb_quadrangles))
 
-        self.__internals__.clear()
-
         self._faces = faces
 
-        return faces
+        return self
 
     ####################
     #  Combine meshes  #
@@ -615,7 +514,7 @@ class Mesh(Abstract3DObject):
         from capytaine.mesh.meshes_collection import CollectionOfMeshes
         return CollectionOfMeshes(meshes, name=name).merge()
 
-    def __add__(self, mesh_to_add):
+    def __add__(self, mesh_to_add) -> 'Mesh':
         return self.join_meshes(mesh_to_add)
 
     ####################
@@ -639,7 +538,7 @@ class Mesh(Abstract3DObject):
     # However, the equality shall still be use for testing.
 
     def as_set_of_faces(self):
-        return set(tuple(tuple(vertex) for vertex in face) for face in self.vertices[self.faces])
+        return frozenset(tuple(tuple(vertex) for vertex in face) for face in self.vertices[self.faces])
 
     @staticmethod
     def from_set_of_faces(set_of_faces):
@@ -664,8 +563,8 @@ class Mesh(Abstract3DObject):
             return self.as_set_of_faces() == other.as_set_of_faces()
 
     def __hash__(self):
-        # Really not optimal...
-        return hash(frozenset(self.as_set_of_faces()))
+        # Not optimal...
+        return hash(self.as_set_of_faces())
 
     ##################
     #  Mesh quality  #
@@ -686,6 +585,7 @@ class Mesh(Abstract3DObject):
     def remove_degenerated_faces(self, **kwargs):
         return remove_degenerated_faces(self, **kwargs)
 
+    @inplace_transformation
     def heal_mesh(self):
         """Heals the mesh for different tests available.
 
@@ -697,14 +597,12 @@ class Mesh(Abstract3DObject):
         * Triangles healing
         * Normal healing
         """
-        if self._has_faces_properties():
-            self._remove_faces_properties()
         self.remove_unused_vertices()
         self.remove_degenerated_faces()
         self.merge_duplicates()
         self.heal_triangles()
         self.heal_normals()
-        return
+        return self
 
     #################
     #  Edges stats  #
@@ -721,17 +619,17 @@ class Mesh(Abstract3DObject):
         return edge_length.min(), edge_length.max(), edge_length.mean()
 
     @property
-    def min_edge_length(self):
+    def min_edge_length(self) -> float:
         """The mesh's minimum edge length"""
         return self._edges_stats()[0]
 
     @property
-    def max_edge_length(self):
+    def max_edge_length(self) -> float:
         """The mesh's maximum edge length"""
         return self._edges_stats()[1]
 
     @property
-    def mean_edge_length(self):
+    def mean_edge_length(self) -> float:
         """The mesh's mean edge length"""
         return self._edges_stats()[2]
 
@@ -739,36 +637,15 @@ class Mesh(Abstract3DObject):
     #  Surface integrals  #
     #######################
 
-    def has_surface_integrals(self):
-        return 'surface_integrals' in self.__internals__
-
-    def get_surface_integrals(self):
-        """Get the mesh surface integrals
-
-        Returns
-        -------
-        ndarray
-            The mesh surface inegrals array
-        """
-        if not self.has_surface_integrals():
-            from capytaine.mesh.surface_integrals import compute_faces_integrals
+    def get_surface_integrals(self) -> np.ndarray:
+        """Get the mesh surface integrals."""
+        if 'surface_integrals' not in self.__internals__:
             self.__internals__['surface_integrals'] = compute_faces_integrals(self)
         return self.__internals__['surface_integrals']
 
-    def _remove_surface_integrals(self):
-        if 'surface_integrals' in self.__internals__:
-            del self.__internals__['surface_integrals']
-        return
-
     @property
-    def volume(self):
-        """Get the mesh enclosed volume
-
-        Returns
-        -------
-        float
-            The mesh volume
-        """
+    def volume(self) -> float:
+        """Get the mesh enclosed volume."""
         normals = self.faces_normals
         sigma_0_2 = self.get_surface_integrals()[:3]
 
@@ -778,80 +655,37 @@ class Mesh(Abstract3DObject):
     #  Connectivities  #
     ####################
 
-    def _has_connectivity(self):
-        return 'v_v' in self.__internals__
-
-    def _remove_connectivity(self):
-        if 'v_v' in self.__internals__:
-            del self.__internals__['v_v']
-            del self.__internals__['v_f']
-            del self.__internals__['f_f']
-            del self.__internals__['boundaries']
-        return
-
     @property
-    def vv(self):
-        """Get the vertex / vertex connectivity dictionary.
-
-        Returns
-        -------
-        dict
-        """
+    def vv(self) -> dict:
+        """Get the vertex / vertex connectivity dictionary."""
         if 'v_v' not in self.__internals__:
-            self.__internals__.update(connectivity(self))
+            self.__internals__.update(compute_connectivity(self))
         return self.__internals__['v_v']
 
     @property
-    def vf(self):
-        """Get the vertex / faces connectivity dictionary.
-
-        Returns
-        -------
-        dict
-        """
+    def vf(self) -> dict:
+        """Get the vertex / faces connectivity dictionary."""
         if 'v_f' not in self.__internals__:
-            self.__internals__.update(connectivity(self))
+            self.__internals__.update(compute_connectivity(self))
         return self.__internals__['v_f']
 
     @property
-    def ff(self):
-        """Get the face / faces connectivity dictionary
-
-        Returns
-        -------
-        dict
-        """
+    def ff(self) -> dict:
+        """Get the face / faces connectivity dictionary."""
         if 'f_f' not in self.__internals__:
-            self.__internals__.update(connectivity(self))
+            self.__internals__.update(compute_connectivity(self))
         return self.__internals__['f_f']
 
     @property
-    def boundaries(self):
-        """Get the list of boundaries of the mesh.
-
-        Returns
-        -------
-        list
-            list that stores lists of boundary connected vertices
-
-
-        Note
-        ----
-        The computation of boundaries should be in the future computed with help of VTK
-        """
+    def boundaries(self) -> list:
+        """Get a list that stores lists of boundary connected vertices."""
         if 'boundaries' not in self.__internals__:
-            self.__internals__.update(connectivity(self))
+            self.__internals__.update(compute_connectivity(self))
         return self.__internals__['boundaries']
 
     @property
-    def nb_boundaries(self):
-        """Get the number of boundaries in the mesh
-
-        Returns
-        -------
-        list
-            Number of boundaries
-        """
+    def nb_boundaries(self) -> int:
+        """Get the number of boundaries in the mesh."""
         if 'boundaries' not in self.__internals__:
-            self.__internals__.update(connectivity(self))
+            self.__internals__.update(compute_connectivity(self))
         return len(self.__internals__['boundaries'])

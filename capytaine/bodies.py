@@ -12,9 +12,7 @@ import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.tools.geometry import Abstract3DObject, inplace_or_not
-
-from capytaine.ui.vtk.mesh_viewer import FloatingBodyViewer
+from capytaine.tools.geometry import Abstract3DObject, inplace_transformation
 
 LOG = logging.getLogger(__name__)
 
@@ -257,21 +255,21 @@ class FloatingBody(Abstract3DObject):
 
         return FloatingBody(new_body_mesh, name=name)
 
-    @inplace_or_not
+    @inplace_transformation
     def mirror(self, *args):
         self.mesh.mirror(*args)
         # TODO: Also mirror dofs
         LOG.warning(f"The dofs of {self.name} have not been mirrored with its mesh.")
         return
 
-    @inplace_or_not
+    @inplace_transformation
     def translate(self, *args):
         if hasattr(self, 'center'):
             self.center += args[0]
         self.mesh.translate(*args)
         return
 
-    @inplace_or_not
+    @inplace_transformation
     def rotate(self, *args):
         # TODO: Also rotate dofs
         LOG.warning(f"The dofs of {self.name} have not been rotated with its mesh.")
@@ -291,7 +289,10 @@ class FloatingBody(Abstract3DObject):
     def show(self, dof=None):
         # TODO: Broken. Rewrite with display of dofs.
         import vtk
-        vtk_polydata = self.mesh._vtk_polydata()
+        from capytaine.ui.vtk.MMviewer import compute_vtk_polydata
+        from capytaine.ui.vtk.mesh_viewer import FloatingBodyViewer
+
+        vtk_polydata = compute_vtk_polydata(self.mesh)
 
         if dof is not None:
             vtk_data_array = vtk.vtkFloatArray()

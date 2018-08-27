@@ -9,7 +9,7 @@ from itertools import chain, accumulate
 import numpy as np
 
 from capytaine.mesh.mesh import Mesh
-from capytaine.tools.geometry import Abstract3DObject, inplace_or_not
+from capytaine.tools.geometry import Abstract3DObject, inplace_transformation
 
 NAME_MAX_LENGTH = 180
 
@@ -155,17 +155,17 @@ class CollectionOfMeshes(tuple, Abstract3DObject):
         else:
             return None
 
-    @inplace_or_not
+    @inplace_transformation
     def translate(self, vector):
         for mesh in self:
             mesh.translate(vector)
 
-    @inplace_or_not
+    @inplace_transformation
     def rotate(self, axis, angle):
         for mesh in self:
             mesh.rotate(axis, angle)
 
-    @inplace_or_not
+    @inplace_transformation
     def mirror(self, plane):
         for mesh in self:
             mesh.mirror(plane)

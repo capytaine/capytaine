@@ -10,7 +10,7 @@ import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.tools.geometry import Plane, inplace_or_not
+from capytaine.tools.geometry import Plane, inplace_transformation
 
 LOG = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ class ReflectionSymmetry(SymmetricMesh):
         else:
             return None
 
-    @inplace_or_not
+    @inplace_transformation
     def rotate(self, axis, angle):
         self.plane.rotate(axis, angle)
         super().rotate(axis, angle)

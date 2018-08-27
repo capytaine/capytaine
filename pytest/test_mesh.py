@@ -49,14 +49,6 @@ def test_vertices():
     vertices_tmp = cylinder.vertices
     cylinder.vertices = vertices_tmp
 
-def test_remove_internals():
-    cylinder.triangles_ids
-    cylinder._remove_faces_properties()
-    cylinder._remove_triangles_quadrangles()
-    cylinder._remove_connectivity()
-    cylinder._remove_surface_integrals()
-    assert cylinder.__internals__ == {}
-
 def test_bbox():
     assert (-5, 5, -5, 5, -5, 5) == cylinder.squared_axis_aligned_bbox
 

@@ -9,6 +9,8 @@ import logging
 
 import numpy as np
 
+from capytaine.tools.geometry import inplace_transformation
+
 LOG = logging.getLogger(__name__)
 
 
@@ -149,6 +151,7 @@ def merge_duplicate_rows(arr, atol=1e-8):
     return arr, newID
 
 
+@inplace_transformation
 def heal_normals(mesh):
     """Heals the mesh's normals orientations so that they have a consistent orientation and try to make them outward.
     """
@@ -261,12 +264,10 @@ def heal_normals(mesh):
     else:
         LOG.info("\t--> Mesh is not closed, meshmagick cannot test if the normals are outward")
 
-    if mesh._has_faces_properties():
-        mesh._remove_faces_properties()
-
-    return
+    return mesh
 
 
+@inplace_transformation
 def remove_unused_vertices(mesh):
     """Removes unused vertices in the mesh in place.
 
@@ -296,20 +297,15 @@ def remove_unused_vertices(mesh):
     else:
         LOG.debug("\t--> No unused vertices")
 
-    if mesh._has_connectivity():
-        mesh._remove_connectivity()
-
-    return
+    return mesh
 
 
+@inplace_transformation
 def heal_triangles(mesh):
     """Makes the triangle connectivity consistent (in place).
 
     A general face is stored internally as a 4 integer array. It allows to describe indices of a quadrangle's vertices. For triangles, the first index should be equal to the last. This method ensures that this rule is applied everywhere and correct bad triangles description.
     """
-    if mesh._has_faces_properties():
-        mesh._remove_faces_properties()
-
     faces = mesh._faces
 
     quads = faces[:, 0] != faces[:, -1]
@@ -334,8 +330,10 @@ def heal_triangles(mesh):
     else:
         LOG.debug("\t--> Triangle description is consistent")
 
-    return
+    return mesh
 
+
+@inplace_transformation
 def remove_degenerated_faces(mesh, rtol=1e-5):
     """Removes tiny triangles from the mesh (in place).
 
@@ -365,10 +363,7 @@ def remove_degenerated_faces(mesh, rtol=1e-5):
 
     mesh._faces = faces
 
-    if mesh._has_faces_properties():
-        mesh._remove_faces_properties()
-
-    return
+    return mesh
 
 
 def print_quality(mesh):
