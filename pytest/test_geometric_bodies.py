@@ -73,7 +73,7 @@ def test_rectangle_generation():
     # assert trans_rec_merged_mesh == rec.mesh
 
 
-def test_parallelepiped_generation():
+def test_open_parallelepiped_generation():
     para = OpenRectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
                                          resolution=(5, 2, 3),
                                          translational_symmetry=False, name="test")
@@ -93,16 +93,24 @@ def test_parallelepiped_generation():
 
     assert clever_para.mesh.nb_faces == 42
     assert isinstance(clever_para.mesh, CollectionOfMeshes)
-    assert any(isinstance(submesh, TranslationalSymmetry)for submesh in clever_para.mesh)
+    assert any(isinstance(submesh, TranslationalSymmetry) for submesh in clever_para.mesh)
 
+
+def test_parallelepiped_generation():
     full_para = RectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
-                                          resolution=(5, 2, 3),
+                                          resolution=(6, 2, 3),
                                           translational_symmetry=False, name="full_test")
-    assert full_para.mesh.nb_faces == 62
+    assert full_para.mesh.nb_faces == 72
     # full_para.show()
 
-    clever_full_para = RectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
-                                                 resolution=(5, 2, 3),
-                                                 translational_symmetry=True, name="clever_full_test")
-    assert clever_full_para.mesh.nb_faces == 62
-    # clever_full_para.show()
+    sym_para = RectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
+                                         resolution=(6, 2, 3),
+                                         reflection_symmetry=True, name="sym_full_test")
+    assert sym_para.mesh.nb_faces == 72
+    # sym_para.show()
+
+    trans_para = RectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
+                                           resolution=(6, 2, 3),
+                                           translational_symmetry=True, name="trans_full_test")
+    assert trans_para.mesh.nb_faces == 72
+    # trans_para.show()

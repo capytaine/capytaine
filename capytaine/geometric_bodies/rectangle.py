@@ -61,8 +61,8 @@ class Rectangle(FloatingBody):
         nw, nh = resolution
 
         if translational_symmetry and reflection_symmetry:
-            raise NotImplemented("Rectangle generation with both reflection and translational symmetries "
-                                 "has not been implemented yet.")
+            raise NotImplementedError("Rectangle generation with both reflection and translational symmetries "
+                                      "has not been implemented yet.")
 
         if translational_symmetry and nw == 1:
             LOG.warning("To use the translation symmetry of the mesh, "
@@ -83,7 +83,8 @@ class Rectangle(FloatingBody):
 
         if reflection_symmetry:
             half_mesh = Rectangle.generate_rectangle_mesh(
-                width=width/2, height=height, nw=nw//2, nh=nh, center=(0, -width/4, 0), name=f"half_of_{name}_mesh"
+                width=width/2, height=height, nw=nw//2, nh=nh,
+                center=(0, -width/4, 0), name=f"half_of_{name}_mesh"
             )
             mesh = ReflectionSymmetry(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
 
@@ -92,7 +93,8 @@ class Rectangle(FloatingBody):
                 width=width/nw, height=height, nw=1, nh=nh,
                 center=(0, -width/2 + width/(2*nw), 0), name=f"strip_of_{name}_mesh"
             )
-            mesh = TranslationalSymmetry(strip, translation=np.asarray([0, width/nw, 0]), nb_repetitions=int(nw)-1,
+            mesh = TranslationalSymmetry(strip,
+                                         translation=np.asarray([0, width/nw, 0]), nb_repetitions=int(nw)-1,
                                          name=name)
 
         else:
@@ -133,7 +135,7 @@ class Rectangle(FloatingBody):
 
 class RectangularParallelepiped(FloatingBody):
     def __init__(self,
-                 size=(5.0, 5.0, 5.0), resolution=(5, 5, 5),
+                 size=(1.0, 1.0, 1.0), resolution=(4, 4, 4),
                  center=(0, 0, 0),
                  top=True, bottom=True,
                  reflection_symmetry=False,
@@ -179,11 +181,8 @@ class RectangularParallelepiped(FloatingBody):
         nw, nth, nh = resolution
 
         if translational_symmetry and reflection_symmetry:
-            raise NotImplemented("Parallelepiped generation with both reflection and translational symmetries "
-                                 "has not been implemented yet.")
-
-        if reflection_symmetry:
-            raise NotImplemented("TODO")
+            raise NotImplementedError("Parallelepiped generation with both reflection and translational symmetries "
+                                      "has not been implemented yet.")
 
         if reflection_symmetry and (nw % 2 == 1 or nth % 2 == 1):
             raise ValueError("To use the reflection symmetry of the mesh, "
@@ -194,6 +193,23 @@ class RectangularParallelepiped(FloatingBody):
 
         LOG.debug(f"New rectangular parallelepiped body "
                   f"of size ({width}, {thickness}, {height}) and resolution ({resolution}), named {name}.")
+
+        if reflection_symmetry:
+            parallelepiped = self._generate_mesh_with_reflection_symmetry(resolution, top, bottom, name)
+        else:
+            parallelepiped = self._generate_mesh_with_translational_symmetry(resolution, top, bottom, name)
+
+        if not (reflection_symmetry or translational_symmetry):
+            parallelepiped = parallelepiped.merge(name=f"{name}_mesh")
+            parallelepiped.merge_duplicates()
+            parallelepiped.heal_triangles()
+
+        parallelepiped.translate(center)
+        FloatingBody.__init__(self, mesh=parallelepiped, name=name)
+
+    def _generate_mesh_with_translational_symmetry(self, resolution, top, bottom, name):
+        width, thickness, height = self.size
+        nw, nth, nh = resolution
 
         front_panel = Rectangle.generate_rectangle_mesh(
             width=width/nw, height=height, nw=1, nh=nh,
@@ -218,10 +234,11 @@ class RectangularParallelepiped(FloatingBody):
             panels.append(top_panel)
         if bottom:
             panels.append(bottom_panel)
-        four_panels = CollectionOfMeshes(panels, name=f"ring_of_{name}_mesh")
+        ring = CollectionOfMeshes(panels, name=f"ring_of_{name}_mesh").merge()
+        ring.heal_mesh()
 
-        front_back_top_bottom = TranslationalSymmetry(
-            four_panels,
+        open_parallelepiped = TranslationalSymmetry(
+            ring,
             translation=(width/nw, 0, 0), nb_repetitions=int(nw)-1,
             name=f"body_of_{name}_mesh"
         )
@@ -231,17 +248,46 @@ class RectangularParallelepiped(FloatingBody):
             center=(width/2, 0, 0),
             name=f"side_of_{name}_mesh"
         )
+
         other_side = side.mirror(plane=yOz_Plane, inplace=False, name=f"other_side_of_{name}_mesh")
 
-        parallelepiped = CollectionOfMeshes([front_back_top_bottom, side, other_side], name=f"{name}_mesh")
+        return CollectionOfMeshes([open_parallelepiped, side, other_side], name=f"{name}_mesh")
 
-        if not (reflection_symmetry or translational_symmetry):
-            parallelepiped = parallelepiped.merge(name=f"{name}_mesh")
-            parallelepiped.merge_duplicates()
-            parallelepiped.heal_triangles()
+    def _generate_mesh_with_reflection_symmetry(self, resolution, top, bottom, name):
+        width, thickness, height = self.size
+        nw, nth, nh = resolution
 
-        parallelepiped.translate(center)
-        FloatingBody.__init__(self, mesh=parallelepiped, name=name)
+        half_front = Rectangle.generate_rectangle_mesh(
+            width=width/2, height=height, nw=nw//2, nh=nh,
+            center=(-width/4, thickness/2, 0),
+            normal_angles=(0, 0, -np.pi/2),
+            name=f"half_front_of_{name}_mesh"
+        )
+
+        quarter_of_top = Rectangle.generate_rectangle_mesh(
+            width=thickness/2, height=width/2, nw=nth//2, nh=nw//2,
+            center=(-width/4, thickness/4, height/2),
+            normal_angles=(0, np.pi/2, 0),
+            name=f"top_panel_of_{name}_mesh"
+        )
+
+        quarter_of_bottom = quarter_of_top.mirror(plane=xOy_Plane, inplace=False, name=f"bottom_panel_of_{name}_mesh")
+
+        half_side = Rectangle.generate_rectangle_mesh(
+            width=thickness/2, height=height, nw=nth//2, nh=nh,
+            center=(width/2, thickness/4, 0),
+            name=f"half_side_of_{name}_mesh"
+        )
+
+        panels = [half_front, half_side]
+        if top:
+            panels.append(quarter_of_top)
+        if bottom:
+            panels.append(quarter_of_bottom)
+        quarter_of_mesh = CollectionOfMeshes(panels, name=f"quarter_of_{name}_mesh").merge()
+
+        half_mesh = ReflectionSymmetry(quarter_of_mesh, plane=xOz_Plane, name=f"half_of_{name}_mesh")
+        return ReflectionSymmetry(half_mesh, plane=yOz_Plane, name=f"{name}_mesh")
 
     @property
     def volume(self):
