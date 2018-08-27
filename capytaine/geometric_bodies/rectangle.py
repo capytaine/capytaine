@@ -235,7 +235,8 @@ class RectangularParallelepiped(FloatingBody):
         if bottom:
             panels.append(bottom_panel)
         ring = CollectionOfMeshes(panels, name=f"ring_of_{name}_mesh").merge()
-        ring.heal_mesh()
+        ring.merge_duplicates()
+        ring.heal_triangles()
 
         open_parallelepiped = TranslationalSymmetry(
             ring,
@@ -246,6 +247,7 @@ class RectangularParallelepiped(FloatingBody):
         side = Rectangle.generate_rectangle_mesh(
             width=thickness, height=height, nw=nth, nh=nh,
             center=(width/2, 0, 0),
+            normal_angles=(0, 0, -np.pi),
             name=f"side_of_{name}_mesh"
         )
 
@@ -276,6 +278,7 @@ class RectangularParallelepiped(FloatingBody):
         half_side = Rectangle.generate_rectangle_mesh(
             width=thickness/2, height=height, nw=nth//2, nh=nh,
             center=(width/2, thickness/4, 0),
+            normal_angles=(0, 0, -np.pi),
             name=f"half_side_of_{name}_mesh"
         )
 
