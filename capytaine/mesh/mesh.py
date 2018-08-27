@@ -565,8 +565,9 @@ class Mesh(Abstract3DObject):
             return self.as_set_of_faces() == other.as_set_of_faces()
 
     def __hash__(self):
-        # Not optimal...
-        return hash(self.as_set_of_faces())
+        if 'hash' not in self.__internals__:
+            self.__internals__['hash'] = hash(self.as_set_of_faces())
+        return self.__internals__['hash']
 
     ##################
     #  Mesh quality  #
