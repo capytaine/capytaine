@@ -11,7 +11,6 @@ from itertools import product
 import numpy as np
 
 from capytaine import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry, CollectionOfMeshes
-from capytaine.mesh.symmetries import LOG
 
 LOG = logging.getLogger(__name__)
 
@@ -275,9 +274,8 @@ def use_symmetries(build_matrices):
     function
         A similar function that returns a block matrix based on the symmetries of the meshes.
     """
-    from capytaine.Toeplitz_matrices import BlockCirculantMatrix, BlockToeplitzMatrix
 
-    @wraps(build_matrices)
+    @wraps(build_matrices)  # May not be necessary?
     def build_matrices_with_symmetries(solver, mesh1, mesh2, *args, _rec_depth=1):
         """Assemble the influence matrices using symmetries of the body.⎈
 
@@ -303,13 +301,21 @@ def use_symmetries(build_matrices):
             influence matrix (integral of the Green function)
         """
 
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+            # Hackish read of the original function docstring to get prettier log
+            function_description_for_logging = build_matrices.__doc__.splitlines()[0]\
+                .replace("mesh1", "{mesh1}").replace("mesh2", "{mesh2}")
+        else:
+            function_description_for_logging = ""  # irrelevant
+
         if (isinstance(mesh1, ReflectionSymmetry)
                 and isinstance(mesh2, ReflectionSymmetry)
                 and mesh1.plane == mesh2.plane):
 
-            LOG.debug("\t" * _rec_depth +
-                      f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"using mirror symmetry.")
+            LOG.debug("\t" * (_rec_depth+1) +
+                      function_description_for_logging.format(
+                          mesh1=mesh1.name, mesh2='itself' if mesh2 is mesh1 else mesh2.name
+                      ) + " using mirror symmetry.")
 
             S_a, V_a = build_matrices_with_symmetries(
                 solver, mesh1[0], mesh2[0], *args,
@@ -325,9 +331,10 @@ def use_symmetries(build_matrices):
               and np.allclose(mesh1.translation, mesh2.translation)
               and mesh1.nb_submeshes == mesh2.nb_submeshes):
 
-            LOG.debug("\t" * _rec_depth +
-                      f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      "using translational symmetry.")
+            LOG.debug("\t" * (_rec_depth+1) +
+                      function_description_for_logging.format(
+                          mesh1=mesh1.name, mesh2='itself' if mesh2 is mesh1 else mesh2.name
+                      ) + " using translational symmetry.")
 
             S_list, V_list = [], []
             for submesh in mesh2:
@@ -342,9 +349,10 @@ def use_symmetries(build_matrices):
         elif (isinstance(mesh1, AxialSymmetry)
               and mesh1 is mesh2):  # TODO: Generalize: if mesh1.axis == mesh2.axis
 
-            LOG.debug("\t" * _rec_depth +
-                      f"Evaluating matrix of {mesh1.name} on itself "
-                      f"using rotation symmetry.")
+            LOG.debug("\t" * (_rec_depth+1) +
+                      function_description_for_logging.format(
+                          mesh1=mesh1.name, mesh2='itself' if mesh2 is mesh1 else mesh2.name
+                      ) + " using rotation symmetry.")
 
             S_list, V_list = [], []
             for submesh in mesh2[:mesh2.nb_submeshes // 2 + 1]:
@@ -357,11 +365,12 @@ def use_symmetries(build_matrices):
             return BlockCirculantMatrix(S_list, size=mesh1.nb_submeshes), BlockCirculantMatrix(V_list, size=mesh1.nb_submeshes)
 
         else:
-            # Actual evaluation of coefficients using the Green function.
-            LOG.debug("\t" * _rec_depth +
-                      f"Computation of the Green function between {mesh1.name} "
-                      f"and {'itself' if mesh2 is mesh1 else mesh2.name}.")
+            LOG.debug("\t" * (_rec_depth+1) +
+                      function_description_for_logging.format(
+                          mesh1=mesh1.name, mesh2='itself' if mesh2 is mesh1 else mesh2.name
+                      ))
 
+            # Actual evaluation of coefficients using the Green function.
             return build_matrices(solver, mesh1, mesh2, *args)
 
     return build_matrices_with_symmetries

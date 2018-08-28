@@ -24,7 +24,8 @@ def find_best_exponential_decomposition(dimensionless_omega, dimensionless_waven
     """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
     Results are cached."""
 
-    LOG.debug(f"Compute Nemoh's finite depth Green function for dimless_omega=%.2e and dimless_wavenumber=%.2e",
+    LOG.debug(f"\tCompute Prony decomposition in finite depth Green function "
+              f"for dimless_omega=%.2e and dimless_wavenumber=%.2e",
               dimensionless_omega, dimensionless_wavenumber)
 
     if PYTHON_METHOD:

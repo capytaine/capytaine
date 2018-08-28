@@ -15,7 +15,6 @@ Example
 
 import logging
 from functools import lru_cache
-from copy import deepcopy
 
 import numpy as np
 
@@ -155,7 +154,7 @@ class Nemoh:
             couple of influence matrices
         """
 
-        LOG.debug(f"\tEvaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}"
+        LOG.debug(f"\tEvaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
                   f"for depth={free_surface-sea_bottom} and wavenumber={wavenumber}.")
 
         Srankine, Vrankine = self._build_matrices_rankine(mesh1, mesh2)
@@ -193,7 +192,7 @@ class Nemoh:
     @lru_cache(maxsize=1)
     @use_symmetries
     def _build_matrices_rankine(self, mesh1, mesh2):
-        """Compute the first part of the influence matrices of mesh1 on mesh2.
+        """Compute the first part of the influence matrices of mesh1 on mesh2
 
         Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
         If the @use_symmetries decorator is present, the result may actually be a couple
@@ -208,7 +207,7 @@ class Nemoh:
     @lru_cache(maxsize=1)
     @use_symmetries
     def _build_matrices_rankine_reflection_across_free_surface(self, mesh1, mesh2, free_surface):
-        """Compute the second part of the influence matrices of mesh1 on mesh2 (for infinite depth).
+        """Compute the second part of the influence matrices of mesh1 on mesh2 (for infinite depth)
 
         Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
         If the @use_symmetries decorator is present, the result may actually be a couple
@@ -234,7 +233,7 @@ class Nemoh:
     @lru_cache(maxsize=1)
     @use_symmetries
     def _build_matrices_rankine_reflection_across_sea_bottom(self, mesh1, mesh2, sea_bottom):
-        """Compute the second part of the influence matrices of mesh1 on mesh2 (for finite depth).
+        """Compute the second part of the influence matrices of mesh1 on mesh2 (for finite depth)
 
         Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
         If the @use_symmetries decorator is present, the result may actually be a couple
@@ -259,7 +258,7 @@ class Nemoh:
 
     @use_symmetries
     def _build_matrices_wave(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
-        """Compute the third part of the influence matrices of mesh1 on mesh2.
+        """Compute the third part of the influence matrices of mesh1 on mesh2
 
         Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
         If the @use_symmetries decorator is present, the result may actually be a couple
