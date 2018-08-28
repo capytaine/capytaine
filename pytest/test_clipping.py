@@ -3,21 +3,25 @@
 
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh
-
-import capytaine.mesh.mesh_clipper as mc
-
 from capytaine.geometric_bodies import Sphere
-from capytaine.tools.geometry import Plane
 
 
 def test_clipper():
-    mesh = Sphere().mesh.merge()
+    mesh = Sphere(radius=5.0, ntheta=10).mesh.merge()
+    aabb = mesh.axis_aligned_bbox
 
-    plane = Plane()
-    clipper = mc.MeshClipper(mesh, plane, assert_closed_boundaries=True)
+    mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-np.infty)
+    assert np.allclose(mesh.axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
 
-    # for iter in range(50):
-    #     thetax, thetay = np.random.rand(2)*2*np.pi
-    #     plane.rotate(thetax, thetay)
-    #     clipper.plane = plane
+    mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-1.0)
+    assert np.allclose(mesh.axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
+
+    # With CollectionOfMeshes (AxialSymmetry)
+    mesh = Sphere(radius=5.0, ntheta=10).mesh
+    aabb = mesh.merge().axis_aligned_bbox
+
+    mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-np.infty)
+    assert np.allclose(mesh.merge().axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
+
+    mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-1.0)
+    assert np.allclose(mesh.merge().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed

@@ -462,13 +462,15 @@ class Mesh(Abstract3DObject):
 
         else:
             clipped_mesh = MeshClipper(self,
-                                       plane=Plane(normal=(0.0, 0.0, 1.0),
-                                                   scalar=free_surface)).clipped_mesh
+                                       plane=Plane(normal=(0, 0, 1),
+                                                   point=(0, 0, 0))
+                                       ).clipped_mesh
 
             if sea_bottom > -np.infty:
                 clipped_mesh = MeshClipper(clipped_mesh,
-                                           plane=Plane(normal=(0.0, 0.0, -1.0),
-                                                       scalar=-sea_bottom)).clipped_mesh
+                                           plane=Plane(normal=(0, 0, -1),
+                                                       point=(0, 0, sea_bottom))
+                                           ).clipped_mesh
 
             clipped_mesh.remove_unused_vertices()
             self.vertices = clipped_mesh.vertices
