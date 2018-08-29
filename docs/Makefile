@@ -25,5 +25,5 @@ show: html
 	@firefox _build/html/index.html &
 
 autodoc:
-	rm -rf developer_manual/api/*.rst
+	rm -rf developer_manual/api/capytaine*.rst
 	sphinx-apidoc -o developer_manual/api/ ../capytaine --separate --doc-project "API documentation"

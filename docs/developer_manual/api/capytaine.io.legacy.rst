@@ -1,7 +1,7 @@
-capytaine.mesh.mmio module
+capytaine.io.legacy module
 ==========================
 
-.. automodule:: capytaine.mesh.mmio
+.. automodule:: capytaine.io.legacy
     :members:
     :undoc-members:
     :show-inheritance:

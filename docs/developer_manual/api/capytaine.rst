@@ -7,6 +7,7 @@ Subpackages
 .. toctree::
 
     capytaine.geometric_bodies
+    capytaine.io
     capytaine.mesh
     capytaine.tools
     capytaine.ui

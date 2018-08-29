@@ -6,13 +6,11 @@ Submodules
 
 .. toctree::
 
-   capytaine.mesh.connectivity
-   capytaine.mesh.faces_properties
    capytaine.mesh.mesh
    capytaine.mesh.mesh_clipper
+   capytaine.mesh.mesh_properties
+   capytaine.mesh.mesh_quality
    capytaine.mesh.meshes_collection
-   capytaine.mesh.mmio
-   capytaine.mesh.quality
    capytaine.mesh.surface_integrals
    capytaine.mesh.symmetries
 
