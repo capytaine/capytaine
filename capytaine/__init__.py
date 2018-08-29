@@ -4,6 +4,8 @@
 __author__ = 'Matthieu Ancellin'
 __license__ = 'GPLv3'
 
+from capytaine.tools.geometry import Axis, Plane
+
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
 from capytaine.mesh.symmetries import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
