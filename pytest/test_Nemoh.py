@@ -11,11 +11,12 @@ from capytaine.geometric_bodies.cylinder import HorizontalCylinder
 from capytaine.geometric_bodies.free_surface import FreeSurface
 
 from capytaine.problems import DiffractionProblem, RadiationProblem
-from capytaine.results import assemble_dataset
+from capytaine.results import assemble_dataset, add_wavenumber_coord
 from capytaine.Nemoh import Nemoh
 
 from capytaine.tools.kochin import compute_Kochin
 
+solver = Nemoh()
 
 def test_immersed_sphere():
     """Compare with Nemoh 2.0 for a sphere in infinite fluid.
@@ -26,7 +27,6 @@ def test_immersed_sphere():
     sphere = Sphere(radius=1.0, ntheta=10, nphi=40, clip_free_surface=False)
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    solver = Nemoh()
 
     problem = RadiationProblem(body=sphere, radiating_dof="Heave", free_surface=np.infty, sea_bottom=-np.infty)
     result = solver.solve(problem)
@@ -47,7 +47,6 @@ def test_floating_sphere_finite_freq():
     """Compare with Nemoh 2.0 for some cases of a heaving sphere at the free surface in infinite depth."""
     sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    solver = Nemoh()
 
     # omega = 1, radiation
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
@@ -107,13 +106,13 @@ def test_alien_sphere():
 
     # radiation
     problem = RadiationProblem(body=sphere, rho=450.0, g=1.625, omega=1.0, radiating_dof="Heave")
-    result = Nemoh().solve(problem)
+    result = solver.solve(problem)
     assert np.isclose(result.added_masses["Heave"],       515, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"], 309, atol=1e-3*sphere.volume*problem.rho)
 
     # diffraction
     problem = DiffractionProblem(body=sphere, rho=450.0, g=1.625, omega=1.0, sea_bottom=-np.infty)
-    result = Nemoh().solve(problem)
+    result = solver.solve(problem)
     assert np.isclose(result.forces["Heave"], 548.5 * np.exp(-2.521j), rtol=1e-2)
 
 
@@ -121,7 +120,6 @@ def test_floating_sphere_finite_depth():
     """Compare with Nemoh 2.0 for some cases of a heaving sphere at the free surface in finite depth."""
     sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    solver = Nemoh()
 
     # omega = 1, radiation
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
@@ -140,13 +138,13 @@ def test_floating_sphere_finite_depth():
 
     # omega = 2, radiation
     problem = RadiationProblem(body=sphere, omega=2.0, sea_bottom=-10.0)
-    result = Nemoh().solve(problem)
+    result = solver.solve(problem)
     assert np.isclose(result.added_masses["Heave"],       1375.0, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"], 1418.0, rtol=1e-3*sphere.volume*problem.rho)
 
     # omega = 2, diffraction
     problem = DiffractionProblem(body=sphere, omega=2.0, sea_bottom=-10.0)
-    result = Nemoh().solve(problem)
+    result = solver.solve(problem)
     assert np.isclose(result.forces["Heave"], 5872.8 * np.exp(-2.627j), rtol=1e-3)
 
 
@@ -168,7 +166,7 @@ def test_multibody():
     # both.show()
 
     problems = [RadiationProblem(body=both, radiating_dof=dof, omega=1.0) for dof in both.dofs]
-    solver = Nemoh()
+    problems += [DiffractionProblem(body=both, angle=0.0, omega=1.0)]
     results = [solver.solve(problem) for problem in problems]
     data = assemble_dataset(results)
 
@@ -184,3 +182,8 @@ def test_multibody():
                        Nemoh_2[:, ::2],  atol=1e-3*total_volume*problems[0].rho)
     assert np.allclose(data['radiation_damping'].sel(omega=1.0, radiating_dof=dofs_names, influenced_dof=dofs_names).values,
                        Nemoh_2[:, 1::2], atol=1e-3*total_volume*problems[0].rho)
+
+    # Test various things on dataset.
+    assert 'Froude_Krylov_force' in data
+    add_wavenumber_coord(data, results)
+

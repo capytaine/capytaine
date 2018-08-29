@@ -23,6 +23,7 @@ def test_LinearPotentialFlowProblem():
     # Without a body
     pb = LinearPotentialFlowProblem(omega=1.0)
     assert pb.omega == 1.0
+    assert pb.period == 2*np.pi
     assert pb.wavenumber == 1.0/9.81
     assert pb.wavelength == 9.81*2*np.pi
 
@@ -32,9 +33,13 @@ def test_LinearPotentialFlowProblem():
     pb = LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=-1.0, omega=1.0)
     assert pb.depth == 1.0
     assert np.isclose(pb.omega**2, pb.g*pb.wavenumber*np.tanh(pb.wavenumber*pb.depth))
+    assert pb.dimensionless_wavenumber == pb.wavenumber*1.0
 
     with pytest.raises(NotImplementedError):
         LinearPotentialFlowProblem(free_surface=2.0)
+
+    with pytest.raises(NotImplementedError):
+        LinearPotentialFlowProblem(free_surface=np.infty, sea_bottom=0.0)
 
     with pytest.raises(ValueError):
         LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=1.0)
@@ -48,9 +53,13 @@ def test_LinearPotentialFlowProblem():
     # With a body
     sphere = Sphere(center=(0, 0, -2.0))
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    pb = LinearPotentialFlowProblem(body=sphere,
+    pb = LinearPotentialFlowProblem(body=sphere, omega=1.0,
                                     boundary_condition=sphere.mesh.faces_normals @ (1, 1, 1))
     assert list(pb.influenced_dofs.keys()) == ['Heave']
+
+    pb2 = LinearPotentialFlowProblem(body=sphere, omega=2.0,
+                                     boundary_condition=sphere.mesh.faces_normals @ (1, 1, 1))
+    assert pb < pb2
 
     # Test transformation to result class
     res = pb.make_results_container()
@@ -73,15 +82,10 @@ def test_diffraction_problem():
     with pytest.raises(TypeError):
         DiffractionProblem(boundary_conditions=[0, 0, 0])
 
+    assert "DiffractionProblem" in str(DiffractionProblem(g=10, rho=1025, free_surface=np.infty))
+
     res = pb.make_results_container()
     assert isinstance(res, DiffractionResult)
-
-
-def test_wamit_convention():
-    sphere = Sphere()
-    pb1 = DiffractionProblem(body=sphere, convention="Nemoh")
-    pb2 = DiffractionProblem(body=sphere, convention="WAMIT")
-    assert np.allclose(pb1.boundary_condition, np.conjugate(pb2.boundary_condition))
 
 
 def test_radiation_problem(caplog):
@@ -98,11 +102,20 @@ def test_radiation_problem(caplog):
     pb2 = RadiationProblem(body=sphere, radiating_dof="Heave")
     assert np.all(pb.boundary_condition == pb2.boundary_condition)
 
+    assert "RadiationProblem" in str(RadiationProblem(g=10, rho=1025, free_surface=np.infty))
+
     res = pb.make_results_container()
     assert isinstance(res, RadiationResult)
     assert 'forces' not in res.__slots__
     assert res.added_masses == {}
     assert res.radiation_dampings == {}
+
+
+def test_wamit_convention():
+    sphere = Sphere()
+    pb1 = DiffractionProblem(body=sphere, convention="Nemoh")
+    pb2 = DiffractionProblem(body=sphere, convention="WAMIT")
+    assert np.allclose(pb1.boundary_condition, np.conjugate(pb2.boundary_condition))
 
 
 def test_import_cal_file():
@@ -144,4 +157,17 @@ def test_import_cal_file():
         if isinstance(problem, DiffractionProblem):
             assert problem.angle == 0.0
 
+
+def test_results():
+    assert isinstance(LinearPotentialFlowProblem().make_results_container(), LinearPotentialFlowResult)
+
+    pb = DiffractionProblem(g=10, rho=1023, free_surface=np.infty)
+    res = DiffractionResult(pb)
+    assert res.g == pb.g == 10
+    assert "DiffractionResult" in str(res)
+
+    pb = RadiationProblem(g=10, rho=1023, free_surface=np.infty)
+    res = RadiationResult(pb)
+    assert res.g == pb.g == 10
+    assert "RadiationResult" in str(res)
 

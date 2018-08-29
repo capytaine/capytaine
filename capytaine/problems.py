@@ -132,7 +132,8 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     #                     f"The problem will be solved but the Froude-Krylov forces won't be computed.")
 
     def __str__(self):
-        parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, angle={self.angle:.3f}, "]
+        parameters = [f"body={self.body.name if self.body is not None else 'None'}, "
+                      f"omega={self.omega:.3f}, depth={self.depth}, angle={self.angle:.3f}, "]
         if not self.free_surface == 0.0:
             parameters.append(f"free_surface={self.free_surface}, ")
         if not self.g == 9.81:
@@ -167,7 +168,8 @@ class RadiationProblem(LinearPotentialFlowProblem):
     #         raise ValueError("The body in a radiation problem needs to have degrees of freedom")
 
     def __str__(self):
-        parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, radiating_dof={self.radiating_dof}, "]
+        parameters = [f"body={self.body.name if self.body is not None else 'None'}, "
+                      f"omega={self.omega:.3f}, depth={self.depth}, radiating_dof={self.radiating_dof}, "]
         if not self.free_surface == 0.0:
             parameters.append(f"free_surface={self.free_surface}, ")
         if not self.g == 9.81:
@@ -178,18 +180,19 @@ class RadiationProblem(LinearPotentialFlowProblem):
 
     def __attrs_post_init__(self):
         """Set the boundary condition"""
-        if self.radiating_dof is None:
-            self.radiating_dof = next(iter(self.body.dofs))
-            dof = self.body.dofs[self.radiating_dof]
-            self.boundary_condition = np.sum(dof * self.body.mesh.faces_normals, axis=1)
-        elif self.radiating_dof in self.body.dofs:
-            dof = self.body.dofs[self.radiating_dof]
-            self.boundary_condition = np.sum(dof * self.body.mesh.faces_normals, axis=1)
-        else:
-            LOG.error(f"In {self}: the radiating degree of freedom {self.radiating_dof} is not one of"
-                      f"the degrees of freedom of the body.\n"
-                      f"The dofs of the body are {list(self.body.dofs.keys())}")
-            raise ValueError("Unrecognized degree of freedom name.")
+        if self.body is not None:
+            if self.radiating_dof is None:
+                self.radiating_dof = next(iter(self.body.dofs))
+                dof = self.body.dofs[self.radiating_dof]
+                self.boundary_condition = np.sum(dof * self.body.mesh.faces_normals, axis=1)
+            elif self.radiating_dof in self.body.dofs:
+                dof = self.body.dofs[self.radiating_dof]
+                self.boundary_condition = np.sum(dof * self.body.mesh.faces_normals, axis=1)
+            else:
+                LOG.error(f"In {self}: the radiating degree of freedom {self.radiating_dof} is not one of"
+                          f"the degrees of freedom of the body.\n"
+                          f"The dofs of the body are {list(self.body.dofs.keys())}")
+                raise ValueError("Unrecognized degree of freedom name.")
 
     def make_results_container(self):
         return RadiationResult(self)

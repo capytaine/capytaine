@@ -35,7 +35,8 @@ class DiffractionResult(LinearPotentialFlowResult):
     forces = attrib(default=Factory(dict), init=False, repr=False)
 
     def __str__(self):
-        parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, angle={self.angle}, "]
+        parameters = [f"body={self.body.name if self.body is not None else 'None'}, "
+                      f"omega={self.omega:.3f}, depth={self.depth}, angle={self.angle}, "]
         if not self.free_surface == 0.0:
             parameters.append(f"free_surface={self.free_surface}, ")
         if not self.g == 9.81:
@@ -66,7 +67,8 @@ class RadiationResult(LinearPotentialFlowResult):
     radiation_dampings = attrib(default=Factory(dict), init=False, repr=False)
 
     def __str__(self):
-        parameters = [f"body={self.body.name}, omega={self.omega:.3f}, depth={self.depth}, radiating_dof={self.radiating_dof}, "]
+        parameters = [f"body={self.body.name if self.body is not None else 'None'}, "
+                      f"omega={self.omega:.3f}, depth={self.depth}, radiating_dof={self.radiating_dof}, "]
         if not self.free_surface == 0.0:
             parameters.append(f"free_surface={self.free_surface}, ")
         if not self.g == 9.81:
