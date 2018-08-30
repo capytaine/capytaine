@@ -187,3 +187,9 @@ def test_multibody():
     assert 'Froude_Krylov_force' in data
     add_wavenumber_coord(data, results)
 
+    naked_data = data.drop(["added_mass", "radiation_damping", "diffraction_force", "Froude_Krylov_force"])
+    recomputed_data = solver.fill_dataset(naked_data, [both])
+    assert "added_mass" in recomputed_data
+    assert np.allclose(recomputed_data["added_mass"].data, data["added_mass"].data)
+
+

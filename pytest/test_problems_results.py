@@ -6,14 +6,16 @@ import os
 import pytest
 
 import numpy as np
+import xarray as xr
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.symmetries import ReflectionSymmetry
 
 from capytaine.bodies import FloatingBody
 from capytaine.geometric_bodies.sphere import Sphere
+from capytaine.geometric_bodies.cylinder import HorizontalCylinder
 
-from capytaine.problems import LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem
+from capytaine.problems import LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem, problems_from_dataset
 from capytaine.results import LinearPotentialFlowResult, DiffractionResult, RadiationResult
 
 from capytaine.io.legacy import import_cal_file
@@ -171,3 +173,33 @@ def test_results():
     assert res.g == pb.g == 10
     assert "RadiationResult" in str(res)
 
+
+def test_problems_from_dataset():
+    body = Sphere(center=(0, 0, -4), name="sphere")
+    body.add_translation_dof(name="Heave")
+
+    dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
+                              'radiating_dof': ["Heave"],
+                              'body_name': ["sphere"],
+                              'angle': [0.0],
+                              'water_depth': [np.infty]})
+
+    problems = problems_from_dataset(dset, [body])
+    assert RadiationProblem(body=body, omega=0.5, radiating_dof="Heave") in problems
+    assert len(problems) == 6
+    assert len([problem for problem in problems if isinstance(problem, DiffractionProblem)]) == 3
+
+    dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
+                              'angle': [0.0],
+                              'body_name': ["cube"]})
+    with pytest.raises(AssertionError):
+        problems_from_dataset(dset, [body])
+
+    shifted_body = body.translated_y(5.0, name="shifted_sphere")
+    dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
+                              'radiating_dof': ["Heave"],
+                              'angle': [0.0]})
+    problems = problems_from_dataset(dset, [body, shifted_body])
+    assert RadiationProblem(body=body, omega=0.5, radiating_dof="Heave") in problems
+    assert RadiationProblem(body=shifted_body, omega=0.5, radiating_dof="Heave") in problems
+    assert len(problems) == 12

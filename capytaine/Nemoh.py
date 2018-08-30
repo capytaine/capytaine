@@ -18,8 +18,10 @@ from functools import lru_cache
 
 import numpy as np
 
-from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
+from capytaine.problems import problems_from_dataset
+from capytaine.results import assemble_dataset
 from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve, use_symmetries
+from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
 import capytaine.NemohCore as NemohCore
 
 
@@ -125,6 +127,25 @@ class Nemoh:
         with Pool(processes=processes) as pool:
             results = pool.map(self.solve, sorted(problems))
         return results
+
+    def fill_dataset(self, dataset, bodies):
+        """Solve a set of problems defined by the coordinates of an xarray dataset.
+        TODO: Use solve_all.
+
+        Parameters
+        ----------
+        dataset : xarray Dataset
+            dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
+        bodies : list of FloatingBody
+            the bodies involved in the problems
+
+        Return
+        ------
+        xarray Dataset
+        """
+        problems = problems_from_dataset(dataset, bodies)
+        results = [self.solve(problem) for problem in problems]
+        return assemble_dataset(results)
 
     #######################
     #  Building matrices  #

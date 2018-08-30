@@ -15,6 +15,10 @@ New features
 
 * Some body properties are stored in xarray dataset if they are available. New functions :code:`add_wavenumber_coords` and :code:`kochin_data_array` allow the storage of wavenumbers and Kochin function in the dataset.
 
+* New function :code:`problems_from_dataset` to generate a list of problems from the coordinates of
+  a xarray dataset.
+  New method :code:`fill_dataset` in :code:`capytaine.Nemoh.Nemoh` using the above.
+
 Major changes
 -------------
 

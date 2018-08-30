@@ -5,6 +5,7 @@
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import logging
+from itertools import product
 from functools import lru_cache
 
 from attr import attrs, attrib, astuple
@@ -12,6 +13,7 @@ from attr import attrs, attrib, astuple
 import numpy as np
 from scipy.optimize import newton
 
+from capytaine.bodies import FloatingBody
 from capytaine.results import LinearPotentialFlowResult, DiffractionResult, RadiationResult
 from capytaine.tools.Airy_wave import Airy_wave_velocity
 
@@ -73,6 +75,12 @@ class LinearPotentialFlowProblem:
                 LOG.warning(f"""The size of the boundary condition in {self} does not match the
                             number of faces in the body.""")
 
+    def __eq__(self, other):
+        if isinstance(other, LinearPotentialFlowProblem):
+            return astuple(self)[:6] == astuple(other)[:6]
+        else:
+            return NotImplemented
+
     def __lt__(self, other):
         if isinstance(other, LinearPotentialFlowProblem):
             return astuple(self)[:6] < astuple(other)[:6]
@@ -84,7 +92,7 @@ class LinearPotentialFlowProblem:
         return self.free_surface - self.sea_bottom
 
     @property
-    @lru_cache(maxsize=128)
+    # @lru_cache(maxsize=128)
     def wavenumber(self):
         if self.depth == np.infty or self.omega**2*self.depth/self.g > 20:
             return self.omega**2/self.g
@@ -197,3 +205,50 @@ class RadiationProblem(LinearPotentialFlowProblem):
     def make_results_container(self):
         return RadiationResult(self)
 
+
+def problems_from_dataset(dataset, bodies):
+    """Generate a list of problems from the coordinates of a dataset.
+
+    Parameters
+    ----------
+    dataset : xarray Dataset
+        dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
+    bodies : list of FloatingBody
+        the bodies involved in the problems
+
+    Returns
+    -------
+    list of LinearPotentialFlowProblem
+    """
+    assert len(list(set(body.name for body in bodies))) == len(bodies), \
+        "All bodies should have different names."
+
+    omega_range = dataset['omega'].data if 'omega' in dataset else [1.0]
+    angle_range = dataset['angle'].data if 'angle' in dataset else None
+    radiating_dofs = dataset['radiating_dof'].data if 'radiating_dof' in dataset else None
+    water_depth_range = dataset['water_depth'].data if 'water_depth' in dataset else [np.infty]
+
+    if 'body_name' in dataset:
+        assert set(dataset['body_name'].data) <= {body.name for body in bodies}
+        body_range = {body.name: body for body in bodies if body.name in dataset['body_name'].data}
+    else:
+        body_range = {body.name: body for body in bodies}
+
+    problems = []
+    if angle_range is not None:
+        for omega, angle, water_depth, body_name \
+                in product(omega_range, angle_range, water_depth_range, body_range):
+            problems.append(
+                DiffractionProblem(body=body_range[body_name], omega=omega,
+                                   angle=angle, sea_bottom=-water_depth)
+            )
+
+    if radiating_dofs is not None:
+        for omega, radiating_dof, water_depth, body_name \
+                in product(omega_range, radiating_dofs, water_depth_range, body_range):
+            problems.append(
+                RadiationProblem(body=body_range[body_name], omega=omega,
+                                 radiating_dof=radiating_dof, sea_bottom=-water_depth)
+            )
+
+    return sorted(problems)
