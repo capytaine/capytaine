@@ -30,6 +30,9 @@ def test_axis():
     assert Ox_axis.is_orthogonal_to(yOz_Plane)
     assert not Ox_axis.is_orthogonal_to((1, 1, 1))
 
+    assert Ox_axis.angle_with_respect_to(Oy_axis) == np.pi/2
+    assert Oy_axis.angle_with_respect_to(Ox_axis) == np.pi/2
+
 
 def test_axis_transformation():
     assert Ox_axis.translated_x(10) == Ox_axis
@@ -40,6 +43,18 @@ def test_axis_transformation():
 
     assert Ox_axis.mirrored(plane=yOz_Plane) == Ox_axis
     assert Ox_axis.mirrored(plane=xOz_Plane.translated_y(2)) == Axis(vector=(1, 0, 0), point=(0, 4, 0))
+
+    axis1 = Axis(vector=(1, 1, 1), point=(0, 0, 0))
+    axis2 = Axis(vector=(1, 2, 3), point=(0, 0, 0))
+    assert axis1.rotated_to_align_axes(axis1, axis2) == axis2
+    axis1.rotate(axis2, np.pi)
+    assert axis1.rotated_to_align_axes(axis1, axis2) == axis2
+    axis1.vector *= -1
+    assert axis1.rotated_to_align_axes(axis1, axis2) == axis2
+
+    axis1 = Axis(vector=(1, 1, 1), point=(1, 2, 0))
+    axis2 = Axis(vector=(2, 2, 2), point=(0, 0, 0))
+    assert axis1.translated_point_to_point(axis1.point, axis2.point) == axis2
 
 
 def test_plane():

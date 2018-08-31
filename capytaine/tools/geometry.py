@@ -64,6 +64,10 @@ class Abstract3DObject(ABC):
         return self.translate((0., 0., tz))
 
     @inplace_transformation
+    def translate_point_to_point(self, point_a, point_b):
+        return self.translate(np.asarray(point_b) - np.asarray(point_a))
+
+    @inplace_transformation
     def rotate_x(self, thetax):
         return self.rotate(Ox_axis, thetax)
 
@@ -83,6 +87,15 @@ class Abstract3DObject(ABC):
         self.rotate(Oz_axis, thetaz)
         return self
 
+    @inplace_transformation
+    def rotate_to_align_axes(self, axis1: 'Axis', axis2: 'Axis'):
+        """Rotate self such that if axis1 is in self, then it will be parallel to axis2."""
+        if not axis1.is_parallel_to(axis2):
+            axis = Axis(vector=np.cross(axis1.vector, axis2.vector), point=axis1.point)
+            return self.rotate(axis, axis1.angle_with_respect_to(axis2))
+        else:
+            return self
+
     def translated(self, *args, **kwargs):
         return self.translate(*args, inplace=False, **kwargs)
 
@@ -101,6 +114,9 @@ class Abstract3DObject(ABC):
     def translated_z(self, *args, **kwargs):
         return self.translate_z(*args, inplace=False, **kwargs)
 
+    def translated_point_to_point(self, *args, **kwargs):
+        return self.translate_point_to_point(*args, inplace=False, **kwargs)
+
     def rotated_x(self, *args, **kwargs):
         return self.rotate_x(*args, inplace=False, **kwargs)
 
@@ -113,6 +129,8 @@ class Abstract3DObject(ABC):
     def rotated_angles(self, *args, **kwargs):
         return self.rotate_angles(*args, inplace=False, **kwargs)
 
+    def rotated_to_align_axes(self, *args, **kwargs):
+        return self.rotate_to_align_axes(*args, inplace=False, **kwargs)
 
 ######################
 #  HELPER FUNCTIONS  #
@@ -154,13 +172,27 @@ class Axis(Abstract3DObject):
         else:
             return NotImplemented
 
-    def is_orthogonal_to(self, item):
-        if isinstance(item, Plane):
-            return test_parallel_vectors(self.vector, item.normal)
-        elif len(item) == 3:  # The item is supposed to be a vector given as a 3-ple
-            return test_orthogonal_vectors(self.vector, item)
+    def is_orthogonal_to(self, other):
+        if isinstance(other, Plane):
+            return test_parallel_vectors(self.vector, other.normal)
+        elif len(other) == 3:  # The other is supposed to be a vector given as a 3-ple
+            return test_orthogonal_vectors(self.vector, other)
         else:
             raise NotImplementedError
+
+    def is_parallel_to(self, other):
+        if isinstance(other, Plane):
+            return test_orthogonal_vectors(self.vector, other.normal)
+        elif isinstance(other, Axis):
+            return test_parallel_vectors(self.vector, other.vector)
+        elif len(other) == 3:  # The other is supposed to be a vector given as a 3-ple
+            return test_parallel_vectors(self.vector, other)
+        else:
+            raise NotImplementedError
+
+    def angle_with_respect_to(self, other_axis: 'Axis') -> float:
+        """Angle between two axes."""
+        return np.arccos(np.dot(self.vector, other_axis.vector))
 
     ################################
     #  Transformation of the axis  #
