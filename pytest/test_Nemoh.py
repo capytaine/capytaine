@@ -4,6 +4,8 @@
 Compare results of Capytaine with results from Nemoh 2.0.
 """
 
+import xarray as xr
+
 from capytaine.mesh.symmetries import *
 
 from capytaine.geometric_bodies.sphere import Sphere
@@ -11,7 +13,7 @@ from capytaine.geometric_bodies.cylinder import HorizontalCylinder
 from capytaine.geometric_bodies.free_surface import FreeSurface
 
 from capytaine.problems import DiffractionProblem, RadiationProblem
-from capytaine.results import assemble_dataset, add_wavenumber_coord
+from capytaine.results import assemble_dataset, wavenumber_data_array
 from capytaine.Nemoh import Nemoh
 
 from capytaine.tools.kochin import compute_Kochin
@@ -185,7 +187,8 @@ def test_multibody():
 
     # Test various things on dataset.
     assert 'Froude_Krylov_force' in data
-    add_wavenumber_coord(data, results)
+    wavenumbers = wavenumber_data_array(results)
+    assert isinstance(wavenumbers, xr.DataArray)
 
     naked_data = data.drop(["added_mass", "radiation_damping", "diffraction_force", "Froude_Krylov_force"])
     recomputed_data = solver.fill_dataset(naked_data, [both])

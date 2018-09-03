@@ -110,12 +110,17 @@ def _squeeze_dimensions(data_array, dimensions=None):
     return data_array
 
 
-def add_wavenumber_coord(dataset, results):
+def wavenumber_data_array(results):
     import pandas as pd
-    wavenumbers = [dict(g=result.g, water_depth=result.depth, omega=result.omega, wavenumber=result.wavenumber) for result in results]
-    df = pd.DataFrame(wavenumbers).drop_duplicates()
-    df = df.set_index(['g', 'water_depth', 'omega'])
-    dataset.coords['wavenumber'] = (['g', 'water_depth', 'omega'], df.to_xarray()['wavenumber'].data)
+    records = [dict(g=result.g, water_depth=result.depth, omega=result.omega, wavenumber=result.wavenumber)
+               for result in results]
+    optional_vars = ['g', 'water_depth']
+    dimensions = ['omega']
+    df = pd.DataFrame(records).drop_duplicates()
+    df = df.set_index(optional_vars + dimensions)
+    array = df.to_xarray()['wavenumber']
+    array = _squeeze_dimensions(array, dimensions=optional_vars)
+    return array
 
 
 def assemble_dataset(results):

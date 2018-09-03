@@ -7,9 +7,8 @@ Computation of the Kochin function.
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import numpy as np
-import xarray as xr
 
-from capytaine.results import _squeeze_dimensions, add_wavenumber_coord
+from capytaine.results import _squeeze_dimensions
 
 def compute_Kochin(result, theta, ref_point=(0.0, 0.0)):
     """Compute the far field coefficient
@@ -66,9 +65,7 @@ def kochin_data_array(results, theta_range, **kwargs):
     dimensions = ['omega', 'radiating_dof', 'theta']
     df = pd.DataFrame(records)
     df = df.set_index(optional_vars + dimensions)
-    array = df.to_xarray()
-
-    add_wavenumber_coord(array, results)
+    array = df.to_xarray()['kochin']
 
     array = _squeeze_dimensions(array, dimensions=optional_vars)
 
