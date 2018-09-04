@@ -405,6 +405,7 @@ CONTAINS
       ! part.)
 
       DO I = 1, nb_faces_1
+        !$OMP PARALLEL DO PRIVATE(J, SP2, VSP2_SYM, VSP2_ANTISYM)
         DO J = I, nb_faces_2
 
           IF (depth == INFINITE_DEPTH) THEN
@@ -442,12 +443,14 @@ CONTAINS
           END IF
 
         END DO
+        !$OMP END PARALLEL DO
       END DO
 
     ELSE
       ! General case: if we are computing the influence of a some cells on other cells, we have to compute all the coefficients.
 
       DO I = 1, nb_faces_1
+        !$OMP PARALLEL DO PRIVATE(J, SP2, VSP2_SYM, VSP2_ANTISYM)
         DO J = 1, nb_faces_2
 
           IF (depth == INFINITE_DEPTH) THEN
@@ -477,6 +480,7 @@ CONTAINS
                                 *areas_2(J) ! Gradient of the Green function
 
         END DO
+        !$OMP END PARALLEL DO
       END DO
    END IF
 

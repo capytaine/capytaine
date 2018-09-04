@@ -155,6 +155,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3) :: VSP1
 
     DO I = 1, nb_faces_1
+      !$OMP PARALLEL DO PRIVATE(J, SP1, VSP1)
       DO J = 1, nb_faces_2
 
         CALL COMPUTE_INTEGRAL_OF_RANKINE_SOURCE &
@@ -172,6 +173,7 @@ CONTAINS
         V(I, J) = -DOT_PRODUCT(normals_1(I, :), VSP1)/(4*PI) ! Gradient of the Green function
 
       END DO
+      !$OMP END PARALLEL DO
     END DO
 
   END SUBROUTINE
