@@ -123,6 +123,13 @@ The differentiation of :eq:`continuous_source_formulation` leads to the followin
 
 where :math:`n` is the normal vector on the floating body surface :math:`\Gamma`.
 
+.. note:: Dimensional analysis:
+
+    :math:`\Phi` is in m²·s¯¹.
+
+    :math:`\sigma` is in m·s¯¹.
+
+    :math:`G` is in m¯¹.
 
 Expression of the Green function
 ================================
