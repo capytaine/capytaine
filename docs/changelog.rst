@@ -19,6 +19,8 @@ New features
   a xarray dataset.
   New method :code:`fill_dataset` in :code:`capytaine.Nemoh.Nemoh` using the above.
 
+* Experimental OpenMP parallelization of the computation of the influence matrices.
+
 Major changes
 -------------
 
