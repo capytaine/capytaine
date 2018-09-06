@@ -11,9 +11,9 @@ import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.mesh.symmetries import TranslationalSymmetry, ReflectionSymmetry
+from capytaine.mesh.symmetries import TranslationalSymmetry, AxialSymmetry, ReflectionSymmetry
 from capytaine.bodies import FloatingBody
-from capytaine.tools.geometry import xOz_Plane, yOz_Plane
+from capytaine.tools.geometry import xOz_Plane, yOz_Plane, Ox_axis
 
 LOG = logging.getLogger(__name__)
 
@@ -23,44 +23,84 @@ LOG = logging.getLogger(__name__)
 ##########
 
 class Disk(FloatingBody):
-    def __init__(self, radius=1.0, center=(0, 0, 0), nr=3, ntheta=5, name=None):
+    """(One-sided) disk"""
+
+    def __init__(self, radius=1.0, resolution=(3, 5),
+                 center=(0, 0, 0), normal_angles=(0, 0, 0),
+                 reflection_symmetry=False, axial_symmetry=False,
+                 name=None):
         """Generate the mesh of a vertical disk.
 
         Parameters
         ----------
         radius : float, optional
             radius of the disk
+        resolution : 2-ple of int, optional
+            number of panels along a radius and around the disk
         center : 3-ple or array of shape (3,), optional
             position of the center of the disk
-        nr : int, optional
-            number of panels along a radius
-        ntheta : int, optional
-            number of panels around the disk
+        normal_angles : 3-ple of floats, optional
+            direction of the normal vector, default: along x axis
+        axial_symmetry : bool, optional
+            if True, use the axial symmetry to speed up the computations
+        reflection_symmetry : bool, optional
+            if True, use the reflection symmetry to speed up the computations
         name : str, optional
             a string naming the floating body
         """
-        self.radius = radius
-        self.center = np.asarray(center)
+        assert radius > 0, "Radius of the disk mesh should be given as a positive value."
+
+        assert len(resolution) == 2, "Resolution of a disk should be given as a couple a values."
+        assert all([h > 0 for h in resolution]), "Resolution of the disk mesh should be given as positive values."
+        assert all([i == int(i) for i in resolution]), "Resolution of a disk should be given as integer values."
+
+        assert len(center) == 3, "Position of the center of a disk should be given a 3-ple of values."
+
+        self.radius = float(radius)
+        self.center = np.asarray(center, dtype=np.float)
+        nr, ntheta = resolution
+
+        if reflection_symmetry and ntheta % 2 == 1:
+            raise ValueError("To use the reflection symmetry of the mesh, "
+                             "it should have an even number of panels in this direction.")
 
         if name is None:
             name = f"disk_{next(Mesh._ids)}"
 
-        mesh = self.generate_disk_mesh(nr, ntheta, name)
+        LOG.debug(f"New disk body of radius {radius} and resolution ({nr}, {ntheta}), named {name}.")
 
+        if reflection_symmetry:
+            half_mesh = Disk.generate_disk_mesh(radius=self.radius, theta_max=np.pi/2,
+                                                nr=nr, ntheta=ntheta//2,
+                                                name=f"half_of_{name}_mesh")
+            mesh = ReflectionSymmetry(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
+
+        elif axial_symmetry:
+            mesh_slice = Disk.generate_disk_mesh(radius=self.radius, theta_max=np.pi/ntheta,
+                                                nr=nr, ntheta=1,
+                                                name=f"slice_of_{name}_mesh")
+            mesh = AxialSymmetry(mesh_slice, axis=Ox_axis, nb_repetitions=ntheta-1, name=f"{name}_mesh")
+
+        else:
+            mesh = Disk.generate_disk_mesh(radius=self.radius, nr=nr, ntheta=ntheta, name=f"{name}_mesh")
+
+        mesh.rotate_angles(normal_angles)
+        mesh.translate(self.center)
         FloatingBody.__init__(self, mesh=mesh, name=name)
 
-    def generate_disk_mesh(self, nr: int, ntheta: int, name=None):
-        theta_max = np.pi
-        theta = np.linspace(-theta_max, theta_max, ntheta+1)
-        R = np.linspace(0.0, self.radius, nr+1)
+    @staticmethod
+    def generate_disk_mesh(radius=1.0, theta_max=np.pi,
+                           nr=2, ntheta=4,
+                           center=(0, 0, 0), normal_angles=(0, 0, 0),
+                           name=None) -> Mesh:
+        theta_range = np.linspace(0, 2*theta_max, ntheta+1)
+        r_range = np.linspace(0.0, radius, nr+1)
 
         nodes = np.zeros(((ntheta+1)*(nr+1), 3), dtype=np.float)
-
-        for i, (r, t) in enumerate(product(R, theta)):
+        for i, (r, t) in enumerate(product(r_range, theta_range)):
             y = +r * np.sin(t)
             z = -r * np.cos(t)
             nodes[i, :] = (0, y, z)
-        nodes += self.center
 
         panels = np.zeros((ntheta*nr, 4), dtype=np.int)
 
@@ -72,10 +112,11 @@ class Disk(FloatingBody):
                 j+(i+1)*(ntheta+1)
             )
 
-        mesh = Mesh(nodes, panels, name=f"{name}_mesh")
+        mesh = Mesh(nodes, panels, name=name)
         mesh.merge_duplicates()
         mesh.heal_triangles()
-
+        mesh.rotate_angles(normal_angles)
+        mesh.translate(center)
         return mesh
 
 
@@ -119,7 +160,7 @@ class HorizontalCylinder(FloatingBody):
 
         if nr > 0:
             side = Disk(radius=radius, center=(-np.array([length/2, 0, 0])),
-                        nr=nr, ntheta=ntheta, name=f"side_of_{name}").mesh
+                        resolution=(nr, ntheta), name=f"side_of_{name}").mesh
 
             other_side = side.copy(name=f"other_side_of_{name}_mesh")
             other_side.mirror(yOz_Plane)

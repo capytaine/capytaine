@@ -7,6 +7,7 @@ from capytaine.mesh.meshes_collection import CollectionOfMeshes
 from capytaine.mesh.symmetries import TranslationalSymmetry, ReflectionSymmetry
 
 from capytaine.geometric_bodies.rectangle import Rectangle, OpenRectangularParallelepiped, RectangularParallelepiped
+from capytaine.geometric_bodies.cylinder import Disk
 
 
 def test_rectangle_generation():
@@ -114,3 +115,10 @@ def test_parallelepiped_generation():
                                            translational_symmetry=True, name="trans_full_test")
     assert trans_para.mesh.nb_faces == 72
     # trans_para.show()
+
+def test_disk():
+    a = Disk(resolution=(6, 6))
+    b = Disk(resolution=(6, 6), axial_symmetry=True)
+    # print(b.mesh.tree_view())
+    c = Disk(resolution=(6, 6), reflection_symmetry=True)
+    # TODO

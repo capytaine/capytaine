@@ -137,7 +137,7 @@ class CollectionOfMeshes(tuple, Abstract3DObject):
         If the collection contains other collections, they are merged recursively.
         Optionally, a new name can be given to the resulting mesh."""
         if name is None:
-            name = '+'.join(mesh.name for mesh in self)
+            name = self.name
         merged = Mesh(self.vertices, self.faces, name=name)
         merged.merge_duplicates()
         merged.heal_triangles()
