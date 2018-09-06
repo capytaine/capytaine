@@ -65,6 +65,14 @@ class ReflectionSymmetry(SymmetricMesh):
     def __deepcopy__(self, *args):
         return ReflectionSymmetry(self.half.copy(), self.plane, name=self.name)
 
+    def join_meshes(*meshes, name=None):
+        assert all(isinstance(mesh, ReflectionSymmetry) for mesh in meshes), \
+            "Only meshes with the same symmetry can be joined together."
+        assert all(meshes[0].plane == mesh.plane for mesh in meshes), \
+            "Only reflection symmetric meshes with the same reflection plane can be joined together."
+        half_mesh = CollectionOfMeshes([mesh.half for mesh in meshes], name=f"half_of_{name}" if name is not None else None)
+        return ReflectionSymmetry(half_mesh, plane=meshes[0].plane, name=name)
+
     @inplace_transformation
     def translate(self, vector):
         self.plane.translate(vector)
@@ -154,16 +162,15 @@ class TranslationalSymmetry(SymmetricMesh):
         CollectionOfMeshes.mirror(self, plane)
         return self
 
-    def join(*list_of_symmetric_meshes):
-        """Experimental routine to merge similar symmetries."""
-        assert all([isinstance(mesh, TranslationalSymmetry) for mesh in list_of_symmetric_meshes])
-        assert all([np.allclose(list_of_symmetric_meshes[0].translation, mesh.translation) for mesh in list_of_symmetric_meshes[1:]])
-        assert all([list_of_symmetric_meshes[0].nb_submeshes == mesh.nb_submeshes for mesh in list_of_symmetric_meshes[1:]])
-        return TranslationalSymmetry(
-            sum([mesh.first_slice.merge() for mesh in list_of_symmetric_meshes[1:]],
-                list_of_symmetric_meshes[0].first_slice.merge()),
-            list_of_symmetric_meshes[0].translation, list_of_symmetric_meshes[0].nb_submeshes,
-        )
+    def join_meshes(*meshes, name=None):
+        assert all(isinstance(mesh, TranslationalSymmetry) for mesh in meshes), \
+            "Only meshes with the same symmetry can be joined together."
+        assert all(np.allclose(meshes[0].translation, mesh.translation) for mesh in meshes), \
+            "Only translation symmetric meshes with the same translation vector can be joined together."
+        assert all(len(meshes[0]) == len(mesh) for mesh in meshes), \
+            "Only symmetric meshes with the same number of elements can be joined together."
+        mesh_strip = CollectionOfMeshes([mesh.first_slice for mesh in meshes], name=f"strip_of_{name}" if name is not None else None)
+        return TranslationalSymmetry(mesh_strip, translation=meshes[0].translation, nb_repetitions=len(meshes[0])-1, name=name)
 
 
 class AxialSymmetry(SymmetricMesh):
@@ -276,6 +283,16 @@ class AxialSymmetry(SymmetricMesh):
 
     def __deepcopy__(self, *args):
         return AxialSymmetry(self.first_slice.copy(), axis=self.axis.copy(), nb_repetitions=len(self)-1, name=self.name)
+
+    def join_meshes(*meshes, name=None):
+        assert all(isinstance(mesh, AxialSymmetry) for mesh in meshes), \
+            "Only meshes with the same symmetry can be joined together."
+        assert all(meshes[0].axis == mesh.axis for mesh in meshes), \
+            "Only axisymmetric meshes with the same symmetry axis can be joined together."
+        assert all(len(meshes[0]) == len(mesh) for mesh in meshes), \
+            "Only axisymmetric meshes with the same number of elements can be joined together."
+        mesh_slice = CollectionOfMeshes([mesh.first_slice for mesh in meshes], name=f"slice_of_{name}" if name is not None else None)
+        return AxialSymmetry(mesh_slice, axis=meshes[0].axis, nb_repetitions=len(meshes[0])-1, name=name)
 
     @inplace_transformation
     def translate(self, vector):

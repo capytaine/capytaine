@@ -14,7 +14,7 @@ from capytaine.mesh.symmetries import AxialSymmetry, ReflectionSymmetry, Transla
 
 from capytaine.bodies import FloatingBody
 from capytaine.geometric_bodies.sphere import Sphere
-from capytaine.geometric_bodies.cylinder import HorizontalCylinder
+from capytaine.geometric_bodies.cylinder import Disk, HorizontalCylinder
 
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import Nemoh
@@ -59,6 +59,24 @@ def test_floating_sphere(reso, depth):
     assert np.isclose(result1.radiation_dampings["Heave"], result4.radiation_dampings["Heave"], atol=1e-4*volume*problem.rho)
 
 
+def test_join_axisymmetric_disks():
+    disk1 = Disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), axial_symmetry=True).mesh
+    disk2 = Disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), axial_symmetry=True).mesh
+    joined = disk1.join_meshes(disk2, name="two_disks")
+    assert isinstance(joined, AxialSymmetry)
+
+    disk3 = Disk(radius=1.0, center=(0, 0, 0), resolution=(6, 4), axial_symmetry=True).mesh
+    with pytest.raises(AssertionError):
+        disk1.join_meshes(disk3)
+
+
+def test_join_translational_cylinders():
+    mesh1 = HorizontalCylinder(length=10.0, radius=1.0, center=(0, 5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
+    mesh2 = HorizontalCylinder(length=10.0, radius=2.0, center=(0, -5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
+    joined = mesh1.join_meshes(mesh2)
+    assert isinstance(joined, TranslationalSymmetry)
+
+
 def test_odd_axial_symmetry():
     """Buoy with odd number of slices."""
     def shape(z):
@@ -77,13 +95,6 @@ def test_odd_axial_symmetry():
     volume = buoy.mesh.volume
     assert np.isclose(result1.added_masses["Heave"], result2.added_masses["Heave"], atol=1e-4*volume*problem.rho)
     assert np.isclose(result1.radiation_dampings["Heave"], result2.radiation_dampings["Heave"], atol=1e-4*volume*problem.rho)
-
-
-def test_join_translational_cylinders():
-    mesh1 = HorizontalCylinder(length=10.0, radius=1.0, center=(0, 5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
-    mesh2 = HorizontalCylinder(length=10.0, radius=2.0, center=(0, -5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
-    joined = mesh1.join(mesh2)
-    assert isinstance(joined, TranslationalSymmetry)
 
 
 @pytest.mark.parametrize("depth", [10.0, np.infty])
