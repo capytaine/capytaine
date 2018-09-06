@@ -13,7 +13,7 @@ from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
 from capytaine.mesh.symmetries import TranslationalSymmetry, AxialSymmetry, ReflectionSymmetry
 from capytaine.bodies import FloatingBody
-from capytaine.tools.geometry import xOz_Plane, yOz_Plane, Ox_axis
+from capytaine.tools.geometry import xOy_Plane, xOz_Plane, yOz_Plane, Ox_axis
 
 LOG = logging.getLogger(__name__)
 
@@ -63,6 +63,9 @@ class Disk(FloatingBody):
         if reflection_symmetry and ntheta % 2 == 1:
             raise ValueError("To use the reflection symmetry of the mesh, "
                              "it should have an even number of panels in this direction.")
+
+        if reflection_symmetry and axial_symmetry:
+            raise NotImplementedError("Disk generators with both symmetries have not been implemented.")
 
         if name is None:
             name = f"disk_{next(Mesh._ids)}"
@@ -213,4 +216,64 @@ class HorizontalCylinder(FloatingBody):
     @property
     def volume(self):
         return self.length*np.pi*self.radius**2
+
+
+class VerticalCylinder(FloatingBody):
+    def __init__(self, length=10.0, radius=1.0, center=(0, 0, 0),
+                 nx=10, ntheta=10, nr=2,
+                 clever=True, name=None):
+        """Generate the mesh of a vertical cylinder.
+
+        Parameters
+        ----------
+        length : float, optional
+            length of the cylinder
+        radius : float, optional
+            radius of the cylinder
+        center : 3-ple or array of shape (3,), optional
+            position of the center of the cylinder
+        nx : int, optional
+            number of circular slices
+        ntheta : int, optional
+            number of panels along a circular slice of the cylinder
+        nr : int, optional
+            number of panels along a radius on the extremities of the cylinder
+        clever : bool, optional
+            if True, uses the mesh symmetries
+        name : str, optional
+            a string naming the floating body
+        """
+        self.length = length
+        self.radius = radius
+        self.center = np.asarray(center, dtype=np.float)
+
+        if name is None:
+            name = f"cylinder_{next(Mesh._ids)}"
+
+        open_cylinder = AxialSymmetry.from_profile(
+            lambda z: radius,
+            z_range=np.linspace(-length/2, length/2, nx),
+            nphi=ntheta)
+
+        if nr > 0:
+            top_side = Disk(radius=radius, center=(0, 0, length/2),
+                            axial_symmetry=True, normal_angles=(0, np.pi/2, 0),
+                            resolution=(nr, ntheta), name=f"top_side_of_{name}").mesh
+
+            bottom_side = top_side.copy(name=f"bottom_side_of_{name}_mesh")
+            bottom_side.mirror(xOy_Plane)
+
+            mesh = AxialSymmetry.join_meshes(open_cylinder, top_side, bottom_side)
+        else:
+            mesh = open_cylinder
+
+        if not clever:
+            mesh = mesh.merge()
+            mesh.merge_duplicates()
+            mesh.heal_triangles()
+
+        mesh.translate(self.center)
+        mesh.name = f"{name}_mesh"
+
+        FloatingBody.__init__(self, mesh=mesh, name=name)
 
