@@ -2,10 +2,56 @@
 Setting up a problem
 ====================
 
+Defining a test matrix with :code:`xarray`
+------------------------------------------
+
+`xarray <http://xarray.pydata.org>`_
+
+::
+
+    import numpy as np
+    import xarray as xr
+    from capytaine import *
+
+    body = ...  # Set up the body and its dofs here.
+
+    test_matrix = xr.Dataset(coords={
+        'omega': np.linspace(0.1, 4, 40),
+        'angle': [0, np.pi/2],
+        'radiating_dof': list(body.dofs),
+        'water_depth': [np.infty],
+    })
+    dataset = Nemoh().fill_dataset(test_matrix, [body])
+
+
+::
+
+    >>> print(dataset)
+    <xarray.Dataset>
+    Dimensions:              (angle: 2, influenced_dof: 1, omega: 40, radiating_dof: 1)
+    Coordinates:
+      * omega                (omega) float64 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 ...
+      * radiating_dof        (radiating_dof) object 'Heave'
+      * influenced_dof       (influenced_dof) object 'Heave'
+      * angle                (angle) float64 0.0 1.571
+    Data variables:
+        added_mass           (omega, radiating_dof, influenced_dof) float64 2.14e+03 ...
+        radiation_damping    (omega, radiating_dof, influenced_dof) float64 1.562e-06 ...
+        Froude_Krylov_force  (omega, angle, influenced_dof) complex128 (-38.148887002448475-3.191891195797325e-16j) ...
+        diffraction_force    (omega, angle, influenced_dof) complex128 (-21.354062211407268-1.5242955876404453e-07j) ...
+    Attributes:
+        g:            9.81
+        rho:          1000.0
+        body_name:    sphere_1
+        water_depth:  inf
+
+
+The :class:`~capytaine.problems.LinearPotentialFlowProblem` class
+-----------------------------------------------------------------
+
 .. note:: Work in progress...
 
-The :code:`LinearPotentialFlowProblem` class
---------------------------------------------
+For a finer grain control of the problems to be solved, 
 
 Main parameters
 ~~~~~~~~~~~~~~~

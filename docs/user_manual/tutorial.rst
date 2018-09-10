@@ -5,7 +5,7 @@ Tutorial
 Main concepts
 =============
 
-**Mesh**:
+:class:`~capytaine.mesh.mesh.Mesh`
     The mesh of a floating body in its averaged position. It is stored as a :code:`Mesh` class
     from meshmagick.
 
@@ -17,7 +17,7 @@ Main concepts
     The :code:`Mesh` class also stores some data computed from the vertices and the faces: the
     faces normals, the faces centers and the faces areas.
 
-**Dof**:
+**Dof**
     A degree of freedom (or dof) defines a small motion or a deformation of the floating body
     around its averaged position. It is stored as a vector at the center of each faces of the mesh.
 
@@ -29,25 +29,25 @@ Main concepts
     decomposition). Here, the degrees of freedom are the physical degrees of freedom of the
     floating body, typically the rigid body translations and rotations.
 
-**FloatingBody**:
+:class:`~capytaine.bodies.FloatingBody`
     A :code:`FloatingBody` is simply the reunion of a :code:`Mesh` and some degrees of freedom.
 
-**LinearPotentialFlowProblem**:
+:class:`~capytaine.problems.LinearPotentialFlowProblem`
     A problem is a collection of several parameters: a :code:`FloatingBody`, the wave frequency
     :math:`\omega`,the water depth :math:`h`, the water density :math:`\rho` and the gravity
     acceleration :math:`g`.
 
     The abstract class :code:`LinearPotentialFlowProblem` has two child classes:
-    :code:`RadiationProblem` (that requires also the name of the dof that is radiating) and
-    :code:`DiffractionProblem` (that requires the angle of the incoming wave field :math:`\beta`).
+    :class:`~capytaine.problems.RadiationProblem` (that requires also the name of the dof that is radiating) and
+    :class:`~capytaine.problems.DiffractionProblem` (that requires the angle of the incoming wave field :math:`\beta`).
 
-    Most of the parameters are optional. A default value is used when they are not provided.
+    Most of the parameters are optional. A default value is used when they are not provided (see the page :doc:`problem_setup`).
 
-**Solver**
-    The core of the code. It has a :code:`solve` method that takes a
+:class:`Solver <capytaine.Nemoh.Nemoh>`
+    The core of the code. It has a :meth:`~capytaine.Nemoh.Nemoh.solve` method that takes a
     :code:`LinearPotentialFlowProblem` as input and returns a :code:`LinearPotentialFlowResult`.
 
-**LinearPotentialFlowResult**:
+:class:`~capytaine.results.LinearPotentialFlowResult`
     The class storing the results is similar to the class storing a problem, with some
     supplementary data such as :code:`result.added_masses` and :code:`result.radiation_dampings`
     for radiation problems and :code:`result.forces` for diffraction problems.
@@ -83,7 +83,7 @@ geometric shapes::
     sphere = Sphere(radius=1.0, center=(0, 0, -2), name="my buoy")
 
 Users can also import mesh from various file formats as shown in the cookbook. The mesh is stored
-is the :code:`Mesh` object. You can for instance access of coordinates of some of the vertices,
+is the :class:`~capytaine.mesh.mesh.Mesh` object. You can for instance access of coordinates of some of the vertices,
 faces centers or faces normal vectors using the following syntax::
 
     sphere.mesh.vertices[:10]  # First ten vertices.
@@ -107,12 +107,12 @@ body. It can be done in several ways:
     sphere.dofs['Surge'] = [(1, 0, 0) for face in sphere.mesh.faces]
 
 * Helpers functions are available to define rigid body translations and rotations. For instance for
-  the motion in the :math:`z` direction, we can use :code:`FloatingBody.add_translation_dof`. It can recognize
+  the motion in the :math:`z` direction, we can use :meth:`FloatingBody.add_translation_dof <capytaine.bodies.FloatingBody.add_translation_dof>`. It can recognize
   some dof names such as "Surge", "Sway" and "Heave"::
 
     sphere.add_translation_dof(name="Heave")
 
-  See the documentation of :code:`FloatingBody.add_rotation_dof` and :code:`FloatingBody.add_all_rigid_body_dofs`.
+  See the documentation of :meth:`FloatingBody.add_rotation_dof <capytaine.bodies.FloatingBody.add_rotation_dof>` and :meth:`FloatingBody.add_all_rigid_body_dofs <capytaine.bodies.FloatingBody.add_all_rigid_body_dofs>`.
 
 The degrees of freedoms are stored in the :code:`dofs` dictionary. To access the name of the dofs of a
 body, you can use for instance::
@@ -150,7 +150,7 @@ Let us initialize the solver Nemoh and solve the problem we defined earlier::
     solver = Nemoh()
     result = solver.solve(problem)
 
-The :code:`solve` method return a result object. The result object contains all of the data from
+The :meth:`~capytaine.Nemoh.Nemoh.solve` method return a result object. The result object contains all of the data from
 the problem it comes from::
 
     print(result.omega)
