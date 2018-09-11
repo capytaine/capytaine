@@ -84,10 +84,10 @@ class FloatingBody(Abstract3DObject):
     #     mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
     #     return Hydrostatics(mesh).displacement_volume
 
-    @property
-    def center_of_gravity(self):
-        if hasattr(self, 'center'):
-            return self.center
+    # @property
+    # def center_of_gravity(self):
+    #     if hasattr(self, 'center'):
+    #         return self.center
 
     ##########
     #  Dofs  #
@@ -143,8 +143,8 @@ class FloatingBody(Abstract3DObject):
         if axis is None:
             if name is not None and name.lower() in ROTATION_DOFS_AXIS:
                 axis_direction = ROTATION_DOFS_AXIS[name.lower()]
-                if hasattr(self, 'center_of_gravity'):
-                    axis_point = self.center_of_gravity
+                if hasattr(self, 'center'):
+                    axis_point = self.center
                     LOG.info(f"The rotation dof {name} have been initialized "
                              f"around the center of gravity of {self.name}.")
                 else:
