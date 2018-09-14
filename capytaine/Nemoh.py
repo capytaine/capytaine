@@ -106,39 +106,23 @@ class Nemoh:
 
         return result
 
-    def solve_all(self, problems, processes=4):
-        """Solve several problems in parallel.
-
-        Running::
-
-            solver.solve_all(problems)
-
-        is more or less equivalent to::
-
-             [solver.solve(problem) for problem in problems]
-
-        but in parallel.
+    def solve_all(self, problems):
+        """Solve several problems.
 
         Parameters
         ----------
         problems: list of LinearPotentialFlowProblem
             several problems to be solved
-        processes: int, optional
-            number of parallel processes (default: 1)
 
         Return
         ------
         list of LinearPotentialFlowResult
             the solved problems
         """
-        from multiprocessing import Pool
-        with Pool(processes=processes) as pool:
-            results = pool.map(self.solve, sorted(problems))
-        return results
+        return [self.solve(problem) for problem in sorted(problems)]
 
     def fill_dataset(self, dataset, bodies):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
-        TODO: Use solve_all.
 
         Parameters
         ----------
@@ -152,7 +136,7 @@ class Nemoh:
         xarray Dataset
         """
         problems = problems_from_dataset(dataset, bodies)
-        results = [self.solve(problem) for problem in problems]
+        results = self.solve_all(problems)
         return assemble_dataset(results)
 
     #######################
