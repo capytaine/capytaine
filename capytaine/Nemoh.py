@@ -46,9 +46,17 @@ class Nemoh:
     APD: array of shape (328, 46, 2, 2)
         Tabulated integrals for the Green functions
     """
-    def __init__(self, npinte=251):
+    def __init__(self, matrix_cache_size=1, npinte=251):
         LOG.info("Initialize Nemoh's Green function.")
         self.XR, self.XZ, self.APD = NemohCore.initialize_green_wave.initialize_tabulated_integrals(328, 46, npinte)
+
+        if matrix_cache_size > 0:
+            self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
+            self._build_matrices_rankine = lru_cache(maxsize=matrix_cache_size)(self._build_matrices_rankine)
+            self._build_matrices_rankine_reflection_across_free_surface = lru_cache(maxsize=matrix_cache_size)(
+                self._build_matrices_rankine_reflection_across_free_surface)
+            self._build_matrices_rankine_reflection_across_sea_bottom = lru_cache(maxsize=matrix_cache_size)(
+                self._build_matrices_rankine_reflection_across_sea_bottom)
 
     def solve(self, problem, keep_details=False):
         """Solve the BEM problem using Nemoh.
@@ -151,7 +159,6 @@ class Nemoh:
     #  Building matrices  #
     #######################
 
-    @lru_cache(maxsize=1)
     def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
         """
         Build the influence matrices between mesh1 and mesh2.
@@ -210,7 +217,6 @@ class Nemoh:
 
         return S, V
 
-    @lru_cache(maxsize=1)
     @use_symmetries
     def _build_matrices_rankine(self, mesh1, mesh2):
         """Compute the first part of the influence matrices of mesh1 on mesh2
@@ -225,7 +231,6 @@ class Nemoh:
             mesh2.faces_areas,   mesh2.faces_radiuses,
             )
 
-    @lru_cache(maxsize=1)
     @use_symmetries
     def _build_matrices_rankine_reflection_across_free_surface(self, mesh1, mesh2, free_surface):
         """Compute the second part of the influence matrices of mesh1 on mesh2 (for infinite depth)
@@ -251,7 +256,6 @@ class Nemoh:
             mesh2.faces_areas,   mesh2.faces_radiuses,
             )
 
-    @lru_cache(maxsize=1)
     @use_symmetries
     def _build_matrices_rankine_reflection_across_sea_bottom(self, mesh1, mesh2, sea_bottom):
         """Compute the second part of the influence matrices of mesh1 on mesh2 (for finite depth)
