@@ -6,15 +6,16 @@
 
 import logging
 
-from attr import attrs, attrib, Factory
+from attr import attrs, attrib, asdict, Factory
 
+from capytaine.problems import LinearPotentialFlowProblem
 from capytaine.tools.Airy_wave import Froude_Krylov_force
 
 
 LOG = logging.getLogger(__name__)
 
 
-@attrs(slots=True)
+@attrs
 class LinearPotentialFlowResult:
     problem = attrib()
 
@@ -23,35 +24,34 @@ class LinearPotentialFlowResult:
 
     fs_elevation = attrib(default=Factory(dict), init=False, repr=False)
 
+    __str__ = LinearPotentialFlowProblem.__str__
+
     def __getattr__(self, name):
+        """Direct access to the attributes of the included problem."""
         try:
             return getattr(self.problem, name)
         except AttributeError:
             raise AttributeError(f"{self.__class__} does not have a attribute named {name}.")
 
+    @property
+    def settings_dict(self):
+        settings = asdict(self.problem)
+        # Keep only the name of the body, not the full object.
+        settings['body_name'] = self.body.name
+        del settings['body']
+        # Keep only water_depth  # TODO: Remove.
+        settings['water_depth'] = self.free_surface - self.sea_bottom
+        del settings['free_surface']
+        del settings['sea_bottom']
+        return settings
 
-@attrs(slots=True)
+
+@attrs
 class DiffractionResult(LinearPotentialFlowResult):
     forces = attrib(default=Factory(dict), init=False, repr=False)
 
-    def __str__(self):
-        parameters = [f"body={self.body.name if self.body is not None else 'None'}, "
-                      f"omega={self.omega:.3f}, depth={self.depth}, angle={self.angle}, "]
-        if not self.free_surface == 0.0:
-            parameters.append(f"free_surface={self.free_surface}, ")
-        if not self.g == 9.81:
-            parameters.append(f"g={self.g}, ")
-        if not self.rho == 1000:
-            parameters.append(f"rho={self.rho}, ")
-        return "DiffractionResult(" + ''.join(parameters)[:-2] + ")"
-
     def store_force(self, dof, force):
         self.forces[dof] = 1j*self.omega*force
-
-    @property
-    def settings_dict(self):
-        return dict(omega=self.omega, angle=self.angle,
-                    water_depth=self.depth, body_name=self.body.name, g=self.g, rho=self.rho)
 
     @property
     def records(self):
@@ -61,30 +61,14 @@ class DiffractionResult(LinearPotentialFlowResult):
                 for dof in self.influenced_dofs]
 
 
-@attrs(slots=True)
+@attrs
 class RadiationResult(LinearPotentialFlowResult):
     added_masses = attrib(default=Factory(dict), init=False, repr=False)
     radiation_dampings = attrib(default=Factory(dict), init=False, repr=False)
 
-    def __str__(self):
-        parameters = [f"body={self.body.name if self.body is not None else 'None'}, "
-                      f"omega={self.omega:.3f}, depth={self.depth}, radiating_dof={self.radiating_dof}, "]
-        if not self.free_surface == 0.0:
-            parameters.append(f"free_surface={self.free_surface}, ")
-        if not self.g == 9.81:
-            parameters.append(f"g={self.g}, ")
-        if not self.rho == 1000:
-            parameters.append(f"rho={self.rho}, ")
-        return "RadiationResult(" + ''.join(parameters)[:-2] + ")"
-
     def store_force(self, dof, force):
         self.added_masses[dof] = force.real
         self.radiation_dampings[dof] = self.problem.omega * force.imag
-
-    @property
-    def settings_dict(self):
-            return dict(omega=self.omega, radiating_dof=self.radiating_dof,
-                        water_depth=self.depth, body_name=self.body.name, g=self.g, rho=self.rho)
 
     @property
     def records(self):

@@ -87,7 +87,7 @@ class Nemoh:
             result.sources = sources
             result.potential = potential
 
-        for influenced_dof_name, influenced_dof in problem.body.dofs.items():
+        for influenced_dof_name, influenced_dof in problem.influenced_dofs.items():
             influenced_dof = np.sum(influenced_dof * problem.body.mesh.faces_normals, axis=1)
             integrated_potential = - problem.rho * potential @ (influenced_dof * problem.body.mesh.faces_areas)
             result.store_force(influenced_dof_name, integrated_potential)

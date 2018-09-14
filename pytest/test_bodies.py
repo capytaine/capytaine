@@ -44,7 +44,7 @@ def test_bodies():
     body = Sphere(name="Patate", clever=False)
     assert str(body) == "Patate"
     repr(body)
-    assert np.allclose(body.center_of_gravity, (0, 0, 0))
+    assert np.allclose(body.center, (0, 0, 0))
 
     body.copy(name="copy_of_sphere")
 

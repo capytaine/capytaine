@@ -55,12 +55,12 @@ def test_LinearPotentialFlowProblem():
     # With a body
     sphere = Sphere(center=(0, 0, -2.0))
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    pb = LinearPotentialFlowProblem(body=sphere, omega=1.0,
-                                    boundary_condition=sphere.mesh.faces_normals @ (1, 1, 1))
+    pb = LinearPotentialFlowProblem(body=sphere, omega=1.0)
+    pb.boundary_condition = sphere.mesh.faces_normals @ (1, 1, 1)
     assert list(pb.influenced_dofs.keys()) == ['Heave']
 
-    pb2 = LinearPotentialFlowProblem(body=sphere, omega=2.0,
-                                     boundary_condition=sphere.mesh.faces_normals @ (1, 1, 1))
+    pb2 = LinearPotentialFlowProblem(body=sphere, omega=2.0)
+    pb2.boundary_condition = sphere.mesh.faces_normals @ (1, 1, 1)
     assert pb < pb2
 
     # Test transformation to result class
@@ -68,7 +68,7 @@ def test_LinearPotentialFlowProblem():
     assert isinstance(res, LinearPotentialFlowResult)
     assert res.problem is pb
     assert res.omega == pb.omega
-    assert res.dimensionless_omega == pb.dimensionless_omega
+    assert res.period == pb.period
     assert res.body is pb.body
 
 
@@ -108,7 +108,7 @@ def test_radiation_problem(caplog):
 
     res = pb.make_results_container()
     assert isinstance(res, RadiationResult)
-    assert 'forces' not in res.__slots__
+    assert 'forces' not in res.__dict__
     assert res.added_masses == {}
     assert res.radiation_dampings == {}
 
