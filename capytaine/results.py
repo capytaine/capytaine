@@ -7,6 +7,7 @@
 import logging
 
 from attr import attrs, attrib, asdict, Factory
+import numpy as np
 
 from capytaine.problems import LinearPotentialFlowProblem
 from capytaine.tools.Airy_wave import Froude_Krylov_force
@@ -68,7 +69,10 @@ class RadiationResult(LinearPotentialFlowResult):
 
     def store_force(self, dof, force):
         self.added_masses[dof] = force.real
-        self.radiation_dampings[dof] = self.problem.omega * force.imag
+        if self.problem.omega == np.infty:
+            self.radiation_dampings[dof] = 0
+        else:
+            self.radiation_dampings[dof] = self.problem.omega * force.imag
 
     @property
     def records(self):

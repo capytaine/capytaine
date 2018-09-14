@@ -4,6 +4,8 @@
 Compare results of Capytaine with results from Nemoh 2.0.
 """
 
+import pytest
+
 import xarray as xr
 
 from capytaine.mesh.symmetries import *
@@ -43,6 +45,20 @@ def test_immersed_sphere():
     assert np.isclose(result.added_masses["Heave"],        0.0, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Surge"],  0.0, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"],  0.0, atol=1e-3*sphere.volume*problem.rho)
+
+
+def test_limit_freq():
+    sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
+    sphere.add_translation_dof(direction=(0, 0, 1), name="Surge")
+    solver.solve(RadiationProblem(body=sphere, omega=0.0, sea_bottom=-np.infty))
+
+    with pytest.raises(NotImplementedError):
+        solver.solve(RadiationProblem(body=sphere, omega=0.0, sea_bottom=-1.0))
+
+    solver.solve(RadiationProblem(body=sphere, omega=np.infty, sea_bottom=-np.infty))
+
+    with pytest.raises(NotImplementedError):
+        solver.solve(RadiationProblem(body=sphere, omega=np.infty, sea_bottom=-10))
 
 
 def test_floating_sphere_finite_freq():

@@ -63,6 +63,11 @@ class LinearPotentialFlowProblem:
                                 Check the values of free_surface and sea_bottom\n
                                 or use body.keep_immersed_part() to clip the mesh.""")
 
+    @omega.validator
+    def _check_frequency(self, _, omega):
+        if omega in {0, np.infty} and self.depth != np.infty:
+            raise NotImplementedError(f"omega={omega} is only implemented for infinite depth.")
+
     def __str__(self):
         """Do not display default values in str(problem)."""
         parameters = [f"body={self.body.name if self.body is not None else 'None'}",
@@ -100,7 +105,6 @@ class LinearPotentialFlowProblem:
         return self.free_surface - self.sea_bottom
 
     @property
-    # @lru_cache(maxsize=128)
     def wavenumber(self):
         if self.depth == np.infty or self.omega**2*self.depth/self.g > 20:
             return self.omega**2/self.g
@@ -109,11 +113,17 @@ class LinearPotentialFlowProblem:
 
     @property
     def wavelength(self):
-        return 2*np.pi/self.wavenumber
+        if self.wavenumber == 0.0:
+            return np.infty
+        else:
+            return 2*np.pi/self.wavenumber
 
     @property
     def period(self):
-        return 2*np.pi/self.omega
+        if self.omega == 0.0:
+            return np.infty
+        else:
+            return 2*np.pi/self.omega
 
     @property
     def dimensionless_omega(self):

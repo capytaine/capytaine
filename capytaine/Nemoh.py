@@ -27,8 +27,6 @@ import capytaine.NemohCore as NemohCore
 
 LOG = logging.getLogger(__name__)
 
-FLOAT_PRECISION = np.float64
-
 
 class Nemoh:
     """Solver for the BEM problem based on Nemoh's Green function.
@@ -191,8 +189,8 @@ class Nemoh:
             Srefl, Vrefl = self._build_matrices_rankine_reflection_across_sea_bottom(mesh1, mesh2, sea_bottom)
             S += Srefl
             V += Vrefl
-            if wavenumber in (0, np.infty):
-                raise NotImplemented
+            if wavenumber in (0.0, np.infty):
+                raise NotImplementedError(f"wavenumber={wavenumber} is only implemented for infinite depth.")
 
         if wavenumber not in (0, np.infty):
             Swave, Vwave = self._build_matrices_wave(mesh1, mesh2, free_surface, sea_bottom, wavenumber)
