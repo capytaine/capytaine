@@ -9,10 +9,9 @@ from itertools import product
 
 import numpy as np
 
-from meshmagick.mesh import Mesh
-
+from capytaine.mesh.mesh import Mesh
+from capytaine.mesh.symmetries import AxialSymmetry
 from capytaine.bodies import FloatingBody
-from capytaine.symmetries import AxialSymmetry
 
 LOG = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ class Sphere(FloatingBody):
             a name identifying the sphere (default: "sphere_id" where id is an unique integer).
         """
         self.radius = radius
-        self.center = np.asarray(center)
+        self.center = np.array(center, dtype=np.float)
 
         if name is None:
             name = f"sphere_{next(Mesh._ids)}"
@@ -111,8 +110,7 @@ class Sphere(FloatingBody):
         circle_profile[:, 2] = -np.cos(theta)
         circle_profile *= self.radius
 
-        return AxialSymmetry.from_profile(circle_profile, point_on_rotation_axis=(0, 0, 0),
-                                          nphi=nphi, name=f"{name}_mesh")
+        return AxialSymmetry.from_profile(circle_profile, nphi=nphi, name=f"{name}_mesh")
 
     @property
     def volume(self):

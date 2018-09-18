@@ -9,8 +9,7 @@ from itertools import product
 
 import numpy as np
 
-from meshmagick.mesh import Mesh
-
+from capytaine.mesh.mesh import Mesh
 from capytaine.problems import DiffractionProblem
 from capytaine.tools.Airy_wave import Airy_wave_potential
 
@@ -68,7 +67,7 @@ class FreeSurface():
     def elevation_at_nodes(self, fs_faces: np.ndarray) -> np.ndarray:
         """From a free surface elevation computed at the center of the faces of the mesh,
         return a free surface elevation computed on the nodes of the mesh."""
-        from capytaine.tools.vtk import compute_node_data
+        from capytaine.ui.vtk import compute_node_data
         return compute_node_data(self.mesh, fs_faces)
 
     def incoming_waves(self, problem: DiffractionProblem) -> np.ndarray:

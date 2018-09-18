@@ -24,3 +24,5 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 It is based on [Nemoh](https://lheea.ec-nantes.fr/logiciels-et-brevets/nemoh-presentation-192863.kjsp), which has been developed by Gérard Delhommeau, Aurélien Babarit et al., (École Centrale de Nantes) and is distributed under the Apache License 2.0.
 
+It includes code from [meshmagick](https://github.com/LHEEA/meshmagick/) by François Rongère (École
+Centrale de Nantes), licensed under the GNU General Public License (GPL).

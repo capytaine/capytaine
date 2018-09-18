@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Generate mesh for rectangles and parallelepipeds."""
+"""Generate mesh of rectangles and parallelepipeds."""
 # This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
@@ -9,12 +9,11 @@ from itertools import product
 
 import numpy as np
 
-from meshmagick.mesh import Mesh
-from meshmagick.geometry import xOz_Plane, yOz_Plane
-
+from capytaine.mesh.mesh import Mesh
+from capytaine.mesh.meshes_collection import CollectionOfMeshes
+from capytaine.mesh.symmetries import TranslationalSymmetry, ReflectionSymmetry
 from capytaine.bodies import FloatingBody
-from capytaine.meshes_collection import CollectionOfMeshes
-from capytaine.symmetries import TranslationalSymmetry, ReflectionSymmetry
+from capytaine.tools.geometry import xOz_Plane, xOy_Plane, yOz_Plane
 
 LOG = logging.getLogger(__name__)
 
@@ -22,57 +21,99 @@ LOG = logging.getLogger(__name__)
 class Rectangle(FloatingBody):
     """(One-sided) rectangle"""
 
-    def __init__(self, size=(5.0, 5.0), resolution=(5, 5), center=(0, 0, 0),
-                 clever=False, name=None):
-        """Generate the mesh of a vertical rectangle (along x and z).
+    def __init__(self, size=(5.0, 5.0), resolution=(5, 5),
+                 center=(0, 0, 0), normal_angles=(0, 0, 0),
+                 translational_symmetry=False, reflection_symmetry=False, name=None):
+        """Generate the mesh of a vertical rectangle (along y and z).
 
         Normals are oriented in the positive y direction.
 
         Parameters
         ----------
-        size : tuple of  floats, optional
+        size : couple of floats, optional
             dimensions of the rectangle (width and height)
-        resolution : tuple of  ints, optional
+        resolution : couple of ints, optional
             number of faces along each of the two directions
-        center : tuple of floats, optional
-            position of the center of the rectangle
-        clever : bool, optional
-            if True, use the translation symmetry along the x axis to speed up the computations
+        center : 3-ple of floats, optional
+            position of the center of the rectangle, default: (0, 0, 0)
+        normal_angles : 3-ple of floats, optional
+            direction of the normal vector, default: along x axis
+        translational_symmetry : bool, optional
+            if True, use the translation symmetry to speed up the computations
+        reflection_symmetry : bool, optional
+            if True, use the reflection symmetry to speed up the computations
         name : string, optional
             a name for the body
         """
-        assert len(size) == 2
-        assert len(center) == 3
 
-        assert len(resolution) == 2
-        assert all([i == int(i) for i in resolution])
+        assert len(size) == 2, "Size of a rectangle should be given as a couple of values."
+        assert all([h > 0 for h in size]), "Size of the rectangle mesh should be given as positive values."
+
+        assert len(resolution) == 2, "Resolution of a rectangle should be given as a couple a values."
+        assert all([h > 0 for h in resolution]), "Resolution of the rectangle mesh should be given as positive values."
+        assert all([i == int(i) for i in resolution]), "Resolution of a rectangle should be given as integer values."
+
+        assert len(center) == 3, "Position of the center of a rectangle should be given a 3-ple of values."
 
         self.size = np.asarray(size, dtype=np.float)
         width, height = self.size
         self.center = np.asarray(center, dtype=np.float)
         nw, nh = resolution
 
+        if translational_symmetry and reflection_symmetry:
+            raise NotImplementedError("Rectangle generation with both reflection and translational symmetries "
+                                      "has not been implemented yet.")
+
+        if translational_symmetry and nw == 1:
+            LOG.warning("To use the translation symmetry of the mesh, "
+                        "it should have more than one panel in this direction. "
+                        "Will return a standard mesh instead.")
+
+        if reflection_symmetry and nw % 2 == 1:
+            raise ValueError("To use the reflection symmetry of the mesh, "
+                             "it should have an even number of panels in this direction.")
+
+        if (reflection_symmetry or translational_symmetry) and normal_angles[2] != 0:
+            raise ValueError("To use the symmetry of the mesh, it should be vertical.")
+
         if name is None:
             name = f"rectangle_{next(Mesh._ids)}"
 
-        if clever and nw > 1:
-            strip = self.generate_rectangle_mesh(width=width/nw, height=height, nw=1, nh=nh, name=f"strip_of_{name}")
-            strip.translate_x(-width/2 + width/(2*nw))
-            mesh = TranslationalSymmetry(strip, translation=np.asarray([width/nw, 0.0, 0.0]), nb_repetitions=int(nw)-1, name=name)
-        else:
-            mesh = self.generate_rectangle_mesh(width, height, nh, nw, name)
-        mesh.translate(center)
+        LOG.debug(f"New rectangle body of size ({width}, {height}) and resolution ({nw}, {nh}), named {name}.")
 
+        if reflection_symmetry:
+            half_mesh = Rectangle.generate_rectangle_mesh(
+                width=width/2, height=height, nw=nw//2, nh=nh,
+                center=(0, -width/4, 0), name=f"half_of_{name}_mesh"
+            )
+            mesh = ReflectionSymmetry(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
+
+        elif translational_symmetry and nw > 1:
+            strip = Rectangle.generate_rectangle_mesh(
+                width=width/nw, height=height, nw=1, nh=nh,
+                center=(0, -width/2 + width/(2*nw), 0), name=f"strip_of_{name}_mesh"
+            )
+            mesh = TranslationalSymmetry(strip,
+                                         translation=np.asarray([0, width/nw, 0]), nb_repetitions=int(nw)-1,
+                                         name=name)
+
+        else:
+            mesh = Rectangle.generate_rectangle_mesh(width=width, height=height, nw=nw, nh=nh, name=name)
+
+        mesh.rotate_angles(normal_angles)
+        mesh.translate(center)
         FloatingBody.__init__(self, mesh=mesh, name=name)
 
-    def generate_rectangle_mesh(self, width=5.0, height=5.0, nh=5, nw=5, name=None):
-        X = np.linspace(-width/2, width/2, nw+1)
+    @staticmethod
+    def generate_rectangle_mesh(width=1.0, height=1.0, nw=1, nh=1,
+                                center=(0, 0, 0), normal_angles=(0, 0, 0), name=None):
+        Y = np.linspace(-width/2, width/2, nw+1)
         Z = np.linspace(-height/2, height/2, nh+1)
 
         nodes = np.zeros(((nw+1)*(nh+1), 3), dtype=np.float)
         panels = np.zeros((nw*nh, 4), dtype=np.int)
 
-        for i, (x, y, z) in enumerate(product(X, [0.0], Z)):
+        for i, (x, y, z) in enumerate(product([0.0], Y, Z)):
             nodes[i, :] = x, y, z
 
         for k, (i, j) in enumerate(product(range(0, nw), range(0, nh))):
@@ -80,133 +121,85 @@ class Rectangle(FloatingBody):
 
         if name is None:
             name = f"rectangle_{next(Mesh._ids)}"
-        return Mesh(nodes, panels, name=f"{name}_mesh")
+
+        mesh = Mesh(nodes, panels, name=f"{name}_mesh")
+        mesh.rotate_angles(normal_angles)
+        mesh.translate(center)
+
+        return mesh
 
     @property
     def area(self):
         return self.size[0] * self.size[1]
 
 
-class OpenRectangularParallelepiped(FloatingBody):
-    def __init__(self, size=(5.0, 5.0, 5.0), resolution=(5, 5, 5), center=(0, 0, 0),
-                 clever=False,
-                 name=None):
-        """Generate the mesh of four panels forming a parallelepiped without top nor bottom.
-
-        Parameters
-        ----------
-        size : tuple of floats, optional
-            dimensions of the parallelepiped (width, thickness, height) or (dx, dy, dz)
-        resolution : tuple of ints, optional
-            number of faces along the three directions
-        center : tuple of floats, optional
-            coordinates of the center of the parallelepiped
-        clever : bool, optional
-            if True, use the translation symmetry in the x direction to speed up the computations
-            To use the translation symmetry in the y direction, create a x-symmetric body and then rotate it by pi/2.
-        name : string, optional
-            a name for the body
-        """
-        assert len(size) == 3
-        assert len(center) == 3
-
-        assert len(resolution) == 3
-        assert all([i == int(i) for i in resolution])
-
-        self.size = np.asarray(size, dtype=np.float)
-        self.center = np.asarray(center, dtype=np.float)
-        width, thickness, height = size
-        nw, nth, nh = resolution
-
-        if name is None:
-            name = f"open_rectangular_parallelepiped_{next(Mesh._ids)}"
-
-        front = Rectangle(size=(width, height), resolution=(nw, nh), center=(0, 0, 0),
-                          clever=clever, name=f"front_of_{name}").mesh
-        back = front.copy(name=f"back_of_{name}")
-
-        front.translate_y(thickness/2)
-        back.rotate_z(np.pi)
-        back.translate_y(-thickness/2)
-
-        if nth > 0:
-            side = Rectangle(size=(thickness, height), resolution=(nth, nh), center=(0, 0, 0),
-                             clever=False, name=f"side_of_{name}").mesh
-            other_side = side.copy(name=f"other_side_of_{name}")
-
-            side.rotate_z(np.pi/2)
-            side.translate_x(-width/2)
-            other_side.rotate_z(-np.pi/2)
-            other_side.translate_x(width/2)
-
-            parallelepiped = CollectionOfMeshes([front, back, side, other_side])
-        else:
-            parallelepiped = CollectionOfMeshes([front, back])
-
-        if not clever:
-            parallelepiped = parallelepiped.merge(name=f"{name}_mesh")
-            parallelepiped.merge_duplicates()
-            parallelepiped.heal_triangles()
-
-        parallelepiped.translate(center)
-        FloatingBody.__init__(self, mesh=parallelepiped, name=name)
-
-    @property
-    def volume(self):
-        return np.product(self.size)
-
-
 class RectangularParallelepiped(FloatingBody):
-    def __init__(self, size=(5.0, 5.0, 5.0), resolution=(5, 5, 5), center=(0, 0, 0),
-                 clever=False, name=None):
-        """Generate the mesh of four panels forming a parallelepiped without top nor bottom.
+    def __init__(self,
+                 size=(1.0, 1.0, 1.0), resolution=(4, 4, 4),
+                 center=(0, 0, 0),
+                 top=True, bottom=True,
+                 reflection_symmetry=False,
+                 translational_symmetry=False,
+                 name=None):
+        """Generate the mesh of six rectangles forming a parallelepiped.
 
         Parameters
         ----------
-        size : tuple of floats
-            dimensions of the parallelepiped (width, thickness, height)
-        resolution : tuple of ints
+        size : 3-ple of floats, optional
+            dimensions of the parallelepiped (width, thickness, height) for coordinates (x, y, z).
+        resolution : 3-ple of ints, optional
             number of faces along the three directions
-        center : tuple of floats
+        center : 3-ple of floats, optional
             coordinates of the center of the parallelepiped
-        clever : bool
-            if True, use the translation symmetry in the x direction to speed up the computations
+        top: bool, optional
+            whether or not to close the parallelepiped on the top
+        bottom: bool, optional
+            whether or not to close the parallelepiped on the bottom
+        reflection_symmetry : bool, optional
+            use xOz and yOz symmetry plane to generate the mesh
+        translational_symmetry : bool, optional
+            if True, use the translation symmetry in the x direction to speed up the computations.
             To use the translation symmetry in the y direction, create a x-symmetric body and then rotate it by pi/2.
         name : string, optional
             a name for the body
         """
-        assert len(size) == 3
-        assert len(center) == 3
 
-        assert len(resolution) == 3
-        assert all([i == int(i) for i in resolution])
+        assert len(size) == 3, "Size of a rectangular parallelepiped should be given as a 3-ple of values."
+        assert all([h > 0 for h in size]), "Size of the rectangular mesh should be given as positive values."
+
+        assert len(resolution) == 3, "Resolution of a rectangular parallelepiped should be given as a 3-ple a values."
+        assert all([h > 0 for h in resolution]), "Resolution of the rectangular parallelepiped mesh " \
+                                                 "should be given as positive values."
+        assert all([i == int(i) for i in resolution]), "Resolution of a rectangular parallelepiped " \
+                                                       "should be given as integer values."
+
+        assert len(center) == 3, "Position of the center of a parallelepiped should be given a 3-ple of values."
 
         self.size = np.asarray(size, dtype=np.float)
-        self.center = np.asarray(center, dtype=np.float)
         width, thickness, height = size
+        self.center = np.asarray(center, dtype=np.float)
         nw, nth, nh = resolution
+
+        if translational_symmetry and reflection_symmetry:
+            raise NotImplementedError("Parallelepiped generation with both reflection and translational symmetries "
+                                      "has not been implemented yet.")
+
+        if reflection_symmetry and (nw % 2 == 1 or nth % 2 == 1):
+            raise ValueError("To use the reflection symmetry of the mesh, "
+                             "it should have an even number of panels in this direction.")
 
         if name is None:
             name = f"rectangular_parallelepiped_{next(Mesh._ids)}"
 
-        sides = OpenRectangularParallelepiped(size=size, resolution=resolution,
-                                              clever=clever, name=f"sides_of_{name}").mesh
+        LOG.debug(f"New rectangular parallelepiped body "
+                  f"of size ({width}, {thickness}, {height}) and resolution ({resolution}), named {name}.")
 
-        if nth > 0:
-            top = Rectangle(size=(width, thickness), resolution=(nw, nth),
-                            clever=clever, name=f"top_of_{name}").mesh
-            bottom = top.copy(name=f"bottom_of_{name}_mesh")
-
-            top.rotate_x(np.pi/2)
-            top.translate_z(height/2)
-            bottom.rotate_x(-np.pi/2)
-            bottom.translate_z(-height/2)
-
-            parallelepiped = CollectionOfMeshes([sides, top, bottom])
+        if reflection_symmetry:
+            parallelepiped = self._generate_mesh_with_reflection_symmetry(resolution, top, bottom, name)
         else:
-            parallelepiped = sides
+            parallelepiped = self._generate_mesh_with_translational_symmetry(resolution, top, bottom, name)
 
-        if not clever:
+        if not (reflection_symmetry or translational_symmetry):
             parallelepiped = parallelepiped.merge(name=f"{name}_mesh")
             parallelepiped.merge_duplicates()
             parallelepiped.heal_triangles()
@@ -214,6 +207,98 @@ class RectangularParallelepiped(FloatingBody):
         parallelepiped.translate(center)
         FloatingBody.__init__(self, mesh=parallelepiped, name=name)
 
+    def _generate_mesh_with_translational_symmetry(self, resolution, top, bottom, name):
+        width, thickness, height = self.size
+        nw, nth, nh = resolution
+
+        front_panel = Rectangle.generate_rectangle_mesh(
+            width=width/nw, height=height, nw=1, nh=nh,
+            center=(-width/2 + width/(2*nw), thickness/2, 0),
+            normal_angles=(0, 0, -np.pi/2),
+            name=f"front_panel_of_{name}_mesh"
+        )
+
+        back_panel = front_panel.mirror(plane=xOz_Plane, inplace=False, name=f"back_panel_of_{name}_mesh")
+
+        top_panel = Rectangle.generate_rectangle_mesh(
+            width=thickness, height=width/nw, nw=nth, nh=1,
+            center=(-width/2 + width/(2*nw), 0, height/2),
+            normal_angles=(0, np.pi/2, 0),
+            name=f"top_panel_of_{name}_mesh"
+        )
+
+        bottom_panel = top_panel.mirror(plane=xOy_Plane, inplace=False, name=f"bottom_panel_of_{name}_mesh")
+
+        panels = [front_panel, back_panel]
+        if top:
+            panels.append(top_panel)
+        if bottom:
+            panels.append(bottom_panel)
+        ring = CollectionOfMeshes(panels, name=f"ring_of_{name}_mesh").merge()
+        ring.merge_duplicates()
+        ring.heal_triangles()
+
+        open_parallelepiped = TranslationalSymmetry(
+            ring,
+            translation=(width/nw, 0, 0), nb_repetitions=int(nw)-1,
+            name=f"body_of_{name}_mesh"
+        )
+
+        side = Rectangle.generate_rectangle_mesh(
+            width=thickness, height=height, nw=nth, nh=nh,
+            center=(width/2, 0, 0),
+            normal_angles=(0, 0, -np.pi),
+            name=f"side_of_{name}_mesh"
+        )
+
+        other_side = side.mirror(plane=yOz_Plane, inplace=False, name=f"other_side_of_{name}_mesh")
+
+        return CollectionOfMeshes([open_parallelepiped, side, other_side], name=f"{name}_mesh")
+
+    def _generate_mesh_with_reflection_symmetry(self, resolution, top, bottom, name):
+        width, thickness, height = self.size
+        nw, nth, nh = resolution
+
+        half_front = Rectangle.generate_rectangle_mesh(
+            width=width/2, height=height, nw=nw//2, nh=nh,
+            center=(-width/4, thickness/2, 0),
+            normal_angles=(0, 0, -np.pi/2),
+            name=f"half_front_of_{name}_mesh"
+        )
+
+        quarter_of_top = Rectangle.generate_rectangle_mesh(
+            width=thickness/2, height=width/2, nw=nth//2, nh=nw//2,
+            center=(-width/4, thickness/4, height/2),
+            normal_angles=(0, np.pi/2, 0),
+            name=f"top_panel_of_{name}_mesh"
+        )
+
+        quarter_of_bottom = quarter_of_top.mirror(plane=xOy_Plane, inplace=False, name=f"bottom_panel_of_{name}_mesh")
+
+        half_side = Rectangle.generate_rectangle_mesh(
+            width=thickness/2, height=height, nw=nth//2, nh=nh,
+            center=(-width/2, thickness/4, 0),
+            normal_angles=(0, 0, 0),
+            name=f"half_side_of_{name}_mesh"
+        )
+
+        panels = [half_front, half_side]
+        if top:
+            panels.append(quarter_of_top)
+        if bottom:
+            panels.append(quarter_of_bottom)
+        quarter_of_mesh = CollectionOfMeshes(panels, name=f"quarter_of_{name}_mesh").merge()
+
+        half_mesh = ReflectionSymmetry(quarter_of_mesh, plane=yOz_Plane, name=f"half_of_{name}_mesh")
+        return ReflectionSymmetry(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
+
     @property
     def volume(self):
         return np.product(self.size)
+
+
+class OpenRectangularParallelepiped(RectangularParallelepiped):
+    def __init__(self, *args, **kwargs):
+        RectangularParallelepiped.__init__(self, top=False, bottom=False, *args, **kwargs)
+        # Kept mostly for legacy
+

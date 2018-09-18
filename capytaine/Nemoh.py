@@ -14,20 +14,18 @@ Example
 """
 
 import logging
+from functools import lru_cache
 
 import numpy as np
 
-from capytaine.Toeplitz_matrices import (identity_matrix_of_same_shape_as, solve,
-                                         BlockToeplitzMatrix, BlockCirculantMatrix)
-from capytaine.symmetries import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
-from capytaine.tools.max_length_dict import MaxLengthDict
-from capytaine.tools.exponential_decomposition import exponential_decomposition, error_exponential_decomposition
-import capytaine._Green as _Green
+from capytaine.problems import problems_from_dataset
+from capytaine.results import assemble_dataset
+from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve, use_symmetries
+from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
+import capytaine.NemohCore as NemohCore
 
 
 LOG = logging.getLogger(__name__)
-
-FLOAT_PRECISION = np.float64
 
 
 class Nemoh:
@@ -35,12 +33,9 @@ class Nemoh:
 
     Parameters
     ----------
-    keep_matrices: bool, optional
-        If True, store the last computed influence matrices in __cache__ for later reuse (default: True)
     npinte: int, optional
-        Number of points for the evaluation of the integral w.r.t. :math:`theta` in the Green function (default: 251)
-    max_stored_exponential_decompositions: int, optional
-        Number of stored exponential decomposition (default: 50)
+        Number of points for the evaluation of the integral w.r.t. :math:`theta` in the Green
+        function (default: 251)
 
     Attributes
     ----------
@@ -48,20 +43,18 @@ class Nemoh:
     XZ: array of shape (46)
     APD: array of shape (328, 46, 2, 2)
         Tabulated integrals for the Green functions
-    exponential_decompositions: MaxLengthDict of arrays
-        Store last computed exponential decomposition
-    __cache__: dict of dict of arrays
-        Store last computations of influence matrices
     """
-    def __init__(self, keep_matrices=True, npinte=251, max_stored_exponential_decompositions=50):
+    def __init__(self, matrix_cache_size=1, npinte=251):
         LOG.info("Initialize Nemoh's Green function.")
-        self.XR, self.XZ, self.APD = _Green.initialize_green_2.initialize_green(328, 46, npinte)
+        self.XR, self.XZ, self.APD = NemohCore.initialize_green_wave.initialize_tabulated_integrals(328, 46, npinte)
 
-        self.exponential_decompositions = MaxLengthDict(max_length=max_stored_exponential_decompositions)
-
-        self.keep_matrices = keep_matrices
-        if self.keep_matrices:
-            self.__cache__ = {'Green0': {}, 'Green1': {}, 'Green2': {}}
+        if matrix_cache_size > 0:
+            self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
+            self._build_matrices_rankine = lru_cache(maxsize=matrix_cache_size)(self._build_matrices_rankine)
+            self._build_matrices_rankine_reflection_across_free_surface = lru_cache(maxsize=matrix_cache_size)(
+                self._build_matrices_rankine_reflection_across_free_surface)
+            self._build_matrices_rankine_reflection_across_sea_bottom = lru_cache(maxsize=matrix_cache_size)(
+                self._build_matrices_rankine_reflection_across_sea_bottom)
 
     def solve(self, problem, keep_details=False):
         """Solve the BEM problem using Nemoh.
@@ -71,7 +64,8 @@ class Nemoh:
         problem: LinearPotentialFlowProblem
             the problem to be solved
         keep_details: bool, optional
-            if True, store the sources and the potential on the floating body in the output object (default: False)
+            if True, store the sources and the potential on the floating body in the output object
+            (default: False)
 
         Returns
         -------
@@ -80,9 +74,6 @@ class Nemoh:
         """
 
         LOG.info("Solve %s.", problem)
-
-        if problem.depth < np.infty:
-            self._compute_exponential_decomposition(problem)
 
         if problem.wavelength < 8*problem.body.mesh.faces_radiuses.max():
             LOG.warning(f"Resolution of the mesh (8×max_radius={8*problem.body.mesh.faces_radiuses.max():.2e}) "
@@ -102,7 +93,7 @@ class Nemoh:
             result.sources = sources
             result.potential = potential
 
-        for influenced_dof_name, influenced_dof in problem.body.dofs.items():
+        for influenced_dof_name, influenced_dof in problem.influenced_dofs.items():
             influenced_dof = np.sum(influenced_dof * problem.body.mesh.faces_normals, axis=1)
             integrated_potential = - problem.rho * potential @ (influenced_dof * problem.body.mesh.faces_areas)
             result.store_force(influenced_dof_name, integrated_potential)
@@ -113,99 +104,46 @@ class Nemoh:
 
         return result
 
-    def solve_all(self, problems, processes=1):
-        """Solve several problems in parallel.
-
-        Running::
-
-            solver.solve_all(problems)
-
-        is more or less equivalent to::
-
-             [solver.solve(problem) for problem in problems]
-
-        but in parallel with some optimizations for faster resolution.
+    def solve_all(self, problems):
+        """Solve several problems.
 
         Parameters
         ----------
         problems: list of LinearPotentialFlowProblem
             several problems to be solved
-        processes: int, optional
-            number of parallel processes (default: 1)
 
         Return
         ------
         list of LinearPotentialFlowResult
             the solved problems
         """
-        from multiprocessing import Pool
-        with Pool(processes=processes) as pool:
-            results = pool.map(self.solve, sorted(problems))
-        return results
+        return [self.solve(problem) for problem in sorted(problems)]
 
-    ####################
-    #  Initialization  #
-    ####################
-
-    def _compute_exponential_decomposition(self, pb):
-        """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
-        The decomposition is stored in :code:`self.exponential_decompositions`.
+    def fill_dataset(self, dataset, bodies):
+        """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
         ----------
-        pb: LinearPotentialFlowProblem
-            Problem from which the frequency and depth will be used.
+        dataset : xarray Dataset
+            dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
+        bodies : list of FloatingBody
+            the bodies involved in the problems
+
+        Return
+        ------
+        xarray Dataset
         """
-
-        LOG.debug(f"Initialize Nemoh's finite depth Green function for omega=%.2e and depth=%.2e", pb.omega, pb.depth)
-        if (pb.dimensionless_omega, pb.dimensionless_wavenumber) not in self.exponential_decompositions:
-
-            # The function that will be approximated.
-            @np.vectorize
-            def f(x):
-                return _Green.initialize_green_2.ff(x, pb.dimensionless_omega,
-                                                    pb.dimensionless_wavenumber)
-
-            # Try different increasing number of exponentials
-            for n_exp in range(4, 31, 2):
-
-                # The coefficients are computed on a resolution of 4*n_exp+1 ...
-                X = np.linspace(-0.1, 20.0, 4*n_exp+1)
-                a, lamda = exponential_decomposition(X, f(X), n_exp)
-
-                # ... and they are evaluated on a finer discretization.
-                X = np.linspace(-0.1, 20.0, 8*n_exp+1)
-                if error_exponential_decomposition(X, f(X), a, lamda) < 1e-4:
-                    break
-
-            else:
-                LOG.warning(f"No suitable exponential decomposition has been found for {pb}.")
-
-            # Convert to precision wanted by Fortran code.
-            a = a.astype(FLOAT_PRECISION)
-            lamda = lamda.astype(FLOAT_PRECISION)
-
-            # Temporary trick: expand arrays to fixed size hard-coded in Fortran module.
-            a = np.r_[a, np.zeros(31-len(a), dtype=FLOAT_PRECISION)]
-            lamda = np.r_[lamda, np.zeros(31-len(lamda), dtype=FLOAT_PRECISION)]
-
-            self.exponential_decompositions[(pb.dimensionless_omega, pb.dimensionless_wavenumber)] = (a, lamda)
-
-        else:
-            self.exponential_decompositions.move_to_end(
-                key=(pb.dimensionless_omega, pb.dimensionless_wavenumber), last=True)
+        problems = problems_from_dataset(dataset, bodies)
+        results = self.solve_all(problems)
+        return assemble_dataset(results)
 
     #######################
     #  Building matrices  #
     #######################
 
-    def build_matrices(self, mesh1, mesh2,
-                       free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0,
-                       force_full_computation=False, _rec_depth=(1,)):
-        """Assemble the influence matrices.
-
-        The method is basically an ugly multiple dispatch on the kind of bodies.
-        For symmetric structures, the method is called recursively on the sub-bodies.
+    def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
+        """
+        Build the influence matrices between mesh1 and mesh2.
 
         Parameters
         ----------
@@ -218,244 +156,142 @@ class Nemoh:
         sea_bottom: float, optional
             position of the sea bottom (default: :math:`z = -\infty`)
         wavenumber: float, optional
-            wavenumber (default: 1)
-        force_full_computation: bool, optional
-            if True, the symmetries are NOT used to speed up the computation (default: False)
-        _rec_depth: tuple, optional
-            internal parameter: recursion accumulator for pretty log printing and cache sizing
+            wavenumber (default: 1.0)
 
         Returns
         -------
-        S: array of shape (mesh1.nb_faces, mesh2.nb_faces)
-            influence matrix (integral of the Green function)
-        V: array of shape (mesh1.nb_faces, mesh2.nb_faces)
-            influence matrix (integral of the derivative of the Green function)
+        couple of matrix-like objects (either 2D arrays or BlockToeplitzMatrix objects)
+            couple of influence matrices
         """
 
-        if (isinstance(mesh1, ReflectionSymmetry)
-                and isinstance(mesh2, ReflectionSymmetry)
-                and mesh1.plane == mesh2.plane
-                and not force_full_computation):
+        LOG.debug(f"\tEvaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
+                  f"for depth={free_surface-sea_bottom} and wavenumber={wavenumber}.")
 
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"using mirror symmetry "
-                      f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
+        Srankine, Vrankine = self._build_matrices_rankine(mesh1, mesh2)
+        S = Srankine.astype(np.complex128)
+        V = Vrankine.astype(np.complex128)
 
-            S_a, V_a = self.build_matrices(mesh1.submeshes[0], mesh2.submeshes[0],
-                                           free_surface, sea_bottom, wavenumber,
-                                           force_full_computation, _rec_depth + (2,))
-            S_b, V_b = self.build_matrices(mesh1.submeshes[0], mesh2.submeshes[1],
-                                           free_surface, sea_bottom, wavenumber,
-                                           force_full_computation, _rec_depth + (2,))
-
-            return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
-
-        elif (isinstance(mesh1, TranslationalSymmetry)
-              and isinstance(mesh2, TranslationalSymmetry)
-              and np.allclose(mesh1.translation, mesh2.translation)
-              and mesh1.nb_submeshes == mesh2.nb_submeshes
-              and not force_full_computation):
-
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"using translational symmetry "
-                      f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
-
-            S_list, V_list = [], []
-            for subbody in mesh2.submeshes:
-                S, V = self.build_matrices(mesh1.submeshes[0], subbody,
-                                           free_surface, sea_bottom, wavenumber,
-                                           force_full_computation, _rec_depth + (mesh2.nb_submeshes,))
-                S_list.append(S)
-                V_list.append(V)
-            return BlockToeplitzMatrix(S_list), BlockToeplitzMatrix(V_list)
-
-        elif (isinstance(mesh1, AxialSymmetry)
-              and mesh1 is mesh2  # TODO: Generalize: if mesh1.axis == mesh2.axis
-              and not force_full_computation):
-
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"Evaluating matrix of {mesh1.name} on itself "
-                      f"using rotation symmetry "
-                      f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
-
-            S_list, V_list = [], []
-            for subbody in mesh2.submeshes[:mesh2.nb_submeshes // 2 + 1]:
-                S, V = self.build_matrices(mesh1.submeshes[0], subbody,
-                                           free_surface, sea_bottom, wavenumber,
-                                           force_full_computation, _rec_depth + (mesh2.nb_submeshes // 2 + 1,))
-                S_list.append(S)
-                V_list.append(V)
-
-            if mesh1.nb_submeshes % 2 == 0:
-                return BlockCirculantMatrix(S_list, size=mesh1.nb_submeshes), BlockCirculantMatrix(V_list, size=mesh1.nb_submeshes)
-            else:
-                return BlockCirculantMatrix(S_list, size=mesh1.nb_submeshes), BlockCirculantMatrix(V_list, size=mesh1.nb_submeshes)
-
-        #   elif (isinstance(mesh1, CollectionOfMeshes)):
-        #     S = np.empty((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
-        #     V = np.empty((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
-        #
-        #     nb_faces = list(accumulate(chain([0], (body.nb_faces for body in mesh1.submeshes))))
-        #     for (i, j), body in zip(zip(nb_faces, nb_faces[1:]), mesh1.submeshes):
-        #         matrix_slice = (slice(i, j), slice(None, None))
-        #         S[matrix_slice], V[matrix_slice] = self.build_matrices(mesh1, mesh2, **kwargs)
-        #
-        #     return S, V
-
-        else:
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"Evaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"for depth={free_surface-sea_bottom:.2e} and k={wavenumber:.2e}")
-
-            S = np.zeros((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
-            V = np.zeros((mesh1.nb_faces, mesh2.nb_faces), dtype=np.complex64)
-
-            S0, V0 = self._build_matrices_0(mesh1, mesh2, _rec_depth)
-            S += S0
-            V += V0
-
-            if free_surface < np.infty:
-
-                S1, V1 = self._build_matrices_1(mesh1, mesh2, free_surface, sea_bottom, _rec_depth)
-                S += S1
-                V += V1
-
-                S2, V2 = self._build_matrices_2(mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth)
-                S += S2
-                V += V2
-
+        if free_surface == np.infty:
+            # No free surface, no more terms in the Green function
             return S, V
 
-    def _build_matrices_0(self, mesh1, mesh2, _rec_depth=(1,)):
-        """Compute the first part of the influence matrices of self on body."""
-        if self.keep_matrices and mesh1 not in self.__cache__['Green0']:
-            self.__cache__['Green0'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tCreate Green0 cache (max_length={int(np.product(_rec_depth))}) for {mesh1.name}")
+        if free_surface - sea_bottom == np.infty:
+            # Infinite depth
+            Srefl, Vrefl = self._build_matrices_rankine_reflection_across_free_surface(mesh1, mesh2, free_surface)
+            if wavenumber == 0.0:
+                S += Srefl
+                V += Vrefl
+            else:
+                S -= Srefl
+                V -= Vrefl
+        else:
+            # Finite depth
+            Srefl, Vrefl = self._build_matrices_rankine_reflection_across_sea_bottom(mesh1, mesh2, sea_bottom)
+            S += Srefl
+            V += Vrefl
+            if wavenumber in (0.0, np.infty):
+                raise NotImplementedError(f"wavenumber={wavenumber} is only implemented for infinite depth.")
 
-        if not self.keep_matrices or mesh2 not in self.__cache__['Green0'][mesh1]:
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tComputing matrix 0 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}")
-            S0, V0 = _Green.green_1.build_matrix_0(
+        if wavenumber not in (0, np.infty):
+            Swave, Vwave = self._build_matrices_wave(mesh1, mesh2, free_surface, sea_bottom, wavenumber)
+            S += Swave
+            V += Vwave
+
+        return S, V
+
+    @use_symmetries
+    def _build_matrices_rankine(self, mesh1, mesh2):
+        """Compute the first part of the influence matrices of mesh1 on mesh2
+
+        Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
+        If the @use_symmetries decorator is present, the result may actually be a couple
+        of BlockToeplitz matrices of the same size."""
+        return NemohCore.green_rankine.build_matrices_rankine_source(
+            mesh1.faces_centers, mesh1.faces_normals,
+            mesh2.vertices,      mesh2.faces + 1,
+            mesh2.faces_centers, mesh2.faces_normals,
+            mesh2.faces_areas,   mesh2.faces_radiuses,
+            )
+
+    @use_symmetries
+    def _build_matrices_rankine_reflection_across_free_surface(self, mesh1, mesh2, free_surface):
+        """Compute the second part of the influence matrices of mesh1 on mesh2 (for infinite depth)
+
+        Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
+        If the @use_symmetries decorator is present, the result may actually be a couple
+        of BlockToeplitz matrices of the same size."""
+
+        def reflect_vector(x):
+            y = x.copy()
+            y[:, 2] = -x[:, 2]
+            return y
+
+        def reflect_point(x):
+            y = x.copy()
+            y[:, 2] = 2*free_surface - x[:, 2]
+            return y
+
+        return NemohCore.green_rankine.build_matrices_rankine_source(
+            reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
+            mesh2.vertices,      mesh2.faces + 1,
+            mesh2.faces_centers, mesh2.faces_normals,
+            mesh2.faces_areas,   mesh2.faces_radiuses,
+            )
+
+    @use_symmetries
+    def _build_matrices_rankine_reflection_across_sea_bottom(self, mesh1, mesh2, sea_bottom):
+        """Compute the second part of the influence matrices of mesh1 on mesh2 (for finite depth)
+
+        Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
+        If the @use_symmetries decorator is present, the result may actually be a couple
+        of BlockToeplitz matrices of the same size."""
+
+        def reflect_vector(x):
+            y = x.copy()
+            y[:, 2] = -x[:, 2]
+            return y
+
+        def reflect_point(x):
+            y = x.copy()
+            y[:, 2] = 2*sea_bottom - x[:, 2]
+            return y
+
+        return NemohCore.green_rankine.build_matrices_rankine_source(
+            reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
+            mesh2.vertices,      mesh2.faces + 1,
+            mesh2.faces_centers, mesh2.faces_normals,
+            mesh2.faces_areas,   mesh2.faces_radiuses,
+            )
+
+    @use_symmetries
+    def _build_matrices_wave(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
+        """Compute the third part of the influence matrices of mesh1 on mesh2
+
+        Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
+        If the @use_symmetries decorator is present, the result may actually be a couple
+        of BlockToeplitz matrices of the same size."""
+        depth = free_surface - sea_bottom
+        if depth == np.infty:
+            return NemohCore.green_wave.build_matrices_wave_source(
                 mesh1.faces_centers, mesh1.faces_normals,
-                mesh2.vertices,      mesh2.faces + 1,
-                mesh2.faces_centers, mesh2.faces_normals,
-                mesh2.faces_areas,   mesh2.faces_radiuses,
+                mesh2.faces_centers, mesh2.faces_areas,
+                wavenumber, 0.0,
+                self.XR, self.XZ, self.APD,
+                np.empty(1), np.empty(1),  # Dummy arrays that won't actually be used by the fortran code.
+                mesh1 is mesh2
                 )
-
-            if self.keep_matrices:
-                self.__cache__['Green0'][mesh1][mesh2] = (S0, V0)
-
         else:
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tRetrieving stored matrix 0 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name}")
-            S0, V0 = self.__cache__['Green0'][mesh1][mesh2]
+            a_exp, lamda_exp = find_best_exponential_decomposition(wavenumber*depth*np.tanh(wavenumber*depth),
+                                                                   wavenumber*depth)
 
-        return S0, V0
-
-    def _build_matrices_1(self, mesh1, mesh2, free_surface, sea_bottom, _rec_depth=(1,)):
-        """Compute the second part of the influence matrices of mesh1 on mesh2."""
-        if self.keep_matrices and mesh1 not in self.__cache__['Green1']:
-            self.__cache__['Green1'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tCreate Green1 cache (max_length={int(np.product(_rec_depth))}) for {mesh1.name}")
-
-        depth = free_surface - sea_bottom
-        if not self.keep_matrices or (mesh2, depth) not in self.__cache__['Green1'][mesh1]:
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tComputing matrix 1 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"for depth={depth:.2e}")
-
-            def reflect_vector(x):
-                y = x.copy()
-                y[:, 2] = -x[:, 2]
-                return y
-
-            if depth == np.infty:
-                def reflect_point(x):
-                    y = x.copy()
-                    y[:, 2] = 2*free_surface - x[:, 2]
-                    return y
-            else:
-                def reflect_point(x):
-                    y = x.copy()
-                    y[:, 2] = 2*sea_bottom - x[:, 2]
-                    return y
-
-            S1, V1 = _Green.green_1.build_matrix_0(
-                reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
-                mesh2.vertices,      mesh2.faces + 1,
-                mesh2.faces_centers, mesh2.faces_normals,
-                mesh2.faces_areas,   mesh2.faces_radiuses,
+            return NemohCore.green_wave.build_matrices_wave_source(
+                mesh1.faces_centers, mesh1.faces_normals,
+                mesh2.faces_centers, mesh2.faces_areas,
+                wavenumber, depth,
+                self.XR, self.XZ, self.APD,
+                lamda_exp, a_exp,
+                mesh1 is mesh2
                 )
-
-            if depth == np.infty:
-                if self.keep_matrices:
-                    self.__cache__['Green1'][mesh1][(mesh2, np.infty)] = (-S1, -V1)
-                return -S1, -V1
-            else:
-                if self.keep_matrices:
-                    self.__cache__['Green1'][mesh1][(mesh2, depth)] = (S1, V1)
-                return S1, V1
-
-        else:
-            S1, V1 = self.__cache__['Green1'][mesh1][(mesh2, depth)]
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tRetrieving stored matrix 1 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"for depth={depth:.2e}")
-            return S1, V1
-
-    def _build_matrices_2(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, _rec_depth=(1,)):
-        """Compute the third part of the influence matrices of mesh1 on mesh2."""
-        if self.keep_matrices and mesh1 not in self.__cache__['Green2']:
-            self.__cache__['Green2'][mesh1] = MaxLengthDict({}, max_length=int(np.product(_rec_depth)))
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tCreate Green2 cache (max_length={int(np.product(_rec_depth))}) for {mesh1.name}")
-
-        depth = free_surface - sea_bottom
-        if not self.keep_matrices or (mesh2, depth, wavenumber) not in self.__cache__['Green2'][mesh1]:
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tComputing matrix 2 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"for depth={depth:.2e} and k={wavenumber:.2e}")
-            if depth == np.infty:
-                lamda_exp = np.empty(31, dtype=FLOAT_PRECISION)
-                a_exp = np.empty(31, dtype=FLOAT_PRECISION)
-                n_exp = 31
-
-                S2, V2 = _Green.green_2.build_matrix_2(
-                    mesh1.faces_centers, mesh1.faces_normals,
-                    mesh2.faces_centers, mesh2.faces_areas,
-                    wavenumber,         0.0,
-                    self.XR, self.XZ, self.APD,
-                    lamda_exp, a_exp, n_exp,
-                    mesh1 is mesh2
-                    )
-            else:
-                # Get the last computed exponential decomposition.
-                a_exp, lamda_exp = next(reversed(self.exponential_decompositions.values()))
-                n_exp = 31
-
-                S2, V2 = _Green.green_2.build_matrix_2(
-                    mesh1.faces_centers, mesh1.faces_normals,
-                    mesh2.faces_centers, mesh2.faces_areas,
-                    wavenumber, depth,
-                    self.XR, self.XZ, self.APD,
-                    lamda_exp, a_exp, n_exp,
-                    mesh1 is mesh2
-                    )
-
-            if self.keep_matrices:
-                self.__cache__['Green2'][mesh1][(mesh2, depth, wavenumber)] = (S2, V2)
-
-        else:
-            S2, V2 = self.__cache__['Green2'][mesh1][(mesh2, depth, wavenumber)]
-            LOG.debug("\t" * len(_rec_depth) +
-                      f"\tRetrieving stored matrix 2 of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
-                      f"for depth={depth:.2e} and k={wavenumber:.2e}")
-
-        return S2, V2
 
     #######################
     #  Compute potential  #

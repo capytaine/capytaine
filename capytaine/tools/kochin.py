@@ -8,6 +8,7 @@ Computation of the Kochin function.
 
 import numpy as np
 
+from capytaine.results import _squeeze_dimensions
 
 def compute_Kochin(result, theta, ref_point=(0.0, 0.0)):
     """Compute the far field coefficient
@@ -51,3 +52,21 @@ def compute_Kochin(result, theta, ref_point=(0.0, 0.0)):
     # zs.shape = (nb_theta, nb_faces)
     # result.sources.shape = (nb_faces,)
     return zs @ result.sources/(4*np.pi)
+
+
+def kochin_data_array(results, theta_range, **kwargs):
+    import pandas as pd
+
+    records = [dict(result.settings_dict, theta=theta, kochin=kochin)
+               for result in results
+               for theta, kochin in zip(theta_range, compute_Kochin(result, theta_range, **kwargs))]
+
+    optional_vars = ['g', 'rho', 'body_name', 'water_depth']
+    dimensions = ['omega', 'radiating_dof', 'theta']
+    df = pd.DataFrame(records)
+    df = df.set_index(optional_vars + dimensions)
+    array = df.to_xarray()['kochin']
+
+    array = _squeeze_dimensions(array, dimensions=optional_vars)
+
+    return array

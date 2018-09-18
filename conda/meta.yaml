@@ -10,9 +10,12 @@ requirements:
   build:
     - python
     - setuptools
+    - libgfortran=3.0
     - numpy
+    - sphinx
   run:
     - python
+    - libgfortran=3.0
     - numpy
     - scipy
     - attrs
@@ -21,7 +24,6 @@ requirements:
     - scipy
     - matplotlib
     - vtk
-    # - meshmagick >=1.2
 
 build:
   entry_points:

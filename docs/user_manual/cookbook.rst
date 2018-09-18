@@ -9,17 +9,6 @@ This page contains several examples of Capytaine's features.
 Base examples
 =============
 
-Importing a mesh
-----------------
-
-This example loads a mesh from a file and displays it with VTK.
-
-.. literalinclude:: examples/import_mesh.py
-   :language: python
-
-The resulting body can be used to define a :code:`RadiationProblem` or a
-:code:`DiffractionProblem`.
-
 Custom degree of freedom
 ------------------------
 

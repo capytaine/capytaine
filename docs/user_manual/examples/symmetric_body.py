@@ -2,21 +2,24 @@
 
 import numpy as np
 
-from meshmagick.geometry import xOz_Plane
-
 from capytaine import FloatingBody
-from capytaine.symmetries import ReflectionSymmetry
+from capytaine.tools.geometry import xOz_Plane
+from capytaine.mesh.mesh_clipper import MeshClipper
+from capytaine.mesh.symmetries import ReflectionSymmetry
 
 # Load a mesh from a file.
-mesh_from_file = FloatingBody.from_file("example.dat").mesh
+original_body = FloatingBody.from_file("example.dat").mesh
 
-# Get the indices of the cells such that the center is in the half-space y > 0.
-indices_of_some_faces = np.where(mesh_from_file.faces_centers[:, 1] > 0)[0]
+# METHOD 1
+# Get the indices of the panels such that the center is in the half-space y > 0.
+indices_of_some_faces = np.where(original_body.mesh.faces_centers[:, 1] > 0)[0]
+half_mesh = original_body.extract_faces(indices_of_some_faces)
 
-# Create a new mesh with those faces.
-half_mesh = mesh_from_file.extract_faces(indices_of_some_faces)
+# METHOD 2
+# Clip the mesh
+half_mesh = MeshClipper(original_body.mesh, plane=xOz_Plane).clipped_mesh
 
-# Define a new body by reflecting the half mesh accros the xOz plane.
+# Define a new body by reflecting the half mesh across the xOz plane.
 body = FloatingBody(ReflectionSymmetry(half_mesh, xOz_Plane), name="symmetric_body")
 
 # Display the body with VTK.

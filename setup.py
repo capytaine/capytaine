@@ -3,29 +3,23 @@
 
 from numpy.distutils.core import Extension, setup
 
-VERSION = '0.4'
+VERSION = '0.5'
 
-Green = Extension(
-    name="capytaine._Green",
+NemohCore = Extension(
+    name="capytaine.NemohCore",
     sources=[
         "capytaine/NemohCore/constants.f90",
-        "capytaine/NemohCore/Green_1.f90",
-        "capytaine/NemohCore/Initialize_Green_2.f90",
-        "capytaine/NemohCore/Green_2.f90",
+        "capytaine/NemohCore/Green_Rankine.f90",
+        "capytaine/NemohCore/Initialize_Green_wave.f90",
+        "capytaine/NemohCore/Green_wave.f90",
         "capytaine/NemohCore/old_Prony_decomposition.f90",
     ],
+    extra_f90_compile_args=['-fopenmp -lgomp'],
     # # Uncomment the following lines to get more verbose output from f2py.
     # define_macros=[
     #     ('F2PY_REPORT_ATEXIT', 1),
     #     ('F2PY_REPORT_ON_ARRAY_COPY', 1),
     # ],
-)
-
-Wavenumber = Extension(
-    name="capytaine._Wavenumber",
-    sources=[
-        "capytaine/NemohCore/Wavenumber.f90"
-    ]
 )
 
 if __name__ == "__main__":
@@ -38,9 +32,12 @@ if __name__ == "__main__":
           license='GPLv3',
           packages=[
               'capytaine',
-              'capytaine.tools',
-              'capytaine.tools.vtk',
+              'capytaine.mesh',
               'capytaine.geometric_bodies',
+              'capytaine.tools',
+              'capytaine.ui',
+              'capytaine.ui.vtk',
+              'capytaine.io',
           ],
           install_requires=[
               'attrs',
@@ -50,15 +47,11 @@ if __name__ == "__main__":
               'xarray',
               'matplotlib',
               'vtk',
-              'meshmagick>=1.2',
           ],
           entry_points={
               'console_scripts': [
-                  'capytaine=capytaine.cli:main',
+                  'capytaine=capytaine.ui.cli:main',
               ],
           },
-          ext_modules=[
-              Green,
-              Wavenumber
-          ],
+          ext_modules=[NemohCore],
           )

@@ -76,6 +76,9 @@ This documentation is licensed under the `Creative Commons Attribution-ShareAlik
 
 Capytaine is a fork of Nemoh_, which has been developed by Gérard Delhommeau, Aurélien Babarit et al., (École Centrale de Nantes) and is distributed under the Apache License 2.0.
 
+Capytaine includes code from meshmagick_ by François Rongère (École Centrale de Nantes), licensed under the GNU General Public License (GPL).
+
+.. _meshmagick: https://github.com/LHEEA/meshmagick
 .. _Nemoh: https://lheea.ec-nantes.fr/logiciels-et-brevets/nemoh-presentation-192863.kjsp
 
 The `boat mesh`_ in the animation above is in the public domain.
