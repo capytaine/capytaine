@@ -9,7 +9,6 @@ It is build around a full rewrite of the open source Boundary Element Method (BE
 ## Installation
 
 ```bash
-conda install -c mancellin meshmagick
 conda install -c mancellin capytaine
 ```
 See [the documentation](https://ancell.in/capytaine) for more informations.
