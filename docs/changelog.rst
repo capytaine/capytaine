@@ -37,7 +37,10 @@ Solver
 * Reorganization of the internals of the solver :code:`Nemoh.py` and :code:`NemohCore`.
   The initialization options :code:`keep_matrices` and :code:`max_stored_exponential_decompositions` have been removed.
   The former has been replaced by a :code:`matrix_cache_size` optional argument (default value: 1).
-  Support of :math:`\omega=0` and :math:`\omega=\infty` in the infinite depth case.
+
+* Support of :math:`\omega=0` and :math:`\omega=\infty` in the infinite depth case.
+
+* The wavenumber is not computed in Fortran anymore.
 
 Outputs
 ~~~~~~~
