@@ -5,7 +5,8 @@ Setting up a problem
 Defining a test matrix with :code:`xarray`
 ------------------------------------------
 
-`xarray <http://xarray.pydata.org>`_
+The shortest way to set the parameters of the potential flow problems to be solved is to build a `xarray <http://xarray.pydata.org>`_ dataset.
+Then the function :meth:`fill_dataset <capytaine.Nemoh.Nemoh.fill_dataset>` will automatically make all the simulations defined in the test matrix.
 
 ::
 
@@ -23,6 +24,7 @@ Defining a test matrix with :code:`xarray`
     })
     dataset = Nemoh().fill_dataset(test_matrix, [body])
 
+It returns a dataset:
 
 ::
 
@@ -51,7 +53,7 @@ The :class:`~capytaine.problems.LinearPotentialFlowProblem` class
 
 .. note:: Work in progress...
 
-For a finer grain control of the problems to be solved, 
+For a finer grain control of the problems to be solved, a list of :code:`LinearPotentialFlowProblem` should be defined.
 
 Main parameters
 ~~~~~~~~~~~~~~~

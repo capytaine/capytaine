@@ -21,7 +21,8 @@ Main features
 * Windows and Linux binaries, distributed via conda_.
 * Python object oriented API.
 * A **cleaner code** with unit tests, more comments, no Fortran 77 and no global variables.
-* **2 to 8 times faster** than Nemoh 2.0 on a single thread [#]_.
+* OpenMP parallelization.
+* Typically **2 to 4 times faster** than Nemoh 2.0 on a single thread [#]_.
 * Double precision computations by default. (Single precision also possible.)
 * Various input mesh formats supported via meshmagick_.
 * Output in legacy Nemoh Tecplot format or NetCDF format.
@@ -32,7 +33,6 @@ Main features
 Experimental features
 ---------------------
 
-* OpenMP parallelization.
 * Input via legacy ``Nemoh.cal`` files.
 * Faster simulations using the symmetries of the floating bodies.
 * 3D animations of the free surface elevation.
@@ -41,11 +41,10 @@ Experimental features
 Planned features
 ----------------
 
+* Iterative linear system solver.
 * Faster simulation of regular arrays of identical floating bodies.
 * Output in BEMIO (WEC-SIM) format.
 * Hydrostatics.
-* Pressure map on the body surface.
-* IRF computations.
 
 
 .. rubric:: Footnotes
