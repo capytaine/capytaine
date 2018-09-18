@@ -25,7 +25,7 @@ class FloatingBody(Abstract3DObject):
     def __init__(self, mesh=None, dofs=None, name=None):
         """A floating body described as a mesh and some degrees of freedom.
 
-        The mesh structure is stored as an instance from the Mesh class of meshmagick (see
+        The mesh structure is stored as an instance from the Mesh class (see
         documentation of this class for more details) or as a CollectionOfMeshes from
         capytaine.meshes_collection. The latter is a tuple of meshes or of other collections.
 
@@ -98,7 +98,7 @@ class FloatingBody(Abstract3DObject):
         """Number of degrees of freedom."""
         return len(self.dofs)
 
-    def add_translation_dof(self, direction=None, name=None, amplitude=1.0):
+    def add_translation_dof(self, direction=None, name=None, amplitude=1.0) -> None:
         """Add a new translation dof (in place).
         If no direction is given, the code tries to infer it from the name.
 
@@ -127,7 +127,7 @@ class FloatingBody(Abstract3DObject):
         motion[:, :] = direction
         self.dofs[name] = amplitude * motion
 
-    def add_rotation_dof(self, axis=None, name=None, amplitude=1.0):
+    def add_rotation_dof(self, axis=None, name=None, amplitude=1.0) -> None:
         """Add a new rotation dof (in place).
         If no axis is given, the code tries to infer it from the name.
 
@@ -163,7 +163,8 @@ class FloatingBody(Abstract3DObject):
         motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
         self.dofs[name] = amplitude * motion
 
-    def add_all_rigid_body_dofs(self):
+    def add_all_rigid_body_dofs(self) -> None:
+        """Add the six degrees of freedom of rigid bodies (in place)."""
         self.add_translation_dof(name="Surge")
         self.add_translation_dof(name="Sway")
         self.add_translation_dof(name="Heave")

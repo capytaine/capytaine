@@ -8,6 +8,8 @@ import logging
 
 from attr import attrs, attrib, asdict, Factory
 import numpy as np
+import pandas as pd
+import xarray as xr
 
 from capytaine.problems import LinearPotentialFlowProblem
 from capytaine.tools.Airy_wave import Froude_Krylov_force
@@ -90,6 +92,7 @@ ATTRIBUTE_RATHER_THAN_COORD = True
 
 
 def _squeeze_dimensions(data_array, dimensions=None):
+    """Remove dimensions if they are of size 1."""
     if dimensions is None:
         dimensions = data_array.dims
     for dim in dimensions:
@@ -99,7 +102,7 @@ def _squeeze_dimensions(data_array, dimensions=None):
 
 
 def wavenumber_data_array(results):
-    import pandas as pd
+    """Read the wavenumber in a list of :class:`LinearPotentialFlowResult` and store them into a :class:`xarray.DataArray`."""
     records = [dict(g=result.g, water_depth=result.depth, omega=result.omega, wavenumber=result.wavenumber)
                for result in results]
     optional_vars = ['g', 'water_depth']
@@ -112,9 +115,7 @@ def wavenumber_data_array(results):
 
 
 def assemble_dataset(results):
-    import pandas as pd
-    import xarray as xr
-
+    """Transform a list of :class:`LinearPotentialFlowResult` to a :class:`xarray.Dataset`."""
     dataset = xr.Dataset()
 
     df = pd.DataFrame([record for result in results for record in result.records])
