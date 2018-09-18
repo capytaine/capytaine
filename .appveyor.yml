@@ -39,7 +39,6 @@ install:
 build: off
 
 before_test:
-    - conda install -q -c mancellin meshmagick>=1.2
     - conda install -q pytest
 
 test_script:

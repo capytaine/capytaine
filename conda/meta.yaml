@@ -10,12 +10,10 @@ requirements:
   build:
     - python
     - setuptools
-    - libgfortran=3.0
     - numpy
     - sphinx
   run:
     - python
-    - libgfortran=3.0
     - numpy
     - scipy
     - attrs

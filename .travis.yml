@@ -17,13 +17,13 @@ before_install:
   - conda update -q conda
   - conda install -q python=$TRAVIS_PYTHON_VERSION pip conda-build conda-verify anaconda-client
   - conda install -q numpy
+  - conda install -q libgfortran=3.0
 
 install:
   - conda build .
   - conda install --use-local capytaine
 
 before_script:
-  - conda install -c mancellin meshmagick
   - conda install -q pytest
 
 script:
