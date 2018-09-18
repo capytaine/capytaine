@@ -5,9 +5,9 @@ Outputs
 Save the dataset as NetCDF file
 -------------------------------
 
-The xarray dataset produced by :code:`assemble_results` (or :code:`fill_dataset`) has a structure close to the NetCDF file format and can easily be saved to this format.
+The xarray dataset produced by :func:`assemble_dataset <capytaine.results.assemble_dataset>` (or :meth:`fill_dataset <capytaine.Nemoh.Nemoh.fill_dataset>`) has a structure close to the NetCDF file format and can easily be saved to this format.
 However, the netCDF standard does not handle complex numbers.
-The complex-valued array can be saved as a bigger real-valued array with the following syntax::
+The complex-valued array can be saved as a bigger real-valued array with the helf of the :mod:`capytaine.io.xarray` module::
 
     from capytaine.io.xarray import separate_complex_values
     separate_complex_values(dataset).to_netcdf("path/to/dataset.nc")
