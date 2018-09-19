@@ -137,9 +137,9 @@ def assemble_dataset(results):
         diffraction_cases = df[df['diffraction_force'].notnull()].dropna(1)
 
         dimensions = ['omega', 'angle', 'influenced_dof']
-        diffraction_cases = diffraction_cases.set_index(optional_vars + dimensions)
+        diffraction_cases = diffraction_cases.set_index(optional_vars + ['convention'] + dimensions)
         diffraction_cases = diffraction_cases.to_xarray()
-        diffraction_cases = _squeeze_dimensions(diffraction_cases, dimensions=optional_vars)
+        diffraction_cases = _squeeze_dimensions(diffraction_cases, dimensions=optional_vars + ['convention'])
         dataset = xr.merge([dataset, diffraction_cases])
 
     # BODIES PROPERTIES
