@@ -198,7 +198,7 @@ class FloatingBody(Abstract3DObject):
             for name, dof in body.dofs.items():
                 new_dof = np.zeros((total_nb_faces, 3))
                 new_dof[nbf:nbf+len(dof), :] = dof
-                dofs['_'.join([body.name, name])] = new_dof
+                dofs['__'.join([body.name, name])] = new_dof
         return dofs
 
     def copy(self, name=None) -> 'FloatingBody':
