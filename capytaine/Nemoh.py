@@ -20,7 +20,7 @@ import numpy as np
 
 from capytaine.problems import problems_from_dataset
 from capytaine.results import assemble_dataset
-from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve, use_symmetries
+from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve, build_with_symmetries
 from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
 import capytaine.NemohCore as NemohCore
 
@@ -33,6 +33,10 @@ class Nemoh:
 
     Parameters
     ----------
+    use_symmetries: bool, optional
+        if True, use the symmetries of the meshes when computing matrices and solving linear system
+    matrix_cache_size: int, optional
+        number of matrices to keep in cache
     npinte: int, optional
         Number of points for the evaluation of the integral w.r.t. :math:`theta` in the Green
         function (default: 251)
@@ -44,9 +48,17 @@ class Nemoh:
     APD: array of shape (328, 46, 2, 2)
         Tabulated integrals for the Green functions
     """
-    def __init__(self, matrix_cache_size=1, npinte=251):
+    def __init__(self, use_symmetries=True, matrix_cache_size=1, npinte=251):
         LOG.info("Initialize Nemoh's Green function.")
         self.XR, self.XZ, self.APD = NemohCore.initialize_green_wave.initialize_tabulated_integrals(328, 46, npinte)
+
+        if use_symmetries:
+            self._build_matrices_rankine = build_with_symmetries(self._build_matrices_rankine)
+            self._build_matrices_rankine_reflection_across_free_surface = build_with_symmetries(
+                self._build_matrices_rankine_reflection_across_free_surface)
+            self._build_matrices_rankine_reflection_across_sea_bottom = build_with_symmetries(
+                self._build_matrices_rankine_reflection_across_sea_bottom)
+            self._build_matrices_wave = build_with_symmetries(self._build_matrices_wave)
 
         if matrix_cache_size > 0:
             self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
@@ -199,12 +211,11 @@ class Nemoh:
 
         return S, V
 
-    @use_symmetries
     def _build_matrices_rankine(self, mesh1, mesh2):
         """Compute the first part of the influence matrices of mesh1 on mesh2
 
         Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
-        If the @use_symmetries decorator is present, the result may actually be a couple
+        If the build_with_symmetries decorator has been applied, the result may actually be a couple
         of BlockToeplitz matrices of the same size."""
         return NemohCore.green_rankine.build_matrices_rankine_source(
             mesh1.faces_centers, mesh1.faces_normals,
@@ -213,12 +224,11 @@ class Nemoh:
             mesh2.faces_areas,   mesh2.faces_radiuses,
             )
 
-    @use_symmetries
     def _build_matrices_rankine_reflection_across_free_surface(self, mesh1, mesh2, free_surface):
         """Compute the second part of the influence matrices of mesh1 on mesh2 (for infinite depth)
 
         Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
-        If the @use_symmetries decorator is present, the result may actually be a couple
+        If the build_with_symmetries decorator has been applied, the result may actually be a couple
         of BlockToeplitz matrices of the same size."""
 
         def reflect_vector(x):
@@ -238,12 +248,11 @@ class Nemoh:
             mesh2.faces_areas,   mesh2.faces_radiuses,
             )
 
-    @use_symmetries
     def _build_matrices_rankine_reflection_across_sea_bottom(self, mesh1, mesh2, sea_bottom):
         """Compute the second part of the influence matrices of mesh1 on mesh2 (for finite depth)
 
         Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
-        If the @use_symmetries decorator is present, the result may actually be a couple
+        If the build_with_symmetries decorator has been applied, the result may actually be a couple
         of BlockToeplitz matrices of the same size."""
 
         def reflect_vector(x):
@@ -263,12 +272,11 @@ class Nemoh:
             mesh2.faces_areas,   mesh2.faces_radiuses,
             )
 
-    @use_symmetries
     def _build_matrices_wave(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
         """Compute the third part of the influence matrices of mesh1 on mesh2
 
         Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
-        If the @use_symmetries decorator is present, the result may actually be a couple
+        If the build_with_symmetries decorator has been applied, the result may actually be a couple
         of BlockToeplitz matrices of the same size."""
         depth = free_surface - sea_bottom
         if depth == np.infty:

@@ -20,7 +20,8 @@ from capytaine.Nemoh import Nemoh
 
 from capytaine.tools.kochin import compute_Kochin
 
-solver = Nemoh()
+solver = Nemoh(use_symmetries=False, matrix_cache_size=0)
+
 
 def test_immersed_sphere():
     """Compare with Nemoh 2.0 for a sphere in infinite fluid.

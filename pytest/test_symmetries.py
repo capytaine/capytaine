@@ -21,7 +21,7 @@ from capytaine.Nemoh import Nemoh
 
 from capytaine.tools.geometry import xOz_Plane, yOz_Plane
 
-solver = Nemoh()
+solver = Nemoh(use_symmetries=True, matrix_cache_size=0)
 
 
 @pytest.mark.parametrize("reso", range(1, 3))

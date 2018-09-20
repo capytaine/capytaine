@@ -260,7 +260,7 @@ def solve(A, b):
 #                          Application for hierarchical matrix building                           #
 ###################################################################################################
 
-def use_symmetries(build_matrices):
+def build_with_symmetries(build_matrices):
     """Decorator for the matrix building functions.
 
     Parameters
@@ -276,7 +276,7 @@ def use_symmetries(build_matrices):
     """
 
     @wraps(build_matrices)  # May not be necessary?
-    def build_matrices_with_symmetries(solver, mesh1, mesh2, *args, _rec_depth=1):
+    def build_matrices_with_symmetries(mesh1, mesh2, *args, _rec_depth=1, **kwargs):
         """Assemble the influence matrices using symmetries of the body.⎈
 
         The method is basically an ugly multiple dispatch on the kind of bodies.
@@ -318,10 +318,10 @@ def use_symmetries(build_matrices):
                       ) + " using mirror symmetry.")
 
             S_a, V_a = build_matrices_with_symmetries(
-                solver, mesh1[0], mesh2[0], *args,
+                mesh1[0], mesh2[0], *args, **kwargs,
                 _rec_depth=_rec_depth+1)
             S_b, V_b = build_matrices_with_symmetries(
-                solver, mesh1[0], mesh2[1], *args,
+                mesh1[0], mesh2[1], *args, **kwargs,
                 _rec_depth=_rec_depth+1)
 
             return BlockToeplitzMatrix([S_a, S_b]), BlockToeplitzMatrix([V_a, V_b])
@@ -339,7 +339,7 @@ def use_symmetries(build_matrices):
             S_list, V_list = [], []
             for submesh in mesh2:
                 S, V = build_matrices_with_symmetries(
-                    solver, mesh1[0], submesh, *args,
+                    mesh1[0], submesh, *args, **kwargs,
                     _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
@@ -357,12 +357,14 @@ def use_symmetries(build_matrices):
             S_list, V_list = [], []
             for submesh in mesh2[:mesh2.nb_submeshes // 2 + 1]:
                 S, V = build_matrices_with_symmetries(
-                    solver, mesh1[0], submesh, *args,
+                    mesh1[0], submesh, *args, **kwargs,
                     _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
 
             return BlockCirculantMatrix(S_list, size=mesh1.nb_submeshes), BlockCirculantMatrix(V_list, size=mesh1.nb_submeshes)
+
+        # TODO: CollectionOfMeshes
 
         else:
             LOG.debug("\t" * (_rec_depth+1) +
@@ -371,6 +373,6 @@ def use_symmetries(build_matrices):
                       ))
 
             # Actual evaluation of coefficients using the Green function.
-            return build_matrices(solver, mesh1, mesh2, *args)
+            return build_matrices(mesh1, mesh2, *args, **kwargs)
 
     return build_matrices_with_symmetries
