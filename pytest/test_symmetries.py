@@ -23,6 +23,7 @@ from capytaine.tools.geometry import xOz_Plane, yOz_Plane
 
 solver = Nemoh()
 
+
 @pytest.mark.parametrize("reso", range(1, 3))
 @pytest.mark.parametrize("depth", [10.0, np.infty])
 def test_floating_sphere(reso, depth):
@@ -38,7 +39,9 @@ def test_floating_sphere(reso, depth):
     result2 = solver.solve(problem)
 
     quarter_sphere = half_sphere_mesh.extract_faces(np.where(half_sphere_mesh.faces_centers[:, 0] > 0)[0])
+    quarter_sphere.name = "quarter_sphere"
     four_quarter_sphere = FloatingBody(ReflectionSymmetry(ReflectionSymmetry(quarter_sphere, yOz_Plane), xOz_Plane))
+    assert 'None' not in four_quarter_sphere.mesh.tree_view()
     four_quarter_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     problem = RadiationProblem(body=four_quarter_sphere, omega=1.0, sea_bottom=-depth)
     result3 = solver.solve(problem)
@@ -64,6 +67,7 @@ def test_join_axisymmetric_disks():
     disk2 = Disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), axial_symmetry=True).mesh
     joined = disk1.join_meshes(disk2, name="two_disks")
     assert isinstance(joined, AxialSymmetry)
+    joined.tree_view()
 
     disk3 = Disk(radius=1.0, center=(0, 0, 0), resolution=(6, 4), axial_symmetry=True).mesh
     with pytest.raises(AssertionError):

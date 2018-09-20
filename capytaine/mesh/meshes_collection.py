@@ -37,7 +37,10 @@ class CollectionOfMeshes(Abstract3DObject):
         self.name = name
 
     def __repr__(self):
-        meshes_names = reprlib.repr(tuple(mesh.name for mesh in self))
+        reprer = reprlib.Repr()
+        reprer.maxstring = 90
+        reprer.maxother = 90
+        meshes_names = reprer.repr(self._meshes)
         if self.name is not None:
             return f"{self.__class__.__name__}({meshes_names}, name={self.name})"
         else:

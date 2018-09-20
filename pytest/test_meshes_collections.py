@@ -54,10 +54,15 @@ def test_collection():
 
     coll = CollectionOfMeshes([sphere, other_sphere], name="baz")
     assert str(coll) == "baz"
-    assert repr(coll) == "CollectionOfMeshes(('foo_mesh', 'bar_mesh'), name=baz)"
+    assert repr(coll) == ("CollectionOfMeshes("
+                          "(AxialSymmetry(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_foo_mesh), name=foo_mesh), "
+                          "AxialSymmetry(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_bar_mesh), name=bar_mesh)), "
+                          "name=baz)")
 
     coll2 = CollectionOfMeshes([sphere, other_sphere])
-    assert repr(coll2) == "CollectionOfMeshes('foo_mesh', 'bar_mesh')"
+    assert repr(coll2) == ("CollectionOfMeshes("
+                           "AxialSymmetry(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_foo_mesh), name=foo_mesh), "
+                           "AxialSymmetry(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_bar_mesh), name=bar_mesh))")
     assert str(coll2) == repr(coll2)
 
     assert coll == coll2

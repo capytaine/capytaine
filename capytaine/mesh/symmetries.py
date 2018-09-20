@@ -5,6 +5,7 @@
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import logging
+import reprlib
 from typing import Union, Callable, Iterable
 
 import numpy as np
@@ -17,7 +18,15 @@ LOG = logging.getLogger(__name__)
 
 
 class SymmetricMesh(CollectionOfMeshes):
-    pass
+    def __repr__(self):
+        reprer = reprlib.Repr()
+        reprer.maxstring = 90
+        reprer.maxother = 90
+        slice_name = reprer.repr(self._meshes[0])
+        if self.name is not None:
+            return f"{self.__class__.__name__}({slice_name}, name={self.name})"
+        else:
+            return f"{self.__class__.__name__}({slice_name})"
 
 
 class ReflectionSymmetry(SymmetricMesh):
@@ -38,7 +47,7 @@ class ReflectionSymmetry(SymmetricMesh):
         assert isinstance(plane, Plane)
         assert plane.normal[2] == 0, "Only vertical reflection planes are supported in ReflectionSymmetry classes."
 
-        other_half = half.mirrored(plane, name=f"mirrored_of_{half.name}")
+        other_half = half.mirrored(plane, name=f"mirrored_of_{str(half)}")
 
         super().__init__((half, other_half), name=name)
 
@@ -52,8 +61,8 @@ class ReflectionSymmetry(SymmetricMesh):
 
     def tree_view(self, fold_symmetry=True, **kwargs):
         if fold_symmetry:
-            return (self.name + '\n' + ' ├─' + self.half.tree_view().replace('\n', '\n │ ') + '\n'
-                    + f" └─mirrored copy of the above {self.half.name}")
+            return (str(self) + '\n' + ' ├─' + self.half.tree_view().replace('\n', '\n │ ') + '\n'
+                    + f" └─mirrored copy of the above {str(self.half)}")
         else:
             return CollectionOfMeshes.tree_view(self, **kwargs)
 
@@ -127,8 +136,8 @@ class TranslationalSymmetry(SymmetricMesh):
 
     def tree_view(self, fold_symmetry=True, **kwargs):
         if fold_symmetry:
-            return (self.name + '\n' + ' ├─' + self.first_slice.tree_view().replace('\n', '\n │ ') + '\n'
-                    + f" └─{len(self)-1} translated copies of the above {self.first_slice.name}")
+            return (str(self) + '\n' + ' ├─' + self.first_slice.tree_view().replace('\n', '\n │ ') + '\n'
+                    + f" └─{len(self)-1} translated copies of the above {str(self.first_slice)}")
         else:
             return CollectionOfMeshes.tree_view(self, **kwargs)
 
@@ -249,7 +258,7 @@ class AxialSymmetry(SymmetricMesh):
 
         nodes_slice = np.concatenate([profile_array, rotated_profile.vertices])
         faces_slice = np.array([[i, i+n, i+n+1, i+1] for i in range(n-1)])
-        body_slice = Mesh(nodes_slice, faces_slice, name=f"slice_of_{name}_mesh")
+        body_slice = Mesh(nodes_slice, faces_slice, name=f"slice_of_{name}")
         body_slice.merge_duplicates()
         body_slice.heal_triangles()
 
@@ -261,8 +270,8 @@ class AxialSymmetry(SymmetricMesh):
 
     def tree_view(self, fold_symmetry=True, **kwargs):
         if fold_symmetry:
-            return (self.name + '\n' + ' ├─' + self.first_slice.tree_view().replace('\n', '\n │ ') + '\n'
-                    + f" └─{len(self)-1} rotated copies of the above {self.first_slice.name}")
+            return (str(self) + '\n' + ' ├─' + self.first_slice.tree_view().replace('\n', '\n │ ') + '\n'
+                    + f" └─{len(self)-1} rotated copies of the above {str(self.first_slice)}")
         else:
             return CollectionOfMeshes.tree_view(self, **kwargs)
 
