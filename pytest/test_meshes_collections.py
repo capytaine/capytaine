@@ -2,6 +2,7 @@ import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
+from capytaine.geometric_bodies import Sphere
 
 
 def test_collection_of_meshes():
@@ -46,3 +47,27 @@ def test_collection_of_meshes():
     merged = big_coll.merge()
     assert isinstance(merged, Mesh)
 
+
+def test_collection():
+    sphere = Sphere(name="foo", center=(0, 0, -2)).mesh
+    other_sphere = Sphere(name="bar", center=(0, 0, 2)).mesh
+
+    coll = CollectionOfMeshes([sphere, other_sphere], name="baz")
+    assert str(coll) == "baz"
+    assert repr(coll) == "CollectionOfMeshes(('foo_mesh', 'bar_mesh'), name=baz)"
+
+    coll2 = CollectionOfMeshes([sphere, other_sphere])
+    assert repr(coll2) == "CollectionOfMeshes('foo_mesh', 'bar_mesh')"
+    assert str(coll2) == repr(coll2)
+
+    assert coll == coll2
+    assert hash(coll) == hash(coll2)
+
+    assert coll[0] == coll2[0]
+
+    coll.tree_view()
+
+    clipped_coll = coll.keep_immersed_part(inplace=False)
+    assert len(clipped_coll) == 1
+    merged = clipped_coll.merge()
+    assert merged == sphere.merge()

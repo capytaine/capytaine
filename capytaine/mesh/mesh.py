@@ -56,6 +56,9 @@ class Mesh(Abstract3DObject):
         self.faces = faces
 
     def __str__(self):
+        return self.name
+
+    def __repr__(self):
         return (f"{self.__class__.__name__}(nb_vertices={self.nb_vertices}, "
                 f"nb_faces={self.nb_faces}, name={self.name})")
 

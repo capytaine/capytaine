@@ -4,54 +4,68 @@
 # This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
+import reprlib
 from itertools import chain, accumulate
+from typing import Iterable, Union
 
 import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.tools.geometry import Abstract3DObject, inplace_transformation
 
-NAME_MAX_LENGTH = 180
 
-
-class CollectionOfMeshes(tuple, Abstract3DObject):
+class CollectionOfMeshes(Abstract3DObject):
     """A tuple of meshes.
     It gives access to all the vertices of all the sub-meshes as if it were a mesh itself.
     Collections can be nested to store meshes in a tree structure.
 
     Parameters
     ----------
-    meshes: Mesh or CollectionOfMeshes
-
+    meshes: Iterable of Mesh or CollectionOfMeshes
+        meshes in the collection
     name : str, optional
         a name for the collection
     """
 
-    def __new__(cls, meshes, name=None):
-        self = super().__new__(cls, meshes)
+    def __init__(self, meshes: Iterable[Union[Mesh, 'CollectionOfMeshes']], name=None):
 
-        for mesh in self:
+        self._meshes = tuple(meshes)
+
+        for mesh in self._meshes:
             assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
 
-        if name is None:
-            self.name = self.format_name(", ".join((mesh.name for mesh in meshes))[:-2])
-        else:
-            self.name = name
-
-        return self
-
-    def format_name(self, options_string: str) -> str:
-        """Helper function to generate a name for the collection.
-        Is expected to be used also in child classes."""
-        if len(options_string) > NAME_MAX_LENGTH:
-            options_string = options_string[:-3] + "..."
-        return f"{self.__class__.__name__}({options_string})"
+        self.name = name
 
     def __repr__(self):
-        return self.name
+        meshes_names = reprlib.repr(tuple(mesh.name for mesh in self))
+        if self.name is not None:
+            return f"{self.__class__.__name__}({meshes_names}, name={self.name})"
+        else:
+            return f"{self.__class__.__name__}{meshes_names}"
 
     def __str__(self):
-        return self.name
+        if self.name is not None:
+            return self.name
+        else:
+            return repr(self)
+
+    def __iter__(self):
+        return iter(self._meshes)
+
+    def __len__(self):
+        return len(self._meshes)
+
+    def __getitem__(self, item):
+        return self._meshes.__getitem__(item)
+
+    def __eq__(self, other):
+        if isinstance(other, CollectionOfMeshes):
+            return self._meshes == other._meshes
+        else:
+            return NotImplemented
+
+    def __hash__(self):
+        return hash(self._meshes)
 
     def tree_view(self, **kwargs):
         body_tree_views = []
@@ -162,13 +176,12 @@ class CollectionOfMeshes(tuple, Abstract3DObject):
     def keep_immersed_part(self, **kwargs):
         for mesh in self:
             mesh.keep_immersed_part(**kwargs)
-        # TODO: Prune empty meshes?
+        self.prune_empty_meshes()
 
-    # @inplace_transformation
-    # def prune_empty_meshes(self):
-    #     """Remove empty meshes from the collection."""
-    #     for mesh in self:
-    #         if mesh.nb_faces == 0 and mesh.nb_vertices == 0:
+    @inplace_transformation
+    def prune_empty_meshes(self):
+        """Remove empty meshes from the collection."""
+        self._meshes = tuple(mesh for mesh in self if mesh.nb_faces > 0 and mesh.nb_vertices > 0)
 
     def show(self):
         self.merge().show()
