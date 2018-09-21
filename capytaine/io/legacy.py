@@ -157,7 +157,7 @@ def export_as_Nemoh_directory(problem, directory_name, omega_range=None):
                 DEFAULT_NEMOH_CAL.format(
                     rho=problem.rho,
                     g=problem.g,
-                    depth=problem.depth,
+                    depth=problem.depth if problem.depth < np.infty else 0,
                     mesh_filename=f'{problem.body.name}.dat',
                     mesh_vertices=problem.body.mesh.nb_vertices,
                     mesh_faces=problem.body.mesh.nb_faces,
