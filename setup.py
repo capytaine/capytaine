@@ -3,7 +3,7 @@
 
 from numpy.distutils.core import Extension, setup
 
-VERSION = '0.5'
+VERSION = '0.5.1'
 
 NemohCore = Extension(
     name="capytaine.NemohCore",
