@@ -75,7 +75,7 @@ Meshes
 
 * New method :code:`tree_view()` for meshes to display the structure of hierarchical collections of meshes.
 
-* :code:`CollectionOfMeshes` and :code:`SymmetriBodies` are now subclasses from :code:`tuple`.
+* :code:`CollectionOfMeshes` and :code:`SymmetricBodies` are now subclasses from :code:`tuple`.
   New methods :code:`join_meshes` to merge several symmetric bodies with the same symmetries as a
   single symmetric body.
 

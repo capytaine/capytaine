@@ -2,7 +2,7 @@
 Capytaine: a Python-based distribution of Nemoh
 ===============================================
 
-Capytaine is Python package for the simulation of the interaction between water waves and floating bodies in frequency domain.
+Capytaine is a Python package for the simulation of the interaction between water waves and floating bodies in frequency domain.
 
 It is build around a full rewrite of the open source Boundary Element Method (BEM) solver Nemoh_ for the linear potential flow wave theory.
 
