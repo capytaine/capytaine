@@ -1,9 +1,14 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import os
+import re
+
 from numpy.distutils.core import Extension, setup
 
-VERSION = '0.5.1'
+#######################
+#  Fortran extension  #
+#######################
 
 NemohCore = Extension(
     name="capytaine.NemohCore",
@@ -23,10 +28,34 @@ NemohCore = Extension(
     # ],
 )
 
+#########################
+#  Read version number  #
+#########################
+
+here = os.path.abspath(os.path.dirname(__file__))
+
+def read(*parts):
+    with open(os.path.join(here, *parts), 'r') as fp:
+        return fp.read()
+
+def find_version(*file_paths):
+    version_file = read(*file_paths)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
+                              version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
+
 if __name__ == "__main__":
+
+    ##########
+    #  Main  #
+    ##########
+
     setup(name='capytaine',
-          version=VERSION,
-          description='Nemoh python wrapper',
+          version=find_version('capytaine', '__init__.py'),
+          description='Python-based distribution of Nemoh',
           url='http://github.com/mancellin/capytaine',
           author='Matthieu Ancellin',
           author_email='matthieu.ancellin@ucd.ie',
