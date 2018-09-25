@@ -52,8 +52,10 @@ class Mesh(Abstract3DObject):
             self.name = str(name)
 
         self.__internals__ = dict()
-        self.vertices = vertices
-        self.faces = faces
+        self.vertices = vertices  # Not a direct assignment, goes through the setter method below.
+        self.faces = faces  # Not a direct assignment, goes through the setter method below.
+
+        LOG.debug(f"New mesh: {repr(self)}")
 
     def __str__(self):
         return self.name

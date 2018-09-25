@@ -53,7 +53,10 @@ class ReflectionSymmetry(SymmetricMesh):
 
         self.plane = plane.copy()
 
-        LOG.info(f"New mirror symmetric mesh: {self.name}.")
+        if self.name is not None:
+            LOG.info(f"New mirror symmetric mesh: {self.name}.")
+        else:
+            LOG.debug(f"New mirror symmetric mesh.")
 
     @property
     def half(self):
@@ -128,7 +131,10 @@ class TranslationalSymmetry(SymmetricMesh):
 
         self.translation = translation
 
-        LOG.info(f"New translation symmetric mesh: {self.name}.")
+        if self.name is not None:
+            LOG.info(f"New translation symmetric mesh: {self.name}.")
+        else:
+            LOG.debug(f"New translation symmetric mesh.")
 
     @property
     def first_slice(self):
@@ -205,7 +211,10 @@ class AxialSymmetry(SymmetricMesh):
 
         self.axis = axis.copy()
 
-        LOG.info(f"New rotation symmetric mesh: {self.name}.")
+        if self.name is not None:
+            LOG.info(f"New rotation symmetric mesh: {self.name}.")
+        else:
+            LOG.debug(f"New rotation symmetric mesh.")
 
     @staticmethod
     def from_profile(profile: Union[Callable, Iterable[float]],

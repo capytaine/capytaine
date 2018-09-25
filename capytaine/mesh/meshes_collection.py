@@ -4,6 +4,7 @@
 # This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
+import logging
 import reprlib
 from itertools import chain, accumulate
 from typing import Iterable, Union
@@ -12,6 +13,8 @@ import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.tools.geometry import Abstract3DObject, inplace_transformation
+
+LOG = logging.getLogger(__name__)
 
 
 class CollectionOfMeshes(Abstract3DObject):
@@ -35,6 +38,8 @@ class CollectionOfMeshes(Abstract3DObject):
             assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
 
         self.name = name
+
+        LOG.debug(f"New collection of meshes: {repr(self)}")
 
     def __repr__(self):
         reprer = reprlib.Repr()
