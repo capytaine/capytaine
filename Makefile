@@ -1,6 +1,7 @@
 # Development Makefile
 
 F90FILES = \
+capytaine/NemohCore/constants.f90             \
 capytaine/NemohCore/Green_Rankine.f90         \
 capytaine/NemohCore/Green_wave.f90            \
 capytaine/NemohCore/Initialize_Green_wave.f90 \
