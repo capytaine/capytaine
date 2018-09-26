@@ -20,6 +20,7 @@ Main features
 * Computation of the **added masses, radiation dampings, diffraction forces and Froude-Krylov forces** for rigid bodies or for bodies with **any arbitrary degrees of freedom**.
 * Windows and Linux binaries, distributed via conda_.
 * Python object oriented API.
+* No error message in French.
 * A **cleaner code** with unit tests, more comments, no Fortran 77 and no global variables.
 * OpenMP parallelization.
 * Typically **2 to 4 times faster** than Nemoh 2.0 on a single thread [#]_.
