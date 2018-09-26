@@ -19,7 +19,7 @@ NemohCore = Extension(
         "capytaine/NemohCore/Green_wave.f90",
         "capytaine/NemohCore/old_Prony_decomposition.f90",
     ],
-    extra_compile_args=['-fopenmp'],
+    extra_compile_args=['-O2', '-fopenmp'],
     extra_link_args=['-fopenmp'],
     # # Uncomment the following lines to get more verbose output from f2py.
     # define_macros=[

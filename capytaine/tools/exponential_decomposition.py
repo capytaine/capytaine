@@ -51,7 +51,9 @@ def find_best_exponential_decomposition(dimensionless_omega, dimensionless_waven
                         dimensionless_omega, dimensionless_wavenumber)
 
     else:
-        lamda, a, _ = NemohCore.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
+        lamda, a, nexp = NemohCore.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
+        lamda = lamda[:nexp]
+        a = a[:nexp]
 
     return a, lamda
 
