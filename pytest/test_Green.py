@@ -45,7 +45,7 @@ def test_green_function(omega, depth):
     if depth < np.infty:
         ambda, ar, nexp = NemohCore.old_prony_decomposition.lisc(omega**2 * depth/g, wavenumber * depth)
 
-    def g(w, Xi, Xj):
+    def G(w, Xi, Xj):
         if depth == np.infty:
             return NemohCore.green_wave.wave_part_infinite_depth(w, Xi, Xj, XR, XZ, APD)[0]
         else:
@@ -63,8 +63,8 @@ def test_green_function(omega, depth):
     y_range = np.linspace(-2.0, 2.0, 3)
     z_range = np.linspace(-9.5, -0.5, 4)
     for Xi, Xj in combinations(product(x_range, y_range, z_range), 2):
-        assert np.isclose(g(wavenumber, np.array(Xi), np.array(Xj)),
-                          g(wavenumber, np.array(Xj), np.array(Xi)),
+        assert np.isclose(G(wavenumber, np.array(Xi), np.array(Xj)),
+                          G(wavenumber, np.array(Xj), np.array(Xi)),
                           rtol=1e-4)
         assert np.allclose(dg(wavenumber, np.array(Xi), np.array(Xj)),
                            reflect(dg(wavenumber, np.array(Xj), np.array(Xi))),
