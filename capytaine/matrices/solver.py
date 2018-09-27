@@ -6,7 +6,7 @@ import logging
 import numpy as np
 
 from capytaine.matrices.block_matrices import BlockMatrix
-from capytaine.matrices.block_toeplitz_matrices import BlockToeplitzMatrix
+from capytaine.matrices.block_toeplitz_matrices import BlockSymmetricToeplitzMatrix
 
 LOG = logging.getLogger(__name__)
 
