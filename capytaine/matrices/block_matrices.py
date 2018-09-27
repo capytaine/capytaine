@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import logging
 from itertools import cycle
 
 import numpy as np
@@ -13,7 +12,6 @@ class BlockMatrix:
 
     def __init__(self, blocks):
         # TODO: Check dimensionality
-        # Every
         self.blocks = np.asanyarray(blocks)
 
     @property
@@ -60,41 +58,13 @@ class BlockMatrix:
                 if isinstance(block, BlockMatrix):
                     patches.extend(block._patches(shift))
                 elif isinstance(block, np.ndarray):
-                    patches.append(Rectangle(shift, block.shape[1], block.shape[0], edgecolor='k', facecolor=next(self.COLORS)))
+                    patches.append(Rectangle(shift, block.shape[1], block.shape[0],
+                                             edgecolor='k', facecolor=next(self.COLORS)))
                 else:
                     raise AttributeError()
                 shift[0] += block.shape[1]
             shift[1] += line[0].shape[0]
         return patches
-
-
-def zeros_like(A):
-    if isinstance(A, BlockMatrix):
-        I = []
-        for i in range(A.nb_blocks[0]):
-            line = []
-            for j in range(A.nb_blocks[1]):
-                line.append(zeros_like(A.blocks[i][j]))
-            I.append(line)
-        return BlockMatrix(I)
-    elif isinstance(A, np.ndarray):
-        return np.zeros_like(A)
-
-
-def identity_like(A):
-    if isinstance(A, BlockMatrix):
-        I = []
-        for i in range(A.nb_blocks[0]):
-            line = []
-            for j in range(A.nb_blocks[1]):
-                if i == j:
-                    line.append(identity_like(A.blocks[i][j]))
-                else:
-                    line.append(zeros_like(A.blocks[i][j]))
-            I.append(line)
-        return BlockMatrix(I)
-    elif isinstance(A, np.ndarray):
-        return np.eye(A.shape[0], A.shape[1])
 
 
 if __name__ == "__main__":
@@ -103,22 +73,14 @@ if __name__ == "__main__":
         [np.random.rand(2, 2), np.zeros((2, 2))],
         [np.zeros((2, 2)), np.random.rand(2, 2)]
     ])
-    # print(repr(A))
-    # print(A.full_matrix())
+    print(repr(A))
+    print(A.full_matrix())
     A.plot_shape()
-
-    # I = identity_like(A)
-    # print(repr(I))
-    # print(I.full_matrix())
 
     B = BlockMatrix([[A, np.zeros((4, 1))]])
     print(repr(B))
     print(B.full_matrix())
     B.plot_shape()
-
-    # O = zeros_like(B)
-    # print(repr(O))
-    # print(O.full_matrix())
 
     C = BlockMatrix([
         [np.random.rand(3, 3), np.random.rand(3, 1)],

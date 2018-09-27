@@ -64,8 +64,6 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 
 
 if __name__ == "__main__":
-    # print(BlockSymmetricToeplitzMatrix._index_grid(5))
-
     A = BlockSymmetricToeplitzMatrix([np.random.rand(2, 2), np.ones((2, 2)), np.zeros((2, 2))])
 
     print(A.nb_blocks)
