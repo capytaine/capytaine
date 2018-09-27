@@ -5,7 +5,7 @@ import numpy as np
 from capytaine.matrices.block_matrices import BlockMatrix
 
 
-class BlockSymmetricToeplitzMatrix:
+class BlockSymmetricToeplitzMatrix(BlockMatrix):
     ndim = 2
 
     def __init__(self, t_blocks):
@@ -26,11 +26,9 @@ class BlockSymmetricToeplitzMatrix:
         transposed_blocks = [block.T for block in self.t_blocks]
         return BlockSymmetricToeplitzMatrix(transposed_blocks)
 
-    def full_matrix(self):
-        full_blocks = [[block.full_matrix() if not isinstance(block, np.ndarray) else block
-                        for block in self.t_blocks[indices]]
-                       for indices in self._index_grid()]
-        return np.block(full_blocks)
+    @property
+    def blocks(self):
+        return [[block for block in self.t_blocks[indices]] for indices in self._index_grid()]
 
     def _index_grid(self):
         n = self.nb_blocks[0]
