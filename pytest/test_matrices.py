@@ -8,7 +8,7 @@ import numpy as np
 from capytaine.matrices.block_matrices import *
 from capytaine.matrices.block_toeplitz_matrices import *
 from capytaine.matrices.builders import *
-from capytaine.matrices.solver import solve
+from capytaine.matrices.linear_solvers import solve_directly
 
 
 def test_block_matrices():
@@ -151,7 +151,7 @@ def test_solve_2x2():
     ])
     b = np.random.rand(A.shape[0])
 
-    x_toe = solve(A, b)
+    x_toe = solve_directly(A, b)
     x_dumb = np.linalg.solve(A.full_matrix(), b)
 
     assert np.allclose(x_toe, x_dumb, rtol=1e-6)
@@ -164,7 +164,7 @@ def test_solve_block_circulant():
     ])
     b = np.random.rand(A.shape[0])
 
-    x_circ = solve(A, b)
+    x_circ = solve_directly(A, b)
     x_dumb = np.linalg.solve(A.full_matrix(), b)
 
     assert np.allclose(x_circ, x_dumb, rtol=1e-6)
@@ -174,7 +174,7 @@ def test_solve_block_circulant():
     ])
     b = np.random.rand(A.shape[0])
 
-    x_circ = solve(A, b)
+    x_circ = solve_directly(A, b)
     x_dumb = np.linalg.solve(A.full_matrix(), b)
 
     assert np.allclose(x_circ, x_dumb, rtol=1e-6)

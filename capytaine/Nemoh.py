@@ -20,7 +20,7 @@ import numpy as np
 
 from capytaine.problems import problems_from_dataset
 from capytaine.results import assemble_dataset
-from capytaine.matrices.solver import solve
+from capytaine.matrices import linear_solvers
 from capytaine.matrices.builders import build_with_symmetries, identity_like
 from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
 import capytaine.NemohCore as NemohCore
@@ -38,20 +38,31 @@ class Nemoh:
         if True, use the symmetries of the meshes when computing matrices and solving linear system
     matrix_cache_size: int, optional
         number of matrices to keep in cache
+    linear_solver: str, optional
+        name of the solver for linear problems Ax = b.
+        Default: direct solver.
     npinte: int, optional
         Number of points for the evaluation of the integral w.r.t. :math:`theta` in the Green
         function (default: 251)
 
     Attributes
     ----------
+    available_linear_solvers: dict
+        set of available linear solvers indexed by their name
     XR: array of shape (328)
     XZ: array of shape (46)
     APD: array of shape (328, 46, 2, 2)
         Tabulated integrals for the Green functions
     """
-    def __init__(self, use_symmetries=True, matrix_cache_size=1, npinte=251):
+    available_linear_solvers = {'direct': linear_solvers.solve_directly}
+
+    def __init__(self, use_symmetries=True, matrix_cache_size=1,
+                 linear_solver='direct', npinte=251
+                 ):
         LOG.info("Initialize Nemoh's Green function.")
         self.XR, self.XZ, self.APD = NemohCore.initialize_green_wave.initialize_tabulated_integrals(328, 46, npinte)
+
+        self.linear_solver = Nemoh.available_linear_solvers[linear_solver]
 
         if use_symmetries:
             self._build_matrices_rankine = build_with_symmetries(self._build_matrices_rankine)
@@ -97,8 +108,7 @@ class Nemoh:
             free_surface=problem.free_surface, sea_bottom=problem.sea_bottom, wavenumber=problem.wavenumber
         )
 
-        identity = identity_like(V)
-        sources = solve(V + identity/2, problem.boundary_condition)
+        sources = self.linear_solver(V + identity_like(V) / 2, problem.boundary_condition)
         potential = S @ sources
 
         result = problem.make_results_container()
