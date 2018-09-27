@@ -8,6 +8,7 @@ import numpy as np
 from capytaine.matrices.block_matrices import *
 from capytaine.matrices.block_toeplitz_matrices import *
 from capytaine.matrices.builders import *
+from capytaine.matrices.solver import solve
 
 
 def test_block_matrices():
@@ -91,6 +92,9 @@ def test_block_circulant_matrix():
     ])).all()
     assert (A == A.T).all()
 
+    assert A.first_block_line.ndim == 3
+    assert A.first_block_line.shape[:1] == (4,)
+
     A2 = BlockSymmetricCirculantMatrix([
         [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
     ], size=5)
@@ -117,18 +121,26 @@ def test_block_circulant_matrix():
 #     x_dumb = np.linalg.solve(A.full_matrix(), b)
 #
 #     assert np.allclose(x_toe, x_dumb, rtol=1e-6)
-#
-#
-# def test_solve_block_circulant():
-#     # Block Circulant Matrix
-#     A1 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-#     A2 = np.array([[5, 4, 2], [8, 0, 1], [6, 7, 3]])
-#     A3 = np.array([[0, 0, 3], [9, 3, 5], [7, 5, 6]])
-#
-#     A = BlockCirculantMatrix([A1, A2, A3])
-#     b = np.random.rand(12)
-#
-#     x_toe = solve(A, b)
-#     x_dumb = np.linalg.solve(A.full_matrix(), b)
-#
-#     assert np.allclose(x_toe, x_dumb, rtol=1e-6)
+
+
+def test_solve_block_circulant():
+    # Block Circulant Matrix
+    A = BlockSymmetricCirculantMatrix([
+        [np.random.rand(3, 3) for _ in range(4)]
+    ])
+    b = np.random.rand(A.shape[0])
+
+    x_circ = solve(A, b)
+    x_dumb = np.linalg.solve(A.full_matrix(), b)
+
+    assert np.allclose(x_circ, x_dumb, rtol=1e-6)
+
+    A = BlockSymmetricCirculantMatrix([
+        [random_block_matrix([1, 1], [1, 1]) for _ in range(5)]
+    ])
+    b = np.random.rand(A.shape[0])
+
+    x_circ = solve(A, b)
+    x_dumb = np.linalg.solve(A.full_matrix(), b)
+
+    assert np.allclose(x_circ, x_dumb, rtol=1e-6)

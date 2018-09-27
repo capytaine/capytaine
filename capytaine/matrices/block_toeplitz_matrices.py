@@ -20,6 +20,10 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         return np.array([[block for block in self._stored_blocks_flat[indices]] for indices in self._index_grid()])
 
     @property
+    def first_block_line(self):
+        return self._stored_blocks_flat
+
+    @property
     def block_shape(self):
         return self._stored_blocks[0][0].shape
 
@@ -103,7 +107,7 @@ class BlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
         return base_line
 
     @property
-    def _t_blocks(self):
+    def first_block_line(self):
         return self._stored_blocks_flat[self._baseline_grid()]
 
     def _index_grid(self):
