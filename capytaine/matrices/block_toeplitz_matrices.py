@@ -25,7 +25,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 
     @property
     def block_shape(self):
-        return self._stored_blocks[0][0].shape
+        return self.block_shapes[0][0], self.block_shapes[1][0]
 
     def _check_dimension(self) -> None:
         for block in self._stored_blocks_flat:
@@ -127,6 +127,18 @@ class BlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
         return [(i, j) for i in range(n) for j in range(n) if grid[i, j] == k]
 
     # TRANSFORMING DATA
+
+    def _apply_unary_op(self, op):
+        result = np.array([op(block) for block in self._stored_blocks_flat])
+        return self.__class__(result.reshape(self._nb_stored_blocks + result.shape[1:]), size=self.nb_blocks[0])
+
+    def _apply_binary_op(self, op, other):
+        if isinstance(other, self.__class__) and self.nb_blocks == other.nb_blocks:
+            result = [op(block, other_block) for block, other_block in zip(self._stored_blocks_flat, other._stored_blocks_flat)]
+            result = np.array(result)
+            return BlockSymmetricCirculantMatrix(result.reshape(self._nb_stored_blocks + result.shape[1:]), size=self.nb_blocks[0])
+        else:
+            return NotImplemented
 
     @property
     def T(self):

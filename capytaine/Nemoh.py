@@ -20,7 +20,8 @@ import numpy as np
 
 from capytaine.problems import problems_from_dataset
 from capytaine.results import assemble_dataset
-from capytaine.Toeplitz_matrices import identity_matrix_of_same_shape_as, solve, build_with_symmetries
+from capytaine.matrices.solver import solve
+from capytaine.matrices.builders import build_with_symmetries, identity_like
 from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
 import capytaine.NemohCore as NemohCore
 
@@ -96,7 +97,7 @@ class Nemoh:
             free_surface=problem.free_surface, sea_bottom=problem.sea_bottom, wavenumber=problem.wavenumber
         )
 
-        identity = identity_matrix_of_same_shape_as(V)
+        identity = identity_like(V)
         sources = solve(V + identity/2, problem.boundary_condition)
         potential = S @ sources
 
@@ -154,7 +155,7 @@ class Nemoh:
     #######################
 
     def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
-        """
+        r"""
         Build the influence matrices between mesh1 and mesh2.
 
         Parameters

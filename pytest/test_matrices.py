@@ -25,6 +25,9 @@ def test_block_matrices():
     assert (-A).min() == -1
     assert (2*A).max() == 2
     assert (A*A == A).all()
+    b = np.random.rand(4)
+    assert (A @ b == b).all()
+    assert (A @ A == A).all()
 
     patches = A._patches(global_shift=(10, 10))
     assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12)}
@@ -39,6 +42,7 @@ def test_block_matrices():
     assert (B == B.T).all()
     assert (B.full_matrix() == np.eye(5, 5)).all()
     assert repr(B) == "BlockMatrix(nb_blocks=(2, 2), shape=(5, 5))"
+    assert B.block_shapes == ([4, 1], [4, 1])
 
     patches = B._patches(global_shift=(10, 10))
     assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12),
@@ -46,7 +50,12 @@ def test_block_matrices():
 
     C = random_block_matrix([1, 2, 4], [1, 2, 4])
     assert C.nb_blocks == (3, 3)
+    assert C.block_shapes == ([1, 2, 4], [1, 2, 4])
     assert (ones_like(C).full_matrix() ==  np.ones(C.shape)).all()
+
+    assert (cut_matrix(C.full_matrix(), *C.block_shapes) == C).all()
+
+    assert (C @ random_block_matrix(C.block_shapes[1], [6])).block_shapes == ([1, 2, 4], [6])
 
 
 def test_block_toeplitz_matrices():
@@ -65,6 +74,9 @@ def test_block_toeplitz_matrices():
     assert (2*A).max() == 2
     assert (A*A == A).all()
 
+    b = np.random.rand(4)
+    assert (A @ b == b).all()
+
     A2 = BlockMatrix(A.all_blocks)
     assert (A2.full_matrix() == A.full_matrix()).all()
 
@@ -73,6 +85,8 @@ def test_block_toeplitz_matrices():
     ])
     assert B.nb_blocks == (2, 2)
     assert B._nb_stored_blocks == (1, 2)
+    assert B.block_shapes == ([2, 2], [2, 2])
+    assert B.block_shape == (2, 2)
     assert B.shape == (4, 4)
 
     assert isinstance(B.all_blocks[0, 0], BlockMatrix)
@@ -87,6 +101,9 @@ def test_block_toeplitz_matrices():
         [C, np.zeros(C.shape)]
     ])
     assert D.shape == (8, 16)
+
+    b = np.random.rand(16)
+    assert np.allclose(D @ b, D.full_matrix() @ b)
 
 
 def test_block_circulant_matrix():
@@ -123,19 +140,21 @@ def test_block_circulant_matrix():
     assert B.all_blocks[0, 0] is A
     assert (B.all_blocks[0, 1] == B.all_blocks[2, 3]).all()
 
+    b = np.random.rand(32)
+    assert np.allclose(B @ b, B.full_matrix() @ b)
 
-# def test_solve_2x2():
-#     # 2x2 blocks
-#     A1 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-#     A2 = np.array([[5, 4, 2], [8, 0, 1], [6, 7, 3]])
-#     A = BlockToeplitzMatrix([A1, A2])
-#
-#     b = np.random.rand(6)
-#
-#     x_toe = solve(A, b)
-#     x_dumb = np.linalg.solve(A.full_matrix(), b)
-#
-#     assert np.allclose(x_toe, x_dumb, rtol=1e-6)
+
+def test_solve_2x2():
+    # 2x2 blocks
+    A = BlockSymmetricToeplitzMatrix([
+        [np.random.rand(3, 3) for _ in range(2)]
+    ])
+    b = np.random.rand(A.shape[0])
+
+    x_toe = solve(A, b)
+    x_dumb = np.linalg.solve(A.full_matrix(), b)
+
+    assert np.allclose(x_toe, x_dumb, rtol=1e-6)
 
 
 def test_solve_block_circulant():

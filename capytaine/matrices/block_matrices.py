@@ -24,10 +24,6 @@ class BlockMatrix:
         return self._stored_blocks
 
     @property
-    def all_blocks_list(self):
-        return [block for line in self.all_blocks for block in line]
-
-    @property
     def _stored_blocks_flat(self):
         return np.array([block for line in self._stored_blocks for block in line])
 
@@ -41,9 +37,14 @@ class BlockMatrix:
                 assert block.shape[1] == col[0].shape[1]  # Same width on a given column
 
     @property
+    def block_shapes(self):
+        return ([block.shape[0] for block in self.all_blocks[:, 0]],
+                [block.shape[1] for block in self.all_blocks[0, :]])
+
+    @property
     def shape(self):
-        return (sum(block.shape[0] for block in self.all_blocks[:, 0]),
-                sum(block.shape[1] for block in self.all_blocks[0, :]))
+        x_shape, y_shape = self.block_shapes
+        return sum(x_shape), sum(y_shape)
 
     @property
     def nb_blocks(self):
@@ -122,6 +123,36 @@ class BlockMatrix:
         else:
             return self._apply_binary_op(lambda x, y: y/x, other)
 
+    def __matmul__(self, other):
+        if isinstance(other, BlockMatrix) and self.block_shapes[1] == other.block_shapes[0]:
+            own_blocks = self.all_blocks
+            other_blocks = np.moveaxis(other.all_blocks, 1, 0)
+            new_matrix = []
+            for own_line in own_blocks:
+                new_line = []
+                for other_col in other_blocks:
+                    new_line.append(sum(own_block @ other_block for own_block, other_block in zip(own_line, other_col)))
+                new_matrix.append(new_line)
+            return BlockMatrix(new_matrix)
+
+        elif isinstance(other, np.ndarray) and self.shape[1] == other.shape[0]:
+            if other.ndim == 2:
+                from capytaine.matrices.builders import cut_matrix
+                cut_other = cut_matrix(other, self.block_shapes[1], [other.shape[1]])
+                return (self @ cut_other).full_matrix()
+            elif other.ndim == 1:
+                other = other.reshape((other.shape[0], 1))
+                return (self @ other).flatten()
+            else:
+                return NotImplemented
+
+        else:
+            return NotImplemented
+
+
+    def astype(self, dtype):
+        return self._apply_unary_op(lambda x: x.astype(dtype))
+
     @property
     def T(self):
         transposed_blocks = np.array([[block.T for block in line] for line in self.all_blocks])
@@ -133,7 +164,7 @@ class BlockMatrix:
                        for line in self.all_blocks]
         return np.block(full_blocks)
 
-    # COMPARISON
+    # COMPARISON AND REDUCTION
 
     def __eq__(self, other):
         from operator import eq
@@ -173,7 +204,7 @@ class BlockMatrix:
         from matplotlib.patches import Rectangle
         global_shift = np.asarray(global_shift)
         patches = []
-        for position, block in zip(self._block_positions_list, self.all_blocks_list):
+        for position, block in zip(self._block_positions_list, [block for line in self.all_blocks for block in line]):
             if isinstance(block, BlockMatrix):
                 patches.extend(block._patches(global_shift + position))
             elif isinstance(block, np.ndarray):
