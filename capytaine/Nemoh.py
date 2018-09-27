@@ -80,7 +80,7 @@ class Nemoh:
             self._build_matrices_rankine_reflection_across_sea_bottom = lru_cache(maxsize=matrix_cache_size)(
                 self._build_matrices_rankine_reflection_across_sea_bottom)
 
-    def solve(self, problem, keep_details=False):
+    def solve(self, problem, keep_details=True):
         """Solve the BEM problem using Nemoh.
 
         Parameters
@@ -89,7 +89,7 @@ class Nemoh:
             the problem to be solved
         keep_details: bool, optional
             if True, store the sources and the potential on the floating body in the output object
-            (default: False)
+            (default: True)
 
         Returns
         -------
@@ -116,9 +116,9 @@ class Nemoh:
             result.sources = sources
             result.potential = potential
 
-        for influenced_dof_name, influenced_dof in problem.influenced_dofs.items():
-            influenced_dof = np.sum(influenced_dof * problem.body.mesh.faces_normals, axis=1)
-            integrated_potential = - problem.rho * potential @ (influenced_dof * problem.body.mesh.faces_areas)
+        for influenced_dof_name, influenced_dof_vectors in problem.influenced_dofs.items():
+            influenced_dof_normal = np.sum(influenced_dof_vectors * problem.body.mesh.faces_normals, axis=1)
+            integrated_potential = - problem.rho * potential @ (influenced_dof_normal * problem.body.mesh.faces_areas)
             result.store_force(influenced_dof_name, integrated_potential)
             # Depending of the type of problem, the force will be kept as a complex-valued Froude-Krylov force
             # or stored as a couple of added mass and damping radiation coefficients.
@@ -127,8 +127,9 @@ class Nemoh:
 
         return result
 
-    def solve_all(self, problems):
+    def solve_all(self, problems, **kwargs):
         """Solve several problems.
+        Optional keyword arguments are passed to `Nemoh.solve`.
 
         Parameters
         ----------
@@ -140,7 +141,7 @@ class Nemoh:
         list of LinearPotentialFlowResult
             the solved problems
         """
-        return [self.solve(problem) for problem in sorted(problems)]
+        return [self.solve(problem, **kwargs) for problem in sorted(problems)]
 
     def fill_dataset(self, dataset, bodies):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
@@ -157,7 +158,7 @@ class Nemoh:
         xarray Dataset
         """
         problems = problems_from_dataset(dataset, bodies)
-        results = self.solve_all(problems)
+        results = self.solve_all(problems, keep_details=False)
         return assemble_dataset(results)
 
     #######################
