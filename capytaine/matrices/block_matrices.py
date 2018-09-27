@@ -65,19 +65,83 @@ class BlockMatrix:
             position[1] += line[0].shape[0]  # Shift to next line
         return positions
 
+    # TRANSFORMING DATA
+
+    def _apply_unary_op(self, op):
+        result = np.array([op(block) for block in self._stored_blocks_flat])
+        return self.__class__(result.reshape(self._nb_stored_blocks + result.shape[1:]))
+
+    def _apply_binary_op(self, op, other):
+        if isinstance(other, self.__class__) and self.nb_blocks == other.nb_blocks:
+            result = [op(block, other_block) for block, other_block in zip(self._stored_blocks_flat, other._stored_blocks_flat)]
+            result = np.array(result)
+            return self.__class__(result.reshape(self._nb_stored_blocks + result.shape[1:]))
+        else:
+            return NotImplemented
+
+    def __add__(self, other):
+        from operator import add
+        return self._apply_binary_op(add, other)
+
+    def __radd__(self, other):
+        return self + other
+
+    def __neg__(self):
+        from operator import neg
+        return self._apply_unary_op(neg)
+
+    def __sub__(self, other):
+        return self + (-other)
+
+    def __rsub__(self, other):
+        return other + (-self)
+
+    def __mul__(self, other):
+        from numbers import Number
+        if isinstance(other, Number):
+            return self._apply_unary_op(lambda x: other*x)
+        else:
+            from operator import mul
+            return self._apply_binary_op(mul, other)
+
+    def __rmul__(self, other):
+        return self * other
+
+    def __truediv__(self, other):
+        from numbers import Number
+        if isinstance(other, Number):
+            return self._apply_unary_op(lambda x: x/other)
+        else:
+            from operator import truediv
+            return self._apply_binary_op(truediv, other)
+
+    def __rtruediv__(self, other):
+        from numbers import Number
+        if isinstance(other, Number):
+            return self._apply_unary_op(lambda x: other/x)
+        else:
+            return self._apply_binary_op(lambda x, y: y/x, other)
+
+    @property
+    def T(self):
+        transposed_blocks = np.array([[block.T for block in line] for line in self.all_blocks])
+        return BlockMatrix(transposed_blocks.T)
+
+    def full_matrix(self):
+        full_blocks = [[block.full_matrix() if not isinstance(block, np.ndarray) else block
+                        for block in line]
+                       for line in self.all_blocks]
+        return np.block(full_blocks)
+
     # COMPARISON
 
     def __eq__(self, other):
-        if isinstance(other, self.__class__) and self.nb_blocks == other.nb_blocks:
-            comp = [block == other_block for block, other_block in zip(self._stored_blocks_flat, other._stored_blocks_flat)]
-            comp = np.array(comp)
-            return self.__class__(comp.reshape(self._nb_stored_blocks + comp.shape[1:]))
-        else:
-            raise ValueError("Comparison of block matrices with different shapes.")
+        from operator import eq
+        return self._apply_binary_op(eq, other)
 
     def __invert__(self):
-        result = np.array([~block for block in self._stored_blocks_flat])
-        return self.__class__(result.reshape(self._nb_stored_blocks + result.shape[1:]))
+        from operator import invert
+        return self._apply_unary_op(invert)
 
     def __ne__(self, other):
         return ~(self == other)
@@ -93,6 +157,12 @@ class BlockMatrix:
             if block.any():
                 return True
             return False
+
+    def min(self):
+        return min([block.min() for block in self._stored_blocks_flat])
+
+    def max(self):
+        return max([block.max() for block in self._stored_blocks_flat])
 
     # DISPLAYING DATA
 
@@ -124,15 +194,3 @@ class BlockMatrix:
         plt.gca().invert_yaxis()
         plt.show()
 
-    # TRANSFORMING DATA
-
-    @property
-    def T(self):
-        transposed_blocks = np.array([[block.T for block in line] for line in self.all_blocks])
-        return BlockMatrix(transposed_blocks.T)
-
-    def full_matrix(self):
-        full_blocks = [[block.full_matrix() if not isinstance(block, np.ndarray) else block
-                        for block in line]
-                       for line in self.all_blocks]
-        return np.block(full_blocks)

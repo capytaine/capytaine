@@ -21,6 +21,11 @@ def test_block_matrices():
     assert set(A._block_positions_list) == {(0, 0), (2, 0), (0, 2), (2, 2)}
     assert repr(A) == "BlockMatrix(nb_blocks=(2, 2), shape=(4, 4))"
 
+    assert ((A + A)/2 == A).all()
+    assert (-A).min() == -1
+    assert (2*A).max() == 2
+    assert (A*A == A).all()
+
     patches = A._patches(global_shift=(10, 10))
     assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12)}
 
@@ -54,6 +59,11 @@ def test_block_toeplitz_matrices():
 
     assert (A._index_grid() == np.array([[0, 1], [1, 0]])).all()
     assert (A == A.T).all()
+
+    assert ((A + A)/2 == A).all()
+    assert (-A).min() == -1
+    assert (2*A).max() == 2
+    assert (A*A == A).all()
 
     A2 = BlockMatrix(A.all_blocks)
     assert (A2.full_matrix() == A.full_matrix()).all()
@@ -91,6 +101,11 @@ def test_block_circulant_matrix():
         [0, 1, 2, 1], [1, 0, 1, 2], [2, 1, 0, 1], [1, 2, 1, 0]
     ])).all()
     assert (A == A.T).all()
+
+    assert ((A + A)/2 == A).all()
+    assert (-A).min() == -1
+    assert (2*A).max() == 2
+    assert (A*A == A).all()
 
     assert A.first_block_line.ndim == 3
     assert A.first_block_line.shape[:1] == (4,)
