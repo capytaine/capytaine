@@ -17,7 +17,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 
     @property
     def all_blocks(self):
-        return [[block for block in self._stored_blocks_flat[indices]] for indices in self._index_grid()]
+        return np.array([[block for block in self._stored_blocks_flat[indices]] for indices in self._index_grid()])
 
     @property
     def block_shape(self):
@@ -65,7 +65,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 
     @property
     def T(self):
-        transposed_blocks = [block.T for block in self._stored_blocks_flat]
+        transposed_blocks = np.array([[block.T for block in self._stored_blocks_flat]])
         return BlockSymmetricToeplitzMatrix(transposed_blocks)
 
 
@@ -73,9 +73,10 @@ class BlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
     def __init__(self, c_blocks, size=None):
         super().__init__(c_blocks)
 
-        if size is None or size == 2*len(c_blocks)-1:
+        n = len(self._stored_blocks_flat)
+        if size is None or size == 2*n-2:
             self.is_even = True
-        elif size == 2*len(c_blocks)-2:
+        elif size == 2*n-1:
             self.is_even = False
         else:
             raise ValueError("Invalid size for BlockCirculantMatrix.")
@@ -125,36 +126,6 @@ class BlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
 
     @property
     def T(self):
-        transposed_blocks = [block.T for block in self._stored_blocks_flat]
+        transposed_blocks = np.array([[block.T for block in self._stored_blocks_flat]])
         return BlockSymmetricCirculantMatrix(transposed_blocks)
 
-
-if __name__ == "__main__":
-    A = BlockSymmetricToeplitzMatrix([[np.random.rand(2, 2), np.ones((2, 2)), np.zeros((2, 2))]])
-
-    print(A.nb_blocks)
-    print(A.shape)
-    print(A.full_matrix())
-    A.plot_shape()
-
-    new_block = lambda: BlockMatrix([
-        [np.random.rand(2, 2), np.random.rand(2, 2)],
-        [np.random.rand(2, 2), np.random.rand(2, 2)],
-    ])
-    B = BlockSymmetricToeplitzMatrix([[new_block(), new_block()]])
-    print(B._stored_blocks_flat)
-    print(B.shape)
-    B.plot_shape()
-
-    new_block = lambda: BlockSymmetricToeplitzMatrix([[np.random.rand(2, 2), np.random.rand(2, 2)]])
-    C = BlockSymmetricToeplitzMatrix([[new_block(), new_block()]])
-    print(C._stored_blocks_flat)
-    print(C.shape)
-    C.plot_shape()
-
-    random_block = lambda: np.random.rand(1, 1)
-    D = BlockSymmetricCirculantMatrix([[random_block(), random_block(), random_block(), random_block()]])
-    print(D._index_grid())
-    print(D._positions_of_index(1))
-    print(D.shape)
-    D.plot_shape()

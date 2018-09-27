@@ -50,16 +50,49 @@ class BlockMatrix:
         return self.all_blocks.shape[:self.ndim]
 
     @property
+    def _nb_stored_blocks(self):
+        return self._stored_blocks.shape[:self.ndim]
+
+    @property
     def _block_positions_list(self):
         positions = []
         position = np.array([0, 0], dtype=np.int)
         for line in self.all_blocks:
             for block in line:
-                positions.append(position.copy())
+                positions.append(tuple(position))
                 position[0] += block.shape[1]  # Shift to the next block on the line
             position[0] = 0  # Return to the beginning of line
             position[1] += line[0].shape[0]  # Shift to next line
         return positions
+
+    # COMPARISON
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__) and self.nb_blocks == other.nb_blocks:
+            comp = [block == other_block for block, other_block in zip(self._stored_blocks_flat, other._stored_blocks_flat)]
+            comp = np.array(comp)
+            return self.__class__(comp.reshape(self._nb_stored_blocks + comp.shape[1:]))
+        else:
+            raise ValueError("Comparison of block matrices with different shapes.")
+
+    def __invert__(self):
+        result = np.array([~block for block in self._stored_blocks_flat])
+        return self.__class__(result.reshape(self._nb_stored_blocks + result.shape[1:]))
+
+    def __ne__(self, other):
+        return ~(self == other)
+
+    def all(self):
+        for block in self._stored_blocks_flat:
+            if not block.all():
+                return False
+            return True
+
+    def any(self):
+        for block in self._stored_blocks_flat:
+            if block.any():
+                return True
+            return False
 
     # DISPLAYING DATA
 
@@ -68,6 +101,7 @@ class BlockMatrix:
 
     def _patches(self, global_shift):
         from matplotlib.patches import Rectangle
+        global_shift = np.asarray(global_shift)
         patches = []
         for position, block in zip(self._block_positions_list, self.all_blocks_list):
             if isinstance(block, BlockMatrix):
@@ -94,35 +128,11 @@ class BlockMatrix:
 
     @property
     def T(self):
-        transposed_blocks = [[block.T for block in line] for line in self.all_blocks]
-        return BlockMatrix(transposed_blocks)
+        transposed_blocks = np.array([[block.T for block in line] for line in self.all_blocks])
+        return BlockMatrix(transposed_blocks.T)
 
     def full_matrix(self):
         full_blocks = [[block.full_matrix() if not isinstance(block, np.ndarray) else block
                         for block in line]
                        for line in self.all_blocks]
         return np.block(full_blocks)
-
-
-if __name__ == "__main__":
-
-    A = BlockMatrix([
-        [np.random.rand(2, 2), np.zeros((2, 2))],
-        [np.zeros((2, 2)), np.random.rand(2, 2)]
-    ])
-    print(repr(A))
-    print(A.full_matrix())
-    A.plot_shape()
-
-    B = BlockMatrix([[A, np.zeros((4, 1))]])
-    print(repr(B))
-    print(B.full_matrix())
-    B.plot_shape()
-
-    C = BlockMatrix([
-        [np.random.rand(3, 3), np.random.rand(3, 1)],
-        [np.random.rand(1, 3), np.random.rand(1, 1)]
-    ])
-    print(repr(C))
-    print(C.full_matrix())
-    C.plot_shape()

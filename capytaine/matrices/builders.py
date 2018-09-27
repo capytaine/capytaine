@@ -31,7 +31,7 @@ def full_like(A, value):
         for i in range(A.nb_blocks[0]):
             line = []
             for j in range(A.nb_blocks[1]):
-                line.append(full_like(A.blocks[i][j], value))
+                line.append(full_like(A.all_blocks[i][j], value))
             new_matrix.append(line)
         return BlockMatrix(new_matrix)
     elif isinstance(A, np.ndarray):
@@ -63,28 +63,10 @@ def identity_like(A):
             line = []
             for j in range(A.nb_blocks[1]):
                 if i == j:
-                    line.append(identity_like(A.blocks[i][j]))
+                    line.append(identity_like(A.all_blocks[i][j]))
                 else:
-                    line.append(zeros_like(A.blocks[i][j]))
+                    line.append(zeros_like(A.all_blocks[i][j]))
             I.append(line)
         return BlockMatrix(I)
     elif isinstance(A, np.ndarray):
         return np.eye(A.shape[0], A.shape[1])
-
-
-if __name__ == '__main__':
-    A = random_block_matrix([2, 3, 1], [2, 3, 1])
-    A.plot_shape()
-
-    O = zeros_like(A)
-    print(repr(O))
-    print(O.full_matrix())
-
-    A2 = random_block_matrix([2, 3, 1], [2, 3, 1])
-    B = BlockSymmetricToeplitzMatrix([A, A2])
-    B.plot_shape()
-
-    I = identity_like(B)
-    print(repr(I))
-    print(I.full_matrix())
-

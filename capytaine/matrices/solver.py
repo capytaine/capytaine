@@ -6,17 +6,17 @@ import logging
 import numpy as np
 
 from capytaine.matrices.block_matrices import BlockMatrix
-from capytaine.matrices.block_toeplitz_matrices import BlockSymmetricToeplitzMatrix
+from capytaine.matrices.block_toeplitz_matrices import BlockSymmetricToeplitzMatrix, BlockSymmetricCirculantMatrix
 
 LOG = logging.getLogger(__name__)
 
 
 def solve(A, b):
 
-    if isinstance(A, BlockCirculantMatrix):
+    if isinstance(A, BlockSymmetricToeplitzMatrix):
         return solve(A.full_matrix(), b)
 
-    elif isinstance(A, BlockToeplitzMatrix):
+    elif isinstance(A, BlockSymmetricToeplitzMatrix):
         return solve(A.full_matrix(), b)
 
     elif isinstance(A, BlockMatrix):

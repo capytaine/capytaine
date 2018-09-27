@@ -5,130 +5,130 @@ import pytest
 
 import numpy as np
 
-from capytaine.Toeplitz_matrices import *
+from capytaine.matrices.block_matrices import *
+from capytaine.matrices.block_toeplitz_matrices import *
+from capytaine.matrices.builders import *
 
 
-def test_BlockToeplitz():
-    A = BlockToeplitzMatrix([np.array([[i]]) for i in range(5)])
-    assert A.nb_blocks == 5
-    assert A.block_size == 1
-    assert np.all(A == A.full_matrix())
-    assert np.all(A == np.array([[0, 1, 2, 3, 4],
-                                 [1, 0, 1, 2, 3],
-                                 [2, 1, 0, 1, 2],
-                                 [3, 2, 1, 0, 1],
-                                 [4, 3, 2, 1, 0]])
-                  )
-    assert A.astype(np.complex128).full_matrix().dtype == np.complex128
-    assert isinstance(A + 0.1, BlockToeplitzMatrix)
-    assert isinstance(0.1 + A, BlockToeplitzMatrix)
-    assert isinstance(A - 1, BlockToeplitzMatrix)
-    assert isinstance(1 - A, BlockToeplitzMatrix)
-    assert np.all(A - 1 == np.array([[-1, 0, 1, 2, 3],
-                                     [0, -1, 0, 1, 2],
-                                     [1, 0, -1, 0, 1],
-                                     [2, 1, 0, -1, 0],
-                                     [3, 2, 1, 0, -1]])
-                  )
-    assert isinstance(A * 2, BlockToeplitzMatrix)
-    assert isinstance(3 * A, BlockToeplitzMatrix)
-    assert isinstance(A / 4, BlockToeplitzMatrix)
-    assert isinstance(5/(A+1), BlockToeplitzMatrix)
+def test_block_matrices():
+    A = BlockMatrix([
+        [np.eye(2, 2), np.zeros((2, 2))],
+        [np.zeros((2, 2)), np.eye(2, 2)]
+    ])
+    assert A.shape == (4, 4)
+    assert A.nb_blocks == (2, 2)
+    assert set(A._block_positions_list) == {(0, 0), (2, 0), (0, 2), (2, 2)}
+    assert repr(A) == "BlockMatrix(nb_blocks=(2, 2), shape=(4, 4))"
 
-    B = np.random.rand(5, 5)
-    assert np.all(A + B == A.full_matrix() + B)
-    assert np.all(A * B == A.full_matrix() * B)
+    patches = A._patches(global_shift=(10, 10))
+    assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12)}
 
-    x = np.array([10, 11, 12, 13 ,14])
-    assert np.all(A @ x == A.full_matrix() @ x)
-    assert np.all(A @ A.full_matrix() == A.full_matrix() @ A.full_matrix())
+    assert (A.T == A).all()
+    assert not (A.T != A).any()
+    assert (A == identity_like(A)).all()
+    assert (A.full_matrix() == np.eye(4, 4)).all()
 
-    C = np.random.rand(30, 30)
-    Z = BlockToeplitzMatrix([np.zeros((3, 3)) for _ in range(10)])
-    assert Z.nb_blocks == 10
-    assert Z.block_size == 3
-    assert np.all(Z.full_matrix() == np.zeros((30, 30)))
-    assert np.all(2 * Z == Z)
-    assert np.all(Z * 2 == Z)
-    assert np.all(Z * C == Z.full_matrix())
-    # assert np.all(C * Z == Z.full_matrix())
-    assert np.all(Z @ C == Z.full_matrix())
-    # assert np.all(C @ Z == Z.full_matrix())
+    B = BlockMatrix([[A, np.zeros((4, 1))], [np.zeros((1, 4)), np.ones((1, 1))]])
+    assert B.shape == (5, 5)
+    assert (B == B.T).all()
+    assert (B.full_matrix() == np.eye(5, 5)).all()
+    assert repr(B) == "BlockMatrix(nb_blocks=(2, 2), shape=(5, 5))"
+
+    patches = B._patches(global_shift=(10, 10))
+    assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12),
+                                                             (14, 10), (10, 14), (14, 14)}
+
+    C = random_block_matrix([1, 2, 4], [1, 2, 4])
+    assert C.nb_blocks == (3, 3)
+    assert (ones_like(C).full_matrix() ==  np.ones(C.shape)).all()
 
 
-def test_Circulant():
-    matrix_list = [np.array([[i]]) for i in range(4)]
-    A = BlockCirculantMatrix(matrix_list)
-    assert A.nb_blocks == 6
-    assert A.block_size == 1
-    assert np.all(A == A.full_matrix())
-    assert np.all(A == np.array([[0, 1, 2, 3, 2, 1],
-                                 [1, 0, 1, 2, 3, 2],
-                                 [2, 1, 0, 1, 2, 3],
-                                 [3, 2, 1, 0, 1, 2],
-                                 [2, 3, 2, 1, 0, 1],
-                                 [1, 2, 3, 2, 1, 0],
-                                 ])
-                  )
+def test_block_toeplitz_matrices():
+    A = BlockSymmetricToeplitzMatrix([
+        [np.eye(2, 2), np.zeros((2, 2))]
+    ])
+    assert A.nb_blocks == (2, 2)
+    assert A.shape == (4, 4)
+    assert (A.full_matrix() == np.eye(*A.shape)).all()
 
-    B = BlockCirculantMatrix(matrix_list, size=6)
-    assert np.all(A == B)
+    assert (A._index_grid() == np.array([[0, 1], [1, 0]])).all()
+    assert (A == A.T).all()
 
-    C = BlockCirculantMatrix(matrix_list, size=5)
-    assert np.all(C == np.array([[0, 1, 2, 2, 1],
-                                 [1, 0, 1, 2, 2],
-                                 [2, 1, 0, 1, 2],
-                                 [2, 2, 1, 0, 1],
-                                 [1, 2, 2, 1, 0],
-                                 ])
-                  )
+    A2 = BlockMatrix(A.all_blocks)
+    assert (A2.full_matrix() == A.full_matrix()).all()
 
-    assert isinstance(A + 0.1, BlockCirculantMatrix)
-    assert (A + 0.1).nb_blocks == A.nb_blocks
-    assert (A + 0.1).block_size == A.block_size
-    assert isinstance(0.1 + A, BlockCirculantMatrix)
-    assert isinstance(A - 1, BlockCirculantMatrix)
-    assert isinstance(1 - A, BlockCirculantMatrix)
-    assert isinstance(A * 2, BlockCirculantMatrix)
-    assert (A * 2).nb_blocks == A.nb_blocks
-    assert (A * 2).block_size == A.block_size
-    assert isinstance(3 * A, BlockCirculantMatrix)
-    assert isinstance(A / 4, BlockCirculantMatrix)
-    assert (A / 4).nb_blocks == A.nb_blocks
-    assert (A / 4).block_size == A.block_size
-    assert isinstance(5/(A+1), BlockCirculantMatrix)
+    B = BlockSymmetricToeplitzMatrix([
+        [random_block_matrix([1, 1], [1, 1]), random_block_matrix([1, 1], [1, 1])]
+    ])
+    assert B.nb_blocks == (2, 2)
+    assert B._nb_stored_blocks == (1, 2)
+    assert B.shape == (4, 4)
 
-    I = block_circulant_identity(A.nb_blocks, A.block_size)
-    assert isinstance(A + I, BlockCirculantMatrix)
+    assert isinstance(B.all_blocks[0, 0], BlockMatrix)
+    assert (B.all_blocks[0, 0] == B.all_blocks[1, 1]).all()
 
-    I2 = block_circulant_identity(C.nb_blocks, C.block_size)
-    assert isinstance(C + I2, BlockCirculantMatrix)
+    C = BlockSymmetricToeplitzMatrix([
+        [A, B]
+    ])
+    assert C.shape == (8, 8)
+
+    D = BlockMatrix([
+        [C, np.zeros(C.shape)]
+    ])
+    assert D.shape == (8, 16)
 
 
-def test_solve_2x2():
-    # 2x2 blocks
-    A1 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    A2 = np.array([[5, 4, 2], [8, 0, 1], [6, 7, 3]])
-    A = BlockToeplitzMatrix([A1, A2])
+def test_block_circulant_matrix():
+    A = BlockSymmetricCirculantMatrix([
+        [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
+    ])
+    assert A.nb_blocks == (4, 4)
+    assert A.shape == (8, 8)
+    assert (A.full_matrix() == np.eye(*A.shape)).all()
 
-    b = np.random.rand(6)
+    assert (A._index_grid() == np.array([
+        [0, 1, 2, 1], [1, 0, 1, 2], [2, 1, 0, 1], [1, 2, 1, 0]
+    ])).all()
+    assert (A == A.T).all()
 
-    x_toe = solve(A, b)
-    x_dumb = np.linalg.solve(A.full_matrix(), b)
+    A2 = BlockSymmetricCirculantMatrix([
+        [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
+    ], size=5)
+    assert (A2.full_matrix() == np.eye(*A2.shape)).all()
 
-    assert np.allclose(x_toe, x_dumb, rtol=1e-6)
+    B = BlockSymmetricCirculantMatrix([
+        [A, A, A]
+    ])
+    assert B.nb_blocks == (4, 4)
+    assert B.shape == (32, 32)
+    assert B.all_blocks[0, 0] is A
+    assert (B.all_blocks[0, 1] == B.all_blocks[2, 3]).all()
 
 
-def test_solve_block_circulant():
-    # Block Circulant Matrix
-    A1 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    A2 = np.array([[5, 4, 2], [8, 0, 1], [6, 7, 3]])
-    A3 = np.array([[0, 0, 3], [9, 3, 5], [7, 5, 6]])
-
-    A = BlockCirculantMatrix([A1, A2, A3])
-    b = np.random.rand(12)
-
-    x_toe = solve(A, b)
-    x_dumb = np.linalg.solve(A.full_matrix(), b)
-
-    assert np.allclose(x_toe, x_dumb, rtol=1e-6)
+# def test_solve_2x2():
+#     # 2x2 blocks
+#     A1 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+#     A2 = np.array([[5, 4, 2], [8, 0, 1], [6, 7, 3]])
+#     A = BlockToeplitzMatrix([A1, A2])
+#
+#     b = np.random.rand(6)
+#
+#     x_toe = solve(A, b)
+#     x_dumb = np.linalg.solve(A.full_matrix(), b)
+#
+#     assert np.allclose(x_toe, x_dumb, rtol=1e-6)
+#
+#
+# def test_solve_block_circulant():
+#     # Block Circulant Matrix
+#     A1 = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+#     A2 = np.array([[5, 4, 2], [8, 0, 1], [6, 7, 3]])
+#     A3 = np.array([[0, 0, 3], [9, 3, 5], [7, 5, 6]])
+#
+#     A = BlockCirculantMatrix([A1, A2, A3])
+#     b = np.random.rand(12)
+#
+#     x_toe = solve(A, b)
+#     x_dumb = np.linalg.solve(A.full_matrix(), b)
+#
+#     assert np.allclose(x_toe, x_dumb, rtol=1e-6)
