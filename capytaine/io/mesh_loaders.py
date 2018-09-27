@@ -76,7 +76,7 @@ def load_RAD(filename, name=None):
     ifile.close()
 
     # node_line = r'\s*\d+(?:\s*' + real_str + '){3}'
-    node_line = r'\s*\d+\s*(' + real_str + ')\s*(' + real_str + ')\s*(' + real_str + ')'
+    node_line = r'\s*\d+\s*(' + real_str + r')\s*(' + real_str + r')\s*(' + real_str + ')'
     node_section = r'((?:' + node_line + ')+)'
 
     elem_line = r'^\s*(?:\d+\s+){6}\d+\s*[\r\n]+'
