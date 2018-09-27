@@ -2,8 +2,10 @@
 # coding: utf-8
 
 import logging
+from functools import lru_cache
 
 import numpy as np
+from scipy import linalg as sl
 
 from capytaine.matrices.block_matrices import BlockMatrix
 from capytaine.matrices.block_toeplitz_matrices import BlockSymmetricToeplitzMatrix, BlockSymmetricCirculantMatrix
@@ -39,9 +41,20 @@ def solve_directly(A, b):
         return solve_directly(A.full_matrix(), b)
 
     elif isinstance(A, np.ndarray):
-        LOG.debug(f"\tSolve linear system (size: {A.shape}) with numpy.")
+        LOG.debug(f"\tSolve linear system (size: {A.shape}) with numpy direct solver.")
         return np.linalg.solve(A, b)
 
     else:
         raise ValueError(f"Unrecognized type of matrix to solve: {A}")
+
+
+@lru_cache(maxsize=1)
+def lu_decomp(A):
+    LOG.debug(f"Compute LU decomposition of {A}.")
+    return sl.lu_factor(A.full_matrix())
+
+
+def solve_storing_lu(A, b):
+    LOG.debug(f"Solve with LU decomposition of {A}.")
+    return sl.lu_solve(lu_decomp(A), b)
 

@@ -199,6 +199,7 @@ def build_with_symmetries(build_matrices):
                       ))
 
             # Actual evaluation of coefficients using the Green function.
-            return build_matrices(mesh1, mesh2, *args, **kwargs)
+            S, V = build_matrices(mesh1, mesh2, *args, **kwargs)
+            return BlockMatrix([[S]]), BlockMatrix([[V]])
 
     return build_matrices_with_symmetries

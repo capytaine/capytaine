@@ -54,7 +54,9 @@ class Nemoh:
     APD: array of shape (328, 46, 2, 2)
         Tabulated integrals for the Green functions
     """
-    available_linear_solvers = {'direct': linear_solvers.solve_directly}
+    available_linear_solvers = {'direct': linear_solvers.solve_directly,
+                                'store_lu': linear_solvers.solve_storing_lu,
+                                }
 
     def __init__(self, use_symmetries=True, matrix_cache_size=1,
                  linear_solver='direct', npinte=251

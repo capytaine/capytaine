@@ -17,6 +17,9 @@ class BlockMatrix:
         self._stored_blocks = np.asanyarray(blocks)
         self._check_dimension()
 
+    def __hash__(self):
+        return id(self)
+
     # ACCESSING DATA
 
     @property
@@ -148,7 +151,6 @@ class BlockMatrix:
 
         else:
             return NotImplemented
-
 
     def astype(self, dtype):
         return self._apply_unary_op(lambda x: x.astype(dtype))
