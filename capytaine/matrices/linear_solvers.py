@@ -6,6 +6,7 @@ from functools import lru_cache
 
 import numpy as np
 from scipy import linalg as sl
+from scipy.sparse import linalg as ssl
 
 from capytaine.matrices.block_matrices import BlockMatrix
 from capytaine.matrices.block_toeplitz_matrices import BlockSymmetricToeplitzMatrix, BlockSymmetricCirculantMatrix
@@ -57,4 +58,12 @@ def lu_decomp(A):
 def solve_storing_lu(A, b):
     LOG.debug(f"Solve with LU decomposition of {A}.")
     return sl.lu_solve(lu_decomp(A), b)
+
+
+def solve_gmres(A, b):
+    LOG.debug(f"Solve with GMRES for {A}.")
+    x, info = ssl.gmres(A.full_matrix(), b)
+    if info != 0:
+        LOG.warning("No convergence of the GMRES")
+    return x
 

@@ -56,6 +56,7 @@ class Nemoh:
     """
     available_linear_solvers = {'direct': linear_solvers.solve_directly,
                                 'store_lu': linear_solvers.solve_storing_lu,
+                                'gmres': linear_solvers.solve_gmres,
                                 }
 
     def __init__(self, use_symmetries=True, matrix_cache_size=1,
