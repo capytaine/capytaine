@@ -16,8 +16,7 @@ LOG = logging.getLogger(__name__)
 
 def solve_directly(A, b):
     if isinstance(A, BlockSymmetricCirculantMatrix):
-        LOG.debug("\tSolve linear system %s BlockCirculantMatrix (block size: %s)",
-                  A.nb_blocks, A.block_shape)
+        LOG.debug("\tSolve linear system %s", A)
         AA = np.array([block.full_matrix() if not isinstance(block, np.ndarray) else block
                        for block in A.first_block_line])
         AAt = np.fft.fft(AA, axis=0)
@@ -28,7 +27,7 @@ def solve_directly(A, b):
 
     elif isinstance(A, BlockSymmetricToeplitzMatrix):
         if A.nb_blocks == (2, 2):
-            LOG.debug("\tSolve system of 2×2 BlockToeplitzMatrix (block size: %s)", A.block_shape)
+            LOG.debug("\tSolve linear system %s", A)
             A1, A2 = A.first_block_line
             b1, b2 = b[:len(b)//2], b[len(b)//2:]
             x_plus = solve_directly(A1 + A2, b1 + b2)
@@ -36,9 +35,11 @@ def solve_directly(A, b):
             return np.concatenate([x_plus + x_minus, x_plus - x_minus])/2
         else:
             # Not implemented
+            LOG.debug("\tSolve linear system %s", A)
             return solve_directly(A.full_matrix(), b)
 
     elif isinstance(A, BlockMatrix):
+        LOG.debug("\tSolve linear system %s", A)
         return solve_directly(A.full_matrix(), b)
 
     elif isinstance(A, np.ndarray):

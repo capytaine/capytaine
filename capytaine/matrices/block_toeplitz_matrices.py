@@ -9,6 +9,10 @@ from capytaine.matrices.block_matrices import BlockMatrix
 class BlockSymmetricToeplitzMatrix(BlockMatrix):
     """A (2D) block symmetric Toeplitz matrix, stored as a list of blocks."""
 
+    def __init__(self, blocks):
+        super().__init__(blocks)
+        self.block_shape = self._stored_blocks_flat[0].shape
+
     # ACCESSING DATA
 
     def _index_grid(self):
@@ -23,17 +27,10 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
     def first_block_line(self):
         return self._stored_blocks_flat
 
-    @property
-    def block_shape(self):
-        return self.block_shapes[0][0], self.block_shapes[1][0]
-
     def _check_dimension(self) -> None:
+        block_shape = self._stored_blocks_flat[0].shape
         for block in self._stored_blocks_flat:
-            assert block.shape == self.block_shape  # All blocks have same shape
-
-    @property
-    def shape(self):
-        return self.nb_blocks[0]*self.block_shape[0], self.nb_blocks[1]*self.block_shape[1]
+            assert block.shape == block_shape  # All blocks have same shape
 
     @property
     def nb_blocks(self):
@@ -117,9 +114,9 @@ class BlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
             grid.append(line[-i:] + line[:-i])
         return np.array(grid)
 
-    @property
-    def block_shape(self):
-        return self._stored_blocks_flat[0].shape
+    # @property
+    # def block_shape(self):
+    #     return self._stored_blocks_flat[0].shape
 
     def _positions_of_index(self, k):
         n = self.nb_blocks[0]

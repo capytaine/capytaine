@@ -14,7 +14,12 @@ class BlockMatrix:
 
     def __init__(self, blocks):
         assert blocks[0][0].ndim == self.ndim
-        self._stored_blocks = np.asanyarray(blocks)
+        self._stored_blocks = np.asarray(blocks)
+        flattened_shape = (np.product(self._nb_stored_blocks),) + tuple(self._stored_blocks.shape[self.ndim:])
+        self._stored_blocks_flat = self._stored_blocks.view().reshape(flattened_shape)
+        self.block_shapes = ([block.shape[0] for block in self._stored_blocks[:, 0]],
+                             [block.shape[1] for block in self._stored_blocks[0, :]])
+        self.shape = (sum(self.block_shapes[0]), sum(self.block_shapes[1]))
         self._check_dimension()
 
     def __hash__(self):
@@ -26,10 +31,6 @@ class BlockMatrix:
     def all_blocks(self):
         return self._stored_blocks
 
-    @property
-    def _stored_blocks_flat(self):
-        return np.array([block for line in self._stored_blocks for block in line])
-
     def _check_dimension(self) -> None:
         for line in self.all_blocks:
             for block in line:
@@ -39,15 +40,10 @@ class BlockMatrix:
             for block in col:
                 assert block.shape[1] == col[0].shape[1]  # Same width on a given column
 
-    @property
-    def block_shapes(self):
-        return ([block.shape[0] for block in self.all_blocks[:, 0]],
-                [block.shape[1] for block in self.all_blocks[0, :]])
-
-    @property
-    def shape(self):
-        x_shape, y_shape = self.block_shapes
-        return sum(x_shape), sum(y_shape)
+    # @property
+    # def block_shapes(self):
+    #     return ([block.shape[0] for block in self.all_blocks[:, 0]],
+    #             [block.shape[1] for block in self.all_blocks[0, :]])
 
     @property
     def nb_blocks(self):
@@ -72,13 +68,13 @@ class BlockMatrix:
     # TRANSFORMING DATA
 
     def _apply_unary_op(self, op):
-        result = np.array([op(block) for block in self._stored_blocks_flat])
+        result = np.asarray([op(block) for block in self._stored_blocks_flat])
         return self.__class__(result.reshape(self._nb_stored_blocks + result.shape[1:]))
 
     def _apply_binary_op(self, op, other):
         if isinstance(other, self.__class__) and self.nb_blocks == other.nb_blocks:
             result = [op(block, other_block) for block, other_block in zip(self._stored_blocks_flat, other._stored_blocks_flat)]
-            result = np.array(result)
+            result = np.asarray(result)
             return self.__class__(result.reshape(self._nb_stored_blocks + result.shape[1:]))
         else:
             return NotImplemented
