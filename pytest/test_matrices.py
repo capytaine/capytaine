@@ -18,6 +18,7 @@ def test_block_matrices():
     ])
     assert A.shape == (4, 4)
     assert A.nb_blocks == (2, 2)
+    assert A.block_shapes == ([2, 2], [2, 2])
     assert set(A._block_positions_list) == {(0, 0), (2, 0), (0, 2), (2, 2)}
     assert repr(A) == "BlockMatrix(nb_blocks=(2, 2), shape=(4, 4))"
 
@@ -39,6 +40,7 @@ def test_block_matrices():
 
     B = BlockMatrix([[A, np.zeros((4, 1))], [np.zeros((1, 4)), np.ones((1, 1))]])
     assert B.shape == (5, 5)
+    assert B.block_shapes == ([4, 1], [4, 1])
     assert (B == B.T).all()
     assert (B.full_matrix() == np.eye(5, 5)).all()
     assert repr(B) == "BlockMatrix(nb_blocks=(2, 2), shape=(5, 5))"
@@ -63,7 +65,9 @@ def test_block_toeplitz_matrices():
         [np.eye(2, 2), np.zeros((2, 2))]
     ])
     assert A.nb_blocks == (2, 2)
+    assert A.block_shapes == ([2, 2], [2, 2])
     assert A.shape == (4, 4)
+    assert A.block_shape == (2, 2)
     assert (A.full_matrix() == np.eye(*A.shape)).all()
 
     assert (A._index_grid() == np.array([[0, 1], [1, 0]])).all()
@@ -79,6 +83,19 @@ def test_block_toeplitz_matrices():
 
     A2 = BlockMatrix(A.all_blocks)
     assert (A2.full_matrix() == A.full_matrix()).all()
+
+    A3 = BlockSymmetricToeplitzMatrix([
+        [np.ones((3, 1)), np.zeros((3, 1))]
+    ])
+    assert A3.nb_blocks == (2, 2)
+    assert A3.block_shapes == ([3, 3], [1, 1])
+    assert A3.shape == (6, 2)
+    assert A3.block_shape == (3, 1)
+
+    with pytest.raises(AssertionError):
+        BlockSymmetricToeplitzMatrix([
+            [np.ones((1, 1)), np.zeros((2, 2))]
+        ])
 
     B = BlockSymmetricToeplitzMatrix([
         [random_block_matrix([1, 1], [1, 1]), random_block_matrix([1, 1], [1, 1])]

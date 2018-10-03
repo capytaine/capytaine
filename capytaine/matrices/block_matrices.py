@@ -15,14 +15,18 @@ class BlockMatrix:
     def __init__(self, blocks):
         assert blocks[0][0].ndim == self.ndim
         self._stored_blocks = np.asarray(blocks)
+        self._stored_block_shapes = ([block.shape[0] for block in self._stored_blocks[:, 0]],
+                                     [block.shape[1] for block in self._stored_blocks[0, :]])
+        self._stored_shape = (sum(self._stored_block_shapes[0]), sum(self._stored_block_shapes[1]))
+        self._nb_stored_blocks = self._stored_blocks.shape[:self.ndim]
+
         flattened_shape = (np.product(self._nb_stored_blocks),) + tuple(self._stored_blocks.shape[self.ndim:])
         self._stored_blocks_flat = self._stored_blocks.view().reshape(flattened_shape)
-        self.block_shapes = ([block.shape[0] for block in self._stored_blocks[:, 0]],
-                             [block.shape[1] for block in self._stored_blocks[0, :]])
-        self.shape = (sum(self.block_shapes[0]), sum(self.block_shapes[1]))
+
         self._check_dimension()
 
     def __hash__(self):
+        # Temporary
         return id(self)
 
     # ACCESSING DATA
@@ -30,6 +34,18 @@ class BlockMatrix:
     @property
     def all_blocks(self):
         return self._stored_blocks
+
+    @property
+    def shape(self):
+        return self._stored_shape
+
+    @property
+    def block_shapes(self):
+        return self._stored_block_shapes
+
+    @property
+    def nb_blocks(self):
+        return self._nb_stored_blocks
 
     def _check_dimension(self) -> None:
         for line in self.all_blocks:
@@ -39,19 +55,6 @@ class BlockMatrix:
         for col in np.moveaxis(self.all_blocks, 1, 0):
             for block in col:
                 assert block.shape[1] == col[0].shape[1]  # Same width on a given column
-
-    # @property
-    # def block_shapes(self):
-    #     return ([block.shape[0] for block in self.all_blocks[:, 0]],
-    #             [block.shape[1] for block in self.all_blocks[0, :]])
-
-    @property
-    def nb_blocks(self):
-        return self.all_blocks.shape[:self.ndim]
-
-    @property
-    def _nb_stored_blocks(self):
-        return self._stored_blocks.shape[:self.ndim]
 
     @property
     def _block_positions_list(self):
@@ -169,6 +172,7 @@ class BlockMatrix:
         return self._apply_binary_op(eq, other)
 
     def __invert__(self):
+        """Boolean not (~)"""
         from operator import invert
         return self._apply_unary_op(invert)
 

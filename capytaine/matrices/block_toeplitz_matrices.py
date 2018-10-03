@@ -7,11 +7,10 @@ from capytaine.matrices.block_matrices import BlockMatrix
 
 
 class BlockSymmetricToeplitzMatrix(BlockMatrix):
-    """A (2D) block symmetric Toeplitz matrix, stored as a list of blocks."""
+    """A (2D) block symmetric Toeplitz matrix, stored as a list of blocks.
 
-    def __init__(self, blocks):
-        super().__init__(blocks)
-        self.block_shape = self._stored_blocks_flat[0].shape
+    Stored in the backend as a 1×N array of arrays.
+    """
 
     # ACCESSING DATA
 
@@ -24,6 +23,23 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         return np.array([[block for block in self._stored_blocks_flat[indices]] for indices in self._index_grid()])
 
     @property
+    def nb_blocks(self):
+        return self._nb_stored_blocks[1], self._nb_stored_blocks[1]
+
+    @property
+    def block_shapes(self):
+        return ([self._stored_block_shapes[0][0]]*self._nb_stored_blocks[1],
+                self._stored_block_shapes[1])
+
+    @property
+    def shape(self):
+        return self._stored_block_shapes[0][0]*self._nb_stored_blocks[1], self._stored_shape[1]
+
+    @property
+    def block_shape(self):
+        return self._stored_block_shapes[0][0], self._stored_block_shapes[1][0]  # Shape of first stored block
+
+    @property
     def first_block_line(self):
         return self._stored_blocks_flat
 
@@ -31,10 +47,6 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         block_shape = self._stored_blocks_flat[0].shape
         for block in self._stored_blocks_flat:
             assert block.shape == block_shape  # All blocks have same shape
-
-    @property
-    def nb_blocks(self):
-        return self._stored_blocks_flat.shape[0], self._stored_blocks_flat.shape[0]
 
     def _positions_of_index(self, k):
         n = self.nb_blocks[0]
