@@ -90,7 +90,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 #                    Block symmetric circulant matrix                     #
 ###########################################################################
 
-class BlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
+class AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
 
     @property
     def nb_blocks(self):
@@ -113,7 +113,7 @@ class BlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
         return self._stored_blocks_flat[self._baseline_grid()]
 
 
-class EvenBlockSymmetricCirculantMatrix(BlockSymmetricCirculantMatrix):
+class EvenBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):
     """
     ABCB
     BABC
@@ -139,7 +139,7 @@ class EvenBlockSymmetricCirculantMatrix(BlockSymmetricCirculantMatrix):
         return blocks_indices[:-1] + blocks_indices[1:][::-1]
 
 
-class OddBlockSymmetricCirculantMatrix(BlockSymmetricCirculantMatrix):
+class OddBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):
     """
     ABCCB
     BABCC

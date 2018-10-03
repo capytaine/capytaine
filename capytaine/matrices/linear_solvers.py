@@ -9,13 +9,16 @@ from scipy import linalg as sl
 from scipy.sparse import linalg as ssl
 
 from capytaine.matrices.block_matrices import BlockMatrix
-from capytaine.matrices.block_toeplitz_matrices import BlockSymmetricToeplitzMatrix, BlockSymmetricCirculantMatrix
+from capytaine.matrices.block_toeplitz_matrices import (
+    BlockSymmetricToeplitzMatrix,
+    AbstractBlockSymmetricCirculantMatrix
+)
 
 LOG = logging.getLogger(__name__)
 
 
 def solve_directly(A, b):
-    if isinstance(A, BlockSymmetricCirculantMatrix):
+    if isinstance(A, AbstractBlockSymmetricCirculantMatrix):
         LOG.debug("\tSolve linear system %s", A)
         AA = np.array([block.full_matrix() if not isinstance(block, np.ndarray) else block
                        for block in A.first_block_line])

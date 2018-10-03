@@ -9,7 +9,12 @@ import numpy as np
 
 from capytaine import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
 from capytaine.matrices.block_matrices import BlockMatrix
-from capytaine.matrices.block_toeplitz_matrices import BlockSymmetricToeplitzMatrix, BlockSymmetricCirculantMatrix
+from capytaine.matrices.block_toeplitz_matrices import (
+    BlockSymmetricToeplitzMatrix,
+    AbstractBlockSymmetricCirculantMatrix,
+    EvenBlockSymmetricCirculantMatrix,
+    OddBlockSymmetricCirculantMatrix,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -29,11 +34,11 @@ def random_block_matrix(x_shapes, y_shapes):
 
 
 def full_like(A, value):
-    if isinstance(A, BlockSymmetricCirculantMatrix):
+    if isinstance(A, AbstractBlockSymmetricCirculantMatrix):
         new_matrix = []
         for i in range(len(A._stored_blocks_flat)):
             new_matrix.append(full_like(A._stored_blocks_flat[i], value))
-        return BlockSymmetricCirculantMatrix([new_matrix], size=A.nb_blocks[0])
+        return A.__class__([new_matrix])
     elif isinstance(A, BlockSymmetricToeplitzMatrix):
         new_matrix = []
         for i in range(A.nb_blocks[0]):
@@ -60,11 +65,11 @@ def ones_like(A):
 
 
 def identity_like(A):
-    if isinstance(A, BlockSymmetricCirculantMatrix):
+    if isinstance(A, AbstractBlockSymmetricCirculantMatrix):
         I = [identity_like(A._stored_blocks_flat[0])]
         for i in range(1, len(A._stored_blocks_flat)):
             I.append(zeros_like(A._stored_blocks_flat[i]))
-        return BlockSymmetricCirculantMatrix([I], size=A.nb_blocks[0])
+        return A.__class__([I])
     elif isinstance(A, BlockSymmetricToeplitzMatrix):
         I = [identity_like(A._stored_blocks_flat[0])]
         for i in range(1, A.nb_blocks[0]):
@@ -187,8 +192,10 @@ def build_with_symmetries(build_matrices):
                 S_list.append(S)
                 V_list.append(V)
 
-            return (BlockSymmetricCirculantMatrix([S_list], size=mesh1.nb_submeshes),
-                    BlockSymmetricCirculantMatrix([V_list], size=mesh1.nb_submeshes))
+            if mesh1.nb_submeshes % 2 == 0:
+                return (EvenBlockSymmetricCirculantMatrix([S_list]), EvenBlockSymmetricCirculantMatrix([V_list]))
+            else:
+                return (OddBlockSymmetricCirculantMatrix([S_list]), OddBlockSymmetricCirculantMatrix([V_list]))
 
         # TODO: CollectionOfMeshes
 
