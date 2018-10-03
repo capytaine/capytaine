@@ -6,6 +6,10 @@ import numpy as np
 from capytaine.matrices.block_matrices import BlockMatrix
 
 
+################################################################################
+#                       Block symmetric Toeplitz matrix                        #
+################################################################################
+
 class BlockSymmetricToeplitzMatrix(BlockMatrix):
     """A (2D) block symmetric Toeplitz matrix, stored as a list of blocks.
 
@@ -28,12 +32,12 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 
     @property
     def block_shapes(self):
-        return ([self._stored_block_shapes[0][0]]*self._nb_stored_blocks[1],
+        return ([self._stored_block_shapes[0][0]]*self.nb_blocks[0],
                 self._stored_block_shapes[1])
 
     @property
     def shape(self):
-        return self._stored_block_shapes[0][0]*self._nb_stored_blocks[1], self._stored_shape[1]
+        return self._stored_block_shapes[0][0]*self.nb_blocks[0], self._stored_block_shapes[1][0]*self.nb_blocks[1]
 
     @property
     def block_shape(self):
@@ -79,45 +83,18 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
     @property
     def T(self):
         transposed_blocks = np.array([[block.T for block in self._stored_blocks_flat]])
-        return BlockSymmetricToeplitzMatrix(transposed_blocks)
+        return self.__class__(transposed_blocks)
 
+
+###########################################################################
+#                    Block symmetric circulant matrix                     #
+###########################################################################
 
 class BlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
-    def __init__(self, c_blocks, size=None):
-        super().__init__(c_blocks)
-
-        n = len(self._stored_blocks_flat)
-        if size is None or size == 2*n-2:
-            self.is_even = True
-        elif size == 2*n-1:
-            self.is_even = False
-        else:
-            raise ValueError("Invalid size for BlockCirculantMatrix.")
-
-    # ACCESSING DATA
-
-    def _check_dimension(self) -> None:
-        for block in self._stored_blocks_flat:
-            assert block.shape == self._stored_blocks[0][0].shape  # All blocks have same shape
 
     @property
     def nb_blocks(self):
-        if self.is_even:
-            return 2*len(self._stored_blocks_flat)-2, 2*len(self._stored_blocks_flat)-2
-        else:
-            return 2*len(self._stored_blocks_flat)-1, 2*len(self._stored_blocks_flat)-1
-
-    def _baseline_grid(self):
-        blocks_indices = list(range(len(self._stored_blocks_flat)))
-        if self.is_even:
-            base_line = blocks_indices[:-1] + blocks_indices[1:][::-1]
-        else:
-            base_line = blocks_indices + blocks_indices[1:][::-1]
-        return base_line
-
-    @property
-    def first_block_line(self):
-        return self._stored_blocks_flat[self._baseline_grid()]
+        return self._nb_blocks, self._nb_blocks
 
     def _index_grid(self):
         line = self._baseline_grid()
@@ -126,31 +103,66 @@ class BlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
             grid.append(line[-i:] + line[:-i])
         return np.array(grid)
 
-    # @property
-    # def block_shape(self):
-    #     return self._stored_blocks_flat[0].shape
-
     def _positions_of_index(self, k):
         n = self.nb_blocks[0]
         grid = self._index_grid()
         return [(i, j) for i in range(n) for j in range(n) if grid[i, j] == k]
 
-    # TRANSFORMING DATA
-
-    def _apply_unary_op(self, op):
-        result = np.array([op(block) for block in self._stored_blocks_flat])
-        return self.__class__(result.reshape(self._nb_stored_blocks + result.shape[1:]), size=self.nb_blocks[0])
-
-    def _apply_binary_op(self, op, other):
-        if isinstance(other, self.__class__) and self.nb_blocks == other.nb_blocks:
-            result = [op(block, other_block) for block, other_block in zip(self._stored_blocks_flat, other._stored_blocks_flat)]
-            result = np.array(result)
-            return BlockSymmetricCirculantMatrix(result.reshape(self._nb_stored_blocks + result.shape[1:]), size=self.nb_blocks[0])
-        else:
-            return NotImplemented
-
     @property
-    def T(self):
-        transposed_blocks = np.array([[block.T for block in self._stored_blocks_flat]])
-        return BlockSymmetricCirculantMatrix(transposed_blocks)
+    def first_block_line(self):
+        return self._stored_blocks_flat[self._baseline_grid()]
+
+
+class EvenBlockSymmetricCirculantMatrix(BlockSymmetricCirculantMatrix):
+    """
+    ABCB
+    BABC
+    CBAB
+    BCBA
+
+    ABCDCB
+    BABCDB
+    CBABCD
+    DCBABC
+    CDCBAB
+    BCDCBA
+    """
+
+    def __init__(self, blocks):
+        super().__init__(blocks)
+        self._nb_blocks = (self._nb_stored_blocks[1]-1)*2
+
+    # ACCESSING DATA
+
+    def _baseline_grid(self):
+        blocks_indices = list(range(len(self._stored_blocks_flat)))
+        return blocks_indices[:-1] + blocks_indices[1:][::-1]
+
+
+class OddBlockSymmetricCirculantMatrix(BlockSymmetricCirculantMatrix):
+    """
+    ABCCB
+    BABCC
+    CBABC
+    CCBAB
+    BCCBA
+
+    ABCDDCB
+    BABCDDB
+    CBABCDD
+    DCBABCD
+    DDCBABC
+    CDDCBAB
+    BCDDCBA
+    """
+
+    def __init__(self, blocks):
+        super().__init__(blocks)
+        self._nb_blocks = self._nb_stored_blocks[1]*2 - 1
+
+    # ACCESSING DATA
+
+    def _baseline_grid(self):
+        blocks_indices = list(range(len(self._stored_blocks_flat)))
+        return blocks_indices[:] + blocks_indices[1:][::-1]
 

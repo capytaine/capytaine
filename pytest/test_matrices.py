@@ -114,6 +114,9 @@ def test_block_toeplitz_matrices():
     ])
     assert C.shape == (8, 8)
 
+    b = np.random.rand(8)
+    assert np.allclose(C @ b, C.full_matrix() @ b)
+
     D = BlockMatrix([
         [C, np.zeros(C.shape)]
     ])
@@ -123,8 +126,8 @@ def test_block_toeplitz_matrices():
     assert np.allclose(D @ b, D.full_matrix() @ b)
 
 
-def test_block_circulant_matrix():
-    A = BlockSymmetricCirculantMatrix([
+def test_even_block_circulant_matrix():
+    A = EvenBlockSymmetricCirculantMatrix([
         [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
     ])
     assert A.nb_blocks == (4, 4)
@@ -144,12 +147,10 @@ def test_block_circulant_matrix():
     assert A.first_block_line.ndim == 3
     assert A.first_block_line.shape[:1] == (4,)
 
-    A2 = BlockSymmetricCirculantMatrix([
-        [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
-    ], size=5)
-    assert (A2.full_matrix() == np.eye(*A2.shape)).all()
+    b = np.random.rand(8)
+    assert np.allclose(A @ b, A.full_matrix() @ b)
 
-    B = BlockSymmetricCirculantMatrix([
+    B = EvenBlockSymmetricCirculantMatrix([
         [A, A, A]
     ])
     assert B.nb_blocks == (4, 4)
@@ -158,6 +159,42 @@ def test_block_circulant_matrix():
     assert (B.all_blocks[0, 1] == B.all_blocks[2, 3]).all()
 
     b = np.random.rand(32)
+    assert np.allclose(B @ b, B.full_matrix() @ b)
+
+
+def test_odd_block_circulant_matrix():
+    A = OddBlockSymmetricCirculantMatrix([
+        [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
+    ])
+    assert A.nb_blocks == (5, 5)
+    assert A.shape == (10, 10)
+    assert (A.full_matrix() == np.eye(*A.shape)).all()
+
+    assert (A._index_grid() == np.array([
+        [0, 1, 2, 2, 1], [1, 0, 1, 2, 2], [2, 1, 0, 1, 2], [2, 2, 1, 0, 1], [1, 2, 2, 1, 0]
+    ])).all()
+    assert (A == A.T).all()
+
+    assert ((A + A)/2 == A).all()
+    assert (-A).min() == -1
+    assert (2*A).max() == 2
+    assert (A*A == A).all()
+
+    assert A.first_block_line.ndim == 3
+    assert A.first_block_line.shape[:1] == (5,)
+
+    b = np.random.rand(10)
+    assert np.allclose(A @ b, A.full_matrix() @ b)
+
+    B = OddBlockSymmetricCirculantMatrix([
+        [A, A, A]
+    ])
+    assert B.nb_blocks == (5, 5)
+    assert B.shape == (50, 50)
+    assert B.all_blocks[0, 0] is A
+    assert (B.all_blocks[0, 1] == B.all_blocks[2, 3]).all()
+
+    b = np.random.rand(50)
     assert np.allclose(B @ b, B.full_matrix() @ b)
 
 
@@ -176,7 +213,7 @@ def test_solve_2x2():
 
 def test_solve_block_circulant():
     # Block Circulant Matrix
-    A = BlockSymmetricCirculantMatrix([
+    A = EvenBlockSymmetricCirculantMatrix([
         [np.random.rand(3, 3) for _ in range(4)]
     ])
     b = np.random.rand(A.shape[0])
@@ -186,7 +223,7 @@ def test_solve_block_circulant():
 
     assert np.allclose(x_circ, x_dumb, rtol=1e-6)
 
-    A = BlockSymmetricCirculantMatrix([
+    A = EvenBlockSymmetricCirculantMatrix([
         [random_block_matrix([1, 1], [1, 1]) for _ in range(5)]
     ])
     b = np.random.rand(A.shape[0])
