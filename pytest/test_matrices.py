@@ -30,7 +30,7 @@ def test_block_matrices():
     assert (A @ b == b).all()
     assert (A @ A == A).all()
 
-    patches = A._patches(global_shift=(10, 10))
+    patches = A._patches(global_frame=(10, 10))
     assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12)}
 
     assert (A.T == A).all()
@@ -46,7 +46,7 @@ def test_block_matrices():
     assert repr(B) == "BlockMatrix(nb_blocks=(2, 2), shape=(5, 5))"
     assert B.block_shapes == ([4, 1], [4, 1])
 
-    patches = B._patches(global_shift=(10, 10))
+    patches = B._patches(global_frame=(10, 10))
     assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12),
                                                              (14, 10), (10, 14), (14, 14)}
 
@@ -101,7 +101,7 @@ def test_block_toeplitz_matrices():
         [random_block_matrix([1, 1], [1, 1]), random_block_matrix([1, 1], [1, 1])]
     ])
     assert B.nb_blocks == (2, 2)
-    assert B._nb_stored_blocks == (1, 2)
+    assert B._stored_nb_blocks == (1, 2)
     assert B.block_shapes == ([2, 2], [2, 2])
     assert B.block_shape == (2, 2)
     assert B.shape == (4, 4)

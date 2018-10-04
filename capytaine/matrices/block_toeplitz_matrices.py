@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+from typing import Tuple, List
+
 import numpy as np
 
 from capytaine.matrices.block_matrices import BlockMatrix
@@ -18,63 +20,88 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 
     # ACCESSING DATA
 
-    def _index_grid(self):
+    def _index_grid(self) -> np.ndarray:
+        """Helper function to find the positions at which the blocks appears in the full matrix.
+
+        Example of output::
+
+            [[1, 2, 3, 4, 5],
+             [2, 1, 2, 3, 4],
+             [3, 2, 1, 2, 3],
+             [4, 3, 2, 1, 2],
+             [5, 4, 3, 2, 1]]
+        """
         n = self.nb_blocks[0]
         return np.array([[abs(i-j) for i in range(n)] for j in range(n)])
 
     @property
-    def all_blocks(self):
+    def all_blocks(self) -> np.ndarray:
+        """The matrix of matrices as if the block Toeplitz structure was not used."""
         return np.array([[block for block in self._stored_blocks_flat[indices]] for indices in self._index_grid()])
 
     @property
-    def nb_blocks(self):
-        return self._nb_stored_blocks[1], self._nb_stored_blocks[1]
+    def nb_blocks(self) -> Tuple[int, int]:
+        """The number of blocks in each direction."""
+        return self._stored_nb_blocks[1], self._stored_nb_blocks[1]
 
     @property
     def block_shapes(self):
+        """The shapes of the blocks composing the block matrix.
+        Actually, they should be all the same."""
         return ([self._stored_block_shapes[0][0]]*self.nb_blocks[0],
                 self._stored_block_shapes[1])
 
     @property
-    def shape(self):
-        return self._stored_block_shapes[0][0]*self.nb_blocks[0], self._stored_block_shapes[1][0]*self.nb_blocks[1]
-
-    @property
     def block_shape(self):
+        """The shape of any block."""
         return self._stored_block_shapes[0][0], self._stored_block_shapes[1][0]  # Shape of first stored block
 
     @property
+    def shape(self):
+        """The total size of the matrix."""
+        return self._stored_block_shapes[0][0]*self.nb_blocks[0], self._stored_block_shapes[1][0]*self.nb_blocks[1]
+
+    @property
     def first_block_line(self):
+        """The blocks on the first line of blocks in the matrix."""
         return self._stored_blocks_flat
 
     def _check_dimension(self) -> None:
         block_shape = self._stored_blocks_flat[0].shape
-        for block in self._stored_blocks_flat:
+        for block in self._stored_blocks_flat[1:]:
             assert block.shape == block_shape  # All blocks have same shape
 
-    def _positions_of_index(self, k):
+    def _positions_of_index(self, k: int) -> List[Tuple[int, int]]:
+        """The block indices at which the block k from the first line can also be found."""
         n = self.nb_blocks[0]
         return [(i, j) for i in range(n) for j in range(n) if abs(i-j) == k]
 
     # DISPLAYING DATA
 
-    def _patches(self, global_shift):
+    def _patches(self, global_frame: Tuple[int, int]):
         from matplotlib.patches import Rectangle
         patches = []
+
+        # Recursively plot the blocks on the first line.
         for k, block in enumerate(self._stored_blocks_flat):
-            shift = np.array((global_shift[0] + k*self.block_shape[1], global_shift[1]))
+            block_position_in_global_frame = (global_frame[0] + k*self.block_shape[1],
+                                              global_frame[1])
             if isinstance(block, BlockMatrix):
-                patches_of_block = block._patches(shift)
+                patches_of_this_block = block._patches(block_position_in_global_frame)
             elif isinstance(block, np.ndarray):
-                patches_of_block = [Rectangle(shift, self.block_shape[1], self.block_shape[0], edgecolor='k', facecolor=next(self.display_color))]
+                patches_of_this_block = [Rectangle(block_position_in_global_frame,
+                                                   self.block_shape[1], self.block_shape[0],
+                                                   edgecolor='k', facecolor=next(self.display_color))]
             else:
                 raise AttributeError()
 
+            # Copy the patches to fill the rest of the matrix.
             for i, j in self._positions_of_index(k)[1:]:
-                for patch in patches_of_block:
+                for patch in patches_of_this_block:
                     local_shift = np.array(patch.get_xy()) + np.array(((j-k)*self.block_shape[1], i*self.block_shape[0]))
-                    patches.append(Rectangle(local_shift, patch.get_width(), patch.get_height(), facecolor=patch.get_facecolor(), alpha=0.5))
-            patches.extend(patches_of_block)
+                    patches.append(Rectangle(local_shift, patch.get_width(), patch.get_height(),
+                                             facecolor=patch.get_facecolor(), alpha=0.5))
+            patches.extend(patches_of_this_block)
 
         return patches
 
@@ -82,6 +109,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 
     @property
     def T(self):
+        """Transpose the matrix."""
         transposed_blocks = np.array([[block.T for block in self._stored_blocks_flat]])
         return self.__class__(transposed_blocks)
 
@@ -91,9 +119,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 ###########################################################################
 
 class AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
-    """Should not be instantiated.
-    Just here to factor common code between the two classes below.
-    """
+    """Should not be instantiated. Just here to factor some common code between the two classes below."""
 
     @property
     def nb_blocks(self):
@@ -122,23 +148,26 @@ class AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
 
 
 class EvenBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):
-    """
-    ABCB
-    BABC
-    CBAB
-    BCBA
+    """A block symmetric circulant matrix, with an even number of blocks.
 
-    ABCDCB
-    BABCDB
-    CBABCD
-    DCBABC
-    CDCBAB
-    BCDCBA
+    Examples::
+
+        ABCB
+        BABC
+        CBAB
+        BCBA
+
+        ABCDCB
+        BABCDB
+        CBABCD
+        DCBABC
+        CDCBAB
+        BCDCBA
     """
 
     def __init__(self, blocks):
         super().__init__(blocks)
-        self._nb_blocks = (self._nb_stored_blocks[1]-1)*2
+        self._nb_blocks = (self._stored_nb_blocks[1] - 1) * 2
 
     # ACCESSING DATA
 
@@ -148,25 +177,28 @@ class EvenBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):
 
 
 class OddBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):
-    """
-    ABCCB
-    BABCC
-    CBABC
-    CCBAB
-    BCCBA
+    """A block symmetric circulant matrix, with an odd number of blocks.
 
-    ABCDDCB
-    BABCDDB
-    CBABCDD
-    DCBABCD
-    DDCBABC
-    CDDCBAB
-    BCDDCBA
+    Examples::
+
+        ABCCB
+        BABCC
+        CBABC
+        CCBAB
+        BCCBA
+
+        ABCDDCB
+        BABCDDB
+        CBABCDD
+        DCBABCD
+        DDCBABC
+        CDDCBAB
+        BCDDCBA
     """
 
     def __init__(self, blocks):
         super().__init__(blocks)
-        self._nb_blocks = self._nb_stored_blocks[1]*2 - 1
+        self._nb_blocks = self._stored_nb_blocks[1] * 2 - 1
 
     # ACCESSING DATA
 
