@@ -34,6 +34,7 @@ if __name__ == "__main__":
           packages=[
               'capytaine',
               'capytaine.mesh',
+              'capytaine.matrices',
               'capytaine.geometric_bodies',
               'capytaine.tools',
               'capytaine.ui',
