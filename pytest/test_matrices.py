@@ -132,6 +132,7 @@ def test_even_block_circulant_matrix():
     ])
     assert A.nb_blocks == (4, 4)
     assert A.shape == (8, 8)
+    assert A.block_shapes == ([2, 2, 2, 2], [2, 2, 2, 2])
     assert (A.full_matrix() == np.eye(*A.shape)).all()
 
     assert (A._index_grid() == np.array([
@@ -168,6 +169,7 @@ def test_odd_block_circulant_matrix():
     ])
     assert A.nb_blocks == (5, 5)
     assert A.shape == (10, 10)
+    assert A.block_shapes == ([2, 2, 2, 2, 2], [2, 2, 2, 2, 2])
     assert (A.full_matrix() == np.eye(*A.shape)).all()
 
     assert (A._index_grid() == np.array([

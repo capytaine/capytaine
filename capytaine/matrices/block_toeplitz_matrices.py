@@ -91,10 +91,18 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 ###########################################################################
 
 class AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
+    """Should not be instantiated.
+    Just here to factor common code between the two classes below.
+    """
 
     @property
     def nb_blocks(self):
         return self._nb_blocks, self._nb_blocks
+
+    @property
+    def block_shapes(self):
+        return ([self._stored_block_shapes[0][0]]*self.nb_blocks[0],
+                [self._stored_block_shapes[1][0]]*self.nb_blocks[1])
 
     def _index_grid(self):
         line = self._baseline_grid()
