@@ -197,6 +197,7 @@ class Nemoh:
         Srankine, Vrankine = self._build_matrices_rankine(mesh1, mesh2)
         S = Srankine.astype(np.complex128)
         V = Vrankine.astype(np.complex128)
+        del Srankine, Vrankine  # Experimental. Should try RAM profiling.
 
         if free_surface == np.infty:
             # No free surface, no more terms in the Green function
@@ -218,6 +219,7 @@ class Nemoh:
             V += Vrefl
             if wavenumber in (0.0, np.infty):
                 raise NotImplementedError(f"wavenumber={wavenumber} is only implemented for infinite depth.")
+        del Srefl, Vrefl  # Experimental. Should try RAM profiling.
 
         if wavenumber not in (0, np.infty):
             Swave, Vwave = self._build_matrices_wave(mesh1, mesh2, free_surface, sea_bottom, wavenumber)
