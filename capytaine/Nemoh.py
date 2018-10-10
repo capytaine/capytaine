@@ -142,7 +142,7 @@ class Nemoh:
     #######################
 
     def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
-        """
+        r"""
         Build the influence matrices between mesh1 and mesh2.
 
         Parameters
