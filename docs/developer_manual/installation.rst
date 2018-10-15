@@ -2,35 +2,41 @@
 Installation for developers
 ===========================
 
-It is recommended to use a `conda environment`_.
 Capytaine requires **Python 3.6**.
+(It should work on later versions although it has not been tested yet.)
 
-Install the dependencies of Capytaine.
+It is recommended to use a `conda environment`_.
 
 .. _`conda environment`: https://conda.io/docs/user-guide/tasks/manage-environments.html
 
-::
+Ensure that Numpy is installed in your enviroment::
 
     conda install numpy
-    conda install -c mancellin meshmagick
 
-Download the source code from Github web interface or using ``git`` with
+You'll also need a Fortran compiler:
 
-::
+* On Linux, you can install `gfortran` with the package manager of your distribution (e.g. `sudo apt install gfortran`).
+
+* On Windows, the code can be compiled with MinGW.
+  Add the directory with the `gfortran` binary to your path. For instance with `set PATH=C:\\mingw-w64\\x86_64-7.2.0-posix-seh-rt_v5-rev1\\mingw64\\bin;%PATH%`.
+  You should also let Python know about the compiler by creating a file with the following two lines::
+
+    echo [build]
+    echo compiler=mingw32
+
+  as `C:\\path\\to\\anaconda\\Lib\\distutils\\distutils.cfg`.
+
+Then, download the source code from Github web interface or using ``git`` with::
 
     git clone https://github.com/mancellin/capytaine
 
-In the main directory of Capytaine (where ``setup.py`` is located), run the following command to compile the Fortran code.
-
-::
+In the main directory of Capytaine (where ``setup.py`` is located), run the following command to compile the Fortran code::
 
     python setup.py build_ext --inplace
 
 Re-run this command later to recompile the code if you change one of the Fortran files.
 
-Add the current directory to the Python path with the following command.
-
-::
+Add the current directory to the Python path with the following command::
 
     pip install -e .
 
