@@ -7,7 +7,8 @@ from functools import wraps
 
 import numpy as np
 
-from capytaine import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
+from capytaine.mesh.meshes_collection import CollectionOfMeshes
+from capytaine.mesh.symmetries import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
 from capytaine.matrices.block_matrices import BlockMatrix
 from capytaine.matrices.block_toeplitz_matrices import (
     BlockSymmetricToeplitzMatrix,
@@ -184,20 +185,40 @@ def build_with_symmetries(build_matrices):
                           mesh1=mesh1.name, mesh2='itself' if mesh2 is mesh1 else mesh2.name
                       ) + " using rotation symmetry.")
 
-            S_list, V_list = [], []
+            S_line, V_line = [], []
             for submesh in mesh2[:mesh2.nb_submeshes // 2 + 1]:
                 S, V = build_matrices_with_symmetries(
                     mesh1[0], submesh, *args, **kwargs,
                     _rec_depth=_rec_depth+1)
-                S_list.append(S)
-                V_list.append(V)
+                S_line.append(S)
+                V_line.append(V)
 
             if mesh1.nb_submeshes % 2 == 0:
-                return (EvenBlockSymmetricCirculantMatrix([S_list]), EvenBlockSymmetricCirculantMatrix([V_list]))
+                return (EvenBlockSymmetricCirculantMatrix([S_line]), EvenBlockSymmetricCirculantMatrix([V_line]))
             else:
-                return (OddBlockSymmetricCirculantMatrix([S_list]), OddBlockSymmetricCirculantMatrix([V_list]))
+                return (OddBlockSymmetricCirculantMatrix([S_line]), OddBlockSymmetricCirculantMatrix([V_line]))
 
-        # TODO: CollectionOfMeshes
+        elif (isinstance(mesh1, CollectionOfMeshes)
+              and isinstance(mesh2, CollectionOfMeshes)):
+
+            LOG.debug("\t" * (_rec_depth+1) +
+                      function_description_for_logging.format(
+                          mesh1=mesh1.name, mesh2='itself' if mesh2 is mesh1 else mesh2.name
+                      ) + " using block matrix structure.")
+
+            S_matrix, V_matrix = [], []
+            for submesh1 in mesh1:
+                S_line, V_line = [], []
+                for submesh2 in mesh2:
+                    S, V = build_matrices_with_symmetries(
+                        submesh1, submesh2, *args, **kwargs,
+                        _rec_depth=_rec_depth+1)
+                    S_line.append(S)
+                    V_line.append(V)
+                S_matrix.append(S_line)
+                V_matrix.append(V_line)
+
+            return BlockMatrix(S_matrix), BlockMatrix(V_matrix)
 
         else:
             LOG.debug("\t" * (_rec_depth+1) +
