@@ -30,8 +30,9 @@ install:
     - conda install -q python=%PYTHON_VERSION% pip conda-build conda-verify numpy
     - echo [build]           >> %MINICONDA%\Lib\distutils\distutils.cfg
     - echo compiler=mingw32  >> %MINICONDA%\Lib\distutils\distutils.cfg
-    - python setup.py build_ext #--inplace
-    - python setup.py install
+    - python setup.py build_ext
+    - python setup.py build_ext --inplace
+    # - python setup.py install
     - conda build .
     - conda install --use-local capytaine
     - move %MINICONDA%\conda-bld\win-%ARCH%\capytaine*.tar.bz2 .\ # Copy the build output to be catched as artifact
