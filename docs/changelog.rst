@@ -2,6 +2,16 @@
 Changelog
 =========
 
+--------------------
+New in version 0.5.1
+--------------------
+
+* Minor bugs fixes.
+
+* Small performance improvements.
+
+* Update documentation.
+
 ------------------
 New in version 0.5
 ------------------
