@@ -15,7 +15,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('../'))
-from setup import VERSION
+from capytaine import __version__
 
 
 # -- Project information -----------------------------------------------------
@@ -25,9 +25,9 @@ copyright = '2018, Matthieu Ancellin'
 author = 'Matthieu Ancellin'
 
 # The short X.Y version
-version = VERSION
+version = __version__
 # The full version, including alpha/beta/rc tags
-release = VERSION
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------
