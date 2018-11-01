@@ -234,3 +234,36 @@ def test_solve_block_circulant():
     x_dumb = np.linalg.solve(A.full_matrix(), b)
 
     assert np.allclose(x_circ, x_dumb, rtol=1e-6)
+
+
+def test_low_rank_blocks():
+    n = 5
+
+    # Test initialization
+    a, b = np.random.rand(n, 1), np.random.rand(1, n)
+    LR = LowRankMatrix(a, b)
+    assert LR.shape == LR.full_matrix().shape
+    assert np.linalg.matrix_rank(LR.full_matrix()) == LR.rank == 1
+
+    a, b = np.random.rand(n, 2), np.random.rand(2, n)
+    LR = LowRankMatrix(a, b)
+    assert LR.shape == LR.full_matrix().shape
+    assert np.linalg.matrix_rank(LR.full_matrix()) == LR.rank == 2
+
+    # Test creation from SVD
+    A = np.random.rand(n, n)
+    dumb_low_rank = LowRankMatrix.from_full_matrix_with_SVD(A, n)
+    assert np.allclose(dumb_low_rank.full_matrix() - A, 0.0)
+
+    A_rank_1 = LowRankMatrix.from_full_matrix_with_SVD(A, 1)
+    assert np.linalg.matrix_rank(A_rank_1.full_matrix()) == A_rank_1.rank == 1
+
+    # Test multiplication with vector
+    b = np.random.rand(n)
+    assert np.allclose(A_rank_1 @ b, A_rank_1.full_matrix() @ b)
+
+    # Test creation with ACA
+    full_A_rank_1 = A_rank_1.full_matrix()
+    A_rank_1_again = LowRankMatrix.from_full_matrix_with_ACA(A, max_rank=5)
+    assert np.allclose(A_rank_1_again.full_matrix(), full_A_rank_1)
+    assert np.linalg.matrix_rank(A_rank_1_again.full_matrix()) == 1
