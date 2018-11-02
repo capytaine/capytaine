@@ -8,6 +8,7 @@ import numpy as np
 from capytaine.matrices.block_matrices import *
 from capytaine.matrices.block_toeplitz_matrices import *
 from capytaine.matrices.builders import *
+from capytaine.matrices.low_rank_blocks import LowRankMatrix
 from capytaine.matrices.linear_solvers import solve_directly
 
 
@@ -264,6 +265,6 @@ def test_low_rank_blocks():
 
     # Test creation with ACA
     full_A_rank_1 = A_rank_1.full_matrix()
-    A_rank_1_again = LowRankMatrix.from_full_matrix_with_ACA(A, max_rank=5)
-    assert np.allclose(A_rank_1_again.full_matrix(), full_A_rank_1)
+    A_rank_1_again = LowRankMatrix.from_full_matrix_with_ACA(full_A_rank_1, max_rank=5)
     assert np.linalg.matrix_rank(A_rank_1_again.full_matrix()) == 1
+    assert np.allclose(A_rank_1_again.full_matrix(), full_A_rank_1)
