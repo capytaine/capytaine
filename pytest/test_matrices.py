@@ -252,12 +252,19 @@ def test_low_rank_blocks():
     assert np.linalg.matrix_rank(LR.full_matrix()) == LR.rank == 2
 
     # Test creation from SVD
-    A = np.random.rand(n, n)
+    A = np.arange(n**2).reshape((n, n)) + np.random.rand(n, n)
     dumb_low_rank = LowRankMatrix.from_full_matrix_with_SVD(A, n)
     assert np.allclose(dumb_low_rank.full_matrix() - A, 0.0)
 
     A_rank_1 = LowRankMatrix.from_full_matrix_with_SVD(A, 1)
     assert np.linalg.matrix_rank(A_rank_1.full_matrix()) == A_rank_1.rank == 1
+
+    # Test recompression
+    recompressed = dumb_low_rank.recompress(new_rank=2)
+    assert recompressed.rank == np.linalg.matrix_rank(recompressed.full_matrix()) == 2
+
+    recompressed = dumb_low_rank.recompress(tol=1e-1)
+    assert recompressed.rank <= dumb_low_rank.rank
 
     # Test multiplication with vector
     b = np.random.rand(n)

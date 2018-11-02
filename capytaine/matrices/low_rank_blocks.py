@@ -116,6 +116,19 @@ class LowRankMatrix:
     #  Transformation  #
     ####################
 
+    def recompress(self, tol=None, new_rank=None):
+        """From Gipsylab, hmxQRSVD.m"""
+        if new_rank is None:
+            new_rank = self.rank
+        QA, RA = np.linalg.qr(self.left_matrix)
+        QB, RB = np.linalg.qr(self.right_matrix)
+        U, S, V = np.linalg.svd(RA @ RB.T)
+        if tol is not None:
+            new_rank = np.count_nonzero(S/S[0] >= tol)
+        A = QA @ (U[:, :new_rank] @ np.diag(S[:new_rank]))
+        B = QB @ V[:, :new_rank]
+        return LowRankMatrix(A, B.T)
+
     def __matmul__(self, other):
         if isinstance(other, np.ndarray) and len(other.shape) == 1:
             return self._mul_with_vector(other)
