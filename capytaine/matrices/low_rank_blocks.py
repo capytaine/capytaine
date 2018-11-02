@@ -19,7 +19,7 @@ class LowRankMatrix:
         self.right_matrix = right_matrix
         self.shape = left_matrix.shape[0], right_matrix.shape[1]
         assert left_matrix.shape[1] == right_matrix.shape[0], "Sizes of the left and right matrices do not match."
-        self.rank = left_matrix.shape[1] # == right_matrix.shape[0]
+        self.rank = left_matrix.shape[1]  # == right_matrix.shape[0]
 
     @classmethod
     def from_full_matrix_with_SVD(cls, full_matrix, max_rank):
@@ -121,13 +121,21 @@ class LowRankMatrix:
         if new_rank is None:
             new_rank = self.rank
         QA, RA = np.linalg.qr(self.left_matrix)
-        QB, RB = np.linalg.qr(self.right_matrix)
+        QB, RB = np.linalg.qr(self.right_matrix.T)
         U, S, V = np.linalg.svd(RA @ RB.T)
         if tol is not None:
             new_rank = np.count_nonzero(S/S[0] >= tol)
         A = QA @ (U[:, :new_rank] @ np.diag(S[:new_rank]))
         B = QB @ V[:, :new_rank]
         return LowRankMatrix(A, B.T)
+
+    def __add__(self, other):
+        if isinstance(other, LowRankMatrix):
+            new_left = np.concatenate([self.left_matrix, other.left_matrix], axis=1)
+            new_right = np.concatenate([self.right_matrix, other.right_matrix], axis=0)
+            return LowRankMatrix(new_left, new_right).recompress(new_rank=min(self.rank, other.rank))
+        else:
+            return NotImplemented
 
     def __matmul__(self, other):
         if isinstance(other, np.ndarray) and len(other.shape) == 1:

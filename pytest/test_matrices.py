@@ -238,7 +238,7 @@ def test_solve_block_circulant():
 
 
 def test_low_rank_blocks():
-    n = 5
+    n = 10
 
     # Test initialization
     a, b = np.random.rand(n, 1), np.random.rand(1, n)
@@ -277,7 +277,6 @@ def test_low_rank_blocks():
     assert np.allclose(A_rank_1_again.full_matrix(), full_A_rank_1)
 
     # Test creation from function with ACA
-    n = 15
     X = np.linspace(0, 1, n)
     Y = np.linspace(5, 6, n)
 
@@ -288,4 +287,7 @@ def test_low_rank_blocks():
     SLR = LowRankMatrix.from_function_with_ACA(f, n, n, max_rank=2, tol=1e-5)
     assert SLR.shape == (n, n)
     assert np.allclose(SLR.full_matrix(), S, atol=1e-4)
+
+    summed = SLR + A_rank_1
+    assert summed.rank == 1
 
