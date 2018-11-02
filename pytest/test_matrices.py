@@ -268,3 +268,17 @@ def test_low_rank_blocks():
     A_rank_1_again = LowRankMatrix.from_full_matrix_with_ACA(full_A_rank_1, max_rank=5)
     assert np.linalg.matrix_rank(A_rank_1_again.full_matrix()) == 1
     assert np.allclose(A_rank_1_again.full_matrix(), full_A_rank_1)
+
+    # Test creation from function with ACA
+    n = 15
+    X = np.linspace(0, 1, n)
+    Y = np.linspace(5, 6, n)
+
+    def f(i, j):
+        return 1/abs(X[i] - Y[j])
+
+    S = np.array([[f(i, j) for j in range(n)] for i in range(n)])
+    SLR = LowRankMatrix.from_function_with_ACA(f, n, n, max_rank=2, tol=1e-5)
+    assert SLR.shape == (n, n)
+    assert np.allclose(SLR.full_matrix(), S, atol=1e-4)
+
