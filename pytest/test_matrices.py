@@ -291,3 +291,27 @@ def test_low_rank_blocks():
     summed = SLR + A_rank_1
     assert summed.rank == 1
 
+
+def test_hierarchical_matrix():
+    n = 30
+    X = np.linspace(0, 1, n)
+    Y = np.linspace(10, 11, n)
+
+    def f(i, j):
+        return 1/abs(X[i] - Y[j])
+
+    S = np.array([[f(i, j) for j in range(n)] for i in range(n)])
+
+    HS = BlockMatrix(
+        [
+            [S[:n//2, :n//2], LowRankMatrix.from_full_matrix_with_ACA(S[n//2:, :n//2], tol=1e-5)],
+            [LowRankMatrix.from_full_matrix_with_ACA(S[:n//2, n//2:], tol=1e-5), S[n//2:, n//2:]],
+         ]
+    )
+
+    assert np.allclose(HS.full_matrix(), S, rtol=2e-1)
+
+    doubled = HS + HS
+    assert np.allclose(2*S, doubled.full_matrix(), rtol=2e-1)
+
+

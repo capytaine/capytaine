@@ -58,7 +58,7 @@ class LowRankMatrix:
     def from_rows_and_cols_functions_with_ACA(cls, get_row_func, get_col_func, nb_rows, nb_cols, max_rank=None, tol=1e-6):
         """Create a low rank matrix from functions using Adaptive Cross Approximation"""
         if max_rank is None:
-            max_rank = min(nb_rows, nb_cols)/2
+            max_rank = min(nb_rows, nb_cols)//2
 
         A = []  # Left matrix to be assembled
         B = []  # Right matrix to be assembled
