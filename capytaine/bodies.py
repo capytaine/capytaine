@@ -6,7 +6,7 @@
 
 import logging
 import copy
-from itertools import chain, accumulate
+from itertools import chain, accumulate, product
 
 import numpy as np
 
@@ -217,6 +217,32 @@ class FloatingBody(Abstract3DObject):
             new_body.name = name
             LOG.debug(f"Copy {self.name} under the name {name}.")
         return new_body
+
+    def assemble_regular_array(self, distance, nb_bodies):
+        """Create an regular array of identical bodies.
+
+        Parameters
+        ----------
+        distance : float
+            Center-to-center distance between objects in the array
+        nb_bodies : couple of ints
+            Number of objects in the x and y directions.
+
+        Returns
+        -------
+        FloatingBody
+        """
+        from capytaine.mesh.symmetries import build_regular_array_of_meshes
+        array_mesh = build_regular_array_of_meshes(self.mesh, distance, nb_bodies)
+        total_nb_faces = array_mesh.nb_faces
+        array_dofs = {}
+        for dof_name, dof in self.dofs.items():
+            for i, j in product(range(nb_bodies[0]), range(nb_bodies[1])):
+                shift_nb_faces = (j*nb_bodies[0] + i) * self.mesh.nb_faces
+                new_dof = np.zeros((total_nb_faces, 3))
+                new_dof[shift_nb_faces:shift_nb_faces+len(dof), :] = dof
+                array_dofs[f'{i}_{j}_{dof_name}'] = new_dof
+        return FloatingBody(mesh=array_mesh, dofs=array_dofs, name=f"array_of_{self.name}")
 
     def extract_faces(self, id_faces_to_extract, return_index=False):
         """Create a new FloatingBody by extracting some faces from the mesh.

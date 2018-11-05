@@ -178,6 +178,27 @@ class TranslationalSymmetry(SymmetricMesh):
         return TranslationalSymmetry(mesh_strip, translation=meshes[0].translation, nb_repetitions=len(meshes[0])-1, name=name)
 
 
+def build_regular_array_of_meshes(base_mesh, distance, nb_bodies):
+    """Create an array of objects using TranslationalSymmetries.
+
+    Parameters
+    ----------
+    base_mesh : Mesh or CollectionOfMeshes or SymmetricMesh
+        The mesh to duplicate to create the array
+    distance : float
+        Center-to-center distance between objects in the array
+    nb_bodies : couple of ints
+        Number of objects in the x and y directions.
+
+    Returns
+    -------
+    TranslationalSymmetry
+    """
+    line = TranslationalSymmetry(base_mesh, translation=(distance, 0.0, 0.0), nb_repetitions=nb_bodies[0]-1)
+    array = TranslationalSymmetry(line, translation=(0.0, distance, 0.0), nb_repetitions=nb_bodies[1]-1)
+    return array
+
+
 class AxialSymmetry(SymmetricMesh):
     """A mesh with a repeating pattern by rotation.
 

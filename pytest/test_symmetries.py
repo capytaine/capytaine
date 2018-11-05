@@ -121,3 +121,23 @@ def test_horizontal_cylinder(depth):
     assert np.isclose(result1.added_masses["Heave"], result2.added_masses["Heave"], atol=1e-4*cylinder.volume*problem.rho)
     assert np.isclose(result1.radiation_dampings["Heave"], result2.radiation_dampings["Heave"], atol=1e-4*cylinder.volume*problem.rho)
 
+
+def test_array_of_spheres():
+    radius = 1.0
+    resolution = 2
+    perimeter = 2*np.pi*radius
+    buoy = Sphere(radius=radius, center=(0.0, 0.0, 0.0),
+                  ntheta=int(perimeter*resolution/2), nphi=int(perimeter*resolution),
+                  clip_free_surface=True, clever=True, name=f"buoy")
+    buoy.add_translation_dof(name="Surge")
+    buoy.add_translation_dof(name="Sway")
+    buoy.add_translation_dof(name="Heave")
+    array = buoy.assemble_regular_array(distance=5.0, nb_bodies=(3, 3))
+
+    assert isinstance(array.mesh, TranslationalSymmetry)
+    assert isinstance(array.mesh[0], TranslationalSymmetry)
+    assert array.mesh[0][0] == buoy.mesh
+
+    assert len(array.dofs) == 3*3*3
+    assert "2_0_Heave" in array.dofs
+
