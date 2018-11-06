@@ -165,8 +165,8 @@ class EvenBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):
         BCDCBA
     """
 
-    def __init__(self, blocks):
-        super().__init__(blocks)
+    def __init__(self, blocks, **kwargs):
+        super().__init__(blocks, **kwargs)
         self._nb_blocks = (self._stored_nb_blocks[1] - 1) * 2
 
     # ACCESSING DATA
@@ -196,8 +196,8 @@ class OddBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):
         BCDDCBA
     """
 
-    def __init__(self, blocks):
-        super().__init__(blocks)
+    def __init__(self, blocks, **kwargs):
+        super().__init__(blocks, **kwargs)
         self._nb_blocks = self._stored_nb_blocks[1] * 2 - 1
 
     # ACCESSING DATA

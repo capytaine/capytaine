@@ -194,8 +194,10 @@ def build_regular_array_of_meshes(base_mesh, distance, nb_bodies):
     -------
     TranslationalSymmetry
     """
-    line = TranslationalSymmetry(base_mesh, translation=(distance, 0.0, 0.0), nb_repetitions=nb_bodies[0]-1)
-    array = TranslationalSymmetry(line, translation=(0.0, distance, 0.0), nb_repetitions=nb_bodies[1]-1)
+    line = TranslationalSymmetry(base_mesh, translation=(distance, 0.0, 0.0), nb_repetitions=nb_bodies[0]-1,
+                                 name=f'line_of_{base_mesh.name}')
+    array = TranslationalSymmetry(line, translation=(0.0, distance, 0.0), nb_repetitions=nb_bodies[1]-1,
+                                  name=f'array_of_{base_mesh.name}')
     return array
 
 

@@ -20,14 +20,14 @@ from capytaine.matrices.block_toeplitz_matrices import (
 LOG = logging.getLogger(__name__)
 
 
-def cut_matrix(full_matrix, x_shapes, y_shapes):
+def cut_matrix(full_matrix, x_shapes, y_shapes, check_dim=True):
     new_block_matrix = []
     for i, di in zip(accumulate([0] + x_shapes[:-1]), x_shapes):
         line = []
         for j, dj in zip(accumulate([0] + x_shapes[:-1]), y_shapes):
             line.append(full_matrix[i:i+di, j:j+dj])
         new_block_matrix.append(line)
-    return BlockMatrix(new_block_matrix)
+    return BlockMatrix(new_block_matrix, check_dim=check_dim)
 
 
 def random_block_matrix(x_shapes, y_shapes):
@@ -228,6 +228,7 @@ def build_with_symmetries(build_matrices):
 
             # Actual evaluation of coefficients using the Green function.
             S, V = build_matrices(mesh1, mesh2, *args, **kwargs)
-            return BlockMatrix([[S]]), BlockMatrix([[V]])
+            # return BlockMatrix([[S]]), BlockMatrix([[V]])
+            return S, V
 
     return build_matrices_with_symmetries

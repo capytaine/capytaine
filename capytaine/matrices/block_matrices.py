@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import logging
+
 from numbers import Number
 from typing import Tuple, List, Callable, Union
 from itertools import cycle
 
 import numpy as np
 from matplotlib.patches import Rectangle
+
+LOG = logging.getLogger(__name__)
 
 
 class BlockMatrix:
@@ -15,18 +19,27 @@ class BlockMatrix:
     ndim = 2  # Other dimensions have not been implemented.
     display_color = cycle([f'C{i}' for i in range(10)])
 
-    def __init__(self, blocks):
+    def __init__(self, blocks, _stored_block_shapes=None, check_dim=True):
         assert blocks[0][0].ndim == self.ndim
         self._stored_blocks = np.asarray(blocks)
-        self._stored_block_shapes = ([block.shape[0] for block in self._stored_blocks[:, 0]],
-                                     [block.shape[1] for block in self._stored_blocks[0, :]])
+
+        if _stored_block_shapes is None:
+            self._stored_block_shapes = ([block.shape[0] for block in self._stored_blocks[:, 0]],
+                                         [block.shape[1] for block in self._stored_blocks[0, :]])
+        else:
+            # To avoid going through the whole tree if it is already known.
+            self._stored_block_shapes = _stored_block_shapes
+
         self._stored_shape = (sum(self._stored_block_shapes[0]), sum(self._stored_block_shapes[1]))
         self._stored_nb_blocks = self._stored_blocks.shape[:self.ndim]
 
         flattened_shape = (np.product(self._stored_nb_blocks),) + tuple(self._stored_blocks.shape[self.ndim:])
         self._stored_blocks_flat = self._stored_blocks.view().reshape(flattened_shape)
 
-        self._check_dimension()
+        LOG.debug(f"New block matrix: %s", self)
+
+        if check_dim:
+            self._check_dimension()
 
     def __hash__(self):
         # Temporary
@@ -112,15 +125,19 @@ class BlockMatrix:
 
     def _apply_unary_op(self, op: Callable) -> 'BlockMatrix':
         """Helper function applying a function recursively on all submatrices."""
+        LOG.debug(f"Apply op {op.__name__} to {self}")
         result = np.asarray([op(block) for block in self._stored_blocks_flat])
-        return self.__class__(result.reshape(self._stored_nb_blocks + result.shape[1:]))
+        return self.__class__(result.reshape(self._stored_nb_blocks + result.shape[1:]),
+                              _stored_block_shapes=self._stored_block_shapes, check_dim=False)
 
     def _apply_binary_op(self, op: Callable, other: 'BlockMatrix') -> 'BlockMatrix':
         """Helper function applying a binary operator recursively on all submatrices."""
         if isinstance(other, self.__class__) and self.nb_blocks == other.nb_blocks:
+            LOG.debug(f"Apply op {op.__name__} to {self} and {other}")
             result = [op(block, other_block) for block, other_block in zip(self._stored_blocks_flat, other._stored_blocks_flat)]
             result = np.asarray(result)
-            return self.__class__(result.reshape(self._stored_nb_blocks + result.shape[1:]))
+            return self.__class__(result.reshape(self._stored_nb_blocks + result.shape[1:]),
+                                  _stored_block_shapes=self._stored_block_shapes, check_dim=False)
         else:
             return NotImplemented
 
@@ -168,6 +185,7 @@ class BlockMatrix:
 
     def __matmul__(self, other: Union['BlockMatrix', np.ndarray]) -> Union['BlockMatrix', np.ndarray]:
         if isinstance(other, BlockMatrix) and self.block_shapes[1] == other.block_shapes[0]:
+            LOG.debug(f"Multiplication of %s with %s", self, other)
             own_blocks = self.all_blocks
             other_blocks = np.moveaxis(other.all_blocks, 1, 0)
             new_matrix = []
@@ -176,12 +194,13 @@ class BlockMatrix:
                 for other_col in other_blocks:
                     new_line.append(sum(own_block @ other_block for own_block, other_block in zip(own_line, other_col)))
                 new_matrix.append(new_line)
-            return BlockMatrix(new_matrix)
+            return BlockMatrix(new_matrix, check_dim=False)
 
         elif isinstance(other, np.ndarray) and self.shape[1] == other.shape[0]:
+            LOG.debug(f"Multiplication of %s with a vector.", self)
             if other.ndim == 2:
                 from capytaine.matrices.builders import cut_matrix
-                cut_other = cut_matrix(other, self.block_shapes[1], [other.shape[1]])
+                cut_other = cut_matrix(other, self.block_shapes[1], [other.shape[1]], check_dim=False)
                 return (self @ cut_other).full_matrix()
             elif other.ndim == 1:
                 other = other.reshape((other.shape[0], 1))
@@ -199,7 +218,7 @@ class BlockMatrix:
     def T(self) -> 'BlockMatrix':
         """Transposed matrix."""
         transposed_blocks = np.array([[block.T for block in line] for line in self.all_blocks])
-        return BlockMatrix(transposed_blocks.T)
+        return BlockMatrix(transposed_blocks.T, check_dim=False)
 
     def full_matrix(self) -> np.ndarray:
         """Flatten the block structure and return a full matrix."""
