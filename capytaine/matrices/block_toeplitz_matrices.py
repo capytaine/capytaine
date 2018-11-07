@@ -135,15 +135,15 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
                                                  _stored_block_shapes=self._stored_block_shapes,
                                                  check_dim=False)
 
-    def __matmul__(self, other):
-        if isinstance(other, np.ndarray) and other.ndim == 1 and self.shape[1] == other.shape[0]:
-            LOG.debug(f"Multiplication of %s with a vector.", self)
-            A = self._circulant_super_matrix()
-            b = np.concatenate([other, np.zeros(A.shape[1] - self.shape[1])])
-            return (A @ b)[:self.shape[0]]
+    def matvec(self, other):
+        A = self._circulant_super_matrix()
+        b = np.concatenate([other, np.zeros(A.shape[1] - self.shape[1])])
+        return (A @ b)[:self.shape[0]]
 
-        else:
-            return NotImplemented
+    def rmatvec(self, other):
+        A = self._circulant_super_matrix()
+        b = np.concatenate([other, np.zeros(A.shape[0] - self.shape[1])])
+        return (A.rmatvec(b))[:self.shape[1]]
 
     @property
     def T(self):
@@ -191,16 +191,22 @@ class AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
         blocks_of_diagonalization = np.fft.fft(stacked_blocks, axis=0)
         return blocks_of_diagonalization
 
-    def __matmul__(self, other):
-        if isinstance(other, np.ndarray) and other.ndim == 1 and self.shape[1] == other.shape[0]:
-            LOG.debug(f"Multiplication of %s with a vector.", self)
-            fft_of_rhs = np.fft.fft(np.reshape(other, (self.nb_blocks[0], self.block_shape[1], 1)), axis=0)
-            fft_of_result = self.block_diagonalize() @ fft_of_rhs
-            result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[0])
-            return np.asarray(result, dtype=other.dtype)
+    def matvec(self, other):
+        """Matrix vector product.
+        Named as such to be used as scipy LinearOperator."""
+        fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], self.block_shape[1], 1)), axis=0)
+        fft_of_result = self.block_diagonalize() @ fft_of_vector
+        result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[0])
+        return np.asarray(result, dtype=other.dtype)
 
-        else:
-            return NotImplemented
+    def rmatvec(self, other):
+        """Matrix vector product.
+        Named as such to be used as scipy LinearOperator."""
+        other = np.conjugate(other)
+        fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], 1, self.block_shape[0])), axis=0)
+        fft_of_result = fft_of_vector @ self.block_diagonalize()
+        result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[1])
+        return np.asarray(result, dtype=other.dtype)
 
 
 class EvenBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):

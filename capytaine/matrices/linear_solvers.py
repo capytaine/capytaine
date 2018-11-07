@@ -21,11 +21,11 @@ def solve_directly(A, b):
     assert isinstance(b, np.ndarray) and A.ndim == b.ndim+1 and A.shape[-2] == b.shape[-1]
     if isinstance(A, AbstractBlockSymmetricCirculantMatrix):
         LOG.debug("\tSolve linear system %s", A)
-        AAt = A.block_diagonalize()
-        bt = np.fft.fft(np.reshape(b, AAt.shape[:2]), axis=0)
-        xt = solve_directly(AAt, bt)
-        x = np.fft.ifft(xt, axis=0).reshape((A.shape[1],))
-        return x
+        block_diagonal_matrix = A.block_diagonalize()
+        fft_of_rhs = np.fft.fft(np.reshape(b, block_diagonal_matrix.shape[:2]), axis=0)
+        fft_of_result = solve_directly(block_diagonal_matrix, fft_of_rhs)
+        result = np.fft.ifft(fft_of_result, axis=0).reshape((A.shape[1],))
+        return result
 
     elif isinstance(A, BlockSymmetricToeplitzMatrix):
         if A.nb_blocks == (2, 2):
@@ -65,7 +65,7 @@ def solve_storing_lu(A, b):
 
 def solve_gmres(A, b):
     LOG.debug(f"Solve with GMRES for {A}.")
-    x, info = ssl.gmres(A.full_matrix(), b)
+    x, info = ssl.gmres(A, b, atol=1e-6)
     if info != 0:
         LOG.warning("No convergence of the GMRES")
     return x

@@ -9,7 +9,7 @@ from capytaine.matrices.block_matrices import *
 from capytaine.matrices.block_toeplitz_matrices import *
 from capytaine.matrices.builders import *
 from capytaine.matrices.low_rank_blocks import LowRankMatrix
-from capytaine.matrices.linear_solvers import solve_directly
+from capytaine.matrices.linear_solvers import solve_directly, solve_gmres
 
 
 def test_block_matrices():
@@ -86,6 +86,7 @@ def test_block_toeplitz_matrices():
 
     b = np.random.rand(4)
     assert np.allclose(A @ b, b)
+    assert np.allclose(A.rmatvec(b), b)
 
     A2 = BlockMatrix(A.all_blocks)
     assert (A2.full_matrix() == A.full_matrix()).all()
@@ -122,6 +123,7 @@ def test_block_toeplitz_matrices():
 
     b = np.random.rand(8)
     assert np.allclose(C @ b, C.full_matrix() @ b)
+    assert np.allclose(C.rmatvec(b), b @ C.full_matrix())
 
     D = BlockMatrix([
         [C, np.zeros(C.shape)]
@@ -156,6 +158,7 @@ def test_even_block_circulant_matrix():
 
     b = np.random.rand(8)
     assert np.allclose(A @ b, A.full_matrix() @ b)
+    assert np.allclose(A.rmatvec(b), b @ A.full_matrix())
 
     B = EvenBlockSymmetricCirculantMatrix([
         [A, A, A]
@@ -167,6 +170,7 @@ def test_even_block_circulant_matrix():
 
     b = np.random.rand(32)
     assert np.allclose(B @ b, B.full_matrix() @ b)
+    assert np.allclose(B.rmatvec(b), b @ B.full_matrix())
 
 
 def test_odd_block_circulant_matrix():
@@ -231,6 +235,11 @@ def test_solve_block_circulant():
 
     assert np.allclose(x_circ, x_dumb, rtol=1e-6)
 
+    x_gmres = solve_gmres(A, b)
+    x_dumb_gmres = solve_gmres(A.full_matrix(), b)
+
+    assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
+
     A = EvenBlockSymmetricCirculantMatrix([
         [random_block_matrix([1, 1], [1, 1]) for _ in range(5)]
     ])
@@ -241,6 +250,10 @@ def test_solve_block_circulant():
 
     assert np.allclose(x_circ, x_dumb, rtol=1e-6)
 
+    x_gmres = solve_gmres(A, b)
+    x_dumb_gmres = solve_gmres(A.full_matrix(), b)
+
+    assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
 
 def test_low_rank_blocks():
     n = 10

@@ -167,6 +167,21 @@ class BlockMatrix:
         else:
             return self._apply_binary_op(lambda x, y: y/x, other)
 
+    def matvec(self, other):
+        """Matrix vector product.
+        Named as such to be used as scipy LinearOperator."""
+        result = np.zeros(self.shape[0], dtype=other.dtype)
+        line_heights = self.block_shapes[0]
+        line_positions = list(accumulate(chain([0], line_heights)))
+        col_widths = self.block_shapes[1]
+        col_positions = list(accumulate(chain([0], col_widths)))
+        for line, line_position, line_height in zip(self.all_blocks, line_positions, line_heights):
+            line_slice = slice(line_position, line_position+line_height)
+            for block, col_position, col_width in zip(line, col_positions, col_widths):
+                col_slice = slice(col_position, col_position+col_width)
+                result[line_slice] += block @ other[col_slice]
+        return result
+
     def __matmul__(self, other: Union['BlockMatrix', np.ndarray]) -> Union['BlockMatrix', np.ndarray]:
         if isinstance(other, BlockMatrix) and self.block_shapes[1] == other.block_shapes[0]:
             LOG.debug(f"Multiplication of %s with %s", self, other)
@@ -182,25 +197,15 @@ class BlockMatrix:
 
         elif isinstance(other, np.ndarray) and self.shape[1] == other.shape[0]:
             if other.ndim == 2:
-                LOG.debug(f"Multiplication of %s with a matrix.", self)
+                LOG.debug(f"Multiplication of {self} with a full matrix of shape {other.shape}.")
                 # Cut the matrix and recursively call itself to use the code above.
                 from capytaine.matrices.builders import cut_matrix
                 cut_other = cut_matrix(other, self.block_shapes[1], [other.shape[1]], check_dim=False)
                 return (self @ cut_other).full_matrix()
 
             elif other.ndim == 1:
-                LOG.debug(f"Multiplication of %s with a vector.", self)
-                result = np.zeros(self.shape[0], dtype=other.dtype)
-                line_heights = self.block_shapes[0]
-                line_positions = list(accumulate(chain([0], line_heights)))
-                col_widths = self.block_shapes[1]
-                col_positions = list(accumulate(chain([0], col_widths)))
-                for line, line_position, line_height in zip(self.all_blocks, line_positions, line_heights):
-                    line_slice = slice(line_position, line_position+line_height)
-                    for block, col_position, col_width in zip(line, col_positions, col_widths):
-                        col_slice = slice(col_position, col_position+col_width)
-                        result[line_slice] += block @ other[col_slice]
-                return result
+                LOG.debug(f"Multiplication of {self} with a full vector of size {other.shape}.")
+                return self.matvec(other)
 
             else:
                 return NotImplemented
