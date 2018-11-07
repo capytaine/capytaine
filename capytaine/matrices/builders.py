@@ -20,61 +20,61 @@ from capytaine.matrices.block_toeplitz_matrices import (
 LOG = logging.getLogger(__name__)
 
 
-def cut_matrix(full_matrix, x_shapes, y_shapes, check_dim=True):
+def cut_matrix(full_matrix, x_shapes, y_shapes, check=True):
     new_block_matrix = []
     for i, di in zip(accumulate([0] + x_shapes[:-1]), x_shapes):
         line = []
         for j, dj in zip(accumulate([0] + x_shapes[:-1]), y_shapes):
             line.append(full_matrix[i:i+di, j:j+dj])
         new_block_matrix.append(line)
-    return BlockMatrix(new_block_matrix, check_dim=check_dim)
+    return BlockMatrix(new_block_matrix, check=check)
 
 
 def random_block_matrix(x_shapes, y_shapes):
     return cut_matrix(np.random.rand(sum(x_shapes), sum(y_shapes)), x_shapes, y_shapes)
 
 
-def full_like(A, value):
+def full_like(A, value, dtype=np.float64):
     if isinstance(A, AbstractBlockSymmetricCirculantMatrix):
         new_matrix = []
         for i in range(len(A._stored_blocks[0, :])):
-            new_matrix.append(full_like(A._stored_blocks[0, i], value))
+            new_matrix.append(full_like(A._stored_blocks[0, i], value, dtype=dtype))
         return A.__class__([new_matrix])
     elif isinstance(A, BlockSymmetricToeplitzMatrix):
         new_matrix = []
         for i in range(A.nb_blocks[0]):
-            new_matrix.append(full_like(A._stored_blocks[0, i], value))
+            new_matrix.append(full_like(A._stored_blocks[0, i], value, dtype=dtype))
         return BlockSymmetricToeplitzMatrix([new_matrix])
     elif isinstance(A, BlockMatrix):
         new_matrix = []
         for i in range(A.nb_blocks[0]):
             line = []
             for j in range(A.nb_blocks[1]):
-                line.append(full_like(A.all_blocks[i][j], value))
+                line.append(full_like(A.all_blocks[i][j], value, dtype=dtype))
             new_matrix.append(line)
         return BlockMatrix(new_matrix)
     elif isinstance(A, np.ndarray):
-        return np.full_like(A, value)
+        return np.full_like(A, value, dtype=dtype)
 
 
-def zeros_like(A):
-    return full_like(A, 0.0)
+def zeros_like(A, dtype=np.float64):
+    return full_like(A, 0.0, dtype=dtype)
 
 
-def ones_like(A):
-    return full_like(A, 1.0)
+def ones_like(A, dtype=np.float64):
+    return full_like(A, 1.0, dtype=dtype)
 
 
-def identity_like(A):
+def identity_like(A, dtype=np.float64):
     if isinstance(A, AbstractBlockSymmetricCirculantMatrix):
-        I = [identity_like(A._stored_blocks[0, 0])]
+        I = [identity_like(A._stored_blocks[0, 0], dtype=dtype)]
         for i in range(1, len(A._stored_blocks[0, :])):
-            I.append(zeros_like(A._stored_blocks[0, i]))
+            I.append(zeros_like(A._stored_blocks[0, i], dtype=dtype))
         return A.__class__([I])
     elif isinstance(A, BlockSymmetricToeplitzMatrix):
-        I = [identity_like(A._stored_blocks[0, 0])]
+        I = [identity_like(A._stored_blocks[0, 0], dtype=dtype)]
         for i in range(1, A.nb_blocks[0]):
-            I.append(zeros_like(A._stored_blocks[0, i]))
+            I.append(zeros_like(A._stored_blocks[0, i], dtype=dtype))
         return BlockSymmetricToeplitzMatrix([I])
     elif isinstance(A, BlockMatrix):
         I = []
@@ -82,13 +82,13 @@ def identity_like(A):
             line = []
             for j in range(A.nb_blocks[1]):
                 if i == j:
-                    line.append(identity_like(A.all_blocks[i][j]))
+                    line.append(identity_like(A.all_blocks[i][j], dtype=dtype))
                 else:
-                    line.append(zeros_like(A.all_blocks[i][j]))
+                    line.append(zeros_like(A.all_blocks[i][j], dtype=dtype))
             I.append(line)
         return BlockMatrix(I)
     elif isinstance(A, np.ndarray):
-        return np.eye(A.shape[0], A.shape[1])
+        return np.eye(A.shape[0], A.shape[1], dtype=dtype)
 
 
 def build_with_symmetries(build_matrices):

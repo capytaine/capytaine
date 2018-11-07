@@ -17,9 +17,8 @@ class BlockMatrix:
     """A (2D) matrix, stored as a set of submatrices (or blocks)."""
 
     ndim = 2  # Other dimensions have not been implemented.
-    display_color = cycle([f'C{i}' for i in range(10)])
 
-    def __init__(self, blocks, _stored_block_shapes=None, check_dim=True):
+    def __init__(self, blocks, _stored_block_shapes=None, check=True):
         assert blocks[0][0].ndim == self.ndim
         self._stored_blocks = np.asarray(blocks)
 
@@ -39,8 +38,9 @@ class BlockMatrix:
 
         LOG.debug(f"New block matrix: %s", self)
 
-        if check_dim:
-            self._check_dimension()
+        if check:
+            assert self._check_dimensions_of_blocks()
+            assert self._check_dtype()
 
     def __hash__(self):
         # Temporary
@@ -80,17 +80,27 @@ class BlockMatrix:
     def _compute_shape(self):
         return sum(self._stored_block_shapes[0]), sum(self._stored_block_shapes[1])
 
-    def _check_dimension(self) -> None:
+    def _check_dimensions_of_blocks(self) -> bool:
         """Check that the dimensions of the blocks are consistent."""
         for line in self.all_blocks:
             block_height = line[0].shape[0]
             for block in line[1:]:
-                assert block.shape[0] == block_height  # Same height on a given line
+                if not block.shape[0] == block_height:  # Same height on a given line
+                    return False
 
         for col in np.moveaxis(self.all_blocks, 1, 0):
             block_width = col[0].shape[1]
             for block in col[1:]:
-                assert block.shape[1] == block_width  # Same width on a given column
+                if not block.shape[1] == block_width:  # Same width on a given column
+                    return False
+        return True
+
+    def _check_dtype(self) -> bool:
+        for line in self._stored_blocks:
+            for block in line:
+                if block.dtype != self.dtype:
+                    return False
+        return True
 
     def _stored_block_positions(self) -> Iterable[List[Tuple[int, int]]]:
         """The position of each blocks in the matrix.
@@ -111,7 +121,7 @@ class BlockMatrix:
         """Helper function applying a function recursively on all submatrices."""
         LOG.debug(f"Apply op {op.__name__} to {self}")
         result = [[op(block) for block in line] for line in self._stored_blocks]
-        return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check_dim=False)
+        return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check=False)
 
     def _apply_binary_op(self, op: Callable, other: 'BlockMatrix') -> 'BlockMatrix':
         """Helper function applying a binary operator recursively on all submatrices."""
@@ -121,7 +131,7 @@ class BlockMatrix:
                 [op(block, other_block) for block, other_block in zip(line, other_line)]
                 for line, other_line in zip(self._stored_blocks, other._stored_blocks)
             ]
-            return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check_dim=False)
+            return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check=False)
         else:
             return NotImplemented
 
@@ -193,7 +203,7 @@ class BlockMatrix:
                 for other_col in other_blocks:
                     new_line.append(sum(own_block @ other_block for own_block, other_block in zip(own_line, other_col)))
                 new_matrix.append(new_line)
-            return BlockMatrix(new_matrix, check_dim=False)
+            return BlockMatrix(new_matrix, check=False)
 
         elif isinstance(other, np.ndarray) and self.shape[1] == other.shape[0]:
             if other.ndim == 2:
@@ -220,7 +230,7 @@ class BlockMatrix:
     def T(self) -> 'BlockMatrix':
         """Transposed matrix."""
         transposed_blocks = np.array([[block.T for block in line] for line in self.all_blocks])
-        return BlockMatrix(transposed_blocks.T, check_dim=False)
+        return BlockMatrix(transposed_blocks.T, check=False)
 
     def _put_in_full_matrix(self, full_matrix, where=(0, 0)):
         """In place copy the content of the block matrix in a matrix."""
@@ -289,6 +299,8 @@ class BlockMatrix:
 
     def __repr__(self):
         return f"{self.__class__.__name__}(nb_blocks={self.nb_blocks}, shape={self.shape})"
+
+    display_color = cycle([f'C{i}' for i in range(10)])
 
     def _patches(self, global_frame: Tuple[int, int]) -> List[Rectangle]:
         """Helper function for displaying the shape of the matrix.

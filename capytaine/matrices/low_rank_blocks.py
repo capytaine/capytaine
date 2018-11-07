@@ -20,6 +20,8 @@ class LowRankMatrix:
         self.shape = left_matrix.shape[0], right_matrix.shape[1]
         assert left_matrix.shape[1] == right_matrix.shape[0], "Sizes of the left and right matrices do not match."
         self.rank = left_matrix.shape[1]  # == right_matrix.shape[0]
+        assert left_matrix.dtype == right_matrix.dtype
+        self.dtype = left_matrix.dtype
 
     @classmethod
     def from_full_matrix_with_SVD(cls, full_matrix, max_rank):

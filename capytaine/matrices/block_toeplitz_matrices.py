@@ -68,10 +68,12 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         """The blocks on the first line of blocks in the matrix."""
         return self._stored_blocks[0, :]
 
-    def _check_dimension(self) -> None:
+    def _check_dimensions_of_blocks(self) -> bool:
         block_shape = self._stored_blocks[0, 0].shape
         for block in self._stored_blocks[0, 1:]:
-            assert block.shape == block_shape  # All blocks have same shape
+            if not block.shape == block_shape:  # All blocks have same shape
+                return False
+        return True
 
     def _block_indices_of(self, k: int) -> List[Tuple[int, int]]:
         """The block indices at which the block k from the first line can also be found.
@@ -133,7 +135,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
     def _circulant_super_matrix(self):
         return EvenBlockSymmetricCirculantMatrix(self._stored_blocks,
                                                  _stored_block_shapes=self._stored_block_shapes,
-                                                 check_dim=False)
+                                                 check=False)
 
     def matvec(self, other):
         A = self._circulant_super_matrix()
