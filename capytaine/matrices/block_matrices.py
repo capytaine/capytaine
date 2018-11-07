@@ -5,7 +5,7 @@ import logging
 
 from numbers import Number
 from typing import Tuple, List, Callable, Union
-from itertools import cycle
+from itertools import cycle, accumulate, chain
 
 import numpy as np
 from matplotlib.patches import Rectangle
@@ -124,7 +124,6 @@ class BlockMatrix:
         """Helper function applying a function recursively on all submatrices."""
         LOG.debug(f"Apply op {op.__name__} to {self}")
         result = [[op(block) for block in line] for line in self._stored_blocks]
-        result = np.asarray(result)
         return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check_dim=False)
 
     def _apply_binary_op(self, op: Callable, other: 'BlockMatrix') -> 'BlockMatrix':
@@ -135,7 +134,6 @@ class BlockMatrix:
                 [op(block, other_block) for block, other_block in zip(line, other_line)]
                 for line, other_line in zip(self._stored_blocks, other._stored_blocks)
             ]
-            result = np.asarray(result)
             return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check_dim=False)
         else:
             return NotImplemented
@@ -196,14 +194,27 @@ class BlockMatrix:
             return BlockMatrix(new_matrix, check_dim=False)
 
         elif isinstance(other, np.ndarray) and self.shape[1] == other.shape[0]:
-            LOG.debug(f"Multiplication of %s with a vector.", self)
             if other.ndim == 2:
+                LOG.debug(f"Multiplication of %s with a matrix.", self)
+                # Cut the matrix and recursively call itself to use the code above.
                 from capytaine.matrices.builders import cut_matrix
                 cut_other = cut_matrix(other, self.block_shapes[1], [other.shape[1]], check_dim=False)
                 return (self @ cut_other).full_matrix()
+
             elif other.ndim == 1:
-                other = other.reshape((other.shape[0], 1))
-                return (self @ other).flatten()
+                LOG.debug(f"Multiplication of %s with a vector.", self)
+                result = np.zeros(self.shape[0], dtype=other.dtype)
+                line_heights = self.block_shapes[0]
+                line_positions = list(accumulate(chain([0], line_heights)))
+                col_widths = self.block_shapes[1]
+                col_positions = list(accumulate(chain([0], col_widths)))
+                for line, line_position, line_height in zip(self.all_blocks, line_positions, line_heights):
+                    line_slice = slice(line_position, line_position+line_height)
+                    for block, col_position, col_width in zip(line, col_positions, col_widths):
+                        col_slice = slice(col_position, col_position+col_width)
+                        result[line_slice] += block @ other[col_slice]
+                return result
+
             else:
                 return NotImplemented
 
@@ -275,7 +286,8 @@ class BlockMatrix:
             coordinates of the origin in the top left corner.
         """
         patches = []
-        for block_position_in_local_frame, block in zip(self._block_positions_list, [block for line in self.all_blocks for block in line]):
+        blocks_flat_list = (block for line in self.all_blocks for block in line)
+        for block_position_in_local_frame, block in zip(self._block_positions_list, blocks_flat_list):
             block_position_in_global_frame = (global_frame[0] + block_position_in_local_frame[0],
                                               global_frame[1] + block_position_in_local_frame[1])
             if isinstance(block, BlockMatrix):

@@ -60,6 +60,9 @@ def test_block_matrices():
 
     assert (C @ random_block_matrix(C.block_shapes[1], [6])).block_shapes == ([1, 2, 4], [6])
 
+    b = np.random.rand(7)
+    assert np.allclose(C @ b, C.full_matrix() @ b)
+
 
 def test_block_toeplitz_matrices():
     A = BlockSymmetricToeplitzMatrix([
@@ -80,7 +83,7 @@ def test_block_toeplitz_matrices():
     assert (A*A == A).all()
 
     b = np.random.rand(4)
-    assert (A @ b == b).all()
+    assert np.allclose(A @ b, b)
 
     A2 = BlockMatrix(A.all_blocks)
     assert (A2.full_matrix() == A.full_matrix()).all()
