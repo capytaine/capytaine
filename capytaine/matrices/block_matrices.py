@@ -4,8 +4,8 @@
 import logging
 
 from numbers import Number
-from typing import Tuple, List, Callable, Union
-from itertools import cycle, accumulate, chain
+from typing import Tuple, List, Callable, Union, Iterable
+from itertools import cycle, accumulate, chain, product
 
 import numpy as np
 from matplotlib.patches import Rectangle
@@ -30,8 +30,12 @@ class BlockMatrix:
             # To avoid going through the whole tree if it is already known.
             self._stored_block_shapes = _stored_block_shapes
 
-        self._stored_shape = (sum(self._stored_block_shapes[0]), sum(self._stored_block_shapes[1]))
         self._stored_nb_blocks = self._stored_blocks.shape[:self.ndim]
+
+        # Total shape of the full matrix
+        self.shape = self._compute_shape()
+
+        self.dtype = self._stored_blocks[0][0].dtype
 
         LOG.debug(f"New block matrix: %s", self)
 
@@ -48,19 +52,6 @@ class BlockMatrix:
     def all_blocks(self) -> np.ndarray:
         """The matrix of matrices. For a full block matrix, all the blocks are stored in memory."""
         return self._stored_blocks
-
-    @property
-    def shape(self) -> Tuple[int, int]:
-        """The total size of the matrix.
-        That is the shape of the array if the BlockMatrix was flattened.
-
-        Example::
-
-            AAAABB
-            AAAABB  ->  shape = (3, 6)
-            AAAABB
-        """
-        return self._stored_shape
 
     @property
     def block_shapes(self) -> Tuple[List[int], List[int]]:
@@ -86,6 +77,9 @@ class BlockMatrix:
         """
         return self._stored_nb_blocks
 
+    def _compute_shape(self):
+        return sum(self._stored_block_shapes[0]), sum(self._stored_block_shapes[1])
+
     def _check_dimension(self) -> None:
         """Check that the dimensions of the blocks are consistent."""
         for line in self.all_blocks:
@@ -98,25 +92,18 @@ class BlockMatrix:
             for block in col[1:]:
                 assert block.shape[1] == block_width  # Same width on a given column
 
-    @property
-    def _block_positions_list(self) -> List[Tuple[int, int]]:
+    def _stored_block_positions(self) -> Iterable[List[Tuple[int, int]]]:
         """The position of each blocks in the matrix.
 
         Example::
 
             AAAABB
-            AAAABB  ->  _block_positions_list = [(0,0), (0, 4)]
-            AAAABB
+            AAAABB  ->  list(matrix._stored_block_positions) = [[(0,0)], [(0, 4)], [(2, 0)], [(2, 4)]]
+            CCCCDD
         """
-        positions = []
-        current_cursor_position = np.array([0, 0], dtype=np.int)
-        for line in self.all_blocks:
-            for block in line:
-                positions.append(tuple(current_cursor_position))
-                current_cursor_position[0] += block.shape[1]  # Shift to the next block on the line
-            current_cursor_position[0] = 0  # Return to the beginning of line
-            current_cursor_position[1] += line[0].shape[0]  # Shift to next line
-        return positions
+        x_acc = accumulate([0] + self.block_shapes[0][:-1])
+        y_acc = accumulate([0] + self.block_shapes[1][:-1])
+        return ([(x, y)] for x, y in product(x_acc, y_acc))
 
     # TRANSFORMING DATA
 
@@ -230,12 +217,34 @@ class BlockMatrix:
         transposed_blocks = np.array([[block.T for block in line] for line in self.all_blocks])
         return BlockMatrix(transposed_blocks.T, check_dim=False)
 
+    def _put_in_full_matrix(self, full_matrix, where=(0, 0)):
+        """In place copy the content of the block matrix in a matrix."""
+        positions_of_blocks = ([(where[0] + x, where[1] + y) for x, y, in positions_of_block]
+                               for positions_of_block in self._stored_block_positions())
+        all_blocks_flat = (block for line in self._stored_blocks for block in line)
+        for block, positions_of_block in zip(all_blocks_flat, positions_of_blocks):
+            if isinstance(block, BlockMatrix):
+                position_of_first_appearance = positions_of_block[0]
+                block._put_in_full_matrix(full_matrix, where=position_of_first_appearance)
+                frame_of_first_appearance = (slice(position_of_first_appearance[0], position_of_first_appearance[0]+block.shape[0]),
+                                             slice(position_of_first_appearance[1], position_of_first_appearance[1]+block.shape[1]))
+                for position in positions_of_block[1:]:
+                    block_frame = (slice(position[0], position[0]+block.shape[0]),
+                                   slice(position[1], position[1]+block.shape[1]))
+                    full_matrix[block_frame] = full_matrix[frame_of_first_appearance]
+            else:
+                full_block = block if isinstance(block, np.ndarray) else block.full_matrix()
+                for position in positions_of_block:
+                    block_frame = (slice(position[0], position[0]+block.shape[0]),
+                                   slice(position[1], position[1]+block.shape[1]))
+                    full_matrix[block_frame] = full_block
+        return full_matrix
+
     def full_matrix(self) -> np.ndarray:
         """Flatten the block structure and return a full matrix."""
-        full_blocks = [[block.full_matrix() if not isinstance(block, np.ndarray) else block
-                        for block in line]
-                       for line in self.all_blocks]
-        return np.block(full_blocks)
+        full_matrix = np.empty(self.shape, dtype=self.dtype)
+        self._put_in_full_matrix(full_matrix)
+        return full_matrix
 
     # COMPARISON AND REDUCTION
 
@@ -287,9 +296,9 @@ class BlockMatrix:
         """
         patches = []
         blocks_flat_list = (block for line in self.all_blocks for block in line)
-        for block_position_in_local_frame, block in zip(self._block_positions_list, blocks_flat_list):
-            block_position_in_global_frame = (global_frame[0] + block_position_in_local_frame[0],
-                                              global_frame[1] + block_position_in_local_frame[1])
+        for block_position_in_local_frame, block in zip(self._stored_block_positions(), blocks_flat_list):
+            block_position_in_global_frame = (global_frame[0] + block_position_in_local_frame[0][1],
+                                              global_frame[1] + block_position_in_local_frame[0][0])
             if isinstance(block, BlockMatrix):
                 patches.extend(block._patches(block_position_in_global_frame))
             elif isinstance(block, np.ndarray):

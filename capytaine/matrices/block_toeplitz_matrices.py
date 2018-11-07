@@ -2,13 +2,14 @@
 # coding: utf-8
 
 import logging
-from typing import Tuple, List
+from typing import Tuple, List, Iterable
 
 import numpy as np
 
 from capytaine.matrices.block_matrices import BlockMatrix
 
 LOG = logging.getLogger(__name__)
+
 
 ################################################################################
 #                       Block symmetric Toeplitz matrix                        #
@@ -58,9 +59,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         """The shape of any block."""
         return self._stored_block_shapes[0][0], self._stored_block_shapes[1][0]  # Shape of first stored block
 
-    @property
-    def shape(self):
-        """The total size of the matrix."""
+    def _compute_shape(self):
         return self._stored_block_shapes[0][0]*self.nb_blocks[0], self._stored_block_shapes[1][0]*self.nb_blocks[1]
 
     @property
@@ -73,14 +72,34 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         for block in self._stored_blocks[0, 1:]:
             assert block.shape == block_shape  # All blocks have same shape
 
-    def _positions_of_index(self, k: int) -> List[Tuple[int, int]]:
-        """The block indices at which the block k from the first line can also be found."""
+    def _block_indices_of(self, k: int) -> List[Tuple[int, int]]:
+        """The block indices at which the block k from the first line can also be found.
+        TODO: Optimize.
+        """
         n = self.nb_blocks[0]
         return [(i, j) for i in range(n) for j in range(n) if abs(i-j) == k]
+
+    def _positions_of(self, k: int) -> List[Tuple[int, int]]:
+        """The positions in the full matrix at which the block k from the first line can also be found."""
+        shape = self.block_shape
+        return [(i*shape[0], j*shape[1]) for i, j in self._block_indices_of(k)]
+
+    def _stored_block_positions(self) -> Iterable[List[Tuple[int, int]]]:
+        """The position of each blocks in the matrix.
+
+        Example::
+
+            AABB
+            AABB  ->  list(matrix._stored_block_positions) = [[(0,0), (2, 2)], [(0, 2), (2, 0)]]
+            BBAA
+            BBAA
+        """
+        return (self._positions_of(k) for k in range(len(self.first_block_line)))
 
     # DISPLAYING DATA
 
     def _patches(self, global_frame: Tuple[int, int]):
+        # TODO: Refactor in the same way as full_matrix()
         from matplotlib.patches import Rectangle
         patches = []
 
@@ -98,7 +117,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
                 raise AttributeError()
 
             # Copy the patches to fill the rest of the matrix.
-            for i, j in self._positions_of_index(k)[1:]:
+            for i, j in self._block_indices_of(k)[1:]:
                 for patch in patches_of_this_block:
                     local_shift = np.array(patch.get_xy()) + np.array(((j-k)*self.block_shape[1], i*self.block_shape[0]))
                     patches.append(Rectangle(local_shift, patch.get_width(), patch.get_height(),
@@ -150,7 +169,7 @@ class AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
             grid.append(line[-i:] + line[:-i])
         return np.array(grid)
 
-    def _positions_of_index(self, k):
+    def _block_indices_of(self, k):
         n = self.nb_blocks[0]
         grid = self._index_grid()
         return [(i, j) for i in range(n) for j in range(n) if grid[i, j] == k]
@@ -193,8 +212,9 @@ class EvenBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):
     """
 
     def __init__(self, blocks, **kwargs):
+        blocks = np.asarray(blocks)
+        self._nb_blocks = (blocks.shape[1] - 1) * 2
         super().__init__(blocks, **kwargs)
-        self._nb_blocks = (self._stored_nb_blocks[1] - 1) * 2
 
     # ACCESSING DATA
 
@@ -224,8 +244,9 @@ class OddBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):
     """
 
     def __init__(self, blocks, **kwargs):
+        blocks = np.asarray(blocks)
+        self._nb_blocks = (blocks.shape[1]) * 2 - 1
         super().__init__(blocks, **kwargs)
-        self._nb_blocks = self._stored_nb_blocks[1] * 2 - 1
 
     # ACCESSING DATA
 
