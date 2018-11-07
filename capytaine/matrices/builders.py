@@ -37,13 +37,13 @@ def random_block_matrix(x_shapes, y_shapes):
 def full_like(A, value):
     if isinstance(A, AbstractBlockSymmetricCirculantMatrix):
         new_matrix = []
-        for i in range(len(A._stored_blocks_flat)):
-            new_matrix.append(full_like(A._stored_blocks_flat[i], value))
+        for i in range(len(A._stored_blocks[0, :])):
+            new_matrix.append(full_like(A._stored_blocks[0, i], value))
         return A.__class__([new_matrix])
     elif isinstance(A, BlockSymmetricToeplitzMatrix):
         new_matrix = []
         for i in range(A.nb_blocks[0]):
-            new_matrix.append(full_like(A._stored_blocks_flat[i], value))
+            new_matrix.append(full_like(A._stored_blocks[0, i], value))
         return BlockSymmetricToeplitzMatrix([new_matrix])
     elif isinstance(A, BlockMatrix):
         new_matrix = []
@@ -67,14 +67,14 @@ def ones_like(A):
 
 def identity_like(A):
     if isinstance(A, AbstractBlockSymmetricCirculantMatrix):
-        I = [identity_like(A._stored_blocks_flat[0])]
-        for i in range(1, len(A._stored_blocks_flat)):
-            I.append(zeros_like(A._stored_blocks_flat[i]))
+        I = [identity_like(A._stored_blocks[0, 0])]
+        for i in range(1, len(A._stored_blocks[0, :])):
+            I.append(zeros_like(A._stored_blocks[0, i]))
         return A.__class__([I])
     elif isinstance(A, BlockSymmetricToeplitzMatrix):
-        I = [identity_like(A._stored_blocks_flat[0])]
+        I = [identity_like(A._stored_blocks[0, 0])]
         for i in range(1, A.nb_blocks[0]):
-            I.append(zeros_like(A._stored_blocks_flat[i]))
+            I.append(zeros_like(A._stored_blocks[0, i]))
         return BlockSymmetricToeplitzMatrix([I])
     elif isinstance(A, BlockMatrix):
         I = []

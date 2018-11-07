@@ -33,9 +33,6 @@ class BlockMatrix:
         self._stored_shape = (sum(self._stored_block_shapes[0]), sum(self._stored_block_shapes[1]))
         self._stored_nb_blocks = self._stored_blocks.shape[:self.ndim]
 
-        flattened_shape = (np.product(self._stored_nb_blocks),) + tuple(self._stored_blocks.shape[self.ndim:])
-        self._stored_blocks_flat = self._stored_blocks.view().reshape(flattened_shape)
-
         LOG.debug(f"New block matrix: %s", self)
 
         if check_dim:
@@ -126,18 +123,20 @@ class BlockMatrix:
     def _apply_unary_op(self, op: Callable) -> 'BlockMatrix':
         """Helper function applying a function recursively on all submatrices."""
         LOG.debug(f"Apply op {op.__name__} to {self}")
-        result = np.asarray([op(block) for block in self._stored_blocks_flat])
-        return self.__class__(result.reshape(self._stored_nb_blocks + result.shape[1:]),
-                              _stored_block_shapes=self._stored_block_shapes, check_dim=False)
+        result = [[op(block) for block in line] for line in self._stored_blocks]
+        result = np.asarray(result)
+        return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check_dim=False)
 
     def _apply_binary_op(self, op: Callable, other: 'BlockMatrix') -> 'BlockMatrix':
         """Helper function applying a binary operator recursively on all submatrices."""
         if isinstance(other, self.__class__) and self.nb_blocks == other.nb_blocks:
             LOG.debug(f"Apply op {op.__name__} to {self} and {other}")
-            result = [op(block, other_block) for block, other_block in zip(self._stored_blocks_flat, other._stored_blocks_flat)]
+            result = [
+                [op(block, other_block) for block, other_block in zip(line, other_line)]
+                for line, other_line in zip(self._stored_blocks, other._stored_blocks)
+            ]
             result = np.asarray(result)
-            return self.__class__(result.reshape(self._stored_nb_blocks + result.shape[1:]),
-                                  _stored_block_shapes=self._stored_block_shapes, check_dim=False)
+            return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check_dim=False)
         else:
             return NotImplemented
 
@@ -242,22 +241,24 @@ class BlockMatrix:
         return ~(self == other)
 
     def all(self) -> bool:
-        for block in self._stored_blocks_flat:
-            if not block.all():
-                return False
-            return True
+        for line in self._stored_blocks:
+            for block in line:
+                if not block.all():
+                    return False
+        return True
 
     def any(self) -> bool:
-        for block in self._stored_blocks_flat:
-            if block.any():
-                return True
-            return False
+        for line in self._stored_blocks:
+            for block in line:
+                if block.any():
+                    return True
+        return False
 
     def min(self) -> Number:
-        return min([block.min() for block in self._stored_blocks_flat])
+        return min(block.min() for line in self._stored_blocks for block in line)
 
     def max(self) -> Number:
-        return max([block.max() for block in self._stored_blocks_flat])
+        return max(block.max() for line in self._stored_blocks for block in line)
 
     # DISPLAYING DATA
 

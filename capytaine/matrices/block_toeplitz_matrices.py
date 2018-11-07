@@ -37,7 +37,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
     @property
     def all_blocks(self) -> np.ndarray:
         """The matrix of matrices as if the block Toeplitz structure was not used."""
-        return np.array([[block for block in self._stored_blocks_flat[indices]] for indices in self._index_grid()])
+        return np.array([[block for block in self.first_block_line[indices]] for indices in self._index_grid()])
 
     @property
     def nb_blocks(self) -> Tuple[int, int]:
@@ -64,11 +64,11 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
     @property
     def first_block_line(self):
         """The blocks on the first line of blocks in the matrix."""
-        return self._stored_blocks_flat
+        return self._stored_blocks[0, :]
 
     def _check_dimension(self) -> None:
-        block_shape = self._stored_blocks_flat[0].shape
-        for block in self._stored_blocks_flat[1:]:
+        block_shape = self._stored_blocks[0, 0].shape
+        for block in self._stored_blocks[0, 1:]:
             assert block.shape == block_shape  # All blocks have same shape
 
     def _positions_of_index(self, k: int) -> List[Tuple[int, int]]:
@@ -83,7 +83,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         patches = []
 
         # Recursively plot the blocks on the first line.
-        for k, block in enumerate(self._stored_blocks_flat):
+        for k, block in enumerate(self.first_block_line):
             block_position_in_global_frame = (global_frame[0] + k*self.block_shape[1],
                                               global_frame[1])
             if isinstance(block, BlockMatrix):
@@ -110,7 +110,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
     @property
     def T(self):
         """Transpose the matrix."""
-        transposed_blocks = np.array([[block.T for block in self._stored_blocks_flat]])
+        transposed_blocks = np.array([[block.T for block in self._stored_blocks[0, :]]])
         return self.__class__(transposed_blocks)
 
 
@@ -144,7 +144,7 @@ class AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
 
     @property
     def first_block_line(self):
-        return self._stored_blocks_flat[self._baseline_grid()]
+        return self._stored_blocks[0, self._baseline_grid()]
 
 
 class EvenBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):
@@ -172,7 +172,7 @@ class EvenBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):
     # ACCESSING DATA
 
     def _baseline_grid(self):
-        blocks_indices = list(range(len(self._stored_blocks_flat)))
+        blocks_indices = list(range(len(self._stored_blocks[0, :])))
         return blocks_indices[:-1] + blocks_indices[1:][::-1]
 
 
@@ -203,6 +203,6 @@ class OddBlockSymmetricCirculantMatrix(AbstractBlockSymmetricCirculantMatrix):
     # ACCESSING DATA
 
     def _baseline_grid(self):
-        blocks_indices = list(range(len(self._stored_blocks_flat)))
+        blocks_indices = list(range(len(self._stored_blocks[0, :])))
         return blocks_indices[:] + blocks_indices[1:][::-1]
 
