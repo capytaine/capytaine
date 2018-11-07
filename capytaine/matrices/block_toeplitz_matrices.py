@@ -3,6 +3,7 @@
 
 import logging
 from typing import Tuple, List, Iterable
+from functools import lru_cache
 
 import numpy as np
 
@@ -128,17 +129,22 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 
     # TRANSFORMING DATA
 
+    @lru_cache(maxsize=16)
+    def _circulant_super_matrix(self):
+        return EvenBlockSymmetricCirculantMatrix(self._stored_blocks,
+                                                 _stored_block_shapes=self._stored_block_shapes,
+                                                 check_dim=False)
+
     def __matmul__(self, other):
         if isinstance(other, np.ndarray) and other.ndim == 1 and self.shape[1] == other.shape[0]:
             LOG.debug(f"Multiplication of %s with a vector.", self)
-            A = EvenBlockSymmetricCirculantMatrix(self._stored_blocks,
-                                                  _stored_block_shapes=self._stored_block_shapes,
-                                                  check_dim=False)
+            A = self._circulant_super_matrix()
             b = np.concatenate([other, np.zeros(A.shape[1] - self.shape[1])])
             return (A @ b)[:self.shape[0]]
 
         else:
             return NotImplemented
+
     @property
     def T(self):
         """Transpose the matrix."""
@@ -178,16 +184,20 @@ class AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
     def first_block_line(self):
         return self._stored_blocks[0, self._baseline_grid()]
 
+    @lru_cache(maxsize=16)
+    def block_diagonalize(self):
+        stacked_blocks = np.array([block.full_matrix() if not isinstance(block, np.ndarray) else block
+                       for block in self.first_block_line])
+        blocks_of_diagonalization = np.fft.fft(stacked_blocks, axis=0)
+        return blocks_of_diagonalization
+
     def __matmul__(self, other):
         if isinstance(other, np.ndarray) and other.ndim == 1 and self.shape[1] == other.shape[0]:
             LOG.debug(f"Multiplication of %s with a vector.", self)
-            AA = np.array([block.full_matrix() if not isinstance(block, np.ndarray) else block
-                           for block in self.first_block_line])
-            AAt = np.fft.fft(AA, axis=0)
-            bt = np.fft.fft(np.reshape(other, AAt.shape[:2] + (1,)), axis=0)
-            yt = AAt @ bt
-            y = np.fft.ifft(yt, axis=0).reshape(self.shape[0])
-            return np.asarray(y, dtype=other.dtype)
+            fft_of_rhs = np.fft.fft(np.reshape(other, (self.nb_blocks[0], self.block_shape[1], 1)), axis=0)
+            fft_of_result = self.block_diagonalize() @ fft_of_rhs
+            result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[0])
+            return np.asarray(result, dtype=other.dtype)
 
         else:
             return NotImplemented

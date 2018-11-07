@@ -18,14 +18,13 @@ LOG = logging.getLogger(__name__)
 
 
 def solve_directly(A, b):
+    assert isinstance(b, np.ndarray) and A.ndim == b.ndim+1 and A.shape[-2] == b.shape[-1]
     if isinstance(A, AbstractBlockSymmetricCirculantMatrix):
         LOG.debug("\tSolve linear system %s", A)
-        AA = np.array([block.full_matrix() if not isinstance(block, np.ndarray) else block
-                       for block in A.first_block_line])
-        AAt = np.fft.fft(AA, axis=0)
+        AAt = A.block_diagonalize()
         bt = np.fft.fft(np.reshape(b, AAt.shape[:2]), axis=0)
         xt = solve_directly(AAt, bt)
-        x = np.fft.ifft(xt, axis=0).reshape(b.shape)
+        x = np.fft.ifft(xt, axis=0).reshape((A.shape[1],))
         return x
 
     elif isinstance(A, BlockSymmetricToeplitzMatrix):
