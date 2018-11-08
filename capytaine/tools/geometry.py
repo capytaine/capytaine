@@ -138,11 +138,11 @@ class Abstract3DObject(ABC):
 ######################
 
 def test_orthogonal_vectors(vec1, vec2) -> bool:
-    return np.isclose(np.linalg.norm(np.asarray(vec1) @ np.asarray(vec2)), 0.0, atol=1e-6)
+    return np.linalg.norm(vec1 @ vec2) < 1e-6
 
 
 def test_parallel_vectors(vec1, vec2) -> bool:
-    return np.isclose(np.linalg.norm(np.cross(vec1, vec2)), 0.0, atol=1e-6)
+    return np.linalg.norm(np.cross(vec1, vec2)) < 1e-6
 
 
 ################

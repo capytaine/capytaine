@@ -178,7 +178,8 @@ def build_with_symmetries(build_matrices):
             return BlockSymmetricToeplitzMatrix([S_list]), BlockSymmetricToeplitzMatrix([V_list])
 
         elif (isinstance(mesh1, AxialSymmetry)
-              and mesh1 is mesh2):  # TODO: Generalize: if mesh1.axis == mesh2.axis
+              and mesh1.axis == mesh2.axis
+              and mesh1.nb_submeshes == mesh2.nb_submeshes):
 
             LOG.debug("\t" * (_rec_depth+1) +
                       function_description_for_logging.format(
