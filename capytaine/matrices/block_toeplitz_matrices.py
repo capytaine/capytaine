@@ -82,12 +82,12 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         n = self.nb_blocks[0]
         return [(i, j) for i in range(n) for j in range(n) if abs(i-j) == k]
 
-    def _positions_of(self, k: int) -> List[Tuple[int, int]]:
+    def _positions_of(self, k: int, global_frame=(0, 0)) -> List[Tuple[int, int]]:
         """The positions in the full matrix at which the block k from the first line can also be found."""
         shape = self.block_shape
-        return [(i*shape[0], j*shape[1]) for i, j in self._block_indices_of(k)]
+        return [(global_frame[0] + i*shape[0], global_frame[1] + j*shape[1]) for i, j in self._block_indices_of(k)]
 
-    def _stored_block_positions(self) -> Iterable[List[Tuple[int, int]]]:
+    def _stored_block_positions(self, global_frame=(0, 0)) -> Iterable[List[Tuple[int, int]]]:
         """The position of each blocks in the matrix.
 
         Example::
@@ -97,37 +97,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
             BBAA
             BBAA
         """
-        return (self._positions_of(k) for k in range(len(self.first_block_line)))
-
-    # DISPLAYING DATA
-
-    def _patches(self, global_frame: Tuple[int, int]):
-        # TODO: Refactor in the same way as full_matrix()
-        from matplotlib.patches import Rectangle
-        patches = []
-
-        # Recursively plot the blocks on the first line.
-        for k, block in enumerate(self.first_block_line):
-            block_position_in_global_frame = (global_frame[0] + k*self.block_shape[1],
-                                              global_frame[1])
-            if isinstance(block, BlockMatrix):
-                patches_of_this_block = block._patches(block_position_in_global_frame)
-            elif isinstance(block, np.ndarray):
-                patches_of_this_block = [Rectangle(block_position_in_global_frame,
-                                                   self.block_shape[1], self.block_shape[0],
-                                                   edgecolor='k', facecolor=next(self.display_color))]
-            else:
-                raise AttributeError()
-
-            # Copy the patches to fill the rest of the matrix.
-            for i, j in self._block_indices_of(k)[1:]:
-                for patch in patches_of_this_block:
-                    local_shift = np.array(patch.get_xy()) + np.array(((j-k)*self.block_shape[1], i*self.block_shape[0]))
-                    patches.append(Rectangle(local_shift, patch.get_width(), patch.get_height(),
-                                             facecolor=patch.get_facecolor(), alpha=0.5))
-            patches.extend(patches_of_this_block)
-
-        return patches
+        return (self._positions_of(k, global_frame=global_frame) for k in range(len(self.first_block_line)))
 
     # TRANSFORMING DATA
 

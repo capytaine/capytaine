@@ -20,16 +20,16 @@ class BlockMatrix:
 
     def __init__(self, blocks, _stored_block_shapes=None, check=True):
         assert blocks[0][0].ndim == self.ndim
+
         self._stored_blocks = np.asarray(blocks)
+        self._stored_nb_blocks = self._stored_blocks.shape[:self.ndim]
 
         if _stored_block_shapes is None:
             self._stored_block_shapes = ([block.shape[0] for block in self._stored_blocks[:, 0]],
                                          [block.shape[1] for block in self._stored_blocks[0, :]])
         else:
-            # To avoid going through the whole tree if it is already known.
+            # To avoid going down the tree if it is already known.
             self._stored_block_shapes = _stored_block_shapes
-
-        self._stored_nb_blocks = self._stored_blocks.shape[:self.ndim]
 
         # Total shape of the full matrix
         self.shape = self._compute_shape()
@@ -42,9 +42,32 @@ class BlockMatrix:
             assert self._check_dimensions_of_blocks()
             assert self._check_dtype()
 
-    def __hash__(self):
-        # Temporary
-        return id(self)
+    def _compute_shape(self):
+        # In a dedicated routine because it will be overloaded by subclasses.
+        return sum(self._stored_block_shapes[0]), sum(self._stored_block_shapes[1])
+
+    def _check_dimensions_of_blocks(self) -> bool:
+        """Check that the dimensions of the blocks are consistent."""
+        for line in self.all_blocks:
+            block_height = line[0].shape[0]
+            for block in line[1:]:
+                if not block.shape[0] == block_height:  # Same height on a given line
+                    return False
+
+        for col in np.moveaxis(self.all_blocks, 1, 0):
+            block_width = col[0].shape[1]
+            for block in col[1:]:
+                if not block.shape[1] == block_width:  # Same width on a given column
+                    return False
+        return True
+
+    def _check_dtype(self) -> bool:
+        """Check that the type of the blocks are consistent."""
+        for line in self._stored_blocks:
+            for block in line:
+                if block.dtype != self.dtype:
+                    return False
+        return True
 
     # ACCESSING DATA
 
@@ -77,33 +100,14 @@ class BlockMatrix:
         """
         return self._stored_nb_blocks
 
-    def _compute_shape(self):
-        return sum(self._stored_block_shapes[0]), sum(self._stored_block_shapes[1])
+    def _stored_block_positions(self, global_frame=(0, 0)) -> Iterable[List[Tuple[int, int]]]:
+        """The position of each blocks in the matrix as a generator.
+        The list is used by subclasses where the same block may appear several times in different positions.
 
-    def _check_dimensions_of_blocks(self) -> bool:
-        """Check that the dimensions of the blocks are consistent."""
-        for line in self.all_blocks:
-            block_height = line[0].shape[0]
-            for block in line[1:]:
-                if not block.shape[0] == block_height:  # Same height on a given line
-                    return False
-
-        for col in np.moveaxis(self.all_blocks, 1, 0):
-            block_width = col[0].shape[1]
-            for block in col[1:]:
-                if not block.shape[1] == block_width:  # Same width on a given column
-                    return False
-        return True
-
-    def _check_dtype(self) -> bool:
-        for line in self._stored_blocks:
-            for block in line:
-                if block.dtype != self.dtype:
-                    return False
-        return True
-
-    def _stored_block_positions(self) -> Iterable[List[Tuple[int, int]]]:
-        """The position of each blocks in the matrix.
+        Parameters
+        ----------
+        global_frame: Tuple[int], optional
+            the coordinate of the top right corner. Default: 0, 0.
 
         Example::
 
@@ -113,7 +117,40 @@ class BlockMatrix:
         """
         x_acc = accumulate([0] + self.block_shapes[0][:-1])
         y_acc = accumulate([0] + self.block_shapes[1][:-1])
-        return ([(x, y)] for x, y in product(x_acc, y_acc))
+        return ([(global_frame[0] + x, global_frame[1] + y)] for x, y in product(x_acc, y_acc))
+
+    def _put_in_full_matrix(self, full_matrix: np.ndarray, where=(0, 0)) -> None:
+        """Copy the content of the block matrix in a matrix, which is modified in place."""
+        all_blocks_in_flat_iterator = (block for line in self._stored_blocks for block in line)
+        positions_of_all_blocks = self._stored_block_positions(global_frame=where)
+        for block, positions_of_the_block in zip(all_blocks_in_flat_iterator, positions_of_all_blocks):
+            if isinstance(block, BlockMatrix):
+                position_of_first_appearance = positions_of_the_block[0]
+                frame_of_first_appearance = (slice(position_of_first_appearance[0], position_of_first_appearance[0]+block.shape[0]),
+                                             slice(position_of_first_appearance[1], position_of_first_appearance[1]+block.shape[1]))
+                block._put_in_full_matrix(full_matrix, where=position_of_first_appearance)
+
+                for position in positions_of_the_block[1:]:  # For the other appearances, only copy the first appearance
+                    block_frame = (slice(position[0], position[0]+block.shape[0]),
+                                   slice(position[1], position[1]+block.shape[1]))
+                    full_matrix[block_frame] = full_matrix[frame_of_first_appearance]
+
+            else:
+                full_block = block if isinstance(block, np.ndarray) else block.full_matrix()
+                for position in positions_of_the_block:
+                    block_frame = (slice(position[0], position[0]+block.shape[0]),
+                                   slice(position[1], position[1]+block.shape[1]))
+                    full_matrix[block_frame] = full_block
+
+    def full_matrix(self) -> np.ndarray:
+        """Flatten the block structure and return a full matrix."""
+        full_matrix = np.empty(self.shape, dtype=self.dtype)
+        self._put_in_full_matrix(full_matrix)
+        return full_matrix
+
+    def __hash__(self):
+        # Temporary
+        return id(self)
 
     # TRANSFORMING DATA
 
@@ -147,10 +184,12 @@ class BlockMatrix:
         return self._apply_unary_op(neg)
 
     def __sub__(self, other: 'BlockMatrix') -> 'BlockMatrix':
-        return self + (-other)
+        from operator import sub
+        return self._apply_binary_op(sub, other)
 
     def __rsub__(self, other: 'BlockMatrix') -> 'BlockMatrix':
-        return other + (-self)
+        from operator import sub
+        return other._apply_binary_op(sub, self)
 
     def __mul__(self, other: Union['BlockMatrix', Number]) -> 'BlockMatrix':
         if isinstance(other, Number):
@@ -180,6 +219,7 @@ class BlockMatrix:
     def matvec(self, other):
         """Matrix vector product.
         Named as such to be used as scipy LinearOperator."""
+        LOG.debug(f"Multiplication of {self} with a full vector of size {other.shape}.")
         result = np.zeros(self.shape[0], dtype=other.dtype)
         line_heights = self.block_shapes[0]
         line_positions = list(accumulate(chain([0], line_heights)))
@@ -192,7 +232,8 @@ class BlockMatrix:
                 result[line_slice] += block @ other[col_slice]
         return result
 
-    def __matmul__(self, other: Union['BlockMatrix', np.ndarray]) -> Union['BlockMatrix', np.ndarray]:
+    def matmat(self, other):
+        """Matrix-matrix product."""
         if isinstance(other, BlockMatrix) and self.block_shapes[1] == other.block_shapes[0]:
             LOG.debug(f"Multiplication of %s with %s", self, other)
             own_blocks = self.all_blocks
@@ -206,60 +247,31 @@ class BlockMatrix:
             return BlockMatrix(new_matrix, check=False)
 
         elif isinstance(other, np.ndarray) and self.shape[1] == other.shape[0]:
-            if other.ndim == 2:
-                LOG.debug(f"Multiplication of {self} with a full matrix of shape {other.shape}.")
-                # Cut the matrix and recursively call itself to use the code above.
-                from capytaine.matrices.builders import cut_matrix
-                cut_other = cut_matrix(other, self.block_shapes[1], [other.shape[1]], check_dim=False)
-                return (self @ cut_other).full_matrix()
+            LOG.debug(f"Multiplication of {self} with a full matrix of shape {other.shape}.")
+            # Cut the matrix and recursively call itself to use the code above.
+            from capytaine.matrices.builders import cut_matrix
+            cut_other = cut_matrix(other, self.block_shapes[1], [other.shape[1]], check=False)
+            return (self @ cut_other).full_matrix()
 
-            elif other.ndim == 1:
-                LOG.debug(f"Multiplication of {self} with a full vector of size {other.shape}.")
-                return self.matvec(other)
-
-            else:
-                return NotImplemented
-
+    def __matmul__(self, other: Union['BlockMatrix', np.ndarray]) -> Union['BlockMatrix', np.ndarray]:
+        if not (isinstance(other, BlockMatrix) or isinstance(other, np.ndarray)):
+            return NotImplemented
+        elif other.ndim == 2:
+            return self.matmat(other)
+        elif other.ndim == 1:
+            return self.matvec(other)
         else:
             return NotImplemented
 
-    def astype(self, dtype: np.dtype) -> 'BlockMatrix[dtype]':
+    def astype(self, dtype: np.dtype) -> 'BlockMatrix':
         return self._apply_unary_op(lambda x: x.astype(dtype))
 
     @property
     def T(self) -> 'BlockMatrix':
         """Transposed matrix."""
-        transposed_blocks = np.array([[block.T for block in line] for line in self.all_blocks])
-        return BlockMatrix(transposed_blocks.T, check=False)
-
-    def _put_in_full_matrix(self, full_matrix, where=(0, 0)):
-        """In place copy the content of the block matrix in a matrix."""
-        positions_of_blocks = ([(where[0] + x, where[1] + y) for x, y, in positions_of_block]
-                               for positions_of_block in self._stored_block_positions())
-        all_blocks_flat = (block for line in self._stored_blocks for block in line)
-        for block, positions_of_block in zip(all_blocks_flat, positions_of_blocks):
-            if isinstance(block, BlockMatrix):
-                position_of_first_appearance = positions_of_block[0]
-                block._put_in_full_matrix(full_matrix, where=position_of_first_appearance)
-                frame_of_first_appearance = (slice(position_of_first_appearance[0], position_of_first_appearance[0]+block.shape[0]),
-                                             slice(position_of_first_appearance[1], position_of_first_appearance[1]+block.shape[1]))
-                for position in positions_of_block[1:]:
-                    block_frame = (slice(position[0], position[0]+block.shape[0]),
-                                   slice(position[1], position[1]+block.shape[1]))
-                    full_matrix[block_frame] = full_matrix[frame_of_first_appearance]
-            else:
-                full_block = block if isinstance(block, np.ndarray) else block.full_matrix()
-                for position in positions_of_block:
-                    block_frame = (slice(position[0], position[0]+block.shape[0]),
-                                   slice(position[1], position[1]+block.shape[1]))
-                    full_matrix[block_frame] = full_block
-        return full_matrix
-
-    def full_matrix(self) -> np.ndarray:
-        """Flatten the block structure and return a full matrix."""
-        full_matrix = np.empty(self.shape, dtype=self.dtype)
-        self._put_in_full_matrix(full_matrix)
-        return full_matrix
+        transposed_blocks = self._apply_unary_op(lambda x: x.T)  # Transpose subblocks recursively
+        transposed_blocks._stored_blocks = transposed_blocks._stored_blocks.T  # Change position of blocks
+        return transposed_blocks
 
     # COMPARISON AND REDUCTION
 
@@ -297,12 +309,17 @@ class BlockMatrix:
 
     # DISPLAYING DATA
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}(nb_blocks={self.nb_blocks}, shape={self.shape})"
+    def __str__(self):
+        args = [f"nb_blocks={self.nb_blocks}", f"shape={self.shape}"]
+        if self.dtype not in [np.float64, np.float]:
+            args.append(f"dtype={self.dtype}")
+        return f"{self.__class__.__name__}(" + ", ".join(args) + ")"
 
     display_color = cycle([f'C{i}' for i in range(10)])
 
-    def _patches(self, global_frame: Tuple[int, int]) -> List[Rectangle]:
+    def _patches(self,
+                 global_frame: Union[Tuple[int, int], np.ndarray]
+                 ) -> List[Rectangle]:
         """Helper function for displaying the shape of the matrix.
         Recursively returns a list of rectangles representing the sub-blocks of the matrix.
 
@@ -311,18 +328,34 @@ class BlockMatrix:
         global_frame: tuple of ints
             coordinates of the origin in the top left corner.
         """
+        all_blocks_in_flat_iterator = (block for line in self._stored_blocks for block in line)
+        positions_of_all_blocks = self._stored_block_positions(global_frame=global_frame)
         patches = []
-        blocks_flat_list = (block for line in self.all_blocks for block in line)
-        for block_position_in_local_frame, block in zip(self._stored_block_positions(), blocks_flat_list):
-            block_position_in_global_frame = (global_frame[0] + block_position_in_local_frame[0][1],
-                                              global_frame[1] + block_position_in_local_frame[0][0])
+        for block, positions_of_the_block in zip(all_blocks_in_flat_iterator, positions_of_all_blocks):
+            position_of_first_appearance = positions_of_the_block[0]
+            # Exchange coordinates: row index i -> y, column index j -> x
+            position_of_first_appearance = np.array((position_of_first_appearance[1], position_of_first_appearance[0]))
+
             if isinstance(block, BlockMatrix):
-                patches.extend(block._patches(block_position_in_global_frame))
+                patches_of_this_block = block._patches(position_of_first_appearance)
             elif isinstance(block, np.ndarray):
-                patches.append(Rectangle(block_position_in_global_frame, block.shape[1], block.shape[0],
-                                         edgecolor='k', facecolor=next(self.display_color)))
+                patches_of_this_block = [Rectangle(position_of_first_appearance,
+                                                   block.shape[1], block.shape[0],
+                                                   edgecolor='k', facecolor=next(self.display_color))]
             else:
-                raise AttributeError()
+                raise NotImplementedError()
+
+            patches.extend(patches_of_this_block)
+
+            # For the other appearances, copy the patches of the first appearance
+            for block_position in positions_of_the_block[1:]:
+                block_position = np.array((block_position[1], block_position[0]))
+                for patch in patches_of_this_block:  # A block can be made of several patches.
+                    shift = block_position - position_of_first_appearance
+                    patch_position = np.array(patch.get_xy()) + shift
+                    patches.append(Rectangle(patch_position, patch.get_width(), patch.get_height(),
+                                             facecolor=patch.get_facecolor(), alpha=0.5))
+
         return patches
 
     def plot_shape(self):
