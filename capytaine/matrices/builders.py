@@ -12,7 +12,7 @@ from capytaine.mesh.symmetries import ReflectionSymmetry, TranslationalSymmetry,
 from capytaine.matrices.block_matrices import BlockMatrix
 from capytaine.matrices.block_toeplitz_matrices import (
     BlockSymmetricToeplitzMatrix,
-    AbstractBlockSymmetricCirculantMatrix,
+    _AbstractBlockSymmetricCirculantMatrix,
     EvenBlockSymmetricCirculantMatrix,
     OddBlockSymmetricCirculantMatrix,
 )
@@ -35,7 +35,7 @@ def random_block_matrix(x_shapes, y_shapes):
 
 
 def full_like(A, value, dtype=np.float64):
-    if isinstance(A, AbstractBlockSymmetricCirculantMatrix):
+    if isinstance(A, _AbstractBlockSymmetricCirculantMatrix):
         new_matrix = []
         for i in range(len(A._stored_blocks[0, :])):
             new_matrix.append(full_like(A._stored_blocks[0, i], value, dtype=dtype))
@@ -66,7 +66,7 @@ def ones_like(A, dtype=np.float64):
 
 
 def identity_like(A, dtype=np.float64):
-    if isinstance(A, AbstractBlockSymmetricCirculantMatrix):
+    if isinstance(A, _AbstractBlockSymmetricCirculantMatrix):
         I = [identity_like(A._stored_blocks[0, 0], dtype=dtype)]
         for i in range(1, len(A._stored_blocks[0, :])):
             I.append(zeros_like(A._stored_blocks[0, i], dtype=dtype))

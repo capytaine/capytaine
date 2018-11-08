@@ -11,7 +11,7 @@ from scipy.sparse import linalg as ssl
 from capytaine.matrices.block_matrices import BlockMatrix
 from capytaine.matrices.block_toeplitz_matrices import (
     BlockSymmetricToeplitzMatrix,
-    AbstractBlockSymmetricCirculantMatrix
+    _AbstractBlockSymmetricCirculantMatrix
 )
 
 LOG = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ LOG = logging.getLogger(__name__)
 
 def solve_directly(A, b):
     assert isinstance(b, np.ndarray) and A.ndim == b.ndim+1 and A.shape[-2] == b.shape[-1]
-    if isinstance(A, AbstractBlockSymmetricCirculantMatrix):
+    if isinstance(A, _AbstractBlockSymmetricCirculantMatrix):
         LOG.debug("\tSolve linear system %s", A)
         block_diagonal_matrix = A.block_diagonalize()
         fft_of_rhs = np.fft.fft(np.reshape(b, block_diagonal_matrix.shape[:2]), axis=0)
