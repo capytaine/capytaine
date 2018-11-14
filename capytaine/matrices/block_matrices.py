@@ -19,9 +19,9 @@ class BlockMatrix:
     ndim = 2  # Other dimensions have not been implemented.
 
     def __init__(self, blocks, _stored_block_shapes=None, check=True):
-        assert blocks[0][0].ndim == self.ndim
-
         self._stored_blocks = np.asarray(blocks)
+        assert self._stored_blocks[0][0].ndim == self.ndim
+
         self._stored_nb_blocks = self._stored_blocks.shape[:self.ndim]
 
         if _stored_block_shapes is None:
