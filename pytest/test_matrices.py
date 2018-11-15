@@ -116,6 +116,11 @@ def test_block_toeplitz_matrices():
     assert isinstance(B.all_blocks[0, 0], BlockMatrix)
     assert (B.all_blocks[0, 0] == B.all_blocks[1, 1]).all()
 
+    list_of_matrices = [B, B + ones_like(B), B, B - ones_like(B)]
+    BB_fft = BlockSymmetricToeplitzMatrix.fft_of_list(*list_of_matrices)
+    full_BB_fft = np.fft.fft(np.array([A.full_matrix() for A in list_of_matrices]), axis=0)
+    assert np.allclose(full_BB_fft, np.array([A.full_matrix() for A in BB_fft]))
+
     C = BlockSymmetricToeplitzMatrix([
         [A, B]
     ])
@@ -195,6 +200,11 @@ def test_odd_block_circulant_matrix():
     assert A.first_block_line.ndim == 3
     assert A.first_block_line.shape[:1] == (5,)
 
+    list_of_matrices = [A, A, A]
+    AAA_fft = OddBlockSymmetricCirculantMatrix.fft_of_list(*list_of_matrices)
+    full_AAA_fft = np.fft.fft(np.array([A.full_matrix() for A in list_of_matrices]), axis=0)
+    assert np.allclose(full_AAA_fft, np.array([A.full_matrix() for A in AAA_fft]))
+
     b = np.random.rand(10)
     assert np.allclose(A @ b, A.full_matrix() @ b)
 
@@ -208,6 +218,11 @@ def test_odd_block_circulant_matrix():
 
     b = np.random.rand(50)
     assert np.allclose(B @ b, B.full_matrix() @ b)
+
+    list_of_matrices = [B, B, B]
+    BBB_fft = OddBlockSymmetricCirculantMatrix.fft_of_list(*list_of_matrices)
+    full_BBB_fft = np.fft.fft(np.array([A.full_matrix() for A in list_of_matrices]), axis=0)
+    assert np.allclose(full_BBB_fft, np.array([A.full_matrix() for A in BBB_fft]))
 
 
 def test_solve_2x2():

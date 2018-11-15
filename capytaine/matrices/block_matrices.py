@@ -273,6 +273,39 @@ class BlockMatrix:
         transposed_blocks._stored_blocks = transposed_blocks._stored_blocks.T  # Change position of blocks
         return transposed_blocks
 
+    def fft_of_list(*block_matrices, check=True) -> List['BlockMatrix']:
+        """Compute the fft of a list of block matrices of the same type and shape.
+        The output is a list of block matrices of the same shape as the input ones.
+        The fft is computed element-wise, so the block structure does not cause any mathematical difficulty.
+        """
+        from capytaine.matrices.builders import zeros_like
+
+        class_of_matrices = type(block_matrices[0])
+        nb_blocks = block_matrices[0]._stored_nb_blocks
+
+        if check:
+            # Check the validity of the shapes of the matrices given as input
+            shape = block_matrices[0].shape
+            assert [nb_blocks == matrix._stored_nb_blocks for matrix in block_matrices[1:]]
+            assert [shape == matrix.shape for matrix in block_matrices[1:]]
+            assert [class_of_matrices == type(matrix) for matrix in block_matrices[1:]]
+
+        result = [zeros_like(matrix, dtype=np.complex) for matrix in block_matrices]
+
+        for i_block, j_block in product(range(nb_blocks[0]), range(nb_blocks[1])):
+            list_of_i_j_blocks = [block_matrices[i_matrix]._stored_blocks[i_block, j_block]
+                                  for i_matrix in range(len(block_matrices))]
+
+            if isinstance(list_of_i_j_blocks[0], np.ndarray):  # All blocks should be of the same shape.
+                fft_of_blocks = np.fft.fft(np.array(list_of_i_j_blocks), axis=0)
+            else:
+                fft_of_blocks = BlockMatrix.fft_of_list(*list_of_i_j_blocks, check=False)
+
+            for matrix, computed_block in zip(result, fft_of_blocks):
+                matrix._stored_blocks[i_block, j_block] = computed_block
+
+        return result
+
     # COMPARISON AND REDUCTION
 
     def __eq__(self, other: 'BlockMatrix') -> 'BlockMatrix[bool]':

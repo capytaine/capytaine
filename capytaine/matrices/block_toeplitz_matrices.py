@@ -163,7 +163,7 @@ class _AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
     @lru_cache(maxsize=16)
     def block_diagonalize(self):
         stacked_blocks = np.array([block.full_matrix() if not isinstance(block, np.ndarray) else block
-                       for block in self.first_block_line])
+                                   for block in self.first_block_line])
         blocks_of_diagonalization = np.fft.fft(stacked_blocks, axis=0)
         return blocks_of_diagonalization
 
