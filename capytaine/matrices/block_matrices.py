@@ -35,8 +35,6 @@ class BlockMatrix:
         # Total shape of the full matrix
         self.shape = self._compute_shape()
 
-        self.dtype = self._stored_blocks[0][0].dtype
-
         LOG.debug(f"New block matrix: %s", self)
 
         if check:
@@ -74,6 +72,10 @@ class BlockMatrix:
         return True
 
     # ACCESSING DATA
+
+    @property
+    def dtype(self):
+        return self._stored_blocks[0][0].dtype
 
     @property
     def all_blocks(self) -> np.ndarray:
@@ -298,7 +300,13 @@ class BlockMatrix:
             assert [shape == matrix.shape for matrix in block_matrices[1:]]
             assert [class_of_matrices == type(matrix) for matrix in block_matrices[1:]]
 
-        result = np.empty((len(block_matrices),) + nb_blocks, dtype='O')
+        # Initialize an array of block matrices without values in the blocks.
+        result = np.empty(len(block_matrices), dtype=np.object)
+        result[:] = [
+            class_of_matrices(np.empty(nb_blocks, dtype=np.object),
+                              _stored_block_shapes=block_matrices[0]._stored_block_shapes,
+                              check=False)
+            for _ in range(len(result))]
 
         for i_block, j_block in product(range(nb_blocks[0]), range(nb_blocks[1])):
             list_of_i_j_blocks = [block_matrices[i_matrix]._stored_blocks[i_block, j_block]
@@ -306,14 +314,14 @@ class BlockMatrix:
 
             if any(isinstance(block, np.ndarray) for block in list_of_i_j_blocks):
                 list_of_i_j_blocks = [block if isinstance(block, np.ndarray) else block.full_matrix() for block in list_of_i_j_blocks]
-                fft_of_blocks = np.fft.fft(np.array(list_of_i_j_blocks), axis=0)
+                fft_of_blocks = np.fft.fft(list_of_i_j_blocks, axis=0)
             else:
                 fft_of_blocks = BlockMatrix.fft_of_list(*list_of_i_j_blocks, check=False)
 
             for matrix, computed_block in zip(result, fft_of_blocks):
-                matrix[i_block, j_block] = computed_block
+                matrix._stored_blocks[i_block, j_block] = computed_block
 
-        return np.array([class_of_matrices(blocks, _stored_block_shapes=block_matrices[0]._stored_block_shapes) for blocks in result])
+        return result
 
     # COMPARISON AND REDUCTION
 
