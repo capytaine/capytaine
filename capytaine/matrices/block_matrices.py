@@ -18,9 +18,9 @@ class BlockMatrix:
 
     ndim = 2  # Other dimensions have not been implemented.
 
-    def __init__(self, blocks, _stored_block_shapes=None, check=True):
-        self._stored_blocks = np.asarray(blocks)
-        assert self._stored_blocks[0][0].ndim == self.ndim
+    def __init__(self, blocks, _stored_block_shapes=None, copy=True, check=True):
+
+        self._stored_blocks = np.array(blocks, copy=copy)
 
         self._stored_nb_blocks = self._stored_blocks.shape[:self.ndim]
 
@@ -48,6 +48,9 @@ class BlockMatrix:
 
     def _check_dimensions_of_blocks(self) -> bool:
         """Check that the dimensions of the blocks are consistent."""
+        if not all(block.ndim == self.ndim for line in self._stored_blocks for block in line):
+            return False
+
         for line in self.all_blocks:
             block_height = line[0].shape[0]
             for block in line[1:]:
@@ -158,7 +161,7 @@ class BlockMatrix:
         """Helper function applying a function recursively on all submatrices."""
         LOG.debug(f"Apply op {op.__name__} to {self}")
         result = [[op(block) for block in line] for line in self._stored_blocks]
-        return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check=False)
+        return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check=False, copy=False)
 
     def _apply_binary_op(self, op: Callable, other: 'BlockMatrix') -> 'BlockMatrix':
         """Helper function applying a binary operator recursively on all submatrices."""
@@ -168,7 +171,7 @@ class BlockMatrix:
                 [op(block, other_block) for block, other_block in zip(line, other_line)]
                 for line, other_line in zip(self._stored_blocks, other._stored_blocks)
             ]
-            return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check=False)
+            return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check=False, copy=False)
         else:
             return NotImplemented
 
@@ -256,9 +259,12 @@ class BlockMatrix:
     def __matmul__(self, other: Union['BlockMatrix', np.ndarray]) -> Union['BlockMatrix', np.ndarray]:
         if not (isinstance(other, BlockMatrix) or isinstance(other, np.ndarray)):
             return NotImplemented
-        elif other.ndim == 2:
-            return self.matmat(other)
-        elif other.ndim == 1:
+        elif other.ndim == 2:  # Other is a matrix
+            if other.shape[1] == 1:  # Actually a column vector
+                return self.matvec(other.flatten())
+            else:
+                return self.matmat(other)
+        elif other.ndim == 1:  # Other is a vector
             return self.matvec(other)
         else:
             return NotImplemented
@@ -273,15 +279,16 @@ class BlockMatrix:
         transposed_blocks._stored_blocks = transposed_blocks._stored_blocks.T  # Change position of blocks
         return transposed_blocks
 
-    def fft_of_list(*block_matrices, check=True) -> List['BlockMatrix']:
+    def fft_of_list(*block_matrices, check=True):
         """Compute the fft of a list of block matrices of the same type and shape.
         The output is a list of block matrices of the same shape as the input ones.
         The fft is computed element-wise, so the block structure does not cause any mathematical difficulty.
+        Returns an array of BlockMatrices.
         """
-        from capytaine.matrices.builders import zeros_like
-
         class_of_matrices = type(block_matrices[0])
         nb_blocks = block_matrices[0]._stored_nb_blocks
+
+        LOG.debug(f"FFT of list of {class_of_matrices} (nb_blocks = {nb_blocks})")
 
         if check:
             # Check the validity of the shapes of the matrices given as input
@@ -290,21 +297,23 @@ class BlockMatrix:
             assert [shape == matrix.shape for matrix in block_matrices[1:]]
             assert [class_of_matrices == type(matrix) for matrix in block_matrices[1:]]
 
-        result = [zeros_like(matrix, dtype=np.complex) for matrix in block_matrices]
+        result = np.empty((len(block_matrices),) + nb_blocks, dtype='O')
 
         for i_block, j_block in product(range(nb_blocks[0]), range(nb_blocks[1])):
             list_of_i_j_blocks = [block_matrices[i_matrix]._stored_blocks[i_block, j_block]
                                   for i_matrix in range(len(block_matrices))]
 
-            if isinstance(list_of_i_j_blocks[0], np.ndarray):  # All blocks should be of the same shape.
+            if any(isinstance(block, np.ndarray) for block in list_of_i_j_blocks):
+                list_of_i_j_blocks = [block if isinstance(block, np.ndarray) else block.full_matrix() for block in list_of_i_j_blocks]
                 fft_of_blocks = np.fft.fft(np.array(list_of_i_j_blocks), axis=0)
             else:
                 fft_of_blocks = BlockMatrix.fft_of_list(*list_of_i_j_blocks, check=False)
 
             for matrix, computed_block in zip(result, fft_of_blocks):
-                matrix._stored_blocks[i_block, j_block] = computed_block
+                matrix[i_block, j_block] = computed_block
 
-        return result
+        return np.array([class_of_matrices(blocks, _stored_block_shapes=block_matrices[0]._stored_block_shapes, copy=False)
+                         for blocks in result], copy=False)
 
     # COMPARISON AND REDUCTION
 
@@ -343,9 +352,11 @@ class BlockMatrix:
     # DISPLAYING DATA
 
     def __str__(self):
-        args = [f"nb_blocks={self.nb_blocks}", f"shape={self.shape}"]
+        args = [f"nb_blocks={self.nb_blocks}", f"total_shape={self.shape}"]
         if self.dtype not in [np.float64, np.float]:
             args.append(f"dtype={self.dtype}")
+        if hasattr(self, 'block_shape'):
+            args.append(f"block_shape={self.block_shape}")
         return f"{self.__class__.__name__}(" + ", ".join(args) + ")"
 
     display_color = cycle([f'C{i}' for i in range(10)])

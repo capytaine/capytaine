@@ -21,9 +21,12 @@ def solve_directly(A, b):
     assert isinstance(b, np.ndarray) and A.ndim == b.ndim+1 and A.shape[-2] == b.shape[-1]
     if isinstance(A, _AbstractBlockSymmetricCirculantMatrix):
         LOG.debug("\tSolve linear system %s", A)
-        block_diagonal_matrix = A.block_diagonalize()
-        fft_of_rhs = np.fft.fft(np.reshape(b, block_diagonal_matrix.shape[:2]), axis=0)
-        fft_of_result = solve_directly(block_diagonal_matrix, fft_of_rhs)
+        blocks_of_diagonalization = A.block_diagonalize()
+        fft_of_rhs = np.fft.fft(np.reshape(b, (A.nb_blocks[0], A.block_shape[0])), axis=0)
+        try:  # Try to run it as vectorized numpy arrays.
+            fft_of_result = np.linalg.solve(blocks_of_diagonalization, fft_of_rhs)
+        except np.linalg.LinAlgError:  # Or do the same thing with list comprehension.
+            fft_of_result = np.array([solve_directly(block, vec) for block, vec in zip(blocks_of_diagonalization, fft_of_rhs)])
         result = np.fft.ifft(fft_of_result, axis=0).reshape((A.shape[1],))
         return result
 

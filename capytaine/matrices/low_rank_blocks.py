@@ -10,6 +10,8 @@ LOG = logging.getLogger(__name__)
 
 class LowRankMatrix:
 
+    ndim = 2
+
     ##############
     #  Creation  #
     ##############

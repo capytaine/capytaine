@@ -21,7 +21,7 @@ def test_block_matrices():
     assert A.nb_blocks == (2, 2)
     assert A.block_shapes == ([2, 2], [2, 2])
     assert list(A._stored_block_positions()) == [[(0, 0)], [(0, 2)], [(2, 0)], [(2, 2)]]
-    assert str(A) == "BlockMatrix(nb_blocks=(2, 2), shape=(4, 4))"
+    assert str(A) == "BlockMatrix(nb_blocks=(2, 2), total_shape=(4, 4))"
 
     assert ((A + A)/2 == A).all()
     assert (-A).min() == -1
@@ -44,7 +44,7 @@ def test_block_matrices():
     assert B.block_shapes == ([4, 1], [4, 1])
     assert (B == B.T).all()
     assert (B.full_matrix() == np.eye(5, 5)).all()
-    assert str(B) == "BlockMatrix(nb_blocks=(2, 2), shape=(5, 5))"
+    assert str(B) == "BlockMatrix(nb_blocks=(2, 2), total_shape=(5, 5))"
     assert B.block_shapes == ([4, 1], [4, 1])
     assert list(B._stored_block_positions()) == [[(0, 0)], [(0, 4)], [(4, 0)], [(4, 4)]]
 
@@ -269,6 +269,7 @@ def test_solve_block_circulant():
     x_dumb_gmres = solve_gmres(A.full_matrix(), b)
 
     assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
+
 
 def test_low_rank_blocks():
     n = 10

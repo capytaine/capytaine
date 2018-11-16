@@ -109,11 +109,15 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
                                                  check=False)
 
     def matvec(self, other):
+        LOG.debug(f"Product of {self} with vector of shape {other.shape}")
         A = self._circulant_super_matrix()
         b = np.concatenate([other, np.zeros(A.shape[1] - self.shape[1])])
         return (A @ b)[:self.shape[0]]
 
     def rmatvec(self, other):
+        LOG.debug(f"Product of vector of shape {other.shape} with {self}")
+        if other.ndim == 2 and other.shape[0] == 1:  # Actually a 1×N matrix
+            other = other[0, :]
         A = self._circulant_super_matrix()
         b = np.concatenate([other, np.zeros(A.shape[0] - self.shape[0])])
         return (A.rmatvec(b))[:self.shape[1]]
@@ -162,6 +166,7 @@ class _AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
 
     @lru_cache(maxsize=16)
     def block_diagonalize(self):
+        """Returns an array of matrices"""
         if all(isinstance(matrix, BlockMatrix) for matrix in self._stored_blocks[0, :]):
             return BlockMatrix.fft_of_list(*self.first_block_line)
         else:
@@ -172,12 +177,13 @@ class _AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
     def matvec(self, other):
         """Matrix vector product.
         Named as such to be used as scipy LinearOperator."""
+        LOG.debug(f"Product of {self} with vector of shape {other.shape}")
         fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], self.block_shape[1], 1)), axis=0)
-        blocks_of_diagonalizations = self.block_diagonalize()
+        blocks_of_diagonalization = self.block_diagonalize()
         try:  # Try to run it as vectorized numpy arrays.
-            fft_of_result = blocks_of_diagonalizations @ fft_of_vector
+            fft_of_result = blocks_of_diagonalization @ fft_of_vector
         except TypeError:  # Or do the same thing with list comprehension.
-            fft_of_result = np.array([block @ vec for block, vec in zip(blocks_of_diagonalizations, fft_of_vector)])
+            fft_of_result = np.array([block @ vec for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
         result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[0])
         return np.asarray(result, dtype=other.dtype)
 
@@ -186,7 +192,11 @@ class _AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
         Named as such to be used as scipy LinearOperator."""
         other = np.conjugate(other)
         fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], 1, self.block_shape[0])), axis=0)
-        fft_of_result = fft_of_vector @ self.block_diagonalize()
+        blocks_of_diagonalization = self.block_diagonalize()
+        try:  # Try to run it as vectorized numpy arrays.
+            fft_of_result = fft_of_vector @ blocks_of_diagonalization
+        except TypeError:  # Or do the same thing with list comprehension.
+            fft_of_result = np.array([block.rmatvec(vec) for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
         result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[1])
         return np.asarray(result, dtype=other.dtype)
 
