@@ -57,7 +57,9 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
     @property
     def all_blocks(self) -> np.ndarray:
         """The matrix of matrices as if the block Toeplitz structure was not used."""
-        return np.array([[block for block in self.first_block_line[indices]] for indices in self._index_grid()])
+        all_blocks = np.empty(self.nb_blocks, dtype=np.object)
+        all_blocks[:, :] = [[block for block in self.first_block_line[indices]] for indices in self._index_grid()]
+        return all_blocks
 
     @property
     def nb_blocks(self) -> Tuple[int, int]:
@@ -170,8 +172,9 @@ class _AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
         if all(isinstance(matrix, BlockMatrix) for matrix in self._stored_blocks[0, :]):
             return BlockMatrix.fft_of_list(*self.first_block_line)
         else:
-            stacked_blocks = np.array([block.full_matrix() if not isinstance(block, np.ndarray) else block
-                                       for block in self.first_block_line])
+            stacked_blocks = np.empty((self.nb_blocks[0],) + self.block_shape, dtype=self.dtype)
+            for i, block in enumerate(self.first_block_line):
+                stacked_blocks[i] = block.full_matrix() if not isinstance(block, np.ndarray) else block
             return np.fft.fft(stacked_blocks, axis=0)
 
     def matvec(self, other):
@@ -220,8 +223,7 @@ class EvenBlockSymmetricCirculantMatrix(_AbstractBlockSymmetricCirculantMatrix):
     """
 
     def __init__(self, blocks, **kwargs):
-        blocks = np.asarray(blocks)
-        self._nb_blocks = (blocks.shape[1] - 1) * 2
+        self._nb_blocks = (len(blocks[0]) - 1) * 2
         super().__init__(blocks, **kwargs)
 
     def _baseline_grid(self):
@@ -250,8 +252,7 @@ class OddBlockSymmetricCirculantMatrix(_AbstractBlockSymmetricCirculantMatrix):
     """
 
     def __init__(self, blocks, **kwargs):
-        blocks = np.asarray(blocks)
-        self._nb_blocks = (blocks.shape[1]) * 2 - 1
+        self._nb_blocks = len(blocks[0]) * 2 - 1
         super().__init__(blocks, **kwargs)
 
     def _baseline_grid(self):

@@ -158,8 +158,8 @@ def test_even_block_circulant_matrix():
     assert (2*A).max() == 2
     assert (A*A == A).all()
 
-    assert A.first_block_line.ndim == 3
-    assert A.first_block_line.shape[:1] == (4,)
+    assert A.first_block_line.ndim == 1
+    assert A.first_block_line.shape == (4,)
 
     b = np.random.rand(8)
     assert np.allclose(A @ b, A.full_matrix() @ b)
@@ -197,10 +197,10 @@ def test_odd_block_circulant_matrix():
     assert (2*A).max() == 2
     assert (A*A == A).all()
 
-    assert A.first_block_line.ndim == 3
-    assert A.first_block_line.shape[:1] == (5,)
+    assert A.first_block_line.ndim == 1
+    assert A.first_block_line.shape == (5,)
 
-    list_of_matrices = [A, A, A]
+    list_of_matrices = [A, A + ones_like(A), A, A - ones_like(A)]
     AAA_fft = OddBlockSymmetricCirculantMatrix.fft_of_list(*list_of_matrices)
     full_AAA_fft = np.fft.fft(np.array([A.full_matrix() for A in list_of_matrices]), axis=0)
     assert np.allclose(full_AAA_fft, np.array([A.full_matrix() for A in AAA_fft]))

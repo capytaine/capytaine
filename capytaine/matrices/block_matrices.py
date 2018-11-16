@@ -18,11 +18,12 @@ class BlockMatrix:
 
     ndim = 2  # Other dimensions have not been implemented.
 
-    def __init__(self, blocks, _stored_block_shapes=None, copy=True, check=True):
+    def __init__(self, blocks, _stored_block_shapes=None, check=True):
 
-        self._stored_blocks = np.array(blocks, copy=copy)
+        self._stored_nb_blocks = (len(blocks), len(blocks[0]))
 
-        self._stored_nb_blocks = self._stored_blocks.shape[:self.ndim]
+        self._stored_blocks = np.empty(self._stored_nb_blocks, dtype=np.object)
+        self._stored_blocks[:, :] = blocks
 
         if _stored_block_shapes is None:
             self._stored_block_shapes = ([block.shape[0] for block in self._stored_blocks[:, 0]],
@@ -161,7 +162,7 @@ class BlockMatrix:
         """Helper function applying a function recursively on all submatrices."""
         LOG.debug(f"Apply op {op.__name__} to {self}")
         result = [[op(block) for block in line] for line in self._stored_blocks]
-        return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check=False, copy=False)
+        return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check=False)
 
     def _apply_binary_op(self, op: Callable, other: 'BlockMatrix') -> 'BlockMatrix':
         """Helper function applying a binary operator recursively on all submatrices."""
@@ -171,7 +172,7 @@ class BlockMatrix:
                 [op(block, other_block) for block, other_block in zip(line, other_line)]
                 for line, other_line in zip(self._stored_blocks, other._stored_blocks)
             ]
-            return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check=False, copy=False)
+            return self.__class__(result, _stored_block_shapes=self._stored_block_shapes, check=False)
         else:
             return NotImplemented
 
@@ -312,8 +313,7 @@ class BlockMatrix:
             for matrix, computed_block in zip(result, fft_of_blocks):
                 matrix[i_block, j_block] = computed_block
 
-        return np.array([class_of_matrices(blocks, _stored_block_shapes=block_matrices[0]._stored_block_shapes, copy=False)
-                         for blocks in result], copy=False)
+        return np.array([class_of_matrices(blocks, _stored_block_shapes=block_matrices[0]._stored_block_shapes) for blocks in result])
 
     # COMPARISON AND REDUCTION
 
