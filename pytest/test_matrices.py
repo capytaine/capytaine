@@ -225,6 +225,18 @@ def test_odd_block_circulant_matrix():
     assert np.allclose(full_BBB_fft, np.array([A.full_matrix() for A in BBB_fft]))
 
 
+def test_complex_valued_matrices():
+    R = random_block_matrix([2, 2], [2, 2])
+    I = random_block_matrix([2, 2], [2, 2])
+    A = R + 1j * I
+    assert np.allclose(A.full_matrix(), R.full_matrix() + 1j * I.full_matrix())
+
+    B = EvenBlockSymmetricCirculantMatrix([[A.full_matrix(), 2*A.full_matrix()]])
+    c = np.random.rand(B.shape[1]) + 1j * np.random.rand(B.shape[1])
+    assert np.allclose(B @ c, B.full_matrix() @ c)
+    assert np.allclose(solve_directly(B, c), solve_directly(B.full_matrix(), c))
+
+
 def test_solve_2x2():
     # 2x2 blocks
     A = BlockSymmetricToeplitzMatrix([
