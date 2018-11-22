@@ -14,14 +14,14 @@ requirements:
     - sphinx
   run:
     - python
-    - numpy
-    - scipy
     - attrs
-    - pandas
-    - xarray
-    - scipy
+    - libgfortran=3
     - matplotlib
+    - numpy
+    - pandas
+    - scipy
     - vtk
+    - xarray
 
 build:
   entry_points:
