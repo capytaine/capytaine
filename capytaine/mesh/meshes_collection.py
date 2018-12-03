@@ -145,6 +145,14 @@ class CollectionOfMeshes(Abstract3DObject):
     def faces_radiuses(self):
         return np.concatenate([mesh.faces_radiuses for mesh in self])
 
+    @property
+    def center_of_mass_of_nodes(self):
+        return sum([mesh.nb_vertices*mesh.center_of_mass_of_nodes for mesh in self])/self.nb_vertices
+
+    @property
+    def diameter_of_nodes(self):
+        return self.merge().diameter_of_nodes  # TODO: improve implementation
+
     def indices_of_mesh(self, mesh_index: int) -> slice:
         """Return the indices of the faces for the sub-mesh given as argument."""
         start = sum((mesh.nb_faces for mesh in self[:mesh_index]))  # Number of faces in previous meshes

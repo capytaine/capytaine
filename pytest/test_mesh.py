@@ -7,11 +7,12 @@ import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 
-from capytaine.geometric_bodies import HorizontalCylinder
+from capytaine.geometric_bodies import HorizontalCylinder, Sphere
 from capytaine.tools.geometry import Plane
 
 test_mesh = Mesh(vertices=np.random.rand(4, 3),faces=[range(4)], name="test_mesh")
 cylinder = HorizontalCylinder().mesh.merge()
+sphere = Sphere(radius=1).mesh.merge()
 
 
 def test_init_mesh():
@@ -54,6 +55,11 @@ def test_faces():
 def test_vertices():
     vertices_tmp = cylinder.vertices
     cylinder.vertices = vertices_tmp
+
+
+def test_mean_and_radius():
+    assert np.allclose(sphere.center_of_mass_of_nodes, (0, 0, 0))
+    assert np.isclose(sphere.diameter_of_nodes, 2)
 
 
 def test_bbox():

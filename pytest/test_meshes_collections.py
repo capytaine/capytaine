@@ -76,3 +76,6 @@ def test_collection():
     assert len(clipped_coll) == 1
     merged = clipped_coll.merge()
     assert merged == sphere.merge()
+
+    assert np.allclose(sphere.center_of_mass_of_nodes, sphere.merge().center_of_mass_of_nodes)
+    assert np.allclose(sphere.diameter_of_nodes, sphere.merge().diameter_of_nodes)

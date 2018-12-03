@@ -198,6 +198,32 @@ class Mesh(Abstract3DObject):
         else:
             return extracted_mesh
 
+    #####################
+    #  Mean and radius  #
+    #####################
+
+    @property
+    def center_of_mass_of_nodes(self):
+        """(Non-weighted) center of mass of the nodes of the mesh."""
+        if 'center_of_mass_of_nodes' not in self.__internals__:
+            center_of_mass_of_nodes = np.mean(self.vertices, axis=0)
+            self.__internals__['center_of_mass_of_nodes'] = center_of_mass_of_nodes
+            return center_of_mass_of_nodes
+        return self.__internals__['center_of_mass_of_nodes']
+
+    @property
+    def diameter_of_nodes(self):
+        """Maximum distance between two nodes of the mesh."""
+        if 'diameter_of_nodes' not in self.__internals__:
+            diameter_of_nodes = np.max(
+                np.linalg.norm(
+                    self.vertices - self.vertices.reshape(self.nb_vertices, 1, 3),
+                    axis=-1)
+            )
+            self.__internals__['diameter_of_nodes'] = diameter_of_nodes
+            return diameter_of_nodes
+        return self.__internals__['diameter_of_nodes']
+
     ######################
     #  Faces properties  #
     ######################
