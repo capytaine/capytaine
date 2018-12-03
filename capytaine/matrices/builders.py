@@ -20,7 +20,25 @@ from capytaine.matrices.block_toeplitz_matrices import (
 LOG = logging.getLogger(__name__)
 
 
-def cut_matrix(full_matrix, x_shapes, y_shapes, check=True):
+def cut_matrix(full_matrix, x_shapes, y_shapes, check=False):
+    """Transform a numpy array into a block matrix of numpy arrays.
+
+    Parameters
+    ----------
+    full_matrix: numpy array
+        The matrix to split into blocks.
+    x_shapes: sequence of int
+        The columns at which to split the blocks.
+    y_shapes: sequence of int
+        The lines at which to split the blocks.
+    check: bool, optional
+        Check to dimensions and type of the matrix after creation (default: False).
+
+    Return
+    ------
+    BlockMatrix
+        The same matrix as the input one but in block form.
+    """
     new_block_matrix = []
     for i, di in zip(accumulate([0] + x_shapes[:-1]), x_shapes):
         line = []
@@ -31,10 +49,12 @@ def cut_matrix(full_matrix, x_shapes, y_shapes, check=True):
 
 
 def random_block_matrix(x_shapes, y_shapes):
+    """A random block matrix."""
     return cut_matrix(np.random.rand(sum(x_shapes), sum(y_shapes)), x_shapes, y_shapes)
 
 
 def full_like(A, value, dtype=np.float64):
+    """A matrix of the same kind and shape as A but filled with a single value."""
     if isinstance(A, _AbstractBlockSymmetricCirculantMatrix):
         new_matrix = []
         for i in range(len(A._stored_blocks[0, :])):
@@ -58,14 +78,17 @@ def full_like(A, value, dtype=np.float64):
 
 
 def zeros_like(A, dtype=np.float64):
+    """A matrix of the same kind and shape as A but filled with zeros."""
     return full_like(A, 0.0, dtype=dtype)
 
 
 def ones_like(A, dtype=np.float64):
+    """A matrix of the same kind and shape as A but filled with ones."""
     return full_like(A, 1.0, dtype=dtype)
 
 
 def identity_like(A, dtype=np.float64):
+    """A identity matrix of the same kind and shape as A."""
     if isinstance(A, _AbstractBlockSymmetricCirculantMatrix):
         I = [identity_like(A._stored_blocks[0, 0], dtype=dtype)]
         for i in range(1, len(A._stored_blocks[0, :])):
