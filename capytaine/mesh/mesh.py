@@ -468,7 +468,7 @@ class Mesh(Abstract3DObject):
 
     @inplace_transformation
     def mirror(self, plane) -> 'Mesh':
-        """Mirrors the mesh instance with respect to a plane.
+        """Flip the mesh with respect to a plane.
 
         Parameters
         ----------
@@ -480,9 +480,22 @@ class Mesh(Abstract3DObject):
         return self
 
     @inplace_transformation
+    def clip(self, plane) -> 'Mesh':
+        from capytaine.mesh.mesh_clipper import MeshClipper
+        clipped_self = MeshClipper(self, plane=plane).clipped_mesh
+        self.vertices = clipped_self.vertices
+        self.faces = clipped_self.faces
+        self.remove_unused_vertices()
+        return self
+
+    def symmetrize(self, plane):
+        from capytaine.mesh.symmetries import ReflectionSymmetry
+        half = self.clip(plane, inplace=False)
+        return ReflectionSymmetry(half, plane=plane)
+
+    @inplace_transformation
     def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty) -> 'Mesh':
         """Clip the mesh with two horizontal planes."""
-        from capytaine.mesh.mesh_clipper import MeshClipper
         if self.vertices[:, 2].min() > free_surface or self.vertices[:, 2].max() < sea_bottom:
             LOG.warning("Trying to get the immersed clipped mesh of a mesh without wet panels.")
             self.vertices = np.zeros((0, 3))
@@ -492,20 +505,9 @@ class Mesh(Abstract3DObject):
             pass  # The mesh is completely immersed. Non need for clipping.
 
         else:
-            clipped_mesh = MeshClipper(self,
-                                       plane=Plane(normal=(0, 0, 1),
-                                                   point=(0, 0, 0))
-                                       ).clipped_mesh
-
+            self.clip(Plane(normal=(0, 0, 1), point=(0, 0, 0)))
             if sea_bottom > -np.infty:
-                clipped_mesh = MeshClipper(clipped_mesh,
-                                           plane=Plane(normal=(0, 0, -1),
-                                                       point=(0, 0, sea_bottom))
-                                           ).clipped_mesh
-
-            clipped_mesh.remove_unused_vertices()
-            self.vertices = clipped_mesh.vertices
-            self.faces = clipped_mesh.faces
+                self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
         return self
 
     @inplace_transformation

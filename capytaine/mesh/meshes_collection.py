@@ -189,6 +189,17 @@ class CollectionOfMeshes(Abstract3DObject):
             mesh.mirror(plane)
 
     @inplace_transformation
+    def clip(self, **kwargs):
+        for mesh in self:
+            mesh.clip(**kwargs)
+        self.prune_empty_meshes()
+
+    def symmetrize(self, plane):
+        from capytaine.mesh.symmetries import ReflectionSymmetry
+        self.clip(plane)
+        return ReflectionSymmetry(self, plane=plane)
+
+    @inplace_transformation
     def keep_immersed_part(self, **kwargs):
         for mesh in self:
             mesh.keep_immersed_part(**kwargs)

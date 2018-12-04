@@ -6,9 +6,10 @@ import pytest
 import numpy as np
 
 from capytaine.mesh.mesh import Mesh
+from capytaine.mesh.symmetries import ReflectionSymmetry
 
 from capytaine.geometric_bodies import HorizontalCylinder, Sphere
-from capytaine.tools.geometry import Plane
+from capytaine.tools.geometry import Plane, xOz_Plane
 
 test_mesh = Mesh(vertices=np.random.rand(4, 3),faces=[range(4)], name="test_mesh")
 cylinder = HorizontalCylinder().mesh.merge()
@@ -88,6 +89,11 @@ def test_rotate():
 
 def test_merge_duplicate():
     cylinder.merge_duplicates(atol=1e-5)
+
+
+def test_symmetrize():
+    sym = cylinder.merge().symmetrize(xOz_Plane)
+    assert isinstance(sym, ReflectionSymmetry)
 
 
 def test_triangulate_quadrangles():
