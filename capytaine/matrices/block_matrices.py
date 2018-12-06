@@ -75,7 +75,10 @@ class BlockMatrix:
 
     @property
     def dtype(self):
-        return self._stored_blocks[0][0].dtype
+        try:
+            return self._stored_blocks[0][0].dtype
+        except AttributeError:
+            return None
 
     @property
     def all_blocks(self) -> np.ndarray:
@@ -291,7 +294,7 @@ class BlockMatrix:
         class_of_matrices = type(block_matrices[0])
         nb_blocks = block_matrices[0]._stored_nb_blocks
 
-        LOG.debug(f"FFT of list of {class_of_matrices} (nb_blocks = {nb_blocks})")
+        LOG.debug(f"FFT of {len(block_matrices)} {class_of_matrices.__name__} (stored blocks = {nb_blocks})")
 
         if check:
             # Check the validity of the shapes of the matrices given as input
@@ -360,7 +363,7 @@ class BlockMatrix:
     # DISPLAYING DATA
 
     def __str__(self):
-        args = [f"nb_blocks={self.nb_blocks}", f"total_shape={self.shape}"]
+        args = [f"total_shape={self.shape}", f"nb_blocks={self.nb_blocks}"]
         if self.dtype not in [np.float64, np.float]:
             args.append(f"dtype={self.dtype}")
         if hasattr(self, 'block_shape'):
