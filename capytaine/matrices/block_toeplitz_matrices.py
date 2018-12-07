@@ -104,7 +104,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 
     # TRANSFORMING DATA
 
-    @lru_cache(maxsize=16)
+    @lru_cache(maxsize=256)
     def _circulant_super_matrix(self):
         return EvenBlockSymmetricCirculantMatrix(self._stored_blocks,
                                                  _stored_block_shapes=self._stored_block_shapes,
@@ -166,7 +166,7 @@ class _AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
 
     # TRANSFORMING DATA
 
-    @lru_cache(maxsize=16)
+    @lru_cache(maxsize=256)
     def block_diagonalize(self):
         """Returns an array of matrices"""
         if all(isinstance(matrix, BlockMatrix) for matrix in self._stored_blocks[0, :]):
