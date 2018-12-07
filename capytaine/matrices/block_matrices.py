@@ -362,12 +362,28 @@ class BlockMatrix:
 
     # DISPLAYING DATA
 
+    @property
+    def str_shape(self):
+        if not hasattr(self, '_str_shape'):
+            blocks_str = []
+            for line in self.all_blocks:
+                for block in line:
+                    if isinstance(block, BlockMatrix):
+                        blocks_str.append(block.str_shape)
+                    else:
+                        blocks_str.append("{}×{}".format(*block.shape))
+
+            if len(set(blocks_str)) == 1:
+                self._str_shape = "{}×{}×[".format(*self.nb_blocks) + blocks_str[0] + "]"
+            else:
+                blocks_str = np.array(blocks_str).reshape(self.nb_blocks).tolist()
+                self._str_shape = str(blocks_str).replace("'", "")
+        return self._str_shape
+
     def __str__(self):
-        args = [f"total_shape={self.shape}", f"nb_blocks={self.nb_blocks}"]
+        args = [self.str_shape]
         if self.dtype not in [np.float64, np.float]:
             args.append(f"dtype={self.dtype}")
-        if hasattr(self, 'block_shape'):
-            args.append(f"block_shape={self.block_shape}")
         return f"{self.__class__.__name__}(" + ", ".join(args) + ")"
 
     display_color = cycle([f'C{i}' for i in range(10)])
