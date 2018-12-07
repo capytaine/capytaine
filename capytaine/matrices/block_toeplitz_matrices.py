@@ -188,7 +188,10 @@ class _AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
         except TypeError:  # Or do the same thing with list comprehension.
             fft_of_result = np.array([block @ vec for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
         result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[0])
-        return np.asarray(result, dtype=other.dtype)
+        if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
+            return np.asarray(result)
+        else:
+            return np.asarray(np.real(result))
 
     def rmatvec(self, other):
         """Matrix vector product.
@@ -201,7 +204,10 @@ class _AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
         except TypeError:  # Or do the same thing with list comprehension.
             fft_of_result = np.array([block.rmatvec(vec) for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
         result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[1])
-        return np.asarray(result, dtype=other.dtype)
+        if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
+            return np.asarray(result)
+        else:
+            return np.asarray(np.real(result))
 
 
 class EvenBlockSymmetricCirculantMatrix(_AbstractBlockSymmetricCirculantMatrix):
