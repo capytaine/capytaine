@@ -132,6 +132,12 @@ def test_array_of_spheres():
     buoy.add_translation_dof(name="Surge")
     buoy.add_translation_dof(name="Sway")
     buoy.add_translation_dof(name="Heave")
+
+    # Corner case
+    dumb_array = buoy.assemble_regular_array(distance=5.0, nb_bodies=(1, 1))
+    assert dumb_array.mesh == buoy.mesh
+
+    # Main case
     array = buoy.assemble_regular_array(distance=5.0, nb_bodies=(3, 3))
 
     assert isinstance(array.mesh, TranslationalSymmetry)
