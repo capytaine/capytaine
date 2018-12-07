@@ -217,7 +217,7 @@ def write_dataset_as_tecplot_files(results_directory, data):
         with open(os.path.join(results_directory, 'RadiationCoefficients.tec'), 'w') as fi:
             for i in range(len(data['radiating_dof'])+1):
                 fi.write(f'...\n')
-            for dof in data.influenced_dof:
+            for dof in data.radiating_dof:
                 fi.write(f'{dof.values}\n')
                 for o in data.omega:
                     fi.write(f'  {o.values:e}  ')
