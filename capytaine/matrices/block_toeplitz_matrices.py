@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""Block symmetric Toeplitz matrices and block symmetric circulant matrices
+to be used in hierarchical matrices.
+"""
 
 import logging
 from typing import Tuple, List, Iterable
-from functools import lru_cache
 
 import numpy as np
 
@@ -23,7 +25,9 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
     Stored in the backend as a 1×N array of arrays.
     """
 
-    def _compute_shape(self):
+    # INITIALIZATION
+
+    def _compute_shape(self) -> Tuple[int, int]:
         # The full shape is found by multiplying the shape of the blocks. All of them have the same shape.
         return self._stored_block_shapes[0][0]*self.nb_blocks[0], self._stored_block_shapes[1][0]*self.nb_blocks[1]
 
@@ -50,13 +54,13 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         return np.array([[abs(i-j) for i in range(n)] for j in range(n)])
 
     @property
-    def first_block_line(self):
-        """The blocks on the first line of blocks in the matrix."""
+    def first_block_line(self) -> np.ndarray:
+        """1D array of the the blocks of the first line."""
         return self._stored_blocks[0, :]
 
     @property
     def all_blocks(self) -> np.ndarray:
-        """The matrix of matrices as if the block Toeplitz structure was not used."""
+        """The matrix of blocks as if the block Toeplitz structure was not used."""
         all_blocks = np.empty(self.nb_blocks, dtype=np.object)
         all_blocks[:, :] = [[block for block in self.first_block_line[indices]] for indices in self._index_grid()]
         return all_blocks
@@ -67,22 +71,21 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         return self._stored_nb_blocks[1], self._stored_nb_blocks[1]
 
     @property
-    def block_shapes(self):
+    def block_shapes(self) -> Tuple[List[int], List[int]]:
         """The shapes of the blocks composing the block matrix.
         Actually, they should be all the same."""
         return ([self._stored_block_shapes[0][0]]*self.nb_blocks[0],
                 self._stored_block_shapes[1])
 
     @property
-    def block_shape(self):
-        """The shape of any block."""
+    def block_shape(self) -> Tuple[int, int]:
+        """The shape of any of the blocks."""
         return self._stored_block_shapes[0][0], self._stored_block_shapes[1][0]
 
     def _block_indices_of(self, k: int) -> List[Tuple[int, int]]:
-        """The block indices at which the block k from the first line can also be found.
-        TODO: Optimize.
-        """
+        """The block indices at which the block k from the first line can also be found."""
         n = self.nb_blocks[0]
+        # TODO: Optimize?
         return [(i, j) for i in range(n) for j in range(n) if abs(i-j) == k]
 
     def _positions_of(self, k: int, global_frame=(0, 0)) -> List[Tuple[int, int]]:
@@ -105,6 +108,8 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
     # TRANSFORMING DATA
 
     def matvec(self, other):
+        """Matrix vector product.
+        Named as such to be used as scipy LinearOperator."""
         LOG.debug(f"Product of {self} with vector of shape {other.shape}")
         if not hasattr(self, 'circulant_super_matrix'):
             self.circulant_super_matrix = EvenBlockSymmetricCirculantMatrix(
@@ -116,6 +121,8 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         return (A @ b)[:self.shape[0]]
 
     def rmatvec(self, other):
+        """Matrix vector product.
+        Named as such to be used as scipy LinearOperator."""
         LOG.debug(f"Product of vector of shape {other.shape} with {self}")
         if other.ndim == 2 and other.shape[0] == 1:  # Actually a 1×N matrix
             other = other[0, :]
@@ -143,28 +150,28 @@ class _AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
 
     # ACCESSING DATA
 
-    def _index_grid(self):
+    def _index_grid(self) -> np.ndarray:
         line = self._baseline_grid()
         grid = [line]
         for i in range(1, self.nb_blocks[0]):
             grid.append(line[-i:] + line[:-i])
         return np.array(grid)
 
-    def _block_indices_of(self, k):
+    def _block_indices_of(self, k) -> List[Tuple[int, int]]:
         n = self.nb_blocks[0]
         grid = self._index_grid()
         return [(i, j) for i in range(n) for j in range(n) if grid[i, j] == k]
 
     @property
-    def first_block_line(self):
+    def first_block_line(self) -> np.ndarray:
         return self._stored_blocks[0, self._baseline_grid()]
 
     @property
-    def nb_blocks(self):
+    def nb_blocks(self) -> Tuple[int, int]:
         return self._nb_blocks, self._nb_blocks
 
     @property
-    def block_shapes(self):
+    def block_shapes(self) -> Tuple[List[int], List[int]]:
         return ([self._stored_block_shapes[0][0]]*self.nb_blocks[0],
                 [self._stored_block_shapes[1][0]]*self.nb_blocks[1])
 
@@ -237,7 +244,7 @@ class EvenBlockSymmetricCirculantMatrix(_AbstractBlockSymmetricCirculantMatrix):
         self._nb_blocks = (len(blocks[0]) - 1) * 2
         super().__init__(blocks, **kwargs)
 
-    def _baseline_grid(self):
+    def _baseline_grid(self) -> List[int]:
         blocks_indices = list(range(len(self._stored_blocks[0, :])))
         return blocks_indices[:-1] + blocks_indices[1:][::-1]
 
@@ -266,7 +273,7 @@ class OddBlockSymmetricCirculantMatrix(_AbstractBlockSymmetricCirculantMatrix):
         self._nb_blocks = len(blocks[0]) * 2 - 1
         super().__init__(blocks, **kwargs)
 
-    def _baseline_grid(self):
+    def _baseline_grid(self) -> List[int]:
         blocks_indices = list(range(len(self._stored_blocks[0, :])))
         return blocks_indices[:] + blocks_indices[1:][::-1]
 
