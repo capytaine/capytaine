@@ -104,15 +104,14 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
 
     # TRANSFORMING DATA
 
-    @lru_cache(maxsize=256)
-    def _circulant_super_matrix(self):
-        return EvenBlockSymmetricCirculantMatrix(self._stored_blocks,
-                                                 _stored_block_shapes=self._stored_block_shapes,
-                                                 check=False)
-
     def matvec(self, other):
         LOG.debug(f"Product of {self} with vector of shape {other.shape}")
-        A = self._circulant_super_matrix()
+        if not hasattr(self, 'circulant_super_matrix'):
+            self.circulant_super_matrix = EvenBlockSymmetricCirculantMatrix(
+                self._stored_blocks,
+                _stored_block_shapes=self._stored_block_shapes,
+                check=False)
+        A = self.circulant_super_matrix
         b = np.concatenate([other, np.zeros(A.shape[1] - self.shape[1])])
         return (A @ b)[:self.shape[0]]
 
@@ -120,7 +119,12 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         LOG.debug(f"Product of vector of shape {other.shape} with {self}")
         if other.ndim == 2 and other.shape[0] == 1:  # Actually a 1×N matrix
             other = other[0, :]
-        A = self._circulant_super_matrix()
+        if not hasattr(self, 'circulant_super_matrix'):
+            self.circulant_super_matrix = EvenBlockSymmetricCirculantMatrix(
+                self._stored_blocks,
+                _stored_block_shapes=self._stored_block_shapes,
+                check=False)
+        A = self.circulant_super_matrix
         b = np.concatenate([other, np.zeros(A.shape[0] - self.shape[0])])
         return (A.rmatvec(b))[:self.shape[1]]
 
@@ -166,16 +170,17 @@ class _AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
 
     # TRANSFORMING DATA
 
-    @lru_cache(maxsize=256)
     def block_diagonalize(self):
         """Returns an array of matrices"""
-        if all(isinstance(matrix, BlockMatrix) for matrix in self._stored_blocks[0, :]):
-            return BlockMatrix.fft_of_list(*self.first_block_line)
-        else:
-            stacked_blocks = np.empty((self.nb_blocks[0],) + self.block_shape, dtype=self.dtype)
-            for i, block in enumerate(self.first_block_line):
-                stacked_blocks[i] = block.full_matrix() if not isinstance(block, np.ndarray) else block
-            return np.fft.fft(stacked_blocks, axis=0)
+        if not hasattr(self, 'block_diagonalization'):
+            if all(isinstance(matrix, BlockMatrix) for matrix in self._stored_blocks[0, :]):
+                self.block_diagonalization = BlockMatrix.fft_of_list(*self.first_block_line)
+            else:
+                stacked_blocks = np.empty((self.nb_blocks[0],) + self.block_shape, dtype=self.dtype)
+                for i, block in enumerate(self.first_block_line):
+                    stacked_blocks[i] = block.full_matrix() if not isinstance(block, np.ndarray) else block
+                self.block_diagonalization =  np.fft.fft(stacked_blocks, axis=0)
+        return self.block_diagonalization
 
     def matvec(self, other):
         """Matrix vector product.
