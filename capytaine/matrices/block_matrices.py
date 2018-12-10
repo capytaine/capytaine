@@ -370,8 +370,10 @@ class BlockMatrix:
                 for block in line:
                     if isinstance(block, BlockMatrix):
                         blocks_str.append(block.str_shape)
-                    else:
+                    elif isinstance(block, np.ndarray):
                         blocks_str.append("{}×{}".format(*block.shape))
+                    else:
+                        blocks_str.append("?×?")
 
             if len(set(blocks_str)) == 1:
                 self._str_shape = "{}×{}×[".format(*self.nb_blocks) + blocks_str[0] + "]"
