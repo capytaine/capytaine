@@ -17,6 +17,8 @@ from capytaine.matrices.block_toeplitz_matrices import (
 LOG = logging.getLogger(__name__)
 
 
+# DIRECT SOLVER
+
 def solve_directly(A, b):
     assert isinstance(b, np.ndarray) and A.ndim == b.ndim+1 and A.shape[-2] == b.shape[-1]
     if isinstance(A, _AbstractBlockSymmetricCirculantMatrix):
@@ -66,10 +68,29 @@ def solve_storing_lu(A, b):
     return sl.lu_solve(lu_decomp(A), b)
 
 
+# ITERATIVE SOLVER
+
+class Counter:
+    def __init__(self):
+        self.nb_iter = 0
+
+    def __call__(self, *args, **kwargs):
+        self.nb_iter += 1
+
+
 def solve_gmres(A, b):
     LOG.debug(f"Solve with GMRES for {A}.")
-    x, info = ssl.gmres(A, b, atol=1e-6)
+
+    if LOG.isEnabledFor(logging.DEBUG):
+        counter = Counter()
+        x, info = ssl.gmres(A, b, atol=1e-6, callback=counter)
+        LOG.debug(f"End of GMRES after {counter.nb_iter} iterations.")
+
+    else:
+        x, info = ssl.gmres(A, b, atol=1e-6)
+
     if info != 0:
-        LOG.warning("No convergence of the GMRES")
+        LOG.warning(f"No convergence of the GMRES. Error code: {info}")
+
     return x
 
