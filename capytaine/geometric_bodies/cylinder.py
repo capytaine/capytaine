@@ -252,7 +252,7 @@ class VerticalCylinder(FloatingBody):
 
         open_cylinder = AxialSymmetry.from_profile(
             lambda z: radius,
-            z_range=np.linspace(-length/2, length/2, nx),
+            z_range=np.linspace(-length/2, length/2, nx+1),
             nphi=ntheta)
 
         if nr > 0:
