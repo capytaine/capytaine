@@ -10,6 +10,7 @@ import numpy as np
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
 from capytaine.mesh.symmetries import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
 from capytaine.matrices.block_matrices import BlockMatrix
+from capytaine.matrices.low_rank_blocks import LowRankMatrix
 from capytaine.matrices.block_toeplitz_matrices import (
     BlockSymmetricToeplitzMatrix,
     _AbstractBlockSymmetricCirculantMatrix,
@@ -73,6 +74,8 @@ def full_like(A, value, dtype=np.float64):
                 line.append(full_like(A.all_blocks[i][j], value, dtype=dtype))
             new_matrix.append(line)
         return BlockMatrix(new_matrix)
+    elif isinstance(A, LowRankMatrix):
+        return LowRankMatrix(np.ones((A.shape[0], 1)), np.full((1, A.shape[1]), value))
     elif isinstance(A, np.ndarray):
         return np.full_like(A, value, dtype=dtype)
 
@@ -234,9 +237,18 @@ def build_with_symmetries(build_matrices):
             for submesh1 in mesh1:
                 S_line, V_line = [], []
                 for submesh2 in mesh2:
-                    S, V = build_matrices_with_symmetries(
-                        submesh1, submesh2, *args, **kwargs,
-                        _rec_depth=_rec_depth+1)
+
+                    distance = np.linalg.norm(submesh1.center_of_mass_of_nodes - submesh2.center_of_mass_of_nodes)
+                    if distance < 4*submesh1.diameter_of_nodes or distance < 4*submesh2.diameter_of_nodes:
+                        S, V = build_matrices_with_symmetries(
+                            submesh1, submesh2, *args, **kwargs,
+                            _rec_depth=_rec_depth+1)
+                    else:
+                        # TODO: Avoid computing the full matrix.
+                        S, V = build_matrices(submesh1, submesh2, *args, **kwargs)
+                        S = LowRankMatrix.from_full_matrix_with_ACA(S, tol=1e-5)
+                        V = LowRankMatrix.from_full_matrix_with_ACA(V, tol=1e-5)
+
                     S_line.append(S)
                     V_line.append(V)
                 S_matrix.append(S_line)

@@ -21,6 +21,8 @@ from capytaine.Nemoh import Nemoh
 
 from capytaine.tools.geometry import xOz_Plane, yOz_Plane
 
+from capytaine.matrices.low_rank_blocks import LowRankMatrix
+
 solver = Nemoh(use_symmetries=True, matrix_cache_size=0)
 
 
@@ -146,4 +148,28 @@ def test_array_of_spheres():
 
     assert len(array.dofs) == 3*3*3
     assert "2_0_Heave" in array.dofs
+
+
+def test_low_rank_matrices():
+    radius = 1.0
+    resolution = 2
+    perimeter = 2*np.pi*radius
+    buoy = Sphere(radius=radius, center=(0.0, 0.0, 0.0),
+                  ntheta=int(perimeter*resolution/2), nphi=int(perimeter*resolution),
+                  clip_free_surface=True, clever=False, name=f"buoy")
+    buoy.add_translation_dof(name="Heave")
+    full_farm = FloatingBody.join_bodies(buoy, buoy.translated_x(10))
+    full_farm.mesh._meshes[1].name = "other_buoy_mesh"
+
+    S, V = solver.build_matrices(full_farm.mesh, full_farm.mesh)
+    assert isinstance(S.all_blocks[0, 1], LowRankMatrix)
+    assert isinstance(S.all_blocks[1, 0], LowRankMatrix)
+    print(S.all_blocks[1, 0].rank)
+
+    problem = RadiationProblem(body=full_farm, omega=1.0, radiating_dof="buoy__Heave")
+    result = Nemoh(linear_solver="gmres").solve(problem)
+    result2 = Nemoh(linear_solver="gmres", use_symmetries=False).solve(problem)
+
+    assert np.isclose(result.added_masses['buoy__Heave'], result2.added_masses['buoy__Heave'], atol=10.0)
+    assert np.isclose(result.radiation_dampings['buoy__Heave'], result2.radiation_dampings['buoy__Heave'], atol=10.0)
 

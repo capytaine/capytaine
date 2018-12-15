@@ -43,11 +43,11 @@ class LowRankMatrix:
             return full_matrix[:, j]
 
         return cls.from_rows_and_cols_functions_with_ACA(
-            get_row, get_col, full_matrix.shape[0], full_matrix.shape[1], max_rank=max_rank, tol=tol
+            get_row, get_col, full_matrix.shape[0], full_matrix.shape[1], max_rank=max_rank, tol=tol, dtype=full_matrix.dtype
         )
 
     @classmethod
-    def from_function_with_ACA(cls, func, nb_rows, nb_cols, max_rank=None, tol=1e-6):
+    def from_function_with_ACA(cls, func, nb_rows, nb_cols, max_rank=None, tol=1e-6, dtype=np.float64):
         def get_row(i):
             return np.asarray([func(i, j) for j in range(nb_cols)])
 
@@ -55,18 +55,18 @@ class LowRankMatrix:
             return np.asarray([func(i, j) for i in range(nb_rows)])
 
         return cls.from_rows_and_cols_functions_with_ACA(
-            get_row, get_col, nb_rows, nb_cols, max_rank=max_rank, tol=tol
+            get_row, get_col, nb_rows, nb_cols, max_rank=max_rank, tol=tol, dtype=dtype
         )
 
     @classmethod
-    def from_rows_and_cols_functions_with_ACA(cls, get_row_func, get_col_func, nb_rows, nb_cols, max_rank=None, tol=1e-6):
+    def from_rows_and_cols_functions_with_ACA(cls, get_row_func, get_col_func, nb_rows, nb_cols, max_rank=None, tol=1e-6, dtype=np.float64):
         """Create a low rank matrix from functions using Adaptive Cross Approximation"""
         if max_rank is None:
             max_rank = min(nb_rows, nb_cols)//2
 
         A = []  # Left matrix to be assembled
         B = []  # Right matrix to be assembled
-        R = np.zeros((nb_rows, nb_cols))  # Current best approximation == A @ B
+        R = np.zeros((nb_rows, nb_cols), dtype=dtype)  # Current best approximation == A @ B
         available_rows = list(range(nb_rows))
         available_cols = list(range(nb_cols))
 
@@ -141,6 +141,19 @@ class LowRankMatrix:
         else:
             return NotImplemented
 
+    def __neg__(self):
+        return LowRankMatrix(-self.left_matrix, self.right_matrix)
+
+    def __sub__(self, other):
+        return self + (-other)
+
+    def __truediv__(self, other):
+        from numbers import Number
+        if isinstance(other, Number):
+            return LowRankMatrix(self.left_matrix, self.right_matrix/other)
+        else:
+            return NotImplemented
+
     def __matmul__(self, other):
         if isinstance(other, np.ndarray) and len(other.shape) == 1:
             return self._mul_with_vector(other)
@@ -149,4 +162,7 @@ class LowRankMatrix:
 
     def _mul_with_vector(self, other):
         return self.left_matrix @ (self.right_matrix @ other)
+
+    def astype(self, dtype):
+        return LowRankMatrix(self.left_matrix.astype(dtype), self.right_matrix.astype(dtype))
 
