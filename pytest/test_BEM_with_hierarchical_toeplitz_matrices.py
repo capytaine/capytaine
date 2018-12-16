@@ -164,7 +164,7 @@ def test_array_of_spheres():
     assert array.mesh[0][0] == buoy.mesh
 
     assert len(array.dofs) == 3*3*3
-    assert "2_0_Heave" in array.dofs
+    assert "2_0__Heave" in array.dofs
 
     S, V = solver_with_sym.build_matrices(array.mesh, array.mesh)
     # S.plot_shape()

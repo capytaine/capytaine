@@ -241,7 +241,7 @@ class FloatingBody(Abstract3DObject):
                 shift_nb_faces = (j*nb_bodies[0] + i) * self.mesh.nb_faces
                 new_dof = np.zeros((total_nb_faces, 3))
                 new_dof[shift_nb_faces:shift_nb_faces+len(dof), :] = dof
-                array_dofs[f'{i}_{j}_{dof_name}'] = new_dof
+                array_dofs[f'{i}_{j}__{dof_name}'] = new_dof
         return FloatingBody(mesh=array_mesh, dofs=array_dofs, name=f"array_of_{self.name}")
 
     def extract_faces(self, id_faces_to_extract, return_index=False):
