@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""Test related to the definition and use of geometric objects (planes, axes, ...)."""
 
-import pytest
 import numpy as np
 
 from capytaine.tools.geometry import (
     Axis, Ox_axis, Oy_axis, Oz_axis,
     Plane, xOz_Plane, yOz_Plane, xOy_Plane,
 )
-from capytaine.geometric_bodies import HorizontalCylinder
 
 
+# TODO: names of the functions test_... conflict with pytest conventions...
 # def test_helper_functions():
 #     assert test_orthogonal_vectors((0, 1, 0), (1, 0, 0))
 #     assert not test_orthogonal_vectors((1, 0, 0), (1, 0, 0))
@@ -68,6 +68,7 @@ def test_plane():
 
 
 def test_plane_transformations():
+    # TRANSLATIONS
     translated_plane = xOz_Plane.translate(vector=(1, 0, 0), inplace=False)
     assert xOz_Plane is not translated_plane
     assert xOz_Plane == translated_plane
@@ -78,7 +79,7 @@ def test_plane_transformations():
     assert translated_plane.c == 1
     assert np.all(translated_plane.normal == xOz_Plane.normal)
 
-
+    # ROTATIONS
     rotated_plane = xOz_Plane.rotate(Oy_axis, angle=np.pi/12, inplace=False)
     assert rotated_plane == xOz_Plane.rotated(Oy_axis, angle=np.pi/12)
     assert xOz_Plane is not rotated_plane

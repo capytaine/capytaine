@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-Compare results of Capytaine with results from Nemoh 2.0.
-"""
+"""Compare results of Capytaine with results from Nemoh 2."""
 
 import pytest
 
@@ -21,6 +19,8 @@ from capytaine.Nemoh import Nemoh
 from capytaine.tools.kochin import compute_Kochin
 
 solver = Nemoh(use_symmetries=False, matrix_cache_size=0)
+# Use a single solver in the whole module to avoid reinitialisation of the solver (0.5 second).
+# Do not use a matrix cache in order not to risk influencing a test with another.
 
 
 def test_immersed_sphere():
@@ -213,11 +213,4 @@ def test_multibody():
     assert np.allclose(recomputed_data["added_mass"].data, data["added_mass"].data)
 
 
-def test_fill_dataset():
-    body = HorizontalCylinder(radius=1, center=(0, 0, -2))
-    body.add_all_rigid_body_dofs()
-    test_matrix = xr.Dataset(coords={'omega': [1.0, 2.0, 3.0], 'angle': [0, np.pi/2], 'radiating_dof': ['Heave']})
-    dataset = solver.fill_dataset(test_matrix, [body])
-    assert dataset['added_mass'].data.shape == (3, 1, 6)
-    assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)
 

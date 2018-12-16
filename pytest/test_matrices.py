@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""Test of the matrices submodule."""
 
 import pytest
 
 import numpy as np
 
-from capytaine.matrices.block_matrices import *
-from capytaine.matrices.block_toeplitz_matrices import *
+from capytaine.matrices.block_matrices import BlockMatrix
+from capytaine.matrices.block_toeplitz_matrices import (
+    BlockSymmetricToeplitzMatrix, EvenBlockSymmetricCirculantMatrix, OddBlockSymmetricCirculantMatrix
+)
 from capytaine.matrices.builders import *
 from capytaine.matrices.low_rank_blocks import LowRankMatrix
 from capytaine.matrices.linear_solvers import solve_directly, solve_gmres

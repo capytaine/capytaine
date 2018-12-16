@@ -1,5 +1,11 @@
+#!/usr/bin/env python
+# coding: utf-8
+"""Tests for the mesh submodule: definition and transformation of collections of meshes and symmetric meshes."""
+
+import pytest
 import numpy as np
 
+from capytaine import Disk, AxialSymmetry, HorizontalCylinder, TranslationalSymmetry
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
 from capytaine.geometric_bodies import Sphere
@@ -79,3 +85,24 @@ def test_collection():
 
     assert np.allclose(sphere.center_of_mass_of_nodes, sphere.merge().center_of_mass_of_nodes)
     assert np.allclose(sphere.diameter_of_nodes, sphere.merge().diameter_of_nodes)
+
+
+def test_join_axisymmetric_disks():
+    """Given two axisymmetric meshes with the same axis, build a new axisymmetric mesh combining the two."""
+    disk1 = Disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), axial_symmetry=True).mesh
+    disk2 = Disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), axial_symmetry=True).mesh
+    joined = disk1.join_meshes(disk2, name="two_disks")
+    assert isinstance(joined, AxialSymmetry)
+    joined.tree_view()
+
+    disk3 = Disk(radius=1.0, center=(0, 0, 0), resolution=(6, 4), axial_symmetry=True).mesh
+    with pytest.raises(AssertionError):
+        disk1.join_meshes(disk3)
+
+
+def test_join_translational_cylinders():
+    """Given two meshes with the same translation symmetry, join them into a single mesh with the same symmetry."""
+    mesh1 = HorizontalCylinder(length=10.0, radius=1.0, center=(0, 5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
+    mesh2 = HorizontalCylinder(length=10.0, radius=2.0, center=(0, -5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
+    joined = mesh1.join_meshes(mesh2)
+    assert isinstance(joined, TranslationalSymmetry)

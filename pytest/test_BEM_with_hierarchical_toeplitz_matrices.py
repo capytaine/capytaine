@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-Tests for the computation of the Green function and the resolution of the BEM problem.
-"""
+"""Tests for the resolution of the BEM problems using advanced techniques."""
 
 import pytest
 
@@ -14,7 +12,7 @@ from capytaine.mesh.symmetries import AxialSymmetry, ReflectionSymmetry, Transla
 
 from capytaine.bodies import FloatingBody
 from capytaine.geometric_bodies.sphere import Sphere
-from capytaine.geometric_bodies.cylinder import Disk, HorizontalCylinder
+from capytaine.geometric_bodies.cylinder import HorizontalCylinder
 
 from capytaine.problems import RadiationProblem
 from capytaine.Nemoh import Nemoh
@@ -23,35 +21,46 @@ from capytaine.tools.geometry import xOz_Plane, yOz_Plane
 
 from capytaine.matrices.low_rank_blocks import LowRankMatrix
 
-solver = Nemoh(use_symmetries=True, matrix_cache_size=0)
+solver_with_sym = Nemoh(use_symmetries=True, matrix_cache_size=0)
+# Use a single solver in the whole module to avoid reinitialisation of the solver (0.5 second).
+# Do not use a matrix cache in order not to risk influencing a test with another.
 
 
-@pytest.mark.parametrize("reso", range(1, 3))
 @pytest.mark.parametrize("depth", [10.0, np.infty])
-def test_floating_sphere(reso, depth):
+@pytest.mark.parametrize("omega", [0.1, 10.0])
+def test_floating_sphere(depth, omega):
+    """Comparison of the added mass and radiation damping
+    for a heaving sphere described using several symmetries
+    in finite and infinite depth.
+    """
+    reso = 2
+
     full_sphere = Sphere(radius=1.0, ntheta=reso, nphi=4*reso, clever=False, clip_free_surface=True)
     full_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    problem = RadiationProblem(body=full_sphere, omega=1.0, sea_bottom=-depth)
-    result1 = solver.solve(problem)
+    problem = RadiationProblem(body=full_sphere, omega=omega, sea_bottom=-depth)
+    result1 = solver_with_sym.solve(problem)
 
-    half_sphere_mesh = full_sphere.mesh.extract_faces(np.where(full_sphere.mesh.faces_centers[:, 1] > 0)[0])
+    half_sphere_mesh = full_sphere.mesh.extract_faces(
+        np.where(full_sphere.mesh.faces_centers[:, 1] > 0)[0],
+        name="half_sphere_mesh")
     two_halves_sphere = FloatingBody(ReflectionSymmetry(half_sphere_mesh, xOz_Plane))
     two_halves_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    problem = RadiationProblem(body=two_halves_sphere, omega=1.0, sea_bottom=-depth)
-    result2 = solver.solve(problem)
+    problem = RadiationProblem(body=two_halves_sphere, omega=omega, sea_bottom=-depth)
+    result2 = solver_with_sym.solve(problem)
 
-    quarter_sphere = half_sphere_mesh.extract_faces(np.where(half_sphere_mesh.faces_centers[:, 0] > 0)[0])
-    quarter_sphere.name = "quarter_sphere"
-    four_quarter_sphere = FloatingBody(ReflectionSymmetry(ReflectionSymmetry(quarter_sphere, yOz_Plane), xOz_Plane))
+    quarter_sphere_mesh = half_sphere_mesh.extract_faces(
+        np.where(half_sphere_mesh.faces_centers[:, 0] > 0)[0],
+        name="quarter_sphere_mesh")
+    four_quarter_sphere = FloatingBody(ReflectionSymmetry(ReflectionSymmetry(quarter_sphere_mesh, yOz_Plane), xOz_Plane))
     assert 'None' not in four_quarter_sphere.mesh.tree_view()
     four_quarter_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    problem = RadiationProblem(body=four_quarter_sphere, omega=1.0, sea_bottom=-depth)
-    result3 = solver.solve(problem)
+    problem = RadiationProblem(body=four_quarter_sphere, omega=omega, sea_bottom=-depth)
+    result3 = solver_with_sym.solve(problem)
 
     clever_sphere = Sphere(radius=1.0, ntheta=reso, nphi=4*reso, clever=True, clip_free_surface=True)
     clever_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    problem = RadiationProblem(body=clever_sphere, omega=1.0, sea_bottom=-depth)
-    result4 = solver.solve(problem)
+    problem = RadiationProblem(body=clever_sphere, omega=omega, sea_bottom=-depth)
+    result4 = solver_with_sym.solve(problem)
 
     # (quarter_sphere + half_sphere + full_sphere + clever_sphere).show()
 
@@ -64,25 +73,6 @@ def test_floating_sphere(reso, depth):
     assert np.isclose(result1.radiation_dampings["Heave"], result4.radiation_dampings["Heave"], atol=1e-4*volume*problem.rho)
 
 
-def test_join_axisymmetric_disks():
-    disk1 = Disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), axial_symmetry=True).mesh
-    disk2 = Disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), axial_symmetry=True).mesh
-    joined = disk1.join_meshes(disk2, name="two_disks")
-    assert isinstance(joined, AxialSymmetry)
-    joined.tree_view()
-
-    disk3 = Disk(radius=1.0, center=(0, 0, 0), resolution=(6, 4), axial_symmetry=True).mesh
-    with pytest.raises(AssertionError):
-        disk1.join_meshes(disk3)
-
-
-def test_join_translational_cylinders():
-    mesh1 = HorizontalCylinder(length=10.0, radius=1.0, center=(0, 5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
-    mesh2 = HorizontalCylinder(length=10.0, radius=2.0, center=(0, -5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
-    joined = mesh1.join_meshes(mesh2)
-    assert isinstance(joined, TranslationalSymmetry)
-
-
 def test_odd_axial_symmetry():
     """Buoy with odd number of slices."""
     def shape(z):
@@ -91,12 +81,12 @@ def test_odd_axial_symmetry():
     buoy.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     problem = RadiationProblem(body=buoy, omega=2.0)
-    result1 = solver.solve(problem)
+    result1 = solver_with_sym.solve(problem)
 
     full_buoy = FloatingBody(buoy.mesh.merge())
     full_buoy.add_translation_dof(direction=(0, 0, 1), name="Heave")
     problem = RadiationProblem(body=full_buoy, omega=2.0)
-    result2 = solver.solve(problem)
+    result2 = solver_with_sym.solve(problem)
 
     volume = buoy.mesh.volume
     assert np.isclose(result1.added_masses["Heave"], result2.added_masses["Heave"], atol=1e-4*volume*problem.rho)
@@ -110,7 +100,7 @@ def test_horizontal_cylinder(depth):
     cylinder.translate_z(-3.0)
     cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
     problem = RadiationProblem(body=cylinder, omega=1.0, sea_bottom=-depth)
-    result1 = solver.solve(problem)
+    result1 = solver_with_sym.solve(problem)
 
     sym_cylinder = HorizontalCylinder(length=10.0, radius=1.0, clever=True, nr=2, ntheta=10, nx=10)
     assert isinstance(sym_cylinder.mesh, CollectionOfMeshes)
@@ -118,7 +108,7 @@ def test_horizontal_cylinder(depth):
     sym_cylinder.translate_z(-3.0)
     sym_cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
     problem = RadiationProblem(body=sym_cylinder, omega=1.0, sea_bottom=-depth)
-    result2 = solver.solve(problem)
+    result2 = solver_with_sym.solve(problem)
 
     assert np.isclose(result1.added_masses["Heave"], result2.added_masses["Heave"], atol=1e-4*cylinder.volume*problem.rho)
     assert np.isclose(result1.radiation_dampings["Heave"], result2.radiation_dampings["Heave"], atol=1e-4*cylinder.volume*problem.rho)
@@ -161,7 +151,7 @@ def test_low_rank_matrices():
     full_farm = FloatingBody.join_bodies(buoy, buoy.translated_x(10))
     full_farm.mesh._meshes[1].name = "other_buoy_mesh"
 
-    S, V = solver.build_matrices(full_farm.mesh, full_farm.mesh)
+    S, V = solver_with_sym.build_matrices(full_farm.mesh, full_farm.mesh)
     assert isinstance(S.all_blocks[0, 1], LowRankMatrix)
     assert isinstance(S.all_blocks[1, 0], LowRankMatrix)
     print(S.all_blocks[1, 0].rank)
