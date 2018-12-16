@@ -158,7 +158,7 @@ class Mesh(Abstract3DObject):
         else:
             return self._faces[face_id]
 
-    def extract_faces(self, id_faces_to_extract, return_index=False):
+    def extract_faces(self, id_faces_to_extract, return_index=False, name=None):
         """
         Extracts a new mesh from a selection of faces ids
 
@@ -166,8 +166,10 @@ class Mesh(Abstract3DObject):
         ----------
         id_faces_to_extract : ndarray
             Indices of faces that have to be extracted
-        return_index: bool
+        return_index: bool, optional
             Flag to output old indices
+        name: string, optional
+            Name for the new mesh
 
         Returns
         -------
@@ -191,7 +193,10 @@ class Mesh(Abstract3DObject):
 
         extracted_mesh = Mesh(v_extracted, faces_extracted)
 
-        extracted_mesh.name = 'mesh_extracted_from_%s' % self.name
+        if name is None:
+            extracted_mesh.name = 'mesh_extracted_from_%s' % self.name
+        else:
+            extracted_mesh.name = name
 
         if return_index:
             return extracted_mesh, id_v
