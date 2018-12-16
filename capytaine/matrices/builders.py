@@ -255,7 +255,7 @@ def build_with_symmetries(build_matrices):
                       ))
 
             distance = np.linalg.norm(mesh1.center_of_mass_of_nodes - mesh2.center_of_mass_of_nodes)
-            if distance < 4*mesh1.diameter_of_nodes or distance < 4*mesh2.diameter_of_nodes:
+            if distance < 10*mesh1.diameter_of_nodes or distance < 10*mesh2.diameter_of_nodes:
                 # Actual evaluation of coefficients using the Green function.
                 S, V = build_matrices(mesh1, mesh2, *args, **kwargs)
             else:

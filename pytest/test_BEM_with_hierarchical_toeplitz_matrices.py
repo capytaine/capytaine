@@ -103,13 +103,16 @@ def test_horizontal_cylinder(depth):
     problem = RadiationProblem(body=cylinder, omega=1.0, sea_bottom=-depth)
     result1 = solver_with_sym.solve(problem)
 
-    sym_cylinder = HorizontalCylinder(length=10.0, radius=1.0, clever=True, nr=2, ntheta=10, nx=10)
-    assert isinstance(sym_cylinder.mesh, CollectionOfMeshes)
-    assert isinstance(sym_cylinder.mesh[0], TranslationalSymmetry)
-    sym_cylinder.translate_z(-3.0)
-    sym_cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    problem = RadiationProblem(body=sym_cylinder, omega=1.0, sea_bottom=-depth)
+    trans_cylinder = HorizontalCylinder(length=10.0, radius=1.0, clever=True, nr=2, ntheta=10, nx=10)
+    assert isinstance(trans_cylinder.mesh, CollectionOfMeshes)
+    assert isinstance(trans_cylinder.mesh[0], TranslationalSymmetry)
+    trans_cylinder.translate_z(-3.0)
+    trans_cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
+    problem = RadiationProblem(body=trans_cylinder, omega=1.0, sea_bottom=-depth)
     result2 = solver_with_sym.solve(problem)
+
+    # S, V = solver_with_sym.build_matrices(trans_cylinder.mesh, trans_cylinder.mesh)
+    # S.plot_shape()
 
     assert np.isclose(result1.added_masses["Heave"], result2.added_masses["Heave"], atol=1e-4*cylinder.volume*problem.rho)
     assert np.isclose(result1.radiation_dampings["Heave"], result2.radiation_dampings["Heave"], atol=1e-4*cylinder.volume*problem.rho)
@@ -166,5 +169,33 @@ def test_array_of_spheres():
     assert len(array.dofs) == 3*3*3
     assert "2_0__Heave" in array.dofs
 
-    S, V = solver_with_sym.build_matrices(array.mesh, array.mesh)
-    # S.plot_shape()
+    #
+    array = buoy.assemble_regular_array(distance=4.0, nb_bodies=(3, 1))
+
+    solver_with_sym = Nemoh(linear_solver="direct", use_symmetries=True, matrix_cache_size=0)
+    solver_without_sym = Nemoh(linear_solver="direct", use_symmetries=False, matrix_cache_size=0)
+
+    S, V = solver_with_sym._build_matrices_wave(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
+    S.plot_shape()
+    fullS, fullV = solver_without_sym._build_matrices_wave(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.imshow(np.abs(fullV))
+    plt.colorbar()
+    plt.figure()
+    plt.imshow(np.abs(V.full_matrix() - fullV))
+    plt.colorbar()
+    plt.show()
+
+    # assert np.allclose(S.full_matrix(), fullS)
+
+    problem = RadiationProblem(body=array, omega=1.0, radiating_dof="2_0__Heave", sea_bottom=-np.infty)
+
+    result = solver_with_sym.solve(problem)
+    result2 = solver_without_sym.solve(problem)
+
+    print('\n', result.added_masses['2_0__Heave'], result2.added_masses['2_0__Heave'])
+
+    # assert np.isclose(result.added_masses['2_0__Heave'], result2.added_masses['2_0__Heave'], atol=10.0)
+    # assert np.isclose(result.radiation_dampings['2_0__Heave'], result2.radiation_dampings['2_0__Heave'], atol=10.0)
+
