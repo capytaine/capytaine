@@ -10,6 +10,8 @@ from itertools import cycle, accumulate, chain, product
 import numpy as np
 from matplotlib.patches import Rectangle
 
+from capytaine.matrices.low_rank_blocks import LowRankMatrix
+
 LOG = logging.getLogger(__name__)
 
 
@@ -410,11 +412,27 @@ class BlockMatrix:
             position_of_first_appearance = np.array((position_of_first_appearance[1], position_of_first_appearance[0]))
 
             if isinstance(block, BlockMatrix):
-                patches_of_this_block = block._patches(position_of_first_appearance)
+                patches_of_this_block = block._patches(np.array((position_of_first_appearance[1], position_of_first_appearance[0])))
             elif isinstance(block, np.ndarray):
                 patches_of_this_block = [Rectangle(position_of_first_appearance,
                                                    block.shape[1], block.shape[0],
                                                    edgecolor='k', facecolor=next(self.display_color))]
+            elif isinstance(block, LowRankMatrix):
+                color = next(self.display_color)
+                patches_of_this_block = [
+                    # Left block
+                    Rectangle(position_of_first_appearance,
+                              block.left_matrix.shape[1], block.left_matrix.shape[0],
+                              edgecolor='k', facecolor=color),
+                    # Top block
+                    Rectangle(position_of_first_appearance,
+                              block.right_matrix.shape[1], block.right_matrix.shape[0],
+                              edgecolor='k', facecolor=color),
+                    # Rest of the matrix
+                    Rectangle(position_of_first_appearance,
+                              block.right_matrix.shape[1], block.left_matrix.shape[0],
+                              facecolor=color, alpha=0.2),
+                ]
             else:
                 raise NotImplementedError()
 
@@ -427,7 +445,7 @@ class BlockMatrix:
                     shift = block_position - position_of_first_appearance
                     patch_position = np.array(patch.get_xy()) + shift
                     patches.append(Rectangle(patch_position, patch.get_width(), patch.get_height(),
-                                             facecolor=patch.get_facecolor(), alpha=0.5))
+                                             facecolor=patch.get_facecolor(), alpha=0.2))
 
         return patches
 
