@@ -221,9 +221,9 @@ def build_with_symmetries(build_matrices):
                 V_line.append(V)
 
             if mesh1.nb_submeshes % 2 == 0:
-                return (EvenBlockSymmetricCirculantMatrix([S_line]), EvenBlockSymmetricCirculantMatrix([V_line]))
+                return EvenBlockSymmetricCirculantMatrix([S_line]), EvenBlockSymmetricCirculantMatrix([V_line])
             else:
-                return (OddBlockSymmetricCirculantMatrix([S_line]), OddBlockSymmetricCirculantMatrix([V_line]))
+                return OddBlockSymmetricCirculantMatrix([S_line]), OddBlockSymmetricCirculantMatrix([V_line])
 
         elif (isinstance(mesh1, CollectionOfMeshes)
               and isinstance(mesh2, CollectionOfMeshes)):
@@ -237,17 +237,9 @@ def build_with_symmetries(build_matrices):
             for submesh1 in mesh1:
                 S_line, V_line = [], []
                 for submesh2 in mesh2:
-
-                    distance = np.linalg.norm(submesh1.center_of_mass_of_nodes - submesh2.center_of_mass_of_nodes)
-                    if distance < 4*submesh1.diameter_of_nodes or distance < 4*submesh2.diameter_of_nodes:
-                        S, V = build_matrices_with_symmetries(
-                            submesh1, submesh2, *args, **kwargs,
-                            _rec_depth=_rec_depth+1)
-                    else:
-                        # TODO: Avoid computing the full matrix.
-                        S, V = build_matrices(submesh1, submesh2, *args, **kwargs)
-                        S = LowRankMatrix.from_full_matrix_with_ACA(S, tol=1e-5)
-                        V = LowRankMatrix.from_full_matrix_with_ACA(V, tol=1e-5)
+                    S, V = build_matrices_with_symmetries(
+                        submesh1, submesh2, *args, **kwargs,
+                        _rec_depth=_rec_depth+1)
 
                     S_line.append(S)
                     V_line.append(V)
@@ -262,9 +254,17 @@ def build_with_symmetries(build_matrices):
                           mesh1=mesh1.name, mesh2='itself' if mesh2 is mesh1 else mesh2.name
                       ))
 
-            # Actual evaluation of coefficients using the Green function.
-            S, V = build_matrices(mesh1, mesh2, *args, **kwargs)
-            # return BlockMatrix([[S]]), BlockMatrix([[V]])
+            distance = np.linalg.norm(mesh1.center_of_mass_of_nodes - mesh2.center_of_mass_of_nodes)
+            if distance < 4*mesh1.diameter_of_nodes or distance < 4*mesh2.diameter_of_nodes:
+                # Actual evaluation of coefficients using the Green function.
+                S, V = build_matrices(mesh1, mesh2, *args, **kwargs)
+            else:
+                # Low-rank matrix.
+                # TODO: Avoid computing the full matrix.
+                S, V = build_matrices(mesh1, mesh2, *args, **kwargs)
+                S = LowRankMatrix.from_full_matrix_with_ACA(S, tol=1e-5)
+                V = LowRankMatrix.from_full_matrix_with_ACA(V, tol=1e-5)
+
             return S, V
 
     return build_matrices_with_symmetries

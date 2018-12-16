@@ -21,7 +21,8 @@ from capytaine.tools.geometry import xOz_Plane, yOz_Plane
 
 from capytaine.matrices.low_rank_blocks import LowRankMatrix
 
-solver_with_sym = Nemoh(use_symmetries=True, matrix_cache_size=0)
+solver_with_sym = Nemoh(linear_solver="gmres", use_symmetries=True, matrix_cache_size=0)
+solver_without_sym = Nemoh(linear_solver="gmres", use_symmetries=False, matrix_cache_size=0)
 # Use a single solver in the whole module to avoid reinitialisation of the solver (0.5 second).
 # Do not use a matrix cache in order not to risk influencing a test with another.
 
@@ -114,31 +115,7 @@ def test_horizontal_cylinder(depth):
     assert np.isclose(result1.radiation_dampings["Heave"], result2.radiation_dampings["Heave"], atol=1e-4*cylinder.volume*problem.rho)
 
 
-def test_array_of_spheres():
-    radius = 1.0
-    resolution = 2
-    perimeter = 2*np.pi*radius
-    buoy = Sphere(radius=radius, center=(0.0, 0.0, 0.0),
-                  ntheta=int(perimeter*resolution/2), nphi=int(perimeter*resolution),
-                  clip_free_surface=True, clever=True, name=f"buoy")
-    buoy.add_translation_dof(name="Surge")
-    buoy.add_translation_dof(name="Sway")
-    buoy.add_translation_dof(name="Heave")
-
-    # Corner case
-    dumb_array = buoy.assemble_regular_array(distance=5.0, nb_bodies=(1, 1))
-    assert dumb_array.mesh == buoy.mesh
-
-    # Main case
-    array = buoy.assemble_regular_array(distance=5.0, nb_bodies=(3, 3))
-
-    assert isinstance(array.mesh, TranslationalSymmetry)
-    assert isinstance(array.mesh[0], TranslationalSymmetry)
-    assert array.mesh[0][0] == buoy.mesh
-
-    assert len(array.dofs) == 3*3*3
-    assert "2_0_Heave" in array.dofs
-
+# HIERARCHICAL MATRICES
 
 def test_low_rank_matrices():
     radius = 1.0
@@ -148,18 +125,46 @@ def test_low_rank_matrices():
                   ntheta=int(perimeter*resolution/2), nphi=int(perimeter*resolution),
                   clip_free_surface=True, clever=False, name=f"buoy")
     buoy.add_translation_dof(name="Heave")
-    full_farm = FloatingBody.join_bodies(buoy, buoy.translated_x(10))
-    full_farm.mesh._meshes[1].name = "other_buoy_mesh"
+    two_distant_buoys = FloatingBody.join_bodies(buoy, buoy.translated_x(10))
+    two_distant_buoys.mesh._meshes[1].name = "other_buoy_mesh"
 
-    S, V = solver_with_sym.build_matrices(full_farm.mesh, full_farm.mesh)
+    S, V = solver_with_sym.build_matrices(two_distant_buoys.mesh, two_distant_buoys.mesh)
     assert isinstance(S.all_blocks[0, 1], LowRankMatrix)
     assert isinstance(S.all_blocks[1, 0], LowRankMatrix)
-    print(S.all_blocks[1, 0].rank)
+    # S.plot_shape()
 
-    problem = RadiationProblem(body=full_farm, omega=1.0, radiating_dof="buoy__Heave")
-    result = Nemoh(linear_solver="gmres").solve(problem)
-    result2 = Nemoh(linear_solver="gmres", use_symmetries=False).solve(problem)
+    problem = RadiationProblem(body=two_distant_buoys, omega=1.0, radiating_dof="buoy__Heave")
+    result = solver_with_sym.solve(problem)
+    result2 = solver_without_sym.solve(problem)
 
     assert np.isclose(result.added_masses['buoy__Heave'], result2.added_masses['buoy__Heave'], atol=10.0)
     assert np.isclose(result.radiation_dampings['buoy__Heave'], result2.radiation_dampings['buoy__Heave'], atol=10.0)
 
+
+def test_array_of_spheres():
+    radius = 1.0
+    resolution = 2
+    perimeter = 2*np.pi*radius
+    buoy = Sphere(radius=radius, center=(0.0, 0.0, 0.0),
+                  ntheta=int(perimeter*resolution/2), nphi=int(perimeter*resolution),
+                  clip_free_surface=True, clever=False, name=f"buoy")
+    buoy.add_translation_dof(name="Surge")
+    buoy.add_translation_dof(name="Sway")
+    buoy.add_translation_dof(name="Heave")
+
+    # Corner case
+    dumb_array = buoy.assemble_regular_array(distance=5.0, nb_bodies=(1, 1))
+    assert dumb_array.mesh == buoy.mesh
+
+    # Main case
+    array = buoy.assemble_regular_array(distance=4.0, nb_bodies=(3, 3))
+
+    assert isinstance(array.mesh, TranslationalSymmetry)
+    assert isinstance(array.mesh[0], TranslationalSymmetry)
+    assert array.mesh[0][0] == buoy.mesh
+
+    assert len(array.dofs) == 3*3*3
+    assert "2_0_Heave" in array.dofs
+
+    S, V = solver_with_sym.build_matrices(array.mesh, array.mesh)
+    # S.plot_shape()
