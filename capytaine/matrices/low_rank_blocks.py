@@ -9,6 +9,20 @@ LOG = logging.getLogger(__name__)
 
 
 class LowRankMatrix:
+    """Matrix defined as the tensor product of two small matrices.
+
+    Parameters
+    ----------
+    left_matrix: np.ndarray
+    right_matrix: np.ndarray
+
+    Attributes
+    ----------
+    shape: pair of ints
+        The shape of the full matrix.
+    rank: int
+        The rank of the full matrix.
+    """
 
     ndim = 2
 

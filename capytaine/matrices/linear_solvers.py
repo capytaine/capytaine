@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""Linear solvers, including for block regular matrices."""
 
 import logging
 from functools import lru_cache

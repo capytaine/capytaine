@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
+"""Define block matrices as an array of references to other objects."""
 
 import logging
 
@@ -16,7 +17,20 @@ LOG = logging.getLogger(__name__)
 
 
 class BlockMatrix:
-    """A (2D) matrix, stored as a set of submatrices (or blocks)."""
+    """A (2D) matrix, stored as a set of submatrices (or blocks).
+
+    Parameters
+    ----------
+    blocks: list of list of matrices
+        The blocks of the block matrix.
+    check: bool, optional
+        Should the code perform sanity checks on the inputs? (default: True)
+
+    Attributes
+    ----------
+    shape: pair of ints
+        shape of the full matrix
+    """
 
     ndim = 2  # Other dimensions have not been implemented.
 
@@ -77,6 +91,7 @@ class BlockMatrix:
 
     @property
     def dtype(self):
+        """The type of data of all of the subblocks."""
         try:
             return self._stored_blocks[0][0].dtype
         except AttributeError:
