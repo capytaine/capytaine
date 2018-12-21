@@ -128,7 +128,7 @@ def test_low_rank_matrices():
                   ntheta=int(perimeter*resolution/2), nphi=int(perimeter*resolution),
                   clip_free_surface=True, clever=False, name=f"buoy")
     buoy.add_translation_dof(name="Heave")
-    two_distant_buoys = FloatingBody.join_bodies(buoy, buoy.translated_x(10))
+    two_distant_buoys = FloatingBody.join_bodies(buoy, buoy.translated_x(20))
     two_distant_buoys.mesh._meshes[1].name = "other_buoy_mesh"
 
     S, V = solver_with_sym.build_matrices(two_distant_buoys.mesh, two_distant_buoys.mesh)
