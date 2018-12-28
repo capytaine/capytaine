@@ -12,9 +12,10 @@ from capytaine.mesh.symmetries import AxialSymmetry, ReflectionSymmetry, Transla
 
 from capytaine.bodies import FloatingBody
 from capytaine.geometric_bodies.sphere import Sphere
-from capytaine.geometric_bodies.cylinder import HorizontalCylinder
+from capytaine.geometric_bodies.cylinder import HorizontalCylinder, VerticalCylinder
 
 from capytaine.problems import RadiationProblem
+from capytaine.results import assemble_dataset
 from capytaine.Nemoh import Nemoh
 
 from capytaine.tools.geometry import xOz_Plane, yOz_Plane
@@ -72,6 +73,31 @@ def test_floating_sphere(depth, omega):
     assert np.isclose(result1.radiation_dampings["Heave"], result2.radiation_dampings["Heave"], atol=1e-4*volume*problem.rho)
     assert np.isclose(result1.radiation_dampings["Heave"], result3.radiation_dampings["Heave"], atol=1e-4*volume*problem.rho)
     assert np.isclose(result1.radiation_dampings["Heave"], result4.radiation_dampings["Heave"], atol=1e-4*volume*problem.rho)
+
+
+def test_two_vertical_cylinders():
+    distance = 5
+
+    buoy = VerticalCylinder(length=3, radius=0.5, center=(-distance/2, -1, 0), nx=8, nr=3, ntheta=8)
+    buoy.mesh = buoy.mesh.merge()
+    buoy.mesh = buoy.mesh.keep_immersed_part()
+    buoy.add_translation_dof(name="Sway")
+
+    two_buoys = FloatingBody.join_bodies(buoy, buoy.translated_x(distance))
+    two_buoys.mesh = buoy.mesh.symmetrized(yOz_Plane)  # Use a ReflectionSymmetry as mesh...
+
+    problems = [RadiationProblem(body=two_buoys, omega=1.0, radiating_dof=dof) for dof in two_buoys.dofs]
+
+    results = assemble_dataset(solver_without_sym.solve_all(problems))
+    # Check that the resulting matrix is symmetric
+    assert np.isclose(results['added_mass'].data[0, 0, 0], results['added_mass'].data[0, 1, 1])
+    assert np.isclose(results['added_mass'].data[0, 1, 0], results['added_mass'].data[0, 0, 1])
+    assert np.isclose(results['radiation_damping'].data[0, 0, 0], results['radiation_damping'].data[0, 1, 1])
+    assert np.isclose(results['radiation_damping'].data[0, 1, 0], results['radiation_damping'].data[0, 0, 1])
+
+    results_with_sym = assemble_dataset(solver_with_sym.solve_all(problems))
+    assert np.allclose(results['added_mass'].data, results_with_sym['added_mass'].data)
+    assert np.allclose(results['radiation_damping'].data, results_with_sym['radiation_damping'].data)
 
 
 def test_odd_axial_symmetry():
