@@ -122,7 +122,7 @@ class MeshClipper:
         if self._source_mesh.nb_vertices == self.__internals__['nb_vertices_above_or_on_mask']:
             LOG.warning(f"Clipping {self._source_mesh.name} by {self._plane}: "
                         "all vertices are removed.")
-            self.__internals__['clipped_mesh'] = Mesh(None, None, name="clipped_" + self._source_mesh.name)
+            self.__internals__['clipped_mesh'] = Mesh(None, None)
 
         elif self._source_mesh.nb_vertices == self.__internals__['nb_vertices_below_or_on_mask']:
             LOG.info(f"Clipping {self._source_mesh.name} by {self._plane}: "
@@ -132,6 +132,10 @@ class MeshClipper:
         else:
             self._partition_mesh()
             self._clip()
+
+        clipped_mesh_name = '_'.join((self._source_mesh.name, 'clipped'))
+        self.__internals__['clipped_mesh'].name = clipped_mesh_name
+
 
     def _vertices_positions_wrt_plane(self):
         """
@@ -773,8 +777,11 @@ class MeshClipper:
     def _clip(self):
         """Performs clipping and assemble the clipped mesh."""
 
-        self._clip_crown_by_plane()
-        clipped_mesh = self.lower_mesh + self.clipped_crown_mesh
-        clipped_mesh.name = '_'.join((self._source_mesh.name, 'clipped'))
+        if self.crown_mesh.nb_faces > 0:
+            self._clip_crown_by_plane()
+            clipped_mesh = self.lower_mesh + self.clipped_crown_mesh
+        else:
+            clipped_mesh = self.lower_mesh
+
         self.__internals__['clipped_mesh'] = clipped_mesh
         return

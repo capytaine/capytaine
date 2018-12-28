@@ -160,3 +160,8 @@ def test_clipper_corner_cases():
     clipped_mesh = mesh.clip(plane, inplace=False)
     assert clipped_mesh == mesh  # Unchanged mesh
 
+    # Two distinct bodies
+    two_spheres = Mesh.join_meshes(sphere.translated_z(10.0), sphere.translated_z(-10.0))
+    plane = Plane(point=(0, 0, 0), normal=(0, 0, -1))
+    one_sphere_remaining = two_spheres.clip(plane, inplace=False)
+    assert one_sphere_remaining == sphere.translated_z(10.0)

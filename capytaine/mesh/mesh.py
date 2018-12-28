@@ -40,10 +40,10 @@ class Mesh(Abstract3DObject):
 
     def __init__(self, vertices=None, faces=None, name=None):
 
-        if vertices is None:
+        if vertices is None or len(vertices) == 0:
             vertices = np.zeros((0, 3))
 
-        if faces is None:
+        if faces is None or len(faces) == 0:
             faces = np.zeros((0, 4))
 
         if name is None:
