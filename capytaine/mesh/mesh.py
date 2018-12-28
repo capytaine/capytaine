@@ -572,7 +572,7 @@ class Mesh(Abstract3DObject):
     # However, the equality shall still be use for testing.
 
     def as_set_of_faces(self):
-        return frozenset(tuple(tuple(vertex) for vertex in face) for face in self.vertices[self.faces])
+        return frozenset(frozenset(tuple(vertex) for vertex in face) for face in self.vertices[self.faces])
 
     @staticmethod
     def from_set_of_faces(set_of_faces):

@@ -66,7 +66,7 @@ def test_set_of_faces():
     faces = cylinder.as_set_of_faces()
     assert isinstance(faces, frozenset)
     assert len(faces) == cylinder.nb_faces
-    assert all(len(face) == 4 for face in faces)  # Each face is represented by 4 points
+    assert all(len(face) == 4 or len(face) == 3 for face in faces)  # Each face is represented by 3 or 4 points
     assert all(len(vertex) == 3 for face in faces for vertex in face)  # Each point is represented by 3 coordinates.
 
     assert cylinder == cylinder  # The equality is defined as the equality of the set of faces.
