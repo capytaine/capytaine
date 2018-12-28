@@ -114,9 +114,9 @@ def test_mirror():
     assert new_cylinder == cylinder
 
 
-def test_symmetrize():
+def test_symmetrized():
     from capytaine.mesh.symmetries import ReflectionSymmetry
-    sym = cylinder.merge().symmetrize(xOz_Plane)
+    sym = cylinder.merge().symmetrized(xOz_Plane)
     assert isinstance(sym, ReflectionSymmetry)
 
 

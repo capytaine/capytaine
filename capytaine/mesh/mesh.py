@@ -493,10 +493,10 @@ class Mesh(Abstract3DObject):
         self.remove_unused_vertices()
         return self
 
-    def symmetrize(self, plane):
+    def symmetrized(self, plane):
         from capytaine.mesh.symmetries import ReflectionSymmetry
         half = self.clip(plane, inplace=False)
-        return ReflectionSymmetry(half, plane=plane)
+        return ReflectionSymmetry(half, plane=plane, name=f"symmetrized_of_{self.name}")
 
     @inplace_transformation
     def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty) -> 'Mesh':
