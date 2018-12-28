@@ -6,8 +6,12 @@
 Based on Meshmagick by Francois Rongere (EC Nantes).
 """
 
+import logging
+
 from capytaine.mesh.mesh import *
 from capytaine.tools.geometry import *
+
+LOG = logging.getLogger(__name__)
 
 
 class MeshClipper:
@@ -114,8 +118,20 @@ class MeshClipper:
         """Updates the clipper"""
 
         self._vertices_positions_wrt_plane()
-        self._partition_mesh()
-        self._clip()
+
+        if self._source_mesh.nb_vertices == self.__internals__['nb_vertices_above_or_on_mask']:
+            LOG.warning(f"Clipping {self._source_mesh.name} by {self._plane}: "
+                        "all vertices are removed.")
+            self.__internals__['clipped_mesh'] = Mesh(None, None, name="clipped_" + self._source_mesh.name)
+
+        elif self._source_mesh.nb_vertices == self.__internals__['nb_vertices_below_or_on_mask']:
+            LOG.info(f"Clipping {self._source_mesh.name} by {self._plane}: "
+                     "no action.")
+            self.__internals__['clipped_mesh'] = self._source_mesh
+
+        else:
+            self._partition_mesh()
+            self._clip()
 
     def _vertices_positions_wrt_plane(self):
         """
@@ -130,6 +146,12 @@ class MeshClipper:
                               'vertices_below_mask': vertices_distances < -self._vicinity_tol
                               }
         self.__internals__.update(vertices_positions)
+
+        nb_vertices = {
+            'nb_vertices_above_or_on_mask': np.count_nonzero(vertices_positions['vertices_above_mask'] | vertices_positions['vertices_on_mask']),
+            'nb_vertices_below_or_on_mask': np.count_nonzero(vertices_positions['vertices_below_mask'] | vertices_positions['vertices_on_mask']),
+        }
+        self.__internals__.update(nb_vertices)
 
     def _partition_mesh(self):
         """Partitions the mesh in 3 with respect to the plane

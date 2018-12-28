@@ -500,19 +500,11 @@ class Mesh(Abstract3DObject):
 
     @inplace_transformation
     def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty) -> 'Mesh':
-        """Clip the mesh with two horizontal planes."""
-        if self.vertices[:, 2].min() > free_surface or self.vertices[:, 2].max() < sea_bottom:
-            LOG.warning("Trying to get the immersed clipped mesh of a mesh without wet panels.")
-            self.vertices = np.zeros((0, 3))
-            self.faces = np.zeros((0, 4))
-
-        elif self.vertices[:, 2].min() > sea_bottom and self.vertices[:, 2].max() < free_surface:
-            pass  # The mesh is completely immersed. Non need for clipping.
-
-        else:
-            self.clip(Plane(normal=(0, 0, 1), point=(0, 0, 0)))
-            if sea_bottom > -np.infty:
-                self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
+        """Clip the mesh with two horizontal planes corresponding
+        with the free surface and the sea bottom."""
+        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, 0)))
+        if sea_bottom > -np.infty:
+            self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
         return self
 
     @inplace_transformation

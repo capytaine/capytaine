@@ -148,3 +148,15 @@ def test_clipper():
     mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-1.0)
     assert np.allclose(mesh.merge().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
 
+
+def test_clipper_corner_cases():
+    mesh = sphere.translated_z(10.0)
+
+    plane = Plane(point=(0, 0, 0), normal=(0, 0, 1))
+    clipped_mesh = mesh.clip(plane, inplace=False)
+    assert clipped_mesh == Mesh(None, None)  # Empty mesh
+
+    plane = Plane(point=(0, 0, 0), normal=(0, 0, -1))
+    clipped_mesh = mesh.clip(plane, inplace=False)
+    assert clipped_mesh == mesh  # Unchanged mesh
+
