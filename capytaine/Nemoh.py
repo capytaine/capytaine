@@ -28,6 +28,9 @@ import capytaine.NemohCore as NemohCore
 
 LOG = logging.getLogger(__name__)
 
+# Caching the tabulation of the integrals for Delhommeau's Green function.
+tabulated_integrals = lru_cache(maxsize=1)(NemohCore.initialize_green_wave.initialize_tabulated_integrals)
+
 
 class Nemoh:
     """Solver for the BEM problem based on Nemoh's Green function.
@@ -63,7 +66,7 @@ class Nemoh:
                  linear_solver='direct', npinte=251
                  ):
         LOG.info("Initialize Nemoh's Green function.")
-        self.XR, self.XZ, self.APD = NemohCore.initialize_green_wave.initialize_tabulated_integrals(328, 46, npinte)
+        self.XR, self.XZ, self.APD = tabulated_integrals(328, 46, npinte)
 
         self.linear_solver = Nemoh.available_linear_solvers[linear_solver]
 
