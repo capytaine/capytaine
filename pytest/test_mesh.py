@@ -60,7 +60,7 @@ def test_mesh_naming():
     assert int(dummy_mesh.name[5:]) + 1 == int(other_dummy_mesh.name[5:])
 
 
-def test_set_of_faces():
+def test_as_set_of_faces():
     """Test the representation of the mesh as a set of faces.
     Also allows to define the equality of two meshes."""
     faces = cylinder.as_set_of_faces()
@@ -71,6 +71,17 @@ def test_set_of_faces():
 
     assert cylinder == cylinder  # The equality is defined as the equality of the set of faces.
     assert Mesh.from_set_of_faces(faces) == cylinder  # The mesh can be reconstructed from a set of faces.
+
+
+def mesh_from_set_of_faces():
+    A, B, C, D = (0, 0, 0), (1, 0, 0), (0, 1, 0), (1, 1, 0)
+
+    # Two triangular faces
+    faces = {frozenset({A, B, C}), frozenset({B, C, D})}
+    mesh = Mesh.from_set_of_faces(faces)
+    assert mesh.nb_vertices == 4
+    assert mesh.nb_faces == 2
+    assert mesh.is_triangle(0) and mesh.is_triangle(1)
 
 
 def test_copy():

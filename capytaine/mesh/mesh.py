@@ -579,15 +579,21 @@ class Mesh(Abstract3DObject):
         faces = []
         vertices = []
         for face in set_of_faces:
-            face_ids = []
+            ids_of_vertices_in_face = []
+
             for vertex in face:
-                if vertex in vertices:
-                    i = vertices.index(vertex)
-                else:
+                if vertex not in vertices:
                     i = len(vertices)
                     vertices.append(vertex)
-                face_ids.append(i)
-            faces.append(face_ids)
+                else:
+                    i = vertices.index(vertex)
+                ids_of_vertices_in_face.append(i)
+
+            if len(ids_of_vertices_in_face) == 3:
+                # Add a fourth node identical to the first one
+                ids_of_vertices_in_face.append(ids_of_vertices_in_face[0])
+
+            faces.append(ids_of_vertices_in_face)
         return Mesh(vertices=vertices, faces=faces)
 
     def __eq__(self, other):
