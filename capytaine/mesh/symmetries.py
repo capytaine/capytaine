@@ -227,16 +227,15 @@ class AxialSymmetry(SymmetricMesh):
         assert nb_repetitions >= 1
         assert isinstance(axis, Axis)
 
-        if not axis == Oz_axis:
-            LOG.warning("Initialization of an axi-symmetric mesh along another axis than Oz. "
-                        "It may not be useful for the resolution of the BEM problem")
-
         slices = [mesh_slice]
         for i in range(1, nb_repetitions+1):
             slices.append(mesh_slice.rotated(axis, angle=2*i*np.pi/(nb_repetitions+1),
                                              name=f"rotation_{i}_of_{mesh_slice.name}"))
 
         super().__init__(slices, name=name)
+
+        if not axis.is_parallel_to(Oz_axis):
+            LOG.warning(f"{self.name} is an axi-symmetric mesh along a non vertical axis.")
 
         self.axis = axis.copy()
 

@@ -13,7 +13,7 @@ from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
 from capytaine.mesh.symmetries import TranslationalSymmetry, AxialSymmetry, ReflectionSymmetry
 from capytaine.bodies import FloatingBody
-from capytaine.tools.geometry import xOy_Plane, xOz_Plane, yOz_Plane, Ox_axis
+from capytaine.tools.geometry import xOy_Plane, xOz_Plane, yOz_Plane, Ox_axis, Oz_axis
 
 LOG = logging.getLogger(__name__)
 
@@ -82,7 +82,9 @@ class Disk(FloatingBody):
             mesh_slice = Disk.generate_disk_mesh(radius=self.radius, theta_max=np.pi/ntheta,
                                                 nr=nr, ntheta=1,
                                                 name=f"slice_of_{name}_mesh")
-            mesh = AxialSymmetry(mesh_slice, axis=Ox_axis, nb_repetitions=ntheta-1, name=f"{name}_mesh")
+            mesh_slice.rotate_to_align_axes(Ox_axis, Oz_axis)  # Convoluted way to avoid a warning message in AxialSymmetry...
+            mesh = AxialSymmetry(mesh_slice, axis=Oz_axis, nb_repetitions=ntheta-1, name=f"{name}_mesh")
+            mesh.rotate_to_align_axes(Oz_axis, Ox_axis)
 
         else:
             mesh = Disk.generate_disk_mesh(radius=self.radius, nr=nr, ntheta=ntheta, name=f"{name}_mesh")

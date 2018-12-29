@@ -22,6 +22,7 @@ def test_axis():
     assert np.allclose(Axis(vector=(1, 1, 1)).vector, np.sqrt(3)/3 * np.ones((3,)))
 
     assert Axis(vector=(1, 1, 1), point=(0, 0, 0)) == Axis(vector=(1, 1, 1), point=(2, 2, 2))
+    assert Axis(vector=(0, 0, 1), point=(0, 0, 0)) == Axis(vector=(2e-16, 3e-16, 1), point=(0,  0,  1.5))
     assert Axis(vector=(1, 1, 1), point=(0, 0, 0)) != Axis(vector=(1, 1, 1), point=(2, 2, 0))
 
     assert (2, 0, 0) in Ox_axis
