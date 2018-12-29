@@ -122,7 +122,7 @@ class Mesh(Abstract3DObject):
             new_mesh.name = name
         return new_mesh
 
-    def merge(self):
+    def merged(self):
         """Dummy method to be generalized for collections of meshes."""
         return self
 
@@ -546,7 +546,7 @@ class Mesh(Abstract3DObject):
 
     def join_meshes(*meshes, name=None):
         from capytaine.mesh.meshes_collection import CollectionOfMeshes
-        return CollectionOfMeshes(meshes, name=name).merge()
+        return CollectionOfMeshes(meshes, name=name).merged()
 
     def __add__(self, mesh_to_add) -> 'Mesh':
         return self.join_meshes(mesh_to_add)

@@ -79,7 +79,7 @@ def test_two_vertical_cylinders():
     distance = 5
 
     buoy = VerticalCylinder(length=3, radius=0.5, center=(-distance/2, -1, 0), nx=8, nr=3, ntheta=8)
-    buoy.mesh = buoy.mesh.merge()
+    buoy.mesh = buoy.mesh.merged()
     buoy.mesh = buoy.mesh.keep_immersed_part()
     buoy.add_translation_dof(name="Sway")
 
@@ -110,7 +110,7 @@ def test_odd_axial_symmetry():
     problem = RadiationProblem(body=buoy, omega=2.0)
     result1 = solver_with_sym.solve(problem)
 
-    full_buoy = FloatingBody(buoy.mesh.merge())
+    full_buoy = FloatingBody(buoy.mesh.merged())
     full_buoy.add_translation_dof(direction=(0, 0, 1), name="Heave")
     problem = RadiationProblem(body=full_buoy, omega=2.0)
     result2 = solver_with_sym.solve(problem)

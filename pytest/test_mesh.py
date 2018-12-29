@@ -12,8 +12,8 @@ from capytaine.geometric_bodies import HorizontalCylinder, Sphere
 
 # Some meshes that will be used in the following tests.
 test_mesh = Mesh(vertices=np.random.rand(4, 3), faces=[range(4)], name="test_mesh")
-cylinder = HorizontalCylinder().mesh.merge()
-sphere = Sphere(radius=1).mesh.merge()
+cylinder = HorizontalCylinder().mesh.merged()
+sphere = Sphere(radius=1).mesh.merged()
 
 
 def test_mesh_initialization():
@@ -89,7 +89,7 @@ def test_copy():
     assert test_mesh.copy() is not test_mesh
     assert test_mesh.copy() == test_mesh
     assert test_mesh.copy(name="copy_of_the_test_mesh").name == "copy_of_the_test_mesh"
-    assert test_mesh.merge() is test_mesh
+    assert test_mesh.merged() is test_mesh
 
 
 def test_shape_helper_functions():
@@ -127,7 +127,7 @@ def test_mirror():
 
 def test_symmetrized():
     from capytaine.mesh.symmetries import ReflectionSymmetry
-    sym = cylinder.merge().symmetrized(xOz_Plane)
+    sym = cylinder.merged().symmetrized(xOz_Plane)
     assert isinstance(sym, ReflectionSymmetry)
 
 
@@ -140,7 +140,7 @@ def test_mesh_quality():
 
 def test_clipper():
     """Test clipping of mesh."""
-    mesh = Sphere(radius=5.0, ntheta=10).mesh.merge()
+    mesh = Sphere(radius=5.0, ntheta=10).mesh.merged()
     aabb = mesh.axis_aligned_bbox
 
     mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-np.infty)
@@ -151,13 +151,13 @@ def test_clipper():
 
     # With CollectionOfMeshes (AxialSymmetry)
     mesh = Sphere(radius=5.0, ntheta=10).mesh
-    aabb = mesh.merge().axis_aligned_bbox
+    aabb = mesh.merged().axis_aligned_bbox
 
     mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-np.infty)
-    assert np.allclose(mesh.merge().axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
+    assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
 
     mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-1.0)
-    assert np.allclose(mesh.merge().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
+    assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
 
 
 def test_clipper_corner_cases():

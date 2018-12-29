@@ -151,7 +151,7 @@ class CollectionOfMeshes(Abstract3DObject):
 
     @property
     def diameter_of_nodes(self):
-        return self.merge().diameter_of_nodes  # TODO: improve implementation
+        return self.merged().diameter_of_nodes  # TODO: improve implementation
 
     def indices_of_mesh(self, mesh_index: int) -> slice:
         """Return the indices of the faces for the sub-mesh given as argument."""
@@ -162,7 +162,7 @@ class CollectionOfMeshes(Abstract3DObject):
     # Transformation #
     ##################
 
-    def merge(self, name=None) -> Mesh:
+    def merged(self, name=None) -> Mesh:
         """Merge the sub-meshes and return a full mesh.
         If the collection contains other collections, they are merged recursively.
         Optionally, a new name can be given to the resulting mesh."""
@@ -211,7 +211,7 @@ class CollectionOfMeshes(Abstract3DObject):
         self._meshes = tuple(mesh for mesh in self if mesh.nb_faces > 0 and mesh.nb_vertices > 0)
 
     def show(self):
-        self.merge().show()
+        self.merged().show()
 
     def show_matplotlib(self, *args, **kwargs):
-        self.merge().show_matplotlib(*args, **kwargs)
+        self.merged().show_matplotlib(*args, **kwargs)

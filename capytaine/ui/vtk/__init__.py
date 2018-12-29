@@ -24,7 +24,7 @@ def compute_node_data(mesh, face_data):
     import numpy as np
     from capytaine.mesh.mesh import Mesh
 
-    mesh = mesh if isinstance(mesh, Mesh) else mesh.merge()
+    mesh = mesh.merged()
     assert face_data.shape[0] == mesh.nb_faces
 
     # Initialize output array

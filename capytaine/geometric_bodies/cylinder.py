@@ -176,7 +176,7 @@ class HorizontalCylinder(FloatingBody):
             mesh = open_cylinder
 
         if not clever:
-            mesh = mesh.merge()
+            mesh = mesh.merged()
             mesh.merge_duplicates()
             mesh.heal_triangles()
 
@@ -270,7 +270,7 @@ class VerticalCylinder(FloatingBody):
             mesh = open_cylinder
 
         if not clever:
-            mesh = mesh.merge()
+            mesh = mesh.merged()
             mesh.merge_duplicates()
             mesh.heal_triangles()
 

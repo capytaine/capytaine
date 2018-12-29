@@ -50,7 +50,7 @@ def test_collection_of_meshes():
     assert big_coll.vertices[:, 0].max() == 3.0
 
     # Merging the big collection
-    merged = big_coll.merge()
+    merged = big_coll.merged()
     assert isinstance(merged, Mesh)
 
 
@@ -80,11 +80,11 @@ def test_collection():
 
     clipped_coll = coll.keep_immersed_part(inplace=False)
     assert len(clipped_coll) == 1
-    merged = clipped_coll.merge()
-    assert merged == sphere.merge()
+    merged = clipped_coll.merged()
+    assert merged == sphere.merged()
 
-    assert np.allclose(sphere.center_of_mass_of_nodes, sphere.merge().center_of_mass_of_nodes)
-    assert np.allclose(sphere.diameter_of_nodes, sphere.merge().diameter_of_nodes)
+    assert np.allclose(sphere.center_of_mass_of_nodes, sphere.merged().center_of_mass_of_nodes)
+    assert np.allclose(sphere.diameter_of_nodes, sphere.merged().diameter_of_nodes)
 
 
 def test_join_axisymmetric_disks():

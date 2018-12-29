@@ -76,13 +76,11 @@ class FloatingBody(Abstract3DObject):
 
     # @property
     # def center_of_buoyancy(self):
-    #     mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
-    #     return Hydrostatics(mesh).buoyancy_center
+    #     return Hydrostatics(self.mesh.merged()).buoyancy_center
 
     # @property
     # def displacement_volume(self):
-    #     mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
-    #     return Hydrostatics(mesh).displacement_volume
+    #     return Hydrostatics(self.mesh.merged()).displacement_volume
 
     # @property
     # def center_of_gravity(self):
