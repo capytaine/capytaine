@@ -30,6 +30,13 @@ class BlockMatrix:
     ----------
     shape: pair of ints
         shape of the full matrix
+    nb_blocks: pair of ints
+        number of blocks in each directions.
+        Example::
+
+            AAAABB
+            AAAABB  ->  nb_blocks = (1, 2)
+            AAAABB
     """
 
     ndim = 2  # Other dimensions have not been implemented.
@@ -48,6 +55,9 @@ class BlockMatrix:
             # To avoid going down the tree if it is already known.
             self._stored_block_shapes = _stored_block_shapes
 
+        # Block shape of the full matrix
+        self.nb_blocks = self._compute_nb_blocks()
+
         # Total shape of the full matrix
         self.shape = self._compute_shape()
 
@@ -60,6 +70,9 @@ class BlockMatrix:
     def _compute_shape(self):
         # In a dedicated routine because it will be overloaded by subclasses.
         return sum(self._stored_block_shapes[0]), sum(self._stored_block_shapes[1])
+
+    def _compute_nb_blocks(self):
+        return self._stored_nb_blocks
 
     def _check_dimensions_of_blocks(self) -> bool:
         """Check that the dimensions of the blocks are consistent."""
@@ -113,18 +126,6 @@ class BlockMatrix:
             AAAABB
         """
         return self._stored_block_shapes
-
-    @property
-    def nb_blocks(self) -> Tuple[int, int]:
-        """The number of blocks in each directions.
-
-        Example::
-
-            AAAABB
-            AAAABB  ->  nb_blocks = (1, 2)
-            AAAABB
-        """
-        return self._stored_nb_blocks
 
     def _stored_block_positions(self, global_frame=(0, 0)) -> Iterable[List[Tuple[int, int]]]:
         """The position of each blocks in the matrix as a generator.
@@ -258,6 +259,25 @@ class BlockMatrix:
                 result[line_slice] += block @ other[col_slice]
         return result
 
+    def rmatvec(self, other):
+        """Vector matrix product.
+        Named as such to be used as scipy LinearOperator."""
+        LOG.debug(f"Multiplication of a full vector of size {other.shape} with {self}.")
+        result = np.zeros(self.shape[1], dtype=other.dtype)
+        line_heights = self.block_shapes[0]
+        line_positions = list(accumulate(chain([0], line_heights)))
+        col_widths = self.block_shapes[1]
+        col_positions = list(accumulate(chain([0], col_widths)))
+        for col, col_position, col_width in zip(self.all_blocks.T, col_positions, col_widths):
+            col_slice = slice(col_position, col_position+col_width)
+            for block, line_position, line_height in zip(col, line_positions, line_heights):
+                line_slice = slice(line_position, line_position+line_height)
+                if isinstance(block, BlockMatrix):
+                    result[col_slice] += block.rmatvec(other[line_slice])
+                else:
+                    result[col_slice] += other[line_slice] @ block
+        return result
+
     def matmat(self, other):
         """Matrix-matrix product."""
         if isinstance(other, BlockMatrix) and self.block_shapes[1] == other.block_shapes[0]:
@@ -294,13 +314,6 @@ class BlockMatrix:
 
     def astype(self, dtype: np.dtype) -> 'BlockMatrix':
         return self._apply_unary_op(lambda x: x.astype(dtype))
-
-    @property
-    def T(self) -> 'BlockMatrix':
-        """Transposed matrix."""
-        transposed_blocks = self._apply_unary_op(lambda x: x.T)  # Transpose subblocks recursively
-        transposed_blocks._stored_blocks = transposed_blocks._stored_blocks.T  # Change position of blocks
-        return transposed_blocks
 
     def fft_of_list(*block_matrices, check=True):
         """Compute the fft of a list of block matrices of the same type and shape.

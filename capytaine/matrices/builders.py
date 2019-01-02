@@ -12,10 +12,7 @@ from capytaine.mesh.symmetries import ReflectionSymmetry, TranslationalSymmetry,
 from capytaine.matrices.block_matrices import BlockMatrix
 from capytaine.matrices.low_rank_blocks import LowRankMatrix
 from capytaine.matrices.block_toeplitz_matrices import (
-    BlockSymmetricToeplitzMatrix,
-    _AbstractBlockSymmetricCirculantMatrix,
-    EvenBlockSymmetricCirculantMatrix,
-    OddBlockSymmetricCirculantMatrix,
+    BlockToeplitzMatrix, BlockSymmetricToeplitzMatrix, BlockCirculantMatrix
 )
 
 LOG = logging.getLogger(__name__)
@@ -56,24 +53,14 @@ def random_block_matrix(x_shapes, y_shapes):
 
 def full_like(A, value, dtype=np.float64):
     """A matrix of the same kind and shape as A but filled with a single value."""
-    if isinstance(A, _AbstractBlockSymmetricCirculantMatrix):
+    if isinstance(A, BlockMatrix):
         new_matrix = []
-        for i in range(len(A._stored_blocks[0, :])):
-            new_matrix.append(full_like(A._stored_blocks[0, i], value, dtype=dtype))
-        return A.__class__([new_matrix])
-    elif isinstance(A, BlockSymmetricToeplitzMatrix):
-        new_matrix = []
-        for i in range(A.nb_blocks[0]):
-            new_matrix.append(full_like(A._stored_blocks[0, i], value, dtype=dtype))
-        return BlockSymmetricToeplitzMatrix([new_matrix])
-    elif isinstance(A, BlockMatrix):
-        new_matrix = []
-        for i in range(A.nb_blocks[0]):
+        for i in range(A._stored_nb_blocks[0]):
             line = []
-            for j in range(A.nb_blocks[1]):
+            for j in range(A._stored_nb_blocks[1]):
                 line.append(full_like(A.all_blocks[i][j], value, dtype=dtype))
             new_matrix.append(line)
-        return BlockMatrix(new_matrix)
+        return A.__class__(new_matrix)
     elif isinstance(A, LowRankMatrix):
         return LowRankMatrix(np.ones((A.shape[0], 1)), np.full((1, A.shape[1]), value))
     elif isinstance(A, np.ndarray):
@@ -92,17 +79,7 @@ def ones_like(A, dtype=np.float64):
 
 def identity_like(A, dtype=np.float64):
     """A identity matrix of the same kind and shape as A."""
-    if isinstance(A, _AbstractBlockSymmetricCirculantMatrix):
-        I = [identity_like(A._stored_blocks[0, 0], dtype=dtype)]
-        for i in range(1, len(A._stored_blocks[0, :])):
-            I.append(zeros_like(A._stored_blocks[0, i], dtype=dtype))
-        return A.__class__([I])
-    elif isinstance(A, BlockSymmetricToeplitzMatrix):
-        I = [identity_like(A._stored_blocks[0, 0], dtype=dtype)]
-        for i in range(1, A.nb_blocks[0]):
-            I.append(zeros_like(A._stored_blocks[0, i], dtype=dtype))
-        return BlockSymmetricToeplitzMatrix([I])
-    elif isinstance(A, BlockMatrix):
+    if isinstance(A, BlockMatrix):
         I = []
         for i in range(A.nb_blocks[0]):
             line = []
@@ -112,7 +89,7 @@ def identity_like(A, dtype=np.float64):
                 else:
                     line.append(zeros_like(A.all_blocks[i][j], dtype=dtype))
             I.append(line)
-        return BlockMatrix(I)
+        return A.__class__(I)
     elif isinstance(A, np.ndarray):
         return np.eye(A.shape[0], A.shape[1], dtype=dtype)
 

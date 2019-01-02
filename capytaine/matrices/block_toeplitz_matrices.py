@@ -5,7 +5,7 @@ to be used in hierarchical matrices.
 """
 
 import logging
-from typing import Tuple, List, Iterable
+from typing import Tuple, List, Set, Iterable
 
 import numpy as np
 
@@ -22,14 +22,19 @@ class BlockToeplitzMatrix(BlockMatrix):
     """A (2D) block Toeplitz matrix, stored as a list of blocks.
     All blocks should have the same shape.
 
-    Stored in the backend as a 1×(2N-1) array of arrays.
-    """
+    Stored in the backend as a 1×(2N-1) array of arrays."""
 
     # INITIALIZATION
 
     def _compute_shape(self) -> Tuple[int, int]:
         # The full shape is found by multiplying the shape of the blocks. All of them have the same shape.
-        return self._stored_block_shapes[0][0]*self.nb_blocks[0], self._stored_block_shapes[1][0]*self.nb_blocks[1]
+        return (self._stored_block_shapes[0][0]*self.nb_blocks[0],
+                self._stored_block_shapes[1][0]*self.nb_blocks[1])
+
+    def _compute_nb_blocks(self) -> Tuple[int, int]:
+        """Will be overridden by subclasses."""
+        n = (self._stored_nb_blocks[1]+1)//2
+        return n, n
 
     def _check_dimensions_of_blocks(self) -> bool:
         for block in self._stored_blocks[0, :]:
@@ -38,33 +43,6 @@ class BlockToeplitzMatrix(BlockMatrix):
         return True
 
     # ACCESSING DATA
-
-    @property
-    def nb_blocks(self) -> Tuple[int, int]:
-        """The number of blocks in each direction."""
-        n = (self._stored_nb_blocks[1]+1)//2
-        return n, n
-
-    def _index_grid(self) -> np.ndarray:
-        """Helper function to find the positions at which the blocks appears in the full matrix.
-
-        Example of output::
-
-            [[0, 1, 2, 3, 4],
-             [8, 0, 1, 2, 3],
-             [7, 8, 0, 1, 2],
-             [6, 7, 8, 0, 1],
-             [5, 6, 7, 8, 0]]
-        """
-        n = self.nb_blocks[0]
-        return np.array([[j-i if j-i >= 0 else (2*n-1)-(i-j) for j in range(n)] for i in range(n)])
-
-    @property
-    def all_blocks(self) -> np.ndarray:
-        """The matrix of blocks as if the block Toeplitz structure was not used."""
-        all_blocks = np.empty(self.nb_blocks, dtype=np.object)
-        all_blocks[:, :] = [[block for block in self._stored_blocks[0, indices]] for indices in self._index_grid()]
-        return all_blocks
 
     @property
     def block_shapes(self) -> Tuple[List[int], List[int]]:
@@ -78,26 +56,38 @@ class BlockToeplitzMatrix(BlockMatrix):
         """The shape of any of the blocks."""
         return self._stored_block_shapes[0][0], self._stored_block_shapes[1][0]
 
-    def _block_indices_of(self, k: int) -> List[Tuple[int, int]]:
-        """The block indices at which the stored block k can be found in the full matrix."""
+    def _block_indices_of(self, k: int) -> Set[Tuple[int, int]]:
+        """The block indices at which the stored block k can be found in the full matrix of size n.
+        Will be overriden by subclasses."""
         n = self.nb_blocks[0]
 
         if k < n:
             i, j = 0, k  # Upper triangle
-        else:
+        elif n <= k < 2*n:
             i, j = 2*n-1-k, 0  # Lower triangle
+        else:
+            raise AttributeError
 
-        indices = []
+        indices = set()
         while i < n and j < n:
-            indices.append((i, j))
+            indices.add((i, j))
             i, j = i+1, j+1  # Going along the diagonal
 
         return indices
 
+    @property
+    def all_blocks(self):
+        all_blocks = np.empty(self.nb_blocks, dtype=np.object)
+        for k in range(self._stored_nb_blocks[1]):
+            for i, j in self._block_indices_of(k):
+                all_blocks[i, j] = self._stored_blocks[0, k]
+        return all_blocks
+
     def _positions_of(self, k: int, global_frame=(0, 0)) -> List[Tuple[int, int]]:
         """The positions in the full matrix at which the block k from the first line can also be found."""
         shape = self.block_shape
-        return [(global_frame[0] + i*shape[0], global_frame[1] + j*shape[1]) for i, j in self._block_indices_of(k)]
+        return [(global_frame[0] + i*shape[0], global_frame[1] + j*shape[1])
+                for i, j in self._block_indices_of(k)]
 
     def _stored_block_positions(self, global_frame=(0, 0)) -> Iterable[List[Tuple[int, int]]]:
         """The position of each blocks in the matrix.
@@ -111,122 +101,140 @@ class BlockToeplitzMatrix(BlockMatrix):
         """
         return (self._positions_of(k, global_frame=global_frame) for k in range(self._stored_nb_blocks[1]))
 
-    # TRANSFORMING DATA
+    # # TRANSFORMING DATA
 
-    def matvec(self, other):
-        """Matrix vector product.
-        Named as such to be used as scipy LinearOperator."""
-        LOG.debug(f"Product of {self} with vector of shape {other.shape}")
-        if not hasattr(self, 'circulant_super_matrix'):
-            self.circulant_super_matrix = EvenBlockSymmetricCirculantMatrix(
-                self._stored_blocks,
-                _stored_block_shapes=self._stored_block_shapes,
-                check=False)
-        A = self.circulant_super_matrix
-        b = np.concatenate([other, np.zeros(A.shape[1] - self.shape[1])])
-        return (A @ b)[:self.shape[0]]
+    # def matvec(self, other):
+    #     """Matrix vector product.
+    #     Named as such to be used as scipy LinearOperator."""
+    #     LOG.debug(f"Product of {self} with vector of shape {other.shape}")
+    #     if not hasattr(self, 'circulant_super_matrix'):
+    #         self.circulant_super_matrix = EvenBlockSymmetricCirculantMatrix(
+    #             self._stored_blocks,
+    #             _stored_block_shapes=self._stored_block_shapes,
+    #             check=False)
+    #     A = self.circulant_super_matrix
+    #     b = np.concatenate([other, np.zeros(A.shape[1] - self.shape[1])])
+    #     return (A @ b)[:self.shape[0]]
 
-    def rmatvec(self, other):
-        """Matrix vector product.
-        Named as such to be used as scipy LinearOperator."""
-        LOG.debug(f"Product of vector of shape {other.shape} with {self}")
-        if other.ndim == 2 and other.shape[0] == 1:  # Actually a 1×N matrix
-            other = other[0, :]
-        if not hasattr(self, 'circulant_super_matrix'):
-            self.circulant_super_matrix = EvenBlockSymmetricCirculantMatrix(
-                self._stored_blocks,
-                _stored_block_shapes=self._stored_block_shapes,
-                check=False)
-        A = self.circulant_super_matrix
-        b = np.concatenate([other, np.zeros(A.shape[0] - self.shape[0])])
-        return (A.rmatvec(b))[:self.shape[1]]
+    # def rmatvec(self, other):
+    #     """Matrix vector product.
+    #     Named as such to be used as scipy LinearOperator."""
+    #     LOG.debug(f"Product of vector of shape {other.shape} with {self}")
+    #     if other.ndim == 2 and other.shape[0] == 1:  # Actually a 1×N matrix
+    #         other = other[0, :]
+    #     if not hasattr(self, 'circulant_super_matrix'):
+    #         self.circulant_super_matrix = EvenBlockSymmetricCirculantMatrix(
+    #             self._stored_blocks,
+    #             _stored_block_shapes=self._stored_block_shapes,
+    #             check=False)
+    #     A = self.circulant_super_matrix
+    #     b = np.concatenate([other, np.zeros(A.shape[0] - self.shape[0])])
+    #     return (A.rmatvec(b))[:self.shape[1]]
 
+
+################################################################################
+#                       Block symmetric Toeplitz matrix                        #
+################################################################################
 
 class BlockSymmetricToeplitzMatrix(BlockToeplitzMatrix):
-    pass
+    """A (2D) block symmetric Toeplitz matrix, stored as a list of blocks.
+    All blocks should have the same shape.
+
+    Stored in the backend as a 1×N array of arrays."""
+
+    def _compute_nb_blocks(self) -> Tuple[int, int]:
+        n = self._stored_nb_blocks[1]
+        return n, n
+
+    def _block_indices_of(self, k: int) -> Set[Tuple[int, int]]:
+        """The block indices at which the stored block k can be found in the full matrix."""
+        n = self.nb_blocks[0]
+        assert k < n
+
+        if k == 0:
+            return BlockToeplitzMatrix._block_indices_of(self, 0)
+        else:
+            return BlockToeplitzMatrix._block_indices_of(self, k).union(
+                BlockToeplitzMatrix._block_indices_of(self, 2*n-k-1))
+
+
+################################################################################
+#                            Block circulant matrix                            #
+################################################################################
+
+class BlockCirculantMatrix(BlockToeplitzMatrix):
+    """A (2D) block circulant matrix, stored as a list of blocks.
+    All blocks should have the same shape.
+
+    Stored in the backend as a 1×N array of arrays."""
+
+    def _compute_nb_blocks(self) -> Tuple[int, int]:
+        n = self._stored_nb_blocks[1]
+        return n, n
+
+    def _block_indices_of(self, k: int) -> List[Tuple[int, int]]:
+        """The block indices at which the stored block k can be found in the full matrix."""
+        n = self.nb_blocks[0]
+        assert k < n
+
+        if k == 0:
+            return BlockToeplitzMatrix._block_indices_of(self, 0)
+        else:
+            return BlockToeplitzMatrix._block_indices_of(self, k).union(
+                BlockToeplitzMatrix._block_indices_of(self, n+k-1))
+
+    # # TRANSFORMING DATA
+
+    # def block_diagonalize(self):
+    #     """Returns an array of matrices"""
+    #     if not hasattr(self, 'block_diagonalization'):
+    #         if all(isinstance(matrix, BlockMatrix) for matrix in self._stored_blocks[0, :]):
+    #             self.block_diagonalization = BlockMatrix.fft_of_list(*self.first_block_line)
+    #         else:
+    #             stacked_blocks = np.empty((self.nb_blocks[0],) + self.block_shape, dtype=self.dtype)
+    #             for i, block in enumerate(self.first_block_line):
+    #                 stacked_blocks[i] = block.full_matrix() if not isinstance(block, np.ndarray) else block
+    #             self.block_diagonalization =  np.fft.fft(stacked_blocks, axis=0)
+    #     return self.block_diagonalization
+
+    # def matvec(self, other):
+    #     """Matrix vector product.
+    #     Named as such to be used as scipy LinearOperator."""
+    #     LOG.debug(f"Product of {self} with vector of shape {other.shape}")
+    #     fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], self.block_shape[1], 1)), axis=0)
+    #     blocks_of_diagonalization = self.block_diagonalize()
+    #     try:  # Try to run it as vectorized numpy arrays.
+    #         fft_of_result = blocks_of_diagonalization @ fft_of_vector
+    #     except TypeError:  # Or do the same thing with list comprehension.
+    #         fft_of_result = np.array([block @ vec for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
+    #     result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[0])
+    #     if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
+    #         return np.asarray(result)
+    #     else:
+    #         return np.asarray(np.real(result))
+
+    # def rmatvec(self, other):
+    #     """Matrix vector product.
+    #     Named as such to be used as scipy LinearOperator."""
+    #     other = np.conjugate(other)
+    #     fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], 1, self.block_shape[0])), axis=0)
+    #     blocks_of_diagonalization = self.block_diagonalize()
+    #     try:  # Try to run it as vectorized numpy arrays.
+    #         fft_of_result = fft_of_vector @ blocks_of_diagonalization
+    #     except TypeError:  # Or do the same thing with list comprehension.
+    #         fft_of_result = np.array([block.rmatvec(vec) for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
+    #     result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[1])
+    #     if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
+    #         return np.asarray(result)
+    #     else:
+    #         return np.asarray(np.real(result))
+
 
 ###########################################################################
 #                    Block symmetric circulant matrix                     #
 ###########################################################################
 
-class _AbstractBlockSymmetricCirculantMatrix(BlockSymmetricToeplitzMatrix):
-    """Should not be instantiated. Just here to factor some common code between the two classes below."""
-
-    # ACCESSING DATA
-
-    def _index_grid(self) -> np.ndarray:
-        line = self._baseline_grid()
-        grid = [line]
-        for i in range(1, self.nb_blocks[0]):
-            grid.append(line[-i:] + line[:-i])
-        return np.array(grid)
-
-    def _block_indices_of(self, k) -> List[Tuple[int, int]]:
-        n = self.nb_blocks[0]
-        grid = self._index_grid()
-        return [(i, j) for i in range(n) for j in range(n) if grid[i, j] == k]
-
-    @property
-    def first_block_line(self) -> np.ndarray:
-        return self._stored_blocks[0, self._baseline_grid()]
-
-    @property
-    def nb_blocks(self) -> Tuple[int, int]:
-        return self._nb_blocks, self._nb_blocks
-
-    @property
-    def block_shapes(self) -> Tuple[List[int], List[int]]:
-        return ([self._stored_block_shapes[0][0]]*self.nb_blocks[0],
-                [self._stored_block_shapes[1][0]]*self.nb_blocks[1])
-
-    # TRANSFORMING DATA
-
-    def block_diagonalize(self):
-        """Returns an array of matrices"""
-        if not hasattr(self, 'block_diagonalization'):
-            if all(isinstance(matrix, BlockMatrix) for matrix in self._stored_blocks[0, :]):
-                self.block_diagonalization = BlockMatrix.fft_of_list(*self.first_block_line)
-            else:
-                stacked_blocks = np.empty((self.nb_blocks[0],) + self.block_shape, dtype=self.dtype)
-                for i, block in enumerate(self.first_block_line):
-                    stacked_blocks[i] = block.full_matrix() if not isinstance(block, np.ndarray) else block
-                self.block_diagonalization =  np.fft.fft(stacked_blocks, axis=0)
-        return self.block_diagonalization
-
-    def matvec(self, other):
-        """Matrix vector product.
-        Named as such to be used as scipy LinearOperator."""
-        LOG.debug(f"Product of {self} with vector of shape {other.shape}")
-        fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], self.block_shape[1], 1)), axis=0)
-        blocks_of_diagonalization = self.block_diagonalize()
-        try:  # Try to run it as vectorized numpy arrays.
-            fft_of_result = blocks_of_diagonalization @ fft_of_vector
-        except TypeError:  # Or do the same thing with list comprehension.
-            fft_of_result = np.array([block @ vec for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
-        result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[0])
-        if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
-            return np.asarray(result)
-        else:
-            return np.asarray(np.real(result))
-
-    def rmatvec(self, other):
-        """Matrix vector product.
-        Named as such to be used as scipy LinearOperator."""
-        other = np.conjugate(other)
-        fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], 1, self.block_shape[0])), axis=0)
-        blocks_of_diagonalization = self.block_diagonalize()
-        try:  # Try to run it as vectorized numpy arrays.
-            fft_of_result = fft_of_vector @ blocks_of_diagonalization
-        except TypeError:  # Or do the same thing with list comprehension.
-            fft_of_result = np.array([block.rmatvec(vec) for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
-        result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[1])
-        if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
-            return np.asarray(result)
-        else:
-            return np.asarray(np.real(result))
-
-
-class EvenBlockSymmetricCirculantMatrix(_AbstractBlockSymmetricCirculantMatrix):
+class EvenBlockSymmetricCirculantMatrix(BlockCirculantMatrix, BlockSymmetricToeplitzMatrix):
     """A block symmetric circulant matrix, with an even number of blocks.
 
     Examples::
@@ -242,18 +250,28 @@ class EvenBlockSymmetricCirculantMatrix(_AbstractBlockSymmetricCirculantMatrix):
         DCBABC
         CDCBAB
         BCDCBA
-    """
 
-    def __init__(self, blocks, **kwargs):
-        self._nb_blocks = (len(blocks[0]) - 1) * 2
-        super().__init__(blocks, **kwargs)
+    Stored in the backend as a 1×(N/2+1) array of arrays."""
 
-    def _baseline_grid(self) -> List[int]:
-        blocks_indices = list(range(len(self._stored_blocks[0, :])))
-        return blocks_indices[:-1] + blocks_indices[1:][::-1]
+    def _compute_nb_blocks(self) -> Tuple[int, int]:
+        """The number of blocks in the full matrix."""
+        n = (self._stored_nb_blocks[1] - 1)*2
+        return n, n
+
+    def _block_indices_of(self, k: int) -> List[Tuple[int, int]]:
+        n = self.nb_blocks[0]
+        assert k < n/2 + 1
+        if k == 0:
+            return BlockToeplitzMatrix._block_indices_of(self, 0)
+        else:
+            return (BlockToeplitzMatrix._block_indices_of(self, k) |
+                BlockToeplitzMatrix._block_indices_of(self, n+k-1) |
+                BlockToeplitzMatrix._block_indices_of(self, n-k)   |
+                BlockToeplitzMatrix._block_indices_of(self, 2*n-k-1)
+                    )
 
 
-class OddBlockSymmetricCirculantMatrix(_AbstractBlockSymmetricCirculantMatrix):
+class OddBlockSymmetricCirculantMatrix(BlockCirculantMatrix, BlockSymmetricToeplitzMatrix):
     """A block symmetric circulant matrix, with an odd number of blocks.
 
     Examples::
@@ -271,13 +289,21 @@ class OddBlockSymmetricCirculantMatrix(_AbstractBlockSymmetricCirculantMatrix):
         DDCBABC
         CDDCBAB
         BCDDCBA
-    """
 
-    def __init__(self, blocks, **kwargs):
-        self._nb_blocks = len(blocks[0]) * 2 - 1
-        super().__init__(blocks, **kwargs)
+    Stored in the backend as a 1×(N+1)/2 array of arrays."""
 
-    def _baseline_grid(self) -> List[int]:
-        blocks_indices = list(range(len(self._stored_blocks[0, :])))
-        return blocks_indices[:] + blocks_indices[1:][::-1]
+    def _compute_nb_blocks(self) -> Tuple[int, int]:
+        n = self._stored_nb_blocks[1]*2 - 1
+        return n, n
 
+    def _block_indices_of(self, k: int) -> List[Tuple[int, int]]:
+        n = self.nb_blocks[0]
+        assert k < (n+1)/2
+        if k == 0:
+            return BlockToeplitzMatrix._block_indices_of(self, 0)
+        else:
+            return (BlockToeplitzMatrix._block_indices_of(self, k) |
+                BlockToeplitzMatrix._block_indices_of(self, n+k-1) |
+                BlockToeplitzMatrix._block_indices_of(self, n-k)   |
+                BlockToeplitzMatrix._block_indices_of(self, 2*n-k-1)
+                    )

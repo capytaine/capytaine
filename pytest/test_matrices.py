@@ -7,15 +7,14 @@ import pytest
 import numpy as np
 
 from capytaine.matrices.block_matrices import BlockMatrix
-from capytaine.matrices.block_toeplitz_matrices import (
-    BlockToeplitzMatrix, BlockSymmetricToeplitzMatrix, EvenBlockSymmetricCirculantMatrix, OddBlockSymmetricCirculantMatrix
-)
+from capytaine.matrices.block_toeplitz_matrices import *
 from capytaine.matrices.builders import *
 from capytaine.matrices.low_rank_blocks import LowRankMatrix
 from capytaine.matrices.linear_solvers import solve_directly, solve_gmres
 
 
 def test_block_matrices():
+    # 2x2 block representation of the identity matrix
     A = BlockMatrix([
         [np.eye(2, 2), np.zeros((2, 2))],
         [np.zeros((2, 2)), np.eye(2, 2)]
@@ -37,15 +36,13 @@ def test_block_matrices():
     patches = A._patches(global_frame=(10, 10))
     assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12)}
 
-    assert (A.T == A).all()
-    assert not (A.T != A).any()
     assert (A == identity_like(A)).all()
     assert (A.full_matrix() == np.eye(4, 4)).all()
 
+    # 2x2 block matrix containing one another block matrix and three regular matrices of different shapes
     B = BlockMatrix([[A, np.zeros((4, 1))], [np.zeros((1, 4)), np.ones((1, 1))]])
     assert B.shape == (5, 5)
     assert B.block_shapes == ([4, 1], [4, 1])
-    assert (B == B.T).all()
     assert (B.full_matrix() == np.eye(5, 5)).all()
     assert B.str_shape == "[[2×2×[2×2], 4×1], [1×4, 1×1]]"
     assert B.block_shapes == ([4, 1], [4, 1])
@@ -55,6 +52,7 @@ def test_block_matrices():
     assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12),
                                                              (14, 10), (10, 14), (14, 14)}
 
+    # 3x3 block matrix with blocks of different shapes
     C = random_block_matrix([1, 2, 4], [1, 2, 4])
     assert C.nb_blocks == (3, 3)
     assert C.block_shapes == ([1, 2, 4], [1, 2, 4])
@@ -68,11 +66,62 @@ def test_block_matrices():
     assert np.allclose(C @ b, C.full_matrix() @ b)
 
 
+def test_sparse_storage_of_block_toeplitz_matrices():
+    A = BlockToeplitzMatrix(
+        [[np.array([[i]]) for i in range(5)]]
+    )
+    assert np.all(A.full_matrix() ==
+                  np.array([[0, 1, 2],
+                            [4, 0, 1],
+                            [3, 4, 0]]))
+
+    B = BlockSymmetricToeplitzMatrix(
+        [[np.array([[i]]) for i in range(4)]]
+    )
+    assert np.all(B.full_matrix() ==
+                  np.array([[0, 1, 2, 3],
+                            [1, 0, 1, 2],
+                            [2, 1, 0, 1],
+                            [3, 2, 1, 0],
+                            ]))
+
+    C = BlockCirculantMatrix(
+        [[np.array([[i]]) for i in range(4)]]
+    )
+    assert np.all(C.full_matrix() ==
+                  np.array([[0, 1, 2, 3],
+                            [3, 0, 1, 2],
+                            [2, 3, 0, 1],
+                            [1, 2, 3, 0],
+                            ]))
+
+    D = EvenBlockSymmetricCirculantMatrix(
+        [[np.array([[i]]) for i in range(3)]]
+    )
+    assert np.all(D.full_matrix() ==
+                  np.array([[0, 1, 2, 1],
+                            [1, 0, 1, 2],
+                            [2, 1, 0, 1],
+                            [1, 2, 1, 0],
+                            ]))
+
+    E = OddBlockSymmetricCirculantMatrix(
+        [[np.array([[i]]) for i in range(3)]]
+    )
+    assert np.all(E.full_matrix() ==
+                  np.array([[0, 1, 2, 2, 1],
+                            [1, 0, 1, 2, 2],
+                            [2, 1, 0, 1, 2],
+                            [2, 2, 1, 0, 1],
+                            [1, 2, 2, 1, 0],
+                            ]))
+
+
 def test_block_toeplitz_matrices():
+    # 2x2 block Toeplitz representation of the identity matrix
     A = BlockToeplitzMatrix([
         [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
     ])
-    assert (A._index_grid() == np.array([[0, 1], [2, 0]])).all()
     assert A.block_shapes == ([2, 2], [2, 2])
     assert A.block_shape == (2, 2)
     assert list(A._stored_block_positions()) == [[(0, 0), (2, 2)], [(0, 2)], [(2, 0)]]
@@ -83,198 +132,174 @@ def test_block_toeplitz_matrices():
     assert (2*A).max() == 2
     assert (A*A == A).all()
 
-    # b = np.random.rand(4)
-    # assert np.allclose(A @ b, b)
-    # assert np.allclose(A.rmatvec(b), b)
+    b = np.random.rand(4)
+    assert np.allclose(A @ b, b)
+    assert np.allclose(A.rmatvec(b), b)
 
+    # 3x3 block random Toeplitz matrix
     B = BlockToeplitzMatrix([
         [
-            random_block_matrix([1, 1], [1, 1]),
-            random_block_matrix([1, 1], [1, 1]),
-            random_block_matrix([1, 1], [1, 1]),
-            random_block_matrix([1, 1], [1, 1]),
-            random_block_matrix([1, 1], [1, 1]),
+            random_block_matrix([1], [1]),
+            random_block_matrix([1], [1]),
+            random_block_matrix([1], [1]),
+            random_block_matrix([1], [1]),
+            random_block_matrix([1], [1]),
         ]
     ])
+    assert B.block_shape == (1, 1)
+    assert list(B._stored_block_positions()) == [[(0, 0), (1, 1), (2, 2)], [(0, 1), (1, 2)], [(0, 2)], [(2, 0)], [(1, 0), (2, 1)]]
+
+
+def test_block_symmetric_toeplitz_matrices():
+    # 2x2 block symmetric Toeplitz representation of the identity matrix
+    A = BlockSymmetricToeplitzMatrix([
+        [np.eye(2, 2), np.zeros((2, 2))]
+    ])
+    assert A.nb_blocks == (2, 2)
+    assert A.block_shapes == ([2, 2], [2, 2])
+    assert A.shape == (4, 4)
+    assert A.block_shape == (2, 2)
+    assert list(A._stored_block_positions()) == [[(0, 0), (2, 2)], [(0, 2), (2, 0)]]
+    assert (A.full_matrix() == np.eye(*A.shape)).all()
+
+    assert ((A + A)/2 == A).all()
+    assert (-A).min() == -1
+    assert (2*A).max() == 2
+    assert (A*A == A).all()
+
+    b = np.random.rand(4)
+    assert np.allclose(A @ b, b)
+    assert np.allclose(A.rmatvec(b), b)
+
+    # The same as a simpler block matrix
+    A2 = BlockMatrix(A.all_blocks)
+    assert (A2.full_matrix() == A.full_matrix()).all()
+
+    # 2x2 blocks symmetric Toeplitz matrix of non-squared matrix
+    A3 = BlockSymmetricToeplitzMatrix([
+        [np.ones((3, 1)), np.zeros((3, 1))]
+    ])
+    assert A3.nb_blocks == (2, 2)
+    assert A3.block_shapes == ([3, 3], [1, 1])
+    assert A3.shape == (6, 2)
+    assert A3.block_shape == (3, 1)
+
+    with pytest.raises(AssertionError):
+        BlockSymmetricToeplitzMatrix([
+            [np.ones((1, 1)), np.zeros((2, 2))]
+        ])
+
+    # 2x2 block symmetrix Toeplitz matrix composed of block matrices
+    B = BlockSymmetricToeplitzMatrix([
+        [random_block_matrix([1, 1], [1, 1]), random_block_matrix([1, 1], [1, 1])]
+    ])
+    assert B.nb_blocks == (2, 2)
+    assert B._stored_nb_blocks == (1, 2)
+    assert B.block_shapes == ([2, 2], [2, 2])
     assert B.block_shape == (2, 2)
-    assert B._block_indices_of(1) == [(0, 1), (1, 2)]
-    assert B._block_indices_of(2) == [(0, 2)]
-    assert B._block_indices_of(3) == [(2, 0)]
-    assert B._block_indices_of(4) == [(1, 0), (2, 1)]
+    assert B.shape == (4, 4)
+
+    assert isinstance(B.all_blocks[0, 0], BlockMatrix)
+    assert (B.all_blocks[0, 0] == B.all_blocks[1, 1]).all()
+
+    list_of_matrices = [B, B + ones_like(B), B, B - ones_like(B)]
+    BB_fft = BlockSymmetricToeplitzMatrix.fft_of_list(*list_of_matrices)
+    full_BB_fft = np.fft.fft(np.array([A.full_matrix() for A in list_of_matrices]), axis=0)
+    assert np.allclose(full_BB_fft, np.array([A.full_matrix() for A in BB_fft]))
+
+    # 2x2 block symmetric Toeplitz matrix composed of the previous block symmetric Toeplitz matrices
+    C = BlockSymmetricToeplitzMatrix([
+        [A, B]
+    ])
+    assert C.shape == (8, 8)
+
+    b = np.random.rand(8)
+    assert np.allclose(C @ b, C.full_matrix() @ b)
+    assert np.allclose(C.rmatvec(b), b @ C.full_matrix())
+
+    # We need to go deeper
+    D = BlockMatrix([
+        [C, np.zeros(C.shape)]
+    ])
+    assert D.shape == (8, 16)
+
+    b = np.random.rand(16)
+    assert np.allclose(D @ b, D.full_matrix() @ b)
 
 
-test_block_toeplitz_matrices()
+def test_block_circulant_matrix():
+    # 5x5 block symmetric circulant matrix reprensentation of the identity matrix
+    A = BlockCirculantMatrix([
+        [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
+    ])
+    assert A.nb_blocks == (3, 3)
+    assert A.shape == (6, 6)
+    assert A.block_shapes == ([2, 2, 2], [2, 2, 2])
+    assert (A.full_matrix() == np.eye(*A.shape)).all()
 
-# def test_block_symmetric_toeplitz_matrices():
-#     A = BlockSymmetricToeplitzMatrix([
-#         [np.eye(2, 2), np.zeros((2, 2))]
-#     ])
-#     assert A.nb_blocks == (2, 2)
-#     assert A.block_shapes == ([2, 2], [2, 2])
-#     assert A.shape == (4, 4)
-#     assert A.block_shape == (2, 2)
-#     assert list(A._stored_block_positions()) == [[(0, 0), (2, 2)], [(0, 2), (2, 0)]]
-#     assert (A.full_matrix() == np.eye(*A.shape)).all()
+    assert ((A + A)/2 == A).all()
+    assert (-A).min() == -1
+    assert (2*A).max() == 2
+    assert (A*A == A).all()
 
-#     assert (A._index_grid() == np.array([[0, 1], [1, 0]])).all()
-#     assert (A == A.T).all()
+    b = np.random.rand(6)
+    assert np.allclose(A @ b, A.full_matrix() @ b)
+    assert np.allclose(A.rmatvec(b), b @ A.full_matrix())
 
-#     assert ((A + A)/2 == A).all()
-#     assert (-A).min() == -1
-#     assert (2*A).max() == 2
-#     assert (A*A == A).all()
+    B = BlockCirculantMatrix([
+        [A, A, A]
+    ])
+    assert B.nb_blocks == (3, 3)
+    assert B.shape == (18, 18)
+    assert B.all_blocks[0, 0] is A
 
-#     b = np.random.rand(4)
-#     assert np.allclose(A @ b, b)
-#     assert np.allclose(A.rmatvec(b), b)
-
-#     A2 = BlockMatrix(A.all_blocks)
-#     assert (A2.full_matrix() == A.full_matrix()).all()
-
-#     A3 = BlockSymmetricToeplitzMatrix([
-#         [np.ones((3, 1)), np.zeros((3, 1))]
-#     ])
-#     assert A3.nb_blocks == (2, 2)
-#     assert A3.block_shapes == ([3, 3], [1, 1])
-#     assert A3.shape == (6, 2)
-#     assert A3.block_shape == (3, 1)
-
-#     with pytest.raises(AssertionError):
-#         BlockSymmetricToeplitzMatrix([
-#             [np.ones((1, 1)), np.zeros((2, 2))]
-#         ])
-
-#     B = BlockSymmetricToeplitzMatrix([
-#         [random_block_matrix([1, 1], [1, 1]), random_block_matrix([1, 1], [1, 1])]
-#     ])
-#     assert B.nb_blocks == (2, 2)
-#     assert B._stored_nb_blocks == (1, 2)
-#     assert B.block_shapes == ([2, 2], [2, 2])
-#     assert B.block_shape == (2, 2)
-#     assert B.shape == (4, 4)
-
-#     assert isinstance(B.all_blocks[0, 0], BlockMatrix)
-#     assert (B.all_blocks[0, 0] == B.all_blocks[1, 1]).all()
-
-#     list_of_matrices = [B, B + ones_like(B), B, B - ones_like(B)]
-#     BB_fft = BlockSymmetricToeplitzMatrix.fft_of_list(*list_of_matrices)
-#     full_BB_fft = np.fft.fft(np.array([A.full_matrix() for A in list_of_matrices]), axis=0)
-#     assert np.allclose(full_BB_fft, np.array([A.full_matrix() for A in BB_fft]))
-
-#     C = BlockSymmetricToeplitzMatrix([
-#         [A, B]
-#     ])
-#     assert C.shape == (8, 8)
-
-#     b = np.random.rand(8)
-#     assert np.allclose(C @ b, C.full_matrix() @ b)
-#     assert np.allclose(C.rmatvec(b), b @ C.full_matrix())
-
-#     D = BlockMatrix([
-#         [C, np.zeros(C.shape)]
-#     ])
-#     assert D.shape == (8, 16)
-
-#     b = np.random.rand(16)
-#     assert np.allclose(D @ b, D.full_matrix() @ b)
+    b = np.random.rand(18)
+    assert np.allclose(B @ b, B.full_matrix() @ b)
+    assert np.allclose(B.rmatvec(b), b @ B.full_matrix())
 
 
-# def test_even_block_circulant_matrix():
-#     A = EvenBlockSymmetricCirculantMatrix([
-#         [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
-#     ])
-#     assert A.nb_blocks == (4, 4)
-#     assert A.shape == (8, 8)
-#     assert A.block_shapes == ([2, 2, 2, 2], [2, 2, 2, 2])
-#     assert (A.full_matrix() == np.eye(*A.shape)).all()
+def test_even_block_symmetric_circulant_matrix():
+    # 5x5 block symmetric circulant matrix reprensentation of the identity matrix
+    A = EvenBlockSymmetricCirculantMatrix([
+        [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
+    ])
+    assert A.nb_blocks == (4, 4)
+    assert A.shape == (8, 8)
+    assert A.block_shapes == ([2, 2, 2, 2], [2, 2, 2, 2])
+    assert (A.full_matrix() == np.eye(*A.shape)).all()
 
-#     assert (A._index_grid() == np.array([
-#         [0, 1, 2, 1], [1, 0, 1, 2], [2, 1, 0, 1], [1, 2, 1, 0]
-#     ])).all()
-#     assert (A == A.T).all()
+    assert ((A + A)/2 == A).all()
+    assert (-A).min() == -1
+    assert (2*A).max() == 2
+    assert (A*A == A).all()
 
-#     assert ((A + A)/2 == A).all()
-#     assert (-A).min() == -1
-#     assert (2*A).max() == 2
-#     assert (A*A == A).all()
+    b = np.random.rand(8)
+    assert np.allclose(A @ b, A.full_matrix() @ b)
+    assert np.allclose(A.rmatvec(b), b @ A.full_matrix())
 
-#     assert A.first_block_line.ndim == 1
-#     assert A.first_block_line.shape == (4,)
+    B = EvenBlockSymmetricCirculantMatrix([
+        [A, A, A]
+    ])
+    assert B.nb_blocks == (4, 4)
+    assert B.shape == (32, 32)
+    assert B.all_blocks[0, 0] is A
+    assert (B.all_blocks[0, 1] == B.all_blocks[2, 3]).all()
 
-#     b = np.random.rand(8)
-#     assert np.allclose(A @ b, A.full_matrix() @ b)
-#     assert np.allclose(A.rmatvec(b), b @ A.full_matrix())
-
-#     B = EvenBlockSymmetricCirculantMatrix([
-#         [A, A, A]
-#     ])
-#     assert B.nb_blocks == (4, 4)
-#     assert B.shape == (32, 32)
-#     assert B.all_blocks[0, 0] is A
-#     assert (B.all_blocks[0, 1] == B.all_blocks[2, 3]).all()
-
-#     b = np.random.rand(32)
-#     assert np.allclose(B @ b, B.full_matrix() @ b)
-#     assert np.allclose(B.rmatvec(b), b @ B.full_matrix())
+    b = np.random.rand(32)
+    assert np.allclose(B @ b, B.full_matrix() @ b)
+    assert np.allclose(B.rmatvec(b), b @ B.full_matrix())
 
 
-# def test_odd_block_circulant_matrix():
-#     A = OddBlockSymmetricCirculantMatrix([
-#         [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
-#     ])
-#     assert A.nb_blocks == (5, 5)
-#     assert A.shape == (10, 10)
-#     assert A.block_shapes == ([2, 2, 2, 2, 2], [2, 2, 2, 2, 2])
-#     assert (A.full_matrix() == np.eye(*A.shape)).all()
+def test_complex_valued_matrices():
+    R = random_block_matrix([2, 2], [2, 2])
+    I = random_block_matrix([2, 2], [2, 2])
+    A = R + 1j * I
+    assert np.allclose(A.full_matrix(), R.full_matrix() + 1j * I.full_matrix())
 
-#     assert (A._index_grid() == np.array([
-#         [0, 1, 2, 2, 1], [1, 0, 1, 2, 2], [2, 1, 0, 1, 2], [2, 2, 1, 0, 1], [1, 2, 2, 1, 0]
-#     ])).all()
-#     assert (A == A.T).all()
-
-#     assert ((A + A)/2 == A).all()
-#     assert (-A).min() == -1
-#     assert (2*A).max() == 2
-#     assert (A*A == A).all()
-
-#     assert A.first_block_line.ndim == 1
-#     assert A.first_block_line.shape == (5,)
-
-#     list_of_matrices = [A, A + ones_like(A), A, A - ones_like(A)]
-#     AAA_fft = OddBlockSymmetricCirculantMatrix.fft_of_list(*list_of_matrices)
-#     full_AAA_fft = np.fft.fft(np.array([A.full_matrix() for A in list_of_matrices]), axis=0)
-#     assert np.allclose(full_AAA_fft, np.array([A.full_matrix() for A in AAA_fft]))
-
-#     b = np.random.rand(10)
-#     assert np.allclose(A @ b, A.full_matrix() @ b)
-
-#     B = OddBlockSymmetricCirculantMatrix([
-#         [A, A, A]
-#     ])
-#     assert B.nb_blocks == (5, 5)
-#     assert B.shape == (50, 50)
-#     assert B.all_blocks[0, 0] is A
-#     assert (B.all_blocks[0, 1] == B.all_blocks[2, 3]).all()
-
-#     b = np.random.rand(50)
-#     assert np.allclose(B @ b, B.full_matrix() @ b)
-
-#     list_of_matrices = [B, B, B]
-#     BBB_fft = OddBlockSymmetricCirculantMatrix.fft_of_list(*list_of_matrices)
-#     full_BBB_fft = np.fft.fft(np.array([A.full_matrix() for A in list_of_matrices]), axis=0)
-#     assert np.allclose(full_BBB_fft, np.array([A.full_matrix() for A in BBB_fft]))
-
-
-# def test_complex_valued_matrices():
-#     R = random_block_matrix([2, 2], [2, 2])
-#     I = random_block_matrix([2, 2], [2, 2])
-#     A = R + 1j * I
-#     assert np.allclose(A.full_matrix(), R.full_matrix() + 1j * I.full_matrix())
-
-#     B = EvenBlockSymmetricCirculantMatrix([[A.full_matrix(), 2*A.full_matrix()]])
-#     c = np.random.rand(B.shape[1]) + 1j * np.random.rand(B.shape[1])
-#     assert np.allclose(B @ c, B.full_matrix() @ c)
-#     assert np.allclose(solve_directly(B, c), solve_directly(B.full_matrix(), c))
+    B = EvenBlockSymmetricCirculantMatrix([[A.full_matrix(), 2*A.full_matrix()]])
+    c = np.random.rand(B.shape[1]) + 1j * np.random.rand(B.shape[1])
+    assert np.allclose(B @ c, B.full_matrix() @ c)
+    # assert np.allclose(solve_directly(B, c), solve_directly(B.full_matrix(), c))
 
 
 # def test_solve_2x2():
