@@ -15,14 +15,14 @@ LOG = logging.getLogger(__name__)
 
 
 ################################################################################
-#                       Block symmetric Toeplitz matrix                        #
+#                            Block Toeplitz matrix                             #
 ################################################################################
 
-class BlockSymmetricToeplitzMatrix(BlockMatrix):
-    """A (2D) block symmetric Toeplitz matrix, stored as a list of blocks.
+class BlockToeplitzMatrix(BlockMatrix):
+    """A (2D) block Toeplitz matrix, stored as a list of blocks.
     All blocks should have the same shape.
 
-    Stored in the backend as a 1×N array of arrays.
+    Stored in the backend as a 1×(2N-1) array of arrays.
     """
 
     # INITIALIZATION
@@ -32,50 +32,46 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         return self._stored_block_shapes[0][0]*self.nb_blocks[0], self._stored_block_shapes[1][0]*self.nb_blocks[1]
 
     def _check_dimensions_of_blocks(self) -> bool:
-        for block in self._stored_blocks[0, 1:]:
+        for block in self._stored_blocks[0, :]:
             if not block.shape == self.block_shape:  # All blocks have same shape
                 return False
         return True
 
     # ACCESSING DATA
 
+    @property
+    def nb_blocks(self) -> Tuple[int, int]:
+        """The number of blocks in each direction."""
+        n = (self._stored_nb_blocks[1]+1)//2
+        return n, n
+
     def _index_grid(self) -> np.ndarray:
         """Helper function to find the positions at which the blocks appears in the full matrix.
 
         Example of output::
 
-            [[1, 2, 3, 4, 5],
-             [2, 1, 2, 3, 4],
-             [3, 2, 1, 2, 3],
-             [4, 3, 2, 1, 2],
-             [5, 4, 3, 2, 1]]
+            [[0, 1, 2, 3, 4],
+             [8, 0, 1, 2, 3],
+             [7, 8, 0, 1, 2],
+             [6, 7, 8, 0, 1],
+             [5, 6, 7, 8, 0]]
         """
         n = self.nb_blocks[0]
-        return np.array([[abs(i-j) for i in range(n)] for j in range(n)])
-
-    @property
-    def first_block_line(self) -> np.ndarray:
-        """1D array of the the blocks of the first line."""
-        return self._stored_blocks[0, :]
+        return np.array([[j-i if j-i >= 0 else (2*n-1)-(i-j) for j in range(n)] for i in range(n)])
 
     @property
     def all_blocks(self) -> np.ndarray:
         """The matrix of blocks as if the block Toeplitz structure was not used."""
         all_blocks = np.empty(self.nb_blocks, dtype=np.object)
-        all_blocks[:, :] = [[block for block in self.first_block_line[indices]] for indices in self._index_grid()]
+        all_blocks[:, :] = [[block for block in self._stored_blocks[0, indices]] for indices in self._index_grid()]
         return all_blocks
-
-    @property
-    def nb_blocks(self) -> Tuple[int, int]:
-        """The number of blocks in each direction."""
-        return self._stored_nb_blocks[1], self._stored_nb_blocks[1]
 
     @property
     def block_shapes(self) -> Tuple[List[int], List[int]]:
         """The shapes of the blocks composing the block matrix.
         Actually, they should be all the same."""
         return ([self._stored_block_shapes[0][0]]*self.nb_blocks[0],
-                self._stored_block_shapes[1])
+                [self._stored_block_shapes[1][0]]*self.nb_blocks[1])
 
     @property
     def block_shape(self) -> Tuple[int, int]:
@@ -83,10 +79,20 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         return self._stored_block_shapes[0][0], self._stored_block_shapes[1][0]
 
     def _block_indices_of(self, k: int) -> List[Tuple[int, int]]:
-        """The block indices at which the block k from the first line can also be found."""
+        """The block indices at which the stored block k can be found in the full matrix."""
         n = self.nb_blocks[0]
-        # TODO: Optimize?
-        return [(i, j) for i in range(n) for j in range(n) if abs(i-j) == k]
+
+        if k < n:
+            i, j = 0, k  # Upper triangle
+        else:
+            i, j = 2*n-1-k, 0  # Lower triangle
+
+        indices = []
+        while i < n and j < n:
+            indices.append((i, j))
+            i, j = i+1, j+1  # Going along the diagonal
+
+        return indices
 
     def _positions_of(self, k: int, global_frame=(0, 0)) -> List[Tuple[int, int]]:
         """The positions in the full matrix at which the block k from the first line can also be found."""
@@ -103,7 +109,7 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
             BBAA
             BBAA
         """
-        return (self._positions_of(k, global_frame=global_frame) for k in range(len(self.first_block_line)))
+        return (self._positions_of(k, global_frame=global_frame) for k in range(self._stored_nb_blocks[1]))
 
     # TRANSFORMING DATA
 
@@ -135,11 +141,9 @@ class BlockSymmetricToeplitzMatrix(BlockMatrix):
         b = np.concatenate([other, np.zeros(A.shape[0] - self.shape[0])])
         return (A.rmatvec(b))[:self.shape[1]]
 
-    @property
-    def T(self):
-        """Transpose the matrix."""
-        return self._apply_unary_op(lambda x: x.T)
 
+class BlockSymmetricToeplitzMatrix(BlockToeplitzMatrix):
+    pass
 
 ###########################################################################
 #                    Block symmetric circulant matrix                     #
