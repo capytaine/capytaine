@@ -202,26 +202,15 @@ def test_array_of_spheres():
     solver_without_sym = Nemoh(linear_solver="direct", use_symmetries=False, matrix_cache_size=0)
 
     S, V = solver_with_sym._build_matrices_wave(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
-    S.plot_shape()
     fullS, fullV = solver_without_sym._build_matrices_wave(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
-    import matplotlib.pyplot as plt
-    plt.figure()
-    plt.imshow(np.abs(fullV))
-    plt.colorbar()
-    plt.figure()
-    plt.imshow(np.abs(V.full_matrix() - fullV))
-    plt.colorbar()
-    plt.show()
-
-    # assert np.allclose(S.full_matrix(), fullS)
+    assert np.allclose(S.full_matrix(), fullS)
+    assert np.allclose(V.full_matrix(), fullV)
 
     problem = RadiationProblem(body=array, omega=1.0, radiating_dof="2_0__Heave", sea_bottom=-np.infty)
 
     result = solver_with_sym.solve(problem)
     result2 = solver_without_sym.solve(problem)
 
-    print('\n', result.added_masses['2_0__Heave'], result2.added_masses['2_0__Heave'])
-
-    # assert np.isclose(result.added_masses['2_0__Heave'], result2.added_masses['2_0__Heave'], atol=10.0)
-    # assert np.isclose(result.radiation_dampings['2_0__Heave'], result2.radiation_dampings['2_0__Heave'], atol=10.0)
+    # assert np.isclose(result.added_masses['2_0__Heave'], result2.added_masses['2_0__Heave'], atol=15.0)
+    # assert np.isclose(result.radiation_dampings['2_0__Heave'], result2.radiation_dampings['2_0__Heave'], atol=15.0)
 

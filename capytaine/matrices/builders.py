@@ -59,7 +59,7 @@ def full_like(A, value, dtype=np.float64):
         for i in range(A._stored_nb_blocks[0]):
             line = []
             for j in range(A._stored_nb_blocks[1]):
-                line.append(full_like(A.all_blocks[i][j], value, dtype=dtype))
+                line.append(full_like(A._stored_blocks[i, j], value, dtype=dtype))
             new_matrix.append(line)
         return A.__class__(new_matrix)
     elif isinstance(A, LowRankMatrix):
@@ -86,9 +86,9 @@ def identity_like(A, dtype=np.float64):
             line = []
             for j in range(A._stored_nb_blocks[1]):
                 if i == j:
-                    line.append(identity_like(A._stored_blocks[i][j], dtype=dtype))
+                    line.append(identity_like(A._stored_blocks[i, j], dtype=dtype))
                 else:
-                    line.append(zeros_like(A._stored_blocks[i][j], dtype=dtype))
+                    line.append(zeros_like(A._stored_blocks[i, j], dtype=dtype))
             I.append(line)
         return A.__class__(I)
     elif isinstance(A, np.ndarray):
@@ -178,8 +178,14 @@ def build_with_symmetries(build_matrices):
                     _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
+            for submesh in mesh1[1:][::-1]:
+                S, V = build_matrices_with_symmetries(
+                    submesh, mesh2[0], *args, **kwargs,
+                    _rec_depth=_rec_depth+1)
+                S_list.append(S)
+                V_list.append(V)
 
-            return BlockSymmetricToeplitzMatrix([S_list]), BlockSymmetricToeplitzMatrix([V_list])
+            return BlockToeplitzMatrix([S_list]), BlockToeplitzMatrix([V_list])
 
         elif (isinstance(mesh1, AxialSymmetry)
               and mesh1.axis == mesh2.axis
@@ -191,17 +197,14 @@ def build_with_symmetries(build_matrices):
                       ) + " using rotation symmetry.")
 
             S_line, V_line = [], []
-            for submesh in mesh2[:mesh2.nb_submeshes // 2 + 1]:
+            for submesh in mesh2[:mesh2.nb_submeshes]:
                 S, V = build_matrices_with_symmetries(
                     mesh1[0], submesh, *args, **kwargs,
                     _rec_depth=_rec_depth+1)
                 S_line.append(S)
                 V_line.append(V)
 
-            if mesh1.nb_submeshes % 2 == 0:
-                return EvenBlockSymmetricCirculantMatrix([S_line]), EvenBlockSymmetricCirculantMatrix([V_line])
-            else:
-                return OddBlockSymmetricCirculantMatrix([S_line]), OddBlockSymmetricCirculantMatrix([V_line])
+            return BlockCirculantMatrix([S_line]), BlockCirculantMatrix([V_line])
 
         elif (isinstance(mesh1, CollectionOfMeshes)
               and isinstance(mesh2, CollectionOfMeshes)):
