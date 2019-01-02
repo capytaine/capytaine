@@ -302,127 +302,127 @@ def test_complex_valued_matrices():
     # assert np.allclose(solve_directly(B, c), solve_directly(B.full_matrix(), c))
 
 
-# def test_solve_2x2():
-#     # 2x2 blocks
-#     A = BlockSymmetricToeplitzMatrix([
-#         [np.random.rand(3, 3) for _ in range(2)]
-#     ])
-#     b = np.random.rand(A.shape[0])
+def test_solve_2x2():
+    # 2x2 blocks
+    A = BlockSymmetricToeplitzMatrix([
+        [np.random.rand(3, 3) for _ in range(2)]
+    ])
+    b = np.random.rand(A.shape[0])
 
-#     x_toe = solve_directly(A, b)
-#     x_dumb = np.linalg.solve(A.full_matrix(), b)
+    x_toe = solve_directly(A, b)
+    x_dumb = np.linalg.solve(A.full_matrix(), b)
 
-#     assert np.allclose(x_toe, x_dumb, rtol=1e-6)
-
-
-# def test_solve_block_circulant():
-#     # Block Circulant Matrix
-#     A = EvenBlockSymmetricCirculantMatrix([
-#         [np.random.rand(3, 3) for _ in range(4)]
-#     ])
-#     b = np.random.rand(A.shape[0])
-
-#     x_circ = solve_directly(A, b)
-#     x_dumb = np.linalg.solve(A.full_matrix(), b)
-
-#     assert np.allclose(x_circ, x_dumb, rtol=1e-6)
-
-#     x_gmres = solve_gmres(A, b)
-#     x_dumb_gmres = solve_gmres(A.full_matrix(), b)
-
-#     assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
-
-#     A = EvenBlockSymmetricCirculantMatrix([
-#         [random_block_matrix([1, 1], [1, 1]) for _ in range(5)]
-#     ])
-#     b = np.random.rand(A.shape[0])
-
-#     x_circ = solve_directly(A, b)
-#     x_dumb = np.linalg.solve(A.full_matrix(), b)
-
-#     assert np.allclose(x_circ, x_dumb, rtol=1e-6)
-
-#     x_gmres = solve_gmres(A, b)
-#     x_dumb_gmres = solve_gmres(A.full_matrix(), b)
-
-#     assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
+    assert np.allclose(x_toe, x_dumb, rtol=1e-6)
 
 
-# def test_low_rank_blocks():
-#     n = 10
+def test_solve_block_circulant():
+    # Block Circulant Matrix
+    A = EvenBlockSymmetricCirculantMatrix([
+        [np.random.rand(3, 3) for _ in range(4)]
+    ])
+    b = np.random.rand(A.shape[0])
 
-#     # Test initialization
-#     a, b = np.random.rand(n, 1), np.random.rand(1, n)
-#     LR = LowRankMatrix(a, b)
-#     assert LR.shape == LR.full_matrix().shape
-#     assert np.linalg.matrix_rank(LR.full_matrix()) == LR.rank == 1
+    x_circ = solve_directly(A, b)
+    x_dumb = np.linalg.solve(A.full_matrix(), b)
 
-#     a, b = np.random.rand(n, 2), np.random.rand(2, n)
-#     LR = LowRankMatrix(a, b)
-#     assert LR.shape == LR.full_matrix().shape
-#     assert np.linalg.matrix_rank(LR.full_matrix()) == LR.rank == 2
+    assert np.allclose(x_circ, x_dumb, rtol=1e-6)
 
-#     # Test creation from SVD
-#     A = np.arange(n**2).reshape((n, n)) + np.random.rand(n, n) + 1.0
-#     dumb_low_rank = LowRankMatrix.from_full_matrix_with_SVD(A, n)
-#     assert np.allclose(dumb_low_rank.full_matrix() - A, 0.0)
+    x_gmres = solve_gmres(A, b)
+    x_dumb_gmres = solve_gmres(A.full_matrix(), b)
 
-#     A_rank_1 = LowRankMatrix.from_full_matrix_with_SVD(A, 1)
-#     assert np.linalg.matrix_rank(A_rank_1.full_matrix()) == A_rank_1.rank == 1
+    assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
 
-#     # Test recompression
-#     recompressed = dumb_low_rank.recompress(new_rank=2)
-#     assert recompressed.rank == np.linalg.matrix_rank(recompressed.full_matrix()) == 2
+    A = EvenBlockSymmetricCirculantMatrix([
+        [random_block_matrix([1, 1], [1, 1]) for _ in range(5)]
+    ])
+    b = np.random.rand(A.shape[0])
 
-#     recompressed = dumb_low_rank.recompress(tol=1e-1)
-#     assert recompressed.rank <= dumb_low_rank.rank
+    x_circ = solve_directly(A, b)
+    x_dumb = np.linalg.solve(A.full_matrix(), b)
 
-#     # Test multiplication with vector
-#     b = np.random.rand(n)
-#     assert np.allclose(A_rank_1 @ b, A_rank_1.full_matrix() @ b)
+    assert np.allclose(x_circ, x_dumb, rtol=1e-6)
 
-#     # Test creation with ACA
-#     full_A_rank_1 = A_rank_1.full_matrix()
-#     A_rank_1_again = LowRankMatrix.from_full_matrix_with_ACA(full_A_rank_1, max_rank=5)
-#     assert np.linalg.matrix_rank(A_rank_1_again.full_matrix()) == 1
-#     assert np.allclose(A_rank_1_again.full_matrix(), full_A_rank_1)
+    x_gmres = solve_gmres(A, b)
+    x_dumb_gmres = solve_gmres(A.full_matrix(), b)
 
-#     # Test creation from function with ACA
-#     X = np.linspace(0, 1, n)
-#     Y = np.linspace(5, 6, n)
-
-#     def f(i, j):
-#         return 1/abs(X[i] - Y[j])
-
-#     S = np.array([[f(i, j) for j in range(n)] for i in range(n)])
-#     SLR = LowRankMatrix.from_function_with_ACA(f, n, n, max_rank=2, tol=1e-5)
-#     assert SLR.shape == (n, n)
-#     assert np.allclose(SLR.full_matrix(), S, atol=1e-4)
-
-#     summed = SLR + A_rank_1
-#     assert summed.rank == 1
+    assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
 
 
-# def test_hierarchical_matrix():
-#     n = 30
-#     X = np.linspace(0, 1, n)
-#     Y = np.linspace(10, 11, n)
+def test_low_rank_blocks():
+    n = 10
 
-#     def f(i, j):
-#         return 1/abs(X[i] - Y[j])
+    # Test initialization
+    a, b = np.random.rand(n, 1), np.random.rand(1, n)
+    LR = LowRankMatrix(a, b)
+    assert LR.shape == LR.full_matrix().shape
+    assert np.linalg.matrix_rank(LR.full_matrix()) == LR.rank == 1
 
-#     S = np.array([[f(i, j) for j in range(n)] for i in range(n)])
+    a, b = np.random.rand(n, 2), np.random.rand(2, n)
+    LR = LowRankMatrix(a, b)
+    assert LR.shape == LR.full_matrix().shape
+    assert np.linalg.matrix_rank(LR.full_matrix()) == LR.rank == 2
 
-#     HS = BlockMatrix(
-#         [
-#             [S[:n//2, :n//2], LowRankMatrix.from_full_matrix_with_ACA(S[n//2:, :n//2], tol=1e-5)],
-#             [LowRankMatrix.from_full_matrix_with_ACA(S[:n//2, n//2:], tol=1e-5), S[n//2:, n//2:]],
-#          ]
-#     )
+    # Test creation from SVD
+    A = np.arange(n**2).reshape((n, n)) + np.random.rand(n, n) + 1.0
+    dumb_low_rank = LowRankMatrix.from_full_matrix_with_SVD(A, n)
+    assert np.allclose(dumb_low_rank.full_matrix() - A, 0.0)
 
-#     assert np.allclose(HS.full_matrix(), S, rtol=2e-1)
+    A_rank_1 = LowRankMatrix.from_full_matrix_with_SVD(A, 1)
+    assert np.linalg.matrix_rank(A_rank_1.full_matrix()) == A_rank_1.rank == 1
 
-#     doubled = HS + HS
-#     assert np.allclose(2*S, doubled.full_matrix(), rtol=2e-1)
+    # Test recompression
+    recompressed = dumb_low_rank.recompress(new_rank=2)
+    assert recompressed.rank == np.linalg.matrix_rank(recompressed.full_matrix()) == 2
+
+    recompressed = dumb_low_rank.recompress(tol=1e-1)
+    assert recompressed.rank <= dumb_low_rank.rank
+
+    # Test multiplication with vector
+    b = np.random.rand(n)
+    assert np.allclose(A_rank_1 @ b, A_rank_1.full_matrix() @ b)
+
+    # Test creation with ACA
+    full_A_rank_1 = A_rank_1.full_matrix()
+    A_rank_1_again = LowRankMatrix.from_full_matrix_with_ACA(full_A_rank_1, max_rank=5)
+    assert np.linalg.matrix_rank(A_rank_1_again.full_matrix()) == 1
+    assert np.allclose(A_rank_1_again.full_matrix(), full_A_rank_1)
+
+    # Test creation from function with ACA
+    X = np.linspace(0, 1, n)
+    Y = np.linspace(5, 6, n)
+
+    def f(i, j):
+        return 1/abs(X[i] - Y[j])
+
+    S = np.array([[f(i, j) for j in range(n)] for i in range(n)])
+    SLR = LowRankMatrix.from_function_with_ACA(f, n, n, max_rank=2, tol=1e-5)
+    assert SLR.shape == (n, n)
+    assert np.allclose(SLR.full_matrix(), S, atol=1e-4)
+
+    summed = SLR + A_rank_1
+    assert summed.rank == 1
+
+
+def test_hierarchical_matrix():
+    n = 30
+    X = np.linspace(0, 1, n)
+    Y = np.linspace(10, 11, n)
+
+    def f(i, j):
+        return 1/abs(X[i] - Y[j])
+
+    S = np.array([[f(i, j) for j in range(n)] for i in range(n)])
+
+    HS = BlockMatrix(
+        [
+            [S[:n//2, :n//2], LowRankMatrix.from_full_matrix_with_ACA(S[n//2:, :n//2], tol=1e-5)],
+            [LowRankMatrix.from_full_matrix_with_ACA(S[:n//2, n//2:], tol=1e-5), S[n//2:, n//2:]],
+         ]
+    )
+
+    assert np.allclose(HS.full_matrix(), S, rtol=2e-1)
+
+    doubled = HS + HS
+    assert np.allclose(2*S, doubled.full_matrix(), rtol=2e-1)
 
 

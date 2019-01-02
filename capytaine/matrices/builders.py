@@ -12,7 +12,8 @@ from capytaine.mesh.symmetries import ReflectionSymmetry, TranslationalSymmetry,
 from capytaine.matrices.block_matrices import BlockMatrix
 from capytaine.matrices.low_rank_blocks import LowRankMatrix
 from capytaine.matrices.block_toeplitz_matrices import (
-    BlockToeplitzMatrix, BlockSymmetricToeplitzMatrix, BlockCirculantMatrix
+    BlockToeplitzMatrix, BlockSymmetricToeplitzMatrix,
+    BlockCirculantMatrix, EvenBlockSymmetricCirculantMatrix, OddBlockSymmetricCirculantMatrix
 )
 
 LOG = logging.getLogger(__name__)
@@ -81,13 +82,13 @@ def identity_like(A, dtype=np.float64):
     """A identity matrix of the same kind and shape as A."""
     if isinstance(A, BlockMatrix):
         I = []
-        for i in range(A.nb_blocks[0]):
+        for i in range(A._stored_nb_blocks[0]):
             line = []
-            for j in range(A.nb_blocks[1]):
+            for j in range(A._stored_nb_blocks[1]):
                 if i == j:
-                    line.append(identity_like(A.all_blocks[i][j], dtype=dtype))
+                    line.append(identity_like(A._stored_blocks[i][j], dtype=dtype))
                 else:
-                    line.append(zeros_like(A.all_blocks[i][j], dtype=dtype))
+                    line.append(zeros_like(A._stored_blocks[i][j], dtype=dtype))
             I.append(line)
         return A.__class__(I)
     elif isinstance(A, np.ndarray):

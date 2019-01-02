@@ -11,7 +11,9 @@ from scipy.sparse import linalg as ssl
 
 from capytaine.matrices.block_matrices import BlockMatrix
 from capytaine.matrices.block_toeplitz_matrices import (
+    BlockToeplitzMatrix,
     BlockSymmetricToeplitzMatrix,
+    BlockCirculantMatrix,
 )
 
 LOG = logging.getLogger(__name__)
@@ -35,7 +37,7 @@ def solve_directly(A, b):
     elif isinstance(A, BlockSymmetricToeplitzMatrix):
         if A.nb_blocks == (2, 2):
             LOG.debug("\tSolve linear system %s", A)
-            A1, A2 = A.first_block_line
+            A1, A2 = A._stored_blocks[0, :]
             b1, b2 = b[:len(b)//2], b[len(b)//2:]
             x_plus = solve_directly(A1 + A2, b1 + b2)
             x_minus = solve_directly(A1 - A2, b1 - b2)

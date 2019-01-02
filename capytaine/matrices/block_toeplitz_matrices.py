@@ -103,33 +103,32 @@ class BlockToeplitzMatrix(BlockMatrix):
 
     # # TRANSFORMING DATA
 
-    # def matvec(self, other):
-    #     """Matrix vector product.
-    #     Named as such to be used as scipy LinearOperator."""
-    #     LOG.debug(f"Product of {self} with vector of shape {other.shape}")
-    #     if not hasattr(self, 'circulant_super_matrix'):
-    #         self.circulant_super_matrix = EvenBlockSymmetricCirculantMatrix(
-    #             self._stored_blocks,
-    #             _stored_block_shapes=self._stored_block_shapes,
-    #             check=False)
-    #     A = self.circulant_super_matrix
-    #     b = np.concatenate([other, np.zeros(A.shape[1] - self.shape[1])])
-    #     return (A @ b)[:self.shape[0]]
+    @property
+    def circulant_super_matrix(self):
+        if not hasattr(self, '_circulant_super_matrix'):
+            self._circulant_super_matrix = BlockCirculantMatrix(
+                self._stored_blocks,
+                _stored_block_shapes=self._stored_block_shapes,
+                check=False)
+        return self._circulant_super_matrix
 
-    # def rmatvec(self, other):
-    #     """Matrix vector product.
-    #     Named as such to be used as scipy LinearOperator."""
-    #     LOG.debug(f"Product of vector of shape {other.shape} with {self}")
-    #     if other.ndim == 2 and other.shape[0] == 1:  # Actually a 1×N matrix
-    #         other = other[0, :]
-    #     if not hasattr(self, 'circulant_super_matrix'):
-    #         self.circulant_super_matrix = EvenBlockSymmetricCirculantMatrix(
-    #             self._stored_blocks,
-    #             _stored_block_shapes=self._stored_block_shapes,
-    #             check=False)
-    #     A = self.circulant_super_matrix
-    #     b = np.concatenate([other, np.zeros(A.shape[0] - self.shape[0])])
-    #     return (A.rmatvec(b))[:self.shape[1]]
+    def matvec(self, other):
+        """Matrix vector product.
+        Named as such to be used as scipy LinearOperator."""
+        LOG.debug(f"Product of {self} with vector of shape {other.shape}")
+        A = self.circulant_super_matrix
+        b = np.concatenate([other, np.zeros(A.shape[1] - self.shape[1])])
+        return (A @ b)[:self.shape[0]]
+
+    def rmatvec(self, other):
+        """Matrix vector product.
+        Named as such to be used as scipy LinearOperator."""
+        LOG.debug(f"Product of vector of shape {other.shape} with {self}")
+        if other.ndim == 2 and other.shape[0] == 1:  # Actually a 1×N matrix
+            other = other[0, :]
+        A = self.circulant_super_matrix
+        b = np.concatenate([other, np.zeros(A.shape[0] - self.shape[0])])
+        return (A.rmatvec(b))[:self.shape[1]]
 
 
 ################################################################################
@@ -157,6 +156,15 @@ class BlockSymmetricToeplitzMatrix(BlockToeplitzMatrix):
             return BlockToeplitzMatrix._block_indices_of(self, k).union(
                 BlockToeplitzMatrix._block_indices_of(self, 2*n-k-1))
 
+    @property
+    def circulant_super_matrix(self):
+        if not hasattr(self, '_circulant_super_matrix'):
+            self._circulant_super_matrix = EvenBlockSymmetricCirculantMatrix(
+                self._stored_blocks,
+                _stored_block_shapes=self._stored_block_shapes,
+                check=False)
+        return self._circulant_super_matrix
+
 
 ################################################################################
 #                            Block circulant matrix                            #
@@ -183,51 +191,51 @@ class BlockCirculantMatrix(BlockToeplitzMatrix):
             return BlockToeplitzMatrix._block_indices_of(self, k).union(
                 BlockToeplitzMatrix._block_indices_of(self, n+k-1))
 
-    # # TRANSFORMING DATA
+    # TRANSFORMING DATA
 
-    # def block_diagonalize(self):
-    #     """Returns an array of matrices"""
-    #     if not hasattr(self, 'block_diagonalization'):
-    #         if all(isinstance(matrix, BlockMatrix) for matrix in self._stored_blocks[0, :]):
-    #             self.block_diagonalization = BlockMatrix.fft_of_list(*self.first_block_line)
-    #         else:
-    #             stacked_blocks = np.empty((self.nb_blocks[0],) + self.block_shape, dtype=self.dtype)
-    #             for i, block in enumerate(self.first_block_line):
-    #                 stacked_blocks[i] = block.full_matrix() if not isinstance(block, np.ndarray) else block
-    #             self.block_diagonalization =  np.fft.fft(stacked_blocks, axis=0)
-    #     return self.block_diagonalization
+    def block_diagonalize(self):
+        """Returns an array of matrices"""
+        if not hasattr(self, 'block_diagonalization'):
+            if all(isinstance(matrix, BlockMatrix) for matrix in self._stored_blocks[0, :]):
+                self.block_diagonalization = BlockMatrix.fft_of_list(*self.all_blocks[0, :])
+            else:
+                stacked_blocks = np.empty((self.nb_blocks[0],) + self.block_shape, dtype=self.dtype)
+                for i, block in enumerate(self.all_blocks[0, :]):
+                    stacked_blocks[i] = block.full_matrix() if not isinstance(block, np.ndarray) else block
+                self.block_diagonalization =  np.fft.fft(stacked_blocks, axis=0)
+        return self.block_diagonalization
 
-    # def matvec(self, other):
-    #     """Matrix vector product.
-    #     Named as such to be used as scipy LinearOperator."""
-    #     LOG.debug(f"Product of {self} with vector of shape {other.shape}")
-    #     fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], self.block_shape[1], 1)), axis=0)
-    #     blocks_of_diagonalization = self.block_diagonalize()
-    #     try:  # Try to run it as vectorized numpy arrays.
-    #         fft_of_result = blocks_of_diagonalization @ fft_of_vector
-    #     except TypeError:  # Or do the same thing with list comprehension.
-    #         fft_of_result = np.array([block @ vec for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
-    #     result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[0])
-    #     if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
-    #         return np.asarray(result)
-    #     else:
-    #         return np.asarray(np.real(result))
+    def matvec(self, other):
+        """Matrix vector product.
+        Named as such to be used as scipy LinearOperator."""
+        LOG.debug(f"Product of {self} with vector of shape {other.shape}")
+        fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], self.block_shape[1], 1)), axis=0)
+        blocks_of_diagonalization = self.block_diagonalize()
+        try:  # Try to run it as vectorized numpy arrays.
+            fft_of_result = blocks_of_diagonalization @ fft_of_vector
+        except TypeError:  # Or do the same thing with list comprehension.
+            fft_of_result = np.array([block @ vec for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
+        result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[0])
+        if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
+            return np.asarray(result)
+        else:
+            return np.asarray(np.real(result))
 
-    # def rmatvec(self, other):
-    #     """Matrix vector product.
-    #     Named as such to be used as scipy LinearOperator."""
-    #     other = np.conjugate(other)
-    #     fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], 1, self.block_shape[0])), axis=0)
-    #     blocks_of_diagonalization = self.block_diagonalize()
-    #     try:  # Try to run it as vectorized numpy arrays.
-    #         fft_of_result = fft_of_vector @ blocks_of_diagonalization
-    #     except TypeError:  # Or do the same thing with list comprehension.
-    #         fft_of_result = np.array([block.rmatvec(vec) for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
-    #     result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[1])
-    #     if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
-    #         return np.asarray(result)
-    #     else:
-    #         return np.asarray(np.real(result))
+    def rmatvec(self, other):
+        """Matrix vector product.
+        Named as such to be used as scipy LinearOperator."""
+        other = np.conjugate(other)
+        fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], 1, self.block_shape[0])), axis=0)
+        blocks_of_diagonalization = self.block_diagonalize()
+        try:  # Try to run it as vectorized numpy arrays.
+            fft_of_result = fft_of_vector @ blocks_of_diagonalization
+        except TypeError:  # Or do the same thing with list comprehension.
+            fft_of_result = np.array([block.rmatvec(vec) for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
+        result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[1])
+        if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
+            return np.asarray(result)
+        else:
+            return np.asarray(np.real(result))
 
 
 ###########################################################################
