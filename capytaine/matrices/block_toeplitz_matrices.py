@@ -33,6 +33,7 @@ class BlockToeplitzMatrix(BlockMatrix):
 
     def _compute_nb_blocks(self) -> Tuple[int, int]:
         """Will be overridden by subclasses."""
+        assert self._stored_nb_blocks[1] % 2 == 1, "Expecting an odd number of blocks to build a Toeplitz matrix"
         n = (self._stored_nb_blocks[1]+1)//2
         return n, n
 
@@ -86,8 +87,8 @@ class BlockToeplitzMatrix(BlockMatrix):
     def _positions_of(self, k: int, global_frame=(0, 0)) -> List[Tuple[int, int]]:
         """The positions in the full matrix at which the block k from the first line can also be found."""
         shape = self.block_shape
-        return [(global_frame[0] + i*shape[0], global_frame[1] + j*shape[1])
-                for i, j in self._block_indices_of(k)]
+        return sorted([(global_frame[0] + i*shape[0], global_frame[1] + j*shape[1])
+                       for i, j in self._block_indices_of(k)])
 
     def _stored_block_positions(self, global_frame=(0, 0)) -> Iterable[List[Tuple[int, int]]]:
         """The position of each blocks in the matrix.
@@ -191,16 +192,16 @@ class BlockCirculantMatrix(BlockToeplitzMatrix):
             return BlockToeplitzMatrix._block_indices_of(self, k).union(
                 BlockToeplitzMatrix._block_indices_of(self, n+k-1))
 
-    # TRANSFORMING DATA
+    # LINEAR SYSTEMS
 
     def block_diagonalize(self):
         """Returns an array of matrices"""
         if not hasattr(self, 'block_diagonalization'):
             if all(isinstance(matrix, BlockMatrix) for matrix in self._stored_blocks[0, :]):
-                self.block_diagonalization = BlockMatrix.fft_of_list(*self.all_blocks[0, :])
+                self.block_diagonalization = BlockMatrix.fft_of_list(*self.all_blocks[:, 0])
             else:
-                stacked_blocks = np.empty((self.nb_blocks[0],) + self.block_shape, dtype=self.dtype)
-                for i, block in enumerate(self.all_blocks[0, :]):
+                stacked_blocks = np.empty((self.nb_blocks[1],) + self.block_shape, dtype=self.dtype)
+                for i, block in enumerate(self.all_blocks[:, 0]):
                     stacked_blocks[i] = block.full_matrix() if not isinstance(block, np.ndarray) else block
                 self.block_diagonalization =  np.fft.fft(stacked_blocks, axis=0)
         return self.block_diagonalization
@@ -225,13 +226,13 @@ class BlockCirculantMatrix(BlockToeplitzMatrix):
         """Matrix vector product.
         Named as such to be used as scipy LinearOperator."""
         other = np.conjugate(other)
-        fft_of_vector = np.fft.fft(np.reshape(other, (self.nb_blocks[0], 1, self.block_shape[0])), axis=0)
+        fft_of_vector = np.fft.ifft(np.reshape(other, (self.nb_blocks[0], 1, self.block_shape[0])), axis=0)
         blocks_of_diagonalization = self.block_diagonalize()
         try:  # Try to run it as vectorized numpy arrays.
             fft_of_result = fft_of_vector @ blocks_of_diagonalization
         except TypeError:  # Or do the same thing with list comprehension.
-            fft_of_result = np.array([block.rmatvec(vec) for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
-        result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[1])
+            fft_of_result = np.array([block.rmatvec(vec.flatten()) for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
+        result = np.fft.fft(fft_of_result, axis=0).reshape(self.shape[1])
         if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
             return np.asarray(result)
         else:

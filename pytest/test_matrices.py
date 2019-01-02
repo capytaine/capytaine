@@ -13,7 +13,7 @@ from capytaine.matrices.low_rank_blocks import LowRankMatrix
 from capytaine.matrices.linear_solvers import solve_directly, solve_gmres
 
 
-def test_block_matrices():
+def test_block_matrix_representation_of_identity():
     # 2x2 block representation of the identity matrix
     A = BlockMatrix([
         [np.eye(2, 2), np.zeros((2, 2))],
@@ -124,6 +124,7 @@ def test_block_toeplitz_matrices():
     ])
     assert A.block_shapes == ([2, 2], [2, 2])
     assert A.block_shape == (2, 2)
+    assert A.shape == (4, 4)
     assert list(A._stored_block_positions()) == [[(0, 0), (2, 2)], [(0, 2)], [(2, 0)]]
     assert (A.full_matrix() == np.eye(*A.shape)).all()
 
@@ -132,7 +133,10 @@ def test_block_toeplitz_matrices():
     assert (2*A).max() == 2
     assert (A*A == A).all()
 
-    b = np.random.rand(4)
+    assert isinstance(A.circulant_super_matrix, BlockCirculantMatrix)
+    assert A.circulant_super_matrix.shape == (6, 6)
+
+    b = np.random.rand(A.shape[0])
     assert np.allclose(A @ b, b)
     assert np.allclose(A.rmatvec(b), b)
 
@@ -146,8 +150,18 @@ def test_block_toeplitz_matrices():
             random_block_matrix([1], [1]),
         ]
     ])
+    assert B.shape == (3, 3)
+    assert B.nb_blocks == (3, 3)
     assert B.block_shape == (1, 1)
     assert list(B._stored_block_positions()) == [[(0, 0), (1, 1), (2, 2)], [(0, 1), (1, 2)], [(0, 2)], [(2, 0)], [(1, 0), (2, 1)]]
+
+    assert isinstance(B.circulant_super_matrix, BlockCirculantMatrix)
+    assert B.circulant_super_matrix.shape == (5, 5)
+
+    b = np.random.rand(B.shape[0])
+    assert np.allclose(BlockMatrix.matvec(B, b), B.full_matrix() @ b)
+    assert np.allclose(B @ b, B.full_matrix() @ b)
+    assert np.allclose(B.rmatvec(b), b @ B.full_matrix())
 
 
 def test_block_symmetric_toeplitz_matrices():
@@ -242,20 +256,21 @@ def test_block_circulant_matrix():
     assert (2*A).max() == 2
     assert (A*A == A).all()
 
-    b = np.random.rand(6)
+    b = np.random.rand(A.shape[0])
     assert np.allclose(A @ b, A.full_matrix() @ b)
     assert np.allclose(A.rmatvec(b), b @ A.full_matrix())
 
-    B = BlockCirculantMatrix([
-        [A, A, A]
-    ])
+    # Nested matrix
+    B = BlockCirculantMatrix([[A, 2*A, 3*A]])
     assert B.nb_blocks == (3, 3)
     assert B.shape == (18, 18)
-    assert B.all_blocks[0, 0] is A
+    assert (B.all_blocks[0, 0] == A).all()
 
-    b = np.random.rand(18)
-    assert np.allclose(B @ b, B.full_matrix() @ b)
-    assert np.allclose(B.rmatvec(b), b @ B.full_matrix())
+    C = BlockCirculantMatrix([[np.array([[i]]) for i in range(5)]])
+    b = np.random.rand(C.shape[0])
+    assert np.allclose(BlockMatrix.matvec(C, b), C.full_matrix() @ b)
+    assert np.allclose(C @ b, C.full_matrix() @ b)
+    assert np.allclose(C.rmatvec(b), b @ C.full_matrix())
 
 
 def test_even_block_symmetric_circulant_matrix():
@@ -273,7 +288,7 @@ def test_even_block_symmetric_circulant_matrix():
     assert (2*A).max() == 2
     assert (A*A == A).all()
 
-    b = np.random.rand(8)
+    b = np.random.rand(A.shape[0])
     assert np.allclose(A @ b, A.full_matrix() @ b)
     assert np.allclose(A.rmatvec(b), b @ A.full_matrix())
 
@@ -285,7 +300,7 @@ def test_even_block_symmetric_circulant_matrix():
     assert B.all_blocks[0, 0] is A
     assert (B.all_blocks[0, 1] == B.all_blocks[2, 3]).all()
 
-    b = np.random.rand(32)
+    b = np.random.rand(B.shape[0])
     assert np.allclose(B @ b, B.full_matrix() @ b)
     assert np.allclose(B.rmatvec(b), b @ B.full_matrix())
 
@@ -316,9 +331,8 @@ def test_solve_2x2():
 
 
 def test_solve_block_circulant():
-    # Block Circulant Matrix
-    A = EvenBlockSymmetricCirculantMatrix([
-        [np.random.rand(3, 3) for _ in range(4)]
+    A = BlockCirculantMatrix([
+        [(lambda: np.random.rand(3, 3))() for _ in range(6)]
     ])
     b = np.random.rand(A.shape[0])
 
@@ -332,8 +346,10 @@ def test_solve_block_circulant():
 
     assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
 
-    A = EvenBlockSymmetricCirculantMatrix([
-        [random_block_matrix([1, 1], [1, 1]) for _ in range(5)]
+
+def test_solve_nested_block_circulant():
+    A = BlockCirculantMatrix([
+        [random_block_matrix([1, 1], [1, 1]) for _ in range(6)]
     ])
     b = np.random.rand(A.shape[0])
 
@@ -347,6 +363,18 @@ def test_solve_block_circulant():
 
     assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
 
+
+def test_solve_block_toeplitz():
+    A = BlockToeplitzMatrix([[(lambda: np.random.rand(1, 1))() for _ in range(7)]])
+    b = np.random.rand(A.shape[0])
+
+    assert np.allclose(BlockMatrix.matvec(A, b), A.full_matrix() @ b)
+    assert np.allclose(A @ b, A.full_matrix() @ b)
+
+    x_gmres = solve_gmres(A, b)
+    x_dumb_gmres = solve_gmres(A.full_matrix(), b)
+
+    assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
 
 def test_low_rank_blocks():
     n = 10
