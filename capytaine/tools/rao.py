@@ -58,5 +58,5 @@ def rao(dataset, wave_angle=0.0, dissipation=None, stiffness=None):
     # Solve the linear systems (one for each value of omega)
     X = np.linalg.solve(A, excitation)
 
-    return xr.DataArray(X, coords=[omega, dataset.coord['influenced_dof']], dims=['omega', 'influenced_dof'])
+    return xr.DataArray(X, coords=[omega, dataset.coords['influenced_dof']], dims=['omega', 'influenced_dof'])
 
