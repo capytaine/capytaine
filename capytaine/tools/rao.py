@@ -48,6 +48,8 @@ def rao(dataset, wave_angle=0.0, dissipation=None, stiffness=None):
     if stiffness is not None:
         A += stiffness
 
+    if 'excitation_force' not in dataset:
+        dataset['excitation_force'] = dataset['Froude_Krylov_force'] + dataset['diffraction_force']
     excitation = dataset['excitation_force'].sel(angle=wave_angle)
 
     # SOLVE LINEAR SYSTEMS
@@ -58,5 +60,5 @@ def rao(dataset, wave_angle=0.0, dissipation=None, stiffness=None):
     # Solve the linear systems (one for each value of omega)
     X = np.linalg.solve(A, excitation)
 
-    return xr.DataArray(X, coords=[omega, dataset.coords['influenced_dof']], dims=['omega', 'influenced_dof'])
+    return xr.DataArray(X, coords=[omega, dataset.coords['radiating_dof']], dims=['omega', 'radiating_dof'])
 
