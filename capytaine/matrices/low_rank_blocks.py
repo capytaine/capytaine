@@ -48,8 +48,25 @@ class LowRankMatrix:
         return cls(left_matrix, right_matrix)
 
     @classmethod
-    def from_full_matrix_with_ACA(cls, full_matrix, max_rank=None, tol=1e-6):
-        """Create a low rank matrix from a full matrix using Adaptive Cross Approximation"""
+    def from_full_matrix_with_ACA(cls, full_matrix, max_rank=None, tol=0.0):
+        """Create a low rank matrix from a full matrix using Adaptive Cross Approximation.
+        The user should provide either the `max_rank` optional argument or the `tol` optional argument to expect a useful output.
+
+        Parameters
+        ----------
+        full_matrix: numpy array
+            The matrix that will be approximated.
+        nb_rows: int
+        nb_cols: int
+        max_rank: int, optional
+        tol: float, optional
+        dtype: numpy.dtype, optional
+            See `from_rows_and_cols_functions_with_ACA`
+
+        Returns
+        -------
+        LowRankMatrix
+        """
         def get_row(i):
             return full_matrix[i, :]
 
@@ -61,7 +78,25 @@ class LowRankMatrix:
         )
 
     @classmethod
-    def from_function_with_ACA(cls, func, nb_rows, nb_cols, max_rank=None, tol=1e-6, dtype=np.float64):
+    def from_function_with_ACA(cls, func, nb_rows, nb_cols, max_rank=None, tol=0.0, dtype=np.float64):
+        """Create a low rank matrix from a function using Adaptive Cross Approximation.
+        The user should provide either the `max_rank` optional argument or the `tol` optional argument to expect a useful output.
+
+        Parameters
+        ----------
+        func: Function
+            Function such that `func(i, j)` returns the value of the (i, j) entry of the full matrix.
+        nb_rows: int
+        nb_cols: int
+        max_rank: int, optional
+        tol: float, optional
+        dtype: numpy.dtype, optional
+            See `from_rows_and_cols_functions_with_ACA`
+
+        Returns
+        -------
+        LowRankMatrix
+        """
         def get_row(i):
             return np.asarray([func(i, j) for j in range(nb_cols)])
 
@@ -73,8 +108,37 @@ class LowRankMatrix:
         )
 
     @classmethod
-    def from_rows_and_cols_functions_with_ACA(cls, get_row_func, get_col_func, nb_rows, nb_cols, max_rank=None, tol=1e-6, dtype=np.float64):
-        """Create a low rank matrix from functions using Adaptive Cross Approximation"""
+    def from_rows_and_cols_functions_with_ACA(cls, get_row_func, get_col_func, nb_rows, nb_cols, max_rank=None, tol=0.0, dtype=np.float64):
+        """Create a low rank matrix from functions using Adaptive Cross Approximation.
+        The user should provide either the `max_rank` optional argument or the `tol` optional argument to expect a useful output.
+
+        Parameters
+        ----------
+        get_row_func: Function
+            Function such that `get_row_func(i)` returns the `i`-th row of the full matrix.
+        get_col_func: Function
+            Function such that `get_col_func(j)` returns the `j`-th column of the full matrix.
+        nb_rows: int
+            Number of rows in the full matrix.
+        nb_cols: int
+            Number of columns in the full matrix.
+        max_rank: int, optional
+            The maximum rank allowed for the output low rank matrix.
+            The default value is half the size of the full matrix, that is no gain in storage space.
+        tol: float, optional
+            The tolerance on the relative error (default: 0).
+            If the Frobenius norm of the increment is lower than the tolerance, the iteration stops.
+            If the tolerance is set to 0, the resulting matrix will have the maximum rank defined by `max_rank`.
+        dtype: numpy.dtype, optional
+            The type of data in the low rank matrix (default: float64).
+
+        Returns
+        -------
+        LowRankMatrix
+        """
+        if max_rank is None and tol == 0.0:
+            LOG.warning("No stopping criterion for the Adaptive Cross Approximation.")
+
         if max_rank is None:
             max_rank = min(nb_rows, nb_cols)//2
 
@@ -120,7 +184,8 @@ class LowRankMatrix:
                 LOG.debug(f"ACA: approximation found of rank {l}")
                 return LowRankMatrix(np.array(A[:-1]).T, np.array(B[:-1]))  # Drop the last iteration
 
-        LOG.warning(f"Unable to find a suitable low rank approximation of rank lower or equal to {l+1}.")
+        if tol > 0:
+            LOG.warning(f"Unable to find a low rank approximation of rank lower or equal to {l+1} with tolerance {tol}.")
         return LowRankMatrix(np.array(A).T, np.array(B))
 
     ####################
