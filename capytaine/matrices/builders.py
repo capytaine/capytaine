@@ -119,8 +119,6 @@ def build_with_symmetries(build_matrices):
 
         Parameters
         ----------
-        solver
-            Passed to the actual evaluation of the coefficients
         mesh1: Mesh or CollectionOfMeshes
             mesh of the receiving body (where the potential is measured)
         mesh2: Mesh or CollectionOfMeshes

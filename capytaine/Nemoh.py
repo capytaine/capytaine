@@ -45,17 +45,13 @@ class Nemoh:
         name of the solver for linear problems Ax = b.
         Default: direct solver.
     npinte: int, optional
-        Number of points for the evaluation of the integral w.r.t. :math:`theta` in the Green
-        function (default: 251)
+        Number of points for the evaluation of the tabulated elementary integrals w.r.t. :math:`theta`
+        used for the computation of the Green function (default: 251)
 
     Attributes
     ----------
-    available_linear_solvers: dict
-        set of available linear solvers indexed by their name
-    XR: array of shape (328)
-    XZ: array of shape (46)
-    APD: array of shape (328, 46, 2, 2)
-        Tabulated integrals for the Green functions
+    tabulated_integrals: 3-ple of arrays
+        Tabulated integrals for the computation of the Green function.
     """
     available_linear_solvers = {'direct': linear_solvers.solve_directly,
                                 'store_lu': linear_solvers.solve_storing_lu,
@@ -66,7 +62,7 @@ class Nemoh:
                  linear_solver='direct', npinte=251
                  ):
         LOG.info("Initialize Nemoh's Green function.")
-        self.XR, self.XZ, self.APD = tabulated_integrals(328, 46, npinte)
+        self.tabulated_integrals = tabulated_integrals(328, 46, npinte)
 
         self.linear_solver = Nemoh.available_linear_solvers[linear_solver]
 
@@ -172,8 +168,7 @@ class Nemoh:
     #######################
 
     def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
-        r"""
-        Build the influence matrices between mesh1 and mesh2.
+        r"""Build the influence matrices between mesh1 and mesh2.
 
         Parameters
         ----------
@@ -190,7 +185,7 @@ class Nemoh:
 
         Returns
         -------
-        couple of matrix-like objects (either 2D arrays or BlockToeplitzMatrix objects)
+        couple of matrix-like objects (either 2D arrays or BlockMatrix objects)
             couple of influence matrices
         """
 
@@ -253,12 +248,14 @@ class Nemoh:
 
         def reflect_vector(x):
             y = x.copy()
-            y[:, 2] = -x[:, 2]
+            y[:, 2] *= -1
             return y
 
         def reflect_point(x):
             y = x.copy()
-            y[:, 2] = 2*free_surface - x[:, 2]
+            # y[:, 2] = 2*free_surface - x[:, 2]
+            y[:, 2] *= -1
+            y[:, 2] += 2*free_surface
             return y
 
         return NemohCore.green_rankine.build_matrices_rankine_source(
@@ -277,12 +274,14 @@ class Nemoh:
 
         def reflect_vector(x):
             y = x.copy()
-            y[:, 2] = -x[:, 2]
+            y[:, 2] *= -1
             return y
 
         def reflect_point(x):
             y = x.copy()
-            y[:, 2] = 2*sea_bottom - x[:, 2]
+            # y[:, 2] = 2*sea_bottom - x[:, 2]
+            y[:, 2] *= -1
+            y[:, 2] += 2*sea_bottom
             return y
 
         return NemohCore.green_rankine.build_matrices_rankine_source(
@@ -304,7 +303,7 @@ class Nemoh:
                 mesh1.faces_centers, mesh1.faces_normals,
                 mesh2.faces_centers, mesh2.faces_areas,
                 wavenumber, 0.0,
-                self.XR, self.XZ, self.APD,
+                *self.tabulated_integrals,
                 np.empty(1), np.empty(1),  # Dummy arrays that won't actually be used by the fortran code.
                 mesh1 is mesh2
                 )
@@ -316,7 +315,7 @@ class Nemoh:
                 mesh1.faces_centers, mesh1.faces_normals,
                 mesh2.faces_centers, mesh2.faces_areas,
                 wavenumber, depth,
-                self.XR, self.XZ, self.APD,
+                *self.tabulated_integrals,
                 lamda_exp, a_exp,
                 mesh1 is mesh2
                 )
