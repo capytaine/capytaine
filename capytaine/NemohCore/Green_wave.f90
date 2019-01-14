@@ -65,21 +65,21 @@ CONTAINS
 
   ! =====================================================================
 
-  SUBROUTINE COMPUTE_INTEGRALS_WRT_THETA                          &
-      (XI, XJ, depth, wavenumber,                                &
+  SUBROUTINE COMPUTE_INTEGRALS_WRT_THETA                         &
+      (XI, XJ, wavenumber,                                       &
       tabulated_r_range, tabulated_Z_range, tabulated_integrals, &
       FS, VS)
-    ! Compute the integrals Re[ ∫(J(ζ) - 1/ζ)dθ ] + i Re[ ∫(e^ζ)dθ ] and their derivative.
-    !
+    ! Compute the expression FS = Re[ ∫(J(ζ) - 1/ζ)dθ ] + i Re[ ∫(e^ζ)dθ ] and the integrals appearing in its gradient.
     ! For this, this function uses tabulated values of the following integrals:
     ! PD1X = Re[ ∫(-i cosθ)(J(ζ) - 1/ζ)dθ ]
     ! PD2X = Re[ ∫(-i cosθ)(e^ζ)dθ ]
     ! PD1Z = Re[ ∫(J(ζ) - 1/ζ)dθ ]
     ! PD2Z = Re[ ∫(e^ζ)dθ ]
+    ! (See theory manual for the definition of the symbols above.)
 
     ! Inputs
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: XI, XJ
-    REAL(KIND=PRE),                           INTENT(IN) :: depth, wavenumber
+    REAL(KIND=PRE),                           INTENT(IN) :: wavenumber
 
     ! Tabulated data
     REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: tabulated_r_range
@@ -160,19 +160,13 @@ CONTAINS
       VS(2) = (XI(2) - XJ(2))/r * CMPLX(-PD1X, -PD2X, KIND=PRE)
       VS(3) = CMPLX(PD1Z, PD2Z, KIND=PRE)
 
-      IF (depth == INFINITE_DEPTH) THEN
-        VS(1) = VS(1) - PI*(XI(1) - XJ(1))/(wavenumber**2*R1**3)
-        VS(2) = VS(2) - PI*(XI(2) - XJ(2))/(wavenumber**2*R1**3)
-        VS(3) = VS(3) - PI*Z/(wavenumber**2*R1**3)
-      END IF
-
       IF (r < REAL(1e-5, KIND=PRE)) THEN
-        ! I'm not still sure why this is here, but it is necessary.
+        ! I'm not totally sure why this is here, but it seems to be necessary.
         VS(1:2) = CMPLX(0.0, 0.0, KIND=PRE)
       END IF
 
     ELSE  ! dimless_Z < MINVAL(tabulated_Z_range) or MAXVAL(tabulated_Z_range) < dimless_Z
-      FS      = CMPLX(PI/(wavenumber*R1)**3*dimless_Z, 0.0, KIND=PRE)
+      FS      = CMPLX(PI*dimless_Z/(wavenumber*R1)**3, 0.0, KIND=PRE)
       VS(1:3) = CMPLX(0.0, 0.0, KIND=PRE)
     ENDIF
 
@@ -186,7 +180,7 @@ CONTAINS
       XR, XZ, APD,                    &
       SP, VSP)
     ! Compute the wave part of the Green function in the infinite depth case.
-    ! This is basically just the integral computed by the subroutine above.
+    ! This is mostly the integral computed by the subroutine above.
 
     ! Inputs
     REAL(KIND=PRE),                           INTENT(IN)  :: wavenumber
@@ -202,11 +196,18 @@ CONTAINS
     COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
     COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP ! Gradient of the integral of the Green function with respect to X0I.
 
+    ! Local variables
+    REAL(KIND=PRE), DIMENSION(3) :: XJ_REFLECTION
 
-    CALL COMPUTE_INTEGRALS_WRT_THETA(X0I, X0J, INFINITE_DEPTH, wavenumber, XR, XZ, APD, SP, VSP(:))
-
+    ! The integrals
+    CALL COMPUTE_INTEGRALS_WRT_THETA(X0I, X0J, wavenumber, XR, XZ, APD, SP, VSP(:))
     SP  = 2*CMPLX(wavenumber/PI*REAL(SP),     wavenumber*AIMAG(SP),   KIND=PRE)
     VSP = 2*CMPLX(wavenumber**2/PI*REAL(VSP), wavenumber**2*AIMAG(VSP), KIND=PRE)
+
+    ! Only one singularity is missing in the derivative
+    XJ_REFLECTION(1:2) = X0J(1:2)
+    XJ_REFLECTION(3) = - X0J(3)
+    VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
 
     RETURN
   END SUBROUTINE WAVE_PART_INFINITE_DEPTH
@@ -258,14 +259,14 @@ CONTAINS
     R = NORM2(XI(1:2) - XJ(1:2))
 
     ! 1.a First infinite depth problem
-    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(1), VS(:, 1))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, XR, XZ, APD, FS(1), VS(:, 1))
 
     PSR(1) = PI/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) =  X0J(3)
-    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(2), VS(:, 2))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, XR, XZ, APD, FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
     PSR(2) = PI/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
@@ -273,14 +274,14 @@ CONTAINS
     ! 1.c Shift and reflect XJ and compute another value of the Green function
     XI(3) =  X0I(3)
     XJ(3) = -X0J(3) - 2*depth
-    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(3), VS(:, 3))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, XR, XZ, APD, FS(3), VS(:, 3))
 
     PSR(3) = PI/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) = -X0J(3) - 2*depth
-    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(4), VS(:, 4))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, XR, XZ, APD, FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
     PSR(4) = PI/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
