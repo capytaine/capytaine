@@ -85,9 +85,9 @@ It depends on the type of problem:
     in finite depth, where the wave number :math:`m_0` is defined by the dispersion relation :math:`\omega^2 = m_0 g \tanh (m_0 h)`, and by
 
     .. math::
-       \Phi_0 = - i \frac{g}{\omega} e^{k_0 z} e^{i k_0 (x \cos \beta + y \sin \beta)}
+       \Phi_0 = - i \frac{g}{\omega} e^{k z} e^{i k (x \cos \beta + y \sin \beta)}
 
-    in infinite depth, where the wave number :math:`k_0` is defined by :math:`\omega^2 = k_0 g`.
+    in infinite depth, where the wave number :math:`k` is defined by :math:`\omega^2 = k g`.
 
     In the above equations, :math:`\beta` is the angle of the incoming wave.
     The angle :math:`\beta = 0` corresponds to waves propagating in the :math:`x` direction from :math:`x=-\infty` to :math:`x=+\infty`.
@@ -140,6 +140,7 @@ In infinite depth
 The integral problem above relates the potential :math:`\Phi` to the normal velocity
 :math:`u \cdot n` via the Green function :math:`G`. Let us know discuss the evaluation of this
 function for an infinite water depth.
+See also [X18]_.
 
 Green function
 ~~~~~~~~~~~~~~
@@ -153,7 +154,7 @@ The Green function can be written as the sum of three terms:
 The first term
 
 .. math::
-    G_0(\xi, x) = \frac{1}{\|\xi - x\|}
+    G_0(\xi, x) = \frac{1}{\|x - \xi\|}
     :label: green_function_inf_depth_0
 
 is the usual Green function for the 3D Laplace equation without our specific boundary conditions.
@@ -161,18 +162,18 @@ is the usual Green function for the 3D Laplace equation without our specific bou
 The second part reads
 
 .. math::
-    G_1(\xi, x) = - \frac{1}{\|s(\xi) - x\|} 
+    G_1(\xi, x) = - \frac{1}{\|x - s(\xi)\|} 
     :label: green_function_inf_depth_1
 
 where :math:`s(\xi_1, \xi_2, \xi_3) = (\xi_1, \xi_2, -\xi_3)` is the reflection of :math:`\xi` accross the free surface.
 
 Finally, this last part is complex-valued and it is introduced to satisfy the boundary conditions :eq:`bc_fs`.
-It depends on the water depth :math:`h` and the wave frequency :math:`\omega` (through the wave number :math:`k_0`).
+It depends on the water depth :math:`h` and the wave frequency :math:`\omega` (through the wave number :math:`k`).
 
 .. math::
     G_2(\xi, x) & = 
-    \frac{2 k_0}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, \mathrm{d} \theta \right) \\
-    & \qquad \qquad \qquad \qquad + 2 i k_0 \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, \mathrm{d} \theta \right)
+    \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, \mathrm{d} \theta \right) \\
+    & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, \mathrm{d} \theta \right)
     :label: green_function_inf_depth_2
 
 where
@@ -187,14 +188,19 @@ where
 where :math:`E_1` is the first exponential integral, defined as
 
 .. math::
-   
     E_1(z) = \int_z^\infty \frac{e^{-t}}{t} dt,
 
 and
 
 .. math::
-    \zeta (\theta) = k_0 \left( x_3 + \xi_3 + i \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2} \cos \theta \right)
+    \zeta (\theta) = k \left( x_3 + \xi_3 + i r \cos \theta \right)
     :label: def_zeta
+
+where
+
+.. math::
+    r = \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2}.
+    :label: def_r
 
 
 .. proof:property::
@@ -208,17 +214,17 @@ and
 Variants of the formulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. _integrate_one_over_zeta:
+
 .. proof:lemma::
 
-   An althernative expression for the first term of :eq:`green_function_inf_depth_2` can be derived using the following equality [Del89]_ :
+    The following identity holds [Del89]_:
 
-   .. math::
-       \int^{\pi/2}_{-\pi/2} \frac{1}{\zeta(\theta)} \, \mathrm{d} \theta = - \pi \frac{1}{\|s(\xi) - x\|}.
+    .. math::
+       \frac{k}{\pi} \int^{\pi/2}_{-\pi/2} \frac{1}{\zeta(\theta)} \, \mathrm{d} \theta = - \frac{1}{\|x - s(\xi)\|}.
        :label: int_1_over_zeta
 
-.. proof:proof::
-
-    TODO
+    It can be used to derived an alternative expression for the first term of :eq:`green_function_inf_depth_2`.
 
 .. proof:lemma::
 
@@ -231,7 +237,7 @@ Variants of the formulation
     where :math:`\zeta` is defined in :eq:`def_zeta` and :math:`\tilde{\zeta}` is defined as
 
     .. math::
-       \tilde{\zeta} (\theta) = k_0 \left( x_3 + \xi_3 + i \left( (x_1 - \xi_1) \cos\theta + (x_2 - \xi_2) \sin\theta \right) \right).
+       \tilde{\zeta} (\theta) = k \left( x_3 + \xi_3 + i \left( (x_1 - \xi_1) \cos\theta + (x_2 - \xi_2) \sin\theta \right) \right).
 
 .. proof:proof::
 
@@ -263,15 +269,6 @@ Variants of the formulation
             \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\zeta(\theta) \right) \mathrm{d} \theta
         \]
 
-.. proof:property:: 
-    Limit for high frequency
-
-    TODO
-
-.. proof:property::
-    Limit for low frequency
-
-    TODO
 
 Gradient of the Green function
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -284,7 +281,7 @@ The gradient of the Green function can be written as
 where
 
 .. math::
-    \nabla_x G_0(\xi, x) = \frac{x - \xi}{\|x - \xi\|^3}\,,
+    \nabla_x G_0(\xi, x) = - \frac{x - \xi}{\|x - \xi\|^3}\,,
     :label: green_function_inf_depth_deriv_0
 
 .. math::
@@ -294,10 +291,10 @@ where
 and 
 
 .. math::
-    \nabla_x G_2(\xi, x) = & 
-    \frac{2 k_0}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta \right) \\
-    & - 2 k_0^2 \frac{s(x) - \xi}{\|s(x) - \xi\|^3} 
-    + 2 i k_0 \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta \right) \\
+    \nabla_x G_2(\xi, x) = &
+    \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta \right) \\
+    & - 2 \frac{x - s(\xi)}{\|x - s(\xi)\|^3} 
+    + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta \right) \\
     :label: green_function_inf_depth_deriv_2
 
 where
@@ -306,7 +303,7 @@ where
    :nowrap:
 
    \[
-   (\nabla_x \zeta) (\theta) = k_0
+   (\nabla_x \zeta) (\theta) = k
    \begin{pmatrix}
    \frac{x_1 - \xi_1}{r} i \cos \theta \\
    \frac{x_2 - \xi_2}{r} i \cos \theta \\
@@ -316,17 +313,28 @@ where
 
 .. proof:proof::
 
-    The derivation of :eq:`green_function_inf_depth_deriv_0` and :eq:`green_function_inf_depth_deriv_1` are straightforward.
+    The derivation of :eq:`green_function_inf_depth_deriv_0` and :eq:`green_function_inf_depth_deriv_1` is straightforward.
 
-    Let us discuss the derivation of :eq:`green_function_inf_depth_deriv_2`:
+    Let us discuss the derivation of :eq:`green_function_inf_depth_deriv_2`. Using :numref:`Lemma {number} <integrate_one_over_zeta>`, the Green function :eq:`green_function_inf_depth_2` can be rewritten as:
 
-    * its first term can be split up using :eq:`int_1_over_zeta`
+    .. math::
+        G_2(\xi, x) & = 
+        \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta(\theta)) \, \mathrm{d} \theta \right) + \frac{2}{\|x - s(\xi)\|} \\
+        & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, \mathrm{d} \theta \right)
 
-        * Using the equality :math:`J'(\zeta) = J(\zeta) - 1/\zeta`, the first term of :eq:`green_function_inf_depth_deriv_2` can be derived.
 
-        * 
+    Using the identity :math:`J'(\zeta) = J(\zeta) - 1/\zeta`, the first term of :eq:`green_function_inf_depth_deriv_2` can be derived.
 
-.. note:: There is a typo in the second term of :eq:`green_function_inf_depth_deriv_2` in [Del89]_ and [BD15]_.
+    .. math::
+        \nabla_x \left( \int^{\pi/2}_{-\pi/2} J(\zeta(\theta)) \, \mathrm{d} \theta \right) = \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta
+
+    The second term of :eq:`green_function_inf_depth_deriv_2` is similar to :eq:`green_function_inf_depth_deriv_1`.
+    Finally, the last term can be found as follows:
+
+    .. math::
+        \nabla_x \left( \int^{\pi/2}_{-\pi/2} e^{\zeta(\theta)} \, \mathrm{d} \theta \right) = \int^{\pi/2}_{-\pi/2} e^{\zeta(\theta)} \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta
+
+.. note:: There is a typo in the second term of :eq:`green_function_inf_depth_deriv_2` in [Del89]_ and [BD15]_. It appears to be missing from [X18]_.
 
 .. note::
     The derivative of :math:`G` with respect to :math:`x_1` and :math:`x_2` are antisymmetric in the sense of 

@@ -190,3 +190,5 @@ napoleon_numpy_docstring = True
 napoleon_use_param = False
 napoleon_use_ivar = True
 
+# Numbering theorems
+numfig = True
