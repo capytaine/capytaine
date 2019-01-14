@@ -108,7 +108,7 @@ CONTAINS
 
     ! Initialize THETA and CQT for the integration between -pi/2 and pi/2 with the Simpson rule.
     DO K = 1, NPINTE
-      THETA(K) = -PI/2 + (K-1)/(NPINTE-1)*PI
+      THETA(K) = -PI/2 + (K-1.0)/(NPINTE-1.0)*PI  ! The 1.0 are here on purpose to force the recasting of K and NPINTE as floats.
       IF ((K == 1) .OR. (K == NPINTE)) THEN
         CQT(K) = PI/(3*(NPINTE-1))
       ELSEIF (MOD(K,2)==0) THEN
