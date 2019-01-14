@@ -11,7 +11,7 @@ MODULE GREEN_WAVE
   !
   !            LAGRANGE_POLYNOMIAL_INTERPOLATION
   !                          |
-  !              COMPUTE_INTEGRAL_WRT_THETA       (COMPUTE_ASYMPTOTIC_RANKINE_SOURCE)
+  !              COMPUTE_INTEGRALS_WRT_THETA       (COMPUTE_ASYMPTOTIC_RANKINE_SOURCE)
   !                        /   \                    /
   ! WAVE_PART_INFINITE_DEPTH   WAVE_PART_FINITE_DEPTH
   !                        \   /
@@ -65,19 +65,24 @@ CONTAINS
 
   ! =====================================================================
 
-  SUBROUTINE COMPUTE_INTEGRAL_WRT_THETA                          &
+  SUBROUTINE COMPUTE_INTEGRALS_WRT_THETA                          &
       (XI, XJ, depth, wavenumber,                                &
-      tabulated_R_range, tabulated_Z_range, tabulated_integrals, &
+      tabulated_r_range, tabulated_Z_range, tabulated_integrals, &
       FS, VS)
-    ! Compute the integral with respect to theta and its derivative.
-    ! This integral is also called S^2 in Eq. (9) of [Babarit and Delhommeau, 2015]
+    ! Compute the integrals Re[ ∫(J(ζ) - 1/ζ)dθ ] + i Re[ ∫(e^ζ)dθ ] and their derivative.
+    !
+    ! For this, this function uses tabulated values of the following integrals:
+    ! PD1X = Re[ ∫(-i cosθ)(J(ζ) - 1/ζ)dθ ]
+    ! PD2X = Re[ ∫(-i cosθ)(e^ζ)dθ ]
+    ! PD1Z = Re[ ∫(J(ζ) - 1/ζ)dθ ]
+    ! PD2Z = Re[ ∫(e^ζ)dθ ]
 
     ! Inputs
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: XI, XJ
     REAL(KIND=PRE),                           INTENT(IN) :: depth, wavenumber
 
     ! Tabulated data
-    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: tabulated_R_range
+    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: tabulated_Z_range
     REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: tabulated_integrals
 
@@ -87,36 +92,35 @@ CONTAINS
 
     ! Local variables
     INTEGER        :: KI, KJ
-    REAL(KIND=PRE) :: R, dimless_R, Z, dimless_Z, DD, PSURR
+    REAL(KIND=PRE) :: r, dimless_r, Z, dimless_Z, R1
     REAL(KIND=PRE) :: SIK, CSK, SQ, EPZ
     REAL(KIND=PRE) :: PD1X, PD2X, PD1Z, PD2Z
 
-    R = NORM2(XI(1:2) - XJ(1:2))
-    dimless_R = wavenumber*R
+    r = NORM2(XI(1:2) - XJ(1:2))
+    dimless_r = wavenumber*r
 
     Z = XI(3) + XJ(3)
     dimless_Z = wavenumber*Z
 
-    DD = SQRT(R**2 + Z**2)
+    R1 = SQRT(r**2 + Z**2)
 
-    IF ((DD > 1e-5) .AND. (wavenumber > 0)) THEN
-      PSURR = PI/(wavenumber*DD)**3
-    ELSE
-      PSURR = 0.0
+    IF ((R1 < 1e-5) .OR. (wavenumber == 0)) THEN
+      PRINT*, "Error: Impossible to compute the wave part of the Green function (division by zero)."
+      ERROR STOP
     ENDIF
 
     !=====================================================================================
-    ! Evaluate the elementary integrals PDnX and PDnZ depending on dimless_Z and dimless_R
+    ! Evaluate the elementary integrals PDnX and PDnZ depending on dimless_Z and dimless_r
     !=====================================================================================
-
     IF ((MINVAL(tabulated_Z_range) < dimless_Z) .AND. (dimless_Z < MAXVAL(tabulated_Z_range))) THEN
+      IF ((MINVAL(tabulated_r_range) <= dimless_r) .AND. (dimless_r < MAXVAL(tabulated_r_range))) THEN
+        ! Within the range of tabulated data
+        ! Note that MINVAL(tabulated_r_range) == 0, so one of the conditions is not actually useful.
 
-      IF ((MINVAL(tabulated_R_range) <= dimless_R) .AND. (dimless_R < MAXVAL(tabulated_R_range))) THEN
-
-        IF (dimless_R < 1) THEN
-          KI = INT(5*(LOG10(dimless_R+1e-20)+6)+1)
+        IF (dimless_r < 1) THEN
+          KI = INT(5*(LOG10(dimless_r+1e-20)+6)+1)
         ELSE
-          KI = INT(3*dimless_R+28)
+          KI = INT(3*dimless_r+28)
         ENDIF
         KI = MAX(MIN(KI, 327), 2)
 
@@ -128,59 +132,52 @@ CONTAINS
         KJ = MAX(MIN(KJ, 45), 2)
 
         CALL LAGRANGE_POLYNOMIAL_INTERPOLATION                           &
-             (dimless_R, dimless_Z,                                      &
-             tabulated_R_range(KI-1:KI+1), tabulated_Z_range(KJ-1:KJ+1), &
+             (dimless_r, dimless_Z,                                      &
+             tabulated_r_range(KI-1:KI+1), tabulated_Z_range(KJ-1:KJ+1), &
              tabulated_integrals(KI-1:KI+1, KJ-1:KJ+1, :, :),            &
              PD1X, PD2X, PD1Z, PD2Z)
 
-      ELSE  ! MAXVAL(tabulated_R_range) < dimless_R
+      ELSE  ! MAXVAL(tabulated_r_range) < dimless_r
         ! Asymptotic expression for (horizontally) distant panels
 
         EPZ  = EXP(dimless_Z)
-        SQ   = SQRT(2*PI/dimless_R)
-        CSK  = COS(dimless_R-PI/4)
-        SIK  = SIN(dimless_R-PI/4)
+        SQ   = SQRT(2*PI/dimless_r)
+        CSK  = COS(dimless_r-PI/4)
+        SIK  = SIN(dimless_r-PI/4)
 
-        PD1Z = PSURR*dimless_Z - PI*EPZ*SQ*SIK
-        PD2Z =                      EPZ*SQ*CSK
-
-        IF (R > REAL(1e-5, KIND=PRE)) THEN
-          PD1X = PI*EPZ*SQ*(CSK - 0.5*SIK/dimless_R) - PSURR*dimless_R
-          PD2X =    EPZ*SQ*(SIK + 0.5*CSK/dimless_R)
-        END IF
-
+        PD1X = PI*EPZ*SQ*(CSK - 0.5*SIK/dimless_r) - PI*r/(wavenumber**2*R1**3)
+        PD2X =    EPZ*SQ*(SIK + 0.5*CSK/dimless_r)
+        PD1Z = -EPZ*SQ*SIK*PI + PI*dimless_Z/(wavenumber*R1)**3
+        PD2Z =  EPZ*SQ*CSK
       ENDIF
 
       !================================================
       ! Add the elementary integrals to build FS and VS
       !================================================
 
-      FS    = -CMPLX(PD1Z, PD2Z, KIND=PRE)
-      IF (depth == 0.0) THEN
-        VS(3) = -CMPLX(PD1Z-PSURR*dimless_Z, PD2Z, KIND=PRE)
-      ELSE
-        VS(3) = -CMPLX(PD1Z, PD2Z, KIND=PRE)
+      FS    = CMPLX(PD1Z, PD2Z, KIND=PRE)
+      VS(1) = (XI(1) - XJ(1))/r * CMPLX(-PD1X, -PD2X, KIND=PRE)
+      VS(2) = (XI(2) - XJ(2))/r * CMPLX(-PD1X, -PD2X, KIND=PRE)
+      VS(3) = CMPLX(PD1Z, PD2Z, KIND=PRE)
+
+      IF (depth == INFINITE_DEPTH) THEN
+        VS(1) = VS(1) - PI*(XI(1) - XJ(1))/(wavenumber**2*R1**3)
+        VS(2) = VS(2) - PI*(XI(2) - XJ(2))/(wavenumber**2*R1**3)
+        VS(3) = VS(3) - PI*Z/(wavenumber**2*R1**3)
       END IF
 
-      IF (R > 1e-5) THEN
-        IF (depth == 0.0) THEN
-          VS(1) = (XI(1) - XJ(1))/R * CMPLX(PD1X+PSURR*dimless_R, PD2X, KIND=PRE)
-          VS(2) = (XI(2) - XJ(2))/R * CMPLX(PD1X+PSURR*dimless_R, PD2X, KIND=PRE)
-        ELSE
-          VS(1) = (XI(1) - XJ(1))/R * CMPLX(PD1X, PD2X, KIND=PRE)
-          VS(2) = (XI(2) - XJ(2))/R * CMPLX(PD1X, PD2X, KIND=PRE)
-        END IF
-      ELSE
+      IF (r < REAL(1e-5, KIND=PRE)) THEN
+        ! I'm not still sure why this is here, but it is necessary.
         VS(1:2) = CMPLX(0.0, 0.0, KIND=PRE)
       END IF
 
-    ELSE  ! dimless_Z < MINVAL(tabulated_Z_range)
-      FS      = CMPLX(-PSURR*dimless_Z, 0.0, KIND=PRE)
+    ELSE  ! dimless_Z < MINVAL(tabulated_Z_range) or MAXVAL(tabulated_Z_range) < dimless_Z
+      FS      = CMPLX(PI/(wavenumber*R1)**3*dimless_Z, 0.0, KIND=PRE)
       VS(1:3) = CMPLX(0.0, 0.0, KIND=PRE)
     ENDIF
 
     RETURN
-  END SUBROUTINE COMPUTE_INTEGRAL_WRT_THETA
+  END SUBROUTINE COMPUTE_INTEGRALS_WRT_THETA
 
   ! =========================
 
@@ -188,7 +185,7 @@ CONTAINS
       (wavenumber, X0I, X0J,          &
       XR, XZ, APD,                    &
       SP, VSP)
-    ! Compute the frequency-dependent part of the Green function in the infinite depth case.
+    ! Compute the wave part of the Green function in the infinite depth case.
     ! This is basically just the integral computed by the subroutine above.
 
     ! Inputs
@@ -205,20 +202,11 @@ CONTAINS
     COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
     COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP ! Gradient of the integral of the Green function with respect to X0I.
 
-    ! Local variables
-    REAL(KIND=PRE)               :: ADPI, ADPI2, AKDPI, AKDPI2
-    REAL(KIND=PRE), DIMENSION(3) :: XI
 
-    XI(:) = X0I(:)
-    CALL COMPUTE_INTEGRAL_WRT_THETA(XI, X0J, INFINITE_DEPTH, wavenumber, XR, XZ, APD, SP, VSP(:))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(X0I, X0J, INFINITE_DEPTH, wavenumber, XR, XZ, APD, SP, VSP(:))
 
-    ADPI2  = wavenumber/(2*PI**2)
-    ADPI   = wavenumber/(2*PI)
-    AKDPI2 = wavenumber**2/(2*PI**2)
-    AKDPI  = wavenumber**2/(2*PI)
-
-    SP  = CMPLX(REAL(SP)*ADPI2,   AIMAG(SP)*ADPI,   KIND=PRE)
-    VSP = CMPLX(REAL(VSP)*AKDPI2, AIMAG(VSP)*AKDPI, KIND=PRE)
+    SP  = 2*CMPLX(wavenumber/PI*REAL(SP),     wavenumber*AIMAG(SP),   KIND=PRE)
+    VSP = 2*CMPLX(wavenumber**2/PI*REAL(VSP), wavenumber**2*AIMAG(VSP), KIND=PRE)
 
     RETURN
   END SUBROUTINE WAVE_PART_INFINITE_DEPTH
@@ -270,14 +258,14 @@ CONTAINS
     R = NORM2(XI(1:2) - XJ(1:2))
 
     ! 1.a First infinite depth problem
-    CALL COMPUTE_INTEGRAL_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(1), VS(:, 1))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(1), VS(:, 1))
 
     PSR(1) = PI/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) =  X0J(3)
-    CALL COMPUTE_INTEGRAL_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(2), VS(:, 2))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
     PSR(2) = PI/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
@@ -285,29 +273,29 @@ CONTAINS
     ! 1.c Shift and reflect XJ and compute another value of the Green function
     XI(3) =  X0I(3)
     XJ(3) = -X0J(3) - 2*depth
-    CALL COMPUTE_INTEGRAL_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(3), VS(:, 3))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(3), VS(:, 3))
 
     PSR(3) = PI/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) = -X0J(3) - 2*depth
-    CALL COMPUTE_INTEGRAL_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(4), VS(:, 4))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), depth, wavenumber, XR, XZ, APD, FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
     PSR(4) = PI/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! Add up the results of the four problems
-    SP               = -SUM(FS(1:4)) - SUM(PSR(1:4))
-    VSP_SYM(1:3)     = -VS(1:3, 1) - VS(1:3, 4)
-    VSP_ANTISYM(1:3) = -VS(1:3, 2) - VS(1:3, 3)
+    SP               = SUM(FS(1:4)) - SUM(PSR(1:4))
+    VSP_SYM(1:3)     = VS(1:3, 1) + VS(1:3, 4)
+    VSP_ANTISYM(1:3) = VS(1:3, 2) + VS(1:3, 3)
 
     ! Multiply by some coefficients
     AMH  = wavenumber*depth
     AKH  = AMH*TANH(AMH)
     A    = (AMH+AKH)**2/(depth*(AMH**2-AKH**2+AKH))
-    COF1 = -A/(8*PI**2)
-    COF2 = -A/(8*PI)
+    COF1 = A/(2*PI)
+    COF2 = A/2
     COF3 = wavenumber*COF1
     COF4 = wavenumber*COF2
 
@@ -346,7 +334,7 @@ CONTAINS
       XI(3) =  X0I(3) - depth*AMBDA(KE) + 2*depth
       CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(4), VTS(:, 4))
 
-      AQT = -AR(KE)/(8*PI)
+      AQT = AR(KE)/2
 
       ! Add all the contributions
       SP               = SP               + AQT*SUM(FTS(1:4))
@@ -430,17 +418,17 @@ CONTAINS
               )
           END IF
 
-          S(I, J) = SP2*areas_2(J)
-          V(I, J) = DOT_PRODUCT(normals_1(I, :),         &
-                                VSP2_SYM + VSP2_ANTISYM) &
-                                *areas_2(J)
+          S(I, J) = -1/(4*PI) * SP2*areas_2(J)
+          V(I, J) = -1/(4*PI) * DOT_PRODUCT(normals_1(I, :),         &
+                                            VSP2_SYM + VSP2_ANTISYM) &
+                                            *areas_2(J)
 
           IF (.NOT. I==J) THEN
             VSP2_SYM(1:2) = -VSP2_SYM(1:2)
-            S(J, I) = SP2*areas_2(I)
-            V(J, I) = DOT_PRODUCT(normals_1(J, :),         &
-                                  VSP2_SYM - VSP2_ANTISYM) &
-                                  *areas_2(I)
+            S(J, I) = -1/(4*PI) * SP2*areas_2(I)
+            V(J, I) = -1/(4*PI) * DOT_PRODUCT(normals_1(J, :),         &
+                                              VSP2_SYM - VSP2_ANTISYM) &
+                                              *areas_2(I)
           END IF
 
         END DO
@@ -475,10 +463,10 @@ CONTAINS
               )
           END IF
 
-          S(I, J) = SP2*areas_2(J)                                ! Green function
-          V(I, J) = DOT_PRODUCT(normals_1(I, :),         &
-                                VSP2_SYM + VSP2_ANTISYM) &
-                                *areas_2(J) ! Gradient of the Green function
+          S(I, J) = -1/(4*PI) * SP2*areas_2(J)                                ! Green function
+          V(I, J) = -1/(4*PI) * DOT_PRODUCT(normals_1(I, :),         &
+                                            VSP2_SYM + VSP2_ANTISYM) &
+                                            *areas_2(J) ! Gradient of the Green function
 
         END DO
         !$OMP END PARALLEL DO
