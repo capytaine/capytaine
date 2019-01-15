@@ -201,8 +201,8 @@ def test_array_of_spheres():
     solver_with_sym = Nemoh(linear_solver="direct", use_symmetries=True, matrix_cache_size=0)
     solver_without_sym = Nemoh(linear_solver="direct", use_symmetries=False, matrix_cache_size=0)
 
-    S, V = solver_with_sym._build_matrices_wave(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
-    fullS, fullV = solver_without_sym._build_matrices_wave(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
+    S, V = solver_with_sym.build_matrices_wave(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
+    fullS, fullV = solver_without_sym.build_matrices_wave(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
     assert np.allclose(S.full_matrix(), fullS)
     assert np.allclose(V.full_matrix(), fullV)
 

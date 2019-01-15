@@ -41,9 +41,10 @@ class Nemoh:
         if True, use the symmetries of the meshes when computing matrices and solving linear system
     matrix_cache_size: int, optional
         number of matrices to keep in cache
-    linear_solver: str, optional
-        name of the solver for linear problems Ax = b.
-        Default: direct solver.
+    linear_solver: str or function, optional
+        Setting of the numerical solver for linear problems Ax = b.
+        It can be set with the name of a preexisting solver (available: "direct" [default], "gmres", "store_lu")
+        or by passing directly a solver function.
     npinte: int, optional
         Number of points for the evaluation of the tabulated elementary integrals w.r.t. :math:`theta`
         used for the computation of the Green function (default: 251)
@@ -58,29 +59,34 @@ class Nemoh:
                                 'gmres': linear_solvers.solve_gmres,
                                 }
 
-    def __init__(self, use_symmetries=True, matrix_cache_size=1,
+    def __init__(self, use_symmetries=True, matrix_cache_size=1, cache_rankine_matrices=True,
                  linear_solver='direct', npinte=251
                  ):
         LOG.info("Initialize Nemoh's Green function.")
         self.tabulated_integrals = tabulated_integrals(328, 46, npinte)
 
-        self.linear_solver = Nemoh.available_linear_solvers[linear_solver]
+        if linear_solver in Nemoh.available_linear_solvers:
+            self.linear_solver = Nemoh.available_linear_solvers[linear_solver]
+        else:
+            self.linear_solver = linear_solver
 
-        if use_symmetries:
-            self._build_matrices_rankine = build_with_symmetries(self._build_matrices_rankine)
-            self._build_matrices_rankine_reflection_across_free_surface = build_with_symmetries(
-                self._build_matrices_rankine_reflection_across_free_surface)
-            self._build_matrices_rankine_reflection_across_sea_bottom = build_with_symmetries(
-                self._build_matrices_rankine_reflection_across_sea_bottom)
-            self._build_matrices_wave = build_with_symmetries(self._build_matrices_wave)
-
-        if matrix_cache_size > 0:
-            self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
-            self._build_matrices_rankine = lru_cache(maxsize=matrix_cache_size)(self._build_matrices_rankine)
-            self._build_matrices_rankine_reflection_across_free_surface = lru_cache(maxsize=matrix_cache_size)(
-                self._build_matrices_rankine_reflection_across_free_surface)
-            self._build_matrices_rankine_reflection_across_sea_bottom = lru_cache(maxsize=matrix_cache_size)(
-                self._build_matrices_rankine_reflection_across_sea_bottom)
+        if cache_rankine_matrices:
+            if use_symmetries:
+                # If the rankine matrix is cached, the recursive decomposition of the matrix
+                # has to be done before the caching in order to ensure that everything is cached.
+                # It results that it has to be done twice: once for the Rankine part and once for the wave part.
+                self.build_matrices_rankine = build_with_symmetries(self.build_matrices_rankine)
+                self.build_matrices_wave = build_with_symmetries(self.build_matrices_wave)
+            if matrix_cache_size > 0:
+                self.build_matrices_rankine = lru_cache(maxsize=matrix_cache_size)(self.build_matrices_rankine)
+                self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
+        else:
+            if use_symmetries:
+                # If the rankine matrix is not cached, the recursive decomposition of the matrix
+                # can be done at the top level.
+                self.build_matrices = build_with_symmetries(self.build_matrices)
+            if matrix_cache_size > 0:
+                self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
 
     def solve(self, problem, keep_details=True):
         """Solve the BEM problem using Nemoh.
@@ -105,12 +111,12 @@ class Nemoh:
             LOG.warning(f"Resolution of the mesh (8×max_radius={8*problem.body.mesh.faces_radiuses.max():.2e}) "
                         f"might be insufficient for this wavelength (wavelength={problem.wavelength:.2e})!")
 
-        S, V = self.build_matrices(
+        S, K = self.build_matrices(
             problem.body.mesh, problem.body.mesh,
             free_surface=problem.free_surface, sea_bottom=problem.sea_bottom, wavenumber=problem.wavenumber
         )
 
-        sources = self.linear_solver(V + identity_like(V) / 2, problem.boundary_condition)
+        sources = self.linear_solver(K, problem.boundary_condition)
         potential = S @ sources
 
         result = problem.make_results_container()
@@ -123,7 +129,7 @@ class Nemoh:
             integrated_potential = - problem.rho * potential @ (influenced_dof_normal * problem.body.mesh.faces_areas)
             result.store_force(influenced_dof_name, integrated_potential)
             # Depending of the type of problem, the force will be kept as a complex-valued Froude-Krylov force
-            # or stored as a couple of added mass and damping radiation coefficients.
+            # or stored as a couple of added mass and radiation damping coefficients.
 
         LOG.debug("Done!")
 
@@ -138,8 +144,8 @@ class Nemoh:
         problems: list of LinearPotentialFlowProblem
             several problems to be solved
 
-        Return
-        ------
+        Returns
+        -------
         list of LinearPotentialFlowResult
             the solved problems
         """
@@ -155,8 +161,8 @@ class Nemoh:
         bodies : list of FloatingBody
             the bodies involved in the problems
 
-        Return
-        ------
+        Returns
+        -------
         xarray Dataset
         """
         problems = problems_from_dataset(dataset, bodies)
@@ -168,7 +174,9 @@ class Nemoh:
     #######################
 
     def build_matrices(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
-        r"""Build the influence matrices between mesh1 and mesh2.
+        r"""Build the S and K influence matrices between mesh1 and mesh2.
+        In brief, it calls `build_matrices_rankine` and `build_matrices_wave` and sum their outputs.
+        It also adds :math:`\mathbb{I}/2` matrix to :math:`V` to get :math:`K`.
 
         Parameters
         ----------
@@ -192,111 +200,115 @@ class Nemoh:
         LOG.debug(f"\tEvaluating matrix of {mesh1.name} on {'itself' if mesh2 is mesh1 else mesh2.name} "
                   f"for depth={free_surface-sea_bottom} and wavenumber={wavenumber}.")
 
-        Srankine, Vrankine = self._build_matrices_rankine(mesh1, mesh2)
-        S = Srankine.astype(np.complex128)
-        V = Vrankine.astype(np.complex128)
-        del Srankine, Vrankine  # Experimental. Should try RAM profiling.
+        Srankine, Vrankine = self.build_matrices_rankine(mesh1, mesh2, free_surface, sea_bottom, wavenumber)
+
+        if (free_surface == np.infty or
+                (free_surface - sea_bottom == np.infty and wavenumber in (0, np.infty))):
+            # No more terms in the Green function
+            return Srankine, Vrankine + identity_like(Vrankine)/2
+
+        Swave, Vwave = self.build_matrices_wave(mesh1, mesh2, free_surface, sea_bottom, wavenumber)
+
+        # The real valued matrices Srankine and Vrankine are automatically recasted as complex in the sum.
+        Swave += Srankine
+        Vwave += Vrankine + identity_like(Vrankine)/2
+        return Swave, Vwave
+
+    def build_matrices_rankine(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
+        r"""Build the Rankine part of the S and V influence matrices between mesh1 and mesh2.
+
+        Parameters
+        ----------
+        mesh1: Mesh or CollectionOfMeshes
+            mesh of the receiving body (where the potential is measured)
+        mesh2: Mesh or CollectionOfMeshes
+            mesh of the source body (over which the source distribution is integrated)
+        free_surface: float, optional
+            position of the free surface (default: :math:`z = 0`)
+        sea_bottom: float, optional
+            position of the sea bottom (default: :math:`z = -\infty`)
+        wavenumber: float, optional
+            wavenumber (default: 1.0)
+
+        Returns
+        -------
+        couple of real-valued matrix-like objects (either 2D arrays or BlockMatrix objects)
+            couple of influence matrices
+        """
+        # RANKINE TERM
+
+        S, V = NemohCore.green_rankine.build_matrices_rankine_source(
+            mesh1.faces_centers, mesh1.faces_normals,
+            mesh2.vertices,      mesh2.faces + 1,
+            mesh2.faces_centers, mesh2.faces_normals,
+            mesh2.faces_areas,   mesh2.faces_radiuses,
+                                 )
 
         if free_surface == np.infty:
             # No free surface, no more terms in the Green function
             return S, V
 
+        # REFLECTION TERM
+
+        def reflect_vector(x):
+            y = x.copy()
+            y[:, 2] *= -1
+            return y
+
         if free_surface - sea_bottom == np.infty:
-            # Infinite depth
-            Srefl, Vrefl = self._build_matrices_rankine_reflection_across_free_surface(mesh1, mesh2, free_surface)
-            if wavenumber == 0.0:
-                S += Srefl
-                V += Vrefl
-            else:
-                S -= Srefl
-                V -= Vrefl
+            # INFINITE DEPTH
+            def reflect_point(x):
+                y = x.copy()
+                # y[:, 2] = 2*free_surface - x[:, 2]
+                y[:, 2] *= -1
+                y[:, 2] += 2*free_surface
+                return y
         else:
-            # Finite depth
-            Srefl, Vrefl = self._build_matrices_rankine_reflection_across_sea_bottom(mesh1, mesh2, sea_bottom)
+            # FINITE DEPTH
+            def reflect_point(x):
+                y = x.copy()
+                # y[:, 2] = 2*sea_bottom - x[:, 2]
+                y[:, 2] *= -1
+                y[:, 2] += 2*sea_bottom
+                return y
+
+        Srefl, Vrefl = NemohCore.green_rankine.build_matrices_rankine_source(
+            reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
+            mesh2.vertices,      mesh2.faces + 1,
+            mesh2.faces_centers, mesh2.faces_normals,
+            mesh2.faces_areas,   mesh2.faces_radiuses,
+                                 )
+
+        if free_surface - sea_bottom < np.infty or wavenumber == 0.0:
             S += Srefl
             V += Vrefl
-            if wavenumber in (0.0, np.infty):
-                raise NotImplementedError(f"wavenumber={wavenumber} is only implemented for infinite depth.")
-        del Srefl, Vrefl  # Experimental. Should try RAM profiling.
-
-        if wavenumber not in (0, np.infty):
-            Swave, Vwave = self._build_matrices_wave(mesh1, mesh2, free_surface, sea_bottom, wavenumber)
-            S += Swave
-            V += Vwave
+        else:
+            S -= Srefl
+            V -= Vrefl
 
         return S, V
 
-    def _build_matrices_rankine(self, mesh1, mesh2):
-        """Compute the first part of the influence matrices of mesh1 on mesh2
+    def build_matrices_wave(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
+        r"""Build the wave part of the influence matrices between mesh1 and mesh2.
 
-        Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
-        If the build_with_symmetries decorator has been applied, the result may actually be a couple
-        of BlockToeplitz matrices of the same size."""
-        return NemohCore.green_rankine.build_matrices_rankine_source(
-            mesh1.faces_centers, mesh1.faces_normals,
-            mesh2.vertices,      mesh2.faces + 1,
-            mesh2.faces_centers, mesh2.faces_normals,
-            mesh2.faces_areas,   mesh2.faces_radiuses,
-            )
+        Parameters
+        ----------
+        mesh1: Mesh or CollectionOfMeshes
+            mesh of the receiving body (where the potential is measured)
+        mesh2: Mesh or CollectionOfMeshes
+            mesh of the source body (over which the source distribution is integrated)
+        free_surface: float, optional
+            position of the free surface (default: :math:`z = 0`)
+        sea_bottom: float, optional
+            position of the sea bottom (default: :math:`z = -\infty`)
+        wavenumber: float, optional
+            wavenumber (default: 1.0)
 
-    def _build_matrices_rankine_reflection_across_free_surface(self, mesh1, mesh2, free_surface):
-        """Compute the second part of the influence matrices of mesh1 on mesh2 (for infinite depth)
-
-        Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
-        If the build_with_symmetries decorator has been applied, the result may actually be a couple
-        of BlockToeplitz matrices of the same size."""
-
-        def reflect_vector(x):
-            y = x.copy()
-            y[:, 2] *= -1
-            return y
-
-        def reflect_point(x):
-            y = x.copy()
-            # y[:, 2] = 2*free_surface - x[:, 2]
-            y[:, 2] *= -1
-            y[:, 2] += 2*free_surface
-            return y
-
-        return NemohCore.green_rankine.build_matrices_rankine_source(
-            reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
-            mesh2.vertices,      mesh2.faces + 1,
-            mesh2.faces_centers, mesh2.faces_normals,
-            mesh2.faces_areas,   mesh2.faces_radiuses,
-            )
-
-    def _build_matrices_rankine_reflection_across_sea_bottom(self, mesh1, mesh2, sea_bottom):
-        """Compute the second part of the influence matrices of mesh1 on mesh2 (for finite depth)
-
-        Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
-        If the build_with_symmetries decorator has been applied, the result may actually be a couple
-        of BlockToeplitz matrices of the same size."""
-
-        def reflect_vector(x):
-            y = x.copy()
-            y[:, 2] *= -1
-            return y
-
-        def reflect_point(x):
-            y = x.copy()
-            # y[:, 2] = 2*sea_bottom - x[:, 2]
-            y[:, 2] *= -1
-            y[:, 2] += 2*sea_bottom
-            return y
-
-        return NemohCore.green_rankine.build_matrices_rankine_source(
-            reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
-            mesh2.vertices,      mesh2.faces + 1,
-            mesh2.faces_centers, mesh2.faces_normals,
-            mesh2.faces_areas,   mesh2.faces_radiuses,
-            )
-
-    def _build_matrices_wave(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
-        """Compute the third part of the influence matrices of mesh1 on mesh2
-
-        Returns a couple of arrays of shape (mesh1.nb_faces, mesh2.nb_faces).
-        If the build_with_symmetries decorator has been applied, the result may actually be a couple
-        of BlockToeplitz matrices of the same size."""
+        Returns
+        -------
+        couple of complex-valued matrix-like objects (either 2D arrays or BlockMatrix objects)
+            couple of influence matrices
+        """
         depth = free_surface - sea_bottom
         if depth == np.infty:
             return NemohCore.green_wave.build_matrices_wave_source(
