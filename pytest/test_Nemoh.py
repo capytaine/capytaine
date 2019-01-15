@@ -144,7 +144,7 @@ def test_floating_sphere_finite_depth():
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
     result = solver.solve(problem, keep_details=True)
     assert np.isclose(result.added_masses["Heave"],       1740.6, atol=1e-3*sphere.volume*problem.rho)
-    assert np.isclose(result.radiation_dampings["Heave"], 380.46, rtol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.radiation_dampings["Heave"], 380.46, atol=1e-3*sphere.volume*problem.rho)
 
     kochin = compute_Kochin(result, np.linspace(0, np.pi, 3))
     assert np.allclose(kochin, np.roll(kochin, 1))  # The far field is the same in all directions.
@@ -159,12 +159,30 @@ def test_floating_sphere_finite_depth():
     problem = RadiationProblem(body=sphere, omega=2.0, sea_bottom=-10.0)
     result = solver.solve(problem)
     assert np.isclose(result.added_masses["Heave"],       1375.0, atol=1e-3*sphere.volume*problem.rho)
-    assert np.isclose(result.radiation_dampings["Heave"], 1418.0, rtol=1e-3*sphere.volume*problem.rho)
+    assert np.isclose(result.radiation_dampings["Heave"], 1418.0, atol=1e-3*sphere.volume*problem.rho)
 
     # omega = 2, diffraction
     problem = DiffractionProblem(body=sphere, omega=2.0, sea_bottom=-10.0)
     result = solver.solve(problem)
     assert np.isclose(result.forces["Heave"], 5872.8 * np.exp(-2.627j), rtol=1e-3)
+
+
+def test_two_distant_spheres_in_finite_depth():
+    radius = 0.5
+    resolution = 4
+    perimeter = 2*np.pi*radius
+    buoy = Sphere(radius=radius, center=(0.0, 0.0, 0.0),
+                  ntheta=int(perimeter*resolution/2), nphi=int(perimeter*resolution),
+                  clip_free_surface=True, clever=False, name="buoy")
+    other_buoy = buoy.translated_x(20, name="other_buoy")
+    both_buoys = buoy.join_bodies(other_buoy)
+    both_buoys.add_translation_dof(name="Surge")
+    problem = RadiationProblem(body=both_buoys, radiating_dof="Surge", sea_bottom=-10, omega=7.0)
+    result = solver.solve(problem)
+
+    total_volume = 2*4/3*np.pi*radius**3
+    assert np.isclose(result.added_masses['Surge'], 124.0, atol=1e-3*total_volume*problem.rho)
+    assert np.isclose(result.radiation_dampings['Surge'], 913.3, atol=1e-3*total_volume*problem.rho)
 
 
 def test_multibody():
