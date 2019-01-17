@@ -188,6 +188,102 @@ class LowRankMatrix:
             LOG.warning(f"Unable to find a low rank approximation of rank lower or equal to {l+1} with tolerance {tol}.")
         return LowRankMatrix(np.array(A).T, np.array(B))
 
+    @classmethod
+    def from_rows_and_cols_functions_with_2_in_1_ACA(cls, get_row_func, get_col_func, nb_rows, nb_cols, max_rank=None, tol=0.0, dtype=np.float64):
+        """Create two low rank matrices from functions running two Adaptive Cross Approximation at the same time.
+        The user should provide either the `max_rank` optional argument or the `tol` optional argument to expect a useful output.
+
+        Parameters
+        ----------
+        get_row_func: Function
+            Function such that `get_row_func(i)` returns the `i`-th row of both full matrices.
+        get_col_func: Function
+            Function such that `get_col_func(j)` returns the `j`-th column of both full matrices.
+        nb_rows: int
+            Number of rows in both full matrices.
+        nb_cols: int
+            Number of columns in both full matrices.
+        max_rank: int, optional
+            The maximum rank allowed for both output low rank matrices.
+            The default value is half the size of the full matrix, that is no gain in storage space.
+        tol: float, optional
+            The tolerance on the relative error (default: 0).
+            If the Frobenius norm of the increment is lower than the tolerance, the iteration stops.
+            If the tolerance is set to 0, the resulting matrix will have the maximum rank defined by `max_rank`.
+        dtype: numpy.dtype, optional
+            The type of data in both low rank matrices (default: float64).
+
+        Returns
+        -------
+        Tuple[LowRankMatrix, LowRankMatrix]
+        """
+        if max_rank is None and tol == 0.0:
+            LOG.warning("No stopping criterion for the Adaptive Cross Approximation.")
+
+        if max_rank is None:
+            max_rank = min(nb_rows, nb_cols)//2
+
+        left = ([], [])  # Left matrices to be assembled
+        right = ([], [])  # Right matrices to be assembled
+        full0 = np.zeros((nb_rows, nb_cols), dtype=dtype)
+        full1 = np.zeros((nb_rows, nb_cols), dtype=dtype)  # Current best approximations == A @ B
+        available_rows = list(range(nb_rows))
+        available_cols = list(range(nb_cols))
+
+        for l in range(max_rank):
+
+            # Peek a row
+            if l == 0:
+                relative_i = 0  # Or chose at random
+            else:
+                relative_i = np.argmax(np.abs(left[0][l-1][available_rows]))
+            i = available_rows.pop(relative_i)
+            # relative_i is the index of the row in the list of remaining rows,
+            # e.g. if available_rows = [2, 7, 8] and relative_i = 2, the chosen
+            # row has index 8 in the original full matrix.
+
+            # Add the row to the approximation
+            b0, b1 = get_row_func(i)
+            right[0].append(b0 - full0[i, :])
+            right[1].append(b1 - full0[i, :])
+
+            # Peek a column
+            relative_j = np.argmax(np.abs(right[0][l][available_cols]))
+            j = available_cols.pop(relative_j)
+
+            # Get the pivot
+            a0, a1 = get_col_func(j)
+
+            new_col0 = a0 - full0[:, j]
+            pivot0 = new_col0[i]
+            assert pivot0 != 0.0
+
+            new_col1 = a1 - full1[:, j]
+            pivot1 = new_col1[i]
+            assert pivot1 != 0.0
+
+            # Add the column to the approximation
+            left[0].append(new_col0/pivot0)
+            left[1].append(new_col1/pivot1)
+
+            # Update the current best approximation
+            increment_of_current_iteration0 = np.outer(left[0][l][:], right[0][l][:])
+            full0 += increment_of_current_iteration0
+
+            increment_of_current_iteration1 = np.outer(left[1][l][:], right[1][l][:])
+            full1 += increment_of_current_iteration1
+
+            if np.linalg.norm(increment_of_current_iteration0, 'fro')/np.linalg.norm(full0, 'fro') < tol:
+                # See Gypsilab for possible improvement of the norm computation.
+                LOG.debug(f"ACA: approximation found of rank {l}")
+                return (LowRankMatrix(np.array(left[0][:-1]).T, np.array(right[0][:-1])),
+                        LowRankMatrix(np.array(left[1][:-1]).T, np.array(right[1][:-1])))
+
+        if tol > 0:
+            LOG.warning(f"Unable to find a low rank approximation of rank lower or equal to {l+1} with tolerance {tol}.")
+        return (LowRankMatrix(np.array(left[0]).T, np.array(right[0])),
+                LowRankMatrix(np.array(left[1]).T, np.array(right[1])))
+
     ####################
     #  Representation  #
     ####################

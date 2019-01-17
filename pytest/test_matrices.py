@@ -5,6 +5,7 @@
 import pytest
 
 import numpy as np
+from numpy.linalg import norm, matrix_rank
 
 from capytaine.matrices.block_matrices import BlockMatrix
 from capytaine.matrices.block_toeplitz_matrices import *
@@ -383,24 +384,24 @@ def test_low_rank_blocks():
     a, b = np.random.rand(n, 1), np.random.rand(1, n)
     LR = LowRankMatrix(a, b)
     assert LR.shape == LR.full_matrix().shape
-    assert np.linalg.matrix_rank(LR.full_matrix()) == LR.rank == 1
+    assert matrix_rank(LR.full_matrix()) == LR.rank == 1
 
     a, b = np.random.rand(n, 2), np.random.rand(2, n)
     LR = LowRankMatrix(a, b)
     assert LR.shape == LR.full_matrix().shape
-    assert np.linalg.matrix_rank(LR.full_matrix()) == LR.rank == 2
+    assert matrix_rank(LR.full_matrix()) == LR.rank == 2
 
     # Test creation from SVD
-    A = np.arange(n**2).reshape((n, n)) + np.random.rand(n, n) + 1.0
+    A = np.arange(n**2).reshape((n, n)) + 1.0
     dumb_low_rank = LowRankMatrix.from_full_matrix_with_SVD(A, n)
     assert np.allclose(dumb_low_rank.full_matrix() - A, 0.0)
 
     A_rank_1 = LowRankMatrix.from_full_matrix_with_SVD(A, 1)
-    assert np.linalg.matrix_rank(A_rank_1.full_matrix()) == A_rank_1.rank == 1
+    assert matrix_rank(A_rank_1.full_matrix()) == A_rank_1.rank == 1
 
     # Test recompression
     recompressed = dumb_low_rank.recompress(new_rank=2)
-    assert recompressed.rank == np.linalg.matrix_rank(recompressed.full_matrix()) == 2
+    assert recompressed.rank == matrix_rank(recompressed.full_matrix()) == 2
 
     recompressed = dumb_low_rank.recompress(tol=1e-1)
     assert recompressed.rank <= dumb_low_rank.rank
@@ -412,7 +413,7 @@ def test_low_rank_blocks():
     # Test creation with ACA
     full_A_rank_1 = A_rank_1.full_matrix()
     A_rank_1_again = LowRankMatrix.from_full_matrix_with_ACA(full_A_rank_1, max_rank=5)
-    assert np.linalg.matrix_rank(A_rank_1_again.full_matrix()) == 1
+    assert matrix_rank(A_rank_1_again.full_matrix()) == 1
     assert np.allclose(A_rank_1_again.full_matrix(), full_A_rank_1)
 
     # Test creation from function with ACA
@@ -429,6 +430,39 @@ def test_low_rank_blocks():
 
     summed = SLR + A_rank_1
     assert summed.rank == 1
+
+
+def test_2_in_1_ACA_with_identical_matrices():
+    n = 5
+    A = np.arange(1, 1+n**2).reshape((n, n)) + np.random.rand(n, n)
+    B = A.copy()
+
+    def get_row_func(i):
+        return A[i, :], B[i, :]
+
+    def get_col_func(j):
+        return A[:, j], B[:, j]
+
+    lrA, lrB = LowRankMatrix.from_rows_and_cols_functions_with_2_in_1_ACA(get_row_func, get_col_func, n, n, tol=1e-3)
+
+    assert (lrA.full_matrix() == lrB.full_matrix()).all()
+    assert norm(lrA.full_matrix() - A, 'fro')/norm(A, 'fro') < 3e-2
+
+
+def test_2_in_1_ACA_with_different_matrices():
+    n = 5
+    A = np.arange(1, 1+n**2).reshape((n, n)) + np.random.rand(n, n)
+    B = A.T
+
+    def get_row_func(i):
+        return A[i, :], B[i, :]
+
+    def get_col_func(j):
+        return A[:, j], B[:, j]
+
+    lrA, lrB = LowRankMatrix.from_rows_and_cols_functions_with_2_in_1_ACA(get_row_func, get_col_func, n, n, max_rank=3)
+
+    assert matrix_rank(lrA.full_matrix()) == matrix_rank(lrB.full_matrix()) == 3
 
 
 def test_hierarchical_matrix():
