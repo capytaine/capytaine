@@ -21,13 +21,16 @@ Main concepts
     A degree of freedom (or dof) defines a small motion or a deformation of the floating body
     around its averaged position. It is stored as a vector at the center of each faces of the mesh.
 
-    .. Rigid-body dofs can be generated with the :code:`add_translation_dof` and
-       :code:`add_rotation_dof` methods.
+    Degrees of freedom appears in two forms in the output datasets:
+    :code:`radiating_dof` denotes an actual motion of the body, whereas
+    :code:`influenced_dof` denotes a component of a (generalized) force.
+    For example :code:`diffraction_force.sel(influenced_dof="Heave")` would denote the
+    :math:`z`-component of the vector of the diffraction force.
 
-.. note:: For mathematicians in the field of Galerkin Boundary Element Method, the concept
-    of degree of freedom might have a different meaning (a basis function of the Galerkin
-    decomposition). Here, the degrees of freedom are the physical degrees of freedom of the
-    floating body, typically the rigid body translations and rotations.
+    .. note:: For mathematicians in the field of Galerkin Boundary Element Method, the concept
+        of degree of freedom might have a different meaning (a basis function of the Galerkin
+        decomposition). Here, the degrees of freedom are the physical degrees of freedom of the
+        floating body, typically the rigid body translations and rotations.
 
 :class:`~capytaine.bodies.FloatingBody`
     A :code:`FloatingBody` is simply the reunion of a :code:`Mesh` and some degrees of freedom.

@@ -10,7 +10,7 @@ Major changes
 -------------
 
 * Full rewrite of the matrices and linear solvers implementation.
-  All the relevant code is now in the submodule `capytaine.matrices`.
+  All the relevant code is now in the submodule :code:`capytaine.matrices`.
 
 * Refactored implementation of block Toeplitz matrices, block symmetric Toeplitz
   matrices and block circulant matrices.
@@ -25,7 +25,7 @@ Major changes
 Minor changes
 -------------
 
-* Reorganization of the `pytest` directory.
+* Reorganization of the :code:`pytest` directory.
 
 * Various bug fixes and improvements of the documentation.
 
@@ -36,27 +36,27 @@ Solver
   of symmetries, use of caching, choice of the linear solver, ...).
   See its docstring for details.
 
-* Change of default behavior: the solver stores the details in the `Result`
-  container when using `solve`, not when using `solve_all`.
+* Change of default behavior: the solver stores the details in the :code:`Result`
+  container when using :code:`solve`, not when using :code:`solve_all`.
 
-* Function `kochin_dataset` to build a xarray of Kochin function.
+* Function :code:`kochin_dataset` to build a xarray of Kochin function.
 
 * Minor refactoring of the solver and the computation of the Green function.
 
 Meshes and bodies
 ~~~~~~~~~~~~~~~~~
 
-* New method `assemble_regular_array` to build an array of identical bodies.
+* New method :code:`assemble_regular_array` to build an array of identical bodies.
 
-* New `clip` method for meshes.
+* New :code:`clip` method for meshes.
 
 * CollectionOfMeshes are not subclasses of Tuple anymore.
 
-* Change naming of dof when bodies are joined: `body_name__dof_name` instead of `body_name_dof_name`.
+* Change naming of dof when bodies are joined: :code:`body_name__dof_name` instead of :code:`body_name_dof_name`.
 
-* Harmonize naming of functions that are not in-place: `symmetrize -> symmetrized`, `merge -> merged`
+* Harmonize naming of functions that are not in-place: :code:`symmetrize -> symmetrized`, :code:`merge -> merged`
 
-* Minor improvements of meshes and bodies `repr`.
+* Minor improvements of meshes and bodies :code:`repr`.
 
 ------------------
 New in version 0.5

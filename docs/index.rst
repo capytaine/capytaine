@@ -20,6 +20,9 @@ Latest release: |release| (|today|).
     </video>
     </div>
 
+Please report bugs and suggest improvements through a `Github issue <https://github.com/mancellin/capytaine/issues/>`_.
+Contributions are welcome!
+
 Documentation
 =============
 
@@ -46,9 +49,7 @@ Documentation
 Source code
 ===========
 
-Available `on Github`_
-
-.. _`On Github`: https://github.com/mancellin/capytaine
+Available on `Github <https://github.com/mancellin/capytaine>`_
 
 License
 =======

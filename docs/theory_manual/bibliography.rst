@@ -9,7 +9,7 @@ Bibliography
 
 .. [BD15] Babarit and Delhommeau, **Theoretical and numerical aspects of the open source BEM solver NEMOH**, Proceedings of the 11th European Wave and Tidal Energy Conference (EWTEC2015), Nantes, France, 2015.
 
-.. [PKR17] Penalba Retes, Kelly and Ringwood, **Using NEMOH for modelling wave energy converters: A comparative study with WAMIT**, Proceedings of the 12th European Wave and Tidal Energy Conference (EWTEC2017), Cork, Ireland, 2017.
+.. .. [PKR17] Penalba Retes, Kelly and Ringwood, **Using NEMOH for modelling wave energy converters: A comparative study with WAMIT**, Proceedings of the 12th European Wave and Tidal Energy Conference (EWTEC2017), Cork, Ireland, 2017.
 
 .. [AD18] Ancellin and Dias, **Using the floating body symmetries to speed up the numerical computation of hydrodynamics coefficients with Nemoh**, Proceedings of 37th International Conference on Ocean, Offshore and Arctic Engineering (OMAE2018), Madrid, Spain, 2018.
 
