@@ -236,14 +236,22 @@ def build_with_symmetries(build_matrices):
             distance = np.linalg.norm(mesh1.center_of_mass_of_nodes - mesh2.center_of_mass_of_nodes)
             if distance < 10*mesh1.diameter_of_nodes or distance < 10*mesh2.diameter_of_nodes:
                 # Actual evaluation of coefficients using the Green function.
-                S, V = build_matrices(mesh1, mesh2, *args, **kwargs)
+                return build_matrices(mesh1, mesh2, *args, **kwargs)
             else:
                 # Low-rank matrix.
-                # TODO: Avoid computing the full matrix.
-                S, V = build_matrices(mesh1, mesh2, *args, **kwargs)
-                S = LowRankMatrix.from_full_matrix_with_ACA(S, tol=1e-5)
-                V = LowRankMatrix.from_full_matrix_with_ACA(V, tol=1e-5)
+                def get_row_func(i):
+                    s, v = build_matrices(mesh1.extract_faces([i]), mesh2, *args, **kwargs)
+                    return s.flatten(), v.flatten()
 
-            return S, V
+                def get_col_func(j):
+                    s, v = build_matrices(mesh1, mesh2.extract_faces([j]), *args, **kwargs)
+                    return s.flatten(), v.flatten()
+
+                # TODO: Optimize
+                dtype = build_matrices(mesh1.extract_faces([0]), mesh2.extract_faces([0]), *args, **kwargs)[0].dtype
+
+                return LowRankMatrix.from_rows_and_cols_functions_with_2_in_1_ACA(
+                    get_row_func, get_col_func, mesh1.nb_faces, mesh2.nb_faces,
+                    tol=1e-2, dtype=dtype)
 
     return build_matrices_with_symmetries
