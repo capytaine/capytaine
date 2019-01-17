@@ -3,6 +3,62 @@ Changelog
 =========
 
 ------------------
+New in version 0.6
+------------------
+
+Major changes
+-------------
+
+* Full rewrite of the matrices and linear solvers implementation.
+  All the relevant code is now in the submodule `capytaine.matrices`.
+
+* Refactored implementation of block Toeplitz matrices, block symmetric Toeplitz
+  matrices and block circulant matrices.
+  Refactoring of the block diagonalization of block circulant matrices through
+  FFT.
+
+* Low rank approximation of the matrices with Adaptive Cross Approximation for
+  the use of hierarchical matrices.
+
+* Option to solve the linear system with GMRES instead of a direct solver.
+
+Minor changes
+-------------
+
+* Reorganization of the `pytest` directory.
+
+* Various bug fixes and improvements of the documentation.
+
+Solver
+~~~~~~
+
+* More options to set the behavior of the solver at run time :code:`Nemoh` (use
+  of symmetries, use of caching, choice of the linear solver, ...).
+  See its docstring for details.
+
+* Change of default behavior: the solver stores the details in the `Result`
+  container when using `solve`, not when using `solve_all`.
+
+* Function `kochin_dataset` to build a xarray of Kochin function.
+
+* Minor refactoring of the solver and the computation of the Green function.
+
+Meshes and bodies
+~~~~~~~~~~~~~~~~~
+
+* New method `assemble_regular_array` to build an array of identical bodies.
+
+* New `clip` method for meshes.
+
+* CollectionOfMeshes are not subclasses of Tuple anymore.
+
+* Change naming of dof when bodies are joined: `body_name__dof_name` instead of `body_name_dof_name`.
+
+* Harmonize naming of functions that are not in-place: `symmetrize -> symmetrized`, `merge -> merged`
+
+* Minor improvements of meshes and bodies `repr`.
+
+------------------
 New in version 0.5
 ------------------
 
