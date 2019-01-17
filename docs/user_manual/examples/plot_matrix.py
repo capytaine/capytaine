@@ -14,13 +14,13 @@ cylinder = HorizontalCylinder(
 
 # Use Nemoh to compute the influence matrices
 solver = Nemoh()
-S, V = solver.build_matrices(cylinder.mesh, cylinder.mesh, wavenumber=1.0)
+S, K = solver.build_matrices(cylinder.mesh, cylinder.mesh, wavenumber=1.0)
 
 # Plot the absolute value of the matrix V
 #
 import matplotlib.pyplot as plt
-plt.imshow(np.abs(V))
+plt.imshow(np.abs(S.full_matrix()))
 plt.colorbar()
-plt.title("$|V|$")
+plt.title("$|S|$")
 plt.tight_layout()
 plt.show()
