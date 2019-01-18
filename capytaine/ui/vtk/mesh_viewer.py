@@ -7,6 +7,7 @@ Based on meshmagick of François Rongère.
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import datetime
+from itertools import cycle
 from os import getcwd
 
 import vtk
@@ -14,6 +15,8 @@ import vtk
 from capytaine.ui.vtk.helpers import compute_vtk_polydata
 
 __year__ = datetime.datetime.now().year
+
+COLORS = cycle([(1, 1, 0), (1, 0, 1), (1, 0, 0), (0, 1, 0), (0, 0, 1), (0, 1, 1)])
 
 
 class MeshViewer:
@@ -126,8 +129,10 @@ class MeshViewer:
         self.renderer.AddActor(actor)
         self.renderer.Modified()
 
-    def add_mesh(self, mesh, color=(1, 1, 0), representation='surface'):
+    def add_mesh(self, mesh, color=None, representation='surface'):
         vtk_polydata = compute_vtk_polydata(mesh)
+        if color is None:
+            color = next(COLORS)
         self.add_polydata(vtk_polydata, color=color, representation=representation)
 
     # ADD MORE DETAILS

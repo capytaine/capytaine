@@ -211,7 +211,13 @@ class CollectionOfMeshes(Abstract3DObject):
         self._meshes = tuple(mesh for mesh in self if mesh.nb_faces > 0 and mesh.nb_vertices > 0)
 
     def show(self, **kwargs):
-        self.merged().show(**kwargs)
+        from capytaine.ui.vtk.mesh_viewer import MeshViewer
+
+        viewer = MeshViewer()
+        for mesh in self:
+            viewer.add_mesh(mesh.merged(), **kwargs)
+        viewer.show()
+        viewer.finalize()
 
     def show_matplotlib(self, *args, **kwargs):
         self.merged().show_matplotlib(*args, **kwargs)

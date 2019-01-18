@@ -356,7 +356,7 @@ class Mesh(Abstract3DObject):
         self.show_vtk(**kwargs)
 
     def show_vtk(self, **kwargs):
-        """Shows the mesh in the meshmagick viewer"""
+        """Shows the mesh in the vtk viewer"""
         from capytaine.ui.vtk.mesh_viewer import MeshViewer
 
         viewer = MeshViewer()

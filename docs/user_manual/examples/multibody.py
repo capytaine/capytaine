@@ -19,7 +19,7 @@ cylinder.add_translation_dof(name="Surge")
 cylinder.add_translation_dof(name="Heave")
 
 both = cylinder + sphere
-both.show()
+both.mesh.show()
 
 solver = Nemoh()
 problems = [RadiationProblem(body=both, radiating_dof=dof, omega=1.0) for dof in both.dofs]
