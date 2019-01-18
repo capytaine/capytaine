@@ -310,24 +310,10 @@ class FloatingBody(Abstract3DObject):
         return (f"{self.__class__.__name__}(mesh={self.mesh.name}, "
                 f"dofs={{{', '.join(self.dofs.keys())}}}, name={self.name})")
 
-    def show(self, dof=None):
-        # TODO: Broken. Rewrite with display of dofs.
-        import vtk
-        from capytaine.ui.vtk.MMviewer import compute_vtk_polydata
-        from capytaine.ui.vtk.mesh_viewer import FloatingBodyViewer
-
-        vtk_polydata = compute_vtk_polydata(self.mesh)
-
-        if dof is not None:
-            vtk_data_array = vtk.vtkFloatArray()
-            vtk_data_array.SetNumberOfComponents(3)
-            vtk_data_array.SetNumberOfTuples(self.mesh.nb_faces)
-            for i, vector in enumerate(self.dofs[dof]):
-                vtk_data_array.SetTuple3(i, *vector)
-            vtk_polydata.GetCellData().SetVectors(vtk_data_array)
-
+    def show(self, **kwargs):
+        from capytaine.ui.vtk.body_viewer import FloatingBodyViewer
         viewer = FloatingBodyViewer()
-        viewer.add_polydata(vtk_polydata)
+        viewer.add_body(self, **kwargs)
         viewer.show()
         viewer.finalize()
 

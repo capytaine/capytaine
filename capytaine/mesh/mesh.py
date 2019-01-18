@@ -355,15 +355,14 @@ class Mesh(Abstract3DObject):
     def show(self, **kwargs):
         self.show_vtk(**kwargs)
 
-    def show_vtk(self):
+    def show_vtk(self, **kwargs):
         """Shows the mesh in the meshmagick viewer"""
-        from capytaine.ui.vtk.MMviewer import compute_vtk_polydata, MMViewer
+        from capytaine.ui.vtk.mesh_viewer import MeshViewer
 
-        vtk_polydata = compute_vtk_polydata(self)
-        self.viewer = MMViewer()
-        self.viewer.add_polydata(vtk_polydata)
-        self.viewer.show()
-        self.viewer.finalize()
+        viewer = MeshViewer()
+        viewer.add_mesh(self, **kwargs)
+        viewer.show()
+        viewer.finalize()
 
     def show_matplotlib(self, ax=None,
                         normal_vectors=False, scale_normal_vector=None,

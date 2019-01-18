@@ -210,8 +210,8 @@ class CollectionOfMeshes(Abstract3DObject):
         """Remove empty meshes from the collection."""
         self._meshes = tuple(mesh for mesh in self if mesh.nb_faces > 0 and mesh.nb_vertices > 0)
 
-    def show(self):
-        self.merged().show()
+    def show(self, **kwargs):
+        self.merged().show(**kwargs)
 
     def show_matplotlib(self, *args, **kwargs):
         self.merged().show_matplotlib(*args, **kwargs)
