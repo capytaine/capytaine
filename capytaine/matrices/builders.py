@@ -198,6 +198,7 @@ def hierarchical_toeplitz_matrices(build_matrices, ACA_distance=8.0, ACA_tol=1e-
             return BlockToeplitzMatrix([S_list]), BlockToeplitzMatrix([V_list])
 
         elif (isinstance(mesh1, AxialSymmetry)
+              and isinstance(mesh2, AxialSymmetry)
               and mesh1.axis == mesh2.axis
               and mesh1.nb_submeshes == mesh2.nb_submeshes):
 
