@@ -30,7 +30,7 @@ class MeshViewer:
         # Building render window
         self.render_window = vtk.vtkRenderWindow()
         self.render_window.SetSize(1024, 768)
-        self.render_window.SetWindowName("Meshmagick viewer")
+        self.render_window.SetWindowName("Mesh viewer")
         self.render_window.AddRenderer(self.renderer)
 
         # Building interactor

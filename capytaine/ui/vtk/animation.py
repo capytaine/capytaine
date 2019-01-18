@@ -146,6 +146,7 @@ class Animation:
 
         render_window = vtk.vtkRenderWindow()
         render_window.SetSize(1024, 768)
+        render_window.SetWindowName("Capytaine animation")
         render_window.AddRenderer(renderer)
 
         render_window_interactor = vtk.vtkRenderWindowInteractor()
