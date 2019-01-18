@@ -95,27 +95,40 @@ def identity_like(A, dtype=np.float64):
         return np.eye(A.shape[0], A.shape[1], dtype=dtype)
 
 
-def build_with_symmetries(build_matrices):
+def hierarchical_toeplitz_matrices(build_matrices, ACA_distance=8.0, ACA_tol=1e-2, dtype=np.float64):
     """Decorator for the matrix building functions.
 
     Parameters
     ----------
     build_matrices: function
-        Function that takes as argument two meshes and several other parameters and returns an
-        influence matrix.
+        Function that takes as argument two meshes and several other parameters
+        and returns a pair of influence matrices.
+    ACA_distance: float, optional
+        Above this distance, the ACA is used to approximate the matrix with a low-rank block.
+    ACA_tol: float, optional
+        The tolerance of the ACA when building a low-rank matrix.
+    dtype: numpy.dtype, optional
+        The type of the data in the matrix (typically float64 or complex128).
 
     Returns
     -------
     function
-        A similar function that returns a block matrix based on the symmetries of the meshes.
+        A similar function that returns two hierarchical Toeplitz matrices.
     """
 
-    @wraps(build_matrices)  # May not be necessary?
-    def build_matrices_with_symmetries(mesh1, mesh2, *args, _rec_depth=1, **kwargs):
-        """Assemble the influence matrices using symmetries of the body.⎈
+    if logging.getLogger().isEnabledFor(logging.DEBUG):
+        # Read the docstring of the function and use the first line for logging.
+        function_description_for_logging = build_matrices.__doc__.splitlines()[0] \
+            .replace("mesh1", "{mesh1}").replace("mesh2", "{mesh2}")
+    else:
+        function_description_for_logging = ""  # irrelevant
 
-        The method is basically an ugly multiple dispatch on the kind of bodies.
-        For symmetric structures, the method is called recursively on all of the sub-bodies.
+    @wraps(build_matrices)  # Is this decorator really necessary?
+    def build_hierarchical_toeplitz_matrix(mesh1, mesh2, *args, _rec_depth=1, **kwargs):
+        """Assemble hierarchical Toeplitz matrices.
+
+        The method is basically an ugly multiple dispatch on the kind of mesh.
+        For hierarchical structures, the method is called recursively on all of the sub-bodies.
 
         Parameters
         ----------
@@ -123,37 +136,39 @@ def build_with_symmetries(build_matrices):
             mesh of the receiving body (where the potential is measured)
         mesh2: Mesh or CollectionOfMeshes
             mesh of the source body (over which the source distribution is integrated)
-        *args
-            Passed to the actual evaluation of the coefficients
+        *args, **kwargs
+            Other arguments, passed to the actual evaluation of the coefficients
         _rec_depth: int, optional
-            internal parameter: recursion accumulator for pretty log printing
+            internal parameter: recursion accumulator, used only for pretty logging
 
         Returns
         -------
-        matrix-like
-            influence matrix (integral of the Green function)
+        pair of matrix-like objects
+            influence matrices
         """
 
         if logging.getLogger().isEnabledFor(logging.DEBUG):
-            # Hackish read of the original function docstring to get prettier log
-            function_description_for_logging = build_matrices.__doc__.splitlines()[0]\
-                .replace("mesh1", "{mesh1}").replace("mesh2", "{mesh2}")
+            log_entry = "\t" * (_rec_depth+1) + function_description_for_logging.format(
+                mesh1=mesh1.name, mesh2=(mesh2.name if mesh2 is not mesh1 else 'itself')
+            )
         else:
-            function_description_for_logging = ""  # irrelevant
+            log_entry = ""  # irrelevant
+
+        # Distance between the meshes (for ACA).
+        distance = np.linalg.norm(mesh1.center_of_mass_of_nodes - mesh2.center_of_mass_of_nodes)
+
+        # I) SPARSE COMPUTATION
 
         if (isinstance(mesh1, ReflectionSymmetry)
                 and isinstance(mesh2, ReflectionSymmetry)
                 and mesh1.plane == mesh2.plane):
 
-            LOG.debug("\t" * (_rec_depth+1) +
-                      function_description_for_logging.format(
-                          mesh1=mesh1.name, mesh2='itself' if mesh2 is mesh1 else mesh2.name
-                      ) + " using mirror symmetry.")
+            LOG.debug(log_entry + " using mirror symmetry.")
 
-            S_a, V_a = build_matrices_with_symmetries(
+            S_a, V_a = build_hierarchical_toeplitz_matrix(
                 mesh1[0], mesh2[0], *args, **kwargs,
                 _rec_depth=_rec_depth+1)
-            S_b, V_b = build_matrices_with_symmetries(
+            S_b, V_b = build_hierarchical_toeplitz_matrix(
                 mesh1[0], mesh2[1], *args, **kwargs,
                 _rec_depth=_rec_depth+1)
 
@@ -164,20 +179,17 @@ def build_with_symmetries(build_matrices):
               and np.allclose(mesh1.translation, mesh2.translation)
               and mesh1.nb_submeshes == mesh2.nb_submeshes):
 
-            LOG.debug("\t" * (_rec_depth+1) +
-                      function_description_for_logging.format(
-                          mesh1=mesh1.name, mesh2='itself' if mesh2 is mesh1 else mesh2.name
-                      ) + " using translational symmetry.")
+            LOG.debug(log_entry + " using translational symmetry.")
 
             S_list, V_list = [], []
             for submesh in mesh2:
-                S, V = build_matrices_with_symmetries(
+                S, V = build_hierarchical_toeplitz_matrix(
                     mesh1[0], submesh, *args, **kwargs,
                     _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
             for submesh in mesh1[1:][::-1]:
-                S, V = build_matrices_with_symmetries(
+                S, V = build_hierarchical_toeplitz_matrix(
                     submesh, mesh2[0], *args, **kwargs,
                     _rec_depth=_rec_depth+1)
                 S_list.append(S)
@@ -189,14 +201,11 @@ def build_with_symmetries(build_matrices):
               and mesh1.axis == mesh2.axis
               and mesh1.nb_submeshes == mesh2.nb_submeshes):
 
-            LOG.debug("\t" * (_rec_depth+1) +
-                      function_description_for_logging.format(
-                          mesh1=mesh1.name, mesh2='itself' if mesh2 is mesh1 else mesh2.name
-                      ) + " using rotation symmetry.")
+            LOG.debug(log_entry + " using rotation symmetry.")
 
             S_line, V_line = [], []
             for submesh in mesh2[:mesh2.nb_submeshes]:
-                S, V = build_matrices_with_symmetries(
+                S, V = build_hierarchical_toeplitz_matrix(
                     mesh1[0], submesh, *args, **kwargs,
                     _rec_depth=_rec_depth+1)
                 S_line.append(S)
@@ -204,19 +213,36 @@ def build_with_symmetries(build_matrices):
 
             return BlockCirculantMatrix([S_line]), BlockCirculantMatrix([V_line])
 
+        elif distance > ACA_distance*mesh1.diameter_of_nodes or distance > ACA_distance*mesh2.diameter_of_nodes:
+            # Low-rank matrix computed with Adaptive Cross Approximation.
+
+            LOG.debug(log_entry + " using ACA.")
+
+            def get_row_func(i):
+                s, v = build_matrices(mesh1.extract_faces([i]), mesh2, *args, **kwargs)
+                return s.flatten(), v.flatten()
+
+            def get_col_func(j):
+                s, v = build_matrices(mesh1, mesh2.extract_faces([j]), *args, **kwargs)
+                return s.flatten(), v.flatten()
+
+            return LowRankMatrix.from_rows_and_cols_functions_with_2_in_1_ACA(
+                get_row_func, get_col_func, mesh1.nb_faces, mesh2.nb_faces,
+                tol=ACA_tol, dtype=dtype)
+
+        # II) NON-SPARSE COMPUTATIONS
+
         elif (isinstance(mesh1, CollectionOfMeshes)
               and isinstance(mesh2, CollectionOfMeshes)):
+            # Recursively build a block matrix
 
-            LOG.debug("\t" * (_rec_depth+1) +
-                      function_description_for_logging.format(
-                          mesh1=mesh1.name, mesh2='itself' if mesh2 is mesh1 else mesh2.name
-                      ) + " using block matrix structure.")
+            LOG.debug(log_entry + " using block matrix structure.")
 
             S_matrix, V_matrix = [], []
             for submesh1 in mesh1:
                 S_line, V_line = [], []
                 for submesh2 in mesh2:
-                    S, V = build_matrices_with_symmetries(
+                    S, V = build_hierarchical_toeplitz_matrix(
                         submesh1, submesh2, *args, **kwargs,
                         _rec_depth=_rec_depth+1)
 
@@ -228,30 +254,10 @@ def build_with_symmetries(build_matrices):
             return BlockMatrix(S_matrix), BlockMatrix(V_matrix)
 
         else:
-            LOG.debug("\t" * (_rec_depth+1) +
-                      function_description_for_logging.format(
-                          mesh1=mesh1.name, mesh2='itself' if mesh2 is mesh1 else mesh2.name
-                      ))
+            # Actual evaluation of coefficients using the Green function.
 
-            distance = np.linalg.norm(mesh1.center_of_mass_of_nodes - mesh2.center_of_mass_of_nodes)
-            if distance < 10*mesh1.diameter_of_nodes or distance < 10*mesh2.diameter_of_nodes:
-                # Actual evaluation of coefficients using the Green function.
-                return build_matrices(mesh1, mesh2, *args, **kwargs)
-            else:
-                # Low-rank matrix.
-                def get_row_func(i):
-                    s, v = build_matrices(mesh1.extract_faces([i]), mesh2, *args, **kwargs)
-                    return s.flatten(), v.flatten()
+            LOG.debug(log_entry)
 
-                def get_col_func(j):
-                    s, v = build_matrices(mesh1, mesh2.extract_faces([j]), *args, **kwargs)
-                    return s.flatten(), v.flatten()
+            return build_matrices(mesh1, mesh2, *args, **kwargs)
 
-                # TODO: Optimize
-                dtype = build_matrices(mesh1.extract_faces([0]), mesh2.extract_faces([0]), *args, **kwargs)[0].dtype
-
-                return LowRankMatrix.from_rows_and_cols_functions_with_2_in_1_ACA(
-                    get_row_func, get_col_func, mesh1.nb_faces, mesh2.nb_faces,
-                    tol=1e-2, dtype=dtype)
-
-    return build_matrices_with_symmetries
+    return build_hierarchical_toeplitz_matrix

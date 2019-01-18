@@ -21,7 +21,7 @@ import numpy as np
 from capytaine.problems import problems_from_dataset
 from capytaine.results import assemble_dataset
 from capytaine.matrices import linear_solvers
-from capytaine.matrices.builders import build_with_symmetries, identity_like
+from capytaine.matrices.builders import hierarchical_toeplitz_matrices, identity_like
 from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
 import capytaine.NemohCore as NemohCore
 
@@ -59,8 +59,11 @@ class Nemoh:
                                 'gmres': linear_solvers.solve_gmres,
                                 }
 
-    def __init__(self, use_symmetries=True, matrix_cache_size=1, cache_rankine_matrices=True,
-                 linear_solver='direct', npinte=251
+    def __init__(self,
+                 npinte=251,
+                 use_symmetries=True, ACA_tol=1e-2, ACA_distance=8,
+                 matrix_cache_size=1, cache_rankine_matrices=True,
+                 linear_solver='direct',
                  ):
         LOG.info("Initialize Nemoh's Green function.")
         self.tabulated_integrals = tabulated_integrals(328, 46, npinte)
@@ -75,8 +78,12 @@ class Nemoh:
                 # If the rankine matrix is cached, the recursive decomposition of the matrix
                 # has to be done before the caching in order to ensure that everything is cached.
                 # It results that it has to be done twice: once for the Rankine part and once for the wave part.
-                self.build_matrices_rankine = build_with_symmetries(self.build_matrices_rankine)
-                self.build_matrices_wave = build_with_symmetries(self.build_matrices_wave)
+                self.build_matrices_rankine = hierarchical_toeplitz_matrices(self.build_matrices_rankine,
+                                                                             ACA_tol=ACA_tol, ACA_distance=ACA_distance,
+                                                                             dtype=np.float64)
+                self.build_matrices_wave = hierarchical_toeplitz_matrices(self.build_matrices_wave,
+                                                                          ACA_tol=ACA_tol, ACA_distance=ACA_distance,
+                                                                          dtype=np.complex128)
             if matrix_cache_size > 0:
                 self.build_matrices_rankine = lru_cache(maxsize=matrix_cache_size)(self.build_matrices_rankine)
                 self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
@@ -84,7 +91,9 @@ class Nemoh:
             if use_symmetries:
                 # If the rankine matrix is not cached, the recursive decomposition of the matrix
                 # can be done at the top level.
-                self.build_matrices = build_with_symmetries(self.build_matrices)
+                self.build_matrices = hierarchical_toeplitz_matrices(self.build_matrices,
+                                                                     ACA_tol=ACA_tol, ACA_distance=ACA_distance,
+                                                                     dtype=np.complex128)
             if matrix_cache_size > 0:
                 self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
 
