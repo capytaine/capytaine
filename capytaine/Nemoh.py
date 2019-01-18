@@ -37,17 +37,24 @@ class Nemoh:
 
     Parameters
     ----------
+    npinte: int, optional
+        Number of points for the evaluation of the tabulated elementary integrals w.r.t. :math:`theta`
+        used for the computation of the Green function (default: 251)
     use_symmetries: bool, optional
         if True, use the symmetries of the meshes when computing matrices and solving linear system
+    ACA_distance: float, optional
+        Above this distance, the ACA is used to approximate the matrix with a low-rank block.
+    ACA_tol: float, optional
+        The tolerance of the ACA when building a low-rank matrix.
+    cache_rankine_matrices: bool, optional
+        If True, cache intermediate matrices when computing the influence matrices,
+        if False, cache only the final result.
     matrix_cache_size: int, optional
         number of matrices to keep in cache
     linear_solver: str or function, optional
         Setting of the numerical solver for linear problems Ax = b.
         It can be set with the name of a preexisting solver (available: "direct" [default], "gmres", "store_lu")
         or by passing directly a solver function.
-    npinte: int, optional
-        Number of points for the evaluation of the tabulated elementary integrals w.r.t. :math:`theta`
-        used for the computation of the Green function (default: 251)
 
     Attributes
     ----------
@@ -61,8 +68,8 @@ class Nemoh:
 
     def __init__(self,
                  npinte=251,
-                 use_symmetries=True, ACA_tol=1e-2, ACA_distance=8,
-                 matrix_cache_size=1, cache_rankine_matrices=True,
+                 use_symmetries=True, ACA_distance=8, ACA_tol=1e-2,
+                 cache_rankine_matrices=True, matrix_cache_size=1,
                  linear_solver='direct',
                  ):
         LOG.info("Initialize Nemoh's Green function.")
