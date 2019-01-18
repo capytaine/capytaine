@@ -62,13 +62,13 @@ def compute_node_data(mesh, face_data):
 
     # Keep track of the number of faces near each vertex
     faces_near_nodes_shape = (mesh.vertices.shape[0], ) + (1, ) * len(face_data.shape[1:])
-    faces_near_nodes = np.zeros(faces_near_nodes_shape, dtype=np.int8)
+    nb_faces_near_nodes = np.zeros(faces_near_nodes_shape, dtype=np.int8)
 
     for i, vertices in enumerate(mesh.faces):
         for vertex in vertices:
-            faces_near_nodes[vertex] += 1
+            nb_faces_near_nodes[vertex] += 1
             node_data[vertex, ...] += face_data[i, ...]
 
-    node_data /= faces_near_nodes
+    node_data /= nb_faces_near_nodes
     return node_data
 
