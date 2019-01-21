@@ -22,10 +22,16 @@ Major changes
 
 * Option to solve the linear system with GMRES instead of a direct solver.
 
+* Refactoring of the 3D animation module. See cookbook for an example of the new
+  API.
+
 Minor changes
 -------------
 
 * Reorganization of the :code:`pytest` directory.
+
+* Add an experimental `capytaine.tools.rao` module to compute Response Amplitude
+  Operators.
 
 * Various bug fixes and improvements of the documentation.
 
@@ -46,11 +52,13 @@ Solver
 Meshes and bodies
 ~~~~~~~~~~~~~~~~~
 
+* CollectionOfMeshes is not a subclass of Tuple anymore.
+
 * New method :code:`assemble_regular_array` to build an array of identical bodies.
 
 * New :code:`clip` method for meshes.
 
-* CollectionOfMeshes are not subclasses of Tuple anymore.
+* When a body is clipped with :code:`clip` or :code:`keep_immersed_part`, the dofs are updated.
 
 * Change naming of dof when bodies are joined: :code:`body_name__dof_name` instead of :code:`body_name_dof_name`.
 
