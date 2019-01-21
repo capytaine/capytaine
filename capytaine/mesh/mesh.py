@@ -501,7 +501,7 @@ class Mesh(Abstract3DObject):
     def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty) -> 'Mesh':
         """Clip the mesh with two horizontal planes corresponding
         with the free surface and the sea bottom."""
-        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, 0)))
+        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
         if sea_bottom > -np.infty:
             self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
         return self

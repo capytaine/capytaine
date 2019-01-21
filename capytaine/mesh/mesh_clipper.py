@@ -136,7 +136,6 @@ class MeshClipper:
         clipped_mesh_name = '_'.join((self._source_mesh.name, 'clipped'))
         self.__internals__['clipped_mesh'].name = clipped_mesh_name
 
-
     def _vertices_positions_wrt_plane(self):
         """
         Classifies vertices with respect to the clipping plane
@@ -206,6 +205,10 @@ class MeshClipper:
         partition['below_faces_ids'] = below_faces_ids
 
         self.__internals__.update(partition)
+
+    @property
+    def clipped_mesh_faces_ids(self):
+        return list(self.__internals__['below_faces_ids']) + list(self.__internals__['clipped_crown_mesh_faces_ids'])
 
     @property
     def lower_mesh(self):
@@ -378,6 +381,7 @@ class MeshClipper:
 
         # Init
         crown_faces = list()
+        clipped_crown_relative_faces_ids = list()
         direct_boundary_edges = dict()
         inv_boundary_edges = dict()
         intersections = list()
@@ -413,6 +417,7 @@ class MeshClipper:
                 intersections += [ileft, iright]
                 boundary_edge = [index, index + 1]
                 crown_faces.append([index, face[1], face[2], index + 1])
+                clipped_crown_relative_faces_ids.append(face_id)
                 index += 2
 
             elif face_type == '301':  # Done
@@ -432,6 +437,7 @@ class MeshClipper:
                 intersections += [ileft, iright]
                 boundary_edge = [index, index + 1]
                 crown_faces.append([index, face[0], index + 1, index])
+                clipped_crown_relative_faces_ids.append(face_id)
                 index += 2
 
             elif face_type == '103':  # Done
@@ -451,7 +457,9 @@ class MeshClipper:
                 intersections += [ileft, iright]
                 boundary_edge = [index, index + 1]
                 crown_faces.append([index, face[1], face[3], index + 1])
+                clipped_crown_relative_faces_ids.append(face_id)
                 crown_faces.append([face[1], face[2], face[3], face[1]])
+                clipped_crown_relative_faces_ids.append(face_id)
                 index += 2
 
             elif face_type == '102':  # Done
@@ -467,6 +475,7 @@ class MeshClipper:
                 intersections += [ileft, iright]
                 boundary_edge = [index, index + 1]
                 crown_faces.append([index, face[1], face[2], index + 1])
+                clipped_crown_relative_faces_ids.append(face_id)
                 index += 2
 
             elif face_type == '201':  # done
@@ -482,6 +491,7 @@ class MeshClipper:
                 intersections += [ileft, iright]
                 boundary_edge = [index, index + 1]
                 crown_faces.append([index, face[0], index + 1, index])
+                clipped_crown_relative_faces_ids.append(face_id)
                 index += 2
 
             elif face_type == '211':  # Done
@@ -507,6 +517,7 @@ class MeshClipper:
                     intersections.append(ileft)
                     boundary_edge = [index, face[0]]
                     crown_faces.append([index, face[3], face[0], index])
+                clipped_crown_relative_faces_ids.append(face_id)
                 index += 1
 
             elif face_type == '112':  # Done
@@ -530,6 +541,7 @@ class MeshClipper:
                     intersections.append(ileft)
                     boundary_edge = [index, face[0]]
                     crown_faces.append([index, face[2], face[3], face[0]])
+                clipped_crown_relative_faces_ids.append(face_id)
                 index += 1
 
             elif face_type == '013':  # Done
@@ -542,6 +554,7 @@ class MeshClipper:
                 #      *
                 boundary_edge = None
                 crown_faces.append(list(face))
+                clipped_crown_relative_faces_ids.append(face_id)
 
             elif face_type == '210' or face_type == '310':  # Done
                 #   *-------*               *
@@ -571,6 +584,7 @@ class MeshClipper:
                     intersections.append(ileft)
                     boundary_edge = [index, face[0]]
                     crown_faces.append([index, face[2], face[0], index])
+                clipped_crown_relative_faces_ids.append(face_id)
                 index += 1
 
             elif face_type == '120':  # Done
@@ -595,6 +609,7 @@ class MeshClipper:
                 face = list(face)
                 face.append(face[0])
                 crown_faces.append(face)
+                clipped_crown_relative_faces_ids.append(face_id)
 
             elif face_type == '022':
                 # ----*-----*----
@@ -605,6 +620,7 @@ class MeshClipper:
                     face = np.roll(face, -v_on_face[1])
                 boundary_edge = [face[0], face[3]]
                 crown_faces.append(list(face))
+                clipped_crown_relative_faces_ids.append(face_id)
 
             elif face_type == '012':  # Done
                 #   ------*------
@@ -616,6 +632,7 @@ class MeshClipper:
                 face = list(face)
                 face.append(face[0])
                 crown_faces.append(face)
+                clipped_crown_relative_faces_ids.append(face_id)
 
             elif face_type == '220':  # Done
                 #    0*-----*3
@@ -640,6 +657,7 @@ class MeshClipper:
                 face = np.roll(face, -v_above_face[0])
                 boundary_edge = [face[1], face[3]]
                 crown_faces.append([face[1], face[2], face[3], face[1]])
+                clipped_crown_relative_faces_ids.append(face_id)
 
             elif face_type == '300' or face_type == '400':
                 #       *               *-----*
@@ -659,6 +677,7 @@ class MeshClipper:
                 face = list(face)
                 face.append(face[0])
                 crown_faces.append(face)
+                clipped_crown_relative_faces_ids.append(face_id)
 
             elif face_type == '004':
                 #  ---------------
@@ -668,6 +687,7 @@ class MeshClipper:
                 #      *-----*
                 boundary_edge = None
                 crown_faces.append(list(face))
+                clipped_crown_relative_faces_ids.append(face_id)
 
             elif face_type == '030' or face_type == '040':
                 # Face is totally on the plane --> rare case...
@@ -769,6 +789,7 @@ class MeshClipper:
                 break
 
         output = {'clipped_crown_mesh': clipped_crown_mesh,
+                  'clipped_crown_mesh_faces_ids': self.__internals__['crown_faces_ids'][clipped_crown_relative_faces_ids],
                   'closed_polygons': closed_polygons,
                   'open_lines': open_lines}
 

@@ -5,10 +5,12 @@
 import pytest
 
 import numpy as np
+from numpy.linalg import norm
 
 from capytaine.mesh.mesh import Mesh
+from capytaine.mesh.mesh_clipper import MeshClipper
 from capytaine.tools.geometry import Plane, xOz_Plane
-from capytaine.geometric_bodies import HorizontalCylinder, Sphere
+from capytaine.geometric_bodies import HorizontalCylinder, Sphere, Rectangle
 
 # Some meshes that will be used in the following tests.
 test_mesh = Mesh(vertices=np.random.rand(4, 3), faces=[range(4)], name="test_mesh")
@@ -158,6 +160,29 @@ def test_clipper():
 
     mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-1.0)
     assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
+
+
+def test_clipper_indices():
+    """Test clipped_mesh_faces_ids."""
+    # Odd
+    mesh = Rectangle(size=(5, 5), resolution=(5, 5), center=(0, 0, 0)).mesh.merged()
+    mcl = MeshClipper(mesh, plane=Plane(point=(0, 0, 0), normal=(0, 0, 1)))
+    clipped_mesh = mcl.clipped_mesh
+    faces_ids = mcl.clipped_mesh_faces_ids
+
+    assert clipped_mesh.nb_faces == len(faces_ids) == 15
+    assert all(norm(clipped_mesh.faces_centers[i] - mesh.faces_centers[face_id]) < 0.3
+               for i, face_id in enumerate(faces_ids))
+
+    # Even
+    mesh = Rectangle(size=(6, 6), resolution=(6, 6), center=(0, 0, 0)).mesh.merged()
+    mcl = MeshClipper(mesh, plane=Plane(point=(0, 0, 0), normal=(0, 0, 1)))
+    clipped_mesh = mcl.clipped_mesh
+    faces_ids = mcl.clipped_mesh_faces_ids
+
+    assert clipped_mesh.nb_faces == len(faces_ids) == 18
+    assert all(norm(clipped_mesh.faces_centers[i] - mesh.faces_centers[face_id]) < 0.3
+               for i, face_id in enumerate(faces_ids))
 
 
 def test_clipper_corner_cases():

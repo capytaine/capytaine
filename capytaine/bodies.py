@@ -12,7 +12,7 @@ import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.tools.geometry import Abstract3DObject, inplace_transformation
+from capytaine.tools.geometry import Abstract3DObject, Plane, inplace_transformation
 
 LOG = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class FloatingBody(Abstract3DObject):
 
         assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
         self.mesh = mesh
-        self.full_mesh = mesh
+        self.full_body = None
         self.dofs = dofs
         self.name = name
 
@@ -289,14 +289,32 @@ class FloatingBody(Abstract3DObject):
         return self
 
     @inplace_transformation
-    def keep_immersed_part(self, **kwargs):
+    def clip(self, plane, **kwargs):
+        # Keep of copy of the full mesh
+        if self.full_body is None:
+            self.full_body = self.copy()
+
+        # Clip mesh
+        from capytaine.mesh.mesh_clipper import MeshClipper
+        mesh_clipper = MeshClipper(self.mesh, plane=plane)
+        clipped_mesh = mesh_clipper.clipped_mesh
+        self.mesh.vertices = clipped_mesh.vertices
+        self.mesh.faces = clipped_mesh.faces
+        self.mesh.remove_unused_vertices()
+
+        # Clip dofs
+        ids = mesh_clipper.clipped_mesh_faces_ids
+        for dof in self.dofs:
+            self.dofs[dof] = self.dofs[dof][ids]
+        return self
+
+    @inplace_transformation
+    def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
         """Remove the parts of the mesh above the sea bottom and below the free surface.
         """
-        self.full_mesh = self.mesh.copy()
-        self.mesh.keep_immersed_part(**kwargs)
-        # TODO: Also clip dofs
-        if len(self.dofs) > 0:
-            LOG.warning(f"The dofs of {self.name} have not been clipped with its mesh.")
+        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
+        if sea_bottom > -np.infty:
+            self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
         return self
 
     #############
