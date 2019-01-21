@@ -485,11 +485,10 @@ class Mesh(Abstract3DObject):
 
     @inplace_transformation
     def clip(self, plane) -> 'Mesh':
-        from capytaine.mesh.mesh_clipper import MeshClipper
-        clipped_self = MeshClipper(self, plane=plane).clipped_mesh
+        from capytaine.mesh.mesh_clipper import clip
+        clipped_self = clip(self, plane=plane)
         self.vertices = clipped_self.vertices
         self.faces = clipped_self.faces
-        self.remove_unused_vertices()
         return self
 
     def symmetrized(self, plane):

@@ -295,15 +295,14 @@ class FloatingBody(Abstract3DObject):
             self.full_body = self.copy()
 
         # Clip mesh
-        from capytaine.mesh.mesh_clipper import MeshClipper
-        mesh_clipper = MeshClipper(self.mesh, plane=plane)
-        clipped_mesh = mesh_clipper.clipped_mesh
+        from capytaine.mesh.mesh_clipper import clip
+        mesh_clipper = clip(self.mesh, plane=plane, return_all_data=True)
+        clipped_mesh = mesh_clipper['clipped_mesh']
         self.mesh.vertices = clipped_mesh.vertices
         self.mesh.faces = clipped_mesh.faces
-        self.mesh.remove_unused_vertices()
 
         # Clip dofs
-        ids = mesh_clipper.clipped_mesh_faces_ids
+        ids = mesh_clipper['clipped_mesh_faces_ids']
         for dof in self.dofs:
             self.dofs[dof] = self.dofs[dof][ids]
         return self

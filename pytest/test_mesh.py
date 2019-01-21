@@ -8,7 +8,7 @@ import numpy as np
 from numpy.linalg import norm
 
 from capytaine.mesh.mesh import Mesh
-from capytaine.mesh.mesh_clipper import MeshClipper
+from capytaine.mesh.mesh_clipper import clip
 from capytaine.tools.geometry import Plane, xOz_Plane
 from capytaine.geometric_bodies import HorizontalCylinder, Sphere, Rectangle
 
@@ -162,25 +162,15 @@ def test_clipper():
     assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
 
 
-def test_clipper_indices():
+@pytest.mark.parametrize("size", [5, 6])
+def test_clipper_indices(size):
     """Test clipped_mesh_faces_ids."""
-    # Odd
-    mesh = Rectangle(size=(5, 5), resolution=(5, 5), center=(0, 0, 0)).mesh.merged()
-    mcl = MeshClipper(mesh, plane=Plane(point=(0, 0, 0), normal=(0, 0, 1)))
-    clipped_mesh = mcl.clipped_mesh
-    faces_ids = mcl.clipped_mesh_faces_ids
+    mesh = Rectangle(size=(size, size), resolution=(size, size), center=(0, 0, 0)).mesh.merged()
+    mcl = clip(mesh, plane=Plane(point=(0, 0, 0), normal=(0, 0, 1)), return_all_data=True)
+    clipped_mesh = mcl['clipped_mesh']
+    faces_ids = mcl['clipped_mesh_faces_ids']
 
-    assert clipped_mesh.nb_faces == len(faces_ids) == 15
-    assert all(norm(clipped_mesh.faces_centers[i] - mesh.faces_centers[face_id]) < 0.3
-               for i, face_id in enumerate(faces_ids))
-
-    # Even
-    mesh = Rectangle(size=(6, 6), resolution=(6, 6), center=(0, 0, 0)).mesh.merged()
-    mcl = MeshClipper(mesh, plane=Plane(point=(0, 0, 0), normal=(0, 0, 1)))
-    clipped_mesh = mcl.clipped_mesh
-    faces_ids = mcl.clipped_mesh_faces_ids
-
-    assert clipped_mesh.nb_faces == len(faces_ids) == 18
+    assert clipped_mesh.nb_faces == len(faces_ids)
     assert all(norm(clipped_mesh.faces_centers[i] - mesh.faces_centers[face_id]) < 0.3
                for i, face_id in enumerate(faces_ids))
 
