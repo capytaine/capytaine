@@ -166,9 +166,8 @@ def test_clipper():
 def test_clipper_indices(size):
     """Test clipped_mesh_faces_ids."""
     mesh = Rectangle(size=(size, size), resolution=(size, size), center=(0, 0, 0)).mesh.merged()
-    mcl = clip(mesh, plane=Plane(point=(0, 0, 0), normal=(0, 0, 1)), return_all_data=True)
-    clipped_mesh = mcl['clipped_mesh']
-    faces_ids = mcl['clipped_mesh_faces_ids']
+    clipped_mesh = clip(mesh, plane=Plane(point=(0, 0, 0), normal=(0, 0, 1)))
+    faces_ids = clipped_mesh._clipping_data['faces_ids']
 
     assert clipped_mesh.nb_faces == len(faces_ids)
     assert all(norm(clipped_mesh.faces_centers[i] - mesh.faces_centers[face_id]) < 0.3

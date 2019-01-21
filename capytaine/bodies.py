@@ -289,28 +289,23 @@ class FloatingBody(Abstract3DObject):
         return self
 
     @inplace_transformation
-    def clip(self, plane, **kwargs):
+    def clip(self, plane):
         # Keep of copy of the full mesh
         if self.full_body is None:
             self.full_body = self.copy()
 
         # Clip mesh
-        from capytaine.mesh.mesh_clipper import clip
-        mesh_clipper = clip(self.mesh, plane=plane, return_all_data=True)
-        clipped_mesh = mesh_clipper['clipped_mesh']
-        self.mesh.vertices = clipped_mesh.vertices
-        self.mesh.faces = clipped_mesh.faces
+        self.mesh.clip(plane)
 
         # Clip dofs
-        ids = mesh_clipper['clipped_mesh_faces_ids']
+        ids = self.mesh._clipping_data['faces_ids']
         for dof in self.dofs:
             self.dofs[dof] = self.dofs[dof][ids]
         return self
 
     @inplace_transformation
     def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        """Remove the parts of the mesh above the sea bottom and below the free surface.
-        """
+        """Remove the parts of the mesh above the sea bottom and below the free surface."""
         self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
         if sea_bottom > -np.infty:
             self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))

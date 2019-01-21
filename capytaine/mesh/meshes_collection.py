@@ -189,15 +189,23 @@ class CollectionOfMeshes(Abstract3DObject):
             mesh.mirror(plane)
 
     @inplace_transformation
-    def clip(self, **kwargs):
-        for mesh in self:
-            mesh.clip(**kwargs)
+    def clip(self, plane):
+        self._clipping_data = {'faces_ids': []}
+        faces_shifts = accumulate(chain([0], (mesh.nb_faces for mesh in self[:-1])))
+        for mesh, faces_shift in zip(self, faces_shifts):
+            mesh.clip(plane)
+            self._clipping_data['faces_ids'].extend([i + faces_shifts for i in mesh._clipping_data['faces_ids']])
+        self._clipping_data['faces_ids'] = np.asarray(self._clipping_data['faces_ids'])
         self.prune_empty_meshes()
 
-    def symmetrize(self, plane):
+    def clipped(self, plane, **kwargs):
+        # Same API as for the other transformations
+        return self.clip(plane, inplace=False, **kwargs)
+
+    def symmetrized(self, plane):
         from capytaine.mesh.symmetries import ReflectionSymmetry
-        self.clip(plane)
-        return ReflectionSymmetry(self, plane=plane)
+        half = self.clipped(plane, name=f"{self.name}_half")
+        return ReflectionSymmetry(half, plane=plane, name=f"symmetrized_of_{self.name}")
 
     @inplace_transformation
     def keep_immersed_part(self, **kwargs):

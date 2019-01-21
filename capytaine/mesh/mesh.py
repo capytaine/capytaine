@@ -489,15 +489,20 @@ class Mesh(Abstract3DObject):
         clipped_self = clip(self, plane=plane)
         self.vertices = clipped_self.vertices
         self.faces = clipped_self.faces
+        self._clipping_data = clipped_self._clipping_data
         return self
+
+    def clipped(self, plane, **kwargs) -> 'Mesh':
+        # Same API as for the other transformations
+        return self.clip(plane, inplace=False, **kwargs)
 
     def symmetrized(self, plane):
         from capytaine.mesh.symmetries import ReflectionSymmetry
-        half = self.clip(plane, inplace=False)
+        half = self.clipped(plane, name=f"{self.name}_half")
         return ReflectionSymmetry(half, plane=plane, name=f"symmetrized_of_{self.name}")
 
     @inplace_transformation
-    def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty) -> 'Mesh':
+    def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
         """Clip the mesh with two horizontal planes corresponding
         with the free surface and the sea bottom."""
         self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
