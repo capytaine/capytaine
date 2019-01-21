@@ -194,7 +194,7 @@ class CollectionOfMeshes(Abstract3DObject):
         faces_shifts = accumulate(chain([0], (mesh.nb_faces for mesh in self[:-1])))
         for mesh, faces_shift in zip(self, faces_shifts):
             mesh.clip(plane)
-            self._clipping_data['faces_ids'].extend([i + faces_shifts for i in mesh._clipping_data['faces_ids']])
+            self._clipping_data['faces_ids'].extend([i + faces_shift for i in mesh._clipping_data['faces_ids']])
         self._clipping_data['faces_ids'] = np.asarray(self._clipping_data['faces_ids'])
         self.prune_empty_meshes()
 

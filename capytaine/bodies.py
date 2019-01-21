@@ -300,7 +300,10 @@ class FloatingBody(Abstract3DObject):
         # Clip dofs
         ids = self.mesh._clipping_data['faces_ids']
         for dof in self.dofs:
-            self.dofs[dof] = self.dofs[dof][ids]
+            if len(ids) > 0:
+                self.dofs[dof] = self.dofs[dof][ids]
+            else:
+                self.dofs[dof] = np.empty((0, 3))
         return self
 
     @inplace_transformation

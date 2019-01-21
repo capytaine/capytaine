@@ -64,14 +64,18 @@ def test_bodies():
 
 
 @pytest.mark.parametrize("z_center", [0, 2, -2])
-def test_clipping_of_dofs(z_center):
+@pytest.mark.parametrize("collection_of_meshes", [True, False])
+def test_clipping_of_dofs(z_center, collection_of_meshes):
     """Check that clipping a body with a dof is the same as clipping the body ant then adding the dof."""
-    full_sphere = Sphere(center=(0, 0, z_center), name="sphere", clever=False, clip_free_surface=False)
+    full_sphere = Sphere(center=(0, 0, z_center), name="sphere", clever=collection_of_meshes, clip_free_surface=False)
     full_sphere.add_translation_dof(name="Heave")
     clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, sea_bottom=-np.infty, inplace=False)
 
-    other_clipper_sphere = FloatingBody(mesh=clipped_sphere.mesh, name="other_sphere")
-    other_clipper_sphere.add_translation_dof(name="Heave")
+    other_clipped_sphere = FloatingBody(mesh=clipped_sphere.mesh, name="other_sphere")
+    other_clipped_sphere.add_translation_dof(name="Heave")
 
-    assert np.allclose(clipped_sphere.dofs['Heave'], other_clipper_sphere.dofs['Heave'])
+    if clipped_sphere.mesh.nb_faces > 0:
+        assert np.allclose(clipped_sphere.dofs['Heave'], other_clipped_sphere.dofs['Heave'])
+    else:
+        assert len(clipped_sphere.dofs['Heave']) == len(other_clipped_sphere.dofs['Heave']) == 0
 
