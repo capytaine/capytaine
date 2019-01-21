@@ -16,17 +16,36 @@ LOG = logging.getLogger(__name__)
 
 
 class Animation:
+    """Class to generate an animation of a result of Capytaine,
+    including the elevation of the free surface.
+
+    The animation is made of a short loop of a single period of the solution in frequency domain.
+
+    Parameters
+    ----------
+    loop_duration: float
+        Duration in the loop. For real time animation, the period of the motion.
+    fps: int, optional
+        Number of frames per second in the animation (default: 24).
+
+    Attributes
+    ----------
+    frames_per_loop: int
+        Number of frames in one loop
+    actors: list of vtk actor objects
+        The objects in the scene.
+    """
 
     def __init__(self, loop_duration, fps=24):
         self.fps = fps
         self.frames_per_loop = int(fps * loop_duration)
-
         self.actors = []
+
         self._precomputed_polydatas = {}
+        self._current_frame = 0
 
-        self.current_frame = 0
-
-    def add_actor(self, mesh, faces_motion=None, lut=False):
+    def _add_actor(self, mesh, faces_motion=None, lut=False, edges=False):
+        """Add an animated object to the scene."""
         if faces_motion is not None:
             nodes_motion = compute_node_data(mesh.merged(), faces_motion)
         else:
@@ -38,6 +57,8 @@ class Animation:
 
         actor = vtk.vtkActor()
         actor.GetProperty().SetInterpolationToGouraud()
+        if edges:
+            actor.GetProperty().EdgeVisibilityOn()
         actor.SetMapper(mapper)
 
         if nodes_motion is not None:
@@ -71,14 +92,43 @@ class Animation:
 
         return actor
 
-    def add_body(self, body, faces_motion=None):
-        actor = self.add_actor(body.mesh.merged(), faces_motion=faces_motion)
+    def add_body(self, body, faces_motion=None, edges=False):
+        """Add an floating body to the scene.
+
+        Parameters
+        ----------
+        body: FloatingBody
+            The object to include in the scene.
+        faces_motion: dof, optional
+            The motion of the body defined at the center of the faces.
+        edges: bool, optional
+            Draw the edges of the mesh in the scene.
+
+        Returns
+        -------
+        vtk actor object
+        """
+        actor = self._add_actor(body.mesh.merged(), faces_motion=faces_motion,
+                                edges=edges)
         actor.GetProperty().SetColor((1, 1, 0))
         return actor
 
     def add_free_surface(self, free_surface, faces_elevation):
+        """Add the free surface to the scene.
+
+        Parameters
+        ----------
+        free_surface: FreeSurface
+            The free surface object
+        faces_elevation: array of complex numbers
+            The elevation of each face of the meshed free surface given as a complex number.
+
+        Returns
+        -------
+        vtk actor object
+        """
         faces_motion = np.array([(0, 0, elevation) for elevation in faces_elevation])
-        actor = self.add_actor(free_surface.mesh, faces_motion=faces_motion, lut=True)
+        actor = self._add_actor(free_surface.mesh, faces_motion=faces_motion, lut=True)
 
         lut = vtk.vtkLookupTable()
         lut.SetNumberOfColors(20)
@@ -113,15 +163,15 @@ class Animation:
     #                 self.body_actor.SetOrientation(*pos)
     #             self.update_body_position = rotation_motion
 
-    def callback(self, renderer, event):
+    def _callback(self, renderer, event):
         for actor in self.actors:
             if self._precomputed_polydatas[actor] is not None:
-                actor.GetMapper().SetInputData(self._precomputed_polydatas[actor][self.current_frame % self.frames_per_loop])
+                actor.GetMapper().SetInputData(self._precomputed_polydatas[actor][self._current_frame % self.frames_per_loop])
 
-        if hasattr(self, 'writer') and self.current_frame < self.frames_per_loop:
+        if hasattr(self, 'writer') and self._current_frame < self.frames_per_loop:
             self.imageFilter.Modified()
             self.writer.Write()
-            if self.current_frame == self.frames_per_loop - 1:
+            if self._current_frame == self.frames_per_loop - 1:
                 self.writer.End()
                 render_window = renderer.GetRenderWindow()
                 render_window.Finalize()
@@ -129,9 +179,18 @@ class Animation:
 
         renderer.GetRenderWindow().Render()
 
-        self.current_frame += 1
+        self._current_frame += 1
 
-    def run(self, out_file_path=None):
+    def run(self, camera_position=(10.0, 10.0, 10.0), out_file_path=None):
+        """Run the animation.
+
+        Parameters
+        ----------
+        camera_position: 3-ple of floats, optional
+            The starting position of the camera in the scene.
+        out_file_path: string, optional
+            File in which to save the animation
+        """
         # Setup a renderer, render window, and interactor
         renderer = vtk.vtkRenderer()
         renderer.SetBackground(1, 1, 1)  # Background color white
@@ -139,7 +198,7 @@ class Animation:
             renderer.AddActor(actor)
 
         camera = vtk.vtkCamera()
-        camera.SetPosition(80, 80, 90)
+        camera.SetPosition(*camera_position)
         camera.SetFocalPoint(0, 0, 0)
         camera.SetViewUp(0, 0, 1)
         renderer.SetActiveCamera(camera)
@@ -168,7 +227,7 @@ class Animation:
         render_window.Render()
         render_window_interactor.Initialize()  # Initialize must be called prior to creating timer events.
 
-        render_window_interactor.AddObserver('TimerEvent', self.callback)
+        render_window_interactor.AddObserver('TimerEvent', self._callback)
         render_window_interactor.CreateRepeatingTimer(int(1000 / self.fps))
 
         if out_file_path is not None:
