@@ -56,13 +56,12 @@ Meshes and bodies
 
 * New method :code:`assemble_regular_array` to build an array of identical bodies.
 
-* New :code:`clip` method for meshes.
+* Harmonize naming of functions that are not in-place: :code:`symmetrize -> symmetrized`, :code:`merge -> merged`
 
-* When a body is clipped with :code:`clip` or :code:`keep_immersed_part`, the dofs are updated.
+* Refactoring of the internals of the mesh clipper. New :code:`clip` and :code:`clipped` methods for meshes and bodies.
+  When a body is clipped with :code:`clip` or :code:`keep_immersed_part`, the dofs are updated.
 
 * Change naming of dof when bodies are joined: :code:`body_name__dof_name` instead of :code:`body_name_dof_name`.
-
-* Harmonize naming of functions that are not in-place: :code:`symmetrize -> symmetrized`, :code:`merge -> merged`
 
 * Minor improvements of meshes and bodies :code:`repr`.
 
