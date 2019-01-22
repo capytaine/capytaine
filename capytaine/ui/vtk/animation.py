@@ -56,9 +56,9 @@ class Animation:
         mapper.SetInputData(base_polydata)
 
         actor = vtk.vtkActor()
-        actor.GetProperty().SetInterpolationToGouraud()
         if edges:
             actor.GetProperty().EdgeVisibilityOn()
+        actor.GetProperty().SetInterpolationToGouraud()
         actor.SetMapper(mapper)
 
         if nodes_motion is not None:
@@ -79,7 +79,9 @@ class Animation:
 
                 # Store elevation for the LUT of the free surface
                 if lut:
-                    ef = vtk.vtkSimpleElevationFilter()
+                    ef = vtk.vtkElevationFilter()
+                    ef.SetLowPoint(0, 0, min(abs(nodes_motion[2])))
+                    ef.SetHighPoint(0, 0, max(abs(nodes_motion[2])))
                     ef.SetInputData(new_polydata)
                     ef.Update()
                     new_polydata = ef.GetPolyDataOutput()
@@ -131,10 +133,10 @@ class Animation:
         actor = self._add_actor(free_surface.mesh, faces_motion=faces_motion, lut=True)
 
         lut = vtk.vtkLookupTable()
-        lut.SetNumberOfColors(20)
+        lut.SetNumberOfColors(50)
         lut.SetHueRange(0.58, 0.58)
         lut.SetSaturationRange(0.5, 0.5)
-        lut.SetValueRange(0.5, 1.0)
+        lut.SetValueRange(0.5, 0.6)
         lut.Build()
         actor.GetMapper().SetLookupTable(lut)
 
@@ -181,13 +183,15 @@ class Animation:
 
         self._current_frame += 1
 
-    def run(self, camera_position=(10.0, 10.0, 10.0), out_file_path=None):
+    def run(self, camera_position=(10.0, 10.0, 10.0), resolution=(1280, 720), out_file_path=None):
         """Run the animation.
 
         Parameters
         ----------
         camera_position: 3-ple of floats, optional
             The starting position of the camera in the scene.
+        resolution: 2-ple of ints, optional
+            Resolution of the video in pixels.
         out_file_path: string, optional
             File in which to save the animation
         """
@@ -204,7 +208,7 @@ class Animation:
         renderer.SetActiveCamera(camera)
 
         render_window = vtk.vtkRenderWindow()
-        render_window.SetSize(1024, 768)
+        render_window.SetSize(*resolution)
         render_window.SetWindowName("Capytaine animation")
         render_window.AddRenderer(renderer)
 
