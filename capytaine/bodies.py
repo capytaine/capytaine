@@ -158,8 +158,11 @@ class FloatingBody(Abstract3DObject):
         if name is None:
             name = f"dof_{self.nb_dofs}_rotation"
 
-        motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
-        self.dofs[name] = amplitude * motion
+        if self.mesh.nb_faces == 0:
+            self.dofs[name] = np.empty((self.mesh.nb_faces, 3))
+        else:
+            motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
+            self.dofs[name] = amplitude * motion
 
     def add_all_rigid_body_dofs(self) -> None:
         """Add the six degrees of freedom of rigid bodies (in place)."""

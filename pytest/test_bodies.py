@@ -74,9 +74,9 @@ def test_clipping_of_dofs(z_center, collection_of_meshes):
     clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, sea_bottom=-np.infty, inplace=False)
 
     other_clipped_sphere = FloatingBody(mesh=clipped_sphere.mesh, name="other_sphere")
+    other_clipped_sphere.add_rotation_dof(axis, name="test_dof")
 
     if clipped_sphere.mesh.nb_faces > 0:
-        other_clipped_sphere.add_rotation_dof(axis, name="test_dof")
         assert np.allclose(clipped_sphere.dofs['test_dof'], other_clipped_sphere.dofs['test_dof'])
     else:
         assert len(clipped_sphere.dofs['test_dof']) == 0
