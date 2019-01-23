@@ -92,7 +92,9 @@ def Froude_Krylov_force(problem, convention="Nemoh"):
     pressure = -1j * problem.omega * problem.rho * Airy_wave_potential(problem.body.mesh.faces_centers, problem, convention=convention)
     forces = {}
     for dof in problem.influenced_dofs:
-        influenced_dof = np.sum(problem.body.dofs[dof] * problem.body.mesh.faces_normals, axis=1)
-        forces[dof] = pressure @ (influenced_dof * problem.body.mesh.faces_areas)
+        # Scalar product on each face:
+        normal_dof_amplitude_on_face = np.sum(problem.body.dofs[dof] * problem.body.mesh.faces_normals, axis=1)
+        # Sum over all faces:
+        forces[dof] = np.sum(pressure * normal_dof_amplitude_on_face * problem.body.mesh.faces_areas)
     return forces
 
