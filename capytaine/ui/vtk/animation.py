@@ -44,7 +44,7 @@ class Animation:
         self._precomputed_polydatas = {}
         self._current_frame = 0
 
-    def _add_actor(self, mesh, faces_motion=None, faces_colors=None, color_from_elevation=False, edges=False):
+    def _add_actor(self, mesh, faces_motion=None, faces_colors=None, edges=False):
         """Add an animated object to the scene."""
         if faces_motion is not None:
             nodes_motion = compute_node_data(mesh.merged(), faces_motion)
@@ -71,8 +71,9 @@ class Animation:
 
                 if nodes_motion is not None:
                     # Change points positions at frame i
-                    current_deformation = np.real(np.abs(nodes_motion) * np.cos(np.angle(nodes_motion)
-                                                                        - 2*pi*i_frame/self.frames_per_loop))
+                    current_deformation = (
+                            np.abs(nodes_motion)*np.cos(np.angle(nodes_motion)-2*pi*i_frame/self.frames_per_loop)
+                    )
 
                     points = new_polydata.GetPoints()
                     for j in range(mesh.nb_vertices):
@@ -80,19 +81,13 @@ class Animation:
                         point = np.asarray(point) + current_deformation[j]
                         points.SetPoint(j, tuple(point))
 
-                    if color_from_elevation:
-                        ef = vtk.vtkElevationFilter()
-                        ef.SetLowPoint(0, 0, min(abs(nodes_motion[2])))
-                        ef.SetHighPoint(0, 0, max(abs(nodes_motion[2])))
-                        ef.SetInputData(new_polydata)
-                        ef.Update()
-                        new_polydata = ef.GetPolyDataOutput()
-
                 if faces_colors is not None:
-                    current_colors = np.real(np.abs(faces_colors) * np.cos(np.angle(faces_colors)
-                                                                   - 2*pi*i_frame/self.frames_per_loop))
-                    vtk_faces_colors = vtk.vtkFloatArray()
+                    # Evaluate scalar field at frame i
+                    current_colors = (
+                        np.abs(faces_colors)*np.cos(np.angle(faces_colors)-2*pi*i_frame/self.frames_per_loop)
+                    )
                     max_val = max(abs(faces_colors))
+                    vtk_faces_colors = vtk.vtkFloatArray()
                     for i, color in enumerate(current_colors):
                         vtk_faces_colors.InsertValue(i, (color+max_val)/(2*max_val))
                     new_polydata.GetCellData().SetScalars(vtk_faces_colors)
@@ -114,6 +109,8 @@ class Animation:
             The object to include in the scene.
         faces_motion: dof, optional
             The motion of the body defined at the center of the faces.
+        faces_colors: iterable of complex numbers, optional
+            Scalar field over the surface of the body that should be displayed with colors.
         edges: bool, optional
             Draw the edges of the mesh in the scene.
 
@@ -131,7 +128,6 @@ class Animation:
             lut.SetHueRange(0, 0.6)
             lut.SetSaturationRange(0.5, 0.5)
             lut.SetValueRange(0.8, 0.8)
-            # lut.SetTableRange((min(faces_colors), max(faces_colors)))
             lut.Build()
             actor.GetMapper().SetLookupTable(lut)
 
@@ -152,14 +148,13 @@ class Animation:
         vtk actor object
         """
         faces_motion = np.array([(0, 0, elevation) for elevation in faces_elevation])
-        actor = self._add_actor(free_surface.mesh, faces_motion=faces_motion, color_from_elevation=True)
+        actor = self._add_actor(free_surface.mesh, faces_motion=faces_motion, faces_colors=faces_motion[:, 2])
 
         lut = vtk.vtkLookupTable()
         lut.SetNumberOfColors(50)
         lut.SetHueRange(0.58, 0.58)
         lut.SetSaturationRange(0.5, 0.5)
-        lut.SetValueRange(0.5, 0.6)
-        # lut.SetTableRange((min(abs(faces_elevation)), max(abs(faces_elevation))))
+        lut.SetValueRange(0.4, 0.6)
         lut.Build()
         actor.GetMapper().SetLookupTable(lut)
 
