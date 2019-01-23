@@ -84,7 +84,15 @@ CONTAINS
           DNTX(:) = 2*(RR(NEXT_NODE(L)) + RR(L) + ABS(GZ))*ANLX(:) &
             + 2*SIGN(ONE, GZ)*(RR(NEXT_NODE(L)) + RR(L))*Face_normal(:) ! Called D^t_k_{x,y,z} in [Del]
 
-          S0 = S0 + GY*ALDEN - 2*AT*ABS(GZ)
+          IF (ABS(GY) < 1e-5) THEN
+            ! Edge case where the singularity is on the boundary of the face (GY = 0, ALDEN = infty).
+            ! This case seems to only occur when computating the free surface elevation,
+            ! so no fix has been implemented for VS0, which is not needed then.
+            S0 = S0 - 2*AT*ABS(GZ)
+          ELSE
+            ! General case
+            S0 = S0 + GY*ALDEN - 2*AT*ABS(GZ)
+          END IF
 
           VS0(:) = VS0(:) + ALDEN*GYX(:)     &
             - 2*SIGN(ONE, GZ)*AT*Face_normal(:)   &
