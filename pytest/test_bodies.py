@@ -68,14 +68,16 @@ def test_bodies():
 def test_clipping_of_dofs(z_center, collection_of_meshes):
     """Check that clipping a body with a dof is the same as clipping the body ant then adding the dof."""
     full_sphere = Sphere(center=(0, 0, z_center), name="sphere", clever=collection_of_meshes, clip_free_surface=False)
-    full_sphere.add_translation_dof(name="Heave")
+    axis = Axis(point=(1, 0, 0), vector=(1, 0, 0))
+
+    full_sphere.add_rotation_dof(axis, name="test_dof")
     clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, sea_bottom=-np.infty, inplace=False)
 
     other_clipped_sphere = FloatingBody(mesh=clipped_sphere.mesh, name="other_sphere")
-    other_clipped_sphere.add_translation_dof(name="Heave")
 
     if clipped_sphere.mesh.nb_faces > 0:
-        assert np.allclose(clipped_sphere.dofs['Heave'], other_clipped_sphere.dofs['Heave'])
+        other_clipped_sphere.add_rotation_dof(axis, name="test_dof")
+        assert np.allclose(clipped_sphere.dofs['test_dof'], other_clipped_sphere.dofs['test_dof'])
     else:
-        assert len(clipped_sphere.dofs['Heave']) == len(other_clipped_sphere.dofs['Heave']) == 0
+        assert len(clipped_sphere.dofs['test_dof']) == 0
 

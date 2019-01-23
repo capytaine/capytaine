@@ -191,7 +191,7 @@ class CollectionOfMeshes(Abstract3DObject):
     @inplace_transformation
     def clip(self, plane):
         self._clipping_data = {'faces_ids': []}
-        faces_shifts = accumulate(chain([0], (mesh.nb_faces for mesh in self[:-1])))
+        faces_shifts = list(accumulate(chain([0], (mesh.nb_faces for mesh in self[:-1]))))
         for mesh, faces_shift in zip(self, faces_shifts):
             mesh.clip(plane)
             self._clipping_data['faces_ids'].extend([i + faces_shift for i in mesh._clipping_data['faces_ids']])
