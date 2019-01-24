@@ -199,7 +199,14 @@ class FloatingBody(Abstract3DObject):
             for name, dof in body.dofs.items():
                 new_dof = np.zeros((total_nb_faces, 3))
                 new_dof[nbf:nbf+len(dof), :] = dof
-                dofs['__'.join([body.name, name])] = new_dof
+                if '__' not in name:
+                    new_dof_name = '__'.join([body.name, name])
+                else:
+                    # The body is probably a combination of bodies already.
+                    # So for the associativity of the + operation,
+                    # it is better to keep the same name.
+                    new_dof_name = name
+                dofs[new_dof_name] = new_dof
         return dofs
 
     def copy(self, name=None) -> 'FloatingBody':
