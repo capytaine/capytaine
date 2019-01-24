@@ -355,8 +355,10 @@ class Nemoh:
     #  Compute potential  #
     #######################
 
-    def get_potential_on_mesh(self, result, mesh):
+    def get_potential_on_mesh(self, result, mesh, chunk_size=50):
         """Compute the potential on a mesh for the potential field of a previously solved problem.
+        Since the interaction matrix does not need to be computed in full to compute the matrix-vector product,
+        only a few lines are evaluated at a time to reduce the memory cost of the operation.
 
         Parameters
         ----------
@@ -364,6 +366,8 @@ class Nemoh:
             the return of Nemoh's solver
         mesh : Mesh or CollectionOfMeshes
             a mesh
+        chunk_size: int, optional
+            Number of lines to compute in the matrix.
 
         Returns
         -------
@@ -381,15 +385,28 @@ class Nemoh:
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        S, _ = self.build_matrices(
-            mesh,
-            result.body.mesh,
-            free_surface=result.free_surface,
-            sea_bottom=result.sea_bottom,
-            wavenumber=result.wavenumber
-        )
+        if chunk_size > mesh.nb_faces:
+            S, _ = self.build_matrices(
+                mesh,
+                result.body.mesh,
+                free_surface=result.free_surface,
+                sea_bottom=result.sea_bottom,
+                wavenumber=result.wavenumber
+            )
+            phi = S @ result.sources
 
-        phi = S @ result.sources
+        else:
+            phi = np.empty((mesh.nb_faces,), dtype=np.complex128)
+
+            for i in range(0, mesh.nb_faces, chunk_size):
+                S, _ = self.build_matrices(
+                    mesh.extract_faces(list(range(i, i+chunk_size))),
+                    result.body.mesh,
+                    free_surface=result.free_surface,
+                    sea_bottom=result.sea_bottom,
+                    wavenumber=result.wavenumber
+                )
+                phi[i:i+chunk_size] = S @ result.sources
 
         LOG.debug(f"Done computing potential on {mesh.name} for {result}.")
 
