@@ -215,10 +215,7 @@ class MeshViewer:
         tprop.ShadowOn()
 
         axes = vtk.vtkCubeAxesActor2D()
-        if vtk.VTK_MAJOR_VERSION <= 5:
-            axes.SetInput(self.polydatas[0])
-        else:
-            axes.SetInputData(self.polydatas[0])
+        axes.SetInputData(self.polydatas[0])
 
         axes.SetCamera(self.renderer.GetActiveCamera())
         axes.SetLabelFormat("%6.4g")

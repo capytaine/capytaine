@@ -201,7 +201,7 @@ class Animation:
 
         self._current_frame += 1
 
-    def run(self, camera_position=(10.0, 10.0, 10.0), resolution=(1280, 720), out_file_path=None):
+    def run(self, camera_position=(-10.0, -10.0, 10.0), resolution=(1280, 720), out_file_path=None):
         """Run the animation.
 
         Parameters
@@ -218,6 +218,7 @@ class Animation:
         renderer.SetBackground(1, 1, 1)  # Background color white
         for actor in self.actors:
             renderer.AddActor(actor)
+        renderer.Modified()
 
         camera = vtk.vtkCamera()
         camera.SetPosition(*camera_position)
