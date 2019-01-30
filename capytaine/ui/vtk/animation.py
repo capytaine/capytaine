@@ -44,6 +44,31 @@ class Animation:
         self._precomputed_polydatas = {}
         self._current_frame = 0
 
+    # @classmethod
+    # def from_result(self, result):
+    #     from capytaine.bodies import TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
+    #
+    #         if display_dof.lower() in TRANSLATION_DOFS_DIRECTIONS:
+    #             direction = np.asarray(TRANSLATION_DOFS_DIRECTIONS[display_dof.lower()])
+    #             def translation_motion(self, frame):
+    #                 nonlocal direction
+    #                 pos = np.asarray(self.body_actor.GetPosition())
+    #                 pos = (1 - direction) * pos + \
+    #                       direction * np.cos(2*np.pi*(frame % self.frames_per_loop)/self.frames_per_loop)
+    #                 self.body_actor.SetPosition(*pos)
+    #             self.update_body_position = translation_motion
+    #
+    #         elif display_dof.lower() in ROTATION_DOFS_AXIS:
+    #             direction = np.asarray(ROTATION_DOFS_AXIS[display_dof.lower()])
+    #             def rotation_motion(self, frame):
+    #                 nonlocal direction
+    #                 pos = np.asarray(self.body_actor.GetOrientation())
+    #                 pos = (1 - direction) * pos + \
+    #                       direction * np.cos(2*np.pi*(frame % self.frames_per_loop)/self.frames_per_loop)
+    #                 self.body_actor.SetOrientation(*pos)
+    #             self.update_body_position = rotation_motion
+
+
     def _add_actor(self, mesh, faces_motion=None, faces_colors=None, edges=False):
         """Add an animated object to the scene."""
         if faces_motion is not None:
@@ -160,48 +185,14 @@ class Animation:
 
         return actor
 
-    # def add_result(self, result):
-    #     from capytaine.bodies import TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
-    #
-    #         if display_dof.lower() in TRANSLATION_DOFS_DIRECTIONS:
-    #             direction = np.asarray(TRANSLATION_DOFS_DIRECTIONS[display_dof.lower()])
-    #             def translation_motion(self, frame):
-    #                 nonlocal direction
-    #                 pos = np.asarray(self.body_actor.GetPosition())
-    #                 pos = (1 - direction) * pos + \
-    #                       direction * np.cos(2*np.pi*(frame % self.frames_per_loop)/self.frames_per_loop)
-    #                 self.body_actor.SetPosition(*pos)
-    #             self.update_body_position = translation_motion
-    #
-    #         elif display_dof.lower() in ROTATION_DOFS_AXIS:
-    #             direction = np.asarray(ROTATION_DOFS_AXIS[display_dof.lower()])
-    #             def rotation_motion(self, frame):
-    #                 nonlocal direction
-    #                 pos = np.asarray(self.body_actor.GetOrientation())
-    #                 pos = (1 - direction) * pos + \
-    #                       direction * np.cos(2*np.pi*(frame % self.frames_per_loop)/self.frames_per_loop)
-    #                 self.body_actor.SetOrientation(*pos)
-    #             self.update_body_position = rotation_motion
-
     def _callback(self, renderer, event):
         for actor in self.actors:
             if self._precomputed_polydatas[actor] is not None:
                 actor.GetMapper().SetInputData(self._precomputed_polydatas[actor][self._current_frame % self.frames_per_loop])
-
-        if hasattr(self, 'writer') and self._current_frame < self.frames_per_loop:
-            self.imageFilter.Modified()
-            self.writer.Write()
-            if self._current_frame == self.frames_per_loop - 1:
-                self.writer.End()
-                render_window = renderer.GetRenderWindow()
-                render_window.Finalize()
-                renderer.TerminateApp()
-
         renderer.GetRenderWindow().Render()
-
         self._current_frame += 1
 
-    def run(self, camera_position=(-10.0, -10.0, 10.0), resolution=(1280, 720), out_file_path=None):
+    def run(self, camera_position=(-10.0, -10.0, 10.0), resolution=(1280, 720)):
         """Run the animation.
 
         Parameters
@@ -210,8 +201,6 @@ class Animation:
             The starting position of the camera in the scene.
         resolution: 2-ple of ints, optional
             Resolution of the video in pixels.
-        out_file_path: string, optional
-            File in which to save the animation
         """
         # Setup a renderer, render window, and interactor
         renderer = vtk.vtkRenderer()
@@ -235,34 +224,71 @@ class Animation:
         render_window_interactor.SetRenderWindow(render_window)
         render_window_interactor.GetInteractorStyle().SetCurrentStyleToTrackballCamera()
 
-        if out_file_path is not None:
-            self.imageFilter = vtk.vtkWindowToImageFilter()
-            self.imageFilter.SetInput(render_window)
-            self.imageFilter.SetInputBufferTypeToRGB()
-            self.imageFilter.ReadFrontBufferOff()
-
-            self.writer = vtk.vtkOggTheoraWriter()
-            self.writer.SetInputConnection(self.imageFilter.GetOutputPort())
-            self.writer.SetFileName(out_file_path)
-            self.writer.SetRate(self.fps)
-
-        # Render and interact
         render_window.Render()
+
         render_window_interactor.Initialize()  # Initialize must be called prior to creating timer events.
 
         render_window_interactor.AddObserver('TimerEvent', self._callback)
         render_window_interactor.CreateRepeatingTimer(int(1000 / self.fps))
 
-        if out_file_path is not None:
-            self.writer.Start()
-
-        # Start the interaction and timer
         render_window_interactor.Start()
 
-        if out_file_path is not None:
-            del self.imageFilter
-            del self.writer
+        # Run until stopped by user.
 
         del render_window_interactor
         del render_window
 
+    def save(self, filepath, nb_loops=1, camera_position=(-10.0, -10.0, 10.0), resolution=(1280, 720)):
+        """Save the animation in a video file.
+
+        Parameters
+        ----------
+        filepath: string
+            Path of the output file.
+        nb_loop: int, optional
+            Number of periods to save in the file.
+        camera_position: 3-ple of floats, optional
+            The starting position of the camera in the scene.
+        resolution: 2-ple of ints, optional
+            Resolution of the video in pixels.
+        """
+        renderer = vtk.vtkRenderer()
+        renderer.SetBackground(1, 1, 1)  # Background color white
+        for actor in self.actors:
+            renderer.AddActor(actor)
+        renderer.Modified()
+
+        camera = vtk.vtkCamera()
+        camera.SetPosition(*camera_position)
+        camera.SetFocalPoint(0, 0, 0)
+        camera.SetViewUp(0, 0, 1)
+        renderer.SetActiveCamera(camera)
+
+        render_window = vtk.vtkRenderWindow()
+        render_window.SetSize(*resolution)
+        render_window.OffScreenRenderingOn()
+        render_window.AddRenderer(renderer)
+
+        image_filter = vtk.vtkWindowToImageFilter()
+        image_filter.SetInput(render_window)
+        image_filter.SetInputBufferTypeToRGB()
+        image_filter.ReadFrontBufferOff()
+
+        writer = vtk.vtkOggTheoraWriter()
+        writer.SetInputConnection(image_filter.GetOutputPort())
+        writer.SetFileName(filepath)
+        writer.SetRate(self.fps)
+
+        writer.Start()
+
+        for i_frame in range(nb_loops*self.frames_per_loop):
+            self._callback(renderer, None)
+            image_filter.Modified()
+            writer.Write()
+
+        writer.End()
+        render_window.Finalize()
+
+        del image_filter
+        del writer
+        del render_window
