@@ -25,6 +25,7 @@ def test_block_matrix_representation_of_identity():
     assert A.block_shapes == ([2, 2], [2, 2])
     assert list(A._stored_block_positions()) == [[(0, 0)], [(0, 2)], [(2, 0)], [(2, 2)]]
     assert A.str_shape == "2×2×[2×2]"
+    assert A.sparcity == 1.0
 
     assert ((A + A)/2 == A).all()
     assert (-A).min() == -1
@@ -75,6 +76,7 @@ def test_sparse_storage_of_block_toeplitz_matrices():
                   np.array([[0, 1, 2],
                             [4, 0, 1],
                             [3, 4, 0]]))
+    assert A.sparcity == 5/9
 
     B = BlockSymmetricToeplitzMatrix(
         [[np.array([[i]]) for i in range(4)]]
@@ -85,6 +87,7 @@ def test_sparse_storage_of_block_toeplitz_matrices():
                             [2, 1, 0, 1],
                             [3, 2, 1, 0],
                             ]))
+    assert B.sparcity == 4/16
 
     C = BlockCirculantMatrix(
         [[np.array([[i]]) for i in range(4)]]
@@ -95,6 +98,7 @@ def test_sparse_storage_of_block_toeplitz_matrices():
                             [2, 3, 0, 1],
                             [1, 2, 3, 0],
                             ]))
+    assert C.sparcity == 4/16
 
     D = EvenBlockSymmetricCirculantMatrix(
         [[np.array([[i]]) for i in range(3)]]
@@ -105,6 +109,7 @@ def test_sparse_storage_of_block_toeplitz_matrices():
                             [2, 1, 0, 1],
                             [1, 2, 1, 0],
                             ]))
+    assert D.sparcity == 3/16
 
     E = OddBlockSymmetricCirculantMatrix(
         [[np.array([[i]]) for i in range(3)]]
@@ -116,6 +121,7 @@ def test_sparse_storage_of_block_toeplitz_matrices():
                             [2, 2, 1, 0, 1],
                             [1, 2, 2, 1, 0],
                             ]))
+    assert E.sparcity == 3/25
 
 
 def test_block_toeplitz_matrices():
@@ -385,6 +391,7 @@ def test_low_rank_blocks():
     LR = LowRankMatrix(a, b)
     assert LR.shape == LR.full_matrix().shape
     assert matrix_rank(LR.full_matrix()) == LR.rank == 1
+    assert LR.sparcity == 2*n/n**2
 
     a, b = np.random.rand(n, 2), np.random.rand(2, n)
     LR = LowRankMatrix(a, b)

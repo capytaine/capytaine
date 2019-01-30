@@ -175,6 +175,22 @@ class BlockMatrix:
         self._put_in_full_matrix(full_matrix)
         return full_matrix
 
+    @property
+    def stored_data_size(self):
+        """Return the number of entries actually stored in memory."""
+        size = 0
+        for line in self._stored_blocks:
+            for block in line:
+                if isinstance(block, np.ndarray):
+                    size += np.product(block.shape)
+                else:
+                    size += block.stored_data_size
+        return size
+
+    @property
+    def sparcity(self):
+        return self.stored_data_size/np.product(self.shape)
+
     def __hash__(self):
         # Temporary
         return id(self)
