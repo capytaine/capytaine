@@ -173,6 +173,9 @@ class CollectionOfMeshes(Abstract3DObject):
         merged.heal_triangles()
         return merged
 
+    def extract_faces(self, *args, **kwargs):
+        return self.merged().extract_faces(*args, **kwargs)
+
     @inplace_transformation
     def translate(self, vector):
         for mesh in self:
