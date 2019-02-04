@@ -361,7 +361,7 @@ class BlockMatrix:
             list_of_i_j_blocks = [block_matrices[i_matrix]._stored_blocks[i_block, j_block]
                                   for i_matrix in range(len(block_matrices))]
 
-            if any(isinstance(block, np.ndarray) for block in list_of_i_j_blocks):
+            if any(isinstance(block, np.ndarray) or isinstance(block, LowRankMatrix) for block in list_of_i_j_blocks):
                 list_of_i_j_blocks = [block if isinstance(block, np.ndarray) else block.full_matrix() for block in list_of_i_j_blocks]
                 fft_of_blocks = np.fft.fft(list_of_i_j_blocks, axis=0)
             else:
