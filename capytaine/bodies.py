@@ -25,12 +25,13 @@ class FloatingBody(Abstract3DObject):
     def __init__(self, mesh=None, dofs=None, name=None):
         """A floating body described as a mesh and some degrees of freedom.
 
-        The mesh structure is stored as an instance from the Mesh class (see
-        documentation of this class for more details) or as a CollectionOfMeshes from
-        capytaine.meshes_collection. The latter is a tuple of meshes or of other collections.
+        The mesh structure is stored as a Mesh from capytaine.mesh.mesh or a
+        CollectionOfMeshes from capytaine.mesh.meshes_collection.
 
-        The degrees of freedom (dofs) are stored as a dict associating a name to an array
-        of shape (nb_faces, 3) associating a vector to each face of the body.
+        The degrees of freedom (dofs) are stored as a dict associating a name to
+        a complex-valued array of shape (nb_faces, 3). To each face of the body
+        (as indexed in the mesh) corresponds a complex-valued 3d vector, which
+        defines the displacement of the center of the face in frequency domain.
 
         Parameters
         ----------
@@ -305,6 +306,7 @@ class FloatingBody(Abstract3DObject):
             self.full_body = self.copy()
 
         # Clip mesh
+        LOG.info(f"Clipping {self.name} with respect to {plane}")
         self.mesh.clip(plane)
 
         # Clip dofs

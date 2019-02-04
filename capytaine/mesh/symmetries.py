@@ -54,7 +54,7 @@ class ReflectionSymmetry(SymmetricMesh):
         self.plane = plane.copy()
 
         if self.name is not None:
-            LOG.info(f"New mirror symmetric mesh: {self.name}.")
+            LOG.debug(f"New mirror symmetric mesh: {self.name}.")
         else:
             LOG.debug(f"New mirror symmetric mesh.")
 
@@ -132,7 +132,7 @@ class TranslationalSymmetry(SymmetricMesh):
         self.translation = translation
 
         if self.name is not None:
-            LOG.info(f"New translation symmetric mesh: {self.name}.")
+            LOG.debug(f"New translation symmetric mesh: {self.name}.")
         else:
             LOG.debug(f"New translation symmetric mesh.")
 
@@ -240,7 +240,7 @@ class AxialSymmetry(SymmetricMesh):
         self.axis = axis.copy()
 
         if self.name is not None:
-            LOG.info(f"New rotation symmetric mesh: {self.name}.")
+            LOG.debug(f"New rotation symmetric mesh: {self.name}.")
         else:
             LOG.debug(f"New rotation symmetric mesh.")
 
