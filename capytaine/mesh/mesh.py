@@ -193,6 +193,10 @@ class Mesh(Abstract3DObject):
 
         extracted_mesh = Mesh(v_extracted, faces_extracted)
 
+        for prop in self.__internals__:
+            if prop[:4] == "face":
+                extracted_mesh.__internals__[prop] = self.__internals__[prop][id_faces_to_extract]
+
         if name is None:
             extracted_mesh.name = 'mesh_extracted_from_%s' % self.name
         else:
