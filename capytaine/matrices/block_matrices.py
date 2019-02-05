@@ -416,7 +416,7 @@ class BlockMatrix:
                 for block in line:
                     if isinstance(block, BlockMatrix):
                         blocks_str.append(block.str_shape)
-                    elif isinstance(block, np.ndarray):
+                    elif isinstance(block, np.ndarray) or isinstance(block, LowRankMatrix):
                         blocks_str.append("{}×{}".format(*block.shape))
                     else:
                         blocks_str.append("?×?")
