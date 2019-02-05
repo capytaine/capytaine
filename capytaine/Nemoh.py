@@ -230,7 +230,10 @@ class Nemoh:
 
         # The real valued matrices Srankine and Vrankine are automatically recasted as complex in the sum.
         Swave += Srankine
-        Vwave += Vrankine + identity_like(Vrankine)/2
+        if mesh1 is mesh2:
+            Vwave += Vrankine + identity_like(Vrankine)/2
+        else:
+            Vwave += Vrankine
         return Swave, Vwave
 
     def build_matrices_rankine(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):

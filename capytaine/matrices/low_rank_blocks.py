@@ -256,11 +256,13 @@ class LowRankMatrix:
 
             new_col0 = a0 - full0[:, j]
             pivot0 = new_col0[i]
-            assert pivot0 != 0.0
+            if abs(pivot0) < 1e-12:
+                pivot0 = 1e-12
 
             new_col1 = a1 - full1[:, j]
             pivot1 = new_col1[i]
-            assert pivot1 != 0.0
+            if abs(pivot1) < 1e-12:
+                pivot1 = 1e-12
 
             # Add the column to the approximation
             left[0].append(new_col0/pivot0)
@@ -273,11 +275,15 @@ class LowRankMatrix:
             increment_of_current_iteration1 = np.outer(left[1][l][:], right[1][l][:])
             full1 += increment_of_current_iteration1
 
-            if np.linalg.norm(increment_of_current_iteration0, 'fro')/np.linalg.norm(full0, 'fro') < tol:
+            if np.linalg.norm(increment_of_current_iteration0, 'fro') <= tol*np.linalg.norm(full0, 'fro') :
                 # See Gypsilab for possible improvement of the norm computation.
                 LOG.debug(f"ACA: approximation found of rank {l}")
-                return (LowRankMatrix(np.array(left[0][:-1]).T, np.array(right[0][:-1])),
-                        LowRankMatrix(np.array(left[1][:-1]).T, np.array(right[1][:-1])))
+                if l == 0:  # Edge case of the zero matrix...
+                    return (LowRankMatrix(np.array(left[0]).T, np.array(right[0])),
+                            LowRankMatrix(np.array(left[1]).T, np.array(right[1])))
+                else:
+                    return (LowRankMatrix(np.array(left[0][:-1]).T, np.array(right[0][:-1])),
+                            LowRankMatrix(np.array(left[1][:-1]).T, np.array(right[1][:-1])))
 
         if tol > 0:
             LOG.warning(f"Unable to find a low rank approximation of rank lower or equal to {l+1} with tolerance {tol}.")
