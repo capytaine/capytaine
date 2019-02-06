@@ -119,6 +119,8 @@ def assemble_dataset(results):
     dataset = xr.Dataset()
 
     df = pd.DataFrame([record for result in results for record in result.records])
+    if len(df) == 0:
+        raise ValueError("No result passed to assemble_dataset.")
 
     optional_vars = ['g', 'rho', 'body_name', 'water_depth']
 

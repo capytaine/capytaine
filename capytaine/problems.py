@@ -164,6 +164,9 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                 * self.body.mesh.faces_normals
             ).sum(axis=1)
 
+            if len(self.body.dofs) == 0:
+                LOG.warning(f"The body {self.body.name} used in diffraction problem has no dofs!")
+
     def _str_other_attributes(self):
         return [f"angle={self.angle:.3f}"]
 
