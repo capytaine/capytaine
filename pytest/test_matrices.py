@@ -78,6 +78,9 @@ def test_sparse_storage_of_block_toeplitz_matrices():
                             [3, 4, 0]]))
     assert A.sparcity == 5/9
 
+    assert not isinstance(A.no_toeplitz(), BlockToeplitzMatrix)
+    assert np.all(A.no_toeplitz().full_matrix() == A.full_matrix())
+
     B = BlockSymmetricToeplitzMatrix(
         [[np.array([[i]]) for i in range(4)]]
     )
@@ -134,6 +137,22 @@ def test_block_toeplitz_matrices():
     assert A.shape == (4, 4)
     assert list(A._stored_block_positions()) == [[(0, 0), (2, 2)], [(0, 2)], [(2, 0)]]
     assert (A.full_matrix() == np.eye(*A.shape)).all()
+
+    # Removing the Toeplitz structure.
+    Ant = A.no_toeplitz()
+    assert not isinstance(Ant, BlockToeplitzMatrix)
+    assert Ant.all_blocks[0, 0] is Ant.all_blocks[1, 1]
+    # When using no_toeplitz, the resulting BlockMatrix still contains several references to the same array object.
+
+    from copy import deepcopy
+    Ant_cp = deepcopy(Ant)
+    assert Ant_cp.all_blocks[0, 0] is not Ant_cp.all_blocks[1, 1]
+    # The deepcopy has made different copies of the blocks in the block matrix without explicit Toeplitz structure.
+
+    # However,
+    A_cp = deepcopy(A)
+    assert A_cp.all_blocks[0, 0] is A_cp.all_blocks[1, 1]
+    # The matrix with explicit Toeplitz structure still keep the structure when deepcopied.
 
     assert ((A + A)/2 == A).all()
     assert (-A).min() == -1

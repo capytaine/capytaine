@@ -175,6 +175,19 @@ class BlockMatrix:
         self._put_in_full_matrix(full_matrix)
         return full_matrix
 
+    def no_toeplitz(self):
+        """Recursively replace the block toeplitz matrices by usual block matrices.
+        WARNING: the block matrices may still contain several references to the same block."""
+        blocks = [[block.no_toeplitz() if isinstance(block, BlockMatrix) else block for block in line] for line in self.all_blocks]
+        return BlockMatrix(blocks)
+
+    def __deepcopy__(self, memo):
+        from copy import deepcopy
+        blocks = [[deepcopy(block) for block in line] for line in self._stored_blocks]
+        # The call to deepcopy does not use the memo on purpose:
+        # the goal is to replace references to the same block by references to different copies of the block.
+        return self.__class__(blocks)
+
     @property
     def stored_data_size(self):
         """Return the number of entries actually stored in memory."""
