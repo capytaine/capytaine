@@ -96,3 +96,13 @@ def solve_gmres(A, b):
 
     return x
 
+def gmres_no_fft(A, b):
+    LOG.debug(f"Solve with GMRES for {A} without using FFT.")
+
+    x, info = ssl.gmres(A.no_toeplitz() if isinstance(A, BlockMatrix) else A, b, atol=1e-6)
+
+    if info != 0:
+        LOG.warning(f"No convergence of the GMRES. Error code: {info}")
+
+    return x
+
