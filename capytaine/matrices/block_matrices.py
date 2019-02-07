@@ -2,6 +2,7 @@
 # coding: utf-8
 """Define block matrices as an array of references to other objects."""
 
+from functools import lru_cache
 import logging
 
 from numbers import Number
@@ -423,29 +424,29 @@ class BlockMatrix:
 
     @property
     def str_shape(self):
-        if not hasattr(self, '_str_shape'):
-            blocks_str = []
-            for line in self.all_blocks:
-                for block in line:
-                    if isinstance(block, BlockMatrix):
-                        blocks_str.append(block.str_shape)
-                    elif isinstance(block, np.ndarray) or isinstance(block, LowRankMatrix):
-                        blocks_str.append("{}×{}".format(*block.shape))
-                    else:
-                        blocks_str.append("?×?")
+        blocks_str = []
+        for line in self.all_blocks:
+            for block in line:
+                if isinstance(block, BlockMatrix):
+                    blocks_str.append(block.str_shape)
+                elif isinstance(block, np.ndarray) or isinstance(block, LowRankMatrix):
+                    blocks_str.append("{}×{}".format(*block.shape))
+                else:
+                    blocks_str.append("?×?")
 
-            if len(set(blocks_str)) == 1:
-                self._str_shape = "{}×{}×[".format(*self.nb_blocks) + blocks_str[0] + "]"
-            else:
-                blocks_str = np.array(blocks_str).reshape(self.nb_blocks).tolist()
-                self._str_shape = str(blocks_str).replace("'", "")
-        return self._str_shape
+        if len(set(blocks_str)) == 1:
+            return "{}×{}×[".format(*self.nb_blocks) + blocks_str[0] + "]"
+        else:
+            blocks_str = np.array(blocks_str).reshape(self.nb_blocks).tolist()
+            return str(blocks_str).replace("'", "")
 
     def __str__(self):
-        args = [self.str_shape]
-        if self.dtype not in [np.float64, np.float]:
-            args.append(f"dtype={self.dtype}")
-        return f"{self.__class__.__name__}(" + ", ".join(args) + ")"
+        if not hasattr(self, '_str'):
+            args = [self.str_shape]
+            if self.dtype not in [np.float64, np.float]:
+                args.append(f"dtype={self.dtype}")
+            self._str = f"{self.__class__.__name__}(" + ", ".join(args) + ")"
+        return self._str
 
     display_color = cycle([f'C{i}' for i in range(10)])
 
