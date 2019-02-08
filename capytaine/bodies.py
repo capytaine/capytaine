@@ -144,11 +144,11 @@ class FloatingBody(Abstract3DObject):
                 axis_direction = ROTATION_DOFS_AXIS[name.lower()]
                 if hasattr(self, 'center'):
                     axis_point = self.center
-                    LOG.info(f"The rotation dof {name} have been initialized "
+                    LOG.info(f"The rotation dof {name} has been initialized "
                              f"around the center of gravity of {self.name}.")
                 else:
                     axis_point = np.array([0, 0, 0])
-                    LOG.warning(f"The rotation dof {name} have been initialized "
+                    LOG.warning(f"The rotation dof {name} has been initialized "
                                 f"around the origin of the domain (0, 0, 0).")
             else:
                 raise ValueError("A direction needs to be specified for the dof.")
