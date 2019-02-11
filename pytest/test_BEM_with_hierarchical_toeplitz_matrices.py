@@ -22,8 +22,8 @@ from capytaine.tools.geometry import xOz_Plane, yOz_Plane
 
 from capytaine.matrices.low_rank_blocks import LowRankMatrix
 
-solver_with_sym = Nemoh(linear_solver="gmres", use_symmetries=True, matrix_cache_size=0)
-solver_without_sym = Nemoh(linear_solver="gmres", use_symmetries=False, matrix_cache_size=0)
+solver_with_sym = Nemoh(use_symmetries=True, ACA_distance=8, matrix_cache_size=0)
+solver_without_sym = Nemoh(use_symmetries=False, ACA_distance=8, matrix_cache_size=0)
 # Use a single solver in the whole module to avoid reinitialisation of the solver (0.5 second).
 # Do not use a matrix cache in order not to risk influencing a test with another.
 

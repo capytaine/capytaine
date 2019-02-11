@@ -68,9 +68,9 @@ class Nemoh:
 
     def __init__(self,
                  npinte=251,
-                 use_symmetries=True, ACA_distance=8, ACA_tol=1e-2,
+                 use_symmetries=True, ACA_distance=np.infty, ACA_tol=1e-2,
                  cache_rankine_matrices=True, matrix_cache_size=1,
-                 linear_solver='direct',
+                 linear_solver='gmres',
                  ):
         LOG.info("Initialize Nemoh's Green function.")
         self.tabulated_integrals = tabulated_integrals(328, 46, npinte)
