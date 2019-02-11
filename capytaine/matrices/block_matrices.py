@@ -2,7 +2,6 @@
 # coding: utf-8
 """Define block matrices as an array of references to other objects."""
 
-from functools import lru_cache
 import logging
 
 from numbers import Number
