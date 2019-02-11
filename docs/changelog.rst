@@ -22,15 +22,19 @@ Major changes
 
 * Option to solve the linear system with GMRES instead of a direct solver.
 
-* Refactoring of the 3D animation module. See cookbook for an example of the new
-  API.
+* Refactoring of the 3D animation module for animation of the body motions,
+  animated colormap of the pressure, free-surface elevation and export as a
+  video. See cookbook for an example of the new API.
 
 Minor changes
 -------------
 
+General
+~~~~~~~
+
 * Reorganization of the :code:`pytest` directory.
 
-* Add an experimental `capytaine.tools.rao` module to compute Response Amplitude
+* Add an experimental :code:`capytaine.tools.rao` module to compute Response Amplitude
   Operators.
 
 * Various bug fixes and improvements of the documentation.
@@ -43,9 +47,16 @@ Solver
   See its docstring for details.
 
 * Change of default behavior: the solver stores the details in the :code:`Result`
-  container when using :code:`solve`, not when using :code:`solve_all`.
+  container when using :code:`solve`, not when using :code:`solve_all` or
+  :code:`fill_dataset`.
+
+* The water density can be specified in the test matrix when using
+  :code:`fill_dataset`.
 
 * Function :code:`kochin_dataset` to build a xarray of Kochin function.
+
+* Add the option :code:`chunk_size` to the computation of the free surface
+  elevation in order to limit the RAM consumption.
 
 * Minor refactoring of the solver and the computation of the Green function.
 
@@ -62,6 +73,9 @@ Meshes and bodies
   When a body is clipped with :code:`clip` or :code:`keep_immersed_part`, the dofs are updated.
 
 * Change naming of dof when bodies are joined: :code:`body_name__dof_name` instead of :code:`body_name_dof_name`.
+
+* The combination of bodies with :code:`+` is associative with respect to the
+  names of the dofs.
 
 * Minor improvements of meshes and bodies :code:`repr`.
 
