@@ -6,8 +6,6 @@ import re
 
 from numpy.distutils.core import Extension, setup
 
-VERSION = '0.6dev'
-
 #######################
 #  Fortran extension  #
 #######################
