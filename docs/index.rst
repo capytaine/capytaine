@@ -13,15 +13,15 @@ Latest release: |release| (|today|).
 
    features.rst
 
+Contributions are welcome!
+Please report bugs and suggest improvements as `Github issues <https://github.com/mancellin/capytaine/issues/>`_.
+
 .. raw:: html
 
     <div style="float: right;">
-    <video src="_static/diffraction.ogv" loop autoplay width="320" height="240">
+    <video src="_static/front_page_animation.ogv" loop autoplay width="320" height="240">
     </video>
     </div>
-
-Contributions are welcome!
-Please report bugs and suggest improvements as `Github issues <https://github.com/mancellin/capytaine/issues/>`_.
 
 Documentation
 =============
