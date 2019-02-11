@@ -89,9 +89,3 @@ This example plots the influence matrix for an horizontal cylinder.
 
 .. literalinclude:: examples/plot_matrix.py
    :language: python
-
-Parallel computations
----------------------
-
-TODO
-

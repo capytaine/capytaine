@@ -9,5 +9,6 @@ User manual
    tutorial.rst
    inputs.rst
    problem_setup.rst
+   resolution.rst
    outputs.rst
    cookbook.rst

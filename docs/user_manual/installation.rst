@@ -17,7 +17,8 @@ On Linux
 
 The easiest way to install the package is through Conda_.
 Download and install the `Anaconda distribution`_ or its lightweight counterpart Miniconda_.
-Capytaine requires **Python 3.6**.
+Capytaine is developped and tested with **Python 3.6**.
+It should also work fine on newer versions of Python.
 
 .. _Conda: https://conda.io
 .. _`Anaconda distribution`: https://www.anaconda.com/download/

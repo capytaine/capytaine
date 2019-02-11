@@ -67,7 +67,7 @@ The formats currently supported by Meshmagick in reading are the following (from
 .. [#f4] HYDROSTAR is a BEM Software for seakeeping developped by
          BUREAU VERITAS
 .. [#f5] GMSH is an open source meshing software developped by C. Geuzaine
-         and J.-_faces. Remacle
+         and J.-F. Remacle
 .. [#f6] PARAVIEW is an open source visualization software developped by
          Kitware
 .. [#f7] TECPLOT is a visualization software developped by Tecplot
@@ -80,11 +80,12 @@ Transforming a mesh
 Several functions are available to transform existing meshes.
 
 Most transformation methods exist in two versions: 
+
 * one, named as a infinitive verb (`translate`, `rotate`, ...), is an in-place transformation;
 * the other, named as a past participle (`translated`, `rotated`, ...), is the
   same transformation but returning a new object. 
 
-In most cases, performance is not significant and the former method should be
+In most cases, performance is not significant and the latter method should be
 preferred since it makes code slightly easier to debug.
 
 Below is a non-exhaustive list of available methods.

@@ -25,6 +25,7 @@ class LinearPotentialFlowProblem:
     """General class of a potential flow problem.
 
     Stores:
+
     * the environmental variables (gravity and fluid density),
     * the shape of the domain (position of the free surface and of the sea bottom),
     * the frequency of interest,

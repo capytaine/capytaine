@@ -85,12 +85,14 @@ geometric shapes::
 
     sphere = Sphere(radius=1.0, center=(0, 0, -2), name="my buoy")
 
-Users can also import mesh from various file formats as shown in the cookbook. The mesh is stored
-is the :class:`~capytaine.mesh.mesh.Mesh` object. You can for instance access of coordinates of some of the vertices,
-faces centers or faces normal vectors using the following syntax::
+Users can also import mesh from various file formats as shown in the :doc:`inputs`
+section of the documentation. The mesh is stored is the
+:class:`~capytaine.mesh.mesh.Mesh` object. You can for instance access of
+coordinates of some of the vertices, faces centers or faces normal vectors using
+the following syntax::
 
     sphere.mesh.vertices[:10]  # First ten vertices.
-    sphere.mesh.faces_centers[5]  # Center of the sixth face (Python arrays starts at 0).
+    sphere.mesh.faces_centers[5]  # Center of the sixth face (Python arrays start at 0).
     sphere.mesh.faces_normals[5]  # Normal vector of the sixth face.
 
 The mesh can be displayed in 3D using the following command::
@@ -130,10 +132,10 @@ Let us define a radiation problem for the heave of our sphere::
 
     problem = RadiationProblem(body=sphere, radiating_dof="Heave", omega=1.0, sea_bottom=-np.infty, g=9.81, rho=1000)
 
-The argument `radiating_dof` must be the name of one of the dofs of the floating body given as the
-`body` argument. The wave frequency has been set arbitrarily as :math:`\omega = 1 \, \text{rad/s}`.
-The water depth is infinite, the gravity acceleration is :math:`g = 9.81` and the water density has
-been chosen as :math:`\rho = 1000 \text{kg/m}^3`. These last parameters are actually optional.
+The argument :code:`radiating_dof` must be the name of one of the dofs of the floating body given as the
+:code:`body` argument. The wave frequency has been set arbitrarily as :math:`\omega = 1 \, \text{rad/s}`.
+The water depth is infinite, the gravity acceleration is :math:`g = 9.81 \, \text{m/s}^2` and the water density has
+been chosen as :math:`\rho = 1000 \, \text{kg/m}^3`. These last parameters are actually optional.
 Since we are using their default value, we could have defined the radiation problem as::
 
     problem = RadiationProblem(body=sphere, radiating_dof="Heave", omega=1.0)
@@ -171,8 +173,11 @@ the added mass and radiation damping::
     print(result.added_masses)
     # {'Surge': 9.154531598110083e-06, 'Heave': 2207.8423200090374}
 
-In this example, the radiating dof is heave. The :code:`added_masses` dictionary stores the
-influence of heaving on all the dofs of the body. Here, it mainly affects heave itself.
+The :code:`added_masses` dictionary stores the resulting force on each of the dofs of the body.
+In this example, the radiating dof is heave and the reaction force in the
+:math:`x` direction (:code:`result.added_masses['Surge']`) is negligible with
+respect to the one in the :math:`z` direction
+(:code:`result.added_masses['Heave']`).
 
 ::
 

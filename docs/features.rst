@@ -12,7 +12,7 @@ Capytaine is based on
 .. _meshmagick: https://github.com/LHEEA/meshmagick
 .. _`Python scientific ecosystem`: https://scipy.org/
 
-For users, it can be seen as a Python[#]_ interface to Nemoh.
+For users, it can be seen as a Python [#]_ interface to Nemoh.
 Since most of the code has been rewritten, it can be used by developpers as a
 more concise and better documented version of Nemoh.
 
@@ -22,18 +22,16 @@ Main features
 -------------
 
 * Computation of the **added masses, radiation dampings, diffraction forces and Froude-Krylov forces** for rigid bodies or for bodies with **any arbitrary degrees of freedom**.
-* Binaries distributed via conda_.
+* Binaries distributed via `conda <https://www.anaconda.com/download/>`_.
 * Python object oriented API.
 * A **cleaner code** with unit tests, more comments, no Fortran 77 and no global variables.
 * OpenMP parallelization.
-* Usually **1 to 4 times faster** than Nemoh 2.0 on a single thread [#]_.
-* Double precision floating numbers by default. (Single precision also possible.)
+* **Up to 8 times faster** than Nemoh 2.0 on a single thread [#]_.
+* Double precision floating numbers by default. (Can be recompiled in single precision.)
 * Various input mesh formats supported via meshmagick_.
 * Output in legacy Nemoh Tecplot format or NetCDF format.
 * Computation of the **free surface elevation** and the **Kochin function**.
 * 3D animations of the free surface elevation.
-
-.. _conda: https://www.anaconda.com/download/
 
 Experimental features / For advanced users
 ------------------------------------------
