@@ -2,7 +2,7 @@
 # coding: utf-8
 
 __author__ = 'Matthieu Ancellin'
-__version__ = '0.6'
+__version__ = '0.7dev'
 __license__ = 'GPLv3'
 
 from capytaine.tools.geometry import Axis, Plane
