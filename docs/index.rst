@@ -20,8 +20,8 @@ Latest release: |release| (|today|).
     </video>
     </div>
 
-Please report bugs and suggest improvements through a `Github issue <https://github.com/mancellin/capytaine/issues/>`_.
 Contributions are welcome!
+Please report bugs and suggest improvements as a `Github issue <https://github.com/mancellin/capytaine/issues/>`_.
 
 Documentation
 =============
@@ -44,6 +44,7 @@ Documentation
 .. toctree::
    :maxdepth: 1
 
+   citing.rst
    changelog.rst
 
 Source code
