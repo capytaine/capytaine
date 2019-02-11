@@ -16,7 +16,7 @@ See [the documentation](https://ancell.in/capytaine) for more informations.
 
 ## License
 
-Copyright (C) 2017-2018, Matthieu Ancellin
+Copyright (C) 2017-2019, Matthieu Ancellin
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 

@@ -21,7 +21,7 @@ Latest release: |release| (|today|).
     </div>
 
 Contributions are welcome!
-Please report bugs and suggest improvements as a `Github issue <https://github.com/mancellin/capytaine/issues/>`_.
+Please report bugs and suggest improvements as `Github issues <https://github.com/mancellin/capytaine/issues/>`_.
 
 Documentation
 =============

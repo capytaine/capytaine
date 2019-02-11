@@ -21,7 +21,7 @@ from capytaine import __version__
 # -- Project information -----------------------------------------------------
 
 project = 'capytaine'
-copyright = '2018, Matthieu Ancellin'
+copyright = '2019, Matthieu Ancellin'
 author = 'Matthieu Ancellin'
 
 # The short X.Y version
