@@ -200,7 +200,7 @@ class RectangularParallelepiped(FloatingBody):
             parallelepiped = self._generate_mesh_with_translational_symmetry(resolution, top, bottom, name)
 
         if not (reflection_symmetry or translational_symmetry):
-            parallelepiped = parallelepiped.merge(name=f"{name}_mesh")
+            parallelepiped = parallelepiped.merged(name=f"{name}_mesh")
             parallelepiped.merge_duplicates()
             parallelepiped.heal_triangles()
 
@@ -234,7 +234,7 @@ class RectangularParallelepiped(FloatingBody):
             panels.append(top_panel)
         if bottom:
             panels.append(bottom_panel)
-        ring = CollectionOfMeshes(panels, name=f"ring_of_{name}_mesh").merge()
+        ring = CollectionOfMeshes(panels, name=f"ring_of_{name}_mesh").merged()
         ring.merge_duplicates()
         ring.heal_triangles()
 
@@ -287,7 +287,7 @@ class RectangularParallelepiped(FloatingBody):
             panels.append(quarter_of_top)
         if bottom:
             panels.append(quarter_of_bottom)
-        quarter_of_mesh = CollectionOfMeshes(panels, name=f"quarter_of_{name}_mesh").merge()
+        quarter_of_mesh = CollectionOfMeshes(panels, name=f"quarter_of_{name}_mesh").merged()
 
         half_mesh = ReflectionSymmetry(quarter_of_mesh, plane=yOz_Plane, name=f"half_of_{name}_mesh")
         return ReflectionSymmetry(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")

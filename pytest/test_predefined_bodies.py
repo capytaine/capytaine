@@ -57,7 +57,7 @@ def test_rectangle_generation():
     assert sym_rec.mesh.nb_submeshes == 2
     assert sym_rec.mesh.nb_faces == 12
 
-    sym_rec_merged_mesh = sym_rec.mesh.merge()
+    sym_rec_merged_mesh = sym_rec.mesh.merged()
     assert isinstance(sym_rec_merged_mesh, Mesh)
     # assert sym_rec_merged_mesh == rec.mesh
 
@@ -69,7 +69,7 @@ def test_rectangle_generation():
     assert trans_rec.mesh.nb_submeshes == 6
     assert trans_rec.mesh.nb_faces == 12
 
-    trans_rec_merged_mesh = trans_rec.mesh.merge()
+    trans_rec_merged_mesh = trans_rec.mesh.merged()
     assert isinstance(trans_rec_merged_mesh, Mesh)
     # assert trans_rec_merged_mesh == rec.mesh
 

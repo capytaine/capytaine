@@ -132,16 +132,17 @@ class Abstract3DObject(ABC):
     def rotated_to_align_axes(self, *args, **kwargs):
         return self.rotate_to_align_axes(*args, inplace=False, **kwargs)
 
+
 ######################
 #  HELPER FUNCTIONS  #
 ######################
 
 def test_orthogonal_vectors(vec1, vec2) -> bool:
-    return np.isclose(np.linalg.norm(np.asarray(vec1) @ np.asarray(vec2)), 0.0, atol=1e-6)
+    return np.linalg.norm(vec1 @ vec2) < 1e-6
 
 
 def test_parallel_vectors(vec1, vec2) -> bool:
-    return np.isclose(np.linalg.norm(np.cross(vec1, vec2)), 0.0, atol=1e-6)
+    return np.linalg.norm(np.cross(vec1, vec2)) < 1e-6
 
 
 ################
@@ -168,7 +169,7 @@ class Axis(Abstract3DObject):
 
     def __eq__(self, other):
         if isinstance(self, Axis):
-            return self.point in other and test_parallel_vectors(self.vector, other.vector)
+            return (self is other) or (self.point in other and test_parallel_vectors(self.vector, other.vector))
         else:
             return NotImplemented
 
@@ -260,7 +261,7 @@ class Plane(Abstract3DObject):
 
     def __eq__(self, other):
         if isinstance(other, Plane):
-            return other.point in self and test_parallel_vectors(self.normal, other.normal)
+            return (self is other) or (other.point in self and test_parallel_vectors(self.normal, other.normal))
         else:
             return NotImplemented
 

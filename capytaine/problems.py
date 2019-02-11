@@ -25,6 +25,7 @@ class LinearPotentialFlowProblem:
     """General class of a potential flow problem.
 
     Stores:
+
     * the environmental variables (gravity and fluid density),
     * the shape of the domain (position of the free surface and of the sea bottom),
     * the frequency of interest,
@@ -164,8 +165,11 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                 * self.body.mesh.faces_normals
             ).sum(axis=1)
 
+            if len(self.body.dofs) == 0:
+                LOG.warning(f"The body {self.body.name} used in diffraction problem has no dofs!")
+
     def _str_other_attributes(self):
-        return [f"angle={self.angle}"]
+        return [f"angle={self.angle:.3f}"]
 
     def make_results_container(self):
         from capytaine.results import DiffractionResult
@@ -237,10 +241,11 @@ def problems_from_dataset(dataset, bodies):
     assert len(list(set(body.name for body in bodies))) == len(bodies), \
         "All bodies should have different names."
 
-    omega_range = dataset['omega'].data if 'omega' in dataset else [1.0]
+    omega_range = dataset['omega'].data if 'omega' in dataset else [LinearPotentialFlowProblem.default_parameters['omega']]
     angle_range = dataset['angle'].data if 'angle' in dataset else None
     radiating_dofs = dataset['radiating_dof'].data if 'radiating_dof' in dataset else None
-    water_depth_range = dataset['water_depth'].data if 'water_depth' in dataset else [np.infty]
+    water_depth_range = dataset['water_depth'].data if 'water_depth' in dataset else [-LinearPotentialFlowProblem.default_parameters['sea_bottom']]
+    rho_range = dataset['rho'].data if 'rho' in dataset else [LinearPotentialFlowProblem.default_parameters['rho']]
 
     if 'body_name' in dataset:
         assert set(dataset['body_name'].data) <= {body.name for body in bodies}
@@ -250,19 +255,19 @@ def problems_from_dataset(dataset, bodies):
 
     problems = []
     if angle_range is not None:
-        for omega, angle, water_depth, body_name \
-                in product(omega_range, angle_range, water_depth_range, body_range):
+        for omega, angle, water_depth, body_name, rho \
+                in product(omega_range, angle_range, water_depth_range, body_range, rho_range):
             problems.append(
                 DiffractionProblem(body=body_range[body_name], omega=omega,
-                                   angle=angle, sea_bottom=-water_depth)
+                                   angle=angle, sea_bottom=-water_depth, rho=rho)
             )
 
     if radiating_dofs is not None:
-        for omega, radiating_dof, water_depth, body_name \
-                in product(omega_range, radiating_dofs, water_depth_range, body_range):
+        for omega, radiating_dof, water_depth, body_name, rho \
+                in product(omega_range, radiating_dofs, water_depth_range, body_range, rho_range):
             problems.append(
                 RadiationProblem(body=body_range[body_name], omega=omega,
-                                 radiating_dof=radiating_dof, sea_bottom=-water_depth)
+                                 radiating_dof=radiating_dof, sea_bottom=-water_depth, rho=rho)
             )
 
     return sorted(problems)

@@ -40,10 +40,10 @@ class Mesh(Abstract3DObject):
 
     def __init__(self, vertices=None, faces=None, name=None):
 
-        if vertices is None:
+        if vertices is None or len(vertices) == 0:
             vertices = np.zeros((0, 3))
 
-        if faces is None:
+        if faces is None or len(faces) == 0:
             faces = np.zeros((0, 4))
 
         if name is None:
@@ -52,10 +52,15 @@ class Mesh(Abstract3DObject):
             self.name = str(name)
 
         self.__internals__ = dict()
-        self.vertices = vertices
-        self.faces = faces
+        self.vertices = vertices  # Not a direct assignment, goes through the setter method below.
+        self.faces = faces  # Not a direct assignment, goes through the setter method below.
+
+        LOG.debug(f"New mesh: {repr(self)}")
 
     def __str__(self):
+        return self.name
+
+    def __repr__(self):
         return (f"{self.__class__.__name__}(nb_vertices={self.nb_vertices}, "
                 f"nb_faces={self.nb_faces}, name={self.name})")
 
@@ -117,7 +122,7 @@ class Mesh(Abstract3DObject):
             new_mesh.name = name
         return new_mesh
 
-    def merge(self):
+    def merged(self):
         """Dummy method to be generalized for collections of meshes."""
         return self
 
@@ -153,7 +158,7 @@ class Mesh(Abstract3DObject):
         else:
             return self._faces[face_id]
 
-    def extract_faces(self, id_faces_to_extract, return_index=False):
+    def extract_faces(self, id_faces_to_extract, return_index=False, name=None):
         """
         Extracts a new mesh from a selection of faces ids
 
@@ -161,8 +166,10 @@ class Mesh(Abstract3DObject):
         ----------
         id_faces_to_extract : ndarray
             Indices of faces that have to be extracted
-        return_index: bool
+        return_index: bool, optional
             Flag to output old indices
+        name: string, optional
+            Name for the new mesh
 
         Returns
         -------
@@ -186,12 +193,45 @@ class Mesh(Abstract3DObject):
 
         extracted_mesh = Mesh(v_extracted, faces_extracted)
 
-        extracted_mesh.name = 'mesh_extracted_from_%s' % self.name
+        for prop in self.__internals__:
+            if prop[:4] == "face":
+                extracted_mesh.__internals__[prop] = self.__internals__[prop][id_faces_to_extract]
+
+        if name is None:
+            extracted_mesh.name = 'mesh_extracted_from_%s' % self.name
+        else:
+            extracted_mesh.name = name
 
         if return_index:
             return extracted_mesh, id_v
         else:
             return extracted_mesh
+
+    #####################
+    #  Mean and radius  #
+    #####################
+
+    @property
+    def center_of_mass_of_nodes(self):
+        """(Non-weighted) center of mass of the nodes of the mesh."""
+        if 'center_of_mass_of_nodes' not in self.__internals__:
+            center_of_mass_of_nodes = np.mean(self.vertices, axis=0)
+            self.__internals__['center_of_mass_of_nodes'] = center_of_mass_of_nodes
+            return center_of_mass_of_nodes
+        return self.__internals__['center_of_mass_of_nodes']
+
+    @property
+    def diameter_of_nodes(self):
+        """Maximum distance between two nodes of the mesh."""
+        if 'diameter_of_nodes' not in self.__internals__:
+            diameter_of_nodes = np.max(
+                np.linalg.norm(
+                    self.vertices - self.vertices.reshape(self.nb_vertices, 1, 3),
+                    axis=-1)
+            )
+            self.__internals__['diameter_of_nodes'] = diameter_of_nodes
+            return diameter_of_nodes
+        return self.__internals__['diameter_of_nodes']
 
     ######################
     #  Faces properties  #
@@ -319,15 +359,14 @@ class Mesh(Abstract3DObject):
     def show(self, **kwargs):
         self.show_vtk(**kwargs)
 
-    def show_vtk(self):
-        """Shows the mesh in the meshmagick viewer"""
-        from capytaine.ui.vtk.MMviewer import compute_vtk_polydata, MMViewer
+    def show_vtk(self, **kwargs):
+        """Shows the mesh in the vtk viewer"""
+        from capytaine.ui.vtk.mesh_viewer import MeshViewer
 
-        vtk_polydata = compute_vtk_polydata(self)
-        self.viewer = MMViewer()
-        self.viewer.add_polydata(vtk_polydata)
-        self.viewer.show()
-        self.viewer.finalize()
+        viewer = MeshViewer()
+        viewer.add_mesh(self, **kwargs)
+        viewer.show()
+        viewer.finalize()
 
     def show_matplotlib(self, ax=None,
                         normal_vectors=False, scale_normal_vector=None,
@@ -437,7 +476,7 @@ class Mesh(Abstract3DObject):
 
     @inplace_transformation
     def mirror(self, plane) -> 'Mesh':
-        """Mirrors the mesh instance with respect to a plane.
+        """Flip the mesh with respect to a plane.
 
         Parameters
         ----------
@@ -449,32 +488,30 @@ class Mesh(Abstract3DObject):
         return self
 
     @inplace_transformation
-    def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty) -> 'Mesh':
-        """Clip the mesh with two horizontal planes."""
-        from capytaine.mesh.mesh_clipper import MeshClipper
-        if self.vertices[:, 2].min() > free_surface or self.vertices[:, 2].max() < sea_bottom:
-            LOG.warning("Trying to get the immersed clipped mesh of a mesh without wet panels.")
-            self.vertices = np.zeros((0, 3))
-            self.faces = np.zeros((0, 4))
+    def clip(self, plane) -> 'Mesh':
+        from capytaine.mesh.mesh_clipper import clip
+        clipped_self = clip(self, plane=plane)
+        self.vertices = clipped_self.vertices
+        self.faces = clipped_self.faces
+        self._clipping_data = clipped_self._clipping_data
+        return self
 
-        elif self.vertices[:, 2].min() > sea_bottom and self.vertices[:, 2].max() < free_surface:
-            pass  # The mesh is completely immersed. Non need for clipping.
+    def clipped(self, plane, **kwargs) -> 'Mesh':
+        # Same API as for the other transformations
+        return self.clip(plane, inplace=False, **kwargs)
 
-        else:
-            clipped_mesh = MeshClipper(self,
-                                       plane=Plane(normal=(0, 0, 1),
-                                                   point=(0, 0, 0))
-                                       ).clipped_mesh
+    def symmetrized(self, plane):
+        from capytaine.mesh.symmetries import ReflectionSymmetry
+        half = self.clipped(plane, name=f"{self.name}_half")
+        return ReflectionSymmetry(half, plane=plane, name=f"symmetrized_of_{self.name}")
 
-            if sea_bottom > -np.infty:
-                clipped_mesh = MeshClipper(clipped_mesh,
-                                           plane=Plane(normal=(0, 0, -1),
-                                                       point=(0, 0, sea_bottom))
-                                           ).clipped_mesh
-
-            clipped_mesh.remove_unused_vertices()
-            self.vertices = clipped_mesh.vertices
-            self.faces = clipped_mesh.faces
+    @inplace_transformation
+    def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
+        """Clip the mesh with two horizontal planes corresponding
+        with the free surface and the sea bottom."""
+        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
+        if sea_bottom > -np.infty:
+            self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
         return self
 
     @inplace_transformation
@@ -516,7 +553,7 @@ class Mesh(Abstract3DObject):
 
     def join_meshes(*meshes, name=None):
         from capytaine.mesh.meshes_collection import CollectionOfMeshes
-        return CollectionOfMeshes(meshes, name=name).merge()
+        return CollectionOfMeshes(meshes, name=name).merged()
 
     def __add__(self, mesh_to_add) -> 'Mesh':
         return self.join_meshes(mesh_to_add)
@@ -542,22 +579,28 @@ class Mesh(Abstract3DObject):
     # However, the equality shall still be use for testing.
 
     def as_set_of_faces(self):
-        return frozenset(tuple(tuple(vertex) for vertex in face) for face in self.vertices[self.faces])
+        return frozenset(frozenset(tuple(vertex) for vertex in face) for face in self.vertices[self.faces])
 
     @staticmethod
     def from_set_of_faces(set_of_faces):
         faces = []
         vertices = []
         for face in set_of_faces:
-            face_ids = []
+            ids_of_vertices_in_face = []
+
             for vertex in face:
-                if vertex in vertices:
-                    i = vertices.index(vertex)
-                else:
+                if vertex not in vertices:
                     i = len(vertices)
                     vertices.append(vertex)
-                face_ids.append(i)
-            faces.append(face_ids)
+                else:
+                    i = vertices.index(vertex)
+                ids_of_vertices_in_face.append(i)
+
+            if len(ids_of_vertices_in_face) == 3:
+                # Add a fourth node identical to the first one
+                ids_of_vertices_in_face.append(ids_of_vertices_in_face[0])
+
+            faces.append(ids_of_vertices_in_face)
         return Mesh(vertices=vertices, faces=faces)
 
     def __eq__(self, other):

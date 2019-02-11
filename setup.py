@@ -6,6 +6,8 @@ import re
 
 from numpy.distutils.core import Extension, setup
 
+VERSION = '0.6dev'
+
 #######################
 #  Fortran extension  #
 #######################
@@ -63,6 +65,7 @@ if __name__ == "__main__":
           packages=[
               'capytaine',
               'capytaine.mesh',
+              'capytaine.matrices',
               'capytaine.geometric_bodies',
               'capytaine.tools',
               'capytaine.ui',

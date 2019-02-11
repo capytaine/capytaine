@@ -67,7 +67,7 @@ class FreeSurface():
     def elevation_at_nodes(self, fs_faces: np.ndarray) -> np.ndarray:
         """From a free surface elevation computed at the center of the faces of the mesh,
         return a free surface elevation computed on the nodes of the mesh."""
-        from capytaine.ui.vtk import compute_node_data
+        from capytaine.ui.vtk.helpers import compute_node_data
         return compute_node_data(self.mesh, fs_faces)
 
     def incoming_waves(self, problem: DiffractionProblem) -> np.ndarray:

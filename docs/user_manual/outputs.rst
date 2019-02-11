@@ -21,4 +21,8 @@ See also the `documentation of xarray`_ for more details and options.
 
 .. _`documentation of xarray`: http://xarray.pydata.org/en/stable/io.html
 
+.. note:: If you get the error message 
+   :code:`ValueError: unsupported dtype for netCDF4 variable: object`,
+   please check `this Github issue <https://github.com/mancellin/capytaine/issues/2>`_.
+
 

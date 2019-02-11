@@ -10,6 +10,7 @@ Submodules
    capytaine.tools.exponential_decomposition
    capytaine.tools.geometry
    capytaine.tools.kochin
+   capytaine.tools.rao
 
 Module contents
 ---------------

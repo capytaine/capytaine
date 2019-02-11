@@ -4,54 +4,76 @@
 # This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
+import logging
+import reprlib
 from itertools import chain, accumulate
+from typing import Iterable, Union
 
 import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.tools.geometry import Abstract3DObject, inplace_transformation
 
-NAME_MAX_LENGTH = 180
+LOG = logging.getLogger(__name__)
 
 
-class CollectionOfMeshes(tuple, Abstract3DObject):
+class CollectionOfMeshes(Abstract3DObject):
     """A tuple of meshes.
     It gives access to all the vertices of all the sub-meshes as if it were a mesh itself.
     Collections can be nested to store meshes in a tree structure.
 
     Parameters
     ----------
-    meshes: Mesh or CollectionOfMeshes
-
+    meshes: Iterable of Mesh or CollectionOfMeshes
+        meshes in the collection
     name : str, optional
         a name for the collection
     """
 
-    def __new__(cls, meshes, name=None):
-        self = super().__new__(cls, meshes)
+    def __init__(self, meshes: Iterable[Union[Mesh, 'CollectionOfMeshes']], name=None):
 
-        for mesh in self:
+        self._meshes = tuple(meshes)
+
+        for mesh in self._meshes:
             assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
 
-        if name is None:
-            self.name = self.format_name(", ".join((mesh.name for mesh in meshes))[:-2])
-        else:
-            self.name = name
+        self.name = name
 
-        return self
-
-    def format_name(self, options_string: str) -> str:
-        """Helper function to generate a name for the collection.
-        Is expected to be used also in child classes."""
-        if len(options_string) > NAME_MAX_LENGTH:
-            options_string = options_string[:-3] + "..."
-        return f"{self.__class__.__name__}({options_string})"
+        LOG.debug(f"New collection of meshes: {repr(self)}")
 
     def __repr__(self):
-        return self.name
+        reprer = reprlib.Repr()
+        reprer.maxstring = 90
+        reprer.maxother = 90
+        meshes_names = reprer.repr(self._meshes)
+        if self.name is not None:
+            return f"{self.__class__.__name__}({meshes_names}, name={self.name})"
+        else:
+            return f"{self.__class__.__name__}{meshes_names}"
 
     def __str__(self):
-        return self.name
+        if self.name is not None:
+            return self.name
+        else:
+            return repr(self)
+
+    def __iter__(self):
+        return iter(self._meshes)
+
+    def __len__(self):
+        return len(self._meshes)
+
+    def __getitem__(self, item):
+        return self._meshes.__getitem__(item)
+
+    def __eq__(self, other):
+        if isinstance(other, CollectionOfMeshes):
+            return self._meshes == other._meshes
+        else:
+            return NotImplemented
+
+    def __hash__(self):
+        return hash(self._meshes)
 
     def tree_view(self, **kwargs):
         body_tree_views = []
@@ -123,6 +145,14 @@ class CollectionOfMeshes(tuple, Abstract3DObject):
     def faces_radiuses(self):
         return np.concatenate([mesh.faces_radiuses for mesh in self])
 
+    @property
+    def center_of_mass_of_nodes(self):
+        return sum([mesh.nb_vertices*mesh.center_of_mass_of_nodes for mesh in self])/self.nb_vertices
+
+    @property
+    def diameter_of_nodes(self):
+        return self.merged().diameter_of_nodes  # TODO: improve implementation
+
     def indices_of_mesh(self, mesh_index: int) -> slice:
         """Return the indices of the faces for the sub-mesh given as argument."""
         start = sum((mesh.nb_faces for mesh in self[:mesh_index]))  # Number of faces in previous meshes
@@ -132,7 +162,7 @@ class CollectionOfMeshes(tuple, Abstract3DObject):
     # Transformation #
     ##################
 
-    def merge(self, name=None) -> Mesh:
+    def merged(self, name=None) -> Mesh:
         """Merge the sub-meshes and return a full mesh.
         If the collection contains other collections, they are merged recursively.
         Optionally, a new name can be given to the resulting mesh."""
@@ -142,6 +172,9 @@ class CollectionOfMeshes(tuple, Abstract3DObject):
         merged.merge_duplicates()
         merged.heal_triangles()
         return merged
+
+    def extract_faces(self, *args, **kwargs):
+        return self.merged().extract_faces(*args, **kwargs)
 
     @inplace_transformation
     def translate(self, vector):
@@ -159,19 +192,43 @@ class CollectionOfMeshes(tuple, Abstract3DObject):
             mesh.mirror(plane)
 
     @inplace_transformation
+    def clip(self, plane):
+        self._clipping_data = {'faces_ids': []}
+        faces_shifts = list(accumulate(chain([0], (mesh.nb_faces for mesh in self[:-1]))))
+        for mesh, faces_shift in zip(self, faces_shifts):
+            mesh.clip(plane)
+            self._clipping_data['faces_ids'].extend([i + faces_shift for i in mesh._clipping_data['faces_ids']])
+        self._clipping_data['faces_ids'] = np.asarray(self._clipping_data['faces_ids'])
+        self.prune_empty_meshes()
+
+    def clipped(self, plane, **kwargs):
+        # Same API as for the other transformations
+        return self.clip(plane, inplace=False, **kwargs)
+
+    def symmetrized(self, plane):
+        from capytaine.mesh.symmetries import ReflectionSymmetry
+        half = self.clipped(plane, name=f"{self.name}_half")
+        return ReflectionSymmetry(half, plane=plane, name=f"symmetrized_of_{self.name}")
+
+    @inplace_transformation
     def keep_immersed_part(self, **kwargs):
         for mesh in self:
             mesh.keep_immersed_part(**kwargs)
-        # TODO: Prune empty meshes?
+        self.prune_empty_meshes()
 
-    # @inplace_transformation
-    # def prune_empty_meshes(self):
-    #     """Remove empty meshes from the collection."""
-    #     for mesh in self:
-    #         if mesh.nb_faces == 0 and mesh.nb_vertices == 0:
+    @inplace_transformation
+    def prune_empty_meshes(self):
+        """Remove empty meshes from the collection."""
+        self._meshes = tuple(mesh for mesh in self if mesh.nb_faces > 0 and mesh.nb_vertices > 0)
 
-    def show(self):
-        self.merge().show()
+    def show(self, **kwargs):
+        from capytaine.ui.vtk.mesh_viewer import MeshViewer
+
+        viewer = MeshViewer()
+        for mesh in self:
+            viewer.add_mesh(mesh.merged(), **kwargs)
+        viewer.show()
+        viewer.finalize()
 
     def show_matplotlib(self, *args, **kwargs):
-        self.merge().show_matplotlib(*args, **kwargs)
+        self.merged().show_matplotlib(*args, **kwargs)

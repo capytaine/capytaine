@@ -6,13 +6,13 @@
 
 import logging
 import copy
-from itertools import chain, accumulate
+from itertools import chain, accumulate, product
 
 import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.tools.geometry import Abstract3DObject, inplace_transformation
+from capytaine.tools.geometry import Abstract3DObject, Plane, inplace_transformation
 
 LOG = logging.getLogger(__name__)
 
@@ -25,12 +25,13 @@ class FloatingBody(Abstract3DObject):
     def __init__(self, mesh=None, dofs=None, name=None):
         """A floating body described as a mesh and some degrees of freedom.
 
-        The mesh structure is stored as an instance from the Mesh class (see
-        documentation of this class for more details) or as a CollectionOfMeshes from
-        capytaine.meshes_collection. The latter is a tuple of meshes or of other collections.
+        The mesh structure is stored as a Mesh from capytaine.mesh.mesh or a
+        CollectionOfMeshes from capytaine.mesh.meshes_collection.
 
-        The degrees of freedom (dofs) are stored as a dict associating a name to an array
-        of shape (nb_faces, 3) associating a vector to each face of the body.
+        The degrees of freedom (dofs) are stored as a dict associating a name to
+        a complex-valued array of shape (nb_faces, 3). To each face of the body
+        (as indexed in the mesh) corresponds a complex-valued 3d vector, which
+        defines the displacement of the center of the face in frequency domain.
 
         Parameters
         ----------
@@ -55,7 +56,7 @@ class FloatingBody(Abstract3DObject):
 
         assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
         self.mesh = mesh
-        self.full_mesh = mesh
+        self.full_body = None
         self.dofs = dofs
         self.name = name
 
@@ -76,13 +77,11 @@ class FloatingBody(Abstract3DObject):
 
     # @property
     # def center_of_buoyancy(self):
-    #     mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
-    #     return Hydrostatics(mesh).buoyancy_center
+    #     return Hydrostatics(self.mesh.merged()).buoyancy_center
 
     # @property
     # def displacement_volume(self):
-    #     mesh = self.mesh.merge() if isinstance(self.mesh, CollectionOfMeshes) else self.mesh
-    #     return Hydrostatics(mesh).displacement_volume
+    #     return Hydrostatics(self.mesh.merged()).displacement_volume
 
     # @property
     # def center_of_gravity(self):
@@ -145,11 +144,11 @@ class FloatingBody(Abstract3DObject):
                 axis_direction = ROTATION_DOFS_AXIS[name.lower()]
                 if hasattr(self, 'center'):
                     axis_point = self.center
-                    LOG.info(f"The rotation dof {name} have been initialized "
+                    LOG.info(f"The rotation dof {name} has been initialized "
                              f"around the center of gravity of {self.name}.")
                 else:
                     axis_point = np.array([0, 0, 0])
-                    LOG.warning(f"The rotation dof {name} have been initialized "
+                    LOG.warning(f"The rotation dof {name} has been initialized "
                                 f"around the origin of the domain (0, 0, 0).")
             else:
                 raise ValueError("A direction needs to be specified for the dof.")
@@ -160,8 +159,11 @@ class FloatingBody(Abstract3DObject):
         if name is None:
             name = f"dof_{self.nb_dofs}_rotation"
 
-        motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
-        self.dofs[name] = amplitude * motion
+        if self.mesh.nb_faces == 0:
+            self.dofs[name] = np.empty((self.mesh.nb_faces, 3))
+        else:
+            motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
+            self.dofs[name] = amplitude * motion
 
     def add_all_rigid_body_dofs(self) -> None:
         """Add the six degrees of freedom of rigid bodies (in place)."""
@@ -198,7 +200,14 @@ class FloatingBody(Abstract3DObject):
             for name, dof in body.dofs.items():
                 new_dof = np.zeros((total_nb_faces, 3))
                 new_dof[nbf:nbf+len(dof), :] = dof
-                dofs['_'.join([body.name, name])] = new_dof
+                if '__' not in name:
+                    new_dof_name = '__'.join([body.name, name])
+                else:
+                    # The body is probably a combination of bodies already.
+                    # So for the associativity of the + operation,
+                    # it is better to keep the same name.
+                    new_dof_name = name
+                dofs[new_dof_name] = new_dof
         return dofs
 
     def copy(self, name=None) -> 'FloatingBody':
@@ -217,6 +226,32 @@ class FloatingBody(Abstract3DObject):
             new_body.name = name
             LOG.debug(f"Copy {self.name} under the name {name}.")
         return new_body
+
+    def assemble_regular_array(self, distance, nb_bodies):
+        """Create an regular array of identical bodies.
+
+        Parameters
+        ----------
+        distance : float
+            Center-to-center distance between objects in the array
+        nb_bodies : couple of ints
+            Number of objects in the x and y directions.
+
+        Returns
+        -------
+        FloatingBody
+        """
+        from capytaine.mesh.symmetries import build_regular_array_of_meshes
+        array_mesh = build_regular_array_of_meshes(self.mesh, distance, nb_bodies)
+        total_nb_faces = array_mesh.nb_faces
+        array_dofs = {}
+        for dof_name, dof in self.dofs.items():
+            for i, j in product(range(nb_bodies[0]), range(nb_bodies[1])):
+                shift_nb_faces = (j*nb_bodies[0] + i) * self.mesh.nb_faces
+                new_dof = np.zeros((total_nb_faces, 3))
+                new_dof[shift_nb_faces:shift_nb_faces+len(dof), :] = dof
+                array_dofs[f'{i}_{j}__{dof_name}'] = new_dof
+        return FloatingBody(mesh=array_mesh, dofs=array_dofs, name=f"array_of_{self.name}")
 
     def extract_faces(self, id_faces_to_extract, return_index=False):
         """Create a new FloatingBody by extracting some faces from the mesh.
@@ -265,14 +300,30 @@ class FloatingBody(Abstract3DObject):
         return self
 
     @inplace_transformation
-    def keep_immersed_part(self, **kwargs):
-        """Remove the parts of the mesh above the sea bottom and below the free surface.
-        """
-        self.full_mesh = self.mesh.copy()
-        self.mesh.keep_immersed_part(**kwargs)
-        # TODO: Also clip dofs
-        if len(self.dofs) > 0:
-            LOG.warning(f"The dofs of {self.name} have not been clipped with its mesh.")
+    def clip(self, plane):
+        # Keep of copy of the full mesh
+        if self.full_body is None:
+            self.full_body = self.copy()
+
+        # Clip mesh
+        LOG.info(f"Clipping {self.name} with respect to {plane}")
+        self.mesh.clip(plane)
+
+        # Clip dofs
+        ids = self.mesh._clipping_data['faces_ids']
+        for dof in self.dofs:
+            if len(ids) > 0:
+                self.dofs[dof] = self.dofs[dof][ids]
+            else:
+                self.dofs[dof] = np.empty((0, 3))
+        return self
+
+    @inplace_transformation
+    def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
+        """Remove the parts of the mesh above the sea bottom and below the free surface."""
+        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
+        if sea_bottom > -np.infty:
+            self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
         return self
 
     #############
@@ -286,24 +337,10 @@ class FloatingBody(Abstract3DObject):
         return (f"{self.__class__.__name__}(mesh={self.mesh.name}, "
                 f"dofs={{{', '.join(self.dofs.keys())}}}, name={self.name})")
 
-    def show(self, dof=None):
-        # TODO: Broken. Rewrite with display of dofs.
-        import vtk
-        from capytaine.ui.vtk.MMviewer import compute_vtk_polydata
-        from capytaine.ui.vtk.mesh_viewer import FloatingBodyViewer
-
-        vtk_polydata = compute_vtk_polydata(self.mesh)
-
-        if dof is not None:
-            vtk_data_array = vtk.vtkFloatArray()
-            vtk_data_array.SetNumberOfComponents(3)
-            vtk_data_array.SetNumberOfTuples(self.mesh.nb_faces)
-            for i, vector in enumerate(self.dofs[dof]):
-                vtk_data_array.SetTuple3(i, *vector)
-            vtk_polydata.GetCellData().SetVectors(vtk_data_array)
-
+    def show(self, **kwargs):
+        from capytaine.ui.vtk.body_viewer import FloatingBodyViewer
         viewer = FloatingBodyViewer()
-        viewer.add_polydata(vtk_polydata)
+        viewer.add_body(self, **kwargs)
         viewer.show()
         viewer.finalize()
 

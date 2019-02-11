@@ -17,8 +17,11 @@ from capytaine.geometric_bodies.cylinder import HorizontalCylinder
 
 from capytaine.problems import LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem, problems_from_dataset
 from capytaine.results import LinearPotentialFlowResult, DiffractionResult, RadiationResult
+from capytaine.Nemoh import Nemoh
 
 from capytaine.io.legacy import import_cal_file
+
+solver = Nemoh(matrix_cache_size=0)
 
 
 def test_LinearPotentialFlowProblem():
@@ -120,6 +123,24 @@ def test_wamit_convention():
     assert np.allclose(pb1.boundary_condition, np.conjugate(pb2.boundary_condition))
 
 
+def test_Froude_Krylov():
+    from capytaine.tools.Airy_wave import Froude_Krylov_force
+    from capytaine.geometric_bodies.sphere import Sphere
+    from capytaine.problems import DiffractionProblem
+
+    sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clever=True, clip_free_surface=True)
+    sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
+
+    problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
+    assert np.isclose(Froude_Krylov_force(problem)['Heave'], 27596, rtol=1e-3)
+
+    problem = DiffractionProblem(body=sphere, omega=2.0, sea_bottom=-np.infty)
+    assert np.isclose(Froude_Krylov_force(problem)['Heave'], 22491, rtol=1e-3)
+
+    problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
+    assert np.isclose(Froude_Krylov_force(problem)['Heave'], 27610, rtol=1e-3)
+
+
 def test_import_cal_file():
     """Test the importation of legacy Nemoh.cal files."""
     current_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -203,3 +224,12 @@ def test_problems_from_dataset():
     assert RadiationProblem(body=body, omega=0.5, radiating_dof="Heave") in problems
     assert RadiationProblem(body=shifted_body, omega=0.5, radiating_dof="Heave") in problems
     assert len(problems) == 12
+
+
+def test_fill_dataset():
+    body = HorizontalCylinder(radius=1, center=(0, 0, -2))
+    body.add_all_rigid_body_dofs()
+    test_matrix = xr.Dataset(coords={'omega': [1.0, 2.0, 3.0], 'angle': [0, np.pi/2], 'radiating_dof': ['Heave']})
+    dataset = solver.fill_dataset(test_matrix, [body])
+    assert dataset['added_mass'].data.shape == (3, 1, 6)
+    assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)

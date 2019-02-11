@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-Tests for the computation of the Green function and the resolution of the BEM problem.
-"""
+"""Tests for the computation of the Green function using routines from Nemoh."""
 
 from itertools import product, combinations
 
@@ -17,6 +15,7 @@ import capytaine.NemohCore as NemohCore
 
 def E1(z):
     return np.exp(-z)*NemohCore.initialize_green_wave.gg(z)
+
 
 @pytest.mark.parametrize("x", np.linspace(-20, -1, 4))
 @pytest.mark.parametrize("y", np.linspace(-10, 10, 4))

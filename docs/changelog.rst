@@ -13,6 +13,83 @@ New in version 0.5.1
 * Update documentation.
 
 ------------------
+New in version 0.6
+------------------
+
+Major changes
+-------------
+
+* Full rewrite of the matrices and linear solvers implementation.
+  All the relevant code is now in the submodule :code:`capytaine.matrices`.
+
+* Refactored implementation of block Toeplitz matrices, block symmetric Toeplitz
+  matrices and block circulant matrices.
+  Refactoring of the block diagonalization of block circulant matrices through
+  FFT.
+
+* Low rank approximation of the matrices with Adaptive Cross Approximation for
+  the use of hierarchical matrices.
+
+* Option to solve the linear system with GMRES instead of a direct solver.
+
+* Refactoring of the 3D animation module for animation of the body motions,
+  animated colormap of the pressure, free-surface elevation and export as a
+  video. See cookbook for an example of the new API.
+
+Minor changes
+-------------
+
+General
+~~~~~~~
+
+* Reorganization of the :code:`pytest` directory.
+
+* Add an experimental :code:`capytaine.tools.rao` module to compute Response Amplitude
+  Operators.
+
+* Various bug fixes and improvements of the documentation.
+
+Solver
+~~~~~~
+
+* More options to set the behavior of the solver at run time :code:`Nemoh` (use
+  of symmetries, use of caching, choice of the linear solver, ...).
+  See its docstring for details.
+
+* Change of default behavior: the solver stores the details in the :code:`Result`
+  container when using :code:`solve`, not when using :code:`solve_all` or
+  :code:`fill_dataset`.
+
+* The water density can be specified in the test matrix when using
+  :code:`fill_dataset`.
+
+* Function :code:`kochin_dataset` to build a xarray of Kochin function.
+
+* Add the option :code:`chunk_size` to the computation of the free surface
+  elevation in order to limit the RAM consumption.
+
+* Minor refactoring of the solver and the computation of the Green function.
+
+Meshes and bodies
+~~~~~~~~~~~~~~~~~
+
+* CollectionOfMeshes is not a subclass of Tuple anymore.
+
+* New method :code:`assemble_regular_array` to build an array of identical bodies.
+
+* Harmonize naming of functions that are not in-place: :code:`symmetrize -> symmetrized`, :code:`merge -> merged`
+
+* Refactoring of the internals of the mesh clipper. New :code:`clip` and :code:`clipped` methods for meshes and bodies.
+  When a body is clipped with :code:`clip` or :code:`keep_immersed_part`, the dofs are updated.
+
+* Change naming of dof when bodies are joined: :code:`body_name__dof_name` instead of :code:`body_name_dof_name`.
+
+* The combination of bodies with :code:`+` is associative with respect to the
+  names of the dofs.
+
+* Minor improvements of meshes and bodies :code:`repr`.
+
+------------------
 New in version 0.5
 ------------------
 

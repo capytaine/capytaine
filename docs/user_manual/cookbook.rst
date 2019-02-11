@@ -9,6 +9,15 @@ This page contains several examples of Capytaine's features.
 Base examples
 =============
 
+Added mass of a rigid body
+--------------------------
+
+This example generates the mesh of an horizontal cylinder, solves radiation problems for the six
+rigid-body degrees of freedom and then plots the added mass.
+
+.. literalinclude:: examples/radiation_cylinder.py
+   :language: python
+
 Custom degree of freedom
 ------------------------
 
@@ -19,15 +28,6 @@ This example defines arbitrary degrees of freedom for a sphere and solves a diff
 
 The diffraction force on the "Heave" and "Bulge" dofs should be the same for both incoming wave directions.
 The diffraction force on the "x-shear" dof is zero when the wave comes from the y direction.
-
-Added mass of a rigid body
---------------------------
-
-This example generates the mesh of an horizontal cylinder, solves radiation problems for the six
-rigid-body degrees of freedom and then plots the added mass.
-
-.. literalinclude:: examples/radiation_cylinder.py
-   :language: python
 
 Influence of the water depth
 ----------------------------
@@ -40,7 +40,8 @@ This example runs the same simulation for several water depth and plot the resul
 Simulation with several bodies
 ------------------------------
 
-TODO
+.. literalinclude:: examples/multibody.py
+   :language: python
 
 
 Intermediate examples
@@ -88,9 +89,3 @@ This example plots the influence matrix for an horizontal cylinder.
 
 .. literalinclude:: examples/plot_matrix.py
    :language: python
-
-Parallel computations
----------------------
-
-TODO
-

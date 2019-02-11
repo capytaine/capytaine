@@ -6,8 +6,9 @@ Submodules
 
 .. toctree::
 
-   capytaine.ui.vtk.MMviewer
-   capytaine.ui.vtk.free_surface_animation
+   capytaine.ui.vtk.animation
+   capytaine.ui.vtk.body_viewer
+   capytaine.ui.vtk.helpers
    capytaine.ui.vtk.mesh_viewer
 
 Module contents

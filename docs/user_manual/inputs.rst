@@ -67,12 +67,62 @@ The formats currently supported by Meshmagick in reading are the following (from
 .. [#f4] HYDROSTAR is a BEM Software for seakeeping developped by
          BUREAU VERITAS
 .. [#f5] GMSH is an open source meshing software developped by C. Geuzaine
-         and J.-_faces. Remacle
+         and J.-F. Remacle
 .. [#f6] PARAVIEW is an open source visualization software developped by
          Kitware
 .. [#f7] TECPLOT is a visualization software developped by Tecplot
 .. [#f8] SALOME-MECA is an open source software for computational mechanics
          developped by EDF-R&D
+
+Transforming a mesh
+-------------------
+
+Several functions are available to transform existing meshes.
+
+Most transformation methods exist in two versions: 
+
+* one, named as a infinitive verb (`translate`, `rotate`, ...), is an in-place transformation;
+* the other, named as a past participle (`translated`, `rotated`, ...), is the
+  same transformation but returning a new object. 
+
+In most cases, performance is not significant and the latter method should be
+preferred since it makes code slightly easier to debug.
+
+Below is a non-exhaustive list of available methods.
+All of them can be applied to both meshes or floating bodies (although in the
+latest version of the code, the implementation for floating bodies might not be
+complete)::
+
+    # TRANSLATIONS
+    mesh.translated_x(10.0)
+    mesh.translated_y(10.0)
+    mesh.translated_z(10.0)
+    mesh.translated([10.0, 5.0, 2.0])
+
+    # Translation such that point_a would become equal to point_b
+    mesh.translated_point_to_point(point_a=[5, 6, 7], point_b=[4, 3, 2])
+
+    # ROTATIONS
+    mesh.rotated_x(3.14/5)  # Rotation of pi/5 around the Ox axis
+    mesh.rotated_y(3.14/5)  # Rotation of pi/5 around the Oy axis
+    mesh.rotated_z(3.14/5)  # Rotation of pi/5 around the Oz axis
+
+    # Rotation of pi/5 around an arbitrary axis.
+    from capytaine.tools.geometry import Axis
+    mesh.rotated(axis=Axis(vector=[1, 1, 1], point=[3, 4, 5]), angle=3.14/5)
+
+    # Rotation such that the axis1 would become parallel to axis2
+    mesh.rotated_to_align_axes(
+        axis1=Axis(vector=[1, 1, 1]),
+        axis2=Axis(vector=[3, 5, 7]),
+        )
+
+    # REFLECTIONS
+    from capytaine.tools.geometry import Plane
+    mesh.mirrored(Plane(normal=[1, 2, 1], point=[0, 4, 5]))
+
+
+TODO: Document clipping functions.
 
 
 Legacy Nemoh.cal parameters files

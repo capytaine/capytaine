@@ -20,6 +20,9 @@ Latest release: |release| (|today|).
     </video>
     </div>
 
+Contributions are welcome!
+Please report bugs and suggest improvements as a `Github issue <https://github.com/mancellin/capytaine/issues/>`_.
+
 Documentation
 =============
 
@@ -41,14 +44,13 @@ Documentation
 .. toctree::
    :maxdepth: 1
 
+   citing.rst
    changelog.rst
 
 Source code
 ===========
 
-Available `on Github`_
-
-.. _`On Github`: https://github.com/mancellin/capytaine
+Available on `Github <https://github.com/mancellin/capytaine>`_
 
 License
 =======
