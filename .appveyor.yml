@@ -28,6 +28,7 @@ install:
     - conda config --set always_yes yes
     - conda config --set changeps1 no
     - conda config --set anaconda_upload no
+    # - conda config --add channels conda-forge
     - conda install -q python=%PYTHON_VERSION% pip conda-build conda-verify numpy
     - echo [build]           >> %MINICONDA%\Lib\distutils\distutils.cfg
     - echo compiler=mingw32  >> %MINICONDA%\Lib\distutils\distutils.cfg
