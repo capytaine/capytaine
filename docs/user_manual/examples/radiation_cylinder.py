@@ -1,18 +1,15 @@
 #!/usr/bin/env python
 
 import logging
-
 import numpy as np
-
-from capytaine import Nemoh, RadiationProblem, assemble_dataset
-from capytaine.geometric_bodies import HorizontalCylinder
+import capytaine as cpt
 
 # Set up logging
 logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s:\t%(message)s")
 
 # Initialize floating body by generating a geometric mesh
-cylinder = HorizontalCylinder(
+cylinder = cpt.HorizontalCylinder(
     length=10.0, radius=1.0,  # Dimensions
     center=(0, 0, -2),        # Position
     nr=5, nx=40, ntheta=20,   # Fineness of the mesh
@@ -28,7 +25,7 @@ omega_range = np.linspace(0.1, 6.0, 20)
 # degree of freedom of the body and for each frequency in the
 # frequency range.
 problems = [
-    RadiationProblem(body=cylinder, radiating_dof=dof, omega=omega)
+    cpt.RadiationProblem(body=cylinder, radiating_dof=dof, omega=omega)
     for dof in cylinder.dofs
     for omega in omega_range
 ]
@@ -36,13 +33,13 @@ problems = [
 # Default values are used.
 
 # Solve all radiation problems with Nemoh
-solver = Nemoh()
+solver = cpt.Nemoh()
 results = [solver.solve(pb) for pb in sorted(problems)]
 # The 'sorted' function ensures that the problems are sequentially
 # treated in an optimal order.
 
 # Gather the computed added mass into a labelled array.
-data = assemble_dataset(results)
+data = cpt.assemble_dataset(results)
 
 # Plot the added mass of each dofs as a function of the frequency
 import matplotlib.pyplot as plt

@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
 import numpy as np
-
-from capytaine import Nemoh, DiffractionProblem
-from capytaine.geometric_bodies import Sphere
+import capytaine as cpt
 
 # Initialize floating body
-sphere = Sphere(
+sphere = cpt.Sphere(
     radius=1.0,          # Dimension
     center=(0, 0, -2),   # Position
     nphi=20, ntheta=20,  # Fineness of the mesh
@@ -32,14 +30,14 @@ sphere.dofs["x-shear"] = np.array(
 )
 
 # SOLVE DIFFRACTION PROBLEMS
-solver = Nemoh()
+solver = cpt.Nemoh()
 
 # Solve the problem for β=0 (incoming wave in the x direction).
-problem_1 = DiffractionProblem(body=sphere, angle=0, omega=1.0)
+problem_1 = cpt.DiffractionProblem(body=sphere, angle=0, omega=1.0)
 result_1 = solver.solve(problem_1)
 
 # Solve the problem for β=π/2 (incoming wave in the y direction).
-problem_2 = DiffractionProblem(body=sphere, angle=np.pi/2, omega=1.0)
+problem_2 = cpt.DiffractionProblem(body=sphere, angle=np.pi/2, omega=1.0)
 result_2 = solver.solve(problem_2)
 
 # Print the generalized diffraction forces

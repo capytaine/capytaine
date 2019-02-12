@@ -2,14 +2,13 @@
 
 import logging
 
-from capytaine import Nemoh, DiffractionProblem, RadiationProblem
-from capytaine.geometric_bodies import Sphere, FreeSurface
+import capytaine as cpt
 from capytaine.ui.vtk.animation import Animation
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:\t%(message)s")
 
 # Generate the mesh of a sphere
-full_sphere = Sphere(
+full_sphere = cpt.Sphere(
     radius=3, center=(0, 0, 0),  # Size and positions
     ntheta=20, nphi=20,          # Fineness of the mesh
 )
@@ -20,16 +19,16 @@ sphere = full_sphere.keep_immersed_part(inplace=False)
 sphere.add_translation_dof(name="Heave")
 
 # Set up and solve problem
-solver = Nemoh(use_symmetries=False)
+solver = cpt.Nemoh(use_symmetries=False)
 
-diffraction_problem = DiffractionProblem(body=sphere, angle=0.0, omega=2.0)
+diffraction_problem = cpt.DiffractionProblem(body=sphere, angle=0.0, omega=2.0)
 diffraction_result = solver.solve(diffraction_problem)
 
-radiation_problem = RadiationProblem(body=sphere, radiating_dof="Heave", omega=2.0)
+radiation_problem = cpt.RadiationProblem(body=sphere, radiating_dof="Heave", omega=2.0)
 radiation_result = solver.solve(radiation_problem)
 
 # Define a mesh of the free surface and compute the free surface elevation
-free_surface = FreeSurface(x_range=(-50, 50), y_range=(-50, 50), nx=150, ny=150)
+free_surface = cpt.FreeSurface(x_range=(-50, 50), y_range=(-50, 50), nx=150, ny=150)
 diffraction_elevation_at_faces = solver.get_free_surface_elevation(diffraction_result, free_surface)
 radiation_elevation_at_faces = solver.get_free_surface_elevation(radiation_result, free_surface)
 

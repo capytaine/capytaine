@@ -1,18 +1,15 @@
 #!/usr/bin/env python
 
 import logging
-
 import numpy as np
-
-from capytaine import Nemoh, RadiationProblem, assemble_dataset
-from capytaine.geometric_bodies import HorizontalCylinder
+import capytaine as cpt
 
 # Set up logging
 logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s:\t%(message)s")
 
 # Initialize floating body by generating a geometric mesh
-cylinder = HorizontalCylinder(
+cylinder = cpt.HorizontalCylinder(
     length=10.0, radius=1.0,  # Dimensions
     center=(0, 0, -2),        # Position
     nr=5, nx=40, ntheta=20,   # Fineness of the mesh
@@ -29,7 +26,7 @@ depth_range = list(range(5, 25, 2)) + [np.infty]
 # Set up the problems: we will solve a radiation problem for each
 # water depth:
 problems = [
-    RadiationProblem(body=cylinder, sea_bottom=-depth, omega=2.0)
+    cpt.RadiationProblem(body=cylinder, sea_bottom=-depth, omega=2.0)
     for depth in depth_range
 ]
 # Water density, gravity and radiating dof have not been specified.
@@ -38,11 +35,11 @@ problems = [
 # been defined.)
 
 # Solve all radiation problems with Nemoh
-solver = Nemoh()
+solver = cpt.Nemoh()
 results = [solver.solve(pb) for pb in sorted(problems)]
 
 # Gather the computed added mass into a labelled array.
-data = assemble_dataset(results)
+data = cpt.assemble_dataset(results)
 
 # Plot the added mass of each dofs as a function of the water depth.
 import matplotlib.pyplot as plt
