@@ -1,9 +1,11 @@
 language: python
 
 sudo: required
+dist: xenial  # Required for python 3.7
 
 python:
   - "3.6"
+  - "3.7"
 
 before_install:
   - sudo apt-get update
@@ -17,7 +19,7 @@ before_install:
   - conda update -q conda
   - conda install -q python=$TRAVIS_PYTHON_VERSION pip conda-build conda-verify anaconda-client
   - conda install -q numpy
-  - conda install -q libgfortran=3.0
+  # - conda install -q libgfortran=3.0
 
 install:
   - conda build .
