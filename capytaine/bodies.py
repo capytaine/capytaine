@@ -292,11 +292,11 @@ class FloatingBody(Abstract3DObject):
         return self
 
     @inplace_transformation
-    def rotate(self, *args):
-        self.mesh.rotate(*args)
-        # TODO: Also rotate dofs
-        if len(self.dofs) > 0:
-            LOG.warning(f"The dofs of {self.name} have not been rotated with its mesh.")
+    def rotate(self, axis, angle):
+        self.mesh.rotate(axis, angle)
+        matrix = axis.rotation_matrix(angle)
+        for dof in self.dofs:
+            self.dofs[dof] = (matrix @ self.dofs[dof].T).T
         return self
 
     @inplace_transformation
