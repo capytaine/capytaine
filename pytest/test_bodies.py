@@ -47,14 +47,19 @@ def test_bodies():
     assert str(body) == "sphere"
     repr(body)
     assert np.allclose(body.center, (0, 0, 0))
+    body.add_translation_dof(name="Surge")
     body.add_translation_dof(name="Heave")
 
-    # Some transformation of the body
+    # Extract faces
     body.extract_faces(np.where(body.mesh.faces_centers[:, 2] < 0)[0])
+
+    # Clipping
     body.keep_immersed_part(inplace=False)
 
-    body.mirrored(Plane(point=(0, 1, 0), normal=(1, 0, 0)))
-    body.rotated(Axis(point=(0, 1, 0), vector=(0, 0, 1)), np.pi)
+    # Mirror of the dofs
+    mirrored = body.mirrored(Plane(point=(1, 0, 0), normal=(1, 0, 0)))
+    assert np.allclose(mirrored.center, np.array([2, 0, 0]))
+    assert np.allclose(body.dofs['Surge'], -mirrored.dofs['Surge'])
 
     # Rotation of the dofs
     sideways = body.rotated(Axis(point=(0, 0, 0), vector=(0, 1, 0)), np.pi/2)
@@ -70,7 +75,7 @@ def test_bodies():
 
     # Join bodies
     both = body.join_bodies(copy_of_body)
-    assert set(both.dofs) == {'sphere__Heave', 'copy_of_sphere__Heave'}
+    assert set(both.dofs) == {'sphere__Surge', 'copy_of_sphere__Surge', 'sphere__Heave', 'copy_of_sphere__Heave'}
 
 
 @pytest.mark.parametrize("z_center", [0, 2, -2])

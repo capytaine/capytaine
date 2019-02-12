@@ -277,24 +277,28 @@ class FloatingBody(Abstract3DObject):
             return new_body
 
     @inplace_transformation
-    def mirror(self, *args):
-        self.mesh.mirror(*args)
-        # TODO: Also mirror dofs
-        if len(self.dofs) > 0:
-            LOG.warning(f"The dofs of {self.name} have not been mirrored with its mesh.")
+    def mirror(self, plane):
+        self.mesh.mirror(plane)
+        for dof in self.dofs:
+            self.dofs[dof] -= 2 * np.outer(np.dot(self.dofs[dof], plane.normal), plane.normal)
+        if hasattr(self, 'center'):
+            print(np.dot(self.center, plane.normal) - plane.c, plane.normal)
+            self.center -= 2 * (np.dot(self.center, plane.normal) - plane.c) * plane.normal
         return self
 
     @inplace_transformation
     def translate(self, *args):
+        self.mesh.translate(*args)
         if hasattr(self, 'center'):
             self.center += args[0]
-        self.mesh.translate(*args)
         return self
 
     @inplace_transformation
     def rotate(self, axis, angle):
-        self.mesh.rotate(axis, angle)
         matrix = axis.rotation_matrix(angle)
+        self.mesh.rotate(axis, angle)
+        if hasattr(self, 'center'):
+            self.center = matrix @ self.center
         for dof in self.dofs:
             self.dofs[dof] = (matrix @ self.dofs[dof].T).T
         return self
