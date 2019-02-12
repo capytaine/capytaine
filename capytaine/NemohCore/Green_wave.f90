@@ -217,7 +217,7 @@ CONTAINS
   SUBROUTINE WAVE_PART_FINITE_DEPTH &
       (wavenumber, X0I, X0J, depth, &
       XR, XZ, APD,                  &
-      NEXP, REF_AMBDA, REF_AR,      &
+      NEXP, AMBDA, AR,              &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
 
@@ -231,7 +231,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
 
     INTEGER,                                  INTENT(IN) :: NEXP
-    REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: REF_AMBDA, REF_AR
+    REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
 
     ! Outputs
     COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
@@ -244,7 +244,6 @@ CONTAINS
     REAL(KIND=PRE),    DIMENSION(3)      :: XI, XJ
     REAL(KIND=PRE),    DIMENSION(4)      :: FTS, PSR
     REAL(KIND=PRE),    DIMENSION(3, 4)   :: VTS
-    REAL(KIND=PRE),    DIMENSION(NEXP+1) :: AMBDA, AR
     COMPLEX(KIND=PRE), DIMENSION(4)      :: FS
     COMPLEX(KIND=PRE), DIMENSION(3, 4)   :: VS
 
@@ -308,13 +307,7 @@ CONTAINS
     ! Part 2: Integrate (NEXP+1)×4 terms of the form 1/MM'
     !=====================================================
 
-    AMBDA(1:NEXP) = REF_AMBDA(1:NEXP)
-    AMBDA(NEXP+1) = 0
-
-    AR(1:NEXP) = REF_AR(1:NEXP)
-    AR(NEXP+1) = 2
-
-    DO KE = 1, NEXP+1
+    DO KE = 1, NEXP
       XI(:) = X0I(:)
 
       ! 2.a Shift observation point and compute integral

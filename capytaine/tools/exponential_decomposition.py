@@ -55,6 +55,11 @@ def find_best_exponential_decomposition(dimensionless_omega, dimensionless_waven
         lamda = lamda[:nexp]
         a = a[:nexp]
 
+    # Add one more exponential function (actually a constant).
+    # It is not clear where it comes from exactly in the theory...
+    a = np.concatenate([a, np.array([2])])
+    lamda = np.concatenate([lamda, np.array([0.0])])
+
     return a, lamda
 
 
