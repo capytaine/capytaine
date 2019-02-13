@@ -236,7 +236,7 @@ class LowRankMatrix:
             if l == 0:
                 relative_i = 0  # Or chose at random
             else:
-                relative_i = np.argmax(np.abs(left[0][l-1][available_rows]))
+                relative_i = int(np.argmax(np.abs(left[1][l-1][available_rows])))
             i = available_rows.pop(relative_i)
             # relative_i is the index of the row in the list of remaining rows,
             # e.g. if available_rows = [2, 7, 8] and relative_i = 2, the chosen
@@ -245,10 +245,10 @@ class LowRankMatrix:
             # Add the row to the approximation
             b0, b1 = get_row_func(i)
             right[0].append(b0 - full0[i, :])
-            right[1].append(b1 - full0[i, :])
+            right[1].append(b1 - full1[i, :])
 
             # Peek a column
-            relative_j = np.argmax(np.abs(right[0][l][available_cols]))
+            relative_j = int(np.argmax(np.abs(right[1][l][available_cols])))
             j = available_cols.pop(relative_j)
 
             # Get the pivot
@@ -275,7 +275,7 @@ class LowRankMatrix:
             increment_of_current_iteration1 = np.outer(left[1][l][:], right[1][l][:])
             full1 += increment_of_current_iteration1
 
-            if np.linalg.norm(increment_of_current_iteration0, 'fro') <= tol*np.linalg.norm(full0, 'fro') :
+            if np.linalg.norm(increment_of_current_iteration1, 'fro') <= tol*np.linalg.norm(full1, 'fro'):
                 # See Gypsilab for possible improvement of the norm computation.
                 LOG.debug(f"ACA: approximation found of rank {l}")
                 if l == 0:  # Edge case of the zero matrix...
