@@ -220,11 +220,11 @@ def hierarchical_toeplitz_matrices(build_matrices, ACA_distance=8.0, ACA_tol=1e-
             LOG.debug(log_entry + " using ACA.")
 
             def get_row_func(i):
-                s, v = build_matrices(mesh1.extract_faces([i]), mesh2, *args, **kwargs)
+                s, v = build_matrices(mesh1.extract_one_face(i), mesh2, *args, **kwargs)
                 return s.flatten(), v.flatten()
 
             def get_col_func(j):
-                s, v = build_matrices(mesh1, mesh2.extract_faces([j]), *args, **kwargs)
+                s, v = build_matrices(mesh1, mesh2.extract_one_face(j), *args, **kwargs)
                 return s.flatten(), v.flatten()
 
             return LowRankMatrix.from_rows_and_cols_functions_multi_ACA(

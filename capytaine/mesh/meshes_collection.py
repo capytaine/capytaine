@@ -160,6 +160,13 @@ class CollectionOfMeshes(Abstract3DObject):
         start = sum((mesh.nb_faces for mesh in self[:mesh_index]))  # Number of faces in previous meshes
         return slice(start, start + self[mesh_index].nb_faces)
 
+    def submesh_containing_face(self, id_face):
+        total_faces = 0
+        for id_mesh in range(self.nb_submeshes):
+            total_faces += self[id_mesh].nb_faces
+            if id_face < total_faces:
+                return id_mesh, id_face - (total_faces - self[id_mesh].nb_faces)
+
     ##################
     # Transformation #
     ##################
@@ -174,6 +181,19 @@ class CollectionOfMeshes(Abstract3DObject):
         merged.merge_duplicates()
         merged.heal_triangles()
         return merged
+
+    def extract_one_face(self, id_face):
+        id_mesh, relative_id_face = self.submesh_containing_face(id_face)
+        mesh = self[id_mesh]
+
+        extracted_mesh = mesh.extract_one_face(relative_id_face)
+
+        if hasattr(mesh, '__internals__'):
+            for prop in mesh.__internals__:
+                if prop[:4] == "face":
+                    extracted_mesh.__internals__[prop] = mesh.__internals__[prop][[relative_id_face]]
+
+        return extracted_mesh
 
     def extract_faces(self, *args, **kwargs):
         return self.merged().extract_faces(*args, **kwargs)

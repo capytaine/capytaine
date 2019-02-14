@@ -158,6 +158,16 @@ class Mesh(Abstract3DObject):
         else:
             return self._faces[face_id]
 
+    def extract_one_face(self, id_face):
+        vertices = self.vertices[self.faces[id_face, :], :]
+        mesh = Mesh(vertices, np.arange(4).reshape((1, 4)))
+
+        for prop in self.__internals__:
+            if prop[:4] == "face":
+                mesh.__internals__[prop] = self.__internals__[prop][[id_face]]
+
+        return mesh
+
     def extract_faces(self, id_faces_to_extract, return_index=False, name=None):
         """
         Extracts a new mesh from a selection of faces ids

@@ -190,3 +190,9 @@ def test_clipper_corner_cases():
     plane = Plane(point=(0, 0, 0), normal=(0, 0, -1))
     one_sphere_remaining = two_spheres.clip(plane, inplace=False)
     assert one_sphere_remaining == sphere.translated_z(10.0)
+
+
+def test_extract_one_face():
+    i = 2
+    one_face = sphere.extract_one_face(i)
+    assert np.all(one_face.faces_centers[0] == sphere.faces_centers[i])
