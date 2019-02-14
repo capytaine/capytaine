@@ -276,6 +276,9 @@ class FloatingBody(Abstract3DObject):
         else:
             return new_body
 
+    def splitted_by_plane(self, plane):
+        return FloatingBody(mesh=self.mesh.splitted_by_plane(plane), dofs=self.dofs, name=self.name)
+
     @inplace_transformation
     def mirror(self, plane):
         self.mesh.mirror(plane)

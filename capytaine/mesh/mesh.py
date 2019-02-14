@@ -207,6 +207,17 @@ class Mesh(Abstract3DObject):
         else:
             return extracted_mesh
 
+    def splitted_by_plane(self, plane: Plane):
+        from capytaine.mesh.meshes_collection import CollectionOfMeshes
+        faces_ids_on_one_side = np.where(plane.distance_to_point(self.faces_centers) < 0)[0]
+        if len(faces_ids_on_one_side) == 0 or len(faces_ids_on_one_side) == self.nb_faces:
+            return self.copy()
+        else:
+            mesh_part_1 = self.extract_faces(faces_ids_on_one_side)
+            mesh_part_2 = self.extract_faces(list(set(range(self.nb_faces)) - set(faces_ids_on_one_side)))
+            return CollectionOfMeshes([mesh_part_1, mesh_part_2], name=self.name)
+
+
     #####################
     #  Mean and radius  #
     #####################

@@ -311,7 +311,8 @@ class Plane(Abstract3DObject):
 
     def distance_to_point(self, points):
         """
-        Return the orthogonal distance of points with respect to the plane
+        Return the orthogonal distance of points with respect to the plane.
+        The distance is counted positively on one side of the plane and negatively on the other.
 
         Parameters
         ----------

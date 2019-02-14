@@ -5,10 +5,11 @@
 import pytest
 import numpy as np
 
-from capytaine import Disk, AxialSymmetry, HorizontalCylinder, TranslationalSymmetry
+from capytaine import Disk, AxialSymmetry, HorizontalCylinder, TranslationalSymmetry, CollectionOfMeshes
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
 from capytaine.geometric_bodies import Sphere
+from capytaine.tools.geometry import xOz_Plane, yOz_Plane
 
 
 def test_collection_of_meshes():
@@ -106,3 +107,16 @@ def test_join_translational_cylinders():
     mesh2 = HorizontalCylinder(length=10.0, radius=2.0, center=(0, -5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
     joined = mesh1.join_meshes(mesh2)
     assert isinstance(joined, TranslationalSymmetry)
+
+
+def test_mesh_splitting():
+    mesh = Sphere().mesh.merged()
+
+    splitted_mesh = mesh.splitted_by_plane(xOz_Plane.translated_y(0.5))
+    assert isinstance(splitted_mesh, CollectionOfMeshes)
+    assert splitted_mesh.merged() == mesh
+
+    twice_splitted_mesh = splitted_mesh.splitted_by_plane(yOz_Plane)
+    assert isinstance(twice_splitted_mesh[0], CollectionOfMeshes)
+    assert isinstance(twice_splitted_mesh[1], CollectionOfMeshes)
+    assert twice_splitted_mesh.merged() == mesh

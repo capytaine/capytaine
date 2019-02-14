@@ -176,6 +176,9 @@ class CollectionOfMeshes(Abstract3DObject):
     def extract_faces(self, *args, **kwargs):
         return self.merged().extract_faces(*args, **kwargs)
 
+    def splitted_by_plane(self, plane):
+        return CollectionOfMeshes([mesh.splitted_by_plane(plane) for mesh in self], name=self.name)
+
     @inplace_transformation
     def translate(self, vector):
         for mesh in self:
