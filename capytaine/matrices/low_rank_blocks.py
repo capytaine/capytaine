@@ -136,77 +136,40 @@ class LowRankMatrix:
         -------
         LowRankMatrix
         """
-        if max_rank is None and tol == 0.0:
-            LOG.warning("No stopping criterion for the Adaptive Cross Approximation.")
+        # Actually use the multi matrix ACA below.
+        # Need some wrapping and unwrapping...
+        def get_row(i):
+            return [get_row_func(i)]
 
-        if max_rank is None:
-            max_rank = min(nb_rows, nb_cols)//2
+        def get_col(j):
+            return [get_col_func(j)]
 
-        A = []  # Left matrix to be assembled
-        B = []  # Right matrix to be assembled
-        R = np.zeros((nb_rows, nb_cols), dtype=dtype)  # Current best approximation == A @ B
-        available_rows = list(range(nb_rows))
-        available_cols = list(range(nb_cols))
-
-        for l in range(max_rank):
-
-            # Peek a row
-            if l == 0:
-                relative_i = 0  # Or chose at random
-            else:
-                relative_i = np.argmax(np.abs(A[l-1][available_rows]))
-            i = available_rows.pop(relative_i)
-            # relative_i is the index of the row in the list of remaining rows,
-            # e.g. if available_rows = [2, 7, 8] and relative_i = 2, the chosen
-            # row has index 8 in the original full matrix.
-
-            # Add the row to the approximation
-            B.append(get_row_func(i) - R[i, :])
-
-            # Peek a column
-            relative_j = np.argmax(np.abs(B[l][available_cols]))
-            j = available_cols.pop(relative_j)
-
-            # Get the pivot
-            new_col = get_col_func(j) - R[:, j]
-            pivot = new_col[i]
-            assert pivot != 0.0
-
-            # Add the column to the approximation
-            A.append(new_col/pivot)
-
-            # Update the current best approximation
-            increment_of_current_iteration = np.outer(A[l][:], B[l][:])
-            R += increment_of_current_iteration
-
-            if np.linalg.norm(increment_of_current_iteration, 'fro')/np.linalg.norm(R, 'fro') < tol:
-                # See Gypsilab for possible improvement of the norm computation.
-                LOG.debug(f"ACA: approximation found of rank {l}")
-                return LowRankMatrix(np.array(A[:-1]).T, np.array(B[:-1]))  # Drop the last iteration
-
-        if tol > 0:
-            LOG.warning(f"Unable to find a low rank approximation of rank lower or equal to {l+1} with tolerance {tol}.")
-        return LowRankMatrix(np.array(A).T, np.array(B))
+        return cls.from_rows_and_cols_functions_multi_ACA(
+            get_row, get_col, nb_rows, nb_cols,
+            nb_matrices=1, id_main=0,
+            max_rank=max_rank, tol=tol, dtype=dtype
+        )[0]
 
     @classmethod
-    def from_rows_and_cols_functions_with_2_in_1_ACA(cls, get_row_func, get_col_func, nb_rows, nb_cols,
-                                                     main=1,
-                                                     max_rank=None, tol=0.0, dtype=np.float64):
+    def from_rows_and_cols_functions_multi_ACA(cls, get_row_func, get_col_func, nb_rows, nb_cols,
+                                               nb_matrices=1, id_main=0,
+                                               max_rank=None, tol=0.0, dtype=np.float64):
         """Create two low rank matrices from functions running two Adaptive Cross Approximation at the same time.
         The user should provide either the `max_rank` optional argument or the `tol` optional argument to expect a useful output.
-        The algorithm stops when a satisfying approximation for the matrix 1 has been found.
 
         Parameters
         ----------
         get_row_func: Function
-            Function such that `get_row_func(i)` returns the `i`-th row of both full matrices.
+            Function such that `get_row_func(i)` returns the `i`-th row of all full matrices.
         get_col_func: Function
-            Function such that `get_col_func(j)` returns the `j`-th column of both full matrices.
+            Function such that `get_col_func(j)` returns the `j`-th column of all full matrices.
         nb_rows: int
-            Number of rows in both full matrices.
+            Number of rows in all full matrices.
         nb_cols: int
-            Number of columns in both full matrices.
-        main: int, optional
+            Number of columns in all full matrices.
+        nb_matrices: int, optional
+            The number of matrices approximated at the same time
+        id_main: int, optional
             The matrix used primarily in the ACA
         max_rank: int, optional
             The maximum rank allowed for both output low rank matrices.
@@ -229,8 +192,8 @@ class LowRankMatrix:
             max_rank = min(nb_rows, nb_cols)//2
 
         # Initialize working matrices
-        left = np.zeros((2, nb_rows, max_rank), dtype=dtype)
-        right = np.zeros((2, max_rank, nb_cols), dtype=dtype)
+        left = np.zeros((nb_matrices, nb_rows, max_rank), dtype=dtype)
+        right = np.zeros((nb_matrices, max_rank, nb_cols), dtype=dtype)
 
         squared_norm_of_full_matrix = 0.0
 
@@ -243,42 +206,40 @@ class LowRankMatrix:
             if l == 0:
                 relative_i = 0  # Or chose at random
             else:
-                relative_i = int(np.argmax(np.abs(left[main, available_rows, l-1])))
+                relative_i = int(np.argmax(np.abs(left[id_main, available_rows, l - 1])))
             i = available_rows.pop(relative_i)
             # relative_i is the index of the row in the list of remaining rows,
             # e.g. if available_rows = [2, 7, 8] and relative_i = 2, the chosen
             # row has index 8 in the original full matrix.
 
             # Add the row to the approximation
-            b0, b1 = get_row_func(i)
-            right[0, l, :] = b0 - left[0, i, :l] @ right[0, :l, :]
-            right[1, l, :] = b1 - left[1, i, :l] @ right[1, :l, :]
+            one_row = get_row_func(i)
+            for id_mat in range(nb_matrices):
+                right[id_mat, l, :] = one_row[id_mat] - left[id_mat, i, :l] @ right[id_mat, :l, :]
 
             # Peek a column
-            relative_j = int(np.argmax(np.abs(right[main, l, available_cols])))
+            relative_j = int(np.argmax(np.abs(right[id_main, l, available_cols])))
             j = available_cols.pop(relative_j)
+            one_col = get_col_func(j)
 
-            # Get the pivot
-            a0, a1 = get_col_func(j)
-
-            new_col0 = a0 - left[0, :, :l] @ right[0, :l, j]
-            pivot0 = new_col0[i]
-            if abs(pivot0) < 1e-12:
-                pivot0 = 1e-12
-
-            new_col1 = a1 - left[1, :, :l] @ right[1, :l, j]
-            pivot1 = new_col1[i]
-            if abs(pivot1) < 1e-12:
-                pivot1 = 1e-12
-
-            # Add the column to the approximation
-            left[0, :, l] = new_col0/pivot0
-            left[1, :, l] = new_col1/pivot1
+            # Add the column to the approximation in all matrices
+            for id_mat in range(nb_matrices):
+                new_col = one_col[id_mat] - left[id_mat, :, :l] @ right[id_mat, :l, j]
+                pivot = new_col[i]
+                if abs(pivot) < 1e-12:
+                    pivot = 1e-12
+                left[id_mat, :, l] = new_col/pivot
 
             # Update norm of the full matrix
-            squared_norm_of_increment = (left[main, :, l] @ left[main, :, l]) * (right[main, l, :] @ right[main, l, :])
-            
-            crossed_terms = (left[main, :, l].T @ left[main, :, :l]) @ (right[main, l, :] @ right[main, :l, :].T)
+            squared_norm_of_increment = (
+                    (left[id_main, :, l] @ left[id_main, :, l]) *
+                    (right[id_main, l, :] @ right[id_main, l, :])
+            )
+
+            crossed_terms = (
+                    (np.conj(left[id_main, :, l].T) @ left[id_main, :, :l]) @
+                    (np.conj(right[id_main, l, :]) @ right[id_main, :l, :].T)
+            )
             squared_norm_of_full_matrix += squared_norm_of_increment + 2*np.real(crossed_terms)
 
             if squared_norm_of_increment <= tol**2*squared_norm_of_full_matrix:
@@ -287,14 +248,12 @@ class LowRankMatrix:
                 if l == 0:  # Edge case of the zero matrix...
                     l = 1  # ... actually returns a rank 1 matrix.
 
-                return (LowRankMatrix(left[0, :, :l], right[0, :l, :]),
-                        LowRankMatrix(left[1, :, :l], right[1, :l, :]))
+                return [LowRankMatrix(left[id_mat, :, :l], right[id_mat, :l, :]) for id_mat in range(nb_matrices)]
 
         if tol > 0:
             LOG.warning(f"Unable to find a low rank approximation"
                         f"of rank lower or equal to {max_rank} with tolerance {tol}.")
-        return (LowRankMatrix(left[0, :, :], right[0, :, :]),
-                LowRankMatrix(left[1, :, :], right[1, :, :]))
+        return [LowRankMatrix(left[id_mat, :, :], right[id_mat, :, :]) for id_mat in range(nb_matrices)]
 
     ####################
     #  Representation  #

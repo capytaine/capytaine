@@ -469,7 +469,9 @@ def test_2_in_1_ACA_with_identical_matrices():
     def get_col_func(j):
         return A[:, j], B[:, j]
 
-    lrA, lrB = LowRankMatrix.from_rows_and_cols_functions_with_2_in_1_ACA(get_row_func, get_col_func, n, n, tol=1e-3)
+    lrA, lrB = LowRankMatrix.from_rows_and_cols_functions_multi_ACA(
+        get_row_func, get_col_func, n, n, nb_matrices=2, tol=1e-3
+    )
 
     assert (lrA.full_matrix() == lrB.full_matrix()).all()
     assert norm(lrA.full_matrix() - A, 'fro')/norm(A, 'fro') < 3e-2
@@ -486,7 +488,9 @@ def test_2_in_1_ACA_with_different_matrices():
     def get_col_func(j):
         return A[:, j], B[:, j]
 
-    lrA, lrB = LowRankMatrix.from_rows_and_cols_functions_with_2_in_1_ACA(get_row_func, get_col_func, n, n, max_rank=3)
+    lrA, lrB = LowRankMatrix.from_rows_and_cols_functions_multi_ACA(
+        get_row_func, get_col_func, n, n, nb_matrices=2, max_rank=3
+    )
 
     assert matrix_rank(lrA.full_matrix()) == matrix_rank(lrB.full_matrix()) == 3
 
