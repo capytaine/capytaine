@@ -89,3 +89,11 @@ def test_plane_transformations():
     rotated_plane = xOz_Plane.rotate(Ox_axis, angle=np.pi/2, inplace=False)
     assert rotated_plane == xOy_Plane
 
+    # MIRRORED BY ITSELF
+    plane = Plane(normal=(1, 0, 0), point=(0.3, 0.2, 0.6))
+    assert plane.mirrored(plane) != plane
+    assert plane.mirrored(plane) == Plane(normal=(-1, 0, 0), point=(0.3, 0.2, 0.6))
+
+    flipped_plane = plane.rotate(Axis(point=plane.point, vector=(0, 1, 0)), np.pi)
+    assert flipped_plane == plane.mirror(plane)
+

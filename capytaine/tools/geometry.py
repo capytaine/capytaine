@@ -145,6 +145,9 @@ def test_parallel_vectors(vec1, vec2) -> bool:
     return np.linalg.norm(np.cross(vec1, vec2)) < 1e-6
 
 
+def test_parallel_vectors_with_same_direction(vec1, vec2) -> bool:
+    return test_parallel_vectors(vec1, vec2) and np.dot(vec1, vec2) > 0
+
 ################
 #  AXIS CLASS  #
 ################
@@ -243,6 +246,7 @@ Oz_axis = Axis(vector=(0, 0, 1), point=(0, 0, 0))
 #################
 
 class Plane(Abstract3DObject):
+    """3D plane, oriented by the direction of their normal."""
     def __init__(self, normal=(0.0, 0.0, 1.0), point=(0.0, 0.0, 0.0)):
         normal = np.asarray(normal, dtype=np.float)
         self.normal = normal / np.linalg.norm(normal)
@@ -260,8 +264,10 @@ class Plane(Abstract3DObject):
             raise NotImplementedError
 
     def __eq__(self, other):
+        """Plane are considered equal only when their normal are pointing in the same direction."""
         if isinstance(other, Plane):
-            return (self is other) or (other.point in self and test_parallel_vectors(self.normal, other.normal))
+            return ((self is other) or
+                    (other.point in self and test_parallel_vectors_with_same_direction(self.normal, other.normal)))
         else:
             return NotImplemented
 
