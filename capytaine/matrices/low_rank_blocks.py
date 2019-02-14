@@ -189,9 +189,12 @@ class LowRankMatrix:
         return LowRankMatrix(np.array(A).T, np.array(B))
 
     @classmethod
-    def from_rows_and_cols_functions_with_2_in_1_ACA(cls, get_row_func, get_col_func, nb_rows, nb_cols, max_rank=None, tol=0.0, dtype=np.float64):
+    def from_rows_and_cols_functions_with_2_in_1_ACA(cls, get_row_func, get_col_func, nb_rows, nb_cols,
+                                                     main=1,
+                                                     max_rank=None, tol=0.0, dtype=np.float64):
         """Create two low rank matrices from functions running two Adaptive Cross Approximation at the same time.
         The user should provide either the `max_rank` optional argument or the `tol` optional argument to expect a useful output.
+        The algorithm stops when a satisfying approximation for the matrix 1 has been found.
 
         Parameters
         ----------
@@ -203,6 +206,8 @@ class LowRankMatrix:
             Number of rows in both full matrices.
         nb_cols: int
             Number of columns in both full matrices.
+        main: int, optional
+            The matrix used primarily in the ACA
         max_rank: int, optional
             The maximum rank allowed for both output low rank matrices.
             The default value is half the size of the full matrix, that is no gain in storage space.
@@ -223,20 +228,22 @@ class LowRankMatrix:
         if max_rank is None:
             max_rank = min(nb_rows, nb_cols)//2
 
-        left = ([], [])  # Left matrices to be assembled
-        right = ([], [])  # Right matrices to be assembled
-        full0 = np.zeros((nb_rows, nb_cols), dtype=dtype)
-        full1 = np.zeros((nb_rows, nb_cols), dtype=dtype)  # Current best approximations == A @ B
+        # Initialize working matrices
+        left = np.zeros((2, nb_rows, max_rank), dtype=dtype)
+        right = np.zeros((2, max_rank, nb_cols), dtype=dtype)
+
+        squared_norm_of_full_matrix = 0.0
+
+        # List of indices of unused entries
         available_rows = list(range(nb_rows))
         available_cols = list(range(nb_cols))
 
         for l in range(max_rank):
-
             # Peek a row
             if l == 0:
                 relative_i = 0  # Or chose at random
             else:
-                relative_i = int(np.argmax(np.abs(left[1][l-1][available_rows])))
+                relative_i = int(np.argmax(np.abs(left[main, available_rows, l-1])))
             i = available_rows.pop(relative_i)
             # relative_i is the index of the row in the list of remaining rows,
             # e.g. if available_rows = [2, 7, 8] and relative_i = 2, the chosen
@@ -244,51 +251,50 @@ class LowRankMatrix:
 
             # Add the row to the approximation
             b0, b1 = get_row_func(i)
-            right[0].append(b0 - full0[i, :])
-            right[1].append(b1 - full1[i, :])
+            right[0, l, :] = b0 - left[0, i, :l] @ right[0, :l, :]
+            right[1, l, :] = b1 - left[1, i, :l] @ right[1, :l, :]
 
             # Peek a column
-            relative_j = int(np.argmax(np.abs(right[1][l][available_cols])))
+            relative_j = int(np.argmax(np.abs(right[main, l, available_cols])))
             j = available_cols.pop(relative_j)
 
             # Get the pivot
             a0, a1 = get_col_func(j)
 
-            new_col0 = a0 - full0[:, j]
+            new_col0 = a0 - left[0, :, :l] @ right[0, :l, j]
             pivot0 = new_col0[i]
             if abs(pivot0) < 1e-12:
                 pivot0 = 1e-12
 
-            new_col1 = a1 - full1[:, j]
+            new_col1 = a1 - left[1, :, :l] @ right[1, :l, j]
             pivot1 = new_col1[i]
             if abs(pivot1) < 1e-12:
                 pivot1 = 1e-12
 
             # Add the column to the approximation
-            left[0].append(new_col0/pivot0)
-            left[1].append(new_col1/pivot1)
+            left[0, :, l] = new_col0/pivot0
+            left[1, :, l] = new_col1/pivot1
 
-            # Update the current best approximation
-            increment_of_current_iteration0 = np.outer(left[0][l][:], right[0][l][:])
-            full0 += increment_of_current_iteration0
+            # Update norm of the full matrix
+            squared_norm_of_increment = (left[main, :, l] @ left[main, :, l]) * (right[main, l, :] @ right[main, l, :])
+            
+            crossed_terms = (left[main, :, l].T @ left[main, :, :l]) @ (right[main, l, :] @ right[main, :l, :].T)
+            squared_norm_of_full_matrix += squared_norm_of_increment + 2*np.real(crossed_terms)
 
-            increment_of_current_iteration1 = np.outer(left[1][l][:], right[1][l][:])
-            full1 += increment_of_current_iteration1
-
-            if np.linalg.norm(increment_of_current_iteration1, 'fro') <= tol*np.linalg.norm(full1, 'fro'):
-                # See Gypsilab for possible improvement of the norm computation.
+            if squared_norm_of_increment <= tol**2*squared_norm_of_full_matrix:
                 LOG.debug(f"ACA: approximation found of rank {l}")
+
                 if l == 0:  # Edge case of the zero matrix...
-                    return (LowRankMatrix(np.array(left[0]).T, np.array(right[0])),
-                            LowRankMatrix(np.array(left[1]).T, np.array(right[1])))
-                else:
-                    return (LowRankMatrix(np.array(left[0][:-1]).T, np.array(right[0][:-1])),
-                            LowRankMatrix(np.array(left[1][:-1]).T, np.array(right[1][:-1])))
+                    l = 1  # ... actually returns a rank 1 matrix.
+
+                return (LowRankMatrix(left[0, :, :l], right[0, :l, :]),
+                        LowRankMatrix(left[1, :, :l], right[1, :l, :]))
 
         if tol > 0:
-            LOG.warning(f"Unable to find a low rank approximation of rank lower or equal to {l+1} with tolerance {tol}.")
-        return (LowRankMatrix(np.array(left[0]).T, np.array(right[0])),
-                LowRankMatrix(np.array(left[1]).T, np.array(right[1])))
+            LOG.warning(f"Unable to find a low rank approximation"
+                        f"of rank lower or equal to {max_rank} with tolerance {tol}.")
+        return (LowRankMatrix(left[0, :, :], right[0, :, :]),
+                LowRankMatrix(left[1, :, :], right[1, :, :]))
 
     ####################
     #  Representation  #
