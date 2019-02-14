@@ -7,6 +7,7 @@
 import logging
 import reprlib
 from itertools import chain, accumulate
+from functools import lru_cache
 from typing import Iterable, Union
 
 import numpy as np
@@ -150,6 +151,7 @@ class CollectionOfMeshes(Abstract3DObject):
         return sum([mesh.nb_vertices*mesh.center_of_mass_of_nodes for mesh in self])/self.nb_vertices
 
     @property
+    @lru_cache(maxsize=1024)
     def diameter_of_nodes(self):
         return self.merged().diameter_of_nodes  # TODO: improve implementation
 

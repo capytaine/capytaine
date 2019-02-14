@@ -108,7 +108,7 @@ def test_translate():
 
     translated_sphere = sphere.translated([1, 2, 3])
     assert np.allclose(translated_sphere.center_of_mass_of_nodes, (1.0, 2.0, 3.0))
-    assert translated_sphere.diameter_of_nodes == sphere.diameter_of_nodes
+    assert np.isclose(translated_sphere.diameter_of_nodes, sphere.diameter_of_nodes)
 
 
 def test_rotate():
