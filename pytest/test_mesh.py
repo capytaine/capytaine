@@ -24,7 +24,7 @@ def test_mesh_initialization():
         Mesh(vertices=np.random.rand(6, 3), faces=[(0, 1, 2), (3, 4, 5)])
 
     with pytest.raises(AssertionError):
-        Mesh(vertices=np.random.rand(4, 3), faces=[(0, 1, 2, np.pi)])
+        Mesh(vertices=np.random.rand(4, 3), faces=[(0, 1, 2, -1)])
 
     with pytest.raises(AssertionError):
         Mesh(vertices=np.random.rand(3, 3), faces=[(0, 1, 2, 3)])
