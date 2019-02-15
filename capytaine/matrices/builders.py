@@ -227,7 +227,7 @@ def hierarchical_toeplitz_matrices(build_matrices, ACA_distance=8.0, ACA_tol=1e-
                 s, v = build_matrices(mesh1, mesh2.extract_one_face(j), *args, **kwargs)
                 return s.flatten(), v.flatten()
 
-            return LowRankMatrix.from_rows_and_cols_functions_multi_ACA(
+            return LowRankMatrix.from_rows_and_cols_functions_with_multi_ACA(
                 get_row_func, get_col_func, mesh1.nb_faces, mesh2.nb_faces,
                 nb_matrices=2, id_main=1,  # Approximate V and get an approximation of S at the same time
                 tol=ACA_tol, dtype=dtype)

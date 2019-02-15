@@ -469,7 +469,7 @@ def test_2_in_1_ACA_with_identical_matrices():
     def get_col_func(j):
         return A[:, j], B[:, j]
 
-    lrA, lrB = LowRankMatrix.from_rows_and_cols_functions_multi_ACA(
+    lrA, lrB = LowRankMatrix.from_rows_and_cols_functions_with_multi_ACA(
         get_row_func, get_col_func, n, n, nb_matrices=2, tol=1e-3
     )
 
@@ -488,7 +488,7 @@ def test_2_in_1_ACA_with_different_matrices():
     def get_col_func(j):
         return A[:, j], B[:, j]
 
-    lrA, lrB = LowRankMatrix.from_rows_and_cols_functions_multi_ACA(
+    lrA, lrB = LowRankMatrix.from_rows_and_cols_functions_with_multi_ACA(
         get_row_func, get_col_func, n, n, nb_matrices=2, max_rank=3
     )
 

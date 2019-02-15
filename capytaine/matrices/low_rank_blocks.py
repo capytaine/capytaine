@@ -1,5 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
+# Copyright (C) 2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
+"""This module contains a class to describe a low-rank matrix as the tensor product of two smaller matrices.
+In particular, an implementation of the Adaptive Cross Approximation is used to build such a matrix.
+
+It takes inspiration from the following works:
+
+* `openHmx module from Gypsilab by Matthieu Aussal (GPL licensed) <https://github.com/matthieuaussal/gypsilab>`_
+* `HierarchicalMatrices by Markus Neumann (GPL licensed) <https://github.com/maekke97/HierarchicalMatrices>`_
+"""
 
 import logging
 
@@ -13,15 +23,19 @@ class LowRankMatrix:
 
     Parameters
     ----------
-    left_matrix: np.ndarray
-    right_matrix: np.ndarray
+    left_matrix: numpy.array
+        Matrix of shape (nb_cols, rank).
+    right_matrix: numpy.array
+        Matrix of shape (rank, nb_rows).
 
     Attributes
     ----------
-    shape: pair of ints
+    shape: Tuple[int, int]
         The shape of the full matrix.
     rank: int
         The rank of the full matrix.
+    dtype: numpy.dtype
+        Type of data in the matrix.
     """
 
     ndim = 2
@@ -36,12 +50,23 @@ class LowRankMatrix:
         self.shape = left_matrix.shape[0], right_matrix.shape[1]
         assert left_matrix.shape[1] == right_matrix.shape[0], "Sizes of the left and right matrices do not match."
         self.rank = left_matrix.shape[1]  # == right_matrix.shape[0]
-        assert left_matrix.dtype == right_matrix.dtype
+        assert left_matrix.dtype == right_matrix.dtype, "Left and right matrices should have the same type of data."
         self.dtype = left_matrix.dtype
 
     @classmethod
     def from_full_matrix_with_SVD(cls, full_matrix, max_rank):
-        """Create a low rank matrix from a full matrix using Singular Value Decomposition."""
+        """Create a low rank matrix from a full matrix using Singular Value Decomposition.
+        Parameters
+        ----------
+        full_matrix: numpy array
+            The matrix that will be approximated.
+        max_rank: int
+            Rank of the low-rank approximation.
+
+        Returns
+        -------
+        LowRankMatrix
+        """
         u, s, v = np.linalg.svd(full_matrix)
         left_matrix = u[:, 0:max_rank] @ np.diag(s[0:max_rank])
         right_matrix = v[0:max_rank, :]
@@ -50,18 +75,19 @@ class LowRankMatrix:
     @classmethod
     def from_full_matrix_with_ACA(cls, full_matrix, max_rank=None, tol=0.0):
         """Create a low rank matrix from a full matrix using Adaptive Cross Approximation.
-        The user should provide either the `max_rank` optional argument or the `tol` optional argument to expect a useful output.
+        The user should provide either the `max_rank` optional argument or the `tol` optional argument.
 
         Parameters
         ----------
-        full_matrix: numpy array
+        full_matrix: numpy.array
             The matrix that will be approximated.
-        nb_rows: int
-        nb_cols: int
         max_rank: int, optional
+            The maximum rank allowed for the output low rank matrix.
+            The default value is half the size of the full matrix, that is no gain in storage space.
         tol: float, optional
-        dtype: numpy.dtype, optional
-            See `from_rows_and_cols_functions_with_ACA`
+            The tolerance on the relative error (default: 0).
+            If the Frobenius norm of the increment is lower than the tolerance, the iteration stops.
+            If the tolerance is set to 0, the resulting matrix will have the maximum rank defined by `max_rank`.
 
         Returns
         -------
@@ -74,24 +100,32 @@ class LowRankMatrix:
             return full_matrix[:, j]
 
         return cls.from_rows_and_cols_functions_with_ACA(
-            get_row, get_col, full_matrix.shape[0], full_matrix.shape[1], max_rank=max_rank, tol=tol, dtype=full_matrix.dtype
+            get_row, get_col, full_matrix.shape[0], full_matrix.shape[1],
+            max_rank=max_rank, tol=tol, dtype=full_matrix.dtype
         )
 
     @classmethod
     def from_function_with_ACA(cls, func, nb_rows, nb_cols, max_rank=None, tol=0.0, dtype=np.float64):
         """Create a low rank matrix from a function using Adaptive Cross Approximation.
-        The user should provide either the `max_rank` optional argument or the `tol` optional argument to expect a useful output.
+        The user should provide either the `max_rank` optional argument or the `tol` optional argument.
 
         Parameters
         ----------
         func: Function
             Function such that `func(i, j)` returns the value of the (i, j) entry of the full matrix.
         nb_rows: int
+            Number of rows in the full matrix.
         nb_cols: int
+            Number of cols in the full matrix.
         max_rank: int, optional
+            The maximum rank allowed for the output low rank matrix.
+            The default value is half the size of the full matrix, that is no gain in storage space.
         tol: float, optional
+            The tolerance on the relative error (default: 0).
+            If the Frobenius norm of the increment is lower than the tolerance, the iteration stops.
+            If the tolerance is set to 0, the resulting matrix will have the maximum rank defined by `max_rank`.
         dtype: numpy.dtype, optional
-            See `from_rows_and_cols_functions_with_ACA`
+            Type of the data returned by the function.
 
         Returns
         -------
@@ -104,13 +138,14 @@ class LowRankMatrix:
             return np.asarray([func(i, j) for i in range(nb_rows)])
 
         return cls.from_rows_and_cols_functions_with_ACA(
-            get_row, get_col, nb_rows, nb_cols, max_rank=max_rank, tol=tol, dtype=dtype
+            get_row, get_col, nb_rows, nb_cols,
+            max_rank=max_rank, tol=tol, dtype=dtype
         )
 
     @classmethod
     def from_rows_and_cols_functions_with_ACA(cls, get_row_func, get_col_func, nb_rows, nb_cols, max_rank=None, tol=0.0, dtype=np.float64):
         """Create a low rank matrix from functions using Adaptive Cross Approximation.
-        The user should provide either the `max_rank` optional argument or the `tol` optional argument to expect a useful output.
+        The user should provide either the `max_rank` optional argument or the `tol` optional argument.
 
         Parameters
         ----------
@@ -136,41 +171,47 @@ class LowRankMatrix:
         -------
         LowRankMatrix
         """
-        # Actually use the multi matrix ACA below.
-        # Need some wrapping and unwrapping...
+        # Just some wrapping and unwrapping to use the multi-ACA below.
         def get_row(i):
             return [get_row_func(i)]
 
         def get_col(j):
             return [get_col_func(j)]
 
-        return cls.from_rows_and_cols_functions_multi_ACA(
+        return cls.from_rows_and_cols_functions_with_multi_ACA(
             get_row, get_col, nb_rows, nb_cols,
             nb_matrices=1, id_main=0,
             max_rank=max_rank, tol=tol, dtype=dtype
         )[0]
 
     @classmethod
-    def from_rows_and_cols_functions_multi_ACA(cls, get_row_func, get_col_func, nb_rows, nb_cols,
-                                               nb_matrices=1, id_main=0,
-                                               max_rank=None, tol=0.0, dtype=np.float64):
-        """Create two low rank matrices from functions running two Adaptive Cross Approximation at the same time.
-        The user should provide either the `max_rank` optional argument or the `tol` optional argument to expect a useful output.
+    def from_rows_and_cols_functions_with_multi_ACA(cls, get_row, get_col, nb_rows, nb_cols,
+                                                    nb_matrices=1, id_main=0,
+                                                    max_rank=None, tol=0.0, dtype=np.float64):
+        """Create several low rank matrices while running an Adaptive Cross Approximation.
+        The user should provide either the `max_rank` optional argument or the `tol` optional argument.
+
+        In Capytaine, the routines evaluating the influence matrices return the values of two matrices
+        (S and V) at once, because there is a lot of common computations in their evaluation.
+        The present function can be used to build the ACA of one of them while getting at the same time
+        an approximation of the other for free.
+
+        Freely adapted from the routine hmxACA.m from Gypsilab.
 
         Parameters
         ----------
-        get_row_func: Function
-            Function such that `get_row_func(i)` returns the `i`-th row of all full matrices.
-        get_col_func: Function
-            Function such that `get_col_func(j)` returns the `j`-th column of all full matrices.
+        get_row: Function
+            Function such that `get_row(i)` returns the `i`-th row of all the full matrices.
+        get_col: Function
+            Function such that `get_col(j)` returns the `j`-th column of all the full matrices.
         nb_rows: int
             Number of rows in all full matrices.
         nb_cols: int
             Number of columns in all full matrices.
         nb_matrices: int, optional
-            The number of matrices approximated at the same time
+            The number of matrices approximated at the same time.
         id_main: int, optional
-            The matrix used primarily in the ACA
+            The matrix used primarily in the ACA.
         max_rank: int, optional
             The maximum rank allowed for both output low rank matrices.
             The default value is half the size of the full matrix, that is no gain in storage space.
@@ -183,46 +224,52 @@ class LowRankMatrix:
 
         Returns
         -------
-        Tuple[LowRankMatrix, LowRankMatrix]
+        List[LowRankMatrix]
         """
-        if max_rank is None and tol == 0.0:
-            LOG.warning("No stopping criterion for the Adaptive Cross Approximation.")
+        if max_rank is None and tol <= 0.0:
+            LOG.warning("No stopping criterion for the Adaptive Cross Approximation."
+                        "Please provide either max_rank or tol.")
 
         if max_rank is None:
             max_rank = min(nb_rows, nb_cols)//2
 
-        # Initialize working matrices
+        # Initialize work matrices
         left = np.zeros((nb_matrices, nb_rows, max_rank), dtype=dtype)
         right = np.zeros((nb_matrices, max_rank, nb_cols), dtype=dtype)
 
         squared_norm_of_full_matrix = 0.0
 
-        # List of indices of unused entries
+        # List of indices of unused entries in the full matrix
         available_rows = list(range(nb_rows))
         available_cols = list(range(nb_cols))
 
         for l in range(max_rank):
-            # Peek a row
+            # Pick a row
             if l == 0:
-                relative_i = 0  # Or chose at random
+                relative_i = 0
+                # Could also have been chosen at random.
             else:
-                relative_i = int(np.argmax(np.abs(left[id_main, available_rows, l - 1])))
+                relative_i = int(np.argmax(np.abs(left[id_main, available_rows, l-1])))
+                # The "int" is useless except for my type checker...
+
             i = available_rows.pop(relative_i)
             # relative_i is the index of the row in the list of remaining rows,
             # e.g. if available_rows = [2, 7, 8] and relative_i = 2, the chosen
-            # row has index 8 in the original full matrix.
+            # row has index i = 8 in the full matrix.
 
-            # Add the row to the approximation
-            one_row = get_row_func(i)
+            # Add the chosen row to the approximation of all the matrices
+            one_row = get_row(i)
             for id_mat in range(nb_matrices):
                 right[id_mat, l, :] = one_row[id_mat] - left[id_mat, i, :l] @ right[id_mat, :l, :]
 
-            # Peek a column
+            # Pick a column
             relative_j = int(np.argmax(np.abs(right[id_main, l, available_cols])))
             j = available_cols.pop(relative_j)
-            one_col = get_col_func(j)
+            # Similar to i above.
 
-            # Add the column to the approximation in all matrices
+            one_col = get_col(j)
+
+            # Add the column to the approximations of all matrices.
             for id_mat in range(nb_matrices):
                 new_col = one_col[id_mat] - left[id_mat, :, :l] @ right[id_mat, :l, j]
                 pivot = new_col[i]
@@ -243,15 +290,15 @@ class LowRankMatrix:
             squared_norm_of_full_matrix += squared_norm_of_increment + 2*np.real(crossed_terms)
 
             if squared_norm_of_increment <= tol**2*squared_norm_of_full_matrix:
-                LOG.debug(f"ACA: approximation found of rank {l}")
+                LOG.debug(f"The ACA has found an approximation of rank {l}.")
 
-                if l == 0:  # Edge case of the zero matrix...
-                    l = 1  # ... actually returns a rank 1 matrix.
+                if l == 0:  # Edge case of the zero matrix, ...
+                    l = 1  # ... we actually return a "rank 1" LowRankMatrix with coefficients equal to zero.
 
                 return [LowRankMatrix(left[id_mat, :, :l], right[id_mat, :l, :]) for id_mat in range(nb_matrices)]
 
         if tol > 0:
-            LOG.warning(f"Unable to find a low rank approximation"
+            LOG.warning(f"The ACA was unable to find a low rank approximation"
                         f"of rank lower or equal to {max_rank} with tolerance {tol}.")
         return [LowRankMatrix(left[id_mat, :, :], right[id_mat, :, :]) for id_mat in range(nb_matrices)]
 
@@ -275,7 +322,7 @@ class LowRankMatrix:
     ####################
 
     def recompress(self, tol=None, new_rank=None):
-        """From Gipsylab, hmxQRSVD.m"""
+        """Recompress the matrix to a lower rank. Based on the routine hmxQRSVD.m from Gipsylab."""
         if new_rank is None:
             new_rank = self.rank
         QA, RA = np.linalg.qr(self.left_matrix)
