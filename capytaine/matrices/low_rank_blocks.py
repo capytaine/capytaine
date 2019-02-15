@@ -278,9 +278,9 @@ class LowRankMatrix:
                 left[id_mat, :, l] = new_col/pivot
 
             # Update norm of the full matrix
-            squared_norm_of_increment = (
-                    (left[id_main, :, l] @ left[id_main, :, l]) *
-                    (right[id_main, l, :] @ right[id_main, l, :])
+            squared_norm_of_increment = np.real(
+                    (np.conj(left[id_main, :, l]) @ left[id_main, :, l]) *
+                    (np.conj(right[id_main, l, :]) @ right[id_main, l, :])
             )
 
             crossed_terms = (
@@ -298,8 +298,9 @@ class LowRankMatrix:
                 return [LowRankMatrix(left[id_mat, :, :l], right[id_mat, :l, :]) for id_mat in range(nb_matrices)]
 
         if tol > 0:
-            LOG.warning(f"The ACA was unable to find a low rank approximation"
-                        f"of rank lower or equal to {max_rank} with tolerance {tol}.")
+            LOG.warning(f"The ACA was unable to find a low rank approximation "
+                        f"of rank lower or equal to {max_rank} with tolerance {tol} (latest iteration: "
+                        f"{abs(squared_norm_of_increment):.2e}/{abs(squared_norm_of_full_matrix):.2e}).")
         return [LowRankMatrix(left[id_mat, :, :], right[id_mat, :, :]) for id_mat in range(nb_matrices)]
 
     ####################
