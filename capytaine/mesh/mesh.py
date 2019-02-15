@@ -160,7 +160,7 @@ class Mesh(Abstract3DObject):
 
     def extract_one_face(self, id_face):
         vertices = self.vertices[self.faces[id_face, :], :]
-        mesh = Mesh(vertices, np.arange(4).reshape((1, 4)))
+        mesh = SingleFace(vertices)
 
         for prop in self.__internals__:
             if prop[:4] == "face":
@@ -762,4 +762,13 @@ class Mesh(Abstract3DObject):
         return len(self.__internals__['boundaries'])
 
 
+class SingleFace(Mesh):
+    """A view on a single face of a mesh.
+    To be used for ACA."""
 
+    _faces = np.arange(4).reshape((1, 4))
+    name = "some single face"
+
+    def __init__(self, vertices=None):
+        self._vertices = vertices
+        self.__internals__ = dict()
