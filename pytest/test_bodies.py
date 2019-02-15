@@ -96,3 +96,12 @@ def test_clipping_of_dofs(z_center, collection_of_meshes):
     else:
         assert len(clipped_sphere.dofs['test_dof']) == 0
 
+
+def test_mincing():
+    body = HorizontalCylinder(length=10, radius=0.5, clever=False)
+    body = body.minced((4, 1, 1))
+    assert len(body.mesh) == 2
+    assert np.all(body.mesh[0].faces_centers[:, 0] < 0)
+    assert isinstance(body.mesh[0][0], Mesh)
+    body = body.minced((1, 2, 2))
+    assert isinstance(body.mesh[0][0][0][0], Mesh)

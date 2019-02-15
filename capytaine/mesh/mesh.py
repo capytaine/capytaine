@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-This module concerns mesh data structures.
-
-Based on Meshmagick by Francois Rongere (EC Nantes).
+# Copyright (C) 2017-2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
+""" This module contains a class to describe the 2D mesh of the surface of a body in a 3D space.
+It is based on `Meshmagick by François Rongère (GPL licensed) <https://github.com/LHEEA/meshmagick>`_.
 """
 
 import logging
@@ -12,31 +12,31 @@ from itertools import count
 import numpy as np
 
 from capytaine.tools.geometry import Abstract3DObject, Plane, inplace_transformation
-
 from capytaine.mesh.mesh_properties import compute_faces_properties, compute_connectivity
+from capytaine.mesh.surface_integrals import compute_faces_integrals
 from capytaine.mesh.mesh_quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                          heal_triangles, remove_degenerated_faces)
-from capytaine.mesh.surface_integrals import compute_faces_integrals
 
 LOG = logging.getLogger(__name__)
 
 
 class Mesh(Abstract3DObject):
-    """A class to handle unstructured meshes.
+    """A class to handle unstructured 2D meshes in a 3D space.
 
     Parameters
     ----------
     vertices : array_like of shape (nv, 3)
-        Array of mesh vertices coordinates. Each line of the array represents one vertex
+        Array of mesh vertices coordinates.Each line of the array represents one vertex
         coordinates
     faces : array_like of shape (nf, 4)
         Arrays of mesh connectivities for faces. Each line of the array represents indices of
         vertices that form the face, expressed in counterclockwise order to ensure outward normals
         description.
     name : str, optional
-        The mesh's name. If None, mesh is given an automatic name based on its internal ID.
+        The name of the mesh. If None, the mesh is given an automatic name based on its internal ID.
     """
-    _ids = count(0)
+
+    _ids = count(0)  # A counter for automatic naming of new meshes.
 
     def __init__(self, vertices=None, faces=None, name=None):
 
@@ -208,7 +208,10 @@ class Mesh(Abstract3DObject):
                 extracted_mesh.__internals__[prop] = self.__internals__[prop][id_faces_to_extract]
 
         if name is None:
-            extracted_mesh.name = 'mesh_extracted_from_%s' % self.name
+            if self.name is not None and self.name.startswith("mesh_extracted_from_"):
+                extracted_mesh.name = self.name
+            else:
+                extracted_mesh.name = f"mesh_extracted_from_{self.name}"
         else:
             extracted_mesh.name = name
 
@@ -225,7 +228,8 @@ class Mesh(Abstract3DObject):
         else:
             mesh_part_1 = self.extract_faces(faces_ids_on_one_side)
             mesh_part_2 = self.extract_faces(list(set(range(self.nb_faces)) - set(faces_ids_on_one_side)))
-            return CollectionOfMeshes([mesh_part_1, mesh_part_2], name=self.name)
+            return CollectionOfMeshes([mesh_part_1, mesh_part_2],
+                                      name=f"{self.name}_splitted_by_{plane}")
 
 
     #####################

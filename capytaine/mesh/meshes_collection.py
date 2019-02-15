@@ -246,6 +246,23 @@ class CollectionOfMeshes(Abstract3DObject):
         """Remove empty meshes from the collection."""
         self._meshes = tuple(mesh for mesh in self if mesh.nb_faces > 0 and mesh.nb_vertices > 0)
 
+    @property
+    def axis_aligned_bbox(self):
+        """Get the axis aligned bounding box of the mesh.
+
+        Returns
+        -------
+        tuple
+            (xmin, xmax, ymin, ymax, zmin, zmax)
+        """
+        if self.nb_vertices > 0:
+            x, y, z = self.vertices.T
+            return (x.min(), x.max(),
+                    y.min(), y.max(),
+                    z.min(), z.max())
+        else:
+            return tuple(np.zeros(6))
+
     def show(self, **kwargs):
         from capytaine.ui.vtk.mesh_viewer import MeshViewer
 
