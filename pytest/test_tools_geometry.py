@@ -67,6 +67,16 @@ def test_plane():
 
     assert xOy_Plane.is_orthogonal_to(Oz_axis)
 
+    points_in_xplus = np.random.rand(10, 3) + np.array([1.0, -0.5, -0.5])
+    assert np.all(yOz_Plane.distance_to_point(points_in_xplus) > 0)
+    assert np.all(yOz_Plane.translated_x(-5.0).distance_to_point(points_in_xplus) > 0)
+    assert not np.any(yOz_Plane.translated_x(5.0).distance_to_point(points_in_xplus) > 0)
+
+    points_in_xminus = np.random.rand(10, 3) + np.array([-2.0, -0.5, -0.5])
+    assert np.all(yOz_Plane.distance_to_point(points_in_xminus) < 0)
+    assert not np.any(yOz_Plane.translated_x(-5.0).distance_to_point(points_in_xminus) < 0)
+    assert np.all(yOz_Plane.translated_x(5.0).distance_to_point(points_in_xminus) < 0)
+
 
 def test_plane_transformations():
     # TRANSLATIONS

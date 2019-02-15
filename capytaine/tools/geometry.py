@@ -330,7 +330,7 @@ class Plane(Abstract3DObject):
         dist : ndarray
             Array of distances of points with respect to the plane
         """
-        return np.dot(points, self.normal) - self.c
+        return np.dot(points, self.normal) - np.dot(self.point, self.normal)
 
     def get_edge_intersection(self, p0, p1):
         """
