@@ -76,7 +76,7 @@ class Mesh(Abstract3DObject):
 
     @vertices.setter
     def vertices(self, value) -> None:
-        self._vertices = np.asarray(value, dtype=np.float).copy()
+        self._vertices = np.array(value, dtype=np.float)
         assert self._vertices.shape[1] == 3, \
             "Vertices of a mesh should be provided as a sequence of 3-ple."
         self.__internals__.clear()
@@ -93,9 +93,9 @@ class Mesh(Abstract3DObject):
 
     @faces.setter
     def faces(self, faces):
-        assert all(int(vertex_id) == vertex_id >= 0 for face in faces for vertex_id in face), \
+        faces = np.array(faces, dtype=np.int)
+        assert np.all(faces >= 0), \
             "Faces of a mesh should be provided as positive integers (ids of vertices)"
-        faces = np.asarray(faces, dtype=np.int).copy()
         assert faces.shape[1] == 4, \
             "Faces of a mesh should be provided as a sequence of 4-ple."
         assert len(faces) == 0 or faces.max()+1 <= self.nb_vertices, \
@@ -760,3 +760,6 @@ class Mesh(Abstract3DObject):
         if 'boundaries' not in self.__internals__:
             self.__internals__.update(compute_connectivity(self))
         return len(self.__internals__['boundaries'])
+
+
+
