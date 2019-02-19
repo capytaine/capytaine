@@ -12,7 +12,7 @@ from numpy.polynomial import polynomial
 from scipy.optimize import curve_fit
 from scipy.linalg import toeplitz
 
-import capytaine.NemohCore as NemohCore
+import capytaine.bem.NemohCore as NemohCore
 
 LOG = logging.getLogger(__name__)
 

@@ -12,7 +12,7 @@ import numpy as np
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.meshes_collection import CollectionOfMeshes
 from capytaine.mesh.symmetries import TranslationalSymmetry, ReflectionSymmetry
-from capytaine.bodies import FloatingBody
+from capytaine.bodies.bodies import FloatingBody
 from capytaine.tools.geometry import xOz_Plane, xOy_Plane, yOz_Plane
 
 LOG = logging.getLogger(__name__)

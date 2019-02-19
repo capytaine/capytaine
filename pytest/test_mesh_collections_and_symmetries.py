@@ -7,7 +7,7 @@ import numpy as np
 
 from capytaine import Disk, AxialSymmetry, HorizontalCylinder, TranslationalSymmetry, CollectionOfMeshes
 from capytaine.mesh.mesh import Mesh
-from capytaine.geometric_bodies import Sphere
+from capytaine.bodies.predefined import Sphere
 from capytaine.tools.geometry import xOz_Plane, yOz_Plane
 
 

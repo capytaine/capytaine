@@ -10,7 +10,7 @@ from itertools import product
 import numpy as np
 
 from capytaine.mesh.mesh import Mesh
-from capytaine.problems import DiffractionProblem
+from capytaine.bem.problems_and_results import DiffractionProblem
 from capytaine.tools.Airy_wave import Airy_wave_potential
 
 LOG = logging.getLogger(__name__)

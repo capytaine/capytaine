@@ -11,12 +11,12 @@ from capytaine.mesh.meshes_collection import CollectionOfMeshes
 from capytaine.mesh.symmetries import AxialSymmetry, ReflectionSymmetry, TranslationalSymmetry
 
 from capytaine.bodies import FloatingBody
-from capytaine.geometric_bodies.sphere import Sphere
-from capytaine.geometric_bodies.cylinder import HorizontalCylinder, VerticalCylinder
+from capytaine.bodies.predefined.sphere import Sphere
+from capytaine.bodies.predefined.cylinder import HorizontalCylinder, VerticalCylinder
 
-from capytaine.problems import RadiationProblem
-from capytaine.results import assemble_dataset
-from capytaine.Nemoh import Nemoh
+from capytaine.bem.problems_and_results import RadiationProblem
+from capytaine.bem.Nemoh import Nemoh
+from capytaine.io.xarray import assemble_dataset
 
 from capytaine.tools.geometry import xOz_Plane, yOz_Plane
 

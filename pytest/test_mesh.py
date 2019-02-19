@@ -10,7 +10,7 @@ from numpy.linalg import norm
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.mesh_clipper import clip
 from capytaine.tools.geometry import Plane, xOz_Plane
-from capytaine.geometric_bodies import HorizontalCylinder, Sphere, Rectangle
+from capytaine.bodies.predefined import HorizontalCylinder, Sphere, Rectangle
 
 # Some meshes that will be used in the following tests.
 test_mesh = Mesh(vertices=np.random.rand(4, 3), faces=[range(4)], name="test_mesh")

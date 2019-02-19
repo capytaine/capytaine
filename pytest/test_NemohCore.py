@@ -10,7 +10,7 @@ import numpy as np
 from scipy.special import exp1
 from scipy.optimize import newton
 
-import capytaine.NemohCore as NemohCore
+import capytaine.bem.NemohCore as NemohCore
 
 
 def E1(z):

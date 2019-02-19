@@ -11,13 +11,13 @@ from numpy.distutils.core import Extension, setup
 #######################
 
 NemohCore = Extension(
-    name="capytaine.NemohCore",
+    name="capytaine.bem.NemohCore",
     sources=[
-        "capytaine/NemohCore/constants.f90",
-        "capytaine/NemohCore/Green_Rankine.f90",
-        "capytaine/NemohCore/Initialize_Green_wave.f90",
-        "capytaine/NemohCore/Green_wave.f90",
-        "capytaine/NemohCore/old_Prony_decomposition.f90",
+        "capytaine/bem/NemohCore/constants.f90",
+        "capytaine/bem/NemohCore/Green_Rankine.f90",
+        "capytaine/bem/NemohCore/Initialize_Green_wave.f90",
+        "capytaine/bem/NemohCore/Green_wave.f90",
+        "capytaine/bem/NemohCore/old_Prony_decomposition.f90",
     ],
     extra_compile_args=['-O2', '-fopenmp'],
     extra_link_args=['-fopenmp'],
@@ -62,9 +62,10 @@ if __name__ == "__main__":
           license='GPLv3',
           packages=[
               'capytaine',
+              'capytaine.bem',
               'capytaine.mesh',
               'capytaine.matrices',
-              'capytaine.geometric_bodies',
+              'capytaine.predefined',
               'capytaine.tools',
               'capytaine.ui',
               'capytaine.ui.vtk',

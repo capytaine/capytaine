@@ -8,8 +8,8 @@ import numpy as np
 from capytaine.bodies import FloatingBody
 from capytaine.mesh.mesh import Mesh
 from capytaine.tools.geometry import Axis, Plane
-from capytaine.geometric_bodies.sphere import Sphere
-from capytaine.geometric_bodies.cylinder import HorizontalCylinder
+from capytaine.bodies.predefined.sphere import Sphere
+from capytaine.bodies.predefined.cylinder import HorizontalCylinder
 
 
 def test_dof():

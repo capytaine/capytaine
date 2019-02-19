@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
-from capytaine.results import LinearPotentialFlowResult
-from capytaine.geometric_bodies.free_surface import FreeSurface
+from capytaine.bem.problems_and_results import LinearPotentialFlowResult
+from capytaine.post_pro.free_surface import FreeSurface
 
 
 def animation_matplotlib(result: LinearPotentialFlowResult, fs: FreeSurface,

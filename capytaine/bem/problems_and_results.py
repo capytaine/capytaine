@@ -5,16 +5,13 @@
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import logging
-from itertools import product
-from functools import lru_cache
 
-from attr import attrs, attrib, astuple
+from attr import attrs, attrib, astuple, Factory, asdict
 
 import numpy as np
 from scipy.optimize import newton
 
-from capytaine.bodies import FloatingBody
-from capytaine.tools.Airy_wave import Airy_wave_velocity
+from capytaine.tools.Airy_wave import Airy_wave_velocity, Froude_Krylov_force
 
 
 LOG = logging.getLogger(__name__)
@@ -146,7 +143,6 @@ class LinearPotentialFlowProblem:
         return self.body.dofs
 
     def make_results_container(self):
-        from capytaine.results import LinearPotentialFlowResult
         return LinearPotentialFlowResult(self)
 
 
@@ -172,7 +168,6 @@ class DiffractionProblem(LinearPotentialFlowProblem):
         return [f"angle={self.angle:.3f}"]
 
     def make_results_container(self):
-        from capytaine.results import DiffractionResult
         return DiffractionResult(self)
 
 
@@ -220,54 +215,69 @@ class RadiationProblem(LinearPotentialFlowProblem):
         return [f"radiating_dof={self.radiating_dof}"]
 
     def make_results_container(self):
-        from capytaine.results import RadiationResult
         return RadiationResult(self)
 
 
-def problems_from_dataset(dataset, bodies):
-    """Generate a list of problems from the coordinates of a dataset.
+@attrs
+class LinearPotentialFlowResult:
+    problem = attrib()
 
-    Parameters
-    ----------
-    dataset : xarray Dataset
-        dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
-    bodies : list of FloatingBody
-        the bodies involved in the problems
+    sources = attrib(default=None, init=False, repr=False)
+    potential = attrib(default=None, init=False, repr=False)
 
-    Returns
-    -------
-    list of LinearPotentialFlowProblem
-    """
-    assert len(list(set(body.name for body in bodies))) == len(bodies), \
-        "All bodies should have different names."
+    fs_elevation = attrib(default=Factory(dict), init=False, repr=False)
 
-    omega_range = dataset['omega'].data if 'omega' in dataset else [LinearPotentialFlowProblem.default_parameters['omega']]
-    angle_range = dataset['angle'].data if 'angle' in dataset else None
-    radiating_dofs = dataset['radiating_dof'].data if 'radiating_dof' in dataset else None
-    water_depth_range = dataset['water_depth'].data if 'water_depth' in dataset else [-LinearPotentialFlowProblem.default_parameters['sea_bottom']]
-    rho_range = dataset['rho'].data if 'rho' in dataset else [LinearPotentialFlowProblem.default_parameters['rho']]
+    __str__ = LinearPotentialFlowProblem.__str__
 
-    if 'body_name' in dataset:
-        assert set(dataset['body_name'].data) <= {body.name for body in bodies}
-        body_range = {body.name: body for body in bodies if body.name in dataset['body_name'].data}
-    else:
-        body_range = {body.name: body for body in bodies}
+    def __getattr__(self, name):
+        """Direct access to the attributes of the included problem."""
+        try:
+            return getattr(self.problem, name)
+        except AttributeError:
+            raise AttributeError(f"{self.__class__} does not have a attribute named {name}.")
 
-    problems = []
-    if angle_range is not None:
-        for omega, angle, water_depth, body_name, rho \
-                in product(omega_range, angle_range, water_depth_range, body_range, rho_range):
-            problems.append(
-                DiffractionProblem(body=body_range[body_name], omega=omega,
-                                   angle=angle, sea_bottom=-water_depth, rho=rho)
-            )
+    @property
+    def settings_dict(self):
+        settings = asdict(self.problem)
+        # Keep only the name of the body, not the full object.
+        settings['body_name'] = self.body.name
+        del settings['body']
+        # Keep only water_depth  # TODO: Remove.
+        settings['water_depth'] = self.free_surface - self.sea_bottom
+        del settings['free_surface']
+        del settings['sea_bottom']
+        return settings
 
-    if radiating_dofs is not None:
-        for omega, radiating_dof, water_depth, body_name, rho \
-                in product(omega_range, radiating_dofs, water_depth_range, body_range, rho_range):
-            problems.append(
-                RadiationProblem(body=body_range[body_name], omega=omega,
-                                 radiating_dof=radiating_dof, sea_bottom=-water_depth, rho=rho)
-            )
 
-    return sorted(problems)
+@attrs
+class DiffractionResult(LinearPotentialFlowResult):
+    forces = attrib(default=Factory(dict), init=False, repr=False)
+
+    def store_force(self, dof, force):
+        self.forces[dof] = 1j*self.omega*force
+
+    @property
+    def records(self):
+        FK = Froude_Krylov_force(self.problem)
+        return [dict(self.settings_dict, influenced_dof=dof,
+                     diffraction_force=self.forces[dof], Froude_Krylov_force=FK[dof])
+                for dof in self.influenced_dofs]
+
+
+@attrs
+class RadiationResult(LinearPotentialFlowResult):
+    added_masses = attrib(default=Factory(dict), init=False, repr=False)
+    radiation_dampings = attrib(default=Factory(dict), init=False, repr=False)
+
+    def store_force(self, dof, force):
+        self.added_masses[dof] = force.real
+        if self.problem.omega == np.infty:
+            self.radiation_dampings[dof] = 0
+        else:
+            self.radiation_dampings[dof] = self.problem.omega * force.imag
+
+    @property
+    def records(self):
+        return [dict(self.settings_dict, influenced_dof=dof,
+                     added_mass=self.added_masses[dof], radiation_damping=self.radiation_dampings[dof])
+                for dof in self.influenced_dofs]

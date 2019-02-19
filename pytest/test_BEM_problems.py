@@ -12,12 +12,13 @@ from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.symmetries import ReflectionSymmetry
 
 from capytaine.bodies import FloatingBody
-from capytaine.geometric_bodies.sphere import Sphere
-from capytaine.geometric_bodies.cylinder import HorizontalCylinder
+from capytaine.bodies.predefined.sphere import Sphere
+from capytaine.bodies.predefined.cylinder import HorizontalCylinder
 
-from capytaine.problems import LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem, problems_from_dataset
-from capytaine.results import LinearPotentialFlowResult, DiffractionResult, RadiationResult
-from capytaine.Nemoh import Nemoh
+from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem, \
+    LinearPotentialFlowResult, DiffractionResult, RadiationResult
+from capytaine.bem.Nemoh import Nemoh
+from capytaine.io.xarray import problems_from_dataset
 
 from capytaine.io.legacy import import_cal_file
 
@@ -125,8 +126,8 @@ def test_wamit_convention():
 
 def test_Froude_Krylov():
     from capytaine.tools.Airy_wave import Froude_Krylov_force
-    from capytaine.geometric_bodies.sphere import Sphere
-    from capytaine.problems import DiffractionProblem
+    from capytaine.bodies.predefined.sphere import Sphere
+    from capytaine.bem.problems_and_results import DiffractionProblem
 
     sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clever=True, clip_free_surface=True)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")

@@ -18,12 +18,11 @@ from functools import lru_cache
 
 import numpy as np
 
-from capytaine.problems import problems_from_dataset
-from capytaine.results import assemble_dataset
+from capytaine.io.xarray import problems_from_dataset, assemble_dataset
 from capytaine.matrices import linear_solvers
 from capytaine.matrices.builders import hierarchical_toeplitz_matrices, identity_like
-from capytaine.tools.exponential_decomposition import find_best_exponential_decomposition
-import capytaine.NemohCore as NemohCore
+from capytaine.bem.Prony_decomposition import find_best_exponential_decomposition
+import capytaine.bem.NemohCore as NemohCore
 
 
 LOG = logging.getLogger(__name__)

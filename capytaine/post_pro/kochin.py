@@ -10,10 +10,9 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from capytaine.Nemoh import Nemoh
-from capytaine.problems import RadiationProblem
-from capytaine.results import _squeeze_dimensions
-from capytaine.results import wavenumber_data_array
+from capytaine.bem.Nemoh import Nemoh
+from capytaine.bem.problems_and_results import RadiationProblem
+from capytaine.io.xarray import _squeeze_dimensions, wavenumber_data_array
 
 
 def compute_Kochin(result, theta, ref_point=(0.0, 0.0)):

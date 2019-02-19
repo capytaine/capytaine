@@ -3,6 +3,7 @@
 import logging
 import numpy as np
 import capytaine as cpt
+import capytaine.io.xarray
 
 logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s:\t%(message)s")
@@ -26,7 +27,7 @@ problems = [cpt.RadiationProblem(body=buoy, radiating_dof='Heave', omega=omega)
 # Solve the problems
 solver = cpt.Nemoh()
 results = [solver.solve(pb) for pb in sorted(problems)]
-dataset = cpt.assemble_dataset(results)
+dataset = capytaine.io.xarray.assemble_dataset(results)
 
 # Plot results
 import matplotlib.pyplot as plt

@@ -8,15 +8,15 @@ import xarray as xr
 
 from capytaine.mesh.symmetries import *
 
-from capytaine.geometric_bodies.sphere import Sphere
-from capytaine.geometric_bodies.cylinder import HorizontalCylinder
-from capytaine.geometric_bodies.free_surface import FreeSurface
+from capytaine.bodies.predefined.sphere import Sphere
+from capytaine.bodies.predefined.cylinder import HorizontalCylinder
+from capytaine.post_pro.free_surface import FreeSurface
 
-from capytaine.problems import DiffractionProblem, RadiationProblem
-from capytaine.results import assemble_dataset, wavenumber_data_array
-from capytaine.Nemoh import Nemoh
+from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
+from capytaine.io.xarray import assemble_dataset, wavenumber_data_array
+from capytaine.bem.Nemoh import Nemoh
 
-from capytaine.tools.kochin import compute_Kochin
+from capytaine.post_pro.kochin import compute_Kochin
 
 solver = Nemoh(use_symmetries=False, matrix_cache_size=0)
 # Use a single solver in the whole module to avoid reinitialisation of the solver (0.5 second).

@@ -4,6 +4,8 @@
 import capytaine as cpt
 
 # Define the first body
+import capytaine.io.xarray
+
 sphere = cpt.Sphere(radius=1.0, center=(0, 0, -2.0),
                 ntheta=20, nphi=20,
                 name="sphere_1")
@@ -42,6 +44,6 @@ problems += [cpt.DiffractionProblem(body=all_bodies, angle=0.0, omega=1.0)]
 # Solves the problem
 solver = cpt.Nemoh()
 results = solver.solve_all(problems)
-data = cpt.assemble_dataset(results)
+data = capytaine.io.xarray.assemble_dataset(results)
 
 print(data)

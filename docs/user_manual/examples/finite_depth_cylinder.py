@@ -5,6 +5,8 @@ import numpy as np
 import capytaine as cpt
 
 # Set up logging
+import capytaine.io.xarray
+
 logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s:\t%(message)s")
 
@@ -39,7 +41,7 @@ solver = cpt.Nemoh()
 results = [solver.solve(pb) for pb in sorted(problems)]
 
 # Gather the computed added mass into a labelled array.
-data = cpt.assemble_dataset(results)
+data = capytaine.io.xarray.assemble_dataset(results)
 
 # Plot the added mass of each dofs as a function of the water depth.
 import matplotlib.pyplot as plt

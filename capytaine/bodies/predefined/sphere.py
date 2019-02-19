@@ -11,7 +11,7 @@ import numpy as np
 
 from capytaine.mesh.mesh import Mesh
 from capytaine.mesh.symmetries import AxialSymmetry
-from capytaine.bodies import FloatingBody
+from capytaine.bodies.bodies import FloatingBody
 
 LOG = logging.getLogger(__name__)
 
