@@ -77,19 +77,6 @@ class FloatingBody(Abstract3DObject):
         """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name
 
-    # @property
-    # def center_of_buoyancy(self):
-    #     return Hydrostatics(self.mesh.merged()).buoyancy_center
-
-    # @property
-    # def displacement_volume(self):
-    #     return Hydrostatics(self.mesh.merged()).displacement_volume
-
-    # @property
-    # def center_of_gravity(self):
-    #     if hasattr(self, 'center'):
-    #         return self.center
-
     ##########
     #  Dofs  #
     ##########
@@ -144,10 +131,12 @@ class FloatingBody(Abstract3DObject):
         if axis is None:
             if name is not None and name.lower() in ROTATION_DOFS_AXIS:
                 axis_direction = ROTATION_DOFS_AXIS[name.lower()]
-                if hasattr(self, 'center'):
-                    axis_point = self.center
-                    LOG.info(f"The rotation dof {name} has been initialized "
-                             f"around the center of gravity of {self.name}.")
+                for point_attr in ('rotation_center', 'center'):
+                    if hasattr(self, point_attr):
+                        axis_point = getattr(self, point_attr)
+                        LOG.info(f"The rotation dof {name} has been initialized around the point: "
+                                 f"{self.name}.{point_attr} = {getattr(self, point_attr)}")
+                        break
                 else:
                     axis_point = np.array([0, 0, 0])
                     LOG.warning(f"The rotation dof {name} has been initialized "
@@ -339,23 +328,26 @@ class FloatingBody(Abstract3DObject):
         self.mesh.mirror(plane)
         for dof in self.dofs:
             self.dofs[dof] -= 2 * np.outer(np.dot(self.dofs[dof], plane.normal), plane.normal)
-        if hasattr(self, 'center'):
-            self.center -= 2 * (np.dot(self.center, plane.normal) - plane.c) * plane.normal
+        for point_attr in ('center', 'rotation_center'):
+            if point_attr in self.__dict__:
+                self.__dict__[point_attr] -= 2 * (np.dot(self.__dict__[point_attr], plane.normal) - plane.c) * plane.normal
         return self
 
     @inplace_transformation
     def translate(self, *args):
         self.mesh.translate(*args)
-        if hasattr(self, 'center'):
-            self.center += args[0]
+        for point_attr in ('center', 'rotation_center'):
+            if point_attr in self.__dict__:
+                self.__dict__[point_attr] += args[0]
         return self
 
     @inplace_transformation
     def rotate(self, axis, angle):
         matrix = axis.rotation_matrix(angle)
         self.mesh.rotate(axis, angle)
-        if hasattr(self, 'center'):
-            self.center = matrix @ self.center
+        for point_attr in ('center', 'rotation_center'):
+            if point_attr in self.__dict__:
+                self.__dict__[point_attr] = matrix @ self.__dict__[point_attr]
         for dof in self.dofs:
             self.dofs[dof] = (matrix @ self.dofs[dof].T).T
         return self
