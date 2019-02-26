@@ -6,5 +6,6 @@ Developer manual
    :maxdepth: 2
 
    installation.rst
+   overview.rst
    api/modules.rst
 

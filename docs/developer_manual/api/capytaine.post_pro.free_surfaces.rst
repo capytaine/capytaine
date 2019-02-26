@@ -1,7 +1,7 @@
-capytaine.geometric\_bodies.sphere module
+capytaine.post\_pro.free\_surfaces module
 =========================================
 
-.. automodule:: capytaine.geometric_bodies.sphere
+.. automodule:: capytaine.post_pro.free_surfaces
     :members:
     :undoc-members:
     :show-inheritance:

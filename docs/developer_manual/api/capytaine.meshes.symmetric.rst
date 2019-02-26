@@ -1,7 +1,7 @@
-capytaine.tools.Airy\_wave module
+capytaine.meshes.symmetric module
 =================================
 
-.. automodule:: capytaine.tools.Airy_wave
+.. automodule:: capytaine.meshes.symmetric
     :members:
     :undoc-members:
     :show-inheritance:

@@ -1,7 +1,7 @@
-capytaine.matrices.block\_matrices module
+capytaine.matrices.block\_toeplitz module
 =========================================
 
-.. automodule:: capytaine.matrices.block_matrices
+.. automodule:: capytaine.matrices.block_toeplitz
     :members:
     :undoc-members:
     :show-inheritance:

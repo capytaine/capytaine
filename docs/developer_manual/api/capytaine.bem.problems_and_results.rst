@@ -1,7 +1,7 @@
-capytaine.geometric\_bodies.cylinder module
+capytaine.bem.problems\_and\_results module
 ===========================================
 
-.. automodule:: capytaine.geometric_bodies.cylinder
+.. automodule:: capytaine.bem.problems_and_results
     :members:
     :undoc-members:
     :show-inheritance:

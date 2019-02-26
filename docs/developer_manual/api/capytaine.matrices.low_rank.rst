@@ -1,7 +1,7 @@
-capytaine.mesh.mesh\_quality module
+capytaine.matrices.low\_rank module
 ===================================
 
-.. automodule:: capytaine.mesh.mesh_quality
+.. automodule:: capytaine.matrices.low_rank
     :members:
     :undoc-members:
     :show-inheritance:

@@ -6,22 +6,13 @@ Subpackages
 
 .. toctree::
 
-    capytaine.geometric_bodies
+    capytaine.bem
+    capytaine.bodies
     capytaine.io
     capytaine.matrices
-    capytaine.mesh
-    capytaine.tools
+    capytaine.meshes
+    capytaine.post_pro
     capytaine.ui
-
-Submodules
-----------
-
-.. toctree::
-
-   capytaine.Nemoh
-   capytaine.bodies
-   capytaine.problems
-   capytaine.results
 
 Module contents
 ---------------

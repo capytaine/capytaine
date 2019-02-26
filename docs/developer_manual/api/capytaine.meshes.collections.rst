@@ -1,7 +1,7 @@
-capytaine.mesh.mesh\_clipper module
+capytaine.meshes.collections module
 ===================================
 
-.. automodule:: capytaine.mesh.mesh_clipper
+.. automodule:: capytaine.meshes.collections
     :members:
     :undoc-members:
     :show-inheritance:

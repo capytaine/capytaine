@@ -1,7 +1,7 @@
-capytaine.geometric\_bodies.rectangle module
+capytaine.bodies.predefined.cylinders module
 ============================================
 
-.. automodule:: capytaine.geometric_bodies.rectangle
+.. automodule:: capytaine.bodies.predefined.cylinders
     :members:
     :undoc-members:
     :show-inheritance:

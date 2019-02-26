@@ -1,7 +1,7 @@
-capytaine.mesh.symmetries module
+capytaine.bem.airy\_waves module
 ================================
 
-.. automodule:: capytaine.mesh.symmetries
+.. automodule:: capytaine.bem.airy_waves
     :members:
     :undoc-members:
     :show-inheritance:

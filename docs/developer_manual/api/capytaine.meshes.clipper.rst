@@ -1,7 +1,7 @@
-capytaine.tools.geometry module
+capytaine.meshes.clipper module
 ===============================
 
-.. automodule:: capytaine.tools.geometry
+.. automodule:: capytaine.meshes.clipper
     :members:
     :undoc-members:
     :show-inheritance:

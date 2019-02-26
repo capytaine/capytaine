@@ -6,11 +6,11 @@ Submodules
 
 .. toctree::
 
-   capytaine.matrices.block_matrices
-   capytaine.matrices.block_toeplitz_matrices
+   capytaine.matrices.block
+   capytaine.matrices.block_toeplitz
    capytaine.matrices.builders
    capytaine.matrices.linear_solvers
-   capytaine.matrices.low_rank_blocks
+   capytaine.matrices.low_rank
 
 Module contents
 ---------------
