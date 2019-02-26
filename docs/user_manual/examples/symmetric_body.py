@@ -13,11 +13,11 @@ half_mesh = original_mesh.extract_faces(indices_of_some_faces)
 
 # METHOD 2
 # Clip the mesh
-half_mesh = original_mesh.clip(plane=cpt.tools.geometry.xOz_Plane)
+half_mesh = original_mesh.clip(plane=cpt.xOz_Plane)
 
 # Define a new body by reflecting the half mesh across the xOz plane.
 body = cpt.FloatingBody(
-    cpt.ReflectionSymmetricMesh(half_mesh, cpt.tools.geometry.xOz_Plane),
+    cpt.ReflectionSymmetricMesh(half_mesh, cpt.xOz_Plane),
     name="symmetric_body")
 
 # Display the body with VTK.
