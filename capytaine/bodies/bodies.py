@@ -165,6 +165,19 @@ class FloatingBody(Abstract3DObject):
         self.add_rotation_dof(name="Pitch")
         self.add_rotation_dof(name="Yaw")
 
+    @inplace_transformation
+    def keep_only_dofs(self, dofs):
+        for dof in list(self.dofs.keys()):
+            if dof not in dofs:
+                del self.dofs[dof]
+
+        if hasattr(self, 'inertia_matrix'):
+            self.inertia_matrix = self.inertia_matrix.sel(radiating_dof=dofs, influenced_dof=dofs)
+        if hasattr(self, 'hydrostatic_stiffness'):
+            self.hydrostatic_stiffness = self.hydrostatic_stiffness.sel(radiating_dof=dofs, influenced_dof=dofs)
+
+        return self
+
     def add_dofs_labels_to_vector(self, vector):
         """Helper function turning a bare vector into a vector labelled by the name of the dofs of the body,
         to be used for instance for the computation of RAO."""
