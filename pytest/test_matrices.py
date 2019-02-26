@@ -7,10 +7,10 @@ import pytest
 import numpy as np
 from numpy.linalg import norm, matrix_rank
 
-from capytaine.matrices.block_matrices import BlockMatrix
-from capytaine.matrices.block_toeplitz_matrices import *
+from capytaine.matrices.block import BlockMatrix
+from capytaine.matrices.block_toeplitz import *
 from capytaine.matrices.builders import *
-from capytaine.matrices.low_rank_blocks import LowRankMatrix
+from capytaine.matrices.low_rank import LowRankMatrix
 from capytaine.matrices.linear_solvers import solve_directly, solve_gmres
 
 

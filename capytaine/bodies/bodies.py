@@ -10,9 +10,10 @@ from itertools import chain, accumulate, product, zip_longest
 
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh
-from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.tools.geometry import Abstract3DObject, Plane, inplace_transformation
+from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.symmetric import build_regular_array_of_meshes
+from capytaine.meshes.collections import CollectionOfMeshes
 
 LOG = logging.getLogger(__name__)
 
@@ -241,7 +242,6 @@ class FloatingBody(Abstract3DObject):
         -------
         FloatingBody
         """
-        from capytaine.mesh.symmetries import build_regular_array_of_meshes
         array_mesh = build_regular_array_of_meshes(self.mesh, distance, nb_bodies)
         total_nb_faces = array_mesh.nb_faces
         array_dofs = {}

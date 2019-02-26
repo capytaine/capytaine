@@ -12,8 +12,8 @@ from typing import Iterable, Union
 
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh
-from capytaine.tools.geometry import Abstract3DObject, inplace_transformation
+from capytaine.meshes.geometry import Abstract3DObject, inplace_transformation
+from capytaine.meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 
@@ -231,7 +231,7 @@ class CollectionOfMeshes(Abstract3DObject):
         return self.clip(plane, inplace=False, **kwargs)
 
     def symmetrized(self, plane):
-        from capytaine.mesh.symmetries import ReflectionSymmetry
+        from capytaine.meshes.symmetric import ReflectionSymmetry
         half = self.clipped(plane, name=f"{self.name}_half")
         return ReflectionSymmetry(half, plane=plane, name=f"symmetrized_of_{self.name}")
 

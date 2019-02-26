@@ -6,9 +6,9 @@ Adapted from meshmagick (https://github.com/LHEEA/meshmagick)."""
 import os
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh
-from capytaine.mesh.symmetries import ReflectionSymmetry
-from capytaine.tools.geometry import xOz_Plane
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.symmetric import ReflectionSymmetry
+from capytaine.meshes.geometry import xOz_Plane
 
 real_str = r'[+-]?(?:\d+\.\d*|\d*\.\d+)(?:[Ee][+-]?\d+)?'  # Regex for floats
 

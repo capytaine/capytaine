@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
-from capytaine.bem.Nemoh import Nemoh
+from capytaine.bem.nemoh import Nemoh
 from capytaine.bem.problems_and_results import RadiationProblem
 from capytaine.io.xarray import _squeeze_dimensions, wavenumber_data_array
 

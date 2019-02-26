@@ -9,8 +9,8 @@ from itertools import product
 
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh
-from capytaine.mesh.symmetries import AxialSymmetry
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.symmetric import AxialSymmetry
 from capytaine.bodies.bodies import FloatingBody
 
 LOG = logging.getLogger(__name__)

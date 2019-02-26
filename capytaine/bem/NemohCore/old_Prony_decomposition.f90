@@ -6,7 +6,7 @@ MODULE Old_Prony_decomposition
 
 ! The code below perform the approximation of the function FF as a sum of
 ! exponentials. They have been partially commented and refactored. A more
-! readable and maintainable Python version has been implemented in Nemoh.py.
+! readable and maintainable Python version has been implemented in bem/nemoh.py.
 ! However, as of today (January 2018), the python version is ~100 times slower
 ! than the Fortran version below. Thus, the code below has been preserved. It
 ! could become useful if ever this part of the code would become time critical.

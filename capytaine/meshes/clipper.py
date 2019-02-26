@@ -8,7 +8,7 @@ import logging
 
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh
+from capytaine.meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 

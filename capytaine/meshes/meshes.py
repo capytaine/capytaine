@@ -11,11 +11,11 @@ from itertools import count
 
 import numpy as np
 
-from capytaine.tools.geometry import Abstract3DObject, Plane, inplace_transformation
-from capytaine.mesh.mesh_properties import compute_faces_properties, compute_connectivity
-from capytaine.mesh.surface_integrals import compute_faces_integrals
-from capytaine.mesh.mesh_quality import (merge_duplicates, heal_normals, remove_unused_vertices,
-                                         heal_triangles, remove_degenerated_faces)
+from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
+from capytaine.meshes.properties import compute_faces_properties, compute_connectivity
+from capytaine.meshes.surface_integrals import compute_faces_integrals
+from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
+                                      heal_triangles, remove_degenerated_faces)
 
 LOG = logging.getLogger(__name__)
 
@@ -221,7 +221,7 @@ class Mesh(Abstract3DObject):
             return extracted_mesh
 
     def splitted_by_plane(self, plane: Plane):
-        from capytaine.mesh.meshes_collection import CollectionOfMeshes
+        from capytaine.meshes.collections import CollectionOfMeshes
         faces_ids_on_one_side = np.where(plane.distance_to_point(self.faces_centers) < 0)[0]
         if len(faces_ids_on_one_side) == 0 or len(faces_ids_on_one_side) == self.nb_faces:
             return self.copy()
@@ -512,7 +512,7 @@ class Mesh(Abstract3DObject):
 
     @inplace_transformation
     def clip(self, plane) -> 'Mesh':
-        from capytaine.mesh.mesh_clipper import clip
+        from capytaine.meshes.clipper import clip
         clipped_self = clip(self, plane=plane)
         self.vertices = clipped_self.vertices
         self.faces = clipped_self.faces
@@ -524,7 +524,7 @@ class Mesh(Abstract3DObject):
         return self.clip(plane, inplace=False, **kwargs)
 
     def symmetrized(self, plane):
-        from capytaine.mesh.symmetries import ReflectionSymmetry
+        from capytaine.meshes.symmetric import ReflectionSymmetry
         half = self.clipped(plane, name=f"{self.name}_half")
         return ReflectionSymmetry(half, plane=plane, name=f"symmetrized_of_{self.name}")
 
@@ -575,7 +575,7 @@ class Mesh(Abstract3DObject):
     ####################
 
     def join_meshes(*meshes, name=None):
-        from capytaine.mesh.meshes_collection import CollectionOfMeshes
+        from capytaine.meshes.collections import CollectionOfMeshes
         return CollectionOfMeshes(meshes, name=name).merged()
 
     def __add__(self, mesh_to_add) -> 'Mesh':

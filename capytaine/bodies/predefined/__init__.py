@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from capytaine.bodies.predefined.sphere import Sphere
-from capytaine.bodies.predefined.cylinder import HorizontalCylinder, VerticalCylinder
-from capytaine.bodies.predefined.rectangle import Rectangle, RectangularParallelepiped
+from capytaine.bodies.predefined.spheres import Sphere
+from capytaine.bodies.predefined.cylinders import HorizontalCylinder, VerticalCylinder
+from capytaine.bodies.predefined.rectangles import Rectangle, RectangularParallelepiped

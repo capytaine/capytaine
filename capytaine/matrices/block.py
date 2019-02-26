@@ -11,7 +11,7 @@ from itertools import cycle, accumulate, chain, product
 import numpy as np
 from matplotlib.patches import Rectangle
 
-from capytaine.matrices.low_rank_blocks import LowRankMatrix
+from capytaine.matrices.low_rank import LowRankMatrix
 
 LOG = logging.getLogger(__name__)
 

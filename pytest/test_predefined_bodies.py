@@ -2,12 +2,12 @@ import pytest
 
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh
-from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.mesh.symmetries import TranslationalSymmetry, ReflectionSymmetry
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.collections import CollectionOfMeshes
+from capytaine.meshes.symmetric import TranslationalSymmetry, ReflectionSymmetry
 
-from capytaine.bodies.predefined.rectangle import Rectangle, OpenRectangularParallelepiped, RectangularParallelepiped
-from capytaine.bodies.predefined.cylinder import Disk, HorizontalCylinder, VerticalCylinder
+from capytaine.bodies.predefined.rectangles import Rectangle, OpenRectangularParallelepiped, RectangularParallelepiped
+from capytaine.bodies.predefined.cylinders import Disk, HorizontalCylinder, VerticalCylinder
 
 
 def test_rectangle_generation():

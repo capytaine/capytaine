@@ -6,13 +6,15 @@
 
 import numpy as np
 
+from capytaine.bem.problems_and_results import DiffractionProblem
 
-def Airy_wave_potential(X, pb, convention="Nemoh"):
+
+def airy_waves_potential(points, pb: DiffractionProblem, convention="Nemoh"):
     """Compute the potential for Airy waves at a given point (or array of points).
 
     Parameters
     ----------
-    X: array of shape (3) or (N x 3)
+    points: array of shape (3) or (N x 3)
         coordinates of the points in which to evaluate the potential.
     pb: DiffractionProblem
         problem with the environmental conditions (g, rho, ...) of interest
@@ -27,7 +29,7 @@ def Airy_wave_potential(X, pb, convention="Nemoh"):
     assert convention.lower() in ["nemoh", "wamit"], \
         "Convention for wave field should be either Nemoh or WAMIT."
 
-    x, y, z = X.T
+    x, y, z = points.T
     k = pb.wavenumber
     h = pb.depth
     wbar = x*np.cos(pb.angle) + y*np.sin(pb.angle)
@@ -45,12 +47,12 @@ def Airy_wave_potential(X, pb, convention="Nemoh"):
         return -1j*pb.g/pb.omega * cih * np.exp(1j * k * wbar)
 
 
-def Airy_wave_velocity(X, pb, convention="Nemoh"):
+def airy_waves_velocity(points, pb: DiffractionProblem, convention="Nemoh"):
     """Compute the fluid velocity for Airy waves at a given point (or array of points).
 
     Parameters
     ----------
-    X: array of shape (3) or (N x 3)
+    points: array of shape (3) or (N x 3)
         coordinates of the points in which to evaluate the potential.
     pb: DiffractionProblem
         problem with the environmental conditions (g, rho, ...) of interest
@@ -65,7 +67,7 @@ def Airy_wave_velocity(X, pb, convention="Nemoh"):
     assert convention.lower() in ["nemoh", "wamit"], \
         "Convention for wave field should be either Nemoh or WAMIT."
 
-    x, y, z = X.T
+    x, y, z = points.T
     k = pb.wavenumber
     h = pb.depth
 
@@ -88,13 +90,12 @@ def Airy_wave_velocity(X, pb, convention="Nemoh"):
         return v.T
 
 
-def Froude_Krylov_force(problem, convention="Nemoh"):
-    pressure = -1j * problem.omega * problem.rho * Airy_wave_potential(problem.body.mesh.faces_centers, problem, convention=convention)
+def froude_krylov_force(pb: DiffractionProblem, convention="Nemoh"):
+    pressure = -1j * pb.omega * pb.rho * airy_waves_potential(pb.body.mesh.faces_centers, pb, convention=convention)
     forces = {}
-    for dof in problem.influenced_dofs:
+    for dof in pb.influenced_dofs:
         # Scalar product on each face:
-        normal_dof_amplitude_on_face = np.sum(problem.body.dofs[dof] * problem.body.mesh.faces_normals, axis=1)
+        normal_dof_amplitude_on_face = np.sum(pb.body.dofs[dof] * pb.body.mesh.faces_normals, axis=1)
         # Sum over all faces:
-        forces[dof] = np.sum(pressure * normal_dof_amplitude_on_face * problem.body.mesh.faces_areas)
+        forces[dof] = np.sum(pressure * normal_dof_amplitude_on_face * pb.body.mesh.faces_areas)
     return forces
-

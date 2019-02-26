@@ -6,21 +6,21 @@ import pytest
 
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh
-from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.mesh.symmetries import AxialSymmetry, ReflectionSymmetry, TranslationalSymmetry
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.collections import CollectionOfMeshes
+from capytaine.meshes.symmetric import AxialSymmetry, ReflectionSymmetry, TranslationalSymmetry
 
 from capytaine.bodies import FloatingBody
-from capytaine.bodies.predefined.sphere import Sphere
-from capytaine.bodies.predefined.cylinder import HorizontalCylinder, VerticalCylinder
+from capytaine.bodies.predefined.spheres import Sphere
+from capytaine.bodies.predefined.cylinders import HorizontalCylinder, VerticalCylinder
 
 from capytaine.bem.problems_and_results import RadiationProblem
-from capytaine.bem.Nemoh import Nemoh
+from capytaine.bem.nemoh import Nemoh
 from capytaine.io.xarray import assemble_dataset
 
-from capytaine.tools.geometry import xOz_Plane, yOz_Plane
+from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
 
-from capytaine.matrices.low_rank_blocks import LowRankMatrix
+from capytaine.matrices.low_rank import LowRankMatrix
 
 solver_with_sym = Nemoh(use_symmetries=True, ACA_distance=8, matrix_cache_size=0)
 solver_without_sym = Nemoh(use_symmetries=False, ACA_distance=8, matrix_cache_size=0)

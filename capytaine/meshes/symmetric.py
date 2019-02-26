@@ -10,9 +10,9 @@ from typing import Union, Callable, Iterable
 
 import numpy as np
 
-from capytaine.mesh.mesh import Mesh
-from capytaine.mesh.meshes_collection import CollectionOfMeshes
-from capytaine.tools.geometry import Axis, Plane, Oz_axis, inplace_transformation
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.collections import CollectionOfMeshes
+from capytaine.meshes.geometry import Axis, Plane, Oz_axis, inplace_transformation
 
 LOG = logging.getLogger(__name__)
 

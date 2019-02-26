@@ -9,8 +9,8 @@ import numpy as np
 from scipy import linalg as sl
 from scipy.sparse import linalg as ssl
 
-from capytaine.matrices.block_matrices import BlockMatrix
-from capytaine.matrices.block_toeplitz_matrices import (
+from capytaine.matrices.block import BlockMatrix
+from capytaine.matrices.block_toeplitz import (
     BlockToeplitzMatrix,
     BlockSymmetricToeplitzMatrix,
     BlockCirculantMatrix,

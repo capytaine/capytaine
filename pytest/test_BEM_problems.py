@@ -8,16 +8,16 @@ import pytest
 import numpy as np
 import xarray as xr
 
-from capytaine.mesh.mesh import Mesh
-from capytaine.mesh.symmetries import ReflectionSymmetry
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.symmetric import ReflectionSymmetry
 
 from capytaine.bodies import FloatingBody
-from capytaine.bodies.predefined.sphere import Sphere
-from capytaine.bodies.predefined.cylinder import HorizontalCylinder
+from capytaine.bodies.predefined.spheres import Sphere
+from capytaine.bodies.predefined.cylinders import HorizontalCylinder
 
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem, \
     LinearPotentialFlowResult, DiffractionResult, RadiationResult
-from capytaine.bem.Nemoh import Nemoh
+from capytaine.bem.nemoh import Nemoh
 from capytaine.io.xarray import problems_from_dataset
 
 from capytaine.io.legacy import import_cal_file
@@ -125,21 +125,21 @@ def test_wamit_convention():
 
 
 def test_Froude_Krylov():
-    from capytaine.tools.Airy_wave import Froude_Krylov_force
-    from capytaine.bodies.predefined.sphere import Sphere
+    from capytaine.bem.airy_waves import froude_krylov_force
+    from capytaine.bodies.predefined.spheres import Sphere
     from capytaine.bem.problems_and_results import DiffractionProblem
 
     sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clever=True, clip_free_surface=True)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
-    assert np.isclose(Froude_Krylov_force(problem)['Heave'], 27596, rtol=1e-3)
+    assert np.isclose(froude_krylov_force(problem)['Heave'], 27596, rtol=1e-3)
 
     problem = DiffractionProblem(body=sphere, omega=2.0, sea_bottom=-np.infty)
-    assert np.isclose(Froude_Krylov_force(problem)['Heave'], 22491, rtol=1e-3)
+    assert np.isclose(froude_krylov_force(problem)['Heave'], 22491, rtol=1e-3)
 
     problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
-    assert np.isclose(Froude_Krylov_force(problem)['Heave'], 27610, rtol=1e-3)
+    assert np.isclose(froude_krylov_force(problem)['Heave'], 27610, rtol=1e-3)
 
 
 def test_import_cal_file():

@@ -152,7 +152,7 @@ CONTAINS
 
   FUNCTION FF(XTT, AK, AM)
     ! A function that will be Prony-decomposed for the finite-depth Green function.
-    ! See the method "compute_exponential_decomposition" in Nemoh.py.
+    ! See the method "compute_exponential_decomposition" in bem/nemoh.py.
 
     ! Input
     REAL(KIND=PRE), INTENT(IN) :: XTT, AK, AM

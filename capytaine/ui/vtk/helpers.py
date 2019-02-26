@@ -1,8 +1,13 @@
 
+from typing import Union
+
 import vtk
 
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.collections import CollectionOfMeshes
 
-def compute_vtk_polydata(mesh):
+
+def compute_vtk_polydata(mesh: Union[Mesh, CollectionOfMeshes]):
     """Transform a mesh into vtkPolydata."""
 
     # Create a vtkPoints object and store the points in it
@@ -34,7 +39,8 @@ def compute_vtk_polydata(mesh):
     return vtk_polydata
 
 
-def compute_node_data(mesh, face_data):
+def compute_node_data(mesh: Union[Mesh, CollectionOfMeshes],
+                      face_data):
     """Transform data defined at the center of the faces to data defined at the nodes of the mesh
     by a simple averaging of the values of the neighboring faces.
 

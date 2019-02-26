@@ -9,7 +9,7 @@ import logging
 
 import numpy as np
 
-from capytaine.tools.geometry import inplace_transformation
+from capytaine.meshes.geometry import inplace_transformation
 
 LOG = logging.getLogger(__name__)
 

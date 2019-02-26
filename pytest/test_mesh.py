@@ -7,9 +7,9 @@ import pytest
 import numpy as np
 from numpy.linalg import norm
 
-from capytaine.mesh.mesh import Mesh
-from capytaine.mesh.mesh_clipper import clip
-from capytaine.tools.geometry import Plane, xOz_Plane
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.clipper import clip
+from capytaine.meshes.geometry import Plane, xOz_Plane
 from capytaine.bodies.predefined import HorizontalCylinder, Sphere, Rectangle
 
 # Some meshes that will be used in the following tests.
@@ -128,7 +128,7 @@ def test_mirror():
 
 
 def test_symmetrized():
-    from capytaine.mesh.symmetries import ReflectionSymmetry
+    from capytaine.meshes.symmetric import ReflectionSymmetry
     sym = cylinder.merged().symmetrized(xOz_Plane)
     assert isinstance(sym, ReflectionSymmetry)
 

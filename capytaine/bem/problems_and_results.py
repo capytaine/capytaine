@@ -11,8 +11,6 @@ from attr import attrs, attrib, astuple, Factory, asdict
 import numpy as np
 from scipy.optimize import newton
 
-from capytaine.tools.Airy_wave import Airy_wave_velocity, Froude_Krylov_force
-
 
 LOG = logging.getLogger(__name__)
 
@@ -155,10 +153,11 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     convention = attrib(default="Nemoh", repr=False)
 
     def __attrs_post_init__(self):
+        from capytaine.bem.airy_waves import airy_waves_velocity
         if self.body is not None:
             self.boundary_condition = -(
-                Airy_wave_velocity(self.body.mesh.faces_centers, self, convention=self.convention)
-                * self.body.mesh.faces_normals
+                    airy_waves_velocity(self.body.mesh.faces_centers, self, convention=self.convention)
+                    * self.body.mesh.faces_normals
             ).sum(axis=1)
 
             if len(self.body.dofs) == 0:
@@ -258,7 +257,8 @@ class DiffractionResult(LinearPotentialFlowResult):
 
     @property
     def records(self):
-        FK = Froude_Krylov_force(self.problem)
+        from capytaine.bem.airy_waves import froude_krylov_force
+        FK = froude_krylov_force(self.problem)
         return [dict(self.settings_dict, influenced_dof=dof,
                      diffraction_force=self.forces[dof], Froude_Krylov_force=FK[dof])
                 for dof in self.influenced_dofs]

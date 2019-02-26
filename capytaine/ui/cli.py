@@ -10,7 +10,7 @@ import os
 
 from capytaine.io.legacy import import_cal_file, write_dataset_as_tecplot_files
 from capytaine import assemble_dataset
-from capytaine.bem.Nemoh import Nemoh
+from capytaine.bem.nemoh import Nemoh
 
 logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s:\t%(message)s")

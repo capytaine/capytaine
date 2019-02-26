@@ -6,15 +6,15 @@ import pytest
 
 import xarray as xr
 
-from capytaine.mesh.symmetries import *
+from capytaine.meshes.symmetric import *
 
-from capytaine.bodies.predefined.sphere import Sphere
-from capytaine.bodies.predefined.cylinder import HorizontalCylinder
-from capytaine.post_pro.free_surface import FreeSurface
+from capytaine.bodies.predefined.spheres import Sphere
+from capytaine.bodies.predefined.cylinders import HorizontalCylinder
+from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
 from capytaine.io.xarray import assemble_dataset, wavenumber_data_array
-from capytaine.bem.Nemoh import Nemoh
+from capytaine.bem.nemoh import Nemoh
 
 from capytaine.post_pro.kochin import compute_Kochin
 

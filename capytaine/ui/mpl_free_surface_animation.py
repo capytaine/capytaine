@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib import animation
 
 from capytaine.bem.problems_and_results import LinearPotentialFlowResult
-from capytaine.post_pro.free_surface import FreeSurface
+from capytaine.post_pro.free_surfaces import FreeSurface
 
 
 def animation_matplotlib(result: LinearPotentialFlowResult, fs: FreeSurface,

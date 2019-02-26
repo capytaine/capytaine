@@ -12,7 +12,7 @@ import numpy as np
 from capytaine.io.mesh_writers import write_MAR
 from capytaine.bodies.bodies import FloatingBody
 from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
-from capytaine.tools.geometry import Axis
+from capytaine.meshes.geometry import Axis
 
 LOG = logging.getLogger(__name__)
 

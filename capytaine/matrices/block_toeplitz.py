@@ -9,7 +9,7 @@ from typing import Tuple, List, Set, Iterable
 
 import numpy as np
 
-from capytaine.matrices.block_matrices import BlockMatrix
+from capytaine.matrices.block import BlockMatrix
 
 LOG = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@
 
 import numpy as np
 
-from capytaine.tools.geometry import (
+from capytaine.meshes.geometry import (
     Axis, Ox_axis, Oy_axis, Oz_axis,
     Plane, xOz_Plane, yOz_Plane, xOy_Plane,
 )

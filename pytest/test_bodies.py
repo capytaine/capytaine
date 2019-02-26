@@ -6,10 +6,10 @@ import pytest
 import numpy as np
 
 from capytaine.bodies import FloatingBody
-from capytaine.mesh.mesh import Mesh
-from capytaine.tools.geometry import Axis, Plane
-from capytaine.bodies.predefined.sphere import Sphere
-from capytaine.bodies.predefined.cylinder import HorizontalCylinder
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.geometry import Axis, Plane
+from capytaine.bodies.predefined.spheres import Sphere
+from capytaine.bodies.predefined.cylinders import HorizontalCylinder
 
 
 def test_dof():
