@@ -9,6 +9,7 @@ import copy
 from itertools import chain, accumulate, product, zip_longest
 
 import numpy as np
+import xarray as xr
 
 from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
 from capytaine.meshes.meshes import Mesh
@@ -174,6 +175,20 @@ class FloatingBody(Abstract3DObject):
         self.add_rotation_dof(name="Roll")
         self.add_rotation_dof(name="Pitch")
         self.add_rotation_dof(name="Yaw")
+
+    def add_dofs_labels_to_vector(self, vector):
+        """Helper function turning a bare vector into a vector labelled by the name of the dofs of the body,
+        to be used for instance for the computation of RAO."""
+        return xr.DataArray(data=np.asarray(vector), dims=['influenced_dof'],
+                            coords={'influenced_dof': list(self.dofs)},
+                            )
+
+    def add_dofs_labels_to_matrix(self, matrix):
+        """Helper function turning a bare matrix into a matrix labelled by the name of the dofs of the body,
+        to be used for instance for the computation of RAO."""
+        return xr.DataArray(data=np.asarray(matrix), dims=['influenced_dof', 'radiating_dof'],
+                            coords={'influenced_dof': list(self.dofs), 'radiating_dof': list(self.dofs)},
+                            )
 
     ###################
     # Transformations #
