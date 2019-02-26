@@ -5,7 +5,7 @@
 import pytest
 import numpy as np
 
-from capytaine import Disk, AxialSymmetry, HorizontalCylinder, TranslationalSymmetry, CollectionOfMeshes
+from capytaine import Disk, AxialSymmetricMesh, HorizontalCylinder, TranslationalSymmetricMesh, CollectionOfMeshes
 from capytaine.meshes.meshes import Mesh
 from capytaine.bodies.predefined import Sphere
 from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
@@ -61,14 +61,14 @@ def test_collection():
     coll = CollectionOfMeshes([sphere, other_sphere], name="baz")
     assert str(coll) == "baz"
     assert repr(coll) == ("CollectionOfMeshes("
-                          "(AxialSymmetry(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_foo_mesh), name=foo_mesh), "
-                          "AxialSymmetry(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_bar_mesh), name=bar_mesh)), "
+                          "(AxialSymmetricMesh(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_foo_mesh), name=foo_mesh), "
+                          "AxialSymmetricMesh(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_bar_mesh), name=bar_mesh)), "
                           "name=baz)")
 
     coll2 = CollectionOfMeshes([sphere, other_sphere])
     assert repr(coll2) == ("CollectionOfMeshes("
-                           "AxialSymmetry(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_foo_mesh), name=foo_mesh), "
-                           "AxialSymmetry(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_bar_mesh), name=bar_mesh))")
+                           "AxialSymmetricMesh(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_foo_mesh), name=foo_mesh), "
+                           "AxialSymmetricMesh(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_bar_mesh), name=bar_mesh))")
     assert str(coll2) == repr(coll2)
 
     assert coll == coll2
@@ -92,7 +92,7 @@ def test_join_axisymmetric_disks():
     disk1 = Disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), axial_symmetry=True).mesh
     disk2 = Disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), axial_symmetry=True).mesh
     joined = disk1.join_meshes(disk2, name="two_disks")
-    assert isinstance(joined, AxialSymmetry)
+    assert isinstance(joined, AxialSymmetricMesh)
     joined.tree_view()
 
     disk3 = Disk(radius=1.0, center=(0, 0, 0), resolution=(6, 4), axial_symmetry=True).mesh
@@ -105,7 +105,7 @@ def test_join_translational_cylinders():
     mesh1 = HorizontalCylinder(length=10.0, radius=1.0, center=(0, 5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
     mesh2 = HorizontalCylinder(length=10.0, radius=2.0, center=(0, -5, -5), clever=True, nr=0, ntheta=10, nx=10).mesh
     joined = mesh1.join_meshes(mesh2)
-    assert isinstance(joined, TranslationalSymmetry)
+    assert isinstance(joined, TranslationalSymmetricMesh)
 
 
 def test_mesh_splitting():

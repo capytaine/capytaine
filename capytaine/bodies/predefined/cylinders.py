@@ -12,7 +12,7 @@ import numpy as np
 from capytaine.meshes.geometry import xOy_Plane, xOz_Plane, yOz_Plane, Ox_axis, Oz_axis
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.symmetric import TranslationalSymmetry, AxialSymmetry, ReflectionSymmetry
+from capytaine.meshes.symmetric import TranslationalSymmetricMesh, AxialSymmetricMesh, ReflectionSymmetricMesh
 from capytaine.bodies.bodies import FloatingBody
 
 LOG = logging.getLogger(__name__)
@@ -76,14 +76,14 @@ class Disk(FloatingBody):
             half_mesh = Disk.generate_disk_mesh(radius=self.radius, theta_max=np.pi/2,
                                                 nr=nr, ntheta=ntheta//2,
                                                 name=f"half_of_{name}_mesh")
-            mesh = ReflectionSymmetry(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
+            mesh = ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
 
         elif axial_symmetry:
             mesh_slice = Disk.generate_disk_mesh(radius=self.radius, theta_max=np.pi/ntheta,
                                                 nr=nr, ntheta=1,
                                                 name=f"slice_of_{name}_mesh")
             mesh_slice.rotate_to_align_axes(Ox_axis, Oz_axis)  # Convoluted way to avoid a warning message in AxialSymmetry...
-            mesh = AxialSymmetry(mesh_slice, axis=Oz_axis, nb_repetitions=ntheta-1, name=f"{name}_mesh")
+            mesh = AxialSymmetricMesh(mesh_slice, axis=Oz_axis, nb_repetitions=ntheta - 1, name=f"{name}_mesh")
             mesh.rotate_to_align_axes(Oz_axis, Ox_axis)
 
         else:
@@ -207,13 +207,13 @@ class HorizontalCylinder(FloatingBody):
             panels[k, :] = (2*i, 2*i+2, 2*i+3, 2*i+1)
         half_ring = Mesh(nodes, panels, name=f"half_ring_of_{name}_mesh")
 
-        ring = ReflectionSymmetry(half_ring, plane=xOz_Plane, name=f"ring_of_{name}_mesh")
+        ring = ReflectionSymmetricMesh(half_ring, plane=xOz_Plane, name=f"ring_of_{name}_mesh")
 
         if nx == 1:
             return ring
         else:
-            return TranslationalSymmetry(ring, translation=np.asarray([self.length/nx, 0.0, 0.0]),
-                                         nb_repetitions=nx-1, name=f"{name}_mesh")
+            return TranslationalSymmetricMesh(ring, translation=np.asarray([self.length / nx, 0.0, 0.0]),
+                                              nb_repetitions=nx-1, name=f"{name}_mesh")
 
     @property
     def volume(self):
@@ -252,7 +252,7 @@ class VerticalCylinder(FloatingBody):
         if name is None:
             name = f"cylinder_{next(Mesh._ids)}"
 
-        open_cylinder = AxialSymmetry.from_profile(
+        open_cylinder = AxialSymmetricMesh.from_profile(
             lambda z: radius,
             z_range=np.linspace(-length/2, length/2, nx+1),
             nphi=ntheta)
@@ -265,7 +265,7 @@ class VerticalCylinder(FloatingBody):
             bottom_side = top_side.copy(name=f"bottom_side_of_{name}_mesh")
             bottom_side.mirror(xOy_Plane)
 
-            mesh = AxialSymmetry.join_meshes(open_cylinder, top_side, bottom_side)
+            mesh = AxialSymmetricMesh.join_meshes(open_cylinder, top_side, bottom_side)
         else:
             mesh = open_cylinder
 

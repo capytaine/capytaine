@@ -44,8 +44,8 @@ class CollectionOfMeshes(Abstract3DObject):
 
     def __repr__(self):
         reprer = reprlib.Repr()
-        reprer.maxstring = 90
-        reprer.maxother = 90
+        reprer.maxstring = 100
+        reprer.maxother = 100
         meshes_names = reprer.repr(self._meshes)
         if self.name is not None:
             return f"{self.__class__.__name__}({meshes_names}, name={self.name})"
@@ -231,9 +231,9 @@ class CollectionOfMeshes(Abstract3DObject):
         return self.clip(plane, inplace=False, **kwargs)
 
     def symmetrized(self, plane):
-        from capytaine.meshes.symmetric import ReflectionSymmetry
+        from capytaine.meshes.symmetric import ReflectionSymmetricMesh
         half = self.clipped(plane, name=f"{self.name}_half")
-        return ReflectionSymmetry(half, plane=plane, name=f"symmetrized_of_{self.name}")
+        return ReflectionSymmetricMesh(half, plane=plane, name=f"symmetrized_of_{self.name}")
 
     @inplace_transformation
     def keep_immersed_part(self, **kwargs):

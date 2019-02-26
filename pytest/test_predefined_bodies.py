@@ -4,7 +4,7 @@ import numpy as np
 
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.symmetric import TranslationalSymmetry, ReflectionSymmetry
+from capytaine.meshes.symmetric import TranslationalSymmetricMesh, ReflectionSymmetricMesh
 
 from capytaine.bodies.predefined.rectangles import Rectangle, OpenRectangularParallelepiped, RectangularParallelepiped
 from capytaine.bodies.predefined.cylinders import Disk, HorizontalCylinder, VerticalCylinder
@@ -53,7 +53,7 @@ def test_rectangle_generation():
     sym_rec = Rectangle(size=(10, 10), resolution=(6, 2),
                         translational_symmetry=False, reflection_symmetry=True,
                         center=(0, 0, -5))
-    assert isinstance(sym_rec.mesh, ReflectionSymmetry)
+    assert isinstance(sym_rec.mesh, ReflectionSymmetricMesh)
     assert sym_rec.mesh.nb_submeshes == 2
     assert sym_rec.mesh.nb_faces == 12
 
@@ -65,7 +65,7 @@ def test_rectangle_generation():
     trans_rec = Rectangle(size=(10, 10), resolution=(6, 2),
                           translational_symmetry=True, reflection_symmetry=False,
                           center=(0, 0, -5))
-    assert isinstance(trans_rec.mesh, TranslationalSymmetry)
+    assert isinstance(trans_rec.mesh, TranslationalSymmetricMesh)
     assert trans_rec.mesh.nb_submeshes == 6
     assert trans_rec.mesh.nb_faces == 12
 
@@ -94,7 +94,7 @@ def test_open_parallelepiped_generation():
 
     assert clever_para.mesh.nb_faces == 42
     assert isinstance(clever_para.mesh, CollectionOfMeshes)
-    assert any(isinstance(submesh, TranslationalSymmetry) for submesh in clever_para.mesh)
+    assert any(isinstance(submesh, TranslationalSymmetricMesh) for submesh in clever_para.mesh)
 
 
 def test_parallelepiped_generation():

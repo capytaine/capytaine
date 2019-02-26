@@ -128,9 +128,9 @@ def test_mirror():
 
 
 def test_symmetrized():
-    from capytaine.meshes.symmetric import ReflectionSymmetry
+    from capytaine.meshes.symmetric import ReflectionSymmetricMesh
     sym = cylinder.merged().symmetrized(xOz_Plane)
-    assert isinstance(sym, ReflectionSymmetry)
+    assert isinstance(sym, ReflectionSymmetricMesh)
 
 
 def test_mesh_quality():

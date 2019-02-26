@@ -8,12 +8,13 @@ import logging
 
 import numpy as np
 
+from capytaine.meshes.geometry import Plane
 from capytaine.meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 
 
-def clip(source_mesh, plane, vicinity_tol=1e-3, name=None):
+def clip(source_mesh: Mesh, plane: Plane, vicinity_tol=1e-3, name=None):
     """Return a new mesh containing the source mesh clipped by the plane.
 
     Parameters
@@ -24,6 +25,8 @@ def clip(source_mesh, plane, vicinity_tol=1e-3, name=None):
         The clipping plane.
     vicinity_tol : float, optional
         The absolute tolerance to consider en vertex is on the plane. Default is 1e-3.
+    name: string, optional
+        A name for the new clipped mesh.
     """
     vertices_data = _vertices_positions_wrt_plane(source_mesh, plane, vicinity_tol)
 

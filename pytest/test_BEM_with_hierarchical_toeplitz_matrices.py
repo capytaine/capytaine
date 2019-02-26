@@ -8,7 +8,7 @@ import numpy as np
 
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.symmetric import AxialSymmetry, ReflectionSymmetry, TranslationalSymmetry
+from capytaine.meshes.symmetric import AxialSymmetricMesh, ReflectionSymmetricMesh, TranslationalSymmetricMesh
 
 from capytaine.bodies import FloatingBody
 from capytaine.bodies.predefined.spheres import Sphere
@@ -45,7 +45,7 @@ def test_floating_sphere(depth, omega):
     half_sphere_mesh = full_sphere.mesh.extract_faces(
         np.where(full_sphere.mesh.faces_centers[:, 1] > 0)[0],
         name="half_sphere_mesh")
-    two_halves_sphere = FloatingBody(ReflectionSymmetry(half_sphere_mesh, xOz_Plane))
+    two_halves_sphere = FloatingBody(ReflectionSymmetricMesh(half_sphere_mesh, xOz_Plane))
     two_halves_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     problem = RadiationProblem(body=two_halves_sphere, omega=omega, sea_bottom=-depth)
     result2 = solver_with_sym.solve(problem)
@@ -53,7 +53,7 @@ def test_floating_sphere(depth, omega):
     quarter_sphere_mesh = half_sphere_mesh.extract_faces(
         np.where(half_sphere_mesh.faces_centers[:, 0] > 0)[0],
         name="quarter_sphere_mesh")
-    four_quarter_sphere = FloatingBody(ReflectionSymmetry(ReflectionSymmetry(quarter_sphere_mesh, yOz_Plane), xOz_Plane))
+    four_quarter_sphere = FloatingBody(ReflectionSymmetricMesh(ReflectionSymmetricMesh(quarter_sphere_mesh, yOz_Plane), xOz_Plane))
     assert 'None' not in four_quarter_sphere.mesh.tree_view()
     four_quarter_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     problem = RadiationProblem(body=four_quarter_sphere, omega=omega, sea_bottom=-depth)
@@ -104,7 +104,7 @@ def test_odd_axial_symmetry():
     """Buoy with odd number of slices."""
     def shape(z):
             return 0.1*(-(z+1)**2 + 16)
-    buoy = FloatingBody(AxialSymmetry.from_profile(shape, z_range=np.linspace(-5.0, 0.0, 9), nphi=5))
+    buoy = FloatingBody(AxialSymmetricMesh.from_profile(shape, z_range=np.linspace(-5.0, 0.0, 9), nphi=5))
     buoy.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     problem = RadiationProblem(body=buoy, omega=2.0)
@@ -131,7 +131,7 @@ def test_horizontal_cylinder(depth):
 
     trans_cylinder = HorizontalCylinder(length=10.0, radius=1.0, clever=True, nr=2, ntheta=10, nx=10)
     assert isinstance(trans_cylinder.mesh, CollectionOfMeshes)
-    assert isinstance(trans_cylinder.mesh[0], TranslationalSymmetry)
+    assert isinstance(trans_cylinder.mesh[0], TranslationalSymmetricMesh)
     trans_cylinder.translate_z(-3.0)
     trans_cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
     problem = RadiationProblem(body=trans_cylinder, omega=1.0, sea_bottom=-depth)
@@ -188,8 +188,8 @@ def test_array_of_spheres():
     # Main case
     array = buoy.assemble_regular_array(distance=4.0, nb_bodies=(3, 3))
 
-    assert isinstance(array.mesh, TranslationalSymmetry)
-    assert isinstance(array.mesh[0], TranslationalSymmetry)
+    assert isinstance(array.mesh, TranslationalSymmetricMesh)
+    assert isinstance(array.mesh[0], TranslationalSymmetricMesh)
     assert array.mesh[0][0] == buoy.mesh
 
     assert len(array.dofs) == 3*3*3

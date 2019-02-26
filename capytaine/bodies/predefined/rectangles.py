@@ -12,7 +12,7 @@ import numpy as np
 from capytaine.meshes.geometry import xOz_Plane, xOy_Plane, yOz_Plane
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.symmetric import TranslationalSymmetry, ReflectionSymmetry
+from capytaine.meshes.symmetric import TranslationalSymmetricMesh, ReflectionSymmetricMesh
 from capytaine.bodies.bodies import FloatingBody
 
 LOG = logging.getLogger(__name__)
@@ -86,16 +86,16 @@ class Rectangle(FloatingBody):
                 width=width/2, height=height, nw=nw//2, nh=nh,
                 center=(0, -width/4, 0), name=f"half_of_{name}_mesh"
             )
-            mesh = ReflectionSymmetry(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
+            mesh = ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
 
         elif translational_symmetry and nw > 1:
             strip = Rectangle.generate_rectangle_mesh(
                 width=width/nw, height=height, nw=1, nh=nh,
                 center=(0, -width/2 + width/(2*nw), 0), name=f"strip_of_{name}_mesh"
             )
-            mesh = TranslationalSymmetry(strip,
-                                         translation=np.asarray([0, width/nw, 0]), nb_repetitions=int(nw)-1,
-                                         name=name)
+            mesh = TranslationalSymmetricMesh(strip,
+                                              translation=np.asarray([0, width/nw, 0]), nb_repetitions=int(nw)-1,
+                                              name=name)
 
         else:
             mesh = Rectangle.generate_rectangle_mesh(width=width, height=height, nw=nw, nh=nh, name=name)
@@ -238,7 +238,7 @@ class RectangularParallelepiped(FloatingBody):
         ring.merge_duplicates()
         ring.heal_triangles()
 
-        open_parallelepiped = TranslationalSymmetry(
+        open_parallelepiped = TranslationalSymmetricMesh(
             ring,
             translation=(width/nw, 0, 0), nb_repetitions=int(nw)-1,
             name=f"body_of_{name}_mesh"
@@ -289,8 +289,8 @@ class RectangularParallelepiped(FloatingBody):
             panels.append(quarter_of_bottom)
         quarter_of_mesh = CollectionOfMeshes(panels, name=f"quarter_of_{name}_mesh").merged()
 
-        half_mesh = ReflectionSymmetry(quarter_of_mesh, plane=yOz_Plane, name=f"half_of_{name}_mesh")
-        return ReflectionSymmetry(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
+        half_mesh = ReflectionSymmetricMesh(quarter_of_mesh, plane=yOz_Plane, name=f"half_of_{name}_mesh")
+        return ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
 
     @property
     def volume(self):

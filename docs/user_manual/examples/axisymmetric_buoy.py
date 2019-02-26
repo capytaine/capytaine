@@ -14,7 +14,7 @@ def shape(z):
 
 # Generate the mesh and display it with VTK.
 buoy = cpt.FloatingBody(
-    cpt.AxialSymmetry.from_profile(shape, z_range=np.linspace(-5, 0, 30), nphi=40)
+    cpt.AxialSymmetricMesh.from_profile(shape, z_range=np.linspace(-5, 0, 30), nphi=40)
 )
 buoy.add_translation_dof(name="Heave")
 buoy.show()

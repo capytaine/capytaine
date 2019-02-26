@@ -8,7 +8,7 @@ __license__ = 'GPLv3'
 from capytaine.meshes.geometry import Axis, Plane
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.symmetric import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
+from capytaine.meshes.symmetric import ReflectionSymmetricMesh, TranslationalSymmetricMesh, AxialSymmetricMesh
 
 from capytaine.bodies.bodies import FloatingBody
 from capytaine.bodies.predefined.spheres import Sphere

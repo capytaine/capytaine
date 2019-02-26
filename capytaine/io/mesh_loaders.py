@@ -7,7 +7,7 @@ import os
 import numpy as np
 
 from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.symmetric import ReflectionSymmetry
+from capytaine.meshes.symmetric import ReflectionSymmetricMesh
 from capytaine.meshes.geometry import xOz_Plane
 
 real_str = r'[+-]?(?:\d+\.\d*|\d*\.\d+)(?:[Ee][+-]?\d+)?'  # Regex for floats
@@ -728,10 +728,10 @@ def load_MAR(filename, name=None):
     if int(symmetric_mesh) == 1:
         if name is None:
             half_mesh = Mesh(vertices, faces-1)
-            return ReflectionSymmetry(half_mesh, plane=xOz_Plane)
+            return ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane)
         else:
             half_mesh = Mesh(vertices, faces-1, name=f"half_of_{name}")
-            return ReflectionSymmetry(half_mesh, plane=xOz_Plane, name=name)
+            return ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=name)
     else:
         return Mesh(vertices, faces-1, name)
 

@@ -10,7 +10,7 @@ from itertools import product
 import numpy as np
 
 from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.symmetric import AxialSymmetry
+from capytaine.meshes.symmetric import AxialSymmetricMesh
 from capytaine.bodies.bodies import FloatingBody
 
 LOG = logging.getLogger(__name__)
@@ -110,7 +110,7 @@ class Sphere(FloatingBody):
         circle_profile[:, 2] = -np.cos(theta)
         circle_profile *= self.radius
 
-        return AxialSymmetry.from_profile(circle_profile, nphi=nphi, name=f"{name}_mesh")
+        return AxialSymmetricMesh.from_profile(circle_profile, nphi=nphi, name=f"{name}_mesh")
 
     @property
     def volume(self):

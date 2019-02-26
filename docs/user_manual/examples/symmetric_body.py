@@ -17,7 +17,7 @@ half_mesh = original_mesh.clip(plane=cpt.tools.geometry.xOz_Plane)
 
 # Define a new body by reflecting the half mesh across the xOz plane.
 body = cpt.FloatingBody(
-    cpt.ReflectionSymmetry(half_mesh, cpt.tools.geometry.xOz_Plane),
+    cpt.ReflectionSymmetricMesh(half_mesh, cpt.tools.geometry.xOz_Plane),
     name="symmetric_body")
 
 # Display the body with VTK.

@@ -4,7 +4,7 @@ from functools import wraps
 import numpy as np
 
 from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.symmetric import ReflectionSymmetry, TranslationalSymmetry, AxialSymmetry
+from capytaine.meshes.symmetric import ReflectionSymmetricMesh, TranslationalSymmetricMesh, AxialSymmetricMesh
 
 from capytaine.matrices.block import BlockMatrix
 from capytaine.matrices.low_rank import LowRankMatrix
@@ -78,8 +78,8 @@ def hierarchical_toeplitz_matrices(build_matrices, ACA_distance=8.0, ACA_tol=1e-
 
         # I) SPARSE COMPUTATION
 
-        if (isinstance(mesh1, ReflectionSymmetry)
-                and isinstance(mesh2, ReflectionSymmetry)
+        if (isinstance(mesh1, ReflectionSymmetricMesh)
+                and isinstance(mesh2, ReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
 
             LOG.debug(log_entry + " using mirror symmetry.")
@@ -93,8 +93,8 @@ def hierarchical_toeplitz_matrices(build_matrices, ACA_distance=8.0, ACA_tol=1e-
 
             return BlockSymmetricToeplitzMatrix([[S_a, S_b]]), BlockSymmetricToeplitzMatrix([[V_a, V_b]])
 
-        elif (isinstance(mesh1, TranslationalSymmetry)
-              and isinstance(mesh2, TranslationalSymmetry)
+        elif (isinstance(mesh1, TranslationalSymmetricMesh)
+              and isinstance(mesh2, TranslationalSymmetricMesh)
               and np.allclose(mesh1.translation, mesh2.translation)
               and mesh1.nb_submeshes == mesh2.nb_submeshes):
 
@@ -116,8 +116,8 @@ def hierarchical_toeplitz_matrices(build_matrices, ACA_distance=8.0, ACA_tol=1e-
 
             return BlockToeplitzMatrix([S_list]), BlockToeplitzMatrix([V_list])
 
-        elif (isinstance(mesh1, AxialSymmetry)
-              and isinstance(mesh2, AxialSymmetry)
+        elif (isinstance(mesh1, AxialSymmetricMesh)
+              and isinstance(mesh2, AxialSymmetricMesh)
               and mesh1.axis == mesh2.axis
               and mesh1.nb_submeshes == mesh2.nb_submeshes):
 
