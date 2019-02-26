@@ -74,6 +74,15 @@ This example solves a diffraction problem, it computes the free surface elevatio
 .. literalinclude:: examples/animate_free_surface.py
    :language: python
 
+Animation of the RAO
+--------------------
+
+This script generate the animation of the RAO motion for a wave incoming in front of a ship,
+such as the one used on the main page of this documentation.
+
+.. literalinclude:: examples/boat_animation.py
+   :language: python
+
 Kochin function
 ---------------
 
