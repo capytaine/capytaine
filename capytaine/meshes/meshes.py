@@ -220,7 +220,7 @@ class Mesh(Abstract3DObject):
         else:
             return extracted_mesh
 
-    def splitted_by_plane(self, plane: Plane):
+    def sliced_by_plane(self, plane: Plane):
         from capytaine.meshes.collections import CollectionOfMeshes
         faces_ids_on_one_side = np.where(plane.distance_to_point(self.faces_centers) < 0)[0]
         if len(faces_ids_on_one_side) == 0 or len(faces_ids_on_one_side) == self.nb_faces:

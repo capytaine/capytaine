@@ -111,11 +111,11 @@ def test_join_translational_cylinders():
 def test_mesh_splitting():
     mesh = Sphere().mesh.merged()
 
-    splitted_mesh = mesh.splitted_by_plane(xOz_Plane.translated_y(0.5))
+    splitted_mesh = mesh.sliced_by_plane(xOz_Plane.translated_y(0.5))
     assert isinstance(splitted_mesh, CollectionOfMeshes)
     assert splitted_mesh.merged() == mesh
 
-    twice_splitted_mesh = splitted_mesh.splitted_by_plane(yOz_Plane)
+    twice_splitted_mesh = splitted_mesh.sliced_by_plane(yOz_Plane)
     assert isinstance(twice_splitted_mesh[0], CollectionOfMeshes)
     assert isinstance(twice_splitted_mesh[1], CollectionOfMeshes)
     assert twice_splitted_mesh.merged() == mesh

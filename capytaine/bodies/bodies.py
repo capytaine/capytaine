@@ -280,8 +280,8 @@ class FloatingBody(Abstract3DObject):
         else:
             return new_body
 
-    def splitted_by_plane(self, plane):
-        return FloatingBody(mesh=self.mesh.splitted_by_plane(plane), dofs=self.dofs, name=self.name)
+    def sliced_by_plane(self, plane):
+        return FloatingBody(mesh=self.mesh.sliced_by_plane(plane), dofs=self.dofs, name=self.name)
 
     def minced(self, nb_slices=(8, 8, 4)):
         """Support only powers of 2 at the moment."""
@@ -320,7 +320,7 @@ class FloatingBody(Abstract3DObject):
         for planes in intermingled_x_y_z:
             if planes is not None:
                 for plane in planes:
-                    minced_body = minced_body.splitted_by_plane(plane)
+                    minced_body = minced_body.sliced_by_plane(plane)
         return minced_body
 
     @inplace_transformation
