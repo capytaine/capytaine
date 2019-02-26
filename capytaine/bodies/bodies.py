@@ -340,7 +340,6 @@ class FloatingBody(Abstract3DObject):
         for dof in self.dofs:
             self.dofs[dof] -= 2 * np.outer(np.dot(self.dofs[dof], plane.normal), plane.normal)
         if hasattr(self, 'center'):
-            print(np.dot(self.center, plane.normal) - plane.c, plane.normal)
             self.center -= 2 * (np.dot(self.center, plane.normal) - plane.c) * plane.normal
         return self
 
