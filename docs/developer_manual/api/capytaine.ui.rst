@@ -14,7 +14,6 @@ Submodules
 .. toctree::
 
    capytaine.ui.cli
-   capytaine.ui.mpl_free_surface_animation
 
 Module contents
 ---------------
