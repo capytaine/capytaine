@@ -171,7 +171,7 @@ class Nemoh:
         """
         return [self.solve(problem, **kwargs) for problem in sorted(problems)]
 
-    def fill_dataset(self, dataset, bodies):
+    def fill_dataset(self, dataset, bodies, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -187,8 +187,15 @@ class Nemoh:
         """
         attrs = {'start_of_computation': datetime.now().isoformat()}
         problems = problems_from_dataset(dataset, bodies)
-        results = self.solve_all(problems, keep_details=False)
-        return assemble_dataset(results, attrs=attrs)
+        if 'theta' in dataset.coords:
+            from capytaine.post_pro.kochin import kochin_data_array
+            results = self.solve_all(problems, keep_details=True)
+            dataset = assemble_dataset(results, attrs=attrs, **kwargs)
+            dataset['kochin'] = kochin_data_array(results, dataset.coords['theta'])
+        else:
+            results = self.solve_all(problems, keep_details=False)
+            dataset = assemble_dataset(results, attrs=attrs, **kwargs)
+        return dataset
 
     #######################
     #  Building matrices  #

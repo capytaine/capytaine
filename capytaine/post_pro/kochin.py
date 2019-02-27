@@ -7,15 +7,9 @@ Computation of the Kochin function.
 # It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 
 import numpy as np
-import pandas as pd
-import xarray as xr
-
-from capytaine.bem.nemoh import Nemoh
-from capytaine.bem.problems_and_results import RadiationProblem
-from capytaine.io.xarray import _squeeze_dimensions, wavenumber_data_array
 
 
-def compute_Kochin(result, theta, ref_point=(0.0, 0.0)):
+def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
     """Compute the far field coefficient
 
     Parameters
@@ -58,38 +52,3 @@ def compute_Kochin(result, theta, ref_point=(0.0, 0.0)):
     # result.sources.shape = (nb_faces,)
     return zs @ result.sources/(4*np.pi)
 
-
-def kochin_data_array(results, theta_range, **kwargs):
-    records = [dict(result.settings_dict, theta=theta, kochin=kochin)
-               for result in results
-               for theta, kochin in zip(theta_range, compute_Kochin(result, theta_range, **kwargs))]
-
-    optional_vars = ['g', 'rho', 'body_name', 'water_depth']
-    dimensions = ['omega', 'radiating_dof', 'theta']
-    df = pd.DataFrame(records)
-    df = df.set_index(optional_vars + dimensions)
-    array = df.to_xarray()['kochin']
-
-    array = _squeeze_dimensions(array, dimensions=optional_vars)
-
-    return array
-
-
-def kochin_dataset(floating_body, omega_range, theta_range):
-    """Return a xarray dataset with all the Kochin functions for a given body and several frequencies."""
-    solver = Nemoh()
-    problems = [RadiationProblem(body=floating_body, radiating_dof=dof, omega=omega)
-                for dof in floating_body.dofs for omega in omega_range]
-    results = [solver.solve(problem, keep_details=True) for problem in sorted(problems)]
-
-    kochin_dataset = kochin_data_array(results, theta_range)
-    ds = xr.Dataset({'kochin': kochin_dataset})
-    ds = ds.rename({'radiating_dof': 'dof'})
-
-    ds.coords['nb_faces'] = ('mesh', [floating_body.mesh.nb_faces])
-
-    # Add more stuffs to the dataset
-    ds.coords['wavenumber'] = wavenumber_data_array(results)
-    ds.coords['wavelength'] = 2*np.pi / ds.coords['wavenumber']
-
-    return ds

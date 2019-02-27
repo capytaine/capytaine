@@ -10,6 +10,7 @@ import xarray as xr
 from capytaine.bem.problems_and_results import \
     LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem, \
     LinearPotentialFlowResult
+from capytaine.post_pro.kochin import compute_kochin
 
 
 LOG = logging.getLogger(__name__)
@@ -119,8 +120,20 @@ def hydrostatics_dataset(bodies):
     return dataset
 
 
+def kochin_data_array(results, theta_range, **kwargs):
+    records = pd.DataFrame([dict(result.settings_dict, theta=theta, kochin=kochin)
+                            for result in results
+                            for theta, kochin in zip(theta_range, compute_kochin(result, theta_range, **kwargs))])
+
+    ds = _dataset_from_dataframe(records, ['kochin'],
+                                 dimensions=['omega', 'radiating_dof', 'theta'],
+                                 optional_dims=['g', 'rho', 'body_name', 'water_depth'])
+    return ds['kochin']
+
+
 def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
-                     wavenumber=False, hydrostatics=True, attrs=None):
+                     wavenumber=False, wavelength=False, mesh=False, hydrostatics=True,
+                     attrs=None):
     """Transform a list of :class:`LinearPotentialFlowResult` to a :class:`xarray.Dataset`."""
     dataset = xr.Dataset()
 
@@ -162,9 +175,19 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
     if wavenumber:
         dataset.coords['wavenumber'] = wavenumber_data_array(results)
 
+    if wavelength:
+        dataset.coords['wavelength'] = 2*np.pi/wavenumber_data_array(results)
+
+    if mesh:
+        # TODO: Store full mesh...
+        bodies = list({result.body for result in results})
+        nb_faces = {body.name: body.mesh.nb_faces for body in bodies}
+        dataset.coords['nb_faces'] = ('body_name', [nb_faces])
+
     # HYDROSTATICS
     if hydrostatics:
-        dataset = xr.merge([dataset, hydrostatics_dataset(list({result.body for result in results}))])
+        bodies = list({result.body for result in results})
+        dataset = xr.merge([dataset, hydrostatics_dataset(bodies)])
 
     dataset.attrs.update(attrs)
     return dataset
