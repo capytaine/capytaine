@@ -67,6 +67,7 @@ if __name__ == "__main__":
               'capytaine.bodies',
               'capytaine.bodies.predefined',
               'capytaine.bem',
+              'capytaine.post_pro',
               'capytaine.ui',
               'capytaine.ui.vtk',
               'capytaine.io',
