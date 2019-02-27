@@ -4,6 +4,7 @@
 
 import pytest
 
+from numpy import pi
 import xarray as xr
 
 from capytaine.meshes.symmetric import *
@@ -231,4 +232,13 @@ def test_multibody():
     assert np.allclose(recomputed_data["added_mass"].data, data["added_mass"].data)
 
 
+def test_kochin():
+    body = Sphere(clip_free_surface=True)
+    body.add_translation_dof(name="Heave")
+    test_matrix = xr.Dataset(coords={
+        'omega': [1.0],
+        'theta': np.linspace(0, 2*pi, 5),
+        'radiating_dof': list(body.dofs.keys()),
+    })
+    ds = Nemoh().fill_dataset(test_matrix, [body])
 

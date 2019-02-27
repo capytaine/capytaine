@@ -18,13 +18,14 @@ from datetime import datetime
 from functools import lru_cache
 
 import numpy as np
+import xarray as xr
 
-from capytaine.io.xarray import problems_from_dataset, assemble_dataset
 from capytaine.matrices import linear_solvers
 from capytaine.matrices.builders import identity_like
 from capytaine.bem.hierarchical_toeplitz_matrices import hierarchical_toeplitz_matrices
 from capytaine.bem.prony_decomposition import find_best_exponential_decomposition
 import capytaine.bem.NemohCore as NemohCore
+from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 
 
 LOG = logging.getLogger(__name__)
@@ -188,10 +189,10 @@ class Nemoh:
         attrs = {'start_of_computation': datetime.now().isoformat()}
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
-            from capytaine.post_pro.kochin import kochin_data_array
             results = self.solve_all(problems, keep_details=True)
+            kochin = kochin_data_array(results, dataset.coords['theta'])
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
-            dataset['kochin'] = kochin_data_array(results, dataset.coords['theta'])
+            dataset['kochin'] = kochin
         else:
             results = self.solve_all(problems, keep_details=False)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)

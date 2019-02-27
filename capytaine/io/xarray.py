@@ -123,7 +123,7 @@ def hydrostatics_dataset(bodies):
 def kochin_data_array(results, theta_range, **kwargs):
     records = pd.DataFrame([dict(result.settings_dict, theta=theta, kochin=kochin)
                             for result in results
-                            for theta, kochin in zip(theta_range, compute_kochin(result, theta_range, **kwargs))])
+                            for theta, kochin in zip(theta_range.data, compute_kochin(result, theta_range, **kwargs))])
 
     ds = _dataset_from_dataframe(records, ['kochin'],
                                  dimensions=['omega', 'radiating_dof', 'theta'],
@@ -182,7 +182,10 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
         # TODO: Store full mesh...
         bodies = list({result.body for result in results})
         nb_faces = {body.name: body.mesh.nb_faces for body in bodies}
-        dataset.coords['nb_faces'] = ('body_name', [nb_faces])
+        if len(nb_faces) > 1:
+            dataset.coords['nb_faces'] = ('body_name', nb_faces)
+        else:
+            dataset.coords['nb_faces'] = list(nb_faces.items())[0][1]
 
     # HYDROSTATICS
     if hydrostatics:
