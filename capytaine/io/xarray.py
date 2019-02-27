@@ -1,39 +1,18 @@
+import logging
+from datetime import datetime
 from itertools import product
+from typing import Sequence
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 
-from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem
+from capytaine.bem.problems_and_results import \
+    LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem, \
+    LinearPotentialFlowResult
 
 
-def separate_complex_values(ds: xr.Dataset) -> xr.Dataset:
-    """Return a new Dataset where complex-valued arrays of shape (...) have been replaced by real-valued arrays of shape (2, ...).
-    Invert of :func:`merge_complex_values`."""
-    ds = ds.copy()
-    for variable in ds.data_vars:
-        if ds[variable].dtype == np.complex:
-            da = ds[variable]
-            new_da = xr.DataArray(np.asarray((np.real(da).data, np.imag(da).data)),
-                                  dims=('complex',) + da.dims)
-            ds[variable] = new_da
-            ds.coords['complex'] = ['re', 'im']
-    return ds
-
-
-def merge_complex_values(ds: xr.Dataset) -> xr.Dataset:
-    """Return a new Dataset where real-valued arrays of shape (2, ...) have been replaced by complex-valued arrays of shape (...).
-    Invert of :func:`separate_complex_values`."""
-    if 'complex' in ds.coords:
-        ds = ds.copy()
-        for variable in ds.data_vars:
-            if 'complex' in ds[variable].coords:
-                da = ds[variable]
-                new_dims = [d for d in da.dims if d != 'complex']
-                new_da = xr.DataArray(da.sel(complex='re').data + 1j*da.sel(complex='im').data, dims=new_dims)
-                ds[variable] = new_da
-        ds = ds.drop('complex')
-    return ds
+LOG = logging.getLogger(__name__)
 
 
 def problems_from_dataset(dataset, bodies):
@@ -52,6 +31,8 @@ def problems_from_dataset(dataset, bodies):
     """
     assert len(list(set(body.name for body in bodies))) == len(bodies), \
         "All bodies should have different names."
+
+    dataset = _unsqueeze_dimensions(dataset)
 
     omega_range = dataset['omega'].data if 'omega' in dataset else [LinearPotentialFlowProblem.default_parameters['omega']]
     angle_range = dataset['angle'].data if 'angle' in dataset else None
@@ -85,78 +66,140 @@ def problems_from_dataset(dataset, bodies):
     return sorted(problems)
 
 
-ATTRIBUTE_RATHER_THAN_COORD = True
-# If True, the coordinates with a single value are replaced by attributes in the dataset.
-
-
 def _squeeze_dimensions(data_array, dimensions=None):
     """Remove dimensions if they are of size 1."""
     if dimensions is None:
         dimensions = data_array.dims
     for dim in dimensions:
         if len(data_array[dim]) == 1:
-            data_array = data_array.squeeze(dim, drop=ATTRIBUTE_RATHER_THAN_COORD)
+            data_array = data_array.squeeze(dim, drop=False)
     return data_array
 
 
-def wavenumber_data_array(results):
+def _unsqueeze_dimensions(data_array, dimensions=None):
+    """Add scalar coordinates as dimensions of size 1."""
+    if dimensions is None:
+        dimensions = list(data_array.coords.keys())
+    for dim in dimensions:
+        if len(data_array.coords[dim].values.shape) == 0:
+            data_array = xr.concat([data_array], dim=dim)
+    return data_array
+
+
+def _dataset_from_dataframe(df: pd.DataFrame, variables, dimensions, optional_dims):
+    for variable_name in variables:
+        df = df[df[variable_name].notnull()].dropna(1)  # Keep only records with non null values of all the variables
+    df = df.drop_duplicates()
+    df = df.set_index(optional_dims + dimensions)
+
+    da = df.to_xarray()[variables]
+    da = _squeeze_dimensions(da, dimensions=optional_dims)
+    return da
+
+
+def wavenumber_data_array(results: Sequence[LinearPotentialFlowResult]):
     """Read the wavenumber in a list of :class:`LinearPotentialFlowResult`
     and store them into a :class:`xarray.DataArray`."""
-    records = [dict(g=result.g, water_depth=result.depth, omega=result.omega, wavenumber=result.wavenumber)
-               for result in results]
-    optional_vars = ['g', 'water_depth']
-    dimensions = ['omega']
-    df = pd.DataFrame(records).drop_duplicates()
-    df = df.set_index(optional_vars + dimensions)
-    array = df.to_xarray()['wavenumber']
-    array = _squeeze_dimensions(array, dimensions=optional_vars)
-    return array
+    records = pd.DataFrame(
+        [dict(g=result.g, water_depth=result.depth, omega=result.omega, wavenumber=result.wavenumber)
+         for result in results]
+    )
+    ds = _dataset_from_dataframe(records, variables=['wavenumber'], dimensions=['omega'], optional_dims=['g', 'water_depth'])
+    return ds['wavenumber']
 
 
-def assemble_dataset(results):
-    """Transform a list of :class:`LinearPotentialFlowResult` to a :class:`xarray.Dataset`."""
+def hydrostatics_dataset(bodies):
     dataset = xr.Dataset()
-
-    df = pd.DataFrame([record for result in results for record in result.records])
-    if len(df) == 0:
-        raise ValueError("No result passed to assemble_dataset.")
-
-    optional_vars = ['g', 'rho', 'body_name', 'water_depth']
-
-    # RADIATION RESULTS
-    if 'added_mass' in df.columns:
-        radiation_cases = df[df['added_mass'].notnull()].dropna(1)
-
-        dimensions = ['omega', 'radiating_dof', 'influenced_dof']
-        radiation_cases = radiation_cases.set_index(optional_vars + dimensions)
-        radiation_cases = radiation_cases.to_xarray()
-        radiation_cases = _squeeze_dimensions(radiation_cases, dimensions=optional_vars)
-        dataset = xr.merge([dataset, radiation_cases])
-
-    # DIFFRACTION RESULTS
-    if 'diffraction_force' in df.columns:
-        diffraction_cases = df[df['diffraction_force'].notnull()].dropna(1)
-
-        dimensions = ['omega', 'angle', 'influenced_dof']
-        diffraction_cases = diffraction_cases.set_index(optional_vars + ['convention'] + dimensions)
-        diffraction_cases = diffraction_cases.to_xarray()
-        diffraction_cases = _squeeze_dimensions(diffraction_cases, dimensions=optional_vars + ['convention'])
-        dataset = xr.merge([dataset, diffraction_cases])
-
-    # BODIES PROPERTIES
-    bodies = list({result.body for result in results})
     for body_property in ['mass', 'hydrostatic_stiffness']:
         bodies_properties = {body.name: body.__getattribute__(body_property) for body in bodies if hasattr(body, body_property)}
         if len(bodies_properties) > 0:
             bodies_properties = xr.concat(bodies_properties.values(), pd.Index(bodies_properties.keys(), name='body_name'))
             bodies_properties = _squeeze_dimensions(bodies_properties, dimensions=['body_name'])
             dataset = xr.merge([dataset, {body_property: bodies_properties}])
-
-    # ATTRIBUTES
-    if ATTRIBUTE_RATHER_THAN_COORD:
-        for optional_var in optional_vars:
-            optional_var_range = df[optional_var].unique()
-            if len(optional_var_range) == 1:
-                dataset.attrs[optional_var] = optional_var_range[0]
-
     return dataset
+
+
+def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
+                     wavenumber=False, hydrostatics=True, attrs=None):
+    """Transform a list of :class:`LinearPotentialFlowResult` to a :class:`xarray.Dataset`."""
+    dataset = xr.Dataset()
+
+    if attrs is None:
+        attrs = {}
+    attrs['creation_of_dataset'] = datetime.now().isoformat()
+
+    records = pd.DataFrame([record for result in results for record in result.records])
+    if len(records) == 0:
+        raise ValueError("No result passed to assemble_dataset.")
+
+    optional_dims = ['g', 'rho', 'body_name', 'water_depth']
+
+    # RADIATION RESULTS
+    if 'added_mass' in records.columns:
+        radiation_cases = _dataset_from_dataframe(
+            records,
+            variables=['added_mass', 'radiation_damping'],
+            dimensions=['omega', 'radiating_dof', 'influenced_dof'],
+            optional_dims=optional_dims)
+        dataset = xr.merge([dataset, radiation_cases])
+
+    # DIFFRACTION RESULTS
+    if 'diffraction_force' in records.columns:
+        conventions = set(records['convention'].dropna())
+        if len(conventions) > 1:
+            LOG.warning("Assembling a dataset mixing several conventions.")
+        else:
+            attrs['incoming_waves_convention'] = conventions.pop()
+
+        diffraction_cases = _dataset_from_dataframe(
+            records,
+            variables=['diffraction_force', 'Froude_Krylov_force'],
+            dimensions=['omega', 'angle', 'influenced_dof'],
+            optional_dims=optional_dims)
+        dataset = xr.merge([dataset, diffraction_cases])
+
+    # WAVENUMBER
+    if wavenumber:
+        dataset.coords['wavenumber'] = wavenumber_data_array(results)
+
+    # HYDROSTATICS
+    if hydrostatics:
+        dataset = xr.merge([dataset, hydrostatics_dataset(list({result.body for result in results}))])
+
+    dataset.attrs.update(attrs)
+    return dataset
+
+
+def separate_complex_values(ds: xr.Dataset) -> xr.Dataset:
+    """Return a new Dataset where complex-valued arrays of shape (...) have been replaced by real-valued arrays of shape (2, ...).
+    Invert of :func:`merge_complex_values`."""
+    ds = ds.copy()
+    for variable in ds.data_vars:
+        if ds[variable].dtype == np.complex:
+            da = ds[variable]
+            new_da = xr.DataArray(np.asarray((np.real(da).data, np.imag(da).data)),
+                                  dims=('complex',) + da.dims)
+            ds[variable] = new_da
+            ds.coords['complex'] = ['re', 'im']
+    return ds
+
+
+def merge_complex_values(ds: xr.Dataset) -> xr.Dataset:
+    """Return a new Dataset where real-valued arrays of shape (2, ...) have been replaced by complex-valued arrays of shape (...).
+    Invert of :func:`separate_complex_values`."""
+    if 'complex' in ds.coords:
+        ds = ds.copy()
+        for variable in ds.data_vars:
+            if 'complex' in ds[variable].coords:
+                da = ds[variable]
+                new_dims = [d for d in da.dims if d != 'complex']
+                new_da = xr.DataArray(da.sel(complex='re').data + 1j*da.sel(complex='im').data, dims=new_dims)
+                ds[variable] = new_da
+        ds = ds.drop('complex')
+    return ds
+
+
+def save_in_netcdf(ds: xr.Dataset, filepath):
+    ds.to_netcdf(filepath,
+                 encoding={'radiating_dof': {'dtype': 'U'},
+                           'influenced_dof': {'dtype': 'U'}})

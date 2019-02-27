@@ -27,7 +27,7 @@ class LinearPotentialFlowProblem:
     * the meshed floating body,
     * the Neumann boundary conditions on the body.
     """
-    default_parameters = {'rho': 1000, 'g': 9.81, 'free_surface': 0.0, 'sea_bottom': -np.infty, 'omega': 1.0}
+    default_parameters = {'rho': 1000.0, 'g': 9.81, 'free_surface': 0.0, 'sea_bottom': -np.infty, 'omega': 1.0}
 
     body = attrib(default=None)
     free_surface = attrib(default=default_parameters['free_surface'])

@@ -14,6 +14,7 @@ Example
 """
 
 import logging
+from datetime import datetime
 from functools import lru_cache
 
 import numpy as np
@@ -184,9 +185,10 @@ class Nemoh:
         -------
         xarray Dataset
         """
+        attrs = {'start_of_computation': datetime.now().isoformat()}
         problems = problems_from_dataset(dataset, bodies)
         results = self.solve_all(problems, keep_details=False)
-        return assemble_dataset(results)
+        return assemble_dataset(results, attrs=attrs)
 
     #######################
     #  Building matrices  #
