@@ -46,5 +46,5 @@ animation = Animation(loop_duration=radiation_result.period)
 animation.add_body(full_sphere, faces_motion=full_sphere.dofs["Heave"])
 animation.add_free_surface(free_surface, faces_elevation=3.0*radiation_elevation_at_faces)
 animation.run(camera_position=(-30, -30, 30))
-# animation.save("path/to/the/video/file.ogv", camera_position=(-30, -30, 30)
+# animation.save("path/to/the/video/file.ogv", camera_position=(-30, -30, 30))
 
