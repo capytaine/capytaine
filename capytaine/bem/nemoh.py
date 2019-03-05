@@ -39,7 +39,7 @@ class Nemoh:
 
     Parameters
     ----------
-    npinte: int, optional
+    tabulation_nb_integration_points: int, optional
         Number of points for the evaluation of the tabulated elementary integrals w.r.t. :math:`theta`
         used for the computation of the Green function (default: 251)
     use_symmetries: bool, optional
@@ -63,48 +63,78 @@ class Nemoh:
     tabulated_integrals: 3-ple of arrays
         Tabulated integrals for the computation of the Green function.
     """
+
+    defaults_settings = dict(
+        tabulation_nb_integration_points=251,
+        use_symmetries=True,
+        ACA_distance=np.infty,
+        ACA_tol=1e-2,
+        cache_rankine_matrices=False,
+        matrix_cache_size=1,
+        linear_solver='gmres',
+    )
+
     available_linear_solvers = {'direct': linear_solvers.solve_directly,
                                 'store_lu': linear_solvers.solve_storing_lu,
                                 'gmres': linear_solvers.solve_gmres,
                                 }
 
-    def __init__(self,
-                 npinte=251,
-                 use_symmetries=True, ACA_distance=np.infty, ACA_tol=1e-2,
-                 cache_rankine_matrices=True, matrix_cache_size=1,
-                 linear_solver='gmres',
-                 ):
+    def __init__(self, **settings):
+        settings = {**self.defaults_settings, **settings}  # Complete settings with default settings
+        self.settings = settings  # Keep a copy for saving in output dataset
+
         LOG.info("Initialize Nemoh's Green function.")
-        self.tabulated_integrals = tabulated_integrals(328, 46, npinte)
+        self.tabulated_integrals = tabulated_integrals(328, 46, settings['tabulation_nb_integration_points'])
 
-        if linear_solver in Nemoh.available_linear_solvers:
-            self.linear_solver = Nemoh.available_linear_solvers[linear_solver]
+        if settings['linear_solver'] in Nemoh.available_linear_solvers:
+            self.linear_solver = Nemoh.available_linear_solvers[settings['linear_solver']]
         else:
-            self.linear_solver = linear_solver
+            self.linear_solver = settings['linear_solver']
 
-        if cache_rankine_matrices:
-            if use_symmetries:
+        if settings['cache_rankine_matrices']:
+            if settings['use_symmetries']:
                 # If the rankine matrix is cached, the recursive decomposition of the matrix
-                # has to be done before the caching in order to ensure that everything is cached.
-                # It results that it has to be done twice: once for the Rankine part and once for the wave part.
-                self.build_matrices_rankine = hierarchical_toeplitz_matrices(self.build_matrices_rankine,
-                                                                             ACA_tol=ACA_tol, ACA_distance=ACA_distance,
-                                                                             dtype=np.float64)
-                self.build_matrices_wave = hierarchical_toeplitz_matrices(self.build_matrices_wave,
-                                                                          ACA_tol=ACA_tol, ACA_distance=ACA_distance,
-                                                                          dtype=np.complex128)
-            if matrix_cache_size > 0:
-                self.build_matrices_rankine = lru_cache(maxsize=matrix_cache_size)(self.build_matrices_rankine)
-                self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
-        else:
-            if use_symmetries:
+                # has to be done before the caching.
+                # Otherwise, only the latest blocks of the matrices would be cached,
+                # which is not the expected behavior.
+                # It follows that the decomposition has to be done twice:
+                # once for the Rankine part and once for the wave part.
+                self.build_matrices_rankine = hierarchical_toeplitz_matrices(
+                    self.build_matrices_rankine,
+                    ACA_tol=settings['ACA_tol'],
+                    ACA_distance=settings['ACA_distance'],
+                    dtype=np.float64
+                )
+                self.build_matrices_wave = hierarchical_toeplitz_matrices(
+                    self.build_matrices_wave,
+                    ACA_tol=settings['ACA_tol'],
+                    ACA_distance=settings['ACA_distance'],
+                    dtype=np.complex128
+                )
+            if settings['matrix_cache_size'] > 0:
+                self.build_matrices_rankine = lru_cache(maxsize=settings['matrix_cache_size'])(self.build_matrices_rankine)
+                self.build_matrices = lru_cache(maxsize=settings['matrix_cache_size'])(self.build_matrices)
+
+        else:  # not settings['cache_rankine_matrix']
+            if settings['use_symmetries']:
                 # If the rankine matrix is not cached, the recursive decomposition of the matrix
                 # can be done at the top level.
-                self.build_matrices = hierarchical_toeplitz_matrices(self.build_matrices,
-                                                                     ACA_tol=ACA_tol, ACA_distance=ACA_distance,
-                                                                     dtype=np.complex128)
-            if matrix_cache_size > 0:
-                self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
+                self.build_matrices = hierarchical_toeplitz_matrices(
+                    self.build_matrices,
+                    ACA_tol=settings['ACA_tol'],
+                    ACA_distance=settings['ACA_distance'],
+                    dtype=np.complex128
+                )
+            if settings['matrix_cache_size'] > 0:
+                self.build_matrices = lru_cache(maxsize=settings['matrix_cache_size'])(self.build_matrices)
+
+    def exportable_settings(self):
+        settings = self.settings.copy()
+        if not settings['use_symmetries']:
+            del settings['ACA_distance']
+            del settings['ACA_tol']
+        settings['linear_solver'] = str(settings['linear_solver'])
+        return settings
 
     def solve(self, problem, keep_details=True):
         """Solve the BEM problem using Nemoh.
@@ -186,7 +216,8 @@ class Nemoh:
         -------
         xarray Dataset
         """
-        attrs = {'start_of_computation': datetime.now().isoformat()}
+        attrs = {'start_of_computation': datetime.now().isoformat(),
+                 **self.exportable_settings()}
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
             results = self.solve_all(problems, keep_details=True)

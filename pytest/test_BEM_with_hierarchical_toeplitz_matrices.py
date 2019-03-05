@@ -6,6 +6,7 @@ import pytest
 
 import numpy as np
 
+import capytaine as cpt
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import AxialSymmetricMesh, ReflectionSymmetricMesh, TranslationalSymmetricMesh
@@ -198,18 +199,21 @@ def test_array_of_spheres():
     #
     array = buoy.assemble_regular_array(distance=4.0, nb_bodies=(3, 1))
 
-    solver_with_sym = Nemoh(linear_solver="direct", use_symmetries=True, matrix_cache_size=0)
-    solver_without_sym = Nemoh(linear_solver="direct", use_symmetries=False, matrix_cache_size=0)
+    settings = dict(cache_rankine_matrices=False, matrix_cache_size=0)
+    nemoh_without_sym = Nemoh(use_symmetries=False, **settings)
+    nemoh_with_sym = Nemoh(use_symmetries=True, **settings)
 
-    S, V = solver_with_sym.build_matrices_wave(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
-    fullS, fullV = solver_without_sym.build_matrices_wave(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
+    fullS, fullV = nemoh_without_sym.build_matrices(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
+    S, V = nemoh_with_sym.build_matrices(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
+
+    assert isinstance(S, cpt.matrices.block.BlockMatrix)
     assert np.allclose(S.full_matrix(), fullS)
     assert np.allclose(V.full_matrix(), fullV)
 
     problem = RadiationProblem(body=array, omega=1.0, radiating_dof="2_0__Heave", sea_bottom=-np.infty)
 
-    result = solver_with_sym.solve(problem)
-    result2 = solver_without_sym.solve(problem)
+    result = nemoh_with_sym.solve(problem)
+    result2 = nemoh_without_sym.solve(problem)
 
     assert np.isclose(result.added_masses['2_0__Heave'], result2.added_masses['2_0__Heave'], atol=15.0)
     assert np.isclose(result.radiation_dampings['2_0__Heave'], result2.radiation_dampings['2_0__Heave'], atol=15.0)

@@ -7,6 +7,7 @@ import pytest
 from numpy import pi
 import xarray as xr
 
+from capytaine import __version__
 from capytaine.meshes.symmetric import *
 
 from capytaine.bodies.predefined.spheres import Sphere
@@ -232,7 +233,7 @@ def test_multibody():
     assert np.allclose(recomputed_data["added_mass"].data, data["added_mass"].data)
 
 
-def test_kochin():
+def test_fill_dataset_with_kochin():
     body = Sphere(clip_free_surface=True)
     body.add_translation_dof(name="Heave")
     test_matrix = xr.Dataset(coords={
@@ -241,4 +242,8 @@ def test_kochin():
         'radiating_dof': list(body.dofs.keys()),
     })
     ds = Nemoh().fill_dataset(test_matrix, [body])
+    print(ds)
+    assert 'start_of_computation' in ds.attrs
+    assert 'cache_rankine_matrices' in ds.attrs
+    assert ds.attrs['capytaine_version'] == __version__
 

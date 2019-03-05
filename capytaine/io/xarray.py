@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import xarray as xr
 
+from capytaine import __version__
 from capytaine.bem.problems_and_results import \
     LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem, \
     LinearPotentialFlowResult
@@ -193,6 +194,7 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
         dataset = xr.merge([dataset, hydrostatics_dataset(bodies)])
 
     dataset.attrs.update(attrs)
+    dataset.attrs['capytaine_version'] = __version__
     return dataset
 
 
