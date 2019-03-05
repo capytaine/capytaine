@@ -1,35 +1,26 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Compare results of Capytaine with results from Nemoh 2."""
+"""Quantitatively compare the results of Capytaine with the results from Nemoh 2."""
 
-import pytest
-
-from numpy import pi
-import xarray as xr
-
-from capytaine import __version__
-from capytaine.meshes.symmetric import *
+import numpy as np
 
 from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.bodies.predefined.cylinders import HorizontalCylinder
 from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
-from capytaine.io.xarray import assemble_dataset, wavenumber_data_array
 from capytaine.bem.nemoh import Nemoh
-
+from capytaine.io.xarray import assemble_dataset
 from capytaine.post_pro.kochin import compute_kochin
 
-solver = Nemoh(use_symmetries=False, matrix_cache_size=0)
-# Use a single solver in the whole module to avoid reinitialisation of the solver (0.5 second).
-# Do not use a matrix cache in order not to risk influencing a test with another.
+solver = Nemoh(linear_solver='gmres', use_symmetries=False, matrix_cache_size=0)
 
 
 def test_immersed_sphere():
     """Compare with Nemoh 2.0 for a sphere in infinite fluid.
 
-    The test is ran for two degrees of freedom; due to the mesh.symmetries of the problem, the results should be the same.
-    They are slightly different due to the meshing of the sphere.
+    The test is ran for two degrees of freedom; due to the symmetries of the problem, the results should be the same.
+    They are actually slightly different due to the meshing of the sphere.
     """
     sphere = Sphere(radius=1.0, ntheta=10, nphi=40, clip_free_surface=False)
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
@@ -48,20 +39,6 @@ def test_immersed_sphere():
     assert np.isclose(result.added_masses["Heave"],        0.0, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Surge"],  0.0, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"],  0.0, atol=1e-3*sphere.volume*problem.rho)
-
-
-def test_limit_freq():
-    sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
-    sphere.add_translation_dof(direction=(0, 0, 1), name="Surge")
-    solver.solve(RadiationProblem(body=sphere, omega=0.0, sea_bottom=-np.infty))
-
-    with pytest.raises(NotImplementedError):
-        solver.solve(RadiationProblem(body=sphere, omega=0.0, sea_bottom=-1.0))
-
-    solver.solve(RadiationProblem(body=sphere, omega=np.infty, sea_bottom=-np.infty))
-
-    with pytest.raises(NotImplementedError):
-        solver.solve(RadiationProblem(body=sphere, omega=np.infty, sea_bottom=-10))
 
 
 def test_floating_sphere_finite_freq():
@@ -209,7 +186,7 @@ def test_multibody():
     results = [solver.solve(problem) for problem in problems]
     data = assemble_dataset(results)
 
-    Nemoh_2 = np.array([
+    data_from_nemoh_2 = np.array([
         [3961.86548, 50.0367661, -3.32347107, 6.36901855E-02, 172.704819, 19.2018471, -5.67303181, -2.98873377],
         [-3.08301544, 5.72392941E-02, 14522.1689, 271.796814, 128.413834, 6.03351116, 427.167358, 64.1587067],
         [161.125534, 17.8332844, 126.392113, 5.88006783, 2242.47412, 7.17850924, 1.29002571, 0.393169671],
@@ -217,33 +194,14 @@ def test_multibody():
     ])
 
     dofs_names = list(both.dofs.keys())
-    assert np.allclose(data['added_mass'].sel(omega=1.0, radiating_dof=dofs_names, influenced_dof=dofs_names).values,
-                       Nemoh_2[:, ::2],  atol=1e-3*total_volume*problems[0].rho)
-    assert np.allclose(data['radiation_damping'].sel(omega=1.0, radiating_dof=dofs_names, influenced_dof=dofs_names).values,
-                       Nemoh_2[:, 1::2], atol=1e-3*total_volume*problems[0].rho)
-
-    # Test various things on dataset.
-    assert 'Froude_Krylov_force' in data
-    wavenumbers = wavenumber_data_array(results)
-    assert isinstance(wavenumbers, xr.DataArray)
-
-    naked_data = data.drop(["added_mass", "radiation_damping", "diffraction_force", "Froude_Krylov_force"])
-    recomputed_data = solver.fill_dataset(naked_data, [both])
-    assert "added_mass" in recomputed_data
-    assert np.allclose(recomputed_data["added_mass"].data, data["added_mass"].data)
-
-
-def test_fill_dataset_with_kochin():
-    body = Sphere(clip_free_surface=True)
-    body.add_translation_dof(name="Heave")
-    test_matrix = xr.Dataset(coords={
-        'omega': [1.0],
-        'theta': np.linspace(0, 2*pi, 5),
-        'radiating_dof': list(body.dofs.keys()),
-    })
-    ds = Nemoh().fill_dataset(test_matrix, [body])
-    print(ds)
-    assert 'start_of_computation' in ds.attrs
-    assert 'cache_rankine_matrices' in ds.attrs
-    assert ds.attrs['capytaine_version'] == __version__
+    assert np.allclose(
+        data['added_mass'].sel(omega=1.0, radiating_dof=dofs_names, influenced_dof=dofs_names).values,
+        data_from_nemoh_2[:, ::2],
+        atol=1e-3*total_volume*problems[0].rho
+    )
+    assert np.allclose(
+        data['radiation_damping'].sel(omega=1.0, radiating_dof=dofs_names, influenced_dof=dofs_names).values,
+        data_from_nemoh_2[:, 1::2],
+        atol=1e-3*total_volume*problems[0].rho
+    )
 
