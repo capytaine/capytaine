@@ -8,6 +8,10 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
+e_x = np.array((1, 0, 0))
+e_y = np.array((0, 1, 0))
+e_z = np.array((0, 0, 1))
+
 
 ###########################################
 #  DECORATOR FOR INPLACE TRANSFORMATIONS  #
@@ -237,9 +241,9 @@ class Axis(Abstract3DObject):
         return np.identity(3) + np.sin(theta)*W + 2*np.sin(theta/2)**2 * (W @ W)
 
 
-Ox_axis = Axis(vector=(1, 0, 0), point=(0, 0, 0))
-Oy_axis = Axis(vector=(0, 1, 0), point=(0, 0, 0))
-Oz_axis = Axis(vector=(0, 0, 1), point=(0, 0, 0))
+Ox_axis = Axis(vector=e_x, point=(0, 0, 0))
+Oy_axis = Axis(vector=e_y, point=(0, 0, 0))
+Oz_axis = Axis(vector=e_z, point=(0, 0, 0))
 
 
 #################
@@ -359,7 +363,7 @@ class Plane(Abstract3DObject):
         return (1-t) * p0 + t * p1
 
 
-yOz_Plane = Plane(normal=(1, 0, 0), point=(0, 0, 0))
-xOz_Plane = Plane(normal=(0, 1, 0), point=(0, 0, 0))
-xOy_Plane = Plane(normal=(0, 0, 1), point=(0, 0, 0))
+yOz_Plane = Plane(normal=e_x, point=(0, 0, 0))
+xOz_Plane = Plane(normal=e_y, point=(0, 0, 0))
+xOy_Plane = Plane(normal=e_z, point=(0, 0, 0))
 

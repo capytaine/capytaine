@@ -5,6 +5,7 @@
 import numpy as np
 
 from capytaine.meshes.geometry import (
+    e_x, e_y, e_z,
     Axis, Ox_axis, Oy_axis, Oz_axis,
     Plane, xOz_Plane, yOz_Plane, xOy_Plane,
     orthogonal_vectors, parallel_vectors,
@@ -13,8 +14,6 @@ from capytaine.meshes.geometry import (
 
 
 def test_helper_functions():
-    e_x = np.array((1, 0, 0))
-    e_y = np.array((0, 1, 0))
     assert orthogonal_vectors(e_x, e_y)
     assert not orthogonal_vectors(e_x, 2*e_x)
     assert parallel_vectors(e_x, -e_x)
