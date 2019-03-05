@@ -66,12 +66,12 @@ class Nemoh:
 
     defaults_settings = dict(
         tabulation_nb_integration_points=251,
+        linear_solver='gmres',
         use_symmetries=True,
         ACA_distance=np.infty,
         ACA_tol=1e-2,
-        cache_rankine_matrices=False,
         matrix_cache_size=1,
-        linear_solver='gmres',
+        cache_rankine_matrices=False,
     )
 
     available_linear_solvers = {'direct': linear_solvers.solve_directly,
@@ -91,7 +91,7 @@ class Nemoh:
         else:
             self.linear_solver = settings['linear_solver']
 
-        if settings['cache_rankine_matrices']:
+        if settings['matrix_cache_size'] > 0 and settings['cache_rankine_matrices']:
             if settings['use_symmetries']:
                 # If the rankine matrix is cached, the recursive decomposition of the matrix
                 # has to be done before the caching.
@@ -111,11 +111,11 @@ class Nemoh:
                     ACA_distance=settings['ACA_distance'],
                     dtype=np.complex128
                 )
-            if settings['matrix_cache_size'] > 0:
-                self.build_matrices_rankine = lru_cache(maxsize=settings['matrix_cache_size'])(self.build_matrices_rankine)
-                self.build_matrices = lru_cache(maxsize=settings['matrix_cache_size'])(self.build_matrices)
 
-        else:  # not settings['cache_rankine_matrix']
+            self.build_matrices_rankine = lru_cache(maxsize=settings['matrix_cache_size'])(self.build_matrices_rankine)
+            self.build_matrices = lru_cache(maxsize=settings['matrix_cache_size'])(self.build_matrices)
+
+        else:
             if settings['use_symmetries']:
                 # If the rankine matrix is not cached, the recursive decomposition of the matrix
                 # can be done at the top level.
@@ -133,6 +133,8 @@ class Nemoh:
         if not settings['use_symmetries']:
             del settings['ACA_distance']
             del settings['ACA_tol']
+        if settings['matrix_cache_size'] == 0:
+            del settings['cache_rankine_matrices']
         settings['linear_solver'] = str(settings['linear_solver'])
         return settings
 
