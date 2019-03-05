@@ -7,15 +7,20 @@ import numpy as np
 from capytaine.meshes.geometry import (
     Axis, Ox_axis, Oy_axis, Oz_axis,
     Plane, xOz_Plane, yOz_Plane, xOy_Plane,
+    orthogonal_vectors, parallel_vectors,
+    parallel_vectors_with_same_direction
 )
 
 
-# TODO: names of the functions test_... conflict with pytest conventions...
-# def test_helper_functions():
-#     assert test_orthogonal_vectors((0, 1, 0), (1, 0, 0))
-#     assert not test_orthogonal_vectors((1, 0, 0), (1, 0, 0))
-#     assert test_parallel_vectors((1, 0, 0), (1, 0, 0))
-#     assert not test_parallel_vectors((0, 0, 1), (1, 0, 0))
+def test_helper_functions():
+    e_x = np.array((1, 0, 0))
+    e_y = np.array((0, 1, 0))
+    assert orthogonal_vectors(e_x, e_y)
+    assert not orthogonal_vectors(e_x, 2*e_x)
+    assert parallel_vectors(e_x, -e_x)
+    assert not parallel_vectors(e_x, e_y)
+    assert parallel_vectors_with_same_direction(e_y, 2*e_y)
+    assert not parallel_vectors_with_same_direction(e_y, -e_y)
 
 
 def test_axis():

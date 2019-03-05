@@ -137,16 +137,17 @@ class Abstract3DObject(ABC):
 #  HELPER FUNCTIONS  #
 ######################
 
-def test_orthogonal_vectors(vec1, vec2) -> bool:
+def orthogonal_vectors(vec1, vec2) -> bool:
     return np.linalg.norm(vec1 @ vec2) < 1e-6
 
 
-def test_parallel_vectors(vec1, vec2) -> bool:
+def parallel_vectors(vec1, vec2) -> bool:
     return np.linalg.norm(np.cross(vec1, vec2)) < 1e-6
 
 
-def test_parallel_vectors_with_same_direction(vec1, vec2) -> bool:
-    return test_parallel_vectors(vec1, vec2) and np.dot(vec1, vec2) > 0
+def parallel_vectors_with_same_direction(vec1, vec2) -> bool:
+    return parallel_vectors(vec1, vec2) and np.dot(vec1, vec2) > 0
+
 
 ################
 #  AXIS CLASS  #
@@ -166,31 +167,31 @@ class Axis(Abstract3DObject):
     def __contains__(self, other_point):
         if len(other_point) == 3:
             other_point = np.asarray(other_point, dtype=np.float)
-            return test_parallel_vectors(other_point - self.point, self.vector)
+            return parallel_vectors(other_point - self.point, self.vector)
         else:
             raise NotImplementedError
 
     def __eq__(self, other):
         if isinstance(self, Axis):
-            return (self is other) or (self.point in other and test_parallel_vectors(self.vector, other.vector))
+            return (self is other) or (self.point in other and parallel_vectors(self.vector, other.vector))
         else:
             return NotImplemented
 
     def is_orthogonal_to(self, other):
         if isinstance(other, Plane):
-            return test_parallel_vectors(self.vector, other.normal)
+            return parallel_vectors(self.vector, other.normal)
         elif len(other) == 3:  # The other is supposed to be a vector given as a 3-ple
-            return test_orthogonal_vectors(self.vector, other)
+            return orthogonal_vectors(self.vector, other)
         else:
             raise NotImplementedError
 
     def is_parallel_to(self, other):
         if isinstance(other, Plane):
-            return test_orthogonal_vectors(self.vector, other.normal)
+            return orthogonal_vectors(self.vector, other.normal)
         elif isinstance(other, Axis):
-            return test_parallel_vectors(self.vector, other.vector)
+            return parallel_vectors(self.vector, other.vector)
         elif len(other) == 3:  # The other is supposed to be a vector given as a 3-ple
-            return test_parallel_vectors(self.vector, other)
+            return parallel_vectors(self.vector, other)
         else:
             raise NotImplementedError
 
@@ -257,9 +258,9 @@ class Plane(Abstract3DObject):
 
     def __contains__(self, other):
         if isinstance(other, Axis):
-            return other.point in self and test_orthogonal_vectors(self.normal, other.vector)
+            return other.point in self and orthogonal_vectors(self.normal, other.vector)
         elif len(other) == 3:
-            return test_orthogonal_vectors(other - self.point, self.normal)
+            return orthogonal_vectors(other - self.point, self.normal)
         else:
             raise NotImplementedError
 
@@ -267,17 +268,17 @@ class Plane(Abstract3DObject):
         """Plane are considered equal only when their normal are pointing in the same direction."""
         if isinstance(other, Plane):
             return ((self is other) or
-                    (other.point in self and test_parallel_vectors_with_same_direction(self.normal, other.normal)))
+                    (other.point in self and parallel_vectors_with_same_direction(self.normal, other.normal)))
         else:
             return NotImplemented
 
     def is_orthogonal_to(self, other):
         if isinstance(other, Axis):
-            return test_parallel_vectors(self.normal, other.vector)
+            return parallel_vectors(self.normal, other.vector)
         elif isinstance(other, Plane):
-            return test_orthogonal_vectors(self.normal, other.normal)
+            return orthogonal_vectors(self.normal, other.normal)
         elif len(other) == 3:  # The other is supposed to be a vector given as a 3-ple
-            return test_parallel_vectors(self.normal, other)
+            return parallel_vectors(self.normal, other)
         else:
             raise NotImplementedError
 
