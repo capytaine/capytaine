@@ -201,8 +201,12 @@ class BlockMatrix:
         return size
 
     @property
-    def sparcity(self):
+    def density(self):
         return self.stored_data_size/np.product(self.shape)
+
+    @property
+    def sparcity(self):
+        return 1 - self.density
 
     def __hash__(self):
         # Temporary
