@@ -84,15 +84,6 @@ class Abstract3DObject(ABC):
         return self.rotate(Oz_axis, thetaz)
 
     @inplace_transformation
-    def rotate_to_align_axes(self, axis1: 'Axis', axis2: 'Axis'):
-        """Rotate self such that if axis1 is in self, then it will be parallel to axis2."""
-        if axis1.is_parallel_to(axis2):
-            return self
-        else:
-            axis = Axis(vector=np.cross(axis1.vector, axis2.vector), point=axis1.point)
-            return self.rotate(axis, axis1.angle_with_respect_to(axis2))
-
-    @inplace_transformation
     def rotate_around_center_to_align_vectors(self, center, vec1, vec2):
         """Rotate self such that if vec1 is in self, then it will point in the same direction as vec2."""
         if parallel_vectors_with_same_direction(vec1, vec2):
@@ -137,9 +128,6 @@ class Abstract3DObject(ABC):
 
     def rotated_z(self, *args, **kwargs):
         return self.rotate_z(*args, inplace=False, **kwargs)
-
-    def rotated_to_align_axes(self, *args, **kwargs):
-        return self.rotate_to_align_axes(*args, inplace=False, **kwargs)
 
     def rotated_around_center_to_align_vectors(self, *args, **kwargs):
         return self.rotate_around_center_to_align_vectors(*args, inplace=False, **kwargs)

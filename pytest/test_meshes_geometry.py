@@ -51,11 +51,11 @@ def test_axis_transformation():
 
     axis1 = Axis(vector=(1, 1, 1), point=(0, 0, 0))
     axis2 = Axis(vector=(1, 2, 3), point=(0, 0, 0))
-    assert axis1.rotated_to_align_axes(axis1, axis2) == axis2
+    assert axis1.rotated_around_center_to_align_vectors(axis1.point, axis1.vector, axis2.vector) == axis2
     axis1.rotate(axis2, np.pi)
-    assert axis1.rotated_to_align_axes(axis1, axis2) == axis2
+    assert axis1.rotated_around_center_to_align_vectors(axis1.point, axis1.vector, axis2.vector) == axis2
     axis1.vector *= -1
-    assert axis1.rotated_to_align_axes(axis1, axis2) == axis2
+    assert axis1.rotated_around_center_to_align_vectors(axis1.point, axis1.vector, axis2.vector) == axis2
 
     axis1 = Axis(vector=(1, 1, 1), point=(1, 2, 0))
     axis2 = Axis(vector=(2, 2, 2), point=(0, 0, 0))

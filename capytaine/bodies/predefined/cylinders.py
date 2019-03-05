@@ -9,7 +9,7 @@ from itertools import product
 
 import numpy as np
 
-from capytaine.meshes.geometry import Axis, xOy_Plane, xOz_Plane, yOz_Plane, Ox_axis, Oz_axis
+from capytaine.meshes.geometry import xOy_Plane, xOz_Plane, yOz_Plane, e_x, e_z, Oz_axis
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import TranslationalSymmetricMesh, AxialSymmetricMesh, ReflectionSymmetricMesh
@@ -82,9 +82,9 @@ class Disk(FloatingBody):
             mesh_slice = Disk.generate_disk_mesh(radius=self.radius, theta_max=np.pi/ntheta,
                                                 nr=nr, ntheta=1,
                                                 name=f"slice_of_{name}_mesh")
-            mesh_slice.rotate_to_align_axes(Ox_axis, Oz_axis)  # Convoluted way to avoid a warning message in AxialSymmetry...
+            mesh_slice.rotate_around_center_to_align_vectors((0, 0, 0), e_x, e_z)  # Convoluted way to avoid a warning message in AxialSymmetry...
             mesh = AxialSymmetricMesh(mesh_slice, axis=Oz_axis, nb_repetitions=ntheta - 1, name=f"{name}_mesh")
-            mesh.rotate_to_align_axes(Oz_axis, Ox_axis)
+            mesh.rotate_around_center_to_align_vectors((0, 0, 0), e_z, e_x)
 
         else:
             mesh = Disk.generate_disk_mesh(radius=self.radius, nr=nr, ntheta=ntheta, name=f"{name}_mesh")
