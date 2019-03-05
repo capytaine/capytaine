@@ -25,7 +25,7 @@ def test_rectangle_generation():
         Rectangle(resolution=(3, 3), reflection_symmetry=True)
 
     # Test mesh with symmetry
-    rec = Rectangle(size=(10, 10), resolution=(6, 2),
+    rec = Rectangle(size=(10, 10), resolution=(6, 2), normal=(1, 0, 0),
                     reflection_symmetry=False, translational_symmetry=False,
                     center=(0, 0, -5), name="test")
 
@@ -39,7 +39,7 @@ def test_rectangle_generation():
     assert rec.area == 100
 
     # x coordinate
-    assert np.all(rec.mesh.vertices[:, 0] == 0.0)
+    assert np.allclose(rec.mesh.vertices[:, 0], 0.0)
 
     # y coordinate
     assert np.all(rec.mesh.vertices[:, 1] <= 5.0)

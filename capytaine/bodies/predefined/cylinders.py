@@ -9,7 +9,7 @@ from itertools import product
 
 import numpy as np
 
-from capytaine.meshes.geometry import xOy_Plane, xOz_Plane, yOz_Plane, Ox_axis, Oz_axis
+from capytaine.meshes.geometry import Axis, xOy_Plane, xOz_Plane, yOz_Plane, Ox_axis, Oz_axis
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import TranslationalSymmetricMesh, AxialSymmetricMesh, ReflectionSymmetricMesh
@@ -26,7 +26,7 @@ class Disk(FloatingBody):
     """(One-sided) disk"""
 
     def __init__(self, radius=1.0, resolution=(3, 5),
-                 center=(0, 0, 0), normal_angles=(0, 0, 0),
+                 center=(0, 0, 0), normal=(1, 0, 0),
                  reflection_symmetry=False, axial_symmetry=False,
                  name=None):
         """Generate the mesh of a vertical disk.
@@ -39,8 +39,8 @@ class Disk(FloatingBody):
             number of panels along a radius and around the disk
         center : 3-ple or array of shape (3,), optional
             position of the center of the disk
-        normal_angles : 3-ple of floats, optional
-            direction of the normal vector, default: along x axis
+        normal: 3-ple of floats, optional
+            normal vector, default: along x axis
         axial_symmetry : bool, optional
             if True, use the axial symmetry to speed up the computations
         reflection_symmetry : bool, optional
@@ -89,14 +89,14 @@ class Disk(FloatingBody):
         else:
             mesh = Disk.generate_disk_mesh(radius=self.radius, nr=nr, ntheta=ntheta, name=f"{name}_mesh")
 
-        mesh.rotate_angles(normal_angles)
+        mesh.rotate_around_center_to_align_vectors((0, 0, 0), mesh.faces_normals[0], normal)
         mesh.translate(self.center)
         FloatingBody.__init__(self, mesh=mesh, name=name)
 
     @staticmethod
     def generate_disk_mesh(radius=1.0, theta_max=np.pi,
                            nr=2, ntheta=4,
-                           center=(0, 0, 0), normal_angles=(0, 0, 0),
+                           center=(0, 0, 0), normal=(1, 0, 0),
                            name=None) -> Mesh:
         theta_range = np.linspace(0, 2*theta_max, ntheta+1)
         r_range = np.linspace(0.0, radius, nr+1)
@@ -120,7 +120,7 @@ class Disk(FloatingBody):
         mesh = Mesh(nodes, panels, name=name)
         mesh.merge_duplicates()
         mesh.heal_triangles()
-        mesh.rotate_angles(normal_angles)
+        mesh.rotate_around_center_to_align_vectors((0, 0, 0), mesh.faces_normals[0], normal)
         mesh.translate(center)
         return mesh
 
@@ -164,7 +164,7 @@ class HorizontalCylinder(FloatingBody):
         open_cylinder = self._generate_open_cylinder_mesh(nx, ntheta, f"body_of_{name}")
 
         if nr > 0:
-            side = Disk(radius=radius, center=(-np.array([length/2, 0, 0])),
+            side = Disk(radius=radius, center=(-np.array([length/2, 0, 0])), normal=(-1, 0, 0),
                         resolution=(nr, ntheta), name=f"side_of_{name}").mesh
 
             other_side = side.copy(name=f"other_side_of_{name}_mesh")
@@ -259,7 +259,7 @@ class VerticalCylinder(FloatingBody):
 
         if nr > 0:
             top_side = Disk(radius=radius, center=(0, 0, length/2),
-                            axial_symmetry=True, normal_angles=(0, np.pi/2, 0),
+                            axial_symmetry=True, normal=(0, 0, 1),
                             resolution=(nr, ntheta), name=f"top_side_of_{name}").mesh
 
             bottom_side = top_side.copy(name=f"bottom_side_of_{name}_mesh")

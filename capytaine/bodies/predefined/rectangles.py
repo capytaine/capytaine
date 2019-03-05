@@ -9,7 +9,7 @@ from itertools import product
 
 import numpy as np
 
-from capytaine.meshes.geometry import xOz_Plane, xOy_Plane, yOz_Plane
+from capytaine.meshes.geometry import xOz_Plane, xOy_Plane, yOz_Plane, e_x, Ox_axis
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import TranslationalSymmetricMesh, ReflectionSymmetricMesh
@@ -22,7 +22,7 @@ class Rectangle(FloatingBody):
     """(One-sided) rectangle"""
 
     def __init__(self, size=(5.0, 5.0), resolution=(5, 5),
-                 center=(0, 0, 0), normal_angles=(0, 0, 0),
+                 center=(0, 0, 0), normal=(1, 0, 0),
                  translational_symmetry=False, reflection_symmetry=False, name=None):
         """Generate the mesh of a vertical rectangle (along y and z).
 
@@ -36,8 +36,8 @@ class Rectangle(FloatingBody):
             number of faces along each of the two directions
         center : 3-ple of floats, optional
             position of the center of the rectangle, default: (0, 0, 0)
-        normal_angles : 3-ple of floats, optional
-            direction of the normal vector, default: along x axis
+        normal: 3-ple of floats, optional
+            normal vector, default: along x axis
         translational_symmetry : bool, optional
             if True, use the translation symmetry to speed up the computations
         reflection_symmetry : bool, optional
@@ -73,7 +73,7 @@ class Rectangle(FloatingBody):
             raise ValueError("To use the reflection symmetry of the mesh, "
                              "it should have an even number of panels in this direction.")
 
-        if (reflection_symmetry or translational_symmetry) and normal_angles[2] != 0:
+        if (reflection_symmetry or translational_symmetry) and normal[2] != 0:
             raise ValueError("To use the symmetry of the mesh, it should be vertical.")
 
         if name is None:
@@ -100,13 +100,13 @@ class Rectangle(FloatingBody):
         else:
             mesh = Rectangle.generate_rectangle_mesh(width=width, height=height, nw=nw, nh=nh, name=name)
 
-        mesh.rotate_angles(normal_angles)
+        mesh.rotate_around_center_to_align_vectors((0, 0, 0), mesh.faces_normals[0], normal)
         mesh.translate(center)
         FloatingBody.__init__(self, mesh=mesh, name=name)
 
     @staticmethod
     def generate_rectangle_mesh(width=1.0, height=1.0, nw=1, nh=1,
-                                center=(0, 0, 0), normal_angles=(0, 0, 0), name=None):
+                                center=(0, 0, 0), normal=(1, 0, 0), name=None):
         Y = np.linspace(-width/2, width/2, nw+1)
         Z = np.linspace(-height/2, height/2, nh+1)
 
@@ -123,7 +123,7 @@ class Rectangle(FloatingBody):
             name = f"rectangle_{next(Mesh._ids)}"
 
         mesh = Mesh(nodes, panels, name=f"{name}_mesh")
-        mesh.rotate_angles(normal_angles)
+        mesh.rotate_around_center_to_align_vectors((0, 0, 0), mesh.faces_normals[0], normal)
         mesh.translate(center)
 
         return mesh
@@ -214,7 +214,7 @@ class RectangularParallelepiped(FloatingBody):
         front_panel = Rectangle.generate_rectangle_mesh(
             width=width/nw, height=height, nw=1, nh=nh,
             center=(-width/2 + width/(2*nw), thickness/2, 0),
-            normal_angles=(0, 0, -np.pi/2),
+            normal=(0, 1, 0),
             name=f"front_panel_of_{name}_mesh"
         )
 
@@ -223,7 +223,7 @@ class RectangularParallelepiped(FloatingBody):
         top_panel = Rectangle.generate_rectangle_mesh(
             width=thickness, height=width/nw, nw=nth, nh=1,
             center=(-width/2 + width/(2*nw), 0, height/2),
-            normal_angles=(0, np.pi/2, 0),
+            normal=(0, 0, 1),
             name=f"top_panel_of_{name}_mesh"
         )
 
@@ -247,7 +247,7 @@ class RectangularParallelepiped(FloatingBody):
         side = Rectangle.generate_rectangle_mesh(
             width=thickness, height=height, nw=nth, nh=nh,
             center=(width/2, 0, 0),
-            normal_angles=(0, 0, -np.pi),
+            normal=(1, 0, 0),
             name=f"side_of_{name}_mesh"
         )
 
@@ -262,14 +262,14 @@ class RectangularParallelepiped(FloatingBody):
         half_front = Rectangle.generate_rectangle_mesh(
             width=width/2, height=height, nw=nw//2, nh=nh,
             center=(-width/4, thickness/2, 0),
-            normal_angles=(0, 0, -np.pi/2),
+            normal=(0, 1, 0),
             name=f"half_front_of_{name}_mesh"
         )
 
         quarter_of_top = Rectangle.generate_rectangle_mesh(
             width=thickness/2, height=width/2, nw=nth//2, nh=nw//2,
             center=(-width/4, thickness/4, height/2),
-            normal_angles=(0, np.pi/2, 0),
+            normal=(0, 0, 1),
             name=f"top_panel_of_{name}_mesh"
         )
 
@@ -278,7 +278,7 @@ class RectangularParallelepiped(FloatingBody):
         half_side = Rectangle.generate_rectangle_mesh(
             width=thickness/2, height=height, nw=nth//2, nh=nh,
             center=(-width/2, thickness/4, 0),
-            normal_angles=(0, 0, 0),
+            normal=(1, 0, 0),
             name=f"half_side_of_{name}_mesh"
         )
 
