@@ -384,6 +384,10 @@ class FloatingBody(Abstract3DObject):
                 self.dofs[dof] = np.empty((0, 3))
         return self
 
+    def clipped(self, plane, **kwargs):
+        # Same API as for the other transformations
+        return self.clip(plane, inplace=False, **kwargs)
+
     @inplace_transformation
     def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
         """Remove the parts of the mesh above the sea bottom and below the free surface."""
