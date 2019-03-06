@@ -27,10 +27,6 @@ cylinder.add_translation_dof(name="Heave")
 
 # Combine the three individual bodies into a single body.
 all_bodies = cylinder + sphere + other_sphere
-#
-# Note that the + operation is associative, that is "(cylinder + sphere) + other_sphere"
-# is equivalent to "cylinder + (sphere + other_sphere)".
-# It is also commutative, up to some internal details which are usually not relevant.
 
 print("Merged body name:", all_bodies.name)
 print("Merged body dofs:", list(all_bodies.dofs.keys()))
