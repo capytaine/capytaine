@@ -5,7 +5,8 @@ Theory manual
 This document presents several aspects of the theoretical background for Nemoh and Capytaine.
 We refer also to [Del87]_ [Del89]_ [Del93]_ [BD15]_ and [AD18]_.
 
-.. warning:: Work in progress...
+.. warning:: This document is a work in progress. It is incomplete and might
+   contain errors.
 
 .. contents:: Contents
 

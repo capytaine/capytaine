@@ -7,7 +7,7 @@ User manual
 
    installation.rst
    tutorial.rst
-   inputs.rst
+   mesh.rst
    problem_setup.rst
    resolution.rst
    outputs.rst

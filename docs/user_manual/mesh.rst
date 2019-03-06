@@ -1,6 +1,6 @@
-======
-Inputs
-======
+==========================
+Meshes and floating bodies
+==========================
 
 Importing a mesh
 ----------------
@@ -58,8 +58,6 @@ The formats currently supported by Meshmagick in reading are the following (from
 |   .med    | SALOME [#f8]_   | med, salome          |
 +-----------+-----------------+----------------------+
 
-.. rubric:: Footnotes
-
 .. [#f1] NEMOH is an open source BEM Software for seakeeping developped at
          Ecole Centrale de Nantes (LHEEA)
 .. [#f2] WAMIT is a BEM Software for seakeeping developped by WAMIT, Inc.
@@ -74,10 +72,17 @@ The formats currently supported by Meshmagick in reading are the following (from
 .. [#f8] SALOME-MECA is an open source software for computational mechanics
          developped by EDF-R&D
 
-Transforming a mesh
--------------------
 
-Several functions are available to transform existing meshes.
+Display
+-------
+Use the :code:`show` method to display the body in 3D using VTK::
+
+    body.show()
+
+
+Geometric transformations
+-------------------------
+Several functions are available to transform existing bodies and meshes.
 
 Most transformation methods exist in two versions: 
 
@@ -88,75 +93,91 @@ Most transformation methods exist in two versions:
 In most cases, performance is not significant and the latter method should be
 preferred since it makes code slightly easier to debug.
 
-Below is a non-exhaustive list of available methods.
-All of them can be applied to both meshes or floating bodies (although in the
-latest version of the code, the implementation for floating bodies might not be
-complete)::
+Below is a list of most of the available methods.
+All of them can be applied to both meshes or to floating bodies, in which case
+the degrees of freedom will also be transformed::
 
     # TRANSLATIONS
-    mesh.translated_x(10.0)
-    mesh.translated_y(10.0)
-    mesh.translated_z(10.0)
-    mesh.translated([10.0, 5.0, 2.0])
+    body.translated_x(10.0)
+    body.translated_y(10.0)
+    body.translated_z(10.0)
+    body.translated([10.0, 5.0, 2.0])
 
     # Translation such that point_a would become equal to point_b
-    mesh.translated_point_to_point(point_a=[5, 6, 7], point_b=[4, 3, 2])
+    body.translated_point_to_point(point_a=[5, 6, 7], point_b=[4, 3, 2])
 
     # ROTATIONS
-    mesh.rotated_x(3.14/5)  # Rotation of pi/5 around the Ox axis
-    mesh.rotated_y(3.14/5)  # Rotation of pi/5 around the Oy axis
-    mesh.rotated_z(3.14/5)  # Rotation of pi/5 around the Oz axis
+    body.rotated_x(3.14/5)  # Rotation of pi/5 around the Ox axis
+    body.rotated_y(3.14/5)  # Rotation of pi/5 around the Oy axis
+    body.rotated_z(3.14/5)  # Rotation of pi/5 around the Oz axis
 
     # Rotation of pi/5 around an arbitrary axis.
-    from capytaine.tools.geometry import Axis
-    mesh.rotated(axis=Axis(vector=[1, 1, 1], point=[3, 4, 5]), angle=3.14/5)
+    from capytaine import Axis
+    my_axis = Axis(vector=[1, 1, 1], point=[3, 4, 5])
+    body.rotated(axis=my_axis, angle=3.14/5)
 
-    # Rotation such that the axis1 would become parallel to axis2
-    mesh.rotated_to_align_axes(
-        axis1=Axis(vector=[1, 1, 1]),
-        axis2=Axis(vector=[3, 5, 7]),
-        )
+    # Rotation around a point such that vec1 would become equal to vec2
+    body.rotated_around_center_to_align_vector(
+        center=(0, 0, 0),
+        vec1=(1, 4, 7),
+        vec2=(9, 2, 1)
+    )
 
     # REFLECTIONS
-    from capytaine.tools.geometry import Plane
-    mesh.mirrored(Plane(normal=[1, 2, 1], point=[0, 4, 5]))
+    from capytaine import Plane
+    body.mirrored(Plane(normal=[1, 2, 1], point=[0, 4, 5]))
+
+All the above method can also be applied to :class:`~capytaine.meshes.geometry.Plane`
+and :class:`~capytaine.meshes.geometry.Axis` objects.
 
 
-TODO: Document clipping functions.
+Joining
+-------
+Meshes and bodies can be merged together with the :code:`+` operator::
 
+    both_bodies = body_1 + body_2
 
-Legacy Nemoh.cal parameters files
----------------------------------
+The :code:`+` operation is associative, that is :code:`(body_1 + body_2) + body_3`
+is equivalent to :code:`body_1 + (body_2 + body_3)`.
+It is also commutative, up to some internal details which are usually not relevant.
+However for more than two bodies, it is recommended to use instead the
+:code:`join_bodies` method::
 
-The `legacy parameters files from Nemoh`_ can be read by a dedicated function::
+    all_bodies = body_1.join_bodies(body_2, body_3, body_4)
 
-    from capytaine.tools.import_export import import_cal_file
+When two floating bodies with dofs are merged, the resulting body inherits from
+the dofs of the individual bodies with the new name :code:`body_name__dof_name`.
+For instance::
 
-    list_of_problems = import_cal_file("path/to/Nemoh.cal")
+    body_1.add_translation_dof(name="Heave")
+    body_2.add_translation_dof(name="Heave")
+    both_bodies = body_1 + body_2
+    assert 'body_1__Heave' in both_bodies.dofs
+    assert 'body_2__Heave' in both_bodies.dofs
+    
 
-.. _`legacy parameters files from Nemoh`: https://lheea.ec-nantes.fr/logiciels-et-brevets/nemoh-running-192930.kjsp
+Clipping
+--------
 
-The function returns a list of :code:`LinearPotentialFlowProblems`.
+Meshes and bodies can be clipped with the :code:`clip` and :code:`clipped` methods.
+As for the geometric transformations, the former is in-place whereas the second
+returns a new object.
+These methods take a :class:`~capytaine.meshes.geometry.Plane`
+object as argument. The plane is defined by a point belonging to it and a normal
+vector::
 
-.. warning:: This feature is experimental.
-    Some of the settings in the files (such as the free surface computation or the Kochin function) are ignored for the moment.
-    See the example :code:`Nemoh.cal` below.
+    xOy_Plane = Plane(point=(0, 0, 0), normal=(0, 0, 1))
+    clipped_body = body.clipped(xOy_Plane)
 
-.. literalinclude:: examples/Nemoh.cal
+Beware that the orientation of the normal vector of the :code:`Plane` will
+determine which part of the mesh will be returned::
 
-Command-line interface
-----------------------
+    higher_part = body.clipped(Plane(point=(0, 0, 0), normal=(0, 0, -1)))
+    lower_part = body.clipped(Plane(point=(0, 0, 0), normal=(0, 0, 1)))
+    # body = lower_part + higher_part
 
-.. warning:: This feature is experimental.
+The method :code:`keep_immersed_part` will clip the body (by default in-place)
+with respect to two horizontal planes at :math:`z=0` and :math:`z=-h`::
 
-Capytaine comes with a command-line command :code:`capytaine` which can be used as::
-
-    $ capytaine path/to/directory/parameter.cal
-
-The parameter file (in :code:`Nemoh.cal` format) passed as argument is read and legacy tecplot output file are written in the directory :code:`path/to/directory/results/`.
-
-.. warning:: If results files already exist, they will be overwritten!
-
-If no argument is provided to the command, the code looks for a file :code:`Nemoh.cal` in the current directory.
-
+    clipped_body = body.keep_immersed_part(sea_bottom=-10, inplace=False)
 

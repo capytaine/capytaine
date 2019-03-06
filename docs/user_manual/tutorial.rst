@@ -5,59 +5,57 @@ Tutorial
 Main concepts
 =============
 
-:class:`~capytaine.mesh.mesh.Mesh`
-    The mesh of a floating body in its averaged position. It is stored as a :code:`Mesh` class
-    from meshmagick.
+:class:`~capytaine.meshes.meshes.Mesh`
+    The mesh of a floating body in its averaged position. It is stored as a
+    instance of the :code:`Mesh` class.
 
     The mesh is defined as a list of vertices (a vertex is a triplet of real-valued coordinates)
     and a list of faces (a face is a quadruplet of indices of vertices). By default, faces are
-    assumed to be quadrangular. Triangular faces are supported as a quadrangle with two identical
+    assumed to be quadrangular. Triangular faces are supported as quadrangles with two identical
     vertices.
 
-    The :code:`Mesh` class also stores some data computed from the vertices and the faces: the
-    faces normals, the faces centers and the faces areas.
+    The :code:`Mesh` class also stores some data computed from the vertices and the faces such as
+    the faces normals, the faces centers and the faces areas.
 
 **Dof**
-    A degree of freedom (or dof) defines a small motion or a deformation of the floating body
-    around its averaged position. It is stored as a vector at the center of each faces of the mesh.
+    A degree of freedom (or dof) defines a small motion or deformation of the floating body
+    around its average position. It is stored as a vector at the center of each faces of the mesh.
 
-    Degrees of freedom appears in two forms in the output datasets:
+    Degrees of freedom appears in two forms in the code:
     :code:`radiating_dof` denotes an actual motion of the body, whereas
     :code:`influenced_dof` denotes a component of a (generalized) force.
-    For example :code:`diffraction_force.sel(influenced_dof="Heave")` would denote the
-    :math:`z`-component of the vector of the diffraction force.
 
     .. note:: For mathematicians in the field of Galerkin Boundary Element Method, the concept
         of degree of freedom might have a different meaning (a basis function of the Galerkin
         decomposition). Here, the degrees of freedom are the physical degrees of freedom of the
         floating body, typically the rigid body translations and rotations.
 
-:class:`~capytaine.bodies.FloatingBody`
-    A :code:`FloatingBody` is simply the reunion of a :code:`Mesh` and some degrees of freedom.
+:class:`~capytaine.bodies.bodies.FloatingBody`
+    A :code:`FloatingBody` is mainly the reunion of a :code:`Mesh` and some degrees of freedom.
 
-:class:`~capytaine.problems.LinearPotentialFlowProblem`
-    A problem is a collection of several parameters: a :code:`FloatingBody`, the wave frequency
-    :math:`\omega`,the water depth :math:`h`, the water density :math:`\rho` and the gravity
+:class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem`
+    A problem is a collection of several parameters: a :code:`FloatingBody`, the wave angular frequency
+    :math:`\omega`, the water depth :math:`h`, the water density :math:`\rho` and the gravity
     acceleration :math:`g`.
 
     The abstract class :code:`LinearPotentialFlowProblem` has two child classes:
-    :class:`~capytaine.problems.RadiationProblem` (that requires also the name of the dof that is radiating) and
-    :class:`~capytaine.problems.DiffractionProblem` (that requires the angle of the incoming wave field :math:`\beta`).
+    :class:`~capytaine.bem.problems_and_results.RadiationProblem` (that requires also the name of the dof that is radiating) and
+    :class:`~capytaine.bem.problems_and_results.DiffractionProblem` (that requires the angle of the incoming wave field :math:`\beta`).
 
     Most of the parameters are optional. A default value is used when they are not provided (see the page :doc:`problem_setup`).
 
-:class:`Solver <capytaine.Nemoh.Nemoh>`
-    The core of the code. It has a :meth:`~capytaine.Nemoh.Nemoh.solve` method that takes a
+:class:`Solver <capytaine.bem.nemoh.Nemoh>`
+    The core of the code. It has a :meth:`~capytaine.bem.nemoh.Nemoh.solve` method that takes a
     :code:`LinearPotentialFlowProblem` as input and returns a :code:`LinearPotentialFlowResult`.
 
-:class:`~capytaine.results.LinearPotentialFlowResult`
+:class:`~capytaine.bem.problems_and_results.LinearPotentialFlowResult`
     The class storing the results is similar to the class storing a problem, with some
     supplementary data such as :code:`result.added_masses` and :code:`result.radiation_dampings`
     for radiation problems and :code:`result.forces` for diffraction problems.
     The forces are stored as a dictionary associating the name of a degree of freedom to a value.
     The value is the integral of the force along this degree of freedom.
-    For example, to retrieve the components of the force vector in Cartesian coordinates, check the
-    value of the force with respect to surge, sway and heave.
+    For example, to retrieve the components of the force vector on a rigid body in Cartesian coordinates, check the
+    value of the force with respect to :code:`Surge`, :code:`Sway` and :code:`Heave`.
 
 Step-by-step example
 ====================
@@ -67,15 +65,16 @@ All the main features of Capytaine can be loaded with::
 
     from capytaine import *
 
-Note that Capytaine uses the logging module from Python. Then, you can optionally get some feedback on
-what the code is doing by initializing the logging module with the following commands::
+Note that Capytaine uses the logging module from Python. Then, you can optionally get some feedback from the code
+by initializing the logging module with the following commands::
 
     import logging
     logging.basicConfig(level=logging.INFO)
 
 Replace :code:`INFO` by :code:`DEBUG` to get more information on everything that is happening
 inside the solver. On the other hand, if you set the level to :code:`WARNING`, only important
-warnings will be printed out by the solver.
+warnings will be printed out by the solver (this is the default behavior when the logging module
+has not been set up). 
 
 Load a mesh
 -----------
@@ -85,8 +84,8 @@ geometric shapes::
 
     sphere = Sphere(radius=1.0, center=(0, 0, -2), name="my buoy")
 
-Users can also import mesh from various file formats as shown in the :doc:`inputs`
-section of the documentation. The mesh is stored is the
+Users can also import mesh from various file formats as shown in the :doc:`mesh`
+section of the documentation. The mesh is stored as a
 :class:`~capytaine.mesh.mesh.Mesh` object. You can for instance access of
 coordinates of some of the vertices, faces centers or faces normal vectors using
 the following syntax::
@@ -95,7 +94,7 @@ the following syntax::
     sphere.mesh.faces_centers[5]  # Center of the sixth face (Python arrays start at 0).
     sphere.mesh.faces_normals[5]  # Normal vector of the sixth face.
 
-The mesh can be displayed in 3D using the following command::
+The mesh can be displayed in 3D using::
 
     sphere.show()
 
@@ -105,15 +104,15 @@ Defining dofs
 Before solving a diffraction or radiation problem, we need to define the degrees of freedom (dofs) of our
 body. It can be done in several ways:
 
-* The manual way: define a list a vectors where each vector is the displacement/deformation of the
+* The manual way: define a list a vectors where each vector is the displacement of the
   body at the center of a face. The example below is the simplest example of a rigid body motion in
   the :math:`x` direction::
 
     sphere.dofs['Surge'] = [(1, 0, 0) for face in sphere.mesh.faces]
 
 * Helpers functions are available to define rigid body translations and rotations. For instance for
-  the motion in the :math:`z` direction, we can use :meth:`FloatingBody.add_translation_dof <capytaine.bodies.FloatingBody.add_translation_dof>`. It can recognize
-  some dof names such as "Surge", "Sway" and "Heave"::
+  the motion in the :math:`z` direction, we can use :meth:`FloatingBody.add_translation_dof <capytaine.bodies.FloatingBody.add_translation_dof>`.
+  It can recognize some dof names such as "Surge", "Sway" and "Heave"::
 
     sphere.add_translation_dof(name="Heave")
 
@@ -133,7 +132,7 @@ Let us define a radiation problem for the heave of our sphere::
     problem = RadiationProblem(body=sphere, radiating_dof="Heave", omega=1.0, sea_bottom=-np.infty, g=9.81, rho=1000)
 
 The argument :code:`radiating_dof` must be the name of one of the dofs of the floating body given as the
-:code:`body` argument. The wave frequency has been set arbitrarily as :math:`\omega = 1 \, \text{rad/s}`.
+:code:`body` argument. The wave angular frequency has been set arbitrarily as :math:`\omega = 1 \, \text{rad/s}`.
 The water depth is infinite, the gravity acceleration is :math:`g = 9.81 \, \text{m/s}^2` and the water density has
 been chosen as :math:`\rho = 1000 \, \text{kg/m}^3`. These last parameters are actually optional.
 Since we are using their default value, we could have defined the radiation problem as::
@@ -150,12 +149,16 @@ Some more parameters are automatically computed, such as::
 Solve the problem
 -----------------
 
-Let us initialize the solver Nemoh and solve the problem we defined earlier::
+Let us initialize the BEM solver::
 
     solver = Nemoh()
+
+Solver settings could have been given at this point, but in this tutorial, we will use the default settings.
+Let us now solve the problem we defined earlier::
+
     result = solver.solve(problem)
 
-The :meth:`~capytaine.Nemoh.Nemoh.solve` method return a result object. The result object contains all of the data from
+The :meth:`~capytaine.Nemoh.Nemoh.solve` method returns a result object. The result object contains all of the data from
 the problem it comes from::
 
     print(result.omega)
@@ -173,7 +176,7 @@ the added mass and radiation damping::
     print(result.added_masses)
     # {'Surge': 9.154531598110083e-06, 'Heave': 2207.8423200090374}
 
-The :code:`added_masses` dictionary stores the resulting force on each of the dofs of the body.
+The :code:`added_masses` dictionary stores the resulting force on each of the "influenced dofs" of the body.
 In this example, the radiating dof is heave and the reaction force in the
 :math:`x` direction (:code:`result.added_masses['Surge']`) is negligible with
 respect to the one in the :math:`z` direction
