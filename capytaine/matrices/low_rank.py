@@ -56,6 +56,7 @@ class LowRankMatrix:
     @classmethod
     def from_full_matrix_with_SVD(cls, full_matrix, max_rank):
         """Create a low rank matrix from a full matrix using Singular Value Decomposition.
+
         Parameters
         ----------
         full_matrix: numpy array
