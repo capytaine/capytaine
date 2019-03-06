@@ -86,6 +86,8 @@ class Abstract3DObject(ABC):
     @inplace_transformation
     def rotate_around_center_to_align_vectors(self, center, vec1, vec2):
         """Rotate self such that if vec1 is in self, then it will point in the same direction as vec2."""
+        vec1 = np.asarray(vec1)
+        vec2 = np.asarray(vec2)
         if parallel_vectors_with_same_direction(vec1, vec2):
             return self
         else:
