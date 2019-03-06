@@ -181,7 +181,7 @@ class BlockCirculantMatrix(BlockToeplitzMatrix):
         n = self._stored_nb_blocks[1]
         return n, n
 
-    def _block_indices_of(self, k: int) -> List[Tuple[int, int]]:
+    def _block_indices_of(self, k: int) -> Set[Tuple[int, int]]:
         """The block indices at which the stored block k can be found in the full matrix."""
         n = self.nb_blocks[0]
         assert k < n
@@ -214,7 +214,8 @@ class BlockCirculantMatrix(BlockToeplitzMatrix):
         blocks_of_diagonalization = self.block_diagonalize()
         try:  # Try to run it as vectorized numpy arrays.
             fft_of_result = blocks_of_diagonalization @ fft_of_vector
-        except TypeError:  # Or do the same thing with list comprehension.
+        # When the above fails, numpy 1.15 returns a TypeError, whereas numpy 1.16 returns a ValueError.
+        except (TypeError, ValueError):  # Or do the same thing with list comprehension.
             fft_of_result = np.array([block @ vec for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
         result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[0])
         if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
@@ -230,8 +231,12 @@ class BlockCirculantMatrix(BlockToeplitzMatrix):
         blocks_of_diagonalization = self.block_diagonalize()
         try:  # Try to run it as vectorized numpy arrays.
             fft_of_result = fft_of_vector @ blocks_of_diagonalization
-        except TypeError:  # Or do the same thing with list comprehension.
-            fft_of_result = np.array([block.rmatvec(vec.flatten()) for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
+        # When the above fails, numpy 1.15 returns a TypeError, whereas numpy 1.16 returns a ValueError.
+        except (TypeError, ValueError):
+            # Instead we do the same thing with list comprehension.
+            fft_of_result = np.array(
+                [block.rmatvec(vec.flatten()) for block, vec in zip(blocks_of_diagonalization, fft_of_vector)]
+            )
         result = np.fft.fft(fft_of_result, axis=0).reshape(self.shape[1])
         if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
             return np.asarray(result)
