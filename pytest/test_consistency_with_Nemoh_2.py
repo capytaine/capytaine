@@ -120,7 +120,7 @@ def test_floating_sphere_finite_depth():
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     # omega = 1, radiation
-    problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
+    problem = RadiationProblem(body=sphere, omega=1.0, radiating_dof="Heave", sea_bottom=-10.0)
     result = solver.solve(problem, keep_details=True)
     assert np.isclose(result.added_masses["Heave"],       1740.6, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"], 380.46, atol=1e-3*sphere.volume*problem.rho)
@@ -130,18 +130,18 @@ def test_floating_sphere_finite_depth():
     assert np.isclose(kochin[0], -0.2267+3.49e-3j, rtol=1e-3)
 
     # omega = 1, diffraction
-    problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-10.0)
+    problem = DiffractionProblem(body=sphere, omega=1.0, wave_direction=0.0, sea_bottom=-10.0)
     result = solver.solve(problem)
     assert np.isclose(result.forces["Heave"], 1749.4 * np.exp(-2.922j), rtol=1e-3)
 
     # omega = 2, radiation
-    problem = RadiationProblem(body=sphere, omega=2.0, sea_bottom=-10.0)
+    problem = RadiationProblem(body=sphere, omega=2.0, radiating_dof="Heave", sea_bottom=-10.0)
     result = solver.solve(problem)
     assert np.isclose(result.added_masses["Heave"],       1375.0, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"], 1418.0, atol=1e-3*sphere.volume*problem.rho)
 
     # omega = 2, diffraction
-    problem = DiffractionProblem(body=sphere, omega=2.0, sea_bottom=-10.0)
+    problem = DiffractionProblem(body=sphere, omega=2.0, wave_direction=0.0, sea_bottom=-10.0)
     result = solver.solve(problem)
     assert np.isclose(result.forces["Heave"], 5872.8 * np.exp(-2.627j), rtol=1e-3)
 
@@ -182,7 +182,7 @@ def test_multibody():
     # both.show()
 
     problems = [RadiationProblem(body=both, radiating_dof=dof, omega=1.0) for dof in both.dofs]
-    problems += [DiffractionProblem(body=both, angle=0.0, omega=1.0)]
+    problems += [DiffractionProblem(body=both, wave_direction=0.0, omega=1.0)]
     results = [solver.solve(problem) for problem in problems]
     data = assemble_dataset(results)
 

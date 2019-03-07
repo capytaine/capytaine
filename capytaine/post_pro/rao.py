@@ -9,7 +9,7 @@ import xarray as xr
 LOG = logging.getLogger(__name__)
 
 
-def rao(dataset, wave_angle=0.0, dissipation=None, stiffness=None):
+def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
     """Response Amplitude Operator.
 
     Parameters
@@ -18,8 +18,8 @@ def rao(dataset, wave_angle=0.0, dissipation=None, stiffness=None):
         The hydrodynamical dataset.
         This function supposes that variables named 'mass' and 'hydrostatic_stiffness' are in the dataset.
         Other variables can be computed by Capytaine, by those two should be manually added to the dataset.
-    wave_angle: float, optional
-        The direction of the incomming waves.
+    wave_direction: float, optional
+        The direction of the incoming waves.
         Default: 0 radian (x direction)
     dissipation: array, optional
         An optional dissipation matrix (e.g. Power Take Off) to be included in the RAO.
@@ -50,7 +50,7 @@ def rao(dataset, wave_angle=0.0, dissipation=None, stiffness=None):
 
     if 'excitation_force' not in dataset:
         dataset['excitation_force'] = dataset['Froude_Krylov_force'] + dataset['diffraction_force']
-    excitation = dataset['excitation_force'].sel(angle=wave_angle)
+    excitation = dataset['excitation_force'].sel(wave_direction=wave_direction)
 
     # SOLVE LINEAR SYSTEMS
     # Reorder dimensions of the arrays to be sure to solve the right system.

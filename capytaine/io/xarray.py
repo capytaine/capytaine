@@ -37,7 +37,7 @@ def problems_from_dataset(dataset, bodies):
     dataset = _unsqueeze_dimensions(dataset)
 
     omega_range = dataset['omega'].data if 'omega' in dataset else [LinearPotentialFlowProblem.default_parameters['omega']]
-    angle_range = dataset['angle'].data if 'angle' in dataset else None
+    wave_direction_range = dataset['wave_direction'].data if 'wave_direction' in dataset else None
     radiating_dofs = dataset['radiating_dof'].data if 'radiating_dof' in dataset else None
     water_depth_range = dataset['water_depth'].data if 'water_depth' in dataset else [-LinearPotentialFlowProblem.default_parameters['sea_bottom']]
     rho_range = dataset['rho'].data if 'rho' in dataset else [LinearPotentialFlowProblem.default_parameters['rho']]
@@ -49,12 +49,12 @@ def problems_from_dataset(dataset, bodies):
         body_range = {body.name: body for body in bodies}
 
     problems = []
-    if angle_range is not None:
-        for omega, angle, water_depth, body_name, rho \
-                in product(omega_range, angle_range, water_depth_range, body_range, rho_range):
+    if wave_direction_range is not None:
+        for omega, wave_direction, water_depth, body_name, rho \
+                in product(omega_range, wave_direction_range, water_depth_range, body_range, rho_range):
             problems.append(
                 DiffractionProblem(body=body_range[body_name], omega=omega,
-                                   angle=angle, sea_bottom=-water_depth, rho=rho)
+                                   wave_direction=wave_direction, sea_bottom=-water_depth, rho=rho)
             )
 
     if radiating_dofs is not None:
@@ -168,7 +168,7 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
         diffraction_cases = _dataset_from_dataframe(
             records,
             variables=['diffraction_force', 'Froude_Krylov_force'],
-            dimensions=['omega', 'angle', 'influenced_dof'],
+            dimensions=['omega', 'wave_direction', 'influenced_dof'],
             optional_dims=optional_dims)
         dataset = xr.merge([dataset, diffraction_cases])
 

@@ -38,16 +38,16 @@ def generate_boat() -> cpt.FloatingBody:
     return boat
 
 
-def setup_animation(body, fs, omega, wave_amplitude, angle) -> Animation:
+def setup_animation(body, fs, omega, wave_amplitude, wave_direction) -> Animation:
     # SOLVE BEM PROBLEMS
     problems = [cpt.RadiationProblem(omega=omega, body=body, radiating_dof=dof) for dof in body.dofs]
-    problems += [cpt.DiffractionProblem(omega=omega, body=body, angle=angle)]
+    problems += [cpt.DiffractionProblem(omega=omega, body=body, wave_direction=wave_direction)]
     results = [bem_solver.solve(problem) for problem in problems]
     *radiation_results, diffraction_result = results
     dataset = cpt.assemble_dataset(results)
 
     # COMPUTE RAO
-    dataset['RAO'] = cpt.post_pro.rao(dataset, wave_angle=angle)
+    dataset['RAO'] = cpt.post_pro.rao(dataset, wave_direction=wave_direction)
 
     # Compute the motion of each face of the mesh for the animation
     rao_faces_motion = sum(dataset['RAO'].sel(omega=omega, radiating_dof=dof).data * body.full_body.dofs[dof] for dof in body.dofs)
@@ -72,13 +72,13 @@ if __name__ == '__main__':
     body = generate_boat()
     fs = cpt.FreeSurface(x_range=(-100, 100), y_range=(-100, 100), nx=100, ny=100)
 
-    angle = 0.0
+    wave_direction = 0.0
     omega = 1.0
 
-    anim = setup_animation(body, fs, omega=omega, wave_amplitude=0.5, angle=angle)
+    anim = setup_animation(body, fs, omega=omega, wave_amplitude=0.5, wave_direction=wave_direction)
     anim.run(camera_position=(60, 60, 90), resolution=(800, 600))
 
-    filename = f"{body.name}__omega_{omega:.2f}__beta_{angle:.2f}.ogv"
+    filename = f"{body.name}__omega_{omega:.2f}__beta_{wave_direction:.2f}.ogv"
     filepath = Path.cwd() / filename
     # anim.save(str(filepath), camera_position=(60, 60, 90), resolution=(800, 600))
 

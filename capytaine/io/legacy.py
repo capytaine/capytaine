@@ -104,7 +104,7 @@ def import_cal_file(filepath):
     problems = []
     for omega in omega_range:
         for direction in direction_range:
-            problems.append(DiffractionProblem(angle=direction, omega=omega, **env_args))
+            problems.append(DiffractionProblem(wave_direction=direction, omega=omega, **env_args))
         for dof in bodies.dofs:
             problems.append(RadiationProblem(radiating_dof=dof, omega=omega, **env_args))
 
@@ -233,12 +233,12 @@ def write_dataset_as_tecplot_files(results_directory, data):
         with open(os.path.join(results_directory, 'ExcitationForce.tec'), 'w') as fi:
             for i in range(len(data.influenced_dof)+1):
                 fi.write(f'...\n')
-            for angle in data.angle.values:
-                fi.write(f'angle={angle}\n')
+            for wave_direction in data.wave_direction.values:
+                fi.write(f'angle={wave_direction}\n')
                 for o in data.omega.values:
                     fi.write(f'  {o:e}  ')
                     for dof in data.influenced_dof:
-                        val = data['excitation_force'].sel(omega=o, angle=angle, influenced_dof=dof).values
+                        val = data['excitation_force'].sel(omega=o, wave_direction=wave_direction, influenced_dof=dof).values
                         fi.write(f'{np.abs(val):e}')
                         fi.write('  ')
                         fi.write(f'{np.angle(val):e}')

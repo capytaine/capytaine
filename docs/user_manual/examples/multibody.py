@@ -33,7 +33,7 @@ print("Merged body dofs:", list(all_bodies.dofs.keys()))
 
 # The merged body can be used to define the problems in the usual way
 problems = [cpt.RadiationProblem(body=all_bodies, radiating_dof=dof, omega=1.0) for dof in all_bodies.dofs]
-problems += [cpt.DiffractionProblem(body=all_bodies, angle=0.0, omega=1.0)]
+problems += [cpt.DiffractionProblem(body=all_bodies, wave_direction=0.0, omega=1.0)]
 
 # Solves the problem
 solver = cpt.Nemoh()

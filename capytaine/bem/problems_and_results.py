@@ -149,7 +149,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     """Particular LinearPotentialFlowProblem whose boundary conditions have
     been computed from an incoming Airy wave."""
 
-    angle = attrib(default=0.0)  # Angle of the incoming wave.
+    wave_direction = attrib(default=0.0)  # Angle of the incoming wave.
     convention = attrib(default="Nemoh", repr=False)
 
     def __attrs_post_init__(self):
@@ -164,7 +164,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                 LOG.warning(f"The body {self.body.name} used in diffraction problem has no dofs!")
 
     def _str_other_attributes(self):
-        return [f"angle={self.angle:.3f}"]
+        return [f"wave_direction={self.wave_direction:.3f}"]
 
     def make_results_container(self):
         return DiffractionResult(self)

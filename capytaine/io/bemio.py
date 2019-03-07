@@ -27,14 +27,14 @@ def to_bemio_file(dataset, body, filepath):
     nb_dofs_per_body = 6
     nb_bodies = 1
     nb_freq = len(dataset.coords['omega'])
-    nb_wave_dir = len(dataset.coords['angle']) if 'angle' in dataset.coords else 0
+    nb_wave_dir = len(dataset.coords['wave_direction']) if 'wave_direction' in dataset.coords else 0
 
     with h5py.File(filepath, 'w') as h5file:
         # h5file.create_dataset('simulation_parameters/scaled', (1,))
 
         h5file.create_dataset('simulation_parameters/wave_dir', (nb_wave_dir,))
         if nb_wave_dir > 0:
-            h5file['simulation_parameters/wave_dir'][:] = dataset.coords['angle'].values
+            h5file['simulation_parameters/wave_dir'][:] = dataset.coords['wave_direction'].values
 
         h5file.create_dataset('simulation_parameters/water_depth', (1,))
         h5file['simulation_parameters/water_depth'][0] = dataset.attrs['depth']

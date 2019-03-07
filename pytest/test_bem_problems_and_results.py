@@ -51,7 +51,7 @@ def test_LinearPotentialFlowProblem():
         LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=1.0)
 
     with pytest.raises(TypeError):
-        LinearPotentialFlowProblem(angle=1.0)
+        LinearPotentialFlowProblem(wave_direction=1.0)
 
     with pytest.raises(TypeError):
         LinearPotentialFlowProblem(radiating_dof="Heave")
@@ -82,7 +82,7 @@ def test_diffraction_problem():
     sphere = Sphere(radius=1.0, ntheta=20, nphi=40)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
-    pb = DiffractionProblem(body=sphere, angle=1.0)
+    pb = DiffractionProblem(body=sphere, wave_direction=1.0)
     assert len(pb.boundary_condition) == sphere.mesh.nb_faces
 
     with pytest.raises(TypeError):
@@ -161,7 +161,7 @@ def test_import_cal_file():
         assert problem.body.mesh.nb_faces == 280
         assert problem.omega in np.linspace(0.1, 2.0, 41)
         if isinstance(problem, DiffractionProblem):
-            assert problem.angle == 0.0
+            assert problem.wave_direction == 0.0
 
     # Symmetrical cylinder
     cal_file_path = os.path.join(current_file_path, "Nemoh_verification_cases", "Cylinder", "Nemoh.cal")
@@ -179,7 +179,7 @@ def test_import_cal_file():
         assert problem.body.mesh.nb_faces == 2*300
         assert problem.omega == 0.1 or problem.omega == 2.0
         if isinstance(problem, DiffractionProblem):
-            assert problem.angle == 0.0
+            assert problem.wave_direction == 0.0
 
 
 def test_results():
@@ -203,7 +203,7 @@ def test_problems_from_dataset():
     dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
                               'radiating_dof': ["Heave"],
                               'body_name': ["sphere"],
-                              'angle': [0.0],
+                              'wave_direction': [0.0],
                               'water_depth': [np.infty]})
 
     problems = problems_from_dataset(dset, [body])
@@ -212,7 +212,7 @@ def test_problems_from_dataset():
     assert len([problem for problem in problems if isinstance(problem, DiffractionProblem)]) == 3
 
     dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
-                              'angle': [0.0],
+                              'wave_direction': [0.0],
                               'body_name': ["cube"]})
     with pytest.raises(AssertionError):
         problems_from_dataset(dset, [body])
@@ -220,7 +220,7 @@ def test_problems_from_dataset():
     shifted_body = body.translated_y(5.0, name="shifted_sphere")
     dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
                               'radiating_dof': ["Heave"],
-                              'angle': [0.0]})
+                              'wave_direction': [0.0]})
     problems = problems_from_dataset(dset, [body, shifted_body])
     assert RadiationProblem(body=body, omega=0.5, radiating_dof="Heave") in problems
     assert RadiationProblem(body=shifted_body, omega=0.5, radiating_dof="Heave") in problems
@@ -230,7 +230,7 @@ def test_problems_from_dataset():
 def test_fill_dataset():
     body = HorizontalCylinder(radius=1, center=(0, 0, -2))
     body.add_all_rigid_body_dofs()
-    test_matrix = xr.Dataset(coords={'omega': [1.0, 2.0, 3.0], 'angle': [0, np.pi/2], 'radiating_dof': ['Heave']})
+    test_matrix = xr.Dataset(coords={'omega': [1.0, 2.0, 3.0], 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
     dataset = solver.fill_dataset(test_matrix, [body])
     assert dataset['added_mass'].data.shape == (3, 1, 6)
     assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)

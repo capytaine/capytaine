@@ -18,36 +18,13 @@ Then the function :meth:`fill_dataset <capytaine.Nemoh.Nemoh.fill_dataset>` will
 
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4, 40),
-        'angle': [0, np.pi/2],
+        'wave_direction': [0, np.pi/2],
         'radiating_dof': list(body.dofs),
         'water_depth': [np.infty],
     })
     dataset = cpt.Nemoh().fill_dataset(test_matrix, [body])
 
-It returns a dataset:
-
-::
-
-    >>> print(dataset)
-    <xarray.Dataset>
-    Dimensions:              (angle: 2, influenced_dof: 1, omega: 40, radiating_dof: 1)
-    Coordinates:
-      * omega                (omega) float64 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 ...
-      * radiating_dof        (radiating_dof) object 'Heave'
-      * influenced_dof       (influenced_dof) object 'Heave'
-      * angle                (angle) float64 0.0 1.571
-    Data variables:
-        added_mass           (omega, radiating_dof, influenced_dof) float64 2.14e+03 ...
-        radiation_damping    (omega, radiating_dof, influenced_dof) float64 1.562e-06 ...
-        Froude_Krylov_force  (omega, angle, influenced_dof) complex128 (-38.148887002448475-3.191891195797325e-16j) ...
-        diffraction_force    (omega, angle, influenced_dof) complex128 (-21.354062211407268-1.5242955876404453e-07j) ...
-    Attributes:
-        g:            9.81
-        rho:          1000.0
-        body_name:    sphere_1
-        water_depth:  inf
-
-If the coordinate :code:`theta` is added to the test matrix, the code will
+It returns a filled dataset. If the coordinate :code:`theta` is added to the test matrix, the code will
 compute the Kochin function for these values of :math:`\theta`.
 
 
@@ -58,7 +35,7 @@ For a finer grain control of the problems to be solved, a list of :code:`LinearP
 It is defined as, e.g.::
 
     problem = cpt.RadiationProblem(body=my_body, omega=1.0, radiating_dof="Heave")
-    other_problem = cpt.DiffractionProblem(body=my_body, omega=1.0, angle=pi/2)
+    other_problem = cpt.DiffractionProblem(body=my_body, omega=1.0, wave_direction=pi/2)
 
 Besides the body, all the parameters are optional.
 The table below gives their definitions and their default values.
@@ -76,7 +53,7 @@ The table below gives their definitions and their default values.
 +-----------------------+------------------------------------------+------------------------+
 | :code:`rho`           | Water density (kg/m³)                    | :math:`1000` kg/m³     |
 +-----------------------+------------------------------------------+------------------------+
-| :code:`angle`         | Direction of the incoming waves          | :math:`0` rad [#]_     |
+| :code:`wave_direction`| Direction of the incoming waves          | :math:`0` rad [#]_     |
 |                       | (only for diffraction)                   |                        |
 +-----------------------+------------------------------------------+------------------------+
 | :code:`radiating_dof` | Name of radiating dof                    | first one found        |

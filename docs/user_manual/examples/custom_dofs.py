@@ -33,18 +33,18 @@ sphere.dofs["x-shear"] = np.array(
 solver = cpt.Nemoh()
 
 # Solve the problem for β=0 (incoming wave in the x direction).
-problem_1 = cpt.DiffractionProblem(body=sphere, angle=0, omega=1.0)
+problem_1 = cpt.DiffractionProblem(body=sphere, wave_direction=0, omega=1.0)
 result_1 = solver.solve(problem_1)
 
 # Solve the problem for β=π/2 (incoming wave in the y direction).
-problem_2 = cpt.DiffractionProblem(body=sphere, angle=np.pi/2, omega=1.0)
+problem_2 = cpt.DiffractionProblem(body=sphere, wave_direction=np.pi/2, omega=1.0)
 result_2 = solver.solve(problem_2)
 
 # Print the generalized diffraction forces
 # for the three dofs we defined
-# for both values of the angle β.
+# for both values of the wave_direction β.
 for result in [result_1, result_2]:
-    print(f"Angle: {result.angle:.2f}")
+    print(f"Angle: {result.wave_direction:.2f}")
     for dof in sphere.dofs:
         force = result.forces[dof]
         print(f"{dof}: {np.abs(force):.2f}·exp({np.angle(force):.2f}i) N")

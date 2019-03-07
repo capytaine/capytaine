@@ -21,7 +21,7 @@ sphere.add_translation_dof(name="Heave")
 # Set up and solve problem
 solver = cpt.Nemoh(use_symmetries=False)
 
-diffraction_problem = cpt.DiffractionProblem(body=sphere, angle=0.0, omega=2.0)
+diffraction_problem = cpt.DiffractionProblem(body=sphere, wave_direction=0.0, omega=2.0)
 diffraction_result = solver.solve(diffraction_problem)
 
 radiation_problem = cpt.RadiationProblem(body=sphere, radiating_dof="Heave", omega=2.0)

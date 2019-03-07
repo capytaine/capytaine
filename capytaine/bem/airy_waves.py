@@ -32,7 +32,7 @@ def airy_waves_potential(points, pb: DiffractionProblem, convention="Nemoh"):
     x, y, z = points.T
     k = pb.wavenumber
     h = pb.depth
-    wbar = x*np.cos(pb.angle) + y*np.sin(pb.angle)
+    wbar = x * np.cos(pb.wave_direction) + y * np.sin(pb.wave_direction)
 
     if 0 <= k*h < 20:
         cih = np.cosh(k*(z+h))/np.cosh(k*h)
@@ -71,7 +71,7 @@ def airy_waves_velocity(points, pb: DiffractionProblem, convention="Nemoh"):
     k = pb.wavenumber
     h = pb.depth
 
-    wbar = x*np.cos(pb.angle) + y*np.sin(pb.angle)
+    wbar = x * np.cos(pb.wave_direction) + y * np.sin(pb.wave_direction)
 
     if 0 <= k*h < 20:
         cih = np.cosh(k*(z+h))/np.cosh(k*h)
@@ -82,7 +82,7 @@ def airy_waves_velocity(points, pb: DiffractionProblem, convention="Nemoh"):
 
     v = pb.g*k/pb.omega * \
         np.exp(1j * k * wbar) * \
-        np.array([np.cos(pb.angle)*cih, np.sin(pb.angle)*cih, -1j*sih])
+        np.array([np.cos(pb.wave_direction) * cih, np.sin(pb.wave_direction) * cih, -1j * sih])
 
     if convention.lower() == "wamit":
         return np.conjugate(v.T)

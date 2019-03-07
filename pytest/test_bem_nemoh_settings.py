@@ -99,7 +99,7 @@ def test_fill_dataset():
     solver = Nemoh()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
-        'angle': np.linspace(0.0, pi, 3),
+        'wave_direction': np.linspace(0.0, pi, 3),
         'radiating_dof': list(sphere.dofs.keys()),
         'rho': [1025.0],
         'water_depth': [np.infty, 10.0]
