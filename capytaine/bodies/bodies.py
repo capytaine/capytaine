@@ -297,15 +297,31 @@ class FloatingBody(Abstract3DObject):
         return FloatingBody(mesh=self.mesh.sliced_by_plane(plane), dofs=self.dofs, name=self.name)
 
     def minced(self, nb_slices=(8, 8, 4)):
-        """Support only powers of 2 at the moment."""
+        """Experimental method decomposing the mesh as a hierarchical structure.
+
+        Parameters
+        ----------
+        nb_slices: Tuple[int, int, int]
+            The number of slices in each of the x, y and z directions.
+            Only powers of 2 are supported at the moment.
+
+        Returns
+        -------
+        FloatingBody
+        """
+        minced_body = self.copy()
+        minced_body.mesh = minced_body.mesh.merged()  # Remove previously existing decompositions.
+
+        # Extreme points of the mesh in each directions.
         x_min, x_max, y_min, y_max, z_min, z_max = self.mesh.axis_aligned_bbox
         sizes = [(x_min, x_max), (y_min, y_max), (z_min, z_max)]
 
-        directions = [(1, 0, 0), (0, 1, 0), (0, 0, 1)]
-        directions = [np.array(d) for d in directions]
+        directions = [np.array(d) for d in [(1, 0, 0), (0, 1, 0), (0, 0, 1)]]
 
-        def slice_positions_at_depth(i):
-            """Helper function. Return the following:
+        def _slice_positions_at_depth(i):
+            """Helper function.
+
+            Returns a list of floats as follows:
             i=1 -> [1/2]
             i=2 -> [1/4, 3/4]
             i=3 -> [1/8, 3/8, 5/8, 7/8]
@@ -314,6 +330,7 @@ class FloatingBody(Abstract3DObject):
             denominator = 2**i
             return [numerator/denominator for numerator in range(1, denominator, 2)]
 
+        # GENERATE ALL THE PLANES THAT WILL BE USED TO MINCE THE MESH
         planes = []
         for direction, nb_slices_in_dir, (min_coord, max_coord) in zip(directions, nb_slices, sizes):
             planes_in_dir = []
@@ -321,15 +338,15 @@ class FloatingBody(Abstract3DObject):
             depth_of_treelike_structure = int(np.log2(nb_slices_in_dir))
             for i_depth in range(1, depth_of_treelike_structure+1):
                 planes_in_dir_at_depth = []
-                for relative_position in slice_positions_at_depth(i_depth):
+                for relative_position in _slice_positions_at_depth(i_depth):
                     slice_position = (min_coord + relative_position*(max_coord-min_coord))*direction
                     plane = Plane(normal=direction, point=slice_position)
                     planes_in_dir_at_depth.append(plane)
                 planes_in_dir.append(planes_in_dir_at_depth)
             planes.append(planes_in_dir)
 
+        # SLICE THE MESH
         intermingled_x_y_z = chain.from_iterable(zip_longest(*planes))
-        minced_body = self.copy()
         for planes in intermingled_x_y_z:
             if planes is not None:
                 for plane in planes:
