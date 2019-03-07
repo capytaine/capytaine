@@ -67,7 +67,7 @@ class Nemoh:
     defaults_settings = dict(
         tabulation_nb_integration_points=251,
         linear_solver='gmres',
-        use_symmetries=True,
+        hierarchical_matrices=True,
         ACA_distance=np.infty,
         ACA_tol=1e-2,
         matrix_cache_size=1,
@@ -75,12 +75,17 @@ class Nemoh:
     )
 
     available_linear_solvers = {'direct': linear_solvers.solve_directly,
-                                'store_lu': linear_solvers.solve_storing_lu,
-                                'gmres': linear_solvers.solve_gmres,
-                                }
+                                'gmres': linear_solvers.solve_gmres}
 
     def __init__(self, **settings):
+
+        # Check that all the given settings are relevant.
+        for key in settings:
+            if key not in self.defaults_settings:
+                LOG.warning(f"Unrecognized solver option: {key}")
+
         settings = {**self.defaults_settings, **settings}  # Complete settings with default settings
+
         self.settings = settings  # Keep a copy for saving in output dataset
 
         LOG.info("Initialize Nemoh's Green function.")
@@ -92,7 +97,7 @@ class Nemoh:
             self.linear_solver = settings['linear_solver']
 
         if settings['matrix_cache_size'] > 0 and settings['cache_rankine_matrices']:
-            if settings['use_symmetries']:
+            if settings['hierarchical_matrices']:
                 # If the rankine matrix is cached, the recursive decomposition of the matrix
                 # has to be done before the caching.
                 # Otherwise, only the latest blocks of the matrices would be cached,
@@ -116,7 +121,7 @@ class Nemoh:
             self.build_matrices = lru_cache(maxsize=settings['matrix_cache_size'])(self.build_matrices)
 
         else:
-            if settings['use_symmetries']:
+            if settings['hierarchical_matrices']:
                 # If the rankine matrix is not cached, the recursive decomposition of the matrix
                 # can be done at the top level.
                 self.build_matrices = hierarchical_toeplitz_matrices(
@@ -130,7 +135,7 @@ class Nemoh:
 
     def exportable_settings(self):
         settings = self.settings.copy()
-        if not settings['use_symmetries']:
+        if not settings['hierarchical_matrices']:
             del settings['ACA_distance']
             del settings['ACA_tol']
         if settings['matrix_cache_size'] == 0:

@@ -23,8 +23,8 @@ from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
 
 from capytaine.matrices.low_rank import LowRankMatrix
 
-solver_with_sym = Nemoh(use_symmetries=True, ACA_distance=8, matrix_cache_size=0)
-solver_without_sym = Nemoh(use_symmetries=False, ACA_distance=8, matrix_cache_size=0)
+solver_with_sym = Nemoh(hierarchical_matrices=True, ACA_distance=8, matrix_cache_size=0)
+solver_without_sym = Nemoh(hierarchical_matrices=False, ACA_distance=8, matrix_cache_size=0)
 # Use a single solver in the whole module to avoid reinitialisation of the solver (0.5 second).
 # Do not use a matrix cache in order not to risk influencing a test with another.
 
@@ -200,8 +200,8 @@ def test_array_of_spheres():
     array = buoy.assemble_regular_array(distance=4.0, nb_bodies=(3, 1))
 
     settings = dict(cache_rankine_matrices=False, matrix_cache_size=0)
-    nemoh_without_sym = Nemoh(use_symmetries=False, **settings)
-    nemoh_with_sym = Nemoh(use_symmetries=True, **settings)
+    nemoh_without_sym = Nemoh(hierarchical_matrices=False, **settings)
+    nemoh_with_sym = Nemoh(hierarchical_matrices=True, **settings)
 
     fullS, fullV = nemoh_without_sym.build_matrices(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
     S, V = nemoh_with_sym.build_matrices(array.mesh, array.mesh, 0.0, -np.infty, 1.0)

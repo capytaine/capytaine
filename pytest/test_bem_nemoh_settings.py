@@ -15,7 +15,7 @@ sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
 
 def test_exportable_settings():
     assert Nemoh().exportable_settings() == Nemoh.defaults_settings
-    assert 'ACA_distance' not in Nemoh(use_symmetries=False).exportable_settings()
+    assert 'ACA_distance' not in Nemoh(hierarchical_matrices=False).exportable_settings()
     assert 'cache_rankine_matrices' not in Nemoh(matrix_cache_size=0).exportable_settings()
 
 
@@ -66,14 +66,14 @@ def test_custom_linear_solver():
     """Solve a simple problem with a custom linear solver."""
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
 
-    reference_solver = Nemoh(linear_solver="gmres", matrix_cache_size=0, use_symmetries=False)
+    reference_solver = Nemoh(linear_solver="gmres", matrix_cache_size=0, hierarchical_matrices=False)
     reference_result = reference_solver.solve(problem)
 
     def my_linear_solver(A, b):
         """A dumb solver for testing."""
         return np.linalg.inv(A) @ b
 
-    my_bem_solver = Nemoh(linear_solver=my_linear_solver, matrix_cache_size=0, use_symmetries=False)
+    my_bem_solver = Nemoh(linear_solver=my_linear_solver, matrix_cache_size=0, hierarchical_matrices=False)
     assert 'my_linear_solver' in my_bem_solver.exportable_settings()['linear_solver']
 
     result = my_bem_solver.solve(problem)

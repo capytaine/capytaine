@@ -13,7 +13,7 @@ from capytaine.bem.nemoh import Nemoh
 from capytaine.io.xarray import assemble_dataset
 from capytaine.post_pro.kochin import compute_kochin
 
-solver = Nemoh(linear_solver='gmres', use_symmetries=False, matrix_cache_size=0)
+solver = Nemoh(linear_solver='gmres', hierarchical_matrices=False, matrix_cache_size=0)
 
 
 def test_immersed_sphere():
