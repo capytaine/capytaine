@@ -158,7 +158,7 @@ Let us now solve the problem we defined earlier::
 
     result = solver.solve(problem)
 
-The :meth:`~capytaine.Nemoh.Nemoh.solve` method returns a result object. The result object contains all of the data from
+The :meth:`~capytaine.bem.nemoh.Nemoh.solve` method returns a result object. The result object contains all of the data from
 the problem it comes from::
 
     print(result.omega)
@@ -208,5 +208,7 @@ radiation damping from the result objects in an organized way. In our example, i
 
     dataset['added_mass'].sel(radiating_dof=["Surge", "Heave"], influenced_dof=["Surge", "Heave"], omega=1.0)
 
-See the example section of the documentation for more complex cases.
+You'll probably want to solve problems for a wide range of parameters without
+defining each test individually. This can be done with the :code:`fill_dataset`
+method of the solver. See :doc:`problem_setup`.
 

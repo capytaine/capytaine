@@ -39,7 +39,7 @@ diffraction_elevation_at_faces = diffraction_elevation_at_faces + free_surface.i
 animation = Animation(loop_duration=diffraction_result.period)
 animation.add_body(full_sphere, faces_motion=None)
 animation.add_free_surface(free_surface, faces_elevation=0.5*diffraction_elevation_at_faces)
-animation.run(camera_position=(-30, -30, 30))
+animation.run(camera_position=(-30, -30, 30))  # The camera is oriented towards (0, 0, 0) by default.
 # animation.save("path/to/the/video/file.ogv", camera_position=(-30, -30, 30))
 
 animation = Animation(loop_duration=radiation_result.period)

@@ -76,7 +76,7 @@ The table below gives their definitions and their default values.
 +-----------------------+------------------------------------------+------------------------+
 | :code:`rho`           | Water density (kg/m³)                    | :math:`1000` kg/m³     |
 +-----------------------+------------------------------------------+------------------------+
-| :code:`angle`         | Angle of incoming wave                   | :math:`0` rad          |
+| :code:`angle`         | Direction of the incoming waves          | :math:`0` rad [#]_     |
 |                       | (only for diffraction)                   |                        |
 +-----------------------+------------------------------------------+------------------------+
 | :code:`radiating_dof` | Name of radiating dof                    | first one found        |
@@ -84,8 +84,12 @@ The table below gives their definitions and their default values.
 +-----------------------+------------------------------------------+------------------------+
 
 .. [#] Only two positions are accepted for the free surface: :math:`z=0` and
-       :math:`z= +\infty`. The latter corresponds to an object in a infinite
-       domain filled with fluid and with no free surface.
+       :math:`z= +\infty`. The former is the usual case for linear potential
+       flow. The latter corresponds to an object in a infinite
+       potential flow domain with no free surface.
+
+.. [#] A wave direction of :math:`0` rad corresponds to a wave propagating along
+       the :math:`x`-axis from :math:`x = -\infty` to :math:`x= + \infty`.
 
 The wave height is implicitely assumed to be :math:`1` m.
 Since all computations are linear, any wave height or motion amplitude can be retrieved by multiplying the result by the desired value.
