@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
 """ This module contains a class to describe the 2D mesh of the surface of a body in a 3D space.
-It is based on `Meshmagick by François Rongère (GPL licensed) <https://github.com/LHEEA/meshmagick>`_.
+Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """
+# Copyright (C) 2017-2019 Matthieu Ancellin, based on the work of François Rongère
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 from itertools import count

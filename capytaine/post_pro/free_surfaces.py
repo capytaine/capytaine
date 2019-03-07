@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Generate meshed free surface."""
-# This file is part of "capytaine" (https://github.com/mancellin/capytaine).
-# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
+"""This module implements objects describing a mesh on which the free surface elevation will be computed."""
+# Copyright (C) 2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 from itertools import product

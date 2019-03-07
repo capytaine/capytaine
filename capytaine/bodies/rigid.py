@@ -1,4 +1,8 @@
+#!/usr/bin/env python
+# coding: utf-8
 """Draft of implementation for rigid bodies and multiple rigid bodies."""
+# Copyright (C) 2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import numpy as np
 

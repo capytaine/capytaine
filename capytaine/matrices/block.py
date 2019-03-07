@@ -1,6 +1,14 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Define block matrices as an array of references to other objects."""
+"""This module implements block matrices to be used in Hierarchical Toeplitz matrices.
+
+It takes inspiration from the following works:
+
+* `openHmx module from Gypsilab by Matthieu Aussal (GPL licensed) <https://github.com/matthieuaussal/gypsilab>`_
+* `HierarchicalMatrices by Markus Neumann (GPL licensed) <https://github.com/maekke97/HierarchicalMatrices>`_
+"""
+# Copyright (C) 2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 

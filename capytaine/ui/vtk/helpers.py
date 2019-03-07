@@ -1,3 +1,8 @@
+#!/usr/bin/env python
+# coding: utf-8
+"""Tools for 3D displays with VTK."""
+# Copyright (C) 2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 from typing import Union
 

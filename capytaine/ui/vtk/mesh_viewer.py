@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""VTK display of the mesh.
-Based on meshmagick of François Rongère.
+"""3D display of a mesh with VTK.
+Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """
-# This file is part of "capytaine" (https://github.com/mancellin/capytaine).
-# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
+# Copyright (C) 2019 Matthieu Ancellin, based on the work of François Rongère
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import datetime
 from itertools import cycle

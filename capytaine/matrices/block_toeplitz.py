@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Block symmetric Toeplitz matrices and block symmetric circulant matrices
-to be used in hierarchical matrices.
+"""This modules implements block Toeplitz matrices to be used in Hierarchical Toeplitz matrices.
+
+The module also contains several special cases such as block symmetric Toeplitz matrices and block circulant matrices.
+All classes inherits from the BlockMatrix class.
 """
+# Copyright (C) 2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 from typing import Tuple, List, Set, Iterable

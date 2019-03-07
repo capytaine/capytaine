@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Compute the potential and velocity of Airy wave."""
-# This file is part of "capytaine" (https://github.com/mancellin/capytaine).
-# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
+"""Computing the potential and velocity of Airy wave."""
+# Copyright (C) 2017-2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import numpy as np
 

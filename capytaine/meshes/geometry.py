@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 #  -*- coding: utf-8 -*-
+"""Tools to describe geometric objects in 3D.
+Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """
-Freely adapted from meshmagick.
-"""
+# Copyright (C) 2019 Matthieu Ancellin, based on the work of François Rongère
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 from abc import ABC, abstractmethod
 

@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Linear solvers, including for block regular matrices."""
+"""The linear solvers used in Capytaine.
+
+They are based on numpy solvers with a thin layer for the handling of Hierarchical Toeplitz matrices.
+"""
+# Copyright (C) 2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 from functools import lru_cache
@@ -10,11 +15,7 @@ from scipy import linalg as sl
 from scipy.sparse import linalg as ssl
 
 from capytaine.matrices.block import BlockMatrix
-from capytaine.matrices.block_toeplitz import (
-    BlockToeplitzMatrix,
-    BlockSymmetricToeplitzMatrix,
-    BlockCirculantMatrix,
-)
+from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockCirculantMatrix
 
 LOG = logging.getLogger(__name__)
 
@@ -59,6 +60,7 @@ def solve_directly(A, b):
         raise ValueError(f"Unrecognized type of matrix to solve: {A}")
 
 
+# EXPERIMENT: STORING THE LU DECOMPOSITION
 @lru_cache(maxsize=1)
 def lu_decomp(A):
     LOG.debug(f"Compute LU decomposition of {A}.")

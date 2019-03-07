@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 #  -*- coding: utf-8 -*-
 """Functions to load meshes from different file formats.
-Adapted from meshmagick (https://github.com/LHEEA/meshmagick)."""
+Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
+"""
+# Copyright (C) 2017-2019 Matthieu Ancellin, based on the work of François Rongère
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import os
 import numpy as np

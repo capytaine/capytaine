@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Command-line interface for capytaine."""
-# This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
-# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
+"""Experimental command-line interface for Capytaine."""
+# Copyright (C) 2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import argparse
 import logging
 import os
 
 from capytaine.io.legacy import import_cal_file, write_dataset_as_tecplot_files
-from capytaine import assemble_dataset
+from capytaine.io.xarray import assemble_dataset
 from capytaine.bem.nemoh import Nemoh
 
 logging.basicConfig(level=logging.INFO,
@@ -41,6 +41,7 @@ def main():
 
         LOG.info("Write results in legacy tecplot format.")
         write_dataset_as_tecplot_files(results_directory, data)
+
 
 if __name__ == '__main__':
     main()

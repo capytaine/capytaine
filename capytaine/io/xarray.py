@@ -1,3 +1,9 @@
+#!/usr/bin/env python
+# coding: utf-8
+"""Tools to use xarray Datasets as inputs and outputs."""
+# Copyright (C) 2017-2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
+
 import logging
 from datetime import datetime
 from itertools import product

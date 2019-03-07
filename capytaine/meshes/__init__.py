@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
-
-__author__ = 'François Rongere'
-__license__ = 'GPLv3'
+# Copyright (C) 2019 Matthieu Ancellin, based on the work of François Rongère
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes

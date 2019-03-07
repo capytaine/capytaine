@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Storing a set of meshes."""
-# This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
-# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
+"""A set of meshes that can be used as a Mesh."""
+# Copyright (C) 2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 import reprlib

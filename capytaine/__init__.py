@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
+# Copyright (C) 2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 __author__ = 'Matthieu Ancellin'
 __version__ = '0.7dev'

@@ -1,6 +1,5 @@
+#!/usr/bin/env python
 # coding: utf-8
-# This file is part of "Capytaine" (https://github.com/mancellin/capytaine).
-# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
 """Solver for the BEM problem based on Nemoh's Green function.
 
 Example
@@ -12,6 +11,8 @@ Example
     result = Nemoh().solve(problem)
 
 """
+# Copyright (C) 2017-2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 from datetime import datetime

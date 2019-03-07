@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""This module holds a tools to clip meshes against a plane.
-Based on Meshmagick by François Rongère (EC Nantes).
+"""This module implements a tools to clip meshes against a plane.
+Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """
+# Copyright (C) 2019 Matthieu Ancellin, based on the work of François Rongère
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 

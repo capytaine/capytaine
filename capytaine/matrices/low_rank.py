@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-# Copyright (C) 2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
-"""This module contains a class to describe a low-rank matrix as the tensor product of two smaller matrices.
+"""This module implements a class to describe a low-rank matrix as the tensor product of two smaller matrices.
 In particular, an implementation of the Adaptive Cross Approximation is used to build such a matrix.
 
 It takes inspiration from the following works:
@@ -10,6 +8,8 @@ It takes inspiration from the following works:
 * `openHmx module from Gypsilab by Matthieu Aussal (GPL licensed) <https://github.com/matthieuaussal/gypsilab>`_
 * `HierarchicalMatrices by Markus Neumann (GPL licensed) <https://github.com/maekke97/HierarchicalMatrices>`_
 """
+# Copyright (C) 2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 

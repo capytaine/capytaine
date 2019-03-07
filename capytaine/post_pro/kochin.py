@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-Computation of the Kochin function.
-"""
-# This file is part of "capytaine" (https://github.com/mancellin/capytaine).
-# It has been written by Matthieu Ancellin and is released under the terms of the GPLv3 license.
+"""Computation of the Kochin function."""
+# Copyright (C) 2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import numpy as np
 
