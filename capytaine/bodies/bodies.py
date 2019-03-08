@@ -310,7 +310,6 @@ class FloatingBody(Abstract3DObject):
         FloatingBody
         """
         minced_body = self.copy()
-        minced_body.mesh = minced_body.mesh.merged()  # Remove previously existing decompositions.
 
         # Extreme points of the mesh in each directions.
         x_min, x_max, y_min, y_max, z_min, z_max = self.mesh.axis_aligned_bbox
