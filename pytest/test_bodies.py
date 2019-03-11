@@ -46,7 +46,7 @@ def test_bodies():
     body = Sphere(name="sphere", clever=False)
     assert str(body) == "sphere"
     repr(body)
-    assert np.allclose(body.center, (0, 0, 0))
+    assert np.allclose(body.geometric_center, (0, 0, 0))
     body.add_translation_dof(name="Surge")
     body.add_translation_dof(name="Heave")
 
@@ -58,7 +58,7 @@ def test_bodies():
 
     # Mirror of the dofs
     mirrored = body.mirrored(Plane(point=(1, 0, 0), normal=(1, 0, 0)))
-    assert np.allclose(mirrored.center, np.array([2, 0, 0]))
+    assert np.allclose(mirrored.geometric_center, np.array([2, 0, 0]))
     assert np.allclose(body.dofs['Surge'], -mirrored.dofs['Surge'])
 
     # Rotation of the dofs

@@ -131,7 +131,7 @@ class FloatingBody(Abstract3DObject):
         if axis is None:
             if name is not None and name.lower() in ROTATION_DOFS_AXIS:
                 axis_direction = ROTATION_DOFS_AXIS[name.lower()]
-                for point_attr in ('rotation_center', 'center'):
+                for point_attr in ('rotation_center', 'center_of_mass', 'geometric_center'):
                     if hasattr(self, point_attr):
                         axis_point = getattr(self, point_attr)
                         LOG.info(f"The rotation dof {name} has been initialized around the point: "
@@ -357,7 +357,7 @@ class FloatingBody(Abstract3DObject):
         self.mesh.mirror(plane)
         for dof in self.dofs:
             self.dofs[dof] -= 2 * np.outer(np.dot(self.dofs[dof], plane.normal), plane.normal)
-        for point_attr in ('center', 'rotation_center'):
+        for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__:
                 self.__dict__[point_attr] -= 2 * (np.dot(self.__dict__[point_attr], plane.normal) - plane.c) * plane.normal
         return self
@@ -365,7 +365,7 @@ class FloatingBody(Abstract3DObject):
     @inplace_transformation
     def translate(self, *args):
         self.mesh.translate(*args)
-        for point_attr in ('center', 'rotation_center'):
+        for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__:
                 self.__dict__[point_attr] += args[0]
         return self
@@ -374,7 +374,7 @@ class FloatingBody(Abstract3DObject):
     def rotate(self, axis, angle):
         matrix = axis.rotation_matrix(angle)
         self.mesh.rotate(axis, angle)
-        for point_attr in ('center', 'rotation_center'):
+        for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__:
                 self.__dict__[point_attr] = matrix @ self.__dict__[point_attr]
         for dof in self.dofs:

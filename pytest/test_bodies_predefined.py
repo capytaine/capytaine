@@ -33,7 +33,7 @@ def test_rectangle_generation():
     assert isinstance(rec.mesh, Mesh)
     assert rec.mesh.name == "test_mesh"
     assert all(rec.size == [10.0, 10.0])
-    assert all(rec.center == [0, 0, -5.0])
+    assert all(rec.geometric_center == [0, 0, -5.0])
     assert rec.mesh.nb_faces == 12
     assert rec.mesh.nb_vertices == 21
     assert rec.area == 100

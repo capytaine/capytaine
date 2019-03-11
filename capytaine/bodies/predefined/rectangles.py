@@ -35,7 +35,7 @@ class Rectangle(FloatingBody):
         resolution : couple of ints, optional
             number of faces along each of the two directions
         center : 3-ple of floats, optional
-            position of the center of the rectangle, default: (0, 0, 0)
+            position of the geometric center of the rectangle, default: (0, 0, 0)
         normal: 3-ple of floats, optional
             normal vector, default: along x axis
         translational_symmetry : bool, optional
@@ -57,7 +57,7 @@ class Rectangle(FloatingBody):
 
         self.size = np.asarray(size, dtype=np.float)
         width, height = self.size
-        self.center = np.asarray(center, dtype=np.float)
+        self.geometric_center = np.asarray(center, dtype=np.float)
         nw, nh = resolution
 
         if translational_symmetry and reflection_symmetry:
@@ -150,7 +150,7 @@ class RectangularParallelepiped(FloatingBody):
         resolution : 3-ple of ints, optional
             number of faces along the three directions
         center : 3-ple of floats, optional
-            coordinates of the center of the parallelepiped
+            coordinates of the geometric center of the parallelepiped
         top: bool, optional
             whether or not to close the parallelepiped on the top
         bottom: bool, optional
@@ -177,7 +177,7 @@ class RectangularParallelepiped(FloatingBody):
 
         self.size = np.asarray(size, dtype=np.float)
         width, thickness, height = size
-        self.center = np.asarray(center, dtype=np.float)
+        self.geometric_center = np.asarray(center, dtype=np.float)
         nw, nth, nh = resolution
 
         if translational_symmetry and reflection_symmetry:

@@ -38,7 +38,7 @@ class Disk(FloatingBody):
         resolution : 2-ple of int, optional
             number of panels along a radius and around the disk
         center : 3-ple or array of shape (3,), optional
-            position of the center of the disk
+            position of the geometric center of the disk
         normal: 3-ple of floats, optional
             normal vector, default: along x axis
         axial_symmetry : bool, optional
@@ -57,7 +57,7 @@ class Disk(FloatingBody):
         assert len(center) == 3, "Position of the center of a disk should be given a 3-ple of values."
 
         self.radius = float(radius)
-        self.center = np.asarray(center, dtype=np.float)
+        self.geometric_center = np.asarray(center, dtype=np.float)
         nr, ntheta = resolution
 
         if reflection_symmetry and ntheta % 2 == 1:
@@ -90,7 +90,7 @@ class Disk(FloatingBody):
             mesh = Disk.generate_disk_mesh(radius=self.radius, nr=nr, ntheta=ntheta, name=f"{name}_mesh")
 
         mesh.rotate_around_center_to_align_vectors((0, 0, 0), mesh.faces_normals[0], normal)
-        mesh.translate(self.center)
+        mesh.translate(center)
         FloatingBody.__init__(self, mesh=mesh, name=name)
 
     @staticmethod
@@ -142,7 +142,7 @@ class HorizontalCylinder(FloatingBody):
         radius : float, optional
             radius of the cylinder
         center : 3-ple or array of shape (3,), optional
-            position of the center of the cylinder
+            position of the geometric center of the cylinder
         nx : int, optional
             number of circular slices
         ntheta : int, optional
@@ -156,7 +156,7 @@ class HorizontalCylinder(FloatingBody):
         """
         self.length = length
         self.radius = radius
-        self.center = np.asarray(center, dtype=np.float)
+        self.geometric_center = np.asarray(center, dtype=np.float)
 
         if name is None:
             name = f"cylinder_{next(Mesh._ids)}"
@@ -180,7 +180,7 @@ class HorizontalCylinder(FloatingBody):
             mesh.merge_duplicates()
             mesh.heal_triangles()
 
-        mesh.translate(self.center)
+        mesh.translate(self.geometric_center)
         mesh.name = f"{name}_mesh"
 
         FloatingBody.__init__(self, mesh=mesh, name=name)
@@ -233,7 +233,7 @@ class VerticalCylinder(FloatingBody):
         radius : float, optional
             radius of the cylinder
         center : 3-ple or array of shape (3,), optional
-            position of the center of the cylinder
+            position of the geometric center of the cylinder
         nx : int, optional
             number of circular slices
         ntheta : int, optional
@@ -247,7 +247,7 @@ class VerticalCylinder(FloatingBody):
         """
         self.length = length
         self.radius = radius
-        self.center = np.asarray(center, dtype=np.float)
+        self.geometric_center = np.asarray(center, dtype=np.float)
 
         if name is None:
             name = f"cylinder_{next(Mesh._ids)}"
@@ -274,7 +274,7 @@ class VerticalCylinder(FloatingBody):
             mesh.merge_duplicates()
             mesh.heal_triangles()
 
-        mesh.translate(self.center)
+        mesh.translate(center)
         mesh.name = f"{name}_mesh"
 
         FloatingBody.__init__(self, mesh=mesh, name=name)

@@ -27,7 +27,7 @@ class Sphere(FloatingBody):
         radius : float
             radius of the sphere
         center : 3-ple or array of shape (3,)
-            position of the center of the sphere
+            position of the geometric center of the sphere
         ntheta : int
             number of panels along a meridian (or number of parallels-1)
         nphi : int
@@ -41,7 +41,7 @@ class Sphere(FloatingBody):
             a name identifying the sphere (default: "sphere_id" where id is an unique integer).
         """
         self.radius = radius
-        self.center = np.array(center, dtype=np.float)
+        self.geometric_center = np.array(center, dtype=np.float)
 
         if name is None:
             name = f"sphere_{next(Mesh._ids)}"
@@ -57,10 +57,10 @@ class Sphere(FloatingBody):
 
     def _generate_sphere_mesh(self, ntheta, nphi, clip_free_surface=False, name=None):
         if clip_free_surface:
-            if self.center[2] < -self.radius:  # fully immersed
+            if self.geometric_center[2] < -self.radius:  # fully immersed
                 theta_max = np.pi
-            elif self.center[2] < self.radius:
-                theta_max = np.arccos(self.center[2]/self.radius)
+            elif self.geometric_center[2] < self.radius:
+                theta_max = np.arccos(self.geometric_center[2]/self.radius)
             else:
                 raise Exception("Sphere out of the water")
         else:
@@ -94,10 +94,10 @@ class Sphere(FloatingBody):
 
     def _generate_clever_sphere_mesh(self, ntheta=10, nphi=10, clip_free_surface=False, name=None):
         if clip_free_surface:
-            if self.center[2] < -self.radius:  # fully immersed
+            if self.geometric_center[2] < -self.radius:  # fully immersed
                 theta_max = np.pi
-            elif self.center[2] < self.radius:
-                theta_max = np.arccos(self.center[2]/self.radius)
+            elif self.geometric_center[2] < self.radius:
+                theta_max = np.arccos(self.geometric_center[2]/self.radius)
             else:
                 raise Exception("Sphere out of the water")
         else:
