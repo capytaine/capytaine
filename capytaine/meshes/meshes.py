@@ -134,7 +134,9 @@ class Mesh(Abstract3DObject):
         """Convert the Mesh object as a Mesh object from meshmagick.
         Mostly for debugging."""
         from meshmagick.mesh import Mesh
-        return Mesh(self.vertices, self.faces, name=self.name)
+        meshmagick_mesh = Mesh(self.vertices, self.faces, name=self.name)
+        meshmagick_mesh.heal_mesh()
+        return meshmagick_mesh
 
     ##################
     #  Extract face  #
