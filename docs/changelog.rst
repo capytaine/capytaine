@@ -3,6 +3,64 @@ Changelog
 =========
 
 ------------------
+New in version 1.0
+------------------
+
+Major changes
+-------------
+
+* The :code:`angle` parameter has been renamed to the more accurate name
+  :code:`wave_direction`.
+
+* Most of the modules have been reorganized in several packages. See the
+  :doc:`developer_manual/overview.rst` for some details.
+
+* Test compability of the code with Python 3.7 and numpy 1.16.
+
+* Remove a couple of unmaintained or unfinished submodules.
+
+Minor changes
+-------------
+
+General
+~~~~~~~
+
+* Many improvements of the documentation.
+
+* Reorganization of some of the tests.
+
+* Various small performance improvement.
+
+Mesh and bodies
+~~~~~~~~~~~~~~~
+
+* Rename :code:`center` into either :code:`geometric_center` or
+  :code:`center_of_mass` depending of the case.
+
+* New method for geometric bodies :code:`rotate_around_center_to_align_vectors`
+  replacing :code:`rotate_to_align_axes`.
+
+* Add methods :code:`sliced_by_plane` and :code:`minced` for hierarchical
+  decomposition of the mesh.
+
+* Symmetric meshes classes have been renamed::
+
+    ReflectionSymmetry -> ReflectionSymmetricMesh
+    etc.
+
+* Plane are now oriented: they are equal only if their normal point in the same
+  direction.
+
+Solver
+~~~~~~
+
+* Store solver settings in output dataset.
+
+* Rename setting :code:`use_symmetries` into :code:`hierarchical_toeplitz_matrices`.
+
+* Fix bugs and improve implementation of the Adaptive Cross Approximation.
+
+------------------
 New in version 0.6
 ------------------
 
