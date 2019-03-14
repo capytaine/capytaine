@@ -3,7 +3,7 @@
 """Helper functions to compute some properties of the mesh.
 Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """
-# Copyright (C) 2019 Matthieu Ancellin, based on the work of François Rongère
+# Copyright (C) 2017-2019 Matthieu Ancellin, based on the work of François Rongère
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import numpy as np

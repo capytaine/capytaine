@@ -3,7 +3,7 @@
 """This module implements several classes describing matrices defined by blocks.
 These matrices can be nested to recursively define Hierarchical matrices.
 """
-# Copyright (C) 2019 Matthieu Ancellin
+# Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 from capytaine.matrices.block import BlockMatrix

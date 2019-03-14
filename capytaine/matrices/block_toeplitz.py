@@ -5,7 +5,7 @@
 The module also contains several special cases such as block symmetric Toeplitz matrices and block circulant matrices.
 All classes inherits from the BlockMatrix class.
 """
-# Copyright (C) 2019 Matthieu Ancellin
+# Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging

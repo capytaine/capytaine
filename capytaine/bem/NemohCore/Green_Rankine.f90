@@ -1,4 +1,4 @@
-! Copyright (C) 2019 Matthieu Ancellin
+! Copyright (C) 2017-2019 Matthieu Ancellin
 ! See LICENSE file at <https://github.com/mancellin/capytaine>
 MODULE GREEN_RANKINE
 

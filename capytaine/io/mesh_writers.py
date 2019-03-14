@@ -3,7 +3,7 @@
 """Functions to write mesh to different file formats.
 Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """
-# Copyright (C) 2107-2019 Matthieu Ancellin, based on the work of François Rongère
+# Copyright (C) 2017-2019 Matthieu Ancellin, based on the work of François Rongère
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import os

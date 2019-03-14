@@ -4,7 +4,7 @@
 
 They are based on numpy solvers with a thin layer for the handling of Hierarchical Toeplitz matrices.
 """
-# Copyright (C) 2019 Matthieu Ancellin
+# Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging

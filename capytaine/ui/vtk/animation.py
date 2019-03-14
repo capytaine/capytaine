@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 """VTK animation for the free surface elevation."""
-# Copyright (C) 2019 Matthieu Ancellin
+# Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
