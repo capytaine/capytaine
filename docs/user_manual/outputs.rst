@@ -2,6 +2,19 @@
 Outputs
 =======
 
+Building a dataset
+------------------
+
+If you have a list of :code:`LinearPotentialFlowResult`, you can assemble
+them in a xarray dataset for a more convenient post-processing. Use the
+following syntax::
+
+   from capytaine import assemble_dataset
+   dataset = assemble_dataset(list_of_results)
+
+If you gave a test matrix to the :code:`Nemoh.fill_dataset` method, the
+output will directly be an xarray dataset.
+
 .. note:: The degrees of freedom in the dataset might not be in the same order
    as they were provided to the code. In particular `the creation of the dataset
    reorders them in alphabetical order <https://github.com/mancellin/capytaine/issues/4>`_.
