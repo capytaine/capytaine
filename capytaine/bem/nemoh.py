@@ -43,6 +43,8 @@ class Nemoh:
     tabulation_nb_integration_points: int, optional
         Number of points for the evaluation of the tabulated elementary integrals w.r.t. :math:`theta`
         used for the computation of the Green function (default: 251)
+    finite_depth_prony_decomposition_method: string, optional
+        The implementation of the Prony decomposition used to compute the finite depth Green function.
     use_symmetries: bool, optional
         if True, use the symmetries of the meshes when computing matrices and solving linear system
     ACA_distance: float, optional
@@ -67,6 +69,7 @@ class Nemoh:
 
     defaults_settings = dict(
         tabulation_nb_integration_points=251,
+        finite_depth_prony_decomposition_method='fortran',
         linear_solver='gmres',
         hierarchical_matrices=True,
         ACA_distance=np.infty,
@@ -389,10 +392,13 @@ class Nemoh:
                 *self.tabulated_integrals,
                 np.empty(1), np.empty(1),  # Dummy arrays that won't actually be used by the fortran code.
                 mesh1 is mesh2
-                )
+            )
         else:
-            a_exp, lamda_exp = find_best_exponential_decomposition(wavenumber*depth*np.tanh(wavenumber*depth),
-                                                                   wavenumber*depth)
+            a_exp, lamda_exp = find_best_exponential_decomposition(
+                wavenumber*depth*np.tanh(wavenumber*depth),
+                wavenumber*depth,
+                method=self.settings['finite_depth_prony_decomposition_method'],
+            )
 
             return NemohCore.green_wave.build_matrices_wave_source(
                 mesh1.faces_centers, mesh1.faces_normals,

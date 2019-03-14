@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Prony decomposition: tool to approximate a function as a sum of exponentials."""
+"""Prony decomposition: tool to approximate a function as a sum of exponentials.
+Used in particular in the finite depth Green function.
+"""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
@@ -16,19 +18,38 @@ import capytaine.bem.NemohCore as NemohCore
 
 LOG = logging.getLogger(__name__)
 
-PYTHON_METHOD = False
-
 
 @lru_cache(maxsize=128)
-def find_best_exponential_decomposition(dimensionless_omega, dimensionless_wavenumber):
+def find_best_exponential_decomposition(dimensionless_omega, dimensionless_wavenumber, method='fortran'):
     """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
-    Results are cached."""
+
+    Two implementations are available: the legacy Fortran implementation from Nemoh and a newer one written in Python.
+    For some still unexplained reasons, the two implementations do not always give the exact same result.
+    Until the problem is better understood, the Fortran implementation is the default one, to ensure consistency with Nemoh.
+    The Fortran version is also significantly faster...
+
+    Results are cached.
+
+    Parameters
+    ----------
+    dimensionless_omega: float
+        wavenumber*depth*np.tanh(wavenumber*depth)
+    dimensionless_wavenumber: float
+        wavenumber*depth
+    method: string, optional
+        the implementation that should be used to compute the Prony decomposition
+
+    Returns
+    -------
+    Tuple[np.ndarray, np.ndarray]
+        the amplitude and growth rates of the exponentials
+    """
 
     LOG.debug(f"\tCompute Prony decomposition in finite depth Green function "
               f"for dimless_omega=%.2e and dimless_wavenumber=%.2e",
               dimensionless_omega, dimensionless_wavenumber)
 
-    if PYTHON_METHOD:
+    if method.lower() == 'python':
         # The function that will be approximated.
         @np.vectorize
         def f(x):
@@ -47,13 +68,17 @@ def find_best_exponential_decomposition(dimensionless_omega, dimensionless_waven
                 break
 
         else:
-            LOG.warning(f"No suitable exponential decomposition has been found for dimless_omega=%.2e and dimless_wavenumber=%.2e",
+            LOG.warning("No suitable exponential decomposition has been found"
+                        "for dimless_omega=%.2e and dimless_wavenumber=%.2e",
                         dimensionless_omega, dimensionless_wavenumber)
 
-    else:
+    elif method.lower() == 'fortran':
         lamda, a, nexp = NemohCore.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
         lamda = lamda[:nexp]
         a = a[:nexp]
+
+    else:
+        raise ValueError("Unrecognized method name for the Prony decomposition.")
 
     # Add one more exponential function (actually a constant).
     # It is not clear where it comes from exactly in the theory...
