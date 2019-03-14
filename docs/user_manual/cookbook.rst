@@ -47,6 +47,32 @@ Simulation with several bodies
 Intermediate examples
 =====================
 
+Animated free surface elevation
+-------------------------------
+
+This example solves a diffraction problem, it computes the free surface elevation and shows it as a
+3D animation.
+
+.. literalinclude:: examples/animate_free_surface.py
+   :language: python
+
+Animation of the RAO
+--------------------
+
+This script generates the animation of the RAO motion for a wave incoming in front of a ship,
+such as the one used on the main page of this documentation.
+
+.. literalinclude:: examples/boat_animation.py
+   :language: python
+
+Kochin function
+---------------
+
+This example computes the Kochin function for a surging buoy and plot the results.
+
+.. literalinclude:: examples/kochin.py
+   :language: python
+
 Symmetric body
 --------------
 
@@ -64,29 +90,6 @@ this floating body.
 
 .. literalinclude:: examples/axisymmetric_buoy.py
    :language: python
-
-Animated free surface elevation
--------------------------------
-
-This example solves a diffraction problem, it computes the free surface elevation and shows it as a
-3D animation.
-
-.. literalinclude:: examples/animate_free_surface.py
-   :language: python
-
-Animation of the RAO
---------------------
-
-This script generate the animation of the RAO motion for a wave incoming in front of a ship,
-such as the one used on the main page of this documentation.
-
-.. literalinclude:: examples/boat_animation.py
-   :language: python
-
-Kochin function
----------------
-
-TODO
 
 Advanced examples
 =================
