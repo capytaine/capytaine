@@ -13,7 +13,8 @@ bem_solver = cpt.Nemoh(linear_solver="gmres")
 
 
 def generate_boat() -> cpt.FloatingBody:
-    boat = cpt.FloatingBody.from_file("boat_750.mar", file_format="mar", name="pirate ship")
+    boat = cpt.FloatingBody.from_file("boat_200.mar", file_format="mar", name="pirate ship")
+    boat.rotate_z(pi)
     boat.add_all_rigid_body_dofs()
     boat.keep_immersed_part()
 
@@ -28,12 +29,12 @@ def generate_boat() -> cpt.FloatingBody:
          [0,   0,   0,   2e5, 0,   5e7]]
     )
     boat.hydrostatic_stiffness = boat.add_dofs_labels_to_matrix(
-        [[0, 0, 0,   0,   0,   0],
-         [0, 0, 0,   0,   0,   0],
-         [0, 0, 3e6, 0,   7e6, 0],
-         [0, 0, 0,   2e7, 0,   0],
-         [0, 0, 7e6, 0,   1e8, 0],
-         [0, 0, 0,   0,   0,   0]]
+        [[0, 0, 0,    0,   0,    0],
+         [0, 0, 0,    0,   0,    0],
+         [0, 0, 3e6,  0,   -7e6, 0],
+         [0, 0, 0,    2e7, 0,    0],
+         [0, 0, -7e6, 0,   1e8,  0],
+         [0, 0, 0,    0,   0,    0]]
     )
     return boat
 
@@ -73,10 +74,10 @@ if __name__ == '__main__':
     fs = cpt.FreeSurface(x_range=(-100, 100), y_range=(-100, 100), nx=100, ny=100)
 
     wave_direction = 0.0
-    omega = 1.0
+    omega = 1.5
 
     anim = setup_animation(body, fs, omega=omega, wave_amplitude=0.5, wave_direction=wave_direction)
-    anim.run(camera_position=(60, 60, 90), resolution=(800, 600))
+    anim.run(camera_position=(-60, -60, 90), resolution=(800, 600))
 
     filename = f"{body.name}__omega_{omega:.2f}__beta_{wave_direction:.2f}.ogv"
     filepath = Path.cwd() / filename
