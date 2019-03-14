@@ -13,7 +13,7 @@ Major changes
   :code:`wave_direction`.
 
 * Most of the modules have been reorganized in several packages. See the
-  :doc:`developer_manual/overview.rst` for some details.
+  :doc:`developer_manual/overview` for some details.
 
 * Test compability of the code with Python 3.7 and numpy 1.16.
 

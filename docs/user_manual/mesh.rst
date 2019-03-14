@@ -41,7 +41,7 @@ The formats currently supported by Meshmagick in reading are the following (from
 +-----------+-----------------+----------------------+
 |   .nat    |    -            | natural, nat         |
 +-----------+-----------------+----------------------+
-|   .msh    | GMSH [#f5]_     | gmsh, msh            |
+|   .msh    | GMSH 2 [#f5]_   | gmsh, msh            |
 +-----------+-----------------+----------------------+
 |   .rad    | RADIOSS         | rad, radioss         |
 +-----------+-----------------+----------------------+
@@ -65,7 +65,8 @@ The formats currently supported by Meshmagick in reading are the following (from
 .. [#f4] HYDROSTAR is a BEM Software for seakeeping developped by
          BUREAU VERITAS
 .. [#f5] GMSH is an open source meshing software developped by C. Geuzaine
-         and J.-F. Remacle
+         and J.-F. Remacle. Version 4 of the file format is not supported at the
+         moment.
 .. [#f6] PARAVIEW is an open source visualization software developped by
          Kitware
 .. [#f7] TECPLOT is a visualization software developped by Tecplot
