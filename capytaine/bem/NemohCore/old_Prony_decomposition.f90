@@ -6,14 +6,13 @@ MODULE Old_Prony_decomposition
 
   IMPLICIT NONE
 
-! The code below perform the approximation of the function FF as a sum of
-! exponentials. They have been partially commented and refactored. A more
-! readable and maintainable Python version has been implemented in bem/nemoh.py.
-! However, as of today (January 2018), the python version is ~100 times slower
-! than the Fortran version below. Thus, the code below has been preserved. It
-! could become useful if ever this part of the code would become time critical.
+! The code below performs the approximation of the function FF as a sum of exponentials.
+! Unlike the rest of the Fortran code, this module has not been completely refactored.
+! A more readable and maintainable Python version has been implemented in capytaine/bem/prony_decomposition.py.
+! However, as of today (March 2019), the two versions do not give exactly the same result in all cases.
+! For compatibility with Nemoh, the old version has thus been preserved.
 
-! Unlike the rest of the Fortran code, these functions are only in single precision.
+! Unlike most of the rest of the Fortran code, these functions are only in single precision.
 
   PUBLIC :: FF
   PUBLIC :: LISC   ! Initialization of AMBDA and AR

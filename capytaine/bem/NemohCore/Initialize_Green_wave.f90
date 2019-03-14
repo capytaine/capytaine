@@ -76,6 +76,8 @@ CONTAINS
     ! References:
     ! [1] Delhommeau, Amélioration des codes de calcul de diffraction-radiation, 2èmes journées de l'hydrodynamique, 1989
     ! [2] Babarit and Delhommeau, Theoretical and numerical aspects of the open source BEM solver NEMOH, EWTEC 2015
+    ! [3] Xie et al., Comparison of existing methods for the calculation of the infinite water depth free-surface Green
+    !                 function for the wave-structure interaction problem, Applied Ocean Research, 2018
 
     ! Inputs
     INTEGER, INTENT(IN) :: IR     != 328

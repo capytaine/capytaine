@@ -15,8 +15,8 @@ CONTAINS
       (M,                                                           &
       Face_nodes, Face_center, Face_normal, Face_area, Face_radius, &
       S0, VS0)
-    ! Estimate the integral over the face S0 = ∫∫ 1/MM' dS(M')
-    ! and its derivative with respect to M.
+    ! Estimate the integral S0 = ∫∫ 1/MM' dS(M') over a face
+    ! and its derivative VS0 with respect to M.
 
     ! Based on formulas A6.1 and A6.3 (p. 381 to 383)
     ! in G. Delhommeau thesis (referenced below as [Del]).
