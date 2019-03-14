@@ -34,7 +34,7 @@ Documentation
 .. toctree::
    :maxdepth: 2
 
-   developer_manual//index.rst
+   developer_manual/index.rst
 
 .. toctree::
    :maxdepth: 2

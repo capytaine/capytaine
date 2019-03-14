@@ -2,8 +2,8 @@
 Installation for developers
 ===========================
 
-Capytaine requires **Python 3.6**.
-(It should work on later versions although it has not been tested yet.)
+Capytaine requires **Python 3.6** or higher.
+It has been successfully tested on Python 3.6 and 3.7, and Numpy 1.15 and 1.16.
 
 It is recommended to use a `conda environment`_.
 
@@ -40,4 +40,6 @@ Add the current directory to the Python path with the following command::
 
     pip install -e .
 
-(This last two commands are included into the ``Makefile`` of the main directory. They can be run by ``make develop``. The command ``make clean`` delete the binaries.)
+(This last two commands are included into the ``Makefile`` of the main directory.
+They can be run by ``make develop``.
+The command ``make clean`` deletes the binaries.)
