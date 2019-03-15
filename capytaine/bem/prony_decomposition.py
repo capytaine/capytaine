@@ -33,9 +33,9 @@ def find_best_exponential_decomposition(dimensionless_omega, dimensionless_waven
     Parameters
     ----------
     dimensionless_omega: float
-        wavenumber*depth*np.tanh(wavenumber*depth)
+        dimensionless angular frequency: :math:`kh \\tanh (kh) = \omega^2 h/g`
     dimensionless_wavenumber: float
-        wavenumber*depth
+        dimensionless wavenumber: :math:`kh`
     method: string, optional
         the implementation that should be used to compute the Prony decomposition
 
