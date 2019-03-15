@@ -10,7 +10,7 @@ cylinder = cpt.HorizontalCylinder(
 )
 
 # Use Nemoh to compute the influence matrices
-solver = cpt.Nemoh(use_symmetries=False)
+solver = cpt.Nemoh(hierarchical_matrices=False)
 S, K = solver.build_matrices(cylinder.mesh, cylinder.mesh, wavenumber=1.0)
 
 # Plot the absolute value of the matrix V
