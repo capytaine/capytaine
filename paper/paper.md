@@ -19,7 +19,7 @@ affiliations:
    index: 1
 date: 19 March 2019
 bibliography: paper.bib
-nocite: '@folley_numerical_2016; @babarit_ocean_2017'
+nocite: '@folley_numerical_2016; @babarit_ocean_2017; @matplotlib'
 ---
 
 # Context
