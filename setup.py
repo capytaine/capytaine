@@ -20,6 +20,7 @@ NemohCore = Extension(
         "capytaine/bem/NemohCore/old_Prony_decomposition.f90",
     ],
     extra_compile_args=['-O2', '-fopenmp'],
+    extra_f90_compile_args=['-O2', '-fopenmp'],
     extra_link_args=['-fopenmp'],
     # # Uncomment the following lines to get more verbose output from f2py.
     # define_macros=[
