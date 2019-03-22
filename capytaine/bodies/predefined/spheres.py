@@ -17,29 +17,30 @@ LOG = logging.getLogger(__name__)
 
 
 class Sphere(FloatingBody):
+    """Sphere
+
+    Parameters
+    ----------
+    radius : float
+        radius of the sphere
+    center : 3-ple or array of shape (3,)
+        position of the geometric center of the sphere
+    ntheta : int
+        number of panels along a meridian (or number of parallels-1)
+    nphi : int
+        number of panels along a parallel (or number of meridian-1)
+    clever : bool
+        if True, use the symmetries to build the mesh (default: True)
+    clip_free_surface : bool
+        if True, only mesh the part of the sphere where z < 0 (default: False),
+        can be used with center to obtain any clipped sphere.
+    name : string
+        a name identifying the sphere (default: "sphere_id" where id is an unique integer).
+    """
+
     def __init__(self, radius=1.0, center=(0, 0, 0),
                  ntheta=10, nphi=10, clever=True, clip_free_surface=False,
                  name=None):
-        """Generate a sphere.
-
-        Parameters
-        ----------
-        radius : float
-            radius of the sphere
-        center : 3-ple or array of shape (3,)
-            position of the geometric center of the sphere
-        ntheta : int
-            number of panels along a meridian (or number of parallels-1)
-        nphi : int
-            number of panels along a parallel (or number of meridian-1)
-        clever : bool
-            if True, use the symmetries to build the mesh (default: True)
-        clip_free_surface : bool
-            if True, only mesh the part of the sphere where z < 0 (default: False),
-            can be used with center to obtain any clipped sphere.
-        name : string
-            a name identifying the sphere (default: "sphere_id" where id is an unique integer).
-        """
         self.radius = radius
         self.geometric_center = np.array(center, dtype=np.float)
 

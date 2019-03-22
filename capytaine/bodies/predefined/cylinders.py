@@ -23,31 +23,30 @@ LOG = logging.getLogger(__name__)
 ##########
 
 class Disk(FloatingBody):
-    """(One-sided) disk"""
+    """(One-sided) disk.
+
+    Parameters
+    ----------
+    radius : float, optional
+        radius of the disk
+    resolution : 2-ple of int, optional
+        number of panels along a radius and around the disk
+    center : 3-ple or array of shape (3,), optional
+        position of the geometric center of the disk
+    normal: 3-ple of floats, optional
+        normal vector, default: along x axis
+    axial_symmetry : bool, optional
+        if True, use the axial symmetry to speed up the computations
+    reflection_symmetry : bool, optional
+        if True, use the reflection symmetry to speed up the computations
+    name : str, optional
+        a string naming the floating body
+    """
 
     def __init__(self, radius=1.0, resolution=(3, 5),
                  center=(0, 0, 0), normal=(1, 0, 0),
                  reflection_symmetry=False, axial_symmetry=False,
                  name=None):
-        """Generate the mesh of a vertical disk.
-
-        Parameters
-        ----------
-        radius : float, optional
-            radius of the disk
-        resolution : 2-ple of int, optional
-            number of panels along a radius and around the disk
-        center : 3-ple or array of shape (3,), optional
-            position of the geometric center of the disk
-        normal: 3-ple of floats, optional
-            normal vector, default: along x axis
-        axial_symmetry : bool, optional
-            if True, use the axial symmetry to speed up the computations
-        reflection_symmetry : bool, optional
-            if True, use the reflection symmetry to speed up the computations
-        name : str, optional
-            a string naming the floating body
-        """
         assert radius > 0, "Radius of the disk mesh should be given as a positive value."
 
         assert len(resolution) == 2, "Resolution of a disk should be given as a couple a values."
@@ -130,30 +129,31 @@ class Disk(FloatingBody):
 ##############
 
 class HorizontalCylinder(FloatingBody):
+    """Horizontal cylinder
+
+    Parameters
+    ----------
+    length : float, optional
+        length of the cylinder
+    radius : float, optional
+        radius of the cylinder
+    center : 3-ple or array of shape (3,), optional
+        position of the geometric center of the cylinder
+    nx : int, optional
+        number of circular slices
+    ntheta : int, optional
+        number of panels along a circular slice of the cylinder
+    nr : int, optional
+        number of panels along a radius on the extremities of the cylinder
+    clever : bool, optional
+        if True, uses the mesh symmetries
+    name : str, optional
+        a string naming the floating body
+    """
+
     def __init__(self, length=10.0, radius=1.0, center=(0, 0, 0),
                  nx=10, ntheta=10, nr=2,
                  clever=True, name=None):
-        """Generate the mesh of an horizontal cylinder.
-
-        Parameters
-        ----------
-        length : float, optional
-            length of the cylinder
-        radius : float, optional
-            radius of the cylinder
-        center : 3-ple or array of shape (3,), optional
-            position of the geometric center of the cylinder
-        nx : int, optional
-            number of circular slices
-        ntheta : int, optional
-            number of panels along a circular slice of the cylinder
-        nr : int, optional
-            number of panels along a radius on the extremities of the cylinder
-        clever : bool, optional
-            if True, uses the mesh symmetries
-        name : str, optional
-            a string naming the floating body
-        """
         self.length = length
         self.radius = radius
         self.geometric_center = np.asarray(center, dtype=np.float)
@@ -221,30 +221,31 @@ class HorizontalCylinder(FloatingBody):
 
 
 class VerticalCylinder(FloatingBody):
+    """Vertical cylinder.
+
+    Parameters
+    ----------
+    length : float, optional
+        length of the cylinder
+    radius : float, optional
+        radius of the cylinder
+    center : 3-ple or array of shape (3,), optional
+        position of the geometric center of the cylinder
+    nx : int, optional
+        number of circular slices
+    ntheta : int, optional
+        number of panels along a circular slice of the cylinder
+    nr : int, optional
+        number of panels along a radius on the extremities of the cylinder
+    clever : bool, optional
+        if True, uses the mesh symmetries
+    name : str, optional
+        a string naming the floating body
+    """
+
     def __init__(self, length=10.0, radius=1.0, center=(0, 0, 0),
                  nx=10, ntheta=10, nr=2,
                  clever=True, name=None):
-        """Generate the mesh of a vertical cylinder.
-
-        Parameters
-        ----------
-        length : float, optional
-            length of the cylinder
-        radius : float, optional
-            radius of the cylinder
-        center : 3-ple or array of shape (3,), optional
-            position of the geometric center of the cylinder
-        nx : int, optional
-            number of circular slices
-        ntheta : int, optional
-            number of panels along a circular slice of the cylinder
-        nr : int, optional
-            number of panels along a radius on the extremities of the cylinder
-        clever : bool, optional
-            if True, uses the mesh symmetries
-        name : str, optional
-            a string naming the floating body
-        """
         self.length = length
         self.radius = radius
         self.geometric_center = np.asarray(center, dtype=np.float)
