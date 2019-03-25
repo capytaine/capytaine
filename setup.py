@@ -60,7 +60,7 @@ if __name__ == "__main__":
           url='http://github.com/mancellin/capytaine',
           author='Matthieu Ancellin',
           author_email='matthieu.ancellin@ucd.ie',
-          license='GPLv3',
+          license='GPL-3.0',
           packages=[
               'capytaine',
               'capytaine.meshes',
