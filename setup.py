@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     setup(name='capytaine',
           version=find_version('capytaine', '__init__.py'),
-          description='Python-based distribution of Nemoh',
+          description='a Python-based linear potential flow solver',
           url='http://github.com/mancellin/capytaine',
           author='Matthieu Ancellin',
           author_email='matthieu.ancellin@ucd.ie',
