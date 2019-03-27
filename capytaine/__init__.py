@@ -4,7 +4,7 @@
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 __author__ = 'Matthieu Ancellin'
-__version__ = '1.0'
+__version__ = '1.0.1'
 __license__ = 'GPL-3.0'
 
 from capytaine.meshes.geometry import Axis, Plane, xOz_Plane, yOz_Plane, xOy_Plane
