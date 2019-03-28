@@ -23,30 +23,30 @@ ROTATION_DOFS_AXIS = {"roll": (1, 0, 0), "pitch": (0, 1, 0), "yaw": (0, 0, 1)}
 
 
 class FloatingBody(Abstract3DObject):
+    """A floating body described as a mesh and some degrees of freedom.
+
+    The mesh structure is stored as a Mesh from capytaine.mesh.mesh or a
+    CollectionOfMeshes from capytaine.mesh.meshes_collection.
+
+    The degrees of freedom (dofs) are stored as a dict associating a name to
+    a complex-valued array of shape (nb_faces, 3). To each face of the body
+    (as indexed in the mesh) corresponds a complex-valued 3d vector, which
+    defines the displacement of the center of the face in frequency domain.
+
+    Parameters
+    ----------
+    mesh : Mesh or CollectionOfMeshes, optional
+        the mesh describing the geometry of the floating body.
+        If none is given, a empty one is created.
+    dofs : dict, optional
+        the degrees of freedom of the body.
+        If none is given, a empty dictionary is initialized.
+    name : str, optional
+        a name for the body.
+        If none is given, the one of the mesh is used.
+    """
 
     def __init__(self, mesh=None, dofs=None, name=None):
-        """A floating body described as a mesh and some degrees of freedom.
-
-        The mesh structure is stored as a Mesh from capytaine.mesh.mesh or a
-        CollectionOfMeshes from capytaine.mesh.meshes_collection.
-
-        The degrees of freedom (dofs) are stored as a dict associating a name to
-        a complex-valued array of shape (nb_faces, 3). To each face of the body
-        (as indexed in the mesh) corresponds a complex-valued 3d vector, which
-        defines the displacement of the center of the face in frequency domain.
-
-        Parameters
-        ----------
-        mesh : Mesh or CollectionOfMeshes, optional
-            the mesh describing the geometry of the floating body.
-            If none is given, a empty one is created.
-        dofs : dict, optional
-            the degrees of freedom of the body.
-            If none is given, a empty dictionary is initialized.
-        name : str, optional
-            a name for the body.
-            If none is given, the one of the mesh is used.
-        """
         if mesh is None:
             mesh = Mesh(name="dummy_mesh")
 

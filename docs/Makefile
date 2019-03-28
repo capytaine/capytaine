@@ -29,3 +29,12 @@ test: show
 autodoc:
 	rm -rf developer_manual/api/capytaine*.rst
 	sphinx-apidoc -o developer_manual/api/ ../capytaine --separate --doc-project "API documentation"
+
+
+REMOTE_PATH=/var/www/html/capytaine
+REMOTE_NAME=vps
+VERSION=$(shell python -c 'import capytaine; print(capytaine.__version__)')
+upload: html
+	ssh $(REMOTE_NAME) "cd $(REMOTE_PATH) && mkdir $(VERSION) && rm latest && ln -s $(VERSION) latest"
+	rsync -a _build/html/* $(REMOTE_NAME):$(REMOTE_PATH)/$(VERSION)/
+

@@ -20,6 +20,7 @@ NemohCore = Extension(
         "capytaine/bem/NemohCore/old_Prony_decomposition.f90",
     ],
     extra_compile_args=['-O2', '-fopenmp'],
+    extra_f90_compile_args=['-O2', '-fopenmp'],
     extra_link_args=['-fopenmp'],
     # # Uncomment the following lines to get more verbose output from f2py.
     # define_macros=[
@@ -55,11 +56,11 @@ if __name__ == "__main__":
 
     setup(name='capytaine',
           version=find_version('capytaine', '__init__.py'),
-          description='Python-based distribution of Nemoh',
+          description='a Python-based linear potential flow solver',
           url='http://github.com/mancellin/capytaine',
           author='Matthieu Ancellin',
           author_email='matthieu.ancellin@ucd.ie',
-          license='GPLv3',
+          license='GPL-3.0',
           packages=[
               'capytaine',
               'capytaine.meshes',

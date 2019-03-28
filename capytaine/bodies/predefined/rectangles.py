@@ -19,33 +19,31 @@ LOG = logging.getLogger(__name__)
 
 
 class Rectangle(FloatingBody):
-    """(One-sided) rectangle"""
+    """One-sided vertical rectangle (along y and z).
+
+    By default, the normals are oriented in the positive y direction.
+
+    Parameters
+    ----------
+    size : couple of floats, optional
+        dimensions of the rectangle (width and height)
+    resolution : couple of ints, optional
+        number of faces along each of the two directions
+    center : 3-ple of floats, optional
+        position of the geometric center of the rectangle, default: (0, 0, 0)
+    normal: 3-ple of floats, optional
+        normal vector, default: along x axis
+    translational_symmetry : bool, optional
+        if True, use the translation symmetry to speed up the computations
+    reflection_symmetry : bool, optional
+        if True, use the reflection symmetry to speed up the computations
+    name : string, optional
+        a name for the body
+    """
 
     def __init__(self, size=(5.0, 5.0), resolution=(5, 5),
                  center=(0, 0, 0), normal=(1, 0, 0),
                  translational_symmetry=False, reflection_symmetry=False, name=None):
-        """Generate the mesh of a vertical rectangle (along y and z).
-
-        Normals are oriented in the positive y direction.
-
-        Parameters
-        ----------
-        size : couple of floats, optional
-            dimensions of the rectangle (width and height)
-        resolution : couple of ints, optional
-            number of faces along each of the two directions
-        center : 3-ple of floats, optional
-            position of the geometric center of the rectangle, default: (0, 0, 0)
-        normal: 3-ple of floats, optional
-            normal vector, default: along x axis
-        translational_symmetry : bool, optional
-            if True, use the translation symmetry to speed up the computations
-        reflection_symmetry : bool, optional
-            if True, use the reflection symmetry to speed up the computations
-        name : string, optional
-            a name for the body
-        """
-
         assert len(size) == 2, "Size of a rectangle should be given as a couple of values."
         assert all([h > 0 for h in size]), "Size of the rectangle mesh should be given as positive values."
 
@@ -134,6 +132,29 @@ class Rectangle(FloatingBody):
 
 
 class RectangularParallelepiped(FloatingBody):
+    """Six rectangles forming a parallelepiped.
+
+    Parameters
+    ----------
+    size : 3-ple of floats, optional
+        dimensions of the parallelepiped (width, thickness, height) for coordinates (x, y, z).
+    resolution : 3-ple of ints, optional
+        number of faces along the three directions
+    center : 3-ple of floats, optional
+        coordinates of the geometric center of the parallelepiped
+    top: bool, optional
+        whether or not to close the parallelepiped on the top
+    bottom: bool, optional
+        whether or not to close the parallelepiped on the bottom
+    reflection_symmetry : bool, optional
+        use xOz and yOz symmetry plane to generate the mesh
+    translational_symmetry : bool, optional
+        if True, use the translation symmetry in the x direction to speed up the computations.
+        To use the translation symmetry in the y direction, create a x-symmetric body and then rotate it by pi/2.
+    name : string, optional
+        a name for the body
+    """
+
     def __init__(self,
                  size=(1.0, 1.0, 1.0), resolution=(4, 4, 4),
                  center=(0, 0, 0),
@@ -141,28 +162,6 @@ class RectangularParallelepiped(FloatingBody):
                  reflection_symmetry=False,
                  translational_symmetry=False,
                  name=None):
-        """Generate the mesh of six rectangles forming a parallelepiped.
-
-        Parameters
-        ----------
-        size : 3-ple of floats, optional
-            dimensions of the parallelepiped (width, thickness, height) for coordinates (x, y, z).
-        resolution : 3-ple of ints, optional
-            number of faces along the three directions
-        center : 3-ple of floats, optional
-            coordinates of the geometric center of the parallelepiped
-        top: bool, optional
-            whether or not to close the parallelepiped on the top
-        bottom: bool, optional
-            whether or not to close the parallelepiped on the bottom
-        reflection_symmetry : bool, optional
-            use xOz and yOz symmetry plane to generate the mesh
-        translational_symmetry : bool, optional
-            if True, use the translation symmetry in the x direction to speed up the computations.
-            To use the translation symmetry in the y direction, create a x-symmetric body and then rotate it by pi/2.
-        name : string, optional
-            a name for the body
-        """
 
         assert len(size) == 3, "Size of a rectangular parallelepiped should be given as a 3-ple of values."
         assert all([h > 0 for h in size]), "Size of the rectangular mesh should be given as positive values."
