@@ -2,6 +2,17 @@
 Changelog
 =========
 
+--------------------
+New in version 1.0.1
+--------------------
+
+Minor changes
+-------------
+
+* Fix compilation flags for OpenMP
+
+* Minor corrections in the documentation.
+
 ------------------
 New in version 1.0
 ------------------
