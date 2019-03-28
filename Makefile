@@ -30,4 +30,8 @@ clean:
 	rm -rf .pytest_cache/
 	rm -rf __pycache__ */__pycache__ */*/__pycache__
 
-.PHONY: update_fortran develop test clean
+pypi: clean
+	python setup.py sdist
+	python -m twine upload dist/capytaine*.tar.gz
+
+.PHONY: update_fortran develop test clean pypi
