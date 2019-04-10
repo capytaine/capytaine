@@ -1,8 +1,7 @@
 # Capytaine: a Python-based distribution of Nemoh
 
 [![Travis Build Status](https://travis-ci.org/mancellin/capytaine.svg?branch=master)](https://travis-ci.org/mancellin/capytaine)
-[![Appveyor Build Status](https://ci.appveyor.com/api/projects/status/github/mancellin/capytaine?branch=master&svg=true)](https://ci.appveyor.com/project/mancellin/capytaine)
-[![DOI](https://zenodo.org/badge/103753001.svg)](https://zenodo.org/badge/latestdoi/103753001)
+[![DOI](http://joss.theoj.org/papers/10.21105/joss.01341/status.svg)](https://doi.org/10.21105/joss.01341)
 
 Capytaine is Python package for the simulation of the interaction between water waves and floating bodies in frequency domain.
 It is built around a full rewrite of the open source Boundary Element Method (BEM) solver Nemoh for the linear potential flow wave theory.
