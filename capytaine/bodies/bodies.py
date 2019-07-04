@@ -433,3 +433,11 @@ class FloatingBody(Abstract3DObject):
     def show_matplotlib(self, *args, **kwargs):
         return self.mesh.show_matplotlib(*args, **kwargs)
 
+    def animate_dof(self, dof_name, *args, **kwargs):
+        from capytaine.ui.vtk.animation import Animation
+        animation = Animation(*args, **kwargs)
+        animation._add_actor(self.mesh, faces_motion=self.dofs[dof_name])
+        animation.run()
+        return animation
+
+
