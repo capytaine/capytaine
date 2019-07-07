@@ -45,7 +45,7 @@ class Nemoh:
         used for the computation of the Green function (default: 251)
     finite_depth_prony_decomposition_method: string, optional
         The implementation of the Prony decomposition used to compute the finite depth Green function.
-    use_symmetries: bool, optional
+    hierarchical_matrices: bool, optional
         if True, use the symmetries of the meshes when computing matrices and solving linear system
     ACA_distance: float, optional
         Above this distance, the ACA is used to approximate the matrix with a low-rank block.
@@ -58,7 +58,8 @@ class Nemoh:
         number of matrices to keep in cache
     linear_solver: str or function, optional
         Setting of the numerical solver for linear problems Ax = b.
-        It can be set with the name of a preexisting solver (available: "direct" [default], "gmres", "store_lu")
+        It can be set with the name of a preexisting solver
+        (available: "direct" and "gmres", the latter is the default)
         or by passing directly a solver function.
 
     Attributes
