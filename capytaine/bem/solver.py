@@ -161,20 +161,22 @@ class BEMSolver:
             Please re-run the resolution with this option.""")
 
         if chunk_size > mesh.nb_faces:
-            S = self.engine.build_S_matrix_for_reconstruction(
-                result.problem,
+            S = self.engine.build_S_matrix(
                 mesh,
-                self.green_function,
+                result.body.mesh,
+                result.free_surface, result.sea_bottom, result.wavenumber,
+                self.green_function
             )
             phi = S @ result.sources
-        else:
 
+        else:
             phi = np.empty((mesh.nb_faces,), dtype=np.complex128)
             for i in range(0, mesh.nb_faces, chunk_size):
                 S = self.engine.build_S_matrix_for_reconstruction(
-                    result.problem,
                     mesh.extract_faces(list(range(i, i+chunk_size))),
-                    self.green_function,
+                    result.body.mesh,
+                    result.free_surface, result.sea_bottom, result.wavenumber,
+                    self.green_function
                 )
                 phi[i:i+chunk_size] = S @ result.sources
 
