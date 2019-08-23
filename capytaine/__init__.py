@@ -18,7 +18,7 @@ from capytaine.bodies.predefined.cylinders import VerticalCylinder, HorizontalCy
 from capytaine.bodies.predefined.rectangles import Rectangle, RectangularParallelepiped, OpenRectangularParallelepiped
 
 from capytaine.bem.problems_and_results import RadiationProblem, DiffractionProblem
-from capytaine.bem.nemoh import Nemoh
+from capytaine.bem.solver import Nemoh
 from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.io.xarray import assemble_dataset
