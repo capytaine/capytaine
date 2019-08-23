@@ -28,15 +28,17 @@ LOG = logging.getLogger(__name__)
 
 class BEMSolver:
 
-    def __init__(self,
-                 green_function=Delhommeau(),
-                 engine=BasicEngine(),
-                 ):
+    def __init__(self, green_function=Delhommeau(), engine=BasicEngine()):
         self.green_function = green_function
         self.engine = engine
 
+        self.exportable_settings = {
+            **self.green_function.exportable_settings,
+            **self.engine.exportable_settings
+        }
+
     def solve(self, problem, keep_details=True):
-        """Solve the BEM problem using Nemoh.
+        """Solve the linear potential flow problem.
 
         Parameters
         ----------
@@ -57,7 +59,11 @@ class BEMSolver:
             LOG.warning(f"Resolution of the mesh (8×max_radius={8*problem.body.mesh.faces_radiuses.max():.2e}) "
                         f"might be insufficient for this wavelength (wavelength={problem.wavelength:.2e})!")
 
-        S, K = self.engine.build_matrices(problem, self.green_function)
+        S, K = self.engine.build_matrices(
+            problem.body.mesh, problem.body.mesh,
+            problem.free_surface, problem.sea_bottom, problem.wavenumber,
+            self.green_function
+        )
         sources = self.engine.linear_solver(K, problem.boundary_condition)
         potential = S @ sources
 
@@ -96,10 +102,6 @@ class BEMSolver:
         """
         return [self.solve(problem, **kwargs) for problem in sorted(problems)]
 
-    def exportable_settings(self):
-        return {**self.green_function.exportable_settings,
-                **self.engine.exportable_settings}
-
     def fill_dataset(self, dataset, bodies, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
@@ -115,7 +117,7 @@ class BEMSolver:
         xarray Dataset
         """
         attrs = {'start_of_computation': datetime.now().isoformat(),
-                 **self.exportable_settings()}
+                 **self.exportable_settings}
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
             results = self.solve_all(problems, keep_details=True)
@@ -158,11 +160,23 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        # Legacy
-        self.engine.S_chunk_size = chunk_size
+        if chunk_size > mesh.nb_faces:
+            S = self.engine.build_S_matrix_for_reconstruction(
+                result.problem,
+                mesh,
+                self.green_function,
+            )
+            phi = S @ result.sources
+        else:
 
-        S = self.engine.build_S_matrix_for_reconstruction(result.problem, mesh, self.green_function)
-        phi = S @ result.sources
+            phi = np.empty((mesh.nb_faces,), dtype=np.complex128)
+            for i in range(0, mesh.nb_faces, chunk_size):
+                S = self.engine.build_S_matrix_for_reconstruction(
+                    result.problem,
+                    mesh.extract_faces(list(range(i, i+chunk_size))),
+                    self.green_function,
+                )
+                phi[i:i+chunk_size] = S @ result.sources
 
         LOG.debug(f"Done computing potential on {mesh.name} for {result}.")
 
@@ -208,19 +222,21 @@ class Nemoh(BEMSolver):
     """
 
     def __init__(self, **params):
-        self.green_function = Delhommeau(
+        green_function = Delhommeau(
            **{key: params[key] for key in params if key in _arguments(Delhommeau.__init__)}
 	)
         if 'hierarchical_matrices' in params and params['hierarchical_matrices']:
-            self.engine = HierarchicalToeplitzMatrices(
+            engine = HierarchicalToeplitzMatrices(
                **{key: params[key] for key in params if key in _arguments(HierarchicalToeplitzMatrices.__init__)}
             )
         else:
-            self.engine = BasicEngine(
+            engine = BasicEngine(
                **{key: params[key] for key in params if key in _arguments(BasicEngine.__init__)}
             )
 
+        super().__init__(green_function, engine)
+
     def build_matrices(self, *args, **kwargs):
         """Legacy API."""
-        return self.green_function.evaluate(*args, **kwargs)
+        return self.engine.build_matrices(*args, **kwargs)
 

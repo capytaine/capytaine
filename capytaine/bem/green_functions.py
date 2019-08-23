@@ -45,6 +45,11 @@ class Delhommeau:
             'finite_depth_prony_decomposition_method': finite_depth_prony_decomposition_method,
         }
 
+        self._hash = hash(self.exportable_settings.values())
+
+    def __hash__(self):
+        return self._hash
+
     def evaluate(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
         Srankine, Vrankine = self.evaluate_rankine(mesh1, mesh2, free_surface, sea_bottom, wavenumber)
 

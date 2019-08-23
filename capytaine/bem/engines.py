@@ -7,6 +7,8 @@
 
 import logging
 
+from functools import lru_cache
+
 import numpy as np
 
 from capytaine.matrices import linear_solvers
@@ -30,7 +32,7 @@ class BasicEngine:
                                 'gmres': linear_solvers.solve_gmres}
 
     def __init__(self,
-                 linear_solver=linear_solvers.solve_gmres,
+                 linear_solver='gmres',
                  matrix_cache_size=1,
                  ):
 
@@ -39,9 +41,8 @@ class BasicEngine:
         else:
             self.linear_solver = linear_solver
 
-        # TODO: fix lru_cache
-        # if matrix_cache_size > 0:
-        #     self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
+        if matrix_cache_size > 0:
+            self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
 
         self.exportable_settings = {
             'engine': 'BasicEngine',
@@ -49,16 +50,18 @@ class BasicEngine:
             'linear_solver': str(linear_solver),
         }
 
-    def build_matrices(self, problem, green_function):
+    def build_matrices(self,
+                       mesh1, mesh2, free_surface, sea_bottom, wavenumber,
+                       green_function):
+        """ """
+
         S, V = green_function.evaluate(
-            problem.body.mesh, problem.body.mesh,
-            free_surface=problem.free_surface, sea_bottom=problem.sea_bottom, wavenumber=problem.wavenumber
+            mesh1, mesh2, free_surface, sea_bottom, wavenumber,
         )
 
         return S, V + identity_like(V)/2
 
-    def build_S_matrix_for_reconstruction(self, problem, mesh, green_function, chunk_size=50):
-        if chunk_size > mesh.nb_faces:
+    def build_S_matrix_for_reconstruction(self, problem, mesh, green_function):
             S, _ = green_function.evaluate(
                 mesh,
                 problem.body.mesh,
@@ -67,20 +70,6 @@ class BasicEngine:
                 wavenumber=problem.wavenumber
             )
             return S
-
-        else:
-            raise NotImplementedError
-
-            for i in range(0, mesh.nb_faces, chunk_size):
-                S, _ = green_function.evaluate(
-                        mesh.extract_faces(list(range(i, i+chunk_size))),
-                        problem.body.mesh,
-                        free_surface=problem.free_surface,
-                        sea_bottom=problem.sea_bottom,
-                        wavenumber=problem.wavenumber
-                    )
-            return S
-
 
 
 from capytaine.bem.hierarchical_toeplitz_matrices import hierarchical_toeplitz_matrices
@@ -103,9 +92,8 @@ class HierarchicalToeplitzMatrices:
                  matrix_cache_size=1,
                  ):
 
-        # TODO: fix lru_cache
-        # if matrix_cache_size > 0:
-        #     self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
+        if matrix_cache_size > 0:
+            self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
 
         self.ACA_distance = ACA_distance
         self.ACA_tol = ACA_tol
@@ -119,15 +107,17 @@ class HierarchicalToeplitzMatrices:
             'matrix_cache_size': matrix_cache_size,
         }
 
-    def build_matrices(self, problem, green_function):
+    def build_matrices(self,
+                       mesh1, mesh2, free_surface, sea_bottom, wavenumber,
+                       green_function):
+        """ """
         S, V = hierarchical_toeplitz_matrices(
             green_function.evaluate,
             ACA_tol=self.ACA_tol,
             ACA_distance=self.ACA_distance,
             dtype=np.complex128
         )(
-            problem.body.mesh, problem.body.mesh,
-            free_surface=problem.free_surface, sea_bottom=problem.sea_bottom, wavenumber=problem.wavenumber
+            mesh1, mesh2, free_surface, sea_bottom, wavenumber,
         )
 
         return S, V + identity_like(V)/2

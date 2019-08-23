@@ -5,7 +5,9 @@ import xarray as xr
 from numpy import pi
 
 from capytaine import __version__
-from capytaine.bem.solver import Nemoh
+from capytaine.bem.solver import BEMSolver, Nemoh
+from capytaine.bem.green_functions import Delhommeau
+from capytaine.bem.engines import BasicEngine
 from capytaine.bem.problems_and_results import RadiationProblem
 from capytaine.bodies.predefined.spheres import Sphere
 
@@ -14,8 +16,23 @@ sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
 
 
 def test_exportable_settings():
-    assert Nemoh().exportable_settings() == Nemoh.defaults_settings
-    assert 'ACA_distance' not in Nemoh(hierarchical_matrices=False).exportable_settings()
+    gf = Delhommeau(tabulation_nb_integration_points=50)
+    assert gf.exportable_settings['green_function'] == 'Delhommeau'
+    assert gf.exportable_settings['tabulation_nb_integration_points'] == 50
+    assert gf.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
+
+    engine = BasicEngine(matrix_cache_size=0)
+    assert engine.exportable_settings['engine'] == 'BasicEngine'
+    assert engine.exportable_settings['matrix_cache_size'] == 0
+    assert engine.exportable_settings['linear_solver'] == 'gmres'
+
+    solver = BEMSolver(green_functions=gf, engine=engine)
+    assert solver.exportable_settings['green_function'] == 'Delhommeau'
+    assert solver.exportable_settings['tabulation_nb_integration_points'] == 50
+    assert solver.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
+    assert solver.exportable_settings['engine'] == 'BasicEngine'
+    assert solver.exportable_settings['matrix_cache_size'] == 0
+    assert solver.exportable_settings['linear_solver'] == 'gmres'
 
 
 def test_cache_matrices():
