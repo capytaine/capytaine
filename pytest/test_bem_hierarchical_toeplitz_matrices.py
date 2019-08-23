@@ -15,8 +15,8 @@ from capytaine.bodies import FloatingBody
 from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.bodies.predefined.cylinders import HorizontalCylinder, VerticalCylinder
 
-from capytaine.bem.problems_and_results import RadiationProblem
-from capytaine.bem.nemoh import Nemoh
+from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, RadiationProblem
+from capytaine.bem.solver import Nemoh
 from capytaine.io.xarray import assemble_dataset
 
 from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
@@ -158,7 +158,8 @@ def test_low_rank_matrices():
     two_distant_buoys = FloatingBody.join_bodies(buoy, buoy.translated_x(20))
     two_distant_buoys.mesh._meshes[1].name = "other_buoy_mesh"
 
-    S, V = solver_with_sym.build_matrices(two_distant_buoys.mesh, two_distant_buoys.mesh)
+    problem = LinearPotentialFlowProblem(body=two_distant_buoys, omega=1.0)
+    S, V = solver_with_sym.engine.build_matrices(problem, solver_with_sym.green_function)
     assert isinstance(S.all_blocks[0, 1], LowRankMatrix)
     assert isinstance(S.all_blocks[1, 0], LowRankMatrix)
     # S.plot_shape()
@@ -198,13 +199,14 @@ def test_array_of_spheres():
 
     #
     array = buoy.assemble_regular_array(distance=4.0, nb_bodies=(3, 1))
+    problem = LinearPotentialFlowProblem(body=array, omega=1.0)
 
     settings = dict(cache_rankine_matrices=False, matrix_cache_size=0)
     nemoh_without_sym = Nemoh(hierarchical_matrices=False, **settings)
     nemoh_with_sym = Nemoh(hierarchical_matrices=True, **settings)
 
-    fullS, fullV = nemoh_without_sym.build_matrices(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
-    S, V = nemoh_with_sym.build_matrices(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
+    fullS, fullV = nemoh_without_sym.engine.build_matrices(problem, nemoh_without_sym.green_function)
+    S, V = nemoh_with_sym.engine.build_matrices(problem, nemoh_with_sym.green_function)
 
     assert isinstance(S, cpt.matrices.block.BlockMatrix)
     assert np.allclose(S.full_matrix(), fullS)

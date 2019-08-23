@@ -9,7 +9,7 @@ from capytaine.bodies.predefined.cylinders import HorizontalCylinder
 from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
-from capytaine.bem.nemoh import Nemoh
+from capytaine.bem.solver import Nemoh
 from capytaine.io.xarray import assemble_dataset
 from capytaine.post_pro.kochin import compute_kochin
 

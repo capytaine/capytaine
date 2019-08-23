@@ -5,7 +5,7 @@ import xarray as xr
 from numpy import pi
 
 from capytaine import __version__
-from capytaine.bem.nemoh import Nemoh
+from capytaine.bem.solver import Nemoh
 from capytaine.bem.problems_and_results import RadiationProblem
 from capytaine.bodies.predefined.spheres import Sphere
 
@@ -16,7 +16,6 @@ sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
 def test_exportable_settings():
     assert Nemoh().exportable_settings() == Nemoh.defaults_settings
     assert 'ACA_distance' not in Nemoh(hierarchical_matrices=False).exportable_settings()
-    assert 'cache_rankine_matrices' not in Nemoh(matrix_cache_size=0).exportable_settings()
 
 
 def test_cache_matrices():
@@ -55,7 +54,7 @@ def test_cache_rankine_matrices():
     assert Vr is Vr_again
 
     # Cache of rankine matrices
-    solver = Nemoh(matrix_cache_size=1, cache_rankine_matrices=False)
+    solver = Nemoh(matrix_cache_size=1)
     Sr, Vr = solver.build_matrices_rankine(sphere.mesh, sphere.mesh, **params_1)
     Sr_again, Vr_again = solver.build_matrices_rankine(sphere.mesh, sphere.mesh, **params_1)
     assert Sr is not Sr_again
