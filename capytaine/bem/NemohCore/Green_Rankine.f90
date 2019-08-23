@@ -147,7 +147,8 @@ CONTAINS
       centers_1, normals_1,                                           &
       nb_vertices_2, nb_faces_2,                                      &
       vertices_2, faces_2, centers_2, normals_2, areas_2, radiuses_2, &
-      S, V)
+      same_body,                         &
+      S, K)
 
     INTEGER,                                     INTENT(IN) :: nb_faces_1, nb_faces_2, nb_vertices_2
     REAL(KIND=PRE), DIMENSION(nb_faces_1, 3),    INTENT(IN) :: centers_1, normals_1
@@ -157,7 +158,9 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2, radiuses_2
 
     REAL(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
-    REAL(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
+    REAL(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: K
+
+    LOGICAL,                                     INTENT(IN) :: same_body
 
     ! Local variables
     INTEGER :: I, J
@@ -180,10 +183,15 @@ CONTAINS
 
         ! Store into influence matrix
         S(I, J) = -SP1/(4*PI)                                ! Green function
-        V(I, J) = -DOT_PRODUCT(normals_1(I, :), VSP1)/(4*PI) ! Gradient of the Green function
+        K(I, J) = -DOT_PRODUCT(normals_1(I, :), VSP1)/(4*PI) ! Gradient of the Green function
 
       END DO
       !$OMP END PARALLEL DO
+
+      IF (SAME_BODY) THEN
+          K(I, I) = K(I, I) + 0.5
+      END IF
+
     END DO
 
   END SUBROUTINE

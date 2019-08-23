@@ -16,7 +16,6 @@ from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh, TranslationalSymmetricMesh, AxialSymmetricMesh
 
 from capytaine.matrices.block import BlockMatrix
-from capytaine.matrices.builders import identity_like
 from capytaine.matrices.low_rank import LowRankMatrix
 from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockToeplitzMatrix, BlockCirculantMatrix
 
@@ -70,7 +69,7 @@ class BasicEngine:
             mesh1, mesh2, free_surface, sea_bottom, wavenumber,
         )
 
-        return S, V + identity_like(V)/2
+        return S, V
 
     def build_S_matrix(self,
                        mesh1, mesh2, free_surface, sea_bottom, wavenumber,
@@ -250,11 +249,7 @@ class HierarchicalToeplitzMatrices:
             S, V = green_function.evaluate(
                 mesh1, mesh2, *args[:-1], **kwargs
             )
-
-            if mesh1 is mesh2:
-                return S, V + identity_like(V)/2
-            else:
-                return S, V
+            return S, V
 
     def build_S_matrix(self, *args, **kwargs):
         """ """

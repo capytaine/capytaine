@@ -73,7 +73,8 @@ class Delhommeau:
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
             mesh2.faces_areas,   mesh2.faces_radiuses,
-                                 )
+            mesh1 is mesh2
+        )
 
         if free_surface == np.infty:
             # No free surface, no more terms in the Green function
@@ -108,6 +109,7 @@ class Delhommeau:
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
             mesh2.faces_areas,   mesh2.faces_radiuses,
+            False
         )
 
         if free_surface - sea_bottom < np.infty or wavenumber == 0.0:

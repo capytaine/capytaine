@@ -352,7 +352,7 @@ CONTAINS
       XR, XZ, APD,                       &
       NEXP, AMBDA, AR,                   &
       same_body,                         &
-      S, V)
+      S, K)
 
     ! Mesh data
     INTEGER,                                  INTENT(IN) :: nb_faces_1, nb_faces_2
@@ -376,7 +376,7 @@ CONTAINS
 
     ! Output
     COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
-    COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
+    COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: K
 
     ! Local variables
     INTEGER                         :: I, J
@@ -415,14 +415,14 @@ CONTAINS
           END IF
 
           S(I, J) = -1/(4*PI) * SP2*areas_2(J)
-          V(I, J) = -1/(4*PI) * DOT_PRODUCT(normals_1(I, :),         &
+          K(I, J) = -1/(4*PI) * DOT_PRODUCT(normals_1(I, :),         &
                                             VSP2_SYM + VSP2_ANTISYM) &
                                             *areas_2(J)
 
           IF (.NOT. I==J) THEN
             VSP2_SYM(1:2) = -VSP2_SYM(1:2)
             S(J, I) = -1/(4*PI) * SP2*areas_2(I)
-            V(J, I) = -1/(4*PI) * DOT_PRODUCT(normals_1(J, :),         &
+            K(J, I) = -1/(4*PI) * DOT_PRODUCT(normals_1(J, :),         &
                                               VSP2_SYM - VSP2_ANTISYM) &
                                               *areas_2(I)
           END IF
@@ -460,7 +460,7 @@ CONTAINS
           END IF
 
           S(I, J) = -1/(4*PI) * SP2*areas_2(J)                                ! Green function
-          V(I, J) = -1/(4*PI) * DOT_PRODUCT(normals_1(I, :),         &
+          K(I, J) = -1/(4*PI) * DOT_PRODUCT(normals_1(I, :),         &
                                             VSP2_SYM + VSP2_ANTISYM) &
                                             *areas_2(J) ! Gradient of the Green function
 
