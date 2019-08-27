@@ -28,7 +28,7 @@ CONTAINS
   SUBROUTINE LAGRANGE_POLYNOMIAL_INTERPOLATION &
     (AKR, AKZ,                                 &
      XR, XZ, APD,                              &
-     PD1X, PD2X, PD1Z, PD2Z)
+     D1, D2, Z1, Z2)
    ! Helper function used in the following subroutine to interpolate between the tabulated integrals.
 
     ! Inputs
@@ -38,7 +38,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3, 3, 2, 2), INTENT(IN) :: APD
 
     ! Output
-    REAL(KIND=PRE), INTENT(OUT) :: PD1X, PD2X, PD1Z, PD2Z
+    REAL(KIND=PRE), INTENT(OUT) :: D1, D2, Z1, Z2
 
     ! Local variable
     REAL(KIND=PRE), DIMENSION(3) :: XL, ZL
@@ -50,10 +50,10 @@ CONTAINS
     ZL(2) = PL2(XZ(3), XZ(1), XZ(2), AKZ)
     ZL(3) = PL2(XZ(1), XZ(2), XZ(3), AKZ)
 
-    PD1Z = DOT_PRODUCT(XL, MATMUL(APD(:, :, 1, 2), ZL))
-    PD2Z = DOT_PRODUCT(XL, MATMUL(APD(:, :, 2, 2), ZL))
-    PD1X = DOT_PRODUCT(XL, MATMUL(APD(:, :, 1, 1), ZL))
-    PD2X = DOT_PRODUCT(XL, MATMUL(APD(:, :, 2, 1), ZL))
+    Z1 = DOT_PRODUCT(XL, MATMUL(APD(:, :, 1, 2), ZL))
+    Z2 = DOT_PRODUCT(XL, MATMUL(APD(:, :, 2, 2), ZL))
+    D1 = DOT_PRODUCT(XL, MATMUL(APD(:, :, 1, 1), ZL))
+    D2 = DOT_PRODUCT(XL, MATMUL(APD(:, :, 2, 1), ZL))
 
   CONTAINS
 
@@ -73,10 +73,14 @@ CONTAINS
       FS, VS)
     ! Compute the expression FS = Re[ ∫(J(ζ) - 1/ζ)dθ ] + i Re[ ∫(e^ζ)dθ ] and the integrals appearing in its gradient.
     ! For this, this function uses tabulated values of the following integrals:
-    ! PD1X = Re[ ∫(-i cosθ)(J(ζ) - 1/ζ)dθ ]
-    ! PD2X = Re[ ∫(-i cosθ)(e^ζ)dθ ]
-    ! PD1Z = Re[ ∫(J(ζ) - 1/ζ)dθ ]
-    ! PD2Z = Re[ ∫(e^ζ)dθ ]
+    ! D1 = Re[ ∫(-i cosθ)(J(ζ) - 1/ζ)dθ ]
+    ! D2 = Re[ ∫(-i cosθ)(e^ζ)dθ ]
+#ifdef XIE_CORRECTION
+    ! Z1 = Re[ ∫(J(ζ))dθ ]
+#else
+    ! Z1 = Re[ ∫(J(ζ) - 1/ζ)dθ ]
+#endif
+    ! Z2 = Re[ ∫(e^ζ)dθ ]
     ! (See theory manual for the definition of the symbols above.)
 
     ! Inputs
@@ -96,7 +100,7 @@ CONTAINS
     INTEGER        :: KI, KJ
     REAL(KIND=PRE) :: r, dimless_r, Z, dimless_Z, R1
     REAL(KIND=PRE) :: SIK, CSK, SQ, EPZ
-    REAL(KIND=PRE) :: PD1X, PD2X, PD1Z, PD2Z
+    REAL(KIND=PRE) :: D1, D2, Z1, Z2
 
     r = NORM2(XI(1:2) - XJ(1:2))
     dimless_r = wavenumber*r
@@ -137,7 +141,7 @@ CONTAINS
              (dimless_r, dimless_Z,                                      &
              tabulated_r_range(KI-1:KI+1), tabulated_Z_range(KJ-1:KJ+1), &
              tabulated_integrals(KI-1:KI+1, KJ-1:KJ+1, :, :),            &
-             PD1X, PD2X, PD1Z, PD2Z)
+             D1, D2, Z1, Z2)
 
       ELSE  ! MAXVAL(tabulated_r_range) < dimless_r
         ! Asymptotic expression for (horizontally) distant panels
@@ -147,20 +151,29 @@ CONTAINS
         CSK  = COS(dimless_r-PI/4)
         SIK  = SIN(dimless_r-PI/4)
 
-        PD1X = PI*EPZ*SQ*(CSK - 0.5*SIK/dimless_r) - PI*r/(wavenumber**2*R1**3)
-        PD2X =    EPZ*SQ*(SIK + 0.5*CSK/dimless_r)
-        PD1Z = -EPZ*SQ*SIK*PI + PI*dimless_Z/(wavenumber*R1)**3
-        PD2Z =  EPZ*SQ*CSK
+        D1 = PI*EPZ*SQ*(CSK - 0.5*SIK/dimless_r) - PI*r/(wavenumber**2*R1**3)
+        D2 =    EPZ*SQ*(SIK + 0.5*CSK/dimless_r)
+#ifdef XIE_CORRECTION
+        Z1 = -EPZ*SQ*SIK*PI + PI*dimless_Z/(wavenumber*R1)**3 -PI/(wavenumber*R1)
+#else
+        Z1 = -EPZ*SQ*SIK*PI + PI*dimless_Z/(wavenumber*R1)**3
+#endif
+        Z2 =  EPZ*SQ*CSK
       ENDIF
 
       !================================================
       ! Add the elementary integrals to build FS and VS
       !================================================
 
-      FS    = CMPLX(PD1Z, PD2Z, KIND=PRE)
-      VS(1) = (XI(1) - XJ(1))/r * CMPLX(-PD1X, -PD2X, KIND=PRE)
-      VS(2) = (XI(2) - XJ(2))/r * CMPLX(-PD1X, -PD2X, KIND=PRE)
-      VS(3) = CMPLX(PD1Z, PD2Z, KIND=PRE)
+#ifdef XIE_CORRECTION
+      FS    = CMPLX(Z1, Z2, KIND=PRE) + PI/(wavenumber*R1)
+      VS(3) = CMPLX(Z1, Z2, KIND=PRE) + PI/(wavenumber*R1)
+#else
+      FS    = CMPLX(Z1, Z2, KIND=PRE)
+      VS(3) = CMPLX(Z1, Z2, KIND=PRE)
+#endif
+      VS(1) = (XI(1) - XJ(1))/r * CMPLX(-D1, -D2, KIND=PRE)
+      VS(2) = (XI(2) - XJ(2))/r * CMPLX(-D1, -D2, KIND=PRE)
 
       IF (r < REAL(1e-5, KIND=PRE)) THEN
         ! I'm not totally sure why this is here, but it seems to be necessary.
