@@ -12,6 +12,7 @@ import numpy as np
 
 from capytaine.tools.prony_decomposition import exponential_decomposition, error_exponential_decomposition
 import capytaine.green_functions.Delhommeau_f90 as Delhommeau_f90
+import capytaine.green_functions.XieDelhommeau_f90 as XieDelhommeau_f90
 
 LOG = logging.getLogger(__name__)
 
@@ -32,6 +33,9 @@ class Delhommeau:
     tabulated_integrals: 3-ple of arrays
         Tabulated integrals for the computation of the Green function.
     """
+
+    fortran_core = Delhommeau_f90
+
     def __init__(self,
                  tabulation_nb_integration_points=251,
                  finite_depth_prony_decomposition_method='fortran',
@@ -152,7 +156,7 @@ class Delhommeau:
                 coeffs = np.array((1.0, 1.0, 1.0))
 
         # Main call to Fortran code
-        return Delhommeau_f90.matrices.build_matrices(
+        return self.fortran_core.matrices.build_matrices(
             mesh1.faces_centers, mesh1.faces_normals,
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
@@ -163,3 +167,8 @@ class Delhommeau:
             lamda_exp, a_exp,
             mesh1 is mesh2
         )
+
+################################
+
+class XieDelhommeau(Delhommeau):
+    fortran_core = XieDelhommeau_f90

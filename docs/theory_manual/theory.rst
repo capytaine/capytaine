@@ -222,7 +222,7 @@ Variants of the formulation
     The following identity holds [Del89]_:
 
     .. math::
-       \frac{k}{\pi} \int^{\pi/2}_{-\pi/2} \frac{1}{\zeta(\theta)} \, \mathrm{d} \theta = - \frac{1}{\|x - s(\xi)\|}.
+       \Re \int^{\pi/2}_{-\pi/2} \frac{1}{\zeta(\theta)} \, \mathrm{d} \theta = - \frac{\pi}{k \|x - s(\xi)\|}.
        :label: int_1_over_zeta
 
     It can be used to derived an alternative expression for the first term of :eq:`green_function_inf_depth_2`.

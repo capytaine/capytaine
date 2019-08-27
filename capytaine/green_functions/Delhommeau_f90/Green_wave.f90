@@ -50,10 +50,10 @@ CONTAINS
     ZL(2) = PL2(XZ(3), XZ(1), XZ(2), AKZ)
     ZL(3) = PL2(XZ(1), XZ(2), XZ(3), AKZ)
 
-    Z1 = DOT_PRODUCT(XL, MATMUL(APD(:, :, 1, 2), ZL))
-    Z2 = DOT_PRODUCT(XL, MATMUL(APD(:, :, 2, 2), ZL))
     D1 = DOT_PRODUCT(XL, MATMUL(APD(:, :, 1, 1), ZL))
     D2 = DOT_PRODUCT(XL, MATMUL(APD(:, :, 2, 1), ZL))
+    Z1 = DOT_PRODUCT(XL, MATMUL(APD(:, :, 1, 2), ZL))
+    Z2 = DOT_PRODUCT(XL, MATMUL(APD(:, :, 2, 2), ZL))
 
   CONTAINS
 
@@ -154,7 +154,7 @@ CONTAINS
         D1 = PI*EPZ*SQ*(CSK - 0.5*SIK/dimless_r) - PI*r/(wavenumber**2*R1**3)
         D2 =    EPZ*SQ*(SIK + 0.5*CSK/dimless_r)
 #ifdef XIE_CORRECTION
-        Z1 = -EPZ*SQ*SIK*PI + PI*dimless_Z/(wavenumber*R1)**3 -PI/(wavenumber*R1)
+        Z1 = -EPZ*SQ*SIK*PI + PI*dimless_Z/(wavenumber*R1)**3 + PI/(wavenumber*R1)
 #else
         Z1 = -EPZ*SQ*SIK*PI + PI*dimless_Z/(wavenumber*R1)**3
 #endif
@@ -166,8 +166,8 @@ CONTAINS
       !================================================
 
 #ifdef XIE_CORRECTION
-      FS    = CMPLX(Z1, Z2, KIND=PRE) + PI/(wavenumber*R1)
-      VS(3) = CMPLX(Z1, Z2, KIND=PRE) + PI/(wavenumber*R1)
+      FS    = CMPLX(Z1 - PI/(wavenumber*R1), Z2, KIND=PRE)
+      VS(3) = CMPLX(Z1 - PI/(wavenumber*R1), Z2, KIND=PRE)
 #else
       FS    = CMPLX(Z1, Z2, KIND=PRE)
       VS(3) = CMPLX(Z1, Z2, KIND=PRE)

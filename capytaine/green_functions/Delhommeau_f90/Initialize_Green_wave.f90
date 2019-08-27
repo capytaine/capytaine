@@ -93,7 +93,7 @@ CONTAINS
     INTEGER :: I, J, K
     REAL(KIND=PRE) :: THETA(NPINTE), CQT(NPINTE)
     REAL(KIND=PRE) :: COSTHETA
-    COMPLEX(KIND=PRE) :: C1, C2, ZETA, CEX
+    COMPLEX(KIND=PRE) :: JZETA, ZETA, EXPZETA
 
     ! Initialize XZ (named Z(J) in [1, 2])
     DO J = 1, JZ
@@ -130,23 +130,23 @@ CONTAINS
           COSTHETA = COS(THETA(K))
           ZETA = CMPLX(XZ(J), XR(I)*COSTHETA, KIND=PRE)
           IF (REAL(ZETA) <= -30.0) THEN
-            CEX = (0.0, 0.0)
+            EXPZETA = (0.0, 0.0)
           ELSE
-            CEX = EXP(ZETA)
+            EXPZETA = EXP(ZETA)
           ENDIF
           IF (AIMAG(ZETA) < 0) THEN
-            C1 = GG(ZETA) - II*PI*CEX - 1.0/ZETA
+            JZETA = GG(ZETA) - II*PI*EXPZETA
           ELSE
-            C1 = GG(ZETA) + II*PI*CEX - 1.0/ZETA
+            JZETA = GG(ZETA) + II*PI*EXPZETA
           END IF
-          APD(I, J, 1, 1) = APD(I, J, 1, 1) + CQT(K)*COSTHETA*AIMAG(C1) ! named D_1(Z, X) in [1, 2]
-          APD(I, J, 2, 1) = APD(I, J, 2, 1) + CQT(K)*COSTHETA*AIMAG(CEX) ! named Z_1(Z, X) in [1, 2]
+          APD(I, J, 1, 1) = APD(I, J, 1, 1) + CQT(K)*COSTHETA*AIMAG(JZETA - 1.0/ZETA) ! named D_1(Z, X) in [1, 2]
+          APD(I, J, 2, 1) = APD(I, J, 2, 1) + CQT(K)*COSTHETA*AIMAG(EXPZETA)          ! named D_2(Z, X) in [1, 2]
 #ifdef XIE_CORRECTION
-          APD(I, J, 1, 2) = APD(I, J, 1, 2) + CQT(K)*REAL(GG(ZETA))
+          APD(I, J, 1, 2) = APD(I, J, 1, 2) + CQT(K)*REAL(JZETA)
 #else
-          APD(I, J, 1, 2) = APD(I, J, 1, 2) + CQT(K)*REAL(C1)     ! named D_2(Z, X) in [1, 2]
+          APD(I, J, 1, 2) = APD(I, J, 1, 2) + CQT(K)*REAL(JZETA - 1.0/ZETA)           ! named Z_1(Z, X) in [1, 2]
 #endif
-          APD(I, J, 2, 2) = APD(I, J, 2, 2) + CQT(K)*REAL(CEX)     ! named Z_2(Z, X) in [1, 2]
+          APD(I, J, 2, 2) = APD(I, J, 2, 2) + CQT(K)*REAL(EXPZETA)                    ! named Z_2(Z, X) in [1, 2]
         END DO
       END DO
     END DO
