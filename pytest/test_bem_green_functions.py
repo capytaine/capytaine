@@ -1,94 +1,95 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Tests for the computation of the Green function using routines from Nemoh."""
+"""Tests for the computation of the Green function using Fortran routines from Nemoh."""
 
 from itertools import product, combinations
 
 import pytest
+from hypothesis import given, assume
+from hypothesis.strategies import one_of, just, floats
+from hypothesis.extra.numpy import arrays
 
 import numpy as np
 from scipy.special import exp1
+from scipy.misc import derivative
 from scipy.optimize import newton
 
-from capytaine.green_functions import Delhommeau, Delhommeau_f90
-from capytaine.bodies.predefined.spheres import Sphere
+from capytaine.green_functions import Delhommeau_f90, XieDelhommeau_f90
 
 
 def E1(z):
     return np.exp(-z)*Delhommeau_f90.initialize_green_wave.gg(z)
 
-
-@pytest.mark.parametrize("x", np.linspace(-20, -1, 4))
-@pytest.mark.parametrize("y", np.linspace(-10, 10, 4))
+@given(floats(min_value=-1e2, max_value=-1e-2), floats(min_value=-1e2, max_value=1e2))
 def test_GG(x, y):
-    # Test some properties of the function according to [Del, p.367].
     z = x + 1j*y
+
+    # Compare with Scipy implementation
     assert np.isclose(E1(z), exp1(z), rtol=1e-3)
 
-    # (A3.5)
-    assert np.isclose(E1(x - 1j*y), np.conjugate(E1(x + 1j*y)), rtol=1e-3)
+    # Test property (A3.5) of the function according to [Del, p.367]. 
+    if y != 0.0:
+        assert np.isclose(E1(np.conjugate(z)), np.conjugate(E1(z)), rtol=1e-3)
 
-    # TODO: test if d/dz (e^z E1(z)) = e^z E1(z) - 1/z
+    # BROKEN...
+    # def derivative_of_complex_function(f, z, **kwargs):
+    #     direction = 1
+    #     return derivative(lambda eps: f(z + eps*direction), 0.0, **kwargs)
+    # if abs(x) > 1 and abs(y) > 1:
+    #     assert np.isclose(
+    #         derivative_of_complex_function(Delhommeau_f90.initialize_green_wave.gg, z),
+    #         Delhommeau_f90.initialize_green_wave.gg(z) - 1.0/z,
+    #         atol=1e-2)
 
 
-@pytest.mark.parametrize("omega", np.linspace(0.1, 5.0, 2))
-@pytest.mark.parametrize("depth", [10.0, np.infty])
-def test_green_function(omega, depth):
-    g = 9.8
+tabulation = {
+    Delhommeau_f90: Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals(328, 46, 251),
+    XieDelhommeau_f90: XieDelhommeau_f90.initialize_green_wave.initialize_tabulated_integrals(328, 46, 251),
+}
+
+def test_tabulations():
+    assert np.allclose(tabulation[Delhommeau_f90][2][:, :, 0, 0], tabulation[XieDelhommeau_f90][2][:, :, 0, 0])
+    assert np.allclose(tabulation[Delhommeau_f90][2][:, :, 1, 0], tabulation[XieDelhommeau_f90][2][:, :, 1, 0])
+    assert not np.allclose(tabulation[Delhommeau_f90][2][:, :, 0, 1], tabulation[XieDelhommeau_f90][2][:, :, 0, 1])
+    assert np.allclose(tabulation[Delhommeau_f90][2][:, :, 1, 1], tabulation[XieDelhommeau_f90][2][:, :, 1, 1])
+
+
+points = arrays(np.float, (3,),
+                elements=floats(min_value=-1e5, max_value=1e5, allow_infinity=False, allow_nan=False)
+                ).filter(lambda x: x[2] < -1e-4)
+cores = one_of(just(Delhommeau_f90), just(XieDelhommeau_f90))
+frequencies = floats(min_value=1e-1, max_value=1e1)
+depths = one_of(floats(min_value=10.0, max_value=100.0), just(np.infty))
+
+gravity = 9.8
+
+def wave_part_Green_function(Xi, Xj, omega, depth, core=Delhommeau_f90):
+    if depth == np.infty:
+        wavenumber = omega**2 / gravity
+    else:
+        wavenumber = newton(lambda x: x*np.tanh(x) - omega**2*depth/gravity, x0=1.0)/depth
+
+    if depth < np.infty:
+        ambda, ar, nexp = core.old_prony_decomposition.lisc(omega**2 * depth/gravity, wavenumber * depth)
 
     if depth == np.infty:
-        wavenumber = omega**2 / g
+        return core.green_wave.wave_part_infinite_depth(wavenumber, Xi, Xj, *tabulation[core])
     else:
-        wavenumber = newton(lambda x: x*np.tanh(x) - omega**2*depth/g, x0=1.0)/depth
+        return core.green_wave.wave_part_finite_depth(wavenumber, Xi, Xj, depth, *tabulation[core], ambda, ar, 31)
 
-    XR, XZ, APD = Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals(328, 46, 251)
-    if depth < np.infty:
-        ambda, ar, nexp = Delhommeau_f90.old_prony_decomposition.lisc(omega**2 * depth/g, wavenumber * depth)
+@given(points, points, frequencies, depths, cores)
+def test_symmetry_of_the_Green_function(X1, X2, omega, depth, core):
+    assert np.isclose(wave_part_Green_function(X1, X2, omega, depth, core=core)[0],
+                      wave_part_Green_function(X2, X1, omega, depth, core=core)[0],
+                      rtol=1e-4)
 
-    def G(w, Xi, Xj):
-        if depth == np.infty:
-            return Delhommeau_f90.green_wave.wave_part_infinite_depth(w, Xi, Xj, XR, XZ, APD)[0]
-        else:
-            return Delhommeau_f90.green_wave.wave_part_finite_depth(w, Xi, Xj, depth, XR, XZ, APD, ambda, ar, 31)[0]
-
-    def dg(w, Xi, Xj):
-        return Delhommeau_f90.green_wave.wave_part_infinite_depth(w, Xi, Xj, XR, XZ, APD)[1]
-
-    def reflect(X):
-        Y = X.copy()
-        Y[0:2] = -Y[0:2]
-        return Y
-
-    x_range = np.linspace(-2.0, 2.0, 3)
-    y_range = np.linspace(-2.0, 2.0, 3)
-    z_range = np.linspace(-9.5, -0.5, 4)
-    for Xi, Xj in combinations(product(x_range, y_range, z_range), 2):
-        assert np.isclose(G(wavenumber, np.array(Xi), np.array(Xj)),
-                          G(wavenumber, np.array(Xj), np.array(Xi)),
-                          rtol=1e-4)
-        assert np.allclose(dg(wavenumber, np.array(Xi), np.array(Xj)),
-                           reflect(dg(wavenumber, np.array(Xj), np.array(Xi))),
-                           rtol=1e-4)
+@given(points, points, frequencies, cores)
+def test_symmetry_of_the_derivative_of_the_Green_function(X1, X2, omega, core):
+    assert np.allclose( wave_part_Green_function(X1, X2, omega, np.infty, core=core)[1][0:2],
+                       -wave_part_Green_function(X2, X1, omega, np.infty, core=core)[1][0:2],
+                      rtol=1e-4)
+    assert np.isclose(wave_part_Green_function(X1, X2, omega, np.infty, core=core)[1][2],
+                      wave_part_Green_function(X2, X1, omega, np.infty, core=core)[1][2],
+                      rtol=1e-4)
 
 
-def test_rankine_and_reflected_rankine():
-    gf = Delhommeau()
-    sphere = Sphere(radius=1.0, ntheta=2, nphi=3, clip_free_surface=True)
-
-    S, V = gf.evaluate(sphere.mesh, sphere.mesh, 0.0, -np.infty, 0.0)
-    S_ref = np.array([[-0.15413386, -0.21852682, -0.06509213, -0.16718431, -0.06509213, -0.16718431],
-                      [-0.05898834, -0.39245688, -0.04606661, -0.18264734, -0.04606661, -0.18264734],
-                      [-0.06509213, -0.16718431, -0.15413386, -0.21852682, -0.06509213, -0.16718431],
-                      [-0.04606661, -0.18264734, -0.05898834, -0.39245688, -0.04606661, -0.18264734],
-                      [-0.06509213, -0.16718431, -0.06509213, -0.16718431, -0.15413386, -0.21852682],
-                      [-0.04606661, -0.18264734, -0.04606661, -0.18264734, -0.05898834, -0.39245688]])
-    assert np.allclose(S, S_ref)
-
-    S, V = gf.evaluate(sphere.mesh, sphere.mesh, 0.0, -np.infty, np.infty)
-    S_ref = np.array([[-0.12666269, -0.07804937, -0.03845837, -0.03993999, -0.03845837, -0.03993999],
-                      [-0.02106031, -0.16464793, -0.01169102, -0.02315146, -0.01169102, -0.02315146],
-                      [-0.03845837, -0.03993999, -0.12666269, -0.07804937, -0.03845837, -0.03993999],
-                      [-0.01169102, -0.02315146, -0.02106031, -0.16464793, -0.01169102, -0.02315146],
-                      [-0.03845837, -0.03993999, -0.03845837, -0.03993999, -0.12666269, -0.07804937],
-                      [-0.01169102, -0.02315146, -0.01169102, -0.02315146, -0.02106031, -0.16464793]])
-    assert np.allclose(S, S_ref)
