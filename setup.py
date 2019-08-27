@@ -17,6 +17,7 @@ NemohCore = Extension(
         "capytaine/bem/NemohCore/Green_Rankine.f90",
         "capytaine/bem/NemohCore/Initialize_Green_wave.f90",
         "capytaine/bem/NemohCore/Green_wave.f90",
+        "capytaine/bem/NemohCore/matrices.f90",
         "capytaine/bem/NemohCore/old_Prony_decomposition.f90",
     ],
     extra_compile_args=['-O2', '-fopenmp'],

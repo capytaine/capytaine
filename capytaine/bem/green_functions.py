@@ -51,100 +51,47 @@ class Delhommeau:
         return self._hash
 
     def evaluate(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
-        Srankine, Vrankine = self.evaluate_rankine(mesh1, mesh2, free_surface, sea_bottom, wavenumber)
 
-        if (free_surface == np.infty or
-                (free_surface - sea_bottom == np.infty and wavenumber in (0, np.infty))):
-            # No more terms in the Green function
-            return Srankine, Vrankine
-
-        Swave, Vwave = self.evaluate_wave(mesh1, mesh2, free_surface, sea_bottom, wavenumber)
-
-        # The real valued matrices Srankine and Vrankine are automatically recasted as complex in the sum.
-        Swave += Srankine
-        Vwave += Vrankine
-        return Swave, Vwave
-
-    def evaluate_rankine(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
-        # RANKINE TERM
-
-        S, V = NemohCore.green_rankine.build_matrices_rankine_source(
-            mesh1.faces_centers, mesh1.faces_normals,
-            mesh2.vertices,      mesh2.faces + 1,
-            mesh2.faces_centers, mesh2.faces_normals,
-            mesh2.faces_areas,   mesh2.faces_radiuses,
-            mesh1 is mesh2
-        )
-
-        if free_surface == np.infty:
-            # No free surface, no more terms in the Green function
-            return S, V
-
-        # REFLECTION TERM
-
-        def reflect_vector(x):
-            y = x.copy()
-            y[:, 2] *= -1
-            return y
-
-        if free_surface - sea_bottom == np.infty:
-            # INFINITE DEPTH
-            def reflect_point(x):
-                y = x.copy()
-                # y[:, 2] = 2*free_surface - x[:, 2]
-                y[:, 2] *= -1
-                y[:, 2] += 2*free_surface
-                return y
-        else:
-            # FINITE DEPTH
-            def reflect_point(x):
-                y = x.copy()
-                # y[:, 2] = 2*sea_bottom - x[:, 2]
-                y[:, 2] *= -1
-                y[:, 2] += 2*sea_bottom
-                return y
-
-        Srefl, Vrefl = NemohCore.green_rankine.build_matrices_rankine_source(
-            reflect_point(mesh1.faces_centers), reflect_vector(mesh1.faces_normals),
-            mesh2.vertices,      mesh2.faces + 1,
-            mesh2.faces_centers, mesh2.faces_normals,
-            mesh2.faces_areas,   mesh2.faces_radiuses,
-            False
-        )
-
-        if free_surface - sea_bottom < np.infty or wavenumber == 0.0:
-            S += Srefl
-            V += Vrefl
-        else:
-            S -= Srefl
-            V -= Vrefl
-
-        return S, V
-
-    def evaluate_wave(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
         depth = free_surface - sea_bottom
-        if depth == np.infty:
-            return NemohCore.green_wave.build_matrices_wave_source(
-                mesh1.faces_centers, mesh1.faces_normals,
-                mesh2.faces_centers, mesh2.faces_areas,
-                wavenumber, 0.0,
-                *self.tabulated_integrals,
-                np.empty(1), np.empty(1),  # Dummy arrays that won't actually be used by the fortran code.
-                mesh1 is mesh2
-            )
-        else:
+        if free_surface == np.infty: # No free surface, only a single Rankine source term
+
+            a_exp, lamda_exp = np.empty(1), np.empty(1)  # Dummy arrays that won't actually be used by the fortran code.
+
+            coeffs = np.array((1.0, 0.0, 0.0))
+
+        elif depth == np.infty:
+
+            a_exp, lamda_exp = np.empty(1), np.empty(1)  # Idem
+
+            if wavenumber == 0.0:
+                coeffs = np.array((1.0, 1.0, 0.0))
+            elif wavenumber == np.infty:
+                coeffs = np.array((1.0, -1.0, 0.0))
+            else:
+                coeffs = np.array((1.0, -1.0, 1.0))
+
+        else:  # Finite depth
             a_exp, lamda_exp = find_best_exponential_decomposition(
                 wavenumber*depth*np.tanh(wavenumber*depth),
                 wavenumber*depth,
                 method=self.finite_depth_prony_decomposition_method,
             )
+            if wavenumber == 0.0:
+                raise NotImplementedError
+            elif wavenumber == np.infty:
+                raise NotImplementedError
+            else:
+                coeffs = np.array((1.0, 1.0, 1.0))
 
-            return NemohCore.green_wave.build_matrices_wave_source(
-                mesh1.faces_centers, mesh1.faces_normals,
-                mesh2.faces_centers, mesh2.faces_areas,
-                wavenumber, depth,
-                *self.tabulated_integrals,
-                lamda_exp, a_exp,
-                mesh1 is mesh2
-                )
-
+        # Main call to Fortran code
+        return NemohCore.matrices.build_matrices(
+            mesh1.faces_centers, mesh1.faces_normals,
+            mesh2.vertices,      mesh2.faces + 1,
+            mesh2.faces_centers, mesh2.faces_normals,
+            mesh2.faces_areas,   mesh2.faces_radiuses,
+            wavenumber, 0.0 if depth == np.infty else depth,
+            coeffs,
+            *self.tabulated_integrals,
+            lamda_exp, a_exp,
+            mesh1 is mesh2
+        )
