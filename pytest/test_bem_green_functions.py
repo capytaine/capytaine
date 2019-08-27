@@ -10,13 +10,12 @@ import numpy as np
 from scipy.special import exp1
 from scipy.optimize import newton
 
-import capytaine.bem.NemohCore as NemohCore
-from capytaine.bem.green_functions import Delhommeau
+from capytaine.green_functions import Delhommeau, Delhommeau_f90
 from capytaine.bodies.predefined.spheres import Sphere
 
 
 def E1(z):
-    return np.exp(-z)*NemohCore.initialize_green_wave.gg(z)
+    return np.exp(-z)*Delhommeau_f90.initialize_green_wave.gg(z)
 
 
 @pytest.mark.parametrize("x", np.linspace(-20, -1, 4))
@@ -42,18 +41,18 @@ def test_green_function(omega, depth):
     else:
         wavenumber = newton(lambda x: x*np.tanh(x) - omega**2*depth/g, x0=1.0)/depth
 
-    XR, XZ, APD = NemohCore.initialize_green_wave.initialize_tabulated_integrals(328, 46, 251)
+    XR, XZ, APD = Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals(328, 46, 251)
     if depth < np.infty:
-        ambda, ar, nexp = NemohCore.old_prony_decomposition.lisc(omega**2 * depth/g, wavenumber * depth)
+        ambda, ar, nexp = Delhommeau_f90.old_prony_decomposition.lisc(omega**2 * depth/g, wavenumber * depth)
 
     def G(w, Xi, Xj):
         if depth == np.infty:
-            return NemohCore.green_wave.wave_part_infinite_depth(w, Xi, Xj, XR, XZ, APD)[0]
+            return Delhommeau_f90.green_wave.wave_part_infinite_depth(w, Xi, Xj, XR, XZ, APD)[0]
         else:
-            return NemohCore.green_wave.wave_part_finite_depth(w, Xi, Xj, depth, XR, XZ, APD, ambda, ar, 31)[0]
+            return Delhommeau_f90.green_wave.wave_part_finite_depth(w, Xi, Xj, depth, XR, XZ, APD, ambda, ar, 31)[0]
 
     def dg(w, Xi, Xj):
-        return NemohCore.green_wave.wave_part_infinite_depth(w, Xi, Xj, XR, XZ, APD)[1]
+        return Delhommeau_f90.green_wave.wave_part_infinite_depth(w, Xi, Xj, XR, XZ, APD)[1]
 
     def reflect(X):
         Y = X.copy()

@@ -14,7 +14,7 @@ from numpy.polynomial import polynomial
 from scipy.optimize import curve_fit
 from scipy.linalg import toeplitz
 
-import capytaine.bem.NemohCore as NemohCore
+import capytaine.green_functions.Delhommeau_f90 as Delhommeau_f90
 
 LOG = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ def find_best_exponential_decomposition(dimensionless_omega, dimensionless_waven
         # The function that will be approximated.
         @np.vectorize
         def f(x):
-            return NemohCore.initialize_green_wave.ff(x, dimensionless_omega, dimensionless_wavenumber)
+            return Delhommeau_f90.initialize_green_wave.ff(x, dimensionless_omega, dimensionless_wavenumber)
 
         # Try different increasing number of exponentials
         for n_exp in range(4, 31, 2):
@@ -73,7 +73,7 @@ def find_best_exponential_decomposition(dimensionless_omega, dimensionless_waven
                         dimensionless_omega, dimensionless_wavenumber)
 
     elif method.lower() == 'fortran':
-        lamda, a, nexp = NemohCore.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
+        lamda, a, nexp = Delhommeau_f90.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
         lamda = lamda[:nexp]
         a = a[:nexp]
 

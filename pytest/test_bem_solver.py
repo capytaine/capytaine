@@ -6,7 +6,7 @@ from numpy import pi
 
 from capytaine import __version__
 from capytaine.bem.solver import BEMSolver, Nemoh
-from capytaine.bem.green_functions import Delhommeau
+from capytaine.green_functions import Delhommeau
 from capytaine.bem.engines import BasicEngine
 from capytaine.bem.problems_and_results import RadiationProblem
 from capytaine.bodies.predefined.spheres import Sphere

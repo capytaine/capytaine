@@ -11,14 +11,14 @@ from numpy.distutils.core import Extension, setup
 #######################
 
 NemohCore = Extension(
-    name="capytaine.bem.NemohCore",
+    name="capytaine.green_functions.Delhommeau_f90",
     sources=[
-        "capytaine/bem/NemohCore/constants.f90",
-        "capytaine/bem/NemohCore/Green_Rankine.f90",
-        "capytaine/bem/NemohCore/Initialize_Green_wave.f90",
-        "capytaine/bem/NemohCore/Green_wave.f90",
-        "capytaine/bem/NemohCore/matrices.f90",
-        "capytaine/bem/NemohCore/old_Prony_decomposition.f90",
+        "capytaine/green_functions/Delhommeau_f90/constants.f90",
+        "capytaine/green_functions/Delhommeau_f90/old_Prony_decomposition.f90",
+        "capytaine/green_functions/Delhommeau_f90/Green_Rankine.f90",
+        "capytaine/green_functions/Delhommeau_f90/Initialize_Green_wave.f90",
+        "capytaine/green_functions/Delhommeau_f90/Green_wave.f90",
+        "capytaine/green_functions/Delhommeau_f90/matrices.f90",
     ],
     extra_compile_args=['-O2', '-fopenmp'],
     extra_f90_compile_args=['-O2', '-fopenmp'],
@@ -69,6 +69,7 @@ if __name__ == "__main__":
               'capytaine.bodies',
               'capytaine.bodies.predefined',
               'capytaine.bem',
+              'capytaine.green_functions',
               'capytaine.post_pro',
               'capytaine.ui',
               'capytaine.ui.vtk',

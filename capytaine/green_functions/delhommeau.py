@@ -10,10 +10,10 @@ from functools import lru_cache
 
 import numpy as np
 
-from capytaine.bem.prony_decomposition import find_best_exponential_decomposition
-import capytaine.bem.NemohCore as NemohCore
+from capytaine.green_functions.prony_decomposition import find_best_exponential_decomposition
+import capytaine.green_functions.Delhommeau_f90 as Delhommeau_f90
 
-tabulated_integrals = lru_cache(maxsize=1)(NemohCore.initialize_green_wave.initialize_tabulated_integrals)
+tabulated_integrals = lru_cache(maxsize=1)(Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
 LOG = logging.getLogger(__name__)
 
 class Delhommeau:
@@ -84,7 +84,7 @@ class Delhommeau:
                 coeffs = np.array((1.0, 1.0, 1.0))
 
         # Main call to Fortran code
-        return NemohCore.matrices.build_matrices(
+        return Delhommeau_f90.matrices.build_matrices(
             mesh1.faces_centers, mesh1.faces_normals,
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
