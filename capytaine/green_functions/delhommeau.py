@@ -10,11 +10,12 @@ from functools import lru_cache
 
 import numpy as np
 
-from capytaine.green_functions.prony_decomposition import find_best_exponential_decomposition
+from capytaine.tools.prony_decomposition import exponential_decomposition, error_exponential_decomposition
 import capytaine.green_functions.Delhommeau_f90 as Delhommeau_f90
 
-tabulated_integrals = lru_cache(maxsize=1)(Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
 LOG = logging.getLogger(__name__)
+
+tabulated_integrals = lru_cache(maxsize=1)(Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
 
 class Delhommeau:
     """
@@ -50,6 +51,74 @@ class Delhommeau:
     def __hash__(self):
         return self._hash
 
+    @lru_cache(maxsize=128)
+    def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
+        """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
+
+        Two implementations are available: the legacy Fortran implementation from Nemoh and a newer one written in Python.
+        For some still unexplained reasons, the two implementations do not always give the exact same result.
+        Until the problem is better understood, the Fortran implementation is the default one, to ensure consistency with Nemoh.
+        The Fortran version is also significantly faster...
+
+        Results are cached.
+
+        Parameters
+        ----------
+        dimensionless_omega: float
+            dimensionless angular frequency: :math:`kh \\tanh (kh) = \omega^2 h/g`
+        dimensionless_wavenumber: float
+            dimensionless wavenumber: :math:`kh`
+        method: string, optional
+            the implementation that should be used to compute the Prony decomposition
+
+        Returns
+        -------
+        Tuple[np.ndarray, np.ndarray]
+            the amplitude and growth rates of the exponentials
+        """
+
+        LOG.debug(f"\tCompute Prony decomposition in finite depth Green function "
+                  f"for dimless_omega=%.2e and dimless_wavenumber=%.2e",
+                  dimensionless_omega, dimensionless_wavenumber)
+
+        if self.finite_depth_prony_decomposition_method.lower() == 'python':
+            # The function that will be approximated.
+            @np.vectorize
+            def f(x):
+                return Delhommeau_f90.initialize_green_wave.ff(x, dimensionless_omega, dimensionless_wavenumber)
+
+            # Try different increasing number of exponentials
+            for n_exp in range(4, 31, 2):
+
+                # The coefficients are computed on a resolution of 4*n_exp+1 ...
+                X = np.linspace(-0.1, 20.0, 4*n_exp+1)
+                a, lamda = exponential_decomposition(X, f(X), n_exp)
+
+                # ... and they are evaluated on a finer discretization.
+                X = np.linspace(-0.1, 20.0, 8*n_exp+1)
+                if error_exponential_decomposition(X, f(X), a, lamda) < 1e-4:
+                    break
+
+            else:
+                LOG.warning("No suitable exponential decomposition has been found"
+                            "for dimless_omega=%.2e and dimless_wavenumber=%.2e",
+                            dimensionless_omega, dimensionless_wavenumber)
+
+        elif self.finite_depth_prony_decomposition_method.lower() == 'fortran':
+            lamda, a, nexp = Delhommeau_f90.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
+            lamda = lamda[:nexp]
+            a = a[:nexp]
+
+        else:
+            raise ValueError("Unrecognized method name for the Prony decomposition.")
+
+        # Add one more exponential function (actually a constant).
+        # It is not clear where it comes from exactly in the theory...
+        a = np.concatenate([a, np.array([2])])
+        lamda = np.concatenate([lamda, np.array([0.0])])
+
+        return a, lamda
+
     def evaluate(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
 
         depth = free_surface - sea_bottom
@@ -71,10 +140,9 @@ class Delhommeau:
                 coeffs = np.array((1.0, -1.0, 1.0))
 
         else:  # Finite depth
-            a_exp, lamda_exp = find_best_exponential_decomposition(
+            a_exp, lamda_exp = self.find_best_exponential_decomposition(
                 wavenumber*depth*np.tanh(wavenumber*depth),
                 wavenumber*depth,
-                method=self.finite_depth_prony_decomposition_method,
             )
             if wavenumber == 0.0:
                 raise NotImplementedError
