@@ -8,18 +8,19 @@ source:
   path: ../
 
 requirements:
-  build:
+  # build:
+    # - {{ compiler('fortran') }}
+    # - {{ compiler('c') }}
+  host:
     - python
     - setuptools
-    - numpy
-    - sphinx
+    - numpy>=1.15
   run:
     - python
     - attrs
-    - libgfortran=3  # [not win]
-    - matplotlib
-    - numpy
+    - {{ pin_compatible('numpy') }}
     - pandas
+    - matplotlib
     - scipy
     - vtk
     - xarray
@@ -27,6 +28,19 @@ requirements:
 build:
   entry_points:
     - capytaine = capytaine.ui.cli:main
+
+test:
+  imports:
+    - capytaine
+  requires:
+    - pytest
+    - hypothesis
+  source_files:
+    - pytest/*.py
+    - pytest/**/*
+  commands:
+    - pytest
+    - capytaine --help
 
 about:
   home: {{data.get('url')}}
