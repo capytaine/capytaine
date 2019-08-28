@@ -27,6 +27,21 @@ from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_
 LOG = logging.getLogger(__name__)
 
 class BEMSolver:
+    """
+    Solver for linear potential flow problems.
+
+    Parameters
+    ----------
+    green_function :
+        Object handling the computation of the Green function.
+    engine :
+        Object handling the building of matrices and the resolution of linear systems with these matrices.
+
+    Attributes
+    ----------
+    exportable_settings : dict
+        Settings of the solver that can be saved to reinit the same solver later.
+    """
 
     def __init__(self, green_function=Delhommeau(), engine=BasicEngine()):
         self.green_function = green_function
@@ -36,6 +51,10 @@ class BEMSolver:
             **self.green_function.exportable_settings,
             **self.engine.exportable_settings
         }
+
+    @classmethod
+    def from_exported_settings(settings):
+        raise NotImplementedError
 
     def solve(self, problem, keep_details=True):
         """Solve the linear potential flow problem.

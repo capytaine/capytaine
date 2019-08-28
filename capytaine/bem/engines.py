@@ -65,20 +65,27 @@ class BasicEngine:
                        green_function):
         """ """
 
-        S, V = green_function.evaluate(
-            mesh1, mesh2, free_surface, sea_bottom, wavenumber,
-        )
+        if (isinstance(mesh1, ReflectionSymmetricMesh)
+                and isinstance(mesh2, ReflectionSymmetricMesh)
+                and mesh1.plane == mesh2.plane):
 
-        return S, V
+            S_a, V_a = self.build_matrices(
+                mesh1[0], mesh2[0], free_surface, sea_bottom, wavenumber,
+                green_function)
+            S_b, V_b = self.build_matrices(
+                mesh1[0], mesh2[1], free_surface, sea_bottom, wavenumber,
+                green_function)
 
-    def build_S_matrix(self,
-                       mesh1, mesh2, free_surface, sea_bottom, wavenumber,
-                       green_function):
-        """ """
+            return BlockSymmetricToeplitzMatrix([[S_a, S_b]]), BlockSymmetricToeplitzMatrix([[V_a, V_b]])
 
-        S, _ = green_function.evaluate(
-            mesh1, mesh2, free_surface, sea_bottom, wavenumber,
-        )
+        else:
+            return green_function.evaluate(
+                mesh1, mesh2, free_surface, sea_bottom, wavenumber,
+            )
+
+    def build_S_matrix(self, *args, **kwargs):
+        # To be optimized
+        S, _ = self.build_matrices(*args, **kwargs)
         return S
 
 
@@ -252,6 +259,6 @@ class HierarchicalToeplitzMatrices:
             return S, V
 
     def build_S_matrix(self, *args, **kwargs):
-        """ """
-        S, _ = self.build_matrices(self, *args, **kwargs)
+        # To be optimized
+        S, _ = self.build_matrices(*args, **kwargs)
         return S
