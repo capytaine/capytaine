@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 
 from capytaine.bem.solver import BEMSolver
-from capytaine.green_functions import Delhommeau
+from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicEngine
 from capytaine.bem.problems_and_results import RadiationProblem
 from capytaine.bodies.predefined.spheres import Sphere

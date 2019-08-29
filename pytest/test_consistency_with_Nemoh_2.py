@@ -10,7 +10,7 @@ from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
 from capytaine.bem.solver import Nemoh
-from capytaine.green_functions import Delhommeau
+from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.io.xarray import assemble_dataset
 from capytaine.post_pro.kochin import compute_kochin
 

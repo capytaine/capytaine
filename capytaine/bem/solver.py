@@ -20,7 +20,7 @@ import numpy as np
 
 from datetime import datetime
 
-from capytaine.green_functions import Delhommeau
+from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicEngine, HierarchicalToeplitzMatrices
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 

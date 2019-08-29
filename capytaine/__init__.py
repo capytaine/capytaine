@@ -19,6 +19,9 @@ from capytaine.bodies.predefined.rectangles import Rectangle, RectangularParalle
 
 from capytaine.bem.problems_and_results import RadiationProblem, DiffractionProblem
 from capytaine.bem.solver import Nemoh, BEMSolver
+from capytaine.bem.engines import BasicEngine, HierarchicalToeplitzMatrices
+from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
+
 from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.io.xarray import assemble_dataset
