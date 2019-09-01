@@ -47,10 +47,13 @@ class BEMSolver:
         self.green_function = green_function
         self.engine = engine
 
-        self.exportable_settings = {
-            **self.green_function.exportable_settings,
-            **self.engine.exportable_settings
-        }
+        try:
+            self.exportable_settings = {
+                **self.green_function.exportable_settings,
+                **self.engine.exportable_settings
+            }
+        except AttributeError:
+            pass
 
     @classmethod
     def from_exported_settings(settings):
@@ -191,7 +194,7 @@ class BEMSolver:
         else:
             phi = np.empty((mesh.nb_faces,), dtype=np.complex128)
             for i in range(0, mesh.nb_faces, chunk_size):
-                S = self.engine.build_S_matrix_for_reconstruction(
+                S = self.engine.build_S_matrix(
                     mesh.extract_faces(list(range(i, i+chunk_size))),
                     result.body.mesh,
                     result.free_surface, result.sea_bottom, result.wavenumber,
@@ -259,5 +262,6 @@ class Nemoh(BEMSolver):
 
     def build_matrices(self, *args, **kwargs):
         """Legacy API."""
+        args = args + (self.green_function,)
         return self.engine.build_matrices(*args, **kwargs)
 
