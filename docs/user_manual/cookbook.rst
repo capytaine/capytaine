@@ -104,5 +104,13 @@ Plot the influence matrix
 
 This example plots the influence matrix for an horizontal cylinder.
 
-.. literalinclude:: examples/plot_matrix.py
+.. literalinclude:: examples/plot_influence_matrix.py
+   :language: python
+
+Use a custom Green function
+---------------------------
+
+This is an example of how to implement a custom Green function.
+
+.. literalinclude:: examples/custom_Green_function.py
    :language: python

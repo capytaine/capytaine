@@ -32,8 +32,8 @@ problems = [
 # Water density, gravity and water depth have not been specified.
 # Default values are used.
 
-# Solve all radiation problems with Nemoh
-solver = cpt.Nemoh()
+# Solve all radiation problems
+solver = cpt.BEMSolver()
 results = [solver.solve(pb) for pb in sorted(problems)]
 # The 'sorted' function ensures that the problems are sequentially
 # treated in an optimal order.
