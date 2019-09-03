@@ -11,7 +11,8 @@ $(DIRECTORY)/Delhommeau_f90/Initialize_Green_wave.f90 \
 $(DIRECTORY)/Delhommeau_f90/old_Prony_decomposition.f90
 
 SOFILE = \
-$(DIRECTORY)/Delhommeau_f90.cpython-36m-x86_64-linux-gnu.so
+$(DIRECTORY)/Delhommeau_f90.cpython-36m-x86_64-linux-gnu.so \
+$(DIRECTORY)/XieDelhommeau_f90.cpython-36m-x86_64-linux-gnu.so
 
 $(SOFILE): $(F90FILES)
 	python setup.py build_ext --inplace

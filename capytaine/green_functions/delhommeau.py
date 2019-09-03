@@ -16,7 +16,6 @@ import capytaine.green_functions.XieDelhommeau_f90 as XieDelhommeau_f90
 
 LOG = logging.getLogger(__name__)
 
-tabulated_integrals = lru_cache(maxsize=1)(Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
 
 class Delhommeau:
     """
@@ -36,11 +35,14 @@ class Delhommeau:
 
     fortran_core = Delhommeau_f90
 
+    build_tabulated_integrals = lru_cache(maxsize=1)(Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
+
     def __init__(self,
                  tabulation_nb_integration_points=251,
                  finite_depth_prony_decomposition_method='fortran',
                  ):
-        self.tabulated_integrals = tabulated_integrals(328, 46, tabulation_nb_integration_points)
+
+        self.tabulated_integrals = self.__class__.build_tabulated_integrals(328, 46, tabulation_nb_integration_points)
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
@@ -172,3 +174,4 @@ class Delhommeau:
 
 class XieDelhommeau(Delhommeau):
     fortran_core = XieDelhommeau_f90
+    build_tabulated_integrals = lru_cache(maxsize=1)(XieDelhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
