@@ -10,18 +10,21 @@ from hypothesis.strategies import one_of, just, floats
 from hypothesis.extra.numpy import arrays
 
 import numpy as np
-from scipy.special import exp1
+from numpy import pi
+from numpy.linalg import norm
+from scipy.integrate import quad
 from scipy.misc import derivative
 from scipy.optimize import newton
+from scipy.special import exp1
 
 from capytaine.green_functions import Delhommeau_f90, XieDelhommeau_f90
 
 
 def E1(z):
-    return np.exp(-z)*Delhommeau_f90.initialize_green_wave.gg(z)
+    return np.exp(-z)*Delhommeau_f90.initialize_green_wave.exp_e1(z)
 
 @given(floats(min_value=-1e2, max_value=-1e-2), floats(min_value=-1e2, max_value=1e2))
-def test_GG(x, y):
+def test_exponential_integral(x, y):
     z = x + 1j*y
 
     # Compare with Scipy implementation
@@ -42,16 +45,51 @@ def test_GG(x, y):
     #         atol=1e-2)
 
 
+# CHECK OF THE THEORY, NOT THE CODE ITSELF
+# Not necessary to run every time...
+#
+# @given(r=floats(min_value=0, max_value=1e2),
+#        z=floats(min_value=-16, max_value=-1),
+#        k=floats(min_value=0.1, max_value=10)
+#        )
+# def test_zeta(r, z, k):
+#     """Check expression k/π ∫ 1/ζ(θ) dθ = - 1/r """
+
+#     def one_over_zeta(theta):
+#         return np.real(1/(k*(z + 1j*r*np.cos(theta))))
+
+#     int_one_over_zeta, *_ = quad(one_over_zeta, -pi/2, pi/2)
+
+#     assert np.isclose(k/pi * int_one_over_zeta,
+#                       -1/(np.sqrt(r**2 + z**2)),
+#                       rtol=1e-4)
+
+
 tabulation = {
     Delhommeau_f90: Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals(328, 46, 251),
     XieDelhommeau_f90: XieDelhommeau_f90.initialize_green_wave.initialize_tabulated_integrals(328, 46, 251),
 }
 
 def test_tabulations():
-    assert np.allclose(tabulation[Delhommeau_f90][2][:, :, 0, 0], tabulation[XieDelhommeau_f90][2][:, :, 0, 0])
-    assert np.allclose(tabulation[Delhommeau_f90][2][:, :, 1, 0], tabulation[XieDelhommeau_f90][2][:, :, 1, 0])
-    assert not np.allclose(tabulation[Delhommeau_f90][2][:, :, 0, 1], tabulation[XieDelhommeau_f90][2][:, :, 0, 1])
-    assert np.allclose(tabulation[Delhommeau_f90][2][:, :, 1, 1], tabulation[XieDelhommeau_f90][2][:, :, 1, 1])
+    assert np.allclose(tabulation[Delhommeau_f90][2][:, :, 0, 0],
+                       tabulation[XieDelhommeau_f90][2][:, :, 0, 0])
+    assert np.allclose(tabulation[Delhommeau_f90][2][:, :, 1, 0],
+                       tabulation[XieDelhommeau_f90][2][:, :, 1, 0])
+    assert np.allclose(tabulation[Delhommeau_f90][2][:, :, 1, 1],
+                       tabulation[XieDelhommeau_f90][2][:, :, 1, 1])
+
+    r_range = tabulation[Delhommeau_f90][0]
+    Z_range = tabulation[Delhommeau_f90][1]
+
+    # Make 2D arrays
+    r = r_range[:, None] * np.ones_like(Z_range)[None, :]
+    Z = np.ones_like(r_range)[:, None] * Z_range[None, :]
+    R1 = np.sqrt(np.square(r) + np.square(Z))
+
+    # Compare Z1, for great values of Z, where both methods are as accurate
+    Del = tabulation[Delhommeau_f90][2][:, :, 0, 1] - pi/R1
+    Xie = tabulation[XieDelhommeau_f90][2][:, :, 0, 1]
+    assert np.allclose(Del[abs(Z) > 1], Xie[abs(Z) > 1], atol=1e-3)
 
 
 points = arrays(np.float, (3,),

@@ -156,7 +156,7 @@ CONTAINS
         D1 = PI*(expz_sqr*(cos_kr - sin_kr/(2*dimless_r)) - dimless_r/dimless_R1**3)
         D2 =     expz_sqr*(sin_kr + cos_kr/(2*dimless_r))
 #ifdef XIE_CORRECTION
-        Z1 = PI*(-expz_sqr*sin_kr + dimless_Z/dimless_R1**3 + ONE/dimless_R1)
+        Z1 = PI*(-expz_sqr*sin_kr + dimless_Z/dimless_R1**3 - ONE/dimless_R1)
 #else
         Z1 = PI*(-expz_sqr*sin_kr + dimless_Z/dimless_R1**3)
 #endif
@@ -168,8 +168,8 @@ CONTAINS
       !================================================
 
 #ifdef XIE_CORRECTION
-      FS    = CMPLX(Z1/PI - ONE/dimless_R1, Z2, KIND=PRE)
-      VS(3) = CMPLX(Z1/PI - ONE/dimless_R1, Z2, KIND=PRE)
+      FS    = CMPLX(Z1/PI + ONE/dimless_R1, Z2, KIND=PRE)
+      VS(3) = CMPLX(Z1/PI + ONE/dimless_R1, Z2, KIND=PRE)
 #else
       FS    = CMPLX(Z1/PI, Z2, KIND=PRE)
       VS(3) = CMPLX(Z1/PI, Z2, KIND=PRE)

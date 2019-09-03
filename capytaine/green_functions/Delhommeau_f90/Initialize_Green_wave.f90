@@ -6,7 +6,7 @@ MODULE INITIALIZE_GREEN_WAVE
 
   IMPLICIT NONE
 
-  PUBLIC :: GG
+  PUBLIC :: EXP_E1
   PUBLIC :: INITIALIZE_TABULATED_INTEGRALS
   PUBLIC :: FF
 
@@ -14,7 +14,7 @@ CONTAINS
 
 !------------------------------------------------------------------------------
 
-  FUNCTION GG(ZZ)
+  FUNCTION EXP_E1(ZZ)
     ! Estimation of exp(z)·E1(z) where E1(z) = ∫_z^∞ exp(-t)/t dt
     ! See p.367 of G. Delhommeau thesis (referenced as [Del]).
 
@@ -23,7 +23,7 @@ CONTAINS
     ! The computation is done is single precision.
 
     COMPLEX(KIND=PRE),      INTENT(IN)  :: ZZ
-    COMPLEX(KIND=PRE)                   :: GG
+    COMPLEX(KIND=PRE)                   :: EXP_E1
     COMPLEX(KIND=KIND(1e0))             :: G, Y, Z
 
     Z = CMPLX(ZZ, KIND=KIND(1e0))
@@ -62,9 +62,9 @@ CONTAINS
           + (-3.777369, 4.510900))
       END IF
     END IF
-    GG = CMPLX(G, KIND=PRE)
+    EXP_E1 = CMPLX(G, KIND=PRE)
 
-  END FUNCTION GG
+  END FUNCTION EXP_E1
 
 !------------------------------------------------------------------------------
 
@@ -135,9 +135,9 @@ CONTAINS
             EXPZETA = EXP(ZETA)
           ENDIF
           IF (AIMAG(ZETA) < 0) THEN
-            JZETA = GG(ZETA) - II*PI*EXPZETA
+            JZETA = EXP_E1(ZETA) - II*PI*EXPZETA
           ELSE
-            JZETA = GG(ZETA) + II*PI*EXPZETA
+            JZETA = EXP_E1(ZETA) + II*PI*EXPZETA
           END IF
           TABULATION(I, J, 1, 1) = TABULATION(I, J, 1, 1) + CQT(K)*COSTHETA*AIMAG(JZETA - 1.0/ZETA) ! D_1 in [1, 2, 3]
           TABULATION(I, J, 2, 1) = TABULATION(I, J, 2, 1) + CQT(K)*COSTHETA*AIMAG(EXPZETA)          ! D_2 in [1, 2, 3]
