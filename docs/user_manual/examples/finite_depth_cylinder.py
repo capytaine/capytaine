@@ -31,7 +31,7 @@ problems = [
 ]
 # Water density, gravity and radiating dof have not been specified.
 # Default values are used. (For the radiating dof, the default value
-# is usually the first one that have been defined. Here only one have
+# is usually the first one that has been defined. Here only one has
 # been defined.)
 
 # Solve all radiation problems with Nemoh
