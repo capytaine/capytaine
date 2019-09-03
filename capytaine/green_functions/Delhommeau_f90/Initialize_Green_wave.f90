@@ -68,10 +68,10 @@ CONTAINS
 
 !------------------------------------------------------------------------------
 
-  SUBROUTINE INITIALIZE_TABULATED_INTEGRALS(IR, JZ, NPINTE, XR, XZ, APD)
-    ! Compute the tabulated integral for the wave part of the Green function.
+  SUBROUTINE INITIALIZE_TABULATED_INTEGRALS(NB_POINTS_X, NB_POINTS_Z, NB_INTEGRATION_POINTS, X, Z, TABULATION)
+    ! Compute the tabulated integrals for the wave part of the Green function.
     ! These tables are independant of the mesh and of the frequency.
-    ! They are only initialised once at the beginning of the computation.
+    ! They are only initialised once at the beginning of the program.
 
     ! References:
     ! [1] Delhommeau, Amélioration des codes de calcul de diffraction-radiation, 2èmes journées de l'hydrodynamique, 1989
@@ -80,55 +80,55 @@ CONTAINS
     !                 function for the wave-structure interaction problem, Applied Ocean Research, 2018
 
     ! Inputs
-    INTEGER, INTENT(IN) :: IR     != 328
-    INTEGER, INTENT(IN) :: JZ     != 46
-    INTEGER, INTENT(IN) :: NPINTE
+    INTEGER, INTENT(IN) :: NB_POINTS_X     != 328
+    INTEGER, INTENT(IN) :: NB_POINTS_Z     != 46
+    INTEGER, INTENT(IN) :: NB_INTEGRATION_POINTS
 
     ! Outputs
-    REAL(KIND=PRE), DIMENSION(IR),           INTENT(OUT) :: XR
-    REAL(KIND=PRE), DIMENSION(JZ),           INTENT(OUT) :: XZ
-    REAL(KIND=PRE), DIMENSION(IR, JZ, 2, 2), INTENT(OUT) :: APD
+    REAL(KIND=PRE), DIMENSION(NB_POINTS_X),                    INTENT(OUT) :: X
+    REAL(KIND=PRE), DIMENSION(NB_POINTS_Z),                    INTENT(OUT) :: Z
+    REAL(KIND=PRE), DIMENSION(NB_POINTS_X, NB_POINTS_Z, 2, 2), INTENT(OUT) :: TABULATION
 
     ! Local variables
     INTEGER :: I, J, K
-    REAL(KIND=PRE) :: THETA(NPINTE), CQT(NPINTE)
+    REAL(KIND=PRE) :: THETA(NB_INTEGRATION_POINTS), CQT(NB_INTEGRATION_POINTS)
     REAL(KIND=PRE) :: COSTHETA
     COMPLEX(KIND=PRE) :: JZETA, ZETA, EXPZETA
 
-    ! Initialize XZ (named Z(J) in [1, 2])
-    DO J = 1, JZ
-      XZ(J) = -AMIN1(10**(J/5.0-6), 10**(J/8.0-4.5), 16.)
+    ! Initialize Z axis
+    DO J = 1, NB_POINTS_Z
+      Z(J) = -AMIN1(10**(J/5.0-6), 10**(J/8.0-4.5), 16.)
     END DO
 
-    ! Initialize XR (named X(I) in [1, 2])
-    XR(1) = 0.0
-    DO I = 2, IR
+    ! Initialize X axis
+    X(1) = 0.0
+    DO I = 2, NB_POINTS_X
       IF (I < 40) THEN
-        XR(I) = AMIN1(10**((I-1.0)/5-6), 4.0/3.0 + ABS(I-32)/3.0)
+        X(I) = AMIN1(10**((I-1.0)/5-6), 4.0/3.0 + ABS(I-32)/3.0)
       ELSE
-        XR(I) = 4.0/3.0 + ABS(I-32)/3.0
+        X(I) = 4.0/3.0 + ABS(I-32)/3.0
       ENDIF
     END DO
 
     ! Initialize THETA and CQT for the integration between -pi/2 and pi/2 with the Simpson rule.
-    DO K = 1, NPINTE
-      THETA(K) = -PI/2 + (K-1.0)/(NPINTE-1.0)*PI  ! The 1.0 are here on purpose to force the recasting of K and NPINTE as floats.
-      IF ((K == 1) .OR. (K == NPINTE)) THEN
-        CQT(K) = PI/(3*(NPINTE-1))
+    DO K = 1, NB_INTEGRATION_POINTS
+      THETA(K) = -PI/2 + (K-1.0)/(NB_INTEGRATION_POINTS-1.0)*PI  ! The 1.0 are here on purpose to force the recasting of K and NB_INTEGRATION_POINTS as floats.
+      IF ((K == 1) .OR. (K == NB_INTEGRATION_POINTS)) THEN
+        CQT(K) = PI/(3*(NB_INTEGRATION_POINTS-1))
       ELSEIF (MOD(K,2)==0) THEN
-        CQT(K) = 4.0/(3*(NPINTE-1))*PI
+        CQT(K) = 4.0/(3*(NB_INTEGRATION_POINTS-1))*PI
       ELSE
-        CQT(K) = 2.0/(3*(NPINTE-1))*PI
+        CQT(K) = 2.0/(3*(NB_INTEGRATION_POINTS-1))*PI
       ENDIF
     ENDDO
 
-    ! Initialize APD..
-    APD(:, :, :, :) = 0.0
-    DO J = 1, JZ
-      DO I = 1, IR
-        DO K = 1, NPINTE
+    ! Compute tabulation
+    TABULATION(:, :, :, :) = 0.0
+    DO I = 1, NB_POINTS_X
+      DO J = 1, NB_POINTS_Z
+        DO K = 1, NB_INTEGRATION_POINTS
           COSTHETA = COS(THETA(K))
-          ZETA = CMPLX(XZ(J), XR(I)*COSTHETA, KIND=PRE)
+          ZETA = CMPLX(Z(J), X(I)*COSTHETA, KIND=PRE)
           IF (REAL(ZETA) <= -30.0) THEN
             EXPZETA = (0.0, 0.0)
           ELSE
@@ -139,14 +139,14 @@ CONTAINS
           ELSE
             JZETA = GG(ZETA) + II*PI*EXPZETA
           END IF
-          APD(I, J, 1, 1) = APD(I, J, 1, 1) + CQT(K)*COSTHETA*AIMAG(JZETA - 1.0/ZETA) ! named D_1(Z, X) in [1, 2]
-          APD(I, J, 2, 1) = APD(I, J, 2, 1) + CQT(K)*COSTHETA*AIMAG(EXPZETA)          ! named D_2(Z, X) in [1, 2]
+          TABULATION(I, J, 1, 1) = TABULATION(I, J, 1, 1) + CQT(K)*COSTHETA*AIMAG(JZETA - 1.0/ZETA) ! D_1 in [1, 2, 3]
+          TABULATION(I, J, 2, 1) = TABULATION(I, J, 2, 1) + CQT(K)*COSTHETA*AIMAG(EXPZETA)          ! D_2 in [1, 2, 3]
 #ifdef XIE_CORRECTION
-          APD(I, J, 1, 2) = APD(I, J, 1, 2) + CQT(K)*REAL(JZETA)
+          TABULATION(I, J, 1, 2) = TABULATION(I, J, 1, 2) + CQT(K)*REAL(JZETA)                      ! Z_1 in [3]
 #else
-          APD(I, J, 1, 2) = APD(I, J, 1, 2) + CQT(K)*REAL(JZETA - 1.0/ZETA)           ! named Z_1(Z, X) in [1, 2]
+          TABULATION(I, J, 1, 2) = TABULATION(I, J, 1, 2) + CQT(K)*REAL(JZETA - 1.0/ZETA)           ! Z_1 in [1, 2]
 #endif
-          APD(I, J, 2, 2) = APD(I, J, 2, 2) + CQT(K)*REAL(EXPZETA)                    ! named Z_2(Z, X) in [1, 2]
+          TABULATION(I, J, 2, 2) = TABULATION(I, J, 2, 2) + CQT(K)*REAL(EXPZETA)                    ! Z_2 in [1, 2, 3]
         END DO
       END DO
     END DO
@@ -159,7 +159,7 @@ CONTAINS
 
   FUNCTION FF(XTT, AK, AM)
     ! A function that will be Prony-decomposed for the finite-depth Green function.
-    ! See the method "compute_exponential_decomposition" in bem/nemoh.py.
+    ! See the method "find_best_exponential_decomposition" in green_functions/delhommeau.py.
 
     ! Input
     REAL(KIND=PRE), INTENT(IN) :: XTT, AK, AM
