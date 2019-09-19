@@ -43,7 +43,7 @@ class BEMSolver:
         Settings of the solver that can be saved to reinit the same solver later.
     """
 
-    def __init__(self, green_function=Delhommeau(), engine=BasicEngine()):
+    def __init__(self, *, green_function=Delhommeau(), engine=BasicEngine()):
         self.green_function = green_function
         self.engine = engine
 
@@ -258,7 +258,7 @@ class Nemoh(BEMSolver):
                **{key: params[key] for key in params if key in _arguments(BasicEngine.__init__)}
             )
 
-        super().__init__(green_function, engine)
+        super().__init__(green_function=green_function, engine=engine)
 
     def build_matrices(self, *args, **kwargs):
         """Legacy API."""
