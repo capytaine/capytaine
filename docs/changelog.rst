@@ -2,6 +2,35 @@
 Changelog
 =========
 
+------------------
+New in version 1.1
+------------------
+
+Major changes
+-------------
+
+* Refactoring of the implementation of the solver.
+  The new implementation separates the solver itself from the evaluation of the
+  Green function and the matrix building engine.
+  This more modular structure allows user to choose the Green function or the
+  matrix engine that they want to use.
+  See :doc:`user_manuel/solver` for the full documentation of the new structure
+  and :doc:`user_manuel/cookbook` for examples.
+  The former API (`Nemoh()` object) has been kept for backward compatibility.
+
+* Add Xie's variant of Delhommeau's Green function [X18]_.
+
+* The option `cache_rankine_matrices` has been removed. It was impeding the
+  performance and modularity of the code for a very low gain. It might be
+  reimplemented in a future version if there is really a need for it.
+
+Minor changes
+-------------
+
+* Minor performance improvements.
+
+* Improve test suite.
+
 --------------------
 New in version 1.0.1
 --------------------
