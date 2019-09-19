@@ -1,7 +1,7 @@
-capytaine.bodies.predefined.cylinders module
+capytaine.green\_functions.delhommeau module
 ============================================
 
-.. automodule:: capytaine.bodies.predefined.cylinders
+.. automodule:: capytaine.green_functions.delhommeau
    :members:
    :undoc-members:
    :show-inheritance:

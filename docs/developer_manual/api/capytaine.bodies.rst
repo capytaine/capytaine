@@ -6,7 +6,7 @@ Subpackages
 
 .. toctree::
 
-    capytaine.bodies.predefined
+   capytaine.bodies.predefined
 
 Submodules
 ----------
@@ -19,6 +19,6 @@ Module contents
 ---------------
 
 .. automodule:: capytaine.bodies
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

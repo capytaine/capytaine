@@ -6,7 +6,7 @@ Subpackages
 
 .. toctree::
 
-    capytaine.ui.vtk
+   capytaine.ui.vtk
 
 Submodules
 ----------
@@ -19,6 +19,6 @@ Module contents
 ---------------
 
 .. automodule:: capytaine.ui
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -14,6 +14,6 @@ Module contents
 ---------------
 
 .. automodule:: capytaine.post_pro
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

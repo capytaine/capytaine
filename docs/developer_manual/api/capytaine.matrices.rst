@@ -16,6 +16,6 @@ Module contents
 ---------------
 
 .. automodule:: capytaine.matrices
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

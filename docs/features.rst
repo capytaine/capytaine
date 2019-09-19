@@ -23,6 +23,7 @@ Main features
 
 * Computation of the added masses, radiation dampings, diffraction forces and Froude-Krylov forces for rigid bodies or for bodies with any arbitrary degrees of freedom.
 * Python object oriented API.
+* Choice among several implementations of the Green function.
 * OpenMP parallelization.
 * Iterative linear system solver.
 * Faster than Nemoh 2.0 on a single thread [#]_.

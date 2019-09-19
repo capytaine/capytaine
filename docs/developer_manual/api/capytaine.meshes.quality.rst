@@ -2,6 +2,6 @@ capytaine.meshes.quality module
 ===============================
 
 .. automodule:: capytaine.meshes.quality
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

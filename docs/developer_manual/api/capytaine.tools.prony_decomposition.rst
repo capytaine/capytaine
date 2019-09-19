@@ -1,7 +1,7 @@
-capytaine.bem.problems\_and\_results module
+capytaine.tools.prony\_decomposition module
 ===========================================
 
-.. automodule:: capytaine.bem.problems_and_results
+.. automodule:: capytaine.tools.prony_decomposition
    :members:
    :undoc-members:
    :show-inheritance:
