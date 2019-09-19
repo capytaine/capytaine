@@ -2,15 +2,8 @@
 Installation for users
 ======================
 
-.. warning::
-    The binary package for Windows is currently broken, sorry.
-    (Please take a look at this `Github issue <https://github.com/mancellin/capytaine/issues/1>`_ if you can help.)
-
-    However, the Linux version works fine on the *Windows Subsystem for Linux*.
-    Until the native Windows version is fixed, it is the recommended way to install Capytaine on Windows.
-
-With conda on Linux or Mac
---------------------------
+With Conda
+----------
 
 The easiest way to install Capytaine is the precompiled package available on Conda_.
 Download and install the `Anaconda distribution`_ or its lightweight counterpart Miniconda_.
@@ -27,10 +20,6 @@ Once Conda has been installed, run the following command in a terminal to instal
     conda install -c conda-forge capytaine
 
 All the necessary code from Nemoh and Meshmagick is already included into Capytaine and all the other required dependencies should be automatically installed.
-
-In case you get an error message because of a missing module, you can try to install them all manually::
-
-    conda install "numpy>=1.15,<1.17" libgfortran=3 attrs scipy matplotlib pandas xarray vtk 
 
 
 With Pip
