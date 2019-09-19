@@ -4,54 +4,92 @@ Resolution
 
 Settings of the solver
 ----------------------
-Several parameters can be passed to the BEM solver at the
-time of its initialization, such as::
+The :class:`capytaine.bem.solver.BEMSolver` class takes two (keyword-only) arguments at the time of its initialization::
 
-    from capytaine import Nemoh
-    solver = Nemoh(linear_solver="gmres", matrix_cache_size=0)
+    from capytaine import BEMSolver
+    solver = BEMSolver(green_function=..., engine=...)
 
-The most important of these parameters are described below.
-See :class:`~capytaine.bem.nemoh.Nemoh` for a full list of accepted parameters.
+Let us discuss in more details these two objects.
 
-:code:`hierarchical_matrices` (Default: :code:`True`)
-	If :code:`True` and if the mesh of the body has a hierarchical structure,
-	the solver will use this structure to build a Hierarchical Toeplitz matrix
-	to save computation time. For advanced users, the solver parameters
-	:code:`ACA_distance` and :code:`ACA_tol` can be use to set the precision of
-	the Adaptive Cross Approximation.
+Green function
+~~~~~~~~~~~~~~
+A class used to evaluate the Green function.
+Two of them are available in the present version:
 
-:code:`linear_solver` (Default: :code:`'gmres'`)
-	This option is used to set the solver for linear systems that is used in the resolution of the BEM problem.
-	Passing a string will make the code use one of the predefined solver. Two of them are available:
-	:code:`'direct'` for a direct solver using LU-decomposition or :code:`'gmres'` for an iterative solver.
+:class:`capytaine.green_functions.delhommeau.Delhommeau` (Default)
+   The method implemented in Nemoh (see [Del87]_ and [Del89]_).
+   See the documentation for details on the available options.
 
-	Alternatively, any function taking as arguments a matrix and a vector and returning a vector can be given to the solver::
+:class:`capytaine.green_functions.delhommeau.XieDelhommeau`
+   A variant of the above, more accurate near the free surface (see [X18]_).
+   Accepts the same options as :class:`Delhommeau <capytaine.green_functions.delhommeau.Delhommeau>`
 
-		import numpy as np
-		def my_linear_solver(A, b):
-			"""A dumb solver for testing."""
-			return np.linalg.inv(A) @ b
-		my_bem_solver = Nemoh(linear_solver=my_linear_solver)
+Advanced users can write their own class to evaluate the Green function.
+See the example in the :doc:`cookbook`.
 
-	This technique can be used for instance to apply a custom preconditioning to
-	the iterative solver. It is recommended then to use
-	:code:`hierarchical_matrices=False` to ensure that the custom function
-	receives an usual numpy array.
+Engine
+~~~~~~
+A class to build a interaction matrix.
+Two of them are available in the present version:
 
-:code:`matrix_cache_size` (Default: :code:`1`)
-	The solver keeps in memory the last interaction matrices that has been computed.
-	This setting controls the number of old matrices that are saved.
-	Setting it to :code:`0` will reduce the RAM usage of the code but might
-	increase the computation time.
+:class:`capytaine.bem.engines.BasicEngine` (Default)
+   A simple engine fairly similar to the one in Nemoh.
+   It builds the full matrices with few optimizations.
+   Only a reflection symmetry can be used to make the resolution faster.
 
-:code:`cache_rankine_matrices` (Default: :code:`False`)
-	If :code:`True`, the solve will cache separately the Rankine part of the
-	influence matrix and the wave part. Indeed, since the former is independent
-	of the wave frequency, it is not necessary to recompute it when studying the
-	same mesh at different frequencies. However, the gain in computation time is
-	low and this option might be conflicting with :code:`hierarchical_matrices`
-	in some rare cases.
+   The object can be initialized with the following options:
 
+   :code:`matrix_cache_size` (Default: :code:`1`)
+           The solver keeps in memory the last interaction matrices that has been computed.
+           This setting controls the number of old matrices that are saved.
+           Setting it to :code:`0` will reduce the RAM usage of the code but might
+           increase the computation time.
+
+   :code:`linear_solver` (Default: :code:`'gmres'`)
+           This option is used to set the solver for linear systems that is used in the resolution of the BEM problem.
+           Passing a string will make the code use one of the predefined solver. Two of them are available:
+           :code:`'direct'` for a direct solver using LU-decomposition or :code:`'gmres'` for an iterative solver.
+
+           Alternatively, any function taking as arguments a matrix and a vector and returning a vector can be given to the solver::
+
+                   import numpy as np
+
+                   def my_linear_solver(A, b):
+                           """A dumb solver for testing."""
+                           return np.linalg.inv(A) @ b
+
+                   my_bem_solver = cpt.BEMSolver(
+                      engine=BasicEngine(linear_solver=my_linear_solver)
+                      )
+
+           This option can be used for instance to apply a custom preconditioning to
+           the iterative solver.
+
+:class:`capytaine.bem.engines.HierarchicalToeplitzMatrices`
+   Experimental engine using hierarchical structure in the mesh to build
+   hierarchical influence matrices.
+
+   The object can be initialized with the following options:
+
+   :code:`matrix_cache_size` (Default: :code:`1`)
+      Same as above.
+
+   :code:`ACA_distance` and :code:`ACA_tol`
+      Parameters of the Adaptive Cross Approximation (ACA) used to set the
+      precision of the low-rank matrices.
+
+
+Legacy interface
+----------------
+
+The class :class:`capytaine.bem.solver.Nemoh` was the main solver class in
+version 1.0 of Capytaine.
+It is still available in the current version for backward compatibility.
+It is now a subclass of :class:`capytaine.bem.solver.BEMSolver` that always uses
+:class:`capytaine.green_functions.delhommeau.Delhommeau`'s Green function and
+accept the same arguments as in version 1.0.
+
+The use of :class:`capytaine.bem.solver.BEMSolver` is recommended.
 
 Solving the problem
 -------------------
@@ -79,12 +117,4 @@ by OpenMP is controlled by the environment variables :code:`OMP_NUM_THREADS`
 (for the computation of the Green function by capytaine itself) and
 :code:`MKL_NUM_THREADS` (for the linear solver from Intel's MKL library
 distributed with conda).
-
-Accessing the influence matrices (for advanced users)
------------------------------------------------------
-
-To only compute the influence matrices, see the solver methods
-:meth:`~capytaine.bem.nemoh.Nemoh.build_matrices`,
-:meth:`~capytaine.bem.nemoh.Nemoh.build_matrices_rankine` and
-:meth:`~capytaine.bem.nemoh.Nemoh.build_matrices_wave`
 

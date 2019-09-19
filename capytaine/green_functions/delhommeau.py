@@ -18,7 +18,8 @@ LOG = logging.getLogger(__name__)
 
 
 class Delhommeau:
-    """
+    """The Green function as implemented in Nemoh.
+
     Parameters
     ----------
     tabulation_nb_integration_points: int, optional
@@ -26,6 +27,8 @@ class Delhommeau:
         used for the computation of the Green function (default: 251)
     finite_depth_prony_decomposition_method: string, optional
         The implementation of the Prony decomposition used to compute the finite depth Green function.
+        Accepted values: :code:`'fortran'` for Nemoh's implementation (by default), :code:`'python'` for an experimental Python implementation.
+        See :func:`find_best_exponential_decomposition`.
 
     Attributes
     ----------
@@ -126,6 +129,26 @@ class Delhommeau:
         return a, lamda
 
     def evaluate(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
+        r"""The main method of the class, called by the engine to assemble the influence matrices.
+
+        Parameters
+        ----------
+        mesh1: Mesh or CollectionOfMeshes
+            mesh of the receiving body (where the potential is measured)
+        mesh2: Mesh or CollectionOfMeshes
+            mesh of the source body (over which the source distribution is integrated)
+        free_surface: float, optional
+            position of the free surface (default: :math:`z = 0`)
+        sea_bottom: float, optional
+            position of the sea bottom (default: :math:`z = -\infty`)
+        wavenumber: float, optional
+            wavenumber (default: 1.0)
+
+        Returns
+        -------
+        tuple of numpy arrays
+            the matrices :math:`S` and :math:`K`
+        """
 
         depth = free_surface - sea_bottom
         if free_surface == np.infty: # No free surface, only a single Rankine source term
@@ -173,5 +196,10 @@ class Delhommeau:
 ################################
 
 class XieDelhommeau(Delhommeau):
+    """Variant of Nemoh's Green function, more accurate near the free surface.
+
+    Same arguments and methods as :class:`Delhommeau`.
+    """
+
     fortran_core = XieDelhommeau_f90
     build_tabulated_integrals = lru_cache(maxsize=1)(XieDelhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)

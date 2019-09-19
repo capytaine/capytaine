@@ -6,7 +6,7 @@ Defining a test matrix with :code:`xarray`
 ------------------------------------------
 
 The shortest way to set the parameters of the potential flow problems to be solved is to build a `xarray <http://xarray.pydata.org>`_ dataset.
-Then the function :meth:`fill_dataset <capytaine.Nemoh.Nemoh.fill_dataset>` will automatically make all the simulations defined in the test matrix.
+Then the function :meth:`fill_dataset <capytaine.bem.solver.BEMSolver.fill_dataset>` will automatically make all the simulations defined in the test matrix.
 
 ::
 
@@ -22,7 +22,7 @@ Then the function :meth:`fill_dataset <capytaine.Nemoh.Nemoh.fill_dataset>` will
         'radiating_dof': list(body.dofs),
         'water_depth': [np.infty],
     })
-    dataset = cpt.Nemoh().fill_dataset(test_matrix, [body])
+    dataset = cpt.BEMSolver().fill_dataset(test_matrix, [body])
 
 It returns a filled dataset. If the coordinate :code:`theta` is added to the test matrix, the code will
 compute the Kochin function for these values of :math:`\theta`.

@@ -44,9 +44,11 @@ Main concepts
 
     Most of the parameters are optional. A default value is used when they are not provided (see the page :doc:`problem_setup`).
 
-:class:`Solver <capytaine.bem.nemoh.Nemoh>`
-    The core of the code. It has a :meth:`~capytaine.bem.nemoh.Nemoh.solve` method that takes a
+:class:`Solver <capytaine.bem.solver.BEMSolver>`
+    The core of the code. It has a :meth:`~capytaine.bem.solver.BEMSolver.solve` method that takes a
     :code:`LinearPotentialFlowProblem` as input and returns a :code:`LinearPotentialFlowResult`.
+    It calls a class computing the Green function and a class to build the matrices.
+    See :doc:`resolution` for details.
 
 :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowResult`
     The class storing the results is similar to the class storing a problem, with some
@@ -152,14 +154,14 @@ Solve the problem
 
 Let us initialize the BEM solver::
 
-    solver = Nemoh()
+    solver = BEMSolver()
 
 Solver settings could have been given at this point, but in this tutorial, we will use the default settings.
 Let us now solve the problem we defined earlier::
 
     result = solver.solve(problem)
 
-The :meth:`~capytaine.bem.nemoh.Nemoh.solve` method returns a result object. The result object contains all of the data from
+The :meth:`~capytaine.bem.solver.BEMSolver.solve` method returns a result object. The result object contains all of the data from
 the problem it comes from::
 
     print(result.omega)

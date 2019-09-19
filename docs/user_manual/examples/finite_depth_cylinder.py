@@ -34,7 +34,7 @@ problems = [
 # is usually the first one that has been defined. Here only one has
 # been defined.)
 
-# Solve all radiation problems with Nemoh
+# Solve all radiation problems
 solver = cpt.BEMSolver(engine=cpt.HierarchicalToeplitzMatrices())
 results = [solver.solve(pb) for pb in sorted(problems)]
 
