@@ -6,7 +6,7 @@ from numpy import pi
 
 from capytaine import __version__
 from capytaine.bem.solver import BEMSolver, Nemoh
-from capytaine.green_functions.delhommeau import Delhommeau
+from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.bem.problems_and_results import RadiationProblem
 from capytaine.bodies.predefined.spheres import Sphere
@@ -20,6 +20,9 @@ def test_exportable_settings():
     assert gf.exportable_settings['green_function'] == 'Delhommeau'
     assert gf.exportable_settings['tabulation_nb_integration_points'] == 50
     assert gf.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
+
+    gf2 = XieDelhommeau()
+    assert gf2.exportable_settings['green_function'] == 'XieDelhommeau'
 
     engine = BasicMatrixEngine(matrix_cache_size=0)
     assert engine.exportable_settings['engine'] == 'BasicMatrixEngine'

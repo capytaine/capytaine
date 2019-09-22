@@ -51,7 +51,7 @@ class Delhommeau(AbstractGreenFunction):
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
         self.exportable_settings = {
-            'green_function': 'Delhommeau',
+            'green_function': self.__class__.__name__,
             'tabulation_nb_integration_points': tabulation_nb_integration_points,
             'finite_depth_prony_decomposition_method': finite_depth_prony_decomposition_method,
         }
