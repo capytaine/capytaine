@@ -99,12 +99,28 @@ this floating body.
 Advanced examples
 =================
 
+Convergence study
+-----------------
+
+This example runs a mesh convergence study for a submerged cylinder.
+
+.. literalinclude:: examples/convergence_study.py
+   :language: python
+
 Plot the influence matrix
 -------------------------
 
 This example plots the influence matrix for an horizontal cylinder.
 
 .. literalinclude:: examples/plot_influence_matrix.py
+   :language: python
+
+Compare two implementations of the Green function
+-------------------------------------------------
+
+This is an example of comparison of two implementations of the Green function.
+
+.. literalinclude:: examples/compare_Green_functions.py
    :language: python
 
 Use a custom Green function

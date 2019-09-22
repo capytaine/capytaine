@@ -8,13 +8,12 @@ import capytaine as cpt
 logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s:\t%(message)s")
 
+# Generate body
 body = cpt.HorizontalCylinder(
     length=3.0, radius=1.0,  # Dimensions
     center=(0, 0, -1.01),     # Position
     nr=5, nx=15, ntheta=30,   # Fineness of the mesh
 )
-
-# body.add_all_rigid_body_dofs()
 body.add_translation_dof(name="Heave")
 
 test_matrix = xr.Dataset(coords={
