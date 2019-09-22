@@ -41,7 +41,7 @@ class Delhommeau(AbstractGreenFunction):
 
     build_tabulated_integrals = lru_cache(maxsize=1)(Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
 
-    def __init__(self,
+    def __init__(self, *,
                  tabulation_nb_integration_points=251,
                  finite_depth_prony_decomposition_method='fortran',
                  ):
