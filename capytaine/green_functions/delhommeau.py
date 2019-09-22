@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-"""
+"""Variants of Delhommeau's method for the computation of the Green function."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
@@ -11,13 +10,15 @@ from functools import lru_cache
 import numpy as np
 
 from capytaine.tools.prony_decomposition import exponential_decomposition, error_exponential_decomposition
+
+from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
 import capytaine.green_functions.Delhommeau_f90 as Delhommeau_f90
 import capytaine.green_functions.XieDelhommeau_f90 as XieDelhommeau_f90
 
 LOG = logging.getLogger(__name__)
 
 
-class Delhommeau:
+class Delhommeau(AbstractGreenFunction):
     """The Green function as implemented in Nemoh.
 
     Parameters

@@ -32,7 +32,7 @@ class BEMSolver:
 
     Parameters
     ----------
-    green_function :
+    green_function: AbstractGreenFunction
         Object handling the computation of the Green function.
     engine: MatrixEngine
         Object handling the building of matrices and the resolution of linear systems with these matrices.

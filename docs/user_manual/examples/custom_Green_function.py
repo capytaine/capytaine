@@ -3,9 +3,11 @@
 import numpy as np
 from numpy import dot, pi
 from numpy.linalg import norm
-import capytaine as cpt
 
-class MyGreenFunction:
+import capytaine as cpt
+from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
+
+class MyAbstractGreenFunction(AbstractGreenFunction):
     """A example of a method to evaluate the Green function."""
 
     def evaluate(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
@@ -43,7 +45,7 @@ class MyGreenFunction:
             raise NotImplementedError
 
 # Define a solver using the Green function above.
-solver = cpt.BEMSolver(green_function=MyGreenFunction())
+solver = cpt.BEMSolver(green_function=MyAbstractGreenFunction())
 
 # Example of a problem
 sphere = cpt.Sphere(

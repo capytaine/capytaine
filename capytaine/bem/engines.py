@@ -92,7 +92,7 @@ class BasicMatrixEngine(MatrixEngine):
             position of the sea bottom (default: :math:`z = -\infty`)
         wavenumber: float
             wavenumber (default: 1.0)
-        green_function: GreenFunction
+        green_function: AbstractGreenFunction
             object with an "evaluate" method that computes the Green function.
 
         Returns

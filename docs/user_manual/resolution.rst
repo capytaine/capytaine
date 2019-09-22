@@ -13,7 +13,7 @@ Let us discuss in more details these two objects.
 
 Green function
 ~~~~~~~~~~~~~~
-A class used to evaluate the Green function.
+A class used to evaluate the Green function, deriving from :class:`AbstractGreenFunction <capytaine.green_functions.abstract_green_function.AbstractGreenFunction>`.
 Two of them are available in the present version:
 
 :class:`capytaine.green_functions.delhommeau.Delhommeau` (Default)
@@ -29,7 +29,7 @@ See the example in the :doc:`cookbook`.
 
 Engine
 ~~~~~~
-A class to build a interaction matrix.
+A class to build a interaction matrix, deriving from :class:`MatrixEngine <capytaine.bem.engines.MatrixEngine>`.
 Two of them are available in the present version:
 
 :class:`capytaine.bem.engines.BasicMatrixEngine` (Default)
