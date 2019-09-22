@@ -35,7 +35,7 @@ problems = [
 # been defined.)
 
 # Solve all radiation problems
-solver = cpt.BEMSolver(engine=cpt.HierarchicalToeplitzMatrices())
+solver = cpt.BEMSolver(engine=cpt.HierarchicalToeplitzMatrixEngine())
 results = [solver.solve(pb) for pb in sorted(problems)]
 
 # Gather the computed added mass into a labelled array.

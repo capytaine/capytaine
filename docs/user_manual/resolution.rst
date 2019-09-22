@@ -32,7 +32,7 @@ Engine
 A class to build a interaction matrix.
 Two of them are available in the present version:
 
-:class:`capytaine.bem.engines.BasicEngine` (Default)
+:class:`capytaine.bem.engines.BasicMatrixEngine` (Default)
    A simple engine fairly similar to the one in Nemoh.
    It builds the full matrices with few optimizations.
    Only a reflection symmetry can be used to make the resolution faster.
@@ -59,13 +59,13 @@ Two of them are available in the present version:
                            return np.linalg.inv(A) @ b
 
                    my_bem_solver = cpt.BEMSolver(
-                      engine=BasicEngine(linear_solver=my_linear_solver)
+                      engine=BasicMatrixEngine(linear_solver=my_linear_solver)
                       )
 
            This option can be used for instance to apply a custom preconditioning to
            the iterative solver.
 
-:class:`capytaine.bem.engines.HierarchicalToeplitzMatrices`
+:class:`capytaine.bem.engines.HierarchicalToeplitzMatrixEngine`
    Experimental engine using hierarchical structure in the mesh to build
    hierarchical influence matrices.
 

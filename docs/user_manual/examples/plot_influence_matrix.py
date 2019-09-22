@@ -10,7 +10,7 @@ cylinder = cpt.HorizontalCylinder(
     nr=1, nx=8, ntheta=6,     # Fineness of the mesh
 )
 
-engine = cpt.BasicEngine()
+engine = cpt.BasicMatrixEngine()
 green_function = cpt.Delhommeau()
 
 S, K = engine.build_matrices(

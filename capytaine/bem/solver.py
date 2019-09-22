@@ -21,7 +21,7 @@ import numpy as np
 from datetime import datetime
 
 from capytaine.green_functions.delhommeau import Delhommeau
-from capytaine.bem.engines import BasicEngine, HierarchicalToeplitzMatrices
+from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 
 LOG = logging.getLogger(__name__)
@@ -34,7 +34,7 @@ class BEMSolver:
     ----------
     green_function :
         Object handling the computation of the Green function.
-    engine :
+    engine: MatrixEngine
         Object handling the building of matrices and the resolution of linear systems with these matrices.
 
     Attributes
@@ -43,7 +43,7 @@ class BEMSolver:
         Settings of the solver that can be saved to reinit the same solver later.
     """
 
-    def __init__(self, *, green_function=Delhommeau(), engine=BasicEngine()):
+    def __init__(self, *, green_function=Delhommeau(), engine=BasicMatrixEngine()):
         self.green_function = green_function
         self.engine = engine
 
@@ -242,7 +242,7 @@ def _arguments(f):
 class Nemoh(BEMSolver):
     """Solver for the BEM problem based on Nemoh's Green function. Legacy API.
     Parameters are dispatched to the Delhommeau class and to the engine
-    (BasicEngine or HierarchicalToeplitzMatrices).
+    (BasicMatrixEngine or HierarchicalToeplitzMatrixEngine).
     """
 
     def __init__(self, **params):
@@ -250,12 +250,12 @@ class Nemoh(BEMSolver):
            **{key: params[key] for key in params if key in _arguments(Delhommeau.__init__)}
 	)
         if 'hierarchical_matrices' in params and params['hierarchical_matrices']:
-            engine = HierarchicalToeplitzMatrices(
-               **{key: params[key] for key in params if key in _arguments(HierarchicalToeplitzMatrices.__init__)}
+            engine = HierarchicalToeplitzMatrixEngine(
+               **{key: params[key] for key in params if key in _arguments(HierarchicalToeplitzMatrixEngine.__init__)}
             )
         else:
-            engine = BasicEngine(
-               **{key: params[key] for key in params if key in _arguments(BasicEngine.__init__)}
+            engine = BasicMatrixEngine(
+               **{key: params[key] for key in params if key in _arguments(BasicMatrixEngine.__init__)}
             )
 
         super().__init__(green_function=green_function, engine=engine)

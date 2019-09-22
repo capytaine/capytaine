@@ -4,7 +4,7 @@ import numpy as np
 
 from capytaine.bem.solver import BEMSolver
 from capytaine.green_functions.delhommeau import Delhommeau
-from capytaine.bem.engines import BasicEngine
+from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.bem.problems_and_results import RadiationProblem
 from capytaine.bodies.predefined.spheres import Sphere
 
@@ -12,20 +12,20 @@ sphere = Sphere(radius=1.0, ntheta=2, nphi=3, clip_free_surface=True)
 sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
 
 def test_cache_matrices():
-    """Test how the BasicEngine caches the interaction matrices."""
+    """Test how the BasicMatrixEngine caches the interaction matrices."""
     gf = Delhommeau()
     params_1 = (sphere.mesh, sphere.mesh, 0.0, -np.infty, 1.0, gf)
     params_2 = (sphere.mesh, sphere.mesh, 0.0, -np.infty, 2.0, gf)
 
     # No cache
-    engine = BasicEngine(matrix_cache_size=0)
+    engine = BasicMatrixEngine(matrix_cache_size=0)
     S, K             = engine.build_matrices(*params_1)
     S_again, K_again = engine.build_matrices(*params_1)
     assert S is not S_again
     assert K is not K_again
 
     # Cache
-    engine = BasicEngine(matrix_cache_size=1)
+    engine = BasicMatrixEngine(matrix_cache_size=1)
     S, K                     = engine.build_matrices(*params_1)
     S_again, K_again         = engine.build_matrices(*params_1)
     _, _                     = engine.build_matrices(*params_2)
@@ -41,7 +41,7 @@ def test_custom_linear_solver():
     problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
 
     reference_solver = BEMSolver(
-        engine=BasicEngine(linear_solver="gmres", matrix_cache_size=0)
+        engine=BasicMatrixEngine(linear_solver="gmres", matrix_cache_size=0)
     )
     reference_result = reference_solver.solve(problem)
 
@@ -50,7 +50,7 @@ def test_custom_linear_solver():
         return np.linalg.inv(A) @ b
 
     my_bem_solver = BEMSolver(
-        engine=BasicEngine(linear_solver=my_linear_solver, matrix_cache_size=0)
+        engine=BasicMatrixEngine(linear_solver=my_linear_solver, matrix_cache_size=0)
     )
     assert 'my_linear_solver' in my_bem_solver.exportable_settings['linear_solver']
 

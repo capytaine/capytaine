@@ -7,7 +7,7 @@ from numpy import pi
 from capytaine import __version__
 from capytaine.bem.solver import BEMSolver, Nemoh
 from capytaine.green_functions.delhommeau import Delhommeau
-from capytaine.bem.engines import BasicEngine
+from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.bem.problems_and_results import RadiationProblem
 from capytaine.bodies.predefined.spheres import Sphere
 
@@ -21,8 +21,8 @@ def test_exportable_settings():
     assert gf.exportable_settings['tabulation_nb_integration_points'] == 50
     assert gf.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
 
-    engine = BasicEngine(matrix_cache_size=0)
-    assert engine.exportable_settings['engine'] == 'BasicEngine'
+    engine = BasicMatrixEngine(matrix_cache_size=0)
+    assert engine.exportable_settings['engine'] == 'BasicMatrixEngine'
     assert engine.exportable_settings['matrix_cache_size'] == 0
     assert engine.exportable_settings['linear_solver'] == 'gmres'
 
@@ -30,7 +30,7 @@ def test_exportable_settings():
     assert solver.exportable_settings['green_function'] == 'Delhommeau'
     assert solver.exportable_settings['tabulation_nb_integration_points'] == 50
     assert solver.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
-    assert solver.exportable_settings['engine'] == 'BasicEngine'
+    assert solver.exportable_settings['engine'] == 'BasicMatrixEngine'
     assert solver.exportable_settings['matrix_cache_size'] == 0
     assert solver.exportable_settings['linear_solver'] == 'gmres'
 

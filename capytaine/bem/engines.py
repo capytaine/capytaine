@@ -1,20 +1,19 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""
-"""
+"""Definition of the methods to build influence matrices, using possibly some sparse structures."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
-
+from abc import ABC, abstractmethod
 from functools import lru_cache
 
 import numpy as np
 
-from capytaine.matrices import linear_solvers
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh, TranslationalSymmetricMesh, AxialSymmetricMesh
 
+from capytaine.matrices import linear_solvers
 from capytaine.matrices.block import BlockMatrix
 from capytaine.matrices.low_rank import LowRankMatrix
 from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockToeplitzMatrix, BlockCirculantMatrix
@@ -22,29 +21,47 @@ from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, Bloc
 LOG = logging.getLogger(__name__)
 
 
+####################
+#  ABSTRACT CLASS  #
+####################
+
+class MatrixEngine(ABC):
+    """Abstract method to build a matrix."""
+
+    @abstractmethod
+    def build_matrices(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, green_function):
+        pass
+
+    def build_S_matrix(self, *args, **kwargs):
+        """Similar to :code:`build_matrices`, but returning only :math:`S`"""
+        S, _ = self.build_matrices(*args, **kwargs)  # Could be optimized...
+        return S
+
+
 ##################
 #  BASIC ENGINE  #
 ##################
 
-class BasicEngine:
+class BasicMatrixEngine(MatrixEngine):
     """
+    Simple engine that assemble a full matrix (except for one reflection symmetry).
+    Basically only calls :code:`green_function.evaluate`.
+
     Parameters
     ----------
-    matrix_cache_size: int, optional
-        number of matrices to keep in cache
     linear_solver: str or function, optional
         Setting of the numerical solver for linear problems Ax = b.
         It can be set with the name of a preexisting solver
         (available: "direct" and "gmres", the latter is the default choice)
         or by passing directly a solver function.
+    matrix_cache_size: int, optional
+        number of matrices to keep in cache
     """
+
     available_linear_solvers = {'direct': linear_solvers.solve_directly,
                                 'gmres': linear_solvers.solve_gmres}
 
-    def __init__(self,
-                 linear_solver='gmres',
-                 matrix_cache_size=1,
-                 ):
+    def __init__(self, *, linear_solver='gmres', matrix_cache_size=1):
 
         if linear_solver in self.available_linear_solvers:
             self.linear_solver = self.available_linear_solvers[linear_solver]
@@ -55,15 +72,34 @@ class BasicEngine:
             self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
 
         self.exportable_settings = {
-            'engine': 'BasicEngine',
+            'engine': 'BasicMatrixEngine',
             'matrix_cache_size': matrix_cache_size,
             'linear_solver': str(linear_solver),
         }
 
-    def build_matrices(self,
-                       mesh1, mesh2, free_surface, sea_bottom, wavenumber,
-                       green_function):
-        """ """
+    def build_matrices(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, green_function):
+        r"""Build the influence matrices between mesh1 and mesh2.
+
+        Parameters
+        ----------
+        mesh1: Mesh or CollectionOfMeshes
+            mesh of the receiving body (where the potential is measured)
+        mesh2: Mesh or CollectionOfMeshes
+            mesh of the source body (over which the source distribution is integrated)
+        free_surface: float
+            position of the free surface (default: :math:`z = 0`)
+        sea_bottom: float
+            position of the sea bottom (default: :math:`z = -\infty`)
+        wavenumber: float
+            wavenumber (default: 1.0)
+        green_function: GreenFunction
+            object with an "evaluate" method that computes the Green function.
+
+        Returns
+        -------
+        tuple of matrix-like
+            the matrices :math:`S` and :math:`K`
+        """
 
         if (isinstance(mesh1, ReflectionSymmetricMesh)
                 and isinstance(mesh2, ReflectionSymmetricMesh)
@@ -83,18 +119,13 @@ class BasicEngine:
                 mesh1, mesh2, free_surface, sea_bottom, wavenumber,
             )
 
-    def build_S_matrix(self, *args, **kwargs):
-        # To be optimized
-        S, _ = self.build_matrices(*args, **kwargs)
-        return S
-
-
 ###################################
 #  HIERARCHIAL TOEPLITZ MATRICES  #
 ###################################
 
-class HierarchicalToeplitzMatrices:
-    """
+class HierarchicalToeplitzMatrixEngine(MatrixEngine):
+    """An experimental matrix engine that build a hierarchical matrix with
+     some block-Toeplitz structure.
 
     Parameters
     ----------
@@ -105,11 +136,8 @@ class HierarchicalToeplitzMatrices:
     matrix_cache_size: int, optional
         number of matrices to keep in cache
     """
-    def __init__(self,
-                 ACA_distance=8.0,
-                 ACA_tol=1e-2,
-                 matrix_cache_size=1,
-                 ):
+
+    def __init__(self, *, ACA_distance=8.0, ACA_tol=1e-2, matrix_cache_size=1):
 
         if matrix_cache_size > 0:
             self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
@@ -120,7 +148,7 @@ class HierarchicalToeplitzMatrices:
         self.linear_solver = linear_solvers.solve_gmres
 
         self.exportable_settings = {
-            'engine': 'HierarchicalToeplitzMatrices',
+            'engine': 'HierarchicalToeplitzMatrixEngine',
             'ACA_distance': ACA_distance,
             'ACA_tol': ACA_tol,
             'matrix_cache_size': matrix_cache_size,
@@ -129,7 +157,12 @@ class HierarchicalToeplitzMatrices:
     def build_matrices(self,
                        mesh1, mesh2, *args,
                        _rec_depth=1, **kwargs):
-        """ """
+        """Recursively builds a hierarchical matrix between mesh1 and mesh2.
+        
+        Same arguments as :func:`BasicMatrixEngine.build_matrices`.
+
+        :code:`_rec_depth` keeps track of the recursion depth only for pretty log printing.
+        """
 
         if logging.getLogger().isEnabledFor(logging.DEBUG):
             log_entry = (
@@ -146,6 +179,7 @@ class HierarchicalToeplitzMatrices:
         distance = np.linalg.norm(mesh1.center_of_mass_of_nodes - mesh2.center_of_mass_of_nodes)
 
         # I) SPARSE COMPUTATION
+        # I-i) BLOCK TOEPLITZ MATRIX
 
         if (isinstance(mesh1, ReflectionSymmetricMesh)
                 and isinstance(mesh2, ReflectionSymmetricMesh)
@@ -202,8 +236,9 @@ class HierarchicalToeplitzMatrices:
 
             return BlockCirculantMatrix([S_line]), BlockCirculantMatrix([V_line])
 
+        # I-ii) LOW-RANK MATRIX WITH ACA
+
         elif distance > self.ACA_distance*mesh1.diameter_of_nodes or distance > self.ACA_distance*mesh2.diameter_of_nodes:
-            # Low-rank matrix computed with Adaptive Cross Approximation.
 
             LOG.debug(log_entry + " using ACA.")
 
@@ -227,10 +262,10 @@ class HierarchicalToeplitzMatrices:
                 tol=self.ACA_tol, dtype=np.complex128)
 
         # II) NON-SPARSE COMPUTATIONS
+        # II-i) BLOCK MATRIX
 
         elif (isinstance(mesh1, CollectionOfMeshes)
               and isinstance(mesh2, CollectionOfMeshes)):
-            # Recursively build a block matrix
 
             LOG.debug(log_entry + " using block matrix structure.")
 
@@ -249,8 +284,9 @@ class HierarchicalToeplitzMatrices:
 
             return BlockMatrix(S_matrix), BlockMatrix(V_matrix)
 
+        # II-ii) PLAIN NUMPY ARRAY
+
         else:
-            # Actual evaluation of coefficients using the Green function.
             LOG.debug(log_entry)
 
             S, V = green_function.evaluate(
@@ -258,7 +294,3 @@ class HierarchicalToeplitzMatrices:
             )
             return S, V
 
-    def build_S_matrix(self, *args, **kwargs):
-        # To be optimized
-        S, _ = self.build_matrices(*args, **kwargs)
-        return S
