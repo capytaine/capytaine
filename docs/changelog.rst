@@ -14,11 +14,18 @@ Major changes
   Green function and the matrix building engine.
   This more modular structure allows user to choose the Green function or the
   matrix engine that they want to use.
-  See :doc:`user_manuel/solver` for the full documentation of the new structure
-  and :doc:`user_manuel/cookbook` for examples.
-  The former API (`Nemoh()` object) has been kept for backward compatibility.
 
-* Add Xie's variant of Delhommeau's Green function [X18]_.
+  The former API (`Nemoh()` object) has been kept for backward compatibility.
+  In most cases, replacing `Nemoh()` by `BEMSolver()` is sufficient to migrate
+  to the new structure.
+
+  See :doc:`user_manual/resolution` for the full documentation of the new structure
+  and :doc:`user_manual/cookbook` for examples.
+
+
+* Add Xie's variant of Delhommeau's Green function
+  :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` [X18]_.
+
 
 * The option `cache_rankine_matrices` has been removed. It was impeding the
   performance and modularity of the code for a very low gain. It might be
@@ -28,6 +35,8 @@ Minor changes
 -------------
 
 * Minor performance improvements.
+
+* Fix Github issue #18.
 
 * Improve test suite.
 
