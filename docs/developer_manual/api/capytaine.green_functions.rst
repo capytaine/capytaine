@@ -6,6 +6,7 @@ Submodules
 
 .. toctree::
 
+   capytaine.green_functions.abstract_green_function
    capytaine.green_functions.delhommeau
 
 Module contents

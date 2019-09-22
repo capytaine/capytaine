@@ -4,7 +4,7 @@ Resolution
 
 Settings of the solver
 ----------------------
-The :class:`capytaine.bem.solver.BEMSolver` class takes two (keyword-only) arguments at the time of its initialization::
+The :class:`~capytaine.bem.solver.BEMSolver` class takes two (keyword-only) arguments at the time of its initialization::
 
     from capytaine import BEMSolver
     solver = BEMSolver(green_function=..., engine=...)
@@ -13,14 +13,14 @@ Let us discuss in more details these two objects.
 
 Green function
 ~~~~~~~~~~~~~~
-A class used to evaluate the Green function, deriving from :class:`AbstractGreenFunction <capytaine.green_functions.abstract_green_function.AbstractGreenFunction>`.
+A class used to evaluate the Green function, deriving from :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`.
 Two of them are available in the present version:
 
-:class:`capytaine.green_functions.delhommeau.Delhommeau` (Default)
+:class:`~capytaine.green_functions.delhommeau.Delhommeau` (Default)
    The method implemented in Nemoh (see [Del87]_ and [Del89]_).
    See the documentation for details on the available options.
 
-:class:`capytaine.green_functions.delhommeau.XieDelhommeau`
+:class:`~capytaine.green_functions.delhommeau.XieDelhommeau`
    A variant of the above, more accurate near the free surface (see [X18]_).
    Accepts the same options as :class:`Delhommeau <capytaine.green_functions.delhommeau.Delhommeau>`
 
@@ -32,7 +32,7 @@ Engine
 A class to build a interaction matrix, deriving from :class:`MatrixEngine <capytaine.bem.engines.MatrixEngine>`.
 Two of them are available in the present version:
 
-:class:`capytaine.bem.engines.BasicMatrixEngine` (Default)
+:class:`~capytaine.bem.engines.BasicMatrixEngine` (Default)
    A simple engine fairly similar to the one in Nemoh.
    It builds the full matrices with few optimizations.
    Only a reflection symmetry can be used to make the resolution faster.
@@ -65,7 +65,7 @@ Two of them are available in the present version:
            This option can be used for instance to apply a custom preconditioning to
            the iterative solver.
 
-:class:`capytaine.bem.engines.HierarchicalToeplitzMatrixEngine`
+:class:`~capytaine.bem.engines.HierarchicalToeplitzMatrixEngine`
    Experimental engine using hierarchical structure in the mesh to build
    hierarchical influence matrices.
 
@@ -82,19 +82,19 @@ Two of them are available in the present version:
 Legacy interface
 ----------------
 
-The class :class:`capytaine.bem.solver.Nemoh` was the main solver class in
+The class :class:`~capytaine.bem.solver.Nemoh` was the main solver class in
 version 1.0 of Capytaine.
 It is still available in the current version for backward compatibility.
-It is now a subclass of :class:`capytaine.bem.solver.BEMSolver` that always uses
-:class:`capytaine.green_functions.delhommeau.Delhommeau`'s Green function and
+It is now a subclass of :class:`~capytaine.bem.solver.BEMSolver` that always uses
+:class:`~capytaine.green_functions.delhommeau.Delhommeau`'s Green function and
 accept the same arguments as in version 1.0.
 
-The use of :class:`capytaine.bem.solver.BEMSolver` is recommended.
+The use of :class:`~capytaine.bem.solver.BEMSolver` is recommended.
 
 Solving the problem
 -------------------
 
-Once the solver has been initialized, it can be used to solve problems with the :meth:`~capytaine.bem.nemoh.Nemoh.solve` method::
+Once the solver has been initialized, it can be used to solve problems with the :meth:`~capytaine.bem.solver.BEMSolver.solve` method::
 
 	result = solver.solve(problem, keep_details=False)
 

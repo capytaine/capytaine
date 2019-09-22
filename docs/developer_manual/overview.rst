@@ -73,6 +73,7 @@ Overview of the modules
 
     .. toctree::
 
+       api/capytaine.green_functions.abstract_green_function
        api/capytaine.green_functions.delhommeau
 
 :mod:`~capytaine.bem` 
