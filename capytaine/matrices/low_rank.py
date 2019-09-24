@@ -238,7 +238,7 @@ class LowRankMatrix:
         left = np.zeros((nb_matrices, nb_rows, max_rank), dtype=dtype)
         right = np.zeros((nb_matrices, max_rank, nb_cols), dtype=dtype)
 
-        squared_norm_of_full_matrix = 0.0
+        squared_norm_of_low_rank_approximation = 0.0
 
         # List of indices of unused entries in the full matrix
         available_rows = list(range(nb_rows))
@@ -288,9 +288,9 @@ class LowRankMatrix:
                     (np.conj(left[id_main, :, l].T) @ left[id_main, :, :l]) @
                     (np.conj(right[id_main, l, :]) @ right[id_main, :l, :].T)
             )
-            squared_norm_of_full_matrix += squared_norm_of_increment + 2*np.real(crossed_terms)
+            squared_norm_of_low_rank_approximation += squared_norm_of_increment + 2*np.real(crossed_terms)
 
-            if squared_norm_of_increment <= tol**2*squared_norm_of_full_matrix:
+            if squared_norm_of_increment <= tol**2*squared_norm_of_low_rank_approximation:
                 LOG.debug(f"The ACA has found an approximation of rank {l}.")
 
                 if l == 0:  # Edge case of the zero matrix, ...
@@ -300,8 +300,8 @@ class LowRankMatrix:
 
         if tol > 0:
             LOG.warning(f"The ACA was unable to find a low rank approximation "
-                        f"of rank lower or equal to {max_rank} with tolerance {tol} (latest iteration: "
-                        f"{abs(squared_norm_of_increment):.2e}/{abs(squared_norm_of_full_matrix):.2e}).")
+                        f"of rank lower or equal to {max_rank} with tolerance {tol:.2e} (latest iteration: "
+                        f"{np.sqrt(squared_norm_of_increment):.2e}/{np.sqrt(squared_norm_of_low_rank_approximation):.2e}).")
         return [LowRankMatrix(left[id_mat, :, :], right[id_mat, :, :]) for id_mat in range(nb_matrices)]
 
     ####################

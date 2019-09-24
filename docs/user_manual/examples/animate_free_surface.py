@@ -19,7 +19,7 @@ sphere = full_sphere.keep_immersed_part(inplace=False)
 sphere.add_translation_dof(name="Heave")
 
 # Set up and solve problem
-solver = cpt.Nemoh(use_symmetries=False)
+solver = cpt.BEMSolver()
 
 diffraction_problem = cpt.DiffractionProblem(body=sphere, wave_direction=0.0, omega=2.0)
 diffraction_result = solver.solve(diffraction_problem)

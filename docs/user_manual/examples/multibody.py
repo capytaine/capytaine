@@ -36,7 +36,7 @@ problems = [cpt.RadiationProblem(body=all_bodies, radiating_dof=dof, omega=1.0) 
 problems += [cpt.DiffractionProblem(body=all_bodies, wave_direction=0.0, omega=1.0)]
 
 # Solves the problem
-solver = cpt.Nemoh()
+solver = cpt.BEMSolver()
 results = solver.solve_all(problems)
 data = cpt.assemble_dataset(results)
 

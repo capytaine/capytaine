@@ -44,7 +44,7 @@ Overview of the modules
 ------------------------
     Depends on: :mod:`~capytaine.meshes`.
 
-    This module contain a class describing a floating body, that is the reunion
+    This module contains a class describing a floating body, that is the reunion
     of a mesh and some degrees of freedom. It also contains some tools to
     generate new bodies of simple geometrical shapes.
 
@@ -55,21 +55,40 @@ Overview of the modules
        api/capytaine.bodies.predefined.cylinders
        api/capytaine.bodies.predefined.rectangles
 
+:mod:`~capytaine.tools` 
+-----------------------
+    Depends on: none.
+
+    Unsorted tools.
+
+    .. toctree::
+
+       api/capytaine.tools.prony_decomposition
+
+:mod:`~capytaine.green_functions` 
+---------------------------------
+    Depends on: :mod:`~capytaine.tools`.
+
+    This module contains the routine to evaluate the Green function.
+
+    .. toctree::
+
+       api/capytaine.green_functions.abstract_green_function
+       api/capytaine.green_functions.delhommeau
 
 :mod:`~capytaine.bem` 
 ----------------------
-    Depends on: :mod:`~capytaine.meshes`, :mod:`~capytaine.bodies`, :mod:`~capytaine.matrices`, :mod:`io.xarray <capytaine.io.xarray>`.
+    Depends on: :mod:`~capytaine.meshes`, :mod:`~capytaine.bodies`, :mod:`~capytaine.matrices`, :mod:`~capytaine.green_functions`, :mod:`io.xarray <capytaine.io.xarray>`.
 
-    The module is the core of the code. It contains the routines computing the
-    Green function and solving the BEM problem.
+    The module is the core of the code. It contains the routines to assemble the
+    matrices and solve the BEM problem.
 
     .. toctree::
 
        api/capytaine.bem.airy_waves
-       api/capytaine.bem.hierarchical_toeplitz_matrices
-       api/capytaine.bem.nemoh
+       api/capytaine.bem.engines
+       api/capytaine.bem.solver
        api/capytaine.bem.problems_and_results
-       api/capytaine.bem.prony_decomposition
 
 :mod:`io.xarray <capytaine.io.xarray>` 
 ---------------------------------------

@@ -30,7 +30,7 @@ sphere.dofs["x-shear"] = np.array(
 )
 
 # SOLVE DIFFRACTION PROBLEMS
-solver = cpt.Nemoh()
+solver = cpt.BEMSolver()
 
 # Solve the problem for β=0 (incoming wave in the x direction).
 problem_1 = cpt.DiffractionProblem(body=sphere, wave_direction=0, omega=1.0)

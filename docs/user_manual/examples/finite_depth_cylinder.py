@@ -31,11 +31,11 @@ problems = [
 ]
 # Water density, gravity and radiating dof have not been specified.
 # Default values are used. (For the radiating dof, the default value
-# is usually the first one that have been defined. Here only one have
+# is usually the first one that has been defined. Here only one has
 # been defined.)
 
-# Solve all radiation problems with Nemoh
-solver = cpt.Nemoh()
+# Solve all radiation problems
+solver = cpt.BEMSolver(engine=cpt.HierarchicalToeplitzMatrixEngine())
 results = [solver.solve(pb) for pb in sorted(problems)]
 
 # Gather the computed added mass into a labelled array.

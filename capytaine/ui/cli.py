@@ -10,7 +10,7 @@ import os
 
 from capytaine.io.legacy import import_cal_file, write_dataset_as_tecplot_files
 from capytaine.io.xarray import assemble_dataset
-from capytaine.bem.nemoh import Nemoh
+from capytaine.bem.solver import BEMSolver
 
 logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s:\t%(message)s")
@@ -28,7 +28,7 @@ def main():
     args = parser.parse_args()
     for paramfile in args.paramfiles:
         problems = import_cal_file(paramfile)
-        solver = Nemoh()
+        solver = BEMSolver()
         results = [solver.solve(pb) for pb in problems]
         data = assemble_dataset(results)
         print(data)

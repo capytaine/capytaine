@@ -12,7 +12,7 @@ following syntax::
    from capytaine import assemble_dataset
    dataset = assemble_dataset(list_of_results)
 
-If you gave a test matrix to the :code:`Nemoh.fill_dataset` method, the
+If you gave a test matrix to the :code:`BEMSolver.fill_dataset` method, the
 output will directly be an xarray dataset.
 
 .. note:: The degrees of freedom in the dataset might not be in the same order
@@ -28,7 +28,7 @@ output will directly be an xarray dataset.
 Saving the dataset as NetCDF file
 ---------------------------------
 
-The xarray dataset produced by :func:`assemble_dataset <capytaine.results.assemble_dataset>` (or :meth:`fill_dataset <capytaine.Nemoh.Nemoh.fill_dataset>`) has a structure close to the NetCDF file format and can easily be saved to this format::
+The xarray dataset produced by :func:`assemble_dataset <capytaine.results.assemble_dataset>` (or :meth:`fill_dataset <capytaine.bem.solver.BEMSolver.fill_dataset>`) has a structure close to the NetCDF file format and can easily be saved to this format::
 
 	dataset.to_netcdf("path/to/dataset.nc")
 

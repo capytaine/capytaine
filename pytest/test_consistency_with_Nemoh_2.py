@@ -9,7 +9,8 @@ from capytaine.bodies.predefined.cylinders import HorizontalCylinder
 from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
-from capytaine.bem.nemoh import Nemoh
+from capytaine.bem.solver import Nemoh
+from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.io.xarray import assemble_dataset
 from capytaine.post_pro.kochin import compute_kochin
 
@@ -39,6 +40,29 @@ def test_immersed_sphere():
     assert np.isclose(result.added_masses["Heave"],        0.0, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Surge"],  0.0, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"],  0.0, atol=1e-3*sphere.volume*problem.rho)
+
+
+def test_build_matrix_of_rankine_and_reflected_rankine():
+    gf = Delhommeau()
+    sphere = Sphere(radius=1.0, ntheta=2, nphi=3, clip_free_surface=True)
+
+    S, V = gf.evaluate(sphere.mesh, sphere.mesh, 0.0, -np.infty, 0.0)
+    S_ref = np.array([[-0.15413386, -0.21852682, -0.06509213, -0.16718431, -0.06509213, -0.16718431],
+                      [-0.05898834, -0.39245688, -0.04606661, -0.18264734, -0.04606661, -0.18264734],
+                      [-0.06509213, -0.16718431, -0.15413386, -0.21852682, -0.06509213, -0.16718431],
+                      [-0.04606661, -0.18264734, -0.05898834, -0.39245688, -0.04606661, -0.18264734],
+                      [-0.06509213, -0.16718431, -0.06509213, -0.16718431, -0.15413386, -0.21852682],
+                      [-0.04606661, -0.18264734, -0.04606661, -0.18264734, -0.05898834, -0.39245688]])
+    assert np.allclose(S, S_ref)
+
+    S, V = gf.evaluate(sphere.mesh, sphere.mesh, 0.0, -np.infty, np.infty)
+    S_ref = np.array([[-0.12666269, -0.07804937, -0.03845837, -0.03993999, -0.03845837, -0.03993999],
+                      [-0.02106031, -0.16464793, -0.01169102, -0.02315146, -0.01169102, -0.02315146],
+                      [-0.03845837, -0.03993999, -0.12666269, -0.07804937, -0.03845837, -0.03993999],
+                      [-0.01169102, -0.02315146, -0.02106031, -0.16464793, -0.01169102, -0.02315146],
+                      [-0.03845837, -0.03993999, -0.03845837, -0.03993999, -0.12666269, -0.07804937],
+                      [-0.01169102, -0.02315146, -0.01169102, -0.02315146, -0.02106031, -0.16464793]])
+    assert np.allclose(S, S_ref)
 
 
 def test_floating_sphere_finite_freq():

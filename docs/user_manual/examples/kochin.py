@@ -24,7 +24,7 @@ omega_range = np.linspace(1.0, 5.0, 3)
 test_matrix = xr.Dataset(coords={
     'omega': omega_range, 'theta': theta_range, 'radiating_dof': ["Surge"],
 })
-solver = cpt.Nemoh()
+solver = cpt.BEMSolver()
 dataset = solver.fill_dataset(test_matrix, [buoy], wavenumber=True)
 
 # PLOT THE KOCHIN FUNCTION

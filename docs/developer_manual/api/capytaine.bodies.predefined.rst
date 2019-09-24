@@ -14,6 +14,6 @@ Module contents
 ---------------
 
 .. automodule:: capytaine.bodies.predefined
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

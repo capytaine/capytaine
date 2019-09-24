@@ -17,7 +17,7 @@ MODULE GREEN_WAVE
   !                        /   \                    /
   ! WAVE_PART_INFINITE_DEPTH   WAVE_PART_FINITE_DEPTH
   !                        \   /
-  !              BUILD_MATRICES_WAVE_SOURCE
+  !                  (build_matrices.f90)
   !                          |
   !                    (python code)
 
@@ -26,34 +26,34 @@ CONTAINS
   ! =====================================================================
 
   SUBROUTINE LAGRANGE_POLYNOMIAL_INTERPOLATION &
-    (AKR, AKZ,                                 &
-     XR, XZ, APD,                              &
-     PD1X, PD2X, PD1Z, PD2Z)
+    (dimless_r, dimless_Z,                                 &
+     X_AXIS, Z_AXIS, TABULATION,               &
+     D1, D2, Z1, Z2)
    ! Helper function used in the following subroutine to interpolate between the tabulated integrals.
 
     ! Inputs
-    REAL(KIND=PRE),                        INTENT(IN) :: AKR, AKZ
-    REAL(KIND=PRE), DIMENSION(3),          INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(3),          INTENT(IN) :: XZ
-    REAL(KIND=PRE), DIMENSION(3, 3, 2, 2), INTENT(IN) :: APD
+    REAL(KIND=PRE),                        INTENT(IN) :: dimless_r, dimless_Z
+    REAL(KIND=PRE), DIMENSION(3),          INTENT(IN) :: X_AXIS
+    REAL(KIND=PRE), DIMENSION(3),          INTENT(IN) :: Z_AXIS
+    REAL(KIND=PRE), DIMENSION(3, 3, 2, 2), INTENT(IN) :: TABULATION
 
     ! Output
-    REAL(KIND=PRE), INTENT(OUT) :: PD1X, PD2X, PD1Z, PD2Z
+    REAL(KIND=PRE), INTENT(OUT) :: D1, D2, Z1, Z2
 
     ! Local variable
     REAL(KIND=PRE), DIMENSION(3) :: XL, ZL
 
-    XL(1) = PL2(XR(2), XR(3), XR(1), AKR)
-    XL(2) = PL2(XR(3), XR(1), XR(2), AKR)
-    XL(3) = PL2(XR(1), XR(2), XR(3), AKR)
-    ZL(1) = PL2(XZ(2), XZ(3), XZ(1), AKZ)
-    ZL(2) = PL2(XZ(3), XZ(1), XZ(2), AKZ)
-    ZL(3) = PL2(XZ(1), XZ(2), XZ(3), AKZ)
+    XL(1) = PL2(X_AXIS(2), X_AXIS(3), X_AXIS(1), dimless_r)
+    XL(2) = PL2(X_AXIS(3), X_AXIS(1), X_AXIS(2), dimless_r)
+    XL(3) = PL2(X_AXIS(1), X_AXIS(2), X_AXIS(3), dimless_r)
+    ZL(1) = PL2(Z_AXIS(2), Z_AXIS(3), Z_AXIS(1), dimless_Z)
+    ZL(2) = PL2(Z_AXIS(3), Z_AXIS(1), Z_AXIS(2), dimless_Z)
+    ZL(3) = PL2(Z_AXIS(1), Z_AXIS(2), Z_AXIS(3), dimless_Z)
 
-    PD1Z = DOT_PRODUCT(XL, MATMUL(APD(:, :, 1, 2), ZL))
-    PD2Z = DOT_PRODUCT(XL, MATMUL(APD(:, :, 2, 2), ZL))
-    PD1X = DOT_PRODUCT(XL, MATMUL(APD(:, :, 1, 1), ZL))
-    PD2X = DOT_PRODUCT(XL, MATMUL(APD(:, :, 2, 1), ZL))
+    D1 = DOT_PRODUCT(XL, MATMUL(TABULATION(:, :, 1, 1), ZL))
+    D2 = DOT_PRODUCT(XL, MATMUL(TABULATION(:, :, 2, 1), ZL))
+    Z1 = DOT_PRODUCT(XL, MATMUL(TABULATION(:, :, 1, 2), ZL))
+    Z2 = DOT_PRODUCT(XL, MATMUL(TABULATION(:, :, 2, 2), ZL))
 
   CONTAINS
 
@@ -71,12 +71,16 @@ CONTAINS
       (XI, XJ, wavenumber,                                       &
       tabulated_r_range, tabulated_Z_range, tabulated_integrals, &
       FS, VS)
-    ! Compute the expression FS = Re[ ∫(J(ζ) - 1/ζ)dθ ] + i Re[ ∫(e^ζ)dθ ] and the integrals appearing in its gradient.
+    ! Compute the expression FS = 1/π Re[ ∫(J(ζ) - 1/ζ)dθ ] + i Re[ ∫(e^ζ)dθ ] and the integrals appearing in its gradient.
     ! For this, this function uses tabulated values of the following integrals:
-    ! PD1X = Re[ ∫(-i cosθ)(J(ζ) - 1/ζ)dθ ]
-    ! PD2X = Re[ ∫(-i cosθ)(e^ζ)dθ ]
-    ! PD1Z = Re[ ∫(J(ζ) - 1/ζ)dθ ]
-    ! PD2Z = Re[ ∫(e^ζ)dθ ]
+    ! D1 = Re[ ∫(-i cosθ)(J(ζ) - 1/ζ)dθ ]
+    ! D2 = Re[ ∫(-i cosθ)(e^ζ)dθ ]
+#ifdef XIE_CORRECTION
+    ! Z1 = Re[ ∫(J(ζ))dθ ]
+#else
+    ! Z1 = Re[ ∫(J(ζ) - 1/ζ)dθ ]
+#endif
+    ! Z2 = Re[ ∫(e^ζ)dθ ]
     ! (See theory manual for the definition of the symbols above.)
 
     ! Inputs
@@ -94,9 +98,9 @@ CONTAINS
 
     ! Local variables
     INTEGER        :: KI, KJ
-    REAL(KIND=PRE) :: r, dimless_r, Z, dimless_Z, R1
-    REAL(KIND=PRE) :: SIK, CSK, SQ, EPZ
-    REAL(KIND=PRE) :: PD1X, PD2X, PD1Z, PD2Z
+    REAL(KIND=PRE) :: r, dimless_r, Z, dimless_Z, R1, dimless_R1
+    REAL(KIND=PRE) :: sin_kr, cos_kr, expz_sqr
+    REAL(KIND=PRE) :: D1, D2, Z1, Z2
 
     r = NORM2(XI(1:2) - XJ(1:2))
     dimless_r = wavenumber*r
@@ -105,6 +109,7 @@ CONTAINS
     dimless_Z = wavenumber*Z
 
     R1 = SQRT(r**2 + Z**2)
+    dimless_R1 = wavenumber*R1
 
     IF ((R1 < 1e-5) .OR. (wavenumber == 0)) THEN
       PRINT*, "Error: Impossible to compute the wave part of the Green function (division by zero)."
@@ -119,6 +124,7 @@ CONTAINS
         ! Within the range of tabulated data
         ! Note that MINVAL(tabulated_r_range) == 0, so one of the conditions is not actually useful.
 
+        ! Get the nearest point in the tabulation
         IF (dimless_r < 1) THEN
           KI = INT(5*(LOG10(dimless_r+1e-20)+6)+1)
         ELSE
@@ -133,42 +139,51 @@ CONTAINS
         ENDIF
         KJ = MAX(MIN(KJ, 45), 2)
 
+        ! Interpolate near this point to get the actual value
         CALL LAGRANGE_POLYNOMIAL_INTERPOLATION                           &
              (dimless_r, dimless_Z,                                      &
              tabulated_r_range(KI-1:KI+1), tabulated_Z_range(KJ-1:KJ+1), &
              tabulated_integrals(KI-1:KI+1, KJ-1:KJ+1, :, :),            &
-             PD1X, PD2X, PD1Z, PD2Z)
+             D1, D2, Z1, Z2)
 
       ELSE  ! MAXVAL(tabulated_r_range) < dimless_r
         ! Asymptotic expression for (horizontally) distant panels
 
-        EPZ  = EXP(dimless_Z)
-        SQ   = SQRT(2*PI/dimless_r)
-        CSK  = COS(dimless_r-PI/4)
-        SIK  = SIN(dimless_r-PI/4)
+        expz_sqr = EXP(dimless_Z) * SQRT(2*PI/dimless_r)
+        cos_kr  = COS(dimless_r - PI/4)
+        sin_kr  = SIN(dimless_r - PI/4)
 
-        PD1X = PI*EPZ*SQ*(CSK - 0.5*SIK/dimless_r) - PI*r/(wavenumber**2*R1**3)
-        PD2X =    EPZ*SQ*(SIK + 0.5*CSK/dimless_r)
-        PD1Z = -EPZ*SQ*SIK*PI + PI*dimless_Z/(wavenumber*R1)**3
-        PD2Z =  EPZ*SQ*CSK
+        D1 = PI*(expz_sqr*(cos_kr - sin_kr/(2*dimless_r)) - dimless_r/dimless_R1**3)
+        D2 =     expz_sqr*(sin_kr + cos_kr/(2*dimless_r))
+#ifdef XIE_CORRECTION
+        Z1 = PI*(-expz_sqr*sin_kr + dimless_Z/dimless_R1**3 - ONE/dimless_R1)
+#else
+        Z1 = PI*(-expz_sqr*sin_kr + dimless_Z/dimless_R1**3)
+#endif
+        Z2 =     expz_sqr*cos_kr
       ENDIF
 
       !================================================
       ! Add the elementary integrals to build FS and VS
       !================================================
 
-      FS    = CMPLX(PD1Z, PD2Z, KIND=PRE)
-      VS(1) = (XI(1) - XJ(1))/r * CMPLX(-PD1X, -PD2X, KIND=PRE)
-      VS(2) = (XI(2) - XJ(2))/r * CMPLX(-PD1X, -PD2X, KIND=PRE)
-      VS(3) = CMPLX(PD1Z, PD2Z, KIND=PRE)
+#ifdef XIE_CORRECTION
+      FS    = CMPLX(Z1/PI + ONE/dimless_R1, Z2, KIND=PRE)
+      VS(3) = CMPLX(Z1/PI + ONE/dimless_R1, Z2, KIND=PRE)
+#else
+      FS    = CMPLX(Z1/PI, Z2, KIND=PRE)
+      VS(3) = CMPLX(Z1/PI, Z2, KIND=PRE)
+#endif
+      VS(1) = (XJ(1) - XI(1))/r * CMPLX(D1/PI, D2, KIND=PRE)
+      VS(2) = (XJ(2) - XI(2))/r * CMPLX(D1/PI, D2, KIND=PRE)
 
       IF (r < REAL(1e-5, KIND=PRE)) THEN
-        ! I'm not totally sure why this is here, but it seems to be necessary.
+        ! Limit case r ~ 0 ?
         VS(1:2) = CMPLX(0.0, 0.0, KIND=PRE)
       END IF
 
     ELSE  ! dimless_Z < MINVAL(tabulated_Z_range) or MAXVAL(tabulated_Z_range) < dimless_Z
-      FS      = CMPLX(PI*dimless_Z/(wavenumber*R1)**3, 0.0, KIND=PRE)
+      FS      = CMPLX(dimless_Z/dimless_R1**3, 0.0, KIND=PRE)
       VS(1:3) = CMPLX(0.0, 0.0, KIND=PRE)
     ENDIF
 
@@ -179,7 +194,7 @@ CONTAINS
 
   SUBROUTINE WAVE_PART_INFINITE_DEPTH &
       (wavenumber, X0I, X0J,          &
-      XR, XZ, APD,                    &
+      X_AXIS, Z_AXIS, TABULATION,     &
       SP, VSP)
     ! Compute the wave part of the Green function in the infinite depth case.
     ! This is mostly the integral computed by the subroutine above.
@@ -190,9 +205,9 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
 
     ! Tabulated data
-    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
-    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
+    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: X_AXIS
+    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: Z_AXIS
+    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: TABULATION
 
     ! Outputs
     COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
@@ -202,9 +217,9 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3) :: XJ_REFLECTION
 
     ! The integrals
-    CALL COMPUTE_INTEGRALS_WRT_THETA(X0I, X0J, wavenumber, XR, XZ, APD, SP, VSP(:))
-    SP  = 2*CMPLX(wavenumber/PI*REAL(SP),     wavenumber*AIMAG(SP),   KIND=PRE)
-    VSP = 2*CMPLX(wavenumber**2/PI*REAL(VSP), wavenumber**2*AIMAG(VSP), KIND=PRE)
+    CALL COMPUTE_INTEGRALS_WRT_THETA(X0I, X0J, wavenumber, X_AXIS, Z_AXIS, TABULATION, SP, VSP(:))
+    SP  = 2*wavenumber*SP
+    VSP = 2*wavenumber**2*VSP
 
     ! Only one singularity is missing in the derivative
     XJ_REFLECTION(1:2) = X0J(1:2)
@@ -218,7 +233,7 @@ CONTAINS
 
   SUBROUTINE WAVE_PART_FINITE_DEPTH &
       (wavenumber, X0I, X0J, depth, &
-      XR, XZ, APD,                  &
+      X_AXIS, Z_AXIS, TABULATION,                  &
       NEXP, AMBDA, AR,              &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
@@ -228,9 +243,9 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I  ! Coordinates of the source point
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
 
-    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
-    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
+    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: X_AXIS
+    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: Z_AXIS
+    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: TABULATION
 
     INTEGER,                                  INTENT(IN) :: NEXP
     REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
@@ -241,7 +256,7 @@ CONTAINS
 
     ! Local variables
     INTEGER                              :: KE
-    REAL(KIND=PRE)                       :: AMH, AKH, A, COF1, COF2, COF3, COF4
+    REAL(KIND=PRE)                       :: AMH, AKH, A
     REAL(KIND=PRE)                       :: AQT, R
     REAL(KIND=PRE),    DIMENSION(3)      :: XI, XJ
     REAL(KIND=PRE),    DIMENSION(4)      :: FTS, PSR
@@ -260,32 +275,32 @@ CONTAINS
     R = NORM2(XI(1:2) - XJ(1:2))
 
     ! 1.a First infinite depth problem
-    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, XR, XZ, APD, FS(1), VS(:, 1))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(1), VS(:, 1))
 
-    PSR(1) = PI/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    PSR(1) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) =  X0J(3)
-    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, XR, XZ, APD, FS(2), VS(:, 2))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
-    PSR(2) = PI/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    PSR(2) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! 1.c Shift and reflect XJ and compute another value of the Green function
     XI(3) =  X0I(3)
     XJ(3) = -X0J(3) - 2*depth
-    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, XR, XZ, APD, FS(3), VS(:, 3))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(3), VS(:, 3))
 
-    PSR(3) = PI/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    PSR(3) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) = -X0J(3) - 2*depth
-    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, XR, XZ, APD, FS(4), VS(:, 4))
+    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
-    PSR(4) = PI/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    PSR(4) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! Add up the results of the four problems
     SP               = SUM(FS(1:4)) - SUM(PSR(1:4))
@@ -295,15 +310,11 @@ CONTAINS
     ! Multiply by some coefficients
     AMH  = wavenumber*depth
     AKH  = AMH*TANH(AMH)
-    A    = (AMH+AKH)**2/(depth*(AMH**2-AKH**2+AKH))
-    COF1 = A/(2*PI)
-    COF2 = A/2
-    COF3 = wavenumber*COF1
-    COF4 = wavenumber*COF2
+    A    = (AMH+AKH)**2/(2*depth*(AMH**2-AKH**2+AKH))
 
-    SP          = CMPLX(REAL(SP)*COF1,          AIMAG(SP)*COF2, KIND=PRE)
-    VSP_ANTISYM = CMPLX(REAL(VSP_ANTISYM)*COF3, AIMAG(VSP_ANTISYM)*COF4, KIND=PRE)
-    VSP_SYM     = CMPLX(REAL(VSP_SYM)*COF3,     AIMAG(VSP_SYM)*COF4, KIND=PRE)
+    SP          = A*SP
+    VSP_ANTISYM = A*wavenumber*VSP_ANTISYM
+    VSP_SYM     = A*wavenumber*VSP_SYM
 
     !=====================================================
     ! Part 2: Integrate (NEXP+1)×4 terms of the form 1/MM'
@@ -341,136 +352,5 @@ CONTAINS
 
     RETURN
   END SUBROUTINE
-
-  ! =====================================================================
-
-  SUBROUTINE BUILD_MATRICES_WAVE_SOURCE  &
-      (nb_faces_1, centers_1, normals_1, &
-      nb_faces_2,                        &
-      centers_2, areas_2,                &
-      wavenumber, depth,                 &
-      XR, XZ, APD,                       &
-      NEXP, AMBDA, AR,                   &
-      same_body,                         &
-      S, V)
-
-    ! Mesh data
-    INTEGER,                                  INTENT(IN) :: nb_faces_1, nb_faces_2
-    REAL(KIND=PRE), DIMENSION(nb_faces_1, 3), INTENT(IN) :: normals_1, centers_1
-    REAL(KIND=PRE), DIMENSION(nb_faces_2, 3), INTENT(IN) :: centers_2
-    REAL(KIND=PRE), DIMENSION(nb_faces_2),    INTENT(IN) :: areas_2
-
-    REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
-
-    ! Tabulated integrals
-    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
-    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
-
-    ! Prony decomposition for finite depth
-    INTEGER,                                  INTENT(IN) :: NEXP
-    REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
-
-    ! Trick to save some time
-    LOGICAL,                                  INTENT(IN) :: same_body
-
-    ! Output
-    COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
-    COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: V
-
-    ! Local variables
-    INTEGER                         :: I, J
-    COMPLEX(KIND=PRE)               :: SP2
-    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2_SYM, VSP2_ANTISYM
-
-    IF (SAME_BODY) THEN
-      ! If we are computing the influence of some cells upon themselves, the resulting matrices have some symmetries.
-      ! This is due to the symmetry of the Green function, and the way the integral on the face is approximated.
-      ! (More precisely, the Green function is symmetric and its derivative is the sum of a symmetric part and an anti-symmetric
-      ! part.)
-
-      DO I = 1, nb_faces_1
-        !$OMP PARALLEL DO PRIVATE(J, SP2, VSP2_SYM, VSP2_ANTISYM)
-        DO J = I, nb_faces_2
-
-          IF (depth == INFINITE_DEPTH) THEN
-            CALL WAVE_PART_INFINITE_DEPTH &
-              (wavenumber,                &
-              centers_1(I, :),            &
-              centers_2(J, :),            &
-              XR, XZ, APD,                &
-              SP2, VSP2_SYM               &
-              )
-            VSP2_ANTISYM(:) = ZERO
-          ELSE
-            CALL WAVE_PART_FINITE_DEPTH   &
-              (wavenumber,                &
-              centers_1(I, :),            &
-              centers_2(J, :),            &
-              depth,                      &
-              XR, XZ, APD,                &
-              NEXP, AMBDA, AR,            &
-              SP2, VSP2_SYM, VSP2_ANTISYM &
-              )
-          END IF
-
-          S(I, J) = -1/(4*PI) * SP2*areas_2(J)
-          V(I, J) = -1/(4*PI) * DOT_PRODUCT(normals_1(I, :),         &
-                                            VSP2_SYM + VSP2_ANTISYM) &
-                                            *areas_2(J)
-
-          IF (.NOT. I==J) THEN
-            VSP2_SYM(1:2) = -VSP2_SYM(1:2)
-            S(J, I) = -1/(4*PI) * SP2*areas_2(I)
-            V(J, I) = -1/(4*PI) * DOT_PRODUCT(normals_1(J, :),         &
-                                              VSP2_SYM - VSP2_ANTISYM) &
-                                              *areas_2(I)
-          END IF
-
-        END DO
-        !$OMP END PARALLEL DO
-      END DO
-
-    ELSE
-      ! General case: if we are computing the influence of a some cells on other cells, we have to compute all the coefficients.
-
-      DO I = 1, nb_faces_1
-        !$OMP PARALLEL DO PRIVATE(J, SP2, VSP2_SYM, VSP2_ANTISYM)
-        DO J = 1, nb_faces_2
-
-          IF (depth == INFINITE_DEPTH) THEN
-            CALL WAVE_PART_INFINITE_DEPTH &
-              (wavenumber,                &
-              centers_1(I, :),            &
-              centers_2(J, :),            &
-              XR, XZ, APD,                &
-              SP2, VSP2_SYM               &
-              )
-            VSP2_ANTISYM(:) = ZERO 
-          ELSE
-            CALL WAVE_PART_FINITE_DEPTH   &
-              (wavenumber,                &
-              centers_1(I, :),            &
-              centers_2(J, :),            &
-              depth,                      &
-              XR, XZ, APD,                &
-              NEXP, AMBDA, AR,            &
-              SP2, VSP2_SYM, VSP2_ANTISYM &
-              )
-          END IF
-
-          S(I, J) = -1/(4*PI) * SP2*areas_2(J)                                ! Green function
-          V(I, J) = -1/(4*PI) * DOT_PRODUCT(normals_1(I, :),         &
-                                            VSP2_SYM + VSP2_ANTISYM) &
-                                            *areas_2(J) ! Gradient of the Green function
-
-        END DO
-        !$OMP END PARALLEL DO
-      END DO
-   END IF
-
-  END SUBROUTINE
-
-  ! =====================================================================
 
 END MODULE GREEN_WAVE

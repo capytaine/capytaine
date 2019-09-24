@@ -8,17 +8,15 @@ It is built around a full rewrite of the open source Boundary Element Method (BE
 
 ## Installation
 
-On Mac and Linux:
+On Windows, macOS and Linux, using the [Conda package manager](https://www.anaconda.com/distribution/):
 
 ```bash
 conda install -c conda-forge capytaine
 ```
 
-The Windows package is currently broken, sorry. See [this issue](https://github.com/mancellin/capytaine/issues/1) for details and updates.
-
 ## Documentation
 
-[https://ancell.in/capytaine/latest/](https://ancell.in/capytaine/latest/).
+[https://ancell.in/capytaine/latest/](https://ancell.in/capytaine/latest/)
 
 ## License
 

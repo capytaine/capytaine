@@ -7,15 +7,14 @@ Submodules
 .. toctree::
 
    capytaine.bem.airy_waves
-   capytaine.bem.hierarchical_toeplitz_matrices
-   capytaine.bem.nemoh
+   capytaine.bem.engines
    capytaine.bem.problems_and_results
-   capytaine.bem.prony_decomposition
+   capytaine.bem.solver
 
 Module contents
 ---------------
 
 .. automodule:: capytaine.bem
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

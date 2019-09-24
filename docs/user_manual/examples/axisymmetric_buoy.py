@@ -24,8 +24,8 @@ omega_range = np.linspace(0.1, 5.0, 60)
 problems = [cpt.RadiationProblem(body=buoy, radiating_dof='Heave', omega=omega)
             for omega in omega_range]
 
-# Solve the problems
-solver = cpt.Nemoh()
+# Solve the problems using the axial symmetry
+solver = cpt.BEMSolver(engine=cpt.HierarchicalToeplitzMatrixEngine())
 results = [solver.solve(pb) for pb in sorted(problems)]
 dataset = capytaine.io.xarray.assemble_dataset(results)
 

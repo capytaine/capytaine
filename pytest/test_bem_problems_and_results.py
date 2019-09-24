@@ -17,7 +17,7 @@ from capytaine.bodies.predefined.cylinders import HorizontalCylinder
 
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem, \
     LinearPotentialFlowResult, DiffractionResult, RadiationResult
-from capytaine.bem.nemoh import Nemoh
+from capytaine.bem.solver import Nemoh
 from capytaine.io.xarray import problems_from_dataset
 
 from capytaine.io.legacy import import_cal_file

@@ -9,7 +9,7 @@ from capytaine.ui.vtk import Animation
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)-8s: %(message)s')
 
-bem_solver = cpt.Nemoh(linear_solver="gmres")
+bem_solver = cpt.BEMSolver()
 
 
 def generate_boat() -> cpt.FloatingBody:

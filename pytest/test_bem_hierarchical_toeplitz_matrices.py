@@ -16,7 +16,7 @@ from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.bodies.predefined.cylinders import HorizontalCylinder, VerticalCylinder
 
 from capytaine.bem.problems_and_results import RadiationProblem
-from capytaine.bem.nemoh import Nemoh
+from capytaine.bem.solver import Nemoh
 from capytaine.io.xarray import assemble_dataset
 
 from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
@@ -158,7 +158,7 @@ def test_low_rank_matrices():
     two_distant_buoys = FloatingBody.join_bodies(buoy, buoy.translated_x(20))
     two_distant_buoys.mesh._meshes[1].name = "other_buoy_mesh"
 
-    S, V = solver_with_sym.build_matrices(two_distant_buoys.mesh, two_distant_buoys.mesh)
+    S, V = solver_with_sym.build_matrices(two_distant_buoys.mesh, two_distant_buoys.mesh, 0.0, -np.infty, 1.0)
     assert isinstance(S.all_blocks[0, 1], LowRankMatrix)
     assert isinstance(S.all_blocks[1, 0], LowRankMatrix)
     # S.plot_shape()

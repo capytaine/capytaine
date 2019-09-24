@@ -2,37 +2,19 @@ language: generic
 
 env:
   matrix:
-  - CONDA_PY=3.6 CONDA_NPY=1.15
   - CONDA_PY=3.6 CONDA_NPY=1.16
-  - CONDA_PY=3.7 CONDA_NPY=1.15
   - CONDA_PY=3.7 CONDA_NPY=1.16
 
 before_install:
   - sudo apt-get update
   - sudo apt-get install gfortran
   - wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-  - chmod +x miniconda.sh
-  - ./miniconda.sh -b -p $HOME/miniconda
+  - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH=$HOME/miniconda/bin:$PATH
   - conda config --set always_yes true
   - conda config --set anaconda_upload no
-  - conda update -q conda
-  - conda install -q python=$CONDA_PY pip conda-build conda-verify anaconda-client
-  - conda install -q numpy=$CONDA_NPY
+  - conda install -q numpy=$CONDA_NPY conda-build
 
 install:
-  - conda build .
-  - conda install --use-local capytaine
+  - conda build --python=$CONDA_PY --numpy=$CONDA_NPY .
 
-before_script:
-  - conda install -q pytest
-
-script:
-  - pytest
-
-deploy:
-    - provider: script
-      script: bash conda/conda_upload.sh $TRAVIS_BRANCH
-      on:
-          all_branches: true
-      skip_cleanup: true

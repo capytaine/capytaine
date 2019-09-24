@@ -19,6 +19,6 @@ Module contents
 ---------------
 
 .. automodule:: capytaine.meshes
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

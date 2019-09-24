@@ -537,7 +537,7 @@ def load_STL(filename, name=None):
     STL files have a 0-indexing
     """
     from vtk import vtkSTLReader
-    from .tools import merge_duplicate_rows
+    from capytaine.meshes.quality import merge_duplicate_rows
 
     _check_file(filename)
 
@@ -561,7 +561,7 @@ def load_STL(filename, name=None):
                 faces[k][3] = faces[k][0]  # always repeating the first node as stl is triangle only
 
     # Merging duplicates nodes
-    vertices, new_id = merge_duplicate_rows(vertices, return_index=True)
+    vertices, new_id = merge_duplicate_rows(vertices)
     faces = new_id[faces]
 
     return Mesh(vertices, faces, name)

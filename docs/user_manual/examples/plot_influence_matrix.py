@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import numpy as np
 import capytaine as cpt
 
 # Generate the mesh of a cylinder
@@ -9,9 +10,15 @@ cylinder = cpt.HorizontalCylinder(
     nr=1, nx=8, ntheta=6,     # Fineness of the mesh
 )
 
-# Use Nemoh to compute the influence matrices
-solver = cpt.Nemoh(hierarchical_matrices=False)
-S, K = solver.build_matrices(cylinder.mesh, cylinder.mesh, wavenumber=1.0)
+engine = cpt.BasicMatrixEngine()
+green_function = cpt.Delhommeau()
+
+S, K = engine.build_matrices(
+    cylinder.mesh, cylinder.mesh,
+    free_surface=0.0, sea_bottom=-np.infty,
+    wavenumber=1.0,
+    green_function=green_function,
+)
 
 # Plot the absolute value of the matrix V
 #
