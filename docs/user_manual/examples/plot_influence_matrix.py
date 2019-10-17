@@ -20,8 +20,7 @@ S, K = engine.build_matrices(
     green_function=green_function,
 )
 
-# Plot the absolute value of the matrix V
-#
+# Plot the absolute value of the matrix S
 import matplotlib.pyplot as plt
 plt.imshow(abs(S))
 plt.colorbar()
