@@ -7,11 +7,12 @@ from numpy.linalg import norm
 import capytaine as cpt
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
 
-class MyAbstractGreenFunction(AbstractGreenFunction):
-    """A example of a method to evaluate the Green function."""
+class MyGreenFunction(AbstractGreenFunction):
+    """An example of a method to evaluate the Green function."""
 
     def evaluate(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
         """The main method that need to be implemented in the class."""
+        
         if free_surface == np.infty and sea_bottom == -np.infty:
 
             # Initialize the matrices
@@ -45,7 +46,7 @@ class MyAbstractGreenFunction(AbstractGreenFunction):
             raise NotImplementedError
 
 # Define a solver using the Green function above.
-solver = cpt.BEMSolver(green_function=MyAbstractGreenFunction())
+solver = cpt.BEMSolver(green_function=MyGreenFunction())
 
 # Example of a problem
 sphere = cpt.Sphere(
