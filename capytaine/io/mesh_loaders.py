@@ -415,8 +415,9 @@ def load_VTU(filename, name=None):
 
     _check_file(filename)
 
-    from vtk import vtkXMLUnstructuredGridReader
-    reader = vtkXMLUnstructuredGridReader()
+    vtk = import_optional_dependency("vtk")
+
+    reader = vtk.vtkXMLUnstructuredGridReader()
     reader.SetFileName(filename)
     reader.Update()
     vtk_mesh = reader.GetOutput()
@@ -446,8 +447,9 @@ def load_VTP(filename, name=None):
     """
     _check_file(filename)
 
-    from vtk import vtkXMLPolyDataReader
-    reader = vtkXMLPolyDataReader()
+    vtk = import_optional_dependency("vtk")
+
+    reader = vtk.vtkXMLPolyDataReader()
     reader.SetFileName(filename)
     reader.Update()
     vtk_mesh = reader.GetOutput()
@@ -477,8 +479,9 @@ def load_VTK(filename, name=None):
     """
     _check_file(filename)
 
-    from vtk import vtkPolyDataReader
-    reader = vtkPolyDataReader()
+    vtk = import_optional_dependency("vtk")
+
+    reader = vtk.vtkPolyDataReader()
     reader.SetFileName(filename)
     reader.Update()
     vtk_mesh = reader.GetOutput()
@@ -536,12 +539,13 @@ def load_STL(filename, name=None):
     ----
     STL files have a 0-indexing
     """
-    from vtk import vtkSTLReader
+    vtk = import_optional_dependency("vtk")
+
     from capytaine.meshes.quality import merge_duplicate_rows
 
     _check_file(filename)
 
-    reader = vtkSTLReader()
+    reader = vtk.vtkSTLReader()
     reader.SetFileName(filename)
     reader.Update()
 
@@ -863,9 +867,9 @@ def load_WRL(filename, name=None):
     Mesh
         the loaded mesh
     """
-
-    from vtk import vtkVRMLImporter
     import re
+
+    vtk = import_optional_dependency("vtk")
 
     _check_file(filename)
 
@@ -876,7 +880,7 @@ def load_WRL(filename, name=None):
         if not ver == '2.0':
             raise NotImplementedError('VRML loader only supports VRML 2.0 format (version %s given)' % ver)
 
-    importer = vtkVRMLImporter()
+    importer = vtk.vtkVRMLImporter()
     importer.SetFileName(filename)
     importer.Update()
 

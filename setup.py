@@ -96,8 +96,6 @@ if __name__ == "__main__":
               'scipy',
               'pandas',
               'xarray',
-              'matplotlib',
-              'vtk',
           ],
           entry_points={
               'console_scripts': [

@@ -8,9 +8,11 @@ import logging
 
 import numpy as np
 from numpy import pi
-import vtk
 
 from capytaine.ui.vtk.helpers import compute_node_data, compute_vtk_polydata
+from capytaine.tools.optional_imports import import_optional_dependency
+
+vtk = import_optional_dependency("vtk")
 
 LOG = logging.getLogger(__name__)
 

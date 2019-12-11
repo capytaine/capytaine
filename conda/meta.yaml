@@ -20,9 +20,7 @@ requirements:
     - attrs
     - {{ pin_compatible('numpy') }}
     - pandas
-    - matplotlib
     - scipy
-    - vtk
     - xarray
 
 build:

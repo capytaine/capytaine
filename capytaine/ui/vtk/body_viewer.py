@@ -4,10 +4,10 @@
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
-import vtk
-
+from capytaine.tools.optional_imports import import_optional_dependency
 from capytaine.ui.vtk.mesh_viewer import MeshViewer
 
+vtk = import_optional_dependency("vtk")
 
 class FloatingBodyViewer(MeshViewer):
 

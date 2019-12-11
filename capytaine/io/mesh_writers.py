@@ -10,6 +10,8 @@ import os
 import time
 import numpy as np
 
+from capytaine.tools.optional_imports import import_optional_dependency
+
 
 def write_mesh(filename, vertices, faces, file_format):
     """Driver function that writes every mesh file file_format known by meshmagick
@@ -182,8 +184,6 @@ def write_HST(filename, vertices, faces):
 def write_TEC(filename, vertices, faces):
     """Writes .TEC file format for the TECPLOT (Tecplot (c)) visualisation software.
 
-    It relies on the VTK library for its writer.
-
     Parameters
     ----------
     filename: str
@@ -238,17 +238,14 @@ def write_VTU(filename, vertices, faces):
     faces: ndarray
         numpy array of the faces' nodes connectivities
     """
+    vtk = import_optional_dependency("vtk")
 
-    from vtk import vtkXMLUnstructuredGridWriter, VTK_MAJOR_VERSION
-    writer = vtkXMLUnstructuredGridWriter()
+    writer = vtk.vtkXMLUnstructuredGridWriter()
     writer.SetDataModeToAscii()
     writer.SetFileName(filename)
 
     unstructured_grid = _build_vtkUnstructuredGrid(vertices, faces)
-    if VTK_MAJOR_VERSION <= 5:
-        writer.SetInput(unstructured_grid)
-    else:
-        writer.SetInputData(unstructured_grid)
+    writer.SetInputData(unstructured_grid)
     writer.Write()
 
 
@@ -268,16 +265,14 @@ def write_VTP(filename, vertices, faces):
         numpy array of the faces' nodes connectivities
     """
 
-    from vtk import vtkXMLPolyDataWriter, VTK_MAJOR_VERSION
-    writer = vtkXMLPolyDataWriter()
+    vtk = import_optional_dependency("vtk")
+
+    writer = vtk.vtkXMLPolyDataWriter()
     writer.SetDataModeToAscii()
     writer.SetFileName(filename)
 
     polydata = _build_vtkPolyData(vertices, faces)
-    if VTK_MAJOR_VERSION <= 5:
-        writer.SetInput(polydata)
-    else:
-        writer.SetInputData(polydata)
+    writer.SetInputData(polydata)
     writer.Write()
 
 
@@ -339,7 +334,7 @@ def _build_vtkUnstructuredGrid(vertices, faces):
     vtkObject
     """
 
-    import vtk
+    vtk = import_optional_dependency("vtk")
 
     nv = max(np.shape(vertices))
     nf = max(np.shape(faces))
@@ -375,7 +370,7 @@ def _build_vtkUnstructuredGrid(vertices, faces):
 def _build_vtkPolyData(vertices, faces):
     """Builds a vtkPolyData object from vertices and faces"""
 
-    import vtk
+    vtk = import_optional_dependency("vtk")
 
     # Create a vtkPoints object and store the points in it
     points = vtk.vtkPoints()

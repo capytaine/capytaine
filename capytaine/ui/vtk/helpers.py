@@ -6,11 +6,11 @@
 
 from typing import Union
 
-import vtk
-
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
+from capytaine.tools.optional_imports import import_optional_dependency
 
+vtk = import_optional_dependency("vtk")
 
 def compute_vtk_polydata(mesh: Union[Mesh, CollectionOfMeshes]):
     """Transform a mesh into vtkPolydata."""
