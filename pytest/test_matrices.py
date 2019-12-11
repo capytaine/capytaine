@@ -2,6 +2,7 @@
 # coding: utf-8
 """Test of the matrices submodule."""
 
+from warnings import warn
 import pytest
 
 import numpy as np
@@ -35,8 +36,11 @@ def test_block_matrix_representation_of_identity():
     assert (A @ b == b).all()
     assert (A @ A == A).all()
 
-    patches = A._patches(global_frame=(10, 10))
-    assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12)}
+    try:
+        patches = A._patches(global_frame=(10, 10))
+        assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12)}
+    except ImportError:
+        warn("Matplotlib is not installed and thus has not been tested.")
 
     assert (A == identity_like(A)).all()
     assert (A.full_matrix() == np.eye(4, 4)).all()
@@ -50,9 +54,12 @@ def test_block_matrix_representation_of_identity():
     assert B.block_shapes == ([4, 1], [4, 1])
     assert list(B._stored_block_positions()) == [[(0, 0)], [(0, 4)], [(4, 0)], [(4, 4)]]
 
-    patches = B._patches(global_frame=(10, 10))
-    assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12),
-                                                             (14, 10), (10, 14), (14, 14)}
+    try:
+        patches = B._patches(global_frame=(10, 10))
+        assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12),
+                                                                 (14, 10), (10, 14), (14, 14)}
+    except ImportError:
+        warn("Matplotlib is not installed and thus has not been tested.")
 
     # 3x3 block matrix with blocks of different shapes
     C = random_block_matrix([1, 2, 4], [1, 2, 4])

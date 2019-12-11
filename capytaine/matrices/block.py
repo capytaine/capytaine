@@ -19,6 +19,7 @@ from itertools import cycle, accumulate, chain, product
 import numpy as np
 
 from capytaine.matrices.low_rank import LowRankMatrix
+from capytaine.tools.optional_imports import import_optional_dependency
 
 LOG = logging.getLogger(__name__)
 

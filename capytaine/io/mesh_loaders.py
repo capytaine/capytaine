@@ -12,6 +12,7 @@ import numpy as np
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh
 from capytaine.meshes.geometry import xOz_Plane
+from capytaine.tools.optional_imports import import_optional_dependency
 
 real_str = r'[+-]?(?:\d+\.\d*|\d*\.\d+)(?:[Ee][+-]?\d+)?'  # Regex for floats
 
