@@ -15,7 +15,7 @@ from scipy.optimize import newton
 LOG = logging.getLogger(__name__)
 
 
-@attrs(cmp=False)
+@attrs(order=False, eq=False)
 class LinearPotentialFlowProblem:
     """General class of a potential flow problem.
 
@@ -144,7 +144,7 @@ class LinearPotentialFlowProblem:
         return LinearPotentialFlowResult(self)
 
 
-@attrs(cmp=False)
+@attrs(order=False, eq=False)
 class DiffractionProblem(LinearPotentialFlowProblem):
     """Particular LinearPotentialFlowProblem whose boundary conditions have
     been computed from an incoming Airy wave."""
@@ -170,7 +170,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
         return DiffractionResult(self)
 
 
-@attrs(cmp=False)
+@attrs(order=False, eq=False)
 class RadiationProblem(LinearPotentialFlowProblem):
     """Particular LinearPotentialFlowProblem whose boundary conditions have
     been computed from the degree of freedom of the body."""
