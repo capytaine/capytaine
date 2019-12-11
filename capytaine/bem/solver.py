@@ -143,9 +143,10 @@ class BEMSolver:
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
             results = self.solve_all(problems, keep_details=True)
-            kochin = kochin_data_array(results, dataset.coords['theta'])
+            kochin_rad, kochin_diff= kochin_data_array(results, dataset.coords['theta'])
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
-            dataset['kochin'] = kochin
+            dataset['kochin'] = kochin_rad
+            dataset['kochin_diffraction'] = kochin_diff
         else:
             results = self.solve_all(problems, keep_details=False)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)

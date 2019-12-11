@@ -181,14 +181,28 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
         :meth:`~capytaine.post_pro.kochin.compute_kochin`
             The present function is just a wrapper around :code:`compute_kochin`.
     """
-    records = pd.DataFrame([dict(result.settings_dict, theta=theta, kochin=kochin)
-                            for result in results
-                            for theta, kochin in zip(theta_range.data, compute_kochin(result, theta_range, **kwargs))])
+    records = pd.DataFrame([
+        dict(result.settings_dict, theta=theta, kochin=kochin)
+        for result in results
+        for theta, kochin in zip(theta_range.data,
+                                 compute_kochin(result, theta_range, **kwargs))
+    ])
 
-    ds = _dataset_from_dataframe(records, ['kochin'],
-                                 dimensions=['omega', 'radiating_dof', 'theta'],
-                                 optional_dims=['g', 'rho', 'body_name', 'water_depth'])
-    return ds['kochin']
+    diffraction = _dataset_from_dataframe(
+        records[~records['wave_direction'].isnull()],
+        ['kochin'],
+        dimensions=['omega', 'wave_direction', 'theta'],
+        optional_dims=['g', 'rho', 'body_name', 'water_depth']
+    )
+
+    radiation = _dataset_from_dataframe(
+        records[~records['radiating_dof'].isnull()],
+        variables=['kochin'],
+        dimensions=['omega', 'radiating_dof', 'theta'],
+        optional_dims=['g', 'rho', 'body_name', 'water_depth']
+    )
+
+    return diffraction['kochin'], radiation['kochin']
 
 
 def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
