@@ -17,7 +17,6 @@ from typing import Tuple, List, Callable, Union, Iterable
 from itertools import cycle, accumulate, chain, product
 
 import numpy as np
-from matplotlib.patches import Rectangle
 
 from capytaine.matrices.low_rank import LowRankMatrix
 
@@ -463,7 +462,7 @@ class BlockMatrix:
 
     def _patches(self,
                  global_frame: Union[Tuple[int, int], np.ndarray]
-                 ) -> List[Rectangle]:
+                 ):
         """Helper function for displaying the shape of the matrix.
         Recursively returns a list of rectangles representing the sub-blocks of the matrix.
 
@@ -471,7 +470,14 @@ class BlockMatrix:
         ----------
         global_frame: tuple of ints
             coordinates of the origin in the top left corner.
+
+        Returns
+        -------
+        list of matplotlib.patches.Rectangle
         """
+        matplotlib = import_optional_dependency("matplotlib")
+        Rectangle = matplotlib.patches.Rectangle
+
         all_blocks_in_flat_iterator = (block for line in self._stored_blocks for block in line)
         positions_of_all_blocks = self._stored_block_positions(global_frame=global_frame)
         patches = []
@@ -520,7 +526,9 @@ class BlockMatrix:
 
     def plot_shape(self):
         """Plot the structure of the matrix using matplotlib."""
-        import matplotlib.pyplot as plt
+        matplotlib = import_optional_dependency("matplotlib")
+        plt = matplotlib.pyplot
+
         plt.figure()
         for patch in self._patches((0, 0)):
             plt.gca().add_patch(patch)

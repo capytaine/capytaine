@@ -412,8 +412,11 @@ class Mesh(Abstract3DObject):
 
         Other parameters are passed to Poly3DCollection.
         """
-        import matplotlib.pyplot as plt
-        from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+        matplotlib = import_optional_dependency("matplotlib")
+        plt = matplotlib.pyplot
+
+        mpl_toolkits = import_optional_dependency("mpl_toolkits", package_name="matplotlib")
+        Poly3DCollection = mpl_toolkits.mplot3d.art3d.Poly3DCollection
 
         default_axis = ax is None
         if default_axis:

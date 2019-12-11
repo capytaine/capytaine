@@ -4,14 +4,17 @@
 
 import importlib
 
-def import_optional_dependency(name: str):
+def import_optional_dependency(module_name: str, package_name: str = None):
     try:
-        module = importlib.import_module(name)
+        module = importlib.import_module(module_name)
     except ImportError:
+        if package_name is None:
+            package_name = module_name
+
         message = (
-            "Missing optional dependency '{name}'."
-            "Use pip or conda to install {name}."
+            f"Missing optional dependency '{module_name}'."
+            f"Use pip or conda to install {package_name}."
         )
-        raise ImportError(message.format(name=name)) from None
+        raise ImportError(message) from None
 
     return module
