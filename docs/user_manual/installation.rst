@@ -19,8 +19,15 @@ Once Conda has been installed, run the following command in a terminal to instal
 
     conda install -c conda-forge capytaine
 
-All the necessary code from Nemoh and Meshmagick is already included into Capytaine and all the other required dependencies should be automatically installed.
+Some optional dependencies are not automatically installed with Capytaine.
+Install them with::
 
+    conda install matplotlib
+    conda install vtk
+
+They are plotting and display libraries that are useful but not necessary for Capytaine's main purpose.
+Some users have had troubles installing them, so they are not required anymore since version 1.2.
+Note that some examples in the documentation might be assuming you have them installed.
 
 With Pip
 --------
@@ -31,6 +38,10 @@ If you do, you can install Capytaine as::
 
     pip install numpy
     pip install capytaine
+
+If you want, you can then install the optional dependencies::
+
+    pip install matplotlib vtk
 
 If you can't install a compiler, it is recommanded to use Conda instead.
 
