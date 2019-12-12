@@ -15,6 +15,7 @@ import logging
 from numbers import Number
 from typing import Tuple, List, Callable, Union, Iterable
 from itertools import cycle, accumulate, chain, product
+from collections import Iterator
 
 import numpy as np
 
@@ -467,6 +468,10 @@ class BlockMatrix:
         """Helper function for displaying the shape of the matrix.
         Recursively returns a list of rectangles representing the sub-blocks of the matrix.
 
+        Uses BlockMatrix.display_color to assign color to the blocks.
+        By default, it cycles through matplotlib default colors.
+        But if display_color is redefined as a callable, it is called with the block as argument.
+
         Parameters
         ----------
         global_frame: tuple of ints
@@ -490,11 +495,26 @@ class BlockMatrix:
             if isinstance(block, BlockMatrix):
                 patches_of_this_block = block._patches(np.array((position_of_first_appearance[1], position_of_first_appearance[0])))
             elif isinstance(block, np.ndarray):
+
+                if isinstance(self.display_color, Iterator):
+                    color = next(self.display_color)
+                elif callable(self.display_color):
+                    color = self.display_color(block)
+                else:
+                    color = np.random.rand(3)
+
                 patches_of_this_block = [Rectangle(position_of_first_appearance,
                                                    block.shape[1], block.shape[0],
-                                                   edgecolor='k', facecolor=next(self.display_color))]
+                                                   edgecolor='k', facecolor=color)]
             elif isinstance(block, LowRankMatrix):
-                color = next(self.display_color)
+
+                if isinstance(self.display_color, Iterator):
+                    color = next(self.display_color)
+                elif callable(self.display_color):
+                    color = self.display_color(block)
+                else:
+                    color = np.random.rand(3)
+
                 patches_of_this_block = [
                     # Left block
                     Rectangle(position_of_first_appearance,
@@ -537,5 +557,5 @@ class BlockMatrix:
         plt.xlim(0, self.shape[1])
         plt.ylim(0, self.shape[0])
         plt.gca().invert_yaxis()
-        plt.show()
+        # plt.show()
 
