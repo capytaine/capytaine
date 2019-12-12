@@ -15,7 +15,7 @@ import logging
 from numbers import Number
 from typing import Tuple, List, Callable, Union, Iterable
 from itertools import cycle, accumulate, chain, product
-from collections import Iterator
+from collections.abc import Iterator
 
 import numpy as np
 
