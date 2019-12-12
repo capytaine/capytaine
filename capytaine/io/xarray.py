@@ -188,21 +188,27 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
                                  compute_kochin(result, theta_range, **kwargs))
     ])
 
-    diffraction = _dataset_from_dataframe(
-        records[~records['wave_direction'].isnull()],
-        ['kochin'],
-        dimensions=['omega', 'wave_direction', 'theta'],
-        optional_dims=['g', 'rho', 'body_name', 'water_depth']
-    )
+    kochin_data = {}
 
-    radiation = _dataset_from_dataframe(
-        records[~records['radiating_dof'].isnull()],
-        variables=['kochin'],
-        dimensions=['omega', 'radiating_dof', 'theta'],
-        optional_dims=['g', 'rho', 'body_name', 'water_depth']
-    )
+    if 'wave_direction' in records.columns:
+        diffraction = _dataset_from_dataframe(
+            records[~records['wave_direction'].isnull()],
+            ['kochin'],
+            dimensions=['omega', 'wave_direction', 'theta'],
+            optional_dims=['g', 'rho', 'body_name', 'water_depth']
+        )
+        kochin_data['kochin_diffraction'] = diffraction['kochin']
 
-    return diffraction['kochin'], radiation['kochin']
+    if 'radiating_dof' in records.columns:
+        radiation = _dataset_from_dataframe(
+            records[~records['radiating_dof'].isnull()],
+            variables=['kochin'],
+            dimensions=['omega', 'radiating_dof', 'theta'],
+            optional_dims=['g', 'rho', 'body_name', 'water_depth']
+        )
+        kochin_data['kochin'] = radiation['kochin']
+
+    return kochin_data
 
 
 def assemble_dataset(results: Sequence[LinearPotentialFlowResult],

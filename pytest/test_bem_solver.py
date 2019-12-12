@@ -88,18 +88,6 @@ def test_fill_dataset():
     assert np.allclose(recomputed_dataset["added_mass"].data, dataset["added_mass"].data)
 
 
-def test_fill_dataset_with_kochin_functions():
-    solver = BEMSolver()
-    test_matrix = xr.Dataset(coords={
-        'omega': [1.0],
-        'theta': np.linspace(0, 2*pi, 5),
-        'radiating_dof': list(sphere.dofs.keys()),
-    })
-    ds = solver.fill_dataset(test_matrix, [sphere])
-    assert 'theta' in ds.coords
-    assert 'kochin' in ds
-
-
 # TODO: move the code below to test_io_xarray.py
     # wavenumbers = wavenumber_data_array(results)
     # assert isinstance(wavenumbers, xr.DataArray)
