@@ -33,6 +33,11 @@ Main concepts
 :class:`~capytaine.bodies.bodies.FloatingBody`
     A :code:`FloatingBody` is mainly the reunion of a :code:`Mesh` and some degrees of freedom.
 
+    The degree of freedom of the body are referred by a name (e.g. `Heave`).
+    They should stay in the order in which they have been defined, but `the code
+    does not strictly guarantee it <https://github.com/mancellin/capytaine/issues/4>`.
+    Accessing them by name rather than by index should be preferred.
+
 :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem`
     A problem is a collection of several parameters: a :code:`FloatingBody`, the wave angular frequency
     :math:`\omega`, the water depth :math:`h`, the water density :math:`\rho` and the gravity
