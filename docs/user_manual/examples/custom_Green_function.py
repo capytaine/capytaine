@@ -8,11 +8,11 @@ import capytaine as cpt
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
 
 class MyGreenFunction(AbstractGreenFunction):
-    """An example of a method to evaluate the Green function."""
+    """An example of a custom routine to evaluate the Green function."""
 
     def evaluate(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
-        """The main method that need to be implemented in the class."""
-        
+        """The main method that needs to be implemented in the class."""
+
         if free_surface == np.infty and sea_bottom == -np.infty:
 
             # Initialize the matrices
