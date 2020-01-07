@@ -2,9 +2,9 @@
 Changelog
 =========
 
-------------------
-New in version 1.1
-------------------
+-------------------------------
+New in version 1.1 (2019-09-24)
+-------------------------------
 
 Major changes
 -------------
@@ -40,9 +40,9 @@ Minor changes
 
 * Improve test suite.
 
---------------------
-New in version 1.0.1
---------------------
+---------------------------------
+New in version 1.0.1 (2019-03-28)
+---------------------------------
 
 Minor changes
 -------------
@@ -51,9 +51,9 @@ Minor changes
 
 * Minor corrections in the documentation.
 
-------------------
-New in version 1.0
-------------------
+-------------------------------
+New in version 1.0 (2019-03-14)
+-------------------------------
 
 Major changes
 -------------
@@ -109,9 +109,9 @@ Solver
 
 * Fix bugs and improve implementation of the Adaptive Cross Approximation.
 
-------------------
-New in version 0.6
-------------------
+-------------------------------
+New in version 0.6 (2019-02-11)
+-------------------------------
 
 Major changes
 -------------
@@ -186,9 +186,9 @@ Meshes and bodies
 
 * Minor improvements of meshes and bodies :code:`repr`.
 
---------------------
-New in version 0.5.1
---------------------
+---------------------------------
+New in version 0.5.1 (2018-10-17)
+---------------------------------
 
 * Minor bugs fixes.
 
@@ -196,9 +196,9 @@ New in version 0.5.1
 
 * Update documentation.
 
-------------------
-New in version 0.5
-------------------
+-------------------------------
+New in version 0.5 (2018-09-18)
+-------------------------------
 
 Major changes
 -------------
@@ -280,9 +280,9 @@ Meshes
 * Refactored mesh objects can be checked for equality and are hashable.
   The method is experimental and can be improved.
 
-------------------
-New in version 0.4
-------------------
+-------------------------------
+New in version 0.4 (2018-08-04)
+-------------------------------
 
 New features
 ------------
