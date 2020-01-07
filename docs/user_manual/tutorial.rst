@@ -118,12 +118,12 @@ body. It can be done in several ways:
     sphere.dofs['Surge'] = [(1, 0, 0) for face in sphere.mesh.faces]
 
 * Helpers functions are available to define rigid body translations and rotations. For instance for
-  the motion in the :math:`z` direction, we can use :meth:`FloatingBody.add_translation_dof <capytaine.bodies.FloatingBody.add_translation_dof>`.
+  the motion in the :math:`z` direction, we can use :meth:`FloatingBody.add_translation_dof <capytaine.bodies.bodies.FloatingBody.add_translation_dof>`.
   It can recognize some dof names such as "Surge", "Sway" and "Heave"::
 
     sphere.add_translation_dof(name="Heave")
 
-  See the documentation of :meth:`FloatingBody.add_rotation_dof <capytaine.bodies.FloatingBody.add_rotation_dof>` and :meth:`FloatingBody.add_all_rigid_body_dofs <capytaine.bodies.FloatingBody.add_all_rigid_body_dofs>`.
+  See the documentation of :meth:`FloatingBody.add_rotation_dof <capytaine.bodies.bodies.FloatingBody.add_rotation_dof>` and :meth:`FloatingBody.add_all_rigid_body_dofs <capytaine.bodies.bodies.FloatingBody.add_all_rigid_body_dofs>`.
 
 The degrees of freedoms are stored in the :code:`dofs` dictionary. To access the name of the dofs of a
 body, you can use for instance::
