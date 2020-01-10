@@ -75,7 +75,7 @@ class Delhommeau(AbstractGreenFunction):
         Parameters
         ----------
         dimensionless_omega: float
-            dimensionless angular frequency: :math:`kh \\tanh (kh) = \omega^2 h/g`
+            dimensionless angular frequency: :math:`kh \\tanh (kh) = \\omega^2 h/g`
         dimensionless_wavenumber: float
             dimensionless wavenumber: :math:`kh`
         method: string, optional
