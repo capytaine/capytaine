@@ -6,7 +6,6 @@
 
 import logging
 from abc import ABC, abstractmethod
-from functools import lru_cache
 
 import numpy as np
 
@@ -17,6 +16,7 @@ from capytaine.matrices import linear_solvers
 from capytaine.matrices.block import BlockMatrix
 from capytaine.matrices.low_rank import LowRankMatrix
 from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockToeplitzMatrix, BlockCirculantMatrix
+from capytaine.tools.lru_cache import delete_first_lru_cache
 
 LOG = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ class BasicMatrixEngine(MatrixEngine):
             self.linear_solver = linear_solver
 
         if matrix_cache_size > 0:
-            self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
+            self.build_matrices = delete_first_lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
 
         self.exportable_settings = {
             'engine': 'BasicMatrixEngine',
@@ -140,7 +140,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
     def __init__(self, *, ACA_distance=8.0, ACA_tol=1e-2, matrix_cache_size=1):
 
         if matrix_cache_size > 0:
-            self.build_matrices = lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
+            self.build_matrices = delete_first_lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
 
         self.ACA_distance = ACA_distance
         self.ACA_tol = ACA_tol
