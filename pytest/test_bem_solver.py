@@ -81,7 +81,7 @@ def test_fill_dataset():
     assert 'incoming_waves_convention' in dataset.attrs
 
     # Try to strip out the outputs and recompute
-    naked_data = dataset.drop(["added_mass", "radiation_damping", "diffraction_force", "Froude_Krylov_force"])
+    naked_data = dataset.drop_vars(["added_mass", "radiation_damping", "diffraction_force", "Froude_Krylov_force"])
     recomputed_dataset = solver.fill_dataset(naked_data, [sphere])
     assert recomputed_dataset.rho == dataset.rho
     assert "added_mass" in recomputed_dataset

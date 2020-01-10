@@ -336,5 +336,5 @@ def merge_complex_values(ds: xr.Dataset) -> xr.Dataset:
                 new_dims = [d for d in da.dims if d != 'complex']
                 new_da = xr.DataArray(da.sel(complex='re').data + 1j*da.sel(complex='im').data, dims=new_dims)
                 ds[variable] = new_da
-        ds = ds.drop('complex')
+        ds = ds.drop_vars('complex')
     return ds
