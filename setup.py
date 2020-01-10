@@ -91,7 +91,6 @@ if __name__ == "__main__":
               'capytaine.tools',
           ],
           install_requires=[
-              'attrs',
               'numpy',
               'scipy',
               'pandas',
