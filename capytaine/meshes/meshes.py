@@ -290,6 +290,23 @@ class Mesh(Abstract3DObject):
             self.__internals__.update(compute_faces_properties(self))
         return self.__internals__['faces_radiuses']
 
+    @property
+    def quadrature_points(self):
+        if 'quadrature' in self.__internals__:
+            return self.__internals__['quadrature']
+        else:
+            # Default: first order quadrature
+            return (
+                self.faces_centers.reshape((self.nb_faces, 1, 3)),  # Points
+                self.faces_areas.reshape((self.nb_faces, 1))        # Weights
+            )
+
+    def compute_quadrature(self, method):
+        self.__internals__['quadrature' ] = (
+            self.faces_centers.reshape((self.nb_faces, 1, 3)),  # Points
+            self.faces_areas.reshape((self.nb_faces, 1))        # Weights
+            )
+
     ###############################
     #  Triangles and quadrangles  #
     ###############################

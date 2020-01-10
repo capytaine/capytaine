@@ -187,7 +187,7 @@ class Delhommeau(AbstractGreenFunction):
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
             mesh2.faces_areas,   mesh2.faces_radiuses,
-            mesh2.faces_centers.reshape((mesh2.nb_faces, 1, 3)), mesh2.faces_areas.reshape((mesh2.nb_faces, 1)),  # Quadrature
+            *mesh2.quadrature_points,
             wavenumber, 0.0 if depth == np.infty else depth,
             coeffs,
             *self.tabulated_integrals,

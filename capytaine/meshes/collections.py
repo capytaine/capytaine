@@ -147,6 +147,18 @@ class CollectionOfMeshes(Abstract3DObject):
         return np.concatenate([mesh.faces_radiuses for mesh in self])
 
     @property
+    def quadrature_points(self):
+        quad_submeshes = [mesh.quadrature_points for mesh in self]
+        return (
+            np.concatenate([quad[0] for quad in quad_submeshes]),  # Points
+            np.concatenate([quad[1] for quad in quad_submeshes])   # Weights
+        )
+
+    def compute_quadrature(self, method):
+        for mesh in self:
+            mesh.compute_quadrature(method)
+
+    @property
     def center_of_mass_of_nodes(self):
         return sum([mesh.nb_vertices*mesh.center_of_mass_of_nodes for mesh in self])/self.nb_vertices
 
