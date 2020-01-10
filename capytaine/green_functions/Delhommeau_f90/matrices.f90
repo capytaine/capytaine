@@ -60,10 +60,10 @@ CONTAINS
 
   ! =====================================================================
 
-  SUBROUTINE ADD_WAVE_PART_TO_THE_MATRICES  &
-      (nb_faces_1, centers_1, normals_1, &
-      nb_faces_2,                        &
-      centers_2, areas_2,                &
+  SUBROUTINE ADD_WAVE_PART_TO_THE_MATRICES(  &
+      nb_faces_1, centers_1, normals_1,  &
+      nb_faces_2, nb_quad_points,        &
+      quad_points, quad_weights,         &
       wavenumber, depth,                 &
       XR, XZ, APD,                       &
       NEXP, AMBDA, AR,                   &
@@ -74,8 +74,10 @@ CONTAINS
     ! Mesh data
     INTEGER,                                  INTENT(IN) :: nb_faces_1, nb_faces_2
     REAL(KIND=PRE), DIMENSION(nb_faces_1, 3), INTENT(IN) :: normals_1, centers_1
-    REAL(KIND=PRE), DIMENSION(nb_faces_2, 3), INTENT(IN) :: centers_2
-    REAL(KIND=PRE), DIMENSION(nb_faces_2),    INTENT(IN) :: areas_2
+
+    INTEGER,                                                  INTENT(IN) :: nb_quad_points
+    REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points, 3), INTENT(IN) :: quad_points
+    REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points),    INTENT(IN) :: quad_weights
 
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
 
@@ -98,11 +100,11 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(INOUT) :: K
 
     ! Local variables
-    INTEGER                         :: I, J
+    INTEGER                         :: I, J, Q
     COMPLEX(KIND=PRE)               :: SP2
     COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2_SYM, VSP2_ANTISYM
 
-    IF (SAME_BODY) THEN
+    IF ((SAME_BODY) .AND. (nb_quad_points == 1)) THEN
       ! If we are computing the influence of some cells upon themselves, the resulting matrices have some symmetries.
       ! This is due to the symmetry of the Green function, and the way the integral on the face is approximated.
       ! (More precisely, the Green function is symmetric and its derivative is the sum of a symmetric part and an anti-symmetric
@@ -116,7 +118,7 @@ CONTAINS
             CALL WAVE_PART_INFINITE_DEPTH &
               (wavenumber,                &
               centers_1(I, :),            &
-              centers_2(J, :),            &
+              quad_points(J, 1, :),       & ! centers_2(J, :),
               XR, XZ, APD,                &
               SP2, VSP2_SYM               &
               )
@@ -125,7 +127,7 @@ CONTAINS
             CALL WAVE_PART_FINITE_DEPTH   &
               (wavenumber,                &
               centers_1(I, :),            &
-              centers_2(J, :),            &
+              quad_points(J, 1, :),       & ! centers_2(J, :),
               depth,                      &
               XR, XZ, APD,                &
               NEXP, AMBDA, AR,            &
@@ -133,17 +135,15 @@ CONTAINS
               )
           END IF
 
-          S(I, J) = S(I, J) - coeff/(4*PI) * SP2*areas_2(J)
-          K(I, J) = K(I, J) - coeff/(4*PI) * DOT_PRODUCT(normals_1(I, :),         &
-            VSP2_SYM + VSP2_ANTISYM) &
-            *areas_2(J)
+          S(I, J) = S(I, J) - coeff/(4*PI) * SP2 * quad_weights(J, 1)
+          K(I, J) = K(I, J) - coeff/(4*PI) * &
+            DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
 
           IF (.NOT. I==J) THEN
             VSP2_SYM(1:2) = -VSP2_SYM(1:2)
-            S(J, I) = S(J, I) - coeff/(4*PI) * SP2*areas_2(I)
-            K(J, I) = K(J, I) - coeff/(4*PI) * DOT_PRODUCT(normals_1(J, :),         &
-              VSP2_SYM - VSP2_ANTISYM) &
-              *areas_2(I)
+            S(J, I) = S(J, I) - coeff/(4*PI) * SP2 * quad_weights(I, 1)
+            K(J, I) = K(J, I) - coeff/(4*PI) * &
+              DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
           END IF
 
         END DO
@@ -156,33 +156,33 @@ CONTAINS
       DO I = 1, nb_faces_1
         !$OMP PARALLEL DO PRIVATE(J, SP2, VSP2_SYM, VSP2_ANTISYM)
         DO J = 1, nb_faces_2
+          DO Q = 1, nb_quad_points
+            IF (depth == INFINITE_DEPTH) THEN
+              CALL WAVE_PART_INFINITE_DEPTH &
+                (wavenumber,                &
+                centers_1(I, :),            &
+                quad_points(J, Q, :),       &
+                XR, XZ, APD,                &
+                SP2, VSP2_SYM               &
+                )
+              VSP2_ANTISYM(:) = ZERO
+            ELSE
+              CALL WAVE_PART_FINITE_DEPTH   &
+                (wavenumber,                &
+                centers_1(I, :),            &
+                quad_points(J, Q, :),       &
+                depth,                      &
+                XR, XZ, APD,                &
+                NEXP, AMBDA, AR,            &
+                SP2, VSP2_SYM, VSP2_ANTISYM &
+                )
+            END IF
 
-          IF (depth == INFINITE_DEPTH) THEN
-            CALL WAVE_PART_INFINITE_DEPTH &
-              (wavenumber,                &
-              centers_1(I, :),            &
-              centers_2(J, :),            &
-              XR, XZ, APD,                &
-              SP2, VSP2_SYM               &
-              )
-            VSP2_ANTISYM(:) = ZERO
-          ELSE
-            CALL WAVE_PART_FINITE_DEPTH   &
-              (wavenumber,                &
-              centers_1(I, :),            &
-              centers_2(J, :),            &
-              depth,                      &
-              XR, XZ, APD,                &
-              NEXP, AMBDA, AR,            &
-              SP2, VSP2_SYM, VSP2_ANTISYM &
-              )
-          END IF
+            S(I, J) = S(I, J) - coeff/(4*PI) * SP2 * quad_weights(J, Q)
+            K(I, J) = K(I, J) - coeff/(4*PI) * &
+              DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
 
-          S(I, J) = S(I, J) - coeff/(4*PI) * SP2*areas_2(J)                                ! Green function
-          K(I, J) = K(I, J) - coeff/(4*PI) * DOT_PRODUCT(normals_1(I, :),         &
-            VSP2_SYM + VSP2_ANTISYM) &
-            *areas_2(J) ! Gradient of the Green function
-
+          END DO
         END DO
         !$OMP END PARALLEL DO
       END DO
@@ -196,6 +196,7 @@ CONTAINS
       nb_faces_1, centers_1, normals_1,               &
       nb_vertices_2, nb_faces_2, vertices_2, faces_2, &
       centers_2, normals_2, areas_2, radiuses_2,      &
+      nb_quad_points, quad_points, quad_weights,      &
       wavenumber, depth,                              &
       coeffs,                                         &
       XR, XZ, APD,                                    &
@@ -210,6 +211,10 @@ CONTAINS
     INTEGER,        DIMENSION(nb_faces_2, 4),    INTENT(IN) :: faces_2
     REAL(KIND=PRE), DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2, normals_2
     REAL(KIND=PRE), DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2, radiuses_2
+
+    INTEGER,                                                  INTENT(IN) :: nb_quad_points
+    REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points, 3), INTENT(IN) :: quad_points
+    REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points),    INTENT(IN) :: quad_weights
 
     LOGICAL,                                  INTENT(IN) :: same_body
 
@@ -295,8 +300,8 @@ CONTAINS
 
       CALL ADD_WAVE_PART_TO_THE_MATRICES(  &
         nb_faces_1, centers_1, normals_1,  &
-        nb_faces_2,                        &
-        centers_2, areas_2,                &
+        nb_faces_2, nb_quad_points,        &
+        quad_points, quad_weights,         &
         wavenumber, depth,                 &
         XR, XZ, APD,                       &
         NEXP, AMBDA, AR,                   &
