@@ -6,10 +6,8 @@
 
 import numpy as np
 
-from capytaine.bem.problems_and_results import DiffractionProblem
 
-
-def airy_waves_potential(points, pb: DiffractionProblem, convention="Nemoh"):
+def airy_waves_potential(points, pb, convention="Nemoh"):
     """Compute the potential for Airy waves at a given point (or array of points).
 
     Parameters
@@ -47,7 +45,7 @@ def airy_waves_potential(points, pb: DiffractionProblem, convention="Nemoh"):
         return -1j*pb.g/pb.omega * cih * np.exp(1j * k * wbar)
 
 
-def airy_waves_velocity(points, pb: DiffractionProblem, convention="Nemoh"):
+def airy_waves_velocity(points, pb, convention="Nemoh"):
     """Compute the fluid velocity for Airy waves at a given point (or array of points).
 
     Parameters
@@ -90,7 +88,7 @@ def airy_waves_velocity(points, pb: DiffractionProblem, convention="Nemoh"):
         return v.T
 
 
-def froude_krylov_force(pb: DiffractionProblem, convention="Nemoh"):
+def froude_krylov_force(pb, convention="Nemoh"):
     pressure = -1j * pb.omega * pb.rho * airy_waves_potential(pb.body.mesh.faces_centers, pb, convention=convention)
     forces = {}
     for dof in pb.influenced_dofs:

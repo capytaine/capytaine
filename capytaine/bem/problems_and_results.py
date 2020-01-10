@@ -1,72 +1,121 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Definition of the problems to solve with the BEM solver."""
-# Copyright (C) 2017-2019 Matthieu Ancellin
+"""Definition of the problems to solve with the BEM solver, and the results of this resolution."""
+# Copyright (C) 2017-2020 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 
-from attr import attrs, attrib, astuple, Factory, asdict
-
 import numpy as np
 from scipy.optimize import newton
 
+from capytaine.bem.airy_waves import airy_waves_velocity, froude_krylov_force
 
 LOG = logging.getLogger(__name__)
 
+_default_parameters = {'rho': 1000.0, 'g': 9.81, 'omega': 1.0,
+                      'free_surface': 0.0, 'water_depth': np.infty,
+                      'convention': "nemoh"}
 
-@attrs(order=False, eq=False)
+
 class LinearPotentialFlowProblem:
     """General class of a potential flow problem.
 
-    Stores:
+    Parameters
+    ----------
+    body: FloatingBody, optional
+        The body interacting with the waves
+    free_surface: float, optional
+        The position of the free surface (accepted values: 0 and np.infty)
+    sea_bottom: float, optional
+        The position of the sea bottom
+    omega: float, optional
+        The frequency of the waves in rad/s
+    rho: float, optional
+        The density of water in kg/m3 (default: 1000.0)
+    g: float, optional
+        The acceleration of gravity in m/s2 (default: 9.81)
+    boundary_condition: np.ndarray of shape (body.mesh.nb_faces,)
+        The Neumann boundary condition on the floating body
 
-    * the environmental variables (gravity and fluid density),
-    * the shape of the domain (position of the free surface and of the sea bottom),
-    * the frequency of interest,
-    * the meshed floating body,
-    * the Neumann boundary conditions on the body.
+    TODO: more consistent use of free_surface and sea_bottom vs. water_depth
     """
-    default_parameters = {'rho': 1000.0, 'g': 9.81, 'free_surface': 0.0, 'sea_bottom': -np.infty, 'omega': 1.0}
 
-    body = attrib(default=None)
-    free_surface = attrib(default=default_parameters['free_surface'])
-    sea_bottom = attrib(default=default_parameters['sea_bottom'])
-    omega = attrib(default=default_parameters['omega'])
-    g = attrib(default=default_parameters['g'])
-    rho = attrib(default=default_parameters['rho'])
+    def __init__(self, *,
+                 body=None,
+                 free_surface=_default_parameters['free_surface'],
+                 sea_bottom=-_default_parameters['water_depth'],
+                 omega=_default_parameters['omega'],
+                 rho=_default_parameters['rho'],
+                 g=_default_parameters['g'],
+                 boundary_condition=None):
 
-    @free_surface.validator
-    def _check_free_surface(self, _, free_surface):
-        if free_surface not in [0, np.infty]:
+        self.body = body
+        self.free_surface = free_surface
+        self.sea_bottom = sea_bottom
+        self.omega = omega
+        self.rho = rho
+        self.g = g
+        self.boundary_condition = boundary_condition
+
+        self._check_data()
+
+    def _check_data(self):
+        """Sanity checks on the data."""
+
+        if self.free_surface not in [0, np.infty]:
             raise NotImplementedError(
-                "Only z=0 and z=∞ are accepted values for the free surface position at the moment.")
-        elif free_surface == np.infty and self.sea_bottom != -np.infty:
-            raise NotImplementedError(
-                "The case without free surface but with a sea bottom has not been implemented yet.")
+                f"Free surface is {self.free_surface}. "
+                "Only z=0 and z=∞ are accepted values for the free surface position."
+            )
 
-    @sea_bottom.validator
-    def _check_depth(self, _, sea_bottom):
-        if self.free_surface < sea_bottom:
+        if self.free_surface == np.infty and self.sea_bottom != -np.infty:
+            raise NotImplementedError(
+                "Problems with a sea bottom but no free surface have not been implemented."
+            )
+
+        if self.free_surface < self.sea_bottom:
             raise ValueError("Sea bottom is above the free surface.")
 
-    @body.validator
-    def _check_body_position(self, _, body):
-        if body is not None:
-            if (any(body.mesh.faces_centers[:, 2] > self.free_surface)
-                    or any(body.mesh.faces_centers[:, 2] < self.sea_bottom)):
-                LOG.warning(f"""The mesh of the body {body.name} is not inside the domain.\n
-                                Check the values of free_surface and sea_bottom\n
-                                or use body.keep_immersed_part() to clip the mesh.""")
+        if self.omega in {0, np.infty} and self.depth != np.infty:
+            raise NotImplementedError(
+                f"omega={self.omega} is only implemented for infinite depth."
+            )
 
-    @omega.validator
-    def _check_frequency(self, _, omega):
-        if omega in {0, np.infty} and self.depth != np.infty:
-            raise NotImplementedError(f"omega={omega} is only implemented for infinite depth.")
+        if self.body is not None:
+            if (any(self.body.mesh.faces_centers[:, 2] > self.free_surface)
+                    or any(self.body.mesh.faces_centers[:, 2] < self.sea_bottom)):
+
+                LOG.warning(
+                    f"The mesh of the body {self.body.name} is not inside the domain.\n"
+                    "Check the position of the free_surface and the sea_bottom\n"
+                    "or use body.keep_immersed_part() to clip the mesh."
+                )
+
+        if self.boundary_condition is not None:
+            if len(self.boundary_condition.shape) != 1:
+                raise ValueError("Expected a 1-dimensional array as boundary_condition")
+
+            if self.boundary_condition.shape[0] != self.body.mesh.nb_faces:
+                raise ValueError(
+                    f"The shape of the boundary condition ({self.boundary_condition.shape})"
+                    f"does not match the number of faces of the mesh ({self.body.mesh.nb_faces})."
+                )
+
+    @property
+    def body_name(self):
+        return self.body.name if self.body is not None else 'None'
+
+    def _asdict(self):
+        return {"body_name": self.body_name,
+                "water_depth": self.water_depth,
+                "omega": self.omega,
+                "rho": self.rho,
+                "g": self.g}
 
     def __str__(self):
         """Do not display default values in str(problem)."""
-        parameters = [f"body={self.body.name if self.body is not None else 'None'}",
+        parameters = [f"body={self.body_name}",
                       f"omega={self.omega:.3f}",
                       f"depth={self.depth}"]
         try:
@@ -74,31 +123,40 @@ class LinearPotentialFlowProblem:
         except AttributeError:
             pass
 
-        if not self.free_surface == self.default_parameters['free_surface']:
+        if not self.free_surface == _default_parameters['free_surface']:
             parameters.append(f"free_surface={self.free_surface}")
-        if not self.g == self.default_parameters['g']:
+        if not self.g == _default_parameters['g']:
             parameters.append(f"g={self.g}")
-        if not self.rho == self.default_parameters['rho']:
+        if not self.rho == _default_parameters['rho']:
             parameters.append(f"rho={self.rho}")
 
         return self.__class__.__name__ + "(" + ', '.join(parameters) + ")"
 
+    def _astuple(self):
+        return (self.body, self.free_surface, self.sea_bottom, self.omega, self.rho, self.g)
+
     def __eq__(self, other):
         if isinstance(other, LinearPotentialFlowProblem):
-            return astuple(self)[:6] == astuple(other)[:6]
+            return self._astuple() == other._astuple()
         else:
             return NotImplemented
 
     def __lt__(self, other):
-        # Arbitrary order. Used for ordering of problems: problems with similar body are grouped together.
+        # Arbitrary order. Used for ordering of problems: problems with same body are grouped together.
         if isinstance(other, LinearPotentialFlowProblem):
-            return astuple(self)[:6] < astuple(other)[:6]
+            return self._astuple()[:6] < other._astuple()[:6]
+            # Not the whole tuple, because when using inheriting classes,
+            # "radiating_dof" cannot be compared with "wave_direction"
         else:
             return NotImplemented
 
     @property
-    def depth(self):
+    def water_depth(self):
         return self.free_surface - self.sea_bottom
+
+    @property
+    def depth(self):
+        return self.water_depth
 
     @property
     def wavenumber(self):
@@ -144,17 +202,28 @@ class LinearPotentialFlowProblem:
         return LinearPotentialFlowResult(self)
 
 
-@attrs(order=False, eq=False)
 class DiffractionProblem(LinearPotentialFlowProblem):
-    """Particular LinearPotentialFlowProblem whose boundary conditions have
-    been computed from an incoming Airy wave."""
+    """Particular LinearPotentialFlowProblem with boundary conditions
+    computed from an incoming Airy wave."""
 
-    wave_direction = attrib(default=0.0)  # Angle of the incoming wave.
-    convention = attrib(default="Nemoh", repr=False)
+    def __init__(self, *,
+                 body=None,
+                 free_surface=_default_parameters['free_surface'],
+                 sea_bottom=-_default_parameters['water_depth'],
+                 omega=_default_parameters['omega'],
+                 rho=_default_parameters['rho'],
+                 g=_default_parameters['g'],
+                 wave_direction=0.0,
+                 convention=_default_parameters['convention']):
 
-    def __attrs_post_init__(self):
-        from capytaine.bem.airy_waves import airy_waves_velocity
+        self.wave_direction = wave_direction
+        self.convention = convention
+
+        super().__init__(body=body, free_surface=free_surface, sea_bottom=sea_bottom,
+                         omega=omega, rho=rho, g=g)
+
         if self.body is not None:
+
             self.boundary_condition = -(
                     airy_waves_velocity(self.body.mesh.faces_centers, self, convention=self.convention)
                     * self.body.mesh.faces_normals
@@ -163,6 +232,15 @@ class DiffractionProblem(LinearPotentialFlowProblem):
             if len(self.body.dofs) == 0:
                 LOG.warning(f"The body {self.body.name} used in diffraction problem has no dofs!")
 
+    def _astuple(self):
+        return super()._astuple() + (self.wave_direction,)
+
+    def _asdict(self):
+        d = super()._asdict()
+        d["wave_direction"] = self.wave_direction
+        d["convention"] = self.convention
+        return d
+
     def _str_other_attributes(self):
         return [f"wave_direction={self.wave_direction:.3f}"]
 
@@ -170,45 +248,47 @@ class DiffractionProblem(LinearPotentialFlowProblem):
         return DiffractionResult(self)
 
 
-@attrs(order=False, eq=False)
 class RadiationProblem(LinearPotentialFlowProblem):
     """Particular LinearPotentialFlowProblem whose boundary conditions have
     been computed from the degree of freedom of the body."""
 
-    radiating_dof = attrib(default=None)
+    def __init__(self, *, body=None,
+                 free_surface=_default_parameters['free_surface'],
+                 sea_bottom=-_default_parameters['water_depth'],
+                 omega=_default_parameters['omega'],
+                 rho=_default_parameters['rho'],
+                 g=_default_parameters['g'],
+                 radiating_dof=None):
 
-    def __str__(self):
-        """Do not display default values in str(problem)."""
-        parameters = [f"body={self.body.name if self.body is not None else 'None'}, "
-                      f"omega={self.omega:.3f}, depth={self.depth}, radiating_dof={self.radiating_dof}, "]
-        if not self.free_surface == 0.0:
-            parameters.append(f"free_surface={self.free_surface}, ")
-        if not self.g == 9.81:
-            parameters.append(f"g={self.g}, ")
-        if not self.rho == 1000:
-            parameters.append(f"rho={self.rho}, ")
-        return "RadiationProblem(" + ''.join(parameters)[:-2] + ")"
+        self.radiating_dof = radiating_dof
 
-    def __attrs_post_init__(self):
-        """Set the boundary condition"""
-        if self.body is None:
-            self.boundary_condition = None
-            return
+        super().__init__(body=body, free_surface=free_surface, sea_bottom=sea_bottom,
+                         omega=omega, rho=rho, g=g)
 
-        if len(self.body.dofs) == 0:
-            raise ValueError(f"Body {self.body.name} does not have any degrees of freedom.")
+        if self.body is not None:
 
-        if self.radiating_dof is None:
-            self.radiating_dof = next(iter(self.body.dofs))
+            if len(self.body.dofs) == 0:
+                raise ValueError(f"Body {self.body.name} does not have any degrees of freedom.")
 
-        if self.radiating_dof not in self.body.dofs:
-            LOG.error(f"In {self}: the radiating degree of freedom {self.radiating_dof} is not one of"
-                      f"the degrees of freedom of the body.\n"
-                      f"The dofs of the body are {list(self.body.dofs.keys())}")
-            raise ValueError("Unrecognized degree of freedom name.")
+            if self.radiating_dof is None:
+                self.radiating_dof = next(iter(self.body.dofs))
 
-        dof = self.body.dofs[self.radiating_dof]
-        self.boundary_condition = np.sum(dof * self.body.mesh.faces_normals, axis=1)
+            if self.radiating_dof not in self.body.dofs:
+                LOG.error(f"In {self}: the radiating degree of freedom {self.radiating_dof} is not one of"
+                          f"the degrees of freedom of the body.\n"
+                          f"The dofs of the body are {list(self.body.dofs.keys())}")
+                raise ValueError("Unrecognized degree of freedom name.")
+
+            dof = self.body.dofs[self.radiating_dof]
+            self.boundary_condition = np.sum(dof * self.body.mesh.faces_normals, axis=1)
+
+    def _astuple(self):
+        return super()._astuple() + (self.radiating_dof,)
+
+    def _asdict(self):
+        d = super()._asdict()
+        d["radiating_dof"] = self.radiating_dof
+        return d
 
     def _str_other_attributes(self):
         return [f"radiating_dof={self.radiating_dof}"]
@@ -217,14 +297,14 @@ class RadiationProblem(LinearPotentialFlowProblem):
         return RadiationResult(self)
 
 
-@attrs
 class LinearPotentialFlowResult:
-    problem = attrib()
 
-    sources = attrib(default=None, init=False, repr=False)
-    potential = attrib(default=None, init=False, repr=False)
+    def __init__(self, problem):
+        self.problem = problem
 
-    fs_elevation = attrib(default=Factory(dict), init=False, repr=False)
+        self.sources = None
+        self.potential = None
+        self.fs_elevation = {}
 
     __str__ = LinearPotentialFlowProblem.__str__
 
@@ -235,39 +315,33 @@ class LinearPotentialFlowResult:
         except AttributeError:
             raise AttributeError(f"{self.__class__} does not have a attribute named {name}.")
 
-    @property
-    def settings_dict(self):
-        settings = asdict(self.problem)
-        # Keep only the name of the body, not the full object.
-        settings['body_name'] = self.body.name
-        del settings['body']
-        # Keep only water_depth  # TODO: Remove.
-        settings['water_depth'] = self.free_surface - self.sea_bottom
-        del settings['free_surface']
-        del settings['sea_bottom']
-        return settings
 
-
-@attrs
 class DiffractionResult(LinearPotentialFlowResult):
-    forces = attrib(default=Factory(dict), init=False, repr=False)
+
+    def __init__(self, problem):
+        super().__init__(problem)
+        self.forces = {}
 
     def store_force(self, dof, force):
         self.forces[dof] = 1j*self.omega*force
 
     @property
     def records(self):
-        from capytaine.bem.airy_waves import froude_krylov_force
+        params = self.problem._asdict()
         FK = froude_krylov_force(self.problem)
-        return [dict(self.settings_dict, influenced_dof=dof,
-                     diffraction_force=self.forces[dof], Froude_Krylov_force=FK[dof])
+        return [dict(**params,
+                     influenced_dof=dof,
+                     diffraction_force=self.forces[dof],
+                     Froude_Krylov_force=FK[dof])
                 for dof in self.influenced_dofs]
 
 
-@attrs
 class RadiationResult(LinearPotentialFlowResult):
-    added_masses = attrib(default=Factory(dict), init=False, repr=False)
-    radiation_dampings = attrib(default=Factory(dict), init=False, repr=False)
+
+    def __init__(self, problem):
+        super().__init__(problem)
+        self.added_masses = {}
+        self.radiation_dampings = {}
 
     def store_force(self, dof, force):
         self.added_masses[dof] = force.real
@@ -278,6 +352,9 @@ class RadiationResult(LinearPotentialFlowResult):
 
     @property
     def records(self):
-        return [dict(self.settings_dict, influenced_dof=dof,
-                     added_mass=self.added_masses[dof], radiation_damping=self.radiation_dampings[dof])
+        params = self.problem._asdict()
+        return [dict(params,
+                     influenced_dof=dof,
+                     added_mass=self.added_masses[dof],
+                     radiation_damping=self.radiation_dampings[dof])
                 for dof in self.influenced_dofs]

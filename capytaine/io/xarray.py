@@ -21,7 +21,7 @@ from capytaine import __version__
 from capytaine.bodies.bodies import FloatingBody
 from capytaine.bem.problems_and_results import (
     LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem,
-    LinearPotentialFlowResult)
+    LinearPotentialFlowResult, _default_parameters)
 from capytaine.post_pro.kochin import compute_kochin
 
 
@@ -54,9 +54,9 @@ def problems_from_dataset(dataset: xr.Dataset,
 
     dataset = _unsqueeze_dimensions(dataset)
 
-    omega_range = dataset['omega'].data if 'omega' in dataset else [LinearPotentialFlowProblem.default_parameters['omega']]
-    water_depth_range = dataset['water_depth'].data if 'water_depth' in dataset else [-LinearPotentialFlowProblem.default_parameters['sea_bottom']]
-    rho_range = dataset['rho'].data if 'rho' in dataset else [LinearPotentialFlowProblem.default_parameters['rho']]
+    omega_range = dataset['omega'].data if 'omega' in dataset else [_default_parameters['omega']]
+    water_depth_range = dataset['water_depth'].data if 'water_depth' in dataset else [_default_parameters['water_depth']]
+    rho_range = dataset['rho'].data if 'rho' in dataset else [_default_parameters['rho']]
 
     wave_direction_range = dataset['wave_direction'].data if 'wave_direction' in dataset else None
     radiating_dofs = dataset['radiating_dof'].data if 'radiating_dof' in dataset else None
@@ -182,7 +182,7 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
             The present function is just a wrapper around :code:`compute_kochin`.
     """
     records = pd.DataFrame([
-        dict(result.settings_dict, theta=theta, kochin=kochin)
+        dict(**result._asdict(), theta=theta, kochin=kochin)
         for result in results
         for theta, kochin in zip(theta_range.data,
                                  compute_kochin(result, theta_range, **kwargs))
