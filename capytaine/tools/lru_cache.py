@@ -13,7 +13,9 @@ def delete_first_lru_cache(maxsize=1):
         cache = OrderedDict()
 
         @wraps(f)
-        def decorated_f(*args):
+        def decorated_f(*args, **kwargs):
+            # /!\ cache only args
+
             if args in cache:
                 # Get item in cache
                 return cache[args]
@@ -23,7 +25,7 @@ def delete_first_lru_cache(maxsize=1):
                 cache.popitem(last=False)
 
             # Compute and store
-            result = f(*args)
+            result = f(*args, **kwargs)
             cache[args] = result
 
             return result
