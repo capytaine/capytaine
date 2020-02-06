@@ -16,6 +16,7 @@ from capytaine.meshes.properties import compute_faces_properties, compute_connec
 from capytaine.meshes.surface_integrals import compute_faces_integrals
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
+from capytaine.tools.optional_imports import import_optional_dependency
 
 LOG = logging.getLogger(__name__)
 
@@ -301,11 +302,11 @@ class Mesh(Abstract3DObject):
                 self.faces_areas.reshape((self.nb_faces, 1))        # Weights
             )
 
-    def compute_quadrature(self, method):
-        self.__internals__['quadrature' ] = (
-            self.faces_centers.reshape((self.nb_faces, 1, 3)),  # Points
-            self.faces_areas.reshape((self.nb_faces, 1))        # Weights
-            )
+    def compute_quadrature(self, method=None):
+        quadpy = import_optional_dependency("quadpy")
+        if isinstance(method, quadpy.quadrilateral._helpers.QuadrilateralScheme):
+            transformed_pts = quadpy.quadrilateral.transform(method.points, vertices)
+            self.__internals__['quadrature' ] = (points, weights)
 
     ###############################
     #  Triangles and quadrangles  #
