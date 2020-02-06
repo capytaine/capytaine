@@ -481,8 +481,8 @@ class BlockMatrix:
         -------
         list of matplotlib.patches.Rectangle
         """
-        matplotlib = import_optional_dependency("matplotlib")
-        Rectangle = matplotlib.patches.Rectangle
+        matplotlib_patches = import_optional_dependency("matplotlib.patches", "matplotlib")
+        Rectangle = matplotlib_patches.Rectangle
 
         all_blocks_in_flat_iterator = (block for line in self._stored_blocks for block in line)
         positions_of_all_blocks = self._stored_block_positions(global_frame=global_frame)
