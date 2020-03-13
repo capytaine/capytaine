@@ -59,7 +59,8 @@ def problems_from_dataset(dataset: xr.Dataset,
     rho_range = dataset['rho'].data if 'rho' in dataset else [LinearPotentialFlowProblem.default_parameters['rho']]
 
     wave_direction_range = dataset['wave_direction'].data if 'wave_direction' in dataset else None
-    radiating_dofs = dataset['radiating_dof'].data if 'radiating_dof' in dataset else None
+    radiating_dofs = dataset['radiating_dof'].data.astype(object) if 'radiating_dof' in dataset else None
+    # astype(object) is meant to convert Numpy internal string type numpy.str_ to Python general string type.
 
     if 'body_name' in dataset:
         assert set(dataset['body_name'].data) <= {body.name for body in bodies}, \
