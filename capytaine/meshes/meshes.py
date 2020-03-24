@@ -10,6 +10,7 @@ import logging
 from itertools import count
 
 import numpy as np
+from numpy.linalg import norm
 
 from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
 from capytaine.meshes.properties import compute_faces_properties, compute_connectivity
@@ -304,9 +305,35 @@ class Mesh(Abstract3DObject):
 
     def compute_quadrature(self, method=None):
         quadpy = import_optional_dependency("quadpy")
+        transform = quadpy.ncube._helpers.transform
+        get_detJ = quadpy.ncube._helpers.get_detJ
+
         if isinstance(method, quadpy.quadrilateral._helpers.QuadrilateralScheme):
-            transformed_pts = quadpy.quadrilateral.transform(method.points, vertices)
+            points = np.empty((self.nb_faces, len(method.points), 3))
+            weights = np.empty((self.nb_faces, len(method.points)))
+
+            for i_face in range(self.nb_faces):
+                ref = self.vertices[self.faces[i_face, 0], :]
+                A, B, C, D = self.vertices[self.faces[i_face, :], :] - ref
+                n = self.faces_normals[i_face, :]
+
+                ex = (B-A)/norm(B-A)
+                ez = n/norm(n)
+                ey = np.cross(ex, ez)
+                R = np.array([ex, ey, ez])
+                quadrilateral = np.array([[R @ A, R @ D], [R @ B, R @ C]])[:, :, :2]
+
+                quadpoints = transform(method.points.T, quadrilateral)
+                quadpoints = np.concatenate([quadpoints, np.zeros((quadpoints.shape[0], 1))], axis=1)
+                quadpoints = np.array([R.T @ p for p in quadpoints]) + ref
+                points[i_face, :, :] = quadpoints
+
+                weights[i_face, :] = method.weights * abs(get_detJ(method.points.T, quadrilateral))
+
             self.__internals__['quadrature' ] = (points, weights)
+
+        else:
+            raise NotImplementedError
 
     ###############################
     #  Triangles and quadrangles  #
