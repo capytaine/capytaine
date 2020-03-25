@@ -36,6 +36,7 @@ test:
     - pytest/*.py
     - pytest/**/*
   commands:
+    - pip install quadpy
     - pytest
     - capytaine --help
 
