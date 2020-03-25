@@ -32,10 +32,11 @@ def test_resolution():
     solver = cpt.BEMSolver()
 
     cylinder.mesh.compute_quadrature(quadpy.quadrilateral.sommariva_01())
-    data_1 = solver.fill_dataset(test_matrix, [cylinder])
+    data_1 = solver.fill_dataset(test_matrix, [cylinder], mesh=True)
 
     cylinder.mesh.compute_quadrature(quadpy.quadrilateral.sommariva_03())
-    data_3 = solver.fill_dataset(test_matrix, [cylinder])
+    data_3 = solver.fill_dataset(test_matrix, [cylinder], mesh=True)
 
+    assert data_1['quadrature_method'] == "Sommariva 1"
+    assert data_3['quadrature_method'] == "Sommariva 3"
     assert np.allclose(data_1["added_mass"].data, data_3["added_mass"].data, rtol=1e-2)
-

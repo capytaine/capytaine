@@ -282,10 +282,20 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
         # TODO: Store full mesh...
         bodies = list({result.body for result in results})
         nb_faces = {body.name: body.mesh.nb_faces for body in bodies}
+
+        def name_or_str(c):
+            return c.name if hasattr(c, 'name') else str(c)
+        quad_methods = {body.name: name_or_str(body.mesh.quadrature_method) for body in bodies}
+
         if len(nb_faces) > 1:
             dataset.coords['nb_faces'] = ('body_name', nb_faces)
+            dataset.coords['quadrature_method'] = ('body_name', quad_methods)
         else:
-            dataset.coords['nb_faces'] = list(nb_faces.items())[0][1]
+            def the_only(d):
+                """Return the only element of a 1-element dictionnary"""
+                return next(iter(d.values()))
+            dataset.coords['nb_faces'] = the_only(nb_faces)
+            dataset.coords['quadrature_method'] = the_only(quad_methods)
 
     # HYDROSTATICS
     if hydrostatics:

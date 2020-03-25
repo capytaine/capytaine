@@ -303,12 +303,23 @@ class Mesh(Abstract3DObject):
                 self.faces_areas.reshape((self.nb_faces, 1))        # Weights
             )
 
-    def compute_quadrature(self, method=None):
+    @property
+    def quadrature_method(self):
+        if 'quadrature_method' in self.__internals__:
+            return self.__internals__['quadrature_method']
+        else:
+            return None
+
+    def compute_quadrature(self, method):
         quadpy = import_optional_dependency("quadpy")
         transform = quadpy.ncube._helpers.transform
         get_detJ = quadpy.ncube._helpers.get_detJ
 
-        if isinstance(method, quadpy.quadrilateral._helpers.QuadrilateralScheme):
+        if method is None:
+            del self.__internals__['quadrature']
+            del self.__internals__['quadrature_method']
+
+        elif isinstance(method, quadpy.quadrilateral._helpers.QuadrilateralScheme):
             points = np.empty((self.nb_faces, len(method.points), 3))
             weights = np.empty((self.nb_faces, len(method.points)))
 
@@ -330,7 +341,8 @@ class Mesh(Abstract3DObject):
 
                 weights[i_face, :] = method.weights * abs(get_detJ(method.points.T, quadrilateral))
 
-            self.__internals__['quadrature' ] = (points, weights)
+            self.__internals__['quadrature'] = (points, weights)
+            self.__internals__['quadrature_method'] = method
 
         else:
             raise NotImplementedError

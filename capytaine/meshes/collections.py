@@ -154,6 +154,14 @@ class CollectionOfMeshes(Abstract3DObject):
             np.concatenate([quad[1] for quad in quad_submeshes])   # Weights
         )
 
+    @property
+    def quadrature_method(self):
+        methods_submeshes = [mesh.quadrature_method for mesh in self]
+        if len(set(methods_submeshes)) == 1:
+            return methods_submeshes[0]  # All the same methods
+        else:
+            return "Mixed quadrature method"
+
     def compute_quadrature(self, method):
         for mesh in self:
             mesh.compute_quadrature(method)
