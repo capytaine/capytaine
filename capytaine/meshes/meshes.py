@@ -326,6 +326,8 @@ class Mesh(Abstract3DObject):
             points = np.empty((self.nb_faces, len(method.points), 3))
             weights = np.empty((self.nb_faces, len(method.points)))
 
+            self.heal_triangles()
+
             for i_face in range(self.nb_faces):
                 ref = self.vertices[self.faces[i_face, 0], :]
                 A, B, C, D = self.vertices[self.faces[i_face, :], :] - ref
