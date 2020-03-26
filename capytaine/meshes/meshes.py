@@ -316,8 +316,11 @@ class Mesh(Abstract3DObject):
         get_detJ = quadpy.ncube._helpers.get_detJ
 
         if method is None:
-            del self.__internals__['quadrature']
-            del self.__internals__['quadrature_method']
+            if 'quadrature' in self.__internals__:
+                del self.__internals__['quadrature']
+                del self.__internals__['quadrature_method']
+            else:
+                pass
 
         elif isinstance(method, quadpy.quadrilateral._helpers.QuadrilateralScheme):
             points = np.empty((self.nb_faces, len(method.points), 3))
