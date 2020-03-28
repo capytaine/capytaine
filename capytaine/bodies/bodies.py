@@ -433,11 +433,23 @@ class FloatingBody(Abstract3DObject):
     def show_matplotlib(self, *args, **kwargs):
         return self.mesh.show_matplotlib(*args, **kwargs)
 
-    def animate_dof(self, dof_name, *args, **kwargs):
+    def animate(self, motion, *args, **kwargs):
+        """Display a motion as a 3D animation.
+
+        Parameters
+        ==========
+        motion: dict or pd.Series or str
+            A dict or series mapping the name of the dofs to its amplitude.
+            If a single string is passed, it is assumed to be the name of a dof
+            and this dof with a unit amplitude will be displayed.
+        """
         from capytaine.ui.vtk.animation import Animation
+        if isinstance(motion, str):
+            motion = {motion: 1.0}
+        elif isinstance(motion, xr.DataArray):
+            motion = {k: motion.sel(radiating_dof=k).data for k in motion.coords["radiating_dof"].data}
         animation = Animation(*args, **kwargs)
-        animation._add_actor(self.mesh, faces_motion=self.dofs[dof_name])
+        animation._add_actor(self.mesh, faces_motion=sum(motion[dof_name] * dof for dof_name, dof in self.dofs.items() if dof_name in motion))
         animation.run()
         return animation
-
 
