@@ -449,7 +449,6 @@ class FloatingBody(Abstract3DObject):
         elif isinstance(motion, xr.DataArray):
             motion = {k: motion.sel(radiating_dof=k).data for k in motion.coords["radiating_dof"].data}
         animation = Animation(*args, **kwargs)
-        animation._add_actor(self.mesh, faces_motion=sum(motion[dof_name] * dof for dof_name, dof in self.dofs.items() if dof_name in motion))
-        animation.run()
+        animation._add_actor(self.mesh.merged(), faces_motion=sum(motion[dof_name] * dof for dof_name, dof in self.dofs.items() if dof_name in motion))
         return animation
 

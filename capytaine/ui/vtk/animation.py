@@ -238,6 +238,13 @@ class Animation:
         del render_window_interactor
         del render_window
 
+    def embed_in_notebook(self, resolution=(640, 360), **kwargs):
+        from tempfile import mkstemp
+        from IPython.display import Video
+        filepath = mkstemp(suffix=".ogv")[1]
+        self.save(filepath, nb_loops=1, resolution=resolution, **kwargs)
+        return Video(filepath, embed=True, width=resolution[0], html_attributes="controls loop autoplay")
+
     def save(self, filepath, nb_loops=1, camera_position=(-10.0, -10.0, 10.0), resolution=(1280, 720)):
         """Save the animation in a video file.
 
