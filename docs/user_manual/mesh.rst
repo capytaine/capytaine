@@ -212,7 +212,7 @@ You can install it with::
 
 Then chose one of the `available quadratures
 <https://github.com/nschloe/quadpy#quadrilateral>`_ and give it to the
-`compute_quadrature` method::
+:code:`compute_quadrature` method::
 
     from quadpy.quadrilateral import stroud_c2_7_2
 
@@ -221,5 +221,5 @@ Then chose one of the `available quadratures
 It will then be used automatically when needed.
 
 .. warning:: Transformations of the mesh (merging, clipping, ...) may reset the quadrature.
-             Use it only on your final mesh.
+             Compute it only on your final mesh.
 

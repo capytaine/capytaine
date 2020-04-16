@@ -35,7 +35,7 @@ Main concepts
 
     The degree of freedom of the body are referred by a name (e.g. `Heave`).
     They should stay in the order in which they have been defined, but `the code
-    does not strictly guarantee it <https://github.com/mancellin/capytaine/issues/4>`.
+    does not strictly guarantee it <https://github.com/mancellin/capytaine/issues/4>`_.
     Accessing them by name rather than by index should be preferred.
 
 :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem`

@@ -6,6 +6,8 @@ Submodules
 
 .. toctree::
 
+   capytaine.tools.lru_cache
+   capytaine.tools.optional_imports
    capytaine.tools.prony_decomposition
 
 Module contents
