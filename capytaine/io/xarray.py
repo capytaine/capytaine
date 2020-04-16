@@ -59,7 +59,8 @@ def problems_from_dataset(dataset: xr.Dataset,
     rho_range = dataset['rho'].data if 'rho' in dataset else [_default_parameters['rho']]
 
     wave_direction_range = dataset['wave_direction'].data if 'wave_direction' in dataset else None
-    radiating_dofs = dataset['radiating_dof'].data if 'radiating_dof' in dataset else None
+    radiating_dofs = dataset['radiating_dof'].data.astype(object) if 'radiating_dof' in dataset else None
+    # astype(object) is meant to convert Numpy internal string type numpy.str_ to Python general string type.
 
     if 'body_name' in dataset:
         assert set(dataset['body_name'].data) <= {body.name for body in bodies}, \
@@ -244,6 +245,12 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
     records = pd.DataFrame([record for result in results for record in result.records])
     if len(records) == 0:
         raise ValueError("No result passed to assemble_dataset.")
+
+    all_dofs_in_order = {k: None for r in results for k in r.body.dofs.keys()}
+    inf_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
+    records["influenced_dof"] = records["influenced_dof"].astype(inf_dof_cat)
+    rad_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
+    records["radiating_dof"] = records["radiating_dof"].astype(rad_dof_cat)
 
     optional_dims = ['g', 'rho', 'body_name', 'water_depth']
 
