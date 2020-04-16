@@ -46,10 +46,10 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
          + dataset['hydrostatic_stiffness'])
 
     if dissipation is not None:
-        A += 1j*omega*dissipation
+        A = A + 1j*omega*dissipation
 
     if stiffness is not None:
-        A += stiffness
+        A = A + stiffness
 
     if 'excitation_force' not in dataset:
         dataset['excitation_force'] = dataset['Froude_Krylov_force'] + dataset['diffraction_force']
