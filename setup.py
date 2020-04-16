@@ -2,8 +2,6 @@
 # coding: utf-8
 
 import os
-import re
-
 from numpy.distutils.core import Extension, setup
 
 ########################
@@ -44,38 +42,31 @@ XieDelhommeau_extension = Extension(
     #     ('F2PY_REPORT_ON_ARRAY_COPY', 1),
     # ],
 )
-#########################
-#  Read version number  #
-#########################
 
-here = os.path.abspath(os.path.dirname(__file__))
 
-def read(*parts):
-    with open(os.path.join(here, *parts), 'r') as fp:
-        return fp.read()
+########################################################
+#  Read version number and other info in __about__.py  #
+########################################################
 
-def find_version(*file_paths):
-    version_file = read(*file_paths)
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
-    if version_match:
-        return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
+base_dir = os.path.dirname(__file__)
+src_dir = os.path.join(base_dir, "capytaine")
 
+about = {}
+with open(os.path.join(src_dir, "__about__.py")) as f:
+    exec(f.read(), about)
+
+
+##########
+#  Main  #
+##########
 
 if __name__ == "__main__":
-
-    ##########
-    #  Main  #
-    ##########
-
-    setup(name='capytaine',
-          version=find_version('capytaine', '__init__.py'),
-          description='a Python-based linear potential flow solver',
-          url='http://github.com/mancellin/capytaine',
-          author='Matthieu Ancellin',
-          author_email='matthieu.ancellin@ucd.ie',
-          license='GPL-3.0',
+    setup(name=about["__title__"],
+          version=about["__version__"],
+          description=about["__description__"],
+          author=about["__author__"],
+          license=about["__license__"],
+          url=about["__uri__"],
           packages=[
               'capytaine',
               'capytaine.meshes',

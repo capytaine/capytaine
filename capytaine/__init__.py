@@ -3,9 +3,9 @@
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
-__author__ = 'Matthieu Ancellin'
-__version__ = '1.1'
-__license__ = 'GPL-3.0'
+from .__about__ import (
+    __title__, __description__, __version__, __author__, __uri__, __license__
+)
 
 from capytaine.meshes.geometry import Axis, Plane, xOz_Plane, yOz_Plane, xOy_Plane
 from capytaine.meshes.meshes import Mesh
