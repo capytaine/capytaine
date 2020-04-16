@@ -27,14 +27,18 @@ arguments to store more informations in the dataset:
 - :code:`hydrostatics` (default: :code:`True`): if hydrostatics data are
   available in the :code:`FloatingBody`, they are added to the dataset. 
 
-.. note:: The degrees of freedom in the dataset might not be in the same order
-   as they were provided to the code. In particular `the creation of the dataset
-   reorders them in alphabetical order <https://github.com/mancellin/capytaine/issues/4>`_.
-   
-   You can force the order of the dofs with the following syntax::
+.. note:: The code does its best to keep the degrees of freedom in the same
+          order as they have been provided by the user, but there is no
+          guarantee that this will always be the case.
+          Nonetheless, in all cases the labels will always match the data.
+          So selecting a value by the name of the dof will always return the right one::
 
-      sorted_dofs = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
-      print(data.sel(radiating_dof=sorted_dofs, influenced_dof=sorted_dofs))
+              data.sel(radiating_dof="Heave", influenced_dof="Heave")
+
+          You can also manually reorder the dofs with the following syntax::
+
+              sorted_dofs = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
+              print(data.sel(radiating_dof=sorted_dofs, influenced_dof=sorted_dofs))
 
 
 Saving the dataset as NetCDF file

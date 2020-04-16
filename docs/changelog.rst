@@ -3,6 +3,38 @@ Changelog
 =========
 
 -------------------------------
+New in version 1.2 (2020-04-??)
+-------------------------------
+
+* Experimental implementation of higher order quadratures for the integration of
+  the Green function on the mesh. Default behavior is still the first order
+  integration as in Nemoh.
+
+* Add method `FloatingBody.animate` to quickly visualize the motion of a body
+  and add method `Animation.embed_in_notebook` to embed animations in Jupyter
+  notebooks.
+
+* Keep the order of the dofs in `xarray`'s Datasets.
+  This patch uses the CategoricalIndex feature of `xarray` which was buggy
+  before version 0.15.1 of `xarray`. Thus this minimal version is now required.
+
+* Add missing Kochin function for the diffraction.
+  (See `Github issue #22 <https://github.com/mancellin/capytaine/issues/22>`_.)
+  In previous version the variable named `kochin` in the dataset was only the
+  Kochin function for the radiated waves. A new variable names
+  `kochin_diffraction` has been added. The existing variable `kochin` has not
+  been renamed, for backward compatibility, but might be in a future release of
+  Capytaine.
+
+* Improvement of caching to limit RAM usage for large problems.
+
+* Make optional the dependancy to graphical packages (`matplotlib` and `vtk`).
+  They were causing issues to some users.
+
+* `problems_and_results.py` has been refactored to be slightly more readable and
+  remove the dependancy to `attrs`.
+
+-------------------------------
 New in version 1.1 (2019-09-24)
 -------------------------------
 

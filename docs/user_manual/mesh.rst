@@ -74,11 +74,22 @@ The formats currently supported by Meshmagick in reading are the following (from
          developped by EDF-R&D
 
 
-Display
--------
+Display and animation
+---------------------
 Use the :code:`show` method to display the body in 3D using VTK::
 
     body.show()
+
+The :code:`animate` method can be used to visualize a given motion of the body::
+
+    anim = body.animate(motion={"Heave": 0.1, "Surge": 0.1j}, loop_duration=1.0)
+    anim.run()
+
+The above example will present an interactive animation of the linear combination of heave and surge.
+
+Jupyter notebooks can also include a (non-interactive) video of the animation::
+
+    anim.embed_in_notebook(camera_position=(-1.0, -1.0, 1.0), resolution=(400, 300))
 
 
 Geometric transformations
@@ -181,4 +192,34 @@ The method :code:`keep_immersed_part` will clip the body (by default in-place)
 with respect to two horizontal planes at :math:`z=0` and :math:`z=-h`::
 
     clipped_body = body.keep_immersed_part(sea_bottom=-10, inplace=False)
+
+
+Defining an integration quadrature
+----------------------------------
+
+.. warning:: This feature is experimental.
+             Only quadrilaterals panels are supported at the moment.
+
+During the resolution of the BEM problem, the Green function has to be
+integrated on the mesh. By default, the integration is approximated by taking
+the value at the center of the panel and multiplying by its area. For a more
+accurate intagration, an higher order quadrature can be defined.
+
+This feature relies on the external package `quadpy` to compute the quadrature.
+You can install it with::
+
+    pip install quadpy
+
+Then chose one of the `available quadratures
+<https://github.com/nschloe/quadpy#quadrilateral>`_ and give it to the
+`compute_quadrature` method::
+
+    from quadpy.quadrilateral import stroud_c2_7_2
+
+    body.mesh.compute_quadrature(method=stroud_c2_7_2())
+
+It will then be used automatically when needed.
+
+.. warning:: Transformations of the mesh (merging, clipping, ...) may reset the quadrature.
+             Use it only on your final mesh.
 
