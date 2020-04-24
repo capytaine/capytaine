@@ -30,7 +30,7 @@ Main features
 * Various input mesh formats supported via meshmagick_.
 * Output in legacy Nemoh Tecplot format or NetCDF format.
 * Computation of the free surface elevation and the Kochin function.
-* 3D animations of the free surface elevation.
+* 3D animations of the body motion and the free surface elevation.
 * Binaries distributed via `conda <https://www.anaconda.com/download/>`_.
 * A cleaner code with unit tests, meaningful variable names, more comments, no Fortran 77, no global variables and no error message in French.
 * Double precision floating-point numbers by default. (Can be recompiled in single precision.)
@@ -40,14 +40,9 @@ Experimental features
 
 * Input via legacy ``Nemoh.cal`` files.
 * Computation of the Response Amplitude Operators (RAO).
-* Toeplitz matrices for faster simulations for floating bodies with local symmetries or for regular arrays of identical floating bodies.
 * Hierarchical matrices with low-rank blocks for faster simulations.
-
-Planned features (but don't expect them soon)
----------------------------------------------
-
-* Hydrostatics.
-* Removal of the irregular frequencies.
+* Toeplitz matrices for faster simulations for floating bodies with local symmetries or for regular arrays of identical floating bodies.
+* Higher order quadratures for more precise integration of the Green function.
 
 
 .. rubric:: Footnotes

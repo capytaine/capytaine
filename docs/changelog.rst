@@ -3,7 +3,7 @@ Changelog
 =========
 
 -------------------------------
-New in version 1.2 (2020-04-??)
+New in version 1.2 (2020-04-24)
 -------------------------------
 
 * Experimental implementation of higher order quadratures for the integration of
@@ -31,7 +31,7 @@ New in version 1.2 (2020-04-??)
 * Make optional the dependancy to graphical packages (`matplotlib` and `vtk`).
   They were causing issues to some users.
 
-* :code:`problems_and_results.py` has been refactored to be slightly more readable and
+* :code:`problems_and_results.py` has been rewritten to be slightly more readable and
   remove the dependancy to `attrs`.
 
 -------------------------------
@@ -44,12 +44,12 @@ Major changes
 * Refactoring of the implementation of the solver.
   The new implementation separates the solver itself from the evaluation of the
   Green function and the matrix building engine.
-  This more modular structure allows user to choose the Green function or the
-  matrix engine that they want to use.
+  This more modular structure allows user to choose separately the Green
+  function and the matrix engine that they want to use.
 
-  The former API (`Nemoh()` object) has been kept for backward compatibility.
-  In most cases, replacing `Nemoh()` by `BEMSolver()` is sufficient to migrate
-  to the new structure.
+  The former API (:code:`Nemoh()` object) has been kept for backward compatibility.
+  In most cases, replacing :code:`Nemoh()` by :code:`BEMSolver()` is sufficient
+  to migrate to the new structure.
 
   See :doc:`user_manual/resolution` for the full documentation of the new structure
   and :doc:`user_manual/cookbook` for examples.
