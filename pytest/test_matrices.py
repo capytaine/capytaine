@@ -467,7 +467,7 @@ def test_low_rank_blocks():
 
 def test_2_in_1_ACA_with_identical_matrices():
     n = 5
-    A = np.arange(1, 1+n**2).reshape((n, n)) + np.random.rand(n, n)
+    A = np.arange(1, 1+n**2).reshape((n, n)) # + np.random.rand(n, n)
     B = A.copy()
 
     def get_row_func(i):
