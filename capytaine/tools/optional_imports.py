@@ -12,7 +12,7 @@ def import_optional_dependency(module_name: str, package_name: str = None):
             package_name = module_name
 
         message = (
-            f"Missing optional dependency '{module_name}'."
+            f"Missing optional dependency '{module_name}'. "
             f"Use pip or conda to install {package_name}."
         )
         raise ImportError(message) from None
