@@ -287,7 +287,7 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
 
     if mesh:
         # TODO: Store full mesh...
-        bodies = list({result.body for result in results})
+        bodies = list({result.body for result in results})  # Filter out duplicate bodies in the list of results
         nb_faces = {body.name: body.mesh.nb_faces for body in bodies}
 
         def name_or_str(c):
@@ -295,8 +295,8 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
         quad_methods = {body.name: name_or_str(body.mesh.quadrature_method) for body in bodies}
 
         if len(nb_faces) > 1:
-            dataset.coords['nb_faces'] = ('body_name', nb_faces)
-            dataset.coords['quadrature_method'] = ('body_name', quad_methods)
+            dataset.coords['nb_faces'] = ('body_name', [nb_faces[name] for name in dataset.coords['body_name'].data])
+            dataset.coords['quadrature_method'] = ('body_name', [quad_methods[name] for name in dataset.coords['body_name'].data])
         else:
             def the_only(d):
                 """Return the only element of a 1-element dictionnary"""
