@@ -83,8 +83,8 @@ class LinearPotentialFlowProblem:
             )
 
         if self.body is not None:
-            if (any(self.body.mesh.faces_centers[:, 2] > self.free_surface)
-                    or any(self.body.mesh.faces_centers[:, 2] < self.sea_bottom)):
+            if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface)
+                    or any(self.body.mesh.faces_centers[:, 2] <= self.sea_bottom)):
 
                 LOG.warning(
                     f"The mesh of the body {self.body.name} is not inside the domain.\n"
