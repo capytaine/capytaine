@@ -8,7 +8,7 @@ It takes inspiration from the following works:
 * `openHmx module from Gypsilab by Matthieu Aussal (GPL licensed) <https://github.com/matthieuaussal/gypsilab>`_
 * `HierarchicalMatrices by Markus Neumann (GPL licensed) <https://github.com/maekke97/HierarchicalMatrices>`_
 """
-# Copyright (C) 2017-2019 Matthieu Ancellin
+# Copyright (C) 2017-2021 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
@@ -16,6 +16,10 @@ import logging
 import numpy as np
 
 LOG = logging.getLogger(__name__)
+
+
+class NoConvergenceOfACA(Exception):
+    pass
 
 
 class LowRankMatrix:
@@ -302,6 +306,8 @@ class LowRankMatrix:
             LOG.warning(f"The ACA was unable to find a low rank approximation "
                         f"of rank lower or equal to {max_rank} with tolerance {tol:.2e} (latest iteration: "
                         f"{np.sqrt(squared_norm_of_increment):.2e}/{np.sqrt(squared_norm_of_low_rank_approximation):.2e}).")
+            raise NoConvergenceOfACA()
+
         return [LowRankMatrix(left[id_mat, :, :], right[id_mat, :, :]) for id_mat in range(nb_matrices)]
 
     ####################

@@ -256,15 +256,18 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
                 )
                 return s.flatten(), v.flatten()
 
-            return LowRankMatrix.from_rows_and_cols_functions_with_multi_ACA(
-                get_row_func, get_col_func, mesh1.nb_faces, mesh2.nb_faces,
-                nb_matrices=2, id_main=1,  # Approximate V and get an approximation of S at the same time
-                tol=self.ACA_tol, dtype=np.complex128)
+            try:
+                return LowRankMatrix.from_rows_and_cols_functions_with_multi_ACA(
+                    get_row_func, get_col_func, mesh1.nb_faces, mesh2.nb_faces,
+                    nb_matrices=2, id_main=1,  # Approximate V and get an approximation of S at the same time
+                    tol=self.ACA_tol, dtype=np.complex128)
+            except NoConvergenceOfACA:
+                pass  # Continue with non sparse computation
 
         # II) NON-SPARSE COMPUTATIONS
         # II-i) BLOCK MATRIX
 
-        elif (isinstance(mesh1, CollectionOfMeshes)
+        if (isinstance(mesh1, CollectionOfMeshes)
               and isinstance(mesh2, CollectionOfMeshes)):
 
             LOG.debug(log_entry + " using block matrix structure.")

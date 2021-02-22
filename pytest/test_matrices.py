@@ -11,7 +11,7 @@ from numpy.linalg import norm, matrix_rank
 from capytaine.matrices.block import BlockMatrix
 from capytaine.matrices.block_toeplitz import *
 from capytaine.matrices.builders import *
-from capytaine.matrices.low_rank import LowRankMatrix
+from capytaine.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
 from capytaine.matrices.linear_solvers import solve_directly, solve_gmres
 
 
@@ -409,6 +409,7 @@ def test_solve_block_toeplitz():
 
     assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
 
+
 def test_low_rank_blocks():
     n = 10
 
@@ -451,15 +452,18 @@ def test_low_rank_blocks():
 
     # Test creation from function with ACA
     X = np.linspace(0, 1, n)
-    Y = np.linspace(5, 6, n)
+    Y = np.linspace(10, 11, n)
 
     def f(i, j):
         return 1/abs(X[i] - Y[j])
 
     S = np.array([[f(i, j) for j in range(n)] for i in range(n)])
-    SLR = LowRankMatrix.from_function_with_ACA(f, n, n, max_rank=2, tol=1e-5)
+    SLR = LowRankMatrix.from_function_with_ACA(f, n, n, max_rank=2, tol=1e-2)
     assert SLR.shape == (n, n)
-    assert np.allclose(SLR.full_matrix(), S, atol=1e-4)
+    assert np.allclose(SLR.full_matrix(), S, atol=1e-2)
+
+    with pytest.raises(NoConvergenceOfACA):
+        LowRankMatrix.from_function_with_ACA(f, n, n, max_rank=1, tol=1e-3)
 
     summed = SLR + A_rank_1
     assert summed.rank == 1
@@ -467,7 +471,7 @@ def test_low_rank_blocks():
 
 def test_2_in_1_ACA_with_identical_matrices():
     n = 5
-    A = np.arange(1, 1+n**2).reshape((n, n)) # + np.random.rand(n, n)
+    A = np.fromfunction(lambda i, j: 1/abs(i - (100 + j)), (n, n))
     B = A.copy()
 
     def get_row_func(i):
