@@ -161,6 +161,10 @@ class HorizontalCylinder(FloatingBody):
         if name is None:
             name = f"cylinder_{next(Mesh._ids)}"
 
+        ntheta = 2*(ntheta//2)  # Temporary fix to avoid mismatch in mesh
+        # When symmetries are used, one needs an even number of panels.
+        # TODO: When symmetries are not used, implement the odd case.
+
         open_cylinder = self._generate_open_cylinder_mesh(nx, ntheta, f"body_of_{name}")
 
         if nr > 0:
