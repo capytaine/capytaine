@@ -18,7 +18,7 @@ from capytaine.bodies.predefined.cylinders import HorizontalCylinder
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem, \
     LinearPotentialFlowResult, DiffractionResult, RadiationResult
 from capytaine.bem.solver import Nemoh
-from capytaine.io.xarray import problems_from_dataset
+from capytaine.io.xarray import problems_from_dataset, assemble_dataset
 
 from capytaine.io.legacy import import_cal_file
 
@@ -225,6 +225,25 @@ def test_problems_from_dataset():
     assert RadiationProblem(body=body, omega=0.5, radiating_dof="Heave") in problems
     assert RadiationProblem(body=shifted_body, omega=0.5, radiating_dof="Heave") in problems
     assert len(problems) == 12
+
+
+def test_assemble_dataset():
+    body = Sphere(center=(0, 0, -4), name="sphere")
+    body.add_translation_dof(name="Heave")
+
+    pb_1 = DiffractionProblem(body=body, wave_direction=1.0, omega=1.0)
+    res_1 = solver.solve(pb_1)
+    ds1 = assemble_dataset([res_1])
+    assert "Froude_Krylov_force" in ds1
+
+    pb_2 = RadiationProblem(body=body, radiating_dof="Heave", omega=1.0)
+    res_2 = solver.solve(pb_2)
+    ds2 = assemble_dataset([res_2])
+    assert "added_mass" in ds2
+
+    ds12 = assemble_dataset([res_1, res_2])
+    assert "Froude_Krylov_force" in ds12
+    assert "added_mass" in ds12
 
 
 def test_fill_dataset():

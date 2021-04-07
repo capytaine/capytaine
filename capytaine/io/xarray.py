@@ -250,7 +250,8 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
     inf_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
     records["influenced_dof"] = records["influenced_dof"].astype(inf_dof_cat)
     rad_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
-    records["radiating_dof"] = records["radiating_dof"].astype(rad_dof_cat)
+    if 'added_mass' in records.columns:
+        records["radiating_dof"] = records["radiating_dof"].astype(rad_dof_cat)
 
     optional_dims = ['g', 'rho', 'body_name', 'water_depth']
 
