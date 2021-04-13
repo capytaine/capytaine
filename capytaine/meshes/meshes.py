@@ -78,7 +78,7 @@ class Mesh(Abstract3DObject):
 
     @vertices.setter
     def vertices(self, value) -> None:
-        self._vertices = np.array(value, dtype=np.float)
+        self._vertices = np.array(value, dtype=float)
         assert self._vertices.shape[1] == 3, \
             "Vertices of a mesh should be provided as a sequence of 3-ple."
         self.__internals__.clear()
@@ -95,7 +95,7 @@ class Mesh(Abstract3DObject):
 
     @faces.setter
     def faces(self, faces):
-        faces = np.array(faces, dtype=np.int)
+        faces = np.array(faces, dtype=int)
         assert np.all(faces >= 0), \
             "Faces of a mesh should be provided as positive integers (ids of vertices)"
         assert faces.shape[1] == 4, \
@@ -533,7 +533,7 @@ class Mesh(Abstract3DObject):
         vector : array_like
             translation vector
         """
-        vector = np.asarray(vector, dtype=np.float)
+        vector = np.asarray(vector, dtype=float)
         assert vector.shape == (3,), "The translation vector should be given as a 3-ple of values."
 
         self.vertices += vector
@@ -749,7 +749,7 @@ class Mesh(Abstract3DObject):
     def _edges_stats(self):
         """Computes the min, max, and mean of the mesh's edge length"""
         vertices = self.vertices[self.faces]
-        edge_length = np.zeros((self.nb_faces, 4), dtype=np.float)
+        edge_length = np.zeros((self.nb_faces, 4), dtype=float)
         for i in range(4):
             edge = vertices[:, i, :] - vertices[:, i-1, :]
             edge_length[:, i] = np.sqrt(np.einsum('ij, ij -> i', edge, edge))

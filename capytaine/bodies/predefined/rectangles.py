@@ -53,9 +53,9 @@ class Rectangle(FloatingBody):
 
         assert len(center) == 3, "Position of the center of a rectangle should be given a 3-ple of values."
 
-        self.size = np.asarray(size, dtype=np.float)
+        self.size = np.asarray(size, dtype=float)
         width, height = self.size
-        self.geometric_center = np.asarray(center, dtype=np.float)
+        self.geometric_center = np.asarray(center, dtype=float)
         nw, nh = resolution
 
         if translational_symmetry and reflection_symmetry:
@@ -108,8 +108,8 @@ class Rectangle(FloatingBody):
         Y = np.linspace(-width/2, width/2, nw+1)
         Z = np.linspace(-height/2, height/2, nh+1)
 
-        nodes = np.zeros(((nw+1)*(nh+1), 3), dtype=np.float)
-        panels = np.zeros((nw*nh, 4), dtype=np.int)
+        nodes = np.zeros(((nw+1)*(nh+1), 3), dtype=float)
+        panels = np.zeros((nw*nh, 4), dtype=int)
 
         for i, (x, y, z) in enumerate(product([0.0], Y, Z)):
             nodes[i, :] = x, y, z
@@ -174,9 +174,9 @@ class RectangularParallelepiped(FloatingBody):
 
         assert len(center) == 3, "Position of the center of a parallelepiped should be given a 3-ple of values."
 
-        self.size = np.asarray(size, dtype=np.float)
+        self.size = np.asarray(size, dtype=float)
         width, thickness, height = size
-        self.geometric_center = np.asarray(center, dtype=np.float)
+        self.geometric_center = np.asarray(center, dtype=float)
         nw, nth, nh = resolution
 
         if translational_symmetry and reflection_symmetry:

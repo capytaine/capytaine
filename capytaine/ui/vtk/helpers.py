@@ -69,7 +69,7 @@ def compute_node_data(mesh: Union[Mesh, CollectionOfMeshes],
 
     # Initialize output array
     node_data_shape = (mesh.vertices.shape[0], ) + face_data.shape[1:]
-    node_data = np.zeros(node_data_shape, dtype=np.complex)
+    node_data = np.zeros(node_data_shape, dtype=complex)
 
     # Keep track of the number of faces near each vertex
     faces_near_nodes_shape = (mesh.vertices.shape[0], ) + (1, ) * len(face_data.shape[1:])
