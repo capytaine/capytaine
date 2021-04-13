@@ -2,6 +2,18 @@
 Changelog
 =========
 
+---------------------------------
+New in version 1.2.1 (2021-04-??)
+---------------------------------
+
+* Minor bug fixes,
+  including `issue #37 <https://github.com/mancellin/capytaine/issues/37>`_
+  and `issue #56 <https://github.com/mancellin/capytaine/issues/56>`_ (thanks to Ryan Coe).
+
+* Add a warning when a panel is on the free surface
+  (see `#29 <https://github.com/mancellin/capytaine/issues/29>`_
+  and `#50 <https://github.com/mancellin/capytaine/issues/50>`_)
+
 -------------------------------
 New in version 1.2 (2020-04-24)
 -------------------------------
