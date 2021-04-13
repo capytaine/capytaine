@@ -2,9 +2,9 @@ language: generic
 
 env:
   matrix:
-  - CONDA_PY=3.7 CONDA_NPY=1.18
-  - CONDA_PY=3.8 CONDA_NPY=1.19
-  - CONDA_PY=3.9 CONDA_NPY=1.20
+  - CONDA_PY=3.7 CONDA_NPY=1.17
+  - CONDA_PY=3.8 CONDA_NPY=1.18
+  - CONDA_PY=3.9 CONDA_NPY=1.19
 
 before_install:
   - sudo apt-get update
