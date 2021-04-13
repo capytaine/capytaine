@@ -1,0 +1,97 @@
+import pytest 
+import numpy as np
+import xarray as xr
+from capytaine import BEMSolver
+from capytaine.bodies.predefined.spheres import Sphere
+from capytaine.post_pro import rao
+
+
+# Nemoh 2 was run for: 
+# "41 0.1 2.0 ! Number of wave frequencies, Min, and Max (rad/s)""
+# use first three here for expediency
+omega = np.linspace(0.1, 2.0, 41)[:3] 
+rho_water = 1e3
+r = 1
+m = 1.866e+03
+
+M = np.array([
+       [ m,  0.000e+00,  0.000e+00,  0.000e+00,  0.000e+00,  0.000e+00],
+       [ 0.000e+00,  1.866e+03,  0.000e+00,  0.000e+00,  0.000e+00,  0.000e+00],
+       [ 0.000e+00,  0.000e+00,  1.866e+03,  0.000e+00,  0.000e+00,  0.000e+00],
+       [ 0.000e+00,  0.000e+00,  0.000e+00,  4.469e+02,  9.676e-31, -2.757e-14],
+       [ 0.000e+00,  0.000e+00,  0.000e+00,  9.676e-31,  4.469e+02,  3.645e-15],
+       [ 0.000e+00,  0.000e+00,  0.000e+00, -2.757e-14,  3.645e-15,  6.816e+02]])
+
+kHS = np.array([
+	[    0.   ,     0.   ,     0.   ,     0.   ,     0.   ,     0.   ],
+   	[    0.   ,     0.   ,     0.   ,     0.   ,     0.   ,     0.   ],
+   	[    0.   ,     0.   , 29430.   ,     0.   ,     0.   ,     0.   ],
+   	[    0.   ,     0.   ,     0.   ,   328.573,     0.   ,     0.   ],
+   	[    0.   ,     0.   ,     0.   ,     0.   ,   328.573,     0.   ],
+   	[    0.   ,     0.   ,     0.   ,     0.   ,     0.   ,     0.   ]])
+
+@pytest.fixture
+def sphere_fb():
+
+    sphere = Sphere(radius=r, ntheta=3, nphi=12, clip_free_surface=True)
+    sphere.add_all_rigid_body_dofs()
+
+    sphere.mass = sphere.add_dofs_labels_to_matrix(M)
+    sphere.hydrostatic_stiffness = sphere.add_dofs_labels_to_matrix(kHS)
+
+    return sphere
+
+def test_sphere_all(sphere_fb):
+
+    solver = BEMSolver()                
+    test_matrix = xr.Dataset(coords={
+        'rho': rho_water,                         
+        'water_depth': [np.infty],          
+        'omega': omega,
+        'wave_direction': 0,
+        'radiating_dof': list(sphere_fb.dofs.keys()),
+        })
+
+    data = solver.fill_dataset(test_matrix, [sphere_fb],
+                               hydrostatics=True,
+                               mesh=True,
+                               wavelength=True,
+                               wavenumber=True)
+
+    RAO = rao(data)
+
+    assert RAO.radiating_dof.size == 6
+    assert data.mass.shape == (6,6)
+    assert np.all(data.mass.values == M)
+    assert data.hydrostatic_stiffness.shape == (6,6)
+    assert np.all(data.hydrostatic_stiffness.values == kHS)
+    # # assert RAO == ? # TODO could test against known results
+
+def test_sphere_heave_indirect(sphere_fb):
+
+    sphere_fb.keep_only_dofs(['Heave'])
+
+
+    solver = BEMSolver()                
+    test_matrix = xr.Dataset(coords={
+        'rho': rho_water,                         
+        'water_depth': [np.infty],          
+        'omega': omega,
+        'wave_direction': 0,
+        'radiating_dof': list(sphere_fb.dofs.keys()),
+        })
+
+    data = solver.fill_dataset(test_matrix, [sphere_fb],
+                               hydrostatics=True,
+                               mesh=True,
+                               wavelength=True,
+                               wavenumber=True)
+
+    RAO = rao(data)
+
+    assert RAO.radiating_dof.size == 1
+    assert data.mass.size == 1
+    assert data.mass.values == m
+    assert data.hydrostatic_stiffness.size == 1
+    assert data.hydrostatic_stiffness.values == kHS[2,2]
+    # assert RAO == ? # TODO could test against known results
