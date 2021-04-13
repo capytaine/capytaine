@@ -269,5 +269,3 @@ def test_assemble_all_diffraction():
     solver = BEMSolver()
     results = [solver.solve(problem) for problem in problems]
     data = assemble_dataset(results)
-    # print(data)
-
