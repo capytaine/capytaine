@@ -20,9 +20,9 @@ def compute_faces_properties(mesh):
     # quads_mask = np.invert(triangle_mask)
     # nb_quads = nf - nb_triangles
 
-    faces_areas = np.zeros(nf, dtype=np.float)
-    faces_normals = np.zeros((nf, 3), dtype=np.float)
-    faces_centers = np.zeros((nf, 3), dtype=np.float)
+    faces_areas = np.zeros(nf, dtype=float)
+    faces_normals = np.zeros((nf, 3), dtype=float)
+    faces_centers = np.zeros((nf, 3), dtype=float)
 
     # Collectively dealing with triangles
     # triangles = _faces[triangle_mask]

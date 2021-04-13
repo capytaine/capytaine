@@ -328,7 +328,7 @@ def separate_complex_values(ds: xr.Dataset) -> xr.Dataset:
     """
     ds = ds.copy()
     for variable in ds.data_vars:
-        if ds[variable].dtype == np.complex:
+        if ds[variable].dtype == complex:
             da = ds[variable]
             new_da = xr.DataArray(np.asarray((np.real(da).data, np.imag(da).data)),
                                   dims=('complex',) + da.dims)

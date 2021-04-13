@@ -82,7 +82,7 @@ class BlockToeplitzMatrix(BlockMatrix):
 
     @property
     def all_blocks(self):
-        all_blocks = np.empty(self.nb_blocks, dtype=np.object)
+        all_blocks = np.empty(self.nb_blocks, dtype=object)
         for k in range(self._stored_nb_blocks[1]):
             for i, j in self._block_indices_of(k):
                 all_blocks[i, j] = self._stored_blocks[0, k]
@@ -222,7 +222,7 @@ class BlockCirculantMatrix(BlockToeplitzMatrix):
         except (TypeError, ValueError):  # Or do the same thing with list comprehension.
             fft_of_result = np.array([block @ vec for block, vec in zip(blocks_of_diagonalization, fft_of_vector)])
         result = np.fft.ifft(fft_of_result, axis=0).reshape(self.shape[0])
-        if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
+        if self.dtype == complex or other.dtype == complex:
             return np.asarray(result)
         else:
             return np.asarray(np.real(result))
@@ -242,7 +242,7 @@ class BlockCirculantMatrix(BlockToeplitzMatrix):
                 [block.rmatvec(vec.flatten()) for block, vec in zip(blocks_of_diagonalization, fft_of_vector)]
             )
         result = np.fft.fft(fft_of_result, axis=0).reshape(self.shape[1])
-        if self.dtype == np.complexfloating or other.dtype == np.complexfloating:
+        if self.dtype == complex or other.dtype == complex:
             return np.asarray(result)
         else:
             return np.asarray(np.real(result))

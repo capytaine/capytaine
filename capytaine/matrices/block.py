@@ -54,7 +54,7 @@ class BlockMatrix:
 
         self._stored_nb_blocks = (len(blocks), len(blocks[0]))
 
-        self._stored_blocks = np.empty(self._stored_nb_blocks, dtype=np.object)
+        self._stored_blocks = np.empty(self._stored_nb_blocks, dtype=object)
         self._stored_blocks[:, :] = blocks
 
         if _stored_block_shapes is None:
@@ -376,9 +376,9 @@ class BlockMatrix:
             assert [class_of_matrices == type(matrix) for matrix in block_matrices[1:]]
 
         # Initialize an array of block matrices without values in the blocks.
-        result = np.empty(len(block_matrices), dtype=np.object)
+        result = np.empty(len(block_matrices), dtype=object)
         result[:] = [
-            class_of_matrices(np.empty(nb_blocks, dtype=np.object),
+            class_of_matrices(np.empty(nb_blocks, dtype=object),
                               _stored_block_shapes=block_matrices[0]._stored_block_shapes,
                               check=False)
             for _ in range(len(result))]
@@ -455,7 +455,7 @@ class BlockMatrix:
     def __str__(self):
         if not hasattr(self, '_str'):
             args = [self.str_shape]
-            if self.dtype not in [np.float64, np.float]:
+            if self.dtype not in [np.float64, float]:
                 args.append(f"dtype={self.dtype}")
             self._str = f"{self.__class__.__name__}(" + ", ".join(args) + ")"
         return self._str

@@ -12,7 +12,7 @@ import numpy as np
 def compute_faces_integrals(mesh):
     """Compute intergrals on the faces."""
 
-    surface_integrals = np.zeros((15, mesh.nb_faces), dtype=np.float)
+    surface_integrals = np.zeros((15, mesh.nb_faces), dtype=float)
 
     # First triangles
     if mesh.nb_triangles > 0:
@@ -52,7 +52,7 @@ def _compute_triangles_integrals(triangles_vertices):
     """
 
     nb_triangles = triangles_vertices.shape[0]
-    s_int = np.zeros((15, nb_triangles), dtype=np.float)
+    s_int = np.zeros((15, nb_triangles), dtype=float)
 
     point_0, point_1, point_2 = list(map(_3DPointsArray, np.rollaxis(triangles_vertices, 1, 0)))
 

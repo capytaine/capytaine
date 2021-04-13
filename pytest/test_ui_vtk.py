@@ -11,6 +11,6 @@ def test_animation_of_dofs():
     try:
         animation = body.animate({"Heave": 0.2}, loop_duration=1.0)
         animation.embed_in_notebook()
-    except ImportError:
+    except ImportError as error:
         warn("VTK is not installed and thus has not been tested.")
 
