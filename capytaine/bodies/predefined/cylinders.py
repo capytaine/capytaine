@@ -56,7 +56,7 @@ class Disk(FloatingBody):
         assert len(center) == 3, "Position of the center of a disk should be given a 3-ple of values."
 
         self.radius = float(radius)
-        self.geometric_center = np.asarray(center, dtype=np.float)
+        self.geometric_center = np.asarray(center, dtype=float)
         nr, ntheta = resolution
 
         if reflection_symmetry and ntheta % 2 == 1:
@@ -100,13 +100,13 @@ class Disk(FloatingBody):
         theta_range = np.linspace(0, 2*theta_max, ntheta+1)
         r_range = np.linspace(0.0, radius, nr+1)
 
-        nodes = np.zeros(((ntheta+1)*(nr+1), 3), dtype=np.float)
+        nodes = np.zeros(((ntheta+1)*(nr+1), 3), dtype=float)
         for i, (r, t) in enumerate(product(r_range, theta_range)):
             y = +r * np.sin(t)
             z = -r * np.cos(t)
             nodes[i, :] = (0, y, z)
 
-        panels = np.zeros((ntheta*nr, 4), dtype=np.int)
+        panels = np.zeros((ntheta*nr, 4), dtype=int)
 
         for k, (i, j) in enumerate(product(range(0, nr), range(0, ntheta))):
             panels[k, :] = (
@@ -156,7 +156,7 @@ class HorizontalCylinder(FloatingBody):
                  clever=True, name=None):
         self.length = length
         self.radius = radius
-        self.geometric_center = np.asarray(center, dtype=np.float)
+        self.geometric_center = np.asarray(center, dtype=float)
 
         if name is None:
             name = f"cylinder_{next(Mesh._ids)}"
@@ -196,7 +196,7 @@ class HorizontalCylinder(FloatingBody):
         X = np.array([0, self.length/nx])
 
         # Nodes
-        nodes = np.zeros(((ntheta//2+1)*2, 3), dtype=np.float)
+        nodes = np.zeros(((ntheta//2+1)*2, 3), dtype=float)
 
         for i, (t, x) in enumerate(product(theta, X)):
             y = + self.radius * np.sin(t)
@@ -205,7 +205,7 @@ class HorizontalCylinder(FloatingBody):
         nodes += -np.array([self.length/2, 0, 0])
 
         # Connectivities
-        panels = np.zeros((ntheta//2, 4), dtype=np.int)
+        panels = np.zeros((ntheta//2, 4), dtype=int)
 
         for k, i in enumerate(range(0, ntheta//2)):
             panels[k, :] = (2*i, 2*i+2, 2*i+3, 2*i+1)
@@ -252,7 +252,7 @@ class VerticalCylinder(FloatingBody):
                  clever=True, name=None):
         self.length = length
         self.radius = radius
-        self.geometric_center = np.asarray(center, dtype=np.float)
+        self.geometric_center = np.asarray(center, dtype=float)
 
         if name is None:
             name = f"cylinder_{next(Mesh._ids)}"

@@ -161,16 +161,16 @@ class Axis(Abstract3DObject):
     def __init__(self, vector=(1, 0, 0), point=(0, 0, 0)):
         assert len(vector) == 3, "Vector of an axis should be given as a 3-ple of values."
         assert len(point) == 3, "Point of an axis should be given as a 3-ple of values."
-        vector = np.array(vector, np.float)
+        vector = np.array(vector, float)
         self.vector = vector / np.linalg.norm(vector)
-        self.point = np.array(point, np.float)
+        self.point = np.array(point, float)
 
     def __repr__(self):
         return f"Axis(vector={self.vector}, point={self.point})"
 
     def __contains__(self, other_point):
         if len(other_point) == 3:
-            other_point = np.asarray(other_point, dtype=np.float)
+            other_point = np.asarray(other_point, dtype=float)
             return parallel_vectors(other_point - self.point, self.vector)
         else:
             raise NotImplementedError
@@ -253,9 +253,9 @@ Oz_axis = Axis(vector=e_z, point=(0, 0, 0))
 class Plane(Abstract3DObject):
     """3D plane, oriented by the direction of their normal."""
     def __init__(self, normal=(0.0, 0.0, 1.0), point=(0.0, 0.0, 0.0)):
-        normal = np.asarray(normal, dtype=np.float)
+        normal = np.asarray(normal, dtype=float)
         self.normal = normal / np.linalg.norm(normal)
-        self.point = np.asarray(point, dtype=np.float)
+        self.point = np.asarray(point, dtype=float)
 
     def __repr__(self):
         return f"Plane(normal={self.normal}, point={self.point})"

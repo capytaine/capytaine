@@ -92,7 +92,7 @@ def test_tabulations():
     assert np.allclose(Del[abs(Z) > 1], Xie[abs(Z) > 1], atol=1e-3)
 
 
-points = arrays(np.float, (3,),
+points = arrays(float, (3,),
                 elements=floats(min_value=-1e5, max_value=1e5, allow_infinity=False, allow_nan=False)
                 ).filter(lambda x: x[2] < -1e-4)
 cores = one_of(just(Delhommeau_f90), just(XieDelhommeau_f90))

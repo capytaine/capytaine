@@ -61,8 +61,8 @@ class FreeSurface():
 
     def _generate_mesh(self):
         """Generate a 2D cartesian mesh."""
-        nodes = np.zeros(((self.nx+1)*(self.ny+1), 3), dtype=np.float)
-        panels = np.zeros((self.nx*self.ny, 4), dtype=np.int)
+        nodes = np.zeros(((self.nx+1)*(self.ny+1), 3), dtype=float)
+        panels = np.zeros((self.nx*self.ny, 4), dtype=int)
 
         X = np.linspace(*self.x_range, self.nx+1)
         Y = np.linspace(*self.y_range, self.ny+1)

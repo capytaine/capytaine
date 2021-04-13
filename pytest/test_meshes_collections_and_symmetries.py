@@ -13,7 +13,7 @@ from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
 
 def test_collection_of_meshes():
     # Create some dummy meshes
-    vertices = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], dtype=np.float)
+    vertices = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], dtype=float)
     dummy_meshes = [Mesh(vertices, [[0, 1, 2, 3]])]
     for i in range(3):
         dummy_meshes.append(dummy_meshes[0].copy())

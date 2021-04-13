@@ -171,8 +171,8 @@ class FloatingBody(Abstract3DObject):
             if dof not in dofs:
                 del self.dofs[dof]
 
-        if hasattr(self, 'inertia_matrix'):
-            self.inertia_matrix = self.inertia_matrix.sel(radiating_dof=dofs, influenced_dof=dofs)
+        if hasattr(self, 'mass'):
+            self.mass = self.mass.sel(radiating_dof=dofs, influenced_dof=dofs)
         if hasattr(self, 'hydrostatic_stiffness'):
             self.hydrostatic_stiffness = self.hydrostatic_stiffness.sel(radiating_dof=dofs, influenced_dof=dofs)
 

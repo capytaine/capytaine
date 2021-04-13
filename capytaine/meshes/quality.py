@@ -278,7 +278,7 @@ def remove_unused_vertices(mesh):
     nv = mesh.nb_vertices
     vertices, faces = mesh._vertices, mesh._faces
 
-    used_v = np.zeros(nv, dtype=np.bool)
+    used_v = np.zeros(nv, dtype=bool)
     used_v[sum(list(map(list, faces)), [])] = True
     nb_used_v = sum(used_v)
 
