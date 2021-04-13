@@ -249,8 +249,9 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
     all_dofs_in_order = {k: None for r in results for k in r.body.dofs.keys()}
     inf_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
     records["influenced_dof"] = records["influenced_dof"].astype(inf_dof_cat)
-    rad_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
-    records["radiating_dof"] = records["radiating_dof"].astype(rad_dof_cat)
+    if "radiating_dof" in records:
+        rad_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
+        records["radiating_dof"] = records["radiating_dof"].astype(rad_dof_cat)
 
     optional_dims = ['g', 'rho', 'body_name', 'water_depth']
 
