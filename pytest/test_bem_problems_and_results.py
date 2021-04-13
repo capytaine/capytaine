@@ -239,7 +239,7 @@ def test_fill_dataset():
     assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)
 
 
-def test_fill_all_radiation():
+def test_assemble_all_radiation():
     omegas = [1.0, 2.0, 3.0]
     body = HorizontalCylinder(radius=1, center=(0, 0, -2))
     body.add_translation_dof(direction=(0,0,1), name='Heave')
@@ -255,7 +255,7 @@ def test_fill_all_radiation():
     data = assemble_dataset(results)
 
 
-def test_fill_all_diffraction():
+def test_assemble_all_diffraction():
     omegas = [1.0, 2.0, 3.0]
     body = HorizontalCylinder(radius=1, center=(0, 0, -2))
     body.add_translation_dof(direction=(0,0,1), name='Heave')
