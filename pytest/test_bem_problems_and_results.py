@@ -22,6 +22,9 @@ from capytaine.io.xarray import problems_from_dataset
 
 from capytaine.io.legacy import import_cal_file
 
+from capytaine import BEMSolver
+from capytaine import assemble_dataset
+
 solver = Nemoh(matrix_cache_size=0)
 
 
@@ -234,3 +237,37 @@ def test_fill_dataset():
     dataset = solver.fill_dataset(test_matrix, [body])
     assert dataset['added_mass'].data.shape == (3, 1, 6)
     assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)
+
+
+def test_fill_all_radiation():
+    omegas = [1.0, 2.0, 3.0]
+    body = HorizontalCylinder(radius=1, center=(0, 0, -2))
+    body.add_translation_dof(direction=(0,0,1), name='Heave')
+    problems = []
+    for dof in body.dofs:
+        for omega in omegas:
+            problems.append(RadiationProblem(body=body, 
+                                             radiating_dof=dof,
+                                             omega=omega, 
+                                             ))
+    solver = BEMSolver()
+    results = [solver.solve(problem) for problem in problems]
+    data = assemble_dataset(results)
+
+
+def test_fill_all_diffraction():
+    omegas = [1.0, 2.0, 3.0]
+    body = HorizontalCylinder(radius=1, center=(0, 0, -2))
+    body.add_translation_dof(direction=(0,0,1), name='Heave')
+    problems = []
+    for dof in body.dofs:
+        for omega in omegas:
+            problems.append(DiffractionProblem(body=body, 
+                                                   omega=omega, 
+                                                   wave_direction=0, 
+                                                   ))
+    solver = BEMSolver()
+    results = [solver.solve(problem) for problem in problems]
+    data = assemble_dataset(results)
+    # print(data)
+
