@@ -14,7 +14,7 @@ from capytaine.meshes.symmetric import ReflectionSymmetricMesh, TranslationalSym
 
 from capytaine.matrices import linear_solvers
 from capytaine.matrices.block import BlockMatrix
-from capytaine.matrices.low_rank import LowRankMatrix
+from capytaine.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
 from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockToeplitzMatrix, BlockCirculantMatrix
 from capytaine.tools.lru_cache import delete_first_lru_cache
 
