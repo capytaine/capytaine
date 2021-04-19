@@ -8,6 +8,7 @@ import logging
 
 import numpy as np
 import xarray as xr
+from capytaine.post_pro.impedance import impedance
 
 LOG = logging.getLogger(__name__)
 
@@ -41,15 +42,7 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
     # ASSEMBLE MATRICES
     omega = dataset.coords['omega']  # Range of frequencies in the dataset
 
-    A = (-omega**2*(dataset['mass'] + dataset['added_mass'])
-         + 1j*omega*dataset['radiation_damping']
-         + dataset['hydrostatic_stiffness'])
-
-    if dissipation is not None:
-        A = A + 1j*omega*dissipation
-
-    if stiffness is not None:
-        A = A + stiffness
+    A = impedance(dataset, dissipation, stiffness)
 
     if 'excitation_force' not in dataset:
         dataset['excitation_force'] = dataset['Froude_Krylov_force'] + dataset['diffraction_force']
