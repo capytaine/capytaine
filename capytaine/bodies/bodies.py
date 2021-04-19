@@ -8,6 +8,8 @@ import logging
 import copy
 from itertools import chain, accumulate, product, zip_longest
 
+import datetime
+
 import numpy as np
 import xarray as xr
 
@@ -63,6 +65,41 @@ class FloatingBody(Abstract3DObject):
         self.name = name
 
         LOG.info(f"New floating body: {self.name}.")
+
+    @staticmethod
+    def from_meshio(mesh, name=None, keep_immersed_part=True, remove_degenerated_faces=True) -> 'FloatingBody':
+        """Create a FloatingBody from a meshio mesh object."""
+
+        import meshio
+        if not isinstance(mesh, meshio._mesh.Mesh):
+            raise TypeError('mesh must be of type meshio._mesh.Mesh, recevied {:}'.format(type(mesh)))
+
+        if name is None:
+            date_str = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
+            name = 'fb_{:}'.format(date_str)
+
+        def all_faces_as_tetra(cells):
+            all_faces = []
+            if 'tetra' in cells:
+                all_faces.append(cells['tetra'])
+            if 'triangle' in cells:
+                triangles_as_tetra = np.empty((cells['triangle'].shape[0], 4), dtype=int)
+                triangles_as_tetra[:, :3] = cells['triangle'][:, :]
+                triangles_as_tetra[:, 3] = cells['triangle'][:, 2]  # Repeat one node to make a tetra
+                all_faces.append(triangles_as_tetra)
+            return np.concatenate(all_faces)
+
+        cpt_mesh = Mesh(vertices=mesh.points, 
+                        faces=all_faces_as_tetra(mesh.cells_dict))
+
+        fb = FloatingBody(mesh=cpt_mesh, name=name)
+        if keep_immersed_part:
+            fb.keep_immersed_part()
+        if remove_degenerated_faces:
+            fb.mesh.remove_degenerated_faces()
+
+        return fb
+
 
     @staticmethod
     def from_file(filename: str, file_format=None, name=None) -> 'FloatingBody':
