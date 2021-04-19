@@ -14,6 +14,15 @@ New in next version
   (i.e. unused vertices are removed, degenerate triangles are removed, etc.).
   See for instance `issue #46 <https://github.com/mancellin/capytaine/issues/46>`_.
 
+* Implementation of symmetries for :code:`HorizontalCylinder` has changed.
+  The cylinder is now a reflection of two halves containing translational
+  repetition of half rings, instead of a translational repetition of symmetric
+  ring. By default, only reflection symmetry is used.
+  The use of symmetries can be controlled with :code:`translation_symmetry` and
+  :code:`reflection_symmetry` optional keyword arguments.
+  The :code:`clever` keywork argument is deprecated for :code:`HorizontalCylinder`
+  and should be replaced by the new more explicit keyword arguments above.
+
 * Add example in cookbook for computing hydrostatics and mass properties
 * Use pytest skipif to skip tests if optional dependecies are not installed
 * Break out impedance from RAO to separate function (see #61`<https://github.com/mancellin/capytaine/issues/61>`_ and (see #63`<https://github.com/mancellin/capytaine/pull/63>`_)
