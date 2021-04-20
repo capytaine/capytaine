@@ -3,6 +3,12 @@ Changelog
 =========
 
 ---------------------------------
+New in next version
+---------------------------------
+
+* Break out impedance from RAO to separate function (see #61`<https://github.com/mancellin/capytaine/issues/61>`_ and (see #63`<https://github.com/mancellin/capytaine/pull/63>`_)
+
+---------------------------------
 New in version 1.2.1 (2021-04-??)
 ---------------------------------
 
