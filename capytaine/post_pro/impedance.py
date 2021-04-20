@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Experimental function to compute the Response Amplitude Operator."""
+"""Experimental function to compute the impendance."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
@@ -31,10 +31,10 @@ def impedance(dataset, dissipation=None, stiffness=None):
         This function supposes that variables named 'mass' and 'hydrostatic_stiffness' are in the dataset.
         Other variables can be computed by Capytaine, by those two should be manually added to the dataset.
     dissipation: array, optional
-        An optional dissipation matrix (e.g. Power Take Off) to be included in the RAO.
+        An optional dissipation matrix (e.g. Power Take Off) to be included in the impedance.
         Default: none.
     stiffness: array, optional
-        An optional stiffness matrix (e.g. mooring stiffness) to be included in the RAO.
+        An optional stiffness matrix (e.g. mooring stiffness) to be included in the impedance.
         Default: none.
 
     Returns
