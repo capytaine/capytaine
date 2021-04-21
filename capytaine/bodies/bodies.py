@@ -80,8 +80,8 @@ class FloatingBody(Abstract3DObject):
 
         def all_faces_as_tetra(cells):
             all_faces = []
-            if 'tetra' in cells:
-                all_faces.append(cells['tetra'])
+            if 'quad' in cells:
+                all_faces.append(cells['quad'])
             if 'triangle' in cells:
                 triangles_as_tetra = np.empty((cells['triangle'].shape[0], 4), dtype=int)
                 triangles_as_tetra[:, :3] = cells['triangle'][:, :]
