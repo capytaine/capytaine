@@ -67,7 +67,10 @@ class FloatingBody(Abstract3DObject):
         LOG.info(f"New floating body: {self.name}.")
 
     @staticmethod
-    def from_meshio(mesh, name=None, keep_immersed_part=True, remove_degenerated_faces=True) -> 'FloatingBody':
+    def from_meshio(mesh, 
+                    name=None, 
+                    keep_immersed_part=True, 
+                    remove_degenerated_faces=True) -> 'FloatingBody':
         """Create a FloatingBody from a meshio mesh object."""
 
         import meshio
@@ -90,7 +93,8 @@ class FloatingBody(Abstract3DObject):
             return np.concatenate(all_faces)
 
         cpt_mesh = Mesh(vertices=mesh.points, 
-                        faces=all_faces_as_tetra(mesh.cells_dict))
+                        faces=all_faces_as_tetra(mesh.cells_dict),
+                        )
 
         fb = FloatingBody(mesh=cpt_mesh, name=name)
         if keep_immersed_part:
