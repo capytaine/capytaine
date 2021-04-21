@@ -4,12 +4,10 @@ import xarray as xr
 from capytaine import BEMSolver
 from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.post_pro import rao
+from capytaine.post_pro import impedance
 
-
-# Nemoh 2 was run for: 
-# "41 0.1 2.0 ! Number of wave frequencies, Min, and Max (rad/s)""
-# use first three here for expediency
-omega = np.linspace(0.1, 2.0, 41)[:3] 
+f = np.linspace(0.1, 2.0)
+omega = 2*np.pi*f
 rho_water = 1e3
 r = 1
 m = 1.866e+03
@@ -41,7 +39,7 @@ def sphere_fb():
 
     return sphere
 
-def test_sphere_all(sphere_fb):
+def test_rao_sphere_all(sphere_fb):
 
     solver = BEMSolver()                
     test_matrix = xr.Dataset(coords={
@@ -67,31 +65,39 @@ def test_sphere_all(sphere_fb):
     assert np.all(data.hydrostatic_stiffness.values == kHS)
     # # assert RAO == ? # TODO could test against known results
 
-def test_sphere_heave_indirect(sphere_fb):
-
+@pytest.fixture
+def sphere_heave_data(sphere_fb):
     sphere_fb.keep_only_dofs(['Heave'])
 
 
     solver = BEMSolver()                
     test_matrix = xr.Dataset(coords={
-        'rho': rho_water,                         
-        'water_depth': [np.infty],          
-        'omega': omega,
-        'wave_direction': 0,
-        'radiating_dof': list(sphere_fb.dofs.keys()),
-        })
+          'rho': rho_water,                         
+          'water_depth': [np.infty],          
+          'omega': omega,
+          'wave_direction': 0,
+          'radiating_dof': list(sphere_fb.dofs.keys()),
+          })
 
     data = solver.fill_dataset(test_matrix, [sphere_fb],
-                               hydrostatics=True,
-                               mesh=True,
-                               wavelength=True,
-                               wavenumber=True)
+                                 hydrostatics=True,
+                                 mesh=True,
+                                 wavelength=True,
+                                 wavenumber=True)
 
-    RAO = rao(data)
+    return data
+
+def test_impedance_sphere_heave(sphere_heave_data):
+    Zi = impedance(sphere_heave_data)
+    # TODO check against known result?
+
+def test_rao_sphere_heave_indirect(sphere_heave_data):
+
+    RAO = rao(sphere_heave_data)
 
     assert RAO.radiating_dof.size == 1
-    assert data.mass.size == 1
-    assert data.mass.values == m
-    assert data.hydrostatic_stiffness.size == 1
-    assert data.hydrostatic_stiffness.values == kHS[2,2]
+    assert sphere_heave_data.mass.size == 1
+    assert sphere_heave_data.mass.values == m
+    assert sphere_heave_data.hydrostatic_stiffness.size == 1
+    assert sphere_heave_data.hydrostatic_stiffness.values == kHS[2,2]
     # assert RAO == ? # TODO could test against known results
