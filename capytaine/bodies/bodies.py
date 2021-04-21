@@ -86,12 +86,14 @@ class FloatingBody(Abstract3DObject):
             if 'quad' in cells:
                 all_faces.append(cells['quad'])
             if 'triangle' in cells:
+                num_triangles = len(mesh.cells_dict['triangle'])
+                LOG.warning("Converted {:} triangle faces to quads".format(num_triangles))
                 triangles_as_tetra = np.empty((cells['triangle'].shape[0], 4), dtype=int)
                 triangles_as_tetra[:, :3] = cells['triangle'][:, :]
                 triangles_as_tetra[:, 3] = cells['triangle'][:, 2]  # Repeat one node to make a tetra
                 all_faces.append(triangles_as_tetra)
             return np.concatenate(all_faces)
-
+        
         cpt_mesh = Mesh(vertices=mesh.points, 
                         faces=all_faces_as_tetra(mesh.cells_dict),
                         )
