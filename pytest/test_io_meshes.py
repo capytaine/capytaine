@@ -40,8 +40,6 @@ def test_STL(tmp_path):
         warn("VTK is not installed and thus has not been tested.")
 
 
-
-@pytest.mark.pygmsh_functions
 @pytest.mark.skipif(pygmsh is None,
                     reason='pygmsh and/or meshio is not installed')
 def test_from_meshio_pygmsh_WaveBot():
@@ -82,7 +80,6 @@ def test_from_meshio_pygmsh_WaveBot():
                             wavenumber=True)
 
 
-@pytest.mark.pygmsh_functions
 @pytest.mark.skipif(pygmsh is None,
                     reason='pygmsh and/or meshio is not installed')
 def test_from_meshio_pygmsh_Cylinder():
@@ -117,7 +114,6 @@ def test_from_meshio_pygmsh_Cylinder():
                             wavelength=True,
                             wavenumber=True)
 
-@pytest.mark.pygmsh_functions
 @pytest.mark.skipif(pygmsh is None,
                     reason='pygmsh and/or meshio is not installed')
 def test_from_meshio_pygmsh_Sphere():
