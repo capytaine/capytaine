@@ -36,8 +36,8 @@ test:
     - pytest/*.py
     - pytest/**/*
   commands:
-    - sudo apt-get install -y python3-gmsh
-    - pip install quadpy==0.14.11 pygmsh
+    - sudo apt-get install -y gmsh
+    - pip install quadpy==0.14.11 gmsh pygmsh
     - pytest
     - capytaine --help
 
