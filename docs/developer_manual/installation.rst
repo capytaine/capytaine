@@ -55,3 +55,8 @@ Add the current directory to the Python path with the following command::
 (This last two commands are included into the ``Makefile`` of the main directory.
 They can be run by ``make develop``.
 The command ``make clean`` deletes the binaries.)
+
+You will also likely want to install Capytaine's optional dependencies::
+
+	conda install matplotlib vtk pytest quadpy
+	pip install pygmsh 
