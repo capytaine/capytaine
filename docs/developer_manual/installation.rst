@@ -26,6 +26,18 @@ You'll also need a Fortran compiler:
 
   as `C:\\path\\to\\anaconda\\Lib\\distutils\\distutils.cfg`.
 
+* **On macOS,** you can install the required compilers via `Homebrew`_. Make sure that
+  the compilers installed by Homebrew are in you path (e.g., :code:`which gcc`); 
+  this can be accomplished by adding the relevant directories to your path::
+
+  	export PATH="/usr/local/bin:$PATH"
+
+  or through the use of aliases, e.g.,::
+  
+  	alias gcc=/usr/local/bin/gcc-10
+  
+.. _`Homebrew`: https://brew.sh
+
 Then, download the source code from Github web interface or using ``git`` with::
 
     git clone https://github.com/mancellin/capytaine
