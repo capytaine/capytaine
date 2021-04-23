@@ -7,6 +7,10 @@ from numpy import pi
 import capytaine as cpt
 from capytaine.ui.vtk import Animation
 
+from meshmagick import mesh as mm
+from meshmagick import hydrostatics as hs
+from scipy.linalg import block_diag
+
 logging.basicConfig(level=logging.INFO, format='%(levelname)-8s: %(message)s')
 
 bem_solver = cpt.BEMSolver()
@@ -28,14 +32,11 @@ def generate_boat() -> cpt.FloatingBody:
          [0,   0,   0,   0,   4e7, 0],
          [0,   0,   0,   2e5, 0,   5e7]]
     )
-    boat.hydrostatic_stiffness = boat.add_dofs_labels_to_matrix(
-        [[0, 0, 0,    0,   0,    0],
-         [0, 0, 0,    0,   0,    0],
-         [0, 0, 3e6,  0,   -7e6, 0],
-         [0, 0, 0,    2e7, 0,    0],
-         [0, 0, -7e6, 0,   1e8,  0],
-         [0, 0, 0,    0,   0,    0]]
-    )
+
+    # You can use Meshmagick to compute the hydrostatic stiffness matrix.
+    hsd = hs.Hydrostatics(mm.Mesh(boat.mesh.vertices, boat.mesh.faces)).hs_data
+    kHS = block_diag(0,0,hsa['stiffness_matrix'],0)
+    boat.hydrostatic_stiffness = boat.add_dofs_labels_to_matrix(kHS)
     return boat
 
 
