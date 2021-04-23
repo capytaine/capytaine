@@ -28,7 +28,7 @@ def two_by_two_block_identity():
     return A
 
 
-def test_block_matrix_representation_of_identity(two_by_two_block_identity):
+def test_block_matrix_representation_of_identity_two_by_two(two_by_two_block_identity):
     # 2x2 block representation of the identity matrix
     A = two_by_two_block_identity
     assert A.shape == (4, 4)
@@ -66,7 +66,7 @@ def block_three_rect(two_by_two_block_identity):
     return B
 
 
-def test_block_matrix_representation_of_identity(block_three_rect):
+def test_block_matrix_representation_of_identity_rect(block_three_rect):
     # 2x2 block matrix containing one another block matrix and three regular matrices of different shapes
     B = block_three_rect
     assert B.shape == (5, 5)
@@ -79,7 +79,7 @@ def test_block_matrix_representation_of_identity(block_three_rect):
 
 @pytest.mark.skipif(plt is None,
                      reason='matplotlib is not installed')
-def test_block_matrix_representation_of_identity_rect(block_three_rect):
+def test_block_matrix_representation_of_identity_rect_patch(block_three_rect):
     B = block_three_rect
     patches = B._patches(global_frame=(10, 10))
     exp = {(10, 10), (12, 10), (10, 12), (12, 12), (14, 10), (10, 14), (14, 14)}
