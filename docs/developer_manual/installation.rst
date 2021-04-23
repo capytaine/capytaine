@@ -15,10 +15,10 @@ Ensure that Numpy is installed in your enviroment::
 
 You'll also need a Fortran compiler:
 
-* On Linux, you can install `gfortran` with the package manager of your distribution (e.g. `sudo apt install gfortran`).
+* **On Linux,** you can install :code:`gfortran` with the package manager of your distribution (e.g. :code:`sudo apt install gfortran`).
 
-* On Windows, the code can be compiled with MinGW.
-  Add the directory with the `gfortran` binary to your path. For instance with `set PATH=C:\\mingw-w64\\x86_64-7.2.0-posix-seh-rt_v5-rev1\\mingw64\\bin;%PATH%`.
+* **On Windows,** the code can be compiled with MinGW.
+  Add the directory with the `gfortran` binary to your path. For instance with :code:`set PATH=C:\\mingw-w64\\x86_64-7.2.0-posix-seh-rt_v5-rev1\\mingw64\\bin;%PATH%`.
   You should also let Python know about the compiler by creating a file with the following two lines::
 
     echo [build]
