@@ -60,3 +60,7 @@ You will also likely want to install Capytaine's optional dependencies::
 
 	conda install matplotlib vtk pytest quadpy
 	pip install pygmsh 
+
+For instructions about how to help with the development of Capytaine, see the `contributing guide`_.
+
+.. _`contributing guide`: https://github.com/mancellin/capytaine/blob/master/CONTRIBUTING.md
