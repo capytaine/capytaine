@@ -3,7 +3,7 @@ Installation for developers
 ===========================
 
 Capytaine requires **Python 3.6** or higher.
-It has been successfully tested on Python 3.6, 3.7, and 3.9, and Numpy 1.15, 1.16, and 1.20.
+The latest version is tested on Python 3.7 to 3.9, and Numpy 1.17 to 1.19.
 
 It is recommended to use a `conda environment`_.
 
