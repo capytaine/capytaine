@@ -7,8 +7,14 @@ from numpy import pi
 import capytaine as cpt
 from capytaine.ui.vtk import Animation
 
-from meshmagick import mesh as mm
-from meshmagick import hydrostatics as hs
+from capytaine.tools.optional_imports import import_optional_dependency
+try:
+    import meshmagick.hydrostatics as hs
+    import meshmagick.mesh as mm
+except:
+    hs = None
+    mm = None
+
 from scipy.linalg import block_diag
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)-8s: %(message)s')
@@ -33,10 +39,21 @@ def generate_boat() -> cpt.FloatingBody:
          [0,   0,   0,   2e5, 0,   5e7]]
     )
 
-    # You can use Meshmagick to compute the hydrostatic stiffness matrix.
-    hsd = hs.Hydrostatics(mm.Mesh(boat.mesh.vertices, boat.mesh.faces)).hs_data
-    kHS = block_diag(0,0,hsa['stiffness_matrix'],0)
-    boat.hydrostatic_stiffness = boat.add_dofs_labels_to_matrix(kHS)
+    if hs is not None and mm is not None:
+        # You can use Meshmagick to compute the hydrostatic stiffness matrix.
+        hsd = hs.Hydrostatics(mm.Mesh(boat.mesh.vertices, boat.mesh.faces)).hs_data
+        kHS = block_diag(0,0,hsd['stiffness_matrix'],0)
+        boat.hydrostatic_stiffness = boat.add_dofs_labels_to_matrix(kHS)
+    else:
+        # Alternatively, you can define these by hand
+        boat.hydrostatic_stiffness = boat.add_dofs_labels_to_matrix(
+            [[0, 0, 0,    0,   0,    0],
+             [0, 0, 0,    0,   0,    0],
+             [0, 0, 3e6,  0,   -7e6, 0],
+             [0, 0, 0,    2e7, 0,    0],
+             [0, 0, -7e6, 0,   1e8,  0],
+             [0, 0, 0,    0,   0,    0]]
+        )
     return boat
 
 
