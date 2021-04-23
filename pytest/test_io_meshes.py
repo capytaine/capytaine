@@ -16,6 +16,7 @@ from capytaine import BEMSolver
 
 try:
     import pygmsh
+    import gmsh
 except ImportError:
     pygmsh = None
 
