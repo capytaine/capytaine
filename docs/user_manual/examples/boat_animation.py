@@ -31,9 +31,9 @@ def generate_boat() -> cpt.FloatingBody:
     # The computation of the RAO requires the values of the inertia matrix and the hydrostatic stiffness matrix.
     # They need to be computed independently.
     boat.mass = boat.add_dofs_labels_to_matrix(
-        [[1e4, 0,   0,   0,   0,   0],
-         [0,   1e4, 0,   0,   0,   0],
-         [0,   0,   1e4, 0,   0,   0],
+        [[1e6, 0,   0,   0,   0,   0],
+         [0,   1e6, 0,   0,   0,   0],
+         [0,   0,   1e6, 0,   0,   0],
          [0,   0,   0,   1e7, 0,   2e5],
          [0,   0,   0,   0,   4e7, 0],
          [0,   0,   0,   2e5, 0,   5e7]]
