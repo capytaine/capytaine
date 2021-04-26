@@ -6,6 +6,7 @@ Changelog
 New in next version
 ---------------------------------
 
+* Add method :code:`FloatingBody.assemble_arbitrary_array` to make an array of bodies with arbitrary layout.
 * Break out impedance from RAO to separate function (see #61`<https://github.com/mancellin/capytaine/issues/61>`_ and (see #63`<https://github.com/mancellin/capytaine/pull/63>`_)
 
 ---------------------------------

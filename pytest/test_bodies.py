@@ -4,7 +4,9 @@
 import pytest
 
 import numpy as np
+import xarray as xr
 
+from capytaine import BEMSolver
 from capytaine.bodies import FloatingBody
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.geometry import Axis, Plane
@@ -105,3 +107,57 @@ def test_mincing():
     assert isinstance(body.mesh[0][0], Mesh)
     body = body.minced((1, 2, 2))
     assert isinstance(body.mesh[0][0][0][0], Mesh)
+
+
+r = 1.0
+locations = np.array([[1,0],[-1,0],[0,1]])*r*2
+n_bodies = locations.shape[0]
+
+@pytest.fixture
+def fb_array():
+    
+    sphere = Sphere(
+        radius=r,          # Dimension
+        center=(0, 0, 0),    # Position
+        nphi=4, ntheta=10,  # Fineness of the mesh
+    )
+    my_axis = Axis((0, 1, 0), 
+                                       point=(0,0,0))
+    sphere.add_rotation_dof(axis=my_axis)
+    sphere.keep_immersed_part()
+    
+    return sphere.assemble_arbitrary_array(locations)
+
+
+def test_consistent_dofs_to_faces(fb_array):
+    num_active_faces = []
+    for fb_dof in fb_array.dofs.items():
+        num_active_faces.append(np.count_nonzero(np.count_nonzero(fb_dof[1],axis=1)))
+
+    ma = np.array(num_active_faces)
+
+    tot_faces = fb_array.mesh.nb_faces
+    exp_active_faces_per_dof = int(tot_faces/n_bodies)
+
+    assert np.all(ma==exp_active_faces_per_dof)
+
+def test_solve_hydrodynamics(fb_array):
+    solver = BEMSolver()
+    test_matrix = xr.Dataset(coords={
+          'rho': 1e3,                         
+          'water_depth': [np.infty],          
+          'omega': np.pi * 2 / 1,
+          'wave_direction': 0,
+          'radiating_dof': list(fb_array.dofs.keys()),
+          })
+    data = solver.fill_dataset(test_matrix, [fb_array],
+                                 mesh=True,
+                                 wavelength=True,
+                                 wavenumber=True)
+    assert data.influenced_dof.size == n_bodies
+    assert data.radiating_dof.size == n_bodies
+    assert data.added_mass.notnull().all()
+    assert data.radiation_damping.notnull().all()
+    assert data.diffraction_force.notnull().all()
+    assert data.Froude_Krylov_force.notnull().all()
+
