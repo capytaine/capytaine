@@ -6,6 +6,7 @@ Changelog
 New in next version
 ---------------------------------
 
+* Add example in cookbook for computing hydrostatics and mass properties
 * Break out impedance from RAO to separate function (see #61`<https://github.com/mancellin/capytaine/issues/61>`_ and (see #63`<https://github.com/mancellin/capytaine/pull/63>`_)
 
 ---------------------------------
