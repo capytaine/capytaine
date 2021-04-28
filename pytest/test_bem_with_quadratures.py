@@ -6,14 +6,16 @@ import numpy as np
 import xarray as xr
 import capytaine as cpt
 
-import quadpy
-from packaging import version
-quadpy_version = version.parse(quadpy.__version__)
-if not quadpy_version <= version.parse('0.14'):
+try:
+    import quadpy
+    from packaging import version
+    quadpy_version = version.parse(quadpy.__version__)
+except ImportError:
     quadpy = None
 
-@pytest.mark.skipif(quadpy is None,
-                    reason='quadpy version must be <=0.14, found {:}'.format(quadpy_version))
+
+@pytest.mark.skipif(quadpy is None or not quadpy_version <= version.parse('0.14'),
+                    reason='quadpy not installed or incorrect version (must be <=0.14) ')
 def test_area():
     mesh = cpt.Sphere().mesh
 
@@ -23,8 +25,8 @@ def test_area():
             assert np.isclose(np.sum(mesh.quadrature_points[1][i_face, :]), mesh.faces_areas[i_face], rtol=1e-2)
 
 
-@pytest.mark.skipif(quadpy is None,
-                    reason='quadpy version must be <=0.14, found {:}'.format(quadpy_version))
+@pytest.mark.skipif(quadpy is None or not quadpy_version <= version.parse('0.14'),
+                    reason='quadpy not installed or incorrect version (must be <=0.14) ')
 def test_resolution():
     cylinder = cpt.HorizontalCylinder(
         length=5.0, radius=1.0,
