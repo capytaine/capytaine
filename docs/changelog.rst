@@ -6,6 +6,7 @@ Changelog
 New in next version
 ---------------------------------
 
+* Use pytest skipif to skip tests if optional dependecies are not installed
 * Break out impedance from RAO to separate function (see #61`<https://github.com/mancellin/capytaine/issues/61>`_ and (see #63`<https://github.com/mancellin/capytaine/pull/63>`_)
 
 ---------------------------------
