@@ -7,7 +7,6 @@ from numpy import pi
 import capytaine as cpt
 from capytaine.ui.vtk import Animation
 
-from capytaine.tools.optional_imports import import_optional_dependency
 try:
     import meshmagick.hydrostatics as hs
     import meshmagick.mesh as mm
