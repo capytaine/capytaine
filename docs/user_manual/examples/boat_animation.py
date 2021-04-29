@@ -28,23 +28,31 @@ def generate_boat() -> cpt.FloatingBody:
     boat.keep_immersed_part()
 
     # The computation of the RAO requires the values of the inertia matrix and the hydrostatic stiffness matrix.
-    # They need to be computed independently.
-    boat.mass = boat.add_dofs_labels_to_matrix(
+    if hs is not None and mm is not None:
+        # You can use Meshmagick to compute the hydrostatic stiffness matrix.
+        hsd = hs.Hydrostatics(mm.Mesh(boat.mesh.vertices, boat.mesh.faces)).hs_data
+
+        m = hsd['disp_mass']
+        I = np.array([[hsd['Ixx'], -1*hsd['Ixy'], -1*hsd['Ixz']],
+                      [-1*hsd['Ixy'], hsd['Iyy'], -1*hsd['Iyz']],
+                      [-1*hsd['Ixz'], -1*hsd['Iyz'], hsd['Izz']]])
+        M = block_diag(m, m, m, I)
+        boat.mass = boat.add_dofs_labels_to_matrix(M)
+
+        kHS = block_diag(0,0,hsd['stiffness_matrix'],0)
+        boat.hydrostatic_stiffness = boat.add_dofs_labels_to_matrix(kHS)
+
+    else:
+        # Alternatively, you can define these by hand
+        boat.mass = boat.add_dofs_labels_to_matrix(
         [[1e6, 0,   0,   0,   0,   0],
          [0,   1e6, 0,   0,   0,   0],
          [0,   0,   1e6, 0,   0,   0],
          [0,   0,   0,   1e7, 0,   2e5],
          [0,   0,   0,   0,   4e7, 0],
          [0,   0,   0,   2e5, 0,   5e7]]
-    )
+        )
 
-    if hs is not None and mm is not None:
-        # You can use Meshmagick to compute the hydrostatic stiffness matrix.
-        hsd = hs.Hydrostatics(mm.Mesh(boat.mesh.vertices, boat.mesh.faces)).hs_data
-        kHS = block_diag(0,0,hsd['stiffness_matrix'],0)
-        boat.hydrostatic_stiffness = boat.add_dofs_labels_to_matrix(kHS)
-    else:
-        # Alternatively, you can define these by hand
         boat.hydrostatic_stiffness = boat.add_dofs_labels_to_matrix(
             [[0, 0, 0,    0,   0,    0],
              [0, 0, 0,    0,   0,    0],
