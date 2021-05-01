@@ -98,9 +98,9 @@ class CollectionOfMeshes(Abstract3DObject):
         return new_mesh
 
     @inplace_transformation
-    def heal_mesh(self):
+    def heal_mesh(self, closed_mesh=False):
         for mesh in self:
-            mesh.heal_mesh()
+            mesh.heal_mesh(closed_mesh=closed_mesh)
 
     ##############
     # Properties #
