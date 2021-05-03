@@ -14,13 +14,23 @@ from capytaine.matrices.builders import *
 from capytaine.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
 from capytaine.matrices.linear_solvers import solve_directly, solve_gmres
 
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
 
-def test_block_matrix_representation_of_identity():
-    # 2x2 block representation of the identity matrix
+@pytest.fixture
+def two_by_two_block_identity():
     A = BlockMatrix([
         [np.eye(2, 2), np.zeros((2, 2))],
         [np.zeros((2, 2)), np.eye(2, 2)]
     ])
+    return A
+
+
+def test_block_matrix_representation_of_identity_two_by_two(two_by_two_block_identity):
+    # 2x2 block representation of the identity matrix
+    A = two_by_two_block_identity
     assert A.shape == (4, 4)
     assert A.nb_blocks == (2, 2)
     assert A.block_shapes == ([2, 2], [2, 2])
@@ -36,17 +46,29 @@ def test_block_matrix_representation_of_identity():
     assert (A @ b == b).all()
     assert (A @ A == A).all()
 
-    try:
-        patches = A._patches(global_frame=(10, 10))
-        assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12)}
-    except ImportError:
-        warn("Matplotlib is not installed and thus has not been tested.")
-
     assert (A == identity_like(A)).all()
     assert (A.full_matrix() == np.eye(4, 4)).all()
 
-    # 2x2 block matrix containing one another block matrix and three regular matrices of different shapes
+
+@pytest.mark.skipif(plt is None,
+                     reason='matplotlib is not installed')
+def test_block_matrix_representation_of_identity_patches(two_by_two_block_identity):
+    A = two_by_two_block_identity
+    patches = A._patches(global_frame=(10, 10))
+    exp = {(10, 10), (12, 10), (10, 12), (12, 12)}
+    assert {rectangle.get_xy() for rectangle in patches} == exp
+
+
+@pytest.fixture
+def block_three_rect(two_by_two_block_identity):
+    A = two_by_two_block_identity
     B = BlockMatrix([[A, np.zeros((4, 1))], [np.zeros((1, 4)), np.ones((1, 1))]])
+    return B
+
+
+def test_block_matrix_representation_of_identity_rect(block_three_rect):
+    # 2x2 block matrix containing one another block matrix and three regular matrices of different shapes
+    B = block_three_rect
     assert B.shape == (5, 5)
     assert B.block_shapes == ([4, 1], [4, 1])
     assert (B.full_matrix() == np.eye(5, 5)).all()
@@ -54,13 +76,16 @@ def test_block_matrix_representation_of_identity():
     assert B.block_shapes == ([4, 1], [4, 1])
     assert list(B._stored_block_positions()) == [[(0, 0)], [(0, 4)], [(4, 0)], [(4, 4)]]
 
-    try:
-        patches = B._patches(global_frame=(10, 10))
-        assert {rectangle.get_xy() for rectangle in patches} == {(10, 10), (12, 10), (10, 12), (12, 12),
-                                                                 (14, 10), (10, 14), (14, 14)}
-    except ImportError:
-        warn("Matplotlib is not installed and thus has not been tested.")
 
+@pytest.mark.skipif(plt is None,
+                     reason='matplotlib is not installed')
+def test_block_matrix_representation_of_identity_rect_patch(block_three_rect):
+    B = block_three_rect
+    patches = B._patches(global_frame=(10, 10))
+    exp = {(10, 10), (12, 10), (10, 12), (12, 12), (14, 10), (10, 14), (14, 14)}
+    assert {rectangle.get_xy() for rectangle in patches} == exp
+
+def test_block_diff_shapes():
     # 3x3 block matrix with blocks of different shapes
     C = random_block_matrix([1, 2, 4], [1, 2, 4])
     assert C.nb_blocks == (3, 3)
@@ -73,6 +98,7 @@ def test_block_matrix_representation_of_identity():
 
     b = np.random.rand(7)
     assert np.allclose(C @ b, C.full_matrix() @ b)
+
 
 
 def test_sparse_storage_of_block_toeplitz_matrices():
