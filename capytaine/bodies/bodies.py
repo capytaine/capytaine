@@ -282,9 +282,6 @@ class FloatingBody(Abstract3DObject):
             fb1 = self.copy()
             fb1.translate(np.append(li,0))
             fb1.name = 'arbitrary_array_body{:02d}'.format(idx)
-            for dof_key in list(self.dofs.keys()):
-                new_dof_key = fb1.name + '_' + dof_key
-                fb1.dofs[new_dof_key] = fb1.dofs.pop(dof_key)
             fb_list.append(fb1)
 
         arbitrary_array = fb_list[0].join_bodies(*fb_list[1:])
