@@ -117,12 +117,12 @@ n_bodies = locations.shape[0]
 def fb_array():
     
     sphere = Sphere(
-        radius=r,          # Dimension
-        center=(0, 0, 0),    # Position
-        nphi=4, ntheta=10,  # Fineness of the mesh
+                    radius=r,            # Dimension
+                    center=(0, 0, 0),    # Position
+                    nphi=4, ntheta=10,   # Fineness of the mesh
     )
     my_axis = Axis((0, 1, 0), 
-                                       point=(0,0,0))
+                   point=(0,0,0))
     sphere.add_rotation_dof(axis=my_axis)
     sphere.keep_immersed_part()
     
