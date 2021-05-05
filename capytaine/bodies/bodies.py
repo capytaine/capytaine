@@ -270,6 +270,24 @@ class FloatingBody(Abstract3DObject):
                 array_dofs[f'{i}_{j}__{dof_name}'] = new_dof
         return FloatingBody(mesh=array_mesh, dofs=array_dofs, name=f"array_of_{self.name}")
 
+    def assemble_arbitrary_array(self, locations:np.ndarray):
+
+        if not isinstance(locations, np.ndarray):
+            raise TypeError('locations must be of type np.ndarray')
+        assert locations.shape[1] == 2, 'locations must be of shape nx2, received {:}'.format(locations.shape)
+        n = locations.shape[0]
+
+        fb_list = []
+        for idx, li in enumerate(locations):
+            fb1 = self.copy()
+            fb1.translate(np.append(li,0))
+            fb1.name = 'arbitrary_array_body{:02d}'.format(idx)
+            fb_list.append(fb1)
+
+        arbitrary_array = fb_list[0].join_bodies(*fb_list[1:])
+
+        return arbitrary_array
+
     def extract_faces(self, id_faces_to_extract, return_index=False):
         """Create a new FloatingBody by extracting some faces from the mesh.
         The dofs evolve accordingly.
