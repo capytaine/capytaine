@@ -238,15 +238,34 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
     """
     dataset = xr.Dataset()
 
+    if isinstance(results, Sequence[LinearPotentialFlowResult]):
+        records = pd.DataFrame([record for result in results for record in result.records])
+        all_dofs_in_order = {k: None for r in results for k in r.body.dofs.keys()}
+        
+        # HYDROSTATICS
+        if hydrostatics:
+            bodies = list({result.body for result in results})
+            dataset = xr.merge([dataset, hydrostatics_dataset(bodies)])
+
+    else:
+        try:
+            if 'bemio.io' in results.__module__:
+                records = dataframe_from_bemio(results)
+                all_dofs_in_order = {'Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'} # TODO make this read in instead of hard coded
+            else:
+                raise TypeError('results must be either of type Sequence[LinearPotentialFlowResult] or a bemio.io object')
+
+        except:
+            raise TypeError('results must be either of type Sequence[LinearPotentialFlowResult] or a bemio.io object')
+
+
     if attrs is None:
         attrs = {}
     attrs['creation_of_dataset'] = datetime.now().isoformat()
 
-    records = pd.DataFrame([record for result in results for record in result.records])
     if len(records) == 0:
         raise ValueError("No result passed to assemble_dataset.")
 
-    all_dofs_in_order = {k: None for r in results for k in r.body.dofs.keys()}
     inf_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
     records["influenced_dof"] = records["influenced_dof"].astype(inf_dof_cat)
     rad_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
@@ -305,14 +324,68 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
             dataset.coords['nb_faces'] = the_only(nb_faces)
             dataset.coords['quadrature_method'] = the_only(quad_methods)
 
-    # HYDROSTATICS
-    if hydrostatics:
-        bodies = list({result.body for result in results})
-        dataset = xr.merge([dataset, hydrostatics_dataset(bodies)])
 
     dataset.attrs.update(attrs)
     dataset.attrs['capytaine_version'] = __version__
     return dataset
+
+
+#######################
+#  Import from Bemio  #
+#######################
+
+def dataframe_from_bemio(bemio_obj):
+    """Transform a :class:`bemio.data_structures.bem.HydrodynamicData` into a
+        :class:`xarray.Dataset`.
+
+        .. todo:: Return bemio attributes as well as a DataFrame
+                  Add rigid body mass
+
+        Parameters
+        ----------
+        bemio_obj: 
+        """
+
+
+    dofs = ['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw']
+    df = pd.DataFrame()
+    for i in range(bemio_obj.body[0].num_bodies):
+            body_df = pd.DataFrame()
+            body_df['added_mass'] = np.tile(bemio_obj.body[i].am.all.flatten(), len(bemio_obj.body[i].wave_dir))
+            body_df['radiation_damping'] = np.tile(bemio_obj.body[i].rd.all.flatten(), len(bemio_obj.body[i].wave_dir))
+            body_df['body_name'] = bemio_obj.body[i].name
+            body_df['water_depth'] = bemio_obj.body[i].water_depth
+            body_df['omega'] = np.repeat(bemio_obj.body[i].w, len(dofs)**2)
+            body_df['rho'] = bemio_obj.body[i].rho
+            body_df['g'] = bemio_obj.body[i].g
+            body_df['radiating_dof'] = np.tile(np.repeat(dofs, len(dofs)), len(bemio_obj.body[0].w)*len(bemio_obj.body[i].wave_dir))
+            body_df['influenced_dof'] = np.tile(np.tile(dofs, len(dofs)), len(bemio_obj.body[0].w)*len(bemio_obj.body[i].wave_dir))
+
+            # if wave excitation:
+            body_df['convention'] = 'bemio'
+            body_df['wave_direction'] = np.repeat(bemio_obj.body[i].wave_dir, len(bemio_obj.body[0].w)*(len(dofs)**2))
+
+            Fexc = np.empty(shape=bemio_obj.body[i].ex.re.shape, dtype=complex)
+            Fexc.real = bemio_obj.body[i].ex.re
+            Fexc.imag = bemio_obj.body[i].ex.im
+            body_df['diffraction_force'] = np.repeat(np.swapaxes(Fexc, 0, 2), len(dofs), axis=1).flatten()
+
+            try:
+                    Fexc_fk = np.empty(shape=bemio_obj.body[i].ex.fk.re.shape, dtype=complex)
+                    Fexc_fk.real = bemio_obj.body[i].ex.fk.re
+                    Fexc_fk.imag = bemio_obj.body[i].ex.fk.im
+                    body_df['Froude_Krylov_force'] = np.repeat(np.swapaxes(Fexc_fk, 0, 1), len(dofs), axis=1).flatten()
+
+            except AttributeError:
+                    print('\tNo Froude-Krylov forces found or ' + bemio_obj.body[i].name + ', replacing with zeros.')
+                    Fexc_fk = np.zeros(bemio_obj.body[i].ex.re.shape, dtype=complex)
+                    body_df['Froude_Krylov_force'] = np.repeat(Fexc_fk, len(dofs)).flatten()
+
+            # if hydrostatics:
+            body_df['hydrostatic_stiffness'] = np.tile(bemio_obj.body[i].k.flatten(), len(bemio_obj.body[0].w)*len(bemio_obj.body[0].wave_dir))
+            df = df.append(body_df)
+
+    return df
 
 
 ################################
