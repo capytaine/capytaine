@@ -2,6 +2,7 @@
 import xarray as xr
 import numpy as np
 import capytaine as cpt
+import pickle
 
 from capytaine.io.xarray import separate_complex_values, merge_complex_values
 
@@ -44,3 +45,11 @@ def test_xarray_dataset_with_more_data():
     ds = cpt.assemble_dataset(results, mesh=True)
     assert 'nb_faces' in ds.coords
     assert set(ds.coords['nb_faces'].values) == set([b.mesh.nb_faces for b in bodies])
+
+
+def test_dataset_from_bemio():
+    with open('bemio_class.pkl', 'rb') as inp:
+        bemio_data = pickle.load(inp)
+    bemio_dataset = cpt.assemble_dataset(bemio_data)
+    ds = cpt.assemble_dataset(bemio_dataset)
+    assert np.moveaxis(bemio_data.body[0].am.all, 2, 0) == ds['added_mass'].values

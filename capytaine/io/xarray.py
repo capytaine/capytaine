@@ -136,6 +136,7 @@ def _dataset_from_dataframe(df: pd.DataFrame,
         They will appears as dimension in the output dataset only if they have
         more than one different values.
     """
+
     for variable_name in variables:
         df = df[df[variable_name].notnull()].dropna(1)  # Keep only records with non null values of all the variables
     df = df.drop_duplicates()
@@ -238,31 +239,41 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
     """
     dataset = xr.Dataset()
 
-    if isinstance(results, Sequence[LinearPotentialFlowResult]):
-        records = pd.DataFrame([record for result in results for record in result.records])
-        all_dofs_in_order = {k: None for r in results for k in r.body.dofs.keys()}
-        
-        # HYDROSTATICS
-        if hydrostatics:
-            bodies = list({result.body for result in results})
-            dataset = xr.merge([dataset, hydrostatics_dataset(bodies)])
+    if hasattr(results, '__iter__'):
+        try:
+            if 'capytaine' in results[0].__module__:
+                bemio_import = False
+            else:
+                raise TypeError('results must be either of type LinearPotentialFlowResult or a bemio.io object')
+        except:
+            raise TypeError('results must be either of type LinearPotentialFlowResult or a bemio.io object')
 
     else:
         try:
             if 'bemio.io' in results.__module__:
-                records = dataframe_from_bemio(results)
-                all_dofs_in_order = {'Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'} # TODO make this read in instead of hard coded
+                bemio_import = True
             else:
-                raise TypeError('results must be either of type Sequence[LinearPotentialFlowResult] or a bemio.io object')
-
+                raise TypeError('results must be either of type LinearPotentialFlowResult or a bemio.io object')
         except:
-            raise TypeError('results must be either of type Sequence[LinearPotentialFlowResult] or a bemio.io object')
+            raise TypeError('results must be either of type LinearPotentialFlowResult or a bemio.io object')
+    
+    if bemio_import:
+        records = dataframe_from_bemio(results)
+        all_dofs_in_order = {'Surge': [1., 0., 0., 0., 0., 0.],
+                                'Sway': [0., 1., 0., 0., 0., 0.],
+                                'Heave': [0., 0., 1., 0., 0., 0.],
+                                'Roll': [0., 0., 0., 1., 0., 0.],
+                                'Pitch': [0., 0., 0., 0., 1., 0.],
+                                'Yaw': [0., 0., 0., 0., 0., 1.]} # TODO make this read in instead of hard coded (also fix rotational DOFs)
 
+    else:
+        records = pd.DataFrame([record for result in results for record in result.records])
+        all_dofs_in_order = {k: None for r in results for k in r.body.dofs.keys()}
 
     if attrs is None:
         attrs = {}
     attrs['creation_of_dataset'] = datetime.now().isoformat()
-
+        
     if len(records) == 0:
         raise ValueError("No result passed to assemble_dataset.")
 
@@ -324,6 +335,11 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
             dataset.coords['nb_faces'] = the_only(nb_faces)
             dataset.coords['quadrature_method'] = the_only(quad_methods)
 
+    # HYDROSTATICS
+    if hydrostatics:
+        if not bemio_import:
+            bodies = list({result.body for result in results})
+            dataset = xr.merge([dataset, hydrostatics_dataset(bodies)])
 
     dataset.attrs.update(attrs)
     dataset.attrs['capytaine_version'] = __version__
@@ -347,43 +363,64 @@ def dataframe_from_bemio(bemio_obj):
         """
 
 
-    dofs = ['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw']
+    dofs = np.array(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'])
     df = pd.DataFrame()
     for i in range(bemio_obj.body[0].num_bodies):
-            body_df = pd.DataFrame()
-            body_df['added_mass'] = np.tile(bemio_obj.body[i].am.all.flatten(), len(bemio_obj.body[i].wave_dir))
-            body_df['radiation_damping'] = np.tile(bemio_obj.body[i].rd.all.flatten(), len(bemio_obj.body[i].wave_dir))
-            body_df['body_name'] = bemio_obj.body[i].name
-            body_df['water_depth'] = bemio_obj.body[i].water_depth
-            body_df['omega'] = np.repeat(bemio_obj.body[i].w, len(dofs)**2)
-            body_df['rho'] = bemio_obj.body[i].rho
-            body_df['g'] = bemio_obj.body[i].g
-            body_df['radiating_dof'] = np.tile(np.repeat(dofs, len(dofs)), len(bemio_obj.body[0].w)*len(bemio_obj.body[i].wave_dir))
-            body_df['influenced_dof'] = np.tile(np.tile(dofs, len(dofs)), len(bemio_obj.body[0].w)*len(bemio_obj.body[i].wave_dir))
+        difr_dict = []
+        rad_dict = []
 
-            # if wave excitation:
-            body_df['convention'] = 'bemio'
-            body_df['wave_direction'] = np.repeat(bemio_obj.body[i].wave_dir, len(bemio_obj.body[0].w)*(len(dofs)**2))
+        if bemio_obj.body[i].water_depth == 'infinite':
+            bemio_obj.body[i].water_depth = np.infty
 
-            Fexc = np.empty(shape=bemio_obj.body[i].ex.re.shape, dtype=complex)
-            Fexc.real = bemio_obj.body[i].ex.re
-            Fexc.imag = bemio_obj.body[i].ex.im
-            body_df['diffraction_force'] = np.repeat(np.swapaxes(Fexc, 0, 2), len(dofs), axis=1).flatten()
+        for omega_idx, omega in enumerate(bemio_obj.body[i].w):
+        
+            # DiffractionProblem variable equivalents
+            for dir_idx, dir in enumerate(bemio_obj.body[i].wave_dir):
+                temp_dict = {}
+                temp_dict['body_name'] = bemio_obj.body[i].name
+                temp_dict['water_depth'] = bemio_obj.body[i].water_depth
+                temp_dict['omega'] = omega
+                temp_dict['rho'] = bemio_obj.body[i].rho
+                temp_dict['g'] = bemio_obj.body[i].g
+                temp_dict['wave_direction'] = np.radians(dir)
+                temp_dict['convention'] = bemio_obj.body[i].bem_code
+                temp_dict['influenced_dof'] = dofs
+                
+                Fexc = np.empty(shape=bemio_obj.body[i].ex.re[:, dir_idx, omega_idx].shape, dtype=complex)
+                Fexc.real = bemio_obj.body[i].ex.re[:, dir_idx, omega_idx]
+                Fexc.imag = bemio_obj.body[i].ex.im[:, dir_idx, omega_idx]
+                temp_dict['diffraction_force'] = Fexc.flatten()
+                
+                try:
+                    Fexc_fk = np.empty(shape=bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx].shape, dtype=complex)
+                    Fexc_fk.real = bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx]
+                    Fexc_fk.imag = bemio_obj.body[i].ex.fk.im[:, dir_idx, omega_idx]
+                    temp_dict['Froude_Krylov_force'] = Fexc_fk.flatten()
 
-            try:
-                    Fexc_fk = np.empty(shape=bemio_obj.body[i].ex.fk.re.shape, dtype=complex)
-                    Fexc_fk.real = bemio_obj.body[i].ex.fk.re
-                    Fexc_fk.imag = bemio_obj.body[i].ex.fk.im
-                    body_df['Froude_Krylov_force'] = np.repeat(np.swapaxes(Fexc_fk, 0, 1), len(dofs), axis=1).flatten()
+                except AttributeError:
+                        # print('\tNo Froude-Krylov forces found for ' + bemio_obj.body[i].name + ' at ' + str(dir) + \
+                        #       ' degrees (omega = ' + str(omega) + '), replacing with zeros.')
+                        temp_dict['Froude_Krylov_force'] = np.zeros((bemio_obj.body[i].ex.re[:, dir_idx, omega_idx].size,), dtype=complex)
 
-            except AttributeError:
-                    print('\tNo Froude-Krylov forces found or ' + bemio_obj.body[i].name + ', replacing with zeros.')
-                    Fexc_fk = np.zeros(bemio_obj.body[i].ex.re.shape, dtype=complex)
-                    body_df['Froude_Krylov_force'] = np.repeat(Fexc_fk, len(dofs)).flatten()
+                difr_dict.append(temp_dict)
 
-            # if hydrostatics:
-            body_df['hydrostatic_stiffness'] = np.tile(bemio_obj.body[i].k.flatten(), len(bemio_obj.body[0].w)*len(bemio_obj.body[0].wave_dir))
-            df = df.append(body_df)
+            # RadiationProblem + Hydrostatics variable equivalents
+            for radiating_dof_idx, radiating_dof in enumerate(dofs):
+                temp_dict = {}
+                temp_dict['body_name'] = bemio_obj.body[i].name
+                temp_dict['water_depth'] = bemio_obj.body[i].water_depth
+                temp_dict['omega'] = omega
+                temp_dict['rho'] = bemio_obj.body[i].rho
+                temp_dict['g'] = bemio_obj.body[i].g
+                temp_dict['influenced_dof'] = dofs
+                temp_dict['radiating_dof'] = radiating_dof
+                temp_dict['added_mass'] = bemio_obj.body[i].am.all[radiating_dof_idx, :, omega_idx].flatten()
+                temp_dict['radiation_damping'] = bemio_obj.body[i].rd.all[radiating_dof_idx, :, omega_idx].flatten()
+
+                rad_dict.append(temp_dict)
+
+    df = df.append(pd.DataFrame.from_dict(difr_dict).explode(['influenced_dof', 'diffraction_force', 'Froude_Krylov_force']))
+    df = df.append(pd.DataFrame.from_dict(rad_dict).explode(['influenced_dof', 'added_mass', 'radiation_damping']))
 
     return df
 
