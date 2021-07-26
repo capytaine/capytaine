@@ -213,7 +213,7 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
     return kochin_data
 
 
-def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
+def assemble_dataset(results,
                      wavenumber=False, wavelength=False, mesh=False, hydrostatics=True,
                      attrs=None) -> xr.Dataset:
     """Transform a list of :class:`LinearPotentialFlowResult` into a :class:`xarray.Dataset`.
@@ -311,33 +311,44 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
 
     # WAVENUMBER
     if wavenumber:
-        dataset.coords['wavenumber'] = wavenumber_data_array(results)
+        if bemio_import:
+            print('Bemio data does not include wavenumber data. wavenumber=True is ignored.')
+        else:
+            dataset.coords['wavenumber'] = wavenumber_data_array(results)
 
     if wavelength:
-        dataset.coords['wavelength'] = 2*np.pi/wavenumber_data_array(results)
+        if bemio_import:
+            print('Bemio data does not include wavelength data. wavelength=True is ignored.')
+        else:
+            dataset.coords['wavelength'] = 2*np.pi/wavenumber_data_array(results)
 
     if mesh:
-        # TODO: Store full mesh...
-        bodies = list({result.body for result in results})  # Filter out duplicate bodies in the list of results
-        nb_faces = {body.name: body.mesh.nb_faces for body in bodies}
-
-        def name_or_str(c):
-            return c.name if hasattr(c, 'name') else str(c)
-        quad_methods = {body.name: name_or_str(body.mesh.quadrature_method) for body in bodies}
-
-        if len(nb_faces) > 1:
-            dataset.coords['nb_faces'] = ('body_name', [nb_faces[name] for name in dataset.coords['body_name'].data])
-            dataset.coords['quadrature_method'] = ('body_name', [quad_methods[name] for name in dataset.coords['body_name'].data])
+        if bemio_import:
+            print('Bemio data does not include mesh data. mesh=True is ignored.')
         else:
-            def the_only(d):
-                """Return the only element of a 1-element dictionnary"""
-                return next(iter(d.values()))
-            dataset.coords['nb_faces'] = the_only(nb_faces)
-            dataset.coords['quadrature_method'] = the_only(quad_methods)
+            # TODO: Store full mesh...
+            bodies = list({result.body for result in results})  # Filter out duplicate bodies in the list of results
+            nb_faces = {body.name: body.mesh.nb_faces for body in bodies}
+
+            def name_or_str(c):
+                return c.name if hasattr(c, 'name') else str(c)
+            quad_methods = {body.name: name_or_str(body.mesh.quadrature_method) for body in bodies}
+
+            if len(nb_faces) > 1:
+                dataset.coords['nb_faces'] = ('body_name', [nb_faces[name] for name in dataset.coords['body_name'].data])
+                dataset.coords['quadrature_method'] = ('body_name', [quad_methods[name] for name in dataset.coords['body_name'].data])
+            else:
+                def the_only(d):
+                    """Return the only element of a 1-element dictionnary"""
+                    return next(iter(d.values()))
+                dataset.coords['nb_faces'] = the_only(nb_faces)
+                dataset.coords['quadrature_method'] = the_only(quad_methods)
 
     # HYDROSTATICS
     if hydrostatics:
-        if not bemio_import:
+        if bemio_import:
+            print('Bemio data import being used, hydrostatics=True is ignored.')
+        else:
             bodies = list({result.body for result in results})
             dataset = xr.merge([dataset, hydrostatics_dataset(bodies)])
 
