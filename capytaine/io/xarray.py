@@ -137,7 +137,7 @@ def _dataset_from_dataframe(df: pd.DataFrame,
         more than one different values.
     """
     for variable_name in variables:
-        df = df[df[variable_name].notnull()].dropna(1)  # Keep only records with non null values of all the variables
+        df = df[df[variable_name].notnull()].dropna(axis='columns')  # Keep only records with non null values of all the variables
     df = df.drop_duplicates()
     df = df.set_index(optional_dims + dimensions)
 
