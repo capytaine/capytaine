@@ -194,7 +194,7 @@ class BEMSolver:
         else:
             phi = np.empty((mesh.nb_faces,), dtype=np.complex128)
             for i in range(0, mesh.nb_faces, chunk_size):
-		faces_to_extract = list(range(i, min(i+chunk_size, mesh.nb_faces)))
+                faces_to_extract = list(range(i, min(i+chunk_size, mesh.nb_faces)))
                 S = self.engine.build_S_matrix(
                     mesh.extract_faces(faces_to_extract),
                     result.body.mesh,
