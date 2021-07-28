@@ -7,6 +7,11 @@ New in next version
 ---------------------------------
 
 * Add method :code:`FloatingBody.assemble_arbitrary_array` to make an array of bodies with arbitrary layout.
+
+* The mesh are always "healed" when a new :code:`FloatingBody` is initialised
+  (i.e. unused vertices are removed, degenerate triangles are removed, etc.).
+  See for instance `issue #46 <https://github.com/mancellin/capytaine/issues/46>`_.
+
 * Add example in cookbook for computing hydrostatics and mass properties
 * Use pytest skipif to skip tests if optional dependecies are not installed
 * Break out impedance from RAO to separate function (see #61`<https://github.com/mancellin/capytaine/issues/61>`_ and (see #63`<https://github.com/mancellin/capytaine/pull/63>`_)
