@@ -91,7 +91,7 @@ class FloatingBody(Abstract3DObject):
                 LOG.info("Stored {:} triangle faces as quadrilaterals".format(num_triangles))
                 triangles_as_quads = np.empty((cells['triangle'].shape[0], 4), dtype=int)
                 triangles_as_quads[:, :3] = cells['triangle'][:, :]
-                triangles_as_quads[:, 3] = cells['triangle'][:, 2]  # Repeat one node to make a tetra
+                triangles_as_quads[:, 3] = cells['triangle'][:, 2]  # Repeat one node to make a quad
                 all_faces.append(triangles_as_quads)
             return np.concatenate(all_faces)
         
