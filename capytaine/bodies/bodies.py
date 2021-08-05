@@ -92,7 +92,8 @@ class FloatingBody(Abstract3DObject):
             return np.concatenate(all_faces)
         
         cpt_mesh = Mesh(vertices=mesh.points, 
-                        faces=all_faces_as_quads(mesh.cells_dict))
+                        faces=all_faces_as_quads(mesh.cells_dict),
+                        name=name+"_mesh")
 
         fb = FloatingBody(mesh=cpt_mesh, name=name)
         return fb
