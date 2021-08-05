@@ -79,7 +79,7 @@ def generate_sphere():
                     reason='Neither vtk nor meshio are installed')
 def test_write_and_read_STL(tmp_path):
     mesh, _ = generate_cylinder()
-    fb = cpt.FloatingBody.from_meshio(mesh, keep_immersed_part=False)
+    fb = cpt.FloatingBody.from_meshio(mesh)
     fb.mesh.heal_mesh()
 
     # Write with Meshio and reload with Meshmagick
@@ -104,6 +104,7 @@ def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
     mesh, vol_exp = generate_pygmsh()
     fb = cpt.FloatingBody.from_meshio(mesh)
     fb.mesh.heal_mesh()
+    fb.keep_immersed_part()
 
     vol = fb.mesh.volume
     assert pytest.approx(vol_exp, rel=1e-1) == vol

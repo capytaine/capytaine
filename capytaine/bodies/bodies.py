@@ -67,9 +67,7 @@ class FloatingBody(Abstract3DObject):
         LOG.info(f"New floating body: {self.name}.")
 
     @staticmethod
-    def from_meshio(mesh, 
-                    name=None, 
-                    keep_immersed_part=True) -> 'FloatingBody':
+    def from_meshio(mesh, name=None) -> 'FloatingBody':
         """Create a FloatingBody from a meshio mesh object."""
 
         import meshio
@@ -97,9 +95,6 @@ class FloatingBody(Abstract3DObject):
                         faces=all_faces_as_quads(mesh.cells_dict))
 
         fb = FloatingBody(mesh=cpt_mesh, name=name)
-        if keep_immersed_part:
-            fb.keep_immersed_part()
-
         return fb
 
 
