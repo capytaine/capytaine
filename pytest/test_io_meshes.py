@@ -79,12 +79,12 @@ def generate_sphere():
                     reason='Neither vtk nor meshio are installed')
 def test_write_and_read_STL(tmp_path):
     mesh, _ = generate_cylinder()
-    fb = cpt.FloatingBody.from_meshio(mesh)
+    fb = cpt.FloatingBody.from_meshio(mesh, keep_immersed_part=False)
+    fb.mesh.heal_mesh()
 
     # Write with Meshio and reload with Meshmagick
     mesh.write(tmp_path / "wavebot.stl")
     fb2 = cpt.FloatingBody.from_file(str(tmp_path / "wavebot.stl"))
-    fb2.keep_immersed_part()
     assert np.allclose(fb.mesh.vertices, fb2.mesh.vertices)
 
     # # Write with Meshmagick and reload with Meshio
@@ -93,7 +93,6 @@ def test_write_and_read_STL(tmp_path):
     # write_STL(tmp_path / "wavebot2.stl", fb.mesh.vertices, fb.mesh.faces)
     # mesh2 = meshio.read(tmp_path / "wavebot2.stl")
     # fb3 = cpt.FloatingBody.from_meshio(mesh2)
-    # fb3.keep_immersed_part()
     # assert np.allclose(fb.mesh.vertices, fb3.mesh.vertices)
 
 
@@ -104,6 +103,7 @@ def test_write_and_read_STL(tmp_path):
 def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
     mesh, vol_exp = generate_pygmsh()
     fb = cpt.FloatingBody.from_meshio(mesh)
+    fb.mesh.heal_mesh()
 
     vol = fb.mesh.volume
     assert pytest.approx(vol_exp, rel=1e-1) == vol

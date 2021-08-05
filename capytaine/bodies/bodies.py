@@ -69,8 +69,7 @@ class FloatingBody(Abstract3DObject):
     @staticmethod
     def from_meshio(mesh, 
                     name=None, 
-                    keep_immersed_part=True, 
-                    remove_degenerated_faces=True) -> 'FloatingBody':
+                    keep_immersed_part=True) -> 'FloatingBody':
         """Create a FloatingBody from a meshio mesh object."""
 
         import meshio
@@ -81,28 +80,25 @@ class FloatingBody(Abstract3DObject):
             date_str = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
             name = 'fb_{:}'.format(date_str)
 
-        def all_faces_as_tetra(cells):
+        def all_faces_as_quads(cells):
             all_faces = []
             if 'quad' in cells:
                 all_faces.append(cells['quad'])
             if 'triangle' in cells:
                 num_triangles = len(mesh.cells_dict['triangle'])
-                LOG.warning("Converted {:} triangle faces to quads".format(num_triangles))
-                triangles_as_tetra = np.empty((cells['triangle'].shape[0], 4), dtype=int)
-                triangles_as_tetra[:, :3] = cells['triangle'][:, :]
-                triangles_as_tetra[:, 3] = cells['triangle'][:, 2]  # Repeat one node to make a tetra
-                all_faces.append(triangles_as_tetra)
+                LOG.info("Stored {:} triangle faces as quadrilaterals".format(num_triangles))
+                triangles_as_quads = np.empty((cells['triangle'].shape[0], 4), dtype=int)
+                triangles_as_quads[:, :3] = cells['triangle'][:, :]
+                triangles_as_quads[:, 3] = cells['triangle'][:, 2]  # Repeat one node to make a tetra
+                all_faces.append(triangles_as_quads)
             return np.concatenate(all_faces)
         
         cpt_mesh = Mesh(vertices=mesh.points, 
-                        faces=all_faces_as_tetra(mesh.cells_dict),
-                        )
+                        faces=all_faces_as_quads(mesh.cells_dict))
 
         fb = FloatingBody(mesh=cpt_mesh, name=name)
         if keep_immersed_part:
             fb.keep_immersed_part()
-        if remove_degenerated_faces:
-            fb.mesh.remove_degenerated_faces()
 
         return fb
 
