@@ -6,6 +6,8 @@ Changelog
 New in next version
 ---------------------------------
 
+* Add method :code:`FloatingBody.from_meshio` to import `meshio <https://pypi.org/project/meshio/>`_ and `pygmsh <https://pypi.org/project/pygmsh/>`_ mesh objects.
+
 * Add method :code:`FloatingBody.assemble_arbitrary_array` to make an array of bodies with arbitrary layout.
 
 * The mesh are always "healed" when a new :code:`FloatingBody` is initialised
