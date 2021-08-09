@@ -34,6 +34,8 @@ LOG = logging.getLogger(__name__)
 
 def problems_from_dataset(dataset: xr.Dataset,
                           bodies: Sequence[FloatingBody],
+                          convention: str = _default_parameters['convention'],
+                          free_surface: float = _default_parameters['free_surface'],
                           ) -> List[LinearPotentialFlowProblem]:
     """Generate a list of problems from a test matrix.
 
@@ -44,6 +46,10 @@ def problems_from_dataset(dataset: xr.Dataset,
     bodies : list of FloatingBody
         The bodies on which the computations of the test matrix will be applied.
         They should all have different names.
+    convention: str, optional
+        convention for the incoming wave field. Accepted values: "Nemoh", "WAMIT".
+    free_surface: float, optional
+        The position of the free surface (accepted values: 0 and np.infty)
 
     Returns
     -------
@@ -57,6 +63,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     omega_range = dataset['omega'].data if 'omega' in dataset else [_default_parameters['omega']]
     water_depth_range = dataset['water_depth'].data if 'water_depth' in dataset else [_default_parameters['water_depth']]
     rho_range = dataset['rho'].data if 'rho' in dataset else [_default_parameters['rho']]
+    g_range = dataset['g'].data if 'g' in dataset else [_default_parameters['g']]
 
     wave_direction_range = dataset['wave_direction'].data if 'wave_direction' in dataset else None
     radiating_dofs = dataset['radiating_dof'].data.astype(object) if 'radiating_dof' in dataset else None
@@ -72,19 +79,19 @@ def problems_from_dataset(dataset: xr.Dataset,
 
     problems = []
     if wave_direction_range is not None:
-        for omega, wave_direction, water_depth, body_name, rho \
-                in product(omega_range, wave_direction_range, water_depth_range, body_range, rho_range):
+        for omega, wave_direction, water_depth, body_name, rho, g \
+                in product(omega_range, wave_direction_range, water_depth_range, body_range, rho_range, g_range):
             problems.append(
                 DiffractionProblem(body=body_range[body_name], omega=omega,
-                                   wave_direction=wave_direction, sea_bottom=-water_depth, rho=rho)
+                                   wave_direction=wave_direction, sea_bottom=-water_depth, rho=rho, g=g, free_surface=free_surface, convention=convention)
             )
 
     if radiating_dofs is not None:
-        for omega, radiating_dof, water_depth, body_name, rho \
-                in product(omega_range, radiating_dofs, water_depth_range, body_range, rho_range):
+        for omega, radiating_dof, water_depth, body_name, rho, g \
+                in product(omega_range, radiating_dofs, water_depth_range, body_range, rho_range, g_range):
             problems.append(
                 RadiationProblem(body=body_range[body_name], omega=omega,
-                                 radiating_dof=radiating_dof, sea_bottom=-water_depth, rho=rho)
+                                 radiating_dof=radiating_dof, sea_bottom=-water_depth, rho=rho, g=g, free_surface=free_surface)
             )
 
     return sorted(problems)
