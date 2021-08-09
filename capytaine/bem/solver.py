@@ -23,6 +23,7 @@ from datetime import datetime
 from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
+from capytaine.bem.problems_and_results import _default_parameters
 
 LOG = logging.getLogger(__name__)
 
@@ -124,7 +125,10 @@ class BEMSolver:
         """
         return [self.solve(problem, **kwargs) for problem in sorted(problems)]
 
-    def fill_dataset(self, dataset, bodies, **kwargs):
+    def fill_dataset(self, dataset, bodies,
+                     convention=_default_parameters['convention'],
+                     free_surface=_default_parameters['free_surface'],
+                     **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -133,6 +137,10 @@ class BEMSolver:
             dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
         bodies : list of FloatingBody
             the bodies involved in the problems
+        convention: str, optional
+            convention for the incoming wave field. Accepted values: "Nemoh", "WAMIT".
+        free_surface: float, optional
+            The position of the free surface (accepted values: 0 and np.infty)
 
         Returns
         -------
@@ -140,7 +148,7 @@ class BEMSolver:
         """
         attrs = {'start_of_computation': datetime.now().isoformat(),
                  **self.exportable_settings}
-        problems = problems_from_dataset(dataset, bodies)
+        problems = problems_from_dataset(dataset, bodies, convention, free_surface)
         if 'theta' in dataset.coords:
             results = self.solve_all(problems, keep_details=True)
             kochin = kochin_data_array(results, dataset.coords['theta'])
