@@ -34,8 +34,6 @@ LOG = logging.getLogger(__name__)
 
 def problems_from_dataset(dataset: xr.Dataset,
                           bodies: Sequence[FloatingBody],
-                          convention: str = _default_parameters['convention'],
-                          free_surface: float = _default_parameters['free_surface'],
                           ) -> List[LinearPotentialFlowProblem]:
     """Generate a list of problems from a test matrix.
 
@@ -46,10 +44,6 @@ def problems_from_dataset(dataset: xr.Dataset,
     bodies : list of FloatingBody
         The bodies on which the computations of the test matrix will be applied.
         They should all have different names.
-    convention: str, optional
-        convention for the incoming wave field. Accepted values: "Nemoh", "WAMIT".
-    free_surface: float, optional
-        The position of the free surface (accepted values: 0 and np.infty)
 
     Returns
     -------
@@ -83,7 +77,7 @@ def problems_from_dataset(dataset: xr.Dataset,
                 in product(omega_range, wave_direction_range, water_depth_range, body_range, rho_range, g_range):
             problems.append(
                 DiffractionProblem(body=body_range[body_name], omega=omega,
-                                   wave_direction=wave_direction, sea_bottom=-water_depth, rho=rho, g=g, free_surface=free_surface, convention=convention)
+                                   wave_direction=wave_direction, sea_bottom=-water_depth, rho=rho, g=g)
             )
 
     if radiating_dofs is not None:
@@ -91,7 +85,7 @@ def problems_from_dataset(dataset: xr.Dataset,
                 in product(omega_range, radiating_dofs, water_depth_range, body_range, rho_range, g_range):
             problems.append(
                 RadiationProblem(body=body_range[body_name], omega=omega,
-                                 radiating_dof=radiating_dof, sea_bottom=-water_depth, rho=rho, g=g, free_surface=free_surface)
+                                 radiating_dof=radiating_dof, sea_bottom=-water_depth, rho=rho, g=g)
             )
 
     return sorted(problems)
