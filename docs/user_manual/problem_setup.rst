@@ -43,7 +43,7 @@ The table below gives their definitions and their default values.
 +-----------------------+------------------------------------------+------------------------+ 
 | Parameter             | Description (unit)                       | Default value          |
 +=======================+==========================================+========================+
-| :code:`free_surface`  | Position of the free surface [#]_ (m)    | :math:`0` m            |
+| :code:`free_surface`  | Position of the free surface [#]_ (m)    | :math:`0.0` m          |
 +-----------------------+------------------------------------------+------------------------+
 | :code:`sea_bottom`    | Position of the sea bottom (m)           | :math:`-\infty` m      |
 +-----------------------+------------------------------------------+------------------------+
@@ -60,7 +60,7 @@ The table below gives their definitions and their default values.
 |                       | (only for radiation)                     |                        |
 +-----------------------+------------------------------------------+------------------------+
 
-.. [#] Only two positions are accepted for the free surface: :math:`z=0` and
+.. [#] Only two positions are accepted for the free surface: :math:`z=0.0` and
        :math:`z= +\infty`. The former is the usual case for linear potential
        flow. The latter corresponds to an object in an infinite
        potential flow domain with no free surface.
