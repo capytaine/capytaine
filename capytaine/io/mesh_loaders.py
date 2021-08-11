@@ -419,7 +419,7 @@ def load_VTU(filename, name=None):
     vtk = import_optional_dependency("vtk")
 
     reader = vtk.vtkXMLUnstructuredGridReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename))
     reader.Update()
     vtk_mesh = reader.GetOutput()
 
@@ -451,7 +451,7 @@ def load_VTP(filename, name=None):
     vtk = import_optional_dependency("vtk")
 
     reader = vtk.vtkXMLPolyDataReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename))
     reader.Update()
     vtk_mesh = reader.GetOutput()
 
@@ -483,7 +483,7 @@ def load_VTK(filename, name=None):
     vtk = import_optional_dependency("vtk")
 
     reader = vtk.vtkPolyDataReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename))
     reader.Update()
     vtk_mesh = reader.GetOutput()
 
@@ -547,7 +547,7 @@ def load_STL(filename, name=None):
     _check_file(filename)
 
     reader = vtk.vtkSTLReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename))
     reader.Update()
 
     data = reader.GetOutputDataObject(0)
@@ -882,7 +882,7 @@ def load_WRL(filename, name=None):
             raise NotImplementedError('VRML loader only supports VRML 2.0 format (version %s given)' % ver)
 
     importer = vtk.vtkVRMLImporter()
-    importer.SetFileName(filename)
+    importer.SetFileName(str(filename))
     importer.Update()
 
     actors = importer.GetRenderer().GetActors()
