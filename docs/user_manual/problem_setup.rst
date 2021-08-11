@@ -62,7 +62,7 @@ The table below gives their definitions and their default values.
 
 .. [#] Only two positions are accepted for the free surface: :math:`z=0` and
        :math:`z= +\infty`. The former is the usual case for linear potential
-       flow. The latter corresponds to an object in a infinite
+       flow. The latter corresponds to an object in an infinite
        potential flow domain with no free surface.
 
 .. [#] A wave direction of :math:`0` rad corresponds to a wave propagating along
