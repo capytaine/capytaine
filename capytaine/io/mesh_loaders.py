@@ -7,12 +7,15 @@ Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import os
+import logging
 import numpy as np
 
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh
 from capytaine.meshes.geometry import xOz_Plane
 from capytaine.tools.optional_imports import import_optional_dependency
+
+LOG = logging.getLogger(__name__)
 
 real_str = r'[+-]?(?:\d+\.\d*|\d*\.\d+)(?:[Ee][+-]?\d+)?'  # Regex for floats
 
@@ -124,56 +127,90 @@ def load_HST(filename, name=None):
     ----
     HST files have a 1-indexing
     """
+
     _check_file(filename)
 
-    ifile = open(filename, 'r')
-    data = ifile.read()
-    ifile.close()
+    with open(filename, 'r') as f:
+        data = f.readlines()
 
-    import re
-
-    node_line = r'\s*\d+(?:\s+' + real_str + '){3}'
-    node_section = r'((?:' + node_line + ')+)'
-
-    elem_line = r'^\s*(?:\d+\s+){3}\d+\s*[\r\n]+'
-    elem_section = r'((?:' + elem_line + ')+)'
-
-    pattern_node_line = re.compile(node_line, re.MULTILINE)
-    pattern_elem_line = re.compile(elem_line, re.MULTILINE)
-    pattern_node_section = re.compile(node_section, re.MULTILINE)
-    pattern_elem_section = re.compile(elem_section, re.MULTILINE)
-
-    vertices_tmp = []
     vertices = []
-    nv = 0
-    for node_section in pattern_node_section.findall(data):
-        for node in pattern_node_line.findall(node_section):
-            vertices_tmp.append(list(map(float, node.split()[1:])))
-        nv_tmp = len(vertices_tmp)
-        vertices_tmp = np.asarray(vertices_tmp, dtype=float)
-        if nv == 0:
-            vertices = vertices_tmp.copy()
-            nv = nv_tmp
-        else:
-            vertices = np.concatenate((vertices, vertices_tmp))
-            nv += nv_tmp
-
-    faces_tmp = []
     faces = []
-    nf = 0
-    for elem_section in pattern_elem_section.findall(data):
-        for elem in pattern_elem_line.findall(elem_section):
-            faces_tmp.append(list(map(int, elem.split())))
-        nf_tmp = len(faces_tmp)
-        faces_tmp = np.asarray(faces_tmp, dtype=int)
-        if nf == 0:
-            faces = faces_tmp.copy()
-            nf = nf_tmp
-        else:
-            faces = np.concatenate((faces, faces_tmp))
-            nf += nf_tmp
+    other_data = {'PROJECT': None, #'SYMMETRY': None, 'USERS': None,
+                  #'RHO': None, 'GRAVITY': None, 'NBODY': None,
+                  }
+    current_context = None
 
-    return Mesh(vertices, faces-1, name)
+    for i_line, line in enumerate(data):
+        line = line.lstrip()
+
+        if line == '':
+            continue
+
+        elif line.startswith("COORDINATES"):
+            current_context = 'vertices'
+
+        elif line.startswith("ENDCOORDINATES"):
+            current_context = None
+
+        elif line.startswith("PANEL"):
+            panels_type = int(line[10:])
+            current_context = ('panels', panels_type)
+
+        elif line.startswith("ENDPANEL"):
+            current_context = None
+
+        elif current_context == 'vertices':  # parse vertex coordinate
+            numbers = line.split()
+            if len(numbers) == 4:
+                i_vertex, x, y, z = numbers
+                if int(i_vertex) != len(vertices) + 1:
+                    raise ValueError(
+                        f"HST mesh reader expected the next vertex to be indexed as {len(vertices)+1}, "
+                        f"but it was actually indexed as {i_vertex} (line {i_line} of {filename}).")
+            elif len(numbers) == 3:
+                x, y, z = numbers
+            vertices.append([x, y, z])
+
+        elif current_context == ('panels', 0):
+            numbers = line.split()
+            if len(numbers) == 3:
+                v1, v2, v3 = numbers
+            elif len(numbers) == 4:
+                v1, v2, v3, v4 = numbers
+            faces.append([v1, v2, v3, v4])
+
+        elif current_context == ('panels', 1):
+            numbers = line.split()
+            if len(numbers) == 4:
+                i_face, v1, v2, v3 = numbers
+                v4 = v3
+            elif len(numbers) == 5:
+                i_face, v1, v2, v3, v4 = numbers
+
+            if int(i_face) != len(faces) + 1:
+                ii = len(faces) + 1
+                raise ValueError("HST mesh reader expected the face {} to be indexed {},\n"
+                                     "but it was actually indexed with {} (line {}).".format(ii, ii, i_face, i_line))
+
+            faces.append([v1, v2, v3, v4])
+
+        elif line.startswith("ENDFILE"):
+            break
+
+        else:
+            for keyword in other_data:
+                if line.startswith(keyword):
+                    other_data[keyword] = line[len(keyword)+1:].lstrip(':').strip()
+                    break
+            else:
+                LOG.warning("HST mesh reader ignored line {}: {}".format(i_line, line.strip('\n')))
+
+    vertices = np.array(vertices, dtype=float)
+    faces = np.array(faces, dtype=int) - 1
+
+    if name is None: name = other_data['PROJECT']
+
+    return Mesh(vertices, faces, name)
 
 
 def load_DAT(filename, name=None):
