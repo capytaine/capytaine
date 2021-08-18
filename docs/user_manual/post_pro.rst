@@ -6,7 +6,7 @@ Free surface elevation
 ----------------------
 
 To compute the free surface elevation, let us first initialize a
-:class:`~capytaine.post_pro.free_srufaces.FreeSurface` object::
+:class:`~capytaine.post_pro.free_surfaces.FreeSurface` object::
 
     from capytaine import FreeSurface
     fs = FreeSurface(x_range=(-10, 10), nx=10, y_range=(-5, 5), ny=10)

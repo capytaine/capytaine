@@ -40,6 +40,9 @@ arguments to store more informations in the dataset:
               sorted_dofs = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
               print(data.sel(radiating_dof=sorted_dofs, influenced_dof=sorted_dofs))
 
+.. note:: Datasets created with :code:`assemble_dataset` only include data on
+          cases with a free surface.
+          Cases without a free surface (:code:`free_surface=infty`) are ignored.
 
 Saving the dataset as NetCDF file
 ---------------------------------

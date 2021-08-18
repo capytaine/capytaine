@@ -213,6 +213,24 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
     return kochin_data
 
 
+def collect_records(results):
+    records_list = []
+    warned_once_about_no_free_surface = False
+    for result in results:
+        if result.free_surface == np.infty:
+            if not warned_once_about_no_free_surface:
+                LOG.warning("Datasets currently only support cases with a free surface (free_surface=0.0).\n"
+                            "Cases without a free surface (free_surface=infty) are ignored.\n"
+                            "See also https://github.com/mancellin/capytaine/issues/88")
+                warned_once_about_no_free_surface = True
+            else:
+                pass
+        else:
+            for record in result.records:
+                records_list.append(record)
+    return records_list
+
+
 def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
                      wavenumber=False, wavelength=False, mesh=False, hydrostatics=True,
                      attrs=None) -> xr.Dataset:
@@ -243,7 +261,7 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
         attrs = {}
     attrs['creation_of_dataset'] = datetime.now().isoformat()
 
-    records = pd.DataFrame([record for result in results for record in result.records])
+    records = pd.DataFrame(collect_records(results))
     if len(records) == 0:
         raise ValueError("No result passed to assemble_dataset.")
 
