@@ -18,8 +18,9 @@ New in next version
 * Use pytest skipif to skip tests if optional dependecies are not installed
 * Break out impedance from RAO to separate function (see #61`<https://github.com/mancellin/capytaine/issues/61>`_ and (see #63`<https://github.com/mancellin/capytaine/pull/63>`_)
 * Fix bug in free surface elevation computation when the number of faces in the free surface mesh is not a multiple of the chunk size (by default a multiple of 50).
-* Fix bug in some of the mesh readers/writers when using PosixPath paths. 
 * The function :code:`assemble_dataset` did not support well the problems without a free surface. In the new version, such problems are explicitely ignored and a warning message is displayed.
+* Fix bug in some of the mesh readers/writers when using pathlib path objects.
+* Method `problems_from_dataset` can now use a list of gravitational acceleration `g` values in the test matrix.
 
 ---------------------------------
 New in version 1.2.1 (2021-04-14)
