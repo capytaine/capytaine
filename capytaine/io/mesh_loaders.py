@@ -149,17 +149,17 @@ def load_HST(filename, name=None):
         elif line.startswith("COORDINATES"):
             current_context = 'vertices'
 
-        elif line.startswith("ENDCOORDINATES"):
+        elif current_context == 'vertices' and line.startswith("ENDCOORDINATES"):
             current_context = None
 
         elif line.startswith("PANEL"):
             panels_type = int(line[10:])
             current_context = ('panels', panels_type)
 
-        elif line.startswith("ENDPANEL"):
+        elif (current_context == ('panels', 0) or current_context == ('panels', 1)) and line.startswith("ENDPANEL"):
             current_context = None
 
-        elif current_context == 'vertices':  # parse vertex coordinate
+        elif current_context == 'vertices':  # parse vertex coordinates
             numbers = line.split()
             if len(numbers) == 4:
                 i_vertex, x, y, z = numbers
@@ -171,7 +171,7 @@ def load_HST(filename, name=None):
                 x, y, z = numbers
             vertices.append([x, y, z])
 
-        elif current_context == ('panels', 0):
+        elif current_context == ('panels', 0):  # parse face definition (no index given)
             numbers = line.split()
             if len(numbers) == 3:
                 v1, v2, v3 = numbers
@@ -179,7 +179,7 @@ def load_HST(filename, name=None):
                 v1, v2, v3, v4 = numbers
             faces.append([v1, v2, v3, v4])
 
-        elif current_context == ('panels', 1):
+        elif current_context == ('panels', 1):  # parse face definition
             numbers = line.split()
             if len(numbers) == 4:
                 i_face, v1, v2, v3 = numbers
@@ -189,8 +189,8 @@ def load_HST(filename, name=None):
 
             if int(i_face) != len(faces) + 1:
                 ii = len(faces) + 1
-                raise ValueError("HST mesh reader expected the face {} to be indexed {},\n"
-                                     "but it was actually indexed with {} (line {}).".format(ii, ii, i_face, i_line))
+                raise ValueError(f"HST mesh reader expected the next face to be indexed {ii},\n"
+                                 f"but it was actually indexed with {i_face} (line {i_line} of file {filename})."
 
             faces.append([v1, v2, v3, v4])
 
@@ -203,7 +203,7 @@ def load_HST(filename, name=None):
                     other_data[keyword] = line[len(keyword)+1:].lstrip(':').strip()
                     break
             else:
-                LOG.warning("HST mesh reader ignored line {}: {}".format(i_line, line.strip('\n')))
+                LOG.warning(f"HST mesh reader ignored line {i_line} of file {filename}:\n{line.strip('\n')}")
 
     vertices = np.array(vertices, dtype=float)
     faces = np.array(faces, dtype=int) - 1
