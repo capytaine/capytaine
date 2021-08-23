@@ -242,7 +242,7 @@ def write_VTU(filename, vertices, faces):
 
     writer = vtk.vtkXMLUnstructuredGridWriter()
     writer.SetDataModeToAscii()
-    writer.SetFileName(filename)
+    writer.SetFileName(str(filename))
 
     unstructured_grid = _build_vtkUnstructuredGrid(vertices, faces)
     writer.SetInputData(unstructured_grid)
@@ -269,7 +269,7 @@ def write_VTP(filename, vertices, faces):
 
     writer = vtk.vtkXMLPolyDataWriter()
     writer.SetDataModeToAscii()
-    writer.SetFileName(filename)
+    writer.SetFileName(str(filename))
 
     polydata = _build_vtkPolyData(vertices, faces)
     writer.SetInputData(polydata)

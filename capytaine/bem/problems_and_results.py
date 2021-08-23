@@ -63,7 +63,7 @@ class LinearPotentialFlowProblem:
     def _check_data(self):
         """Sanity checks on the data."""
 
-        if self.free_surface not in [0, np.infty]:
+        if self.free_surface not in [0.0, np.infty]:
             raise NotImplementedError(
                 f"Free surface is {self.free_surface}. "
                 "Only z=0 and z=∞ are accepted values for the free surface position."

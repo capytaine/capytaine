@@ -58,6 +58,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     omega_range = dataset['omega'].data if 'omega' in dataset else [_default_parameters['omega']]
     water_depth_range = dataset['water_depth'].data if 'water_depth' in dataset else [_default_parameters['water_depth']]
     rho_range = dataset['rho'].data if 'rho' in dataset else [_default_parameters['rho']]
+    g_range = dataset['g'].data if 'g' in dataset else [_default_parameters['g']]
 
     wave_direction_range = dataset['wave_direction'].data if 'wave_direction' in dataset else None
     radiating_dofs = dataset['radiating_dof'].data.astype(object) if 'radiating_dof' in dataset else None
@@ -73,19 +74,19 @@ def problems_from_dataset(dataset: xr.Dataset,
 
     problems = []
     if wave_direction_range is not None:
-        for omega, wave_direction, water_depth, body_name, rho \
-                in product(omega_range, wave_direction_range, water_depth_range, body_range, rho_range):
+        for omega, wave_direction, water_depth, body_name, rho, g \
+                in product(omega_range, wave_direction_range, water_depth_range, body_range, rho_range, g_range):
             problems.append(
                 DiffractionProblem(body=body_range[body_name], omega=omega,
-                                   wave_direction=wave_direction, sea_bottom=-water_depth, rho=rho)
+                                   wave_direction=wave_direction, sea_bottom=-water_depth, rho=rho, g=g)
             )
 
     if radiating_dofs is not None:
-        for omega, radiating_dof, water_depth, body_name, rho \
-                in product(omega_range, radiating_dofs, water_depth_range, body_range, rho_range):
+        for omega, radiating_dof, water_depth, body_name, rho, g \
+                in product(omega_range, radiating_dofs, water_depth_range, body_range, rho_range, g_range):
             problems.append(
                 RadiationProblem(body=body_range[body_name], omega=omega,
-                                 radiating_dof=radiating_dof, sea_bottom=-water_depth, rho=rho)
+                                 radiating_dof=radiating_dof, sea_bottom=-water_depth, rho=rho, g=g)
             )
 
     return sorted(problems)
@@ -139,7 +140,7 @@ def _dataset_from_dataframe(df: pd.DataFrame,
     """
 
     for variable_name in variables:
-        df = df[df[variable_name].notnull()].dropna(1)  # Keep only records with non null values of all the variables
+        df = df[df[variable_name].notnull()].dropna(axis='columns')  # Keep only records with non null values of all the variables
     df = df.drop_duplicates()
     df = df.set_index(optional_dims + dimensions)
 
@@ -214,7 +215,29 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
     return kochin_data
 
 
+<<<<<<< HEAD
 def assemble_dataset(results,
+=======
+def collect_records(results):
+    records_list = []
+    warned_once_about_no_free_surface = False
+    for result in results:
+        if result.free_surface == np.infty:
+            if not warned_once_about_no_free_surface:
+                LOG.warning("Datasets currently only support cases with a free surface (free_surface=0.0).\n"
+                            "Cases without a free surface (free_surface=infty) are ignored.\n"
+                            "See also https://github.com/mancellin/capytaine/issues/88")
+                warned_once_about_no_free_surface = True
+            else:
+                pass
+        else:
+            for record in result.records:
+                records_list.append(record)
+    return records_list
+
+
+def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
+>>>>>>> d7de51da2a60d0b315258deb2152d9c561c6febb
                      wavenumber=False, wavelength=False, mesh=False, hydrostatics=True,
                      attrs=None) -> xr.Dataset:
     """Transform a list of :class:`LinearPotentialFlowResult` into a :class:`xarray.Dataset`.
@@ -270,7 +293,12 @@ def assemble_dataset(results,
     if attrs is None:
         attrs = {}
     attrs['creation_of_dataset'] = datetime.now().isoformat()
+<<<<<<< HEAD
         
+=======
+
+    records = pd.DataFrame(collect_records(results))
+>>>>>>> d7de51da2a60d0b315258deb2152d9c561c6febb
     if len(records) == 0:
         raise ValueError("No result passed to assemble_dataset.")
 
