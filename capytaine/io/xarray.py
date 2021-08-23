@@ -16,6 +16,7 @@ from typing import Sequence, List, Union
 import numpy as np
 import pandas as pd
 import xarray as xr
+from scipy.optimize import newton
 
 from capytaine import __version__
 from capytaine.bodies.bodies import FloatingBody
@@ -239,32 +240,28 @@ def assemble_dataset(results,
     """
     dataset = xr.Dataset()
 
+    error = 'results must be either of type LinearPotentialFlowResult or a bemio.io object'
     if hasattr(results, '__iter__'):
         try:
             if 'capytaine' in results[0].__module__:
                 bemio_import = False
             else:
-                raise TypeError('results must be either of type LinearPotentialFlowResult or a bemio.io object')
+                raise error
         except:
-            raise TypeError('results must be either of type LinearPotentialFlowResult or a bemio.io object')
+            raise error
 
     else:
         try:
             if 'bemio.io' in results.__module__:
                 bemio_import = True
             else:
-                raise TypeError('results must be either of type LinearPotentialFlowResult or a bemio.io object')
+                raise error
         except:
-            raise TypeError('results must be either of type LinearPotentialFlowResult or a bemio.io object')
+            raise error
     
     if bemio_import:
-        records = dataframe_from_bemio(results)
-        all_dofs_in_order = {'Surge': [1., 0., 0., 0., 0., 0.],
-                                'Sway': [0., 1., 0., 0., 0., 0.],
-                                'Heave': [0., 0., 1., 0., 0., 0.],
-                                'Roll': [0., 0., 0., 1., 0., 0.],
-                                'Pitch': [0., 0., 0., 0., 1., 0.],
-                                'Yaw': [0., 0., 0., 0., 0., 1.]} # TODO make this read in instead of hard coded (also fix rotational DOFs)
+        records = dataframe_from_bemio(results, wavenumber, wavelength) # TODO add hydrostatics
+        all_dofs_in_order = {'Surge': None, 'Sway': None, 'Heave': None, 'Roll': None, 'Pitch': None, 'Yaw': None}
 
     else:
         records = pd.DataFrame([record for result in results for record in result.records])
@@ -312,19 +309,29 @@ def assemble_dataset(results,
     # WAVENUMBER
     if wavenumber:
         if bemio_import:
-            print('Bemio data does not include wavenumber data. wavenumber=True is ignored.')
+            wavenumber_ds = _dataset_from_dataframe(
+                records.drop_duplicates(subset=['omega']),
+                variables=['wavenumber'],
+                dimensions=['omega'],
+                optional_dims=['g', 'water_depth'])
+            dataset.coords['wavenumber'] = wavenumber_ds['wavenumber']
         else:
             dataset.coords['wavenumber'] = wavenumber_data_array(results)
 
     if wavelength:
         if bemio_import:
-            print('Bemio data does not include wavelength data. wavelength=True is ignored.')
+            wavelength_ds = _dataset_from_dataframe(
+                    records.drop_duplicates(subset=['omega']),
+                    variables=['wavelength'],
+                    dimensions=['omega'],
+                    optional_dims=['g', 'water_depth'])
+            dataset.coords['wavelength'] = wavelength_ds['wavelength']
         else:
             dataset.coords['wavelength'] = 2*np.pi/wavenumber_data_array(results)
 
     if mesh:
         if bemio_import:
-            print('Bemio data does not include mesh data. mesh=True is ignored.')
+            LOG.warning('Bemio data does not include mesh data. mesh=True is ignored.')
         else:
             # TODO: Store full mesh...
             bodies = list({result.body for result in results})  # Filter out duplicate bodies in the list of results
@@ -347,7 +354,7 @@ def assemble_dataset(results,
     # HYDROSTATICS
     if hydrostatics:
         if bemio_import:
-            print('Bemio data import being used, hydrostatics=True is ignored.')
+            LOG.warning('Bemio data import being used, hydrostatics=True is ignored.')
         else:
             bodies = list({result.body for result in results})
             dataset = xr.merge([dataset, hydrostatics_dataset(bodies)])
@@ -361,7 +368,7 @@ def assemble_dataset(results,
 #  Import from Bemio  #
 #######################
 
-def dataframe_from_bemio(bemio_obj):
+def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
     """Transform a :class:`bemio.data_structures.bem.HydrodynamicData` into a
         :class:`xarray.Dataset`.
 
@@ -384,7 +391,7 @@ def dataframe_from_bemio(bemio_obj):
             bemio_obj.body[i].water_depth = np.infty
 
         for omega_idx, omega in enumerate(bemio_obj.body[i].w):
-        
+
             # DiffractionProblem variable equivalents
             for dir_idx, dir in enumerate(bemio_obj.body[i].wave_dir):
                 temp_dict = {}
@@ -397,11 +404,23 @@ def dataframe_from_bemio(bemio_obj):
                 temp_dict['convention'] = bemio_obj.body[i].bem_code
                 temp_dict['influenced_dof'] = dofs
                 
+                if wavenumber:
+                    if temp_dict['water_depth'] == np.infty or omega**2*temp_dict['water_depth']/temp_dict['g'] > 20:
+                        temp_dict['wavenumber'] = omega**2/temp_dict['g']
+                    else:
+                        temp_dict['wavenumber'] = newton(lambda x: x*np.tanh(x) - omega**2*temp_dict['water_depth']/temp_dict['g'], x0=1.0)/temp_dict['water_depth']
+
+                if wavelength:
+                    if temp_dict['wavenumber'] == 0.0:
+                        temp_dict['wavelength'] = np.infty
+                    else:
+                        temp_dict['wavelength'] = 2*np.pi/temp_dict['wavenumber']
+
                 Fexc = np.empty(shape=bemio_obj.body[i].ex.re[:, dir_idx, omega_idx].shape, dtype=complex)
                 Fexc.real = bemio_obj.body[i].ex.re[:, dir_idx, omega_idx]
                 Fexc.imag = bemio_obj.body[i].ex.im[:, dir_idx, omega_idx]
                 temp_dict['diffraction_force'] = Fexc.flatten()
-                
+            
                 try:
                     Fexc_fk = np.empty(shape=bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx].shape, dtype=complex)
                     Fexc_fk.real = bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx]
@@ -409,7 +428,7 @@ def dataframe_from_bemio(bemio_obj):
                     temp_dict['Froude_Krylov_force'] = Fexc_fk.flatten()
 
                 except AttributeError:
-                        # print('\tNo Froude-Krylov forces found for ' + bemio_obj.body[i].name + ' at ' + str(dir) + \
+                        # LOG.warning('\tNo Froude-Krylov forces found for ' + bemio_obj.body[i].name + ' at ' + str(dir) + \
                         #       ' degrees (omega = ' + str(omega) + '), replacing with zeros.')
                         temp_dict['Froude_Krylov_force'] = np.zeros((bemio_obj.body[i].ex.re[:, dir_idx, omega_idx].size,), dtype=complex)
 
@@ -428,10 +447,23 @@ def dataframe_from_bemio(bemio_obj):
                 temp_dict['added_mass'] = bemio_obj.body[i].am.all[radiating_dof_idx, :, omega_idx].flatten()
                 temp_dict['radiation_damping'] = bemio_obj.body[i].rd.all[radiating_dof_idx, :, omega_idx].flatten()
 
+                if wavenumber:
+                    if temp_dict['water_depth'] == np.infty or omega**2*temp_dict['water_depth']/temp_dict['g'] > 20:
+                        temp_dict['wavenumber'] = omega**2/temp_dict['g']
+                    else:
+                        temp_dict['wavenumber'] = newton(lambda x: x*np.tanh(x) - omega**2*temp_dict['water_depth']/temp_dict['g'], x0=1.0)/temp_dict['water_depth']
+
+                if wavelength:
+                    if temp_dict['wavenumber'] == 0.0:
+                        temp_dict['wavelength'] = np.infty
+                    else:
+                        temp_dict['wavelength'] = 2*np.pi/temp_dict['wavenumber']
+
                 rad_dict.append(temp_dict)
 
     df = df.append(pd.DataFrame.from_dict(difr_dict).explode(['influenced_dof', 'diffraction_force', 'Froude_Krylov_force']))
     df = df.append(pd.DataFrame.from_dict(rad_dict).explode(['influenced_dof', 'added_mass', 'radiation_damping']))
+
 
     return df
 
