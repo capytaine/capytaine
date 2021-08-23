@@ -55,4 +55,5 @@ def test_dataset_from_bemio():
     bemio_data = bemio.read(out_file)
 
     new_dataset = cpt.assemble_dataset(bemio_data)
-    assert (np.moveaxis(bemio_data.body[0].am.all, 2, 0) == new_dataset['added_mass'].values).all()
+    assert (np.moveaxis(bemio_data.body[0].am.all, 2, 0) * bemio_data.body[0].rho == \
+        new_dataset['added_mass'].values).all()

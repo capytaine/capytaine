@@ -403,8 +403,14 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
         difr_dict = []
         rad_dict = []
 
+        rho = bemio_obj.body[0].rho
+        g = bemio_obj.body[0].g
+
         if bemio_obj.body[i].water_depth == 'infinite':
             bemio_obj.body[i].water_depth = np.infty
+
+        if bemio_obj.body[i].bem_code == 'WAMIT': # WAMIT coefficients need to be dimensionalized
+            from_wamit = True
 
         for omega_idx, omega in enumerate(np.sort(bemio_obj.body[i].w)):
 
@@ -414,8 +420,8 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['body_name'] = bemio_obj.body[i].name
                 temp_dict['water_depth'] = bemio_obj.body[i].water_depth
                 temp_dict['omega'] = omega
-                temp_dict['rho'] = bemio_obj.body[i].rho
-                temp_dict['g'] = bemio_obj.body[i].g
+                temp_dict['rho'] = rho
+                temp_dict['g'] = g
                 temp_dict['wave_direction'] = np.radians(dir)
                 temp_dict['convention'] = bemio_obj.body[i].bem_code
                 temp_dict['influenced_dof'] = dofs
@@ -433,14 +439,22 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                         temp_dict['wavelength'] = 2*np.pi/temp_dict['wavenumber']
 
                 Fexc = np.empty(shape=bemio_obj.body[i].ex.re[:, dir_idx, omega_idx].shape, dtype=complex)
-                Fexc.real = bemio_obj.body[i].ex.re[:, dir_idx, omega_idx]
-                Fexc.imag = bemio_obj.body[i].ex.im[:, dir_idx, omega_idx]
+                if from_wamit:
+                    Fexc.real = bemio_obj.body[i].ex.re[:, dir_idx, omega_idx] * rho * g
+                    Fexc.imag = bemio_obj.body[i].ex.im[:, dir_idx, omega_idx] * rho * g
+                else:
+                    Fexc.real = bemio_obj.body[i].ex.re[:, dir_idx, omega_idx]
+                    Fexc.imag = bemio_obj.body[i].ex.im[:, dir_idx, omega_idx]
                 temp_dict['diffraction_force'] = Fexc.flatten()
             
                 try:
                     Fexc_fk = np.empty(shape=bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx].shape, dtype=complex)
-                    Fexc_fk.real = bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx]
-                    Fexc_fk.imag = bemio_obj.body[i].ex.fk.im[:, dir_idx, omega_idx]
+                    if from_wamit:
+                        Fexc_fk.real = bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx] * rho * g
+                        Fexc_fk.imag = bemio_obj.body[i].ex.fk.im[:, dir_idx, omega_idx] * rho * g
+                    else:
+                        Fexc_fk.real = bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx]
+                        Fexc_fk.imag = bemio_obj.body[i].ex.fk.im[:, dir_idx, omega_idx]
                     temp_dict['Froude_Krylov_force'] = Fexc_fk.flatten()
 
                 except AttributeError:
@@ -456,12 +470,16 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['body_name'] = bemio_obj.body[i].name
                 temp_dict['water_depth'] = bemio_obj.body[i].water_depth
                 temp_dict['omega'] = omega
-                temp_dict['rho'] = bemio_obj.body[i].rho
-                temp_dict['g'] = bemio_obj.body[i].g
+                temp_dict['rho'] = rho
+                temp_dict['g'] = g
                 temp_dict['influenced_dof'] = dofs
                 temp_dict['radiating_dof'] = radiating_dof
                 temp_dict['added_mass'] = bemio_obj.body[i].am.all[radiating_dof_idx, :, omega_idx].flatten()
                 temp_dict['radiation_damping'] = bemio_obj.body[i].rd.all[radiating_dof_idx, :, omega_idx].flatten()
+
+                if from_wamit:
+                    temp_dict['added_mass'] = temp_dict['added_mass'] * rho
+                    temp_dict['radiation_damping'] = temp_dict['radiation_damping'] * rho * omega
 
                 if wavenumber:
                     if temp_dict['water_depth'] == np.infty or omega**2*temp_dict['water_depth']/temp_dict['g'] > 20:
