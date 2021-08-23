@@ -438,7 +438,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                     else:
                         temp_dict['wavelength'] = 2*np.pi/temp_dict['wavenumber']
 
-                Fexc = np.empty(shape=bemio_obj.body[i].ex.re[:, dir_idx, omega_idx].shape, dtype=complex)
+                Fexc = np.empty(shape=bemio_obj.body[i].ex.re[:, dir_idx, omega_idx].shape, dtype=np.complex128)
                 if from_wamit:
                     Fexc.real = bemio_obj.body[i].ex.re[:, dir_idx, omega_idx] * rho * g
                     Fexc.imag = bemio_obj.body[i].ex.im[:, dir_idx, omega_idx] * rho * g
@@ -448,7 +448,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['diffraction_force'] = Fexc.flatten()
             
                 try:
-                    Fexc_fk = np.empty(shape=bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx].shape, dtype=complex)
+                    Fexc_fk = np.empty(shape=bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx].shape, dtype=np.complex128)
                     if from_wamit:
                         Fexc_fk.real = bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx] * rho * g
                         Fexc_fk.imag = bemio_obj.body[i].ex.fk.im[:, dir_idx, omega_idx] * rho * g
@@ -460,7 +460,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 except AttributeError:
                         # LOG.warning('\tNo Froude-Krylov forces found for ' + bemio_obj.body[i].name + ' at ' + str(dir) + \
                         #       ' degrees (omega = ' + str(omega) + '), replacing with zeros.')
-                        temp_dict['Froude_Krylov_force'] = np.zeros((bemio_obj.body[i].ex.re[:, dir_idx, omega_idx].size,), dtype=complex)
+                        temp_dict['Froude_Krylov_force'] = np.zeros((bemio_obj.body[i].ex.re[:, dir_idx, omega_idx].size,), dtype=np.complex128)
 
                 difr_dict.append(temp_dict)
 
@@ -497,7 +497,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
 
     df = df.append(pd.DataFrame.from_dict(difr_dict).explode(['influenced_dof', 'diffraction_force', 'Froude_Krylov_force']))
     df = df.append(pd.DataFrame.from_dict(rad_dict).explode(['influenced_dof', 'added_mass', 'radiation_damping']))
-
+    df = df.astype({'added_mass': np.float64, 'radiation_damping': np.float64, 'diffraction_force': np.complex128, 'Froude_Krylov_force': np.complex128})
 
     return df
 
