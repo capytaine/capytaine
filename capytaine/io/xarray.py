@@ -214,10 +214,6 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
 
     return kochin_data
 
-
-<<<<<<< HEAD
-def assemble_dataset(results,
-=======
 def collect_records(results):
     records_list = []
     warned_once_about_no_free_surface = False
@@ -235,9 +231,7 @@ def collect_records(results):
                 records_list.append(record)
     return records_list
 
-
-def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
->>>>>>> d7de51da2a60d0b315258deb2152d9c561c6febb
+def assemble_dataset(results,
                      wavenumber=False, wavelength=False, mesh=False, hydrostatics=True,
                      attrs=None) -> xr.Dataset:
     """Transform a list of :class:`LinearPotentialFlowResult` into a :class:`xarray.Dataset`.
@@ -287,18 +281,12 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
         all_dofs_in_order = {'Surge': None, 'Sway': None, 'Heave': None, 'Roll': None, 'Pitch': None, 'Yaw': None}
 
     else:
-        records = pd.DataFrame([record for result in results for record in result.records])
+        records = pd.DataFrame(collect_records(results))
         all_dofs_in_order = {k: None for r in results for k in r.body.dofs.keys()}
 
     if attrs is None:
         attrs = {}
     attrs['creation_of_dataset'] = datetime.now().isoformat()
-<<<<<<< HEAD
-        
-=======
-
-    records = pd.DataFrame(collect_records(results))
->>>>>>> d7de51da2a60d0b315258deb2152d9c561c6febb
     if len(records) == 0:
         raise ValueError("No result passed to assemble_dataset.")
 
