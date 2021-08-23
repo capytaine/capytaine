@@ -2,7 +2,8 @@
 import xarray as xr
 import numpy as np
 import capytaine as cpt
-import pickle
+import pytest
+import os
 
 from capytaine.io.xarray import separate_complex_values, merge_complex_values
 
@@ -48,7 +49,10 @@ def test_xarray_dataset_with_more_data():
 
 
 def test_dataset_from_bemio():
-    with open('bemio_class.pkl', 'rb') as inp:
-        bemio_data = pickle.load(inp)
+    bemio = pytest.importorskip("bemio.io.wamit", reason="Bemio not installed, test skipped.")
+    current_file_path = os.path.dirname(os.path.abspath(__file__))
+    out_file = os.path.join(current_file_path, "Bemio_verification_cases", "sphere.out")
+    bemio_data = bemio.read(out_file)
+    
     new_dataset = cpt.assemble_dataset(bemio_data)
     assert (np.moveaxis(bemio_data.body[0].am.all, 2, 0) == new_dataset['added_mass'].values).all()
