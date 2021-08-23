@@ -53,6 +53,6 @@ def test_dataset_from_bemio():
     current_file_path = os.path.dirname(os.path.abspath(__file__))
     out_file = os.path.join(current_file_path, "Bemio_verification_cases", "sphere.out")
     bemio_data = bemio.read(out_file)
-    
+
     new_dataset = cpt.assemble_dataset(bemio_data)
     assert (np.moveaxis(bemio_data.body[0].am.all, 2, 0) == new_dataset['added_mass'].values).all()

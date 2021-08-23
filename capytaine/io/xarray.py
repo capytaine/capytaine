@@ -406,7 +406,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
         if bemio_obj.body[i].water_depth == 'infinite':
             bemio_obj.body[i].water_depth = np.infty
 
-        for omega_idx, omega in enumerate(bemio_obj.body[i].w):
+        for omega_idx, omega in enumerate(np.sort(bemio_obj.body[i].w)):
 
             # DiffractionProblem variable equivalents
             for dir_idx, dir in enumerate(bemio_obj.body[i].wave_dir):
