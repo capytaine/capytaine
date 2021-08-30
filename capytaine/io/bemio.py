@@ -18,12 +18,15 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
     """Transform a :class:`bemio.data_structures.bem.HydrodynamicData` into a
         :class:`xarray.Dataset`.
 
-        .. todo:: Return bemio attributes as well as a DataFrame
-                  Add rigid body mass
-
         Parameters
         ----------
-        bemio_obj: 
+        bemio_obj: Bemio data_stuctures.bem.HydrodynamicData class
+            Loaded NEMOH, AQWA, or WAMIT data created using `bemio.io.nemoh.read`,
+            `bemio.io.aqwa.read`, or `bemio.io.wamit.read` functions, respectively.
+        wavenumber: bool
+            If True, the coordinate 'wavenumber' will be added to the output dataset.
+        wavelength: bool
+            If True, the coordinate 'wavelength' will be added to the output dataset.
         """
 
 
