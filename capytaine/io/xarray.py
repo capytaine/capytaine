@@ -257,24 +257,24 @@ def assemble_dataset(results,
     """
     dataset = xr.Dataset()
 
-    error = 'results must be either of type LinearPotentialFlowResult or a bemio.io object'
+    error_msg = 'results must be either of type LinearPotentialFlowResult or a bemio.io object'
     if hasattr(results, '__iter__'):
         try:
             if 'capytaine' in results[0].__module__:
                 bemio_import = False
             else:
-                raise error
+                raise TypeError(error_msg)
         except:
-            raise error
+            raise TypeError(error_msg)
 
     else:
         try:
             if 'bemio.io' in results.__module__:
                 bemio_import = True
             else:
-                raise error
+                raise TypeError(error_msg)
         except:
-            raise error
+            raise TypeError(error_msg)
     
     if bemio_import:
         records = dataframe_from_bemio(results, wavenumber, wavelength) # TODO add hydrostatics
@@ -426,17 +426,20 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['convention'] = bemio_obj.body[i].bem_code
                 temp_dict['influenced_dof'] = dofs
                 
-                if wavenumber:
+                if wavenumber or wavelength:
                     if temp_dict['water_depth'] == np.infty or omega**2*temp_dict['water_depth']/temp_dict['g'] > 20:
-                        temp_dict['wavenumber'] = omega**2/temp_dict['g']
+                        k = omega**2/temp_dict['g']
                     else:
-                        temp_dict['wavenumber'] = newton(lambda x: x*np.tanh(x) - omega**2*temp_dict['water_depth']/temp_dict['g'], x0=1.0)/temp_dict['water_depth']
+                        k = newton(lambda x: x*np.tanh(x) - omega**2*temp_dict['water_depth']/temp_dict['g'], x0=1.0)/temp_dict['water_depth']
+                    
+                    if wavenumber:
+                        temp_dict['wavenumber'] = k
 
-                if wavelength:
-                    if temp_dict['wavenumber'] == 0.0:
-                        temp_dict['wavelength'] = np.infty
-                    else:
-                        temp_dict['wavelength'] = 2*np.pi/temp_dict['wavenumber']
+                    if wavelength:
+                        if k == 0.0:
+                            temp_dict['wavelength'] = np.infty
+                        else:
+                            temp_dict['wavelength'] = 2*np.pi/k
 
                 Fexc = np.empty(shape=bemio_obj.body[i].ex.re[:, dir_idx, omega_idx].shape, dtype=np.complex128)
                 if from_wamit:
