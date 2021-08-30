@@ -64,7 +64,7 @@ question must be read into a Bemio :code:`data_structures.ben.HydrodynamicData` 
 then called by `assemble_dataset`. For example, to create an xarray dataset from a WAMIT
 :code:`.out` file::
 
-  from bemio.io.wamit import read_wamit
+  from bemio.io.wamit import read as read_wamit
   import capytaine as cpt
   bemio_data = read_wamit("myfile.out")
   my_dataset = cpt.assemble_dataset(bemio_data, hydrostatics=False)
