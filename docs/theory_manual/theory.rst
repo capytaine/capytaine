@@ -71,7 +71,7 @@ The normal velocity on the floating body surface is the input of the problem.
 It depends on the type of problem:
 
 **Radiation problem**:
-    For the radiation problem, the normal velocity on the body surface corresponds to the motion of the body along one of its degree of freedom.
+    For the radiation problem, the normal velocity on the body surface corresponds to the motion of the body along one of its degrees of freedom.
     The resolution of the Laplace problem allows to derive the added mass and the radiation damping associated with this degree of freedom (see also Post-processing_).
 
 **Diffraction problem**:
@@ -402,15 +402,62 @@ Then other magnitudes such as the Froude-Krylov forces or the added mass can be 
 Post-processing
 ===============
 
-Forces on the body
-------------------
+Forces on body surfaces
+-----------------------
 
-TODO
+Forces acting on body surfaces are computed by integration of the pressure field. They can be decomposed into three contributions:
+
+1. The Froude-Krylov forces :math:`F_{FK, i}`, from the integration of the incident wave field pressure (incoming plane waves); :math:`i` denotes the i-th degree of freedom
+2. The diffraction forces :math:`F_{D, i}`, from the integration of the diffracted wave field (all bodies held fixed)
+3. The radiation forces :math:`F_{R, ij}`, from the result of the radiation problem with radiating degree of freedom :math:`j` and influenced degree of freedom :math:`i`
+
+Dynamic coupling and impedance
+------------------------------
+Consider a body or a system of bodies. The general linear equation of motion can be expressed in time domain as 
+
+.. math:: M_{ij} \ddot{x}_j + C_{ij} \dot{x}_j + K_{ij} x_j = F_i,
+
+and in frequency domain, with the assumed time dependence :math:`x(t) = \mathrm{Re} \left( X e^{-j \omega t} \right)`,
+
+.. math:: \left[-\omega^2M_{ij} - j \omega C_{ij} + K_{ij}\right] X_j = F_i,
+
+where :math:`M_{ij}` is the inertia matrix, accounting for the mass distribution, :math:`C_{ij}` is the mechanical damping matrix, :math:`K_{ij}` is the stiffness matrix which comprises mechanical and hydrostatic effects, and :math:`F_i` are generic external forces.
+
+.. note:: The hydrostatic contribution to matrix :math:`K_{ij}` accounts for a variation of hydrostatic force in direction :math:`i` due to a unit motion in direction :math:`j`. It is a geometric property of the body.
+
+Forces :math:`F_i` can be decomposed as
+
+.. math:: F_i = F_{FK, i} + F_{D, i} + F_{R, ij}
+
+and :math:`F_{R, ij}` can be further rewritten as 
+
+.. math:: F_{R, ij} = \left[\omega^2 A_{ij} + j\omega B_{ij}\right] X_j
+
+where :math:`A_{ij}` is the added mass matrix and :math:`B_{ij}` is the radiation damping matrix; these properties are thus obtained from the real and imaginary parts of the radiation force. The full system becomes
+
+.. math:: \left[-\omega^2 (M_{ij} + A_{ij}) - j \omega (C_{ij} + B_{ij}) + K_{ij}\right] X_j = F_i
+
+and the oscillation amplitude is obtained by solving the system.
+
+.. note:: Matrices :math:`A_{ij}` and :math:`B_{ij}` depend on :math:`\omega`, and so does :math:`X_j`.
 
 Free surface elevation
 ----------------------
 
-TODO
+The potential at the reference surface :math:`z = 0` can be connected to the free surface elevation by the dynamic condition
+
+.. math:: \dfrac{\partial \phi}{\partial t} = - g \eta
+
+which, in frequency domain, is
+
+.. math:: \eta = \dfrac{j \omega}{g} \Phi
+
+For a fully coupled problem (bodies free to oscillate, i.e. diffraction and radiation combined), the free surface elevation can be computed as 
+
+.. math:: \eta = \eta_{\text{incident}} + \eta_{\text{diffracted}} -j \omega \sum_i \eta_{\text{radiated}, i}   X_i
+
+where factor :math:`-j \omega` transforms :math:`\eta_{\text{radiated}, i}` from the radiated wave field corresponding to unit oscillation velocity to the field corresponding to unit oscillation amplitude.
+
 
 Far-field coefficients
 ----------------------
