@@ -484,17 +484,20 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                     temp_dict['added_mass'] = temp_dict['added_mass'] * rho
                     temp_dict['radiation_damping'] = temp_dict['radiation_damping'] * rho * omega
 
-                if wavenumber:
+                if wavenumber or wavelength:
                     if temp_dict['water_depth'] == np.infty or omega**2*temp_dict['water_depth']/temp_dict['g'] > 20:
-                        temp_dict['wavenumber'] = omega**2/temp_dict['g']
+                        k = omega**2/temp_dict['g']
                     else:
-                        temp_dict['wavenumber'] = newton(lambda x: x*np.tanh(x) - omega**2*temp_dict['water_depth']/temp_dict['g'], x0=1.0)/temp_dict['water_depth']
+                        k = newton(lambda x: x*np.tanh(x) - omega**2*temp_dict['water_depth']/temp_dict['g'], x0=1.0)/temp_dict['water_depth']
+                    
+                    if wavenumber:
+                        temp_dict['wavenumber'] = k
 
-                if wavelength:
-                    if temp_dict['wavenumber'] == 0.0:
-                        temp_dict['wavelength'] = np.infty
-                    else:
-                        temp_dict['wavelength'] = 2*np.pi/temp_dict['wavenumber']
+                    if wavelength:
+                        if k == 0.0:
+                            temp_dict['wavelength'] = np.infty
+                        else:
+                            temp_dict['wavelength'] = 2*np.pi/k
 
                 rad_dict.append(temp_dict)
 
