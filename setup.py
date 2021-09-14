@@ -84,7 +84,7 @@ if __name__ == "__main__":
           install_requires=[
               'numpy',
               'scipy',
-              'pandas',
+              'pandas>=1.3',
               'xarray',
           ],
           entry_points={
