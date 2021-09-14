@@ -671,20 +671,27 @@ def load_GDF(filename, name=None):
     line = ifile.readline().split()
     nf = int(line[0])
 
-    vertices = np.zeros((4 * nf, 3), dtype=float)
-    faces = np.zeros((nf, 4), dtype=int)
+    vertices = np.zeros((4 * nf, 3), dtype=np.float)
+    faces = np.zeros((nf, 4), dtype=np.int)
 
-    iv = -1
+    iv = 0
     for icell in range(nf):
+        
+        n_coords = 0
+        face_coords = np.zeros((12,), dtype=np.float)
+        
+        while n_coords < 12:
+            line = np.array(ifile.readline().split())
+            face_coords[n_coords:n_coords+len(line)] = line
+            n_coords += len(line)
 
-        for k in range(4):
-            iv += 1
-            vertices[iv, :] = np.array(ifile.readline().split())
-            faces[icell, k] = iv
+        vertices[iv:iv+4, :] = np.split(face_coords, 4)
+        faces[icell, :] = np.arange(iv, iv+4)
+        iv += 4
 
     ifile.close()
 
-    return Mesh(vertices, faces, name)
+    return vertices, faces
 
 
 def load_MAR(filename, name=None):
