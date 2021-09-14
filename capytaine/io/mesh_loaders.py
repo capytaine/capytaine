@@ -691,7 +691,7 @@ def load_GDF(filename, name=None):
 
     ifile.close()
 
-    return vertices, faces
+    return Mesh(vertices, faces, name)
 
 
 def load_MAR(filename, name=None):
