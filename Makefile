@@ -20,7 +20,7 @@ $(SOFILE): $(F90FILES)
 update_fortran: $(SOFILE)
 
 develop: $(SOFILE)
-	pip install -e .
+	pip install -e .[develop]
 
 test: develop
 	python -m pytest
