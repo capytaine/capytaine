@@ -11,7 +11,7 @@ It is recommended to use a `conda environment`_.
 
 Ensure that Numpy is installed in your enviroment::
 
-    conda install numpy
+    conda install numpy pip
 
 You'll also need a Fortran compiler:
 
@@ -42,24 +42,14 @@ Then, download the source code from Github web interface or using ``git`` with::
 
     git clone https://github.com/mancellin/capytaine
 
-In the main directory of Capytaine (where ``setup.py`` is located), run the following command to compile the Fortran code::
+To compile the code, install all optional dependencies, and put it in your path::
 
-    python setup.py build_ext --inplace
+    make develop
 
-Re-run this command later to recompile the code if you change one of the Fortran files.
+If you need to recompile::
 
-Add the current directory to the Python path with the following command::
-
-    pip install -e .
-
-(This last two commands are included into the ``Makefile`` of the main directory.
-They can be run by ``make develop``.
-The command ``make clean`` deletes the binaries.)
-
-You will also likely want to install Capytaine's optional dependencies::
-
-	conda install matplotlib vtk pytest quadpy hypothesis ipython
-	pip install pygmsh
+    make clean
+    make develop
 
 For instructions about how to help with the development of Capytaine, see the `contributing guide`_.
 
