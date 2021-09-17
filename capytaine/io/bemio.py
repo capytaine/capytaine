@@ -16,7 +16,7 @@ LOG = logging.getLogger(__name__)
 
 def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
     """Transform a :class:`bemio.data_structures.bem.HydrodynamicData` into a
-        :class:`xarray.Dataset`.
+        :class:`pandas.DataFrame`.
 
         Parameters
         ----------
