@@ -10,6 +10,7 @@ New in next version
 * Add example in cookbook for computing hydrostatics and mass properties
 * Use pytest skipif to skip tests if optional dependecies are not installed
 * Break out impedance from RAO to separate function (see #61`<https://github.com/mancellin/capytaine/issues/61>`_ and (see #63`<https://github.com/mancellin/capytaine/pull/63>`_)
+* Function :code:`load_GDF` has been rewritten to accept any GDF file format
 
 ---------------------------------
 New in version 1.2.1 (2021-04-14)
