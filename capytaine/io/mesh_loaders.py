@@ -671,14 +671,14 @@ def load_GDF(filename, name=None):
     line = ifile.readline().split()
     nf = int(line[0])
 
-    vertices = np.zeros((4 * nf, 3), dtype=np.float)
-    faces = np.zeros((nf, 4), dtype=np.int)
+    vertices = np.zeros((4 * nf, 3), dtype=float)
+    faces = np.zeros((nf, 4), dtype=int)
 
     iv = 0
     for icell in range(nf):
         
         n_coords = 0
-        face_coords = np.zeros((12,), dtype=np.float)
+        face_coords = np.zeros((12,), dtype=float)
         
         while n_coords < 12:
             line = np.array(ifile.readline().split())
