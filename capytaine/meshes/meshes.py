@@ -724,7 +724,7 @@ class Mesh(Abstract3DObject):
         return remove_degenerated_faces(self, **kwargs)
 
     @inplace_transformation
-    def heal_mesh(self):
+    def heal_mesh(self, closed_mesh=True):
         """Heals the mesh for different tests available.
 
         It applies:
@@ -739,7 +739,8 @@ class Mesh(Abstract3DObject):
         self.remove_degenerated_faces()
         self.merge_duplicates()
         self.heal_triangles()
-        self.heal_normals()
+        if closed_mesh:
+            self.heal_normals()
         return self
 
     #################

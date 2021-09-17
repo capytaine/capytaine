@@ -100,7 +100,7 @@ def test_clipping_of_dofs(z_center, collection_of_meshes):
 
 
 def test_mincing():
-    body = HorizontalCylinder(length=10, radius=0.5, clever=False)
+    body = HorizontalCylinder(length=10, radius=0.5, translation_symmetry=False, reflection_symmetry=False)
     body = body.minced((4, 1, 1))
     assert len(body.mesh) == 2
     assert np.all(body.mesh[0].faces_centers[:, 0] < 0)
@@ -160,4 +160,3 @@ def test_solve_hydrodynamics(fb_array):
     assert data.radiation_damping.notnull().all()
     assert data.diffraction_force.notnull().all()
     assert data.Froude_Krylov_force.notnull().all()
-
