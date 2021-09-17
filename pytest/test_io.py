@@ -2,6 +2,8 @@
 import xarray as xr
 import numpy as np
 import capytaine as cpt
+import pytest
+import os
 
 from capytaine.io.xarray import separate_complex_values, merge_complex_values
 
@@ -44,3 +46,14 @@ def test_xarray_dataset_with_more_data():
     ds = cpt.assemble_dataset(results, mesh=True)
     assert 'nb_faces' in ds.coords
     assert set(ds.coords['nb_faces'].values) == set([b.mesh.nb_faces for b in bodies])
+
+
+def test_dataset_from_bemio():
+    bemio = pytest.importorskip("bemio.io.wamit", reason="Bemio not installed, test skipped.")
+    current_file_path = os.path.dirname(os.path.abspath(__file__))
+    out_file = os.path.join(current_file_path, "Bemio_verification_cases", "sphere.out")
+    bemio_data = bemio.read(out_file)
+
+    new_dataset = cpt.assemble_dataset(bemio_data)
+    assert (np.moveaxis(bemio_data.body[0].am.all, 2, 0) * bemio_data.body[0].rho == \
+        new_dataset['added_mass'].values).all()

@@ -30,7 +30,12 @@ New in next version
 * The function :code:`assemble_dataset` did not support well the problems without a free surface. In the new version, such problems are explicitely ignored and a warning message is displayed.
 * Fix bug in some of the mesh readers/writers when using pathlib path objects.
 * Method `problems_from_dataset` can now use a list of gravitational acceleration `g` values in the test matrix.
-
+* The function :code:`assemble_dataset` can now accept data structures from Bemio
+  (see #77`<https://github.com/mancellin/capytaine/issues/77>`_ and
+  #79`<https://github.com/mancellin/capytaine/pull/79`_).
+* File `capytaine/io/bemio.py` has been added, containing the function
+  :code:`dataframe_from_bemio` to assist with the :code:`assemble_dataset` Bemio
+  importing functionality.
 ---------------------------------
 New in version 1.2.1 (2021-04-14)
 ---------------------------------
