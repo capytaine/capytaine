@@ -317,6 +317,9 @@ class LowRankMatrix:
     def full_matrix(self):
         return self.left_matrix @ self.right_matrix
 
+    def __array__(self):
+        return self.full_matrix()
+
     @property
     def stored_data_size(self):
         return np.product(self.left_matrix.shape) + np.product(self.right_matrix.shape)

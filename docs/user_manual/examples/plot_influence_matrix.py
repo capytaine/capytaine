@@ -22,7 +22,7 @@ S, K = engine.build_matrices(
 
 # Plot the absolute value of the matrix S
 import matplotlib.pyplot as plt
-plt.imshow(abs(S))
+plt.imshow(abs(np.array(S)))
 plt.colorbar()
 plt.title("$|S|$")
 plt.tight_layout()

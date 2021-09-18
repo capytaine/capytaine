@@ -48,6 +48,7 @@ def test_block_matrix_representation_of_identity_two_by_two(two_by_two_block_ide
 
     assert (A == identity_like(A)).all()
     assert (A.full_matrix() == np.eye(4, 4)).all()
+    assert (np.array(A) == A.full_matrix()).all()
 
 
 @pytest.mark.skipif(plt is None,
@@ -443,6 +444,7 @@ def test_low_rank_blocks():
     a, b = np.random.rand(n, 1), np.random.rand(1, n)
     LR = LowRankMatrix(a, b)
     assert LR.shape == LR.full_matrix().shape
+    assert np.array(LR) == LR.full_matrix()
     assert matrix_rank(LR.full_matrix()) == LR.rank == 1
     assert LR.density == 2 * n / n ** 2
 

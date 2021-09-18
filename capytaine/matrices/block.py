@@ -184,6 +184,9 @@ class BlockMatrix:
         self._put_in_full_matrix(full_matrix)
         return full_matrix
 
+    def __array__(self):
+        return self.full_matrix()
+
     def no_toeplitz(self):
         """Recursively replace the block toeplitz matrices by usual block matrices.
         WARNING: the block matrices may still contain several references to the same block."""
