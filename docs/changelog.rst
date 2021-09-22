@@ -29,7 +29,7 @@ New features
 
 * Add method :code:`FloatingBody.assemble_arbitrary_array` to make an array of bodies with arbitrary layout.
 
-* Break out impedance from RAO to separate function (:issue:`61` and :issue:`63`)
+* Break out impedance from RAO to separate function (:issue:`61` and :issue:`63`).
 
 * Method `problems_from_dataset` can now use a list of gravitational acceleration `g` values in the test matrix.
 
@@ -40,14 +40,14 @@ Bug fixes
 
 * Fix bug in free surface elevation computation when the number of faces in the free surface mesh is not a multiple of the chunk size (by default a multiple of 50).
 
-* The function :code:`assemble_dataset` did not support well the problems without a free surface. In the new version, such problems are explicitely ignored and a warning message is displayed. (:issue:`88` and :pull:`89`)
+* The function :code:`assemble_dataset` did not support well the problems without a free surface. In the new version, such problems are explicitely ignored and a warning message is displayed. (:issue:`88` and :pull:`89`).
 
 * Fix bug in some of the mesh readers/writers when using pathlib path objects.
 
 Internal
 ~~~~~~~~
 
-* Use pytest skipif to skip tests if optional dependecies are not installed
+* Use pytest skipif to skip tests if optional dependecies are not installed.
 
 
 ---------------------------------
