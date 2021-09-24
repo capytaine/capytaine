@@ -36,6 +36,8 @@ New in next version
 * File `capytaine/io/bemio.py` has been added, containing the function
   :code:`dataframe_from_bemio` to assist with the :code:`assemble_dataset` Bemio
   importing functionality.
+* Function :code:`load_GDF` has been rewritten to accept any GDF file format
+
 ---------------------------------
 New in version 1.2.1 (2021-04-14)
 ---------------------------------
