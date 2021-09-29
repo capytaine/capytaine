@@ -232,6 +232,98 @@ class FloatingBody(Abstract3DObject):
                             )
 
     ###################
+    # Hydrostatics #
+    ###################
+
+    def get_hydrostatic_stiffness(self, divergence=None, saveas=None, 
+                                  density=1000.0, gravity=9.80665):
+        """Compute hydrostatic stiffness matrix for all DOFs of the body. 
+        :math:`C_{ij} = \int_{S} (\hat{n} \cdot S_{i}) * (w_{j} + z*D_{j} )`
+        where :math:`\hat{n}` is surface normal, 
+        `S_{i} = u_{i}n_x + v_{i}n_x + w_{i}n_z` is DOF vector and 
+        `D_{j} = \nabla \cdot S_{j}` is the divergence of the DOF.
+        NOTE: this function computes the hydrostatic stiffness assuming D_{j} = 0. 
+        If D_j \neq 0, input the divergence interpolated to face centers. 
+        """
+    
+        hydrostatic_stiffness = -density*gravity* np.array([
+            [np.sum(np.sum(self.mesh.faces_normals * mode_vec_j,axis=1) \
+                * (mode_vec_i[:,2] + 
+                   self.mesh.faces_centers[:,2]*(divergence if divergence else 0))\
+                * self.mesh.faces_areas)
+            for mode_vec_i in self.dofs.values()]
+            for mode_vec_j in self.dofs.values()])
+        if saveas:
+            np.savetxt(saveas, hydrostatic_stiffness, delimiter=',')
+        return self.add_dofs_labels_to_matrix(hydrostatic_stiffness)
+    
+    
+    def get_volumes(self):
+        """Volumes in x, y, z components"""
+        return np.sum(self.mesh.faces_normals * self.mesh.faces_centers \
+                * self.mesh.faces_areas[np.newaxis].T, axis=0)
+
+    def get_volume(self):
+        """Volume of the body"""
+        return np.mean(self.get_volumes())
+
+    def get_mass(self, density=1000):
+        """Mass of the body"""
+        return density*self.get_volume()
+
+    def get_center_of_buoyancy(self):
+        """Center of buoyancy of the body"""
+        return np.sum(self.mesh.faces_normals \
+                    * self.mesh.faces_centers**2 \
+                    * self.mesh.faces_areas[np.newaxis].T, 
+                    axis=0) / (2 * self.get_volume())
+
+    def get_waterplane_area(self):
+        """Waterplane area of the body"""
+        return -np.sum(self.mesh.faces_normals[:,2] \
+                * self.mesh.faces_areas)
+        
+    def get_rigid_dof_mass(self, cog=np.zeros(3), density=1000):
+        """Interia Mass matrix of the body"""
+        fcs = (self.mesh.faces_centers).T
+        combinations = np.array([fcs[0]**2, fcs[1]**2, fcs[2]**2, fcs[0]*fcs[1], fcs[1]*fcs[2], fcs[2]*fcs[0]])
+        integrals = np.array([
+            [np.sum(normal_i * fcs[axis] * combination * self.mesh.faces_areas)
+            for combination in combinations]
+            for axis, normal_i in enumerate(self.mesh.faces_normals.T)])
+
+        # xx, yy, zz, xy, yz, zx
+        # interias = density * np.array([
+        #     (integrals[0,1]   + integrals[0,2]   + integrals[1,1]/3 + integrals[1,2]   + integrals[2,1] + integrals[2,2]/3),
+        #     (integrals[0,0]/3 + integrals[0,2]   + integrals[1,0]   + integrals[1,2]   + integrals[2,0] + integrals[2,2]/3),
+        #     (integrals[0,0]/3 + integrals[0,1]   + integrals[1,0]   + integrals[1,1]/3 + integrals[2,0] + integrals[2,1]  ),
+        #     (integrals[0,3]/2 + integrals[1,3]/2 + integrals[2,3]  ),
+        #     (integrals[0,4]   + integrals[1,4]/2 + integrals[2,4]/2),
+        #     (integrals[0,5]/2 + integrals[1,5]   + integrals[2,5]/2),
+        # ])/3
+        
+        interias = density * np.array([
+            (integrals[0,1]   + integrals[0,2]   + integrals[1,1]/3 + integrals[1,2]   + integrals[2,1] + integrals[2,2]/3)/3,
+            (integrals[0,0]/3 + integrals[0,2]   + integrals[1,0]   + integrals[1,2]   + integrals[2,0] + integrals[2,2]/3)/3,
+            (integrals[0,0]/3 + integrals[0,1]   + integrals[1,0]   + integrals[1,1]/3 + integrals[2,0] + integrals[2,1]  )/3,
+            integrals[2,3],
+            integrals[0,4],
+            integrals[1,5]
+        ])
+        
+        mass = self.get_mass()
+        mass_mat = np.array([
+            [ mass       ,  0          ,  0          ,  0          ,  mass*cog[2], -mass*cog[1]],
+            [ 0          ,  mass       ,  0          , -mass*cog[2],  0          ,  mass*cog[0]],
+            [ 0          ,  0          ,  mass       ,  mass*cog[1], -mass*cog[0],  0          ],
+            [ 0          , -mass*cog[2],  mass*cog[1],  interias[0], -interias[3], -interias[5]],
+            [ mass*cog[2],  0          , -mass*cog[0], -interias[3],  interias[1], -interias[4]],
+            [-mass*cog[1],  mass*cog[0],            0, -interias[5], -interias[4],  interias[2]],
+        ])
+        
+        return self.add_dofs_labels_to_matrix(mass_mat)
+    
+    ###################
     # Transformations #
     ###################
 
