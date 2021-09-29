@@ -238,14 +238,20 @@ class FloatingBody(Abstract3DObject):
     def get_hydrostatic_stiffness(self, divergence=None, saveas=None, 
                                   density=1000.0, gravity=9.80665):
         """Compute hydrostatic stiffness matrix for all DOFs of the body. 
+        
         :math:`C_{ij} = \int_S (\hat{n} \cdot V_i) * (w_j + z*D_j  dS)`
+        
         where :math:`\hat{n}` is surface normal, 
-        `V_i = u_i \hat{n_x} + v_i \hat{n_y} + w_i \hat{n_z}` is DOF vector and
-        `D_j = \nabla \cdot V_i` is the divergence of the DOF.
-        NOTE: this function computes the hydrostatic stiffness assuming D_{j} = 0. 
-        If D_j \neq 0, input the divergence interpolated to face centers. 
+        
+        :math:`V_i = u_i \hat{n_x} + v_i \hat{n_y} + w_i \hat{n_z}` is DOF vector and
+        
+        :math:`D_j = \nabla \cdot V_i` is the divergence of the DOF.
+        
+        NOTE: this function computes the hydrostatic stiffness assuming :math:`D_{j} = 0`. 
+        If :math:`D_j \neq 0`, input the divergence interpolated to face centers. 
         
         Reference:
+        
         Newman, John Nicholas. "Wave effects on deformable bodies." Applied ocean research 16.1 (1994): 47-59.
         http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
         """
