@@ -238,12 +238,16 @@ class FloatingBody(Abstract3DObject):
     def get_hydrostatic_stiffness(self, divergence=None, saveas=None, 
                                   density=1000.0, gravity=9.80665):
         """Compute hydrostatic stiffness matrix for all DOFs of the body. 
-        :math:`C_{ij} = \int_{S} (\hat{n} \cdot S_{i}) * (w_{j} + z*D_{j} )`
+        :math:`C_{ij} = \int_S (\hat{n} \cdot V_i) * (w_j + z*D_j  dS)`
         where :math:`\hat{n}` is surface normal, 
-        `S_{i} = u_{i}n_x + v_{i}n_x + w_{i}n_z` is DOF vector and 
-        `D_{j} = \nabla \cdot S_{j}` is the divergence of the DOF.
+        `V_i = u_i \hat{n_x} + v_i \hat{n_y} + w_i \hat{n_z}` is DOF vector and
+        `D_j = \nabla \cdot V_i` is the divergence of the DOF.
         NOTE: this function computes the hydrostatic stiffness assuming D_{j} = 0. 
         If D_j \neq 0, input the divergence interpolated to face centers. 
+        
+        Reference:
+        Newman, John Nicholas. "Wave effects on deformable bodies." Applied ocean research 16.1 (1994): 47-59.
+        http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
         """
     
         hydrostatic_stiffness = -density*gravity* np.array([
@@ -284,9 +288,10 @@ class FloatingBody(Abstract3DObject):
                 * self.mesh.faces_areas)
         
     def get_rigid_dof_mass(self, cog=np.zeros(3), density=1000):
-        """Interia Mass matrix of the body"""
+        """Interia Mass matrix of the body using gauss divergence theorem"""
         fcs = (self.mesh.faces_centers).T
-        combinations = np.array([fcs[0]**2, fcs[1]**2, fcs[2]**2, fcs[0]*fcs[1], fcs[1]*fcs[2], fcs[2]*fcs[0]])
+        combinations = np.array([fcs[0]**2, fcs[1]**2, fcs[2]**2, fcs[0]*fcs[1], 
+                                 fcs[1]*fcs[2], fcs[2]*fcs[0]])
         integrals = np.array([
             [np.sum(normal_i * fcs[axis] * combination * self.mesh.faces_areas)
             for combination in combinations]
