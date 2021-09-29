@@ -326,7 +326,7 @@ class FloatingBody(Abstract3DObject):
             [-mass*cog[1],  mass*cog[0],            0, -interias[5], -interias[4],  interias[2]],
         ])
         
-        return self.add_dofs_labels_to_matrix(mass_mat)
+        return mass_mat
     
     ###################
     # Transformations #
