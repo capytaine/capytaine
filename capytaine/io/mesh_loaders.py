@@ -419,7 +419,7 @@ def load_VTU(filename, name=None):
     vtk = import_optional_dependency("vtk")
 
     reader = vtk.vtkXMLUnstructuredGridReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename))
     reader.Update()
     vtk_mesh = reader.GetOutput()
 
@@ -451,7 +451,7 @@ def load_VTP(filename, name=None):
     vtk = import_optional_dependency("vtk")
 
     reader = vtk.vtkXMLPolyDataReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename))
     reader.Update()
     vtk_mesh = reader.GetOutput()
 
@@ -483,7 +483,7 @@ def load_VTK(filename, name=None):
     vtk = import_optional_dependency("vtk")
 
     reader = vtk.vtkPolyDataReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename))
     reader.Update()
     vtk_mesh = reader.GetOutput()
 
@@ -547,7 +547,7 @@ def load_STL(filename, name=None):
     _check_file(filename)
 
     reader = vtk.vtkSTLReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename))
     reader.Update()
 
     data = reader.GetOutputDataObject(0)
@@ -674,13 +674,20 @@ def load_GDF(filename, name=None):
     vertices = np.zeros((4 * nf, 3), dtype=float)
     faces = np.zeros((nf, 4), dtype=int)
 
-    iv = -1
+    iv = 0
     for icell in range(nf):
+        
+        n_coords = 0
+        face_coords = np.zeros((12,), dtype=float)
+        
+        while n_coords < 12:
+            line = np.array(ifile.readline().split())
+            face_coords[n_coords:n_coords+len(line)] = line
+            n_coords += len(line)
 
-        for k in range(4):
-            iv += 1
-            vertices[iv, :] = np.array(ifile.readline().split())
-            faces[icell, k] = iv
+        vertices[iv:iv+4, :] = np.split(face_coords, 4)
+        faces[icell, :] = np.arange(iv, iv+4)
+        iv += 4
 
     ifile.close()
 
@@ -882,7 +889,7 @@ def load_WRL(filename, name=None):
             raise NotImplementedError('VRML loader only supports VRML 2.0 format (version %s given)' % ver)
 
     importer = vtk.vtkVRMLImporter()
-    importer.SetFileName(filename)
+    importer.SetFileName(str(filename))
     importer.Update()
 
     actors = importer.GetRenderer().GetActors()

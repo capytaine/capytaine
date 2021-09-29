@@ -2,8 +2,8 @@
 Meshes and floating bodies
 ==========================
 
-Importing a mesh
-----------------
+Importing a mesh with Meshmagick
+--------------------------------
 
 To create a new body using an existing mesh file, use the following syntax::
 
@@ -72,6 +72,43 @@ The formats currently supported by Meshmagick in reading are the following (from
 .. [#f7] TECPLOT is a visualization software developped by Tecplot
 .. [#f8] SALOME-MECA is an open source software for computational mechanics
          developped by EDF-R&D
+
+
+Importing a mesh with Meshio
+----------------------------
+
+Mesh can also be imported using the `meshio <https://pypi.org/project/meshio/>`_
+library. Unlike the Meshmagick mesh readers mentionned above, this library is
+not packaged with Capytaine and need to be installed independantly::
+
+    pip install meshio
+
+A `meshio` mesh object can be read using the :code:`FloatingBody.from_meshio`
+method::
+
+    import meshio
+    mesh = meshio.read("myfile.stl")
+    body = FloatingBody.from_meshio(mesh, name="My floating body")
+
+This features allows to use `pygmsh <https://pypi.org/project/pygmsh/>`_ to
+generate the mesh, since this library returns mesh in the same format as meshio.
+Below is an example of a mesh generation with `pygmsh` (which also needs to be
+installed independantly)::
+
+    import pygmsh
+    offset = 1e-2
+    T1 = 0.16
+    T2 = 0.37
+    r1 = 0.88
+    r2 = 0.35
+    with pygmsh.occ.Geometry() as geom:
+        cyl = geom.add_cylinder([0, 0, 0], [0, 0, -T1],  r1)
+        cone = geom.add_cone([0, 0, -T1], [0, 0, -T2], r1, r2)
+        geom.translate(cyl, [0, 0, offset])
+        geom.translate(cone, [0, 0, offset])
+        geom.boolean_union([cyl, cone])
+        mesh = geom.generate_mesh(dim=2)
+    body = FloatingBody.from_meshio(mesh)
 
 
 Display and animation

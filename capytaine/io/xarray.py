@@ -16,6 +16,7 @@ from typing import Sequence, List, Union
 import numpy as np
 import pandas as pd
 import xarray as xr
+from scipy.optimize import newton
 
 from capytaine import __version__
 from capytaine.bodies.bodies import FloatingBody
@@ -23,6 +24,7 @@ from capytaine.bem.problems_and_results import (
     LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem,
     LinearPotentialFlowResult, _default_parameters)
 from capytaine.post_pro.kochin import compute_kochin
+from capytaine.io.bemio import dataframe_from_bemio
 
 
 LOG = logging.getLogger(__name__)
@@ -57,6 +59,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     omega_range = dataset['omega'].data if 'omega' in dataset else [_default_parameters['omega']]
     water_depth_range = dataset['water_depth'].data if 'water_depth' in dataset else [_default_parameters['water_depth']]
     rho_range = dataset['rho'].data if 'rho' in dataset else [_default_parameters['rho']]
+    g_range = dataset['g'].data if 'g' in dataset else [_default_parameters['g']]
 
     wave_direction_range = dataset['wave_direction'].data if 'wave_direction' in dataset else None
     radiating_dofs = dataset['radiating_dof'].data.astype(object) if 'radiating_dof' in dataset else None
@@ -72,19 +75,19 @@ def problems_from_dataset(dataset: xr.Dataset,
 
     problems = []
     if wave_direction_range is not None:
-        for omega, wave_direction, water_depth, body_name, rho \
-                in product(omega_range, wave_direction_range, water_depth_range, body_range, rho_range):
+        for omega, wave_direction, water_depth, body_name, rho, g \
+                in product(omega_range, wave_direction_range, water_depth_range, body_range, rho_range, g_range):
             problems.append(
                 DiffractionProblem(body=body_range[body_name], omega=omega,
-                                   wave_direction=wave_direction, sea_bottom=-water_depth, rho=rho)
+                                   wave_direction=wave_direction, sea_bottom=-water_depth, rho=rho, g=g)
             )
 
     if radiating_dofs is not None:
-        for omega, radiating_dof, water_depth, body_name, rho \
-                in product(omega_range, radiating_dofs, water_depth_range, body_range, rho_range):
+        for omega, radiating_dof, water_depth, body_name, rho, g \
+                in product(omega_range, radiating_dofs, water_depth_range, body_range, rho_range, g_range):
             problems.append(
                 RadiationProblem(body=body_range[body_name], omega=omega,
-                                 radiating_dof=radiating_dof, sea_bottom=-water_depth, rho=rho)
+                                 radiating_dof=radiating_dof, sea_bottom=-water_depth, rho=rho, g=g)
             )
 
     return sorted(problems)
@@ -136,6 +139,7 @@ def _dataset_from_dataframe(df: pd.DataFrame,
         They will appears as dimension in the output dataset only if they have
         more than one different values.
     """
+
     for variable_name in variables:
         df = df[df[variable_name].notnull()].dropna(axis='columns')  # Keep only records with non null values of all the variables
     df = df.drop_duplicates()
@@ -211,8 +215,24 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
 
     return kochin_data
 
+def collect_records(results):
+    records_list = []
+    warned_once_about_no_free_surface = False
+    for result in results:
+        if result.free_surface == np.infty:
+            if not warned_once_about_no_free_surface:
+                LOG.warning("Datasets currently only support cases with a free surface (free_surface=0.0).\n"
+                            "Cases without a free surface (free_surface=infty) are ignored.\n"
+                            "See also https://github.com/mancellin/capytaine/issues/88")
+                warned_once_about_no_free_surface = True
+            else:
+                pass
+        else:
+            for record in result.records:
+                records_list.append(record)
+    return records_list
 
-def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
+def assemble_dataset(results,
                      wavenumber=False, wavelength=False, mesh=False, hydrostatics=True,
                      attrs=None) -> xr.Dataset:
     """Transform a list of :class:`LinearPotentialFlowResult` into a :class:`xarray.Dataset`.
@@ -238,15 +258,39 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
     """
     dataset = xr.Dataset()
 
+    error_msg = 'results must be either of type LinearPotentialFlowResult or a bemio.io object'
+    if hasattr(results, '__iter__'):
+        try:
+            if 'capytaine' in results[0].__module__:
+                bemio_import = False
+            else:
+                raise TypeError(error_msg)
+        except:
+            raise TypeError(error_msg)
+
+    else:
+        try:
+            if 'bemio.io' in results.__module__:
+                bemio_import = True
+            else:
+                raise TypeError(error_msg)
+        except:
+            raise TypeError(error_msg)
+    
+    if bemio_import:
+        records = dataframe_from_bemio(results, wavenumber, wavelength) # TODO add hydrostatics
+        all_dofs_in_order = {'Surge': None, 'Sway': None, 'Heave': None, 'Roll': None, 'Pitch': None, 'Yaw': None}
+
+    else:
+        records = pd.DataFrame(collect_records(results))
+        all_dofs_in_order = {k: None for r in results for k in r.body.dofs.keys()}
+
     if attrs is None:
         attrs = {}
     attrs['creation_of_dataset'] = datetime.now().isoformat()
-
-    records = pd.DataFrame([record for result in results for record in result.records])
     if len(records) == 0:
         raise ValueError("No result passed to assemble_dataset.")
 
-    all_dofs_in_order = {k: None for r in results for k in r.body.dofs.keys()}
     inf_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
     records["influenced_dof"] = records["influenced_dof"].astype(inf_dof_cat)
     rad_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
@@ -281,34 +325,56 @@ def assemble_dataset(results: Sequence[LinearPotentialFlowResult],
 
     # WAVENUMBER
     if wavenumber:
-        dataset.coords['wavenumber'] = wavenumber_data_array(results)
+        if bemio_import:
+            wavenumber_ds = _dataset_from_dataframe(
+                records.drop_duplicates(subset=['omega']),
+                variables=['wavenumber'],
+                dimensions=['omega'],
+                optional_dims=['g', 'water_depth'])
+            dataset.coords['wavenumber'] = wavenumber_ds['wavenumber']
+        else:
+            dataset.coords['wavenumber'] = wavenumber_data_array(results)
 
     if wavelength:
-        dataset.coords['wavelength'] = 2*np.pi/wavenumber_data_array(results)
+        if bemio_import:
+            wavelength_ds = _dataset_from_dataframe(
+                    records.drop_duplicates(subset=['omega']),
+                    variables=['wavelength'],
+                    dimensions=['omega'],
+                    optional_dims=['g', 'water_depth'])
+            dataset.coords['wavelength'] = wavelength_ds['wavelength']
+        else:
+            dataset.coords['wavelength'] = 2*np.pi/wavenumber_data_array(results)
 
     if mesh:
-        # TODO: Store full mesh...
-        bodies = list({result.body for result in results})  # Filter out duplicate bodies in the list of results
-        nb_faces = {body.name: body.mesh.nb_faces for body in bodies}
-
-        def name_or_str(c):
-            return c.name if hasattr(c, 'name') else str(c)
-        quad_methods = {body.name: name_or_str(body.mesh.quadrature_method) for body in bodies}
-
-        if len(nb_faces) > 1:
-            dataset.coords['nb_faces'] = ('body_name', [nb_faces[name] for name in dataset.coords['body_name'].data])
-            dataset.coords['quadrature_method'] = ('body_name', [quad_methods[name] for name in dataset.coords['body_name'].data])
+        if bemio_import:
+            LOG.warning('Bemio data does not include mesh data. mesh=True is ignored.')
         else:
-            def the_only(d):
-                """Return the only element of a 1-element dictionnary"""
-                return next(iter(d.values()))
-            dataset.coords['nb_faces'] = the_only(nb_faces)
-            dataset.coords['quadrature_method'] = the_only(quad_methods)
+            # TODO: Store full mesh...
+            bodies = list({result.body for result in results})  # Filter out duplicate bodies in the list of results
+            nb_faces = {body.name: body.mesh.nb_faces for body in bodies}
+
+            def name_or_str(c):
+                return c.name if hasattr(c, 'name') else str(c)
+            quad_methods = {body.name: name_or_str(body.mesh.quadrature_method) for body in bodies}
+
+            if len(nb_faces) > 1:
+                dataset.coords['nb_faces'] = ('body_name', [nb_faces[name] for name in dataset.coords['body_name'].data])
+                dataset.coords['quadrature_method'] = ('body_name', [quad_methods[name] for name in dataset.coords['body_name'].data])
+            else:
+                def the_only(d):
+                    """Return the only element of a 1-element dictionnary"""
+                    return next(iter(d.values()))
+                dataset.coords['nb_faces'] = the_only(nb_faces)
+                dataset.coords['quadrature_method'] = the_only(quad_methods)
 
     # HYDROSTATICS
     if hydrostatics:
-        bodies = list({result.body for result in results})
-        dataset = xr.merge([dataset, hydrostatics_dataset(bodies)])
+        if bemio_import:
+            LOG.warning('Bemio data import being used, hydrostatics=True is ignored.')
+        else:
+            bodies = list({result.body for result in results})
+            dataset = xr.merge([dataset, hydrostatics_dataset(bodies)])
 
     dataset.attrs.update(attrs)
     dataset.attrs['capytaine_version'] = __version__
