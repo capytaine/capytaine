@@ -25,24 +25,24 @@ Major changes
 New features
 ~~~~~~~~~~~~
 
-* Add method :code:`FloatingBody.from_meshio` to import `meshio <https://pypi.org/project/meshio/>`_ and `pygmsh <https://pypi.org/project/pygmsh/>`_ mesh objects.
+* Add method :code:`FloatingBody.from_meshio` to import `meshio <https://pypi.org/project/meshio/>`_ and `pygmsh <https://pypi.org/project/pygmsh/>`_ mesh objects (:pull:`62`)
 
-* Add method :code:`FloatingBody.assemble_arbitrary_array` to make an array of bodies with arbitrary layout.
+* Add method :code:`FloatingBody.assemble_arbitrary_array` to make an array of bodies with arbitrary layout (:pull:`71`).
 
-* Break out impedance from RAO to separate function (:issue:`61` and :issue:`63`).
+* Break out impedance from RAO to separate function (:issue:`61` and :pull:`63`).
 
-* Method `problems_from_dataset` can now use a list of gravitational acceleration `g` values in the test matrix.
+* Method `problems_from_dataset` can now use a list of gravitational acceleration `g` values in the test matrix (:pull:`86`).
 
-* Add example in cookbook for computing hydrostatics and mass properties.
+* Add example in cookbook for computing hydrostatics and mass properties with Meshmagick 2 (:pull:`70`).
 
 Bug fixes
 ~~~~~~~~~
 
-* Fix bug in free surface elevation computation when the number of faces in the free surface mesh is not a multiple of the chunk size (by default a multiple of 50).
+* Fix bug in free surface elevation computation when the number of faces in the free surface mesh is not a multiple of the chunk size, that is by default a multiple of 50 (:pull:`82`).
 
 * The function :code:`assemble_dataset` did not support well the problems without a free surface. In the new version, such problems are explicitely ignored and a warning message is displayed. (:issue:`88` and :pull:`89`).
 
-* Fix bug in some of the mesh readers/writers when using pathlib path objects.
+* Fix bug in some of the mesh readers/writers when using pathlib path objects (:pull:`87`).
 
 * Function :code:`load_GDF` has been rewritten to accept any GDF file format (:pull:`97`).
 
@@ -51,7 +51,7 @@ Internal and development
 
 * Easier installation of optional dependencies via :code:`pip install -e .[extra]` and :code:`pip install -e .[develop]` (:pull:`96`).
 
-* Use pytest skipif to skip tests if optional dependecies are not installed.
+* Use pytest skipif to skip tests if optional dependecies are not installed (:pull:`68`).
 
 ---------------------------------
 New in version 1.2.1 (2021-04-14)
