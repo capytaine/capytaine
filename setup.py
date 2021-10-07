@@ -87,6 +87,32 @@ if __name__ == "__main__":
               'pandas>=1.3',
               'xarray',
           ],
+          extras_require={
+            'develop': [
+              'pytest',
+              'hypothesis',
+              'ipython',
+              'matplotlib',
+              'vtk',
+              'meshio',
+              'pygmsh',
+              'gmsh',
+              'quadpy<=0.14.11',
+              'bemio @ git+https://github.com/michaelcdevin/bemio.git@master-python3#egg=bemio',
+              'sphinx',
+              'sphinxcontrib-proof',
+            ],
+            'extra': [
+              'ipython',
+              'matplotlib',
+              'vtk',
+              'meshio',
+              'pygmsh',
+              'gmsh',
+              'quadpy<=0.14.11',
+              'bemio @ git+https://github.com/michaelcdevin/bemio.git@master-python3#egg=bemio',
+            ]
+          },
           entry_points={
               'console_scripts': [
                   'capytaine=capytaine.ui.cli:main',
