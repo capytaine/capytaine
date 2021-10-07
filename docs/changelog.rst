@@ -2,43 +2,56 @@
 Changelog
 =========
 
----------------------------------
-New in next version
----------------------------------
+-------------------------------
+New in version 1.3 (2021-10-07)
+-------------------------------
 
-* Easier developer install via :code:`pip install -e .[develop]`
-
-* Add method :code:`FloatingBody.from_meshio` to import `meshio <https://pypi.org/project/meshio/>`_ and `pygmsh <https://pypi.org/project/pygmsh/>`_ mesh objects.
-
-* Add method :code:`FloatingBody.assemble_arbitrary_array` to make an array of bodies with arbitrary layout.
+Major changes
+~~~~~~~~~~~~~
 
 * The mesh are always "healed" when a new :code:`FloatingBody` is initialised
   (i.e. unused vertices are removed, degenerate triangles are removed, etc.).
-  See for instance `issue #46 <https://github.com/mancellin/capytaine/issues/46>`_.
+  See for instance :issue:`46`.
 
 * Implementation of symmetries for :code:`HorizontalCylinder` has changed.
   The cylinder is now a reflection of two halves containing translational
   repetition of half rings, instead of a translational repetition of symmetric
-  ring. By default, only reflection symmetry is used.
+  ring. By default, only reflection symmetry is used. (:pull:`91`)
   The use of symmetries can be controlled with :code:`translation_symmetry` and
   :code:`reflection_symmetry` optional keyword arguments.
   The :code:`clever` keywork argument is deprecated for :code:`HorizontalCylinder`
   and should be replaced by the new more explicit keyword arguments above.
 
-* Add example in cookbook for computing hydrostatics and mass properties
-* Use pytest skipif to skip tests if optional dependecies are not installed
-* Break out impedance from RAO to separate function (see #61`<https://github.com/mancellin/capytaine/issues/61>`_ and (see #63`<https://github.com/mancellin/capytaine/pull/63>`_)
-* Fix bug in free surface elevation computation when the number of faces in the free surface mesh is not a multiple of the chunk size (by default a multiple of 50).
-* The function :code:`assemble_dataset` did not support well the problems without a free surface. In the new version, such problems are explicitely ignored and a warning message is displayed.
-* Fix bug in some of the mesh readers/writers when using pathlib path objects.
-* Method `problems_from_dataset` can now use a list of gravitational acceleration `g` values in the test matrix.
-* The function :code:`assemble_dataset` can now accept data structures from Bemio
-  (see #77`<https://github.com/mancellin/capytaine/issues/77>`_ and
-  #79`<https://github.com/mancellin/capytaine/pull/79`_).
-* File `capytaine/io/bemio.py` has been added, containing the function
-  :code:`dataframe_from_bemio` to assist with the :code:`assemble_dataset` Bemio
-  importing functionality.
-* Function :code:`load_GDF` has been rewritten to accept any GDF file format
+New features
+~~~~~~~~~~~~
+
+* Add method :code:`FloatingBody.from_meshio` to import `meshio <https://pypi.org/project/meshio/>`_ and `pygmsh <https://pypi.org/project/pygmsh/>`_ mesh objects (:pull:`62`)
+
+* Add method :code:`FloatingBody.assemble_arbitrary_array` to make an array of bodies with arbitrary layout (:pull:`71`).
+
+* Break out impedance from RAO to separate function (:issue:`61` and :pull:`63`).
+
+* Method `problems_from_dataset` can now use a list of gravitational acceleration `g` values in the test matrix (:pull:`86`).
+
+* Add example in cookbook for computing hydrostatics and mass properties with Meshmagick 2 (:pull:`70`).
+
+Bug fixes
+~~~~~~~~~
+
+* Fix bug in free surface elevation computation when the number of faces in the free surface mesh is not a multiple of the chunk size, that is by default a multiple of 50 (:pull:`82`).
+
+* The function :code:`assemble_dataset` did not support well the problems without a free surface. In the new version, such problems are explicitely ignored and a warning message is displayed. (:issue:`88` and :pull:`89`).
+
+* Fix bug in some of the mesh readers/writers when using pathlib path objects (:pull:`87`).
+
+* Function :code:`load_GDF` has been rewritten to accept any GDF file format (:pull:`97`).
+
+Internal and development
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Easier installation of optional dependencies via :code:`pip install -e .[extra]` and :code:`pip install -e .[develop]` (:pull:`96`).
+
+* Use pytest skipif to skip tests if optional dependecies are not installed (:pull:`68`).
 
 ---------------------------------
 New in version 1.2.1 (2021-04-14)
