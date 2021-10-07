@@ -7,7 +7,7 @@ On Linux, MacOS, or Windows Subsystem for Linux (WSL)
 
 It is recommended to use a `conda environment <https://conda.io/docs/user-guide/tasks/manage-environments.html>`_, for instance with::
 
-    conde create --name capy_dev python=3.9 numpy=1.20 pip
+    conde create --name capy_dev python=3.9 numpy=1.20 scipy pip
     conda activate capy_dev
 
 Capytaine requires **Python 3.6** or higher.
