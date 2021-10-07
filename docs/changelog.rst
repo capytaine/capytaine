@@ -44,11 +44,14 @@ Bug fixes
 
 * Fix bug in some of the mesh readers/writers when using pathlib path objects.
 
-Internal
-~~~~~~~~
+* Function :code:`load_GDF` has been rewritten to accept any GDF file format (:pull:`97`).
+
+Internal and development
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Easier installation of optional dependencies via :code:`pip install -e .[extra]` and :code:`pip install -e .[develop]` (:pull:`96`).
 
 * Use pytest skipif to skip tests if optional dependecies are not installed.
-
 
 ---------------------------------
 New in version 1.2.1 (2021-04-14)
