@@ -251,7 +251,7 @@ def heal_normals(mesh):
 
         tol = 1e-9
         if np.fabs(hs[0]) > tol or np.fabs(hs[1]) > tol:
-            LOG.warning("\t--> the mesh does not seem watertight althought marked as closed...")
+            LOG.warning("\t--> the mesh does not seem watertight although marked as closed...")
 
         if hs[2] < 0:
             flipped = True
