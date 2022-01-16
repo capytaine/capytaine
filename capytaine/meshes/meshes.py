@@ -520,7 +520,7 @@ class Mesh(Abstract3DObject):
         if field is not None:
             cbar = fig.colorbar(m)
             if cbar_label is not None:
-                cbar.set_label(cmap_label)
+                cbar.set_label(cbar_label)
 
 
 
@@ -535,6 +535,7 @@ class Mesh(Abstract3DObject):
 
         ax.set_xlabel("x")
         ax.set_ylabel("y")
+        ax.set_zlabel("z")
 
         xmin, xmax, ymin, ymax, zmin, zmax = self.squared_axis_aligned_bbox
         ax.set_xlim(xmin, xmax)
@@ -545,7 +546,7 @@ class Mesh(Abstract3DObject):
             if saveas is not None:
                 plt.tight_layout()
                 plt.savefig(saveas)
-            elif show:
+            else:
                 plt.show()
 
     ################################
