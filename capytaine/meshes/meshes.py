@@ -457,7 +457,7 @@ class Mesh(Abstract3DObject):
 
     def show_matplotlib(self, ax=None,
                         normal_vectors=False, scale_normal_vector=None,
-                        saveas=None,
+                        saveas=None, field=None, cmap=None,
                         **kwargs):
         """Poor man's viewer with matplotlib.
 
@@ -476,6 +476,7 @@ class Mesh(Abstract3DObject):
         """
         matplotlib = import_optional_dependency("matplotlib")
         plt = matplotlib.pyplot
+        cm = matplotlib.cm
 
         mpl_toolkits = import_optional_dependency("mpl_toolkits", package_name="matplotlib")
         Poly3DCollection = mpl_toolkits.mplot3d.art3d.Poly3DCollection
