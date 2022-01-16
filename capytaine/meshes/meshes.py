@@ -527,20 +527,20 @@ class Mesh(Abstract3DObject):
                 vectors = self.faces_normals
             ax.quiver(*zip(*self.faces_centers), *zip(*vectors), length=0.2)
 
+
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+
+        xmin, xmax, ymin, ymax, zmin, zmax = self.squared_axis_aligned_bbox
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+        ax.set_zlim(zmin, zmax)
+
         if default_axis:
-            ax.set_xlabel("x")
-            ax.set_ylabel("y")
-
-            xmin, xmax, ymin, ymax, zmin, zmax = self.squared_axis_aligned_bbox
-            ax.set_xlim(xmin, xmax)
-            ax.set_ylim(ymin, ymax)
-            ax.set_zlim(zmin, zmax)
-
-
             if saveas is not None:
                 plt.tight_layout()
                 plt.savefig(saveas)
-            else:
+            elif show:
                 plt.show()
 
     ################################
