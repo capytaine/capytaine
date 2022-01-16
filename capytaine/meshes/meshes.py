@@ -479,7 +479,8 @@ class Mesh(Abstract3DObject):
         cmap: matplotlib colormap
             Colormap to use for field plotting.
         get_handle: bool
-            If True, return handle to axis object.
+            If True, return handle to axis. If True and field is not None, returns
+            handles to axis and colorbar.
 
         Other parameters are passed to Poly3DCollection.
         """
@@ -518,7 +519,7 @@ class Mesh(Abstract3DObject):
         ax.add_collection3d(Poly3DCollection(faces, **kwargs))
 
         if field is not None:
-            fig.colorbar(m)
+            cbar = fig.colorbar(m)
 
 
 
@@ -540,7 +541,10 @@ class Mesh(Abstract3DObject):
             ax.set_zlim(zmin, zmax)
 
             if get_handle:
-                return ax
+                if field is None:
+                    return ax
+                else:
+                    return ax, cbar
             if saveas is not None:
                 plt.tight_layout()
                 plt.savefig(saveas)
