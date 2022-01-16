@@ -455,9 +455,10 @@ class Mesh(Abstract3DObject):
         viewer.show()
         viewer.finalize()
 
-    def show_matplotlib(self, ax=None,
+    def show_matplotlib(self, ax=None, fig=None,
                         normal_vectors=False, scale_normal_vector=None,
                         saveas=None, field=None, cmap=None,
+                        get_handle=False,
                         **kwargs):
         """Poor man's viewer with matplotlib.
 
@@ -465,12 +466,20 @@ class Mesh(Abstract3DObject):
         ----------
         ax: matplotlib axis
             The 3d axis in which to plot the mesh. If not provided, create a new one.
-        normal_vector: bool
+        fig: matplotlib figure
+            The figure in which to plot the mesh. If not provided, create a new one.
+        normal_vectors: bool
             If True, print normal vector.
         scale_normal_vector: array of shape (nb_faces, )
             Scale separately each of the normal vectors.
         saveas: str
-            file path where to save the image
+            File path where to save the image.
+        field: array of shape (nb_faces, )
+            Scalar field to be plot on the mesh (optional).
+        cmap: matplotlib colormap
+            Colormap to use for field plotting.
+        get_handle: bool
+            If True, return handle to axis object.
 
         Other parameters are passed to Poly3DCollection.
         """
@@ -481,7 +490,7 @@ class Mesh(Abstract3DObject):
         mpl_toolkits = import_optional_dependency("mpl_toolkits", package_name="matplotlib")
         Poly3DCollection = mpl_toolkits.mplot3d.art3d.Poly3DCollection
 
-        default_axis = ax is None
+        default_axis = ax is None or fig is None
         if default_axis:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection="3d")
@@ -508,6 +517,9 @@ class Mesh(Abstract3DObject):
             kwargs['edgecolor'] = 'k'
         ax.add_collection3d(Poly3DCollection(faces, **kwargs))
 
+        if field is not None:
+            fig.colorbar(m)
+
 
 
         # Plot normal vectors.
@@ -527,6 +539,8 @@ class Mesh(Abstract3DObject):
             ax.set_ylim(ymin, ymax)
             ax.set_zlim(zmin, zmax)
 
+            if get_handle:
+                return ax
             if saveas is not None:
                 plt.tight_layout()
                 plt.savefig(saveas)
