@@ -458,6 +458,7 @@ class Mesh(Abstract3DObject):
     def show_matplotlib(self, ax=None, fig=None,
                         normal_vectors=False, scale_normal_vector=None,
                         saveas=None, field=None, cmap=None,
+                        cbar_label=None,
                         **kwargs):
         """Poor man's viewer with matplotlib.
 
@@ -477,6 +478,8 @@ class Mesh(Abstract3DObject):
             Scalar field to be plot on the mesh (optional).
         cmap: matplotlib colormap
             Colormap to use for field plotting.
+        cbar_label: string
+            Label for colormap
 
         Other parameters are passed to Poly3DCollection.
         """
@@ -516,6 +519,8 @@ class Mesh(Abstract3DObject):
 
         if field is not None:
             cbar = fig.colorbar(m)
+            if cbar_label is not None:
+                cbar.set_label(cmap_label)
 
 
 
