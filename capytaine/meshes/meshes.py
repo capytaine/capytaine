@@ -492,11 +492,23 @@ class Mesh(Abstract3DObject):
             for index_vertex in face:
                 vertices.append(self.vertices[int(index_vertex), :])
             faces.append(vertices)
-        if 'facecolors' not in kwargs:
-            kwargs['facecolors'] = (0.3, 0.3, 0.3, 0.3)
+
+        if field is None:
+            if 'facecolors' not in kwargs:
+                kwargs['facecolors'] = (0.3, 0.3, 0.3, 0.3)
+        else:
+            if cmap is None:
+                cmap = cm.get_cmap('coolwarm')
+            m = cm.ScalarMappable(cmap=cmap)
+            m.set_array([min(field), max(field)])
+            m.set_clim(vmin=min(field), vmax=max(field))
+            colors = m.to_rgba(field)
+            kwargs['facecolors'] = colors
         if 'edgecolor' not in kwargs:
             kwargs['edgecolor'] = 'k'
         ax.add_collection3d(Poly3DCollection(faces, **kwargs))
+
+
 
         # Plot normal vectors.
         if normal_vectors:
