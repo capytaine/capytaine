@@ -504,7 +504,7 @@ class Mesh(Abstract3DObject):
 
         if field is None:
             if 'facecolors' not in kwargs:
-                kwargs['facecolors'] = (0.3, 0.3, 0.3, 0.3)
+                kwargs['facecolors'] = "yellow"
         else:
             if cmap is None:
                 cmap = cm.get_cmap('coolwarm')
@@ -515,6 +515,7 @@ class Mesh(Abstract3DObject):
             kwargs['facecolors'] = colors
         if 'edgecolor' not in kwargs:
             kwargs['edgecolor'] = 'k'
+
         ax.add_collection3d(Poly3DCollection(faces, **kwargs))
 
         if field is not None:
