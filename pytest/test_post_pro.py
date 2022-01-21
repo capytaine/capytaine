@@ -5,6 +5,7 @@ from capytaine import BEMSolver
 from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.post_pro import rao
 from capytaine.post_pro import impedance
+from capytaine.post_pro import irf
 
 f = np.linspace(0.1, 2.0)
 omega = 2*np.pi*f
@@ -58,6 +59,12 @@ def test_rao_sphere_all(sphere_fb):
 
     RAO = rao(data)
 
+    time_series = np.arange(0,50,0.1)
+    kr = irf.rad_kernel(data, time_series)
+
+    assert kr.shape == (len(time_series), 
+                        data.radiating_dof.size,
+                        data.influenced_dof.size)
     assert RAO.radiating_dof.size == 6
     assert data.mass.shape == (6,6)
     assert np.all(data.mass.values == M)
