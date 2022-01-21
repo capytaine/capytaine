@@ -389,9 +389,15 @@ def test_solve_2x2():
     assert np.allclose(x_toe, x_dumb, rtol=1e-6)
 
 
+def random_well_conditioned_matrix(n):
+    # TODO: Double check that...
+    return np.identity(n) + 0.1*np.random.rand(n, n)
+
+
 def test_solve_block_circulant():
+    nb_blocks = 6
     A = BlockCirculantMatrix([
-        [(lambda: np.random.rand(3, 3))() for _ in range(6)]
+        [random_well_conditioned_matrix(3) for _ in range(nb_blocks)]
     ])
     b = np.random.rand(A.shape[0])
 
@@ -424,7 +430,7 @@ def test_solve_nested_block_circulant():
 
 
 def test_solve_block_toeplitz():
-    A = BlockToeplitzMatrix([[(lambda: np.random.rand(1, 1))() for _ in range(7)]])
+    A = BlockToeplitzMatrix([[random_well_conditioned_matrix(3) for _ in range(7)]])
     b = np.random.rand(A.shape[0])
 
     assert np.allclose(BlockMatrix.matvec(A, b), A.full_matrix() @ b)
