@@ -455,9 +455,9 @@ class Mesh(Abstract3DObject):
         viewer.show()
         viewer.finalize()
 
-    def show_matplotlib(self, ax=None, fig=None,
+    def show_matplotlib(self, ax=None,
                         normal_vectors=False, scale_normal_vector=None,
-                        saveas=None, field=None, cmap=None,
+                        saveas=None, color_field=None, cmap=None,
                         cbar_label=None,
                         **kwargs):
         """Poor man's viewer with matplotlib.
@@ -474,7 +474,7 @@ class Mesh(Abstract3DObject):
             Scale separately each of the normal vectors.
         saveas: str
             File path where to save the image.
-        field: array of shape (nb_faces, )
+        color_field: array of shape (nb_faces, )
             Scalar field to be plot on the mesh (optional).
         cmap: matplotlib colormap
             Colormap to use for field plotting.
@@ -490,7 +490,7 @@ class Mesh(Abstract3DObject):
         mpl_toolkits = import_optional_dependency("mpl_toolkits", package_name="matplotlib")
         Poly3DCollection = mpl_toolkits.mplot3d.art3d.Poly3DCollection
 
-        default_axis = ax is None or fig is None
+        default_axis = ax is None
         if default_axis:
             fig = plt.figure()
             ax = fig.add_subplot(111, projection="3d")
@@ -502,24 +502,24 @@ class Mesh(Abstract3DObject):
                 vertices.append(self.vertices[int(index_vertex), :])
             faces.append(vertices)
 
-        if field is None:
+        if color_field is None:
             if 'facecolors' not in kwargs:
                 kwargs['facecolors'] = "yellow"
         else:
             if cmap is None:
                 cmap = cm.get_cmap('coolwarm')
             m = cm.ScalarMappable(cmap=cmap)
-            m.set_array([min(field), max(field)])
-            m.set_clim(vmin=min(field), vmax=max(field))
-            colors = m.to_rgba(field)
+            m.set_array([min(color_field), max(color_field)])
+            m.set_clim(vmin=min(color_field), vmax=max(color_field))
+            colors = m.to_rgba(color_field)
             kwargs['facecolors'] = colors
         if 'edgecolor' not in kwargs:
             kwargs['edgecolor'] = 'k'
 
         ax.add_collection3d(Poly3DCollection(faces, **kwargs))
 
-        if field is not None:
-            cbar = fig.colorbar(m)
+        if color_field is not None:
+            cbar = plt.colorbar(m)
             if cbar_label is not None:
                 cbar.set_label(cbar_label)
 
