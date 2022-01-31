@@ -2,6 +2,9 @@
 Changelog
 =========
 
+* Method :code:`show_matplotlib` can now colour mesh faces based on a
+  specified scalar field (e.g. pressure)
+
 -------------------------------
 New in version 1.3 (2021-10-07)
 -------------------------------
@@ -398,4 +401,3 @@ Minor changes
 * Improvement of :code:`assemble_dataset` for parametric studies.
 * Support clipping of collections of meshes.
 * Fixes in geometrical bodies generation.
-
