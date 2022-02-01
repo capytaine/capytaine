@@ -19,7 +19,7 @@ Major changes
   ring. By default, only reflection symmetry is used. (:pull:`91`)
   The use of symmetries can be controlled with :code:`translation_symmetry` and
   :code:`reflection_symmetry` optional keyword arguments.
-  The :code:`clever` keywork argument is deprecated for :code:`HorizontalCylinder`
+  The :code:`clever` keyword argument is deprecated for :code:`HorizontalCylinder`
   and should be replaced by the new more explicit keyword arguments above.
 
 New features
@@ -40,7 +40,7 @@ Bug fixes
 
 * Fix bug in free surface elevation computation when the number of faces in the free surface mesh is not a multiple of the chunk size, that is by default a multiple of 50 (:pull:`82`).
 
-* The function :code:`assemble_dataset` did not support well the problems without a free surface. In the new version, such problems are explicitely ignored and a warning message is displayed. (:issue:`88` and :pull:`89`).
+* The function :code:`assemble_dataset` did not support well the problems without a free surface. In the new version, such problems are explicitly ignored and a warning message is displayed. (:issue:`88` and :pull:`89`).
 
 * Fix bug in some of the mesh readers/writers when using pathlib path objects (:pull:`87`).
 
@@ -51,7 +51,7 @@ Internal and development
 
 * Easier installation of optional dependencies via :code:`pip install -e .[extra]` and :code:`pip install -e .[develop]` (:pull:`96`).
 
-* Use pytest skipif to skip tests if optional dependecies are not installed (:pull:`68`).
+* Use pytest skipif to skip tests if optional dependencies are not installed (:pull:`68`).
 
 ---------------------------------
 New in version 1.2.1 (2021-04-14)
@@ -91,11 +91,11 @@ New in version 1.2 (2020-04-24)
 
 * Improvement of caching to limit RAM usage for large problems.
 
-* Make optional the dependancy to graphical packages (`matplotlib` and `vtk`).
+* Make optional the dependency to graphical packages (`matplotlib` and `vtk`).
   They were causing issues to some users.
 
 * :code:`problems_and_results.py` has been rewritten to be slightly more readable and
-  remove the dependancy to `attrs`.
+  remove the dependency to `attrs`.
 
 -------------------------------
 New in version 1.1 (2019-09-24)
@@ -159,7 +159,7 @@ Major changes
 * Most of the modules have been reorganized in several packages. See the
   :doc:`developer_manual/overview` for some details.
 
-* Test compability of the code with Python 3.7 and numpy 1.16.
+* Test compatibility of the code with Python 3.7 and numpy 1.16.
 
 * Remove a couple of unmaintained or unfinished submodules.
 
@@ -302,7 +302,7 @@ Major changes
   The parallelization in :code:`solve_all` has been removed.
 
 * Integration of a refactored subset of Meshmagick into Capytaine as the :code:`mesh` submodule.
-  Meshmagick is not a dependancy any more.
+  Meshmagick is not a dependency any more.
 
 * Reorganization of the submodules:
 

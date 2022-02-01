@@ -189,7 +189,7 @@ todo_include_todos = True
 
 math_number_all = True
 
-# Options for napolean
+# Options for napoleon
 
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True

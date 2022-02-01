@@ -30,7 +30,7 @@ def load_mesh(filename, file_format=None, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
     file_format: str, optional
         format of the mesh defined in the extension_dict dictionary
     name: str, optional
@@ -61,7 +61,7 @@ def load_RAD(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -113,7 +113,7 @@ def load_HST(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -187,13 +187,13 @@ def load_DAT(filename, name=None):
 def load_INP(filename, name=None):
     """Loads DIODORE (PRINCIPIA (c)) configuration file format.
 
-    It parses the .INP file and extract meshes defined in subsequent .DAT files using the different informations
+    It parses the .INP file and extracts meshes defined in subsequent .DAT files using the different information
     contained in the .INP file.
 
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -210,7 +210,7 @@ def load_INP(filename, name=None):
     with open(filename, 'r') as f:
         text = f.read()
 
-    # Retrieving frames into a dictionnary frames
+    # Retrieving frames into a dictionary frames
     pattern_frame_str = r'^\s*\*FRAME,NAME=(.+)[\r\n]+(.*)'
     pattern_frame = re.compile(pattern_frame_str, re.MULTILINE)
 
@@ -360,7 +360,7 @@ def load_TEC(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -402,7 +402,7 @@ def load_VTU(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -435,7 +435,7 @@ def load_VTP(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -467,7 +467,7 @@ def load_VTK(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -529,7 +529,7 @@ def load_STL(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -578,7 +578,7 @@ def load_NAT(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -643,7 +643,7 @@ def load_GDF(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -700,7 +700,7 @@ def load_MAR(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -757,7 +757,7 @@ def load_MSH(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -806,7 +806,7 @@ def load_MED(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -868,7 +868,7 @@ def load_WRL(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -905,7 +905,7 @@ def load_NEM(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------

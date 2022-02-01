@@ -606,7 +606,7 @@ class Mesh(Abstract3DObject):
 
     @inplace_transformation
     def triangulate_quadrangles(self) -> 'Mesh':
-        """Triangulates every quadrangles of the mesh by simple spliting.
+        """Triangulates every quadrangles of the mesh by simple splitting.
         Each quadrangle gives two triangles.
 
         Note

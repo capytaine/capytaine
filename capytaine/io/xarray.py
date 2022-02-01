@@ -237,7 +237,7 @@ def assemble_dataset(results,
                      attrs=None) -> xr.Dataset:
     """Transform a list of :class:`LinearPotentialFlowResult` into a :class:`xarray.Dataset`.
 
-    .. todo:: The :code:`mesh` option to store informations on the mesh could be improved.
+    .. todo:: The :code:`mesh` option to store information on the mesh could be improved.
               It could store the full mesh in the dataset to ensure the reproducibility of
               the results.
 
@@ -246,9 +246,9 @@ def assemble_dataset(results,
     results: list of LinearPotentialFlowResult
         The results that will be read.
     wavenumber: bool, optional
-        If True, the coordinate 'wavenumber' will be added to the ouput dataset.
+        If True, the coordinate 'wavenumber' will be added to the output dataset.
     wavelength: bool, optional
-        If True, the coordinate 'wavelength' will be added to the ouput dataset.
+        If True, the coordinate 'wavelength' will be added to the output dataset.
     mesh: bool, optional
         If True, store some infos on the mesh in the output dataset.
     hydrostatics: bool, optional
@@ -363,7 +363,7 @@ def assemble_dataset(results,
                 dataset.coords['quadrature_method'] = ('body_name', [quad_methods[name] for name in dataset.coords['body_name'].data])
             else:
                 def the_only(d):
-                    """Return the only element of a 1-element dictionnary"""
+                    """Return the only element of a 1-element dictionary"""
                     return next(iter(d.values()))
                 dataset.coords['nb_faces'] = the_only(nb_faces)
                 dataset.coords['quadrature_method'] = the_only(quad_methods)
