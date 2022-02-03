@@ -2,7 +2,7 @@ language: generic
 
 env:
   - CONDA_PY=3.7 CONDA_NPY=1.16
-  - CONDA_PY=3.9 CONDA_NPY=1.21
+  - CONDA_PY=3.9 CONDA_NPY=1.16
 
 before_install:
   - sudo apt-get update
