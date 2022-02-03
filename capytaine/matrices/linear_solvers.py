@@ -27,12 +27,16 @@ def solve_directly(A, b):
     if isinstance(A, BlockCirculantMatrix):
         LOG.debug("\tSolve linear system %s", A)
         blocks_of_diagonalization = A.block_diagonalize()
+        assert not np.any(np.isnan(blocks_of_diagonalization))
         fft_of_rhs = np.fft.fft(np.reshape(b, (A.nb_blocks[0], A.block_shape[0])), axis=0)
+        assert not np.any(np.isnan(fft_of_rhs))
         try:  # Try to run it as vectorized numpy arrays.
             fft_of_result = np.linalg.solve(blocks_of_diagonalization, fft_of_rhs)
         except np.linalg.LinAlgError:  # Or do the same thing with list comprehension.
             fft_of_result = np.array([solve_directly(block, vec) for block, vec in zip(blocks_of_diagonalization, fft_of_rhs)])
+        assert not np.any(np.isnan(fft_of_result))
         result = np.fft.ifft(fft_of_result, axis=0).reshape((A.shape[1],))
+        assert not np.any(np.isnan(result))
         return result
 
     elif isinstance(A, BlockSymmetricToeplitzMatrix):
