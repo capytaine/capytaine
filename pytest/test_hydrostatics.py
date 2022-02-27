@@ -6,14 +6,13 @@ and faces
 """
 
 import pytest
+import pickle
+import json
+import pprint 
+from pathlib import Path
 
 import capytaine as cpt
 import numpy as np
-import json
-import pprint 
-from capytaine.bodies import FloatingBody
-import meshmagick.mesh as mmm
-import meshmagick.hydrostatics as mmhs
 
 
 def test_sphere():
@@ -39,22 +38,28 @@ def test_sphere():
         nr=10, nx=10, ntheta=10,   # Fineness of the mesh
     )
 
-    cog = (0,0,0)
+    cog = np.zeros(3)
     old_body = sphere + horizontal_cylinder + vertical_cylinder
-    body = FloatingBody(mesh=old_body.mesh, name="Pod")
+    body = cpt.FloatingBody(mesh=old_body.mesh, name="Pod")
     body.add_all_rigid_body_dofs()
 
-    capy_hsdb = body.compute_hydrostatics(cog=np.array(cog), density=density, gravity=gravity)
+    capy_hsdb = body.compute_hydrostatics(cog=cog, density=density, gravity=gravity)
     capy_hsdb["stiffness_matrix"] = capy_hsdb["stiffness_matrix"][2:5,2:5]
     capy_hsdb["inertia_matrix"] = capy_hsdb["inertia_matrix"][3:,3:]
     # =============================================================================
     # Meshmagick
     # =============================================================================
-
-    body_mesh = mmm.Mesh(body.mesh.vertices, body.mesh.faces, name=body.mesh.name)
-    mm_hsdb = mmhs.compute_hydrostatics(body_mesh, np.array(cog), density, gravity)
-
-    mm_hsdb["inertia_matrix"] = body_mesh.eval_plain_mesh_inertias(rho_medium=density).inertia_matrix
+    # import meshmagick.mesh as mmm
+    # import meshmagick.hydrostatics as mmhs
+    # body_mesh = mmm.Mesh(body.mesh.vertices, body.mesh.faces, name=body.mesh.name)
+    # mm_hsdb = mmhs.compute_hydrostatics(body_mesh, cog, density, gravity)
+    # mm_hsdb["inertia_matrix"] = body_mesh.eval_plain_mesh_inertias(rho_medium=density).inertia_matrix
+    # with open('Hydrostatics_cases/sphere__hor_cyl__ver_cyl.pkl', 'wb') as f:
+    #     pickle.dump(mm_hsdb, f)
+    
+    case_dir = Path(__file__).parent / "Hydrostatics_cases"
+    with open(f'{case_dir}/sphere__hor_cyl__ver_cyl.pkl', 'rb') as f:
+        mm_hsdb = pickle.load(f)
 
     # =============================================================================
     # Logging
