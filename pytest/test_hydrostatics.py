@@ -49,17 +49,20 @@ def test_sphere():
     # =============================================================================
     # Meshmagick
     # =============================================================================
+    case_dir = Path(__file__).parent / "Hydrostatics_cases"
     # import meshmagick.mesh as mmm
     # import meshmagick.hydrostatics as mmhs
     # body_mesh = mmm.Mesh(body.mesh.vertices, body.mesh.faces, name=body.mesh.name)
-    # mm_hsdb = mmhs.compute_hydrostatics(body_mesh, cog, density, gravity)
+    # mm_hsdb = mmhs.compute_hydrostatics(body_mesh, np.array(cog), density, gravity)
     # mm_hsdb["inertia_matrix"] = body_mesh.eval_plain_mesh_inertias(rho_medium=density).inertia_matrix
-    # with open('Hydrostatics_cases/sphere__hor_cyl__ver_cyl.pkl', 'wb') as f:
-    #     pickle.dump(mm_hsdb, f)
-    
-    case_dir = Path(__file__).parent / "Hydrostatics_cases"
-    with open(f'{case_dir}/sphere__hor_cyl__ver_cyl.pkl', 'rb') as f:
-        mm_hsdb = pickle.load(f)
+    # mm_hsdb["mesh"] = ""
+    # with open(f'{case_dir}/sphere__hor_cyl__ver_cyl.pkl.json', 'w') as convert_file:
+    #     mm_hsdb_json = {key:(value.tolist() if type(value)==np.ndarray else value)
+    #                         for key, value in mm_hsdb.items() }
+    #     convert_file.write(json.dumps(mm_hsdb_json))
+
+    with open(f'{case_dir}/sphere__hor_cyl__ver_cyl.pkl.json', 'r') as f:
+        mm_hsdb = json.load(f)
 
     # =============================================================================
     # Logging
