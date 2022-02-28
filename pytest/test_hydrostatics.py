@@ -15,7 +15,7 @@ import capytaine as cpt
 import numpy as np
 
 
-def test_sphere():
+def test_all_hydrostatics():
     density = 1000
     gravity = 9.80665
 
@@ -65,9 +65,23 @@ def test_sphere():
         mm_hsdb = json.load(f)
 
     # =============================================================================
-    # Logging
+    # Testing
     # =============================================================================
     for var in capy_hsdb.keys():
         if var in mm_hsdb.keys():
             assert(np.isclose(capy_hsdb[var], mm_hsdb[var], rtol=1e-2, 
                               atol=1e-3).all())
+
+def test_radial_elastic_dof():
+    body = cpt.Sphere(
+    radius=10.0,          # Dimension
+    center=(0,0,-10),   # Position
+    nphi=100, ntheta=100,  # Fineness of the mesh
+    ) 
+    body.dofs["radial"] = body.mesh.faces_normals
+    capy_hs = body.get_hydrostatic_stiffnessij(body.dofs["radial"], 
+                                                body.dofs["radial"])
+    analytical_hs = 0.0
+
+    assert(np.isclose(capy_hs, analytical_hs))
+
