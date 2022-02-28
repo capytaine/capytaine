@@ -78,8 +78,7 @@ def test_radial_elastic_dof():
     nphi=100, ntheta=100,  # Fineness of the mesh
     ) 
     body.dofs["radial"] = body.mesh.faces_normals
-    capy_hs = body.get_hydrostatic_stiffnessij(body.dofs["radial"], 
-                                                body.dofs["radial"])
+    capy_hs = body.get_hydrostatic_stiffness()
     analytical_hs = 0.0
 
     assert(np.isclose(capy_hs, analytical_hs))
@@ -102,10 +101,7 @@ def test_vertical_elastic_dof():
     body.dofs["elongate"][:,2] = faces_centers[:,2]
     density = 1000
     gravity = 9.80665
-    capy_hs = body.get_hydrostatic_stiffnessij(body.dofs["elongate"], 
-                                                body.dofs["elongate"],
-                                                density=density,
-                                                gravity=gravity)
+    capy_hs = body.get_hydrostatic_stiffness(density=density, gravity=gravity)
     analytical_hs = np.pi * radius**2 * density * gravity * cylinder_keel**2
 
     assert(np.isclose(capy_hs, analytical_hs, rtol=1e-3))

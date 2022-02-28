@@ -318,9 +318,9 @@ class FloatingBody(Abstract3DObject):
         hydrostatic_stiffnessij = self.get_surface_integral(zdof_div_norm)
         return hydrostatic_stiffnessij
     
-    def get_hydrostatic_stiffness(self, divergence=None, saveas=None, 
+    def get_hydrostatic_stiffness(self, divergence=0, 
                                       density=1000.0, gravity=9.80665):
-        """Compute hydrostatic stiffness matrix for all DOFs of the body. 
+        r"""Compute hydrostatic stiffness matrix for all DOFs of the body. 
         
         :math:`C_{ij} = \int_S (\hat{n} \cdot V_i) * (w_j + z*D_j  dS)`
         
@@ -339,17 +339,24 @@ class FloatingBody(Abstract3DObject):
         http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
         """
         dof_count = len(self.dofs.keys())
-        if divergence == None:
-            divergence = np.zeros([dof_count, dof_count])
         
-        hydrostatic_stiffness = np.array([
-            [self.get_hydrostatic_stiffnessij(dof_i, dof_j, 
-                                         divergence_ij=divergence[i,j],
+        if dof_count == 1:
+            dof = list(self.dofs.values())[0]
+            return self.get_hydrostatic_stiffnessij(dof, dof, 
+                                         divergence_ij=divergence,
                                          density=density, gravity=gravity)
-             for j, dof_j in enumerate(self.dofs.values())]
-            for i, dof_i in enumerate(self.dofs.values())
-            ])
-        return hydrostatic_stiffness
+        else:
+            if divergence == 0:
+                divergence = np.zeros([dof_count, dof_count])
+            
+            hydrostatic_stiffness = np.array([
+                [self.get_hydrostatic_stiffnessij(dof_i, dof_j, 
+                                            divergence_ij=divergence[i,j],
+                                            density=density, gravity=gravity)
+                for j, dof_j in enumerate(self.dofs.values())]
+                for i, dof_i in enumerate(self.dofs.values())
+                ])
+            return hydrostatic_stiffness
     
     
     def get_rigid_dof_mass(self, cog=np.zeros(3), density=1000):
