@@ -3,5 +3,6 @@
         "pytest"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
+    "python.testing.pytestEnabled": true,
+    "restructuredtext.confPath": "${workspaceFolder}\\docs"
 }

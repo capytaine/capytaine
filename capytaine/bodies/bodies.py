@@ -236,79 +236,91 @@ class FloatingBody(Abstract3DObject):
     ###################
 
     def get_surface_integral(self, data, **kwargs):
+        """Returns integral of given data along wet surface area."""
         return np.sum(data * self.mesh.faces_areas, **kwargs)
     
     def get_water_plane_integral(self, data, **kwargs):
+        """Returns integral of given data along water plane area."""
         return self.get_surface_integral(self.mesh.faces_normals[:,2] * data, **kwargs)
     
     def get_wet_surface_area(self):
+        """Returns wet surface area."""
         return self.get_surface_integral(1)
             
     def get_volumes(self):
-        """Volumes in x, y, z components."""
+        """Returns volumes using x, y, z components of the FloatingBody."""
         norm_coord = self.mesh.faces_normals * self.mesh.faces_centers
         return self.get_surface_integral(norm_coord.T, axis=1)
     
     def get_volume(self):
-        """Volume of the body."""
+        """Returns volume of the FloatingBody."""
         volumes = self.get_volumes()
         return np.mean(volumes)
     
     def get_mass(self, density=1000):
-        """Mass of the body."""
+        """Returns mass of the FloatingBody."""
         return density * self.get_volume()
     
     def get_buoyancy_center(self):
-        """Center of buoyancy of the body."""
+        """Returns center of buoyancy of the FloatingBody."""
         volume = self.get_volume()
         coords_sq_norm = self.mesh.faces_normals * self.mesh.faces_centers**2
         return self.get_surface_integral(coords_sq_norm.T, axis=1) / (2*volume)
     
-    def get_waterplane_area(self):
-        return -self.get_water_plane_integral(1)
+    def get_waterplane_area(self, free_surface=0.0):
+        """Returns water plane area of the FloatingBody."""
+        if self.mesh.vertices[:,2].max() < free_surface:
+            waterplane_area = 0.0
+        else:
+            waterplane_area = -self.get_water_plane_integral(1)
+        return waterplane_area
     
-    def get_waterplane_center(self):
-        if self.mesh.vertices[:,2].max() < 0:
-            waterplane_center = np.zeros(3)
+    def get_waterplane_center(self, free_surface=0.0):
+        """Returns water plane center of the FloatingBody.
+        
+        Note: Returns None if the FloatingBody is full submerged. 
+        """
+        if self.mesh.vertices[:,2].max() < free_surface:
+            waterplane_center = None
         else:
             waterplane_area = self.get_waterplane_area()
             waterplane_center = -self.get_water_plane_integral(
                 self.mesh.faces_centers.T, axis=1) / waterplane_area
-            waterplane_center[2] = 0
+            waterplane_center[2] = free_surface
         
         return waterplane_center
     
     def get_bmt(self):
-        """Returns Transversal Metacentric Radius of the body."""
+        """Returns transversal metacentric radius of the body."""
         volume = self.get_volume()
         inertia_moment = -self.get_water_plane_integral(self.mesh.faces_centers[:,1]**2)
         bmt = inertia_moment / (volume)
         return bmt
     
     def get_bml(self):
-        """Returns Longitudinal Metacentric Radius of the body."""
+        """Returns longitudinal metacentric radius of the body."""
         volume = self.get_volume()
         inertia_moment = -self.get_water_plane_integral(self.mesh.faces_centers[:,0]**2)
         bmt = inertia_moment / volume
         return bmt
     
     def get_gmt(self, cog=np.zeros(3)):
-        """Returns Transversal Metacentric Height of the body."""
+        """Returns transversal metacentric Height of the body."""
         gb = cog - self.get_buoyancy_center()
         return self.get_bmt() - gb[2]
     
     def get_gml(self, cog=np.zeros(3)):
-        """Returns Longitudinal Metacentric Height of the body."""
+        """Returns longitudinal metacentric Height of the body."""
         gb = cog - self.get_buoyancy_center()
         return self.get_bml() - gb[2]
     
-    
-    
     def get_dof_normals(self, dof):
+        """Returns dot product of the surface face normals and DOF"""
         return np.sum(self.mesh.faces_normals * dof, axis=1)
     
     def get_hydrostatic_stiffnessij(self, dof_i, dof_j, divergence_ij=0, 
                                       density=1000.0, gravity=9.80665):
+        """Returns hydrostatic stiffness for a set of DOFs"""
         dof_normal = self.get_dof_normals(dof_j)
         zdof_div = dof_i[:,2] + self.mesh.faces_centers[:,2] * divergence_ij
         zdof_div_norm = -density * gravity * dof_normal * zdof_div
@@ -317,7 +329,7 @@ class FloatingBody(Abstract3DObject):
         return hydrostatic_stiffnessij
     
     def get_hydrostatic_stiffness(self, divergence=0, 
-                                      density=1000.0, gravity=9.80665):
+                                  density=1000.0, gravity=9.80665):
         r"""Compute hydrostatic stiffness matrix for all DOFs of the body.
         
         :math:`C_{ij} = \int_S (\hat{n} \cdot V_i) * (w_j + z*D_j  dS)`
@@ -333,14 +345,31 @@ class FloatingBody(Abstract3DObject):
         
         Reference:
         
-        Newman, John Nicholas. "Wave effects on deformable bodies." Applied ocean research 16.1 (1994): 47-59.
+        Newman, John Nicholas. "Wave effects on deformable bodies."Applied ocean 
+        research" 16.1 (1994): 47-59.
         http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
-        """
+        
+        Parameters
+        ----------
+        divergence : np.ndarray, optional
+            Divergence of the DOFs, by default 0
+        density : float, optional
+            Water density, by default 1000.0
+        gravity : float, optional
+            Gravity, by default 9.80665
+
+        Returns
+        -------
+        hydrostatic_stiffness: np.ndarray
+            Matrix of hydrostatic stiffness
+        """          
+        
+        
         dof_count = len(self.dofs.keys())
         
         if dof_count == 1:
             dof = list(self.dofs.values())[0]
-            return self.get_hydrostatic_stiffnessij(dof, dof, 
+            hydrostatic_stiffness = self.get_hydrostatic_stiffnessij(dof, dof, 
                                          divergence_ij=divergence,
                                          density=density, gravity=gravity)
         else:
@@ -354,7 +383,8 @@ class FloatingBody(Abstract3DObject):
                 for j, dof_j in enumerate(self.dofs.values())]
                 for i, dof_i in enumerate(self.dofs.values())
                 ])
-            return hydrostatic_stiffness
+        
+        return hydrostatic_stiffness
     
     
     def get_rigid_dof_mass(self, cog=np.zeros(3), density=1000):
@@ -399,8 +429,8 @@ class FloatingBody(Abstract3DObject):
     
     
     def compute_hydrostatics(self, cog=np.zeros(3), density=1000, gravity=9.80665, 
-                             free_surface=0.0) -> dict:
-        """Compute hydrostatics of the body.
+                             free_surface=0.0, divergence=0):
+        """Compute hydrostatics of the FloatingBody.
 
         Parameters
         ----------
@@ -412,11 +442,13 @@ class FloatingBody(Abstract3DObject):
             Gravity. The default is 9.80665.
         free_surface : float, optional
             z coordinate of the free surface. The default is 0.0.
+        divergence : np.ndarray, optional
+            Divergence of the DOFs.
 
         Returns
         -------
         hydrostatics : dict
-            All hydrostatics variables and respected values of the body.
+            All hydrostatics values of the FloatingBody.
         """
         vertices = self.mesh.vertices
         coord_max = vertices.max(axis=0)
@@ -450,16 +482,18 @@ class FloatingBody(Abstract3DObject):
         hydrostatics["disp_volume"] = clipped_body.get_volume()
         hydrostatics["disp_mass"] = clipped_body.get_mass(density=density)
         hydrostatics["buoyancy_center"] = clipped_body.get_buoyancy_center()
-        hydrostatics["waterplane_center"] = clipped_body.get_waterplane_center()
-        hydrostatics["waterplane_area"] = clipped_body.get_waterplane_area()
+        hydrostatics["waterplane_center"] = clipped_body.get_waterplane_center(
+            free_surface=free_surface)
+        hydrostatics["waterplane_area"] = clipped_body.get_waterplane_area(
+            free_surface=free_surface)
         hydrostatics["transversal_metacentric_radius"] = clipped_body.get_bmt()
         hydrostatics["longitudinal_metacentric_radius"] = clipped_body.get_bml()
         hydrostatics["transversal_metacentric_height"] = clipped_body.get_gmt(cog=cog)
         hydrostatics["longitudinal_metacentric_height"] = clipped_body.get_gml(cog=cog)
         hydrostatics["stiffness_matrix"] = clipped_body.get_hydrostatic_stiffness(
-            density=density, gravity=gravity)
+            divergence=divergence, density=density, gravity=gravity)
         
-        hydrostatics["length_overall"] = full_breadth
+        hydrostatics["length_overall"] = full_length
         hydrostatics["breadth_overall"] = full_breadth
         hydrostatics["depth"] = depth
         hydrostatics["draught"] = np.abs(coord_min[2])
