@@ -33,7 +33,7 @@ With Pip
 --------
 
 The package is available on PyPI, although only as a source distribution.
-That means that you'll nead a Fortran compiler [#]_ in order to install the package.
+That means that you'll need a Fortran compiler [#]_ in order to install the package.
 If you do, you can install Capytaine as::
 
     pip install numpy
@@ -43,7 +43,7 @@ If you want, you can then install the optional dependencies::
 
     pip install matplotlib vtk
 
-If you can't install a compiler, it is recommanded to use Conda instead.
+If you can't install a compiler, it is recommended to use Conda instead.
 
 .. [#] For example, on Ubuntu or Debian: :code:`sudo apt install gfortran`.
 

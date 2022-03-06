@@ -70,7 +70,7 @@ CONTAINS
 
   SUBROUTINE INITIALIZE_TABULATED_INTEGRALS(NB_POINTS_X, NB_POINTS_Z, NB_INTEGRATION_POINTS, X, Z, TABULATION)
     ! Compute the tabulated integrals for the wave part of the Green function.
-    ! These tables are independant of the mesh and of the frequency.
+    ! These tables are independent of the mesh and of the frequency.
     ! They are only initialised once at the beginning of the program.
 
     ! References:

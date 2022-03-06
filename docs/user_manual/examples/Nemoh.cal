@@ -22,7 +22,7 @@ Cylinder.dat            ! Name of mesh file
 2  1  0  0  0  0  -7.5  ! Moment force in x direction about CdG !! This line is ignored !!
 2  0  1  0  0  0  -7.5  ! Moment force in y direction about CdG !! This line is ignored !!
 2  0  0  1  0  0  -7.5  ! Moment force in z direction about CdG !! This line is ignored !!
-0                       ! Number of lines of additional information !! All the additional informations are ignored !!
+0                       ! Number of lines of additional information !! All the additional information is ignored !!
 --- Load cases to be solved ---
 2  0.1  2.0             ! Number of wave frequencies, Min, and Max (rad/s)
 1  0.0  0.0             ! Number of wave directions, Min and Max (degrees)

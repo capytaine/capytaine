@@ -5,11 +5,20 @@ import capytaine as cpt
 import numpy as np
 np.set_printoptions(precision=3)
 np.set_printoptions(linewidth=160)
+from scipy.linalg import block_diag
 
-import meshmagick.hydrostatics as hs
+import meshmagick
 import meshmagick.mesh as mm
 
-from scipy.linalg import block_diag
+# The hydrostatics module changed with version 3.0 of Meshmagick.
+# This example uses the older version which is still available
+# as 'hydrostatics_old' in recent versions of Meshmagick.
+from packaging import version
+if version.parse(meshmagick.__version__) < version.parse('3.0'):
+    import meshmagick.hydrostatics as hs
+else:
+    import meshmagick.hydrostatics_old as hs
+
 
 rho_water = 1025
 g = 9.81

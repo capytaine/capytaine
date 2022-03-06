@@ -66,7 +66,7 @@ License
     </a>
     </div>
 
-Capytaine has been developped by `Matthieu Ancellin`_ (University College Dublin) and is distributed under the terms of the GNU General Public License (GPL) v3.0. See the ``LICENSE`` file in the `code repository`_.
+Capytaine has been developed by `Matthieu Ancellin`_ (University College Dublin) and is distributed under the terms of the GNU General Public License (GPL) v3.0. See the ``LICENSE`` file in the `code repository`_.
 
 .. _`code repository`: https://github.com/mancellin/capytaine
 .. _`Matthieu Ancellin`: http://ancell.in

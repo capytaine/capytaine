@@ -11,7 +11,7 @@
 % Outputs :
 % - A  : Matrix (6xnBodies)x(6xnBodies)xlength(w) of added mass coefficients
 % - B  : Matrix (6xnBodies)x(6xnBodies)xlength(w) of radiation damping coefficients
-% - Fe : Matrix (6xnBodies)xlength(w) of exciation forces (complex
+% - Fe : Matrix (6xnBodies)xlength(w) of excitation forces (complex
 % values)
 %
 % Copyright Ecole Centrale de Nantes 2014
