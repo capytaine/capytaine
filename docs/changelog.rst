@@ -3,7 +3,7 @@ Changelog
 =========
 
 * Method :code:`show_matplotlib` can now colour mesh faces based on a
-  specified scalar field (e.g. pressure)
+  specified scalar field (e.g. pressure) (:pull:`122`).
 
 -------------------------------
 New in version 1.3 (2021-10-07)
