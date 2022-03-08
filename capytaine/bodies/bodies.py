@@ -76,7 +76,7 @@ class FloatingBody(Abstract3DObject):
 
         import meshio
         if not isinstance(mesh, meshio._mesh.Mesh):
-            raise TypeError('mesh must be of type meshio._mesh.Mesh, recevied {:}'.format(type(mesh)))
+            raise TypeError('mesh must be of type meshio._mesh.Mesh, received {:}'.format(type(mesh)))
 
         if name is None:
             date_str = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')

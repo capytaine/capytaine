@@ -8,7 +8,7 @@ MODULE GREEN_WAVE
 
   IMPLICIT NONE
 
-  ! Dependancies between the functions of this module:
+  ! Dependencies between the functions of this module:
   ! (from top to bottom: "is called by")
   !
   !            LAGRANGE_POLYNOMIAL_INTERPOLATION

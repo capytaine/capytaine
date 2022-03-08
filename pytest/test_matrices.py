@@ -301,7 +301,7 @@ def test_block_symmetric_toeplitz_matrices():
 
 
 def test_block_circulant_matrix():
-    # 5x5 block symmetric circulant matrix reprensentation of the identity matrix
+    # 5x5 block symmetric circulant matrix representation of the identity matrix
     A = BlockCirculantMatrix([
         [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
     ])
@@ -333,7 +333,7 @@ def test_block_circulant_matrix():
 
 
 def test_even_block_symmetric_circulant_matrix():
-    # 5x5 block symmetric circulant matrix reprensentation of the identity matrix
+    # 5x5 block symmetric circulant matrix representation of the identity matrix
     A = EvenBlockSymmetricCirculantMatrix([
         [np.eye(2, 2), np.zeros((2, 2)), np.zeros((2, 2))]
     ])
