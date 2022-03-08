@@ -2,11 +2,17 @@
 # coding: utf-8
 """Test of matplotlib user interface methods."""
 
-import logging
+import pytest
 import numpy as np
 import capytaine as cpt
-import matplotlib.pyplot as plt
 
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    plt = None
+
+@pytest.mark.skipif(plt is None,
+                     reason='matplotlib is not installed')
 def test_showmatplotlib_with_colors(tmp_path):
     cylinder = cpt.HorizontalCylinder(
         length=5.0, radius=1.0, center=(0, 0, -2), nr=5, nx=20, ntheta=20,
