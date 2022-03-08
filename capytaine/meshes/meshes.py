@@ -466,8 +466,6 @@ class Mesh(Abstract3DObject):
         ----------
         ax: matplotlib axis
             The 3d axis in which to plot the mesh. If not provided, create a new one.
-        fig: matplotlib figure
-            The figure in which to plot the mesh. If not provided, create a new one.
         normal_vectors: bool
             If True, print normal vector.
         scale_normal_vector: array of shape (nb_faces, )
