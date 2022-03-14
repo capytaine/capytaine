@@ -170,7 +170,7 @@ class HorizontalCylinder(FloatingBody):
         # TODO: When symmetries are not used, implement the odd case.
 
         if clever is not None:
-            LOG.warning("Deprecation warning: `clever` argument for VerticalCylinder is deprecated."
+            LOG.warning("Deprecation warning: `clever` argument for HorizontalCylinder is deprecated."
                         "Use `reflection_symmetry` and/or `translation_symmetry` instead.")
 
         open_cylinder = self._generate_open_cylinder_mesh(nx, ntheta,
