@@ -84,6 +84,17 @@ This example computes the Kochin function for a surging buoy and plot the result
 .. literalinclude:: examples/kochin.py
    :language: python
 
+Haskind's relation
+------------------
+
+This example computes the excitation force from the radiation potential
+using Haskind's relation. The result is compared with the one obtained by
+direct integration of the potentials from incident waves and from the
+diffraction problem.
+
+.. literalinclude:: examples/haskind.py
+    :language: python
+
 Symmetric body
 --------------
 

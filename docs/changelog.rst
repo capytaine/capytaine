@@ -5,6 +5,8 @@ Changelog
 * Method :code:`show_matplotlib` can now colour mesh faces based on a
   specified scalar field (e.g. pressure) (:pull:`122`).
 
+* A new example using Haskind's relation has been added to the cookbook (:pull:`129`).
+
 -------------------------------
 New in version 1.3 (2021-10-07)
 -------------------------------
