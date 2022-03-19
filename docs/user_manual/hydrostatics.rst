@@ -197,87 +197,87 @@ You can verify the results with meshmagick results
 Output is
 ::
 
-The rotation dof Roll has been initialized around the origin of the domain (0, 0, 0).
-The rotation dof Pitch has been initialized around the origin of the domain (0, 0, 0).
-The rotation dof Yaw has been initialized around the origin of the domain (0, 0, 0).
-Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-grav:
-    Capytaine  - 9.80665
-    Meshmagick - 9.80665
-rho_water:
-    Capytaine  - 1000
-    Meshmagick - 1000
-cog:
-    Capytaine  - [0, 0, 0]
-    Meshmagick - [0 0 0]
-wet_surface_area:
-    Capytaine  - 9.119266148961312
-    Meshmagick - 9.119266148961316
-disp_volume:
-    Capytaine  - 2.938926261462367
-    Meshmagick - 2.9389262614623664
-disp_mass:
-    Capytaine  - 2938.9262614623667
-    Meshmagick - 2938.9262614623663
-buoyancy_center:
-    Capytaine  - [ 4.12178644e-17 -1.96704181e-17 -5.00000000e-01]
-    Meshmagick - [-2.36103028e-17 -3.77764845e-17 -5.00000000e-01]
-waterplane_center:
-    Capytaine  - [1.77077271e-17 3.77764845e-17 0.00000000e+00]
-    Meshmagick - [-6.29608076e-17 -3.14804038e-17  0.00000000e+00]
-waterplane_area:
-    Capytaine  - 2.938926261462366
-    Meshmagick - 2.9389262614623655
-transversal_metacentric_radius:
-    Capytaine  - 0.22575292568380928
-    Meshmagick - 0.23408474953124558
-longitudinal_metacentric_radius:
-    Capytaine  - 0.22575292568380928
-    Meshmagick - 0.23408474953124558
-transversal_metacentric_height:
-    Capytaine  - -0.27424707431619055
-    Meshmagick - -0.2659152504687545
-longitudinal_metacentric_height:
-    Capytaine  - -0.27424707431619055
-    Meshmagick - -0.2659152504687545
-stiffness_matrix:
-    Capytaine  - [[ 2.88210212e+04  1.08875686e-12  5.44378431e-13]
- [ 1.08875686e-12 -7.90408075e+03 -6.80473039e-13]
- [ 5.44378431e-13 -6.80473039e-13 -7.90408075e+03]]
-    Meshmagick - [[28821.02122197     0.             0.        ]
- [    0.         -7663.94907701     0.        ]
- [    0.             0.         -7663.94907701]]
-draught:
-    Capytaine  - 1.0000000000000002
-    Meshmagick - 1.0000000000000002
-length_at_waterline:
-    Capytaine  - 2.0
-    Meshmagick - 2.0
-breadth_at_waterline:
-    Capytaine  - 1.9021130325903073
-    Meshmagick - 1.9021130325903073
-length_overall_submerged:
-    Capytaine  - 2.0
-    Meshmagick - 2.0
-breadth_overall_submerged:
-    Capytaine  - 1.9021130325903073
-    Meshmagick - 1.9021130325903073
-inertia_matrix:
-    Capytaine  - [[ 1.63731550e+03 -4.16333634e-14 -8.63303903e-15]
- [-4.16333634e-14  1.63731550e+03  1.11022302e-13]
- [-8.63303903e-15  1.11022302e-13  1.32840873e+03]]
-    Meshmagick - [[ 1.66759990e+03 -1.56570115e-14 -2.77555756e-14]
- [-1.56570115e-14  1.66759990e+03 -5.55111512e-14]
- [-2.77555756e-14 -5.55111512e-14  1.37591564e+03]]
+    The rotation dof Roll has been initialized around the origin of the domain (0, 0, 0).
+    The rotation dof Pitch has been initialized around the origin of the domain (0, 0, 0).
+    The rotation dof Yaw has been initialized around the origin of the domain (0, 0, 0).
+    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
+    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
+    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
+    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
+    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
+    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
+    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
+    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
+    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
+    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
+    grav:
+        Capytaine  - 9.80665
+        Meshmagick - 9.80665
+    rho_water:
+        Capytaine  - 1000
+        Meshmagick - 1000
+    cog:
+        Capytaine  - [0, 0, 0]
+        Meshmagick - [0 0 0]
+    wet_surface_area:
+        Capytaine  - 9.119266148961312
+        Meshmagick - 9.119266148961316
+    disp_volume:
+        Capytaine  - 2.938926261462367
+        Meshmagick - 2.9389262614623664
+    disp_mass:
+        Capytaine  - 2938.9262614623667
+        Meshmagick - 2938.9262614623663
+    buoyancy_center:
+        Capytaine  - [ 4.12178644e-17 -1.96704181e-17 -5.00000000e-01]
+        Meshmagick - [-2.36103028e-17 -3.77764845e-17 -5.00000000e-01]
+    waterplane_center:
+        Capytaine  - [1.77077271e-17 3.77764845e-17 0.00000000e+00]
+        Meshmagick - [-6.29608076e-17 -3.14804038e-17  0.00000000e+00]
+    waterplane_area:
+        Capytaine  - 2.938926261462366
+        Meshmagick - 2.9389262614623655
+    transversal_metacentric_radius:
+        Capytaine  - 0.22575292568380928
+        Meshmagick - 0.23408474953124558
+    longitudinal_metacentric_radius:
+        Capytaine  - 0.22575292568380928
+        Meshmagick - 0.23408474953124558
+    transversal_metacentric_height:
+        Capytaine  - -0.27424707431619055
+        Meshmagick - -0.2659152504687545
+    longitudinal_metacentric_height:
+        Capytaine  - -0.27424707431619055
+        Meshmagick - -0.2659152504687545
+    stiffness_matrix:
+        Capytaine  - [[ 2.88210212e+04  1.08875686e-12  5.44378431e-13]
+    [ 1.08875686e-12 -7.90408075e+03 -6.80473039e-13]
+    [ 5.44378431e-13 -6.80473039e-13 -7.90408075e+03]]
+        Meshmagick - [[28821.02122197     0.             0.        ]
+    [    0.         -7663.94907701     0.        ]
+    [    0.             0.         -7663.94907701]]
+    draught:
+        Capytaine  - 1.0000000000000002
+        Meshmagick - 1.0000000000000002
+    length_at_waterline:
+        Capytaine  - 2.0
+        Meshmagick - 2.0
+    breadth_at_waterline:
+        Capytaine  - 1.9021130325903073
+        Meshmagick - 1.9021130325903073
+    length_overall_submerged:
+        Capytaine  - 2.0
+        Meshmagick - 2.0
+    breadth_overall_submerged:
+        Capytaine  - 1.9021130325903073
+        Meshmagick - 1.9021130325903073
+    inertia_matrix:
+        Capytaine  - [[ 1.63731550e+03 -4.16333634e-14 -8.63303903e-15]
+    [-4.16333634e-14  1.63731550e+03  1.11022302e-13]
+    [-8.63303903e-15  1.11022302e-13  1.32840873e+03]]
+        Meshmagick - [[ 1.66759990e+03 -1.56570115e-14 -2.77555756e-14]
+    [-1.56570115e-14  1.66759990e+03 -5.55111512e-14]
+    [-2.77555756e-14 -5.55111512e-14  1.37591564e+03]]
 
 
 Verifying with Analytical Results
