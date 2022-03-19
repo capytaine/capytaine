@@ -188,8 +188,8 @@ You can verify the results with meshmagick results
     mm_hsdb["inertia_matrix"] = body_mesh.eval_plain_mesh_inertias(rho_medium=density).inertia_matrix
     mm_hsdb["mesh"] = ""
 
-    for var in capy_hsdb.keys():
-        if var in mm_hsdb.keys():
+    for var in capy_hsdb:
+        if var in mm_hsdb:
             print(f"{var}:")
             print(f"    Capytaine  - {capy_hsdb[var]}")
             print(f"    Meshmagick - {mm_hsdb[var]}")
@@ -197,3 +197,65 @@ You can verify the results with meshmagick results
 
 
 
+Verifying with Analytical Results
+---------------------------------
+
+Example code to verify with analytical results
+::
+
+    radius = 10
+
+    body = cpt.Sphere(
+        radius=radius,
+        center=(0,0,0),
+        nphi=50, ntheta=50,
+    )
+    body.add_all_rigid_body_dofs()
+    # body.show()
+    self=body
+    density = 1000
+    gravity = 9.80665
+
+    cog = [0,0,0]
+    capy_hsdb = body.compute_hydrostatics(density=density, gravity=gravity, cog=cog)
+    capy_hsdb["stiffness_matrix"] = capy_hsdb["stiffness_matrix"][2:5,2:5]
+    capy_hsdb["inertia_matrix"] = capy_hsdb["inertia_matrix"][3:,3:]
+
+
+    import meshmagick.mesh as mmm
+    import meshmagick.hydrostatics as mmhs
+
+    # body.keep_immersed_part()
+    body_mesh = mmm.Mesh(body.mesh.vertices, body.mesh.faces, name=body.mesh.name)
+
+    mm_hsdb = mmhs.compute_hydrostatics(body_mesh, np.array(cog), density, gravity)
+
+    mm_hsdb["inertia_matrix"] = body_mesh.eval_plain_mesh_inertias(rho_medium=density).inertia_matrix
+    mm_hsdb["mesh"] = ""
+
+
+    analytical = {}
+    analytical["waterplane_area"] = np.pi*radius**2
+    analytical["wet_surface_area"] = 2*np.pi*radius**2
+    analytical["disp_volume"] = (2/3)*np.pi*radius**3
+    analytical["interia_xx"] = np.pi*radius**4/4
+    analytical["interia_yy"] = np.pi*radius**4/4
+    analytical["interia_zz"] = np.pi*radius**4/2
+    analytical["buoyancy_center"] = np.array([0,0,-analytical["interia_zz"] / (2*analytical["disp_volume"])])
+    analytical["buoyancy_center"] = np.array([0,0,-3*radius/8])
+    analytical["transversal_metacentric_radius"] = analytical["interia_xx"] / analytical["disp_volume"]
+    analytical["longitudinal_metacentric_radius"] = analytical["interia_yy"] / analytical["disp_volume"]
+    analytical["transversal_metacentric_height"] = analytical["transversal_metacentric_radius"] + analytical["buoyancy_center"][2] - cog[2]
+    analytical["longitudinal_metacentric_height"] = analytical["longitudinal_metacentric_radius"] + analytical["buoyancy_center"][2] - cog[2]
+    analytical["stiffness_matrix"] = density * gravity * np.array([
+        [analytical["waterplane_area"], 0, 0],
+        [0, analytical["disp_volume"] * analytical["transversal_metacentric_height"], 0],
+        [0, 0, analytical["disp_volume"] * analytical["transversal_metacentric_height"]],
+        ])
+
+    for var in capy_hsdb:
+        if var in analytical:
+            print(f"{var}:")
+            print(f"    Capytaine  - {capy_hsdb[var]}")
+            print(f"    Meshmagick - {mm_hsdb[var]}")
+            print(f"    Analytical - {analytical[var]}")

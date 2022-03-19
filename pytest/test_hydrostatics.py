@@ -98,9 +98,8 @@ def test_vertical_elastic_dof():
 
         density = 1000
         gravity = 9.80665
-        capy_hs = body.get_hydrostatic_stiffnessij(body.dofs["elongate"],
-        body.dofs["elongate"], divergence_i=divergence, 
-        density=density, gravity=gravity)
+        capy_hs = body.get_hydrostatic_stiffnessij("elongate", "elongate", 
+                    divergence_i=divergence, density=density, gravity=gravity)
 
         analytical_hs = - (density * gravity * 4 * body.get_volume() 
                         * body.get_buoyancy_center()[2])
