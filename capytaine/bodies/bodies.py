@@ -323,12 +323,20 @@ class FloatingBody(Abstract3DObject):
         r"""
         Return the hydrostatic stiffness for a set of DOFs.
         
+        :math:`C_{ij} = \rho g\iint_S (\hat{n} \cdot V_j) (w_i + z D_i) dS`
+        
+        where :math:`\hat{n}` is surface normal, 
+        
+        :math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is DOF vector and
+        
+        :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
+
         Parameters
         ----------
         dof_i_name : str
             Name of ith DOF vector of the FloatingBody
         dof_j_name: str
-            Name of ith DOF vector of the FloatingBody
+            Name of jth DOF vector of the FloatingBody
         divergence_i: np.ndarray (Face_count), optional
             ith DOF divergence of the FloatingBody, by default None. 
         density: float, optional
@@ -340,30 +348,20 @@ class FloatingBody(Abstract3DObject):
         -------
         hydrostatic_stiffnessij: float
             hydrostatic_stiffness of ith DOF and jth DOF.
+        
+        Note
+        ----
+            This function computes the hydrostatic stiffness assuming :math:`D_{i} = 0`. 
+            If :math:`D_i \neq 0`, input the divergence interpolated to face centers. 
             
-        Equation
-        ------
-        :math:`C_{ij} = \rho g\iint_S (\hat{n} \cdot V_j) (w_i + z D_i) dS`
-        
-        where :math:`\hat{n}` is surface normal, 
-        
-        :math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is DOF vector and
-        
-        :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
-        
-        NOTE
-        -----
-        This function computes the hydrostatic stiffness assuming :math:`D_{i} = 0`. 
-        If :math:`D_i \neq 0`, input the divergence interpolated to face centers. 
-        
-        General integral equations are used for the rigid body modes and 
-        Neumann (1994) method is used for flexible modes. 
+            General integral equations are used for the rigid body modes and 
+            Neumann (1994) method is used for flexible modes. 
 
         References
         ----------
-        Newman, John Nicholas. "Wave effects on deformable bodies."Applied ocean 
-        research" 16.1 (1994): 47-59.
-        http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
+            Newman, John Nicholas. "Wave effects on deformable bodies."Applied ocean 
+            research" 16.1 (1994): 47-59.
+            http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
 
         """
         # Newmann (1994) formula is not 'complete' as recovering the rigid body 
@@ -417,6 +415,14 @@ class FloatingBody(Abstract3DObject):
         r"""
         Compute hydrostatic stiffness matrix for all DOFs of the body.
         
+        :math:`C_{ij} = \rho g\iint_S (\hat{n} \cdot V_j) (w_i + z D_i) dS`
+        
+        where :math:`\hat{n}` is surface normal, 
+        
+        :math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is DOF vector and
+        
+        :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
+        
         Parameters
         ----------
         divergence : np.ndarray (DOF_count X Face_count), optional
@@ -429,28 +435,21 @@ class FloatingBody(Abstract3DObject):
         Returns
         -------
         hydrostatic_stiffness: np.ndarray
-            Matrix of hydrostatic stiffness
+            Matrix of hydrostatic stiffness        
         
-        Equation
-        ------
-        :math:`C_{ij} = \rho g \iint_S (\hat{n} \cdot V_j) (w_i + z D_i) dS`
-        
-        where :math:`\hat{n}` is surface normal, 
-        
-        :math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is DOF vector and
-        
-        :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
-        
-        NOTE: 
-        -----
-        This function computes the hydrostatic stiffness assuming :math:`D_{i} = 0`. 
-        If :math:`D_i \neq 0`, input the divergence interpolated to face centers. 
-        
+        Note
+        ----
+            This function computes the hydrostatic stiffness assuming :math:`D_{i} = 0`. 
+            If :math:`D_i \neq 0`, input the divergence interpolated to face centers. 
+            
+            General integral equations are used for the rigid body modes and 
+            Neumann (1994) method is used for flexible modes. 
+
         References
         ----------
-        Newman, John Nicholas. "Wave effects on deformable bodies."Applied ocean 
-        research" 16.1 (1994): 47-59.
-        http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
+            Newman, John Nicholas. "Wave effects on deformable bodies."Applied ocean 
+            research" 16.1 (1994): 47-59.
+            http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
 
         """
 
