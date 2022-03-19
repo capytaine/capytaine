@@ -109,8 +109,7 @@ where :math:`\hat{n}` is surface normal,
     density = 1000
     gravity = 9.80665
 
-    elongate_in_z_hs = body.get_hydrostatic_stiffnessij(body.dofs["elongate_in_z"], 
-                                        body.dofs["elongate_in_z"], 
+    elongate_in_z_hs = body.get_hydrostatic_stiffnessij("elongate_in_z", "elongate_in_z", 
                                         divergence_i=elongate_in_z_divergence,
                                         density=density, gravity=gravity)
 
