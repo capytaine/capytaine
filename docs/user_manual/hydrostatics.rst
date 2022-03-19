@@ -4,7 +4,22 @@ Hydrostatics
 
 Capytaine can compute some of the hydrostatic parameters of a given :code:`FloatingBody`. 
 
-For each hydrostatic parameter a separate function is available in Capytaine.
+
+Integration
+-----------
+
+Here the integration approximated as the summation of the data function at face center multipled with respective face area
+
+.. math::
+
+    \iint_S f(x,y,z) dS \approx \sum_i^N f(x_i, y_i, z_i) \Delta S_i
+
+where :math:`i` is the face index, :math:`(x_i, y_i, z_i)` is ith face center, and :math:`S_i` is ith face area. 
+
+Hydrostatic Parameters
+----------------------
+
+For each hydrostatic parameter a separate method is available in Capytaine.
 
 .. note::
     Before computing individual hydrostatic parameters, make sure to crop the body to only keep immersed.
@@ -58,11 +73,13 @@ Hydrostatic Stiffness
 
 The equation to compute the hydrostatic stiffness of a floating body is
 
-:math:`C_{ij} = \int_S (\hat{n} \cdot V_j) (w_i + z D_i  dS)`
+.. math::
+
+    C_{ij} = \iint_S (\hat{n} \cdot V_j) (w_i + z D_i)  dS
         
 where :math:`\hat{n}` is surface normal, 
 
-:math:`V_i = u_i \hat{n_x} + v_i \hat{n_y} + w_i \hat{n_z}` is DOF vector and
+:math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is DOF vector and
 
 :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
 
@@ -80,7 +97,7 @@ where :math:`\hat{n}` is surface normal,
 
 
 .. note::
-    This function computes the hydrostatic stiffness assuming zero divergence. :math:`D_{i} = 0`. If :math:`D_i \neq 0`, input the divergence interpolated to face centers. 
+    This method computes the hydrostatic stiffness assuming zero divergence. :math:`D_{i} = 0`. If :math:`D_i \neq 0`, input the divergence interpolated to face centers. 
 
 ::
   
@@ -106,7 +123,7 @@ where :math:`\hat{n}` is surface normal,
 Interia Matrix
 --------------
 
-:code:`get_rigid_dof_mass` function computes 6 x 6 interia mass matrix of 6 rigid dofs. ::
+:code:`get_rigid_dof_mass` method computes 6 x 6 interia mass matrix of 6 rigid dofs. ::
 
     mass_matrix = body.get_rigid_dof_mass()
 
@@ -116,7 +133,7 @@ Interia Matrix
 Compute all Hydrostatics
 ------------------------
 
-Instead of computing each hydrostatic parameters, :code:`compute_hydrostatics` function computes all hydrostatic parameters and returns hydrostatic parameters :code:`dict`. 
+Instead of computing each hydrostatic parameters, :code:`compute_hydrostatics` method computes all hydrostatic parameters and returns hydrostatic parameters :code:`dict`. 
 
 .. note::
     No need to apply :code:`keep_immersed_part` to use :code:`compute_hydrostatics`.

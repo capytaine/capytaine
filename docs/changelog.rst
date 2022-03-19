@@ -22,6 +22,7 @@ Major changes
   The :code:`clever` keyword argument is deprecated for :code:`HorizontalCylinder`
   and should be replaced by the new more explicit keyword arguments above.
 
+
 New features
 ~~~~~~~~~~~~
 
@@ -34,6 +35,8 @@ New features
 * Method `problems_from_dataset` can now use a list of gravitational acceleration `g` values in the test matrix (:pull:`86`).
 
 * Add example in cookbook for computing hydrostatics and mass properties with Meshmagick 2 (:pull:`70`).
+
+* Add method to compute some of the hydrostatic parameters such as volume, buoyancy center, wet surface area, hydrostatic stiffness, interia matrix etc. :code:`compute_hydrostatics` method is created to return all hydrostatic parameters similar to :code:`meshmagick.hydrostatics.compute_hydrostatics` (:pull:`106`).
 
 Bug fixes
 ~~~~~~~~~

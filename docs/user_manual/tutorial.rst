@@ -136,7 +136,7 @@ Hydrostatics
 
 Capytaine can directly perform some hydrostatic computation for a given mesh. You can get parameters such as volume, wet surface area, waterplane area, center of buoyancy, metacentric radius and height, hydrostatic stiffness and interia mass for any given :code:`FloatingBody`. 
 
-To get these parameters you can either use individual functions of each parameters::
+To get these parameters you can either use individual method of each parameters::
 
     sphere.keep_immersed_part()
 
@@ -156,9 +156,9 @@ To get these parameters you can either use individual functions of each paramete
     # [-2.18483678e-13  3.29326410e-14  1.35727139e+03]]
 
 
-or you can use :code:`compute_hydrostatics` function which computes all hydrostatic parameters and returns a :code:`dict` of paramters and values::
+or you can use :code:`compute_hydrostatics` method which computes all hydrostatic parameters and returns a :code:`dict` of paramters and values::
 
-    # No need to apply keep_immersed_part() to use compute_hydrostatics function.
+    # No need to apply keep_immersed_part() to use compute_hydrostatics method.
     hydrostatics = sphere.compute_hydrostatics()
 
 .. note::
