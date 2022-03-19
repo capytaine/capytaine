@@ -16,19 +16,19 @@ def test_all_hydrostatics():
     gravity = 9.80665
 
     sphere = cpt.Sphere(
-        radius=10.0,          # Dimension
-        center=(0,0,-1),   # Position
-        nphi=100, ntheta=50,  # Fineness of the mesh
+        radius=10.0,
+        center=(0,0,-1),
+        nphi=100, ntheta=50, 
     )
     horizontal_cylinder = cpt.HorizontalCylinder(
-        length=10.0, radius=5.0,  # Dimensions
-        center=(0,10,-1),        # Position
-        nr=10, nx=10, ntheta=10,   # Fineness of the mesh
+        length=10.0, radius=5.0,
+        center=(0,10,-1), 
+        nr=10, nx=10, ntheta=10,
     )
     vertical_cylinder = cpt.VerticalCylinder(
-        length=10.0, radius=5.0,  # Dimensions
-        center=(0,0,0),        # Position
-        nr=10, nx=10, ntheta=10,   # Fineness of the mesh
+        length=10.0, radius=5.0,
+        center=(0,0,0),
+        nr=10, nx=10, ntheta=10,
     )
     cog = np.zeros(3)
     body = sphere + horizontal_cylinder + vertical_cylinder
@@ -65,39 +65,46 @@ def test_all_hydrostatics():
             assert np.isclose(capy_hsdb[var], mm_hsdb[var], 
                               rtol=1e-2, atol=1e-3).all()
 
-def test_radial_elastic_dof():
-    body = cpt.Sphere(
-    radius=10.0,          # Dimension
-    center=(0,0,-10),   # Position
-    nphi=100, ntheta=100,  # Fineness of the mesh
-    ) 
-    body.dofs["radial"] = body.mesh.faces_normals
-    capy_hs = body.get_hydrostatic_stiffness()
-    analytical_hs = 0.0
-
-    assert np.isclose(capy_hs, analytical_hs)
 
 def test_vertical_elastic_dof():
     
-    length = 10.0
-    radius = 5.0
-    center = (0.0,0.0,0.0)
-    cylinder_keel = length/2 - center[2]
-    
-    body = cpt.VerticalCylinder(
-        length=length, radius=radius,  # Dimensions
-        center=center,        # Position
-        nr=100, nx=100, ntheta=100,   # Fineness of the mesh
-    )
-    body.keep_immersed_part()
-    faces_centers = body.mesh.faces_centers
-    body.dofs["elongate"] = np.zeros_like(faces_centers)
-    body.dofs["elongate"][:,2] = faces_centers[:,2]
-    density = 1000
-    gravity = 9.80665
-    capy_hs = body.get_hydrostatic_stiffness(density=density, gravity=gravity)
-    analytical_hs = np.pi * radius**2 * density * gravity * cylinder_keel**2
+    bodies = [
+        cpt.VerticalCylinder(
+            length=10.0, radius=5.0,
+            center=(0.0,0.0,0.0), 
+            nr=100, nx=100, ntheta=100,
+        ),
+            
+        cpt.Sphere(
+            radius=100,
+            center=(0,0,0),
+            nphi=50, ntheta=50,
+        ),
 
-    assert np.isclose(capy_hs, analytical_hs, rtol=1e-3)
+        cpt.HorizontalCylinder(
+            length=5.0, radius=1.0,
+            center=(0,10,0),
+            nr=20, nx=20, ntheta=10, 
+        )
+    ]
+
+    for body in bodies:
+        body.keep_immersed_part()
+        faces_centers = body.mesh.faces_centers
+        body.dofs["elongate"] = np.zeros_like(faces_centers)
+        body.dofs["elongate"][:,2] = faces_centers[:,2]
+
+        divergence = np.ones(body.mesh.faces_centers.shape[0])
+
+        density = 1000
+        gravity = 9.80665
+        capy_hs = body.get_hydrostatic_stiffnessij(body.dofs["elongate"],
+        body.dofs["elongate"], divergence_i=divergence, 
+        density=density, gravity=gravity)
+
+        analytical_hs = - (density * gravity * 4 * body.get_volume() 
+                        * body.get_buoyancy_center()[2])
+
+        assert np.isclose(capy_hs, analytical_hs)
 
 

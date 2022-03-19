@@ -131,6 +131,40 @@ body, you can use for instance::
     print(sphere.dofs.keys())
     # dict_keys(['Surge', 'Heave'])
 
+Hydrostatics
+------------
+
+Capytaine can directly perform some hydrostatic computation for a given mesh. You can get parameters such as volume, wet surface area, waterplane area, center of buoyancy, metacentric radius and height, hydrostatic stiffness and interia mass for any given :code:`FloatingBody`. 
+
+To get these parameters you can either use individual functions of each parameters::
+
+    sphere.keep_immersed_part()
+
+    print(sphere.get_volume())
+    # 3.82267415555807
+    
+    print(sphere.get_buoyancy_center())
+    # [-3.04328563e-17 -1.18068465e-17 -2.00000000e+00]
+    
+    print(sphere.get_hydrostatic_stiffness())
+    # [[ 0.00000000e+00  0.00000000e+00]
+    # [ 5.42144107e-12 -2.27373675e-13]]
+
+    print(sphere.get_rigid_dof_mass(cog=(0,0,-2))[3:, 3:])
+    # [[ 1.67088050e+04 -2.21177243e-14 -2.18483678e-13]
+    # [-2.21177243e-14  1.67088050e+04  3.29326410e-14]
+    # [-2.18483678e-13  3.29326410e-14  1.35727139e+03]]
+
+
+or you can use :code:`compute_hydrostatics` function which computes all hydrostatic parameters and returns a :code:`dict` of paramters and values::
+
+    # No need to apply keep_immersed_part() to use compute_hydrostatics function.
+    hydrostatics = sphere.compute_hydrostatics()
+
+.. note::
+    Before computing individual hydrostatic parameters, make sure to crop the body to only keep immersed. But cropping is not need when you are using :code:`compute_hydrostatics` function. 
+
+
 Defining linear potential flow problems.
 ----------------------------------------
 
