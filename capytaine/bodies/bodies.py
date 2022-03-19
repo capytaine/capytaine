@@ -294,7 +294,7 @@ class FloatingBody(Abstract3DObject):
         """Returns transversal metacentric radius of the body."""
         volume = self.get_volume()
         inertia_moment = -self.get_water_plane_integral(self.mesh.faces_centers[:,1]**2)
-        bmt = inertia_moment / (volume)
+        bmt = inertia_moment / volume
         return bmt
 
     def get_bml(self):
@@ -352,7 +352,7 @@ class FloatingBody(Abstract3DObject):
         :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
         
         NOTE
-        ----
+        -----
         This function computes the hydrostatic stiffness assuming :math:`D_{i} = 0`. 
         If :math:`D_i \neq 0`, input the divergence interpolated to face centers. 
         
@@ -372,7 +372,6 @@ class FloatingBody(Abstract3DObject):
 
         hydrostatic_stiffnessij = self.get_surface_integral(dof_z_div_i_norm)
         return hydrostatic_stiffnessij
-
 
     def get_hydrostatic_stiffness(self, divergence=None, 
                                   density=1000.0, gravity=9.80665):
@@ -403,8 +402,8 @@ class FloatingBody(Abstract3DObject):
         
         :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
         
-        NOTE
-        ----
+        NOTE: 
+        -----
         This function computes the hydrostatic stiffness assuming :math:`D_{i} = 0`. 
         If :math:`D_i \neq 0`, input the divergence interpolated to face centers. 
         
@@ -504,8 +503,8 @@ class FloatingBody(Abstract3DObject):
             clipped_body_coords = clipped_body.mesh.vertices
             wl_length, wl_breadth = 0.0, 0.0
         else:
-            plane = Plane(normal=(0, 0, 1), point=(0, 0, free_surface))
-            clipped_body = self.clip(plane=plane)
+            clipped_body = self.copy()
+            clipped_body.keep_immersed_part(free_surface=free_surface)
 
             clipped_body_coords = clipped_body.mesh.vertices
             water_plane_idx = np.isclose(clipped_body_coords[:,2], 0.0)
@@ -549,6 +548,7 @@ class FloatingBody(Abstract3DObject):
             cog=cog, density=density)
 
         return hydrostatics
+
     
     ###################
     # Transformations #
