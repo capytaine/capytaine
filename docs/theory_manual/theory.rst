@@ -166,7 +166,7 @@ The second part reads
     G_1(\xi, x) = - \frac{1}{\|x - s(\xi)\|} 
     :label: green_function_inf_depth_1
 
-where :math:`s(\xi_1, \xi_2, \xi_3) = (\xi_1, \xi_2, -\xi_3)` is the reflection of :math:`\xi` accross the free surface.
+where :math:`s(\xi_1, \xi_2, \xi_3) = (\xi_1, \xi_2, -\xi_3)` is the reflection of :math:`\xi` across the free surface.
 
 Finally, this last part is complex-valued and it is introduced to satisfy the boundary conditions :eq:`bc_fs`.
 It depends on the water depth :math:`h` and the wave frequency :math:`\omega` (through the wave number :math:`k`).

@@ -589,7 +589,7 @@ CONTAINS
       IF(HH) 42,42,29
    29 A1=A1/HH
       B1=B1/HH
-      C1=C1/HH ! Has C1 been intialized?
+      C1=C1/HH ! Has C1 been initialized?
       H=A1*C1-B1*B1
       IF(H) 30,42,30
    30 A=A/HH

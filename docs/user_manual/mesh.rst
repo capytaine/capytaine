@@ -58,28 +58,28 @@ The formats currently supported by Meshmagick in reading are the following (from
 |   .med    | SALOME [#f8]_   | med, salome          |
 +-----------+-----------------+----------------------+
 
-.. [#f1] NEMOH is an open source BEM Software for seakeeping developped at
+.. [#f1] NEMOH is an open source BEM Software for seakeeping developed at
          Ecole Centrale de Nantes (LHEEA)
-.. [#f2] WAMIT is a BEM Software for seakeeping developped by WAMIT, Inc.
-.. [#f3] DIODORE is a BEM Software for seakeeping developped by PRINCIPIA
-.. [#f4] HYDROSTAR is a BEM Software for seakeeping developped by
+.. [#f2] WAMIT is a BEM Software for seakeeping developed by WAMIT, Inc.
+.. [#f3] DIODORE is a BEM Software for seakeeping developed by PRINCIPIA
+.. [#f4] HYDROSTAR is a BEM Software for seakeeping developed by
          BUREAU VERITAS
-.. [#f5] GMSH is an open source meshing software developped by C. Geuzaine
+.. [#f5] GMSH is an open source meshing software developed by C. Geuzaine
          and J.-F. Remacle. Version 4 of the file format is not supported at the
          moment.
-.. [#f6] PARAVIEW is an open source visualization software developped by
+.. [#f6] PARAVIEW is an open source visualization software developed by
          Kitware
-.. [#f7] TECPLOT is a visualization software developped by Tecplot
+.. [#f7] TECPLOT is a visualization software developed by Tecplot
 .. [#f8] SALOME-MECA is an open source software for computational mechanics
-         developped by EDF-R&D
+         developed by EDF-R&D
 
 
 Importing a mesh with Meshio
 ----------------------------
 
 Mesh can also be imported using the `meshio <https://pypi.org/project/meshio/>`_
-library. Unlike the Meshmagick mesh readers mentionned above, this library is
-not packaged with Capytaine and need to be installed independantly::
+library. Unlike the Meshmagick mesh readers mentioned above, this library is
+not packaged with Capytaine and need to be installed independently::
 
     pip install meshio
 
@@ -93,7 +93,7 @@ method::
 This features allows to use `pygmsh <https://pypi.org/project/pygmsh/>`_ to
 generate the mesh, since this library returns mesh in the same format as meshio.
 Below is an example of a mesh generation with `pygmsh` (which also needs to be
-installed independantly)::
+installed independently)::
 
     import pygmsh
     offset = 1e-2

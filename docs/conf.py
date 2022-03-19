@@ -43,6 +43,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
+    'sphinx.ext.extlinks',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
@@ -50,6 +51,11 @@ extensions = [
     # 'sphinx.ext.githubpages',
     'sphinxcontrib.proof',
 ]
+
+extlinks = {
+    "issue": ("https://github.com/mancellin/capytaine/issues/%s", "GH"),
+    "pull": ("https://github.com/mancellin/capytaine/pull/%s", "PR"),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -183,7 +189,7 @@ todo_include_todos = True
 
 math_number_all = True
 
-# Options for napolean
+# Options for napoleon
 
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True

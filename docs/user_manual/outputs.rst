@@ -16,13 +16,13 @@ If you gave a test matrix to the :code:`BEMSolver.fill_dataset` method, the
 output will directly be an xarray dataset.
 
 Both :code:`assemble_dataset` and :code:`fill_dataset` accept some optional keyword
-arguments to store more informations in the dataset:
+arguments to store more information in the dataset:
 
 - :code:`wavenumber` (default: :code:`False`): add the wavenumber of the
   incoming waves in the dataset.
 - :code:`wavelength` (default: :code:`False`): add the wavelength of the
   incoming waves in the dataset.
-- :code:`mesh` (default: :code:`False`): add some informations about the mesh in
+- :code:`mesh` (default: :code:`False`): add some information about the mesh in
   the dataset (number of faces, quadrature method).
 - :code:`hydrostatics` (default: :code:`True`): if hydrostatics data are
   available in the :code:`FloatingBody`, they are added to the dataset. 
@@ -113,7 +113,7 @@ They can be stored in xarray either as NetCDF string objects, which can be writt
 The issue is that the xarray library sometimes changes from one to the other without warnings.
 It leads to the error :code:`ValueError: unsupported dtype for netCDF4 variable: object` when trying to export a dataset.
 
-This can be fixed by explicitely converting the strings to the right format when exporting the dataset::
+This can be fixed by explicitly converting the strings to the right format when exporting the dataset::
 
     dataset.to_netcdf("dataset.nc",
                       encoding={'radiating_dof': {'dtype': 'U'},

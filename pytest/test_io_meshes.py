@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Tests for the mesh import of mesh from external librairies"""
+"""Tests for the mesh import of mesh from external libraries"""
 
 import pytest
 
