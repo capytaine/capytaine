@@ -140,20 +140,37 @@ To get these parameters you can either use individual method of each parameters:
 
     sphere.keep_immersed_part()
 
-    print(sphere.get_volume())
+    print(sphere.volume)
     # 3.82267415555807
     
-    print(sphere.get_buoyancy_center())
+    print(sphere.center_of_buoyancy)
     # [-3.04328563e-17 -1.18068465e-17 -2.00000000e+00]
     
-    print(sphere.get_hydrostatic_stiffness())
-    # [[ 0.00000000e+00  0.00000000e+00]
-    # [ 5.42144107e-12 -2.27373675e-13]]
+    print(sphere.hydrostatic_stiffness_xr())
+    # <xarray.DataArray 'hydrostatic_stiffness' (influenced_dof: 2, radiating_dof: 2)>
+    # array([[-1.12278051e-12,  0.00000000e+00],
+    #        [ 0.00000000e+00,  0.00000000e+00]])
+    # Coordinates:
+    #   * influenced_dof  (influenced_dof) <U5 'Heave' 'Surge'
+    #   * radiating_dof   (radiating_dof) <U5 'Heave' 'Surge'
 
-    print(sphere.get_rigid_dof_mass(cog=(0,0,-2))[3:, 3:])
-    # [[ 1.67088050e+04 -2.21177243e-14 -2.18483678e-13]
-    # [-2.21177243e-14  1.67088050e+04  3.29326410e-14]
-    # [-2.18483678e-13  3.29326410e-14  1.35727139e+03]]
+    print(sphere.rigid_dof_mass())
+    # <xarray.DataArray (influenced_dof: 6, radiating_dof: 6)>
+    # array([[ 3.82267416e+03,  0.00000000e+00,  0.00000000e+00,
+    #          0.00000000e+00, -7.64534831e+03,  4.51337271e-14],
+    #        [ 0.00000000e+00,  3.82267416e+03,  0.00000000e+00,
+    #          7.64534831e+03,  0.00000000e+00, -1.16334893e-13],
+    #        [ 0.00000000e+00,  0.00000000e+00,  3.82267416e+03,
+    #         -4.51337271e-14,  1.16334893e-13,  0.00000000e+00],
+    #        [ 0.00000000e+00,  7.64534831e+03, -4.51337271e-14,
+    #          1.67088050e+04, -2.21177243e-14, -2.18483678e-13],
+    #        [-7.64534831e+03,  0.00000000e+00,  1.16334893e-13,
+    #         -2.21177243e-14,  1.67088050e+04,  3.29326410e-14],
+    #        [ 4.51337271e-14, -1.16334893e-13,  0.00000000e+00,
+    #         -2.18483678e-13,  3.29326410e-14,  1.35727139e+03]])
+    # Coordinates:
+    #   * influenced_dof  (influenced_dof) <U5 'Surge' 'Sway' ... 'Pitch' 'Yaw'
+    #   * radiating_dof   (radiating_dof) <U5 'Surge' 'Sway' 'Heave' ... 'Pitch' 'Yaw'
 
 
 or you can use :code:`compute_hydrostatics` method which computes all hydrostatic parameters and returns a :code:`dict` of paramters and values::

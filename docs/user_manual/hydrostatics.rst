@@ -31,41 +31,39 @@ For each hydrostatic parameter a separate method is available in Capytaine.
 
     cog = (0,0,-2)
     sphere = cpt.Sphere(radius=1.0, center=cog, name="my buoy")
-    
+
+    sphere.center_of_mass = cog
+
     sphere.keep_immersed_part()
 
     hydrostatics = {}
-    
-    # :code:`get_volume()` returns volumes computes using x, y, z coordinates. 
-    # This is similar to VOLX, VOLY, VOLZ in WAMIT.::
-    hydrostatics["total_volumes"] = sphere.get_volumes() # [VOLX, VOLY, VOLZ]
 
-    # Mean of the [VOLX, VOLY, VOLZ]
-    hydrostatics["total_volume"] = sphere.get_volume()
+    # :code:`volumes` returns volumes computes using x, y, z coordinates. 
+    # This is similar to VOLX, VOLY, VOLZ in WAMIT.::
+    hydrostatics["total_volumes"] = sphere.volumes # [VOLX, VOLY, VOLZ]
 
     # Center of buoyancy
-    hydrostatics["buoyancy_center"] = sphere.get_buoyancy_center()
-    
+    hydrostatics["buoyancy_center"] = sphere.center_of_buoyancy
     # Wet Surface Area
-    hydrostatics["wet_surface_area"] = sphere.get_wet_surface_area()
-    
+    hydrostatics["wet_surface_area"] = sphere.wet_surface_area
+
     # Displaced Volume
-    hydrostatics["disp_volume"] = sphere.get_volume()
-    
+    hydrostatics["disp_volume"] = sphere.volume
+
     # Displaced Mass
-    hydrostatics["disp_mass"] = sphere.get_mass()
-    
+    hydrostatics["disp_mass"] = sphere.disp_mass()
+
     # Water Plane Center. Returns (0,0,0) for fully submerged bodies
-    hydrostatics["waterplane_center"] = sphere.get_waterplane_center()
-    
+    hydrostatics["waterplane_center"] = sphere.waterplane_center
+
     # Water Plane Area. Returns 0.0 for fully submerged bodies
-    hydrostatics["waterplane_area"] = sphere.get_waterplane_area()
-    
+    hydrostatics["waterplane_area"] = sphere.waterplane_area
+
     # Metacentric Parameters
-    hydrostatics["transversal_metacentric_radius"] = sphere.get_bmt()
-    hydrostatics["longitudinal_metacentric_radius"] = sphere.get_bml()
-    hydrostatics["transversal_metacentric_height"] = sphere.get_gmt(cog=cog)
-    hydrostatics["longitudinal_metacentric_height"] = sphere.get_gml(cog=cog)
+    hydrostatics["transversal_metacentric_radius"] = sphere.bmt
+    hydrostatics["longitudinal_metacentric_radius"] = sphere.bml
+    hydrostatics["transversal_metacentric_height"] = sphere.gmt
+    hydrostatics["longitudinal_metacentric_height"] = sphere.gml
     
 
 Hydrostatic Stiffness
@@ -84,10 +82,10 @@ where :math:`\hat{n}` is surface normal,
 :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
 
 
-:code:`get_hydrostatic_stiffness` computes the hydrostatic stiffness using above equation directly from the DOFs (even for the rigid DOFs) and returns a (DOF count x DOF count) 2D matrix. ::  
+:code:`hydrostatic_stiffness_xr` computes the hydrostatic stiffness using above equation directly from the DOFs (even for the rigid DOFs) and returns a (DOF count x DOF count) 2D matrix. ::  
 
     sphere.add_all_rigid_body_dofs()
-    hydrostatics["stiffness_matrix"] = sphere.get_hydrostatic_stiffness()
+    hydrostatics["stiffness_matrix"] = sphere.hydrostatic_stiffness_xr()
 
     print(f"DOF count = {len(sphere.dofs)}")
     # DOF count = 6
@@ -109,11 +107,11 @@ where :math:`\hat{n}` is surface normal,
     density = 1000
     gravity = 9.80665
 
-    elongate_in_z_hs = body.get_hydrostatic_stiffnessij("elongate_in_z", "elongate_in_z", 
+    elongate_in_z_hs = body.each_hydrostatic_stiffness("elongate_in_z", "elongate_in_z", 
                                         divergence_i=elongate_in_z_divergence,
                                         density=density, gravity=gravity)
 
-    analytical_hs = - density * gravity * (4 * body.volume() * body.get_buoyancy_center()[2])
+    analytical_hs = - density * gravity * (4 * body.volume * body.center_of_buoyancy[2])
 
     print( np.isclose(elongate_in_z_hs, analytical_hs) )
     # True
@@ -122,12 +120,12 @@ where :math:`\hat{n}` is surface normal,
 Interia Matrix
 --------------
 
-:code:`get_rigid_dof_mass` method computes 6 x 6 interia mass matrix of 6 rigid dofs. ::
+:code:`rigid_dof_mass` method computes 6 x 6 interia mass matrix of 6 rigid dofs. ::
 
-    mass_matrix = body.get_rigid_dof_mass()
+    mass_matrix = body.rigid_dof_mass()
 
 .. note::
-    Unlike :code:`get_hydrostatic_stiffness`, the :code:`get_rigid_dof_mass` can only compute for 6 x 6 rigid interia mass. 
+    Unlike :code:`hydrostatic_stiffness_xr`, the :code:`rigid_dof_mass` can only compute for 6 x 6 rigid interia mass. 
 
 Compute all Hydrostatics
 ------------------------
@@ -155,158 +153,47 @@ Instead of computing each hydrostatic parameters, :code:`compute_hydrostatics` m
     # 'inertia_matrix'])
 
 
-Verifying with meshmagick library
----------------------------------
+Verifying with Meshmagick and Analytical Results
+------------------------------------------------
 
-You can verify the results with meshmagick results
+Example code to verify with Meshmagick and Analytical results
 ::
 
     import capytaine as cpt
     import numpy as np
-
-    cog = [0,0,0]
-    body = cpt.VerticalCylinder(
-        length=2, radius=1.0,  # Dimensions
-        center=cog,        # Position
-        nr=10, nx=10, ntheta=10,   # Fineness of the mesh
-    )
-    body.add_all_rigid_body_dofs()
-
-    capy_hsdb = body.compute_hydrostatics(cog=cog)
-    capy_hsdb["stiffness_matrix"] = capy_hsdb["stiffness_matrix"][2:5,2:5]
-    capy_hsdb["inertia_matrix"] = capy_hsdb["inertia_matrix"][3:,3:]
-
-
     import meshmagick.mesh as mmm
     import meshmagick.hydrostatics as mmhs
 
-    body_mesh = mmm.Mesh(body.mesh.vertices, body.mesh.faces, name=body.mesh.name)
-
-    mm_hsdb = mmhs.compute_hydrostatics(body_mesh, np.array(cog), density, gravity)
-
-    mm_hsdb["inertia_matrix"] = body_mesh.eval_plain_mesh_inertias(rho_medium=density).inertia_matrix
-    mm_hsdb["mesh"] = ""
-
-    for var in capy_hsdb:
-        if var in mm_hsdb:
-            print(f"{var}:")
-            print(f"    Capytaine  - {capy_hsdb[var]}")
-            print(f"    Meshmagick - {mm_hsdb[var]}")
-
-
-Output is
-::
-
-    The rotation dof Roll has been initialized around the origin of the domain (0, 0, 0).
-    The rotation dof Pitch has been initialized around the origin of the domain (0, 0, 0).
-    The rotation dof Yaw has been initialized around the origin of the domain (0, 0, 0).
-    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-    Clipping slice_of_top_side_of_cylinder_375_mesh by Plane(normal=[0. 0. 1.], point=[0. 0. 0.]): all vertices are removed.
-    grav:
-        Capytaine  - 9.80665
-        Meshmagick - 9.80665
-    rho_water:
-        Capytaine  - 1000
-        Meshmagick - 1000
-    cog:
-        Capytaine  - [0, 0, 0]
-        Meshmagick - [0 0 0]
-    wet_surface_area:
-        Capytaine  - 9.119266148961312
-        Meshmagick - 9.119266148961316
-    disp_volume:
-        Capytaine  - 2.938926261462367
-        Meshmagick - 2.9389262614623664
-    disp_mass:
-        Capytaine  - 2938.9262614623667
-        Meshmagick - 2938.9262614623663
-    buoyancy_center:
-        Capytaine  - [ 4.12178644e-17 -1.96704181e-17 -5.00000000e-01]
-        Meshmagick - [-2.36103028e-17 -3.77764845e-17 -5.00000000e-01]
-    waterplane_center:
-        Capytaine  - [1.77077271e-17 3.77764845e-17 0.00000000e+00]
-        Meshmagick - [-6.29608076e-17 -3.14804038e-17  0.00000000e+00]
-    waterplane_area:
-        Capytaine  - 2.938926261462366
-        Meshmagick - 2.9389262614623655
-    transversal_metacentric_radius:
-        Capytaine  - 0.22575292568380928
-        Meshmagick - 0.23408474953124558
-    longitudinal_metacentric_radius:
-        Capytaine  - 0.22575292568380928
-        Meshmagick - 0.23408474953124558
-    transversal_metacentric_height:
-        Capytaine  - -0.27424707431619055
-        Meshmagick - -0.2659152504687545
-    longitudinal_metacentric_height:
-        Capytaine  - -0.27424707431619055
-        Meshmagick - -0.2659152504687545
-    stiffness_matrix:
-        Capytaine  - [[ 2.88210212e+04  1.08875686e-12  5.44378431e-13]
-    [ 1.08875686e-12 -7.90408075e+03 -6.80473039e-13]
-    [ 5.44378431e-13 -6.80473039e-13 -7.90408075e+03]]
-        Meshmagick - [[28821.02122197     0.             0.        ]
-    [    0.         -7663.94907701     0.        ]
-    [    0.             0.         -7663.94907701]]
-    draught:
-        Capytaine  - 1.0000000000000002
-        Meshmagick - 1.0000000000000002
-    length_at_waterline:
-        Capytaine  - 2.0
-        Meshmagick - 2.0
-    breadth_at_waterline:
-        Capytaine  - 1.9021130325903073
-        Meshmagick - 1.9021130325903073
-    length_overall_submerged:
-        Capytaine  - 2.0
-        Meshmagick - 2.0
-    breadth_overall_submerged:
-        Capytaine  - 1.9021130325903073
-        Meshmagick - 1.9021130325903073
-    inertia_matrix:
-        Capytaine  - [[ 1.63731550e+03 -4.16333634e-14 -8.63303903e-15]
-    [-4.16333634e-14  1.63731550e+03  1.11022302e-13]
-    [-8.63303903e-15  1.11022302e-13  1.32840873e+03]]
-        Meshmagick - [[ 1.66759990e+03 -1.56570115e-14 -2.77555756e-14]
-    [-1.56570115e-14  1.66759990e+03 -5.55111512e-14]
-    [-2.77555756e-14 -5.55111512e-14  1.37591564e+03]]
-
-
-Verifying with Analytical Results
----------------------------------
-
-Example code to verify with analytical results
-::
-
     radius = 10
-    cog = [0,0,0]
+    cog = (0,0,0)
     body = cpt.Sphere(
         radius=radius,
         center=cog,
-        nphi=300, ntheta=300,
+        nphi=100, ntheta=100,
     )
+    body.center_of_mass = cog
+
+    body.keep_immersed_part()
     body.add_all_rigid_body_dofs()
+    # body.show()
+    self=body
+
     density = 1000
     gravity = 9.80665
 
-    
-    capy_hsdb = body.compute_hydrostatics(density=density, gravity=gravity, cog=cog)
-    capy_hsdb["stiffness_matrix"] = capy_hsdb["stiffness_matrix"][2:5,2:5]
-    capy_hsdb["inertia_matrix"] = capy_hsdb["inertia_matrix"][3:,3:]
+    capy_hsdb = body.compute_hydrostatics(density=density, gravity=gravity)
+
+    stiff_compare_dofs = ["Heave", "Roll", "Pitch"]
+    capy_hsdb["stiffness_matrix"] = capy_hsdb["stiffness_matrix"].sel(
+        influenced_dof=stiff_compare_dofs, radiating_dof=stiff_compare_dofs
+        ).values
+
+    mass_compare_dofs = ["Roll", "Pitch", "Yaw"]
+    capy_hsdb["inertia_matrix"] = capy_hsdb["inertia_matrix"].sel(
+        influenced_dof=mass_compare_dofs, radiating_dof=mass_compare_dofs
+        ).values
 
 
-    import meshmagick.mesh as mmm
-    import meshmagick.hydrostatics as mmhs
-
-    # body.keep_immersed_part()
     body_mesh = mmm.Mesh(body.mesh.vertices, body.mesh.faces, name=body.mesh.name)
 
     mm_hsdb = mmhs.compute_hydrostatics(body_mesh, np.array(cog), density, gravity)
@@ -343,49 +230,42 @@ Example code to verify with analytical results
 
 Output is 
 ::
-
-    The rotation dof Roll has been initialized around the origin of the domain (0, 0, 0).
-    The rotation dof Pitch has been initialized around the origin of the domain (0, 0, 0).
-    The rotation dof Yaw has been initialized around the origin of the domain (0, 0, 0).
+  
     wet_surface_area:
-        Capytaine  - 628.2869509842606
-        Meshmagick - 628.2869509842606
+        Capytaine  - 628.0343659038494
+        Meshmagick - 628.0343659038496
         Analytical - 628.3185307179587
     disp_volume:
-        Capytaine  - 2094.18457402721
-        Meshmagick - 2094.1845740271997
+        Capytaine  - 2092.5009287939088
+        Meshmagick - 2092.5009287939115
         Analytical - 2094.3951023931954
-    buoyancy_center:
-        Capytaine  - [-2.60089499e-16  7.21935327e-16 -3.74993146e+00]
-        Meshmagick - [-2.17147694e-16 -1.52681972e-16 -3.74996573e+00]
-        Analytical - [ 0.    0.   -3.75]
     waterplane_area:
-        Capytaine  - 314.1362982503544
-        Meshmagick - 314.13629825035423
+        Capytaine  - 313.95259764656686
+        Meshmagick - 313.95259764656674
         Analytical - 314.1592653589793
     transversal_metacentric_radius:
-        Capytaine  - 3.7496573214020334
-        Meshmagick - 3.749828657085805
+        Capytaine  - 3.7469169327091647
+        Meshmagick - 3.748458229464248
         Analytical - 3.75
     longitudinal_metacentric_radius:
-        Capytaine  - 3.749657321402033
-        Meshmagick - 3.749828657085804
+        Capytaine  - 3.7469169327091643
+        Meshmagick - 3.748458229464248
         Analytical - 3.75
     transversal_metacentric_height:
-        Capytaine  - -0.0002741387393978556
-        Meshmagick - -0.00013707282811603605
+        Capytaine  - -0.002466140909095582
+        Meshmagick - -0.0012332946572213288
         Analytical - 0.0
     longitudinal_metacentric_height:
-        Capytaine  - -0.0002741387393982997
-        Meshmagick - -0.00013707282811692423
+        Capytaine  - -0.0024661409090960262
+        Meshmagick - -0.0012332946572213288
         Analytical - 0.0
     stiffness_matrix:
-        Capytaine  - [[ 3.08062473e+06 -8.36165270e-10  1.11488703e-09]
-    [-8.36165270e-10 -5.62996951e+03 -2.22977405e-09]
-    [ 1.11488703e-09 -2.22977405e-09 -5.62996951e+03]]
-        Meshmagick - [[ 3.08062473e+06  0.00000000e+00  0.00000000e+00]
-    [ 0.00000000e+00 -2.81505578e+03  0.00000000e+00]
-    [ 0.00000000e+00  0.00000000e+00 -2.81505578e+03]]
+        Capytaine  - [[ 3.07882324e+06 -1.11488703e-09  0.00000000e+00]
+     [-1.11488703e-09 -5.06062577e+04  2.22977405e-09]
+     [ 0.00000000e+00  2.22977405e-09 -5.06062577e+04]]
+        Meshmagick - [[3078823.2417107        0.               0.        ]
+     [      0.          -25307.72957091       0.        ]
+     [      0.               0.          -25307.72957091]]
         Analytical - [[3080849.95963263       0.               0.        ]
-    [      0.               0.               0.        ]
-    [      0.               0.               0.        ]]
+     [      0.               0.               0.        ]
+     [      0.               0.               0.        ]]

@@ -14,7 +14,7 @@ import numpy as np
 def test_all_hydrostatics():
     density = 1000
     gravity = 9.80665
-
+    
     sphere = cpt.Sphere(
         radius=10.0,
         center=(0,0,-1),
@@ -23,20 +23,30 @@ def test_all_hydrostatics():
     horizontal_cylinder = cpt.HorizontalCylinder(
         length=10.0, radius=5.0,
         center=(0,10,-1), 
-        nr=10, nx=10, ntheta=10,
+        nr=100, nx=100, ntheta=10,
     )
     vertical_cylinder = cpt.VerticalCylinder(
         length=10.0, radius=5.0,
-        center=(0,0,0),
-        nr=10, nx=10, ntheta=10,
+        center=(10,0,0),
+        nr=200, nx=200, ntheta=10,
     )
-    cog = np.zeros(3)
     body = sphere + horizontal_cylinder + vertical_cylinder
     body.add_all_rigid_body_dofs()
-
-    capy_hsdb = body.compute_hydrostatics(cog=cog, density=density, gravity=gravity)
-    capy_hsdb["stiffness_matrix"] = capy_hsdb["stiffness_matrix"][2:5,2:5]
-    capy_hsdb["inertia_matrix"] = capy_hsdb["inertia_matrix"][3:,3:]
+    body.center_of_mass = body.center_of_buoyancy
+    
+    capy_hsdb = body.compute_hydrostatics(density=density, gravity=gravity)
+    
+    stiff_compare_dofs = ["Heave", "Roll", "Pitch"]
+    capy_hsdb["stiffness_matrix"] = capy_hsdb["stiffness_matrix"].sel(
+        influenced_dof=stiff_compare_dofs, radiating_dof=stiff_compare_dofs
+        ).values
+    
+    mass_compare_dofs = ["Roll", "Pitch", "Yaw"]
+    capy_hsdb["inertia_matrix"] = capy_hsdb["inertia_matrix"].sel(
+        influenced_dof=mass_compare_dofs, radiating_dof=mass_compare_dofs
+        ).values
+    
+    
     # =============================================================================
     # Meshmagick
     # =============================================================================
@@ -44,7 +54,7 @@ def test_all_hydrostatics():
     # import meshmagick.mesh as mmm
     # import meshmagick.hydrostatics as mmhs
     # body_mesh = mmm.Mesh(body.mesh.vertices, body.mesh.faces, name=body.mesh.name)
-    # mm_hsdb = mmhs.compute_hydrostatics(body_mesh, np.array(cog), density, gravity)
+    # mm_hsdb = mmhs.compute_hydrostatics(body_mesh, body.center_of_mass, density, gravity)
     # mm_hsdb["inertia_matrix"] = body_mesh.eval_plain_mesh_inertias(
     # rho_medium=density).inertia_matrix
     # mm_hsdb["mesh"] = ""
@@ -52,16 +62,22 @@ def test_all_hydrostatics():
     #     mm_hsdb_json = {key:(value.tolist() if type(value)==np.ndarray else value)
     #                         for key, value in mm_hsdb.items() }
     #     convert_file.write(json.dumps(mm_hsdb_json))
-
+    
     with open(f'{case_dir}/sphere__hor_cyl__ver_cyl.pkl.json', 'r',
               encoding="UTF-8") as f:
         mm_hsdb = json.load(f)
-
+    
     # =============================================================================
     # Testing
     # =============================================================================
+    
     for var in capy_hsdb.keys():
         if var in mm_hsdb.keys():
+            # if not np.isclose(capy_hsdb[var], mm_hsdb[var], 
+            #                   rtol=1e-2, atol=1e-3).all():
+            #     print(f"{var}:")
+            #     print(f"    Capytaine  - {capy_hsdb[var]}")
+            #     print(f"    Meshmagick - {mm_hsdb[var]}")
             assert np.isclose(capy_hsdb[var], mm_hsdb[var], 
                               rtol=1e-2, atol=1e-3).all()
 
@@ -80,30 +96,31 @@ def test_vertical_elastic_dof():
             center=(0,0,0),
             nphi=50, ntheta=50,
         ),
-
+    
         cpt.HorizontalCylinder(
             length=5.0, radius=1.0,
             center=(0,10,0),
             nr=20, nx=20, ntheta=10, 
         )
     ]
-
+    
     for body in bodies:
+        body.center_of_mass = body.center_of_buoyancy
         body.keep_immersed_part()
         faces_centers = body.mesh.faces_centers
         body.dofs["elongate"] = np.zeros_like(faces_centers)
         body.dofs["elongate"][:,2] = faces_centers[:,2]
-
+    
         divergence = np.ones(body.mesh.faces_centers.shape[0])
-
+    
         density = 1000
         gravity = 9.80665
-        capy_hs = body.get_hydrostatic_stiffnessij("elongate", "elongate", 
-                    divergence_i=divergence, density=density, gravity=gravity)
-
-        analytical_hs = - (density * gravity * 4 * body.get_volume() 
-                        * body.get_buoyancy_center()[2])
-
+        capy_hs = body.each_hydrostatic_stiffness("elongate", "elongate", 
+                    influenced_dof_div=divergence, density=density, gravity=gravity).values[0][0]
+    
+        analytical_hs = - (density * gravity * 4 * body.volume
+                        * body.center_of_buoyancy[2])
+    
         assert np.isclose(capy_hs, analytical_hs)
 
 
