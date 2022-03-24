@@ -75,7 +75,7 @@ def setup_animation(body, fs, omega, wave_amplitude, wave_direction) -> Animatio
     # SOLVE BEM PROBLEMS
     problems = [cpt.RadiationProblem(omega=omega, body=body, radiating_dof=dof) for dof in body.dofs]
     problems += [cpt.DiffractionProblem(omega=omega, body=body, wave_direction=wave_direction)]
-    results = [bem_solver.solve(problem) for problem in problems]
+    results = bem_solver.solve_all(problems)
     *radiation_results, diffraction_result = results
     dataset = cpt.assemble_dataset(results)
 
