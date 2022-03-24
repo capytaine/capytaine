@@ -480,9 +480,27 @@ class FloatingBody(Abstract3DObject):
         
         return hs_set.hydrostatic_stiffness
 
+    def rigid_dof_mass(self, density=1000, output_type="body_dofs"):
+        """
+        Interia Mass matrix of the body for 6 rigid DOFs.
 
-    def rigid_dof_mass(self, density=1000):
-        """Interia Mass matrix of the body for 6 rigid DOFs."""
+        Parameters
+        ----------
+        density : int, optional
+            Density of water, by default 1000.
+        output_type : {"body_dofs", "rigid_dofs", "all_dofs"}
+            Type of DOFs for mass mat output, by default "body_dofs".
+
+        Returns
+        -------
+        xarray.DataArray
+            Interia matrix
+
+        Raises
+        ------
+        ValueError
+            If output_type is not in {"body_dofs", "rigid_dofs", "all_dofs"}.
+        """
         
         cog = self.center_of_mass
         
@@ -521,15 +539,38 @@ class FloatingBody(Abstract3DObject):
             [-mass*cog[1],  mass*cog[0],  0           ,
              -interias[5], -interias[4], interias[2]] ,
         ])
-
+        
+        # Rigid DOFs
         rigid_dof_names = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
-
-
-        return xr.DataArray(data=np.asarray(mass_mat), 
+        rigid_mass_xr = xr.DataArray(data=np.asarray(mass_mat), 
                             dims=['influenced_dof', 'radiating_dof'],
                             coords={'influenced_dof': rigid_dof_names, 
-                            'radiating_dof': rigid_dof_names},
-                            )
+                                    'radiating_dof': rigid_dof_names},
+                            name="mass")
+        
+        # Body DOFs (Default as np.nan)
+        body_dof_names = list(self.dofs)
+        body_dof_count = len(body_dof_names)
+        body_mass_xr = xr.DataArray(np.nan * np.zeros([body_dof_count, body_dof_count]), 
+                                    dims=['influenced_dof', 'radiating_dof'],
+                                    coords={'influenced_dof': body_dof_names, 
+                                            'radiating_dof': body_dof_names},
+                                    name="mass")
+        
+        total_mass_xr = xr.merge([rigid_mass_xr, body_mass_xr], compat="override").mass
+        
+        if output_type == "body_dofs":
+            mass_xr = total_mass_xr.sel(influenced_dof=body_dof_names, 
+                                        radiating_dof=body_dof_names)
+        elif output_type == "rigid_dofs":
+            mass_xr = total_mass_xr.sel(influenced_dof=rigid_dof_names, 
+                                        radiating_dof=rigid_dof_names)
+        elif output_type == "all_dofs":
+            mass_xr = total_mass_xr
+        else:
+            raise ValueError(f"output_type should be either 'body_dofs', \
+                             'all_dofs' or 'rigid_dofs'. Given output_type = '{output_type}'")
+        return mass_xr
 
 
     def compute_hydrostatics(self, cog=None, density=1000, 

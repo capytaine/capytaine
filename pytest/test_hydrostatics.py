@@ -51,6 +51,7 @@ def test_all_hydrostatics():
     # Meshmagick
     # =============================================================================
     case_dir = Path(__file__).parent / "Hydrostatics_cases"
+    # case_dir.mkdir(parents=True, exist_ok=True)
     # import meshmagick.mesh as mmm
     # import meshmagick.hydrostatics as mmhs
     # body_mesh = mmm.Mesh(body.mesh.vertices, body.mesh.faces, name=body.mesh.name)
