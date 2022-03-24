@@ -560,12 +560,20 @@ class FloatingBody(Abstract3DObject):
         total_mass_xr = xr.merge([rigid_mass_xr, body_mass_xr], compat="override").mass
         
         if output_type == "body_dofs":
+            if not set(body_dof_names).issubset(set(rigid_dof_names)):
+                LOG.warning("Non-rigid dofs are detected and respective interia \
+                             coefficients are assigned as NaN.")
+
             mass_xr = total_mass_xr.sel(influenced_dof=body_dof_names, 
-                                        radiating_dof=body_dof_names)
+                                            radiating_dof=body_dof_names)
         elif output_type == "rigid_dofs":
             mass_xr = total_mass_xr.sel(influenced_dof=rigid_dof_names, 
                                         radiating_dof=rigid_dof_names)
         elif output_type == "all_dofs":
+            if not set(body_dof_names).issubset(set(rigid_dof_names)):
+                LOG.warning("Non-rigid dofs are detected and respective interia \
+                             coefficients are assigned as NaN.")
+            
             mass_xr = total_mass_xr
         else:
             raise ValueError(f"output_type should be either 'body_dofs', \
