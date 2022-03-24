@@ -559,10 +559,12 @@ class FloatingBody(Abstract3DObject):
         
         total_mass_xr = xr.merge([rigid_mass_xr, body_mass_xr], compat="override").mass
         
+        non_rigid_dofs = set(body_dof_names) - set(rigid_dof_names)
+        
         if output_type == "body_dofs":
-            if not set(body_dof_names).issubset(set(rigid_dof_names)):
-                LOG.warning("Non-rigid dofs are detected and respective interia \
-                             coefficients are assigned as NaN.")
+            if len(non_rigid_dofs) > 0:
+                LOG.warning(f"Non-rigid dofs: {non_rigid_dofs} are detected and \
+                            respective interia coefficients are assigned as NaN.")
 
             mass_xr = total_mass_xr.sel(influenced_dof=body_dof_names, 
                                             radiating_dof=body_dof_names)
@@ -570,16 +572,15 @@ class FloatingBody(Abstract3DObject):
             mass_xr = total_mass_xr.sel(influenced_dof=rigid_dof_names, 
                                         radiating_dof=rigid_dof_names)
         elif output_type == "all_dofs":
-            if not set(body_dof_names).issubset(set(rigid_dof_names)):
-                LOG.warning("Non-rigid dofs are detected and respective interia \
-                             coefficients are assigned as NaN.")
+            if len(non_rigid_dofs) > 0:
+                LOG.warning("Non-rigid dofs: {non_rigid_dofs} are detected and \
+                            respective interia coefficients are assigned as NaN.")
             
             mass_xr = total_mass_xr
         else:
             raise ValueError(f"output_type should be either 'body_dofs', \
                              'all_dofs' or 'rigid_dofs'. Given output_type = '{output_type}'")
         return mass_xr
-
 
     def compute_hydrostatics(self, cog=None, density=1000, 
                              gravity=9.80665, free_surface=0.0, divergence=None):
