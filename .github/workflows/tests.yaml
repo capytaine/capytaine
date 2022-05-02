@@ -14,8 +14,8 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - run: |
-      sudo apt update
-      sudo apt install gfortran
-      pip install numpy pytest
-      pip install -e .
-      pytest
+        sudo apt update
+        sudo apt install gfortran
+        pip install numpy pytest
+        pip install -e .
+        pytest
