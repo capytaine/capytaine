@@ -16,6 +16,6 @@ jobs:
     - run: |
         sudo apt update
         sudo apt install gfortran
-        pip install numpy pytest
+        pip install numpy pytest hypothesis
         pip install -e .
         pytest
