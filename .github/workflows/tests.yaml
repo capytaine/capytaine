@@ -1,0 +1,21 @@
+name: Run test suite
+
+on: [push, pull_request]
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10']
+    steps:
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - run: |
+      sudo apt update
+      sudo apt install gfortran
+      pip install numpy pytest
+      pip install -e .
+      pytest
