@@ -15,4 +15,5 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - run: |
         pip install numpy
-        make test
+        pip install -e .[ci]
+        pytest
