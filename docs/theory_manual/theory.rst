@@ -435,7 +435,7 @@ and :math:`F_{R, ij}` can be further rewritten as
 
 where :math:`A_{ij}` is the added mass matrix and :math:`B_{ij}` is the radiation damping matrix; these properties are thus obtained from the real and imaginary parts of the radiation force. The full system becomes
 
-.. math:: \left[-\omega^2 (M_{ij} + A_{ij}) - j \omega (C_{ij} + B_{ij}) + K_{ij}\right] X_j = F_i
+.. math:: \left[-\omega^2 (M_{ij} + A_{ij}) - j \omega (C_{ij} + B_{ij}) + K_{ij}\right] X_j = F_{FK, i} + F_{D, i}
 
 and the oscillation amplitude is obtained by solving the system.
 
