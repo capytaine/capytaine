@@ -2,27 +2,26 @@
 Hydrostatics
 ============
 
-Capytaine can compute some of the hydrostatic parameters of a given :code:`FloatingBody`. 
+Capytaine can compute some of the hydrostatic parameters of a given :code:`FloatingBody`.
 
 
-Integration
------------
+.. note::
+    Here the integration of a function over the immersed hull is approximated as the summation of the data function at face centers multiplied by the respective face areas.
 
-Here the integration approximated as the summation of the data function at face center multipled with respective face area
+    .. math::
 
-.. math::
+        \iint_S f(x,y,z) dS \approx \sum_i^N f(x_i, y_i, z_i) \Delta S_i
 
-    \iint_S f(x,y,z) dS \approx \sum_i^N f(x_i, y_i, z_i) \Delta S_i
+    where :math:`i` is the face index, :math:`(x_i, y_i, z_i)` is :math:`i`th face center, and :math:`S_i` is :math:`i`th face area.
 
-where :math:`i` is the face index, :math:`(x_i, y_i, z_i)` is ith face center, and :math:`S_i` is ith face area. 
-
-Hydrostatic Parameters
+Hydrostatic parameters
 ----------------------
 
 For each hydrostatic parameter a separate method is available in Capytaine.
+Center of mass of the body can be defined by setting the attribute `center_of_mass` as in the example below.
 
 .. note::
-    Before computing individual hydrostatic parameters, make sure to crop the body to only keep immersed.
+    Before computing individual hydrostatic parameters, make sure to crop the body to only keep the immersed part.
 
 ::
 
@@ -38,7 +37,7 @@ For each hydrostatic parameter a separate method is available in Capytaine.
 
     hydrostatics = {}
 
-    # :code:`volumes` returns volumes computes using x, y, z coordinates. 
+    # :code:`volumes` returns volumes computes using x, y, z coordinates.
     # This is similar to VOLX, VOLY, VOLZ in WAMIT.::
     hydrostatics["total_volumes"] = sphere.volumes # [VOLX, VOLY, VOLZ]
 
@@ -64,9 +63,9 @@ For each hydrostatic parameter a separate method is available in Capytaine.
     hydrostatics["longitudinal_metacentric_radius"] = sphere.bml
     hydrostatics["transversal_metacentric_height"] = sphere.gmt
     hydrostatics["longitudinal_metacentric_height"] = sphere.gml
-    
 
-Hydrostatic Stiffness
+
+Hydrostatic stiffness
 ---------------------
 
 The equation to compute the hydrostatic stiffness of a floating body is
@@ -74,31 +73,31 @@ The equation to compute the hydrostatic stiffness of a floating body is
 .. math::
 
     C_{ij} = \iint_S (\hat{n} \cdot V_j) (w_i + z D_i)  dS
-        
-where :math:`\hat{n}` is surface normal, 
 
-:math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is DOF vector and
+where :math:`\hat{n}` is the surface normal,
+
+:math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is the dof vector and
 
 :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
 
 
-:code:`hydrostatic_stiffness_xr` computes the hydrostatic stiffness using above equation directly from the DOFs (even for the rigid DOFs) and returns a (DOF count x DOF count) 2D matrix. ::  
+:code:`hydrostatic_stiffness_xr` computes the hydrostatic stiffness using above equation directly from the DOFs (even for the rigid DOFs) and returns a (DOF count x DOF count) 2D matrix. ::
 
     sphere.add_all_rigid_body_dofs()
     hydrostatics["stiffness_matrix"] = sphere.hydrostatic_stiffness_xr()
 
     print(f"DOF count = {len(sphere.dofs)}")
     # DOF count = 6
-    
+
     print(hydrostatics['stiffness_matrix'].shape)
     # (6, 6)
 
 
 .. note::
-    This method computes the hydrostatic stiffness assuming zero divergence. :math:`D_{i} = 0`. If :math:`D_i \neq 0`, input the divergence interpolated to face centers. 
+    This method computes the hydrostatic stiffness assuming zero divergence. :math:`D_{i} = 0`. If :math:`D_i \neq 0`, user can input the divergence interpolated to face centers.
 
 ::
-  
+
     body.dofs["elongate_in_z"] = np.zeros_like(faces_centers)
     body.dofs["elongate_in_z"][:,2] = body.mesh.faces_centers[:,2]
 
@@ -107,7 +106,7 @@ where :math:`\hat{n}` is surface normal,
     density = 1000
     gravity = 9.80665
 
-    elongate_in_z_hs = body.each_hydrostatic_stiffness("elongate_in_z", "elongate_in_z", 
+    elongate_in_z_hs = body.each_hydrostatic_stiffness("elongate_in_z", "elongate_in_z",
                                         divergence_i=elongate_in_z_divergence,
                                         density=density, gravity=gravity)
 
@@ -117,46 +116,45 @@ where :math:`\hat{n}` is surface normal,
     # True
 
 
-Interia Matrix
+Inertia matrix
 --------------
 
-:code:`rigid_dof_mass` method computes 6 x 6 interia mass matrix of 6 rigid dofs. ::
+:code:`rigid_dof_mass` method computes 6 x 6 inertia mass matrix of 6 rigid dofs. ::
 
     mass_matrix = body.rigid_dof_mass()
 
 .. note::
-    Unlike :code:`hydrostatic_stiffness_xr`, the :code:`rigid_dof_mass` can only compute for 6 x 6 rigid interia mass. 
+    Unlike :code:`hydrostatic_stiffness_xr`, the :code:`rigid_dof_mass` can only compute for 6 x 6 rigid inertia mass.
 
-Compute all Hydrostatics
-------------------------
+Compute all hydrostatics parameters
+-----------------------------------
 
-Instead of computing each hydrostatic parameters, :code:`compute_hydrostatics` method computes all hydrostatic parameters and returns hydrostatic parameters :code:`dict`. 
+Instead of computing each hydrostatic parameters individually, :code:`compute_hydrostatics` returns a :code:`dict` containing all hydrostatic parameters.
 
 .. note::
     No need to apply :code:`keep_immersed_part` to use :code:`compute_hydrostatics`.
-    
+
 ::
 
     hydrostatics = body.compute_hydrostatics()
 
     print(hydrostatics.keys())
-
-    # dict_keys(['grav', 'rho_water', 'cog', 'total_volume', 
-    # 'total_volume_center', 'wet_surface_area', 'disp_volume', 
-    # 'disp_mass', 'buoyancy_center', 'waterplane_center', 
-    # 'waterplane_area', 'transversal_metacentric_radius', 
-    # 'longitudinal_metacentric_radius', 'transversal_metacentric_height', 
-    # 'longitudinal_metacentric_height', 'stiffness_matrix', 
-    # 'length_overall', 'breadth_overall', 'depth', 'draught', 
-    # 'length_at_waterline', 'breadth_at_waterline', 
-    # 'length_overall_submerged', 'breadth_overall_submerged', 
+    # dict_keys(['grav', 'rho_water', 'cog', 'total_volume',
+    # 'total_volume_center', 'wet_surface_area', 'disp_volume',
+    # 'disp_mass', 'buoyancy_center', 'waterplane_center',
+    # 'waterplane_area', 'transversal_metacentric_radius',
+    # 'longitudinal_metacentric_radius', 'transversal_metacentric_height',
+    # 'longitudinal_metacentric_height', 'stiffness_matrix',
+    # 'length_overall', 'breadth_overall', 'depth', 'draught',
+    # 'length_at_waterline', 'breadth_at_waterline',
+    # 'length_overall_submerged', 'breadth_overall_submerged',
     # 'inertia_matrix'])
 
 
-Verifying with Meshmagick and Analytical Results
+Verifying with Meshmagick and analytical Results
 ------------------------------------------------
 
-Example code to verify with Meshmagick and Analytical results
+Example code to compare results with `Meshmagick <https://github.com/LHEEA/meshmagick>`_ and analytical expressions.
 ::
 
     import capytaine as cpt
@@ -228,9 +226,9 @@ Example code to verify with Meshmagick and Analytical results
             print(f"    Meshmagick - {mm_hsdb[var]}")
             print(f"    Analytical - {analytical[var]}")
 
-Output is 
+Output is
 ::
-  
+
     wet_surface_area:
         Capytaine  - 628.0343659038494
         Meshmagick - 628.0343659038496
