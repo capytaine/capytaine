@@ -512,7 +512,7 @@ class FloatingBody(Abstract3DObject):
             for combination in combinations]
             for axis, normal_i in enumerate(self.mesh.faces_normals.T)])
 
-        interias = density * np.array([
+        inertias = density * np.array([
             (integrals[0,1]   + integrals[0,2]   + integrals[1,1]/3 \
              + integrals[1,2]   + integrals[2,1] + integrals[2,2]/3)/3,
             (integrals[0,0]/3 + integrals[0,2]   + integrals[1,0]   \
@@ -533,11 +533,11 @@ class FloatingBody(Abstract3DObject):
             [ 0          ,  0          ,  mass        ,
               mass*cog[1], -mass*cog[0],  0          ],
             [ 0          , -mass*cog[2],  mass*cog[1] ,  
-              interias[0], -interias[3], -interias[5]],
+              inertias[0], -inertias[3], -inertias[5]],
             [ mass*cog[2],  0          , -mass*cog[0] , 
-             -interias[3],  interias[1], -interias[4]],
+             -inertias[3],  inertias[1], -inertias[4]],
             [-mass*cog[1],  mass*cog[0],  0           ,
-             -interias[5], -interias[4], interias[2]] ,
+             -inertias[5], -inertias[4], inertias[2]] ,
         ])
         
         # Rigid DOFs
@@ -564,7 +564,7 @@ class FloatingBody(Abstract3DObject):
         if output_type == "body_dofs":
             if len(non_rigid_dofs) > 0:
                 LOG.warning(f"Non-rigid dofs: {non_rigid_dofs} are detected and \
-respective interia coefficients are assigned as NaN.")
+respective inertia coefficients are assigned as NaN.")
 
             mass_xr = total_mass_xr.sel(influenced_dof=body_dof_names, 
                                             radiating_dof=body_dof_names)
@@ -574,7 +574,7 @@ respective interia coefficients are assigned as NaN.")
         elif output_type == "all_dofs":
             if len(non_rigid_dofs) > 0:
                 LOG.warning("Non-rigid dofs: {non_rigid_dofs} are detected and \
-respective interia coefficients are assigned as NaN.")
+respective inertia coefficients are assigned as NaN.")
             
             mass_xr = total_mass_xr
         else:
