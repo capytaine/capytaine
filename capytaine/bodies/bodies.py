@@ -636,7 +636,7 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics = {}
         hydrostatics["grav"] = gravity
         hydrostatics["rho_water"] = density
-        hydrostatics["cog"] = self.center_of_mass
+        hydrostatics["center_of_mass"] = self.center_of_mass
         
         hydrostatics["wet_surface_area"] = self.wet_surface_area
         hydrostatics["disp_volumes"] = self.volumes
@@ -649,7 +649,7 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics["longitudinal_metacentric_radius"] = self.bml
         hydrostatics["transversal_metacentric_height"] = self.gmt
         hydrostatics["longitudinal_metacentric_height"] = self.gml
-        hydrostatics["stiffness_matrix"] = self.hydrostatic_stiffness_xr(
+        hydrostatics["hydrostatic_stiffness"] = self.hydrostatic_stiffness_xr(
             divergence=divergence, density=density, gravity=gravity)
 
         hydrostatics["length_overall"] = full_length

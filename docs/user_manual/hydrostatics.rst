@@ -84,12 +84,12 @@ where :math:`\hat{n}` is the surface normal,
 :code:`hydrostatic_stiffness_xr` computes the hydrostatic stiffness using above equation directly from the DOFs (even for the rigid DOFs) and returns a (DOF count x DOF count) 2D matrix. ::
 
     sphere.add_all_rigid_body_dofs()
-    hydrostatics["stiffness_matrix"] = sphere.hydrostatic_stiffness_xr()
+    hydrostatics["hydrostatic_stiffness"] = sphere.hydrostatic_stiffness_xr()
 
     print(f"DOF count = {len(sphere.dofs)}")
     # DOF count = 6
 
-    print(hydrostatics['stiffness_matrix'].shape)
+    print(hydrostatics['hydrostatic_stiffness'].shape)
     # (6, 6)
 
 
@@ -144,7 +144,7 @@ Instead of computing each hydrostatic parameters individually, :code:`compute_hy
     # 'disp_mass', 'buoyancy_center', 'waterplane_center',
     # 'waterplane_area', 'transversal_metacentric_radius',
     # 'longitudinal_metacentric_radius', 'transversal_metacentric_height',
-    # 'longitudinal_metacentric_height', 'stiffness_matrix',
+    # 'longitudinal_metacentric_height', 'hydrostatic_stiffness',
     # 'length_overall', 'breadth_overall', 'depth', 'draught',
     # 'length_at_waterline', 'breadth_at_waterline',
     # 'length_overall_submerged', 'breadth_overall_submerged',
@@ -182,7 +182,7 @@ Example code to compare results with `Meshmagick <https://github.com/LHEEA/meshm
     capy_hsdb = body.compute_hydrostatics(density=density, gravity=gravity)
 
     stiff_compare_dofs = ["Heave", "Roll", "Pitch"]
-    capy_hsdb["stiffness_matrix"] = capy_hsdb["stiffness_matrix"].sel(
+    capy_hsdb["stiffness_matrix"] = capy_hsdb["hydrostatic_stiffness"].sel(
         influenced_dof=stiff_compare_dofs, radiating_dof=stiff_compare_dofs
         ).values
 

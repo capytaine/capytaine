@@ -53,7 +53,7 @@ print(sphere.mass)
 assert np.isclose(m, 1/2 * 4/3 * r**3 * np.pi * rho_water, rtol=1e-1)
 
 # Hydrostatics
-kHS = block_diag(0,0,hsd['stiffness_matrix'],0)
+kHS = block_diag(0,0,hsd['hydrostatic_stiffness'],0)
 sphere.hydrostatic_stiffness = sphere.add_dofs_labels_to_matrix(kHS)
 
 print(sphere.hydrostatic_stiffness)

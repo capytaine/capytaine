@@ -37,7 +37,7 @@ def test_all_hydrostatics():
     capy_hsdb = body.compute_hydrostatics(density=density, gravity=gravity)
     
     stiff_compare_dofs = ["Heave", "Roll", "Pitch"]
-    capy_hsdb["stiffness_matrix"] = capy_hsdb["stiffness_matrix"].sel(
+    capy_hsdb["stiffness_matrix"] = capy_hsdb["hydrostatic_stiffness"].sel(
         influenced_dof=stiff_compare_dofs, radiating_dof=stiff_compare_dofs
         ).values
     
