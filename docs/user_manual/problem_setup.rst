@@ -68,6 +68,9 @@ The table below gives their definitions and their default values.
 .. [#] A wave direction of :math:`0` rad corresponds to a wave propagating along
        the :math:`x`-axis from :math:`x = -\infty` to :math:`x= + \infty`.
 
+.. warning::
+   Unlike other software such as Nemoh, the wave direction in Capytaine is expressed in radians.
+
 The wave height is implicitly assumed to be :math:`1` m.
 Since all computations are linear, any wave height or motion amplitude can be retrieved by multiplying the result by the desired value.
 
