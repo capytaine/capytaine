@@ -222,6 +222,11 @@ class DiffractionProblem(LinearPotentialFlowProblem):
         super().__init__(body=body, free_surface=free_surface, sea_bottom=sea_bottom,
                          omega=omega, rho=rho, g=g)
 
+        if not (-2*np.pi-1e-3 <= self.wave_direction <= 2*np.pi+1e-3):
+            LOG.warning(f"The value {self.wave_direction} has been provided for the wave direction, and it does not look like an angle in radians. "
+                         "The wave direction in Capytaine is defined in radians and not in degrees, so the result might not be what you expect. "
+                         "If you were actually giving an angle in radians, use the modulo operator to give a value between -2π and 2π to disable this warning.")
+
         if self.body is not None:
 
             self.boundary_condition = -(

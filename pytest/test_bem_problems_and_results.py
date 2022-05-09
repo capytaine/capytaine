@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import os
+import logging
 
 import pytest
 
@@ -92,6 +93,15 @@ def test_diffraction_problem():
 
     res = pb.make_results_container()
     assert isinstance(res, DiffractionResult)
+
+
+def test_wave_direction_radians_warning(caplog):
+    sphere = Sphere(radius=1.0, ntheta=20, nphi=40)
+    sphere.keep_immersed_part()
+    sphere.add_all_rigid_body_dofs()
+    with caplog.at_level(logging.WARNING):
+        DiffractionProblem(body=sphere, omega=1.0, wave_direction=180)
+    assert 'in radians and not in degrees' in caplog.text
 
 
 def test_radiation_problem(caplog):

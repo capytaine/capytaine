@@ -7,6 +7,8 @@ Changelog
 
 * A new example using Haskind's relation has been added to the cookbook (:pull:`129`).
 
+* Add a warning if the user provides a :code:`wave_direction` that is not in the range [-2π, 2π].
+
 -------------------------------
 New in version 1.3 (2021-10-07)
 -------------------------------
