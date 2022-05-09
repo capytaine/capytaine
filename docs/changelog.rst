@@ -9,6 +9,8 @@ Changelog
 
 * Add a warning if the user provides a :code:`wave_direction` that is not in the range [-2π, 2π].
 
+* Wave directions in :code:`Nemoh.cal` are interpreted as degrees as they should be (and then converted to radians to be handled by the rest of the code).
+
 -------------------------------
 New in version 1.3 (2021-10-07)
 -------------------------------
