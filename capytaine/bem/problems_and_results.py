@@ -9,6 +9,7 @@ import logging
 import numpy as np
 from scipy.optimize import newton
 
+from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.bem.airy_waves import airy_waves_velocity, froude_krylov_force
 
 LOG = logging.getLogger(__name__)
@@ -83,6 +84,10 @@ class LinearPotentialFlowProblem:
             )
 
         if self.body is not None:
+            if ((isinstance(self.body.mesh, CollectionOfMeshes) and len(self.body.mesh) == 0)
+                    or len(self.body.mesh.faces) == 0):
+                raise ValueError(f"The mesh of the body {self.body.name} is empty.")
+
             if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface)
                     or any(self.body.mesh.faces_centers[:, 2] <= self.sea_bottom)):
 

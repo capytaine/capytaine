@@ -15,6 +15,8 @@ Changelog
 
 * Wave directions in :code:`Nemoh.cal` are interpreted as degrees as they should be (and then converted to radians to be handled by the rest of the code).
 
+* Raises an error when a body with an empty mesh is given to :code:`LinearPotentialFlowProblem` (:issue:`128`).
+
 -------------------------------
 New in version 1.3 (2021-10-07)
 -------------------------------
