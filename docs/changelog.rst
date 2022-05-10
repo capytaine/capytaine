@@ -2,6 +2,10 @@
 Changelog
 =========
 
+* Fix major bug in impedance matrix and RAO computation: the sign of the
+  dissipation matrix was wrong in previous versions (:issue:`102` and
+  :pull:`140`).
+
 * Method :code:`show_matplotlib` can now colour mesh faces based on a
   specified scalar field (e.g. pressure) (:pull:`122`).
 

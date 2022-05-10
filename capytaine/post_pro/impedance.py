@@ -55,11 +55,11 @@ def impedance(dataset, dissipation=None, stiffness=None):
     omega = dataset.coords['omega']  # Range of frequencies in the dataset
 
     A = (-omega**2*(dataset['mass'] + dataset['added_mass'])
-         + 1j*omega*dataset['radiation_damping']
+         - 1j*omega*dataset['radiation_damping']
          + dataset['hydrostatic_stiffness'])
 
     if dissipation is not None:
-        A = A + 1j*omega*dissipation
+        A = A - 1j*omega*dissipation
 
     if stiffness is not None:
         A = A + stiffness
