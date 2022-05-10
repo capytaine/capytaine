@@ -7,6 +7,8 @@ Changelog
 
 * A new example using Haskind's relation has been added to the cookbook (:pull:`129`).
 
+* Add :code:`position_impedance` and :code:`velocity_impedance` functions to the :code:`post_pro` module to specify which impedance is requested.
+
 -------------------------------
 New in version 1.3 (2021-10-07)
 -------------------------------
