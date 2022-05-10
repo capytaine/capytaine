@@ -113,6 +113,7 @@ CONTAINS
 
     IF ((R1 < 1e-5) .OR. (wavenumber == 0)) THEN
       PRINT*, "Error: Impossible to compute the wave part of the Green function (division by zero)."
+      PRINT*, "This is often due to mesh panels on the free surface (z=0)."
       ERROR STOP
     ENDIF
 
