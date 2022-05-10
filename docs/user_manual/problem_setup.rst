@@ -22,9 +22,20 @@ Then the function :meth:`fill_dataset <capytaine.bem.solver.BEMSolver.fill_datas
         'radiating_dof': list(body.dofs),
         'water_depth': [np.infty],
     })
-    dataset = cpt.BEMSolver().fill_dataset(test_matrix, [body])
+    dataset = cpt.BEMSolver().fill_dataset(test_matrix, body)
 
-It returns a filled dataset. If the coordinate :code:`theta` is added to the test matrix, the code will
+The first argument of :code:`fill_dataset` is an :code:`xarray.Dataset`
+specifying the cases to be run. When a parameter is not specified in the
+dataset, the default value is used (see next section).
+
+The second argument is either a single :code:`FloatingBody` or a list of
+:code:`FloatingBody`. In the latter case, each body in the list is studied
+independently and the output dataset contains one dimension more.
+
+:code:`fill_dataset` returns an :code:`xarray.Dataset` with the same
+coordinates as its input but filled with additional output data.
+
+If the coordinate :code:`theta` is added to the test matrix, the code will
 compute the Kochin function for these values of :math:`\theta`.
 
 
