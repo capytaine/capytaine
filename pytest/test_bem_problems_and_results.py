@@ -57,6 +57,9 @@ def test_LinearPotentialFlowProblem():
     with pytest.raises(TypeError):
         LinearPotentialFlowProblem(radiating_dof="Heave")
 
+    with pytest.raises(ValueError):
+        LinearPotentialFlowProblem(body=FloatingBody(mesh=Mesh([], [])))
+
     # With a body
     sphere = Sphere(center=(0, 0, -2.0))
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
