@@ -22,7 +22,6 @@ from datetime import datetime
 
 from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
-from capytaine.bodies import FloatingBody
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 
 LOG = logging.getLogger(__name__)
@@ -133,14 +132,13 @@ class BEMSolver:
         dataset : xarray Dataset
             dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
         bodies : FloatingBody or list of FloatingBody
-            the body or bodies involved in the problems
+            The body or bodies involved in the problems
+            They should all have different names.
 
         Returns
         -------
         xarray Dataset
         """
-        if isinstance(bodies, FloatingBody):
-            bodies = [bodies]
         attrs = {'start_of_computation': datetime.now().isoformat(),
                  **self.exportable_settings}
         problems = problems_from_dataset(dataset, bodies)
