@@ -13,7 +13,11 @@ LOG = logging.getLogger(__name__)
 
 
 def impedance(dataset, dissipation=None, stiffness=None):
-    """Complex-valued mechanical impedance matrix (see, e.g., Falnes)
+    """Complex-valued mechanical impedance matrix
+
+    See Falnes for more theoretical details.
+    Note that, unlike Falnes, we define here the impedance with respect to the position, that is `force = impedance x position`.
+    For the impedance with respect to the velocity, see the function :code:`velocity_impedance` in the same module.
 
     @book{falnes2002ocean,
           title={Ocean Waves and Oscillating Systems: Linear Interactions Including Wave-Energy Extraction},
@@ -23,9 +27,6 @@ def impedance(dataset, dissipation=None, stiffness=None):
           year={2002},
           publisher={Cambridge University Press}
     }
-
-    Note that this impedance is defined with respect to the position, that is `force = impedance x position`.
-    For the impedance with respect to the velocity, see the function :code:`velocity_impedance` in the same module.
 
     Parameters
     ----------
