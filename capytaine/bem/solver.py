@@ -143,9 +143,9 @@ class BEMSolver:
             if n_jobs is None:  # by default, if joblib is not installed, solve sequentially
                 return [self.solve(pb, **kwargs) for pb in sorted(problems)]
             else:
-                raise ImportError("Setting the `n_jobs` argument requires the missing optional dependency 'joblib'.")
+                raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
 
-    def fill_dataset(self, dataset, bodies, *, n_jobs=-1, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, n_jobs=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
