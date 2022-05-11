@@ -17,10 +17,10 @@ Example
 import logging
 
 import numpy as np
-import pandas as pd
 
 from datetime import datetime
 
+from capytaine.bem.problems_and_results import LinearPotentialFlowProblem
 from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
@@ -110,7 +110,7 @@ class BEMSolver:
 
         return result
 
-    def solve_all(self, problems, *, n_jobs=-1, **kwargs):
+    def solve_all(self, problems, *, n_jobs=None, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -128,17 +128,19 @@ class BEMSolver:
         list of LinearPotentialFlowResult
             the solved problems
         """
-        if n_jobs == 1:
+        if n_jobs == 1:  # force sequential resolution
             return [self.solve(pb, **kwargs) for pb in sorted(problems)]
 
         joblib = silently_import_optional_dependency("joblib")
         if joblib is not None:
-            problems_params = pd.DataFrame([pb._asdict() for pb in problems])
-            groups_of_problems = [[problems[i] for i in grp] for grp in problems_params.groupby(["body_name", "water_depth", "omega", "rho", "g"]).groups.values()]
+            if n_jobs is None:
+                n_jobs = -1  # by default, if joblib is installed, use all availables cores
+            groups_of_problems = LinearPotentialFlowProblem.group_for_parallel_resolution(problems)
             groups_of_results = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.solve_all)(grp, n_jobs=1, **kwargs) for grp in groups_of_problems)
-            return [res for grp in groups_of_results for res in grp]
+            results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
+            return results
         else:
-            if n_jobs in [1, -1]:
+            if n_jobs is None:  # by default, if joblib is not installed, solve sequentially
                 return [self.solve(pb, **kwargs) for pb in sorted(problems)]
             else:
                 raise ImportError("Setting the `n_jobs` argument requires the missing optional dependency 'joblib'.")

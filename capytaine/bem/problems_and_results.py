@@ -7,6 +7,7 @@
 import logging
 
 import numpy as np
+import pandas as pd
 from scipy.optimize import newton
 
 from capytaine.bem.airy_waves import airy_waves_velocity, froude_krylov_force
@@ -112,6 +113,17 @@ class LinearPotentialFlowProblem:
                 "omega": self.omega,
                 "rho": self.rho,
                 "g": self.g}
+
+    @staticmethod
+    def group_for_parallel_resolution(problems):
+        """Given a list of problems, returns a list of groups of problems, such
+        that each group should be executed in the same process to benefit from
+        caching.
+        """
+        problems_params = pd.DataFrame([pb._asdict() for pb in problems])
+        groups_of_indices = problems_params.groupby(["body_name", "water_depth", "omega", "rho", "g"]).groups.values()
+        groups_of_problems = [[problems[i] for i in grp] for grp in groups_of_indices]
+        return groups_of_problems
 
     def __str__(self):
         """Do not display default values in str(problem)."""
