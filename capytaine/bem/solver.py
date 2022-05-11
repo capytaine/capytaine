@@ -119,9 +119,8 @@ class BEMSolver:
         problems: list of LinearPotentialFlowProblem
             several problems to be solved
         n_jobs: optional int
-            the number of jobs to run in parallel
-            (if `joblib` is installed).
-            By default: use all available cores.
+            the number of jobs to run in parallel using the optional dependency `joblib`
+            By defaults: if `joblib` is installed, use all available cores, else solve sequentially.
 
         Returns
         -------
@@ -155,9 +154,8 @@ class BEMSolver:
         bodies : list of FloatingBody
             the bodies involved in the problems
         n_jobs: optional int
-            the number of jobs to run in parallel
-            (if `joblib` is installed).
-            By default: use all available cores.
+            the number of jobs to run in parallel using the optional dependency `joblib`
+            By defaults: if `joblib` is installed, use all available cores, else solve sequentially.
 
         Returns
         -------
