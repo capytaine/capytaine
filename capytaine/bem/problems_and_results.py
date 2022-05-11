@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import newton
 
+from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.bem.airy_waves import airy_waves_velocity, froude_krylov_force
 
 LOG = logging.getLogger(__name__)
@@ -84,6 +85,10 @@ class LinearPotentialFlowProblem:
             )
 
         if self.body is not None:
+            if ((isinstance(self.body.mesh, CollectionOfMeshes) and len(self.body.mesh) == 0)
+                    or len(self.body.mesh.faces) == 0):
+                raise ValueError(f"The mesh of the body {self.body.name} is empty.")
+
             if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface)
                     or any(self.body.mesh.faces_centers[:, 2] <= self.sea_bottom)):
 
@@ -233,6 +238,11 @@ class DiffractionProblem(LinearPotentialFlowProblem):
 
         super().__init__(body=body, free_surface=free_surface, sea_bottom=sea_bottom,
                          omega=omega, rho=rho, g=g)
+
+        if not (-2*np.pi-1e-3 <= self.wave_direction <= 2*np.pi+1e-3):
+            LOG.warning(f"The value {self.wave_direction} has been provided for the wave direction, and it does not look like an angle in radians. "
+                         "The wave direction in Capytaine is defined in radians and not in degrees, so the result might not be what you expect. "
+                         "If you were actually giving an angle in radians, use the modulo operator to give a value between -2π and 2π to disable this warning.")
 
         if self.body is not None:
 

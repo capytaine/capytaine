@@ -151,8 +151,9 @@ class BEMSolver:
         ----------
         dataset : xarray Dataset
             dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
-        bodies : list of FloatingBody
-            the bodies involved in the problems
+        bodies : FloatingBody or list of FloatingBody
+            The body or bodies involved in the problems
+            They should all have different names.
         n_jobs: optional int
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: if `joblib` is installed, use all available cores, else solve sequentially.
