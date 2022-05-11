@@ -63,7 +63,7 @@ def test_fill_dataset():
         'water_depth': [np.infty, 10.0],
         'g': [9.81]
     })
-    dataset = solver.fill_dataset(test_matrix, [sphere])
+    dataset = solver.fill_dataset(test_matrix, sphere)
 
     # Tests on the coordinates
     assert list(dataset.coords['influenced_dof']) == list(dataset.coords['radiating_dof']) == list(sphere.dofs.keys())

@@ -17,6 +17,10 @@ Changelog
 
 * Raises an error when a body with an empty mesh is given to :code:`LinearPotentialFlowProblem` (:issue:`128`).
 
+* The functions :code:`problems_from_dataset` and :code:`fill_dataset` accept a body alone as input.
+  That is, one can use :code:`fill_dataset(test_matrix, body)` and not only :code:`fill_dataset(test_matrix, [body])` (pull:`144`).
+
+
 -------------------------------
 New in version 1.3 (2021-10-07)
 -------------------------------
