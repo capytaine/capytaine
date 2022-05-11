@@ -80,7 +80,7 @@ hydrostatics, and inertial properties::
         'radiating_dof': list(sphere_fb.dofs.keys()),
         })
     
-    data = solver.fill_dataset(test_matrix, [sphere_fb],
+    data = solver.fill_dataset(test_matrix, sphere_fb,
                                hydrostatics=True,
                                mesh=True,
                                wavelength=True,
