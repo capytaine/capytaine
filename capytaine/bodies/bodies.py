@@ -294,30 +294,28 @@ class FloatingBody(Abstract3DObject):
         return waterplane_center[:-1]
 
     @property
-    def bmt(self):
+    def transversal_metacentric_radius(self):
         """Returns transversal metacentric radius of the body."""
         inertia_moment = -self.waterplane_integral(self.mesh.faces_centers[:,1]**2)
-        bmt = inertia_moment / self.volume
-        return bmt
+        return inertia_moment / self.volume
 
     @property
-    def bml(self):
+    def longitudinal_metacentric_radius(self):
         """Returns longitudinal metacentric radius of the body."""
         inertia_moment = -self.waterplane_integral(self.mesh.faces_centers[:,0]**2)
-        bmt = inertia_moment / self.volume
-        return bmt
+        return inertia_moment / self.volume
 
     @property
-    def gmt(self):
-        """Returns transversal metacentric Height of the body."""
+    def transversal_metacentric_height(self):
+        """Returns transversal metacentric height of the body."""
         gb = self.center_of_mass - self.center_of_buoyancy
-        return self.bmt - gb[2]
+        return self.transversal_metacentric_radius - gb[2]
 
     @property
-    def gml(self):
-        """Returns longitudinal metacentric Height of the body."""
+    def longitudinal_metacentric_height(self):
+        """Returns longitudinal metacentric height of the body."""
         gb = self.center_of_mass - self.center_of_buoyancy
-        return self.bml - gb[2]
+        return self.longitudinal_metacentric_radius - gb[2]
 
     def dof_normals(self, dof):
         """Returns dot product of the surface face normals and DOF"""
@@ -389,14 +387,14 @@ class FloatingBody(Abstract3DObject):
             elif dof_pair in [("Heave", "Pitch"), ("Pitch", "Heave")]:
                 norm_hs_stiff = self.waterplane_integral(self.mesh.faces_centers[:,0])
             elif dof_pair == ("Roll", "Roll"):
-                norm_hs_stiff = self.volume * self.gmt
+                norm_hs_stiff = self.volume * self.transversal_metacentric_height
             elif dof_pair in [("Roll", "Pitch"), ("Pitch", "Roll")]:
                 norm_hs_stiff = self.waterplane_integral(self.mesh.faces_centers[:,0]
                                                           * self.mesh.faces_centers[:,1])
             elif dof_pair == ("Roll", "Yaw"):
                 norm_hs_stiff = self.volume * (-self.center_of_buoyancy[0] + cog[0])
             elif dof_pair == ("Pitch", "Pitch"):
-                norm_hs_stiff = self.volume * self.gml
+                norm_hs_stiff = self.volume * self.longitudinal_metacentric_height
             elif dof_pair == ("Pitch", "Yaw"):
                 norm_hs_stiff = self.volume * (-self.center_of_buoyancy[1] + cog[1])
             else:
@@ -645,10 +643,10 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics["center_of_buoyancy"] = self.center_of_buoyancy
         hydrostatics["waterplane_center"] = np.append(self.waterplane_center, free_surface)
         hydrostatics["waterplane_area"] = self.waterplane_area
-        hydrostatics["transversal_metacentric_radius"] = self.bmt
-        hydrostatics["longitudinal_metacentric_radius"] = self.bml
-        hydrostatics["transversal_metacentric_height"] = self.gmt
-        hydrostatics["longitudinal_metacentric_height"] = self.gml
+        hydrostatics["transversal_metacentric_radius"] = self.transversal_metacentric_radius
+        hydrostatics["longitudinal_metacentric_radius"] = self.longitudinal_metacentric_radius
+        hydrostatics["transversal_metacentric_height"] = self.transversal_metacentric_height
+        hydrostatics["longitudinal_metacentric_height"] = self.longitudinal_metacentric_height
         hydrostatics["hydrostatic_stiffness"] = self.hydrostatic_stiffness_xr(
             divergence=divergence, density=density, gravity=gravity)
 

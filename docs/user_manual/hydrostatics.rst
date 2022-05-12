@@ -59,10 +59,10 @@ Center of mass of the body can be defined by setting the attribute `center_of_ma
     hydrostatics["waterplane_area"] = sphere.waterplane_area
 
     # Metacentric Parameters
-    hydrostatics["transversal_metacentric_radius"] = sphere.bmt
-    hydrostatics["longitudinal_metacentric_radius"] = sphere.bml
-    hydrostatics["transversal_metacentric_height"] = sphere.gmt
-    hydrostatics["longitudinal_metacentric_height"] = sphere.gml
+    hydrostatics["transversal_metacentric_radius"] = sphere.transversal_metacentric_radius
+    hydrostatics["longitudinal_metacentric_radius"] = sphere.longitudinal_metacentric_radius
+    hydrostatics["transversal_metacentric_height"] = sphere.transversal_metacentric_height
+    hydrostatics["longitudinal_metacentric_height"] = sphere.longitudinal_metacentric_height
 
 
 Hydrostatic stiffness
