@@ -13,7 +13,7 @@ Capytaine is based on
 .. _`Python scientific ecosystem`: https://scipy.org/
 
 For users, it can be seen as a Python 3.6 (or higher) interface to Nemoh.
-Since most of the code has been rewritten, it can be used by developpers as a
+Since most of the code has been rewritten, it can be used by developers as a
 more concise and better documented version of Nemoh.
 
 Below some features of the latest version (version |version|) of Capytaine are listed.

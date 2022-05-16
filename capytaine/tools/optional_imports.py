@@ -18,3 +18,12 @@ def import_optional_dependency(module_name: str, package_name: str = None):
         raise ImportError(message) from None
 
     return module
+
+def silently_import_optional_dependency(module_name: str):
+    # Same as above, except it does not raise a exception when the module is not found.
+    # Instead, simply returns None.
+    try:
+        module = importlib.import_module(module_name)
+    except ImportError:
+        module = None
+    return module

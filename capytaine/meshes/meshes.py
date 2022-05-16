@@ -457,7 +457,8 @@ class Mesh(Abstract3DObject):
 
     def show_matplotlib(self, ax=None,
                         normal_vectors=False, scale_normal_vector=None,
-                        saveas=None,
+                        saveas=None, color_field=None, cmap=None,
+                        cbar_label=None,
                         **kwargs):
         """Poor man's viewer with matplotlib.
 
@@ -465,17 +466,24 @@ class Mesh(Abstract3DObject):
         ----------
         ax: matplotlib axis
             The 3d axis in which to plot the mesh. If not provided, create a new one.
-        normal_vector: bool
+        normal_vectors: bool
             If True, print normal vector.
         scale_normal_vector: array of shape (nb_faces, )
             Scale separately each of the normal vectors.
         saveas: str
-            file path where to save the image
+            File path where to save the image.
+        color_field: array of shape (nb_faces, )
+            Scalar field to be plot on the mesh (optional).
+        cmap: matplotlib colormap
+            Colormap to use for field plotting.
+        cbar_label: string
+            Label for colormap
 
         Other parameters are passed to Poly3DCollection.
         """
         matplotlib = import_optional_dependency("matplotlib")
         plt = matplotlib.pyplot
+        cm = matplotlib.cm
 
         mpl_toolkits = import_optional_dependency("mpl_toolkits", package_name="matplotlib")
         Poly3DCollection = mpl_toolkits.mplot3d.art3d.Poly3DCollection
@@ -491,11 +499,29 @@ class Mesh(Abstract3DObject):
             for index_vertex in face:
                 vertices.append(self.vertices[int(index_vertex), :])
             faces.append(vertices)
-        if 'facecolors' not in kwargs:
-            kwargs['facecolors'] = (0.3, 0.3, 0.3, 0.3)
+
+        if color_field is None:
+            if 'facecolors' not in kwargs:
+                kwargs['facecolors'] = "yellow"
+        else:
+            if cmap is None:
+                cmap = cm.get_cmap('coolwarm')
+            m = cm.ScalarMappable(cmap=cmap)
+            m.set_array([min(color_field), max(color_field)])
+            m.set_clim(vmin=min(color_field), vmax=max(color_field))
+            colors = m.to_rgba(color_field)
+            kwargs['facecolors'] = colors
         if 'edgecolor' not in kwargs:
             kwargs['edgecolor'] = 'k'
+
         ax.add_collection3d(Poly3DCollection(faces, **kwargs))
+
+        if color_field is not None:
+            cbar = plt.colorbar(m)
+            if cbar_label is not None:
+                cbar.set_label(cbar_label)
+
+
 
         # Plot normal vectors.
         if normal_vectors:
@@ -505,15 +531,17 @@ class Mesh(Abstract3DObject):
                 vectors = self.faces_normals
             ax.quiver(*zip(*self.faces_centers), *zip(*vectors), length=0.2)
 
+
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
+
+        xmin, xmax, ymin, ymax, zmin, zmax = self.squared_axis_aligned_bbox
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+        ax.set_zlim(zmin, zmax)
+
         if default_axis:
-            ax.set_xlabel("x")
-            ax.set_ylabel("y")
-
-            xmin, xmax, ymin, ymax, zmin, zmax = self.squared_axis_aligned_bbox
-            ax.set_xlim(xmin, xmax)
-            ax.set_ylim(ymin, ymax)
-            ax.set_zlim(zmin, zmax)
-
             if saveas is not None:
                 plt.tight_layout()
                 plt.savefig(saveas)
@@ -606,7 +634,7 @@ class Mesh(Abstract3DObject):
 
     @inplace_transformation
     def triangulate_quadrangles(self) -> 'Mesh':
-        """Triangulates every quadrangles of the mesh by simple spliting.
+        """Triangulates every quadrangles of the mesh by simple splitting.
         Each quadrangle gives two triangles.
 
         Note

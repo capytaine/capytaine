@@ -33,7 +33,7 @@ def load_mesh(filename, file_format=None, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
     file_format: str, optional
         format of the mesh defined in the extension_dict dictionary
     name: str, optional
@@ -64,7 +64,7 @@ def load_RAD(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -116,7 +116,7 @@ def load_HST(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -231,13 +231,13 @@ def load_DAT(filename, name=None):
 def load_INP(filename, name=None):
     """Loads DIODORE (PRINCIPIA (c)) configuration file format.
 
-    It parses the .INP file and extract meshes defined in subsequent .DAT files using the different informations
+    It parses the .INP file and extracts meshes defined in subsequent .DAT files using the different information
     contained in the .INP file.
 
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -254,7 +254,7 @@ def load_INP(filename, name=None):
     with open(filename, 'r') as f:
         text = f.read()
 
-    # Retrieving frames into a dictionnary frames
+    # Retrieving frames into a dictionary frames
     pattern_frame_str = r'^\s*\*FRAME,NAME=(.+)[\r\n]+(.*)'
     pattern_frame = re.compile(pattern_frame_str, re.MULTILINE)
 
@@ -404,7 +404,7 @@ def load_TEC(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -446,7 +446,7 @@ def load_VTU(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -463,7 +463,7 @@ def load_VTU(filename, name=None):
     vtk = import_optional_dependency("vtk")
 
     reader = vtk.vtkXMLUnstructuredGridReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename))
     reader.Update()
     vtk_mesh = reader.GetOutput()
 
@@ -479,7 +479,7 @@ def load_VTP(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -495,7 +495,7 @@ def load_VTP(filename, name=None):
     vtk = import_optional_dependency("vtk")
 
     reader = vtk.vtkXMLPolyDataReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename))
     reader.Update()
     vtk_mesh = reader.GetOutput()
 
@@ -511,7 +511,7 @@ def load_VTK(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -527,7 +527,7 @@ def load_VTK(filename, name=None):
     vtk = import_optional_dependency("vtk")
 
     reader = vtk.vtkPolyDataReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename))
     reader.Update()
     vtk_mesh = reader.GetOutput()
 
@@ -573,7 +573,7 @@ def load_STL(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -591,7 +591,7 @@ def load_STL(filename, name=None):
     _check_file(filename)
 
     reader = vtk.vtkSTLReader()
-    reader.SetFileName(filename)
+    reader.SetFileName(str(filename))
     reader.Update()
 
     data = reader.GetOutputDataObject(0)
@@ -622,7 +622,7 @@ def load_NAT(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -687,7 +687,7 @@ def load_GDF(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -718,13 +718,20 @@ def load_GDF(filename, name=None):
     vertices = np.zeros((4 * nf, 3), dtype=float)
     faces = np.zeros((nf, 4), dtype=int)
 
-    iv = -1
+    iv = 0
     for icell in range(nf):
+        
+        n_coords = 0
+        face_coords = np.zeros((12,), dtype=float)
+        
+        while n_coords < 12:
+            line = np.array(ifile.readline().split())
+            face_coords[n_coords:n_coords+len(line)] = line
+            n_coords += len(line)
 
-        for k in range(4):
-            iv += 1
-            vertices[iv, :] = np.array(ifile.readline().split())
-            faces[icell, k] = iv
+        vertices[iv:iv+4, :] = np.split(face_coords, 4)
+        faces[icell, :] = np.arange(iv, iv+4)
+        iv += 4
 
     ifile.close()
 
@@ -737,7 +744,7 @@ def load_MAR(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -794,7 +801,7 @@ def load_MSH(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -843,7 +850,7 @@ def load_MED(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -905,7 +912,7 @@ def load_WRL(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -926,7 +933,7 @@ def load_WRL(filename, name=None):
             raise NotImplementedError('VRML loader only supports VRML 2.0 format (version %s given)' % ver)
 
     importer = vtk.vtkVRMLImporter()
-    importer.SetFileName(filename)
+    importer.SetFileName(str(filename))
     importer.Update()
 
     actors = importer.GetRenderer().GetActors()
@@ -942,7 +949,7 @@ def load_NEM(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------

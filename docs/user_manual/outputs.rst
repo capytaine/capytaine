@@ -2,8 +2,8 @@
 Outputs
 =======
 
-Building a dataset
-------------------
+Building a dataset from LinearPotentialFlowResult
+-------------------------------------------------
 
 If you have a list of :code:`LinearPotentialFlowResult`, you can assemble
 them in a xarray dataset for a more convenient post-processing. Use the
@@ -16,13 +16,13 @@ If you gave a test matrix to the :code:`BEMSolver.fill_dataset` method, the
 output will directly be an xarray dataset.
 
 Both :code:`assemble_dataset` and :code:`fill_dataset` accept some optional keyword
-arguments to store more informations in the dataset:
+arguments to store more information in the dataset:
 
 - :code:`wavenumber` (default: :code:`False`): add the wavenumber of the
   incoming waves in the dataset.
 - :code:`wavelength` (default: :code:`False`): add the wavelength of the
   incoming waves in the dataset.
-- :code:`mesh` (default: :code:`False`): add some informations about the mesh in
+- :code:`mesh` (default: :code:`False`): add some information about the mesh in
   the dataset (number of faces, quadrature method).
 - :code:`hydrostatics` (default: :code:`True`): if hydrostatics data are
   available in the :code:`FloatingBody`, they are added to the dataset. 
@@ -40,6 +40,42 @@ arguments to store more informations in the dataset:
               sorted_dofs = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
               print(data.sel(radiating_dof=sorted_dofs, influenced_dof=sorted_dofs))
 
+.. note:: Datasets created with :code:`assemble_dataset` only include data on
+          cases with a free surface.
+          Cases without a free surface (:code:`free_surface=infty`) are ignored.
+
+Building a dataset from Bemio
+-----------------------------
+
+An xarray dataset can also be created from data structures generated using the `Bemio
+<https://wec-sim.github.io/bemio/>`_ package, which reads hydrodynamic output data
+from NEMOH, WAMIT, and AQWA. This allows for Capytaine post-processing of hydrodynamic
+data generated from other BEM codes.
+
+Bemio does not come packaged with Capytaine and needs to to be installed independently.
+Note that `the base repository of Bemio <https://github.com/WEC-Sim/bemio/>`_ has been
+archived and is only compatible with Python 2.7.x, so using a Python 3 compatible fork is
+recommended, available `here <https://github.com/michaelcdevin/bemio>`_ or installed with::
+
+  pip install git+https://github.com/michaelcdevin/bemio.git
+
+To build the xarray dataset using Capytaine, the output files from the BEM program in
+question must be read into a Bemio :code:`data_structures.ben.HydrodynamicData` class, which is
+then called by `assemble_dataset`. For example, to create an xarray dataset from a WAMIT
+:code:`.out` file::
+
+  from bemio.io.wamit import read as read_wamit
+  import capytaine as cpt
+  bemio_data = read_wamit("myfile.out")
+  my_dataset = cpt.assemble_dataset(bemio_data, hydrostatics=False)
+
+.. warning:: The created dataset will only contain quantities that can be directly calculated
+             from the values given in the original dataset. Because of this, there may be minor
+             differences between the variable names in an xarray dataset build with Bemio and one created
+             using :code:`LinearPotentialFlowResult`, even though the format will be identical. For
+             example, WAMIT :code:`.out` files do not contain the radii of gyration needed to calculate
+             the moments of inertia, so the `my_dataset['mass']` variable would not be included in the above
+             example since the rigid body mass matrix cannot be calculated.
 
 Saving the dataset as NetCDF file
 ---------------------------------
@@ -77,7 +113,7 @@ They can be stored in xarray either as NetCDF string objects, which can be writt
 The issue is that the xarray library sometimes changes from one to the other without warnings.
 It leads to the error :code:`ValueError: unsupported dtype for netCDF4 variable: object` when trying to export a dataset.
 
-This can be fixed by explicitely converting the strings to the right format when exporting the dataset::
+This can be fixed by explicitly converting the strings to the right format when exporting the dataset::
 
     dataset.to_netcdf("dataset.nc",
                       encoding={'radiating_dof': {'dtype': 'U'},

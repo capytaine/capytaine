@@ -85,7 +85,7 @@ def error_exponential_decomposition(X, F, a, lamda):
     Returns
     -------
     error: float
-        mean square error of the decompostion
+        mean square error of the decomposition
     """
     a = np.asarray(a)[:, np.newaxis]
     lamda = np.asarray(lamda)[:, np.newaxis]

@@ -18,7 +18,7 @@ requirements:
   run:
     - python
     - {{ pin_compatible('numpy') }}
-    - pandas
+    - pandas>=1.3
     - scipy
     - xarray
 
@@ -37,7 +37,7 @@ test:
     - pytest/**/*
   commands:
     - sudo apt-get install -y gmsh
-    - pip install quadpy==0.14.11 gmsh pygmsh
+    - pip install gmsh pygmsh
     - pytest
     - capytaine --help
 

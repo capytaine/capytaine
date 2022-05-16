@@ -8,7 +8,7 @@ import logging
 
 import numpy as np
 import xarray as xr
-from capytaine.post_pro.impedance import impedance
+from capytaine.post_pro.impedance import position_impedance
 
 LOG = logging.getLogger(__name__)
 
@@ -37,12 +37,13 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
     xarray DataArray
         The RAO as an array depending of omega and the degree of freedom.
     """
-    LOG.info("Compute RAO.")
 
     # ASSEMBLE MATRICES
-    omega = dataset.coords['omega']  # Range of frequencies in the dataset
+    A = position_impedance(dataset, dissipation, stiffness)
 
-    A = impedance(dataset, dissipation, stiffness)
+    LOG.info("Compute RAO.")
+
+    omega = dataset.coords['omega']  # Range of frequencies in the dataset
 
     if 'excitation_force' not in dataset:
         dataset['excitation_force'] = dataset['Froude_Krylov_force'] + dataset['diffraction_force']
