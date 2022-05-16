@@ -157,3 +157,8 @@ parallelization.)
 When :code:`joblib` is not installed or :code:`n_jobs=1`, no parallel batch
 resolution happens (although OpenMP parallelization might still be enabled).
 
+The two parallelization layers (OpenMP and `joblib`) have different usage. If
+you have a relatively small mesh but study a large number of sea states, you
+should use the `joblib` parallelization. On the other hand, if your mesh is
+large or your available RAM is low, it might be beneficial to turn off the
+`joblib` parallelization and use only the OpenMP one.
