@@ -12,7 +12,7 @@ import numpy as np
 
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh
-from capytaine.meshes.geometry import xOz_Plane
+from capytaine.meshes.geometry import xOz_Plane, xOy_Plane
 from capytaine.tools.optional_imports import import_optional_dependency
 
 LOG = logging.getLogger(__name__)
@@ -131,16 +131,17 @@ def load_HST(filename, name=None):
     _check_file(filename)
 
     with open(filename, 'r') as f:
-        data = f.readlines()
+        lines = f.readlines()
+
+    optional_keywords = ['PROJECT', 'SYMMETRY']
+    not_implemented_optional_keywords = ['USER', 'REFLENGTH', 'GRAVITY', 'RHO', 'NBBODY']
 
     vertices = []
     faces = []
-    other_data = {'PROJECT': None, #'SYMMETRY': None, 'USERS': None,
-                  #'RHO': None, 'GRAVITY': None, 'NBODY': None,
-                  }
+    optional_data = {kw: None for kw in optional_keywords}
     current_context = None
 
-    for i_line, line in enumerate(data):
+    for i_line, line in enumerate(lines):
         line = line.lstrip()
 
         if line == '':
@@ -198,9 +199,9 @@ def load_HST(filename, name=None):
             break
 
         else:
-            for keyword in other_data:
+            for keyword in optional_data:
                 if line.startswith(keyword):
-                    other_data[keyword] = line[len(keyword)+1:].lstrip(':').strip()
+                    optional_data[keyword] = line[len(keyword)+1:].lstrip(':').strip()
                     break
             else:
                 line_without_CR = line.strip('\n')
@@ -209,9 +210,14 @@ def load_HST(filename, name=None):
     vertices = np.array(vertices, dtype=float)
     faces = np.array(faces, dtype=int) - 1
 
-    if name is None: name = other_data['PROJECT']
+    if name is None: name = optional_data['PROJECT']
 
-    return Mesh(vertices, faces, name)
+    if optional_data['SYMMETRY'] == 1:
+        return ReflectionSymmetricMesh(Mesh(vertices, faces, f"half_of_{name}"), xOz_Plane, name)
+    elif optional_data['SYMMETRY'] == 2:
+        return ReflectionSymmetricMesh(ReflectionSymmetricMesh(Mesh(vertices, faces, f"quarter_of_{name}"), xOy_Plane, f"half_of_{name}"), xOz_Plane, name)
+    else:
+        return Mesh(vertices, faces, name)
 
 
 def load_DAT(filename, name=None):
