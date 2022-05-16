@@ -140,6 +140,7 @@ def load_HST(filename, name=None):
     faces = []
     optional_data = {kw: None for kw in optional_keywords}
     current_context = None
+    ignored_lines = []
 
     for i_line, line in enumerate(lines):
         line = line.lstrip()
@@ -167,7 +168,7 @@ def load_HST(filename, name=None):
                 if int(i_vertex) != len(vertices) + 1:
                     raise ValueError(
                         f"HST mesh reader expected the next vertex to be indexed as {len(vertices)+1}, "
-                        f"but it was actually indexed as {i_vertex} (line {i_line} of {filename}).")
+                        f"but it was actually indexed as {i_vertex} (line {i_line+1} of {filename}).")
             elif len(numbers) == 3:
                 x, y, z = numbers
             vertices.append([x, y, z])
@@ -192,7 +193,7 @@ def load_HST(filename, name=None):
             if int(i_face) != len(faces) + 1:
                 ii = len(faces) + 1
                 raise ValueError(f"HST mesh reader expected the next face to be indexed {ii},\n"
-                                 f"but it was actually indexed with {i_face} (line {i_line} of file {filename}).")
+                                 f"but it was actually indexed with {i_face} (line {i_line+1} of file {filename}).")
             faces.append([v1, v2, v3, v4])
 
         elif line.startswith("ENDFILE"):
@@ -204,8 +205,11 @@ def load_HST(filename, name=None):
                     optional_data[keyword] = line[len(keyword)+1:].lstrip(':').strip()
                     break
             else:
-                line_without_CR = line.strip('\n')
-                LOG.warning(f"HST mesh reader ignored line {i_line} of file {filename}:\n{line_without_CR}")
+                ignored_lines.append((i_line+1, line))
+
+    if len(ignored_lines) > 0:
+        formatted_ignored_lines = ["{: 4} | {}".format(i, line.strip('\n')) for (i, line) in ignored_lines]
+        LOG.warning(f"HST mesh reader ignored the following lines from file {filename}:\n" + "\n".join(formatted_ignored_lines))
 
     vertices = np.array(vertices, dtype=float)
     faces = np.array(faces, dtype=int) - 1
