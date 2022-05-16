@@ -14,6 +14,8 @@ Changelog
 
 * A new example using Haskind's relation has been added to the cookbook (:pull:`129`).
 
+* New implementation of the mesh importer for `hst` files (:pull:`90`)
+
 * Add :code:`position_impedance` and :code:`velocity_impedance` functions to the :code:`post_pro` module to specify which impedance is requested (:pull:`142`)
 
 * Add a warning if the user provides a :code:`wave_direction` that is not in the range [-2π, 2π].
