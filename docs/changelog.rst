@@ -9,6 +9,9 @@ Changelog
 * Method :code:`show_matplotlib` can now colour mesh faces based on a
   specified scalar field (e.g. pressure) (:pull:`122`).
 
+* Add new parallelization using the `joblib <https://joblib.readthedocs.io>`_ library as a new optional dependency.
+  The optional keyword-argument :code:`n_jobs` in the :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` controls the number of processes running in parallel (:pull:`136`).
+
 * A new example using Haskind's relation has been added to the cookbook (:pull:`129`).
 
 * Add :code:`position_impedance` and :code:`velocity_impedance` functions to the :code:`post_pro` module to specify which impedance is requested (:pull:`142`)

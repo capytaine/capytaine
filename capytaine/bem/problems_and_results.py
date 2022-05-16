@@ -7,6 +7,7 @@
 import logging
 
 import numpy as np
+import pandas as pd
 from scipy.optimize import newton
 
 from capytaine.meshes.collections import CollectionOfMeshes
@@ -118,6 +119,17 @@ class LinearPotentialFlowProblem:
                 "rho": self.rho,
                 "g": self.g}
 
+    @staticmethod
+    def _group_for_parallel_resolution(problems):
+        """Given a list of problems, returns a list of groups of problems, such
+        that each group should be executed in the same process to benefit from
+        caching.
+        """
+        problems_params = pd.DataFrame([pb._asdict() for pb in problems])
+        groups_of_indices = problems_params.groupby(["body_name", "water_depth", "omega", "rho", "g"]).groups.values()
+        groups_of_problems = [[problems[i] for i in grp] for grp in groups_of_indices]
+        return groups_of_problems
+
     def __str__(self):
         """Do not display default values in str(problem)."""
         parameters = [f"body={self.body_name}",
@@ -201,7 +213,7 @@ class LinearPotentialFlowProblem:
     @property
     def influenced_dofs(self):
         # TODO: let the user choose the influenced dofs
-        return self.body.dofs
+        return self.body.dofs if self.body is not None else set()
 
     def make_results_container(self):
         return LinearPotentialFlowResult(self)
@@ -316,20 +328,30 @@ class LinearPotentialFlowResult:
         self.potential = None
         self.fs_elevation = {}
 
-    __str__ = LinearPotentialFlowProblem.__str__
+        # Copy data from problem
+        self.body               = self.problem.body
+        self.free_surface       = self.problem.free_surface
+        self.sea_bottom         = self.problem.sea_bottom
+        self.omega              = self.problem.omega
+        self.rho                = self.problem.rho
+        self.g                  = self.problem.g
+        self.boundary_condition = self.problem.boundary_condition
+        self.water_depth        = self.problem.water_depth
+        self.depth              = self.problem.depth
+        self.wavenumber         = self.problem.wavenumber
+        self.wavelength         = self.problem.wavelength
+        self.period             = self.problem.period
+        self.body_name          = self.problem.body_name
+        self.influenced_dofs    = self.problem.influenced_dofs
 
-    def __getattr__(self, name):
-        """Direct access to the attributes of the included problem."""
-        try:
-            return getattr(self.problem, name)
-        except AttributeError:
-            raise AttributeError(f"{self.__class__} does not have a attribute named {name}.")
+    __str__ = LinearPotentialFlowProblem.__str__
 
 
 class DiffractionResult(LinearPotentialFlowResult):
 
     def __init__(self, problem):
         super().__init__(problem)
+        self.wave_direction = self.problem.wave_direction
         self.forces = {}
 
     def store_force(self, dof, force):
@@ -350,6 +372,7 @@ class RadiationResult(LinearPotentialFlowResult):
 
     def __init__(self, problem):
         super().__init__(problem)
+        self.radiating_dof = self.problem.radiating_dof
         self.added_masses = {}
         self.radiation_dampings = {}
 

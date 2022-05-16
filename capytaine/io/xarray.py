@@ -190,7 +190,7 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
             The present function is just a wrapper around :code:`compute_kochin`.
     """
     records = pd.DataFrame([
-        dict(**result._asdict(), theta=theta, kochin=kochin)
+        dict(**result.problem._asdict(), theta=theta, kochin=kochin)
         for result in results
         for theta, kochin in zip(theta_range.data,
                                  compute_kochin(result, theta_range, **kwargs))
