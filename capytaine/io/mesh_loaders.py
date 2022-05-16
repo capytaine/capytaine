@@ -175,6 +175,7 @@ def load_HST(filename, name=None):
             numbers = line.split()
             if len(numbers) == 3:
                 v1, v2, v3 = numbers
+                v4 = v3
             elif len(numbers) == 4:
                 v1, v2, v3, v4 = numbers
             faces.append([v1, v2, v3, v4])
@@ -190,8 +191,7 @@ def load_HST(filename, name=None):
             if int(i_face) != len(faces) + 1:
                 ii = len(faces) + 1
                 raise ValueError(f"HST mesh reader expected the next face to be indexed {ii},\n"
-                                 f"but it was actually indexed with {i_face} (line {i_line} of file {filename})."
-
+                                 f"but it was actually indexed with {i_face} (line {i_line} of file {filename}).")
             faces.append([v1, v2, v3, v4])
 
         elif line.startswith("ENDFILE"):
@@ -203,7 +203,8 @@ def load_HST(filename, name=None):
                     other_data[keyword] = line[len(keyword)+1:].lstrip(':').strip()
                     break
             else:
-                LOG.warning(f"HST mesh reader ignored line {i_line} of file {filename}:\n{line.strip('\n')}")
+                line_without_CR = line.strip('\n')
+                LOG.warning(f"HST mesh reader ignored line {i_line} of file {filename}:\n{line_without_CR}")
 
     vertices = np.array(vertices, dtype=float)
     faces = np.array(faces, dtype=int) - 1
