@@ -93,8 +93,10 @@ def solve_gmres(A, b):
     else:
         x, info = ssl.gmres(A, b, atol=1e-6)
 
-    if info != 0:
-        LOG.warning(f"No convergence of the GMRES. Error code: {info}")
+    if info > 0:
+        raise RuntimeError(f"No convergence of the GMRES after {info} iterations.\n"
+                            "This can be due to overlapping panels or irregular frequencies.\n"
+                            "In the latter case, using a direct solver can help (https://github.com/mancellin/capytaine/issues/30).")
 
     return x
 
