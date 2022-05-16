@@ -11,6 +11,8 @@ Changelog
 
 * A new example using Haskind's relation has been added to the cookbook (:pull:`129`).
 
+* Add :code:`position_impedance` and :code:`velocity_impedance` functions to the :code:`post_pro` module to specify which impedance is requested (:pull:`142`)
+
 * Add a warning if the user provides a :code:`wave_direction` that is not in the range [-2π, 2π].
 
 * Wave directions in :code:`Nemoh.cal` are interpreted as degrees as they should be (and then converted to radians to be handled by the rest of the code).

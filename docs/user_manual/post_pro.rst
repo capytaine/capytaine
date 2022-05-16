@@ -41,7 +41,7 @@ hydrostatics, and inertial properties::
     import xarray as xr
     from capytaine import BEMSolver
     from capytaine.bodies.predefined.spheres import Sphere
-    from capytaine.post_pro import impedance
+    from capytaine.post_pro import velocity_impedance
     
     sphere = Sphere(radius=r, ntheta=3, nphi=12, clip_free_surface=True)
     sphere.add_all_rigid_body_dofs()
@@ -86,7 +86,7 @@ hydrostatics, and inertial properties::
                                wavelength=True,
                                wavenumber=True)
     
-    Zi = impedance(data)
+    Zi = velocity_impedance(data)
 
 By simple extension of incorporating the excitation transfer function response 
 amplitude operator (RAO)::
