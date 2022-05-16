@@ -12,7 +12,7 @@ import numpy as np
 
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh
-from capytaine.meshes.geometry import xOz_Plane, xOy_Plane
+from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
 from capytaine.tools.optional_imports import import_optional_dependency
 
 LOG = logging.getLogger(__name__)
@@ -216,10 +216,10 @@ def load_HST(filename, name=None):
 
     if name is None: name = optional_data['PROJECT']
 
-    if optional_data['SYMMETRY'] == 1:
+    if optional_data['SYMMETRY'] == '1':
         return ReflectionSymmetricMesh(Mesh(vertices, faces, f"half_of_{name}"), xOz_Plane, name)
-    elif optional_data['SYMMETRY'] == 2:
-        return ReflectionSymmetricMesh(ReflectionSymmetricMesh(Mesh(vertices, faces, f"quarter_of_{name}"), xOy_Plane, f"half_of_{name}"), xOz_Plane, name)
+    elif optional_data['SYMMETRY'] == '2':
+        return ReflectionSymmetricMesh(ReflectionSymmetricMesh(Mesh(vertices, faces, f"quarter_of_{name}"), yOz_Plane, f"half_of_{name}"), xOz_Plane, name)
     else:
         return Mesh(vertices, faces, name)
 
