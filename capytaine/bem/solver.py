@@ -134,7 +134,7 @@ class BEMSolver:
         if joblib is not None:
             if n_jobs is None:
                 n_jobs = -1  # by default, if joblib is installed, use all availables cores
-            groups_of_problems = LinearPotentialFlowProblem.group_for_parallel_resolution(problems)
+            groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
             groups_of_results = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.solve_all)(grp, n_jobs=1, **kwargs) for grp in groups_of_problems)
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
             return results

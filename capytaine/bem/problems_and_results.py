@@ -120,7 +120,7 @@ class LinearPotentialFlowProblem:
                 "g": self.g}
 
     @staticmethod
-    def group_for_parallel_resolution(problems):
+    def _group_for_parallel_resolution(problems):
         """Given a list of problems, returns a list of groups of problems, such
         that each group should be executed in the same process to benefit from
         caching.
