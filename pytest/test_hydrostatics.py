@@ -13,10 +13,13 @@ from pathlib import Path
 import capytaine as cpt
 import numpy as np
 
+# TODO: Can I use pytest fixtures to avoid regenerating so many spheres?
+# Does pytest fixture do a copy of the object, since I modifying the sphere in-place?
 
 def test_disp_mass_of_sphere():
-    sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
-    assert np.isclose(sphere.disp_mass(rho=1000), 1000*4/3*np.pi*1.0**3)
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=50, ntheta=50)
+    analytical_volume = 4/3*np.pi*1.0**3
+    assert np.isclose(sphere.disp_mass(rho=1000), 1000*analytical_volume, rtol=2e-2)
 
 def test_waterplane_area_of_submerged_sphere():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
@@ -57,11 +60,12 @@ def test_stiffness_with_malformed_divergence(caplog):
     assert "without the divergence" in caplog.text
 
 def test_mass_of_sphere_for_non_default_density():
-    sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=50, ntheta=50)
     sphere.add_translation_dof(name="Heave")
     sphere.center_of_mass = np.array([0, 0, -2])
     m = sphere.compute_rigid_body_inertia(rho=500)
-    assert np.isclose(m.values[0, 0], 500*4/3*np.pi*1.0**3)
+    analytical_volume = 4/3*np.pi*1.0**3
+    assert np.isclose(m.values[0, 0], 500*analytical_volume, rtol=2e-2)
 
 def test_inertia_rigid_body_dofs():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
