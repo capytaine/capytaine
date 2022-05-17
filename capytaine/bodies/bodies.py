@@ -437,7 +437,7 @@ class FloatingBody(Abstract3DObject):
 
         Returns
         -------
-        hydrostatic_stiffness: np.ndarray
+        xr.DataArray
             Matrix of hydrostatic stiffness
 
         Note
@@ -478,7 +478,7 @@ class FloatingBody(Abstract3DObject):
 
     def rigid_dof_mass(self, *, rho=1000, output_type="body_dofs"):
         """
-        Interia Mass matrix of the body for 6 rigid DOFs.
+        Inertia Mass matrix of the body for 6 rigid DOFs.
 
         Parameters
         ----------
@@ -490,7 +490,7 @@ class FloatingBody(Abstract3DObject):
         Returns
         -------
         xarray.DataArray
-            Interia matrix
+            Inertia matrix
 
         Raises
         ------
