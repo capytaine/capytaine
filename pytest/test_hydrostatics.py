@@ -33,9 +33,9 @@ def test_all_hydrostatics():
     body = sphere + horizontal_cylinder + vertical_cylinder
     body.add_all_rigid_body_dofs()
     body.center_of_mass = body.center_of_buoyancy
-    
-    capy_hsdb = body.compute_hydrostatics(density=density, gravity=gravity)
-    
+
+    capy_hsdb = body.compute_hydrostatics(rho=density, g=gravity)
+
     stiff_compare_dofs = ["Heave", "Roll", "Pitch"]
     capy_hsdb["stiffness_matrix"] = capy_hsdb["hydrostatic_stiffness"].sel(
         influenced_dof=stiff_compare_dofs, radiating_dof=stiff_compare_dofs
@@ -116,9 +116,9 @@ def test_vertical_elastic_dof():
     
         density = 1000
         gravity = 9.80665
-        capy_hs = body.each_hydrostatic_stiffness("elongate", "elongate", 
-                    influenced_dof_div=divergence, density=density, gravity=gravity).values[0][0]
-    
+        capy_hs = body.each_hydrostatic_stiffness("elongate", "elongate",
+                    influenced_dof_div=divergence, rho=density, g=gravity).values[0][0]
+
         analytical_hs = - (density * gravity * 4 * body.volume
                         * body.center_of_buoyancy[2])
     

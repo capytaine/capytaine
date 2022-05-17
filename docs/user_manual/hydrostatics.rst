@@ -108,7 +108,7 @@ where :math:`\hat{n}` is the surface normal,
 
     elongate_in_z_hs = body.each_hydrostatic_stiffness("elongate_in_z", "elongate_in_z",
                                         divergence_i=elongate_in_z_divergence,
-                                        density=density, gravity=gravity)
+                                        rho=density, g=gravity)
 
     analytical_hs = - density * gravity * (4 * body.volume * body.center_of_buoyancy[2])
 
@@ -179,7 +179,7 @@ Example code to compare results with `Meshmagick <https://github.com/LHEEA/meshm
     density = 1000
     gravity = 9.80665
 
-    capy_hsdb = body.compute_hydrostatics(density=density, gravity=gravity)
+    capy_hsdb = body.compute_hydrostatics(rho=density, gravity=gravity)
 
     stiff_compare_dofs = ["Heave", "Roll", "Pitch"]
     capy_hsdb["stiffness_matrix"] = capy_hsdb["hydrostatic_stiffness"].sel(
