@@ -272,26 +272,22 @@ class FloatingBody(Abstract3DObject):
     @property
     def waterplane_area(self):
         """Returns water plane area of the FloatingBody."""
-        # if self.mesh.vertices[:,2].max() < free_surface:
-        #     waterplane_area = 0.0
-        # else:
         waterplane_area = -self.waterplane_integral(1)
         return waterplane_area
 
     @property
     def waterplane_center(self):
         """Returns water plane center of the FloatingBody.
-        
-        Note: Returns None if the FloatingBody is full submerged. 
-        """
-        # if self.mesh.vertices[:,2].max() < free_surface:
-        #     waterplane_center = None
-        # else:
-        waterplane_area = self.waterplane_area
-        waterplane_center = -self.waterplane_integral(
-            self.mesh.faces_centers.T, axis=1) / waterplane_area
 
-        return waterplane_center[:-1]
+        Note: Returns None if the FloatingBody is full submerged.
+        """
+        waterplane_area = self.waterplane_area
+        if abs(waterplane_area) < 1e-10:
+            return None
+        else:
+            waterplane_center = -self.waterplane_integral(
+                self.mesh.faces_centers.T, axis=1) / waterplane_area
+            return waterplane_center[:-1]
 
     @property
     def transversal_metacentric_radius(self):
