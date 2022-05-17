@@ -2,6 +2,7 @@
 examples/**/results*
 docs/_static/
 .pytest_cache/
+.vscode/
 
 # Created by https://www.gitignore.io/api/python,fortran
 

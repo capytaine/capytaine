@@ -7,15 +7,6 @@ from numpy import pi
 import capytaine as cpt
 from capytaine.ui.vtk import Animation
 
-try:
-    import meshmagick.hydrostatics as hs
-    import meshmagick.mesh as mm
-except:
-    hs = None
-    mm = None
-
-from scipy.linalg import block_diag
-
 logging.basicConfig(level=logging.INFO, format='%(levelname)-8s: %(message)s')
 
 bem_solver = cpt.BEMSolver()
@@ -24,43 +15,13 @@ bem_solver = cpt.BEMSolver()
 def generate_boat() -> cpt.FloatingBody:
     boat = cpt.FloatingBody.from_file("boat_200.mar", file_format="mar", name="pirate ship")
     boat.rotate_z(pi)
+    boat.center_of_mass = boat.center_of_buoyancy if hasattr(boat, 'center_of_buoyancy') else np.zeros(3)
     boat.add_all_rigid_body_dofs()
     boat.keep_immersed_part()
 
-    # The computation of the RAO requires the values of the inertia matrix and the hydrostatic stiffness matrix.
-    if hs is not None and mm is not None:
-        # You can use Meshmagick to compute the hydrostatic stiffness matrix.
-        hsd = hs.Hydrostatics(mm.Mesh(boat.mesh.vertices, boat.mesh.faces)).hs_data
-
-        m = hsd['disp_mass']
-        I = np.array([[hsd['Ixx'], -1*hsd['Ixy'], -1*hsd['Ixz']],
-                      [-1*hsd['Ixy'], hsd['Iyy'], -1*hsd['Iyz']],
-                      [-1*hsd['Ixz'], -1*hsd['Iyz'], hsd['Izz']]])
-        M = block_diag(m, m, m, I)
-        boat.mass = boat.add_dofs_labels_to_matrix(M)
-
-        kHS = block_diag(0,0,hsd['stiffness_matrix'],0)
-        boat.hydrostatic_stiffness = boat.add_dofs_labels_to_matrix(kHS)
-
-    else:
-        # Alternatively, you can define these by hand
-        boat.mass = boat.add_dofs_labels_to_matrix(
-        [[1e6, 0,   0,   0,   0,   0],
-         [0,   1e6, 0,   0,   0,   0],
-         [0,   0,   1e6, 0,   0,   0],
-         [0,   0,   0,   1e7, 0,   2e5],
-         [0,   0,   0,   0,   4e7, 0],
-         [0,   0,   0,   2e5, 0,   5e7]]
-        )
-
-        boat.hydrostatic_stiffness = boat.add_dofs_labels_to_matrix(
-            [[0, 0, 0,    0,   0,    0],
-             [0, 0, 0,    0,   0,    0],
-             [0, 0, 3e6,  0,   -7e6, 0],
-             [0, 0, 0,    2e7, 0,    0],
-             [0, 0, -7e6, 0,   1e8,  0],
-             [0, 0, 0,    0,   0,    0]]
-        )
+    # Compute hydrostatics
+    boat.hydrostatic_stiffness = boat.compute_hydrostatic_stiffness()
+    boat.mass = boat.compute_rigid_body_inertia()
     return boat
 
 
@@ -68,7 +29,7 @@ def setup_animation(body, fs, omega, wave_amplitude, wave_direction) -> Animatio
     # SOLVE BEM PROBLEMS
     problems = [cpt.RadiationProblem(omega=omega, body=body, radiating_dof=dof) for dof in body.dofs]
     problems += [cpt.DiffractionProblem(omega=omega, body=body, wave_direction=wave_direction)]
-    results = [bem_solver.solve(problem) for problem in problems]
+    results = bem_solver.solve_all(problems)
     *radiation_results, diffraction_result = results
     dataset = cpt.assemble_dataset(results)
 

@@ -8,6 +8,7 @@ User manual
    installation.rst
    tutorial.rst
    mesh.rst
+   hydrostatics.rst
    problem_setup.rst
    resolution.rst
    outputs.rst

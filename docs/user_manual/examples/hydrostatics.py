@@ -1,60 +1,66 @@
-
-import logging
-import capytaine as cpt
-
 import numpy as np
-np.set_printoptions(precision=3)
-np.set_printoptions(linewidth=160)
-from scipy.linalg import block_diag
 
-import meshmagick
-import meshmagick.mesh as mm
+import capytaine as cpt
+import meshmagick.mesh
+import meshmagick.hydrostatics
 
-# The hydrostatics module changed with version 3.0 of Meshmagick.
-# This example uses the older version which is still available
-# as 'hydrostatics_old' in recent versions of Meshmagick.
-from packaging import version
-if version.parse(meshmagick.__version__) < version.parse('3.0'):
-    import meshmagick.hydrostatics as hs
-else:
-    import meshmagick.hydrostatics_old as hs
+radius = 10
+cog = np.array((0, 0, 0))
+body = cpt.Sphere(radius=radius, center=cog, nphi=100, ntheta=100)
+body.center_of_mass = cog
+
+body.add_all_rigid_body_dofs()
+body.keep_immersed_part()
+
+density = 1000
+gravity = 9.81
+
+capy_hsdb = body.compute_hydrostatics(rho=density, g=gravity)
+
+stiff_compare_dofs = ["Heave", "Roll", "Pitch"]
+capy_hsdb["stiffness_matrix"] = capy_hsdb["hydrostatic_stiffness"].sel(
+    influenced_dof=stiff_compare_dofs, radiating_dof=stiff_compare_dofs
+    ).values
+
+mass_compare_dofs = ["Roll", "Pitch", "Yaw"]
+capy_hsdb["inertia_matrix"] = capy_hsdb["inertia_matrix"].sel(
+    influenced_dof=mass_compare_dofs, radiating_dof=mass_compare_dofs
+    ).values
 
 
-rho_water = 1025
-g = 9.81
+mm_mesh = meshmagick.mesh.Mesh(body.mesh.vertices, body.mesh.faces, name=body.mesh.name)
 
-# Initialize floating body
-r = 1.0
-sphere = cpt.Sphere(
-    radius=r,          # Dimension
-    center=(0, 0, 0),    # Position
-    nphi=20, ntheta=20,  # Fineness of the mesh
-)
-sphere.add_all_rigid_body_dofs()
+mm_hsdb = meshmagick.hydrostatics.compute_hydrostatics(mm_mesh, cog=np.array(cog), rho_water=density, grav=gravity)
 
-# Visualize the body
-# sphere.show()
+mm_hsdb["inertia_matrix"] = mm_mesh.eval_plain_mesh_inertias(rho_medium=density).inertia_matrix
+mm_hsdb["center_of_buoyancy"] = mm_hsdb["buoyancy_center"]
 
-# Create a hydrostatics body in Meshmagick
-hsd = hs.Hydrostatics(mm.Mesh(sphere.mesh.vertices, sphere.mesh.faces),
-					  cog=(0,0,0),
-					  rho_water=rho_water,
-					  grav=g).hs_data
 
-# Inertial properties for neutrally buoyant constant density body
-m = hsd['disp_mass']
-I = np.array([[hsd['Ixx'], -1*hsd['Ixy'], -1*hsd['Ixz']],
-              [-1*hsd['Ixy'], hsd['Iyy'], -1*hsd['Iyz']],
-              [-1*hsd['Ixz'], -1*hsd['Iyz'], hsd['Izz']]])
-M = block_diag(m, m, m, I)
-sphere.mass = sphere.add_dofs_labels_to_matrix(M)
-print(sphere.mass)
+analytical = {}
+analytical["waterplane_area"] = np.pi*radius**2
+analytical["wet_surface_area"] = 2*np.pi*radius**2
+analytical["disp_volume"] = (2/3)*np.pi*radius**3
+analytical["center_of_buoyancy"] = np.array([0,0,-3*radius/8])
+inertia_xx = np.pi*radius**4/4
+inertia_yy = np.pi*radius**4/4
+inertia_zz = np.pi*radius**4/2
+analytical["transversal_metacentric_radius"] = inertia_xx / analytical["disp_volume"]
+analytical["longitudinal_metacentric_radius"] = inertia_yy / analytical["disp_volume"]
+analytical["transversal_metacentric_height"] = analytical["transversal_metacentric_radius"] + analytical["center_of_buoyancy"][2] - cog[2]
+analytical["longitudinal_metacentric_height"] = analytical["longitudinal_metacentric_radius"] + analytical["center_of_buoyancy"][2] - cog[2]
 
-assert np.isclose(m, 1/2 * 4/3 * r**3 * np.pi * rho_water, rtol=1e-1)
+analytical["stiffness_matrix"] = density * gravity * np.array([
+    [analytical["waterplane_area"], 0, 0],
+    [0, analytical["disp_volume"] * analytical["transversal_metacentric_height"], 0],
+    [0, 0, analytical["disp_volume"] * analytical["transversal_metacentric_height"]],
+    ])
 
-# Hydrostatics
-kHS = block_diag(0,0,hsd['stiffness_matrix'],0)
-sphere.hydrostatic_stiffness = sphere.add_dofs_labels_to_matrix(kHS)
+vars_to_be_displayed = capy_hsdb.keys() & (mm_hsdb.keys() | analytical.keys())
+for var in vars_to_be_displayed:
+    print(f"{var}:")
+    print(f"    Capytaine  :  {capy_hsdb[var]}")
+    if var in mm_hsdb:
+        print(f"    Meshmagick :  {mm_hsdb[var]}")
+    if var in analytical:
+        print(f"    Analytical :  {analytical[var]}")
 
-print(sphere.hydrostatic_stiffness)
-assert np.isclose(kHS[2,2], r**2 * np.pi * rho_water * g, rtol=1e-1)

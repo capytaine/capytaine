@@ -113,6 +113,3 @@ class Sphere(FloatingBody):
 
         return AxialSymmetricMesh.from_profile(circle_profile, nphi=nphi, name=f"{name}_mesh")
 
-    @property
-    def volume(self):
-        return 4/3*np.pi*self.radius**3
