@@ -5,6 +5,7 @@ Tests for the functions that computes hydrostatic from the mesh vertices
 and faces
 """
 
+import pytest
 import json
 from pathlib import Path
 
@@ -34,6 +35,18 @@ def test_mass_of_sphere_for_non_default_density():
     sphere.center_of_mass = np.array([0, 0, -2])
     m = sphere.rigid_dof_mass(rho=500)
     assert np.isclose(m.values[0, 0], 500*4/3*np.pi*1.0**3)
+
+def test_stiffness_when_no_dofs():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
+    sphere.center_of_mass = np.array([0, 0, -0.3])
+    with pytest.raises(AttributeError, match=".* no dof .*"):
+        sphere.hydrostatic_stiffness_xr()
+
+def test_inertia_when_no_dofs():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
+    sphere.center_of_mass = np.array([0, 0, -0.3])
+    m =sphere.rigid_dof_mass()
+    assert m.shape == (0, 0)
 
 def test_hydrostatics_of_submerged_sphere():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)

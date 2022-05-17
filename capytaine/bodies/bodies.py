@@ -455,6 +455,9 @@ class FloatingBody(Abstract3DObject):
             http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
 
         """
+        if len(self.dofs) == 0:
+            raise AttributeError("Cannot compute hydrostatics stiffness on {} since no dof has been defined.".format(self.name))
+
         def divergence_dof(influenced_dof):
             if divergence is None:
                 return 0.0
