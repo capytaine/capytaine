@@ -414,7 +414,7 @@ class FloatingBody(Abstract3DObject):
                             name="hydrostatic_stiffness"
                             )
 
-    def hydrostatic_stiffness_xr(self, *, divergence=None, rho=1000.0, g=9.81):
+    def compute_hydrostatic_stiffness(self, *, divergence=None, rho=1000.0, g=9.81):
         r"""
         Compute hydrostatic stiffness matrix for all DOFs of the body.
 
@@ -482,7 +482,7 @@ class FloatingBody(Abstract3DObject):
 
         return hs_set.hydrostatic_stiffness
 
-    def rigid_dof_mass(self, *, rho=1000, output_type="body_dofs"):
+    def compute_rigid_body_inertia(self, *, rho=1000, output_type="body_dofs"):
         """
         Inertia Mass matrix of the body for 6 rigid DOFs.
 
@@ -640,7 +640,7 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics["longitudinal_metacentric_radius"] = self.longitudinal_metacentric_radius
         hydrostatics["transversal_metacentric_height"] = self.transversal_metacentric_height
         hydrostatics["longitudinal_metacentric_height"] = self.longitudinal_metacentric_height
-        hydrostatics["hydrostatic_stiffness"] = self.hydrostatic_stiffness_xr(
+        hydrostatics["hydrostatic_stiffness"] = self.compute_hydrostatic_stiffness(
             divergence=divergence, rho=rho, g=g)
 
         hydrostatics["length_overall"] = full_length
@@ -651,7 +651,7 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics["breadth_at_waterline"] = wl_breadth
         hydrostatics["length_overall_submerged"] = sub_length
         hydrostatics["breadth_overall_submerged"] = sub_breadth
-        hydrostatics["inertia_matrix"] = self.rigid_dof_mass(rho=rho)
+        hydrostatics["inertia_matrix"] = self.compute_rigid_body_inertia(rho=rho)
 
         return hydrostatics
 

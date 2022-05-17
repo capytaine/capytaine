@@ -34,14 +34,14 @@ def test_stiffness_when_no_dofs():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     sphere.center_of_mass = np.array([0, 0, -0.3])
     with pytest.raises(AttributeError, match=".* no dof .*"):
-        sphere.hydrostatic_stiffness_xr()
+        sphere.compute_hydrostatic_stiffness()
 
 def test_stiffness_with_divergence():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     sphere.center_of_mass = np.array([0, 0, -0.3])
     sphere.dofs["elongate_in_z"] = np.array([(0, 0, z) for (x, y, z) in sphere.mesh.faces_centers])
-    hs_1 = sphere.hydrostatic_stiffness_xr()
-    hs_2 = sphere.hydrostatic_stiffness_xr(divergence={"elongate_in_z": np.ones(sphere.mesh.nb_faces)})
+    hs_1 = sphere.compute_hydrostatic_stiffness()
+    hs_2 = sphere.compute_hydrostatic_stiffness(divergence={"elongate_in_z": np.ones(sphere.mesh.nb_faces)})
     assert hs_1.values[0, 0] != hs_2.values[0, 0]
     analytical_hs = - 1000.0 * 9.81 * (4 * sphere.volume * sphere.center_of_buoyancy[2])
     assert np.isclose(hs_2.values[0, 0], analytical_hs)
@@ -50,9 +50,9 @@ def test_stiffness_with_malformed_divergence(caplog):
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     sphere.center_of_mass = np.array([0, 0, -0.3])
     sphere.dofs["elongate_in_z"] = np.array([(0, 0, z) for (x, y, z) in sphere.mesh.faces_centers])
-    hs_1 = sphere.hydrostatic_stiffness_xr()
+    hs_1 = sphere.compute_hydrostatic_stiffness()
     with caplog.at_level(logging.WARNING):
-        hs_2 = sphere.hydrostatic_stiffness_xr(divergence={"foobar": np.ones(sphere.mesh.nb_faces)})
+        hs_2 = sphere.compute_hydrostatic_stiffness(divergence={"foobar": np.ones(sphere.mesh.nb_faces)})
     assert hs_1.values[0, 0] == hs_2.values[0, 0]
     assert "without the divergence" in caplog.text
 
@@ -60,29 +60,29 @@ def test_mass_of_sphere_for_non_default_density():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
     sphere.add_translation_dof(name="Heave")
     sphere.center_of_mass = np.array([0, 0, -2])
-    m = sphere.rigid_dof_mass(rho=500)
+    m = sphere.compute_rigid_body_inertia(rho=500)
     assert np.isclose(m.values[0, 0], 500*4/3*np.pi*1.0**3)
 
 def test_inertia_rigid_body_dofs():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     sphere.center_of_mass = np.array([0, 0, -0.3])
     sphere.add_all_rigid_body_dofs()
-    assert np.all(sphere.rigid_dof_mass(output_type="rigid_dofs")
-            == sphere.rigid_dof_mass(output_type="all_dofs"))
-    assert np.all(sphere.rigid_dof_mass(output_type="rigid_dofs")
-            == sphere.rigid_dof_mass(output_type="body_dofs"))
+    assert np.all(sphere.compute_rigid_body_inertia(output_type="rigid_dofs")
+            == sphere.compute_rigid_body_inertia(output_type="all_dofs"))
+    assert np.all(sphere.compute_rigid_body_inertia(output_type="rigid_dofs")
+            == sphere.compute_rigid_body_inertia(output_type="body_dofs"))
 
 def test_inertia_wrong_output_type():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     sphere.center_of_mass = np.array([0, 0, -0.3])
     sphere.add_all_rigid_body_dofs()
     with pytest.raises(ValueError):
-        sphere.rigid_dof_mass(output_type="foo")
+        sphere.compute_rigid_body_inertia(output_type="foo")
 
 def test_inertia_when_no_dofs():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     sphere.center_of_mass = np.array([0, 0, -0.3])
-    m =sphere.rigid_dof_mass()
+    m =sphere.compute_rigid_body_inertia()
     assert m.shape == (0, 0)
 
 def test_hydrostatics_of_submerged_sphere():

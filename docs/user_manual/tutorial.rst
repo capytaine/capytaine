@@ -146,7 +146,7 @@ To get these parameters you can either use individual method of each parameters:
     print(sphere.center_of_buoyancy)
     # [-3.04328563e-17 -1.18068465e-17 -2.00000000e+00]
     
-    print(sphere.hydrostatic_stiffness_xr())
+    print(sphere.compute_hydrostatic_stiffness())
     # <xarray.DataArray 'hydrostatic_stiffness' (influenced_dof: 2, radiating_dof: 2)>
     # array([[-1.12278051e-12,  0.00000000e+00],
     #        [ 0.00000000e+00,  0.00000000e+00]])
@@ -154,7 +154,7 @@ To get these parameters you can either use individual method of each parameters:
     #   * influenced_dof  (influenced_dof) <U5 'Heave' 'Surge'
     #   * radiating_dof   (radiating_dof) <U5 'Heave' 'Surge'
 
-    print(sphere.rigid_dof_mass())
+    print(sphere.compute_rigid_body_inertia())
     # <xarray.DataArray (influenced_dof: 6, radiating_dof: 6)>
     # array([[ 3.82267416e+03,  0.00000000e+00,  0.00000000e+00,
     #          0.00000000e+00, -7.64534831e+03,  4.51337271e-14],
