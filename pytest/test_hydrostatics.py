@@ -29,6 +29,12 @@ def test_waterplane_center_of_sphere_at_surface():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     assert np.allclose(sphere.waterplane_center, [0.0, 0.0])
 
+def test_stiffness_when_no_dofs():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
+    sphere.center_of_mass = np.array([0, 0, -0.3])
+    with pytest.raises(AttributeError, match=".* no dof .*"):
+        sphere.hydrostatic_stiffness_xr()
+
 def test_mass_of_sphere_for_non_default_density():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
     sphere.add_translation_dof(name="Heave")
@@ -36,11 +42,21 @@ def test_mass_of_sphere_for_non_default_density():
     m = sphere.rigid_dof_mass(rho=500)
     assert np.isclose(m.values[0, 0], 500*4/3*np.pi*1.0**3)
 
-def test_stiffness_when_no_dofs():
+def test_inertia_rigid_body_dofs():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     sphere.center_of_mass = np.array([0, 0, -0.3])
-    with pytest.raises(AttributeError, match=".* no dof .*"):
-        sphere.hydrostatic_stiffness_xr()
+    sphere.add_all_rigid_body_dofs()
+    assert np.all(sphere.rigid_dof_mass(output_type="rigid_dofs")
+            == sphere.rigid_dof_mass(output_type="all_dofs"))
+    assert np.all(sphere.rigid_dof_mass(output_type="rigid_dofs")
+            == sphere.rigid_dof_mass(output_type="body_dofs"))
+
+def test_inertia_wrong_output_type():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
+    sphere.center_of_mass = np.array([0, 0, -0.3])
+    sphere.add_all_rigid_body_dofs()
+    with pytest.raises(ValueError):
+        sphere.rigid_dof_mass(output_type="foo")
 
 def test_inertia_when_no_dofs():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
