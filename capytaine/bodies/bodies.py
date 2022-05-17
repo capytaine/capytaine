@@ -577,13 +577,11 @@ respective inertia coefficients are assigned as NaN.")
         return mass_xr
 
 
-    def compute_hydrostatics(self, *, cog=None, rho=1000.0, g=9.81, free_surface=0.0, divergence=None):
+    def compute_hydrostatics(self, *, rho=1000.0, g=9.81, free_surface=0.0, divergence=None):
         """Compute hydrostatics of the FloatingBody.
         
         Parameters
         ----------
-        cog : np.ndarray, optional
-            Center of gravity. The default is (0,0,0).
         rho : float, optional
             Density of Water. The default is 1000.
         g: float, optional
@@ -598,13 +596,9 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics : dict
             All hydrostatics values of the FloatingBody.
         """
-        if cog is None:
-            if not hasattr(self, "center_of_mass"):
-                LOG.warning("Assuming the Center of Mass as (0,0,0)")
-                self.center_of_mass = np.array([0.0, 0.0, 0.0])
-        else:
-            self.center_of_mass = cog
-        
+        if not hasattr(self, "center_of_mass"):
+            LOG.warning("The floating body {} has no defined center of mass. The center of mass is set to (0,0,0).".format(self.name))
+            self.center_of_mass = np.array([0.0, 0.0, 0.0])
         
         vertices = self.mesh.vertices
         coord_max = vertices.max(axis=0)
