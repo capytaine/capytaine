@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Experimental function to compute the impendance."""
+"""Computation of the impendance matrix."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
@@ -13,8 +13,12 @@ LOG = logging.getLogger(__name__)
 
 
 def impedance(dataset, dissipation=None, stiffness=None):
-    """Impedance (see, e.g., Falnes).
-    
+    """Complex-valued mechanical impedance matrix
+
+    See Falnes for more theoretical details.
+    Note that, unlike Falnes, we define here the impedance with respect to the position, that is `force = impedance x position`.
+    For the impedance with respect to the velocity, see the function :code:`velocity_impedance` in the same module.
+
     @book{falnes2002ocean,
           title={Ocean Waves and Oscillating Systems: Linear Interactions Including Wave-Energy Extraction},
           author={Falnes, J.},
@@ -40,14 +44,14 @@ def impedance(dataset, dissipation=None, stiffness=None):
     Returns
     -------
     xarray DataArray
-        The impedance as an array depending of omega and the degree of freedom.
+        The impedance as an array depending of omega and the degrees of freedom.
     """
 
     if not hasattr(dataset, 'mass'):
-        raise AttributeError('dataset must have a mass variable')
+        raise AttributeError('Computing the impedance matrix requires a :code:`mass` matrix to be defined in the hydrodynamical dataset')
 
     if not hasattr(dataset, 'hydrostatic_stiffness'):
-        raise AttributeError('dataset must have a hydrostatic_stiffness variable')
+        raise AttributeError('Computing the impedance matrix requires a :code:`hydrostatic_stiffness` matrix to be defined in the hydrodynamical dataset')
 
     LOG.info("Compute impedance.")
 
@@ -55,14 +59,25 @@ def impedance(dataset, dissipation=None, stiffness=None):
     omega = dataset.coords['omega']  # Range of frequencies in the dataset
 
     A = (-omega**2*(dataset['mass'] + dataset['added_mass'])
-         + 1j*omega*dataset['radiation_damping']
+         - 1j*omega*dataset['radiation_damping']
          + dataset['hydrostatic_stiffness'])
 
     if dissipation is not None:
-        A = A + 1j*omega*dissipation
+        A = A - 1j*omega*dissipation
 
     if stiffness is not None:
         A = A + stiffness
 
     return A
 
+
+def position_impedance(dataset, dissipation=None, stiffness=None):
+    """Alias for the :code:`impedance` function."""
+    return impedance(dataset, dissipation, stiffness)
+
+
+def velocity_impedance(dataset, dissipation=None, stiffness=None):
+    """Impedance with respect to the velocity, that is `force = velocity_impedance x velocity`.
+    Takes the same arguments as :code:`impedance` which returns the impedance with respect to the position.
+    """
+    return 1/(-1j * dataset.coords["omega"]) * impedance(dataset, dissipation, stiffness)

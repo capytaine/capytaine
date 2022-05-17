@@ -4,6 +4,11 @@ import numpy as np
 import xarray as xr
 from numpy import pi
 
+try:
+    import joblib
+except ImportError:
+    joblib = None
+
 from capytaine import __version__
 from capytaine.bem.solver import BEMSolver, Nemoh
 from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
@@ -53,6 +58,16 @@ def test_limit_frequencies():
         solver.solve(RadiationProblem(body=sphere, omega=np.infty, sea_bottom=-10))
 
 
+@pytest.mark.skipif(joblib is None, reason='joblib is not installed')
+def test_parallelization():
+    solver = BEMSolver()
+    test_matrix = xr.Dataset(coords={
+        'omega': np.linspace(0.1, 4.0, 3),
+        'radiating_dof': list(sphere.dofs.keys()),
+    })
+    solver.fill_dataset(test_matrix, sphere, n_jobs=2)
+
+
 def test_fill_dataset():
     solver = BEMSolver()
     test_matrix = xr.Dataset(coords={
@@ -63,7 +78,7 @@ def test_fill_dataset():
         'water_depth': [np.infty, 10.0],
         'g': [9.81]
     })
-    dataset = solver.fill_dataset(test_matrix, [sphere])
+    dataset = solver.fill_dataset(test_matrix, sphere, n_jobs=1)
 
     # Tests on the coordinates
     assert list(dataset.coords['influenced_dof']) == list(dataset.coords['radiating_dof']) == list(sphere.dofs.keys())

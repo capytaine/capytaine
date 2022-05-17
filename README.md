@@ -19,7 +19,9 @@ conda install -c conda-forge capytaine
 
 ## License
 
-Copyright (C) 2017-2021, Matthieu Ancellin
+Copyright (C) 2017-2022, Matthieu Ancellin
+
+Since April 2022, the development of Capytaine is funded by the Alliance for Sustainable Energy, LLC, Managing and Operating Contractor for the National Renewable Energy Laboratory (NREL) for the U.S. Department of Energy.
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 

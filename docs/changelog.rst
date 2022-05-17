@@ -2,6 +2,32 @@
 Changelog
 =========
 
+* Fix major bug in impedance matrix and RAO computation: the sign of the
+  dissipation matrix was wrong in previous versions (:issue:`102` and
+  :pull:`140`).
+
+* Method :code:`show_matplotlib` can now colour mesh faces based on a
+  specified scalar field (e.g. pressure) (:pull:`122`).
+
+* Add new parallelization using the `joblib <https://joblib.readthedocs.io>`_ library as a new optional dependency.
+  The optional keyword-argument :code:`n_jobs` in the :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` controls the number of processes running in parallel (:pull:`136`).
+
+* A new example using Haskind's relation has been added to the cookbook (:pull:`129`).
+
+* New implementation of the mesh importer for `hst` files (:pull:`90`)
+
+* Add :code:`position_impedance` and :code:`velocity_impedance` functions to the :code:`post_pro` module to specify which impedance is requested (:pull:`142`)
+
+* Add a warning if the user provides a :code:`wave_direction` that is not in the range [-2π, 2π].
+
+* Wave directions in :code:`Nemoh.cal` are interpreted as degrees as they should be (and then converted to radians to be handled by the rest of the code).
+
+* Raises an error when a body with an empty mesh is given to :code:`LinearPotentialFlowProblem` (:issue:`128`).
+
+* The functions :code:`problems_from_dataset` and :code:`fill_dataset` accept a body alone as input.
+  That is, one can use :code:`fill_dataset(test_matrix, body)` and not only :code:`fill_dataset(test_matrix, [body])` (pull:`144`).
+
+
 -------------------------------
 New in version 1.3 (2021-10-07)
 -------------------------------
@@ -401,4 +427,3 @@ Minor changes
 * Improvement of :code:`assemble_dataset` for parametric studies.
 * Support clipping of collections of meshes.
 * Fixes in geometrical bodies generation.
-

@@ -21,42 +21,42 @@ If no format is given, the code will try to infer it from the file extension::
 
     body = FloatingBody.from_file('path/to/mesh.msh')  # gmsh file
 
-The formats currently supported by Meshmagick in reading are the following (from the documentation of Meshmagick):
+The formats currently supported in reading are listed in the following table (adapted from the documentation of Meshmagick).
 
-+-----------+-----------------+----------------------+
-| File      | Software        | Keywords             |
-| extension |                 |                      |
-+===========+=================+======================+
-|   .mar    | NEMOH [#f1]_    | nemoh, mar           |
-+-----------+-----------------+----------------------+
-|   .nem    | NEMOH [#f1]_    | nemoh_mesh, nem      |
-+-----------+-----------------+----------------------+
-|   .gdf    | WAMIT [#f2]_    | wamit, gdf           |
-+-----------+-----------------+----------------------+
-|   .inp    | DIODORE [#f3]_  | diodore-inp, inp     |
-+-----------+-----------------+----------------------+
-|   .DAT    | DIODORE [#f3]_  | diodore-dat          |
-+-----------+-----------------+----------------------+
-|   .hst    | HYDROSTAR [#f4]_| hydrostar, hst       |
-+-----------+-----------------+----------------------+
-|   .nat    |    -            | natural, nat         |
-+-----------+-----------------+----------------------+
-|   .msh    | GMSH 2 [#f5]_   | gmsh, msh            |
-+-----------+-----------------+----------------------+
-|   .rad    | RADIOSS         | rad, radioss         |
-+-----------+-----------------+----------------------+
-|   .stl    |    -            | stl                  |
-+-----------+-----------------+----------------------+
-|   .vtu    | PARAVIEW [#f6]_ | vtu                  |
-+-----------+-----------------+----------------------+
-|   .vtp    | PARAVIEW [#f6]_ | vtp                  |
-+-----------+-----------------+----------------------+
-|   .vtk    | PARAVIEW [#f6]_ | paraview-legacy, vtk |
-+-----------+-----------------+----------------------+
-|   .tec    | TECPLOT [#f7]_  | tecplot, tec         |
-+-----------+-----------------+----------------------+
-|   .med    | SALOME [#f8]_   | med, salome          |
-+-----------+-----------------+----------------------+
++-----------+-----------------+----------------------+-----------------+
+| File      | Software        | Keywords             | Extra features  |
+| extension |                 |                      |                 |
++===========+=================+======================+=================+
+|   .mar    | NEMOH [#f1]_    | nemoh, mar           | Symmetries      |
++-----------+-----------------+----------------------+-----------------+
+|   .nem    | NEMOH [#f1]_    | nemoh_mesh, nem      |                 |
++-----------+-----------------+----------------------+-----------------+
+|   .gdf    | WAMIT [#f2]_    | wamit, gdf           |                 |
++-----------+-----------------+----------------------+-----------------+
+|   .inp    | DIODORE [#f3]_  | diodore-inp, inp     |                 |
++-----------+-----------------+----------------------+-----------------+
+|   .DAT    | DIODORE [#f3]_  | diodore-dat          |                 |
++-----------+-----------------+----------------------+-----------------+
+|   .hst    | HYDROSTAR [#f4]_| hydrostar, hst       | Symmetries      |
++-----------+-----------------+----------------------+-----------------+
+|   .nat    |    -            | natural, nat         |                 |
++-----------+-----------------+----------------------+-----------------+
+|   .msh    | GMSH 2 [#f5]_   | gmsh, msh            |                 |
++-----------+-----------------+----------------------+-----------------+
+|   .rad    | RADIOSS         | rad, radioss         |                 |
++-----------+-----------------+----------------------+-----------------+
+|   .stl    |    -            | stl                  |                 |
++-----------+-----------------+----------------------+-----------------+
+|   .vtu    | PARAVIEW [#f6]_ | vtu                  |                 |
++-----------+-----------------+----------------------+-----------------+
+|   .vtp    | PARAVIEW [#f6]_ | vtp                  |                 |
++-----------+-----------------+----------------------+-----------------+
+|   .vtk    | PARAVIEW [#f6]_ | paraview-legacy, vtk |                 |
++-----------+-----------------+----------------------+-----------------+
+|   .tec    | TECPLOT [#f7]_  | tecplot, tec         |                 |
++-----------+-----------------+----------------------+-----------------+
+|   .med    | SALOME [#f8]_   | med, salome          |                 |
++-----------+-----------------+----------------------+-----------------+
 
 .. [#f1] NEMOH is an open source BEM Software for seakeeping developed at
          Ecole Centrale de Nantes (LHEEA)
@@ -72,6 +72,11 @@ The formats currently supported by Meshmagick in reading are the following (from
 .. [#f7] TECPLOT is a visualization software developed by Tecplot
 .. [#f8] SALOME-MECA is an open source software for computational mechanics
          developed by EDF-R&D
+
+
+Not all metadata is taken into account when reading the mesh file.
+For instance, the body symmetry is taken into account only for the `.mar` and `.hst` file formats.
+Feel free to open an issue on Github to suggest improvements.
 
 
 Importing a mesh with Meshio

@@ -22,7 +22,7 @@ following points:
 * The Github repository includes tests in the `pytest` directory.
   Test can be run with the `pytest` module (`python -m pytest`).
   Before submitting a change, make sure that all tests are passing.
-  If you'd like to add a feature, please add the relevant tests to 
+  If you'd like to add a feature, please add the relevant tests to
   the `pytest` directory.
 * All modifications of the code are listed in the `docs/changelog.rst`.
   If you submit a bug fix or a new feature, please add a line in
@@ -30,3 +30,9 @@ following points:
 * New features should also be documented in the user manual (`docs/user_manual/`).
   Please add a short documentation of the feature in the relevant page.
 
+The whole of Capytaine is currently licensed under the terms of the General
+Public License (GPL). In the future, some modules might be extracted and
+released with another free software license, such as the Apache License. If
+your contribution cannot be released under another license (because it includes
+code from another GPL package or just because you don't want to), please tell
+us explicitly.

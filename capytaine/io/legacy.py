@@ -89,6 +89,7 @@ def import_cal_file(filepath):
 
         direction_data = cal_file.readline().split()
         direction_range = np.linspace(float(direction_data[1]), float(direction_data[2]), int(direction_data[0]))
+        direction_range = np.pi/180*direction_range  # convertion from degrees to radians.
 
         # The options below are not implemented yet.
 

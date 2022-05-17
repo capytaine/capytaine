@@ -35,7 +35,7 @@ LOG = logging.getLogger(__name__)
 #########################
 
 def problems_from_dataset(dataset: xr.Dataset,
-                          bodies: Sequence[FloatingBody],
+                          bodies: Union[FloatingBody, Sequence[FloatingBody]],
                           ) -> List[LinearPotentialFlowProblem]:
     """Generate a list of problems from a test matrix.
 
@@ -43,7 +43,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     ----------
     dataset : xarray Dataset
         Test matrix containing the problems parameters.
-    bodies : list of FloatingBody
+    bodies : FloatingBody or list of FloatingBody
         The bodies on which the computations of the test matrix will be applied.
         They should all have different names.
 
@@ -51,6 +51,9 @@ def problems_from_dataset(dataset: xr.Dataset,
     -------
     list of LinearPotentialFlowProblem
     """
+    if isinstance(bodies, FloatingBody):
+        bodies = [bodies]
+
     assert len(list(set(body.name for body in bodies))) == len(bodies), \
         "All bodies should have different names."
 
@@ -187,7 +190,7 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
             The present function is just a wrapper around :code:`compute_kochin`.
     """
     records = pd.DataFrame([
-        dict(**result._asdict(), theta=theta, kochin=kochin)
+        dict(**result.problem._asdict(), theta=theta, kochin=kochin)
         for result in results
         for theta, kochin in zip(theta_range.data,
                                  compute_kochin(result, theta_range, **kwargs))
