@@ -428,7 +428,8 @@ class FloatingBody(Abstract3DObject):
 
         Parameters
         ----------
-        divergence : xarray.variable (DOF_count X Face_count), optional
+        divergence : dict mapping a dof name to an array of shape (nb_faces) or
+                        xarray.DataArray of shape (nb_dofs × nb_faces), optional
             Divergence of the DOFs, by default None
         rho : float, optional
             Water density, by default 1000.0
@@ -461,8 +462,13 @@ class FloatingBody(Abstract3DObject):
         def divergence_dof(influenced_dof):
             if divergence is None:
                 return 0.0
+            elif isinstance(divergence, dict) and influenced_dof in divergence.keys():
+                return divergence[influenced_dof]
+            elif isinstance(divergence, xr.DataArray) and influenced_dof in divergence.coords["influenced_dof"]:
+                return divergence.sel(influenced_dof=influenced_dof).values
             else:
-                return divergence.sel(influenced_dof=influenced_dof).values,
+                LOG.warning("Computing hydrostatic stiffness without the divergence of {}".format(influenced_dof))
+                return 0.0
 
         hs_set =  xr.merge([
             self.each_hydrostatic_stiffness(

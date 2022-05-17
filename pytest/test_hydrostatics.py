@@ -5,6 +5,7 @@ Tests for the functions that computes hydrostatic from the mesh vertices
 and faces
 """
 
+import logging
 import pytest
 import json
 from pathlib import Path
@@ -34,6 +35,26 @@ def test_stiffness_when_no_dofs():
     sphere.center_of_mass = np.array([0, 0, -0.3])
     with pytest.raises(AttributeError, match=".* no dof .*"):
         sphere.hydrostatic_stiffness_xr()
+
+def test_stiffness_with_divergence():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
+    sphere.center_of_mass = np.array([0, 0, -0.3])
+    sphere.dofs["elongate_in_z"] = np.array([(0, 0, z) for (x, y, z) in sphere.mesh.faces_centers])
+    hs_1 = sphere.hydrostatic_stiffness_xr()
+    hs_2 = sphere.hydrostatic_stiffness_xr(divergence={"elongate_in_z": np.ones(sphere.mesh.nb_faces)})
+    assert hs_1.values[0, 0] != hs_2.values[0, 0]
+    analytical_hs = - 1000.0 * 9.81 * (4 * sphere.volume * sphere.center_of_buoyancy[2])
+    assert np.isclose(hs_2.values[0, 0], analytical_hs)
+
+def test_stiffness_with_malformed_divergence(caplog):
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
+    sphere.center_of_mass = np.array([0, 0, -0.3])
+    sphere.dofs["elongate_in_z"] = np.array([(0, 0, z) for (x, y, z) in sphere.mesh.faces_centers])
+    hs_1 = sphere.hydrostatic_stiffness_xr()
+    with caplog.at_level(logging.WARNING):
+        hs_2 = sphere.hydrostatic_stiffness_xr(divergence={"foobar": np.ones(sphere.mesh.nb_faces)})
+    assert hs_1.values[0, 0] == hs_2.values[0, 0]
+    assert "without the divergence" in caplog.text
 
 def test_mass_of_sphere_for_non_default_density():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
