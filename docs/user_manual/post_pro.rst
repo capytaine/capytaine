@@ -73,6 +73,10 @@ hydrostatics, and inertial properties::
     Zi = velocity_impedance(data)
 
 
+
+Note that we assigned the inertia and stiffness to attributes of :code:`body` called :code:`mass` and :code:`hydrostatic_stiffness`.
+These are the name expected by the :code:`velocity_impedance` function to compute the impedance matrix.
+
 By simple extension of incorporating the excitation transfer function response
 amplitude operator (RAO)::
 
