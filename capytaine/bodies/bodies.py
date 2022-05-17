@@ -517,7 +517,7 @@ class FloatingBody(Abstract3DObject):
             integrals[1,5]
         ])
 
-        mass = self.disp_mass()
+        mass = self.disp_mass(rho=rho)
         mass_mat = np.array([
             [ mass       ,  0          ,  0           ,
               0          ,  mass*cog[2], -mass*cog[1]],
