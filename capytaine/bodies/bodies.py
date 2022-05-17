@@ -606,11 +606,14 @@ respective inertia coefficients are assigned as NaN.")
         full_length, full_breadth, depth = full_mesh_vertices.max(axis=0) - full_mesh_vertices.min(axis=0)
         
         vertices = self.mesh.vertices
-        water_plane_idx = np.isclose(vertices[:,2], 0.0)
-        water_plane = vertices[water_plane_idx][:,:-1]
-        wl_length, wl_breadth = water_plane.max(axis=0) - water_plane.min(axis=0)
-
         sub_length, sub_breadth, _ = vertices.max(axis=0) - vertices.min(axis=0)
+
+        if abs(self.waterplane_area) > 1e-10:
+            water_plane_idx = np.isclose(vertices[:,2], 0.0)
+            water_plane = vertices[water_plane_idx][:,:-1]
+            wl_length, wl_breadth = water_plane.max(axis=0) - water_plane.min(axis=0)
+        else:
+            wl_length, wl_breadth = 0.0, 0.0
 
         hydrostatics = {}
         hydrostatics["g"] = g
