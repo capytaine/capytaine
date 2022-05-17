@@ -577,7 +577,7 @@ respective inertia coefficients are assigned as NaN.")
         return mass_xr
 
 
-    def compute_hydrostatics(self, *, rho=1000.0, g=9.81, free_surface=0.0, divergence=None):
+    def compute_hydrostatics(self, *, rho=1000.0, g=9.81, divergence=None):
         """Compute hydrostatics of the FloatingBody.
         
         Parameters
@@ -586,8 +586,6 @@ respective inertia coefficients are assigned as NaN.")
             Density of Water. The default is 1000.
         g: float, optional
             Gravity acceleration. The default is 9.81.
-        free_surface : float, optional
-            z coordinate of the free surface. The default is 0.0.
         divergence : np.ndarray, optional
             Divergence of the DOFs.
             
@@ -599,25 +597,20 @@ respective inertia coefficients are assigned as NaN.")
         if not hasattr(self, "center_of_mass"):
             LOG.warning("The floating body {} has no defined center of mass. The center of mass is set to (0,0,0).".format(self.name))
             self.center_of_mass = np.array([0.0, 0.0, 0.0])
+
+        self.keep_immersed_part()
+        
+        full_mesh_vertices = self.full_body.mesh.vertices
+        coord_max = full_mesh_vertices.max(axis=0)
+        coord_min = full_mesh_vertices.min(axis=0)
+        full_length, full_breadth, depth = full_mesh_vertices.max(axis=0) - full_mesh_vertices.min(axis=0)
         
         vertices = self.mesh.vertices
-        coord_max = vertices.max(axis=0)
-        coord_min = vertices.min(axis=0)
-
-        full_length, full_breadth, depth = vertices.max(axis=0) - vertices.min(axis=0)
-        
-        # Check whether the FloatingBody is below free surface. 
-        
-        if coord_max[2] >= free_surface:
-            self.keep_immersed_part(free_surface=free_surface)
-            
-        self_coords = self.mesh.vertices
-        water_plane_idx = np.isclose(self_coords[:,2], 0.0)
-        water_plane = self_coords[water_plane_idx][:,:-1]
+        water_plane_idx = np.isclose(vertices[:,2], 0.0)
+        water_plane = vertices[water_plane_idx][:,:-1]
         wl_length, wl_breadth = water_plane.max(axis=0) - water_plane.min(axis=0)
 
-        sub_length, sub_breadth, _ = self_coords.max(axis=0) \
-                                    - self_coords.min(axis=0)
+        sub_length, sub_breadth, _ = vertices.max(axis=0) - vertices.min(axis=0)
 
         hydrostatics = {}
         hydrostatics["g"] = g
@@ -629,7 +622,7 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics["disp_volume"] = self.volume
         hydrostatics["disp_mass"] = self.disp_mass(rho=rho)
         hydrostatics["center_of_buoyancy"] = self.center_of_buoyancy
-        hydrostatics["waterplane_center"] = np.append(self.waterplane_center, free_surface)
+        hydrostatics["waterplane_center"] = np.append(self.waterplane_center, 0.0)
         hydrostatics["waterplane_area"] = self.waterplane_area
         hydrostatics["transversal_metacentric_radius"] = self.transversal_metacentric_radius
         hydrostatics["longitudinal_metacentric_radius"] = self.longitudinal_metacentric_radius
