@@ -58,15 +58,15 @@ def test_hydrostatics_of_submerged_sphere():
 def test_all_hydrostatics():
     density = 1000
     gravity = 9.80665
-    
+
     sphere = cpt.Sphere(
         radius=10.0,
         center=(0,0,-1),
-        nphi=100, ntheta=50, 
+        nphi=100, ntheta=50,
     )
     horizontal_cylinder = cpt.HorizontalCylinder(
         length=10.0, radius=5.0,
-        center=(0,10,-1), 
+        center=(0,10,-1),
         nr=100, nx=100, ntheta=10,
     )
     vertical_cylinder = cpt.VerticalCylinder(
@@ -84,13 +84,13 @@ def test_all_hydrostatics():
     capy_hsdb["stiffness_matrix"] = capy_hsdb["hydrostatic_stiffness"].sel(
         influenced_dof=stiff_compare_dofs, radiating_dof=stiff_compare_dofs
         ).values
-    
+
     mass_compare_dofs = ["Roll", "Pitch", "Yaw"]
     capy_hsdb["inertia_matrix"] = capy_hsdb["inertia_matrix"].sel(
         influenced_dof=mass_compare_dofs, radiating_dof=mass_compare_dofs
         ).values
-    
-    
+
+
     # =============================================================================
     # Meshmagick
     # =============================================================================
@@ -107,57 +107,57 @@ def test_all_hydrostatics():
     #     mm_hsdb_json = {key:(value.tolist() if type(value)==np.ndarray else value)
     #                         for key, value in mm_hsdb.items() }
     #     convert_file.write(json.dumps(mm_hsdb_json))
-    
+
     with open(f'{case_dir}/sphere__hor_cyl__ver_cyl.pkl.json', 'r',
               encoding="UTF-8") as f:
         mm_hsdb = json.load(f)
-    
+
     # =============================================================================
     # Testing
     # =============================================================================
-    
+
     for var in capy_hsdb.keys():
         if var in mm_hsdb.keys():
-            # if not np.isclose(capy_hsdb[var], mm_hsdb[var], 
+            # if not np.isclose(capy_hsdb[var], mm_hsdb[var],
             #                   rtol=1e-2, atol=1e-3).all():
             #     print(f"{var}:")
             #     print(f"    Capytaine  - {capy_hsdb[var]}")
             #     print(f"    Meshmagick - {mm_hsdb[var]}")
-            assert np.isclose(capy_hsdb[var], mm_hsdb[var], 
+            assert np.isclose(capy_hsdb[var], mm_hsdb[var],
                               rtol=1e-2, atol=1e-3).all()
 
 
 def test_vertical_elastic_dof():
-    
+
     bodies = [
         cpt.VerticalCylinder(
             length=10.0, radius=5.0,
-            center=(0.0,0.0,0.0), 
+            center=(0.0,0.0,0.0),
             nr=100, nx=100, ntheta=100,
         ),
-            
+
         cpt.Sphere(
             radius=100,
             center=(0,0,0),
             nphi=50, ntheta=50,
         ),
-    
+
         cpt.HorizontalCylinder(
             length=5.0, radius=1.0,
             center=(0,10,0),
-            nr=20, nx=20, ntheta=10, 
+            nr=20, nx=20, ntheta=10,
         )
     ]
-    
+
     for body in bodies:
         body.center_of_mass = body.center_of_buoyancy
         body.keep_immersed_part()
         faces_centers = body.mesh.faces_centers
         body.dofs["elongate"] = np.zeros_like(faces_centers)
         body.dofs["elongate"][:,2] = faces_centers[:,2]
-    
+
         divergence = np.ones(body.mesh.faces_centers.shape[0])
-    
+
         density = 1000
         gravity = 9.80665
         capy_hs = body.each_hydrostatic_stiffness("elongate", "elongate",
@@ -165,7 +165,7 @@ def test_vertical_elastic_dof():
 
         analytical_hs = - (density * gravity * 4 * body.volume
                         * body.center_of_buoyancy[2])
-    
+
         assert np.isclose(capy_hs, analytical_hs)
 
 

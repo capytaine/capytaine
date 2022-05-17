@@ -94,8 +94,8 @@ class FloatingBody(Abstract3DObject):
                 triangles_as_quads[:, 3] = cells['triangle'][:, 2]  # Repeat one node to make a quad
                 all_faces.append(triangles_as_quads)
             return np.concatenate(all_faces)
-        
-        cpt_mesh = Mesh(vertices=mesh.points, 
+
+        cpt_mesh = Mesh(vertices=mesh.points,
                         faces=all_faces_as_quads(mesh.cells_dict),
                         name=name+"_mesh")
 
@@ -247,7 +247,7 @@ class FloatingBody(Abstract3DObject):
     def wet_surface_area(self):
         """Returns wet surface area."""
         return self.surface_integral(1)
-    
+
     @property
     def volumes(self):
         """Returns volumes using x, y, z components of the FloatingBody."""
@@ -320,14 +320,14 @@ class FloatingBody(Abstract3DObject):
     def each_hydrostatic_stiffness(self, influenced_dof_name, radiating_dof_name, *,
                                          influenced_dof_div=0.0, rho=1000.0, g=9.81):
         r"""
-        Return the hydrostatic stiffness for a set of DOFs.
-        
+        Return the hydrostatic stiffness for a pair of DOFs.
+
         :math:`C_{ij} = \rho g\iint_S (\hat{n} \cdot V_j) (w_i + z D_i) dS`
-        
-        where :math:`\hat{n}` is surface normal, 
-        
+
+        where :math:`\hat{n}` is surface normal,
+
         :math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is DOF vector and
-        
+
         :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
 
         Parameters
@@ -337,44 +337,44 @@ class FloatingBody(Abstract3DObject):
         radiating_dof_name: str
             Name of radiating DOF vector of the FloatingBody
         influenced_dof_div: np.ndarray (Face_count), optional
-            Influenced DOF divergence of the FloatingBody, by default 0.0. 
+            Influenced DOF divergence of the FloatingBody, by default 0.0.
         rho: float, optional
             water density, by default 1000.0
         g: float, optional
             Gravity acceleration, by default 9.81
-            
+
         Returns
         -------
         hs_ij: xarray.variable
             hydrostatic_stiffness of ith DOF and jth DOF.
-        
+
         Note
         ----
-            This function computes the hydrostatic stiffness assuming :math:`D_{i} = 0`. 
-            If :math:`D_i \neq 0`, input the divergence interpolated to face centers. 
-            
-            General integral equations are used for the rigid body modes and 
-            Neumann (1994) method is used for flexible modes. 
+            This function computes the hydrostatic stiffness assuming :math:`D_{i} = 0`.
+            If :math:`D_i \neq 0`, input the divergence interpolated to face centers.
+
+            General integral equations are used for the rigid body modes and
+            Neumann (1994) method is used for flexible modes.
 
         References
         ----------
-            Newman, John Nicholas. "Wave effects on deformable bodies."Applied ocean 
+            Newman, John Nicholas. "Wave effects on deformable bodies."Applied ocean
             research" 16.1 (1994): 47-59.
             http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
 
         """
-        # Newmann (1994) formula is not 'complete' as recovering the rigid body 
+        # Newmann (1994) formula is not 'complete' as recovering the rigid body
         # terms is not possible. https://doi.org/10.1115/1.3058702.
 
-        # Alternative is to use the general equation of hydrostatic and 
+        # Alternative is to use the general equation of hydrostatic and
         # restoring coefficient for rigid mdoes and use Neuman equation for elastic
-        # modes. 
-        cog = self.center_of_mass 
+        # modes.
+        cog = self.center_of_mass
 
         rigid_dof_names = ("Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw")
-        
+
         dof_pair = (influenced_dof_name, radiating_dof_name)
-        
+
         if set(dof_pair).issubset(set(rigid_dof_names)):
             if dof_pair == ("Heave", "Heave"):
                 norm_hs_stiff = self.waterplane_area
@@ -400,16 +400,16 @@ class FloatingBody(Abstract3DObject):
             influenced_dof = np.array(self.dofs[influenced_dof_name])
             radiating_dof = np.array(self.dofs[radiating_dof_name])
             influenced_dof_div_array = np.array(influenced_dof_div)
-            
+
             radiating_dof_normal = self.dof_normals(radiating_dof)
             z_influenced_dof_div = influenced_dof[:,2] + self.mesh.faces_centers[:,2] * influenced_dof_div_array
             norm_hs_stiff = self.surface_integral( -radiating_dof_normal * z_influenced_dof_div)
-        
+
         hs_stiff = rho * g * norm_hs_stiff
-        
-        return xr.DataArray([[hs_stiff]], 
+
+        return xr.DataArray([[hs_stiff]],
                             dims=['influenced_dof', 'radiating_dof'],
-                            coords={'influenced_dof': [influenced_dof_name], 
+                            coords={'influenced_dof': [influenced_dof_name],
                             'radiating_dof': [radiating_dof_name]},
                             name="hydrostatic_stiffness"
                             )
@@ -417,15 +417,15 @@ class FloatingBody(Abstract3DObject):
     def hydrostatic_stiffness_xr(self, *, divergence=None, rho=1000.0, g=9.81):
         r"""
         Compute hydrostatic stiffness matrix for all DOFs of the body.
-        
+
         :math:`C_{ij} = \rho g\iint_S (\hat{n} \cdot V_j) (w_i + z D_i) dS`
-        
-        where :math:`\hat{n}` is surface normal, 
-        
+
+        where :math:`\hat{n}` is surface normal,
+
         :math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is DOF vector and
-        
+
         :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
-        
+
         Parameters
         ----------
         divergence : xarray.variable (DOF_count X Face_count), optional
@@ -434,23 +434,23 @@ class FloatingBody(Abstract3DObject):
             Water density, by default 1000.0
         g: float, optional
             Gravity acceleration, by default 9.81
-            
+
         Returns
         -------
         hydrostatic_stiffness: np.ndarray
-            Matrix of hydrostatic stiffness        
-        
+            Matrix of hydrostatic stiffness
+
         Note
         ----
-            This function computes the hydrostatic stiffness assuming :math:`D_{i} = 0`. 
-            If :math:`D_i \neq 0`, input the divergence interpolated to face centers. 
-            
-            General integral equations are used for the rigid body modes and 
-            Neumann (1994) method is used for flexible modes. 
+            This function computes the hydrostatic stiffness assuming :math:`D_{i} = 0`.
+            If :math:`D_i \neq 0`, input the divergence interpolated to face centers.
+
+            General integral equations are used for the rigid body modes and
+            Neumann (1994) method is used for flexible modes.
 
         References
         ----------
-            Newman, John Nicholas. "Wave effects on deformable bodies."Applied ocean 
+            Newman, John Nicholas. "Wave effects on deformable bodies."Applied ocean
             research" 16.1 (1994): 47-59.
             http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
 
@@ -466,14 +466,14 @@ class FloatingBody(Abstract3DObject):
 
         hs_set =  xr.merge([
             self.each_hydrostatic_stiffness(
-                influenced_dof_name, radiating_dof_name, 
+                influenced_dof_name, radiating_dof_name,
                 influenced_dof_div = divergence_dof(influenced_dof_name),
                 rho=rho, g=g
                 )
             for radiating_dof_name in self.dofs
             for influenced_dof_name in self.dofs
             ])
-        
+
         return hs_set.hydrostatic_stiffness
 
     def rigid_dof_mass(self, *, rho=1000, output_type="body_dofs"):
@@ -497,11 +497,11 @@ class FloatingBody(Abstract3DObject):
         ValueError
             If output_type is not in {"body_dofs", "rigid_dofs", "all_dofs"}.
         """
-        
+
         cog = self.center_of_mass
-        
+
         fcs = (self.mesh.faces_centers).T
-        combinations = np.array([fcs[0]**2, fcs[1]**2, fcs[2]**2, fcs[0]*fcs[1], 
+        combinations = np.array([fcs[0]**2, fcs[1]**2, fcs[2]**2, fcs[0]*fcs[1],
                                  fcs[1]*fcs[2], fcs[2]*fcs[0]])
         integrals = np.array([
             [np.sum(normal_i * fcs[axis] * combination * self.mesh.faces_areas)
@@ -528,50 +528,50 @@ class FloatingBody(Abstract3DObject):
              -mass*cog[2],  0          ,  mass*cog[0]],
             [ 0          ,  0          ,  mass        ,
               mass*cog[1], -mass*cog[0],  0          ],
-            [ 0          , -mass*cog[2],  mass*cog[1] ,  
+            [ 0          , -mass*cog[2],  mass*cog[1] ,
               inertias[0], -inertias[3], -inertias[5]],
-            [ mass*cog[2],  0          , -mass*cog[0] , 
+            [ mass*cog[2],  0          , -mass*cog[0] ,
              -inertias[3],  inertias[1], -inertias[4]],
             [-mass*cog[1],  mass*cog[0],  0           ,
              -inertias[5], -inertias[4], inertias[2]] ,
         ])
-        
+
         # Rigid DOFs
         rigid_dof_names = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
-        rigid_mass_xr = xr.DataArray(data=np.asarray(mass_mat), 
+        rigid_mass_xr = xr.DataArray(data=np.asarray(mass_mat),
                             dims=['influenced_dof', 'radiating_dof'],
-                            coords={'influenced_dof': rigid_dof_names, 
+                            coords={'influenced_dof': rigid_dof_names,
                                     'radiating_dof': rigid_dof_names},
                             name="mass")
-        
+
         # Body DOFs (Default as np.nan)
         body_dof_names = list(self.dofs)
         body_dof_count = len(body_dof_names)
-        body_mass_xr = xr.DataArray(np.nan * np.zeros([body_dof_count, body_dof_count]), 
+        body_mass_xr = xr.DataArray(np.nan * np.zeros([body_dof_count, body_dof_count]),
                                     dims=['influenced_dof', 'radiating_dof'],
-                                    coords={'influenced_dof': body_dof_names, 
+                                    coords={'influenced_dof': body_dof_names,
                                             'radiating_dof': body_dof_names},
                                     name="mass")
-        
+
         total_mass_xr = xr.merge([rigid_mass_xr, body_mass_xr], compat="override").mass
-        
+
         non_rigid_dofs = set(body_dof_names) - set(rigid_dof_names)
-        
+
         if output_type == "body_dofs":
             if len(non_rigid_dofs) > 0:
                 LOG.warning(f"Non-rigid dofs: {non_rigid_dofs} are detected and \
 respective inertia coefficients are assigned as NaN.")
 
-            mass_xr = total_mass_xr.sel(influenced_dof=body_dof_names, 
+            mass_xr = total_mass_xr.sel(influenced_dof=body_dof_names,
                                             radiating_dof=body_dof_names)
         elif output_type == "rigid_dofs":
-            mass_xr = total_mass_xr.sel(influenced_dof=rigid_dof_names, 
+            mass_xr = total_mass_xr.sel(influenced_dof=rigid_dof_names,
                                         radiating_dof=rigid_dof_names)
         elif output_type == "all_dofs":
             if len(non_rigid_dofs) > 0:
                 LOG.warning("Non-rigid dofs: {non_rigid_dofs} are detected and \
 respective inertia coefficients are assigned as NaN.")
-            
+
             mass_xr = total_mass_xr
         else:
             raise ValueError(f"output_type should be either 'body_dofs', \
@@ -582,7 +582,7 @@ respective inertia coefficients are assigned as NaN.")
 
     def compute_hydrostatics(self, *, rho=1000.0, g=9.81, divergence=None):
         """Compute hydrostatics of the FloatingBody.
-        
+
         Parameters
         ----------
         rho : float, optional
@@ -591,7 +591,7 @@ respective inertia coefficients are assigned as NaN.")
             Gravity acceleration. The default is 9.81.
         divergence : np.ndarray, optional
             Divergence of the DOFs.
-            
+
         Returns
         -------
         hydrostatics : dict
@@ -602,12 +602,12 @@ respective inertia coefficients are assigned as NaN.")
             self.center_of_mass = np.array([0.0, 0.0, 0.0])
 
         self.keep_immersed_part()
-        
+
         full_mesh_vertices = self.full_body.mesh.vertices
         coord_max = full_mesh_vertices.max(axis=0)
         coord_min = full_mesh_vertices.min(axis=0)
         full_length, full_breadth, depth = full_mesh_vertices.max(axis=0) - full_mesh_vertices.min(axis=0)
-        
+
         vertices = self.mesh.vertices
         sub_length, sub_breadth, _ = vertices.max(axis=0) - vertices.min(axis=0)
 
@@ -622,7 +622,7 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics["g"] = g
         hydrostatics["rho"] = rho
         hydrostatics["center_of_mass"] = self.center_of_mass
-        
+
         hydrostatics["wet_surface_area"] = self.wet_surface_area
         hydrostatics["disp_volumes"] = self.volumes
         hydrostatics["disp_volume"] = self.volume
@@ -649,7 +649,7 @@ respective inertia coefficients are assigned as NaN.")
 
         return hydrostatics
 
-    
+
     ###################
     # Transformations #
     ###################
