@@ -12,24 +12,34 @@ import capytaine as cpt
 import numpy as np
 
 
-def test_mass_of_sphere():
+def test_disp_mass_of_sphere():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
     assert np.isclose(sphere.disp_mass(rho=1000), 1000*4/3*np.pi*1.0**3)
-
 
 def test_waterplane_area_of_submerged_sphere():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
     assert np.isclose(sphere.waterplane_area, 0.0)
 
-
 def test_waterplane_center_of_submerged_sphere():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
     assert sphere.waterplane_center is None
 
-
 def test_waterplane_center_of_sphere_at_surface():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     assert np.allclose(sphere.waterplane_center, [0.0, 0.0])
+
+def test_mass_of_sphere_for_non_default_density():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
+    sphere.add_translation_dof(name="Heave")
+    sphere.center_of_mass = np.array([0, 0, -2])
+    m = sphere.rigid_dof_mass(rho=500)
+    assert np.isclose(m.values[0, 0], 500*4/3*np.pi*1.0**3)
+
+def test_hydrostatics_of_submerged_sphere():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
+    sphere.add_all_rigid_body_dofs()
+    sphere.center_of_mass = np.array([0, 0, -2])
+    sphere.compute_hydrostatics()
 
 
 def test_all_hydrostatics():
