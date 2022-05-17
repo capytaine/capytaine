@@ -27,6 +27,8 @@ Changelog
 * The functions :code:`problems_from_dataset` and :code:`fill_dataset` accept a body alone as input.
   That is, one can use :code:`fill_dataset(test_matrix, body)` and not only :code:`fill_dataset(test_matrix, [body])` (pull:`144`).
 
+* Add method to compute some of the hydrostatic parameters such as volume, buoyancy center, wet surface area, hydrostatic stiffness, inertia matrix etc.
+  :code:`compute_hydrostatics` method is created to return all hydrostatic parameters similar to :code:`meshmagick.hydrostatics.compute_hydrostatics` (:pull:`106`).
 
 -------------------------------
 New in version 1.3 (2021-10-07)
@@ -61,8 +63,6 @@ New features
 * Method `problems_from_dataset` can now use a list of gravitational acceleration `g` values in the test matrix (:pull:`86`).
 
 * Add example in cookbook for computing hydrostatics and mass properties with Meshmagick 2 (:pull:`70`).
-
-* Add method to compute some of the hydrostatic parameters such as volume, buoyancy center, wet surface area, hydrostatic stiffness, interia matrix etc. :code:`compute_hydrostatics` method is created to return all hydrostatic parameters similar to :code:`meshmagick.hydrostatics.compute_hydrostatics` (:pull:`106`).
 
 Bug fixes
 ~~~~~~~~~
