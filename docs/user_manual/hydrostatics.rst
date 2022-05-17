@@ -29,21 +29,22 @@ It can be done by setting the attribute `center_of_mass` as in the example below
     import capytaine as cpt
     import numpy as np
 
-    sphere = cpt.Sphere(radius=1.0, center=(0, 0, 0), name="my buoy")
-    sphere.center_of_mass = (0, 0, -0.3)
-    sphere.keep_immersed_part()
+    rigid_sphere = cpt.Sphere(radius=1.0, center=(0, 0, 0), name="my buoy")
+    rigid_sphere.center_of_mass = (0, 0, -0.3)
+    rigid_sphere.add_all_rigid_body_dofs()
+    rigid_sphere.keep_immersed_part()
 
-    print("Volume:", sphere.volume)
-    print("Center of buoyancy:", sphere.center_of_buoyancy)
-    print("Wet surface area:", sphere.wet_surface_area)
-    print("Displaced mass:", sphere.disp_mass(rho=1025))
-    print("Waterplane center:", sphere.waterplane_center)
-    print("Waterplane area:", sphere.waterplane_area)
+    print("Volume:", rigid_sphere.volume)
+    print("Center of buoyancy:", rigid_sphere.center_of_buoyancy)
+    print("Wet surface area:", rigid_sphere.wet_surface_area)
+    print("Displaced mass:", rigid_sphere.disp_mass(rho=1025))
+    print("Waterplane center:", rigid_sphere.waterplane_center)
+    print("Waterplane area:", rigid_sphere.waterplane_area)
     print("Metacentric parameters:",
-        sphere.transversal_metacentric_radius,
-        sphere.longitudinal_metacentric_radius,
-        sphere.transversal_metacentric_height,
-        sphere.longitudinal_metacentric_height)
+        rigid_sphere.transversal_metacentric_radius,
+        rigid_sphere.longitudinal_metacentric_radius,
+        rigid_sphere.transversal_metacentric_height,
+        rigid_sphere.longitudinal_metacentric_height)
 
 
 Hydrostatic stiffness
@@ -65,8 +66,7 @@ The method :meth:`~capytaine.bodies.FloatingBody.compute_hydrostatic_stiffness`
 computes the hydrostatic stiffness and returns a (DOF count x DOF count) 2D
 matrix as an :code:`xarray.DataArray`. ::
 
-    sphere.add_all_rigid_body_dofs()
-    sphere.hydrostatic_stiffness = sphere.compute_hydrostatic_stiffness()
+    rigid_sphere.hydrostatic_stiffness = rigid_sphere.compute_hydrostatic_stiffness()
 
 
 .. note::
@@ -77,19 +77,19 @@ matrix as an :code:`xarray.DataArray`. ::
 
 ::
 
-    body = cpt.Sphere(radius=1.0, center=(0, 0, 0), name="my buoy")
-    body.center_of_mass = (0, 0, -0.3)
-    body.keep_immersed_part()
+    elastic_sphere = cpt.Sphere(radius=1.0, center=(0, 0, 0), name="my buoy")
+    elastic_sphere.center_of_mass = (0, 0, -0.3)
+    elastic_sphere.keep_immersed_part()
 
-    body.dofs["elongate_in_z"] = np.array([(0, 0, z) for (x, y, z) in body.mesh.faces_centers])
+    elastic_sphere.dofs["elongate_in_z"] = np.array([(0, 0, z) for (x, y, z) in elastic_sphere.mesh.faces_centers])
 
-    dofs_divergence = {"elongate_in_z": np.ones(body.mesh.nb_faces)}
+    dofs_divergence = {"elongate_in_z": np.ones(elastic_sphere.mesh.nb_faces)}
 
     density = 1000.0
     gravity = 9.81
-    elongate_in_z_hs = body.compute_hydrostatic_stiffness(divergence=dofs_divergence, rho=density, g=gravity)
+    elongate_in_z_hs = elastic_sphere.compute_hydrostatic_stiffness(divergence=dofs_divergence, rho=density, g=gravity)
 
-    analytical_hs = - density * gravity * (4 * body.volume * body.center_of_buoyancy[2])
+    analytical_hs = - density * gravity * (4 * elastic_sphere.volume * elastic_sphere.center_of_buoyancy[2])
 
     print(np.isclose(elongate_in_z_hs.values[0, 0], analytical_hs))
     # True
@@ -104,7 +104,14 @@ The inertia coefficient of other degrees of freedom are filled with :code:`NaN` 
 
 ::
 
-    sphere.mass = body.compute_rigid_body_inertia()
+    rigid_sphere.mass = elastic_sphere.compute_rigid_body_inertia()
+
+
+A custom matrix can be provided. For consistency with the data computed with
+Capytaine, it is recommended to wrap it in a :code:`xarray.DataArray` with dof
+names as labels::
+
+    elastic_sphere.mass = elastic_sphere.add_dofs_labels_to_matrix(np.array([[1000.0]]))
 
 
 Compute all hydrostatics parameters
@@ -117,7 +124,7 @@ Instead of computing each hydrostatic parameters individually, :code:`compute_hy
 
 ::
 
-    hydrostatics = sphere.compute_hydrostatics()
+    hydrostatics = rigid_sphere.compute_hydrostatics()
 
     print(hydrostatics.keys())
     # dict_keys(['g', 'rho', 'center_of_mass', 'wet_surface_area', 'disp_volumes',
