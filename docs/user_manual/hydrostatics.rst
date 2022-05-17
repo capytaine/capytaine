@@ -18,7 +18,8 @@ Hydrostatic parameters
 ----------------------
 
 For each hydrostatic parameter a separate method is available in Capytaine.
-Center of mass of the body can be defined by setting the attribute `center_of_mass` as in the example below.
+Some of them may require the definition of the center of mass of the body.
+It can be done by setting the attribute `center_of_mass` as in the example below.
 
 .. note::
     Before computing individual hydrostatic parameters, make sure to crop the body to only keep the immersed part.
@@ -28,41 +29,21 @@ Center of mass of the body can be defined by setting the attribute `center_of_ma
     import capytaine as cpt
     import numpy as np
 
-    cog = (0,0,-2)
-    sphere = cpt.Sphere(radius=1.0, center=cog, name="my buoy")
-
-    sphere.center_of_mass = cog
-
+    sphere = cpt.Sphere(radius=1.0, center=(0, 0, 0), name="my buoy")
+    sphere.center_of_mass = (0, 0, -0.3)
     sphere.keep_immersed_part()
 
-    hydrostatics = {}
-
-    # :code:`volumes` returns volumes computes using x, y, z coordinates.
-    # This is similar to VOLX, VOLY, VOLZ in WAMIT.::
-    hydrostatics["total_volumes"] = sphere.volumes # [VOLX, VOLY, VOLZ]
-
-    # Center of buoyancy
-    hydrostatics["buoyancy_center"] = sphere.center_of_buoyancy
-    # Wet Surface Area
-    hydrostatics["wet_surface_area"] = sphere.wet_surface_area
-
-    # Displaced Volume
-    hydrostatics["disp_volume"] = sphere.volume
-
-    # Displaced Mass
-    hydrostatics["disp_mass"] = sphere.disp_mass()
-
-    # Water Plane Center. Returns (0,0,0) for fully submerged bodies
-    hydrostatics["waterplane_center"] = sphere.waterplane_center
-
-    # Water Plane Area. Returns 0.0 for fully submerged bodies
-    hydrostatics["waterplane_area"] = sphere.waterplane_area
-
-    # Metacentric Parameters
-    hydrostatics["transversal_metacentric_radius"] = sphere.transversal_metacentric_radius
-    hydrostatics["longitudinal_metacentric_radius"] = sphere.longitudinal_metacentric_radius
-    hydrostatics["transversal_metacentric_height"] = sphere.transversal_metacentric_height
-    hydrostatics["longitudinal_metacentric_height"] = sphere.longitudinal_metacentric_height
+    print("Volume:", sphere.volume)
+    print("Center of buoyancy:", sphere.center_of_buoyancy)
+    print("Wet surface area:", sphere.wet_surface_area)
+    print("Displaced mass:", sphere.disp_mass(rho=1025))
+    print("Waterplane center:", sphere.waterplane_center)
+    print("Waterplane area:", sphere.waterplane_area)
+    print("Metacentric parameters:",
+        sphere.transversal_metacentric_radius,
+        sphere.longitudinal_metacentric_radius,
+        sphere.transversal_metacentric_height,
+        sphere.longitudinal_metacentric_height)
 
 
 Hydrostatic stiffness
@@ -80,51 +61,51 @@ where :math:`\hat{n}` is the surface normal,
 
 :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
 
-
-:code:`hydrostatic_stiffness_xr` computes the hydrostatic stiffness using above equation directly from the DOFs (even for the rigid DOFs) and returns a (DOF count x DOF count) 2D matrix. ::
+The method :meth:`~capytaine.bodies.FloatingBody.compute_hydrostatic_stiffness`
+computes the hydrostatic stiffness and returns a (DOF count x DOF count) 2D
+matrix as an :code:`xarray.DataArray`. ::
 
     sphere.add_all_rigid_body_dofs()
-    hydrostatics["hydrostatic_stiffness"] = sphere.hydrostatic_stiffness_xr()
-
-    print(f"DOF count = {len(sphere.dofs)}")
-    # DOF count = 6
-
-    print(hydrostatics['hydrostatic_stiffness'].shape)
-    # (6, 6)
+    sphere.hydrostatic_stiffness = sphere.compute_hydrostatic_stiffness()
 
 
 .. note::
-    This method computes the hydrostatic stiffness assuming zero divergence. :math:`D_{i} = 0`. If :math:`D_i \neq 0`, user can input the divergence interpolated to face centers.
+   For rigid body dofs, the exact formula above can be evaluated.
+   However, in general, the divergence :math:`D_i` of an arbitrary dofs is not known.
+   User can pass a value for `D_i` as an input to :code:`compute_hydrostatics`.
+   Otherwise the code assumes zero divergence :math:`D_{i} = 0`.
 
 ::
 
-    body.dofs["elongate_in_z"] = np.zeros_like(faces_centers)
-    body.dofs["elongate_in_z"][:,2] = body.mesh.faces_centers[:,2]
+    body = cpt.Sphere(radius=1.0, center=(0, 0, 0), name="my buoy")
+    body.center_of_mass = (0, 0, -0.3)
+    body.keep_immersed_part()
 
-    elongate_in_z_divergence = np.ones(body.mesh.faces_centers.shape[0])
+    body.dofs["elongate_in_z"] = np.array([(0, 0, z) for (x, y, z) in body.mesh.faces_centers])
 
-    density = 1000
-    gravity = 9.80665
+    dofs_divergence = {"elongate_in_z": np.ones(body.mesh.nb_faces)}
 
-    elongate_in_z_hs = body.each_hydrostatic_stiffness("elongate_in_z", "elongate_in_z",
-                                        divergence_i=elongate_in_z_divergence,
-                                        rho=density, g=gravity)
+    density = 1000.0
+    gravity = 9.81
+    elongate_in_z_hs = body.compute_hydrostatic_stiffness(divergence=dofs_divergence, rho=density, g=gravity)
 
     analytical_hs = - density * gravity * (4 * body.volume * body.center_of_buoyancy[2])
 
-    print( np.isclose(elongate_in_z_hs, analytical_hs) )
+    print(np.isclose(elongate_in_z_hs.values[0, 0], analytical_hs))
     # True
 
 
 Inertia matrix
 --------------
 
-:code:`rigid_dof_mass` method computes 6 x 6 inertia mass matrix of 6 rigid dofs. ::
+The method :meth:`~capytaine.bodies.FloatingBody.compute_rigid_body_inertia` is
+able to computes the 6 x 6 inertia mass matrix of a body with 6 rigid dofs.
+The inertia coefficient of other degrees of freedom are filled with :code:`NaN` by default.
 
-    mass_matrix = body.rigid_dof_mass()
+::
 
-.. note::
-    Unlike :code:`hydrostatic_stiffness_xr`, the :code:`rigid_dof_mass` can only compute for 6 x 6 rigid inertia mass.
+    sphere.mass = body.compute_rigid_body_inertia()
+
 
 Compute all hydrostatics parameters
 -----------------------------------
@@ -136,134 +117,15 @@ Instead of computing each hydrostatic parameters individually, :code:`compute_hy
 
 ::
 
-    hydrostatics = body.compute_hydrostatics()
+    hydrostatics = sphere.compute_hydrostatics()
 
     print(hydrostatics.keys())
-    # dict_keys(['grav', 'rho_water', 'cog', 'total_volume',
-    # 'total_volume_center', 'wet_surface_area', 'disp_volume',
-    # 'disp_mass', 'buoyancy_center', 'waterplane_center',
+    # dict_keys(['g', 'rho', 'center_of_mass', 'wet_surface_area', 'disp_volumes',
+    # 'disp_volume', 'disp_mass', 'center_ of_buoyancy', 'waterplane_center',
     # 'waterplane_area', 'transversal_metacentric_radius',
-    # 'longitudinal_metacentric_radius', 'transversal_metacentric_height',
+    # 'longitudinal_metacentric_radius' , 'transversal_metacentric_height',
     # 'longitudinal_metacentric_height', 'hydrostatic_stiffness',
-    # 'length_overall', 'breadth_overall', 'depth', 'draught',
+    # 'length_overall', 'breadt h_overall', 'depth', 'draught',
     # 'length_at_waterline', 'breadth_at_waterline',
-    # 'length_overall_submerged', 'breadth_overall_submerged',
-    # 'inertia_matrix'])
+    # 'length_overall_submerged', 'breadth_overall_submerged', 'inertia_matrix'])
 
-
-Verifying with Meshmagick and analytical Results
-------------------------------------------------
-
-Example code to compare results with `Meshmagick <https://github.com/LHEEA/meshmagick>`_ and analytical expressions.
-::
-
-    import capytaine as cpt
-    import numpy as np
-    import meshmagick.mesh as mmm
-    import meshmagick.hydrostatics as mmhs
-
-    radius = 10
-    cog = (0,0,0)
-    body = cpt.Sphere(
-        radius=radius,
-        center=cog,
-        nphi=100, ntheta=100,
-    )
-    body.center_of_mass = cog
-
-    body.keep_immersed_part()
-    body.add_all_rigid_body_dofs()
-    # body.show()
-    self=body
-
-    density = 1000
-    gravity = 9.80665
-
-    capy_hsdb = body.compute_hydrostatics(rho=density, gravity=gravity)
-
-    stiff_compare_dofs = ["Heave", "Roll", "Pitch"]
-    capy_hsdb["stiffness_matrix"] = capy_hsdb["hydrostatic_stiffness"].sel(
-        influenced_dof=stiff_compare_dofs, radiating_dof=stiff_compare_dofs
-        ).values
-
-    mass_compare_dofs = ["Roll", "Pitch", "Yaw"]
-    capy_hsdb["inertia_matrix"] = capy_hsdb["inertia_matrix"].sel(
-        influenced_dof=mass_compare_dofs, radiating_dof=mass_compare_dofs
-        ).values
-
-
-    body_mesh = mmm.Mesh(body.mesh.vertices, body.mesh.faces, name=body.mesh.name)
-
-    mm_hsdb = mmhs.compute_hydrostatics(body_mesh, np.array(cog), density, gravity)
-
-    mm_hsdb["inertia_matrix"] = body_mesh.eval_plain_mesh_inertias(rho_medium=density).inertia_matrix
-    mm_hsdb["mesh"] = ""
-
-
-    analytical = {}
-    analytical["waterplane_area"] = np.pi*radius**2
-    analytical["wet_surface_area"] = 2*np.pi*radius**2
-    analytical["disp_volume"] = (2/3)*np.pi*radius**3
-    analytical["interia_xx"] = np.pi*radius**4/4
-    analytical["interia_yy"] = np.pi*radius**4/4
-    analytical["interia_zz"] = np.pi*radius**4/2
-    analytical["buoyancy_center"] = np.array([0,0,-analytical["interia_zz"] / (2*analytical["disp_volume"])])
-    analytical["buoyancy_center"] = np.array([0,0,-3*radius/8])
-    analytical["transversal_metacentric_radius"] = analytical["interia_xx"] / analytical["disp_volume"]
-    analytical["longitudinal_metacentric_radius"] = analytical["interia_yy"] / analytical["disp_volume"]
-    analytical["transversal_metacentric_height"] = analytical["transversal_metacentric_radius"] + analytical["buoyancy_center"][2] - cog[2]
-    analytical["longitudinal_metacentric_height"] = analytical["longitudinal_metacentric_radius"] + analytical["buoyancy_center"][2] - cog[2]
-    analytical["stiffness_matrix"] = density * gravity * np.array([
-        [analytical["waterplane_area"], 0, 0],
-        [0, analytical["disp_volume"] * analytical["transversal_metacentric_height"], 0],
-        [0, 0, analytical["disp_volume"] * analytical["transversal_metacentric_height"]],
-        ])
-
-    for var in capy_hsdb:
-        if var in analytical:
-            print(f"{var}:")
-            print(f"    Capytaine  - {capy_hsdb[var]}")
-            print(f"    Meshmagick - {mm_hsdb[var]}")
-            print(f"    Analytical - {analytical[var]}")
-
-Output is
-::
-
-    wet_surface_area:
-        Capytaine  - 628.0343659038494
-        Meshmagick - 628.0343659038496
-        Analytical - 628.3185307179587
-    disp_volume:
-        Capytaine  - 2092.5009287939088
-        Meshmagick - 2092.5009287939115
-        Analytical - 2094.3951023931954
-    waterplane_area:
-        Capytaine  - 313.95259764656686
-        Meshmagick - 313.95259764656674
-        Analytical - 314.1592653589793
-    transversal_metacentric_radius:
-        Capytaine  - 3.7469169327091647
-        Meshmagick - 3.748458229464248
-        Analytical - 3.75
-    longitudinal_metacentric_radius:
-        Capytaine  - 3.7469169327091643
-        Meshmagick - 3.748458229464248
-        Analytical - 3.75
-    transversal_metacentric_height:
-        Capytaine  - -0.002466140909095582
-        Meshmagick - -0.0012332946572213288
-        Analytical - 0.0
-    longitudinal_metacentric_height:
-        Capytaine  - -0.0024661409090960262
-        Meshmagick - -0.0012332946572213288
-        Analytical - 0.0
-    stiffness_matrix:
-        Capytaine  - [[ 3.07882324e+06 -1.11488703e-09  0.00000000e+00]
-     [-1.11488703e-09 -5.06062577e+04  2.22977405e-09]
-     [ 0.00000000e+00  2.22977405e-09 -5.06062577e+04]]
-        Meshmagick - [[3078823.2417107        0.               0.        ]
-     [      0.          -25307.72957091       0.        ]
-     [      0.               0.          -25307.72957091]]
-        Analytical - [[3080849.95963263       0.               0.        ]
-     [      0.               0.               0.        ]
-     [      0.               0.               0.        ]]
