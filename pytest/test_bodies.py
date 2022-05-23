@@ -45,7 +45,7 @@ def test_dof_name_inference():
 
 
 def test_bodies():
-    body = Sphere(name="sphere", clever=False)
+    body = Sphere(name="sphere", axial_symmetry=False)
     assert str(body) == "sphere"
     repr(body)
     assert np.allclose(body.geometric_center, (0, 0, 0))
