@@ -32,6 +32,8 @@ Changelog
 
 * Fix bug in rotations around axis that does not pass by (0, 0, 0) (:issue:`151` and :pull:`152`).
 
+* Refactor :class:`~capytaine.bodies.predefined.spheres.Sphere` and fix bug with its :code:`geometric_center` (:pull:`150`).
+
 -------------------------------
 New in version 1.3 (2021-10-07)
 -------------------------------
