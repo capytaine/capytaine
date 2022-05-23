@@ -157,7 +157,7 @@ class TranslationalSymmetricMesh(SymmetricMesh):
 
     @inplace_transformation
     def rotate(self, axis: Axis, angle: float):
-        self.translation = axis.rotation_matrix(angle) @ self.translation
+        self.translation = axis.rotate_vector([self.translation], angle)[0, :]
         CollectionOfMeshes.rotate(self, axis, angle)
         return self
 

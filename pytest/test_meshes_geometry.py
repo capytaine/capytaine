@@ -62,6 +62,13 @@ def test_axis_transformation():
     assert axis1.translated_point_to_point(axis1.point, axis2.point) == axis2
 
 
+def test_rotation_non_reference_axis():
+    axis = Axis(vector=(0, 0, 1), point=(1, 0, 0))
+    point = [[1.0, 0.0, 0.0]]
+    rotated_point = axis.rotate_points(point, np.pi)
+    assert np.allclose(rotated_point, point)
+
+
 def test_plane():
     assert (0, 1, 1) in yOz_Plane
     assert Oy_axis in yOz_Plane

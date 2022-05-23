@@ -854,13 +854,12 @@ respective inertia coefficients are assigned as NaN.")
 
     @inplace_transformation
     def rotate(self, axis, angle):
-        matrix = axis.rotation_matrix(angle)
         self.mesh.rotate(axis, angle)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__:
-                self.__dict__[point_attr] = matrix @ self.__dict__[point_attr]
+                self.__dict__[point_attr] = axis.rotate_points([self.__dict__[point_attr]], angle)
         for dof in self.dofs:
-            self.dofs[dof] = (matrix @ self.dofs[dof].T).T
+            self.dofs[dof] = axis.rotate_vectors(self.dofs[dof], angle)
         return self
 
     @inplace_transformation
