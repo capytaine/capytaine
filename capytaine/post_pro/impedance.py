@@ -22,10 +22,10 @@ def rao_transfer_function(dataset, dissipation=None, stiffness=None):
         This function supposes that variables named 'mass' and 'hydrostatic_stiffness' are in the dataset.
         Other variables can be computed by Capytaine, by those two should be manually added to the dataset.
     dissipation: array, optional
-        An optional dissipation matrix (e.g. Power Take Off) to be included in the impedance.
+        An optional dissipation matrix (e.g. Power Take Off) to be included in the transfer function.
         Default: none.
     stiffness: array, optional
-        An optional stiffness matrix (e.g. mooring stiffness) to be included in the impedance.
+        An optional stiffness matrix (e.g. mooring stiffness) to be included in the transfer function.
         Default: none.
 
     Returns
@@ -43,17 +43,17 @@ def rao_transfer_function(dataset, dissipation=None, stiffness=None):
     # ASSEMBLE MATRICES
     omega = dataset.coords['omega']  # Range of frequencies in the dataset
 
-    A = (-omega**2*(dataset['mass'] + dataset['added_mass'])
+    H = (-omega**2*(dataset['mass'] + dataset['added_mass'])
          - 1j*omega*dataset['radiation_damping']
          + dataset['hydrostatic_stiffness'])
 
     if dissipation is not None:
-        A = A - 1j*omega*dissipation
+        H = H - 1j*omega*dissipation
 
     if stiffness is not None:
-        A = A + stiffness
+        H = H + stiffness
 
-    return A
+    return H
 
 
 def impedance(dataset, dissipation=None, stiffness=None):
