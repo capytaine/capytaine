@@ -195,7 +195,7 @@ class Delhommeau(AbstractGreenFunction):
             mesh1 is mesh2
         )
 
-        if np.isnan(np.sum(S)) or np.isnan(np.sum(K)):
+        if np.any(np.isnan(S)) or np.any(np.isnan(K)):
             raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
                     "It could be due to overlapping panels.")
 
