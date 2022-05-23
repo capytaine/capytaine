@@ -439,23 +439,19 @@ where :math:`A_{ij}` is the added mass matrix and :math:`B_{ij}` is the radiatio
 
 that is
 
-.. math:: Z X = F_{ex}
+.. math:: H X = F_{ex}
 
-where :math:`Z` denotes the mechanical impedance matrix
+where :math:`H` denotes the following transfer function matrix
 
-.. math:: Z_{ij} = \left[-\omega^2 (M_{ij} + A_{ij}) - j \omega (C_{ij} + B_{ij}) + K_{ij}\right]
+.. math:: H_{ij} = \left[-\omega^2 (M_{ij} + A_{ij}) - j \omega (C_{ij} + B_{ij}) + K_{ij}\right]
 
 and :math:`F_{ex}` denotes the excitation force.
 
 .. math:: F_{ex, i} = F_{FK, i} + F_{D, i}.
 
-.. note:: Here :math:`Z` denotes the impedance matrix with respect to the position.
-          Many references, such as [FK20]_, use the impedance with respect to the velocity :math:`\tilde{Z} = \frac{1}{-j \omega} Z`,
-          such that :math:`\tilde{Z} U = F_{ex}`, where :math:`U` is the complex-valued velocity :math:`U = -j \omega X`.
-
 The oscillation amplitude is obtained by solving the complex-valued linear system.
 
-.. note:: Matrices :math:`A_{ij}` and :math:`B_{ij}` depend on :math:`\omega`, and so does :math:`X_j`.
+.. note:: Matrices :math:`A_{ij}` and :math:`B_{ij}` depend on :math:`\omega`, and so does :math:`H_{ij}` and :math:`X_j`.
 
 Free surface elevation
 ----------------------

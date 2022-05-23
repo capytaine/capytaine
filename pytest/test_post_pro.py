@@ -4,7 +4,7 @@ import xarray as xr
 from capytaine import BEMSolver
 from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.post_pro import rao
-from capytaine.post_pro import impedance, velocity_impedance
+from capytaine.post_pro import impedance
 
 f = np.linspace(0.1, 2.0)
 omega = 2*np.pi*f
@@ -89,8 +89,6 @@ def sphere_heave_data(sphere_fb):
 
 def test_impedance_sphere_heave(sphere_heave_data):
     Zi = impedance(sphere_heave_data)
-    # TODO check against known result?
-    Zi2 = velocity_impedance(sphere_heave_data)
 
 def test_rao_sphere_heave_indirect(sphere_heave_data):
 

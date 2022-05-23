@@ -8,7 +8,7 @@ import logging
 
 import numpy as np
 import xarray as xr
-from capytaine.post_pro.impedance import position_impedance
+from capytaine.post_pro.impedance import rao_transfer_function
 
 LOG = logging.getLogger(__name__)
 
@@ -39,7 +39,7 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
     """
 
     # ASSEMBLE MATRICES
-    A = position_impedance(dataset, dissipation, stiffness)
+    A = rao_transfer_function(dataset, dissipation, stiffness)
 
     LOG.info("Compute RAO.")
 
