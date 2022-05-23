@@ -30,6 +30,8 @@ Changelog
 * Add method to compute some of the hydrostatic parameters such as volume, buoyancy center, wet surface area, hydrostatic stiffness, inertia matrix etc.
   :code:`compute_hydrostatics` method is created to return all hydrostatic parameters similar to :code:`meshmagick.hydrostatics.compute_hydrostatics` (:pull:`106`).
 
+* Fix bug in rotations around axis that does not pass by (0, 0, 0) (:issue:`151` and :pull:`152`).
+
 -------------------------------
 New in version 1.3 (2021-10-07)
 -------------------------------
