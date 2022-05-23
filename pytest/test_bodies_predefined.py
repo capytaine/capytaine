@@ -7,6 +7,7 @@ from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import TranslationalSymmetricMesh, ReflectionSymmetricMesh
 
 from capytaine.bodies.predefined.rectangles import Rectangle, OpenRectangularParallelepiped, RectangularParallelepiped
+from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.bodies.predefined.cylinders import Disk, HorizontalCylinder, VerticalCylinder
 
 
@@ -128,3 +129,8 @@ def test_cylinder():
     HorizontalCylinder()
     VerticalCylinder()
     # TODO
+
+
+def test_sphere_geometric_center():
+    sphere = Sphere(radius=2.0, center=(-2.0, 2.0, 1.0))
+    assert np.allclose(sphere.geometric_center, np.array([-2.0, 2.0, 1.0]))

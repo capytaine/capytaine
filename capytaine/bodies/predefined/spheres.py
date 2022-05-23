@@ -28,7 +28,7 @@ class Sphere(FloatingBody):
     ntheta : int
         number of panels along a meridian (or number of parallels-1)
     nphi : int
-        number of panels along a parallel (or number of meridian-1)
+        number of panels along a parallel (or number of meridians-1)
     clever : bool
         if True, use the symmetries to build the mesh (default: True)
     clip_free_surface : bool
@@ -54,8 +54,6 @@ class Sphere(FloatingBody):
 
         FloatingBody.__init__(self, mesh=mesh, name=name)
 
-        self.translate(center)
-
     def _generate_sphere_mesh(self, ntheta, nphi, clip_free_surface=False, name=None):
         if clip_free_surface:
             if self.geometric_center[2] < -self.radius:  # fully immersed
@@ -80,6 +78,7 @@ class Sphere(FloatingBody):
             z = - np.cos(t)
             nodes[i, :] = (x, y, z)
         nodes *= self.radius
+        nodes += self.geometric_center
 
         # Connectivity
         panels = np.zeros((ntheta*nphi, 4), dtype=int)
@@ -110,6 +109,7 @@ class Sphere(FloatingBody):
         circle_profile[:, 0] = np.sin(theta)
         circle_profile[:, 2] = -np.cos(theta)
         circle_profile *= self.radius
+        circle_profile += self.geometric_center
 
         return AxialSymmetricMesh.from_profile(circle_profile, nphi=nphi, name=f"{name}_mesh")
 
