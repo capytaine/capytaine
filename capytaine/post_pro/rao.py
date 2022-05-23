@@ -39,7 +39,7 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
     """
 
     # ASSEMBLE MATRICES
-    A = rao_transfer_function(dataset, dissipation, stiffness)
+    H = rao_transfer_function(dataset, dissipation, stiffness)
 
     LOG.info("Compute RAO.")
 
@@ -51,11 +51,11 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
 
     # SOLVE LINEAR SYSTEMS
     # Reorder dimensions of the arrays to be sure to solve the right system.
-    A = A.transpose('omega', 'radiating_dof', 'influenced_dof')
+    H = H.transpose('omega', 'radiating_dof', 'influenced_dof')
     excitation = excitation.transpose('omega',  'influenced_dof')
 
     # Solve the linear systems (one for each value of omega)
-    X = np.linalg.solve(A, excitation)
+    X = np.linalg.solve(H, excitation)
 
     return xr.DataArray(X, coords=[omega, dataset.coords['radiating_dof']], dims=['omega', 'radiating_dof'])
 
