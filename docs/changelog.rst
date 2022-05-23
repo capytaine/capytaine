@@ -32,7 +32,10 @@ Changelog
 
 * Fix bug in rotations around axis that does not pass by (0, 0, 0) (:issue:`151` and :pull:`152`).
 
-* Refactor :class:`~capytaine.bodies.predefined.spheres.Sphere` and fix bug with its :code:`geometric_center` (:pull:`150`).
+* Implementation of :class:`~capytaine.bodies.predefined.spheres.Sphere` has changed.
+  The use of symmetry is now controlled by the :code:`axial_symmetry` keyword argument.
+  The :code:`clever` keyword argument is deprecated for :code:`Sphere` and should be replaced by the more explicit keyword arguments :code:`axial_symmetry`.
+  Meanwhile, a bug has been fixed with its :code:`geometric_center` (:pull:`150`).
 
 -------------------------------
 New in version 1.3 (2021-10-07)
