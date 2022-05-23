@@ -8,6 +8,7 @@ import logging
 
 import numpy as np
 
+from capytaine.meshes.geometry import Axis
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import AxialSymmetricMesh
 from capytaine.bodies.bodies import FloatingBody
@@ -79,5 +80,6 @@ class Sphere(FloatingBody):
                 + self.geometric_center
                 )
 
-        return AxialSymmetricMesh.from_profile(points_on_a_meridian, nphi=nphi, name=mesh_name)
+        symmetry_axis = Axis(vector=[0, 0, 1], point=self.geometric_center)
+        return AxialSymmetricMesh.from_profile(points_on_a_meridian, axis=symmetry_axis, nphi=nphi, name=mesh_name)
 
