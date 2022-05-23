@@ -577,9 +577,8 @@ class Mesh(Abstract3DObject):
         axis : Axis
         angle : float
         """
-        rot_matrix = axis.rotation_matrix(angle)
 
-        self._vertices = np.transpose(np.dot(rot_matrix, self._vertices.T))
+        self._vertices = axis.rotate_points(self._vertices, angle)
 
         return self
 
