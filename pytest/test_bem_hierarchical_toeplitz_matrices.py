@@ -38,7 +38,7 @@ def test_floating_sphere(depth, omega):
     """
     reso = 2
 
-    full_sphere = Sphere(radius=1.0, ntheta=reso, nphi=4*reso, clever=False, clip_free_surface=True)
+    full_sphere = Sphere(radius=1.0, ntheta=reso, nphi=4*reso, axial_symmetry=False, clip_free_surface=True)
     full_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     problem = RadiationProblem(body=full_sphere, omega=omega, sea_bottom=-depth)
     result1 = solver_with_sym.solve(problem)
@@ -60,7 +60,7 @@ def test_floating_sphere(depth, omega):
     problem = RadiationProblem(body=four_quarter_sphere, omega=omega, sea_bottom=-depth)
     result3 = solver_with_sym.solve(problem)
 
-    clever_sphere = Sphere(radius=1.0, ntheta=reso, nphi=4*reso, clever=True, clip_free_surface=True)
+    clever_sphere = Sphere(radius=1.0, ntheta=reso, nphi=4*reso, axial_symmetry=True, clip_free_surface=True)
     clever_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     problem = RadiationProblem(body=clever_sphere, omega=omega, sea_bottom=-depth)
     result4 = solver_with_sym.solve(problem)
@@ -153,7 +153,7 @@ def test_low_rank_matrices():
     perimeter = 2*np.pi*radius
     buoy = Sphere(radius=radius, center=(0.0, 0.0, 0.0),
                   ntheta=int(perimeter*resolution/2), nphi=int(perimeter*resolution),
-                  clip_free_surface=True, clever=False, name=f"buoy")
+                  clip_free_surface=True, axial_symmetry=False, name=f"buoy")
     buoy.add_translation_dof(name="Heave")
     two_distant_buoys = FloatingBody.join_bodies(buoy, buoy.translated_x(20))
     two_distant_buoys.mesh._meshes[1].name = "other_buoy_mesh"
@@ -177,7 +177,7 @@ def test_array_of_spheres():
     perimeter = 2*np.pi*radius
     buoy = Sphere(radius=radius, center=(0.0, 0.0, 0.0),
                   ntheta=int(perimeter*resolution/2), nphi=int(perimeter*resolution),
-                  clip_free_surface=True, clever=False, name=f"buoy")
+                  clip_free_surface=True, axial_symmetry=False, name=f"buoy")
     buoy.add_translation_dof(name="Surge")
     buoy.add_translation_dof(name="Sway")
     buoy.add_translation_dof(name="Heave")
