@@ -41,7 +41,7 @@ hydrostatics, and inertial properties::
     import xarray as xr
     from capytaine import BEMSolver
     from capytaine.bodies.predefined.spheres import Sphere
-    from capytaine.post_pro import velocity_impedance
+    from capytaine.post_pro import impedance
     
     f = np.linspace(0.1, 2.0)
     omega = 2*np.pi*f
@@ -70,12 +70,12 @@ hydrostatics, and inertial properties::
                                wavelength=True,
                                wavenumber=True)
     
-    Zi = velocity_impedance(data)
+    Zi = impedance(data)
 
 
 
 Note that we assigned the inertia and stiffness to attributes of :code:`body` called :code:`mass` and :code:`hydrostatic_stiffness`.
-These are the name expected by the :code:`velocity_impedance` function to compute the impedance matrix.
+These are the names expected by the :code:`fill_dataset` and :code:`impedance` functions to compute the impedance matrix.
 
 By simple extension of incorporating the excitation transfer function response
 amplitude operator (RAO)::

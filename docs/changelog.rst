@@ -6,6 +6,9 @@ Changelog
   dissipation matrix was wrong in previous versions (:issue:`102` and
   :pull:`140`).
 
+* Correct the function :func:`~capytaine.post_pro.impedance.impedance` to actually return the impedance matrix.
+  The former behavior has been renamed as :func:`~capytaine.post_pro.impedance.rao_transfer_function`. (:pull:`142`, :issue:`147`, :pull:`149`).
+
 * Method :code:`show_matplotlib` can now colour mesh faces based on a
   specified scalar field (e.g. pressure) (:pull:`122`).
 
@@ -15,8 +18,6 @@ Changelog
 * A new example using Haskind's relation has been added to the cookbook (:pull:`129`).
 
 * New implementation of the mesh importer for `hst` files (:pull:`90`)
-
-* Add :code:`position_impedance` and :code:`velocity_impedance` functions to the :code:`post_pro` module to specify which impedance is requested (:pull:`142`)
 
 * Add a warning if the user provides a :code:`wave_direction` that is not in the range [-2π, 2π].
 
