@@ -366,7 +366,7 @@ TODO
 Symmetries
 ----------
 
-The first term of :eq:`green_function` is invariant under all rotations and translations, whereas the second term is invariant under isometric transformations that don't change the vertical coordinate (reflection across a vertical plane, rotation around a vertical axis, translation following an horizontal vector).
+The first term of :eq:`green_function` is invariant under all rotations and translations, whereas the other terms are invariant under isometric transformations that don't change the vertical coordinate (reflection across a vertical plane, rotation around a vertical axis, translation following an horizontal vector).
 
 
 Discretization
