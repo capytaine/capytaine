@@ -163,7 +163,7 @@ is the usual Green function for the 3D Laplace equation without our specific bou
 The second part reads
 
 .. math::
-    G_1(\xi, x) = - \frac{1}{\|x - s(\xi)\|} 
+    G_1(\xi, x) = - \frac{1}{\|x - s(\xi)\|}
     :label: green_function_inf_depth_1
 
 where :math:`s(\xi_1, \xi_2, \xi_3) = (\xi_1, \xi_2, -\xi_3)` is the reflection of :math:`\xi` across the free surface.
@@ -172,18 +172,18 @@ Finally, this last part is complex-valued and it is introduced to satisfy the bo
 It depends on the water depth :math:`h` and the wave frequency :math:`\omega` (through the wave number :math:`k`).
 
 .. math::
-    G_2(\xi, x) & = 
-    \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, \mathrm{d} \theta \right) \\
-    & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, \mathrm{d} \theta \right)
+    G_2(\xi, x) & =
+    \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(x, \xi, \theta)) - \frac{1}{\zeta(x, \xi, \theta)} \right) \, \mathrm{d} \theta \right) \\
+    & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (x, \xi, \theta)} \, \mathrm{d} \theta \right)
     :label: green_function_inf_depth_2
 
 where
 
 .. math::
-    J(\zeta) = 
+    J(z) =
     \begin{cases}
-    e^\zeta \left[ E_1(\zeta) + i\pi \right] \quad \text{if} ~ \Im(\zeta) \ge 0 \\
-    e^\zeta \left[ E_1(\zeta) - i\pi \right] \quad \text{if} ~ \Im(\zeta) < 0
+    e^z \left[ E_1(z) + i\pi \right] \quad \text{if} ~ \Im(z) \ge 0 \\
+    e^z \left[ E_1(z) - i\pi \right] \quad \text{if} ~ \Im(z) < 0
     \end{cases}
 
 where :math:`E_1` is the first exponential integral, defined as
@@ -194,7 +194,7 @@ where :math:`E_1` is the first exponential integral, defined as
 and
 
 .. math::
-    \zeta (\theta) = k \left( x_3 + \xi_3 + i r \cos \theta \right)
+    \zeta (x, \xi, \theta) = k \left( x_3 + \xi_3 + i r \cos \theta \right)
     :label: def_zeta
 
 where
@@ -206,10 +206,10 @@ where
 
 .. proof:property::
 
-   The function :math:`G` is symmetric in the sense of 
+   The function :math:`G` is symmetric in the sense of
 
    .. math::
-   
+
         \forall x, \xi, \quad G(x, \xi) = G(\xi, x).
 
 Variants of the formulation
@@ -266,7 +266,7 @@ Variants of the formulation
         :nowrap:
 
         \[
-            \int_{-\frac{\pi}{2}-\alpha}^{\frac{\pi}{2}-\alpha} f \left(\zeta(\theta) \right) \mathrm{d} \theta = 
+            \int_{-\frac{\pi}{2}-\alpha}^{\frac{\pi}{2}-\alpha} f \left(\zeta(\theta) \right) \mathrm{d} \theta =
             \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\zeta(\theta) \right) \mathrm{d} \theta
         \]
 
@@ -319,7 +319,7 @@ where
     Let us discuss the derivation of :eq:`green_function_inf_depth_deriv_2`. Using :numref:`Lemma {number} <integrate_one_over_zeta>`, the Green function :eq:`green_function_inf_depth_2` can be rewritten as:
 
     .. math::
-        G_2(\xi, x) & = 
+        G_2(\xi, x) & =
         \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta(\theta)) \, \mathrm{d} \theta \right) + \frac{2}{\|x - s(\xi)\|} \\
         & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, \mathrm{d} \theta \right)
 
@@ -338,7 +338,7 @@ where
 .. note:: There is a typo in the second term of :eq:`green_function_inf_depth_deriv_2` in [Del89]_ and [BD15]_. It appears to be missing from [X18]_.
 
 .. note::
-    The derivative of :math:`G` with respect to :math:`x_1` and :math:`x_2` are antisymmetric in the sense of 
+    The derivative of :math:`G` with respect to :math:`x_1` and :math:`x_2` are antisymmetric in the sense of
 
     .. math::
        :nowrap:
@@ -348,6 +348,51 @@ where
         \]
 
     Its derivative with respect to :math:`x_3` can be decomposed into an antisymmetric term and a symmetric term.
+
+
+Delhommeau's method for computation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Denoting :math:`\tilde{r} = k r` and :math:`\tilde{z} = k (x_3 + \xi_3)`, such that :math:`\zeta = \tilde{z} + i \tilde{r} \cos \theta`.
+and :math:`R_1 = \sqrt(r^2 + (x_3 + \xi_3)^2) = || x - s(\xi) ||`
+
+Tabulated integrals:
+
+.. math::
+   :nowrap:
+
+   \[
+    \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right)
+   \]
+   \[
+    \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right)
+   \]
+   \[
+    \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right)
+   \]
+   \[
+    \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
+   \]
+
+
+Asymptotic versions:
+
+.. math::
+   :nowrap:
+
+    \[
+      \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} (\cos(\tilde{r} - \pi/4) - \frac{1}{2\tilde{r}} \sin(\tilde{r}-\pi/4)) - \pi \frac{\tilde{r}}{k^3 R_1^3}
+    \]
+    \[
+          \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} (\sin(\tilde{r} - \pi/4) + \frac{1}{2\tilde{r}} \cos(\tilde{r} - \pi/4))
+    \]
+    \[
+      - \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \sin(\tilde{r} - \pi/4) + \pi \frac{\tilde{z}}{k^3 R_1^3}
+    \]
+    \[
+      \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \cos(\tilde{r} - \pi/4)
+    \]
+
 
 In finite depth
 ---------------
