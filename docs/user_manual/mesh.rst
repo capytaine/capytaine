@@ -2,6 +2,8 @@
 Meshes and floating bodies
 ==========================
 
+.. contents:: Content
+
 Importing a mesh with Meshmagick
 --------------------------------
 
@@ -118,7 +120,7 @@ installed independently)::
 
 Display and animation
 ---------------------
-Use the :code:`show` method to display the body in 3D using VTK::
+Use the :code:`show` method to display the body in 3D using VTK (if installed)::
 
     body.show()
 
@@ -208,7 +210,7 @@ For instance::
     both_bodies = body_1 + body_2
     assert 'body_1__Heave' in both_bodies.dofs
     assert 'body_2__Heave' in both_bodies.dofs
-    
+
 
 Clipping
 --------
@@ -234,6 +236,22 @@ The method :code:`keep_immersed_part` will clip the body (by default in-place)
 with respect to two horizontal planes at :math:`z=0` and :math:`z=-h`::
 
     clipped_body = body.keep_immersed_part(sea_bottom=-10, inplace=False)
+
+
+Center of mass and rotation dofs
+--------------------------------
+
+The center of gravity of the body can be defined by assigning a vector of 3
+elements to the :code:`center_of_mass` attribute::
+
+    body.center_of_mass = np.array([0.0, -1.0, -1.0])
+
+The center of mass is used in some hydrostatics computation.
+It is not required for hydrodynamical coefficients, except for the definition of the rotation degrees of freedom.
+When defining a rotation dof, the code looks for attributes called
+:code:`rotation_center`, :code:`center_of_mass` or * :code:`geometric_center` (in that order),
+and use them to define the rotation axis.
+If none of them are define, the rotation is defined around the origin of the domain :math:`(0, 0, 0)`.
 
 
 Defining an integration quadrature
