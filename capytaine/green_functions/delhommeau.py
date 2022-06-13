@@ -182,7 +182,7 @@ class Delhommeau(AbstractGreenFunction):
                 coeffs = np.array((1.0, 1.0, 1.0))
 
         # Main call to Fortran code
-        return self.fortran_core.matrices.build_matrices(
+        S, K = self.fortran_core.matrices.build_matrices(
             mesh1.faces_centers, mesh1.faces_normals,
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
@@ -194,6 +194,12 @@ class Delhommeau(AbstractGreenFunction):
             lamda_exp, a_exp,
             mesh1 is mesh2
         )
+
+        if np.any(np.isnan(S)) or np.any(np.isnan(K)):
+            raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
+                    "It could be due to overlapping panels.")
+
+        return S, K
 
 ################################
 
