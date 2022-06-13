@@ -362,36 +362,43 @@ Tabulated integrals:
    :nowrap:
 
    \[
-    \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right)
+    D_1 = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right)
    \]
    \[
-    \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right)
+    D_2 = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right)
    \]
    \[
-    \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right)
+    Z_1 = \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right)
    \]
    \[
-    \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
+    Z_2 = \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
    \]
 
 
-Asymptotic versions:
+These integrals can be asymptotically approximated by the following expressions:
 
 .. math::
    :nowrap:
 
     \[
-      \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} (\cos(\tilde{r} - \pi/4) - \frac{1}{2\tilde{r}} \sin(\tilde{r}-\pi/4)) - \pi \frac{\tilde{r}}{k^3 R_1^3}
+      D_1 = \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} (\cos(\tilde{r} - \pi/4) - \frac{1}{2\tilde{r}} \sin(\tilde{r}-\pi/4)) - \pi \frac{\tilde{r}}{k^3 R_1^3}
     \]
     \[
-          \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} (\sin(\tilde{r} - \pi/4) + \frac{1}{2\tilde{r}} \cos(\tilde{r} - \pi/4))
+      D_2 = \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} (\sin(\tilde{r} - \pi/4) + \frac{1}{2\tilde{r}} \cos(\tilde{r} - \pi/4))
     \]
     \[
-      - \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \sin(\tilde{r} - \pi/4) + \pi \frac{\tilde{z}}{k^3 R_1^3}
+      Z_1 = - \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \sin(\tilde{r} - \pi/4) + \pi \frac{\tilde{z}}{k^3 R_1^3}
     \]
     \[
-      \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \cos(\tilde{r} - \pi/4)
+      Z_2 = \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \cos(\tilde{r} - \pi/4)
     \]
+
+Hence, the asymptotic approximation of the Green function reads
+
+.. math::
+   :nowrap:
+
+    G_2(\xi, x) = - 2 k \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \sin(\tilde{r} - \pi/4) + 2 k \frac{\tilde{z}}{k^3 R_1^3} + 2 i k \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \cos(\tilde{r} - \pi/4)
 
 
 In finite depth
