@@ -289,12 +289,12 @@ where
     \nabla_x G_1(\xi, x) = \frac{x - s(\xi)}{\|x - s(\xi)\|^3}\,,
     :label: green_function_inf_depth_deriv_1
 
-and 
+and
 
 .. math::
     \nabla_x G_2(\xi, x) = &
     \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta \right) \\
-    & - 2 \frac{x - s(\xi)}{\|x - s(\xi)\|^3} 
+    & - 2 \frac{x - s(\xi)}{\|x - s(\xi)\|^3}
     + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta \right) \\
     :label: green_function_inf_depth_deriv_2
 
@@ -396,10 +396,7 @@ These integrals can be asymptotically approximated by the following expressions:
 Hence, the asymptotic approximation of the Green function reads
 
 .. math::
-   :nowrap:
-
-    G_2(\xi, x) = - 2 k \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \sin(\tilde{r} - \pi/4) + 2 k \frac{\tilde{z}}{k^3 R_1^3} + 2 i k \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \cos(\tilde{r} - \pi/4)
-
+    G_2(\xi, x) = - 2 k \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\sin(\tilde{r} - \pi/4) - i\cos(\tilde{r} - \pi/4)\right) + 2 k \frac{\tilde{z}}{k^3 R_1^3}
 
 In finite depth
 ---------------
