@@ -120,10 +120,8 @@ CONTAINS
     !=====================================================================================
     ! Evaluate the elementary integrals PDnX and PDnZ depending on dimless_Z and dimless_r
     !=====================================================================================
-    IF (((MINVAL(tabulated_Z_range) < dimless_Z) .AND. (dimless_Z < MAXVAL(tabulated_Z_range))) .AND. &
-        ((MINVAL(tabulated_r_range) <= dimless_r) .AND. (dimless_r < MAXVAL(tabulated_r_range)))) THEN
+    IF ((dimless_Z < MAXVAL(tabulated_Z_range)) .AND. (dimless_r < MAXVAL(tabulated_r_range))) THEN
         ! Within the range of tabulated data
-        ! Note that MINVAL(tabulated_r_range) == 0, so one of the conditions is not actually useful.
 
         ! Get the nearest point in the tabulation
         IF (dimless_r < 1) THEN
@@ -147,8 +145,7 @@ CONTAINS
              tabulated_integrals(KI-1:KI+1, KJ-1:KJ+1, :, :),            &
              D1, D2, Z1, Z2)
 
-      ELSE  ! MAXVAL(tabulated_r_range) < dimless_r
-        ! Asymptotic expression for (horizontally) distant panels
+      ELSE ! Asymptotic expression for distant panels
 
         expz_sqr = EXP(dimless_Z) * SQRT(2*PI/dimless_r)
         cos_kr  = COS(dimless_r - PI/4)
