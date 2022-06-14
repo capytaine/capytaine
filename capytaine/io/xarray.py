@@ -57,6 +57,13 @@ def problems_from_dataset(dataset: xr.Dataset,
     assert len(list(set(body.name for body in bodies))) == len(bodies), \
         "All bodies should have different names."
 
+    # Warn user in case of key with unrecognized name (e.g. mispells)
+    keys_in_dataset = set(dataset.keys()) && set(dataset.coords.keys())
+    accepted_keys = {'wave_direction', 'radiating_dof', 'body_name', 'omega', 'water_depth', 'rho', 'g'}
+    unrecognized_keys = keys_in_dataset.difference(accepted_keys)
+    if len(unrecognized_keys) > 0:
+        LOG.warning(f"Unrecognized key(s) in dataset: {unrecognized_keys}")
+
     dataset = _unsqueeze_dimensions(dataset)
 
     omega_range = dataset['omega'].data if 'omega' in dataset else [_default_parameters['omega']]
