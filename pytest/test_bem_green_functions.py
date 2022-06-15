@@ -104,15 +104,10 @@ gravity = 9.8
 def wave_part_Green_function(Xi, Xj, omega, depth, core=Delhommeau_f90):
     if depth == np.infty:
         wavenumber = omega**2 / gravity
-    else:
-        wavenumber = newton(lambda x: x*np.tanh(x) - omega**2*depth/gravity, x0=1.0)/depth
-
-    if depth < np.infty:
-        ambda, ar, nexp = core.old_prony_decomposition.lisc(omega**2 * depth/gravity, wavenumber * depth)
-
-    if depth == np.infty:
         return core.green_wave.wave_part_infinite_depth(wavenumber, Xi, Xj, *tabulation[core])
     else:
+        wavenumber = newton(lambda x: x*np.tanh(x) - omega**2*depth/gravity, x0=1.0)/depth
+        ambda, ar, nexp = core.old_prony_decomposition.lisc(omega**2 * depth/gravity, wavenumber * depth)
         return core.green_wave.wave_part_finite_depth(wavenumber, Xi, Xj, depth, *tabulation[core], ambda, ar, 31)
 
 @given(points, points, frequencies, depths, cores)
