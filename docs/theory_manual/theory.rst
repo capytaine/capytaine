@@ -229,10 +229,19 @@ Variants of the formulation
 
 .. proof:lemma::
 
+    The following identity holds [X18]_:
+
+    .. math::
+        \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right) = \pi \exp(k(x_3 + \xi_3)) J_0(k r)
+
+    where :math:`J_0` is the zeroth order Bessel function of the first kind.
+
+.. proof:lemma::
+
     For any function :math:`f`, the following two formulations of the integral are equivalent:
 
     .. math::
-        \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\zeta(\theta) \right) \mathrm{d} \theta = 
+        \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\zeta(\theta) \right) \mathrm{d} \theta =
         \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\tilde{\zeta}(\theta) \right) \mathrm{d} \theta
 
     where :math:`\zeta` is defined in :eq:`def_zeta` and :math:`\tilde{\zeta}` is defined as
