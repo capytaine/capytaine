@@ -50,6 +50,11 @@ def problems_from_dataset(dataset: xr.Dataset,
     Returns
     -------
     list of LinearPotentialFlowProblem
+
+    Raises
+    ------
+    ValueError
+        if required fields are missing in the dataset
     """
     if isinstance(bodies, FloatingBody):
         bodies = [bodies]
