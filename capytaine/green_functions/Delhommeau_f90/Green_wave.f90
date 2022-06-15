@@ -117,10 +117,12 @@ CONTAINS
       ERROR STOP
     ENDIF
 
+    ! PRINT*, dimless_r, dimless_Z
     !=======================================================================
     ! Evaluate the elementary integrals depending on dimless_Z and dimless_r
     !=======================================================================
-    IF ((dimless_Z < MAXVAL(tabulated_Z_range)) .AND. (dimless_r < MAXVAL(tabulated_r_range))) THEN
+    IF ((MINVAL(tabulated_Z_range) < dimless_Z) .AND. (dimless_r < MAXVAL(tabulated_r_range))) THEN
+        ! PRINT*, "TABULATED"
         ! Within the range of tabulated data
 
         ! Get the nearest point in the tabulation
@@ -146,6 +148,9 @@ CONTAINS
              D1, D2, Z1, Z2)
 
       ELSE ! Asymptotic expression for distant panels
+        ! PRINT*, "ASYMPTOTIC"
+
+        dimless_r = MAX(dimless_r, 1e-10)  ! Avoid divisions by zero
 
         expz_sqr = EXP(dimless_Z) * SQRT(2*PI/dimless_r)
         cos_kr  = COS(dimless_r - PI/4)
