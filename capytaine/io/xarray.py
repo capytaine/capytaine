@@ -58,7 +58,7 @@ def problems_from_dataset(dataset: xr.Dataset,
         "All bodies should have different names."
 
     # Warn user in case of key with unrecognized name (e.g. mispells)
-    keys_in_dataset = set(dataset.keys()) && set(dataset.coords.keys())
+    keys_in_dataset = set(dataset.keys()) & set(dataset.coords.keys())
     accepted_keys = {'wave_direction', 'radiating_dof', 'body_name', 'omega', 'water_depth', 'rho', 'g'}
     unrecognized_keys = keys_in_dataset.difference(accepted_keys)
     if len(unrecognized_keys) > 0:
