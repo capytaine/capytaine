@@ -354,7 +354,7 @@ Delhommeau's method for computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Denoting :math:`\tilde{r} = k r` and :math:`\tilde{z} = k (x_3 + \xi_3)`, such that :math:`\zeta = \tilde{z} + i \tilde{r} \cos \theta`.
-and :math:`R_1 = \sqrt(r^2 + (x_3 + \xi_3)^2) = || x - s(\xi) ||`
+and :math:`R_1 = \sqrt{r^2 + (x_3 + \xi_3)^2} = || x - s(\xi) ||`
 
 Tabulated integrals:
 
