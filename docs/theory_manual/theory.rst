@@ -353,50 +353,34 @@ where
 Delhommeau's method for computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Denoting :math:`\tilde{r} = k r` and :math:`\tilde{z} = k (x_3 + \xi_3)`, such that :math:`\zeta = \tilde{z} + i \tilde{r} \cos \theta`.
-and :math:`R_1 = \sqrt{r^2 + (x_3 + \xi_3)^2} = || x - s(\xi) ||`
-
-Tabulated integrals:
+The above formulations of the Green function and its derivative require the evaluation of the following real-valued integrals:
 
 .. math::
-   :nowrap:
-
-   \[
-    D_1 = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right)
-   \]
-   \[
-    D_2 = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right)
-   \]
-   \[
-    Z_1 = \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right)
-   \]
-   \[
-    Z_2 = \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
-   \]
+    D_1(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    D_2(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right) \\
+    Z_1(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    Z_2(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
 
 
-These integrals can be asymptotically approximated by the following expressions:
+where :math:`\tilde{r} = k r` and :math:`\tilde{z} = k (x_3 + \xi_3)`, such that :math:`\zeta = \tilde{z} + i \tilde{r} \cos \theta`.
+
+To limit the computational cost of the evaluation of these integrals, they are precomputed for selected values of :math:`\tilde{r}` and :math:`\tilde{z}` and stored in a table.
+When evaluating the Green function, the values of the integrals are retrieved by interpolating the values in the tables.
+
+For large values of :math:`\tilde{r}` and :math:`\tilde{z}`, these integrals are asymptotically approximated by the following expressions:
 
 .. math::
-   :nowrap:
+      D_1(\tilde{r}, \tilde{z}) & \simeq \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\cos(\tilde{r} - \pi/4) - \frac{1}{2\tilde{r}} \sin(\tilde{r}-\pi/4) \right) - \pi \frac{\tilde{r}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3} \\
+      D_2(\tilde{r}, \tilde{z}) & \simeq \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\sin(\tilde{r} - \pi/4) + \frac{1}{2\tilde{r}} \cos(\tilde{r} - \pi/4)\right) \\
+      Z_1(\tilde{r}, \tilde{z}) & \simeq - \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \sin(\tilde{r} - \pi/4) + \pi \frac{\tilde{z}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3} \\
+      Z_2(\tilde{r}, \tilde{z}) & \simeq \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \cos(\tilde{r} - \pi/4)
 
-    \[
-      D_1 = \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} (\cos(\tilde{r} - \pi/4) - \frac{1}{2\tilde{r}} \sin(\tilde{r}-\pi/4)) - \pi \frac{\tilde{r}}{k^3 R_1^3}
-    \]
-    \[
-      D_2 = \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} (\sin(\tilde{r} - \pi/4) + \frac{1}{2\tilde{r}} \cos(\tilde{r} - \pi/4))
-    \]
-    \[
-      Z_1 = - \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \sin(\tilde{r} - \pi/4) + \pi \frac{\tilde{z}}{k^3 R_1^3}
-    \]
-    \[
-      Z_2 = \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \cos(\tilde{r} - \pi/4)
-    \]
 
-Hence, the asymptotic approximation of the Green function reads
+Incorporating these asymptotic approximation in the expression of the Green function, one gets:
 
 .. math::
-    G_2(\xi, x) = - 2 k \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\sin(\tilde{r} - \pi/4) - i\cos(\tilde{r} - \pi/4)\right) + 2 k \frac{\tilde{z}}{k^3 R_1^3}
+    G_2(\xi, x) = - 2 k \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\sin(\tilde{r} - \pi/4) - i\cos(\tilde{r} - \pi/4)\right) + 2 k \frac{\tilde{z}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3}
+
 
 In finite depth
 ---------------
