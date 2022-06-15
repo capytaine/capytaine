@@ -117,9 +117,9 @@ CONTAINS
       ERROR STOP
     ENDIF
 
-    !=====================================================================================
-    ! Evaluate the elementary integrals PDnX and PDnZ depending on dimless_Z and dimless_r
-    !=====================================================================================
+    !=======================================================================
+    ! Evaluate the elementary integrals depending on dimless_Z and dimless_r
+    !=======================================================================
     IF ((dimless_Z < MAXVAL(tabulated_Z_range)) .AND. (dimless_r < MAXVAL(tabulated_r_range))) THEN
         ! Within the range of tabulated data
 
