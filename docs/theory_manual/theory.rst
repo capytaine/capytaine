@@ -362,7 +362,7 @@ The above formulations of the Green function and its derivative require the eval
     Z_2(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
 
 
-where :math:`\tilde{r} = k r` and :math:`\tilde{z} = k (x_3 + \xi_3)`, such that :math:`\zeta = \tilde{z} + i \tilde{r} \cos \theta`.
+where :math:`\tilde{r} = k r` and :math:`\tilde{z} = k (x_3 + \xi_3)`, such that :math:`\zeta = \tilde{z} + i \tilde{r} \cos \theta` and :math:`k \| x - s(\xi) \| = \sqrt{\tilde{r}^2 + \tilde{z}^2}`.
 
 To limit the computational cost of the evaluation of these integrals, they are precomputed for selected values of :math:`\tilde{r}` and :math:`\tilde{z}` and stored in a table.
 When evaluating the Green function, the values of the integrals are retrieved by interpolating the values in the tables.
@@ -371,7 +371,7 @@ For large values of :math:`\tilde{r}` and :math:`\tilde{z}`, these integrals are
 
 .. math::
       D_1(\tilde{r}, \tilde{z}) & \simeq \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\cos(\tilde{r} - \pi/4) - \frac{1}{2\tilde{r}} \sin(\tilde{r}-\pi/4) \right) - \pi \frac{\tilde{r}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3} \\
-      D_2(\tilde{r}, \tilde{z}) & \simeq \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\sin(\tilde{r} - \pi/4) + \frac{1}{2\tilde{r}} \cos(\tilde{r} - \pi/4)\right) \\
+      D_2(\tilde{r}, \tilde{z}) & \simeq \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} (\sin(\tilde{r} - \pi/4) + \frac{1}{2\tilde{r}} \cos(\tilde{r} - \pi/4)) \\
       Z_1(\tilde{r}, \tilde{z}) & \simeq - \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \sin(\tilde{r} - \pi/4) + \pi \frac{\tilde{z}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3} \\
       Z_2(\tilde{r}, \tilde{z}) & \simeq \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \cos(\tilde{r} - \pi/4)
 
@@ -379,8 +379,26 @@ For large values of :math:`\tilde{r}` and :math:`\tilde{z}`, these integrals are
 Incorporating these asymptotic approximation in the expression of the Green function, one gets:
 
 .. math::
-    G_2(\xi, x) = - 2 k \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\sin(\tilde{r} - \pi/4) - i\cos(\tilde{r} - \pi/4)\right) + 2 k \frac{\tilde{z}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3}
+    G_2(\xi, x) \simeq - 2 k \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\sin(\tilde{r} - \pi/4) - i\cos(\tilde{r} - \pi/4)\right) + 2 k \frac{\tilde{z}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3}
 
+
+Xie's variant
+~~~~~~~~~~~~~
+
+A slight variant is presented in [X18]_. The authors noticed that the
+interpolation of the integral :math:`Z_1` can be inacurrate due to the
+singularity :math:`\frac{1}{\zeta}`.
+Hence, they proposed to tabulate instead
+
+.. math::
+    \widetilde{Z_1}(\tilde{r}, \tilde{z}) = \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
+
+By using :numref:`Lemma {number} <integrate_one_over_zeta>`, one has
+
+.. math::
+   Z_1 = \widetilde{Z_1} - \frac{\pi}{k \sqrt{\tilde{r}^2 + \tilde{z}^2}}
+
+Both the original Delhommeau's method and Xie's variant are implemented in Capytaine.
 
 In finite depth
 ---------------
