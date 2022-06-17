@@ -35,9 +35,9 @@ CONTAINS
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber
 
     ! Tabulated data
-    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: tabulated_r_range
-    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: tabulated_Z_range
-    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: tabulated_integrals
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_Z_range
+    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_Z_range), 2, 2), INTENT(IN) :: tabulated_integrals
 
     ! Outputs
     COMPLEX(KIND=PRE),                        INTENT(OUT) :: FS  ! the integral
@@ -119,9 +119,9 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
 
     ! Tabulated data
-    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: X_AXIS
-    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: Z_AXIS
-    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: TABULATION
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: X_AXIS
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: Z_AXIS
+    REAL(KIND=PRE), DIMENSION(size(X_AXIS), size(Z_AXIS), 2, 2), INTENT(IN) :: TABULATION
 
     ! Outputs
     COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
@@ -157,9 +157,9 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I  ! Coordinates of the source point
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
 
-    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: X_AXIS
-    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: Z_AXIS
-    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: TABULATION
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: X_AXIS
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: Z_AXIS
+    REAL(KIND=PRE), DIMENSION(size(X_AXIS), size(Z_AXIS), 2, 2), INTENT(IN) :: TABULATION
 
     INTEGER,                                  INTENT(IN) :: NEXP
     REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
