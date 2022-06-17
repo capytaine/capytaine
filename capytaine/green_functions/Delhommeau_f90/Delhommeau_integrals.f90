@@ -4,11 +4,11 @@
 ! This module contains functions to evaluate the following integrals
 ! D1 = Re[ ∫(-i cosθ)(J(ζ) - 1/ζ)dθ ]
 ! D2 = Re[ ∫(-i cosθ)(e^ζ)dθ ]
-! #ifdef XIE_CORRECTION
+#ifdef XIE_CORRECTION
 ! Z1 = Re[ ∫(J(ζ))dθ ]
-! #else
+#else
 ! Z1 = Re[ ∫(J(ζ) - 1/ζ)dθ ]
-! #endif
+#endif
 ! Z2 = Re[ ∫(e^ζ)dθ ]
 ! where ζ depends on θ, as well as two additional parameters `r ∈ [0, +∞)` and `z ∈ (-∞, 0]`.
 !
@@ -16,11 +16,9 @@
 !
 module delhommeau_integrals
 
-  implicit none
+  use constants
 
-  integer, parameter :: pre = kind(1d0) ! floating point numbers precision
-  real(kind=pre), parameter :: pi = 3.141592653588979 ! π
-  complex(kind=pre), parameter :: ii = (0, 1)         ! imaginary unit
+  implicit none
 
   public :: numerical_integration
   public :: asymptotic_approximations
@@ -70,11 +68,11 @@ contains
       end if
       integrals(1, 1) = integrals(1, 1) + delta_theta * cos(theta) * aimag(jzeta - 1.0/zeta)
       integrals(2, 1) = integrals(2, 1) + delta_theta * cos(theta) * aimag(exp_zeta)
-      ! #ifdef xie_correction
-      ! integrals(1, 2) = integrals(1, 2) + delta_theta * cos(theta) * real(jzeta)
-      ! #else
+#ifdef XIE_CORRECTION
+      integrals(1, 2) = integrals(1, 2) + delta_theta * cos(theta) * real(jzeta)
+#else
       integrals(1, 2) = integrals(1, 2) + delta_theta * cos(theta) * real(jzeta - 1.0/zeta)
-      ! #endif
+#endif
       integrals(2, 2) = integrals(2, 2) + delta_theta * cos(theta) * real(exp_zeta)
     enddo
 
@@ -150,11 +148,11 @@ contains
 
     integrals(1, 1) = pi*(expz_sqr*(cos_kr - sin_kr/(2*r)) - r/r1**3)
     integrals(2, 1) =     expz_sqr*(sin_kr + cos_kr/(2*r))
-    ! #ifdef xie_correction
-    ! integrals(1, 2) = pi*(-expz_sqr*sin_kr + z/r1**3 - one/r1)
-    ! #else
+#ifdef XIE_CORRECTION
+    integrals(1, 2) = pi*(-expz_sqr*sin_kr + z/r1**3 - one/r1)
+#else
     integrals(1, 2) = pi*(-expz_sqr*sin_kr + z/r1**3)
-    ! #endif
+#endif
     integrals(2, 2) =     expz_sqr*cos_kr
 
   end function asymptotic_approximations
@@ -180,6 +178,22 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+  pure function default_r_spacing(nr)
+    integer, intent(in) :: nr
+    real(kind=pre), dimension(nr) :: default_r_spacing
+    integer :: i
+    default_r_spacing(1) = 0.0
+    do concurrent (i = 2:nr)
+      default_r_spacing(i) = min(                         &
+                                 10**((i-1.0)/5.0 - 6.0), &
+                                 abs(i-32)/3.0 + 4.0/3.0  &
+                               )
+      ! change of slope at r = 1.0
+    enddo
+  end function default_r_spacing
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
   pure function default_z_spacing(nz)
     integer, intent(in) :: nz
     real(kind=pre), dimension(nz) :: default_z_spacing
@@ -188,22 +202,11 @@ contains
       default_z_spacing(j) = -min(10**(j/5.0-6.0), 10**(j/8.0-4.5))
       ! change of slope at z = -1e-2
     enddo
+    if (nz == 46) then
+      ! compatibility with Nemoh
+      default_z_spacing(46) = -16.0
+    endif
   end function default_z_spacing
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-  pure function default_r_spacing(nr)
-    integer, intent(in) :: nr
-    real(kind=pre), dimension(nr) :: default_r_spacing
-    integer :: i
-    do concurrent (i = 1:nr)
-      default_r_spacing(i) = min(                         &
-                                 10**((i-1.0)/5.0 - 6.0), &
-                                 abs(i-32)/3.0 + 4.0/3.0  &
-                               )
-      ! change of slope at r = 1.0
-    enddo
-  end function default_r_spacing
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -294,29 +297,3 @@ contains
   end function pick_in_default_tabulation
 
 end module delhommeau_integrals
-
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-program main
-    use delhommeau_integrals
-
-    integer :: i, j
-    real(kind(1d0)) :: r, z
-    real(kind(1d0)), dimension(328)           :: r_range
-    real(kind(1d0)), dimension(46)            :: z_range
-    real(kind(1d0)), dimension(328, 46, 2, 2) :: tabulation
-
-    r_range = default_r_spacing(328)
-    z_range = default_z_spacing(46)
-    tabulation = construct_tabulation(r_range, z_range, 250)
-
-    i = 300
-    j = 40
-    r = r_range(i)
-    z = z_range(j)
-    print*, tabulation(i, j, :, :)
-    print*, numerical_integration(r, z)
-    print*, asymptotic_approximations(r, z)
-    print*, pick_in_default_tabulation(r, z, r_range, z_range, tabulation)
-
-end program

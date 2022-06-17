@@ -42,16 +42,30 @@ class Delhommeau(AbstractGreenFunction):
     build_tabulated_integrals = lru_cache(maxsize=1)(Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
 
     def __init__(self, *,
+                 tabulation_nr=328,
+                 tabulation_nz=46,
                  tabulation_nb_integration_points=251,
                  finite_depth_prony_decomposition_method='fortran',
                  ):
 
-        self.tabulated_integrals = self.__class__.build_tabulated_integrals(328, 46, tabulation_nb_integration_points)
+        self.former_tabulated_integrals = self.__class__.build_tabulated_integrals(328, 46, tabulation_nb_integration_points)
+
+        self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(tabulation_nr)
+        self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(tabulation_nz)
+        self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
+                self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
+                )
+
+        # assert np.allclose(tabulated_r_range, self.tabulated_integrals[0])
+        # assert np.allclose(tabulated_z_range, self.tabulated_integrals[1])
+        # assert np.allclose(tabulated_integrals, self.tabulated_integrals[2])
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
         self.exportable_settings = {
             'green_function': self.__class__.__name__,
+            'tabulation_nr': tabulation_nr,
+            'tabulation_nz': tabulation_nz,
             'tabulation_nb_integration_points': tabulation_nb_integration_points,
             'finite_depth_prony_decomposition_method': finite_depth_prony_decomposition_method,
         }
@@ -190,7 +204,8 @@ class Delhommeau(AbstractGreenFunction):
             *mesh2.quadrature_points,
             wavenumber, 0.0 if depth == np.infty else depth,
             coeffs,
-            *self.tabulated_integrals,
+            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
+            # *self.former_tabulated_integrals,
             lamda_exp, a_exp,
             mesh1 is mesh2
         )
@@ -210,4 +225,3 @@ class XieDelhommeau(Delhommeau):
     """
 
     fortran_core = XieDelhommeau_f90
-    build_tabulated_integrals = lru_cache(maxsize=1)(XieDelhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
