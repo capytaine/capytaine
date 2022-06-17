@@ -13,7 +13,6 @@ Delhommeau_source = [
         "capytaine/green_functions/Delhommeau_f90/Delhommeau_integrals.f90",
         "capytaine/green_functions/Delhommeau_f90/old_Prony_decomposition.f90",
         "capytaine/green_functions/Delhommeau_f90/Green_Rankine.f90",
-        "capytaine/green_functions/Delhommeau_f90/Initialize_Green_wave.f90",
         "capytaine/green_functions/Delhommeau_f90/Green_wave.f90",
         "capytaine/green_functions/Delhommeau_f90/matrices.f90",
     ]
