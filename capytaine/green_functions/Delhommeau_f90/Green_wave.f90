@@ -17,7 +17,7 @@ MODULE GREEN_WAVE
   !                        /   \                    /
   ! WAVE_PART_INFINITE_DEPTH   WAVE_PART_FINITE_DEPTH
   !                        \   /
-  !                  (build_matrices.f90)
+  !                    (matrices.f90)
   !                          |
   !                    (python code)
 
@@ -194,7 +194,7 @@ CONTAINS
   ! =========================
 
   SUBROUTINE WAVE_PART_INFINITE_DEPTH &
-      (wavenumber, X0I, X0J,          &
+      (X0I, X0J, wavenumber,          &
       X_AXIS, Z_AXIS, TABULATION,     &
       SP, VSP)
     ! Compute the wave part of the Green function in the infinite depth case.
@@ -233,8 +233,8 @@ CONTAINS
   ! ======================
 
   SUBROUTINE WAVE_PART_FINITE_DEPTH &
-      (wavenumber, X0I, X0J, depth, &
-      X_AXIS, Z_AXIS, TABULATION,                  &
+      (X0I, X0J, wavenumber, depth, &
+      X_AXIS, Z_AXIS, TABULATION,   &
       NEXP, AMBDA, AR,              &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.

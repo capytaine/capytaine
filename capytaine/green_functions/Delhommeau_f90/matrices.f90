@@ -116,18 +116,18 @@ CONTAINS
 
           IF (depth == INFINITE_DEPTH) THEN
             CALL WAVE_PART_INFINITE_DEPTH &
-              (wavenumber,                &
-              centers_1(I, :),            &
+              (centers_1(I, :),           &
               quad_points(J, 1, :),       & ! centers_2(J, :),
+              wavenumber,                 &
               XR, XZ, APD,                &
               SP2, VSP2_SYM               &
               )
             VSP2_ANTISYM(:) = ZERO
           ELSE
             CALL WAVE_PART_FINITE_DEPTH   &
-              (wavenumber,                &
-              centers_1(I, :),            &
+              (centers_1(I, :),           &
               quad_points(J, 1, :),       & ! centers_2(J, :),
+              wavenumber,                 &
               depth,                      &
               XR, XZ, APD,                &
               NEXP, AMBDA, AR,            &
@@ -159,18 +159,18 @@ CONTAINS
           DO Q = 1, nb_quad_points
             IF (depth == INFINITE_DEPTH) THEN
               CALL WAVE_PART_INFINITE_DEPTH &
-                (wavenumber,                &
-                centers_1(I, :),            &
-                quad_points(J, Q, :),       &
+                (centers_1(I, :),           &
+                quad_points(J, Q, :),       & ! centers_2(J, :),
+                wavenumber,                 &
                 XR, XZ, APD,                &
                 SP2, VSP2_SYM               &
                 )
               VSP2_ANTISYM(:) = ZERO
             ELSE
               CALL WAVE_PART_FINITE_DEPTH   &
-                (wavenumber,                &
-                centers_1(I, :),            &
-                quad_points(J, Q, :),       &
+                (centers_1(I, :),           &
+                quad_points(J, Q, :),       & ! centers_2(J, :),
+                wavenumber,                 &
                 depth,                      &
                 XR, XZ, APD,                &
                 NEXP, AMBDA, AR,            &
