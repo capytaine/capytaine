@@ -111,9 +111,9 @@ def wave_part_Green_function(Xi, Xj, omega, depth, core=Delhommeau_f90):
         ambda, ar, nexp = core.old_prony_decomposition.lisc(omega**2 * depth/gravity, wavenumber * depth)
 
     if depth == np.infty:
-        return method.fortran_core.green_wave.wave_part_infinite_depth(Xi, Xj, wavenumber, method.tabulated_r_range, method.tabulated_z_range, method.tabulated_integrals)
+        return core.green_wave.wave_part_infinite_depth(Xi, Xj, wavenumber, *tabulation[core])
     else:
-        return method.fortran_core.green_wave.wave_part_finite_depth(Xi, Xj, wavenumber, depth, method.tabulated_r_range, method.tabulated_z_range, method.tabulated_integrals, ambda, ar, 31)
+        return core.green_wave.wave_part_finite_depth(Xi, Xj, wavenumber, depth, *tabulation[core], ambda, ar, 31)
 
 @given(points, points, frequencies, depths, cores)
 def test_symmetry_of_the_Green_function(X1, X2, omega, depth, core):
