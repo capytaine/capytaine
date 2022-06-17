@@ -50,30 +50,42 @@ contains
       n = 251
     endif
 
-    delta_theta = pi/(n-1.0)  ! step of the integration
-
     ! initial values
     integrals(:, :) = 0.0
-    theta = -pi/2
 
     do k = 1, n
-      theta = theta + delta_theta
+      theta = -pi/2 + pi*(k-1.0)/(n-1.0)
+      ! The 1.0 are here on purpose to force the recasting of k and n as floats.
+
+      ! Step of the integration using Simpson rule
+      if ((k == 1) .or. (k == n)) then
+        delta_theta = pi/(3*(n-1.0))
+      elseif (mod(k, 2) == 0) then
+        delta_theta = 4*pi/(3*(n-1.0))
+      else
+        delta_theta = 2*pi/(3*(n-1.0))
+      endif
+
       cos_theta = cos(theta)
       zeta = cmplx(z, r*cos_theta, kind=pre)
-      exp_zeta = exp(zeta)
+      IF (REAL(ZETA) <= -30.0) THEN
+        exp_zeta = (0.0, 0.0)
+      else
+        exp_zeta = exp(zeta)
+      endif
       if (aimag(zeta) < 0) then
         jzeta = exp_e1(zeta) - ii*pi*exp_zeta
       else
         jzeta = exp_e1(zeta) + ii*pi*exp_zeta
       end if
-      integrals(1, 1) = integrals(1, 1) + delta_theta * cos(theta) * aimag(jzeta - 1.0/zeta)
-      integrals(2, 1) = integrals(2, 1) + delta_theta * cos(theta) * aimag(exp_zeta)
+      integrals(1, 1) = integrals(1, 1) + delta_theta * cos_theta * aimag(jzeta - 1.0/zeta)
+      integrals(2, 1) = integrals(2, 1) + delta_theta * cos_theta * aimag(exp_zeta)
 #ifdef XIE_CORRECTION
-      integrals(1, 2) = integrals(1, 2) + delta_theta * cos(theta) * real(jzeta)
+      integrals(1, 2) = integrals(1, 2) + delta_theta * real(jzeta)
 #else
-      integrals(1, 2) = integrals(1, 2) + delta_theta * cos(theta) * real(jzeta - 1.0/zeta)
+      integrals(1, 2) = integrals(1, 2) + delta_theta * real(jzeta - 1.0/zeta)
 #endif
-      integrals(2, 2) = integrals(2, 2) + delta_theta * cos(theta) * real(exp_zeta)
+      integrals(2, 2) = integrals(2, 2) + delta_theta * real(exp_zeta)
     enddo
 
   contains

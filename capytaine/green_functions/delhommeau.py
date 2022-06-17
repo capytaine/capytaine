@@ -56,10 +56,6 @@ class Delhommeau(AbstractGreenFunction):
                 self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
                 )
 
-        # assert np.allclose(tabulated_r_range, self.tabulated_integrals[0])
-        # assert np.allclose(tabulated_z_range, self.tabulated_integrals[1])
-        # assert np.allclose(tabulated_integrals, self.tabulated_integrals[2])
-
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
         self.exportable_settings = {
