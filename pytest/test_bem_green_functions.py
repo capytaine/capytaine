@@ -93,10 +93,10 @@ def test_tabulations():
 
 
 points = arrays(float, (3,),
-                elements=floats(min_value=-1e5, max_value=1e5, allow_infinity=False, allow_nan=False)
-                ).filter(lambda x: x[2] < -1e-4)
+                elements=floats(min_value=-10, max_value=10, allow_infinity=False, allow_nan=False)
+                ).filter(lambda x: x[2] < -1e-5)
 cores = one_of(just(Delhommeau_f90), just(XieDelhommeau_f90))
-frequencies = floats(min_value=1e-1, max_value=1e1)
+frequencies = floats(min_value=1e-2, max_value=1e2)
 depths = one_of(floats(min_value=10.0, max_value=100.0), just(np.infty))
 
 gravity = 9.8
@@ -104,15 +104,10 @@ gravity = 9.8
 def wave_part_Green_function(Xi, Xj, omega, depth, core=Delhommeau_f90):
     if depth == np.infty:
         wavenumber = omega**2 / gravity
-    else:
-        wavenumber = newton(lambda x: x*np.tanh(x) - omega**2*depth/gravity, x0=1.0)/depth
-
-    if depth < np.infty:
-        ambda, ar, nexp = core.old_prony_decomposition.lisc(omega**2 * depth/gravity, wavenumber * depth)
-
-    if depth == np.infty:
         return core.green_wave.wave_part_infinite_depth(wavenumber, Xi, Xj, *tabulation[core])
     else:
+        wavenumber = newton(lambda x: x*np.tanh(x) - omega**2*depth/gravity, x0=1.0)/depth
+        ambda, ar, nexp = core.old_prony_decomposition.lisc(omega**2 * depth/gravity, wavenumber * depth)
         return core.green_wave.wave_part_finite_depth(wavenumber, Xi, Xj, depth, *tabulation[core], ambda, ar, 31)
 
 @given(points, points, frequencies, depths, cores)
