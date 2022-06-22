@@ -6,6 +6,8 @@ Changelog
   dissipation matrix was wrong in previous versions (:issue:`102` and
   :pull:`140`).
 
+* Fix major inaccuracy for deep panels or high frequencies, that is panels deeper than :math:`1.2\lambda` below the free surface where :math:`\lambda` is the wavelength (:issue:`38` and :pull:`156`)
+
 * Correct the function :func:`~capytaine.post_pro.impedance.impedance` to actually return the impedance matrix.
   The former behavior has been renamed as :func:`~capytaine.post_pro.impedance.rao_transfer_function`. (:pull:`142`, :issue:`147`, :pull:`149`).
 
