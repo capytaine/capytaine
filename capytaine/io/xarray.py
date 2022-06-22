@@ -50,12 +50,30 @@ def problems_from_dataset(dataset: xr.Dataset,
     Returns
     -------
     list of LinearPotentialFlowProblem
+
+    Raises
+    ------
+    ValueError
+        if required fields are missing in the dataset
     """
     if isinstance(bodies, FloatingBody):
         bodies = [bodies]
 
+    # SANITY CHECKS
     assert len(list(set(body.name for body in bodies))) == len(bodies), \
         "All bodies should have different names."
+
+    # Warn user in case of key with unrecognized name (e.g. mispells)
+    keys_in_dataset = set(dataset.keys()) | set(dataset.coords.keys())
+    accepted_keys = {'wave_direction', 'radiating_dof', 'body_name', 'omega', 'water_depth', 'rho', 'g'}
+    unrecognized_keys = keys_in_dataset.difference(accepted_keys)
+    if len(unrecognized_keys) > 0:
+        LOG.warning(f"Unrecognized key(s) in dataset: {unrecognized_keys}")
+
+    if ("radiating_dof" not in keys_in_dataset) and ("wave_direction" not in keys_in_dataset):
+        raise ValueError("Neither 'radiating_dof' nor 'wave_direction' has been provided in the dataset. "
+                "No linear potential flow problem can be inferred.")
+    # END SANITY CHECKS
 
     dataset = _unsqueeze_dimensions(dataset)
 

@@ -6,6 +6,8 @@ Changelog
   dissipation matrix was wrong in previous versions (:issue:`102` and
   :pull:`140`).
 
+* Fix major inaccuracy for deep panels or high frequencies, that is panels deeper than :math:`1.2\lambda` below the free surface where :math:`\lambda` is the wavelength (:issue:`38` and :pull:`156`)
+
 * Correct the function :func:`~capytaine.post_pro.impedance.impedance` to actually return the impedance matrix.
   The former behavior has been renamed as :func:`~capytaine.post_pro.impedance.rao_transfer_function`. (:pull:`142`, :issue:`147`, :pull:`149`).
 
@@ -25,8 +27,10 @@ Changelog
 
 * Raises an error when a body with an empty mesh is given to :code:`LinearPotentialFlowProblem` (:issue:`128`).
 
-* The functions :code:`problems_from_dataset` and :code:`fill_dataset` accept a body alone as input.
-  That is, one can use :code:`fill_dataset(test_matrix, body)` and not only :code:`fill_dataset(test_matrix, [body])` (pull:`144`).
+* The functions :func:`~capytaine.io.xarray.problems_from_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` accept a body alone as input.
+  That is, one can use :code:`fill_dataset(test_matrix, body)` and not only :code:`fill_dataset(test_matrix, [body])` (:pull:`144`).
+  These functions now warn users when a key is unknown.
+  An error is raised if neither :code:`radiating_dof` (for radiation problems) nor :code:`wave_direction` (for diffraction problems) is provided (:pull:`155`).
 
 * Add method to compute some of the hydrostatic parameters such as volume, buoyancy center, wet surface area, hydrostatic stiffness, inertia matrix etc.
   :code:`compute_hydrostatics` method is created to return all hydrostatic parameters similar to :code:`meshmagick.hydrostatics.compute_hydrostatics` (:pull:`106`).

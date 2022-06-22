@@ -57,19 +57,16 @@ CONTAINS
       ERROR STOP
     ENDIF
 
-    !=====================================================================================
-    ! Evaluate the elementary integrals PDnX and PDnZ depending on dimless_Z and dimless_r
-    !=====================================================================================
-    IF ((MINVAL(tabulated_Z_range) < z) .AND. (z < MAXVAL(tabulated_Z_range))) THEN
-      IF ((MINVAL(tabulated_r_range) <= r) .AND. (r < MAXVAL(tabulated_r_range))) THEN
+    !=======================================================================
+    ! Evaluate the elementary integrals depending on dimless_Z and dimless_r
+    !=======================================================================
+    IF ((MINVAL(tabulated_Z_range) < z) .AND. (r < MAXVAL(tabulated_r_range))) THEN
         ! Within the range of tabulated data
-        ! Note that MINVAL(tabulated_r_range) == 0, so one of the conditions is not actually useful.
-
         integrals = pick_in_default_tabulation(r, z, tabulated_r_range, tabulated_Z_range, tabulated_integrals)
 
-      ELSE  ! MAXVAL(tabulated_r_range) < dimless_r
-        ! Asymptotic expression for (horizontally) distant panels
-        integrals = asymptotic_approximations(r, z)
+      ELSE
+        ! Asymptotic expression for distant panels
+        integrals = asymptotic_approximations(MAX(r, 1e-10), z)
       ENDIF
 
       !================================================
@@ -95,11 +92,6 @@ CONTAINS
         ! Limit case r ~ 0 ?
         VS(1:2) = CMPLX(0.0, 0.0, KIND=PRE)
       END IF
-
-    ELSE  ! dimless_Z < MINVAL(tabulated_Z_range) or MAXVAL(tabulated_Z_range) < dimless_Z
-      FS      = CMPLX(z/r1**3, 0.0, KIND=PRE)
-      VS(1:3) = CMPLX(0.0, 0.0, KIND=PRE)
-    ENDIF
 
     RETURN
   END SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS
