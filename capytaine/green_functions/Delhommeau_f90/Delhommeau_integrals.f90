@@ -222,7 +222,7 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  function pick_in_default_tabulation(r, z, r_range, z_range, tabulation) result(integrals)
+  pure function pick_in_default_tabulation(r, z, r_range, z_range, tabulation) result(integrals)
     ! inputs
     real(kind=pre), intent(in) :: r
     real(kind=pre), intent(in) :: z
