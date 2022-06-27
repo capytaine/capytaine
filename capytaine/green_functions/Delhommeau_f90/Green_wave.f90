@@ -3,7 +3,7 @@
 MODULE GREEN_WAVE
 
   USE CONSTANTS
-  USE INITIALIZE_GREEN_WAVE
+  USE DELHOMMEAU_INTEGRALS
   USE GREEN_RANKINE, ONLY: COMPUTE_ASYMPTOTIC_RANKINE_SOURCE
 
   IMPLICIT NONE
@@ -11,9 +11,9 @@ MODULE GREEN_WAVE
   ! Dependencies between the functions of this module:
   ! (from top to bottom: "is called by")
   !
-  !            LAGRANGE_POLYNOMIAL_INTERPOLATION
+  !               (MODULE DELHOMMEAU_INTEGRALS)
   !                          |
-  !              COMPUTE_INTEGRALS_WRT_THETA       (COMPUTE_ASYMPTOTIC_RANKINE_SOURCE)
+  !              COLLECT_DELHOMMEAU_INTEGRALS       (COMPUTE_ASYMPTOTIC_RANKINE_SOURCE)
   !                        /   \                    /
   ! WAVE_PART_INFINITE_DEPTH   WAVE_PART_FINITE_DEPTH
   !                        \   /
@@ -25,156 +25,68 @@ CONTAINS
 
   ! =====================================================================
 
-  SUBROUTINE LAGRANGE_POLYNOMIAL_INTERPOLATION &
-    (dimless_r, dimless_Z,                                 &
-     X_AXIS, Z_AXIS, TABULATION,               &
-     D1, D2, Z1, Z2)
-   ! Helper function used in the following subroutine to interpolate between the tabulated integrals.
-
-    ! Inputs
-    REAL(KIND=PRE),                        INTENT(IN) :: dimless_r, dimless_Z
-    REAL(KIND=PRE), DIMENSION(3),          INTENT(IN) :: X_AXIS
-    REAL(KIND=PRE), DIMENSION(3),          INTENT(IN) :: Z_AXIS
-    REAL(KIND=PRE), DIMENSION(3, 3, 2, 2), INTENT(IN) :: TABULATION
-
-    ! Output
-    REAL(KIND=PRE), INTENT(OUT) :: D1, D2, Z1, Z2
-
-    ! Local variable
-    REAL(KIND=PRE), DIMENSION(3) :: XL, ZL
-
-    XL(1) = PL2(X_AXIS(2), X_AXIS(3), X_AXIS(1), dimless_r)
-    XL(2) = PL2(X_AXIS(3), X_AXIS(1), X_AXIS(2), dimless_r)
-    XL(3) = PL2(X_AXIS(1), X_AXIS(2), X_AXIS(3), dimless_r)
-    ZL(1) = PL2(Z_AXIS(2), Z_AXIS(3), Z_AXIS(1), dimless_Z)
-    ZL(2) = PL2(Z_AXIS(3), Z_AXIS(1), Z_AXIS(2), dimless_Z)
-    ZL(3) = PL2(Z_AXIS(1), Z_AXIS(2), Z_AXIS(3), dimless_Z)
-
-    D1 = DOT_PRODUCT(XL, MATMUL(TABULATION(:, :, 1, 1), ZL))
-    D2 = DOT_PRODUCT(XL, MATMUL(TABULATION(:, :, 2, 1), ZL))
-    Z1 = DOT_PRODUCT(XL, MATMUL(TABULATION(:, :, 1, 2), ZL))
-    Z2 = DOT_PRODUCT(XL, MATMUL(TABULATION(:, :, 2, 2), ZL))
-
-  CONTAINS
-
-    REAL(KIND=PRE) FUNCTION PL2(U1, U2, U3, XU)
-      REAL(KIND=PRE) :: U1, U2, U3, XU
-      PL2 = ((XU-U1)*(XU-U2))/((U3-U1)*(U3-U2))
-      RETURN
-    END FUNCTION
-
-  END SUBROUTINE LAGRANGE_POLYNOMIAL_INTERPOLATION
-
-  ! =====================================================================
-
-  SUBROUTINE COMPUTE_INTEGRALS_WRT_THETA                         &
+  SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS                        &
       (XI, XJ, wavenumber,                                       &
       tabulated_r_range, tabulated_Z_range, tabulated_integrals, &
       FS, VS)
-    ! Compute the expression FS = 1/π Re[ ∫(J(ζ) - 1/ζ)dθ ] + i Re[ ∫(e^ζ)dθ ] and the integrals appearing in its gradient.
-    ! For this, this function uses tabulated values of the following integrals:
-    ! D1 = Re[ ∫(-i cosθ)(J(ζ) - 1/ζ)dθ ]
-    ! D2 = Re[ ∫(-i cosθ)(e^ζ)dθ ]
-#ifdef XIE_CORRECTION
-    ! Z1 = Re[ ∫(J(ζ))dθ ]
-#else
-    ! Z1 = Re[ ∫(J(ζ) - 1/ζ)dθ ]
-#endif
-    ! Z2 = Re[ ∫(e^ζ)dθ ]
-    ! (See theory manual for the definition of the symbols above.)
 
     ! Inputs
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: XI, XJ
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber
 
     ! Tabulated data
-    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: tabulated_r_range
-    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: tabulated_Z_range
-    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: tabulated_integrals
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_Z_range
+    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_Z_range), 2, 2), INTENT(IN) :: tabulated_integrals
 
     ! Outputs
     COMPLEX(KIND=PRE),                        INTENT(OUT) :: FS  ! the integral
     COMPLEX(KIND=PRE), DIMENSION(3),          INTENT(OUT) :: VS  ! its gradient
 
     ! Local variables
-    INTEGER        :: KI, KJ
-    REAL(KIND=PRE) :: r, dimless_r, Z, dimless_Z, R1, dimless_R1
-    REAL(KIND=PRE) :: sin_kr, cos_kr, expz_sqr
+    REAL(KIND=PRE) :: r, z, r1
+    REAL(KIND=PRE), dimension(2, 2) :: integrals
     REAL(KIND=PRE) :: D1, D2, Z1, Z2
 
-    r = NORM2(XI(1:2) - XJ(1:2))
-    dimless_r = wavenumber*r
+    r = wavenumber * NORM2(XI(1:2) - XJ(1:2))
+    z = wavenumber * (XI(3) + XJ(3))
+    r1 = hypot(r, z)
 
-    Z = XI(3) + XJ(3)
-    dimless_Z = wavenumber*Z
-
-    R1 = SQRT(r**2 + Z**2)
-    dimless_R1 = wavenumber*R1
-
-    IF ((R1 < 1e-5) .OR. (wavenumber == 0)) THEN
-      PRINT*, "Error: Impossible to compute the wave part of the Green function (division by zero)."
-      PRINT*, "This is often due to mesh panels on the free surface (z=0)."
+    IF (z > -1e-8) THEN
+      PRINT*, "Error: Impossible to compute the wave part of the Green function due to panels on the free surface (z=0) or above."
       ERROR STOP
     ENDIF
 
     !=======================================================================
     ! Evaluate the elementary integrals depending on dimless_Z and dimless_r
     !=======================================================================
-    IF ((MINVAL(tabulated_Z_range) < dimless_Z) .AND. (dimless_r < MAXVAL(tabulated_r_range))) THEN
+    IF ((MINVAL(tabulated_Z_range) < z) .AND. (r < MAXVAL(tabulated_r_range))) THEN
         ! Within the range of tabulated data
+        integrals = pick_in_default_tabulation(r, z, tabulated_r_range, tabulated_Z_range, tabulated_integrals)
 
-        ! Get the nearest point in the tabulation
-        IF (dimless_r < 1) THEN
-          KI = INT(5*(LOG10(dimless_r+1e-20)+6)+1)
-        ELSE
-          KI = INT(3*dimless_r+28)
-        ENDIF
-        KI = MAX(MIN(KI, 327), 2)
-
-        IF (dimless_Z < -1e-2) THEN
-          KJ = INT(8*(LOG10(-dimless_Z)+4.5))
-        ELSE
-          KJ = INT(5*(LOG10(-dimless_Z)+6))
-        ENDIF
-        KJ = MAX(MIN(KJ, 45), 2)
-
-        ! Interpolate near this point to get the actual value
-        CALL LAGRANGE_POLYNOMIAL_INTERPOLATION                           &
-             (dimless_r, dimless_Z,                                      &
-             tabulated_r_range(KI-1:KI+1), tabulated_Z_range(KJ-1:KJ+1), &
-             tabulated_integrals(KI-1:KI+1, KJ-1:KJ+1, :, :),            &
-             D1, D2, Z1, Z2)
-
-      ELSE ! Asymptotic expression for distant panels
-        dimless_r = MAX(dimless_r, 1e-10)  ! Avoid divisions by zero
-
-        expz_sqr = EXP(dimless_Z) * SQRT(2*PI/dimless_r)
-        cos_kr  = COS(dimless_r - PI/4)
-        sin_kr  = SIN(dimless_r - PI/4)
-
-        D1 = PI*(expz_sqr*(cos_kr - sin_kr/(2*dimless_r)) - dimless_r/dimless_R1**3)
-        D2 =     expz_sqr*(sin_kr + cos_kr/(2*dimless_r))
-#ifdef XIE_CORRECTION
-        Z1 = PI*(-expz_sqr*sin_kr + dimless_Z/dimless_R1**3 - ONE/dimless_R1)
-#else
-        Z1 = PI*(-expz_sqr*sin_kr + dimless_Z/dimless_R1**3)
-#endif
-        Z2 =     expz_sqr*cos_kr
+      ELSE
+        ! Asymptotic expression for distant panels
+        integrals = asymptotic_approximations(MAX(r, 1e-10), z)
       ENDIF
 
       !================================================
       ! Add the elementary integrals to build FS and VS
       !================================================
 
+      D1 = integrals(1, 1)
+      D2 = integrals(2, 1)
+      Z1 = integrals(1, 2)
+      Z2 = integrals(2, 2)
+
 #ifdef XIE_CORRECTION
-      FS    = CMPLX(Z1/PI + ONE/dimless_R1, Z2, KIND=PRE)
-      VS(3) = CMPLX(Z1/PI + ONE/dimless_R1, Z2, KIND=PRE)
+      FS    = CMPLX(Z1/PI + ONE/R1, Z2, KIND=PRE)
+      VS(3) = CMPLX(Z1/PI + ONE/R1, Z2, KIND=PRE)
 #else
       FS    = CMPLX(Z1/PI, Z2, KIND=PRE)
       VS(3) = CMPLX(Z1/PI, Z2, KIND=PRE)
 #endif
-      VS(1) = (XJ(1) - XI(1))/r * CMPLX(D1/PI, D2, KIND=PRE)
-      VS(2) = (XJ(2) - XI(2))/r * CMPLX(D1/PI, D2, KIND=PRE)
+      VS(1) = wavenumber*(XJ(1) - XI(1))/r * CMPLX(D1/PI, D2, KIND=PRE)
+      VS(2) = wavenumber*(XJ(2) - XI(2))/r * CMPLX(D1/PI, D2, KIND=PRE)
 
       IF (r < REAL(1e-5, KIND=PRE)) THEN
         ! Limit case r ~ 0 ?
@@ -182,7 +94,7 @@ CONTAINS
       END IF
 
     RETURN
-  END SUBROUTINE COMPUTE_INTEGRALS_WRT_THETA
+  END SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS
 
   ! =========================
 
@@ -199,9 +111,9 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
 
     ! Tabulated data
-    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: X_AXIS
-    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: Z_AXIS
-    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: TABULATION
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: X_AXIS
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: Z_AXIS
+    REAL(KIND=PRE), DIMENSION(size(X_AXIS), size(Z_AXIS), 2, 2), INTENT(IN) :: TABULATION
 
     ! Outputs
     COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
@@ -211,7 +123,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3) :: XJ_REFLECTION
 
     ! The integrals
-    CALL COMPUTE_INTEGRALS_WRT_THETA(X0I, X0J, wavenumber, X_AXIS, Z_AXIS, TABULATION, SP, VSP(:))
+    CALL COLLECT_DELHOMMEAU_INTEGRALS(X0I, X0J, wavenumber, X_AXIS, Z_AXIS, TABULATION, SP, VSP(:))
     SP  = 2*wavenumber*SP
     VSP = 2*wavenumber**2*VSP
 
@@ -237,9 +149,9 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I  ! Coordinates of the source point
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
 
-    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: X_AXIS
-    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: Z_AXIS
-    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: TABULATION
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: X_AXIS
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: Z_AXIS
+    REAL(KIND=PRE), DIMENSION(size(X_AXIS), size(Z_AXIS), 2, 2), INTENT(IN) :: TABULATION
 
     INTEGER,                                  INTENT(IN) :: NEXP
     REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
@@ -269,14 +181,14 @@ CONTAINS
     R = NORM2(XI(1:2) - XJ(1:2))
 
     ! 1.a First infinite depth problem
-    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(1), VS(:, 1))
+    CALL COLLECT_DELHOMMEAU_INTEGRALS(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(1), VS(:, 1))
 
     PSR(1) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) =  X0J(3)
-    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(2), VS(:, 2))
+    CALL COLLECT_DELHOMMEAU_INTEGRALS(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
     PSR(2) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
@@ -284,14 +196,14 @@ CONTAINS
     ! 1.c Shift and reflect XJ and compute another value of the Green function
     XI(3) =  X0I(3)
     XJ(3) = -X0J(3) - 2*depth
-    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(3), VS(:, 3))
+    CALL COLLECT_DELHOMMEAU_INTEGRALS(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(3), VS(:, 3))
 
     PSR(3) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) = -X0J(3) - 2*depth
-    CALL COMPUTE_INTEGRALS_WRT_THETA(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(4), VS(:, 4))
+    CALL COLLECT_DELHOMMEAU_INTEGRALS(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
     PSR(4) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))

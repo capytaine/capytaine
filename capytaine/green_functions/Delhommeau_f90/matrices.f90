@@ -82,9 +82,9 @@ CONTAINS
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
 
     ! Tabulated integrals
-    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
-    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: XR
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: XZ
+    REAL(KIND=PRE), DIMENSION(size(XR), size(XZ), 2, 2), INTENT(IN) :: APD
 
     ! Prony decomposition for finite depth
     INTEGER,                                  INTENT(IN) :: NEXP
@@ -223,9 +223,9 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3) :: coeffs
 
     ! Tabulated integrals
-    REAL(KIND=PRE), DIMENSION(328),           INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(46),            INTENT(IN) :: XZ
-    REAL(KIND=PRE), DIMENSION(328, 46, 2, 2), INTENT(IN) :: APD
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: XR
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: XZ
+    REAL(KIND=PRE), DIMENSION(size(XR), size(XZ), 2, 2), INTENT(IN) :: APD
 
     ! Prony decomposition for finite depth
     INTEGER,                                  INTENT(IN) :: NEXP
