@@ -19,13 +19,19 @@ LOG = logging.getLogger(__name__)
 
 
 class Delhommeau(AbstractGreenFunction):
-    """The Green function as implemented in Nemoh.
+    """The Green function as implemented in Aquadyn and Nemoh.
 
     Parameters
     ----------
+    tabulation_nr: int, optional
+        Number of tabulation points for horizontal distance.
+        Default: 328, as in Nemoh 2.
+    tabulation_nz: int, optional
+        Number of tabulation points for vertical distance.
+        Default: 46, as in Nemoh 2.
     tabulation_nb_integration_points: int, optional
-        Number of points for the evaluation of the tabulated elementary integrals w.r.t. :math:`theta`
-        used for the computation of the Green function (default: 251)
+        Number of points for the numerical integration w.r.t. :math:`theta` of Delhommeau's integrals
+        Default: 251, as in Nemoh 2.
     finite_depth_prony_decomposition_method: string, optional
         The implementation of the Prony decomposition used to compute the finite depth Green function.
         Accepted values: :code:`'fortran'` for Nemoh's implementation (by default), :code:`'python'` for an experimental Python implementation.
@@ -33,25 +39,34 @@ class Delhommeau(AbstractGreenFunction):
 
     Attributes
     ----------
-    tabulated_integrals: 3-ple of arrays
-        Tabulated integrals for the computation of the Green function.
+    tabulated_r_range: numpy.array of shape(tabulation_nr,)
+    tabulated_z_range: numpy.array of shape(tabulation_nz,)
+        Coordinates of the tabulation points.
+    tabulated_integrals: numpy.array of shape (tabulation_nr, tabulation_nz, 2, 2)
+        Tabulated Delhommeau integrals.
     """
 
     fortran_core = Delhommeau_f90
 
-    build_tabulated_integrals = lru_cache(maxsize=1)(Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
-
     def __init__(self, *,
+                 tabulation_nr=328,
+                 tabulation_nz=46,
                  tabulation_nb_integration_points=251,
                  finite_depth_prony_decomposition_method='fortran',
                  ):
 
-        self.tabulated_integrals = self.__class__.build_tabulated_integrals(328, 46, tabulation_nb_integration_points)
+        self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(tabulation_nr)
+        self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(tabulation_nz)
+        self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
+                self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
+                )
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
         self.exportable_settings = {
             'green_function': self.__class__.__name__,
+            'tabulation_nr': tabulation_nr,
+            'tabulation_nz': tabulation_nz,
             'tabulation_nb_integration_points': tabulation_nb_integration_points,
             'finite_depth_prony_decomposition_method': finite_depth_prony_decomposition_method,
         }
@@ -190,7 +205,7 @@ class Delhommeau(AbstractGreenFunction):
             *mesh2.quadrature_points,
             wavenumber, 0.0 if depth == np.infty else depth,
             coeffs,
-            *self.tabulated_integrals,
+            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
             mesh1 is mesh2
         )
@@ -210,4 +225,3 @@ class XieDelhommeau(Delhommeau):
     """
 
     fortran_core = XieDelhommeau_f90
-    build_tabulated_integrals = lru_cache(maxsize=1)(XieDelhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
