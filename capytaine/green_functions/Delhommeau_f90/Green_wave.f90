@@ -46,7 +46,7 @@ CONTAINS
     ! Local variables
     REAL(KIND=PRE) :: r, z, r1
     REAL(KIND=PRE), dimension(2, 2) :: integrals
-    REAL(KIND=PRE) :: D1, D2, Z1, Z2
+    COMPLEX(KIND=PRE) :: G, dGdr
 
     r = wavenumber * NORM2(X0I(1:2) - X0J(1:2))
     z = wavenumber * (X0I(3) + X0J(3))
@@ -73,20 +73,18 @@ CONTAINS
       ! Add the elementary integrals to build FS and VS
       !================================================
 
-      D1 = integrals(1, 1)
-      D2 = integrals(2, 1)
-      Z1 = integrals(1, 2)
-      Z2 = integrals(2, 2)
-
 #ifdef XIE_CORRECTION
-      FS    = CMPLX(Z1/PI + ONE/R1, Z2, KIND=PRE)
-      VS(3) = CMPLX(Z1/PI + ONE/R1, Z2, KIND=PRE)
+      G    = CMPLX(integrals(1, 2)/PI + ONE/r1, integrals(2, 2), KIND=PRE)
+      dGdr = CMPLX(integrals(1, 1)/PI + ONE/r1, integrals(2, 1), KIND=PRE)
 #else
-      FS    = CMPLX(Z1/PI, Z2, KIND=PRE)
-      VS(3) = CMPLX(Z1/PI, Z2, KIND=PRE)
+      G    = CMPLX(integrals(1, 2)/PI, integrals(2, 2), KIND=PRE)
+      dGdr = CMPLX(integrals(1, 1)/PI, integrals(2, 1), KIND=PRE)
 #endif
-      VS(1) = wavenumber*(X0J(1) - X0I(1))/r * CMPLX(D1/PI, D2, KIND=PRE)
-      VS(2) = wavenumber*(X0J(2) - X0I(2))/r * CMPLX(D1/PI, D2, KIND=PRE)
+
+      FS    = G
+      VS(1) = dGdr * wavenumber*(X0J(1) - X0I(1))/r
+      VS(2) = dGdr * wavenumber*(X0J(2) - X0I(2))/r
+      VS(3) = G
 
       IF (r < REAL(1e-5, KIND=PRE)) THEN
         ! Limit case r ~ 0 ?
