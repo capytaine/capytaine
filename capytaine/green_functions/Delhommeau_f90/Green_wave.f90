@@ -11,7 +11,7 @@ MODULE GREEN_WAVE
   ! Dependencies between the functions of this module:
   ! (from top to bottom: "is called by")
   !
-  !               (MODULE DELHOMMEAU_INTEGRALS)
+  !               (Delhommeau_integrals.f90)
   !                          |
   !              COLLECT_DELHOMMEAU_INTEGRALS       (COMPUTE_ASYMPTOTIC_RANKINE_SOURCE)
   !                        /   \                    /
@@ -57,9 +57,9 @@ CONTAINS
       ERROR STOP
     ENDIF
 
-    !=======================================================================
-    ! Evaluate the elementary integrals depending on dimless_Z and dimless_r
-    !=======================================================================
+    !=======================================================
+    ! Evaluate the elementary integrals depending on z and r
+    !=======================================================
     IF ((MINVAL(tabulated_z_range) < z) .AND. (r < MAXVAL(tabulated_r_range))) THEN
         ! Within the range of tabulated data
         integrals = pick_in_default_tabulation(r, z, tabulated_r_range, tabulated_z_range, tabulated_integrals)
