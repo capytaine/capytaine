@@ -73,11 +73,7 @@ contains
       else
         exp_zeta = exp(zeta)
       endif
-      if (aimag(zeta) < 0) then
-        jzeta = exp_e1(zeta) - ii*pi*exp_zeta
-      else
-        jzeta = exp_e1(zeta) + ii*pi*exp_zeta
-      end if
+      jzeta = exp_e1(zeta) + ii*pi*exp_zeta
       integrals(1, 1) = integrals(1, 1) + delta_theta * cos_theta * aimag(jzeta - 1.0/zeta)
       integrals(2, 1) = integrals(2, 1) + delta_theta * cos_theta * aimag(exp_zeta)
 #ifdef XIE_CORRECTION

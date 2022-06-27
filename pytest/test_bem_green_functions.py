@@ -104,11 +104,11 @@ gravity = 9.8
 def wave_part_Green_function(Xi, Xj, omega, depth, method):
     if depth == np.infty:
         wavenumber = omega**2 / gravity
-        return method.fortran_core.green_wave.wave_part_infinite_depth(wavenumber, Xi, Xj, method.tabulated_r_range, method.tabulated_z_range, method.tabulated_integrals)
+        return method.fortran_core.green_wave.wave_part_infinite_depth(Xi, Xj, wavenumber, method.tabulated_r_range, method.tabulated_z_range, method.tabulated_integrals)
     else:
         wavenumber = newton(lambda x: x*np.tanh(x) - omega**2*depth/gravity, x0=1.0)/depth
         ambda, ar, nexp = method.fortran_core.old_prony_decomposition.lisc(omega**2 * depth/gravity, wavenumber * depth)
-        return method.fortran_core.green_wave.wave_part_finite_depth(wavenumber, Xi, Xj, depth, method.tabulated_r_range, method.tabulated_z_range, method.tabulated_integrals, ambda, ar, 31)
+        return method.fortran_core.green_wave.wave_part_finite_depth(Xi, Xj, wavenumber, depth, method.tabulated_r_range, method.tabulated_z_range, method.tabulated_integrals, ambda, ar, 31)
 
 
 @given(points, points, frequencies, depths, methods)

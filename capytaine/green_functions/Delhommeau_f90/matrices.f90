@@ -1,5 +1,6 @@
 MODULE MATRICES
 
+  USE ieee_arithmetic
   USE CONSTANTS
 
   USE GREEN_RANKINE
@@ -8,6 +9,15 @@ MODULE MATRICES
   IMPLICIT NONE
 
 CONTAINS
+
+  ! =====================================================================
+
+  PURE LOGICAL FUNCTION is_infinity(x)
+    REAL(KIND=PRE), INTENT(IN) :: x
+    is_infinity = (.NOT. ieee_is_finite(x))
+  END FUNCTION
+
+  ! =====================================================================
 
   SUBROUTINE ADD_RANKINE_PART_TO_THE_MATRICES(                        &
       nb_faces_1,                                                     &
@@ -65,7 +75,7 @@ CONTAINS
       nb_faces_2, nb_quad_points,        &
       quad_points, quad_weights,         &
       wavenumber, depth,                 &
-      XR, XZ, APD,                       &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,                   &
       coeff,                             &
       same_body,                         &
@@ -81,10 +91,10 @@ CONTAINS
 
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
 
-    ! Tabulated integrals
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: XZ
-    REAL(KIND=PRE), DIMENSION(size(XR), size(XZ), 2, 2), INTENT(IN) :: APD
+    ! Tabulated data
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
+    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
 
     ! Prony decomposition for finite depth
     INTEGER,                                  INTENT(IN) :: NEXP
@@ -114,22 +124,22 @@ CONTAINS
         !$OMP PARALLEL DO PRIVATE(J, SP2, VSP2_SYM, VSP2_ANTISYM)
         DO J = I, nb_faces_2
 
-          IF (depth == INFINITE_DEPTH) THEN
+          IF (is_infinity(depth)) THEN
             CALL WAVE_PART_INFINITE_DEPTH &
-              (wavenumber,                &
-              centers_1(I, :),            &
+              (centers_1(I, :),           &
               quad_points(J, 1, :),       & ! centers_2(J, :),
-              XR, XZ, APD,                &
+              wavenumber,                 &
+              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
               SP2, VSP2_SYM               &
               )
             VSP2_ANTISYM(:) = ZERO
           ELSE
             CALL WAVE_PART_FINITE_DEPTH   &
-              (wavenumber,                &
-              centers_1(I, :),            &
+              (centers_1(I, :),           &
               quad_points(J, 1, :),       & ! centers_2(J, :),
+              wavenumber,                 &
               depth,                      &
-              XR, XZ, APD,                &
+              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
               NEXP, AMBDA, AR,            &
               SP2, VSP2_SYM, VSP2_ANTISYM &
               )
@@ -157,22 +167,22 @@ CONTAINS
         !$OMP PARALLEL DO PRIVATE(J, SP2, VSP2_SYM, VSP2_ANTISYM)
         DO J = 1, nb_faces_2
           DO Q = 1, nb_quad_points
-            IF (depth == INFINITE_DEPTH) THEN
+            IF (is_infinity(depth)) THEN
               CALL WAVE_PART_INFINITE_DEPTH &
-                (wavenumber,                &
-                centers_1(I, :),            &
-                quad_points(J, Q, :),       &
-                XR, XZ, APD,                &
+                (centers_1(I, :),           &
+                quad_points(J, Q, :),       & ! centers_2(J, :),
+                wavenumber,                 &
+                tabulated_r_range, tabulated_z_range, tabulated_integrals, &
                 SP2, VSP2_SYM               &
                 )
               VSP2_ANTISYM(:) = ZERO
             ELSE
               CALL WAVE_PART_FINITE_DEPTH   &
-                (wavenumber,                &
-                centers_1(I, :),            &
-                quad_points(J, Q, :),       &
+                (centers_1(I, :),           &
+                quad_points(J, Q, :),       & ! centers_2(J, :),
+                wavenumber,                 &
                 depth,                      &
-                XR, XZ, APD,                &
+                tabulated_r_range, tabulated_z_range, tabulated_integrals, &
                 NEXP, AMBDA, AR,            &
                 SP2, VSP2_SYM, VSP2_ANTISYM &
                 )
@@ -199,7 +209,7 @@ CONTAINS
       nb_quad_points, quad_points, quad_weights,      &
       wavenumber, depth,                              &
       coeffs,                                         &
-      XR, XZ, APD,                                    &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,                                &
       same_body,                                      &
       S, K)
@@ -222,10 +232,10 @@ CONTAINS
 
     REAL(KIND=PRE), DIMENSION(3) :: coeffs
 
-    ! Tabulated integrals
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: XZ
-    REAL(KIND=PRE), DIMENSION(size(XR), size(XZ), 2, 2), INTENT(IN) :: APD
+    ! Tabulated data
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
+    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
 
     ! Prony decomposition for finite depth
     INTEGER,                                  INTENT(IN) :: NEXP
@@ -269,7 +279,7 @@ CONTAINS
 
     IF (coeffs(2) .NE. ZERO) THEN
 
-      IF (depth == INFINITE_DEPTH) THEN
+      IF (is_infinity(depth)) THEN
         ! Reflection through free surface
         reflected_centers_1(:, 1:2) = centers_1(:, 1:2)
         reflected_centers_1(:, 3)   = -centers_1(:, 3)
@@ -303,7 +313,7 @@ CONTAINS
         nb_faces_2, nb_quad_points,        &
         quad_points, quad_weights,         &
         wavenumber, depth,                 &
-        XR, XZ, APD,                       &
+        tabulated_r_range, tabulated_z_range, tabulated_integrals, &
         NEXP, AMBDA, AR,                   &
         coeffs(3),                         &
         same_body,                         &

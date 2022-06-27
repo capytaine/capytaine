@@ -203,7 +203,7 @@ class Delhommeau(AbstractGreenFunction):
             mesh2.faces_centers, mesh2.faces_normals,
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
-            wavenumber, 0.0 if depth == np.infty else depth,
+            wavenumber, depth,
             coeffs,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
