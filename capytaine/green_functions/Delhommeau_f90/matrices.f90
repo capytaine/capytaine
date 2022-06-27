@@ -65,7 +65,7 @@ CONTAINS
       nb_faces_2, nb_quad_points,        &
       quad_points, quad_weights,         &
       wavenumber, depth,                 &
-      XR, XZ, APD,                       &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,                   &
       coeff,                             &
       same_body,                         &
@@ -81,10 +81,10 @@ CONTAINS
 
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
 
-    ! Tabulated integrals
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: XZ
-    REAL(KIND=PRE), DIMENSION(size(XR), size(XZ), 2, 2), INTENT(IN) :: APD
+    ! Tabulated data
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
+    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
 
     ! Prony decomposition for finite depth
     INTEGER,                                  INTENT(IN) :: NEXP
@@ -119,7 +119,7 @@ CONTAINS
               (centers_1(I, :),           &
               quad_points(J, 1, :),       & ! centers_2(J, :),
               wavenumber,                 &
-              XR, XZ, APD,                &
+              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
               SP2, VSP2_SYM               &
               )
             VSP2_ANTISYM(:) = ZERO
@@ -129,7 +129,7 @@ CONTAINS
               quad_points(J, 1, :),       & ! centers_2(J, :),
               wavenumber,                 &
               depth,                      &
-              XR, XZ, APD,                &
+              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
               NEXP, AMBDA, AR,            &
               SP2, VSP2_SYM, VSP2_ANTISYM &
               )
@@ -162,7 +162,7 @@ CONTAINS
                 (centers_1(I, :),           &
                 quad_points(J, Q, :),       & ! centers_2(J, :),
                 wavenumber,                 &
-                XR, XZ, APD,                &
+                tabulated_r_range, tabulated_z_range, tabulated_integrals, &
                 SP2, VSP2_SYM               &
                 )
               VSP2_ANTISYM(:) = ZERO
@@ -172,7 +172,7 @@ CONTAINS
                 quad_points(J, Q, :),       & ! centers_2(J, :),
                 wavenumber,                 &
                 depth,                      &
-                XR, XZ, APD,                &
+                tabulated_r_range, tabulated_z_range, tabulated_integrals, &
                 NEXP, AMBDA, AR,            &
                 SP2, VSP2_SYM, VSP2_ANTISYM &
                 )
@@ -199,7 +199,7 @@ CONTAINS
       nb_quad_points, quad_points, quad_weights,      &
       wavenumber, depth,                              &
       coeffs,                                         &
-      XR, XZ, APD,                                    &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,                                &
       same_body,                                      &
       S, K)
@@ -222,10 +222,10 @@ CONTAINS
 
     REAL(KIND=PRE), DIMENSION(3) :: coeffs
 
-    ! Tabulated integrals
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: XR
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: XZ
-    REAL(KIND=PRE), DIMENSION(size(XR), size(XZ), 2, 2), INTENT(IN) :: APD
+    ! Tabulated data
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
+    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
 
     ! Prony decomposition for finite depth
     INTEGER,                                  INTENT(IN) :: NEXP
@@ -303,7 +303,7 @@ CONTAINS
         nb_faces_2, nb_quad_points,        &
         quad_points, quad_weights,         &
         wavenumber, depth,                 &
-        XR, XZ, APD,                       &
+        tabulated_r_range, tabulated_z_range, tabulated_integrals, &
         NEXP, AMBDA, AR,                   &
         coeffs(3),                         &
         same_body,                         &

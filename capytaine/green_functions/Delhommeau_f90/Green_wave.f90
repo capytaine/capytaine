@@ -26,18 +26,18 @@ CONTAINS
   ! =====================================================================
 
   SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS                        &
-      (XI, XJ, wavenumber,                                       &
-      tabulated_r_range, tabulated_Z_range, tabulated_integrals, &
+      (X0I, X0J, wavenumber,                                     &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       FS, VS)
 
     ! Inputs
-    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: XI, XJ
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I, X0J
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber
 
     ! Tabulated data
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_Z_range
-    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_Z_range), 2, 2), INTENT(IN) :: tabulated_integrals
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
+    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
 
     ! Outputs
     COMPLEX(KIND=PRE),                        INTENT(OUT) :: FS  ! the integral
@@ -48,8 +48,8 @@ CONTAINS
     REAL(KIND=PRE), dimension(2, 2) :: integrals
     REAL(KIND=PRE) :: D1, D2, Z1, Z2
 
-    r = wavenumber * NORM2(XI(1:2) - XJ(1:2))
-    z = wavenumber * (XI(3) + XJ(3))
+    r = wavenumber * NORM2(X0I(1:2) - X0J(1:2))
+    z = wavenumber * (X0I(3) + X0J(3))
     r1 = hypot(r, z)
 
     IF (z > -1e-8) THEN
@@ -60,9 +60,9 @@ CONTAINS
     !=======================================================================
     ! Evaluate the elementary integrals depending on dimless_Z and dimless_r
     !=======================================================================
-    IF ((MINVAL(tabulated_Z_range) < z) .AND. (r < MAXVAL(tabulated_r_range))) THEN
+    IF ((MINVAL(tabulated_z_range) < z) .AND. (r < MAXVAL(tabulated_r_range))) THEN
         ! Within the range of tabulated data
-        integrals = pick_in_default_tabulation(r, z, tabulated_r_range, tabulated_Z_range, tabulated_integrals)
+        integrals = pick_in_default_tabulation(r, z, tabulated_r_range, tabulated_z_range, tabulated_integrals)
 
       ELSE
         ! Asymptotic expression for distant panels
@@ -85,8 +85,8 @@ CONTAINS
       FS    = CMPLX(Z1/PI, Z2, KIND=PRE)
       VS(3) = CMPLX(Z1/PI, Z2, KIND=PRE)
 #endif
-      VS(1) = wavenumber*(XJ(1) - XI(1))/r * CMPLX(D1/PI, D2, KIND=PRE)
-      VS(2) = wavenumber*(XJ(2) - XI(2))/r * CMPLX(D1/PI, D2, KIND=PRE)
+      VS(1) = wavenumber*(X0J(1) - X0I(1))/r * CMPLX(D1/PI, D2, KIND=PRE)
+      VS(2) = wavenumber*(X0J(2) - X0I(2))/r * CMPLX(D1/PI, D2, KIND=PRE)
 
       IF (r < REAL(1e-5, KIND=PRE)) THEN
         ! Limit case r ~ 0 ?
@@ -100,7 +100,7 @@ CONTAINS
 
   SUBROUTINE WAVE_PART_INFINITE_DEPTH &
       (X0I, X0J, wavenumber,          &
-      X_AXIS, Z_AXIS, TABULATION,     &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       SP, VSP)
     ! Compute the wave part of the Green function in the infinite depth case.
     ! This is mostly the integral computed by the subroutine above.
@@ -111,9 +111,9 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
 
     ! Tabulated data
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: X_AXIS
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: Z_AXIS
-    REAL(KIND=PRE), DIMENSION(size(X_AXIS), size(Z_AXIS), 2, 2), INTENT(IN) :: TABULATION
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
+    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
 
     ! Outputs
     COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
@@ -123,7 +123,10 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3) :: XJ_REFLECTION
 
     ! The integrals
-    CALL COLLECT_DELHOMMEAU_INTEGRALS(X0I, X0J, wavenumber, X_AXIS, Z_AXIS, TABULATION, SP, VSP(:))
+    CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
+      X0I, X0J, wavenumber,                                      &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      SP, VSP(:))
     SP  = 2*wavenumber*SP
     VSP = 2*wavenumber**2*VSP
 
@@ -139,7 +142,7 @@ CONTAINS
 
   SUBROUTINE WAVE_PART_FINITE_DEPTH &
       (X0I, X0J, wavenumber, depth, &
-      X_AXIS, Z_AXIS, TABULATION,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,              &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
@@ -149,10 +152,12 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I  ! Coordinates of the source point
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
 
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: X_AXIS
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: Z_AXIS
-    REAL(KIND=PRE), DIMENSION(size(X_AXIS), size(Z_AXIS), 2, 2), INTENT(IN) :: TABULATION
+    ! Tabulated data
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
+    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
+    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
 
+    ! Prony decomposition for finite depth
     INTEGER,                                  INTENT(IN) :: NEXP
     REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
 
@@ -181,14 +186,20 @@ CONTAINS
     R = NORM2(XI(1:2) - XJ(1:2))
 
     ! 1.a First infinite depth problem
-    CALL COLLECT_DELHOMMEAU_INTEGRALS(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(1), VS(:, 1))
+    CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
+      XI(:), XJ(:), wavenumber,                                  &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      FS(1), VS(:, 1))
 
     PSR(1) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) =  X0J(3)
-    CALL COLLECT_DELHOMMEAU_INTEGRALS(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(2), VS(:, 2))
+    CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
+      XI(:), XJ(:), wavenumber,                                  &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
     PSR(2) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
@@ -196,14 +207,20 @@ CONTAINS
     ! 1.c Shift and reflect XJ and compute another value of the Green function
     XI(3) =  X0I(3)
     XJ(3) = -X0J(3) - 2*depth
-    CALL COLLECT_DELHOMMEAU_INTEGRALS(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(3), VS(:, 3))
+    CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
+      XI(:), XJ(:), wavenumber,                                  &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      FS(3), VS(:, 3))
 
     PSR(3) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) = -X0J(3) - 2*depth
-    CALL COLLECT_DELHOMMEAU_INTEGRALS(XI(:), XJ(:), wavenumber, X_AXIS, Z_AXIS, TABULATION, FS(4), VS(:, 4))
+    CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
+      XI(:), XJ(:), wavenumber,                                  &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
     PSR(4) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
