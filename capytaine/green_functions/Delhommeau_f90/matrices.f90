@@ -1,5 +1,6 @@
 MODULE MATRICES
 
+  USE ieee_arithmetic
   USE CONSTANTS
 
   USE GREEN_RANKINE
@@ -8,6 +9,15 @@ MODULE MATRICES
   IMPLICIT NONE
 
 CONTAINS
+
+  ! =====================================================================
+
+  PURE LOGICAL FUNCTION is_infinity(x)
+    REAL(KIND=PRE), INTENT(IN) :: x
+    is_infinity = (.NOT. ieee_is_finite(x))
+  END FUNCTION
+
+  ! =====================================================================
 
   SUBROUTINE ADD_RANKINE_PART_TO_THE_MATRICES(                        &
       nb_faces_1,                                                     &
@@ -114,7 +124,7 @@ CONTAINS
         !$OMP PARALLEL DO PRIVATE(J, SP2, VSP2_SYM, VSP2_ANTISYM)
         DO J = I, nb_faces_2
 
-          IF (depth == INFINITE_DEPTH) THEN
+          IF (is_infinity(depth)) THEN
             CALL WAVE_PART_INFINITE_DEPTH &
               (centers_1(I, :),           &
               quad_points(J, 1, :),       & ! centers_2(J, :),
@@ -157,7 +167,7 @@ CONTAINS
         !$OMP PARALLEL DO PRIVATE(J, SP2, VSP2_SYM, VSP2_ANTISYM)
         DO J = 1, nb_faces_2
           DO Q = 1, nb_quad_points
-            IF (depth == INFINITE_DEPTH) THEN
+            IF (is_infinity(depth)) THEN
               CALL WAVE_PART_INFINITE_DEPTH &
                 (centers_1(I, :),           &
                 quad_points(J, Q, :),       & ! centers_2(J, :),
@@ -269,7 +279,7 @@ CONTAINS
 
     IF (coeffs(2) .NE. ZERO) THEN
 
-      IF (depth == INFINITE_DEPTH) THEN
+      IF (is_infinity(depth)) THEN
         ! Reflection through free surface
         reflected_centers_1(:, 1:2) = centers_1(:, 1:2)
         reflected_centers_1(:, 3)   = -centers_1(:, 3)
