@@ -44,6 +44,8 @@ Changelog
   The :code:`clever` keyword argument is deprecated for :code:`Sphere` and should be replaced by the more explicit keyword arguments :code:`axial_symmetry`.
   Meanwhile, a bug has been fixed with its :code:`geometric_center` (:pull:`150`).
 
+* Support for quadratures from `quadpy <https://pypi.org/project/quadpy/>_` has been updated to support the version 0.16.16 of quadpy (:pull:`164`).
+
 -------------------------------
 New in version 1.3 (2021-10-07)
 -------------------------------
