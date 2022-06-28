@@ -97,7 +97,6 @@ if __name__ == "__main__":
               'meshio',
               'pygmsh',
               'gmsh',
-              'quadpy<=0.14.11',
               'bemio @ git+https://github.com/michaelcdevin/bemio.git@master-python3#egg=bemio',
               'sphinx',
               'sphinxcontrib-proof',
@@ -109,7 +108,6 @@ if __name__ == "__main__":
               'meshio',
               'pygmsh',
               'gmsh',
-              'quadpy<=0.14.11',
               'bemio @ git+https://github.com/michaelcdevin/bemio.git@master-python3#egg=bemio',
             ]
           },
