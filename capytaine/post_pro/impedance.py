@@ -19,7 +19,7 @@ def rao_transfer_function(dataset, dissipation=None, stiffness=None):
     ----------
     dataset: xarray Dataset
         The hydrodynamical dataset.
-        This function supposes that variables named 'mass' and 'hydrostatic_stiffness' are in the dataset.
+        This function supposes that variables named 'inertia_matrix' and 'hydrostatic_stiffness' are in the dataset.
         Other variables can be computed by Capytaine, by those two should be manually added to the dataset.
     dissipation: array, optional
         An optional dissipation matrix (e.g. Power Take Off) to be included in the transfer function.
@@ -34,8 +34,8 @@ def rao_transfer_function(dataset, dissipation=None, stiffness=None):
         The matrix as an array depending of omega and the degrees of freedom.
     """
 
-    if not hasattr(dataset, 'mass'):
-        raise AttributeError('Computing the impedance matrix requires a :code:`mass` matrix to be defined in the hydrodynamical dataset')
+    if not hasattr(dataset, 'inertia_matrix'):
+        raise AttributeError('Computing the impedance matrix requires a :code:`inertia_matrix` matrix to be defined in the hydrodynamical dataset')
 
     if not hasattr(dataset, 'hydrostatic_stiffness'):
         raise AttributeError('Computing the impedance matrix requires a :code:`hydrostatic_stiffness` matrix to be defined in the hydrodynamical dataset')
@@ -43,7 +43,7 @@ def rao_transfer_function(dataset, dissipation=None, stiffness=None):
     # ASSEMBLE MATRICES
     omega = dataset.coords['omega']  # Range of frequencies in the dataset
 
-    H = (-omega**2*(dataset['mass'] + dataset['added_mass'])
+    H = (-omega**2*(dataset['inertia_matrix'] + dataset['added_mass'])
          - 1j*omega*dataset['radiation_damping']
          + dataset['hydrostatic_stiffness'])
 
@@ -73,7 +73,7 @@ def impedance(dataset, dissipation=None, stiffness=None):
     ----------
     dataset: xarray Dataset
         The hydrodynamical dataset.
-        This function supposes that variables named 'mass' and 'hydrostatic_stiffness' are in the dataset.
+        This function supposes that variables named 'inertia_matrix' and 'hydrostatic_stiffness' are in the dataset.
         Other variables can be computed by Capytaine, by those two should be manually added to the dataset.
     dissipation: array, optional
         An optional dissipation matrix (e.g. Power Take Off) to be included in the impedance.
