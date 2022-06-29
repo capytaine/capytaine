@@ -210,8 +210,8 @@ class FloatingBody(Abstract3DObject):
             if dof not in dofs:
                 del self.dofs[dof]
 
-        if hasattr(self, 'mass'):
-            self.mass = self.mass.sel(radiating_dof=dofs, influenced_dof=dofs)
+        if hasattr(self, 'inertia_matrix'):
+            self.inertia_matrix = self.inertia_matrix.sel(radiating_dof=dofs, influenced_dof=dofs)
         if hasattr(self, 'hydrostatic_stiffness'):
             self.hydrostatic_stiffness = self.hydrostatic_stiffness.sel(radiating_dof=dofs, influenced_dof=dofs)
 
@@ -527,7 +527,7 @@ class FloatingBody(Abstract3DObject):
         ])
 
         mass = self.disp_mass(rho=rho)
-        mass_mat = np.array([
+        inertia_matrix = np.array([
             [ mass       ,  0          ,  0           ,
               0          ,  mass*cog[2], -mass*cog[1]],
             [ 0          ,  mass       ,  0           ,
@@ -544,7 +544,7 @@ class FloatingBody(Abstract3DObject):
 
         # Rigid DOFs
         rigid_dof_names = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
-        rigid_mass_xr = xr.DataArray(data=np.asarray(mass_mat),
+        rigid_inertia_matrix_xr = xr.DataArray(data=np.asarray(inertia_matrix),
                             dims=['influenced_dof', 'radiating_dof'],
                             coords={'influenced_dof': rigid_dof_names,
                                     'radiating_dof': rigid_dof_names},
@@ -553,13 +553,13 @@ class FloatingBody(Abstract3DObject):
         # Body DOFs (Default as np.nan)
         body_dof_names = list(self.dofs)
         body_dof_count = len(body_dof_names)
-        body_mass_xr = xr.DataArray(np.nan * np.zeros([body_dof_count, body_dof_count]),
+        other_dofs_inertia_matrix_xr = xr.DataArray(np.nan * np.zeros([body_dof_count, body_dof_count]),
                                     dims=['influenced_dof', 'radiating_dof'],
                                     coords={'influenced_dof': body_dof_names,
                                             'radiating_dof': body_dof_names},
                                     name="mass")
 
-        total_mass_xr = xr.merge([rigid_mass_xr, body_mass_xr], compat="override").mass
+        total_mass_xr = xr.merge([rigid_inertia_matrix_xr, other_dofs_inertia_matrix_xr], compat="override").mass
 
         non_rigid_dofs = set(body_dof_names) - set(rigid_dof_names)
 
@@ -568,22 +568,22 @@ class FloatingBody(Abstract3DObject):
                 LOG.warning(f"Non-rigid dofs: {non_rigid_dofs} are detected and \
 respective inertia coefficients are assigned as NaN.")
 
-            mass_xr = total_mass_xr.sel(influenced_dof=body_dof_names,
-                                            radiating_dof=body_dof_names)
+            inertia_matrix_xr = total_mass_xr.sel(influenced_dof=body_dof_names,
+                                                  radiating_dof=body_dof_names)
         elif output_type == "rigid_dofs":
-            mass_xr = total_mass_xr.sel(influenced_dof=rigid_dof_names,
-                                        radiating_dof=rigid_dof_names)
+            inertia_matrix_xr = total_mass_xr.sel(influenced_dof=rigid_dof_names,
+                                                  radiating_dof=rigid_dof_names)
         elif output_type == "all_dofs":
             if len(non_rigid_dofs) > 0:
                 LOG.warning("Non-rigid dofs: {non_rigid_dofs} are detected and \
 respective inertia coefficients are assigned as NaN.")
 
-            mass_xr = total_mass_xr
+            inertia_matrix_xr = total_mass_xr
         else:
             raise ValueError(f"output_type should be either 'body_dofs', \
 'all_dofs' or 'rigid_dofs'. Given output_type = '{output_type}'.")
 
-        return mass_xr
+        return inertia_matrix_xr
 
 
     def compute_hydrostatics(self, *, rho=1000.0, g=9.81, divergence=None):

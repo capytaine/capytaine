@@ -184,11 +184,11 @@ def wavenumber_data_array(results: Sequence[LinearPotentialFlowResult]) -> xr.Da
 
 
 def hydrostatics_dataset(bodies: Sequence[FloatingBody]) -> xr.Dataset:
-    """Create a dataset by looking for 'mass' and 'hydrostatic_stiffness'
+    """Create a dataset by looking for 'inertia_matrix' and 'hydrostatic_stiffness'
     for each of the bodies in the list passed as argument.
     """
     dataset = xr.Dataset()
-    for body_property in ['mass', 'hydrostatic_stiffness']:
+    for body_property in ['inertia_matrix', 'hydrostatic_stiffness']:
         bodies_properties = {body.name: body.__getattribute__(body_property) for body in bodies if hasattr(body, body_property)}
         if len(bodies_properties) > 0:
             bodies_properties = xr.concat(bodies_properties.values(), pd.Index(bodies_properties.keys(), name='body_name'))

@@ -20,7 +20,7 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
     ----------
     dataset: xarray Dataset
         The hydrodynamical dataset.
-        This function supposes that variables named 'mass' and 'hydrostatic_stiffness' are in the dataset.
+        This function supposes that variables named 'inertia_matrix' and 'hydrostatic_stiffness' are in the dataset.
         Other variables can be computed by Capytaine, by those two should be manually added to the dataset.
     wave_direction: float, optional
         The direction of the incoming waves.

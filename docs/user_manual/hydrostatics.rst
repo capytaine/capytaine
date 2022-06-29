@@ -99,19 +99,19 @@ Inertia matrix
 --------------
 
 The method :meth:`~capytaine.bodies.FloatingBody.compute_rigid_body_inertia` is
-able to computes the 6 x 6 inertia mass matrix of a body with 6 rigid dofs.
+able to computes the 6 x 6 inertia matrix of a body with 6 rigid dofs.
 The inertia coefficient of other degrees of freedom are filled with :code:`NaN` by default.
 
 ::
 
-    rigid_sphere.mass = elastic_sphere.compute_rigid_body_inertia()
+    rigid_sphere.inertia_matrix = elastic_sphere.compute_rigid_body_inertia()
 
 
 A custom matrix can be provided. For consistency with the data computed with
 Capytaine, it is recommended to wrap it in a :code:`xarray.DataArray` with dof
 names as labels::
 
-    elastic_sphere.mass = elastic_sphere.add_dofs_labels_to_matrix(np.array([[1000.0]]))
+    elastic_sphere.inertia_matrix = elastic_sphere.add_dofs_labels_to_matrix(np.array([[1000.0]]))
 
 
 Compute all hydrostatics parameters

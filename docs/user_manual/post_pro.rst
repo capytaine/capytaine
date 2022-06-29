@@ -52,7 +52,7 @@ hydrostatics, and inertial properties::
     sphere.center_of_mass = np.array([0, 0, 0])
     sphere.add_all_rigid_body_dofs()
 
-    sphere.mass = sphere.compute_rigid_body_inertia(rho=rho_water)
+    sphere.inertia_matrix = sphere.compute_rigid_body_inertia(rho=rho_water)
     sphere.hydrostatic_stiffness = sphere.compute_hydrostatic_stiffness(rho=rho_water)
 
     solver = BEMSolver()
@@ -74,7 +74,7 @@ hydrostatics, and inertial properties::
 
 
 
-Note that we assigned the inertia and stiffness to attributes of :code:`body` called :code:`mass` and :code:`hydrostatic_stiffness`.
+Note that we assigned the inertia and stiffness to attributes of :code:`body` called :code:`inertia_matrix` and :code:`hydrostatic_stiffness`.
 These are the names expected by the :code:`fill_dataset` and :code:`impedance` functions to compute the impedance matrix.
 
 By simple extension of incorporating the excitation transfer function response
