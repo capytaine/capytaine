@@ -2,6 +2,18 @@
 Changelog
 =========
 
+Breaking changes
+~~~~~~~~~~~~~~~~
+
+* The function that used to be called :code:`impedance` is now named :func:`~capytaine.post_pro.impedance.rao_transfer_function`.
+  The new function :func:`~capytaine.post_pro.impedance.impedance` is the actual impedance matrix (:pull:`142`, :issue:`147`, :pull:`149`).
+
+* The mass matrix of a floating body used to be denoted :code:`mass`. It is now denote :code:`inertia_matrix`.
+  The attribute :code:`body.mass` is now used instead for the (scalar) mass of the body. (:pull:`165`)
+
+Other changes
+~~~~~~~~~~~~~
+
 * Fix major bug in impedance matrix and RAO computation: the sign of the
   dissipation matrix was wrong in previous versions (:issue:`102` and
   :pull:`140`).
@@ -9,9 +21,6 @@ Changelog
 * Fix major inaccuracy for deep panels or high frequencies, that is panels deeper than :math:`1.2\lambda` below the free surface where :math:`\lambda` is the wavelength (:issue:`38` and :pull:`156`)
 
 * Refactor Delhommeau's method for the Green function evaluation. The size of the tabulation is not hard-coded anymore and can be changed by users. (:issue:`20` and :pull:`157`)
-
-* Correct the function :func:`~capytaine.post_pro.impedance.impedance` to actually return the impedance matrix.
-  The former behavior has been renamed as :func:`~capytaine.post_pro.impedance.rao_transfer_function`. (:pull:`142`, :issue:`147`, :pull:`149`).
 
 * Method :code:`show_matplotlib` can now colour mesh faces based on a
   specified scalar field (e.g. pressure) (:pull:`122`).
