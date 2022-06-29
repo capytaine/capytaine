@@ -21,7 +21,7 @@ def generate_boat() -> cpt.FloatingBody:
 
     # Compute hydrostatics
     boat.hydrostatic_stiffness = boat.compute_hydrostatic_stiffness()
-    boat.mass = boat.compute_rigid_body_inertia()
+    boat.inertia_matrix = boat.compute_rigid_body_inertia()
     return boat
 
 
