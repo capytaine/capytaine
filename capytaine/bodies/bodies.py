@@ -871,7 +871,7 @@ respective inertia coefficients are assigned as NaN.")
         for dof in self.dofs:
             self.dofs[dof] -= 2 * np.outer(np.dot(self.dofs[dof], plane.normal), plane.normal)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
-            if point_attr in self.__dict__:
+            if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
                 self.__dict__[point_attr] -= 2 * (np.dot(self.__dict__[point_attr], plane.normal) - plane.c) * plane.normal
         return self
 
@@ -879,7 +879,7 @@ respective inertia coefficients are assigned as NaN.")
     def translate(self, *args):
         self.mesh.translate(*args)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
-            if point_attr in self.__dict__:
+            if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
                 self.__dict__[point_attr] += args[0]
         return self
 
@@ -887,7 +887,7 @@ respective inertia coefficients are assigned as NaN.")
     def rotate(self, axis, angle):
         self.mesh.rotate(axis, angle)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
-            if point_attr in self.__dict__:
+            if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
                 self.__dict__[point_attr] = axis.rotate_points([self.__dict__[point_attr]], angle)
         for dof in self.dofs:
             self.dofs[dof] = axis.rotate_vectors(self.dofs[dof], angle)
