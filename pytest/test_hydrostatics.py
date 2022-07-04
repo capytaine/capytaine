@@ -210,3 +210,24 @@ def test_vertical_elastic_dof():
         assert np.isclose(capy_hs, analytical_hs)
 
 
+def test_non_neutrally_buoyant():
+    body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body.add_all_rigid_body_dofs()
+    body.keep_immersed_part()
+
+    ref_data = pd.DataFrame([
+        dict(body_density=1000, z_cog=-0.00, K55=-7.70e3),
+        dict(body_density=1000, z_cog=-0.25, K55=5.0),
+        dict(body_density=1000, z_cog=-0.50, K55=7.67e3),
+        dict(body_density=500,  z_cog=-0.00, K55=-7.67e3),
+        dict(body_density=500,  z_cog=-0.25, K55=-3.83e3),
+        dict(body_density=500,  z_cog=-0.50, K55=5.0),
+        ])
+    ref_data['mass'] = body.volume * ref_data['body_density']
+
+    for (i, case) in ref_data.iterrows():
+        body.mass = case.mass
+        body.center_of_mass = (0.0, 0.0, case.z_cog)
+        K55 = body.compute_hydrostatic_stiffness().sel(influenced_dof="Pitch", radiating_dof="Pitch").values
+        assert np.isclose(K55, case.K55, atol=1e2)
+
