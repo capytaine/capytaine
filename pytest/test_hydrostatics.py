@@ -10,8 +10,9 @@ import pytest
 import json
 from pathlib import Path
 
-import capytaine as cpt
+import pandas as pd
 import numpy as np
+import capytaine as cpt
 
 # TODO: Can I use pytest fixtures to avoid regenerating so many spheres?
 # Does pytest fixture do a copy of the object, since I modifying the sphere in-place?
