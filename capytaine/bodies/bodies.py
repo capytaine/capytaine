@@ -565,7 +565,7 @@ class FloatingBody(Abstract3DObject):
                             dims=['influenced_dof', 'radiating_dof'],
                             coords={'influenced_dof': rigid_dof_names,
                                     'radiating_dof': rigid_dof_names},
-                            name="mass")
+                            name="inertia_matrix")
 
         # Body DOFs (Default as np.nan)
         body_dof_names = list(self.dofs)
@@ -574,9 +574,9 @@ class FloatingBody(Abstract3DObject):
                                     dims=['influenced_dof', 'radiating_dof'],
                                     coords={'influenced_dof': body_dof_names,
                                             'radiating_dof': body_dof_names},
-                                    name="mass")
+                                    name="inertia_matrix")
 
-        total_mass_xr = xr.merge([rigid_inertia_matrix_xr, other_dofs_inertia_matrix_xr], compat="override").mass
+        total_mass_xr = xr.merge([rigid_inertia_matrix_xr, other_dofs_inertia_matrix_xr], compat="override").inertia_matrix
 
         non_rigid_dofs = set(body_dof_names) - set(rigid_dof_names)
 
