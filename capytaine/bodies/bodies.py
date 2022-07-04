@@ -480,7 +480,9 @@ class FloatingBody(Abstract3DObject):
             for influenced_dof_name in self.dofs
             ])
 
-        return hs_set.hydrostatic_stiffness
+        # Reorder dofs
+        K = hs_set.hydrostatic_stiffness.sel(influenced_dof=list(self.dofs.keys()), radiating_dof=list(self.dofs.keys()))
+        return K
 
     def compute_rigid_body_inertia(self, *, rho=1000, output_type="body_dofs"):
         """
