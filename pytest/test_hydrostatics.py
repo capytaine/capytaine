@@ -215,6 +215,30 @@ def test_non_neutrally_buoyant_stiffness():
     body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
     body.add_all_rigid_body_dofs()
     body.keep_immersed_part()
+    body.mass = 500 * body.volume
+    body.center_of_mass = (0.0, 0.0, -0.25)
+
+    K = body.compute_hydrostatic_stiffness()
+    dofs = ["Heave", "Roll", "Pitch", "Yaw"]
+    K = K.sel(influenced_dof=dofs, radiating_dof=dofs).values
+    # K is now a 4x4 np.array in correct order
+
+    rho_g = 1000*9.81
+    K_ref = rho_g * np.array([
+        [3.137, -0.382e-3, -0.613e-4, 0.0       ],
+        [0.0,   -0.392,    -0.276e-4, -0.448e-4 ],
+        [0.0,   0.0,       -0.392,    0.313e-3  ],
+        [0.0,   0.0,       0.0,       0.0       ],
+        ])  # Computed with WAMIT
+    print(K)
+    print(K_ref)
+    assert np.allclose(K, K_ref, atol=rho_g*1e-2)
+
+
+def test_non_neutrally_buoyant_K55():
+    body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body.add_all_rigid_body_dofs()
+    body.keep_immersed_part()
 
     ref_data = pd.DataFrame([
         dict(body_density=1000, z_cog=-0.00, K55=-7.70e3),
@@ -226,11 +250,14 @@ def test_non_neutrally_buoyant_stiffness():
         ])
     ref_data['mass'] = body.volume * ref_data['body_density']
 
+    rho_g = 1000*9.81
     for (i, case) in ref_data.iterrows():
         body.mass = case.mass
         body.center_of_mass = (0.0, 0.0, case.z_cog)
         K55 = body.compute_hydrostatic_stiffness().sel(influenced_dof="Pitch", radiating_dof="Pitch").values
-        assert np.isclose(K55, case.K55, atol=1e2)
+        assert np.isclose(K55, case.K55, atol=rho_g*1e-2)
+
+
 
 
 def test_non_neutrally_buoyant_inertia():
