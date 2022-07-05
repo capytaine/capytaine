@@ -53,4 +53,5 @@ If you do, you can install Capytaine as::
 If you can't install a compiler, it is recommended to use Conda instead.
 
 .. [#] For example, on Ubuntu or Debian: :code:`sudo apt install gfortran`.
+       On macOS, see `for instance these instructions <https://github.com/mancellin/capytaine/issues/115#issuecomment-1143987636>`_.
 
