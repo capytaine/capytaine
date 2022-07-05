@@ -531,33 +531,37 @@ class FloatingBody(Abstract3DObject):
             for combination in combinations]
             for axis, normal_i in enumerate(self.mesh.faces_normals.T)])
 
-        inertias = rho * np.array([
-            (integrals[0,1]   + integrals[0,2]   + integrals[1,1]/3 \
+
+        inertias = np.array([
+            (integrals[0,1]   + integrals[0,2]   + integrals[1,1]/3
              + integrals[1,2]   + integrals[2,1] + integrals[2,2]/3)/3,
-            (integrals[0,0]/3 + integrals[0,2]   + integrals[1,0]   \
+            (integrals[0,0]/3 + integrals[0,2]   + integrals[1,0]
              + integrals[1,2]   + integrals[2,0] + integrals[2,2]/3)/3,
-            (integrals[0,0]/3 + integrals[0,1]   + integrals[1,0]   \
+            (integrals[0,0]/3 + integrals[0,1]   + integrals[1,0]
              + integrals[1,1]/3 + integrals[2,0] + integrals[2,1]  )/3,
             integrals[2,3],
             integrals[0,4],
             integrals[1,5]
         ])
 
-        mass = self.disp_mass(rho=rho) if self.mass is None else self.mass
-        inertia_matrix = np.array([
-            [ mass       ,  0          ,  0           ,
-              0          ,  mass*cog[2], -mass*cog[1]],
-            [ 0          ,  mass       ,  0           ,
-             -mass*cog[2],  0          ,  mass*cog[0]],
-            [ 0          ,  0          ,  mass        ,
-              mass*cog[1], -mass*cog[0],  0          ],
-            [ 0          , -mass*cog[2],  mass*cog[1] ,
-              inertias[0], -inertias[3], -inertias[5]],
-            [ mass*cog[2],  0          , -mass*cog[0] ,
-             -inertias[3],  inertias[1], -inertias[4]],
-            [-mass*cog[1],  mass*cog[0],  0           ,
-             -inertias[5], -inertias[4], inertias[2]] ,
+        volume = self.volume
+        volumic_inertia_matrix = np.array([
+            [ volume        , 0              , 0               ,
+              0             , volume*cog[2]  , -volume*cog[1]  ],
+            [ 0             , volume         , 0               ,
+             -volume*cog[2] , 0              , volume*cog[0]   ],
+            [ 0             , 0              , volume          ,
+              volume*cog[1] , -volume*cog[0] , 0 ]             ,
+            [ 0             , -volume*cog[2] , volume*cog[1]   ,
+              inertias[0]   , -inertias[3]   , -inertias[5]    ],
+            [ volume*cog[2] , 0              , -volume*cog[0]  ,
+             -inertias[3]   , inertias[1]    , -inertias[4]    ],
+            [-volume*cog[1] , volume*cog[0]  , 0               ,
+             -inertias[5]   , -inertias[4]   , inertias[2]     ],
         ])
+
+        density = rho if self.mass is None else self.mass/volume
+        inertia_matrix = density * volumic_inertia_matrix
 
         # Rigid DOFs
         rigid_dof_names = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]

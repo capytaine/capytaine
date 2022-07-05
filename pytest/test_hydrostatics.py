@@ -211,7 +211,7 @@ def test_vertical_elastic_dof():
         assert np.isclose(capy_hs, analytical_hs)
 
 
-def test_non_neutrally_buoyant():
+def test_non_neutrally_buoyant_stiffness():
     body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
     body.add_all_rigid_body_dofs()
     body.keep_immersed_part()
@@ -232,3 +232,12 @@ def test_non_neutrally_buoyant():
         K55 = body.compute_hydrostatic_stiffness().sel(influenced_dof="Pitch", radiating_dof="Pitch").values
         assert np.isclose(K55, case.K55, atol=1e2)
 
+
+def test_non_neutrally_buoyant_inertia():
+    body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body.add_all_rigid_body_dofs()
+    body.keep_immersed_part()
+    body.center_of_mass = (0.0, 0.0, -0.25)
+    body.mass = body.volume * 500
+    M = body.compute_rigid_body_inertia().values
+    assert np.allclose(np.diag(M), np.array([1570, 1570, 1570, 936, 936, 801]), rtol=5e-2)
