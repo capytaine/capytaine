@@ -38,6 +38,12 @@ Main concepts
     does not strictly guarantee it <https://github.com/mancellin/capytaine/issues/4>`_.
     Accessing them by name rather than by index should be preferred.
 
+    Beside the mesh and the dofs, some other physical informations can be
+    stored in a :code:`FloatingBody` instance, such as the mass and the
+    position of the center of mass. These informations are only required for
+    some specific actions (see :doc:`hydrostatics`) and can be left unspecified
+    in many cases.
+
 :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem`
     A problem is a collection of several parameters: a :code:`FloatingBody`, the wave angular frequency
     :math:`\omega`, the water depth :math:`h`, the water density :math:`\rho` and the gravity

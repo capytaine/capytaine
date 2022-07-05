@@ -95,6 +95,18 @@ matrix as an :code:`xarray.DataArray`. ::
     # True
 
 
+If the mass is not specified (as in the examples above), the body is assumed to
+be in buoyancy equilibrium. It's mass is the mass of the displaced volume of
+water.
+
+Non-neutrally buoyant bodies are partially implemented (only for a single rigid body).
+In this case, the mass of the body can be given by setting the :code:`mass`
+attribute of the :code:`FloatingBody`::
+
+    rigid_sphere.mass = 0.8 * rigid_sphere.disp_mass(rho=1000)
+    rigid_sphere.hydrostatic_stiffness = rigid_sphere.compute_hydrostatic_stiffness()
+
+
 Inertia matrix
 --------------
 
@@ -106,6 +118,9 @@ The inertia coefficient of other degrees of freedom are filled with :code:`NaN` 
 
     rigid_sphere.inertia_matrix = elastic_sphere.compute_rigid_body_inertia()
 
+
+As for the hydrostatic stiffness, the mass is assumed to be the displaced mass
+of water, unless a :code:`mass` attribute has been specified.
 
 A custom matrix can be provided. For consistency with the data computed with
 Capytaine, it is recommended to wrap it in a :code:`xarray.DataArray` with dof

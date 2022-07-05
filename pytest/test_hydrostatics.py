@@ -10,8 +10,9 @@ import pytest
 import json
 from pathlib import Path
 
-import capytaine as cpt
+import pandas as pd
 import numpy as np
+import capytaine as cpt
 
 # TODO: Can I use pytest fixtures to avoid regenerating so many spheres?
 # Does pytest fixture do a copy of the object, since I modifying the sphere in-place?
@@ -38,6 +39,14 @@ def test_stiffness_when_no_dofs():
     sphere.center_of_mass = np.array([0, 0, -0.3])
     with pytest.raises(AttributeError, match=".* no dof .*"):
         sphere.compute_hydrostatic_stiffness()
+
+def test_stiffness_dof_ordering():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20)
+    sphere.keep_immersed_part()
+    sphere.add_all_rigid_body_dofs()
+    sphere.center_of_mass = np.array([0.0, 0.0, -0.2])
+    K = sphere.compute_hydrostatic_stiffness()
+    assert np.all(K.coords["radiating_dof"].values == np.array(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw']))
 
 def test_stiffness_with_divergence():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
@@ -210,3 +219,60 @@ def test_vertical_elastic_dof():
         assert np.isclose(capy_hs, analytical_hs)
 
 
+def test_non_neutrally_buoyant_stiffness():
+    body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body.add_all_rigid_body_dofs()
+    body.keep_immersed_part()
+    body.mass = 500 * body.volume
+    body.center_of_mass = (0.0, 0.0, -0.25)
+
+    K = body.compute_hydrostatic_stiffness()
+    dofs = ["Heave", "Roll", "Pitch", "Yaw"]
+    K = K.sel(influenced_dof=dofs, radiating_dof=dofs).values
+    # K is now a 4x4 np.array in correct order
+
+    rho_g = 1000*9.81
+    K_ref = rho_g * np.array([
+        [3.137, -0.382e-3, -0.613e-4, 0.0       ],
+        [0.0,   -0.392,    -0.276e-4, -0.448e-4 ],
+        [0.0,   0.0,       -0.392,    0.313e-3  ],
+        [0.0,   0.0,       0.0,       0.0       ],
+        ])  # Computed with WAMIT
+    print(K)
+    print(K_ref)
+    assert np.allclose(K, K_ref, atol=rho_g*1e-2)
+
+
+def test_non_neutrally_buoyant_K55():
+    body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body.add_all_rigid_body_dofs()
+    body.keep_immersed_part()
+
+    ref_data = pd.DataFrame([
+        dict(body_density=1000, z_cog=-0.00, K55=-7.70e3),
+        dict(body_density=1000, z_cog=-0.25, K55=5.0),
+        dict(body_density=1000, z_cog=-0.50, K55=7.67e3),
+        dict(body_density=500,  z_cog=-0.00, K55=-7.67e3),
+        dict(body_density=500,  z_cog=-0.25, K55=-3.83e3),
+        dict(body_density=500,  z_cog=-0.50, K55=5.0),
+        ])
+    ref_data['mass'] = body.volume * ref_data['body_density']
+
+    rho_g = 1000*9.81
+    for (i, case) in ref_data.iterrows():
+        body.mass = case.mass
+        body.center_of_mass = (0.0, 0.0, case.z_cog)
+        K55 = body.compute_hydrostatic_stiffness().sel(influenced_dof="Pitch", radiating_dof="Pitch").values
+        assert np.isclose(K55, case.K55, atol=rho_g*1e-2)
+
+
+
+
+def test_non_neutrally_buoyant_inertia():
+    body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body.add_all_rigid_body_dofs()
+    body.keep_immersed_part()
+    body.center_of_mass = (0.0, 0.0, -0.25)
+    body.mass = body.volume * 500
+    M = body.compute_rigid_body_inertia().values
+    assert np.allclose(np.diag(M), np.array([1570, 1570, 1570, 936, 936, 801]), rtol=5e-2)

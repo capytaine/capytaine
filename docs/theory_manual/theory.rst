@@ -163,7 +163,7 @@ is the usual Green function for the 3D Laplace equation without our specific bou
 The second part reads
 
 .. math::
-    G_1(\xi, x) = - \frac{1}{\|x - s(\xi)\|} 
+    G_1(\xi, x) = - \frac{1}{\|x - s(\xi)\|}
     :label: green_function_inf_depth_1
 
 where :math:`s(\xi_1, \xi_2, \xi_3) = (\xi_1, \xi_2, -\xi_3)` is the reflection of :math:`\xi` across the free surface.
@@ -172,18 +172,18 @@ Finally, this last part is complex-valued and it is introduced to satisfy the bo
 It depends on the water depth :math:`h` and the wave frequency :math:`\omega` (through the wave number :math:`k`).
 
 .. math::
-    G_2(\xi, x) & = 
-    \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, \mathrm{d} \theta \right) \\
-    & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, \mathrm{d} \theta \right)
+    G_2(\xi, x) & =
+    \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(x, \xi, \theta)) - \frac{1}{\zeta(x, \xi, \theta)} \right) \, \mathrm{d} \theta \right) \\
+    & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (x, \xi, \theta)} \, \mathrm{d} \theta \right)
     :label: green_function_inf_depth_2
 
 where
 
 .. math::
-    J(\zeta) = 
+    J(z) =
     \begin{cases}
-    e^\zeta \left[ E_1(\zeta) + i\pi \right] \quad \text{if} ~ \Im(\zeta) \ge 0 \\
-    e^\zeta \left[ E_1(\zeta) - i\pi \right] \quad \text{if} ~ \Im(\zeta) < 0
+    e^z \left[ E_1(z) + i\pi \right] \quad \text{if} ~ \Im(z) \ge 0 \\
+    e^z \left[ E_1(z) - i\pi \right] \quad \text{if} ~ \Im(z) < 0
     \end{cases}
 
 where :math:`E_1` is the first exponential integral, defined as
@@ -194,7 +194,7 @@ where :math:`E_1` is the first exponential integral, defined as
 and
 
 .. math::
-    \zeta (\theta) = k \left( x_3 + \xi_3 + i r \cos \theta \right)
+    \zeta (x, \xi, \theta) = k \left( x_3 + \xi_3 + i r \cos \theta \right)
     :label: def_zeta
 
 where
@@ -206,10 +206,10 @@ where
 
 .. proof:property::
 
-   The function :math:`G` is symmetric in the sense of 
+   The function :math:`G` is symmetric in the sense of
 
    .. math::
-   
+
         \forall x, \xi, \quad G(x, \xi) = G(\xi, x).
 
 Variants of the formulation
@@ -229,10 +229,19 @@ Variants of the formulation
 
 .. proof:lemma::
 
+    The following identity holds [X18]_:
+
+    .. math::
+        \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right) = \pi \exp(k(x_3 + \xi_3)) J_0(k r)
+
+    where :math:`J_0` is the zeroth order Bessel function of the first kind.
+
+.. proof:lemma::
+
     For any function :math:`f`, the following two formulations of the integral are equivalent:
 
     .. math::
-        \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\zeta(\theta) \right) \mathrm{d} \theta = 
+        \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\zeta(\theta) \right) \mathrm{d} \theta =
         \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\tilde{\zeta}(\theta) \right) \mathrm{d} \theta
 
     where :math:`\zeta` is defined in :eq:`def_zeta` and :math:`\tilde{\zeta}` is defined as
@@ -266,7 +275,7 @@ Variants of the formulation
         :nowrap:
 
         \[
-            \int_{-\frac{\pi}{2}-\alpha}^{\frac{\pi}{2}-\alpha} f \left(\zeta(\theta) \right) \mathrm{d} \theta = 
+            \int_{-\frac{\pi}{2}-\alpha}^{\frac{\pi}{2}-\alpha} f \left(\zeta(\theta) \right) \mathrm{d} \theta =
             \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\zeta(\theta) \right) \mathrm{d} \theta
         \]
 
@@ -289,12 +298,12 @@ where
     \nabla_x G_1(\xi, x) = \frac{x - s(\xi)}{\|x - s(\xi)\|^3}\,,
     :label: green_function_inf_depth_deriv_1
 
-and 
+and
 
 .. math::
     \nabla_x G_2(\xi, x) = &
     \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta \right) \\
-    & - 2 \frac{x - s(\xi)}{\|x - s(\xi)\|^3} 
+    & - 2 \frac{x - s(\xi)}{\|x - s(\xi)\|^3}
     + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta \right) \\
     :label: green_function_inf_depth_deriv_2
 
@@ -319,7 +328,7 @@ where
     Let us discuss the derivation of :eq:`green_function_inf_depth_deriv_2`. Using :numref:`Lemma {number} <integrate_one_over_zeta>`, the Green function :eq:`green_function_inf_depth_2` can be rewritten as:
 
     .. math::
-        G_2(\xi, x) & = 
+        G_2(\xi, x) & =
         \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta(\theta)) \, \mathrm{d} \theta \right) + \frac{2}{\|x - s(\xi)\|} \\
         & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, \mathrm{d} \theta \right)
 
@@ -338,7 +347,7 @@ where
 .. note:: There is a typo in the second term of :eq:`green_function_inf_depth_deriv_2` in [Del89]_ and [BD15]_. It appears to be missing from [X18]_.
 
 .. note::
-    The derivative of :math:`G` with respect to :math:`x_1` and :math:`x_2` are antisymmetric in the sense of 
+    The derivative of :math:`G` with respect to :math:`x_1` and :math:`x_2` are antisymmetric in the sense of
 
     .. math::
        :nowrap:
@@ -348,6 +357,57 @@ where
         \]
 
     Its derivative with respect to :math:`x_3` can be decomposed into an antisymmetric term and a symmetric term.
+
+
+Delhommeau's method for computation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The above formulations of the Green function and its derivative require the evaluation of the following real-valued integrals:
+
+.. math::
+    D_1(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    D_2(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right) \\
+    Z_1(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    Z_2(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
+
+
+where :math:`\tilde{r} = k r` and :math:`\tilde{z} = k (x_3 + \xi_3)`, such that :math:`\zeta = \tilde{z} + i \tilde{r} \cos \theta` and :math:`k \| x - s(\xi) \| = \sqrt{\tilde{r}^2 + \tilde{z}^2}`.
+
+To limit the computational cost of the evaluation of these integrals, they are precomputed for selected values of :math:`\tilde{r}` and :math:`\tilde{z}` and stored in a table.
+When evaluating the Green function, the values of the integrals are retrieved by interpolating the values in the tables.
+
+For large values of :math:`\tilde{r}` and :math:`\tilde{z}`, these integrals are asymptotically approximated by the following expressions:
+
+.. math::
+      D_1(\tilde{r}, \tilde{z}) & \simeq \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\cos(\tilde{r} - \pi/4) - \frac{1}{2\tilde{r}} \sin(\tilde{r}-\pi/4) \right) - \pi \frac{\tilde{r}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3} \\
+      D_2(\tilde{r}, \tilde{z}) & \simeq \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} (\sin(\tilde{r} - \pi/4) + \frac{1}{2\tilde{r}} \cos(\tilde{r} - \pi/4)) \\
+      Z_1(\tilde{r}, \tilde{z}) & \simeq - \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \sin(\tilde{r} - \pi/4) + \pi \frac{\tilde{z}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3} \\
+      Z_2(\tilde{r}, \tilde{z}) & \simeq \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \cos(\tilde{r} - \pi/4)
+
+
+Incorporating these asymptotic approximation in the expression of the Green function, one gets:
+
+.. math::
+    G_2(\xi, x) \simeq - 2 k \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\sin(\tilde{r} - \pi/4) - i\cos(\tilde{r} - \pi/4)\right) + 2 k \frac{\tilde{z}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3}
+
+
+Xie's variant
+~~~~~~~~~~~~~
+
+A slight variant is presented in [X18]_. The authors noticed that the
+interpolation of the integral :math:`Z_1` can be inacurrate due to the
+singularity :math:`\frac{1}{\zeta}`.
+Hence, they proposed to tabulate instead
+
+.. math::
+    \widetilde{Z_1}(\tilde{r}, \tilde{z}) = \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
+
+By using :numref:`Lemma {number} <integrate_one_over_zeta>`, one has
+
+.. math::
+   Z_1 = \widetilde{Z_1} - \frac{\pi}{k \sqrt{\tilde{r}^2 + \tilde{z}^2}}
+
+Both the original Delhommeau's method and Xie's variant are implemented in Capytaine.
 
 In finite depth
 ---------------
@@ -366,7 +426,7 @@ TODO
 Symmetries
 ----------
 
-The first term of :eq:`green_function` is invariant under all rotations and translations, whereas the second term is invariant under isometric transformations that don't change the vertical coordinate (reflection across a vertical plane, rotation around a vertical axis, translation following an horizontal vector).
+The first term of :eq:`green_function` is invariant under all rotations and translations, whereas the other terms are invariant under isometric transformations that don't change the vertical coordinate (reflection across a vertical plane, rotation around a vertical axis, translation following an horizontal vector).
 
 
 Discretization

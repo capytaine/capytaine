@@ -587,7 +587,7 @@ class Mesh(Abstract3DObject):
 
     @inplace_transformation
     def rotate(self, axis, angle) -> 'Mesh':
-        """Rotate the mesh of a given wave_direction around an axis.
+        """Rotate the mesh of a given angle around an axis.
 
         Parameters
         ----------
