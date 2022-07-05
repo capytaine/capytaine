@@ -40,6 +40,14 @@ def test_stiffness_when_no_dofs():
     with pytest.raises(AttributeError, match=".* no dof .*"):
         sphere.compute_hydrostatic_stiffness()
 
+def test_stiffness_dof_ordering():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20)
+    sphere.keep_immersed_part()
+    sphere.add_all_rigid_body_dofs()
+    sphere.center_of_mass = np.array([0.0, 0.0, -0.2])
+    K = sphere.compute_hydrostatic_stiffness()
+    assert np.all(K.coords["radiating_dof"].values == np.array(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw']))
+
 def test_stiffness_with_divergence():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     sphere.center_of_mass = np.array([0, 0, -0.3])
