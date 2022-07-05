@@ -43,12 +43,19 @@ class FloatingBody(Abstract3DObject):
     dofs : dict, optional
         the degrees of freedom of the body.
         If none is given, a empty dictionary is initialized.
+    mass : float or None, optional
+        the mass of the body in kilograms.
+        Required only for some hydrostatics computation.
+        If None, the mass is implicitly assumed to be the mass of displaced water.
+    center_of_mass: 3-element array, optional
+        the position of the center of mass.
+        Required only for some hydrostatics computation.
     name : str, optional
         a name for the body.
         If none is given, the one of the mesh is used.
     """
 
-    def __init__(self, mesh=None, dofs=None, name=None):
+    def __init__(self, mesh=None, dofs=None, mass=None, center_of_mass=None, name=None):
         if mesh is None:
             mesh = Mesh(name="dummy_mesh")
 
@@ -62,6 +69,8 @@ class FloatingBody(Abstract3DObject):
         self.mesh = mesh
         self.full_body = None
         self.dofs = dofs
+        self.mass = mass
+        self.center_of_mass = center_of_mass
         self.name = name
 
         if self.mesh.nb_vertices == 0 or self.mesh.nb_faces == 0:
@@ -171,7 +180,7 @@ class FloatingBody(Abstract3DObject):
             if name is not None and name.lower() in ROTATION_DOFS_AXIS:
                 axis_direction = ROTATION_DOFS_AXIS[name.lower()]
                 for point_attr in ('rotation_center', 'center_of_mass', 'geometric_center'):
-                    if hasattr(self, point_attr):
+                    if hasattr(self, point_attr) and getattr(self, point_attr) is not None:
                         axis_point = getattr(self, point_attr)
                         LOG.info(f"The rotation dof {name} has been initialized around the point: "
                                  f"{self.name}.{point_attr} = {getattr(self, point_attr)}")
@@ -370,6 +379,7 @@ class FloatingBody(Abstract3DObject):
         # restoring coefficient for rigid mdoes and use Neuman equation for elastic
         # modes.
         cog = self.center_of_mass
+        mass = self.disp_mass(rho=rho) if self.mass is None else self.mass
 
         rigid_dof_names = ("Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw")
 
@@ -383,19 +393,26 @@ class FloatingBody(Abstract3DObject):
             elif dof_pair in [("Heave", "Pitch"), ("Pitch", "Heave")]:
                 norm_hs_stiff = self.waterplane_integral(self.mesh.faces_centers[:,0])
             elif dof_pair == ("Roll", "Roll"):
-                norm_hs_stiff = self.volume * self.transversal_metacentric_height
+                norm_hs_stiff = -self.waterplane_integral(self.mesh.faces_centers[:,1]**2) + self.volume*self.center_of_buoyancy[2] - mass/rho*cog[2]
             elif dof_pair in [("Roll", "Pitch"), ("Pitch", "Roll")]:
                 norm_hs_stiff = self.waterplane_integral(self.mesh.faces_centers[:,0]
                                                           * self.mesh.faces_centers[:,1])
             elif dof_pair == ("Roll", "Yaw"):
-                norm_hs_stiff = self.volume * (-self.center_of_buoyancy[0] + cog[0])
+                norm_hs_stiff = - self.volume*self.center_of_buoyancy[0] + mass/rho*cog[0]
             elif dof_pair == ("Pitch", "Pitch"):
-                norm_hs_stiff = self.volume * self.longitudinal_metacentric_height
+                norm_hs_stiff = -self.waterplane_integral(self.mesh.faces_centers[:,0]**2) + self.volume*self.center_of_buoyancy[2] - mass/rho*cog[2]
             elif dof_pair == ("Pitch", "Yaw"):
-                norm_hs_stiff = self.volume * (-self.center_of_buoyancy[1] + cog[1])
+                norm_hs_stiff = - self.volume*self.center_of_buoyancy[1] + mass/rho*cog[1]
             else:
                 norm_hs_stiff = 0.0
         else:
+            if self.mass is not None and np.isclose(self.mass, self.disp_mass(rho), rtol=1e-4):
+                raise NotImplementedError(
+                        f"Trying to compute the hydrostatic stiffness for dofs {radiating_dof_name} and {influenced_dof_name}"
+                        f"of body {self.name}, which is not neutrally buoyant (mass={body.mass}, disp_mass={body.disp_mass(rho)}.\n"
+                        f"This case has not been implemented in Capytaine. You need either a single rigid body or a neutrally buoyant body."
+                        )
+
             # Neuman (1994) formula for flexible DOFs
             influenced_dof = np.array(self.dofs[influenced_dof_name])
             radiating_dof = np.array(self.dofs[radiating_dof_name])
@@ -514,33 +531,37 @@ class FloatingBody(Abstract3DObject):
             for combination in combinations]
             for axis, normal_i in enumerate(self.mesh.faces_normals.T)])
 
-        inertias = rho * np.array([
-            (integrals[0,1]   + integrals[0,2]   + integrals[1,1]/3 \
+
+        inertias = np.array([
+            (integrals[0,1]   + integrals[0,2]   + integrals[1,1]/3
              + integrals[1,2]   + integrals[2,1] + integrals[2,2]/3)/3,
-            (integrals[0,0]/3 + integrals[0,2]   + integrals[1,0]   \
+            (integrals[0,0]/3 + integrals[0,2]   + integrals[1,0]
              + integrals[1,2]   + integrals[2,0] + integrals[2,2]/3)/3,
-            (integrals[0,0]/3 + integrals[0,1]   + integrals[1,0]   \
+            (integrals[0,0]/3 + integrals[0,1]   + integrals[1,0]
              + integrals[1,1]/3 + integrals[2,0] + integrals[2,1]  )/3,
             integrals[2,3],
             integrals[0,4],
             integrals[1,5]
         ])
 
-        mass = self.disp_mass(rho=rho)
-        inertia_matrix = np.array([
-            [ mass       ,  0          ,  0           ,
-              0          ,  mass*cog[2], -mass*cog[1]],
-            [ 0          ,  mass       ,  0           ,
-             -mass*cog[2],  0          ,  mass*cog[0]],
-            [ 0          ,  0          ,  mass        ,
-              mass*cog[1], -mass*cog[0],  0          ],
-            [ 0          , -mass*cog[2],  mass*cog[1] ,
-              inertias[0], -inertias[3], -inertias[5]],
-            [ mass*cog[2],  0          , -mass*cog[0] ,
-             -inertias[3],  inertias[1], -inertias[4]],
-            [-mass*cog[1],  mass*cog[0],  0           ,
-             -inertias[5], -inertias[4], inertias[2]] ,
+        volume = self.volume
+        volumic_inertia_matrix = np.array([
+            [ volume        , 0              , 0               ,
+              0             , volume*cog[2]  , -volume*cog[1]  ],
+            [ 0             , volume         , 0               ,
+             -volume*cog[2] , 0              , volume*cog[0]   ],
+            [ 0             , 0              , volume          ,
+              volume*cog[1] , -volume*cog[0] , 0 ]             ,
+            [ 0             , -volume*cog[2] , volume*cog[1]   ,
+              inertias[0]   , -inertias[3]   , -inertias[5]    ],
+            [ volume*cog[2] , 0              , -volume*cog[0]  ,
+             -inertias[3]   , inertias[1]    , -inertias[4]    ],
+            [-volume*cog[1] , volume*cog[0]  , 0               ,
+             -inertias[5]   , -inertias[4]   , inertias[2]     ],
         ])
+
+        density = rho if self.mass is None else self.mass/volume
+        inertia_matrix = density * volumic_inertia_matrix
 
         # Rigid DOFs
         rigid_dof_names = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
@@ -548,7 +569,7 @@ class FloatingBody(Abstract3DObject):
                             dims=['influenced_dof', 'radiating_dof'],
                             coords={'influenced_dof': rigid_dof_names,
                                     'radiating_dof': rigid_dof_names},
-                            name="mass")
+                            name="inertia_matrix")
 
         # Body DOFs (Default as np.nan)
         body_dof_names = list(self.dofs)
@@ -557,9 +578,9 @@ class FloatingBody(Abstract3DObject):
                                     dims=['influenced_dof', 'radiating_dof'],
                                     coords={'influenced_dof': body_dof_names,
                                             'radiating_dof': body_dof_names},
-                                    name="mass")
+                                    name="inertia_matrix")
 
-        total_mass_xr = xr.merge([rigid_inertia_matrix_xr, other_dofs_inertia_matrix_xr], compat="override").mass
+        total_mass_xr = xr.merge([rigid_inertia_matrix_xr, other_dofs_inertia_matrix_xr], compat="override").inertia_matrix
 
         non_rigid_dofs = set(body_dof_names) - set(rigid_dof_names)
 
@@ -668,7 +689,21 @@ respective inertia coefficients are assigned as NaN.")
             name = "+".join(body.name for body in bodies)
         meshes = CollectionOfMeshes([body.mesh for body in bodies], name=f"{name}_mesh")
         dofs = FloatingBody.combine_dofs(bodies)
-        return FloatingBody(mesh=meshes, dofs=dofs, name=name)
+
+        if all(body.mass is not None for body in bodies):
+            new_mass = sum(body.mass is not None for body in bodies)
+        else:
+            new_mass = None
+
+        if (all(body.mass is not None for body in bodies)
+                and all(body.center_of_mass is not None for body in bodies)):
+            new_cog = sum(body.mass*body.center_of_mass is not None for body in bodies)/new_mass
+        else:
+            new_cog = None
+
+        return FloatingBody(
+            mesh=meshes, dofs=dofs, mass=new_mass, center_of_mass=new_cog, name=name
+            )
 
     @staticmethod
     def combine_dofs(bodies) -> dict:
@@ -840,7 +875,7 @@ respective inertia coefficients are assigned as NaN.")
         for dof in self.dofs:
             self.dofs[dof] -= 2 * np.outer(np.dot(self.dofs[dof], plane.normal), plane.normal)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
-            if point_attr in self.__dict__:
+            if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
                 self.__dict__[point_attr] -= 2 * (np.dot(self.__dict__[point_attr], plane.normal) - plane.c) * plane.normal
         return self
 
@@ -848,7 +883,7 @@ respective inertia coefficients are assigned as NaN.")
     def translate(self, *args):
         self.mesh.translate(*args)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
-            if point_attr in self.__dict__:
+            if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
                 self.__dict__[point_attr] += args[0]
         return self
 
@@ -856,7 +891,7 @@ respective inertia coefficients are assigned as NaN.")
     def rotate(self, axis, angle):
         self.mesh.rotate(axis, angle)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
-            if point_attr in self.__dict__:
+            if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
                 self.__dict__[point_attr] = axis.rotate_points([self.__dict__[point_attr]], angle)
         for dof in self.dofs:
             self.dofs[dof] = axis.rotate_vectors(self.dofs[dof], angle)
