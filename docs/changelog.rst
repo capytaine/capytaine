@@ -11,6 +11,9 @@ Breaking changes
 * The mass matrix of a floating body used to be denoted :code:`mass`. It is now denote :code:`inertia_matrix`.
   The attribute :code:`body.mass` is now used instead for the (scalar) mass of the body. (:pull:`165`)
 
+* The default linear solver is the direct solver and not the iterative solver GMRES, because it is more robust and more predictable.
+  Nothing changes when user explicitely chose a linear solver. (:pull:`171`:)
+
 Other changes
 ~~~~~~~~~~~~~
 

@@ -45,10 +45,13 @@ Two of them are available in the present version:
            Setting it to :code:`0` will reduce the RAM usage of the code but might
            increase the computation time.
 
-   :code:`linear_solver` (Default: :code:`'gmres'`)
+   :code:`linear_solver` (Default: :code:`'direct'`)
            This option is used to set the solver for linear systems that is used in the resolution of the BEM problem.
            Passing a string will make the code use one of the predefined solver. Two of them are available:
            :code:`'direct'` for a direct solver using LU-decomposition or :code:`'gmres'` for an iterative solver.
+
+           The former is used by default (since version 1.4) because it is more robust and the computation time is more predictable.
+           Advanced users might want to change the solver to :code:`gmres`, which is faster in many situations (and completely fails in other).
 
            Alternatively, any function taking as arguments a matrix and a vector and returning a vector can be given to the solver::
 
