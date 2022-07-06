@@ -49,8 +49,8 @@ Simulation with several bodies
 Comparison with hydrostatics from Meshmagick
 --------------------------------------------
 
-Hydrostatic and inertia propoerties can be computed independantly via Capytaine or Meshmagick.
-This script compare them both with analytical expression for a simple geometric object.
+Hydrostatic and inertia properties can be computed independently via Capytaine or Meshmagick.
+This script compares them both with analytical expression for a simple geometric object.
 
 .. literalinclude:: examples/hydrostatics.py
    :language: python

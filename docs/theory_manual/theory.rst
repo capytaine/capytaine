@@ -395,7 +395,7 @@ Xie's variant
 ~~~~~~~~~~~~~
 
 A slight variant is presented in [X18]_. The authors noticed that the
-interpolation of the integral :math:`Z_1` can be inacurrate due to the
+interpolation of the integral :math:`Z_1` can be inaccurate due to the
 singularity :math:`\frac{1}{\zeta}`.
 Hence, they proposed to tabulate instead
 
