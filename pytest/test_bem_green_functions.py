@@ -91,7 +91,6 @@ def test_compare_tabulations_of_Delhommeau_and_XieDelhommeau():
     Xie = gfs[1].tabulated_integrals[:, :, 0, 1]
     assert np.allclose(Del[abs(z) > 1], Xie[abs(z) > 1], atol=1e-3)
 
-
 points = arrays(float, (3,),
                 elements=floats(min_value=-10.0, max_value=10.0, allow_infinity=False, allow_nan=False)
                 ).filter(lambda x: x[2] < -1e-2)
@@ -126,4 +125,12 @@ def test_symmetry_of_the_derivative_of_the_Green_function(X1, X2, omega, method)
                       wave_part_Green_function(X2, X1, omega, np.infty, method)[1][2],
                       rtol=1e-4)
 
+
+@given(points, points, frequencies)
+def test_compare_output_of_Delhommeau_and_XieDelhommeau(X1, X2, omega):
+    # Unchanged parts of the Green function:
+    assert np.allclose(
+            wave_part_Green_function(X1, X2, omega, np.infty, gfs[0])[1][0:2],
+            wave_part_Green_function(X1, X2, omega, np.infty, gfs[1])[1][0:2],
+            rtol=1e-5)
 

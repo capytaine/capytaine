@@ -75,11 +75,10 @@ CONTAINS
 
 #ifdef XIE_CORRECTION
       G    = CMPLX(integrals(1, 2)/PI + ONE/r1, integrals(2, 2), KIND=PRE)
-      dGdr = CMPLX(integrals(1, 1)/PI + ONE/r1, integrals(2, 1), KIND=PRE)
 #else
       G    = CMPLX(integrals(1, 2)/PI, integrals(2, 2), KIND=PRE)
-      dGdr = CMPLX(integrals(1, 1)/PI, integrals(2, 1), KIND=PRE)
 #endif
+      dGdr = CMPLX(integrals(1, 1)/PI, integrals(2, 1), KIND=PRE)
 
       FS    = G
       VS(1) = dGdr * wavenumber*(X0J(1) - X0I(1))/r
