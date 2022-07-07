@@ -34,7 +34,7 @@ They are nice to have but not necessary for Capytaine's main features.
 |            |                                           | in the documentation and   |
 |            |                                           | the cookbook               |
 +------------+-------------------------------------------+----------------------------+
-| vtk        | :code:`conda install -c conda-forge vtk`  | For 3D vizualization       |
+| vtk        | :code:`conda install -c conda-forge vtk`  | For 3D visualization       |
 +------------+-------------------------------------------+----------------------------+
 | joblib     | :code:`conda install joblib`              | For parallel resolution    |
 +------------+-------------------------------------------+----------------------------+
