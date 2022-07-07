@@ -110,7 +110,7 @@ class BEMSolver:
 
         return result
 
-    def solve_all(self, problems, *, n_jobs=None, **kwargs):
+    def solve_all(self, problems, *, n_jobs=1, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -118,9 +118,9 @@ class BEMSolver:
         ----------
         problems: list of LinearPotentialFlowProblem
             several problems to be solved
-        n_jobs: optional int
+        n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
-            By defaults: if `joblib` is installed, use all available cores, else solve sequentially.
+            By defaults: do not use joblib and solve sequentially.
 
         Returns
         -------
@@ -129,22 +129,16 @@ class BEMSolver:
         """
         if n_jobs == 1:  # force sequential resolution
             return [self.solve(pb, **kwargs) for pb in sorted(problems)]
-
-        joblib = silently_import_optional_dependency("joblib")
-        if joblib is not None:
-            if n_jobs is None:
-                n_jobs = -1  # by default, if joblib is installed, use all availables cores
+        else:
+            joblib = silently_import_optional_dependency("joblib")
+            if joblib is None:
+                raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
             groups_of_results = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.solve_all)(grp, n_jobs=1, **kwargs) for grp in groups_of_problems)
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
             return results
-        else:
-            if n_jobs is None:  # by default, if joblib is not installed, solve sequentially
-                return [self.solve(pb, **kwargs) for pb in sorted(problems)]
-            else:
-                raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
 
-    def fill_dataset(self, dataset, bodies, *, n_jobs=None, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, n_jobs=1, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -154,9 +148,9 @@ class BEMSolver:
         bodies : FloatingBody or list of FloatingBody
             The body or bodies involved in the problems
             They should all have different names.
-        n_jobs: optional int
+        n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
-            By defaults: if `joblib` is installed, use all available cores, else solve sequentially.
+            By defaults: do not use joblib and solve sequentially.
 
         Returns
         -------

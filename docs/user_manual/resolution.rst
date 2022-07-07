@@ -152,13 +152,15 @@ feature (new in version 1.4) requires the optional dependency `joblib
 :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` take an optional
 keyword-argument :code:`n_jobs` which control the number of jobs to run in
 parallel during the batch resolution.
+Since `joblib` may disturb user feedback (logging and error
+reporting), it is currently disabled by default.
 
-When :code:`n_jobs=-1` (the default when `joblib` is installed), all CPU
-cores are used (and `joblib` should automatically disable the OpenMP
-parallelization.)
+When :code:`n_jobs=1` (the default) or `joblib` is not installed, no parallel
+batch resolution happens (although OpenMP parallelization might still be
+enabled).
 
-When :code:`joblib` is not installed or :code:`n_jobs=1`, no parallel batch
-resolution happens (although OpenMP parallelization might still be enabled).
+When :code:`n_jobs=-1`, all CPU cores are used (and `joblib` should
+automatically disable the OpenMP parallelization.)
 
 The two parallelization layers (OpenMP and `joblib`) have different usage. If
 you have a relatively small mesh but study a large number of sea states, you
