@@ -97,8 +97,8 @@ def test_two_vertical_cylinders():
     assert np.isclose(results['radiation_damping'].data[0, 1, 0], results['radiation_damping'].data[0, 0, 1])
 
     results_with_sym = assemble_dataset(solver_with_sym.solve_all(problems))
-    assert np.allclose(results['added_mass'].data, results_with_sym['added_mass'].data)
-    assert np.allclose(results['radiation_damping'].data, results_with_sym['radiation_damping'].data)
+    assert np.allclose(results['added_mass'].data, results_with_sym['added_mass'].data, rtol=1e-3)
+    assert np.allclose(results['radiation_damping'].data, results_with_sym['radiation_damping'].data, rtol=1e-3)
 
 
 def test_odd_axial_symmetry():
