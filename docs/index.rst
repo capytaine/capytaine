@@ -13,8 +13,11 @@ Latest release: |release| (|today|).
 
    features.rst
 
+If you need support, you can ask questions on the `Github discussion page <https://github.com/mancellin/capytaine/discussions>`_ or as `Github issues <https://github.com/mancellin/capytaine/issues/>`_.
+Please do not contact the developpers directly by email, unless you are looking for private paid support.
+
 Contributions are welcome!
-Please report bugs and suggest improvements as `Github issues <https://github.com/mancellin/capytaine/issues/>`_.
+Please, report bugs and suggest improvements as `Github issues <https://github.com/mancellin/capytaine/issues/>`_.
 
 .. raw:: html
 
