@@ -38,9 +38,9 @@ Main concepts
     does not strictly guarantee it <https://github.com/mancellin/capytaine/issues/4>`_.
     Accessing them by name rather than by index should be preferred.
 
-    Beside the mesh and the dofs, some other physical informations can be
+    Beside the mesh and the dofs, some other physical information can be
     stored in a :code:`FloatingBody` instance, such as the mass and the
-    position of the center of mass. These informations are only required for
+    position of the center of mass. This information is only required for
     some specific actions (see :doc:`hydrostatics`) and can be left unspecified
     in many cases.
 
@@ -179,7 +179,7 @@ To get these parameters you can either use individual method of each parameters:
     #   * radiating_dof   (radiating_dof) <U5 'Surge' 'Sway' 'Heave' ... 'Pitch' 'Yaw'
 
 
-or you can use :code:`compute_hydrostatics` method which computes all hydrostatic parameters and returns a :code:`dict` of paramters and values::
+or you can use :code:`compute_hydrostatics` method which computes all hydrostatic parameters and returns a :code:`dict` of parameters and values::
 
     # No need to apply keep_immersed_part() to use compute_hydrostatics method.
     hydrostatics = sphere.compute_hydrostatics()

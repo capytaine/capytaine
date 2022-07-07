@@ -11,6 +11,9 @@ Breaking changes
 * The mass matrix of a floating body used to be denoted :code:`mass`. It is now denote :code:`inertia_matrix`.
   The attribute :code:`body.mass` is now used instead for the (scalar) mass of the body. (:pull:`165`)
 
+* The default linear solver is the direct solver and not the iterative solver GMRES, because it is more robust and more predictable.
+  Nothing changes when user explicitely chose a linear solver. (:pull:`171`:)
+
 Other changes
 ~~~~~~~~~~~~~
 
@@ -26,7 +29,7 @@ Other changes
   specified scalar field (e.g. pressure) (:pull:`122`).
 
 * Add new parallelization using the `joblib <https://joblib.readthedocs.io>`_ library as a new optional dependency.
-  The optional keyword-argument :code:`n_jobs` in the :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` controls the number of processes running in parallel (:pull:`136`).
+  The optional keyword-argument :code:`n_jobs` in the :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` controls the number of processes running in parallel (:pull:`136`). By default, this parallelisation is disabled (:pull:`172`).
 
 * A new example using Haskind's relation has been added to the cookbook (:pull:`129`).
 

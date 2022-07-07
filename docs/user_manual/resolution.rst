@@ -45,10 +45,13 @@ Two of them are available in the present version:
            Setting it to :code:`0` will reduce the RAM usage of the code but might
            increase the computation time.
 
-   :code:`linear_solver` (Default: :code:`'gmres'`)
+   :code:`linear_solver` (Default: :code:`'direct'`)
            This option is used to set the solver for linear systems that is used in the resolution of the BEM problem.
            Passing a string will make the code use one of the predefined solver. Two of them are available:
            :code:`'direct'` for a direct solver using LU-decomposition or :code:`'gmres'` for an iterative solver.
+
+           The former is used by default (since version 1.4) because it is more robust and the computation time is more predictable.
+           Advanced users might want to change the solver to :code:`gmres`, which is faster in many situations (and completely fails in other).
 
            Alternatively, any function taking as arguments a matrix and a vector and returning a vector can be given to the solver::
 
@@ -149,13 +152,15 @@ feature (new in version 1.4) requires the optional dependency `joblib
 :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` take an optional
 keyword-argument :code:`n_jobs` which control the number of jobs to run in
 parallel during the batch resolution.
+Since `joblib` may disturb user feedback (logging and error
+reporting), it is currently disabled by default.
 
-When :code:`n_jobs=-1` (the default when `joblib` is installed), all CPU
-cores are used (and `joblib` should automatically disable the OpenMP
-parallelization.)
+When :code:`n_jobs=1` (the default) or `joblib` is not installed, no parallel
+batch resolution happens (although OpenMP parallelization might still be
+enabled).
 
-When :code:`joblib` is not installed or :code:`n_jobs=1`, no parallel batch
-resolution happens (although OpenMP parallelization might still be enabled).
+When :code:`n_jobs=-1`, all CPU cores are used (and `joblib` should
+automatically disable the OpenMP parallelization.)
 
 The two parallelization layers (OpenMP and `joblib`) have different usage. If
 you have a relatively small mesh but study a large number of sea states, you

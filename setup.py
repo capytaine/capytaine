@@ -2,6 +2,10 @@
 # coding: utf-8
 
 import os
+
+from setuptools import dist
+dist.Distribution().fetch_build_eggs(['numpy'])
+
 from numpy.distutils.core import Extension, setup
 
 ########################
