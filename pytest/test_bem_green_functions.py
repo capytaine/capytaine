@@ -91,9 +91,7 @@ def test_compare_tabulations_of_Delhommeau_and_XieDelhommeau():
     Xie = gfs[1].tabulated_integrals[:, :, 0, 1]
     assert np.allclose(Del[abs(z) > 1], Xie[abs(z) > 1], atol=1e-3)
 
-points = arrays(float, (3,),
-                elements=floats(min_value=-10.0, max_value=10.0, allow_infinity=False, allow_nan=False)
-                ).filter(lambda x: x[2] < -1e-2)
+points = arrays(float, (3,), elements=floats(min_value=-10.0, max_value=-1e-2, allow_infinity=False, allow_nan=False))
 methods = one_of(just(gfs[0]), just(gfs[1]))
 frequencies = floats(min_value=1e-2, max_value=1e2)
 depths = one_of(floats(min_value=10.0, max_value=100.0), just(np.infty))
