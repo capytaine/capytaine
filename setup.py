@@ -24,7 +24,6 @@ Delhommeau_source = [
 Delhommeau_extension = Extension(
     name="capytaine.green_functions.Delhommeau_f90",
     sources=Delhommeau_source,
-    extra_compile_args=['-O2', '-fopenmp', '-cpp'],
     extra_f90_compile_args=['-O2', '-fopenmp', '-cpp'],
     extra_link_args=['-fopenmp'],
     # # Uncomment the following lines to get more verbose output from f2py.
@@ -37,7 +36,6 @@ Delhommeau_extension = Extension(
 XieDelhommeau_extension = Extension(
     name="capytaine.green_functions.XieDelhommeau_f90",
     sources=Delhommeau_source,
-    extra_compile_args=['-O2', '-fopenmp', '-cpp', '-DXIE_CORRECTION'],
     extra_f90_compile_args=['-O2', '-fopenmp', '-cpp', '-DXIE_CORRECTION'],
     extra_link_args=['-fopenmp'],
     # # Uncomment the following lines to get more verbose output from f2py.
