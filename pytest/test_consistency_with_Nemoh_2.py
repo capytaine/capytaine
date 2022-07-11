@@ -176,7 +176,7 @@ def test_two_distant_spheres_in_finite_depth():
     perimeter = 2*np.pi*radius
     buoy = Sphere(radius=radius, center=(0.0, 0.0, 0.0),
                   ntheta=int(perimeter*resolution/2), nphi=int(perimeter*resolution),
-                  clip_free_surface=True, clever=False, name="buoy")
+                  clip_free_surface=True, axial_symmetry=False, name="buoy")
     other_buoy = buoy.translated_x(20, name="other_buoy")
     both_buoys = buoy.join_bodies(other_buoy)
     both_buoys.add_translation_dof(name="Surge")

@@ -157,7 +157,7 @@ class TranslationalSymmetricMesh(SymmetricMesh):
 
     @inplace_transformation
     def rotate(self, axis: Axis, angle: float):
-        self.translation = axis.rotation_matrix(angle) @ self.translation
+        self.translation = axis.rotate_vector([self.translation], angle)[0, :]
         CollectionOfMeshes.rotate(self, axis, angle)
         return self
 
@@ -290,10 +290,7 @@ class AxialSymmetricMesh(SymmetricMesh):
         n = profile_array.shape[0]
         angle = 2 * np.pi / nphi
 
-        rotated_profile = Mesh(profile_array, np.zeros((0, 4)), name="rotated_profile_mesh")
-        rotated_profile.rotate_z(angle)
-
-        nodes_slice = np.concatenate([profile_array, rotated_profile.vertices])
+        nodes_slice = np.concatenate([profile_array, axis.rotate_points(profile_array, angle)])
         faces_slice = np.array([[i, i+n, i+n+1, i+1] for i in range(n-1)])
         body_slice = Mesh(nodes_slice, faces_slice, name=f"slice_of_{name}")
         body_slice.merge_duplicates()

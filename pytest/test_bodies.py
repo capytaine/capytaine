@@ -45,7 +45,7 @@ def test_dof_name_inference():
 
 
 def test_bodies():
-    body = Sphere(name="sphere", clever=False)
+    body = Sphere(name="sphere", axial_symmetry=False)
     assert str(body) == "sphere"
     repr(body)
     assert np.allclose(body.geometric_center, (0, 0, 0))
@@ -81,10 +81,10 @@ def test_bodies():
 
 
 @pytest.mark.parametrize("z_center", [0, 2, -2])
-@pytest.mark.parametrize("collection_of_meshes", [True, False])
-def test_clipping_of_dofs(z_center, collection_of_meshes):
+@pytest.mark.parametrize("as_collection_of_meshes", [True, False])
+def test_clipping_of_dofs(z_center, as_collection_of_meshes):
     """Check that clipping a body with a dof is the same as clipping the body ant then adding the dof."""
-    full_sphere = Sphere(center=(0, 0, z_center), name="sphere", clever=collection_of_meshes, clip_free_surface=False)
+    full_sphere = Sphere(center=(0, 0, z_center), name="sphere", axial_symmetry=as_collection_of_meshes, clip_free_surface=False)
     axis = Axis(point=(1, 0, 0), vector=(1, 0, 0))
 
     full_sphere.add_rotation_dof(axis, name="test_dof")

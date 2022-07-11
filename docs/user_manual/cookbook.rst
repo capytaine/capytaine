@@ -46,9 +46,11 @@ Simulation with several bodies
 .. literalinclude:: examples/multibody.py
    :language: python
 
-Adding hydrostatic stiffness and mass properties
-------------------------------------------------
-Hydrostatic and inertia propoerties can be computed via Meshmagick for use with the hydrodynamic results generated with Capytaine.
+Comparison with hydrostatics from Meshmagick
+--------------------------------------------
+
+Hydrostatic and inertia properties can be computed independently via Capytaine or Meshmagick.
+This script compares them both with analytical expression for a simple geometric object.
 
 .. literalinclude:: examples/hydrostatics.py
    :language: python

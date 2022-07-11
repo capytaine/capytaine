@@ -89,11 +89,12 @@ def airy_waves_velocity(points, pb, convention="Nemoh"):
 
 
 def froude_krylov_force(pb, convention="Nemoh"):
-    pressure = -1j * pb.omega * pb.rho * airy_waves_potential(pb.body.mesh.faces_centers, pb, convention=convention)
+    pressure = 1j * pb.omega * pb.rho * airy_waves_potential(pb.body.mesh.faces_centers, pb, convention=convention)
     forces = {}
     for dof in pb.influenced_dofs:
         # Scalar product on each face:
-        normal_dof_amplitude_on_face = np.sum(pb.body.dofs[dof] * pb.body.mesh.faces_normals, axis=1)
+        normal_dof_amplitude_on_face = - np.sum(pb.body.dofs[dof] * pb.body.mesh.faces_normals, axis=1)
+        # The minus sign in the above line is because we want the force of the fluid on the body and not the force of the body on the fluid.
         # Sum over all faces:
         forces[dof] = np.sum(pressure * normal_dof_amplitude_on_face * pb.body.mesh.faces_areas)
     return forces

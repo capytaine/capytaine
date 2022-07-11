@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import os
+import logging
 
 import pytest
 
@@ -56,6 +57,9 @@ def test_LinearPotentialFlowProblem():
     with pytest.raises(TypeError):
         LinearPotentialFlowProblem(radiating_dof="Heave")
 
+    with pytest.raises(ValueError):
+        LinearPotentialFlowProblem(body=FloatingBody(mesh=Mesh([], [])))
+
     # With a body
     sphere = Sphere(center=(0, 0, -2.0))
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
@@ -92,6 +96,15 @@ def test_diffraction_problem():
 
     res = pb.make_results_container()
     assert isinstance(res, DiffractionResult)
+
+
+def test_wave_direction_radians_warning(caplog):
+    sphere = Sphere(radius=1.0, ntheta=20, nphi=40)
+    sphere.keep_immersed_part()
+    sphere.add_all_rigid_body_dofs()
+    with caplog.at_level(logging.WARNING):
+        DiffractionProblem(body=sphere, omega=1.0, wave_direction=180)
+    assert 'in radians and not in degrees' in caplog.text
 
 
 def test_radiation_problem(caplog):

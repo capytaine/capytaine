@@ -2,6 +2,10 @@
 # coding: utf-8
 
 import os
+
+from setuptools import dist
+dist.Distribution().fetch_build_eggs(['numpy'])
+
 from numpy.distutils.core import Extension, setup
 
 ########################
@@ -10,9 +14,9 @@ from numpy.distutils.core import Extension, setup
 
 Delhommeau_source = [
         "capytaine/green_functions/Delhommeau_f90/constants.f90",
+        "capytaine/green_functions/Delhommeau_f90/Delhommeau_integrals.f90",
         "capytaine/green_functions/Delhommeau_f90/old_Prony_decomposition.f90",
         "capytaine/green_functions/Delhommeau_f90/Green_Rankine.f90",
-        "capytaine/green_functions/Delhommeau_f90/Initialize_Green_wave.f90",
         "capytaine/green_functions/Delhommeau_f90/Green_wave.f90",
         "capytaine/green_functions/Delhommeau_f90/matrices.f90",
     ]
@@ -20,7 +24,6 @@ Delhommeau_source = [
 Delhommeau_extension = Extension(
     name="capytaine.green_functions.Delhommeau_f90",
     sources=Delhommeau_source,
-    extra_compile_args=['-O2', '-fopenmp', '-cpp'],
     extra_f90_compile_args=['-O2', '-fopenmp', '-cpp'],
     extra_link_args=['-fopenmp'],
     # # Uncomment the following lines to get more verbose output from f2py.
@@ -33,7 +36,6 @@ Delhommeau_extension = Extension(
 XieDelhommeau_extension = Extension(
     name="capytaine.green_functions.XieDelhommeau_f90",
     sources=Delhommeau_source,
-    extra_compile_args=['-O2', '-fopenmp', '-cpp', '-DXIE_CORRECTION'],
     extra_f90_compile_args=['-O2', '-fopenmp', '-cpp', '-DXIE_CORRECTION'],
     extra_link_args=['-fopenmp'],
     # # Uncomment the following lines to get more verbose output from f2py.
@@ -97,7 +99,7 @@ if __name__ == "__main__":
               'meshio',
               'pygmsh',
               'gmsh',
-              'quadpy<=0.14.11',
+              'quadpy',
               'bemio @ git+https://github.com/michaelcdevin/bemio.git@master-python3#egg=bemio',
               'sphinx',
               'sphinxcontrib-proof',
@@ -109,7 +111,7 @@ if __name__ == "__main__":
               'meshio',
               'pygmsh',
               'gmsh',
-              'quadpy<=0.14.11',
+              'quadpy',
               'bemio @ git+https://github.com/michaelcdevin/bemio.git@master-python3#egg=bemio',
             ]
           },

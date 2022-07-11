@@ -11,7 +11,7 @@ MODULE GREEN_RANKINE
 
 CONTAINS
 
-  SUBROUTINE COMPUTE_INTEGRAL_OF_RANKINE_SOURCE                     &
+  PURE SUBROUTINE COMPUTE_INTEGRAL_OF_RANKINE_SOURCE                &
       (M,                                                           &
       Face_nodes, Face_center, Face_normal, Face_area, Face_radius, &
       S0, VS0)
@@ -50,7 +50,7 @@ CONTAINS
 
       GZ = DOT_PRODUCT(M(1:3) - Face_center(1:3), Face_normal(1:3)) ! Called Z in [Del]
 
-      DO L = 1, 4
+      DO CONCURRENT (L = 1:4)
         RR(L) = NORM2(M(1:3) - Face_nodes(L, 1:3))       ! Distance from vertices of Face to M.
         DRX(:, L) = (M(1:3) - Face_nodes(L, 1:3))/RR(L)  ! Normed vector from vertices of Face to M.
       END DO
@@ -108,7 +108,7 @@ CONTAINS
 
   ! =========================
 
-  SUBROUTINE COMPUTE_ASYMPTOTIC_RANKINE_SOURCE &
+  PURE SUBROUTINE COMPUTE_ASYMPTOTIC_RANKINE_SOURCE &
       (M,                                      &
       Face_center, Face_area,                  &
       S0, VS0)
