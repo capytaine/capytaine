@@ -50,6 +50,7 @@ extensions = [
     'sphinx.ext.viewcode',
     # 'sphinx.ext.githubpages',
     'sphinxcontrib.proof',
+    'sphinxcontrib.mermaid',
 ]
 
 extlinks = {
