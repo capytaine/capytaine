@@ -50,6 +50,7 @@ extensions = [
     'sphinx.ext.viewcode',
     # 'sphinx.ext.githubpages',
     'sphinxcontrib.proof',
+    'sphinxcontrib.bibtex',
 ]
 
 extlinks = {
@@ -198,3 +199,5 @@ napoleon_use_ivar = True
 
 # Numbering theorems
 numfig = True
+
+bibtex_bibfiles = ["theory_manual/refs.bib"]

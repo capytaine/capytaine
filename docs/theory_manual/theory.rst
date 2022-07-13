@@ -3,7 +3,7 @@ Theory manual
 =============
 
 This document presents several aspects of the theoretical background for Nemoh and Capytaine.
-We refer also to [Del87]_ [Del89]_ [Del93]_ [BD15]_ and [AD18]_.
+We refer also to :cite:t:`delhommeau1987problemes`, :cite:t:`delhommeau1989amelioration`, :cite:t:`babarit2015theoretical`.
 
 .. warning:: This document is a work in progress. It is incomplete and might
    contain errors.
@@ -394,7 +394,7 @@ Incorporating these asymptotic approximation in the expression of the Green func
 Xie's variant
 ~~~~~~~~~~~~~
 
-A slight variant is presented in [X18]_. The authors noticed that the
+A slight variant is presented in :cite:p:`xie2018comparison`. The authors noticed that the
 interpolation of the integral :math:`Z_1` can be inaccurate due to the
 singularity :math:`\frac{1}{\zeta}`.
 Hence, they proposed to tabulate instead
