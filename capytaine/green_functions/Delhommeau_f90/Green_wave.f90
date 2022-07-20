@@ -73,9 +73,10 @@ CONTAINS
       !================================================
 
 #ifdef XIE_CORRECTION
-      VS(3) = CMPLX(integrals(1, 2)/PI - ONE/r1, integrals(2, 2), KIND=PRE)
+      VS(3) = CMPLX(integrals(1, 2)/PI + ONE/r1, integrals(2, 2), KIND=PRE)
 #else
       VS(3) = CMPLX(integrals(1, 2)/PI, integrals(2, 2), KIND=PRE)
+      FS    = CMPLX(integrals(1, 2)/PI, integrals(2, 2), KIND=PRE)
 #endif
       FS    = CMPLX(integrals(1, 2)/PI, integrals(2, 2), KIND=PRE)
 
@@ -124,11 +125,13 @@ CONTAINS
     SP  = 2*wavenumber*SP
     VSP = 2*wavenumber**2*VSP
 
-#ifdef XIE_CORRECTION
-#else
-    ! Only one singularity is missing in the derivative
     XJ_REFLECTION(1:2) = X0J(1:2)
     XJ_REFLECTION(3) = - X0J(3)
+#ifdef XIE_CORRECTION
+    ! SP = SP + 2/NORM2(X0I-XJ_REFLECTION)
+    ! VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
+#else
+    ! Only one singularity is missing in the derivative
     VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
 #endif
 
