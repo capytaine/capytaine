@@ -362,7 +362,7 @@ where
 Delhommeau's method for computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The above formulations of the Green function and its derivative require the evaluation of the following real-valued integrals:
+The above formulations of the Green function and its derivative require the evaluation of the following dimensionless real-valued integrals:
 
 .. math::
     D_1(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
@@ -372,6 +372,12 @@ The above formulations of the Green function and its derivative require the eval
 
 
 where :math:`\tilde{r} = k r` and :math:`\tilde{z} = k (x_3 + \xi_3)`, such that :math:`\zeta = \tilde{z} + i \tilde{r} \cos \theta` and :math:`k \| x - s(\xi) \| = \sqrt{\tilde{r}^2 + \tilde{z}^2}`.
+
+.. math::
+   G_2(\xi, x) & = 2 k \left( \frac{Z_1}{\pi} + i Z_2 \right) \\
+   \frac{\partial G_2}{\partial x_1} & = 2 k^2 \frac{x_1 - \xi_1}{r} \left( \frac{D_1}{\pi} + i D_2 \right) - 2 \frac{x_1 - \xi_1}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3} \\
+   \frac{\partial G_2}{\partial x_2} & = 2 k^2 \frac{x_2 - \xi_2}{r} \left( \frac{D_1}{\pi} + i D_2 \right) - 2 \frac{x_2 - \xi_2}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3}\\
+   \frac{\partial G_2}{\partial x_3} & = 2 k^2 \left( \frac{Z_1}{\pi} + i Z_2 \right) - 2 \frac{x_3 + \xi_3}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3}
 
 To limit the computational cost of the evaluation of these integrals, they are precomputed for selected values of :math:`\tilde{r}` and :math:`\tilde{z}` and stored in a table.
 When evaluating the Green function, the values of the integrals are retrieved by interpolating the values in the tables.
