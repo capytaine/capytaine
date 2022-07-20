@@ -192,6 +192,7 @@ The first term of :eq:`green_function_inf_depth_xie` is actually a Rankine-type 
 Variants of the formulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+
 .. _integrate_one_over_zeta:
 
 .. proof:lemma::
@@ -211,12 +212,33 @@ The above lemma allows to retrieve the expression of the Green function found e.
 
 .. proof:lemma::
 
-    The following identity holds [X18]_:
+    The `zeroth order Bessel function of the first kind <https://personal.math.ubc.ca/~cbm/aands/page_360.htm>`_ :math:`J_0` and `the Struve function <https://personal.math.ubc.ca/~cbm/aands/page_496.htm>`_ :math:`H_0` are such that
 
     .. math::
-        \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right) = \pi e^z J_0(r)
+        J_0(r) & = \frac{1}{\pi} \int_{-\pi/2}^{\pi/2} \cos(r\cos(\theta)) \, \mathrm{d} \theta \\
+        H_0(r) & = \frac{1}{\pi} \int_{-\pi/2}^{\pi/2} \sin(r\cos(\theta)) \, \mathrm{d} \theta \\
 
-    where :math:`J_0` is the zeroth order Bessel function of the first kind.
+    hence
+
+    .. math::
+        \int_{-\pi/2}^{\pi/2} i e^{\zeta} \, \mathrm{d} \theta = \pi e^z \left(- H_0(r) + i J_0(r) \right)
+
+
+The function :math:`\mathcal{G}` can also be rewritten as
+
+.. math::
+    \mathcal{G}(r, z) & = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \int^{\pi/2}_{-\pi/2} \Re \left( e^\zeta E_1(\zeta) \right) \, \mathrm{d} \theta + 2 \int^{\pi/2}_{-\pi/2} i e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \\
+    & = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \int^{\pi/2}_{-\pi/2} \Re \left( e^\zeta E_1(\zeta) \right) \, \mathrm{d} \theta + 2 \pi e^z \left( - H_0(r) + i J_0(r) \right)
+
+Noblesse [N82]_ splits the function :math:`\mathcal{G}` into a near field term :math:`N` and a wave field :math:`W` such that
+
+.. math::
+   N(r, z) & = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \int^{\pi/2}_{-\pi/2} \Re \left( e^\zeta E_1(\zeta)  \right) \, \mathrm{d} \theta  \\
+   W(r, z) & = 2 \pi e^z \left( - H_0(r) + i J_0(r) \right)
+
+
+Note that :math:`E_1`, :math:`J_0` and :math:`H_0` are available for instance in the `Scipy library <https://docs.scipy.org/doc/scipy/reference/special.html>`_.
+
 
 .. proof:lemma::
 
