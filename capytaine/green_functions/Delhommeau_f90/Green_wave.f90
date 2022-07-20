@@ -46,7 +46,6 @@ CONTAINS
     ! Local variables
     REAL(KIND=PRE) :: r, z, r1
     REAL(KIND=PRE), dimension(2, 2) :: integrals
-    COMPLEX(KIND=PRE) :: G, dGdr
 
     r = wavenumber * NORM2(X0I(1:2) - X0J(1:2))
     z = wavenumber * (X0I(3) + X0J(3))
@@ -74,16 +73,14 @@ CONTAINS
       !================================================
 
 #ifdef XIE_CORRECTION
-      G    = CMPLX(integrals(1, 2)/PI + ONE/r1, integrals(2, 2), KIND=PRE)
+      VS(3) = CMPLX(integrals(1, 2)/PI - ONE/r1, integrals(2, 2), KIND=PRE)
 #else
-      G    = CMPLX(integrals(1, 2)/PI, integrals(2, 2), KIND=PRE)
+      VS(3) = CMPLX(integrals(1, 2)/PI, integrals(2, 2), KIND=PRE)
 #endif
-      dGdr = CMPLX(integrals(1, 1)/PI, integrals(2, 1), KIND=PRE)
+      FS    = CMPLX(integrals(1, 2)/PI, integrals(2, 2), KIND=PRE)
 
-      FS    = G
-      VS(1) = dGdr * wavenumber*(X0J(1) - X0I(1))/r
-      VS(2) = dGdr * wavenumber*(X0J(2) - X0I(2))/r
-      VS(3) = G
+      VS(1) = -CMPLX(integrals(1, 1)/PI, integrals(2, 1), KIND=PRE) * wavenumber * (X0I(1) - X0J(1))/r
+      VS(2) = -CMPLX(integrals(1, 1)/PI, integrals(2, 1), KIND=PRE) * wavenumber * (X0I(2) - X0J(2))/r
 
       IF (r < REAL(1e-5, KIND=PRE)) THEN
         ! Limit case r ~ 0 ?
@@ -127,10 +124,13 @@ CONTAINS
     SP  = 2*wavenumber*SP
     VSP = 2*wavenumber**2*VSP
 
+#ifdef XIE_CORRECTION
+#else
     ! Only one singularity is missing in the derivative
     XJ_REFLECTION(1:2) = X0J(1:2)
     XJ_REFLECTION(3) = - X0J(3)
     VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
+#endif
 
     RETURN
   END SUBROUTINE WAVE_PART_INFINITE_DEPTH
@@ -188,7 +188,16 @@ CONTAINS
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       FS(1), VS(:, 1))
 
+    ! The Delhommeau integrals are actually Re[ ∫(J(ζ) - 1/ζ)dθ ]/π + i Re[ ∫(e^ζ)dθ ]
+    ! whereas we need Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ]
+    ! So the term PSR is the difference because  Re[ ∫ 1/ζ dθ ] = - π/sqrt(r² + z²)
+    !
+    ! Note however, that the derivative part of Delhommeau integrals is the derivative of
+    ! Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ] so no fix is needed for the derivative.
+
+#ifndef XIE_CORRECTION
     PSR(1) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+#endif
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
@@ -199,7 +208,9 @@ CONTAINS
       FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
+#ifndef XIE_CORRECTION
     PSR(2) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+#endif
 
     ! 1.c Shift and reflect XJ and compute another value of the Green function
     XI(3) =  X0I(3)
@@ -209,7 +220,9 @@ CONTAINS
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       FS(3), VS(:, 3))
 
+#ifndef XIE_CORRECTION
     PSR(3) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+#endif
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
@@ -220,10 +233,16 @@ CONTAINS
       FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
+#ifndef XIE_CORRECTION
     PSR(4) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+#endif
 
     ! Add up the results of the four problems
+#ifdef XIE_CORRECTION
+    SP               = SUM(FS(1:4))
+#else
     SP               = SUM(FS(1:4)) - SUM(PSR(1:4))
+#endif
     VSP_SYM(1:3)     = VS(1:3, 1) + VS(1:3, 4)
     VSP_ANTISYM(1:3) = VS(1:3, 2) + VS(1:3, 3)
 

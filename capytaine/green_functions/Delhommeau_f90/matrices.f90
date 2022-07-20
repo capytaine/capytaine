@@ -277,6 +277,13 @@ CONTAINS
     !  Reflected Rankine part  !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+#ifdef XIE_CORRECTION
+    IF (is_infinity(depth)) THEN
+!     ! A term 1/r1 is missing in the Green part. We add it here.
+      coeffs(2) = coeffs(2) + 2*coeffs(3)
+    ENDIF
+#endif
+
     IF (coeffs(2) .NE. ZERO) THEN
 
       IF (is_infinity(depth)) THEN
