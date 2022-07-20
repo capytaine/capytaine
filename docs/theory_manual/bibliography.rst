@@ -16,3 +16,5 @@ Bibliography
 .. [X18] Xie et al, **Comparison of existing methods for the calculation of the infinite water depth free-surface Green function for the wave-structure interaction problem**, Applied Ocean Research 81 (2018) 150--163
 
 .. [FK20] Falnes and Kurniawan, **Ocean waves and oscillating systems linear interactions including wave energy extraction**, Cambridge University Press, 2020.
+
+.. [N20] Newman, **A simplified derivation of the ordinary differential equations for the free-surface Green functions**, Applied Ocean Research, 2020
