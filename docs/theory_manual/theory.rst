@@ -225,7 +225,7 @@ Variants of the formulation
        \Re \int^{\pi/2}_{-\pi/2} \frac{1}{\zeta(\theta)} \, \mathrm{d} \theta = - \frac{\pi}{k \|x - s(\xi)\|}.
        :label: int_1_over_zeta
 
-    It can be used to derived an alternative expression for the first term of :eq:`green_function_inf_depth_2`.
+    It can be used to derive an alternative expression for the first term of :eq:`green_function_inf_depth_2`.
 
 .. proof:lemma::
 
