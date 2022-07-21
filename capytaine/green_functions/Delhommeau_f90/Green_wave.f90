@@ -72,16 +72,14 @@ CONTAINS
       ! Add the elementary integrals to build FS and VS
       !================================================
 
+      FS    = CMPLX(integrals(1, 2)/PI, integrals(2, 2), KIND=PRE)
+      VS(1) = -CMPLX(integrals(1, 1)/PI, integrals(2, 1), KIND=PRE) * wavenumber * (X0I(1) - X0J(1))/r
+      VS(2) = -CMPLX(integrals(1, 1)/PI, integrals(2, 1), KIND=PRE) * wavenumber * (X0I(2) - X0J(2))/r
 #ifdef XIE_CORRECTION
       VS(3) = CMPLX(integrals(1, 2)/PI + ONE/r1, integrals(2, 2), KIND=PRE)
 #else
       VS(3) = CMPLX(integrals(1, 2)/PI, integrals(2, 2), KIND=PRE)
-      FS    = CMPLX(integrals(1, 2)/PI, integrals(2, 2), KIND=PRE)
 #endif
-      FS    = CMPLX(integrals(1, 2)/PI, integrals(2, 2), KIND=PRE)
-
-      VS(1) = -CMPLX(integrals(1, 1)/PI, integrals(2, 1), KIND=PRE) * wavenumber * (X0I(1) - X0J(1))/r
-      VS(2) = -CMPLX(integrals(1, 1)/PI, integrals(2, 1), KIND=PRE) * wavenumber * (X0I(2) - X0J(2))/r
 
       IF (r < REAL(1e-5, KIND=PRE)) THEN
         ! Limit case r ~ 0 ?
@@ -125,12 +123,10 @@ CONTAINS
     SP  = 2*wavenumber*SP
     VSP = 2*wavenumber**2*VSP
 
+#ifndef XIE_CORRECTION
+    ! In the original Delhommeau method
     XJ_REFLECTION(1:2) = X0J(1:2)
     XJ_REFLECTION(3) = - X0J(3)
-#ifdef XIE_CORRECTION
-    ! SP = SP + 2/NORM2(X0I-XJ_REFLECTION)
-    ! VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
-#else
     ! Only one singularity is missing in the derivative
     VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
 #endif
@@ -191,14 +187,13 @@ CONTAINS
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       FS(1), VS(:, 1))
 
-    ! The Delhommeau integrals are actually Re[ ∫(J(ζ) - 1/ζ)dθ ]/π + i Re[ ∫(e^ζ)dθ ]
+#ifndef XIE_CORRECTION
+    ! In the original Delhommeau method, the integrals are Re[ ∫(J(ζ) - 1/ζ)dθ ]/π + i Re[ ∫(e^ζ)dθ ]
     ! whereas we need Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ]
     ! So the term PSR is the difference because  Re[ ∫ 1/ζ dθ ] = - π/sqrt(r² + z²)
     !
     ! Note however, that the derivative part of Delhommeau integrals is the derivative of
     ! Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ] so no fix is needed for the derivative.
-
-#ifndef XIE_CORRECTION
     PSR(1) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 #endif
 

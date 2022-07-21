@@ -248,8 +248,8 @@ CONTAINS
     ! Local variables
     INTEGER :: I, J
     REAL(KIND=PRE), DIMENSION(nb_faces_1, 3) :: reflected_centers_1, reflected_normals_1
-    REAL(KIND=PRE)               :: SP1
-    REAL(KIND=PRE), DIMENSION(3) :: VSP1
+    REAL(KIND=PRE)               :: SP1, SP1b
+    REAL(KIND=PRE), DIMENSION(3) :: VSP1, VSP1b
 
 
     !!!!!!!!!!!!!!!!!!!!
@@ -279,48 +279,39 @@ CONTAINS
     !  Reflected Rankine part  !
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+#ifndef XIE_CORRECTION
     IF (is_infinity(depth)) THEN
-      ! Reflection through free surface
-      reflected_centers_1(:, 1:2) = centers_1(:, 1:2)
-      reflected_centers_1(:, 3)   = -centers_1(:, 3)
-    ELSE
-      ! Reflection through sea bottom
-      reflected_centers_1(:, 1:2) = centers_1(:, 1:2)
-      reflected_centers_1(:, 3)   = -centers_1(:, 3) - 2*depth
-    END IF
-
-    reflected_normals_1(:, 1:2) = normals_1(:, 1:2)
-    reflected_normals_1(:, 3)   = -normals_1(:, 3)
-
-    DO I = 1, nb_faces_1
-      DO J = 1, nb_faces_2
-
-        CALL COMPUTE_INTEGRAL_OF_RANKINE_SOURCE( &
-          reflected_centers_1(I, :),             &
-          vertices_2(faces_2(J, :), :),          &
-          centers_2(J, :),                       &
-          normals_2(J, :),                       &
-          areas_2(J),                            &
-          radiuses_2(J),                         &
-          SP1, VSP1                              &
-          )
-
-        ! Store into influence matrix
-        S(I, J) = S(I, J) - coeffs(2) * SP1/(4*PI)                                ! Green function
-        K(I, J) = K(I, J) - coeffs(2) * DOT_PRODUCT(reflected_normals_1(I, :), VSP1)/(4*PI) ! Gradient of the Green function
-
-#ifdef XIE_CORRECTION
-        CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE( &
-          reflected_centers_1(I, :),            &
-          centers_2(J, :),                      &
-          areas_2(J),                           &
-          SP1, VSP1                             &
-          )
-        S(I, J) = S(I, J) - 2 * SP1/(4*PI)                                ! Green function
-        K(I, J) = K(I, J) - 2 * DOT_PRODUCT(reflected_normals_1(I, :), VSP1)/(4*PI) ! Gradient of the Green function
+      ! In infinite depth, for finite frequency,
+      ! the original Delhommeau's method as in Nemoh uses coeffs(2) = -1.
+      ! But by default, coeffs(2) is set to 1 in delhommeau.py.
+      coeffs(2) = coeffs(2) - 2*coeffs(3)
+    ENDIF
 #endif
-      END DO
-    END DO
+
+    IF (coeffs(2) .NE. ZERO) THEN
+
+      IF (is_infinity(depth)) THEN
+        ! Reflection through free surface
+        reflected_centers_1(:, 1:2) = centers_1(:, 1:2)
+        reflected_centers_1(:, 3)   = -centers_1(:, 3)
+      ELSE
+        ! Reflection through sea bottom
+        reflected_centers_1(:, 1:2) = centers_1(:, 1:2)
+        reflected_centers_1(:, 3)   = -centers_1(:, 3) - 2*depth
+      END IF
+
+      reflected_normals_1(:, 1:2) = normals_1(:, 1:2)
+      reflected_normals_1(:, 3)   = -normals_1(:, 3)
+
+      CALL ADD_RANKINE_PART_TO_THE_MATRICES(                            &
+        nb_faces_1,                                                     &
+        reflected_centers_1, reflected_normals_1,                       &
+        nb_vertices_2, nb_faces_2,                                      &
+        vertices_2, faces_2, centers_2, normals_2, areas_2, radiuses_2, &
+        coeffs(2),                                                      &
+        S, K)
+
+    END IF
 
     !!!!!!!!!!!!!!!
     !  Wave part  !
