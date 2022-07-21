@@ -246,10 +246,8 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: K
 
     ! Local variables
-    INTEGER :: I, J
+    INTEGER :: I
     REAL(KIND=PRE), DIMENSION(nb_faces_1, 3) :: reflected_centers_1, reflected_normals_1
-    REAL(KIND=PRE)               :: SP1, SP1b
-    REAL(KIND=PRE), DIMENSION(3) :: VSP1, VSP1b
 
 
     !!!!!!!!!!!!!!!!!!!!
