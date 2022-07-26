@@ -24,29 +24,30 @@ MODULE Old_Prony_decomposition
 
 CONTAINS
 
-  FUNCTION FF(XTT, AK, AM)
+  FUNCTION FF(K, K0, M0)
+    ! Function F_2(K) = F_1(K) - 2 from (3.47) of Delhommeau's thesis
 
     ! Input
-    REAL, INTENT(IN) :: XTT, AK, AM
+    REAL, INTENT(IN) :: K, K0, M0
 
     ! Local variables
     REAL :: COEF, TOL, A, B, C, D, E, F, FF
 
-    COEF = (AM+AK)**2/(AM**2-AK**2+AK)
+    COEF = (M0+K0)**2/(M0**2-K0**2+K0)
 
-    TOL = MAX(0.1, 0.1*AM)
-    IF (ABS(XTT-AM) > TOL) THEN
-      FF = (XTT+AK)*EXP(XTT)/(XTT*SINH(XTT)-AK*COSH(XTT)) - COEF/(XTT-AM) - 2
-    ELSE
-      A = AM - TOL
-      B = AM
-      C = AM + TOL
-      D = (A+AK)*EXP(A)/(A*SINH(A)-AK*COSH(A)) - COEF/(A-AM) - 2
-      E = COEF/(AM+AK)*(AM+AK+1)               - (COEF/(AM+AK))**2*AM - 2
-      F = (C+AK)*EXP(C)/(C*SINH(C)-AK*COSH(C)) - COEF/(C-AM) - 2
-      FF = D*(XTT-B)*(XTT-C)/((A-B)*(A-C)) + &
-           E*(XTT-C)*(XTT-A)/((B-C)*(B-A)) + &
-           F*(XTT-A)*(XTT-B)/((C-A)*(C-B))
+    TOL = MAX(0.1, 0.1*M0)
+    IF (ABS(K-M0) > TOL) THEN
+      FF = (K+K0)*EXP(K)/(K*SINH(K)-K0*COSH(K)) - COEF/(K-M0) - 2
+    ELSE  ! The fraction above is undefined 0/0 when K == M0
+      A = M0 - TOL
+      B = M0
+      C = M0 + TOL
+      D = (A+K0)*EXP(A)/(A*SINH(A)-K0*COSH(A)) - COEF/(A-M0) - 2
+      E = COEF/(M0+K0)*(M0+K0+1)               - (COEF/(M0+K0))**2*M0 - 2
+      F = (C+K0)*EXP(C)/(C*SINH(C)-K0*COSH(C)) - COEF/(C-M0) - 2
+      FF = D*(K-B)*(K-C)/((A-B)*(A-C)) + &
+           E*(K-C)*(K-A)/((B-C)*(B-A)) + &
+           F*(K-A)*(K-B)/((C-A)*(C-B))
     ENDIF
     
     RETURN
