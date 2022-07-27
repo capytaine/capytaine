@@ -253,10 +253,6 @@ class HorizontalCylinder(FloatingBody):
 
             return cylinder
 
-    @property
-    def volume(self):
-        return self.length*np.pi*self.radius**2
-
 
 class VerticalCylinder(FloatingBody):
     """Vertical cylinder.
@@ -317,4 +313,3 @@ class VerticalCylinder(FloatingBody):
         mesh.name = f"{name}_mesh"
 
         FloatingBody.__init__(self, mesh=mesh, name=name)
-
