@@ -7,6 +7,16 @@ Changelog
    :depth: 1
    :backlinks: none
 
+---------------------------------
+New in version 1.4.1 (2022--)
+---------------------------------
+
+Bug fixes
+~~~~~~~~~
+
+* Removed outdated volume/area methods from pre-defined bodies (:pull:`183`).
+
+
 -------------------------------
 New in version 1.4 (2022-07-07)
 -------------------------------
