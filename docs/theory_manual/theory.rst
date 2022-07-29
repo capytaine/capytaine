@@ -460,10 +460,33 @@ The matrices :math:`S` and :math:`V` relates the vectors :math:`\Phi`, :math:`u`
 The resolution of the discrete problem with Nemoh consists of two main steps:
 
 1. The evaluation of the coefficients of the complex-valued matrices :math:`S` and :math:`V`
-2. The resolution of the complex-valued linear problem :math:`\left( \frac{\mathbb{I}}{2} + V \right) \sigma = u`.
+2. The resolution of the complex-valued linear problem :math:`K \sigma = \left( \frac{\mathbb{I}}{2} + V \right) \sigma = u`.
 
 Once :math:`\sigma` has been computed, :math:`\Phi` can be easily deduced.
 Then other magnitudes such as the Froude-Krylov forces or the added mass can be derived.
+
+.. mermaid::
+    :caption: A simplified flowchart of the internals of Capytaine solver
+
+    flowchart TD;
+        h[Water depth] --> gf(Assembling matrices);
+        ω[Wave frequency ω] --> gf(Assembling matrices);
+        m[Mesh] --> gf;
+        gf -- K matrix --> ls(Linear solver);
+        un[Normal velocity on hull] --> ls;
+        gf -- S matrix --> mvp(Matrix vector product);
+        ls -- sources distribution σ --> mvp;
+        mvp -- potential distribution Φ --> int("Integrate on mesh");
+        m --> int;
+        int --> f["Hydrodynamic forces\n(aka added mass and radiation damping)"]
+
+        classDef input fill:#FFAAAA,color:#550000,stroke:#113939
+        classDef step fill:#88BBBB,color:#003333,stroke:#226666
+        classDef output fill:#FFE3AA,color:#553900,stroke:#AA8439
+        class ω,m,un,h input
+        class gf,ls,mvp,int step
+        class f output
+
 
 Post-processing
 ===============

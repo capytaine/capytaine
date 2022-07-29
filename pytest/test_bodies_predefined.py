@@ -37,7 +37,6 @@ def test_rectangle_generation():
     assert all(rec.geometric_center == [0, 0, -5.0])
     assert rec.mesh.nb_faces == 12
     assert rec.mesh.nb_vertices == 21
-    assert rec.area == 100
 
     # x coordinate
     assert np.allclose(rec.mesh.vertices[:, 0], 0.0)
@@ -173,4 +172,3 @@ def test_sphere_clipping():
     assert s1.mesh.nb_faces == s2.mesh.nb_faces
     assert s1.mesh.nb_vertices == s2.mesh.nb_vertices
     # TODO: test that the faces are actually the same.
-
