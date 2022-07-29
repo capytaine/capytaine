@@ -739,7 +739,14 @@ def load_GDF(filename, name=None):
 
     ifile.close()
 
-    return Mesh(vertices, faces, name)
+    if isx == '1' and isy == '1':
+        return ReflectionSymmetricMesh(ReflectionSymmetricMesh(Mesh(vertices, faces, f"quarter_of_{name}"), yOz_Plane, f"half_of_{name}"), xOz_Plane, name)
+    elif isx == '1':
+        return ReflectionSymmetricMesh(Mesh(vertices, faces, f"half_of_{name}"), xOz_Plane, name)
+    elif isy == '1':
+        return ReflectionSymmetricMesh(Mesh(vertices, faces, f"half_of_{name}"), yOz_Plane, name)
+    else:
+        return Mesh(vertices, faces, name)
 
 
 def load_MAR(filename, name=None):
