@@ -16,6 +16,7 @@ Bug fixes
 
 * Removed outdated volume/area methods from pre-defined bodies (:pull:`183`).
 
+* Added symmetric realization and reflection to gdf mesh import (:issue:`186` and :pull:`187`).
 
 -------------------------------
 New in version 1.4 (2022-07-07)
