@@ -130,6 +130,13 @@ def test_cylinder():
     # TODO
 
 
+def test_cylinder_submesh_names():
+    for s in [True, False]:
+        c = HorizontalCylinder(reflection_symmetry=True, translation_symmetry=s, name="cylinder")
+        assert c.mesh[0].name == "half_cylinder_mesh"
+        assert c.mesh[1].name == "mirrored_of_half_cylinder_mesh"
+
+
 ############
 #  SPHERE  #
 ############
