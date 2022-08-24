@@ -194,7 +194,7 @@ class HorizontalCylinder(FloatingBody):
                 half_mesh = CollectionOfMeshes((open_cylinder.half, half_sides), name=f"half_{name}_mesh")
                 mesh = ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
             else:
-                sides = CollectionOfMeshes((side, other_side), name="sides_of_cylinder_{name}_mesh")
+                sides = CollectionOfMeshes((side, other_side), name=f"sides_of_cylinder_{name}_mesh")
                 mesh = CollectionOfMeshes((open_cylinder, sides), name=f"{name}_mesh")
 
         if not reflection_symmetry and not translation_symmetry:
