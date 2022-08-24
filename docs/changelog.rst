@@ -18,6 +18,8 @@ Bug fixes
 
 * Added symmetric realization and reflection to gdf mesh import (:issue:`186` and :pull:`187`).
 
+* Fix some automatic mesh names (:pull:`195`)
+
 -------------------------------
 New in version 1.4 (2022-07-07)
 -------------------------------
