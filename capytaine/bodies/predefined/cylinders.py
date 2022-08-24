@@ -190,8 +190,8 @@ class HorizontalCylinder(FloatingBody):
             other_side.mirror(yOz_Plane)
 
             if reflection_symmetry:  # Knit the sides into the symmetric representation of the open cylinder
-                half_sides = CollectionOfMeshes((side.half, other_side.half), name="half_sides_of_{name}_mesh")
-                half_mesh = CollectionOfMeshes((open_cylinder.half, half_sides), name="half_{name}_mesh")
+                half_sides = CollectionOfMeshes((side.half, other_side.half), name=f"half_sides_of_{name}_mesh")
+                half_mesh = CollectionOfMeshes((open_cylinder.half, half_sides), name=f"half_{name}_mesh")
                 mesh = ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
             else:
                 sides = CollectionOfMeshes((side, other_side), name="sides_of_cylinder_{name}_mesh")
