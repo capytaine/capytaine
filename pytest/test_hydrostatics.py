@@ -63,7 +63,7 @@ def test_stifness_generalized_dof_invariance_by_translation():
     # Not really a generalized dof, but since the dofs have non-standard names
     # the code will not recognize the rigid body dof.
     sphere.add_translation_dof(direction=(1, 0, 0), name="cavalement")
-    sphere.add_rotation_dof(axis=cpt.Axis(vector=(0, 1, 0), point=sphere.center_of_mass), name="tangage")
+    sphere.add_rotation_dof(axis=cpt.Axis(vector=(0, 1, 0), point=(0, 0, 0)), name="tangage")
     K1 = sphere.compute_hydrostatic_stiffness()
     K2 = sphere.translated([1.0, 0.0, 0.0]).compute_hydrostatic_stiffness()
     assert np.allclose(K1, K2)

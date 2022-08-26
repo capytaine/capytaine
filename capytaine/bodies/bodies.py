@@ -389,18 +389,17 @@ class FloatingBody(Abstract3DObject):
             if dof_pair == ("Heave", "Heave"):
                 norm_hs_stiff = self.waterplane_area
             elif dof_pair in [("Heave", "Roll"), ("Roll", "Heave")]:
-                norm_hs_stiff = -self.waterplane_integral(self.mesh.faces_centers[:,1])
+                norm_hs_stiff = -self.waterplane_integral(self.dofs["Roll"][:, 2])
             elif dof_pair in [("Heave", "Pitch"), ("Pitch", "Heave")]:
-                norm_hs_stiff = self.waterplane_integral(self.mesh.faces_centers[:,0])
+                norm_hs_stiff = self.waterplane_integral(-self.dofs["Pitch"][:, 2])
             elif dof_pair == ("Roll", "Roll"):
-                norm_hs_stiff = -self.waterplane_integral(self.mesh.faces_centers[:,1]**2) + self.volume*self.center_of_buoyancy[2] - mass/rho*cog[2]
+                norm_hs_stiff = -self.waterplane_integral(self.dofs["Roll"][:, 2]**2) + self.volume*self.center_of_buoyancy[2] - mass/rho*cog[2]
             elif dof_pair in [("Roll", "Pitch"), ("Pitch", "Roll")]:
-                norm_hs_stiff = self.waterplane_integral(self.mesh.faces_centers[:,0]
-                                                          * self.mesh.faces_centers[:,1])
+                norm_hs_stiff = self.waterplane_integral(-self.dofs["Pitch"][:, 2] * self.dofs["Roll"][:, 2])
             elif dof_pair == ("Roll", "Yaw"):
                 norm_hs_stiff = - self.volume*self.center_of_buoyancy[0] + mass/rho*cog[0]
             elif dof_pair == ("Pitch", "Pitch"):
-                norm_hs_stiff = -self.waterplane_integral(self.mesh.faces_centers[:,0]**2) + self.volume*self.center_of_buoyancy[2] - mass/rho*cog[2]
+                norm_hs_stiff = -self.waterplane_integral(self.dofs["Pitch"][:, 2]**2) + self.volume*self.center_of_buoyancy[2] - mass/rho*cog[2]
             elif dof_pair == ("Pitch", "Yaw"):
                 norm_hs_stiff = - self.volume*self.center_of_buoyancy[1] + mass/rho*cog[1]
             else:
