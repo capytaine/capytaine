@@ -48,11 +48,22 @@ def test_stiffness_dof_ordering():
     K = sphere.compute_hydrostatic_stiffness()
     assert np.all(K.coords["radiating_dof"].values == np.array(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw']))
 
-def test_stifness_invariance_by_translation():
+def test_stifness_rigid_body_invariance_by_translation():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20)
     sphere.keep_immersed_part()
     sphere.center_of_mass = np.array([0.0, 0.0, -0.2])
     sphere.add_all_rigid_body_dofs()
+    K1 = sphere.compute_hydrostatic_stiffness()
+    K2 = sphere.translated([1.0, 0.0, 0.0]).compute_hydrostatic_stiffness()
+    assert np.allclose(K1, K2)
+
+def test_stifness_generalized_dof_invariance_by_translation():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20)
+    sphere.keep_immersed_part()
+    # Not really a generalized dof, but since the dofs have non-standard names
+    # the code will not recognize the rigid body dof.
+    sphere.add_translation_dof(direction=(1, 0, 0), name="cavalement")
+    sphere.add_rotation_dof(axis=cpt.Axis(vector=(0, 1, 0), point=sphere.center_of_mass), name="tangage")
     K1 = sphere.compute_hydrostatic_stiffness()
     K2 = sphere.translated([1.0, 0.0, 0.0]).compute_hydrostatic_stiffness()
     assert np.allclose(K1, K2)
