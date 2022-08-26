@@ -524,7 +524,7 @@ class FloatingBody(Abstract3DObject):
 
         cog = self.center_of_mass
 
-        fcs = (self.mesh.faces_centers).T
+        fcs = [-self.dofs["Pitch"][:, 2], self.dofs["Roll"][:, 2], self.mesh.faces_centers[:, 2]]
         combinations = np.array([fcs[0]**2, fcs[1]**2, fcs[2]**2, fcs[0]*fcs[1],
                                  fcs[1]*fcs[2], fcs[2]*fcs[0]])
         integrals = np.array([
