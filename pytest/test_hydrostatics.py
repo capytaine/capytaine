@@ -94,6 +94,15 @@ def test_inertia_rigid_body_dofs():
     assert np.all(sphere.compute_rigid_body_inertia(output_type="rigid_dofs")
             == sphere.compute_rigid_body_inertia(output_type="body_dofs"))
 
+def test_inertia_invariance_by_translation():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20)
+    sphere.keep_immersed_part()
+    sphere.center_of_mass = np.array([0.0, 0.0, -0.2])
+    sphere.add_all_rigid_body_dofs()
+    M1 = sphere.compute_rigid_body_inertia()
+    M2 = sphere.translated([1.0, 0.0, 0.0]).compute_rigid_body_inertia()
+    assert np.allclose(M1, M2)
+
 def test_inertia_wrong_output_type():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     sphere.center_of_mass = np.array([0, 0, -0.3])
