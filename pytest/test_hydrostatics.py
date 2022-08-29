@@ -34,6 +34,14 @@ def test_waterplane_center_of_sphere_at_surface():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     assert np.allclose(sphere.waterplane_center, [0.0, 0.0])
 
+def test_infer_rotation_center():
+    sphere = cpt.Sphere().keep_immersed_part()
+    sphere.rotation_center = (7, 8, 9)
+    sphere.add_all_rigid_body_dofs()
+    assert np.allclose(sphere._infer_rotation_center(), (7, 8, 9))
+    del sphere.rotation_center
+    assert np.allclose(sphere._infer_rotation_center(), (7, 8, 9))
+
 def test_stiffness_when_no_dofs():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
     sphere.center_of_mass = np.array([0, 0, -0.3])

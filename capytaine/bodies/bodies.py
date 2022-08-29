@@ -326,6 +326,42 @@ class FloatingBody(Abstract3DObject):
         """Returns dot product of the surface face normals and DOF"""
         return np.sum(self.mesh.faces_normals * dof, axis=1)
 
+    def _infer_rotation_center(self):
+        """Hacky way to infer the point around which the rotation dofs are defined.
+        (Assuming all three rotation dofs are defined around the same point).
+        In the future, should be replaced by something more robust.
+        """
+        if hasattr(self, "rotation_center"):
+            return self.rotation_center
+
+        else:
+            try:
+                xc1 = self.dofs["Pitch"][:, 2] + self.mesh.faces_centers[:, 0]
+                xc2 = -self.dofs["Yaw"][:, 1] + self.mesh.faces_centers[:, 0]
+                yc1 = self.dofs["Yaw"][:, 0] + self.mesh.faces_centers[:, 1]
+                yc2 = -self.dofs["Roll"][:, 2] + self.mesh.faces_centers[:, 1]
+                zc1 = -self.dofs["Pitch"][:, 0] + self.mesh.faces_centers[:, 2]
+                zc2 = self.dofs["Roll"][:, 1] + self.mesh.faces_centers[:, 2]
+
+                # All items should be identical in a given vector
+                assert np.isclose(xc1, xc1[0]).all()
+                assert np.isclose(yc1, yc1[0]).all()
+                assert np.isclose(zc1, zc1[0]).all()
+
+                # Both vector should be identical
+                assert np.allclose(xc1, xc2)
+                assert np.allclose(yc1, yc2)
+                assert np.allclose(zc1, zc2)
+
+                return xc1[0], yc1[0], zc1[0]
+
+            except Exception as e:
+                raise ValueError(
+                        f"Failed to infer the rotation center of {self.name} to compute rigid body hydrostatics.\n"
+                        f"Possible fix: add a `rotation_center` attibute to {self.name}.\n"
+                        "Note that rigid body hydrostatic methods currently assume that the three rotation dofs have the same rotation center."
+                        ) from e
+
     def each_hydrostatic_stiffness(self, influenced_dof_name, radiating_dof_name, *,
                                          influenced_dof_div=0.0, rho=1000.0, g=9.81):
         r"""
