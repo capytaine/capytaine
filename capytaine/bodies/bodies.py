@@ -332,7 +332,7 @@ class FloatingBody(Abstract3DObject):
         In the future, should be replaced by something more robust.
         """
         if hasattr(self, "rotation_center"):
-            return self.rotation_center
+            return np.asarray(self.rotation_center)
 
         else:
             try:
@@ -353,7 +353,7 @@ class FloatingBody(Abstract3DObject):
                 assert np.allclose(yc1, yc2)
                 assert np.allclose(zc1, zc2)
 
-                return xc1[0], yc1[0], zc1[0]
+                return np.array([xc1[0], yc1[0], zc1[0]])
 
             except Exception as e:
                 raise ValueError(
@@ -422,22 +422,30 @@ class FloatingBody(Abstract3DObject):
         dof_pair = (influenced_dof_name, radiating_dof_name)
 
         if set(dof_pair).issubset(set(rigid_dof_names)):
+            xc, yc, zc = self._infer_rotation_center()
             if dof_pair == ("Heave", "Heave"):
                 norm_hs_stiff = self.waterplane_area
             elif dof_pair in [("Heave", "Roll"), ("Roll", "Heave")]:
-                norm_hs_stiff = -self.waterplane_integral(self.dofs["Roll"][:, 2])
+                norm_hs_stiff = -self.waterplane_integral(self.mesh.faces_centers[:,1] - yc)
             elif dof_pair in [("Heave", "Pitch"), ("Pitch", "Heave")]:
-                norm_hs_stiff = self.waterplane_integral(-self.dofs["Pitch"][:, 2])
+                norm_hs_stiff = self.waterplane_integral(self.mesh.faces_centers[:,0] - xc)
             elif dof_pair == ("Roll", "Roll"):
-                norm_hs_stiff = -self.waterplane_integral(self.dofs["Roll"][:, 2]**2) + self.volume*self.center_of_buoyancy[2] - mass/rho*cog[2]
+                norm_hs_stiff = (
+                        -self.waterplane_integral((self.mesh.faces_centers[:,1] - yc)**2)
+                        + self.volume*(self.center_of_buoyancy[2] - zc) - mass/rho*(cog[2] - zc)
+                )
             elif dof_pair in [("Roll", "Pitch"), ("Pitch", "Roll")]:
-                norm_hs_stiff = self.waterplane_integral(-self.dofs["Pitch"][:, 2] * self.dofs["Roll"][:, 2])
+                norm_hs_stiff = self.waterplane_integral((self.mesh.faces_centers[:,0] - xc)
+                                                          * (self.mesh.faces_centers[:,1] - yc))
             elif dof_pair == ("Roll", "Yaw"):
-                norm_hs_stiff = - self.volume*self.center_of_buoyancy[0] + mass/rho*cog[0]
+                norm_hs_stiff = - self.volume*(self.center_of_buoyancy[0] - xc) + mass/rho*(cog[0] - xc)
             elif dof_pair == ("Pitch", "Pitch"):
-                norm_hs_stiff = -self.waterplane_integral(self.dofs["Pitch"][:, 2]**2) + self.volume*self.center_of_buoyancy[2] - mass/rho*cog[2]
+                norm_hs_stiff = (
+                        -self.waterplane_integral((self.mesh.faces_centers[:,0] - xc)**2)
+                        + self.volume*(self.center_of_buoyancy[2] - zc) - mass/rho*(cog[2] - zc)
+                        )
             elif dof_pair == ("Pitch", "Yaw"):
-                norm_hs_stiff = - self.volume*self.center_of_buoyancy[1] + mass/rho*cog[1]
+                norm_hs_stiff = - self.volume*(self.center_of_buoyancy[1] - yc) + mass/rho*(cog[1] - yc)
             else:
                 norm_hs_stiff = 0.0
         else:
@@ -558,9 +566,9 @@ class FloatingBody(Abstract3DObject):
             If output_type is not in {"body_dofs", "rigid_dofs", "all_dofs"}.
         """
 
-        cog = self.center_of_mass
-
-        fcs = [-self.dofs["Pitch"][:, 2], self.dofs["Roll"][:, 2], self.mesh.faces_centers[:, 2]]
+        rc = self._infer_rotation_center()
+        cog = self.center_of_mass - rc
+        fcs = (self.mesh.faces_centers - rc).T
         combinations = np.array([fcs[0]**2, fcs[1]**2, fcs[2]**2, fcs[0]*fcs[1],
                                  fcs[1]*fcs[2], fcs[2]*fcs[0]])
         integrals = np.array([

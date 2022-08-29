@@ -98,7 +98,7 @@ def test_stiffness_with_malformed_divergence(caplog):
 
 def test_mass_of_sphere_for_non_default_density():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=50, ntheta=50)
-    sphere.add_translation_dof(name="Heave")
+    sphere.add_all_rigid_body_dofs()
     sphere.center_of_mass = np.array([0, 0, -2])
     m = sphere.compute_rigid_body_inertia(rho=500)
     analytical_volume = 4/3*np.pi*1.0**3
@@ -131,6 +131,7 @@ def test_inertia_wrong_output_type():
 
 def test_inertia_when_no_dofs():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
+    sphere.rotation_center = np.array([0, 0, 0])
     sphere.center_of_mass = np.array([0, 0, -0.3])
     m =sphere.compute_rigid_body_inertia()
     assert m.shape == (0, 0)
@@ -162,8 +163,9 @@ def test_all_hydrostatics():
         nr=200, nx=200, ntheta=10,
     )
     body = sphere + horizontal_cylinder + vertical_cylinder
-    body.add_all_rigid_body_dofs()
+    body.rotation_center = np.array([0, 0, 0])
     body.center_of_mass = body.center_of_buoyancy
+    body.add_all_rigid_body_dofs()
 
     capy_hsdb = body.compute_hydrostatics(rho=density, g=gravity)
 
@@ -258,6 +260,7 @@ def test_vertical_elastic_dof():
 
 def test_non_neutrally_buoyant_stiffness():
     body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body.rotation_center = (0, 0, 0)
     body.add_all_rigid_body_dofs()
     body.keep_immersed_part()
     body.mass = 500 * body.volume
@@ -282,6 +285,7 @@ def test_non_neutrally_buoyant_stiffness():
 
 def test_non_neutrally_buoyant_K55():
     body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body.rotation_center = (0, 0, 0)
     body.add_all_rigid_body_dofs()
     body.keep_immersed_part()
 
@@ -303,13 +307,34 @@ def test_non_neutrally_buoyant_K55():
         assert np.isclose(K55, case.K55, atol=rho_g*1e-2)
 
 
-
+def test_non_neutrally_buoyant_stiffness_invariance_by_translation():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20)
+    sphere.keep_immersed_part()
+    sphere.mass = 300 * sphere.volume
+    sphere.center_of_mass = np.array([0.0, 0.0, -0.2])
+    sphere.add_all_rigid_body_dofs()
+    K1 = sphere.compute_hydrostatic_stiffness()
+    K2 = sphere.translated([1.0, 0.0, 0.0]).compute_hydrostatic_stiffness()
+    assert np.allclose(K1, K2)
 
 def test_non_neutrally_buoyant_inertia():
     body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body.rotation_center = (0, 0, 0)
     body.add_all_rigid_body_dofs()
     body.keep_immersed_part()
     body.center_of_mass = (0.0, 0.0, -0.25)
     body.mass = body.volume * 500
     M = body.compute_rigid_body_inertia().values
     assert np.allclose(np.diag(M), np.array([1570, 1570, 1570, 936, 936, 801]), rtol=5e-2)
+
+def test_non_neutrally_buoyant_inertia_invariance_by_translation():
+    sphere = cpt.Sphere(radius=1.0, center=(0, 0, 0), nphi=20, ntheta=20)
+    sphere.rotation_center = np.array([0.0, 0.0, 0.0])
+    sphere.mass = 300 * sphere.volume
+    sphere.center_of_mass = np.array([0.0, 0.0, -0.2])
+    sphere.add_all_rigid_body_dofs()
+    M1 = sphere.compute_rigid_body_inertia()
+    M2 = sphere.translated([1.0, -1.0, 10.0]).compute_rigid_body_inertia()
+    print(M1.values)
+    print(M2.values)
+    assert np.allclose(M1, M2)
