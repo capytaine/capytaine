@@ -14,6 +14,9 @@ New in version 1.4.1 (2022--)
 Bug fixes
 ~~~~~~~~~
 
+* Fix bug in hydrostatics of rigid bodies: the hydrostatic matrices were always assuming that the rotation dofs were defined around the :math:`(0, 0, 0)` point.
+  The stiffness and inertia matrix are now invariant by horizontal translation of the body, as they should be. (:issue:`178` and :pull:`196`).
+
 * Removed outdated volume/area methods from pre-defined bodies (:pull:`183`).
 
 * Added symmetric realization and reflection to gdf mesh import (:issue:`186` and :pull:`187`).
