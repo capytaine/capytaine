@@ -23,6 +23,8 @@ Bug fixes
 
 * Fix some automatic mesh names (:pull:`195`)
 
+* Return more explicit error message when the center of mass is missing for the computation of rigid-body hydrostatics (:pull:`201`).
+
 -------------------------------
 New in version 1.4 (2022-07-07)
 -------------------------------
