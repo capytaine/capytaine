@@ -25,6 +25,8 @@ Bug fixes
 
 * Return more explicit error message when the center of mass is missing for the computation of rigid-body hydrostatics (:pull:`201`).
 
+* Return error message when trying to animate a body with a dof that has not been defined. Previously, undefined dofs where silently ignored. (:pull:`202`)
+
 -------------------------------
 New in version 1.4 (2022-07-07)
 -------------------------------
