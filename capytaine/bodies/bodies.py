@@ -414,15 +414,17 @@ class FloatingBody(Abstract3DObject):
         # Alternative is to use the general equation of hydrostatic and
         # restoring coefficient for rigid mdoes and use Neuman equation for elastic
         # modes.
-        cog = self.center_of_mass
-        mass = self.disp_mass(rho=rho) if self.mass is None else self.mass
 
         rigid_dof_names = ("Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw")
-
         dof_pair = (influenced_dof_name, radiating_dof_name)
 
         if set(dof_pair).issubset(set(rigid_dof_names)):
+            if self.center_of_mass is None:
+                raise ValueError(f"Trying to compute rigid-body hydrostatic stiffness for {self.name}, but no center of mass has been defined.\n"
+                                 f"Suggested solution: define a `center_of_mass` attribute for the FloatingBody {self.name}.")
+            mass = self.disp_mass(rho=rho) if self.mass is None else self.mass
             xc, yc, zc = self._infer_rotation_center()
+
             if dof_pair == ("Heave", "Heave"):
                 norm_hs_stiff = self.waterplane_area
             elif dof_pair in [("Heave", "Roll"), ("Roll", "Heave")]:
@@ -432,20 +434,20 @@ class FloatingBody(Abstract3DObject):
             elif dof_pair == ("Roll", "Roll"):
                 norm_hs_stiff = (
                         -self.waterplane_integral((self.mesh.faces_centers[:,1] - yc)**2)
-                        + self.volume*(self.center_of_buoyancy[2] - zc) - mass/rho*(cog[2] - zc)
+                        + self.volume*(self.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
                 )
             elif dof_pair in [("Roll", "Pitch"), ("Pitch", "Roll")]:
                 norm_hs_stiff = self.waterplane_integral((self.mesh.faces_centers[:,0] - xc)
                                                           * (self.mesh.faces_centers[:,1] - yc))
             elif dof_pair == ("Roll", "Yaw"):
-                norm_hs_stiff = - self.volume*(self.center_of_buoyancy[0] - xc) + mass/rho*(cog[0] - xc)
+                norm_hs_stiff = - self.volume*(self.center_of_buoyancy[0] - xc) + mass/rho*(self.center_of_mass[0] - xc)
             elif dof_pair == ("Pitch", "Pitch"):
                 norm_hs_stiff = (
                         -self.waterplane_integral((self.mesh.faces_centers[:,0] - xc)**2)
-                        + self.volume*(self.center_of_buoyancy[2] - zc) - mass/rho*(cog[2] - zc)
+                        + self.volume*(self.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
                         )
             elif dof_pair == ("Pitch", "Yaw"):
-                norm_hs_stiff = - self.volume*(self.center_of_buoyancy[1] - yc) + mass/rho*(cog[1] - yc)
+                norm_hs_stiff = - self.volume*(self.center_of_buoyancy[1] - yc) + mass/rho*(self.center_of_mass[1] - yc)
             else:
                 norm_hs_stiff = 0.0
         else:
@@ -565,9 +567,11 @@ class FloatingBody(Abstract3DObject):
         ValueError
             If output_type is not in {"body_dofs", "rigid_dofs", "all_dofs"}.
         """
+        if self.center_of_mass is None:
+            raise ValueError(f"Trying to compute rigid-body inertia matrix for {self.name}, but no center of mass has been defined.\n"
+                             f"Suggested solution: define a `center_of_mass` attribute for the FloatingBody {self.name}.")
 
         rc = self._infer_rotation_center()
-        cog = self.center_of_mass - rc
         fcs = (self.mesh.faces_centers - rc).T
         combinations = np.array([fcs[0]**2, fcs[1]**2, fcs[2]**2, fcs[0]*fcs[1],
                                  fcs[1]*fcs[2], fcs[2]*fcs[0]])
@@ -589,6 +593,7 @@ class FloatingBody(Abstract3DObject):
             integrals[1,5]
         ])
 
+        cog = self.center_of_mass - rc
         volume = self.volume
         volumic_inertia_matrix = np.array([
             [ volume        , 0              , 0               ,
