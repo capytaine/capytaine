@@ -760,7 +760,7 @@ respective inertia coefficients are assigned as NaN.")
         -------
         FloatingBody
         """
-        bodies = (self.translated((i*distance, j*distance, 0), name=f"{i}_{j}") for i in range(nb_bodies[0]) for j in range(nb_bodies[1]))
+        bodies = (self.translated((i*distance, j*distance, 0), name=f"{i}_{j}") for j in range(nb_bodies[1]) for i in range(nb_bodies[0]))
         array = FloatingBody.join_bodies(*bodies)
         array.mesh = build_regular_array_of_meshes(self.mesh, distance, nb_bodies)
         array.name = f"array_of_{self.name}"

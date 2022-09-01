@@ -109,6 +109,23 @@ def test_mincing():
     assert isinstance(body.mesh[0][0][0][0], Mesh)
 
 
+def test_assemble_regular_array():
+    body = Sphere()
+    body.add_all_rigid_body_dofs()
+    array = body.assemble_regular_array(distance=2.0, nb_bodies=(2, 3))
+    assert array.mesh.nb_faces == 6*body.mesh.nb_faces
+
+    # Check name and order of the dofs
+    assert list(array.dofs.keys())[0:3] == ["0_0__Surge", "0_0__Sway", "0_0__Heave"]
+    assert "2_1__Heave" not in array.dofs.keys()
+
+    # Check that the dofs coresponds to the right panels
+    faces_1_0 = np.where(array.dofs["1_0__Heave"] != 0.0)[0]
+    fc_1_0 = array.mesh.merged().faces_centers[faces_1_0, :]
+    assert np.all(1.0 <= fc_1_0[:, 0]) and np.all(fc_1_0[:, 0] <= 3.0)  #   1 < x < 3
+    assert np.all(-1.0 <= fc_1_0[:, 1]) and np.all(fc_1_0[:, 1] <= 1.0) #  -1 < y < 1
+
+
 r = 1.0
 locations = np.array([[1,0],[-1,0],[0,1]])*r*2
 n_bodies = locations.shape[0]
