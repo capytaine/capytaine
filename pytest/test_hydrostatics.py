@@ -40,6 +40,12 @@ def test_stiffness_when_no_dofs():
     with pytest.raises(AttributeError, match=".* no dof .*"):
         sphere.compute_hydrostatic_stiffness()
 
+def test_stiffness_no_cog():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
+    sphere.add_all_rigid_body_dofs()
+    with pytest.raises(ValueError, match=".*no center of mass.*"):
+        sphere.compute_hydrostatic_stiffness()
+
 def test_stiffness_dof_ordering():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20)
     sphere.keep_immersed_part()
@@ -97,6 +103,12 @@ def test_inertia_when_no_dofs():
     sphere.center_of_mass = np.array([0, 0, -0.3])
     m =sphere.compute_rigid_body_inertia()
     assert m.shape == (0, 0)
+
+def test_inertia_no_cog():
+    sphere = cpt.Sphere(radius=1.0, center=(0,0,0), nphi=20, ntheta=20).keep_immersed_part()
+    sphere.add_all_rigid_body_dofs()
+    with pytest.raises(ValueError, match=".*no center of mass.*"):
+        sphere.compute_rigid_body_inertia()
 
 def test_hydrostatics_of_submerged_sphere():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
