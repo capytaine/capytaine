@@ -763,8 +763,8 @@ respective inertia coefficients are assigned as NaN.")
         array_mesh = build_regular_array_of_meshes(self.mesh, distance, nb_bodies)
         total_nb_faces = array_mesh.nb_faces
         array_dofs = {}
-        for dof_name, dof in self.dofs.items():
-            for i, j in product(range(nb_bodies[0]), range(nb_bodies[1])):
+        for i, j in product(range(nb_bodies[0]), range(nb_bodies[1])):
+            for dof_name, dof in self.dofs.items():
                 shift_nb_faces = (j*nb_bodies[0] + i) * self.mesh.nb_faces
                 new_dof = np.zeros((total_nb_faces, 3))
                 new_dof[shift_nb_faces:shift_nb_faces+len(dof), :] = dof
