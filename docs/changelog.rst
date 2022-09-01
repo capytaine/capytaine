@@ -20,6 +20,8 @@ Bug fixes
 
 * Fix some automatic mesh names (:pull:`195`)
 
+* Fix ordering of the dofs when using :meth:`~capytaine.bodies.bodies.FloatingBody.assemble_regular_array()` (:issue:`198` and :pull:`199`)
+
 -------------------------------
 New in version 1.4 (2022-07-07)
 -------------------------------
