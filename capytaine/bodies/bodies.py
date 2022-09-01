@@ -808,16 +808,11 @@ respective inertia coefficients are assigned as NaN.")
         -------
         FloatingBody
         """
-        array_mesh = build_regular_array_of_meshes(self.mesh, distance, nb_bodies)
-        total_nb_faces = array_mesh.nb_faces
-        array_dofs = {}
-        for dof_name, dof in self.dofs.items():
-            for i, j in product(range(nb_bodies[0]), range(nb_bodies[1])):
-                shift_nb_faces = (j*nb_bodies[0] + i) * self.mesh.nb_faces
-                new_dof = np.zeros((total_nb_faces, 3))
-                new_dof[shift_nb_faces:shift_nb_faces+len(dof), :] = dof
-                array_dofs[f'{i}_{j}__{dof_name}'] = new_dof
-        return FloatingBody(mesh=array_mesh, dofs=array_dofs, name=f"array_of_{self.name}")
+        bodies = (self.translated((i*distance, j*distance, 0), name=f"{i}_{j}") for j in range(nb_bodies[1]) for i in range(nb_bodies[0]))
+        array = FloatingBody.join_bodies(*bodies)
+        array.mesh = build_regular_array_of_meshes(self.mesh, distance, nb_bodies)
+        array.name = f"array_of_{self.name}"
+        return array
 
     def assemble_arbitrary_array(self, locations:np.ndarray):
 

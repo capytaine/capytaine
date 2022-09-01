@@ -23,9 +23,12 @@ Bug fixes
 
 * Fix some automatic mesh names (:pull:`195`)
 
+* Fix ordering of the dofs when using :meth:`~capytaine.bodies.bodies.FloatingBody.assemble_regular_array()` (:issue:`198` and :pull:`199`)
+
 * Return more explicit error message when the center of mass is missing for the computation of rigid-body hydrostatics (:pull:`201`).
 
-* Return error message when trying to animate a body with a dof that has not been defined. Previously, undefined dofs where silently ignored. (:pull:`202`)
+* Return error message when trying to animate a body with a dof that has not been defined. Previously, undefined dofs were silently ignored. (:pull:`202`)
+
 
 -------------------------------
 New in version 1.4 (2022-07-07)
