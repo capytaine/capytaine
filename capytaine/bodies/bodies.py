@@ -1014,6 +1014,11 @@ respective inertia coefficients are assigned as NaN.")
             motion = {motion: 1.0}
         elif isinstance(motion, xr.DataArray):
             motion = {k: motion.sel(radiating_dof=k).data for k in motion.coords["radiating_dof"].data}
+
+        if any(dof not in self.dofs for dof in motion):
+            missing_dofs = set(motion.keys()) - set(self.dofs.keys())
+            raise ValueError(f"Trying to animate the body {self.name} using dof(s) {missing_dofs}, but no dof of this name is defined for {self.name}.")
+
         animation = Animation(*args, **kwargs)
         animation._add_actor(self.mesh.merged(), faces_motion=sum(motion[dof_name] * dof for dof_name, dof in self.dofs.items() if dof_name in motion))
         return animation
