@@ -16,6 +16,7 @@ def generate_boat() -> cpt.FloatingBody:
     boat = cpt.FloatingBody.from_file("boat_200.mar", file_format="mar", name="pirate ship")
     boat.rotate_z(pi)
     boat.center_of_mass = boat.center_of_buoyancy if hasattr(boat, 'center_of_buoyancy') else np.zeros(3)
+    boat.rotation_center = boat.center_of_mass
     boat.add_all_rigid_body_dofs()
     boat.keep_immersed_part()
 

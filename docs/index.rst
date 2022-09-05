@@ -13,11 +13,11 @@ Latest release: |release| (|today|).
 
    features.rst
 
-If you need support, you can ask questions on the `Github discussion page <https://github.com/mancellin/capytaine/discussions>`_ or as `Github issues <https://github.com/mancellin/capytaine/issues/>`_.
+If you need support, you can ask questions on the `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
 Please do not contact the developpers directly by email, unless you are looking for private paid support.
 
 Contributions are welcome!
-Please, report bugs and suggest improvements as `Github issues <https://github.com/mancellin/capytaine/issues/>`_.
+Please, report bugs and suggest improvements as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
 
 .. raw:: html
 
@@ -53,18 +53,18 @@ Documentation
 Source code
 ===========
 
-Available on `Github <https://github.com/mancellin/capytaine>`_
+Available on `Github <https://github.com/capytaine/capytaine>`_
 
 License
 =======
 
-Capytaine is developed by Matthieu Ancellin with the welcome help of `several contributors <https://github.com/mancellin/capytaine/graphs/contributors>`_.
+Capytaine is developed by Matthieu Ancellin with the welcome help of `several contributors <https://github.com/capytaine/capytaine/graphs/contributors>`_.
 
 Since April 2022, the development of Capytaine is funded by the Alliance for Sustainable Energy, LLC, Managing and Operating Contractor for the National Renewable Energy Laboratory (NREL) for the U.S. Department of Energy.
 
 From April 2017 to March 2019, the development of Capytaine at University College Dublin (UCD) was funded by Science Foundation Ireland (SFI) under Marine Renewable Energy Ireland (MaREI), the SFI Centre for Marine Renewable Energy Research.
 
-Capytaine is distributed under the terms of the GNU General Public License (GPL) v3.0. See the ``LICENSE`` file in the `code repository <https://github.com/mancellin/capytaine>`_.
+Capytaine is distributed under the terms of the GNU General Public License (GPL) v3.0. See the ``LICENSE`` file in the `code repository <https://github.com/capytaine/capytaine>`_.
 This documentation is licensed under the `Creative Commons Attribution-ShareAlike 4.0 International License`_ |CCBYSA|.
 
 .. |CCBYSA| image:: https://i.creativecommons.org/l/by-sa/4.0/80x15.png
