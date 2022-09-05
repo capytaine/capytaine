@@ -31,7 +31,7 @@ You'll also need a Fortran compiler:
 
 Then, download the source code from Github web interface or using ``git`` with::
 
-    git clone https://github.com/mancellin/capytaine
+    git clone https://github.com/capytaine/capytaine
     cd capytaine
 
 To compile the code, install all optional dependencies, and put it in your path::
@@ -49,4 +49,4 @@ If you need to recompile::
 
 For instructions about how to help with the development of Capytaine, see the `contributing guide`_.
 
-.. _`contributing guide`: https://github.com/mancellin/capytaine/blob/master/CONTRIBUTING.md
+.. _`contributing guide`: https://github.com/capytaine/capytaine/blob/master/CONTRIBUTING.md

@@ -54,8 +54,8 @@ extensions = [
 ]
 
 extlinks = {
-    "issue": ("https://github.com/mancellin/capytaine/issues/%s", "GH"),
-    "pull": ("https://github.com/mancellin/capytaine/pull/%s", "PR"),
+    "issue": ("https://github.com/capytaine/capytaine/issues/%s", "GH"),
+    "pull": ("https://github.com/capytaine/capytaine/pull/%s", "PR"),
 }
 
 # Add any paths that contain templates here, relative to this directory.
