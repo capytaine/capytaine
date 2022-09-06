@@ -22,6 +22,7 @@ def test_animation_of_dofs():
     animation = body.animate({"Heave": 0.2}, loop_duration=1.0)
     animation.embed_in_notebook()
 
+@pytest.mark.skipif(vtk is None, reason='vtk is not installed')
 def test_animate_missing_dof():
     body = cpt.Sphere()
     with pytest.raises(ValueError, match=".*no dof of this name.*"):
