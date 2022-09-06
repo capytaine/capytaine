@@ -956,7 +956,7 @@ respective inertia coefficients are assigned as NaN.")
         ids = self.mesh._clipping_data['faces_ids']
         for dof in self.dofs:
             if len(ids) > 0:
-                self.dofs[dof] = self.dofs[dof][ids]
+                self.dofs[dof] = np.array(self.dofs[dof])[ids]
             else:
                 self.dofs[dof] = np.empty((0, 3))
         return self

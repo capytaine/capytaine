@@ -44,6 +44,13 @@ def test_dof_name_inference():
     body.add_all_rigid_body_dofs()
 
 
+def test_cropping_body_with_manual_dof():
+    # https://github.com/capytaine/capytaine/issues/204
+    sphere = Sphere()
+    sphere.dofs["Surge"] = [(1, 0, 0) for face in sphere.mesh.faces]
+    sphere.keep_immersed_part()
+
+
 def test_bodies():
     body = Sphere(name="sphere", axial_symmetry=False)
     assert str(body) == "sphere"
