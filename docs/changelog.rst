@@ -8,7 +8,16 @@ Changelog
    :backlinks: none
 
 ---------------------------------
-New in version 1.4.1 (2022--)
+New in version 1.4.2 (2022--)
+---------------------------------
+
+Bug fixes
+~~~~~~~~~
+
+* Fix bug when cropping body with a dof defined manually as a list of tuples (:issue:`204` and :pull:`206`).
+
+---------------------------------
+New in version 1.4.1 (2022-09-05)
 ---------------------------------
 
 Bug fixes
