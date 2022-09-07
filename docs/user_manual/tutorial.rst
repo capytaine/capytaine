@@ -148,9 +148,9 @@ Let us give the code some more information about the body::
     sphere.rotation_center = (0, 0, -2)
 
 The "rotation center" is the point used to define the rotation dofs.
-(Due to a current limitation of the hydrostatics methods, the definition of the rotation center is required as soon as there is a rigid body dof, even if it is not a rotation dof.)
+(Due to a current limitation of the hydrostatics methods, the definition of the rotation center is required as soon as there is a rigid body dof — here surge and heave —, even if it is not a rotation dof.)
 
-To get these parameters you can either use individual method of each parameters::
+Each hydrostatic parameter can be computed by a dedicated method::
 
     print(sphere.volume)
     # 3.82267415555807
@@ -181,9 +181,9 @@ You can also use :code:`compute_hydrostatics` method which computes all hydrosta
     hydrostatics = sphere.compute_hydrostatics()
 
 .. note::
-   Before computing hydrostatic parameters, make sure to crop the body using `body.keep_immersed_part()`.
-   It is not required here since the sphere is already fully immersed.
-   Cropping is also not necessary for the :code:`compute_hydrostatics()` function, which includes the cropping of the mesh.
+   Before computing hydrostatic parameters, you might want to crop your mesh using `body.keep_immersed_part()`.
+   It is not required here since the sphere is fully immersed.
+   Cropping is included in the :code:`compute_hydrostatics()` function.
 
 
 Defining linear potential flow problems.
