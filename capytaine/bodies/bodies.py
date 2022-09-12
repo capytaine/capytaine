@@ -674,9 +674,9 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics : dict
             All hydrostatics values of the FloatingBody.
         """
-        if not hasattr(self, "center_of_mass"):
-            LOG.warning("The floating body {} has no defined center of mass. The center of mass is set to (0,0,0).".format(self.name))
-            self.center_of_mass = np.array([0.0, 0.0, 0.0])
+        if self.center_of_mass is None:
+            raise ValueError(f"Trying to compute hydrostatics for {self.name}, but no center of mass has been defined.\n"
+                             f"Suggested solution: define a `center_of_mass` attribute for the FloatingBody {self.name}.")
 
         self.keep_immersed_part()
 
