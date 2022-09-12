@@ -31,7 +31,7 @@ You'll also need a Fortran compiler:
 
 Then, download the source code from Github web interface or using ``git`` with::
 
-    git clone https://github.com/capytaine/capytaine
+    git clone --recurse-submodules https://github.com/capytaine/capytaine
     cd capytaine
 
 To compile the code, install all optional dependencies, and put it in your path::
