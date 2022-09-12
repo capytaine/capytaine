@@ -14,6 +14,8 @@ New in version 1.4.2 (2022--)
 Bug fixes
 ~~~~~~~~~
 
+* Raise error message when calling :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics()` without a center of mass defined (:pull:`207`).
+
 * Fix bug when cropping body with a dof defined manually as a list of tuples (:issue:`204` and :pull:`206`).
 
 ---------------------------------
