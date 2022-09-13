@@ -5,7 +5,16 @@ import capytaine as cpt
 import pytest
 import os
 
-from capytaine.io.xarray import separate_complex_values, merge_complex_values
+from capytaine.io.xarray import problems_from_dataset, separate_complex_values, merge_complex_values
+
+
+def test_incomplete_test_matrix():
+    body = cpt.Sphere()
+    test_matrix = xr.Dataset(coords={
+        "omega": np.linspace(0, 1, 2),
+        })
+    with pytest.raises(ValueError):
+        problems_from_dataset(test_matrix, body)
 
 
 def test_remove_complex_values():

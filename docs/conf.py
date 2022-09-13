@@ -21,7 +21,7 @@ from capytaine import __version__
 # -- Project information -----------------------------------------------------
 
 project = 'capytaine'
-copyright = '2019, Matthieu Ancellin'
+copyright = '2022, Matthieu Ancellin'
 author = 'Matthieu Ancellin'
 
 # The short X.Y version
@@ -50,11 +50,12 @@ extensions = [
     'sphinx.ext.viewcode',
     # 'sphinx.ext.githubpages',
     'sphinxcontrib.proof',
+    'sphinxcontrib.mermaid',
 ]
 
 extlinks = {
-    "issue": ("https://github.com/mancellin/capytaine/issues/%s", "GH"),
-    "pull": ("https://github.com/mancellin/capytaine/pull/%s", "PR"),
+    "issue": ("https://github.com/capytaine/capytaine/issues/%s", "GH"),
+    "pull": ("https://github.com/capytaine/capytaine/pull/%s", "PR"),
 }
 
 # Add any paths that contain templates here, relative to this directory.

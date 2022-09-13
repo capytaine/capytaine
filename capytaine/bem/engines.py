@@ -52,7 +52,7 @@ class BasicMatrixEngine(MatrixEngine):
     linear_solver: str or function, optional
         Setting of the numerical solver for linear problems Ax = b.
         It can be set with the name of a preexisting solver
-        (available: "direct" and "gmres", the latter is the default choice)
+        (available: "direct" and "gmres", the former is the default choice)
         or by passing directly a solver function.
     matrix_cache_size: int, optional
         number of matrices to keep in cache
@@ -61,7 +61,7 @@ class BasicMatrixEngine(MatrixEngine):
     available_linear_solvers = {'direct': linear_solvers.solve_directly,
                                 'gmres': linear_solvers.solve_gmres}
 
-    def __init__(self, *, linear_solver='gmres', matrix_cache_size=1):
+    def __init__(self, *, linear_solver='direct', matrix_cache_size=1):
 
         if linear_solver in self.available_linear_solvers:
             self.linear_solver = self.available_linear_solvers[linear_solver]

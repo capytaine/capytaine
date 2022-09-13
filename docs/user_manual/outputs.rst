@@ -74,8 +74,8 @@ then called by `assemble_dataset`. For example, to create an xarray dataset from
              differences between the variable names in an xarray dataset build with Bemio and one created
              using :code:`LinearPotentialFlowResult`, even though the format will be identical. For
              example, WAMIT :code:`.out` files do not contain the radii of gyration needed to calculate
-             the moments of inertia, so the `my_dataset['mass']` variable would not be included in the above
-             example since the rigid body mass matrix cannot be calculated.
+             the moments of inertia, so the `my_dataset['inertia_matrix']` variable would not be included 
+             in the above example since the rigid body mass matrix cannot be calculated.
 
 Saving the dataset as NetCDF file
 ---------------------------------
@@ -119,7 +119,7 @@ This can be fixed by explicitly converting the strings to the right format when 
                       encoding={'radiating_dof': {'dtype': 'U'},
                                 'influenced_dof': {'dtype': 'U'}})
 
-See also `this Github issue <https://github.com/mancellin/capytaine/issues/2>`_.
+See also `this Github issue <https://github.com/capytaine/capytaine/issues/2>`_.
 
 Saving the data as legacy Tecplot files
 ---------------------------------------

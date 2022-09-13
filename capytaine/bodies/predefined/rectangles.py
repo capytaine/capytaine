@@ -126,10 +126,6 @@ class Rectangle(FloatingBody):
 
         return mesh
 
-    @property
-    def area(self):
-        return self.size[0] * self.size[1]
-
 
 class RectangularParallelepiped(FloatingBody):
     """Six rectangles forming a parallelepiped.
@@ -291,13 +287,8 @@ class RectangularParallelepiped(FloatingBody):
         half_mesh = ReflectionSymmetricMesh(quarter_of_mesh, plane=yOz_Plane, name=f"half_of_{name}_mesh")
         return ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=f"{name}_mesh")
 
-    @property
-    def volume(self):
-        return np.product(self.size)
-
 
 class OpenRectangularParallelepiped(RectangularParallelepiped):
     def __init__(self, *args, **kwargs):
         RectangularParallelepiped.__init__(self, top=False, bottom=False, *args, **kwargs)
         # Kept mostly for legacy
-
