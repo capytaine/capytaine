@@ -7,6 +7,40 @@ Changelog
    :depth: 1
    :backlinks: none
 
+---------------------------------
+New in version 1.4.2 (2022--)
+---------------------------------
+
+Bug fixes
+~~~~~~~~~
+
+* Raise error message when calling :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics()` without a center of mass defined (:pull:`207`).
+
+* Fix bug when cropping body with a dof defined manually as a list of tuples (:issue:`204` and :pull:`206`).
+
+---------------------------------
+New in version 1.4.1 (2022-09-05)
+---------------------------------
+
+Bug fixes
+~~~~~~~~~
+
+* Fix bug in hydrostatics of rigid bodies: the hydrostatic matrices were always assuming that the rotation dofs were defined around the :math:`(0, 0, 0)` point.
+  The stiffness and inertia matrix are now invariant by horizontal translation of the body, as they should be. (:issue:`178` and :pull:`196`).
+
+* Removed outdated volume/area methods from pre-defined bodies (:pull:`183`).
+
+* Added symmetric realization and reflection to gdf mesh import (:issue:`186` and :pull:`187`).
+
+* Fix some automatic mesh names (:pull:`195`)
+
+* Fix ordering of the dofs when using :meth:`~capytaine.bodies.bodies.FloatingBody.assemble_regular_array()` (:issue:`198` and :pull:`199`)
+
+* Return more explicit error message when the center of mass is missing for the computation of rigid-body hydrostatics (:pull:`201`).
+
+* Return error message when trying to animate a body with a dof that has not been defined. Previously, undefined dofs were silently ignored. (:pull:`202`)
+
+
 -------------------------------
 New in version 1.4 (2022-07-07)
 -------------------------------

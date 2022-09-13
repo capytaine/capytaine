@@ -4,7 +4,7 @@ Cookbook
 
 This page contains several examples of Capytaine's features.
 The scripts can be downloaded individually as Python files from
-`this folder <https://github.com/mancellin/capytaine/tree/master/docs/user_manual/examples>`_
+`this folder <https://github.com/capytaine/capytaine/tree/master/docs/user_manual/examples>`_
 of the Github repository.
 
 .. contents:: Content
@@ -73,7 +73,7 @@ Animation of the RAO
 This script generates the animation of the RAO motion for a wave incoming in front of a ship,
 such as the one used on the main page of this documentation.
 This script requires the mesh of the ship :code:`boat_200.mar`. It can be
-downloaded from: `<https://raw.githubusercontent.com/mancellin/capytaine/master/docs/user_manual/examples/boat_200.mar>`_
+downloaded from: `<https://raw.githubusercontent.com/capytaine/capytaine/master/docs/user_manual/examples/boat_200.mar>`_
 
 .. literalinclude:: examples/boat_animation.py
    :language: python

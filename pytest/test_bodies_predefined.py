@@ -37,7 +37,6 @@ def test_rectangle_generation():
     assert all(rec.geometric_center == [0, 0, -5.0])
     assert rec.mesh.nb_faces == 12
     assert rec.mesh.nb_vertices == 21
-    assert rec.area == 100
 
     # x coordinate
     assert np.allclose(rec.mesh.vertices[:, 0], 0.0)
@@ -131,6 +130,13 @@ def test_cylinder():
     # TODO
 
 
+def test_cylinder_submesh_names():
+    for s in [True, False]:
+        c = HorizontalCylinder(reflection_symmetry=True, translation_symmetry=s, name="cylinder")
+        assert c.mesh[0].name == "half_cylinder_mesh"
+        assert c.mesh[1].name == "mirrored_of_half_cylinder_mesh"
+
+
 ############
 #  SPHERE  #
 ############
@@ -173,4 +179,3 @@ def test_sphere_clipping():
     assert s1.mesh.nb_faces == s2.mesh.nb_faces
     assert s1.mesh.nb_vertices == s2.mesh.nb_vertices
     # TODO: test that the faces are actually the same.
-

@@ -225,7 +225,7 @@ Variants of the formulation
        \Re \int^{\pi/2}_{-\pi/2} \frac{1}{\zeta(\theta)} \, \mathrm{d} \theta = - \frac{\pi}{k \|x - s(\xi)\|}.
        :label: int_1_over_zeta
 
-    It can be used to derived an alternative expression for the first term of :eq:`green_function_inf_depth_2`.
+    It can be used to derive an alternative expression for the first term of :eq:`green_function_inf_depth_2`.
 
 .. proof:lemma::
 
@@ -362,7 +362,7 @@ where
 Delhommeau's method for computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The above formulations of the Green function and its derivative require the evaluation of the following real-valued integrals:
+The above formulations of the Green function and its derivative require the evaluation of the following dimensionless real-valued integrals:
 
 .. math::
     D_1(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
@@ -372,6 +372,12 @@ The above formulations of the Green function and its derivative require the eval
 
 
 where :math:`\tilde{r} = k r` and :math:`\tilde{z} = k (x_3 + \xi_3)`, such that :math:`\zeta = \tilde{z} + i \tilde{r} \cos \theta` and :math:`k \| x - s(\xi) \| = \sqrt{\tilde{r}^2 + \tilde{z}^2}`.
+
+.. math::
+   G_2(\xi, x) & = 2 k \left( \frac{Z_1}{\pi} + i Z_2 \right) \\
+   \frac{\partial G_2}{\partial x_1} & = 2 k^2 \frac{x_1 - \xi_1}{r} \left( \frac{D_1}{\pi} + i D_2 \right) - 2 \frac{x_1 - \xi_1}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3} \\
+   \frac{\partial G_2}{\partial x_2} & = 2 k^2 \frac{x_2 - \xi_2}{r} \left( \frac{D_1}{\pi} + i D_2 \right) - 2 \frac{x_2 - \xi_2}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3}\\
+   \frac{\partial G_2}{\partial x_3} & = 2 k^2 \left( \frac{Z_1}{\pi} + i Z_2 \right) - 2 \frac{x_3 + \xi_3}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3}
 
 To limit the computational cost of the evaluation of these integrals, they are precomputed for selected values of :math:`\tilde{r}` and :math:`\tilde{z}` and stored in a table.
 When evaluating the Green function, the values of the integrals are retrieved by interpolating the values in the tables.
@@ -454,10 +460,33 @@ The matrices :math:`S` and :math:`V` relates the vectors :math:`\Phi`, :math:`u`
 The resolution of the discrete problem with Nemoh consists of two main steps:
 
 1. The evaluation of the coefficients of the complex-valued matrices :math:`S` and :math:`V`
-2. The resolution of the complex-valued linear problem :math:`\left( \frac{\mathbb{I}}{2} + V \right) \sigma = u`.
+2. The resolution of the complex-valued linear problem :math:`K \sigma = \left( \frac{\mathbb{I}}{2} + V \right) \sigma = u`.
 
 Once :math:`\sigma` has been computed, :math:`\Phi` can be easily deduced.
 Then other magnitudes such as the Froude-Krylov forces or the added mass can be derived.
+
+.. mermaid::
+    :caption: A simplified flowchart of the internals of Capytaine solver
+
+    flowchart TD;
+        h[Water depth] --> gf(Assembling matrices);
+        ω[Wave frequency ω] --> gf(Assembling matrices);
+        m[Mesh] --> gf;
+        gf -- K matrix --> ls(Linear solver);
+        un[Normal velocity on hull] --> ls;
+        gf -- S matrix --> mvp(Matrix vector product);
+        ls -- sources distribution σ --> mvp;
+        mvp -- potential distribution Φ --> int("Integrate on mesh");
+        m --> int;
+        int --> f["Hydrodynamic forces\n(aka added mass and radiation damping)"]
+
+        classDef input fill:#FFAAAA,color:#550000,stroke:#113939
+        classDef step fill:#88BBBB,color:#003333,stroke:#226666
+        classDef output fill:#FFE3AA,color:#553900,stroke:#AA8439
+        class ω,m,un,h input
+        class gf,ls,mvp,int step
+        class f output
+
 
 Post-processing
 ===============
