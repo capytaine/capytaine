@@ -107,8 +107,6 @@ if __name__ == "__main__":
             'ci': [
               'pytest',
               'hypothesis',
-              'sphinx',
-              'sphinxcontrib-proof',
                 ],
             'extra': [
               'ipython',

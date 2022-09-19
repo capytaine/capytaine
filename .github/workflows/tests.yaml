@@ -1,4 +1,4 @@
-name: Run test suite
+name: Build and run test suite
 
 on: [pull_request]
 
@@ -18,7 +18,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install
       run: |
-        pip install numpy
         pip install -e .[ci]
     - name: Test
       run: pytest
