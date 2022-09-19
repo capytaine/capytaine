@@ -3,7 +3,9 @@ name: Build and run test suite
 on:
   pull_request:
     paths-ignore:
-      - 'docs/**'  # Do not run on docs-only PR
+      # Do not run if only the documentation has been changed
+      - 'docs/**'
+      - '**/*.md'
 
 jobs:
   run_tests:
