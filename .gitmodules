@@ -1,0 +1,3 @@
+[submodule "capytaine/green_functions/libDelhommeau"]
+	path = capytaine/green_functions/libDelhommeau
+	url = https://github.com/capytaine/libDelhommeau
