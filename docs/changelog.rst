@@ -18,6 +18,12 @@ Bug fixes
 
 * Fix bug when cropping body with a dof defined manually as a list of tuples (:issue:`204` and :pull:`206`).
 
+Internals
+~~~~~~~~~
+
+* Replace the Fortran core by a git submodule pointing to `libDelhommeau <https://github.com/capytaine/capytaine/>`_ (:pull:`208`).
+  Future developments of the Green function will take place there.
+
 ---------------------------------
 New in version 1.4.1 (2022-09-05)
 ---------------------------------
