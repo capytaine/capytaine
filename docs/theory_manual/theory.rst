@@ -374,7 +374,8 @@ All higher order derivative can be expressed with the help of :math:`\mathcal{G}
 Delhommeau's method for computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The above formulations of the Green function and its derivative require the evaluation of the following real-valued integrals:
+Delhommeau's method is based on expression :eq:`green_function_inf_depth_del` of the Green function.
+This expression of the Green function and its derivative require the evaluation of the following real-valued integrals:
 
 .. math::
     D_1(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
@@ -408,7 +409,7 @@ Xie's variant
 A slight variant is presented in [X18]_. The authors noticed that the
 interpolation of the integral :math:`Z_1` can be inaccurate due to the
 singularity :math:`\frac{1}{\zeta}`.
-Hence, they proposed to tabulate instead
+Hence, they proposed to use :eq:`green_function_inf_depth_xie` and to tabulate the integral
 
 .. math::
     \widetilde{Z_1}(r, z) = \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
