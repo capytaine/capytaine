@@ -13,12 +13,12 @@ from numpy.distutils.core import Extension, setup
 ########################
 
 Delhommeau_source = [
-        "capytaine/green_functions/Delhommeau_f90/constants.f90",
-        "capytaine/green_functions/Delhommeau_f90/Delhommeau_integrals.f90",
-        "capytaine/green_functions/Delhommeau_f90/old_Prony_decomposition.f90",
-        "capytaine/green_functions/Delhommeau_f90/Green_Rankine.f90",
-        "capytaine/green_functions/Delhommeau_f90/Green_wave.f90",
-        "capytaine/green_functions/Delhommeau_f90/matrices.f90",
+        "capytaine/green_functions/libDelhommeau/src/constants.f90",
+        "capytaine/green_functions/libDelhommeau/src/Delhommeau_integrals.f90",
+        "capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90",
+        "capytaine/green_functions/libDelhommeau/src/Green_Rankine.f90",
+        "capytaine/green_functions/libDelhommeau/src/Green_wave.f90",
+        "capytaine/green_functions/libDelhommeau/src/matrices.f90",
     ]
 
 Delhommeau_extension = Extension(
@@ -104,6 +104,10 @@ if __name__ == "__main__":
               'sphinx',
               'sphinxcontrib-proof',
             ],
+            'ci': [
+              'pytest',
+              'hypothesis',
+                ],
             'extra': [
               'ipython',
               'matplotlib',
