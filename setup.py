@@ -104,6 +104,10 @@ if __name__ == "__main__":
               'sphinx',
               'sphinxcontrib-proof',
             ],
+            'ci': [
+              'pytest',
+              'hypothesis',
+                ],
             'extra': [
               'ipython',
               'matplotlib',
