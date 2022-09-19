@@ -1,6 +1,9 @@
 name: Build and run test suite
 
-on: [pull_request]
+on:
+  pull_request:
+    paths-ignore:
+      - 'docs/**'  # Do not run on docs-only PR
 
 jobs:
   run_tests:
