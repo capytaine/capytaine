@@ -1,6 +1,11 @@
 name: Build and run test suite
 
-on: [pull_request]
+on:
+  pull_request:
+    paths-ignore:
+      # Do not run if only the documentation has been changed
+      - 'docs/**'
+      - '**/*.md'
 
 jobs:
   run_tests:
