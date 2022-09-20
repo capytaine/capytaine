@@ -18,6 +18,11 @@ Bug fixes
 
 * Fix bug when cropping body with a dof defined manually as a list of tuples (:issue:`204` and :pull:`206`).
 
+Documentation
+~~~~~~~~~~~~~
+
+* Clean up and fix animation example (:pull:`213`).
+
 Internals
 ~~~~~~~~~
 
