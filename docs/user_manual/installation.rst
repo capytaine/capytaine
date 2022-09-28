@@ -2,6 +2,13 @@
 Installation for users
 ======================
 
+Capytaine is available on Windows, MacOS [#]_ and Linux.
+
+.. [#] For the latest informations on the arm64 architectures (Apple M1), see https://github.com/capytaine/capytaine/issues/190
+
+Capytaine requires Python 3.6 or higher.
+Thus it is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
+
 With Conda
 ----------
 
@@ -13,9 +20,8 @@ Download and install the `Anaconda distribution`_ or its lightweight counterpart
 .. _Miniconda: https://conda.io/miniconda.html
 .. _Miniforge: https://github.com/conda-forge/miniforge
 
-Capytaine requires **Python 3.6** or higher.
-
-Once Conda has been installed, run the following command in a terminal to install Capytaine::
+Once Conda has been installed, you might want to `create a dedicated environment <https://docs.conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-environments>`_.
+Capytaine's package is available in the `conda-forge` channel and can be installed with the following command ::
 
     conda install -c conda-forge capytaine
 
@@ -51,7 +57,6 @@ The package is available on PyPI, although only as a source distribution.
 That means that you'll need a Fortran compiler [#]_ in order to install the package.
 If you do, you can install Capytaine as::
 
-    pip install numpy
     pip install capytaine
 
 If you can't install a compiler, it is recommended to use Conda instead.
