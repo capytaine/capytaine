@@ -79,10 +79,6 @@ class BEMSolver:
         """
         LOG.info("Solve %s.", problem)
 
-        if problem.wavelength < 8*problem.body.mesh.faces_radiuses.max():
-            LOG.warning(f"Resolution of the mesh (8×max_radius={8*problem.body.mesh.faces_radiuses.max():.2e}) "
-                        f"might be insufficient for this wavelength (wavelength={problem.wavelength:.2e})!")
-
         S, K = self.engine.build_matrices(
             problem.body.mesh, problem.body.mesh,
             problem.free_surface, problem.sea_bottom, problem.wavenumber,
