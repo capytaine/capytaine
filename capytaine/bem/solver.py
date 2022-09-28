@@ -86,21 +86,17 @@ class BEMSolver:
         )
         sources = self.engine.linear_solver(K, problem.boundary_condition)
         potential = S @ sources
+        pressure = problem.rho * potential
+        # Actually, for diffraction problems: pressure over jω
+        #           for radiation problems:   pressure over -ω²
+        # The correction is done in `store_force` in the `result` object.
 
-        result = problem.make_results_container()
-        if keep_details:
-            result.sources = sources
-            result.potential = potential
+        forces = problem.body.integrate_pressure(pressure)
 
-        for influenced_dof_name, influenced_dof_vectors in problem.influenced_dofs.items():
-            # Scalar product on each face:
-            influenced_dof_normal = np.sum(influenced_dof_vectors * problem.body.mesh.faces_normals, axis=1)
-            # Sum over all faces:
-            integrated_potential = - problem.rho * np.sum(potential * influenced_dof_normal * problem.body.mesh.faces_areas)
-            # Store result:
-            result.store_force(influenced_dof_name, integrated_potential)
-            # Depending of the type of problem, the force will be kept as a complex-valued Froude-Krylov force
-            # or stored as a couple of added mass and radiation damping coefficients.
+        if not keep_details:
+            result = problem.make_results_container(forces)
+        else:
+            result = problem.make_results_container(forces, sources, potential, pressure)
 
         LOG.debug("Done!")
 

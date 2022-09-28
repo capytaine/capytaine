@@ -213,6 +213,16 @@ class FloatingBody(Abstract3DObject):
         self.add_rotation_dof(name="Pitch")
         self.add_rotation_dof(name="Yaw")
 
+    def integrate_pressure(self, pressure):
+        forces = {}
+        for dof_name in self.dofs:
+            # Scalar product on each face:
+            normal_dof_amplitude_on_face = - np.sum(self.dofs[dof_name] * self.mesh.faces_normals, axis=1)
+            # The minus sign in the above line is because we want the force of the fluid on the body and not the force of the body on the fluid.
+            # Sum over all faces:
+            forces[dof_name] = np.sum(pressure * normal_dof_amplitude_on_face * self.mesh.faces_areas)
+        return forces
+
     @inplace_transformation
     def keep_only_dofs(self, dofs):
         for dof in list(self.dofs.keys()):
