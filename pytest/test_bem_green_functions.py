@@ -124,11 +124,3 @@ def test_symmetry_of_the_derivative_of_the_Green_function(X1, X2, omega, method)
                       rtol=1e-4)
 
 
-@given(points, points, frequencies)
-def test_compare_output_of_Delhommeau_and_XieDelhommeau(X1, X2, omega):
-    # Unchanged parts of the Green function:
-    assert np.allclose(
-            wave_part_Green_function(X1, X2, omega, np.infty, gfs[0])[1][0:2],
-            wave_part_Green_function(X1, X2, omega, np.infty, gfs[1])[1][0:2],
-            rtol=1e-5)
-

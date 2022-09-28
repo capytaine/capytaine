@@ -182,7 +182,7 @@ class Delhommeau(AbstractGreenFunction):
             elif wavenumber == np.infty:
                 coeffs = np.array((1.0, -1.0, 0.0))
             else:
-                coeffs = np.array((1.0, -1.0, 1.0))
+                coeffs = np.array((1.0, 1.0, 1.0))
 
         else:  # Finite depth
             a_exp, lamda_exp = self.find_best_exponential_decomposition(
