@@ -98,6 +98,10 @@ class LinearPotentialFlowProblem:
                     "or use body.keep_immersed_part() to clip the mesh."
                 )
 
+            if self.wavelength < 8*self.body.mesh.faces_radiuses.max():
+                LOG.warning(f"Resolution of the mesh (8×max_radius={8*self.body.mesh.faces_radiuses.max():.2e}) "
+                            f"might be insufficient for this wavelength (wavelength={self.wavelength:.2e})!")
+
         if self.boundary_condition is not None:
             if len(self.boundary_condition.shape) != 1:
                 raise ValueError("Expected a 1-dimensional array as boundary_condition")
@@ -107,11 +111,6 @@ class LinearPotentialFlowProblem:
                     f"The shape of the boundary condition ({self.boundary_condition.shape})"
                     f"does not match the number of faces of the mesh ({self.body.mesh.nb_faces})."
                 )
-
-        if self.wavelength < 8*self.body.mesh.faces_radiuses.max():
-            LOG.warning(f"Resolution of the mesh (8×max_radius={8*problem.body.mesh.faces_radiuses.max():.2e}) "
-                        f"might be insufficient for this wavelength (wavelength={problem.wavelength:.2e})!")
-
 
     @property
     def body_name(self):
