@@ -23,6 +23,8 @@ Documentation
 
 * Clean up and fix animation example (:pull:`213`).
 
+* The warning message for insufficient mesh resolution appears earlier and has been reworded to be clearer (:pull:`217`).
+
 Internals
 ~~~~~~~~~
 
