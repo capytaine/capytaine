@@ -98,6 +98,13 @@ class LinearPotentialFlowProblem:
                     "or use body.keep_immersed_part() to clip the mesh."
                 )
 
+            if self.wavelength < 8*self.body.mesh.faces_radiuses.max():
+                LOG.warning(f"Mesh resolution for {self}:\n"
+                        f"The resolution of the mesh '{self.body.mesh.name}' of the body '{self.body.name}' "
+                        f"might be insufficient for the wavelength λ={self.wavelength:.2e}.\n"
+                        f"This warning appears because the largest panel of this mesh has radius {self.body.mesh.faces_radiuses.max():.2e} > λ/8."
+                        )
+
         if self.boundary_condition is not None:
             if len(self.boundary_condition.shape) != 1:
                 raise ValueError("Expected a 1-dimensional array as boundary_condition")
