@@ -25,6 +25,8 @@ Documentation
 
 * The warning message for insufficient mesh resolution appears earlier and has been reworded to be clearer (:pull:`217`).
 
+* Update installation instructions (:pull:`219`)
+
 Internals
 ~~~~~~~~~
 
