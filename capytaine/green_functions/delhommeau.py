@@ -12,8 +12,7 @@ import numpy as np
 from capytaine.tools.prony_decomposition import exponential_decomposition, error_exponential_decomposition
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
-import capytaine.green_functions.Delhommeau_f90 as Delhommeau_f90
-import capytaine.green_functions.XieDelhommeau_f90 as XieDelhommeau_f90
+from capytaine.green_functions import Delhommeau_f90, XieDelhommeau_f90, UntabulatedDelhommeau_f90
 
 LOG = logging.getLogger(__name__)
 
@@ -225,3 +224,11 @@ class XieDelhommeau(Delhommeau):
     """
 
     fortran_core = XieDelhommeau_f90
+
+class UntabulatedDelhommeau(Delhommeau):
+    """Variant of Nemoh's Green function without tabulation.
+
+    Same arguments and methods as :class:`Delhommeau`.
+    """
+
+    fortran_core = UntabulatedDelhommeau_f90
