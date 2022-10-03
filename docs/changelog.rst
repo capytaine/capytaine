@@ -23,7 +23,7 @@ Documentation
 
 * Miscellaneous improvements of the documentation (:pull:`205`, :pull:`211`, :pull:`219`)
 
-* Clean up and fix animation example (:pull:`213`).
+* Clean up and fix animation example in the cookbook (:pull:`213`).
 
 * The warning message for insufficient mesh resolution appears earlier and has been reworded to be clearer (:pull:`217`).
 
@@ -32,6 +32,8 @@ Internals
 
 * Replace the Fortran core by a git submodule pointing to `libDelhommeau <https://github.com/capytaine/libDelhommeau/>`_ (:pull:`208`).
   Future developments of the Green function will take place there.
+
+* Move from Travis CI to Github Actions for continuous integration (:pull:`209`)
 
 ---------------------------------
 New in version 1.4.1 (2022-09-05)
