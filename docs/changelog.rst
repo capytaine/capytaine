@@ -8,7 +8,7 @@ Changelog
    :backlinks: none
 
 ---------------------------------
-New in version 1.4.2 (2022--)
+New in version 1.4.2 (2022-10-03)
 ---------------------------------
 
 Bug fixes
@@ -30,7 +30,7 @@ Documentation
 Internals
 ~~~~~~~~~
 
-* Replace the Fortran core by a git submodule pointing to `libDelhommeau <https://github.com/capytaine/capytaine/>`_ (:pull:`208`).
+* Replace the Fortran core by a git submodule pointing to `libDelhommeau <https://github.com/capytaine/libDelhommeau/>`_ (:pull:`208`).
   Future developments of the Green function will take place there.
 
 ---------------------------------
