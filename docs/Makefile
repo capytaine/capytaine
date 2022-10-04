@@ -32,7 +32,7 @@ autodoc:
 
 
 REMOTE_PATH=/var/www/html/capytaine
-REMOTE_NAME=vps
+REMOTE_NAME=ovh
 VERSION=$(shell python -c 'import capytaine; print(capytaine.__version__)')
 upload: html
 	ssh $(REMOTE_NAME) "cd $(REMOTE_PATH) && mkdir $(VERSION) && rm latest && ln -s $(VERSION) latest"

@@ -100,7 +100,6 @@ if __name__ == "__main__":
               'pygmsh',
               'gmsh',
               'quadpy',
-              'bemio @ git+https://github.com/michaelcdevin/bemio.git@master-python3#egg=bemio',
               'sphinx',
               'sphinxcontrib-proof',
             ],

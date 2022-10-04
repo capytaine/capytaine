@@ -8,7 +8,19 @@ Changelog
    :backlinks: none
 
 ---------------------------------
-New in version 1.4.2 (2022--)
+New in version 1.5 (2022--)
+---------------------------------
+
+Major changes
+~~~~~~~~~~~~~
+
+* The :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` implementation of the Green function has been improved.
+  The implementation used to be almost the same as the default :class:`~capytaine.green_functions.delhommeau.Delhommeau` method.
+  A missing key element has been added and the :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is now actually more accurate near the free surface.
+  (:pull:`180` and :pull:`216`)
+
+---------------------------------
+New in version 1.4.2 (2022-10-03)
 ---------------------------------
 
 Bug fixes
@@ -21,15 +33,19 @@ Bug fixes
 Documentation
 ~~~~~~~~~~~~~
 
-* Clean up and fix animation example (:pull:`213`).
+* Miscellaneous improvements of the documentation (:pull:`205`, :pull:`211`, :pull:`219`)
+
+* Clean up and fix animation example in the cookbook (:pull:`213`).
 
 * The warning message for insufficient mesh resolution appears earlier and has been reworded to be clearer (:pull:`217`).
 
 Internals
 ~~~~~~~~~
 
-* Replace the Fortran core by a git submodule pointing to `libDelhommeau <https://github.com/capytaine/capytaine/>`_ (:pull:`208`).
+* Replace the Fortran core by a git submodule pointing to `libDelhommeau <https://github.com/capytaine/libDelhommeau/>`_ (:pull:`208`).
   Future developments of the Green function will take place there.
+
+* Move from Travis CI to Github Actions for continuous integration (:pull:`209`)
 
 ---------------------------------
 New in version 1.4.1 (2022-09-05)
