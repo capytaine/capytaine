@@ -8,6 +8,18 @@ Changelog
    :backlinks: none
 
 ---------------------------------
+New in version 1.5 (2022--)
+---------------------------------
+
+Major changes
+~~~~~~~~~~~~~
+
+* The :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` implementation of the Green function has been improved.
+  The implementation used to be almost the same as the default :class:`~capytaine.green_functions.delhommeau.Delhommeau` method.
+  A missing key element has been added and the :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is now actually more accurate near the free surface.
+  (:pull:`180` and :pull:`216`)
+
+---------------------------------
 New in version 1.4.2 (2022-10-03)
 ---------------------------------
 
