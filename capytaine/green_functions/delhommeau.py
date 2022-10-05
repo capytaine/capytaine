@@ -35,13 +35,16 @@ class Delhommeau(AbstractGreenFunction):
         The implementation of the Prony decomposition used to compute the finite depth Green function.
         Accepted values: :code:`'fortran'` for Nemoh's implementation (by default), :code:`'python'` for an experimental Python implementation.
         See :func:`find_best_exponential_decomposition`.
+    floating_point_precision: string, optional
+        Either :code:`'float32'` for single precision computations or :code:`'float64'` for double precision computations.
+        Default: :code:`'float64'`.
 
     Attributes
     ----------
-    tabulated_r_range: numpy.array of shape(tabulation_nr,)
-    tabulated_z_range: numpy.array of shape(tabulation_nz,)
+    tabulated_r_range: numpy.array of shape (tabulation_nr,) and type floating_point_precision
+    tabulated_z_range: numpy.array of shape (tabulation_nz,) and type floating_point_precision
         Coordinates of the tabulation points.
-    tabulated_integrals: numpy.array of shape (tabulation_nr, tabulation_nz, 2, 2)
+    tabulated_integrals: numpy.array of shape (tabulation_nr, tabulation_nz, 2, 2) and type floating_point_precision
         Tabulated Delhommeau integrals.
     """
 
@@ -52,7 +55,7 @@ class Delhommeau(AbstractGreenFunction):
                  tabulation_nz=46,
                  tabulation_nb_integration_points=251,
                  finite_depth_prony_decomposition_method='fortran',
-                 floating_point_precision="float64",
+                 floating_point_precision='float64',
                  ):
 
         self.fortran_core = import_module(f"capytaine.green_functions.libs.{self.fortran_core_basename}_{floating_point_precision}")
