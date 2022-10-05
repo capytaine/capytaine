@@ -228,11 +228,3 @@ class XieDelhommeau(Delhommeau):
     """
 
     fortran_core_basename = "XieDelhommeau"
-
-class UntabulatedDelhommeau(Delhommeau):
-    """Variant of Nemoh's Green function without tabulation.
-
-    Same arguments and methods as :class:`Delhommeau`.
-    """
-
-    fortran_core_basename = "UntabulatedDelhommeau"

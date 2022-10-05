@@ -26,7 +26,6 @@ def libDelhommeau_src(precision):
 extensions_names_and_extra_arguments = [
         ("capytaine.green_functions.libs.Delhommeau", []),
         ("capytaine.green_functions.libs.XieDelhommeau", ["-DXIE_CORRECTION"]),
-        ("capytaine.green_functions.libs.UntabulatedDelhommeau", ["-DNO_TABULATION", "-DXIE_CORRECTION"]),
         ]
 
 extensions_modules = [
