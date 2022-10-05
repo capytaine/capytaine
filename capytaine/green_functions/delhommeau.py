@@ -71,6 +71,7 @@ class Delhommeau(AbstractGreenFunction):
             'tabulation_nz': tabulation_nz,
             'tabulation_nb_integration_points': tabulation_nb_integration_points,
             'finite_depth_prony_decomposition_method': finite_depth_prony_decomposition_method,
+            'floating_point_precision': floating_point_precision,
         }
 
         self._hash = hash(self.exportable_settings.values())
