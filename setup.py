@@ -12,7 +12,9 @@ from numpy.distutils.core import Extension, setup
 #  Fortran extensions  #
 ########################
 
-libDelhommeau_source_files = [
+def libDelhommeau_src(precision):
+    return [
+        "capytaine/green_functions/libDelhommeau/src/{}.f90".format(precision),
         "capytaine/green_functions/libDelhommeau/src/constants.f90",
         "capytaine/green_functions/libDelhommeau/src/Delhommeau_integrals.f90",
         "capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90",
@@ -21,32 +23,27 @@ libDelhommeau_source_files = [
         "capytaine/green_functions/libDelhommeau/src/matrices.f90",
     ]
 
+extensions_names_and_extra_arguments = [
+        ("capytaine.green_functions.libs.Delhommeau", []),
+        ("capytaine.green_functions.libs.XieDelhommeau", ["-DXIE_CORRECTION"]),
+        ("capytaine.green_functions.libs.UntabulatedDelhommeau", ["-DNO_TABULATION", "-DXIE_CORRECTION"]),
+        ]
+
 extensions_modules = [
         Extension(
-            name="capytaine.green_functions.Delhommeau_f90",
-            sources=libDelhommeau_source_files,
-            extra_f90_compile_args=['-O2', '-fopenmp', '-cpp'],
+            name=name + "_" + precision,
+            sources=libDelhommeau_src(precision),
+            extra_f90_compile_args=['-fopenmp', '-cpp'] + extra_args,
             extra_link_args=['-fopenmp'],
             # # Uncomment the following lines to get more verbose output from f2py.
             # define_macros=[
-                #     ('F2PY_REPORT_ATEXIT', 1),
-                #     ('F2PY_REPORT_ON_ARRAY_COPY', 1),
-                # ],
-            ),
-        Extension(
-            name="capytaine.green_functions.XieDelhommeau_f90",
-            sources=libDelhommeau_source_files,
-            extra_f90_compile_args=['-O2', '-fopenmp', '-cpp', '-DXIE_CORRECTION'],
-            extra_link_args=['-fopenmp'],
-            ),
-        Extension(
-            name="capytaine.green_functions.UntabulatedDelhommeau_f90",
-            sources=libDelhommeau_source_files,
-            extra_f90_compile_args=['-O2', '-fopenmp', '-cpp', '-DXIE_CORRECTION', '-DNO_TABULATION'],
-            extra_link_args=['-fopenmp'],
-            ),
+            #     ('F2PY_REPORT_ATEXIT', 1),
+            #     ('F2PY_REPORT_ON_ARRAY_COPY', 1),
+            # ],
+        )
+        for (name, extra_args) in extensions_names_and_extra_arguments
+        for precision in ["float32", "float64"]
         ]
-
 
 ########################################################
 #  Read version number and other info in __about__.py  #

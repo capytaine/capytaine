@@ -6,13 +6,13 @@
 
 import logging
 from functools import lru_cache
+from importlib import import_module
 
 import numpy as np
 
 from capytaine.tools.prony_decomposition import exponential_decomposition, error_exponential_decomposition
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
-from capytaine.green_functions import Delhommeau_f90, XieDelhommeau_f90, UntabulatedDelhommeau_f90
 
 LOG = logging.getLogger(__name__)
 
@@ -45,14 +45,17 @@ class Delhommeau(AbstractGreenFunction):
         Tabulated Delhommeau integrals.
     """
 
-    fortran_core = Delhommeau_f90
+    fortran_core_basename = "Delhommeau"
 
     def __init__(self, *,
                  tabulation_nr=328,
                  tabulation_nz=46,
                  tabulation_nb_integration_points=251,
                  finite_depth_prony_decomposition_method='fortran',
+                 floating_point_precision="float64",
                  ):
+
+        self.fortran_core = import_module(f"capytaine.green_functions.libs.{self.fortran_core_basename}_{floating_point_precision}")
 
         self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(tabulation_nr)
         self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(tabulation_nz)
@@ -109,7 +112,7 @@ class Delhommeau(AbstractGreenFunction):
             # The function that will be approximated.
             @np.vectorize
             def f(x):
-                return Delhommeau_f90.initialize_green_wave.ff(x, dimensionless_omega, dimensionless_wavenumber)
+                return self.fortran_core.initialize_green_wave.ff(x, dimensionless_omega, dimensionless_wavenumber)
 
             # Try different increasing number of exponentials
             for n_exp in range(4, 31, 2):
@@ -129,7 +132,7 @@ class Delhommeau(AbstractGreenFunction):
                             dimensionless_omega, dimensionless_wavenumber)
 
         elif self.finite_depth_prony_decomposition_method.lower() == 'fortran':
-            lamda, a, nexp = Delhommeau_f90.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
+            lamda, a, nexp = self.fortran_core.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
             lamda = lamda[:nexp]
             a = a[:nexp]
 
@@ -223,7 +226,7 @@ class XieDelhommeau(Delhommeau):
     Same arguments and methods as :class:`Delhommeau`.
     """
 
-    fortran_core = XieDelhommeau_f90
+    fortran_core_basename = "XieDelhommeau"
 
 class UntabulatedDelhommeau(Delhommeau):
     """Variant of Nemoh's Green function without tabulation.
@@ -231,4 +234,4 @@ class UntabulatedDelhommeau(Delhommeau):
     Same arguments and methods as :class:`Delhommeau`.
     """
 
-    fortran_core = UntabulatedDelhommeau_f90
+    fortran_core_basename = "UntabulatedDelhommeau"
