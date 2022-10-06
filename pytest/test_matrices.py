@@ -561,7 +561,7 @@ def test_rmatvec_lowrank():
 
     v = np.ones(3)
 
-    M_lowrank = cpt.matrices.LowRankMatrix(left_matrix, right_matrix)
+    M_lowrank = LowRankMatrix(left_matrix, right_matrix)
     M_full = left_matrix@right_matrix
 
     vM_lowrank = M_lowrank.__rmatmul__(v)
