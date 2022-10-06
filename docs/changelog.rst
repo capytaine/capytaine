@@ -24,6 +24,8 @@ Internals
 
 * The integration of the pressure on the mesh of the body was implemented twice independently. It has been factored out in :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure` (:pull:`218`)
 
+* `__rmatmul__` has been implemented for low rank matrices (:pull:`222`). 
+
 ---------------------------------
 New in version 1.4.2 (2022-10-03)
 ---------------------------------

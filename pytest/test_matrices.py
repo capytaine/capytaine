@@ -554,4 +554,17 @@ def test_hierarchical_matrix():
     doubled = HS + HS
     assert np.allclose(2*S, doubled.full_matrix(), rtol=2e-1)
 
+def test_rmatvec_lowrank():
 
+    left_matrix = np.arange(6).reshape((3,2))
+    right_matrix = np.arange(8).reshape((2,4))
+
+    v = np.ones(3)
+
+    M_lowrank = cpt.matrices.LowRankMatrix(left_matrix, right_matrix)
+    M_full = left_matrix@right_matrix
+
+    vM_lowrank = M_lowrank.__rmatmul__(v)
+    vM_full = v @ M_full
+
+    assert np.all(vM_lowrank==vM_full)
