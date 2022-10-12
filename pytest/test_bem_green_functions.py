@@ -17,7 +17,7 @@ from scipy.misc import derivative
 from scipy.optimize import newton
 from scipy.special import exp1
 
-from capytaine import Delhommeau, XieDelhommeau
+import capytaine as cpt
 
 
 # def E1(z):
@@ -66,8 +66,8 @@ from capytaine import Delhommeau, XieDelhommeau
 
 
 gfs = [
-        Delhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251),
-        XieDelhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251),
+        cpt.Delhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251),
+        cpt.XieDelhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251),
         ]
 
 def test_compare_tabulations_of_Delhommeau_and_XieDelhommeau():
@@ -123,4 +123,10 @@ def test_symmetry_of_the_derivative_of_the_Green_function(X1, X2, omega, method)
                       wave_part_Green_function(X2, X1, omega, np.infty, method)[1][2],
                       rtol=1e-4)
 
+
+def test_no_tabulation():
+    mesh = cpt.Sphere().mesh.keep_immersed_part()
+    tabed_gf = cpt.Delhommeau()
+    untabed_gf = cpt.Delhommeau(tabulation_nr=0, tabulation_nz=0)
+    assert np.allclose(untabed_gf.evaluate(mesh, mesh)[0], tabed_gf.evaluate(mesh, mesh)[0], atol=1e-2)
 
