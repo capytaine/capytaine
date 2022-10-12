@@ -25,13 +25,15 @@ class Delhommeau(AbstractGreenFunction):
     ----------
     tabulation_nr: int, optional
         Number of tabulation points for horizontal distance.
-        Default: 328, as in Nemoh 2.
+        If 0 is given, the no tabulation is used.
+        Default: 328, as in Nemoh.
     tabulation_nz: int, optional
         Number of tabulation points for vertical distance.
-        Default: 46, as in Nemoh 2.
+        If 0 is given, the no tabulation is used.
+        Default: 46, as in Nemoh.
     tabulation_nb_integration_points: int, optional
         Number of points for the numerical integration w.r.t. :math:`theta` of Delhommeau's integrals
-        Default: 251, as in Nemoh 2.
+        Default: 251, as in Nemoh.
     finite_depth_prony_decomposition_method: string, optional
         The implementation of the Prony decomposition used to compute the finite depth Green function.
         Accepted values: :code:`'fortran'` for Nemoh's implementation (by default), :code:`'python'` for an experimental Python implementation.

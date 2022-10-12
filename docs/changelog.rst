@@ -19,6 +19,15 @@ Major changes
   A missing key element has been added and the :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is now actually more accurate near the free surface.
   (:pull:`180` and :pull:`216`)
 
+Minor changes
+~~~~~~~~~~~~~
+
+* Passing the argument :code:`tabulation_nr=0` or :code:`tabulation_nz=0` to :class:`~capytaine.green_functions.delhommeau.Delhommeau`
+  (or :class:`~capytaine.green_functions.delhommeau.XieDelhommeau`) now allows to run the code without interpolating the Green function
+  from a precomputed tabulation. This is meant as a tools for benchmarks and validation, since it decreases the performance of the code
+  for often no accuracy gain. (:pull:`229`)
+
+
 Internals
 ~~~~~~~~~
 
