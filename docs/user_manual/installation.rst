@@ -45,6 +45,8 @@ They are nice to have but not necessary for Capytaine's main features.
 +------------+------------------------------------------+------------------------------+
 | joblib     | :code:`conda install joblib`             | For parallel resolution      |
 +------------+------------------------------------------+------------------------------+
+| meshio     | :code:`pip install meshio`               | To load more mesh formats    |
++------------+------------------------------------------+------------------------------+
 | quadpy     | :code:`pip install quadpy`               | For higher order quadratures |
 |            |                                          | (experimental)               |
 +------------+------------------------------------------+------------------------------+
