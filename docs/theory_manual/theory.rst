@@ -102,27 +102,44 @@ The partial differential equation can be rewritten as a boundary integral proble
 Let us introduce the Green function :math:`G(\xi, \cdot)`, which is solution of the partial differential equation:
 
 .. math::
-   \nabla^2_x G(\xi, x) = \delta(\xi - x), \qquad \forall x,
+   \nabla^2 G(x; \xi) = \delta(\xi - x), \qquad \forall x,
 
-associated with the boundary condition :eq:`bc_fs` and :eq:`bc_bottom`, where :math:`\xi` is a given point in the domain and :math:`\delta` is the Dirac distribution.
+where the :math:`\nabla` is meant as the derivative with respect to :math:`x`.
+
+The above equation is associated with the boundary condition :eq:`bc_fs` and :eq:`bc_bottom`, where :math:`\xi` is a given point in the domain and :math:`\delta` is the Dirac distribution.
 
 With the help of this Green function :math:`G`, the potential of the surface of the floating body :math:`\Gamma` can be rewritten as a function of a source distribution :math:`\sigma`:
 
 .. math::
-   \Phi(x) = \iint_\Gamma \sigma(y) G(x, y) \, \mathrm{dS}(y).
-   :label: continuous_source_formulation
+   \Phi(x) = \iint_\Gamma \sigma(\xi) G(x; \xi) \, \mathrm{dS}(\xi)
+   :label: potential_representation
 
-.. note:: There is a typo in this equation in [BD15]_.
+for all point :math:`x` in the fluid or on the hull of the floating body :math:`\Gamma`.
+
+.. note:: There is a typo in equation :eq:`potential_representation` in [BD15]_.
 
 The integral on the other boundaries of the domain is zero due to the properties of the Green function.
 
-The differentiation of :eq:`continuous_source_formulation` leads to the following equation [Del87]_:
+The differentiation of :eq:`potential_representation` differs depending whether :math:`x` is in the bulk of the fluid or on the hull.
+
+On the hull, one has [Del87]_:
 
 .. math::
-   (u \cdot n)(x) = \frac{\sigma(x)}{2} + \iint_\Gamma \sigma(y) \, (\nabla_x G(x, y) \cdot n) \, \mathrm{dS}(y).
-   :label: diff_continuous_source_formulation
+   \frac{\partial \Phi}{\partial n}(x) = (u \cdot n)(x) = \frac{\sigma(x)}{2} + \iint_\Gamma \sigma(\xi) \, (\nabla G(x; \xi) \cdot n) \, \mathrm{dS}(y).
+   :label: normal_velocity_on_hull_representation
 
-where :math:`n` is the normal vector on the floating body surface :math:`\Gamma`.
+where :math:`x` is a point on :math:`\Gamma` and :math:`n` is the vector normal to :math:`\Gamma` in :math:`x`.
+For any vector :math:`t` to :math:`\Gamma` at :math:`x`, one has
+
+.. math::
+   \frac{\partial \Phi}{\partial t}(x) = (u \cdot t)(x) = \iint_\Gamma \sigma(y) \, (\nabla G(x; \xi) \cdot t) \, \mathrm{dS}(y).
+   :label: tangential_velocity_on_hull_representation
+
+Finally, for :math:`x` in the bulk of the fluid, one has
+
+.. math::
+   \nabla \Phi(x) = u(x) = \iint_\Gamma \sigma(y) \, \nabla G(x; \xi) \, \mathrm{dS}(y).
+   :label: velocity_in_bulk_representation
 
 .. note:: Dimensional analysis:
 
@@ -444,20 +461,29 @@ The first term of :eq:`green_function_inf_depth` is invariant under all rotation
 Discretization
 ==============
 
-The equations :eq:`continuous_source_formulation` and :eq:`diff_continuous_source_formulation` can be discretized using a collocation method.
+The equations :eq:`potential_representation` and :eq:`normal_velocity_on_hull_representation` can be discretized using a collocation method.
 Considering a mesh of the surface of the floating body :math:`\Gamma = \cup_i \Gamma_i`:
 
 .. math::
    \Phi_i   & = \Phi(x_i), \\
    \sigma_i & = \sigma(x_i), \\
    u_i      & = (u \cdot n)(x_i) \\
-   S_{ij}   & = \iint_{\Gamma_j} G(x_i, y) \mathrm{dS}(y), \\
-   V_{ij}   & = \iint_{\Gamma_j} \nabla_{x_i} G(x_i, y) \cdot n \, \mathrm{dS}(y),
+   S_{ij}   & = \iint_{\Gamma_j} G(x_i, \xi) \mathrm{dS}(\xi), \\
+   V_{ij}   & = \iint_{\Gamma_j} \nabla G(x_i; \xi) \cdot n_i \, \mathrm{dS}(\xi),
 
-where for all :math:`i`, :math:`x_i` is the center of the face :math:`\Gamma_i`.
+where for all :math:`i`, :math:`x_i` is the center of the face :math:`\Gamma_i` and :math:`n_i` is its normal vector.
 Each element of the matrices :math:`S` and :math:`V` can be seen as the interaction between two faces of the mesh.
 
-The matrices :math:`S` and :math:`V` relates the vectors :math:`\Phi`, :math:`u` and :math:`\sigma` through the following approximations of :eq:`continuous_source_formulation` and :eq:`diff_continuous_source_formulation`:
+.. note::
+   :math:`V` should not be confused with the similar matrix :math:`D` defined as:
+
+   .. math::
+      D_{ij} = \iint_{\Gamma_j} \nabla G(x_i; \xi) \cdot n_j \, \mathrm{dS}(\xi).
+
+   :math:`D` is used in the `direct` boundary integral equation, as e.g. in HAMS.
+
+
+The matrices :math:`S` and :math:`V` relates the vectors :math:`\Phi`, :math:`u` and :math:`\sigma` through the following approximations of :eq:`potential_representation` and :eq:`normal_velocity_on_hull_representation`:
 
 .. math::
    \Phi = S \sigma, \qquad u = \left( \frac{\mathbb{I}}{2} + V \right) \sigma.
