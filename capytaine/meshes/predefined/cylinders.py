@@ -57,7 +57,7 @@ def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1), resolution=(3, 
     if reflection_symmetry and axial_symmetry:
         raise NotImplementedError("Disks with both symmetries have not been implemented.")
 
-    LOG.debug(f"New disk body of radius {radius} and resolution ({nr}, {ntheta}), named {name}.")
+    LOG.debug(f"New disk of radius {radius} and resolution {resolution}, named {name}.")
 
     if reflection_symmetry:
         if ntheta % 2 == 1:
@@ -113,7 +113,7 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
     reflection_symmetry : bool, optional
         if True, returns a ReflectionSymmetricMesh
     name : str, optional
-        a string naming the floating body
+        a string naming the mesh
     _theta_max: float, optional
         internal parameter, to return an arc circle instead of a full circle
     """
@@ -130,6 +130,8 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
 
     if name is None:
         name = f"cylinder_{next(Mesh._ids)}"
+
+    LOG.debug(f"New vertical cylinder of radius {radius} and resolution {resolution}, named {name}.")
 
     if reflection_symmetry and axial_symmetry:
         raise NotImplementedError("Vertical cylinders with both symmetries have not been implemented.")
@@ -213,6 +215,8 @@ def mesh_horizontal_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
 
     if name is None:
         name = f"cylinder_{next(Mesh._ids)}"
+
+    LOG.debug(f"New horizontal cylinder of radius {radius} and resolution {resolution}, named {name}.")
 
     nr, ntheta, nx = resolution
 
