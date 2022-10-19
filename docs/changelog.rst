@@ -21,10 +21,19 @@ Major changes
 
 * Add `floating_point_precision` argument to :meth:`~capytaine.green_functions.delhommeau.Delhommeau` and :meth:`~capytaine.green_functions.delhommeau.XieDelhommeau` that accepts either `float32` for single precision computations or `float64` for double precision computations (the latter is the default). (:pull:`224`).
 
+Minor changes
+~~~~~~~~~~~~~
+
+* :func:`~capytaine.io.mesh_loaders.load_mesh` is now exported by the main namespace, that is available with :code:`from capytaine import load_mesh`.
+  A function :func:`~capytaine.io.meshio.load_from_meshio` is also now exported in the main namespace.
+  The documentation has been changed to recommend the use of these functions instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_file` and :meth:`~capytaine.bodies.bodies.FloatingBody.from_meshio`.
+
 Internals
 ~~~~~~~~~
 
 * The integration of the pressure on the mesh of the body was implemented twice independently. It has been factored out in :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure` (:pull:`218`)
+
+* `__rmatmul__` has been implemented for low rank matrices (:pull:`222`). 
 
 ---------------------------------
 New in version 1.4.2 (2022-10-03)

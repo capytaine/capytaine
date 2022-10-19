@@ -8,8 +8,6 @@ import logging
 import copy
 from itertools import chain, accumulate, product, zip_longest
 
-import datetime
-
 import numpy as np
 import xarray as xr
 
@@ -82,42 +80,14 @@ class FloatingBody(Abstract3DObject):
     @staticmethod
     def from_meshio(mesh, name=None) -> 'FloatingBody':
         """Create a FloatingBody from a meshio mesh object."""
-
-        import meshio
-        if not isinstance(mesh, meshio._mesh.Mesh):
-            raise TypeError('mesh must be of type meshio._mesh.Mesh, received {:}'.format(type(mesh)))
-
-        if name is None:
-            date_str = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
-            name = 'fb_{:}'.format(date_str)
-
-        def all_faces_as_quads(cells):
-            all_faces = []
-            if 'quad' in cells:
-                all_faces.append(cells['quad'])
-            if 'triangle' in cells:
-                num_triangles = len(mesh.cells_dict['triangle'])
-                LOG.info("Stored {:} triangle faces as quadrilaterals".format(num_triangles))
-                triangles_as_quads = np.empty((cells['triangle'].shape[0], 4), dtype=int)
-                triangles_as_quads[:, :3] = cells['triangle'][:, :]
-                triangles_as_quads[:, 3] = cells['triangle'][:, 2]  # Repeat one node to make a quad
-                all_faces.append(triangles_as_quads)
-            return np.concatenate(all_faces)
-
-        cpt_mesh = Mesh(vertices=mesh.points,
-                        faces=all_faces_as_quads(mesh.cells_dict),
-                        name=name+"_mesh")
-
-        fb = FloatingBody(mesh=cpt_mesh, name=name)
-        return fb
-
+        from capytaine.io.meshio import load_from_meshio
+        return FloatingBody(mesh=load_from_meshio(mesh, name), name=name)
 
     @staticmethod
     def from_file(filename: str, file_format=None, name=None) -> 'FloatingBody':
         """Create a FloatingBody from a mesh file using meshmagick."""
         from capytaine.io.mesh_loaders import load_mesh
-        if name is None:
-            name = filename
+        if name is None: name = filename
         mesh = load_mesh(filename, file_format, name=f"{name}_mesh")
         return FloatingBody(mesh, name=name)
 
