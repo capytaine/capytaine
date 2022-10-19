@@ -1,11 +1,119 @@
-
+import numpy as np
 import pytest
 import capytaine as cpt
 
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
+
+# DISK
 
 def test_mesh_disk():
     from capytaine.meshes.predefined.cylinders import mesh_disk
-    d = mesh_disk(resolution=(3, 5))
+    d = mesh_disk(resolution=(3, 6), name="foo")
     assert isinstance(d, cpt.Mesh)
-    assert d.nb_faces == 15
+    assert d.nb_faces == 18
+    assert d.name == "foo"
 
+def test_mesh_disk_position():
+    from capytaine.meshes.predefined.cylinders import mesh_disk
+    d = mesh_disk(center=(1.0, 0.5, -0.5), normal=(0, 1, 0))
+    assert np.allclose(d.vertices[:, 1], 0.5)
+
+def test_mesh_disk_reflection_symmetry():
+    from capytaine.meshes.predefined.cylinders import mesh_disk
+    d = mesh_disk(resolution=(3, 6), reflection_symmetry=True, normal=(1, 0, 0))
+    assert isinstance(d, cpt.ReflectionSymmetricMesh)
+    assert np.all(d.half.vertices[:, 1] >= 0.0)
+
+def test_mesh_disk_axial_symmetry():
+    from capytaine.meshes.predefined.cylinders import mesh_disk
+    d = mesh_disk(resolution=(3, 6), axial_symmetry=True)
+    assert isinstance(d, cpt.AxialSymmetricMesh)
+
+def test_mesh_disk_both_symmetries():
+    from capytaine.meshes.predefined.cylinders import mesh_disk
+    with pytest.raises(NotImplementedError):
+        mesh_disk(axial_symmetry=True, reflection_symmetry=True)
+
+
+# VERTICAL CYLINDER
+
+def test_mesh_vertical_cylinder():
+    from capytaine.meshes.predefined.cylinders import mesh_vertical_cylinder
+    v = mesh_vertical_cylinder(resolution=(2, 8, 10), name="foo")
+    assert isinstance(v, cpt.Mesh)
+    assert v.nb_faces == (10+2*2)*8
+    assert v.name == "foo"
+
+def test_mesh_vertical_cylinder_position():
+    from capytaine.meshes.predefined.cylinders import mesh_vertical_cylinder
+    v = mesh_vertical_cylinder(center=(-10.0, 5.0, 1.0), length=6.0, radius=4.0, resolution=(0, 100, 5))
+    assert np.isclose(np.min(v.vertices[:, 0]), -14.0)
+    assert np.isclose(np.min(v.vertices[:, 1]), 1.0)
+    assert np.isclose(np.min(v.vertices[:, 2]), -2.0)
+
+def test_mesh_vertical_cylinder_reflection_symmetry():
+    from capytaine.meshes.predefined.cylinders import mesh_vertical_cylinder
+    v = mesh_vertical_cylinder(reflection_symmetry=True, center=(5.0, 5.0, 6.0))
+    assert isinstance(v, cpt.ReflectionSymmetricMesh)
+    assert v.merged().nb_faces == mesh_vertical_cylinder(reflection_symmetry=False).nb_faces
+    assert np.all(v.vertices[:, 2] > 0.0)
+
+def test_mesh_vertical_cylinder_axial_symmetry():
+    from capytaine.meshes.predefined.cylinders import mesh_vertical_cylinder
+    v = mesh_vertical_cylinder(axial_symmetry=True)
+    assert isinstance(v, cpt.AxialSymmetricMesh)
+
+def test_mesh_vertical_cylinder_both_symmetries():
+    from capytaine.meshes.predefined.cylinders import mesh_vertical_cylinder
+    with pytest.raises(NotImplementedError):
+        mesh_vertical_cylinder(axial_symmetry=True, reflection_symmetry=True)
+
+
+# HORIZONTAL CYLINDER
+
+def test_mesh_horizontal_cylinder():
+    from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
+    h = mesh_horizontal_cylinder(resolution=(2, 8, 10), name="foo")
+    assert isinstance(h, cpt.Mesh)
+    assert h.nb_faces == (10+2*2)*8
+    assert h.name == "foo"
+
+def test_mesh_horizontal_cylinder_position():
+    from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
+    h = mesh_horizontal_cylinder(length=10.0, radius=1.0, resolution=(0, 100, 3), center=(10.0, 1.0, 0.0))
+    assert np.isclose(np.min(h.vertices[:, 0]), 5.0)
+    assert np.isclose(np.min(h.vertices[:, 1]), 0.0)
+
+def test_mesh_horizontal_reflection_symmetry():
+    from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
+    h = mesh_horizontal_cylinder(reflection_symmetry=True, center=(5.0, 5.0, 5.0))
+    assert isinstance(h, cpt.ReflectionSymmetricMesh)
+    assert h.merged().nb_faces == mesh_horizontal_cylinder(reflection_symmetry=False).nb_faces
+    assert np.all(h.vertices[:, 2] > 0.0)
+
+def test_mesh_horizontal_translation_symmetry():
+    from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
+    length = 10.0
+    h = mesh_horizontal_cylinder(length=length, resolution=(0, 8, 10), translation_symmetry=True)
+    assert isinstance(h, cpt.TranslationalSymmetricMesh)
+    assert np.isclose(np.min(h.vertices[:, 0]), -length/2)
+    assert np.isclose(np.max(h.vertices[:, 0]), length/2)
+
+    h = mesh_horizontal_cylinder(resolution=(2, 8, 10), translation_symmetry=True)
+    print(h.tree_view())
+    assert isinstance(h, cpt.CollectionOfMeshes)
+    assert isinstance(h[0], cpt.TranslationalSymmetricMesh)
+
+def test_mesh_horizontal_both_symmetries():
+    from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
+    h = mesh_horizontal_cylinder(resolution=(0, 8, 10), reflection_symmetry=True, translation_symmetry=True)
+    assert isinstance(h, cpt.ReflectionSymmetricMesh)
+    assert isinstance(h[0], cpt.TranslationalSymmetricMesh)
+
+    h = mesh_horizontal_cylinder(resolution=(2, 8, 10), reflection_symmetry=True, translation_symmetry=True)
+    assert isinstance(h, cpt.ReflectionSymmetricMesh)
+    assert isinstance(h[0], cpt.CollectionOfMeshes)
+    assert isinstance(h[0][0], cpt.TranslationalSymmetricMesh)
+    assert isinstance(h[0][1], cpt.Mesh)
