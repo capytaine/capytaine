@@ -19,6 +19,8 @@ Major changes
   A missing key element has been added and the :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is now actually more accurate near the free surface.
   (:pull:`180` and :pull:`216`)
 
+* Add `floating_point_precision` argument to :meth:`~capytaine.green_functions.delhommeau.Delhommeau` and :meth:`~capytaine.green_functions.delhommeau.XieDelhommeau` that accepts either `float32` for single precision computations or `float64` for double precision computations (the latter is the default). (:pull:`224`).
+
 Minor changes
 ~~~~~~~~~~~~~
 

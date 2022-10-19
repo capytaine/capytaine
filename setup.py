@@ -12,7 +12,9 @@ from numpy.distutils.core import Extension, setup
 #  Fortran extensions  #
 ########################
 
-Delhommeau_source = [
+def libDelhommeau_src(precision):
+    return [
+        "capytaine/green_functions/libDelhommeau/src/{}.f90".format(precision),
         "capytaine/green_functions/libDelhommeau/src/constants.f90",
         "capytaine/green_functions/libDelhommeau/src/Delhommeau_integrals.f90",
         "capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90",
@@ -21,30 +23,26 @@ Delhommeau_source = [
         "capytaine/green_functions/libDelhommeau/src/matrices.f90",
     ]
 
-Delhommeau_extension = Extension(
-    name="capytaine.green_functions.Delhommeau_f90",
-    sources=Delhommeau_source,
-    extra_f90_compile_args=['-O2', '-fopenmp', '-cpp'],
-    extra_link_args=['-fopenmp'],
-    # # Uncomment the following lines to get more verbose output from f2py.
-    # define_macros=[
-    #     ('F2PY_REPORT_ATEXIT', 1),
-    #     ('F2PY_REPORT_ON_ARRAY_COPY', 1),
-    # ],
-)
+extensions_names_and_extra_arguments = [
+        ("capytaine.green_functions.libs.Delhommeau", []),
+        ("capytaine.green_functions.libs.XieDelhommeau", ["-DXIE_CORRECTION"]),
+        ]
 
-XieDelhommeau_extension = Extension(
-    name="capytaine.green_functions.XieDelhommeau_f90",
-    sources=Delhommeau_source,
-    extra_f90_compile_args=['-O2', '-fopenmp', '-cpp', '-DXIE_CORRECTION'],
-    extra_link_args=['-fopenmp'],
-    # # Uncomment the following lines to get more verbose output from f2py.
-    # define_macros=[
-    #     ('F2PY_REPORT_ATEXIT', 1),
-    #     ('F2PY_REPORT_ON_ARRAY_COPY', 1),
-    # ],
-)
-
+extensions_modules = [
+        Extension(
+            name=name + "_" + precision,
+            sources=libDelhommeau_src(precision),
+            extra_f90_compile_args=['-fopenmp', '-cpp'] + extra_args,
+            extra_link_args=['-fopenmp'],
+            # # Uncomment the following lines to get more verbose output from f2py.
+            # define_macros=[
+            #     ('F2PY_REPORT_ATEXIT', 1),
+            #     ('F2PY_REPORT_ON_ARRAY_COPY', 1),
+            # ],
+        )
+        for (name, extra_args) in extensions_names_and_extra_arguments
+        for precision in ["float32", "float64"]
+        ]
 
 ########################################################
 #  Read version number and other info in __about__.py  #
@@ -123,8 +121,5 @@ if __name__ == "__main__":
                   'capytaine=capytaine.ui.cli:main',
               ],
           },
-          ext_modules=[
-              Delhommeau_extension,
-              XieDelhommeau_extension,
-          ],
-          )
+          ext_modules=extensions_modules,
+      )
