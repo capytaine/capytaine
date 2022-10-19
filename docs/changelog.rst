@@ -19,10 +19,15 @@ Major changes
   A missing key element has been added and the :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is now actually more accurate near the free surface.
   (:pull:`180` and :pull:`216`)
 
-* Add `floating_point_precision` argument to :meth:`~capytaine.green_functions.delhommeau.Delhommeau` and :meth:`~capytaine.green_functions.delhommeau.XieDelhommeau` that accepts either `float32` for single precision computations or `float64` for double precision computations (the latter is the default). (:pull:`224`).
-
 Minor changes
 ~~~~~~~~~~~~~
+
+* Add `floating_point_precision` argument to :meth:`~capytaine.green_functions.delhommeau.Delhommeau` and :meth:`~capytaine.green_functions.delhommeau.XieDelhommeau` that accepts either `float32` for single precision computations or `float64` for double precision computations (the latter is the default). (:pull:`224`).
+
+* Passing the argument :code:`tabulation_nr=0` or :code:`tabulation_nz=0` to :class:`~capytaine.green_functions.delhommeau.Delhommeau`
+  (or :class:`~capytaine.green_functions.delhommeau.XieDelhommeau`) now allows to run the code without interpolating the Green function
+  from a precomputed tabulation. This is meant as a tools for benchmarks and validation, since it decreases the performance of the code
+  for often no accuracy gain. (:pull:`229`)
 
 * :func:`~capytaine.io.mesh_loaders.load_mesh` is now exported by the main namespace, that is available with :code:`from capytaine import load_mesh`.
   A function :func:`~capytaine.io.meshio.load_from_meshio` is also now exported in the main namespace.
