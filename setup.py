@@ -44,6 +44,13 @@ extensions_modules = [
         for precision in ["float32", "float64"]
         ]
 
+extensions_modules.append(
+        Extension(
+            name="capytaine.green_functions.libs.LiangWuNoblesse",
+            sources=["capytaine/green_functions/LiandWuNoblesse/Module_GreenFuncGlobal.f90",],
+        )
+        )
+
 ########################################################
 #  Read version number and other info in __about__.py  #
 ########################################################
