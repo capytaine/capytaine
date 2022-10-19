@@ -134,3 +134,22 @@ def test_no_tabulation():
     tabed_gf = cpt.Delhommeau()
     untabed_gf = cpt.Delhommeau(tabulation_nr=0, tabulation_nz=0)
     assert np.allclose(untabed_gf.evaluate(mesh, mesh)[0], tabed_gf.evaluate(mesh, mesh)[0], atol=1e-2)
+
+
+def test_liang_wu_noblesse():
+    import capytaine as cpt
+    from itertools import product
+    from capytaine.green_functions.libs import LiangWuNoblesse
+    r_range = np.linspace(0.0, 100.0, 10)
+    z_range = np.linspace(-100.0, -0.1, 10)
+    for (r, z) in product(r_range, z_range):
+        x, xi = np.array([0.0, 0.0, z/2]), np.array([r, 0.0, z/2])
+        delh = cpt.XieDelhommeau(tabulation_nr=1, tabulation_nz=1)
+        tab = (delh.tabulated_r_range, delh.tabulated_z_range, delh.tabulated_integrals)
+        dgf_ = delh.fortran_core.green_wave.wave_part_infinite_depth(x, xi, 1.0, *tab)
+        dgf = np.array([-dgf_[0], dgf_[1][0], dgf_[1][1], -dgf_[1][2]])
+
+        lwn = LiangWuNoblesse.greenfuncmod.havelockgf(r, 0, z)
+        lwn[3] = lwn[3] - 2/(np.sqrt(r**2 + z**2))
+
+        print(f"{r:8.2f}, {z:8.2f}, {np.abs(dgf-lwn)}")
