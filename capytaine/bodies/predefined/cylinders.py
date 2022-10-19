@@ -8,6 +8,7 @@ import logging
 import numpy as np
 
 from capytaine.meshes.predefined import mesh_disk, mesh_vertical_cylinder, mesh_horizontal_cylinder
+from capytaine.meshes.meshes import Mesh
 from capytaine.bodies.bodies import FloatingBody
 
 LOG = logging.getLogger(__name__)
@@ -45,6 +46,9 @@ class Disk(FloatingBody):
                  name=None):
         LOG.warning("Deprecation warning: The class Disk() is deprecated. "
                 "Please prefer the function capytaine.meshes.predefined.mesh_disk()")
+
+        if name is None:
+            name = f"disk_{next(Mesh._ids)}"
 
         self.radius = float(radius)
         self.geometric_center = np.asarray(center, dtype=float)
@@ -96,6 +100,9 @@ class HorizontalCylinder(FloatingBody):
         self.radius = radius
         self.geometric_center = np.asarray(center, dtype=float)
 
+        if name is None:
+            name = f"cylinder_{next(Mesh._ids)}"
+
         mesh = mesh_horizontal_cylinder(length=length, radius=radius, center=center,
                 resolution=(nr, ntheta, nx), reflection_symmetry=reflection_symmetry,
                 translation_symmetry=translation_symmetry, name=f"{name}_mesh")
@@ -135,6 +142,9 @@ class VerticalCylinder(FloatingBody):
         self.length = length
         self.radius = radius
         self.geometric_center = np.asarray(center, dtype=float)
+
+        if name is None:
+            name = f"cylinder_{next(Mesh._ids)}"
 
         mesh = mesh_vertical_cylinder(length=length, radius=radius, center=center,
                 resolution=(nr, ntheta, nx), reflection_symmetry=False,

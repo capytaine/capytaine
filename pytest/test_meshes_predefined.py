@@ -28,8 +28,9 @@ def test_mesh_disk_reflection_symmetry():
 
 def test_mesh_disk_axial_symmetry():
     from capytaine.meshes.predefined.cylinders import mesh_disk
-    d = mesh_disk(resolution=(3, 6), axial_symmetry=True)
+    d = mesh_disk(resolution=(3, 6), normal=(0, 1, 0), axial_symmetry=True)
     assert isinstance(d, cpt.AxialSymmetricMesh)
+    assert np.allclose(d.axis.vector, (0, 1, 0))
 
 def test_mesh_disk_both_symmetries():
     from capytaine.meshes.predefined.cylinders import mesh_disk

@@ -101,6 +101,7 @@ class Abstract3DObject(ABC):
                 return self.rotate(axis, np.pi)
             else:
                 axis = Axis(vector=np.cross(vec1, vec2), point=center)
+                print(axis)
                 return self.rotate(axis, np.arccos(np.dot(vec1, vec2)))
 
     def translated(self, *args, **kwargs):

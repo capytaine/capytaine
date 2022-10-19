@@ -65,13 +65,13 @@ def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1), resolution=(3, 
                              "it should have an even number of panels in this direction.")
 
         half_mesh = mesh_disk(radius=radius, _theta_max=_theta_max/2, resolution=(nr, ntheta//2),
-                center=(0, 0, 0), normal=(1, 0, 0),
+                center=(0, 0, 0), normal=(0, 0, 1),
                 reflection_symmetry=False, axial_symmetry=False, name=f"half_of_{name}")
         mesh = ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=name)
 
     elif axial_symmetry:
         mesh_slice = mesh_disk(radius=radius, _theta_max=_theta_max/ntheta, resolution=(nr, 1),
-                center=(0, 0, 0), normal=(1, 0, 0),
+                center=(0, 0, 0), normal=(0, 0, 1),
                 reflection_symmetry=False, axial_symmetry=False, name=f"slice_of_{name}")
         mesh = AxialSymmetricMesh(mesh_slice, axis=Oz_axis, nb_repetitions=ntheta - 1, name=name)
 
@@ -131,7 +131,7 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
     if name is None:
         name = f"cylinder_{next(Mesh._ids)}"
 
-    LOG.debug(f"New vertical cylinder of radius {radius} and resolution {resolution}, named {name}.")
+    LOG.debug(f"New vertical cylinder of length {length}, radius {radius} and resolution {resolution}, named {name}.")
 
     if reflection_symmetry and axial_symmetry:
         raise NotImplementedError("Vertical cylinders with both symmetries have not been implemented.")
@@ -149,7 +149,7 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
 
     elif axial_symmetry:
 
-        mesh_slice = mesh_vertical_cylinder(radius=radius, resolution=(nr, 1, nz), center=(0, 0, 0),
+        mesh_slice = mesh_vertical_cylinder(length=length, radius=radius, resolution=(nr, 1, nz), center=(0, 0, 0),
                 reflection_symmetry=False, axial_symmetry=False, name=f"slice_of_{name}", _theta_max=_theta_max/ntheta)
         mesh = AxialSymmetricMesh(mesh_slice, axis=Oz_axis, nb_repetitions=ntheta - 1, name=name)
 
@@ -216,7 +216,7 @@ def mesh_horizontal_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
     if name is None:
         name = f"cylinder_{next(Mesh._ids)}"
 
-    LOG.debug(f"New horizontal cylinder of radius {radius} and resolution {resolution}, named {name}.")
+    LOG.debug(f"New horizontal cylinder of length {length}, radius {radius} and resolution {resolution}, named {name}.")
 
     nr, ntheta, nx = resolution
 
