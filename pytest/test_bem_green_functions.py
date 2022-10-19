@@ -124,9 +124,13 @@ def test_symmetry_of_the_derivative_of_the_Green_function(X1, X2, omega, method)
                       rtol=1e-4)
 
 
+def test_floating_point_precision():
+    assert Delhommeau(floating_point_precision="float64").tabulated_integrals.dtype == np.float64
+    assert Delhommeau(floating_point_precision="float32").tabulated_integrals.dtype == np.float32
+
+
 def test_no_tabulation():
     mesh = cpt.Sphere().mesh.keep_immersed_part()
     tabed_gf = cpt.Delhommeau()
     untabed_gf = cpt.Delhommeau(tabulation_nr=0, tabulation_nz=0)
     assert np.allclose(untabed_gf.evaluate(mesh, mesh)[0], tabed_gf.evaluate(mesh, mesh)[0], atol=1e-2)
-

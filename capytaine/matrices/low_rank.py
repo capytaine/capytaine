@@ -376,6 +376,14 @@ class LowRankMatrix:
     def _mul_with_vector(self, other):
         return self.left_matrix @ (self.right_matrix @ other)
 
+    def __rmatmul__(self, other):
+        if isinstance(other, np.ndarray) and len(other.shape) == 1:
+            return self._rmul_with_vector(other)
+        else:
+            return NotImplemented
+
+    def _rmul_with_vector(self, other):
+        return (other @ self.left_matrix) @ self.right_matrix
+
     def astype(self, dtype):
         return LowRankMatrix(self.left_matrix.astype(dtype), self.right_matrix.astype(dtype))
-
