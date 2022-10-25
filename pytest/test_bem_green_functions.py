@@ -136,20 +136,27 @@ def test_no_tabulation():
     assert np.allclose(untabed_gf.evaluate(mesh, mesh)[0], tabed_gf.evaluate(mesh, mesh)[0], atol=1e-2)
 
 
+
 def test_liang_wu_noblesse():
     import capytaine as cpt
+    from capytaine.green_functions.delhommeau import LiangWuNoblesse
+    delh = cpt.XieDelhommeau(tabulation_nr=100, tabulation_nz=100)
+    tab = (delh.tabulated_r_range, delh.tabulated_z_range, delh.tabulated_integrals)
+    lwn = LiangWuNoblesse()
+
     from itertools import product
-    from capytaine.green_functions.libs import LiangWuNoblesse
-    r_range = np.linspace(0.0, 100.0, 10)
-    z_range = np.linspace(-100.0, -0.1, 10)
+    wavenumber = 1.0
+    r_range = np.linspace(0.1, 100.0, 5); z_range = np.linspace(-100.0, -0.1, 5)
     for (r, z) in product(r_range, z_range):
-        x, xi = np.array([0.0, 0.0, z/2]), np.array([r, 0.0, z/2])
-        delh = cpt.XieDelhommeau(tabulation_nr=1, tabulation_nz=1)
-        tab = (delh.tabulated_r_range, delh.tabulated_z_range, delh.tabulated_integrals)
-        dgf_ = delh.fortran_core.green_wave.wave_part_infinite_depth(x, xi, 1.0, *tab)
-        dgf = np.array([-dgf_[0], dgf_[1][0], dgf_[1][1], -dgf_[1][2]])
+        x, xi = np.array([r/np.sqrt(2), r/np.sqrt(2), z/2]), np.array([0.0, 0.0, z/2])
+        dgf = delh.fortran_core.green_wave.collect_delhommeau_integrals(x, xi, wavenumber, *tab)
+        lwngf = lwn.fortran_core.green_wave.collect_delhommeau_integrals(x, xi, wavenumber, *tab)
+        print(f"{r:8.2f}, {z:8.2f}, {np.abs(dgf[0]-lwngf[0])/np.abs(dgf[0]):.4f}, {np.abs(dgf[1]-lwngf[1])/np.abs(dgf[1])}")
 
-        lwn = LiangWuNoblesse.greenfuncmod.havelockgf(r, 0, z)
-        lwn[3] = lwn[3] - 2/(np.sqrt(r**2 + z**2))
+    m = cpt.Sphere(center=(0.0, 0.0, -2.0)).mesh
+    S, K = LiangWuNoblesse().evaluate(m, m, 0.0, -np.infty, 1.0)
+    S1, K1 = cpt.XieDelhommeau().evaluate(m, m, 0.0, -np.infty, 1.0)
+    print(np.max(np.abs(S-S1)))
+    print(np.max(np.abs(K-K1)))
 
-        print(f"{r:8.2f}, {z:8.2f}, {np.abs(dgf-lwn)}")
+test_liang_wu_noblesse()

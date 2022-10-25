@@ -1,6 +1,6 @@
 [submodule "capytaine/green_functions/libDelhommeau"]
 	path = capytaine/green_functions/libDelhommeau
 	url = https://github.com/capytaine/libDelhommeau
-[submodule "capytaine/green_functions/LiandWuNoblesse"]
-	path = capytaine/green_functions/LiandWuNoblesse
+[submodule "capytaine/green_functions/LiangWuNoblesse"]
+	path = capytaine/green_functions/LiangWuNoblesse
 	url = https://github.com/capytaine/LiangWuNoblesse_Green_function

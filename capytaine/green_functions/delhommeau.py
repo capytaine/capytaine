@@ -233,3 +233,6 @@ class XieDelhommeau(Delhommeau):
     """
 
     fortran_core_basename = "XieDelhommeau"
+
+class LiangWuNoblesse(Delhommeau):
+    fortran_core_basename = "LiangWuNoblesse"
