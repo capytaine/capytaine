@@ -49,6 +49,7 @@ extensions_modules.append(
             name="capytaine.green_functions.libs.LiangWuNoblesse_float64",
             sources=["capytaine/green_functions/LiangWuNoblesse/Module_GreenFuncGlobal.f90"] + libDelhommeau_src("float64"),
             extra_f90_compile_args=['-fopenmp', '-cpp', "-DLiangWuNoblesse", "-DXIE_CORRECTION"],
+            extra_link_args=['-fopenmp'],
         )
         )
 
