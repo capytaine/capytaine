@@ -12,7 +12,6 @@ from capytaine.matrices.block import BlockMatrix
 from capytaine.matrices.block_toeplitz import *
 from capytaine.matrices.builders import *
 from capytaine.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
-from capytaine.matrices.linear_solvers import solve_directly, solve_gmres
 
 try:
     import matplotlib.pyplot as plt
@@ -373,67 +372,6 @@ def test_complex_valued_matrices():
     B = EvenBlockSymmetricCirculantMatrix([[A.full_matrix(), 2*A.full_matrix()]])
     c = np.random.rand(B.shape[1]) + 1j * np.random.rand(B.shape[1])
     assert np.allclose(B @ c, B.full_matrix() @ c)
-    # assert np.allclose(solve_directly(B, c), solve_directly(B.full_matrix(), c))
-
-
-def test_solve_2x2():
-    # 2x2 blocks
-    A = BlockSymmetricToeplitzMatrix([
-        [np.random.rand(3, 3) for _ in range(2)]
-    ])
-    b = np.random.rand(A.shape[0])
-
-    x_toe = solve_directly(A, b)
-    x_dumb = np.linalg.solve(A.full_matrix(), b)
-
-    assert np.allclose(x_toe, x_dumb, rtol=1e-6)
-
-
-def test_solve_block_circulant():
-    A = BlockCirculantMatrix([
-        [(lambda: np.random.rand(3, 3))() for _ in range(6)]
-    ])
-    b = np.random.rand(A.shape[0])
-
-    x_circ = solve_directly(A, b)
-    x_dumb = np.linalg.solve(A.full_matrix(), b)
-
-    assert np.allclose(x_circ, x_dumb, rtol=1e-6)
-
-    x_gmres = solve_gmres(A, b)
-    x_dumb_gmres = solve_gmres(A.full_matrix(), b)
-
-    assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
-
-
-def test_solve_nested_block_circulant():
-    A = BlockCirculantMatrix([
-        [random_block_matrix([1, 1], [1, 1]) for _ in range(6)]
-    ])
-    b = np.random.rand(A.shape[0])
-
-    x_circ = solve_directly(A, b)
-    x_dumb = np.linalg.solve(A.full_matrix(), b)
-
-    assert np.allclose(x_circ, x_dumb, rtol=1e-6)
-
-    x_gmres = solve_gmres(A, b)
-    x_dumb_gmres = solve_gmres(A.full_matrix(), b)
-
-    assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
-
-
-def test_solve_block_toeplitz():
-    A = BlockToeplitzMatrix([[(lambda: np.random.rand(1, 1))() for _ in range(7)]])
-    b = np.random.rand(A.shape[0])
-
-    assert np.allclose(BlockMatrix.matvec(A, b), A.full_matrix() @ b)
-    assert np.allclose(A @ b, A.full_matrix() @ b)
-
-    x_gmres = solve_gmres(A, b)
-    x_dumb_gmres = solve_gmres(A.full_matrix(), b)
-
-    assert np.allclose(x_gmres, x_dumb_gmres, rtol=1e-6)
 
 
 def test_low_rank_blocks():

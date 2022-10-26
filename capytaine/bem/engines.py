@@ -59,9 +59,11 @@ class BasicMatrixEngine(MatrixEngine):
     """
 
     available_linear_solvers = {'direct': linear_solvers.solve_directly,
-                                'gmres': linear_solvers.solve_gmres}
+                                'lu_decomposition': linear_solvers.LUSolverWithCache().solve,
+                                'gmres': linear_solvers.solve_gmres,
+                                }
 
-    def __init__(self, *, linear_solver='direct', matrix_cache_size=1):
+    def __init__(self, *, linear_solver='lu_decomposition', matrix_cache_size=1):
 
         if linear_solver in self.available_linear_solvers:
             self.linear_solver = self.available_linear_solvers[linear_solver]
