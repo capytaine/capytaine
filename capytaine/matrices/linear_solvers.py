@@ -93,7 +93,10 @@ class LUSolverWithCache:
     def cached_lu_decomp(self, A):
         if not(A is self.cached_matrix):
             self.cached_matrix = A
+            LOG.debug(f"Computing and caching LU decomposition")
             self.cached_decomp = self.lu_decomp(A)
+        else:
+            LOG.debug(f"Using cached LU decomposition")
         return self.cached_decomp
 
     def solve_with_decomp(self, decomp, b):
