@@ -16,7 +16,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y \
                 python-is-python3 \
                 && rm -rf /var/lib/apt/lists/*
 WORKDIR /opt/
-RUN git clone https://github.com/mancellin/capytaine
+RUN git clone --recurse-submodules https://github.com/capytaine/capytaine
 RUN pip install ./capytaine
 
 WORKDIR /home/user/
