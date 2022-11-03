@@ -187,7 +187,7 @@ class BlockMatrix:
         self._put_in_full_matrix(full_matrix)
         return full_matrix
 
-    def __array__(self, dtype=None, /):
+    def __array__(self, dtype=None):
         return self.full_matrix(dtype=dtype)
 
     def no_toeplitz(self):

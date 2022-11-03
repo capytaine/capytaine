@@ -320,7 +320,7 @@ class LowRankMatrix:
         else:
             return self.left_matrix @ self.right_matrix
 
-    def __array__(self, dtype=None, /):
+    def __array__(self, dtype=None):
         return self.full_matrix(dtype=dtype)
 
     @property
