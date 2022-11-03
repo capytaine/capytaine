@@ -118,3 +118,26 @@ def test_mesh_horizontal_both_symmetries():
     assert isinstance(h[0], cpt.CollectionOfMeshes)
     assert isinstance(h[0][0], cpt.TranslationalSymmetricMesh)
     assert isinstance(h[0][1], cpt.Mesh)
+
+# SPHERE
+
+def test_mesh_sphere():
+    from capytaine.meshes.predefined.spheres import mesh_sphere
+    d = mesh_sphere(resolution=(3, 6), name="foo")
+    assert isinstance(d, cpt.Mesh)
+    assert d.nb_faces == 18
+    assert d.name == "foo"
+
+def test_mesh_sphere_position():
+    from capytaine.meshes.predefined.spheres import mesh_sphere
+    d = mesh_sphere(radius=0.1, center=(1.0, 0.5, -0.5))
+    assert np.all(d.vertices[:, 0] <= 1.1)
+    assert np.all(0.9 <= d.vertices[:, 0])
+    assert np.all(d.vertices[:, 2] <= -0.4)
+    assert np.all(-0.6 <= d.vertices[:, 2])
+
+def test_mesh_sphere_axial_symmetry():
+    from capytaine.meshes.predefined.spheres import mesh_sphere
+    d = mesh_sphere(resolution=(3, 6), axial_symmetry=True)
+    assert isinstance(d, cpt.AxialSymmetricMesh)
+    assert np.allclose(d.axis.vector, (0, 0, 1))
