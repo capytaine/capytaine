@@ -27,4 +27,4 @@ jobs:
     - name: Test
       run: pytest
     - name: Examples
-      run: for f in $(ls examples/*.py); do python examples/$f; done
+      run: for f in $(ls examples/*.py); do python $f; done
