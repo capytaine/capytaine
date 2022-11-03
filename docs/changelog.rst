@@ -38,6 +38,8 @@ Minor changes
 * Custom classes from the :code:`capytaine.matrices` module storign block matrices or data-sparse matrices
   can be transformed into full Numpy arrays with :code:`np.array(...)` (:pull:`99`)
 
+* Add :code:`Dockerfile` and instructions to install with Docker (:pull:`137`)
+
 Internals
 ~~~~~~~~~
 
