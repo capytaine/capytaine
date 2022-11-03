@@ -8,7 +8,7 @@ import logging
 
 import numpy as np
 import xarray as xr
-from capytaine.post_pro.impedance import impedance
+from capytaine.post_pro.impedance import rao_transfer_function
 
 LOG = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
     ----------
     dataset: xarray Dataset
         The hydrodynamical dataset.
-        This function supposes that variables named 'mass' and 'hydrostatic_stiffness' are in the dataset.
+        This function supposes that variables named 'inertia_matrix' and 'hydrostatic_stiffness' are in the dataset.
         Other variables can be computed by Capytaine, by those two should be manually added to the dataset.
     wave_direction: float, optional
         The direction of the incoming waves.
@@ -37,12 +37,13 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
     xarray DataArray
         The RAO as an array depending of omega and the degree of freedom.
     """
-    LOG.info("Compute RAO.")
 
     # ASSEMBLE MATRICES
-    omega = dataset.coords['omega']  # Range of frequencies in the dataset
+    H = rao_transfer_function(dataset, dissipation, stiffness)
 
-    A = impedance(dataset, dissipation, stiffness)
+    LOG.info("Compute RAO.")
+
+    omega = dataset.coords['omega']  # Range of frequencies in the dataset
 
     if 'excitation_force' not in dataset:
         dataset['excitation_force'] = dataset['Froude_Krylov_force'] + dataset['diffraction_force']
@@ -50,11 +51,11 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
 
     # SOLVE LINEAR SYSTEMS
     # Reorder dimensions of the arrays to be sure to solve the right system.
-    A = A.transpose('omega', 'radiating_dof', 'influenced_dof')
+    H = H.transpose('omega', 'radiating_dof', 'influenced_dof')
     excitation = excitation.transpose('omega',  'influenced_dof')
 
     # Solve the linear systems (one for each value of omega)
-    X = np.linalg.solve(A, excitation)
+    X = np.linalg.solve(H, excitation)
 
     return xr.DataArray(X, coords=[omega, dataset.coords['radiating_dof']], dims=['omega', 'radiating_dof'])
 

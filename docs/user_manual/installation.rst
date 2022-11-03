@@ -2,48 +2,67 @@
 Installation for users
 ======================
 
+Capytaine is available on Windows, MacOS [#]_ and Linux.
+
+.. [#] For the latest informations on the arm64 architectures (Apple M1), see https://github.com/capytaine/capytaine/issues/190
+
+Capytaine requires Python 3.6 or higher.
+Thus it is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
+
 With Conda
 ----------
 
 The easiest way to install Capytaine is the precompiled package available on Conda_.
-Download and install the `Anaconda distribution`_ or its lightweight counterpart Miniconda_.
+Download and install the `Anaconda distribution`_ or its lightweight counterparts Miniconda_ and Miniforge_.
 
 .. _Conda: https://conda.io
 .. _`Anaconda distribution`: https://www.anaconda.com/download/
 .. _Miniconda: https://conda.io/miniconda.html
+.. _Miniforge: https://github.com/conda-forge/miniforge
 
-Capytaine requires **Python 3.6** or higher.
-It has been successfully tested on Python 3.6 and 3.7, and Numpy 1.15 and 1.16.
-
-Once Conda has been installed, run the following command in a terminal to install Capytaine::
+Once Conda has been installed, you might want to `create a dedicated environment <https://docs.conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-environments>`_.
+Capytaine's package is available in the `conda-forge` channel and can be installed with the following command ::
 
     conda install -c conda-forge capytaine
 
-Some optional dependencies are not automatically installed with Capytaine.
-Install them with::
+The required dependencies should be installed automatically.
 
-    conda install matplotlib
-    conda install vtk
 
-They are plotting and display libraries that are useful but not necessary for Capytaine's main purpose.
-Some users have had troubles installing them, so they are not required anymore since version 1.2.
-Note that some examples in the documentation might be assuming you have them installed.
+Optional dependencies
+---------------------
+
+Optional dependencies can be manually installed.
+They are nice to have but not necessary for Capytaine's main features.
+
++------------+------------------------------------------+------------------------------+
+| Name       | Example installation command             | Usage                        |
++============+==========================================+==============================+
+| matplotlib | :code:`conda install matplotlib`         | Used in several examples     |
+|            |                                          | in the documentation and     |
+|            |                                          | the cookbook                 |
++------------+------------------------------------------+------------------------------+
+| vtk        | :code:`conda install -c conda-forge vtk` | For 3D visualization         |
++------------+------------------------------------------+------------------------------+
+| joblib     | :code:`conda install joblib`             | For parallel resolution      |
++------------+------------------------------------------+------------------------------+
+| meshio     | :code:`pip install meshio`               | To load more mesh formats    |
++------------+------------------------------------------+------------------------------+
+| quadpy     | :code:`pip install quadpy`               | For higher order quadratures |
+|            |                                          | (experimental)               |
++------------+------------------------------------------+------------------------------+
+
 
 With Pip
 --------
 
 The package is available on PyPI, although only as a source distribution.
-That means that you'll nead a Fortran compiler [#]_ in order to install the package.
+That means that you'll need a Fortran compiler [#]_ in order to install the package.
 If you do, you can install Capytaine as::
 
-    pip install numpy
     pip install capytaine
 
-If you want, you can then install the optional dependencies::
-
-    pip install matplotlib vtk
-
-If you can't install a compiler, it is recommanded to use Conda instead.
+If you can't install a compiler, it is recommended to use Conda instead.
 
 .. [#] For example, on Ubuntu or Debian: :code:`sudo apt install gfortran`.
+       On macOS, see `for instance these instructions <https://github.com/capytaine/capytaine/issues/115#issuecomment-1143987636>`_.
 

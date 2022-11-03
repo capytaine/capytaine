@@ -312,39 +312,56 @@ class Mesh(Abstract3DObject):
 
     def compute_quadrature(self, method):
         quadpy = import_optional_dependency("quadpy")
-        transform = quadpy.ncube._helpers.transform
-        get_detJ = quadpy.ncube._helpers.get_detJ
+        transform = quadpy.c2.transform
+        get_detJ = quadpy.cn._helpers.get_detJ
 
         if method is None:
+            # No quadrature (i.e. default first order quadrature)
             if 'quadrature' in self.__internals__:
                 del self.__internals__['quadrature']
                 del self.__internals__['quadrature_method']
             else:
                 pass
 
-        elif isinstance(method, quadpy.quadrilateral._helpers.QuadrilateralScheme):
-            points = np.empty((self.nb_faces, len(method.points), 3))
-            weights = np.empty((self.nb_faces, len(method.points)))
+        elif isinstance(method, quadpy.c2._helpers.C2Scheme):
+            assert method.points.shape[0] == method.dim == 2
+            nb_points = method.points.shape[1]
+            points = np.empty((self.nb_faces, nb_points, 3))
+            weights = np.empty((self.nb_faces, nb_points))
 
             self.heal_triangles()
 
             for i_face in range(self.nb_faces):
-                ref = self.vertices[self.faces[i_face, 0], :]
-                A, B, C, D = self.vertices[self.faces[i_face, :], :] - ref
+                # Define a local frame (Oxyz) such that
+                # * the corner A of the quadrilateral panel is the origin of the local frame
+                # * the edge AB of the quadrilateral panel is along the local x-axis,
+                # * the quadrilateral panel is within the local xy-plane (that is, its normal is along the local z-axis).
+                # Hence, the corners of the panels all have 0 as z-coordinate in the local frame.
+
+                # Coordinates in global frame
+                global_A, global_B, global_C, global_D = self.vertices[self.faces[i_face, :], :]
                 n = self.faces_normals[i_face, :]
 
-                ex = (B-A)/norm(B-A)
-                ez = n/norm(n)
-                ey = np.cross(ex, ez)
+                ex = (global_B-global_A)/norm(global_B-global_A)  # unit vector of the local x-axis
+                ez = n/norm(n)                                    # unit vector of the local z-axis
+                ey = np.cross(ex, ez)                             # unit vector of the local y-axis, such that the basis is orthonormal
+
                 R = np.array([ex, ey, ez])
-                quadrilateral = np.array([[R @ A, R @ D], [R @ B, R @ C]])[:, :, :2]
+                local_A = np.zeros((3,))             # coordinates of A in local frame, should be zero by construction
+                local_B = R @ (global_B - global_A)  # coordinates of B in local frame
+                local_C = R @ (global_C - global_A)  # coordinates of C in local frame
+                local_D = R @ (global_D - global_A)  # coordinates of D in local frame
 
-                quadpoints = transform(method.points.T, quadrilateral)
-                quadpoints = np.concatenate([quadpoints, np.zeros((quadpoints.shape[0], 1))], axis=1)
-                quadpoints = np.array([R.T @ p for p in quadpoints]) + ref
-                points[i_face, :, :] = quadpoints
+                local_quadrilateral = np.array([[local_A, local_D], [local_B, local_C]])[:, :, :-1]
+                # Removing last index in last dimension because not interested in z-coordinate which is 0.
 
-                weights[i_face, :] = method.weights * abs(get_detJ(method.points.T, quadrilateral))
+                local_quadpoints = transform(method.points, local_quadrilateral)
+
+                local_quadpoints_in_3d = np.concatenate([local_quadpoints, np.zeros((nb_points, 1))], axis=1)
+                global_quadpoints = np.array([R.T @ p for p in local_quadpoints_in_3d]) + global_A
+                points[i_face, :, :] = global_quadpoints
+
+                weights[i_face, :] = method.weights * 4 * np.abs(get_detJ(method.points, local_quadrilateral))
 
             self.__internals__['quadrature'] = (points, weights)
             self.__internals__['quadrature_method'] = method
@@ -457,7 +474,8 @@ class Mesh(Abstract3DObject):
 
     def show_matplotlib(self, ax=None,
                         normal_vectors=False, scale_normal_vector=None,
-                        saveas=None,
+                        saveas=None, color_field=None, cmap=None,
+                        cbar_label=None,
                         **kwargs):
         """Poor man's viewer with matplotlib.
 
@@ -465,17 +483,24 @@ class Mesh(Abstract3DObject):
         ----------
         ax: matplotlib axis
             The 3d axis in which to plot the mesh. If not provided, create a new one.
-        normal_vector: bool
+        normal_vectors: bool
             If True, print normal vector.
         scale_normal_vector: array of shape (nb_faces, )
             Scale separately each of the normal vectors.
         saveas: str
-            file path where to save the image
+            File path where to save the image.
+        color_field: array of shape (nb_faces, )
+            Scalar field to be plot on the mesh (optional).
+        cmap: matplotlib colormap
+            Colormap to use for field plotting.
+        cbar_label: string
+            Label for colormap
 
         Other parameters are passed to Poly3DCollection.
         """
         matplotlib = import_optional_dependency("matplotlib")
         plt = matplotlib.pyplot
+        cm = matplotlib.cm
 
         mpl_toolkits = import_optional_dependency("mpl_toolkits", package_name="matplotlib")
         Poly3DCollection = mpl_toolkits.mplot3d.art3d.Poly3DCollection
@@ -491,11 +516,29 @@ class Mesh(Abstract3DObject):
             for index_vertex in face:
                 vertices.append(self.vertices[int(index_vertex), :])
             faces.append(vertices)
-        if 'facecolors' not in kwargs:
-            kwargs['facecolors'] = (0.3, 0.3, 0.3, 0.3)
+
+        if color_field is None:
+            if 'facecolors' not in kwargs:
+                kwargs['facecolors'] = "yellow"
+        else:
+            if cmap is None:
+                cmap = cm.get_cmap('coolwarm')
+            m = cm.ScalarMappable(cmap=cmap)
+            m.set_array([min(color_field), max(color_field)])
+            m.set_clim(vmin=min(color_field), vmax=max(color_field))
+            colors = m.to_rgba(color_field)
+            kwargs['facecolors'] = colors
         if 'edgecolor' not in kwargs:
             kwargs['edgecolor'] = 'k'
+
         ax.add_collection3d(Poly3DCollection(faces, **kwargs))
+
+        if color_field is not None:
+            cbar = plt.colorbar(m)
+            if cbar_label is not None:
+                cbar.set_label(cbar_label)
+
+
 
         # Plot normal vectors.
         if normal_vectors:
@@ -505,15 +548,17 @@ class Mesh(Abstract3DObject):
                 vectors = self.faces_normals
             ax.quiver(*zip(*self.faces_centers), *zip(*vectors), length=0.2)
 
+
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
+
+        xmin, xmax, ymin, ymax, zmin, zmax = self.squared_axis_aligned_bbox
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+        ax.set_zlim(zmin, zmax)
+
         if default_axis:
-            ax.set_xlabel("x")
-            ax.set_ylabel("y")
-
-            xmin, xmax, ymin, ymax, zmin, zmax = self.squared_axis_aligned_bbox
-            ax.set_xlim(xmin, xmax)
-            ax.set_ylim(ymin, ymax)
-            ax.set_zlim(zmin, zmax)
-
             if saveas is not None:
                 plt.tight_layout()
                 plt.savefig(saveas)
@@ -542,16 +587,15 @@ class Mesh(Abstract3DObject):
 
     @inplace_transformation
     def rotate(self, axis, angle) -> 'Mesh':
-        """Rotate the mesh of a given wave_direction around an axis.
+        """Rotate the mesh of a given angle around an axis.
 
         Parameters
         ----------
         axis : Axis
         angle : float
         """
-        rot_matrix = axis.rotation_matrix(angle)
 
-        self._vertices = np.transpose(np.dot(rot_matrix, self._vertices.T))
+        self._vertices = axis.rotate_points(self._vertices, angle)
 
         return self
 
@@ -606,7 +650,7 @@ class Mesh(Abstract3DObject):
 
     @inplace_transformation
     def triangulate_quadrangles(self) -> 'Mesh':
-        """Triangulates every quadrangles of the mesh by simple spliting.
+        """Triangulates every quadrangles of the mesh by simple splitting.
         Each quadrangle gives two triangles.
 
         Note

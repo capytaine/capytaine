@@ -35,7 +35,7 @@ LOG = logging.getLogger(__name__)
 #########################
 
 def problems_from_dataset(dataset: xr.Dataset,
-                          bodies: Sequence[FloatingBody],
+                          bodies: Union[FloatingBody, Sequence[FloatingBody]],
                           ) -> List[LinearPotentialFlowProblem]:
     """Generate a list of problems from a test matrix.
 
@@ -43,16 +43,37 @@ def problems_from_dataset(dataset: xr.Dataset,
     ----------
     dataset : xarray Dataset
         Test matrix containing the problems parameters.
-    bodies : list of FloatingBody
+    bodies : FloatingBody or list of FloatingBody
         The bodies on which the computations of the test matrix will be applied.
         They should all have different names.
 
     Returns
     -------
     list of LinearPotentialFlowProblem
+
+    Raises
+    ------
+    ValueError
+        if required fields are missing in the dataset
     """
+    if isinstance(bodies, FloatingBody):
+        bodies = [bodies]
+
+    # SANITY CHECKS
     assert len(list(set(body.name for body in bodies))) == len(bodies), \
         "All bodies should have different names."
+
+    # Warn user in case of key with unrecognized name (e.g. mispells)
+    keys_in_dataset = set(dataset.keys()) | set(dataset.coords.keys())
+    accepted_keys = {'wave_direction', 'radiating_dof', 'body_name', 'omega', 'water_depth', 'rho', 'g'}
+    unrecognized_keys = keys_in_dataset.difference(accepted_keys)
+    if len(unrecognized_keys) > 0:
+        LOG.warning(f"Unrecognized key(s) in dataset: {unrecognized_keys}")
+
+    if ("radiating_dof" not in keys_in_dataset) and ("wave_direction" not in keys_in_dataset):
+        raise ValueError("Neither 'radiating_dof' nor 'wave_direction' has been provided in the dataset. "
+                "No linear potential flow problem can be inferred.")
+    # END SANITY CHECKS
 
     dataset = _unsqueeze_dimensions(dataset)
 
@@ -163,11 +184,11 @@ def wavenumber_data_array(results: Sequence[LinearPotentialFlowResult]) -> xr.Da
 
 
 def hydrostatics_dataset(bodies: Sequence[FloatingBody]) -> xr.Dataset:
-    """Create a dataset by looking for 'mass' and 'hydrostatic_stiffness'
+    """Create a dataset by looking for 'inertia_matrix' and 'hydrostatic_stiffness'
     for each of the bodies in the list passed as argument.
     """
     dataset = xr.Dataset()
-    for body_property in ['mass', 'hydrostatic_stiffness']:
+    for body_property in ['inertia_matrix', 'hydrostatic_stiffness']:
         bodies_properties = {body.name: body.__getattribute__(body_property) for body in bodies if hasattr(body, body_property)}
         if len(bodies_properties) > 0:
             bodies_properties = xr.concat(bodies_properties.values(), pd.Index(bodies_properties.keys(), name='body_name'))
@@ -187,7 +208,7 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
             The present function is just a wrapper around :code:`compute_kochin`.
     """
     records = pd.DataFrame([
-        dict(**result._asdict(), theta=theta, kochin=kochin)
+        dict(**result.problem._asdict(), theta=theta, kochin=kochin)
         for result in results
         for theta, kochin in zip(theta_range.data,
                                  compute_kochin(result, theta_range, **kwargs))
@@ -237,7 +258,7 @@ def assemble_dataset(results,
                      attrs=None) -> xr.Dataset:
     """Transform a list of :class:`LinearPotentialFlowResult` into a :class:`xarray.Dataset`.
 
-    .. todo:: The :code:`mesh` option to store informations on the mesh could be improved.
+    .. todo:: The :code:`mesh` option to store information on the mesh could be improved.
               It could store the full mesh in the dataset to ensure the reproducibility of
               the results.
 
@@ -246,9 +267,9 @@ def assemble_dataset(results,
     results: list of LinearPotentialFlowResult
         The results that will be read.
     wavenumber: bool, optional
-        If True, the coordinate 'wavenumber' will be added to the ouput dataset.
+        If True, the coordinate 'wavenumber' will be added to the output dataset.
     wavelength: bool, optional
-        If True, the coordinate 'wavelength' will be added to the ouput dataset.
+        If True, the coordinate 'wavelength' will be added to the output dataset.
     mesh: bool, optional
         If True, store some infos on the mesh in the output dataset.
     hydrostatics: bool, optional
@@ -363,7 +384,7 @@ def assemble_dataset(results,
                 dataset.coords['quadrature_method'] = ('body_name', [quad_methods[name] for name in dataset.coords['body_name'].data])
             else:
                 def the_only(d):
-                    """Return the only element of a 1-element dictionnary"""
+                    """Return the only element of a 1-element dictionary"""
                     return next(iter(d.values()))
                 dataset.coords['nb_faces'] = the_only(nb_faces)
                 dataset.coords['quadrature_method'] = the_only(quad_methods)

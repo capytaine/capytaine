@@ -5,6 +5,7 @@ Submodules
 ----------
 
 .. toctree::
+   :maxdepth: 4
 
    capytaine.green_functions.Delhommeau_f90
    capytaine.green_functions.XieDelhommeau_f90

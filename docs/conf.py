@@ -21,7 +21,7 @@ from capytaine import __version__
 # -- Project information -----------------------------------------------------
 
 project = 'capytaine'
-copyright = '2019, Matthieu Ancellin'
+copyright = '2022, Matthieu Ancellin'
 author = 'Matthieu Ancellin'
 
 # The short X.Y version
@@ -43,13 +43,20 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
+    'sphinx.ext.extlinks',
     'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     # 'sphinx.ext.githubpages',
     'sphinxcontrib.proof',
+    'sphinxcontrib.mermaid',
 ]
+
+extlinks = {
+    "issue": ("https://github.com/capytaine/capytaine/issues/%s", "GH"),
+    "pull": ("https://github.com/capytaine/capytaine/pull/%s", "PR"),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -183,7 +190,7 @@ todo_include_todos = True
 
 math_number_all = True
 
-# Options for napolean
+# Options for napoleon
 
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True

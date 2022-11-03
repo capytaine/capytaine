@@ -6,54 +6,77 @@
 
 import logging
 from functools import lru_cache
+from importlib import import_module
 
 import numpy as np
 
 from capytaine.tools.prony_decomposition import exponential_decomposition, error_exponential_decomposition
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
-import capytaine.green_functions.Delhommeau_f90 as Delhommeau_f90
-import capytaine.green_functions.XieDelhommeau_f90 as XieDelhommeau_f90
 
 LOG = logging.getLogger(__name__)
 
 
 class Delhommeau(AbstractGreenFunction):
-    """The Green function as implemented in Nemoh.
+    """The Green function as implemented in Aquadyn and Nemoh.
 
     Parameters
     ----------
+    tabulation_nr: int, optional
+        Number of tabulation points for horizontal distance.
+        If 0 is given, the no tabulation is used.
+        Default: 328, as in Nemoh.
+    tabulation_nz: int, optional
+        Number of tabulation points for vertical distance.
+        If 0 is given, the no tabulation is used.
+        Default: 46, as in Nemoh.
     tabulation_nb_integration_points: int, optional
-        Number of points for the evaluation of the tabulated elementary integrals w.r.t. :math:`theta`
-        used for the computation of the Green function (default: 251)
+        Number of points for the numerical integration w.r.t. :math:`theta` of Delhommeau's integrals
+        Default: 251, as in Nemoh.
     finite_depth_prony_decomposition_method: string, optional
         The implementation of the Prony decomposition used to compute the finite depth Green function.
         Accepted values: :code:`'fortran'` for Nemoh's implementation (by default), :code:`'python'` for an experimental Python implementation.
         See :func:`find_best_exponential_decomposition`.
+    floating_point_precision: string, optional
+        Either :code:`'float32'` for single precision computations or :code:`'float64'` for double precision computations.
+        Default: :code:`'float64'`.
 
     Attributes
     ----------
-    tabulated_integrals: 3-ple of arrays
-        Tabulated integrals for the computation of the Green function.
+    tabulated_r_range: numpy.array of shape (tabulation_nr,) and type floating_point_precision
+    tabulated_z_range: numpy.array of shape (tabulation_nz,) and type floating_point_precision
+        Coordinates of the tabulation points.
+    tabulated_integrals: numpy.array of shape (tabulation_nr, tabulation_nz, 2, 2) and type floating_point_precision
+        Tabulated Delhommeau integrals.
     """
 
-    fortran_core = Delhommeau_f90
-
-    build_tabulated_integrals = lru_cache(maxsize=1)(Delhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
+    fortran_core_basename = "Delhommeau"
 
     def __init__(self, *,
+                 tabulation_nr=328,
+                 tabulation_nz=46,
                  tabulation_nb_integration_points=251,
                  finite_depth_prony_decomposition_method='fortran',
+                 floating_point_precision='float64',
                  ):
 
-        self.tabulated_integrals = self.__class__.build_tabulated_integrals(328, 46, tabulation_nb_integration_points)
+        self.fortran_core = import_module(f"capytaine.green_functions.libs.{self.fortran_core_basename}_{floating_point_precision}")
+
+        self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(tabulation_nr)
+        self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(tabulation_nz)
+        self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
+                self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
+                )
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
         self.exportable_settings = {
             'green_function': self.__class__.__name__,
+            'tabulation_nr': tabulation_nr,
+            'tabulation_nz': tabulation_nz,
             'tabulation_nb_integration_points': tabulation_nb_integration_points,
             'finite_depth_prony_decomposition_method': finite_depth_prony_decomposition_method,
+            'floating_point_precision': floating_point_precision,
         }
 
         self._hash = hash(self.exportable_settings.values())
@@ -95,7 +118,7 @@ class Delhommeau(AbstractGreenFunction):
             # The function that will be approximated.
             @np.vectorize
             def f(x):
-                return Delhommeau_f90.initialize_green_wave.ff(x, dimensionless_omega, dimensionless_wavenumber)
+                return self.fortran_core.initialize_green_wave.ff(x, dimensionless_omega, dimensionless_wavenumber)
 
             # Try different increasing number of exponentials
             for n_exp in range(4, 31, 2):
@@ -115,7 +138,7 @@ class Delhommeau(AbstractGreenFunction):
                             dimensionless_omega, dimensionless_wavenumber)
 
         elif self.finite_depth_prony_decomposition_method.lower() == 'fortran':
-            lamda, a, nexp = Delhommeau_f90.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
+            lamda, a, nexp = self.fortran_core.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
             lamda = lamda[:nexp]
             a = a[:nexp]
 
@@ -167,7 +190,7 @@ class Delhommeau(AbstractGreenFunction):
             elif wavenumber == np.infty:
                 coeffs = np.array((1.0, -1.0, 0.0))
             else:
-                coeffs = np.array((1.0, -1.0, 1.0))
+                coeffs = np.array((1.0, 1.0, 1.0))
 
         else:  # Finite depth
             a_exp, lamda_exp = self.find_best_exponential_decomposition(
@@ -182,18 +205,24 @@ class Delhommeau(AbstractGreenFunction):
                 coeffs = np.array((1.0, 1.0, 1.0))
 
         # Main call to Fortran code
-        return self.fortran_core.matrices.build_matrices(
+        S, K = self.fortran_core.matrices.build_matrices(
             mesh1.faces_centers, mesh1.faces_normals,
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
-            wavenumber, 0.0 if depth == np.infty else depth,
+            wavenumber, depth,
             coeffs,
-            *self.tabulated_integrals,
+            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
             mesh1 is mesh2
         )
+
+        if np.any(np.isnan(S)) or np.any(np.isnan(K)):
+            raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
+                    "It could be due to overlapping panels.")
+
+        return S, K
 
 ################################
 
@@ -203,5 +232,4 @@ class XieDelhommeau(Delhommeau):
     Same arguments and methods as :class:`Delhommeau`.
     """
 
-    fortran_core = XieDelhommeau_f90
-    build_tabulated_integrals = lru_cache(maxsize=1)(XieDelhommeau_f90.initialize_green_wave.initialize_tabulated_integrals)
+    fortran_core_basename = "XieDelhommeau"

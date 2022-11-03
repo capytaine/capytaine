@@ -21,8 +21,8 @@ test_matrix = xr.Dataset(coords={
     'radiating_dof': list(body.dofs.keys()),
 })
 
-ds2 = cpt.BEMSolver(green_function=cpt.XieDelhommeau()).fill_dataset(test_matrix, [body])
-ds1 = cpt.BEMSolver(green_function=cpt.Delhommeau()).fill_dataset(test_matrix, [body])
+ds2 = cpt.BEMSolver(green_function=cpt.XieDelhommeau()).fill_dataset(test_matrix, body)
+ds1 = cpt.BEMSolver(green_function=cpt.Delhommeau()).fill_dataset(test_matrix, body)
 
 plt.figure()
 ds1['added_mass'].plot(x='omega', label='Delhommeau')

@@ -45,10 +45,15 @@ Two of them are available in the present version:
            Setting it to :code:`0` will reduce the RAM usage of the code but might
            increase the computation time.
 
-   :code:`linear_solver` (Default: :code:`'gmres'`)
+   :code:`linear_solver` (Default: :code:`'lu_decomposition'`)
            This option is used to set the solver for linear systems that is used in the resolution of the BEM problem.
-           Passing a string will make the code use one of the predefined solver. Two of them are available:
-           :code:`'direct'` for a direct solver using LU-decomposition or :code:`'gmres'` for an iterative solver.
+           Passing a string will make the code use one of the predefined solver. Three of them are available:
+           :code:`'direct'` for a simple direct solver,
+           :code:`'lu_decomposition'` for a faster direct solver with caching of the LU decomposition,
+           or :code:`'gmres'` for an iterative solver.
+
+           A direct solver is used by default (since version 1.4) because it is more robust and the computation time is more predictable.
+           Advanced users might want to change the solver to :code:`gmres`, which is faster in many situations (and completely fails in other).
 
            Alternatively, any function taking as arguments a matrix and a vector and returning a vector can be given to the solver::
 
@@ -112,9 +117,55 @@ A list of problems can be solved at once in an optimal order with::
 Parallelization
 ---------------
 
-The resolution should happen in parallel with OpenMP. The number of cores used
-by OpenMP is controlled by the environment variables :code:`OMP_NUM_THREADS`
-(for the computation of the Green function by capytaine itself) and
-:code:`MKL_NUM_THREADS` (for the linear solver from Intel's MKL library
-distributed with conda).
+Capytaine includes two kinds of parallelization.
 
++---------------------------+----------------+--------+
+|                           | `joblib`       | OpenMP |
++---------------------------+----------------+--------+
+| Single resolution         | ✗              | ✓      |
+| (:code:`solve`)           |                |        |
++---------------------------+----------------+--------+
+| Batch resolution          | ✓              | ✓      |
+| (:code:`solve_all`        | (if installed) |        |
+| and :code:`fill_dataset`) |                |        |
++---------------------------+----------------+--------+
+
+Single problem with OpenMP
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When solving a single problem, matrix constructions and linear algebra
+operations (using BLAS or MKL depending on your installation) can be
+parallelized by OpenMP. This feature is installed and on by default. The number
+of threads used can be controlled by the environment variable
+:code:`OMP_NUM_THREADS`, as well as :code:`MKL_NUM_THREADS` (for the linear
+algebra when using Intel's MKL library usually distributed with conda). Note
+that the environment variable should be set *before* the start of the Python
+interpreter. Alternatively, if you'd like to change dynamically the number of
+threads, it can be done with the `threadpoolctl library
+<https://github.com/joblib/threadpoolctl>`_ (see also :issue:`47`).
+
+Batch resolution with joblib
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When solving several independent problems, they can be solved in parallel. This
+feature (new in version 1.4) requires the optional dependency `joblib
+<https://github.com/joblib/joblib>`_ to be installed. The methods
+:meth:`~capytaine.bem.solver.BEMSolver.solve_all` and
+:meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` take an optional
+keyword-argument :code:`n_jobs` which control the number of jobs to run in
+parallel during the batch resolution.
+Since `joblib` may disturb user feedback (logging and error
+reporting), it is currently disabled by default.
+
+When :code:`n_jobs=1` (the default) or `joblib` is not installed, no parallel
+batch resolution happens (although OpenMP parallelization might still be
+enabled).
+
+When :code:`n_jobs=-1`, all CPU cores are used (and `joblib` should
+automatically disable the OpenMP parallelization.)
+
+The two parallelization layers (OpenMP and `joblib`) have different usage. If
+you have a relatively small mesh but study a large number of sea states, you
+should use the `joblib` parallelization. On the other hand, if your mesh is
+large or your available RAM is low, it might be beneficial to turn off the
+`joblib` parallelization and use only the OpenMP one.

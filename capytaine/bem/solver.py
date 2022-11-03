@@ -20,9 +20,11 @@ import numpy as np
 
 from datetime import datetime
 
+from capytaine.bem.problems_and_results import LinearPotentialFlowProblem
 from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
+from capytaine.tools.optional_imports import silently_import_optional_dependency
 
 LOG = logging.getLogger(__name__)
 
@@ -77,10 +79,6 @@ class BEMSolver:
         """
         LOG.info("Solve %s.", problem)
 
-        if problem.wavelength < 8*problem.body.mesh.faces_radiuses.max():
-            LOG.warning(f"Resolution of the mesh (8×max_radius={8*problem.body.mesh.faces_radiuses.max():.2e}) "
-                        f"might be insufficient for this wavelength (wavelength={problem.wavelength:.2e})!")
-
         S, K = self.engine.build_matrices(
             problem.body.mesh, problem.body.mesh,
             problem.free_surface, problem.sea_bottom, problem.wavenumber,
@@ -88,51 +86,63 @@ class BEMSolver:
         )
         sources = self.engine.linear_solver(K, problem.boundary_condition)
         potential = S @ sources
+        pressure = problem.rho * potential
+        # Actually, for diffraction problems: pressure over jω
+        #           for radiation problems:   pressure over -ω²
+        # The correction is done in `store_force` in the `result` object.
 
-        result = problem.make_results_container()
-        if keep_details:
-            result.sources = sources
-            result.potential = potential
+        forces = problem.body.integrate_pressure(pressure)
 
-        for influenced_dof_name, influenced_dof_vectors in problem.influenced_dofs.items():
-            # Scalar product on each face:
-            influenced_dof_normal = np.sum(influenced_dof_vectors * problem.body.mesh.faces_normals, axis=1)
-            # Sum over all faces:
-            integrated_potential = - problem.rho * np.sum(potential * influenced_dof_normal * problem.body.mesh.faces_areas)
-            # Store result:
-            result.store_force(influenced_dof_name, integrated_potential)
-            # Depending of the type of problem, the force will be kept as a complex-valued Froude-Krylov force
-            # or stored as a couple of added mass and radiation damping coefficients.
+        if not keep_details:
+            result = problem.make_results_container(forces)
+        else:
+            result = problem.make_results_container(forces, sources, potential, pressure)
 
         LOG.debug("Done!")
 
         return result
 
-    def solve_all(self, problems, **kwargs):
+    def solve_all(self, problems, *, n_jobs=1, **kwargs):
         """Solve several problems.
-        Optional keyword arguments are passed to `Nemoh.solve`.
+        Optional keyword arguments are passed to `BEMSolver.solve`.
 
         Parameters
         ----------
         problems: list of LinearPotentialFlowProblem
             several problems to be solved
+        n_jobs: int, optional (default: 1)
+            the number of jobs to run in parallel using the optional dependency `joblib`
+            By defaults: do not use joblib and solve sequentially.
 
         Returns
         -------
         list of LinearPotentialFlowResult
             the solved problems
         """
-        return [self.solve(problem, **kwargs) for problem in sorted(problems)]
+        if n_jobs == 1:  # force sequential resolution
+            return [self.solve(pb, **kwargs) for pb in sorted(problems)]
+        else:
+            joblib = silently_import_optional_dependency("joblib")
+            if joblib is None:
+                raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
+            groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
+            groups_of_results = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.solve_all)(grp, n_jobs=1, **kwargs) for grp in groups_of_problems)
+            results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
+            return results
 
-    def fill_dataset(self, dataset, bodies, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, n_jobs=1, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
         ----------
         dataset : xarray Dataset
             dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
-        bodies : list of FloatingBody
-            the bodies involved in the problems
+        bodies : FloatingBody or list of FloatingBody
+            The body or bodies involved in the problems
+            They should all have different names.
+        n_jobs: int, optional (default: 1)
+            the number of jobs to run in parallel using the optional dependency `joblib`
+            By defaults: do not use joblib and solve sequentially.
 
         Returns
         -------
@@ -142,12 +152,12 @@ class BEMSolver:
                  **self.exportable_settings}
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
-            results = self.solve_all(problems, keep_details=True)
+            results = self.solve_all(problems, keep_details=True, n_jobs=n_jobs)
             kochin = kochin_data_array(results, dataset.coords['theta'])
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
             dataset.update(kochin)
         else:
-            results = self.solve_all(problems, keep_details=False)
+            results = self.solve_all(problems, keep_details=False, n_jobs=n_jobs)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 
@@ -159,7 +169,7 @@ class BEMSolver:
         Parameters
         ----------
         result : LinearPotentialFlowResult
-            the return of Nemoh's solver
+            the return of the BEM solver
         mesh : Mesh or CollectionOfMeshes
             a mesh
         chunk_size: int, optional

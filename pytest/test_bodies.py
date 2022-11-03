@@ -44,8 +44,15 @@ def test_dof_name_inference():
     body.add_all_rigid_body_dofs()
 
 
+def test_cropping_body_with_manual_dof():
+    # https://github.com/capytaine/capytaine/issues/204
+    sphere = Sphere()
+    sphere.dofs["Surge"] = [(1, 0, 0) for face in sphere.mesh.faces]
+    sphere.keep_immersed_part()
+
+
 def test_bodies():
-    body = Sphere(name="sphere", clever=False)
+    body = Sphere(name="sphere", axial_symmetry=False)
     assert str(body) == "sphere"
     repr(body)
     assert np.allclose(body.geometric_center, (0, 0, 0))
@@ -81,10 +88,10 @@ def test_bodies():
 
 
 @pytest.mark.parametrize("z_center", [0, 2, -2])
-@pytest.mark.parametrize("collection_of_meshes", [True, False])
-def test_clipping_of_dofs(z_center, collection_of_meshes):
+@pytest.mark.parametrize("as_collection_of_meshes", [True, False])
+def test_clipping_of_dofs(z_center, as_collection_of_meshes):
     """Check that clipping a body with a dof is the same as clipping the body ant then adding the dof."""
-    full_sphere = Sphere(center=(0, 0, z_center), name="sphere", clever=collection_of_meshes, clip_free_surface=False)
+    full_sphere = Sphere(center=(0, 0, z_center), name="sphere", axial_symmetry=as_collection_of_meshes, clip_free_surface=False)
     axis = Axis(point=(1, 0, 0), vector=(1, 0, 0))
 
     full_sphere.add_rotation_dof(axis, name="test_dof")
@@ -107,6 +114,23 @@ def test_mincing():
     assert isinstance(body.mesh[0][0], Mesh)
     body = body.minced((1, 2, 2))
     assert isinstance(body.mesh[0][0][0][0], Mesh)
+
+
+def test_assemble_regular_array():
+    body = Sphere()
+    body.add_all_rigid_body_dofs()
+    array = body.assemble_regular_array(distance=2.0, nb_bodies=(2, 3))
+    assert array.mesh.nb_faces == 6*body.mesh.nb_faces
+
+    # Check name and order of the dofs
+    assert list(array.dofs.keys())[0:3] == ["0_0__Surge", "0_0__Sway", "0_0__Heave"]
+    assert "2_1__Heave" not in array.dofs.keys()
+
+    # Check that the dofs coresponds to the right panels
+    faces_1_0 = np.where(array.dofs["1_0__Heave"] != 0.0)[0]
+    fc_1_0 = array.mesh.merged().faces_centers[faces_1_0, :]
+    assert np.all(1.0 <= fc_1_0[:, 0]) and np.all(fc_1_0[:, 0] <= 3.0)  #   1 < x < 3
+    assert np.all(-1.0 <= fc_1_0[:, 1]) and np.all(fc_1_0[:, 1] <= 1.0) #  -1 < y < 1
 
 
 r = 1.0

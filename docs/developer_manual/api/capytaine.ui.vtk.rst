@@ -5,6 +5,7 @@ Submodules
 ----------
 
 .. toctree::
+   :maxdepth: 4
 
    capytaine.ui.vtk.animation
    capytaine.ui.vtk.body_viewer

@@ -1,6 +1,5 @@
-# Capytaine: a Python-based distribution of Nemoh
+# Capytaine: a linear potential flow BEM solver with Python.
 
-[![Travis Build Status](https://travis-ci.org/mancellin/capytaine.svg?branch=master)](https://travis-ci.org/mancellin/capytaine)
 [![DOI](http://joss.theoj.org/papers/10.21105/joss.01341/status.svg)](https://doi.org/10.21105/joss.01341)
 
 Capytaine is Python package for the simulation of the interaction between water waves and floating bodies in frequency domain.
@@ -20,7 +19,9 @@ conda install -c conda-forge capytaine
 
 ## License
 
-Copyright (C) 2017-2019, Matthieu Ancellin
+Copyright (C) 2017-2022, Matthieu Ancellin
+
+Since April 2022, the development of Capytaine is funded by the Alliance for Sustainable Energy, LLC, Managing and Operating Contractor for the National Renewable Energy Laboratory (NREL) for the U.S. Department of Energy.
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 

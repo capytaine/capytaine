@@ -1,0 +1,19 @@
+/* Spacing between items in changelog */
+#changelog li{
+    margin: 15px 0;
+}
+/* Spacing in changelogs table of content */
+#changelog #contents li{
+    margin: 0 0;
+}
+
+
+/* Spacing between entries in the developper API documentation */
+dl{
+    margin: 50px 0;
+}
+/* Spacing within an entry */
+.py dl{
+    margin: 0 0;
+}
+

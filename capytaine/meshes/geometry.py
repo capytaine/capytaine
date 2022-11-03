@@ -240,6 +240,14 @@ class Axis(Abstract3DObject):
                       [-uy, ux, 0]])
         return np.identity(3) + np.sin(theta)*W + 2*np.sin(theta/2)**2 * (W @ W)
 
+    def rotate_vectors(self, vectors, angle):
+        vectors = np.asarray(vectors)
+        return (self.rotation_matrix(angle) @ vectors.T).T
+
+    def rotate_points(self, points, angle):
+        points = np.asarray(points)
+        return self.rotate_vectors(points - self.point, angle) + self.point
+
 
 Ox_axis = Axis(vector=e_x, point=(0, 0, 0))
 Oy_axis = Axis(vector=e_y, point=(0, 0, 0))

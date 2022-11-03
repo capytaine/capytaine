@@ -1,39 +1,28 @@
-# Development Makefile
+install:
+	pip install .
 
-DIRECTORY=$(PWD)/capytaine/green_functions
-
-F90FILES = \
-$(DIRECTORY)/Delhommeau_f90/constants.f90             \
-$(DIRECTORY)/Delhommeau_f90/matrices.f90             \
-$(DIRECTORY)/Delhommeau_f90/Green_Rankine.f90         \
-$(DIRECTORY)/Delhommeau_f90/Green_wave.f90            \
-$(DIRECTORY)/Delhommeau_f90/Initialize_Green_wave.f90 \
-$(DIRECTORY)/Delhommeau_f90/old_Prony_decomposition.f90
-
-SOFILE = \
-$(DIRECTORY)/Delhommeau_f90.cpython-36m-x86_64-linux-gnu.so \
-$(DIRECTORY)/XieDelhommeau_f90.cpython-36m-x86_64-linux-gnu.so
-
-$(SOFILE): $(F90FILES)
-	python setup.py build_ext --inplace
-
-update_fortran: $(SOFILE)
-
-develop: $(SOFILE)
-	pip install -e .
+develop:
+	pip install -e .[develop]
 
 test: develop
 	python -m pytest
 
 clean:
-	rm -f $(SOFILE)
-	rm -rf build
+	rm -f capytaine/green_functions/libs/*.so
+	rm -rf build/
+	rm -rf dist/
 	rm -rf capytaine.egg-info/
+	rm -rf docs/_build
 	rm -rf .pytest_cache/
-	rm -rf __pycache__ */__pycache__ */*/__pycache__
+	rm -rf .hypothesis/
+	rm -rf __pycache__ */__pycache__ */*/__pycache__ */*/*/__pycache__
+
+full_archive: clean
+	# See https://github.com/capytaine/capytaine/issues/221 for the motivation
+	read -p "Version number:" version && tar caf /tmp/capytaine-full-$$version.tar.gz --transform "s,^./,capytaine-$$version/," --exclude '*.tar.gz' --exclude './.git/*' --exclude-vcs-ignores . && mv /tmp/capytaine-full-$$version.tar.gz ./
 
 pypi: clean
 	python setup.py sdist
 	python -m twine upload dist/capytaine*.tar.gz
 
-.PHONY: update_fortran develop test clean pypi
+.PHONY: install develop test clean full_archive pypi

@@ -5,6 +5,7 @@ Submodules
 ----------
 
 .. toctree::
+   :maxdepth: 4
 
    capytaine.matrices.block
    capytaine.matrices.block_toeplitz

@@ -41,10 +41,10 @@ def _compute_triangles_integrals(triangles_vertices):
 
     Notes
     -----
-    triangles_vertices doit decrire par dimension croissante du general au particulier :
-    dimension 0 : informations sur chaque facette -- triangles_vertices[0] -> facette 0)
-    dimension 1 : informations sur chaque vertex de la facette -- triangles_vertices[0, 1] -> vertex 1 de la facette 0
-    dimension 2 : information sur chacune des coordonnées des vertex -- triangles_vertices[0, 1, 2] -> coordonnee z du vertex 1 de la facette 0
+    triangles vertices must describe by increasing dimension from the general to the particular:
+    dimension 0 : information about each facet -- triangles_vertices[0] -> facet 0)
+    dimension 1 : information about each facet vertex -- triangles_vertices[0, 1] -> vertex 1 of facet 0
+    dimension 2 : information on each vertex coordinate -- triangles_vertices[0, 1, 2] -> z coordinate of vertex 1 of facet 0
 
     Todo
     ----

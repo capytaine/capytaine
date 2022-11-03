@@ -5,6 +5,7 @@ Subpackages
 -----------
 
 .. toctree::
+   :maxdepth: 4
 
    capytaine.bodies.predefined
 
@@ -12,6 +13,7 @@ Submodules
 ----------
 
 .. toctree::
+   :maxdepth: 4
 
    capytaine.bodies.bodies
 

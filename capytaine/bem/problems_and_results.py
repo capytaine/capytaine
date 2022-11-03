@@ -7,8 +7,10 @@
 import logging
 
 import numpy as np
+import pandas as pd
 from scipy.optimize import newton
 
+from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.bem.airy_waves import airy_waves_velocity, froude_krylov_force
 
 LOG = logging.getLogger(__name__)
@@ -83,6 +85,10 @@ class LinearPotentialFlowProblem:
             )
 
         if self.body is not None:
+            if ((isinstance(self.body.mesh, CollectionOfMeshes) and len(self.body.mesh) == 0)
+                    or len(self.body.mesh.faces) == 0):
+                raise ValueError(f"The mesh of the body {self.body.name} is empty.")
+
             if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface)
                     or any(self.body.mesh.faces_centers[:, 2] <= self.sea_bottom)):
 
@@ -91,6 +97,13 @@ class LinearPotentialFlowProblem:
                     "Check the position of the free_surface and the sea_bottom\n"
                     "or use body.keep_immersed_part() to clip the mesh."
                 )
+
+            if self.wavelength < 8*self.body.mesh.faces_radiuses.max():
+                LOG.warning(f"Mesh resolution for {self}:\n"
+                        f"The resolution of the mesh '{self.body.mesh.name}' of the body '{self.body.name}' "
+                        f"might be insufficient for the wavelength λ={self.wavelength:.2e}.\n"
+                        f"This warning appears because the largest panel of this mesh has radius {self.body.mesh.faces_radiuses.max():.2e} > λ/8."
+                        )
 
         if self.boundary_condition is not None:
             if len(self.boundary_condition.shape) != 1:
@@ -112,6 +125,17 @@ class LinearPotentialFlowProblem:
                 "omega": self.omega,
                 "rho": self.rho,
                 "g": self.g}
+
+    @staticmethod
+    def _group_for_parallel_resolution(problems):
+        """Given a list of problems, returns a list of groups of problems, such
+        that each group should be executed in the same process to benefit from
+        caching.
+        """
+        problems_params = pd.DataFrame([pb._asdict() for pb in problems])
+        groups_of_indices = problems_params.groupby(["body_name", "water_depth", "omega", "rho", "g"]).groups.values()
+        groups_of_problems = [[problems[i] for i in grp] for grp in groups_of_indices]
+        return groups_of_problems
 
     def __str__(self):
         """Do not display default values in str(problem)."""
@@ -196,7 +220,7 @@ class LinearPotentialFlowProblem:
     @property
     def influenced_dofs(self):
         # TODO: let the user choose the influenced dofs
-        return self.body.dofs
+        return self.body.dofs if self.body is not None else set()
 
     def make_results_container(self):
         return LinearPotentialFlowResult(self)
@@ -222,6 +246,11 @@ class DiffractionProblem(LinearPotentialFlowProblem):
         super().__init__(body=body, free_surface=free_surface, sea_bottom=sea_bottom,
                          omega=omega, rho=rho, g=g)
 
+        if not (-2*np.pi-1e-3 <= self.wave_direction <= 2*np.pi+1e-3):
+            LOG.warning(f"The value {self.wave_direction} has been provided for the wave direction, and it does not look like an angle in radians. "
+                         "The wave direction in Capytaine is defined in radians and not in degrees, so the result might not be what you expect. "
+                         "If you were actually giving an angle in radians, use the modulo operator to give a value between -2π and 2π to disable this warning.")
+
         if self.body is not None:
 
             self.boundary_condition = -(
@@ -244,8 +273,8 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     def _str_other_attributes(self):
         return [f"wave_direction={self.wave_direction:.3f}"]
 
-    def make_results_container(self):
-        return DiffractionResult(self)
+    def make_results_container(self, *args, **kwargs):
+        return DiffractionResult(self, *args, **kwargs)
 
 
 class RadiationProblem(LinearPotentialFlowProblem):
@@ -293,34 +322,52 @@ class RadiationProblem(LinearPotentialFlowProblem):
     def _str_other_attributes(self):
         return [f"radiating_dof={self.radiating_dof}"]
 
-    def make_results_container(self):
-        return RadiationResult(self)
+    def make_results_container(self, *args, **kwargs):
+        return RadiationResult(self, *args, **kwargs)
 
 
 class LinearPotentialFlowResult:
 
-    def __init__(self, problem):
+    def __init__(self, problem, forces=None, sources=None, potential=None, pressure=None):
         self.problem = problem
 
-        self.sources = None
-        self.potential = None
+        self.sources = sources
+        self.potential = potential
+        self.pressure = pressure
         self.fs_elevation = {}
 
-    __str__ = LinearPotentialFlowProblem.__str__
+        # Copy data from problem
+        self.body               = self.problem.body
+        self.free_surface       = self.problem.free_surface
+        self.sea_bottom         = self.problem.sea_bottom
+        self.omega              = self.problem.omega
+        self.rho                = self.problem.rho
+        self.g                  = self.problem.g
+        self.boundary_condition = self.problem.boundary_condition
+        self.water_depth        = self.problem.water_depth
+        self.depth              = self.problem.depth
+        self.wavenumber         = self.problem.wavenumber
+        self.wavelength         = self.problem.wavelength
+        self.period             = self.problem.period
+        self.body_name          = self.problem.body_name
+        self.influenced_dofs    = self.problem.influenced_dofs
 
-    def __getattr__(self, name):
-        """Direct access to the attributes of the included problem."""
-        try:
-            return getattr(self.problem, name)
-        except AttributeError:
-            raise AttributeError(f"{self.__class__} does not have a attribute named {name}.")
+        if forces is not None:
+            for dof in self.influenced_dofs:
+                self.store_force(dof, forces[dof])
+
+    def store_force(self, dof, force):
+        pass  # Implemented in sub-classes
+
+    __str__ = LinearPotentialFlowProblem.__str__
 
 
 class DiffractionResult(LinearPotentialFlowResult):
 
-    def __init__(self, problem):
-        super().__init__(problem)
+    def __init__(self, problem, *args, **kwargs):
         self.forces = {}
+        super().__init__(problem, *args, **kwargs)
+        self.wave_direction = self.problem.wave_direction
 
     def store_force(self, dof, force):
         self.forces[dof] = 1j*self.omega*force
@@ -338,10 +385,11 @@ class DiffractionResult(LinearPotentialFlowResult):
 
 class RadiationResult(LinearPotentialFlowResult):
 
-    def __init__(self, problem):
-        super().__init__(problem)
+    def __init__(self, problem, *args, **kwargs):
         self.added_masses = {}
         self.radiation_dampings = {}
+        super().__init__(problem, *args, **kwargs)
+        self.radiating_dof = self.problem.radiating_dof
 
     def store_force(self, dof, force):
         self.added_masses[dof] = force.real

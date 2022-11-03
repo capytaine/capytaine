@@ -5,6 +5,7 @@ Submodules
 ----------
 
 .. toctree::
+   :maxdepth: 4
 
    capytaine.bodies.predefined.cylinders
    capytaine.bodies.predefined.rectangles

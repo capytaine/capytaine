@@ -63,7 +63,7 @@ class BlockToeplitzMatrix(BlockMatrix):
 
     def _block_indices_of(self, k: int) -> Set[Tuple[int, int]]:
         """The block indices at which the stored block k can be found in the full matrix of size n.
-        Will be overriden by subclasses."""
+        Will be overridden by subclasses."""
         n = self.nb_blocks[0]
 
         if k < n:
