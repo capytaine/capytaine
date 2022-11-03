@@ -55,7 +55,9 @@ class BlockMatrix:
         self._stored_nb_blocks = (len(blocks), len(blocks[0]))
 
         self._stored_blocks = np.empty(self._stored_nb_blocks, dtype=object)
-        self._stored_blocks[:, :] = blocks
+        for i in range(len(blocks)):
+            for j in range(len(blocks[i])):
+                self._stored_blocks[i, j] = blocks[i][j]
 
         if _stored_block_shapes is None:
             self._stored_block_shapes = ([block.shape[0] for block in self._stored_blocks[:, 0]],
@@ -178,11 +180,15 @@ class BlockMatrix:
                                    slice(position[1], position[1]+block.shape[1]))
                     full_matrix[block_frame] = full_block
 
-    def full_matrix(self) -> np.ndarray:
+    def full_matrix(self, dtype=None) -> np.ndarray:
         """Flatten the block structure and return a full matrix."""
-        full_matrix = np.empty(self.shape, dtype=self.dtype)
+        if dtype is None: dtype = self.dtype
+        full_matrix = np.empty(self.shape, dtype=dtype)
         self._put_in_full_matrix(full_matrix)
         return full_matrix
+
+    def __array__(self, dtype=None):
+        return self.full_matrix(dtype=dtype)
 
     def no_toeplitz(self):
         """Recursively replace the block toeplitz matrices by usual block matrices.
@@ -375,13 +381,12 @@ class BlockMatrix:
             assert [shape == matrix.shape for matrix in block_matrices[1:]]
             assert [class_of_matrices == type(matrix) for matrix in block_matrices[1:]]
 
-        # Initialize an array of block matrices without values in the blocks.
+        # Initialize a vector of block matrices without values in the blocks.
         result = np.empty(len(block_matrices), dtype=object)
-        result[:] = [
-            class_of_matrices(np.empty(nb_blocks, dtype=object),
-                              _stored_block_shapes=block_matrices[0]._stored_block_shapes,
-                              check=False)
-            for _ in range(len(result))]
+        for i in range(len(block_matrices)):
+            result[i] = class_of_matrices(np.empty(nb_blocks, dtype=object),
+                                          _stored_block_shapes=block_matrices[0]._stored_block_shapes,
+                                          check=False)
 
         for i_block, j_block in product(range(nb_blocks[0]), range(nb_blocks[1])):
             list_of_i_j_blocks = [block_matrices[i_matrix]._stored_blocks[i_block, j_block]
