@@ -199,7 +199,7 @@ class BlockCirculantMatrix(BlockToeplitzMatrix):
     # LINEAR SYSTEMS
 
     def block_diagonalize(self):
-        """Returns an list of matrices"""
+        """Returns a vector of matrices"""
         if not hasattr(self, 'block_diagonalization'):
             if all(isinstance(matrix, BlockMatrix) for matrix in self._stored_blocks[0, :]):
                 self.block_diagonalization = BlockMatrix.fft_of_list(*self.all_blocks[:, 0])
