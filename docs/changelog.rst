@@ -35,12 +35,15 @@ Minor changes
   A function :func:`~capytaine.io.meshio.load_from_meshio` is also now exported in the main namespace.
   The documentation has been changed to recommend the use of these functions instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_file` and :meth:`~capytaine.bodies.bodies.FloatingBody.from_meshio`.
 
+* Custom classes from the :code:`capytaine.matrices` module storign block matrices or data-sparse matrices
+  can be transformed into full Numpy arrays with :code:`np.array(...)` (:pull:`99`)
+
 Internals
 ~~~~~~~~~
 
 * The integration of the pressure on the mesh of the body was implemented twice independently. It has been factored out in :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure` (:pull:`218`)
 
-* `__rmatmul__` has been implemented for low rank matrices (:pull:`222`). 
+* `__rmatmul__` has been implemented for low rank matrices (:pull:`222`).
 
 ---------------------------------
 New in version 1.4.2 (2022-10-03)
