@@ -26,3 +26,5 @@ jobs:
         pip install -e .[ci]
     - name: Test
       run: pytest
+    - name: Examples
+      run: for f in $(ls examples/*.py); do python examples/$f; done
