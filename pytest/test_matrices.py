@@ -444,7 +444,7 @@ def test_low_rank_blocks():
     a, b = np.random.rand(n, 1), np.random.rand(1, n)
     LR = LowRankMatrix(a, b)
     assert LR.shape == LR.full_matrix().shape
-    assert np.array(LR) == LR.full_matrix()
+    assert np.all(np.array(LR) == LR.full_matrix())
     assert matrix_rank(LR.full_matrix()) == LR.rank == 1
     assert LR.density == 2 * n / n ** 2
 
