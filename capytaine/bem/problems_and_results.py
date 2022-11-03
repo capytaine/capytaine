@@ -98,6 +98,13 @@ class LinearPotentialFlowProblem:
                     "or use body.keep_immersed_part() to clip the mesh."
                 )
 
+            if self.wavelength < 8*self.body.mesh.faces_radiuses.max():
+                LOG.warning(f"Mesh resolution for {self}:\n"
+                        f"The resolution of the mesh '{self.body.mesh.name}' of the body '{self.body.name}' "
+                        f"might be insufficient for the wavelength λ={self.wavelength:.2e}.\n"
+                        f"This warning appears because the largest panel of this mesh has radius {self.body.mesh.faces_radiuses.max():.2e} > λ/8."
+                        )
+
         if self.boundary_condition is not None:
             if len(self.boundary_condition.shape) != 1:
                 raise ValueError("Expected a 1-dimensional array as boundary_condition")
@@ -266,8 +273,8 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     def _str_other_attributes(self):
         return [f"wave_direction={self.wave_direction:.3f}"]
 
-    def make_results_container(self):
-        return DiffractionResult(self)
+    def make_results_container(self, *args, **kwargs):
+        return DiffractionResult(self, *args, **kwargs)
 
 
 class RadiationProblem(LinearPotentialFlowProblem):
@@ -315,17 +322,18 @@ class RadiationProblem(LinearPotentialFlowProblem):
     def _str_other_attributes(self):
         return [f"radiating_dof={self.radiating_dof}"]
 
-    def make_results_container(self):
-        return RadiationResult(self)
+    def make_results_container(self, *args, **kwargs):
+        return RadiationResult(self, *args, **kwargs)
 
 
 class LinearPotentialFlowResult:
 
-    def __init__(self, problem):
+    def __init__(self, problem, forces=None, sources=None, potential=None, pressure=None):
         self.problem = problem
 
-        self.sources = None
-        self.potential = None
+        self.sources = sources
+        self.potential = potential
+        self.pressure = pressure
         self.fs_elevation = {}
 
         # Copy data from problem
@@ -344,15 +352,22 @@ class LinearPotentialFlowResult:
         self.body_name          = self.problem.body_name
         self.influenced_dofs    = self.problem.influenced_dofs
 
+        if forces is not None:
+            for dof in self.influenced_dofs:
+                self.store_force(dof, forces[dof])
+
+    def store_force(self, dof, force):
+        pass  # Implemented in sub-classes
+
     __str__ = LinearPotentialFlowProblem.__str__
 
 
 class DiffractionResult(LinearPotentialFlowResult):
 
-    def __init__(self, problem):
-        super().__init__(problem)
-        self.wave_direction = self.problem.wave_direction
+    def __init__(self, problem, *args, **kwargs):
         self.forces = {}
+        super().__init__(problem, *args, **kwargs)
+        self.wave_direction = self.problem.wave_direction
 
     def store_force(self, dof, force):
         self.forces[dof] = 1j*self.omega*force
@@ -370,11 +385,11 @@ class DiffractionResult(LinearPotentialFlowResult):
 
 class RadiationResult(LinearPotentialFlowResult):
 
-    def __init__(self, problem):
-        super().__init__(problem)
-        self.radiating_dof = self.problem.radiating_dof
+    def __init__(self, problem, *args, **kwargs):
         self.added_masses = {}
         self.radiation_dampings = {}
+        super().__init__(problem, *args, **kwargs)
+        self.radiating_dof = self.problem.radiating_dof
 
     def store_force(self, dof, force):
         self.added_masses[dof] = force.real

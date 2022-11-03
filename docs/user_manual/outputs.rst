@@ -119,7 +119,7 @@ This can be fixed by explicitly converting the strings to the right format when 
                       encoding={'radiating_dof': {'dtype': 'U'},
                                 'influenced_dof': {'dtype': 'U'}})
 
-See also `this Github issue <https://github.com/mancellin/capytaine/issues/2>`_.
+See also `this Github issue <https://github.com/capytaine/capytaine/issues/2>`_.
 
 Saving the data as legacy Tecplot files
 ---------------------------------------

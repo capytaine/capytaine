@@ -242,13 +242,13 @@ def generate_sphere():
                     reason='Neither vtk nor meshio are installed')
 def test_write_and_read_STL(tmp_path):
     mesh, _ = generate_cylinder()
-    fb = cpt.FloatingBody.from_meshio(mesh)
-    fb.mesh.heal_mesh()
+    cpt_mesh = cpt.load_from_meshio(mesh)
+    cpt_mesh.heal_mesh()
 
     # Write with Meshio and reload with Meshmagick
     mesh.write(tmp_path / "wavebot.stl")
-    fb2 = cpt.FloatingBody.from_file(str(tmp_path / "wavebot.stl"))
-    assert np.allclose(fb.mesh.vertices, fb2.mesh.vertices)
+    cpt_mesh_2 = cpt.load_mesh(tmp_path / "wavebot.stl")
+    assert np.allclose(cpt_mesh.vertices, cpt_mesh_2.vertices)
 
     # # Write with Meshmagick and reload with Meshio
     # # FAILING FOR NOW

@@ -7,11 +7,12 @@ Meshes and floating bodies
 Importing a mesh with Meshmagick
 --------------------------------
 
-To create a new body using an existing mesh file, use the following syntax::
+To load an existing mesh file, use the following syntax::
 
-    from capytaine import FloatingBody
+    import capytaine as cpt
 
-    body = FloatingBody.from_file('path/to/mesh.dat', file_format='nemoh')
+    mesh = cpt.load_mesh('path/to/mesh.dat', file_format='nemoh')
+    body = cpt.FloatingBody(mesh=mesh)
 
 The above example uses `Nemoh's mesh format`_.
 
@@ -21,7 +22,7 @@ Thanks to Meshmagick, numerous other mesh format can be imported.
 The file format can be given with the :code:`file_format` optional argument.
 If no format is given, the code will try to infer it from the file extension::
 
-    body = FloatingBody.from_file('path/to/mesh.msh')  # gmsh file
+    mesh = cpt.load_mesh('path/to/mesh.msh')  # gmsh file
 
 The formats currently supported in reading are listed in the following table (adapted from the documentation of Meshmagick).
 
@@ -90,12 +91,12 @@ not packaged with Capytaine and need to be installed independently::
 
     pip install meshio
 
-A `meshio` mesh object can be read using the :code:`FloatingBody.from_meshio`
-method::
+A `meshio` mesh object can be read using the :func:`~capytaine.io.meshio.load_from_meshio`
+function::
 
     import meshio
     mesh = meshio.read("myfile.stl")
-    body = FloatingBody.from_meshio(mesh, name="My floating body")
+    cpt_mesh = cpt.load_from_meshio(mesh, name="My floating body")
 
 This features allows to use `pygmsh <https://pypi.org/project/pygmsh/>`_ to
 generate the mesh, since this library returns mesh in the same format as meshio.
@@ -114,17 +115,18 @@ installed independently)::
         geom.translate(cyl, [0, 0, offset])
         geom.translate(cone, [0, 0, offset])
         geom.boolean_union([cyl, cone])
-        mesh = geom.generate_mesh(dim=2)
-    body = FloatingBody.from_meshio(mesh)
+        gmsh_mesh = geom.generate_mesh(dim=2)
+    cpt_mesh = cpt.load_from_meshio(gmsh_mesh)
 
 
 Display and animation
 ---------------------
-Use the :code:`show` method to display the body in 3D using VTK (if installed)::
+Use the :code:`show` method to display the mesh in 3D using VTK (if installed)::
 
-    body.show()
+    mesh.show()
 
-The :code:`animate` method can be used to visualize a given motion of the body::
+Once a :code:`FloatingBody` with dofs has been defineds, the :code:`animate`
+method can be used to visualize a given motion of the body::
 
     anim = body.animate(motion={"Heave": 0.1, "Surge": 0.1j}, loop_duration=1.0)
     anim.run()
@@ -140,11 +142,11 @@ Geometric transformations
 -------------------------
 Several functions are available to transform existing bodies and meshes.
 
-Most transformation methods exist in two versions: 
+Most transformation methods exist in two versions:
 
 * one, named as a infinitive verb (`translate`, `rotate`, ...), is an in-place transformation;
 * the other, named as a past participle (`translated`, `rotated`, ...), is the
-  same transformation but returning a new object. 
+  same transformation but returning a new object.
 
 In most cases, performance is not significant and the latter method should be
 preferred since it makes code slightly easier to debug.
@@ -154,26 +156,26 @@ All of them can be applied to both meshes or to floating bodies, in which case
 the degrees of freedom will also be transformed::
 
     # TRANSLATIONS
-    body.translated_x(10.0)
-    body.translated_y(10.0)
-    body.translated_z(10.0)
-    body.translated([10.0, 5.0, 2.0])
+    mesh.translated_x(10.0)
+    mesh.translated_y(10.0)
+    mesh.translated_z(10.0)
+    mesh.translated([10.0, 5.0, 2.0])
 
     # Translation such that point_a would become equal to point_b
-    body.translated_point_to_point(point_a=[5, 6, 7], point_b=[4, 3, 2])
+    mesh.translated_point_to_point(point_a=[5, 6, 7], point_b=[4, 3, 2])
 
     # ROTATIONS
-    body.rotated_x(3.14/5)  # Rotation of pi/5 around the Ox axis
-    body.rotated_y(3.14/5)  # Rotation of pi/5 around the Oy axis
-    body.rotated_z(3.14/5)  # Rotation of pi/5 around the Oz axis
+    mesh.rotated_x(3.14/5)  # Rotation of pi/5 around the Ox axis
+    mesh.rotated_y(3.14/5)  # Rotation of pi/5 around the Oy axis
+    mesh.rotated_z(3.14/5)  # Rotation of pi/5 around the Oz axis
 
     # Rotation of pi/5 around an arbitrary axis.
     from capytaine import Axis
     my_axis = Axis(vector=[1, 1, 1], point=[3, 4, 5])
-    body.rotated(axis=my_axis, angle=3.14/5)
+    mesh.rotated(axis=my_axis, angle=3.14/5)
 
     # Rotation around a point such that vec1 would become equal to vec2
-    body.rotated_around_center_to_align_vector(
+    mesh.rotated_around_center_to_align_vector(
         center=(0, 0, 0),
         vec1=(1, 4, 7),
         vec2=(9, 2, 1)
@@ -181,7 +183,7 @@ the degrees of freedom will also be transformed::
 
     # REFLECTIONS
     from capytaine import Plane
-    body.mirrored(Plane(normal=[1, 2, 1], point=[0, 4, 5]))
+    mesh.mirrored(Plane(normal=[1, 2, 1], point=[0, 4, 5]))
 
 All the above method can also be applied to :class:`~capytaine.meshes.geometry.Plane`
 and :class:`~capytaine.meshes.geometry.Axis` objects.

@@ -8,8 +8,6 @@ import logging
 import copy
 from itertools import chain, accumulate, product, zip_longest
 
-import datetime
-
 import numpy as np
 import xarray as xr
 
@@ -82,42 +80,14 @@ class FloatingBody(Abstract3DObject):
     @staticmethod
     def from_meshio(mesh, name=None) -> 'FloatingBody':
         """Create a FloatingBody from a meshio mesh object."""
-
-        import meshio
-        if not isinstance(mesh, meshio._mesh.Mesh):
-            raise TypeError('mesh must be of type meshio._mesh.Mesh, received {:}'.format(type(mesh)))
-
-        if name is None:
-            date_str = datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')
-            name = 'fb_{:}'.format(date_str)
-
-        def all_faces_as_quads(cells):
-            all_faces = []
-            if 'quad' in cells:
-                all_faces.append(cells['quad'])
-            if 'triangle' in cells:
-                num_triangles = len(mesh.cells_dict['triangle'])
-                LOG.info("Stored {:} triangle faces as quadrilaterals".format(num_triangles))
-                triangles_as_quads = np.empty((cells['triangle'].shape[0], 4), dtype=int)
-                triangles_as_quads[:, :3] = cells['triangle'][:, :]
-                triangles_as_quads[:, 3] = cells['triangle'][:, 2]  # Repeat one node to make a quad
-                all_faces.append(triangles_as_quads)
-            return np.concatenate(all_faces)
-
-        cpt_mesh = Mesh(vertices=mesh.points,
-                        faces=all_faces_as_quads(mesh.cells_dict),
-                        name=name+"_mesh")
-
-        fb = FloatingBody(mesh=cpt_mesh, name=name)
-        return fb
-
+        from capytaine.io.meshio import load_from_meshio
+        return FloatingBody(mesh=load_from_meshio(mesh, name), name=name)
 
     @staticmethod
     def from_file(filename: str, file_format=None, name=None) -> 'FloatingBody':
         """Create a FloatingBody from a mesh file using meshmagick."""
         from capytaine.io.mesh_loaders import load_mesh
-        if name is None:
-            name = filename
+        if name is None: name = filename
         mesh = load_mesh(filename, file_format, name=f"{name}_mesh")
         return FloatingBody(mesh, name=name)
 
@@ -212,6 +182,16 @@ class FloatingBody(Abstract3DObject):
         self.add_rotation_dof(name="Roll")
         self.add_rotation_dof(name="Pitch")
         self.add_rotation_dof(name="Yaw")
+
+    def integrate_pressure(self, pressure):
+        forces = {}
+        for dof_name in self.dofs:
+            # Scalar product on each face:
+            normal_dof_amplitude_on_face = - np.sum(self.dofs[dof_name] * self.mesh.faces_normals, axis=1)
+            # The minus sign in the above line is because we want the force of the fluid on the body and not the force of the body on the fluid.
+            # Sum over all faces:
+            forces[dof_name] = np.sum(pressure * normal_dof_amplitude_on_face * self.mesh.faces_areas)
+        return forces
 
     @inplace_transformation
     def keep_only_dofs(self, dofs):
@@ -326,6 +306,42 @@ class FloatingBody(Abstract3DObject):
         """Returns dot product of the surface face normals and DOF"""
         return np.sum(self.mesh.faces_normals * dof, axis=1)
 
+    def _infer_rotation_center(self):
+        """Hacky way to infer the point around which the rotation dofs are defined.
+        (Assuming all three rotation dofs are defined around the same point).
+        In the future, should be replaced by something more robust.
+        """
+        if hasattr(self, "rotation_center"):
+            return np.asarray(self.rotation_center)
+
+        else:
+            try:
+                xc1 = self.dofs["Pitch"][:, 2] + self.mesh.faces_centers[:, 0]
+                xc2 = -self.dofs["Yaw"][:, 1] + self.mesh.faces_centers[:, 0]
+                yc1 = self.dofs["Yaw"][:, 0] + self.mesh.faces_centers[:, 1]
+                yc2 = -self.dofs["Roll"][:, 2] + self.mesh.faces_centers[:, 1]
+                zc1 = -self.dofs["Pitch"][:, 0] + self.mesh.faces_centers[:, 2]
+                zc2 = self.dofs["Roll"][:, 1] + self.mesh.faces_centers[:, 2]
+
+                # All items should be identical in a given vector
+                assert np.isclose(xc1, xc1[0]).all()
+                assert np.isclose(yc1, yc1[0]).all()
+                assert np.isclose(zc1, zc1[0]).all()
+
+                # Both vector should be identical
+                assert np.allclose(xc1, xc2)
+                assert np.allclose(yc1, yc2)
+                assert np.allclose(zc1, zc2)
+
+                return np.array([xc1[0], yc1[0], zc1[0]])
+
+            except Exception as e:
+                raise ValueError(
+                        f"Failed to infer the rotation center of {self.name} to compute rigid body hydrostatics.\n"
+                        f"Possible fix: add a `rotation_center` attibute to {self.name}.\n"
+                        "Note that rigid body hydrostatic methods currently assume that the three rotation dofs have the same rotation center."
+                        ) from e
+
     def each_hydrostatic_stiffness(self, influenced_dof_name, radiating_dof_name, *,
                                          influenced_dof_div=0.0, rho=1000.0, g=9.81):
         r"""
@@ -378,31 +394,40 @@ class FloatingBody(Abstract3DObject):
         # Alternative is to use the general equation of hydrostatic and
         # restoring coefficient for rigid mdoes and use Neuman equation for elastic
         # modes.
-        cog = self.center_of_mass
-        mass = self.disp_mass(rho=rho) if self.mass is None else self.mass
 
         rigid_dof_names = ("Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw")
-
         dof_pair = (influenced_dof_name, radiating_dof_name)
 
         if set(dof_pair).issubset(set(rigid_dof_names)):
+            if self.center_of_mass is None:
+                raise ValueError(f"Trying to compute rigid-body hydrostatic stiffness for {self.name}, but no center of mass has been defined.\n"
+                                 f"Suggested solution: define a `center_of_mass` attribute for the FloatingBody {self.name}.")
+            mass = self.disp_mass(rho=rho) if self.mass is None else self.mass
+            xc, yc, zc = self._infer_rotation_center()
+
             if dof_pair == ("Heave", "Heave"):
                 norm_hs_stiff = self.waterplane_area
             elif dof_pair in [("Heave", "Roll"), ("Roll", "Heave")]:
-                norm_hs_stiff = -self.waterplane_integral(self.mesh.faces_centers[:,1])
+                norm_hs_stiff = -self.waterplane_integral(self.mesh.faces_centers[:,1] - yc)
             elif dof_pair in [("Heave", "Pitch"), ("Pitch", "Heave")]:
-                norm_hs_stiff = self.waterplane_integral(self.mesh.faces_centers[:,0])
+                norm_hs_stiff = self.waterplane_integral(self.mesh.faces_centers[:,0] - xc)
             elif dof_pair == ("Roll", "Roll"):
-                norm_hs_stiff = -self.waterplane_integral(self.mesh.faces_centers[:,1]**2) + self.volume*self.center_of_buoyancy[2] - mass/rho*cog[2]
+                norm_hs_stiff = (
+                        -self.waterplane_integral((self.mesh.faces_centers[:,1] - yc)**2)
+                        + self.volume*(self.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
+                )
             elif dof_pair in [("Roll", "Pitch"), ("Pitch", "Roll")]:
-                norm_hs_stiff = self.waterplane_integral(self.mesh.faces_centers[:,0]
-                                                          * self.mesh.faces_centers[:,1])
+                norm_hs_stiff = self.waterplane_integral((self.mesh.faces_centers[:,0] - xc)
+                                                          * (self.mesh.faces_centers[:,1] - yc))
             elif dof_pair == ("Roll", "Yaw"):
-                norm_hs_stiff = - self.volume*self.center_of_buoyancy[0] + mass/rho*cog[0]
+                norm_hs_stiff = - self.volume*(self.center_of_buoyancy[0] - xc) + mass/rho*(self.center_of_mass[0] - xc)
             elif dof_pair == ("Pitch", "Pitch"):
-                norm_hs_stiff = -self.waterplane_integral(self.mesh.faces_centers[:,0]**2) + self.volume*self.center_of_buoyancy[2] - mass/rho*cog[2]
+                norm_hs_stiff = (
+                        -self.waterplane_integral((self.mesh.faces_centers[:,0] - xc)**2)
+                        + self.volume*(self.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
+                        )
             elif dof_pair == ("Pitch", "Yaw"):
-                norm_hs_stiff = - self.volume*self.center_of_buoyancy[1] + mass/rho*cog[1]
+                norm_hs_stiff = - self.volume*(self.center_of_buoyancy[1] - yc) + mass/rho*(self.center_of_mass[1] - yc)
             else:
                 norm_hs_stiff = 0.0
         else:
@@ -522,10 +547,12 @@ class FloatingBody(Abstract3DObject):
         ValueError
             If output_type is not in {"body_dofs", "rigid_dofs", "all_dofs"}.
         """
+        if self.center_of_mass is None:
+            raise ValueError(f"Trying to compute rigid-body inertia matrix for {self.name}, but no center of mass has been defined.\n"
+                             f"Suggested solution: define a `center_of_mass` attribute for the FloatingBody {self.name}.")
 
-        cog = self.center_of_mass
-
-        fcs = (self.mesh.faces_centers).T
+        rc = self._infer_rotation_center()
+        fcs = (self.mesh.faces_centers - rc).T
         combinations = np.array([fcs[0]**2, fcs[1]**2, fcs[2]**2, fcs[0]*fcs[1],
                                  fcs[1]*fcs[2], fcs[2]*fcs[0]])
         integrals = np.array([
@@ -546,6 +573,7 @@ class FloatingBody(Abstract3DObject):
             integrals[1,5]
         ])
 
+        cog = self.center_of_mass - rc
         volume = self.volume
         volumic_inertia_matrix = np.array([
             [ volume        , 0              , 0               ,
@@ -626,9 +654,9 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics : dict
             All hydrostatics values of the FloatingBody.
         """
-        if not hasattr(self, "center_of_mass"):
-            LOG.warning("The floating body {} has no defined center of mass. The center of mass is set to (0,0,0).".format(self.name))
-            self.center_of_mass = np.array([0.0, 0.0, 0.0])
+        if self.center_of_mass is None:
+            raise ValueError(f"Trying to compute hydrostatics for {self.name}, but no center of mass has been defined.\n"
+                             f"Suggested solution: define a `center_of_mass` attribute for the FloatingBody {self.name}.")
 
         self.keep_immersed_part()
 
@@ -760,16 +788,11 @@ respective inertia coefficients are assigned as NaN.")
         -------
         FloatingBody
         """
-        array_mesh = build_regular_array_of_meshes(self.mesh, distance, nb_bodies)
-        total_nb_faces = array_mesh.nb_faces
-        array_dofs = {}
-        for dof_name, dof in self.dofs.items():
-            for i, j in product(range(nb_bodies[0]), range(nb_bodies[1])):
-                shift_nb_faces = (j*nb_bodies[0] + i) * self.mesh.nb_faces
-                new_dof = np.zeros((total_nb_faces, 3))
-                new_dof[shift_nb_faces:shift_nb_faces+len(dof), :] = dof
-                array_dofs[f'{i}_{j}__{dof_name}'] = new_dof
-        return FloatingBody(mesh=array_mesh, dofs=array_dofs, name=f"array_of_{self.name}")
+        bodies = (self.translated((i*distance, j*distance, 0), name=f"{i}_{j}") for j in range(nb_bodies[1]) for i in range(nb_bodies[0]))
+        array = FloatingBody.join_bodies(*bodies)
+        array.mesh = build_regular_array_of_meshes(self.mesh, distance, nb_bodies)
+        array.name = f"array_of_{self.name}"
+        return array
 
     def assemble_arbitrary_array(self, locations:np.ndarray):
 
@@ -913,7 +936,7 @@ respective inertia coefficients are assigned as NaN.")
         ids = self.mesh._clipping_data['faces_ids']
         for dof in self.dofs:
             if len(ids) > 0:
-                self.dofs[dof] = self.dofs[dof][ids]
+                self.dofs[dof] = np.array(self.dofs[dof])[ids]
             else:
                 self.dofs[dof] = np.empty((0, 3))
         return self
@@ -966,6 +989,11 @@ respective inertia coefficients are assigned as NaN.")
             motion = {motion: 1.0}
         elif isinstance(motion, xr.DataArray):
             motion = {k: motion.sel(radiating_dof=k).data for k in motion.coords["radiating_dof"].data}
+
+        if any(dof not in self.dofs for dof in motion):
+            missing_dofs = set(motion.keys()) - set(self.dofs.keys())
+            raise ValueError(f"Trying to animate the body {self.name} using dof(s) {missing_dofs}, but no dof of this name is defined for {self.name}.")
+
         animation = Animation(*args, **kwargs)
         animation._add_actor(self.mesh.merged(), faces_motion=sum(motion[dof_name] * dof for dof_name, dof in self.dofs.items() if dof_name in motion))
         return animation

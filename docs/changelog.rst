@@ -7,6 +7,95 @@ Changelog
    :depth: 1
    :backlinks: none
 
+---------------------------------
+New in version 1.5 (2022--)
+---------------------------------
+
+Major changes
+~~~~~~~~~~~~~
+
+* The :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` implementation of the Green function has been improved.
+  The implementation used to be almost the same as the default :class:`~capytaine.green_functions.delhommeau.Delhommeau` method.
+  A missing key element has been added and the :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is now actually more accurate near the free surface.
+  (:pull:`180` and :pull:`216`)
+
+* New default linear solver :class:`~capytaine.matrices.linear_solvers.LUSolverWithCache`: the LU decomposition of the matrix is now cached to be reused for other similar problems, diminishing the total computation time up to 40%. (:pull:`235`)
+
+Minor changes
+~~~~~~~~~~~~~
+
+* Add `floating_point_precision` argument to :meth:`~capytaine.green_functions.delhommeau.Delhommeau` and :meth:`~capytaine.green_functions.delhommeau.XieDelhommeau` that accepts either `float32` for single precision computations or `float64` for double precision computations (the latter is the default). (:pull:`224`).
+
+* Passing the argument :code:`tabulation_nr=0` or :code:`tabulation_nz=0` to :class:`~capytaine.green_functions.delhommeau.Delhommeau`
+  (or :class:`~capytaine.green_functions.delhommeau.XieDelhommeau`) now allows to run the code without interpolating the Green function
+  from a precomputed tabulation. This is meant as a tools for benchmarks and validation, since it decreases the performance of the code
+  for often no accuracy gain. (:pull:`229`)
+
+* :func:`~capytaine.io.mesh_loaders.load_mesh` is now exported by the main namespace, that is available with :code:`from capytaine import load_mesh`.
+  A function :func:`~capytaine.io.meshio.load_from_meshio` is also now exported in the main namespace.
+  The documentation has been changed to recommend the use of these functions instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_file` and :meth:`~capytaine.bodies.bodies.FloatingBody.from_meshio`.
+
+* Custom classes from the :code:`capytaine.matrices` module storign block matrices or data-sparse matrices
+  can be transformed into full Numpy arrays with :code:`np.array(...)` (:pull:`99`)
+
+Internals
+~~~~~~~~~
+
+* The integration of the pressure on the mesh of the body was implemented twice independently. It has been factored out in :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure` (:pull:`218`)
+
+* `__rmatmul__` has been implemented for low rank matrices (:pull:`222`).
+
+---------------------------------
+New in version 1.4.2 (2022-10-03)
+---------------------------------
+
+Bug fixes
+~~~~~~~~~
+
+* Raise error message when calling :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics()` without a center of mass defined (:pull:`207`).
+
+* Fix bug when cropping body with a dof defined manually as a list of tuples (:issue:`204` and :pull:`206`).
+
+Documentation
+~~~~~~~~~~~~~
+
+* Miscellaneous improvements of the documentation (:pull:`205`, :pull:`211`, :pull:`219`)
+
+* Clean up and fix animation example in the cookbook (:pull:`213`).
+
+* The warning message for insufficient mesh resolution appears earlier and has been reworded to be clearer (:pull:`217`).
+
+Internals
+~~~~~~~~~
+
+* Replace the Fortran core by a git submodule pointing to `libDelhommeau <https://github.com/capytaine/libDelhommeau/>`_ (:pull:`208`).
+  Future developments of the Green function will take place there.
+
+* Move from Travis CI to Github Actions for continuous integration (:pull:`209`)
+
+---------------------------------
+New in version 1.4.1 (2022-09-05)
+---------------------------------
+
+Bug fixes
+~~~~~~~~~
+
+* Fix bug in hydrostatics of rigid bodies: the hydrostatic matrices were always assuming that the rotation dofs were defined around the :math:`(0, 0, 0)` point.
+  The stiffness and inertia matrix are now invariant by horizontal translation of the body, as they should be. (:issue:`178` and :pull:`196`).
+
+* Removed outdated volume/area methods from pre-defined bodies (:pull:`183`).
+
+* Added symmetric realization and reflection to gdf mesh import (:issue:`186` and :pull:`187`).
+
+* Fix some automatic mesh names (:pull:`195`)
+
+* Fix ordering of the dofs when using :meth:`~capytaine.bodies.bodies.FloatingBody.assemble_regular_array()` (:issue:`198` and :pull:`199`)
+
+* Return more explicit error message when the center of mass is missing for the computation of rigid-body hydrostatics (:pull:`201`).
+
+* Return error message when trying to animate a body with a dof that has not been defined. Previously, undefined dofs were silently ignored. (:pull:`202`)
+
+
 -------------------------------
 New in version 1.4 (2022-07-07)
 -------------------------------

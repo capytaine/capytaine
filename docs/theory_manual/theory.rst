@@ -102,27 +102,44 @@ The partial differential equation can be rewritten as a boundary integral proble
 Let us introduce the Green function :math:`G(\xi, \cdot)`, which is solution of the partial differential equation:
 
 .. math::
-   \nabla^2_x G(\xi, x) = \delta(\xi - x), \qquad \forall x,
+   \nabla^2 G(x; \xi) = \delta(\xi - x), \qquad \forall x,
 
-associated with the boundary condition :eq:`bc_fs` and :eq:`bc_bottom`, where :math:`\xi` is a given point in the domain and :math:`\delta` is the Dirac distribution.
+where the :math:`\nabla` is meant as the derivative with respect to :math:`x`.
+
+The above equation is associated with the boundary condition :eq:`bc_fs` and :eq:`bc_bottom`, where :math:`\xi` is a given point in the domain and :math:`\delta` is the Dirac distribution.
 
 With the help of this Green function :math:`G`, the potential of the surface of the floating body :math:`\Gamma` can be rewritten as a function of a source distribution :math:`\sigma`:
 
 .. math::
-   \Phi(x) = \iint_\Gamma \sigma(y) G(x, y) \, \mathrm{dS}(y).
-   :label: continuous_source_formulation
+   \Phi(x) = \iint_\Gamma \sigma(\xi) G(x; \xi) \, \mathrm{dS}(\xi)
+   :label: potential_representation
 
-.. note:: There is a typo in this equation in [BD15]_.
+for all point :math:`x` in the fluid or on the hull of the floating body :math:`\Gamma`.
+
+.. note:: There is a typo in equation :eq:`potential_representation` in [BD15]_.
 
 The integral on the other boundaries of the domain is zero due to the properties of the Green function.
 
-The differentiation of :eq:`continuous_source_formulation` leads to the following equation [Del87]_:
+The differentiation of :eq:`potential_representation` differs depending whether :math:`x` is in the bulk of the fluid or on the hull.
+
+On the hull, one has [Del87]_:
 
 .. math::
-   (u \cdot n)(x) = \frac{\sigma(x)}{2} + \iint_\Gamma \sigma(y) \, (\nabla_x G(x, y) \cdot n) \, \mathrm{dS}(y).
-   :label: diff_continuous_source_formulation
+   \frac{\partial \Phi}{\partial n}(x) = (u \cdot n)(x) = \frac{\sigma(x)}{2} + \iint_\Gamma \sigma(\xi) \, (\nabla G(x; \xi) \cdot n) \, \mathrm{dS}(y).
+   :label: normal_velocity_on_hull_representation
 
-where :math:`n` is the normal vector on the floating body surface :math:`\Gamma`.
+where :math:`x` is a point on :math:`\Gamma` and :math:`n` is the vector normal to :math:`\Gamma` in :math:`x`.
+For any vector :math:`t` to :math:`\Gamma` at :math:`x`, one has
+
+.. math::
+   \frac{\partial \Phi}{\partial t}(x) = (u \cdot t)(x) = \iint_\Gamma \sigma(y) \, (\nabla G(x; \xi) \cdot t) \, \mathrm{dS}(y).
+   :label: tangential_velocity_on_hull_representation
+
+Finally, for :math:`x` in the bulk of the fluid, one has
+
+.. math::
+   \nabla \Phi(x) = u(x) = \iint_\Gamma \sigma(y) \, \nabla G(x; \xi) \, \mathrm{dS}(y).
+   :label: velocity_in_bulk_representation
 
 .. note:: Dimensional analysis:
 
@@ -146,63 +163,11 @@ See also [X18]_.
 Green function
 ~~~~~~~~~~~~~~
 
-The Green function can be written as the sum of three terms:
+The infinite depth Green function takes the following form
 
 .. math::
-   G(\xi, x) = - \frac{1}{4 \pi} \left( G_0(\xi, x) + G_1(\xi, x) + G_2(\xi, x) \right)
-   :label: green_function
-
-The first term
-
-.. math::
-    G_0(\xi, x) = \frac{1}{\|x - \xi\|}
-    :label: green_function_inf_depth_0
-
-is the usual Green function for the 3D Laplace equation without our specific boundary conditions.
-
-The second part reads
-
-.. math::
-    G_1(\xi, x) = - \frac{1}{\|x - s(\xi)\|}
-    :label: green_function_inf_depth_1
-
-where :math:`s(\xi_1, \xi_2, \xi_3) = (\xi_1, \xi_2, -\xi_3)` is the reflection of :math:`\xi` across the free surface.
-
-Finally, this last part is complex-valued and it is introduced to satisfy the boundary conditions :eq:`bc_fs`.
-It depends on the water depth :math:`h` and the wave frequency :math:`\omega` (through the wave number :math:`k`).
-
-.. math::
-    G_2(\xi, x) & =
-    \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(x, \xi, \theta)) - \frac{1}{\zeta(x, \xi, \theta)} \right) \, \mathrm{d} \theta \right) \\
-    & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (x, \xi, \theta)} \, \mathrm{d} \theta \right)
-    :label: green_function_inf_depth_2
-
-where
-
-.. math::
-    J(z) =
-    \begin{cases}
-    e^z \left[ E_1(z) + i\pi \right] \quad \text{if} ~ \Im(z) \ge 0 \\
-    e^z \left[ E_1(z) - i\pi \right] \quad \text{if} ~ \Im(z) < 0
-    \end{cases}
-
-where :math:`E_1` is the first exponential integral, defined as
-
-.. math::
-    E_1(z) = \int_z^\infty \frac{e^{-t}}{t} dt,
-
-and
-
-.. math::
-    \zeta (x, \xi, \theta) = k \left( x_3 + \xi_3 + i r \cos \theta \right)
-    :label: def_zeta
-
-where
-
-.. math::
-    r = \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2}.
-    :label: def_r
-
+   G(\xi, x) = - \frac{1}{4 \pi} \left( \frac{1}{\|x - \xi\|} + k \mathcal{G}\left(k \sqrt{(x_1 - \xi_1)^2 + (x_2 - \xi_2)^2}, k (x_3 + \xi_3) \right) \right)
+   :label: green_function_inf_depth
 
 .. proof:property::
 
@@ -212,8 +177,38 @@ where
 
         \forall x, \xi, \quad G(x, \xi) = G(\xi, x).
 
+
+The first term of :math:`G` is the usual Green function for the 3D Laplace equation without our specific boundary conditions.
+The :math:`\mathcal{G}` term is complex-valued and it is introduced to satisfy the boundary conditions :eq:`bc_fs`.
+
+Intoducting the dimensionless variables :math:`r = k \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2}` and :math:`z = k (x_3 + \xi_3)`, this term reads
+
+.. math::
+    \mathcal{G}(r, z) & = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2}  J(\zeta(r, z, \theta)) \, \mathrm{d} \theta \right) \\
+    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
+    :label: green_function_inf_depth_xie
+
+where
+
+.. math::
+    J(\zeta) = e^\zeta \left[ E_1(\zeta) + i \pi \right]
+
+where :math:`E_1` is the first exponential integral, defined as
+
+.. math::
+    E_1(\zeta) = \int_\zeta^\infty \frac{e^{-t}}{t} dt,
+
+and
+
+.. math::
+    \zeta (r, z, \theta) = z + i r \cos \theta.
+    :label: def_zeta
+
+The first term of :eq:`green_function_inf_depth_xie` is actually a Rankine-type singularity similar to the first term of :eq:`green_function_inf_depth`, except that one of the point has been reflected through the free surface.
+
 Variants of the formulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 
 .. _integrate_one_over_zeta:
 
@@ -222,23 +217,51 @@ Variants of the formulation
     The following identity holds [Del89]_:
 
     .. math::
-       \Re \int^{\pi/2}_{-\pi/2} \frac{1}{\zeta(\theta)} \, \mathrm{d} \theta = - \frac{\pi}{k \|x - s(\xi)\|}.
+       \Re \int^{\pi/2}_{-\pi/2} \frac{1}{\zeta(\theta)} \, \mathrm{d} \theta = - \frac{\pi}{\sqrt{r^2 + z^2}}.
        :label: int_1_over_zeta
 
-    It can be used to derived an alternative expression for the first term of :eq:`green_function_inf_depth_2`.
+The above lemma allows to retrieve the expression of the Green function found e.g. in [BD15]_:
+
+.. math::
+    \mathcal{G}(r, z) & = - \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(r, z, \theta)) - \frac{1}{\zeta(r, z, \theta)} \right) \, \mathrm{d} \theta \right) \\
+    & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
+    :label: green_function_inf_depth_del
+
+(Note the minus sign in front of the first term.)
 
 .. proof:lemma::
 
-    The following identity holds [X18]_:
+    The `zeroth order Bessel function of the first kind <https://personal.math.ubc.ca/~cbm/aands/page_360.htm>`_ :math:`J_0` and `the Struve function <https://personal.math.ubc.ca/~cbm/aands/page_496.htm>`_ :math:`H_0` are such that
 
     .. math::
-        \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right) = \pi \exp(k(x_3 + \xi_3)) J_0(k r)
+        J_0(r) & = \frac{1}{\pi} \int_{-\pi/2}^{\pi/2} \cos(r\cos(\theta)) \, \mathrm{d} \theta \\
+        H_0(r) & = \frac{1}{\pi} \int_{-\pi/2}^{\pi/2} \sin(r\cos(\theta)) \, \mathrm{d} \theta \\
 
-    where :math:`J_0` is the zeroth order Bessel function of the first kind.
+    hence
+
+    .. math::
+        \int_{-\pi/2}^{\pi/2} i e^{\zeta} \, \mathrm{d} \theta = \pi e^z \left(- H_0(r) + i J_0(r) \right)
+
+
+The function :math:`\mathcal{G}` can also be rewritten as
+
+.. math::
+    \mathcal{G}(r, z) & = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \int^{\pi/2}_{-\pi/2} \Re \left( e^\zeta E_1(\zeta) \right) \, \mathrm{d} \theta + 2 \int^{\pi/2}_{-\pi/2} i e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \\
+    & = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \int^{\pi/2}_{-\pi/2} \Re \left( e^\zeta E_1(\zeta) \right) \, \mathrm{d} \theta + 2 \pi e^z \left( - H_0(r) + i J_0(r) \right)
+
+Noblesse [N82]_ splits the function :math:`\mathcal{G}` into a near field term :math:`N` and a wave field :math:`W` such that
+
+.. math::
+   N(r, z) & = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \int^{\pi/2}_{-\pi/2} \Re \left( e^\zeta E_1(\zeta)  \right) \, \mathrm{d} \theta  \\
+   W(r, z) & = 2 \pi e^z \left( - H_0(r) + i J_0(r) \right)
+
+
+Note that :math:`E_1`, :math:`J_0` and :math:`H_0` are available for instance in the `Scipy library <https://docs.scipy.org/doc/scipy/reference/special.html>`_.
+
 
 .. proof:lemma::
 
-    For any function :math:`f`, the following two formulations of the integral are equivalent:
+    For any function :math:`f`, the following two formulations of the integral are equivalent [Del89]_:
 
     .. math::
         \int_{-\frac{\pi}{2}}^{\frac{\pi}{2}} f \left(\zeta(\theta) \right) \mathrm{d} \theta =
@@ -286,65 +309,41 @@ Gradient of the Green function
 The gradient of the Green function can be written as
 
 .. math::
-   \nabla_x G(\xi, x) = - \frac{1}{4 \pi} \left( \nabla_x G_0(\xi, x) + \nabla_x G_1(\xi, x) + \nabla_x G_2(\xi, x) \right)
+   \nabla_x G(\xi, x) = - \frac{1}{4 \pi} \left( - \frac{x - \xi}{\|x - \xi\|^3} + k 
+      \begin{pmatrix}
+        \frac{\partial r}{\partial x_1} \frac{\partial \mathcal{G}}{\partial r} \\
+        \frac{\partial r}{\partial x_2} \frac{\partial \mathcal{G}}{\partial r} \\
+        \frac{\partial z}{\partial x_3} \frac{\partial \mathcal{G}}{\partial z}
+      \end{pmatrix}
+   \right)
 
-where
+with
 
 .. math::
-    \nabla_x G_0(\xi, x) = - \frac{x - \xi}{\|x - \xi\|^3}\,,
-    :label: green_function_inf_depth_deriv_0
+   \frac{\partial r}{\partial x_1} & = k \frac{x_1 - \xi_1}{r} \\
+   \frac{\partial r}{\partial x_2} & = k \frac{x_2 - \xi_2}{r} \\
+   \frac{\partial z}{\partial x_3} & = k
+
+and, using the identity :math:`J'(\zeta) = J(\zeta) - 1/\zeta`,
 
 .. math::
-    \nabla_x G_1(\xi, x) = \frac{x - s(\xi)}{\|x - s(\xi)\|^3}\,,
-    :label: green_function_inf_depth_deriv_1
+   \frac{\partial \mathcal{G}}{\partial r} = & - \frac{r}{(r^2 + z^2)^{3/2}} + \frac{2}{\pi} \Re \left( \int_{-\pi/2}^{\pi/2} i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d}\theta \right) \\
+   & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right)
 
 and
 
 .. math::
-    \nabla_x G_2(\xi, x) = &
-    \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta \right) \\
-    & - 2 \frac{x - s(\xi)}{\|x - s(\xi)\|^3}
-    + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta \right) \\
-    :label: green_function_inf_depth_deriv_2
+   \frac{\partial \mathcal{G}}{\partial z} = & - \frac{z}{(r^2 + z^2)^{3/2}} + \frac{2}{\pi} \Re \left( \int_{-\pi/2}^{\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d}\theta \right) \\
+    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) e^{\zeta } \, \mathrm{d} \theta \right) \\
 
-where
+that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
 
 .. math::
-   :nowrap:
-
-   \[
-   (\nabla_x \zeta) (\theta) = k
-   \begin{pmatrix}
-   \frac{x_1 - \xi_1}{r} i \cos \theta \\
-   \frac{x_2 - \xi_2}{r} i \cos \theta \\
-   1
-   \end{pmatrix}.
-   \]
-
-.. proof:proof::
-
-    The derivation of :eq:`green_function_inf_depth_deriv_0` and :eq:`green_function_inf_depth_deriv_1` is straightforward.
-
-    Let us discuss the derivation of :eq:`green_function_inf_depth_deriv_2`. Using :numref:`Lemma {number} <integrate_one_over_zeta>`, the Green function :eq:`green_function_inf_depth_2` can be rewritten as:
-
-    .. math::
-        G_2(\xi, x) & =
-        \frac{2 k}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta(\theta)) \, \mathrm{d} \theta \right) + \frac{2}{\|x - s(\xi)\|} \\
-        & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (\theta)} \, \mathrm{d} \theta \right)
+   \frac{\partial \mathcal{G}}{\partial z} = \mathcal{G}(r, z) + \frac{1}{\sqrt{r^2 + z^2}} - \frac{z}{(r^2 + z^2)^{3/2}}
+   :label: green_function_inf_depth_dGdz
 
 
-    Using the identity :math:`J'(\zeta) = J(\zeta) - 1/\zeta`, the first term of :eq:`green_function_inf_depth_deriv_2` can be derived.
-
-    .. math::
-        \nabla_x \left( \int^{\pi/2}_{-\pi/2} J(\zeta(\theta)) \, \mathrm{d} \theta \right) = \int^{\pi/2}_{-\pi/2} \left( J(\zeta(\theta)) - \frac{1}{\zeta(\theta)} \right) \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta
-
-    The second term of :eq:`green_function_inf_depth_deriv_2` is similar to :eq:`green_function_inf_depth_deriv_1`.
-    Finally, the last term can be found as follows:
-
-    .. math::
-        \nabla_x \left( \int^{\pi/2}_{-\pi/2} e^{\zeta(\theta)} \, \mathrm{d} \theta \right) = \int^{\pi/2}_{-\pi/2} e^{\zeta(\theta)} \, (\nabla_x \zeta) (\theta) \, \mathrm{d} \theta
-
-.. note:: There is a typo in the second term of :eq:`green_function_inf_depth_deriv_2` in [Del89]_ and [BD15]_. It appears to be missing from [X18]_.
+.. ..note:: There seems to be a typo in the term of :eq:`green_function_inf_depth_deriv_2` in [Del89]_ and [BD15]_.
 
 .. note::
     The derivative of :math:`G` with respect to :math:`x_1` and :math:`x_2` are antisymmetric in the sense of
@@ -359,36 +358,66 @@ where
     Its derivative with respect to :math:`x_3` can be decomposed into an antisymmetric term and a symmetric term.
 
 
+Higher order derivative
+~~~~~~~~~~~~~~~~~~~~~~~
+
+From :eq:`green_function_inf_depth_dGdz`, one has
+
+.. math::
+   \frac{\partial \mathcal{G}}{\partial z} &= \mathcal{G}(r, z) + \left( 1 + \frac{\partial}{\partial z} \right) \frac{1}{\sqrt{r^2 + z^2}} \\
+   \frac{\partial^2 \mathcal{G}}{\partial z \partial r} &= \frac{\partial \mathcal{G}}{\partial r} + \left( \frac{\partial}{\partial r} + \frac{\partial^2}{\partial z \partial r} \right) \frac{1}{\sqrt{r^2 + z^2}}
+
+and
+
+.. math::
+   \frac{\partial^2 \mathcal{G}}{\partial z^2} &= \mathcal{G}(r, z) + \left( 1 + 2 \frac{\partial}{\partial z} + \frac{\partial^2}{\partial z^2} \right)\frac{1}{\sqrt{r^2 + z^2}} \\
+                                               &= \mathcal{G}(r, z) + \frac{1}{\sqrt{r^2 + z^2}} - 2 \frac{z}{(r^2 + z^2)^{3/2}} - \frac{r^2 - 2 z^2}{(r^2 + z^2)^{5/2}}
+
+Since the Green function is solution of the Laplace equation, it follows that
+
+.. math::
+   \frac{\partial^2 \mathcal{G}}{\partial r^2} + \frac{1}{r} \frac{\partial \mathcal{G}}{\partial r} + \frac{\partial^2 \mathcal{G}}{\partial z^2} = 0
+
+then
+
+.. math::
+   \frac{\partial^2 \mathcal{G}}{\partial r^2} = - \frac{1}{r} \frac{\partial \mathcal{G}}{\partial r} - \mathcal{G} - \left( 1 + 2 \frac{\partial}{\partial z} + \frac{\partial^2}{\partial z^2} \right)\frac{1}{\sqrt{r^2 + z^2}} \\
+
+All higher order derivative can be expressed with the help of :math:`\mathcal{G}` and :math:`\frac{\partial \mathcal{G}}{\partial r}`.
+
+.. note::
+   The same derivation is done in e.g. [N20]_ using instead the function :math:`F = \mathcal{G} - \frac{1}{\sqrt{r^2 + z^2}}` for which the expressions are slightly simpler.
+
 Delhommeau's method for computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The above formulations of the Green function and its derivative require the evaluation of the following real-valued integrals:
+Delhommeau's method is based on expression :eq:`green_function_inf_depth_del` of the Green function.
+This expression of the Green function and its derivative require the evaluation of the following real-valued integrals:
 
 .. math::
-    D_1(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
-    D_2(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right) \\
-    Z_1(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
-    Z_2(\tilde{r}, \tilde{z}) & = \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
+    D_1(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    D_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right) \\
+    Z_1(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    Z_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
 
 
-where :math:`\tilde{r} = k r` and :math:`\tilde{z} = k (x_3 + \xi_3)`, such that :math:`\zeta = \tilde{z} + i \tilde{r} \cos \theta` and :math:`k \| x - s(\xi) \| = \sqrt{\tilde{r}^2 + \tilde{z}^2}`.
-
-To limit the computational cost of the evaluation of these integrals, they are precomputed for selected values of :math:`\tilde{r}` and :math:`\tilde{z}` and stored in a table.
+To limit the computational cost of the evaluation of these integrals, they are precomputed for selected values of :math:`r` and :math:`z` and stored in a table.
 When evaluating the Green function, the values of the integrals are retrieved by interpolating the values in the tables.
 
-For large values of :math:`\tilde{r}` and :math:`\tilde{z}`, these integrals are asymptotically approximated by the following expressions:
+For large values of :math:`r` and :math:`z`, these integrals are asymptotically approximated by the following expressions:
 
 .. math::
-      D_1(\tilde{r}, \tilde{z}) & \simeq \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\cos(\tilde{r} - \pi/4) - \frac{1}{2\tilde{r}} \sin(\tilde{r}-\pi/4) \right) - \pi \frac{\tilde{r}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3} \\
-      D_2(\tilde{r}, \tilde{z}) & \simeq \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} (\sin(\tilde{r} - \pi/4) + \frac{1}{2\tilde{r}} \cos(\tilde{r} - \pi/4)) \\
-      Z_1(\tilde{r}, \tilde{z}) & \simeq - \pi \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \sin(\tilde{r} - \pi/4) + \pi \frac{\tilde{z}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3} \\
-      Z_2(\tilde{r}, \tilde{z}) & \simeq \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \cos(\tilde{r} - \pi/4)
+      D_1(r, z) & \simeq \pi e^z \sqrt{\frac{2\pi}{r}} \left(\cos(r - \pi/4) - \frac{1}{2r} \sin(r-\pi/4) \right) - \pi \frac{r}{(r^2 + z^2)^{3/2}} \\
+      D_2(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \left( \sin(r - \pi/4) + \frac{1}{2r} \cos(r - \pi/4) \right) \\
+      Z_1(r, z) & \simeq - \pi e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \pi \frac{z}{(r^2 + z^2)^{3/2}} \\
+      Z_2(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \cos(r - \pi/4)
 
 
 Incorporating these asymptotic approximation in the expression of the Green function, one gets:
 
 .. math::
-    G_2(\xi, x) \simeq - 2 k \exp(\tilde{z}) \sqrt{\frac{2\pi}{\tilde{r}}} \left(\sin(\tilde{r} - \pi/4) - i\cos(\tilde{r} - \pi/4)\right) + 2 k \frac{\tilde{z}}{\sqrt{\tilde{r}^2 + \tilde{z}^2}^3}
+    \mathcal{G}(r, z) \simeq & -\frac{1}{\sqrt{r^2 + z^2}} - 2 k e^z \sqrt{\frac{2\pi}{r}} \left(\sin(r - \pi/4) - i\cos(r - \pi/4)\right) \\
+   & \qquad\qquad\qquad\qquad + 2 k \frac{z}{(r^2 + z^2)^{3/2}}
 
 
 Xie's variant
@@ -397,15 +426,15 @@ Xie's variant
 A slight variant is presented in [X18]_. The authors noticed that the
 interpolation of the integral :math:`Z_1` can be inaccurate due to the
 singularity :math:`\frac{1}{\zeta}`.
-Hence, they proposed to tabulate instead
+Hence, they proposed to use :eq:`green_function_inf_depth_xie` and to tabulate the integral
 
 .. math::
-    \widetilde{Z_1}(\tilde{r}, \tilde{z}) = \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
+    \widetilde{Z_1}(r, z) = \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
 
 By using :numref:`Lemma {number} <integrate_one_over_zeta>`, one has
 
 .. math::
-   Z_1 = \widetilde{Z_1} - \frac{\pi}{k \sqrt{\tilde{r}^2 + \tilde{z}^2}}
+   Z_1 = \widetilde{Z_1} - \frac{\pi}{\sqrt{r^2 + z^2}}
 
 Both the original Delhommeau's method and Xie's variant are implemented in Capytaine.
 
@@ -426,26 +455,35 @@ TODO
 Symmetries
 ----------
 
-The first term of :eq:`green_function` is invariant under all rotations and translations, whereas the other terms are invariant under isometric transformations that don't change the vertical coordinate (reflection across a vertical plane, rotation around a vertical axis, translation following an horizontal vector).
+The first term of :eq:`green_function_inf_depth` is invariant under all rotations and translations, whereas the other terms are invariant under isometric transformations that don't change the vertical coordinate (reflection across a vertical plane, rotation around a vertical axis, translation following an horizontal vector).
 
 
 Discretization
 ==============
 
-The equations :eq:`continuous_source_formulation` and :eq:`diff_continuous_source_formulation` can be discretized using a collocation method.
+The equations :eq:`potential_representation` and :eq:`normal_velocity_on_hull_representation` can be discretized using a collocation method.
 Considering a mesh of the surface of the floating body :math:`\Gamma = \cup_i \Gamma_i`:
 
 .. math::
    \Phi_i   & = \Phi(x_i), \\
    \sigma_i & = \sigma(x_i), \\
    u_i      & = (u \cdot n)(x_i) \\
-   S_{ij}   & = \iint_{\Gamma_j} G(x_i, y) \mathrm{dS}(y), \\
-   V_{ij}   & = \iint_{\Gamma_j} \nabla_{x_i} G(x_i, y) \cdot n \, \mathrm{dS}(y),
+   S_{ij}   & = \iint_{\Gamma_j} G(x_i, \xi) \mathrm{dS}(\xi), \\
+   V_{ij}   & = \iint_{\Gamma_j} \nabla G(x_i; \xi) \cdot n_i \, \mathrm{dS}(\xi),
 
-where for all :math:`i`, :math:`x_i` is the center of the face :math:`\Gamma_i`.
+where for all :math:`i`, :math:`x_i` is the center of the face :math:`\Gamma_i` and :math:`n_i` is its normal vector.
 Each element of the matrices :math:`S` and :math:`V` can be seen as the interaction between two faces of the mesh.
 
-The matrices :math:`S` and :math:`V` relates the vectors :math:`\Phi`, :math:`u` and :math:`\sigma` through the following approximations of :eq:`continuous_source_formulation` and :eq:`diff_continuous_source_formulation`:
+.. note::
+   :math:`V` should not be confused with the similar matrix :math:`D` defined as:
+
+   .. math::
+      D_{ij} = \iint_{\Gamma_j} \nabla G(x_i; \xi) \cdot n_j \, \mathrm{dS}(\xi).
+
+   :math:`D` is used in the `direct` boundary integral equation, as e.g. in HAMS.
+
+
+The matrices :math:`S` and :math:`V` relates the vectors :math:`\Phi`, :math:`u` and :math:`\sigma` through the following approximations of :eq:`potential_representation` and :eq:`normal_velocity_on_hull_representation`:
 
 .. math::
    \Phi = S \sigma, \qquad u = \left( \frac{\mathbb{I}}{2} + V \right) \sigma.
@@ -454,10 +492,33 @@ The matrices :math:`S` and :math:`V` relates the vectors :math:`\Phi`, :math:`u`
 The resolution of the discrete problem with Nemoh consists of two main steps:
 
 1. The evaluation of the coefficients of the complex-valued matrices :math:`S` and :math:`V`
-2. The resolution of the complex-valued linear problem :math:`\left( \frac{\mathbb{I}}{2} + V \right) \sigma = u`.
+2. The resolution of the complex-valued linear problem :math:`K \sigma = \left( \frac{\mathbb{I}}{2} + V \right) \sigma = u`.
 
 Once :math:`\sigma` has been computed, :math:`\Phi` can be easily deduced.
 Then other magnitudes such as the Froude-Krylov forces or the added mass can be derived.
+
+.. mermaid::
+    :caption: A simplified flowchart of the internals of Capytaine solver
+
+    flowchart TD;
+        h[Water depth] --> gf(Assembling matrices);
+        ω[Wave frequency ω] --> gf(Assembling matrices);
+        m[Mesh] --> gf;
+        gf -- K matrix --> ls(Linear solver);
+        un[Normal velocity on hull] --> ls;
+        gf -- S matrix --> mvp(Matrix vector product);
+        ls -- sources distribution σ --> mvp;
+        mvp -- potential distribution Φ --> int("Integrate on mesh");
+        m --> int;
+        int --> f["Hydrodynamic forces\n(aka added mass and radiation damping)"]
+
+        classDef input fill:#FFAAAA,color:#550000,stroke:#113939
+        classDef step fill:#88BBBB,color:#003333,stroke:#226666
+        classDef output fill:#FFE3AA,color:#553900,stroke:#AA8439
+        class ω,m,un,h input
+        class gf,ls,mvp,int step
+        class f output
+
 
 Post-processing
 ===============

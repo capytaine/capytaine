@@ -35,7 +35,7 @@ Main concepts
 
     The degree of freedom of the body are referred by a name (e.g. `Heave`).
     They should stay in the order in which they have been defined, but `the code
-    does not strictly guarantee it <https://github.com/mancellin/capytaine/issues/4>`_.
+    does not strictly guarantee it <https://github.com/capytaine/capytaine/issues/4>`_.
     Accessing them by name rather than by index should be preferred.
 
     Beside the mesh and the dofs, some other physical information can be
@@ -107,7 +107,7 @@ the following syntax::
     sphere.mesh.faces_centers[5]  # Center of the sixth face (Python arrays start at 0).
     sphere.mesh.faces_normals[5]  # Normal vector of the sixth face.
 
-The mesh can be displayed in 3D using::
+If `vtk` has been installed, the mesh can be displayed in 3D using::
 
     sphere.show()
 
@@ -140,52 +140,50 @@ body, you can use for instance::
 Hydrostatics
 ------------
 
-Capytaine can directly perform some hydrostatic computation for a given mesh. You can get parameters such as volume, wet surface area, waterplane area, center of buoyancy, metacentric radius and height, hydrostatic stiffness and interia mass for any given :code:`FloatingBody`. 
+Capytaine can directly perform some hydrostatic computation for a given mesh. You can get parameters such as volume, wet surface area, waterplane area, center of buoyancy, metacentric radius and height, hydrostatic stiffness and interia mass for any given :code:`FloatingBody`.
 
-To get these parameters you can either use individual method of each parameters::
+Let us give the code some more information about the body::
 
-    sphere.keep_immersed_part()
+    sphere.center_of_mass = (0, 0, -2)
+    sphere.rotation_center = (0, 0, -2)
+
+The "rotation center" is the point used to define the rotation dofs.
+(Due to a current limitation of the hydrostatics methods, the definition of the rotation center is required as soon as there is a rigid body dof — here surge and heave —, even if it is not a rotation dof.)
+
+Each hydrostatic parameter can be computed by a dedicated method::
 
     print(sphere.volume)
     # 3.82267415555807
-    
+
     print(sphere.center_of_buoyancy)
-    # [-3.04328563e-17 -1.18068465e-17 -2.00000000e+00]
-    
+    # [-3.58784373e-17 -2.59455034e-17 -2.00000000e+00]
+
     print(sphere.compute_hydrostatic_stiffness())
     # <xarray.DataArray 'hydrostatic_stiffness' (influenced_dof: 2, radiating_dof: 2)>
-    # array([[-1.12278051e-12,  0.00000000e+00],
-    #        [ 0.00000000e+00,  0.00000000e+00]])
+    # array([[0.00000000e+00, 0.00000000e+00],
+    #        [0.00000000e+00, 2.38246922e-13]])
     # Coordinates:
-    #   * influenced_dof  (influenced_dof) <U5 'Heave' 'Surge'
-    #   * radiating_dof   (radiating_dof) <U5 'Heave' 'Surge'
+    #   * influenced_dof  (influenced_dof) <U5 'Surge' 'Heave'
+    #   * radiating_dof   (radiating_dof) <U5 'Surge' 'Heave'
 
     print(sphere.compute_rigid_body_inertia())
-    # <xarray.DataArray (influenced_dof: 6, radiating_dof: 6)>
-    # array([[ 3.82267416e+03,  0.00000000e+00,  0.00000000e+00,
-    #          0.00000000e+00, -7.64534831e+03,  4.51337271e-14],
-    #        [ 0.00000000e+00,  3.82267416e+03,  0.00000000e+00,
-    #          7.64534831e+03,  0.00000000e+00, -1.16334893e-13],
-    #        [ 0.00000000e+00,  0.00000000e+00,  3.82267416e+03,
-    #         -4.51337271e-14,  1.16334893e-13,  0.00000000e+00],
-    #        [ 0.00000000e+00,  7.64534831e+03, -4.51337271e-14,
-    #          1.67088050e+04, -2.21177243e-14, -2.18483678e-13],
-    #        [-7.64534831e+03,  0.00000000e+00,  1.16334893e-13,
-    #         -2.21177243e-14,  1.67088050e+04,  3.29326410e-14],
-    #        [ 4.51337271e-14, -1.16334893e-13,  0.00000000e+00,
-    #         -2.18483678e-13,  3.29326410e-14,  1.35727139e+03]])
+    # <xarray.DataArray 'inertia_matrix' (influenced_dof: 2, radiating_dof: 2)>
+    # array([[3822.67415556,    0.        ],
+    #        [   0.        , 3822.67415556]])
     # Coordinates:
-    #   * influenced_dof  (influenced_dof) <U5 'Surge' 'Sway' ... 'Pitch' 'Yaw'
-    #   * radiating_dof   (radiating_dof) <U5 'Surge' 'Sway' 'Heave' ... 'Pitch' 'Yaw'
+    #   * influenced_dof  (influenced_dof) <U5 'Surge' 'Heave'
+    #   * radiating_dof   (radiating_dof) <U5 'Surge' 'Heave'
 
+The matrices here are :math:`2 \times 2` matrices as we have defined only two dofs for our sphere.
 
-or you can use :code:`compute_hydrostatics` method which computes all hydrostatic parameters and returns a :code:`dict` of parameters and values::
+You can also use :code:`compute_hydrostatics` method which computes all hydrostatic parameters and returns a :code:`dict` of parameters and values::
 
-    # No need to apply keep_immersed_part() to use compute_hydrostatics method.
     hydrostatics = sphere.compute_hydrostatics()
 
 .. note::
-    Before computing individual hydrostatic parameters, make sure to crop the body to only keep immersed. But cropping is not need when you are using :code:`compute_hydrostatics` function. 
+   Before computing hydrostatic parameters, you might want to crop your mesh using `body.keep_immersed_part()`.
+   It is not required here since the sphere is fully immersed.
+   Cropping is included in the :code:`compute_hydrostatics()` function.
 
 
 Defining linear potential flow problems.
