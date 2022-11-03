@@ -381,7 +381,7 @@ class BlockMatrix:
             assert [shape == matrix.shape for matrix in block_matrices[1:]]
             assert [class_of_matrices == type(matrix) for matrix in block_matrices[1:]]
 
-        # Initialize a list of block matrices without values in the blocks.
+        # Initialize a vector of block matrices without values in the blocks.
         result = np.empty(len(block_matrices), dtype=object)
         for i in range(len(block_matrices)):
             result[i] = class_of_matrices(np.empty(nb_blocks, dtype=object),
