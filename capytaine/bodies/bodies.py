@@ -388,11 +388,11 @@ class FloatingBody(Abstract3DObject):
             http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
 
         """
-        # Newmann (1994) formula is not 'complete' as recovering the rigid body
+        # Newman (1994) formula is not 'complete' as recovering the rigid body
         # terms is not possible. https://doi.org/10.1115/1.3058702.
 
         # Alternative is to use the general equation of hydrostatic and
-        # restoring coefficient for rigid mdoes and use Neuman equation for elastic
+        # restoring coefficient for rigid modes and use Newman equation for elastic
         # modes.
 
         rigid_dof_names = ("Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw")
@@ -438,7 +438,7 @@ class FloatingBody(Abstract3DObject):
                         f"This case has not been implemented in Capytaine. You need either a single rigid body or a neutrally buoyant body."
                         )
 
-            # Neuman (1994) formula for flexible DOFs
+            # Newman (1994) formula for flexible DOFs
             influenced_dof = np.array(self.dofs[influenced_dof_name])
             radiating_dof = np.array(self.dofs[radiating_dof_name])
             influenced_dof_div_array = np.array(influenced_dof_div)
