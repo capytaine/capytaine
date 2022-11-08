@@ -747,7 +747,57 @@ def load_GDF(filename, name=None):
         return ReflectionSymmetricMesh(Mesh(vertices, faces, f"half_of_{name}"), xOz_Plane, name)
     else:
         return Mesh(vertices, faces, name)
+
+
+def load_GDF_compressed(filename, name=None):
+    """Loads WAMIT (Wamit INC. (c)) GDF mesh files.
+
+    As GDF file format maintains a redundant set of vertices for each faces of the mesh, it returns a merged list of
+    nodes and connectivity array by using the numpy.unique function removes redundant vertices.
+
+    Parameters
+    ----------
+    filename: str
+        name of the mesh file on disk
+
+    Returns
+    -------
+    Mesh
+        the loaded mesh
+
+    Note
+    ----
+    GDF files have a 1-indexing
+    """
+
+    _check_file(filename)
+
+    with open(str(filename)) as gdf_file:
+        title = gdf_file.readline()
+        ulen, grav = tuple(map(float, gdf_file.readline().split()))
+        isx, isy = tuple(map(int, gdf_file.readline().split()))
+        npan = int(gdf_file.readline())
+        faces_vertices = np.genfromtxt(gdf_file)
+
+    vertices, indices = np.unique(faces_vertices, axis=0, return_inverse=True)
+    faces = indices.reshape(-1, 4)
+
+    if faces.shape[0] != npan:
+        raise ValueError(
+            f"In {filename} npan value: {npan} is not equal to face count: \
+                {faces.shape[0]}."
+        )
+
+    if isx == 1 and isy == 1:
+        return ReflectionSymmetricMesh(ReflectionSymmetricMesh(Mesh(vertices, faces, f"quarter_of_{name}"), yOz_Plane, f"half_of_{name}"), xOz_Plane, name)
+    elif isx == 1:
+        return ReflectionSymmetricMesh(Mesh(vertices, faces, f"half_of_{name}"), yOz_Plane, name)
+    elif isy == 1:
+        return ReflectionSymmetricMesh(Mesh(vertices, faces, f"half_of_{name}"), xOz_Plane, name)
+    else:
+        return Mesh(vertices, faces, name)
     
+
 
 def load_MAR(filename, name=None):
     """Loads Nemoh (Ecole Centrale de Nantes) mesh files.
@@ -997,8 +1047,10 @@ extension_dict = {  # keyword, reader
     'dat': load_MAR,
     'mar': load_MAR,
     'nemoh': load_MAR,
-    'wamit': load_GDF,
-    'gdf': load_GDF,
+    # 'wamit': load_GDF,
+    # 'gdf': load_GDF,
+    'wamit': load_GDF_compressed,
+    'gdf': load_GDF_compressed,
     'diodore-inp': load_INP,
     'inp': load_INP,
     'diodore-dat': load_DAT,
