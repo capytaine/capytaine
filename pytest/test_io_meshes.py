@@ -290,3 +290,40 @@ def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
                                wavelength=True,
                                wavenumber=True)
 
+
+def test_load_gdf_compressed(mesh_dir = Path(__file__).parent):
+    
+    body_from_gdf = load_GDF(f"{mesh_dir}/sample_meshes/cylinder.gdf")
+    body_from_gdf_compressed = load_GDF_compressed(f"{mesh_dir}/sample_meshes/cylinder.gdf")
+    
+    np.testing.assert_allclose(
+        body_from_gdf.vertices[body_from_gdf.faces], 
+        body_from_gdf_compressed.vertices[body_from_gdf_compressed.faces]
+        )
+    
+
+    np.testing.assert_allclose(
+        body_from_gdf.faces_areas, 
+        body_from_gdf_compressed.faces_areas
+        )
+    
+    np.testing.assert_allclose(
+        body_from_gdf.faces_normals, 
+        body_from_gdf_compressed.faces_normals
+        )
+    
+    np.testing.assert_allclose(
+        body_from_gdf.faces_centers, 
+        body_from_gdf_compressed.faces_centers
+        )
+    
+    np.testing.assert_allclose(
+        body_from_gdf.faces_radiuses, 
+        body_from_gdf_compressed.faces_radiuses
+        )
+    
+    np.testing.assert_allclose(
+        body_from_gdf.volume, 
+        body_from_gdf_compressed.volume
+        )
+    
