@@ -5,12 +5,13 @@
 import pytest
 import logging
 from unittest import mock
+from pathlib import Path
 
 import numpy as np
 import xarray as xr
 
 from capytaine.io.mesh_writers import write_STL
-from capytaine.io.mesh_loaders import load_STL, load_HST
+from capytaine.io.mesh_loaders import load_STL, load_HST, load_GDF, load_GDF_compressed
 import capytaine as cpt
 
 try:
