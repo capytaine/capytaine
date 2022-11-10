@@ -87,7 +87,7 @@ def test_compare_tabulations_of_Delhommeau_and_XieDelhommeau():
     R1 = np.hypot(r, z)
 
     # Compare Z1, for great values of Z, where both methods are as accurate
-    Del = gfs[0].tabulated_integrals[:, :, 0, 1] - pi/R1
+    Del = gfs[0].tabulated_integrals[:, :, 0, 1] - 1/R1
     Xie = gfs[1].tabulated_integrals[:, :, 0, 1]
     assert np.allclose(Del[abs(z) > 1], Xie[abs(z) > 1], atol=1e-3)
 
