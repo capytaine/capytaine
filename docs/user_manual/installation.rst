@@ -21,12 +21,15 @@ Download and install the `Anaconda distribution`_ or its lightweight counterpart
 .. _Miniforge: https://github.com/conda-forge/miniforge
 
 Once Conda has been installed, you might want to `create a dedicated environment <https://docs.conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-environments>`_.
-Capytaine's package is available in the `conda-forge` channel and can be installed with the following command ::
+Capytaine's package is available in the `conda-forge` channel and can be installed with the following command::
 
     conda install -c conda-forge capytaine
 
 The required dependencies should be installed automatically.
 
+You can check which version of Capytaine has been installed by opening a Python shell and running::
+
+    import capytaine; print(capytaine.__version__)
 
 Optional dependencies
 ---------------------
