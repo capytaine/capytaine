@@ -6,6 +6,7 @@ import pytest
 import numpy as np
 import xarray as xr
 
+import capytaine as cpt
 from capytaine import BEMSolver
 from capytaine.bodies import FloatingBody
 from capytaine.meshes.meshes import Mesh
@@ -184,3 +185,9 @@ def test_solve_hydrodynamics(fb_array):
     assert data.radiation_damping.notnull().all()
     assert data.diffraction_force.notnull().all()
     assert data.Froude_Krylov_force.notnull().all()
+
+def test_join_bodies_mass():
+    a = cpt.FloatingBody(mass=100)
+    b = cpt.FloatingBody(mass=200)
+    assert (a + b).mass == 300
+

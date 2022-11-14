@@ -721,7 +721,7 @@ respective inertia coefficients are assigned as NaN.")
         dofs = FloatingBody.combine_dofs(bodies)
 
         if all(body.mass is not None for body in bodies):
-            new_mass = sum(body.mass is not None for body in bodies)
+            new_mass = sum(body.mass for body in bodies)
         else:
             new_mass = None
 
