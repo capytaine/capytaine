@@ -726,8 +726,8 @@ respective inertia coefficients are assigned as NaN.")
             new_mass = None
 
         if (all(body.mass is not None for body in bodies)
-                and all(body.center_of_mass is not None for body in bodies)):
-            new_cog = sum(body.mass*body.center_of_mass is not None for body in bodies)/new_mass
+                and all(body.center_of_mass for body in bodies)):
+            new_cog = sum(body.mass*np.asarray(body.center_of_mass) for body in bodies)/new_mass
         else:
             new_cog = None
 
