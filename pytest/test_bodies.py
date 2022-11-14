@@ -191,8 +191,18 @@ def test_join_bodies_mass():
     b = cpt.FloatingBody(mass=300)
     assert (a + b).mass == 400
 
+def test_join_bodies_mass_only_mass():
+    a = cpt.FloatingBody()
+    b = cpt.FloatingBody(mass=300)
+    assert (a + b).mass is None
+
 def test_join_bodies_center_of_mass():
     a = cpt.FloatingBody(mass=100, center_of_mass=(0, 0, 0))
     b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0))
     assert np.allclose((a + b).center_of_mass, (0.75, 0, 0))
+
+def test_join_bodies_center_of_mass_only_one_center_of_mass():
+    a = cpt.FloatingBody()
+    b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0))
+    assert (a + b).center_of_mass is None
 
