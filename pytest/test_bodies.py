@@ -206,3 +206,23 @@ def test_join_bodies_center_of_mass_only_one_center_of_mass():
     b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0))
     assert (a + b).center_of_mass is None
 
+def test_join_bodies_inertia_matrix():
+    a = cpt.Sphere(name="foo")
+    a.add_translation_dof(name="Heave")
+    a.inertia_matrix = a.add_dofs_labels_to_matrix(np.array([[1.0]]))
+    b = cpt.RectangularParallelepiped(name="bar")
+    b.add_all_rigid_body_dofs()
+    b.inertia_matrix = b.add_dofs_labels_to_matrix(np.random.rand(6, 6))
+    both = a + b
+    assert both.inertia_matrix.shape == (7, 7)
+
+def test_join_bodies_inertia_matrix_only_one_matrix():
+    a = cpt.Sphere(name="foo")
+    a.add_translation_dof(name="Heave")
+    # No inertia matrix
+    b = cpt.RectangularParallelepiped(name="bar")
+    b.add_all_rigid_body_dofs()
+    b.inertia_matrix = b.add_dofs_labels_to_matrix(np.random.rand(6, 6))
+    both = a + b
+    assert not hasattr(both, "inertia_matrix")
+
