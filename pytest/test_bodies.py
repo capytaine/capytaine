@@ -45,6 +45,33 @@ def test_dof_name_inference():
     body.add_all_rigid_body_dofs()
 
 
+def test_rigid_body_dofs():
+    import capytaine as cpt
+    mesh = cpt.Sphere().mesh
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(10.0, 0.0, 0.0)))
+    assert "Heave" in body.dofs
+    assert np.all(body.dofs["Pitch"][:, 2] > 9.0)
+
+def test_rigid_body_dofs_no_rotation_center_but_a_center_of_mass():
+    import capytaine as cpt
+    mesh = cpt.Sphere().mesh
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(-10.0, 0.0, 0.0))
+    assert np.all(body.dofs["Pitch"][:, 2] < -9.0)
+
+def test_rigid_body_dofs_both_a_rotation_center_and_a_center_of_mass():
+    import capytaine as cpt
+    mesh = cpt.Sphere().mesh
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(10.0, 0.0, 0.0)),
+                            center_of_mass=(-10.0, 0.0, 0.0))
+    assert np.all(body.dofs["Pitch"][:, 2] > 9.0)
+
+def test_rigid_body_dofs_neither_a_rotation_center_nor_a_center_of_mass():
+    import capytaine as cpt
+    mesh = cpt.Sphere().mesh
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    assert np.allclose(body._infer_rotation_center(), (0.0, 0.0, 0.0))
+
+
 def test_bodies():
     body = Sphere(name="sphere", axial_symmetry=False)
     assert str(body) == "sphere"

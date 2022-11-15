@@ -15,6 +15,7 @@ from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transform
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import build_regular_array_of_meshes
 from capytaine.meshes.collections import CollectionOfMeshes
+from capytaine.bodies.dofs import RigidBodyDofsPlaceholder
 
 LOG = logging.getLogger(__name__)
 
@@ -55,21 +56,30 @@ class FloatingBody(Abstract3DObject):
 
     def __init__(self, mesh=None, dofs=None, mass=None, center_of_mass=None, name=None):
         if mesh is None:
-            mesh = Mesh(name="dummy_mesh")
-
-        if dofs is None:
-            dofs = {}
+            self.mesh = Mesh(name="dummy_mesh")
+        else:
+            assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
+            self.mesh = mesh
 
         if name is None:
-            name = mesh.name
+            self.name = mesh.name
+        else:
+            self.name = name
 
-        assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
-        self.mesh = mesh
-        self.full_body = None
-        self.dofs = dofs
         self.mass = mass
         self.center_of_mass = center_of_mass
-        self.name = name
+
+        if dofs is None:
+            self.dofs = {}
+        elif isinstance(dofs, RigidBodyDofsPlaceholder):
+            if dofs.rotation_center is not None:
+                self.rotation_center = np.asarray(dofs.rotation_center)
+            self.dofs = {}
+            self.add_all_rigid_body_dofs()
+        else:
+            self.dofs = dofs
+
+        self.full_body = None
 
         if self.mesh.nb_vertices == 0 or self.mesh.nb_faces == 0:
             LOG.warning(f"New floating body (with empty mesh!): {self.name}.")
