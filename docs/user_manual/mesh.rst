@@ -234,10 +234,10 @@ determine which part of the mesh will be returned::
     lower_part = body.clipped(Plane(point=(0, 0, 0), normal=(0, 0, 1)))
     # body = lower_part + higher_part
 
-The method :code:`keep_immersed_part` will clip the body (by default in-place)
-with respect to two horizontal planes at :math:`z=0` and :math:`z=-h`::
+The method :code:`immersed_part` will clip the body with respect to two
+horizontal planes at :math:`z=0` and :math:`z=-h`::
 
-    clipped_body = body.keep_immersed_part(sea_bottom=-10, inplace=False)
+    clipped_body = body.immersed_part(sea_bottom=-10)
 
 
 Center of mass and rotation dofs
