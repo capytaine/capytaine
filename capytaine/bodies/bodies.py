@@ -962,6 +962,9 @@ respective inertia coefficients are assigned as NaN.")
             self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
         return self
 
+    def immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
+        return self.keep_immersed_part(free_surface, sea_bottom, inplace=False)
+
     #############
     #  Display  #
     #############
