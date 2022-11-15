@@ -35,6 +35,10 @@ Minor changes
   A function :func:`~capytaine.io.meshio.load_from_meshio` is also now exported in the main namespace.
   The documentation has been changed to recommend the use of these functions instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_file` and :meth:`~capytaine.bodies.bodies.FloatingBody.from_meshio`.
 
+* When joining two bodies as e.g. :code:`body1 + body2`, some hydrostatic properties are passed to the resulting body.
+  In particular, if all the original bodies had hydrostatic stiffness matrices or inertia matrices defined,
+  then they are assigned to the joined body as a large block diagonal matrix (:pull:`243`).
+
 * Custom classes from the :code:`capytaine.matrices` module storign block matrices or data-sparse matrices
   can be transformed into full Numpy arrays with :code:`np.array(...)` (:pull:`99`)
 

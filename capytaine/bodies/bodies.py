@@ -721,19 +721,28 @@ respective inertia coefficients are assigned as NaN.")
         dofs = FloatingBody.combine_dofs(bodies)
 
         if all(body.mass is not None for body in bodies):
-            new_mass = sum(body.mass is not None for body in bodies)
+            new_mass = sum(body.mass for body in bodies)
         else:
             new_mass = None
 
         if (all(body.mass is not None for body in bodies)
-                and all(body.center_of_mass is not None for body in bodies)):
-            new_cog = sum(body.mass*body.center_of_mass is not None for body in bodies)/new_mass
+                and all(body.center_of_mass for body in bodies)):
+            new_cog = sum(body.mass*np.asarray(body.center_of_mass) for body in bodies)/new_mass
         else:
             new_cog = None
 
-        return FloatingBody(
+        joined_bodies = FloatingBody(
             mesh=meshes, dofs=dofs, mass=new_mass, center_of_mass=new_cog, name=name
             )
+
+        for matrix_name in ["inertia_matrix", "hydrostatic_stiffness"]:
+            if all(hasattr(body, matrix_name) for body in bodies):
+                from scipy.linalg import block_diag
+                setattr(joined_bodies, matrix_name, joined_bodies.add_dofs_labels_to_matrix(
+                        block_diag(*[getattr(body, matrix_name) for body in bodies])
+                        ))
+
+        return joined_bodies
 
     @staticmethod
     def combine_dofs(bodies) -> dict:
