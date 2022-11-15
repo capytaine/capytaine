@@ -106,9 +106,10 @@ def test_cropping_body_with_manual_dof():
     sphere.keep_immersed_part()
 
 def test_immersed_part():
-    full_sphere = cpt.Sphere(name="ball")
+    full_sphere = cpt.Sphere(axial_symmetry=False, name="ball")
     immersed_sphere = full_sphere.immersed_part()
     assert immersed_sphere is not full_sphere
+    assert immersed_sphere.mesh == full_sphere.mesh.immersed_part()
     assert immersed_sphere.mesh.axis_aligned_bbox[5] <= 0.0
     full_sphere.translate_x(2.0)
     new_immersed_sphere = full_sphere.immersed_part()
