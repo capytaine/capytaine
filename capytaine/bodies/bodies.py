@@ -61,8 +61,10 @@ class FloatingBody(Abstract3DObject):
             assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
             self.mesh = mesh
 
-        if name is None:
-            self.name = mesh.name
+        if name is None and mesh is None:
+            self.name = "dummy_body"
+        elif name is None:
+            self.name = self.mesh.name
         else:
             self.name = name
 
