@@ -41,6 +41,8 @@ Minor changes
 
 * Add :meth:`~capytaine.bodies.bodies.FloatingBody.immersed_part` method to clip the body without modifying it in place (:pull:`244`).
 
+* Add :func:`~capytaine.rigid_body_dofs` method returning a placeholder that can be given at the creation of :class:`~capytaine.bodies.bodies.FloatingBody` to initialize the six rigid body dofs (:pull:`245`).
+
 * Custom classes from the :code:`capytaine.matrices` module storign block matrices or data-sparse matrices
   can be transformed into full Numpy arrays with :code:`np.array(...)` (:pull:`99`)
 
