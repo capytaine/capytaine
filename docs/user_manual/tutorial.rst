@@ -181,7 +181,7 @@ You can also use :code:`compute_hydrostatics` method which computes all hydrosta
     hydrostatics = sphere.compute_hydrostatics()
 
 .. note::
-   Before computing hydrostatic parameters, you might want to crop your mesh using `body.keep_immersed_part()`.
+   Before computing hydrostatic parameters, you might want to crop your mesh using `immersed_body = body.immersed_part()`.
    It is not required here since the sphere is fully immersed.
    Cropping is included in the :code:`compute_hydrostatics()` function.
 

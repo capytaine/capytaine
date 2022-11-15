@@ -39,6 +39,8 @@ Minor changes
   In particular, if all the original bodies had hydrostatic stiffness matrices or inertia matrices defined,
   then they are assigned to the joined body as a large block diagonal matrix (:pull:`243`).
 
+* Add :meth:`~capytaine.bodies.bodies.FloatingBody.immersed_part` method to clip the body without modifying it in place (:pull:`244`).
+
 * Custom classes from the :code:`capytaine.matrices` module storign block matrices or data-sparse matrices
   can be transformed into full Numpy arrays with :code:`np.array(...)` (:pull:`99`)
 
