@@ -6,11 +6,12 @@ import pytest
 import logging
 from unittest import mock
 from pathlib import Path
+from io import StringIO
 
 import numpy as np
 import xarray as xr
 
-from capytaine.io.mesh_writers import write_STL
+from capytaine.io.mesh_writers import write_STL, write_GDF
 from capytaine.io.mesh_loaders import load_STL, load_HST, load_GDF, load_GDF_compressed
 import capytaine as cpt
 
@@ -292,10 +293,14 @@ def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
                                wavenumber=True)
 
 
-def test_load_gdf_compressed(mesh_dir = Path(__file__).parent):
+def test_load_gdf_compressed():
     
-    body_from_gdf = load_GDF(f"{mesh_dir}/sample_meshes/cylinder.gdf")
-    body_from_gdf_compressed = load_GDF_compressed(f"{mesh_dir}/sample_meshes/cylinder.gdf")
+    body = cpt.HorizontalCylinder()
+    body_path = Path("temp_mesh.gdf")
+    write_GDF("temp_mesh.gdf", body.mesh.vertices, body.mesh.faces, ulen=1, gravity=9.81, isx=0, isy=0)
+
+    body_from_gdf = load_GDF(str(body_path))
+    body_from_gdf_compressed = load_GDF_compressed(str(body_path))
     
     np.testing.assert_allclose(
         body_from_gdf.vertices[body_from_gdf.faces], 
@@ -327,4 +332,6 @@ def test_load_gdf_compressed(mesh_dir = Path(__file__).parent):
         body_from_gdf.volume, 
         body_from_gdf_compressed.volume
         )
+    
+    body_path.unlink()
     

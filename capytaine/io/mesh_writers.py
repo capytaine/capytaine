@@ -474,6 +474,14 @@ def write_GDF(filename, vertices, faces, ulen=100.0, gravity=9.81, isx=0, isy=1)
         numpy array of the coordinates of the mesh's nodes
     faces: ndarray
         numpy array of the faces' nodes connectivities
+    ulen: float, optional
+        length scale. The default is 100.0
+    gravity: float, optional
+        acceleration of gravity. The default is 9.81
+    isx: {0, 1}, optional
+        symmetry in x-axis. The default is 0
+    isy: {0, 1}, optional 
+        symmetry in y-axis. The default is 1
     """
 
     nf = max(np.shape(faces))
