@@ -774,8 +774,8 @@ def load_GDF_compressed(filename, name=None):
 
     with open(str(filename)) as gdf_file:
         title = gdf_file.readline()
-        ulen, grav = tuple(map(float, gdf_file.readline().split()))
-        isx, isy = tuple(map(int, gdf_file.readline().split()))
+        ulen, grav = map(float, gdf_file.readline().split())
+        isx, isy = map(int, gdf_file.readline().split())
         npan = int(gdf_file.readline())
         faces_vertices = np.genfromtxt(gdf_file)
 
