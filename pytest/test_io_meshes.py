@@ -297,7 +297,7 @@ def test_load_gdf_compressed():
     
     body = cpt.HorizontalCylinder()
     body_path = Path("temp_mesh.gdf")
-    write_GDF("temp_mesh.gdf", body.mesh.vertices, body.mesh.faces, ulen=1, gravity=9.81, isx=0, isy=0)
+    write_GDF(str(body_path), body.mesh.vertices, body.mesh.faces, ulen=1, gravity=9.81, isx=0, isy=0)
 
     body_from_gdf = load_GDF(str(body_path))
     body_from_gdf_compressed = load_GDF_compressed(str(body_path))
