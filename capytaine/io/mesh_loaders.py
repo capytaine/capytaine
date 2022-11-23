@@ -1047,8 +1047,6 @@ extension_dict = {  # keyword, reader
     'dat': load_MAR,
     'mar': load_MAR,
     'nemoh': load_MAR,
-    # 'wamit': load_GDF,
-    # 'gdf': load_GDF,
     'wamit': load_GDF_compressed,
     'gdf': load_GDF_compressed,
     'diodore-inp': load_INP,

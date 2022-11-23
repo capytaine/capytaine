@@ -463,7 +463,7 @@ def write_NEM(filename, vertices, faces):
     ofile.close()
 
 
-def write_GDF(filename, vertices, faces, ulen=100.0, gravity=9.81, isx=0, isy=1):
+def write_GDF(filename, vertices, faces, ulen=100.0, gravity=9.81, isx=0, isy=0):
     """Writes .gdf file format for the WAMIT (Wamit INC. (c)) BEM software.
 
     Parameters
@@ -481,7 +481,7 @@ def write_GDF(filename, vertices, faces, ulen=100.0, gravity=9.81, isx=0, isy=1)
     isx: {0, 1}, optional
         symmetry in x-axis. The default is 0
     isy: {0, 1}, optional 
-        symmetry in y-axis. The default is 1
+        symmetry in y-axis. The default is 0
     """
 
     nf = max(np.shape(faces))

@@ -6,7 +6,6 @@ import pytest
 import logging
 from unittest import mock
 from pathlib import Path
-from io import StringIO
 
 import numpy as np
 import xarray as xr
@@ -293,10 +292,10 @@ def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
                                wavenumber=True)
 
 
-def test_load_gdf_compressed():
+def test_load_gdf_compressed(tmpdir):
+    body_path = tmpdir.join("temp_mesh.gdf")
     
     body = cpt.HorizontalCylinder()
-    body_path = Path("temp_mesh.gdf")
     write_GDF(str(body_path), body.mesh.vertices, body.mesh.faces, ulen=1, gravity=9.81, isx=0, isy=0)
 
     body_from_gdf = load_GDF(str(body_path))
@@ -332,6 +331,4 @@ def test_load_gdf_compressed():
         body_from_gdf.volume, 
         body_from_gdf_compressed.volume
         )
-    
-    body_path.unlink()
     
