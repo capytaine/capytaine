@@ -649,7 +649,7 @@ class Mesh(Abstract3DObject):
         return self
 
     def immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        return self.keep_immersed_part(free_surface, sea_bottom, inplace=False)
+        return self.keep_immersed_part(free_surface, sea_bottom, inplace=False, name=self.name)
 
     @inplace_transformation
     def triangulate_quadrangles(self) -> 'Mesh':
