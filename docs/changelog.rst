@@ -48,6 +48,8 @@ Minor changes
 
 * Add :code:`Dockerfile` and instructions to install with Docker (:pull:`137`)
 
+* Fix bug with MED mesh file loading (:issue:`247` and :pull:`250`).
+
 Internals
 ~~~~~~~~~
 
