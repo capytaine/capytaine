@@ -138,6 +138,7 @@ def test_immersed_part():
     assert immersed_sphere is not full_sphere
     assert immersed_sphere.mesh == full_sphere.mesh.immersed_part()
     assert immersed_sphere.mesh.axis_aligned_bbox[5] <= 0.0
+    assert immersed_sphere.name == "ball"
     full_sphere.translate_x(2.0)
     new_immersed_sphere = full_sphere.immersed_part()
     assert new_immersed_sphere is not immersed_sphere
