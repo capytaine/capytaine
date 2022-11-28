@@ -911,7 +911,7 @@ def load_MED(filename, name=None):
 
     faces = np.row_stack([triangles, quadrangles])
 
-    return Mesh(vertices, faces)
+    return Mesh(vertices, faces, name=name)
 
 
 def load_WRL(filename, name=None):
