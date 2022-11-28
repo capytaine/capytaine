@@ -290,3 +290,6 @@ def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
                                wavelength=True,
                                wavenumber=True)
 
+def test_MED_file():
+    mesh = cpt.load_mesh("./pytest/mesh_files_examples/barge.med")
+    assert mesh.nb_faces == 187
