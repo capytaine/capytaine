@@ -97,6 +97,7 @@ if __name__ == "__main__":
               'meshio',
               'pygmsh',
               'gmsh',
+              'h5py',
               'quadpy',
               'sphinx',
               'sphinxcontrib-proof',
