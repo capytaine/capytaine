@@ -35,10 +35,20 @@ Minor changes
   A function :func:`~capytaine.io.meshio.load_from_meshio` is also now exported in the main namespace.
   The documentation has been changed to recommend the use of these functions instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_file` and :meth:`~capytaine.bodies.bodies.FloatingBody.from_meshio`.
 
+* When joining two bodies as e.g. :code:`body1 + body2`, some hydrostatic properties are passed to the resulting body.
+  In particular, if all the original bodies had hydrostatic stiffness matrices or inertia matrices defined,
+  then they are assigned to the joined body as a large block diagonal matrix (:pull:`243`).
+
+* Add :meth:`~capytaine.bodies.bodies.FloatingBody.immersed_part` method to clip the body without modifying it in place (:pull:`244`).
+
+* Add :func:`~capytaine.rigid_body_dofs` method returning a placeholder that can be given at the creation of :class:`~capytaine.bodies.bodies.FloatingBody` to initialize the six rigid body dofs (:pull:`245`).
+
 * Custom classes from the :code:`capytaine.matrices` module storign block matrices or data-sparse matrices
   can be transformed into full Numpy arrays with :code:`np.array(...)` (:pull:`99`)
 
 * Add :code:`Dockerfile` and instructions to install with Docker (:pull:`137`)
+
+* Fix bug with MED mesh file loading (:issue:`247` and :pull:`250`).
 
 Internals
 ~~~~~~~~~

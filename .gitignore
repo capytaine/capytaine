@@ -3,6 +3,7 @@ examples/**/results*
 docs/_static/
 .pytest_cache/
 .vscode/
+*.ogv
 
 # Created by https://www.gitignore.io/api/python,fortran
 

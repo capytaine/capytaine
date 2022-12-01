@@ -26,6 +26,11 @@ try:
 except ImportError:
     vtk = None
 
+try:
+    import h5py
+except ImportError:
+    h5py = None
+
 offset=1e-2 # small offset so you can clip at z=0
 omega = 0.5*2*np.pi
 rho_water = 1e3
@@ -332,3 +337,8 @@ def test_load_gdf_compressed(tmpdir):
         body_from_gdf_compressed.volume
         )
     
+@pytest.mark.skipif(h5py is None,
+                    reason='h5py and/or meshio is not installed')
+def test_MED_file():
+    mesh = cpt.load_mesh("./pytest/mesh_files_examples/barge.med")
+    assert mesh.nb_faces == 187

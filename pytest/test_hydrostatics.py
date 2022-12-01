@@ -102,6 +102,16 @@ def test_stiffness_with_malformed_divergence(caplog):
     assert hs_1.values[0, 0] == hs_2.values[0, 0]
     assert "without the divergence" in caplog.text
 
+def test_stiffness_joined_bodies():
+    a = cpt.Sphere(name="foo")
+    a.add_translation_dof(name="Heave")
+    a.hydrostatic_stiffness = a.add_dofs_labels_to_matrix(np.array([[1.0]]))
+    b = cpt.RectangularParallelepiped(name="bar")
+    b.add_all_rigid_body_dofs()
+    b.hydrostatic_stiffness = b.add_dofs_labels_to_matrix(np.random.rand(6, 6))
+    both = a + b
+    assert both.hydrostatic_stiffness.shape == (7, 7)
+
 def test_mass_of_sphere_for_non_default_density():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=50, ntheta=50)
     sphere.add_all_rigid_body_dofs()
@@ -147,6 +157,55 @@ def test_inertia_no_cog():
     sphere.add_all_rigid_body_dofs()
     with pytest.raises(ValueError, match=".*no center of mass.*"):
         sphere.compute_rigid_body_inertia()
+
+def test_inertia_joined_bodies():
+    a = cpt.Sphere(name="foo")
+    a.add_translation_dof(name="Heave")
+    a.inertia_matrix = a.add_dofs_labels_to_matrix(np.array([[1.0]]))
+    b = cpt.RectangularParallelepiped(name="bar")
+    b.add_all_rigid_body_dofs()
+    b.inertia_matrix = b.add_dofs_labels_to_matrix(np.random.rand(6, 6))
+    both = a + b
+    assert both.inertia_matrix.shape == (7, 7)
+
+def test_inertia_joined_bodies_with_missing_inertia():
+    a = cpt.Sphere(name="foo")
+    a.add_translation_dof(name="Heave")
+    # No inertia matrix
+    b = cpt.RectangularParallelepiped(name="bar")
+    b.add_all_rigid_body_dofs()
+    b.inertia_matrix = b.add_dofs_labels_to_matrix(np.random.rand(6, 6))
+    both = a + b
+    assert not hasattr(both, "inertia_matrix")
+
+def test_inertia_joined_bodies_associativity():
+    a = cpt.Sphere(name="foo")
+    a.add_translation_dof(name="Heave")
+    a.inertia_matrix = a.add_dofs_labels_to_matrix(np.array([[1.0]]))
+    b = cpt.RectangularParallelepiped(name="bar")
+    b.add_all_rigid_body_dofs()
+    b.inertia_matrix = b.add_dofs_labels_to_matrix(np.random.rand(6, 6))
+    c = cpt.VerticalCylinder(name="baz")
+    c.add_rotation_dof(name="Pitch")
+    c.inertia_matrix = c.add_dofs_labels_to_matrix(np.array([[2.0]]))
+    i1 = ((a + b) + c).inertia_matrix
+    i2 = (a + (b + c)).inertia_matrix
+    i3 = cpt.FloatingBody.join_bodies(a, b, c).inertia_matrix
+    assert np.allclose(i1.values, i2.values, i3.values)
+
+def test_inertia_joined_bodies_commutativity():
+    a = cpt.Sphere(name="foo")
+    a.add_translation_dof(name="Heave")
+    a.inertia_matrix = a.add_dofs_labels_to_matrix(np.array([[1.0]]))
+    b = cpt.RectangularParallelepiped(name="bar")
+    b.add_all_rigid_body_dofs()
+    b.inertia_matrix = b.add_dofs_labels_to_matrix(np.random.rand(6, 6))
+    i1 = (a + b).inertia_matrix
+    i2 = (b + a).inertia_matrix
+    assert not np.allclose(i1.values, i2.values)
+    # but their are the same when the coordinates are sorted in the same way:
+    assert np.allclose(i1.sel(influenced_dof=i2.influenced_dof, radiating_dof=i2.radiating_dof).values, i2.values)
+
 
 def test_hydrostatics_of_submerged_sphere():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=20, ntheta=20)
@@ -268,6 +327,31 @@ def test_vertical_elastic_dof():
                         * body.center_of_buoyancy[2])
 
         assert np.isclose(capy_hs, analytical_hs)
+
+
+###########################
+#  Non-neutrally buoyant  #
+###########################
+
+def test_mass_joined_bodies():
+    a = cpt.FloatingBody(mass=100)
+    b = cpt.FloatingBody(mass=300)
+    assert (a + b).mass == 400
+
+def test_mass_joined_bodies_with_missing_mass():
+    a = cpt.FloatingBody()
+    b = cpt.FloatingBody(mass=300)
+    assert (a + b).mass is None
+
+def test_center_of_mass_joined_bodies():
+    a = cpt.FloatingBody(mass=100, center_of_mass=(0, 0, 0))
+    b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0))
+    assert np.allclose((a + b).center_of_mass, (0.75, 0, 0))
+
+def test_center_of_mass_joined_bodies_with_missing_mass():
+    a = cpt.FloatingBody()
+    b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0))
+    assert (a + b).center_of_mass is None
 
 
 def test_non_neutrally_buoyant_stiffness():

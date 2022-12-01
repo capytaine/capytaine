@@ -15,8 +15,8 @@ body = cpt.VerticalCylinder(length=2*draft, radius=r, center=(0.,0.,0.),
                             nx=10, nr=10, ntheta=50,
                             clever=False,  # Do not use axial symmetry of the mesh (not really useful here)
                            )
-body.keep_immersed_part()
 body.add_translation_dof(name='Heave')
+body = body.immersed_part()
 
 solver = cpt.BEMSolver()
 

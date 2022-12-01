@@ -13,6 +13,8 @@ from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh, TranslationalSymmetricMesh, AxialSymmetricMesh
 
 from capytaine.bodies.bodies import FloatingBody
+from capytaine.bodies.dofs import rigid_body_dofs
+
 from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.bodies.predefined.cylinders import VerticalCylinder, HorizontalCylinder, Disk
 from capytaine.bodies.predefined.rectangles import Rectangle, RectangularParallelepiped, OpenRectangularParallelepiped
