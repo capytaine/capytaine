@@ -92,7 +92,7 @@ def mesh_rectangle(*, size=(5.0, 5.0), resolution=(5, 5), center=(0.0, 0.0, 0.0)
 
 
 def mesh_parallelepiped(size=(1.0, 1.0, 1.0), resolution=(4, 4, 4), center=(0, 0, 0),
-             missing_sides=tuple(), reflection_symmetry=False, translation_symmetry=False,
+             missing_sides=set(), reflection_symmetry=False, translation_symmetry=False,
              name=None):
     """Six rectangles forming a parallelepiped.
 
@@ -104,8 +104,8 @@ def mesh_parallelepiped(size=(1.0, 1.0, 1.0), resolution=(4, 4, 4), center=(0, 0
         number of faces along the three directions
     center : 3-ple of floats, optional
         coordinates of the geometric center of the parallelepiped
-    missing_sides : list of string, optional
-        if one of the keyword "top", "bottom", "front", "back", "left", "right" is in the list,
+    missing_sides : set of string, optional
+        if one of the keyword "top", "bottom", "front", "back", "left", "right" is in the set,
         then the corresponding side is not included in the parallelepiped.
         May be ignored when building a mesh with a symmetry.
     reflection_symmetry : bool, optional
@@ -142,9 +142,10 @@ def mesh_parallelepiped(size=(1.0, 1.0, 1.0), resolution=(4, 4, 4), center=(0, 0
             raise ValueError("To use the reflection symmetry of the mesh, "
                              "it should have an even number of panels in this direction.")
 
+        missing_sides_in_quarter = missing_sides | {"right", "back"}
         quarter_mesh = mesh_parallelepiped(
                 size=(width/2, thickness/2, height), resolution=(nw//2, nth//2, nh),
-                center=(-width/4, -thickness/4, 0), missing_sides=["back", "right"],
+                center=(-width/4, -thickness/4, 0), missing_sides=missing_sides_in_quarter,
                 reflection_symmetry=False, translation_symmetry=False,
                 name=f"quarter_of_{name}"
                 )
@@ -154,9 +155,10 @@ def mesh_parallelepiped(size=(1.0, 1.0, 1.0), resolution=(4, 4, 4), center=(0, 0
 
     elif translation_symmetry:
 
+        missing_sides_in_strip = missing_sides | {"left", "right"}
         strip = mesh_parallelepiped(
                 size=(width/nw, thickness, height), resolution=(1, nth, nh),
-                center=(-width/2 + width/(2*nw), 0, 0), missing_sides=["left", "right"],
+                center=(-width/2 + width/(2*nw), 0, 0), missing_sides=missing_sides_in_strip,
                 reflection_symmetry=False, translation_symmetry=False,
                 name=f"strip_of_{name}"
                 )
@@ -167,14 +169,23 @@ def mesh_parallelepiped(size=(1.0, 1.0, 1.0), resolution=(4, 4, 4), center=(0, 0
             name=f"body_of_{name}"
         )
 
-        right_side = mesh_rectangle(
-            size=(thickness, height), resolution=(nth, nh),
-            center=(width/2, 0, 0), normal=(1, 0, 0),
-            name=f"right_side_of_{name}"
-        )
-        left_side = right_side.mirror(plane=yOz_Plane, inplace=False, name=f"left_side_of_{name}")
+        components_of_mesh = [open_parallelepiped]
+        if "right" not in missing_sides:
+            components_of_mesh.append(
+                    mesh_rectangle(
+                        size=(thickness, height), resolution=(nth, nh),
+                        center=(width/2, 0, 0), normal=(1, 0, 0),
+                        name=f"right_side_of_{name}"
+                        ))
+        if "left" not in missing_sides:
+            components_of_mesh.append(
+                    mesh_rectangle(
+                        size=(thickness, height), resolution=(nth, nh),
+                        center=(-width/2, 0, 0), normal=(-1, 0, 0),
+                        name=f"left_side_of_{name}"
+                        ))
 
-        mesh = CollectionOfMeshes([open_parallelepiped, left_side, right_side], name=name)
+        mesh = CollectionOfMeshes(components_of_mesh, name=name)
 
     else:
 

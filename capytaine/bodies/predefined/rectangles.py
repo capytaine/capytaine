@@ -94,9 +94,9 @@ class RectangularParallelepiped(FloatingBody):
         if name is None:
             name = f"rectangular_parallelepiped_{next(Mesh._ids)}"
 
-        missing_sides = []
-        if not top: missing_sides.append("top")
-        if not bottom: missing_sides.append("bottom")
+        missing_sides = set()
+        if not top: missing_sides.add("top")
+        if not bottom: missing_sides.add("bottom")
 
         mesh = mesh_parallelepiped(size=size, resolution=resolution, center=center,
                 missing_sides=missing_sides,
