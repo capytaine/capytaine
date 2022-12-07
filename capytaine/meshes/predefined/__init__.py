@@ -4,4 +4,4 @@
 
 from capytaine.meshes.predefined.cylinders import mesh_disk, mesh_horizontal_cylinder, mesh_vertical_cylinder
 from capytaine.meshes.predefined.spheres import mesh_sphere
-# from capytaine.meshes.predefined.rectangles import mesh_rectangular_parallelepiped
+from capytaine.meshes.predefined.rectangles import mesh_rectangle, mesh_parallelepiped
