@@ -141,3 +141,63 @@ def test_mesh_sphere_axial_symmetry():
     d = mesh_sphere(resolution=(3, 6), axial_symmetry=True)
     assert isinstance(d, cpt.AxialSymmetricMesh)
     assert np.allclose(d.axis.vector, (0, 0, 1))
+
+# RECTANGLES
+
+def test_mesh_rectangle():
+    from capytaine.meshes.predefined.rectangles import mesh_rectangle
+    d = mesh_rectangle(resolution=(3, 6), name="foo")
+    assert isinstance(d, cpt.Mesh)
+    assert d.nb_faces == 18
+    assert d.name == "foo"
+
+def test_mesh_rectangle_position():
+    from capytaine.meshes.predefined.rectangles import mesh_rectangle
+    d = mesh_rectangle(center=(1.0, 0.5, -0.5), normal=(0, 1, 0))
+    assert np.allclose(d.vertices[:, 1], 0.5)
+
+def test_mesh_rectangle_reflection_symmetry():
+    from capytaine.meshes.predefined.rectangles import mesh_rectangle
+    d = mesh_rectangle(resolution=(4, 6), reflection_symmetry=True, normal=(1, 0, 0))
+    assert isinstance(d, cpt.ReflectionSymmetricMesh)
+
+def test_mesh_rectangle_both_symmetries():
+    from capytaine.meshes.predefined.rectangles import mesh_rectangle
+    with pytest.raises(NotImplementedError):
+        mesh_rectangle(translation_symmetry=True, reflection_symmetry=True)
+
+# PARALLELEPIPED
+
+def test_mesh_parallelepiped():
+    from capytaine.meshes.predefined.rectangles import mesh_parallelepiped
+    p = mesh_parallelepiped(resolution=(3, 6, 3), name="foo")
+    assert isinstance(p, cpt.Mesh)
+    assert p.nb_faces == 90
+    assert p.name == "foo"
+
+def test_mesh_parallelepiped_sides():
+    from capytaine.meshes.predefined.rectangles import mesh_parallelepiped
+    p = mesh_parallelepiped(size=(5.0, 5.0, 5.0), missing_sides=["top", "bottom"])
+    assert p.nb_faces == 64
+    assert not np.any((abs(p.faces_centers[:, 0]) < 2.0) & (abs(p.faces_centers[:, 1]) < 2.0))
+    # That is: no face with center (x, y, z) such that -2 < x < 2 and -2 < y < 2
+
+def test_mesh_parallelepiped_position():
+    from capytaine.meshes.predefined.rectangles import mesh_parallelepiped
+    p = mesh_parallelepiped(center=(2.0, -2.0, 1.0))
+    assert np.all(p.faces_centers[:, 0] <= 3.0)
+    assert np.all(1.0 <= p.faces_centers[:, 0])
+
+def test_mesh_parallelepiped_reflection_symmetry():
+    from capytaine.meshes.predefined.rectangles import mesh_parallelepiped
+    p = mesh_parallelepiped(resolution=(4, 4, 4), reflection_symmetry=True)
+    assert isinstance(p, cpt.ReflectionSymmetricMesh)
+    assert isinstance(p.half, cpt.ReflectionSymmetricMesh)
+    assert p.nb_faces == 6*16
+
+def test_mesh_parallelepiped_translation_symmetry():
+    from capytaine.meshes.predefined.rectangles import mesh_parallelepiped
+    p = mesh_parallelepiped(resolution=(4, 4, 4), translation_symmetry=True)
+    assert isinstance(p, cpt.CollectionOfMeshes)
+    assert isinstance(p[0], cpt.TranslationalSymmetricMesh)
+    assert p.nb_faces == 6*16

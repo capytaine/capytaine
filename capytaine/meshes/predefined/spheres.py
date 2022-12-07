@@ -13,7 +13,7 @@ from capytaine.meshes.symmetric import AxialSymmetricMesh
 LOG = logging.getLogger(__name__)
 
 
-def mesh_sphere(*, radius=1.0, center=(0, 0, 0), resolution=(10, 10), axial_symmetry=False, name=None):
+def mesh_sphere(*, radius=1.0, center=(0.0, 0.0, 0.0), resolution=(10, 10), axial_symmetry=False, name=None):
     """Sphere
 
     Parameters
