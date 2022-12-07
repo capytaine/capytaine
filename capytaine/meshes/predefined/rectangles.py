@@ -201,12 +201,12 @@ def mesh_parallelepiped(size=(1.0, 1.0, 1.0), resolution=(4, 4, 4), center=(0, 0
                     )
         if "top" not in missing_sides:
             sides.append(
-                    mesh_rectangle(size=(width, thickness), resolution=(nw, nth), center=(0, 0, height/2),
+                    mesh_rectangle(size=(thickness, width), resolution=(nth, nw), center=(0, 0, height/2),
                         normal=(0, 0, 1), name=f"top_of_{name}")
                     )
         if "bottom" not in missing_sides:
             sides.append(
-                    mesh_rectangle(size=(width, thickness), resolution=(nw, nth), center=(0, 0, -height/2),
+                    mesh_rectangle(size=(thickness, width), resolution=(nth, nw), center=(0, 0, -height/2),
                         normal=(0, 0, -1), name=f"bottom_of_{name}")
                     )
         mesh = CollectionOfMeshes(sides, name=name).merged()
