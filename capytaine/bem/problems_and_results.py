@@ -28,7 +28,7 @@ class LinearPotentialFlowProblem:
     body: FloatingBody, optional
         The body interacting with the waves
     free_surface: float, optional
-        The position of the free surface (accepted values: 0 and np.infty)
+        The position of the free surface (accepted values: 0.0 and np.infty)
     sea_bottom: float, optional
         The position of the sea bottom
     omega: float, optional
@@ -53,11 +53,11 @@ class LinearPotentialFlowProblem:
                  boundary_condition=None):
 
         self.body = body
-        self.free_surface = free_surface
-        self.sea_bottom = sea_bottom
-        self.omega = omega
-        self.rho = rho
-        self.g = g
+        self.free_surface = float(free_surface)
+        self.sea_bottom = float(sea_bottom)
+        self.omega = float(omega)
+        self.rho = float(rho)
+        self.g = float(g)
         self.boundary_condition = boundary_condition
 
         self._check_data()
@@ -240,7 +240,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                  wave_direction=0.0,
                  convention=_default_parameters['convention']):
 
-        self.wave_direction = wave_direction
+        self.wave_direction = float(wave_direction)
         self.convention = convention
 
         super().__init__(body=body, free_surface=free_surface, sea_bottom=sea_bottom,
