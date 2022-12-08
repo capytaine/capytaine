@@ -7,7 +7,7 @@ On Linux, MacOS, or Windows Subsystem for Linux (WSL)
 
 It is recommended to use a `conda environment <https://conda.io/docs/user-guide/tasks/manage-environments.html>`_, for instance with::
 
-    conde create --name capy_dev python=3.9 numpy=1.20 scipy pip
+    conda create --name capy_dev python=3.9 numpy=1.20 scipy pip
     conda activate capy_dev
 
 Capytaine requires **Python 3.6** or higher.
@@ -47,6 +47,56 @@ If you need to recompile::
     make clean
     make develop
 
+
+On Windows
+----------
+
+Microsoft Visual Studio is required for linking the Fortran binaries
+
+    * https://visualstudio.microsoft.com/downloads/
+    * During installation check the box to include :code:`Desktop development with C++`
+
+Intel oneAPI HPC toolkit is required for compiling the Fortran binaries (you do not need the base kit)
+
+    * https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit-download.html
+    * Install to the default file location
+    
+Create a **"LIB"** environment variable to point towards the intel directory for compiler :code:`.lib` files
+
+    * If oneAPI is installed to the default location, assign the LIB user variable a value of:
+    
+        :code:`C:\Program Files (x86)\Intel\oneAPI\compiler\2022.1.0\windows\compiler\lib\intel64_win`
+    
+    * If oneAPI is installed to a different location then adjust the path above as necessary
+
+Test if your Fortran compiler was installed correctly by entering :code:`ifort` on your command line
+
+Open the anaconda powershell and create a new Python 3.9 environment (with numpy installed) for Capytaine-related development (e.g. :code:`capy_dev`)::
+    
+    conda create --name capy_dev python=3.9 numpy=1.20 scipy pip
+    conda activate capy_dev
+        
+Clone the Capytaine repo to your preferred location (e.g. "C:/code/")::
+        
+    cd C:/code/
+    git clone https://github.com/capytaine/capytaine.git
+        
+Install Capytaine as a developer!::
+    
+    cd capytaine
+    pip install -e .
+
+Be sure to check setup.py => install_requires = [...] to ensure that your environment has all required packages installed. You can check your environment's packages using:::
+
+    conda list
+        
+If any packages are missing simply install them using:::
+    
+    pip install <package name>
+
+
+Contributing
+------------
 For instructions about how to help with the development of Capytaine, see the `contributing guide`_.
 
 .. _`contributing guide`: https://github.com/capytaine/capytaine/blob/master/CONTRIBUTING.md
