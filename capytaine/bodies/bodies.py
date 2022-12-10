@@ -15,6 +15,7 @@ from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transform
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import build_regular_array_of_meshes
 from capytaine.meshes.collections import CollectionOfMeshes
+from capytaine.bodies.dofs import RigidBodyDofsPlaceholder
 
 LOG = logging.getLogger(__name__)
 
@@ -55,21 +56,32 @@ class FloatingBody(Abstract3DObject):
 
     def __init__(self, mesh=None, dofs=None, mass=None, center_of_mass=None, name=None):
         if mesh is None:
-            mesh = Mesh(name="dummy_mesh")
+            self.mesh = Mesh(name="dummy_mesh")
+        else:
+            assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
+            self.mesh = mesh
 
-        if dofs is None:
-            dofs = {}
+        if name is None and mesh is None:
+            self.name = "dummy_body"
+        elif name is None:
+            self.name = self.mesh.name
+        else:
+            self.name = name
 
-        if name is None:
-            name = mesh.name
-
-        assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
-        self.mesh = mesh
-        self.full_body = None
-        self.dofs = dofs
         self.mass = mass
         self.center_of_mass = center_of_mass
-        self.name = name
+
+        if dofs is None:
+            self.dofs = {}
+        elif isinstance(dofs, RigidBodyDofsPlaceholder):
+            if dofs.rotation_center is not None:
+                self.rotation_center = np.asarray(dofs.rotation_center)
+            self.dofs = {}
+            self.add_all_rigid_body_dofs()
+        else:
+            self.dofs = dofs
+
+        self.full_body = None
 
         if self.mesh.nb_vertices == 0 or self.mesh.nb_faces == 0:
             LOG.warning(f"New floating body (with empty mesh!): {self.name}.")
@@ -388,11 +400,11 @@ class FloatingBody(Abstract3DObject):
             http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
 
         """
-        # Newmann (1994) formula is not 'complete' as recovering the rigid body
+        # Newman (1994) formula is not 'complete' as recovering the rigid body
         # terms is not possible. https://doi.org/10.1115/1.3058702.
 
         # Alternative is to use the general equation of hydrostatic and
-        # restoring coefficient for rigid mdoes and use Neuman equation for elastic
+        # restoring coefficient for rigid modes and use Newman equation for elastic
         # modes.
 
         rigid_dof_names = ("Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw")
@@ -438,7 +450,7 @@ class FloatingBody(Abstract3DObject):
                         f"This case has not been implemented in Capytaine. You need either a single rigid body or a neutrally buoyant body."
                         )
 
-            # Neuman (1994) formula for flexible DOFs
+            # Newman (1994) formula for flexible DOFs
             influenced_dof = np.array(self.dofs[influenced_dof_name])
             radiating_dof = np.array(self.dofs[radiating_dof_name])
             influenced_dof_div_array = np.array(influenced_dof_div)
@@ -721,19 +733,28 @@ respective inertia coefficients are assigned as NaN.")
         dofs = FloatingBody.combine_dofs(bodies)
 
         if all(body.mass is not None for body in bodies):
-            new_mass = sum(body.mass is not None for body in bodies)
+            new_mass = sum(body.mass for body in bodies)
         else:
             new_mass = None
 
         if (all(body.mass is not None for body in bodies)
-                and all(body.center_of_mass is not None for body in bodies)):
-            new_cog = sum(body.mass*body.center_of_mass is not None for body in bodies)/new_mass
+                and all(body.center_of_mass for body in bodies)):
+            new_cog = sum(body.mass*np.asarray(body.center_of_mass) for body in bodies)/new_mass
         else:
             new_cog = None
 
-        return FloatingBody(
+        joined_bodies = FloatingBody(
             mesh=meshes, dofs=dofs, mass=new_mass, center_of_mass=new_cog, name=name
             )
+
+        for matrix_name in ["inertia_matrix", "hydrostatic_stiffness"]:
+            if all(hasattr(body, matrix_name) for body in bodies):
+                from scipy.linalg import block_diag
+                setattr(joined_bodies, matrix_name, joined_bodies.add_dofs_labels_to_matrix(
+                        block_diag(*[getattr(body, matrix_name) for body in bodies])
+                        ))
+
+        return joined_bodies
 
     @staticmethod
     def combine_dofs(bodies) -> dict:
@@ -952,6 +973,9 @@ respective inertia coefficients are assigned as NaN.")
         if sea_bottom > -np.infty:
             self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
         return self
+
+    def immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
+        return self.keep_immersed_part(free_surface, sea_bottom, inplace=False, name=self.name)
 
     #############
     #  Display  #

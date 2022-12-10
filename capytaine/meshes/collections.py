@@ -266,6 +266,9 @@ class CollectionOfMeshes(Abstract3DObject):
             mesh.keep_immersed_part(**kwargs)
         self.prune_empty_meshes()
 
+    def immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
+        return self.keep_immersed_part(free_surface, sea_bottom, inplace=False)
+
     @inplace_transformation
     def prune_empty_meshes(self):
         """Remove empty meshes from the collection."""

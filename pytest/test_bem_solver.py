@@ -32,7 +32,7 @@ def test_exportable_settings():
     engine = BasicMatrixEngine(matrix_cache_size=0)
     assert engine.exportable_settings['engine'] == 'BasicMatrixEngine'
     assert engine.exportable_settings['matrix_cache_size'] == 0
-    assert engine.exportable_settings['linear_solver'] == 'direct'
+    assert engine.exportable_settings['linear_solver'] == 'lu_decomposition'
 
     solver = BEMSolver(green_function=gf, engine=engine)
     assert solver.exportable_settings['green_function'] == 'Delhommeau'
@@ -40,7 +40,7 @@ def test_exportable_settings():
     assert solver.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
     assert solver.exportable_settings['engine'] == 'BasicMatrixEngine'
     assert solver.exportable_settings['matrix_cache_size'] == 0
-    assert solver.exportable_settings['linear_solver'] == 'direct'
+    assert solver.exportable_settings['linear_solver'] == 'lu_decomposition'
 
 
 def test_limit_frequencies():

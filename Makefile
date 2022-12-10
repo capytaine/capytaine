@@ -8,7 +8,7 @@ test: develop
 	python -m pytest
 
 clean:
-	rm -f capytaine/green_functions/*.so
+	rm -f capytaine/green_functions/libs/*.so
 	rm -rf build/
 	rm -rf dist/
 	rm -rf capytaine.egg-info/

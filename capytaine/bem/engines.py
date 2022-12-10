@@ -59,9 +59,11 @@ class BasicMatrixEngine(MatrixEngine):
     """
 
     available_linear_solvers = {'direct': linear_solvers.solve_directly,
-                                'gmres': linear_solvers.solve_gmres}
+                                'lu_decomposition': linear_solvers.LUSolverWithCache().solve,
+                                'gmres': linear_solvers.solve_gmres,
+                                }
 
-    def __init__(self, *, linear_solver='direct', matrix_cache_size=1):
+    def __init__(self, *, linear_solver='lu_decomposition', matrix_cache_size=1):
 
         if linear_solver in self.available_linear_solvers:
             self.linear_solver = self.available_linear_solvers[linear_solver]
@@ -155,8 +157,8 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
         }
 
     def build_matrices(self,
-                       mesh1, mesh2, *args,
-                       _rec_depth=1, **kwargs):
+                       mesh1, mesh2, free_surface, sea_bottom, wavenumber, green_function,
+                       _rec_depth=1):
         """Recursively builds a hierarchical matrix between mesh1 and mesh2.
         
         Same arguments as :func:`BasicMatrixEngine.build_matrices`.
@@ -173,8 +175,6 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
         else:
             log_entry = ""  # will not be used
 
-        green_function = args[-1]
-
         # Distance between the meshes (for ACA).
         distance = np.linalg.norm(mesh1.center_of_mass_of_nodes - mesh2.center_of_mass_of_nodes)
 
@@ -188,10 +188,10 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             LOG.debug(log_entry + " using mirror symmetry.")
 
             S_a, V_a = self.build_matrices(
-                mesh1[0], mesh2[0], *args, **kwargs,
+                mesh1[0], mesh2[0], free_surface, sea_bottom, wavenumber, green_function,
                 _rec_depth=_rec_depth+1)
             S_b, V_b = self.build_matrices(
-                mesh1[0], mesh2[1], *args, **kwargs,
+                mesh1[0], mesh2[1], free_surface, sea_bottom, wavenumber, green_function,
                 _rec_depth=_rec_depth+1)
 
             return BlockSymmetricToeplitzMatrix([[S_a, S_b]]), BlockSymmetricToeplitzMatrix([[V_a, V_b]])
@@ -206,13 +206,13 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             S_list, V_list = [], []
             for submesh in mesh2:
                 S, V = self.build_matrices(
-                    mesh1[0], submesh, *args, **kwargs,
+                    mesh1[0], submesh, free_surface, sea_bottom, wavenumber, green_function,
                     _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
             for submesh in mesh1[1:][::-1]:
                 S, V = self.build_matrices(
-                    submesh, mesh2[0], *args, **kwargs,
+                    submesh, mesh2[0], free_surface, sea_bottom, wavenumber, green_function,
                     _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
@@ -229,7 +229,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             S_line, V_line = [], []
             for submesh in mesh2[:mesh2.nb_submeshes]:
                 S, V = self.build_matrices(
-                    mesh1[0], submesh, *args, **kwargs,
+                    mesh1[0], submesh, free_surface, sea_bottom, wavenumber, green_function,
                     _rec_depth=_rec_depth+1)
                 S_line.append(S)
                 V_line.append(V)
@@ -245,14 +245,14 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             def get_row_func(i):
                 s, v = green_function.evaluate(
                     mesh1.extract_one_face(i), mesh2,
-                    *args[:-1], **kwargs
+                    free_surface, sea_bottom, wavenumber
                 )
                 return s.flatten(), v.flatten()
 
             def get_col_func(j):
                 s, v = green_function.evaluate(
                     mesh1, mesh2.extract_one_face(j),
-                    *args[:-1], **kwargs
+                    free_surface, sea_bottom, wavenumber
                 )
                 return s.flatten(), v.flatten()
 
@@ -277,7 +277,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
                 S_line, V_line = [], []
                 for submesh2 in mesh2:
                     S, V = self.build_matrices(
-                        submesh1, submesh2, *args, **kwargs,
+                        submesh1, submesh2, free_surface, sea_bottom, wavenumber, green_function,
                         _rec_depth=_rec_depth+1)
 
                     S_line.append(S)
@@ -293,7 +293,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             LOG.debug(log_entry)
 
             S, V = green_function.evaluate(
-                mesh1, mesh2, *args[:-1], **kwargs
+                mesh1, mesh2, free_surface, sea_bottom, wavenumber,
             )
             return S, V
 

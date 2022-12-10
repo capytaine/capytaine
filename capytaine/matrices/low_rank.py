@@ -314,8 +314,14 @@ class LowRankMatrix:
     #  Representation  #
     ####################
 
-    def full_matrix(self):
-        return self.left_matrix @ self.right_matrix
+    def full_matrix(self, dtype=None):
+        if dtype is not None:
+            return (self.left_matrix @ self.right_matrix).astype(dtype)
+        else:
+            return self.left_matrix @ self.right_matrix
+
+    def __array__(self, dtype=None):
+        return self.full_matrix(dtype=dtype)
 
     @property
     def stored_data_size(self):

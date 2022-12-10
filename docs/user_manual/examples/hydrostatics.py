@@ -10,7 +10,7 @@ body = cpt.Sphere(radius=radius, center=cog, nphi=100, ntheta=100)
 body.center_of_mass = cog
 
 body.add_all_rigid_body_dofs()
-body.keep_immersed_part()
+body = body.immersed_part()
 
 density = 1000
 gravity = 9.81
