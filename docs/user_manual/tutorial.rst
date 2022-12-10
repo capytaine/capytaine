@@ -208,6 +208,7 @@ Each hydrostatic parameter can be computed by a dedicated method::
 
 The matrices here are :math:`7 \times 7` matrices as we have defined seven dofs for our sphere.
 The matrices are stored as :code:`DataArray` from the `xarray <https://xarray.dev/>`_ package (see below for an example of usage).
+Note that the inertia matrix can only be computed for rigid bodies (assuming constant density). The matrix was filled with :code:`NaN` for the generalized dof :code:`x-shear`.
 
 You can also use :code:`compute_hydrostatics` method which computes all hydrostatic parameters and returns a :code:`dict` of parameters and values::
 
