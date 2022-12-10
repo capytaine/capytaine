@@ -19,6 +19,8 @@ Major changes
   A missing key element has been added and the :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is now actually more accurate near the free surface.
   (:pull:`180` and :pull:`216`)
 
+* New functions to generate simple geometric meshes have been implemented in :code:`capytaine.meshes.predefined`. They are similar to the former geometric bodies (:class:`~capytaine.bodies.predefined.sphere.Sphere`, :class:`~capytaine.bodies.predefined.sphere.HorizontalCylinder`, etc.), except that they return a mesh and does not create a :code:`FloatingBody`. The geometric body classes are considered deprecated, although they should still work as expected. (:pull:`233`)
+
 Minor changes
 ~~~~~~~~~~~~~
 
