@@ -11,10 +11,11 @@ omega = 1.
 rho = 1000
 
 # Define geometry and heave degree of freedom
-body = cpt.VerticalCylinder(length=2*draft, radius=r, center=(0.,0.,0.),
-                            nx=10, nr=10, ntheta=50,
-                            clever=False,  # Do not use axial symmetry of the mesh (not really useful here)
-                           )
+body = cpt.FloatingBody(
+        mesh=cpt.mesh_vertical_cylinder(
+            length=2*draft, radius=r, center=(0.,0.,0.),
+            resolution=(10, 50, 10)
+            ))
 body.add_translation_dof(name='Heave')
 body = body.immersed_part()
 

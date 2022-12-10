@@ -9,16 +9,17 @@ logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s:\t%(message)s")
 
 # Initialize floating body by generating a geometric mesh
-cylinder = cpt.HorizontalCylinder(
+mesh = cpt.mesh_horizontal_cylinder(
     length=10.0, radius=1.0,  # Dimensions
     center=(0, 0, -2),        # Position
-    nr=5, nx=40, ntheta=20,   # Fineness of the mesh
-)
+    resolution=(5, 20, 40)    # Fineness of the mesh
+    )
+body = cpt.FloatingBody(mesh)
 
 # Define a degree of freedom. The keyword "Heave"
 # is recognized by the code and the vertical translation
 # motion is automatically defined.
-cylinder.add_translation_dof(name="Heave")
+body.add_translation_dof(name="Heave")
 
 # Define the range of water depth
 depth_range = list(range(5, 25, 2)) + [np.infty]
@@ -26,7 +27,7 @@ depth_range = list(range(5, 25, 2)) + [np.infty]
 # Set up the problems: we will solve a radiation problem for each
 # water depth:
 problems = [
-    cpt.RadiationProblem(body=cylinder, sea_bottom=-depth, omega=2.0)
+    cpt.RadiationProblem(body=body, sea_bottom=-depth, omega=2.0)
     for depth in depth_range
 ]
 # Water density, gravity and radiating dof have not been specified.
