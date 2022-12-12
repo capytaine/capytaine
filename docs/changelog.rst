@@ -52,6 +52,8 @@ Minor changes
 
 * Fix bug with MED mesh file loading (:issue:`247` and :pull:`250`).
 
+* Several surface integrals properties of :code:`FloatingBodies` are also defined on meshes, such as :code:`volume` or :code:`center_of_buoyancy` (pull:`263`).
+
 Internals
 ~~~~~~~~~
 
