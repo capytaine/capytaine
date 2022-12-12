@@ -40,6 +40,7 @@ def test_resolution():
     cylinder = cpt.HorizontalCylinder(
         length=5.0, radius=1.0,
         center=(0, 0, -2),
+        reflection_symmetry=False,
         nr=2, nx=10, ntheta=5,
     )
     # cylinder.show()

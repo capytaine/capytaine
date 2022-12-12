@@ -9,11 +9,10 @@ logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s:\t%(message)s")
 
 # Generate body
-body = cpt.HorizontalCylinder(
-    length=3.0, radius=1.0,  # Dimensions
-    center=(0, 0, -1.01),     # Position
-    nr=5, nx=15, ntheta=30,   # Fineness of the mesh
+mesh = cpt.mesh_horizontal_cylinder(
+    length=3.0, radius=1.0, center=(0, 0, -1.01), resolution=(5, 30, 15)
 )
+body = cpt.FloatingBody(mesh)
 body.add_translation_dof(name="Heave")
 
 test_matrix = xr.Dataset(coords={

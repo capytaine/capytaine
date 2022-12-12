@@ -63,10 +63,27 @@ def test_axis_transformation():
 
 
 def test_rotation_non_reference_axis():
-    axis = Axis(vector=(0, 0, 1), point=(1, 0, 0))
-    point = [[1.0, 0.0, 0.0]]
-    rotated_point = axis.rotate_points(point, np.pi)
-    assert np.allclose(rotated_point, point)
+    p = np.random.rand(3)
+    axis = Axis(vector=(0, 0, 1), point=p)
+    rotated_point = axis.rotate_points(p, np.pi)
+    assert np.allclose(rotated_point, p)
+
+
+def test_invariance_of_rotation_center():
+    p = np.random.rand(3)
+    axis1 = Axis(vector=(0, 0, 1), point=p)
+    axis2 = Axis(vector=(0, 1, 0), point=p)
+    assert np.allclose(axis1.rotated(axis2, np.pi/3).point, p)
+
+
+def test_rotation_around_center_to_align_vectors_commutes_with_translation():
+    n = np.random.rand(3)
+    n /= np.linalg.norm(n)
+    axis = Axis(vector=n, point=(0, 0, 0))
+    a = axis.rotated_around_center_to_align_vectors((0, 0, 0), n, (0, 1, 0)).translated((1, 1, 1))
+    b = axis.translated((1, 1, 1)).rotated_around_center_to_align_vectors((1, 1, 1), n, (0, 1, 0))
+    assert np.allclose(a.vector, b.vector, (0, 1, 0))
+    assert np.allclose(a.point, b.point)
 
 
 def test_plane():

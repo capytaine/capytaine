@@ -305,6 +305,7 @@ def test_vertical_elastic_dof():
         cpt.HorizontalCylinder(
             length=5.0, radius=1.0,
             center=(0,10,0),
+            reflection_symmetry=False,
             nr=20, nx=20, ntheta=10,
         )
     ]
@@ -355,7 +356,7 @@ def test_center_of_mass_joined_bodies_with_missing_mass():
 
 
 def test_non_neutrally_buoyant_stiffness():
-    body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body = cpt.VerticalCylinder(radius=1.0, length=2.0, center=(0.0, 0.0, 0.0), nx=40, ntheta=40, nr=20)
     body.rotation_center = (0, 0, 0)
     body.add_all_rigid_body_dofs()
     body.keep_immersed_part()
@@ -380,7 +381,7 @@ def test_non_neutrally_buoyant_stiffness():
 
 
 def test_non_neutrally_buoyant_K55():
-    body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body = cpt.VerticalCylinder(radius=1.0, length=2.0, center=(0.0, 0.0, 0.0), nx=40, ntheta=40, nr=20)
     body.rotation_center = (0, 0, 0)
     body.add_all_rigid_body_dofs()
     body.keep_immersed_part()

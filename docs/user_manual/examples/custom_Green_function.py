@@ -49,11 +49,12 @@ class MyGreenFunction(AbstractGreenFunction):
 solver = cpt.BEMSolver(green_function=MyGreenFunction())
 
 # Example of a problem
-sphere = cpt.Sphere(
-    radius=1.0,          # Dimension
-    center=(0, 0, -2),   # Position
-    nphi=4, ntheta=4,  # Fineness of the mesh
-)
+sphere = cpt.FloatingBody(
+        mesh=cpt.mesh_sphere(
+            radius=1.0,          # Dimension
+            center=(0, 0, -2),   # Position
+            resolution=(4, 4),   # Fineness of the mesh
+            ))
 sphere.add_translation_dof(name="Heave")
 problem = cpt.RadiationProblem(body=sphere, free_surface=np.infty, sea_bottom=-np.infty, radiating_dof='Heave')
 

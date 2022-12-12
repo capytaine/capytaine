@@ -9,11 +9,12 @@ logging.basicConfig(level=logging.INFO,
                     format="%(levelname)s:\t%(message)s")
 
 # Initialize floating body by generating a geometric mesh
-cylinder = cpt.HorizontalCylinder(
-    length=10.0, radius=1.0,  # Dimensions
-    center=(0, 0, -2),        # Position
-    nr=5, nx=40, ntheta=20,   # Fineness of the mesh
-)
+cylinder = cpt.FloatingBody(
+        mesh=cpt.mesh_horizontal_cylinder(
+            length=10.0, radius=1.0,
+            center=(0, 0, -2),
+            resolution=(1, 6, 8)
+            ))
 
 # Automatically add the six degrees of freedom of a rigid body
 cylinder.add_all_rigid_body_dofs()

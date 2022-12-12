@@ -13,15 +13,15 @@ def make_cylinder(resolution):
     """Make cylinder with a mesh of a given resolution in panels/meter."""
     radius = 1.0
     length = 5.0
-    body = cpt.HorizontalCylinder(
+    mesh = cpt.mesh_horizontal_cylinder(
         length=length, radius=radius,
         center=(0, 0, -1.5*radius),
-        nr=int(resolution*radius),
-        nx=int(length*resolution),
-        ntheta=int(2*pi*length*resolution),
+        resolution=(int(resolution*radius),
+                    int(2*pi*length*resolution),
+                    int(length*resolution))
     )
+    body = cpt.FloatingBody(mesh, name=f"cylinder_{mesh.nb_faces:04d}")
     # Store the number of panels in the name of the body
-    body.name = f"cylinder_{body.mesh.nb_faces:04d}"
     body.add_translation_dof(name="Heave")
     return body
 

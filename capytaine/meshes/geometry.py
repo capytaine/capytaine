@@ -218,7 +218,7 @@ class Axis(Abstract3DObject):
     @inplace_transformation
     def rotate(self, axis, angle):
         rot_matrix = axis.rotation_matrix(angle)
-        self.point = rot_matrix @ self.point
+        self.point = rot_matrix @ (self.point - axis.point) + axis.point
         self.vector = rot_matrix @ self.vector
         return self
 

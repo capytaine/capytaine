@@ -29,10 +29,11 @@ It can be done by setting the attribute `center_of_mass` as in the example below
     import capytaine as cpt
     import numpy as np
 
-    rigid_sphere = cpt.Sphere(radius=1.0, center=(0, 0, 0), name="my buoy")
-    rigid_sphere.center_of_mass = (0, 0, -0.3)
-    rigid_sphere.add_all_rigid_body_dofs()
-    rigid_sphere.keep_immersed_part()
+    rigid_sphere = cpt.FloatingBody(
+            mesh=cpt.mesh_sphere(radius=1.0, center=(0, 0, 0)),
+            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.3)),
+            center_of_mass=(0, 0, -0.3)
+            ).immersed_part()
 
     print("Volume:", rigid_sphere.volume)
     print("Center of buoyancy:", rigid_sphere.center_of_buoyancy)
@@ -77,10 +78,10 @@ matrix as an :code:`xarray.DataArray`. ::
 
 ::
 
-    elastic_sphere = cpt.Sphere(radius=1.0, center=(0, 0, 0), name="my buoy")
-    elastic_sphere.center_of_mass = (0, 0, -0.3)
-    elastic_sphere.keep_immersed_part()
-
+    elastic_sphere = cpt.FloatingBody(
+            mesh=cpt.mesh_sphere(radius=1.0, center=(0, 0, 0)),
+            center_of_mass=(0, 0, -0.3)
+            ).immersed_part()
     elastic_sphere.dofs["elongate_in_z"] = np.array([(0, 0, z) for (x, y, z) in elastic_sphere.mesh.faces_centers])
 
     dofs_divergence = {"elongate_in_z": np.ones(elastic_sphere.mesh.nb_faces)}
