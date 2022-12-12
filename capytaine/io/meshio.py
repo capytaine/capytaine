@@ -29,4 +29,7 @@ def load_from_meshio(mesh, name=None):
             all_faces.append(triangles_as_quads)
         return np.concatenate(all_faces)
 
+    if name is None:
+        name = f'mesh_from_meshio_{next(Mesh._ids)}'
+
     return Mesh(vertices=mesh.points, faces=all_faces_as_quads(mesh.cells_dict), name=name)
