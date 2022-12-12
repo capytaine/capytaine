@@ -5,13 +5,14 @@ import logging
 
 import numpy as np
 
+from capytaine.tools.optional_imports import import_optional_dependency
 from capytaine.meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 
 def load_from_meshio(mesh, name=None):
     """Create a Mesh from a meshio mesh object."""
-    import meshio
+    meshio = import_optional_dependency("meshio")
     if not isinstance(mesh, meshio._mesh.Mesh):
         raise TypeError('mesh must be of type meshio._mesh.Mesh, received {:}'.format(type(mesh)))
 
