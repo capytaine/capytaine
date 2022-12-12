@@ -14,7 +14,7 @@ from numpy.linalg import norm
 
 from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
 from capytaine.meshes.properties import compute_faces_properties, compute_connectivity
-from capytaine.meshes.surface_integrals import compute_faces_integrals
+from capytaine.meshes.surface_integrals import compute_faces_integrals, MeshWithHydrostatics
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
 from capytaine.tools.optional_imports import import_optional_dependency
@@ -22,7 +22,7 @@ from capytaine.tools.optional_imports import import_optional_dependency
 LOG = logging.getLogger(__name__)
 
 
-class Mesh(Abstract3DObject):
+class Mesh(Abstract3DObject, MeshWithHydrostatics):
     """A class to handle unstructured 2D meshes in a 3D space.
 
     Parameters
