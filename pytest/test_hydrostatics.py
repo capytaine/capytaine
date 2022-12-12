@@ -278,11 +278,11 @@ def test_all_hydrostatics():
 
     for var in capy_hsdb.keys():
         if var in mm_hsdb.keys():
-            # if not np.isclose(capy_hsdb[var], mm_hsdb[var],
-            #                   rtol=1e-2, atol=1e-3).all():
-            #     print(f"{var}:")
-            #     print(f"    Capytaine  - {capy_hsdb[var]}")
-            #     print(f"    Meshmagick - {mm_hsdb[var]}")
+            if not np.isclose(capy_hsdb[var], mm_hsdb[var],
+                              rtol=1e-2, atol=1e-3).all():
+                print(f"{var}:")
+                print(f"    Capytaine  - {capy_hsdb[var]}")
+                print(f"    Meshmagick - {mm_hsdb[var]}")
             assert np.isclose(capy_hsdb[var], mm_hsdb[var],
                               rtol=1e-2, atol=1e-3).all()
 
