@@ -100,6 +100,7 @@ A `meshio` mesh object can be used directly to initialize a :code:`FloatingBody`
 Alternatively, the `meshio` mesh object can converted to Capytaine's mesh
 format with the :func:`~capytaine.io.meshio.load_from_meshio` function::
 
+    from capytaine.io.meshio import load_from_meshio
     cpt_mesh = cpt.load_from_meshio(mesh, name="My floating body")
 
 This features allows to use `pygmsh <https://pypi.org/project/pygmsh/>`_ to
