@@ -8,15 +8,13 @@ from capytaine.ui.vtk.animation import Animation
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:\t%(message)s")
 
 # Generate the mesh of a sphere
-full_sphere = cpt.Sphere(
-    radius=3, center=(0, 0, 0),  # Size and positions
-    ntheta=20, nphi=20,          # Fineness of the mesh
-)
+
+full_mesh = cpt.mesh_sphere(radius=3, center=(0, 0, 0), resolution=(20, 20))
+full_sphere = cpt.FloatingBody(mesh=full_mesh)
 full_sphere.add_translation_dof(name="Heave")
 
 # Keep only the immersed part of the mesh
-sphere = full_sphere.keep_immersed_part(inplace=False)
-sphere.add_translation_dof(name="Heave")
+sphere = full_sphere.immersed_part()
 
 # Set up and solve problem
 solver = cpt.BEMSolver()

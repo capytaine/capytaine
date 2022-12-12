@@ -21,6 +21,10 @@ Major changes
 
 * New default linear solver :class:`~capytaine.matrices.linear_solvers.LUSolverWithCache`: the LU decomposition of the matrix is now cached to be reused for other similar problems, diminishing the total computation time up to 40%. (:pull:`235`)
 
+* New functions to generate simple geometric meshes have been implemented in :code:`capytaine.meshes.predefined`. They are similar to the former geometric bodies (:class:`~capytaine.bodies.predefined.sphere.Sphere`, :class:`~capytaine.bodies.predefined.sphere.HorizontalCylinder`, etc.), except that they return a mesh and does not create a :code:`FloatingBody`. The geometric body classes are considered deprecated, although they should still work as expected. (:pull:`233`)
+
+* Changed the behavior of :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics`. The mesh is not silently modified anymore. The stiffness and inertia matrices are stored in the body for inclusion in the output dataset. The inertia matrix is now computed on the full mesh (:issue:`197`, :issue:`249`, :issue:`258` and :pull:`262`).
+
 Minor changes
 ~~~~~~~~~~~~~
 
@@ -31,9 +35,13 @@ Minor changes
   from a precomputed tabulation. This is meant as a tools for benchmarks and validation, since it decreases the performance of the code
   for often no accuracy gain. (:pull:`229`)
 
-* :func:`~capytaine.io.mesh_loaders.load_mesh` is now exported by the main namespace, that is available with :code:`from capytaine import load_mesh`.
-  A function :func:`~capytaine.io.meshio.load_from_meshio` is also now exported in the main namespace.
-  The documentation has been changed to recommend the use of these functions instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_file` and :meth:`~capytaine.bodies.bodies.FloatingBody.from_meshio`.
+* :func:`~capytaine.io.mesh_loaders.load_mesh` is now exported by the main namespace: :code:`from capytaine import load_mesh`.
+  The documentation has been changed to recommend the use of this function instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_file`.
+  (:pull:`231`)
+
+* When initializing a :code:`FloatingBody`, one can now pass directly a mesh object from :code:`meshio`.
+  The documentation has been changed to recommend this approach instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_meshio`.
+  (:issue:`259` and :pull:`261`)
 
 * When joining two bodies as e.g. :code:`body1 + body2`, some hydrostatic properties are passed to the resulting body.
   In particular, if all the original bodies had hydrostatic stiffness matrices or inertia matrices defined,
@@ -49,6 +57,8 @@ Minor changes
 * Add :code:`Dockerfile` and instructions to install with Docker (:pull:`137`)
 
 * Fix bug with MED mesh file loading (:issue:`247` and :pull:`250`).
+
+* Several surface integrals properties of :code:`FloatingBodies` are also defined on meshes, such as :code:`volume` or :code:`center_of_buoyancy` (pull:`263`).
 
 Internals
 ~~~~~~~~~

@@ -17,6 +17,10 @@ import capytaine as cpt
 # TODO: Can I use pytest fixtures to avoid regenerating so many spheres?
 # Does pytest fixture do a copy of the object, since I modifying the sphere in-place?
 
+def test_mesh_properties():
+    sphere = cpt.Sphere(radius=1.0, center=(0, 0, -2), nphi=50, ntheta=50)
+    assert np.allclose(sphere.center_of_buoyancy, sphere.mesh.center_of_buoyancy)
+
 def test_disp_mass_of_sphere():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=50, ntheta=50)
     analytical_volume = 4/3*np.pi*1.0**3
@@ -212,6 +216,7 @@ def test_hydrostatics_of_submerged_sphere():
     sphere.add_all_rigid_body_dofs()
     sphere.center_of_mass = np.array([0, 0, -2])
     sphere.compute_hydrostatics()
+    assert sphere.inertia_matrix.shape == (6, 6)
 
 
 def test_all_hydrostatics():
@@ -305,6 +310,7 @@ def test_vertical_elastic_dof():
         cpt.HorizontalCylinder(
             length=5.0, radius=1.0,
             center=(0,10,0),
+            reflection_symmetry=False,
             nr=20, nx=20, ntheta=10,
         )
     ]
@@ -355,7 +361,7 @@ def test_center_of_mass_joined_bodies_with_missing_mass():
 
 
 def test_non_neutrally_buoyant_stiffness():
-    body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body = cpt.VerticalCylinder(radius=1.0, length=2.0, center=(0.0, 0.0, 0.0), nx=40, ntheta=40, nr=20)
     body.rotation_center = (0, 0, 0)
     body.add_all_rigid_body_dofs()
     body.keep_immersed_part()
@@ -380,7 +386,7 @@ def test_non_neutrally_buoyant_stiffness():
 
 
 def test_non_neutrally_buoyant_K55():
-    body = cpt.VerticalCylinder(radius=1.0, length=1.0, center=(0.0, 0.0, -0.5), nx=20, ntheta=40, nr=20)
+    body = cpt.VerticalCylinder(radius=1.0, length=2.0, center=(0.0, 0.0, 0.0), nx=40, ntheta=40, nr=20)
     body.rotation_center = (0, 0, 0)
     body.add_all_rigid_body_dofs()
     body.keep_immersed_part()

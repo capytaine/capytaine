@@ -11,6 +11,9 @@ from itertools import chain, accumulate, product, zip_longest
 import numpy as np
 import xarray as xr
 
+from capytaine.tools.optional_imports import silently_import_optional_dependency
+meshio = silently_import_optional_dependency("meshio")
+
 from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import build_regular_array_of_meshes
@@ -57,9 +60,16 @@ class FloatingBody(Abstract3DObject):
     def __init__(self, mesh=None, dofs=None, mass=None, center_of_mass=None, name=None):
         if mesh is None:
             self.mesh = Mesh(name="dummy_mesh")
-        else:
-            assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
+
+        elif meshio is not None and isinstance(mesh, meshio._mesh.Mesh):
+            from capytaine.io.meshio import load_from_meshio
+            self.mesh = load_from_meshio(mesh)
+
+        elif isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes):
             self.mesh = mesh
+
+        else:
+            raise TypeError("Unrecognized `mesh` object passed to the FloatingBody constructor.")
 
         if name is None and mesh is None:
             self.name = "dummy_body"
@@ -238,43 +248,39 @@ class FloatingBody(Abstract3DObject):
 
     def surface_integral(self, data, **kwargs):
         """Returns integral of given data along wet surface area."""
-        return np.sum(data * self.mesh.faces_areas, **kwargs)
+        return self.mesh.surface_integral(data, **kwargs)
 
     def waterplane_integral(self, data, **kwargs):
         """Returns integral of given data along water plane area."""
-        return self.surface_integral(self.mesh.faces_normals[:,2] * data, **kwargs)
+        return self.mesh.waterplane_integral(data, **kwargs)
 
     @property
     def wet_surface_area(self):
         """Returns wet surface area."""
-        return self.surface_integral(1)
+        return self.mesh.wet_surface_area
 
     @property
     def volumes(self):
         """Returns volumes using x, y, z components of the FloatingBody."""
-        norm_coord = self.mesh.faces_normals * self.mesh.faces_centers
-        return self.surface_integral(norm_coord.T, axis=1)
+        return self.mesh.volumes
 
     @property
     def volume(self):
         """Returns volume of the FloatingBody."""
-        return np.mean(self.volumes)
+        return self.mesh.volume
 
     def disp_mass(self, *, rho=1000):
-        return rho * self.volume
+        return self.mesh.disp_mass(rho=rho)
 
     @property
     def center_of_buoyancy(self):
         """Returns center of buoyancy of the FloatingBody."""
-        volume = self.volume
-        coords_sq_norm = self.mesh.faces_normals * self.mesh.faces_centers**2
-        return self.surface_integral(coords_sq_norm.T, axis=1) / (2*volume)
+        return self.mesh.center_of_buoyancy
 
     @property
     def waterplane_area(self):
         """Returns water plane area of the FloatingBody."""
-        waterplane_area = -self.waterplane_integral(1)
-        return waterplane_area
+        return self.mesh.waterplane_area
 
     @property
     def waterplane_center(self):
@@ -282,35 +288,29 @@ class FloatingBody(Abstract3DObject):
 
         Note: Returns None if the FloatingBody is full submerged.
         """
-        waterplane_area = self.waterplane_area
-        if abs(waterplane_area) < 1e-10:
-            return None
-        else:
-            waterplane_center = -self.waterplane_integral(
-                self.mesh.faces_centers.T, axis=1) / waterplane_area
-            return waterplane_center[:-1]
+        return self.mesh.waterplane_center
 
     @property
     def transversal_metacentric_radius(self):
-        """Returns transversal metacentric radius of the body."""
+        """Returns transversal metacentric radius of the mesh."""
         inertia_moment = -self.waterplane_integral(self.mesh.faces_centers[:,1]**2)
         return inertia_moment / self.volume
 
     @property
     def longitudinal_metacentric_radius(self):
-        """Returns longitudinal metacentric radius of the body."""
+        """Returns longitudinal metacentric radius of the mesh."""
         inertia_moment = -self.waterplane_integral(self.mesh.faces_centers[:,0]**2)
         return inertia_moment / self.volume
 
     @property
     def transversal_metacentric_height(self):
-        """Returns transversal metacentric height of the body."""
+        """Returns transversal metacentric height of the mesh."""
         gb = self.center_of_mass - self.center_of_buoyancy
         return self.transversal_metacentric_radius - gb[2]
 
     @property
     def longitudinal_metacentric_height(self):
-        """Returns longitudinal metacentric height of the body."""
+        """Returns longitudinal metacentric height of the mesh."""
         gb = self.center_of_mass - self.center_of_buoyancy
         return self.longitudinal_metacentric_radius - gb[2]
 
@@ -670,17 +670,17 @@ respective inertia coefficients are assigned as NaN.")
             raise ValueError(f"Trying to compute hydrostatics for {self.name}, but no center of mass has been defined.\n"
                              f"Suggested solution: define a `center_of_mass` attribute for the FloatingBody {self.name}.")
 
-        self.keep_immersed_part()
+        immersed_self = self.immersed_part()
 
-        full_mesh_vertices = self.full_body.mesh.vertices
+        full_mesh_vertices = self.mesh.vertices
         coord_max = full_mesh_vertices.max(axis=0)
         coord_min = full_mesh_vertices.min(axis=0)
         full_length, full_breadth, depth = full_mesh_vertices.max(axis=0) - full_mesh_vertices.min(axis=0)
 
-        vertices = self.mesh.vertices
+        vertices = immersed_self.mesh.vertices
         sub_length, sub_breadth, _ = vertices.max(axis=0) - vertices.min(axis=0)
 
-        if abs(self.waterplane_area) > 1e-10:
+        if abs(immersed_self.waterplane_area) > 1e-10:
             water_plane_idx = np.isclose(vertices[:,2], 0.0)
             water_plane = vertices[water_plane_idx][:,:-1]
             wl_length, wl_breadth = water_plane.max(axis=0) - water_plane.min(axis=0)
@@ -692,18 +692,18 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics["rho"] = rho
         hydrostatics["center_of_mass"] = self.center_of_mass
 
-        hydrostatics["wet_surface_area"] = self.wet_surface_area
-        hydrostatics["disp_volumes"] = self.volumes
-        hydrostatics["disp_volume"] = self.volume
-        hydrostatics["disp_mass"] = self.disp_mass(rho=rho)
-        hydrostatics["center_of_buoyancy"] = self.center_of_buoyancy
-        hydrostatics["waterplane_center"] = np.append(self.waterplane_center, 0.0)
-        hydrostatics["waterplane_area"] = self.waterplane_area
-        hydrostatics["transversal_metacentric_radius"] = self.transversal_metacentric_radius
-        hydrostatics["longitudinal_metacentric_radius"] = self.longitudinal_metacentric_radius
-        hydrostatics["transversal_metacentric_height"] = self.transversal_metacentric_height
-        hydrostatics["longitudinal_metacentric_height"] = self.longitudinal_metacentric_height
-        hydrostatics["hydrostatic_stiffness"] = self.compute_hydrostatic_stiffness(
+        hydrostatics["wet_surface_area"] = immersed_self.wet_surface_area
+        hydrostatics["disp_volumes"] = immersed_self.volumes
+        hydrostatics["disp_volume"] = immersed_self.volume
+        hydrostatics["disp_mass"] = immersed_self.disp_mass(rho=rho)
+        hydrostatics["center_of_buoyancy"] = immersed_self.center_of_buoyancy
+        hydrostatics["waterplane_center"] = np.append(immersed_self.waterplane_center, 0.0)
+        hydrostatics["waterplane_area"] = immersed_self.waterplane_area
+        hydrostatics["transversal_metacentric_radius"] = immersed_self.transversal_metacentric_radius
+        hydrostatics["longitudinal_metacentric_radius"] = immersed_self.longitudinal_metacentric_radius
+        hydrostatics["transversal_metacentric_height"] = immersed_self.transversal_metacentric_height
+        hydrostatics["longitudinal_metacentric_height"] = immersed_self.longitudinal_metacentric_height
+        self.hydrostatic_stiffness = hydrostatics["hydrostatic_stiffness"] = immersed_self.compute_hydrostatic_stiffness(
             divergence=divergence, rho=rho, g=g)
 
         hydrostatics["length_overall"] = full_length
@@ -714,7 +714,7 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics["breadth_at_waterline"] = wl_breadth
         hydrostatics["length_overall_submerged"] = sub_length
         hydrostatics["breadth_overall_submerged"] = sub_breadth
-        hydrostatics["inertia_matrix"] = self.compute_rigid_body_inertia(rho=rho)
+        self.inertia_matrix = hydrostatics["inertia_matrix"] = self.compute_rigid_body_inertia(rho=rho)
 
         return hydrostatics
 

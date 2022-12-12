@@ -89,8 +89,8 @@ def test_collection():
 
 def test_join_axisymmetric_disks():
     """Given two axisymmetric meshes with the same axis, build a new axisymmetric mesh combining the two."""
-    disk1 = Disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), axial_symmetry=True).mesh
-    disk2 = Disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), axial_symmetry=True).mesh
+    disk1 = Disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), normal=(1, 0, 0), axial_symmetry=True).mesh
+    disk2 = Disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), normal=(1, 0, 0), axial_symmetry=True).mesh
     joined = disk1.join_meshes(disk2, name="two_disks")
     assert isinstance(joined, AxialSymmetricMesh)
     joined.tree_view()
