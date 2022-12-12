@@ -5,13 +5,14 @@ import logging
 
 import numpy as np
 
+from capytaine.tools.optional_imports import import_optional_dependency
 from capytaine.meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 
 def load_from_meshio(mesh, name=None):
     """Create a Mesh from a meshio mesh object."""
-    import meshio
+    meshio = import_optional_dependency("meshio")
     if not isinstance(mesh, meshio._mesh.Mesh):
         raise TypeError('mesh must be of type meshio._mesh.Mesh, received {:}'.format(type(mesh)))
 
@@ -27,5 +28,8 @@ def load_from_meshio(mesh, name=None):
             triangles_as_quads[:, 3] = cells['triangle'][:, 2]  # Repeat one node to make a quad
             all_faces.append(triangles_as_quads)
         return np.concatenate(all_faces)
+
+    if name is None:
+        name = f'mesh_from_meshio_{next(Mesh._ids)}'
 
     return Mesh(vertices=mesh.points, faces=all_faces_as_quads(mesh.cells_dict), name=name)

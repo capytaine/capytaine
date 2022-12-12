@@ -33,9 +33,13 @@ Minor changes
   from a precomputed tabulation. This is meant as a tools for benchmarks and validation, since it decreases the performance of the code
   for often no accuracy gain. (:pull:`229`)
 
-* :func:`~capytaine.io.mesh_loaders.load_mesh` is now exported by the main namespace, that is available with :code:`from capytaine import load_mesh`.
-  A function :func:`~capytaine.io.meshio.load_from_meshio` is also now exported in the main namespace.
-  The documentation has been changed to recommend the use of these functions instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_file` and :meth:`~capytaine.bodies.bodies.FloatingBody.from_meshio`.
+* :func:`~capytaine.io.mesh_loaders.load_mesh` is now exported by the main namespace: :code:`from capytaine import load_mesh`.
+  The documentation has been changed to recommend the use of this function instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_file`.
+  (:pull:`231`)
+
+* When initializing a :code:`FloatingBody`, one can now pass directly a mesh object from :code:`meshio`.
+  The documentation has been changed to recommend this approach instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_meshio`.
+  (:issue:`259` and :pull:`261`)
 
 * When joining two bodies as e.g. :code:`body1 + body2`, some hydrostatic properties are passed to the resulting body.
   In particular, if all the original bodies had hydrostatic stiffness matrices or inertia matrices defined,

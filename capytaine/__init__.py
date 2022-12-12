@@ -30,5 +30,4 @@ from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
 from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.io.mesh_loaders import load_mesh
-from capytaine.io.meshio import load_from_meshio
 from capytaine.io.xarray import assemble_dataset

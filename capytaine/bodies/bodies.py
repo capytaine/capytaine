@@ -11,6 +11,9 @@ from itertools import chain, accumulate, product, zip_longest
 import numpy as np
 import xarray as xr
 
+from capytaine.tools.optional_imports import silently_import_optional_dependency
+meshio = silently_import_optional_dependency("meshio")
+
 from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import build_regular_array_of_meshes
@@ -57,9 +60,16 @@ class FloatingBody(Abstract3DObject):
     def __init__(self, mesh=None, dofs=None, mass=None, center_of_mass=None, name=None):
         if mesh is None:
             self.mesh = Mesh(name="dummy_mesh")
-        else:
-            assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
+
+        elif meshio is not None and isinstance(mesh, meshio._mesh.Mesh):
+            from capytaine.io.meshio import load_from_meshio
+            self.mesh = load_from_meshio(mesh)
+
+        elif isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes):
             self.mesh = mesh
+
+        else:
+            raise TypeError("Unrecognized `mesh` object passed to the FloatingBody constructor.")
 
         if name is None and mesh is None:
             self.name = "dummy_body"

@@ -270,7 +270,7 @@ def test_write_and_read_STL(tmp_path):
                          [generate_cylinder, generate_sphere, generate_wavebot])
 def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
     mesh, vol_exp = generate_pygmsh()
-    fb = cpt.FloatingBody.from_meshio(mesh)
+    fb = cpt.FloatingBody(mesh=mesh)
     fb.mesh.heal_mesh()
     fb.keep_immersed_part()
 
