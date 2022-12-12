@@ -4,11 +4,12 @@ import numpy as np
 import capytaine as cpt
 
 # Initialize floating body
-sphere = cpt.Sphere(
-    radius=1.0,          # Dimension
-    center=(0, 0, -2),   # Position
-    nphi=20, ntheta=20,  # Fineness of the mesh
-)
+sphere = cpt.FloatingBody(
+        mesh=cpt.mesh_sphere(
+            radius=1.0,          # Dimension
+            center=(0, 0, -2),   # Position
+            resolution=(20, 20), # Fineness of the mesh
+            ))
 
 # DEFINE THE DOFS
 
