@@ -212,6 +212,7 @@ def test_hydrostatics_of_submerged_sphere():
     sphere.add_all_rigid_body_dofs()
     sphere.center_of_mass = np.array([0, 0, -2])
     sphere.compute_hydrostatics()
+    assert sphere.inertia_matrix.shape == (6, 6)
 
 
 def test_all_hydrostatics():

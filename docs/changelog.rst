@@ -23,6 +23,8 @@ Major changes
 
 * New functions to generate simple geometric meshes have been implemented in :code:`capytaine.meshes.predefined`. They are similar to the former geometric bodies (:class:`~capytaine.bodies.predefined.sphere.Sphere`, :class:`~capytaine.bodies.predefined.sphere.HorizontalCylinder`, etc.), except that they return a mesh and does not create a :code:`FloatingBody`. The geometric body classes are considered deprecated, although they should still work as expected. (:pull:`233`)
 
+* Changed the behavior of :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics`. The mesh is not silently modified anymore. The stiffness and inertia matrices are stored in the body for inclusion in the output dataset. The inertia matrix is now computed on the full mesh (:issue:`197`, :issue:`249`, :issue:`258` and :pull:`262`).
+
 Minor changes
 ~~~~~~~~~~~~~
 
