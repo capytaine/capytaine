@@ -248,7 +248,8 @@ def generate_sphere():
                     reason='Neither vtk nor meshio are installed')
 def test_write_and_read_STL(tmp_path):
     mesh, _ = generate_cylinder()
-    cpt_mesh = cpt.load_from_meshio(mesh)
+    from capytaine.io.meshio import load_from_meshio
+    cpt_mesh = load_from_meshio(mesh)
     cpt_mesh.heal_mesh()
 
     # Write with Meshio and reload with Meshmagick
