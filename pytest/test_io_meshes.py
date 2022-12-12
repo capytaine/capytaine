@@ -11,7 +11,7 @@ import numpy as np
 import xarray as xr
 
 from capytaine.io.mesh_writers import write_STL, write_GDF
-from capytaine.io.mesh_loaders import load_STL, load_HST, load_GDF, load_GDF_compressed
+from capytaine.io.mesh_loaders import load_STL, load_HST, load_GDF
 import capytaine as cpt
 
 try:
@@ -297,46 +297,47 @@ def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
                                wavenumber=True)
 
 
-def test_load_gdf_compressed(tmpdir):
-    body_path = tmpdir.join("temp_mesh.gdf")
-    
-    body = cpt.HorizontalCylinder()
-    write_GDF(str(body_path), body.mesh.vertices, body.mesh.faces, ulen=1, gravity=9.81, isx=0, isy=0)
+def test_write_and_load_gdf(tmpdir):
+    mesh_path = tmpdir.join("temp_mesh.gdf")
 
-    body_from_gdf = load_GDF(str(body_path))
-    body_from_gdf_compressed = load_GDF_compressed(str(body_path))
-    
-    np.testing.assert_allclose(
-        body_from_gdf.vertices[body_from_gdf.faces], 
-        body_from_gdf_compressed.vertices[body_from_gdf_compressed.faces]
-        )
-    
+    original_mesh = cpt.mesh_horizontal_cylinder()
+    write_GDF(str(mesh_path), original_mesh.vertices, original_mesh.faces, ulen=1, gravity=9.81, isx=0, isy=0)
+
+    read_mesh = load_GDF(str(mesh_path))
 
     np.testing.assert_allclose(
-        body_from_gdf.faces_areas, 
-        body_from_gdf_compressed.faces_areas
+        read_mesh.vertices[read_mesh.faces],
+        original_mesh.vertices[original_mesh.faces],
+        atol=1e-6
         )
-    
+
     np.testing.assert_allclose(
-        body_from_gdf.faces_normals, 
-        body_from_gdf_compressed.faces_normals
+        read_mesh.faces_areas,
+        original_mesh.faces_areas
         )
-    
+
     np.testing.assert_allclose(
-        body_from_gdf.faces_centers, 
-        body_from_gdf_compressed.faces_centers
+        read_mesh.faces_normals,
+        original_mesh.faces_normals,
+        atol=1e-6
         )
-    
+
     np.testing.assert_allclose(
-        body_from_gdf.faces_radiuses, 
-        body_from_gdf_compressed.faces_radiuses
+        read_mesh.faces_centers,
+        original_mesh.faces_centers
         )
-    
+
     np.testing.assert_allclose(
-        body_from_gdf.volume, 
-        body_from_gdf_compressed.volume
+        read_mesh.faces_radiuses,
+        original_mesh.faces_radiuses
         )
-    
+
+    np.testing.assert_allclose(
+        read_mesh.volume,
+        original_mesh.volume
+        )
+
+
 @pytest.mark.skipif(h5py is None,
                     reason='h5py and/or meshio is not installed')
 def test_MED_file():
