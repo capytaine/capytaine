@@ -60,12 +60,16 @@ Minor changes
 
 * Several surface integrals properties of :code:`FloatingBodies` are also defined on meshes, such as :code:`volume` or :code:`center_of_buoyancy` (pull:`263`).
 
+* Add optional arguments to :func:`~capytaine.io.meshes_writers.write_GDF` to write parameters :code:`ulen, grav, isx, isy` to the mesh file (:pull:`241`)
+
 Internals
 ~~~~~~~~~
 
 * The integration of the pressure on the mesh of the body was implemented twice independently. It has been factored out in :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure` (:pull:`218`)
 
 * `__rmatmul__` has been implemented for low rank matrices (:pull:`222`).
+
+* New implementation of the GDF mesh file reader :func:`~capytaine.io.meshes_loaders.load_GDF` (:pull:`241`)
 
 ---------------------------------
 New in version 1.4.2 (2022-10-03)
