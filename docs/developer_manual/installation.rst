@@ -72,7 +72,7 @@ Create a **"LIB"** environment variable to point towards the intel directory for
 
 Test if your Fortran compiler was installed correctly by entering :code:`ifort` on your command line
 
-Open the anaconda powershell and create a new Python environment (by default, with the lastest version of Python) for Capytaine-related development (e.g. :code:`capy_dev`)::
+Open the anaconda powershell and create a new Python environment (by default, with the latest version of Python) for Capytaine-related development (e.g. :code:`capy_dev`)::
     
     conda create --name capy_dev python
     conda activate capy_dev
