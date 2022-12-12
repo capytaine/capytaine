@@ -13,9 +13,12 @@ bem_solver = cpt.BEMSolver()
 
 def generate_boat():
     boat_mesh = cpt.load_mesh("boat_200.mar", file_format="mar")
-    boat = cpt.FloatingBody(mesh=boat_mesh, name="pirate ship")
-    boat.center_of_mass = boat.rotation_center = boat.center_of_buoyancy
-    boat.add_all_rigid_body_dofs()
+    boat = cpt.FloatingBody(
+            mesh=boat_mesh,
+            dofs=cpt.rigid_body_dofs(rotation_center=boat_mesh.center_of_buoyancy),
+            center_of_mass = boat_mesh.center_of_buoyancy,
+            name="pirate ship"
+            )
     boat.inertia_matrix = boat.compute_rigid_body_inertia() / 10 # Artificially lower to have a more appealing animation
     boat.hydrostatic_stiffness = boat.immersed_part().compute_hydrostatic_stiffness()
     return boat
