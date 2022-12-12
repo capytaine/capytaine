@@ -7,7 +7,9 @@ import numpy as np
 
 # NEWER IMPLEMENTATIONS FROM CAPYTAINE
 
-class MeshWithHydrostatics(ABC):
+class SurfaceIntegralsMixin(ABC):
+    # These methods need to be defined for both Mesh and CollectionOfMeshes with the exact same definitions.
+    # To avoid redunduncy, they are defined here in a mixin inherited by both Mesh and CollectionOfMeshes.
 
     def surface_integral(self, data, **kwargs):
         """Returns integral of given data along wet surface area."""

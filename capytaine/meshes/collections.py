@@ -13,13 +13,13 @@ from typing import Iterable, Union
 import numpy as np
 
 from capytaine.meshes.geometry import Abstract3DObject, inplace_transformation
-from capytaine.meshes.surface_integrals import MeshWithHydrostatics
+from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 
 
-class CollectionOfMeshes(Abstract3DObject, MeshWithHydrostatics):
+class CollectionOfMeshes(SurfaceIntegralsMixin, Abstract3DObject):
     """A tuple of meshes.
     It gives access to all the vertices of all the sub-meshes as if it were a mesh itself.
     Collections can be nested to store meshes in a tree structure.
