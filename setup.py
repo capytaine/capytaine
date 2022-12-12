@@ -101,6 +101,7 @@ if __name__ == "__main__":
               'quadpy',
               'sphinx',
               'sphinxcontrib-proof',
+              'sphinxcontrib-mermaid',
             ],
             'ci': [
               'pytest',
