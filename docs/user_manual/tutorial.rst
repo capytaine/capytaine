@@ -140,9 +140,7 @@ Dofs can also be defined manually, for instance to model a flexible body. For th
 Hydrostatics
 ------------
 
-Capytaine can directly perform some hydrostatic computations. You can get parameters such as volume, wet surface area, waterplane area, center of buoyancy, metacentric radius and height, hydrostatic stiffness and interia mass for any given :code:`FloatingBody`.
-
-Each hydrostatic parameter can be computed by a dedicated method::
+Capytaine can directly perform some hydrostatic computations. You can get parameters such as volume, wet surface area, waterplane area, center of buoyancy, metacentric radius and height, hydrostatic stiffness and inertia matrix for any given :code:`FloatingBody`::
 
     print(body.volume)
     # 3.82267415555807
@@ -243,6 +241,10 @@ Some more parameters are automatically computed, such as::
     print(problem.period)
     # 6.283185307179586
 
+Capytaine also implement a :code:`DiffractionProblem` class which does not take a :code:`radiating_dof` argument but instead requires a :code:`wave_direction` in radians::
+
+    diffraction_problem = cpt.DiffractionProblem(body=body, wave_direction=np.pi/2, omega=1.0)
+
 Solve the problem
 -----------------
 
@@ -282,26 +284,35 @@ respect to the one in the :math:`z` direction
 ::
 
     print(result.radiation_dampings)
-    # {'Surge': -9.103828801926284e-15, 'Sway': 0.0, 'Heave': 13.623038091677039, 'Roll': -1.7486012 637846216e-15, 'Pitch': 3.4937330806172895e-15, 'Yaw': 9.7897500502683e-17, 'x-shear': 7.27196 0811294775e-15}
+    # {'Surge': -9.103828801926284e-15, 'Sway': 0.0, 'Heave': 13.623038091677039, 'Roll': -1.7486012 637846216e-15, 'Pitch': 3.4937330806172895e-15, 'Yaw': 9.7897500502683e-17, 'x-shear': 7.271960811294775e-15}
+
+The same thing hold for the diffraction problem::
+
+    diffraction_result = solver.solve(diffraction_problem)
+    print(diffraction_result.forces)
+    # {'Surge': (1.2789769243681803e-13+2.1760371282653068e-13j), 'Sway': (5.9629097739514805-1923.8976950141728j), 'Heave': (-1802.7102076027684-10.957655022820937j), 'Roll': (-0.010382265075485009+4.15060693393701j), 'Pitch': (-7.799316747991725e-14+2.8310687127941492e-14j), 'Yaw': (-1.2477555116385028e-15+7.261633298807041e-14j), 'x-shear': (-8.43769498715119e-14-2.0972112935169207e-13j)}
+
 
 Gather results in arrays
 ------------------------
 
-Let us compute the added mass and radiation damping for surge::
+Let us compute the added mass and radiation damping for all the dofs of our body::
 
-    other_problem = cpt.RadiationProblem(body=body, radiating_dof="Surge", omega=1.0)
-    other_result = solver.solve(other_problem)
+    all_radiation_problems = [cpt.RadiationProblem(body=body, radiating_dof=dof, omega=1.0) for dof in body.dofs]
+    all_radiation_results = solver.solve_all(all_radiation_problems)
 
-Note that this second resolution should be faster than the first one. The solver has stored some
-intermediate data for this body and will reuse them to solve this other problem.
+Here, we used :code:`solve_all` instead of :code:`solve` since we are passing a
+list of problems and not a single one. Note that this resolution should be
+faster than the first one. The solver has stored some intermediate data for
+this body at this wave frequency and will reuse it to solve the new problems.
 
 The results can be gathered together as follow::
 
-    dataset = cpt.assemble_dataset([result, other_result])
+    dataset = cpt.assemble_dataset([diffraction_result] + all_radiation_results)
 
 The new object is a NetCDF-like dataset from the xarray package. It is storing the added mass and
 radiation damping from the result objects in an organized way. In our example, it is basically two
-2x2 matrices. The matrices can be accessed for instance in the following way::
+7×7 matrices. The matrices can be accessed for instance in the following way::
 
     dataset['added_mass'].sel(radiating_dof=["Surge", "Heave"], influenced_dof=["Surge", "Heave"], omega=1.0)
 
