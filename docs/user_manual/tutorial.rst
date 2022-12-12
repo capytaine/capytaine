@@ -142,64 +142,21 @@ Hydrostatics
 
 Capytaine can directly perform some hydrostatic computations. You can get parameters such as volume, wet surface area, waterplane area, center of buoyancy, metacentric radius and height, hydrostatic stiffness and inertia matrix for any given :code:`FloatingBody`::
 
-    print(body.volume)
+    hydrostatics = body.compute_hydrostatics(rho=1025.0)
+
+    print(hydrostatics["disp_volume"])
     # 3.82267415555807
 
-    print(body.center_of_buoyancy)
-    # [-4.67908710e-17  5.87788602e-18 -2.00000000e+00]
-
-    print(body.compute_hydrostatic_stiffness())
+    print(hydrostatics["hydrostatic_stiffness"])
     # <xarray.DataArray 'hydrostatic_stiffness' (influenced_dof: 7, radiating_dof: 7)>
-    # array([[ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-    #          0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-    #          0.00000000e+00],
-    #        [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-    #          0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-    #          0.00000000e+00],
-    #        [ 0.00000000e+00,  0.00000000e+00, -7.14740767e-13,
-    #          1.23165150e-12,  7.23249585e-13,  0.00000000e+00,
-    #         -2.22292887e-13],
-    #        [ 0.00000000e+00,  0.00000000e+00,  1.23165150e-12,
-    #         -1.67095099e-11, -6.43479410e-14,  1.75467795e-12,
-    #          1.91235699e-12],
-    #        [ 0.00000000e+00,  0.00000000e+00,  7.23249585e-13,
-    #         -6.43479410e-14, -1.64759163e-11, -2.20423274e-13,
-    #         -2.92821569e+04],
-    #        [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-    #          0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-    #          0.00000000e+00],
-    #        [ 0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-    #          0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-    #          0.00000000e+00]])
+    # [...]
     # Coordinates:
     #   * influenced_dof  (influenced_dof) <U7 'Surge' 'Sway' ... 'Yaw' 'x-shear'
     #   * radiating_dof   (radiating_dof) <U7 'Surge' 'Sway' ... 'Yaw' 'x-shear'
 
-    print(body.compute_rigid_body_inertia())
-    # Non-rigid dofs: {'x-shear'} are detected and respective inertia coefficients are assigned as N
-    # aN.
+    print(hydrostatics["inertia_matrix"])
     # <xarray.DataArray 'inertia_matrix' (influenced_dof: 7, radiating_dof: 7)>
-    # array([[ 3.82267416e+03,  0.00000000e+00,  0.00000000e+00,
-    #          0.00000000e+00,  0.00000000e+00, -0.00000000e+00,
-    #                     nan],
-    #        [ 0.00000000e+00,  3.82267416e+03,  0.00000000e+00,
-    #         -0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-    #                     nan],
-    #        [ 0.00000000e+00,  0.00000000e+00,  3.82267416e+03,
-    #          0.00000000e+00, -0.00000000e+00,  0.00000000e+00,
-    #                     nan],
-    #        [ 0.00000000e+00, -0.00000000e+00,  0.00000000e+00,
-    #          1.41810840e+03,  1.19262239e-14,  9.97465999e-15,
-    #                     nan],
-    #        [ 0.00000000e+00,  0.00000000e+00, -0.00000000e+00,
-    #          1.19262239e-14,  1.41810840e+03,  5.15605896e-14,
-    #                     nan],
-    #        [-0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-    #          9.97465999e-15,  5.15605896e-14,  1.35727139e+03,
-    #                     nan],
-    #        [            nan,             nan,             nan,
-    #                     nan,             nan,             nan,
-    #                     nan]])
+    # [...]
     # Coordinates:
     #   * influenced_dof  (influenced_dof) <U7 'Surge' 'Sway' ... 'Yaw' 'x-shear'
     #   * radiating_dof   (radiating_dof) <U7 'Surge' 'Sway' ... 'Yaw' 'x-shear'
@@ -207,15 +164,6 @@ Capytaine can directly perform some hydrostatic computations. You can get parame
 The matrices here are :math:`7 \times 7` matrices as we have defined seven dofs for our sphere.
 The matrices are stored as :code:`DataArray` from the `xarray <https://xarray.dev/>`_ package (see below for an example of usage).
 Note that the inertia matrix can only be computed for rigid bodies (assuming constant density). The matrix was filled with :code:`NaN` for the generalized dof :code:`x-shear`.
-
-You can also use :code:`compute_hydrostatics` method which computes all hydrostatic parameters and returns a :code:`dict` of parameters and values::
-
-    hydrostatics = body.compute_hydrostatics()
-
-.. note::
-   Before computing some hydrostatic parameters, you might want to crop your mesh using `immersed_body = body.immersed_part()`.
-   It is not required here since the sphere is fully immersed.
-   Cropping is included in the :code:`compute_hydrostatics()` function.
 
 
 Defining linear potential flow problems.

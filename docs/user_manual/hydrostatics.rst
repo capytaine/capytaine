@@ -136,7 +136,7 @@ Compute all hydrostatics parameters
 Instead of computing each hydrostatic parameters individually, :code:`compute_hydrostatics` returns a :code:`dict` containing all hydrostatic parameters.
 
 .. note::
-    No need to apply :code:`keep_immersed_part` to use :code:`compute_hydrostatics`.
+    No need to apply :code:`immersed_part` to use :code:`compute_hydrostatics`.
 
 ::
 
