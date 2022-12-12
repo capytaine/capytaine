@@ -7,11 +7,12 @@ On Linux, MacOS, or Windows Subsystem for Linux (WSL)
 
 It is recommended to use a `conda environment <https://conda.io/docs/user-guide/tasks/manage-environments.html>`_, for instance with::
 
-    conda create --name capy_dev python=3.9 numpy=1.20 scipy pip
+    conda create --name capy_dev python
     conda activate capy_dev
 
-Capytaine requires **Python 3.6** or higher.
-The latest version is tested on Python 3.7 and 3.9, and Numpy 1.16 and 1.20.
+By default, conda will install the latest version of Python.
+Capytaine requires Python 3.6 and is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
+
 
 You'll also need a Fortran compiler:
 
@@ -71,15 +72,15 @@ Create a **"LIB"** environment variable to point towards the intel directory for
 
 Test if your Fortran compiler was installed correctly by entering :code:`ifort` on your command line
 
-Open the anaconda powershell and create a new Python 3.9 environment (with numpy installed) for Capytaine-related development (e.g. :code:`capy_dev`)::
+Open the anaconda powershell and create a new Python environment (by default, with the lastest version of Python) for Capytaine-related development (e.g. :code:`capy_dev`)::
     
-    conda create --name capy_dev python=3.9 numpy=1.20 scipy pip
+    conda create --name capy_dev python
     conda activate capy_dev
         
 Clone the Capytaine repo to your preferred location (e.g. "C:/code/")::
         
     cd C:/code/
-    git clone https://github.com/capytaine/capytaine.git
+    git clone --recurse-submodules https://github.com/capytaine/capytaine.git
         
 Install Capytaine as a developer!::
     
