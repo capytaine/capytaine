@@ -17,6 +17,10 @@ import capytaine as cpt
 # TODO: Can I use pytest fixtures to avoid regenerating so many spheres?
 # Does pytest fixture do a copy of the object, since I modifying the sphere in-place?
 
+def test_mesh_properties():
+    sphere = cpt.Sphere(radius=1.0, center=(0, 0, -2), nphi=50, ntheta=50)
+    assert np.allclose(sphere.center_of_buoyancy, sphere.mesh.center_of_buoyancy)
+
 def test_disp_mass_of_sphere():
     sphere = cpt.Sphere(radius=1.0, center=(0,0,-2), nphi=50, ntheta=50)
     analytical_volume = 4/3*np.pi*1.0**3

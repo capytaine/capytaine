@@ -248,43 +248,39 @@ class FloatingBody(Abstract3DObject):
 
     def surface_integral(self, data, **kwargs):
         """Returns integral of given data along wet surface area."""
-        return np.sum(data * self.mesh.faces_areas, **kwargs)
+        return self.mesh.surface_integral(data, **kwargs)
 
     def waterplane_integral(self, data, **kwargs):
         """Returns integral of given data along water plane area."""
-        return self.surface_integral(self.mesh.faces_normals[:,2] * data, **kwargs)
+        return self.mesh.waterplane_integral(data, **kwargs)
 
     @property
     def wet_surface_area(self):
         """Returns wet surface area."""
-        return self.surface_integral(1)
+        return self.mesh.wet_surface_area
 
     @property
     def volumes(self):
         """Returns volumes using x, y, z components of the FloatingBody."""
-        norm_coord = self.mesh.faces_normals * self.mesh.faces_centers
-        return self.surface_integral(norm_coord.T, axis=1)
+        return self.mesh.volumes
 
     @property
     def volume(self):
         """Returns volume of the FloatingBody."""
-        return np.mean(self.volumes)
+        return self.mesh.volume
 
     def disp_mass(self, *, rho=1000):
-        return rho * self.volume
+        return self.mesh.disp_mass(rho=rho)
 
     @property
     def center_of_buoyancy(self):
         """Returns center of buoyancy of the FloatingBody."""
-        volume = self.volume
-        coords_sq_norm = self.mesh.faces_normals * self.mesh.faces_centers**2
-        return self.surface_integral(coords_sq_norm.T, axis=1) / (2*volume)
+        return self.mesh.center_of_buoyancy
 
     @property
     def waterplane_area(self):
         """Returns water plane area of the FloatingBody."""
-        waterplane_area = -self.waterplane_integral(1)
-        return waterplane_area
+        return self.mesh.waterplane_area
 
     @property
     def waterplane_center(self):
@@ -292,35 +288,29 @@ class FloatingBody(Abstract3DObject):
 
         Note: Returns None if the FloatingBody is full submerged.
         """
-        waterplane_area = self.waterplane_area
-        if abs(waterplane_area) < 1e-10:
-            return None
-        else:
-            waterplane_center = -self.waterplane_integral(
-                self.mesh.faces_centers.T, axis=1) / waterplane_area
-            return waterplane_center[:-1]
+        return self.mesh.waterplane_center
 
     @property
     def transversal_metacentric_radius(self):
-        """Returns transversal metacentric radius of the body."""
+        """Returns transversal metacentric radius of the mesh."""
         inertia_moment = -self.waterplane_integral(self.mesh.faces_centers[:,1]**2)
         return inertia_moment / self.volume
 
     @property
     def longitudinal_metacentric_radius(self):
-        """Returns longitudinal metacentric radius of the body."""
+        """Returns longitudinal metacentric radius of the mesh."""
         inertia_moment = -self.waterplane_integral(self.mesh.faces_centers[:,0]**2)
         return inertia_moment / self.volume
 
     @property
     def transversal_metacentric_height(self):
-        """Returns transversal metacentric height of the body."""
+        """Returns transversal metacentric height of the mesh."""
         gb = self.center_of_mass - self.center_of_buoyancy
         return self.transversal_metacentric_radius - gb[2]
 
     @property
     def longitudinal_metacentric_height(self):
-        """Returns longitudinal metacentric height of the body."""
+        """Returns longitudinal metacentric height of the mesh."""
         gb = self.center_of_mass - self.center_of_buoyancy
         return self.longitudinal_metacentric_radius - gb[2]
 
