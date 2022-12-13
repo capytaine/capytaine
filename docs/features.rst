@@ -30,9 +30,9 @@ Main features
 * Computation of the free surface elevation and the Kochin function.
 * 3D animations of the body motion and the free surface elevation.
 * A cleaner code with unit tests, meaningful variable names, more comments, no Fortran 77, no global variables and no error message in French.
-* Double precision floating-point numbers by default. (Can be recompiled in single precision.)
+* Single or double precision floating-point numbers.
 * Possibility to plug-in other implementations of the Green function
-* Binaries distributed via `conda <https://www.anaconda.com/download/>`_.
+* Binaries distributed via `conda-forge <https://conda-forge.org/>`_.
 
 Experimental features
 ---------------------
