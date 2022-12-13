@@ -329,6 +329,8 @@ def assemble_dataset(results,
             optional_dims=optional_dims)
         radiation_cases.added_mass.attrs['long_name'] = 'Added mass'
         radiation_cases.radiation_damping.attrs['long_name'] = 'Radiation damping'
+        radiation_cases.radiating_dof.attrs['long_name'] = 'Radiating DOF'
+        radiation_cases.influenced_dof.attrs['long_name'] = 'Influenced DOF'
         dataset = xr.merge([dataset, radiation_cases])
 
     # DIFFRACTION RESULTS
@@ -346,6 +348,9 @@ def assemble_dataset(results,
             optional_dims=optional_dims)
         diffraction_cases.diffraction_force.attrs['long_name'] = 'Diffraction force'
         diffraction_cases.Froude_Krylov_force.attrs['long_name'] = 'Froude Krylov force'
+        diffraction_cases.influenced_dof.attrs['long_name'] = 'Influenced DOF'
+        diffraction_cases.wave_direction.attrs['long_name'] = 'Wave direction'
+        diffraction_cases.wave_direction.attrs['units'] = 'rad'
         dataset = xr.merge([dataset, diffraction_cases])
 
     # WAVENUMBER
