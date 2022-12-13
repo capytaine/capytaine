@@ -26,4 +26,4 @@ jobs:
     - name: Test
       run: pytest
     - name: Import installed library
-      run: cd /tmp/ && python -c 'import capytaine'
+      run: cd /tmp/ && python -c 'import capytaine' && pwd
