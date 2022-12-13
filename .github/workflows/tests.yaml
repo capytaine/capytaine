@@ -28,4 +28,4 @@ jobs:
     - name: Import installed library
       run: cd /tmp/ && python -c 'import capytaine; print(capytaine.__version__)'
     - name: Call command line tool
-      run: cd /tmp/ && capytaine
+      run: cd /tmp/ && capytaine --help
