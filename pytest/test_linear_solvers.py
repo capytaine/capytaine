@@ -1,10 +1,13 @@
 import pytest
 import numpy as np
+from numpy.random import default_rng
 import capytaine as cpt
 
 from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockCirculantMatrix, BlockToeplitzMatrix
 from capytaine.matrices.builders import random_block_matrix
 from capytaine.matrices.linear_solvers import solve_directly, LUSolverWithCache, solve_gmres
+
+RNG = default_rng(seed=0)
 
 #######################################################################
 #                            Full problems                            #
@@ -12,8 +15,8 @@ from capytaine.matrices.linear_solvers import solve_directly, LUSolverWithCache,
 
 @pytest.fixture
 def solved_full_problem():
-    A = np.random.rand(5, 5)
-    x = np.random.rand(A.shape[0])
+    A = RNG.random((5, 5))
+    x = RNG.random(A.shape[0])
     return (A, x, A @ x)
 
 def test_solve_directly_full_problem(solved_full_problem):
@@ -41,9 +44,9 @@ def test_gmres_full_problem(solved_full_problem):
 @pytest.fixture
 def solved_2x2_block_symmetric_toeplitz_problem():
     A = BlockSymmetricToeplitzMatrix([
-        [np.random.rand(4, 4) for _ in range(2)]
+        [RNG.random((4, 4)) for _ in range(2)]
     ])
-    x = np.random.rand(A.shape[0])
+    x = RNG.random(A.shape[0])
     return (A, x, A @ x)
 
 def test_solve_directly_2x2_block_symmetric_toeplitz_problem(solved_2x2_block_symmetric_toeplitz_problem):
@@ -72,10 +75,10 @@ def test_gmres_2x2_block_symmetric_toeplitz_problem(solved_2x2_block_symmetric_t
 def solved_nested_2x2_block_symmetric_toeplitz_problem():
     A = BlockSymmetricToeplitzMatrix([
         [BlockSymmetricToeplitzMatrix([
-            [np.random.rand(4, 4) for _ in range(2)]
+            [RNG.random((4, 4)) for _ in range(2)]
             ]) for _ in range(2)]
         ])
-    x = np.random.rand(A.shape[0])
+    x = RNG.random(A.shape[0])
     return (A, x, A @ x)
 
 def test_solve_directly_nested_2x2_block_symmetric_toeplitz_problem(solved_nested_2x2_block_symmetric_toeplitz_problem):
@@ -103,9 +106,9 @@ def test_gmres_2x2_nested_block_symmetric_toeplitz_problem(solved_nested_2x2_blo
 @pytest.fixture
 def solved_block_circulant_problem():
     A = BlockCirculantMatrix([
-        [np.random.rand(3, 3) for _ in range(6)]
+        [RNG.random((3, 3)) for _ in range(6)]
     ])
-    x = np.random.rand(A.shape[0])
+    x = RNG.random(A.shape[0])
     return (A, x, A @ x)
 
 def test_solve_directly_block_circulant_problem(solved_block_circulant_problem):
@@ -131,9 +134,9 @@ def test_gmres_block_circulant_problem(solved_block_circulant_problem):
 @pytest.fixture
 def solved_block_toeplitz_problem():
     A = BlockToeplitzMatrix([
-        [np.random.rand(3, 3) for _ in range(7)]
+        [RNG.random((3, 3)) for _ in range(7)]
     ])
-    x = np.random.rand(A.shape[0])
+    x = RNG.random(A.shape[0])
     return (A, x, A @ x)
 
 def test_solve_directly_block_toeplitz_problem(solved_block_toeplitz_problem):
@@ -155,7 +158,7 @@ def solved_nested_block_problem():
     A = BlockCirculantMatrix([
         [random_block_matrix([1, 1], [1, 1]) for _ in range(6)]
     ])
-    x = np.random.rand(A.shape[0])
+    x = RNG.random(A.shape[0])
     return (A, x, A @ x)
 
 def test_solve_directly_nested_block_problem(solved_nested_block_problem):
