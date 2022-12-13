@@ -327,6 +327,8 @@ def assemble_dataset(results,
             variables=['added_mass', 'radiation_damping'],
             dimensions=['omega', 'radiating_dof', 'influenced_dof'],
             optional_dims=optional_dims)
+        radiation_cases.added_mass.attrs['long_name'] = 'Added mass'
+        radiation_cases.radiation_damping.attrs['long_name'] = 'Radiation damping'
         dataset = xr.merge([dataset, radiation_cases])
 
     # DIFFRACTION RESULTS
@@ -342,6 +344,8 @@ def assemble_dataset(results,
             variables=['diffraction_force', 'Froude_Krylov_force'],
             dimensions=['omega', 'wave_direction', 'influenced_dof'],
             optional_dims=optional_dims)
+        diffraction_cases.diffraction_force.attrs['long_name'] = 'Diffraction force'
+        diffraction_cases.Froude_Krylov_force.attrs['long_name'] = 'Froude Krylov force'
         dataset = xr.merge([dataset, diffraction_cases])
 
     # WAVENUMBER
@@ -355,6 +359,7 @@ def assemble_dataset(results,
             dataset.coords['wavenumber'] = wavenumber_ds['wavenumber']
         else:
             dataset.coords['wavenumber'] = wavenumber_data_array(results)
+        dataset.wavenumber.attrs['long_name'] = 'Wave number'
 
     if wavelength:
         if bemio_import:
@@ -366,6 +371,7 @@ def assemble_dataset(results,
             dataset.coords['wavelength'] = wavelength_ds['wavelength']
         else:
             dataset.coords['wavelength'] = 2*np.pi/wavenumber_data_array(results)
+        dataset.wavelength.attrs['long_name'] = 'Wave length'
 
     if mesh:
         if bemio_import:
@@ -399,6 +405,8 @@ def assemble_dataset(results,
 
     dataset.attrs.update(attrs)
     dataset.attrs['capytaine_version'] = __version__
+    dataset.omega.attrs['long_name'] = 'Radial frequency'
+    dataset.omega.attrs['units'] = 'rad/s'
     return dataset
 
 
