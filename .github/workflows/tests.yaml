@@ -22,7 +22,10 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install
-      run: |
-        pip install -e .[ci]
+      run: pip install .[ci]
     - name: Test
       run: pytest
+    - name: Import installed library
+      run: cd /tmp/ && python -c 'import capytaine; print(capytaine.__version__)'
+    - name: Call command line tool
+      run: cd /tmp/ && capytaine --help
