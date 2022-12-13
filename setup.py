@@ -70,6 +70,7 @@ if __name__ == "__main__":
           packages=[
               'capytaine',
               'capytaine.meshes',
+              'capytaine.meshes.predefined',
               'capytaine.matrices',
               'capytaine.bodies',
               'capytaine.bodies.predefined',
