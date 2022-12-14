@@ -55,6 +55,8 @@ def load_mesh(filename, file_format=None, name=None):
 
     loader = extension_dict[file_format]
 
+    if name is None: name = filename
+
     return loader(filename, name)
 
 
@@ -705,49 +707,31 @@ def load_GDF(filename, name=None):
 
     _check_file(filename)
 
-    ifile = open(filename, 'r')
+    with open(str(filename)) as gdf_file:
+        title = gdf_file.readline()
+        ulen, grav = map(float, gdf_file.readline().split()[:2])
+        isx, isy = map(int, gdf_file.readline().split()[:2])
+        npan = int(gdf_file.readline().split()[0])
+        faces_vertices = np.genfromtxt(gdf_file)
 
-    ifile.readline()  # skip one header line
-    line = ifile.readline().split()
-    ulen = line[0]
-    grav = line[1]
+    vertices, indices = np.unique(faces_vertices, axis=0, return_inverse=True)
+    faces = indices.reshape(-1, 4)
 
-    line = ifile.readline().split()
-    isx = line[0]
-    isy = line[1]
+    if faces.shape[0] != npan:
+        raise ValueError(
+            f"In {filename} npan value: {npan} is not equal to face count: \
+                {faces.shape[0]}."
+        )
 
-    line = ifile.readline().split()
-    nf = int(line[0])
-
-    vertices = np.zeros((4 * nf, 3), dtype=float)
-    faces = np.zeros((nf, 4), dtype=int)
-
-    iv = 0
-    for icell in range(nf):
-        
-        n_coords = 0
-        face_coords = np.zeros((12,), dtype=float)
-        
-        while n_coords < 12:
-            line = np.array(ifile.readline().split())
-            face_coords[n_coords:n_coords+len(line)] = line
-            n_coords += len(line)
-
-        vertices[iv:iv+4, :] = np.split(face_coords, 4)
-        faces[icell, :] = np.arange(iv, iv+4)
-        iv += 4
-
-    ifile.close()
-
-    if isx == '1' and isy == '1':
+    if isx == 1 and isy == 1:
         return ReflectionSymmetricMesh(ReflectionSymmetricMesh(Mesh(vertices, faces, f"quarter_of_{name}"), yOz_Plane, f"half_of_{name}"), xOz_Plane, name)
-    elif isx == '1':
+    elif isx == 1:
         return ReflectionSymmetricMesh(Mesh(vertices, faces, f"half_of_{name}"), yOz_Plane, name)
-    elif isy == '1':
+    elif isy == 1:
         return ReflectionSymmetricMesh(Mesh(vertices, faces, f"half_of_{name}"), xOz_Plane, name)
     else:
         return Mesh(vertices, faces, name)
-    
+
 
 def load_MAR(filename, name=None):
     """Loads Nemoh (Ecole Centrale de Nantes) mesh files.
@@ -885,18 +869,17 @@ def load_MED(filename, name=None):
     list_of_names = []
     file.visit(list_of_names.append)
 
-    # TODO: gerer les cas ou on a que des tris ou que des quads...
     nb_quadrangles = nb_triangles = 0
 
     for item in list_of_names:
         if '/NOE/COO' in item:
-            vertices = file.get(item).value.reshape((3, -1)).T
+            vertices = file[item][:].reshape((3, -1)).T
             nv = vertices.shape[0]
         if '/MAI/TR3/NOD' in item:
-            triangles = file.get(item).value.reshape((3, -1)).T - 1
+            triangles = file[item][:].reshape((3, -1)).T - 1
             nb_triangles = triangles.shape[0]
         if '/MAI/QU4/NOD' in item:
-            quadrangles = file.get(item).value.reshape((4, -1)).T - 1
+            quadrangles = file[item][:].reshape((4, -1)).T - 1
             nb_quadrangles = quadrangles.shape[0]
 
     file.close()
@@ -908,13 +891,9 @@ def load_MED(filename, name=None):
     if nb_quadrangles == 0:
         quadrangles = np.zeros((0, 4), dtype=int)
 
-    faces = np.zeros((nb_triangles+nb_quadrangles, 4), dtype=int)
-    faces[:nb_triangles] = triangles
-    # faces[:nb_triangles, -1] = triangles[:, 0]
-    faces[nb_triangles:] = quadrangles
+    faces = np.row_stack([triangles, quadrangles])
 
-    vertices = np.ascontiguousarray(vertices)
-    return Mesh(vertices, faces)
+    return Mesh(vertices, faces, name=name)
 
 
 def load_WRL(filename, name=None):

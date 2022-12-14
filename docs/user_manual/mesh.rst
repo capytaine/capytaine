@@ -91,11 +91,16 @@ not packaged with Capytaine and need to be installed independently::
 
     pip install meshio
 
-A `meshio` mesh object can be read using the :func:`~capytaine.io.meshio.load_from_meshio`
-function::
+A `meshio` mesh object can be used directly to initialize a :code:`FloatingBody`::
 
     import meshio
     mesh = meshio.read("myfile.stl")
+    body = cpt.FloatingBody(mesh=mesh, dofs=...)
+
+Alternatively, the `meshio` mesh object can converted to Capytaine's mesh
+format with the :func:`~capytaine.io.meshio.load_from_meshio` function::
+
+    from capytaine.io.meshio import load_from_meshio
     cpt_mesh = cpt.load_from_meshio(mesh, name="My floating body")
 
 This features allows to use `pygmsh <https://pypi.org/project/pygmsh/>`_ to
@@ -116,7 +121,7 @@ installed independently)::
         geom.translate(cone, [0, 0, offset])
         geom.boolean_union([cyl, cone])
         gmsh_mesh = geom.generate_mesh(dim=2)
-    cpt_mesh = cpt.load_from_meshio(gmsh_mesh)
+    body = cpt.FloatingBody(gmsh_mesh)
 
 
 Display and animation
@@ -234,10 +239,10 @@ determine which part of the mesh will be returned::
     lower_part = body.clipped(Plane(point=(0, 0, 0), normal=(0, 0, 1)))
     # body = lower_part + higher_part
 
-The method :code:`keep_immersed_part` will clip the body (by default in-place)
-with respect to two horizontal planes at :math:`z=0` and :math:`z=-h`::
+The method :code:`immersed_part` will clip the body with respect to two
+horizontal planes at :math:`z=0` and :math:`z=-h`::
 
-    clipped_body = body.keep_immersed_part(sea_bottom=-10, inplace=False)
+    clipped_body = body.immersed_part(sea_bottom=-10)
 
 
 Center of mass and rotation dofs

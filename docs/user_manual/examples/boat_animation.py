@@ -13,20 +13,22 @@ bem_solver = cpt.BEMSolver()
 
 def generate_boat():
     boat_mesh = cpt.load_mesh("boat_200.mar", file_format="mar")
-    boat = cpt.FloatingBody(mesh=boat_mesh, name="pirate ship")
-    boat.center_of_mass = boat.rotation_center = boat.center_of_buoyancy
-    boat.add_all_rigid_body_dofs()
+    boat = cpt.FloatingBody(
+            mesh=boat_mesh,
+            dofs=cpt.rigid_body_dofs(rotation_center=boat_mesh.center_of_buoyancy),
+            center_of_mass = boat_mesh.center_of_buoyancy,
+            name="pirate ship"
+            )
     boat.inertia_matrix = boat.compute_rigid_body_inertia() / 10 # Artificially lower to have a more appealing animation
-    boat.keep_immersed_part()
-    boat.hydrostatic_stiffness = boat.compute_hydrostatic_stiffness()
+    boat.hydrostatic_stiffness = boat.immersed_part().compute_hydrostatic_stiffness()
     return boat
 
 
 def setup_animation(body, fs, omega, wave_amplitude, wave_direction):
     # SOLVE BEM PROBLEMS
-    radiation_problems = [cpt.RadiationProblem(omega=omega, body=body, radiating_dof=dof) for dof in body.dofs]
+    radiation_problems = [cpt.RadiationProblem(omega=omega, body=body.immersed_part(), radiating_dof=dof) for dof in body.dofs]
     radiation_results = bem_solver.solve_all(radiation_problems)
-    diffraction_problem = cpt.DiffractionProblem(omega=omega, body=body, wave_direction=wave_direction)
+    diffraction_problem = cpt.DiffractionProblem(omega=omega, body=body.immersed_part(), wave_direction=wave_direction)
     diffraction_result = bem_solver.solve(diffraction_problem)
 
     dataset = cpt.assemble_dataset(radiation_results + [diffraction_result])
@@ -43,11 +45,11 @@ def setup_animation(body, fs, omega, wave_amplitude, wave_direction):
 
     # SET UP ANIMATION
     # Compute the motion of each face of the mesh for the animation
-    rao_faces_motion = sum(rao.sel(omega=omega, radiating_dof=dof).data * body.full_body.dofs[dof] for dof in body.dofs)
+    rao_faces_motion = sum(rao.sel(omega=omega, radiating_dof=dof).data * body.dofs[dof] for dof in body.dofs)
 
     # Set up scene
     animation = Animation(loop_duration=2*π/omega)
-    animation.add_body(body.full_body, faces_motion=wave_amplitude*rao_faces_motion)
+    animation.add_body(body, faces_motion=wave_amplitude*rao_faces_motion)
     animation.add_free_surface(fs, wave_amplitude * (incoming_waves_elevation + diffraction_elevation + radiation_elevation))
     return animation
 

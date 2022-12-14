@@ -6,11 +6,11 @@ import meshmagick.hydrostatics
 
 radius = 10
 cog = np.array((0, 0, 0))
-body = cpt.Sphere(radius=radius, center=cog, nphi=100, ntheta=100)
-body.center_of_mass = cog
+mesh = cpt.mesh_sphere(radius=radius, center=cog, resolution=(100, 100))
+body = cpt.FloatingBody(mesh=mesh, center_of_mass=cog)
 
 body.add_all_rigid_body_dofs()
-body.keep_immersed_part()
+body = body.immersed_part()
 
 density = 1000
 gravity = 9.81
@@ -30,7 +30,7 @@ capy_hsdb["inertia_matrix"] = capy_hsdb["inertia_matrix"].sel(
 
 mm_mesh = meshmagick.mesh.Mesh(body.mesh.vertices, body.mesh.faces, name=body.mesh.name)
 
-mm_hsdb = meshmagick.hydrostatics.compute_hydrostatics(mm_mesh, cog=np.array(cog), rho_water=density, grav=gravity)
+mm_hsdb = meshmagick.hydrostatics.compute_hydrostatics(mm_mesh, cog=cog, rho_water=density, grav=gravity)
 
 mm_hsdb["inertia_matrix"] = mm_mesh.eval_plain_mesh_inertias(rho_medium=density).inertia_matrix
 mm_hsdb["center_of_buoyancy"] = mm_hsdb["buoyancy_center"]

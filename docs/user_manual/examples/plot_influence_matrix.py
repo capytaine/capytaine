@@ -4,11 +4,12 @@ import numpy as np
 import capytaine as cpt
 
 # Generate the mesh of a cylinder
-cylinder = cpt.HorizontalCylinder(
-    length=10.0, radius=1.0,  # Dimensions
-    center=(0, 0, -2),        # Position
-    nr=1, nx=8, ntheta=6,     # Fineness of the mesh
-)
+cylinder = cpt.FloatingBody(
+        mesh=cpt.mesh_horizontal_cylinder(
+            length=10.0, radius=1.0,
+            center=(0, 0, -2),
+            resolution=(1, 6, 8)
+            ))
 
 engine = cpt.BasicMatrixEngine()
 green_function = cpt.Delhommeau()

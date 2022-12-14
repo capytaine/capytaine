@@ -1,8 +1,10 @@
 .idea/
 examples/**/results*
 docs/_static/
+docs/developer_manual/api/*.rst
 .pytest_cache/
 .vscode/
+*.ogv
 
 # Created by https://www.gitignore.io/api/python,fortran
 

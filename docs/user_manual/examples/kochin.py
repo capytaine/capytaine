@@ -10,11 +10,11 @@ import capytaine as cpt
 logging.basicConfig(level=logging.INFO)
 
 # SET UP THE MESH
-buoy = cpt.VerticalCylinder(
-    radius=1.0, length=3.0, center=(0, 0, -1.0),
-    nx=15, ntheta=15, nr=3, clever=True,
-)
-buoy.keep_immersed_part()
+buoy = cpt.FloatingBody(
+        mesh=cpt.mesh_vertical_cylinder(
+            radius=1.0, length=3.0, center=(0, 0, -1.0),
+            resolution=(15, 15, 3)
+            ))
 buoy.add_translation_dof(name="Surge")
 
 # SOLVE THE BEM PROBLEMS AND COMPUTE THE KOCHIN FUNCTIONS
@@ -25,7 +25,7 @@ test_matrix = xr.Dataset(coords={
     'omega': omega_range, 'theta': theta_range, 'radiating_dof': ["Surge"],
 })
 solver = cpt.BEMSolver()
-dataset = solver.fill_dataset(test_matrix, buoy, wavenumber=True)
+dataset = solver.fill_dataset(test_matrix, buoy.immersed_part(), wavenumber=True)
 
 # PLOT THE KOCHIN FUNCTION
 plt.figure()

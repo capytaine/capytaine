@@ -5,12 +5,13 @@
 import pytest
 import logging
 from unittest import mock
+from pathlib import Path
 
 import numpy as np
 import xarray as xr
 
-from capytaine.io.mesh_writers import write_STL
-from capytaine.io.mesh_loaders import load_STL, load_HST
+from capytaine.io.mesh_writers import write_STL, write_GDF
+from capytaine.io.mesh_loaders import load_STL, load_HST, load_GDF
 import capytaine as cpt
 
 try:
@@ -24,6 +25,11 @@ try:
     import vtk
 except ImportError:
     vtk = None
+
+try:
+    import h5py
+except ImportError:
+    h5py = None
 
 offset=1e-2 # small offset so you can clip at z=0
 omega = 0.5*2*np.pi
@@ -242,7 +248,8 @@ def generate_sphere():
                     reason='Neither vtk nor meshio are installed')
 def test_write_and_read_STL(tmp_path):
     mesh, _ = generate_cylinder()
-    cpt_mesh = cpt.load_from_meshio(mesh)
+    from capytaine.io.meshio import load_from_meshio
+    cpt_mesh = load_from_meshio(mesh)
     cpt_mesh.heal_mesh()
 
     # Write with Meshio and reload with Meshmagick
@@ -265,7 +272,7 @@ def test_write_and_read_STL(tmp_path):
                          [generate_cylinder, generate_sphere, generate_wavebot])
 def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
     mesh, vol_exp = generate_pygmsh()
-    fb = cpt.FloatingBody.from_meshio(mesh)
+    fb = cpt.FloatingBody(mesh=mesh)
     fb.mesh.heal_mesh()
     fb.keep_immersed_part()
 
@@ -290,3 +297,50 @@ def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
                                wavelength=True,
                                wavenumber=True)
 
+
+def test_write_and_load_gdf(tmpdir):
+    mesh_path = tmpdir.join("temp_mesh.gdf")
+
+    original_mesh = cpt.mesh_horizontal_cylinder()
+    write_GDF(str(mesh_path), original_mesh.vertices, original_mesh.faces, ulen=1, gravity=9.81, isx=0, isy=0)
+
+    read_mesh = load_GDF(str(mesh_path))
+
+    np.testing.assert_allclose(
+        read_mesh.vertices[read_mesh.faces],
+        original_mesh.vertices[original_mesh.faces],
+        atol=1e-6
+        )
+
+    np.testing.assert_allclose(
+        read_mesh.faces_areas,
+        original_mesh.faces_areas
+        )
+
+    np.testing.assert_allclose(
+        read_mesh.faces_normals,
+        original_mesh.faces_normals,
+        atol=1e-6
+        )
+
+    np.testing.assert_allclose(
+        read_mesh.faces_centers,
+        original_mesh.faces_centers
+        )
+
+    np.testing.assert_allclose(
+        read_mesh.faces_radiuses,
+        original_mesh.faces_radiuses
+        )
+
+    np.testing.assert_allclose(
+        read_mesh.volume,
+        original_mesh.volume
+        )
+
+
+@pytest.mark.skipif(h5py is None,
+                    reason='h5py and/or meshio is not installed')
+def test_MED_file():
+    mesh = cpt.load_mesh("./pytest/mesh_files_examples/barge.med")
+    assert mesh.nb_faces == 187

@@ -8,7 +8,7 @@ Changelog
    :backlinks: none
 
 ---------------------------------
-New in version 1.5 (2022--)
+New in version 1.5 (2022-12-13)
 ---------------------------------
 
 Major changes
@@ -21,24 +21,46 @@ Major changes
 
 * New default linear solver :class:`~capytaine.matrices.linear_solvers.LUSolverWithCache`: the LU decomposition of the matrix is now cached to be reused for other similar problems, diminishing the total computation time up to 40%. (:pull:`235`)
 
+* New functions to generate simple geometric meshes have been implemented in :code:`capytaine.meshes.predefined`. They are similar to the former geometric bodies (:class:`~capytaine.bodies.predefined.sphere.Sphere`, :class:`~capytaine.bodies.predefined.sphere.HorizontalCylinder`, etc.), except that they return a mesh and do not create a :code:`FloatingBody`. The geometric body classes are considered deprecated, although they should still work as expected. (:pull:`233`)
+
+* Changed the behavior of :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics`. The mesh is not silently modified anymore. The stiffness and inertia matrices are stored in the body for inclusion in the output dataset. The inertia matrix is now computed on the full mesh (:issue:`197`, :issue:`249`, :issue:`258` and :pull:`262`).
+
 Minor changes
 ~~~~~~~~~~~~~
 
-* Add `floating_point_precision` argument to :meth:`~capytaine.green_functions.delhommeau.Delhommeau` and :meth:`~capytaine.green_functions.delhommeau.XieDelhommeau` that accepts either `float32` for single precision computations or `float64` for double precision computations (the latter is the default). (:pull:`224`).
+* Add :code:`floating_point_precision` argument to :meth:`~capytaine.green_functions.delhommeau.Delhommeau` and :meth:`~capytaine.green_functions.delhommeau.XieDelhommeau` that accepts either :code:`"float32"` for single precision computations or :code:`"float64"` for double precision computations (the latter is the default). (:pull:`224`).
 
 * Passing the argument :code:`tabulation_nr=0` or :code:`tabulation_nz=0` to :class:`~capytaine.green_functions.delhommeau.Delhommeau`
-  (or :class:`~capytaine.green_functions.delhommeau.XieDelhommeau`) now allows to run the code without interpolating the Green function
+  or :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` now allows to run the code without interpolating the Green function
   from a precomputed tabulation. This is meant as a tools for benchmarks and validation, since it decreases the performance of the code
   for often no accuracy gain. (:pull:`229`)
 
-* :func:`~capytaine.io.mesh_loaders.load_mesh` is now exported by the main namespace, that is available with :code:`from capytaine import load_mesh`.
-  A function :func:`~capytaine.io.meshio.load_from_meshio` is also now exported in the main namespace.
-  The documentation has been changed to recommend the use of these functions instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_file` and :meth:`~capytaine.bodies.bodies.FloatingBody.from_meshio`.
+* :func:`~capytaine.io.mesh_loaders.load_mesh` is now exported by the main namespace: :code:`from capytaine import load_mesh`.
+  The documentation has been changed to recommend the use of this function instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_file`.
+  (:pull:`231`)
 
-* Custom classes from the :code:`capytaine.matrices` module storign block matrices or data-sparse matrices
+* When initializing a :code:`FloatingBody`, one can now pass directly a mesh object from :code:`meshio`.
+  The documentation has been changed to recommend this approach instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_meshio`.
+  (:issue:`259` and :pull:`261`)
+
+* When joining two bodies as e.g. :code:`body1 + body2`, some hydrostatic properties are passed to the resulting body:
+  if all the bodies have hydrostatic stiffness matrices or inertia matrices defined,
+  then they are assigned to the joined body as a larger block diagonal matrix (:pull:`243`).
+
+* Add :meth:`~capytaine.bodies.bodies.FloatingBody.immersed_part` method to clip the body without modifying it in place (:pull:`244`).
+
+* Add :func:`~capytaine.rigid_body_dofs` method returning a placeholder that can be given at the creation of :class:`~capytaine.bodies.bodies.FloatingBody` to initialize the six rigid body dofs (:pull:`245`).
+
+* Custom classes from the :code:`capytaine.matrices` module storing block matrices or data-sparse matrices
   can be transformed into full Numpy arrays with :code:`np.array(...)` (:pull:`99`)
 
 * Add :code:`Dockerfile` and instructions to install with Docker (:pull:`137`)
+
+* Add optional arguments to :func:`~capytaine.io.meshes_writers.write_GDF` to write parameters :code:`ulen, grav, isx, isy` to the mesh file (:pull:`241`)
+
+* Fix bug with MED mesh file loading (:issue:`247` and :pull:`250`).
+
+* Several surface integrals properties of :code:`FloatingBodies` are also defined on meshes, such as :code:`volume` or :code:`center_of_buoyancy` (pull:`263`).
 
 Internals
 ~~~~~~~~~
@@ -46,6 +68,8 @@ Internals
 * The integration of the pressure on the mesh of the body was implemented twice independently. It has been factored out in :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure` (:pull:`218`)
 
 * `__rmatmul__` has been implemented for low rank matrices (:pull:`222`).
+
+* New implementation of the GDF mesh file reader :func:`~capytaine.io.meshes_loaders.load_GDF` (:pull:`241`)
 
 ---------------------------------
 New in version 1.4.2 (2022-10-03)

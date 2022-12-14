@@ -4,7 +4,7 @@ import numpy as np
 import capytaine as cpt
 
 # Load a mesh
-original_mesh = cpt.Sphere(axial_symmetry=False).mesh
+original_mesh = cpt.mesh_sphere()
 
 # METHOD 1
 # Get the indices of the panels such that the center is in the half-space y > 0.

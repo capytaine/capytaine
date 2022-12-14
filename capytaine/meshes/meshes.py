@@ -14,7 +14,7 @@ from numpy.linalg import norm
 
 from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
 from capytaine.meshes.properties import compute_faces_properties, compute_connectivity
-from capytaine.meshes.surface_integrals import compute_faces_integrals
+from capytaine.meshes.surface_integrals import compute_faces_integrals, SurfaceIntegralsMixin
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
 from capytaine.tools.optional_imports import import_optional_dependency
@@ -22,7 +22,7 @@ from capytaine.tools.optional_imports import import_optional_dependency
 LOG = logging.getLogger(__name__)
 
 
-class Mesh(Abstract3DObject):
+class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
     """A class to handle unstructured 2D meshes in a 3D space.
 
     Parameters
@@ -621,6 +621,11 @@ class Mesh(Abstract3DObject):
         self.flip_normals()
         return self
 
+    def symmetrized(self, plane):
+        from capytaine.meshes.symmetric import ReflectionSymmetricMesh
+        half = self.clipped(plane, name=f"{self.name}_half")
+        return ReflectionSymmetricMesh(half, plane=plane, name=f"symmetrized_of_{self.name}")
+
     @inplace_transformation
     def clip(self, plane) -> 'Mesh':
         from capytaine.meshes.clipper import clip
@@ -634,11 +639,6 @@ class Mesh(Abstract3DObject):
         # Same API as for the other transformations
         return self.clip(plane, inplace=False, **kwargs)
 
-    def symmetrized(self, plane):
-        from capytaine.meshes.symmetric import ReflectionSymmetricMesh
-        half = self.clipped(plane, name=f"{self.name}_half")
-        return ReflectionSymmetricMesh(half, plane=plane, name=f"symmetrized_of_{self.name}")
-
     @inplace_transformation
     def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
         """Clip the mesh with two horizontal planes corresponding
@@ -647,6 +647,9 @@ class Mesh(Abstract3DObject):
         if sea_bottom > -np.infty:
             self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
         return self
+
+    def immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
+        return self.keep_immersed_part(free_surface, sea_bottom, inplace=False, name=self.name)
 
     @inplace_transformation
     def triangulate_quadrangles(self) -> 'Mesh':
