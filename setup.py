@@ -4,7 +4,7 @@
 import os
 
 from setuptools import dist
-dist.Distribution().fetch_build_eggs(['numpy'])
+dist.Distribution().fetch_build_eggs(['numpy', 'charset-normalizer'])
 
 from numpy.distutils.core import Extension, setup
 
@@ -87,7 +87,6 @@ if __name__ == "__main__":
               'scipy',
               'pandas>=1.3',
               'xarray',
-              'charset-normalizer',
           ],
           extras_require={
             'develop': [
