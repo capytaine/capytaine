@@ -87,6 +87,7 @@ if __name__ == "__main__":
               'scipy',
               'pandas>=1.3',
               'xarray',
+              'charset-normalizer',
           ],
           extras_require={
             'develop': [
