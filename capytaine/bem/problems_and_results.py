@@ -17,7 +17,7 @@ LOG = logging.getLogger(__name__)
 
 _default_parameters = {'rho': 1000.0, 'g': 9.81, 'omega': 1.0,
                       'free_surface': 0.0, 'water_depth': np.infty,
-                      'convention': "nemoh"}
+                      'convention': "nemoh", 'wave_direction': 0.0}
 
 
 class LinearPotentialFlowProblem:
@@ -53,11 +53,11 @@ class LinearPotentialFlowProblem:
                  boundary_condition=None):
 
         self.body = body
-        self.free_surface = free_surface
-        self.sea_bottom = sea_bottom
-        self.omega = omega
-        self.rho = rho
-        self.g = g
+        self.free_surface = float(free_surface)
+        self.sea_bottom = float(sea_bottom)
+        self.omega = float(omega)
+        self.rho = float(rho)
+        self.g = float(g)
         self.boundary_condition = boundary_condition
 
         self._check_data()
@@ -237,10 +237,10 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                  omega=_default_parameters['omega'],
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
-                 wave_direction=0.0,
+                 wave_direction=_default_parameters['wave_direction'],
                  convention=_default_parameters['convention']):
 
-        self.wave_direction = wave_direction
+        self.wave_direction = float(wave_direction)
         self.convention = convention
 
         super().__init__(body=body, free_surface=free_surface, sea_bottom=sea_bottom,
