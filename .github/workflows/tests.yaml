@@ -22,7 +22,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install
-      run: pip install .[ci]
+      run: pip install .[develop]
     - name: Test
       run: pytest
     - name: Import installed library
