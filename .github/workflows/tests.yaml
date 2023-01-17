@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.7', '3.10']
+        python-version: ['3.7', '3.11']
     steps:
     - name: Checkout repository and submodules
       uses: actions/checkout@v2
@@ -29,3 +29,6 @@ jobs:
       run: cd /tmp/ && python -c 'import capytaine; print(capytaine.__version__)'
     - name: Call command line tool
       run: cd /tmp/ && capytaine --help
+    - name: Examples
+      # Only the one that do not require matplotlib or vtk or meshmagick
+      run: for f in custom_dofs.py haskind.py multibody.py; do python examples/$f; done
