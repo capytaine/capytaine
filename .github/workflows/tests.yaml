@@ -22,7 +22,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install
-      run: pip install .[develop]
+      run: pip install .[ci]
     - name: Test
       run: pytest
     - name: Import installed library
@@ -30,4 +30,5 @@ jobs:
     - name: Call command line tool
       run: cd /tmp/ && capytaine --help
     - name: Examples
-      run: for f in $(ls examples/*.py); do python $f; done
+      # Only the one that do not require matplotlib or vtk
+      run: for f in custom_dofs.py haskind.py hydrostatics.py multibody.py; do python examples/$f; done
