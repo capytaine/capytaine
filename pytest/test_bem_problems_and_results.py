@@ -155,12 +155,13 @@ def test_Froude_Krylov():
     assert np.isclose(froude_krylov_force(problem)['Heave'], 27610, rtol=1e-3)
 
 
-def test_import_cal_file():
+@pytest.mark.parametrize("cal_file", ["Nemoh.cal", "Nemoh_v3.cal"])
+def test_import_cal_file(cal_file):
     """Test the importation of legacy Nemoh.cal files."""
     current_file_path = os.path.dirname(os.path.abspath(__file__))
 
     # Non symmetrical body
-    cal_file_path = os.path.join(current_file_path, "Nemoh_verification_cases", "NonSymmetrical", "Nemoh.cal")
+    cal_file_path = os.path.join(current_file_path, "Nemoh_verification_cases", "NonSymmetrical", cal_file)
     problems = import_cal_file(cal_file_path)
 
     assert len(problems) == 6*41+41
@@ -177,7 +178,7 @@ def test_import_cal_file():
             assert problem.wave_direction == 0.0
 
     # Symmetrical cylinder
-    cal_file_path = os.path.join(current_file_path, "Nemoh_verification_cases", "Cylinder", "Nemoh.cal")
+    cal_file_path = os.path.join(current_file_path, "Nemoh_verification_cases", "Cylinder", cal_file)
     problems = import_cal_file(cal_file_path)
 
     assert len(problems) == 6*2+2

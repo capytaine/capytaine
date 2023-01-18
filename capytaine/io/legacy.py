@@ -84,8 +84,21 @@ def import_cal_file(filepath):
             bodies = bodies[0]
 
         cal_file.readline()  # Unused line.
-        frequency_data = cal_file.readline().split()
-        omega_range = np.linspace(float(frequency_data[1]), float(frequency_data[2]), int(frequency_data[0]))
+        frequency_data_string_without_comment = cal_file.readline().split('!')[0]
+        frequency_data = frequency_data_string_without_comment.split()
+        if len(frequency_data) == 3:  # Nemoh v2 format
+            omega_range = np.linspace(float(frequency_data[1]), float(frequency_data[2]), int(frequency_data[0]))
+        else:
+            type_of_frequency_data = int(frequency_data[0])
+            if type_of_frequency_data == 1:  # angular frequency
+                omega_range = np.linspace(float(frequency_data[2]), float(frequency_data[3]), int(frequency_data[1]))
+            elif type_of_frequency_data == 2:  # frequency
+                omega_range = 2*np.pi*np.linspace(float(frequency_data[2]), float(frequency_data[3]), int(frequency_data[1]))
+            elif type_of_frequency_data == 3:  # period
+                omega_range = 2*np.pi/np.linspace(float(frequency_data[2]), float(frequency_data[3]), int(frequency_data[1]))
+            else:
+                raise ValueError(f"Cannot parse the frequency data \"{frequency_data_string_without_comment}\" in {filepath}.")
+
 
         direction_data = cal_file.readline().split()
         direction_range = np.linspace(float(direction_data[1]), float(direction_data[2]), int(direction_data[0]))
