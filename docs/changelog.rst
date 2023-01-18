@@ -7,9 +7,15 @@ Changelog
    :depth: 1
    :backlinks: none
 
----------------------------------
+-------------------
+New in next version
+-------------------
+
+* Support the new format of `Nemoh.cal` file from Nemoh v3 (:issue:`278` and :pull:`280`).
+
+-------------------------------
 New in version 1.5 (2022-12-13)
----------------------------------
+-------------------------------
 
 Major changes
 ~~~~~~~~~~~~~

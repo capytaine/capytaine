@@ -126,6 +126,9 @@ The function returns a list of :code:`LinearPotentialFlowProblems`.
 
 .. literalinclude:: examples/Nemoh.cal
 
+.. note:: The line setting up the frequencies is slightly different in Nemoh v2 and Nemoh v3.
+   Both format are supported by Capytaine.
+
 Command-line interface
 ----------------------
 
