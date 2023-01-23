@@ -9,6 +9,8 @@ import pytest
 import numpy as np
 import xarray as xr
 
+import capytaine as cpt
+
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh
 
@@ -80,19 +82,39 @@ def test_LinearPotentialFlowProblem():
     assert res.body is pb.body
 
 
+@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+def test_setting_wavelength(water_depth):
+    λ = 10*np.random.rand()
+    assert np.isclose(cpt.DiffractionProblem(wavelength=λ, sea_bottom=-water_depth).wavelength, λ)
+
+@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+def test_setting_wavenumber(water_depth):
+    k = 10*np.random.rand()
+    assert np.isclose(cpt.DiffractionProblem(wavenumber=k, sea_bottom=-water_depth).wavenumber, k)
+
+@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+def test_setting_period(water_depth):
+    T = 10*np.random.rand()
+    assert np.isclose(cpt.DiffractionProblem(period=T, sea_bottom=-water_depth).period, T)
+
+def test_setting_too_many_frequencies():
+    with pytest.raises(ValueError, match="at most one"):
+        cpt.DiffractionProblem(omega=1.0, wavelength=1.0)
+
+
 def test_diffraction_problem():
-    assert DiffractionProblem().body is None
+    assert DiffractionProblem(omega=1.0).body is None
 
     sphere = Sphere(radius=1.0, ntheta=20, nphi=40)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
-    pb = DiffractionProblem(body=sphere, wave_direction=1.0)
+    pb = DiffractionProblem(body=sphere, wave_direction=1.0, wavenumber=1.0)
     assert len(pb.boundary_condition) == sphere.mesh.nb_faces
 
     with pytest.raises(TypeError):
         DiffractionProblem(boundary_conditions=[0, 0, 0])
 
-    assert "DiffractionProblem" in str(DiffractionProblem(g=10, rho=1025, free_surface=np.infty))
+    assert "DiffractionProblem" in str(DiffractionProblem(wavenumber=1.0, g=10, rho=1025, free_surface=np.infty))
 
     res = pb.make_results_container()
     assert isinstance(res, DiffractionResult)
