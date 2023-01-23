@@ -25,7 +25,7 @@ from capytaine.io.xarray import problems_from_dataset, assemble_dataset
 
 from capytaine.io.legacy import import_cal_file
 
-solver = Nemoh(matrix_cache_size=0)
+solver = cpt.BEMSolver()
 
 
 def test_LinearPotentialFlowProblem():
@@ -256,6 +256,23 @@ def test_problems_from_dataset():
     assert len(problems) == 12
 
 
+def test_problems_from_dataset_with_wavelength():
+    body = cpt.FloatingBody(mesh=cpt.mesh_sphere(center=(0, 0, -4), name="sphere"),
+                            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -4)))
+    dset = xr.Dataset(coords={'wavelength': [12.0], 'radiating_dof': ["Heave"]})
+    problems = problems_from_dataset(dset, body)
+    for pb in problems:
+        assert np.isclose(pb.wavelength, 12.0)
+
+
+def test_problems_from_dataset_with_too_many_info():
+    body = cpt.FloatingBody(mesh=cpt.mesh_sphere(center=(0, 0, -4), name="sphere"),
+                            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -4)))
+    dset = xr.Dataset(coords={'wavelength': [12.0], 'period': [3.0], 'radiating_dof': ["Heave"]})
+    with pytest.raises(ValueError, match="at most one"):
+        problems = problems_from_dataset(dset, body)
+
+
 def test_assemble_dataset():
     body = Sphere(center=(0, 0, -4), name="sphere")
     body.add_translation_dof(name="Heave")
@@ -282,3 +299,13 @@ def test_fill_dataset():
     dataset = solver.fill_dataset(test_matrix, [body])
     assert dataset['added_mass'].data.shape == (3, 1, 6)
     assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)
+
+
+def test_fill_dataset_with_wavenumbers():
+    body = cpt.FloatingBody(mesh=cpt.mesh_horizontal_cylinder(radius=1, center=(0, 0, -2)),
+                            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -2)))
+    k_range = np.linspace(1.0, 3.0, 3)
+    test_matrix = xr.Dataset(coords={'wavenumber': k_range, 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
+    dataset = solver.fill_dataset(test_matrix, [body])
+    assert np.allclose(dataset.coords['wavenumber'], k_range)
+    print(dataset)

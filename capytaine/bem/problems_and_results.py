@@ -68,7 +68,7 @@ class LinearPotentialFlowProblem:
         self.g = float(g)
         self.boundary_condition = boundary_condition
 
-        self.omega = float(self._get_angular_frequency(omega, period, wavenumber, wavelength))
+        self.omega, self.provided_freq_type = self._get_angular_frequency(omega, period, wavenumber, wavelength)
 
         self._check_data()
 
@@ -82,15 +82,15 @@ class LinearPotentialFlowProblem:
                              "Received {} of them: {}".format(nb_provided_frequency_data, {k: v for k, v in frequency_data.items() if v is not None}))
 
         if omega is not None:
-            return omega
+            return float(omega), "omega"
         elif period is not None:
-            return 2*np.pi/period
+            return 2*np.pi/period, "period"
         elif wavenumber is not None:
-            return np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.depth))
+            return np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.depth)), "wavenumber"
         elif wavelength is not None:
-            return np.sqrt(self.g*2*np.pi/wavelength*np.tanh(2*np.pi/wavelength*self.depth))
+            return np.sqrt(self.g*2*np.pi/wavelength*np.tanh(2*np.pi/wavelength*self.depth)), "wavelength"
         else:
-            return _default_parameters["omega"]
+            return _default_parameters["omega"], "omega"
 
 
     def _check_data(self):
