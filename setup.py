@@ -92,7 +92,7 @@ if __name__ == "__main__":
             'develop': [
               'pytest',
               'hypothesis',
-              'ipython',
+              'ipython>=7.14',
               'matplotlib',
               'vtk',
               'meshio',
@@ -109,7 +109,7 @@ if __name__ == "__main__":
               'hypothesis',
                 ],
             'extra': [
-              'ipython',
+              'ipython>=7.14',
               'matplotlib',
               'vtk',
               'meshio',

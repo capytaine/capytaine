@@ -298,56 +298,11 @@ class Animation:
     def embed_in_notebook(self, resolution=(640, 360), **kwargs):
         from tempfile import mkstemp
         from IPython.core.display import Video
-
-        class CustomIPythonVideo(Video):
-            def __init__(self, *args, html_attributes="controls", **kwargs):
-                self.html_attributes = html_attributes
-                super(CustomIPythonVideo, self).__init__(*args, **kwargs)
-
-            def _repr_html_(self):
-                import mimetypes
-                from binascii import b2a_hex, b2a_base64, hexlify
-
-                width = height = ''
-                if self.width:
-                    width = ' width="%d"' % self.width
-                if self.height:
-                    height = ' height="%d"' % self.height
-
-                # External URLs and potentially local files are not embedded into the
-                # notebook output.
-                if not self.embed:
-                    url = self.url if self.url is not None else self.filename
-                    output = """<video src="{0}" {1} {2} {3}>
-Your browser does not support the <code>video</code> element.
-</video>""".format(url, self.html_attributes, width, height)
-                    return output
-
-                # Embedded videos are base64-encoded.
-                mimetype = self.mimetype
-                if self.filename is not None:
-                    if not mimetype:
-                        mimetype, _ = mimetypes.guess_type(self.filename)
-
-                    with open(self.filename, 'rb') as f:
-                        video = f.read()
-                else:
-                    video = self.data
-                if isinstance(video, str):
-                    # unicode input is already b64-encoded
-                    b64_video = video
-                else:
-                    b64_video = b2a_base64(video).decode('ascii').rstrip()
-
-                output = """<video {0} {1} {2}>
- <source src="data:{3};base64,{4}" type="{3}">
- Your browser does not support the video tag.
- </video>""".format(self.html_attributes, width, height, mimetype, b64_video)
-                return output
+        # Requires Ipython 7.14 or higher, for this patch: https://github.com/ipython/ipython/pull/12212/
 
         filepath = mkstemp(suffix=".ogv")[1]
         self.save(filepath, nb_loops=1, resolution=resolution, **kwargs)
-        return CustomIPythonVideo(filepath, embed=True, width=resolution[0], html_attributes="controls loop autoplay")
+        return Video(filepath, embed=True, width=resolution[0], html_attributes="controls loop autoplay")
 
 
 
