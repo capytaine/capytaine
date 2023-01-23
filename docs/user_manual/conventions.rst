@@ -10,11 +10,13 @@ Unlike most other codes, angles (such as the incoming wave direction) are given 
 With respect to WAMIT
 ---------------------
 
+In this section, the index :math:`W` denotes a magnitude in WAMIT convention. Other magnitudes use Capytaine convention.
+
 Time dependancy
 ~~~~~~~~~~~~~~~
 
 In Capytaine, the complex-valued amplitudes (phasors) are defined with the convention :math:`x(t) = \Re ( X e^{-i \omega t})`.
-It is unlike WAMIT in which the convention :math:`x(t) = \Re ( X e^{+ i \omega t})` is used.
+It is unlike WAMIT in which the convention :math:`x(t) = \Re ( X_W e^{+ i \omega t})` is used.
 
 Incoming potential
 ~~~~~~~~~~~~~~~~~~
@@ -34,7 +36,12 @@ and similarly in finite depth.
 It follows that the incoming velocity field from Capytaine :math:`u_0 = \nabla \Phi_0` is related to the incoming velocity field from WAMIT :math:`u_{0, W} = \nabla \Phi_{0, W}` as
 
 .. math::
-   u_0 = \overline{u_{0, W}}
+   u_0 = \overline{u_{0, W}}.
+
+Then the corresponding Froude-Krylov force and diffraction force (also called scattering force in WAMIT), as well as their sum the excitation force, are complex-conjugate between Capytaine and WAMIT:
+
+.. math::
+   F_e = \overline{F_{e, W}}
 
 
 With respect to Nemoh and Aquadyn
