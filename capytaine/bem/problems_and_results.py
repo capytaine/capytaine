@@ -17,7 +17,7 @@ LOG = logging.getLogger(__name__)
 
 _default_parameters = {'rho': 1000.0, 'g': 9.81, 'omega': 1.0,
                       'free_surface': 0.0, 'water_depth': np.infty,
-                      'convention': "nemoh", 'wave_direction': 0.0}
+                      'wave_direction': 0.0}
 
 
 class LinearPotentialFlowProblem:
@@ -237,11 +237,9 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                  omega=_default_parameters['omega'],
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
-                 wave_direction=_default_parameters['wave_direction'],
-                 convention=_default_parameters['convention']):
+                 wave_direction=_default_parameters['wave_direction']):
 
         self.wave_direction = float(wave_direction)
-        self.convention = convention
 
         super().__init__(body=body, free_surface=free_surface, sea_bottom=sea_bottom,
                          omega=omega, rho=rho, g=g)
@@ -254,7 +252,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
         if self.body is not None:
 
             self.boundary_condition = -(
-                    airy_waves_velocity(self.body.mesh.faces_centers, self, convention=self.convention)
+                    airy_waves_velocity(self.body.mesh.faces_centers, self)
                     * self.body.mesh.faces_normals
             ).sum(axis=1)
 
@@ -267,7 +265,6 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     def _asdict(self):
         d = super()._asdict()
         d["wave_direction"] = self.wave_direction
-        d["convention"] = self.convention
         return d
 
     def _str_other_attributes(self):

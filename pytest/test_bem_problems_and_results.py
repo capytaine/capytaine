@@ -130,13 +130,6 @@ def test_radiation_problem(caplog):
     assert res.radiation_dampings == {}
 
 
-def test_wamit_convention():
-    sphere = Sphere()
-    pb1 = DiffractionProblem(body=sphere, convention="Nemoh")
-    pb2 = DiffractionProblem(body=sphere, convention="WAMIT")
-    assert np.allclose(pb1.boundary_condition, np.conjugate(pb2.boundary_condition))
-
-
 def test_Froude_Krylov():
     from capytaine.bem.airy_waves import froude_krylov_force
     from capytaine.bodies.predefined.spheres import Sphere
