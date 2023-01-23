@@ -56,7 +56,6 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['rho'] = rho
                 temp_dict['g'] = g
                 temp_dict['wave_direction'] = np.radians(dir)
-                temp_dict['convention'] = bemio_obj.body[i].bem_code
                 temp_dict['influenced_dof'] = dofs
                 
                 if wavenumber or wavelength:

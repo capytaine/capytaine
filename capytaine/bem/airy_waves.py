@@ -7,7 +7,7 @@
 import numpy as np
 
 
-def airy_waves_potential(points, pb, convention="Nemoh"):
+def airy_waves_potential(points, pb):
     """Compute the potential for Airy waves at a given point (or array of points).
 
     Parameters
@@ -16,16 +16,12 @@ def airy_waves_potential(points, pb, convention="Nemoh"):
         coordinates of the points in which to evaluate the potential.
     pb: DiffractionProblem
         problem with the environmental conditions (g, rho, ...) of interest
-    convention: str, optional
-        convention for the incoming wave field. Accepted values: "Nemoh", "WAMIT".
 
     Returns
     -------
     array of shape (1) or (N x 1)
         The potential
     """
-    assert convention.lower() in ["nemoh", "wamit"], \
-        "Convention for wave field should be either Nemoh or WAMIT."
 
     x, y, z = points.T
     k = pb.wavenumber
@@ -39,13 +35,10 @@ def airy_waves_potential(points, pb, convention="Nemoh"):
         cih = np.exp(k*z)
         # sih = np.exp(k*z)
 
-    if convention.lower() == "wamit":
-        return  1j*pb.g/pb.omega * cih * np.exp(-1j * k * wbar)
-    else:
-        return -1j*pb.g/pb.omega * cih * np.exp(1j * k * wbar)
+    return -1j*pb.g/pb.omega * cih * np.exp(1j * k * wbar)
 
 
-def airy_waves_velocity(points, pb, convention="Nemoh"):
+def airy_waves_velocity(points, pb):
     """Compute the fluid velocity for Airy waves at a given point (or array of points).
 
     Parameters
@@ -54,16 +47,12 @@ def airy_waves_velocity(points, pb, convention="Nemoh"):
         coordinates of the points in which to evaluate the potential.
     pb: DiffractionProblem
         problem with the environmental conditions (g, rho, ...) of interest
-    convention: str, optional
-        convention for the incoming wave field. Accepted values: "Nemoh", "WAMIT".
 
     Returns
     -------
     array of shape (3) or (N x 3)
         the velocity vectors
     """
-    assert convention.lower() in ["nemoh", "wamit"], \
-        "Convention for wave field should be either Nemoh or WAMIT."
 
     x, y, z = points.T
     k = pb.wavenumber
@@ -82,13 +71,10 @@ def airy_waves_velocity(points, pb, convention="Nemoh"):
         np.exp(1j * k * wbar) * \
         np.array([np.cos(pb.wave_direction) * cih, np.sin(pb.wave_direction) * cih, -1j * sih])
 
-    if convention.lower() == "wamit":
-        return np.conjugate(v.T)
-    else:
-        return v.T
+    return v.T
 
 
-def froude_krylov_force(pb, convention="Nemoh"):
-    pressure = 1j * pb.omega * pb.rho * airy_waves_potential(pb.body.mesh.faces_centers, pb, convention=convention)
+def froude_krylov_force(pb):
+    pressure = 1j * pb.omega * pb.rho * airy_waves_potential(pb.body.mesh.faces_centers, pb)
     return pb.body.integrate_pressure(pressure)
 

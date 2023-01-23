@@ -335,12 +335,6 @@ def assemble_dataset(results,
 
     # DIFFRACTION RESULTS
     if 'diffraction_force' in records.columns:
-        conventions = set(records['convention'].dropna())
-        if len(conventions) > 1:
-            LOG.warning("Assembling a dataset mixing several conventions.")
-        else:
-            attrs['incoming_waves_convention'] = conventions.pop()
-
         diffraction_cases = _dataset_from_dataframe(
             records,
             variables=['diffraction_force', 'Froude_Krylov_force'],
