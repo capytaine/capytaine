@@ -11,8 +11,8 @@ Changelog
 New in next version
 -------------------
 
-* Remove the :code:`convention` parameter to compute excitation force with WAMIT conventions (:issue:`133` and :pull`281`).
-  Comparing or converting data between the conventions of different codes is better done by a dedicated software such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_ or `BEMIO <http://wec-sim.github.io/bemio/>`_.
+* Remove the :code:`convention` parameter to compute excitation force with WAMIT conventions (:issue:`133` and :pull:`281`).
+  Changing the convention to compare the outputs of different codes is better done by a dedicated software such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_ or `BEMIO <https://wec-sim.github.io/bemio/>`_.
 
 * Support the new format of `Nemoh.cal` file from Nemoh v3 (:issue:`278` and :pull:`280`).
 
