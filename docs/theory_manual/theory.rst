@@ -129,7 +129,7 @@ On the hull, one has [Del87]_:
    :label: normal_velocity_on_hull_representation
 
 where :math:`x` is a point on :math:`\Gamma` and :math:`n` is the vector normal to :math:`\Gamma` in :math:`x`.
-For any vector :math:`t` to :math:`\Gamma` at :math:`x`, one has
+For any vector :math:`t` tangential to :math:`\Gamma` at :math:`x`, one has
 
 .. math::
    \frac{\partial \Phi}{\partial t}(x) = (u \cdot t)(x) = \iint_\Gamma \sigma(y) \, (\nabla G(x; \xi) \cdot t) \, \mathrm{dS}(y).
