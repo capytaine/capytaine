@@ -182,6 +182,10 @@ Since we are using their default value, we could have defined the radiation prob
 
     problem = cpt.RadiationProblem(body=body, radiating_dof="Heave", omega=1.0)
 
+Besides, one can give a :code:`period`, a :code:`wavelength` or a :code:`wavenumber` to specify the frequency::
+
+    problem = cpt.RadiationProblem(body=body, radiating_dof="Heave", wavelength=60.0)
+
 Some more parameters are automatically computed, such as::
 
     print(problem.wavenumber)
