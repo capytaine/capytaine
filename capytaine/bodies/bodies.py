@@ -988,6 +988,9 @@ respective inertia coefficients are assigned as NaN.")
         return (f"{self.__class__.__name__}(mesh={self.mesh.name}, "
                 f"dofs={{{', '.join(self.dofs.keys())}}}, name={self.name})")
 
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__repr__())
+
     def show(self, **kwargs):
         from capytaine.ui.vtk.body_viewer import FloatingBodyViewer
         viewer = FloatingBodyViewer()

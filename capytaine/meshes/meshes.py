@@ -66,6 +66,9 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
         return (f"{self.__class__.__name__}(nb_vertices={self.nb_vertices}, "
                 f"nb_faces={self.nb_faces}, name={self.name})")
 
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__repr__())
+
     @property
     def nb_vertices(self) -> int:
         """Get the number of vertices in the mesh."""

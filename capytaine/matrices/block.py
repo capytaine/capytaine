@@ -465,6 +465,9 @@ class BlockMatrix:
             self._str = f"{self.__class__.__name__}(" + ", ".join(args) + ")"
         return self._str
 
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
+
     display_color = cycle([f'C{i}' for i in range(10)])
 
     def _patches(self,

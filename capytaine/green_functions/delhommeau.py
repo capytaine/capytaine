@@ -84,6 +84,19 @@ class Delhommeau(AbstractGreenFunction):
     def __hash__(self):
         return self._hash
 
+    def __str__(self):
+        params = f"tabulation_nz={self.exportable_settings['tabulation_nz']}"
+        params += f", tabulation_nr={self.exportable_settings['tabulation_nr']}"
+        params += f", tabulation_nb_integration_points={self.exportable_settings['tabulation_nb_integration_points']}"
+        params += f", floating_point_precision=\'{self.exportable_settings['floating_point_precision']}\'"
+        return f"{self.__class__.__name__}({params})"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
+
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
         """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
