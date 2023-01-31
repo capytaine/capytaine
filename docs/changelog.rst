@@ -25,6 +25,8 @@ Minor changes
 
 * Support the new format of `Nemoh.cal` file from Nemoh v3 (:issue:`278` and :pull:`280`).
 
+* Add nicer display for Capytaine objects in IPython shell (:issue:`227` and :pull:`287`)
+
 -------------------------------
 New in version 1.5 (2022-12-13)
 -------------------------------
