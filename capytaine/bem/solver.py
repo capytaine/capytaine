@@ -60,6 +60,9 @@ class BEMSolver:
     def __str__(self):
         return f"BEMSolver(engine={self.engine}, green_function={self.green_function})"
 
+    def __repr__(self):
+        return self.__str__()
+
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 

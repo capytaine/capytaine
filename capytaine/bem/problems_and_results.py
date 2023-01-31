@@ -187,6 +187,9 @@ class LinearPotentialFlowProblem:
 
         return self.__class__.__name__ + "(" + ', '.join(parameters) + ")"
 
+    def __repr__(self):
+        return self.__str__()
+
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
@@ -351,7 +354,7 @@ class RadiationProblem(LinearPotentialFlowProblem):
         return d
 
     def _str_other_attributes(self):
-        return [f"radiating_dof={self.radiating_dof}"]
+        return [f"radiating_dof=\'{self.radiating_dof}\'"]
 
     def make_results_container(self, *args, **kwargs):
         return RadiationResult(self, *args, **kwargs)
@@ -391,6 +394,7 @@ class LinearPotentialFlowResult:
         pass  # Implemented in sub-classes
 
     __str__ = LinearPotentialFlowProblem.__str__
+    __repr__ = LinearPotentialFlowProblem.__repr__
     _repr_pretty_ = LinearPotentialFlowProblem._repr_pretty_
 
 

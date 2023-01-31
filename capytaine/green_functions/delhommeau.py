@@ -91,9 +91,11 @@ class Delhommeau(AbstractGreenFunction):
         params += f", floating_point_precision=\'{self.exportable_settings['floating_point_precision']}\'"
         return f"{self.__class__.__name__}({params})"
 
+    def __repr__(self):
+        return self.__str__()
+
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
-
 
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):

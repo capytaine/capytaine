@@ -84,6 +84,9 @@ class BasicMatrixEngine(MatrixEngine):
         params += f", matrix_cache_size={self.exportable_settings['matrix_cache_size']}" if self.exportable_settings['matrix_cache_size'] != 1 else ""
         return f"BasicMatrixEngine({params})"
 
+    def __repr__(self):
+        return self.__str__()
+
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
