@@ -317,10 +317,12 @@ def assemble_dataset(results,
     if bemio_import:
         records = dataframe_from_bemio(results, wavenumber, wavelength) # TODO add hydrostatics
         all_dofs_in_order = {'Surge': None, 'Sway': None, 'Heave': None, 'Roll': None, 'Pitch': None, 'Yaw': None}
+        main_freq_type = "omega"
 
     else:
         records = pd.DataFrame(collect_records(results))
         all_dofs_in_order = {k: None for r in results for k in r.body.dofs.keys()}
+        main_freq_type = Counter((res.problem.provided_freq_type for res in results)).most_common(1)[0][0]
 
     if attrs is None:
         attrs = {}
@@ -364,7 +366,7 @@ def assemble_dataset(results,
         dataset = xr.merge([dataset, diffraction_cases])
 
     # WAVENUMBER
-    if wavenumber or any(res.problem.provided_freq_type == "wavenumber" for res in results):
+    if wavenumber or main_freq_type == "wavenumber":
         if bemio_import:
             wavenumber_ds = _dataset_from_dataframe(
                 records.drop_duplicates(subset=['omega']),
@@ -376,7 +378,7 @@ def assemble_dataset(results,
             dataset.coords['wavenumber'] = wavenumber_data_array(results)
         dataset.wavenumber.attrs['long_name'] = 'Wave number'
 
-    if wavelength or any(res.problem.provided_freq_type == "wavelength" for res in results):
+    if wavelength or main_freq_type == "wavelength":
         if bemio_import:
             wavelength_ds = _dataset_from_dataframe(
                     records.drop_duplicates(subset=['omega']),
@@ -388,7 +390,7 @@ def assemble_dataset(results,
             dataset.coords['wavelength'] = 2*np.pi/wavenumber_data_array(results)
         dataset.wavelength.attrs['long_name'] = 'Wave length'
 
-    if period or any(res.problem.provided_freq_type == "period" for res in results):
+    if period or main_freq_type =="period":
         if bemio_import:
             period_ds = _dataset_from_dataframe(
                     records.drop_duplicates(subset=['omega']),
@@ -435,7 +437,6 @@ def assemble_dataset(results,
     dataset.omega.attrs['long_name'] = 'Radial frequency'
     dataset.omega.attrs['units'] = 'rad/s'
 
-    main_freq_type = Counter((res.problem.provided_freq_type for res in results)).most_common(1)[0][0]
     dataset = dataset.swap_dims({"omega": main_freq_type})
     return dataset
 
