@@ -60,8 +60,8 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
 
     ! Output
-    COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: S
-    COMPLEX(KIND=PRE), DIMENSION(nb_faces_1, nb_faces_2), INTENT(OUT) :: K
+    COMPLEX(KIND=PRE), DIMENSION(:, :), INTENT(INOUT) :: S
+    COMPLEX(KIND=PRE), DIMENSION(:, :, :), INTENT(INOUT) :: K
 
     ! Local variables
     INTEGER                         :: I, J, Q
@@ -95,7 +95,7 @@ CONTAINS
       !  Initialization  !
       !!!!!!!!!!!!!!!!!!!!
       S(:, J) = CMPLX(0.0, 0.0, KIND=PRE)
-      K(:, J) = CMPLX(0.0, 0.0, KIND=PRE)
+      K(:, J, :) = CMPLX(0.0, 0.0, KIND=PRE)
 
       !!!!!!!!!!!!!!!!!!
       !  Rankine part  !
@@ -115,7 +115,11 @@ CONTAINS
 
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(1) * SP1                                ! Green function
-          K(I, J) = K(I, J) - coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1) ! Gradient of the Green function
+          if (size(K, 3) == 1) then
+            K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1(:))
+          else
+            K(I, J, :) = K(I, J, :) - coeffs(1) * VSP1(:)
+          endif
 
         END DO
       END IF
@@ -153,7 +157,11 @@ CONTAINS
 
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(2) * SP1                                ! Green function
-          K(I, J) = K(I, J) - coeffs(2) * DOT_PRODUCT(reflected_normals_1_I(:), VSP1) ! Gradient of the Green function
+          if (size(K, 3) == 1) then
+            K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(reflected_normals_1_I(:), VSP1(:))
+          else
+            K(I, J, :) = K(I, J, :) - coeffs(2) * VSP1(:)
+          endif
         END DO
       END IF
 
@@ -186,15 +194,24 @@ CONTAINS
             END IF
 
             S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, Q)
-            K(I, J) = K(I, J) - coeffs(3) * &
-              DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
+
+            if (size(K, 3) == 1) then
+              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
+            else
+              K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
+            endif
 
           END DO
         END DO
       END IF
 
       IF (SAME_BODY) THEN
-        K(J, J) = K(J, J) + 0.5
+        if (size(K, 3) == 1) then
+          K(J, J, 1) = K(J, J, 1) + 0.5
+        else
+          K(J, J, :) = K(J, J, :) + 0.5 * normals_1(J, :)
+        endif
       END IF
 
     END DO  ! parallelized loop on J
@@ -231,14 +248,22 @@ CONTAINS
           END IF
 
           S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, 1)
-          K(I, J) = K(I, J) - coeffs(3) * &
-            DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+          if (size(K, 3) == 1) then
+            K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+              DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+          else
+            K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+          endif
 
           IF (.NOT. I==J) THEN
             VSP2_SYM(1:2) = -VSP2_SYM(1:2)
             S(J, I) = S(J, I) - coeffs(3) * SP2 * quad_weights(I, 1)
-            K(J, I) = K(J, I) - coeffs(3) * &
-              DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+            if (size(K, 3) == 1) then
+              K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
+                DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+            else
+              K(J, I, :) = K(J, I, :) - coeffs(3) * (VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+            endif
           END IF
         END DO
       END DO

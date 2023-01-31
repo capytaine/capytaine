@@ -37,7 +37,8 @@ program test
   real(kind=pre), dimension(nexp) :: ambda, ar
 
   ! The interaction matrices to be computed
-  complex(kind=pre), dimension(nb_faces, nb_faces) :: S, K
+  complex(kind=pre), dimension(nb_faces, nb_faces) :: S
+  complex(kind=pre), dimension(nb_faces, nb_faces, 1) :: K
 
   integer :: i
   real(kind=pre), dimension(3) :: coeffs
@@ -96,7 +97,7 @@ program test
     print*, S(i, :)
   enddo
   do i = 1, nb_faces
-    print*, K(i, :)
+    print*, K(i, :, 1)
   enddo
 
   print*, "k = 1.0"
@@ -116,7 +117,7 @@ program test
     print*, S(i, :)
   enddo
   do i = 1, nb_faces
-    print*, K(i, :)
+    print*, K(i, :, 1)
   enddo
 
   print*, "k = 2.0"
@@ -136,7 +137,7 @@ program test
     print*, S(i, :)
   enddo
   do i = 1, nb_faces
-    print*, K(i, :)
+    print*, K(i, :, 1)
   enddo
 
 end program test
