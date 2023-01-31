@@ -187,6 +187,9 @@ class LinearPotentialFlowProblem:
 
         return self.__class__.__name__ + "(" + ', '.join(parameters) + ")"
 
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
+
     def _astuple(self):
         return (self.body, self.free_surface, self.sea_bottom, self.omega, self.rho, self.g)
 
@@ -388,6 +391,7 @@ class LinearPotentialFlowResult:
         pass  # Implemented in sub-classes
 
     __str__ = LinearPotentialFlowProblem.__str__
+    _repr_pretty_ = LinearPotentialFlowProblem._repr_pretty_
 
 
 class DiffractionResult(LinearPotentialFlowResult):

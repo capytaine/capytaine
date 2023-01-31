@@ -57,6 +57,12 @@ class BEMSolver:
         except AttributeError:
             pass
 
+    def __str__(self):
+        return f"BEMSolver(engine={self.engine}, green_function={self.green_function})"
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
+
     @classmethod
     def from_exported_settings(settings):
         raise NotImplementedError

@@ -53,6 +53,9 @@ class CollectionOfMeshes(SurfaceIntegralsMixin, Abstract3DObject):
         else:
             return f"{self.__class__.__name__}{meshes_names}"
 
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__repr__())
+
     def __str__(self):
         if self.name is not None:
             return self.name
