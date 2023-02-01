@@ -279,21 +279,20 @@ def export_hydrostatics(hydrostatics_directory, bodies):
             hf.close()
         np.savetxt(kh_file_path, body.hydrostatic_stiffness.values)
 
+    if isinstance(bodies, FloatingBody):
+        bodies = [bodies]
+    
     hydrostatics_file_name = "Hydrostatics.dat"
     kh_file_name = "KH.dat"
-    try:
-        body_count = len(bodies)
-        if body_count == 1:
-            body = bodies[0]
-            hydrostatics_file_path = os.path.join(hydrostatics_directory, hydrostatics_file_name)
-            kh_file_path = os.path.join(hydrostatics_directory, kh_file_name)
-            hydrostatics_writer(hydrostatics_file_path, kh_file_path, body)
-        else:
-            for (i, body) in enumerate(bodies):
-                hydrostatics_file_path = os.path.join(hydrostatics_directory, f"Hydrostatics_{i}.dat")
-                kh_file_path = os.path.join(hydrostatics_directory, f"KH_{i}.dat")
-                hydrostatics_writer(hydrostatics_file_path, kh_file_path, body)
-    except TypeError:
+    
+    body_count = len(bodies)
+    if body_count == 1:
+        body = bodies[0]
         hydrostatics_file_path = os.path.join(hydrostatics_directory, hydrostatics_file_name)
         kh_file_path = os.path.join(hydrostatics_directory, kh_file_name)
-        hydrostatics_writer(hydrostatics_file_path, kh_file_path, bodies)
+        hydrostatics_writer(hydrostatics_file_path, kh_file_path, body)
+    else:
+        for (i, body) in enumerate(bodies):
+            hydrostatics_file_path = os.path.join(hydrostatics_directory, f"Hydrostatics_{i}.dat")
+            kh_file_path = os.path.join(hydrostatics_directory, f"KH_{i}.dat")
+            hydrostatics_writer(hydrostatics_file_path, kh_file_path, body)
