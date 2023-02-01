@@ -123,19 +123,19 @@ def test_legacy_export_hydrostatics():
     # Check single body KH.dat
     single_body_KH = np.loadtxt("./pytest/io_legacy_cases/single_body/KH.dat")
     single_body_KH_ref = np.loadtxt("./pytest/io_legacy_cases/reference_data/single_body/KH.dat")
-    np.testing.assert_allclose(single_body_KH, single_body_KH_ref, rtol=1e-6)
+    np.testing.assert_allclose(single_body_KH, single_body_KH_ref, atol=1e-6)
 
     # Check single body (list) KH.dat
     single_body_list_KH = np.loadtxt("./pytest/io_legacy_cases/single_body_list/KH.dat")
     single_body_list_KH_ref = np.loadtxt("./pytest/io_legacy_cases/reference_data/single_body_list/KH.dat")
-    np.testing.assert_allclose(single_body_list_KH, single_body_list_KH_ref, rtol=1e-6)
+    np.testing.assert_allclose(single_body_list_KH, single_body_list_KH_ref, atol=1e-6)
 
     # Check two bodies (list) KH_0.dat
     two_bodies_KH_0 = np.loadtxt("./pytest/io_legacy_cases/two_bodies_list/KH_0.dat")
     two_bodies_KH_0_ref = np.loadtxt("./pytest/io_legacy_cases/reference_data/two_bodies_list/KH_0.dat")
-    np.testing.assert_allclose(two_bodies_KH_0, two_bodies_KH_0_ref, rtol=1e-6)
+    np.testing.assert_allclose(two_bodies_KH_0, two_bodies_KH_0_ref, atol=1e-6)
 
     # Check two bodies (list) KH_1.dat
     two_bodies_KH_1 = np.loadtxt("./pytest/io_legacy_cases/two_bodies_list/KH_1.dat")
     two_bodies_KH_1_ref = np.loadtxt("./pytest/io_legacy_cases/reference_data/two_bodies_list/KH_1.dat")
-    np.testing.assert_allclose(two_bodies_KH_1, two_bodies_KH_1_ref, rtol=1e-6)
+    np.testing.assert_allclose(two_bodies_KH_1, two_bodies_KH_1_ref, atol=1e-6)
