@@ -16,6 +16,8 @@ New in next version
 
 * Support the new format of `Nemoh.cal` file from Nemoh v3 (:issue:`278` and :pull:`280`).
 
+* Support exporting hydrostatics data in original Nemoh-format files - :code:`Hydrostatics.dat` and :code:`KH.dat` (:pull:`285`).
+
 -------------------------------
 New in version 1.5 (2022-12-13)
 -------------------------------
