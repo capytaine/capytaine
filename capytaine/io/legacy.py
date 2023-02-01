@@ -272,12 +272,12 @@ def export_hydrostatics(hydrostatics_directory, bodies):
         """Write the Hydrostatics.dat and KH.dat files"""
         with open(hydrostatics_file_path, 'w') as hf:
             for j in range(3):
-                line =  f'XF = {body.center_of_buoyancy[j]:7.3f} - XG = {body.center_of_mass[j]:7.3f} \n'
+                line =  f'XF = {body.center_of_buoyancy[j]:7.4f} - XG = {body.center_of_mass[j]:7.4f} \n'
                 hf.write(line)
-            line = f'Displacement = {body.volume:E}'
+            line = f'Displacement = {body.volume:1.6E}'
             hf.write(line)
             hf.close()
-        np.savetxt(kh_file_path, body.hydrostatic_stiffness.values)
+        np.savetxt(kh_file_path, body.hydrostatic_stiffness.values, fmt='%1.6E')
 
     if isinstance(bodies, FloatingBody):
         bodies = [bodies]

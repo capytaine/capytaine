@@ -1,4 +1,3 @@
-
 import xarray as xr
 import numpy as np
 import capytaine as cpt
@@ -7,6 +6,7 @@ import os
 
 from capytaine.io.xarray import problems_from_dataset, separate_complex_values, merge_complex_values
 from capytaine.io.legacy import export_hydrostatics
+
 
 def test_incomplete_test_matrix():
     body = cpt.Sphere()
@@ -73,18 +73,14 @@ def test_legacy_export_hydrostatics():
     cylinder1_mesh = cpt.meshes.predefined.mesh_vertical_cylinder()
     cylinder2_mesh = cpt.meshes.predefined.mesh_vertical_cylinder(center = (5, 0, 0))
 
-    cylinder1 = cpt.bodies.FloatingBody(cylinder1_mesh, center_of_mass=[0.0, 0.0, -2.0])
-    cylinder2 = cpt.bodies.FloatingBody(cylinder2_mesh, center_of_mass=[5.0, 0.0, -2.0])
+    cylinder1 = cpt.FloatingBody(cylinder1_mesh, center_of_mass=[0.0, 0.0, -2.0])
+    cylinder2 = cpt.FloatingBody(cylinder2_mesh, center_of_mass=[5.0, 0.0, -2.0])
 
     cylinder1.center_of_mass = [0.0, 0.0, -2.0]
     cylinder1.add_all_rigid_body_dofs()
     cylinder1.compute_rigid_body_inertia()
     cylinder1.compute_hydrostatics()
     
-    cylinder2 = cpt.FloatingBody(mesh=cpt.mesh_horizontal_cylinder(length=10.0,
-                                                                   radius=1.0,
-                                                                   center=(12, 0, -2),
-                                                                   resolution=(1, 6, 8)))
     cylinder2.center_of_mass = [12.0, 0.0, -2.0]
     cylinder2.add_all_rigid_body_dofs()
     cylinder2.compute_rigid_body_inertia()
@@ -141,7 +137,7 @@ def test_legacy_export_hydrostatics():
         two_bodies_KH_0_ref = f.read()
     assert two_bodies_KH_0 == two_bodies_KH_0_ref
 
-        # Check two bodies (list) Hydrostatics_1.dat
+    # Check two bodies (list) Hydrostatics_1.dat
     with open("./pytest/io_legacy_cases/two_bodies_list/Hydrostatics_1.dat", "r") as f:
         two_bodies_Hydrostatics_1 = f.read()
     with open("./pytest/io_legacy_cases/reference_data/two_bodies_list/Hydrostatics_1.dat", "r") as f:
