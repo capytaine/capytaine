@@ -972,6 +972,51 @@ def load_NEM(filename, name=None):
     return Mesh(vertices, faces, name)
 
 
+def load_PNL(filename, name=None):
+    """Load mesh using HAMS file format."""
+
+    with open(filename, 'r') as f:
+        # Skip 3 title lines
+        f.readline()
+        f.readline()
+        f.readline()
+        # Read header data
+        nb_faces, nb_vertices, x_sym, y_sym = map(int, f.readline().split())
+        # Skip 2 more lines
+        f.readline()
+        f.readline()
+        vertices = np.genfromtxt((f.readline() for _ in range(nb_vertices)), usecols=(1, 2, 3))
+        # Skip 3 more lines
+        f.readline()
+        f.readline()
+        f.readline()
+        faces = np.zeros((nb_faces, 4), dtype=int)
+        for i in range(nb_faces):
+            index, nb_corners, *data = map(int, f.readline().split())
+            assert i+1 == index
+            if nb_corners == 3:  # Triangle
+                assert len(data) == 3
+                faces[i, 0:3] = data
+                faces[i, 3] = faces[i, 2]  # Convention for triangles in Capytaine: repeat last vertex
+            elif int(nb_corners) == 4:  # Quadrangle
+                assert len(data) == 4
+                faces[i, :] = data
+    faces = faces - 1  # Going from Fortran 1-based indices to Numpy 0-based indices
+
+    if x_sym == 1 and y_sym == 0:
+        half_mesh = Mesh(vertices, faces, name=(f"half_of_{name}" if name is not None else None))
+        return ReflectionSymmetricMesh(half_mesh, plane=yOz_Plane, name=name)
+    elif x_sym == 0 and y_sym == 1:
+        half_mesh = Mesh(vertices, faces, name=(f"half_of_{name}" if name is not None else None))
+        return ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=name)
+    elif x_sym == 1 and y_sym == 1:
+        quarter_mesh = Mesh(vertices, faces, name=(f"quarter_of_{name}" if name is not None else None))
+        half_mesh = ReflectionSymmetricMesh(quarter_mesh, plane=xOz_Plane, name=(f"half_of_{name}" if name is not None else None))
+        return ReflectionSymmetricMesh(half_mesh, plane=yOz_Plane, name=name)
+    else:
+        return Mesh(vertices, faces, name)
+
+
 extension_dict = {  # keyword, reader
     'dat': load_MAR,
     'mar': load_MAR,
@@ -1001,5 +1046,7 @@ extension_dict = {  # keyword, reader
     'vrml': load_WRL,
     'wrl': load_WRL,
     'nem': load_NEM,
-    'nemoh_mesh': load_NEM
+    'nemoh_mesh': load_NEM,
+    'pnl': load_PNL,
+    'hams': load_PNL,
 }
