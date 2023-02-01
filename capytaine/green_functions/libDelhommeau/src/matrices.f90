@@ -65,7 +65,7 @@ CONTAINS
 
     ! Local variables
     INTEGER                         :: I, J, Q
-    REAL(KIND=PRE), DIMENSION(3)    :: reflected_centers_1_I, reflected_normals_1_I
+    REAL(KIND=PRE), DIMENSION(3)    :: reflected_centers_1_I, reflected_VSP1
     REAL(KIND=PRE)                  :: SP1
     REAL(KIND=PRE), DIMENSION(3)    :: VSP1
     COMPLEX(KIND=PRE)               :: SP2
@@ -88,7 +88,7 @@ CONTAINS
 
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
-    !$OMP&  PRIVATE(J, I, SP1, VSP1, SP2, VSP2_SYM, VSP2_ANTISYM, reflected_centers_1_I, reflected_normals_1_I)
+    !$OMP&  PRIVATE(J, I, SP1, VSP1, SP2, VSP2_SYM, VSP2_ANTISYM, reflected_centers_1_I, reflected_VSP1)
     DO J = 1, nb_faces_2
 
       !!!!!!!!!!!!!!!!!!!!
@@ -142,9 +142,6 @@ CONTAINS
             reflected_centers_1_I(3)   = -centers_1(I, 3) - 2*depth
           END IF
 
-          reflected_normals_1_I(1:2) = normals_1(I, 1:2)
-          reflected_normals_1_I(3)   = -normals_1(I, 3)
-
           CALL COMPUTE_INTEGRAL_OF_RANKINE_SOURCE( &
             reflected_centers_1_I(:),                &
             vertices_2(faces_2(J, :), :),          &
@@ -155,12 +152,15 @@ CONTAINS
             SP1, VSP1                              &
             )
 
+          reflected_VSP1(1:2) = VSP1(1:2)
+          reflected_VSP1(3) = -VSP1(3)
+
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(2) * SP1                                ! Green function
           if (size(K, 3) == 1) then
-            K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(reflected_normals_1_I(:), VSP1(:))
+            K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_VSP1(:))
           else
-            K(I, J, :) = K(I, J, :) - coeffs(2) * VSP1(:)
+            K(I, J, :) = K(I, J, :) - coeffs(2) * reflected_VSP1(:)
           endif
         END DO
       END IF
