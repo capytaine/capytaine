@@ -253,6 +253,17 @@ class BEMSolver:
         return fs_elevation
 
 
+    def get_velocity_on_mesh(result, mesh):
+        if result.sources is None:
+            raise Exception(f"""The values of the sources of {result} cannot been found.
+            They probably have not been stored by the solver because the option keep_details=True have not been set.
+            Please re-run the resolution with this option.""")
+
+        S, gradG = self.green_function.evaluate(mesh, result.body.mesh, result.free_surface, result.sea_bottom, result.wavenumber, K_dim=3)
+        velocities = np.einsum('ijk,j->ik', gradG, result.sources)
+        return velocities
+
+
 # LEGACY INTERFACE
 
 def _arguments(f):
