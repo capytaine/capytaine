@@ -67,6 +67,7 @@ def test_dataset_from_bemio():
     assert (np.moveaxis(bemio_data.body[0].am.all, 2, 0) * bemio_data.body[0].rho == \
         new_dataset['added_mass'].values).all()
 
+
 def test_legacy_export_hydrostatics():
     # create two cylinders & compute inertia & hydrostatic data
     cylinder1_mesh = cpt.meshes.predefined.mesh_vertical_cylinder()
@@ -91,65 +92,65 @@ def test_legacy_export_hydrostatics():
 
 
     # export hydrostatics
-    export_hydrostatics('./io_legacy_cases/single_body', cylinder1)
-    export_hydrostatics('./io_legacy_cases/single_body_list', [cylinder1])
-    export_hydrostatics('./io_legacy_cases/two_bodies_list', [cylinder1, cylinder2])
+    export_hydrostatics('./pytest/io_legacy_cases/single_body', cylinder1)
+    export_hydrostatics('./pytest/io_legacy_cases/single_body_list', [cylinder1])
+    export_hydrostatics('./pytest/io_legacy_cases/two_bodies_list', [cylinder1, cylinder2])
     
 
     # Check single body Hydrostatics.dat
-    with open("./io_legacy_cases/single_body/Hydrostatics.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/single_body/Hydrostatics.dat", "r") as f:
         single_body_Hydrostatics = f.read()
-    with open("./io_legacy_cases/reference_data/single_body/Hydrostatics.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/reference_data/single_body/Hydrostatics.dat", "r") as f:
         single_body_Hydrostatics_ref = f.read()
     assert single_body_Hydrostatics == single_body_Hydrostatics_ref
 
     # Check single body KH.dat
-    with open("./io_legacy_cases/single_body/KH.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/single_body/KH.dat", "r") as f:
         single_body_KH = f.read()
-    with open("./io_legacy_cases/reference_data/single_body/KH.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/reference_data/single_body/KH.dat", "r") as f:
         single_body_KH_ref = f.read()
     assert single_body_KH == single_body_KH_ref
 
 
     # Check single body (list) Hydrostatics.dat
-    with open("./io_legacy_cases/single_body_list/Hydrostatics.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/single_body_list/Hydrostatics.dat", "r") as f:
         single_body_list_Hydrostatics = f.read()
-    with open("./io_legacy_cases/reference_data/single_body_list/Hydrostatics.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/reference_data/single_body_list/Hydrostatics.dat", "r") as f:
         single_body_list_Hydrostatics_ref = f.read()
     assert single_body_list_Hydrostatics == single_body_list_Hydrostatics_ref
 
     # Check single body (list) KH.dat
-    with open("./io_legacy_cases/single_body_list/KH.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/single_body_list/KH.dat", "r") as f:
         single_body_list_KH = f.read()
-    with open("./io_legacy_cases/reference_data/single_body_list/KH.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/reference_data/single_body_list/KH.dat", "r") as f:
         single_body_list_KH_ref = f.read()
     assert single_body_list_KH == single_body_list_KH_ref
 
 
     # Check two bodies (list) Hydrostatics_0.dat
-    with open("./io_legacy_cases/two_bodies_list/Hydrostatics_0.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/two_bodies_list/Hydrostatics_0.dat", "r") as f:
         two_bodies_Hydrostatics_0 = f.read()
-    with open("./io_legacy_cases/reference_data/two_bodies_list/Hydrostatics_0.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/reference_data/two_bodies_list/Hydrostatics_0.dat", "r") as f:
         two_bodies_Hydrostatics_0_ref = f.read()
     assert two_bodies_Hydrostatics_0 == two_bodies_Hydrostatics_0_ref
 
     # Check two bodies (list) KH_0.dat
-    with open("./io_legacy_cases/two_bodies_list/KH_0.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/two_bodies_list/KH_0.dat", "r") as f:
         two_bodies_KH_0 = f.read()
-    with open("./io_legacy_cases/reference_data/two_bodies_list/KH_0.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/reference_data/two_bodies_list/KH_0.dat", "r") as f:
         two_bodies_KH_0_ref = f.read()
     assert two_bodies_KH_0 == two_bodies_KH_0_ref
 
         # Check two bodies (list) Hydrostatics_1.dat
-    with open("./io_legacy_cases/two_bodies_list/Hydrostatics_1.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/two_bodies_list/Hydrostatics_1.dat", "r") as f:
         two_bodies_Hydrostatics_1 = f.read()
-    with open("./io_legacy_cases/reference_data/two_bodies_list/Hydrostatics_1.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/reference_data/two_bodies_list/Hydrostatics_1.dat", "r") as f:
         two_bodies_Hydrostatics_1_ref = f.read()
     assert two_bodies_Hydrostatics_1 == two_bodies_Hydrostatics_1_ref
 
     # Check two bodies (list) KH_1.dat
-    with open("./io_legacy_cases/two_bodies_list/KH_1.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/two_bodies_list/KH_1.dat", "r") as f:
         two_bodies_KH_1 = f.read()
-    with open("./io_legacy_cases/reference_data/two_bodies_list/KH_1.dat", "r") as f:
+    with open("./pytest/io_legacy_cases/reference_data/two_bodies_list/KH_1.dat", "r") as f:
         two_bodies_KH_1_ref = f.read()
     assert two_bodies_KH_1 == two_bodies_KH_1_ref
