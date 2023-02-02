@@ -621,9 +621,21 @@ def write_WRL(filename, vertices, faces):
 
 
 def write_PNL(filename, vertices, faces):
-    """
+    """Write a mesh to a file using HAMS file format.
+
     Took some inspiration from "nemohmesh_to_pnl" by Garett Barter
     https://github.com/WISDEM/pyHAMS/blob/d10b51122e92849c63640b34e4fa9d413eb306fd/pyhams/pyhams.py#L11
+
+    This writer does not support symmetries.
+
+    Parameters
+    ----------
+    filename: str
+        name of the mesh file to be written on disk
+    vertices: ndarray
+        numpy array of the coordinates of the mesh's nodes
+    faces: ndarray
+        numpy array of the faces' nodes connectivities
     """
     with open(filename, 'w') as f:
         f.write('    --------------Hull Mesh File---------------\n')

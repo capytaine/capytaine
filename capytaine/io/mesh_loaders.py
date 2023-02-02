@@ -697,7 +697,7 @@ def load_GDF(filename, name=None):
 
     Returns
     -------
-    Mesh
+    Mesh or ReflectionSymmetricMesh
         the loaded mesh
 
     Note
@@ -973,7 +973,18 @@ def load_NEM(filename, name=None):
 
 
 def load_PNL(filename, name=None):
-    """Load mesh using HAMS file format."""
+    """Load mesh using HAMS file format.
+
+    Parameters
+    ----------
+    filename: str
+        name of the mesh file on disk
+
+    Returns
+    -------
+    Mesh or ReflectionSymmetricMesh
+        the loaded mesh
+    """
 
     with open(filename, 'r') as f:
         # Skip 3 title lines
