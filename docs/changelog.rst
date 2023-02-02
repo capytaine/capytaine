@@ -25,6 +25,8 @@ Minor changes
 
 * Support the new format of `Nemoh.cal` file from Nemoh v3 (:issue:`278` and :pull:`280`).
 
+* Support exporting hydrostatics data in original Nemoh-format files - :code:`Hydrostatics.dat` and :code:`KH.dat` (:pull:`285`).
+
 * Add nicer display for Capytaine objects in IPython shell (:issue:`227` and :pull:`287`)
 
 -------------------------------
