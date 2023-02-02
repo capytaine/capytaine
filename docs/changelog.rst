@@ -11,12 +11,23 @@ Changelog
 New in next version
 -------------------
 
+Major changes
+~~~~~~~~~~~~~
+
+* User can specify a period, a wavelength or a wavenumber instead of an angular frequency :code:`omega` when setting up a problem or a test matrix.
+  If several types of frequency data are provided, an error is raised (:pull:`283`).
+
 * Remove the :code:`convention` parameter to compute excitation force with WAMIT conventions (:issue:`133` and :pull:`281`).
   Changing the convention to compare the outputs of different codes is better done by a dedicated software such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_ or `BEMIO <https://wec-sim.github.io/bemio/>`_.
+
+Minor changes
+~~~~~~~~~~~~~
 
 * Support the new format of `Nemoh.cal` file from Nemoh v3 (:issue:`278` and :pull:`280`).
 
 * Support exporting hydrostatics data in original Nemoh-format files - :code:`Hydrostatics.dat` and :code:`KH.dat` (:pull:`285`).
+
+* Add nicer display for Capytaine objects in IPython shell (:issue:`227` and :pull:`287`)
 
 -------------------------------
 New in version 1.5 (2022-12-13)
