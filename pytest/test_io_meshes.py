@@ -344,3 +344,14 @@ def test_write_and_load_gdf(tmpdir):
 def test_MED_file():
     mesh = cpt.load_mesh("./pytest/mesh_files_examples/barge.med")
     assert mesh.nb_faces == 187
+
+
+def test_pnl(tmpdir):
+    mesh_path = tmpdir.join("temp_mesh.pnl")
+    mesh = cpt.mesh_sphere()
+    from capytaine.io.mesh_writers import write_PNL
+    write_PNL(mesh_path, mesh.vertices, mesh.faces)
+    reloaded_mesh = cpt.load_mesh(mesh_path)
+    np.testing.assert_equal(mesh.faces, reloaded_mesh.faces)
+    np.testing.assert_allclose(mesh.vertices, reloaded_mesh.vertices, atol=1e-5)
+
