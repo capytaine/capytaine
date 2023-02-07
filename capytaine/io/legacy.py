@@ -259,3 +259,40 @@ def write_dataset_as_tecplot_files(results_directory, data):
                         fi.write('  ')
                     fi.write('\n')
 
+def export_hydrostatics(hydrostatics_directory, bodies):
+    """Determine filenames (following Nemoh convention) and call the .dat file writer"""
+
+    if os.path.isdir(hydrostatics_directory):
+        LOG.warning(f"""Exporting problem in already existing directory: {hydrostatics_directory}
+             You might be overwriting existing files!""")
+    else:
+        os.makedirs(hydrostatics_directory)
+
+    def hydrostatics_writer(hydrostatics_file_path, kh_file_path, body):
+        """Write the Hydrostatics.dat and KH.dat files"""
+        with open(hydrostatics_file_path, 'w') as hf:
+            for j in range(3):
+                line =  f'XF = {body.center_of_buoyancy[j]:7.4f} - XG = {body.center_of_mass[j]:7.4f} \n'
+                hf.write(line)
+            line = f'Displacement = {body.volume:1.6E}'
+            hf.write(line)
+            hf.close()
+        np.savetxt(kh_file_path, body.hydrostatic_stiffness.values, fmt='%1.6E')
+
+    if isinstance(bodies, FloatingBody):
+        bodies = [bodies]
+    
+    hydrostatics_file_name = "Hydrostatics.dat"
+    kh_file_name = "KH.dat"
+    
+    body_count = len(bodies)
+    if body_count == 1:
+        body = bodies[0]
+        hydrostatics_file_path = os.path.join(hydrostatics_directory, hydrostatics_file_name)
+        kh_file_path = os.path.join(hydrostatics_directory, kh_file_name)
+        hydrostatics_writer(hydrostatics_file_path, kh_file_path, body)
+    else:
+        for (i, body) in enumerate(bodies):
+            hydrostatics_file_path = os.path.join(hydrostatics_directory, f"Hydrostatics_{i}.dat")
+            kh_file_path = os.path.join(hydrostatics_directory, f"KH_{i}.dat")
+            hydrostatics_writer(hydrostatics_file_path, kh_file_path, body)

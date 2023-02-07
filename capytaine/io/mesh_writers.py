@@ -620,6 +620,46 @@ def write_WRL(filename, vertices, faces):
     raise NotImplementedError('VRML writer is not implemented yet')
 
 
+def write_PNL(filename, vertices, faces):
+    """Write a mesh to a file using HAMS file format.
+
+    Took some inspiration from "nemohmesh_to_pnl" by Garett Barter
+    https://github.com/WISDEM/pyHAMS/blob/d10b51122e92849c63640b34e4fa9d413eb306fd/pyhams/pyhams.py#L11
+
+    This writer does not support symmetries.
+
+    Parameters
+    ----------
+    filename: str
+        name of the mesh file to be written on disk
+    vertices: ndarray
+        numpy array of the coordinates of the mesh's nodes
+    faces: ndarray
+        numpy array of the faces' nodes connectivities
+    """
+    with open(filename, 'w') as f:
+        f.write('    --------------Hull Mesh File---------------\n')
+        f.write('\n')
+        f.write('    # Number of Panels, Nodes, X-Symmetry and Y-Symmetry\n')
+        f.write(f'         {faces.shape[0]}         {vertices.shape[0]}         0         0\n')
+        f.write('\n')
+        f.write('    #Start Definition of Node Coordinates     ! node_number   x   y   z\n')
+        for i, vertex in enumerate(vertices):
+            f.write("{:>5}{:>18.6f}{:>18.6f}{:>18.6f}\n".format(i+1, *vertex))
+        f.write('   #End Definition of Node Coordinates\n')
+        f.write('\n')
+        f.write('   #Start Definition of Node Relations   ! panel_number  number_of_vertices   Vertex1_ID   Vertex2_ID   Vertex3_ID   (Vertex4_ID)\n')
+        for i, face in enumerate(faces):
+            face = face + 1
+            if face[2] == face[3]:  # Triangle
+                f.write("{:>5}{:>5}{:>10}{:>10}{:>10}\n".format(i+1, 3, *face[:3]))
+            else:
+                f.write("{:>5}{:>5}{:>10}{:>10}{:>10}{:>10}\n".format(i+1, 4, *face))
+        f.write('   #End Definition of Node Relations\n')
+        f.write('\n')
+        f.write('    --------------End Hull Mesh File---------------\n')
+
+
 extension_dict = {  # keyword,  writer
     'mar': write_MAR,
     'nemoh': write_MAR,
@@ -648,5 +688,7 @@ extension_dict = {  # keyword,  writer
     'vrml': write_WRL,
     'wrl': write_WRL,
     'nem': write_NEM,
-    'nemoh_mesh': write_NEM
+    'nemoh_mesh': write_NEM,
+    'pnl': write_PNL,
+    'hams': write_PNL,
 }

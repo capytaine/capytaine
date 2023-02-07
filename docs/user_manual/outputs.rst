@@ -121,6 +121,33 @@ This can be fixed by explicitly converting the strings to the right format when 
 
 See also `this Github issue <https://github.com/capytaine/capytaine/issues/2>`_.
 
+
+Saving the hydrostatics data
+----------------------------
+
+In order to save the following hydrostatics information:
+
+- Hydrostatic stiffness matrix,
+- Centre of gravity,
+- Centre of buoyancy,
+- Displacement volume
+
+There are two files that can be written using the :mod:`capytaine.io.legacy` module::
+
+    from capytaine.io.legacy import export_hydrostatics
+    export_hydrostatics("directory_to_save_hydrostatics_data", bodies)
+
+Where :code:`bodies` can be a single :code:`FloatingBody` object or a list of :code:`FloatingBody` objects.
+
+:func:`export_hydrostatics <capytaine.io.legacy.export_hydrostatics>` writes the :code:`Hydrostatics.dat` and :code:`KH.dat` files in the original Nemoh format. These :code:`.dat` files can be used by BEMIO to produce :code:`.h5` files for WEC-Sim.
+
+In order to use this function, please ensure that the body's centre of gravity has been defined correctly and the following methods have been called on the :code:`FloatingBody` object before passing it to :func:`export_hydrostatics <capytaine.io.legacy.export_hydrostatics>`::
+  
+  body.add_all_rigid_body_dofs()
+  body.compute_rigid_body_inertia()
+  body.compute_hydrostatics()
+
+
 Saving the data as legacy Tecplot files
 ---------------------------------------
 
