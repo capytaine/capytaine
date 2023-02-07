@@ -15,7 +15,7 @@ def test_a_posteriori_scalar_product():
     np.testing.assert_allclose(K, K__)
 
 
-def test_reconstruct_normal_velocity():
+def test_manual_reconstruction_of_normal_velocity():
     mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
     S, gradG = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, -np.infty, 1.0, early_dot_product=False)
     S, K = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, -np.infty, 1.0, early_dot_product=True)
@@ -35,3 +35,23 @@ def test_a_posteriori_scalar_product_direct_method():
             D_[i, j] = gradG[i, j, :] @ mesh.faces_normals[j, :]
     D__ = np.einsum('...k,...k->...', gradG, mesh.faces_normals)
     np.testing.assert_allclose(D_, D__)
+
+
+def test_solver_velocity_reconstruction():
+    # mesh = cpt.mesh_sphere(radius=1, center=(0, 0, 0), resolution=(10, 10)).immersed_part()
+    mesh = cpt.mesh_horizontal_cylinder(radius=1.0, length=1.0, center=(0, 0, 0), resolution=(5, 20, 5)).immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    velocities = {}
+    for dof in body.dofs:
+        pb = cpt.RadiationProblem(body=body, omega=1.0, radiating_dof=dof)
+        solver = cpt.BEMSolver()
+        res = solver.solve(pb)
+        print(solver.get_velocity_at_points(res, np.array([[0.0, 0.0, -1.0001]])))
+        velocities[dof] = solver.get_velocity_on_mesh(res, mesh)
+
+    import matplotlib.pyplot as plt
+    fig, axs = plt.subplots(2, 3, subplot_kw=dict(projection="3d"))
+    for ax, dof in zip(axs.ravel(), velocities):
+        ax.quiver(*zip(*mesh.faces_centers), *zip(*velocities[dof]), length=0.5)
+        ax.set_title(dof)
+    plt.show()
