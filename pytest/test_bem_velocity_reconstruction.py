@@ -2,6 +2,18 @@ import pytest
 import numpy as np
 import capytaine as cpt
 
+def test_gradient_G():
+    mesh = cpt.mesh_sphere(radius=1, center=(0, 0, 0), resolution=(10, 10)).immersed_part()
+    _, gradG_1 = cpt.Delhommeau().evaluate(mesh.faces_centers[[12], :], mesh, 0.0, -np.infty, 1.0, early_dot_product=False)
+    _, gradG_2 = cpt.Delhommeau().evaluate(mesh.copy(), mesh, 0.0, -np.infty, 1.0, early_dot_product=False)
+    _, gradG_3 = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, -np.infty, 1.0, early_dot_product=False)
+    np.testing.assert_allclose(gradG_1, gradG_2[[12], :])
+    for i in range(mesh.nb_faces):
+        if i != 12:
+            np.testing.assert_allclose(gradG_1[:, i], gradG_3[[12], i])
+    np.testing.assert_allclose(gradG_1[0, 12], gradG_3[12, 12] - 0.5*mesh.faces_normals[12, :])
+
+
 def test_a_posteriori_scalar_product():
     mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
     S, gradG = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, -np.infty, 1.0, early_dot_product=False)
@@ -49,9 +61,10 @@ def test_solver_velocity_reconstruction():
         print(solver.get_velocity_at_points(res, np.array([[0.0, 0.0, -1.0001]])))
         velocities[dof] = solver.get_velocity_on_mesh(res, mesh)
 
-    import matplotlib.pyplot as plt
-    fig, axs = plt.subplots(2, 3, subplot_kw=dict(projection="3d"))
-    for ax, dof in zip(axs.ravel(), velocities):
-        ax.quiver(*zip(*mesh.faces_centers), *zip(*velocities[dof]), length=0.5)
-        ax.set_title(dof)
-    plt.show()
+    # import matplotlib.pyplot as plt
+    # fig, axs = plt.subplots(2, 3, subplot_kw=dict(projection="3d"))
+    # for ax, dof in zip(axs.ravel(), velocities):
+    #     ax.quiver(*zip(*mesh.faces_centers), *zip(*velocities[dof]), length=0.5)
+    #     ax.set_title(dof)
+    # plt.show()
+
