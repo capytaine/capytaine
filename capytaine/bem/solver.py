@@ -259,9 +259,9 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        S, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.sea_bottom, result.wavenumber,
+        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.sea_bottom, result.wavenumber,
                                                 early_dot_product=False)
-        velocities = np.einsum('ijk,j->ik', gradG, result.sources)
+        velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
         return velocities
 
     def get_velocity_on_mesh(self, result, mesh):
