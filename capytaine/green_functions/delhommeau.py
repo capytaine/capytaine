@@ -165,7 +165,7 @@ class Delhommeau(AbstractGreenFunction):
 
         return a, lamda
 
-    def evaluate(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0, K_dim=1):
+    def evaluate(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0, early_dot_product=True):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
 
         Parameters
@@ -180,6 +180,9 @@ class Delhommeau(AbstractGreenFunction):
             position of the sea bottom (default: :math:`z = -\infty`)
         wavenumber: float, optional
             wavenumber (default: 1.0)
+        early_dot_product: boolean, optional
+            if False, return K as a (n, m, 3) array storing ∫∇G
+            if True, return K as a (n, m) array storing ∫∇G·n
 
         Returns
         -------
@@ -218,7 +221,7 @@ class Delhommeau(AbstractGreenFunction):
                 coeffs = np.array((1.0, 1.0, 1.0))
 
         S = np.empty((mesh1.nb_faces, mesh2.nb_faces), order="F", dtype="complex128")
-        K = np.empty((mesh1.nb_faces, mesh2.nb_faces, K_dim), order="F", dtype="complex128")
+        K = np.empty((mesh1.nb_faces, mesh2.nb_faces, 1 if early_dot_product else 3), order="F", dtype="complex128")
 
         # Main call to Fortran code
         self.fortran_core.matrices.build_matrices(
@@ -239,7 +242,7 @@ class Delhommeau(AbstractGreenFunction):
             raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
                     "It could be due to overlapping panels.")
 
-        if K_dim == 1: K = K.reshape((mesh1.nb_faces, mesh2.nb_faces))
+        if early_dot_product: K = K.reshape((mesh1.nb_faces, mesh2.nb_faces))
 
         return S, K
 

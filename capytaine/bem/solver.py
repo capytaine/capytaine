@@ -253,13 +253,32 @@ class BEMSolver:
         return fs_elevation
 
 
-    def get_velocity_on_mesh(result, mesh):
+    def get_velocity_on_mesh(self, result, mesh):
+        """Compute the velocity on a mesh for the potential field of a previously solved problem.
+
+        Parameters
+        ----------
+        result : LinearPotentialFlowResult
+            the return of the BEM solver
+        mesh : Mesh or CollectionOfMeshes
+            a mesh
+
+        Returns
+        -------
+        array of shape (mesh.nb_faces, 3)
+            velocity on the faces of the mesh
+
+        Raises
+        ------
+        Exception: if the :code:`Result` object given as input does not contain the source distribution.
+        """
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        S, gradG = self.green_function.evaluate(mesh, result.body.mesh, result.free_surface, result.sea_bottom, result.wavenumber, K_dim=3)
+        S, gradG = self.green_function.evaluate(mesh, result.body.mesh, result.free_surface, result.sea_bottom, result.wavenumber,
+                                                early_dot_product=False)
         velocities = np.einsum('ijk,j->ik', gradG, result.sources)
         return velocities
 
