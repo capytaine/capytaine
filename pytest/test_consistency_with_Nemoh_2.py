@@ -3,18 +3,18 @@
 """Quantitatively compare the results of Capytaine with the results from Nemoh 2."""
 
 import numpy as np
+import capytaine as cpt
 
 from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.bodies.predefined.cylinders import HorizontalCylinder
 from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
-from capytaine.bem.solver import Nemoh
 from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.io.xarray import assemble_dataset
 from capytaine.post_pro.kochin import compute_kochin
 
-solver = Nemoh(linear_solver='gmres', hierarchical_matrices=False, matrix_cache_size=0)
+solver = cpt.BEMSolver(engine=cpt.BasicMatrixEngine(matrix_cache_size=0))
 
 
 def test_immersed_sphere():
