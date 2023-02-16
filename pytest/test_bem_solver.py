@@ -10,7 +10,7 @@ except ImportError:
     joblib = None
 
 from capytaine import __version__
-from capytaine.bem.solver import BEMSolver, Nemoh
+from capytaine.bem.solver import BEMSolver
 from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.bem.problems_and_results import RadiationProblem
