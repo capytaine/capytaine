@@ -295,7 +295,7 @@ def assemble_dataset(results,
     """
     dataset = xr.Dataset()
 
-    error_msg = 'results must be either of type LinearPotentialFlowResult or a bemio.io object'
+    error_msg = 'The first argument of `assemble_dataset` must be either a list of LinearPotentialFlowResult or a bemio.io object'
     if hasattr(results, '__iter__'):
         try:
             if 'capytaine' in results[0].__module__:
