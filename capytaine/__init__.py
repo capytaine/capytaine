@@ -23,7 +23,7 @@ from capytaine.bodies.predefined.cylinders import VerticalCylinder, HorizontalCy
 from capytaine.bodies.predefined.rectangles import Rectangle, RectangularParallelepiped, OpenRectangularParallelepiped
 
 from capytaine.bem.problems_and_results import RadiationProblem, DiffractionProblem
-from capytaine.bem.solver import Nemoh, BEMSolver
+from capytaine.bem.solver import BEMSolver
 from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
 from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
 
