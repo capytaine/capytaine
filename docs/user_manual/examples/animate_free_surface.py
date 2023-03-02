@@ -3,6 +3,7 @@
 import logging
 
 import capytaine as cpt
+from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
 from capytaine.ui.vtk.animation import Animation
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:\t%(message)s")
@@ -31,7 +32,7 @@ diffraction_elevation_at_faces = solver.get_free_surface_elevation(diffraction_r
 radiation_elevation_at_faces = solver.get_free_surface_elevation(radiation_result, free_surface)
 
 # Add incoming waves
-diffraction_elevation_at_faces = diffraction_elevation_at_faces + free_surface.incoming_waves(diffraction_result)
+diffraction_elevation_at_faces = diffraction_elevation_at_faces + airy_waves_free_surface_elevation(free_surface.mesh.faces_centers, diffraction_problem)
 
 # Run the animations
 animation = Animation(loop_duration=diffraction_result.period)

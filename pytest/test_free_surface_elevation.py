@@ -15,3 +15,15 @@ def test_potential():
     free_surface = cpt.FreeSurface(x_range=(-100, 100), nx=5, y_range=(-100, 100), ny=5)
     eta = solver.get_potential_on_mesh(result, free_surface.mesh, chunk_size=3)
 
+
+def test_airy_wave_free_surface_elevation():
+    from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
+    pb = cpt.DiffractionProblem(wave_direction=0.0, wavelength=1.0)
+
+    assert np.isclose(np.real(airy_waves_free_surface_elevation([0, 0], pb)), 1.0)
+    assert np.isclose(np.real(airy_waves_free_surface_elevation([0.25, 0], pb)), 0.0, atol=1e-5)
+    assert np.isclose(np.real(airy_waves_free_surface_elevation([0.5, 0], pb)), -1.0)
+
+    points = np.random.rand(100, 2)
+    fs = airy_waves_free_surface_elevation(points, pb)
+    assert fs.shape == (100,)
