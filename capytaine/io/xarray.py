@@ -400,7 +400,7 @@ def assemble_dataset(results,
             dataset.coords['period'] = wavelength_ds['period']
         else:
             dataset.coords['period'] = 2*np.pi/dataset["omega"]
-        dataset.wavelength.attrs['long_name'] = 'Period'
+        dataset.period.attrs['long_name'] = 'Period'
 
     if mesh:
         if bemio_import:
