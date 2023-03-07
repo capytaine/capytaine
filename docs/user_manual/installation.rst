@@ -29,7 +29,7 @@ Then activate the environment to use it on the command line with::
 
     conda activate capytaine_env
     
-or set it in the project configuration of your IDE (for instance see `the documentation of PyCharm <https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html>`_ or the `documentation of Spyder <https://github.com/spyder-ide/spyder/wiki/Working-with-packages-and-environments-in-Spyder#working-with-other-environments-and-python-installations>`_).
+or set it in the project configuration of your IDE (for instance see `the documentation of PyCharm <https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html>`_, `the documentation of VSCode <https://code.visualstudio.com/docs/python/environments#_working-with-python-interpreters>`_ or the `documentation of Spyder <https://github.com/spyder-ide/spyder/wiki/Working-with-packages-and-environments-in-Spyder#working-with-other-environments-and-python-installations>`_).
 
 Alternatively, Capytaine can be installed in an existing environment with the following command::
 
