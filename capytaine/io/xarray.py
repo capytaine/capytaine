@@ -295,7 +295,7 @@ def assemble_dataset(results,
     """
     dataset = xr.Dataset()
 
-    error_msg = 'results must be either of type LinearPotentialFlowResult or a bemio.io object'
+    error_msg = 'The first argument of `assemble_dataset` must be either a list of LinearPotentialFlowResult or a bemio.io object'
     if hasattr(results, '__iter__'):
         try:
             if 'capytaine' in results[0].__module__:
@@ -400,7 +400,7 @@ def assemble_dataset(results,
             dataset.coords['period'] = wavelength_ds['period']
         else:
             dataset.coords['period'] = 2*np.pi/dataset["omega"]
-        dataset.wavelength.attrs['long_name'] = 'Period'
+        dataset.period.attrs['long_name'] = 'Period'
 
     if mesh:
         if bemio_import:

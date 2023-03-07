@@ -33,6 +33,10 @@ Minor changes
 
 * Add functions :func:`~capytaine.io.mesh_loaders.load_PNL` and :func:`~capytaine.io.mesh_writers.write_PNL` to load and write meshes in HAMS ``.pnl`` format (:pull:`289`).
 
+* Remove ``cpt.Nemoh()`` class that was replaced by :class:`~capytaine.bem.solver.BEMSolver` in version 1.1 (:pull:`291`)
+
+* Add function :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` to compute the free surface elevation at points (:pull:`293`).
+
 -------------------------------
 New in version 1.5 (2022-12-13)
 -------------------------------

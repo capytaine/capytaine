@@ -78,3 +78,27 @@ def froude_krylov_force(pb):
     pressure = 1j * pb.omega * pb.rho * airy_waves_potential(pb.body.mesh.faces_centers, pb)
     return pb.body.integrate_pressure(pressure)
 
+
+def airy_waves_free_surface_elevation(points, pb):
+    """Compute the free surface elevation at points of the undisturbed Airy waves
+
+    Parameters
+    ----------
+    points: array of shape (3) or (N × 3) or (2) or (N × 2)
+        coordinates of the points in which to evaluate the potential.
+        If only two coordinates are passed, the last one is filled with zeros.
+    pb: DiffractionProblem
+        problem with the environmental conditions (g, rho, ...) of interest
+
+    Returns
+    -------
+    complex-valued array of shape (1,) or (N,)
+        the free surface elevations
+    """
+    points = np.asarray(points)
+    if points.ndim == 1:  # A single point has been provided
+        points = points.reshape((1, points.shape[0]))
+    if points.shape[1] == 2:  # Only x and y have been provided
+        points = np.concatenate([points, np.zeros((points.shape[0], 1))], axis=1)
+    return 1j * pb.omega / pb.g * airy_waves_potential(points, pb)
+

@@ -4,6 +4,7 @@
 import numpy as np
 import capytaine as cpt
 
+solver = cpt.BEMSolver()
 
 def test_sum_of_dofs():
     body1 = cpt.Sphere(radius=1.0, ntheta=3, nphi=12, center=(0, 0, -3), name="body1")
@@ -16,7 +17,6 @@ def test_sum_of_dofs():
     both.add_translation_dof(name="Heave")
 
     problems = [cpt.RadiationProblem(body=both, radiating_dof=dof, omega=1.0) for dof in both.dofs]
-    solver = cpt.Nemoh()
     results = solver.solve_all(problems)
     dataset = cpt.assemble_dataset(results)
 
@@ -38,7 +38,6 @@ def test_rotation_axis():
     assert np.allclose(body.dofs['other_rotation'], (body.dofs['Yaw'] - l*body.dofs['Sway']))
 
     problems = [cpt.RadiationProblem(body=body, radiating_dof=dof, omega=1.0) for dof in body.dofs]
-    solver = cpt.Nemoh()
     results = solver.solve_all(problems, keep_details=True)
     dataset = cpt.assemble_dataset(results)
 

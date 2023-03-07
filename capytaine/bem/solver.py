@@ -252,7 +252,6 @@ class BEMSolver:
             result.fs_elevation[free_surface] = fs_elevation
         return fs_elevation
 
-
     def get_velocity_at_points(self, result, points):
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
@@ -266,37 +265,3 @@ class BEMSolver:
 
     def get_velocity_on_mesh(self, result, mesh):
         return self.get_velocity_at_points(result, mesh.faces_centers)
-
-
-# LEGACY INTERFACE
-
-def _arguments(f):
-    """Returns the name of the arguments of the function f"""
-    return f.__code__.co_varnames[:f.__code__.co_argcount]
-
-class Nemoh(BEMSolver):
-    """Solver for the BEM problem based on Nemoh's Green function. Legacy API.
-    Parameters are dispatched to the Delhommeau class and to the engine
-    (BasicMatrixEngine or HierarchicalToeplitzMatrixEngine).
-    """
-
-    def __init__(self, **params):
-        green_function = Delhommeau(
-           **{key: params[key] for key in params if key in _arguments(Delhommeau.__init__)}
-	)
-        if 'hierarchical_matrices' in params and params['hierarchical_matrices']:
-            engine = HierarchicalToeplitzMatrixEngine(
-               **{key: params[key] for key in params if key in _arguments(HierarchicalToeplitzMatrixEngine.__init__)}
-            )
-        else:
-            engine = BasicMatrixEngine(
-               **{key: params[key] for key in params if key in _arguments(BasicMatrixEngine.__init__)}
-            )
-
-        super().__init__(green_function=green_function, engine=engine)
-
-    def build_matrices(self, *args, **kwargs):
-        """Legacy API."""
-        args = args + (self.green_function,)
-        return self.engine.build_matrices(*args, **kwargs)
-
