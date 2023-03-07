@@ -35,7 +35,7 @@ Alternatively, Capytaine can be installed in an existing environment with the fo
 
     conda install --channel conda-forge capytaine
 
-You can check which version of Capytaine has been installed by opening a Python shell and running::
+You can check which version of Capytaine has been installed by running the following Python code::
 
     import capytaine; print(capytaine.__version__)
 
