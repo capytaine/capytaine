@@ -44,3 +44,6 @@ Experimental features
 * Toeplitz matrices for faster simulations for floating bodies with local symmetries or for regular arrays of identical floating bodies.
 * Higher order quadratures for more precise integration of the Green function.
 
+Roadmap
+-------
+See `on Github<https://github.com/orgs/capytaine/projects/1>`_.
