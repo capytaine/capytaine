@@ -37,6 +37,8 @@ Minor changes
 
 * Add function :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` to compute the free surface elevation at points (:pull:`293`).
 
+* Remove ``full_body`` attribute from :class:`~capytaine.bodies.bodies.FloatingBody` that used to keep a copy of the body before clipping in-place (:pull:`302`).
+
 -------------------------------
 New in version 1.5 (2022-12-13)
 -------------------------------
