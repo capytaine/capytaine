@@ -91,8 +91,6 @@ class FloatingBody(Abstract3DObject):
         else:
             self.dofs = dofs
 
-        self.full_body = None
-
         if self.mesh.nb_vertices == 0 or self.mesh.nb_faces == 0:
             LOG.warning(f"New floating body (with empty mesh!): {self.name}.")
         else:
@@ -945,10 +943,6 @@ respective inertia coefficients are assigned as NaN.")
 
     @inplace_transformation
     def clip(self, plane):
-        # Keep of copy of the full mesh
-        if self.full_body is None:
-            self.full_body = self.copy()
-
         # Clip mesh
         LOG.info(f"Clipping {self.name} with respect to {plane}")
         self.mesh.clip(plane)
