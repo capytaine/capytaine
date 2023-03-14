@@ -39,6 +39,8 @@ You can check which version of Capytaine has been installed by running the follo
 
     import capytaine; print(capytaine.__version__)
 
+The latest version is currently |version|.
+
 Optional dependencies
 ---------------------
 
