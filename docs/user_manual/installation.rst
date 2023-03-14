@@ -63,6 +63,11 @@ They are nice to have but not necessary for Capytaine's main features.
 |            |                                          | (experimental)               |
 +------------+------------------------------------------+------------------------------+
 
+After creating the Conda environment containing Capytaine, you can add more packages to this environment by activating it with ``conda activate`` and then using the ``conda install`` or ``pip install`` commands.
+However, it is often more efficient to specify the packages you'd like in your environment from the start when creating it, such as in the following example::
+
+    conda create --name capy_and_other_env --channel conda-forge capytaine jupyter matplotlib vtk
+
 
 With Pip
 --------
