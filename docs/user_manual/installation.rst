@@ -39,6 +39,8 @@ You can check which version of Capytaine has been installed by running the follo
 
     import capytaine; print(capytaine.__version__)
 
+The latest version is currently |version|.
+
 Optional dependencies
 ---------------------
 
@@ -62,6 +64,11 @@ They are nice to have but not necessary for Capytaine's main features.
 | quadpy     | :code:`pip install quadpy`               | For higher order quadratures |
 |            |                                          | (experimental)               |
 +------------+------------------------------------------+------------------------------+
+
+After creating the Conda environment containing Capytaine, you can add more packages to this environment by activating it with ``conda activate`` and then using the ``conda install`` or ``pip install`` commands.
+However, it is often more efficient to specify the packages you'd like in your environment from the start when creating it, such as in the following example::
+
+    conda create --name capy_and_other_env --channel conda-forge capytaine jupyter matplotlib vtk
 
 
 With Pip
