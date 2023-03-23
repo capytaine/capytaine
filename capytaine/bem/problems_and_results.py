@@ -224,7 +224,7 @@ class LinearPotentialFlowProblem:
         if self.depth == np.infty or self.omega**2*self.depth/self.g > 20:
             return self.omega**2/self.g
         else:
-            return newton(lambda x: x*np.tanh(x) - self.omega**2*self.depth/self.g, x0=1.0)/self.depth
+            return newton(lambda k: k*np.tanh(k*self.depth) - self.omega**2/self.g, x0=1.0)
 
     @property
     def wavelength(self):
@@ -239,20 +239,6 @@ class LinearPotentialFlowProblem:
             return np.infty
         else:
             return 2*np.pi/self.omega
-
-    @property
-    def dimensionless_omega(self):
-        if self.depth != np.infty:
-            return self.omega**2*self.depth/self.g
-        else:
-            raise AttributeError("Dimensionless omega is defined only for finite depth problems.")
-
-    @property
-    def dimensionless_wavenumber(self):
-        if self.depth != np.infty:
-            return self.wavenumber*self.depth
-        else:
-            raise AttributeError("Dimensionless wavenumber is defined only for finite depth problems.")
 
     @property
     def influenced_dofs(self):
