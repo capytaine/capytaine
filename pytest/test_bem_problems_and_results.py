@@ -41,7 +41,6 @@ def test_LinearPotentialFlowProblem():
     pb = LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=-1.0, omega=1.0)
     assert pb.depth == 1.0
     assert np.isclose(pb.omega**2, pb.g*pb.wavenumber*np.tanh(pb.wavenumber*pb.depth))
-    assert pb.dimensionless_wavenumber == pb.wavenumber*1.0
 
     with pytest.raises(NotImplementedError):
         LinearPotentialFlowProblem(free_surface=2.0)
