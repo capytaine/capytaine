@@ -48,15 +48,29 @@ def test_gradient_G_diagonal_term():
     np.testing.assert_allclose(gradG_1, gradG_2 - 0.5*diag_normal)
 
 
-def test_reconstruction_of_given_boundary_condition():
+@pytest.fixture
+def solver():
+    return cpt.BEMSolver()
+
+@pytest.fixture
+def solved_problem(solver):
     mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs={"random_dof": np.random.rand(mesh.nb_faces, 3)})
     pb = cpt.RadiationProblem(body=body, omega=1.0, radiating_dof="random_dof")
-    solver = cpt.BEMSolver()
     res = solver.solve(pb)
-    velocities = solver.get_velocity_at_points(res, mesh)
-    normal_velocities = np.einsum('...k,...k->...', velocities, mesh.faces_normals)
-    np.testing.assert_allclose(normal_velocities, pb.boundary_condition)
+    return res
+
+
+def test_velocity_at_point(solver, solved_problem):
+    point = np.array([[10.0, 10.0, -2.0]])
+    velocities = solver.get_velocity(solved_problem, point)
+    assert velocities.shape == (1, 3)
+
+
+def test_reconstruction_of_given_boundary_condition(solver, solved_problem):
+    velocities = solver.get_velocity(solved_problem, solved_problem.body.mesh)
+    normal_velocities = np.einsum('...k,...k->...', velocities, solved_problem.body.mesh.faces_normals)
+    np.testing.assert_allclose(normal_velocities, solved_problem.problem.boundary_condition)
 
 
 def test_a_posteriori_scalar_product_direct_method():

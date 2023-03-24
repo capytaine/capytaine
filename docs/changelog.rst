@@ -37,7 +37,7 @@ Minor changes
 
 * Add function :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` to compute the free surface elevation at points (:pull:`293`).
 
-* Add methods :meth:`~capytaine.bem.solver.get_velocity_at_points` and :meth:`~capytaine.bem.solver.get_velocity_on_mesh` to compute the velocity field in the fluid in post-processing (:pull:`288`)
+* Add method :meth:`~capytaine.bem.solver.get_velocity` to compute the velocity field in the fluid in post-processing (:pull:`288`)
 
 * Remove ``full_body`` attribute from :class:`~capytaine.bodies.bodies.FloatingBody` that used to keep a copy of the body before clipping in-place (:pull:`302`).
 

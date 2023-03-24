@@ -17,7 +17,7 @@ points = np.array([[x, y, z] for (x, y, z) in points if y**2 + z**2 > radius**2]
 # Compute the velocity field for each of the result object, that is each of the radiating dof
 velocities = {}
 for res in results:
-    velocities[res.radiating_dof] = solver.get_velocity_at_points(res, points)
+    velocities[res.radiating_dof] = solver.get_velocity(res, points)
 
 import matplotlib.pyplot as plt
 fig, axs = plt.subplots(1, 2, figsize=(12, 4))
