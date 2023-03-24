@@ -43,6 +43,11 @@ Minor changes
 
 * Remove ``dimensionless_wavenumber`` and ``dimensionless_omega`` attributes from :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` as they are not used in the code and can be easily recomputed by users if necessary (:pull:`306`).
 
+Bug fixes
+~~~~~~~~~
+
+* Fix :meth:`~capytaine.meshes.collections.CollectionOfMeshes.immersed_part` (:pull:`307`).
+
 Internals
 ~~~~~~~~~
 
