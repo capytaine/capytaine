@@ -31,6 +31,24 @@ The undisturbed incoming waves (Airy waves) can be computed as follow::
 
 See the examples in the :doc:`cookbook` for usage in a 3D animation.
 
+
+Velocity in domain
+------------------
+
+The velocity in the domain can be computed at a given list of points::
+
+    points = np.array([[4.0, 4.0, -2.0], [3.0, 2.0, -5.0]]
+    velocity = solver.get_velocity(result, points)
+
+or on a given mesh::
+
+    velocity = solver.get_velocity(result, mesh)
+
+The latter is equivalent to ``solver.get_velocity(result, mesh.faces_centers)``,
+except when computing the velocity field on the hull of body used to compute ``result``,
+in which case only ``solver.get_velocity(result, result.body.mesh)`` should be used.
+
+
 Impedance and RAO
 -----------------
 
