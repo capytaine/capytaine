@@ -37,6 +37,10 @@ Minor changes
 
 * Add function :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` to compute the free surface elevation at points (:pull:`293`).
 
+* Remove ``full_body`` attribute from :class:`~capytaine.bodies.bodies.FloatingBody` that used to keep a copy of the body before clipping in-place (:pull:`302`).
+
+* Remove ``dimensionless_wavenumber`` and ``dimensionless_omega`` attributes from :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` as they are not used in the code and can be easily recomputed by users if necessary (:pull:`306`).
+
 -------------------------------
 New in version 1.5 (2022-12-13)
 -------------------------------
