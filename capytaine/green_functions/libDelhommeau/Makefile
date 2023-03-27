@@ -19,7 +19,7 @@ PROF = -pg
 ### !! choose debug or optim
 # FLAGS += $(DEBUG)
 FLAGS += $(OPT)
-FLAGS += $(PROF)
+#FLAGS += $(PROF)
 
 
 ### ==============================================

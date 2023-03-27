@@ -21,6 +21,7 @@ if __name__ == '__main__':
     df = pd.concat(results, axis="index")
     df.columns = df.columns.str.strip()
     df["kind"] = df["kind"].str.strip()
+    df.reset_index(drop=True, inplace=True)
 
     df["branch"] = ''
     df["hash"] = ''
@@ -31,10 +32,20 @@ if __name__ == '__main__':
         df.loc[i, "hash"] = tmp1[:tmp2]
 
     # plot
+
+    mk = {'full': 'o', 'wave_only': 's', 'half_wave_only': '^'}
+    hs = df['hash'].unique()
+    cl = {}
+    for i in range(len(hs)):
+        cl[hs[i]] = 'C%1d' % (i % 10,)
+    del(hs)
+
+    
     plt.figure()
-    for (commit, group_df) in df.groupby(["kind", "branch"]):
+    for (commit, group_df) in df.groupby(["kind", "hash"]):
         plt.plot(group_df["n_threads"], group_df["elapsed_time"],
-                 label='%s, %s' % (commit[1], commit[0]))
+                 label='%s, %s' % (commit[1], commit[0]), ls='-',
+                 marker=mk[commit[0]], c=cl[commit[1]])
     plt.xlabel("Number of threads")
     plt.ylabel("Computation time")
     plt.yscale("log")
@@ -45,10 +56,11 @@ if __name__ == '__main__':
     plt.figure()
     n_threads_range = np.arange(df.n_threads.min(), df.n_threads.max()+1)
     plt.plot(n_threads_range, n_threads_range, '--', c='gray')
-    for (commit, group_df) in df.groupby(["kind", "branch"]):
+    for (commit, group_df) in df.groupby(["kind", "hash"]):
         ref_time = group_df.loc[group_df["n_threads"] == 1]["elapsed_time"].values[0]
         plt.plot(group_df["n_threads"], ref_time / group_df["elapsed_time"],
-                 label='%s, %s' % (commit[1], commit[0]))
+                 label='%s, %s' % (commit[1], commit[0]), ls='-',
+                 marker=mk[commit[0]], c=cl[commit[1]])
     plt.xlabel("Number of threads")
     plt.ylabel("Speedup")
     plt.title("OpenMP parallelization (2)")
@@ -56,10 +68,11 @@ if __name__ == '__main__':
     plt.legend()
 
     plt.figure()
-    for (commit, group_df) in df.groupby(["kind", "branch"]):
+    for (commit, group_df) in df.groupby(["kind", "hash"]):
         ref_time = group_df.loc[group_df["n_threads"] == 1]["elapsed_time"].values[0]
         plt.plot(group_df["n_threads"], ref_time / group_df["elapsed_time"] / group_df["n_threads"],
-                 label='%s, %s' % (commit[1], commit[0]))
+                 label='%s, %s' % (commit[1], commit[0]), ls='-',
+                 marker=mk[commit[0]], c=cl[commit[1]])
     plt.xlabel("Number of threads")
     plt.ylabel("Efficiency")
     plt.title("OpenMP parallelization (3)")

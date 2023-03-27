@@ -11,7 +11,7 @@ implicit none
 
 integer(kind=8) :: starting_time, final_time, clock_rate
 
-integer, parameter :: nb_faces = 5000
+integer, parameter :: nb_faces = 2000
 integer, parameter :: nb_vertices = 4*nb_faces
 integer, parameter :: nb_quadrature_points = 1
 
