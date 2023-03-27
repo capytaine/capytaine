@@ -6,12 +6,13 @@ use ieee_arithmetic
 use matrices, only: build_matrices
 use delhommeau_integrals, only: default_r_spacing, default_z_spacing, construct_tabulation
 use constants, only: pre  ! Floating point precision
+use old_prony_decomposition, only: lisc
 
 implicit none
 
 integer(kind=8) :: starting_time, final_time, clock_rate
 
-integer, parameter :: nb_faces = 2000
+integer, parameter :: nb_faces = 8192
 integer, parameter :: nb_vertices = 4*nb_faces
 integer, parameter :: nb_quadrature_points = 1
 
@@ -35,8 +36,10 @@ real(kind=pre), dimension(tabulation_nz)                       :: tabulated_z
 real(kind=pre), dimension(tabulation_nr, tabulation_nz, 2, 2)  :: tabulated_integrals
 
 ! Prony decomposition for the finite depth Green function
-integer, parameter    :: nexp = 31
-real(kind=pre), dimension(nexp) :: ambda, ar
+integer, parameter :: nexp_max = 31
+integer :: nexp
+real, dimension(nexp_max) :: ambda_f32, ar_f32
+real(kind=pre), dimension(nexp_max) :: ambda, ar
 
 integer n_threads
 real(kind=pre), dimension(3) :: coeffs
@@ -46,6 +49,8 @@ complex(kind=pre), dimension(:, :), allocatable :: S, K
 
 print*, "-- Run libdelhommeau/benchmark/openmp/benchmark_omp.f90"
 
+call RANDOM_INIT(.true.,.true.)
+
 allocate(S(nb_faces, nb_faces))
 allocate(K(nb_faces, nb_faces))
 
@@ -54,7 +59,18 @@ tabulated_z(:) = default_z_spacing(tabulation_nz)
 tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 251)
 
 wavenumber = 1.0
-depth = ieee_value(depth, ieee_positive_inf)
+
+if (.true.) then
+   depth = ieee_value(depth, ieee_positive_inf)
+else
+   depth = 50.
+   call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), ambda_f32, ar_f32, nexp)
+   ambda(:) = real(ambda_f32(:), kind=pre)
+   ar(:) = real(ar_f32(:), kind=pre)
+   nexp = nexp + 1
+   ambda(nexp) = 0.0
+   ar(nexp) = 2.0
+end if
 
 call random_panels(nb_faces, vertices, faces, face_center, face_normal, face_area, face_radius)
 quadrature_points = reshape(face_center, shape(quadrature_points))

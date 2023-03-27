@@ -49,7 +49,7 @@ complex(kind=pre), dimension(:, :), allocatable :: S, K
 
 print*, "-- Run libdelhommeau/benchmark/profiling/profiling.f90"
 
-call RANDOM_INIT(.false.,.true.)
+call RANDOM_INIT(.true.,.true.)
 
 allocate(S(nb_faces, nb_faces))
 allocate(K(nb_faces, nb_faces))
