@@ -126,13 +126,15 @@ CONTAINS
 
     ! Local variables
     REAL(KIND=PRE) :: RO
-
-    RO = NORM2(M(1:3) - Face_center(1:3)) ! Distance from center of mass of the face to M.
+    REAL(KIND=PRE), DIMENSION(3) :: VO
+    
+    VO = Face_center - M
+    RO = NORM2(VO) ! Distance from center of mass of the face to M.
 
     IF (RO > REAL(1e-7, KIND=PRE)) THEN
       ! Asymptotic value if face far away from M
       S0       = Face_area/RO
-      VS0(1:3) = (Face_center(1:3) - M)*S0/RO**2
+      VS0(1:3) = VO*S0/RO**2
     ELSE
       ! Singularity...
       S0 = ZERO
