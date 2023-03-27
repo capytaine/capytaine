@@ -2,10 +2,11 @@ program test
 
   use ieee_arithmetic
 
-  use matrices, only: build_matrices
+  use matrices, only: build_matrices, is_infinity
   use delhommeau_integrals, only: default_r_spacing, default_z_spacing, construct_tabulation
   use floating_point_precision, only: pre
   use constants, only: zero
+  use old_prony_decomposition, only: lisc
 
   implicit none
 
@@ -33,8 +34,10 @@ program test
   real(kind=pre), dimension(tabulation_nr, tabulation_nz, 2, 2)  :: tabulated_integrals
 
   ! Prony decomposition for the finite depth Green function
-  integer, parameter    :: nexp = 31
-  real(kind=pre), dimension(nexp) :: ambda, ar
+  integer, parameter :: nexp_max = 31
+  integer :: nexp
+  real, dimension(nexp_max) :: ambda_f32, ar_f32
+  real(kind=pre), dimension(nexp_max) :: ambda, ar
 
   ! The interaction matrices to be computed
   complex(kind=pre), dimension(nb_faces, nb_faces) :: S, K
@@ -113,11 +116,11 @@ program test
     nexp, ambda, ar,                                             &
     .true.,                                                      &
     S, K)
-  print*, "k=1.0: S"
+  print*, "k=1.0, h=infty: S"
   do i = 1, nb_faces
     print"(4ES20.12)", S(i, :)
   enddo
-  print*, "k=1.0: K"
+  print*, "k=1.0, h=infty: K"
   do i = 1, nb_faces
     print"(4ES20.12)", K(i, :)
   enddo
@@ -134,11 +137,74 @@ program test
     nexp, ambda, ar,                                             &
     .true.,                                                      &
     S, K)
-  print*, "k=2.0: S"
+  print*, "k=2.0, h=infty: S"
   do i = 1, nb_faces
     print"(4ES20.12)", S(i, :)
   enddo
-  print*, "k=2.0: K"
+  print*, "k=2.0, h=infty: K"
+  do i = 1, nb_faces
+    print"(4ES20.12)", K(i, :)
+  enddo
+
+  ! finite depth
+
+  depth = 2.0
+  wavenumber = 1d0
+  coeffs = [1d0, 1d0, 1d0]
+
+  call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), ambda_f32, ar_f32, nexp)
+  ambda(:) = real(ambda_f32(:), kind=pre)
+  ar(:) = real(ar_f32(:), kind=pre)
+  nexp = nexp + 1
+  ambda(nexp) = 0.0
+  ar(nexp) = 2.0
+
+  call build_matrices(                                           &
+    nb_faces, face_center, face_normal,                          &
+    nb_vertices, nb_faces, vertices, faces,                      &
+    face_center, face_normal, face_area, face_radius,            &
+    nb_quadrature_points, quadrature_points, quadrature_weights, &
+    wavenumber, depth, coeffs,                                   &
+    tabulated_r, tabulated_z, tabulated_integrals,               &
+    nexp, ambda, ar,                                             &
+    .true.,                                                      &
+    S, K)
+  print*, "k=1.0, h=2.0: S"
+  do i = 1, nb_faces
+    print"(4ES20.12)", S(i, :)
+  enddo
+  print*, "k=1.0, h=2.0: K"
+  do i = 1, nb_faces
+    print"(4ES20.12)", K(i, :)
+  enddo
+
+
+  depth = 2.0
+  wavenumber = 2d0
+  coeffs = [1d0, 1d0, 1d0]
+
+  call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), ambda_f32, ar_f32, nexp)
+  ambda(:) = real(ambda_f32(:), kind=pre)
+  ar(:) = real(ar_f32(:), kind=pre)
+  nexp = nexp + 1
+  ambda(nexp) = 0.0
+  ar(nexp) = 2.0
+
+  call build_matrices(                                           &
+    nb_faces, face_center, face_normal,                          &
+    nb_vertices, nb_faces, vertices, faces,                      &
+    face_center, face_normal, face_area, face_radius,            &
+    nb_quadrature_points, quadrature_points, quadrature_weights, &
+    wavenumber, depth, coeffs,                                   &
+    tabulated_r, tabulated_z, tabulated_integrals,               &
+    nexp, ambda, ar,                                             &
+    .true.,                                                      &
+    S, K)
+  print*, "k=2.0, h=2.0: S"
+  do i = 1, nb_faces
+    print"(4ES20.12)", S(i, :)
+  enddo
+  print*, "k=2.0, h=2.0: K"
   do i = 1, nb_faces
     print"(4ES20.12)", K(i, :)
   enddo
