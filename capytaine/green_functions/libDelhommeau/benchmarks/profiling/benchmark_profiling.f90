@@ -12,7 +12,7 @@ implicit none
 
 integer(kind=8) :: starting_time, final_time, clock_rate
 
-integer, parameter :: nb_faces = 3000
+integer, parameter :: nb_faces = 4096
 integer, parameter :: nb_vertices = 4*nb_faces
 integer, parameter :: nb_quadrature_points = 1
 
@@ -66,7 +66,7 @@ quadrature_weights = reshape(face_area, shape(quadrature_weights))
 
 print'(a)', "depth kind           elapsed time (s)"
 
-do i=2, 2
+do i=1, 1
 
    if (i .eq. 1) then
       depth = ieee_value(depth, ieee_positive_inf)
