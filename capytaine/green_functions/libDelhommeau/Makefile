@@ -30,14 +30,16 @@ SRC_S=src/float32.f90\
       src/Green_Rankine.f90\
       src/Delhommeau_integrals.f90\
       src/Green_wave.f90\
-      src/matrices.f90
+      src/matrices.f90\
+      src/old_Prony_decomposition.f90
 
 SRC_D=src/float64.f90\
       src/constants.f90\
       src/Green_Rankine.f90\
       src/Delhommeau_integrals.f90\
       src/Green_wave.f90\
-      src/matrices.f90
+      src/matrices.f90\
+      src/old_Prony_decomposition.f90
 
 ### !! choose single or double comp.
 # SRC=$(SRC_S)
@@ -95,6 +97,7 @@ benchmark: lib $(BENCH_BIN)
 
 run_min_ex: example
 	@$(EXAMPLES_BIN)
+	@echo ''
 	@python3 examples/minimal/minimal_example.py
 
 run_bench_tab: benchmark
@@ -105,13 +108,12 @@ run_bench_omp: benchmark
 	@mv benchmark_omp.csv benchmarks/openmp/benchmark_omp_$(shell git rev-parse --short HEAD)_$(shell git branch --show-current).csv
 	@python3 benchmarks/openmp/read_output.py
 
+# requires gprof2dot
 run_bench_prof: benchmark
-	@export OMP_NUM_THREADS=1
 	@export OMP_NUM_THREADS=1 && benchmarks/profiling/benchmark_profiling.bin
 	@gprof benchmarks/profiling/benchmark_profiling.bin gmon.out > prof.txt
 	@gprof2dot < prof.txt > prof.dot && dot prof.dot -Tpng -o prof.png
 	@rm gmon.out prof.txt prof.dot
-
 
 clean:
 	@find . -name '*~' -exec rm {} \;
