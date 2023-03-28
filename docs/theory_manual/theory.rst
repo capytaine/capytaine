@@ -551,11 +551,11 @@ where :math:`M_{ij}` is the inertia matrix, accounting for the mass distribution
 
 Forces :math:`F_i` can be decomposed as
 
-.. math:: F_i = F_{FK, i} + F_{D, i} + F_{R, ij}
+.. math:: F_i = F_{FK, i} + F_{D, i} + F_{R, i}
 
-and :math:`F_{R, ij}` can be further rewritten as 
+and :math:`F_{R, i}` can be further rewritten as
 
-.. math:: F_{R, ij} = \left[\omega^2 A_{ij} + j\omega B_{ij}\right] X_j
+.. math:: F_{R, i} = \left[\omega^2 A_{ij} + j\omega B_{ij}\right] X_j
 
 where :math:`A_{ij}` is the added mass matrix and :math:`B_{ij}` is the radiation damping matrix; these properties are thus obtained from the real and imaginary parts of the radiation force. The full system becomes
 
