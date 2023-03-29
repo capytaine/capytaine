@@ -48,10 +48,15 @@ Bug fixes
 
 * Fix :meth:`~capytaine.meshes.collections.CollectionOfMeshes.immersed_part` (:pull:`307`).
 
+* :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics` used to fail for non-rigid bodies because it could not compute the rigid-body inertia.
+  The rigid-body inertia is now just skipped for bodies with no rigid-body dofs (:pull:`308`).
+
 Internals
 ~~~~~~~~~
 
 * The method :meth:`~capytaine.green_functions.delhommeau.Delhommeau.evaluate` (and its counterparts for other Green functions) now accepts a list of points as first argument instead of a mesh. It has now an optional boolean argument ``early_dot_product`` to return the integrals of the gradient of the Green function and not only the normal derivative (:pull:`288`).
+
+* Remove warnings due to 0/0 divisions in :func:`~capytaine.meshes.properties.compute_faces_properties` (:pull:`310`)
 
 -------------------------------
 New in version 1.5 (2022-12-13)

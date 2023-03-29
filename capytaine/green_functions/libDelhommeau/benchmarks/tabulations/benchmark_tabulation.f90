@@ -18,6 +18,8 @@ real(kind=pre), dimension(:), allocatable          :: r, z, tabulated_r, tabulat
 real(kind=pre), dimension(:, :, :, :), allocatable :: tabulated_integrals
 real(kind=pre), dimension(:, :, :), allocatable    :: integrals
 
+print*, "-- Run libdelhommeau/benchmark/tabulations/benchmark_tabulation.f90"
+
 call system_clock(count_rate=clock_rate)
 clock_rate_in_ns = clock_rate / 1000000000
 
