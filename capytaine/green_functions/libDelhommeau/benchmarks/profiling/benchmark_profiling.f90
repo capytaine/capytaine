@@ -1,4 +1,4 @@
-program benchmark_omp
+program benchmark_profiling
 
 use omp_lib
 use ieee_arithmetic
@@ -12,7 +12,7 @@ implicit none
 
 integer(kind=8) :: starting_time, final_time, clock_rate
 
-integer, parameter :: nb_faces = 8192
+integer, parameter :: nb_faces = 4096
 integer, parameter :: nb_vertices = 4*nb_faces
 integer, parameter :: nb_quadrature_points = 1
 
@@ -41,13 +41,13 @@ integer :: nexp
 real, dimension(nexp_max) :: ambda_f32, ar_f32
 real(kind=pre), dimension(nexp_max) :: ambda, ar
 
-integer n_threads
+integer i
 real(kind=pre), dimension(3) :: coeffs
 
 ! The interaction matrices to be computed
 complex(kind=pre), dimension(:, :), allocatable :: S, K
 
-print*, "-- Run libdelhommeau/benchmark/openmp/benchmark_omp.f90"
+print*, "-- Run libdelhommeau/benchmark/profiling/profiling.f90"
 
 call RANDOM_INIT(.true.,.true.)
 
@@ -60,91 +60,80 @@ tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z,
 
 wavenumber = 1.0
 
-if (.true.) then
-   depth = ieee_value(depth, ieee_positive_inf)
-else
-   depth = 50.
-   call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), ambda_f32, ar_f32, nexp)
-   ambda(:) = real(ambda_f32(:), kind=pre)
-   ar(:) = real(ar_f32(:), kind=pre)
-   nexp = nexp + 1
-   ambda(nexp) = 0.0
-   ar(nexp) = 2.0
-end if
-
 call random_panels(nb_faces, vertices, faces, face_center, face_normal, face_area, face_radius)
 quadrature_points = reshape(face_center, shape(quadrature_points))
 quadrature_weights = reshape(face_area, shape(quadrature_weights))
 
-! ! For debugging
-! open (unit=4, file='vertices.dat', form='formatted')
-! do i = 1, 4*nb_faces
-!    write (4, *) vertices(i, :)
-! end do
+print'(a)', "depth kind           elapsed time (s)"
 
-call system_clock(count_rate=clock_rate)
+do i=1, 1
 
-open(unit=210, file="benchmark_omp.csv")
-print'(a)', "           kind num. thread(s) elapsed time (s)"
-write(210, '(a)') "n_threads,elapsed_time,kind"
+   if (i .eq. 1) then
+      depth = ieee_value(depth, ieee_positive_inf)
+   else
+      depth = 50.
+      call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), ambda_f32, ar_f32, nexp)
+      ambda(:) = real(ambda_f32(:), kind=pre)
+      ar(:) = real(ar_f32(:), kind=pre)
+      nexp = nexp + 1
+      ambda(nexp) = 0.0
+      ar(nexp) = 2.0
+   end if
 
-do n_threads = 1, OMP_GET_MAX_THREADS()
-  call omp_set_num_threads(n_threads)
+   call system_clock(count_rate=clock_rate)
 
-  coeffs = [1d0, 1d0, 1d0]
-  call system_clock(starting_time)
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth,                                           &
-    coeffs,                                                      &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
-    .false.,                                                     &
-    S, K)
-  call system_clock(final_time)
+   coeffs = [1d0, 1d0, 1d0]
+   call system_clock(starting_time)
+   call build_matrices(                                           &
+        nb_faces, face_center, face_normal,                          &
+        nb_vertices, nb_faces, vertices, faces,                      &
+        face_center, face_normal, face_area, face_radius,            &
+        nb_quadrature_points, quadrature_points, quadrature_weights, &
+        wavenumber, depth,                                           &
+        coeffs,                                                      &
+        tabulated_r, tabulated_z, tabulated_integrals,               &
+        nexp, ambda, ar,                                             &
+        .false.,                                                     &
+        S, K)
+   call system_clock(final_time)
 
-  print'(a15,1i15,a,1ES16.6)', " full", n_threads, ' ', real(final_time - starting_time)/clock_rate
-  write(210,'(1i3,a,1ES12.6,a)') n_threads, ",", real(final_time - starting_time)/clock_rate, ",full"
+   print'(1F5.0,a16,1ES16.6)', depth, " full ", real(final_time - starting_time)/clock_rate
 
-  coeffs = [0d0, 0d0, 1d0]
-  call system_clock(starting_time)
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth,                                           &
-    coeffs,                                                      &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
-    .false.,                                                     &
-    S, K)
-  call system_clock(final_time)
+   ! coeffs = [0d0, 0d0, 1d0]
+   ! call system_clock(starting_time)
+   ! call build_matrices(                                           &
+   !      nb_faces, face_center, face_normal,                          &
+   !      nb_vertices, nb_faces, vertices, faces,                      &
+   !      face_center, face_normal, face_area, face_radius,            &
+   !      nb_quadrature_points, quadrature_points, quadrature_weights, &
+   !      wavenumber, depth,                                           &
+   !      coeffs,                                                      &
+   !      tabulated_r, tabulated_z, tabulated_integrals,               &
+   !      nexp, ambda, ar,                                             &
+   !      .false.,                                                     &
+   !      S, K)
+   ! call system_clock(final_time)
 
-  print'(a15,1i15,a,1ES16.6)', " wave_only", n_threads, ' ', real(final_time - starting_time)/clock_rate
-  write(210,'(1i3,a,1ES12.6,a)') n_threads, ",", real(final_time - starting_time)/clock_rate, ",wave_only"
+   ! print'(1F5.0,a16,1ES16.6)', depth, " wave_only ", real(final_time - starting_time)/clock_rate
 
-  coeffs = [0d0, 0d0, 1d0]
-  call system_clock(starting_time)
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth,                                           &
-    coeffs,                                                      &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
-    .true.,                                                      &
-    S, K)
-  call system_clock(final_time)
+   ! coeffs = [0d0, 0d0, 1d0]
+   ! call system_clock(starting_time)
+   ! call build_matrices(                                           &
+   !      nb_faces, face_center, face_normal,                          &
+   !      nb_vertices, nb_faces, vertices, faces,                      &
+   !      face_center, face_normal, face_area, face_radius,            &
+   !      nb_quadrature_points, quadrature_points, quadrature_weights, &
+   !      wavenumber, depth,                                           &
+   !      coeffs,                                                      &
+   !      tabulated_r, tabulated_z, tabulated_integrals,               &
+   !      nexp, ambda, ar,                                             &
+   !      .true.,                                                      &
+   !      S, K)
+   ! call system_clock(final_time)
 
-  print'(a15,1i15,a,1ES16.6)', " half_wave_only", n_threads, ' ', real(final_time - starting_time)/clock_rate
-  write(210,'(1i3,a,1ES12.6,a)') n_threads, ",", real(final_time - starting_time)/clock_rate, ",half_wave_only"
-enddo
+   ! print'(1F5.0,a16,1ES16.6)', depth, " half_wave_only ", real(final_time - starting_time)/clock_rate
+
+end do
 
 contains
 
@@ -208,4 +197,4 @@ contains
     vecs(:, 2) = vecs(:, 2)/norm2(vecs(:, 2))
   end function
 
-end program benchmark_omp
+end program benchmark_profiling
