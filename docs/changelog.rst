@@ -46,6 +46,11 @@ Bug fixes
 
 * Fix :meth:`~capytaine.meshes.collections.CollectionOfMeshes.immersed_part` (:pull:`307`).
 
+Internals
+~~~~~~~~~
+
+* Remove warnings due to 0/0 divisions in :func:`~capytaine.meshes.properties.compute_faces_properties` (:pull:`310`)
+
 -------------------------------
 New in version 1.5 (2022-12-13)
 -------------------------------
