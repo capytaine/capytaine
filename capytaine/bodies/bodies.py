@@ -712,7 +712,9 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics["breadth_at_waterline"] = wl_breadth
         hydrostatics["length_overall_submerged"] = sub_length
         hydrostatics["breadth_overall_submerged"] = sub_breadth
-        self.inertia_matrix = hydrostatics["inertia_matrix"] = self.compute_rigid_body_inertia(rho=rho)
+        if any(dof.lower() in {"surge", "sway", "heave", "roll", "pitch", "yaw"}
+               for dof in self.dofs) > 0: # If there is at least one rigid body dof:
+            self.inertia_matrix = hydrostatics["inertia_matrix"] = self.compute_rigid_body_inertia(rho=rho)
 
         return hydrostatics
 
