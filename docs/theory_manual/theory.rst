@@ -320,8 +320,8 @@ The gradient of the Green function can be written as
 with
 
 .. math::
-   \frac{\partial r}{\partial x_1} & = k \frac{x_1 - \xi_1}{r} \\
-   \frac{\partial r}{\partial x_2} & = k \frac{x_2 - \xi_2}{r} \\
+   \frac{\partial r}{\partial x_1} & = k^2 \frac{x_1 - \xi_1}{r} \\
+   \frac{\partial r}{\partial x_2} & = k^2 \frac{x_2 - \xi_2}{r} \\
    \frac{\partial z}{\partial x_3} & = k
 
 and, using the identity :math:`J'(\zeta) = J(\zeta) - 1/\zeta`,
