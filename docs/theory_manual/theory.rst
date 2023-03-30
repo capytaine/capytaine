@@ -125,20 +125,20 @@ The differentiation of :eq:`potential_representation` differs depending whether 
 On the hull, one has [Del87]_:
 
 .. math::
-   \frac{\partial \Phi}{\partial n}(x) = (u \cdot n)(x) = \frac{\sigma(x)}{2} + \iint_\Gamma \sigma(\xi) \, (\nabla G(x; \xi) \cdot n) \, \mathrm{dS}(y).
+   \frac{\partial \Phi}{\partial n}(x) = (u \cdot n)(x) = \frac{\sigma(x)}{2} + \iint_\Gamma \sigma(\xi) \, (\nabla G(x; \xi) \cdot n) \, \mathrm{dS}(\xi).
    :label: normal_velocity_on_hull_representation
 
 where :math:`x` is a point on :math:`\Gamma` and :math:`n` is the vector normal to :math:`\Gamma` in :math:`x`.
 For any vector :math:`t` tangential to :math:`\Gamma` at :math:`x`, one has
 
 .. math::
-   \frac{\partial \Phi}{\partial t}(x) = (u \cdot t)(x) = \iint_\Gamma \sigma(y) \, (\nabla G(x; \xi) \cdot t) \, \mathrm{dS}(y).
+   \frac{\partial \Phi}{\partial t}(x) = (u \cdot t)(x) = \iint_\Gamma \sigma(\xi) \, (\nabla G(x; \xi) \cdot t) \, \mathrm{dS}(\xi).
    :label: tangential_velocity_on_hull_representation
 
 Finally, for :math:`x` in the bulk of the fluid, one has
 
 .. math::
-   \nabla \Phi(x) = u(x) = \iint_\Gamma \sigma(y) \, \nabla G(x; \xi) \, \mathrm{dS}(y).
+   \nabla \Phi(x) = u(x) = \iint_\Gamma \sigma(\xi) \, \nabla G(x; \xi) \, \mathrm{dS}(\xi).
    :label: velocity_in_bulk_representation
 
 .. note:: Dimensional analysis:
