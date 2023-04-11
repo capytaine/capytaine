@@ -125,20 +125,20 @@ The differentiation of :eq:`potential_representation` differs depending whether 
 On the hull, one has [Del87]_:
 
 .. math::
-   \frac{\partial \Phi}{\partial n}(x) = (u \cdot n)(x) = \frac{\sigma(x)}{2} + \iint_\Gamma \sigma(\xi) \, (\nabla G(x; \xi) \cdot n) \, \mathrm{dS}(y).
+   \frac{\partial \Phi}{\partial n}(x) = (u \cdot n)(x) = \frac{\sigma(x)}{2} + \iint_\Gamma \sigma(\xi) \, (\nabla G(x; \xi) \cdot n) \, \mathrm{dS}(\xi).
    :label: normal_velocity_on_hull_representation
 
 where :math:`x` is a point on :math:`\Gamma` and :math:`n` is the vector normal to :math:`\Gamma` in :math:`x`.
 For any vector :math:`t` tangential to :math:`\Gamma` at :math:`x`, one has
 
 .. math::
-   \frac{\partial \Phi}{\partial t}(x) = (u \cdot t)(x) = \iint_\Gamma \sigma(y) \, (\nabla G(x; \xi) \cdot t) \, \mathrm{dS}(y).
+   \frac{\partial \Phi}{\partial t}(x) = (u \cdot t)(x) = \iint_\Gamma \sigma(\xi) \, (\nabla G(x; \xi) \cdot t) \, \mathrm{dS}(\xi).
    :label: tangential_velocity_on_hull_representation
 
 Finally, for :math:`x` in the bulk of the fluid, one has
 
 .. math::
-   \nabla \Phi(x) = u(x) = \iint_\Gamma \sigma(y) \, \nabla G(x; \xi) \, \mathrm{dS}(y).
+   \nabla \Phi(x) = u(x) = \iint_\Gamma \sigma(\xi) \, \nabla G(x; \xi) \, \mathrm{dS}(\xi).
    :label: velocity_in_bulk_representation
 
 .. note:: Dimensional analysis:
@@ -320,8 +320,8 @@ The gradient of the Green function can be written as
 with
 
 .. math::
-   \frac{\partial r}{\partial x_1} & = k \frac{x_1 - \xi_1}{r} \\
-   \frac{\partial r}{\partial x_2} & = k \frac{x_2 - \xi_2}{r} \\
+   \frac{\partial r}{\partial x_1} & = k^2 \frac{x_1 - \xi_1}{r} \\
+   \frac{\partial r}{\partial x_2} & = k^2 \frac{x_2 - \xi_2}{r} \\
    \frac{\partial z}{\partial x_3} & = k
 
 and, using the identity :math:`J'(\zeta) = J(\zeta) - 1/\zeta`,
@@ -551,11 +551,11 @@ where :math:`M_{ij}` is the inertia matrix, accounting for the mass distribution
 
 Forces :math:`F_i` can be decomposed as
 
-.. math:: F_i = F_{FK, i} + F_{D, i} + F_{R, ij}
+.. math:: F_i = F_{FK, i} + F_{D, i} + F_{R, i}
 
-and :math:`F_{R, ij}` can be further rewritten as 
+and :math:`F_{R, i}` can be further rewritten as
 
-.. math:: F_{R, ij} = \left[\omega^2 A_{ij} + j\omega B_{ij}\right] X_j
+.. math:: F_{R, i} = \left[\omega^2 A_{ij} + j\omega B_{ij}\right] X_j
 
 where :math:`A_{ij}` is the added mass matrix and :math:`B_{ij}` is the radiation damping matrix; these properties are thus obtained from the real and imaginary parts of the radiation force. The full system becomes
 
