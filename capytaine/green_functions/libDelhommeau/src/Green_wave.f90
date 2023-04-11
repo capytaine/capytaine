@@ -45,7 +45,7 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(3),          INTENT(OUT) :: VS  ! its gradient
 
     ! Local variables
-    REAL(KIND=PRE) :: r, z, r1, drdx, drdy
+    REAL(KIND=PRE) :: r, z, r1, drdx1, drdx2, dzdx3
     REAL(KIND=PRE), dimension(2, 2) :: integrals
 
     r = wavenumber * NORM2(X0I(1:2) - X0J(1:2))
@@ -53,13 +53,14 @@ CONTAINS
     r1 = hypot(r, z)
 
     IF (ABS(r) > 16*EPSILON(r)) THEN
-      drdx = wavenumber * (X0I(1) - X0J(1))/r
-      drdy = wavenumber * (X0I(2) - X0J(2))/r
+      drdx1 = wavenumber**2 * (X0I(1) - X0J(1))/r
+      drdx2 = wavenumber**2 * (X0I(2) - X0J(2))/r
     ELSE
       ! Limit when r->0 is not well defined...
-      drdx = ZERO
-      drdy = ZERO
+      drdx1 = ZERO
+      drdx2 = ZERO
     END IF
+    dzdx3 = wavenumber
 
     IF (z > -1e-8) THEN
       PRINT*, "Error: Impossible to compute the wave part of the Green function due to panels on the free surface (z=0) or above."
@@ -87,12 +88,12 @@ CONTAINS
     !================================================
 
     FS    = CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
-    VS(1) = -drdx * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
-    VS(2) = -drdy * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
+    VS(1) = -drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
+    VS(2) = -drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
 #ifdef XIE_CORRECTION
-    VS(3) = CMPLX(integrals(1, 2) + ONE/r1, integrals(2, 2), KIND=PRE)
+    VS(3) = dzdx3 * CMPLX(integrals(1, 2) + ONE/r1, integrals(2, 2), KIND=PRE)
 #else
-    VS(3) = CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
+    VS(3) = dzdx3 * CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
 #endif
 
     RETURN
@@ -130,7 +131,7 @@ CONTAINS
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       SP, VSP(:))
     SP  = 2*wavenumber*SP
-    VSP = 2*wavenumber**2*VSP
+    VSP = 2*wavenumber*VSP
 
 #ifndef XIE_CORRECTION
     ! In the original Delhommeau method
@@ -259,8 +260,8 @@ CONTAINS
     A    = (AMH+AKH)**2/(2*depth*(AMH**2-AKH**2+AKH))
 
     SP          = A*SP
-    VSP_ANTISYM = A*wavenumber*VSP_ANTISYM
-    VSP_SYM     = A*wavenumber*VSP_SYM
+    VSP_ANTISYM = A*VSP_ANTISYM
+    VSP_SYM     = A*VSP_SYM
 
     !=====================================================
     ! Part 2: Integrate (NEXP+1)×4 terms of the form 1/MM'
