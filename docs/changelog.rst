@@ -51,6 +51,8 @@ Bug fixes
 * :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics` used to fail for non-rigid bodies because it could not compute the rigid-body inertia.
   The rigid-body inertia is now just skipped for bodies with no rigid-body dofs (:pull:`308`).
 
+* Reduce the default tolerance of the mesh clipper for points just above the free surface (:issue:`320` and :pull:`322`).
+
 Internals
 ~~~~~~~~~
 
