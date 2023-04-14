@@ -252,3 +252,14 @@ class BEMSolver:
             result.fs_elevation[free_surface] = fs_elevation
         return fs_elevation
 
+    def get_velocity(self, result, points):
+        if result.sources is None:
+            raise Exception(f"""The values of the sources of {result} cannot been found.
+            They probably have not been stored by the solver because the option keep_details=True have not been set.
+            Please re-run the resolution with this option.""")
+
+        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.sea_bottom, result.wavenumber,
+                                                early_dot_product=False)
+        velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
+        return velocities
+

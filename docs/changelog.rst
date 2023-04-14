@@ -37,6 +37,8 @@ Minor changes
 
 * Add function :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` to compute the free surface elevation at points (:pull:`293`).
 
+* Add method :meth:`~capytaine.bem.solver.get_velocity` to compute the velocity field in the fluid in post-processing (:pull:`288`)
+
 * Remove ``full_body`` attribute from :class:`~capytaine.bodies.bodies.FloatingBody` that used to keep a copy of the body before clipping in-place (:pull:`302`).
 
 * Remove ``dimensionless_wavenumber`` and ``dimensionless_omega`` attributes from :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` as they are not used in the code and can be easily recomputed by users if necessary (:pull:`306`).
@@ -51,6 +53,8 @@ Bug fixes
 
 Internals
 ~~~~~~~~~
+
+* The method :meth:`~capytaine.green_functions.delhommeau.Delhommeau.evaluate` (and its counterparts for other Green functions) now accepts a list of points as first argument instead of a mesh. It has now an optional boolean argument ``early_dot_product`` to return the integrals of the gradient of the Green function and not only the normal derivative (:pull:`288`).
 
 * Remove warnings due to 0/0 divisions in :func:`~capytaine.meshes.properties.compute_faces_properties` (:pull:`310`)
 

@@ -40,7 +40,8 @@ program test
   real(kind=pre), dimension(nexp_max) :: ambda, ar
 
   ! The interaction matrices to be computed
-  complex(kind=pre), dimension(nb_faces, nb_faces) :: S, K
+  complex(kind=pre), dimension(nb_faces, nb_faces) :: S
+  complex(kind=pre), dimension(nb_faces, nb_faces, 1) :: K
 
   integer :: i
   real(kind=pre), dimension(3) :: coeffs
@@ -101,7 +102,7 @@ program test
   enddo
   print*, "Rankine part: K"
   do i = 1, nb_faces
-    print"(4ES20.12)", K(i, :)
+    print"(4ES20.12)", K(i, :, 1)
   enddo
 
   wavenumber = 1d0
@@ -122,7 +123,7 @@ program test
   enddo
   print*, "k=1.0, h=infty: K"
   do i = 1, nb_faces
-    print"(4ES20.12)", K(i, :)
+    print"(4ES20.12)", K(i, :, 1)
   enddo
 
   wavenumber = 2d0
@@ -143,7 +144,7 @@ program test
   enddo
   print*, "k=2.0, h=infty: K"
   do i = 1, nb_faces
-    print"(4ES20.12)", K(i, :)
+    print"(4ES20.12)", K(i, :, 1)
   enddo
 
   ! finite depth
@@ -175,7 +176,7 @@ program test
   enddo
   print*, "k=1.0, h=2.0: K"
   do i = 1, nb_faces
-    print"(4ES20.12)", K(i, :)
+    print"(4ES20.12)", K(i, :, 1)
   enddo
 
 
@@ -206,7 +207,7 @@ program test
   enddo
   print*, "k=2.0, h=2.0: K"
   do i = 1, nb_faces
-    print"(4ES20.12)", K(i, :)
+    print"(4ES20.12)", K(i, :, 1)
   enddo
 
 end program test
