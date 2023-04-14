@@ -7,6 +7,8 @@ import pytest
 import numpy as np
 from numpy.linalg import norm
 
+import capytaine as cpt
+
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.clipper import clip
 from capytaine.meshes.geometry import Plane, xOz_Plane
@@ -190,6 +192,12 @@ def test_clipper_corner_cases():
     plane = Plane(point=(0, 0, 0), normal=(0, 0, -1))
     one_sphere_remaining = two_spheres.clip(plane, inplace=False)
     assert one_sphere_remaining == sphere.translated_z(10.0)
+
+
+def test_clipper_tolerance():
+    mesh = cpt.mesh_vertical_cylinder(length=10.001, center=(0, 0, -5))
+    mesh = mesh.immersed_part()
+    np.testing.assert_allclose(mesh.vertices[:, 2].max(), 0.0, atol=1e-12)
 
 
 def test_extract_one_face():
