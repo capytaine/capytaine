@@ -45,14 +45,15 @@ integer n_threads
 real(kind=pre), dimension(3) :: coeffs
 
 ! The interaction matrices to be computed
-complex(kind=pre), dimension(:, :), allocatable :: S, K
+complex(kind=pre), dimension(:, :), allocatable :: S
+complex(kind=pre), dimension(:, :, :), allocatable :: K
 
 print*, "-- Run libdelhommeau/benchmark/openmp/benchmark_omp.f90"
 
 call RANDOM_INIT(.true.,.true.)
 
 allocate(S(nb_faces, nb_faces))
-allocate(K(nb_faces, nb_faces))
+allocate(K(nb_faces, nb_faces, 1))
 
 tabulated_r(:) = default_r_spacing(tabulation_nr)
 tabulated_z(:) = default_z_spacing(tabulation_nz)
