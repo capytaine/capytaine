@@ -144,7 +144,6 @@ program test
   enddo
   print*, "k=2.0, h=infty: K"
   do i = 1, nb_faces
-
     print"(4ES20.12)", K(i, :, 1)
   enddo
 
