@@ -10,4 +10,4 @@ for f in $CAPY_BINARIES_DIR/*; do
     BINARIES="--add-binary=$f:capytaine/green_functions/libs/ $BINARIES";
 done
 
-pyinstaller --clean --onefile --noconfirm $BINARIES examples/custom_dofs.py
+pyinstaller --clean --onefile --noconfirm $BINARIES $CONDA_PREFIX/bin/capytaine
