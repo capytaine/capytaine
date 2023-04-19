@@ -53,6 +53,8 @@ Bug fixes
 
 * Reduce the default tolerance of the mesh clipper for points just above the free surface (:issue:`320` and :pull:`322`).
 
+* Convert ``center_of_mass`` and ``rotation_center`` to arrays in :class:`~capytaine.bodies.bodies.FloatingBody` constructor to avoid a few issues (:issue:`319` and :pull:`325`).
+
 Internals
 ~~~~~~~~~
 
