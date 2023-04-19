@@ -71,6 +71,12 @@ def test_rigid_body_dofs_neither_a_rotation_center_nor_a_center_of_mass():
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
     assert np.allclose(body._infer_rotation_center(), (0.0, 0.0, 0.0))
 
+def test_defining_rotation_center_with_ints():
+    # Issue #319
+    import capytaine as cpt
+    mesh = cpt.mesh_sphere().immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1)))
+    body.translated_y(-2.0)
 
 def test_bodies():
     body = Sphere(name="sphere", axial_symmetry=False)

@@ -79,13 +79,16 @@ class FloatingBody(Abstract3DObject):
             self.name = name
 
         self.mass = mass
-        self.center_of_mass = center_of_mass
+        if center_of_mass is not None:
+            self.center_of_mass = np.asarray(center_of_mass, dtype=float)
+        else:
+            self.center_of_mass = None
 
         if dofs is None:
             self.dofs = {}
         elif isinstance(dofs, RigidBodyDofsPlaceholder):
             if dofs.rotation_center is not None:
-                self.rotation_center = np.asarray(dofs.rotation_center)
+                self.rotation_center = np.asarray(dofs.rotation_center, dtype=float)
             self.dofs = {}
             self.add_all_rigid_body_dofs()
         else:
@@ -738,7 +741,7 @@ respective inertia coefficients are assigned as NaN.")
             new_mass = None
 
         if (all(body.mass is not None for body in bodies)
-                and all(body.center_of_mass for body in bodies)):
+                and all(body.center_of_mass is not None for body in bodies)):
             new_cog = sum(body.mass*np.asarray(body.center_of_mass) for body in bodies)/new_mass
         else:
             new_cog = None
@@ -926,11 +929,11 @@ respective inertia coefficients are assigned as NaN.")
         return self
 
     @inplace_transformation
-    def translate(self, *args):
-        self.mesh.translate(*args)
+    def translate(self, vector, *args, **kwargs):
+        self.mesh.translate(vector, *args, **kwargs)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
-                self.__dict__[point_attr] += args[0]
+                self.__dict__[point_attr] += vector
         return self
 
     @inplace_transformation
