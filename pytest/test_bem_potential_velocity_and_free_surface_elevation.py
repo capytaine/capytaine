@@ -161,6 +161,44 @@ def test_compute_free_surface_elevation_at_meshgrid(solver, result):
     assert np.allclose(fse, fse_.squeeze())
 
 
+##########
+#  Mesh  #
+##########
+
+def test_airy_waves_potential_on_mesh(result):
+    from capytaine.bem.airy_waves import airy_waves_potential
+    mesh = cpt.mesh_vertical_cylinder(radius=2.0, length=5.0).immersed_part()
+    phi = airy_waves_potential(mesh, result)
+    assert phi.shape == (mesh.nb_faces,)
+
+def test_compute_potential_on_mesh(solver, result):
+    mesh = cpt.mesh_vertical_cylinder(radius=2.0, length=5.0).immersed_part()
+    phi = solver.compute_potential(mesh, result)
+    assert phi.shape == (mesh.nb_faces,)
+
+def test_airy_waves_velocity_on_mesh(result):
+    from capytaine.bem.airy_waves import airy_waves_velocity
+    mesh = cpt.mesh_vertical_cylinder(radius=2.0, length=5.0).immersed_part()
+    u = airy_waves_velocity(mesh, result)
+    assert u.shape == (mesh.nb_faces, 3)
+
+def test_compute_velocity_on_mesh(solver, result):
+    mesh = cpt.mesh_vertical_cylinder(radius=2.0, length=5.0).immersed_part()
+    u = solver.compute_velocity(mesh, result)
+    assert u.shape == (mesh.nb_faces, 3)
+
+def test_airy_waves_free_surface_elevation_on_mesh(result):
+    from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
+    mesh = cpt.mesh_rectangle(center=(0, 0, 0), normal=(0, 0, -1), resolution=(3, 3), size=(2.0, 2.0))
+    fse = airy_waves_free_surface_elevation(mesh, result)
+    assert fse.shape == (mesh.nb_faces,)
+
+def test_compute_free_surface_elevation_on_mesh(solver, result):
+    mesh = cpt.mesh_rectangle(center=(0, 0, 0), normal=(0, 0, -1), resolution=(3, 3), size=(2.0, 2.0))
+    fse = solver.compute_free_surface_elevation(mesh, result)
+    assert fse.shape == (mesh.nb_faces,)
+
+
 #######################################################################
 #                            Check values                             #
 #######################################################################

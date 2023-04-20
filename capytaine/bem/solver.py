@@ -173,7 +173,7 @@ class BEMSolver:
 
 
     def compute_potential(self, points, result):
-        points, output_shape = _normalize_points(points)
+        points, output_shape = _normalize_points(points, keep_mesh=True)
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
             They probably have not been stored by the solver because the option keep_details=True have not been set.
@@ -185,7 +185,7 @@ class BEMSolver:
 
 
     def compute_velocity(self, points, result):
-        points, output_shape = _normalize_points(points)
+        points, output_shape = _normalize_points(points, keep_mesh=True)
 
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
@@ -199,7 +199,7 @@ class BEMSolver:
 
 
     def compute_free_surface_elevation(self, points, result):
-        points, output_shape = _normalize_free_surface_points(points)
+        points, output_shape = _normalize_free_surface_points(points, keep_mesh=True)
 
         fs_elevation = 1j*result.omega/result.g * self.compute_potential(points, result)
         return fs_elevation.reshape(output_shape)
