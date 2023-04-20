@@ -16,7 +16,7 @@ def solver():
 
 @pytest.fixture
 def result(solver):
-    mesh = cpt.mesh_sphere(radius=1.0).immersed_part()
+    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
     body = cpt.FloatingBody(mesh=mesh)
     body.add_translation_dof(name="Heave")
     result = solver.solve(cpt.DiffractionProblem(body=body, omega=1.0, wave_direction=np.pi/4), keep_details=True)
@@ -164,6 +164,11 @@ def test_compute_free_surface_elevation_at_meshgrid(solver, result):
 #######################################################################
 #                            Check values                             #
 #######################################################################
+
+def test_reconstruction_of_given_boundary_condition(solver, result):
+    velocities = solver.compute_velocity(result.body.mesh, result)
+    normal_velocities = np.einsum('...k,...k->...', velocities, result.body.mesh.faces_normals)
+    np.testing.assert_allclose(normal_velocities, result.problem.boundary_condition)
 
 def test_airy_wave_free_surface_elevation_values():
     from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
