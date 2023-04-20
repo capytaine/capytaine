@@ -25,6 +25,7 @@ from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.optional_imports import silently_import_optional_dependency
+from capytaine.bem.airy_waves import _normalize_points, _normalize_free_surface_points
 
 LOG = logging.getLogger(__name__)
 
@@ -170,6 +171,42 @@ class BEMSolver:
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 
+
+    def compute_potential(self, points, result):
+        points, output_shape = _normalize_points(points)
+        if result.sources is None:
+            raise Exception(f"""The values of the sources of {result} cannot been found.
+            They probably have not been stored by the solver because the option keep_details=True have not been set.
+            Please re-run the resolution with this option.""")
+
+        S, _ = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.sea_bottom, result.wavenumber)
+        potential = S @ result.sources  # Sum the contributions of all panels in the mesh
+        return potential.reshape(output_shape)
+
+
+    def compute_velocity(self, points, result):
+        points, output_shape = _normalize_points(points)
+
+        if result.sources is None:
+            raise Exception(f"""The values of the sources of {result} cannot been found.
+            They probably have not been stored by the solver because the option keep_details=True have not been set.
+            Please re-run the resolution with this option.""")
+
+        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.sea_bottom, result.wavenumber,
+                                                early_dot_product=False)
+        velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
+        return velocities.reshape((*output_shape, 3))
+
+
+    def compute_free_surface_elevation(self, points, result):
+        points, output_shape = _normalize_free_surface_points(points)
+
+        fs_elevation = 1j*result.omega/result.g * self.compute_potential(points, result)
+        return fs_elevation.reshape(output_shape)
+
+
+    ## Legacy
+
     def get_potential_on_mesh(self, result, mesh, chunk_size=50):
         """Compute the potential on a mesh for the potential field of a previously solved problem.
         Since the interaction matrix does not need to be computed in full to compute the matrix-vector product,
@@ -251,15 +288,4 @@ class BEMSolver:
         if keep_details:
             result.fs_elevation[free_surface] = fs_elevation
         return fs_elevation
-
-    def get_velocity(self, result, points):
-        if result.sources is None:
-            raise Exception(f"""The values of the sources of {result} cannot been found.
-            They probably have not been stored by the solver because the option keep_details=True have not been set.
-            Please re-run the resolution with this option.""")
-
-        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.sea_bottom, result.wavenumber,
-                                                early_dot_product=False)
-        velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
-        return velocities
 
