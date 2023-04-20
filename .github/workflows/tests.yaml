@@ -21,10 +21,8 @@ jobs:
     - uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Versions
-      run: pip --version && pip list
     - name: Install
-      run: pip install .[ci]
+      run: pip install --use-pep517 .[ci]
     - name: Test
       run: pytest
     - name: Import installed library
