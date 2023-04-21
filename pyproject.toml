@@ -3,6 +3,6 @@ requires = ["setuptools>=38.6.0", "wheel", "numpy", "charset-normalizer"]
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
-test-requires = "pytest"
-test-command = "pytest pytest/"
+test-requires = ["pytest", "hypothesis"]
+test-command = "pytest {project}/pytest/"
 skip = "cp36-*"
