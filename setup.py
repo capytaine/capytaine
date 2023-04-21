@@ -3,9 +3,6 @@
 
 import os
 
-from setuptools import dist
-dist.Distribution().fetch_build_eggs(['numpy', 'charset-normalizer'])
-
 from numpy.distutils.core import Extension, setup
 
 ########################
