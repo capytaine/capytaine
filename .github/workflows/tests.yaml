@@ -21,8 +21,10 @@ jobs:
     - uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install wheel
+      run: pip install wheel
     - name: Install
-      run: pip install --use-pep517 .[ci]
+      run: pip install .[ci]
     - name: Test
       run: pytest
     - name: Import installed library
