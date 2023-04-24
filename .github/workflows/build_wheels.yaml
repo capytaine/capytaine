@@ -47,11 +47,11 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.3
         env:
-        # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
-        # delvewheel cannot mangle the libraries, stripping does not work.
-          CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
-          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel show {wheel} && delvewheel repair -w {dest_dir} {wheel} --no-mangle-all"
-          CIBW_SKIP: pp*
+          CIBW_SKIP: "pp* *i686*"
+        # # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
+        # # delvewheel cannot mangle the libraries, stripping does not work.
+        #   CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
+        #   CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel show {wheel} && delvewheel repair -w {dest_dir} {wheel} --no-mangle-all"
         # with:
         #   package-dir: .
         #   output-dir: wheelhouse
