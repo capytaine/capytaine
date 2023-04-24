@@ -1,3 +1,6 @@
+[project]
+requires-python = ">=3.7"
+
 [build-system]
 requires = ["setuptools>=38.6.0", "wheel", "oldest-supported-numpy", "charset-normalizer"]
 build-backend = "setuptools.build_meta"
@@ -5,4 +8,3 @@ build-backend = "setuptools.build_meta"
 [tool.cibuildwheel]
 test-requires = ["pytest", "hypothesis"]
 test-command = "pytest {project}/pytest/"
-skip = "cp36-*"
