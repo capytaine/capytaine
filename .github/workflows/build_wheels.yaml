@@ -1,6 +1,16 @@
 name: Build wheels
 
-on: [pull_request]
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - v*
+  pull_request:
+    # branches:
+    #   - main
+    # types:
+    #   - closed
+
 
 jobs:
   build_wheels:
