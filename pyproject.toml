@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=38.6.0", "wheel", "numpy", "charset-normalizer"]
+requires = ["setuptools>=38.6.0", "wheel", "oldest-supported-numpy", "charset-normalizer"]
 build-backend = "setuptools.build_meta"
 
 [tool.cibuildwheel]
