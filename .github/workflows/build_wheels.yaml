@@ -41,6 +41,7 @@ jobs:
         # delvewheel cannot mangle the libraries, stripping does not work.
           CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel show {wheel} && delvewheel repair -w {dest_dir} {wheel} --no-mangle-all"
+          CIBW_SKIP: pp*
         # with:
         #   package-dir: .
         #   output-dir: wheelhouse
