@@ -2,7 +2,7 @@ install:
 	pip install .
 
 develop:
-	pip install -e .[develop]
+	SETUPTOOLS_ENABLE_FEATURES="legacy-editable" pip install -e .
 
 test: develop
 	python -m pytest
