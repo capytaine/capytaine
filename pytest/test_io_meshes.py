@@ -2,6 +2,7 @@
 # coding: utf-8
 """Tests for the mesh import of mesh from external libraries"""
 
+import os
 import pytest
 import logging
 from unittest import mock
@@ -342,7 +343,7 @@ def test_write_and_load_gdf(tmpdir):
 @pytest.mark.skipif(h5py is None,
                     reason='h5py and/or meshio is not installed')
 def test_MED_file():
-    mesh = cpt.load_mesh("./pytest/mesh_files_examples/barge.med")
+    mesh = cpt.load_mesh(os.path.join(os.path.dirname(__file__), "mesh_files_examples/barge.med"))
     assert mesh.nb_faces == 187
 
 
