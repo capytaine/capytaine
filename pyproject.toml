@@ -1,0 +1,42 @@
+[project]
+name = "capytaine"
+description = "Python BEM solver for linear potential flow, based on Nemoh"
+authors = [{name = "Matthieu Ancellin", email = "matthieu.ancellin@eurobios.com"}]
+requires-python = ">=3.7"
+dependencies = ["numpy", "scipy", "pandas>=1.3", "xarray"]
+urls = {repository = "https://github.com/capytaine/capytaine"}
+readme = "README.md"
+license = {file = "LICENSE"}
+scripts = {capytaine = "capytaine.ui.cli:main"}
+
+dynamic = ["version"]
+
+[project.optional-dependencies]
+ci = ["pytest", "hypothesis"]
+
+[tool.setuptools]
+packages = [
+    "capytaine",
+    "capytaine.meshes",
+    "capytaine.meshes.predefined",
+    "capytaine.matrices",
+    "capytaine.bodies",
+    "capytaine.bodies.predefined",
+    "capytaine.bem",
+    "capytaine.green_functions",
+    "capytaine.green_functions.libs",
+    "capytaine.post_pro",
+    "capytaine.ui",
+    "capytaine.ui.vtk",
+    "capytaine.io",
+    "capytaine.tools",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "capytaine.__about__.__version__"}
+
+
+[build-system]
+requires = ["setuptools>=38.6.0", "wheel", "oldest-supported-numpy", "charset-normalizer"]
+build-backend = "setuptools.build_meta"
+
