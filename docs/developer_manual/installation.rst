@@ -11,7 +11,7 @@ It is recommended to use a `conda environment <https://conda.io/docs/user-guide/
     conda activate capy_dev
 
 By default, conda will install the latest version of Python.
-Capytaine requires Python 3.6 and is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
+Capytaine requires Python 3.7 and is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
 
 
 You'll also need a Fortran compiler:

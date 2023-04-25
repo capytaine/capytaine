@@ -12,7 +12,7 @@ Capytaine is based on
 .. _meshmagick: https://github.com/LHEEA/meshmagick
 .. _`Python scientific ecosystem`: https://scipy.org/
 
-For users, it can be seen as a Python 3.6 (or higher) interface to Nemoh.
+For users, it can be seen as a Python 3.7 (or higher) interface to Nemoh.
 Since most of the code has been rewritten, it can be used by developers as a
 more concise and better documented version of Nemoh.
 

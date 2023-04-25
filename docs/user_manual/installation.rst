@@ -6,7 +6,7 @@ Capytaine is available on Windows, MacOS [#]_ and Linux.
 
 .. [#] For the latest informations on the arm64 architectures (Apple M1), see https://github.com/capytaine/capytaine/issues/190
 
-Capytaine requires Python 3.6 or higher.
+Capytaine requires Python 3.7 or higher.
 Thus it is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
 
 With Conda

@@ -1,13 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os
-
 from numpy.distutils.core import Extension, setup
-
-########################
-#  Fortran extensions  #
-########################
 
 def libDelhommeau_src(precision):
     return [
@@ -41,83 +35,6 @@ extensions_modules = [
         for precision in ["float32", "float64"]
         ]
 
-########################################################
-#  Read version number and other info in __about__.py  #
-########################################################
-
-base_dir = os.path.dirname(__file__)
-src_dir = os.path.join(base_dir, "capytaine")
-
-about = {}
-with open(os.path.join(src_dir, "__about__.py")) as f:
-    exec(f.read(), about)
-
-
-##########
-#  Main  #
-##########
 
 if __name__ == "__main__":
-    setup(name=about["__title__"],
-          version=about["__version__"],
-          description=about["__description__"],
-          author=about["__author__"],
-          license=about["__license__"],
-          url=about["__uri__"],
-          packages=[
-              'capytaine',
-              'capytaine.meshes',
-              'capytaine.meshes.predefined',
-              'capytaine.matrices',
-              'capytaine.bodies',
-              'capytaine.bodies.predefined',
-              'capytaine.bem',
-              'capytaine.green_functions',
-              'capytaine.post_pro',
-              'capytaine.ui',
-              'capytaine.ui.vtk',
-              'capytaine.io',
-              'capytaine.tools',
-          ],
-          install_requires=[
-              'numpy',
-              'scipy',
-              'pandas>=1.3',
-              'xarray',
-          ],
-          extras_require={
-            'develop': [
-              'pytest',
-              'hypothesis',
-              'ipython>=7.14',
-              'matplotlib',
-              'vtk',
-              'meshio',
-              'pygmsh',
-              'gmsh',
-              'h5py',
-              'sphinx',
-              'sphinxcontrib-proof',
-              'sphinxcontrib-mermaid',
-            ],
-            'ci': [
-              'pytest',
-              'hypothesis',
-                ],
-            'extra': [
-              'ipython>=7.14',
-              'matplotlib',
-              'vtk',
-              'meshio',
-              'pygmsh',
-              'gmsh',
-              'bemio @ git+https://github.com/michaelcdevin/bemio.git@master-python3#egg=bemio',
-            ]
-          },
-          entry_points={
-              'console_scripts': [
-                  'capytaine=capytaine.ui.cli:main',
-              ],
-          },
-          ext_modules=extensions_modules,
-      )
+    setup(ext_modules=extensions_modules)
