@@ -1,6 +1,5 @@
 [project]
 name = "capytaine"
-version = "2.0.dev0"
 description = "Python BEM solver for linear potential flow, based on Nemoh"
 authors = [{name = "Matthieu Ancellin", email = "matthieu.ancellin@eurobios.com"}]
 requires-python = ">=3.7"
@@ -9,6 +8,8 @@ urls = {repository = "https://github.com/capytaine/capytaine"}
 readme = "README.md"
 license = {file = "LICENSE"}
 scripts = {capytaine = "capytaine.ui.cli:main"}
+
+dynamic = ["version"]
 
 [project.optional-dependencies]
 ci = ["pytest", "hypothesis"]
@@ -30,6 +31,9 @@ packages = [
     "capytaine.io",
     "capytaine.tools",
 ]
+
+[tool.setuptools.dynamic]
+version = {attr = "capytaine.__about__.__version__"}
 
 
 [build-system]
