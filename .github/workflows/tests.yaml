@@ -21,7 +21,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install
       run: |
-        pip install wheel
         pip install .[ci]
     - name: Test
       run: pytest

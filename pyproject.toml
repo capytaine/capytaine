@@ -13,8 +13,24 @@ scripts = {capytaine = "capytaine.ui.cli:main"}
 [project.optional-dependencies]
 ci = ["pytest", "hypothesis"]
 
-[tool.setuptools.packages]
-find = {include = ["capytaine"]}
+[tool.setuptools]
+packages = [
+    "capytaine",
+    "capytaine.meshes",
+    "capytaine.meshes.predefined",
+    "capytaine.matrices",
+    "capytaine.bodies",
+    "capytaine.bodies.predefined",
+    "capytaine.bem",
+    "capytaine.green_functions",
+    "capytaine.green_functions.libs",
+    "capytaine.post_pro",
+    "capytaine.ui",
+    "capytaine.ui.vtk",
+    "capytaine.io",
+    "capytaine.tools",
+]
+
 
 [build-system]
 requires = ["setuptools>=38.6.0", "wheel", "oldest-supported-numpy", "charset-normalizer"]
