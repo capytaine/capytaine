@@ -46,6 +46,12 @@ Simulation with several bodies
 .. literalinclude:: examples/multibody.py
    :language: python
 
+Free surface elevation
+----------------------
+
+.. literalinclude:: examples/free_surface_elevation.py
+   :language: python
+
 Comparison with hydrostatics from Meshmagick
 --------------------------------------------
 
