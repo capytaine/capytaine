@@ -14,7 +14,7 @@ from numpy.linalg import norm
 
 from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
 from capytaine.meshes.properties import compute_faces_properties, compute_connectivity
-from capytaine.meshes.surface_integrals import compute_faces_integrals, SurfaceIntegralsMixin
+from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
 from capytaine.tools.optional_imports import import_optional_dependency
@@ -821,24 +821,6 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
     def mean_edge_length(self) -> float:
         """The mesh's mean edge length"""
         return self._edges_stats()[2]
-
-    #######################
-    #  Surface integrals  #
-    #######################
-
-    def get_surface_integrals(self) -> np.ndarray:
-        """Get the mesh surface integrals."""
-        if 'surface_integrals' not in self.__internals__:
-            self.__internals__['surface_integrals'] = compute_faces_integrals(self)
-        return self.__internals__['surface_integrals']
-
-    @property
-    def volume(self) -> float:
-        """Get the mesh enclosed volume."""
-        normals = self.faces_normals
-        sigma_0_2 = self.get_surface_integrals()[:3]
-
-        return (normals.T * sigma_0_2).sum() / 3.
 
     ####################
     #  Connectivities  #
