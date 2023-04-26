@@ -1,6 +1,6 @@
-project('libDelhommeau bindings for Capytaine',
+project('capytaine',
   ['c', 'fortran'],
-  version : '2.0.dev0',
+  version : run_command('capytaine/__about__.py', check: true).stdout().strip(),
   default_options : ['warning_level=2'])
 
 
@@ -8,7 +8,7 @@ py_mod = import('python')
 py3 = py_mod.find_installation('python3')
 py3_dep = py3.dependency()
 message(py3.path())
-message(py3.get_install_dir())
+message(run_command(py3, ['-c', 'import numpy; print(numpy.__version__)']).stdout().strip())
 
 incdir_numpy = run_command(py3,
   ['-c', 'import os; os.chdir(".."); import numpy; print(numpy.get_include())'],
@@ -16,7 +16,7 @@ incdir_numpy = run_command(py3,
 ).stdout().strip()
 
 incdir_f2py = run_command(py3,
-    ['-c', 'import os; os.chdir(".."); import numpy.f2py; print(numpy.f2py.get_include())'],
+    ['-c', 'import os; os.chdir(".."); import numpy.f2py; print(numpy.f2py.get_include() if hasattr(f2py, "get_include") else os.path.join(os.path.dirname(f2py.__file__), "src"))'],
     check : true
 ).stdout().strip()
 

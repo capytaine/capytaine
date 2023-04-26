@@ -1,6 +1,5 @@
 [project]
 name = "capytaine"
-version = "2.0.dev0"
 description = "Python BEM solver for linear potential flow, based on Nemoh"
 authors = [{name = "Matthieu Ancellin", email = "matthieu.ancellin@eurobios.com"}]
 requires-python = ">=3.7"
@@ -10,12 +9,12 @@ readme = "README.md"
 license = {file = "LICENSE"}
 scripts = {capytaine = "capytaine.ui.cli:main"}
 
+dynamic = ['version']
 
 [project.optional-dependencies]
 ci = ["pytest", "hypothesis"]
 
 [build-system]
 build-backend = 'mesonpy'
-# requires = ["meson-python", "oldest-supported-numpy", "charset-normalizer"]
-requires = ["meson-python", "numpy>=1.21.6", "charset-normalizer"]
+requires = ["meson-python", "oldest-supported-numpy", "charset-normalizer"]
 
