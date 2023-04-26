@@ -16,5 +16,6 @@ ci = ["pytest", "hypothesis"]
 
 [build-system]
 build-backend = 'mesonpy'
-requires = ["meson-python", "oldest-supported-numpy", "charset-normalizer"]
+# requires = ["meson-python", "oldest-supported-numpy", "charset-normalizer"]
+requires = ["meson-python", "numpy>=1.22", "charset-normalizer"]
 
