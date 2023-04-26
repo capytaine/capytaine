@@ -119,9 +119,12 @@ def airy_waves_velocity(points, pb):
     return v.T.reshape((*output_shape, 3))
 
 
+def airy_waves_pressure(points, pb):
+    return 1j * pb.omega * pb.rho * airy_waves_potential(points, pb)
+
+
 def froude_krylov_force(pb):
-    pressure = 1j * pb.omega * pb.rho * airy_waves_potential(pb.body.mesh.faces_centers, pb)
-    return pb.body.integrate_pressure(pressure)
+    return pb.body.integrate_pressure(airy_waves_pressure(pb.body.mesh.faces_centers, pb))
 
 
 def airy_waves_free_surface_elevation(points, pb):

@@ -198,6 +198,10 @@ class BEMSolver:
         return velocities.reshape((*output_shape, 3))
 
 
+    def compute_pressure(self, points, result):
+        return 1j * result.omega * result.rho * self.compute_potential(points, results)
+
+
     def compute_free_surface_elevation(self, points, result):
         points, output_shape = _normalize_free_surface_points(points, keep_mesh=True)
 
