@@ -16,7 +16,7 @@ incdir_numpy = run_command(py3,
 ).stdout().strip()
 
 incdir_f2py = run_command(py3,
-    ['-c', 'import os; os.chdir(".."); import numpy.f2py; print(numpy.f2py.get_include() if hasattr(f2py, "get_include") else os.path.join(os.path.dirname(f2py.__file__), "src"))'],
+    ['-c', 'import os; os.chdir(".."); import numpy.f2py; print(numpy.f2py.get_include() if hasattr(numpy.f2py, "get_include") else os.path.join(os.path.dirname(numpy.f2py.__file__), "src"))'],
     check : true
 ).stdout().strip()
 
