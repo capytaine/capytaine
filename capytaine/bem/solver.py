@@ -25,6 +25,7 @@ from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.optional_imports import silently_import_optional_dependency
+from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 
 LOG = logging.getLogger(__name__)
 
@@ -170,10 +171,132 @@ class BEMSolver:
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 
+
+    def compute_potential(self, points, result):
+        """Compute the value of the potential at given points for a previously solved potential flow problem.
+
+        Parameters
+        ----------
+        points: array of shape (3,) or (N, 3),
+                or 3-ple of arrays returned by meshgrid
+                or cpt.Mesh or cpt.CollectionOfMeshes object
+            Coordinates of the point(s) at which the potential should be computed
+        results: LinearPotentialFlowResult
+            The return of the BEM solver
+
+        Returns
+        -------
+        complex-valued array of shape (1,) or (N,) or (nx, ny, nz) or (mesh.nb_faces,) depending of the kind of input
+            The value of the potential at the points
+
+        Raises
+        ------
+        Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
+        """
+        points, output_shape = _normalize_points(points, keep_mesh=True)
+        if result.sources is None:
+            raise Exception(f"""The values of the sources of {result} cannot been found.
+            They probably have not been stored by the solver because the option keep_details=True have not been set.
+            Please re-run the resolution with this option.""")
+
+        S, _ = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.sea_bottom, result.wavenumber)
+        potential = S @ result.sources  # Sum the contributions of all panels in the mesh
+        return potential.reshape(output_shape)
+
+
+    def compute_velocity(self, points, result):
+        """Compute the value of the velocity vector at given points for a previously solved potential flow problem.
+
+        Parameters
+        ----------
+        points: array of shape (3,) or (N, 3),
+                or 3-ple of arrays returned by meshgrid
+                or cpt.Mesh or cpt.CollectionOfMeshes object
+            Coordinates of the point(s) at which the velocity should be computed
+        results: LinearPotentialFlowResult
+            The return of the BEM solver
+
+        Returns
+        -------
+        complex-valued array of shape (3,) or (N,, 3) or (nx, ny, nz, 3) or (mesh.nb_faces, 3) depending of the kind of input
+            The value of the velocity at the points
+
+        Raises
+        ------
+        Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
+        """
+        points, output_shape = _normalize_points(points, keep_mesh=True)
+
+        if result.sources is None:
+            raise Exception(f"""The values of the sources of {result} cannot been found.
+            They probably have not been stored by the solver because the option keep_details=True have not been set.
+            Please re-run the resolution with this option.""")
+
+        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.sea_bottom, result.wavenumber,
+                                                early_dot_product=False)
+        velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
+        return velocities.reshape((*output_shape, 3))
+
+
+    def compute_pressure(self, points, result):
+        """Compute the value of the pressure at given points for a previously solved potential flow problem.
+
+        Parameters
+        ----------
+        points: array of shape (3,) or (N, 3),
+                or 3-ple of arrays returned by meshgrid
+                or cpt.Mesh or cpt.CollectionOfMeshes object
+            Coordinates of the point(s) at which the pressure should be computed
+        results: LinearPotentialFlowResult
+            The return of the BEM solver
+
+        Returns
+        -------
+        complex-valued array of shape (1,) or (N,) or (nx, ny, nz) or (mesh.nb_faces,) depending of the kind of input
+            The value of the pressure at the points
+
+        Raises
+        ------
+        Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
+        """
+        return 1j * result.omega * result.rho * self.compute_potential(points, results)
+
+
+    def compute_free_surface_elevation(self, points, result):
+        """Compute the value of the free surface elevation at given points for a previously solved potential flow problem.
+
+        Parameters
+        ----------
+        points: array of shape (2,) or (N, 2),
+                or 2-ple of arrays returned by meshgrid
+                or cpt.Mesh or cpt.CollectionOfMeshes object
+            Coordinates of the point(s) at which the free surface elevation should be computed
+        results: LinearPotentialFlowResult
+            The return of the BEM solver
+
+        Returns
+        -------
+        complex-valued array of shape (1,) or (N,) or (nx, ny, nz) or (mesh.nb_faces,) depending of the kind of input
+            The value of the free surface elevation at the points
+
+        Raises
+        ------
+        Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
+        """
+        points, output_shape = _normalize_free_surface_points(points, keep_mesh=True)
+
+        fs_elevation = 1j*result.omega/result.g * self.compute_potential(points, result)
+        return fs_elevation.reshape(output_shape)
+
+
+    ## Legacy
+
     def get_potential_on_mesh(self, result, mesh, chunk_size=50):
         """Compute the potential on a mesh for the potential field of a previously solved problem.
         Since the interaction matrix does not need to be computed in full to compute the matrix-vector product,
         only a few lines are evaluated at a time to reduce the memory cost of the operation.
+
+        The newer method :code:`compute_potential` should be prefered in the future.
 
         Parameters
         ----------
@@ -229,6 +352,8 @@ class BEMSolver:
     def get_free_surface_elevation(self, result, free_surface, keep_details=False):
         """Compute the elevation of the free surface on a mesh for a previously solved problem.
 
+        The newer method :code:`compute_free_surface_elevation` should be prefered in the future.
+
         Parameters
         ----------
         result : LinearPotentialFlowResult
@@ -251,15 +376,4 @@ class BEMSolver:
         if keep_details:
             result.fs_elevation[free_surface] = fs_elevation
         return fs_elevation
-
-    def get_velocity(self, result, points):
-        if result.sources is None:
-            raise Exception(f"""The values of the sources of {result} cannot been found.
-            They probably have not been stored by the solver because the option keep_details=True have not been set.
-            Please re-run the resolution with this option.""")
-
-        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.sea_bottom, result.wavenumber,
-                                                early_dot_product=False)
-        velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
-        return velocities
 

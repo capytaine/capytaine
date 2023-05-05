@@ -256,7 +256,7 @@ class Delhommeau(AbstractGreenFunction):
             raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
                     "It could be due to overlapping panels.")
 
-        if early_dot_product: K = K.reshape((mesh1.nb_faces, mesh2.nb_faces))
+        if early_dot_product: K = K.reshape((nb_collocation_points, mesh2.nb_faces))
 
         return S, K
 

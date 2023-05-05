@@ -2,52 +2,62 @@
 Post-processing
 ===============
 
-Free surface elevation
-----------------------
+Pressure, velocity, free surface elevation
+------------------------------------------
 
-To compute the free surface elevation, let us first initialize a
-:class:`~capytaine.post_pro.free_surfaces.FreeSurface` object::
+Once the problem has been solved, several fields of interest can be computed at post-processing:
 
-    from capytaine import FreeSurface
-    fs = FreeSurface(x_range=(-10, 10), nx=10, y_range=(-5, 5), ny=10)
++-----------------------------------------------------------+------------------------------------------------------+
+| Code                                                      | Description                                          |
++===========================================================+======================================================+
+| ``solver.compute_potential(points, result)``              | The velocity potential :math:`\phi(x, y, z)`         |
++-----------------------------------------------------------+------------------------------------------------------+
+| ``solver.compute_pressure(points, result)``               | The pressure in the fluid :math:`p(x, y, z)`         |
++-----------------------------------------------------------+------------------------------------------------------+
+| ``solver.compute_velocity(points, result)``               | The velocity of the fluid :math:`u(x, y, z)`         |
++-----------------------------------------------------------+------------------------------------------------------+
+| ``solver.compute_free_surface_elevation(points, result)`` | The elevation of the free surface :math:`\eta(x, y)` |
++-----------------------------------------------------------+------------------------------------------------------+
 
-The above code generates a regular free surface mesh of :math:`10 \times 10`
-cells. This object can be used by the solver with a results object to get the
-free surface elevation::
-
-    fs_elevation = solver.get_free_surface_elevation(result, free_surface)
-
-The output is a numpy array storing the free surface elevation in frequency
-domain as a complex number at each point of the free surface (in the present
-example an array of shape :code:`(10, 10)`).
+All the methods listed above work in the same way: they require the :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowResult` object containing the required data about the solved problem and some points at which the field should be evaluated.
 
 The result object should have been computed with the option
 :code:`keep_details=True`. The solver does not need to be the one that computed
 the result object.
 
-The undisturbed incoming waves (Airy waves) can be computed as follow::
+.. note::
+    The functions in the :mod:`~capytaine.bem.airy_waves`, used to compute the same magnitudes for an undisturbed incoming wave field, have the same structure.
 
-    incoming_waves = fs.incoming_waves(DiffractionProblem(omega=1.0, angle=pi/2))
+The point(s) can be given in several ways:
 
-See the examples in the :doc:`cookbook` for usage in a 3D animation.
+- Either a single point, given as a list, a tuple, or an 1d-array::
 
+    solver.compute_potential([3.0, -2.0, -5.0], results)
 
-Velocity in domain
-------------------
+- or a list of points, given as a list of lists, or a list of tuples, or a 2d-array::
 
-The velocity in the domain can be computed at a given list of points::
+    solver.compute_potential([[3.0, -2.0, -5.0], [4.0, 5.0, -2.0]], results)
 
-    points = np.array([[4.0, 4.0, -2.0], [3.0, 2.0, -5.0]]
-    velocity = solver.get_velocity(result, points)
+- or the return of a call to ``meshgrid``::
 
-or on a given mesh::
+    points = np.meshgrid(np.linspace(-2.0, 2.0, 10), np.linspace(-3.0, 3.0, 20), np.linspace(-2.0, 0.0, 30))
+    solver.compute_potential(points, results)
 
-    velocity = solver.get_velocity(result, mesh)
+- or a mesh, in which case the centers of the faces of the mesh are used::
 
-The latter is equivalent to ``solver.get_velocity(result, mesh.faces_centers)``,
-except when computing the velocity field on the hull of body used to compute ``result``,
-in which case only ``solver.get_velocity(result, result.body.mesh)`` should be used.
+    solver.compute_potential(mesh, results)
 
+The returned values is an array of shape matching the shape of the input points.
+
+.. warning::
+   There is a single case in which passing a mesh is not equivalent to a list of point: if you want the compute the velocity on the hull of the floating body. In this case, you should give the same mesh object that has been used for the resolution::
+
+        solver.compute_velocity(result.body.mesh, result)
+
+   Other Python objects might return incorrect values or errors.
+
+For potential, pressure and velocity, 3 coordinates :math:`(x, y, z)` are expected for each points.
+For the free surface elevation, 2 coordinates :math:`(x, y)` are sufficient.
 
 Impedance and RAO
 -----------------
