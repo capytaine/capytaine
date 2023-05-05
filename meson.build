@@ -57,11 +57,11 @@ XieDelhommeau_float64_f2py_wrapper = custom_target('XieDelhommeau_float64module.
 install_subdir('capytaine', install_dir: py3.get_install_dir(pure: false))
 # Alternatively: would need to list all the .py files and use py3.install_source()
 
-args = ['-cpp', '-fopenmp']
-
 if meson.get_compiler('c').get_id() == 'clang'
-  link_args = ['-fopenmp=libomp']
+  args = ['-cpp']
+  link_args = []
 else
+  args = ['-cpp', '-fopenmp']
   link_args = ['-fopenmp']
 endif
 
