@@ -18,3 +18,6 @@ ci = ["pytest", "hypothesis"]
 build-backend = 'mesonpy'
 requires = ["meson-python", "oldest-supported-numpy", "charset-normalizer"]
 
+[tool.cibuildwheel]
+test-requires = ["pytest", "hypothesis"]
+test-command = "pytest {project}/pytest/"
