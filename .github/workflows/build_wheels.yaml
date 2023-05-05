@@ -35,6 +35,12 @@ jobs:
           sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
           gfortran --version
 
+      - name: Provide openMP (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          # https://iscinumpy.gitlab.io/post/omp-on-high-sierra/
+          brew install libomp
+
       # - name: Provide gfortran (Windows)
       #   if: runner.os == 'Windows'
       #   uses: msys2/setup-msys2@v2
