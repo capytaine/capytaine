@@ -25,7 +25,7 @@ from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.optional_imports import silently_import_optional_dependency
-from capytaine.bem.airy_waves import _normalize_points, _normalize_free_surface_points
+from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 
 LOG = logging.getLogger(__name__)
 
