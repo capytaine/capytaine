@@ -19,7 +19,8 @@ jobs:
     strategy:
       matrix:
         # os: [ubuntu-20.04, windows-2019, macos-11]
-        os: [ubuntu-20.04, macos-11]
+        # os: [ubuntu-20.04, macos-11]
+        os: [windows-2019]
 
     steps:
       - uses: actions/checkout@v3
@@ -38,11 +39,6 @@ jobs:
       - name: Provide gfortran (Windows)
         if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
-
-      - name: Tell distutils to use mingw (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          echo "[build]`ncompiler=mingw32" | Out-File -Encoding ASCII ~/pydistutils.cfg
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.3
