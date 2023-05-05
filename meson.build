@@ -59,7 +59,7 @@ install_subdir('capytaine', install_dir: py3.get_install_dir(pure: false))
 
 if build_machine.system() == 'darwin'
   # https://github.com/themachinethatgoesping/themachinethatgoesping/issues/1
-  omp = declare_dependency(compile_args : ['-Xpreprocessor', '-fopenmp'])
+  omp = declare_dependency(compile_args : ['-Xpreprocessor', '-fopenmp'], link_args : ['-lomp'])
 else
   omp = dependency('openmp')
 endif
