@@ -2,7 +2,8 @@ install:
 	pip install .
 
 develop:
-	pip install -e .[develop]
+	pip install meson-python numpy charset-normalizer # No installed from pyproject.toml in this case...
+	pip install --no-build-isolation -e .
 
 test: develop
 	python -m pytest
