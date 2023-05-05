@@ -9,34 +9,12 @@ readme = "README.md"
 license = {file = "LICENSE"}
 scripts = {capytaine = "capytaine.ui.cli:main"}
 
-dynamic = ["version"]
+dynamic = ['version']
 
 [project.optional-dependencies]
 ci = ["pytest", "hypothesis"]
 
-[tool.setuptools]
-packages = [
-    "capytaine",
-    "capytaine.meshes",
-    "capytaine.meshes.predefined",
-    "capytaine.matrices",
-    "capytaine.bodies",
-    "capytaine.bodies.predefined",
-    "capytaine.bem",
-    "capytaine.green_functions",
-    "capytaine.green_functions.libs",
-    "capytaine.post_pro",
-    "capytaine.ui",
-    "capytaine.ui.vtk",
-    "capytaine.io",
-    "capytaine.tools",
-]
-
-[tool.setuptools.dynamic]
-version = {attr = "capytaine.__about__.__version__"}
-
-
 [build-system]
-requires = ["setuptools>=38.6.0", "wheel", "oldest-supported-numpy", "charset-normalizer"]
-build-backend = "setuptools.build_meta"
+build-backend = 'mesonpy'
+requires = ["meson-python", "oldest-supported-numpy", "charset-normalizer"]
 
