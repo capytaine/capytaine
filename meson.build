@@ -57,15 +57,21 @@ XieDelhommeau_float64_f2py_wrapper = custom_target('XieDelhommeau_float64module.
 install_subdir('capytaine', install_dir: py3.get_install_dir(pure: false))
 # Alternatively: would need to list all the .py files and use py3.install_source()
 
-omp = dependency('openmp')
+if build_machine.system() == 'darwin'
+  # https://github.com/themachinethatgoesping/themachinethatgoesping/issues/1
+  omp = declare_dependency(compile_args : ['-Xpreprocessor', '-fopenmp'])
+else
+  omp = dependency('openmp')
+endif
 
 args = ['-cpp']
 link_args = []
+deps = [py3_dep, omp]
 
 py3.extension_module('Delhommeau_float32',
            float32, libDelhommeau_src, Delhommeau_float32_f2py_wrapper, incdir_f2py+'/fortranobject.c',
            include_directories: inc_np,
-           dependencies : [py3_dep, omp],
+           dependencies : deps,
            fortran_args : args,
            link_args : link_args,
            install : true,
@@ -74,7 +80,7 @@ py3.extension_module('Delhommeau_float32',
 py3.extension_module('Delhommeau_float64',
            float64, libDelhommeau_src, Delhommeau_float64_f2py_wrapper, incdir_f2py+'/fortranobject.c',
            include_directories: inc_np,
-           dependencies : [py3_dep, omp],
+           dependencies : deps,
            fortran_args : args,
            link_args : link_args,
            install : true,
@@ -83,7 +89,7 @@ py3.extension_module('Delhommeau_float64',
 py3.extension_module('XieDelhommeau_float32',
            float32, libDelhommeau_src, XieDelhommeau_float32_f2py_wrapper, incdir_f2py+'/fortranobject.c',
            include_directories: inc_np,
-           dependencies : [py3_dep, omp],
+           dependencies : deps,
            fortran_args : args + ['-DXIE_CORRECTION'],
            link_args : link_args,
            install : true,
@@ -92,7 +98,7 @@ py3.extension_module('XieDelhommeau_float32',
 py3.extension_module('XieDelhommeau_float64',
            float64, libDelhommeau_src, XieDelhommeau_float64_f2py_wrapper, incdir_f2py+'/fortranobject.c',
            include_directories: inc_np,
-           dependencies : [py3_dep, omp],
+           dependencies : deps,
            fortran_args : args + ['-DXIE_CORRECTION'],
            link_args : link_args,
            install : true,
