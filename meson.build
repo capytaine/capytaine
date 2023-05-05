@@ -58,8 +58,7 @@ install_subdir('capytaine', install_dir: py3.get_install_dir(pure: false))
 # Alternatively: would need to list all the .py files and use py3.install_source()
 
 if build_machine.system() == 'darwin'
-  # https://github.com/themachinethatgoesping/themachinethatgoesping/issues/1
-  omp = declare_dependency(compile_args : ['-Xpreprocessor', '-fopenmp'], link_args : ['-lomp'])
+  omp = []  # Waiting for https://github.com/mesonbuild/meson/issues/7435
 else
   omp = dependency('openmp')
 endif
