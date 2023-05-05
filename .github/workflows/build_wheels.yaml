@@ -19,26 +19,25 @@ jobs:
     strategy:
       matrix:
         # os: [ubuntu-20.04, windows-2019, macos-11]
-        # os: [ubuntu-20.04, macos-11]
-        os: [windows-2019]
+        os: [ubuntu-20.04, macos-11]
 
     steps:
       - uses: actions/checkout@v3
 
-      # From https://github.com/insarlab/PySolid/blob/18dcc0ffdc1aed88d9f4d87d9307284df14d26a7/.github/workflows/build-and-publish-to-pypi.yml
-      - name: Provide gfortran (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          # https://github.com/actions/virtual-environments/issues/2524
-          # https://github.com/cbg-ethz/dce/blob/master/.github/workflows/pkgdown.yaml
-          sudo ln -s /usr/local/bin/gfortran-11 /usr/local/bin/gfortran
-          sudo mkdir /usr/local/gfortran
-          sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
-          gfortran --version
+      # # From https://github.com/insarlab/PySolid/blob/18dcc0ffdc1aed88d9f4d87d9307284df14d26a7/.github/workflows/build-and-publish-to-pypi.yml
+      # - name: Provide gfortran (macOS)
+      #   if: runner.os == 'macOS'
+      #   run: |
+      #     # https://github.com/actions/virtual-environments/issues/2524
+      #     # https://github.com/cbg-ethz/dce/blob/master/.github/workflows/pkgdown.yaml
+      #     sudo ln -s /usr/local/bin/gfortran-11 /usr/local/bin/gfortran
+      #     sudo mkdir /usr/local/gfortran
+      #     sudo ln -s /usr/local/Cellar/gcc@11/*/lib/gcc/11 /usr/local/gfortran/lib
+      #     gfortran --version
 
-      - name: Provide gfortran (Windows)
-        if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
+      # - name: Provide gfortran (Windows)
+      #   if: runner.os == 'Windows'
+      #   uses: msys2/setup-msys2@v2
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.3
