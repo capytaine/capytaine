@@ -1,0 +1,19 @@
+name: Build on Windows
+
+on:
+  pull_request:
+
+jobs:
+  build_windows_fortran:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Intel Fortran
+        uses: modflowpy/install-intelfortran-action@v1
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.11'
+      - name: Install
+        run: pip install .
+      - name: Test
+        run: cd /tmp/ && pytest $GITHUB_WORKSPACE/pytest/
