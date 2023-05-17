@@ -9,6 +9,8 @@ import pytest
 import numpy as np
 import xarray as xr
 
+import capytaine as cpt
+
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh
 
@@ -18,12 +20,11 @@ from capytaine.bodies.predefined.cylinders import HorizontalCylinder
 
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem, \
     LinearPotentialFlowResult, DiffractionResult, RadiationResult
-from capytaine.bem.solver import Nemoh
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset
 
 from capytaine.io.legacy import import_cal_file
 
-solver = Nemoh(matrix_cache_size=0)
+solver = cpt.BEMSolver()
 
 
 def test_LinearPotentialFlowProblem():
@@ -40,7 +41,6 @@ def test_LinearPotentialFlowProblem():
     pb = LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=-1.0, omega=1.0)
     assert pb.depth == 1.0
     assert np.isclose(pb.omega**2, pb.g*pb.wavenumber*np.tanh(pb.wavenumber*pb.depth))
-    assert pb.dimensionless_wavenumber == pb.wavenumber*1.0
 
     with pytest.raises(NotImplementedError):
         LinearPotentialFlowProblem(free_surface=2.0)
@@ -80,19 +80,39 @@ def test_LinearPotentialFlowProblem():
     assert res.body is pb.body
 
 
+@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+def test_setting_wavelength(water_depth):
+    λ = 10*np.random.rand()
+    assert np.isclose(cpt.DiffractionProblem(wavelength=λ, sea_bottom=-water_depth).wavelength, λ)
+
+@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+def test_setting_wavenumber(water_depth):
+    k = 10*np.random.rand()
+    assert np.isclose(cpt.DiffractionProblem(wavenumber=k, sea_bottom=-water_depth).wavenumber, k)
+
+@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+def test_setting_period(water_depth):
+    T = 10*np.random.rand()
+    assert np.isclose(cpt.DiffractionProblem(period=T, sea_bottom=-water_depth).period, T)
+
+def test_setting_too_many_frequencies():
+    with pytest.raises(ValueError, match="at most one"):
+        cpt.DiffractionProblem(omega=1.0, wavelength=1.0)
+
+
 def test_diffraction_problem():
-    assert DiffractionProblem().body is None
+    assert DiffractionProblem(omega=1.0).body is None
 
     sphere = Sphere(radius=1.0, ntheta=20, nphi=40)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
-    pb = DiffractionProblem(body=sphere, wave_direction=1.0)
+    pb = DiffractionProblem(body=sphere, wave_direction=1.0, wavenumber=1.0)
     assert len(pb.boundary_condition) == sphere.mesh.nb_faces
 
     with pytest.raises(TypeError):
         DiffractionProblem(boundary_conditions=[0, 0, 0])
 
-    assert "DiffractionProblem" in str(DiffractionProblem(g=10, rho=1025, free_surface=np.infty))
+    assert "DiffractionProblem" in str(DiffractionProblem(wavenumber=1.0, g=10, rho=1025, free_surface=np.infty))
 
     res = pb.make_results_container()
     assert isinstance(res, DiffractionResult)
@@ -130,13 +150,6 @@ def test_radiation_problem(caplog):
     assert res.radiation_dampings == {}
 
 
-def test_wamit_convention():
-    sphere = Sphere()
-    pb1 = DiffractionProblem(body=sphere, convention="Nemoh")
-    pb2 = DiffractionProblem(body=sphere, convention="WAMIT")
-    assert np.allclose(pb1.boundary_condition, np.conjugate(pb2.boundary_condition))
-
-
 def test_Froude_Krylov():
     from capytaine.bem.airy_waves import froude_krylov_force
     from capytaine.bodies.predefined.spheres import Sphere
@@ -155,12 +168,13 @@ def test_Froude_Krylov():
     assert np.isclose(froude_krylov_force(problem)['Heave'], 27610, rtol=1e-3)
 
 
-def test_import_cal_file():
+@pytest.mark.parametrize("cal_file", ["Nemoh.cal", "Nemoh_v3.cal"])
+def test_import_cal_file(cal_file):
     """Test the importation of legacy Nemoh.cal files."""
     current_file_path = os.path.dirname(os.path.abspath(__file__))
 
     # Non symmetrical body
-    cal_file_path = os.path.join(current_file_path, "Nemoh_verification_cases", "NonSymmetrical", "Nemoh.cal")
+    cal_file_path = os.path.join(current_file_path, "Nemoh_verification_cases", "NonSymmetrical", cal_file)
     problems = import_cal_file(cal_file_path)
 
     assert len(problems) == 6*41+41
@@ -177,7 +191,7 @@ def test_import_cal_file():
             assert problem.wave_direction == 0.0
 
     # Symmetrical cylinder
-    cal_file_path = os.path.join(current_file_path, "Nemoh_verification_cases", "Cylinder", "Nemoh.cal")
+    cal_file_path = os.path.join(current_file_path, "Nemoh_verification_cases", "Cylinder", cal_file)
     problems = import_cal_file(cal_file_path)
 
     assert len(problems) == 6*2+2
@@ -240,6 +254,23 @@ def test_problems_from_dataset():
     assert len(problems) == 12
 
 
+def test_problems_from_dataset_with_wavelength():
+    body = cpt.FloatingBody(mesh=cpt.mesh_sphere(center=(0, 0, -4), name="sphere"),
+                            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -4)))
+    dset = xr.Dataset(coords={'wavelength': [12.0], 'radiating_dof': ["Heave"]})
+    problems = problems_from_dataset(dset, body)
+    for pb in problems:
+        assert np.isclose(pb.wavelength, 12.0)
+
+
+def test_problems_from_dataset_with_too_many_info():
+    body = cpt.FloatingBody(mesh=cpt.mesh_sphere(center=(0, 0, -4), name="sphere"),
+                            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -4)))
+    dset = xr.Dataset(coords={'wavelength': [12.0], 'period': [3.0], 'radiating_dof': ["Heave"]})
+    with pytest.raises(ValueError, match="at most one"):
+        problems = problems_from_dataset(dset, body)
+
+
 def test_assemble_dataset():
     body = Sphere(center=(0, 0, -4), name="sphere")
     body.add_translation_dof(name="Heave")
@@ -266,3 +297,21 @@ def test_fill_dataset():
     dataset = solver.fill_dataset(test_matrix, [body])
     assert dataset['added_mass'].data.shape == (3, 1, 6)
     assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)
+
+
+def test_fill_dataset_with_wavenumbers():
+    body = cpt.FloatingBody(mesh=cpt.mesh_horizontal_cylinder(radius=1, center=(0, 0, -2)),
+                            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -2)))
+    k_range = np.linspace(1.0, 3.0, 3)
+    test_matrix = xr.Dataset(coords={'wavenumber': k_range, 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
+    dataset = solver.fill_dataset(test_matrix, [body])
+    assert np.allclose(dataset.coords['wavenumber'], k_range)
+
+
+def test_fill_dataset_with_periods():
+    body = cpt.FloatingBody(mesh=cpt.mesh_horizontal_cylinder(radius=1, center=(0, 0, -2)),
+                            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -2)))
+    T_range = np.linspace(1.0, 3.0, 3)
+    test_matrix = xr.Dataset(coords={'period': T_range, 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
+    dataset = solver.fill_dataset(test_matrix, [body])
+    np.testing.assert_allclose(sorted(dataset.coords['period']), sorted(T_range))

@@ -58,16 +58,16 @@ def rao_transfer_function(dataset, dissipation=None, stiffness=None):
 
 def impedance(dataset, dissipation=None, stiffness=None):
     """Complex-valued mechanical impedance matrix.
-    See Falnes for more theoretical details.
+    See Falnes for more theoretical details::
 
-    @book{falnes2002ocean,
-          title={Ocean Waves and Oscillating Systems: Linear Interactions Including Wave-Energy Extraction},
-          author={Falnes, J.},
-          isbn={9781139431934},
-          url={https://books.google.com/books?id=bl1FyQjCklgC},
-          year={2002},
-          publisher={Cambridge University Press}
-    }
+        @book{falnes2002ocean,
+              title={Ocean Waves and Oscillating Systems: Linear Interactions Including Wave-Energy Extraction},
+              author={Falnes, J.},
+              isbn={9781139431934},
+              url={https://books.google.com/books?id=bl1FyQjCklgC},
+              year={2002},
+              publisher={Cambridge University Press}
+        }
 
     Parameters
     ----------

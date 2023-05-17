@@ -12,7 +12,7 @@ Capytaine is based on
 .. _meshmagick: https://github.com/LHEEA/meshmagick
 .. _`Python scientific ecosystem`: https://scipy.org/
 
-For users, it can be seen as a Python 3.6 (or higher) interface to Nemoh.
+For users, it can be seen as a Python 3.7 (or higher) interface to Nemoh.
 Since most of the code has been rewritten, it can be used by developers as a
 more concise and better documented version of Nemoh.
 
@@ -44,3 +44,6 @@ Experimental features
 * Toeplitz matrices for faster simulations for floating bodies with local symmetries or for regular arrays of identical floating bodies.
 * Higher order quadratures for more precise integration of the Green function.
 
+Roadmap
+-------
+See `on Github<https://github.com/orgs/capytaine/projects/1>`_.

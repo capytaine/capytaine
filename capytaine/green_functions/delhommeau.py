@@ -10,6 +10,8 @@ from importlib import import_module
 
 import numpy as np
 
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.tools.prony_decomposition import exponential_decomposition, error_exponential_decomposition
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
@@ -84,6 +86,19 @@ class Delhommeau(AbstractGreenFunction):
     def __hash__(self):
         return self._hash
 
+    def __str__(self):
+        params = f"tabulation_nz={self.exportable_settings['tabulation_nz']}"
+        params += f", tabulation_nr={self.exportable_settings['tabulation_nr']}"
+        params += f", tabulation_nb_integration_points={self.exportable_settings['tabulation_nb_integration_points']}"
+        params += f", floating_point_precision=\'{self.exportable_settings['floating_point_precision']}\'"
+        return f"{self.__class__.__name__}({params})"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
+
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
         """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
@@ -152,13 +167,14 @@ class Delhommeau(AbstractGreenFunction):
 
         return a, lamda
 
-    def evaluate(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0):
+    def evaluate(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0, early_dot_product=True):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
 
         Parameters
         ----------
-        mesh1: Mesh or CollectionOfMeshes
+        mesh1: Mesh or CollectionOfMeshes or list of points
             mesh of the receiving body (where the potential is measured)
+            if only S is wanted or early_dot_product is False, then only a list of points as an array of shape (n, 3) can be passed.
         mesh2: Mesh or CollectionOfMeshes
             mesh of the source body (over which the source distribution is integrated)
         free_surface: float, optional
@@ -167,6 +183,9 @@ class Delhommeau(AbstractGreenFunction):
             position of the sea bottom (default: :math:`z = -\infty`)
         wavenumber: float, optional
             wavenumber (default: 1.0)
+        early_dot_product: boolean, optional
+            if False, return K as a (n, m, 3) array storing ∫∇G
+            if True, return K as a (n, m) array storing ∫∇G·n
 
         Returns
         -------
@@ -204,9 +223,23 @@ class Delhommeau(AbstractGreenFunction):
             else:
                 coeffs = np.array((1.0, 1.0, 1.0))
 
+        if isinstance(mesh1, Mesh) or isinstance(mesh1, CollectionOfMeshes):
+            collocation_points = mesh1.faces_centers
+            nb_collocation_points = mesh1.nb_faces
+            early_dot_product_normals = mesh1.faces_normals
+        elif isinstance(mesh1, np.ndarray) and mesh1.ndim ==2 and mesh1.shape[1] == 3:
+            collocation_points = mesh1
+            nb_collocation_points = mesh1.shape[0]
+            early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Hopefully unused
+        else:
+            raise ValueError(f"Unrecognized input for {self.__class__.__name__}.evaluate")
+
+        S = np.empty((nb_collocation_points, mesh2.nb_faces), order="F", dtype="complex128")
+        K = np.empty((nb_collocation_points, mesh2.nb_faces, 1 if early_dot_product else 3), order="F", dtype="complex128")
+
         # Main call to Fortran code
-        S, K = self.fortran_core.matrices.build_matrices(
-            mesh1.faces_centers, mesh1.faces_normals,
+        self.fortran_core.matrices.build_matrices(
+            collocation_points,  early_dot_product_normals,
             mesh2.vertices,      mesh2.faces + 1,
             mesh2.faces_centers, mesh2.faces_normals,
             mesh2.faces_areas,   mesh2.faces_radiuses,
@@ -215,12 +248,15 @@ class Delhommeau(AbstractGreenFunction):
             coeffs,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
-            mesh1 is mesh2
+            mesh1 is mesh2,
+            S, K
         )
 
         if np.any(np.isnan(S)) or np.any(np.isnan(K)):
             raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
                     "It could be due to overlapping panels.")
+
+        if early_dot_product: K = K.reshape((nb_collocation_points, mesh2.nb_faces))
 
         return S, K
 

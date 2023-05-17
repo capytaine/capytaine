@@ -218,6 +218,11 @@ def test_hydrostatics_of_submerged_sphere():
     sphere.compute_hydrostatics()
     assert sphere.inertia_matrix.shape == (6, 6)
 
+def test_hydrostatics_no_rigid_dof():
+    mesh = cpt.mesh_sphere()
+    body = cpt.FloatingBody(mesh=mesh, dofs={"Bulge": mesh.faces_normals}, center_of_mass=(0, 0, 0))
+    hs = body.compute_hydrostatics()
+    assert 'inertia_matrix' not in hs
 
 def test_all_hydrostatics():
     density = 1000

@@ -6,35 +6,46 @@ Capytaine is available on Windows, MacOS [#]_ and Linux.
 
 .. [#] For the latest informations on the arm64 architectures (Apple M1), see https://github.com/capytaine/capytaine/issues/190
 
-Capytaine requires Python 3.6 or higher.
+Capytaine requires Python 3.7 or higher.
 Thus it is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
 
 With Conda
 ----------
 
 The easiest way to install Capytaine is the precompiled package available on Conda_.
-Download and install the `Anaconda distribution`_ or its lightweight counterparts Miniconda_ and Miniforge_.
+Download and install the `Anaconda distribution`_ or one of its lightweight counterparts Miniconda_ and Miniforge_.
 
 .. _Conda: https://conda.io
 .. _`Anaconda distribution`: https://www.anaconda.com/download/
 .. _Miniconda: https://conda.io/miniconda.html
 .. _Miniforge: https://github.com/conda-forge/miniforge
 
-Once Conda has been installed, you might want to `create a dedicated environment <https://docs.conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-environments>`_.
-Capytaine's package is available in the `conda-forge` channel and can be installed with the following command::
+Once Conda has been installed, you can install Capytaine from the `conda-forge` channel.
+It is recommended to do the installation into a `dedicated virtual environment <https://docs.conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-environments>`_ (here arbitrarily named ``capytaine_env``)::
 
-    conda install -c conda-forge capytaine
+    conda create --name capytaine_env --channel conda-forge capytaine
 
-The required dependencies should be installed automatically.
+Then activate the environment to use it on the command line with::
 
-You can check which version of Capytaine has been installed by opening a Python shell and running::
+    conda activate capytaine_env
+    
+or set it in the project configuration of your IDE (for instance see `the documentation of PyCharm <https://www.jetbrains.com/help/pycharm/conda-support-creating-conda-virtual-environment.html>`_, `the documentation of VSCode <https://code.visualstudio.com/docs/python/environments#_working-with-python-interpreters>`_ or the `documentation of Spyder <https://github.com/spyder-ide/spyder/wiki/Working-with-packages-and-environments-in-Spyder#working-with-other-environments-and-python-installations>`_).
+
+Alternatively, Capytaine can be installed in an existing environment with the following command::
+
+    conda install --channel conda-forge capytaine
+
+You can check which version of Capytaine has been installed by running the following Python code::
 
     import capytaine; print(capytaine.__version__)
+
+The latest version is currently |version|.
 
 Optional dependencies
 ---------------------
 
-Optional dependencies can be manually installed.
+All the required dependencies should be installed automatically with the Conda package.
+More optional dependencies can be manually installed.
 They are nice to have but not necessary for Capytaine's main features.
 
 +------------+------------------------------------------+------------------------------+
@@ -53,6 +64,11 @@ They are nice to have but not necessary for Capytaine's main features.
 | quadpy     | :code:`pip install quadpy`               | For higher order quadratures |
 |            |                                          | (experimental)               |
 +------------+------------------------------------------+------------------------------+
+
+After creating the Conda environment containing Capytaine, you can add more packages to this environment by activating it with ``conda activate`` and then using the ``conda install`` or ``pip install`` commands.
+However, it is often more efficient to specify the packages you'd like in your environment from the start when creating it, such as in the following example::
+
+    conda create --name capy_and_other_env --channel conda-forge capytaine jupyter matplotlib vtk
 
 
 With Pip

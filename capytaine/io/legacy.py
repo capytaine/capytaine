@@ -84,8 +84,21 @@ def import_cal_file(filepath):
             bodies = bodies[0]
 
         cal_file.readline()  # Unused line.
-        frequency_data = cal_file.readline().split()
-        omega_range = np.linspace(float(frequency_data[1]), float(frequency_data[2]), int(frequency_data[0]))
+        frequency_data_string_without_comment = cal_file.readline().split('!')[0]
+        frequency_data = frequency_data_string_without_comment.split()
+        if len(frequency_data) == 3:  # Nemoh v2 format
+            omega_range = np.linspace(float(frequency_data[1]), float(frequency_data[2]), int(frequency_data[0]))
+        else:
+            type_of_frequency_data = int(frequency_data[0])
+            if type_of_frequency_data == 1:  # angular frequency
+                omega_range = np.linspace(float(frequency_data[2]), float(frequency_data[3]), int(frequency_data[1]))
+            elif type_of_frequency_data == 2:  # frequency
+                omega_range = 2*np.pi*np.linspace(float(frequency_data[2]), float(frequency_data[3]), int(frequency_data[1]))
+            elif type_of_frequency_data == 3:  # period
+                omega_range = 2*np.pi/np.linspace(float(frequency_data[2]), float(frequency_data[3]), int(frequency_data[1]))
+            else:
+                raise ValueError(f"Cannot parse the frequency data \"{frequency_data_string_without_comment}\" in {filepath}.")
+
 
         direction_data = cal_file.readline().split()
         direction_range = np.linspace(float(direction_data[1]), float(direction_data[2]), int(direction_data[0]))
@@ -246,3 +259,40 @@ def write_dataset_as_tecplot_files(results_directory, data):
                         fi.write('  ')
                     fi.write('\n')
 
+def export_hydrostatics(hydrostatics_directory, bodies):
+    """Determine filenames (following Nemoh convention) and call the .dat file writer"""
+
+    if os.path.isdir(hydrostatics_directory):
+        LOG.warning(f"""Exporting problem in already existing directory: {hydrostatics_directory}
+             You might be overwriting existing files!""")
+    else:
+        os.makedirs(hydrostatics_directory)
+
+    def hydrostatics_writer(hydrostatics_file_path, kh_file_path, body):
+        """Write the Hydrostatics.dat and KH.dat files"""
+        with open(hydrostatics_file_path, 'w') as hf:
+            for j in range(3):
+                line =  f'XF = {body.center_of_buoyancy[j]:7.4f} - XG = {body.center_of_mass[j]:7.4f} \n'
+                hf.write(line)
+            line = f'Displacement = {body.volume:1.6E}'
+            hf.write(line)
+            hf.close()
+        np.savetxt(kh_file_path, body.hydrostatic_stiffness.values, fmt='%1.6E')
+
+    if isinstance(bodies, FloatingBody):
+        bodies = [bodies]
+    
+    hydrostatics_file_name = "Hydrostatics.dat"
+    kh_file_name = "KH.dat"
+    
+    body_count = len(bodies)
+    if body_count == 1:
+        body = bodies[0]
+        hydrostatics_file_path = os.path.join(hydrostatics_directory, hydrostatics_file_name)
+        kh_file_path = os.path.join(hydrostatics_directory, kh_file_name)
+        hydrostatics_writer(hydrostatics_file_path, kh_file_path, body)
+    else:
+        for (i, body) in enumerate(bodies):
+            hydrostatics_file_path = os.path.join(hydrostatics_directory, f"Hydrostatics_{i}.dat")
+            kh_file_path = os.path.join(hydrostatics_directory, f"KH_{i}.dat")
+            hydrostatics_writer(hydrostatics_file_path, kh_file_path, body)

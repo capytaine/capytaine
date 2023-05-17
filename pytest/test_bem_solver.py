@@ -10,7 +10,7 @@ except ImportError:
     joblib = None
 
 from capytaine import __version__
-from capytaine.bem.solver import BEMSolver, Nemoh
+from capytaine.bem.solver import BEMSolver
 from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.bem.problems_and_results import RadiationProblem
@@ -95,7 +95,6 @@ def test_fill_dataset():
     # Test the attributes
     assert dataset.attrs['capytaine_version'] == __version__
     assert 'start_of_computation' in dataset.attrs
-    assert 'incoming_waves_convention' in dataset.attrs
 
     # Try to strip out the outputs and recompute
     naked_data = dataset.drop_vars(["added_mass", "radiation_damping", "diffraction_force", "Froude_Krylov_force"])

@@ -79,6 +79,17 @@ class BasicMatrixEngine(MatrixEngine):
             'linear_solver': str(linear_solver),
         }
 
+    def __str__(self):
+        params = f"linear_solver=\'{self.exportable_settings['linear_solver']}\'"
+        params += f", matrix_cache_size={self.exportable_settings['matrix_cache_size']}" if self.exportable_settings['matrix_cache_size'] != 1 else ""
+        return f"BasicMatrixEngine({params})"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
+
     def build_matrices(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, green_function):
         r"""Build the influence matrices between mesh1 and mesh2.
 
@@ -155,6 +166,16 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             'ACA_tol': ACA_tol,
             'matrix_cache_size': matrix_cache_size,
         }
+
+    def __str__(self):
+        params = f"ACA_distance={self.ACA_distance}"
+        params += f", ACA_tol={self.ACA_tol}"
+        params += f", matrix_cache_size={self.exportable_settings['matrix_cache_size']}" if self.exportable_settings['matrix_cache_size'] != 1 else ""
+        return f"HierarchicalToeplitzMatrixEngine({params})"
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
+
 
     def build_matrices(self,
                        mesh1, mesh2, free_surface, sea_bottom, wavenumber, green_function,

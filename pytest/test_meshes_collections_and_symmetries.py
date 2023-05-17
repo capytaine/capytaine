@@ -4,6 +4,7 @@
 
 import pytest
 import numpy as np
+import capytaine as cpt
 
 from capytaine import Disk, AxialSymmetricMesh, HorizontalCylinder, TranslationalSymmetricMesh, CollectionOfMeshes
 from capytaine.meshes.meshes import Mesh
@@ -132,3 +133,8 @@ def test_extract_one_face():
 
     for i in [5, sphere[0].nb_faces+5]:
         assert np.allclose(sphere.extract_one_face(i).faces_centers[0], sphere.faces_centers[i])
+
+
+def test_immersed_part():
+    mesh = cpt.mesh_horizontal_cylinder(reflection_symmetry=True)
+    assert mesh.immersed_part().merged() == mesh.merged().immersed_part()

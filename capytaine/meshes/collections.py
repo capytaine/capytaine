@@ -53,6 +53,9 @@ class CollectionOfMeshes(SurfaceIntegralsMixin, Abstract3DObject):
         else:
             return f"{self.__class__.__name__}{meshes_names}"
 
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__repr__())
+
     def __str__(self):
         if self.name is not None:
             return self.name
@@ -262,9 +265,9 @@ class CollectionOfMeshes(SurfaceIntegralsMixin, Abstract3DObject):
         return ReflectionSymmetricMesh(half, plane=plane, name=f"symmetrized_of_{self.name}")
 
     @inplace_transformation
-    def keep_immersed_part(self, **kwargs):
+    def keep_immersed_part(self, *args, **kwargs):
         for mesh in self:
-            mesh.keep_immersed_part(**kwargs)
+            mesh.keep_immersed_part(*args, **kwargs)
         self.prune_empty_meshes()
 
     def immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):

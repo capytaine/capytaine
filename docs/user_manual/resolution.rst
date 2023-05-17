@@ -84,18 +84,6 @@ Two of them are available in the present version:
       precision of the low-rank matrices.
 
 
-Legacy interface
-----------------
-
-The class :class:`~capytaine.bem.solver.Nemoh` was the main solver class in
-version 1.0 of Capytaine.
-It is still available in the current version for backward compatibility.
-It is now a subclass of :class:`~capytaine.bem.solver.BEMSolver` that always uses
-:class:`~capytaine.green_functions.delhommeau.Delhommeau`'s Green function and
-accept the same arguments as in version 1.0.
-
-The use of :class:`~capytaine.bem.solver.BEMSolver` is recommended.
-
 Solving the problem
 -------------------
 

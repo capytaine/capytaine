@@ -40,6 +40,8 @@ The formats currently supported in reading are listed in the following table (ad
 +-----------+-----------------+----------------------+-----------------+
 |   .DAT    | DIODORE [#f3]_  | diodore-dat          |                 |
 +-----------+-----------------+----------------------+-----------------+
+|   .pnl    | HAMS            | pnl, hams            | Symmetries      |
++-----------+-----------------+----------------------+-----------------+
 |   .hst    | HYDROSTAR [#f4]_| hydrostar, hst       | Symmetries      |
 +-----------+-----------------+----------------------+-----------------+
 |   .nat    |    -            | natural, nat         |                 |

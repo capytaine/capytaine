@@ -7,9 +7,64 @@ Changelog
    :depth: 1
    :backlinks: none
 
----------------------------------
+-------------------
+New in next version
+-------------------
+
+Major changes
+~~~~~~~~~~~~~
+
+* User can specify a period, a wavelength or a wavenumber instead of an angular frequency :code:`omega` when setting up a problem or a test matrix.
+  If several types of frequency data are provided, an error is raised (:pull:`283`).
+
+* Remove the :code:`convention` parameter to compute excitation force with WAMIT conventions (:issue:`133` and :pull:`281`).
+  Changing the convention to compare the outputs of different codes is better done by a dedicated software such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_ or `BEMIO <https://wec-sim.github.io/bemio/>`_.
+
+* Add methods :meth:`~capytaine.bem.solver.compute_potential`, :meth:`~capytaine.bem.solver.compute_velocity` and :meth:`~capytaine.bem.solver.compute_free_surface_elevation` and :meth:`~capytaine.bem.solver.compute_pressure` to compute the value of some fields in the domain in post-processing. Their signature has been uniformized with the :func:`~capytaine.bem.airy_waves.airy_waves_potential`, :func:`~capytaine.bem.airy_waves.airy_waves_velocity`, :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` and :func:`~capytaine.bem.airy_waves.airy_waves_pressure` functions (:pull:`288`, :pull:`326`)
+
+Minor changes
+~~~~~~~~~~~~~
+
+* Support the new format of `Nemoh.cal` file from Nemoh v3 (:issue:`278` and :pull:`280`).
+
+* Add nicer display for Capytaine objects in IPython shell (:issue:`227` and :pull:`287`).
+
+* Support exporting hydrostatics data in original Nemoh-format files - :code:`Hydrostatics.dat` and :code:`KH.dat` (:pull:`285`).
+
+* Add nicer display for Capytaine objects in IPython shell (:issue:`227` and :pull:`287`)
+
+* Add functions :func:`~capytaine.io.mesh_loaders.load_PNL` and :func:`~capytaine.io.mesh_writers.write_PNL` to load and write meshes in HAMS ``.pnl`` format (:pull:`289`).
+
+* Remove ``cpt.Nemoh()`` class that was replaced by :class:`~capytaine.bem.solver.BEMSolver` in version 1.1 (:pull:`291`)
+
+* Add function :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` to compute the free surface elevation at points (:pull:`293`).
+
+* Remove ``full_body`` attribute from :class:`~capytaine.bodies.bodies.FloatingBody` that used to keep a copy of the body before clipping in-place (:pull:`302`).
+
+* Remove ``dimensionless_wavenumber`` and ``dimensionless_omega`` attributes from :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` as they are not used in the code and can be easily recomputed by users if necessary (:pull:`306`).
+
+Bug fixes
+~~~~~~~~~
+
+* Fix :meth:`~capytaine.meshes.collections.CollectionOfMeshes.immersed_part` (:pull:`307`).
+
+* :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics` used to fail for non-rigid bodies because it could not compute the rigid-body inertia.
+  The rigid-body inertia is now just skipped for bodies with no rigid-body dofs (:pull:`308`).
+
+* Reduce the default tolerance of the mesh clipper for points just above the free surface (:issue:`320` and :pull:`322`).
+
+* Convert ``center_of_mass`` and ``rotation_center`` to arrays in :class:`~capytaine.bodies.bodies.FloatingBody` constructor to avoid a few issues (:issue:`319` and :pull:`325`).
+
+Internals
+~~~~~~~~~
+
+* The method :meth:`~capytaine.green_functions.delhommeau.Delhommeau.evaluate` (and its counterparts for other Green functions) now accepts a list of points as first argument instead of a mesh. It has now an optional boolean argument ``early_dot_product`` to return the integrals of the gradient of the Green function and not only the normal derivative (:pull:`288`).
+
+* Remove warnings due to 0/0 divisions in :func:`~capytaine.meshes.properties.compute_faces_properties` (:pull:`310`)
+
+-------------------------------
 New in version 1.5 (2022-12-13)
----------------------------------
+-------------------------------
 
 Major changes
 ~~~~~~~~~~~~~

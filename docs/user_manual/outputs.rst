@@ -121,6 +121,46 @@ This can be fixed by explicitly converting the strings to the right format when 
 
 See also `this Github issue <https://github.com/capytaine/capytaine/issues/2>`_.
 
+Exporting to Excel
+------------------
+
+The example below uses the ``openpyxl`` library (that can be installed with ``pip install openpyxl``) to export a dataset to Excel format::
+
+    dataset[["added_mass", "radiation_damping"]].to_dataframe().to_excel("radiation_data.xlsx")
+
+    from capytaine.io.xarray import separate_complex_values
+    separate_complex_values(dataset[["Froude_Krylov_force", "diffraction_force"]]).to_dataframe().to_excel("diffraction_data.xlsx")
+
+For convienence, the radiation and diffraction data have been stored in separate files.
+Since this export method poorly supports complex number, the func:`~capytaine.io.xarray.separate_complex_values` has been used to transform them to a pair of real numbers, as discussed for NetCDF export above.
+
+
+Saving the hydrostatics data
+----------------------------
+
+In order to save the following hydrostatics information:
+
+- Hydrostatic stiffness matrix,
+- Centre of gravity,
+- Centre of buoyancy,
+- Displacement volume
+
+There are two files that can be written using the :mod:`capytaine.io.legacy` module::
+
+    from capytaine.io.legacy import export_hydrostatics
+    export_hydrostatics("directory_to_save_hydrostatics_data", bodies)
+
+Where :code:`bodies` can be a single :code:`FloatingBody` object or a list of :code:`FloatingBody` objects.
+
+:func:`export_hydrostatics <capytaine.io.legacy.export_hydrostatics>` writes the :code:`Hydrostatics.dat` and :code:`KH.dat` files in the original Nemoh format. These :code:`.dat` files can be used by BEMIO to produce :code:`.h5` files for WEC-Sim.
+
+In order to use this function, please ensure that the body's centre of gravity has been defined correctly and the following methods have been called on the :code:`FloatingBody` object before passing it to :func:`export_hydrostatics <capytaine.io.legacy.export_hydrostatics>`::
+
+  body.add_all_rigid_body_dofs()
+  body.compute_rigid_body_inertia()
+  body.compute_hydrostatics()
+
+
 Saving the data as legacy Tecplot files
 ---------------------------------------
 

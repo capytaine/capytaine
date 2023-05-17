@@ -31,9 +31,17 @@ def compute_faces_properties(mesh):
 
     triangles_normals = np.cross(mesh._vertices[triangles[:, 1]] - mesh._vertices[triangles[:, 0]],
                                  mesh._vertices[triangles[:, 2]] - mesh._vertices[triangles[:, 0]])
-    triangles_areas = np.linalg.norm(triangles_normals, axis=1)
-    faces_normals[triangles_id] = triangles_normals / np.array(([triangles_areas, ] * 3)).T
-    faces_areas[triangles_id] = triangles_areas / 2.
+    triangles_normals_norm = np.linalg.norm(triangles_normals, axis=1)
+
+    degenerate_triangle = np.abs(triangles_normals_norm) < 1e-12
+    triangles_id = triangles_id[~degenerate_triangle]
+    triangles_normals = triangles_normals[~degenerate_triangle, :]
+    triangles_normals_norm = triangles_normals_norm[~degenerate_triangle]
+    triangles = triangles[~degenerate_triangle, :]
+    # Now, continue the computations without the degenerate triangles
+
+    faces_normals[triangles_id] = triangles_normals / triangles_normals_norm[:, np.newaxis]
+    faces_areas[triangles_id] = triangles_normals_norm / 2.
     faces_centers[triangles_id] = np.sum(mesh._vertices[triangles[:, :3]], axis=1) / 3.
 
     # Collectively dealing with quads
@@ -43,7 +51,17 @@ def compute_faces_properties(mesh):
 
     quads_normals = np.cross(mesh._vertices[quads[:, 2]] - mesh._vertices[quads[:, 0]],
                              mesh._vertices[quads[:, 3]] - mesh._vertices[quads[:, 1]])
-    faces_normals[quads_id] = quads_normals / np.array(([np.linalg.norm(quads_normals, axis=1), ] * 3)).T
+
+    quads_normals_norm = np.linalg.norm(quads_normals, axis=1)
+
+    degenerate_quad = np.abs(quads_normals_norm) < 1e-12
+    quads_id = quads_id[~degenerate_quad]
+    quads_normals = quads_normals[~degenerate_quad]
+    quads_normals_norm = quads_normals_norm[~degenerate_quad]
+    quads = quads[~degenerate_quad, :]
+    # Now, continue the computations without the degenerate quads
+
+    faces_normals[quads_id] = quads_normals / quads_normals_norm[:, np.newaxis]
 
     a1 = np.linalg.norm(np.cross(mesh._vertices[quads[:, 1]] - mesh._vertices[quads[:, 0]],
                                  mesh._vertices[quads[:, 2]] - mesh._vertices[quads[:, 0]]), axis=1) * 0.5

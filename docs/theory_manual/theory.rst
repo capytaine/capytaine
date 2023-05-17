@@ -125,20 +125,20 @@ The differentiation of :eq:`potential_representation` differs depending whether 
 On the hull, one has [Del87]_:
 
 .. math::
-   \frac{\partial \Phi}{\partial n}(x) = (u \cdot n)(x) = \frac{\sigma(x)}{2} + \iint_\Gamma \sigma(\xi) \, (\nabla G(x; \xi) \cdot n) \, \mathrm{dS}(y).
+   \frac{\partial \Phi}{\partial n}(x) = (u \cdot n)(x) = \frac{\sigma(x)}{2} + \iint_\Gamma \sigma(\xi) \, (\nabla G(x; \xi) \cdot n) \, \mathrm{dS}(\xi).
    :label: normal_velocity_on_hull_representation
 
 where :math:`x` is a point on :math:`\Gamma` and :math:`n` is the vector normal to :math:`\Gamma` in :math:`x`.
-For any vector :math:`t` to :math:`\Gamma` at :math:`x`, one has
+For any vector :math:`t` tangential to :math:`\Gamma` at :math:`x`, one has
 
 .. math::
-   \frac{\partial \Phi}{\partial t}(x) = (u \cdot t)(x) = \iint_\Gamma \sigma(y) \, (\nabla G(x; \xi) \cdot t) \, \mathrm{dS}(y).
+   \frac{\partial \Phi}{\partial t}(x) = (u \cdot t)(x) = \iint_\Gamma \sigma(\xi) \, (\nabla G(x; \xi) \cdot t) \, \mathrm{dS}(\xi).
    :label: tangential_velocity_on_hull_representation
 
 Finally, for :math:`x` in the bulk of the fluid, one has
 
 .. math::
-   \nabla \Phi(x) = u(x) = \iint_\Gamma \sigma(y) \, \nabla G(x; \xi) \, \mathrm{dS}(y).
+   \nabla \Phi(x) = u(x) = \iint_\Gamma \sigma(\xi) \, \nabla G(x; \xi) \, \mathrm{dS}(\xi).
    :label: velocity_in_bulk_representation
 
 .. note:: Dimensional analysis:
@@ -320,8 +320,8 @@ The gradient of the Green function can be written as
 with
 
 .. math::
-   \frac{\partial r}{\partial x_1} & = k \frac{x_1 - \xi_1}{r} \\
-   \frac{\partial r}{\partial x_2} & = k \frac{x_2 - \xi_2}{r} \\
+   \frac{\partial r}{\partial x_1} & = k^2 \frac{x_1 - \xi_1}{r} \\
+   \frac{\partial r}{\partial x_2} & = k^2 \frac{x_2 - \xi_2}{r} \\
    \frac{\partial z}{\partial x_3} & = k
 
 and, using the identity :math:`J'(\zeta) = J(\zeta) - 1/\zeta`,
@@ -469,30 +469,33 @@ Considering a mesh of the surface of the floating body :math:`\Gamma = \cup_i \G
    \sigma_i & = \sigma(x_i), \\
    u_i      & = (u \cdot n)(x_i) \\
    S_{ij}   & = \iint_{\Gamma_j} G(x_i, \xi) \mathrm{dS}(\xi), \\
-   V_{ij}   & = \iint_{\Gamma_j} \nabla G(x_i; \xi) \cdot n_i \, \mathrm{dS}(\xi),
+   K_{ij}   & = \frac{\delta_{ij}}{2} + \iint_{\Gamma_j} \nabla_x G(x_i; \xi) \cdot n_i \, \mathrm{dS}(\xi),
 
 where for all :math:`i`, :math:`x_i` is the center of the face :math:`\Gamma_i` and :math:`n_i` is its normal vector.
-Each element of the matrices :math:`S` and :math:`V` can be seen as the interaction between two faces of the mesh.
+Each element of the matrices :math:`S` and :math:`K` can be seen as the interaction between two faces of the mesh.
 
 .. note::
-   :math:`V` should not be confused with the similar matrix :math:`D` defined as:
+   :math:`K` should not be confused with the similar matrix :math:`D` defined as:
 
    .. math::
-      D_{ij} = \iint_{\Gamma_j} \nabla G(x_i; \xi) \cdot n_j \, \mathrm{dS}(\xi).
+      D_{ij} = \frac{\delta_{ij}}{2} + \iint_{\Gamma_j} \nabla_\xi G(x_i; \xi) \cdot n_j \, \mathrm{dS}(\xi).
 
-   :math:`D` is used in the `direct` boundary integral equation, as e.g. in HAMS.
+   Note that the derivation of :math:`G` is done with respect to a different variable.
+
+   The matrix :math:`D` is used in the `direct` boundary integral equation, as e.g. in HAMS [Liu19]_.
+   In the mathematical literature, :math:`D` is also refered to as the `double layer operator` and :math:`K` as the `adjoint double layer operator`.
 
 
-The matrices :math:`S` and :math:`V` relates the vectors :math:`\Phi`, :math:`u` and :math:`\sigma` through the following approximations of :eq:`potential_representation` and :eq:`normal_velocity_on_hull_representation`:
+The matrices :math:`S` and :math:`K` relates the vectors :math:`\Phi`, :math:`u` and :math:`\sigma` through the following approximations of :eq:`potential_representation` and :eq:`normal_velocity_on_hull_representation`:
 
 .. math::
-   \Phi = S \sigma, \qquad u = \left( \frac{\mathbb{I}}{2} + V \right) \sigma.
+   \Phi = S \sigma, \qquad u = K \sigma.
    :label: discrete_BEM_problem
 
 The resolution of the discrete problem with Nemoh consists of two main steps:
 
-1. The evaluation of the coefficients of the complex-valued matrices :math:`S` and :math:`V`
-2. The resolution of the complex-valued linear problem :math:`K \sigma = \left( \frac{\mathbb{I}}{2} + V \right) \sigma = u`.
+1. The evaluation of the coefficients of the complex-valued matrices :math:`S` and :math:`K`
+2. The resolution of the complex-valued linear problem :math:`K \sigma = u`.
 
 Once :math:`\sigma` has been computed, :math:`\Phi` can be easily deduced.
 Then other magnitudes such as the Froude-Krylov forces or the added mass can be derived.
@@ -548,11 +551,11 @@ where :math:`M_{ij}` is the inertia matrix, accounting for the mass distribution
 
 Forces :math:`F_i` can be decomposed as
 
-.. math:: F_i = F_{FK, i} + F_{D, i} + F_{R, ij}
+.. math:: F_i = F_{FK, i} + F_{D, i} + F_{R, i}
 
-and :math:`F_{R, ij}` can be further rewritten as 
+and :math:`F_{R, i}` can be further rewritten as
 
-.. math:: F_{R, ij} = \left[\omega^2 A_{ij} + j\omega B_{ij}\right] X_j
+.. math:: F_{R, i} = \left[\omega^2 A_{ij} + j\omega B_{ij}\right] X_j
 
 where :math:`A_{ij}` is the added mass matrix and :math:`B_{ij}` is the radiation damping matrix; these properties are thus obtained from the real and imaginary parts of the radiation force. The full system becomes
 

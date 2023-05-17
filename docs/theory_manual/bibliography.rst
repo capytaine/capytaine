@@ -19,4 +19,6 @@ Bibliography
 
 .. .. [FK20] Falnes and Kurniawan, **Ocean waves and oscillating systems linear interactions including wave energy extraction**, Cambridge University Press, 2020.
 
+.. [Liu19] Liu, **HAMS: A frequency-domain preprocessor for wave-structure interactions—Theory, development, and application**, Journal of Marine Science and Engineering, 7(3), 81.
+
 .. [N20] Newman, **A simplified derivation of the ordinary differential equations for the free-surface Green functions**, Applied Ocean Research, 2020

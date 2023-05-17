@@ -3,18 +3,18 @@
 """Quantitatively compare the results of Capytaine with the results from Nemoh 2."""
 
 import numpy as np
+import capytaine as cpt
 
 from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.bodies.predefined.cylinders import HorizontalCylinder
 from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
-from capytaine.bem.solver import Nemoh
 from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.io.xarray import assemble_dataset
 from capytaine.post_pro.kochin import compute_kochin
 
-solver = Nemoh(linear_solver='gmres', hierarchical_matrices=False, matrix_cache_size=0)
+solver = cpt.BEMSolver(engine=cpt.BasicMatrixEngine(matrix_cache_size=0))
 
 
 def test_immersed_sphere():
@@ -77,8 +77,8 @@ def test_floating_sphere_finite_freq():
     assert np.isclose(result.radiation_dampings["Heave"], 379.39, atol=1e-3*sphere.volume*problem.rho)
 
     # omega = 1, free surface
-    free_surface = FreeSurface(x_range=(-62.5, 62.5), nx=5, y_range=(-62.5, 62.5), ny=5)
-    eta = solver.get_free_surface_elevation(result, free_surface)
+    grid = np.meshgrid(np.linspace(-50.0, 50.0, 5), np.linspace(-50.0, 50.0, 5))
+    eta = solver.compute_free_surface_elevation(grid, result)
     ref = np.array(
             [[-0.4340802E-02-0.4742809E-03j, -0.7986111E-03+0.4840984E-02j, 0.2214827E-02+0.4700642E-02j, -0.7986111E-03+0.4840984E-02j, -0.4340803E-02-0.4742807E-03j],
              [-0.7986111E-03+0.4840984E-02j, 0.5733187E-02-0.2179381E-02j, 0.9460892E-03-0.7079404E-02j, 0.5733186E-02-0.2179381E-02j, -0.7986110E-03+0.4840984E-02j],
@@ -86,7 +86,7 @@ def test_floating_sphere_finite_freq():
              [-0.7986111E-03+0.4840984E-02j, 0.5733186E-02-0.2179381E-02j, 0.9460891E-03-0.7079404E-02j, 0.5733187E-02-0.2179380E-02j, -0.7986113E-03+0.4840984E-02j],
              [-0.4340803E-02-0.4742807E-03j, -0.7986111E-03+0.4840984E-02j, 0.2214827E-02+0.4700643E-02j, -0.7986113E-03+0.4840983E-02j, -0.4340803E-02-0.4742809E-03j]]
         )
-    assert np.allclose(eta.reshape((5, 5)), ref, rtol=1e-4)
+    assert np.allclose(eta, ref, rtol=1e-4)
 
     # omega = 1, diffraction
     problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
