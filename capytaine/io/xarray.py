@@ -190,7 +190,7 @@ def wavenumber_data_array(results: Sequence[LinearPotentialFlowResult]) -> xr.Da
     and store them into a :class:`xarray.DataArray`.
     """
     records = pd.DataFrame(
-        [dict(g=result.g, water_depth=result.depth, omega=result.omega, wavenumber=result.wavenumber)
+        [dict(g=result.g, water_depth=result.water_depth, omega=result.omega, wavenumber=result.wavenumber)
          for result in results]
     )
     ds = _dataset_from_dataframe(records, variables=['wavenumber'], dimensions=['omega'], optional_dims=['g', 'water_depth'])

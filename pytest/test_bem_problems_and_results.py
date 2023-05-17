@@ -35,12 +35,12 @@ def test_LinearPotentialFlowProblem():
     assert pb.wavenumber == 1.0/9.81
     assert pb.wavelength == 9.81*2*np.pi
 
-    assert LinearPotentialFlowProblem(free_surface=np.infty, sea_bottom=-np.infty).depth == np.infty
-    assert LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=-np.infty).depth == np.infty
+    assert LinearPotentialFlowProblem(free_surface=np.infty, sea_bottom=-np.infty).water_depth == np.infty
+    assert LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=-np.infty).water_depth == np.infty
 
     pb = LinearPotentialFlowProblem(free_surface=0.0, sea_bottom=-1.0, omega=1.0)
-    assert pb.depth == 1.0
-    assert np.isclose(pb.omega**2, pb.g*pb.wavenumber*np.tanh(pb.wavenumber*pb.depth))
+    assert pb.water_depth == 1.0
+    assert np.isclose(pb.omega**2, pb.g*pb.wavenumber*np.tanh(pb.wavenumber*pb.water_depth))
 
     with pytest.raises(NotImplementedError):
         LinearPotentialFlowProblem(free_surface=2.0)
@@ -181,7 +181,7 @@ def test_import_cal_file(cal_file):
     for problem in problems:
         assert problem.rho == 1000.0
         assert problem.g == 9.81
-        assert problem.depth == np.infty
+        assert problem.water_depth == np.infty
         assert isinstance(problem.body, FloatingBody)
         assert problem.body.nb_dofs == 6
         assert problem.body.mesh.nb_vertices == 299  # Duplicate vertices are removed during import.
@@ -198,7 +198,7 @@ def test_import_cal_file(cal_file):
     for problem in problems:
         assert problem.rho == 1000.0
         assert problem.g == 9.81
-        assert problem.depth == np.infty
+        assert problem.water_depth == np.infty
         assert isinstance(problem.body.mesh, ReflectionSymmetricMesh)
         assert isinstance(problem.body.mesh[0], Mesh)
         assert problem.body.nb_dofs == 6

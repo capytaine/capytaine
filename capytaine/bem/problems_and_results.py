@@ -32,8 +32,10 @@ class LinearPotentialFlowProblem:
         The body interacting with the waves
     free_surface: float, optional
         The position of the free surface (accepted values: 0 and np.infty)
+    water_depth: float, optional
+        The depth of water in m (default: np.infty)
     sea_bottom: float, optional
-        The position of the sea bottom
+        The position of the sea bottom (deprecated: please prefer setting water_depth)
     omega: float, optional
         The angular frequency of the waves in rad/s
     period: float, optional
@@ -48,14 +50,12 @@ class LinearPotentialFlowProblem:
         The acceleration of gravity in m/s2 (default: 9.81)
     boundary_condition: np.ndarray of shape (body.mesh.nb_faces,), optional
         The Neumann boundary condition on the floating body
-
-    TODO: more consistent use of free_surface and sea_bottom vs. water_depth
     """
 
     def __init__(self, *,
                  body=None,
                  free_surface=_default_parameters['free_surface'],
-                 sea_bottom=-_default_parameters['water_depth'],
+                 water_depth=None, sea_bottom=None,
                  omega=None, period=None, wavenumber=None, wavelength=None,
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
@@ -63,9 +63,19 @@ class LinearPotentialFlowProblem:
 
         self.body = body
         self.free_surface = float(free_surface)
-        self.sea_bottom = float(sea_bottom)
         self.rho = float(rho)
         self.g = float(g)
+
+        if water_depth is None and sea_bottom is None:
+            self.water_depth = _default_parameters['water_depth']
+        elif water_depth is not None and sea_bottom is None:
+            self.water_depth = float(water_depth)
+        elif water_depth is None and sea_bottom is not None:
+            LOG.warning("Deprecation warning: please prefer giving a `water_depth` rather than a `sea_bottom` to define problems.")
+            self.water_depth = -float(sea_bottom)
+        else:
+            raise ValueError("Cannot give both a `water_depth` and a `sea_bottom` to define problems.")
+
         self.boundary_condition = boundary_condition
 
         self.omega, self.provided_freq_type = self._get_angular_frequency(omega, period, wavenumber, wavelength)
@@ -86,9 +96,9 @@ class LinearPotentialFlowProblem:
         elif period is not None:
             return 2*np.pi/period, "period"
         elif wavenumber is not None:
-            return np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.depth)), "wavenumber"
+            return np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.water_depth)), "wavenumber"
         elif wavelength is not None:
-            return np.sqrt(self.g*2*np.pi/wavelength*np.tanh(2*np.pi/wavelength*self.depth)), "wavelength"
+            return np.sqrt(self.g*2*np.pi/wavelength*np.tanh(2*np.pi/wavelength*self.water_depth)), "wavelength"
         else:
             return _default_parameters["omega"], "omega"
 
@@ -102,15 +112,15 @@ class LinearPotentialFlowProblem:
                 "Only z=0 and z=∞ are accepted values for the free surface position."
             )
 
-        if self.free_surface == np.infty and self.sea_bottom != -np.infty:
+        if self.free_surface == np.infty and self.water_depth != np.infty:
             raise NotImplementedError(
                 "Problems with a sea bottom but no free surface have not been implemented."
             )
 
-        if self.free_surface < self.sea_bottom:
-            raise ValueError("Sea bottom is above the free surface.")
+        if self.water_depth < 0.0:
+            raise ValueError("`water_depth` should be stricly positive.")
 
-        if self.omega in {0, np.infty} and self.depth != np.infty:
+        if self.omega in {0, np.infty} and self.water_depth != np.infty:
             raise NotImplementedError(
                 f"omega={self.omega} is only implemented for infinite depth."
             )
@@ -121,11 +131,11 @@ class LinearPotentialFlowProblem:
                 raise ValueError(f"The mesh of the body {self.body.name} is empty.")
 
             if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface)
-                    or any(self.body.mesh.faces_centers[:, 2] <= self.sea_bottom)):
+                    or any(self.body.mesh.faces_centers[:, 2] <= -self.water_depth)):
 
                 LOG.warning(
                     f"The mesh of the body {self.body.name} is not inside the domain.\n"
-                    "Check the position of the free_surface and the sea_bottom\n"
+                    "Check the position of the free_surface and the water_depth\n"
                     "or use body.keep_immersed_part() to clip the mesh."
                 )
 
@@ -172,7 +182,7 @@ class LinearPotentialFlowProblem:
         """Do not display default values in str(problem)."""
         parameters = [f"body={self.body_name}",
                       f"omega={self.omega:.3f}",
-                      f"depth={self.depth}"]
+                      f"depth={self.water_depth}"]
         try:
             parameters.extend(self._str_other_attributes())
         except AttributeError:
@@ -194,7 +204,7 @@ class LinearPotentialFlowProblem:
         p.text(self.__str__())
 
     def _astuple(self):
-        return (self.body, self.free_surface, self.sea_bottom, self.omega, self.rho, self.g)
+        return (self.body, self.free_surface, self.water_depth, self.omega, self.rho, self.g)
 
     def __eq__(self, other):
         if isinstance(other, LinearPotentialFlowProblem):
@@ -212,19 +222,15 @@ class LinearPotentialFlowProblem:
             return NotImplemented
 
     @property
-    def water_depth(self):
-        return self.free_surface - self.sea_bottom
-
-    @property
     def depth(self):
         return self.water_depth
 
     @property
     def wavenumber(self):
-        if self.depth == np.infty or self.omega**2*self.depth/self.g > 20:
+        if self.depth == np.infty or self.omega**2*self.water_depth/self.g > 20:
             return self.omega**2/self.g
         else:
-            return newton(lambda k: k*np.tanh(k*self.depth) - self.omega**2/self.g, x0=1.0)
+            return newton(lambda k: k*np.tanh(k*self.water_depth) - self.omega**2/self.g, x0=1.0)
 
     @property
     def wavelength(self):
@@ -256,7 +262,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     def __init__(self, *,
                  body=None,
                  free_surface=_default_parameters['free_surface'],
-                 sea_bottom=-_default_parameters['water_depth'],
+                 water_depth=None, sea_bottom=None,
                  omega=None, period=None, wavenumber=None, wavelength=None,
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
@@ -264,7 +270,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
 
         self.wave_direction = float(wave_direction)
 
-        super().__init__(body=body, free_surface=free_surface, sea_bottom=sea_bottom,
+        super().__init__(body=body, free_surface=free_surface, water_depth=water_depth, sea_bottom=sea_bottom,
                          omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength, rho=rho, g=g)
 
         if not (-2*np.pi-1e-3 <= self.wave_direction <= 2*np.pi+1e-3):
@@ -303,7 +309,7 @@ class RadiationProblem(LinearPotentialFlowProblem):
 
     def __init__(self, *, body=None,
                  free_surface=_default_parameters['free_surface'],
-                 sea_bottom=-_default_parameters['water_depth'],
+                 water_depth=None, sea_bottom=None,
                  omega=None, period=None, wavenumber=None, wavelength=None,
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
@@ -311,7 +317,7 @@ class RadiationProblem(LinearPotentialFlowProblem):
 
         self.radiating_dof = radiating_dof
 
-        super().__init__(body=body, free_surface=free_surface, sea_bottom=sea_bottom,
+        super().__init__(body=body, free_surface=free_surface, water_depth=water_depth, sea_bottom=sea_bottom,
                          omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength, rho=rho, g=g)
 
         if self.body is not None:
@@ -359,13 +365,12 @@ class LinearPotentialFlowResult:
         # Copy data from problem
         self.body               = self.problem.body
         self.free_surface       = self.problem.free_surface
-        self.sea_bottom         = self.problem.sea_bottom
         self.omega              = self.problem.omega
         self.rho                = self.problem.rho
         self.g                  = self.problem.g
         self.boundary_condition = self.problem.boundary_condition
         self.water_depth        = self.problem.water_depth
-        self.depth              = self.problem.depth
+        self.depth              = self.problem.water_depth
         self.wavenumber         = self.problem.wavenumber
         self.wavelength         = self.problem.wavelength
         self.period             = self.problem.period
