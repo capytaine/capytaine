@@ -13,7 +13,7 @@ import numpy as np
 from numpy.linalg import norm
 
 from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
-from capytaine.meshes.properties import compute_faces_properties, compute_connectivity
+from capytaine.meshes.properties import compute_faces_properties
 from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
@@ -792,45 +792,6 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
         if closed_mesh:
             self.heal_normals()
         return self
-
-    ####################
-    #  Connectivities  #
-    ####################
-
-    @property
-    def vv(self) -> dict:
-        """Get the vertex / vertex connectivity dictionary."""
-        if 'v_v' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return self.__internals__['v_v']
-
-    @property
-    def vf(self) -> dict:
-        """Get the vertex / faces connectivity dictionary."""
-        if 'v_f' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return self.__internals__['v_f']
-
-    @property
-    def ff(self) -> dict:
-        """Get the face / faces connectivity dictionary."""
-        if 'f_f' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return self.__internals__['f_f']
-
-    @property
-    def boundaries(self) -> list:
-        """Get a list that stores lists of boundary connected vertices."""
-        if 'boundaries' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return self.__internals__['boundaries']
-
-    @property
-    def nb_boundaries(self) -> int:
-        """Get the number of boundaries in the mesh."""
-        if 'boundaries' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return len(self.__internals__['boundaries'])
 
 
 class SingleFace(Mesh):
