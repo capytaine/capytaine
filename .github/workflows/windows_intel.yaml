@@ -3,6 +3,7 @@ name: Build on Windows
 env:
   WINDOWS_HPCKIT_URL: https:/registrationcenter-download.intel.com/akdlm/IRC_NAS/2a13d966-fcc5-4a66-9fcc-50603820e0c9/w_HPCKit_p_2023.1.0.46357_offline.exe
   WINDOWS_FORTRAN_COMPONENTS: intel.oneapi.win.ifort-compiler
+  CACHE_NUMBER: 1
   SAMPLES_TAG: 2023.1.0
   VS_VER: vs2022
 
@@ -18,7 +19,19 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       # Source: https://github.com/oneapi-src/oneapi-ci
+      - name: cache install
+        id: cache-install
+        uses: actions/cache@v2
+        with:
+          path: |
+              C:\Program Files (x86)\Intel\oneAPI\setvars-vcvarsall.bat
+              C:\Program Files (x86)\Intel\oneAPI\compiler
+          key: install-${{ env.CACHE_NUMBER }}-${{ env.WINDOWS_HPCKIT_URL }}-${{ env.WINDOWS_FORTRAN_COMPONENTS }}-compiler-${{ hashFiles('**/scripts/cache_exclude_windows.sh') }}
       - name: install
+        if: steps.cache-install.outputs.cache-hit != 'true'
         run: .github/workflows/install_windows.bat $WINDOWS_HPCKIT_URL $WINDOWS_FORTRAN_COMPONENTS
       - name: build
-        run: .github/workflows/build_windows.bat fortran $VS_VER $SAMPLES_TAG
+        run: scripts/build_windows.bat c++ $VS_VER $SAMPLES_TAG
+      - name: exclude unused files from cache
+        if: steps.cache-install.outputs.cache-hit != 'true'
+        run: .github/workflows/cache_exclude_windows.sh
