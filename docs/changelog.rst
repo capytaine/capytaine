@@ -20,6 +20,8 @@ Major changes
 * Remove the :code:`convention` parameter to compute excitation force with WAMIT conventions (:issue:`133` and :pull:`281`).
   Changing the convention to compare the outputs of different codes is better done by a dedicated software such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_ or `BEMIO <https://wec-sim.github.io/bemio/>`_.
 
+* Add methods :meth:`~capytaine.bem.solver.compute_potential`, :meth:`~capytaine.bem.solver.compute_velocity` and :meth:`~capytaine.bem.solver.compute_free_surface_elevation` and :meth:`~capytaine.bem.solver.compute_pressure` to compute the value of some fields in the domain in post-processing. Their signature has been uniformized with the :func:`~capytaine.bem.airy_waves.airy_waves_potential`, :func:`~capytaine.bem.airy_waves.airy_waves_velocity`, :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` and :func:`~capytaine.bem.airy_waves.airy_waves_pressure` functions (:pull:`288`, :pull:`326`)
+
 Minor changes
 ~~~~~~~~~~~~~
 
@@ -36,8 +38,6 @@ Minor changes
 * Remove ``cpt.Nemoh()`` class that was replaced by :class:`~capytaine.bem.solver.BEMSolver` in version 1.1 (:pull:`291`)
 
 * Add function :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` to compute the free surface elevation at points (:pull:`293`).
-
-* Add method :meth:`~capytaine.bem.solver.get_velocity` to compute the velocity field in the fluid in post-processing (:pull:`288`)
 
 * Remove ``full_body`` attribute from :class:`~capytaine.bodies.bodies.FloatingBody` that used to keep a copy of the body before clipping in-place (:pull:`302`).
 

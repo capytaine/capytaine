@@ -5,7 +5,7 @@
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import numpy as np
-
+from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 
 def airy_waves_potential(points, pb):
     """Compute the potential for Airy waves at a given point (or array of points).
@@ -22,6 +22,7 @@ def airy_waves_potential(points, pb):
     array of shape (1) or (N x 1)
         The potential
     """
+    points, output_shape = _normalize_points(points)
 
     x, y, z = points.T
     k = pb.wavenumber
@@ -35,7 +36,8 @@ def airy_waves_potential(points, pb):
         cih = np.exp(k*z)
         # sih = np.exp(k*z)
 
-    return -1j*pb.g/pb.omega * cih * np.exp(1j * k * wbar)
+    phi = -1j*pb.g/pb.omega * cih * np.exp(1j * k * wbar)
+    return phi.reshape(output_shape)
 
 
 def airy_waves_velocity(points, pb):
@@ -54,6 +56,8 @@ def airy_waves_velocity(points, pb):
         the velocity vectors
     """
 
+    points, output_shape = _normalize_points(points)
+
     x, y, z = points.T
     k = pb.wavenumber
     h = pb.depth
@@ -71,12 +75,15 @@ def airy_waves_velocity(points, pb):
         np.exp(1j * k * wbar) * \
         np.array([np.cos(pb.wave_direction) * cih, np.sin(pb.wave_direction) * cih, -1j * sih])
 
-    return v.T
+    return v.T.reshape((*output_shape, 3))
+
+
+def airy_waves_pressure(points, pb):
+    return 1j * pb.omega * pb.rho * airy_waves_potential(points, pb)
 
 
 def froude_krylov_force(pb):
-    pressure = 1j * pb.omega * pb.rho * airy_waves_potential(pb.body.mesh.faces_centers, pb)
-    return pb.body.integrate_pressure(pressure)
+    return pb.body.integrate_pressure(airy_waves_pressure(pb.body.mesh.faces_centers, pb))
 
 
 def airy_waves_free_surface_elevation(points, pb):
@@ -95,10 +102,7 @@ def airy_waves_free_surface_elevation(points, pb):
     complex-valued array of shape (1,) or (N,)
         the free surface elevations
     """
-    points = np.asarray(points)
-    if points.ndim == 1:  # A single point has been provided
-        points = points.reshape((1, points.shape[0]))
-    if points.shape[1] == 2:  # Only x and y have been provided
-        points = np.concatenate([points, np.zeros((points.shape[0], 1))], axis=1)
-    return 1j * pb.omega / pb.g * airy_waves_potential(points, pb)
+    points, output_shape = _normalize_free_surface_points(points)
+    return 1j * pb.omega / pb.g * airy_waves_potential(points, pb).reshape(output_shape)
+
 
