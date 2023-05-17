@@ -1,0 +1,58 @@
+(define-module (gnu packages python-capytaine)
+  #:use-module ((guix licenses) #:prefix license:)
+  #:use-module (guix utils)
+  #:use-module (guix packages)
+  #:use-module (guix git-download)
+  #:use-module (guix build-system python)
+  #:use-module (guix build-system pyproject)
+  #:use-module (gnu packages python)
+  #:use-module (gnu packages build-tools)
+  #:use-module (gnu packages check)
+  #:use-module (gnu packages commencement)
+  #:use-module (gnu packages python-xyz)
+  #:use-module (gnu packages python-science)
+  )
+
+(package
+  (name "python-capytaine")
+  (version "1.5.post1")
+  (source (origin
+       (method git-fetch)
+       (uri (git-reference
+             (url "https://github.com/capytaine/capytaine")
+             (commit "v1.5")
+             (recursive? #t)))
+       (file-name (git-file-name name version))
+       (sha256
+        (base32 "0a4qdmj8p79v6ad4b46r6iy2kgzn28hx1ppbps3wzchsgif0l83m"))
+       ))
+  ;; (build-system pyproject-build-system)
+  (build-system python-build-system)
+  ;; (arguments `(#:test-target "pytest"))
+  (arguments `(#:tests? #f))
+  (native-inputs (list python-toolchain gfortran-toolchain python-pytest))
+  (propagated-inputs (list python-numpy python-pandas python-scipy python-xarray))
+  (home-page "https://github.com/mancellin/capytaine")
+  (synopsis "Python BEM solver for linear potential flow, based on Nemoh")
+  (description "Python BEM solver for linear potential flow, based on Nemoh")
+  (license license:gpl3))
+
+;; (package
+;;   (name "python-capytaine")
+;;   (version "2.0.dev")
+;;   (source (origin
+;;        (method git-fetch)
+;;        (uri (git-reference
+;;              (url "https://github.com/capytaine/capytaine")
+;;              (commit "0327645ea9ace8d6157e1a3e678b3de5e5c28881")))
+;;        (file-name (git-file-name name version))
+;;        (sha256
+;;         (base32 "1wwixjqf02172iyssazwh9l4qv69v0qbgmxqs2mryi2ijprjr70k"))
+;;        ))
+;;   (build-system pyproject-build-system)
+;;   (native-inputs (list python-toolchain gfortran-toolchain meson-python python-pytest))
+;;   (propagated-inputs (list python-numpy python-pandas python-scipy python-xarray))
+;;   (home-page "https://github.com/capytaine/capytaine")
+;;   (synopsis "Python BEM solver for linear potential flow, based on Nemoh")
+;;   (description "Python BEM solver for linear potential flow, based on Nemoh")
+;;   (license license:gpl3))
