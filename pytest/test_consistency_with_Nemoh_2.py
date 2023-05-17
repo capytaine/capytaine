@@ -27,14 +27,14 @@ def test_immersed_sphere():
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
-    problem = RadiationProblem(body=sphere, radiating_dof="Heave", free_surface=np.infty, sea_bottom=-np.infty)
+    problem = RadiationProblem(body=sphere, radiating_dof="Heave", free_surface=np.infty, water_depth=np.infty)
     result = solver.solve(problem)
     assert np.isclose(result.added_masses["Heave"],       2187, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.added_masses["Surge"],        0.0, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"],  0.0, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Surge"],  0.0, atol=1e-3*sphere.volume*problem.rho)
 
-    problem = RadiationProblem(body=sphere, radiating_dof="Surge", free_surface=np.infty, sea_bottom=-np.infty)
+    problem = RadiationProblem(body=sphere, radiating_dof="Surge", free_surface=np.infty, water_depth=np.infty)
     result = solver.solve(problem)
     assert np.isclose(result.added_masses["Surge"],       2194, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.added_masses["Heave"],        0.0, atol=1e-3*sphere.volume*problem.rho)
@@ -71,7 +71,7 @@ def test_floating_sphere_finite_freq():
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     # omega = 1, radiation
-    problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
+    problem = RadiationProblem(body=sphere, omega=1.0, water_depth=np.infty)
     result = solver.solve(problem, keep_details=True)
     assert np.isclose(result.added_masses["Heave"],       1819.6, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"], 379.39, atol=1e-3*sphere.volume*problem.rho)
@@ -89,7 +89,7 @@ def test_floating_sphere_finite_freq():
     assert np.allclose(eta, ref, rtol=1e-4)
 
     # omega = 1, diffraction
-    problem = DiffractionProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
+    problem = DiffractionProblem(body=sphere, omega=1.0, water_depth=np.infty)
     result = solver.solve(problem, keep_details=True)
     assert np.isclose(result.forces["Heave"], 1834.9 * np.exp(-2.933j), rtol=1e-3)
 
@@ -108,13 +108,13 @@ def test_floating_sphere_finite_freq():
     assert np.allclose(kochin, ref_kochin, rtol=1e-3)
 
     # omega = 2, radiation
-    problem = RadiationProblem(body=sphere, omega=2.0, sea_bottom=-np.infty)
+    problem = RadiationProblem(body=sphere, omega=2.0, water_depth=np.infty)
     result = solver.solve(problem)
     assert np.isclose(result.added_masses["Heave"],       1369.3, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"], 1425.6, atol=1e-3*sphere.volume*problem.rho)
 
     # omega = 2, diffraction
-    problem = DiffractionProblem(body=sphere, omega=2.0, sea_bottom=-np.infty)
+    problem = DiffractionProblem(body=sphere, omega=2.0, water_depth=np.infty)
     result = solver.solve(problem)
     assert np.isclose(result.forces["Heave"], 5846.6 * np.exp(-2.623j), rtol=1e-3)
 
@@ -133,7 +133,7 @@ def test_alien_sphere():
     assert np.isclose(result.radiation_dampings["Heave"], 309, atol=1e-3*sphere.volume*problem.rho)
 
     # diffraction
-    problem = DiffractionProblem(body=sphere, rho=450.0, g=1.625, omega=1.0, sea_bottom=-np.infty)
+    problem = DiffractionProblem(body=sphere, rho=450.0, g=1.625, omega=1.0, water_depth=np.infty)
     result = solver.solve(problem)
     assert np.isclose(result.forces["Heave"], 548.5 * np.exp(-2.521j), rtol=1e-2)
 
@@ -144,7 +144,7 @@ def test_floating_sphere_finite_depth():
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     # omega = 1, radiation
-    problem = RadiationProblem(body=sphere, omega=1.0, radiating_dof="Heave", sea_bottom=-10.0)
+    problem = RadiationProblem(body=sphere, omega=1.0, radiating_dof="Heave", water_depth=10.0)
     result = solver.solve(problem, keep_details=True)
     assert np.isclose(result.added_masses["Heave"],       1740.6, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"], 380.46, atol=1e-3*sphere.volume*problem.rho)
@@ -154,18 +154,18 @@ def test_floating_sphere_finite_depth():
     assert np.isclose(kochin[0], -0.2267+3.49e-3j, rtol=1e-3)
 
     # omega = 1, diffraction
-    problem = DiffractionProblem(body=sphere, omega=1.0, wave_direction=0.0, sea_bottom=-10.0)
+    problem = DiffractionProblem(body=sphere, omega=1.0, wave_direction=0.0, water_depth=10.0)
     result = solver.solve(problem)
     assert np.isclose(result.forces["Heave"], 1749.4 * np.exp(-2.922j), rtol=1e-3)
 
     # omega = 2, radiation
-    problem = RadiationProblem(body=sphere, omega=2.0, radiating_dof="Heave", sea_bottom=-10.0)
+    problem = RadiationProblem(body=sphere, omega=2.0, radiating_dof="Heave", water_depth=10.0)
     result = solver.solve(problem)
     assert np.isclose(result.added_masses["Heave"],       1375.0, atol=1e-3*sphere.volume*problem.rho)
     assert np.isclose(result.radiation_dampings["Heave"], 1418.0, atol=1e-3*sphere.volume*problem.rho)
 
     # omega = 2, diffraction
-    problem = DiffractionProblem(body=sphere, omega=2.0, wave_direction=0.0, sea_bottom=-10.0)
+    problem = DiffractionProblem(body=sphere, omega=2.0, wave_direction=0.0, water_depth=10.0)
     result = solver.solve(problem)
     assert np.isclose(result.forces["Heave"], 5872.8 * np.exp(-2.627j), rtol=1e-3)
 
@@ -180,7 +180,7 @@ def test_two_distant_spheres_in_finite_depth():
     other_buoy = buoy.translated_x(20, name="other_buoy")
     both_buoys = buoy.join_bodies(other_buoy)
     both_buoys.add_translation_dof(name="Surge")
-    problem = RadiationProblem(body=both_buoys, radiating_dof="Surge", sea_bottom=-10, omega=7.0)
+    problem = RadiationProblem(body=both_buoys, radiating_dof="Surge", water_depth=10, omega=7.0)
     result = solver.solve(problem)
 
     total_volume = 2*4/3*np.pi*radius**3

@@ -39,7 +39,7 @@ def test_cache_matrices():
 
 def test_custom_linear_solver():
     """Solve a simple problem with a custom linear solver."""
-    problem = RadiationProblem(body=sphere, omega=1.0, sea_bottom=-np.infty)
+    problem = RadiationProblem(body=sphere, omega=1.0, water_depth=np.infty)
 
     reference_solver = BEMSolver(
         engine=BasicMatrixEngine(linear_solver="gmres", matrix_cache_size=0)
