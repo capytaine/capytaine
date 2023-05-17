@@ -129,7 +129,7 @@ class LinearPotentialFlowProblem:
                     "or use body.keep_immersed_part() to clip the mesh."
                 )
 
-            if self.wavelength < 8*self.body.mesh.faces_radiuses.max():
+            if self.wavelength < self.body.minimal_computable_wavelength:
                 LOG.warning(f"Mesh resolution for {self}:\n"
                         f"The resolution of the mesh '{self.body.mesh.name}' of the body '{self.body.name}' "
                         f"might be insufficient for the wavelength λ={self.wavelength:.2e}.\n"
