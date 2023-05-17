@@ -56,7 +56,7 @@ The table below gives their definitions and their default values.
 +=======================+==========================================+========================+
 | :code:`free_surface`  | Position of the free surface [#]_ (m)    | :math:`0.0` m          |
 +-----------------------+------------------------------------------+------------------------+
-| :code:`sea_bottom`    | Position of the sea bottom (m)           | :math:`-\infty` m      |
+| :code:`water_depth`   | Depth of water (m)                       | :math:`\infty` m      |
 +-----------------------+------------------------------------------+------------------------+
 | :code:`g`             | Acceleration of gravity :math:`g` (m/s²) | :math:`9.81` m/s²      |
 +-----------------------+------------------------------------------+------------------------+

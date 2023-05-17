@@ -22,9 +22,9 @@ body = body.immersed_part()
 solver = cpt.BEMSolver()
 
 # Define and solve the diffraction and radiation problems
-diff_problem = cpt.DiffractionProblem(body=body, sea_bottom=-depth,
+diff_problem = cpt.DiffractionProblem(body=body, water_depth=depth,
                                       omega=omega, wave_direction=0.)
-rad_problem = cpt.RadiationProblem(body=body, sea_bottom=-depth,
+rad_problem = cpt.RadiationProblem(body=body, water_depth=depth,
                                    omega=omega, radiating_dof='Heave')
 
 diff_solution = solver.solve(diff_problem)
