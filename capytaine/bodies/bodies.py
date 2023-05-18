@@ -1026,5 +1026,5 @@ respective inertia coefficients are assigned as NaN.")
 
     @property
     def minimal_computable_wavelength(self):
-        return 8*self.body.mesh.faces_radiuses.max()
+        return 8*self.mesh.faces_radiuses.max()
 
