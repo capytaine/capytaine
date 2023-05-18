@@ -31,7 +31,7 @@ jobs:
         if: steps.cache-install.outputs.cache-hit != 'true'
         run: .github/workflows/install_windows.bat $WINDOWS_HPCKIT_URL $WINDOWS_FORTRAN_COMPONENTS
       - name: build
-        run: .github/workflows/build_windows.bat fortran $VS_VER $SAMPLES_TAG
+        run: pip install .
       - name: exclude unused files from cache
         if: steps.cache-install.outputs.cache-hit != 'true'
         run: .github/workflows/cache_exclude_windows.sh
