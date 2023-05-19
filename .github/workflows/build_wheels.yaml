@@ -5,7 +5,7 @@ on:
   push:
     tags:
       - v*
-  # pull_request:
+  pull_request:
     # branches:
     #   - main
     # types:
@@ -38,6 +38,8 @@ jobs:
         uses: pypa/cibuildwheel@v2.12.3
         env:
           CIBW_SKIP: "pp* *i686* *musllinux* *win32*"
+          CIBW_ARCHS_MACOS: x86_64 arm64
+          CIBW_TEST_SKIP: *_arm64  # Cannot test cross-compiled packages
         # # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
         # # delvewheel cannot mangle the libraries, stripping does not work.
         #   CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
