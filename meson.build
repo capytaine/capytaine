@@ -65,7 +65,7 @@ else
 endif
 
 args = ['-cpp']
-link_args = []
+link_args = ['-lquadmath']
 deps = [py3_dep, omp]
 
 py3.extension_module('Delhommeau_float32',
