@@ -3,7 +3,6 @@ project('capytaine',
   version : run_command('capytaine/__about__.py', check: true).stdout().strip(),
   default_options : ['warning_level=2'])
 
-
 py_mod = import('python')
 py3 = py_mod.find_installation('python3')
 py3_dep = py3.dependency()
@@ -64,7 +63,7 @@ else
 endif
 
 args = ['-cpp']
-link_args = []
+link_args = ['-lquadmath']  # Required for the Windows build with cibuildwheel
 deps = [py3_dep, omp]
 
 py3.extension_module('Delhommeau_float32',
