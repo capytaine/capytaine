@@ -1,9 +1,7 @@
 project('capytaine',
-  ['c'],
+  ['c', 'fortran'],
   version : run_command('capytaine/__about__.py', check: true).stdout().strip(),
   default_options : ['warning_level=2'])
-
-add_languages('fortran', native: false)
 
 py_mod = import('python')
 py3 = py_mod.find_installation('python3')
