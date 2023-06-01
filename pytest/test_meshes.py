@@ -168,8 +168,8 @@ def test_clipper():
     mesh = mesh_rectangle(size=(5,5), normal=(1,0,0))
     assert max([i[2] for i in mesh.immersed_part(free_surface=-1).vertices])<=-1
     assert max([i[2] for i in mesh.immersed_part(free_surface= 1).vertices])<= 1
-    assert min([i[2] for i in mesh.immersed_part(sea_bottom=-1).vertices])>=-1
-    assert min([i[2] for i in mesh.immersed_part(sea_bottom= 1).vertices])>= 1
+    assert min([i[2] for i in mesh.immersed_part(free_surface=np.infty, sea_bottom=-1).vertices])>=-1
+    assert min([i[2] for i in mesh.immersed_part(free_surface=np.infty, sea_bottom= 1).vertices])>= 1
     
     mesh = mesh_rectangle(size=(4,4), resolution=(1,1), normal=(1,0,0))
     tmp = list(mesh.clip(Plane(normal=(0,0.1,1),point=(0,0,-1)),inplace=False).vertices)
