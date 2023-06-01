@@ -55,6 +55,8 @@ Bug fixes
 
 * Convert ``center_of_mass`` and ``rotation_center`` to arrays in :class:`~capytaine.bodies.bodies.FloatingBody` constructor to avoid a few issues (:issue:`319` and :pull:`325`).
 
+* Fix bug (leading to either ``RuntimeError`` or wrong output) when clipping with plane that does not contain the origin. (:pull:`344`)
+
 Internals
 ~~~~~~~~~
 

@@ -299,6 +299,11 @@ class Plane(Abstract3DObject):
         """Distance from plane to origin."""
         return np.linalg.norm(self.normal @ self.point)
 
+    @property
+    def s(self):
+        """Distance from origin to plane along the normal"""
+        return np.dot(self.normal, self.point)
+
     #################################
     #  Transformation of the plane  #
     #################################
@@ -365,7 +370,7 @@ class Plane(Abstract3DObject):
 
         p0n = np.dot(p0, self.normal)
         p1n = np.dot(p1, self.normal)
-        t = (p0n - self.c) / (p0n - p1n)
+        t = (p0n - self.s) / (p0n - p1n)
         if t < 0. or t > 1.:
             raise RuntimeError('Intersection is outside the edge')
         return (1-t) * p0 + t * p1
