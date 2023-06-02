@@ -5,11 +5,8 @@ on:
   push:
     tags:
       - v*
-  # pull_request:
-    # branches:
-    #   - main
-    # types:
-    #   - closed
+  schedule:
+    - cron: '5 5 5/15 * *'  # On the 5th and 20th of each month at 5:05
 
 
 jobs:
