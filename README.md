@@ -1,6 +1,7 @@
 # Capytaine: a linear potential flow BEM solver with Python.
 
 [![DOI](http://joss.theoj.org/papers/10.21105/joss.01341/status.svg)](https://doi.org/10.21105/joss.01341)
+![CI status](https://github.com/capytaine/capytaine/actions/workflows/tests.yaml/badge.svg?event=push)
 
 Capytaine is Python package for the simulation of the interaction between water waves and floating bodies in frequency domain.
 It is built around a full rewrite of the open source Boundary Element Method (BEM) solver Nemoh for the linear potential flow wave theory.
