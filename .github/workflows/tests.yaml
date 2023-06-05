@@ -1,6 +1,13 @@
 name: Build and run test suite
 
 on:
+  push:
+    branches:
+      - 'master'
+    paths-ignore:
+      # Do not run if only the documentation has been changed
+      - 'docs/**'
+      - '**/*.md'
   pull_request:
     paths-ignore:
       # Do not run if only the documentation has been changed

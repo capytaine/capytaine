@@ -57,12 +57,16 @@ Bug fixes
 
 * Convert ``center_of_mass`` and ``rotation_center`` to arrays in :class:`~capytaine.bodies.bodies.FloatingBody` constructor to avoid a few issues (:issue:`319` and :pull:`325`).
 
+* Fix bug (leading to either ``RuntimeError`` or wrong output) when clipping with plane that does not contain the origin. (:pull:`344`)
+
 Internals
 ~~~~~~~~~
 
 * The method :meth:`~capytaine.green_functions.delhommeau.Delhommeau.evaluate` (and its counterparts for other Green functions) now accepts a list of points as first argument instead of a mesh. It has now an optional boolean argument ``early_dot_product`` to return the integrals of the gradient of the Green function and not only the normal derivative (:pull:`288`).
 
 * Remove warnings due to 0/0 divisions in :func:`~capytaine.meshes.properties.compute_faces_properties` (:pull:`310`)
+
+* Remove unused and undocumented code about meshes, including ``mesh.min_edge_length``, ``mesh.mean_edge_length``, ``mesh.max_edge_length``, ``mesh.get_surface_integrals``, ``mesh.volume``, ``mesh.vv``, ``mesh.vf``, ``mesh.ff``, ``mesh.boundaries``, ``mesh.nb_boundaries``, ``compute_faces_integrals``, ``SingleFace``. (:pull:`334`)
 
 -------------------------------
 New in version 1.5 (2022-12-13)
