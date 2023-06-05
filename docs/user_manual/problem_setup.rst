@@ -56,7 +56,7 @@ The table below gives their definitions and their default values.
 +=======================+==========================================+========================+
 | :code:`free_surface`  | Position of the free surface [#]_ (m)    | :math:`0.0` m          |
 +-----------------------+------------------------------------------+------------------------+
-| :code:`water_depth`   | Depth of water (m)                       | :math:`\infty` m      |
+| :code:`water_depth`   | Constant depth of water (m)              | :math:`\infty` m      |
 +-----------------------+------------------------------------------+------------------------+
 | :code:`g`             | Acceleration of gravity :math:`g` (m/s²) | :math:`9.81` m/s²      |
 +-----------------------+------------------------------------------+------------------------+
@@ -111,14 +111,6 @@ Once the problem has been initialized, the other parameters can be retrieved as:
    magnitudes are recomputed from the stored :code:`omega`. Hence small
    rounding error might happend between the value provided by the user and the
    one used by Capytaine.
-
-Besides, the following attributes are also accessible:
-
-+------------------------------------+-------------------------------------------------+
-| Parameter                          | Description (unit)                              |
-+====================================+=================================================+
-| :code:`depth`                      | Water depth :math:`h` (m)                       |
-+------------------------------------+-------------------------------------------------+
 
 
 Legacy Nemoh.cal parameters files
