@@ -79,6 +79,9 @@ def test_LinearPotentialFlowProblem():
     assert res.period == pb.period
     assert res.body is pb.body
 
+def test_backward_compatibility_with_sea_bottom_argument():
+    pb = cpt.DiffractionProblem(sea_bottom=-10.0)
+    assert pb.water_depth == 10.0
 
 @pytest.mark.parametrize("water_depth", [10.0, np.infty])
 def test_setting_wavelength(water_depth):
