@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import newton
 
+from capytaine.tools.deprecation_handling import _get_water_depth
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.bem.airy_waves import airy_waves_velocity, froude_krylov_force
 
@@ -66,22 +67,12 @@ class LinearPotentialFlowProblem:
         self.rho = float(rho)
         self.g = float(g)
 
-        if water_depth is None and sea_bottom is None:
-            self.water_depth = _default_parameters['water_depth']
-        elif water_depth is not None and sea_bottom is None:
-            self.water_depth = float(water_depth)
-        elif water_depth is None and sea_bottom is not None:
-            LOG.warning("Deprecation warning: please prefer giving a `water_depth` rather than a `sea_bottom` to define problems.")
-            self.water_depth = -float(sea_bottom)
-        else:
-            raise ValueError("Cannot give both a `water_depth` and a `sea_bottom` to define problems.")
-
         self.boundary_condition = boundary_condition
 
+        self.water_depth = _get_water_depth(free_surface, water_depth, sea_bottom, default_water_depth=_default_parameters["water_depth"])
         self.omega, self.provided_freq_type = self._get_angular_frequency(omega, period, wavenumber, wavelength)
 
         self._check_data()
-
 
     def _get_angular_frequency(self, omega, period, wavenumber, wavelength):
         frequency_data = dict(omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength)

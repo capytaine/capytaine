@@ -14,7 +14,7 @@ import xarray as xr
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 meshio = silently_import_optional_dependency("meshio")
 
-from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
+from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import build_regular_array_of_meshes
 from capytaine.meshes.collections import CollectionOfMeshes
@@ -26,7 +26,7 @@ TRANSLATION_DOFS_DIRECTIONS = {"surge": (1, 0, 0), "sway": (0, 1, 0), "heave": (
 ROTATION_DOFS_AXIS = {"roll": (1, 0, 0), "pitch": (0, 1, 0), "yaw": (0, 0, 1)}
 
 
-class FloatingBody(Abstract3DObject):
+class FloatingBody(ClippableMixin, Abstract3DObject):
     """A floating body described as a mesh and some degrees of freedom.
 
     The mesh structure is stored as a Mesh from capytaine.mesh.mesh or a
@@ -961,20 +961,6 @@ respective inertia coefficients are assigned as NaN.")
                 self.dofs[dof] = np.empty((0, 3))
         return self
 
-    def clipped(self, plane, **kwargs):
-        # Same API as for the other transformations
-        return self.clip(plane, inplace=False, **kwargs)
-
-    @inplace_transformation
-    def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        """Remove the parts of the mesh above the sea bottom and below the free surface."""
-        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
-        if sea_bottom > -np.infty:
-            self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
-        return self
-
-    def immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        return self.keep_immersed_part(free_surface, sea_bottom, inplace=False, name=self.name)
 
     #############
     #  Display  #

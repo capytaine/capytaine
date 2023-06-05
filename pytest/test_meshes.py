@@ -163,20 +163,19 @@ def test_clipper():
 
     mesh.keep_immersed_part(free_surface=0.0, water_depth=1.0)
     assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
-    
+
     # Check boundaries after clipping
     mesh = mesh_rectangle(size=(5,5), normal=(1,0,0))
     assert max([i[2] for i in mesh.immersed_part(free_surface=-1).vertices])<=-1
     assert max([i[2] for i in mesh.immersed_part(free_surface= 1).vertices])<= 1
-    assert min([i[2] for i in mesh.immersed_part(free_surface=np.infty, sea_bottom=-1).vertices])>=-1
-    assert min([i[2] for i in mesh.immersed_part(free_surface=np.infty, sea_bottom= 1).vertices])>= 1
-    
+    assert min([i[2] for i in mesh.immersed_part(free_surface=100, sea_bottom=-1).vertices])>=-1
+    assert min([i[2] for i in mesh.immersed_part(free_surface=100, sea_bottom= 1).vertices])>= 1
+
     mesh = mesh_rectangle(size=(4,4), resolution=(1,1), normal=(1,0,0))
     tmp = list(mesh.clip(Plane(normal=(0,0.1,1),point=(0,0,-1)),inplace=False).vertices)
     tmp.sort(key=lambda x: x[2])
     tmp.sort(key=lambda x: x[1])
     assert np.allclose([i[2] for i in tmp], [-2, -0.8, -2, -1.2])
-    
 
 
 @pytest.mark.parametrize("size", [5, 6])
