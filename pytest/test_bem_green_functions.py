@@ -98,20 +98,20 @@ depths = one_of(floats(min_value=10.0, max_value=100.0), just(np.infty))
 
 gravity = 9.8
 
-def wave_part_Green_function(Xi, Xj, omega, depth, method):
-    if depth == np.infty:
+def wave_part_Green_function(Xi, Xj, omega, water_depth, method):
+    if water_depth == np.infty:
         wavenumber = omega**2 / gravity
         return method.fortran_core.green_wave.wave_part_infinite_depth(Xi, Xj, wavenumber, method.tabulated_r_range, method.tabulated_z_range, method.tabulated_integrals)
     else:
-        wavenumber = newton(lambda x: x*np.tanh(x) - omega**2*depth/gravity, x0=1.0)/depth
-        ambda, ar, nexp = method.fortran_core.old_prony_decomposition.lisc(omega**2 * depth/gravity, wavenumber * depth)
-        return method.fortran_core.green_wave.wave_part_finite_depth(Xi, Xj, wavenumber, depth, method.tabulated_r_range, method.tabulated_z_range, method.tabulated_integrals, ambda, ar, 31)
+        wavenumber = newton(lambda x: x*np.tanh(x) - omega**2*water_depth/gravity, x0=1.0)/water_depth
+        ambda, ar, nexp = method.fortran_core.old_prony_decomposition.lisc(omega**2 * water_depth/gravity, wavenumber * water_depth)
+        return method.fortran_core.green_wave.wave_part_finite_depth(Xi, Xj, wavenumber, water_depth, method.tabulated_r_range, method.tabulated_z_range, method.tabulated_integrals, ambda, ar, 31)
 
 
 @given(points, points, frequencies, depths, methods)
-def test_symmetry_of_the_Green_function(X1, X2, omega, depth, method):
-    assert np.isclose(wave_part_Green_function(X1, X2, omega, depth, method)[0],
-                      wave_part_Green_function(X2, X1, omega, depth, method)[0],
+def test_symmetry_of_the_Green_function(X1, X2, omega, water_depth, method):
+    assert np.isclose(wave_part_Green_function(X1, X2, omega, water_depth, method)[0],
+                      wave_part_Green_function(X2, X1, omega, water_depth, method)[0],
                       rtol=1e-4)
 
 @given(points, points, frequencies, methods)
