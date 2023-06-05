@@ -41,7 +41,7 @@ def setup_animation(body, fs, omega, wave_amplitude, wave_direction):
     diffraction_elevation = bem_solver.compute_free_surface_elevation(fs.mesh, diffraction_result)
 
     # Compute the wave pattern radiated by the RAO
-    radiation_elevations_per_dof = {res.radiating_dof: (-1j*omega)*bem_solver.compute_free_surface_elevation(fs.mesh, diffraction_result) for res in radiation_results}
+    radiation_elevations_per_dof = {res.radiating_dof: bem_solver.compute_free_surface_elevation(fs.mesh, diffraction_result) for res in radiation_results}
     radiation_elevation = sum(rao.sel(omega=omega, radiating_dof=dof).data * radiation_elevations_per_dof[dof] for dof in body.dofs)
 
     # SET UP ANIMATION

@@ -72,6 +72,9 @@ class LinearPotentialFlowProblem:
         self.water_depth = _get_water_depth(free_surface, water_depth, sea_bottom, default_water_depth=_default_parameters["water_depth"])
         self.omega, self.provided_freq_type = self._get_angular_frequency(omega, period, wavenumber, wavelength)
 
+        if self.omega in (0.0, np.infty):
+            raise NotImplementedError("Zero and infinite frequencies are currently not supported.")
+
         self._check_data()
 
     def _get_angular_frequency(self, omega, period, wavenumber, wavelength):
@@ -326,7 +329,7 @@ class RadiationProblem(LinearPotentialFlowProblem):
                 raise ValueError("Unrecognized degree of freedom name.")
 
             dof = self.body.dofs[self.radiating_dof]
-            self.boundary_condition = np.sum(dof * self.body.mesh.faces_normals, axis=1)
+            self.boundary_condition = -1j*self.omega * np.sum(dof * self.body.mesh.faces_normals, axis=1)
 
     def _astuple(self):
         return super()._astuple() + (self.radiating_dof,)
@@ -388,7 +391,7 @@ class DiffractionResult(LinearPotentialFlowResult):
         self.wave_direction = self.problem.wave_direction
 
     def store_force(self, dof, force):
-        self.forces[dof] = 1j*self.omega*force
+        self.forces[dof] = force
 
     @property
     def records(self):
@@ -410,11 +413,8 @@ class RadiationResult(LinearPotentialFlowResult):
         self.radiating_dof = self.problem.radiating_dof
 
     def store_force(self, dof, force):
-        self.added_masses[dof] = force.real
-        if self.problem.omega == np.infty:
-            self.radiation_dampings[dof] = 0
-        else:
-            self.radiation_dampings[dof] = self.problem.omega * force.imag
+        self.added_masses[dof] = force.real/self.omega**2
+        self.radiation_dampings[dof] = force.imag/self.omega
 
     @property
     def records(self):

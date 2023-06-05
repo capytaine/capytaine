@@ -590,9 +590,7 @@ which, in frequency domain, is
 
 For a fully coupled problem (bodies free to oscillate, i.e. diffraction and radiation combined), the free surface elevation can be computed as 
 
-.. math:: \eta = \eta_{\text{incident}} + \eta_{\text{diffracted}} -j \omega \sum_i \eta_{\text{radiated}, i}   X_i
-
-where factor :math:`-j \omega` transforms :math:`\eta_{\text{radiated}, i}` from the radiated wave field corresponding to unit oscillation velocity to the field corresponding to unit oscillation amplitude.
+.. math:: \eta = \eta_{\text{incident}} + \eta_{\text{diffracted}} + \sum_i \eta_{\text{radiated}, i} X_i.
 
 
 Far-field coefficients

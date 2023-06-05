@@ -86,7 +86,7 @@ def test_floating_sphere_finite_freq():
              [-0.7986111E-03+0.4840984E-02j, 0.5733186E-02-0.2179381E-02j, 0.9460891E-03-0.7079404E-02j, 0.5733187E-02-0.2179380E-02j, -0.7986113E-03+0.4840984E-02j],
              [-0.4340803E-02-0.4742807E-03j, -0.7986111E-03+0.4840984E-02j, 0.2214827E-02+0.4700643E-02j, -0.7986113E-03+0.4840983E-02j, -0.4340803E-02-0.4742809E-03j]]
         )
-    assert np.allclose(eta, ref, rtol=1e-4)
+    assert np.allclose(eta/(-1j*problem.omega), ref, rtol=1e-4)
 
     # omega = 1, diffraction
     problem = DiffractionProblem(body=sphere, omega=1.0, water_depth=np.infty)
@@ -151,7 +151,7 @@ def test_floating_sphere_finite_depth():
 
     kochin = compute_kochin(result, np.linspace(0, np.pi, 3))
     assert np.allclose(kochin, np.roll(kochin, 1))  # The far field is the same in all directions.
-    assert np.isclose(kochin[0], -0.2267+3.49e-3j, rtol=1e-3)
+    assert np.isclose(kochin[0]/(-1j*problem.omega), -0.2267+3.49e-3j, rtol=1e-3)
 
     # omega = 1, diffraction
     problem = DiffractionProblem(body=sphere, omega=1.0, wave_direction=0.0, water_depth=10.0)
