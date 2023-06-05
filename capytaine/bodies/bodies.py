@@ -1010,3 +1010,8 @@ respective inertia coefficients are assigned as NaN.")
         animation._add_actor(self.mesh.merged(), faces_motion=sum(motion[dof_name] * dof for dof_name, dof in self.dofs.items() if dof_name in motion))
         return animation
 
+    @property
+    def minimal_computable_wavelength(self):
+        """For accuracy of the resolution, wavelength should not be smaller than this value."""
+        return 8*self.mesh.faces_radiuses.max()
+
