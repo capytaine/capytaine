@@ -25,11 +25,9 @@ def import_cal_file(filepath):
         cal_file.readline()  # Unused line.
         rho = float(cal_file.readline().split()[0])
         g = float(cal_file.readline().split()[0])
-        depth = float(cal_file.readline().split()[0])
-        if depth == 0.0:
-            sea_bottom = -np.infty
-        else:
-            sea_bottom = -depth
+        water_depth = float(cal_file.readline().split()[0])
+        if water_depth == 0.0:
+            water_depth = np.infty
         xeff, yeff = (float(x) for x in cal_file.readline().split()[0:2])
 
         bodies = []
@@ -114,7 +112,7 @@ def import_cal_file(filepath):
         free_surface_data = cal_file.readline().split()
 
     # Generate Capytaine's problem objects
-    env_args = dict(body=bodies, rho=rho, sea_bottom=sea_bottom, g=g)
+    env_args = dict(body=bodies, rho=rho, water_depth=water_depth, g=g)
     problems = []
     for omega in omega_range:
         for direction in direction_range:
@@ -171,7 +169,7 @@ def export_as_Nemoh_directory(problem, directory_name, omega_range=None):
                 DEFAULT_NEMOH_CAL.format(
                     rho=problem.rho,
                     g=problem.g,
-                    depth=problem.depth if problem.depth < np.infty else 0,
+                    depth=problem.water_depth if problem.water_depth < np.infty else 0,
                     mesh_filename=f'{problem.body.name}.dat',
                     mesh_vertices=problem.body.mesh.nb_vertices,
                     mesh_faces=problem.body.mesh.nb_faces,

@@ -122,7 +122,7 @@ def test_clipping_of_dofs(z_center, as_collection_of_meshes):
     axis = Axis(point=(1, 0, 0), vector=(1, 0, 0))
 
     full_sphere.add_rotation_dof(axis, name="test_dof")
-    clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, sea_bottom=-np.infty, inplace=False)
+    clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, water_depth=np.infty, inplace=False)
 
     other_clipped_sphere = FloatingBody(mesh=clipped_sphere.mesh, name="other_sphere")
     other_clipped_sphere.add_rotation_dof(axis, name="test_dof")

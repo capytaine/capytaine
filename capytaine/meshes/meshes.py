@@ -12,7 +12,7 @@ from itertools import count
 import numpy as np
 from numpy.linalg import norm
 
-from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
+from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
 from capytaine.meshes.properties import compute_faces_properties
 from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
@@ -22,7 +22,7 @@ from capytaine.tools.optional_imports import import_optional_dependency
 LOG = logging.getLogger(__name__)
 
 
-class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
+class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
     """A class to handle unstructured 2D meshes in a 3D space.
 
     Parameters
@@ -637,22 +637,6 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
         self.faces = clipped_self.faces
         self._clipping_data = clipped_self._clipping_data
         return self
-
-    def clipped(self, plane, **kwargs) -> 'Mesh':
-        # Same API as for the other transformations
-        return self.clip(plane, inplace=False, **kwargs)
-
-    @inplace_transformation
-    def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        """Clip the mesh with two horizontal planes corresponding
-        with the free surface and the sea bottom."""
-        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
-        if sea_bottom > -np.infty:
-            self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
-        return self
-
-    def immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        return self.keep_immersed_part(free_surface, sea_bottom, inplace=False, name=self.name)
 
     @inplace_transformation
     def triangulate_quadrangles(self) -> 'Mesh':
