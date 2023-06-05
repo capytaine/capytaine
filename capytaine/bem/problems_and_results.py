@@ -173,7 +173,7 @@ class LinearPotentialFlowProblem:
         """Do not display default values in str(problem)."""
         parameters = [f"body={self.body_name}",
                       f"omega={self.omega:.3f}",
-                      f"depth={self.water_depth}"]
+                      f"water_depth={self.water_depth}"]
         try:
             parameters.extend(self._str_other_attributes())
         except AttributeError:
