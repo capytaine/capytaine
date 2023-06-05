@@ -114,7 +114,7 @@ def problems_from_dataset(dataset: xr.Dataset,
                 in product(freq_range, wave_direction_range, water_depth_range, body_range, rho_range, g_range):
             problems.append(
                 DiffractionProblem(body=body_range[body_name], **{freq_type: freq},
-                                   wave_direction=wave_direction, sea_bottom=-water_depth, rho=rho, g=g)
+                                   wave_direction=wave_direction, water_depth=water_depth, rho=rho, g=g)
             )
 
     if radiating_dofs is not None:
@@ -122,7 +122,7 @@ def problems_from_dataset(dataset: xr.Dataset,
                 in product(freq_range, radiating_dofs, water_depth_range, body_range, rho_range, g_range):
             problems.append(
                 RadiationProblem(body=body_range[body_name], **{freq_type: freq},
-                                 radiating_dof=radiating_dof, sea_bottom=-water_depth, rho=rho, g=g)
+                                 radiating_dof=radiating_dof, water_depth=water_depth, rho=rho, g=g)
             )
 
     return sorted(problems)
