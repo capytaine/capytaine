@@ -47,12 +47,14 @@ def test_limit_frequencies():
     """Test if how the solver answers when asked for frequency of 0 or ∞."""
     solver = BEMSolver()
 
-    solver.solve(RadiationProblem(body=sphere, omega=0.0, water_depth=np.infty))
+    with pytest.raises(NotImplementedError):
+        solver.solve(RadiationProblem(body=sphere, omega=0.0, water_depth=np.infty))
 
     with pytest.raises(NotImplementedError):
         solver.solve(RadiationProblem(body=sphere, omega=0.0, water_depth=1.0))
 
-    solver.solve(RadiationProblem(body=sphere, omega=np.infty, water_depth=np.infty))
+    with pytest.raises(NotImplementedError):
+        solver.solve(RadiationProblem(body=sphere, omega=np.infty, water_depth=np.infty))
 
     with pytest.raises(NotImplementedError):
         solver.solve(RadiationProblem(body=sphere, omega=np.infty, water_depth=10))

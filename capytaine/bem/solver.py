@@ -96,10 +96,7 @@ class BEMSolver:
         )
         sources = self.engine.linear_solver(K, problem.boundary_condition)
         potential = S @ sources
-        pressure = problem.rho * potential
-        # Actually, for diffraction problems: pressure over jω
-        #           for radiation problems:   pressure over -ω²
-        # The correction is done in `store_force` in the `result` object.
+        pressure = 1j * problem.omega * problem.rho * potential
 
         forces = problem.body.integrate_pressure(pressure)
 
