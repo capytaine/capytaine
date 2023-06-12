@@ -46,7 +46,7 @@ def test_build_matrix_of_rankine_and_reflected_rankine():
     gf = Delhommeau()
     sphere = Sphere(radius=1.0, ntheta=2, nphi=3, clip_free_surface=True)
 
-    S, V = gf.evaluate(sphere.mesh, sphere.mesh, 0.0, -np.infty, 0.0)
+    S, V = gf.evaluate(sphere.mesh, sphere.mesh, 0.0, np.infty, 0.0)
     S_ref = np.array([[-0.15413386, -0.21852682, -0.06509213, -0.16718431, -0.06509213, -0.16718431],
                       [-0.05898834, -0.39245688, -0.04606661, -0.18264734, -0.04606661, -0.18264734],
                       [-0.06509213, -0.16718431, -0.15413386, -0.21852682, -0.06509213, -0.16718431],
@@ -55,7 +55,7 @@ def test_build_matrix_of_rankine_and_reflected_rankine():
                       [-0.04606661, -0.18264734, -0.04606661, -0.18264734, -0.05898834, -0.39245688]])
     assert np.allclose(S, S_ref)
 
-    S, V = gf.evaluate(sphere.mesh, sphere.mesh, 0.0, -np.infty, np.infty)
+    S, V = gf.evaluate(sphere.mesh, sphere.mesh, 0.0, np.infty, np.infty)
     S_ref = np.array([[-0.12666269, -0.07804937, -0.03845837, -0.03993999, -0.03845837, -0.03993999],
                       [-0.02106031, -0.16464793, -0.01169102, -0.02315146, -0.01169102, -0.02315146],
                       [-0.03845837, -0.03993999, -0.12666269, -0.07804937, -0.03845837, -0.03993999],

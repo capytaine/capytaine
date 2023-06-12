@@ -15,8 +15,8 @@ sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
 def test_cache_matrices():
     """Test how the BasicMatrixEngine caches the interaction matrices."""
     gf = Delhommeau()
-    params_1 = (sphere.mesh, sphere.mesh, 0.0, -np.infty, 1.0, gf)
-    params_2 = (sphere.mesh, sphere.mesh, 0.0, -np.infty, 2.0, gf)
+    params_1 = (sphere.mesh, sphere.mesh, 0.0, np.infty, 1.0, gf)
+    params_2 = (sphere.mesh, sphere.mesh, 0.0, np.infty, 2.0, gf)
 
     # No cache
     engine = BasicMatrixEngine(matrix_cache_size=0)
@@ -61,14 +61,14 @@ def test_custom_linear_solver():
 
 def test_gradiant_G_shape():
     mesh = cpt.mesh_sphere(radius=1, center=(0, 0, 0), resolution=(10, 10)).immersed_part()
-    S, gradG_1 = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, -np.infty, 1.0, early_dot_product=False)
+    S, gradG_1 = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, np.infty, 1.0, early_dot_product=False)
     assert gradG_1.shape == (mesh.nb_faces, mesh.nb_faces, 3)
 
 
 def test_gradient_G_a_posteriori_scalar_product():
     mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
-    S, gradG = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, -np.infty, 1.0, early_dot_product=False)
-    S, K = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, -np.infty, 1.0, early_dot_product=True)
+    S, gradG = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, np.infty, 1.0, early_dot_product=False)
+    S, K = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, np.infty, 1.0, early_dot_product=True)
 
     # Scalar product with the faces normal vectors
     K_ = np.zeros_like(S)
@@ -85,17 +85,17 @@ def test_gradient_G_a_posteriori_scalar_product():
 
 def test_gradient_G_with_collocation_points():
     mesh = cpt.mesh_sphere(radius=1, center=(0, 0, 0), resolution=(10, 10)).immersed_part()
-    _, gradG_1 = cpt.Delhommeau().evaluate(mesh.faces_centers, mesh, 0.0, -np.infty, 1.0, early_dot_product=False)
-    _, gradG_2 = cpt.Delhommeau().evaluate(mesh.copy(), mesh, 0.0, -np.infty, 1.0, early_dot_product=False)
+    _, gradG_1 = cpt.Delhommeau().evaluate(mesh.faces_centers, mesh, 0.0, np.infty, 1.0, early_dot_product=False)
+    _, gradG_2 = cpt.Delhommeau().evaluate(mesh.copy(), mesh, 0.0, np.infty, 1.0, early_dot_product=False)
     np.testing.assert_allclose(gradG_1, gradG_2)
 
 
 def test_gradient_G_diagonal_term():
     mesh = cpt.mesh_sphere(radius=1, center=(0, 0, 0), resolution=(10, 10)).immersed_part()
     # Passing two different Python objects
-    _, gradG_1 = cpt.Delhommeau().evaluate(mesh.copy(), mesh, 0.0, -np.infty, 1.0, early_dot_product=False)
+    _, gradG_1 = cpt.Delhommeau().evaluate(mesh.copy(), mesh, 0.0, np.infty, 1.0, early_dot_product=False)
     # Passing the same Python object
-    _, gradG_2 = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, -np.infty, 1.0, early_dot_product=False)
+    _, gradG_2 = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, np.infty, 1.0, early_dot_product=False)
 
     diag_normal = np.zeros_like(gradG_2)
     for i in range(mesh.nb_faces):
@@ -106,7 +106,7 @@ def test_gradient_G_diagonal_term():
 
 def test_a_posteriori_scalar_product_direct_method():
     mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
-    S, gradG = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, -np.infty, 1.0, early_dot_product=False)
+    S, gradG = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, np.infty, 1.0, early_dot_product=False)
     D_ = np.zeros_like(S)
     for i in range(mesh.nb_faces):
         for j in range(mesh.nb_faces):

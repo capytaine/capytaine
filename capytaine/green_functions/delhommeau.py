@@ -36,7 +36,7 @@ class Delhommeau(AbstractGreenFunction):
         Number of points for the numerical integration w.r.t. :math:`theta` of Delhommeau's integrals
         Default: 251, as in Nemoh.
     finite_depth_prony_decomposition_method: string, optional
-        The implementation of the Prony decomposition used to compute the finite depth Green function.
+        The implementation of the Prony decomposition used to compute the finite water_depth Green function.
         Accepted values: :code:`'fortran'` for Nemoh's implementation (by default), :code:`'python'` for an experimental Python implementation.
         See :func:`find_best_exponential_decomposition`.
     floating_point_precision: string, optional
@@ -101,7 +101,7 @@ class Delhommeau(AbstractGreenFunction):
 
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
-        """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
+        """Compute the decomposition of a part of the finite water_depth Green function as a sum of exponential functions.
 
         Two implementations are available: the legacy Fortran implementation from Nemoh and a newer one written in Python.
         For some still unexplained reasons, the two implementations do not always give the exact same result.
@@ -125,7 +125,7 @@ class Delhommeau(AbstractGreenFunction):
             the amplitude and growth rates of the exponentials
         """
 
-        LOG.debug(f"\tCompute Prony decomposition in finite depth Green function "
+        LOG.debug(f"\tCompute Prony decomposition in finite water_depth Green function "
                   f"for dimless_omega=%.2e and dimless_wavenumber=%.2e",
                   dimensionless_omega, dimensionless_wavenumber)
 
@@ -167,7 +167,7 @@ class Delhommeau(AbstractGreenFunction):
 
         return a, lamda
 
-    def evaluate(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0, early_dot_product=True):
+    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.infty, wavenumber=1.0, early_dot_product=True):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
 
         Parameters
@@ -179,8 +179,8 @@ class Delhommeau(AbstractGreenFunction):
             mesh of the source body (over which the source distribution is integrated)
         free_surface: float, optional
             position of the free surface (default: :math:`z = 0`)
-        sea_bottom: float, optional
-            position of the sea bottom (default: :math:`z = -\infty`)
+        water_depth: float, optional
+            constant depth of water (default: :math:`+\infty`)
         wavenumber: float, optional
             wavenumber (default: 1.0)
         early_dot_product: boolean, optional
@@ -193,14 +193,13 @@ class Delhommeau(AbstractGreenFunction):
             the matrices :math:`S` and :math:`K`
         """
 
-        depth = free_surface - sea_bottom
         if free_surface == np.infty: # No free surface, only a single Rankine source term
 
             a_exp, lamda_exp = np.empty(1), np.empty(1)  # Dummy arrays that won't actually be used by the fortran code.
 
             coeffs = np.array((1.0, 0.0, 0.0))
 
-        elif depth == np.infty:
+        elif water_depth == np.infty:
 
             a_exp, lamda_exp = np.empty(1), np.empty(1)  # Idem
 
@@ -211,10 +210,10 @@ class Delhommeau(AbstractGreenFunction):
             else:
                 coeffs = np.array((1.0, 1.0, 1.0))
 
-        else:  # Finite depth
+        else:  # Finite water_depth
             a_exp, lamda_exp = self.find_best_exponential_decomposition(
-                wavenumber*depth*np.tanh(wavenumber*depth),
-                wavenumber*depth,
+                wavenumber*water_depth*np.tanh(wavenumber*water_depth),
+                wavenumber*water_depth,
             )
             if wavenumber == 0.0:
                 raise NotImplementedError
@@ -244,7 +243,7 @@ class Delhommeau(AbstractGreenFunction):
             mesh2.faces_centers, mesh2.faces_normals,
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
-            wavenumber, depth,
+            wavenumber, water_depth,
             coeffs,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,

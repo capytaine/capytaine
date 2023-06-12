@@ -91,7 +91,7 @@ class BEMSolver:
 
         S, K = self.engine.build_matrices(
             problem.body.mesh, problem.body.mesh,
-            problem.free_surface, -problem.water_depth, problem.wavenumber,
+            problem.free_surface, problem.water_depth, problem.wavenumber,
             self.green_function
         )
         sources = self.engine.linear_solver(K, problem.boundary_condition)
@@ -199,7 +199,7 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        S, _ = self.green_function.evaluate(points, result.body.mesh, result.free_surface, -result.water_depth, result.wavenumber)
+        S, _ = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.wavenumber)
         potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
@@ -232,7 +232,7 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, -result.water_depth, result.wavenumber,
+        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.wavenumber,
                                                 early_dot_product=False)
         velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
         return velocities.reshape((*output_shape, 3))
@@ -328,7 +328,7 @@ class BEMSolver:
             S = self.engine.build_S_matrix(
                 mesh,
                 result.body.mesh,
-                result.free_surface, -result.water_depth, result.wavenumber,
+                result.free_surface, result.water_depth, result.wavenumber,
                 self.green_function
             )
             phi = S @ result.sources
@@ -340,7 +340,7 @@ class BEMSolver:
                 S = self.engine.build_S_matrix(
                     mesh.extract_faces(faces_to_extract),
                     result.body.mesh,
-                    result.free_surface, -result.water_depth, result.wavenumber,
+                    result.free_surface, result.water_depth, result.wavenumber,
                     self.green_function
                 )
                 phi[i:i+chunk_size] = S @ result.sources

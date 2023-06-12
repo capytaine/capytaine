@@ -22,7 +22,7 @@ Major changes
 
 * Add methods :meth:`~capytaine.bem.solver.compute_potential`, :meth:`~capytaine.bem.solver.compute_velocity` and :meth:`~capytaine.bem.solver.compute_free_surface_elevation` and :meth:`~capytaine.bem.solver.compute_pressure` to compute the value of some fields in the domain in post-processing. Their signature has been uniformized with the :func:`~capytaine.bem.airy_waves.airy_waves_potential`, :func:`~capytaine.bem.airy_waves.airy_waves_velocity`, :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` and :func:`~capytaine.bem.airy_waves.airy_waves_pressure` functions (:pull:`288`, :pull:`326`)
 
-* The problems can now be initialized by setting a ``water_depth`` instead of the ``sea_bottom``. This change is meant to uniformize notations in the code and use ``water_depth`` wherever possible. (:pull:`340`)
+* The problems can now be initialized by setting a ``water_depth`` instead of the ``sea_bottom`` (which is still available). This change is meant to uniformize notations in the code and use ``water_depth`` wherever possible (:pull:`340`). Besides the ``sea_bottom`` argument of many internal routines has been completely replaced by ``water_depth``. Migrating then requires changing the sign of the float (:pull:`347`).
 
 Minor changes
 ~~~~~~~~~~~~~

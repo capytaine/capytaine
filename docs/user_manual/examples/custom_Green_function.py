@@ -10,10 +10,10 @@ from capytaine.green_functions.abstract_green_function import AbstractGreenFunct
 class MyGreenFunction(AbstractGreenFunction):
     """An example of a custom routine to evaluate the Green function."""
 
-    def evaluate(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
+    def evaluate(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
         """The main method that needs to be implemented in the class."""
 
-        if free_surface == np.infty and sea_bottom == -np.infty:
+        if free_surface == np.infty and water_depth == np.infty:
 
             # Initialize the matrices
             S = np.zeros((mesh1.nb_faces, mesh2.nb_faces))
@@ -56,7 +56,7 @@ sphere = cpt.FloatingBody(
             resolution=(4, 4),   # Fineness of the mesh
             ))
 sphere.add_translation_dof(name="Heave")
-problem = cpt.RadiationProblem(body=sphere, free_surface=np.infty, sea_bottom=-np.infty, radiating_dof='Heave')
+problem = cpt.RadiationProblem(body=sphere, free_surface=np.infty, water_depth=np.infty, radiating_dof='Heave')
 
 result = solver.solve(problem)
 print(result.added_masses)
