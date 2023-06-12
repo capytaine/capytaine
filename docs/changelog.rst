@@ -24,6 +24,8 @@ Major changes
 
 * The problems can now be initialized by setting a ``water_depth`` instead of the ``sea_bottom``. This change is meant to uniformize notations in the code and use ``water_depth`` wherever possible. (:pull:`340`)
 
+* Change normalisation of radiation problemg to use the same normalisation than diffraction problems. Added mass and radiation dampings are unchanged, but other outputs of radiation problem (free surface elevation, kochin functions, etc.) may differ from previous version by a factor :math:`-j \omega`. (:issue:`173` and :pull:`348`)
+
 Minor changes
 ~~~~~~~~~~~~~
 
