@@ -50,7 +50,7 @@ class BEMSolver:
 
     def __init__(self, *, green_function=None, engine=None):
         self.green_function = Delhommeau() if green_function is None else green_function
-        self.engine = BasicMatrixEngine() if engine is None else engin
+        self.engine = BasicMatrixEngine() if engine is None else engine
 
         try:
             self.exportable_settings = {
