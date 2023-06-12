@@ -63,6 +63,8 @@ Bug fixes
 
 * Fix bug (leading to either ``RuntimeError`` or wrong output) when clipping with plane that does not contain the origin. (:pull:`344`)
 
+* Instances of :class:`~capytaine.bem.solver.BEMSolver` initialized with default parameters do not share the same engine, hence they do not share the same cache. This minor issue was causing minor interferences in some benchmarks (:issue:`295` and :pull:`350`).
+
 Internals
 ~~~~~~~~~
 
