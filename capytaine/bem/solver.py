@@ -35,10 +35,12 @@ class BEMSolver:
 
     Parameters
     ----------
-    green_function: AbstractGreenFunction
+    green_function: AbstractGreenFunction, optional
         Object handling the computation of the Green function.
-    engine: MatrixEngine
+        (default: :class:`~capytaine.green_function.delhommeau.Delhommeau`)
+    engine: MatrixEngine, optional
         Object handling the building of matrices and the resolution of linear systems with these matrices.
+        (default: :class:`~capytaine.bem.engines.BasicMatrixEngine`)
 
     Attributes
     ----------
@@ -46,9 +48,9 @@ class BEMSolver:
         Settings of the solver that can be saved to reinit the same solver later.
     """
 
-    def __init__(self, *, green_function=Delhommeau(), engine=BasicMatrixEngine()):
-        self.green_function = green_function
-        self.engine = engine
+    def __init__(self, *, green_function=None, engine=None):
+        self.green_function = Delhommeau() if green_function is None else green_function
+        self.engine = BasicMatrixEngine() if engine is None else engin
 
         try:
             self.exportable_settings = {
