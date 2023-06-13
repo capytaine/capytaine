@@ -43,7 +43,12 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
 
     LOG.info("Compute RAO.")
 
-    omega = dataset.coords['omega']  # Range of frequencies in the dataset
+    freq_dims = set(dataset.dims) & {'omega', 'period', 'wavelength', 'wavenumber'}
+    if len(freq_dims) != 1:
+        raise ValueError("The dataset provided to compute the RAO should one (and only one) dimension" +
+                         " among the following: 'omega', 'period', 'wavelength' or 'wavenumber'\n" +
+                         f"The received dataset has the following dimensions: {dataset.dims}")
+    main_freq_type = freq_dims.pop()
 
     if 'excitation_force' not in dataset:
         dataset['excitation_force'] = dataset['Froude_Krylov_force'] + dataset['diffraction_force']
@@ -51,11 +56,11 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
 
     # SOLVE LINEAR SYSTEMS
     # Reorder dimensions of the arrays to be sure to solve the right system.
-    H = H.transpose('omega', 'radiating_dof', 'influenced_dof')
-    excitation = excitation.transpose('omega',  'influenced_dof')
+    H = H.transpose(main_freq_type, 'radiating_dof', 'influenced_dof')
+    excitation = excitation.transpose(main_freq_type,  'influenced_dof')
 
     # Solve the linear systems (one for each value of omega)
     X = np.linalg.solve(H, excitation)
 
-    return xr.DataArray(X, coords=[omega, dataset.coords['radiating_dof']], dims=['omega', 'radiating_dof'])
+    return xr.DataArray(X, coords=[dataset.coords[main_freq_type], dataset.coords['radiating_dof']], dims=[main_freq_type, 'radiating_dof'])
 

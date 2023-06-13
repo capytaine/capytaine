@@ -60,6 +60,7 @@ def test_rao_from_wavelengths(sphere_fb):
         })
 
     data = solver.fill_dataset(test_matrix, sphere_fb, hydrostatics=True)
+    Zi = cpt.post_pro.impedance(data)
     RAO = cpt.post_pro.rao(data)
 
 
