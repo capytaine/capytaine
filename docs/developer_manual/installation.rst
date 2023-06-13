@@ -43,7 +43,7 @@ Getting a Fortran compiler
 Several options are available to get a Fortran compiler.
 Please choose below the most relevant to your case.
 
-.. collapse:: **GFortran compiler on Linux or Windows Subsystem for Linux**
+.. collapse:: GFortran compiler on Linux or Windows Subsystem for Linux
 
     You can install ``gfortran`` with the package
     manager of your distribution. For instance on Debian or Ubuntu::
@@ -55,7 +55,8 @@ Please choose below the most relevant to your case.
 
         conda install -c conda-forge gfortran
 
-.. collapse:: **GFortran compiler on macOS**
+
+.. collapse:: GFortran compiler on macOS
 
     You can install ``gfortran`` via `Homebrew`_::
 
@@ -73,13 +74,15 @@ Please choose below the most relevant to your case.
 
 .. _`Homebrew`: https://brew.sh
 
-.. collapse:: **GFortran on Windows**
+
+.. collapse:: GFortran on Windows
 
    The GNU toolchain, including ``gfortran`` can be installed with the help of ``conda``::
 
         conda install -c conda-forge m2w64-toolchain
 
-.. collapse:: **Intel compiler on Windows**
+
+.. collapse:: Intel compiler on Windows
 
     Microsoft Visual Studio is required for linking the Fortran binaries
 
@@ -91,11 +94,11 @@ Please choose below the most relevant to your case.
         * https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit-download.html
         * Install to the default file location
 
-    Create a **"LIB"** environment variable to point towards the intel directory for compiler :code:`.lib` files
+    Create a ``LIB`` environment variable to point towards the intel directory for compiler ``.lib`` files
 
-        * If oneAPI is installed to the default location, assign the LIB user variable a value of:
+        * If oneAPI is installed to the default location, assign the LIB user variable a value of::
 
-            :code:`C:\Program Files (x86)\Intel\oneAPI\compiler\2022.1.0\windows\compiler\lib\intel64_win`
+            C:\Program Files (x86)\Intel\oneAPI\compiler\2022.1.0\windows\compiler\lib\intel64_win
 
         * If oneAPI is installed to a different location then adjust the path above as necessary
 
@@ -138,7 +141,7 @@ or by checking the complete list of packages installed in the current environmen
     only the source code) and not the actual compiled package.
 
     Running ``python`` from any other directory on your system should fix the
-    issue, since their won't be a local ``capytaine`` directory to confuse the
+    issue, since there won't be a local ``capytaine`` directory to confuse the
     module importer.
 
 When using ``make install``, you will need to re-run the installation
