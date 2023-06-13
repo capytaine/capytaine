@@ -4,10 +4,11 @@ Installation for users
 
 Capytaine is available on Windows, MacOS [#]_ and Linux.
 
-.. [#] For the latest informations on the arm64 architectures (Apple M1), see https://github.com/capytaine/capytaine/issues/190
+.. [#] For the latest informations on the Apple arm64 architectures, see https://github.com/capytaine/capytaine/issues/190
 
 Capytaine requires Python 3.7 or higher.
 It is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
+
 
 On a cloud platform
 -------------------
@@ -25,8 +26,15 @@ You may need to restart the computing environment (kernel) of the notebook for t
 
 All the core feature of Capytaine are accessible from such a Jupyter-based environment, except for some 3D visualization tools.
 
-Installing with pip
--------------------
+
+As a standalone executable
+--------------------------
+
+This is a work in progress. See :pull:`324` for progress updates.
+
+
+Installing with pip package manager
+-----------------------------------
 
 Since version 2.0, Capytaine is available as precompiled package on all platform on `PyPI <https://pypi.org/project/capytaine/>`_, the package registry used by the ``pip`` command. After installing a Python interpreter, run the following command line in a terminal to install Capytaine and its dependencies::
 
@@ -38,8 +46,13 @@ Then run the following line to check that the latest version of Capytaine has be
 
 You might want to use a `virtual environment <https://docs.python.org/3/library/venv.html>`_ to install Capytaine independantly of your other Python packages and avoid any risk of dependency conflict.
 
-Installing with Conda
----------------------
+The package can also be installed by other modern PyPI-based Python package managers, such as PDM_ or poetry_.
+
+.. _PDM: https://pdm.fming.dev
+.. _poetry: https://python-poetry.org
+
+Installing with Conda package manager
+-------------------------------------
 
 Capytaine is also available in the Anaconda package repository, that can be accessed with the `Anaconda distribution`_ or one of its lightweight counterparts Miniconda_ and Miniforge_.
 
@@ -73,6 +86,7 @@ You can check which version of Capytaine has been installed by running the follo
 
 The latest version is currently |version|.
 
+
 Optional dependencies
 ---------------------
 
@@ -101,7 +115,6 @@ After creating the Conda environment containing Capytaine, you can add more pack
 However, it is often more efficient to specify the packages you'd like in your environment from the start when creating it, such as in the following example::
 
     conda create --name capy_and_other_env --channel conda-forge capytaine jupyter matplotlib vtk
-
 
 
 With Docker
