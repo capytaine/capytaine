@@ -105,13 +105,6 @@ Once the problem has been initialized, the other parameters can be retrieved as:
     problem.period
     # ...
 
-.. note::
-   Internally, the code always stores an angular frequency :code:`omega`
-   whatever the kind of data that has been provided by the user. Then the other
-   magnitudes are recomputed from the stored :code:`omega`. Hence small
-   rounding error might happend between the value provided by the user and the
-   one used by Capytaine.
-
 
 Legacy Nemoh.cal parameters files
 ---------------------------------
