@@ -51,12 +51,12 @@ It is defined as, e.g.::
 Besides the body, all the parameters are optional.
 The table below gives their definitions and their default values.
 
-+-----------------------+------------------------------------------+------------------------+ 
++-----------------------+------------------------------------------+------------------------+
 | Parameter             | Description (unit)                       | Default value          |
 +=======================+==========================================+========================+
 | :code:`free_surface`  | Position of the free surface [#]_ (m)    | :math:`0.0` m          |
 +-----------------------+------------------------------------------+------------------------+
-| :code:`water_depth`   | Constant depth of water (m)              | :math:`\infty` m      |
+| :code:`water_depth`   | Constant depth of water (m)              | :math:`\infty` m       |
 +-----------------------+------------------------------------------+------------------------+
 | :code:`g`             | Acceleration of gravity :math:`g` (m/s²) | :math:`9.81` m/s²      |
 +-----------------------+------------------------------------------+------------------------+

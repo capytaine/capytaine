@@ -1,18 +1,13 @@
-#!/usr/bin/env python
-# coding: utf-8
+# Copyright (C) 2017-2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 """Solver for the BEM problem.
 
-Example
--------
-
-::
+.. code-block:: python
 
     problem = RadiationProblem(...)
     result = BEMSolver(green_functions=..., engine=...).solve(problem)
 
 """
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 
@@ -176,9 +171,7 @@ class BEMSolver:
 
         Parameters
         ----------
-        points: array of shape (3,) or (N, 3),
-                or 3-ple of arrays returned by meshgrid
-                or cpt.Mesh or cpt.CollectionOfMeshes object
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the potential should be computed
         results: LinearPotentialFlowResult
             The return of the BEM solver
@@ -208,9 +201,7 @@ class BEMSolver:
 
         Parameters
         ----------
-        points: array of shape (3,) or (N, 3),
-                or 3-ple of arrays returned by meshgrid
-                or cpt.Mesh or cpt.CollectionOfMeshes object
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the velocity should be computed
         results: LinearPotentialFlowResult
             The return of the BEM solver
@@ -242,9 +233,7 @@ class BEMSolver:
 
         Parameters
         ----------
-        points: array of shape (3,) or (N, 3),
-                or 3-ple of arrays returned by meshgrid
-                or cpt.Mesh or cpt.CollectionOfMeshes object
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the pressure should be computed
         results: LinearPotentialFlowResult
             The return of the BEM solver
@@ -266,9 +255,7 @@ class BEMSolver:
 
         Parameters
         ----------
-        points: array of shape (2,) or (N, 2),
-                or 2-ple of arrays returned by meshgrid
-                or cpt.Mesh or cpt.CollectionOfMeshes object
+        points: array of shape (2,) or (N, 2), or 2-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the free surface elevation should be computed
         results: LinearPotentialFlowResult
             The return of the BEM solver
