@@ -49,6 +49,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     # 'sphinx.ext.githubpages',
+    'sphinx_toolbox.collapse',
     'sphinxcontrib.proof',
     'sphinxcontrib.mermaid',
 ]
