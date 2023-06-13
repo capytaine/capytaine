@@ -89,6 +89,10 @@ class LinearPotentialFlowProblem:
         else:
             provided_freq_type = [k for k, v in frequency_data.items() if v is not None][0]
 
+        if frequency_data[provided_freq_type] in {0.0, np.infty}:
+            raise NotImplementedError("Zero and infinite frequencies are currently not supported.")
+
+
         if provided_freq_type in {'omega', 'period'}:
             if provided_freq_type == 'omega':
                 omega = frequency_data['omega']
@@ -119,10 +123,7 @@ class LinearPotentialFlowProblem:
     def _check_data(self):
         """Sanity checks on the data."""
 
-        if self.omega in (0.0, np.infty):
-            raise NotImplementedError("Zero and infinite frequencies are currently not supported.")
-
-        if self.free_surface not in [0.0, np.infty]:
+        if self.free_surface not in {0.0, np.infty}:
             raise NotImplementedError(
                 f"Free surface is {self.free_surface}. "
                 "Only z=0 and z=∞ are accepted values for the free surface position."
@@ -180,6 +181,9 @@ class LinearPotentialFlowProblem:
         return {"body_name": self.body_name,
                 "water_depth": self.water_depth,
                 "omega": self.omega,
+                "period": self.period,
+                "wavelength": self.wavelength,
+                "wavenumber": self.wavenumber,
                 "rho": self.rho,
                 "g": self.g}
 
@@ -197,7 +201,7 @@ class LinearPotentialFlowProblem:
     def __str__(self):
         """Do not display default values in str(problem)."""
         parameters = [f"body={self.body_name}",
-                      f"omega={self.omega:.3f}",
+                      f"{self.provided_freq_type}={self.__getattribute__(self.provided_freq_type):.3f}",
                       f"water_depth={self.water_depth}"]
         try:
             parameters.extend(self._str_other_attributes())
@@ -220,7 +224,7 @@ class LinearPotentialFlowProblem:
         p.text(self.__str__())
 
     def _astuple(self):
-        return (self.body, self.free_surface, self.water_depth, self.omega, self.rho, self.g)
+        return (self.body, self.free_surface, self.water_depth, self.__getattribute__(self.provided_freq_type), self.rho, self.g)
 
     def __eq__(self, other):
         if isinstance(other, LinearPotentialFlowProblem):
@@ -369,6 +373,7 @@ class LinearPotentialFlowResult:
         self.wavenumber         = self.problem.wavenumber
         self.wavelength         = self.problem.wavelength
         self.period             = self.problem.period
+        self.provided_freq_type = self.problem.provided_freq_type
         self.body_name          = self.problem.body_name
         self.influenced_dofs    = self.problem.influenced_dofs
 
