@@ -320,3 +320,16 @@ def test_fill_dataset_with_periods():
     test_matrix = xr.Dataset(coords={'period': T_range, 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
     dataset = solver.fill_dataset(test_matrix, [body])
     np.testing.assert_allclose(sorted(dataset.coords['period']), sorted(T_range))
+
+
+def test_fill_dataset_with_wavenumbers_and_several_water_depths():
+    body = cpt.FloatingBody(mesh=cpt.mesh_horizontal_cylinder(radius=1, center=(0, 0, -2)),
+                            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -2)))
+    k_range = np.linspace(1.0, 3.0, 3)
+    test_matrix = xr.Dataset(coords={
+        'wavenumber': k_range, 'radiating_dof': ['Heave'], 'water_depth': [10.0, 20.0],
+    })
+    dataset = solver.fill_dataset(test_matrix, [body])
+    assert np.allclose(dataset.coords['wavenumber'], k_range)
+
+
