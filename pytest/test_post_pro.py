@@ -75,15 +75,20 @@ def sphere_heave_data(sphere_fb):
           'radiating_dof': list(sphere_fb.dofs.keys()),
           })
 
-    data = solver.fill_dataset(test_matrix, [sphere_fb],
-                                 hydrostatics=True, mesh=True,
-                                 wavelength=True, wavenumber=True)
+    data = solver.fill_dataset(test_matrix, [sphere_fb], hydrostatics=True)
 
     return data
 
 
 def test_impedance_sphere_heave(sphere_heave_data):
     Zi = cpt.post_pro.impedance(sphere_heave_data)
+
+
+def test_malformed_dataset(sphere_heave_data):
+    data = sphere_heave_data.rename_dims({"radiating_dof": "wavelength"})
+    # data has both an "omega" dimension and a "wavelength" dimension
+    with pytest.raises(ValueError):
+        RAO = cpt.post_pro.rao(data)
 
 
 def test_rao_sphere_heave_indirect(sphere_heave_data):
