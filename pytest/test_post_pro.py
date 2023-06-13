@@ -85,7 +85,7 @@ def test_impedance_sphere_heave(sphere_heave_data):
 
 
 def test_malformed_dataset(sphere_heave_data):
-    data = sphere_heave_data.drop("wavelength")
+    data = sphere_heave_data.drop_vars("wavelength")
     data = data.expand_dims({"wavelength": 1})
     # data has both an "omega" dimension and a "wavelength" dimension
     with pytest.raises(ValueError):
