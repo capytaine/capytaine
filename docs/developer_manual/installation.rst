@@ -2,99 +2,171 @@
 Installation for developers
 ===========================
 
-On Linux, MacOS, or Windows Subsystem for Linux (WSL)
------------------------------------------------------
+Development environment
+-----------------------
 
-It is recommended to use a `conda environment <https://conda.io/docs/user-guide/tasks/manage-environments.html>`_, for instance with::
+To work on the source of Capytaine, it is recommended to use Conda_ (or the alternative implementation with the same user interface Mamba_) as package manager and virtual environment manager.
+Other Python package manager such as PDM_ can also be used.
+However Conda/Mamba can simplify the installation of some non-Python tools such as the Fortran compiler and will thus be used as example for the rest of this page.
 
-    conda create --name capy_dev python
+Please check also the section on Conda in the :doc:`user installation instructions </user_manual/installation>`.
+
+.. _Conda: https://conda.io
+.. _Mamba: https://mamba.readthedocs.io/en/latest/
+.. _PDM: https://pdm.fming.dev/latest/
+
+Let us first `create a new virtual environment <https://conda.io/docs/user-guide/tasks/manage-environments.html>`_ with::
+
+    conda create --name capy_dev python pip
     conda activate capy_dev
 
-By default, conda will install the latest version of Python.
-Capytaine requires Python 3.7 and is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
+By default, Conda will install the latest version of Python.
+Capytaine requires Python 3.7 or higher, and is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
 
+Getting the source code
+-----------------------
 
-You'll also need a Fortran compiler:
+If ``git`` is not available in your environment, you can install it through ``conda``::
 
-* **On Linux or WSL,** you can install :code:`gfortran` with the package manager of your distribution (e.g. on Debian or Ubuntu: :code:`sudo apt install gfortran`).
+    conda install -c conda-forge git
 
-* **On macOS,** you can install the required compilers via `Homebrew`_. Make sure that
-  the compilers installed by Homebrew are in you path (e.g., :code:`which gcc`);
-  this can be accomplished by adding the relevant directories to your path::
+Then the source code can be downloaded using ``git`` with::
 
-  	export PATH="/usr/local/bin:$PATH"
+    git clone https://github.com/capytaine/capytaine
+    cd capytaine
 
-  or through the use of aliases, e.g.,::
+Alternatively, the source code can be directly downloaded from Github web interface.
 
-  	alias gcc=/usr/local/bin/gcc-10
+Getting a Fortran compiler
+--------------------------
+
+Several options are available to get a Fortran compiler.
+Please choose below the most relevant to your case.
+
+.. collapse:: **GFortran compiler on Linux or Windows Subsystem for Linux**
+
+    You can install ``gfortran`` with the package
+    manager of your distribution. For instance on Debian or Ubuntu::
+
+        sudo apt install gfortran
+
+    Alternatively, ``gfortran`` is also available from the ``conda-forge``
+    channel of the Conda package repository::
+
+        conda install -c conda-forge gfortran
+
+.. collapse:: **GFortran compiler on macOS**
+
+    You can install ``gfortran`` via `Homebrew`_::
+
+        brew install gcc
+
+    Make sure that the compilers installed by Homebrew are in you path (e.g.,
+    :code:`which gcc`); this can be accomplished by adding the relevant
+    directories to your path::
+
+        export PATH="/usr/local/bin:$PATH"
+
+    or through the use of aliases, e.g.,::
+
+        alias gcc=/usr/local/bin/gcc-10
 
 .. _`Homebrew`: https://brew.sh
 
-Then, download the source code from Github web interface or using ``git`` with::
+.. collapse:: **GFortran on Windows**
 
-    git clone --recurse-submodules https://github.com/capytaine/capytaine
-    cd capytaine
+   The GNU toolchain, including ``gfortran`` can be installed with the help of ``conda``::
 
-To compile the code, install all optional dependencies, and put it in your path::
+        conda install -c conda-forge m2w64-toolchain
 
-    make develop
+.. collapse:: **Intel compiler on Windows**
 
-The test suite can be run with::
+    Microsoft Visual Studio is required for linking the Fortran binaries
 
-    make test
+        * https://visualstudio.microsoft.com/downloads/
+        * During installation check the box to include :code:`Desktop development with C++`
 
-If you need to recompile::
+    Intel oneAPI HPC toolkit is required for compiling the Fortran binaries (you do not need the base kit)
 
-    make clean
-    make develop
+        * https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit-download.html
+        * Install to the default file location
+
+    Create a **"LIB"** environment variable to point towards the intel directory for compiler :code:`.lib` files
+
+        * If oneAPI is installed to the default location, assign the LIB user variable a value of:
+
+            :code:`C:\Program Files (x86)\Intel\oneAPI\compiler\2022.1.0\windows\compiler\lib\intel64_win`
+
+        * If oneAPI is installed to a different location then adjust the path above as necessary
+
+    Test if your Fortran compiler was installed correctly by entering :code:`ifort` on your command line
 
 
-On Windows
-----------
+Compiling and installing the code
+---------------------------------
 
-Microsoft Visual Studio is required for linking the Fortran binaries
+The ``Makefile`` file in Capytaine repository contains short forms for the most common commands required to build Capytaine.
 
-    * https://visualstudio.microsoft.com/downloads/
-    * During installation check the box to include :code:`Desktop development with C++`
+If ``make`` is not available in your environment, you can install it through ``conda``::
 
-Intel oneAPI HPC toolkit is required for compiling the Fortran binaries (you do not need the base kit)
+    conda install -c conda-forge make
 
-    * https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit-download.html
-    * Install to the default file location
-    
-Create a **"LIB"** environment variable to point towards the intel directory for compiler :code:`.lib` files
+To compile the code and install it in the curren environment, you can run::
 
-    * If oneAPI is installed to the default location, assign the LIB user variable a value of:
-    
-        :code:`C:\Program Files (x86)\Intel\oneAPI\compiler\2022.1.0\windows\compiler\lib\intel64_win`
-    
-    * If oneAPI is installed to a different location then adjust the path above as necessary
+    make install
 
-Test if your Fortran compiler was installed correctly by entering :code:`ifort` on your command line
+which is just synonym of::
 
-Open the anaconda powershell and create a new Python environment (by default, with the latest version of Python) for Capytaine-related development (e.g. :code:`capy_dev`)::
-    
-    conda create --name capy_dev python
-    conda activate capy_dev
-        
-Clone the Capytaine repo to your preferred location (e.g. "C:/code/")::
-        
-    cd C:/code/
-    git clone --recurse-submodules https://github.com/capytaine/capytaine.git
-        
-Install Capytaine as a developer!::
-    
-    cd capytaine
-    pip install -e .
+    pip install .
 
-Be sure to check setup.py => install_requires = [...] to ensure that your environment has all required packages installed. You can check your environment's packages using:::
+You can check that the package is installed by running::
+
+    python -c 'import capytaine as cpt; print(cpt.__version__)'
+
+or by checking the complete list of packages installed in the current environment with::
 
     conda list
-        
-If any packages are missing simply install them using:::
-    
-    pip install <package name>
 
+.. note::
+
+    If you have an error of the form::
+
+        ModuleNotFoundError:: No module named 'capytaine.green_functions.libs.Delhommeau_float64'
+
+    when importing Capytaine, it may be because the Python interpreter is
+    trying to load the content of the local directory ``capytaine`` (containing
+    only the source code) and not the actual compiled package.
+
+    Running ``python`` from any other directory on your system should fix the
+    issue, since their won't be a local ``capytaine`` directory to confuse the
+    module importer.
+
+When using ``make install``, you will need to re-run the installation
+for any change made to the code to take effect in the installed version. For
+development, it is more convenient to use instead::
+
+    make develop
+
+Then all change made to the source code should automatically affects the
+installed package. (You may need to restard you Python interpreter.)
+
+Testing
+-------
+
+To check that the installed packaged is working fine, you can run the test suite with Pytest.
+If the library is not already install, it can be done with::
+
+    pip install pytest hypothesis
+
+Then run the following command from the root of Capytaine repository to test the code::
+
+    python -m pytest
+
+
+Building the documentation
+--------------------------
+
+TODO
 
 Contributing
 ------------

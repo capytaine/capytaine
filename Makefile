@@ -7,6 +7,7 @@ develop:
 
 test: develop
 	# TODO: use something like nox instead.
+	# TODO: Install pytest and hypothesis?
 	python -m pytest
 
 clean:

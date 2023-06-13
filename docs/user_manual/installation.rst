@@ -47,9 +47,10 @@ Capytaine is also available in the Anaconda package repository, that can be acce
 .. _`Anaconda distribution`: https://www.anaconda.com/download/
 .. _Miniconda: https://conda.io/miniconda.html
 .. _Miniforge: https://github.com/conda-forge/miniforge
+.. _Mamba: https://mamba.readthedocs.io/en/latest/
 
 .. note::
-    If you experience very long processing time when installing a package with ``conda``, you might want to `install the libmamba solver with ``conda`` <https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community>`_ or `fully replace ``conda`` with ```mamba`` <https://mamba.readthedocs.io/en/latest/>`_
+    If you experience very long processing time when installing a package with ``conda``, you might want to `install the libmamba solver with ``conda`` <https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community>`_ or `fully replace ``conda`` with Mamba_.
 
 Once Conda has been installed, you can install Capytaine from the `conda-forge` channel.
 It is recommended to do the installation into a `dedicated virtual environment <https://docs.conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-environments>`_ (here arbitrarily named ``capytaine_env``)::
