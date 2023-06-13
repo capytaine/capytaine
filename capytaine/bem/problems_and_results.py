@@ -224,7 +224,9 @@ class LinearPotentialFlowProblem:
         p.text(self.__str__())
 
     def _astuple(self):
-        return (self.body, self.free_surface, self.water_depth, self.__getattribute__(self.provided_freq_type), self.rho, self.g)
+        return (self.body, self.free_surface, self.water_depth,
+                self.omega, self.period, self.wavenumber, self.wavelength,
+                self.rho, self.g)
 
     def __eq__(self, other):
         if isinstance(other, LinearPotentialFlowProblem):
@@ -235,7 +237,7 @@ class LinearPotentialFlowProblem:
     def __lt__(self, other):
         # Arbitrary order. Used for ordering of problems: problems with same body are grouped together.
         if isinstance(other, LinearPotentialFlowProblem):
-            return self._astuple()[:6] < other._astuple()[:6]
+            return self._astuple()[:9] < other._astuple()[:9]
             # Not the whole tuple, because when using inheriting classes,
             # "radiating_dof" cannot be compared with "wave_direction"
         else:
