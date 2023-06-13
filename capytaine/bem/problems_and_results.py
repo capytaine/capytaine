@@ -70,14 +70,12 @@ class LinearPotentialFlowProblem:
         self.boundary_condition = boundary_condition
 
         self.water_depth = _get_water_depth(free_surface, water_depth, sea_bottom, default_water_depth=_default_parameters["water_depth"])
-        self.omega, self.provided_freq_type = self._get_angular_frequency(omega, period, wavenumber, wavelength)
-
-        if self.omega in (0.0, np.infty):
-            raise NotImplementedError("Zero and infinite frequencies are currently not supported.")
+        self.omega, self.period, self.wavenumber, self.wavelength, self.provided_freq_type = \
+                self._get_frequencies(omega, period, wavenumber, wavelength)
 
         self._check_data()
 
-    def _get_angular_frequency(self, omega, period, wavenumber, wavelength):
+    def _get_frequencies(self, omega, period, wavenumber, wavelength):
         frequency_data = dict(omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength)
         nb_provided_frequency_data = 4 - list(frequency_data.values()).count(None)
 
@@ -85,20 +83,44 @@ class LinearPotentialFlowProblem:
             raise ValueError("Settings a problem requires at most one of the following: omega (angular frequency) OR period OR wavenumber OR wavelength.\n"
                              "Received {} of them: {}".format(nb_provided_frequency_data, {k: v for k, v in frequency_data.items() if v is not None}))
 
-        if omega is not None:
-            return float(omega), "omega"
-        elif period is not None:
-            return 2*np.pi/period, "period"
-        elif wavenumber is not None:
-            return np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.water_depth)), "wavenumber"
-        elif wavelength is not None:
-            return np.sqrt(self.g*2*np.pi/wavelength*np.tanh(2*np.pi/wavelength*self.water_depth)), "wavelength"
+        if nb_provided_frequency_data == 0:
+            provided_freq_type = 'omega'
+            frequency_data = {'omega': _default_parameters['omega']}
         else:
-            return _default_parameters["omega"], "omega"
+            provided_freq_type = [k for k, v in frequency_data.items() if v is not None][0]
 
+        if provided_freq_type in {'omega', 'period'}:
+            if provided_freq_type == 'omega':
+                omega = frequency_data['omega']
+                period = 2*np.pi/omega
+            else:  # provided_freq_type is 'period'
+                period = frequency_data['period']
+                omega = 2*np.pi/period
+
+            if self.water_depth == np.infty:
+                wavenumber = omega**2/self.g
+            else:
+                wavenumber = newton(lambda k: k*np.tanh(k*self.water_depth) - omega**2/self.g, x0=1.0)
+            wavelength = 2*np.pi/wavenumber
+
+        else:  # provided_freq_type is 'wavelength' or 'wavenumber'
+            if provided_freq_type == 'wavelength':
+                wavelength = frequency_data['wavelength']
+                wavenumber = 2*np.pi/wavelength
+            else:  # provided_freq_type is 'wavenumber'
+                wavenumber = frequency_data['wavenumber']
+                wavelength = 2*np.pi/wavenumber
+
+            omega = np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.water_depth))
+            period = 2*np.pi/omega
+
+        return omega, period, wavenumber, wavelength, provided_freq_type
 
     def _check_data(self):
         """Sanity checks on the data."""
+
+        if self.omega in (0.0, np.infty):
+            raise NotImplementedError("Zero and infinite frequencies are currently not supported.")
 
         if self.free_surface not in [0.0, np.infty]:
             raise NotImplementedError(
@@ -218,27 +240,6 @@ class LinearPotentialFlowProblem:
     @property
     def depth(self):
         return self.water_depth
-
-    @property
-    def wavenumber(self):
-        if self.depth == np.infty or self.omega**2*self.water_depth/self.g > 20:
-            return self.omega**2/self.g
-        else:
-            return newton(lambda k: k*np.tanh(k*self.water_depth) - self.omega**2/self.g, x0=1.0)
-
-    @property
-    def wavelength(self):
-        if self.wavenumber == 0.0:
-            return np.infty
-        else:
-            return 2*np.pi/self.wavenumber
-
-    @property
-    def period(self):
-        if self.omega == 0.0:
-            return np.infty
-        else:
-            return 2*np.pi/self.omega
 
     @property
     def influenced_dofs(self):

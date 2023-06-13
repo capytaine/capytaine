@@ -8,6 +8,8 @@ def _get_water_depth(free_surface, water_depth, sea_bottom, default_water_depth=
     if water_depth is None and sea_bottom is None:
         return default_water_depth
     elif water_depth is not None and sea_bottom is None:
+        if water_depth <= 0.0:
+            raise ValueError(f"`water_depth` should be stricly positive. Received value: {water_depth}")
         return float(water_depth)
     elif water_depth is None and sea_bottom is not None:
         LOG.warning("To uniformize notations througouth Capytaine, setting `water_depth` is preferred to `sea_bottom` since version 2.0.")
