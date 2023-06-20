@@ -55,8 +55,8 @@ class Delhommeau(AbstractGreenFunction):
     fortran_core_basename = "Delhommeau"
 
     def __init__(self, *,
-                 tabulation_nr=500,
-                 tabulation_nz=100,
+                 tabulation_nr=400,
+                 tabulation_nz=80,
                  tabulation_nb_integration_points=251,
                  finite_depth_prony_decomposition_method='fortran',
                  floating_point_precision='float64',
