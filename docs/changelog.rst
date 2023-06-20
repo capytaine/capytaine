@@ -24,6 +24,8 @@ Major changes
 
 * **Breaking** The problems can now be initialized by setting a ``water_depth`` instead of the ``sea_bottom`` (which is still available for user-facing functions). This change is meant to uniformize notations in the code and use ``water_depth`` wherever possible (:pull:`340`). Besides the ``sea_bottom`` argument of many internal routines has been completely replaced by ``water_depth``. Migrating then requires changing the sign of the float (:pull:`347`).
 
+* Add Github Actions workflow to build wheels. Precompiled packages will now be available with ``pip`` and not only with ``conda``.
+
 Minor changes
 ~~~~~~~~~~~~~
 
@@ -68,6 +70,8 @@ Bug fixes
 
 Internals
 ~~~~~~~~~
+
+* Major update of the compilation toolchain because of the upcoming deprecation of ``numpy.distutils``. Capytaine is now built with ``meson-python``.
 
 * The method :meth:`~capytaine.green_functions.delhommeau.Delhommeau.evaluate` (and its counterparts for other Green functions) now accepts a list of points as first argument instead of a mesh. It has now an optional boolean argument ``early_dot_product`` to return the integrals of the gradient of the Green function and not only the normal derivative (:pull:`288`).
 
