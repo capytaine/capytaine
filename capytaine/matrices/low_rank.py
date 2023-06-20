@@ -325,11 +325,11 @@ class LowRankMatrix:
 
     @property
     def stored_data_size(self):
-        return np.product(self.left_matrix.shape) + np.product(self.right_matrix.shape)
+        return np.prod(self.left_matrix.shape) + np.prod(self.right_matrix.shape)
 
     @property
     def density(self):
-        return self.stored_data_size/np.product(self.shape)
+        return self.stored_data_size/np.prod(self.shape)
 
     @property
     def sparcity(self):

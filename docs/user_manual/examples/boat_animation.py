@@ -4,6 +4,7 @@ import numpy as np
 from numpy import pi as π
 
 import capytaine as cpt
+from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
 from capytaine.ui.vtk import Animation
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)-8s: %(message)s')
@@ -36,11 +37,11 @@ def setup_animation(body, fs, omega, wave_amplitude, wave_direction):
 
     # COMPUTE FREE SURFACE ELEVATION
     # Compute the diffracted wave pattern
-    diffraction_elevation = bem_solver.get_free_surface_elevation(diffraction_result, fs)
-    incoming_waves_elevation = fs.incoming_waves(diffraction_result)
+    incoming_waves_elevation = airy_waves_free_surface_elevation(fs.mesh, diffraction_result)
+    diffraction_elevation = bem_solver.compute_free_surface_elevation(fs.mesh, diffraction_result)
 
     # Compute the wave pattern radiated by the RAO
-    radiation_elevations_per_dof = {res.radiating_dof: (-1j*omega)*bem_solver.get_free_surface_elevation(res, fs) for res in radiation_results}
+    radiation_elevations_per_dof = {res.radiating_dof: bem_solver.compute_free_surface_elevation(fs.mesh, diffraction_result) for res in radiation_results}
     radiation_elevation = sum(rao.sel(omega=omega, radiating_dof=dof).data * radiation_elevations_per_dof[dof] for dof in body.dofs)
 
     # SET UP ANIMATION

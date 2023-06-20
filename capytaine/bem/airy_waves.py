@@ -5,7 +5,7 @@
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import numpy as np
-
+from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 
 def airy_waves_potential(points, pb):
     """Compute the potential for Airy waves at a given point (or array of points).
@@ -22,10 +22,11 @@ def airy_waves_potential(points, pb):
     array of shape (1) or (N x 1)
         The potential
     """
+    points, output_shape = _normalize_points(points)
 
     x, y, z = points.T
     k = pb.wavenumber
-    h = pb.depth
+    h = pb.water_depth
     wbar = x * np.cos(pb.wave_direction) + y * np.sin(pb.wave_direction)
 
     if 0 <= k*h < 20:
@@ -35,7 +36,8 @@ def airy_waves_potential(points, pb):
         cih = np.exp(k*z)
         # sih = np.exp(k*z)
 
-    return -1j*pb.g/pb.omega * cih * np.exp(1j * k * wbar)
+    phi = -1j*pb.g/pb.omega * cih * np.exp(1j * k * wbar)
+    return phi.reshape(output_shape)
 
 
 def airy_waves_velocity(points, pb):
@@ -54,9 +56,11 @@ def airy_waves_velocity(points, pb):
         the velocity vectors
     """
 
+    points, output_shape = _normalize_points(points)
+
     x, y, z = points.T
     k = pb.wavenumber
-    h = pb.depth
+    h = pb.water_depth
 
     wbar = x * np.cos(pb.wave_direction) + y * np.sin(pb.wave_direction)
 
@@ -71,10 +75,34 @@ def airy_waves_velocity(points, pb):
         np.exp(1j * k * wbar) * \
         np.array([np.cos(pb.wave_direction) * cih, np.sin(pb.wave_direction) * cih, -1j * sih])
 
-    return v.T
+    return v.T.reshape((*output_shape, 3))
+
+
+def airy_waves_pressure(points, pb):
+    return 1j * pb.omega * pb.rho * airy_waves_potential(points, pb)
 
 
 def froude_krylov_force(pb):
-    pressure = 1j * pb.omega * pb.rho * airy_waves_potential(pb.body.mesh.faces_centers, pb)
-    return pb.body.integrate_pressure(pressure)
+    return pb.body.integrate_pressure(airy_waves_pressure(pb.body.mesh.faces_centers, pb))
+
+
+def airy_waves_free_surface_elevation(points, pb):
+    """Compute the free surface elevation at points of the undisturbed Airy waves
+
+    Parameters
+    ----------
+    points: array of shape (3) or (N × 3) or (2) or (N × 2)
+        coordinates of the points in which to evaluate the potential.
+        If only two coordinates are passed, the last one is filled with zeros.
+    pb: DiffractionProblem
+        problem with the environmental conditions (g, rho, ...) of interest
+
+    Returns
+    -------
+    complex-valued array of shape (1,) or (N,)
+        the free surface elevations
+    """
+    points, output_shape = _normalize_free_surface_points(points)
+    return 1j * pb.omega / pb.g * airy_waves_potential(points, pb).reshape(output_shape)
+
 

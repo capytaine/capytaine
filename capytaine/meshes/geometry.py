@@ -7,6 +7,7 @@ Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 from abc import ABC, abstractmethod
+from capytaine.tools.deprecation_handling import _get_water_depth
 
 import numpy as np
 
@@ -135,6 +136,35 @@ class Abstract3DObject(ABC):
 
     def rotated_around_center_to_align_vectors(self, *args, **kwargs):
         return self.rotate_around_center_to_align_vectors(*args, inplace=False, **kwargs)
+
+
+class ClippableMixin(ABC):
+    """Abstract base class for object that can be clipped.
+    The child classes should inplement a `clip` method, then this abstract
+    class will append the new methods `clipped`, `keep_immersed_part` and
+    `immersed_part`, all based on `clip`.
+    """
+
+    @abstractmethod
+    def clip(self, plane):
+        pass
+
+    def clipped(self, plane, **kwargs):
+        # Same API as for the other transformations
+        return self.clip(plane, inplace=False, **kwargs)
+
+    @inplace_transformation
+    def keep_immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None):
+        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
+        water_depth = _get_water_depth(free_surface, water_depth, sea_bottom,
+                                       default_water_depth=np.infty)
+        if water_depth < np.infty:
+            self.clip(Plane(normal=(0, 0, -1), point=(0, 0, free_surface-water_depth)))
+        return self
+
+    def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None):
+        return self.keep_immersed_part(free_surface, inplace=False, name=self.name,
+                                       sea_bottom=sea_bottom, water_depth=water_depth)
 
 
 ######################
@@ -299,6 +329,11 @@ class Plane(Abstract3DObject):
         """Distance from plane to origin."""
         return np.linalg.norm(self.normal @ self.point)
 
+    @property
+    def s(self):
+        """Distance from origin to plane along the normal"""
+        return np.dot(self.normal, self.point)
+
     #################################
     #  Transformation of the plane  #
     #################################
@@ -365,7 +400,7 @@ class Plane(Abstract3DObject):
 
         p0n = np.dot(p0, self.normal)
         p1n = np.dot(p1, self.normal)
-        t = (p0n - self.c) / (p0n - p1n)
+        t = (p0n - self.s) / (p0n - p1n)
         if t < 0. or t > 1.:
             raise RuntimeError('Intersection is outside the edge')
         return (1-t) * p0 + t * p1

@@ -12,7 +12,7 @@ Capytaine can compute some of the hydrostatic parameters of a given :code:`Float
 
         \iint_S f(x,y,z) dS \approx \sum_i^N f(x_i, y_i, z_i) \Delta S_i
 
-    where :math:`i` is the face index, :math:`(x_i, y_i, z_i)` is :math:`i`th face center, and :math:`S_i` is :math:`i`th face area.
+    where :math:`i` is the face index, :math:`(x_i, y_i, z_i)` is :math:`i` th face center, and :math:`S_i` is :math:`i` th face area.
 
 Hydrostatic parameters
 ----------------------

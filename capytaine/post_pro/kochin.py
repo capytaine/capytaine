@@ -31,7 +31,7 @@ def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
         Please re-run the resolution with this option.""")
 
     k = result.wavenumber
-    h = result.depth
+    h = result.water_depth
 
     # omega_bar.shape = (nb_faces, 2) @ (2, nb_theta)
     omega_bar = (result.body.mesh.faces_centers[:, 0:2] - ref_point) @ (np.cos(theta), np.sin(theta))

@@ -10,7 +10,7 @@ except ImportError:
     joblib = None
 
 from capytaine import __version__
-from capytaine.bem.solver import BEMSolver, Nemoh
+from capytaine.bem.solver import BEMSolver
 from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.bem.problems_and_results import RadiationProblem
@@ -47,15 +47,17 @@ def test_limit_frequencies():
     """Test if how the solver answers when asked for frequency of 0 or ∞."""
     solver = BEMSolver()
 
-    solver.solve(RadiationProblem(body=sphere, omega=0.0, sea_bottom=-np.infty))
+    with pytest.raises(NotImplementedError):
+        solver.solve(RadiationProblem(body=sphere, omega=0.0, water_depth=np.infty))
 
     with pytest.raises(NotImplementedError):
-        solver.solve(RadiationProblem(body=sphere, omega=0.0, sea_bottom=-1.0))
-
-    solver.solve(RadiationProblem(body=sphere, omega=np.infty, sea_bottom=-np.infty))
+        solver.solve(RadiationProblem(body=sphere, omega=0.0, water_depth=1.0))
 
     with pytest.raises(NotImplementedError):
-        solver.solve(RadiationProblem(body=sphere, omega=np.infty, sea_bottom=-10))
+        solver.solve(RadiationProblem(body=sphere, omega=np.infty, water_depth=np.infty))
+
+    with pytest.raises(NotImplementedError):
+        solver.solve(RadiationProblem(body=sphere, omega=np.infty, water_depth=10))
 
 
 @pytest.mark.skipif(joblib is None, reason='joblib is not installed')

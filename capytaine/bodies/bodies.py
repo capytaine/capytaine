@@ -14,7 +14,7 @@ import xarray as xr
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 meshio = silently_import_optional_dependency("meshio")
 
-from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
+from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import build_regular_array_of_meshes
 from capytaine.meshes.collections import CollectionOfMeshes
@@ -26,7 +26,7 @@ TRANSLATION_DOFS_DIRECTIONS = {"surge": (1, 0, 0), "sway": (0, 1, 0), "heave": (
 ROTATION_DOFS_AXIS = {"roll": (1, 0, 0), "pitch": (0, 1, 0), "yaw": (0, 0, 1)}
 
 
-class FloatingBody(Abstract3DObject):
+class FloatingBody(ClippableMixin, Abstract3DObject):
     """A floating body described as a mesh and some degrees of freedom.
 
     The mesh structure is stored as a Mesh from capytaine.mesh.mesh or a
@@ -79,19 +79,20 @@ class FloatingBody(Abstract3DObject):
             self.name = name
 
         self.mass = mass
-        self.center_of_mass = center_of_mass
+        if center_of_mass is not None:
+            self.center_of_mass = np.asarray(center_of_mass, dtype=float)
+        else:
+            self.center_of_mass = None
 
         if dofs is None:
             self.dofs = {}
         elif isinstance(dofs, RigidBodyDofsPlaceholder):
             if dofs.rotation_center is not None:
-                self.rotation_center = np.asarray(dofs.rotation_center)
+                self.rotation_center = np.asarray(dofs.rotation_center, dtype=float)
             self.dofs = {}
             self.add_all_rigid_body_dofs()
         else:
             self.dofs = dofs
-
-        self.full_body = None
 
         if self.mesh.nb_vertices == 0 or self.mesh.nb_faces == 0:
             LOG.warning(f"New floating body (with empty mesh!): {self.name}.")
@@ -714,7 +715,9 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics["breadth_at_waterline"] = wl_breadth
         hydrostatics["length_overall_submerged"] = sub_length
         hydrostatics["breadth_overall_submerged"] = sub_breadth
-        self.inertia_matrix = hydrostatics["inertia_matrix"] = self.compute_rigid_body_inertia(rho=rho)
+        if any(dof.lower() in {"surge", "sway", "heave", "roll", "pitch", "yaw"}
+               for dof in self.dofs) > 0: # If there is at least one rigid body dof:
+            self.inertia_matrix = hydrostatics["inertia_matrix"] = self.compute_rigid_body_inertia(rho=rho)
 
         return hydrostatics
 
@@ -738,7 +741,7 @@ respective inertia coefficients are assigned as NaN.")
             new_mass = None
 
         if (all(body.mass is not None for body in bodies)
-                and all(body.center_of_mass for body in bodies)):
+                and all(body.center_of_mass is not None for body in bodies)):
             new_cog = sum(body.mass*np.asarray(body.center_of_mass) for body in bodies)/new_mass
         else:
             new_cog = None
@@ -926,11 +929,11 @@ respective inertia coefficients are assigned as NaN.")
         return self
 
     @inplace_transformation
-    def translate(self, *args):
-        self.mesh.translate(*args)
+    def translate(self, vector, *args, **kwargs):
+        self.mesh.translate(vector, *args, **kwargs)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
-                self.__dict__[point_attr] += args[0]
+                self.__dict__[point_attr] += vector
         return self
 
     @inplace_transformation
@@ -945,10 +948,6 @@ respective inertia coefficients are assigned as NaN.")
 
     @inplace_transformation
     def clip(self, plane):
-        # Keep of copy of the full mesh
-        if self.full_body is None:
-            self.full_body = self.copy()
-
         # Clip mesh
         LOG.info(f"Clipping {self.name} with respect to {plane}")
         self.mesh.clip(plane)
@@ -962,20 +961,6 @@ respective inertia coefficients are assigned as NaN.")
                 self.dofs[dof] = np.empty((0, 3))
         return self
 
-    def clipped(self, plane, **kwargs):
-        # Same API as for the other transformations
-        return self.clip(plane, inplace=False, **kwargs)
-
-    @inplace_transformation
-    def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        """Remove the parts of the mesh above the sea bottom and below the free surface."""
-        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
-        if sea_bottom > -np.infty:
-            self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
-        return self
-
-    def immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        return self.keep_immersed_part(free_surface, sea_bottom, inplace=False, name=self.name)
 
     #############
     #  Display  #
@@ -1024,4 +1009,9 @@ respective inertia coefficients are assigned as NaN.")
         animation = Animation(*args, **kwargs)
         animation._add_actor(self.mesh.merged(), faces_motion=sum(motion[dof_name] * dof for dof_name, dof in self.dofs.items() if dof_name in motion))
         return animation
+
+    @property
+    def minimal_computable_wavelength(self):
+        """For accuracy of the resolution, wavelength should not be smaller than this value."""
+        return 8*self.mesh.faces_radiuses.max()
 

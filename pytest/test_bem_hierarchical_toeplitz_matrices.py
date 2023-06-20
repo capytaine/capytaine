@@ -16,15 +16,14 @@ from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.bodies.predefined.cylinders import HorizontalCylinder, VerticalCylinder
 
 from capytaine.bem.problems_and_results import RadiationProblem
-from capytaine.bem.solver import Nemoh
 from capytaine.io.xarray import assemble_dataset
 
 from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
 
 from capytaine.matrices.low_rank import LowRankMatrix
 
-solver_with_sym = Nemoh(hierarchical_matrices=True, ACA_distance=8, matrix_cache_size=0)
-solver_without_sym = Nemoh(hierarchical_matrices=False, ACA_distance=8, matrix_cache_size=0)
+solver_with_sym = cpt.BEMSolver(engine=cpt.HierarchicalToeplitzMatrixEngine(ACA_distance=8, matrix_cache_size=0))
+solver_without_sym = cpt.BEMSolver(engine=cpt.BasicMatrixEngine(matrix_cache_size=0))
 # Use a single solver in the whole module to avoid reinitialisation of the solver (0.5 second).
 # Do not use a matrix cache in order not to risk influencing a test with another.
 
@@ -40,7 +39,7 @@ def test_floating_sphere(depth, omega):
 
     full_sphere = Sphere(radius=1.0, ntheta=reso, nphi=4*reso, axial_symmetry=False, clip_free_surface=True)
     full_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    problem = RadiationProblem(body=full_sphere, omega=omega, sea_bottom=-depth)
+    problem = RadiationProblem(body=full_sphere, omega=omega, water_depth=depth)
     result1 = solver_with_sym.solve(problem)
 
     half_sphere_mesh = full_sphere.mesh.extract_faces(
@@ -48,7 +47,7 @@ def test_floating_sphere(depth, omega):
         name="half_sphere_mesh")
     two_halves_sphere = FloatingBody(ReflectionSymmetricMesh(half_sphere_mesh, xOz_Plane))
     two_halves_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    problem = RadiationProblem(body=two_halves_sphere, omega=omega, sea_bottom=-depth)
+    problem = RadiationProblem(body=two_halves_sphere, omega=omega, water_depth=depth)
     result2 = solver_with_sym.solve(problem)
 
     quarter_sphere_mesh = half_sphere_mesh.extract_faces(
@@ -57,12 +56,12 @@ def test_floating_sphere(depth, omega):
     four_quarter_sphere = FloatingBody(ReflectionSymmetricMesh(ReflectionSymmetricMesh(quarter_sphere_mesh, yOz_Plane), xOz_Plane))
     assert 'None' not in four_quarter_sphere.mesh.tree_view()
     four_quarter_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    problem = RadiationProblem(body=four_quarter_sphere, omega=omega, sea_bottom=-depth)
+    problem = RadiationProblem(body=four_quarter_sphere, omega=omega, water_depth=depth)
     result3 = solver_with_sym.solve(problem)
 
     clever_sphere = Sphere(radius=1.0, ntheta=reso, nphi=4*reso, axial_symmetry=True, clip_free_surface=True)
     clever_sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    problem = RadiationProblem(body=clever_sphere, omega=omega, sea_bottom=-depth)
+    problem = RadiationProblem(body=clever_sphere, omega=omega, water_depth=depth)
     result4 = solver_with_sym.solve(problem)
 
     # (quarter_sphere + half_sphere + full_sphere + clever_sphere).show()
@@ -127,7 +126,7 @@ def test_horizontal_cylinder(depth):
     assert isinstance(cylinder.mesh, Mesh)
     cylinder.translate_z(-3.0)
     cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    problem = RadiationProblem(body=cylinder, omega=1.0, sea_bottom=-depth)
+    problem = RadiationProblem(body=cylinder, omega=1.0, water_depth=depth)
     result1 = solver_with_sym.solve(problem)
 
     trans_cylinder = HorizontalCylinder(length=10.0, radius=1.0, reflection_symmetry=False, translation_symmetry=True, nr=2, ntheta=10, nx=10)
@@ -135,7 +134,7 @@ def test_horizontal_cylinder(depth):
     assert isinstance(trans_cylinder.mesh[0], TranslationalSymmetricMesh)
     trans_cylinder.translate_z(-3.0)
     trans_cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    problem = RadiationProblem(body=trans_cylinder, omega=1.0, sea_bottom=-depth)
+    problem = RadiationProblem(body=trans_cylinder, omega=1.0, water_depth=depth)
     result2 = solver_with_sym.solve(problem)
 
     # S, V = solver_with_sym.build_matrices(trans_cylinder.mesh, trans_cylinder.mesh)
@@ -158,7 +157,7 @@ def test_low_rank_matrices():
     two_distant_buoys = FloatingBody.join_bodies(buoy, buoy.translated_x(20))
     two_distant_buoys.mesh._meshes[1].name = "other_buoy_mesh"
 
-    S, V = solver_with_sym.build_matrices(two_distant_buoys.mesh, two_distant_buoys.mesh, 0.0, -np.infty, 1.0)
+    S, V = solver_with_sym.engine.build_matrices(two_distant_buoys.mesh, two_distant_buoys.mesh, 0.0, np.infty, 1.0, solver_with_sym.green_function)
     assert isinstance(S.all_blocks[0, 1], LowRankMatrix)
     assert isinstance(S.all_blocks[1, 0], LowRankMatrix)
     # S.plot_shape()
@@ -199,21 +198,17 @@ def test_array_of_spheres():
     #
     array = buoy.assemble_regular_array(distance=4.0, nb_bodies=(3, 1))
 
-    settings = dict(cache_rankine_matrices=False, matrix_cache_size=0)
-    nemoh_without_sym = Nemoh(hierarchical_matrices=False, **settings)
-    nemoh_with_sym = Nemoh(hierarchical_matrices=True, **settings)
-
-    fullS, fullV = nemoh_without_sym.build_matrices(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
-    S, V = nemoh_with_sym.build_matrices(array.mesh, array.mesh, 0.0, -np.infty, 1.0)
+    fullS, fullV = solver_without_sym.engine.build_matrices(array.mesh, array.mesh, 0.0, np.infty, 1.0, solver_without_sym.green_function)
+    S, V = solver_with_sym.engine.build_matrices(array.mesh, array.mesh, 0.0, np.infty, 1.0, solver_with_sym.green_function)
 
     assert isinstance(S, cpt.matrices.block.BlockMatrix)
     assert np.allclose(S.full_matrix(), fullS)
     assert np.allclose(V.full_matrix(), fullV)
 
-    problem = RadiationProblem(body=array, omega=1.0, radiating_dof="2_0__Heave", sea_bottom=-np.infty)
+    problem = RadiationProblem(body=array, omega=1.0, radiating_dof="2_0__Heave", water_depth=np.infty)
 
-    result = nemoh_with_sym.solve(problem)
-    result2 = nemoh_without_sym.solve(problem)
+    result = solver_with_sym.solve(problem)
+    result2 = solver_without_sym.solve(problem)
 
     assert np.isclose(result.added_masses['2_0__Heave'], result2.added_masses['2_0__Heave'], atol=15.0)
     assert np.isclose(result.radiation_dampings['2_0__Heave'], result2.radiation_dampings['2_0__Heave'], atol=15.0)

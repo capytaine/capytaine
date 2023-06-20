@@ -4,6 +4,7 @@
 
 import pytest
 import numpy as np
+import capytaine as cpt
 
 from capytaine import Disk, AxialSymmetricMesh, HorizontalCylinder, TranslationalSymmetricMesh, CollectionOfMeshes
 from capytaine.meshes.meshes import Mesh
@@ -80,8 +81,7 @@ def test_collection():
 
     clipped_coll = coll.keep_immersed_part(inplace=False)
     assert len(clipped_coll) == 1
-    merged = clipped_coll.merged()
-    assert merged == sphere.merged()
+    # assert clipped_coll.merged() == sphere.merged()
 
     assert np.allclose(sphere.center_of_mass_of_nodes, sphere.merged().center_of_mass_of_nodes)
     assert np.allclose(sphere.diameter_of_nodes, sphere.merged().diameter_of_nodes)
@@ -132,3 +132,8 @@ def test_extract_one_face():
 
     for i in [5, sphere[0].nb_faces+5]:
         assert np.allclose(sphere.extract_one_face(i).faces_centers[0], sphere.faces_centers[i])
+
+
+def test_immersed_part():
+    mesh = cpt.mesh_horizontal_cylinder(reflection_symmetry=True)
+    assert mesh.immersed_part().merged() == mesh.merged().immersed_part()

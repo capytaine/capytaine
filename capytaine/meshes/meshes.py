@@ -12,9 +12,9 @@ from itertools import count
 import numpy as np
 from numpy.linalg import norm
 
-from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
-from capytaine.meshes.properties import compute_faces_properties, compute_connectivity
-from capytaine.meshes.surface_integrals import compute_faces_integrals, SurfaceIntegralsMixin
+from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
+from capytaine.meshes.properties import compute_faces_properties
+from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
 from capytaine.tools.optional_imports import import_optional_dependency
@@ -22,7 +22,7 @@ from capytaine.tools.optional_imports import import_optional_dependency
 LOG = logging.getLogger(__name__)
 
 
-class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
+class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
     """A class to handle unstructured 2D meshes in a 3D space.
 
     Parameters
@@ -167,7 +167,7 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
 
     def extract_one_face(self, id_face):
         vertices = self.vertices[self.faces[id_face, :], :]
-        mesh = SingleFace(vertices)
+        mesh = Mesh(vertices=vertices, faces=np.array([[0, 1, 2, 3]]), name=f"single_face_from_{self.name}")
 
         for prop in self.__internals__:
             if prop[:4] == "face":
@@ -525,7 +525,7 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
                 kwargs['facecolors'] = "yellow"
         else:
             if cmap is None:
-                cmap = cm.get_cmap('coolwarm')
+                cmap = matplotlib.colormaps['coolwarm']
             m = cm.ScalarMappable(cmap=cmap)
             m.set_array([min(color_field), max(color_field)])
             m.set_clim(vmin=min(color_field), vmax=max(color_field))
@@ -537,7 +537,7 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
         ax.add_collection3d(Poly3DCollection(faces, **kwargs))
 
         if color_field is not None:
-            cbar = plt.colorbar(m)
+            cbar = plt.colorbar(m, ax=ax)
             if cbar_label is not None:
                 cbar.set_label(cbar_label)
 
@@ -637,22 +637,6 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
         self.faces = clipped_self.faces
         self._clipping_data = clipped_self._clipping_data
         return self
-
-    def clipped(self, plane, **kwargs) -> 'Mesh':
-        # Same API as for the other transformations
-        return self.clip(plane, inplace=False, **kwargs)
-
-    @inplace_transformation
-    def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        """Clip the mesh with two horizontal planes corresponding
-        with the free surface and the sea bottom."""
-        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
-        if sea_bottom > -np.infty:
-            self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
-        return self
-
-    def immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        return self.keep_immersed_part(free_surface, sea_bottom, inplace=False, name=self.name)
 
     @inplace_transformation
     def triangulate_quadrangles(self) -> 'Mesh':
@@ -793,100 +777,3 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
             self.heal_normals()
         return self
 
-    #################
-    #  Edges stats  #
-    #################
-
-    def _edges_stats(self):
-        """Computes the min, max, and mean of the mesh's edge length"""
-        vertices = self.vertices[self.faces]
-        edge_length = np.zeros((self.nb_faces, 4), dtype=float)
-        for i in range(4):
-            edge = vertices[:, i, :] - vertices[:, i-1, :]
-            edge_length[:, i] = np.sqrt(np.einsum('ij, ij -> i', edge, edge))
-
-        return edge_length.min(), edge_length.max(), edge_length.mean()
-
-    @property
-    def min_edge_length(self) -> float:
-        """The mesh's minimum edge length"""
-        return self._edges_stats()[0]
-
-    @property
-    def max_edge_length(self) -> float:
-        """The mesh's maximum edge length"""
-        return self._edges_stats()[1]
-
-    @property
-    def mean_edge_length(self) -> float:
-        """The mesh's mean edge length"""
-        return self._edges_stats()[2]
-
-    #######################
-    #  Surface integrals  #
-    #######################
-
-    def get_surface_integrals(self) -> np.ndarray:
-        """Get the mesh surface integrals."""
-        if 'surface_integrals' not in self.__internals__:
-            self.__internals__['surface_integrals'] = compute_faces_integrals(self)
-        return self.__internals__['surface_integrals']
-
-    @property
-    def volume(self) -> float:
-        """Get the mesh enclosed volume."""
-        normals = self.faces_normals
-        sigma_0_2 = self.get_surface_integrals()[:3]
-
-        return (normals.T * sigma_0_2).sum() / 3.
-
-    ####################
-    #  Connectivities  #
-    ####################
-
-    @property
-    def vv(self) -> dict:
-        """Get the vertex / vertex connectivity dictionary."""
-        if 'v_v' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return self.__internals__['v_v']
-
-    @property
-    def vf(self) -> dict:
-        """Get the vertex / faces connectivity dictionary."""
-        if 'v_f' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return self.__internals__['v_f']
-
-    @property
-    def ff(self) -> dict:
-        """Get the face / faces connectivity dictionary."""
-        if 'f_f' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return self.__internals__['f_f']
-
-    @property
-    def boundaries(self) -> list:
-        """Get a list that stores lists of boundary connected vertices."""
-        if 'boundaries' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return self.__internals__['boundaries']
-
-    @property
-    def nb_boundaries(self) -> int:
-        """Get the number of boundaries in the mesh."""
-        if 'boundaries' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return len(self.__internals__['boundaries'])
-
-
-class SingleFace(Mesh):
-    """A view on a single face of a mesh.
-    To be used for ACA."""
-
-    _faces = np.arange(4).reshape((1, 4))
-    name = "some single face"
-
-    def __init__(self, vertices=None):
-        self._vertices = vertices
-        self.__internals__ = dict()

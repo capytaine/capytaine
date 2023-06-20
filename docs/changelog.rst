@@ -20,6 +20,12 @@ Major changes
 * Remove the :code:`convention` parameter to compute excitation force with WAMIT conventions (:issue:`133` and :pull:`281`).
   Changing the convention to compare the outputs of different codes is better done by a dedicated software such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_ or `BEMIO <https://wec-sim.github.io/bemio/>`_.
 
+* Add methods :meth:`~capytaine.bem.solver.compute_potential`, :meth:`~capytaine.bem.solver.compute_velocity` and :meth:`~capytaine.bem.solver.compute_free_surface_elevation` and :meth:`~capytaine.bem.solver.compute_pressure` to compute the value of some fields in the domain in post-processing. Their signature has been uniformized with the :func:`~capytaine.bem.airy_waves.airy_waves_potential`, :func:`~capytaine.bem.airy_waves.airy_waves_velocity`, :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` and :func:`~capytaine.bem.airy_waves.airy_waves_pressure` functions (:pull:`288`, :pull:`326`)
+
+* The problems can now be initialized by setting a ``water_depth`` instead of the ``sea_bottom`` (which is still available). This change is meant to uniformize notations in the code and use ``water_depth`` wherever possible (:pull:`340`). Besides the ``sea_bottom`` argument of many internal routines has been completely replaced by ``water_depth``. Migrating then requires changing the sign of the float (:pull:`347`).
+
+* Change normalisation of radiation problemg to use the same normalisation than diffraction problems. Added mass and radiation dampings are unchanged, but other outputs of radiation problem (free surface elevation, kochin functions, etc.) may differ from previous version by a factor :math:`-j \omega`. (:issue:`173` and :pull:`348`)
+
 Minor changes
 ~~~~~~~~~~~~~
 
@@ -32,6 +38,43 @@ Minor changes
 * Add nicer display for Capytaine objects in IPython shell (:issue:`227` and :pull:`287`)
 
 * Add functions :func:`~capytaine.io.mesh_loaders.load_PNL` and :func:`~capytaine.io.mesh_writers.write_PNL` to load and write meshes in HAMS ``.pnl`` format (:pull:`289`).
+
+* Remove ``cpt.Nemoh()`` class that was replaced by :class:`~capytaine.bem.solver.BEMSolver` in version 1.1 (:pull:`291`)
+
+* Add function :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` to compute the free surface elevation at points (:pull:`293`).
+
+* Remove ``full_body`` attribute from :class:`~capytaine.bodies.bodies.FloatingBody` that used to keep a copy of the body before clipping in-place (:pull:`302`).
+
+* Remove ``dimensionless_wavenumber`` and ``dimensionless_omega`` attributes from :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` as they are not used in the code and can be easily recomputed by users if necessary (:pull:`306`).
+
+* Add :meth:`~capytaine.bodies.bodies.FloatingBody.minimal_computable_wavelength` to estimate the wavelengths computable with the mesh resolution (:pull:`341`).
+
+* Slightly increase default tabulation size to avoid some high-frequency issues such as :issue:`157` (:pull:`353`).
+
+Bug fixes
+~~~~~~~~~
+
+* Fix :meth:`~capytaine.meshes.collections.CollectionOfMeshes.immersed_part` (:pull:`307`).
+
+* :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics` used to fail for non-rigid bodies because it could not compute the rigid-body inertia.
+  The rigid-body inertia is now just skipped for bodies with no rigid-body dofs (:pull:`308`).
+
+* Reduce the default tolerance of the mesh clipper for points just above the free surface (:issue:`320` and :pull:`322`).
+
+* Convert ``center_of_mass`` and ``rotation_center`` to arrays in :class:`~capytaine.bodies.bodies.FloatingBody` constructor to avoid a few issues (:issue:`319` and :pull:`325`).
+
+* Fix bug (leading to either ``RuntimeError`` or wrong output) when clipping with plane that does not contain the origin. (:pull:`344`)
+
+* Instances of :class:`~capytaine.bem.solver.BEMSolver` initialized with default parameters do not share the same engine, hence they do not share the same cache. This minor issue was causing minor interferences in some benchmarks (:issue:`295` and :pull:`350`).
+
+Internals
+~~~~~~~~~
+
+* The method :meth:`~capytaine.green_functions.delhommeau.Delhommeau.evaluate` (and its counterparts for other Green functions) now accepts a list of points as first argument instead of a mesh. It has now an optional boolean argument ``early_dot_product`` to return the integrals of the gradient of the Green function and not only the normal derivative (:pull:`288`).
+
+* Remove warnings due to 0/0 divisions in :func:`~capytaine.meshes.properties.compute_faces_properties` (:pull:`310`)
+
+* Remove unused and undocumented code about meshes, including ``mesh.min_edge_length``, ``mesh.mean_edge_length``, ``mesh.max_edge_length``, ``mesh.get_surface_integrals``, ``mesh.volume``, ``mesh.vv``, ``mesh.vf``, ``mesh.ff``, ``mesh.boundaries``, ``mesh.nb_boundaries``, ``compute_faces_integrals``, ``SingleFace``. (:pull:`334`)
 
 -------------------------------
 New in version 1.5 (2022-12-13)

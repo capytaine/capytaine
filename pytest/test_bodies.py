@@ -71,6 +71,12 @@ def test_rigid_body_dofs_neither_a_rotation_center_nor_a_center_of_mass():
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
     assert np.allclose(body._infer_rotation_center(), (0.0, 0.0, 0.0))
 
+def test_defining_rotation_center_with_ints():
+    # Issue #319
+    import capytaine as cpt
+    mesh = cpt.mesh_sphere().immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1)))
+    body.translated_y(-2.0)
 
 def test_bodies():
     body = Sphere(name="sphere", axial_symmetry=False)
@@ -116,7 +122,7 @@ def test_clipping_of_dofs(z_center, as_collection_of_meshes):
     axis = Axis(point=(1, 0, 0), vector=(1, 0, 0))
 
     full_sphere.add_rotation_dof(axis, name="test_dof")
-    clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, sea_bottom=-np.infty, inplace=False)
+    clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, water_depth=np.infty, inplace=False)
 
     other_clipped_sphere = FloatingBody(mesh=clipped_sphere.mesh, name="other_sphere")
     other_clipped_sphere.add_rotation_dof(axis, name="test_dof")

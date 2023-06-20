@@ -69,7 +69,7 @@ class LUSolverWithCache:
     Most of the complexity of this class comes from:
     1. @lru_cache does not work because numpy arrays are not hashable. So a basic cache system has been recoded from scratch.
     2. To be the default solver for the BasicMatrixEngine, the solver needs to support matrices for problems with one or two reflection symmetries.
-       Hence, a custom way to cache the LU decomposition of the matrices involved in the direct linear resolution of the symmetric problem.
+    Hence, a custom way to cache the LU decomposition of the matrices involved in the direct linear resolution of the symmetric problem.
     """
     def __init__(self):
         self.cached_matrix = None

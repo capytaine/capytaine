@@ -244,7 +244,7 @@ determine which part of the mesh will be returned::
 The method :code:`immersed_part` will clip the body with respect to two
 horizontal planes at :math:`z=0` and :math:`z=-h`::
 
-    clipped_body = body.immersed_part(sea_bottom=-10)
+    clipped_body = body.immersed_part(water_depth=10)
 
 
 Center of mass and rotation dofs

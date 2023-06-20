@@ -26,8 +26,8 @@ def test_showmatplotlib_with_colors(tmp_path):
 
     fig = plt.figure()
     ax = fig.add_subplot(111,projection='3d')
-    import matplotlib.cm as cm
-    colormap = cm.get_cmap('cividis')
+    from matplotlib import colormaps
+    colormap = colormaps['cividis']
     cylinder.show_matplotlib(color_field=np.abs(results.potential),
                              ax=ax, cbar_label=r'$\phi (m^2/s)$')
     ax.set_title('Potential distribution')
