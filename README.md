@@ -8,8 +8,12 @@ It is built around a full rewrite of the open source Boundary Element Method (BE
 
 ## Installation
 
-On Windows, macOS and Linux, using the [Conda package manager](https://www.anaconda.com/distribution/):
+Packages for Windows, macOS and Linux are available on PyPI:
 
+```bash
+pip install capytaine
+```
+and Conda-forge:
 ```bash
 conda install -c conda-forge capytaine
 ```
@@ -20,7 +24,7 @@ conda install -c conda-forge capytaine
 
 ## License
 
-Copyright (C) 2017-2022, Matthieu Ancellin
+Copyright (C) 2017-2023, Matthieu Ancellin
 
 Since April 2022, the development of Capytaine is funded by the Alliance for Sustainable Energy, LLC, Managing and Operating Contractor for the National Renewable Energy Laboratory (NREL) for the U.S. Department of Energy.
 
