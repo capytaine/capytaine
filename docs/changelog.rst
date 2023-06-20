@@ -49,6 +49,8 @@ Minor changes
 
 * Add :meth:`~capytaine.bodies.bodies.FloatingBody.minimal_computable_wavelength` to estimate the wavelengths computable with the mesh resolution (:pull:`341`).
 
+* Slightly increase default tabulation size to avoid some high-frequency issues such as :issue:`157` (:pull:`353`).
+
 Bug fixes
 ~~~~~~~~~
 
