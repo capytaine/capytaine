@@ -404,7 +404,7 @@ This expression of the Green function and its derivative require the evaluation 
 then
 
 .. math::
-   \mathcal{G}(r, z) = \frac{-1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} Z_1(r, z) + 2 i Z_2(r, z).
+   \mathcal{G}(r, z) = \frac{-1}{\sqrt{r^2 + z^2}} + 2 Z_1(r, z) + 2 i Z_2(r, z).
 
 .. note::
    The definition of :math:`D_1`, :math:`D_2`, :math:`Z_1` and :math:`Z_2` may differ from the original one from Delhommeau by the :math:`1/\pi` factor.
@@ -443,7 +443,7 @@ Hence, they proposed to use :eq:`green_function_inf_depth_xie` and to tabulate t
 then
 
 .. math::
-   \mathcal{G}(r, z) = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \widetilde{Z_1}(r, z) + 2 i Z_2(r, z).
+   \mathcal{G}(r, z) = \frac{1}{\sqrt{r^2 + z^2}} + 2 \widetilde{Z_1}(r, z) + 2 i Z_2(r, z).
 
 By using :numref:`Lemma {number} <integrate_one_over_zeta>`, one has
 
