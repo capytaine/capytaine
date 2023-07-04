@@ -448,7 +448,7 @@ then
 By using :numref:`Lemma {number} <integrate_one_over_zeta>`, one has
 
 .. math::
-   Z_1 = \widetilde{Z_1} - \frac{1}{\sqrt{r^2 + z^2}}
+   Z_1 = \widetilde{Z_1} + \frac{1}{\sqrt{r^2 + z^2}}
 
 which means that the asymptotical expression for :math:`\widetilde{Z_1}` reads
 
