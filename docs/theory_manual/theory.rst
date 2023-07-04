@@ -438,7 +438,7 @@ singularity :math:`\frac{1}{\zeta}`.
 Hence, they proposed to use :eq:`green_function_inf_depth_xie` and to tabulate the integral
 
 .. math::
-    \widetilde{Z_1}(r, z) = \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
+    \widetilde{Z_1}(r, z) = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
 
 then
 
@@ -448,7 +448,7 @@ then
 By using :numref:`Lemma {number} <integrate_one_over_zeta>`, one has
 
 .. math::
-   Z_1 = \widetilde{Z_1} - \frac{\pi}{\sqrt{r^2 + z^2}}
+   Z_1 = \widetilde{Z_1} - \frac{1}{\sqrt{r^2 + z^2}}
 
 which means that the asymptotical expression for :math:`\widetilde{Z_1}` reads
 
