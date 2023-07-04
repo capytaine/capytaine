@@ -440,17 +440,17 @@ Hence, they proposed to use :eq:`green_function_inf_depth_xie` and to tabulate t
 .. math::
     \widetilde{Z_1}(r, z) = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
 
-then
-
-.. math::
-   \mathcal{G}(r, z) = \frac{1}{\sqrt{r^2 + z^2}} + 2 \widetilde{Z_1}(r, z) + 2 i Z_2(r, z).
-
 By using :numref:`Lemma {number} <integrate_one_over_zeta>`, one has
 
 .. math::
    Z_1 = \widetilde{Z_1} + \frac{1}{\sqrt{r^2 + z^2}}
 
-which means that the asymptotical expression for :math:`\widetilde{Z_1}` reads
+then
+
+.. math::
+   \mathcal{G}(r, z) = \frac{1}{\sqrt{r^2 + z^2}} + 2 \widetilde{Z_1}(r, z) + 2 i Z_2(r, z).
+
+The asymptotical expression for :math:`\widetilde{Z_1}` reads
 
 .. math::
    \widetilde{Z_1}(r, z) \simeq - e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{z}{(r^2 + z^2)^{3/2}} - \frac{1}{\sqrt{r^2 + z^2}} \\
