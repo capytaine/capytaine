@@ -224,7 +224,7 @@ The above lemma allows to retrieve the expression of the Green function found e.
 
 .. math::
     \mathcal{G}(r, z) & = - \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(r, z, \theta)) - \frac{1}{\zeta(r, z, \theta)} \right) \, \mathrm{d} \theta \right) \\
-    & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
+    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
     :label: green_function_inf_depth_del
 
 (Note the minus sign in front of the first term.)
@@ -395,11 +395,19 @@ Delhommeau's method is based on expression :eq:`green_function_inf_depth_del` of
 This expression of the Green function and its derivative require the evaluation of the following real-valued integrals:
 
 .. math::
-    D_1(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    D_1(r, z) & = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
     D_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right) \\
-    Z_1(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    Z_1(r, z) & = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
     Z_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
 
+
+then
+
+.. math::
+   \mathcal{G}(r, z) = \frac{-1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} Z_1(r, z) + 2 i Z_2(r, z).
+
+.. note::
+   The definition of :math:`D_1`, :math:`D_2`, :math:`Z_1` and :math:`Z_2` may differ from the original one from Delhommeau by the :math:`1/\pi` factor.
 
 To limit the computational cost of the evaluation of these integrals, they are precomputed for selected values of :math:`r` and :math:`z` and stored in a table.
 When evaluating the Green function, the values of the integrals are retrieved by interpolating the values in the tables.
@@ -407,9 +415,9 @@ When evaluating the Green function, the values of the integrals are retrieved by
 For large values of :math:`r` and :math:`z`, these integrals are asymptotically approximated by the following expressions:
 
 .. math::
-      D_1(r, z) & \simeq \pi e^z \sqrt{\frac{2\pi}{r}} \left(\cos(r - \pi/4) - \frac{1}{2r} \sin(r-\pi/4) \right) - \pi \frac{r}{(r^2 + z^2)^{3/2}} \\
+      D_1(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \left(\cos(r - \pi/4) - \frac{1}{2r} \sin(r-\pi/4) \right) - \frac{r}{(r^2 + z^2)^{3/2}} \\
       D_2(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \left( \sin(r - \pi/4) + \frac{1}{2r} \cos(r - \pi/4) \right) \\
-      Z_1(r, z) & \simeq - \pi e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \pi \frac{z}{(r^2 + z^2)^{3/2}} \\
+      Z_1(r, z) & \simeq - e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{z}{(r^2 + z^2)^{3/2}} \\
       Z_2(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \cos(r - \pi/4)
 
 
@@ -418,6 +426,7 @@ Incorporating these asymptotic approximation in the expression of the Green func
 .. math::
     \mathcal{G}(r, z) \simeq & -\frac{1}{\sqrt{r^2 + z^2}} - 2 k e^z \sqrt{\frac{2\pi}{r}} \left(\sin(r - \pi/4) - i\cos(r - \pi/4)\right) \\
    & \qquad\qquad\qquad\qquad + 2 k \frac{z}{(r^2 + z^2)^{3/2}}
+   :label: green_function_asymptotical_approx
 
 
 Xie's variant
@@ -429,12 +438,24 @@ singularity :math:`\frac{1}{\zeta}`.
 Hence, they proposed to use :eq:`green_function_inf_depth_xie` and to tabulate the integral
 
 .. math::
-    \widetilde{Z_1}(r, z) = \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
+    \widetilde{Z_1}(r, z) = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
+
+then
+
+.. math::
+   \mathcal{G}(r, z) = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \widetilde{Z_1}(r, z) + 2 i Z_2(r, z).
 
 By using :numref:`Lemma {number} <integrate_one_over_zeta>`, one has
 
 .. math::
-   Z_1 = \widetilde{Z_1} - \frac{\pi}{\sqrt{r^2 + z^2}}
+   Z_1 = \widetilde{Z_1} + \frac{1}{\sqrt{r^2 + z^2}}
+
+which means that the asymptotical expression for :math:`\widetilde{Z_1}` reads
+
+.. math::
+   \widetilde{Z_1}(r, z) \simeq - e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{z}{(r^2 + z^2)^{3/2}} - \frac{1}{\sqrt{r^2 + z^2}} \\
+
+while the asymptotic Green function still reads :eq:`green_function_asymptotical_approx`.
 
 Both the original Delhommeau's method and Xie's variant are implemented in Capytaine.
 
