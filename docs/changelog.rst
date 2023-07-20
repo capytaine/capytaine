@@ -8,7 +8,7 @@ Changelog
    :backlinks: none
 
 -------------------------------
-New in version 2.0 (2022-06-21)
+New in version 2.0 (2023-06-21)
 -------------------------------
 
 Major changes
