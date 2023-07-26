@@ -142,6 +142,13 @@ def test_mesh_quality():
     cylinder.merge_duplicates(atol=1e-5)
     cylinder.heal_mesh()
 
+def test_heal_mesh_removes_degenerate_panels():
+    vertices = np.array([(0.0, 0.0, 0.0), (0.0, 1.0, 0.0), (1.0, 1.0, 0.0), (1.0, 0.0, 0.0)])
+    faces = np.array([[0, 1, 2, 3], [1, 2, 2, 1]])
+    mesh = cpt.Mesh(vertices, faces)
+    assert mesh.nb_faces == 2
+    mesh.heal_mesh()
+    assert mesh.nb_faces == 1
 
 def test_clipper():
     """Test clipping of mesh."""

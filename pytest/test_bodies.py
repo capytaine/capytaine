@@ -78,6 +78,16 @@ def test_defining_rotation_center_with_ints():
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1)))
     body.translated_y(-2.0)
 
+def test_healing_before_initializing_dofs():
+    # Issue #367: https://github.com/capytaine/capytaine/issues/367
+    # Define a mesh with a normal panel and degenerate panel
+    vertices = np.array([(0.0, 0.0, 0.0), (0.0, 1.0, 0.0),
+                         (1.0, 1.0, 0.0), (1.0, 0.0, 0.0)])
+    faces = np.array([[0, 1, 2, 3], [1, 2, 2, 1]])
+    mesh = cpt.Mesh(vertices, faces)
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    assert body.dofs["Heave"].shape[0] == body.mesh.nb_faces == 1
+
 def test_bodies():
     body = Sphere(name="sphere", axial_symmetry=False)
     assert str(body) == "sphere"
