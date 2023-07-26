@@ -7,6 +7,15 @@ Changelog
    :depth: 1
    :backlinks: none
 
+-------------------
+New in next version
+-------------------
+
+Bug fixes
+~~~~~~~~~
+
+* When initializing a body with a mesh having degenerate panels, the initialization of the dofs used to happen before the degenerate panels were removed, leading to an inconsistency between the number of panels in the mesh and in the dof definition. (:issue:`367` and :pull:`375`)
+
 -------------------------------
 New in version 2.0 (2023-06-21)
 -------------------------------
