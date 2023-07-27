@@ -18,7 +18,7 @@ LOG = logging.getLogger(__name__)
 
 _default_parameters = {'rho': 1000.0, 'g': 9.81, 'omega': 1.0,
                       'free_surface': 0.0, 'water_depth': np.infty,
-                      'wave_direction': 0.0}
+                       'wave_direction': 0.0, 'forward_speed': 0.0}
 
 
 class LinearPotentialFlowProblem:
@@ -45,6 +45,8 @@ class LinearPotentialFlowProblem:
         The angular wave number of the waves in rad/m
     wavelength: float, optional
         The wave length of the waves in m
+    forward_speed: float, optional
+        The speed of the body (in m/s, in the x direction, default: 0.0)
     rho: float, optional
         The density of water in kg/m3 (default: 1000.0)
     g: float, optional
@@ -58,24 +60,31 @@ class LinearPotentialFlowProblem:
                  free_surface=_default_parameters['free_surface'],
                  water_depth=None, sea_bottom=None,
                  omega=None, period=None, wavenumber=None, wavelength=None,
+                 forward_speed=_default_parameters['forward_speed'],
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
+                 wave_direction=_default_parameters['wave_direction'],
                  boundary_condition=None):
 
         self.body = body
         self.free_surface = float(free_surface)
         self.rho = float(rho)
         self.g = float(g)
+        self.forward_speed = float(forward_speed)
+        self.wave_direction = float(wave_direction)  # Required for (diffraction problem) and (radiation problems with forward speed).
 
         self.boundary_condition = boundary_condition
 
         self.water_depth = _get_water_depth(free_surface, water_depth, sea_bottom, default_water_depth=_default_parameters["water_depth"])
         self.omega, self.period, self.wavenumber, self.wavelength, self.provided_freq_type = \
-                self._get_frequencies(omega, period, wavenumber, wavelength)
+                self._get_frequencies(omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength)
+
+        self.encounter_omega, self.encounter_period, self.encounter_wavenumber, self.encounter_wavelength, _ = \
+                self._get_frequencies(omega=self.omega - self.wavenumber*self.forward_speed*np.cos(self.wave_direction))
 
         self._check_data()
 
-    def _get_frequencies(self, omega, period, wavenumber, wavelength):
+    def _get_frequencies(self, *, omega=None, period=None, wavenumber=None, wavelength=None):
         frequency_data = dict(omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength)
         nb_provided_frequency_data = 4 - list(frequency_data.values()).count(None)
 
@@ -128,6 +137,11 @@ class LinearPotentialFlowProblem:
                 f"Free surface is {self.free_surface}. "
                 "Only z=0 and z=∞ are accepted values for the free surface position."
             )
+
+        if not (-2*np.pi-1e-3 <= self.wave_direction <= 2*np.pi+1e-3):
+            LOG.warning(f"The value {self.wave_direction} has been provided for the wave direction, and it does not look like an angle in radians. "
+                         "The wave direction in Capytaine is defined in radians and not in degrees, so the result might not be what you expect. "
+                         "If you were actually giving an angle in radians, use the modulo operator to give a value between -2π and 2π to disable this warning.")
 
         if self.free_surface == np.infty and self.water_depth != np.infty:
             raise NotImplementedError(
@@ -184,6 +198,7 @@ class LinearPotentialFlowProblem:
                 "period": self.period,
                 "wavelength": self.wavelength,
                 "wavenumber": self.wavenumber,
+                "forward_speed": self.forward_speed,
                 "rho": self.rho,
                 "g": self.g}
 
@@ -210,6 +225,8 @@ class LinearPotentialFlowProblem:
 
         if not self.free_surface == _default_parameters['free_surface']:
             parameters.append(f"free_surface={self.free_surface}")
+        if not self.forward_speed == _default_parameters['forward_speed']:
+            parameters.append(f"forward_speed={self.forward_speed}")
         if not self.g == _default_parameters['g']:
             parameters.append(f"g={self.g}")
         if not self.rho == _default_parameters['rho']:
@@ -226,7 +243,7 @@ class LinearPotentialFlowProblem:
     def _astuple(self):
         return (self.body, self.free_surface, self.water_depth,
                 self.omega, self.period, self.wavenumber, self.wavelength,
-                self.rho, self.g)
+                self.forward_speed, self.rho, self.g)
 
     def __eq__(self, other):
         if isinstance(other, LinearPotentialFlowProblem):
@@ -265,6 +282,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                  free_surface=_default_parameters['free_surface'],
                  water_depth=None, sea_bottom=None,
                  omega=None, period=None, wavenumber=None, wavelength=None,
+                 forward_speed=_default_parameters['forward_speed'],
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
                  wave_direction=_default_parameters['wave_direction']):
@@ -272,12 +290,8 @@ class DiffractionProblem(LinearPotentialFlowProblem):
         self.wave_direction = float(wave_direction)
 
         super().__init__(body=body, free_surface=free_surface, water_depth=water_depth, sea_bottom=sea_bottom,
-                         omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength, rho=rho, g=g)
-
-        if not (-2*np.pi-1e-3 <= self.wave_direction <= 2*np.pi+1e-3):
-            LOG.warning(f"The value {self.wave_direction} has been provided for the wave direction, and it does not look like an angle in radians. "
-                         "The wave direction in Capytaine is defined in radians and not in degrees, so the result might not be what you expect. "
-                         "If you were actually giving an angle in radians, use the modulo operator to give a value between -2π and 2π to disable this warning.")
+                         omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength, wave_direction=wave_direction,
+                         forward_speed=forward_speed, rho=rho, g=g)
 
         if self.body is not None:
 
@@ -312,6 +326,8 @@ class RadiationProblem(LinearPotentialFlowProblem):
                  free_surface=_default_parameters['free_surface'],
                  water_depth=None, sea_bottom=None,
                  omega=None, period=None, wavenumber=None, wavelength=None,
+                 forward_speed=_default_parameters['forward_speed'],
+                 wave_direction=_default_parameters['wave_direction'],
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
                  radiating_dof=None):
@@ -319,7 +335,8 @@ class RadiationProblem(LinearPotentialFlowProblem):
         self.radiating_dof = radiating_dof
 
         super().__init__(body=body, free_surface=free_surface, water_depth=water_depth, sea_bottom=sea_bottom,
-                         omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength, rho=rho, g=g)
+                         omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength,
+                         wave_direction=wave_direction, forward_speed=forward_speed, rho=rho, g=g)
 
         if self.body is not None:
 
@@ -336,7 +353,18 @@ class RadiationProblem(LinearPotentialFlowProblem):
                 raise ValueError("Unrecognized degree of freedom name.")
 
             dof = self.body.dofs[self.radiating_dof]
-            self.boundary_condition = -1j*self.omega * np.sum(dof * self.body.mesh.faces_normals, axis=1)
+
+            self.boundary_condition = -1j*self.encounter_omega * np.sum(dof * self.body.mesh.faces_normals, axis=1)
+
+            if self.forward_speed != 0.0 and self.radiating_dof in {"Pitch", "Yaw"}:
+                if self.radiating_dof == "Pitch":
+                    ddofdx_dot_n = np.array([[0, 0, nz] for (nx, ny, nz) in self.body.mesh.faces_normals])
+                elif self.radiating_dof == "Yaw":
+                    ddofdx_dot_n = np.array([[0, -ny, 0] for (nx, ny, nz) in self.body.mesh.faces_normals])
+                else:
+                    raise NotImplementedError
+                self.boundary_condition += self.forward_speed * ddofdx_dot_n
+
 
     def _astuple(self):
         return super()._astuple() + (self.radiating_dof,)
@@ -367,14 +395,20 @@ class LinearPotentialFlowResult:
         self.body               = self.problem.body
         self.free_surface       = self.problem.free_surface
         self.omega              = self.problem.omega
+        self.period             = self.problem.period
+        self.wavenumber         = self.problem.wavenumber
+        self.wavelength         = self.problem.wavelength
+        self.forward_speed      = self.problem.forward_speed
+        self.wave_direction     = self.problem.wave_direction
+        self.encounter_omega    = self.problem.encounter_omega
+        self.encounter_period   = self.problem.encounter_period
+        self.encounter_wavenumber = self.problem.encounter_wavenumber
+        self.encounter_wavelength = self.problem.encounter_wavelength
         self.rho                = self.problem.rho
         self.g                  = self.problem.g
         self.boundary_condition = self.problem.boundary_condition
         self.water_depth        = self.problem.water_depth
         self.depth              = self.problem.water_depth
-        self.wavenumber         = self.problem.wavenumber
-        self.wavelength         = self.problem.wavelength
-        self.period             = self.problem.period
         self.provided_freq_type = self.problem.provided_freq_type
         self.body_name          = self.problem.body_name
         self.influenced_dofs    = self.problem.influenced_dofs
@@ -396,7 +430,6 @@ class DiffractionResult(LinearPotentialFlowResult):
     def __init__(self, problem, *args, **kwargs):
         self.forces = {}
         super().__init__(problem, *args, **kwargs)
-        self.wave_direction = self.problem.wave_direction
 
     def store_force(self, dof, force):
         self.forces[dof] = force
@@ -421,8 +454,8 @@ class RadiationResult(LinearPotentialFlowResult):
         self.radiating_dof = self.problem.radiating_dof
 
     def store_force(self, dof, force):
-        self.added_masses[dof] = force.real/self.omega**2
-        self.radiation_dampings[dof] = force.imag/self.omega
+        self.added_masses[dof] = force.real/self.encounter_omega**2
+        self.radiation_dampings[dof] = force.imag/self.encounter_omega
 
     @property
     def records(self):
@@ -432,3 +465,4 @@ class RadiationResult(LinearPotentialFlowResult):
                      added_mass=self.added_masses[dof],
                      radiation_damping=self.radiation_dampings[dof])
                 for dof in self.influenced_dofs]
+

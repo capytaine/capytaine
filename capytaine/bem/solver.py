@@ -86,14 +86,24 @@ class BEMSolver:
         """
         LOG.info("Solve %s.", problem)
 
+        if problem.forward_speed != 0.0:
+            omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
+        else:
+            omega, wavenumber = problem.omega, problem.wavenumber
+
         S, K = self.engine.build_matrices(
             problem.body.mesh, problem.body.mesh,
-            problem.free_surface, problem.water_depth, problem.wavenumber,
+            problem.free_surface, problem.water_depth, wavenumber,
             self.green_function
         )
         sources = self.engine.linear_solver(K, problem.boundary_condition)
         potential = S @ sources
-        pressure = 1j * problem.omega * problem.rho * potential
+        pressure = 1j * omega * problem.rho * potential
+
+        if problem.forward_speed != 0.0:
+            result = problem.make_results_container(sources=sources)
+            velocity = self.compute_velocity(problem.body.mesh, result)
+            pressure += problem.rho * problem.forward_speed * velocity[:, 0]
 
         forces = problem.body.integrate_pressure(pressure)
 
