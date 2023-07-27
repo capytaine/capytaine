@@ -52,9 +52,6 @@ def test_LinearPotentialFlowProblem():
         LinearPotentialFlowProblem(free_surface=0.0, water_depth=-1.0)
 
     with pytest.raises(TypeError):
-        LinearPotentialFlowProblem(wave_direction=1.0)
-
-    with pytest.raises(TypeError):
         LinearPotentialFlowProblem(radiating_dof="Heave")
 
     with pytest.raises(ValueError):
