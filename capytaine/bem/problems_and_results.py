@@ -199,6 +199,7 @@ class LinearPotentialFlowProblem:
                 "wavelength": self.wavelength,
                 "wavenumber": self.wavenumber,
                 "forward_speed": self.forward_speed,
+                "wave_direction": self.wave_direction,
                 "rho": self.rho,
                 "g": self.g}
 
@@ -218,6 +219,10 @@ class LinearPotentialFlowProblem:
         parameters = [f"body={self.body_name}",
                       f"{self.provided_freq_type}={self.__getattribute__(self.provided_freq_type):.3f}",
                       f"water_depth={self.water_depth}"]
+
+        if not self.forward_speed == _default_parameters['forward_speed']:
+            parameters.append(f"forward_speed={self.forward_speed}")
+
         try:
             parameters.extend(self._str_other_attributes())
         except AttributeError:
@@ -225,8 +230,6 @@ class LinearPotentialFlowProblem:
 
         if not self.free_surface == _default_parameters['free_surface']:
             parameters.append(f"free_surface={self.free_surface}")
-        if not self.forward_speed == _default_parameters['forward_speed']:
-            parameters.append(f"forward_speed={self.forward_speed}")
         if not self.g == _default_parameters['g']:
             parameters.append(f"g={self.g}")
         if not self.rho == _default_parameters['rho']:
@@ -308,7 +311,6 @@ class DiffractionProblem(LinearPotentialFlowProblem):
 
     def _asdict(self):
         d = super()._asdict()
-        d["wave_direction"] = self.wave_direction
         return d
 
     def _str_other_attributes(self):
@@ -358,9 +360,9 @@ class RadiationProblem(LinearPotentialFlowProblem):
 
             if self.forward_speed != 0.0 and self.radiating_dof in {"Pitch", "Yaw"}:
                 if self.radiating_dof == "Pitch":
-                    ddofdx_dot_n = np.array([[0, 0, nz] for (nx, ny, nz) in self.body.mesh.faces_normals])
+                    ddofdx_dot_n = np.array([nz for (nx, ny, nz) in self.body.mesh.faces_normals])
                 elif self.radiating_dof == "Yaw":
-                    ddofdx_dot_n = np.array([[0, -ny, 0] for (nx, ny, nz) in self.body.mesh.faces_normals])
+                    ddofdx_dot_n = np.array([-ny for (nx, ny, nz) in self.body.mesh.faces_normals])
                 else:
                     raise NotImplementedError
                 self.boundary_condition += self.forward_speed * ddofdx_dot_n
@@ -375,7 +377,10 @@ class RadiationProblem(LinearPotentialFlowProblem):
         return d
 
     def _str_other_attributes(self):
-        return [f"radiating_dof=\'{self.radiating_dof}\'"]
+        if self.forward_speed != 0.0:
+            return [f"wave_direction={self.wave_direction:.3f}, radiating_dof=\'{self.radiating_dof}\'"]
+        else:
+            return [f"radiating_dof=\'{self.radiating_dof}\'"]
 
     def make_results_container(self, *args, **kwargs):
         return RadiationResult(self, *args, **kwargs)

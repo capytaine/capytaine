@@ -68,7 +68,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     keys_in_dataset = set(dataset.dims.keys())
     accepted_keys = {'wave_direction', 'radiating_dof', 'influenced_dof',
                      'body_name', 'omega', 'period', 'wavelength', 'wavenumber',
-                     'water_depth', 'rho', 'g'}
+                     'forward_speed', 'water_depth', 'rho', 'g'}
     unrecognized_keys = keys_in_dataset.difference(accepted_keys)
     if len(unrecognized_keys) > 0:
         LOG.warning(f"Unrecognized key(s) in dataset: {unrecognized_keys}")
@@ -95,6 +95,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     water_depth_range = dataset['water_depth'].data if 'water_depth' in dataset else [_default_parameters['water_depth']]
     rho_range = dataset['rho'].data if 'rho' in dataset else [_default_parameters['rho']]
     g_range = dataset['g'].data if 'g' in dataset else [_default_parameters['g']]
+    forward_speed_range = dataset['forward_speed'] if 'forward_speed' in dataset else [_default_parameters['forward_speed']]
 
     wave_direction_range = dataset['wave_direction'].data if 'wave_direction' in dataset else None
     radiating_dofs = dataset['radiating_dof'].data.astype(object) if 'radiating_dof' in dataset else None
@@ -110,20 +111,31 @@ def problems_from_dataset(dataset: xr.Dataset,
 
     problems = []
     if wave_direction_range is not None:
-        for freq, wave_direction, water_depth, body_name, rho, g \
-                in product(freq_range, wave_direction_range, water_depth_range, body_range, rho_range, g_range):
+        for freq, wave_direction, water_depth, body_name, forward_speed, rho, g \
+                in product(freq_range, wave_direction_range, water_depth_range, body_range, forward_speed_range, rho_range, g_range):
             problems.append(
                 DiffractionProblem(body=body_range[body_name], **{freq_type: freq},
-                                   wave_direction=wave_direction, water_depth=water_depth, rho=rho, g=g)
+                                   wave_direction=wave_direction, water_depth=water_depth,
+                                   forward_speed=forward_speed, rho=rho, g=g)
             )
 
     if radiating_dofs is not None:
-        for freq, radiating_dof, water_depth, body_name, rho, g \
-                in product(freq_range, radiating_dofs, water_depth_range, body_range, rho_range, g_range):
-            problems.append(
-                RadiationProblem(body=body_range[body_name], **{freq_type: freq},
-                                 radiating_dof=radiating_dof, water_depth=water_depth, rho=rho, g=g)
-            )
+        for freq, radiating_dof, water_depth, body_name, forward_speed, rho, g \
+                in product(freq_range, radiating_dofs, water_depth_range, body_range, forward_speed_range, rho_range, g_range):
+            if forward_speed == 0.0:
+                problems.append(
+                    RadiationProblem(body=body_range[body_name], **{freq_type: freq},
+                                     radiating_dof=radiating_dof, water_depth=water_depth,
+                                     forward_speed=forward_speed, rho=rho, g=g)
+                )
+            else:
+                for wave_direction in wave_direction_range:
+                    problems.append(
+                        RadiationProblem(body=body_range[body_name], **{freq_type: freq},
+                                         radiating_dof=radiating_dof, water_depth=water_depth,
+                                         forward_speed=forward_speed, wave_direction=wave_direction,
+                                         rho=rho, g=g)
+                    )
 
     return sorted(problems)
 
@@ -317,6 +329,7 @@ def assemble_dataset(results,
     if attrs is None:
         attrs = {}
     attrs['creation_of_dataset'] = datetime.now().isoformat()
+
     if len(records) == 0:
         raise ValueError("No result passed to assemble_dataset.")
 
@@ -326,7 +339,7 @@ def assemble_dataset(results,
     if 'added_mass' in records.columns:
         records["radiating_dof"] = records["radiating_dof"].astype(rad_dof_cat)
 
-    optional_dims = ['g', 'rho', 'body_name', 'water_depth']
+    optional_dims = ['g', 'rho', 'body_name', 'water_depth', 'forward_speed']
 
     # RADIATION RESULTS
     if 'added_mass' in records.columns:
@@ -334,7 +347,7 @@ def assemble_dataset(results,
             records,
             variables=['added_mass', 'radiation_damping'],
             dimensions=[main_freq_type, 'radiating_dof', 'influenced_dof'],
-            optional_dims=optional_dims)
+            optional_dims=optional_dims + ['wave_direction'])
         radiation_cases.added_mass.attrs['long_name'] = 'Added mass'
         radiation_cases.radiation_damping.attrs['long_name'] = 'Radiation damping'
         radiation_cases.radiating_dof.attrs['long_name'] = 'Radiating DOF'
