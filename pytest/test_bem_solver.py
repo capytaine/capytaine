@@ -9,6 +9,7 @@ try:
 except ImportError:
     joblib = None
 
+import capytaine as cpt
 from capytaine import __version__
 from capytaine.bem.solver import BEMSolver
 from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
@@ -16,8 +17,13 @@ from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.bem.problems_and_results import RadiationProblem
 from capytaine.bodies.predefined.spheres import Sphere
 
-sphere = Sphere(radius=1.0, ntheta=2, nphi=3, clip_free_surface=True)
-sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
+
+@pytest.fixture
+def sphere():
+    mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 4)).immersed_part()
+    body = cpt.FloatingBody(mesh=mesh)
+    body.add_translation_dof(direction=(1, 0, 0), name="Surge")
+    return body
 
 
 def test_exportable_settings():
@@ -61,8 +67,8 @@ def test_limit_frequencies():
 
 
 @pytest.mark.skipif(joblib is None, reason='joblib is not installed')
-def test_parallelization():
-    solver = BEMSolver()
+def test_parallelization(sphere):
+    solver = cpt.BEMSolver()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
         'radiating_dof': list(sphere.dofs.keys()),
@@ -70,7 +76,13 @@ def test_parallelization():
     solver.fill_dataset(test_matrix, sphere, n_jobs=2)
 
 
-def test_fill_dataset():
+def test_float32_solver(sphere):
+    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(floating_point_precision="float32"))
+    pb = cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=1.0)
+    solver.solve(pb)
+
+
+def test_fill_dataset(sphere):
     solver = BEMSolver()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),

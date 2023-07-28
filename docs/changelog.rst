@@ -16,6 +16,8 @@ Bug fixes
 
 * When initializing a body with a mesh having degenerate panels, the initialization of the dofs used to happen before the degenerate panels were removed, leading to an inconsistency between the number of panels in the mesh and in the dof definition. (:issue:`367` and :pull:`375`)
 
+* Fix the single precision Green function (:code:`cpt.Delhommeau(floating_point_precision="float32")`) that was broken in v2.0. (:issue:`377` and :pull:`378`)
+
 -------------------------------
 New in version 2.0 (2023-06-21)
 -------------------------------
