@@ -69,6 +69,7 @@ class Delhommeau(AbstractGreenFunction):
         self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
                 self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
                 )
+        self.floating_point_precision = floating_point_precision
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
@@ -233,8 +234,15 @@ class Delhommeau(AbstractGreenFunction):
         else:
             raise ValueError(f"Unrecognized input for {self.__class__.__name__}.evaluate")
 
-        S = np.empty((nb_collocation_points, mesh2.nb_faces), order="F", dtype="complex128")
-        K = np.empty((nb_collocation_points, mesh2.nb_faces, 1 if early_dot_product else 3), order="F", dtype="complex128")
+        if self.floating_point_precision == "float32":
+            dtype = "complex64"
+        elif self.floating_point_precision == "float64":
+            dtype = "complex128"
+        else:
+            raise NotImplementedError
+
+        S = np.empty((nb_collocation_points, mesh2.nb_faces), order="F", dtype=dtype)
+        K = np.empty((nb_collocation_points, mesh2.nb_faces, 1 if early_dot_product else 3), order="F", dtype=dtype)
 
         # Main call to Fortran code
         self.fortran_core.matrices.build_matrices(
