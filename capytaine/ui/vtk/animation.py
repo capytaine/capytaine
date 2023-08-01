@@ -194,7 +194,7 @@ class Animation:
         renderer.GetRenderWindow().Render()
         self._current_frame += 1
 
-    def run(self, camera_position=(-10.0, -10.0, 10.0), resolution=(1280, 720)):
+    def run(self, camera_position=(-10.0, -10.0, 10.0), resolution=(1280, 720), top_light_intensity=0.5):
         """Run the animation.
 
         Parameters
@@ -216,6 +216,17 @@ class Animation:
         camera.SetFocalPoint(0, 0, 0)
         camera.SetViewUp(0, 0, 1)
         renderer.SetActiveCamera(camera)
+
+        light = vtk.vtkLight()
+        light.SetLightTypeToHeadlight()
+        renderer.AddLight(light)
+
+        if top_light_intensity > 0.0:
+            light = vtk.vtkLight()
+            light.SetDirectionAngle(0, 0)
+            light.SetLightTypeToSceneLight()
+            light.SetIntensity(top_light_intensity)
+            renderer.AddLight(light)
 
         render_window = vtk.vtkRenderWindow()
         render_window.SetSize(*resolution)
@@ -240,7 +251,7 @@ class Animation:
         del render_window_interactor
         del render_window
 
-    def save(self, filepath, nb_loops=1, camera_position=(-10.0, -10.0, 10.0), resolution=(1280, 720)):
+    def save(self, filepath, nb_loops=1, camera_position=(-10.0, -10.0, 10.0), resolution=(1280, 720), top_light_intensity=0.5):
         """Save the animation in a video file.
 
         Parameters
@@ -265,6 +276,17 @@ class Animation:
         camera.SetFocalPoint(0, 0, 0)
         camera.SetViewUp(0, 0, 1)
         renderer.SetActiveCamera(camera)
+
+        light = vtk.vtkLight()
+        light.SetLightTypeToHeadlight()
+        renderer.AddLight(light)
+
+        if top_light_intensity > 0.0:
+            light = vtk.vtkLight()
+            light.SetDirectionAngle(0, 0)
+            light.SetLightTypeToSceneLight()
+            light.SetIntensity(top_light_intensity)
+            renderer.AddLight(light)
 
         render_window = vtk.vtkRenderWindow()
         render_window.SetSize(*resolution)
