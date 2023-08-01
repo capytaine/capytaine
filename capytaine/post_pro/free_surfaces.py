@@ -10,8 +10,6 @@ from itertools import product
 import numpy as np
 
 from capytaine.meshes.meshes import Mesh
-from capytaine.bem.problems_and_results import DiffractionProblem
-from capytaine.bem.airy_waves import airy_waves_potential
 
 LOG = logging.getLogger(__name__)
 
@@ -83,9 +81,10 @@ class FreeSurface():
         return (np.abs(self.x_range[1] - self.x_range[0])
                 * np.abs(self.y_range[1] - self.y_range[0]))
 
-    def incoming_waves(self, problem: DiffractionProblem) -> np.ndarray:
+    def incoming_waves(self, problem: "DiffractionProblem") -> np.ndarray:
+        from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
         """Free surface elevation of the undisturbed incoming waves
         for a given diffraction problem.
+        Kept for legacy, but not recommended for use.
         """
-        return (1j * problem.omega / problem.g
-                * airy_waves_potential(self.mesh.faces_centers, problem))
+        return airy_waves_free_surface_elevation(self, problem)
