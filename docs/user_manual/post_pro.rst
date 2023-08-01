@@ -47,6 +47,15 @@ The point(s) can be given in several ways:
 
     solver.compute_potential(mesh, results)
 
+- or a floating body, in which case the corresponding mesh will be used::
+
+    solver.compute_potential(body, results)
+
+- or a :class:`~capytaine.post_pro.free_surfaces.FreeSurface` object, although the use of this object is not recommended unless you are preparing a 3D animation with the Capytaine's VTK viewer which still require this object at the moment::
+
+    fs = cpt.FreeSurface(x_range=(-10, 10), y_range=(-10, 10))
+    solver.compute_potential(fs, results)
+
 The returned values is an array of shape matching the shape of the input points.
 
 .. warning::
