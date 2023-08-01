@@ -1,8 +1,16 @@
 import numpy as np
+from capytaine.bodies import FloatingBody
+from capytaine.ui.vtk.free_surfaces import FreeSurface
 from capytaine.meshes import Mesh, CollectionOfMeshes
 
 
 def _normalize_points(points, keep_mesh=False):
+    if isinstance(points, (FloatingBody, FreeSurface)):
+        if keep_mesh:
+            return points.mesh, (points.mesh.nb_faces,)
+        else:
+            return points.mesh.faces_centers, (points.mesh.nb_faces,)
+
     if isinstance(points, (Mesh, CollectionOfMeshes)):
         if keep_mesh:
             return points, (points.nb_faces,)
@@ -25,7 +33,7 @@ def _normalize_points(points, keep_mesh=False):
         # points is now a (nx*ny*... , d) array
 
     else:
-        raise ValueError("This should not happen.")
+        raise ValueError(f"Expected a list of points or a mesh, but got instead: {points}")
 
     return points, output_shape
 
