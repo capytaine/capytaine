@@ -11,6 +11,11 @@ Changelog
 New in next version
 -------------------
 
+Minor changes
+~~~~~~~~~~~~~
+
+* Add `top_light_intensity` optional arguments to :meth:`~capytaine.ui.vtk.animations.Animation.run` and :meth:`~capytaine.ui.vtk.animations.Animation.save` to illuminate the scene from top. (:pull:`380`)
+
 Bug fixes
 ~~~~~~~~~
 

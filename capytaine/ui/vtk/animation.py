@@ -203,6 +203,8 @@ class Animation:
             The starting position of the camera in the scene.
         resolution: 2-ple of ints, optional
             Resolution of the video in pixels.
+        top_light_intensity: float between 0 and 1
+            Intensity of the light source at the top of the scene (default: 0.5)
         """
         # Setup a renderer, render window, and interactor
         renderer = vtk.vtkRenderer()
@@ -264,6 +266,8 @@ class Animation:
             The starting position of the camera in the scene.
         resolution: 2-ple of ints, optional
             Resolution of the video in pixels.
+        top_light_intensity: float between 0 and 1
+            Intensity of the light source at the top of the scene (default: 0.5)
         """
         renderer = vtk.vtkRenderer()
         renderer.SetBackground(1, 1, 1)  # Background color white
