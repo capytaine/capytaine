@@ -22,7 +22,7 @@ dynamic = ['version']
 ci = [
     "pytest",
     "hypothesis",
-    "bemio @ https://github.com/mancellin/archive/fa3a6d3d4b0862491c3723919ec8ee45cc7d055.zip",
+    "bemio @ https://github.com/mancellin/bemio/archive/fa3a6d3d4b0862491c3723919ec8ee45cc7d055a.zip",
 ]
 
 [build-system]
