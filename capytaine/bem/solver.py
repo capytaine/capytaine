@@ -15,6 +15,8 @@ import numpy as np
 
 from datetime import datetime
 
+from rich.progress import track
+
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem
 from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
@@ -124,7 +126,7 @@ class BEMSolver:
             the solved problems
         """
         if n_jobs == 1:  # force sequential resolution
-            return [self.solve(pb, **kwargs) for pb in sorted(problems)]
+            return [self.solve(pb, **kwargs) for pb in track(sorted(problems), description="Solving problems...")]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
