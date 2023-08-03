@@ -18,7 +18,7 @@ Bug fixes
 
 * Fix the single precision Green function (:code:`cpt.Delhommeau(floating_point_precision="float32")`) that was broken in v2.0. (:issue:`377` and :pull:`378`)
 
-* Update the BEMIO import feature to work with Pandas 2.0 and output periods as now done in Capytaine 2.0. A version of BEMIO that works in recent version of Python and Numpy can be found at https://github.com/mancellin/bemio. (:pull:`381`)
+* Update the BEMIO import feature to work with Pandas 2.0 and output periods as now done in Capytaine 2.0. A version of BEMIO that works in recent version of Python and Numpy can be found at `https://github.com/mancellin/bemio`_. (:pull:`381`)
 
 -------------------------------
 New in version 2.0 (2023-06-21)
