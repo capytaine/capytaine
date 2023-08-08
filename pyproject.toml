@@ -19,7 +19,11 @@ scripts = {capytaine = "capytaine.ui.cli:main"}
 dynamic = ['version']
 
 [project.optional-dependencies]
-ci = ["pytest", "hypothesis"]
+ci = [
+    "pytest",
+    "hypothesis",
+    "bemio @ https://github.com/mancellin/bemio/archive/fa3a6d3d4b0862491c3723919ec8ee45cc7d055a.zip",
+]
 
 [build-system]
 build-backend = 'mesonpy'
