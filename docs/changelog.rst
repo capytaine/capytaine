@@ -16,6 +16,8 @@ Minor changes
 
 * Support passing :class:`~capytaine.bodies.FloatingBody` or :class:`~capytaine.post_pro.free_surfaces.FreeSurface` objects to post-processing methods such as :meth:`~capytaine.bem.solver.BEMSolver.compute_potential` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation`. (:pull:`379`)
 
+* Add `top_light_intensity` optional arguments to :meth:`~capytaine.ui.vtk.animations.Animation.run` and :meth:`~capytaine.ui.vtk.animations.Animation.save` to illuminate the scene from top. (:pull:`380`)
+
 Bug fixes
 ~~~~~~~~~
 
