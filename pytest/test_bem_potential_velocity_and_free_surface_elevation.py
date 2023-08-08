@@ -199,6 +199,22 @@ def test_compute_free_surface_elevation_on_mesh(solver, result):
     assert fse.shape == (mesh.nb_faces,)
 
 
+#################
+#  FreeSurface  #
+#################
+
+def test_airy_waves_free_surface_elevation_on_free_surface(result):
+    from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
+    fs = cpt.FreeSurface(nx=3, ny=3)
+    fse = airy_waves_free_surface_elevation(fs, result)
+    assert fse.shape == (fs.mesh.nb_faces,)
+
+def test_compute_free_surface_elevation_on_free_surface(solver, result):
+    fs = cpt.FreeSurface(nx=3, ny=3)
+    fse = solver.compute_free_surface_elevation(fs, result)
+    assert fse.shape == (fs.mesh.nb_faces,)
+
+
 #######################################################################
 #                            Check values                             #
 #######################################################################
