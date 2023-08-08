@@ -46,24 +46,25 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
 
         LOG.debug(f"New collection of meshes: {repr(self)}")
 
-    def __repr__(self):
-        reprer = reprlib.Repr()
-        reprer.maxstring = 100
-        reprer.maxother = 100
-        meshes_names = reprer.repr(self._meshes)
-        if self.name is not None:
-            return f"{self.__class__.__name__}({meshes_names}, name={self.name})"
-        else:
-            return f"{self.__class__.__name__}{meshes_names}"
-
-    def _repr_pretty_(self, p, cycle):
-        p.text(self.__repr__())
+    def __short_str__(self):
+        return (f"{self.__class__.__name__}(..., name=\"{self.name}\")")
 
     def __str__(self):
-        if self.name is not None:
-            return self.name
+        if len(self._meshes) < 3:
+            meshes_str = ', '.join(m.__short_str__() for m in self._meshes)
         else:
-            return repr(self)
+            meshes_str = self._meshes[0].__short_str__() + ", ..., " + self._meshes[-1].__short_str__()
+        return f"{self.__class__.__name__}([{meshes_str}], name=\"{self.name}\")"
+
+    def __repr__(self):
+        reprer = reprlib.Repr()
+        reprer.maxstring = 200
+        reprer.maxother = 200
+        meshes_names = reprer.repr(self._meshes)
+        return f"{self.__class__.__name__}({meshes_names}, name=\"{self.name}\")"
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
 
     def __iter__(self):
         return iter(self._meshes)
@@ -95,7 +96,7 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
                 shift  = ' │ '
             body_tree_views.append(prefix + tree_view.replace('\n', '\n' + shift))
 
-        return self.name + '\n' + '\n'.join(body_tree_views)
+        return self.__short_str__() + '\n' + '\n'.join(body_tree_views)
 
     def copy(self, name=None):
         from copy import deepcopy
