@@ -49,6 +49,9 @@ class ReflectionSymmetricMesh(SymmetricMesh):
 
         other_half = half.mirrored(plane, name=f"mirrored_of_{str(half)}")
 
+        if name is None:
+            name = f"reflection_of_{half.name}"
+
         super().__init__((half, other_half), name=name)
 
         self.plane = plane.copy()
@@ -126,6 +129,9 @@ class TranslationalSymmetricMesh(SymmetricMesh):
         slices = [mesh_slice]
         for i in range(1, nb_repetitions+1):
             slices.append(mesh_slice.translated(vector=i*translation, name=f"repetition_{i}_of_{mesh_slice.name}"))
+
+        if name is None:
+            name = f"translation_of_{mesh_slice.name}"
 
         super().__init__(slices, name=name)
 
@@ -231,6 +237,9 @@ class AxialSymmetricMesh(SymmetricMesh):
         for i in range(1, nb_repetitions+1):
             slices.append(mesh_slice.rotated(axis, angle=2*i*np.pi/(nb_repetitions+1),
                                              name=f"rotation_{i}_of_{mesh_slice.name}"))
+
+        if name is None:
+            name = f"rotation_of_{mesh_slice.name}"
 
         super().__init__(slices, name=name)
 

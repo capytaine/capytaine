@@ -39,7 +39,10 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
         for mesh in self._meshes:
             assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
 
-        self.name = name
+        if name is None:
+            self.name = f'collection_of_meshes_{next(Mesh._ids)}'
+        else:
+            self.name = str(name)
 
         LOG.debug(f"New collection of meshes: {repr(self)}")
 
