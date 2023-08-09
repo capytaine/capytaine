@@ -3,6 +3,7 @@ import numpy as np
 import xarray as xr
 
 import capytaine as cpt
+from capytaine.post_pro import irf
 
 @pytest.fixture
 def sphere_fb():
