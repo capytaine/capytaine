@@ -56,7 +56,6 @@ class SymbolicMultiplication:
         return SymbolicMultiplication(self.symbol, self.value @ x)
 
     def __rmatmul__(self, x):
-        print("Hello from rmatmul")
         return SymbolicMultiplication(self.symbol, x @ self.value)
 
     def __eq__(self, x):

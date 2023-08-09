@@ -90,7 +90,6 @@ class LinearPotentialFlowProblem:
         else:
             provided_freq_type = [k for (k, v) in frequency_data.items() if v is not None][0]
 
-        print(float(frequency_data[provided_freq_type]), provided_freq_type)
         if ((float(frequency_data[provided_freq_type]) == 0.0 and provided_freq_type in {'omega', 'wavenumber'})
             or (float(frequency_data[provided_freq_type]) == np.infty and provided_freq_type in {'period', 'wavelength'})):
                 omega = SymbolicMultiplication("0")
