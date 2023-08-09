@@ -86,29 +86,3 @@ def supporting_symbolic_multiplication(f):
             return f(a, x)
     return wrapped_f
 
-
-if __name__ == "__main__":
-    zero = SymbolicMultiplication("0")
-    #
-    # a = zero * 2.0
-    # print(a)
-    # print(1/a)
-    # # assert a / zero == 2.0
-    # b = zero * a
-    # isinstance(b, SymbolicMultiplication)
-    # assert b / (zero * zero) == 2.0
-    #
-    # infty = SymbolicMultiplication("∞")
-    # x = 3.0 * infty
-    # print(x)
-    # print(infty/x)
-
-    import capytaine as cpt
-    mesh = cpt.mesh_sphere().immersed_part()
-    body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
-    pb = cpt.RadiationProblem(body=body, omega=zero, radiating_dof="Heave")
-    isinstance(pb.boundary_condition, SymbolicMultiplication)
-    res = cpt.BEMSolver().solve(pb)
-    print(res.added_masses)
-    print(res.radiation_dampings)
-    # pb = cpt.RadiationProblem(body=body, wavenumber=zero, radiating_dof="Heave")
