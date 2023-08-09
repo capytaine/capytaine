@@ -1,0 +1,50 @@
+{
+    "title": "Capytaine",
+    "upload_type": "software",
+    "creators": [
+        {
+            "affiliation": "Eurobios Scientific Computing Branch",
+            "name": "Matthieu Ancellin",
+            "orcid": "0000-0002-0316-3230"
+        },
+        {
+            "affiliation": "Sandia National Laboratories",
+            "name": "Ryan Coe",
+            "orcid": "0000-0003-0738-3772"
+        },
+        {
+            "affiliation": "Politecnico di Milano",
+            "name": "Marco Gambarini",
+            "orcid": "0000-0001-9562-1456"
+        },
+        {
+            "affiliation": "Sandia National Laboratories",
+            "name": "Carlos A. Michelén Ströfer",
+            "orcid": "0000-0001-6274-7271"
+        },
+        {
+            "affiliation": "Texas A&M University",
+            "name": "Chaitanya Kesanapalli",
+            "orcid": "0000-0003-1825-9857"
+        },
+        {
+            "affiliation": "Sandia National Laboratories",
+            "name": "Michael Devin",
+            "orcid": "0000-0002-4463-3905"
+        },
+        {
+            "name": "luzpaz"
+        },
+        {
+            "affiliation": "Sandia National Laboratories",
+            "name": "Jeff Grasberger",
+            "orcid": "0000-0003-3374-6119"
+        },
+        {
+            "affiliation": "Eurobios Scientific Computing Branch",
+            "name": "Emmanuel Cieren",
+            "orcid": "0000-0002-3040-3201"
+        }
+    ],
+    "access_right": "open"
+}

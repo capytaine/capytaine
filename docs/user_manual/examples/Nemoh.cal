@@ -1,5 +1,5 @@
 --- Environment ---
-1000                    ! RHO         ! KG/M**3   ! Fluid specific volume 
+1000                    ! RHO         ! KG/M**3   ! Fluid specific volume
 9.81                    ! G           ! M/S**2    ! Gravity
 0                       ! DEPTH       ! M         ! Water depth
 0     0                 ! Wave measurement point !! This line is ignored !!
@@ -22,13 +22,10 @@ Cylinder.dat            ! Name of mesh file
 2  1  0  0  0  0  -7.5  ! Moment force in x direction about CdG !! This line is ignored !!
 2  0  1  0  0  0  -7.5  ! Moment force in y direction about CdG !! This line is ignored !!
 2  0  0  1  0  0  -7.5  ! Moment force in z direction about CdG !! This line is ignored !!
-0                       ! Number of lines of additional information !! All the additional informations are ignored !!
+0                       ! Number of lines of additional information !! All the additional information is ignored !!
 --- Load cases to be solved ---
-2  0.1  2.0             ! Number of wave frequencies, Min, and Max (rad/s)
+1  2  0.1  2.0          ! Freq type 1,2,3=[rad/s,Hz,s], Number of wave frequencies/periods, Min, and Max
 1  0.0  0.0             ! Number of wave directions, Min and Max (degrees)
 --- Post processing ---
-0  0.1  10              ! IRF !! This line is ignored !!
-0                       ! Show pressure !! This line is ignored !!
-0  0  180               ! Kochin function !! This line is ignored !!
-0 10  100  100          ! Free surface elevation !! This line ignored !!
+!! All lines below are ignored by Capytaine !!
 

@@ -8,29 +8,39 @@ import capytaine as cpt
 
 try:
     import quadpy
-    from packaging import version
-    quadpy_version = version.parse(quadpy.__version__)
 except ImportError:
     quadpy = None
 
 
-@pytest.mark.skipif(quadpy is None or not quadpy_version < version.parse('0.15'),
-                    reason='quadpy not installed or incorrect version (must be <0.15) ')
-def test_area():
+@pytest.mark.skipif(quadpy is None, reason="quadpy is not installed")
+def test_quadrature_points_are_coplanar():
+    # Check that all quadrature points are within the plane containing the panel
     mesh = cpt.Sphere().mesh
+    for method in [quadpy.c2.schemes['sommariva_05'](), quadpy.c2.schemes["stroud_c2_7_4"]()]:
+        mesh.compute_quadrature(method)
+        for i_face in range(mesh.nb_faces):
+            A, B, C, D = mesh.vertices[mesh.faces[i_face, :], :]
+            for j_quad_point in range(mesh.quadrature_points[0].shape[1]):
+                X = mesh.quadrature_points[0][i_face, j_quad_point, :]
+                assert np.isclose(np.dot(np.cross(B-A, C-A), X-A), 0.0, atol=1e-8)
 
-    for quadrature in [quadpy.quadrilateral.sommariva_05(), quadpy.quadrilateral.stroud_c2_7_2()]:
-        mesh.compute_quadrature(quadrature)
+
+@pytest.mark.skipif(quadpy is None, reason="quadpy is not installed")
+def test_area():
+    # Check that quadrature weights sum to the area of the panel
+    mesh = cpt.Sphere().mesh
+    for method in [quadpy.c2.schemes['sommariva_05'](), quadpy.c2.schemes["stroud_c2_7_4"]()]:
+        mesh.compute_quadrature(method)
         for i_face in range(mesh.nb_faces):
             assert np.isclose(np.sum(mesh.quadrature_points[1][i_face, :]), mesh.faces_areas[i_face], rtol=1e-2)
 
 
-@pytest.mark.skipif(quadpy is None or not quadpy_version < version.parse('0.15'),
-                    reason='quadpy not installed or incorrect version (must be <0.15) ')
+@pytest.mark.skipif(quadpy is None, reason="quadpy is not installed")
 def test_resolution():
     cylinder = cpt.HorizontalCylinder(
         length=5.0, radius=1.0,
         center=(0, 0, -2),
+        reflection_symmetry=False,
         nr=2, nx=10, ntheta=5,
     )
     # cylinder.show()
@@ -43,10 +53,10 @@ def test_resolution():
 
     solver = cpt.BEMSolver()
 
-    cylinder.mesh.compute_quadrature(quadpy.quadrilateral.sommariva_01())
+    cylinder.mesh.compute_quadrature(quadpy.c2.schemes['sommariva_01']())
     data_1 = solver.fill_dataset(test_matrix, [cylinder], mesh=True)
 
-    cylinder.mesh.compute_quadrature(quadpy.quadrilateral.sommariva_03())
+    cylinder.mesh.compute_quadrature(quadpy.c2.schemes['sommariva_03']())
     data_3 = solver.fill_dataset(test_matrix, [cylinder], mesh=True)
 
     assert data_1['quadrature_method'] == "Sommariva 1"

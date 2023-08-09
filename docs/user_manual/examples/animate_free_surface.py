@@ -3,20 +3,19 @@
 import logging
 
 import capytaine as cpt
+from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
 from capytaine.ui.vtk.animation import Animation
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:\t%(message)s")
 
 # Generate the mesh of a sphere
-full_sphere = cpt.Sphere(
-    radius=3, center=(0, 0, 0),  # Size and positions
-    ntheta=20, nphi=20,          # Fineness of the mesh
-)
+
+full_mesh = cpt.mesh_sphere(radius=3, center=(0, 0, 0), resolution=(20, 20))
+full_sphere = cpt.FloatingBody(mesh=full_mesh)
 full_sphere.add_translation_dof(name="Heave")
 
 # Keep only the immersed part of the mesh
-sphere = full_sphere.keep_immersed_part(inplace=False)
-sphere.add_translation_dof(name="Heave")
+sphere = full_sphere.immersed_part()
 
 # Set up and solve problem
 solver = cpt.BEMSolver()
@@ -29,11 +28,11 @@ radiation_result = solver.solve(radiation_problem)
 
 # Define a mesh of the free surface and compute the free surface elevation
 free_surface = cpt.FreeSurface(x_range=(-50, 50), y_range=(-50, 50), nx=150, ny=150)
-diffraction_elevation_at_faces = solver.get_free_surface_elevation(diffraction_result, free_surface)
-radiation_elevation_at_faces = solver.get_free_surface_elevation(radiation_result, free_surface)
+diffraction_elevation_at_faces = solver.compute_free_surface_elevation(free_surface, diffraction_result)
+radiation_elevation_at_faces = solver.compute_free_surface_elevation(free_surface, radiation_result)
 
 # Add incoming waves
-diffraction_elevation_at_faces = diffraction_elevation_at_faces + free_surface.incoming_waves(diffraction_result)
+diffraction_elevation_at_faces = diffraction_elevation_at_faces + airy_waves_free_surface_elevation(free_surface, diffraction_problem)
 
 # Run the animations
 animation = Animation(loop_duration=diffraction_result.period)

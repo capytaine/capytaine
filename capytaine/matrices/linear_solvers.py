@@ -60,16 +60,59 @@ def solve_directly(A, b):
         raise ValueError(f"Unrecognized type of matrix to solve: {A}")
 
 
-# EXPERIMENT: STORING THE LU DECOMPOSITION
-@lru_cache(maxsize=1)
-def lu_decomp(A):
-    LOG.debug(f"Compute LU decomposition of {A}.")
-    return sl.lu_factor(A.full_matrix())
+# CACHED LU DECOMPOSITION
+class LUSolverWithCache:
+    """Solve linear system with the LU decomposition.
 
+    The latest LU decomposition is kept in memory, if a system with the same matrix needs to be solved again, then the decomposition is reused.
 
-def solve_storing_lu(A, b):
-    LOG.debug(f"Solve with LU decomposition of {A}.")
-    return sl.lu_solve(lu_decomp(A), b)
+    Most of the complexity of this class comes from:
+    1. @lru_cache does not work because numpy arrays are not hashable. So a basic cache system has been recoded from scratch.
+    2. To be the default solver for the BasicMatrixEngine, the solver needs to support matrices for problems with one or two reflection symmetries.
+    Hence, a custom way to cache the LU decomposition of the matrices involved in the direct linear resolution of the symmetric problem.
+    """
+    def __init__(self):
+        self.cached_matrix = None
+        self.cached_decomp = None
+
+    def solve(self, A, b):
+        return self.solve_with_decomp(self.cached_lu_decomp(A), b)
+
+    def lu_decomp(self, A):
+        """Return the LU decomposition of A.
+        If A is BlockSymmetricToeplitzMatrix, then return a list of LU decompositions for each block of the block diagonalisation of the matrix.
+        """
+        if isinstance(A, BlockSymmetricToeplitzMatrix) and A.nb_blocks == (2, 2):
+            A1, A2 = A._stored_blocks[0, :]
+            return [self.lu_decomp(A1 + A2), self.lu_decomp(A1 - A2)]
+        elif isinstance(A, np.ndarray):
+            return sl.lu_factor(A)
+        else:
+            raise NotImplementedError("Cached LU solver is only implemented for dense matrices and 2×2 BlockSymmetricToeplitzMatrix.")
+
+    def cached_lu_decomp(self, A):
+        if not(A is self.cached_matrix):
+            self.cached_matrix = A
+            LOG.debug(f"Computing and caching LU decomposition")
+            self.cached_decomp = self.lu_decomp(A)
+        else:
+            LOG.debug(f"Using cached LU decomposition")
+        return self.cached_decomp
+
+    def solve_with_decomp(self, decomp, b):
+        """Solve the system using the precomputed LU decomposition.
+        TODO: find a better way to differentiate a LU decomposition (returned as tuple by sl.lu_factor)
+        and a set of LU decomposition (stored as a list in self.lu_decomp).
+        """
+        if isinstance(decomp, list):  # The matrix was a BlockSymmetricToeplitzMatrix
+            b1, b2 = b[:len(b)//2], b[len(b)//2:]
+            x_plus = self.solve_with_decomp(decomp[0], b1 + b2)
+            x_minus = self.solve_with_decomp(decomp[1], b1 - b2)
+            return np.concatenate([x_plus + x_minus, x_plus - x_minus])/2
+        elif isinstance(decomp, tuple):  # The matrix was a np.ndarray
+            return sl.lu_solve(decomp, b)
+        else:
+            raise NotImplementedError("Cached LU solver is only implemented for dense matrices and 2×2 BlockSymmetricToeplitzMatrix.")
 
 
 # ITERATIVE SOLVER
@@ -93,8 +136,10 @@ def solve_gmres(A, b):
     else:
         x, info = ssl.gmres(A, b, atol=1e-6)
 
-    if info != 0:
-        LOG.warning(f"No convergence of the GMRES. Error code: {info}")
+    if info > 0:
+        raise RuntimeError(f"No convergence of the GMRES after {info} iterations.\n"
+                            "This can be due to overlapping panels or irregular frequencies.\n"
+                            "In the latter case, using a direct solver can help (https://github.com/mancellin/capytaine/issues/30).")
 
     return x
 

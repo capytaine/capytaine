@@ -1,0 +1,5 @@
+*.o
+*.mod
+*.bin
+lib/
+results/

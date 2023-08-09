@@ -314,16 +314,22 @@ class LowRankMatrix:
     #  Representation  #
     ####################
 
-    def full_matrix(self):
-        return self.left_matrix @ self.right_matrix
+    def full_matrix(self, dtype=None):
+        if dtype is not None:
+            return (self.left_matrix @ self.right_matrix).astype(dtype)
+        else:
+            return self.left_matrix @ self.right_matrix
+
+    def __array__(self, dtype=None):
+        return self.full_matrix(dtype=dtype)
 
     @property
     def stored_data_size(self):
-        return np.product(self.left_matrix.shape) + np.product(self.right_matrix.shape)
+        return np.prod(self.left_matrix.shape) + np.prod(self.right_matrix.shape)
 
     @property
     def density(self):
-        return self.stored_data_size/np.product(self.shape)
+        return self.stored_data_size/np.prod(self.shape)
 
     @property
     def sparcity(self):
@@ -376,6 +382,14 @@ class LowRankMatrix:
     def _mul_with_vector(self, other):
         return self.left_matrix @ (self.right_matrix @ other)
 
+    def __rmatmul__(self, other):
+        if isinstance(other, np.ndarray) and len(other.shape) == 1:
+            return self._rmul_with_vector(other)
+        else:
+            return NotImplemented
+
+    def _rmul_with_vector(self, other):
+        return (other @ self.left_matrix) @ self.right_matrix
+
     def astype(self, dtype):
         return LowRankMatrix(self.left_matrix.astype(dtype), self.right_matrix.astype(dtype))
-

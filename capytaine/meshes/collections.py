@@ -12,13 +12,14 @@ from typing import Iterable, Union
 
 import numpy as np
 
-from capytaine.meshes.geometry import Abstract3DObject, inplace_transformation
+from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, inplace_transformation
+from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 
 
-class CollectionOfMeshes(Abstract3DObject):
+class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
     """A tuple of meshes.
     It gives access to all the vertices of all the sub-meshes as if it were a mesh itself.
     Collections can be nested to store meshes in a tree structure.
@@ -51,6 +52,9 @@ class CollectionOfMeshes(Abstract3DObject):
             return f"{self.__class__.__name__}({meshes_names}, name={self.name})"
         else:
             return f"{self.__class__.__name__}{meshes_names}"
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__repr__())
 
     def __str__(self):
         if self.name is not None:
@@ -251,20 +255,10 @@ class CollectionOfMeshes(Abstract3DObject):
         self._clipping_data['faces_ids'] = np.asarray(self._clipping_data['faces_ids'])
         self.prune_empty_meshes()
 
-    def clipped(self, plane, **kwargs):
-        # Same API as for the other transformations
-        return self.clip(plane, inplace=False, **kwargs)
-
     def symmetrized(self, plane):
         from capytaine.meshes.symmetric import ReflectionSymmetricMesh
         half = self.clipped(plane, name=f"{self.name}_half")
         return ReflectionSymmetricMesh(half, plane=plane, name=f"symmetrized_of_{self.name}")
-
-    @inplace_transformation
-    def keep_immersed_part(self, **kwargs):
-        for mesh in self:
-            mesh.keep_immersed_part(**kwargs)
-        self.prune_empty_meshes()
 
     @inplace_transformation
     def prune_empty_meshes(self):

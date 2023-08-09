@@ -7,12 +7,15 @@ Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import os
+import logging
 import numpy as np
 
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh
-from capytaine.meshes.geometry import xOz_Plane
+from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
 from capytaine.tools.optional_imports import import_optional_dependency
+
+LOG = logging.getLogger(__name__)
 
 real_str = r'[+-]?(?:\d+\.\d*|\d*\.\d+)(?:[Ee][+-]?\d+)?'  # Regex for floats
 
@@ -30,7 +33,7 @@ def load_mesh(filename, file_format=None, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
     file_format: str, optional
         format of the mesh defined in the extension_dict dictionary
     name: str, optional
@@ -52,6 +55,8 @@ def load_mesh(filename, file_format=None, name=None):
 
     loader = extension_dict[file_format]
 
+    if name is None: name = filename
+
     return loader(filename, name)
 
 
@@ -61,7 +66,7 @@ def load_RAD(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -113,7 +118,7 @@ def load_HST(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -124,56 +129,101 @@ def load_HST(filename, name=None):
     ----
     HST files have a 1-indexing
     """
+
     _check_file(filename)
 
-    ifile = open(filename, 'r')
-    data = ifile.read()
-    ifile.close()
+    with open(filename, 'r') as f:
+        lines = f.readlines()
 
-    import re
+    optional_keywords = ['PROJECT', 'SYMMETRY']
+    not_implemented_optional_keywords = ['USER', 'REFLENGTH', 'GRAVITY', 'RHO', 'NBBODY']
 
-    node_line = r'\s*\d+(?:\s+' + real_str + '){3}'
-    node_section = r'((?:' + node_line + ')+)'
-
-    elem_line = r'^\s*(?:\d+\s+){3}\d+\s*[\r\n]+'
-    elem_section = r'((?:' + elem_line + ')+)'
-
-    pattern_node_line = re.compile(node_line, re.MULTILINE)
-    pattern_elem_line = re.compile(elem_line, re.MULTILINE)
-    pattern_node_section = re.compile(node_section, re.MULTILINE)
-    pattern_elem_section = re.compile(elem_section, re.MULTILINE)
-
-    vertices_tmp = []
     vertices = []
-    nv = 0
-    for node_section in pattern_node_section.findall(data):
-        for node in pattern_node_line.findall(node_section):
-            vertices_tmp.append(list(map(float, node.split()[1:])))
-        nv_tmp = len(vertices_tmp)
-        vertices_tmp = np.asarray(vertices_tmp, dtype=float)
-        if nv == 0:
-            vertices = vertices_tmp.copy()
-            nv = nv_tmp
-        else:
-            vertices = np.concatenate((vertices, vertices_tmp))
-            nv += nv_tmp
-
-    faces_tmp = []
     faces = []
-    nf = 0
-    for elem_section in pattern_elem_section.findall(data):
-        for elem in pattern_elem_line.findall(elem_section):
-            faces_tmp.append(list(map(int, elem.split())))
-        nf_tmp = len(faces_tmp)
-        faces_tmp = np.asarray(faces_tmp, dtype=int)
-        if nf == 0:
-            faces = faces_tmp.copy()
-            nf = nf_tmp
-        else:
-            faces = np.concatenate((faces, faces_tmp))
-            nf += nf_tmp
+    optional_data = {kw: None for kw in optional_keywords}
+    current_context = None
+    ignored_lines = []
 
-    return Mesh(vertices, faces-1, name)
+    for i_line, line in enumerate(lines):
+        line = line.lstrip()
+
+        if line == '':
+            continue
+
+        elif line.startswith("COORDINATES"):
+            current_context = 'vertices'
+
+        elif current_context == 'vertices' and line.startswith("ENDCOORDINATES"):
+            current_context = None
+
+        elif line.startswith("PANEL"):
+            panels_type = int(line[10:])
+            current_context = ('panels', panels_type)
+
+        elif (current_context == ('panels', 0) or current_context == ('panels', 1)) and line.startswith("ENDPANEL"):
+            current_context = None
+
+        elif current_context == 'vertices':  # parse vertex coordinates
+            numbers = line.split()
+            if len(numbers) == 4:
+                i_vertex, x, y, z = numbers
+                if int(i_vertex) != len(vertices) + 1:
+                    raise ValueError(
+                        f"HST mesh reader expected the next vertex to be indexed as {len(vertices)+1}, "
+                        f"but it was actually indexed as {i_vertex} (line {i_line+1} of {filename}).")
+            elif len(numbers) == 3:
+                x, y, z = numbers
+            vertices.append([x, y, z])
+
+        elif current_context == ('panels', 0):  # parse face definition (no index given)
+            numbers = line.split()
+            if len(numbers) == 3:
+                v1, v2, v3 = numbers
+                v4 = v3
+            elif len(numbers) == 4:
+                v1, v2, v3, v4 = numbers
+            faces.append([v1, v2, v3, v4])
+
+        elif current_context == ('panels', 1):  # parse face definition
+            numbers = line.split()
+            if len(numbers) == 4:
+                i_face, v1, v2, v3 = numbers
+                v4 = v3
+            elif len(numbers) == 5:
+                i_face, v1, v2, v3, v4 = numbers
+
+            if int(i_face) != len(faces) + 1:
+                ii = len(faces) + 1
+                raise ValueError(f"HST mesh reader expected the next face to be indexed {ii},\n"
+                                 f"but it was actually indexed with {i_face} (line {i_line+1} of file {filename}).")
+            faces.append([v1, v2, v3, v4])
+
+        elif line.startswith("ENDFILE"):
+            break
+
+        else:
+            for keyword in optional_data:
+                if line.startswith(keyword):
+                    optional_data[keyword] = line[len(keyword)+1:].lstrip(':').strip()
+                    break
+            else:
+                ignored_lines.append((i_line+1, line))
+
+    if len(ignored_lines) > 0:
+        formatted_ignored_lines = ["{: 4} | {}".format(i, line.strip('\n')) for (i, line) in ignored_lines]
+        LOG.warning(f"HST mesh reader ignored the following lines from file {filename}:\n" + "\n".join(formatted_ignored_lines))
+
+    vertices = np.array(vertices, dtype=float)
+    faces = np.array(faces, dtype=int) - 1
+
+    if name is None: name = optional_data['PROJECT']
+
+    if optional_data['SYMMETRY'] == '1':
+        return ReflectionSymmetricMesh(Mesh(vertices, faces, f"half_of_{name}"), xOz_Plane, name)
+    elif optional_data['SYMMETRY'] == '2':
+        return ReflectionSymmetricMesh(ReflectionSymmetricMesh(Mesh(vertices, faces, f"quarter_of_{name}"), yOz_Plane, f"half_of_{name}"), xOz_Plane, name)
+    else:
+        return Mesh(vertices, faces, name)
 
 
 def load_DAT(filename, name=None):
@@ -187,13 +237,13 @@ def load_DAT(filename, name=None):
 def load_INP(filename, name=None):
     """Loads DIODORE (PRINCIPIA (c)) configuration file format.
 
-    It parses the .INP file and extract meshes defined in subsequent .DAT files using the different informations
+    It parses the .INP file and extracts meshes defined in subsequent .DAT files using the different information
     contained in the .INP file.
 
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -210,7 +260,7 @@ def load_INP(filename, name=None):
     with open(filename, 'r') as f:
         text = f.read()
 
-    # Retrieving frames into a dictionnary frames
+    # Retrieving frames into a dictionary frames
     pattern_frame_str = r'^\s*\*FRAME,NAME=(.+)[\r\n]+(.*)'
     pattern_frame = re.compile(pattern_frame_str, re.MULTILINE)
 
@@ -360,7 +410,7 @@ def load_TEC(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -402,7 +452,7 @@ def load_VTU(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -435,7 +485,7 @@ def load_VTP(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -467,7 +517,7 @@ def load_VTK(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -529,7 +579,7 @@ def load_STL(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -578,7 +628,7 @@ def load_NAT(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -643,11 +693,11 @@ def load_GDF(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
-    Mesh
+    Mesh or ReflectionSymmetricMesh
         the loaded mesh
 
     Note
@@ -657,41 +707,30 @@ def load_GDF(filename, name=None):
 
     _check_file(filename)
 
-    ifile = open(filename, 'r')
+    with open(str(filename)) as gdf_file:
+        title = gdf_file.readline()
+        ulen, grav = map(float, gdf_file.readline().split()[:2])
+        isx, isy = map(int, gdf_file.readline().split()[:2])
+        npan = int(gdf_file.readline().split()[0])
+        faces_vertices = np.genfromtxt(gdf_file)
 
-    ifile.readline()  # skip one header line
-    line = ifile.readline().split()
-    ulen = line[0]
-    grav = line[1]
+    vertices, indices = np.unique(faces_vertices, axis=0, return_inverse=True)
+    faces = indices.reshape(-1, 4)
 
-    line = ifile.readline().split()
-    isx = line[0]
-    isy = line[1]
+    if faces.shape[0] != npan:
+        raise ValueError(
+            f"In {filename} npan value: {npan} is not equal to face count: \
+                {faces.shape[0]}."
+        )
 
-    line = ifile.readline().split()
-    nf = int(line[0])
-
-    vertices = np.zeros((4 * nf, 3), dtype=float)
-    faces = np.zeros((nf, 4), dtype=int)
-
-    iv = 0
-    for icell in range(nf):
-        
-        n_coords = 0
-        face_coords = np.zeros((12,), dtype=float)
-        
-        while n_coords < 12:
-            line = np.array(ifile.readline().split())
-            face_coords[n_coords:n_coords+len(line)] = line
-            n_coords += len(line)
-
-        vertices[iv:iv+4, :] = np.split(face_coords, 4)
-        faces[icell, :] = np.arange(iv, iv+4)
-        iv += 4
-
-    ifile.close()
-
-    return Mesh(vertices, faces, name)
+    if isx == 1 and isy == 1:
+        return ReflectionSymmetricMesh(ReflectionSymmetricMesh(Mesh(vertices, faces, f"quarter_of_{name}"), yOz_Plane, f"half_of_{name}"), xOz_Plane, name)
+    elif isx == 1:
+        return ReflectionSymmetricMesh(Mesh(vertices, faces, f"half_of_{name}"), yOz_Plane, name)
+    elif isy == 1:
+        return ReflectionSymmetricMesh(Mesh(vertices, faces, f"half_of_{name}"), xOz_Plane, name)
+    else:
+        return Mesh(vertices, faces, name)
 
 
 def load_MAR(filename, name=None):
@@ -700,7 +739,7 @@ def load_MAR(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -757,7 +796,7 @@ def load_MSH(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -806,7 +845,7 @@ def load_MED(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -830,18 +869,17 @@ def load_MED(filename, name=None):
     list_of_names = []
     file.visit(list_of_names.append)
 
-    # TODO: gerer les cas ou on a que des tris ou que des quads...
     nb_quadrangles = nb_triangles = 0
 
     for item in list_of_names:
         if '/NOE/COO' in item:
-            vertices = file.get(item).value.reshape((3, -1)).T
+            vertices = file[item][:].reshape((3, -1)).T
             nv = vertices.shape[0]
         if '/MAI/TR3/NOD' in item:
-            triangles = file.get(item).value.reshape((3, -1)).T - 1
+            triangles = file[item][:].reshape((3, -1)).T - 1
             nb_triangles = triangles.shape[0]
         if '/MAI/QU4/NOD' in item:
-            quadrangles = file.get(item).value.reshape((4, -1)).T - 1
+            quadrangles = file[item][:].reshape((4, -1)).T - 1
             nb_quadrangles = quadrangles.shape[0]
 
     file.close()
@@ -853,13 +891,9 @@ def load_MED(filename, name=None):
     if nb_quadrangles == 0:
         quadrangles = np.zeros((0, 4), dtype=int)
 
-    faces = np.zeros((nb_triangles+nb_quadrangles, 4), dtype=int)
-    faces[:nb_triangles] = triangles
-    # faces[:nb_triangles, -1] = triangles[:, 0]
-    faces[nb_triangles:] = quadrangles
+    faces = np.row_stack([triangles, quadrangles])
 
-    vertices = np.ascontiguousarray(vertices)
-    return Mesh(vertices, faces)
+    return Mesh(vertices, faces, name=name)
 
 
 def load_WRL(filename, name=None):
@@ -868,7 +902,7 @@ def load_WRL(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -905,7 +939,7 @@ def load_NEM(filename, name=None):
     Parameters
     ----------
     filename: str
-        name of the meh file on disk
+        name of the mesh file on disk
 
     Returns
     -------
@@ -938,6 +972,62 @@ def load_NEM(filename, name=None):
     return Mesh(vertices, faces, name)
 
 
+def load_PNL(filename, name=None):
+    """Load mesh using HAMS file format.
+
+    Parameters
+    ----------
+    filename: str
+        name of the mesh file on disk
+
+    Returns
+    -------
+    Mesh or ReflectionSymmetricMesh
+        the loaded mesh
+    """
+
+    with open(filename, 'r') as f:
+        # Skip 3 title lines
+        f.readline()
+        f.readline()
+        f.readline()
+        # Read header data
+        nb_faces, nb_vertices, x_sym, y_sym = map(int, f.readline().split())
+        # Skip 2 more lines
+        f.readline()
+        f.readline()
+        vertices = np.genfromtxt((f.readline() for _ in range(nb_vertices)), usecols=(1, 2, 3))
+        # Skip 3 more lines
+        f.readline()
+        f.readline()
+        f.readline()
+        faces = np.zeros((nb_faces, 4), dtype=int)
+        for i in range(nb_faces):
+            index, nb_corners, *data = map(int, f.readline().split())
+            assert i+1 == index
+            if nb_corners == 3:  # Triangle
+                assert len(data) == 3
+                faces[i, 0:3] = data
+                faces[i, 3] = faces[i, 2]  # Convention for triangles in Capytaine: repeat last vertex
+            elif int(nb_corners) == 4:  # Quadrangle
+                assert len(data) == 4
+                faces[i, :] = data
+    faces = faces - 1  # Going from Fortran 1-based indices to Numpy 0-based indices
+
+    if x_sym == 1 and y_sym == 0:
+        half_mesh = Mesh(vertices, faces, name=(f"half_of_{name}" if name is not None else None))
+        return ReflectionSymmetricMesh(half_mesh, plane=yOz_Plane, name=name)
+    elif x_sym == 0 and y_sym == 1:
+        half_mesh = Mesh(vertices, faces, name=(f"half_of_{name}" if name is not None else None))
+        return ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=name)
+    elif x_sym == 1 and y_sym == 1:
+        quarter_mesh = Mesh(vertices, faces, name=(f"quarter_of_{name}" if name is not None else None))
+        half_mesh = ReflectionSymmetricMesh(quarter_mesh, plane=xOz_Plane, name=(f"half_of_{name}" if name is not None else None))
+        return ReflectionSymmetricMesh(half_mesh, plane=yOz_Plane, name=name)
+    else:
+        return Mesh(vertices, faces, name)
+
+
 extension_dict = {  # keyword, reader
     'dat': load_MAR,
     'mar': load_MAR,
@@ -967,5 +1057,7 @@ extension_dict = {  # keyword, reader
     'vrml': load_WRL,
     'wrl': load_WRL,
     'nem': load_NEM,
-    'nemoh_mesh': load_NEM
+    'nemoh_mesh': load_NEM,
+    'pnl': load_PNL,
+    'hams': load_PNL,
 }

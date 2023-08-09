@@ -14,14 +14,13 @@
 #
 import os
 import sys
-sys.path.insert(0, os.path.abspath('../'))
 from capytaine import __version__
 
 
 # -- Project information -----------------------------------------------------
 
 project = 'capytaine'
-copyright = '2019, Matthieu Ancellin'
+copyright = '2022, Matthieu Ancellin'
 author = 'Matthieu Ancellin'
 
 # The short X.Y version
@@ -49,12 +48,14 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     # 'sphinx.ext.githubpages',
+    'sphinx_toolbox.collapse',
     'sphinxcontrib.proof',
+    'sphinxcontrib.mermaid',
 ]
 
 extlinks = {
-    "issue": ("https://github.com/mancellin/capytaine/issues/%s", "GH"),
-    "pull": ("https://github.com/mancellin/capytaine/pull/%s", "PR"),
+    "issue": ("https://github.com/capytaine/capytaine/issues/%s", "GH %s"),
+    "pull": ("https://github.com/capytaine/capytaine/pull/%s", "PR %s"),
 }
 
 # Add any paths that contain templates here, relative to this directory.
@@ -189,7 +190,7 @@ todo_include_todos = True
 
 math_number_all = True
 
-# Options for napolean
+# Options for napoleon
 
 napoleon_google_docstring = False
 napoleon_numpy_docstring = True

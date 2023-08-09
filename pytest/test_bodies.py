@@ -6,6 +6,7 @@ import pytest
 import numpy as np
 import xarray as xr
 
+import capytaine as cpt
 from capytaine import BEMSolver
 from capytaine.bodies import FloatingBody
 from capytaine.meshes.meshes import Mesh
@@ -44,8 +45,51 @@ def test_dof_name_inference():
     body.add_all_rigid_body_dofs()
 
 
+def test_rigid_body_dofs():
+    import capytaine as cpt
+    mesh = cpt.Sphere().mesh
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(10.0, 0.0, 0.0)))
+    assert "Heave" in body.dofs
+    assert np.all(body.dofs["Pitch"][:, 2] > 9.0)
+
+def test_rigid_body_dofs_no_rotation_center_but_a_center_of_mass():
+    import capytaine as cpt
+    mesh = cpt.Sphere().mesh
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(-10.0, 0.0, 0.0))
+    assert np.all(body.dofs["Pitch"][:, 2] < -9.0)
+
+def test_rigid_body_dofs_both_a_rotation_center_and_a_center_of_mass():
+    import capytaine as cpt
+    mesh = cpt.Sphere().mesh
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(10.0, 0.0, 0.0)),
+                            center_of_mass=(-10.0, 0.0, 0.0))
+    assert np.all(body.dofs["Pitch"][:, 2] > 9.0)
+
+def test_rigid_body_dofs_neither_a_rotation_center_nor_a_center_of_mass():
+    import capytaine as cpt
+    mesh = cpt.Sphere().mesh
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    assert np.allclose(body._infer_rotation_center(), (0.0, 0.0, 0.0))
+
+def test_defining_rotation_center_with_ints():
+    # Issue #319
+    import capytaine as cpt
+    mesh = cpt.mesh_sphere().immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1)))
+    body.translated_y(-2.0)
+
+def test_healing_before_initializing_dofs():
+    # Issue #367: https://github.com/capytaine/capytaine/issues/367
+    # Define a mesh with a normal panel and degenerate panel
+    vertices = np.array([(0.0, 0.0, 0.0), (0.0, 1.0, 0.0),
+                         (1.0, 1.0, 0.0), (1.0, 0.0, 0.0)])
+    faces = np.array([[0, 1, 2, 3], [1, 2, 2, 1]])
+    mesh = cpt.Mesh(vertices, faces)
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    assert body.dofs["Heave"].shape[0] == body.mesh.nb_faces == 1
+
 def test_bodies():
-    body = Sphere(name="sphere", clever=False)
+    body = Sphere(name="sphere", axial_symmetry=False)
     assert str(body) == "sphere"
     repr(body)
     assert np.allclose(body.geometric_center, (0, 0, 0))
@@ -81,14 +125,14 @@ def test_bodies():
 
 
 @pytest.mark.parametrize("z_center", [0, 2, -2])
-@pytest.mark.parametrize("collection_of_meshes", [True, False])
-def test_clipping_of_dofs(z_center, collection_of_meshes):
+@pytest.mark.parametrize("as_collection_of_meshes", [True, False])
+def test_clipping_of_dofs(z_center, as_collection_of_meshes):
     """Check that clipping a body with a dof is the same as clipping the body ant then adding the dof."""
-    full_sphere = Sphere(center=(0, 0, z_center), name="sphere", clever=collection_of_meshes, clip_free_surface=False)
+    full_sphere = Sphere(center=(0, 0, z_center), name="sphere", axial_symmetry=as_collection_of_meshes, clip_free_surface=False)
     axis = Axis(point=(1, 0, 0), vector=(1, 0, 0))
 
     full_sphere.add_rotation_dof(axis, name="test_dof")
-    clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, sea_bottom=-np.infty, inplace=False)
+    clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, water_depth=np.infty, inplace=False)
 
     other_clipped_sphere = FloatingBody(mesh=clipped_sphere.mesh, name="other_sphere")
     other_clipped_sphere.add_rotation_dof(axis, name="test_dof")
@@ -97,6 +141,24 @@ def test_clipping_of_dofs(z_center, collection_of_meshes):
         assert np.allclose(clipped_sphere.dofs['test_dof'], other_clipped_sphere.dofs['test_dof'])
     else:
         assert len(clipped_sphere.dofs['test_dof']) == 0
+
+def test_cropping_body_with_manual_dof():
+    # https://github.com/capytaine/capytaine/issues/204
+    sphere = cpt.Sphere()
+    sphere.dofs["Surge"] = [(1, 0, 0) for face in sphere.mesh.faces]
+    sphere.keep_immersed_part()
+
+def test_immersed_part():
+    full_sphere = cpt.Sphere(axial_symmetry=False, name="ball")
+    immersed_sphere = full_sphere.immersed_part()
+    assert immersed_sphere is not full_sphere
+    assert immersed_sphere.mesh == full_sphere.mesh.immersed_part()
+    assert immersed_sphere.mesh.axis_aligned_bbox[5] <= 0.0
+    assert immersed_sphere.name == "ball"
+    full_sphere.translate_x(2.0)
+    new_immersed_sphere = full_sphere.immersed_part()
+    assert new_immersed_sphere is not immersed_sphere
+    assert not np.allclose(new_immersed_sphere.mesh.axis_aligned_bbox, immersed_sphere.mesh.axis_aligned_bbox)
 
 
 def test_mincing():
@@ -107,6 +169,23 @@ def test_mincing():
     assert isinstance(body.mesh[0][0], Mesh)
     body = body.minced((1, 2, 2))
     assert isinstance(body.mesh[0][0][0][0], Mesh)
+
+
+def test_assemble_regular_array():
+    body = Sphere()
+    body.add_all_rigid_body_dofs()
+    array = body.assemble_regular_array(distance=2.0, nb_bodies=(2, 3))
+    assert array.mesh.nb_faces == 6*body.mesh.nb_faces
+
+    # Check name and order of the dofs
+    assert list(array.dofs.keys())[0:3] == ["0_0__Surge", "0_0__Sway", "0_0__Heave"]
+    assert "2_1__Heave" not in array.dofs.keys()
+
+    # Check that the dofs coresponds to the right panels
+    faces_1_0 = np.where(array.dofs["1_0__Heave"] != 0.0)[0]
+    fc_1_0 = array.mesh.merged().faces_centers[faces_1_0, :]
+    assert np.all(1.0 <= fc_1_0[:, 0]) and np.all(fc_1_0[:, 0] <= 3.0)  #   1 < x < 3
+    assert np.all(-1.0 <= fc_1_0[:, 1]) and np.all(fc_1_0[:, 1] <= 1.0) #  -1 < y < 1
 
 
 r = 1.0
@@ -160,3 +239,4 @@ def test_solve_hydrodynamics(fb_array):
     assert data.radiation_damping.notnull().all()
     assert data.diffraction_force.notnull().all()
     assert data.Froude_Krylov_force.notnull().all()
+

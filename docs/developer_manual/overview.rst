@@ -40,7 +40,7 @@ Overview of the modules
        api/capytaine.meshes.surface_integrals
        api/capytaine.meshes.symmetric
 
-:mod:`~capytaine.bodies` 
+:mod:`~capytaine.bodies`
 ------------------------
     Depends on: :mod:`~capytaine.meshes`.
 
@@ -55,7 +55,7 @@ Overview of the modules
        api/capytaine.bodies.predefined.cylinders
        api/capytaine.bodies.predefined.rectangles
 
-:mod:`~capytaine.tools` 
+:mod:`~capytaine.tools`
 -----------------------
     Depends on: none.
 
@@ -65,7 +65,7 @@ Overview of the modules
 
        api/capytaine.tools.prony_decomposition
 
-:mod:`~capytaine.green_functions` 
+:mod:`~capytaine.green_functions`
 ---------------------------------
     Depends on: :mod:`~capytaine.tools`.
 
@@ -76,7 +76,7 @@ Overview of the modules
        api/capytaine.green_functions.abstract_green_function
        api/capytaine.green_functions.delhommeau
 
-:mod:`~capytaine.bem` 
+:mod:`~capytaine.bem`
 ----------------------
     Depends on: :mod:`~capytaine.meshes`, :mod:`~capytaine.bodies`, :mod:`~capytaine.matrices`, :mod:`~capytaine.green_functions`, :mod:`io.xarray <capytaine.io.xarray>`.
 
@@ -90,7 +90,7 @@ Overview of the modules
        api/capytaine.bem.solver
        api/capytaine.bem.problems_and_results
 
-:mod:`io.xarray <capytaine.io.xarray>` 
+:mod:`io.xarray <capytaine.io.xarray>`
 ---------------------------------------
     Depends on: :mod:`~capytaine.bem`.
 
@@ -102,8 +102,8 @@ Overview of the modules
 
        api/capytaine.io.xarray
 
-:mod:`~capytaine.post_pro` 
----------------------------
+:mod:`~capytaine.post_pro`
+--------------------------
     Depends on: :mod:`~capytaine.meshes`, :mod:`~capytaine.bodies`, :mod:`~capytaine.bem`, :mod:`io.xarray <capytaine.io.xarray>`.
 
     This module contains various tools for the post-processing of the results of
@@ -113,10 +113,11 @@ Overview of the modules
 
        api/capytaine.post_pro.free_surfaces
        api/capytaine.post_pro.kochin
+       api/capytaine.post_pro.impedance
        api/capytaine.post_pro.rao
 
-:mod:`ui.vtk <capytaine.ui.vtk>` 
----------------------------------
+:mod:`ui.vtk <capytaine.ui.vtk>`
+--------------------------------
     Depends on: :mod:`~capytaine.meshes`, :mod:`~capytaine.bodies` and :mod:`~capytaine.post_pro`.
 
     This module contains the calls to VTK used for the 3D display of the meshes
@@ -141,7 +142,7 @@ Overview of the modules
        api/capytaine.io.mesh_loaders
        api/capytaine.io.mesh_writers
 
-:mod:`ui.cli <capytaine.ui.cli>` 
+:mod:`ui.cli <capytaine.ui.cli>`
 ---------------------------------
 
 Depends on: :mod:`~capytaine.io`, :mod:`~capytaine.bem`.

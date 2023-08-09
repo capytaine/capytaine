@@ -1,14 +1,19 @@
 # Capytaine: a linear potential flow BEM solver with Python.
 
 [![DOI](http://joss.theoj.org/papers/10.21105/joss.01341/status.svg)](https://doi.org/10.21105/joss.01341)
+![CI status](https://github.com/capytaine/capytaine/actions/workflows/tests.yaml/badge.svg?event=push)
 
 Capytaine is Python package for the simulation of the interaction between water waves and floating bodies in frequency domain.
 It is built around a full rewrite of the open source Boundary Element Method (BEM) solver Nemoh for the linear potential flow wave theory.
 
 ## Installation
 
-On Windows, macOS and Linux, using the [Conda package manager](https://www.anaconda.com/distribution/):
+Packages for Windows, macOS and Linux are available on PyPI:
 
+```bash
+pip install capytaine
+```
+and Conda-forge:
 ```bash
 conda install -c conda-forge capytaine
 ```
@@ -19,7 +24,9 @@ conda install -c conda-forge capytaine
 
 ## License
 
-Copyright (C) 2017-2021, Matthieu Ancellin
+Copyright (C) 2017-2023, Matthieu Ancellin
+
+Since April 2022, the development of Capytaine is funded by the Alliance for Sustainable Energy, LLC, Managing and Operating Contractor for the National Renewable Energy Laboratory (NREL) for the U.S. Department of Energy.
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
 

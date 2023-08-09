@@ -1,24 +1,23 @@
-compile_fortran:
-	python setup.py build_ext --inplace
-
-install: compile_fortran
+install:
 	pip install .
 
-develop: compile_fortran
-	pip install -e .[develop]
+develop:
+	pip install meson-python numpy charset-normalizer # No installed from pyproject.toml in this case...
+	pip install --no-build-isolation -e .
 
 test: develop
+	# TODO: use something like nox instead.
+	# TODO: Install pytest and hypothesis?
 	python -m pytest
 
 clean:
-	rm -f capytaine/green_functions/*.so
-	rm -rf build
+	rm -f capytaine/green_functions/libs/*.so
+	rm -rf build/
+	rm -rf dist/
 	rm -rf capytaine.egg-info/
+	rm -rf docs/_build
 	rm -rf .pytest_cache/
-	rm -rf __pycache__ */__pycache__ */*/__pycache__
+	rm -rf .hypothesis/
+	rm -rf __pycache__ */__pycache__ */*/__pycache__ */*/*/__pycache__
 
-pypi: clean
-	python setup.py sdist
-	python -m twine upload dist/capytaine*.tar.gz
-
-.PHONY: compile_fortran develop test clean pypi
+.PHONY: install develop test clean

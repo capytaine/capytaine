@@ -63,7 +63,7 @@ class BlockToeplitzMatrix(BlockMatrix):
 
     def _block_indices_of(self, k: int) -> Set[Tuple[int, int]]:
         """The block indices at which the stored block k can be found in the full matrix of size n.
-        Will be overriden by subclasses."""
+        Will be overridden by subclasses."""
         n = self.nb_blocks[0]
 
         if k < n:
@@ -199,7 +199,7 @@ class BlockCirculantMatrix(BlockToeplitzMatrix):
     # LINEAR SYSTEMS
 
     def block_diagonalize(self):
-        """Returns an array of matrices"""
+        """Returns a vector of matrices"""
         if not hasattr(self, 'block_diagonalization'):
             if all(isinstance(matrix, BlockMatrix) for matrix in self._stored_blocks[0, :]):
                 self.block_diagonalization = BlockMatrix.fft_of_list(*self.all_blocks[:, 0])

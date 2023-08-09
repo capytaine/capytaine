@@ -1,0 +1,39 @@
+name: Build and run test suite
+
+on:
+  push:
+    branches:
+      - 'master'
+    paths-ignore:
+      # Do not run if only the documentation has been changed
+      - 'docs/**'
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      # Do not run if only the documentation has been changed
+      - 'docs/**'
+      - '**/*.md'
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.7', '3.11']
+    steps:
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v2
+    - uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install
+      run: pip install .[ci]
+    - name: Test
+      run: cd /tmp/ && pytest $GITHUB_WORKSPACE/pytest/
+    - name: Import installed library
+      run: cd /tmp/ && python -c 'import capytaine; print(capytaine.__version__)'
+    - name: Call command line tool
+      run: cd /tmp/ && capytaine --help
+    - name: Examples
+      # Only the one that do not require matplotlib or vtk or meshmagick
+      run: for f in custom_dofs.py haskind.py multibody.py; do python examples/$f; done

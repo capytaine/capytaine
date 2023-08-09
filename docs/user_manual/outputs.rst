@@ -16,13 +16,13 @@ If you gave a test matrix to the :code:`BEMSolver.fill_dataset` method, the
 output will directly be an xarray dataset.
 
 Both :code:`assemble_dataset` and :code:`fill_dataset` accept some optional keyword
-arguments to store more informations in the dataset:
+arguments to store more information in the dataset:
 
 - :code:`wavenumber` (default: :code:`False`): add the wavenumber of the
   incoming waves in the dataset.
 - :code:`wavelength` (default: :code:`False`): add the wavelength of the
   incoming waves in the dataset.
-- :code:`mesh` (default: :code:`False`): add some informations about the mesh in
+- :code:`mesh` (default: :code:`False`): add some information about the mesh in
   the dataset (number of faces, quadrature method).
 - :code:`hydrostatics` (default: :code:`True`): if hydrostatics data are
   available in the :code:`FloatingBody`, they are added to the dataset. 
@@ -74,8 +74,8 @@ then called by `assemble_dataset`. For example, to create an xarray dataset from
              differences between the variable names in an xarray dataset build with Bemio and one created
              using :code:`LinearPotentialFlowResult`, even though the format will be identical. For
              example, WAMIT :code:`.out` files do not contain the radii of gyration needed to calculate
-             the moments of inertia, so the `my_dataset['mass']` variable would not be included in the above
-             example since the rigid body mass matrix cannot be calculated.
+             the moments of inertia, so the `my_dataset['inertia_matrix']` variable would not be included 
+             in the above example since the rigid body mass matrix cannot be calculated.
 
 Saving the dataset as NetCDF file
 ---------------------------------
@@ -113,13 +113,53 @@ They can be stored in xarray either as NetCDF string objects, which can be writt
 The issue is that the xarray library sometimes changes from one to the other without warnings.
 It leads to the error :code:`ValueError: unsupported dtype for netCDF4 variable: object` when trying to export a dataset.
 
-This can be fixed by explicitely converting the strings to the right format when exporting the dataset::
+This can be fixed by explicitly converting the strings to the right format when exporting the dataset::
 
     dataset.to_netcdf("dataset.nc",
                       encoding={'radiating_dof': {'dtype': 'U'},
                                 'influenced_dof': {'dtype': 'U'}})
 
-See also `this Github issue <https://github.com/mancellin/capytaine/issues/2>`_.
+See also `this Github issue <https://github.com/capytaine/capytaine/issues/2>`_.
+
+Exporting to Excel
+------------------
+
+The example below uses the ``openpyxl`` library (that can be installed with ``pip install openpyxl``) to export a dataset to Excel format::
+
+    dataset[["added_mass", "radiation_damping"]].to_dataframe().to_excel("radiation_data.xlsx")
+
+    from capytaine.io.xarray import separate_complex_values
+    separate_complex_values(dataset[["Froude_Krylov_force", "diffraction_force"]]).to_dataframe().to_excel("diffraction_data.xlsx")
+
+For convienence, the radiation and diffraction data have been stored in separate files.
+Since this export method poorly supports complex number, the :func:`~capytaine.io.xarray.separate_complex_values` has been used to transform them to a pair of real numbers, as discussed for NetCDF export above.
+
+
+Saving the hydrostatics data
+----------------------------
+
+In order to save the following hydrostatics information:
+
+- Hydrostatic stiffness matrix,
+- Centre of gravity,
+- Centre of buoyancy,
+- Displacement volume
+
+There are two files that can be written using the :mod:`capytaine.io.legacy` module::
+
+    from capytaine.io.legacy import export_hydrostatics
+    export_hydrostatics("directory_to_save_hydrostatics_data", bodies)
+
+Where :code:`bodies` can be a single :code:`FloatingBody` object or a list of :code:`FloatingBody` objects.
+
+:func:`export_hydrostatics <capytaine.io.legacy.export_hydrostatics>` writes the :code:`Hydrostatics.dat` and :code:`KH.dat` files in the original Nemoh format. These :code:`.dat` files can be used by BEMIO to produce :code:`.h5` files for WEC-Sim.
+
+In order to use this function, please ensure that the body's centre of gravity has been defined correctly and the following methods have been called on the :code:`FloatingBody` object before passing it to :func:`export_hydrostatics <capytaine.io.legacy.export_hydrostatics>`::
+
+  body.add_all_rigid_body_dofs()
+  body.compute_rigid_body_inertia()
+  body.compute_hydrostatics()
+
 
 Saving the data as legacy Tecplot files
 ---------------------------------------

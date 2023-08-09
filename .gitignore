@@ -1,7 +1,10 @@
 .idea/
 examples/**/results*
 docs/_static/
+docs/developer_manual/api/*.rst
 .pytest_cache/
+.vscode/
+*.ogv
 
 # Created by https://www.gitignore.io/api/python,fortran
 
@@ -62,6 +65,7 @@ parts/
 sdist/
 var/
 wheels/
+wheelhouse/
 *.egg-info/
 .installed.cfg
 *.egg
@@ -139,3 +143,11 @@ ENV/
 /site
 
 # End of https://www.gitignore.io/api/python,fortran
+pytest/io_legacy_cases/single_body/Hydrostatics.dat
+pytest/io_legacy_cases/single_body/KH.dat
+pytest/io_legacy_cases/single_body_list/Hydrostatics.dat
+pytest/io_legacy_cases/single_body_list/KH.dat
+pytest/io_legacy_cases/two_bodies_list/Hydrostatics_0.dat
+pytest/io_legacy_cases/two_bodies_list/Hydrostatics_1.dat
+pytest/io_legacy_cases/two_bodies_list/KH_0.dat
+pytest/io_legacy_cases/two_bodies_list/KH_1.dat

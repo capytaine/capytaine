@@ -1,18 +1,13 @@
-#!/usr/bin/env python
-# coding: utf-8
+# Copyright (C) 2017-2019 Matthieu Ancellin
+# See LICENSE file at <https://github.com/mancellin/capytaine>
 """Solver for the BEM problem.
 
-Example
--------
-
-::
+.. code-block:: python
 
     problem = RadiationProblem(...)
     result = BEMSolver(green_functions=..., engine=...).solve(problem)
 
 """
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 
@@ -20,9 +15,12 @@ import numpy as np
 
 from datetime import datetime
 
+from capytaine.bem.problems_and_results import LinearPotentialFlowProblem
 from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
+from capytaine.tools.optional_imports import silently_import_optional_dependency
+from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 
 LOG = logging.getLogger(__name__)
 
@@ -32,10 +30,12 @@ class BEMSolver:
 
     Parameters
     ----------
-    green_function: AbstractGreenFunction
+    green_function: AbstractGreenFunction, optional
         Object handling the computation of the Green function.
-    engine: MatrixEngine
+        (default: :class:`~capytaine.green_function.delhommeau.Delhommeau`)
+    engine: MatrixEngine, optional
         Object handling the building of matrices and the resolution of linear systems with these matrices.
+        (default: :class:`~capytaine.bem.engines.BasicMatrixEngine`)
 
     Attributes
     ----------
@@ -43,9 +43,9 @@ class BEMSolver:
         Settings of the solver that can be saved to reinit the same solver later.
     """
 
-    def __init__(self, *, green_function=Delhommeau(), engine=BasicMatrixEngine()):
-        self.green_function = green_function
-        self.engine = engine
+    def __init__(self, *, green_function=None, engine=None):
+        self.green_function = Delhommeau() if green_function is None else green_function
+        self.engine = BasicMatrixEngine() if engine is None else engine
 
         try:
             self.exportable_settings = {
@@ -54,6 +54,15 @@ class BEMSolver:
             }
         except AttributeError:
             pass
+
+    def __str__(self):
+        return f"BEMSolver(engine={self.engine}, green_function={self.green_function})"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
 
     @classmethod
     def from_exported_settings(settings):
@@ -77,62 +86,67 @@ class BEMSolver:
         """
         LOG.info("Solve %s.", problem)
 
-        if problem.wavelength < 8*problem.body.mesh.faces_radiuses.max():
-            LOG.warning(f"Resolution of the mesh (8×max_radius={8*problem.body.mesh.faces_radiuses.max():.2e}) "
-                        f"might be insufficient for this wavelength (wavelength={problem.wavelength:.2e})!")
-
         S, K = self.engine.build_matrices(
             problem.body.mesh, problem.body.mesh,
-            problem.free_surface, problem.sea_bottom, problem.wavenumber,
+            problem.free_surface, problem.water_depth, problem.wavenumber,
             self.green_function
         )
         sources = self.engine.linear_solver(K, problem.boundary_condition)
         potential = S @ sources
+        pressure = 1j * problem.omega * problem.rho * potential
 
-        result = problem.make_results_container()
-        if keep_details:
-            result.sources = sources
-            result.potential = potential
+        forces = problem.body.integrate_pressure(pressure)
 
-        for influenced_dof_name, influenced_dof_vectors in problem.influenced_dofs.items():
-            # Scalar product on each face:
-            influenced_dof_normal = np.sum(influenced_dof_vectors * problem.body.mesh.faces_normals, axis=1)
-            # Sum over all faces:
-            integrated_potential = - problem.rho * np.sum(potential * influenced_dof_normal * problem.body.mesh.faces_areas)
-            # Store result:
-            result.store_force(influenced_dof_name, integrated_potential)
-            # Depending of the type of problem, the force will be kept as a complex-valued Froude-Krylov force
-            # or stored as a couple of added mass and radiation damping coefficients.
+        if not keep_details:
+            result = problem.make_results_container(forces)
+        else:
+            result = problem.make_results_container(forces, sources, potential, pressure)
 
         LOG.debug("Done!")
 
         return result
 
-    def solve_all(self, problems, **kwargs):
+    def solve_all(self, problems, *, n_jobs=1, **kwargs):
         """Solve several problems.
-        Optional keyword arguments are passed to `Nemoh.solve`.
+        Optional keyword arguments are passed to `BEMSolver.solve`.
 
         Parameters
         ----------
         problems: list of LinearPotentialFlowProblem
             several problems to be solved
+        n_jobs: int, optional (default: 1)
+            the number of jobs to run in parallel using the optional dependency `joblib`
+            By defaults: do not use joblib and solve sequentially.
 
         Returns
         -------
         list of LinearPotentialFlowResult
             the solved problems
         """
-        return [self.solve(problem, **kwargs) for problem in sorted(problems)]
+        if n_jobs == 1:  # force sequential resolution
+            return [self.solve(pb, **kwargs) for pb in sorted(problems)]
+        else:
+            joblib = silently_import_optional_dependency("joblib")
+            if joblib is None:
+                raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
+            groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
+            groups_of_results = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.solve_all)(grp, n_jobs=1, **kwargs) for grp in groups_of_problems)
+            results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
+            return results
 
-    def fill_dataset(self, dataset, bodies, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, n_jobs=1, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
         ----------
         dataset : xarray Dataset
             dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
-        bodies : list of FloatingBody
-            the bodies involved in the problems
+        bodies : FloatingBody or list of FloatingBody
+            The body or bodies involved in the problems
+            They should all have different names.
+        n_jobs: int, optional (default: 1)
+            the number of jobs to run in parallel using the optional dependency `joblib`
+            By defaults: do not use joblib and solve sequentially.
 
         Returns
         -------
@@ -142,24 +156,138 @@ class BEMSolver:
                  **self.exportable_settings}
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
-            results = self.solve_all(problems, keep_details=True)
+            results = self.solve_all(problems, keep_details=True, n_jobs=n_jobs)
             kochin = kochin_data_array(results, dataset.coords['theta'])
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
             dataset.update(kochin)
         else:
-            results = self.solve_all(problems, keep_details=False)
+            results = self.solve_all(problems, keep_details=False, n_jobs=n_jobs)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
+
+
+    def compute_potential(self, points, result):
+        """Compute the value of the potential at given points for a previously solved potential flow problem.
+
+        Parameters
+        ----------
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
+            Coordinates of the point(s) at which the potential should be computed
+        results: LinearPotentialFlowResult
+            The return of the BEM solver
+
+        Returns
+        -------
+        complex-valued array of shape (1,) or (N,) or (nx, ny, nz) or (mesh.nb_faces,) depending of the kind of input
+            The value of the potential at the points
+
+        Raises
+        ------
+        Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
+        """
+        points, output_shape = _normalize_points(points, keep_mesh=True)
+        if result.sources is None:
+            raise Exception(f"""The values of the sources of {result} cannot been found.
+            They probably have not been stored by the solver because the option keep_details=True have not been set.
+            Please re-run the resolution with this option.""")
+
+        S, _ = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.wavenumber)
+        potential = S @ result.sources  # Sum the contributions of all panels in the mesh
+        return potential.reshape(output_shape)
+
+
+    def compute_velocity(self, points, result):
+        """Compute the value of the velocity vector at given points for a previously solved potential flow problem.
+
+        Parameters
+        ----------
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
+            Coordinates of the point(s) at which the velocity should be computed
+        results: LinearPotentialFlowResult
+            The return of the BEM solver
+
+        Returns
+        -------
+        complex-valued array of shape (3,) or (N,, 3) or (nx, ny, nz, 3) or (mesh.nb_faces, 3) depending of the kind of input
+            The value of the velocity at the points
+
+        Raises
+        ------
+        Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
+        """
+        points, output_shape = _normalize_points(points, keep_mesh=True)
+
+        if result.sources is None:
+            raise Exception(f"""The values of the sources of {result} cannot been found.
+            They probably have not been stored by the solver because the option keep_details=True have not been set.
+            Please re-run the resolution with this option.""")
+
+        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.wavenumber,
+                                                early_dot_product=False)
+        velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
+        return velocities.reshape((*output_shape, 3))
+
+
+    def compute_pressure(self, points, result):
+        """Compute the value of the pressure at given points for a previously solved potential flow problem.
+
+        Parameters
+        ----------
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
+            Coordinates of the point(s) at which the pressure should be computed
+        results: LinearPotentialFlowResult
+            The return of the BEM solver
+
+        Returns
+        -------
+        complex-valued array of shape (1,) or (N,) or (nx, ny, nz) or (mesh.nb_faces,) depending of the kind of input
+            The value of the pressure at the points
+
+        Raises
+        ------
+        Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
+        """
+        return 1j * result.omega * result.rho * self.compute_potential(points, results)
+
+
+    def compute_free_surface_elevation(self, points, result):
+        """Compute the value of the free surface elevation at given points for a previously solved potential flow problem.
+
+        Parameters
+        ----------
+        points: array of shape (2,) or (N, 2), or 2-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
+            Coordinates of the point(s) at which the free surface elevation should be computed
+        results: LinearPotentialFlowResult
+            The return of the BEM solver
+
+        Returns
+        -------
+        complex-valued array of shape (1,) or (N,) or (nx, ny, nz) or (mesh.nb_faces,) depending of the kind of input
+            The value of the free surface elevation at the points
+
+        Raises
+        ------
+        Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
+        """
+        points, output_shape = _normalize_free_surface_points(points, keep_mesh=True)
+
+        fs_elevation = 1j*result.omega/result.g * self.compute_potential(points, result)
+        return fs_elevation.reshape(output_shape)
+
+
+    ## Legacy
 
     def get_potential_on_mesh(self, result, mesh, chunk_size=50):
         """Compute the potential on a mesh for the potential field of a previously solved problem.
         Since the interaction matrix does not need to be computed in full to compute the matrix-vector product,
         only a few lines are evaluated at a time to reduce the memory cost of the operation.
 
+        The newer method :code:`compute_potential` should be prefered in the future.
+
         Parameters
         ----------
         result : LinearPotentialFlowResult
-            the return of Nemoh's solver
+            the return of the BEM solver
         mesh : Mesh or CollectionOfMeshes
             a mesh
         chunk_size: int, optional
@@ -186,7 +314,7 @@ class BEMSolver:
             S = self.engine.build_S_matrix(
                 mesh,
                 result.body.mesh,
-                result.free_surface, result.sea_bottom, result.wavenumber,
+                result.free_surface, result.water_depth, result.wavenumber,
                 self.green_function
             )
             phi = S @ result.sources
@@ -198,7 +326,7 @@ class BEMSolver:
                 S = self.engine.build_S_matrix(
                     mesh.extract_faces(faces_to_extract),
                     result.body.mesh,
-                    result.free_surface, result.sea_bottom, result.wavenumber,
+                    result.free_surface, result.water_depth, result.wavenumber,
                     self.green_function
                 )
                 phi[i:i+chunk_size] = S @ result.sources
@@ -209,6 +337,8 @@ class BEMSolver:
 
     def get_free_surface_elevation(self, result, free_surface, keep_details=False):
         """Compute the elevation of the free surface on a mesh for a previously solved problem.
+
+        The newer method :code:`compute_free_surface_elevation` should be prefered in the future.
 
         Parameters
         ----------
@@ -232,37 +362,4 @@ class BEMSolver:
         if keep_details:
             result.fs_elevation[free_surface] = fs_elevation
         return fs_elevation
-
-
-# LEGACY INTERFACE
-
-def _arguments(f):
-    """Returns the name of the arguments of the function f"""
-    return f.__code__.co_varnames[:f.__code__.co_argcount]
-
-class Nemoh(BEMSolver):
-    """Solver for the BEM problem based on Nemoh's Green function. Legacy API.
-    Parameters are dispatched to the Delhommeau class and to the engine
-    (BasicMatrixEngine or HierarchicalToeplitzMatrixEngine).
-    """
-
-    def __init__(self, **params):
-        green_function = Delhommeau(
-           **{key: params[key] for key in params if key in _arguments(Delhommeau.__init__)}
-	)
-        if 'hierarchical_matrices' in params and params['hierarchical_matrices']:
-            engine = HierarchicalToeplitzMatrixEngine(
-               **{key: params[key] for key in params if key in _arguments(HierarchicalToeplitzMatrixEngine.__init__)}
-            )
-        else:
-            engine = BasicMatrixEngine(
-               **{key: params[key] for key in params if key in _arguments(BasicMatrixEngine.__init__)}
-            )
-
-        super().__init__(green_function=green_function, engine=engine)
-
-    def build_matrices(self, *args, **kwargs):
-        """Legacy API."""
-        args = args + (self.green_function,)
-        return self.engine.build_matrices(*args, **kwargs)
 

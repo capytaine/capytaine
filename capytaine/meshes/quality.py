@@ -11,6 +11,7 @@ import logging
 import numpy as np
 
 from capytaine.meshes.geometry import inplace_transformation
+from capytaine.meshes.properties import compute_connectivity
 
 LOG = logging.getLogger(__name__)
 
@@ -163,10 +164,11 @@ def heal_normals(mesh):
     faces = mesh._faces
 
     # Building connectivities
-    v_v = mesh.vv
-    v_f = mesh.vf
-    f_f = mesh.ff
-    boundaries = mesh.boundaries
+    connectivities = compute_connectivity(mesh)
+    v_v = connectivities["v_v"]
+    v_f = connectivities["v_f"]
+    f_f = connectivities["f_f"]
+    boundaries = connectivities["boundaries"]
 
     if len(boundaries) > 0:
         mesh_closed = False
@@ -251,7 +253,7 @@ def heal_normals(mesh):
 
         tol = 1e-9
         if np.fabs(hs[0]) > tol or np.fabs(hs[1]) > tol:
-            LOG.warning("\t--> the mesh does not seem watertight althought marked as closed...")
+            LOG.warning("\t--> the mesh does not seem watertight although marked as closed...")
 
         if hs[2] < 0:
             flipped = True

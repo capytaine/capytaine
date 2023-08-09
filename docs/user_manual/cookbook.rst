@@ -4,7 +4,7 @@ Cookbook
 
 This page contains several examples of Capytaine's features.
 The scripts can be downloaded individually as Python files from
-`this folder <https://github.com/mancellin/capytaine/tree/master/docs/user_manual/examples>`_
+`this folder <https://github.com/capytaine/capytaine/tree/master/docs/user_manual/examples>`_
 of the Github repository.
 
 .. contents:: Content
@@ -46,9 +46,17 @@ Simulation with several bodies
 .. literalinclude:: examples/multibody.py
    :language: python
 
-Adding hydrostatic stiffness and mass properties
-------------------------------------------------
-Hydrostatic and inertia propoerties can be computed via Meshmagick for use with the hydrodynamic results generated with Capytaine.
+Free surface elevation
+----------------------
+
+.. literalinclude:: examples/free_surface_elevation.py
+   :language: python
+
+Comparison with hydrostatics from Meshmagick
+--------------------------------------------
+
+Hydrostatic and inertia properties can be computed independently via Capytaine or Meshmagick.
+This script compares them both with analytical expression for a simple geometric object.
 
 .. literalinclude:: examples/hydrostatics.py
    :language: python
@@ -71,7 +79,7 @@ Animation of the RAO
 This script generates the animation of the RAO motion for a wave incoming in front of a ship,
 such as the one used on the main page of this documentation.
 This script requires the mesh of the ship :code:`boat_200.mar`. It can be
-downloaded from: `<https://raw.githubusercontent.com/mancellin/capytaine/master/docs/user_manual/examples/boat_200.mar>`_
+downloaded from: `<https://raw.githubusercontent.com/capytaine/capytaine/master/docs/user_manual/examples/boat_200.mar>`_
 
 .. literalinclude:: examples/boat_animation.py
    :language: python
@@ -83,6 +91,17 @@ This example computes the Kochin function for a surging buoy and plot the result
 
 .. literalinclude:: examples/kochin.py
    :language: python
+
+Haskind's relation
+------------------
+
+This example computes the excitation force from the radiation potential
+using Haskind's relation. The result is compared with the one obtained by
+direct integration of the potentials from incident waves and from the
+diffraction problem.
+
+.. literalinclude:: examples/haskind.py
+    :language: python
 
 Symmetric body
 --------------

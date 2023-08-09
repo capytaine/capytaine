@@ -2,6 +2,291 @@
 Changelog
 =========
 
+.. contents::
+   :local:
+   :depth: 1
+   :backlinks: none
+
+-------------------
+New in next version
+-------------------
+
+Minor changes
+~~~~~~~~~~~~~
+
+* Support passing :class:`~capytaine.bodies.FloatingBody` or :class:`~capytaine.post_pro.free_surfaces.FreeSurface` objects to post-processing methods such as :meth:`~capytaine.bem.solver.BEMSolver.compute_potential` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation`. (:pull:`379`)
+
+* Add `top_light_intensity` optional arguments to :meth:`~capytaine.ui.vtk.animations.Animation.run` and :meth:`~capytaine.ui.vtk.animations.Animation.save` to illuminate the scene from top. (:pull:`380`)
+
+Bug fixes
+~~~~~~~~~
+
+* When initializing a body with a mesh having degenerate panels, the initialization of the dofs used to happen before the degenerate panels were removed, leading to an inconsistency between the number of panels in the mesh and in the dof definition. (:issue:`367` and :pull:`375`)
+
+* Fix the single precision Green function (:code:`cpt.Delhommeau(floating_point_precision="float32")`) that was broken in v2.0. (:issue:`377` and :pull:`378`)
+
+* Update the BEMIO import feature to work with Pandas 2.0 and output periods as now done in Capytaine 2.0. A version of BEMIO that works in recent version of Python and Numpy can be found at `https://github.com/mancellin/bemio`_. (:pull:`381`)
+
+-------------------------------
+New in version 2.0 (2023-06-21)
+-------------------------------
+
+Major changes
+~~~~~~~~~~~~~
+
+* User can specify a period, a wavelength or a wavenumber instead of an angular frequency :code:`omega` when setting up a problem or a test matrix. If several types of frequency data are provided, an error is raised (:pull:`283`).
+
+* **Breaking** The normalization of radiation problems has been changed to use the same normalization as diffraction problems. Added mass and radiation dampings are unchanged, but other outputs of radiation problem (free surface elevation, kochin functions, etc.) may differ from previous version by a factor :math:`-j \omega`. (:issue:`173` and :pull:`348`)
+
+* **Breaking** The above two points interfered with the handling of :math:`\omega = 0` and :math:`\omega = \infty` cases. They have been temporarilly disabled and will return in a future release.
+
+* Add methods :meth:`~capytaine.bem.solver.BEMSolver.compute_potential`, :meth:`~capytaine.bem.solver.BEMSolver.compute_velocity` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation` and :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` to compute the value of some fields in the domain in post-processing. Their signature has been uniformized with the :func:`~capytaine.bem.airy_waves.airy_waves_potential` and :func:`~capytaine.bem.airy_waves.airy_waves_velocity` functions (:pull:`288`, :pull:`326`). New functions :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` and :func:`~capytaine.bem.airy_waves.airy_waves_pressure` have also been added (:pull:`293`).
+
+* **Breaking** The problems can now be initialized by setting a ``water_depth`` instead of the ``sea_bottom`` (which is still available for user-facing functions). This change is meant to uniformize notations in the code and use ``water_depth`` wherever possible (:pull:`340`). Besides the ``sea_bottom`` argument of many internal routines has been completely replaced by ``water_depth``. Migrating then requires changing the sign of the float (:pull:`347`).
+
+* Add Github Actions workflow to build wheels. Precompiled packages will now be available with ``pip`` and not only with ``conda``.
+
+Minor changes
+~~~~~~~~~~~~~
+
+* Support the new format of `Nemoh.cal` file from Nemoh v3 (:issue:`278` and :pull:`280`).
+
+* **Breaking** Remove the :code:`convention` parameter to compute excitation force with WAMIT conventions (:issue:`133` and :pull:`281`).
+  Changing the convention to compare the outputs of different codes is better done by a dedicated software such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_ or `BEMIO <https://wec-sim.github.io/bemio/>`_.
+
+* Add nicer display for Capytaine objects in IPython shell (:issue:`227` and :pull:`287`).
+
+* Support exporting hydrostatics data in original Nemoh-format files - :code:`Hydrostatics.dat` and :code:`KH.dat` (:pull:`285`).
+
+* Add nicer display for Capytaine objects in IPython shell (:issue:`227` and :pull:`287`)
+
+* Add functions :func:`~capytaine.io.mesh_loaders.load_PNL` and :func:`~capytaine.io.mesh_writers.write_PNL` to load and write meshes in HAMS ``.pnl`` format (:pull:`289`).
+
+* **Breaking** Remove ``cpt.Nemoh()`` class that was replaced by :class:`~capytaine.bem.solver.BEMSolver` in version 1.1 (:pull:`291`)
+
+* **Breaking** Remove ``full_body`` attribute from :class:`~capytaine.bodies.bodies.FloatingBody` that used to keep a copy of the body before clipping in-place (:pull:`302`).
+
+* **Breaking** Remove ``dimensionless_wavenumber`` and ``dimensionless_omega`` attributes from :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` as they are not used in the code and can be easily recomputed by users if necessary (:pull:`306`).
+
+* Add :meth:`~capytaine.bodies.bodies.FloatingBody.minimal_computable_wavelength` to estimate the wavelengths computable with the mesh resolution (:pull:`341`).
+
+* Slightly increase default tabulation size to avoid some high-frequency issues such as :issue:`157` (:pull:`353`).
+
+Bug fixes
+~~~~~~~~~
+
+* Fix :meth:`~capytaine.meshes.collections.CollectionOfMeshes.immersed_part` (:pull:`307`).
+
+* :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics` used to fail for non-rigid bodies because it could not compute the rigid-body inertia.
+  The rigid-body inertia is now just skipped for bodies with no rigid-body dofs (:pull:`308`).
+
+* Reduce the default tolerance of the mesh clipper for points just above the free surface (:issue:`320` and :pull:`322`).
+
+* Convert ``center_of_mass`` and ``rotation_center`` to arrays in :class:`~capytaine.bodies.bodies.FloatingBody` constructor to avoid a few issues (:issue:`319` and :pull:`325`).
+
+* Fix bug (leading to either ``RuntimeError`` or wrong output) when clipping with plane that does not contain the origin. (:pull:`344`)
+
+* Instances of :class:`~capytaine.bem.solver.BEMSolver` initialized with default parameters do not share the same engine, hence they do not share the same cache. This minor issue was causing minor interferences in some benchmarks (:issue:`295` and :pull:`350`).
+
+Internals
+~~~~~~~~~
+
+* Major update of the compilation toolchain because of the upcoming deprecation of ``numpy.distutils``. Capytaine is now built with ``meson-python``.
+
+* The method :meth:`~capytaine.green_functions.delhommeau.Delhommeau.evaluate` (and its counterparts for other Green functions) now accepts a list of points as first argument instead of a mesh. It has now an optional boolean argument ``early_dot_product`` to return the integrals of the gradient of the Green function and not only the normal derivative (:pull:`288`).
+
+* Remove warnings due to 0/0 divisions in :func:`~capytaine.meshes.properties.compute_faces_properties` (:pull:`310`)
+
+* **Breaking** Remove unused and undocumented code about meshes, including ``mesh.min_edge_length``, ``mesh.mean_edge_length``, ``mesh.max_edge_length``, ``mesh.get_surface_integrals``, ``mesh.volume``, ``mesh.vv``, ``mesh.vf``, ``mesh.ff``, ``mesh.boundaries``, ``mesh.nb_boundaries``, ``compute_faces_integrals``, ``SingleFace``. (:pull:`334`)
+
+* Add analytics to the documentation using `https://plausible.io`_ (:pull:`290`).
+
+-------------------------------
+New in version 1.5 (2022-12-13)
+-------------------------------
+
+Major changes
+~~~~~~~~~~~~~
+
+* The :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` implementation of the Green function has been improved.
+  The implementation used to be almost the same as the default :class:`~capytaine.green_functions.delhommeau.Delhommeau` method.
+  A missing key element has been added and the :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is now actually more accurate near the free surface.
+  (:pull:`180` and :pull:`216`)
+
+* New default linear solver :class:`~capytaine.matrices.linear_solvers.LUSolverWithCache`: the LU decomposition of the matrix is now cached to be reused for other similar problems, diminishing the total computation time up to 40%. (:pull:`235`)
+
+* New functions to generate simple geometric meshes have been implemented in :code:`capytaine.meshes.predefined`. They are similar to the former geometric bodies (:class:`~capytaine.bodies.predefined.sphere.Sphere`, :class:`~capytaine.bodies.predefined.sphere.HorizontalCylinder`, etc.), except that they return a mesh and do not create a :code:`FloatingBody`. The geometric body classes are considered deprecated, although they should still work as expected. (:pull:`233`)
+
+* Changed the behavior of :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics`. The mesh is not silently modified anymore. The stiffness and inertia matrices are stored in the body for inclusion in the output dataset. The inertia matrix is now computed on the full mesh (:issue:`197`, :issue:`249`, :issue:`258` and :pull:`262`).
+
+Minor changes
+~~~~~~~~~~~~~
+
+* Add :code:`floating_point_precision` argument to :meth:`~capytaine.green_functions.delhommeau.Delhommeau` and :meth:`~capytaine.green_functions.delhommeau.XieDelhommeau` that accepts either :code:`"float32"` for single precision computations or :code:`"float64"` for double precision computations (the latter is the default). (:pull:`224`).
+
+* Passing the argument :code:`tabulation_nr=0` or :code:`tabulation_nz=0` to :class:`~capytaine.green_functions.delhommeau.Delhommeau`
+  or :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` now allows to run the code without interpolating the Green function
+  from a precomputed tabulation. This is meant as a tools for benchmarks and validation, since it decreases the performance of the code
+  for often no accuracy gain. (:pull:`229`)
+
+* :func:`~capytaine.io.mesh_loaders.load_mesh` is now exported by the main namespace: :code:`from capytaine import load_mesh`.
+  The documentation has been changed to recommend the use of this function instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_file`.
+  (:pull:`231`)
+
+* When initializing a :code:`FloatingBody`, one can now pass directly a mesh object from :code:`meshio`.
+  The documentation has been changed to recommend this approach instead of :meth:`~capytaine.bodies.bodies.FloatingBody.from_meshio`.
+  (:issue:`259` and :pull:`261`)
+
+* When joining two bodies as e.g. :code:`body1 + body2`, some hydrostatic properties are passed to the resulting body:
+  if all the bodies have hydrostatic stiffness matrices or inertia matrices defined,
+  then they are assigned to the joined body as a larger block diagonal matrix (:pull:`243`).
+
+* Add :meth:`~capytaine.bodies.bodies.FloatingBody.immersed_part` method to clip the body without modifying it in place (:pull:`244`).
+
+* Add :func:`~capytaine.rigid_body_dofs` method returning a placeholder that can be given at the creation of :class:`~capytaine.bodies.bodies.FloatingBody` to initialize the six rigid body dofs (:pull:`245`).
+
+* Custom classes from the :code:`capytaine.matrices` module storing block matrices or data-sparse matrices
+  can be transformed into full Numpy arrays with :code:`np.array(...)` (:pull:`99`)
+
+* Add :code:`Dockerfile` and instructions to install with Docker (:pull:`137`)
+
+* Add optional arguments to :func:`~capytaine.io.meshes_writers.write_GDF` to write parameters :code:`ulen, grav, isx, isy` to the mesh file (:pull:`241`)
+
+* Fix bug with MED mesh file loading (:issue:`247` and :pull:`250`).
+
+* Several surface integrals properties of :code:`FloatingBodies` are also defined on meshes, such as :code:`volume` or :code:`center_of_buoyancy` (pull:`263`).
+
+Internals
+~~~~~~~~~
+
+* The integration of the pressure on the mesh of the body was implemented twice independently. It has been factored out in :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure` (:pull:`218`)
+
+* `__rmatmul__` has been implemented for low rank matrices (:pull:`222`).
+
+* New implementation of the GDF mesh file reader :func:`~capytaine.io.meshes_loaders.load_GDF` (:pull:`241`)
+
+---------------------------------
+New in version 1.4.2 (2022-10-03)
+---------------------------------
+
+Bug fixes
+~~~~~~~~~
+
+* Raise error message when calling :meth:`~capytaine.bodies.bodies.FloatingBody.compute_hydrostatics()` without a center of mass defined (:pull:`207`).
+
+* Fix bug when cropping body with a dof defined manually as a list of tuples (:issue:`204` and :pull:`206`).
+
+Documentation
+~~~~~~~~~~~~~
+
+* Miscellaneous improvements of the documentation (:pull:`205`, :pull:`211`, :pull:`219`)
+
+* Clean up and fix animation example in the cookbook (:pull:`213`).
+
+* The warning message for insufficient mesh resolution appears earlier and has been reworded to be clearer (:pull:`217`).
+
+Internals
+~~~~~~~~~
+
+* Replace the Fortran core by a git submodule pointing to `libDelhommeau <https://github.com/capytaine/libDelhommeau/>`_ (:pull:`208`).
+  Future developments of the Green function will take place there.
+
+* Move from Travis CI to Github Actions for continuous integration (:pull:`209`)
+
+---------------------------------
+New in version 1.4.1 (2022-09-05)
+---------------------------------
+
+Bug fixes
+~~~~~~~~~
+
+* Fix bug in hydrostatics of rigid bodies: the hydrostatic matrices were always assuming that the rotation dofs were defined around the :math:`(0, 0, 0)` point.
+  The stiffness and inertia matrix are now invariant by horizontal translation of the body, as they should be. (:issue:`178` and :pull:`196`).
+
+* Removed outdated volume/area methods from pre-defined bodies (:pull:`183`).
+
+* Added symmetric realization and reflection to gdf mesh import (:issue:`186` and :pull:`187`).
+
+* Fix some automatic mesh names (:pull:`195`)
+
+* Fix ordering of the dofs when using :meth:`~capytaine.bodies.bodies.FloatingBody.assemble_regular_array()` (:issue:`198` and :pull:`199`)
+
+* Return more explicit error message when the center of mass is missing for the computation of rigid-body hydrostatics (:pull:`201`).
+
+* Return error message when trying to animate a body with a dof that has not been defined. Previously, undefined dofs were silently ignored. (:pull:`202`)
+
+
+-------------------------------
+New in version 1.4 (2022-07-07)
+-------------------------------
+
+Major changes
+~~~~~~~~~~~~~
+
+* The function that used to be called :code:`impedance` is now named :func:`~capytaine.post_pro.impedance.rao_transfer_function`.
+  The new function :func:`~capytaine.post_pro.impedance.impedance` is the actual impedance matrix (:pull:`142`, :issue:`147`, :pull:`149`).
+
+* The mass matrix of a floating body used to be denoted :code:`mass`. It is now denote :code:`inertia_matrix`.
+  The attribute :code:`body.mass` is now used instead for the (scalar) mass of the body. (:pull:`165`)
+
+* Implementation of :class:`~capytaine.bodies.predefined.spheres.Sphere` has changed.
+  The use of symmetry is now controlled by the :code:`axial_symmetry` keyword argument.
+  The :code:`clever` keyword argument is deprecated for :code:`Sphere` and should be replaced by the more explicit keyword arguments :code:`axial_symmetry`.
+  Meanwhile, a bug has been fixed with its :code:`geometric_center` (:pull:`150`).
+
+* The default linear solver is the direct solver and not the iterative solver GMRES, because it is more robust and more predictable.
+  Nothing changes when users explicitely choose a linear solver. (:pull:`171`)
+
+Bug fixes
+~~~~~~~~~
+
+* Fix major bug in impedance matrix and RAO computation: the sign of the dissipation matrix was wrong in previous versions (:issue:`102` and :pull:`140`).
+
+* Fix major inaccuracy for deep panels or high frequencies, that is panels deeper than :math:`1.2\lambda` below the free surface where :math:`\lambda` is the wavelength (:issue:`38` and :pull:`156`)
+
+* Wave directions in :code:`Nemoh.cal` are interpreted as degrees as they should be (and then converted to radians to be handled by the rest of the code). (:pull:`141`)
+
+* Fix bug in rotations around axis that does not pass by (0, 0, 0) (:issue:`151` and :pull:`152`).
+
+* New implementation of the mesh importer for :code:`hst` files. (:pull:`90`)
+  It should be more robust and support more variants of the :code:`hst` mesh file format.
+
+* Support for quadratures from `quadpy <https://pypi.org/project/quadpy/>`_ has been updated to support the version 0.16.16 of quadpy (:pull:`164`).
+
+New features
+~~~~~~~~~~~~
+
+* Add method to compute some of the hydrostatic parameters such as volume, buoyancy center, wet surface area, hydrostatic stiffness, inertia matrix etc.
+  :code:`compute_hydrostatics` method is created to return all hydrostatic parameters similar to :code:`meshmagick.hydrostatics.compute_hydrostatics` (:pull:`106`).
+  By default, the hydrostatics are computed assuming a neutrally buoyant body (its mass is the displaced mass of water).
+  Non-neutrally buoyant are partially supported, by setting the :code:`mass` attribute of the body (:pull:`166`)
+
+* Add new parallelization using the `joblib <https://joblib.readthedocs.io>`_ library as a new optional dependency.
+  The optional keyword-argument :code:`n_jobs` in the :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` controls the number of processes running in parallel (:pull:`136`). By default, this parallelisation is disabled (:pull:`172`).
+
+* Refactor Delhommeau's method for the Green function evaluation. The size of the tabulation is not hard-coded anymore and can be changed by users. (:issue:`20` and :pull:`157`)
+
+* Method :code:`show_matplotlib` can now colour mesh faces based on a specified scalar field (e.g. pressure) (:pull:`122`).
+
+* The functions :func:`~capytaine.io.xarray.problems_from_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` accept a body alone as input.
+  That is, one can use :code:`fill_dataset(test_matrix, body)` and not only :code:`fill_dataset(test_matrix, [body])` (:pull:`144`).
+
+Documentation and error handling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Improve feedback to users:
+    * Print a warning if the user provides a :code:`wave_direction` that is not in the range [-2π, 2π]. (:pull:`141`)
+    * Raise an error when the Green function evaluation returns a :code:`NaN` (:pull:`143`).
+    * Improve message when the GMRES did not converge (:pull:`143`).
+    * Raise an error when a body with an empty mesh is given to :code:`LinearPotentialFlowProblem` (:issue:`128` and :pull:`145`).
+    * Print a warning when a key is unknown in the test matrix provided to :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` (:pull:`155`).
+    * Raise an error if neither :code:`radiating_dof` (for radiation problems) nor :code:`wave_direction` (for diffraction problems) is provided in the test matrix in :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` (:pull:`155`).
+
+* A new example using Haskind's relation has been added to the cookbook (:pull:`129`).
+
+* Miscellaneous improvements of the documentation.
+
+
 -------------------------------
 New in version 1.3 (2021-10-07)
 -------------------------------
@@ -19,8 +304,9 @@ Major changes
   ring. By default, only reflection symmetry is used. (:pull:`91`)
   The use of symmetries can be controlled with :code:`translation_symmetry` and
   :code:`reflection_symmetry` optional keyword arguments.
-  The :code:`clever` keywork argument is deprecated for :code:`HorizontalCylinder`
+  The :code:`clever` keyword argument is deprecated for :code:`HorizontalCylinder`
   and should be replaced by the new more explicit keyword arguments above.
+
 
 New features
 ~~~~~~~~~~~~
@@ -40,7 +326,7 @@ Bug fixes
 
 * Fix bug in free surface elevation computation when the number of faces in the free surface mesh is not a multiple of the chunk size, that is by default a multiple of 50 (:pull:`82`).
 
-* The function :code:`assemble_dataset` did not support well the problems without a free surface. In the new version, such problems are explicitely ignored and a warning message is displayed. (:issue:`88` and :pull:`89`).
+* The function :code:`assemble_dataset` did not support well the problems without a free surface. In the new version, such problems are explicitly ignored and a warning message is displayed. (:issue:`88` and :pull:`89`).
 
 * Fix bug in some of the mesh readers/writers when using pathlib path objects (:pull:`87`).
 
@@ -51,19 +337,18 @@ Internal and development
 
 * Easier installation of optional dependencies via :code:`pip install -e .[extra]` and :code:`pip install -e .[develop]` (:pull:`96`).
 
-* Use pytest skipif to skip tests if optional dependecies are not installed (:pull:`68`).
+* Use pytest skipif to skip tests if optional dependencies are not installed (:pull:`68`).
 
 ---------------------------------
 New in version 1.2.1 (2021-04-14)
 ---------------------------------
 
 * Minor bug fixes,
-  including `issue #37 <https://github.com/mancellin/capytaine/issues/37>`_
-  and `issue #56 <https://github.com/mancellin/capytaine/issues/56>`_ (thanks to Ryan Coe).
+  including :issue:`37`
+  and :issue:`56` (thanks to Ryan Coe).
 
 * Add a warning when a panel is on the free surface
-  (see `#29 <https://github.com/mancellin/capytaine/issues/29>`_
-  and `#50 <https://github.com/mancellin/capytaine/issues/50>`_)
+  (see :issue:`29` and :issue:`50`)
 
 -------------------------------
 New in version 1.2 (2020-04-24)
@@ -82,7 +367,7 @@ New in version 1.2 (2020-04-24)
   before version 0.15.1 of `xarray`. Thus this minimal version is now required.
 
 * Add missing Kochin function for the diffraction.
-  (See `Github issue #22 <https://github.com/mancellin/capytaine/issues/22>`_.)
+  (See :issue:`22`.)
   In previous version the variable named :code:`kochin` in the dataset was only the
   Kochin function for the radiated waves. A new variable names
   :code:`kochin_diffraction` has been added. The existing variable :code:`kochin` has not
@@ -91,18 +376,18 @@ New in version 1.2 (2020-04-24)
 
 * Improvement of caching to limit RAM usage for large problems.
 
-* Make optional the dependancy to graphical packages (`matplotlib` and `vtk`).
+* Make optional the dependency to graphical packages (`matplotlib` and `vtk`).
   They were causing issues to some users.
 
 * :code:`problems_and_results.py` has been rewritten to be slightly more readable and
-  remove the dependancy to `attrs`.
+  remove the dependency to `attrs`.
 
 -------------------------------
 New in version 1.1 (2019-09-24)
 -------------------------------
 
 Major changes
--------------
+~~~~~~~~~~~~~
 
 * Refactoring of the implementation of the solver.
   The new implementation separates the solver itself from the evaluation of the
@@ -127,7 +412,7 @@ Major changes
   reimplemented in a future version if there is really a need for it.
 
 Minor changes
--------------
+~~~~~~~~~~~~~
 
 * Minor performance improvements.
 
@@ -140,7 +425,7 @@ New in version 1.0.1 (2019-03-28)
 ---------------------------------
 
 Minor changes
--------------
+~~~~~~~~~~~~~
 
 * Fix compilation flags for OpenMP
 
@@ -151,7 +436,7 @@ New in version 1.0 (2019-03-14)
 -------------------------------
 
 Major changes
--------------
+~~~~~~~~~~~~~
 
 * The :code:`angle` parameter has been renamed to the more accurate name
   :code:`wave_direction`.
@@ -159,7 +444,7 @@ Major changes
 * Most of the modules have been reorganized in several packages. See the
   :doc:`developer_manual/overview` for some details.
 
-* Test compability of the code with Python 3.7 and numpy 1.16.
+* Test compatibility of the code with Python 3.7 and numpy 1.16.
 
 * Remove a couple of unmaintained or unfinished submodules.
 
@@ -209,7 +494,7 @@ New in version 0.6 (2019-02-11)
 -------------------------------
 
 Major changes
--------------
+~~~~~~~~~~~~~
 
 * Full rewrite of the matrices and linear solvers implementation.
   All the relevant code is now in the submodule :code:`capytaine.matrices`.
@@ -229,10 +514,10 @@ Major changes
   video. See cookbook for an example of the new API.
 
 Minor changes
--------------
+~~~~~~~~~~~~~
 
 General
-~~~~~~~
+-------
 
 * Reorganization of the :code:`pytest` directory.
 
@@ -242,7 +527,7 @@ General
 * Various bug fixes and improvements of the documentation.
 
 Solver
-~~~~~~
+------
 
 * More options to set the behavior of the solver at run time :code:`Nemoh` (use
   of symmetries, use of caching, choice of the linear solver, ...).
@@ -263,7 +548,7 @@ Solver
 * Minor refactoring of the solver and the computation of the Green function.
 
 Meshes and bodies
-~~~~~~~~~~~~~~~~~
+-----------------
 
 * CollectionOfMeshes is not a subclass of Tuple anymore.
 
@@ -296,13 +581,13 @@ New in version 0.5 (2018-09-18)
 -------------------------------
 
 Major changes
--------------
+~~~~~~~~~~~~~
 
 * Experimental OpenMP parallelization of the computation of the influence matrices.
   The parallelization in :code:`solve_all` has been removed.
 
 * Integration of a refactored subset of Meshmagick into Capytaine as the :code:`mesh` submodule.
-  Meshmagick is not a dependancy any more.
+  Meshmagick is not a dependency any more.
 
 * Reorganization of the submodules:
 
@@ -318,10 +603,10 @@ Major changes
   meshmagick.mmio                            -> capytaine.io.mesh_loaders and capytaine.io.mesh_writers
 
 Minor changes
--------------
+~~~~~~~~~~~~~
 
 Solver
-~~~~~~
+------
 
 * Reorganization of the internals of the solver :code:`Nemoh.py` and :code:`NemohCore`.
   The initialization options :code:`keep_matrices` and :code:`max_stored_exponential_decompositions` have been removed.
@@ -332,7 +617,7 @@ Solver
 * The wavenumber is not computed in Fortran anymore.
 
 Outputs
-~~~~~~~
+-------
 
 * Some body properties are stored in xarray dataset if they are available.
   New functions :code:`add_wavenumber_coords` and :code:`kochin_data_array` allow the storage of wavenumbers and Kochin function in the dataset.
@@ -348,7 +633,7 @@ Outputs
 * New function :code:`write_dataset_as_tecplot_files()` in :code:`capytaine.tools` for legacy Tecplot output.
 
 Meshes
-~~~~~~
+------
 
 * Refactoring of the transformation methods (:code:`translate`, :code:`rotate`, :code:`mirror`, ...).
 
@@ -380,22 +665,21 @@ New in version 0.4 (2018-08-04)
 -------------------------------
 
 New features
-------------
+~~~~~~~~~~~~
 
 * Documentation and new usage examples.
 * Computation of Kochin coefficients.
 * Cleverer helper functions to define degrees of freedom.
 
 Major changes
--------------
+~~~~~~~~~~~~~
 
 * Backward-incompatible change of the way the degrees of freedom are stored.
 
 Minor changes
--------------
+~~~~~~~~~~~~~
 
 * Double precision computations.
 * Improvement of :code:`assemble_dataset` for parametric studies.
 * Support clipping of collections of meshes.
 * Fixes in geometrical bodies generation.
-

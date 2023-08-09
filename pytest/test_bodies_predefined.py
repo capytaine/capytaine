@@ -4,9 +4,10 @@ import numpy as np
 
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.symmetric import TranslationalSymmetricMesh, ReflectionSymmetricMesh
+from capytaine.meshes.symmetric import TranslationalSymmetricMesh, ReflectionSymmetricMesh, AxialSymmetricMesh
 
 from capytaine.bodies.predefined.rectangles import Rectangle, OpenRectangularParallelepiped, RectangularParallelepiped
+from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.bodies.predefined.cylinders import Disk, HorizontalCylinder, VerticalCylinder
 
 
@@ -36,7 +37,6 @@ def test_rectangle_generation():
     assert all(rec.geometric_center == [0, 0, -5.0])
     assert rec.mesh.nb_faces == 12
     assert rec.mesh.nb_vertices == 21
-    assert rec.area == 100
 
     # x coordinate
     assert np.allclose(rec.mesh.vertices[:, 0], 0.0)
@@ -128,3 +128,54 @@ def test_cylinder():
     HorizontalCylinder()
     VerticalCylinder()
     # TODO
+
+
+def test_cylinder_submesh_names():
+    for s in [True, False]:
+        c = HorizontalCylinder(reflection_symmetry=True, translation_symmetry=s, name="cylinder")
+        assert c.mesh[0].name == "half_cylinder_mesh"
+        assert c.mesh[1].name == "mirrored_of_half_cylinder_mesh"
+
+
+############
+#  SPHERE  #
+############
+
+def test_sphere_name():
+    sphere = Sphere()
+    assert sphere.name.startswith("sphere_")
+
+def test_sphere_axisymmetric():
+    sphere = Sphere(axial_symmetry=True)
+    assert isinstance(sphere.mesh, AxialSymmetricMesh)
+
+def test_sphere_not_axisymmetric():
+    sphere = Sphere(axial_symmetry=False)
+    assert isinstance(sphere.mesh, Mesh)
+
+def test_sphere_nb_panels():
+    sphere = Sphere(ntheta=5, nphi=5, clip_free_surface=False)
+    assert sphere.mesh.nb_faces == 25
+
+def test_sphere_nb_panels_clipped():
+    sphere = Sphere(ntheta=5, nphi=5, clip_free_surface=True)
+    assert sphere.mesh.nb_faces == 25
+
+def test_sphere_nb_panels_clipped_is_underwater():
+    sphere = Sphere(ntheta=5, nphi=5, clip_free_surface=True)
+    assert np.all(sphere.mesh.vertices[:, 2] <= 0.0)
+
+def test_sphere_out_of_water():
+    with pytest.raises(ValueError):
+        sphere = Sphere(radius=1.0, center=(0, 0, 10), clip_free_surface=True)
+
+def test_sphere_geometric_center():
+    sphere = Sphere(radius=2.0, center=(-2.0, 2.0, 1.0))
+    assert np.allclose(sphere.geometric_center, np.array([-2.0, 2.0, 1.0]))
+
+def test_sphere_clipping():
+    s1 = Sphere(ntheta=4, nphi=4, axial_symmetry=False, clip_free_surface=True)
+    s2 = Sphere(ntheta=8, nphi=4, axial_symmetry=False, clip_free_surface=False).keep_immersed_part()
+    assert s1.mesh.nb_faces == s2.mesh.nb_faces
+    assert s1.mesh.nb_vertices == s2.mesh.nb_vertices
+    # TODO: test that the faces are actually the same.
