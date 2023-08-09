@@ -18,6 +18,8 @@ Minor changes
 
 * Add `top_light_intensity` optional arguments to :meth:`~capytaine.ui.vtk.animations.Animation.run` and :meth:`~capytaine.ui.vtk.animations.Animation.save` to illuminate the scene from top. (:pull:`380`)
 
+* Clean up ``__str__`` and ``__repr__`` representation of many objects. Also `rich.print` now return even nicer representations. (:pull:`384`)
+
 Bug fixes
 ~~~~~~~~~
 
