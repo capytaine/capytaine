@@ -62,14 +62,15 @@ class ReflectionSymmetricMesh(SymmetricMesh):
             LOG.debug(f"New mirror symmetric mesh.")
 
     def __str__(self):
-        return f"{self.__class__.__name__}({self.half}, plane={self.plane}, name=\"{self.name}\")"
+        return f"{self.__class__.__name__}({self.half.__short_str__()}, plane={self.plane}, name=\"{self.name}\")"
 
     def __repr__(self):
-        reprer = reprlib.Repr()
-        reprer.maxstring = 200
-        reprer.maxother = 200
-        meshes_names = reprer.repr(self.half)
-        return f"{self.__class__.__name__}({meshes_names}, plane={self.plane}, name=\"{self.name}\")"
+        return f"{self.__class__.__name__}({self.half}, plane={self.plane}, name=\"{self.name}\")"
+
+    def __rich_repr__(self):
+        yield self.half
+        yield "plane", self.plane
+        yield "name", self.name
 
     @property
     def half(self):
@@ -157,14 +158,16 @@ class TranslationalSymmetricMesh(SymmetricMesh):
         return self[0]
 
     def __str__(self):
-        return f"{self.__class__.__name__}({self.first_slice}, translation={self.translation}, nb_repetitions={len(self)-1}, name=\"{self.name}\")"
+        return f"{self.__class__.__name__}({self.first_slice.__short_str__()}, translation={self.translation}, nb_repetitions={len(self)-1}, name=\"{self.name}\")"
 
     def __repr__(self):
-        reprer = reprlib.Repr()
-        reprer.maxstring = 200
-        reprer.maxother = 200
-        meshes_names = reprer.repr(self.first_slice)
         return f"{self.__class__.__name__}({self.first_slice}, translation={self.translation}, nb_repetitions={len(self)-1}, name=\"{self.name}\")"
+
+    def __rich_repr__(self):
+        yield self.first_slice
+        yield "translation", self.translation
+        yield "nb_repetitions", len(self)-1
+        yield "name", self.name
 
     def tree_view(self, fold_symmetry=True, **kwargs):
         if fold_symmetry:
@@ -332,14 +335,16 @@ class AxialSymmetricMesh(SymmetricMesh):
         return self[0]
 
     def __str__(self):
-        return f"{self.__class__.__name__}({self.first_slice}, axis={self.axis}, nb_repetitions={len(self)-1}, name=\"{self.name}\")"
+        return f"{self.__class__.__name__}({self.first_slice.__short_str__()}, axis={self.axis}, nb_repetitions={len(self)-1}, name=\"{self.name}\")"
 
     def __repr__(self):
-        reprer = reprlib.Repr()
-        reprer.maxstring = 200
-        reprer.maxother = 200
-        meshes_names = reprer.repr(self.first_slice)
         return f"{self.__class__.__name__}({self.first_slice}, axis={self.axis}, nb_repetitions={len(self)-1}, name=\"{self.name}\")"
+
+    def __rich_repr__(self):
+        yield self.first_slice
+        yield "axis", self.axis
+        yield "nb_repetitions", len(self)-1
+        yield "name", self.name
 
     def tree_view(self, fold_symmetry=True, **kwargs):
         if fold_symmetry:

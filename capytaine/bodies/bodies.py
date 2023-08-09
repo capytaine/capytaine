@@ -966,15 +966,37 @@ respective inertia coefficients are assigned as NaN.")
     #  Display  #
     #############
 
+    def __short_str__(self):
+        return (f"{self.__class__.__name__}(..., name=\"{self.name}\")")
+
+    def _optional_params_str(self):
+        items = []
+        if self.mass is not None: items.append(f"mass={self.mass}, ")
+        if self.center_of_mass is not None: items.append(f"center_of_mass={self.center_of_mass}, ")
+        return ''.join(items)
+
     def __str__(self):
-        return self.name
+        short_dofs = '{' + ', '.join('"{}": ...'.format(d) for d in self.dofs) + '}'
+        return (f"{self.__class__.__name__}(mesh={self.mesh.__short_str__()}, dofs={short_dofs}, {self._optional_params_str()}name=\"{self.name}\")")
 
     def __repr__(self):
-        return (f"{self.__class__.__name__}(mesh={self.mesh.name}, "
-                f"dofs={{{', '.join(self.dofs.keys())}}}, name={self.name})")
+        short_dofs = '{' + ', '.join('"{}": ...'.format(d) for d in self.dofs) + '}'
+        return (f"{self.__class__.__name__}(mesh={str(self.mesh)}, dofs={short_dofs}, {self._optional_params_str()}name=\"{self.name}\")")
 
     def _repr_pretty_(self, p, cycle):
-        p.text(self.__repr__())
+        p.text(self.__str__())
+
+    def __rich_repr__(self):
+        class DofWithShortRepr:
+            def __repr__(self):
+                return '...'
+        yield "mesh", self.mesh
+        yield "dofs", {d: DofWithShortRepr() for d in self.dofs}
+        if self.mass is not None:
+            yield "mass", self.mass, None
+        if self.center_of_mass is not None:
+            yield "center_of_mass", tuple(self.center_of_mass)
+        yield "name", self.name
 
     def show(self, **kwargs):
         from capytaine.ui.vtk.body_viewer import FloatingBodyViewer

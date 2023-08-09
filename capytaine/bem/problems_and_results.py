@@ -200,7 +200,7 @@ class LinearPotentialFlowProblem:
 
     def __str__(self):
         """Do not display default values in str(problem)."""
-        parameters = [f"body={self.body_name}",
+        parameters = [f"body={self.body.__short_str__()}",
                       f"{self.provided_freq_type}={self.__getattribute__(self.provided_freq_type):.3f}",
                       f"water_depth={self.water_depth}"]
         try:
@@ -222,6 +222,17 @@ class LinearPotentialFlowProblem:
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
+
+    def __rich_repr__(self):
+        yield "body", self.body
+        yield self.provided_freq_type, self.__getattribute__(self.provided_freq_type)
+        yield "water_depth", self.water_depth, _default_parameters["water_depth"]
+        try:
+            yield from self._specific_rich_repr()
+        except:
+            pass
+        yield "g", self.g, _default_parameters["g"]
+        yield "rho", self.rho, _default_parameters["rho"]
 
     def _astuple(self):
         return (self.body, self.free_surface, self.water_depth,
@@ -300,6 +311,9 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     def _str_other_attributes(self):
         return [f"wave_direction={self.wave_direction:.3f}"]
 
+    def _specific_rich_repr(self):
+        yield "wave_direction", self.wave_direction, _default_parameters["wave_direction"]
+
     def make_results_container(self, *args, **kwargs):
         return DiffractionResult(self, *args, **kwargs)
 
@@ -348,6 +362,9 @@ class RadiationProblem(LinearPotentialFlowProblem):
 
     def _str_other_attributes(self):
         return [f"radiating_dof=\'{self.radiating_dof}\'"]
+
+    def _specific_rich_repr(self):
+        yield "radiating_dof", self.radiating_dof
 
     def make_results_container(self, *args, **kwargs):
         return RadiationResult(self, *args, **kwargs)

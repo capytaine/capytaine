@@ -57,14 +57,20 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
         return f"{self.__class__.__name__}([{meshes_str}], name=\"{self.name}\")"
 
     def __repr__(self):
-        reprer = reprlib.Repr()
-        reprer.maxstring = 200
-        reprer.maxother = 200
-        meshes_names = reprer.repr(self._meshes)
-        return f"{self.__class__.__name__}({meshes_names}, name=\"{self.name}\")"
+        return f"{self.__class__.__name__}({', '.join(str(m) for m in self._meshes)}, name=\"{self.name}\")"
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
+
+    def __rich_repr__(self):
+        class WrappedString:
+            def __init__(self, s):
+                self.s = s
+            def __repr__(self):
+                return self.s
+        for m in self._meshes:
+            yield m
+        yield "name", self.name
 
     def __iter__(self):
         return iter(self._meshes)
