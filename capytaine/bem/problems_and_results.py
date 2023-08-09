@@ -421,8 +421,8 @@ class RadiationResult(LinearPotentialFlowResult):
         self.radiating_dof = self.problem.radiating_dof
 
     def store_force(self, dof, force):
-        self.added_masses[dof] = force.real/self.omega**2
-        self.radiation_dampings[dof] = force.imag/self.omega
+        self.added_masses[dof] = float(np.real(force)/(self.omega*self.omega))
+        self.radiation_dampings[dof] = float(np.imag(force)/self.omega)
 
     @property
     def records(self):
