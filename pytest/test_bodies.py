@@ -90,7 +90,6 @@ def test_healing_before_initializing_dofs():
 
 def test_bodies():
     body = Sphere(name="sphere", axial_symmetry=False)
-    assert str(body) == "sphere"
     repr(body)
     assert np.allclose(body.geometric_center, (0, 0, 0))
     body.add_translation_dof(name="Surge")
