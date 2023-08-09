@@ -200,7 +200,7 @@ class LinearPotentialFlowProblem:
 
     def __str__(self):
         """Do not display default values in str(problem)."""
-        parameters = [f"body={self.body.__short_str__()}",
+        parameters = [f"body={self.body.__short_str__() if self.body is not None else None}",
                       f"{self.provided_freq_type}={self.__getattribute__(self.provided_freq_type):.3f}",
                       f"water_depth={self.water_depth}"]
         try:
@@ -224,7 +224,7 @@ class LinearPotentialFlowProblem:
         p.text(self.__str__())
 
     def __rich_repr__(self):
-        yield "body", self.body
+        yield "body", self.body, None
         yield self.provided_freq_type, self.__getattribute__(self.provided_freq_type)
         yield "water_depth", self.water_depth, _default_parameters["water_depth"]
         try:
@@ -406,6 +406,7 @@ class LinearPotentialFlowResult:
     __str__ = LinearPotentialFlowProblem.__str__
     __repr__ = LinearPotentialFlowProblem.__repr__
     _repr_pretty_ = LinearPotentialFlowProblem._repr_pretty_
+    __rich_repr__ = LinearPotentialFlowProblem.__rich_repr__
 
 
 class DiffractionResult(LinearPotentialFlowResult):
@@ -414,6 +415,9 @@ class DiffractionResult(LinearPotentialFlowResult):
         self.forces = {}
         super().__init__(problem, *args, **kwargs)
         self.wave_direction = self.problem.wave_direction
+
+    _str_other_attributes = DiffractionProblem._str_other_attributes
+    _specific_rich_repr = DiffractionProblem._specific_rich_repr
 
     def store_force(self, dof, force):
         self.forces[dof] = force
@@ -436,6 +440,9 @@ class RadiationResult(LinearPotentialFlowResult):
         self.radiation_dampings = {}
         super().__init__(problem, *args, **kwargs)
         self.radiating_dof = self.problem.radiating_dof
+
+    _str_other_attributes = RadiationProblem._str_other_attributes
+    _specific_rich_repr = RadiationProblem._specific_rich_repr
 
     def store_force(self, dof, force):
         self.added_masses[dof] = force.real/self.omega**2
