@@ -181,7 +181,7 @@ The infinite depth Green function takes the following form
 The first term of :math:`G` is the usual Green function for the 3D Laplace equation without our specific boundary conditions.
 The :math:`\mathcal{G}` term is complex-valued and it is introduced to satisfy the boundary conditions :eq:`bc_fs`.
 
-Intoducting the dimensionless variables :math:`r = k \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2}` and :math:`z = k (x_3 + \xi_3)`, this term reads
+Introducing the dimensionless variables :math:`r = k \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2}` and :math:`z = k (x_3 + \xi_3)`, this term reads
 
 .. math::
     \mathcal{G}(r, z) & = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2}  J(\zeta(r, z, \theta)) \, \mathrm{d} \theta \right) \\
