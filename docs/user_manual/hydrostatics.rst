@@ -144,7 +144,7 @@ Instead of computing each hydrostatic parameters individually, :code:`compute_hy
 
     print(hydrostatics.keys())
     # dict_keys(['g', 'rho', 'center_of_mass', 'wet_surface_area', 'disp_volumes',
-    # 'disp_volume', 'disp_mass', 'center_ of_buoyancy', 'waterplane_center',
+    # 'disp_volume', 'disp_mass', 'center_of_buoyancy', 'waterplane_center',
     # 'waterplane_area', 'transversal_metacentric_radius',
     # 'longitudinal_metacentric_radius' , 'transversal_metacentric_height',
     # 'longitudinal_metacentric_height', 'hydrostatic_stiffness',
