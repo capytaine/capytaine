@@ -55,6 +55,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['period'] = 2*np.pi/omega
                 temp_dict['rho'] = rho
                 temp_dict['g'] = g
+                temp_dict['forward_speed'] = 0.0
                 temp_dict['wave_direction'] = np.radians(dir)
                 temp_dict['influenced_dof'] = dofs
                 
@@ -107,6 +108,8 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['omega'] = omega
                 temp_dict['rho'] = rho
                 temp_dict['g'] = g
+                temp_dict['forward_speed'] = 0.0
+                temp_dict['wave_direction'] = 0.0
                 temp_dict['influenced_dof'] = dofs
                 temp_dict['radiating_dof'] = radiating_dof
                 temp_dict['added_mass'] = bemio_obj.body[i].am.all[radiating_dof_idx, :, omega_idx].flatten()
