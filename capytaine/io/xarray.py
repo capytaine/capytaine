@@ -68,7 +68,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     keys_in_dataset = set(dataset.dims.keys())
     accepted_keys = {'wave_direction', 'radiating_dof', 'influenced_dof',
                      'body_name', 'omega', 'period', 'wavelength', 'wavenumber',
-                     'forward_speed', 'water_depth', 'rho', 'g'}
+                     'forward_speed', 'water_depth', 'rho', 'g', 'theta'}
     unrecognized_keys = keys_in_dataset.difference(accepted_keys)
     if len(unrecognized_keys) > 0:
         LOG.warning(f"Unrecognized key(s) in dataset: {unrecognized_keys}")
@@ -222,33 +222,34 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
             The present function is just a wrapper around :code:`compute_kochin`.
     """
     records = pd.DataFrame([
-        dict(**result.problem._asdict(), theta=theta, kochin=kochin)
+        dict(**result.problem._asdict(), theta=theta, kochin=kochin, kind=result.__class__.__name__)
         for result in results
         for theta, kochin in zip(theta_range.data,
                                  compute_kochin(result, theta_range, **kwargs))
     ])
 
-    kochin_data = {}
+    kochin_data = xr.Dataset()
 
-    if 'wave_direction' in records.columns:
-        diffraction = _dataset_from_dataframe(
-            records[~records['wave_direction'].isnull()],
-            ['kochin'],
-            dimensions=['omega', 'wave_direction', 'theta'],
-            optional_dims=['g', 'rho', 'body_name', 'water_depth']
-        )
-        kochin_data['kochin_diffraction'] = diffraction['kochin']
-
-    if 'radiating_dof' in records.columns:
+    if "RadiationResult" in set(records['kind']):
         radiation = _dataset_from_dataframe(
-            records[~records['radiating_dof'].isnull()],
+            records[records['kind'] == "RadiationResult"],
             variables=['kochin'],
             dimensions=['omega', 'radiating_dof', 'theta'],
-            optional_dims=['g', 'rho', 'body_name', 'water_depth']
+            optional_dims=['g', 'rho', 'body_name', 'water_depth', 'forward_speed', 'wave_direction']
         )
         kochin_data['kochin'] = radiation['kochin']
 
+    if "DiffractionResult" in set(records['kind']):
+        diffraction = _dataset_from_dataframe(
+            records[records['kind'] == "DiffractionResult"],
+            ['kochin'],
+            dimensions=['omega', 'wave_direction', 'theta'],
+            optional_dims=['g', 'rho', 'body_name', 'water_depth', 'forward_speed']
+        )
+        kochin_data['kochin_diffraction'] = diffraction['kochin']
+
     return kochin_data
+
 
 def collect_records(results):
     records_list = []
