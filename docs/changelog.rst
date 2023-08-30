@@ -11,10 +11,21 @@ Changelog
 New in next version
 -------------------
 
+Minor changes
+~~~~~~~~~~~~~
+
+* Support passing :class:`~capytaine.bodies.FloatingBody` or :class:`~capytaine.post_pro.free_surfaces.FreeSurface` objects to post-processing methods such as :meth:`~capytaine.bem.solver.BEMSolver.compute_potential` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation`. (:pull:`379`)
+
+* Add `top_light_intensity` optional arguments to :meth:`~capytaine.ui.vtk.animations.Animation.run` and :meth:`~capytaine.ui.vtk.animations.Animation.save` to illuminate the scene from top. (:pull:`380`)
+
 Bug fixes
 ~~~~~~~~~
 
 * When initializing a body with a mesh having degenerate panels, the initialization of the dofs used to happen before the degenerate panels were removed, leading to an inconsistency between the number of panels in the mesh and in the dof definition. (:issue:`367` and :pull:`375`)
+
+* Fix the single precision Green function (:code:`cpt.Delhommeau(floating_point_precision="float32")`) that was broken in v2.0. (:issue:`377` and :pull:`378`)
+
+* Update the BEMIO import feature to work with Pandas 2.0 and output periods as now done in Capytaine 2.0. A version of BEMIO that works in recent version of Python and Numpy can be found at `https://github.com/mancellin/bemio`_. (:pull:`381`)
 
 -------------------------------
 New in version 2.0 (2023-06-21)
