@@ -221,7 +221,7 @@ class LinearPotentialFlowProblem:
                       f"water_depth={self.water_depth}"]
 
         if not self.forward_speed == _default_parameters['forward_speed']:
-            parameters.append(f"forward_speed={self.forward_speed}")
+            parameters.append(f"forward_speed={self.forward_speed:.3f}")
 
         try:
             parameters.extend(self._str_other_attributes())
