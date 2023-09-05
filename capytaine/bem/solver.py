@@ -102,6 +102,7 @@ class BEMSolver:
 
         if problem.forward_speed != 0.0:
             result = problem.make_results_container(sources=sources)
+            # Temporary result object to compute the velocity
             velocity = self.compute_velocity(problem.body.mesh, result)
             pressure += problem.rho * problem.forward_speed * velocity[:, 0]
 

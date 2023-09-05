@@ -302,6 +302,8 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                     airy_waves_velocity(self.body.mesh.faces_centers, self)
                     * self.body.mesh.faces_normals
             ).sum(axis=1)
+            # Note that even with forward speed, this is computed based on the
+            # frequency and not the encounter frequency.
 
             if len(self.body.dofs) == 0:
                 LOG.warning(f"The body {self.body.name} used in diffraction problem has no dofs!")
