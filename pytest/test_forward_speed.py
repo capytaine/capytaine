@@ -1,6 +1,7 @@
 import pytest
 from pytest import approx
 import numpy as np
+import pandas as pd
 import capytaine as cpt
 import xarray as xr
 
@@ -93,10 +94,70 @@ def test_fill_dataset(body, solver):
 
 # VALIDATION
 
-def test_malenica_single_test_case(body, solver):
-    rho = 1025
-    froude = 0.05
-    pb = cpt.DiffractionProblem(body=body, wavenumber=2.0, forward_speed=froude*np.sqrt(9.81), wave_direction=0.0, rho=rho)
-    res = solver.solve(pb)
-    # assert res.forces["Surge"] == approx(0.66*rho**2)
+rho = 1025
+g = 9.81
 
+# Based on Figure 1 from Malenica 1995
+MALENICA_EXCITATION_FORCE = pd.DataFrame([
+    (0.269, 1.662, 0.05), (0.615, 3.192, 0.05), (1.086, 3.168, 0.05), (1.568, 2.225, 0.05), (1.955, 1.608, 0.05),
+    (0.201, 1.281, 0.0), (0.506, 2.928, 0.0), (1.308, 2.733, 0.0), (1.840, 1.890, 0.0),
+    (0.353, 2.263, -0.05), (0.568, 3.224, -0.05), (1.171, 2.963, -0.05), (1.977, 1.893, -0.05),
+    ], columns=["wavenumber", "normalized_force", "froude_number"])
+
+@pytest.mark.parametrize("ref_data", MALENICA_EXCITATION_FORCE.iterrows())
+def test_malenica_excitation_force(body, solver, ref_data):
+    from capytaine.bem.airy_waves import froude_krylov_force
+    pb = cpt.DiffractionProblem(
+        body=body,
+        wavenumber=ref_data[1].wavenumber,
+        forward_speed=ref_data[1].froude_number*np.sqrt(g),
+        wave_direction=0.0,
+        water_depth=1.0,
+        rho=rho
+    )
+    res = solver.solve(pb)
+    excitation_force = res.forces["Surge"] + froude_krylov_force(pb)["Surge"]
+    assert np.abs(excitation_force)/(g*rho) == approx(ref_data[1].normalized_force, rel=5e-2)
+
+
+MALENICA_ADDED_MASS = pd.DataFrame([
+    (0.620, 3.302, 0.05), (0.855, 2.634, 0.05), (1.303, 1.407, 0.05),
+    (0.510, 3.433, 0.0), (0.916, 2.217, 0.0), (1.495, 0.916, 0.0),
+    (0.602, 3.172, -0.05), (1.069, 1.518, -0.05),
+    ], columns=["wavenumber", "normalized_added_mass", "froude_number"])
+
+@pytest.mark.parametrize("ref_data", MALENICA_ADDED_MASS.iterrows())
+def test_malenica_added_mass(body, solver, ref_data):
+    from capytaine.bem.airy_waves import froude_krylov_force
+    pb = cpt.RadiationProblem(
+        body=body,
+        wavenumber=ref_data[1].wavenumber,
+        forward_speed=ref_data[1].froude_number*np.sqrt(g),
+        wave_direction=0.0,
+        water_depth=1.0,
+        radiating_dof="Surge",
+        rho=rho
+    )
+    res = solver.solve(pb)
+    assert np.abs(res.added_masses["Surge"])/(rho) == approx(ref_data[1].normalized_added_mass, rel=1e-1)
+
+MALENICA_RADIATION_DAMPING = pd.DataFrame([
+    (0.456, 0.965, 0.05), (0.727, 1.917, 0.05), (1.129, 2.284, 0.05),
+    (0.434, 0.978, 0.0), (0.674, 1.884, 0.0), (1.125, 2.218, 0.0),
+    (0.408, 0.971, -0.05), (0.642, 1.906, -0.05), (1.042, 2.234, -0.05),
+    ], columns=["wavenumber", "normalized_radiation_damping", "froude_number"])
+
+@pytest.mark.parametrize("ref_data", MALENICA_RADIATION_DAMPING.iterrows())
+def test_malenica_radiation_damping(body, solver, ref_data):
+    from capytaine.bem.airy_waves import froude_krylov_force
+    pb = cpt.RadiationProblem(
+        body=body,
+        wavenumber=ref_data[1].wavenumber,
+        forward_speed=ref_data[1].froude_number*np.sqrt(g),
+        wave_direction=0.0,
+        water_depth=1.0,
+        radiating_dof="Surge",
+        rho=rho
+    )
+    res = solver.solve(pb)
+    assert np.abs(res.radiation_dampings["Surge"])/(rho*pb.encounter_omega) == approx(ref_data[1].normalized_radiation_damping, rel=1e-1)
