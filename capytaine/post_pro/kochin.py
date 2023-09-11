@@ -25,6 +25,9 @@ def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
         values of the Kochin function
     """
 
+    if result.forward_speed != 0.0:
+        raise NotImplementedError("Kochin function with forward speed are currently not supported.")
+
     if result.sources is None:
         raise Exception(f"""The values of the sources of {result} cannot been found.
         They probably have not been stored by the solver because the option keep_details=True have not been set.
