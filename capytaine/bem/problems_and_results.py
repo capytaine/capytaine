@@ -358,15 +358,21 @@ class RadiationProblem(LinearPotentialFlowProblem):
 
             dof = self.body.dofs[self.radiating_dof]
 
-            self.boundary_condition = -1j*self.encounter_omega * np.sum(dof * self.body.mesh.faces_normals, axis=1)
+            self.boundary_condition = -1j * self.encounter_omega * np.sum(dof * self.body.mesh.faces_normals, axis=1)
 
-            if self.forward_speed != 0.0 and self.radiating_dof in {"Pitch", "Yaw"}:
-                if self.radiating_dof == "Pitch":
+            if self.forward_speed != 0.0:
+                if self.radiating_dof.lower() == "pitch":
                     ddofdx_dot_n = np.array([nz for (nx, ny, nz) in self.body.mesh.faces_normals])
-                elif self.radiating_dof == "Yaw":
+                elif self.radiating_dof.lower() == "yaw":
                     ddofdx_dot_n = np.array([-ny for (nx, ny, nz) in self.body.mesh.faces_normals])
+                elif self.radiating_dof.lower() in {"surge", "sway", "heave", "roll"}:
+                    ddofdx_dot_n = 0.0
                 else:
-                    raise NotImplementedError
+                    raise NotImplementedError(
+                            "Radiation problem with forward speed is currently only implemented for a single rigid body.\n"
+                            "Only radiating dofs with name in {'Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'} are supported.\n"
+                            f"Got instead `radiating_dof={self.radiating_dof}`"
+                            )
                 self.boundary_condition += self.forward_speed * ddofdx_dot_n
 
 

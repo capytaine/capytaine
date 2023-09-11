@@ -9,7 +9,7 @@ import xarray as xr
 @pytest.fixture
 def body():
     mesh = cpt.mesh_vertical_cylinder(radius=1.0, length=1.01, center=(0.0, 0.0, -0.5), resolution=(2, 20, 10)).immersed_part(water_depth=1.0)
-    body = cpt.FloatingBody(mesh=mesh)
+    body = cpt.FloatingBody(mesh=mesh, name="body")
     body.add_translation_dof(name="Surge")
     return body
 
@@ -37,10 +37,16 @@ def test_encounter_frequency_radiation_problem(body):
     assert pb.forward_speed == 1.0
     assert pb.encounter_omega < pb.omega
 
-def test_solve_diffraction_problem(body, solver):
-    pb = cpt.DiffractionProblem(body=body, omega=2.0, forward_speed=1.0, wave_direction=0.0)
-    res = solver.solve(pb)
-    print(res.forces)
+def test_multibody(body, solver):
+    two_bodies = body + body.translated_x(5.0, name="other_body")
+    with pytest.raises(NotImplementedError):
+        pb = cpt.RadiationProblem(body=two_bodies, omega=2.0, forward_speed=1.0, radiating_dof="body__Surge")
+
+def test_non_rigid_body(body, solver):
+    body = body.copy(name="body")
+    body.dofs["Shear"] = np.array([[z, 0, 0] for (x, y, z) in body.mesh.faces_centers])
+    with pytest.raises(NotImplementedError):
+        pb = cpt.RadiationProblem(body=body, omega=2.0, forward_speed=1.0, radiating_dof="Shear")
 
 # POST-PROCESSING
 
