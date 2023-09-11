@@ -39,28 +39,38 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
         for mesh in self._meshes:
             assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
 
-        self.name = name
+        if name is None:
+            self.name = f'collection_of_meshes_{next(Mesh._ids)}'
+        else:
+            self.name = str(name)
 
         LOG.debug(f"New collection of meshes: {repr(self)}")
 
-    def __repr__(self):
-        reprer = reprlib.Repr()
-        reprer.maxstring = 100
-        reprer.maxother = 100
-        meshes_names = reprer.repr(self._meshes)
-        if self.name is not None:
-            return f"{self.__class__.__name__}({meshes_names}, name={self.name})"
-        else:
-            return f"{self.__class__.__name__}{meshes_names}"
-
-    def _repr_pretty_(self, p, cycle):
-        p.text(self.__repr__())
+    def __short_str__(self):
+        return (f"{self.__class__.__name__}(..., name=\"{self.name}\")")
 
     def __str__(self):
-        if self.name is not None:
-            return self.name
+        if len(self._meshes) < 3:
+            meshes_str = ', '.join(m.__short_str__() for m in self._meshes)
         else:
-            return repr(self)
+            meshes_str = self._meshes[0].__short_str__() + ", ..., " + self._meshes[-1].__short_str__()
+        return f"{self.__class__.__name__}([{meshes_str}], name=\"{self.name}\")"
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({', '.join(str(m) for m in self._meshes)}, name=\"{self.name}\")"
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
+
+    def __rich_repr__(self):
+        class WrappedString:
+            def __init__(self, s):
+                self.s = s
+            def __repr__(self):
+                return self.s
+        for m in self._meshes:
+            yield m
+        yield "name", self.name
 
     def __iter__(self):
         return iter(self._meshes)
@@ -92,7 +102,7 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
                 shift  = ' │ '
             body_tree_views.append(prefix + tree_view.replace('\n', '\n' + shift))
 
-        return self.name + '\n' + '\n'.join(body_tree_views)
+        return self.__short_str__() + '\n' + '\n'.join(body_tree_views)
 
     def copy(self, name=None):
         from copy import deepcopy

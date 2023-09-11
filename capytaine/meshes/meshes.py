@@ -59,15 +59,34 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
 
         LOG.debug(f"New mesh: {repr(self)}")
 
+    def __short_str__(self):
+        return (f"{self.__class__.__name__}(..., name=\"{self.name}\")")
+
     def __str__(self):
-        return self.name
+        return (f"{self.__class__.__name__}(vertices=[[... {self.nb_vertices} vertices ...]], "
+                f"faces=[[... {self.nb_faces} faces ...]], name=\"{self.name}\")")
 
     def __repr__(self):
-        return (f"{self.__class__.__name__}(nb_vertices={self.nb_vertices}, "
-                f"nb_faces={self.nb_faces}, name={self.name})")
+        # shift = len(self.__class__.__name__) + 1
+        # vert_str = np.array_repr(self.vertices).replace('\n', '\n' + (shift + 9)*' ')
+        # faces_str = np.array_repr(self.faces).replace('\n', '\n' + (shift + 6)*' ')
+        # return f"{self.__class__.__name__}(\n{' '*shift}vertices={vert_str},\n{' '*shift}faces={faces_str}\n{' '*shift}name=\"{self.name}\"\n)"
+        return (f"{self.__class__.__name__}(vertices=[[... {self.nb_vertices} vertices ...]], "
+                f"faces=[[... {self.nb_faces} faces ...]], name=\"{self.name}\")")
 
     def _repr_pretty_(self, p, cycle):
-        p.text(self.__repr__())
+        p.text(self.__str__())
+
+    def __rich_repr__(self):
+        class CustomRepr:
+            def __init__(self, n, kind):
+                self.n = n
+                self.kind = kind
+            def __repr__(self):
+                return "[[... {} {} ...]]".format(self.n, self.kind)
+        yield "vertices", CustomRepr(self.nb_vertices, "vertices")
+        yield "faces", CustomRepr(self.nb_faces, "faces")
+        yield "name", self.name
 
     @property
     def nb_vertices(self) -> int:
@@ -133,7 +152,7 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
 
     def tree_view(self, **kwargs):
         """Dummy method to be generalized for collections of meshes."""
-        return self.name
+        return self.__short_str__()
 
     def to_meshmagick(self):
         """Convert the Mesh object as a Mesh object from meshmagick.
