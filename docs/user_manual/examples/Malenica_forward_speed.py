@@ -54,6 +54,7 @@ solver = cpt.BEMSolver()
 dataset = solver.fill_dataset(test_matrix, cylinder)
 dataset["excitation_force"] = dataset["Froude_Krylov_force"] + dataset["diffraction_force"]
 
+dataset.coords["encounter_omega"] = dataset["omega"] - dataset["wavenumber"] * dataset["forward_speed"] * np.cos(dataset["wave_direction"])
 dataset.coords["Froude_number"] = dataset.coords["forward_speed"]/np.sqrt(g*radius)
 
 plt.figure()
@@ -67,8 +68,9 @@ dataset["norm_added_mass"].attrs['long_name'] = "Normalized added mass A/ρr³"
 dataset["norm_added_mass"].sel(influenced_dof="Surge", radiating_dof="Surge").plot(x="wavenumber", hue="Froude_number")
 
 plt.figure()
-dataset["norm_rad_damping"] = dataset["radiation_damping"]/(rho*dataset.omega*radius**3)
+dataset["norm_rad_damping"] = dataset["radiation_damping"]/(rho*dataset.encounter_omega*radius**3)
 dataset["norm_rad_damping"].attrs['long_name'] = "Normalized radiation damping B/ρωr³"
 dataset["norm_rad_damping"].sel(influenced_dof="Surge", radiating_dof="Surge").plot(x="wavenumber", hue="Froude_number")
 
+print(dataset)
 plt.show()
