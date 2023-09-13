@@ -339,7 +339,7 @@ and
 that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
 
 .. math::
-   \frac{\partial \mathcal{G}}{\partial z} = \mathcal{G}(r, z) + \frac{1}{\sqrt{r^2 + z^2}} - \frac{z}{(r^2 + z^2)^{3/2}}
+   \frac{\partial \mathcal{G}}{\partial z} = \mathcal{G}(r, z) + \frac{2}{\sqrt{r^2 + z^2}} - \frac{z}{(r^2 + z^2)^{3/2}}
    :label: green_function_inf_depth_dGdz
 
 
