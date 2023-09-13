@@ -334,7 +334,7 @@ and
 
 .. math::
    \frac{\partial \mathcal{G}}{\partial z} = & - \frac{z}{(r^2 + z^2)^{3/2}} + \frac{2}{\pi} \Re \left( \int_{-\pi/2}^{\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d}\theta \right) \\
-    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) e^{\zeta } \, \mathrm{d} \theta \right) \\
+    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta } \, \mathrm{d} \theta \right) \\
 
 that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
 
