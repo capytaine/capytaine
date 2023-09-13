@@ -104,7 +104,7 @@ CONTAINS
   SUBROUTINE WAVE_PART_INFINITE_DEPTH &
       (X0I, X0J, wavenumber,          &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      SP, VSP)
+      SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the wave part of the Green function in the infinite depth case.
     ! This is mostly the integral computed by the subroutine above.
 
@@ -120,10 +120,11 @@ CONTAINS
 
     ! Outputs
     COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
-    COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP ! Gradient of the integral of the Green function with respect to X0I.
+    COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP_SYM, VSP_ANTISYM ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
     REAL(KIND=PRE), DIMENSION(3) :: XJ_REFLECTION
+    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP
 
     ! The integrals
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
@@ -140,6 +141,11 @@ CONTAINS
     ! Only one singularity is missing in the derivative
     VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
 #endif
+
+    VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
+    VSP_SYM(3)       = VSP(3)
+    VSP_ANTISYM(1:2) = VSP(1:2)
+    VSP_ANTISYM(3)   = CMPLX(ZERO, ZERO, KIND=PRE)
 
     RETURN
   END SUBROUTINE WAVE_PART_INFINITE_DEPTH
@@ -251,8 +257,10 @@ CONTAINS
 #else
     SP               = SUM(FS(1:4)) - SUM(PSR(1:4))
 #endif
-    VSP_SYM(1:3)     = VS(1:3, 1) + VS(1:3, 4)
-    VSP_ANTISYM(1:3) = VS(1:3, 2) + VS(1:3, 3)
+    VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
+    VSP_ANTISYM(1:2) = VS(1:2, 1) + VS(1:2, 2) + VS(1:2, 3) + VS(1:2, 4)
+    VSP_SYM(3)       = VS(3, 1) + VS(3, 4)
+    VSP_ANTISYM(3)   = VS(3, 2) + VS(3, 3)
 
     ! Multiply by some coefficients
     AMH  = wavenumber*depth
@@ -292,8 +300,10 @@ CONTAINS
 
       ! Add all the contributions
       SP               = SP               + AQT*SUM(FTS(1:4))
-      VSP_ANTISYM(1:3) = VSP_ANTISYM(1:3) + AQT*(VTS(1:3, 1) + VTS(1:3, 4))
-      VSP_SYM(1:3)     = VSP_SYM(1:3)     + AQT*(VTS(1:3, 2) + VTS(1:3, 3))
+
+      VSP_ANTISYM(1:2) = VSP_ANTISYM(1:2) + AQT*(VTS(1:2, 1) + VTS(1:2, 2) + VTS(1:2, 3) + VTS(1:2, 4))
+      VSP_ANTISYM(3)   = VSP_SYM(3) + AQT*(VTS(3, 1) + VTS(3, 4))
+      VSP_SYM(3)       = VSP_ANTISYM(3) + AQT*(VTS(3, 2) + VTS(3, 3))
 
     END DO
 
