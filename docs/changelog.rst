@@ -36,6 +36,7 @@ Internals
 
 * Remove dependency to ``hypothesis`` for testing (:pull:`391`).
 
+* Change how forces are stored in result objects. Added mass and radiation damping can now be queried with ``added_mass`` and ``radiation_damping`` and not only the plural forms that were used nowhere else in the code. (:pull:`393`)
 
 -------------------------------
 New in version 2.0 (2023-06-21)
