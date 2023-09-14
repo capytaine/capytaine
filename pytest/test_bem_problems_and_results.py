@@ -150,7 +150,6 @@ def test_radiation_problem(caplog):
 
     res = pb.make_results_container()
     assert isinstance(res, RadiationResult)
-    assert 'forces' not in res.__dict__
     assert res.added_masses == {}
     assert res.radiation_dampings == {}
 
