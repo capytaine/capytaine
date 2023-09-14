@@ -375,10 +375,12 @@ class LinearPotentialFlowResult:
     def __init__(self, problem, forces=None, sources=None, potential=None, pressure=None):
         self.problem = problem
 
+        self.forces = forces if forces is not None else {}
         self.sources = sources
         self.potential = potential
         self.pressure = pressure
-        self.fs_elevation = {}
+
+        self.fs_elevation = {}  # Only used in legacy `get_free_surface_elevation`. To be removed?
 
         # Copy data from problem
         self.body               = self.problem.body
@@ -396,12 +398,10 @@ class LinearPotentialFlowResult:
         self.body_name          = self.problem.body_name
         self.influenced_dofs    = self.problem.influenced_dofs
 
-        if forces is not None:
-            for dof in self.influenced_dofs:
-                self.store_force(dof, forces[dof])
-
-    def store_force(self, dof, force):
-        pass  # Implemented in sub-classes
+    @property
+    def force(self):
+        # Just an alias
+        return self.forces
 
     __str__ = LinearPotentialFlowProblem.__str__
     __repr__ = LinearPotentialFlowProblem.__repr__
@@ -412,15 +412,11 @@ class LinearPotentialFlowResult:
 class DiffractionResult(LinearPotentialFlowResult):
 
     def __init__(self, problem, *args, **kwargs):
-        self.forces = {}
         super().__init__(problem, *args, **kwargs)
         self.wave_direction = self.problem.wave_direction
 
     _str_other_attributes = DiffractionProblem._str_other_attributes
     _specific_rich_repr = DiffractionProblem._specific_rich_repr
-
-    def store_force(self, dof, force):
-        self.forces[dof] = force
 
     @property
     def records(self):
@@ -436,23 +432,29 @@ class DiffractionResult(LinearPotentialFlowResult):
 class RadiationResult(LinearPotentialFlowResult):
 
     def __init__(self, problem, *args, **kwargs):
-        self.added_masses = {}
-        self.radiation_dampings = {}
         super().__init__(problem, *args, **kwargs)
         self.radiating_dof = self.problem.radiating_dof
 
     _str_other_attributes = RadiationProblem._str_other_attributes
     _specific_rich_repr = RadiationProblem._specific_rich_repr
 
-    def store_force(self, dof, force):
-        self.added_masses[dof] = force.real/self.omega**2
-        self.radiation_dampings[dof] = force.imag/self.omega
+    @property
+    def added_mass(self):
+        return {dof: force.real/self.omega**2 for (dof, force) in self.forces.items()}
+
+    @property
+    def radiation_damping(self):
+        return {dof: force.imag/self.omega for (dof, force) in self.forces.items()}
+
+    # Aliases for backward compatibility
+    added_masses = added_mass
+    radiation_dampings = radiation_damping
 
     @property
     def records(self):
         params = self.problem._asdict()
         return [dict(params,
                      influenced_dof=dof,
-                     added_mass=self.added_masses[dof],
-                     radiation_damping=self.radiation_dampings[dof])
+                     added_mass=self.added_mass[dof],
+                     radiation_damping=self.radiation_damping[dof])
                 for dof in self.influenced_dofs]
