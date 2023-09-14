@@ -159,7 +159,7 @@ Testing
 To check that the installed packaged is working fine, you can run the test suite with Pytest.
 If the library is not already install, it can be done with::
 
-    pip install pytest hypothesis
+    pip install pytest
 
 Then run the following command from the root of Capytaine repository to test the code::
 

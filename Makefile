@@ -10,7 +10,7 @@ test_fortran_compilation:
 
 test: develop
 	# TODO: use something like nox instead.
-	# TODO: Install pytest and hypothesis?
+	# TODO: Install pytest
 	python -m pytest
 
 clean:
@@ -20,7 +20,6 @@ clean:
 	rm -rf capytaine.egg-info/
 	rm -rf docs/_build
 	rm -rf .pytest_cache/
-	rm -rf .hypothesis/
 	rm -rf __pycache__ */__pycache__ */*/__pycache__ */*/*/__pycache__
 
 .PHONY: install develop test clean test_fortran_compilation
