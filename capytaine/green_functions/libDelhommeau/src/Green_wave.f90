@@ -302,8 +302,8 @@ CONTAINS
       SP               = SP               + AQT*SUM(FTS(1:4))
 
       VSP_ANTISYM(1:2) = VSP_ANTISYM(1:2) + AQT*(VTS(1:2, 1) + VTS(1:2, 2) + VTS(1:2, 3) + VTS(1:2, 4))
-      VSP_ANTISYM(3)   = VSP_SYM(3) + AQT*(VTS(3, 1) + VTS(3, 4))
-      VSP_SYM(3)       = VSP_ANTISYM(3) + AQT*(VTS(3, 2) + VTS(3, 3))
+      VSP_ANTISYM(3)   = VSP_ANTISYM(3) + AQT*(VTS(3, 1) + VTS(3, 4))
+      VSP_SYM(3)       = VSP_SYM(3) + AQT*(VTS(3, 2) + VTS(3, 3))
 
     END DO
 
