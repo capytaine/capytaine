@@ -355,7 +355,9 @@ that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
         \frac{\partial G}{\partial x_1} (\xi, x) = - \frac{\partial G}{\partial x_1}(x, \xi).
         \]
 
-    Its derivative with respect to :math:`x_3` can be decomposed into an antisymmetric term and a symmetric term.
+    Its derivative with respect to :math:`x_3` is symmetric in infinite depth.
+
+    In finite depth, some terms of the derivative with respect to :math:`x_3` are symmetric and some are antisymmetric.
 
 
 Higher order derivative
