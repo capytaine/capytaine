@@ -29,6 +29,8 @@ Bug fixes
 
 * Update the BEMIO import feature to work with Pandas 2.0 and output periods as now done in Capytaine 2.0. A version of BEMIO that works in recent version of Python and Numpy can be found at `https://github.com/mancellin/bemio`_. (:pull:`381`)
 
+* Fix :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` that was broken and a relevant test. (:pull:`394`)
+
 Internals
 ~~~~~~~~~
 

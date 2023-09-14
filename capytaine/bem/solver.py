@@ -173,7 +173,7 @@ class BEMSolver:
         ----------
         points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the potential should be computed
-        results: LinearPotentialFlowResult
+        result: LinearPotentialFlowResult
             The return of the BEM solver
 
         Returns
@@ -203,7 +203,7 @@ class BEMSolver:
         ----------
         points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the velocity should be computed
-        results: LinearPotentialFlowResult
+        result: LinearPotentialFlowResult
             The return of the BEM solver
 
         Returns
@@ -235,7 +235,7 @@ class BEMSolver:
         ----------
         points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the pressure should be computed
-        results: LinearPotentialFlowResult
+        result: LinearPotentialFlowResult
             The return of the BEM solver
 
         Returns
@@ -247,7 +247,7 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        return 1j * result.omega * result.rho * self.compute_potential(points, results)
+        return 1j * result.omega * result.rho * self.compute_potential(points, result)
 
 
     def compute_free_surface_elevation(self, points, result):
@@ -257,7 +257,7 @@ class BEMSolver:
         ----------
         points: array of shape (2,) or (N, 2), or 2-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the free surface elevation should be computed
-        results: LinearPotentialFlowResult
+        result: LinearPotentialFlowResult
             The return of the BEM solver
 
         Returns
