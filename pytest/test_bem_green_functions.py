@@ -1,24 +1,21 @@
 #!/usr/bin/env python
 # coding: utf-8
-"""Tests for the computation of the Green function using Fortran routines from Nemoh."""
-
-from itertools import product, combinations
+"""Tests for the computation of the Green function using Fortran routines."""
 
 import pytest
-from hypothesis import given, assume
-from hypothesis.strategies import one_of, just, floats
-from hypothesis.extra.numpy import arrays
+from pytest import approx
 
 import numpy as np
-from numpy import pi
-from numpy.linalg import norm
-from scipy.integrate import quad
-from scipy.misc import derivative
-from scipy.optimize import newton
-from scipy.special import exp1
-
 import capytaine as cpt
 
+
+
+# from numpy import pi
+# from scipy.integrate import quad
+# from scipy.misc import derivative
+# from scipy.optimize import newton
+# from scipy.special import exp1
+# from hypothesis import given
 
 # def E1(z):
 #     return np.exp(-z)*Delhommeau_f90.initialize_green_wave.exp_e1(z)
@@ -91,37 +88,44 @@ def test_compare_tabulations_of_Delhommeau_and_XieDelhommeau():
     Xie = gfs[1].tabulated_integrals[:, :, 0, 1]
     assert np.allclose(Del[abs(z) > 1], Xie[abs(z) > 1], atol=1e-3)
 
-points = arrays(float, (3,), elements=floats(min_value=-10.0, max_value=-1e-2, allow_infinity=False, allow_nan=False))
-methods = one_of(just(gfs[0]), just(gfs[1]))
-frequencies = floats(min_value=1e-2, max_value=1e2)
-depths = one_of(floats(min_value=10.0, max_value=100.0), just(np.infty))
 
-gravity = 9.8
-
-def wave_part_Green_function(Xi, Xj, omega, water_depth, method):
-    if water_depth == np.infty:
-        wavenumber = omega**2 / gravity
-        return method.fortran_core.green_wave.wave_part_infinite_depth(Xi, Xj, wavenumber, method.tabulated_r_range, method.tabulated_z_range, method.tabulated_integrals)
-    else:
-        wavenumber = newton(lambda x: x*np.tanh(x) - omega**2*water_depth/gravity, x0=1.0)/water_depth
-        ambda, ar, nexp = method.fortran_core.old_prony_decomposition.lisc(omega**2 * water_depth/gravity, wavenumber * water_depth)
-        return method.fortran_core.green_wave.wave_part_finite_depth(Xi, Xj, wavenumber, water_depth, method.tabulated_r_range, method.tabulated_z_range, method.tabulated_integrals, ambda, ar, 31)
+@pytest.mark.parametrize("gf", gfs)
+def test_symmetry_of_the_green_function_infinite_depth(gf):
+    k = 1.0
+    xi = np.array([0.0, 0.0, -1.0])
+    xj = np.array([1.0, 1.0, -2.0])
+    g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_infinite_depth(xi, xj, k, gf.tabulated_r_range, gf.tabulated_z_range, gf.tabulated_integrals)
+    g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_infinite_depth(xj, xi, k, gf.tabulated_r_range, gf.tabulated_z_range, gf.tabulated_integrals)
+    assert g1 == approx(g2)
+    assert dg1_sym == approx(dg2_sym)
+    assert dg1_antisym == approx(-dg2_antisym)
 
 
-@given(points, points, frequencies, depths, methods)
-def test_symmetry_of_the_Green_function(X1, X2, omega, water_depth, method):
-    assert np.isclose(wave_part_Green_function(X1, X2, omega, water_depth, method)[0],
-                      wave_part_Green_function(X2, X1, omega, water_depth, method)[0],
-                      rtol=1e-4)
+@pytest.mark.parametrize("gf", gfs)
+def test_symmetry_of_the_green_function_finite_depth_no_prony(gf):
+    k = 1.0
+    depth = 5.0
+    xi = np.array([0.0, 0.0, -1.0])
+    xj = np.array([1.0, 1.0, -2.0])
+    g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(xi, xj, k, depth, gf.tabulated_r_range, gf.tabulated_z_range, gf.tabulated_integrals, np.zeros(1), np.zeros(1), 1)
+    g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(xj, xi, k, depth, gf.tabulated_r_range, gf.tabulated_z_range, gf.tabulated_integrals, np.zeros(1), np.zeros(1), 1)
+    assert g1 == approx(g2)
+    assert dg1_sym == approx(dg2_sym)
+    assert dg1_antisym == approx(-dg2_antisym)
 
-@given(points, points, frequencies, methods)
-def test_symmetry_of_the_derivative_of_the_Green_function(X1, X2, omega, method):
-    assert np.allclose( wave_part_Green_function(X1, X2, omega, np.infty, method)[1][0:2],
-                       -wave_part_Green_function(X2, X1, omega, np.infty, method)[1][0:2],
-                      rtol=1e-4)
-    assert np.isclose(wave_part_Green_function(X1, X2, omega, np.infty, method)[1][2],
-                      wave_part_Green_function(X2, X1, omega, np.infty, method)[1][2],
-                      rtol=1e-4)
+
+@pytest.mark.parametrize("gf", gfs)
+def test_symmetry_of_the_green_function_finite_depth(gf):
+    k = 1.0
+    depth = 10.0
+    xi = np.array([0.0, 0.0, -1.0])
+    xj = np.array([1.0, 1.0, -2.0])
+    ambda, a, nexp = gf.fortran_core.old_prony_decomposition.lisc(k*depth*np.tanh(k*depth), k*depth)
+    g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(xi, xj, k, depth, gf.tabulated_r_range, gf.tabulated_z_range, gf.tabulated_integrals, ambda, a, 31)
+    g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(xj, xi, k, depth, gf.tabulated_r_range, gf.tabulated_z_range, gf.tabulated_integrals, ambda, a, 31)
+    assert g1 == approx(g2)
+    assert dg1_sym == approx(dg2_sym)
+    assert dg1_antisym == approx(-dg2_antisym)
 
 
 def test_floating_point_precision():

@@ -21,7 +21,6 @@ dynamic = ['version']
 [project.optional-dependencies]
 ci = [
     "pytest",
-    "hypothesis",
     "bemio @ https://github.com/mancellin/bemio/archive/fa3a6d3d4b0862491c3723919ec8ee45cc7d055a.zip",
 ]
 
@@ -30,5 +29,5 @@ build-backend = 'mesonpy'
 requires = ["meson-python", "oldest-supported-numpy", "charset-normalizer"]
 
 [tool.cibuildwheel]
-test-requires = ["pytest", "hypothesis"]
+test-requires = ["pytest"]
 test-command = "pytest {project}/pytest/"

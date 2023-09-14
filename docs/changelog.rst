@@ -29,6 +29,14 @@ Bug fixes
 
 * Update the BEMIO import feature to work with Pandas 2.0 and output periods as now done in Capytaine 2.0. A version of BEMIO that works in recent version of Python and Numpy can be found at `https://github.com/mancellin/bemio`_. (:pull:`381`)
 
+Internals
+~~~~~~~~~
+
+* Fix badly named variables ``VSP2_SYM`` and ``VSP2_ANTISYM`` in libDelhommeau (:pull:`391`)
+
+* Remove dependency to ``hypothesis`` for testing (:pull:`391`).
+
+
 -------------------------------
 New in version 2.0 (2023-06-21)
 -------------------------------

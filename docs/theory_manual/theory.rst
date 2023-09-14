@@ -334,12 +334,12 @@ and
 
 .. math::
    \frac{\partial \mathcal{G}}{\partial z} = & - \frac{z}{(r^2 + z^2)^{3/2}} + \frac{2}{\pi} \Re \left( \int_{-\pi/2}^{\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d}\theta \right) \\
-    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) e^{\zeta } \, \mathrm{d} \theta \right) \\
+    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta } \, \mathrm{d} \theta \right) \\
 
 that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
 
 .. math::
-   \frac{\partial \mathcal{G}}{\partial z} = \mathcal{G}(r, z) + \frac{1}{\sqrt{r^2 + z^2}} - \frac{z}{(r^2 + z^2)^{3/2}}
+   \frac{\partial \mathcal{G}}{\partial z} = \mathcal{G}(r, z) + \frac{2}{\sqrt{r^2 + z^2}} - \frac{z}{(r^2 + z^2)^{3/2}}
    :label: green_function_inf_depth_dGdz
 
 
@@ -355,7 +355,9 @@ that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
         \frac{\partial G}{\partial x_1} (\xi, x) = - \frac{\partial G}{\partial x_1}(x, \xi).
         \]
 
-    Its derivative with respect to :math:`x_3` can be decomposed into an antisymmetric term and a symmetric term.
+    Its derivative with respect to :math:`x_3` is symmetric in infinite depth.
+
+    In finite depth, some terms of the derivative with respect to :math:`x_3` are symmetric and some are antisymmetric.
 
 
 Higher order derivative
