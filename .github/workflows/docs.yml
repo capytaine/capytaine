@@ -1,0 +1,34 @@
+name: Build and deploy documentation
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'docs/**'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Build documentation
+        run: |
+          pip install .[docs]
+          cd docs
+          make
+
+      # - name: Deploy pages
+      #   uses: JamesIves/github-pages-deploy-action@releases/v4
+      #   with:
+      #     folder: ./docs/build/_html/
+      #     repository-name: capytaine/capytaine.github.io
+      #     branch: main
+      #     target-folder: master/
+      #     clean: true
+      #     token: ${{ secrets.PAGES_TOKEN }}
