@@ -30,7 +30,7 @@ jobs:
       - name: Deploy pages
         uses: JamesIves/github-pages-deploy-action@releases/v4
         with:
-          folder: ../docs/build/_html/
+          folder: ./docs/_build/html/
           repository-name: capytaine/capytaine.github.io
           branch: main
           target-folder: master/
