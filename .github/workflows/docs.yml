@@ -27,12 +27,11 @@ jobs:
         run: |
           cd docs && make
 
-      # - name: Deploy pages
-      #   uses: JamesIves/github-pages-deploy-action@releases/v4
-      #   with:
-      #     folder: ./docs/build/_html/
-      #     repository-name: capytaine/capytaine.github.io
-      #     branch: main
-      #     target-folder: master/
-      #     clean: true
-      #     token: ${{ secrets.PAGES_TOKEN }}
+      - name: Deploy pages
+        uses: JamesIves/github-pages-deploy-action@releases/v4
+        with:
+          folder: ./docs/build/_html/
+          repository-name: capytaine/capytaine.github.io
+          branch: main
+          target-folder: master/
+          clean: true
