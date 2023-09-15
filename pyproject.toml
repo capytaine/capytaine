@@ -23,7 +23,7 @@ ci = [
     "pytest",
     "bemio @ https://github.com/mancellin/bemio/archive/fa3a6d3d4b0862491c3723919ec8ee45cc7d055a.zip",
 ]
-docs = ["sphinx", "sphinxcontrib-proof", "sphinxcontrib-mermaid"]
+docs = ["sphinx", "sphinx-toolbox", "sphinxcontrib-proof", "sphinxcontrib-mermaid"]
 
 [build-system]
 build-backend = 'mesonpy'
