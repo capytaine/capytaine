@@ -18,11 +18,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
+      - uses: actions/setup-python@v3
+
+      - name: Install Capytaine and other dependencies
+        run: pip install .[docs]
+
       - name: Build documentation
         run: |
-          pip install .[docs]
-          cd docs
-          make
+          cd docs && make
 
       # - name: Deploy pages
       #   uses: JamesIves/github-pages-deploy-action@releases/v4
