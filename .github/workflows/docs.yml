@@ -35,4 +35,4 @@ jobs:
           branch: main
           target-folder: master/
           clean: true
-          token: ${{ secrest.TOKEN_PAGES }}
+          token: ${{ secrets.TOKEN_PAGES }}
