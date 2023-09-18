@@ -1,18 +1,20 @@
 name: Build and deploy documentation
 
 on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'docs/**'
+
   pull_request:
-  # push:
-  #   branches:
-  #     - master
-  #   paths:
-  #     - 'docs/**'
-  #
-  # # Allows you to run this workflow manually from the Actions tab
-  # workflow_dispatch:
+    paths:
+      - 'docs/**'
+
+  workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,9 +26,13 @@ jobs:
         run: pip install .[docs]
 
       - name: Build documentation
-        run: |
-          cd docs && make
+        run: cd docs && make
 
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'  # Only deploy the version merged into the master branch
+    steps:
       - name: Deploy pages
         uses: JamesIves/github-pages-deploy-action@releases/v4
         with:
