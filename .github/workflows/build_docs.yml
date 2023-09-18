@@ -28,12 +28,8 @@ jobs:
       - name: Build documentation
         run: cd docs && make
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'  # Only deploy the version merged into the master branch
-    steps:
       - name: Deploy pages
+        if: github.ref == 'refs/heads/master'  # Only deploy the version merged into the master branch
         uses: JamesIves/github-pages-deploy-action@releases/v4
         with:
           folder: ./docs/_build/html/
