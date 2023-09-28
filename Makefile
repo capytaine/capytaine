@@ -2,7 +2,7 @@ install:
 	pip install .
 
 develop:
-	pip install meson-python numpy charset-normalizer # No installed from pyproject.toml in this case...
+	pip install meson-python ninja numpy charset-normalizer # No installed from pyproject.toml in this case...
 	pip install --no-build-isolation -e .
 
 test_fortran_compilation:
