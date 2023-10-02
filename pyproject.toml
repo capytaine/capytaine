@@ -2,7 +2,7 @@
 name = "capytaine"
 description = "Python BEM solver for linear potential flow, based on Nemoh"
 authors = [{name = "Matthieu Ancellin", email = "matthieu.ancellin@eurobios.com"}]
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 dependencies = ["numpy", "scipy", "pandas>=1.3", "xarray"]
 urls = {repository = "https://github.com/capytaine/capytaine"}
 readme = "README.md"
@@ -20,7 +20,7 @@ dynamic = ['version']
 
 [project.optional-dependencies]
 ci = [
-    "pytest",
+    "pytest>=7.0",
     "bemio @ https://github.com/mancellin/bemio/archive/fa3a6d3d4b0862491c3723919ec8ee45cc7d055a.zip",
 ]
 docs = ["sphinx", "sphinx-toolbox", "sphinxcontrib-proof", "sphinxcontrib-mermaid"]

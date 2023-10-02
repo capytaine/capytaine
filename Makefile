@@ -20,6 +20,8 @@ clean:
 	rm -rf capytaine.egg-info/
 	rm -rf docs/_build
 	rm -rf .pytest_cache/
+	rm -rf .nox/
+	rm -rf .venv/
 	rm -rf __pycache__ */__pycache__ */*/__pycache__ */*/*/__pycache__
 
 .PHONY: install develop test clean test_fortran_compilation
