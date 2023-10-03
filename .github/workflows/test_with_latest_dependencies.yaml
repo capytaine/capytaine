@@ -5,8 +5,6 @@ on:
   schedule:
     - cron: '5 5 5/15 * *'  # On the 5th and 20th of each month at 5:05
 
-  pull_request:  # Just to test before merging.
-
 env:
   FORCE_COLOR: 3
   # Colors for nox
