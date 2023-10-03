@@ -193,17 +193,17 @@ n_bodies = locations.shape[0]
 
 @pytest.fixture
 def fb_array():
-    
+
     sphere = Sphere(
                     radius=r,            # Dimension
                     center=(0, 0, 0),    # Position
                     nphi=4, ntheta=10,   # Fineness of the mesh
     )
-    my_axis = Axis((0, 1, 0), 
+    my_axis = Axis((0, 1, 0),
                    point=(0,0,0))
     sphere.add_rotation_dof(axis=my_axis)
     sphere.keep_immersed_part()
-    
+
     return sphere.assemble_arbitrary_array(locations)
 
 
@@ -222,8 +222,8 @@ def test_consistent_dofs_to_faces(fb_array):
 def test_solve_hydrodynamics(fb_array):
     solver = BEMSolver()
     test_matrix = xr.Dataset(coords={
-          'rho': 1e3,                         
-          'water_depth': [np.infty],          
+          'rho': 1e3,
+          'water_depth': [np.infty],
           'omega': np.pi * 2 / 1,
           'wave_direction': 0,
           'radiating_dof': list(fb_array.dofs.keys()),
@@ -238,4 +238,3 @@ def test_solve_hydrodynamics(fb_array):
     assert data.radiation_damping.notnull().all()
     assert data.diffraction_force.notnull().all()
     assert data.Froude_Krylov_force.notnull().all()
-

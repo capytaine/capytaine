@@ -49,4 +49,3 @@ def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
     # zs.shape = (nb_theta, nb_faces)
     # result.sources.shape = (nb_faces,)
     return zs @ result.sources/(4*np.pi)
-

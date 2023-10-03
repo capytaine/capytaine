@@ -40,7 +40,7 @@ if __name__ == '__main__':
         cl[hs[i]] = 'C%1d' % (i % 10,)
     del(hs)
 
-    
+
     plt.figure()
     for (commit, group_df) in df.groupby(["kind", "hash"]):
         plt.plot(group_df["n_threads"], group_df["elapsed_time"],

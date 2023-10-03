@@ -279,10 +279,10 @@ def export_hydrostatics(hydrostatics_directory, bodies):
 
     if isinstance(bodies, FloatingBody):
         bodies = [bodies]
-    
+
     hydrostatics_file_name = "Hydrostatics.dat"
     kh_file_name = "KH.dat"
-    
+
     body_count = len(bodies)
     if body_count == 1:
         body = bodies[0]

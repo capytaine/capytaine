@@ -75,7 +75,7 @@ CONTAINS
 
     ! Local variables
     LOGICAL :: ISOR
-    INTEGER :: I, J 
+    INTEGER :: I, J
     INTEGER :: NK, NM, NMO
     REAL :: XX, YY, TT
     REAL :: XT(4*(31-1)+1), YT(4*(31-1)+1) ! Tabulation of FF
@@ -310,7 +310,7 @@ CONTAINS
       DO I = K, NL
         E = E + A(I, K)**2
       END DO
-      
+
       E0 = SQRT(E)
       ! IF(E0.LT.EPS)THEN
       !   WRITE(*, 201)EPS

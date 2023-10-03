@@ -94,4 +94,3 @@ def error_exponential_decomposition(X, F, a, lamda):
         return np.sum(a * np.exp(lamda*x), axis=0)
 
     return np.square(f(X) - F).mean()
-

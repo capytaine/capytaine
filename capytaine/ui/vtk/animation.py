@@ -329,7 +329,3 @@ class Animation:
         filepath = mkstemp(suffix=".ogv")[1]
         self.save(filepath, nb_loops=1, resolution=resolution, **kwargs)
         return Video(filepath, embed=True, width=resolution[0], html_attributes="controls loop autoplay")
-
-
-
-

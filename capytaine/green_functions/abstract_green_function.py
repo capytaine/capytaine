@@ -12,4 +12,3 @@ class AbstractGreenFunction(ABC):
     @abstractmethod
     def evaluate(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber):
         pass
-

@@ -270,4 +270,3 @@ def mesh_horizontal_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
     mesh.translate(center)
     mesh.geometric_center = np.asarray(center, dtype=float)
     return mesh
-

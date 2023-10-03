@@ -409,4 +409,3 @@ class Plane(Abstract3DObject):
 yOz_Plane = Plane(normal=e_x, point=(0, 0, 0))
 xOz_Plane = Plane(normal=e_y, point=(0, 0, 0))
 xOy_Plane = Plane(normal=e_z, point=(0, 0, 0))
-

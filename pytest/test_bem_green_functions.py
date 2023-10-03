@@ -27,7 +27,7 @@ import capytaine as cpt
 #     # Compare with Scipy implementation
 #     assert np.isclose(E1(z), exp1(z), rtol=1e-3)
 #
-#     # Test property (A3.5) of the function according to [Del, p.367]. 
+#     # Test property (A3.5) of the function according to [Del, p.367].
 #     if y != 0.0:
 #         assert np.isclose(E1(np.conjugate(z)), np.conjugate(E1(z)), rtol=1e-3)
 #

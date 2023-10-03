@@ -1036,4 +1036,3 @@ respective inertia coefficients are assigned as NaN.")
     def minimal_computable_wavelength(self):
         """For accuracy of the resolution, wavelength should not be smaller than this value."""
         return 8*self.mesh.faces_radiuses.max()
-

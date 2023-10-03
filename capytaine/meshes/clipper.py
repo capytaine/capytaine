@@ -464,4 +464,3 @@ def _clip_crown(crown_mesh, plane):
     }
 
     return clipped_crown_mesh
-

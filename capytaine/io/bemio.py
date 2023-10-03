@@ -57,13 +57,13 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['g'] = g
                 temp_dict['wave_direction'] = np.radians(dir)
                 temp_dict['influenced_dof'] = dofs
-                
+
                 if wavenumber or wavelength:
                     if temp_dict['water_depth'] == np.infty or omega**2*temp_dict['water_depth']/temp_dict['g'] > 20:
                         k = omega**2/temp_dict['g']
                     else:
                         k = newton(lambda x: x*np.tanh(x) - omega**2*temp_dict['water_depth']/temp_dict['g'], x0=1.0)/temp_dict['water_depth']
-                    
+
                     if wavenumber:
                         temp_dict['wavenumber'] = k
 
@@ -81,7 +81,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                     Fexc.real = bemio_obj.body[i].ex.re[:, dir_idx, omega_idx]
                     Fexc.imag = bemio_obj.body[i].ex.im[:, dir_idx, omega_idx]
                 temp_dict['diffraction_force'] = Fexc.flatten()
-            
+
                 try:
                     Fexc_fk = np.empty(shape=bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx].shape, dtype=np.complex128)
                     if from_wamit:
@@ -121,7 +121,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                         k = omega**2/temp_dict['g']
                     else:
                         k = newton(lambda x: x*np.tanh(x) - omega**2*temp_dict['water_depth']/temp_dict['g'], x0=1.0)/temp_dict['water_depth']
-                    
+
                     if wavenumber:
                         temp_dict['wavenumber'] = k
 

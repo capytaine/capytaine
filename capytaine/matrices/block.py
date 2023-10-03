@@ -566,4 +566,3 @@ class BlockMatrix:
         plt.ylim(0, self.shape[0])
         plt.gca().invert_yaxis()
         # plt.show()
-

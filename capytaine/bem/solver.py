@@ -362,4 +362,3 @@ class BEMSolver:
         if keep_details:
             result.fs_elevation[free_surface] = fs_elevation
         return fs_elevation
-

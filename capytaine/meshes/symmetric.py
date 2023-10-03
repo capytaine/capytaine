@@ -383,4 +383,3 @@ class AxialSymmetricMesh(SymmetricMesh):
         self.axis.mirror(plane)
         CollectionOfMeshes.mirror(self, plane)
         return self
-

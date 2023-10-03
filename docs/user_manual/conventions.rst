@@ -63,4 +63,3 @@ With respect to HAMS
 --------------------
 
 `HAMS <https://github.com/YingyiLiu/HAMS>`_ follows the same conventions :eq:`time_convention_in_capytaine` and :eq:`incoming_waves_in_capytaine` as Capytaine.
-

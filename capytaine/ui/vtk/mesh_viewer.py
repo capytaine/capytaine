@@ -461,4 +461,3 @@ class MeshViewer:
         mapper.SetInputData(plane.GetOutput())
 
         # FIXME: terminer l'implementation et l'utiliser pour le plan de la surface libre
-

@@ -151,4 +151,3 @@ Instead of computing each hydrostatic parameters individually, :code:`compute_hy
     # 'length_overall', 'breadt h_overall', 'depth', 'draught',
     # 'length_at_waterline', 'breadth_at_waterline',
     # 'length_overall_submerged', 'breadth_overall_submerged', 'inertia_matrix'])
-

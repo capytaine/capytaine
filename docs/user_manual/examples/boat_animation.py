@@ -62,4 +62,3 @@ if __name__ == '__main__':
     anim = setup_animation(body, fs, omega=1.5, wave_amplitude=0.5, wave_direction=π)
     anim.run(camera_position=(70, 70, 100), resolution=(800, 600))
     anim.save("animated_boat.ogv", camera_position=(70, 70, 100), resolution=(800, 600))
-

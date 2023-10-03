@@ -82,4 +82,3 @@ def compute_node_data(mesh: Union[Mesh, CollectionOfMeshes],
 
     node_data /= nb_faces_near_nodes
     return node_data
-

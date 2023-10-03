@@ -795,4 +795,3 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         if closed_mesh:
             self.heal_normals()
         return self
-

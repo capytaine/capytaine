@@ -50,4 +50,3 @@ def _normalize_free_surface_points(points, keep_mesh=False):
         points = np.concatenate([points, np.zeros((points.shape[0], 1))], axis=1)
 
     return points, output_shape
-

@@ -271,4 +271,3 @@ radiation damping from the result objects in an organized way. In our example, i
 You'll probably want to solve problems for a wide range of parameters without
 defining each test individually. This can be done with the :code:`fill_dataset`
 method of the solver. See :doc:`problem_setup`.
-

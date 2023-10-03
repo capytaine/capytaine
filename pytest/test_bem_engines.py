@@ -113,4 +113,3 @@ def test_a_posteriori_scalar_product_direct_method():
             D_[i, j] = gradG[i, j, :] @ mesh.faces_normals[j, :]
     D__ = np.einsum('...k,...k->...', gradG, mesh.faces_normals)
     np.testing.assert_allclose(D_, D__)
-

@@ -480,7 +480,7 @@ def write_GDF(filename, vertices, faces, ulen=100.0, gravity=9.81, isx=0, isy=0)
         acceleration of gravity. The default is 9.81
     isx: {0, 1}, optional
         symmetry in x-axis. The default is 0
-    isy: {0, 1}, optional 
+    isy: {0, 1}, optional
         symmetry in y-axis. The default is 0
     """
 

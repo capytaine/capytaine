@@ -36,5 +36,3 @@ for ax, dof in zip(axs.ravel(), ["Sway", "Heave"]):
     ax.set_ylabel("z")
 
 plt.show()
-
-

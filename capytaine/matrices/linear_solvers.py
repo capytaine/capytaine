@@ -152,4 +152,3 @@ def gmres_no_fft(A, b):
         LOG.warning(f"No convergence of the GMRES. Error code: {info}")
 
     return x
-
