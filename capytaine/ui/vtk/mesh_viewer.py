@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """3D display of a mesh with VTK.
 Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Tools to use xarray Datasets as inputs and outputs.
 
 .. todo:: This module could be tidied up a bit and some methods merged or

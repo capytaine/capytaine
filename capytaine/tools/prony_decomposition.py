@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Prony decomposition: tool to approximate a function as a sum of exponentials.
 Used in particular in the finite depth Green function.
 """

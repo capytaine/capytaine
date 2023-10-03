@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """The linear solvers used in Capytaine.
 
 They are based on numpy solvers with a thin layer for the handling of Hierarchical Toeplitz matrices.

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Floating bodies to be used in radiation-diffraction problems."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>

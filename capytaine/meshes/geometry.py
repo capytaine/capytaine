@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#  -*- coding: utf-8 -*-
 """Tools to describe geometric objects in 3D.
 Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """

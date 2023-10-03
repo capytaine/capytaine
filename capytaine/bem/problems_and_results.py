@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Definition of the problems to solve with the BEM solver, and the results of this resolution."""
 # Copyright (C) 2017-2023 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
