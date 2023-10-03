@@ -25,7 +25,8 @@ def build_and_test_on_latest_env(session):
 @nox.session
 @nox.parametrize("env_file", ["2023-10-02"])
 def build_and_test_on_locked_env(session, env_file):
-    session.run_always('pdm', 'sync', '--no-self', '-L', f"pytest/envs/{env_file}.lock", external=True)
+    session.install("pdm")
+    session.run_always('pdm', 'sync', '--no-self', '-L', f"pytest/envs/{env_file}.lock")
     session.install("--no-build-isolation", "--no-deps", "-e", ".")
     noxfile_dir = os.path.dirname(__file__)
     with session.chdir(session.create_tmp()):
