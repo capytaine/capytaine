@@ -1,28 +1,27 @@
-name: Build and run test suite with latest dependencies
+name: Build and test using latest available dependencies
 
 on:
   workflow_dispatch:
   schedule:
     - cron: '5 5 5/15 * *'  # On the 5th and 20th of each month at 5:05
 
+  pull_request:  # Just to test before merging.
+
 env:
   FORCE_COLOR: 3
   # Colors for nox
 
 jobs:
-  run_tests:
+  build_and_test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.11']
+        python-version: ['3.7', '3.12']
     steps:
     - name: Checkout repository and submodules
-      uses: actions/checkout@v2
-      with:
-        fetch-depth: 0  # Fetch all commits
-    - run: git checkout v2.0
-    - name: Set up Python
-      uses: actions/setup-python@v3
+      uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Set up nox
