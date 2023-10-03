@@ -32,5 +32,8 @@ test-requires = ["pytest"]
 test-command = "pytest {project}/pytest/"
 
 [tool.ruff]
-select = ["E", "F", "W", "B", "PL", "PT", "NPY"]
-line-length = 120
+select = ["E", "F", "W", "NPY"]
+ignore = ["E501"]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["E402", "F401"]
