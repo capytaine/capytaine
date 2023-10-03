@@ -14,7 +14,7 @@ This documentation is for version |release| (released |today|).
    features.rst
 
 If you need support, you can ask questions on the `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
-Please do not contact the developpers directly by email, unless you are looking for private paid support.
+Please do not contact the developers directly by email, unless you are looking for private paid support.
 
 Contributions are welcome!
 Please, report bugs and suggest improvements as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.

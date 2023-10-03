@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 # Copyright (C) 2017-2019 Matthieu Ancellin, based on the work of François Rongère
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 

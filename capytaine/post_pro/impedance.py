@@ -1,13 +1,8 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Computation of the impendance matrix."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
-
-import numpy as np
-import xarray as xr
 
 LOG = logging.getLogger(__name__)
 

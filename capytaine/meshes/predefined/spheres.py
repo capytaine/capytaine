@@ -48,4 +48,3 @@ def mesh_sphere(*, radius=1.0, center=(0.0, 0.0, 0.0), resolution=(10, 10), axia
     mesh.translate(center)
     mesh.geometric_center = np.asarray(center, dtype=float)
     return mesh
-

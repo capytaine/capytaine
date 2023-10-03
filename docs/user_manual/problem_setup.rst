@@ -140,4 +140,3 @@ The parameter file (in :code:`Nemoh.cal` format) passed as argument is read and 
 .. warning:: If results files already exist, they will be overwritten!
 
 If no argument is provided to the command, the code looks for a file :code:`Nemoh.cal` in the current directory.
-

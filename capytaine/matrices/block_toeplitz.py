@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """This modules implements block Toeplitz matrices to be used in Hierarchical Toeplitz matrices.
 
 The module also contains several special cases such as block symmetric Toeplitz matrices and block circulant matrices.

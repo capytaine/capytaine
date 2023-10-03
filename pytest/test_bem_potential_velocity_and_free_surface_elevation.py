@@ -235,4 +235,3 @@ def test_airy_wave_free_surface_elevation_values():
     assert np.isclose(np.real(airy_waves_free_surface_elevation([0, 0], pb)), 1.0)
     assert np.isclose(np.real(airy_waves_free_surface_elevation([0.25, 0], pb)), 0.0, atol=1e-5)
     assert np.isclose(np.real(airy_waves_free_surface_elevation([0.5, 0], pb)), -1.0)
-

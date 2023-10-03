@@ -53,4 +53,3 @@ def test_rotation_axis():
     A = dataset['added_mass'].sel(radiating_dof=["Yaw", "Sway"], influenced_dof=["Yaw", "Sway"]).data
     P = np.array([1, -l])
     assert np.isclose(A_m, P.T @ A @ P)
-

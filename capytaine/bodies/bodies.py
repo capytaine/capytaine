@@ -1,12 +1,10 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Floating bodies to be used in radiation-diffraction problems."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 import copy
-from itertools import chain, accumulate, product, zip_longest
+from itertools import chain, accumulate, zip_longest
 
 import numpy as np
 import xarray as xr
@@ -351,7 +349,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             except Exception as e:
                 raise ValueError(
                         f"Failed to infer the rotation center of {self.name} to compute rigid body hydrostatics.\n"
-                        f"Possible fix: add a `rotation_center` attibute to {self.name}.\n"
+                        f"Possible fix: add a `rotation_center` attribute to {self.name}.\n"
                         "Note that rigid body hydrostatic methods currently assume that the three rotation dofs have the same rotation center."
                         ) from e
 
@@ -447,7 +445,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             if self.mass is not None and np.isclose(self.mass, self.disp_mass(rho), rtol=1e-4):
                 raise NotImplementedError(
                         f"Trying to compute the hydrostatic stiffness for dofs {radiating_dof_name} and {influenced_dof_name}"
-                        f"of body {self.name}, which is not neutrally buoyant (mass={body.mass}, disp_mass={body.disp_mass(rho)}.\n"
+                        f"of body {self.name}, which is not neutrally buoyant (mass={self.mass}, disp_mass={self.disp_mass(rho)}.\n"
                         f"This case has not been implemented in Capytaine. You need either a single rigid body or a neutrally buoyant body."
                         )
 
@@ -1036,4 +1034,3 @@ respective inertia coefficients are assigned as NaN.")
     def minimal_computable_wavelength(self):
         """For accuracy of the resolution, wavelength should not be smaller than this value."""
         return 8*self.mesh.faces_radiuses.max()
-

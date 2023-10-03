@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """The linear solvers used in Capytaine.
 
 They are based on numpy solvers with a thin layer for the handling of Hierarchical Toeplitz matrices.
@@ -8,7 +6,6 @@ They are based on numpy solvers with a thin layer for the handling of Hierarchic
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
-from functools import lru_cache
 
 import numpy as np
 from scipy import linalg as sl
@@ -152,4 +149,3 @@ def gmres_no_fft(A, b):
         LOG.warning(f"No convergence of the GMRES. Error code: {info}")
 
     return x
-

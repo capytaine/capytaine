@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Special meshes with symmetries, useful to speed up the computations."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -383,4 +381,3 @@ class AxialSymmetricMesh(SymmetricMesh):
         self.axis.mirror(plane)
         CollectionOfMeshes.mirror(self, plane)
         return self
-

@@ -44,7 +44,7 @@ Then run the following line to check that the latest version of Capytaine has be
 
     python -c 'import capytaine as cpt; print(cpt.__version__)'
 
-You might want to use a `virtual environment <https://docs.python.org/3/library/venv.html>`_ to install Capytaine independantly of your other Python packages and avoid any risk of dependency conflict.
+You might want to use a `virtual environment <https://docs.python.org/3/library/venv.html>`_ to install Capytaine independently of your other Python packages and avoid any risk of dependency conflict.
 
 The package can also be installed by other modern PyPI-based Python package managers, such as PDM_ or poetry_.
 

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """ This module contains a class to describe the 2D mesh of the surface of a body in a 3D space.
 Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """
@@ -795,4 +793,3 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         if closed_mesh:
             self.heal_normals()
         return self
-

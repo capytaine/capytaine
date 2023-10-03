@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Experimental function to compute the Response Amplitude Operator."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -63,4 +61,3 @@ def rao(dataset, wave_direction=0.0, dissipation=None, stiffness=None):
     X = np.linalg.solve(H, excitation)
 
     return xr.DataArray(X, coords=[dataset.coords[main_freq_type], dataset.coords['radiating_dof']], dims=[main_freq_type, 'radiating_dof'])
-
