@@ -1,0 +1,37 @@
+name: Build and run test suite in a fixed environment
+
+on:
+  push:
+    branches:
+      - 'master'
+    paths-ignore:
+      # Do not run if only the documentation has been changed
+      - 'docs/**'
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      # Do not run if only the documentation has been changed
+      - 'docs/**'
+      - '**/*.md'
+
+env:
+  FORCE_COLOR: 3
+  # Colors for nox
+
+jobs:
+  run_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.11']
+    steps:
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v2
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Set up nox
+      uses: wntrblm/nox@2022.8.7
+    - name: Run nox session
+      run: nox -s build_and_test_on_locked_env

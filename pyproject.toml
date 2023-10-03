@@ -19,8 +19,9 @@ scripts = {capytaine = "capytaine.ui.cli:main"}
 dynamic = ['version']
 
 [project.optional-dependencies]
+build = ["numpy", "ninja", "meson-python", "charset-normalizer"]
 ci = [
-    "pytest>=7.0",
+    "pytest",
     "bemio @ https://github.com/mancellin/bemio/archive/fa3a6d3d4b0862491c3723919ec8ee45cc7d055a.zip",
 ]
 docs = ["sphinx", "sphinx-toolbox", "sphinxcontrib-proof", "sphinxcontrib-mermaid"]
