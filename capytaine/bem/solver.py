@@ -282,7 +282,7 @@ class BEMSolver:
         Since the interaction matrix does not need to be computed in full to compute the matrix-vector product,
         only a few lines are evaluated at a time to reduce the memory cost of the operation.
 
-        The newer method :code:`compute_potential` should be prefered in the future.
+        The newer method :code:`compute_potential` should be preferred in the future.
 
         Parameters
         ----------
@@ -338,7 +338,7 @@ class BEMSolver:
     def get_free_surface_elevation(self, result, free_surface, keep_details=False):
         """Compute the elevation of the free surface on a mesh for a previously solved problem.
 
-        The newer method :code:`compute_free_surface_elevation` should be prefered in the future.
+        The newer method :code:`compute_free_surface_elevation` should be preferred in the future.
 
         Parameters
         ----------

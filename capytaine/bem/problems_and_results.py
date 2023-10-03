@@ -133,7 +133,7 @@ class LinearPotentialFlowProblem:
             )
 
         if self.water_depth < 0.0:
-            raise ValueError("`water_depth` should be stricly positive.")
+            raise ValueError("`water_depth` should be strictly positive.")
 
         if self.omega in {0, np.infty} and self.water_depth != np.infty:
             raise NotImplementedError(

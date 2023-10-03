@@ -27,7 +27,7 @@ def _normalize_points(points, keep_mesh=False):
         output_shape = (points.shape[0],)
 
     elif points.ndim > 2:
-        # `points` is expected to be the resuls of a meshgrid. Points has shape (d, nx, ny, ...)
+        # `points` is expected to be the results of a meshgrid. Points has shape (d, nx, ny, ...)
         output_shape = points.shape[1:]
         points = points.reshape(points.shape[0], -1).transpose()
         # points is now a (nx*ny*... , d) array

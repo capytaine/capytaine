@@ -30,3 +30,7 @@ requires = ["meson-python", "oldest-supported-numpy", "charset-normalizer"]
 [tool.cibuildwheel]
 test-requires = ["pytest"]
 test-command = "pytest {project}/pytest/"
+
+[tool.ruff]
+select = ["E", "F", "W", "B", "PL", "PT", "NPY"]
+line-length = 120

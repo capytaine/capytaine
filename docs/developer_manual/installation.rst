@@ -114,7 +114,7 @@ If ``make`` is not available in your environment, you can install it through ``c
 
     conda install -c conda-forge make
 
-To compile the code and install it in the curren environment, you can run::
+To compile the code and install it in the current environment, you can run::
 
     make install
 

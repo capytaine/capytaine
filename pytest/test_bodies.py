@@ -180,7 +180,7 @@ def test_assemble_regular_array():
     assert list(array.dofs.keys())[0:3] == ["0_0__Surge", "0_0__Sway", "0_0__Heave"]
     assert "2_1__Heave" not in array.dofs.keys()
 
-    # Check that the dofs coresponds to the right panels
+    # Check that the dofs corresponds to the right panels
     faces_1_0 = np.where(array.dofs["1_0__Heave"] != 0.0)[0]
     fc_1_0 = array.mesh.merged().faces_centers[faces_1_0, :]
     assert np.all(1.0 <= fc_1_0[:, 0]) and np.all(fc_1_0[:, 0] <= 3.0)  #   1 < x < 3

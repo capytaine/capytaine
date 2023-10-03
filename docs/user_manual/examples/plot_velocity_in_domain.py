@@ -28,7 +28,7 @@ for ax, dof in zip(axs.ravel(), ["Sway", "Heave"]):
     ax.quiver(points[:, 1], points[:, 2], y_velocities, z_velocities, angles="xy")
     ax.axis('equal')
 
-    # Display the boudary of the floating body
+    # Display the boundary of the floating body
     theta = np.linspace(-np.pi, 0.0, 100)
     ax.plot(np.cos(theta), np.sin(theta), color="red")
     ax.set_title(dof)

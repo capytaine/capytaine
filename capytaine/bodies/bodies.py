@@ -349,7 +349,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             except Exception as e:
                 raise ValueError(
                         f"Failed to infer the rotation center of {self.name} to compute rigid body hydrostatics.\n"
-                        f"Possible fix: add a `rotation_center` attibute to {self.name}.\n"
+                        f"Possible fix: add a `rotation_center` attribute to {self.name}.\n"
                         "Note that rigid body hydrostatic methods currently assume that the three rotation dofs have the same rotation center."
                         ) from e
 

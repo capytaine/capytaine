@@ -131,7 +131,7 @@ The example below uses the ``openpyxl`` library (that can be installed with ``pi
     from capytaine.io.xarray import separate_complex_values
     separate_complex_values(dataset[["Froude_Krylov_force", "diffraction_force"]]).to_dataframe().to_excel("diffraction_data.xlsx")
 
-For convienence, the radiation and diffraction data have been stored in separate files.
+For convenience, the radiation and diffraction data have been stored in separate files.
 Since this export method poorly supports complex number, the :func:`~capytaine.io.xarray.separate_complex_values` has been used to transform them to a pair of real numbers, as discussed for NetCDF export above.
 
 

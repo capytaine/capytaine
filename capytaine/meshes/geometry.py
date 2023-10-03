@@ -138,7 +138,7 @@ class Abstract3DObject(ABC):
 
 class ClippableMixin(ABC):
     """Abstract base class for object that can be clipped.
-    The child classes should inplement a `clip` method, then this abstract
+    The child classes should implement a `clip` method, then this abstract
     class will append the new methods `clipped`, `keep_immersed_part` and
     `immersed_part`, all based on `clip`.
     """

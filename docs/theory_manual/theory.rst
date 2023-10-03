@@ -506,7 +506,7 @@ Each element of the matrices :math:`S` and :math:`K` can be seen as the interact
    Note that the derivation of :math:`G` is done with respect to a different variable.
 
    The matrix :math:`D` is used in the `direct` boundary integral equation, as e.g. in HAMS [Liu19]_.
-   In the mathematical literature, :math:`D` is also refered to as the `double layer operator` and :math:`K` as the `adjoint double layer operator`.
+   In the mathematical literature, :math:`D` is also referred to as the `double layer operator` and :math:`K` as the `adjoint double layer operator`.
 
 
 The matrices :math:`S` and :math:`K` relates the vectors :math:`\Phi`, :math:`u` and :math:`\sigma` through the following approximations of :eq:`potential_representation` and :eq:`normal_velocity_on_hull_representation`:
