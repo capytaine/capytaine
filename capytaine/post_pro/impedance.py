@@ -4,9 +4,6 @@
 
 import logging
 
-import numpy as np
-import xarray as xr
-
 LOG = logging.getLogger(__name__)
 
 

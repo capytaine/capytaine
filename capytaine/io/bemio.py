@@ -2,11 +2,7 @@ import logging
 
 import numpy as np
 import pandas as pd
-import xarray as xr
 from scipy.optimize import newton
-
-from capytaine import __version__
-
 
 LOG = logging.getLogger(__name__)
 

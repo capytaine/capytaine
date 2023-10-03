@@ -15,7 +15,6 @@ from typing import Sequence, List, Union
 import numpy as np
 import pandas as pd
 import xarray as xr
-from scipy.optimize import newton
 
 from capytaine import __version__
 from capytaine.bodies.bodies import FloatingBody

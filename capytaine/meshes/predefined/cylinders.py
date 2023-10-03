@@ -8,7 +8,7 @@ from itertools import product
 import numpy as np
 from numpy import pi, cos, sin
 
-from capytaine.meshes.geometry import xOy_Plane, xOz_Plane, yOz_Plane, Oz_axis
+from capytaine.meshes.geometry import xOz_Plane, yOz_Plane, Oz_axis
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import TranslationalSymmetricMesh, AxialSymmetricMesh, ReflectionSymmetricMesh

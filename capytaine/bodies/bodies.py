@@ -4,7 +4,7 @@
 
 import logging
 import copy
-from itertools import chain, accumulate, product, zip_longest
+from itertools import chain, accumulate, zip_longest
 
 import numpy as np
 import xarray as xr

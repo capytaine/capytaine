@@ -3,7 +3,6 @@
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
-import reprlib
 from itertools import chain, accumulate
 from functools import lru_cache
 from typing import Iterable, Union
