@@ -2,11 +2,11 @@
 # It is not intended for manual editing.
 
 [metadata]
-groups = ["default", "build", "ci"]
+groups = ["default", "build", "test"]
 cross_platform = true
 static_urls = false
 lock_version = "4.3"
-content_hash = "sha256:a5f3a7eece33abe44cc1ba6ef0c0d029d089d3085072e7c1714026dc652d23c5"
+content_hash = "sha256:28049164fd3ebd3c8edd7dd4744341c5bb9bc8d7b880a0e6f40d97c7ece7028a"
 
 [[package]]
 name = "astropy"
