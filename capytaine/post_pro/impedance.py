@@ -30,10 +30,10 @@ def rao_transfer_function(dataset, dissipation=None, stiffness=None):
     """
 
     if not hasattr(dataset, 'inertia_matrix'):
-        raise AttributeError('Computing the impedance matrix requires a :code:`inertia_matrix` matrix to be defined in the hydrodynamical dataset')
+        raise AttributeError('Computing the impedance matrix requires an `inertia_matrix` matrix to be defined in the hydrodynamical dataset')
 
     if not hasattr(dataset, 'hydrostatic_stiffness'):
-        raise AttributeError('Computing the impedance matrix requires a :code:`hydrostatic_stiffness` matrix to be defined in the hydrodynamical dataset')
+        raise AttributeError('Computing the impedance matrix requires an `hydrostatic_stiffness` matrix to be defined in the hydrodynamical dataset')
 
     # ASSEMBLE MATRICES
     omega = dataset.coords['omega']  # Range of frequencies in the dataset
