@@ -414,6 +414,27 @@ def assemble_dataset(results,
         dataset.wavelength.attrs['long_name'] = 'Wave length'
         dataset.wavelength.attrs['units'] = 'm'
 
+    if not all(records["forward_speed"] == 0.0):
+        omegae_ds = _dataset_from_dataframe(
+                records,
+                variables=['encounter_omega'],
+                dimensions=['forward_speed', 'wave_direction', main_freq_type],
+                optional_dims=['g', 'water_depth'],
+                )
+        dataset.coords['encounter_omega'] = omegae_ds['encounter_omega']
+        dataset.encounter_omega.attrs['long_name'] = 'Encounter angular frequency'
+        dataset.encounter_omega.attrs['units'] = 'rad/s'
+
+        encounter_wave_direction_ds = _dataset_from_dataframe(
+                records,
+                variables=['encounter_wave_direction'],
+                dimensions=['forward_speed', 'wave_direction', main_freq_type],
+                optional_dims=[],
+                )
+        dataset.coords['encounter_wave_direction'] = encounter_wave_direction_ds['encounter_wave_direction']
+        dataset.encounter_wave_direction.attrs['long_name'] = 'Encounter wave direction'
+        dataset.encounter_wave_direction.attrs['units'] = 'rad'
+
     if mesh:
         if bemio_import:
             LOG.warning('Bemio data does not include mesh data. mesh=True is ignored.')

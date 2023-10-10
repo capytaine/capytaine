@@ -201,11 +201,13 @@ class LinearPotentialFlowProblem:
         return {"body_name": self.body_name,
                 "water_depth": self.water_depth,
                 "omega": self.omega,
+                "encounter_omega": self.encounter_omega,
                 "period": self.period,
                 "wavelength": self.wavelength,
                 "wavenumber": self.wavenumber,
                 "forward_speed": self.forward_speed,
                 "wave_direction": self.wave_direction,
+                "encounter_wave_direction": self.encounter_wave_direction,
                 "rho": self.rho,
                 "g": self.g}
 

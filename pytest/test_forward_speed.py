@@ -90,7 +90,7 @@ def test_problem_from_dataset(body, solver):
     assert len(pbs) == 7
     # Four diffraction problems + Three radiation problems, since the wave_direction is only relevant when forward_speed is non 0.0
 
-def test_fill_dataset(body, solver):
+def test_fill_dataset_with_forward_speed(body, solver):
     test_matrix = xr.Dataset(coords={
         "omega": [1.0],
         "forward_speed": [0.0, 1.0],
@@ -99,6 +99,19 @@ def test_fill_dataset(body, solver):
         })
     ds = solver.fill_dataset(test_matrix, body)
     assert "wave_direction" in ds.added_mass.coords
+    assert "encounter_omega" in ds.coords
+    assert "encounter_wave_direction" in ds.coords
+
+def test_fill_dataset_without_forward_speed(body, solver):
+    test_matrix = xr.Dataset(coords={
+        "omega": [1.0],
+        "wave_direction": [0.0, np.pi/2],
+        "radiating_dof": ["Surge"],
+        })
+    ds = solver.fill_dataset(test_matrix, body)
+    assert "wave_direction" not in ds.added_mass.coords
+    assert "encounter_omega" not in ds.coords
+    assert "encounter_wave_direction" not in ds.coords
 
 # VALIDATION
 
