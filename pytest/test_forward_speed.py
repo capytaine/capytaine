@@ -22,16 +22,24 @@ def test_encouter_frequency_along_waves(body):
     pb = cpt.DiffractionProblem(body=body, omega=2.0, forward_speed=1.0, wave_direction=0.0)
     assert pb.forward_speed == 1.0
     assert pb.encounter_omega < pb.omega  # Object is moving in the same direction as the waves
+    assert pb.encounter_wave_direction == pb.wave_direction
 
 def test_encouter_frequency_against_waves(body):
     pb = cpt.DiffractionProblem(body=body, omega=2.0, forward_speed=-1.0, wave_direction=0.0)
     assert pb.forward_speed == -1.0
     assert pb.encounter_omega > pb.omega  # Object is moving against the wave
+    assert pb.encounter_wave_direction == pb.wave_direction
+
+def test_encouter_frequency_faster_than_waves(body):
+    pb = cpt.DiffractionProblem(body=body, omega=2.0, forward_speed=10.0, wave_direction=0.0)
+    assert pb.forward_speed == 10.0
+    assert pb.encounter_omega >= 0.0
+    assert pb.encounter_wave_direction == approx(pb.wave_direction + np.pi)
 
 def test_encouter_frequency_orthogonal_waves(body):
     pb = cpt.DiffractionProblem(body=body, omega=2.0, forward_speed=1.0, wave_direction=np.pi/2)
     assert pb.forward_speed == 1.0
-    assert pb.encounter_omega == pytest.approx(pb.omega)
+    assert pb.encounter_omega == approx(pb.omega)
 
 def test_encounter_frequency_radiation_problem(body):
     pb = cpt.RadiationProblem(body=body, omega=2.0, forward_speed=1.0, wave_direction=0.0, radiating_dof="Surge")

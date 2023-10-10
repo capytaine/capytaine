@@ -79,8 +79,14 @@ class LinearPotentialFlowProblem:
         self.omega, self.period, self.wavenumber, self.wavelength, self.provided_freq_type = \
                 self._get_frequencies(omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength)
 
+        dopplered_omega = self.omega - self.wavenumber*self.forward_speed*np.cos(self.wave_direction)
         self.encounter_omega, self.encounter_period, self.encounter_wavenumber, self.encounter_wavelength, _ = \
-                self._get_frequencies(omega=self.omega - self.wavenumber*self.forward_speed*np.cos(self.wave_direction))
+                self._get_frequencies(omega=abs(dopplered_omega))
+
+        if dopplered_omega >= 0.0:
+            self.encounter_wave_direction = self.wave_direction
+        else:
+            self.encounter_wave_direction = self.wave_direction + np.pi
 
         self._check_data()
 
@@ -290,8 +296,6 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                  g=_default_parameters['g'],
                  wave_direction=_default_parameters['wave_direction']):
 
-        self.wave_direction = float(wave_direction)
-
         super().__init__(body=body, free_surface=free_surface, water_depth=water_depth, sea_bottom=sea_bottom,
                          omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength, wave_direction=wave_direction,
                          forward_speed=forward_speed, rho=rho, g=g)
@@ -307,13 +311,6 @@ class DiffractionProblem(LinearPotentialFlowProblem):
 
             if len(self.body.dofs) == 0:
                 LOG.warning(f"The body {self.body.name} used in diffraction problem has no dofs!")
-
-    def _astuple(self):
-        return super()._astuple() + (self.wave_direction,)
-
-    def _asdict(self):
-        d = super()._asdict()
-        return d
 
     def _str_other_attributes(self):
         return [f"wave_direction={self.wave_direction:.3f}"]
@@ -417,6 +414,7 @@ class LinearPotentialFlowResult:
         self.encounter_period   = self.problem.encounter_period
         self.encounter_wavenumber = self.problem.encounter_wavenumber
         self.encounter_wavelength = self.problem.encounter_wavelength
+        self.encounter_wave_direction = self.problem.encounter_wave_direction
         self.rho                = self.problem.rho
         self.g                  = self.problem.g
         self.boundary_condition = self.problem.boundary_condition
