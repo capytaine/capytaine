@@ -351,6 +351,7 @@ def assemble_dataset(results,
         diffraction_cases.wave_direction.attrs['long_name'] = 'Wave direction'
         diffraction_cases.wave_direction.attrs['units'] = 'rad'
         dataset = xr.merge([dataset, diffraction_cases])
+        dataset['excitation_force'] = dataset['Froude_Krylov_force'] + dataset['diffraction_force']
 
     # OTHER FREQUENCIES TYPES
     if omega and main_freq_type != "omega":

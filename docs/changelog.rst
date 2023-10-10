@@ -20,6 +20,11 @@ Minor changes
 
 * Clean up ``__str__`` and ``__repr__`` representation of many objects. Also `rich.print` now return even nicer representations. (:pull:`384`)
 
+* Always automatically compute and store the ``excitation_force`` next to the ``Froude_Krylov_force`` and ``diffraction_force`` in the dataset (:pull:`406`).
+
+* Computing the RAO with :func:`cpt.post_pro.rao.rao` is not restricted to a single wave direction (or a single value of any other extra parameter) at the time anymore. (:issue:`405` and :pull:`406`)
+
+
 Bug fixes
 ~~~~~~~~~
 

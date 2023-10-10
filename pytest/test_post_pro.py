@@ -27,9 +27,11 @@ def sphere_fb():
             )
     return body
 
+@pytest.fixture
+def solver():
+    return cpt.BEMSolver()
 
-def test_rao_sphere_all(sphere_fb):
-    solver = cpt.BEMSolver()
+def test_rao_sphere_all(sphere_fb, solver):
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.5, 10.0, 5),
         'wave_direction': [0],
@@ -37,8 +39,8 @@ def test_rao_sphere_all(sphere_fb):
         })
 
     data = solver.fill_dataset(test_matrix, sphere_fb,
-                               hydrostatics=True, mesh=True,
-                               wavelength=True, wavenumber=True)
+                               hydrostatics=True, mesh=True)
+
 
     RAO = cpt.post_pro.rao(data)
 
@@ -50,9 +52,8 @@ def test_rao_sphere_all(sphere_fb):
     # # assert RAO == ? # TODO could test against known results
 
 
-def test_rao_from_wavelengths(sphere_fb):
+def test_rao_from_wavelengths(sphere_fb, solver):
     # From https://github.com/capytaine/capytaine/issues/316
-    solver = cpt.BEMSolver()
     test_matrix = xr.Dataset(coords={
         'wavelength': np.linspace(0.5, 10.0, 5),
         'wave_direction': [0],
@@ -64,11 +65,24 @@ def test_rao_from_wavelengths(sphere_fb):
     RAO = cpt.post_pro.rao(data)
 
 
+def test_rao_several_water_depth(sphere_fb, solver):
+    # From https://github.com/capytaine/capytaine/issues/405
+    test_matrix = xr.Dataset(coords={
+        'omega': np.linspace(0.5, 10.0, 3),
+        'wave_direction': [0],
+        'water_depth': [np.infty, 10.0],
+        'radiating_dof': list(sphere_fb.dofs.keys()),
+        })
+
+    data = solver.fill_dataset(test_matrix, sphere_fb, hydrostatics=True)
+    rao = cpt.post_pro.rao(data)
+    assert "water_depth" in rao.dims
+
+
 @pytest.fixture
-def sphere_heave_data(sphere_fb):
+def sphere_heave_data(sphere_fb, solver):
     sphere_fb.keep_only_dofs(['Heave'])
 
-    solver = cpt.BEMSolver()
     test_matrix = xr.Dataset(coords={
           'omega': np.linspace(0.5, 10.0, 5),
           'wave_direction': [0],
@@ -82,14 +96,6 @@ def sphere_heave_data(sphere_fb):
 
 def test_impedance_sphere_heave(sphere_heave_data):
     Zi = cpt.post_pro.impedance(sphere_heave_data)
-
-
-def test_malformed_dataset(sphere_heave_data):
-    data = sphere_heave_data.drop_vars("wavelength")
-    data = data.expand_dims({"wavelength": 1})
-    # data has both an "omega" dimension and a "wavelength" dimension
-    with pytest.raises(ValueError):
-        RAO = cpt.post_pro.rao(data)
 
 
 def test_rao_sphere_heave_indirect(sphere_heave_data):
