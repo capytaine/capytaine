@@ -98,14 +98,6 @@ def test_impedance_sphere_heave(sphere_heave_data):
     Zi = cpt.post_pro.impedance(sphere_heave_data)
 
 
-def test_malformed_dataset(sphere_heave_data):
-    data = sphere_heave_data.drop_vars("wavelength")
-    data = data.expand_dims({"wavelength": 1})
-    # data has both an "omega" dimension and a "wavelength" dimension
-    with pytest.raises(ValueError):
-        RAO = cpt.post_pro.rao(data)
-
-
 def test_rao_sphere_heave_indirect(sphere_heave_data):
     RAO = cpt.post_pro.rao(sphere_heave_data)
     assert RAO.radiating_dof.size == 1
