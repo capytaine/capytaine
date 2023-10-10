@@ -9,7 +9,8 @@ TEMP_DIR := $(shell mktemp -d)
 test_fortran_compilation:
 	# Compile the Fortran code without parallelism for easier reading of the errors.
 	# It is assumed that meson and ninja are already installed.
-	meson setup --wipe $(TEMP_DIR) && meson compile -C $(TEMP_DIR) -j 1
+	meson setup --wipe $(TEMP_DIR) && meson compile -C $(TEMP_DIR) -j 1 foo
+	echo $(TEMP_DIR)
 
 test:
 	# Build and test the current repository in a fixed environment.

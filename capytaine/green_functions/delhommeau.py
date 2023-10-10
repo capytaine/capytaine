@@ -98,6 +98,9 @@ class Delhommeau(AbstractGreenFunction):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
+    def write_tabulation_to_file(self, filename):
+        np.save(filename, self.tabulated_integrals)
+
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
         """Compute the decomposition of a part of the finite water_depth Green function as a sum of exponential functions.

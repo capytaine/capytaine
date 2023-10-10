@@ -75,7 +75,7 @@ py3.extension_module('Delhommeau_float32',
            install : true,
            subdir : 'capytaine/green_functions/libs/')
 
-py3.extension_module('Delhommeau_float64',
+del64 = py3.extension_module('Delhommeau_float64',
            float64, libDelhommeau_src, Delhommeau_float64_f2py_wrapper, incdir_f2py+'/fortranobject.c',
            include_directories: inc_np,
            dependencies : deps,
@@ -101,3 +101,5 @@ py3.extension_module('XieDelhommeau_float64',
            link_args : link_args,
            install : true,
            subdir : 'capytaine/green_functions/libs/')
+
+custom_target('foo', output: 'test.npy', command: [py3, '-c', 'from capytaine import Delhommeau; Delhommeau().write_tabulation_to_file("test.npy")'], depends: [del64])
