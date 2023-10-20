@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """This module implements a class to describe a low-rank matrix as the tensor product of two smaller matrices.
 In particular, an implementation of the Adaptive Cross Approximation is used to build such a matrix.
 

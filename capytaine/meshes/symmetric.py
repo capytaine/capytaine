@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Special meshes with symmetries, useful to speed up the computations."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -47,16 +45,30 @@ class ReflectionSymmetricMesh(SymmetricMesh):
         assert isinstance(plane, Plane)
         assert plane.normal[2] == 0, "Only vertical reflection planes are supported in ReflectionSymmetry classes."
 
-        other_half = half.mirrored(plane, name=f"mirrored_of_{str(half)}")
+        other_half = half.mirrored(plane, name=f"mirrored_of_{half.name}")
 
-        super().__init__((half, other_half), name=name)
+        if name is None:
+            name = f"reflection_of_{half.name}"
 
         self.plane = plane.copy()
+
+        super().__init__((half, other_half), name=name)
 
         if self.name is not None:
             LOG.debug(f"New mirror symmetric mesh: {self.name}.")
         else:
             LOG.debug(f"New mirror symmetric mesh.")
+
+    def __str__(self):
+        return f"{self.__class__.__name__}({self.half.__short_str__()}, plane={self.plane}, name=\"{self.name}\")"
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.half}, plane={self.plane}, name=\"{self.name}\")"
+
+    def __rich_repr__(self):
+        yield self.half
+        yield "plane", self.plane
+        yield "name", self.name
 
     @property
     def half(self):
@@ -64,8 +76,8 @@ class ReflectionSymmetricMesh(SymmetricMesh):
 
     def tree_view(self, fold_symmetry=True, **kwargs):
         if fold_symmetry:
-            return (str(self) + '\n' + ' ├─' + self.half.tree_view().replace('\n', '\n │ ') + '\n'
-                    + f" └─mirrored copy of the above {str(self.half)}")
+            return (self.__short_str__() + '\n' + ' ├─' + self.half.tree_view().replace('\n', '\n │ ') + '\n'
+                    + f" └─mirrored copy of the above {self.half.__short_str__()}")
         else:
             return CollectionOfMeshes.tree_view(self, **kwargs)
 
@@ -127,9 +139,12 @@ class TranslationalSymmetricMesh(SymmetricMesh):
         for i in range(1, nb_repetitions+1):
             slices.append(mesh_slice.translated(vector=i*translation, name=f"repetition_{i}_of_{mesh_slice.name}"))
 
-        super().__init__(slices, name=name)
+        if name is None:
+            name = f"translation_of_{mesh_slice.name}"
 
         self.translation = translation
+
+        super().__init__(slices, name=name)
 
         if self.name is not None:
             LOG.debug(f"New translation symmetric mesh: {self.name}.")
@@ -140,10 +155,22 @@ class TranslationalSymmetricMesh(SymmetricMesh):
     def first_slice(self):
         return self[0]
 
+    def __str__(self):
+        return f"{self.__class__.__name__}({self.first_slice.__short_str__()}, translation={self.translation}, nb_repetitions={len(self)-1}, name=\"{self.name}\")"
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.first_slice}, translation={self.translation}, nb_repetitions={len(self)-1}, name=\"{self.name}\")"
+
+    def __rich_repr__(self):
+        yield self.first_slice
+        yield "translation", self.translation
+        yield "nb_repetitions", len(self)-1
+        yield "name", self.name
+
     def tree_view(self, fold_symmetry=True, **kwargs):
         if fold_symmetry:
-            return (str(self) + '\n' + ' ├─' + self.first_slice.tree_view().replace('\n', '\n │ ') + '\n'
-                    + f" └─{len(self)-1} translated copies of the above {str(self.first_slice)}")
+            return (self.__short_str__() + '\n' + ' ├─' + self.first_slice.tree_view().replace('\n', '\n │ ') + '\n'
+                    + f" └─{len(self)-1} translated copies of the above {self.first_slice.__short_str__()}")
         else:
             return CollectionOfMeshes.tree_view(self, **kwargs)
 
@@ -232,12 +259,15 @@ class AxialSymmetricMesh(SymmetricMesh):
             slices.append(mesh_slice.rotated(axis, angle=2*i*np.pi/(nb_repetitions+1),
                                              name=f"rotation_{i}_of_{mesh_slice.name}"))
 
+        if name is None:
+            name = f"rotation_of_{mesh_slice.name}"
+
+        self.axis = axis.copy()
+
         super().__init__(slices, name=name)
 
         if not axis.is_parallel_to(Oz_axis):
             LOG.warning(f"{self.name} is an axi-symmetric mesh along a non vertical axis.")
-
-        self.axis = axis.copy()
 
         if self.name is not None:
             LOG.debug(f"New rotation symmetric mesh: {self.name}.")
@@ -302,10 +332,22 @@ class AxialSymmetricMesh(SymmetricMesh):
     def first_slice(self):
         return self[0]
 
+    def __str__(self):
+        return f"{self.__class__.__name__}({self.first_slice.__short_str__()}, axis={self.axis}, nb_repetitions={len(self)-1}, name=\"{self.name}\")"
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.first_slice}, axis={self.axis}, nb_repetitions={len(self)-1}, name=\"{self.name}\")"
+
+    def __rich_repr__(self):
+        yield self.first_slice
+        yield "axis", self.axis
+        yield "nb_repetitions", len(self)-1
+        yield "name", self.name
+
     def tree_view(self, fold_symmetry=True, **kwargs):
         if fold_symmetry:
-            return (str(self) + '\n' + ' ├─' + self.first_slice.tree_view().replace('\n', '\n │ ') + '\n'
-                    + f" └─{len(self)-1} rotated copies of the above {str(self.first_slice)}")
+            return (self.__short_str__() + '\n' + ' ├─' + self.first_slice.tree_view().replace('\n', '\n │ ') + '\n'
+                    + f" └─{len(self)-1} rotated copies of the above {self.first_slice.__short_str__()}")
         else:
             return CollectionOfMeshes.tree_view(self, **kwargs)
 
@@ -339,4 +381,3 @@ class AxialSymmetricMesh(SymmetricMesh):
         self.axis.mirror(plane)
         CollectionOfMeshes.mirror(self, plane)
         return self
-

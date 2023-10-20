@@ -291,4 +291,3 @@ It will then be used automatically when needed.
 
 .. warning:: Transformations of the mesh (merging, clipping, ...) may reset the quadrature.
              Compute it only on your final mesh.
-

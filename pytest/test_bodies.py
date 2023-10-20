@@ -78,9 +78,18 @@ def test_defining_rotation_center_with_ints():
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1)))
     body.translated_y(-2.0)
 
+def test_healing_before_initializing_dofs():
+    # Issue #367: https://github.com/capytaine/capytaine/issues/367
+    # Define a mesh with a normal panel and degenerate panel
+    vertices = np.array([(0.0, 0.0, 0.0), (0.0, 1.0, 0.0),
+                         (1.0, 1.0, 0.0), (1.0, 0.0, 0.0)])
+    faces = np.array([[0, 1, 2, 3], [1, 2, 2, 1]])
+    mesh = cpt.Mesh(vertices, faces)
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    assert body.dofs["Heave"].shape[0] == body.mesh.nb_faces == 1
+
 def test_bodies():
     body = Sphere(name="sphere", axial_symmetry=False)
-    assert str(body) == "sphere"
     repr(body)
     assert np.allclose(body.geometric_center, (0, 0, 0))
     body.add_translation_dof(name="Surge")
@@ -171,7 +180,7 @@ def test_assemble_regular_array():
     assert list(array.dofs.keys())[0:3] == ["0_0__Surge", "0_0__Sway", "0_0__Heave"]
     assert "2_1__Heave" not in array.dofs.keys()
 
-    # Check that the dofs coresponds to the right panels
+    # Check that the dofs corresponds to the right panels
     faces_1_0 = np.where(array.dofs["1_0__Heave"] != 0.0)[0]
     fc_1_0 = array.mesh.merged().faces_centers[faces_1_0, :]
     assert np.all(1.0 <= fc_1_0[:, 0]) and np.all(fc_1_0[:, 0] <= 3.0)  #   1 < x < 3
@@ -184,17 +193,17 @@ n_bodies = locations.shape[0]
 
 @pytest.fixture
 def fb_array():
-    
+
     sphere = Sphere(
                     radius=r,            # Dimension
                     center=(0, 0, 0),    # Position
                     nphi=4, ntheta=10,   # Fineness of the mesh
     )
-    my_axis = Axis((0, 1, 0), 
+    my_axis = Axis((0, 1, 0),
                    point=(0,0,0))
     sphere.add_rotation_dof(axis=my_axis)
     sphere.keep_immersed_part()
-    
+
     return sphere.assemble_arbitrary_array(locations)
 
 
@@ -213,8 +222,8 @@ def test_consistent_dofs_to_faces(fb_array):
 def test_solve_hydrodynamics(fb_array):
     solver = BEMSolver()
     test_matrix = xr.Dataset(coords={
-          'rho': 1e3,                         
-          'water_depth': [np.infty],          
+          'rho': 1e3,
+          'water_depth': [np.infty],
           'omega': np.pi * 2 / 1,
           'wave_direction': 0,
           'radiating_dof': list(fb_array.dofs.keys()),
@@ -229,4 +238,3 @@ def test_solve_hydrodynamics(fb_array):
     assert data.radiation_damping.notnull().all()
     assert data.diffraction_force.notnull().all()
     assert data.Froude_Krylov_force.notnull().all()
-

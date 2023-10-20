@@ -68,5 +68,3 @@ class Sphere(FloatingBody):
         self.radius = radius
         self.geometric_center = np.array(center, dtype=float)
         FloatingBody.__init__(self, mesh=mesh, name=name)
-
-

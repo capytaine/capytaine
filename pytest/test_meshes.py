@@ -53,10 +53,6 @@ def test_vertices_and_faces_get_and_set():
 
 def test_mesh_naming():
     """Test how the mesh handle names and string representation."""
-    # Test string representation
-    assert str(test_mesh) == 'test_mesh'  # Just the name
-    assert repr(test_mesh) == "Mesh(nb_vertices=4, nb_faces=1, name=test_mesh)"  # A longer representation.
-
     # Test automatic naming
     dummy_mesh = Mesh()  # Automatically named something like mesh_1
     other_dummy_mesh = Mesh()  # Automatically named something like mesh_2
@@ -142,6 +138,13 @@ def test_mesh_quality():
     cylinder.merge_duplicates(atol=1e-5)
     cylinder.heal_mesh()
 
+def test_heal_mesh_removes_degenerate_panels():
+    vertices = np.array([(0.0, 0.0, 0.0), (0.0, 1.0, 0.0), (1.0, 1.0, 0.0), (1.0, 0.0, 0.0)])
+    faces = np.array([[0, 1, 2, 3], [1, 2, 2, 1]])
+    mesh = cpt.Mesh(vertices, faces)
+    assert mesh.nb_faces == 2
+    mesh.heal_mesh()
+    assert mesh.nb_faces == 1
 
 def test_clipper():
     """Test clipping of mesh."""

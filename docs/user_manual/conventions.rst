@@ -12,7 +12,7 @@ With respect to WAMIT
 
 In this section, the index :math:`W` denotes a magnitude in `WAMIT <https://www.wamit.com/>`_ convention. Other magnitudes use Capytaine convention.
 
-Time dependancy
+Time dependency
 ~~~~~~~~~~~~~~~
 
 In Capytaine, the complex-valued amplitudes (phasors) are defined with the convention
@@ -63,4 +63,3 @@ With respect to HAMS
 --------------------
 
 `HAMS <https://github.com/YingyiLiu/HAMS>`_ follows the same conventions :eq:`time_convention_in_capytaine` and :eq:`incoming_waves_in_capytaine` as Capytaine.
-

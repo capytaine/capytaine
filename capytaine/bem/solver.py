@@ -15,9 +15,11 @@ import numpy as np
 
 from datetime import datetime
 
+from rich.progress import track
+
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem
 from capytaine.green_functions.delhommeau import Delhommeau
-from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
+from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
@@ -106,7 +108,7 @@ class BEMSolver:
 
         return result
 
-    def solve_all(self, problems, *, n_jobs=1, **kwargs):
+    def solve_all(self, problems, *, n_jobs=1, progress_bar=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -117,6 +119,8 @@ class BEMSolver:
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
+        progress_bar: bool, optional (default: True)
+            Display a progress bar while solving
 
         Returns
         -------
@@ -124,13 +128,21 @@ class BEMSolver:
             the solved problems
         """
         if n_jobs == 1:  # force sequential resolution
-            return [self.solve(pb, **kwargs) for pb in sorted(problems)]
+            problems = sorted(problems)
+            if progress_bar:
+                problems = track(problems, total=len(problems), description="Solving BEM problems")
+            return [self.solve(pb, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
                 raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
-            groups_of_results = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.solve_all)(grp, n_jobs=1, **kwargs) for grp in groups_of_problems)
+            parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
+            groups_of_results = parallel(joblib.delayed(self.solve_all)(grp, n_jobs=1, progress_bar=False, **kwargs) for grp in groups_of_problems)
+            if progress_bar:
+                groups_of_results = track(groups_of_results,
+                                          total=len(groups_of_problems),
+                                          description=f"Solving BEM problems with {n_jobs} threads:")
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
             return results
 
@@ -147,6 +159,8 @@ class BEMSolver:
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
+        progress_bar: bool, optional (default: True)
+            Display a progress bar while solving
 
         Returns
         -------
@@ -173,7 +187,7 @@ class BEMSolver:
         ----------
         points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the potential should be computed
-        results: LinearPotentialFlowResult
+        result: LinearPotentialFlowResult
             The return of the BEM solver
 
         Returns
@@ -203,7 +217,7 @@ class BEMSolver:
         ----------
         points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the velocity should be computed
-        results: LinearPotentialFlowResult
+        result: LinearPotentialFlowResult
             The return of the BEM solver
 
         Returns
@@ -235,7 +249,7 @@ class BEMSolver:
         ----------
         points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the pressure should be computed
-        results: LinearPotentialFlowResult
+        result: LinearPotentialFlowResult
             The return of the BEM solver
 
         Returns
@@ -247,7 +261,7 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        return 1j * result.omega * result.rho * self.compute_potential(points, results)
+        return 1j * result.omega * result.rho * self.compute_potential(points, result)
 
 
     def compute_free_surface_elevation(self, points, result):
@@ -257,7 +271,7 @@ class BEMSolver:
         ----------
         points: array of shape (2,) or (N, 2), or 2-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the free surface elevation should be computed
-        results: LinearPotentialFlowResult
+        result: LinearPotentialFlowResult
             The return of the BEM solver
 
         Returns
@@ -282,7 +296,7 @@ class BEMSolver:
         Since the interaction matrix does not need to be computed in full to compute the matrix-vector product,
         only a few lines are evaluated at a time to reduce the memory cost of the operation.
 
-        The newer method :code:`compute_potential` should be prefered in the future.
+        The newer method :code:`compute_potential` should be preferred in the future.
 
         Parameters
         ----------
@@ -338,7 +352,7 @@ class BEMSolver:
     def get_free_surface_elevation(self, result, free_surface, keep_details=False):
         """Compute the elevation of the free surface on a mesh for a previously solved problem.
 
-        The newer method :code:`compute_free_surface_elevation` should be prefered in the future.
+        The newer method :code:`compute_free_surface_elevation` should be preferred in the future.
 
         Parameters
         ----------
@@ -362,4 +376,3 @@ class BEMSolver:
         if keep_details:
             result.fs_elevation[free_surface] = fs_elevation
         return fs_elevation
-

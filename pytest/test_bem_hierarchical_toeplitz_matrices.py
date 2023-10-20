@@ -212,4 +212,3 @@ def test_array_of_spheres():
 
     assert np.isclose(result.added_masses['2_0__Heave'], result2.added_masses['2_0__Heave'], atol=15.0)
     assert np.isclose(result.radiation_dampings['2_0__Heave'], result2.radiation_dampings['2_0__Heave'], atol=15.0)
-

@@ -47,6 +47,15 @@ The point(s) can be given in several ways:
 
     solver.compute_potential(mesh, results)
 
+- or a floating body, in which case the corresponding mesh will be used::
+
+    solver.compute_potential(body, results)
+
+- or a :class:`~capytaine.post_pro.free_surfaces.FreeSurface` object, although the use of this object is not recommended unless you are preparing a 3D animation with the Capytaine's VTK viewer which still require this object at the moment::
+
+    fs = cpt.FreeSurface(x_range=(-10, 10), y_range=(-10, 10))
+    solver.compute_potential(fs, results)
+
 The returned values is an array of shape matching the shape of the input points.
 
 .. warning::
@@ -70,7 +79,7 @@ hydrostatics, and inertial properties::
     from capytaine import BEMSolver
     from capytaine.bodies.predefined.spheres import Sphere
     from capytaine.post_pro import impedance
-    
+
     f = np.linspace(0.1, 2.0)
     omega = 2*np.pi*f
     rho_water = 1e3
@@ -91,13 +100,13 @@ hydrostatics, and inertial properties::
         'wave_direction': 0,
         'radiating_dof': list(sphere.dofs.keys()),
         })
-    
+
     data = solver.fill_dataset(test_matrix, sphere_fb,
                                hydrostatics=True,
                                mesh=True,
                                wavelength=True,
                                wavenumber=True)
-    
+
     Zi = impedance(data)
 
 
