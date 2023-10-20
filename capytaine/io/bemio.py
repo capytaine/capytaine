@@ -4,6 +4,8 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import newton
 
+from capytaine.tools.optional_import import import_optional_dependency
+
 LOG = logging.getLogger(__name__)
 
 #######################
@@ -136,3 +138,91 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
     df = df.astype({'added_mass': np.float64, 'radiation_damping': np.float64, 'diffraction_force': np.complex128, 'Froude_Krylov_force': np.complex128})
 
     return df
+
+#####################
+#  Export to Bemio  #
+#####################
+
+def save_as_bemio_hdf5(filename, dataset):
+    h5py = import_optional_dependency("h5py")
+    with h5py.File(filename, "w") as f:
+        key = 0
+
+        # name = f.create_dataset('body' + str(key+1) + '/properties/name', data=dataset.body_names.values[0])
+        # name.attrs['description'] = 'Name of rigid body'
+
+        forces = [dict(bemio_name='excitation', capytaine_name='excitation_force', plain_name='excitation force'),
+                  dict(bemio_name='scattering', capytaine_name='diffraction_force', plain_name='scattering force'),
+                  dict(bemio_name='froud_krylof', capytaine_name='Froude_Krylov_force', plain_name='Froude-Krylov force')]
+
+        for force in forces:
+
+            mag = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/{}/mag'.format(force['bemio_name']), data=abs(dataset[force['capytaine_name']].values))
+            mag.attrs['units'] = ''
+            mag.attrs['description'] = 'Magnitude of {}'.format(force['plain_name'])
+
+            phase = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/{}/phase'.format(force['bemio_name']), data=np.angle(dataset[force['capytaine_name']].values))
+            phase.attrs['units'] = 'rad'
+            phase.attrs['description'] = 'Phase angle of {}'.format(force['plain_name'])
+
+            re = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/{}/re'.format(force['bemio_name']), data=np.real(dataset[force['capytaine_name']].values))
+            re.attrs['units'] = ''
+            re.attrs['description'] = 'Real component of {}'.format(force['plain_name'])
+
+            im = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/{}/im'.format(force['bemio_name']), data=np.imag(dataset[force['capytaine_name']].values))
+            im.attrs['units'] = ''
+            im.attrs['description'] = 'Imaginary component {}'.format(force['plain_name'])
+
+
+        # # Write added mass information
+        # am = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/added_mass/all',data=bemio_obj.body[key].am.all)
+        # am.attrs['units for translational degrees of freedom'] = 'kg'
+        # am.attrs['units for rotational degrees of freedom'] = 'kg-m^2'
+        # am.attrs['description'] = 'Added mass. Frequency is the third dimension of the data structure.'
+        #
+        # rad = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/radiation_damping/all', data=bemio_obj.body[key].rd.all)
+        # rad.attrs['units'] = ''
+        # rad.attrs['description'] = 'Radiation damping. Frequency is the third dimension of the data structure.'
+        #
+        # for m in range(bemio_obj.body[key].am.all.shape[0]):
+        #
+        #     for n in range(bemio_obj.body[key].am.all.shape[1]):
+        #
+        #         amComp = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/added_mass/components/' + str(m+1) + '_' + str(n+1),data=np.array([bemio_obj.body[key].T, bemio_obj.body[key].am.all[m,n,:]]).transpose())
+        #         amComp.attrs['units'] = ''
+        #         amComp.attrs['description'] = 'Added mass components as a function of frequency'
+        #
+        #         radComp = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/radiation_damping/components/' + str(m+1) + '_' + str(n+1),data=np.array([bemio_obj.body[key].T, bemio_obj.body[key].rd.all[m,n,:]]).transpose())
+        #         radComp.attrs['units'] = ''
+        #         radComp.attrs['description'] = 'Radiation damping components as a function of frequency'
+
+    # Simulation parameters
+    g = f.create_dataset('simulation_parameters/g', data=dataset.g)
+    g.attrs['units'] = 'm/s^2'
+    g.attrs['description'] = 'Gravitational acceleration'
+
+    rho = f.create_dataset('simulation_parameters/rho', data=dataset.rho)
+    rho.attrs['units'] = 'kg/m^3'
+    rho.attrs['description'] = 'Water density'
+
+    T = f.create_dataset('simulation_parameters/T', data=dataset.period)
+    T.attrs['units'] = 's'
+    T.attrs['description'] = 'Wave periods'
+
+    w = f.create_dataset('simulation_parameters/w', data=dataset.omega)
+    w.attrs['units'] = 'rad/s'
+    w.attrs['description'] = 'Wave frequencies'
+
+    water_depth = f.create_dataset('simulation_parameters/water_depth', data=dataset.water_depth)
+    water_depth.attrs['units'] = 'm'
+    water_depth.attrs['description'] = 'Water depth'
+
+    wave_dir = f.create_dataset('simulation_parameters/wave_dir', data=dataset.wave_direction)
+    wave_dir.attrs['units'] = 'rad'
+    wave_dir.attrs['description'] = 'Wave direction'
+
+    scaled = f.create_dataset('simulation_parameters/scaled', data=False)
+    scaled.attrs['description'] = 'True: The data is scaled by rho*g, False: The data is not scaled by rho*g'
+
+    code = f.create_dataset('bem_data/code', data="Capytaine")
+    code.attrs['description'] = 'BEM code'
