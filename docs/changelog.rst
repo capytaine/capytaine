@@ -16,7 +16,7 @@ Major changes
 
 * Add `rich <https://rich.readthedocs.io>`_ as a dependency and improve formatting of the console output.
   Add :func:`~capytaine.tools.rich.set_logging` function to quickly set up logging with `rich`.
-  :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` should now display a progress bar. (:pull:`382`)
+  :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now display a progress bar (unless turn off by the ``progress_bar`` argument). (:pull:`382`)
 
 Minor changes
 ~~~~~~~~~~~~~

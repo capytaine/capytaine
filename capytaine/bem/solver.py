@@ -119,6 +119,8 @@ class BEMSolver:
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
+        progress_bar: bool, optional (default: True)
+            Display a progress bar while solving
 
         Returns
         -------
@@ -157,6 +159,8 @@ class BEMSolver:
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
+        progress_bar: bool, optional (default: True)
+            Display a progress bar while solving
 
         Returns
         -------
