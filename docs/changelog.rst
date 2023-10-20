@@ -54,6 +54,8 @@ Internals
 
 * Use `nox <https://nox.thea.codes>`_ to test the code in isolated virtual environments. (:pull:`401`)
 
+* Fortran source files are not included in wheel anymore (:pull:`360`).
+
 -------------------------------
 New in version 2.0 (2023-06-21)
 -------------------------------
