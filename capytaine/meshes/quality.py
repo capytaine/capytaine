@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Tools for mesh quality and mesh healing.
 Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """

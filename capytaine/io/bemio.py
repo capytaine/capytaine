@@ -2,11 +2,7 @@ import logging
 
 import numpy as np
 import pandas as pd
-import xarray as xr
 from scipy.optimize import newton
-
-from capytaine import __version__
-
 
 LOG = logging.getLogger(__name__)
 
@@ -31,7 +27,6 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
 
 
     dofs = np.array(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'])
-    df = pd.DataFrame()
     for i in range(bemio_obj.body[0].num_bodies):
         difr_dict = []
         rad_dict = []
@@ -53,17 +48,18 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['body_name'] = bemio_obj.body[i].name
                 temp_dict['water_depth'] = bemio_obj.body[i].water_depth
                 temp_dict['omega'] = omega
+                temp_dict['period'] = 2*np.pi/omega
                 temp_dict['rho'] = rho
                 temp_dict['g'] = g
                 temp_dict['wave_direction'] = np.radians(dir)
                 temp_dict['influenced_dof'] = dofs
-                
+
                 if wavenumber or wavelength:
                     if temp_dict['water_depth'] == np.infty or omega**2*temp_dict['water_depth']/temp_dict['g'] > 20:
                         k = omega**2/temp_dict['g']
                     else:
                         k = newton(lambda x: x*np.tanh(x) - omega**2*temp_dict['water_depth']/temp_dict['g'], x0=1.0)/temp_dict['water_depth']
-                    
+
                     if wavenumber:
                         temp_dict['wavenumber'] = k
 
@@ -81,7 +77,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                     Fexc.real = bemio_obj.body[i].ex.re[:, dir_idx, omega_idx]
                     Fexc.imag = bemio_obj.body[i].ex.im[:, dir_idx, omega_idx]
                 temp_dict['diffraction_force'] = Fexc.flatten()
-            
+
                 try:
                     Fexc_fk = np.empty(shape=bemio_obj.body[i].ex.fk.re[:, dir_idx, omega_idx].shape, dtype=np.complex128)
                     if from_wamit:
@@ -121,7 +117,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                         k = omega**2/temp_dict['g']
                     else:
                         k = newton(lambda x: x*np.tanh(x) - omega**2*temp_dict['water_depth']/temp_dict['g'], x0=1.0)/temp_dict['water_depth']
-                    
+
                     if wavenumber:
                         temp_dict['wavenumber'] = k
 
@@ -133,8 +129,10 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
 
                 rad_dict.append(temp_dict)
 
-    df = df.append(pd.DataFrame.from_dict(difr_dict).explode(['influenced_dof', 'diffraction_force', 'Froude_Krylov_force']))
-    df = df.append(pd.DataFrame.from_dict(rad_dict).explode(['influenced_dof', 'added_mass', 'radiation_damping']))
+    df = pd.concat([
+        pd.DataFrame.from_dict(difr_dict).explode(['influenced_dof', 'diffraction_force', 'Froude_Krylov_force']),
+        pd.DataFrame.from_dict(rad_dict).explode(['influenced_dof', 'added_mass', 'radiation_damping'])
+        ])
     df = df.astype({'added_mass': np.float64, 'radiation_damping': np.float64, 'diffraction_force': np.complex128, 'Froude_Krylov_force': np.complex128})
 
     return df

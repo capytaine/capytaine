@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Prony decomposition: tool to approximate a function as a sum of exponentials.
 Used in particular in the finite depth Green function.
 """
@@ -94,4 +92,3 @@ def error_exponential_decomposition(X, F, a, lamda):
         return np.sum(a * np.exp(lamda*x), axis=0)
 
     return np.square(f(X) - F).mean()
-

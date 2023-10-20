@@ -89,7 +89,7 @@ def test_legacy_export_hydrostatics():
     export_hydrostatics(os.path.join(testing_directory, 'single_body'), cylinder1)
     export_hydrostatics(os.path.join(testing_directory, 'single_body_list'), [cylinder1])
     export_hydrostatics(os.path.join(testing_directory, 'two_bodies_list'), [cylinder1, cylinder2])
- 
+
 
     # Check single body Hydrostatics.dat
     with open(os.path.join(testing_directory, "single_body/Hydrostatics.dat"), "r") as f:

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Tools to use xarray Datasets as inputs and outputs.
 
 .. todo:: This module could be tidied up a bit and some methods merged or
@@ -17,7 +15,6 @@ from typing import Sequence, List, Union
 import numpy as np
 import pandas as pd
 import xarray as xr
-from scipy.optimize import newton
 
 from capytaine import __version__
 from capytaine.bodies.bodies import FloatingBody
@@ -64,7 +61,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     assert len(list(set(body.name for body in bodies))) == len(bodies), \
         "All bodies should have different names."
 
-    # Warn user in case of key with unrecognized name (e.g. mispells)
+    # Warn user in case of key with unrecognized name (e.g. misspells)
     keys_in_dataset = set(dataset.dims.keys())
     accepted_keys = {'wave_direction', 'radiating_dof', 'influenced_dof',
                      'body_name', 'omega', 'period', 'wavelength', 'wavenumber',
@@ -354,6 +351,7 @@ def assemble_dataset(results,
         diffraction_cases.wave_direction.attrs['long_name'] = 'Wave direction'
         diffraction_cases.wave_direction.attrs['units'] = 'rad'
         dataset = xr.merge([dataset, diffraction_cases])
+        dataset['excitation_force'] = dataset['Froude_Krylov_force'] + dataset['diffraction_force']
 
     # OTHER FREQUENCIES TYPES
     if omega and main_freq_type != "omega":

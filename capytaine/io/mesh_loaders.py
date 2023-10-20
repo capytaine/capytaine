@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#  -*- coding: utf-8 -*-
 """Functions to load meshes from different file formats.
 Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """

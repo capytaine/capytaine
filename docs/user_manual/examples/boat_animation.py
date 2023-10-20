@@ -37,11 +37,11 @@ def setup_animation(body, fs, omega, wave_amplitude, wave_direction):
 
     # COMPUTE FREE SURFACE ELEVATION
     # Compute the diffracted wave pattern
-    incoming_waves_elevation = airy_waves_free_surface_elevation(fs.mesh, diffraction_result)
-    diffraction_elevation = bem_solver.compute_free_surface_elevation(fs.mesh, diffraction_result)
+    incoming_waves_elevation = airy_waves_free_surface_elevation(fs, diffraction_result)
+    diffraction_elevation = bem_solver.compute_free_surface_elevation(fs, diffraction_result)
 
     # Compute the wave pattern radiated by the RAO
-    radiation_elevations_per_dof = {res.radiating_dof: bem_solver.compute_free_surface_elevation(fs.mesh, diffraction_result) for res in radiation_results}
+    radiation_elevations_per_dof = {res.radiating_dof: bem_solver.compute_free_surface_elevation(fs, diffraction_result) for res in radiation_results}
     radiation_elevation = sum(rao.sel(omega=omega, radiating_dof=dof).data * radiation_elevations_per_dof[dof] for dof in body.dofs)
 
     # SET UP ANIMATION
@@ -62,4 +62,3 @@ if __name__ == '__main__':
     anim = setup_animation(body, fs, omega=1.5, wave_amplitude=0.5, wave_direction=π)
     anim.run(camera_position=(70, 70, 100), resolution=(800, 600))
     anim.save("animated_boat.ogv", camera_position=(70, 70, 100), resolution=(800, 600))
-

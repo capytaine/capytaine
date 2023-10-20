@@ -178,9 +178,8 @@ CONTAINS
                 quad_points(J, Q, :),       & ! centers_2(J, :),
                 wavenumber,                 &
                 tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-                SP2, VSP2_SYM               &
+                SP2, VSP2_SYM, VSP2_ANTISYM &
                 )
-              VSP2_ANTISYM(:) = ZERO
             ELSE
               CALL WAVE_PART_FINITE_DEPTH   &
                 (centers_1(I, :),           &
@@ -232,9 +231,8 @@ CONTAINS
               quad_points(J, 1, :),       & ! centers_2(J, :),
               wavenumber,                 &
               tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-              SP2, VSP2_SYM               &
+              SP2, VSP2_SYM, VSP2_ANTISYM &
               )
-            VSP2_ANTISYM(:) = ZERO
           ELSE
             CALL WAVE_PART_FINITE_DEPTH   &
               (centers_1(I, :),           &
@@ -256,7 +254,6 @@ CONTAINS
           endif
 
           IF (.NOT. I==J) THEN
-            VSP2_SYM(1:2) = -VSP2_SYM(1:2)
             S(J, I) = S(J, I) - coeffs(3) * SP2 * quad_weights(I, 1)
             if (size(K, 3) == 1) then
               K(J, I, 1) = K(J, I, 1) - coeffs(3) * &

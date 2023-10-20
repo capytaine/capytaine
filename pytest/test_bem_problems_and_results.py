@@ -139,7 +139,7 @@ def test_radiation_problem(caplog):
     #     RadiationProblem(body=sphere)
 
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    pb = RadiationProblem(body=sphere)
+    pb = RadiationProblem(body=sphere, omega=1.0)
     assert len(pb.boundary_condition) == sphere.mesh.nb_faces
 
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
@@ -150,9 +150,12 @@ def test_radiation_problem(caplog):
 
     res = pb.make_results_container()
     assert isinstance(res, RadiationResult)
-    assert 'forces' not in res.__dict__
-    assert res.added_masses == {}
-    assert res.radiation_dampings == {}
+    assert res.added_mass == res.added_masses == {}
+    assert res.radiation_damping == res.radiation_dampings == {}
+
+    res = pb.make_results_container(forces={"Heave": 1.0 + 2.0j})
+    assert res.added_mass == res.added_masses == {"Heave": 1.0}
+    assert res.radiation_damping == res.radiation_dampings == {"Heave": 2.0}
 
 
 def test_Froude_Krylov():

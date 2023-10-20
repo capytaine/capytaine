@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Helper functions to compute some properties of the mesh.
 Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """

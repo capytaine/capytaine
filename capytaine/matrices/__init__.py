@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """This module implements several classes describing matrices defined by blocks.
 These matrices can be nested to recursively define Hierarchical matrices.
 """

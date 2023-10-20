@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Legacy interfaces to predefined meshes"""
 # Copyright (C) 2017-2022 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>

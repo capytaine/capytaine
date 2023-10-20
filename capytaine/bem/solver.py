@@ -19,7 +19,7 @@ from rich.progress import track
 
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem
 from capytaine.green_functions.delhommeau import Delhommeau
-from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
+from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
@@ -175,7 +175,7 @@ class BEMSolver:
         ----------
         points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the potential should be computed
-        results: LinearPotentialFlowResult
+        result: LinearPotentialFlowResult
             The return of the BEM solver
 
         Returns
@@ -205,7 +205,7 @@ class BEMSolver:
         ----------
         points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the velocity should be computed
-        results: LinearPotentialFlowResult
+        result: LinearPotentialFlowResult
             The return of the BEM solver
 
         Returns
@@ -237,7 +237,7 @@ class BEMSolver:
         ----------
         points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the pressure should be computed
-        results: LinearPotentialFlowResult
+        result: LinearPotentialFlowResult
             The return of the BEM solver
 
         Returns
@@ -249,7 +249,7 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        return 1j * result.omega * result.rho * self.compute_potential(points, results)
+        return 1j * result.omega * result.rho * self.compute_potential(points, result)
 
 
     def compute_free_surface_elevation(self, points, result):
@@ -259,7 +259,7 @@ class BEMSolver:
         ----------
         points: array of shape (2,) or (N, 2), or 2-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
             Coordinates of the point(s) at which the free surface elevation should be computed
-        results: LinearPotentialFlowResult
+        result: LinearPotentialFlowResult
             The return of the BEM solver
 
         Returns
@@ -284,7 +284,7 @@ class BEMSolver:
         Since the interaction matrix does not need to be computed in full to compute the matrix-vector product,
         only a few lines are evaluated at a time to reduce the memory cost of the operation.
 
-        The newer method :code:`compute_potential` should be prefered in the future.
+        The newer method :code:`compute_potential` should be preferred in the future.
 
         Parameters
         ----------
@@ -340,7 +340,7 @@ class BEMSolver:
     def get_free_surface_elevation(self, result, free_surface, keep_details=False):
         """Compute the elevation of the free surface on a mesh for a previously solved problem.
 
-        The newer method :code:`compute_free_surface_elevation` should be prefered in the future.
+        The newer method :code:`compute_free_surface_elevation` should be preferred in the future.
 
         Parameters
         ----------
@@ -364,4 +364,3 @@ class BEMSolver:
         if keep_details:
             result.fs_elevation[free_surface] = fs_elevation
         return fs_elevation
-

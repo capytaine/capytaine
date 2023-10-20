@@ -1,12 +1,10 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Floating bodies to be used in radiation-diffraction problems."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
 import copy
-from itertools import chain, accumulate, product, zip_longest
+from itertools import chain, accumulate, zip_longest
 
 import numpy as np
 import xarray as xr
@@ -351,7 +349,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             except Exception as e:
                 raise ValueError(
                         f"Failed to infer the rotation center of {self.name} to compute rigid body hydrostatics.\n"
-                        f"Possible fix: add a `rotation_center` attibute to {self.name}.\n"
+                        f"Possible fix: add a `rotation_center` attribute to {self.name}.\n"
                         "Note that rigid body hydrostatic methods currently assume that the three rotation dofs have the same rotation center."
                         ) from e
 
@@ -447,7 +445,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             if self.mass is not None and np.isclose(self.mass, self.disp_mass(rho), rtol=1e-4):
                 raise NotImplementedError(
                         f"Trying to compute the hydrostatic stiffness for dofs {radiating_dof_name} and {influenced_dof_name}"
-                        f"of body {self.name}, which is not neutrally buoyant (mass={body.mass}, disp_mass={body.disp_mass(rho)}.\n"
+                        f"of body {self.name}, which is not neutrally buoyant (mass={self.mass}, disp_mass={self.disp_mass(rho)}.\n"
                         f"This case has not been implemented in Capytaine. You need either a single rigid body or a neutrally buoyant body."
                         )
 
@@ -966,15 +964,37 @@ respective inertia coefficients are assigned as NaN.")
     #  Display  #
     #############
 
+    def __short_str__(self):
+        return (f"{self.__class__.__name__}(..., name=\"{self.name}\")")
+
+    def _optional_params_str(self):
+        items = []
+        if self.mass is not None: items.append(f"mass={self.mass}, ")
+        if self.center_of_mass is not None: items.append(f"center_of_mass={self.center_of_mass}, ")
+        return ''.join(items)
+
     def __str__(self):
-        return self.name
+        short_dofs = '{' + ', '.join('"{}": ...'.format(d) for d in self.dofs) + '}'
+        return (f"{self.__class__.__name__}(mesh={self.mesh.__short_str__()}, dofs={short_dofs}, {self._optional_params_str()}name=\"{self.name}\")")
 
     def __repr__(self):
-        return (f"{self.__class__.__name__}(mesh={self.mesh.name}, "
-                f"dofs={{{', '.join(self.dofs.keys())}}}, name={self.name})")
+        short_dofs = '{' + ', '.join('"{}": ...'.format(d) for d in self.dofs) + '}'
+        return (f"{self.__class__.__name__}(mesh={str(self.mesh)}, dofs={short_dofs}, {self._optional_params_str()}name=\"{self.name}\")")
 
     def _repr_pretty_(self, p, cycle):
-        p.text(self.__repr__())
+        p.text(self.__str__())
+
+    def __rich_repr__(self):
+        class DofWithShortRepr:
+            def __repr__(self):
+                return '...'
+        yield "mesh", self.mesh
+        yield "dofs", {d: DofWithShortRepr() for d in self.dofs}
+        if self.mass is not None:
+            yield "mass", self.mass, None
+        if self.center_of_mass is not None:
+            yield "center_of_mass", tuple(self.center_of_mass)
+        yield "name", self.name
 
     def show(self, **kwargs):
         from capytaine.ui.vtk.body_viewer import FloatingBodyViewer
@@ -1014,4 +1034,3 @@ respective inertia coefficients are assigned as NaN.")
     def minimal_computable_wavelength(self):
         """For accuracy of the resolution, wavelength should not be smaller than this value."""
         return 8*self.mesh.faces_radiuses.max()
-
