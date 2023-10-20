@@ -1,5 +1,3 @@
-import logging
-
 import numpy as np
 from numpy import pi as π
 
@@ -7,7 +5,7 @@ import capytaine as cpt
 from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
 from capytaine.ui.vtk import Animation
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)-8s: %(message)s')
+cpt.set_logging('INFO')
 
 bem_solver = cpt.BEMSolver()
 

@@ -29,3 +29,7 @@ from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.io.mesh_loaders import load_mesh
 from capytaine.io.xarray import assemble_dataset
+
+from capytaine.ui.rich import set_logging
+
+set_logging(level="WARNING")

@@ -13,7 +13,7 @@ It is compatible with `all currently supported version of Python <https://devgui
 On a cloud platform
 -------------------
 
-For a quick try of Capytaine without installing anything on your computer, you can use an online Python-based computing environment such as `CoCalc <https://cocalc.com/>`_ or `Google Colab <https://colab.research.google.com/>`_.
+For a quick try of Capytaine without installing anything on your computer, you can use an online Python-based computing environment such as `CoCalc <https://cocalc.com/>`_, on which Capytaine is already installed by default, or `Google Colab <https://colab.research.google.com/>`_.
 On such a `Jupyter <https://jupyter.org/>`_-based environment, Capytaine can be installed by running the following command in a cell::
 
     %pip install capytaine
