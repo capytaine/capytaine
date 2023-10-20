@@ -77,16 +77,14 @@ Launch an interactive Python console such as :code:`ipython` and import the Capy
 
     import capytaine as cpt
 
-Note that Capytaine uses the logging module from Python. Then, you can optionally get some feedback from the code
-by initializing the logging module with the following commands::
+To get more details about what Capytaine is doing, use the :code:`set_logging` function::
 
-    import logging
-    logging.basicConfig(level=logging.INFO)
+    cpt.set_logging('INFO')
 
-Replace :code:`INFO` by :code:`DEBUG` to get more information on everything that is happening
-inside the solver. On the other hand, if you set the level to :code:`WARNING`, only important
-warnings will be printed out by the solver (this is the default behavior when the logging module
-has not been set up).
+Replace :code:`'INFO'` by :code:`'DEBUG'` to get more information on everything that is happening
+inside the solver. On the other hand, if you set the level to :code:`'WARNING'`, only important
+warnings will be printed out by the solver (this is the default behavior when
+:code:`set_logging` has not been called).
 
 Load a mesh
 -----------

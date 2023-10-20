@@ -11,6 +11,13 @@ Changelog
 New in next version
 -------------------
 
+Major changes
+~~~~~~~~~~~~~
+
+* Add `rich <https://rich.readthedocs.io>`_ as a dependency and improve formatting of the console output.
+  Add :func:`~capytaine.tools.rich.set_logging` function to quickly set up logging with `rich`.
+  :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now display a progress bar (unless turn off by the ``progress_bar`` argument). (:pull:`382`)
+
 Minor changes
 ~~~~~~~~~~~~~
 
@@ -18,7 +25,7 @@ Minor changes
 
 * Add `top_light_intensity` optional arguments to :meth:`~capytaine.ui.vtk.animations.Animation.run` and :meth:`~capytaine.ui.vtk.animations.Animation.save` to illuminate the scene from top. (:pull:`380`)
 
-* Clean up ``__str__`` and ``__repr__`` representation of many objects. Also `rich.print` now return even nicer representations. (:pull:`384`)
+* Clean up ``__str__`` and ``__repr__`` representation of many objects. Also ``rich.print`` now return even nicer representations. (:pull:`384`)
 
 * Always automatically compute and store the ``excitation_force`` next to the ``Froude_Krylov_force`` and ``diffraction_force`` in the dataset (:pull:`406`).
 
