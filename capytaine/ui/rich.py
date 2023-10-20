@@ -1,5 +1,5 @@
 import logging
-import rich
+from rich.logging import RichHandler
 
 def set_logging(level="INFO"):
-    logging.basicConfig(level=level, format="%(message)s", handlers=[RichHandler(level=level)])
+    logging.basicConfig(level=level, format="%(message)s", handlers=[RichHandler(level=level, show_path=False)], force=True)
