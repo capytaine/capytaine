@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
-import logging
-
 import capytaine as cpt
 from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
 from capytaine.ui.vtk.animation import Animation
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s:\t%(message)s")
+cpt.set_logging('INFO')
 
 # Generate the mesh of a sphere
 
