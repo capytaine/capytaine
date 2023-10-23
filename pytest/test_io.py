@@ -83,17 +83,20 @@ def dataset():
 
 
 def test_export_to_bemio_dataset_shape(tmp_path, dataset):
+    pytest.importorskip("h5py", reason="h5py not installed, test skipped.")
     from capytaine.io.bemio import save_as_bemio_hdf5
     with pytest.raises(ValueError, match="single value of the following"):
         save_as_bemio_hdf5(os.path.join(tmp_path, "test.h5"), dataset)
 
 def test_export_to_bemio_non_rigid_body(tmp_path, dataset):
+    pytest.importorskip("h5py", reason="h5py not installed, test skipped.")
     from capytaine.io.bemio import save_as_bemio_hdf5
     dataset = dataset.sel(water_depth=10.0, wave_direction=0.0)
     with pytest.raises(ValueError, match="only been implemented for a single rigid body"):
         save_as_bemio_hdf5(os.path.join(tmp_path, "test.h5"), dataset)
 
 def test_export_to_bemio(tmp_path, dataset):
+    pytest.importorskip("h5py", reason="h5py not installed, test skipped.")
     from capytaine.io.bemio import save_as_bemio_hdf5
     dataset = dataset.sel(water_depth=10.0, wave_direction=0.0,
                           radiating_dof=["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"],
