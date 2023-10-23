@@ -12,6 +12,13 @@ except ImportError:
     quadpy = None
 
 
+def test_quadrature_trivial_panel():
+    mesh = cpt.Mesh(vertices=np.array([[-1, -1, 0], [-1, 1, 0], [1, 1, 0], [1, -1, 0]]), faces=np.array([[0, 1, 2, 3]]))
+    mesh.compute_quadrature("GL2")
+    points, weights = mesh.quadrature_points
+    assert np.sum(weights) == pytest.approx(mesh.faces_areas[0])
+
+
 @pytest.mark.skipif(quadpy is None, reason="quadpy is not installed")
 def test_quadrature_points_are_coplanar():
     # Check that all quadrature points are within the plane containing the panel

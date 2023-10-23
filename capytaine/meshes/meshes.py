@@ -331,19 +331,52 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
             return None
 
     def compute_quadrature(self, method):
+        if method == "GL2":
+            local_points = np.array([
+                [+1/np.sqrt(3), +1/np.sqrt(3)],
+                [+1/np.sqrt(3), -1/np.sqrt(3)],
+                [-1/np.sqrt(3), +1/np.sqrt(3)],
+                [-1/np.sqrt(3), -1/np.sqrt(3)],
+            ])
+            local_weights = np.array([1/4, 1/4, 1/4, 1/4])
+
+            nb_points = len(local_weights)
+            points = np.empty((self.nb_faces, nb_points, 3))
+            weights = np.empty((self.nb_faces, nb_points))
+
+            for i_face in range(self.nb_faces):
+                corners = self.vertices[self.faces[i_face, :]]
+                dxidx = (corners[0, :] + corners[1, :] - corners[2, :] - corners[3, :])/4
+                dxidy = (corners[0, :] - corners[1, :] - corners[2, :] + corners[3, :])/4
+                detJ = np.linalg.norm(np.cross(dxidx, dxidy))
+
+                for k_quad in range(nb_points):
+                    p = local_points[k_quad, :]
+                    points[i_face, k_quad, :] = (
+                              (1 + p[0])*(1 + p[1])/4 * corners[0, :]
+                            + (1 + p[0])*(1 - p[1])/4 * corners[1, :]
+                            + (1 - p[0])*(1 - p[1])/4 * corners[2, :]
+                            + (1 - p[0])*(1 + p[1])/4 * corners[3, :]
+                            )
+                    weights[i_face, k_quad] = local_weights[k_quad] * self.faces_areas[i_face] * detJ
+
+        else:
+            try:
+                points, weights = self._compute_quadpy_quadrature(method)
+            except Exception as e:
+                raise Exception("Unrecognized quadrature.") from e
+
+
+        self.__internals__['quadrature'] = (points, weights)
+        self.__internals__['quadrature_method'] = method
+
+
+    def _compute_quadpy_quadrature(self, method):
         quadpy = import_optional_dependency("quadpy")
         transform = quadpy.c2.transform
         get_detJ = quadpy.cn._helpers.get_detJ
 
-        if method is None:
-            # No quadrature (i.e. default first order quadrature)
-            if 'quadrature' in self.__internals__:
-                del self.__internals__['quadrature']
-                del self.__internals__['quadrature_method']
-            else:
-                pass
-
-        elif isinstance(method, quadpy.c2._helpers.C2Scheme):
+        if isinstance(method, quadpy.c2._helpers.C2Scheme):
             assert method.points.shape[0] == method.dim == 2
             nb_points = method.points.shape[1]
             points = np.empty((self.nb_faces, nb_points, 3))
@@ -383,11 +416,11 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
 
                 weights[i_face, :] = method.weights * 4 * np.abs(get_detJ(method.points, local_quadrilateral))
 
-            self.__internals__['quadrature'] = (points, weights)
-            self.__internals__['quadrature_method'] = method
+            return points, weights
 
         else:
             raise NotImplementedError
+
 
     ###############################
     #  Triangles and quadrangles  #
