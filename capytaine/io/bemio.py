@@ -144,6 +144,9 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
 #####################
 
 def save_as_bemio_hdf5(filename, ds):
+    """Inspired by the bemio.io.output module from the former Python
+    implementation of BEMIO (Apache License), without the state space, nor the
+    IRF data."""
 
     coords_with_too_many_values = [k for k in ["water_depth", "wave_direction", "body_name", "g", "rho"] if len(ds.coords[k].dims) > 0 and len(ds.coords[k]) > 1]
     if len(coords_with_too_many_values) > 0:
@@ -170,7 +173,7 @@ def save_as_bemio_hdf5(filename, ds):
 
         for force in forces:
 
-            capytaine_data = ds[force['capytaine_name']].transpose("influenced_dof", "omega")
+            capytaine_data = ds[force['capytaine_name']].transpose("influenced_dof", "omega").values
 
             mag = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/{}/mag'.format(force['bemio_name']), data=abs(capytaine_data))
             mag.attrs['units'] = ''
@@ -189,27 +192,35 @@ def save_as_bemio_hdf5(filename, ds):
             im.attrs['description'] = 'Imaginary component {}'.format(force['plain_name'])
 
 
-        # # Write added mass information
-        # am = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/added_mass/all',data=bemio_obj.body[key].am.all)
-        # am.attrs['units for translational degrees of freedom'] = 'kg'
-        # am.attrs['units for rotational degrees of freedom'] = 'kg-m^2'
-        # am.attrs['description'] = 'Added mass. Frequency is the third dimension of the data structure.'
-        #
-        # rad = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/radiation_damping/all', data=bemio_obj.body[key].rd.all)
-        # rad.attrs['units'] = ''
-        # rad.attrs['description'] = 'Radiation damping. Frequency is the third dimension of the data structure.'
-        #
-        # for m in range(bemio_obj.body[key].am.all.shape[0]):
-        #
-        #     for n in range(bemio_obj.body[key].am.all.shape[1]):
-        #
-        #         amComp = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/added_mass/components/' + str(m+1) + '_' + str(n+1),data=np.array([bemio_obj.body[key].T, bemio_obj.body[key].am.all[m,n,:]]).transpose())
-        #         amComp.attrs['units'] = ''
-        #         amComp.attrs['description'] = 'Added mass components as a function of frequency'
-        #
-        #         radComp = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/radiation_damping/components/' + str(m+1) + '_' + str(n+1),data=np.array([bemio_obj.body[key].T, bemio_obj.body[key].rd.all[m,n,:]]).transpose())
-        #         radComp.attrs['units'] = ''
-        #         radComp.attrs['description'] = 'Radiation damping components as a function of frequency'
+        # Write added mass information
+        capytaine_added_mass = ds["added_mass"].transpose("radiating_dof", "influenced_dof", "omega")
+        am = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/added_mass/all', data=capytaine_added_mass.values)
+        am.attrs['units for translational degrees of freedom'] = 'kg'
+        am.attrs['units for rotational degrees of freedom'] = 'kg-m^2'
+        am.attrs['description'] = 'Added mass. Frequency is the third dimension of the data structure.'
+
+        capytaine_damping = ds["radiation_damping"].transpose("radiating_dof", "influenced_dof", "omega")
+        rad = f.create_dataset('body' + str(key+1) + '/hydro_coeffs/radiation_damping/all', data=capytaine_damping.values)
+        rad.attrs['units'] = ''
+        rad.attrs['description'] = 'Radiation damping. Frequency is the third dimension of the data structure.'
+
+        for m, influenced_dof in enumerate(ds.influenced_dof.values):
+
+            for n , radiating_dof in enumerate(ds.radiating_dof.values):
+
+                amComp = f.create_dataset(
+                    'body' + str(key+1) + '/hydro_coeffs/added_mass/components/' + str(m+1) + '_' + str(n+1),
+                    data=capytaine_added_mass.sel(radiating_dof=radiating_dof, influenced_dof=influenced_dof).values
+                )
+                amComp.attrs['units'] = ''
+                amComp.attrs['description'] = 'Added mass components as a function of frequency'
+
+                radComp = f.create_dataset(
+                    'body' + str(key+1) + '/hydro_coeffs/radiation_damping/components/' + str(m+1) + '_' + str(n+1),
+                    data=capytaine_damping.sel(radiating_dof=radiating_dof, influenced_dof=influenced_dof).values
+                )
+                radComp.attrs['units'] = ''
+                radComp.attrs['description'] = 'Radiation damping components as a function of frequency'
 
         # Simulation parameters
         g = f.create_dataset('simulation_parameters/g', data=ds.g)
