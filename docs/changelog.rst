@@ -43,6 +43,8 @@ Bug fixes
 
 * Fix :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` that was broken and a relevant test. (:pull:`394`)
 
+* Fix error message when computing hydrostatic stiffness of non-neutrally-buoyant body that is not a single rigid body. (:issue:`413` and :pull:`414`)
+
 Internals
 ~~~~~~~~~
 
