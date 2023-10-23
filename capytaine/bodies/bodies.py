@@ -442,10 +442,10 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             else:
                 norm_hs_stiff = 0.0
         else:
-            if self.mass is not None and np.isclose(self.mass, self.disp_mass(rho), rtol=1e-4):
+            if self.mass is not None and not np.isclose(self.mass, self.disp_mass(rho=rho), rtol=1e-4):
                 raise NotImplementedError(
                         f"Trying to compute the hydrostatic stiffness for dofs {radiating_dof_name} and {influenced_dof_name}"
-                        f"of body {self.name}, which is not neutrally buoyant (mass={self.mass}, disp_mass={self.disp_mass(rho)}.\n"
+                        f"of body {self.name}, which is not neutrally buoyant (mass={self.mass}, disp_mass={self.disp_mass(rho=rho)}).\n"
                         f"This case has not been implemented in Capytaine. You need either a single rigid body or a neutrally buoyant body."
                         )
 
