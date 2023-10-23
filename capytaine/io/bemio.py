@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import newton
 
-from capytaine.tools.optional_import import import_optional_dependency
+from capytaine.tools.optional_imports import import_optional_dependency
 
 LOG = logging.getLogger(__name__)
 
