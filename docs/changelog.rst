@@ -31,6 +31,7 @@ Minor changes
 
 * Computing the RAO with :func:`cpt.post_pro.rao.rao` is not restricted to a single wave direction (or a single value of any other extra parameter) at the time anymore. (:issue:`405` and :pull:`406`)
 
+* New computation of quadrature schemes without relying on Quadpy. (:pull:`416`)
 
 Bug fixes
 ~~~~~~~~~

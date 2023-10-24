@@ -266,28 +266,31 @@ If none of them are define, the rotation is defined around the origin of the dom
 Defining an integration quadrature
 ----------------------------------
 
-.. warning:: This feature is experimental.
-             Only quadrilaterals panels are supported at the moment.
-
 During the resolution of the BEM problem, the Green function has to be
-integrated on the mesh. By default, the integration is approximated by taking
-the value at the center of the panel and multiplying by its area. For a more
-accurate intagration, an higher order quadrature can be defined.
+integrated on each panel of the mesh. Parts of the Green function (such as the
+:math:`1/r` Rankine terms) are integrated using an exact analytical expression
+for the integral. Other parts of the Green function rely on numerical
+integration. By default, this numerical integration is done by taking the value
+at the center of the panel and multiplying by its area. For a more accurate
+intagration, an higher order quadrature can be defined.
 
-This feature relies on the external package `quadpy` to compute the quadrature.
-You can install it with::
+To define a quadrature scheme for a mesh, run the following command::
 
-    pip install quadpy
+    body.mesh.compute_quadrature(method="Gauss-Legendre 2")
 
-Then chose one of the `available quadratures
-<https://github.com/nschloe/quadpy#quadrilateral>`_ and give it to the
-:code:`compute_quadrature` method::
+The quadrature data can then be accessed at::
 
-    from quadpy.quadrilateral import stroud_c2_7_2
+    body.mesh.quadrature_points
 
-    body.mesh.compute_quadrature(method=stroud_c2_7_2())
-
-It will then be used automatically when needed.
+and will be used automatically when needed.
 
 .. warning:: Transformations of the mesh (merging, clipping, ...) may reset the quadrature.
              Compute it only on your final mesh.
+
+.. warning:: Quadratures schemes have been designed with quadrilateral panels.
+             They work on triangular panels, but might not be as optimal then.
+
+Alternatively, the :meth:`~capytaine.meshes.quadratures.compute_quadrature` method also accepts methods from the `Quadpy` package::
+
+    import quadpy
+    body.mesh.compute_quadrature(method=quadpy.c2.get_good_scheme(8))
