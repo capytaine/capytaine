@@ -8,7 +8,6 @@ import logging
 from itertools import count
 
 import numpy as np
-from numpy.linalg import norm
 
 from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
 from capytaine.meshes.properties import compute_faces_properties
@@ -16,6 +15,7 @@ from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
 from capytaine.tools.optional_imports import import_optional_dependency
+from capytaine.meshes.quadratures import compute_quadrature, DEFAULT_QUADRATURE
 
 LOG = logging.getLogger(__name__)
 
@@ -330,96 +330,12 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         else:
             return None
 
-    def compute_quadrature(self, method):
-        if method == "GL2":
-            local_points = np.array([
-                [+1/np.sqrt(3), +1/np.sqrt(3)],
-                [+1/np.sqrt(3), -1/np.sqrt(3)],
-                [-1/np.sqrt(3), +1/np.sqrt(3)],
-                [-1/np.sqrt(3), -1/np.sqrt(3)],
-            ])
-            local_weights = np.array([1/4, 1/4, 1/4, 1/4])
-
-            nb_points = len(local_weights)
-            points = np.empty((self.nb_faces, nb_points, 3))
-            weights = np.empty((self.nb_faces, nb_points))
-
-            for i_face in range(self.nb_faces):
-                corners = self.vertices[self.faces[i_face, :]]
-
-                for k_quad in range(nb_points):
-                    xk, yk = local_points[k_quad, :]
-                    points[i_face, k_quad, :] = (
-                              (1 + xk)*(1 + yk) * corners[0, :]
-                            + (1 + xk)*(1 - yk) * corners[1, :]
-                            + (1 - xk)*(1 - yk) * corners[2, :]
-                            + (1 - xk)*(1 + yk) * corners[3, :]
-                            )/4
-                    dxidx = ((1+yk)*corners[0, :] + (1-yk)*corners[1, :] - (1-yk)*corners[2, :] - (1+yk)*corners[3, :])/4
-                    dxidy = ((1+xk)*corners[0, :] - (1+xk)*corners[1, :] - (1-xk)*corners[2, :] + (1-xk)*corners[3, :])/4
-                    detJ = np.linalg.norm(np.cross(dxidx, dxidy))
-                    weights[i_face, k_quad] = local_weights[k_quad] * 4 * detJ
-
-        else:
-            try:
-                points, weights = self._compute_quadpy_quadrature(method)
-            except Exception as e:
-                raise Exception("Unrecognized quadrature.") from e
-
-
+    def compute_quadrature(self, method=DEFAULT_QUADRATURE):
+        self.heal_triangles()
+        points, weights = compute_quadrature(self, method)
         self.__internals__['quadrature'] = (points, weights)
         self.__internals__['quadrature_method'] = method
-
-
-    def _compute_quadpy_quadrature(self, method):
-        quadpy = import_optional_dependency("quadpy")
-        transform = quadpy.c2.transform
-        get_detJ = quadpy.cn._helpers.get_detJ
-
-        if isinstance(method, quadpy.c2._helpers.C2Scheme):
-            assert method.points.shape[0] == method.dim == 2
-            nb_points = method.points.shape[1]
-            points = np.empty((self.nb_faces, nb_points, 3))
-            weights = np.empty((self.nb_faces, nb_points))
-
-            self.heal_triangles()
-
-            for i_face in range(self.nb_faces):
-                # Define a local frame (Oxyz) such that
-                # * the corner A of the quadrilateral panel is the origin of the local frame
-                # * the edge AB of the quadrilateral panel is along the local x-axis,
-                # * the quadrilateral panel is within the local xy-plane (that is, its normal is along the local z-axis).
-                # Hence, the corners of the panels all have 0 as z-coordinate in the local frame.
-
-                # Coordinates in global frame
-                global_A, global_B, global_C, global_D = self.vertices[self.faces[i_face, :], :]
-                n = self.faces_normals[i_face, :]
-
-                ex = (global_B-global_A)/norm(global_B-global_A)  # unit vector of the local x-axis
-                ez = n/norm(n)                                    # unit vector of the local z-axis
-                ey = np.cross(ex, ez)                             # unit vector of the local y-axis, such that the basis is orthonormal
-
-                R = np.array([ex, ey, ez])
-                local_A = np.zeros((3,))             # coordinates of A in local frame, should be zero by construction
-                local_B = R @ (global_B - global_A)  # coordinates of B in local frame
-                local_C = R @ (global_C - global_A)  # coordinates of C in local frame
-                local_D = R @ (global_D - global_A)  # coordinates of D in local frame
-
-                local_quadrilateral = np.array([[local_A, local_D], [local_B, local_C]])[:, :, :-1]
-                # Removing last index in last dimension because not interested in z-coordinate which is 0.
-
-                local_quadpoints = transform(method.points, local_quadrilateral)
-
-                local_quadpoints_in_3d = np.concatenate([local_quadpoints, np.zeros((nb_points, 1))], axis=1)
-                global_quadpoints = np.array([R.T @ p for p in local_quadpoints_in_3d]) + global_A
-                points[i_face, :, :] = global_quadpoints
-
-                weights[i_face, :] = method.weights * 4 * np.abs(get_detJ(method.points, local_quadrilateral))
-
-            return points, weights
-
-        else:
-            raise NotImplementedError
+        return points, weights
 
 
     ###############################
