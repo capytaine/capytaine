@@ -6,52 +6,46 @@ import numpy as np
 import xarray as xr
 import capytaine as cpt
 
-try:
-    import quadpy
-except ImportError:
-    quadpy = None
 
+builtin_methods = ['GL2']
+quadpy_methods = ['sommariva_05']
 
-def test_quadrature_trivial_panel():
-    mesh = cpt.Mesh(vertices=np.array([[-1, -1, 0], [-1, 1, 0], [1, 1, 0], [1, -1, 0]]), faces=np.array([[0, 1, 2, 3]]))
-    mesh.compute_quadrature("GL2")
-    points, weights = mesh.quadrature_points
-    assert np.sum(weights) == pytest.approx(mesh.faces_areas[0])
-
-
-@pytest.mark.skipif(quadpy is None, reason="quadpy is not installed")
-def test_quadrature_points_are_coplanar():
+@pytest.mark.parametrize('method', builtin_methods + quadpy_methods)
+def test_quadrature_points_are_coplanar(method):
     # Check that all quadrature points are within the plane containing the panel
-    mesh = cpt.Sphere().mesh
-    for method in [quadpy.c2.schemes['sommariva_05'](), quadpy.c2.schemes["stroud_c2_7_4"]()]:
-        mesh.compute_quadrature(method)
-        for i_face in range(mesh.nb_faces):
-            A, B, C, D = mesh.vertices[mesh.faces[i_face, :], :]
-            for j_quad_point in range(mesh.quadrature_points[0].shape[1]):
-                X = mesh.quadrature_points[0][i_face, j_quad_point, :]
-                assert np.isclose(np.dot(np.cross(B-A, C-A), X-A), 0.0, atol=1e-8)
+    mesh = cpt.mesh_sphere()
+    if method not in builtin_methods:
+        quadpy = pytest.importorskip("quadpy", reason="Quadpy not installed, test skipped.")
+        method = quadpy.c2.schemes[method]()
+    mesh.compute_quadrature(method)
+    for i_face in range(mesh.nb_faces):
+        A, B, C, D = mesh.vertices[mesh.faces[i_face, :], :]
+        for j_quad_point in range(mesh.quadrature_points[0].shape[1]):
+            X = mesh.quadrature_points[0][i_face, j_quad_point, :]
+            assert np.isclose(np.dot(np.cross(B-A, C-A), X-A), 0.0, atol=1e-8)
 
 
-@pytest.mark.skipif(quadpy is None, reason="quadpy is not installed")
-def test_area():
+@pytest.mark.parametrize('method', builtin_methods + quadpy_methods)
+def test_area(method):
     # Check that quadrature weights sum to the area of the panel
-    mesh = cpt.Sphere().mesh
-    for method in [quadpy.c2.schemes['sommariva_05'](), quadpy.c2.schemes["stroud_c2_7_4"]()]:
-        mesh.compute_quadrature(method)
-        for i_face in range(mesh.nb_faces):
-            assert np.isclose(np.sum(mesh.quadrature_points[1][i_face, :]), mesh.faces_areas[i_face], rtol=1e-2)
+    mesh = cpt.mesh_sphere()
+    if method not in builtin_methods:
+        quadpy = pytest.importorskip("quadpy", reason="Quadpy not installed, test skipped.")
+        method = quadpy.c2.schemes[method]()
+    mesh.compute_quadrature(method)
+    for i_face in range(mesh.nb_faces):
+        assert np.isclose(np.sum(mesh.quadrature_points[1][i_face, :]), mesh.faces_areas[i_face], rtol=1e-2)
 
 
-@pytest.mark.skipif(quadpy is None, reason="quadpy is not installed")
-def test_resolution():
-    cylinder = cpt.HorizontalCylinder(
+@pytest.mark.parametrize('method', builtin_methods + quadpy_methods)
+def test_resolution(method):
+    mesh = cpt.mesh_horizontal_cylinder(
         length=5.0, radius=1.0,
-        center=(0, 0, -2),
-        reflection_symmetry=False,
-        nr=2, nx=10, ntheta=5,
-    )
-    # cylinder.show()
-    cylinder.add_translation_dof(name="Heave")
+        center=(0, 0, 0),
+        resolution=(2, 5, 10),
+    ).immersed_part()
+    body = cpt.FloatingBody(mesh=mesh)
+    body.add_translation_dof(name="Heave")
 
     test_matrix = xr.Dataset(coords={
         "omega": np.linspace(0.5, 3.0, 2),
@@ -60,12 +54,13 @@ def test_resolution():
 
     solver = cpt.BEMSolver()
 
-    cylinder.mesh.compute_quadrature(quadpy.c2.schemes['sommariva_01']())
-    data_1 = solver.fill_dataset(test_matrix, [cylinder], mesh=True)
+    data_0 = solver.fill_dataset(test_matrix, [body], mesh=True)
 
-    cylinder.mesh.compute_quadrature(quadpy.c2.schemes['sommariva_03']())
-    data_3 = solver.fill_dataset(test_matrix, [cylinder], mesh=True)
+    if method not in builtin_methods:
+        quadpy = pytest.importorskip("quadpy", reason="Quadpy not installed, test skipped.")
+        body.mesh.compute_quadrature(quadpy.c2.schemes[method]())
+    else:
+        body.mesh.compute_quadrature(method)
+    data_1 = solver.fill_dataset(test_matrix, [body], mesh=True)
 
-    assert data_1['quadrature_method'] == "Sommariva 1"
-    assert data_3['quadrature_method'] == "Sommariva 3"
-    assert np.allclose(data_1["added_mass"].data, data_3["added_mass"].data, rtol=1e-2)
+    assert np.allclose(data_0["added_mass"].data, data_1["added_mass"].data, rtol=1e-1)

@@ -346,19 +346,19 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
 
             for i_face in range(self.nb_faces):
                 corners = self.vertices[self.faces[i_face, :]]
-                dxidx = (corners[0, :] + corners[1, :] - corners[2, :] - corners[3, :])/4
-                dxidy = (corners[0, :] - corners[1, :] - corners[2, :] + corners[3, :])/4
-                detJ = np.linalg.norm(np.cross(dxidx, dxidy))
 
                 for k_quad in range(nb_points):
-                    p = local_points[k_quad, :]
+                    xk, yk = local_points[k_quad, :]
                     points[i_face, k_quad, :] = (
-                              (1 + p[0])*(1 + p[1])/4 * corners[0, :]
-                            + (1 + p[0])*(1 - p[1])/4 * corners[1, :]
-                            + (1 - p[0])*(1 - p[1])/4 * corners[2, :]
-                            + (1 - p[0])*(1 + p[1])/4 * corners[3, :]
-                            )
-                    weights[i_face, k_quad] = local_weights[k_quad] * self.faces_areas[i_face] * detJ
+                              (1 + xk)*(1 + yk) * corners[0, :]
+                            + (1 + xk)*(1 - yk) * corners[1, :]
+                            + (1 - xk)*(1 - yk) * corners[2, :]
+                            + (1 - xk)*(1 + yk) * corners[3, :]
+                            )/4
+                    dxidx = ((1+yk)*corners[0, :] + (1-yk)*corners[1, :] - (1-yk)*corners[2, :] - (1+yk)*corners[3, :])/4
+                    dxidy = ((1+xk)*corners[0, :] - (1+xk)*corners[1, :] - (1-xk)*corners[2, :] + (1-xk)*corners[3, :])/4
+                    detJ = np.linalg.norm(np.cross(dxidx, dxidy))
+                    weights[i_face, k_quad] = local_weights[k_quad] * 4 * detJ
 
         else:
             try:
