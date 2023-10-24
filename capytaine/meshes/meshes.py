@@ -15,7 +15,7 @@ from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
 from capytaine.tools.optional_imports import import_optional_dependency
-from capytaine.meshes.quadratures import compute_quadrature, DEFAULT_QUADRATURE
+from capytaine.meshes.quadratures import compute_quadrature_on_faces
 
 LOG = logging.getLogger(__name__)
 
@@ -330,9 +330,10 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         else:
             return None
 
-    def compute_quadrature(self, method=DEFAULT_QUADRATURE):
+    def compute_quadrature(self, method):
         self.heal_triangles()
-        points, weights = compute_quadrature(self, method)
+        all_faces = self.vertices[self.faces[:, :], :]
+        points, weights = compute_quadrature_on_faces(all_faces, method)
         self.__internals__['quadrature'] = (points, weights)
         self.__internals__['quadrature_method'] = method
         return points, weights
