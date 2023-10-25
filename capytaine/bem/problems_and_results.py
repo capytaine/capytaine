@@ -145,7 +145,7 @@ class LinearPotentialFlowProblem:
                     or len(self.body.mesh.faces) == 0):
                 raise ValueError(f"The mesh of the body {self.body.name} is empty.")
 
-            if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface)
+            if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface + 1e-8)
                     or any(self.body.mesh.faces_centers[:, 2] <= -self.water_depth)):
 
                 LOG.warning(
