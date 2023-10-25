@@ -206,10 +206,18 @@ CONTAINS
       END IF
 
       IF (SAME_BODY) THEN
-        if (size(K, 3) == 1) then
-          K(J, J, 1) = K(J, J, 1) + 0.5
+        if (abs(centers_1(j, 3)) < 1e-8) then  ! Panel on the free surface
+          if (size(K, 3) == 1) then
+            K(J, J, 1) = K(J, J, 1) - 0.25
+          else
+            K(J, J, :) = K(J, J, :) - 0.25 * normals_1(J, :)
+          endif
         else
-          K(J, J, :) = K(J, J, :) + 0.5 * normals_1(J, :)
+          if (size(K, 3) == 1) then
+            K(J, J, 1) = K(J, J, 1) + 0.5
+          else
+            K(J, J, :) = K(J, J, :) + 0.5 * normals_1(J, :)
+          endif
         endif
       END IF
 
