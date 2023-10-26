@@ -166,7 +166,7 @@ class Delhommeau(AbstractGreenFunction):
 
         return a, lamda
 
-    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.infty, wavenumber=1.0, early_dot_product=True):
+    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.infty, wavenumber=1.0, early_dot_product=True, direct_method=False):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
 
         Parameters
@@ -253,7 +253,7 @@ class Delhommeau(AbstractGreenFunction):
             coeffs,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
-            mesh1 is mesh2,
+            mesh1 is mesh2, direct_method
             S, K
         )
 

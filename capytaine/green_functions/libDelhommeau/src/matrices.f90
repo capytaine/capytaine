@@ -29,7 +29,7 @@ CONTAINS
       coeffs,                                         &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,                                &
-      same_body,                                      &
+      same_body, direct_method                         &
       S, K)
 
     ! Mesh data
@@ -43,6 +43,7 @@ CONTAINS
     INTEGER,                                                  INTENT(IN) :: nb_quad_points
     REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points, 3), INTENT(IN) :: quad_points
     REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points),    INTENT(IN) :: quad_weights
+    LOGICAL,                                  INTENT(IN) :: direct_method
 
     LOGICAL,                                  INTENT(IN) :: same_body
 
@@ -113,6 +114,11 @@ CONTAINS
             SP1, VSP1                              &
             )
 
+          ! Change the gradient terms to direct solver representation
+          IF (DIRECT_METHOD) THEN
+            VSP1(:) = -VSP1(:)
+          END IF
+
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(1) * SP1                                ! Green function
           if (size(K, 3) == 1) then
@@ -155,6 +161,11 @@ CONTAINS
           reflected_VSP1(1:2) = VSP1(1:2)
           reflected_VSP1(3) = -VSP1(3)
 
+          ! Change the gradient terms to direct solver representation
+          if (DIRECT_METHOD) THEN
+             reflected_VSP1(1:2) = -reflected_VSP1(1:2)
+          ENDIF
+
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(2) * SP1                                ! Green function
           if (size(K, 3) == 1) then
@@ -190,6 +201,12 @@ CONTAINS
                 NEXP, AMBDA, AR,            &
                 SP2, VSP2_SYM, VSP2_ANTISYM &
                 )
+            END IF
+
+           ! Change the gradient terms to direct solver representation
+            IF (DIRECT_METHOD) THEN
+              VSP2_SYM(1:2) = -VSP2_SYM(1:2)
+              VSP2_ANTISYM = -VSP2_ANTISYM
             END IF
 
             S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, Q)
@@ -243,6 +260,12 @@ CONTAINS
               NEXP, AMBDA, AR,            &
               SP2, VSP2_SYM, VSP2_ANTISYM &
               )
+          END IF
+
+          ! Change the gradient terms to direct solver representation
+          IF (DIRECT_METHOD) THEN
+            VSP2_SYM(1:2) = -VSP2_SYM(1:2)
+            VSP2_ANTISYM = -VSP2_ANTISYM
           END IF
 
           S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, 1)
