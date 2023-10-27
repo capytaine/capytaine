@@ -70,7 +70,7 @@ class BEMSolver:
     def from_exported_settings(settings):
         raise NotImplementedError
 
-    def solve(self, problem, keep_details=True):
+    def solve(self, problem, direct_method=False, keep_details=True):
         """Solve the linear potential flow problem.
 
         Parameters
@@ -87,14 +87,19 @@ class BEMSolver:
             an object storing the problem data and its results
         """
         LOG.info("Solve %s.", problem)
-
+        
         S, K = self.engine.build_matrices(
             problem.body.mesh, problem.body.mesh,
             problem.free_surface, problem.water_depth, problem.wavenumber,
-            self.green_function
+            self.green_function, direct_method=direct_method
         )
-        sources = self.engine.linear_solver(K, problem.boundary_condition)
-        potential = S @ sources
+
+        if direct_method:
+          potential = self.engine.linear_solver(K, S @ problem.boundary_condition)
+        else:
+          sources = self.engine.linear_solver(K, problem.boundary_condition)
+          potential = S @ sources
+
         pressure = 1j * problem.omega * problem.rho * potential
 
         forces = problem.body.integrate_pressure(pressure)
@@ -105,10 +110,10 @@ class BEMSolver:
             result = problem.make_results_container(forces, sources, potential, pressure)
 
         LOG.debug("Done!")
-
+        
         return result
 
-    def solve_all(self, problems, *, n_jobs=1, progress_bar=True, **kwargs):
+    def solve_all(self, problems, *, direct_method=False, n_jobs=1, progress_bar=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -131,14 +136,14 @@ class BEMSolver:
             problems = sorted(problems)
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
-            return [self.solve(pb, **kwargs) for pb in problems]
+            return [self.solve(pb, direct_method=direct_method, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
                 raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
             parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
-            groups_of_results = parallel(joblib.delayed(self.solve_all)(grp, n_jobs=1, progress_bar=False, **kwargs) for grp in groups_of_problems)
+            groups_of_results = parallel(joblib.delayed(self.solve_all)(grp, direct_method=direct_method, n_jobs=1, progress_bar=False, **kwargs) for grp in groups_of_problems)
             if progress_bar:
                 groups_of_results = track(groups_of_results,
                                           total=len(groups_of_problems),
@@ -146,7 +151,7 @@ class BEMSolver:
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
             return results
 
-    def fill_dataset(self, dataset, bodies, *, n_jobs=1, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, direct_method=False, n_jobs=1, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -170,12 +175,12 @@ class BEMSolver:
                  **self.exportable_settings}
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
-            results = self.solve_all(problems, keep_details=True, n_jobs=n_jobs)
+            results = self.solve_all(problems, keep_details=True, direct_method=direct_method, n_jobs=n_jobs)
             kochin = kochin_data_array(results, dataset.coords['theta'])
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
             dataset.update(kochin)
         else:
-            results = self.solve_all(problems, keep_details=False, n_jobs=n_jobs)
+            results = self.solve_all(problems, keep_details=False, direct_method=direct_method, n_jobs=n_jobs)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 

@@ -88,7 +88,7 @@ class BasicMatrixEngine(MatrixEngine):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
-    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, green_function):
+    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, green_function, direct_method=False):
         r"""Build the influence matrices between mesh1 and mesh2.
 
         Parameters
@@ -115,7 +115,7 @@ class BasicMatrixEngine(MatrixEngine):
         if (isinstance(mesh1, ReflectionSymmetricMesh)
                 and isinstance(mesh2, ReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
-
+            
             S_a, V_a = self.build_matrices(
                 mesh1[0], mesh2[0], free_surface, water_depth, wavenumber,
                 green_function)
@@ -127,7 +127,7 @@ class BasicMatrixEngine(MatrixEngine):
 
         else:
             return green_function.evaluate(
-                mesh1, mesh2, free_surface, water_depth, wavenumber,
+                mesh1, mesh2, free_surface, water_depth, wavenumber, direct_method=direct_method
             )
 
 ###################################
