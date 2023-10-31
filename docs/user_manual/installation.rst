@@ -30,8 +30,16 @@ All the core feature of Capytaine are accessible from such a Jupyter-based envir
 As a standalone executable
 --------------------------
 
-This is a work in progress. See :pull:`324` for progress updates.
+An experimental distribution of Capytaine bundled with a full Python distribution in a single executable file can be found at `https://github.com/capytaine/capytaine-standalone`_.
+Please refer to the instruction on that page for download and usage.
 
+The standalone executable is the simplest way to use Capytaine locally, although it has some limitations, such a longer startup time and the current lack of interactive Matplotlib figures.
+
+You can check the bundled version of Capytaine with the following command::
+
+    .\ipython-with-capytaine-windows.exe -c 'print(cpt.__version__)'
+
+(or the corresponding file name on other platforms than Windows).
 
 Installing with pip package manager
 -----------------------------------
