@@ -75,6 +75,9 @@ class SymbolicMultiplication:
         else:
             raise NotImplementedError
 
+    def reshape(self, *args):
+        return SymbolicMultiplication(self.symbol, self.value.reshape(*args))
+
 
 def supporting_symbolic_multiplication(f):
     @wraps(f)
