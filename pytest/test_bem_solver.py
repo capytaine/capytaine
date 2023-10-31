@@ -64,6 +64,16 @@ def test_limit_frequencies(sphere):
         solver.solve(RadiationProblem(body=sphere, omega=np.infty, water_depth=10))
 
 
+def test_limit_frequencies_with_symmetries():
+    mesh = cpt.mesh_parallelepiped(reflection_symmetry=True).immersed_part()
+    body = cpt.FloatingBody(mesh=mesh)
+    body.add_translation_dof(name="Surge")
+    pb = cpt.RadiationProblem(body=body, omega=0.0)
+    solver = cpt.BEMSolver()
+    res = solver.solve(pb, keep_details=True)
+    assert isinstance(res.added_mass['Surge'], float)
+
+
 @pytest.mark.skipif(joblib is None, reason='joblib is not installed')
 def test_parallelization(sphere):
     solver = cpt.BEMSolver()
