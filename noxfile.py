@@ -19,6 +19,8 @@ def run_tests(session):
         session.run("python", "-m", "pytest", os.path.join(NOXFILE_DIR, "pytest"))
         session.run('python', '-c', '"import capytaine; print(capytaine.__version__)"')
         session.run('capytaine', '--help')
+        session.run('capytaine', os.path.join(NOXFILE_DIR, "pytest", "Nemoh_verification_cases", "Cylinder", "Nemoh.cal"))
+        session.run('capytaine', os.path.join(NOXFILE_DIR, "pytest", "Nemoh_verification_cases", "Cylinder", "Nemoh_v3.cal"))
         for example_file in EXAMPLE_FILES:
             session.run('python', os.path.join(NOXFILE_DIR, "examples", example_file), env={'MPLBACKEND': 'pdf'})
 

@@ -7,6 +7,8 @@ import logging
 
 import numpy as np
 
+from capytaine.bem.solver import BEMSolver
+from capytaine.io.xarray import assemble_dataset
 from capytaine.io.mesh_writers import write_MAR
 from capytaine.bodies.bodies import FloatingBody
 from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
@@ -255,6 +257,7 @@ def write_dataset_as_tecplot_files(results_directory, data):
                         fi.write('  ')
                     fi.write('\n')
 
+
 def export_hydrostatics(hydrostatics_directory, bodies):
     """Determine filenames (following Nemoh convention) and call the .dat file writer"""
 
@@ -292,3 +295,19 @@ def export_hydrostatics(hydrostatics_directory, bodies):
             hydrostatics_file_path = os.path.join(hydrostatics_directory, f"Hydrostatics_{i}.dat")
             kh_file_path = os.path.join(hydrostatics_directory, f"KH_{i}.dat")
             hydrostatics_writer(hydrostatics_file_path, kh_file_path, body)
+
+
+def run_cal_file(paramfile):
+    problems = import_cal_file(paramfile)
+    solver = BEMSolver()
+    results = solver.solve_all(problems)
+    data = assemble_dataset(results)
+
+    results_directory = os.path.join(os.path.dirname(paramfile), 'results')
+    try:
+        os.mkdir(results_directory)
+    except FileExistsError:
+        LOG.warning(f"The output directory ({results_directory}) already exists. You might be overwriting existing data.")
+
+    LOG.info("Write results in legacy tecplot format.")
+    write_dataset_as_tecplot_files(results_directory, data)
