@@ -33,6 +33,8 @@ Minor changes
 
 * New computation of quadrature schemes without relying on Quadpy. (:pull:`416`)
 
+* Add a new function :func:`~capytaine.io.legacy.run_cal_file` to solve the problems defined by a Nemoh.cal file, exactly as the command-line interface is doing (:pull:`422`).
+
 Bug fixes
 ~~~~~~~~~
 
