@@ -6,7 +6,7 @@ Capytaine is a Python package for the simulation of the interaction between wate
 
 It is built around a full rewrite of the open source Boundary Element Method (BEM) solver Nemoh_ for the linear potential flow wave theory.
 
-Latest release: |release| (|today|).
+This documentation is for version |release| (released |today|).
 
 .. toctree::
    :maxdepth: 1
@@ -14,7 +14,7 @@ Latest release: |release| (|today|).
    features.rst
 
 If you need support, you can ask questions on the `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
-Please do not contact the developpers directly by email, unless you are looking for private paid support.
+Please do not contact the developers directly by email, unless you are looking for private paid support.
 
 Contributions are welcome!
 Please, report bugs and suggest improvements as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.

@@ -61,4 +61,3 @@ class SurfaceIntegralsMixin(ABC):
             waterplane_center = -self.waterplane_integral(
                 self.faces_centers.T, axis=1) / waterplane_area
             return waterplane_center[:-1]
-

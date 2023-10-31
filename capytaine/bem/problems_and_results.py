@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Definition of the problems to solve with the BEM solver, and the results of this resolution."""
 # Copyright (C) 2017-2023 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
@@ -146,7 +144,7 @@ class LinearPotentialFlowProblem:
             )
 
         if self.water_depth < 0.0:
-            raise ValueError("`water_depth` should be stricly positive.")
+            raise ValueError("`water_depth` should be strictly positive.")
 
         if self.omega in {0, np.infty} and self.water_depth != np.infty:
             raise NotImplementedError(
@@ -211,7 +209,7 @@ class LinearPotentialFlowProblem:
 
     def __str__(self):
         """Do not display default values in str(problem)."""
-        parameters = [f"body={self.body_name}",
+        parameters = [f"body={self.body.__short_str__() if self.body is not None else None}",
                       f"{self.provided_freq_type}={self.__getattribute__(self.provided_freq_type):.3f}",
                       f"water_depth={self.water_depth}"]
         try:
@@ -233,6 +231,17 @@ class LinearPotentialFlowProblem:
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
+
+    def __rich_repr__(self):
+        yield "body", self.body, None
+        yield self.provided_freq_type, self.__getattribute__(self.provided_freq_type)
+        yield "water_depth", self.water_depth, _default_parameters["water_depth"]
+        try:
+            yield from self._specific_rich_repr()
+        except:
+            pass
+        yield "g", self.g, _default_parameters["g"]
+        yield "rho", self.rho, _default_parameters["rho"]
 
     def _astuple(self):
         return (self.body, self.free_surface, self.water_depth,
@@ -314,6 +323,9 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     def _str_other_attributes(self):
         return [f"wave_direction={self.wave_direction:.3f}"]
 
+    def _specific_rich_repr(self):
+        yield "wave_direction", self.wave_direction, _default_parameters["wave_direction"]
+
     def make_results_container(self, *args, **kwargs):
         return DiffractionResult(self, *args, **kwargs)
 
@@ -363,6 +375,9 @@ class RadiationProblem(LinearPotentialFlowProblem):
     def _str_other_attributes(self):
         return [f"radiating_dof=\'{self.radiating_dof}\'"]
 
+    def _specific_rich_repr(self):
+        yield "radiating_dof", self.radiating_dof
+
     def make_results_container(self, *args, **kwargs):
         return RadiationResult(self, *args, **kwargs)
 
@@ -372,10 +387,12 @@ class LinearPotentialFlowResult:
     def __init__(self, problem, forces=None, sources=None, potential=None, pressure=None):
         self.problem = problem
 
+        self.forces = forces if forces is not None else {}
         self.sources = sources
         self.potential = potential
         self.pressure = pressure
-        self.fs_elevation = {}
+
+        self.fs_elevation = {}  # Only used in legacy `get_free_surface_elevation`. To be removed?
 
         # Copy data from problem
         self.body               = self.problem.body
@@ -393,27 +410,25 @@ class LinearPotentialFlowResult:
         self.body_name          = self.problem.body_name
         self.influenced_dofs    = self.problem.influenced_dofs
 
-        if forces is not None:
-            for dof in self.influenced_dofs:
-                self.store_force(dof, forces[dof])
-
-    def store_force(self, dof, force):
-        pass  # Implemented in sub-classes
+    @property
+    def force(self):
+        # Just an alias
+        return self.forces
 
     __str__ = LinearPotentialFlowProblem.__str__
     __repr__ = LinearPotentialFlowProblem.__repr__
     _repr_pretty_ = LinearPotentialFlowProblem._repr_pretty_
+    __rich_repr__ = LinearPotentialFlowProblem.__rich_repr__
 
 
 class DiffractionResult(LinearPotentialFlowResult):
 
     def __init__(self, problem, *args, **kwargs):
-        self.forces = {}
         super().__init__(problem, *args, **kwargs)
         self.wave_direction = self.problem.wave_direction
 
-    def store_force(self, dof, force):
-        self.forces[dof] = force
+    _str_other_attributes = DiffractionProblem._str_other_attributes
+    _specific_rich_repr = DiffractionProblem._specific_rich_repr
 
     @property
     def records(self):
@@ -429,20 +444,29 @@ class DiffractionResult(LinearPotentialFlowResult):
 class RadiationResult(LinearPotentialFlowResult):
 
     def __init__(self, problem, *args, **kwargs):
-        self.added_masses = {}
-        self.radiation_dampings = {}
         super().__init__(problem, *args, **kwargs)
         self.radiating_dof = self.problem.radiating_dof
 
-    def store_force(self, dof, force):
-        self.added_masses[dof] = float(np.real(force)/(self.omega*self.omega))
-        self.radiation_dampings[dof] = float(np.imag(force)/self.omega)
+    _str_other_attributes = RadiationProblem._str_other_attributes
+    _specific_rich_repr = RadiationProblem._specific_rich_repr
+
+    @property
+    def added_mass(self):
+        return {dof: float(np.real(force)/(self.omega*self.omega)) for (dof, force) in self.forces.items()}
+
+    @property
+    def radiation_damping(self):
+        return {dof: float(np.imag(force)/self.omega) for (dof, force) in self.forces.items()}
+
+    # Aliases for backward compatibility
+    added_masses = added_mass
+    radiation_dampings = radiation_damping
 
     @property
     def records(self):
         params = self.problem._asdict()
         return [dict(params,
                      influenced_dof=dof,
-                     added_mass=self.added_masses[dof],
-                     radiation_damping=self.radiation_dampings[dof])
+                     added_mass=self.added_mass[dof],
+                     radiation_damping=self.radiation_damping[dof])
                 for dof in self.influenced_dofs]

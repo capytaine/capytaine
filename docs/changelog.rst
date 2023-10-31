@@ -11,12 +11,27 @@ Changelog
 New in next version
 -------------------
 
+Major changes
+~~~~~~~~~~~~~
+
+* Add `rich <https://rich.readthedocs.io>`_ as a dependency and improve formatting of the console output.
+  Add :func:`~capytaine.tools.rich.set_logging` function to quickly set up logging with `rich`.
+  :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now display a progress bar (unless turn off by the ``progress_bar`` argument). (:pull:`382`)
+
 Minor changes
 ~~~~~~~~~~~~~
 
 * Support passing :class:`~capytaine.bodies.FloatingBody` or :class:`~capytaine.post_pro.free_surfaces.FreeSurface` objects to post-processing methods such as :meth:`~capytaine.bem.solver.BEMSolver.compute_potential` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation`. (:pull:`379`)
 
 * Add `top_light_intensity` optional arguments to :meth:`~capytaine.ui.vtk.animations.Animation.run` and :meth:`~capytaine.ui.vtk.animations.Animation.save` to illuminate the scene from top. (:pull:`380`)
+
+* Clean up ``__str__`` and ``__repr__`` representation of many objects. Also ``rich.print`` now return even nicer representations. (:pull:`384`)
+
+* Always automatically compute and store the ``excitation_force`` next to the ``Froude_Krylov_force`` and ``diffraction_force`` in the dataset (:pull:`406`).
+
+* Computing the RAO with :func:`cpt.post_pro.rao.rao` is not restricted to a single wave direction (or a single value of any other extra parameter) at the time anymore. (:issue:`405` and :pull:`406`)
+
+* New computation of quadrature schemes without relying on Quadpy. (:pull:`416`)
 
 Bug fixes
 ~~~~~~~~~
@@ -26,6 +41,23 @@ Bug fixes
 * Fix the single precision Green function (:code:`cpt.Delhommeau(floating_point_precision="float32")`) that was broken in v2.0. (:issue:`377` and :pull:`378`)
 
 * Update the BEMIO import feature to work with Pandas 2.0 and output periods as now done in Capytaine 2.0. A version of BEMIO that works in recent version of Python and Numpy can be found at `https://github.com/mancellin/bemio`_. (:pull:`381`)
+
+* Fix :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` that was broken and a relevant test. (:pull:`394`)
+
+* Fix error message when computing hydrostatic stiffness of non-neutrally-buoyant body that is not a single rigid body. (:issue:`413` and :pull:`414`)
+
+Internals
+~~~~~~~~~
+
+* Fix badly named variables ``VSP2_SYM`` and ``VSP2_ANTISYM`` in libDelhommeau (:pull:`391`)
+
+* Remove dependency to ``hypothesis`` for testing (:pull:`391`).
+
+* Change how forces are stored in result objects. Added mass and radiation damping can now be queried with ``added_mass`` and ``radiation_damping`` and not only the plural forms that were used nowhere else in the code. (:pull:`393`)
+
+* Use `nox <https://nox.thea.codes>`_ to test the code in isolated virtual environments. (:pull:`401`)
+
+* Fortran source files are not included in wheel anymore (:pull:`360`).
 
 -------------------------------
 New in version 2.0 (2023-06-21)
@@ -38,7 +70,7 @@ Major changes
 
 * **Breaking** The normalization of radiation problems has been changed to use the same normalization as diffraction problems. Added mass and radiation dampings are unchanged, but other outputs of radiation problem (free surface elevation, kochin functions, etc.) may differ from previous version by a factor :math:`-j \omega`. (:issue:`173` and :pull:`348`)
 
-* **Breaking** The above two points interfered with the handling of :math:`\omega = 0` and :math:`\omega = \infty` cases. They have been temporarilly disabled and will return in a future release.
+* **Breaking** The above two points interfered with the handling of :math:`\omega = 0` and :math:`\omega = \infty` cases. They have been temporarily disabled and will return in a future release.
 
 * Add methods :meth:`~capytaine.bem.solver.BEMSolver.compute_potential`, :meth:`~capytaine.bem.solver.BEMSolver.compute_velocity` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation` and :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` to compute the value of some fields in the domain in post-processing. Their signature has been uniformized with the :func:`~capytaine.bem.airy_waves.airy_waves_potential` and :func:`~capytaine.bem.airy_waves.airy_waves_velocity` functions (:pull:`288`, :pull:`326`). New functions :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` and :func:`~capytaine.bem.airy_waves.airy_waves_pressure` have also been added (:pull:`293`).
 
@@ -235,7 +267,7 @@ Major changes
   Meanwhile, a bug has been fixed with its :code:`geometric_center` (:pull:`150`).
 
 * The default linear solver is the direct solver and not the iterative solver GMRES, because it is more robust and more predictable.
-  Nothing changes when users explicitely choose a linear solver. (:pull:`171`)
+  Nothing changes when users explicitly choose a linear solver. (:pull:`171`)
 
 Bug fixes
 ~~~~~~~~~

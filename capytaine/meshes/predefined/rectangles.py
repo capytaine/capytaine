@@ -6,11 +6,12 @@ from itertools import product
 
 import numpy as np
 
-from capytaine.meshes.geometry import xOz_Plane, xOy_Plane, yOz_Plane, e_x, Ox_axis
+from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import TranslationalSymmetricMesh, ReflectionSymmetricMesh
 from capytaine.meshes.collections import CollectionOfMeshes
 
+LOG = logging.getLogger(__name__)
 
 def mesh_rectangle(*, size=(5.0, 5.0), resolution=(5, 5), center=(0.0, 0.0, 0.0), normal=(0.0, 0.0, 1.0), translation_symmetry=False, reflection_symmetry=False, name=None):
     """One-sided rectangle.

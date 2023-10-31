@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """VTK animation for the free surface elevation."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -329,7 +327,3 @@ class Animation:
         filepath = mkstemp(suffix=".ogv")[1]
         self.save(filepath, nb_loops=1, resolution=resolution, **kwargs)
         return Video(filepath, embed=True, width=resolution[0], html_attributes="controls loop autoplay")
-
-
-
-

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """This module implements a tools to clip meshes against a plane.
 Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """
@@ -464,4 +462,3 @@ def _clip_crown(crown_mesh, plane):
     }
 
     return clipped_crown_mesh
-

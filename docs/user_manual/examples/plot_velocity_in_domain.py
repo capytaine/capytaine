@@ -17,7 +17,7 @@ points = np.array([[x, y, z] for (x, y, z) in points if y**2 + z**2 > radius**2]
 # Compute the velocity field for each of the result object, that is each of the radiating dof
 velocities = {}
 for res in results:
-    velocities[res.radiating_dof] = solver.get_velocity(res, points)
+    velocities[res.radiating_dof] = solver.compute_velocity( points,res)
 
 import matplotlib.pyplot as plt
 fig, axs = plt.subplots(1, 2, figsize=(12, 4))
@@ -28,7 +28,7 @@ for ax, dof in zip(axs.ravel(), ["Sway", "Heave"]):
     ax.quiver(points[:, 1], points[:, 2], y_velocities, z_velocities, angles="xy")
     ax.axis('equal')
 
-    # Display the boudary of the floating body
+    # Display the boundary of the floating body
     theta = np.linspace(-np.pi, 0.0, 100)
     ax.plot(np.cos(theta), np.sin(theta), color="red")
     ax.set_title(dof)
@@ -36,5 +36,3 @@ for ax, dof in zip(axs.ravel(), ["Sway", "Heave"]):
     ax.set_ylabel("z")
 
 plt.show()
-
-

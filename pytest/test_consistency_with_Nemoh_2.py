@@ -228,4 +228,3 @@ def test_multibody():
         data_from_nemoh_2[:, 1::2],
         atol=1e-3*total_volume*problems[0].rho
     )
-

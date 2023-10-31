@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-#  -*- coding: utf-8 -*-
 """Tools to describe geometric objects in 3D.
 Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """
@@ -140,7 +138,7 @@ class Abstract3DObject(ABC):
 
 class ClippableMixin(ABC):
     """Abstract base class for object that can be clipped.
-    The child classes should inplement a `clip` method, then this abstract
+    The child classes should implement a `clip` method, then this abstract
     class will append the new methods `clipped`, `keep_immersed_part` and
     `immersed_part`, all based on `clip`.
     """
@@ -409,4 +407,3 @@ class Plane(Abstract3DObject):
 yOz_Plane = Plane(normal=e_x, point=(0, 0, 0))
 xOz_Plane = Plane(normal=e_y, point=(0, 0, 0))
 xOy_Plane = Plane(normal=e_z, point=(0, 0, 0))
-

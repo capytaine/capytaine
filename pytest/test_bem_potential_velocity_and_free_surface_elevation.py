@@ -219,6 +219,10 @@ def test_compute_free_surface_elevation_on_free_surface(solver, result):
 #                            Check values                             #
 #######################################################################
 
+def test_pressure_integration(solver, result):
+    f = result.body.integrate_pressure(solver.compute_pressure(result.body.mesh, result))
+    assert f == result.forces
+
 def test_reconstruction_of_given_boundary_condition(solver, result):
     velocities = solver.compute_velocity(result.body.mesh, result)
     normal_velocities = np.einsum('...k,...k->...', velocities, result.body.mesh.faces_normals)
@@ -231,4 +235,3 @@ def test_airy_wave_free_surface_elevation_values():
     assert np.isclose(np.real(airy_waves_free_surface_elevation([0, 0], pb)), 1.0)
     assert np.isclose(np.real(airy_waves_free_surface_elevation([0.25, 0], pb)), 0.0, atol=1e-5)
     assert np.isclose(np.real(airy_waves_free_surface_elevation([0.5, 0], pb)), -1.0)
-

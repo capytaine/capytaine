@@ -355,4 +355,3 @@ def test_pnl(tmpdir):
     reloaded_mesh = cpt.load_mesh(mesh_path)
     np.testing.assert_equal(mesh.faces, reloaded_mesh.faces)
     np.testing.assert_allclose(mesh.vertices, reloaded_mesh.vertices, atol=1e-5)
-

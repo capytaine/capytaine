@@ -17,7 +17,7 @@ Hypotheses
 ----------
 
 1. The fluid is inviscid.
-2. The fluid is incompressible: :math:`\nabla \cdot u = 0` with :math:`u` the flow velocity. 
+2. The fluid is incompressible: :math:`\nabla \cdot u = 0` with :math:`u` the flow velocity.
 3. The flow is irrotational: :math:`\nabla \times u = 0`.
 4. The wave amplitude is small with respect to the wavelength.
 5. The amplitude of the body motion is small with respect to its dimension.
@@ -62,7 +62,7 @@ The partial differential equation :eq:`laplace` is completed with the following 
 
 where :math:`n` denotes the normal vector at the surface of the floating body.
 
-.. * in the far field, 
+.. * in the far field,
    .. math::
       \sqrt{R} \left( \frac{\partial \Phi}{\partial R} - i m_0 \right) \left( \Phi - Phi_0 \right)
       \rightarrow 0, \qquad \text{when } R \rightarrow \infty,
@@ -309,7 +309,7 @@ Gradient of the Green function
 The gradient of the Green function can be written as
 
 .. math::
-   \nabla_x G(\xi, x) = - \frac{1}{4 \pi} \left( - \frac{x - \xi}{\|x - \xi\|^3} + k 
+   \nabla_x G(\xi, x) = - \frac{1}{4 \pi} \left( - \frac{x - \xi}{\|x - \xi\|^3} + k
       \begin{pmatrix}
         \frac{\partial r}{\partial x_1} \frac{\partial \mathcal{G}}{\partial r} \\
         \frac{\partial r}{\partial x_2} \frac{\partial \mathcal{G}}{\partial r} \\
@@ -334,12 +334,12 @@ and
 
 .. math::
    \frac{\partial \mathcal{G}}{\partial z} = & - \frac{z}{(r^2 + z^2)^{3/2}} + \frac{2}{\pi} \Re \left( \int_{-\pi/2}^{\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d}\theta \right) \\
-    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) e^{\zeta } \, \mathrm{d} \theta \right) \\
+    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta } \, \mathrm{d} \theta \right) \\
 
 that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
 
 .. math::
-   \frac{\partial \mathcal{G}}{\partial z} = \mathcal{G}(r, z) + \frac{1}{\sqrt{r^2 + z^2}} - \frac{z}{(r^2 + z^2)^{3/2}}
+   \frac{\partial \mathcal{G}}{\partial z} = \mathcal{G}(r, z) + \frac{2}{\sqrt{r^2 + z^2}} - \frac{z}{(r^2 + z^2)^{3/2}}
    :label: green_function_inf_depth_dGdz
 
 
@@ -355,7 +355,9 @@ that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
         \frac{\partial G}{\partial x_1} (\xi, x) = - \frac{\partial G}{\partial x_1}(x, \xi).
         \]
 
-    Its derivative with respect to :math:`x_3` can be decomposed into an antisymmetric term and a symmetric term.
+    Its derivative with respect to :math:`x_3` is symmetric in infinite depth.
+
+    In finite depth, some terms of the derivative with respect to :math:`x_3` are symmetric and some are antisymmetric.
 
 
 Higher order derivative
@@ -504,7 +506,7 @@ Each element of the matrices :math:`S` and :math:`K` can be seen as the interact
    Note that the derivation of :math:`G` is done with respect to a different variable.
 
    The matrix :math:`D` is used in the `direct` boundary integral equation, as e.g. in HAMS [Liu19]_.
-   In the mathematical literature, :math:`D` is also refered to as the `double layer operator` and :math:`K` as the `adjoint double layer operator`.
+   In the mathematical literature, :math:`D` is also referred to as the `double layer operator` and :math:`K` as the `adjoint double layer operator`.
 
 
 The matrices :math:`S` and :math:`K` relates the vectors :math:`\Phi`, :math:`u` and :math:`\sigma` through the following approximations of :eq:`potential_representation` and :eq:`normal_velocity_on_hull_representation`:
@@ -558,7 +560,7 @@ Forces acting on body surfaces are computed by integration of the pressure field
 
 Dynamic coupling and impedance
 ------------------------------
-Consider a body or a system of bodies. The general linear equation of motion can be expressed in time domain as 
+Consider a body or a system of bodies. The general linear equation of motion can be expressed in time domain as
 
 .. math:: M_{ij} \ddot{x}_j + C_{ij} \dot{x}_j + K_{ij} x_j = F_i,
 
@@ -609,7 +611,7 @@ which, in frequency domain, is
 
 .. math:: \eta = \dfrac{j \omega}{g} \Phi
 
-For a fully coupled problem (bodies free to oscillate, i.e. diffraction and radiation combined), the free surface elevation can be computed as 
+For a fully coupled problem (bodies free to oscillate, i.e. diffraction and radiation combined), the free surface elevation can be computed as
 
 .. math:: \eta = \eta_{\text{incident}} + \eta_{\text{diffracted}} + \sum_i \eta_{\text{radiated}, i} X_i.
 
@@ -618,4 +620,3 @@ Far-field coefficients
 ----------------------
 
 TODO
-

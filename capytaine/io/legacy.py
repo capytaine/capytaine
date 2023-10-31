@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Import or export Nemoh.cal files for backward compatibility with Nemoh 2."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -279,10 +277,10 @@ def export_hydrostatics(hydrostatics_directory, bodies):
 
     if isinstance(bodies, FloatingBody):
         bodies = [bodies]
-    
+
     hydrostatics_file_name = "Hydrostatics.dat"
     kh_file_name = "KH.dat"
-    
+
     body_count = len(bodies)
     if body_count == 1:
         body = bodies[0]

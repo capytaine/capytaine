@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 
-import logging
 import numpy as np
 import capytaine as cpt
 
-# Set up logging
-logging.basicConfig(level=logging.INFO,
-                    format="%(levelname)s:\t%(message)s")
+cpt.set_logging('INFO')
 
 # Initialize floating body by generating a geometric mesh
 mesh = cpt.mesh_horizontal_cylinder(

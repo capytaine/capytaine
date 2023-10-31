@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
-import logging
-
 import capytaine as cpt
 from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
 from capytaine.ui.vtk.animation import Animation
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s:\t%(message)s")
+cpt.set_logging('INFO')
 
 # Generate the mesh of a sphere
 
@@ -46,4 +44,3 @@ animation.add_body(full_sphere, faces_motion=full_sphere.dofs["Heave"])
 animation.add_free_surface(free_surface, faces_elevation=3.0*radiation_elevation_at_faces)
 animation.run(camera_position=(-30, -30, 30))
 # animation.save("path/to/the/video/file.ogv", camera_position=(-30, -30, 30))
-

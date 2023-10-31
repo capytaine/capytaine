@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
-import logging
 import numpy as np
 import capytaine as cpt
 import capytaine.io.xarray
 
-logging.basicConfig(level=logging.INFO,
-                    format="%(levelname)s:\t%(message)s")
+cpt.set_logging('INFO')
 
 # Profile of the axisymmetric body
 def shape(z):
