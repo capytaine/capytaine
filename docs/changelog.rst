@@ -18,6 +18,8 @@ Major changes
   Add :func:`~capytaine.tools.rich.set_logging` function to quickly set up logging with `rich`.
   :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now display a progress bar (unless turn off by the ``progress_bar`` argument). (:pull:`382`)
 
+* Reimplement resolution of radiation problems with zero or infinite frequency.
+
 Minor changes
 ~~~~~~~~~~~~~
 

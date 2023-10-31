@@ -14,7 +14,6 @@ from capytaine.matrices import linear_solvers
 from capytaine.matrices.block import BlockMatrix
 from capytaine.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
 from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockToeplitzMatrix, BlockCirculantMatrix
-from capytaine.tools.lazy_multiplication import supporting_symbolic_multiplication
 from capytaine.tools.lru_cache import delete_first_lru_cache
 
 LOG = logging.getLogger(__name__)
@@ -68,8 +67,6 @@ class BasicMatrixEngine(MatrixEngine):
             self.linear_solver = self.available_linear_solvers[linear_solver]
         else:
             self.linear_solver = linear_solver
-
-        self.linear_solver = supporting_symbolic_multiplication(self.linear_solver)
 
         if matrix_cache_size > 0:
             self.build_matrices = delete_first_lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
@@ -159,7 +156,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
         self.ACA_distance = ACA_distance
         self.ACA_tol = ACA_tol
 
-        self.linear_solver = supporting_symbolic_multiplication(linear_solvers.solve_gmres)
+        self.linear_solver = linear_solvers.solve_gmres
 
         self.exportable_settings = {
             'engine': 'HierarchicalToeplitzMatrixEngine',

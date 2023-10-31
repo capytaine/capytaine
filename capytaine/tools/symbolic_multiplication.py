@@ -84,4 +84,3 @@ def supporting_symbolic_multiplication(f):
         else:
             return f(a, x)
     return wrapped_f
-

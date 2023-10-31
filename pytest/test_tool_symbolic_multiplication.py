@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 import capytaine as cpt
-from capytaine.tools.lazy_multiplication import SymbolicMultiplication, supporting_symbolic_multiplication
+from capytaine.tools.symbolic_multiplication import SymbolicMultiplication, supporting_symbolic_multiplication
 
 def test_definition():
     zero = SymbolicMultiplication("0")
@@ -100,4 +100,3 @@ def test_diffraction_problem(omega):
     body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())
     with pytest.raises(NotImplementedError):
         pb = cpt.DiffractionProblem(body=body, omega=omega)
-

@@ -11,7 +11,7 @@ from scipy.optimize import newton
 from capytaine.tools.deprecation_handling import _get_water_depth
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.bem.airy_waves import airy_waves_velocity, froude_krylov_force
-from capytaine.tools.lazy_multiplication import SymbolicMultiplication
+from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 
 LOG = logging.getLogger(__name__)
 
