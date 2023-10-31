@@ -235,3 +235,15 @@ def test_airy_wave_free_surface_elevation_values():
     assert np.isclose(np.real(airy_waves_free_surface_elevation([0, 0], pb)), 1.0)
     assert np.isclose(np.real(airy_waves_free_surface_elevation([0.25, 0], pb)), 0.0, atol=1e-5)
     assert np.isclose(np.real(airy_waves_free_surface_elevation([0.5, 0], pb)), -1.0)
+
+def test_fse_zero_frequency(solver):
+    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
+    body = cpt.FloatingBody(mesh=mesh)
+    body.add_translation_dof(name="Heave")
+    pb = cpt.RadiationProblem(body=body, omega=0.0, radiating_dof="Heave")
+    res = solver.solve(pb, keep_details=True)
+    points = -np.random.rand(10, 3)
+    pot = solver.compute_potential(points, res)
+    fse = solver.compute_free_surface_elevation(points, res)
+    with pytest.raises(TypeError):
+        vel = solver.compute_velocity(points, res)

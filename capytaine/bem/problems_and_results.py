@@ -11,6 +11,7 @@ from scipy.optimize import newton
 from capytaine.tools.deprecation_handling import _get_water_depth
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.bem.airy_waves import airy_waves_velocity, froude_krylov_force
+from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 
 LOG = logging.getLogger(__name__)
 
@@ -85,36 +86,46 @@ class LinearPotentialFlowProblem:
             provided_freq_type = 'omega'
             frequency_data = {'omega': _default_parameters['omega']}
         else:
-            provided_freq_type = [k for k, v in frequency_data.items() if v is not None][0]
+            provided_freq_type = [k for (k, v) in frequency_data.items() if v is not None][0]
 
-        if frequency_data[provided_freq_type] in {0.0, np.infty}:
-            raise NotImplementedError("Zero and infinite frequencies are currently not supported.")
+        if ((float(frequency_data[provided_freq_type]) == 0.0 and provided_freq_type in {'omega', 'wavenumber'})
+            or (float(frequency_data[provided_freq_type]) == np.infty and provided_freq_type in {'period', 'wavelength'})):
+                omega = SymbolicMultiplication("0")
+                wavenumber = SymbolicMultiplication("0")
+                period = SymbolicMultiplication("∞")
+                wavelength = SymbolicMultiplication("∞")
+        elif ((float(frequency_data[provided_freq_type]) == 0.0 and provided_freq_type in {'period', 'wavelength'})
+            or (float(frequency_data[provided_freq_type]) == np.infty and provided_freq_type in {'omega', 'wavenumber'})):
+                omega = SymbolicMultiplication("∞")
+                wavenumber = SymbolicMultiplication("∞")
+                period = SymbolicMultiplication("0")
+                wavelength = SymbolicMultiplication("0")
+        else:
 
+            if provided_freq_type in {'omega', 'period'}:
+                if provided_freq_type == 'omega':
+                    omega = frequency_data['omega']
+                    period = 2*np.pi/omega
+                else:  # provided_freq_type is 'period'
+                    period = frequency_data['period']
+                    omega = 2*np.pi/period
 
-        if provided_freq_type in {'omega', 'period'}:
-            if provided_freq_type == 'omega':
-                omega = frequency_data['omega']
-                period = 2*np.pi/omega
-            else:  # provided_freq_type is 'period'
-                period = frequency_data['period']
-                omega = 2*np.pi/period
-
-            if self.water_depth == np.infty:
-                wavenumber = omega**2/self.g
-            else:
-                wavenumber = newton(lambda k: k*np.tanh(k*self.water_depth) - omega**2/self.g, x0=1.0)
-            wavelength = 2*np.pi/wavenumber
-
-        else:  # provided_freq_type is 'wavelength' or 'wavenumber'
-            if provided_freq_type == 'wavelength':
-                wavelength = frequency_data['wavelength']
-                wavenumber = 2*np.pi/wavelength
-            else:  # provided_freq_type is 'wavenumber'
-                wavenumber = frequency_data['wavenumber']
+                if self.water_depth == np.infty:
+                    wavenumber = omega**2/self.g
+                else:
+                    wavenumber = newton(lambda k: k*np.tanh(k*self.water_depth) - omega**2/self.g, x0=1.0)
                 wavelength = 2*np.pi/wavenumber
 
-            omega = np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.water_depth))
-            period = 2*np.pi/omega
+            else:  # provided_freq_type is 'wavelength' or 'wavenumber'
+                if provided_freq_type == 'wavelength':
+                    wavelength = frequency_data['wavelength']
+                    wavenumber = 2*np.pi/wavelength
+                else:  # provided_freq_type is 'wavenumber'
+                    wavenumber = frequency_data['wavenumber']
+                    wavelength = 2*np.pi/wavenumber
+
+                omega = np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.water_depth))
+                period = 2*np.pi/omega
 
         return omega, period, wavenumber, wavelength, provided_freq_type
 
@@ -288,6 +299,9 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                          "The wave direction in Capytaine is defined in radians and not in degrees, so the result might not be what you expect. "
                          "If you were actually giving an angle in radians, use the modulo operator to give a value between -2π and 2π to disable this warning.")
 
+        if float(self.omega) in {0.0, np.infty}:
+            raise NotImplementedError(f"DiffractionProblem does not support zero or infinite frequency.")
+
         if self.body is not None:
 
             self.boundary_condition = -(
@@ -438,11 +452,11 @@ class RadiationResult(LinearPotentialFlowResult):
 
     @property
     def added_mass(self):
-        return {dof: force.real/self.omega**2 for (dof, force) in self.forces.items()}
+        return {dof: float(np.real(force)/(self.omega*self.omega)) for (dof, force) in self.forces.items()}
 
     @property
     def radiation_damping(self):
-        return {dof: force.imag/self.omega for (dof, force) in self.forces.items()}
+        return {dof: float(np.imag(force)/self.omega) for (dof, force) in self.forces.items()}
 
     # Aliases for backward compatibility
     added_masses = added_mass
