@@ -37,6 +37,8 @@ Minor changes
 
 * Add a new function :func:`~capytaine.io.legacy.run_cal_file` to solve the problems defined by a Nemoh.cal file, exactly as the command-line interface is doing (:pull:`422`).
 
+* Rephrase mesh resolution warnings and group several of them together in a single warning. (:pull:`423`)
+
 Bug fixes
 ~~~~~~~~~
 
