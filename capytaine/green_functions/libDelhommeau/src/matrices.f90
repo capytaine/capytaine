@@ -213,7 +213,6 @@ CONTAINS
 
            ! Change the gradient terms to direct solver representation
             IF (direct_method) THEN
-              VSP2_SYM(1:2) = -VSP2_SYM(1:2)
               VSP2_ANTISYM = -VSP2_ANTISYM
             END IF
 
@@ -277,7 +276,6 @@ CONTAINS
 
           ! Change the gradient terms to direct solver representation
           IF (direct_method) THEN
-            VSP2_SYM(1:2) = -VSP2_SYM(1:2)
             VSP2_ANTISYM = -VSP2_ANTISYM
           END IF
 
