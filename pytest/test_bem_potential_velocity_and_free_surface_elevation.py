@@ -247,3 +247,12 @@ def test_fse_zero_frequency(solver):
     fse = solver.compute_free_surface_elevation(points, res)
     with pytest.raises(TypeError):
         vel = solver.compute_velocity(points, res)
+
+def test_direct_solver(solver):
+    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
+    body = cpt.FloatingBody(mesh=mesh)
+    body.add_translation_dof(name="Heave")
+    res = solver.solve(cpt.DiffractionProblem(body=body, omega=1.0, wave_direction=np.pi/4), keep_details=True, direct_method=True)
+    points = [(0.0, 0.0, -3.0), (0.0, 1.0, -2.0), (1.0, 1.0, -1.0)]
+    with pytest.raises(Exception, match="direct method"):
+        pot = solver.compute_potential(points, res)
