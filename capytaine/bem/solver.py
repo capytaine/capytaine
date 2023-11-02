@@ -102,6 +102,7 @@ class BEMSolver:
         linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
         if direct_method:
           potential = linear_solver(K, S @ problem.boundary_condition)
+          sources = None
         else:
           sources = linear_solver(K, problem.boundary_condition)
           potential = S @ sources
@@ -241,8 +242,8 @@ class BEMSolver:
         points, output_shape = _normalize_points(points, keep_mesh=True)
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
-            They probably have not been stored by the solver because the option keep_details=True have not been set.
-            Please re-run the resolution with this option.""")
+            They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
+            Please re-run the resolution with the indirect method and keep_details=True.""")
 
         S, _ = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.wavenumber)
         potential = S @ result.sources  # Sum the contributions of all panels in the mesh
@@ -272,8 +273,8 @@ class BEMSolver:
 
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
-            They probably have not been stored by the solver because the option keep_details=True have not been set.
-            Please re-run the resolution with this option.""")
+            They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
+            Please re-run the resolution with the indirect method and keep_details=True.""")
 
         _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.wavenumber,
                                                 early_dot_product=False)
@@ -360,8 +361,8 @@ class BEMSolver:
 
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
-            They probably have not been stored by the solver because the option keep_details=True have not been set.
-            Please re-run the resolution with this option.""")
+            They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
+            Please re-run the resolution with the indirect method and keep_details=True.""")
 
         if chunk_size > mesh.nb_faces:
             S = self.engine.build_S_matrix(
