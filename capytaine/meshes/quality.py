@@ -263,7 +263,7 @@ def heal_normals(mesh):
             LOG.debug('\t--> Every normals have been reversed to be outward')
 
     else:
-        LOG.info("\t--> Mesh is not closed, meshmagick cannot test if the normals are outward")
+        LOG.debug("\t--> Mesh is not closed, Capytaine cannot test if the normals are outward")
 
     return mesh
 

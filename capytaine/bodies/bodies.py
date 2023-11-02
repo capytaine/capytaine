@@ -82,11 +82,8 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         else:
             self.center_of_mass = None
 
-        if self.mesh.nb_vertices == 0 or self.mesh.nb_faces == 0:
-            LOG.warning(f"New floating body (with empty mesh!): {self.name}.")
-        else:
+        if self.mesh.nb_vertices > 0 and self.mesh.nb_faces > 0:
             self.mesh.heal_mesh()
-            LOG.info(f"New floating body: {self.name}.")
 
         if dofs is None:
             self.dofs = {}
@@ -97,6 +94,8 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             self.add_all_rigid_body_dofs()
         else:
             self.dofs = dofs
+
+        LOG.info(f"New floating body: {self.__str__()}.")
 
     @staticmethod
     def from_meshio(mesh, name=None) -> 'FloatingBody':

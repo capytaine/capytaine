@@ -23,6 +23,7 @@ from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
+from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
 
 LOG = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ class BEMSolver:
     def from_exported_settings(settings):
         raise NotImplementedError
 
-    def solve(self, problem, direct_method=False, keep_details=True):
+    def solve(self, problem, direct_method=False, keep_details=True, _check_wavelength=True):
         """Solve the linear potential flow problem.
 
         Parameters
@@ -80,6 +81,8 @@ class BEMSolver:
         keep_details: bool, optional
             if True, store the sources and the potential on the floating body in the output object
             (default: True)
+        _check_wavelength: bool, optional
+            if True, check the mesh resolution with respect to the wavelength
 
         Returns
         -------
@@ -87,17 +90,20 @@ class BEMSolver:
             an object storing the problem data and its results
         """
         LOG.info("Solve %s.", problem)
-        
+
+        if _check_wavelength: self._check_wavelength([problem])
+
         S, K = self.engine.build_matrices(
             problem.body.mesh, problem.body.mesh,
             problem.free_surface, problem.water_depth, problem.wavenumber,
             self.green_function, direct_method=direct_method
         )
 
+        linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
         if direct_method:
-          potential = self.engine.linear_solver(K, S @ problem.boundary_condition)
+          potential = linear_solver(K, S @ problem.boundary_condition)
         else:
-          sources = self.engine.linear_solver(K, problem.boundary_condition)
+          sources = linear_solver(K, problem.boundary_condition)
           potential = S @ sources
 
         pressure = 1j * problem.omega * problem.rho * potential
@@ -110,7 +116,7 @@ class BEMSolver:
             result = problem.make_results_container(forces, sources, potential, pressure)
 
         LOG.debug("Done!")
-        
+
         return result
 
     def solve_all(self, problems, *, direct_method=False, n_jobs=1, progress_bar=True, **kwargs):
@@ -132,11 +138,12 @@ class BEMSolver:
         list of LinearPotentialFlowResult
             the solved problems
         """
+        self._check_wavelength(problems)
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
-            return [self.solve(pb, direct_method=direct_method, **kwargs) for pb in problems]
+            return [self.solve(pb, direct_method=direct_method, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
@@ -150,6 +157,33 @@ class BEMSolver:
                                           description=f"Solving BEM problems with {n_jobs} threads:")
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
             return results
+
+    @staticmethod
+    def _check_wavelength(problems):
+        """Display a warning if some of the problems have a mesh resolution
+        that might not be sufficient for the given wavelength."""
+        risky_problems = [pb for pb in problems
+                          if pb.wavelength < pb.body.minimal_computable_wavelength]
+        nb_risky_problems = len(risky_problems)
+        if nb_risky_problems == 1:
+            pb = risky_problems[0]
+            freq_type = risky_problems[0].provided_freq_type
+            freq = pb.__getattribute__(freq_type)
+            LOG.warning(f"Mesh resolution for {pb}:\n"
+                    f"The resolution of the mesh of the body {pb.body.__short_str__()} might "
+                    f"be insufficient for {freq_type}={freq}.\n"
+                     "This warning appears because the largest panel of this mesh "
+                    f"has radius {pb.body.mesh.faces_radiuses.max():.3f} > wavelength/8."
+                    )
+        elif nb_risky_problems > 1:
+            freq_type = risky_problems[0].provided_freq_type
+            freqs = np.array([pb.__getattribute__(freq_type) for pb in risky_problems])
+            LOG.warning(f"Mesh resolution for {nb_risky_problems} problems:\n"
+                         "The resolution of the mesh might be insufficient "
+                        f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
+                         "This warning appears when the largest panel of this mesh "
+                         "has radius > wavelength/8."
+                    )
 
     def fill_dataset(self, dataset, bodies, *, direct_method=False, n_jobs=1, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.

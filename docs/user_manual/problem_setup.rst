@@ -105,6 +105,10 @@ Once the problem has been initialized, the other parameters can be retrieved as:
     problem.period
     # ...
 
+In some cases (radiation problems in infinite depth), setting the frequency to
+zero or infinity is possible. Simply pass the value `0.0` or `float('inf')` to
+one of the above magnitude.
+
 
 Legacy Nemoh.cal parameters files
 ---------------------------------
