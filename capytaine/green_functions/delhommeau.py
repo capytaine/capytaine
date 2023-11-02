@@ -262,11 +262,11 @@ class Delhommeau(AbstractGreenFunction):
             raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
                     "It could be due to overlapping panels.")
 
-        if early_dot_product: 
+        if early_dot_product:
           if direct_method:
             K = np.einsum('...k,...k->...', K, mesh2.faces_normals)
           else:
-            K = np.einsum('...jk,...k->...j', K, mesh2.faces_normals)
+            K = np.einsum('...jk,...k->...j', K, early_dot_product_normals)
 
         return S, K
 
