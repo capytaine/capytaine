@@ -122,8 +122,11 @@ CONTAINS
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(1) * SP1                                ! Green function
           if (size(K, 3) == 1) then
-            K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1(:))
-!            K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_1(J, :), VSP1(:))
+            if (direct_method) then
+              K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_2(J, :), VSP1(:))
+            else
+              K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1(:))
+            endif
           else
             K(I, J, :) = K(I, J, :) - coeffs(1) * VSP1(:)
           endif
@@ -170,8 +173,11 @@ CONTAINS
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(2) * SP1                                ! Green function
           if (size(K, 3) == 1) then
-            K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_VSP1(:))
-!            K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_1(J, :), reflected_VSP1(:))
+            if (direct_method) then
+              K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_2(J, :), reflected_VSP1(:))
+            else
+              K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_VSP1(:))
+            endif
           else
             K(I, J, :) = K(I, J, :) - coeffs(2) * reflected_VSP1(:)
           endif
@@ -214,9 +220,13 @@ CONTAINS
             S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, Q)
 
             if (size(K, 3) == 1) then
-              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
-                DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
-!                DOT_PRODUCT(normals_1(J, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
+              if (direct_method) then
+                K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                  DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
+              else
+                K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                  DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
+              endif
             else
               K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
             endif
@@ -273,9 +283,13 @@ CONTAINS
 
           S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, 1)
           if (size(K, 3) == 1) then
-            K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
-              DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
-!              DOT_PRODUCT(normals_1(J, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+            if (direct_method) then
+              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+            else
+              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+            endif
           else
             K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
           endif
@@ -283,8 +297,13 @@ CONTAINS
           IF (.NOT. I==J) THEN
             S(J, I) = S(J, I) - coeffs(3) * SP2 * quad_weights(I, 1)
             if (size(K, 3) == 1) then
-              K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
-                DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+              if (direct_method) then
+                K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
+                  DOT_PRODUCT(normals_2(I, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+              else
+                K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
+                  DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+              endif
             else
               K(J, I, :) = K(J, I, :) - coeffs(3) * (VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
             endif

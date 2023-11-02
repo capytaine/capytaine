@@ -226,11 +226,17 @@ class Delhommeau(AbstractGreenFunction):
         if isinstance(mesh1, Mesh) or isinstance(mesh1, CollectionOfMeshes):
             collocation_points = mesh1.faces_centers
             nb_collocation_points = mesh1.nb_faces
-            early_dot_product_normals = mesh1.faces_normals
+            if direct_method:
+                early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
+            else:
+                early_dot_product_normals = mesh1.faces_normals
         elif isinstance(mesh1, np.ndarray) and mesh1.ndim ==2 and mesh1.shape[1] == 3:
+            # This is used when computing potential or velocity at given points in postprocessing
             collocation_points = mesh1
             nb_collocation_points = mesh1.shape[0]
-            early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Hopefully unused
+            early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
+            if direct_method:
+                raise NotImplementedError("Using a list of points as collocation points is not supported in the direct method")
         else:
             raise ValueError(f"Unrecognized input for {self.__class__.__name__}.evaluate")
 
@@ -242,8 +248,7 @@ class Delhommeau(AbstractGreenFunction):
             raise NotImplementedError
 
         S = np.empty((nb_collocation_points, mesh2.nb_faces), order="F", dtype=dtype)
-#        K = np.empty((nb_collocation_points, mesh2.nb_faces, 1 if early_dot_product else 3), order="F", dtype=dtype)
-        K = np.empty((nb_collocation_points, mesh2.nb_faces, 3), order="F", dtype=dtype)
+        K = np.empty((nb_collocation_points, mesh2.nb_faces, 1 if early_dot_product else 3), order="F", dtype=dtype)
 
         # Main call to Fortran code
         self.fortran_core.matrices.build_matrices(
@@ -264,11 +269,7 @@ class Delhommeau(AbstractGreenFunction):
             raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
                     "It could be due to overlapping panels.")
 
-        if early_dot_product:
-          if direct_method:
-            K = np.einsum('...k,...k->...', K, mesh2.faces_normals)
-          else:
-            K = np.einsum('...jk,...k->...j', K, early_dot_product_normals)
+        if early_dot_product: K = K.reshape((nb_collocation_points, mesh2.nb_faces))
 
         return S, K
 
