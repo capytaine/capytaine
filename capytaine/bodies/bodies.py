@@ -1033,3 +1033,75 @@ respective inertia coefficients are assigned as NaN.")
     def minimal_computable_wavelength(self):
         """For accuracy of the resolution, wavelength should not be smaller than this value."""
         return 8*self.mesh.faces_radiuses.max()
+
+    def cluster_bodies(bodies):
+        """
+        Builds a hierarchical clustering from a group of bodies
+
+        Parameters
+        ----------
+        bodies: list
+            a list of bodies
+
+        Returns
+        -------
+        all_buoys: FloatingBody
+            Array built from the provided bodies
+        leaf_order: list
+            Order of bodies in the array
+        path_to_leaf: list
+            List of lists of paths from the root to each leaf
+        """
+        from scipy.cluster.hierarchy import linkage, dendrogram
+        nb_buoys = len(bodies)
+
+        if any(body.center_of_buoyancy is None for body in bodies):
+            raise ValueError("The center of buoyancy of each body needs to be known for clustering")
+        buoys_positions = np.stack([body.center_of_buoyancy for body in bodies])[:,:2]
+
+        ln_matrix = linkage(buoys_positions, method='centroid', metric='euclidean')
+        dn = dendrogram(ln_matrix)
+
+        node_list = bodies #list of nodes of the tree: the first nodes are single bodies
+        leaves = [] #list of lists of all leaves belonging to each node
+        path_to_leaf = [] #list of lists of paths from the top to each leaf
+        for ii in range(nb_buoys):
+            leaves.append([ii]) #each body is a leaf and also a node, containing only itself
+            path_to_leaf.append([])
+
+        # Join the bodies, with an ordering consistent with the dendrogram.
+        # Done by reading the linkage matrix: its i-th row contains the labels
+        # of the two nodes that are merged to form the (n + i)-th node
+        for ii in range(len(ln_matrix)):
+            node_tag = ii + nb_buoys # the first nb_buoys tags are already taken
+            merge_left = int(ln_matrix[ii,0])
+            merge_right = int(ln_matrix[ii,1])
+            # The new node is the parent of merge_left and merge_right
+            new_node_ls = [node_list[merge_left], node_list[merge_right]]
+            new_node = FloatingBody.join_bodies(*new_node_ls, name='node_{:d}'.format(node_tag))
+            node_list.append(new_node)
+            leaves.append(leaves[merge_left]+leaves[merge_right])
+
+        # The last node is the parent of all others...
+        all_buoys = new_node
+        # ... and its leaves are all the bodies, with the order given by clustering
+        leaf_order = leaves[-1]
+
+        # Traverse the tree to obtain the path from each leaf to the top
+        for ii in range(len(ln_matrix)):
+            merge_left = int(ln_matrix[ii,0])
+            merge_right = int(ln_matrix[ii,1])
+            for ind in leaves[merge_left]:
+                path_to_leaf[ind].append(0)
+            for ind in leaves[merge_right]:
+                path_to_leaf[ind].append(1)
+
+        # Invert to obtain paths from the top to the leaves
+        for ls in path_to_leaf:
+            ls.reverse()
+
+        # convert into immutable tuples for hashability
+        all_buoys.leaf_order = tuple(leaf_order)
+        all_buoys.path_to_leaf = tuple([tuple(pp) for pp in path_to_leaf])
+
+        return all_buoys

@@ -6,6 +6,7 @@ import logging
 from abc import ABC, abstractmethod
 
 import numpy as np
+from scipy.linalg import lu_factor
 
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh, TranslationalSymmetricMesh, AxialSymmetricMesh
@@ -178,6 +179,15 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
     def build_matrices(self,
                        mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
                        _rec_depth=1):
+
+        return self._build_matrices(
+                           mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
+                           _rec_depth=1)
+
+
+    def _build_matrices(self,
+                       mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
+                       _rec_depth=1):
         """Recursively builds a hierarchical matrix between mesh1 and mesh2.
 
         Same arguments as :func:`BasicMatrixEngine.build_matrices`.
@@ -206,10 +216,10 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
 
             LOG.debug(log_entry + " using mirror symmetry.")
 
-            S_a, V_a = self.build_matrices(
+            S_a, V_a = self._build_matrices(
                 mesh1[0], mesh2[0], free_surface, water_depth, wavenumber, green_function,
                 _rec_depth=_rec_depth+1)
-            S_b, V_b = self.build_matrices(
+            S_b, V_b = self._build_matrices(
                 mesh1[0], mesh2[1], free_surface, water_depth, wavenumber, green_function,
                 _rec_depth=_rec_depth+1)
 
@@ -224,13 +234,13 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
 
             S_list, V_list = [], []
             for submesh in mesh2:
-                S, V = self.build_matrices(
+                S, V = self._build_matrices(
                     mesh1[0], submesh, free_surface, water_depth, wavenumber, green_function,
                     _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
             for submesh in mesh1[1:][::-1]:
-                S, V = self.build_matrices(
+                S, V = self._build_matrices(
                     submesh, mesh2[0], free_surface, water_depth, wavenumber, green_function,
                     _rec_depth=_rec_depth+1)
                 S_list.append(S)
@@ -247,7 +257,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
 
             S_line, V_line = [], []
             for submesh in mesh2[:mesh2.nb_submeshes]:
-                S, V = self.build_matrices(
+                S, V = self._build_matrices(
                     mesh1[0], submesh, free_surface, water_depth, wavenumber, green_function,
                     _rec_depth=_rec_depth+1)
                 S_line.append(S)
@@ -295,7 +305,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             for submesh1 in mesh1:
                 S_line, V_line = [], []
                 for submesh2 in mesh2:
-                    S, V = self.build_matrices(
+                    S, V = self._build_matrices(
                         submesh1, submesh2, free_surface, water_depth, wavenumber, green_function,
                         _rec_depth=_rec_depth+1)
 
@@ -315,3 +325,130 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
                 mesh1, mesh2, free_surface, water_depth, wavenumber,
             )
             return S, V
+
+class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
+    """An experimental matrix engine that build a hierarchical matrix with
+     some block-Toeplitz structure.
+
+    Parameters
+    ----------
+    ACA_distance: float, optional
+        Above this distance, the ACA is used to approximate the matrix with a low-rank block.
+    ACA_tol: float, optional
+        The tolerance of the ACA when building a low-rank matrix.
+    matrix_cache_size: int, optional
+        number of matrices to keep in cache
+    """
+
+    def __init__(self, *, ACA_distance=8.0, ACA_tol=1e-2, matrix_cache_size=1):
+
+        if matrix_cache_size > 0:
+            self.build_matrices = delete_first_lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
+
+        self.ACA_distance = ACA_distance
+        self.ACA_tol = ACA_tol
+
+        self.linear_solver = linear_solvers.solve_precond_gmres
+
+        self.exportable_settings = {
+            'engine': 'HierarchicalToeplitzMatrixEngine',
+            'ACA_distance': ACA_distance,
+            'ACA_tol': ACA_tol,
+            'matrix_cache_size': matrix_cache_size,
+        }
+
+    def access_block_by_path(self, matrix, path):
+        """
+        Access a diagonal block in a hierarchical matrix from the path of the
+        corresponding leaf
+        """
+        this_block = matrix
+        for index in path:
+            this_block = this_block.all_blocks[index, index]
+        return this_block
+
+    def build_matrices(self,
+                       mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
+                       leaf_order, path_to_leaf,
+                       _rec_depth=1):
+        """Recursively builds a hierarchical matrix between mesh1 and mesh2,
+        and precomputes some of the quantities needed for the preconditioner.
+
+        Same arguments as :func:`BasicMatrixEngine.build_matrices`, plus
+        the properties of the hierarchical tree: leaf_order and path_to_leaf
+
+        :code:`_rec_depth` keeps track of the recursion depth only for pretty log printing.
+        """
+        # Build the matrices using the method of the parent class
+        S, K = super().build_matrices(mesh1, mesh2, free_surface, water_depth,
+                                      wavenumber, green_function,
+                                      _rec_depth=_rec_depth)
+
+        n = len(leaf_order)
+        N = K.shape[0]
+
+        # Navigate to the diagonal blocks and compute their LU decompositions
+        DLU = []
+        D = []
+        diag_shapes = []
+        for leaf in leaf_order:
+            # Navigate to the block containing the one we need
+            # (one layer above in the dendrogram)
+            upper_block = self.access_block_by_path(K, path_to_leaf[leaf][:-1])
+            # find the local index in the full path
+            ind = path_to_leaf[leaf][-1]
+            # compute the LU decomposition and add to the list
+            D.append(upper_block.all_blocks[ind, ind])
+            DLU.append(lu_factor(upper_block.all_blocks[ind, ind]))
+            diag_shapes.append(upper_block.all_blocks[ind, ind].shape[0])
+
+        # Build the restriction and precompute its multiplication by K
+        R = np.zeros((n, N), dtype=complex)
+        RA = np.zeros((n, N), dtype=complex)
+        for ii in range(n):
+            row_slice = slice(sum(diag_shapes[:ii]), sum(diag_shapes[:ii+1]))
+            R[ii, row_slice] = 1
+            # Compute the multiplication using only the relevant slices of K
+            # The slices are found by navigating the tree
+            #RA[ii, :] = self.slice_rmatvec(R[ii, :], ii)
+            Aloc = K
+            v = R[ii, :]
+            va = np.zeros(N, dtype=complex)
+            free = [0, N]
+
+            for lvl, jj in enumerate(path_to_leaf[leaf_order[ii]]):
+
+                Nrows = Aloc.all_blocks[jj, jj].shape[0]
+
+                if jj==0:
+                    v = v[:Nrows]
+                    #try-except block needed because of different function
+                    #definitions for rmatmul in np.ndarrays, blockmatrix and lowrank
+                    try:
+                        w = Aloc.all_blocks[0,1].__rmatmul__(v)
+                    except:
+                        w = Aloc.all_blocks[0,1].rmatvec(v)
+                    va[free[1]-len(w) : free[1]] = w
+                    free[1] = free[1] - len(w)
+                else:
+                    v = v[-Nrows:]
+                    try:
+                        w = Aloc.all_blocks[1, 0].__rmatmul__(v)
+                    except:
+                        w = Aloc.all_blocks[1, 0].rmatvec(v)
+                    va[free[0] : free[0]+len(w)] = w
+                    free[0] = free[0] + len(w)
+
+                Aloc = Aloc.all_blocks[jj, jj]
+
+                if lvl == len(path_to_leaf[leaf_order[ii]])-1:
+                    w = v@Aloc
+                    va[free[0] : free[1]] = w
+                    free[0] = free[0] + len(w)
+
+            RA[ii, :] = va
+
+        Ac = RA @ R.T
+        AcLU = lu_factor(Ac)
+
+        return S, K, R, RA, AcLU, D, DLU, diag_shapes, n

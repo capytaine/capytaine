@@ -21,8 +21,8 @@ from capytaine.bodies.predefined.cylinders import VerticalCylinder, HorizontalCy
 from capytaine.bodies.predefined.rectangles import Rectangle, RectangularParallelepiped, OpenRectangularParallelepiped
 
 from capytaine.bem.problems_and_results import RadiationProblem, DiffractionProblem
-from capytaine.bem.solver import BEMSolver
-from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
+from capytaine.bem.solver import BEMSolver, PrecondBEMSolver
+from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine, HierarchicalPrecondMatrixEngine
 from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
 
 from capytaine.post_pro.free_surfaces import FreeSurface

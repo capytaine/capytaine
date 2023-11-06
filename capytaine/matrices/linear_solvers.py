@@ -10,6 +10,7 @@ import logging
 import numpy as np
 from scipy import linalg as sl
 from scipy.sparse import linalg as ssl
+from itertools import accumulate, chain
 
 from capytaine.matrices.block import BlockMatrix
 from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockCirculantMatrix
@@ -147,5 +148,93 @@ def gmres_no_fft(A, b):
 
     if info != 0:
         LOG.warning(f"No convergence of the GMRES. Error code: {info}")
+
+    return x
+
+
+# PRECONDITIONED SOLVER
+
+
+def extradiag_matvec(A, v):
+    """Matrix vector product ignoring diagonal blocks
+    """
+    result = np.zeros(A.shape[0], dtype=complex)
+    line_heights = A.block_shapes[0]
+    line_positions = list(accumulate(chain([0], line_heights)))
+    col_widths = A.block_shapes[1]
+    col_positions = list(accumulate(chain([0], col_widths)))
+    for line, line_position, line_height in zip(A.all_blocks, line_positions, line_heights):
+        line_slice = slice(line_position, line_position+line_height)
+        for block, col_position, col_width in zip(line, col_positions, col_widths):
+            # ignore diagonal blocks
+            if (col_position!=line_position):
+                col_slice = slice(col_position, col_position+col_width)
+                result[line_slice] += block @ v[col_slice]
+    return result
+
+def _bJac(A, b, x0, *preconddata):
+    """
+    Block-Jacobi method for linear problem Ax=b
+
+    A: BlockMatrix
+        System matrix
+    b: vector-like
+        Right hand side
+    x0: vector-like
+        Initial guess
+    """
+    R, RA, AcLU, D, DLU, diag_shapes, n = preconddata
+
+    x = np.zeros(A.shape[0], dtype=complex)
+
+    # multiplication by extradiagonal blocks (with sign flipped!!)
+    #q = b - extradiag_matvec(A, x0)
+    q = b - (A@x0 - sl.block_diag(*D)@x0)
+    # loop over diagonal blocks
+    for kk in range(n):
+        local_slice = slice(sum(diag_shapes[:kk]), sum(diag_shapes[:kk+1]))
+        local_rhs = q[local_slice]
+        local_sol = sl.lu_solve(DLU[kk], local_rhs, check_finite=False)
+
+        x[local_slice] = local_sol
+
+    return x
+
+
+def _bJac_cc(A, b, x0, *preconddata):
+    R, RA, AcLU, D, DLU, diag_shapes, n = preconddata
+    # x_ps = x after the pre-smoothing step (block-Jacobi)
+    x_ps = _bJac(A, b, x0, *preconddata)
+
+    r_c = R@b - RA@x_ps #restricted residual
+    e_c = sl.lu_solve(AcLU, r_c, check_finite=False)
+    # update
+    return x_ps + R.T@e_c
+
+def solve_precond_gmres(A, b, *preconddata):
+    R, RA, AcLU, D, DLU, diag_shapes, n = preconddata
+    N = A.shape[0]
+
+    def PinvA_mv(v):
+        v = v + 1j*np.zeros(N)
+        return v - _bJac_cc(A, np.zeros(N, dtype=complex), v, *preconddata)
+
+    PinvA = ssl.LinearOperator((N, N), matvec=PinvA_mv)
+    Pinvb = _bJac_cc(A, b, np.zeros(N, dtype=complex), *preconddata)
+
+    LOG.debug(f"Solve with GMRES for {A}.")
+
+    if LOG.isEnabledFor(logging.DEBUG):
+        counter = Counter()
+        x, info = ssl.gmres(PinvA, Pinvb, atol=1e-6, callback=counter)
+        LOG.debug(f"End of GMRES after {counter.nb_iter} iterations.")
+
+    else:
+        x, info = ssl.gmres(PinvA, Pinvb, atol=1e-6)
+
+    if info > 0:
+        raise RuntimeError(f"No convergence of the GMRES after {info} iterations.\n"
+                            "This can be due to overlapping panels or irregular frequencies.\n"
+                            "In the latter case, using a direct solver can help (https://github.com/mancellin/capytaine/issues/30).")
 
     return x
