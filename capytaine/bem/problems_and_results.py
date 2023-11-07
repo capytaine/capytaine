@@ -78,16 +78,24 @@ class LinearPotentialFlowProblem:
         self.omega, self.period, self.wavenumber, self.wavelength, self.provided_freq_type = \
                 self._get_frequencies(omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength)
 
-        dopplered_omega = self.omega - self.wavenumber*self.forward_speed*np.cos(self.wave_direction)
-        self.encounter_omega, self.encounter_period, self.encounter_wavenumber, self.encounter_wavelength, _ = \
-                self._get_frequencies(omega=abs(dopplered_omega))
-
-        if dopplered_omega >= 0.0:
-            self.encounter_wave_direction = self.wave_direction
-        else:
-            self.encounter_wave_direction = self.wave_direction + np.pi
-
         self._check_data()
+
+        if forward_speed != 0.0:
+            dopplered_omega = self.omega - self.wavenumber*self.forward_speed*np.cos(self.wave_direction)
+            self.encounter_omega, self.encounter_period, self.encounter_wavenumber, self.encounter_wavelength, _ = \
+                    self._get_frequencies(omega=abs(dopplered_omega))
+
+            if dopplered_omega >= 0.0:
+                self.encounter_wave_direction = self.wave_direction
+            else:
+                self.encounter_wave_direction = self.wave_direction + np.pi
+        else:
+            self.encounter_omega = self.omega
+            self.encounter_period = self.period
+            self.encounter_wavenumber = self.wavenumber
+            self.encounter_wavelength = self.wavelength
+            self.encounter_wave_direction = self.wave_direction
+
 
     def _get_frequencies(self, *, omega=None, period=None, wavenumber=None, wavelength=None):
         frequency_data = dict(omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength)
@@ -166,10 +174,16 @@ class LinearPotentialFlowProblem:
         if self.water_depth < 0.0:
             raise ValueError("`water_depth` should be strictly positive.")
 
-        if self.omega in {0, np.infty} and self.water_depth != np.infty:
-            raise NotImplementedError(
-                f"omega={self.omega} is only implemented for infinite depth."
-            )
+        if float(self.omega) in {0, np.infty}:
+            if self.water_depth != np.infty:
+                raise NotImplementedError(
+                        f"omega={float(self.omega)} is only implemented for infinite depth (provided water depth: {self.water_depth})."
+                )
+
+            if self.forward_speed != 0.0:
+                raise NotImplementedError(
+                        f"omega={float(self.omega)} is only implemented without forward speed (provided forward speed: {self.forward_speed})."
+                )
 
         if self.body is not None:
             if ((isinstance(self.body.mesh, CollectionOfMeshes) and len(self.body.mesh) == 0)
@@ -509,4 +523,3 @@ class RadiationResult(LinearPotentialFlowResult):
                      added_mass=self.added_mass[dof],
                      radiation_damping=self.radiation_damping[dof])
                 for dof in self.influenced_dofs]
-
