@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Variants of Delhommeau's method for the computation of the Green function."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -194,6 +192,8 @@ class Delhommeau(AbstractGreenFunction):
             the matrices :math:`S` and :math:`K`
         """
 
+        wavenumber = float(wavenumber)
+
         if free_surface == np.infty: # No free surface, only a single Rankine source term
 
             a_exp, lamda_exp = np.empty(1), np.empty(1)  # Dummy arrays that won't actually be used by the fortran code.
@@ -212,15 +212,15 @@ class Delhommeau(AbstractGreenFunction):
                 coeffs = np.array((1.0, 1.0, 1.0))
 
         else:  # Finite water_depth
-            a_exp, lamda_exp = self.find_best_exponential_decomposition(
-                wavenumber*water_depth*np.tanh(wavenumber*water_depth),
-                wavenumber*water_depth,
-            )
             if wavenumber == 0.0:
                 raise NotImplementedError
             elif wavenumber == np.infty:
                 raise NotImplementedError
             else:
+                a_exp, lamda_exp = self.find_best_exponential_decomposition(
+                    wavenumber*water_depth*np.tanh(wavenumber*water_depth),
+                    wavenumber*water_depth,
+                )
                 coeffs = np.array((1.0, 1.0, 1.0))
 
         if isinstance(mesh1, Mesh) or isinstance(mesh1, CollectionOfMeshes):

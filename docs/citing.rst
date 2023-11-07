@@ -6,7 +6,7 @@ If you are using Capytaine, please cite both following references:
 
 Ancellin and Dias (2019), **Capytaine: a Python-based linear potential flow solver**, Journal of Open Source Software, 4(36), 1341, https://doi.org/10.21105/joss.01341
 
-Babarit and Delhommeau (2015), **Theoretical and numerical aspects of the open source BEM solver NEMOH**, Proceedings of the 11th European Wave and Tidal Energy Conference (EWTEC2015), 
+Babarit and Delhommeau (2015), **Theoretical and numerical aspects of the open source BEM solver NEMOH**, Proceedings of the 11th European Wave and Tidal Energy Conference (EWTEC2015),
 
 or in bibtex form:
 

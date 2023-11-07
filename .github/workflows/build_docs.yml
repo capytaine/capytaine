@@ -1,0 +1,40 @@
+name: Build and deploy documentation
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'docs/**'
+
+  pull_request:
+    paths:
+      - 'docs/**'
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v3
+
+      - name: Install Capytaine and other dependencies
+        run: pip install .[docs]
+
+      - name: Build documentation
+        run: cd docs && make
+
+      - name: Deploy pages
+        if: github.ref == 'refs/heads/master'  # Only deploy the version merged into the master branch
+        uses: JamesIves/github-pages-deploy-action@releases/v4
+        with:
+          folder: ./docs/_build/html/
+          repository-name: capytaine/capytaine.github.io
+          branch: main
+          target-folder: master/
+          clean: true
+          token: ${{ secrets.TOKEN_PAGES }}

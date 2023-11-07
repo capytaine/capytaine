@@ -25,7 +25,7 @@ arguments to store more information in the dataset:
 - :code:`mesh` (default: :code:`False`): add some information about the mesh in
   the dataset (number of faces, quadrature method).
 - :code:`hydrostatics` (default: :code:`True`): if hydrostatics data are
-  available in the :code:`FloatingBody`, they are added to the dataset. 
+  available in the :code:`FloatingBody`, they are added to the dataset.
 
 .. note:: The code does its best to keep the degrees of freedom in the same
           order as they have been provided by the user, but there is no
@@ -74,7 +74,7 @@ then called by `assemble_dataset`. For example, to create an xarray dataset from
              differences between the variable names in an xarray dataset build with Bemio and one created
              using :code:`LinearPotentialFlowResult`, even though the format will be identical. For
              example, WAMIT :code:`.out` files do not contain the radii of gyration needed to calculate
-             the moments of inertia, so the `my_dataset['inertia_matrix']` variable would not be included 
+             the moments of inertia, so the `my_dataset['inertia_matrix']` variable would not be included
              in the above example since the rigid body mass matrix cannot be calculated.
 
 Saving the dataset as NetCDF file
@@ -131,7 +131,7 @@ The example below uses the ``openpyxl`` library (that can be installed with ``pi
     from capytaine.io.xarray import separate_complex_values
     separate_complex_values(dataset[["Froude_Krylov_force", "diffraction_force"]]).to_dataframe().to_excel("diffraction_data.xlsx")
 
-For convienence, the radiation and diffraction data have been stored in separate files.
+For convenience, the radiation and diffraction data have been stored in separate files.
 Since this export method poorly supports complex number, the :func:`~capytaine.io.xarray.separate_complex_values` has been used to transform them to a pair of real numbers, as discussed for NetCDF export above.
 
 
@@ -170,4 +170,3 @@ The following code will write files named :code:`RadiationCoefficients.tec` and 
 
 	from capytaine.io.legacy import write_dataset_as_tecplot_files
 	write_dataset_as_tecplot_files("path/to/directory", dataset)
-

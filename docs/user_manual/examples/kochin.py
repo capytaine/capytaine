@@ -1,5 +1,3 @@
-import logging
-
 import numpy as np
 from numpy import pi
 import xarray as xr
@@ -7,7 +5,7 @@ import matplotlib.pyplot as plt
 
 import capytaine as cpt
 
-logging.basicConfig(level=logging.INFO)
+cpt.set_logging('INFO')
 
 # SET UP THE MESH
 buoy = cpt.FloatingBody(

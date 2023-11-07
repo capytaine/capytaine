@@ -53,7 +53,11 @@ XieDelhommeau_float64_f2py_wrapper = custom_target('XieDelhommeau_float64module.
                                            output : ['XieDelhommeau_float64module.c', 'XieDelhommeau_float64-f2pywrappers2.f90'],
                                            command : [ py3, '-m', 'numpy.f2py', '@INPUT@', '-m', 'XieDelhommeau_float64', '--lower'])
 
-install_subdir('capytaine', install_dir: py3.get_install_dir(pure: false))
+install_subdir(
+  'capytaine',
+  exclude_directories: ['green_functions/libDelhommeau/'],  # The Fortran source files do not need to be distributed in the wheel
+  install_dir: py3.get_install_dir(pure: false),
+  )
 # Alternatively: would need to list all the .py files and use py3.install_source()
 
 if build_machine.system() == 'darwin'

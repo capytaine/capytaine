@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Definition of the methods to build influence matrices, using possibly some sparse structures."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -181,7 +179,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
                        mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
                        _rec_depth=1):
         """Recursively builds a hierarchical matrix between mesh1 and mesh2.
-        
+
         Same arguments as :func:`BasicMatrixEngine.build_matrices`.
 
         :code:`_rec_depth` keeps track of the recursion depth only for pretty log printing.
@@ -317,4 +315,3 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
                 mesh1, mesh2, free_surface, water_depth, wavenumber,
             )
             return S, V
-

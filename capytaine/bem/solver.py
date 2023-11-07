@@ -15,12 +15,15 @@ import numpy as np
 
 from datetime import datetime
 
+from rich.progress import track
+
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem
 from capytaine.green_functions.delhommeau import Delhommeau
-from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine
+from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
+from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
 
 LOG = logging.getLogger(__name__)
 
@@ -68,7 +71,7 @@ class BEMSolver:
     def from_exported_settings(settings):
         raise NotImplementedError
 
-    def solve(self, problem, keep_details=True):
+    def solve(self, problem, keep_details=True, _check_wavelength=True):
         """Solve the linear potential flow problem.
 
         Parameters
@@ -78,6 +81,8 @@ class BEMSolver:
         keep_details: bool, optional
             if True, store the sources and the potential on the floating body in the output object
             (default: True)
+        _check_wavelength: bool, optional
+            if True, check the mesh resolution with respect to the wavelength
 
         Returns
         -------
@@ -85,6 +90,8 @@ class BEMSolver:
             an object storing the problem data and its results
         """
         LOG.info("Solve %s.", problem)
+
+        if _check_wavelength: self._check_wavelength([problem])
 
         if problem.forward_speed != 0.0:
             omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
@@ -96,7 +103,8 @@ class BEMSolver:
             problem.free_surface, problem.water_depth, wavenumber,
             self.green_function
         )
-        sources = self.engine.linear_solver(K, problem.boundary_condition)
+        linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
+        sources = linear_solver(K, problem.boundary_condition)
         potential = S @ sources
 
         pressure = 1j * omega * problem.rho * potential
@@ -117,7 +125,7 @@ class BEMSolver:
 
         return result
 
-    def solve_all(self, problems, *, n_jobs=1, **kwargs):
+    def solve_all(self, problems, *, n_jobs=1, progress_bar=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -128,22 +136,60 @@ class BEMSolver:
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
+        progress_bar: bool, optional (default: True)
+            Display a progress bar while solving
 
         Returns
         -------
         list of LinearPotentialFlowResult
             the solved problems
         """
+        self._check_wavelength(problems)
         if n_jobs == 1:  # force sequential resolution
-            return [self.solve(pb, **kwargs) for pb in sorted(problems)]
+            problems = sorted(problems)
+            if progress_bar:
+                problems = track(problems, total=len(problems), description="Solving BEM problems")
+            return [self.solve(pb, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
                 raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
-            groups_of_results = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.solve_all)(grp, n_jobs=1, **kwargs) for grp in groups_of_problems)
+            parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
+            groups_of_results = parallel(joblib.delayed(self.solve_all)(grp, n_jobs=1, progress_bar=False, _check_wavelength=False, *kwargs) for grp in groups_of_problems)
+            if progress_bar:
+                groups_of_results = track(groups_of_results,
+                                          total=len(groups_of_problems),
+                                          description=f"Solving BEM problems with {n_jobs} threads:")
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
             return results
+
+    @staticmethod
+    def _check_wavelength(problems):
+        """Display a warning if some of the problems have a mesh resolution
+        that might not be sufficient for the given wavelength."""
+        risky_problems = [pb for pb in problems
+                          if pb.wavelength < pb.body.minimal_computable_wavelength]
+        nb_risky_problems = len(risky_problems)
+        if nb_risky_problems == 1:
+            pb = risky_problems[0]
+            freq_type = risky_problems[0].provided_freq_type
+            freq = pb.__getattribute__(freq_type)
+            LOG.warning(f"Mesh resolution for {pb}:\n"
+                    f"The resolution of the mesh of the body {pb.body.__short_str__()} might "
+                    f"be insufficient for {freq_type}={freq}.\n"
+                     "This warning appears because the largest panel of this mesh "
+                    f"has radius {pb.body.mesh.faces_radiuses.max():.3f} > wavelength/8."
+                    )
+        elif nb_risky_problems > 1:
+            freq_type = risky_problems[0].provided_freq_type
+            freqs = np.array([pb.__getattribute__(freq_type) for pb in risky_problems])
+            LOG.warning(f"Mesh resolution for {nb_risky_problems} problems:\n"
+                         "The resolution of the mesh might be insufficient "
+                        f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
+                         "This warning appears when the largest panel of this mesh "
+                         "has radius > wavelength/8."
+                    )
 
     def fill_dataset(self, dataset, bodies, *, n_jobs=1, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
@@ -158,6 +204,8 @@ class BEMSolver:
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
+        progress_bar: bool, optional (default: True)
+            Display a progress bar while solving
 
         Returns
         -------
@@ -310,7 +358,7 @@ class BEMSolver:
         Since the interaction matrix does not need to be computed in full to compute the matrix-vector product,
         only a few lines are evaluated at a time to reduce the memory cost of the operation.
 
-        The newer method :code:`compute_potential` should be prefered in the future.
+        The newer method :code:`compute_potential` should be preferred in the future.
 
         Parameters
         ----------
@@ -366,7 +414,7 @@ class BEMSolver:
     def get_free_surface_elevation(self, result, free_surface, keep_details=False):
         """Compute the elevation of the free surface on a mesh for a previously solved problem.
 
-        The newer method :code:`compute_free_surface_elevation` should be prefered in the future.
+        The newer method :code:`compute_free_surface_elevation` should be preferred in the future.
 
         Parameters
         ----------
@@ -393,4 +441,3 @@ class BEMSolver:
         if keep_details:
             result.fs_elevation[free_surface] = fs_elevation
         return fs_elevation
-

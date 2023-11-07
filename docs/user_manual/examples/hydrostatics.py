@@ -63,4 +63,3 @@ for var in vars_to_be_displayed:
         print(f"    Meshmagick :  {mm_hsdb[var]}")
     if var in analytical:
         print(f"    Analytical :  {analytical[var]}")
-
