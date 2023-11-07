@@ -32,14 +32,13 @@ def build_and_test_on_latest_env(session):
 
 
 @nox.session
-@nox.parametrize("env_file", ["2023-10-02"])
+@nox.parametrize("env_file", ["2023-11-07"])
 def build_and_test_on_locked_env(session, env_file):
     session.install("pdm")
     session.run_always('pdm', 'sync', '--no-self', '-L', f"pytest/envs/{env_file}.lock")
     # Lock file was created with
-    # pdm lock -d -G build -G test -L pytest/envs/2023-10-02.lock
+    # pdm lock -d -G build -G test -G optional -L pytest/envs/2023-11-07.lock
     session.install("--no-build-isolation", "--no-deps", "-e", ".")
     # Editable install using pip and not pdm because pdm's editable install
     # does not seems to work with meson-python.
-    session.install("matplotlib")  # Need to be installed in the lock file in the future.
     run_tests(session)
