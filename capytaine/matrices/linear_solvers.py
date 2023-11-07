@@ -154,24 +154,6 @@ def gmres_no_fft(A, b):
 
 # PRECONDITIONED SOLVER
 
-
-def extradiag_matvec(A, v):
-    """Matrix vector product ignoring diagonal blocks
-    """
-    result = np.zeros(A.shape[0], dtype=complex)
-    line_heights = A.block_shapes[0]
-    line_positions = list(accumulate(chain([0], line_heights)))
-    col_widths = A.block_shapes[1]
-    col_positions = list(accumulate(chain([0], col_widths)))
-    for line, line_position, line_height in zip(A.all_blocks, line_positions, line_heights):
-        line_slice = slice(line_position, line_position+line_height)
-        for block, col_position, col_width in zip(line, col_positions, col_widths):
-            # ignore diagonal blocks
-            if (col_position!=line_position):
-                col_slice = slice(col_position, col_position+col_width)
-                result[line_slice] += block @ v[col_slice]
-    return result
-
 def _bJac(A, b, x0, *preconddata):
     """
     Block-Jacobi method for linear problem Ax=b
@@ -183,13 +165,14 @@ def _bJac(A, b, x0, *preconddata):
     x0: vector-like
         Initial guess
     """
-    R, RA, AcLU, D, DLU, diag_shapes, n = preconddata
+    R, RA, AcLU, DLU, diag_shapes, n = preconddata
 
     x = np.zeros(A.shape[0], dtype=complex)
 
     # multiplication by extradiagonal blocks (with sign flipped!!)
     #q = b - extradiag_matvec(A, x0)
-    q = b - (A@x0 - sl.block_diag(*D)@x0)
+    # the diagonal blocks of A have been put to zero in build_matrices
+    q = b - A@x0
     # loop over diagonal blocks
     for kk in range(n):
         local_slice = slice(sum(diag_shapes[:kk]), sum(diag_shapes[:kk+1]))
@@ -202,7 +185,7 @@ def _bJac(A, b, x0, *preconddata):
 
 
 def _bJac_cc(A, b, x0, *preconddata):
-    R, RA, AcLU, D, DLU, diag_shapes, n = preconddata
+    R, RA, AcLU, DLU, diag_shapes, n = preconddata
     # x_ps = x after the pre-smoothing step (block-Jacobi)
     x_ps = _bJac(A, b, x0, *preconddata)
 
@@ -212,7 +195,7 @@ def _bJac_cc(A, b, x0, *preconddata):
     return x_ps + R.T@e_c
 
 def solve_precond_gmres(A, b, *preconddata):
-    R, RA, AcLU, D, DLU, diag_shapes, n = preconddata
+    R, RA, AcLU, DLU, diag_shapes, n = preconddata
     N = A.shape[0]
 
     def PinvA_mv(v):

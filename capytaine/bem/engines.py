@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 from scipy.linalg import lu_factor
+from scipy.sparse import coo_matrix
 
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh, TranslationalSymmetricMesh, AxialSymmetricMesh
@@ -389,7 +390,6 @@ class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
 
         # Navigate to the diagonal blocks and compute their LU decompositions
         DLU = []
-        D = []
         diag_shapes = []
         for leaf in leaf_order:
             # Navigate to the block containing the one we need
@@ -398,7 +398,6 @@ class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
             # find the local index in the full path
             ind = path_to_leaf[leaf][-1]
             # compute the LU decomposition and add to the list
-            D.append(upper_block.all_blocks[ind, ind])
             DLU.append(lu_factor(upper_block.all_blocks[ind, ind]))
             diag_shapes.append(upper_block.all_blocks[ind, ind].shape[0])
 
@@ -451,4 +450,11 @@ class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
         Ac = RA @ R.T
         AcLU = lu_factor(Ac)
 
-        return S, K, R, RA, AcLU, D, DLU, diag_shapes, n
+        # Now navigate again to the diagonal blocks and set them to zero
+        for leaf in leaf_order:
+            upper_block = self.access_block_by_path(K, path_to_leaf[leaf][:-1])
+            ind = path_to_leaf[leaf][-1]
+            # turn the diagonal block into a zero sparse matrix
+            upper_block.all_blocks[ind, ind] = coo_matrix(upper_block.all_blocks[ind, ind].shape)
+
+        return S, K, R, RA, AcLU, DLU, diag_shapes, n
