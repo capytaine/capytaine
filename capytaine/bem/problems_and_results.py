@@ -144,30 +144,30 @@ class LinearPotentialFlowProblem:
             )
 
         if self.water_depth < 0.0:
-            raise ValueError("`water_depth` should be strictly positive.")
+            raise ValueError("`water_depth` should be strictly positive (provided water depth: {self.water_depth}).")
 
-        if self.omega in {0, np.infty} and self.water_depth != np.infty:
-            raise NotImplementedError(
-                f"omega={self.omega} is only implemented for infinite depth."
+        if float(self.omega) in {0, np.infty} and self.water_depth != np.infty:
+            LOG.warning(
+                    f"Default Green function allows for {self.provided_freq_type}={float(self.__getattribute__(self.provided_freq_type))} only for infinite depth (provided water depth: {self.water_depth})."
             )
 
         if self.body is not None:
             if ((isinstance(self.body.mesh, CollectionOfMeshes) and len(self.body.mesh) == 0)
                     or len(self.body.mesh.faces) == 0):
-                raise ValueError(f"The mesh of the body {self.body.name} is empty.")
+                raise ValueError(f"The mesh of the body {self.body.__short_str__()} is empty.")
 
             if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface)
                     or any(self.body.mesh.faces_centers[:, 2] <= -self.water_depth)):
 
                 LOG.warning(
-                    f"The mesh of the body {self.body.name} is not inside the domain.\n"
+                    f"The mesh of the body {self.body.__short_str__()} is not inside the domain.\n"
                     "Check the position of the free_surface and the water_depth\n"
                     "or use body.keep_immersed_part() to clip the mesh."
                 )
 
         if self.boundary_condition is not None:
             if len(self.boundary_condition.shape) != 1:
-                raise ValueError("Expected a 1-dimensional array as boundary_condition")
+                raise ValueError(f"Expected a 1-dimensional array as boundary_condition. Provided boundary condition's shape: {self.boundary_condition.shape}.")
 
             if self.boundary_condition.shape[0] != self.body.mesh.nb_faces:
                 raise ValueError(
