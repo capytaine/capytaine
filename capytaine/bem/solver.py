@@ -125,7 +125,7 @@ class BEMSolver:
 
         return result
 
-    def solve_all(self, problems, *, n_jobs=1, progress_bar=True, **kwargs):
+    def solve_all(self, problems, *, n_jobs=1, progress_bar=True, _check_wavelength=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -144,7 +144,8 @@ class BEMSolver:
         list of LinearPotentialFlowResult
             the solved problems
         """
-        self._check_wavelength(problems)
+        if _check_wavelength: self._check_wavelength(problems)
+
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
             if progress_bar:
@@ -156,7 +157,7 @@ class BEMSolver:
                 raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
             parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
-            groups_of_results = parallel(joblib.delayed(self.solve_all)(grp, n_jobs=1, progress_bar=False, _check_wavelength=False, *kwargs) for grp in groups_of_problems)
+            groups_of_results = parallel(joblib.delayed(self.solve_all)(grp, n_jobs=1, progress_bar=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
             if progress_bar:
                 groups_of_results = track(groups_of_results,
                                           total=len(groups_of_problems),
