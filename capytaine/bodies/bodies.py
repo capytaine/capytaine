@@ -1062,7 +1062,8 @@ respective inertia coefficients are assigned as NaN.")
         ln_matrix = linkage(buoys_positions, method='centroid', metric='euclidean')
         dn = dendrogram(ln_matrix)
 
-        node_list = bodies #list of nodes of the tree: the first nodes are single bodies
+        node_list = bodies.copy() #list of nodes of the tree: the first nodes are single bodies
+        # the list is copied to avoid changing it
         leaves = [] #list of lists of all leaves belonging to each node
         path_to_leaf = [] #list of lists of paths from the top to each leaf
         for ii in range(nb_buoys):
