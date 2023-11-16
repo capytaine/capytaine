@@ -1060,7 +1060,7 @@ respective inertia coefficients are assigned as NaN.")
         buoys_positions = np.stack([body.center_of_buoyancy for body in bodies])[:,:2]
 
         ln_matrix = linkage(buoys_positions, method='centroid', metric='euclidean')
-        dn = dendrogram(ln_matrix)
+        dn = dendrogram(ln_matrix, no_plot=True)
 
         node_list = bodies.copy() #list of nodes of the tree: the first nodes are single bodies
         # the list is copied to avoid changing it
