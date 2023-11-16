@@ -4,11 +4,10 @@ import numpy as np
 import capytaine as cpt
 from time import time
 
-
 radius = 2.
 spacing = 5.
-nb_cols = 5
-nb_rows = 10
+nb_cols = 14
+nb_rows = 14
 
 omega = 1.
 
@@ -40,6 +39,8 @@ all_bodies = cpt.FloatingBody.cluster_bodies(bodies)
 problems = [cpt.RadiationProblem(body=all_bodies, radiating_dof=dof, omega=omega)
             for dof in all_bodies.dofs]
 
+
+cpt.set_logging(level='INFO')  # prints the number of iterations
 # Hierarchical solve, with preconditioner
 print('Solving hierarchical problem with preconditioner')
 t0 = time()
@@ -71,6 +72,7 @@ reordered_dofs = {'radiating_dof': ordered_dofs_names,
 
 reordered_data = data.reindex(reordered_dofs)
 
+print('error = ', np.linalg.norm(presults[0].sources - hresults[0].sources))
 print('time with preconditioner = ', tP)
 print('time without preconditioner = ', tNP)
 
