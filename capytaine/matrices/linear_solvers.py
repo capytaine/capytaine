@@ -126,10 +126,10 @@ class Counter:
 def solve_gmres(A, b):
     LOG.debug(f"Solve with GMRES for {A}.")
 
-    if LOG.isEnabledFor(logging.DEBUG):
+    if LOG.isEnabledFor(logging.INFO):
         counter = Counter()
         x, info = ssl.gmres(A, b, atol=1e-6, callback=counter)
-        LOG.debug(f"End of GMRES after {counter.nb_iter} iterations.")
+        LOG.info(f"End of GMRES after {counter.nb_iter} iterations.")
 
     else:
         x, info = ssl.gmres(A, b, atol=1e-6)
@@ -154,24 +154,12 @@ def gmres_no_fft(A, b):
 
 # PRECONDITIONED SOLVER
 
-def _bJac(A, b, x0, *preconddata):
-    """
-    Block-Jacobi method for linear problem Ax=b
+def _bJac_cc(A, b, x0, R, RA, AcLU, DLU, diag_shapes, n):
+    # x_ps = x after the pre-smoothing step (block-Jacobi)
+    x_ps = np.zeros(A.shape[0], dtype=complex)
 
-    A: BlockMatrix
-        System matrix
-    b: vector-like
-        Right hand side
-    x0: vector-like
-        Initial guess
-    """
-    R, RA, AcLU, DLU, diag_shapes, n = preconddata
-
-    x = np.zeros(A.shape[0], dtype=complex)
-
-    # multiplication by extradiagonal blocks (with sign flipped!!)
-    #q = b - extradiag_matvec(A, x0)
-    # the diagonal blocks of A have been put to zero in build_matrices
+    # the diagonal blocks of A have already been put to zero in build_matrices
+    # they are not needed anymore
     q = b - A@x0
     # loop over diagonal blocks
     for kk in range(n):
@@ -179,15 +167,7 @@ def _bJac(A, b, x0, *preconddata):
         local_rhs = q[local_slice]
         local_sol = sl.lu_solve(DLU[kk], local_rhs, check_finite=False)
 
-        x[local_slice] = local_sol
-
-    return x
-
-
-def _bJac_cc(A, b, x0, *preconddata):
-    R, RA, AcLU, DLU, diag_shapes, n = preconddata
-    # x_ps = x after the pre-smoothing step (block-Jacobi)
-    x_ps = _bJac(A, b, x0, *preconddata)
+        x_ps[local_slice] = local_sol
 
     r_c = R@b - RA@x_ps #restricted residual
     e_c = sl.lu_solve(AcLU, r_c, check_finite=False)
@@ -195,22 +175,17 @@ def _bJac_cc(A, b, x0, *preconddata):
     return x_ps + R.T@e_c
 
 def solve_precond_gmres(A, b, *preconddata):
-    R, RA, AcLU, DLU, diag_shapes, n = preconddata
+    R, RA, AcLU, DLU, diag_shapes, n, PinvA = preconddata
     N = A.shape[0]
 
-    def PinvA_mv(v):
-        v = v + 1j*np.zeros(N)
-        return v - _bJac_cc(A, np.zeros(N, dtype=complex), v, *preconddata)
-
-    PinvA = ssl.LinearOperator((N, N), matvec=PinvA_mv)
-    Pinvb = _bJac_cc(A, b, np.zeros(N, dtype=complex), *preconddata)
+    Pinvb = _bJac_cc(A, b, np.zeros(N, dtype=complex), R, RA, AcLU, DLU, diag_shapes, n)
 
     LOG.debug(f"Solve with GMRES for {A}.")
 
-    if LOG.isEnabledFor(logging.DEBUG):
+    if LOG.isEnabledFor(logging.INFO):
         counter = Counter()
         x, info = ssl.gmres(PinvA, Pinvb, atol=1e-6, callback=counter)
-        LOG.debug(f"End of GMRES after {counter.nb_iter} iterations.")
+        LOG.info(f"End of GMRES after {counter.nb_iter} iterations.")
 
     else:
         x, info = ssl.gmres(PinvA, Pinvb, atol=1e-6)
