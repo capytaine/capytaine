@@ -1,4 +1,4 @@
-from numpy import pi as pi
+from numpy import pi
 
 import capytaine as cpt
 from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
