@@ -8,6 +8,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 from scipy.linalg import lu_factor
 from scipy.sparse import coo_matrix
+from scipy.sparse import linalg as ssl
 
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh, TranslationalSymmetricMesh, AxialSymmetricMesh
@@ -457,4 +458,11 @@ class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
             # turn the diagonal block into a zero sparse matrix
             upper_block.all_blocks[ind, ind] = coo_matrix(upper_block.all_blocks[ind, ind].shape)
 
-        return S, K, R, RA, AcLU, DLU, diag_shapes, n
+        def PinvA_mv(v):
+            v = v + 1j*np.zeros(N)
+            return v - linear_solvers._bJac_cc(K, np.zeros(N, dtype=complex), v,
+                             R, RA, AcLU, DLU, diag_shapes, n)
+
+        PinvA = ssl.LinearOperator((N, N), matvec=PinvA_mv)
+
+        return S, K, R, RA, AcLU, DLU, diag_shapes, n, PinvA
