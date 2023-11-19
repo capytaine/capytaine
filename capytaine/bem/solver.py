@@ -71,13 +71,15 @@ class BEMSolver:
     def from_exported_settings(settings):
         raise NotImplementedError
 
-    def solve(self, problem, direct_method=False, keep_details=True, _check_wavelength=True):
+    def solve(self, problem, method='indirect', keep_details=True, _check_wavelength=True):
         """Solve the linear potential flow problem.
 
         Parameters
         ----------
         problem: LinearPotentialFlowProblem
             the problem to be solved
+        method: string, optional
+            select boundary integral approach indirect (i.e.Nemoh)/direct (i.e.WAMIT) (default: indirect)
         keep_details: bool, optional
             if True, store the sources and the potential on the floating body in the output object
             (default: True)
@@ -96,11 +98,11 @@ class BEMSolver:
         S, K = self.engine.build_matrices(
             problem.body.mesh, problem.body.mesh,
             problem.free_surface, problem.water_depth, problem.wavenumber,
-            self.green_function, direct_method=direct_method
+            self.green_function, method=method
         )
 
         linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
-        if direct_method:
+        if (method == 'direct'):
           potential = linear_solver(K, S @ problem.boundary_condition)
           sources = None
         else:
@@ -120,7 +122,7 @@ class BEMSolver:
 
         return result
 
-    def solve_all(self, problems, *, direct_method=False, n_jobs=1, progress_bar=True, _check_wavelength=True, **kwargs):
+    def solve_all(self, problems, *, method='indirect', n_jobs=1, progress_bar=True, _check_wavelength=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -128,6 +130,8 @@ class BEMSolver:
         ----------
         problems: list of LinearPotentialFlowProblem
             several problems to be solved
+        method: string, optional
+            select boundary integral approach indirect (i.e.Nemoh)/direct (i.e.WAMIT) (default: indirect)
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
@@ -145,14 +149,14 @@ class BEMSolver:
             problems = sorted(problems)
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
-            return [self.solve(pb, direct_method=direct_method, _check_wavelength=False, **kwargs) for pb in problems]
+            return [self.solve(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
                 raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
             parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
-            groups_of_results = parallel(joblib.delayed(self.solve_all)(grp, direct_method=direct_method, n_jobs=1, progress_bar=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
+            groups_of_results = parallel(joblib.delayed(self.solve_all)(grp, method=method, n_jobs=1, progress_bar=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
             if progress_bar:
                 groups_of_results = track(groups_of_results,
                                           total=len(groups_of_problems),
@@ -187,7 +191,7 @@ class BEMSolver:
                          "has radius > wavelength/8."
                     )
 
-    def fill_dataset(self, dataset, bodies, *, direct_method=False, n_jobs=1, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, method='indirect', n_jobs=1, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -197,6 +201,8 @@ class BEMSolver:
         bodies : FloatingBody or list of FloatingBody
             The body or bodies involved in the problems
             They should all have different names.
+        method: string, optional
+            select boundary integral approach indirect (i.e.Nemoh)/direct (i.e.WAMIT) (default: indirect)
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
@@ -211,12 +217,12 @@ class BEMSolver:
                  **self.exportable_settings}
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
-            results = self.solve_all(problems, keep_details=True, direct_method=direct_method, n_jobs=n_jobs)
+            results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs)
             kochin = kochin_data_array(results, dataset.coords['theta'])
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
             dataset.update(kochin)
         else:
-            results = self.solve_all(problems, keep_details=False, direct_method=direct_method, n_jobs=n_jobs)
+            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 

@@ -88,7 +88,7 @@ class BasicMatrixEngine(MatrixEngine):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
-    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, green_function, direct_method=False):
+    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, green_function, method='indirect'):
         r"""Build the influence matrices between mesh1 and mesh2.
 
         Parameters
@@ -105,6 +105,8 @@ class BasicMatrixEngine(MatrixEngine):
             wavenumber (default: 1.0)
         green_function: AbstractGreenFunction
             object with an "evaluate" method that computes the Green function.
+        method: string, optional
+            select boundary integral approach indirect (i.e.Nemoh)/direct (i.e.WAMIT) (default: indirect)
 
         Returns
         -------
@@ -127,7 +129,7 @@ class BasicMatrixEngine(MatrixEngine):
 
         else:
             return green_function.evaluate(
-                mesh1, mesh2, free_surface, water_depth, wavenumber, direct_method=direct_method
+                mesh1, mesh2, free_surface, water_depth, wavenumber, method=method
             )
 
 ###################################
@@ -177,7 +179,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
 
     def build_matrices(self,
                        mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
-                       direct_method=False, _rec_depth=1):
+                       method='indirect', _rec_depth=1):
         """Recursively builds a hierarchical matrix between mesh1 and mesh2.
 
         Same arguments as :func:`BasicMatrixEngine.build_matrices`.
@@ -208,10 +210,10 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
 
             S_a, V_a = self.build_matrices(
                 mesh1[0], mesh2[0], free_surface, water_depth, wavenumber, green_function,
-                direct_method=direct_method, _rec_depth=_rec_depth+1)
+                method=method, _rec_depth=_rec_depth+1)
             S_b, V_b = self.build_matrices(
                 mesh1[0], mesh2[1], free_surface, water_depth, wavenumber, green_function,
-                direct_method=direct_method, _rec_depth=_rec_depth+1)
+                method=method, _rec_depth=_rec_depth+1)
 
             return BlockSymmetricToeplitzMatrix([[S_a, S_b]]), BlockSymmetricToeplitzMatrix([[V_a, V_b]])
 
@@ -226,13 +228,13 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             for submesh in mesh2:
                 S, V = self.build_matrices(
                     mesh1[0], submesh, free_surface, water_depth, wavenumber, green_function,
-                    direct_method=direct_method, _rec_depth=_rec_depth+1)
+                    method=method, _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
             for submesh in mesh1[1:][::-1]:
                 S, V = self.build_matrices(
                     submesh, mesh2[0], free_surface, water_depth, wavenumber, green_function,
-                    direct_method=direct_method, _rec_depth=_rec_depth+1)
+                    method=method, _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
 
@@ -249,7 +251,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             for submesh in mesh2[:mesh2.nb_submeshes]:
                 S, V = self.build_matrices(
                     mesh1[0], submesh, free_surface, water_depth, wavenumber, green_function,
-                    direct_method=direct_method, _rec_depth=_rec_depth+1)
+                    method=method, _rec_depth=_rec_depth+1)
                 S_line.append(S)
                 V_line.append(V)
 
@@ -265,7 +267,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
                 s, v = green_function.evaluate(
                     mesh1.extract_one_face(i), mesh2,
                     free_surface, water_depth, wavenumber,
-                    direct_method=direct_method
+                    method=method
                 )
                 return s.flatten(), v.flatten()
 
@@ -273,7 +275,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
                 s, v = green_function.evaluate(
                     mesh1, mesh2.extract_one_face(j),
                     free_surface, water_depth, wavenumber,
-                    direct_method=direct_method
+                    method=method
                 )
                 return s.flatten(), v.flatten()
 
@@ -299,7 +301,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
                 for submesh2 in mesh2:
                     S, V = self.build_matrices(
                         submesh1, submesh2, free_surface, water_depth, wavenumber, green_function,
-                        direct_method=direct_method, _rec_depth=_rec_depth+1)
+                        method=method, _rec_depth=_rec_depth+1)
 
                     S_line.append(S)
                     V_line.append(V)
@@ -314,6 +316,6 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             LOG.debug(log_entry)
 
             S, V = green_function.evaluate(
-                mesh1, mesh2, free_surface, water_depth, wavenumber, direct_method=direct_method
+                mesh1, mesh2, free_surface, water_depth, wavenumber, method=method
             )
             return S, V

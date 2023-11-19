@@ -166,7 +166,7 @@ class Delhommeau(AbstractGreenFunction):
 
         return a, lamda
 
-    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.infty, wavenumber=1.0, direct_method=False, early_dot_product=True):
+    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.infty, wavenumber=1.0, method='indirect', early_dot_product=True):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
 
         Parameters
@@ -182,6 +182,8 @@ class Delhommeau(AbstractGreenFunction):
             constant depth of water (default: :math:`+\infty`)
         wavenumber: float, optional
             wavenumber (default: 1.0)
+        method: string, optional
+            select boundary integral approach indirect (i.e.Nemoh)/direct (i.e.WAMIT) (default: indirect)
         early_dot_product: boolean, optional
             if False, return K as a (n, m, 3) array storing ∫∇G
             if True, return K as a (n, m) array storing ∫∇G·n
@@ -224,7 +226,7 @@ class Delhommeau(AbstractGreenFunction):
         if isinstance(mesh1, Mesh) or isinstance(mesh1, CollectionOfMeshes):
             collocation_points = mesh1.faces_centers
             nb_collocation_points = mesh1.nb_faces
-            if direct_method:
+            if (method == 'direct'):
                 early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
             else:
                 early_dot_product_normals = mesh1.faces_normals
@@ -233,7 +235,7 @@ class Delhommeau(AbstractGreenFunction):
             collocation_points = mesh1
             nb_collocation_points = mesh1.shape[0]
             early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
-            if direct_method:
+            if (method == 'direct'):
                 raise NotImplementedError("Using a list of points as collocation points is not supported in the direct method")
         else:
             raise ValueError(f"Unrecognized input for {self.__class__.__name__}.evaluate")
@@ -259,7 +261,7 @@ class Delhommeau(AbstractGreenFunction):
             coeffs,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
-            mesh1 is mesh2, direct_method,
+            mesh1 is mesh2, method,
             S, K
         )
 

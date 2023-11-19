@@ -29,7 +29,7 @@ CONTAINS
       coeffs,                                         &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,                                &
-      same_body, direct_method,                         &
+      same_body, method,                              &
       S, K)
 
     ! Mesh data
@@ -43,7 +43,7 @@ CONTAINS
     INTEGER,                                                  INTENT(IN) :: nb_quad_points
     REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points, 3), INTENT(IN) :: quad_points
     REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points),    INTENT(IN) :: quad_weights
-    LOGICAL,                                  INTENT(IN) :: direct_method
+    CHARACTER(len = 10),                      INTENT(IN) :: method
 
     LOGICAL,                                  INTENT(IN) :: same_body
 
@@ -115,14 +115,14 @@ CONTAINS
             )
 
           ! Change the gradient terms to direct solver representation
-          IF (direct_method) THEN
+          IF (method == 'direct') THEN
             VSP1(:) = -VSP1(:)
           END IF
 
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(1) * SP1                                ! Green function
           if (size(K, 3) == 1) then
-            if (direct_method) then
+            if (method == 'direct') then
               K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_2(J, :), VSP1(:))
             else
               K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1(:))
@@ -166,14 +166,14 @@ CONTAINS
           reflected_VSP1(3) = -VSP1(3)
 
           ! Change the gradient terms to direct solver representation
-          if (direct_method) THEN
+          if (method == 'direct') THEN
              reflected_VSP1(1:2) = -reflected_VSP1(1:2)
           END IF
 
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(2) * SP1                                ! Green function
           if (size(K, 3) == 1) then
-            if (direct_method) then
+            if (method == 'direct') then
               K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_2(J, :), reflected_VSP1(:))
             else
               K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_VSP1(:))
@@ -212,14 +212,14 @@ CONTAINS
             END IF
 
            ! Change the gradient terms to direct solver representation
-            IF (direct_method) THEN
+            IF (method == 'direct') THEN
               VSP2_ANTISYM = -VSP2_ANTISYM
             END IF
 
             S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, Q)
 
             if (size(K, 3) == 1) then
-              if (direct_method) then
+              if (method == 'direct') then
                 K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
                   DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
               else
@@ -275,13 +275,13 @@ CONTAINS
           END IF
 
           ! Change the gradient terms to direct solver representation
-          IF (direct_method) THEN
+          IF (method == 'direct') THEN
             VSP2_ANTISYM = -VSP2_ANTISYM
           END IF
 
           S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, 1)
           if (size(K, 3) == 1) then
-            if (direct_method) then
+            if (method == 'direct') then
               K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
                 DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
             else
@@ -295,7 +295,7 @@ CONTAINS
           IF (.NOT. I==J) THEN
             S(J, I) = S(J, I) - coeffs(3) * SP2 * quad_weights(I, 1)
             if (size(K, 3) == 1) then
-              if (direct_method) then
+              if (method == 'direct') then
                 K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
                   DOT_PRODUCT(normals_2(I, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
               else
