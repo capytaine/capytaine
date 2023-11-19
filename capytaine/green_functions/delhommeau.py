@@ -212,10 +212,8 @@ class Delhommeau(AbstractGreenFunction):
                 coeffs = np.array((1.0, 1.0, 1.0))
 
         else:  # Finite water_depth
-            if wavenumber == 0.0:
-                raise NotImplementedError
-            elif wavenumber == np.infty:
-                raise NotImplementedError
+            if wavenumber == 0.0 or wavenumber == np.infty:
+                raise NotImplementedError("Zero or infinite frequencies not implemented for finite depth.")
             else:
                 a_exp, lamda_exp = self.find_best_exponential_decomposition(
                     wavenumber*water_depth*np.tanh(wavenumber*water_depth),

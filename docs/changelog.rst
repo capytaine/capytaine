@@ -65,6 +65,8 @@ Internals
 
 * Fortran source files are not included in wheel anymore (:pull:`360`).
 
+* Improve some warnings and error messages.
+
 -------------------------------
 New in version 2.0 (2023-06-21)
 -------------------------------
