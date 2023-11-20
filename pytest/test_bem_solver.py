@@ -135,6 +135,6 @@ def test_fill_dataset(sphere):
 def test_direct_solver(sphere):
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
     solver = cpt.BEMSolver()
-    direct_result = solver.solve(problem, direct_method=True)
-    indirect_result = solver.solve(problem, direct_method=False)
+    direct_result = solver.solve(problem, method='direct')
+    indirect_result = solver.solve(problem, method='indirect')
     assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-2)
