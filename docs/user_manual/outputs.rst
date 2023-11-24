@@ -100,6 +100,7 @@ As a workaround, the complex-valued array can be saved as a bigger real-valued a
 
 The dataset can then be reloaded by::
 
+    import xarray as xr
     from capytaine.io.xarray import merge_complex_values
     dataset = merge_complex_values(xr.open_dataset("path/to/dataset.nc"))
 
@@ -115,9 +116,11 @@ It leads to the error :code:`ValueError: unsupported dtype for netCDF4 variable:
 
 This can be fixed by explicitly converting the strings to the right format when exporting the dataset::
 
-    dataset.to_netcdf("dataset.nc",
-                      encoding={'radiating_dof': {'dtype': 'U'},
-                                'influenced_dof': {'dtype': 'U'}})
+    separate_complex_values(dataset).to_netcdf(
+      "dataset.nc",
+      encoding={'radiating_dof': {'dtype': 'U'},
+                'influenced_dof': {'dtype': 'U'}}
+    )
 
 See also `this Github issue <https://github.com/capytaine/capytaine/issues/2>`_.
 
