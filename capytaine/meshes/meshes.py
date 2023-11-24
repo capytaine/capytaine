@@ -34,6 +34,9 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         description.
     name : str, optional
         The name of the mesh. If None, the mesh is given an automatic name based on its internal ID.
+    quadrature_method: None or str or Quadpy quadrature, optional
+        The method used to compute quadrature points in each cells.
+        By default: None, that is a one-point first order scheme is used.
     """
 
     _ids = count(0)  # A counter for automatic naming of new meshes.
