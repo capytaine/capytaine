@@ -32,6 +32,16 @@ def test_area(method):
         assert np.isclose(np.sum(mesh.quadrature_points[1][i_face, :]), mesh.faces_areas[i_face], rtol=1e-2)
 
 
+def test_mesh_in_body():
+    mesh = cpt.mesh_sphere()
+    mesh.compute_quadrature("Gauss-Legendre 2")
+    body = cpt.FloatingBody(mesh, cpt.rigid_body_dofs())
+    assert body.mesh.quadrature_method == "Gauss-Legendre 2"
+    points, weights = body.mesh.quadrature_points
+    assert points.shape == (mesh.nb_faces, 4, 3)
+    assert weights.shape == (mesh.nb_faces, 4)
+
+
 @pytest.mark.parametrize('method', list(builtin_methods) + quadpy_methods)
 def test_resolution(method):
     mesh = cpt.mesh_horizontal_cylinder(

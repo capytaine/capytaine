@@ -221,7 +221,7 @@ def test_compute_free_surface_elevation_on_free_surface(solver, result):
 
 def test_pressure_integration(solver, result):
     f = result.body.integrate_pressure(solver.compute_pressure(result.body.mesh, result))
-    assert f == result.forces
+    assert f == pytest.approx(result.forces)
 
 def test_reconstruction_of_given_boundary_condition(solver, result):
     velocities = solver.compute_velocity(result.body.mesh, result)

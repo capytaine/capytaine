@@ -52,6 +52,8 @@ Bug fixes
 
 * Fix error message when computing hydrostatic stiffness of non-neutrally-buoyant body that is not a single rigid body. (:issue:`413` and :pull:`414`)
 
+* Fix bug causing the quadrature method of a mesh to be forgotten when the mesh was put in a body. ``quadrature_method`` can now be passed as argument when initializing a new mesh. (:pull:`417`)
+
 Internals
 ~~~~~~~~~
 
