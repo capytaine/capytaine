@@ -87,7 +87,7 @@ def test_gradient_G_with_collocation_points():
     mesh = cpt.mesh_sphere(radius=1, center=(0, 0, 0), resolution=(10, 10)).immersed_part()
     _, gradG_1 = cpt.Delhommeau().evaluate(mesh.faces_centers, mesh, 0.0, np.infty, 1.0, early_dot_product=False)
     _, gradG_2 = cpt.Delhommeau().evaluate(mesh.copy(), mesh, 0.0, np.infty, 1.0, early_dot_product=False)
-    np.testing.assert_allclose(gradG_1, gradG_2)
+    np.testing.assert_allclose(gradG_1, gradG_2, atol=1e-10, rtol=1e-10)
 
 
 def test_gradient_G_diagonal_term():
@@ -101,7 +101,7 @@ def test_gradient_G_diagonal_term():
     for i in range(mesh.nb_faces):
         diag_normal[i, i, :] = mesh.faces_normals[i, :]
 
-    np.testing.assert_allclose(gradG_1, gradG_2 - 0.5*diag_normal)
+    np.testing.assert_allclose(gradG_1, gradG_2 - 0.5*diag_normal, atol=1e-10, rtol=1e-10)
 
 
 def test_a_posteriori_scalar_product_direct_method():

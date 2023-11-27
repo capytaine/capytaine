@@ -18,6 +18,8 @@ Major changes
   Add :func:`~capytaine.tools.rich.set_logging` function to quickly set up logging with `rich`.
   :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now display a progress bar (unless turn off by the ``progress_bar`` argument). (:pull:`382`)
 
+* Reimplement computation of added mass in infinite depth with zero or infinite frequency. (:pull:`385`)
+
 Minor changes
 ~~~~~~~~~~~~~
 
@@ -33,6 +35,10 @@ Minor changes
 
 * New computation of quadrature schemes without relying on Quadpy. (:pull:`416`)
 
+* Add a new function :func:`~capytaine.io.legacy.run_cal_file` to solve the problems defined by a Nemoh.cal file, exactly as the command-line interface is doing (:pull:`422`).
+
+* Rephrase mesh resolution warnings and group several of them together in a single warning. (:pull:`423`)
+
 Bug fixes
 ~~~~~~~~~
 
@@ -46,6 +52,8 @@ Bug fixes
 
 * Fix error message when computing hydrostatic stiffness of non-neutrally-buoyant body that is not a single rigid body. (:issue:`413` and :pull:`414`)
 
+* Fix bug causing the quadrature method of a mesh to be forgotten when the mesh was put in a body. ``quadrature_method`` can now be passed as argument when initializing a new mesh. (:pull:`417`)
+
 Internals
 ~~~~~~~~~
 
@@ -58,6 +66,8 @@ Internals
 * Use `nox <https://nox.thea.codes>`_ to test the code in isolated virtual environments. (:pull:`401`)
 
 * Fortran source files are not included in wheel anymore (:pull:`360`).
+
+* Improve some warnings and error messages.
 
 -------------------------------
 New in version 2.0 (2023-06-21)
