@@ -34,11 +34,14 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         description.
     name : str, optional
         The name of the mesh. If None, the mesh is given an automatic name based on its internal ID.
+    quadrature_method: None or str or Quadpy quadrature, optional
+        The method used to compute quadrature points in each cells.
+        By default: None, that is a one-point first order scheme is used.
     """
 
     _ids = count(0)  # A counter for automatic naming of new meshes.
 
-    def __init__(self, vertices=None, faces=None, name=None):
+    def __init__(self, vertices=None, faces=None, name=None, *, quadrature_method=None):
 
         if vertices is None or len(vertices) == 0:
             vertices = np.zeros((0, 3))
@@ -56,6 +59,8 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         self.faces = faces  # Not a direct assignment, goes through the setter method below.
 
         LOG.debug(f"New mesh: {repr(self)}")
+
+        self.quadrature_method = quadrature_method
 
     def __short_str__(self):
         return (f"{self.__class__.__name__}(..., name=\"{self.name}\")")
@@ -314,28 +319,20 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
 
     @property
     def quadrature_points(self):
-        if 'quadrature' in self.__internals__:
-            return self.__internals__['quadrature']
-        else:
-            # Default: first order quadrature
-            return (
-                self.faces_centers.reshape((self.nb_faces, 1, 3)),  # Points
-                self.faces_areas.reshape((self.nb_faces, 1))        # Weights
-            )
-
-    @property
-    def quadrature_method(self):
-        if 'quadrature_method' in self.__internals__:
-            return self.__internals__['quadrature_method']
-        else:
-            return None
+        if 'quadrature' not in self.__internals__:
+            self.compute_quadrature(self.quadrature_method)
+        return self.__internals__['quadrature']
 
     def compute_quadrature(self, method):
         self.heal_triangles()
         all_faces = self.vertices[self.faces[:, :], :]
-        points, weights = compute_quadrature_on_faces(all_faces, method)
+        if method is None:
+            points = self.faces_centers.reshape((self.nb_faces, 1, 3))
+            weights = self.faces_areas.reshape((self.nb_faces, 1))
+        else:
+            points, weights = compute_quadrature_on_faces(all_faces, method)
         self.__internals__['quadrature'] = (points, weights)
-        self.__internals__['quadrature_method'] = method
+        self.quadrature_method = method
         return points, weights
 
 

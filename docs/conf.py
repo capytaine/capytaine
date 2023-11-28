@@ -58,6 +58,11 @@ extlinks = {
     "pull": ("https://github.com/capytaine/capytaine/pull/%s", "PR %s"),
 }
 
+rst_prolog = f"""
+.. |examples_folder| replace:: Github folder with examples for version {__version__}
+.. _examples_folder: https://github.com/capytaine/capytaine/tree/v{__version__}/docs/user_manual/examples/
+"""
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
