@@ -18,6 +18,8 @@ MODULE GREEN_WAVE
   !                        /   \                    /
   ! WAVE_PART_INFINITE_DEPTH   WAVE_PART_FINITE_DEPTH
   !                        \   /
+  !                 INTEGRAL_OF_WAVE_PART
+  !                          |
   !                    (matrices.f90)
   !                          |
   !                    (python code)
@@ -25,6 +27,72 @@ MODULE GREEN_WAVE
 CONTAINS
 
   ! =====================================================================
+
+  SUBROUTINE INTEGRAL_OF_WAVE_PART                               &
+      (X,                                                        &
+      face_center, face_normal, face_area, face_radius,          &
+      face_quadrature_points, face_quadrature_weights,           &
+      wavenumber, depth,                                         &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      nexp, ambda, ar,                                           &
+      int_G, int_grad_G_sym, int_grad_G_antisym                  &
+      )
+    ! Integral over a panel of the wave part of the Green function.
+
+    real(kind=pre), dimension(3),          intent(in) :: x
+    real(kind=pre), dimension(3),          intent(in) :: face_center, face_normal
+    real(kind=pre), dimension(3),          intent(in) :: face_area, face_radius
+    real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
+    real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
+    real(kind=pre),                        intent(in) :: wavenumber, depth
+    real(kind=pre), dimension(:),          intent(in) :: tabulated_r_range
+    real(kind=pre), dimension(:),          intent(in) :: tabulated_z_range
+    real(kind=pre), dimension(:, :, :, :), intent(in) :: tabulated_integrals
+    integer,                               intent(in) :: nexp
+    real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
+
+    complex(kind=pre),                     intent(out) :: int_G
+    complex(kind=pre), dimension(3),       intent(out) :: int_grad_G_sym, int_grad_G_antisym
+
+    ! Local variables
+    complex(kind=pre)               :: G_at_point
+    complex(kind=pre), dimension(3) :: grad_G_at_point_sym, grad_G_at_point_antisym
+    integer                         :: nb_quad_points, Q
+
+    nb_quad_points = size(face_quadrature_weights)
+
+    int_G = zero
+    int_grad_G_sym = zero
+    int_grad_G_antisym = zero
+
+    DO Q = 1, nb_quad_points
+      IF (is_infinity(depth)) THEN
+        CALL WAVE_PART_INFINITE_DEPTH &
+          (x,           &
+          face_quadrature_points(Q, :),       &
+          wavenumber,                 &
+          tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+          G_at_point, grad_G_at_point_sym, grad_G_at_point_antisym &
+          )
+      ELSE
+        CALL WAVE_PART_FINITE_DEPTH   &
+          (x,  &
+          face_quadrature_points(Q, :),          &
+          wavenumber,                 &
+          depth,                      &
+          tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+          NEXP, AMBDA, AR,            &
+          G_at_point, grad_G_at_point_sym, grad_G_at_point_antisym &
+          )
+      END IF
+
+      int_G = int_G + G_at_point * face_quadrature_weights(Q)
+      int_grad_G_sym = int_grad_G_sym + grad_G_at_point_sym * face_quadrature_weights(Q)
+      int_grad_G_antisym = int_grad_G_antisym + grad_G_at_point_antisym * face_quadrature_weights(Q)
+    END DO
+
+  END SUBROUTINE
+
 
   SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS                        &
       (X0I, X0J, wavenumber,                                     &
@@ -45,22 +113,11 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(3),          INTENT(OUT) :: VS  ! its gradient
 
     ! Local variables
-    REAL(KIND=PRE) :: r, z, r1, drdx1, drdx2, dzdx3
+    REAL(KIND=PRE) :: r, z, drdx1, drdx2, dzdx3
     REAL(KIND=PRE), dimension(2, 2) :: integrals
 
     r = wavenumber * NORM2(X0I(1:2) - X0J(1:2))
     z = wavenumber * (X0I(3) + X0J(3))
-    r1 = hypot(r, z)
-
-    IF (ABS(r) > 16*EPSILON(r)) THEN
-      drdx1 = wavenumber**2 * (X0I(1) - X0J(1))/r
-      drdx2 = wavenumber**2 * (X0I(2) - X0J(2))/r
-    ELSE
-      ! Limit when r->0 is not well defined...
-      drdx1 = ZERO
-      drdx2 = ZERO
-    END IF
-    dzdx3 = wavenumber
 
     !=======================================================
     ! Evaluate the elementary integrals depending on z and r
@@ -82,11 +139,21 @@ CONTAINS
     ! Add the elementary integrals to build FS and VS
     !================================================
 
+    IF (ABS(r) > 16*EPSILON(r)) THEN
+      drdx1 = wavenumber**2 * (X0I(1) - X0J(1))/r
+      drdx2 = wavenumber**2 * (X0I(2) - X0J(2))/r
+    ELSE
+      ! Limit when r->0 is not well defined...
+      drdx1 = ZERO
+      drdx2 = ZERO
+    END IF
+    dzdx3 = wavenumber
+
     FS    = CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
     VS(1) = -drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
     VS(2) = -drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
 #ifdef XIE_CORRECTION
-    VS(3) = dzdx3 * CMPLX(integrals(1, 2) + ONE/r1, integrals(2, 2), KIND=PRE)
+    VS(3) = dzdx3 * CMPLX(integrals(1, 2) + ONE/hypot(r, z), integrals(2, 2), KIND=PRE)
 #else
     VS(3) = dzdx3 * CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
 #endif

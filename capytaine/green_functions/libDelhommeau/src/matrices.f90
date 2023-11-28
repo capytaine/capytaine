@@ -1,6 +1,5 @@
 MODULE MATRICES
 
-  USE ieee_arithmetic
   USE FLOATING_POINT_PRECISION, ONLY: PRE
   USE CONSTANTS
 
@@ -10,13 +9,6 @@ MODULE MATRICES
   IMPLICIT NONE
 
 CONTAINS
-
-  ! =====================================================================
-
-  PURE LOGICAL FUNCTION is_infinity(x)
-    REAL(KIND=PRE), INTENT(IN) :: x
-    is_infinity = (.NOT. ieee_is_finite(x))
-  END FUNCTION
 
   ! =====================================================================
 
@@ -171,37 +163,26 @@ CONTAINS
 
       IF ((coeffs(3) .NE. ZERO) .AND. (.NOT. use_symmetry_of_wave_part)) THEN
         DO I = 1, nb_faces_1
-          DO Q = 1, nb_quad_points
-            IF (is_infinity(depth)) THEN
-              CALL WAVE_PART_INFINITE_DEPTH &
-                (centers_1(I, :),           &
-                quad_points(J, Q, :),       & ! centers_2(J, :),
-                wavenumber,                 &
-                tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-                SP2, VSP2_SYM, VSP2_ANTISYM &
-                )
-            ELSE
-              CALL WAVE_PART_FINITE_DEPTH   &
-                (centers_1(I, :),           &
-                quad_points(J, Q, :),       & ! centers_2(J, :),
-                wavenumber,                 &
-                depth,                      &
-                tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-                NEXP, AMBDA, AR,            &
-                SP2, VSP2_SYM, VSP2_ANTISYM &
-                )
-            END IF
 
-            S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, Q)
+          call INTEGRAL_OF_WAVE_PART(                                    &
+            centers_1(I, :),                                             &
+            centers_2(J, :), normals_2(J, :), areas_2(J), radiuses_2(J), &
+            quad_points(J, :, :), quad_weights(J, :),                    &
+            wavenumber, depth,                                           &
+            tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
+            NEXP, AMBDA, AR,                                             &
+            SP2, VSP2_SYM, VSP2_ANTISYM                                  &
+          )
 
-            if (size(K, 3) == 1) then
-              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
-                DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
-            else
-              K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
-            endif
+          S(I, J) = S(I, J) - coeffs(3) * SP2
 
-          END DO
+          if (size(K, 3) == 1) then
+            K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+              DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM)
+          else
+            K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM)
+          endif
+
         END DO
       END IF
 
@@ -233,41 +214,32 @@ CONTAINS
       !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(J, I, SP2, VSP2_SYM, VSP2_ANTISYM)
       DO J = 1, nb_faces_2
         DO I = J, nb_faces_1
-          IF (is_infinity(depth)) THEN
-            CALL WAVE_PART_INFINITE_DEPTH &
-              (centers_1(I, :),           &
-              quad_points(J, 1, :),       & ! centers_2(J, :),
-              wavenumber,                 &
-              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-              SP2, VSP2_SYM, VSP2_ANTISYM &
-              )
-          ELSE
-            CALL WAVE_PART_FINITE_DEPTH   &
-              (centers_1(I, :),           &
-              quad_points(J, 1, :),       & ! centers_2(J, :),
-              wavenumber,                 &
-              depth,                      &
-              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-              NEXP, AMBDA, AR,            &
-              SP2, VSP2_SYM, VSP2_ANTISYM &
-              )
-          END IF
 
-          S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, 1)
+          call INTEGRAL_OF_WAVE_PART(                                    &
+            centers_1(I, :),                                             &
+            centers_2(J, :), normals_2(J, :), areas_2(J), radiuses_2(J), &
+            quad_points(J, :, :), quad_weights(J, :),                    &
+            wavenumber, depth,                                           &
+            tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
+            NEXP, AMBDA, AR,                                             &
+            SP2, VSP2_SYM, VSP2_ANTISYM                                  &
+          )
+
+          S(I, J) = S(I, J) - coeffs(3) * SP2
           if (size(K, 3) == 1) then
             K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
-              DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+              DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM)
           else
-            K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+            K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM)
           endif
 
           IF (.NOT. I==J) THEN
-            S(J, I) = S(J, I) - coeffs(3) * SP2 * quad_weights(I, 1)
+            S(J, I) = S(J, I) - coeffs(3) * SP2 * areas_2(I)/areas_2(J)
             if (size(K, 3) == 1) then
               K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
-                DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+                DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
             else
-              K(J, I, :) = K(J, I, :) - coeffs(3) * (VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+              K(J, I, :) = K(J, I, :) - coeffs(3) * (VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
             endif
           END IF
         END DO
