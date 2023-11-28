@@ -95,17 +95,23 @@ class BEMSolver:
 
         if _check_wavelength: self._check_wavelength([problem])
 
-        S, K = self.engine.build_matrices(
-            problem.body.mesh, problem.body.mesh,
-            problem.free_surface, problem.water_depth, problem.wavenumber,
-            self.green_function, method=method
-        )
-
         linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
         if (method == 'direct'):
-          potential = linear_solver(K, S @ problem.boundary_condition)
+          S, D = self.engine.build_matrices(
+              problem.body.mesh, problem.body.mesh,
+              problem.free_surface, problem.water_depth, problem.wavenumber,
+              self.green_function, adjoint_double_layer=False
+          )
+
+          potential = linear_solver(D, S @ problem.boundary_condition)
           sources = None
         else:
+          S, K = self.engine.build_matrices(
+              problem.body.mesh, problem.body.mesh,
+              problem.free_surface, problem.water_depth, problem.wavenumber,
+              self.green_function, adjoint_double_layer=True
+          )
+
           sources = linear_solver(K, problem.boundary_condition)
           potential = S @ sources
 
