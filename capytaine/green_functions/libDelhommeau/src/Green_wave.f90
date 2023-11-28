@@ -28,8 +28,8 @@ CONTAINS
 
   ! =====================================================================
 
-  SUBROUTINE INTEGRAL_OF_WAVE_PART                               &
-      (X,                                                        &
+  subroutine integral_of_wave_part                               &
+      (x,                                                        &
       face_center, face_normal, face_area, face_radius,          &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber, depth,                                         &
@@ -55,43 +55,53 @@ CONTAINS
     complex(kind=pre), dimension(3),       intent(out) :: int_grad_G_sym, int_grad_G_antisym
 
     ! Local variables
+    real(kind=pre)                  :: r, z
     complex(kind=pre)               :: G_at_point
     complex(kind=pre), dimension(3) :: grad_G_at_point_sym, grad_G_at_point_antisym
     integer                         :: nb_quad_points, Q
 
     nb_quad_points = size(face_quadrature_weights)
 
-    int_G = zero
-    int_grad_G_sym = zero
-    int_grad_G_antisym = zero
+    r = wavenumber * norm2(x(1:2) - face_center(1:2))
+    z = wavenumber * (x(3) + face_center(3))
 
-    DO Q = 1, nb_quad_points
-      IF (is_infinity(depth)) THEN
-        CALL WAVE_PART_INFINITE_DEPTH &
-          (x,           &
-          face_quadrature_points(Q, :),       &
-          wavenumber,                 &
-          tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-          G_at_point, grad_G_at_point_sym, grad_G_at_point_antisym &
-          )
-      ELSE
-        CALL WAVE_PART_FINITE_DEPTH   &
-          (x,  &
-          face_quadrature_points(Q, :),          &
-          wavenumber,                 &
-          depth,                      &
-          tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-          NEXP, AMBDA, AR,            &
-          G_at_point, grad_G_at_point_sym, grad_G_at_point_antisym &
-          )
-      END IF
+    ! if ((abs(r) < 1e-10) .and. (abs(z) < 1e-10)) then
+    !   ! Interaction of a panel on the free surface with itself
+    !
+    ! else
+      ! Numerical integration
+      int_G = zero
+      int_grad_G_sym = zero
+      int_grad_G_antisym = zero
 
-      int_G = int_G + G_at_point * face_quadrature_weights(Q)
-      int_grad_G_sym = int_grad_G_sym + grad_G_at_point_sym * face_quadrature_weights(Q)
-      int_grad_G_antisym = int_grad_G_antisym + grad_G_at_point_antisym * face_quadrature_weights(Q)
-    END DO
+      do q = 1, nb_quad_points
+        if (is_infinity(depth)) then
+          call wave_part_infinite_depth                                &
+            (x,                                                        &
+            face_quadrature_points(q, :),                              &
+            wavenumber,                                                &
+            tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+            g_at_point, grad_g_at_point_sym, grad_g_at_point_antisym   &
+            )
+        else
+          call wave_part_finite_depth                                  &
+            (x,                                                        &
+            face_quadrature_points(q, :),                              &
+            wavenumber,                                                &
+            depth,                                                     &
+            tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+            nexp, ambda, ar,                                           &
+            g_at_point, grad_g_at_point_sym, grad_g_at_point_antisym   &
+            )
+        end if
 
-  END SUBROUTINE
+        int_g = int_g + g_at_point * face_quadrature_weights(q)
+        int_grad_g_sym = int_grad_g_sym + grad_g_at_point_sym * face_quadrature_weights(q)
+        int_grad_g_antisym = int_grad_g_antisym + grad_g_at_point_antisym * face_quadrature_weights(q)
+      end do
+    ! end if
+
+  end subroutine
 
 
   SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS                        &
