@@ -25,6 +25,7 @@ module delhommeau_integrals
   public :: asymptotic_approximations
   public :: construct_tabulation
   public :: default_r_spacing, default_z_spacing
+  public :: default_z_spacing_test, nearest_z_index_test
   public :: pick_in_default_tabulation
 
 contains
@@ -219,6 +220,40 @@ contains
       default_z_spacing(46) = -16.0
     endif
   end function default_z_spacing
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  pure function default_z_spacing_test(nz, zmin)
+    integer, intent(in) :: nz
+    real(kind=pre), intent(in) :: zmin
+    real(kind=pre), dimension(nz) :: default_z_spacing_test
+  
+    integer :: j
+    real(kind=pre) :: dz
+  
+    dz = (log10(zmin)+10.0)/nz
+
+    do concurrent (j = 1:nz)
+      default_z_spacing_test(j) = -min(10**(dz*j-10.0), zmin)
+    enddo
+  end function default_z_spacing_test
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  pure function nearest_z_index_test(z, z_range)
+    real(kind=pre), intent(in) :: z
+    real(kind=pre), dimension(:), intent(in) :: z_range
+    integer :: nearest_z_index_test
+
+    real(kind=pre) :: absz
+    real(kind=pre) :: dz
+
+    absz = abs(z)
+    dz = (log10(abs(z_range(size(z_range))))+10.0)/size(z_range)
+    
+    nearest_z_index_test = int((log10(absz)+10)/dz)
+
+  end function nearest_z_index_test
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

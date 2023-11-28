@@ -238,7 +238,11 @@ CONTAINS
         if (size(K, 3) == 1) then
           K(J, J, 1) = K(J, J, 1) + 0.5
         else
-          K(J, J, :) = K(J, J, :) + 0.5 * normals_1(J, :)
+          if (method == 'direct') then
+            K(J, J, :) = K(J, J, :) + 0.5 * normals_2(J, :)
+          else
+            K(J, J, :) = K(J, J, :) + 0.5 * normals_1(J, :)
+          endif
         endif
       END IF
 
