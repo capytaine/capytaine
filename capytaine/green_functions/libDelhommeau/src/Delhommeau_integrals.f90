@@ -190,34 +190,56 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  pure function default_r_spacing(nr)
+  pure function default_r_spacing(nr, rmax)
     integer, intent(in) :: nr
+    real(kind=pre), intent(in) :: rmax
     real(kind=pre), dimension(nr) :: default_r_spacing
-    integer :: i
+
+    ! local variables
+    integer :: i, nr0, nr1	! Parameterize from NEMOH model
+    real(kind=pre) :: aTemp
+
+    ! Pre-set parameter values
+    nr0 = 676                   ! Parameterize from NEMOH model
+    nr1 = 81                    ! Parameterize from NEMOH model
+
     default_r_spacing(1) = 0.0
-    do concurrent (i = 2:nr)
-      default_r_spacing(i) = min(                         &
+    if (nr < nr0) then		! If nr is smaller than NEMOH preset, then used Delhommeau
+      do concurrent (i = 2:nr)
+        default_r_spacing(i) = min(                    &
                                  10**((i-1.0)/5.0 - 6.0), &
                                  abs(i-32)/3.0 + 4.0/3.0  &
                                )
-      ! change of slope at r = 1.0
-    enddo
+        ! change of slope at r = 1.0
+      enddo
+    else
+      aTemp = nint(nr/nr0*nr1*1.0)
+      do concurrent (i = 2:nr)
+        if (i <= aTemp) then
+          default_r_spacing(i) = 10**((i - MOD(aTemp,10.0))/10.0-FLOOR(aTemp/10.0))
+        else
+          default_r_spacing(i) = (rmax-1)/(nr-aTemp)*(i-aTemp)+1.0
+        endif
+      enddo      
+    endif
+
   end function default_r_spacing
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  pure function default_z_spacing(nz)
+  pure function default_z_spacing(nz, zmin)
     integer, intent(in) :: nz
+    real(kind=pre), intent(in) :: zmin
     real(kind=pre), dimension(nz) :: default_z_spacing
+  
     integer :: j
+    real(kind=pre) :: dz
+  
+    dz = (log10(abs(zmin))+10.0)/nz
+
     do concurrent (j = 1:nz)
-      default_z_spacing(j) = -min(10**(j/5.0-6.0), 10**(j/8.0-4.5))
-      ! change of slope at z = -1e-2
+      default_z_spacing(j) = -min(10**(dz*j-10.0), abs(zmin))
     enddo
-    if (nz == 46) then
-      ! compatibility with Nemoh
-      default_z_spacing(46) = -16.0
-    endif
   end function default_z_spacing
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -235,9 +257,9 @@ contains
 
     ! local variables
     integer :: i, j
-
-    i = max(2, min(size(r_range)-1, nearest_r_index(r)))
-    j = max(2, min(size(z_range)-1, nearest_z_index(z)))
+ 
+    i = max(2, min(size(r_range)-1, nearest_r_index(r, r_range)))
+    j = max(2, min(size(z_range)-1, nearest_z_index(z, z_range)))
 
     integrals(:, :) = lagrange_polynomial_interpolation( &
       r, z,                                              &
@@ -247,31 +269,51 @@ contains
 
   contains
 
-    pure function nearest_r_index(r)
+    pure function nearest_r_index(r, r_range)
       real(kind=pre), intent(in) :: r
+      real(kind=pre), dimension(:), intent(in) :: r_range
       integer :: nearest_r_index
 
-      if (r < 1e-6) then
-        nearest_r_index = 2
-      else if (r < 1.0) then
-        nearest_r_index = int(5*(log10(r) + 6) + 1)
+      ! local variables
+      integer :: i, nr0, nr1
+      real(kind=pre) :: rmax
+      real(kind=pre) :: aTemp
+      nr0 = 676                   ! Parameterize from NEMOH model
+      nr1 = 81                    ! Parameterize from NEMOH model
+      aTemp = nint(size(r_range)/nr0*nr1*1.0)
+      rmax = r_range(size(r_range))
+
+      if (size(r_range) < nr0) then
+        if (r < 1e-6) then
+          nearest_r_index = 2
+        else if (r < 1.0) then
+          nearest_r_index = int(5*(log10(r) + 6) + 1)
+        else
+          nearest_r_index = int(3*r + 28)
+        endif
       else
-        nearest_r_index = int(3*r + 28)
+        if (r < 1e-9) then
+          nearest_r_index = 2
+        else if (r < 1.0) then
+          nearest_r_index = int((log10(r) + FLOOR(aTemp/10.0))*10.0 + MOD(aTemp,10.0))
+        else
+          nearest_r_index = int((r - 1)*(size(r_range) - aTemp)/(rmax - 1) + aTemp)
+        endif
       endif
     end function
 
-    pure function nearest_z_index(z)
+    pure function nearest_z_index(z, z_range)
       real(kind=pre), intent(in) :: z
+      real(kind=pre), dimension(:), intent(in) :: z_range
       integer :: nearest_z_index
+
       real(kind=pre) :: absz
+      real(kind=pre) :: dz
 
       absz = abs(z)
+      dz = (log10(abs(z_range(size(z_range))))+10.0)/size(z_range)
 
-      if (absz > 1e-2) then
-        nearest_z_index = int(8*(log10(absz) + 4.5))
-      else
-        nearest_z_index = int(5*(log10(absz) + 6))
-      endif
+      nearest_z_index = int((log10(absz)+10)/dz)
     end function
 
     pure function lagrange_polynomial_interpolation(r, z, local_r_range, local_z_range, local_tabulation) result(integrals)

@@ -25,11 +25,17 @@ class Delhommeau(AbstractGreenFunction):
     tabulation_nr: int, optional
         Number of tabulation points for horizontal distance.
         If 0 is given, the no tabulation is used.
-        Default: 328, as in Nemoh.
+        Default: 676, as in Nemoh v3.
+    rmax: float, optional
+        Maximum value of r range for the tabulation. 
+        Default: 100, as in Nemoh v3.
     tabulation_nz: int, optional
         Number of tabulation points for vertical distance.
         If 0 is given, the no tabulation is used.
-        Default: 46, as in Nemoh.
+        Default: 124, as in Nemoh v3.
+    zmin: float, optional
+        Minimum value of z range for the tabulation. 
+        Default: -251, as in Nemoh v3.
     tabulation_nb_integration_points: int, optional
         Number of points for the numerical integration w.r.t. :math:`theta` of Delhommeau's integrals
         Default: 251, as in Nemoh.
@@ -53,8 +59,10 @@ class Delhommeau(AbstractGreenFunction):
     fortran_core_basename = "Delhommeau"
 
     def __init__(self, *,
-                 tabulation_nr=400,
-                 tabulation_nz=80,
+                 tabulation_nr=676,
+                 rmax=100,
+                 tabulation_nz=124,
+                 zmin=-251,
                  tabulation_nb_integration_points=251,
                  finite_depth_prony_decomposition_method='fortran',
                  floating_point_precision='float64',
@@ -62,8 +70,8 @@ class Delhommeau(AbstractGreenFunction):
 
         self.fortran_core = import_module(f"capytaine.green_functions.libs.{self.fortran_core_basename}_{floating_point_precision}")
 
-        self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(tabulation_nr)
-        self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(tabulation_nz)
+        self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(tabulation_nr, rmax)
+        self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(tabulation_nz, zmin)
         self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
                 self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
                 )
