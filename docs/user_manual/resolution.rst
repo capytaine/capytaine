@@ -98,14 +98,16 @@ computation of the Kochin function or the reconstruction of the free surface
 elevation. However, when only the force on the body is of interest, they can be
 discarded to save space in memory.
 
-A list of problems can be solved at once in an optimal order with::
-
-	list_of_results = solver.solve_all(list_of_problems, keep_details=False)
-
 The optional argument :code:`method` (default value: :code:`indirect`)
 controls the approach employed to solve for the potential velocity solutions. 
 Two methods are implemented including 1) direct method (source-and-dipole formulation),
-and 2) indirect method (source formulation). 
+and 2) indirect method (source formulation). The direct method appears to be slightly
+more accurate on some test cases but only allows for the computation of the forces
+on the floating body. Any other post-processing requires the indirect method.
+
+A list of problems can be solved at once in an optimal order with::
+
+	list_of_results = solver.solve_all(list_of_problems, keep_details=False)
 
 Parallelization
 ---------------
