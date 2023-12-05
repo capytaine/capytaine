@@ -20,6 +20,10 @@ Major changes
 
 * Reimplement computation of added mass in infinite depth with zero or infinite frequency. (:pull:`385`)
 
+* Implement direct method (source-and-dipole formulation) in obtaining velocity potential solutions. (:pull:`420`)
+
+* Implement new parameters to control the tabulation (interpolation table) density. (:pull:`TBD`)
+
 Minor changes
 ~~~~~~~~~~~~~
 
