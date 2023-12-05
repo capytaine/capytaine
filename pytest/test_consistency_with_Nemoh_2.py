@@ -14,7 +14,8 @@ from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.io.xarray import assemble_dataset
 from capytaine.post_pro.kochin import compute_kochin
 
-solver = cpt.BEMSolver(engine=cpt.BasicMatrixEngine(matrix_cache_size=0))
+gf = Delhommeau(tabulation_nr=328, tabulation_nz=46)
+solver = cpt.BEMSolver(engine=cpt.BasicMatrixEngine(matrix_cache_size=0),green_function=gf)
 
 
 def test_immersed_sphere():

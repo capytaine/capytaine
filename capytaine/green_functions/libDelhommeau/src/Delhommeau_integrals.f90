@@ -232,14 +232,24 @@ contains
     real(kind=pre), intent(in) :: zmin
     real(kind=pre), dimension(nz) :: default_z_spacing
   
-    integer :: j
+    integer :: j, nz0
     real(kind=pre) :: dz
   
-    dz = (log10(abs(zmin))+10.0)/nz
-
-    do concurrent (j = 1:nz)
-      default_z_spacing(j) = -min(10**(dz*j-10.0), abs(zmin))
-    enddo
+    ! Pre-set parameter values
+    nz0 = 46                   ! Option to use Delhommeau model
+    
+    if (nz == nz0) then
+      do concurrent (j = 1:nz)
+        default_z_spacing(j) = -min(10**(j/5.0-6.0), 10**(j/8.0-4.5))
+        ! change of slope at z = -1e-2
+      enddo
+      default_z_spacing(nz0) = -16.0 
+    else
+      dz = (log10(abs(zmin))+10.0)/nz
+      do concurrent (j = 1:nz)
+        default_z_spacing(j) = -min(10**(dz*j-10.0), abs(zmin))
+      enddo
+    endif
   end function default_z_spacing
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -307,13 +317,25 @@ contains
       real(kind=pre), dimension(:), intent(in) :: z_range
       integer :: nearest_z_index
 
+      ! local parameters
       real(kind=pre) :: absz
       real(kind=pre) :: dz
+      integer :: nz, nz0
 
       absz = abs(z)
-      dz = (log10(abs(z_range(size(z_range))))+10.0)/size(z_range)
+      nz0 = 46
+      nz = size(z_range)
 
-      nearest_z_index = int((log10(absz)+10)/dz)
+      if (nz == nz0) then
+        if (absz > 1e-2) then
+          nearest_z_index = int(8*(log10(absz) + 4.5)) 
+        else 
+          nearest_z_index = int(5*(log10(absz) + 6)) 
+        endif
+      else
+        dz = (log10(abs(z_range(size(z_range))))+10.0)/size(z_range)
+        nearest_z_index = int((log10(absz)+10)/dz)
+      endif
     end function
 
     pure function lagrange_polynomial_interpolation(r, z, local_r_range, local_z_range, local_tabulation) result(integrals)
