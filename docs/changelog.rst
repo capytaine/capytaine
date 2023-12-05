@@ -54,6 +54,8 @@ Bug fixes
 
 * Fix bug causing the quadrature method of a mesh to be forgotten when the mesh was put in a body. ``quadrature_method`` can now be passed as argument when initializing a new mesh. (:pull:`417`)
 
+* The function :func:`~capytaine.io.meshes_loaders.load_mesh` more robustly detects filetype using file extension even when the file extension is not lowercase. (:pull:`441`)
+
 Internals
 ~~~~~~~~~
 
