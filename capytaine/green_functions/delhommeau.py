@@ -174,7 +174,7 @@ class Delhommeau(AbstractGreenFunction):
 
         return a, lamda
 
-    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.infty, wavenumber=1.0, early_dot_product=True):
+    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.infty, wavenumber=1.0, adjoint_double_layer=True, early_dot_product=True):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
 
         Parameters
@@ -190,6 +190,8 @@ class Delhommeau(AbstractGreenFunction):
             constant depth of water (default: :math:`+\infty`)
         wavenumber: float, optional
             wavenumber (default: 1.0)
+        adjoint_double_layer: bool, optional
+            compute double layer for direct method (F) or adjoint double layer for indirect method (T) matrices (default: True)
         early_dot_product: boolean, optional
             if False, return K as a (n, m, 3) array storing ∫∇G
             if True, return K as a (n, m) array storing ∫∇G·n
@@ -232,11 +234,17 @@ class Delhommeau(AbstractGreenFunction):
         if isinstance(mesh1, Mesh) or isinstance(mesh1, CollectionOfMeshes):
             collocation_points = mesh1.faces_centers
             nb_collocation_points = mesh1.nb_faces
-            early_dot_product_normals = mesh1.faces_normals
+            if ( adjoint_double_layer == False ):
+                early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
+            else:
+                early_dot_product_normals = mesh1.faces_normals
         elif isinstance(mesh1, np.ndarray) and mesh1.ndim ==2 and mesh1.shape[1] == 3:
+            # This is used when computing potential or velocity at given points in postprocessing
             collocation_points = mesh1
             nb_collocation_points = mesh1.shape[0]
-            early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Hopefully unused
+            early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
+            if ( adjoint_double_layer == False ):
+                raise NotImplementedError("Using a list of points as collocation points is not supported in computing adjoint double layer matrices.")
         else:
             raise ValueError(f"Unrecognized input for {self.__class__.__name__}.evaluate")
 
@@ -261,7 +269,7 @@ class Delhommeau(AbstractGreenFunction):
             coeffs,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
-            mesh1 is mesh2,
+            mesh1 is mesh2, adjoint_double_layer,
             S, K
         )
 

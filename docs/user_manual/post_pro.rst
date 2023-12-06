@@ -21,9 +21,8 @@ Once the problem has been solved, several fields of interest can be computed at 
 
 All the methods listed above work in the same way: they require the :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowResult` object containing the required data about the solved problem and some points at which the field should be evaluated.
 
-The result object should have been computed with the option
-:code:`keep_details=True`. The solver does not need to be the one that computed
-the result object.
+The result object should have been computed with the indirect method (on by default) and the option :code:`keep_details=True` (on by default for :meth:`~capytaine.bem.solver.BEMSolver.solve`, off by default for :meth:`~capytaine.bem.solver.BEMSolver.solve_all`).
+The solver does not need to be the one that computed the result object.
 
 .. note::
     The functions in the :mod:`~capytaine.bem.airy_waves`, used to compute the same magnitudes for an undisturbed incoming wave field, have the same structure.

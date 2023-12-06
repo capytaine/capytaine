@@ -20,6 +20,9 @@ Major changes
 
 * Reimplement computation of added mass in infinite depth with zero or infinite frequency. (:pull:`385`)
 
+* Implement direct method (source-and-dipole formulation) in obtaining velocity potential solutions.
+  The direct method can be used instead of the default indirect method by setting the ``method`` argument of :meth:`~capytaine.bem.solver.BEMSolver.solve`, :meth:`~capytaine.bem.solver.BEMSolver.solve_all` or :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` (:pull:`420`)
+
 Minor changes
 ~~~~~~~~~~~~~
 
