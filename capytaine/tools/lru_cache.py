@@ -1,5 +1,10 @@
+"""Tools for memoization of functions."""
 from collections import OrderedDict
 from functools import wraps
+
+import logging
+
+LOG = logging.getLogger(__name__)
 
 def delete_first_lru_cache(maxsize=1):
     """Behaves like functools.lru_cache(), but the oldest data in the cache is
@@ -11,42 +16,26 @@ def delete_first_lru_cache(maxsize=1):
 
         @wraps(f)
         def decorated_f(*args, **kwargs):
-            # /!\ cache only args
+            hashable_kwargs = tuple((k, v) for (k, v) in kwargs.items())
+            # Might miss a cache hit if the order of kwargs is changed.
+            # But at least unlike a previous version, should not return a wrong value.
 
-            if args in cache:
+            if (args, hashable_kwargs) in cache:
                 # Get item in cache
-                return cache[args]
+                LOG.debug("Get cached version of %s(%s, %s)", f.__name__, args, hashable_kwargs)
+                return cache[(args, hashable_kwargs)]
 
             if len(cache) + 1 > maxsize:
                 # Drop oldest item in cache.
                 cache.popitem(last=False)
 
             # Compute and store
+            LOG.debug("Computing %s(%s, %s)", f.__name__, args, hashable_kwargs)
             result = f(*args, **kwargs)
-            cache[args] = result
+            cache[(args, hashable_kwargs)] = result
 
             return result
 
         return decorated_f
 
     return decorator
-
-
-# if __name__ == "__main__":
-#     import numpy as np
-#     from functools import lru_cache
-
-#     # @lru_cache(maxsize=1)
-#     @delete_first_lru_cache(maxsize=1)
-#     def f(i):
-#         print(i)
-#         np.random.seed(i)
-#         a = np.random.random((20_000, 20_000))
-#         print(a.nbytes / 2**30, "Go")
-#         return a
-
-#     print(f(1)[0, 0])
-#     print(f(1)[0, 0])
-#     print(f(2)[0, 0])
-#     print(f(1)[0, 0])
-#     print(f(3)[0, 0])
