@@ -1,3 +1,5 @@
+# Copyright (C) 2017-2024 Matthieu Ancellin
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 """Tools for memoization of functions."""
 from collections import OrderedDict
 from functools import wraps
@@ -6,10 +8,13 @@ import logging
 
 LOG = logging.getLogger(__name__)
 
-def delete_first_lru_cache(maxsize=1):
-    """Behaves like functools.lru_cache(), but the oldest data in the cache is
-    deleted *before* computing a new one, in order to limit RAM usage when
-    stored objects are big."""
+
+def lru_cache_with_strict_maxsize(maxsize=1):
+    """Behaves mostly like functools.lru_cache(), but the oldest data in the cache is
+    deleted *before* computing a new one, in order to *never* have more that
+    `maxsize` items in memory.
+    This is useful to limit RAM usage when stored objects are big, like the interaction
+    matrices of Capytaine."""
 
     def decorator(f):
         cache = OrderedDict()
@@ -39,3 +44,6 @@ def delete_first_lru_cache(maxsize=1):
         return decorated_f
 
     return decorator
+
+
+delete_first_lru_cache = lru_cache_with_strict_maxsize  # For backward compatibility...

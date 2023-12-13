@@ -3,7 +3,7 @@ from functools import lru_cache
 import pytest
 import numpy as np
 
-from capytaine.tools.lru_cache import delete_first_lru_cache
+from capytaine.tools.lru_cache import lru_cache_with_strict_maxsize
 
 
 def get_random_id(n):
@@ -13,7 +13,7 @@ def get_random_id(n):
 N = 100_000_000
 
 def test_cache():
-    f = delete_first_lru_cache()(get_random_id)
+    f = lru_cache_with_strict_maxsize()(get_random_id)
     a = f(N)
     b = f(N)
     assert a == b  # randint was not run the second time, the cached value was used
@@ -21,7 +21,7 @@ def test_cache():
 
 def test_cache_maxsize():
     # 1/N chance of failing
-    f = delete_first_lru_cache(maxsize=1)(get_random_id)
+    f = lru_cache_with_strict_maxsize(maxsize=1)(get_random_id)
     a = f(N)
     f(10)
     b = f(N)
@@ -29,7 +29,7 @@ def test_cache_maxsize():
 
 
 def test_cache_kwargs():
-    f = delete_first_lru_cache()(get_random_id)
+    f = lru_cache_with_strict_maxsize()(get_random_id)
     a = f(n=N)
     b = f(n=N)
     assert a == b  # the cached value of the first call had been deleted
@@ -69,7 +69,7 @@ def test_delete_first():
     assert Singleton.nb_instances[0] == 0  # The Singleton created above is immediately garbage-collected.
 
     ## CAPYTAINE'S CACHE
-    @delete_first_lru_cache(maxsize=1)
+    @lru_cache_with_strict_maxsize(maxsize=1)
     def new_instance(a):
         return Singleton()
 
