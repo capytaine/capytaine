@@ -3,13 +3,14 @@
 
 import numpy as np
 import capytaine as cpt
-import pytest 
+import pytest
 
-method = ['indirect','direct']
+solver = cpt.BEMSolver()
+method = ['indirect', 'direct']
+
 
 @pytest.mark.parametrize("method", method)
 def test_sum_of_dofs(method):
-    solver = cpt.BEMSolver()
     body1 = cpt.Sphere(radius=1.0, ntheta=3, nphi=12, center=(0, 0, -3), name="body1")
     body1.add_translation_dof(name="Heave")
 
@@ -27,11 +28,11 @@ def test_sum_of_dofs(method):
     body1_added_mass = dataset['added_mass'].sel(radiating_dof="body1__Heave", influenced_dof="body1__Heave").data
     body2_added_mass = dataset['added_mass'].sel(radiating_dof="body2__Heave", influenced_dof="body2__Heave").data
 
-    assert np.allclose(both_added_mass, body1_added_mass + body2_added_mass, rtol=1.1e-2)
+    assert np.allclose(both_added_mass, body1_added_mass + body2_added_mass, rtol=1e-2)
+
 
 @pytest.mark.parametrize("method", method)
 def test_rotation_axis(method):
-    solver = cpt.BEMSolver()
     body = cpt.RectangularParallelepiped(resolution=(4, 4, 4), center=(0, 0, -1), name="body")
     body.add_translation_dof(name="Sway")
     body.add_rotation_dof(axis=cpt.Axis(point=(0, 0, 0), vector=(0, 0, 1)), name="Yaw")
@@ -58,6 +59,3 @@ def test_rotation_axis(method):
     A = dataset['added_mass'].sel(radiating_dof=["Yaw", "Sway"], influenced_dof=["Yaw", "Sway"]).data
     P = np.array([1, -l])
     assert np.isclose(A_m, P.T @ A @ P)
-
-
-

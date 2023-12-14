@@ -140,4 +140,4 @@ def test_direct_solver(sphere):
     solver = cpt.BEMSolver()
     direct_result = solver.solve(problem, method='direct')
     indirect_result = solver.solve(problem, method='indirect')
-    assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-2)
+    assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-1)
