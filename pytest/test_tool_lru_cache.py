@@ -37,11 +37,12 @@ def test_cache_kwargs():
 
 def test_delete_first():
     """This test is a convoluted way to test the main difference between the
-    built-in lru_cache and the delete_first_lru_cache decorator defined by
-    Capytaine. The difference is that the latter make sure that objects in the
-    cache are deleted before computing and caching a new result. For Capytaine,
-    it is meant to limit the RAM usage. Here, it is tested by making sure that
-    there is never two instances of a Singleton class at the same time."""
+    built-in lru_cache and the lru_cache_with_strict_maxsize decorator defined
+    by Capytaine. The difference is that the latter make sure that objects in
+    the cache are deleted before computing and caching a new result. For
+    Capytaine, it is meant to limit the RAM usage. Here, it is tested by making
+    sure that there is never two instances of a Singleton class at the same
+    time."""
 
     class Singleton:
         nb_instances = [0]
