@@ -1101,8 +1101,8 @@ respective inertia coefficients are assigned as NaN.")
         for ls in path_to_leaf:
             ls.reverse()
 
-        # convert into immutable tuples for hashability
-        all_buoys.leaf_order = tuple(leaf_order)
-        all_buoys.path_to_leaf = tuple([tuple(pp) for pp in path_to_leaf])
+        # set the properties of the tree as attributed of the mesh
+        all_buoys.mesh.leaf_order = leaf_order
+        all_buoys.mesh.path_to_leaf = path_to_leaf
 
         return all_buoys

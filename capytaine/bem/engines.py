@@ -371,7 +371,6 @@ class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
 
     def build_matrices(self,
                        mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
-                       leaf_order, path_to_leaf,
                        _rec_depth=1):
         """Recursively builds a hierarchical matrix between mesh1 and mesh2,
         and precomputes some of the quantities needed for the preconditioner.
@@ -385,6 +384,9 @@ class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
         S, K = super().build_matrices(mesh1, mesh2, free_surface, water_depth,
                                       wavenumber, green_function,
                                       _rec_depth=_rec_depth)
+
+        leaf_order = mesh1.leaf_order
+        path_to_leaf = mesh1.path_to_leaf
 
         n = len(leaf_order)
         N = K.shape[0]
@@ -465,4 +467,4 @@ class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
 
         PinvA = ssl.LinearOperator((N, N), matvec=PinvA_mv)
 
-        return S, K, R, RA, AcLU, DLU, diag_shapes, n, PinvA
+        return S, (K, R, RA, AcLU, DLU, diag_shapes, n, PinvA)

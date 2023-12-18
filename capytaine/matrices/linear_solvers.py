@@ -174,8 +174,8 @@ def _bJac_cc(A, b, x0, R, RA, AcLU, DLU, diag_shapes, n):
     # update
     return x_ps + R.T@e_c
 
-def solve_precond_gmres(A, b, *preconddata):
-    R, RA, AcLU, DLU, diag_shapes, n, PinvA = preconddata
+def solve_precond_gmres(A_and_precond_data, b):
+    A, R, RA, AcLU, DLU, diag_shapes, n, PinvA = A_and_precond_data
     N = A.shape[0]
 
     Pinvb = _bJac_cc(A, b, np.zeros(N, dtype=complex), R, RA, AcLU, DLU, diag_shapes, n)

@@ -45,7 +45,7 @@ cpt.set_logging(level='INFO')  # prints the number of iterations
 print('Solving hierarchical problem with preconditioner')
 t0 = time()
 sparse_engine = cpt.HierarchicalPrecondMatrixEngine(ACA_distance=2.0, ACA_tol=1e-2)
-solver = cpt.PrecondBEMSolver(engine=sparse_engine)
+solver = cpt.BEMSolver(engine=sparse_engine)
 presults = [solver.solve(pb) for pb in sorted(problems)]
 tP = time() - t0
 
