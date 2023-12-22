@@ -21,8 +21,10 @@ from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixE
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
+from functools import partial
 
 LOG = logging.getLogger(__name__)
+
 
 class BEMSolver:
     """
@@ -126,13 +128,40 @@ class BEMSolver:
         if n_jobs == 1:  # force sequential resolution
             return [self.solve(pb, **kwargs) for pb in sorted(problems)]
         else:
-            joblib = silently_import_optional_dependency("joblib")
-            if joblib is None:
-                raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
-            groups_of_results = joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.solve_all)(grp, n_jobs=1, **kwargs) for grp in groups_of_problems)
+            groups_of_results = self.parallel(groups_of_problems,n_jobs,**kwargs)
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
             return results
+        
+    def parallel(self,problems,n_jobs=1,**kwargs)->list:
+        """handles the parallelization of solvers depending on linear solver"""
+
+        #FIXME: fix kwargs addition, getting pickle error
+#         from capytaine.matrices import linear_solvers
+#         print(self.engine.linear_solver,self.engine.linear_solver is linear_solvers.gpu_direct)
+#         if self.engine.linear_solver is linear_solvers.gpu_direct:
+#             LOG.info(f'using parallel gpu solver with {n_jobs} jobs')
+#             from torch.multiprocessing import Pool, Process, set_start_method
+#             try:
+#                 set_start_method('spawn')
+#             except RuntimeError:
+#                 pass
+# 
+#             pool = Pool(n_jobs)
+# 
+#             #probs = [(self,pb,kwargs) for pb in problems]
+#             
+#             return pool.map(self.solve,problems)
+# 
+#         else:
+        
+        LOG.info(f'using joblib parallel solver with {n_jobs} jobs')
+        joblib = silently_import_optional_dependency("joblib")
+        if joblib is None:
+            raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")            
+        return joblib.Parallel(n_jobs=n_jobs)(joblib.delayed(self.solve_all)(grp, n_jobs=1, **kwargs) for grp in problems)
+
+
 
     def fill_dataset(self, dataset, bodies, *, n_jobs=1, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
@@ -363,3 +392,8 @@ class BEMSolver:
             result.fs_elevation[free_surface] = fs_elevation
         return fs_elevation
 
+# #GPU SOLVER
+# def parallel_solve_function(inst,problem,kwargs=None):
+#     if kwargs:
+#         return inst.solve(problem, **kwargs)
+#     return inst.solve(problem)

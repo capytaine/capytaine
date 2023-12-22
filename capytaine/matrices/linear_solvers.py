@@ -160,8 +160,8 @@ try:
     def solve_gpu(a:np.ndarray,b:np.ndarray)->np.ndarray:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        a = torch.from_numpy(a).float().to(device)
-        b = torch.from_numpy(b).float().to(device)
+        a = torch.from_numpy(a).cfloat().to(device)
+        b = torch.from_numpy(b).cfloat().to(device)
 
         res = torch.linalg.solve(a, b)
 
@@ -204,6 +204,7 @@ try:
         else:
             raise ValueError(f"Unrecognized type of matrix to solve: {A}")
 
+    print(f'GPU available: {torch.cuda.get_device_name()}')
 except ImportError as e:
     LOG.debug(f'GPU solver not available. Install pytorch and cuda to enable. Error: {e}')
     gpu_direct = None
