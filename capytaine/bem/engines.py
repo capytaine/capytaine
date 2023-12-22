@@ -62,6 +62,8 @@ class BasicMatrixEngine(MatrixEngine):
                                 'lu_decomposition': linear_solvers.LUSolverWithCache().solve,
                                 'gmres': linear_solvers.solve_gmres,
                                 }
+    if linear_solvers.gpu_direct:
+        available_linear_solvers['gpu_direct'] = linear_solvers.gpu_direct
 
     def __init__(self, *, linear_solver='lu_decomposition', matrix_cache_size=1):
 
