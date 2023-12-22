@@ -153,3 +153,57 @@ def gmres_no_fft(A, b):
 
     return x
 
+##### GPU Solver #####
+try:
+
+    import torch
+    def solve_gpu(a:np.ndarray,b:np.ndarray)->np.ndarray:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        a = torch.from_numpy(a).float().to(device)
+        b = torch.from_numpy(b).float().to(device)
+
+        res = torch.linalg.solve(a, b)
+
+        return res.cpu().numpy()
+
+    def gpu_direct(A, b):
+        assert isinstance(b, np.ndarray) and A.ndim == b.ndim+1 and A.shape[-2] == b.shape[-1]
+        if isinstance(A, BlockCirculantMatrix):
+            LOG.debug("\tSolve linear circulant system %s", A)
+            blocks_of_diagonalization = A.block_diagonalize()
+            fft_of_rhs = np.fft.fft(np.reshape(b, (A.nb_blocks[0], A.block_shape[0])), axis=0)
+            try:  # Try to run it as vectorized numpy arrays.
+                fft_of_result = solve_gpu(blocks_of_diagonalization, fft_of_rhs)
+            except np.linalg.LinAlgError:  # Or do the same thing with list comprehension.
+                fft_of_result = np.array([gpu_direct(block, vec) for block, vec in zip(blocks_of_diagonalization, fft_of_rhs)])
+            result = np.fft.ifft(fft_of_result, axis=0).reshape((A.shape[1],))
+            return result
+
+        elif isinstance(A, BlockSymmetricToeplitzMatrix):
+            if A.nb_blocks == (2, 2):
+                LOG.debug("\tSolve linear system %s", A)
+                A1, A2 = A._stored_blocks[0, :]
+                b1, b2 = b[:len(b)//2], b[len(b)//2:]
+                x_plus = gpu_direct(A1 + A2, b1 + b2)
+                x_minus = gpu_direct(A1 - A2, b1 - b2)
+                return np.concatenate([x_plus + x_minus, x_plus - x_minus])/2
+            else:
+                # Not implemented
+                LOG.debug("\tSolve linear system %s", A)
+                return gpu_direct(A.full_matrix(), b)
+
+        elif isinstance(A, BlockMatrix):
+            LOG.debug("\tSolve linear system %s", A)
+            return gpu_direct(A.full_matrix(), b)
+
+        elif isinstance(A, np.ndarray):
+            LOG.debug(f"\tSolve linear system (size: {A.shape}) with numpy direct solver.")
+            return solve_gpu(A, b)
+
+        else:
+            raise ValueError(f"Unrecognized type of matrix to solve: {A}")
+
+except ImportError as e:
+    LOG.debug(f'GPU solver not available. Install pytorch and cuda to enable. Error: {e}')
+    gpu_direct = None
