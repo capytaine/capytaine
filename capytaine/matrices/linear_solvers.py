@@ -204,6 +204,7 @@ try:
         else:
             raise ValueError(f"Unrecognized type of matrix to solve: {A}")
 
+    print(f'GPU available: {torch.cuda.get_device_name()}')
 except ImportError as e:
     LOG.debug(f'GPU solver not available. Install pytorch and cuda to enable. Error: {e}')
     gpu_direct = None
