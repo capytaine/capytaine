@@ -159,6 +159,10 @@ class BEMSolver:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
             return [self.solve(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
         else:
+            joblib = silently_import_optional_dependency("joblib")
+            if joblib is None:
+                raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
+
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
 
             parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
