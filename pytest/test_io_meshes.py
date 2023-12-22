@@ -23,11 +23,6 @@ except ImportError:
     pygmsh = None
 
 try:
-    import vtk
-except ImportError:
-    vtk = None
-
-try:
     import h5py
 except ImportError:
     h5py = None
@@ -35,17 +30,6 @@ except ImportError:
 offset=1e-2 # small offset so you can clip at z=0
 omega = 0.5*2*np.pi
 rho_water = 1e3
-
-@pytest.mark.skipif(vtk is None,
-                    reason='vtk is not installed')
-def test_STL(tmp_path):
-    mesh = cpt.Sphere().mesh.merged()
-    filepath = tmp_path / "test.stl"
-    write_STL(filepath, mesh.vertices, mesh.faces)
-    reloaded_mesh = load_STL(str(filepath), name="Bla")
-
-    assert reloaded_mesh.name == "Bla"
-    assert np.allclose(mesh.vertices, reloaded_mesh.vertices)
 
 #################################################################
 
@@ -210,7 +194,7 @@ def test_hst_ignored_lines(caplog):
 
 #################################################################
 
-def generate_wavebot():
+def generate_pygmsh_wavebot():
     T1=0.16
     T2=0.37
     r1=0.88
@@ -225,7 +209,7 @@ def generate_wavebot():
     vol_exp = np.pi*T1*r1**2 + 1/3 * np.pi * T2 * (r2**2 + r2 * r1 + r1**2)
     return (mesh, vol_exp)
 
-def generate_cylinder():
+def generate_pygmsh_cylinder():
     T=0.52
     r1=0.88
     with pygmsh.occ.Geometry() as geom:
@@ -235,7 +219,7 @@ def generate_cylinder():
     vol_exp = np.pi*r1**2*T
     return (mesh, vol_exp)
 
-def generate_sphere():
+def generate_pygmsh_sphere():
     r1=0.88
     with pygmsh.occ.Geometry() as geom:
         sphere = geom.add_ball(center=[0,0,0], radius=r1)
@@ -245,32 +229,10 @@ def generate_sphere():
     return (mesh, vol_exp)
 
 
-@pytest.mark.skipif(vtk is None or pygmsh is None,
-                    reason='Neither vtk nor meshio are installed')
-def test_write_and_read_STL(tmp_path):
-    mesh, _ = generate_cylinder()
-    from capytaine.io.meshio import load_from_meshio
-    cpt_mesh = load_from_meshio(mesh)
-    cpt_mesh.heal_mesh()
-
-    # Write with Meshio and reload with Meshmagick
-    mesh.write(tmp_path / "wavebot.stl")
-    cpt_mesh_2 = cpt.load_mesh(tmp_path / "wavebot.stl")
-    assert np.allclose(cpt_mesh.vertices, cpt_mesh_2.vertices)
-
-    # # Write with Meshmagick and reload with Meshio
-    # # FAILING FOR NOW
-    # # ERROR IN STL LOADER IN MESHMAGICK
-    # write_STL(tmp_path / "wavebot2.stl", fb.mesh.vertices, fb.mesh.faces)
-    # mesh2 = meshio.read(tmp_path / "wavebot2.stl")
-    # fb3 = cpt.FloatingBody.from_meshio(mesh2)
-    # assert np.allclose(fb.mesh.vertices, fb3.mesh.vertices)
-
-
 @pytest.mark.skipif(pygmsh is None,
                     reason='pygmsh and/or meshio is not installed')
 @pytest.mark.parametrize("generate_pygmsh",
-                         [generate_cylinder, generate_sphere, generate_wavebot])
+                         [generate_pygmsh_cylinder, generate_pygmsh_sphere, generate_pygmsh_wavebot])
 def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
     mesh, vol_exp = generate_pygmsh()
     fb = cpt.FloatingBody(mesh=mesh)
@@ -298,6 +260,52 @@ def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
                                wavelength=True,
                                wavenumber=True)
 
+#################################################################
+
+def test_STL(tmp_path):
+    vtk = pytest.importorskip("vtk", reason="VTK not installed, test skipped.")
+    mesh = cpt.mesh_sphere()
+    filepath = tmp_path / "test.stl"
+    write_STL(filepath, mesh.vertices, mesh.faces)
+    reloaded_mesh = load_STL(str(filepath), name="Bla")
+
+    assert reloaded_mesh.name == "Bla"
+    assert np.allclose(mesh.vertices, reloaded_mesh.vertices)
+
+def test_STL_with_uppercase_file_extension(tmp_path):
+    vtk = pytest.importorskip("vtk", reason="VTK not installed, test skipped.")
+    mesh = cpt.mesh_sphere()
+    filepath = tmp_path / "test.STL"
+    write_STL(filepath, mesh.vertices, mesh.faces)
+    reloaded_mesh = cpt.load_mesh(str(filepath), name="Bla")
+    # Should detect that the file is stl using the file extension
+
+    assert reloaded_mesh.name == "Bla"
+    assert np.allclose(mesh.vertices, reloaded_mesh.vertices)
+
+@pytest.mark.skipif(pygmsh is None,
+                    reason='pygmsh and/or meshio is not installed')
+def test_STL_with_meshio(tmp_path):
+    vtk = pytest.importorskip("vtk", reason="VTK not installed, test skipped.")
+    mesh, _ = generate_pygmsh_cylinder()
+    from capytaine.io.meshio import load_from_meshio
+    cpt_mesh = load_from_meshio(mesh)
+    cpt_mesh.heal_mesh()
+
+    # Write with Meshio and reload with Meshmagick
+    mesh.write(tmp_path / "wavebot.stl")
+    cpt_mesh_2 = cpt.load_mesh(tmp_path / "wavebot.stl")
+    assert np.allclose(cpt_mesh.vertices, cpt_mesh_2.vertices)
+
+    # # Write with Meshmagick and reload with Meshio
+    # # FAILING FOR NOW
+    # # ERROR IN STL LOADER IN MESHMAGICK
+    # write_STL(tmp_path / "wavebot2.stl", fb.mesh.vertices, fb.mesh.faces)
+    # mesh2 = meshio.read(tmp_path / "wavebot2.stl")
+    # fb3 = cpt.FloatingBody.from_meshio(mesh2)
+    # assert np.allclose(fb.mesh.vertices, fb3.mesh.vertices)
+
+#################################################################
 
 def test_write_and_load_gdf(tmpdir):
     mesh_path = tmpdir.join("temp_mesh.gdf")
@@ -355,4 +363,3 @@ def test_pnl(tmpdir):
     reloaded_mesh = cpt.load_mesh(mesh_path)
     np.testing.assert_equal(mesh.faces, reloaded_mesh.faces)
     np.testing.assert_allclose(mesh.vertices, reloaded_mesh.vertices, atol=1e-5)
-

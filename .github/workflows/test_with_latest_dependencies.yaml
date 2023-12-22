@@ -1,0 +1,28 @@
+name: Build and test using latest available dependencies
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '5 5 5/15 * *'  # On the 5th and 20th of each month at 5:05
+
+env:
+  FORCE_COLOR: 3
+  # Colors for nox
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.7', '3.12']
+    steps:
+    - name: Checkout repository and submodules
+      uses: actions/checkout@v4
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Set up nox
+      uses: wntrblm/nox@2022.8.7
+    - name: Run nox session
+      run: nox -s build_and_test_on_latest_env

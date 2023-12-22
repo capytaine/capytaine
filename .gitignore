@@ -1,5 +1,5 @@
 .idea/
-examples/**/results*
+pytest/Nemoh_verification_cases/*/results/
 docs/_static/
 docs/developer_manual/api/*.rst
 .pytest_cache/

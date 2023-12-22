@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Computing the potential and velocity of Airy wave."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -104,5 +102,3 @@ def airy_waves_free_surface_elevation(points, pb):
     """
     points, output_shape = _normalize_free_surface_points(points)
     return 1j * pb.omega / pb.g * airy_waves_potential(points, pb).reshape(output_shape)
-
-

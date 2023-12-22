@@ -134,4 +134,3 @@ def test_plane_transformations():
 
     flipped_plane = plane.rotate(Axis(point=plane.point, vector=(0, 1, 0)), np.pi)
     assert flipped_plane == plane.mirror(plane)
-

@@ -105,6 +105,10 @@ Once the problem has been initialized, the other parameters can be retrieved as:
     problem.period
     # ...
 
+In some cases (radiation problems in infinite depth), setting the frequency to
+zero or infinity is possible. Simply pass the value `0.0` or `float('inf')` to
+one of the above magnitude.
+
 
 Legacy Nemoh.cal parameters files
 ---------------------------------
@@ -140,4 +144,3 @@ The parameter file (in :code:`Nemoh.cal` format) passed as argument is read and 
 .. warning:: If results files already exist, they will be overwritten!
 
 If no argument is provided to the command, the code looks for a file :code:`Nemoh.cal` in the current directory.
-

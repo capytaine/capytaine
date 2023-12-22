@@ -25,7 +25,7 @@ from capytaine.io.xarray import problems_from_dataset, assemble_dataset
 from capytaine.io.legacy import import_cal_file
 
 solver = cpt.BEMSolver()
-
+method = ['indirect','direct']
 
 def test_LinearPotentialFlowProblem():
     # Without a body
@@ -139,7 +139,7 @@ def test_radiation_problem(caplog):
     #     RadiationProblem(body=sphere)
 
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    pb = RadiationProblem(body=sphere)
+    pb = RadiationProblem(body=sphere, omega=1.0)
     assert len(pb.boundary_condition) == sphere.mesh.nb_faces
 
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
@@ -150,9 +150,12 @@ def test_radiation_problem(caplog):
 
     res = pb.make_results_container()
     assert isinstance(res, RadiationResult)
-    assert 'forces' not in res.__dict__
-    assert res.added_masses == {}
-    assert res.radiation_dampings == {}
+    assert res.added_mass == res.added_masses == {}
+    assert res.radiation_damping == res.radiation_dampings == {}
+
+    res = pb.make_results_container(forces={"Heave": 1.0 + 2.0j})
+    assert res.added_mass == res.added_masses == {"Heave": 1.0}
+    assert res.radiation_damping == res.radiation_dampings == {"Heave": 2.0}
 
 
 def test_Froude_Krylov():
@@ -276,17 +279,18 @@ def test_problems_from_dataset_with_too_many_info():
         problems = problems_from_dataset(dset, body)
 
 
-def test_assemble_dataset():
+@pytest.mark.parametrize("method", method)
+def test_assemble_dataset(method):
     body = Sphere(center=(0, 0, -4), name="sphere")
     body.add_translation_dof(name="Heave")
 
     pb_1 = DiffractionProblem(body=body, wave_direction=1.0, omega=1.0)
-    res_1 = solver.solve(pb_1)
+    res_1 = solver.solve(pb_1, method=method)
     ds1 = assemble_dataset([res_1])
     assert "Froude_Krylov_force" in ds1
 
     pb_2 = RadiationProblem(body=body, radiating_dof="Heave", omega=1.0)
-    res_2 = solver.solve(pb_2)
+    res_2 = solver.solve(pb_2, method=method)
     ds2 = assemble_dataset([res_2])
     assert "added_mass" in ds2
 

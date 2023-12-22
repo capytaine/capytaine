@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Definition of the problems to solve with the BEM solver, and the results of this resolution."""
 # Copyright (C) 2017-2023 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
@@ -13,6 +11,7 @@ from scipy.optimize import newton
 from capytaine.tools.deprecation_handling import _get_water_depth
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.bem.airy_waves import airy_waves_velocity, froude_krylov_force
+from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 
 LOG = logging.getLogger(__name__)
 
@@ -87,36 +86,46 @@ class LinearPotentialFlowProblem:
             provided_freq_type = 'omega'
             frequency_data = {'omega': _default_parameters['omega']}
         else:
-            provided_freq_type = [k for k, v in frequency_data.items() if v is not None][0]
+            provided_freq_type = [k for (k, v) in frequency_data.items() if v is not None][0]
 
-        if frequency_data[provided_freq_type] in {0.0, np.infty}:
-            raise NotImplementedError("Zero and infinite frequencies are currently not supported.")
+        if ((float(frequency_data[provided_freq_type]) == 0.0 and provided_freq_type in {'omega', 'wavenumber'})
+            or (float(frequency_data[provided_freq_type]) == np.infty and provided_freq_type in {'period', 'wavelength'})):
+                omega = SymbolicMultiplication("0")
+                wavenumber = SymbolicMultiplication("0")
+                period = SymbolicMultiplication("∞")
+                wavelength = SymbolicMultiplication("∞")
+        elif ((float(frequency_data[provided_freq_type]) == 0.0 and provided_freq_type in {'period', 'wavelength'})
+            or (float(frequency_data[provided_freq_type]) == np.infty and provided_freq_type in {'omega', 'wavenumber'})):
+                omega = SymbolicMultiplication("∞")
+                wavenumber = SymbolicMultiplication("∞")
+                period = SymbolicMultiplication("0")
+                wavelength = SymbolicMultiplication("0")
+        else:
 
+            if provided_freq_type in {'omega', 'period'}:
+                if provided_freq_type == 'omega':
+                    omega = frequency_data['omega']
+                    period = 2*np.pi/omega
+                else:  # provided_freq_type is 'period'
+                    period = frequency_data['period']
+                    omega = 2*np.pi/period
 
-        if provided_freq_type in {'omega', 'period'}:
-            if provided_freq_type == 'omega':
-                omega = frequency_data['omega']
-                period = 2*np.pi/omega
-            else:  # provided_freq_type is 'period'
-                period = frequency_data['period']
-                omega = 2*np.pi/period
-
-            if self.water_depth == np.infty:
-                wavenumber = omega**2/self.g
-            else:
-                wavenumber = newton(lambda k: k*np.tanh(k*self.water_depth) - omega**2/self.g, x0=1.0)
-            wavelength = 2*np.pi/wavenumber
-
-        else:  # provided_freq_type is 'wavelength' or 'wavenumber'
-            if provided_freq_type == 'wavelength':
-                wavelength = frequency_data['wavelength']
-                wavenumber = 2*np.pi/wavelength
-            else:  # provided_freq_type is 'wavenumber'
-                wavenumber = frequency_data['wavenumber']
+                if self.water_depth == np.infty:
+                    wavenumber = omega**2/self.g
+                else:
+                    wavenumber = newton(lambda k: k*np.tanh(k*self.water_depth) - omega**2/self.g, x0=1.0)
                 wavelength = 2*np.pi/wavenumber
 
-            omega = np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.water_depth))
-            period = 2*np.pi/omega
+            else:  # provided_freq_type is 'wavelength' or 'wavenumber'
+                if provided_freq_type == 'wavelength':
+                    wavelength = frequency_data['wavelength']
+                    wavenumber = 2*np.pi/wavelength
+                else:  # provided_freq_type is 'wavenumber'
+                    wavenumber = frequency_data['wavenumber']
+                    wavelength = 2*np.pi/wavenumber
+
+                omega = np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.water_depth))
+                period = 2*np.pi/omega
 
         return omega, period, wavenumber, wavelength, provided_freq_type
 
@@ -135,37 +144,30 @@ class LinearPotentialFlowProblem:
             )
 
         if self.water_depth < 0.0:
-            raise ValueError("`water_depth` should be stricly positive.")
+            raise ValueError("`water_depth` should be strictly positive (provided water depth: {self.water_depth}).")
 
-        if self.omega in {0, np.infty} and self.water_depth != np.infty:
-            raise NotImplementedError(
-                f"omega={self.omega} is only implemented for infinite depth."
+        if float(self.omega) in {0, np.infty} and self.water_depth != np.infty:
+            LOG.warning(
+                    f"Default Green function allows for {self.provided_freq_type}={float(self.__getattribute__(self.provided_freq_type))} only for infinite depth (provided water depth: {self.water_depth})."
             )
 
         if self.body is not None:
             if ((isinstance(self.body.mesh, CollectionOfMeshes) and len(self.body.mesh) == 0)
                     or len(self.body.mesh.faces) == 0):
-                raise ValueError(f"The mesh of the body {self.body.name} is empty.")
+                raise ValueError(f"The mesh of the body {self.body.__short_str__()} is empty.")
 
             if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface)
                     or any(self.body.mesh.faces_centers[:, 2] <= -self.water_depth)):
 
                 LOG.warning(
-                    f"The mesh of the body {self.body.name} is not inside the domain.\n"
+                    f"The mesh of the body {self.body.__short_str__()} is not inside the domain.\n"
                     "Check the position of the free_surface and the water_depth\n"
                     "or use body.keep_immersed_part() to clip the mesh."
                 )
 
-            if self.wavelength < self.body.minimal_computable_wavelength:
-                LOG.warning(f"Mesh resolution for {self}:\n"
-                        f"The resolution of the mesh '{self.body.mesh.name}' of the body '{self.body.name}' "
-                        f"might be insufficient for the wavelength λ={self.wavelength:.2e}.\n"
-                        f"This warning appears because the largest panel of this mesh has radius {self.body.mesh.faces_radiuses.max():.2e} > λ/8."
-                        )
-
         if self.boundary_condition is not None:
             if len(self.boundary_condition.shape) != 1:
-                raise ValueError("Expected a 1-dimensional array as boundary_condition")
+                raise ValueError(f"Expected a 1-dimensional array as boundary_condition. Provided boundary condition's shape: {self.boundary_condition.shape}.")
 
             if self.boundary_condition.shape[0] != self.body.mesh.nb_faces:
                 raise ValueError(
@@ -200,7 +202,7 @@ class LinearPotentialFlowProblem:
 
     def __str__(self):
         """Do not display default values in str(problem)."""
-        parameters = [f"body={self.body_name}",
+        parameters = [f"body={self.body.__short_str__() if self.body is not None else None}",
                       f"{self.provided_freq_type}={self.__getattribute__(self.provided_freq_type):.3f}",
                       f"water_depth={self.water_depth}"]
         try:
@@ -222,6 +224,17 @@ class LinearPotentialFlowProblem:
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
+
+    def __rich_repr__(self):
+        yield "body", self.body, None
+        yield self.provided_freq_type, self.__getattribute__(self.provided_freq_type)
+        yield "water_depth", self.water_depth, _default_parameters["water_depth"]
+        try:
+            yield from self._specific_rich_repr()
+        except:
+            pass
+        yield "g", self.g, _default_parameters["g"]
+        yield "rho", self.rho, _default_parameters["rho"]
 
     def _astuple(self):
         return (self.body, self.free_surface, self.water_depth,
@@ -279,6 +292,9 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                          "The wave direction in Capytaine is defined in radians and not in degrees, so the result might not be what you expect. "
                          "If you were actually giving an angle in radians, use the modulo operator to give a value between -2π and 2π to disable this warning.")
 
+        if float(self.omega) in {0.0, np.infty}:
+            raise NotImplementedError(f"DiffractionProblem does not support zero or infinite frequency.")
+
         if self.body is not None:
 
             self.boundary_condition = -(
@@ -299,6 +315,9 @@ class DiffractionProblem(LinearPotentialFlowProblem):
 
     def _str_other_attributes(self):
         return [f"wave_direction={self.wave_direction:.3f}"]
+
+    def _specific_rich_repr(self):
+        yield "wave_direction", self.wave_direction, _default_parameters["wave_direction"]
 
     def make_results_container(self, *args, **kwargs):
         return DiffractionResult(self, *args, **kwargs)
@@ -349,6 +368,9 @@ class RadiationProblem(LinearPotentialFlowProblem):
     def _str_other_attributes(self):
         return [f"radiating_dof=\'{self.radiating_dof}\'"]
 
+    def _specific_rich_repr(self):
+        yield "radiating_dof", self.radiating_dof
+
     def make_results_container(self, *args, **kwargs):
         return RadiationResult(self, *args, **kwargs)
 
@@ -358,10 +380,12 @@ class LinearPotentialFlowResult:
     def __init__(self, problem, forces=None, sources=None, potential=None, pressure=None):
         self.problem = problem
 
+        self.forces = forces if forces is not None else {}
         self.sources = sources
         self.potential = potential
         self.pressure = pressure
-        self.fs_elevation = {}
+
+        self.fs_elevation = {}  # Only used in legacy `get_free_surface_elevation`. To be removed?
 
         # Copy data from problem
         self.body               = self.problem.body
@@ -379,27 +403,25 @@ class LinearPotentialFlowResult:
         self.body_name          = self.problem.body_name
         self.influenced_dofs    = self.problem.influenced_dofs
 
-        if forces is not None:
-            for dof in self.influenced_dofs:
-                self.store_force(dof, forces[dof])
-
-    def store_force(self, dof, force):
-        pass  # Implemented in sub-classes
+    @property
+    def force(self):
+        # Just an alias
+        return self.forces
 
     __str__ = LinearPotentialFlowProblem.__str__
     __repr__ = LinearPotentialFlowProblem.__repr__
     _repr_pretty_ = LinearPotentialFlowProblem._repr_pretty_
+    __rich_repr__ = LinearPotentialFlowProblem.__rich_repr__
 
 
 class DiffractionResult(LinearPotentialFlowResult):
 
     def __init__(self, problem, *args, **kwargs):
-        self.forces = {}
         super().__init__(problem, *args, **kwargs)
         self.wave_direction = self.problem.wave_direction
 
-    def store_force(self, dof, force):
-        self.forces[dof] = force
+    _str_other_attributes = DiffractionProblem._str_other_attributes
+    _specific_rich_repr = DiffractionProblem._specific_rich_repr
 
     @property
     def records(self):
@@ -415,20 +437,29 @@ class DiffractionResult(LinearPotentialFlowResult):
 class RadiationResult(LinearPotentialFlowResult):
 
     def __init__(self, problem, *args, **kwargs):
-        self.added_masses = {}
-        self.radiation_dampings = {}
         super().__init__(problem, *args, **kwargs)
         self.radiating_dof = self.problem.radiating_dof
 
-    def store_force(self, dof, force):
-        self.added_masses[dof] = force.real/self.omega**2
-        self.radiation_dampings[dof] = force.imag/self.omega
+    _str_other_attributes = RadiationProblem._str_other_attributes
+    _specific_rich_repr = RadiationProblem._specific_rich_repr
+
+    @property
+    def added_mass(self):
+        return {dof: float(np.real(force)/(self.omega*self.omega)) for (dof, force) in self.forces.items()}
+
+    @property
+    def radiation_damping(self):
+        return {dof: float(np.imag(force)/self.omega) for (dof, force) in self.forces.items()}
+
+    # Aliases for backward compatibility
+    added_masses = added_mass
+    radiation_dampings = radiation_damping
 
     @property
     def records(self):
         params = self.problem._asdict()
         return [dict(params,
                      influenced_dof=dof,
-                     added_mass=self.added_masses[dof],
-                     radiation_damping=self.radiation_dampings[dof])
+                     added_mass=self.added_mass[dof],
+                     radiation_damping=self.radiation_damping[dof])
                 for dof in self.influenced_dofs]

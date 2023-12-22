@@ -13,7 +13,7 @@ It is compatible with `all currently supported version of Python <https://devgui
 On a cloud platform
 -------------------
 
-For a quick try of Capytaine without installing anything on your computer, you can use an online Python-based computing environment such as `CoCalc <https://cocalc.com/>`_ or `Google Colab <https://colab.research.google.com/>`_.
+For a quick try of Capytaine without installing anything on your computer, you can use an online Python-based computing environment such as `CoCalc <https://cocalc.com/>`_, on which Capytaine is already installed by default, or `Google Colab <https://colab.research.google.com/>`_.
 On such a `Jupyter <https://jupyter.org/>`_-based environment, Capytaine can be installed by running the following command in a cell::
 
     %pip install capytaine
@@ -30,8 +30,16 @@ All the core feature of Capytaine are accessible from such a Jupyter-based envir
 As a standalone executable
 --------------------------
 
-This is a work in progress. See :pull:`324` for progress updates.
+An experimental distribution of Capytaine bundled with a full Python distribution in a single executable file can be found at `https://github.com/capytaine/capytaine-standalone`_.
+Please refer to the instruction on that page for download and usage.
 
+The standalone executable is the simplest way to use Capytaine locally, although it has some limitations, such a longer startup time and the current lack of interactive Matplotlib figures.
+
+You can check the bundled version of Capytaine with the following command::
+
+    .\ipython-with-capytaine-windows.exe -c 'print(cpt.__version__)'
+
+(or the corresponding file name on other platforms than Windows).
 
 Installing with pip package manager
 -----------------------------------
@@ -44,7 +52,7 @@ Then run the following line to check that the latest version of Capytaine has be
 
     python -c 'import capytaine as cpt; print(cpt.__version__)'
 
-You might want to use a `virtual environment <https://docs.python.org/3/library/venv.html>`_ to install Capytaine independantly of your other Python packages and avoid any risk of dependency conflict.
+You might want to use a `virtual environment <https://docs.python.org/3/library/venv.html>`_ to install Capytaine independently of your other Python packages and avoid any risk of dependency conflict.
 
 The package can also be installed by other modern PyPI-based Python package managers, such as PDM_ or poetry_.
 

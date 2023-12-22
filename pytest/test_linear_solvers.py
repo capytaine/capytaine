@@ -170,4 +170,3 @@ def test_gmres_block_toeplitz_problem(solved_nested_block_problem):
     A, x_ref, b = solved_nested_block_problem
     x = solve_gmres(A, b)
     assert np.allclose(x, x_ref, rtol=1e-10)
-

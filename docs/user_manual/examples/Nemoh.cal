@@ -28,4 +28,3 @@ Cylinder.dat            ! Name of mesh file
 1  0.0  0.0             ! Number of wave directions, Min and Max (degrees)
 --- Post processing ---
 !! All lines below are ignored by Capytaine !!
-
