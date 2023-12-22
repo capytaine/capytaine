@@ -160,8 +160,8 @@ try:
     def solve_gpu(a:np.ndarray,b:np.ndarray)->np.ndarray:
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
-        a = torch.from_numpy(a).float().to(device)
-        b = torch.from_numpy(b).float().to(device)
+        a = torch.from_numpy(a).cfloat().to(device)
+        b = torch.from_numpy(b).cfloat().to(device)
 
         res = torch.linalg.solve(a, b)
 
