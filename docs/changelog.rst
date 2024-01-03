@@ -72,6 +72,8 @@ Internals
 
 * Fortran source files are not included in wheel anymore (:pull:`360`).
 
+* Fix Xarray future warning about `Dataset.dims` (:issue:`450` and :pull:`451`).
+
 * Improve some warnings and error messages.
 
 -------------------------------
