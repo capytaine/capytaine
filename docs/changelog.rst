@@ -72,6 +72,8 @@ Internals
 
 * Fortran source files are not included in wheel anymore (:pull:`360`).
 
+* The `delete_first_lru_cache` decorator has been renamed :func:`~capytaine.tools.lru_cache.lru_cache_with_strict_maxsize` and now supports keyword arguments in the memoized function (:pull:`442`).
+
 * Fix Xarray future warning about `Dataset.dims` (:issue:`450` and :pull:`451`).
 
 * Improve some warnings and error messages.
