@@ -343,61 +343,33 @@ class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
     """
 
     def __init__(self, *, ACA_distance=8.0, ACA_tol=1e-2, matrix_cache_size=1):
-
-        if matrix_cache_size > 0:
-            self.build_matrices = delete_first_lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
-
-        self.ACA_distance = ACA_distance
-        self.ACA_tol = ACA_tol
-
+        super().__init__(ACA_distance=ACA_distance, ACA_tol=ACA_tol, matrix_cache_size=matrix_cache_size)
         self.linear_solver = linear_solvers.solve_precond_gmres
 
-        self.exportable_settings = {
-            'engine': 'HierarchicalToeplitzMatrixEngine',
-            'ACA_distance': ACA_distance,
-            'ACA_tol': ACA_tol,
-            'matrix_cache_size': matrix_cache_size,
-        }
-
-    def access_block_by_path(self, matrix, path):
-        """
-        Access a diagonal block in a hierarchical matrix from the path of the
-        corresponding leaf
-        """
-        this_block = matrix
-        for index in path:
-            this_block = this_block.all_blocks[index, index]
-        return this_block
-
     def build_matrices(self,
-                       mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
-                       _rec_depth=1):
+                       mesh1, mesh2, free_surface, water_depth, wavenumber, green_function):
         """Recursively builds a hierarchical matrix between mesh1 and mesh2,
         and precomputes some of the quantities needed for the preconditioner.
 
-        Same arguments as :func:`BasicMatrixEngine.build_matrices`, plus
-        the properties of the hierarchical tree: leaf_order and path_to_leaf
-
-        :code:`_rec_depth` keeps track of the recursion depth only for pretty log printing.
+        Same arguments as :func:`BasicMatrixEngine.build_matrices`, except for rec_depth
         """
         # Build the matrices using the method of the parent class
         S, K = super().build_matrices(mesh1, mesh2, free_surface, water_depth,
-                                      wavenumber, green_function,
-                                      _rec_depth=_rec_depth)
+                                      wavenumber, green_function)
 
-        leaf_order = mesh1.leaf_order
-        path_to_leaf = mesh1.path_to_leaf
+        path_to_leaf = mesh1.path_to_leaf()
 
-        n = len(leaf_order)
+        n = len(path_to_leaf)
         N = K.shape[0]
 
         # Navigate to the diagonal blocks and compute their LU decompositions
         DLU = []
         diag_shapes = []
-        for leaf in leaf_order:
+        for leaf in range(n):
             # Navigate to the block containing the one we need
             # (one layer above in the dendrogram)
-            upper_block = self.access_block_by_path(K, path_to_leaf[leaf][:-1])
+            #upper_block = self.access_block_by_path(K, path_to_leaf[leaf][:-1])
+            upper_block = K.access_block_by_path(path_to_leaf[leaf][:-1])
             # find the local index in the full path
             ind = path_to_leaf[leaf][-1]
             # compute the LU decomposition and add to the list
@@ -418,32 +390,24 @@ class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
             va = np.zeros(N, dtype=complex)
             free = [0, N]
 
-            for lvl, jj in enumerate(path_to_leaf[leaf_order[ii]]):
+            for lvl, jj in enumerate(path_to_leaf[ii]):
 
                 Nrows = Aloc.all_blocks[jj, jj].shape[0]
 
                 if jj==0:
                     v = v[:Nrows]
-                    #try-except block needed because of different function
-                    #definitions for rmatmul in np.ndarrays, blockmatrix and lowrank
-                    try:
-                        w = Aloc.all_blocks[0,1].__rmatmul__(v)
-                    except:
-                        w = Aloc.all_blocks[0,1].rmatvec(v)
+                    w = v @ Aloc.all_blocks[0,1]
                     va[free[1]-len(w) : free[1]] = w
                     free[1] = free[1] - len(w)
                 else:
                     v = v[-Nrows:]
-                    try:
-                        w = Aloc.all_blocks[1, 0].__rmatmul__(v)
-                    except:
-                        w = Aloc.all_blocks[1, 0].rmatvec(v)
+                    w = v @ Aloc.all_blocks[1, 0]
                     va[free[0] : free[0]+len(w)] = w
                     free[0] = free[0] + len(w)
 
                 Aloc = Aloc.all_blocks[jj, jj]
 
-                if lvl == len(path_to_leaf[leaf_order[ii]])-1:
+                if lvl == len(path_to_leaf[ii])-1:
                     w = v@Aloc
                     va[free[0] : free[1]] = w
                     free[0] = free[0] + len(w)
@@ -454,8 +418,8 @@ class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
         AcLU = lu_factor(Ac)
 
         # Now navigate again to the diagonal blocks and set them to zero
-        for leaf in leaf_order:
-            upper_block = self.access_block_by_path(K, path_to_leaf[leaf][:-1])
+        for leaf in range(n):
+            upper_block = K.access_block_by_path(path_to_leaf[leaf][:-1])
             ind = path_to_leaf[leaf][-1]
             # turn the diagonal block into a zero sparse matrix
             upper_block.all_blocks[ind, ind] = coo_matrix(upper_block.all_blocks[ind, ind].shape)

@@ -1047,10 +1047,6 @@ respective inertia coefficients are assigned as NaN.")
         -------
         all_buoys: FloatingBody
             Array built from the provided bodies
-        leaf_order: list
-            Order of bodies in the array
-        path_to_leaf: list
-            List of lists of paths from the root to each leaf
         """
         from scipy.cluster.hierarchy import linkage, dendrogram
         nb_buoys = len(bodies)
@@ -1060,15 +1056,9 @@ respective inertia coefficients are assigned as NaN.")
         buoys_positions = np.stack([body.center_of_buoyancy for body in bodies])[:,:2]
 
         ln_matrix = linkage(buoys_positions, method='centroid', metric='euclidean')
-        dn = dendrogram(ln_matrix, no_plot=True)
 
         node_list = bodies.copy() #list of nodes of the tree: the first nodes are single bodies
         # the list is copied to avoid changing it
-        leaves = [] #list of lists of all leaves belonging to each node
-        path_to_leaf = [] #list of lists of paths from the top to each leaf
-        for ii in range(nb_buoys):
-            leaves.append([ii]) #each body is a leaf and also a node, containing only itself
-            path_to_leaf.append([])
 
         # Join the bodies, with an ordering consistent with the dendrogram.
         # Done by reading the linkage matrix: its i-th row contains the labels
@@ -1081,28 +1071,8 @@ respective inertia coefficients are assigned as NaN.")
             new_node_ls = [node_list[merge_left], node_list[merge_right]]
             new_node = FloatingBody.join_bodies(*new_node_ls, name='node_{:d}'.format(node_tag))
             node_list.append(new_node)
-            leaves.append(leaves[merge_left]+leaves[merge_right])
 
-        # The last node is the parent of all others...
+        # The last node is the parent of all others
         all_buoys = new_node
-        # ... and its leaves are all the bodies, with the order given by clustering
-        leaf_order = leaves[-1]
-
-        # Traverse the tree to obtain the path from each leaf to the top
-        for ii in range(len(ln_matrix)):
-            merge_left = int(ln_matrix[ii,0])
-            merge_right = int(ln_matrix[ii,1])
-            for ind in leaves[merge_left]:
-                path_to_leaf[ind].append(0)
-            for ind in leaves[merge_right]:
-                path_to_leaf[ind].append(1)
-
-        # Invert to obtain paths from the top to the leaves
-        for ls in path_to_leaf:
-            ls.reverse()
-
-        # set the properties of the tree as attributed of the mesh
-        all_buoys.mesh.leaf_order = leaf_order
-        all_buoys.mesh.path_to_leaf = path_to_leaf
 
         return all_buoys
