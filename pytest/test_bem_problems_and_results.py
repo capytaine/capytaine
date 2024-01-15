@@ -25,7 +25,7 @@ from capytaine.io.xarray import problems_from_dataset, assemble_dataset
 from capytaine.io.legacy import import_cal_file
 
 solver = cpt.BEMSolver()
-
+method = ['indirect','direct']
 
 def test_LinearPotentialFlowProblem():
     # Without a body
@@ -276,17 +276,18 @@ def test_problems_from_dataset_with_too_many_info():
         problems = problems_from_dataset(dset, body)
 
 
-def test_assemble_dataset():
+@pytest.mark.parametrize("method", method)
+def test_assemble_dataset(method):
     body = Sphere(center=(0, 0, -4), name="sphere")
     body.add_translation_dof(name="Heave")
 
     pb_1 = DiffractionProblem(body=body, wave_direction=1.0, omega=1.0)
-    res_1 = solver.solve(pb_1)
+    res_1 = solver.solve(pb_1, method=method)
     ds1 = assemble_dataset([res_1])
     assert "Froude_Krylov_force" in ds1
 
     pb_2 = RadiationProblem(body=body, radiating_dof="Heave", omega=1.0)
-    res_2 = solver.solve(pb_2)
+    res_2 = solver.solve(pb_2, method=method)
     ds2 = assemble_dataset([res_2])
     assert "added_mass" in ds2
 

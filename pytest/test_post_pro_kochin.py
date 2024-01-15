@@ -113,3 +113,4 @@ def test_fill_dataset_with_kochin_functions():
     # Because of the symmetries of the body
     assert np.isclose(ds['kochin_diffraction'].sel(wave_direction=-pi/2, theta=0.0),
                       ds['kochin_diffraction'].sel(wave_direction=0.0, theta=pi/2))
+
