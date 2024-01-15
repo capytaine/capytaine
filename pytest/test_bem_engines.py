@@ -11,6 +11,8 @@ from capytaine.bodies.predefined.spheres import Sphere
 
 sphere = Sphere(radius=1.0, ntheta=2, nphi=3, clip_free_surface=True)
 sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
+method = ['indirect','direct']
+adjoint_double_layer = [True,False]
 
 def test_cache_matrices():
     """Test how the BasicMatrixEngine caches the interaction matrices."""
@@ -36,15 +38,15 @@ def test_cache_matrices():
     assert K is K_again
     assert K is not K_once_more
 
-
-def test_custom_linear_solver():
+@pytest.mark.parametrize("method", method)
+def test_custom_linear_solver(method):
     """Solve a simple problem with a custom linear solver."""
     problem = RadiationProblem(body=sphere, omega=1.0, water_depth=np.infty)
 
     reference_solver = BEMSolver(
         engine=BasicMatrixEngine(linear_solver="gmres", matrix_cache_size=0)
     )
-    reference_result = reference_solver.solve(problem)
+    reference_result = reference_solver.solve(problem,method=method)
 
     def my_linear_solver(A, b):
         """A dumb solver for testing."""
@@ -55,13 +57,13 @@ def test_custom_linear_solver():
     )
     assert 'my_linear_solver' in my_bem_solver.exportable_settings['linear_solver']
 
-    result = my_bem_solver.solve(problem)
+    result = my_bem_solver.solve(problem,method=method)
     assert np.isclose(reference_result.added_masses['Surge'], result.added_masses['Surge'])
 
-
-def test_gradiant_G_shape():
+@pytest.mark.parametrize("adjoint_double_layer", adjoint_double_layer)
+def test_gradiant_G_shape(adjoint_double_layer):
     mesh = cpt.mesh_sphere(radius=1, center=(0, 0, 0), resolution=(10, 10)).immersed_part()
-    S, gradG_1 = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, np.infty, 1.0, early_dot_product=False)
+    S, gradG_1 = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, np.infty, 1.0, early_dot_product=False,adjoint_double_layer=adjoint_double_layer)
     assert gradG_1.shape == (mesh.nb_faces, mesh.nb_faces, 3)
 
 
@@ -83,6 +85,25 @@ def test_gradient_G_a_posteriori_scalar_product():
     np.testing.assert_allclose(K, K__)
 
 
+def test_gradient_G_a_posteriori_scalar_product_directBIE():
+    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
+    S, gradG = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, np.infty, 1.0, early_dot_product=False, adjoint_double_layer=False)
+    S, K = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, np.infty, 1.0, early_dot_product=True, adjoint_double_layer=False)
+
+    # Scalar product with the faces normal vectors
+    K_ = np.zeros_like(S)
+    for i in range(mesh.nb_faces):
+        for j in range(mesh.nb_faces):
+            K_[i, j] = gradG[i, j, :] @ mesh.faces_normals[j, :]
+
+    # Shorter implementiation of the exact same scalar products
+    K__ = np.einsum('...k,...k->...', gradG, mesh.faces_normals)
+
+    np.testing.assert_allclose(K, K_)
+    np.testing.assert_allclose(K, K__)
+    np.testing.assert_allclose(K_, K__)
+
+
 def test_gradient_G_with_collocation_points():
     mesh = cpt.mesh_sphere(radius=1, center=(0, 0, 0), resolution=(10, 10)).immersed_part()
     _, gradG_1 = cpt.Delhommeau().evaluate(mesh.faces_centers, mesh, 0.0, np.infty, 1.0, early_dot_product=False)
@@ -90,12 +111,15 @@ def test_gradient_G_with_collocation_points():
     np.testing.assert_allclose(gradG_1, gradG_2, atol=1e-10, rtol=1e-10)
 
 
-def test_gradient_G_diagonal_term():
+@pytest.mark.parametrize("adjoint_double_layer", adjoint_double_layer)
+def test_gradient_G_diagonal_term(adjoint_double_layer):
     mesh = cpt.mesh_sphere(radius=1, center=(0, 0, 0), resolution=(10, 10)).immersed_part()
     # Passing two different Python objects
-    _, gradG_1 = cpt.Delhommeau().evaluate(mesh.copy(), mesh, 0.0, np.infty, 1.0, early_dot_product=False)
+    _, gradG_1 = cpt.Delhommeau().evaluate(mesh.copy(), mesh, 0.0, np.infty, 1.0, 
+					early_dot_product=False, adjoint_double_layer=adjoint_double_layer)
     # Passing the same Python object
-    _, gradG_2 = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, np.infty, 1.0, early_dot_product=False)
+    _, gradG_2 = cpt.Delhommeau().evaluate(mesh, mesh, 0.0, np.infty, 1.0, 
+					early_dot_product=False, adjoint_double_layer=adjoint_double_layer)
 
     diag_normal = np.zeros_like(gradG_2)
     for i in range(mesh.nb_faces):

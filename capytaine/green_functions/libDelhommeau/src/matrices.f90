@@ -21,7 +21,7 @@ CONTAINS
       coeffs,                                         &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,                                &
-      same_body,                                      &
+      same_body, adjoint_double_layer,                &
       S, K)
 
     ! Mesh data
@@ -35,6 +35,7 @@ CONTAINS
     INTEGER,                                                  INTENT(IN) :: nb_quad_points
     REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points, 3), INTENT(IN) :: quad_points
     REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points),    INTENT(IN) :: quad_weights
+    LOGICAL,                                  INTENT(IN) :: adjoint_double_layer
 
     LOGICAL,                                  INTENT(IN) :: same_body
 
@@ -105,10 +106,19 @@ CONTAINS
             SP1, VSP1                              &
             )
 
+          ! Change the gradient terms to direct solver representation
+          IF (.NOT. adjoint_double_layer) THEN
+            VSP1(:) = -VSP1(:)
+          END IF
+
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(1) * SP1                                ! Green function
           if (size(K, 3) == 1) then
-            K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1(:))
+            if (.NOT. adjoint_double_layer) then
+              K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_2(J, :), VSP1(:))
+            else
+              K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1(:))
+            endif
           else
             K(I, J, :) = K(I, J, :) - coeffs(1) * VSP1(:)
           endif
@@ -147,10 +157,19 @@ CONTAINS
           reflected_VSP1(1:2) = VSP1(1:2)
           reflected_VSP1(3) = -VSP1(3)
 
+          ! Change the gradient terms to direct solver representation
+          if (.NOT. adjoint_double_layer) THEN
+             reflected_VSP1(1:2) = -reflected_VSP1(1:2)
+          END IF
+
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(2) * SP1                                ! Green function
           if (size(K, 3) == 1) then
-            K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_VSP1(:))
+            if (.NOT. adjoint_double_layer) then
+              K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_2(J, :), reflected_VSP1(:))
+            else
+              K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_VSP1(:))
+            endif
           else
             K(I, J, :) = K(I, J, :) - coeffs(2) * reflected_VSP1(:)
           endif
@@ -174,11 +193,21 @@ CONTAINS
             SP2, VSP2_SYM, VSP2_ANTISYM                                  &
           )
 
+          ! Change the gradient terms for direct solver representation
+          IF (.NOT. adjoint_double_layer) THEN
+            VSP2_ANTISYM = -VSP2_ANTISYM
+          END IF
+
           S(I, J) = S(I, J) - coeffs(3) * SP2
 
           if (size(K, 3) == 1) then
-            K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
-              DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM)
+            if (.NOT. adjoint_double_layer) then
+              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM)
+            else
+              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM)
+            endif
           else
             K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM)
           endif
@@ -191,13 +220,21 @@ CONTAINS
           if (size(K, 3) == 1) then
             K(J, J, 1) = K(J, J, 1) - 0.25
           else
-            K(J, J, :) = K(J, J, :) - 0.25 * normals_1(J, :)
+            if (.NOT. adjoint_double_layer) then
+              K(J, J, :) = K(J, J, :) - 0.25 * normals_2(J, :)
+            else
+              K(J, J, :) = K(J, J, :) - 0.25 * normals_1(J, :)
+            endif
           endif
         else
           if (size(K, 3) == 1) then
             K(J, J, 1) = K(J, J, 1) + 0.5
           else
-            K(J, J, :) = K(J, J, :) + 0.5 * normals_1(J, :)
+            if (.NOT. adjoint_double_layer) then
+              K(J, J, :) = K(J, J, :) + 0.5 * normals_2(J, :)
+            else
+              K(J, J, :) = K(J, J, :) + 0.5 * normals_1(J, :)
+            endif
           endif
         endif
       END IF
@@ -225,10 +262,20 @@ CONTAINS
             SP2, VSP2_SYM, VSP2_ANTISYM                                  &
           )
 
+          ! Change the gradient terms to direct solver representation
+          IF (.NOT. adjoint_double_layer) THEN
+            VSP2_ANTISYM = -VSP2_ANTISYM
+          END IF
+
           S(I, J) = S(I, J) - coeffs(3) * SP2
           if (size(K, 3) == 1) then
-            K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
-              DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM)
+            if (.NOT. adjoint_double_layer) then
+              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM)
+            else
+              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM)
+            endif
           else
             K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM)
           endif
@@ -236,8 +283,13 @@ CONTAINS
           IF (.NOT. I==J) THEN
             S(J, I) = S(J, I) - coeffs(3) * SP2 * areas_2(I)/areas_2(J)
             if (size(K, 3) == 1) then
-              K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
-                DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
+              if (.NOT. adjoint_double_layer) then
+                K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
+                  DOT_PRODUCT(normals_2(I, :), VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
+              else
+                K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
+                  DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
+              endif
             else
               K(J, I, :) = K(J, I, :) - coeffs(3) * (VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
             endif

@@ -16,8 +16,9 @@ from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.bem.problems_and_results import RadiationProblem
 from capytaine.bodies.predefined.spheres import Sphere
-
-
+#-----------------------------------------------------------------------------#
+# Test indirect solver
+#-----------------------------------------------------------------------------#
 @pytest.fixture
 def sphere():
     mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 4)).immersed_part()
@@ -130,3 +131,13 @@ def test_fill_dataset(sphere):
 # TODO: move the code below to test_io_xarray.py
     # wavenumbers = wavenumber_data_array(results)
     # assert isinstance(wavenumbers, xr.DataArray)
+
+#-----------------------------------------------------------------------------#
+# Test direct solver
+#-----------------------------------------------------------------------------#
+def test_direct_solver(sphere):
+    problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
+    solver = cpt.BEMSolver()
+    direct_result = solver.solve(problem, method='direct')
+    indirect_result = solver.solve(problem, method='indirect')
+    assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-1)

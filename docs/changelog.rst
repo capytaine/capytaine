@@ -20,6 +20,9 @@ Major changes
 
 * Reimplement computation of added mass in infinite depth with zero or infinite frequency. (:pull:`385`)
 
+* Implement direct method (source-and-dipole formulation) in obtaining velocity potential solutions.
+  The direct method can be used instead of the default indirect method by setting the ``method`` argument of :meth:`~capytaine.bem.solver.BEMSolver.solve`, :meth:`~capytaine.bem.solver.BEMSolver.solve_all` or :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` (:pull:`420`)
+
 Minor changes
 ~~~~~~~~~~~~~
 
@@ -54,6 +57,8 @@ Bug fixes
 
 * Fix bug causing the quadrature method of a mesh to be forgotten when the mesh was put in a body. ``quadrature_method`` can now be passed as argument when initializing a new mesh. (:pull:`417`)
 
+* The function :func:`~capytaine.io.meshes_loaders.load_mesh` more robustly detects filetype using file extension even when the file extension is not lowercase. (:pull:`441`)
+
 Internals
 ~~~~~~~~~
 
@@ -66,6 +71,10 @@ Internals
 * Use `nox <https://nox.thea.codes>`_ to test the code in isolated virtual environments. (:pull:`401`)
 
 * Fortran source files are not included in wheel anymore (:pull:`360`).
+
+* The `delete_first_lru_cache` decorator has been renamed :func:`~capytaine.tools.lru_cache.lru_cache_with_strict_maxsize` and now supports keyword arguments in the memoized function (:pull:`442`).
+
+* Fix Xarray future warning about `Dataset.dims` (:issue:`450` and :pull:`451`).
 
 * Improve some warnings and error messages.
 
