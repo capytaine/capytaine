@@ -41,7 +41,7 @@ CONTAINS
 
     real(kind=pre), dimension(3),          intent(in) :: x
     real(kind=pre), dimension(3),          intent(in) :: face_center, face_normal
-    real(kind=pre), dimension(3),          intent(in) :: face_area, face_radius
+    real(kind=pre),                        intent(in) :: face_area, face_radius
     real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
     real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
     real(kind=pre),                        intent(in) :: wavenumber, depth
@@ -65,10 +65,17 @@ CONTAINS
     r = wavenumber * norm2(x(1:2) - face_center(1:2))
     z = wavenumber * (x(3) + face_center(3))
 
-    ! if ((abs(r) < 1e-10) .and. (abs(z) < 1e-10)) then
-    !   ! Interaction of a panel on the free surface with itself
-    !
-    ! else
+    if ((abs(r) < 1e-10) .and. (abs(z) < 1e-10)) then
+      ! Interaction of a panel on the free surface with itself
+      int_G = wavenumber * face_area * (                      &
+                    (1 - log(wavenumber**2 * face_area / pi)) &
+                    + 2 * (euler_gamma - log_2) - 2*pi*ii    &
+                  )
+      int_grad_G_sym(1:2) = cmplx(zero, zero, kind=pre)
+      int_grad_G_sym(3) = wavenumber * (int_G + 4 * sqrt(pi*face_area))
+      int_grad_G_antisym(1:3) = cmplx(zero, zero, kind=pre)  ! Irrelevant because we are on the diagonal
+
+    else
       ! Numerical integration
       int_G = zero
       int_grad_G_sym = zero
@@ -99,7 +106,7 @@ CONTAINS
         int_grad_g_sym = int_grad_g_sym + grad_g_at_point_sym * face_quadrature_weights(q)
         int_grad_g_antisym = int_grad_g_antisym + grad_g_at_point_antisym * face_quadrature_weights(q)
       end do
-    ! end if
+    end if
 
   end subroutine
 
