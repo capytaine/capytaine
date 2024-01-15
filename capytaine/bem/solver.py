@@ -96,40 +96,40 @@ class BEMSolver:
         if _check_wavelength: self._check_wavelength([problem])
 
         if problem.forward_speed != 0.0:
-          omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
+            omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
         else:
-          omega, wavenumber = problem.omega, problem.wavenumber
-          
+            omega, wavenumber = problem.omega, problem.wavenumber
+
         linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
         if (method == 'direct'):
-          if problem.forward_speed != 0.0:
-            raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
-            
-          S, D = self.engine.build_matrices(
-              problem.body.mesh, problem.body.mesh,
-              problem.free_surface, problem.water_depth, wavenumber,
-              self.green_function, adjoint_double_layer=False
-          )
+            if problem.forward_speed != 0.0:
+                raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
 
-          potential = linear_solver(D, S @ problem.boundary_condition)
-          sources = None
+            S, D = self.engine.build_matrices(
+                    problem.body.mesh, problem.body.mesh,
+                    problem.free_surface, problem.water_depth, wavenumber,
+                    self.green_function, adjoint_double_layer=False
+                    )
+
+            potential = linear_solver(D, S @ problem.boundary_condition)
+            pressure = 1j * omega * problem.rho * potential
+            sources = None
         else:
-          S, K = self.engine.build_matrices(
-              problem.body.mesh, problem.body.mesh,
-              problem.free_surface, problem.water_depth, wavenumber,
-              self.green_function, adjoint_double_layer=True
-          )
+            S, K = self.engine.build_matrices(
+                    problem.body.mesh, problem.body.mesh,
+                    problem.free_surface, problem.water_depth, wavenumber,
+                    self.green_function, adjoint_double_layer=True
+                    )
 
-          sources = linear_solver(K, problem.boundary_condition)
-          potential = S @ sources
-          
-          if problem.forward_speed != 0.0:
-            result = problem.make_results_container(sources=sources)
-            # Temporary result object to compute the ∇Φ term
-            nabla_phi = self._compute_potential_gradient(problem.body.mesh, result)
-            pressure += problem.rho * problem.forward_speed * nabla_phi[:, 0]
+            sources = linear_solver(K, problem.boundary_condition)
+            potential = S @ sources
+            pressure = 1j * omega * problem.rho * potential
+            if problem.forward_speed != 0.0:
+                result = problem.make_results_container(sources=sources)
+                # Temporary result object to compute the ∇Φ term
+                nabla_phi = self._compute_potential_gradient(problem.body.mesh, result)
+                pressure += problem.rho * problem.forward_speed * nabla_phi[:, 0]
 
-        pressure = 1j * omega * problem.rho * potential
         forces = problem.body.integrate_pressure(pressure)
 
         if not keep_details:
