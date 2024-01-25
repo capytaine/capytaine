@@ -42,6 +42,8 @@ Minor changes
 
 * Rephrase mesh resolution warnings and group several of them together in a single warning. (:pull:`423`)
 
+* The tabulation is saved on disk in a cache directory instead of being recomputed at each initialization of the solver (:pull:`454`)
+
 Bug fixes
 ~~~~~~~~~
 
