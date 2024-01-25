@@ -46,7 +46,7 @@ def load_mesh(filename, file_format=None, name=None):
 
     if file_format is None:
         _, file_format = os.path.splitext(filename)
-        file_format = file_format.strip('.')
+        file_format = file_format.strip('.').lower()
 
     if file_format not in extension_dict:
         raise IOError('Extension ".%s" is not known' % file_format)

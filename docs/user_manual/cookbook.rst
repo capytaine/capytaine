@@ -3,9 +3,7 @@ Cookbook
 ========
 
 This page contains several examples of Capytaine's features.
-The scripts can be downloaded individually as Python files from
-`this folder <https://github.com/capytaine/capytaine/tree/master/docs/user_manual/examples>`_
-of the Github repository.
+The scripts can be downloaded individually as Python files from the |examples_folder|_.
 
 .. contents:: Content
 

@@ -71,13 +71,15 @@ class BEMSolver:
     def from_exported_settings(settings):
         raise NotImplementedError
 
-    def solve(self, problem, keep_details=True, _check_wavelength=True):
+    def solve(self, problem, method='indirect', keep_details=True, _check_wavelength=True):
         """Solve the linear potential flow problem.
 
         Parameters
         ----------
         problem: LinearPotentialFlowProblem
             the problem to be solved
+        method: string, optional
+            select boundary integral approach indirect (i.e.Nemoh)/direct (i.e.WAMIT) (default: indirect)
         keep_details: bool, optional
             if True, store the sources and the potential on the floating body in the output object
             (default: True)
@@ -93,14 +95,26 @@ class BEMSolver:
 
         if _check_wavelength: self._check_wavelength([problem])
 
-        S, K = self.engine.build_matrices(
-            problem.body.mesh, problem.body.mesh,
-            problem.free_surface, problem.water_depth, problem.wavenumber,
-            self.green_function
-        )
         linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
-        sources = linear_solver(K, problem.boundary_condition)
-        potential = S @ sources
+        if (method == 'direct'):
+          S, D = self.engine.build_matrices(
+              problem.body.mesh, problem.body.mesh,
+              problem.free_surface, problem.water_depth, problem.wavenumber,
+              self.green_function, adjoint_double_layer=False
+          )
+
+          potential = linear_solver(D, S @ problem.boundary_condition)
+          sources = None
+        else:
+          S, K = self.engine.build_matrices(
+              problem.body.mesh, problem.body.mesh,
+              problem.free_surface, problem.water_depth, problem.wavenumber,
+              self.green_function, adjoint_double_layer=True
+          )
+
+          sources = linear_solver(K, problem.boundary_condition)
+          potential = S @ sources
+
         pressure = 1j * problem.omega * problem.rho * potential
 
         forces = problem.body.integrate_pressure(pressure)
@@ -114,7 +128,7 @@ class BEMSolver:
 
         return result
 
-    def solve_all(self, problems, *, n_jobs=1, progress_bar=True, **kwargs):
+    def solve_all(self, problems, *, method='indirect', n_jobs=1, progress_bar=True, _check_wavelength=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -122,6 +136,8 @@ class BEMSolver:
         ----------
         problems: list of LinearPotentialFlowProblem
             several problems to be solved
+        method: string, optional
+            select boundary integral approach indirect (i.e.Nemoh)/direct (i.e.WAMIT) (default: indirect)
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
@@ -133,19 +149,20 @@ class BEMSolver:
         list of LinearPotentialFlowResult
             the solved problems
         """
-        self._check_wavelength(problems)
+        if _check_wavelength: self._check_wavelength(problems)
+
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
-            return [self.solve(pb, _check_wavelength=False, **kwargs) for pb in problems]
+            return [self.solve(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
                 raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
             parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
-            groups_of_results = parallel(joblib.delayed(self.solve_all)(grp, n_jobs=1, progress_bar=False, **kwargs) for grp in groups_of_problems)
+            groups_of_results = parallel(joblib.delayed(self.solve_all)(grp, method=method, n_jobs=1, progress_bar=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
             if progress_bar:
                 groups_of_results = track(groups_of_results,
                                           total=len(groups_of_problems),
@@ -180,7 +197,7 @@ class BEMSolver:
                          "has radius > wavelength/8."
                     )
 
-    def fill_dataset(self, dataset, bodies, *, n_jobs=1, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, method='indirect', n_jobs=1, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -190,6 +207,8 @@ class BEMSolver:
         bodies : FloatingBody or list of FloatingBody
             The body or bodies involved in the problems
             They should all have different names.
+        method: string, optional
+            select boundary integral approach indirect (i.e.Nemoh)/direct (i.e.WAMIT) (default: indirect)
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
@@ -204,12 +223,12 @@ class BEMSolver:
                  **self.exportable_settings}
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
-            results = self.solve_all(problems, keep_details=True, n_jobs=n_jobs)
+            results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs)
             kochin = kochin_data_array(results, dataset.coords['theta'])
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
             dataset.update(kochin)
         else:
-            results = self.solve_all(problems, keep_details=False, n_jobs=n_jobs)
+            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 
@@ -236,8 +255,8 @@ class BEMSolver:
         points, output_shape = _normalize_points(points, keep_mesh=True)
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
-            They probably have not been stored by the solver because the option keep_details=True have not been set.
-            Please re-run the resolution with this option.""")
+            They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
+            Please re-run the resolution with the indirect method and keep_details=True.""")
 
         S, _ = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.wavenumber)
         potential = S @ result.sources  # Sum the contributions of all panels in the mesh
@@ -267,8 +286,8 @@ class BEMSolver:
 
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
-            They probably have not been stored by the solver because the option keep_details=True have not been set.
-            Please re-run the resolution with this option.""")
+            They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
+            Please re-run the resolution with the indirect method and keep_details=True.""")
 
         _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.wavenumber,
                                                 early_dot_product=False)
@@ -355,8 +374,8 @@ class BEMSolver:
 
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
-            They probably have not been stored by the solver because the option keep_details=True have not been set.
-            Please re-run the resolution with this option.""")
+            They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
+            Please re-run the resolution with the indirect method and keep_details=True.""")
 
         if chunk_size > mesh.nb_faces:
             S = self.engine.build_S_matrix(
