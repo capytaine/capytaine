@@ -26,16 +26,16 @@ for body in bodies:
 
 # Dense problem setup and solution
 print('Solving dense problem')
-all_bodies = cpt.FloatingBody.join_bodies(*bodies)
+all_bodies = cpt.FloatingBody.join_bodies(*bodies, name="joined bodies")
 problems = [cpt.RadiationProblem(body=all_bodies, radiating_dof=dof, omega=omega)
         for dof in all_bodies.dofs]
 solver = cpt.BEMSolver()
-dresults = [solver.solve(pb) for pb in sorted(problems)]
+dresults = solver.solve_all(problems)
 ddata = cpt.assemble_dataset(dresults)
 
 
 # Hierarchical problem setup
-all_bodies = cpt.FloatingBody.cluster_bodies(bodies)
+all_bodies = cpt.FloatingBody.cluster_bodies(*bodies, name="clustered bodies")
 problems = [cpt.RadiationProblem(body=all_bodies, radiating_dof=dof, omega=omega)
             for dof in all_bodies.dofs]
 
@@ -46,7 +46,7 @@ print('Solving hierarchical problem with preconditioner')
 t0 = time()
 sparse_engine = cpt.HierarchicalPrecondMatrixEngine(ACA_distance=2.0, ACA_tol=1e-2)
 solver = cpt.BEMSolver(engine=sparse_engine)
-presults = [solver.solve(pb) for pb in sorted(problems)]
+presults = solver.solve_all(problems)
 tP = time() - t0
 
 data = cpt.assemble_dataset(presults)
@@ -56,7 +56,7 @@ print('Solving hierarchical problem without preconditioner')
 t0 = time()
 sparse_engine = cpt.HierarchicalToeplitzMatrixEngine(ACA_distance=2.0, ACA_tol=1e-2)
 solver = cpt.BEMSolver(engine=sparse_engine)
-hresults = [solver.solve(pb) for pb in sorted(problems)]
+hresults = solver.solve_all(problems)
 tNP = time() - t0
 
 # The clustering process changes the order of the bodies with respect to

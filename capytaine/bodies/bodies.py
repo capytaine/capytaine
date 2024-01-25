@@ -1034,7 +1034,7 @@ respective inertia coefficients are assigned as NaN.")
         """For accuracy of the resolution, wavelength should not be smaller than this value."""
         return 8*self.mesh.faces_radiuses.max()
 
-    def cluster_bodies(bodies):
+    def cluster_bodies(*bodies, name=None):
         """
         Builds a hierarchical clustering from a group of bodies
 
@@ -1042,10 +1042,12 @@ respective inertia coefficients are assigned as NaN.")
         ----------
         bodies: list
             a list of bodies
+        name: str, optional
+            a name for the new body
 
         Returns
         -------
-        all_buoys: FloatingBody
+        FloatingBody
             Array built from the provided bodies
         """
         from scipy.cluster.hierarchy import linkage, dendrogram
@@ -1057,8 +1059,7 @@ respective inertia coefficients are assigned as NaN.")
 
         ln_matrix = linkage(buoys_positions, method='centroid', metric='euclidean')
 
-        node_list = bodies.copy() #list of nodes of the tree: the first nodes are single bodies
-        # the list is copied to avoid changing it
+        node_list = list(bodies)  # list of nodes of the tree: the first nodes are single bodies
 
         # Join the bodies, with an ordering consistent with the dendrogram.
         # Done by reading the linkage matrix: its i-th row contains the labels
@@ -1074,5 +1075,8 @@ respective inertia coefficients are assigned as NaN.")
 
         # The last node is the parent of all others
         all_buoys = new_node
+
+        if name is not None:
+            all_buoys.name = name
 
         return all_buoys
