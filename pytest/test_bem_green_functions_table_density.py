@@ -9,13 +9,16 @@ import capytaine as cpt
 #----------------------------------------------------------------------------------#
 gf = cpt.Delhommeau()
 
+legacy_method = gf.fortran_core.delhommeau_integrals.legacy_method
+scaled_nemoh3_method = gf.fortran_core.delhommeau_integrals.scaled_nemoh3_method
+
 zmin = [-100,-251,-400]
 @pytest.mark.parametrize("zmin", zmin)
 def test_green_functions_z_spacing_zmin(zmin):
     """Test default_z_spacing"""
 
     nz = 124
-    zRange = gf.fortran_core.delhommeau_integrals.default_z_spacing(nz, zmin)
+    zRange = gf.fortran_core.delhommeau_integrals.default_z_spacing(nz, zmin, scaled_nemoh3_method)
 
     dz = []
     for i in range(1,len(zRange)):
@@ -31,7 +34,7 @@ nz = [64,124,248]
 def test_green_functions_z_spacing_nz(nz):
     """Test default_z_spacing"""
     zmin = -251
-    zRange = gf.fortran_core.delhommeau_integrals.default_z_spacing(nz,zmin)
+    zRange = gf.fortran_core.delhommeau_integrals.default_z_spacing(nz,zmin, scaled_nemoh3_method)
 
     dz = []
     for i in range(1,len(zRange)):
@@ -44,11 +47,11 @@ def test_green_functions_z_spacing_nz(nz):
 
 nr = [100,328,480]
 @pytest.mark.parametrize("nr", nr)
-def test_green_functions_r_spacing_Delhommeau_nr(nr):
-    """Test default_r_spacing Delhommeau model"""
+def test_green_functions_r_spacing_legacy_nr(nr):
+    """Test default_r_spacing legacy model"""
 
     rmax = 4/3+abs(nr-32)/3
-    rRange = gf.fortran_core.delhommeau_integrals.default_r_spacing(nr, rmax)
+    rRange = gf.fortran_core.delhommeau_integrals.default_r_spacing(nr, rmax, legacy_method)
 
     r_cal = []
     for i in range(1,nr+1):
@@ -64,7 +67,7 @@ def test_green_functions_r_spacing_Nemoh_rmax(rmax):
 
     nr = 676
     c = 81
-    rRange = gf.fortran_core.delhommeau_integrals.default_r_spacing(nr, rmax)
+    rRange = gf.fortran_core.delhommeau_integrals.default_r_spacing(nr, rmax, scaled_nemoh3_method)
 
     r_cal = []
     for i in range(1,nr+1):
@@ -84,7 +87,7 @@ def test_green_functions_r_spacing_Nemoh_nr(nr):
     nr0 = 676
     c = round(nr/nr0*81)
     rmax = 100
-    rRange = gf.fortran_core.delhommeau_integrals.default_r_spacing(nr, rmax)
+    rRange = gf.fortran_core.delhommeau_integrals.default_r_spacing(nr, rmax, scaled_nemoh3_method)
 
     r_cal = []
     for i in range(1,nr+1):
