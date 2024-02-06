@@ -16,7 +16,8 @@ from capytaine.meshes.symmetric import TranslationalSymmetricMesh, AxialSymmetri
 LOG = logging.getLogger(__name__)
 
 
-def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1), resolution=(3, 6),
+def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1),
+        resolution=(3, 6),
         reflection_symmetry=False, axial_symmetry=False, name=None, _theta_max=2*pi):
     """(One-sided) disk.
 
