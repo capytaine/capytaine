@@ -89,7 +89,7 @@ Major changes
 
 * **Breaking** The normalization of radiation problems has been changed to use the same normalization as diffraction problems. Added mass and radiation dampings are unchanged, but other outputs of radiation problem (free surface elevation, kochin functions, etc.) may differ from previous version by a factor :math:`-j \omega`. (:issue:`173` and :pull:`348`)
 
-* **Breaking** The above two points interfered with the handling of :math:`\omega = 0` and :math:`\omega = \inf` cases. They have been temporarily disabled and will return in a future release.
+* **Breaking** The above two points interfered with the handling of :math:`\omega = 0` and :math:`\omega = \infty` cases. They have been temporarily disabled and will return in a future release.
 
 * Add methods :meth:`~capytaine.bem.solver.BEMSolver.compute_potential`, :meth:`~capytaine.bem.solver.BEMSolver.compute_velocity` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation` and :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` to compute the value of some fields in the domain in post-processing. Their signature has been uniformized with the :func:`~capytaine.bem.airy_waves.airy_waves_potential` and :func:`~capytaine.bem.airy_waves.airy_waves_velocity` functions (:pull:`288`, :pull:`326`). New functions :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` and :func:`~capytaine.bem.airy_waves.airy_waves_pressure` have also been added (:pull:`293`).
 
@@ -663,7 +663,7 @@ Solver
   The initialization options :code:`keep_matrices` and :code:`max_stored_exponential_decompositions` have been removed.
   The former has been replaced by a :code:`matrix_cache_size` optional argument (default value: 1).
 
-* Support of :math:`\omega=0` and :math:`\omega=\inf` in the infinite depth case.
+* Support of :math:`\omega=0` and :math:`\omega=\infty` in the infinite depth case.
 
 * The wavenumber is not computed in Fortran anymore.
 
