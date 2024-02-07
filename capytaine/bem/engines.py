@@ -100,7 +100,7 @@ class BasicMatrixEngine(MatrixEngine):
         free_surface: float
             position of the free surface (default: :math:`z = 0`)
         water_depth: float
-            position of the sea bottom (default: :math:`z = -\inf`)
+            position of the sea bottom (default: :math:`z = -\infty`)
         wavenumber: float
             wavenumber (default: 1.0)
         green_function: AbstractGreenFunction
