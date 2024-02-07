@@ -106,9 +106,10 @@ def mesh_rectangle(*, size=(5.0, 5.0), center=(0.0, 0.0, 0.0),
     return mesh
 
 
-def mesh_parallelepiped(size=(1.0, 1.0, 1.0), resolution=(4, 4, 4), center=(0, 0, 0),
-             missing_sides=set(), reflection_symmetry=False, translation_symmetry=False,
-             name=None):
+def mesh_parallelepiped(size=(1.0, 1.0, 1.0), center=(0, 0, 0),
+                        resolution=(4, 4, 4), faces_max_radius=None,
+                        missing_sides=set(), reflection_symmetry=False, translation_symmetry=False,
+                        name=None):
     """Six rectangles forming a parallelepiped.
 
     Parameters

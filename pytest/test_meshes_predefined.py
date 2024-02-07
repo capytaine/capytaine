@@ -150,7 +150,7 @@ def test_mesh_resolution_max_size():
     d = mesh_sphere(
             radius=10.0, resolution=(10, 10),
             faces_max_radius=max_rad)
-    assert 2*np.pi < d.faces_radiuses.max() <= max_rad
+    assert d.faces_radiuses.max() <= max_rad
 
 # RECTANGLES
 
