@@ -27,7 +27,7 @@ def import_cal_file(filepath):
         g = float(cal_file.readline().split()[0])
         water_depth = float(cal_file.readline().split()[0])
         if water_depth == 0.0:
-            water_depth = np.infty
+            water_depth = np.inf
         xeff, yeff = (float(x) for x in cal_file.readline().split()[0:2])
 
         bodies = []
@@ -169,7 +169,7 @@ def export_as_Nemoh_directory(problem, directory_name, omega_range=None):
                 DEFAULT_NEMOH_CAL.format(
                     rho=problem.rho,
                     g=problem.g,
-                    depth=problem.water_depth if problem.water_depth < np.infty else 0,
+                    depth=problem.water_depth if problem.water_depth < np.inf else 0,
                     mesh_filename=f'{problem.body.name}.dat',
                     mesh_vertices=problem.body.mesh.nb_vertices,
                     mesh_faces=problem.body.mesh.nb_faces,

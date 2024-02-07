@@ -65,7 +65,7 @@ where :math:`n` denotes the normal vector at the surface of the floating body.
 .. * in the far field,
    .. math::
       \sqrt{R} \left( \frac{\partial \Phi}{\partial R} - i m_0 \right) \left( \Phi - Phi_0 \right)
-      \rightarrow 0, \qquad \text{when } R \rightarrow \infty,
+      \rightarrow 0, \qquad \text{when } R \rightarrow \inf,
 
 The normal velocity on the floating body surface is the input of the problem.
 It depends on the type of problem:
@@ -91,8 +91,8 @@ It depends on the type of problem:
     in infinite depth, where the wave number :math:`k` is defined by :math:`\omega^2 = k g`.
 
     In the above equations, :math:`\beta` is the angle of the incoming wave.
-    The angle :math:`\beta = 0` corresponds to waves propagating in the :math:`x` direction from :math:`x=-\infty` to :math:`x=+\infty`.
-    The angle :math:`\beta = \pi/2` corresponds to waves propagating in the :math:`y` direction from :math:`y=-\infty` to :math:`y=+\infty`.
+    The angle :math:`\beta = 0` corresponds to waves propagating in the :math:`x` direction from :math:`x=-\inf` to :math:`x=+\inf`.
+    The angle :math:`\beta = \pi/2` corresponds to waves propagating in the :math:`y` direction from :math:`y=-\inf` to :math:`y=+\inf`.
 
 
 Integral problem
@@ -196,7 +196,7 @@ where
 where :math:`E_1` is the first exponential integral, defined as
 
 .. math::
-    E_1(\zeta) = \int_\zeta^\infty \frac{e^{-t}}{t} dt,
+    E_1(\zeta) = \int_\zeta^\inf \frac{e^{-t}}{t} dt,
 
 and
 

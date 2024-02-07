@@ -26,7 +26,12 @@ docs = ["sphinx", "sphinx-toolbox", "sphinxcontrib-proof", "sphinxcontrib-mermai
 
 [build-system]
 build-backend = 'mesonpy'
-requires = ["meson-python", "oldest-supported-numpy", "charset-normalizer"]
+requires = [
+    "meson-python",
+    "charset-normalizer",
+    "oldest-supported-numpy; python_version < '3.9'",
+    "numpy >= 1.26; python_version >= '3.9'",  # To be updated to Numpy 2.0 as soon as possible when Numpy 2.0 is released
+]
 
 [tool.cibuildwheel]
 test-requires = ["pytest"]

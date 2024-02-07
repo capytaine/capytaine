@@ -19,7 +19,7 @@ body = cpt.FloatingBody(mesh)
 body.add_translation_dof(name="Heave")
 
 # Define the range of water depth
-depth_range = list(range(5, 25, 2)) + [np.infty]
+depth_range = list(range(5, 25, 2)) + [np.inf]
 
 # Set up the problems: we will solve a radiation problem for each
 # water depth:

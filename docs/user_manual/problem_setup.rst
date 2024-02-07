@@ -20,7 +20,7 @@ Then the function :meth:`fill_dataset <capytaine.bem.solver.BEMSolver.fill_datas
         'omega': np.linspace(0.1, 4, 40),
         'wave_direction': [0, np.pi/2],
         'radiating_dof': list(body.dofs),
-        'water_depth': [np.infty],
+        'water_depth': [np.inf],
     })
     dataset = cpt.BEMSolver().fill_dataset(test_matrix, body)
 
@@ -56,7 +56,7 @@ The table below gives their definitions and their default values.
 +=======================+==========================================+========================+
 | :code:`free_surface`  | Position of the free surface [#]_ (m)    | :math:`0.0` m          |
 +-----------------------+------------------------------------------+------------------------+
-| :code:`water_depth`   | Constant depth of water (m)              | :math:`\infty` m       |
+| :code:`water_depth`   | Constant depth of water (m)              | :math:`\inf` m       |
 +-----------------------+------------------------------------------+------------------------+
 | :code:`g`             | Acceleration of gravity :math:`g` (m/s²) | :math:`9.81` m/s²      |
 +-----------------------+------------------------------------------+------------------------+
@@ -70,12 +70,12 @@ The table below gives their definitions and their default values.
 +-----------------------+------------------------------------------+------------------------+
 
 .. [#] Only two positions are accepted for the free surface: :math:`z=0.0` and
-       :math:`z= +\infty`. The former is the usual case for linear potential
+       :math:`z= +\inf`. The former is the usual case for linear potential
        flow. The latter corresponds to an object in an infinite
        potential flow domain with no free surface.
 
 .. [#] A wave direction of :math:`0` rad corresponds to a wave propagating along
-       the :math:`x`-axis from :math:`x = -\infty` to :math:`x= + \infty`.
+       the :math:`x`-axis from :math:`x = -\inf` to :math:`x= + \inf`.
 
 .. warning::
    Unlike other software such as Nemoh, the wave direction in Capytaine is expressed in radians.
