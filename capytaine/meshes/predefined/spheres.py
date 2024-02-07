@@ -43,7 +43,7 @@ def mesh_sphere(*, radius=1.0, center=(0.0, 0.0, 0.0),
     ntheta, nphi = resolution
     if faces_max_radius is not None:
         perimeter = 2*np.pi*radius
-        estimated_max_radius = perimeter / np.sqrt(2*ntheta*nphi)
+        estimated_max_radius = np.hypot(perimeter/ntheta, perimeter/nphi)/2
         if estimated_max_radius > faces_max_radius:
             ntheta = nphi = int(np.ceil(perimeter / (np.sqrt(2)*faces_max_radius)))
 
@@ -60,4 +60,3 @@ def mesh_sphere(*, radius=1.0, center=(0.0, 0.0, 0.0),
     mesh.translate(center)
     mesh.geometric_center = np.asarray(center, dtype=float)
     return mesh
-

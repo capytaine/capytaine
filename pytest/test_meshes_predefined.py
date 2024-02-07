@@ -146,6 +146,7 @@ def test_mesh_sphere_axial_symmetry():
 def test_mesh_sphere_max_size(max_rad):
     from capytaine.meshes.predefined.spheres import mesh_sphere
     d = mesh_sphere(radius=10.0, faces_max_radius=max_rad)
+    print(d.faces_radiuses.max())
     assert d.faces_radiuses.max() <= max_rad
     d = mesh_sphere(
             radius=10.0, resolution=(10, 10),
