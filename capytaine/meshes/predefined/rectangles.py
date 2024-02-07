@@ -57,7 +57,7 @@ def mesh_rectangle(*, size=(5.0, 5.0), center=(0.0, 0.0, 0.0),
     nw, nh = resolution
 
     if faces_max_radius is not None:
-        estimated_max_radius = np.sqrt(width/nw * height/nh * 1/2)
+        estimated_max_radius = np.hypot(width/nw, height/nh)/2
         if estimated_max_radius > faces_max_radius:
             nw = int(np.ceil(width / (np.sqrt(2) * faces_max_radius)))
             nh = int(np.ceil(height / (np.sqrt(2) * faces_max_radius)))
@@ -152,10 +152,11 @@ def mesh_parallelepiped(size=(1.0, 1.0, 1.0), center=(0, 0, 0),
     nw, nth, nh = resolution
 
     if faces_max_radius is not None:
+        dw, dh, dth = width/nw, height/nh, thickness/nth
         estimated_max_radius = max(
-                np.sqrt(width/nw * height/nh * 1/2),
-                np.sqrt(thickness/nth * height/nh * 1/2),
-                np.sqrt(width/nw * thickness/nth * 1/2),
+                np.hypot(dw, dh)/2,
+                np.hypot(dw, dth)/2,
+                np.hypot(dth, dh)/2,
                 )
         if estimated_max_radius > faces_max_radius:
             nw = int(np.ceil(width / (np.sqrt(2) * faces_max_radius)))

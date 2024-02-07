@@ -142,9 +142,9 @@ def test_mesh_sphere_axial_symmetry():
     assert isinstance(d, cpt.AxialSymmetricMesh)
     assert np.allclose(d.axis.vector, (0, 0, 1))
 
-def test_mesh_resolution_max_size():
+@pytest.mark.parametrize("max_rad", [0.5, 1.0, 5.0])
+def test_mesh_sphere_max_size(max_rad):
     from capytaine.meshes.predefined.spheres import mesh_sphere
-    max_rad = 0.1 + 2*np.random.rand()
     d = mesh_sphere(radius=10.0, faces_max_radius=max_rad)
     assert d.faces_radiuses.max() <= max_rad
     d = mesh_sphere(
@@ -176,9 +176,9 @@ def test_mesh_rectangle_both_symmetries():
     with pytest.raises(NotImplementedError):
         mesh_rectangle(translation_symmetry=True, reflection_symmetry=True)
 
-def test_mesh_rectangle_max_size():
+@pytest.mark.parametrize("max_rad", [0.5, 1.0, 5.0])
+def test_mesh_rectangle_max_size(max_rad):
     from capytaine.meshes.predefined.rectangles import mesh_rectangle
-    max_rad = 0.01 + np.random.rand()
     d = mesh_rectangle(size=(10.0, 10.0), faces_max_radius=max_rad)
     assert d.faces_radiuses.max() <= max_rad
 
@@ -218,9 +218,9 @@ def test_mesh_parallelepiped_translation_symmetry():
     assert isinstance(p[0], cpt.TranslationalSymmetricMesh)
     assert p.nb_faces == 6*16
 
-def test_mesh_parallelepiped_max_size():
+@pytest.mark.parametrize("max_rad", [0.5, 1.0, 5.0])
+def test_mesh_parallelepiped_max_size(max_rad):
     from capytaine.meshes.predefined.rectangles import mesh_parallelepiped
-    max_rad = 0.01 + np.random.rand()
     d = mesh_parallelepiped(size=(10.0, 10.0, 10.0), faces_max_radius=max_rad)
     assert d.faces_radiuses.max() <= max_rad
     d = mesh_parallelepiped(size=(1.0, 10.0, 1.0), faces_max_radius=max_rad)
