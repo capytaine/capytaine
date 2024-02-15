@@ -42,6 +42,8 @@ Minor changes
 
 * Rephrase mesh resolution warnings and group several of them together in a single warning. (:pull:`423`)
 
+* Add block-Jacobi/coarse-correction preconditioner for large arrays of bodies. (:pull:`436`)
+
 Bug fixes
 ~~~~~~~~~
 
