@@ -154,7 +154,38 @@ def gmres_no_fft(A, b):
 
 # PRECONDITIONED SOLVER
 
-def _bJac_cc(A, b, x0, R, RA, AcLU, DLU, diag_shapes, n):
+def _block_Jacobi_coarse_corr(A, b, x0, R, RA, AcLU, DLU, diag_shapes, n):
+    """
+    Performs a single step of the block-Jacobi method with coarse correction.
+    Can be used as a preconditioner for matrix A.
+
+    Parameters
+    ----------
+    A: BlockMatrix
+        System matrix
+    b: array
+        System right hand side vector
+    x0: array
+        Initial guess of the solution
+    R: array
+        Coarse space restriction matrix
+    RA: array
+        Precomputed product of R and A
+    AcLU: list
+        LU decomposition data of the coarse system matrix Ac (output of
+        scipy.linalg.lu_factor)
+    DLU: list
+        List of LU decomposition data for the diagonal blocks of A
+    diag_shapes: list
+        List of shapes of diagonal blocks
+    n: integer
+        Size of the coarse problem (e.g. number of bodies simulated)
+
+    Returns
+    -------
+    array
+        Action of a step of the method on vector x0
+    """
     # x_ps = x after the pre-smoothing step (block-Jacobi)
     x_ps = np.zeros(A.shape[0], dtype=complex)
 
@@ -178,7 +209,7 @@ def solve_precond_gmres(A_and_precond_data, b):
     A, R, RA, AcLU, DLU, diag_shapes, n, PinvA = A_and_precond_data
     N = A.shape[0]
 
-    Pinvb = _bJac_cc(A, b, np.zeros(N, dtype=complex), R, RA, AcLU, DLU, diag_shapes, n)
+    Pinvb = _block_Jacobi_coarse_corr(A, b, np.zeros(N, dtype=complex), R, RA, AcLU, DLU, diag_shapes, n)
 
     LOG.debug(f"Solve with GMRES for {A}.")
 
