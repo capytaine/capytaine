@@ -51,7 +51,7 @@ for i in range(nb_modes):
     dofs[f"mode_{i}"] = np.array([(deformation_mode(i, z), 0.0, 0.0) for x, y, z in mesh.faces_centers])
 
 full_body = cpt.FloatingBody(mesh=mesh, dofs=dofs, center_of_mass=(0, 0, cylinder_length/2 - water_depth))
-body = full_body.immersed_part(sea_bottom=-water_depth)
+body = full_body.immersed_part(water_depth=water_depth)
 
 body.inertia_matrix = body.add_dofs_labels_to_matrix(np.eye(nb_modes))
 body.internal_stiffness_matrix = body.add_dofs_labels_to_matrix(np.diag([eigenfrequency(i_mode) for i_mode in range(nb_modes)]))
