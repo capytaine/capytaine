@@ -67,13 +67,10 @@ CONTAINS
 
     if ((abs(r) < 1e-10) .and. (abs(z) < 1e-10)) then
       ! Interaction of a panel on the free surface with itself
-      int_G = wavenumber * face_area * (                      &
-                    (1 - log(wavenumber**2 * face_area / pi)) &
-                    + 2 * (euler_gamma - log_2) - 2*pi*ii    &
-                  )
-      int_grad_G_sym(1:2) = cmplx(zero, zero, kind=pre)
-      int_grad_G_sym(3) = wavenumber * (int_G + 4 * sqrt(pi*face_area))
-      int_grad_G_antisym(1:3) = cmplx(zero, zero, kind=pre)  ! Irrelevant because we are on the diagonal
+      call integral_of_singularity_on_free_surface( &
+        face_area, wavenumber, &
+        int_G, int_grad_G_sym, int_grad_G_antisym &
+        )
 
     else
       ! Numerical integration
@@ -108,6 +105,39 @@ CONTAINS
       end do
     end if
 
+  end subroutine
+
+  subroutine integral_of_singularity_on_free_surface(face_area, wavenumber, int_G, int_grad_G_sym, int_grad_G_antisym)
+  ! Integrating the wave term by approximating the panel by a circle of same area.
+  ! The singularities are integrated analytically. The rest is integrated with a 1-point integral.
+
+  ! G_w^+ = - 2 k log(k r) + rest
+  ! ∫_Γ G_w^+ dξ ∼ - 2 k ∫_Γ log(k r) dξ + |Γ| rest(0)
+  ! with
+  ! ∫_Γ log(k r) dξ = |Γ|/2 (log(k^2 Γ/π) - 1)
+  ! and
+  ! rest(0) = 2 k ( γ - log(2) ) - 2ikπ
+  !
+  ! Also
+  ! dG_w^+/dz = G_w^+ + 2/r
+  ! with
+  ! ∫_Γ 1/r dξ ∼ 2 √( π |Γ| )
+  ! TODO: replace the latter with the actual integral since we computed it anyway for the Rankine term.
+
+  ! TODO: only XieDelhommeau is implemented here
+    real(kind=pre),                        intent(in) :: wavenumber
+    real(kind=pre),                        intent(in) :: face_area
+
+    complex(kind=pre),                     intent(out) :: int_G
+    complex(kind=pre), dimension(3),       intent(out) :: int_grad_G_sym, int_grad_G_antisym
+
+    int_G = wavenumber * face_area * (                      &
+                  (1 - log(wavenumber**2 * face_area / pi)) &
+                  + 2 * (euler_gamma - log_2) - 2*pi*ii     &
+                )
+    int_grad_G_sym(1:2) = cmplx(zero, zero, kind=pre)
+    int_grad_G_sym(3) = wavenumber * (int_G + 4 * sqrt(pi*face_area))
+    int_grad_G_antisym(1:3) = cmplx(zero, zero, kind=pre)  ! Irrelevant anyway because we are on the diagonal
   end subroutine
 
 
