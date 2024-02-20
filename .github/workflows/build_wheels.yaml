@@ -27,7 +27,7 @@ jobs:
           version: '13'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.2
+        uses: pypa/cibuildwheel@v2.16.5
         env:
           CIBW_SKIP: "pp* *i686* *musllinux* *win32*"
         # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
