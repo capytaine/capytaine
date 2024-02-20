@@ -94,7 +94,7 @@ do i=1, 1
         coeffs,                                                      &
         tabulated_r, tabulated_z, tabulated_integrals,               &
         nexp, ambda, ar,                                             &
-        .false.,                                                     &
+        .false., .true.,                                             &
         S, K)
    call system_clock(final_time)
 
@@ -111,7 +111,7 @@ do i=1, 1
    !      coeffs,                                                      &
    !      tabulated_r, tabulated_z, tabulated_integrals,               &
    !      nexp, ambda, ar,                                             &
-   !      .false.,                                                     &
+   !      .false., .true.,                                             &
    !      S, K)
    ! call system_clock(final_time)
 
@@ -128,7 +128,7 @@ do i=1, 1
    !      coeffs,                                                      &
    !      tabulated_r, tabulated_z, tabulated_integrals,               &
    !      nexp, ambda, ar,                                             &
-   !      .true.,                                                      &
+   !      .true., .true.,                                              &
    !      S, K)
    ! call system_clock(final_time)
 
