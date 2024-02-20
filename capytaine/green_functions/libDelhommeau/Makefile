@@ -105,7 +105,8 @@ run_bench_tab: benchmark
 
 run_bench_omp: benchmark
 	@benchmarks/openmp/benchmark_omp.bin
-	@mv benchmark_omp.csv benchmarks/openmp/benchmark_omp_$(shell git rev-parse --short HEAD)_$(shell git branch --show-current).csv
+	@mkdir -p results
+	@mv benchmark_omp.csv results/benchmark_omp_$(shell git rev-parse --short HEAD)_$(shell git branch --show-current).csv
 	@python3 benchmarks/openmp/read_output.py
 
 # requires gprof2dot
