@@ -42,6 +42,8 @@ Minor changes
 
 * Rephrase mesh resolution warnings and group several of them together in a single warning. (:pull:`423`)
 
+* Add a `faces_max_radius` argument to the predefined geometries from :mod:`~cpt.meshes.predefined` to set up the resolution by giving a length scale for the panels (:pull:`459`).
+
 Bug fixes
 ~~~~~~~~~
 
