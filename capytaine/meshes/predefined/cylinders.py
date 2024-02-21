@@ -150,7 +150,7 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
                 )
         if estimated_max_radius > faces_max_radius:
             nr = int(np.ceil(radius / (np.sqrt(2) * faces_max_radius)))
-            ntheta = int(np.ceil(2*pi*radius / (np.sqrt(2) * faces_max_radius)))
+            ntheta = 2*int(np.ceil(pi*radius / (np.sqrt(2) * faces_max_radius)))
             nz = int(np.ceil(length / (np.sqrt(2) * faces_max_radius)))
 
     if name is None:
@@ -257,7 +257,7 @@ def mesh_horizontal_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
                 )
         if estimated_max_radius > faces_max_radius:
             nr = int(np.ceil(radius / (np.sqrt(2) * faces_max_radius)))
-            ntheta = int(np.ceil(2*pi*radius / (np.sqrt(2) * faces_max_radius)))
+            ntheta = 2*int(np.ceil(pi*radius / (np.sqrt(2) * faces_max_radius)))
             nx = int(np.ceil(length / (np.sqrt(2) * faces_max_radius)))
 
     if reflection_symmetry:
