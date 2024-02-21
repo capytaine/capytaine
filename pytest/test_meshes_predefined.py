@@ -41,7 +41,6 @@ def test_mesh_disk_both_symmetries():
 def test_mesh_disk_max_size(max_rad):
     from capytaine.meshes.predefined.cylinders import mesh_disk
     d = mesh_disk(radius=10.0, faces_max_radius=max_rad)
-    d.show()
     assert d.faces_radiuses.max() <= max_rad
 
 # VERTICAL CYLINDER
