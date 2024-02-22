@@ -1,5 +1,5 @@
 """Generate rectangular bodies."""
-# Copyright (C) 2017-2022 Matthieu Ancellin
+# Copyright (C) 2017-2024 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
 import logging
 from itertools import product
@@ -13,7 +13,11 @@ from capytaine.meshes.collections import CollectionOfMeshes
 
 LOG = logging.getLogger(__name__)
 
-def mesh_rectangle(*, size=(5.0, 5.0), resolution=(5, 5), center=(0.0, 0.0, 0.0), normal=(0.0, 0.0, 1.0), translation_symmetry=False, reflection_symmetry=False, name=None):
+def mesh_rectangle(*, size=(5.0, 5.0), center=(0.0, 0.0, 0.0),
+        resolution=(5, 5), faces_max_radius=None,
+        normal=(0.0, 0.0, 1.0),
+        translation_symmetry=False, reflection_symmetry=False,
+        name=None):
     """One-sided rectangle.
 
     By default, the rectangle is horizontal, the normals are oriented upwards.
@@ -22,10 +26,14 @@ def mesh_rectangle(*, size=(5.0, 5.0), resolution=(5, 5), center=(0.0, 0.0, 0.0)
     ----------
     size : couple of floats, optional
         dimensions of the rectangle (width and height)
-    resolution : couple of ints, optional
-        number of faces along each of the two directions
     center : 3-ple of floats, optional
         position of the geometric center of the rectangle, default: (0, 0, 0)
+    resolution : couple of ints, optional
+        number of faces along each of the two directions
+    faces_max_radius : float, optional
+        maximal radius of a panel. (Default: no maximal radius.)
+        If the provided resolution is too coarse, the number of panels is
+        changed to fit the constraint on the maximal radius.
     normal: 3-ple of floats, optional
         normal vector, default: (0, 0, 1)
     translation_symmetry : bool, optional
@@ -47,6 +55,12 @@ def mesh_rectangle(*, size=(5.0, 5.0), resolution=(5, 5), center=(0.0, 0.0, 0.0)
 
     width, height = size
     nw, nh = resolution
+
+    if faces_max_radius is not None:
+        estimated_max_radius = np.hypot(width/nw, height/nh)/2
+        if estimated_max_radius > faces_max_radius:
+            nw = int(np.ceil(width / (np.sqrt(2) * faces_max_radius)))
+            nh = int(np.ceil(height / (np.sqrt(2) * faces_max_radius)))
 
     if name is None:
         name = f"rectangle_{next(Mesh._ids)}"
@@ -92,19 +106,24 @@ def mesh_rectangle(*, size=(5.0, 5.0), resolution=(5, 5), center=(0.0, 0.0, 0.0)
     return mesh
 
 
-def mesh_parallelepiped(size=(1.0, 1.0, 1.0), resolution=(4, 4, 4), center=(0, 0, 0),
-             missing_sides=set(), reflection_symmetry=False, translation_symmetry=False,
-             name=None):
+def mesh_parallelepiped(size=(1.0, 1.0, 1.0), center=(0, 0, 0),
+                        resolution=(4, 4, 4), faces_max_radius=None,
+                        missing_sides=set(), reflection_symmetry=False, translation_symmetry=False,
+                        name=None):
     """Six rectangles forming a parallelepiped.
 
     Parameters
     ----------
     size : 3-ple of floats, optional
         dimensions of the parallelepiped (width, thickness, height) for coordinates (x, y, z).
-    resolution : 3-ple of ints, optional
-        number of faces along the three directions
     center : 3-ple of floats, optional
         coordinates of the geometric center of the parallelepiped
+    resolution : 3-ple of ints, optional
+        number of faces along the three directions
+    faces_max_radius : float, optional
+        maximal radius of a panel. (Default: no maximal radius.)
+        If the provided resolution is too coarse, the number of panels is
+        changed to fit the constraint on the maximal radius.
     missing_sides : set of string, optional
         if one of the keyword "top", "bottom", "front", "back", "left", "right" is in the set,
         then the corresponding side is not included in the parallelepiped.
@@ -131,6 +150,19 @@ def mesh_parallelepiped(size=(1.0, 1.0, 1.0), resolution=(4, 4, 4), center=(0, 0
 
     width, thickness, height = size
     nw, nth, nh = resolution
+
+    if faces_max_radius is not None:
+        dw, dh, dth = width/nw, height/nh, thickness/nth
+        estimated_max_radius = max(
+                np.hypot(dw, dh)/2,
+                np.hypot(dw, dth)/2,
+                np.hypot(dth, dh)/2,
+                )
+        if estimated_max_radius > faces_max_radius:
+            nw = int(np.ceil(width / (np.sqrt(2) * faces_max_radius)))
+            nth = int(np.ceil(thickness / (np.sqrt(2) * faces_max_radius)))
+            nh = int(np.ceil(height / (np.sqrt(2) * faces_max_radius)))
+
     if name is None:
         name = f"rectangular_parallelepiped_{next(Mesh._ids)}"
 
