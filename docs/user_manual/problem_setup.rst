@@ -70,12 +70,12 @@ The table below gives their definitions and their default values.
 +-----------------------+------------------------------------------+------------------------+
 
 .. [#] Only two positions are accepted for the free surface: :math:`z=0.0` and
-       :math:`z= +\inf`. The former is the usual case for linear potential
+       :math:`z= +\infty`. The former is the usual case for linear potential
        flow. The latter corresponds to an object in an infinite
        potential flow domain with no free surface.
 
 .. [#] A wave direction of :math:`0` rad corresponds to a wave propagating along
-       the :math:`x`-axis from :math:`x = -\inf` to :math:`x= + \inf`.
+       the :math:`x`-axis from :math:`x = -\infty` to :math:`x= + \infty`.
 
 .. warning::
    Unlike other software such as Nemoh, the wave direction in Capytaine is expressed in radians.

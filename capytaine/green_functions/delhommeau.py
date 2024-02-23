@@ -179,7 +179,7 @@ class Delhommeau(AbstractGreenFunction):
         free_surface: float, optional
             position of the free surface (default: :math:`z = 0`)
         water_depth: float, optional
-            constant depth of water (default: :math:`+\inf`)
+            constant depth of water (default: :math:`+\infty`)
         wavenumber: float, optional
             wavenumber (default: 1.0)
         adjoint_double_layer: bool, optional
