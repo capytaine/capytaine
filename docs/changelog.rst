@@ -44,6 +44,9 @@ Minor changes
 
 * Add block-Jacobi/coarse-correction preconditioner for large arrays of bodies. (:pull:`436`)
 
+* Add a `faces_max_radius` argument to the predefined geometries from :mod:`~cpt.meshes.predefined` to set up the resolution by giving a length scale for the panels (:pull:`459`).
+
+
 Bug fixes
 ~~~~~~~~~
 

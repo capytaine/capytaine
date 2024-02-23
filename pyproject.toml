@@ -3,7 +3,7 @@ name = "capytaine"
 description = "Python BEM solver for linear potential flow, based on Nemoh"
 authors = [{name = "Matthieu Ancellin", email = "matthieu.ancellin@eurobios.com"}]
 requires-python = ">=3.8"
-dependencies = ["numpy", "scipy", "pandas>=1.3", "xarray", "rich"]
+dependencies = ["numpy<2", "scipy", "pandas>=1.3", "xarray", "rich"]
 urls = {repository = "https://github.com/capytaine/capytaine"}
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -20,21 +20,26 @@ dynamic = ['version']
 
 [project.optional-dependencies]
 optional = ["matplotlib", "joblib>=1.3", "meshio", "quadpy-gpl", "bemio @ https://github.com/mancellin/bemio/archive/fa3a6d3d4b0862491c3723919ec8ee45cc7d055a.zip"]
-build = ["numpy", "ninja", "meson-python", "charset-normalizer"]
+build = ["numpy<=1.26.2", "ninja", "meson-python", "charset-normalizer"]
 test = ["pytest"]
 docs = ["sphinx", "sphinx-toolbox", "sphinxcontrib-proof", "sphinxcontrib-mermaid"]
 
 [build-system]
 build-backend = 'mesonpy'
-requires = ["meson-python", "oldest-supported-numpy", "charset-normalizer"]
+requires = [
+    "meson-python",
+    "charset-normalizer",
+    "oldest-supported-numpy; python_version < '3.9'",
+    "numpy == 1.26.2; python_version >= '3.9'",
+]
 
 [tool.cibuildwheel]
 test-requires = ["pytest"]
 test-command = "pytest {project}/pytest/"
 
-[tool.ruff]
+[tool.ruff.lint]
 select = ["E", "F", "W", "NPY"]
 ignore = ["E501"]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401"]

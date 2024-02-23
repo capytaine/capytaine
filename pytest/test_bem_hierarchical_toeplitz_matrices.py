@@ -32,7 +32,7 @@ adjoint_double_layer = [True,False]
 
 
 @pytest.mark.parametrize("method", method)
-@pytest.mark.parametrize("depth", [10.0, np.infty])
+@pytest.mark.parametrize("depth", [10.0, np.inf])
 @pytest.mark.parametrize("omega", [0.1, 10.0])
 def test_floating_sphere(depth, omega, method):
     """Comparison of the added mass and radiation damping
@@ -126,7 +126,7 @@ def test_odd_axial_symmetry(method):
 
 
 @pytest.mark.parametrize("method", method)
-@pytest.mark.parametrize("depth", [10.0, np.infty])
+@pytest.mark.parametrize("depth", [10.0, np.inf])
 def test_horizontal_cylinder(depth,method):
     cylinder = HorizontalCylinder(length=10.0, radius=1.0, reflection_symmetry=False, translation_symmetry=False, nr=2, ntheta=10, nx=10)
     assert isinstance(cylinder.mesh, Mesh)
@@ -163,7 +163,7 @@ def test_low_rank_matrices(method):
     two_distant_buoys = FloatingBody.join_bodies(buoy, buoy.translated_x(20))
     two_distant_buoys.mesh._meshes[1].name = "other_buoy_mesh"
 
-    S, V = solver_with_sym.engine.build_matrices(two_distant_buoys.mesh, two_distant_buoys.mesh, 0.0, np.infty, 1.0, solver_with_sym.green_function)
+    S, V = solver_with_sym.engine.build_matrices(two_distant_buoys.mesh, two_distant_buoys.mesh, 0.0, np.inf, 1.0, solver_with_sym.green_function)
     assert isinstance(S.all_blocks[0, 1], LowRankMatrix)
     assert isinstance(S.all_blocks[1, 0], LowRankMatrix)
     # S.plot_shape()
@@ -205,16 +205,16 @@ def test_array_of_spheres(method,adjoint_double_layer):
     #
     array = buoy.assemble_regular_array(distance=4.0, nb_bodies=(3, 1))
 
-    fullS, fullV = solver_without_sym.engine.build_matrices(array.mesh, array.mesh, 0.0, np.infty, 
+    fullS, fullV = solver_without_sym.engine.build_matrices(array.mesh, array.mesh, 0.0, np.inf,
 			1.0, solver_without_sym.green_function, adjoint_double_layer=adjoint_double_layer)
-    S, V = solver_with_sym.engine.build_matrices(array.mesh, array.mesh, 0.0, np.infty, 
+    S, V = solver_with_sym.engine.build_matrices(array.mesh, array.mesh, 0.0, np.inf,
 			1.0, solver_with_sym.green_function, adjoint_double_layer=adjoint_double_layer)
 
     assert isinstance(S, cpt.matrices.block.BlockMatrix)
     assert np.allclose(S.full_matrix(), fullS)
     assert np.allclose(V.full_matrix(), fullV)
 
-    problem = RadiationProblem(body=array, omega=1.0, radiating_dof="2_0__Heave", water_depth=np.infty)
+    problem = RadiationProblem(body=array, omega=1.0, radiating_dof="2_0__Heave", water_depth=np.inf)
 
     result = solver_with_sym.solve(problem, method=method)
     result2 = solver_without_sym.solve(problem, method=method)

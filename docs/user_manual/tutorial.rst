@@ -169,8 +169,8 @@ Defining linear potential flow problems.
 
 Let us define a radiation problem for the heave of our sphere::
 
-    from numpy import infty
-    problem = cpt.RadiationProblem(body=body, radiating_dof="Heave", omega=1.0, water_depth=infty, g=9.81, rho=1000)
+    from numpy import inf
+    problem = cpt.RadiationProblem(body=body, radiating_dof="Heave", omega=1.0, water_depth=inf, g=9.81, rho=1000)
 
 The argument :code:`radiating_dof` must be the name of one of the dofs of the floating body given as the
 :code:`body` argument. The wave angular frequency has been set arbitrarily as :math:`\omega = 1 \, \text{rad/s}`.
