@@ -16,7 +16,8 @@ from capytaine.meshes.symmetric import TranslationalSymmetricMesh, AxialSymmetri
 LOG = logging.getLogger(__name__)
 
 
-def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1), resolution=(3, 6),
+def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1),
+        resolution=(3, 6), faces_max_radius=None,
         reflection_symmetry=False, axial_symmetry=False, name=None, _theta_max=2*pi):
     """(One-sided) disk.
 
@@ -30,6 +31,10 @@ def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1), resolution=(3, 
         normal vector, default: along x axis
     resolution : 2-ple of int, optional
         number of panels along a radius and around the disk
+    faces_max_radius : float, optional
+        maximal radius of a panel. (Default: no maximal radius.)
+        If the provided resolution is too coarse, the number of panels is
+        changed to fit the constraint on the maximal radius.
     axial_symmetry : bool, optional
         if True, returns an AxialSymmetricMesh
     reflection_symmetry : bool, optional
@@ -48,6 +53,13 @@ def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1), resolution=(3, 
     assert len(center) == 3, "Position of the center of a disk should be given a 3-ple of values."
 
     nr, ntheta = resolution
+    if faces_max_radius is not None:
+        # The biggest cell is on the side of the disk.
+        # Assuming it is a rectangle of sides radius/nr and perimeter/ntheta
+        estimated_max_radius = np.hypot(radius/nr, 2*pi*radius/ntheta)/2
+        if estimated_max_radius > faces_max_radius:
+            nr = int(np.ceil(radius / (np.sqrt(2) * faces_max_radius)))
+            ntheta = int(np.ceil(2*pi*radius / (np.sqrt(2) * faces_max_radius)))
 
     if name is None:
         name = f"disk_{next(Mesh._ids)}"
@@ -90,7 +102,8 @@ def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1), resolution=(3, 
 
 
 def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
-        resolution=(2, 8, 10), axial_symmetry=False, reflection_symmetry=False, name=None, _theta_max=2*pi):
+        resolution=(2, 8, 10), faces_max_radius=None,
+        axial_symmetry=False, reflection_symmetry=False, name=None, _theta_max=2*pi):
     """Vertical cylinder.
 
     Total number of panels = (2*resolution[0] + resolution[2])*resolution[1]
@@ -106,6 +119,10 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
     resolution : 3-ple of int, optional
         (number of panel along a radius at the end, number of panels around a slice, number of slices)
         Mnemonic: same ordering as the cylindrical coordinates (nr, ntheta, nz)
+    faces_max_radius : float, optional
+        maximal radius of a panel. (Default: no maximal radius.)
+        If the provided resolution is too coarse, the number of panels is
+        changed to fit the constraint on the maximal radius.
     axial_symmetry : bool, optional
         if True, returns an AxialSymmetricMesh
     reflection_symmetry : bool, optional
@@ -125,6 +142,16 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
     assert len(center) == 3, "Position of the center of a cylinder should be given a 3-ple of values."
 
     nr, ntheta, nz = resolution
+    if faces_max_radius is not None:
+        dr, dtheta, dz = radius/nr, 2*pi*radius/ntheta, length/nz
+        estimated_max_radius = max(
+                np.hypot(dr, dtheta)/2,  # Panel on disk side
+                np.hypot(dtheta, dz)/2,  # Panel on cylinder itself
+                )
+        if estimated_max_radius > faces_max_radius:
+            nr = int(np.ceil(radius / (np.sqrt(2) * faces_max_radius)))
+            ntheta = 2*int(np.ceil(pi*radius / (np.sqrt(2) * faces_max_radius)))
+            nz = int(np.ceil(length / (np.sqrt(2) * faces_max_radius)))
 
     if name is None:
         name = f"cylinder_{next(Mesh._ids)}"
@@ -176,7 +203,8 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
 
 
 def mesh_horizontal_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
-        resolution=(2, 8, 10), reflection_symmetry=False, translation_symmetry=False, name=None, _theta_max=2*pi):
+        resolution=(2, 8, 10), faces_max_radius=None,
+        reflection_symmetry=False, translation_symmetry=False, name=None, _theta_max=2*pi):
     """Cylinder aligned along Ox axis.
 
     Total number of panels = (2*resolution[0] + resolution[2])*resolution[1]
@@ -192,6 +220,10 @@ def mesh_horizontal_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
     resolution : 3-ple of int, optional
         (number of panel along a radius at the end, number of panels around a slice, number of slices)
         Mnemonic: same ordering as the cylindrical coordinates (nr, ntheta, nz)
+    faces_max_radius : float, optional
+        maximal radius of a panel. (Default: no maximal radius.)
+        If the provided resolution is too coarse, the number of panels is
+        changed to fit the constraint on the maximal radius.
     reflection_symmetry : bool, optional
         if True, returns a ReflectionSymmetricMesh
     translation_symmetry : bool, optional
@@ -217,6 +249,16 @@ def mesh_horizontal_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
     LOG.debug(f"New horizontal cylinder of length {length}, radius {radius} and resolution {resolution}, named {name}.")
 
     nr, ntheta, nx = resolution
+    if faces_max_radius is not None:
+        dr, dtheta, dx = radius/nr, 2*pi*radius/ntheta, length/nx
+        estimated_max_radius = max(
+                np.hypot(dr, dtheta)/2,  # Panel on disk side
+                np.hypot(dtheta, dx)/2,  # Panel on cylinder itself
+                )
+        if estimated_max_radius > faces_max_radius:
+            nr = int(np.ceil(radius / (np.sqrt(2) * faces_max_radius)))
+            ntheta = 2*int(np.ceil(pi*radius / (np.sqrt(2) * faces_max_radius)))
+            nx = int(np.ceil(length / (np.sqrt(2) * faces_max_radius)))
 
     if reflection_symmetry:
         if ntheta % 2 == 1:
