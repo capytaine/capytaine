@@ -151,7 +151,7 @@ def test_clipper():
     mesh = Sphere(radius=5.0, ntheta=10).mesh.merged()
     aabb = mesh.axis_aligned_bbox
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=np.infty)
+    mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
     assert np.allclose(mesh.axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
 
     mesh.keep_immersed_part(free_surface=0.0, water_depth=1.0)
@@ -161,7 +161,7 @@ def test_clipper():
     mesh = Sphere(radius=5.0, ntheta=10).mesh
     aabb = mesh.merged().axis_aligned_bbox
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=np.infty)
+    mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
     assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
 
     mesh.keep_immersed_part(free_surface=0.0, water_depth=1.0)

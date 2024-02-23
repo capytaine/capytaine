@@ -4,7 +4,7 @@ import numpy as np
 
 LOG = logging.getLogger(__name__)
 
-def _get_water_depth(free_surface, water_depth, sea_bottom, default_water_depth=np.infty):
+def _get_water_depth(free_surface, water_depth, sea_bottom, default_water_depth=np.inf):
     if water_depth is None and sea_bottom is None:
         return default_water_depth
     elif water_depth is not None and sea_bottom is None:

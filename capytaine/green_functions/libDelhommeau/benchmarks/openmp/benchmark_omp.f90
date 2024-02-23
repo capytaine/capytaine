@@ -103,7 +103,7 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     coeffs,                                                      &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     nexp, ambda, ar,                                             &
-    .false.,                                                     &
+    .false., .true.,                                             &
     S, K)
   call system_clock(final_time)
 
@@ -121,7 +121,7 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     coeffs,                                                      &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     nexp, ambda, ar,                                             &
-    .false.,                                                     &
+    .false., .true.,                                             &
     S, K)
   call system_clock(final_time)
 
@@ -139,7 +139,7 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     coeffs,                                                      &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     nexp, ambda, ar,                                             &
-    .true.,                                                      &
+    .true., .true.,                                              &
     S, K)
   call system_clock(final_time)
 

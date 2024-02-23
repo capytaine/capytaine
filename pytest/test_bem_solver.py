@@ -54,15 +54,15 @@ def test_limit_frequencies(sphere):
     """Test if how the solver answers when asked for frequency of 0 or ∞."""
     solver = BEMSolver()
 
-    solver.solve(RadiationProblem(body=sphere, omega=0.0, water_depth=np.infty))
+    solver.solve(RadiationProblem(body=sphere, omega=0.0, water_depth=np.inf))
 
     with pytest.raises(NotImplementedError):
         solver.solve(RadiationProblem(body=sphere, omega=0.0, water_depth=1.0))
 
-    solver.solve(RadiationProblem(body=sphere, omega=np.infty, water_depth=np.infty))
+    solver.solve(RadiationProblem(body=sphere, omega=np.inf, water_depth=np.inf))
 
     with pytest.raises(NotImplementedError):
-        solver.solve(RadiationProblem(body=sphere, omega=np.infty, water_depth=10))
+        solver.solve(RadiationProblem(body=sphere, omega=np.inf, water_depth=10))
 
 
 def test_limit_frequencies_with_symmetries():
@@ -98,7 +98,7 @@ def test_fill_dataset(sphere):
         'wave_direction': np.linspace(0.0, pi, 3),
         'radiating_dof': list(sphere.dofs.keys()),
         'rho': [1025.0],
-        'water_depth': [np.infty, 10.0],
+        'water_depth': [np.inf, 10.0],
         'g': [9.81]
     })
     dataset = solver.fill_dataset(test_matrix, sphere, n_jobs=1)
