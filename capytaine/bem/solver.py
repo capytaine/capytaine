@@ -23,9 +23,11 @@ from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
+
 from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
 
 LOG = logging.getLogger(__name__)
+
 
 class BEMSolver:
     """
@@ -160,7 +162,9 @@ class BEMSolver:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
                 raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
+
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
+
             parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
             groups_of_results = parallel(joblib.delayed(self.solve_all)(grp, method=method, n_jobs=1, progress_bar=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
             if progress_bar:
@@ -169,6 +173,8 @@ class BEMSolver:
                                           description=f"Solving BEM problems with {n_jobs} threads:")
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
             return results
+        
+
 
     @staticmethod
     def _check_wavelength(problems):

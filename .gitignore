@@ -139,6 +139,9 @@ ENV/
 # Rope project settings
 .ropeproject
 
+# meson build
+.meson*
+
 # mkdocs documentation
 /site
 
