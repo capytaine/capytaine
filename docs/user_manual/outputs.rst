@@ -42,7 +42,7 @@ arguments to store more information in the dataset:
 
 .. note:: Datasets created with :code:`assemble_dataset` only include data on
           cases with a free surface.
-          Cases without a free surface (:code:`free_surface=infty`) are ignored.
+          Cases without a free surface (:code:`free_surface=inf`) are ignored.
 
 Building a dataset from Bemio
 -----------------------------

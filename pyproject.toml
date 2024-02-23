@@ -32,9 +32,9 @@ requires = ["meson-python", "oldest-supported-numpy", "charset-normalizer"]
 test-requires = ["pytest"]
 test-command = "pytest {project}/pytest/"
 
-[tool.ruff]
+[tool.ruff.lint]
 select = ["E", "F", "W", "NPY"]
 ignore = ["E501"]
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401"]

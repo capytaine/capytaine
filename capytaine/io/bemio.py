@@ -35,7 +35,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
         g = bemio_obj.body[0].g
 
         if bemio_obj.body[i].water_depth == 'infinite':
-            bemio_obj.body[i].water_depth = np.infty
+            bemio_obj.body[i].water_depth = np.inf
 
         if bemio_obj.body[i].bem_code == 'WAMIT': # WAMIT coefficients need to be dimensionalized
             from_wamit = True
@@ -55,7 +55,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['influenced_dof'] = dofs
 
                 if wavenumber or wavelength:
-                    if temp_dict['water_depth'] == np.infty or omega**2*temp_dict['water_depth']/temp_dict['g'] > 20:
+                    if temp_dict['water_depth'] == np.inf or omega**2*temp_dict['water_depth']/temp_dict['g'] > 20:
                         k = omega**2/temp_dict['g']
                     else:
                         k = newton(lambda x: x*np.tanh(x) - omega**2*temp_dict['water_depth']/temp_dict['g'], x0=1.0)/temp_dict['water_depth']
@@ -65,7 +65,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
 
                     if wavelength:
                         if k == 0.0:
-                            temp_dict['wavelength'] = np.infty
+                            temp_dict['wavelength'] = np.inf
                         else:
                             temp_dict['wavelength'] = 2*np.pi/k
 
@@ -113,7 +113,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                     temp_dict['radiation_damping'] = temp_dict['radiation_damping'] * rho * omega
 
                 if wavenumber or wavelength:
-                    if temp_dict['water_depth'] == np.infty or omega**2*temp_dict['water_depth']/temp_dict['g'] > 20:
+                    if temp_dict['water_depth'] == np.inf or omega**2*temp_dict['water_depth']/temp_dict['g'] > 20:
                         k = omega**2/temp_dict['g']
                     else:
                         k = newton(lambda x: x*np.tanh(x) - omega**2*temp_dict['water_depth']/temp_dict['g'], x0=1.0)/temp_dict['water_depth']
@@ -123,7 +123,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
 
                     if wavelength:
                         if k == 0.0:
-                            temp_dict['wavelength'] = np.infty
+                            temp_dict['wavelength'] = np.inf
                         else:
                             temp_dict['wavelength'] = 2*np.pi/k
 
