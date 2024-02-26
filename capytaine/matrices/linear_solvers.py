@@ -206,6 +206,10 @@ def _block_Jacobi_coarse_corr(A, b, x0, R, RA, AcLU, DLU, diag_shapes, n):
     return x_ps + R.T@e_c
 
 def solve_precond_gmres(A_and_precond_data, b):
+    """
+    Implementation of the preconditioner presented in
+    `<https://doi.org/10.1007/978-3-031-50769-4_14>`.
+    """
     A, R, RA, AcLU, DLU, diag_shapes, n, PinvA = A_and_precond_data
     N = A.shape[0]
 
