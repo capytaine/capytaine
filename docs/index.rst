@@ -1,12 +1,12 @@
-===============================================
-Capytaine: a Python-based distribution of Nemoh
-===============================================
+==========================================================
+Capytaine: a Python-based linear potential flow BEM solver
+==========================================================
 
 Capytaine is a Python package for the simulation of the interaction between water waves and floating bodies in frequency domain.
 
 It is built around a full rewrite of the open source Boundary Element Method (BEM) solver Nemoh_ for the linear potential flow wave theory.
 
-Latest release: |release| (|today|).
+This documentation is for version |release| (released |today|).
 
 .. toctree::
    :maxdepth: 1
@@ -14,7 +14,7 @@ Latest release: |release| (|today|).
    features.rst
 
 If you need support, you can ask questions on the `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
-Please do not contact the developpers directly by email, unless you are looking for private paid support.
+Please do not contact the developers directly by email, unless you are looking for private paid support.
 
 Contributions are welcome!
 Please, report bugs and suggest improvements as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
@@ -70,7 +70,7 @@ This documentation is licensed under the `Creative Commons Attribution-ShareAlik
 .. |CCBYSA| image:: https://i.creativecommons.org/l/by-sa/4.0/80x15.png
 .. _`Creative Commons Attribution-ShareAlike 4.0 International License`: http://creativecommons.org/licenses/by-sa/4.0/
 
-Capytaine is a fork of Nemoh_, which has been developed by Gérard Delhommeau, Aurélien Babarit et al., (École Centrale de Nantes) and is distributed under the Apache License 2.0.
+Capytaine is a fork of the version 2 of Nemoh_, which has been developed by Gérard Delhommeau, Aurélien Babarit et al., (École Centrale de Nantes) and was distributed under the Apache License 2.0.
 
 Capytaine includes code from meshmagick_ by François Rongère (École Centrale de Nantes), licensed under the GNU General Public License (GPL).
 

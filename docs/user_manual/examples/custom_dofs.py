@@ -50,4 +50,3 @@ for result in [result_1, result_2]:
         force = result.forces[dof]
         print(f"{dof}: {np.abs(force):.2f}·exp({np.angle(force):.2f}i) N")
     print()
-

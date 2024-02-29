@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Tools to use xarray Datasets as inputs and outputs.
 
 .. todo:: This module could be tidied up a bit and some methods merged or
@@ -17,7 +15,6 @@ from typing import Sequence, List, Union
 import numpy as np
 import pandas as pd
 import xarray as xr
-from scipy.optimize import newton
 
 from capytaine import __version__
 from capytaine.bodies.bodies import FloatingBody
@@ -64,10 +61,10 @@ def problems_from_dataset(dataset: xr.Dataset,
     assert len(list(set(body.name for body in bodies))) == len(bodies), \
         "All bodies should have different names."
 
-    # Warn user in case of key with unrecognized name (e.g. mispells)
-    keys_in_dataset = set(dataset.keys()) | set(dataset.coords.keys())
-    accepted_keys = {'wave_direction', 'radiating_dof', 'body_name',
-                     'omega', 'period', 'wavelength', 'wavenumber',
+    # Warn user in case of key with unrecognized name (e.g. misspells)
+    keys_in_dataset = set(dataset.dims)
+    accepted_keys = {'wave_direction', 'radiating_dof', 'influenced_dof',
+                     'body_name', 'omega', 'period', 'wavelength', 'wavenumber',
                      'water_depth', 'rho', 'g'}
     unrecognized_keys = keys_in_dataset.difference(accepted_keys)
     if len(unrecognized_keys) > 0:
@@ -114,7 +111,7 @@ def problems_from_dataset(dataset: xr.Dataset,
                 in product(freq_range, wave_direction_range, water_depth_range, body_range, rho_range, g_range):
             problems.append(
                 DiffractionProblem(body=body_range[body_name], **{freq_type: freq},
-                                   wave_direction=wave_direction, sea_bottom=-water_depth, rho=rho, g=g)
+                                   wave_direction=wave_direction, water_depth=water_depth, rho=rho, g=g)
             )
 
     if radiating_dofs is not None:
@@ -122,7 +119,7 @@ def problems_from_dataset(dataset: xr.Dataset,
                 in product(freq_range, radiating_dofs, water_depth_range, body_range, rho_range, g_range):
             problems.append(
                 RadiationProblem(body=body_range[body_name], **{freq_type: freq},
-                                 radiating_dof=radiating_dof, sea_bottom=-water_depth, rho=rho, g=g)
+                                 radiating_dof=radiating_dof, water_depth=water_depth, rho=rho, g=g)
             )
 
     return sorted(problems)
@@ -177,24 +174,12 @@ def _dataset_from_dataframe(df: pd.DataFrame,
 
     for variable_name in variables:
         df = df[df[variable_name].notnull()].dropna(axis='columns')  # Keep only records with non null values of all the variables
-    df = df.drop_duplicates()
+    df = df.drop_duplicates(optional_dims + dimensions)
     df = df.set_index(optional_dims + dimensions)
 
     da = df.to_xarray()[variables]
     da = _squeeze_dimensions(da, dimensions=optional_dims)
     return da
-
-
-def wavenumber_data_array(results: Sequence[LinearPotentialFlowResult]) -> xr.DataArray:
-    """Read the wavenumbers in a list of :class:`LinearPotentialFlowResult`
-    and store them into a :class:`xarray.DataArray`.
-    """
-    records = pd.DataFrame(
-        [dict(g=result.g, water_depth=result.depth, omega=result.omega, wavenumber=result.wavenumber)
-         for result in results]
-    )
-    ds = _dataset_from_dataframe(records, variables=['wavenumber'], dimensions=['omega'], optional_dims=['g', 'water_depth'])
-    return ds['wavenumber']
 
 
 def hydrostatics_dataset(bodies: Sequence[FloatingBody]) -> xr.Dataset:
@@ -254,10 +239,10 @@ def collect_records(results):
     records_list = []
     warned_once_about_no_free_surface = False
     for result in results:
-        if result.free_surface == np.infty:
+        if result.free_surface == np.inf:
             if not warned_once_about_no_free_surface:
                 LOG.warning("Datasets currently only support cases with a free surface (free_surface=0.0).\n"
-                            "Cases without a free surface (free_surface=infty) are ignored.\n"
+                            "Cases without a free surface (free_surface=inf) are ignored.\n"
                             "See also https://github.com/mancellin/capytaine/issues/88")
                 warned_once_about_no_free_surface = True
             else:
@@ -268,8 +253,8 @@ def collect_records(results):
     return records_list
 
 def assemble_dataset(results,
-                     wavenumber=False, wavelength=False, period=False, mesh=False, hydrostatics=True,
-                     attrs=None) -> xr.Dataset:
+                     omega=True, wavenumber=True, wavelength=True, period=True,
+                     mesh=False, hydrostatics=True, attrs=None) -> xr.Dataset:
     """Transform a list of :class:`LinearPotentialFlowResult` into a :class:`xarray.Dataset`.
 
     .. todo:: The :code:`mesh` option to store information on the mesh could be improved.
@@ -280,6 +265,8 @@ def assemble_dataset(results,
     ----------
     results: list of LinearPotentialFlowResult
         The results that will be read.
+    omega: bool, optional
+        If True, the coordinate 'omega' will be added to the output dataset.
     wavenumber: bool, optional
         If True, the coordinate 'wavenumber' will be added to the output dataset.
     wavelength: bool, optional
@@ -313,7 +300,7 @@ def assemble_dataset(results,
                 raise TypeError(error_msg)
         except:
             raise TypeError(error_msg)
-    
+
     if bemio_import:
         records = dataframe_from_bemio(results, wavenumber, wavelength) # TODO add hydrostatics
         all_dofs_in_order = {'Surge': None, 'Sway': None, 'Heave': None, 'Roll': None, 'Pitch': None, 'Yaw': None}
@@ -322,7 +309,7 @@ def assemble_dataset(results,
     else:
         records = pd.DataFrame(collect_records(results))
         all_dofs_in_order = {k: None for r in results for k in r.body.dofs.keys()}
-        main_freq_type = Counter((res.problem.provided_freq_type for res in results)).most_common(1)[0][0]
+        main_freq_type = Counter((res.provided_freq_type for res in results)).most_common(1)[0][0]
 
     if attrs is None:
         attrs = {}
@@ -343,7 +330,7 @@ def assemble_dataset(results,
         radiation_cases = _dataset_from_dataframe(
             records,
             variables=['added_mass', 'radiation_damping'],
-            dimensions=['omega', 'radiating_dof', 'influenced_dof'],
+            dimensions=[main_freq_type, 'radiating_dof', 'influenced_dof'],
             optional_dims=optional_dims)
         radiation_cases.added_mass.attrs['long_name'] = 'Added mass'
         radiation_cases.radiation_damping.attrs['long_name'] = 'Radiation damping'
@@ -356,7 +343,7 @@ def assemble_dataset(results,
         diffraction_cases = _dataset_from_dataframe(
             records,
             variables=['diffraction_force', 'Froude_Krylov_force'],
-            dimensions=['omega', 'wave_direction', 'influenced_dof'],
+            dimensions=[main_freq_type, 'wave_direction', 'influenced_dof'],
             optional_dims=optional_dims)
         diffraction_cases.diffraction_force.attrs['long_name'] = 'Diffraction force'
         diffraction_cases.Froude_Krylov_force.attrs['long_name'] = 'Froude Krylov force'
@@ -364,43 +351,52 @@ def assemble_dataset(results,
         diffraction_cases.wave_direction.attrs['long_name'] = 'Wave direction'
         diffraction_cases.wave_direction.attrs['units'] = 'rad'
         dataset = xr.merge([dataset, diffraction_cases])
+        dataset['excitation_force'] = dataset['Froude_Krylov_force'] + dataset['diffraction_force']
 
-    # WAVENUMBER
-    if wavenumber or main_freq_type == "wavenumber":
-        if bemio_import:
-            wavenumber_ds = _dataset_from_dataframe(
-                records.drop_duplicates(subset=['omega']),
-                variables=['wavenumber'],
-                dimensions=['omega'],
-                optional_dims=['g', 'water_depth'])
-            dataset.coords['wavenumber'] = wavenumber_ds['wavenumber']
-        else:
-            dataset.coords['wavenumber'] = wavenumber_data_array(results)
-        dataset.wavenumber.attrs['long_name'] = 'Wave number'
+    # OTHER FREQUENCIES TYPES
+    if omega and main_freq_type != "omega":
+        omega_ds = _dataset_from_dataframe(
+                records,
+                variables=['omega'],
+                dimensions=[main_freq_type],
+                optional_dims=['g', 'water_depth'] if main_freq_type in {'wavelength', 'wavenumber'} else []
+                )
+        dataset.coords['omega'] = omega_ds['omega']
+        dataset.omega.attrs['long_name'] = 'Angular frequency'
+        dataset.omega.attrs['units'] = 'rad/s'
 
-    if wavelength or main_freq_type == "wavelength":
-        if bemio_import:
-            wavelength_ds = _dataset_from_dataframe(
-                    records.drop_duplicates(subset=['omega']),
-                    variables=['wavelength'],
-                    dimensions=['omega'],
-                    optional_dims=['g', 'water_depth'])
-            dataset.coords['wavelength'] = wavelength_ds['wavelength']
-        else:
-            dataset.coords['wavelength'] = 2*np.pi/wavenumber_data_array(results)
-        dataset.wavelength.attrs['long_name'] = 'Wave length'
-
-    if period or main_freq_type =="period":
-        if bemio_import:
-            period_ds = _dataset_from_dataframe(
-                    records.drop_duplicates(subset=['omega']),
-                    variables=['period'],
-                    dimensions=['omega'],
-                    optional_dims=['g', 'water_depth'])
-            dataset.coords['period'] = wavelength_ds['period']
-        else:
-            dataset.coords['period'] = 2*np.pi/dataset["omega"]
+    if period and main_freq_type != "period":
+        period_ds = _dataset_from_dataframe(
+                records,
+                variables=['period'],
+                dimensions=[main_freq_type],
+                optional_dims=['g', 'water_depth'] if main_freq_type in {'wavelength', 'wavenumber'} else []
+                )
+        dataset.coords['period'] = period_ds['period']
         dataset.period.attrs['long_name'] = 'Period'
+        dataset.period.attrs['units'] = 's'
+
+    if wavenumber and main_freq_type != "wavenumber":
+        wavenumber_ds = _dataset_from_dataframe(
+                records,
+                variables=['wavenumber'],
+                dimensions=[main_freq_type],
+                optional_dims=['g', 'water_depth'] if main_freq_type in {'period', 'omega'} else []
+                )
+        dataset.coords['wavenumber'] = wavenumber_ds['wavenumber']
+        dataset.wavenumber.attrs['long_name'] = 'Angular wavenumber'
+        dataset.wavenumber.attrs['units'] = 'rad/m'
+
+    if wavelength and main_freq_type != "wavelength":
+        wavelength_ds = _dataset_from_dataframe(
+                records,
+                variables=['wavelength'],
+                dimensions=[main_freq_type],
+                optional_dims=['g', 'water_depth'] if main_freq_type in {'period', 'omega'} else []
+                )
+        dataset.coords['wavelength'] = wavelength_ds['wavelength']
+        dataset.wavelength.attrs['long_name'] = 'Wave length'
+        dataset.wavelength.attrs['units'] = 'm'
 
     if mesh:
         if bemio_import:
@@ -434,10 +430,6 @@ def assemble_dataset(results,
 
     dataset.attrs.update(attrs)
     dataset.attrs['capytaine_version'] = __version__
-    dataset.omega.attrs['long_name'] = 'Radial frequency'
-    dataset.omega.attrs['units'] = 'rad/s'
-
-    dataset = dataset.swap_dims({"omega": main_freq_type})
     return dataset
 
 

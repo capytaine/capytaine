@@ -1,12 +1,9 @@
-import logging
 import numpy as np
 import xarray as xr
 import matplotlib.pyplot as plt
 import capytaine as cpt
 
-# Set up logging
-logging.basicConfig(level=logging.INFO,
-                    format="%(levelname)s:\t%(message)s")
+cpt.set_logging('INFO')
 
 # Generate body
 mesh = cpt.mesh_horizontal_cylinder(

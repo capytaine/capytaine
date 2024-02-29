@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
-import logging
-
 import capytaine as cpt
 from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
 from capytaine.ui.vtk.animation import Animation
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s:\t%(message)s")
+cpt.set_logging('INFO')
 
 # Generate the mesh of a sphere
 
@@ -28,11 +26,11 @@ radiation_result = solver.solve(radiation_problem)
 
 # Define a mesh of the free surface and compute the free surface elevation
 free_surface = cpt.FreeSurface(x_range=(-50, 50), y_range=(-50, 50), nx=150, ny=150)
-diffraction_elevation_at_faces = solver.compute_free_surface_elevation(free_surface.mesh, diffraction_result)
-radiation_elevation_at_faces = solver.compute_free_surface_elevation(free_surface.mesh, radiation_result)
+diffraction_elevation_at_faces = solver.compute_free_surface_elevation(free_surface, diffraction_result)
+radiation_elevation_at_faces = solver.compute_free_surface_elevation(free_surface, radiation_result)
 
 # Add incoming waves
-diffraction_elevation_at_faces = diffraction_elevation_at_faces + airy_waves_free_surface_elevation(free_surface.mesh, diffraction_problem)
+diffraction_elevation_at_faces = diffraction_elevation_at_faces + airy_waves_free_surface_elevation(free_surface, diffraction_problem)
 
 # Run the animations
 animation = Animation(loop_duration=diffraction_result.period)
@@ -46,4 +44,3 @@ animation.add_body(full_sphere, faces_motion=full_sphere.dofs["Heave"])
 animation.add_free_surface(free_surface, faces_elevation=3.0*radiation_elevation_at_faces)
 animation.run(camera_position=(-30, -30, 30))
 # animation.save("path/to/the/video/file.ogv", camera_position=(-30, -30, 30))
-

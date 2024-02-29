@@ -89,7 +89,7 @@ Solving the problem
 
 Once the solver has been initialized, it can be used to solve problems with the :meth:`~capytaine.bem.solver.BEMSolver.solve` method::
 
-	result = solver.solve(problem, keep_details=False)
+	result = solver.solve(problem, keep_details=False, method='indirect')
 
 The optional argument :code:`keep_details` (default value: :code:`True`)
 controls whether the source and potential distributions should be saved in the
@@ -97,6 +97,13 @@ result object. These data are necessary for some post-processing such as the
 computation of the Kochin function or the reconstruction of the free surface
 elevation. However, when only the force on the body is of interest, they can be
 discarded to save space in memory.
+
+The optional argument :code:`method` (default value: :code:`indirect`)
+controls the approach employed to solve for the potential velocity solutions. 
+Two methods are implemented including 1) direct method (source-and-dipole formulation),
+and 2) indirect method (source formulation). The direct method appears to be slightly
+more accurate on some test cases but only allows for the computation of the forces
+on the floating body. Any other post-processing requires the indirect method.
 
 A list of problems can be solved at once in an optimal order with::
 

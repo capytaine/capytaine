@@ -8,4 +8,3 @@ Developer manual
    installation.rst
    overview.rst
    api/modules.rst
-

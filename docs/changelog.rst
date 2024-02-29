@@ -14,18 +14,98 @@ New in next version
 Major changes
 ~~~~~~~~~~~~~
 
-* User can specify a period, a wavelength or a wavenumber instead of an angular frequency :code:`omega` when setting up a problem or a test matrix.
-  If several types of frequency data are provided, an error is raised (:pull:`283`).
+* Add `rich <https://rich.readthedocs.io>`_ as a dependency and improve formatting of the console output.
+  Add :func:`~capytaine.tools.rich.set_logging` function to quickly set up logging with `rich`.
+  :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now display a progress bar (unless turn off by the ``progress_bar`` argument). (:pull:`382`)
 
-* Remove the :code:`convention` parameter to compute excitation force with WAMIT conventions (:issue:`133` and :pull:`281`).
-  Changing the convention to compare the outputs of different codes is better done by a dedicated software such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_ or `BEMIO <https://wec-sim.github.io/bemio/>`_.
+* Reimplement computation of added mass in infinite depth with zero or infinite frequency. (:pull:`385`)
 
-* Add methods :meth:`~capytaine.bem.solver.compute_potential`, :meth:`~capytaine.bem.solver.compute_velocity` and :meth:`~capytaine.bem.solver.compute_free_surface_elevation` and :meth:`~capytaine.bem.solver.compute_pressure` to compute the value of some fields in the domain in post-processing. Their signature has been uniformized with the :func:`~capytaine.bem.airy_waves.airy_waves_potential`, :func:`~capytaine.bem.airy_waves.airy_waves_velocity`, :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` and :func:`~capytaine.bem.airy_waves.airy_waves_pressure` functions (:pull:`288`, :pull:`326`)
+* Implement direct method (source-and-dipole formulation) in obtaining velocity potential solutions.
+  The direct method can be used instead of the default indirect method by setting the ``method`` argument of :meth:`~capytaine.bem.solver.BEMSolver.solve`, :meth:`~capytaine.bem.solver.BEMSolver.solve_all` or :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` (:pull:`420`)
+
+Minor changes
+~~~~~~~~~~~~~
+
+* Support passing :class:`~capytaine.bodies.FloatingBody` or :class:`~capytaine.post_pro.free_surfaces.FreeSurface` objects to post-processing methods such as :meth:`~capytaine.bem.solver.BEMSolver.compute_potential` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation`. (:pull:`379`)
+
+* Add `top_light_intensity` optional arguments to :meth:`~capytaine.ui.vtk.animations.Animation.run` and :meth:`~capytaine.ui.vtk.animations.Animation.save` to illuminate the scene from top. (:pull:`380`)
+
+* Clean up ``__str__`` and ``__repr__`` representation of many objects. Also ``rich.print`` now return even nicer representations. (:pull:`384`)
+
+* Always automatically compute and store the ``excitation_force`` next to the ``Froude_Krylov_force`` and ``diffraction_force`` in the dataset (:pull:`406`).
+
+* Computing the RAO with :func:`cpt.post_pro.rao.rao` is not restricted to a single wave direction (or a single value of any other extra parameter) at the time anymore. (:issue:`405` and :pull:`406`)
+
+* New computation of quadrature schemes without relying on Quadpy. (:pull:`416`)
+
+* Add a new function :func:`~capytaine.io.legacy.run_cal_file` to solve the problems defined by a Nemoh.cal file, exactly as the command-line interface is doing (:pull:`422`).
+
+* Rephrase mesh resolution warnings and group several of them together in a single warning. (:pull:`423`)
+
+* Add a `faces_max_radius` argument to the predefined geometries from :mod:`~cpt.meshes.predefined` to set up the resolution by giving a length scale for the panels (:pull:`459`).
+
+Bug fixes
+~~~~~~~~~
+
+* When initializing a body with a mesh having degenerate panels, the initialization of the dofs used to happen before the degenerate panels were removed, leading to an inconsistency between the number of panels in the mesh and in the dof definition. (:issue:`367` and :pull:`375`)
+
+* Fix the single precision Green function (:code:`cpt.Delhommeau(floating_point_precision="float32")`) that was broken in v2.0. (:issue:`377` and :pull:`378`)
+
+* Update the BEMIO import feature to work with Pandas 2.0 and output periods as now done in Capytaine 2.0. A version of BEMIO that works in recent version of Python and Numpy can be found at `https://github.com/mancellin/bemio`_. (:pull:`381`)
+
+* Fix :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` that was broken and a relevant test. (:pull:`394`)
+
+* Fix error message when computing hydrostatic stiffness of non-neutrally-buoyant body that is not a single rigid body. (:issue:`413` and :pull:`414`)
+
+* Fix bug causing the quadrature method of a mesh to be forgotten when the mesh was put in a body. ``quadrature_method`` can now be passed as argument when initializing a new mesh. (:pull:`417`)
+
+* The function :func:`~capytaine.io.meshes_loaders.load_mesh` more robustly detects filetype using file extension even when the file extension is not lowercase. (:pull:`441`)
+
+Internals
+~~~~~~~~~
+
+* Fix badly named variables ``VSP2_SYM`` and ``VSP2_ANTISYM`` in libDelhommeau (:pull:`391`)
+
+* Remove dependency to ``hypothesis`` for testing (:pull:`391`).
+
+* Change how forces are stored in result objects. Added mass and radiation damping can now be queried with ``added_mass`` and ``radiation_damping`` and not only the plural forms that were used nowhere else in the code. (:pull:`393`)
+
+* Use `nox <https://nox.thea.codes>`_ to test the code in isolated virtual environments. (:pull:`401`)
+
+* Fortran source files are not included in wheel anymore (:pull:`360`).
+
+* The `delete_first_lru_cache` decorator has been renamed :func:`~capytaine.tools.lru_cache.lru_cache_with_strict_maxsize` and now supports keyword arguments in the memoized function (:pull:`442`).
+
+* Fix Xarray future warning about `Dataset.dims` (:issue:`450` and :pull:`451`).
+
+* Improve some warnings and error messages.
+
+-------------------------------
+New in version 2.0 (2023-06-21)
+-------------------------------
+
+Major changes
+~~~~~~~~~~~~~
+
+* User can specify a period, a wavelength or a wavenumber instead of an angular frequency :code:`omega` when setting up a problem or a test matrix. If several types of frequency data are provided, an error is raised (:pull:`283`).
+
+* **Breaking** The normalization of radiation problems has been changed to use the same normalization as diffraction problems. Added mass and radiation dampings are unchanged, but other outputs of radiation problem (free surface elevation, kochin functions, etc.) may differ from previous version by a factor :math:`-j \omega`. (:issue:`173` and :pull:`348`)
+
+* **Breaking** The above two points interfered with the handling of :math:`\omega = 0` and :math:`\omega = \infty` cases. They have been temporarily disabled and will return in a future release.
+
+* Add methods :meth:`~capytaine.bem.solver.BEMSolver.compute_potential`, :meth:`~capytaine.bem.solver.BEMSolver.compute_velocity` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation` and :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` to compute the value of some fields in the domain in post-processing. Their signature has been uniformized with the :func:`~capytaine.bem.airy_waves.airy_waves_potential` and :func:`~capytaine.bem.airy_waves.airy_waves_velocity` functions (:pull:`288`, :pull:`326`). New functions :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` and :func:`~capytaine.bem.airy_waves.airy_waves_pressure` have also been added (:pull:`293`).
+
+* **Breaking** The problems can now be initialized by setting a ``water_depth`` instead of the ``sea_bottom`` (which is still available for user-facing functions). This change is meant to uniformize notations in the code and use ``water_depth`` wherever possible (:pull:`340`). Besides the ``sea_bottom`` argument of many internal routines has been completely replaced by ``water_depth``. Migrating then requires changing the sign of the float (:pull:`347`).
+
+* Add Github Actions workflow to build wheels. Precompiled packages will now be available with ``pip`` and not only with ``conda``.
 
 Minor changes
 ~~~~~~~~~~~~~
 
 * Support the new format of `Nemoh.cal` file from Nemoh v3 (:issue:`278` and :pull:`280`).
+
+* **Breaking** Remove the :code:`convention` parameter to compute excitation force with WAMIT conventions (:issue:`133` and :pull:`281`).
+  Changing the convention to compare the outputs of different codes is better done by a dedicated software such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_ or `BEMIO <https://wec-sim.github.io/bemio/>`_.
 
 * Add nicer display for Capytaine objects in IPython shell (:issue:`227` and :pull:`287`).
 
@@ -35,13 +115,15 @@ Minor changes
 
 * Add functions :func:`~capytaine.io.mesh_loaders.load_PNL` and :func:`~capytaine.io.mesh_writers.write_PNL` to load and write meshes in HAMS ``.pnl`` format (:pull:`289`).
 
-* Remove ``cpt.Nemoh()`` class that was replaced by :class:`~capytaine.bem.solver.BEMSolver` in version 1.1 (:pull:`291`)
+* **Breaking** Remove ``cpt.Nemoh()`` class that was replaced by :class:`~capytaine.bem.solver.BEMSolver` in version 1.1 (:pull:`291`)
 
-* Add function :func:`~capytaine.bem.airy_waves.airy_waves_free_surface_elevation` to compute the free surface elevation at points (:pull:`293`).
+* **Breaking** Remove ``full_body`` attribute from :class:`~capytaine.bodies.bodies.FloatingBody` that used to keep a copy of the body before clipping in-place (:pull:`302`).
 
-* Remove ``full_body`` attribute from :class:`~capytaine.bodies.bodies.FloatingBody` that used to keep a copy of the body before clipping in-place (:pull:`302`).
+* **Breaking** Remove ``dimensionless_wavenumber`` and ``dimensionless_omega`` attributes from :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` as they are not used in the code and can be easily recomputed by users if necessary (:pull:`306`).
 
-* Remove ``dimensionless_wavenumber`` and ``dimensionless_omega`` attributes from :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` as they are not used in the code and can be easily recomputed by users if necessary (:pull:`306`).
+* Add :meth:`~capytaine.bodies.bodies.FloatingBody.minimal_computable_wavelength` to estimate the wavelengths computable with the mesh resolution (:pull:`341`).
+
+* Slightly increase default tabulation size to avoid some high-frequency issues such as :issue:`157` (:pull:`353`).
 
 Bug fixes
 ~~~~~~~~~
@@ -55,12 +137,22 @@ Bug fixes
 
 * Convert ``center_of_mass`` and ``rotation_center`` to arrays in :class:`~capytaine.bodies.bodies.FloatingBody` constructor to avoid a few issues (:issue:`319` and :pull:`325`).
 
+* Fix bug (leading to either ``RuntimeError`` or wrong output) when clipping with plane that does not contain the origin. (:pull:`344`)
+
+* Instances of :class:`~capytaine.bem.solver.BEMSolver` initialized with default parameters do not share the same engine, hence they do not share the same cache. This minor issue was causing minor interferences in some benchmarks (:issue:`295` and :pull:`350`).
+
 Internals
 ~~~~~~~~~
+
+* Major update of the compilation toolchain because of the upcoming deprecation of ``numpy.distutils``. Capytaine is now built with ``meson-python``.
 
 * The method :meth:`~capytaine.green_functions.delhommeau.Delhommeau.evaluate` (and its counterparts for other Green functions) now accepts a list of points as first argument instead of a mesh. It has now an optional boolean argument ``early_dot_product`` to return the integrals of the gradient of the Green function and not only the normal derivative (:pull:`288`).
 
 * Remove warnings due to 0/0 divisions in :func:`~capytaine.meshes.properties.compute_faces_properties` (:pull:`310`)
+
+* **Breaking** Remove unused and undocumented code about meshes, including ``mesh.min_edge_length``, ``mesh.mean_edge_length``, ``mesh.max_edge_length``, ``mesh.get_surface_integrals``, ``mesh.volume``, ``mesh.vv``, ``mesh.vf``, ``mesh.ff``, ``mesh.boundaries``, ``mesh.nb_boundaries``, ``compute_faces_integrals``, ``SingleFace``. (:pull:`334`)
+
+* Add analytics to the documentation using `https://plausible.io`_ (:pull:`290`).
 
 -------------------------------
 New in version 1.5 (2022-12-13)
@@ -196,7 +288,7 @@ Major changes
   Meanwhile, a bug has been fixed with its :code:`geometric_center` (:pull:`150`).
 
 * The default linear solver is the direct solver and not the iterative solver GMRES, because it is more robust and more predictable.
-  Nothing changes when users explicitely choose a linear solver. (:pull:`171`)
+  Nothing changes when users explicitly choose a linear solver. (:pull:`171`)
 
 Bug fixes
 ~~~~~~~~~

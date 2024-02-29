@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """This module implements block matrices to be used in Hierarchical Toeplitz matrices.
 
 It takes inspiration from the following works:
@@ -210,14 +208,14 @@ class BlockMatrix:
         for line in self._stored_blocks:
             for block in line:
                 if isinstance(block, np.ndarray):
-                    size += np.product(block.shape)
+                    size += np.prod(block.shape)
                 else:
                     size += block.stored_data_size
         return size
 
     @property
     def density(self):
-        return self.stored_data_size/np.product(self.shape)
+        return self.stored_data_size/np.prod(self.shape)
 
     @property
     def sparcity(self):
@@ -566,4 +564,3 @@ class BlockMatrix:
         plt.ylim(0, self.shape[0])
         plt.gca().invert_yaxis()
         # plt.show()
-

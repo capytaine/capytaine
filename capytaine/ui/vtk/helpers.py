@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Tools for 3D displays with VTK."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -82,4 +80,3 @@ def compute_node_data(mesh: Union[Mesh, CollectionOfMeshes],
 
     node_data /= nb_faces_near_nodes
     return node_data
-

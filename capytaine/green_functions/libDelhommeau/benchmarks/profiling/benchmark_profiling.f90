@@ -94,7 +94,7 @@ do i=1, 1
         coeffs,                                                      &
         tabulated_r, tabulated_z, tabulated_integrals,               &
         nexp, ambda, ar,                                             &
-        .false.,                                                     &
+        .false., .true.,                                             &
         S, K)
    call system_clock(final_time)
 
@@ -111,7 +111,7 @@ do i=1, 1
    !      coeffs,                                                      &
    !      tabulated_r, tabulated_z, tabulated_integrals,               &
    !      nexp, ambda, ar,                                             &
-   !      .false.,                                                     &
+   !      .false., .true.,                                             &
    !      S, K)
    ! call system_clock(final_time)
 
@@ -128,7 +128,7 @@ do i=1, 1
    !      coeffs,                                                      &
    !      tabulated_r, tabulated_z, tabulated_integrals,               &
    !      nexp, ambda, ar,                                             &
-   !      .true.,                                                      &
+   !      .true., .true.,                                              &
    !      S, K)
    ! call system_clock(final_time)
 
@@ -179,7 +179,7 @@ contains
   end subroutine
 
   pure function two_orthogonal_vector(n) result(vecs)
-    ! Given a normal vector `n`, returns two oter vectors
+    ! Given a normal vector `n`, returns two other vectors
     ! such that the three of them is an orthonormal basis
     real(kind=pre), dimension(3), intent(in) :: n
     real(kind=pre), dimension(3, 2) :: vecs

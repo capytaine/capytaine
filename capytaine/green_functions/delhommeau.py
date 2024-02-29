@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Variants of Delhommeau's method for the computation of the Green function."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -36,7 +34,7 @@ class Delhommeau(AbstractGreenFunction):
         Number of points for the numerical integration w.r.t. :math:`theta` of Delhommeau's integrals
         Default: 251, as in Nemoh.
     finite_depth_prony_decomposition_method: string, optional
-        The implementation of the Prony decomposition used to compute the finite depth Green function.
+        The implementation of the Prony decomposition used to compute the finite water_depth Green function.
         Accepted values: :code:`'fortran'` for Nemoh's implementation (by default), :code:`'python'` for an experimental Python implementation.
         See :func:`find_best_exponential_decomposition`.
     floating_point_precision: string, optional
@@ -55,8 +53,8 @@ class Delhommeau(AbstractGreenFunction):
     fortran_core_basename = "Delhommeau"
 
     def __init__(self, *,
-                 tabulation_nr=328,
-                 tabulation_nz=46,
+                 tabulation_nr=400,
+                 tabulation_nz=80,
                  tabulation_nb_integration_points=251,
                  finite_depth_prony_decomposition_method='fortran',
                  floating_point_precision='float64',
@@ -69,6 +67,7 @@ class Delhommeau(AbstractGreenFunction):
         self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
                 self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
                 )
+        self.floating_point_precision = floating_point_precision
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
@@ -101,7 +100,7 @@ class Delhommeau(AbstractGreenFunction):
 
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
-        """Compute the decomposition of a part of the finite depth Green function as a sum of exponential functions.
+        """Compute the decomposition of a part of the finite water_depth Green function as a sum of exponential functions.
 
         Two implementations are available: the legacy Fortran implementation from Nemoh and a newer one written in Python.
         For some still unexplained reasons, the two implementations do not always give the exact same result.
@@ -125,7 +124,7 @@ class Delhommeau(AbstractGreenFunction):
             the amplitude and growth rates of the exponentials
         """
 
-        LOG.debug(f"\tCompute Prony decomposition in finite depth Green function "
+        LOG.debug(f"\tCompute Prony decomposition in finite water_depth Green function "
                   f"for dimless_omega=%.2e and dimless_wavenumber=%.2e",
                   dimensionless_omega, dimensionless_wavenumber)
 
@@ -167,7 +166,7 @@ class Delhommeau(AbstractGreenFunction):
 
         return a, lamda
 
-    def evaluate(self, mesh1, mesh2, free_surface=0.0, sea_bottom=-np.infty, wavenumber=1.0, early_dot_product=True):
+    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.inf, wavenumber=1.0, adjoint_double_layer=True, early_dot_product=True):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
 
         Parameters
@@ -179,10 +178,12 @@ class Delhommeau(AbstractGreenFunction):
             mesh of the source body (over which the source distribution is integrated)
         free_surface: float, optional
             position of the free surface (default: :math:`z = 0`)
-        sea_bottom: float, optional
-            position of the sea bottom (default: :math:`z = -\infty`)
+        water_depth: float, optional
+            constant depth of water (default: :math:`+\infty`)
         wavenumber: float, optional
             wavenumber (default: 1.0)
+        adjoint_double_layer: bool, optional
+            compute double layer for direct method (F) or adjoint double layer for indirect method (T) matrices (default: True)
         early_dot_product: boolean, optional
             if False, return K as a (n, m, 3) array storing ∫∇G
             if True, return K as a (n, m) array storing ∫∇G·n
@@ -193,49 +194,61 @@ class Delhommeau(AbstractGreenFunction):
             the matrices :math:`S` and :math:`K`
         """
 
-        depth = free_surface - sea_bottom
-        if free_surface == np.infty: # No free surface, only a single Rankine source term
+        wavenumber = float(wavenumber)
+
+        if free_surface == np.inf: # No free surface, only a single Rankine source term
 
             a_exp, lamda_exp = np.empty(1), np.empty(1)  # Dummy arrays that won't actually be used by the fortran code.
 
             coeffs = np.array((1.0, 0.0, 0.0))
 
-        elif depth == np.infty:
+        elif water_depth == np.inf:
 
             a_exp, lamda_exp = np.empty(1), np.empty(1)  # Idem
 
             if wavenumber == 0.0:
                 coeffs = np.array((1.0, 1.0, 0.0))
-            elif wavenumber == np.infty:
+            elif wavenumber == np.inf:
                 coeffs = np.array((1.0, -1.0, 0.0))
             else:
                 coeffs = np.array((1.0, 1.0, 1.0))
 
-        else:  # Finite depth
-            a_exp, lamda_exp = self.find_best_exponential_decomposition(
-                wavenumber*depth*np.tanh(wavenumber*depth),
-                wavenumber*depth,
-            )
-            if wavenumber == 0.0:
-                raise NotImplementedError
-            elif wavenumber == np.infty:
-                raise NotImplementedError
+        else:  # Finite water_depth
+            if wavenumber == 0.0 or wavenumber == np.inf:
+                raise NotImplementedError("Zero or infinite frequencies not implemented for finite depth.")
             else:
+                a_exp, lamda_exp = self.find_best_exponential_decomposition(
+                    wavenumber*water_depth*np.tanh(wavenumber*water_depth),
+                    wavenumber*water_depth,
+                )
                 coeffs = np.array((1.0, 1.0, 1.0))
 
         if isinstance(mesh1, Mesh) or isinstance(mesh1, CollectionOfMeshes):
             collocation_points = mesh1.faces_centers
             nb_collocation_points = mesh1.nb_faces
-            early_dot_product_normals = mesh1.faces_normals
+            if ( adjoint_double_layer == False ):
+                early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
+            else:
+                early_dot_product_normals = mesh1.faces_normals
         elif isinstance(mesh1, np.ndarray) and mesh1.ndim ==2 and mesh1.shape[1] == 3:
+            # This is used when computing potential or velocity at given points in postprocessing
             collocation_points = mesh1
             nb_collocation_points = mesh1.shape[0]
-            early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Hopefully unused
+            early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
+            if ( adjoint_double_layer == False ):
+                raise NotImplementedError("Using a list of points as collocation points is not supported in computing adjoint double layer matrices.")
         else:
             raise ValueError(f"Unrecognized input for {self.__class__.__name__}.evaluate")
 
-        S = np.empty((nb_collocation_points, mesh2.nb_faces), order="F", dtype="complex128")
-        K = np.empty((nb_collocation_points, mesh2.nb_faces, 1 if early_dot_product else 3), order="F", dtype="complex128")
+        if self.floating_point_precision == "float32":
+            dtype = "complex64"
+        elif self.floating_point_precision == "float64":
+            dtype = "complex128"
+        else:
+            raise NotImplementedError
+
+        S = np.empty((nb_collocation_points, mesh2.nb_faces), order="F", dtype=dtype)
+        K = np.empty((nb_collocation_points, mesh2.nb_faces, 1 if early_dot_product else 3), order="F", dtype=dtype)
 
         # Main call to Fortran code
         self.fortran_core.matrices.build_matrices(
@@ -244,11 +257,11 @@ class Delhommeau(AbstractGreenFunction):
             mesh2.faces_centers, mesh2.faces_normals,
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
-            wavenumber, depth,
+            wavenumber, water_depth,
             coeffs,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
-            mesh1 is mesh2,
+            mesh1 is mesh2, adjoint_double_layer,
             S, K
         )
 

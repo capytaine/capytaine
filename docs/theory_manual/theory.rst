@@ -17,7 +17,7 @@ Hypotheses
 ----------
 
 1. The fluid is inviscid.
-2. The fluid is incompressible: :math:`\nabla \cdot u = 0` with :math:`u` the flow velocity. 
+2. The fluid is incompressible: :math:`\nabla \cdot u = 0` with :math:`u` the flow velocity.
 3. The flow is irrotational: :math:`\nabla \times u = 0`.
 4. The wave amplitude is small with respect to the wavelength.
 5. The amplitude of the body motion is small with respect to its dimension.
@@ -62,7 +62,7 @@ The partial differential equation :eq:`laplace` is completed with the following 
 
 where :math:`n` denotes the normal vector at the surface of the floating body.
 
-.. * in the far field, 
+.. * in the far field,
    .. math::
       \sqrt{R} \left( \frac{\partial \Phi}{\partial R} - i m_0 \right) \left( \Phi - Phi_0 \right)
       \rightarrow 0, \qquad \text{when } R \rightarrow \infty,
@@ -181,7 +181,7 @@ The infinite depth Green function takes the following form
 The first term of :math:`G` is the usual Green function for the 3D Laplace equation without our specific boundary conditions.
 The :math:`\mathcal{G}` term is complex-valued and it is introduced to satisfy the boundary conditions :eq:`bc_fs`.
 
-Intoducting the dimensionless variables :math:`r = k \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2}` and :math:`z = k (x_3 + \xi_3)`, this term reads
+Introducing the dimensionless variables :math:`r = k \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2}` and :math:`z = k (x_3 + \xi_3)`, this term reads
 
 .. math::
     \mathcal{G}(r, z) & = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2}  J(\zeta(r, z, \theta)) \, \mathrm{d} \theta \right) \\
@@ -224,7 +224,7 @@ The above lemma allows to retrieve the expression of the Green function found e.
 
 .. math::
     \mathcal{G}(r, z) & = - \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(r, z, \theta)) - \frac{1}{\zeta(r, z, \theta)} \right) \, \mathrm{d} \theta \right) \\
-    & \qquad \qquad \qquad \qquad + 2 i k \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
+    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
     :label: green_function_inf_depth_del
 
 (Note the minus sign in front of the first term.)
@@ -309,7 +309,7 @@ Gradient of the Green function
 The gradient of the Green function can be written as
 
 .. math::
-   \nabla_x G(\xi, x) = - \frac{1}{4 \pi} \left( - \frac{x - \xi}{\|x - \xi\|^3} + k 
+   \nabla_x G(\xi, x) = - \frac{1}{4 \pi} \left( - \frac{x - \xi}{\|x - \xi\|^3} + k
       \begin{pmatrix}
         \frac{\partial r}{\partial x_1} \frac{\partial \mathcal{G}}{\partial r} \\
         \frac{\partial r}{\partial x_2} \frac{\partial \mathcal{G}}{\partial r} \\
@@ -334,12 +334,12 @@ and
 
 .. math::
    \frac{\partial \mathcal{G}}{\partial z} = & - \frac{z}{(r^2 + z^2)^{3/2}} + \frac{2}{\pi} \Re \left( \int_{-\pi/2}^{\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d}\theta \right) \\
-    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) e^{\zeta } \, \mathrm{d} \theta \right) \\
+    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta } \, \mathrm{d} \theta \right) \\
 
 that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
 
 .. math::
-   \frac{\partial \mathcal{G}}{\partial z} = \mathcal{G}(r, z) + \frac{1}{\sqrt{r^2 + z^2}} - \frac{z}{(r^2 + z^2)^{3/2}}
+   \frac{\partial \mathcal{G}}{\partial z} = \mathcal{G}(r, z) + \frac{2}{\sqrt{r^2 + z^2}} - \frac{z}{(r^2 + z^2)^{3/2}}
    :label: green_function_inf_depth_dGdz
 
 
@@ -355,7 +355,9 @@ that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
         \frac{\partial G}{\partial x_1} (\xi, x) = - \frac{\partial G}{\partial x_1}(x, \xi).
         \]
 
-    Its derivative with respect to :math:`x_3` can be decomposed into an antisymmetric term and a symmetric term.
+    Its derivative with respect to :math:`x_3` is symmetric in infinite depth.
+
+    In finite depth, some terms of the derivative with respect to :math:`x_3` are symmetric and some are antisymmetric.
 
 
 Higher order derivative
@@ -395,11 +397,19 @@ Delhommeau's method is based on expression :eq:`green_function_inf_depth_del` of
 This expression of the Green function and its derivative require the evaluation of the following real-valued integrals:
 
 .. math::
-    D_1(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    D_1(r, z) & = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
     D_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right) \\
-    Z_1(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    Z_1(r, z) & = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
     Z_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
 
+
+then
+
+.. math::
+   \mathcal{G}(r, z) = \frac{-1}{\sqrt{r^2 + z^2}} + 2 Z_1(r, z) + 2 i Z_2(r, z).
+
+.. note::
+   The definition of :math:`D_1`, :math:`D_2`, :math:`Z_1` and :math:`Z_2` may differ from the original one from Delhommeau by the :math:`1/\pi` factor.
 
 To limit the computational cost of the evaluation of these integrals, they are precomputed for selected values of :math:`r` and :math:`z` and stored in a table.
 When evaluating the Green function, the values of the integrals are retrieved by interpolating the values in the tables.
@@ -407,9 +417,9 @@ When evaluating the Green function, the values of the integrals are retrieved by
 For large values of :math:`r` and :math:`z`, these integrals are asymptotically approximated by the following expressions:
 
 .. math::
-      D_1(r, z) & \simeq \pi e^z \sqrt{\frac{2\pi}{r}} \left(\cos(r - \pi/4) - \frac{1}{2r} \sin(r-\pi/4) \right) - \pi \frac{r}{(r^2 + z^2)^{3/2}} \\
+      D_1(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \left(\cos(r - \pi/4) - \frac{1}{2r} \sin(r-\pi/4) \right) - \frac{r}{(r^2 + z^2)^{3/2}} \\
       D_2(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \left( \sin(r - \pi/4) + \frac{1}{2r} \cos(r - \pi/4) \right) \\
-      Z_1(r, z) & \simeq - \pi e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \pi \frac{z}{(r^2 + z^2)^{3/2}} \\
+      Z_1(r, z) & \simeq - e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{z}{(r^2 + z^2)^{3/2}} \\
       Z_2(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \cos(r - \pi/4)
 
 
@@ -418,6 +428,7 @@ Incorporating these asymptotic approximation in the expression of the Green func
 .. math::
     \mathcal{G}(r, z) \simeq & -\frac{1}{\sqrt{r^2 + z^2}} - 2 k e^z \sqrt{\frac{2\pi}{r}} \left(\sin(r - \pi/4) - i\cos(r - \pi/4)\right) \\
    & \qquad\qquad\qquad\qquad + 2 k \frac{z}{(r^2 + z^2)^{3/2}}
+   :label: green_function_asymptotical_approx
 
 
 Xie's variant
@@ -429,12 +440,24 @@ singularity :math:`\frac{1}{\zeta}`.
 Hence, they proposed to use :eq:`green_function_inf_depth_xie` and to tabulate the integral
 
 .. math::
-    \widetilde{Z_1}(r, z) = \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
+    \widetilde{Z_1}(r, z) = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
 
 By using :numref:`Lemma {number} <integrate_one_over_zeta>`, one has
 
 .. math::
-   Z_1 = \widetilde{Z_1} - \frac{\pi}{\sqrt{r^2 + z^2}}
+   Z_1 = \widetilde{Z_1} + \frac{1}{\sqrt{r^2 + z^2}}
+
+then
+
+.. math::
+   \mathcal{G}(r, z) = \frac{1}{\sqrt{r^2 + z^2}} + 2 \widetilde{Z_1}(r, z) + 2 i Z_2(r, z).
+
+The asymptotical expression for :math:`\widetilde{Z_1}` reads
+
+.. math::
+   \widetilde{Z_1}(r, z) \simeq - e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{z}{(r^2 + z^2)^{3/2}} - \frac{1}{\sqrt{r^2 + z^2}} \\
+
+while the asymptotic Green function still reads :eq:`green_function_asymptotical_approx`.
 
 Both the original Delhommeau's method and Xie's variant are implemented in Capytaine.
 
@@ -483,7 +506,7 @@ Each element of the matrices :math:`S` and :math:`K` can be seen as the interact
    Note that the derivation of :math:`G` is done with respect to a different variable.
 
    The matrix :math:`D` is used in the `direct` boundary integral equation, as e.g. in HAMS [Liu19]_.
-   In the mathematical literature, :math:`D` is also refered to as the `double layer operator` and :math:`K` as the `adjoint double layer operator`.
+   In the mathematical literature, :math:`D` is also referred to as the `double layer operator` and :math:`K` as the `adjoint double layer operator`.
 
 
 The matrices :math:`S` and :math:`K` relates the vectors :math:`\Phi`, :math:`u` and :math:`\sigma` through the following approximations of :eq:`potential_representation` and :eq:`normal_velocity_on_hull_representation`:
@@ -537,7 +560,7 @@ Forces acting on body surfaces are computed by integration of the pressure field
 
 Dynamic coupling and impedance
 ------------------------------
-Consider a body or a system of bodies. The general linear equation of motion can be expressed in time domain as 
+Consider a body or a system of bodies. The general linear equation of motion can be expressed in time domain as
 
 .. math:: M_{ij} \ddot{x}_j + C_{ij} \dot{x}_j + K_{ij} x_j = F_i,
 
@@ -588,15 +611,12 @@ which, in frequency domain, is
 
 .. math:: \eta = \dfrac{j \omega}{g} \Phi
 
-For a fully coupled problem (bodies free to oscillate, i.e. diffraction and radiation combined), the free surface elevation can be computed as 
+For a fully coupled problem (bodies free to oscillate, i.e. diffraction and radiation combined), the free surface elevation can be computed as
 
-.. math:: \eta = \eta_{\text{incident}} + \eta_{\text{diffracted}} -j \omega \sum_i \eta_{\text{radiated}, i}   X_i
-
-where factor :math:`-j \omega` transforms :math:`\eta_{\text{radiated}, i}` from the radiated wave field corresponding to unit oscillation velocity to the field corresponding to unit oscillation amplitude.
+.. math:: \eta = \eta_{\text{incident}} + \eta_{\text{diffracted}} + \sum_i \eta_{\text{radiated}, i} X_i.
 
 
 Far-field coefficients
 ----------------------
 
 TODO
-

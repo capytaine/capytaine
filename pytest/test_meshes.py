@@ -13,6 +13,7 @@ from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.clipper import clip
 from capytaine.meshes.geometry import Plane, xOz_Plane
 from capytaine.bodies.predefined import HorizontalCylinder, Sphere, Rectangle
+from capytaine.meshes.predefined import mesh_rectangle
 
 # Some meshes that will be used in the following tests.
 test_mesh = Mesh(vertices=np.random.rand(4, 3), faces=[range(4)], name="test_mesh")
@@ -52,10 +53,6 @@ def test_vertices_and_faces_get_and_set():
 
 def test_mesh_naming():
     """Test how the mesh handle names and string representation."""
-    # Test string representation
-    assert str(test_mesh) == 'test_mesh'  # Just the name
-    assert repr(test_mesh) == "Mesh(nb_vertices=4, nb_faces=1, name=test_mesh)"  # A longer representation.
-
     # Test automatic naming
     dummy_mesh = Mesh()  # Automatically named something like mesh_1
     other_dummy_mesh = Mesh()  # Automatically named something like mesh_2
@@ -141,27 +138,47 @@ def test_mesh_quality():
     cylinder.merge_duplicates(atol=1e-5)
     cylinder.heal_mesh()
 
+def test_heal_mesh_removes_degenerate_panels():
+    vertices = np.array([(0.0, 0.0, 0.0), (0.0, 1.0, 0.0), (1.0, 1.0, 0.0), (1.0, 0.0, 0.0)])
+    faces = np.array([[0, 1, 2, 3], [1, 2, 2, 1]])
+    mesh = cpt.Mesh(vertices, faces)
+    assert mesh.nb_faces == 2
+    mesh.heal_mesh()
+    assert mesh.nb_faces == 1
 
 def test_clipper():
     """Test clipping of mesh."""
     mesh = Sphere(radius=5.0, ntheta=10).mesh.merged()
     aabb = mesh.axis_aligned_bbox
 
-    mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-np.infty)
+    mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
     assert np.allclose(mesh.axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
 
-    mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-1.0)
+    mesh.keep_immersed_part(free_surface=0.0, water_depth=1.0)
     assert np.allclose(mesh.axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
 
     # With CollectionOfMeshes (AxialSymmetry)
     mesh = Sphere(radius=5.0, ntheta=10).mesh
     aabb = mesh.merged().axis_aligned_bbox
 
-    mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-np.infty)
+    mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
     assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
 
-    mesh.keep_immersed_part(free_surface=0.0, sea_bottom=-1.0)
+    mesh.keep_immersed_part(free_surface=0.0, water_depth=1.0)
     assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
+
+    # Check boundaries after clipping
+    mesh = mesh_rectangle(size=(5,5), normal=(1,0,0))
+    assert max([i[2] for i in mesh.immersed_part(free_surface=-1).vertices])<=-1
+    assert max([i[2] for i in mesh.immersed_part(free_surface= 1).vertices])<= 1
+    assert min([i[2] for i in mesh.immersed_part(free_surface=100, sea_bottom=-1).vertices])>=-1
+    assert min([i[2] for i in mesh.immersed_part(free_surface=100, sea_bottom= 1).vertices])>= 1
+
+    mesh = mesh_rectangle(size=(4,4), resolution=(1,1), normal=(1,0,0))
+    tmp = list(mesh.clip(Plane(normal=(0,0.1,1),point=(0,0,-1)),inplace=False).vertices)
+    tmp.sort(key=lambda x: x[2])
+    tmp.sort(key=lambda x: x[1])
+    assert np.allclose([i[2] for i in tmp], [-2, -0.8, -2, -1.2])
 
 
 @pytest.mark.parametrize("size", [5, 6])

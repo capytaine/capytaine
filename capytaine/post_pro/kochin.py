@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Computation of the Kochin function."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -31,7 +29,7 @@ def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
         Please re-run the resolution with this option.""")
 
     k = result.wavenumber
-    h = result.depth
+    h = result.water_depth
 
     # omega_bar.shape = (nb_faces, 2) @ (2, nb_theta)
     omega_bar = (result.body.mesh.faces_centers[:, 0:2] - ref_point) @ (np.cos(theta), np.sin(theta))
@@ -49,4 +47,3 @@ def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
     # zs.shape = (nb_theta, nb_faces)
     # result.sources.shape = (nb_faces,)
     return zs @ result.sources/(4*np.pi)
-

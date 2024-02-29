@@ -12,7 +12,7 @@ Capytaine can compute some of the hydrostatic parameters of a given :code:`Float
 
         \iint_S f(x,y,z) dS \approx \sum_i^N f(x_i, y_i, z_i) \Delta S_i
 
-    where :math:`i` is the face index, :math:`(x_i, y_i, z_i)` is :math:`i`th face center, and :math:`S_i` is :math:`i`th face area.
+    where :math:`i` is the face index, :math:`(x_i, y_i, z_i)` is :math:`i` th face center, and :math:`S_i` is :math:`i` th face area.
 
 Hydrostatic parameters
 ----------------------
@@ -144,11 +144,10 @@ Instead of computing each hydrostatic parameters individually, :code:`compute_hy
 
     print(hydrostatics.keys())
     # dict_keys(['g', 'rho', 'center_of_mass', 'wet_surface_area', 'disp_volumes',
-    # 'disp_volume', 'disp_mass', 'center_ of_buoyancy', 'waterplane_center',
+    # 'disp_volume', 'disp_mass', 'center_of_buoyancy', 'waterplane_center',
     # 'waterplane_area', 'transversal_metacentric_radius',
     # 'longitudinal_metacentric_radius' , 'transversal_metacentric_height',
     # 'longitudinal_metacentric_height', 'hydrostatic_stiffness',
     # 'length_overall', 'breadt h_overall', 'depth', 'draught',
     # 'length_at_waterline', 'breadth_at_waterline',
     # 'length_overall_submerged', 'breadth_overall_submerged', 'inertia_matrix'])
-

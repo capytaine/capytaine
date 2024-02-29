@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """ This module contains a class to describe the 2D mesh of the surface of a body in a 3D space.
 Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """
@@ -10,19 +8,19 @@ import logging
 from itertools import count
 
 import numpy as np
-from numpy.linalg import norm
 
-from capytaine.meshes.geometry import Abstract3DObject, Plane, inplace_transformation
-from capytaine.meshes.properties import compute_faces_properties, compute_connectivity
-from capytaine.meshes.surface_integrals import compute_faces_integrals, SurfaceIntegralsMixin
+from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
+from capytaine.meshes.properties import compute_faces_properties
+from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
 from capytaine.tools.optional_imports import import_optional_dependency
+from capytaine.meshes.quadratures import compute_quadrature_on_faces
 
 LOG = logging.getLogger(__name__)
 
 
-class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
+class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
     """A class to handle unstructured 2D meshes in a 3D space.
 
     Parameters
@@ -36,11 +34,14 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
         description.
     name : str, optional
         The name of the mesh. If None, the mesh is given an automatic name based on its internal ID.
+    quadrature_method: None or str or Quadpy quadrature, optional
+        The method used to compute quadrature points in each cells.
+        By default: None, that is a one-point first order scheme is used.
     """
 
     _ids = count(0)  # A counter for automatic naming of new meshes.
 
-    def __init__(self, vertices=None, faces=None, name=None):
+    def __init__(self, vertices=None, faces=None, name=None, *, quadrature_method=None):
 
         if vertices is None or len(vertices) == 0:
             vertices = np.zeros((0, 3))
@@ -59,15 +60,36 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
 
         LOG.debug(f"New mesh: {repr(self)}")
 
+        self.quadrature_method = quadrature_method
+
+    def __short_str__(self):
+        return (f"{self.__class__.__name__}(..., name=\"{self.name}\")")
+
     def __str__(self):
-        return self.name
+        return (f"{self.__class__.__name__}(vertices=[[... {self.nb_vertices} vertices ...]], "
+                f"faces=[[... {self.nb_faces} faces ...]], name=\"{self.name}\")")
 
     def __repr__(self):
-        return (f"{self.__class__.__name__}(nb_vertices={self.nb_vertices}, "
-                f"nb_faces={self.nb_faces}, name={self.name})")
+        # shift = len(self.__class__.__name__) + 1
+        # vert_str = np.array_repr(self.vertices).replace('\n', '\n' + (shift + 9)*' ')
+        # faces_str = np.array_repr(self.faces).replace('\n', '\n' + (shift + 6)*' ')
+        # return f"{self.__class__.__name__}(\n{' '*shift}vertices={vert_str},\n{' '*shift}faces={faces_str}\n{' '*shift}name=\"{self.name}\"\n)"
+        return (f"{self.__class__.__name__}(vertices=[[... {self.nb_vertices} vertices ...]], "
+                f"faces=[[... {self.nb_faces} faces ...]], name=\"{self.name}\")")
 
     def _repr_pretty_(self, p, cycle):
-        p.text(self.__repr__())
+        p.text(self.__str__())
+
+    def __rich_repr__(self):
+        class CustomRepr:
+            def __init__(self, n, kind):
+                self.n = n
+                self.kind = kind
+            def __repr__(self):
+                return "[[... {} {} ...]]".format(self.n, self.kind)
+        yield "vertices", CustomRepr(self.nb_vertices, "vertices")
+        yield "faces", CustomRepr(self.nb_faces, "faces")
+        yield "name", self.name
 
     @property
     def nb_vertices(self) -> int:
@@ -133,7 +155,7 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
 
     def tree_view(self, **kwargs):
         """Dummy method to be generalized for collections of meshes."""
-        return self.name
+        return self.__short_str__()
 
     def to_meshmagick(self):
         """Convert the Mesh object as a Mesh object from meshmagick.
@@ -167,7 +189,7 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
 
     def extract_one_face(self, id_face):
         vertices = self.vertices[self.faces[id_face, :], :]
-        mesh = SingleFace(vertices)
+        mesh = Mesh(vertices=vertices, faces=np.array([[0, 1, 2, 3]]), name=f"single_face_from_{self.name}")
 
         for prop in self.__internals__:
             if prop[:4] == "face":
@@ -297,80 +319,22 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
 
     @property
     def quadrature_points(self):
-        if 'quadrature' in self.__internals__:
-            return self.__internals__['quadrature']
-        else:
-            # Default: first order quadrature
-            return (
-                self.faces_centers.reshape((self.nb_faces, 1, 3)),  # Points
-                self.faces_areas.reshape((self.nb_faces, 1))        # Weights
-            )
-
-    @property
-    def quadrature_method(self):
-        if 'quadrature_method' in self.__internals__:
-            return self.__internals__['quadrature_method']
-        else:
-            return None
+        if 'quadrature' not in self.__internals__:
+            self.compute_quadrature(self.quadrature_method)
+        return self.__internals__['quadrature']
 
     def compute_quadrature(self, method):
-        quadpy = import_optional_dependency("quadpy")
-        transform = quadpy.c2.transform
-        get_detJ = quadpy.cn._helpers.get_detJ
-
+        self.heal_triangles()
+        all_faces = self.vertices[self.faces[:, :], :]
         if method is None:
-            # No quadrature (i.e. default first order quadrature)
-            if 'quadrature' in self.__internals__:
-                del self.__internals__['quadrature']
-                del self.__internals__['quadrature_method']
-            else:
-                pass
-
-        elif isinstance(method, quadpy.c2._helpers.C2Scheme):
-            assert method.points.shape[0] == method.dim == 2
-            nb_points = method.points.shape[1]
-            points = np.empty((self.nb_faces, nb_points, 3))
-            weights = np.empty((self.nb_faces, nb_points))
-
-            self.heal_triangles()
-
-            for i_face in range(self.nb_faces):
-                # Define a local frame (Oxyz) such that
-                # * the corner A of the quadrilateral panel is the origin of the local frame
-                # * the edge AB of the quadrilateral panel is along the local x-axis,
-                # * the quadrilateral panel is within the local xy-plane (that is, its normal is along the local z-axis).
-                # Hence, the corners of the panels all have 0 as z-coordinate in the local frame.
-
-                # Coordinates in global frame
-                global_A, global_B, global_C, global_D = self.vertices[self.faces[i_face, :], :]
-                n = self.faces_normals[i_face, :]
-
-                ex = (global_B-global_A)/norm(global_B-global_A)  # unit vector of the local x-axis
-                ez = n/norm(n)                                    # unit vector of the local z-axis
-                ey = np.cross(ex, ez)                             # unit vector of the local y-axis, such that the basis is orthonormal
-
-                R = np.array([ex, ey, ez])
-                local_A = np.zeros((3,))             # coordinates of A in local frame, should be zero by construction
-                local_B = R @ (global_B - global_A)  # coordinates of B in local frame
-                local_C = R @ (global_C - global_A)  # coordinates of C in local frame
-                local_D = R @ (global_D - global_A)  # coordinates of D in local frame
-
-                local_quadrilateral = np.array([[local_A, local_D], [local_B, local_C]])[:, :, :-1]
-                # Removing last index in last dimension because not interested in z-coordinate which is 0.
-
-                local_quadpoints = transform(method.points, local_quadrilateral)
-
-                local_quadpoints_in_3d = np.concatenate([local_quadpoints, np.zeros((nb_points, 1))], axis=1)
-                global_quadpoints = np.array([R.T @ p for p in local_quadpoints_in_3d]) + global_A
-                points[i_face, :, :] = global_quadpoints
-
-                weights[i_face, :] = method.weights * 4 * np.abs(get_detJ(method.points, local_quadrilateral))
-
-            self.__internals__['quadrature'] = (points, weights)
-            self.__internals__['quadrature_method'] = method
-
+            points = self.faces_centers.reshape((self.nb_faces, 1, 3))
+            weights = self.faces_areas.reshape((self.nb_faces, 1))
         else:
-            raise NotImplementedError
+            points, weights = compute_quadrature_on_faces(all_faces, method)
+        self.__internals__['quadrature'] = (points, weights)
+        self.quadrature_method = method
+        return points, weights
+
 
     ###############################
     #  Triangles and quadrangles  #
@@ -638,22 +602,6 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
         self._clipping_data = clipped_self._clipping_data
         return self
 
-    def clipped(self, plane, **kwargs) -> 'Mesh':
-        # Same API as for the other transformations
-        return self.clip(plane, inplace=False, **kwargs)
-
-    @inplace_transformation
-    def keep_immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        """Clip the mesh with two horizontal planes corresponding
-        with the free surface and the sea bottom."""
-        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
-        if sea_bottom > -np.infty:
-            self.clip(Plane(normal=(0, 0, -1), point=(0, 0, sea_bottom)))
-        return self
-
-    def immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        return self.keep_immersed_part(free_surface, sea_bottom, inplace=False, name=self.name)
-
     @inplace_transformation
     def triangulate_quadrangles(self) -> 'Mesh':
         """Triangulates every quadrangles of the mesh by simple splitting.
@@ -792,101 +740,3 @@ class Mesh(SurfaceIntegralsMixin, Abstract3DObject):
         if closed_mesh:
             self.heal_normals()
         return self
-
-    #################
-    #  Edges stats  #
-    #################
-
-    def _edges_stats(self):
-        """Computes the min, max, and mean of the mesh's edge length"""
-        vertices = self.vertices[self.faces]
-        edge_length = np.zeros((self.nb_faces, 4), dtype=float)
-        for i in range(4):
-            edge = vertices[:, i, :] - vertices[:, i-1, :]
-            edge_length[:, i] = np.sqrt(np.einsum('ij, ij -> i', edge, edge))
-
-        return edge_length.min(), edge_length.max(), edge_length.mean()
-
-    @property
-    def min_edge_length(self) -> float:
-        """The mesh's minimum edge length"""
-        return self._edges_stats()[0]
-
-    @property
-    def max_edge_length(self) -> float:
-        """The mesh's maximum edge length"""
-        return self._edges_stats()[1]
-
-    @property
-    def mean_edge_length(self) -> float:
-        """The mesh's mean edge length"""
-        return self._edges_stats()[2]
-
-    #######################
-    #  Surface integrals  #
-    #######################
-
-    def get_surface_integrals(self) -> np.ndarray:
-        """Get the mesh surface integrals."""
-        if 'surface_integrals' not in self.__internals__:
-            self.__internals__['surface_integrals'] = compute_faces_integrals(self)
-        return self.__internals__['surface_integrals']
-
-    @property
-    def volume(self) -> float:
-        """Get the mesh enclosed volume."""
-        normals = self.faces_normals
-        sigma_0_2 = self.get_surface_integrals()[:3]
-
-        return (normals.T * sigma_0_2).sum() / 3.
-
-    ####################
-    #  Connectivities  #
-    ####################
-
-    @property
-    def vv(self) -> dict:
-        """Get the vertex / vertex connectivity dictionary."""
-        if 'v_v' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return self.__internals__['v_v']
-
-    @property
-    def vf(self) -> dict:
-        """Get the vertex / faces connectivity dictionary."""
-        if 'v_f' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return self.__internals__['v_f']
-
-    @property
-    def ff(self) -> dict:
-        """Get the face / faces connectivity dictionary."""
-        if 'f_f' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return self.__internals__['f_f']
-
-    @property
-    def boundaries(self) -> list:
-        """Get a list that stores lists of boundary connected vertices."""
-        if 'boundaries' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return self.__internals__['boundaries']
-
-    @property
-    def nb_boundaries(self) -> int:
-        """Get the number of boundaries in the mesh."""
-        if 'boundaries' not in self.__internals__:
-            self.__internals__.update(compute_connectivity(self))
-        return len(self.__internals__['boundaries'])
-
-
-class SingleFace(Mesh):
-    """A view on a single face of a mesh.
-    To be used for ACA."""
-
-    _faces = np.arange(4).reshape((1, 4))
-    name = "some single face"
-
-    def __init__(self, vertices=None):
-        self._vertices = vertices
-        self.__internals__ = dict()
