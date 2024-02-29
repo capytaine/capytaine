@@ -1033,3 +1033,50 @@ respective inertia coefficients are assigned as NaN.")
     def minimal_computable_wavelength(self):
         """For accuracy of the resolution, wavelength should not be smaller than this value."""
         return 8*self.mesh.faces_radiuses.max()
+
+    def cluster_bodies(*bodies, name=None):
+        """
+        Builds a hierarchical clustering from a group of bodies
+
+        Parameters
+        ----------
+        bodies: list
+            a list of bodies
+        name: str, optional
+            a name for the new body
+
+        Returns
+        -------
+        FloatingBody
+            Array built from the provided bodies
+        """
+        from scipy.cluster.hierarchy import linkage, dendrogram
+        nb_buoys = len(bodies)
+
+        if any(body.center_of_buoyancy is None for body in bodies):
+            raise ValueError("The center of buoyancy of each body needs to be known for clustering")
+        buoys_positions = np.stack([body.center_of_buoyancy for body in bodies])[:,:2]
+
+        ln_matrix = linkage(buoys_positions, method='centroid', metric='euclidean')
+
+        node_list = list(bodies)  # list of nodes of the tree: the first nodes are single bodies
+
+        # Join the bodies, with an ordering consistent with the dendrogram.
+        # Done by reading the linkage matrix: its i-th row contains the labels
+        # of the two nodes that are merged to form the (n + i)-th node
+        for ii in range(len(ln_matrix)):
+            node_tag = ii + nb_buoys # the first nb_buoys tags are already taken
+            merge_left = int(ln_matrix[ii,0])
+            merge_right = int(ln_matrix[ii,1])
+            # The new node is the parent of merge_left and merge_right
+            new_node_ls = [node_list[merge_left], node_list[merge_right]]
+            new_node = FloatingBody.join_bodies(*new_node_ls, name='node_{:d}'.format(node_tag))
+            node_list.append(new_node)
+
+        # The last node is the parent of all others
+        all_buoys = new_node
+
+        if name is not None:
+            all_buoys.name = name
+
+        return all_buoys
