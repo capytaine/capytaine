@@ -32,6 +32,17 @@ def build_and_test_on_latest_env(session):
 
 
 @nox.session
+def build_and_test_on_nightly_builds(session):
+    # https://scientific-python.org/specs/spec-0004/
+    session.install("--pre", "--upgrade",
+                    "--extra-index-url", "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple",
+                    "numpy", "scipy", "pandas", "xarray")
+    session.install("meson-python", "ninja", "charset-normalizer")
+    session.install("--no-build-isolation", "-e", ".[test,optional]")
+    run_tests(session)
+
+
+@nox.session
 @nox.parametrize("env_file", ["2023-11-07"])
 def build_and_test_on_locked_env(session, env_file):
     session.install("pdm")
