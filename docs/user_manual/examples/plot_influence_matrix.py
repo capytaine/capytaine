@@ -16,7 +16,7 @@ green_function = cpt.Delhommeau()
 
 S, K = engine.build_matrices(
     cylinder.mesh, cylinder.mesh,
-    free_surface=0.0, water_depth=np.infty,
+    free_surface=0.0, water_depth=np.inf,
     wavenumber=1.0,
     green_function=green_function,
 )
