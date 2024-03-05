@@ -11,7 +11,13 @@ gf = cpt.Delhommeau()
 
 legacy_method = gf.fortran_core.delhommeau_integrals.legacy_method
 scaled_nemoh3_method = gf.fortran_core.delhommeau_integrals.scaled_nemoh3_method
+'''
 
+for nr in [1000, 1500, 2000]:
+    r_range = gf.fortran_core.delhommeau_integrals.default_r_spacing(nr, 100.0, 1)
+    print(r_range[(r_range > 0.1) & (r_range < 1.0)])  # Print points between 0.1 and 1
+
+'''
 zmin = [-100,-251,-400]
 @pytest.mark.parametrize("zmin", zmin)
 def test_green_functions_z_spacing_zmin(zmin):
@@ -67,12 +73,13 @@ def test_green_functions_r_spacing_Nemoh_rmax(rmax):
 
     nr = 676
     c = 81
+    r_logSpace = -np.log(10.0**(-10))/(c - 1.0)
     rRange = gf.fortran_core.delhommeau_integrals.default_r_spacing(nr, rmax, scaled_nemoh3_method)
 
     r_cal = []
     for i in range(1,nr+1):
-        if (i <= c):
-            r_cal.append(10**((i - c % 10)/10-np.floor(c/10)))
+        if (i < c):
+            r_cal.append(10**(-10)*np.exp(i*r_logSpace))
         else:
             r_cal.append((rmax-1)/(nr-c)*(i-c)+1)
 
@@ -87,13 +94,15 @@ def test_green_functions_r_spacing_Nemoh_nr(nr):
     nr0 = 676
     c = round(nr/nr0*81)
     rmax = 100
+    r_logSpace = -np.log(10.0**(-10))/(c - 1.0)
     rRange = gf.fortran_core.delhommeau_integrals.default_r_spacing(nr, rmax, scaled_nemoh3_method)
 
     r_cal = []
     for i in range(1,nr+1):
-        if (i <= c):
-            r_cal.append(10**((i - c % 10)/10-np.floor(c/10)))
+        if (i < c):
+            r_cal.append(10**(-10)*np.exp(i*r_logSpace))
         else:
             r_cal.append((rmax-1)/(nr-c)*(i-c)+1)
 
     assert all([abs(a - b) < 1e-4 for a, b in zip(rRange, r_cal)])
+

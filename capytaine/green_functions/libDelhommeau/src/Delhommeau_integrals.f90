@@ -198,6 +198,7 @@ contains
     real(kind=pre), intent(in) :: rmax
     integer, intent(in) :: method
     real(kind=pre), dimension(nr) :: default_r_spacing
+    real(kind=pre), dimension(nr) :: default_r_spacing2
 
     ! Reference parameters from Nemoh 3 model
     integer, parameter :: nr_ref = 676
@@ -205,6 +206,7 @@ contains
 
     ! local variables
     integer :: i, index_of_1
+    real(kind=pre) :: r_logSpace
 
     default_r_spacing(1) = 0.0
 
@@ -217,11 +219,12 @@ contains
       enddo
     else
       ! change of slope at r = 1.0 that is i=index_of_1
-      index_of_1 = nint(nr/nr_ref*index_of_1_ref*1.0)
+      index_of_1 = nint(nr*1.0/nr_ref*index_of_1_ref)
+      r_logSpace = -LOG(10.0**(-10))/(index_of_1 - 1.0)
       do concurrent (i = 2:nr)
-        if (i <= index_of_1) then
+        if (i < index_of_1) then
           ! Exponential spacing
-          default_r_spacing(i) = 10**((i - MOD(index_of_1, 10))/10.0 - FLOOR(index_of_1/10.0))
+          default_r_spacing(i) =  (10.0**(-10))*(EXP(i*r_logSpace))
         else
           ! Linear spacing
           default_r_spacing(i) = (rmax-1)/(nr-index_of_1)*(i-index_of_1)+1.0
