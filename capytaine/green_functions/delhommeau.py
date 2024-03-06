@@ -166,7 +166,7 @@ class Delhommeau(AbstractGreenFunction):
 
         return a, lamda
 
-    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.infty, wavenumber=1.0, adjoint_double_layer=True, early_dot_product=True):
+    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.inf, wavenumber=1.0, adjoint_double_layer=True, early_dot_product=True):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
 
         Parameters
@@ -196,25 +196,25 @@ class Delhommeau(AbstractGreenFunction):
 
         wavenumber = float(wavenumber)
 
-        if free_surface == np.infty: # No free surface, only a single Rankine source term
+        if free_surface == np.inf: # No free surface, only a single Rankine source term
 
             a_exp, lamda_exp = np.empty(1), np.empty(1)  # Dummy arrays that won't actually be used by the fortran code.
 
             coeffs = np.array((1.0, 0.0, 0.0))
 
-        elif water_depth == np.infty:
+        elif water_depth == np.inf:
 
             a_exp, lamda_exp = np.empty(1), np.empty(1)  # Idem
 
             if wavenumber == 0.0:
                 coeffs = np.array((1.0, 1.0, 0.0))
-            elif wavenumber == np.infty:
+            elif wavenumber == np.inf:
                 coeffs = np.array((1.0, -1.0, 0.0))
             else:
                 coeffs = np.array((1.0, 1.0, 1.0))
 
         else:  # Finite water_depth
-            if wavenumber == 0.0 or wavenumber == np.infty:
+            if wavenumber == 0.0 or wavenumber == np.inf:
                 raise NotImplementedError("Zero or infinite frequencies not implemented for finite depth.")
             else:
                 a_exp, lamda_exp = self.find_best_exponential_decomposition(

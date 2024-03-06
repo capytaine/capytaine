@@ -70,7 +70,7 @@ def test_rao_several_water_depth(sphere_fb, solver):
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.5, 10.0, 3),
         'wave_direction': [0],
-        'water_depth': [np.infty, 10.0],
+        'water_depth': [np.inf, 10.0],
         'radiating_dof': list(sphere_fb.dofs.keys()),
         })
 

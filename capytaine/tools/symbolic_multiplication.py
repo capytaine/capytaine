@@ -71,7 +71,7 @@ class SymbolicMultiplication:
         if self.symbol == "0":
             return 0.0
         elif self.symbol == "∞":
-            return np.infty
+            return np.inf
         else:
             raise NotImplementedError
 

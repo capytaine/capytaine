@@ -16,7 +16,7 @@ from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 LOG = logging.getLogger(__name__)
 
 _default_parameters = {'rho': 1000.0, 'g': 9.81, 'omega': 1.0,
-                      'free_surface': 0.0, 'water_depth': np.infty,
+                      'free_surface': 0.0, 'water_depth': np.inf,
                       'wave_direction': 0.0}
 
 
@@ -31,9 +31,9 @@ class LinearPotentialFlowProblem:
     body: FloatingBody, optional
         The body interacting with the waves
     free_surface: float, optional
-        The position of the free surface (accepted values: 0 and np.infty)
+        The position of the free surface (accepted values: 0 and np.inf)
     water_depth: float, optional
-        The depth of water in m (default: np.infty)
+        The depth of water in m (default: np.inf)
     sea_bottom: float, optional
         The position of the sea bottom (deprecated: please prefer setting water_depth)
     omega: float, optional
@@ -89,13 +89,13 @@ class LinearPotentialFlowProblem:
             provided_freq_type = [k for (k, v) in frequency_data.items() if v is not None][0]
 
         if ((float(frequency_data[provided_freq_type]) == 0.0 and provided_freq_type in {'omega', 'wavenumber'})
-            or (float(frequency_data[provided_freq_type]) == np.infty and provided_freq_type in {'period', 'wavelength'})):
+            or (float(frequency_data[provided_freq_type]) == np.inf and provided_freq_type in {'period', 'wavelength'})):
                 omega = SymbolicMultiplication("0")
                 wavenumber = SymbolicMultiplication("0")
                 period = SymbolicMultiplication("∞")
                 wavelength = SymbolicMultiplication("∞")
         elif ((float(frequency_data[provided_freq_type]) == 0.0 and provided_freq_type in {'period', 'wavelength'})
-            or (float(frequency_data[provided_freq_type]) == np.infty and provided_freq_type in {'omega', 'wavenumber'})):
+            or (float(frequency_data[provided_freq_type]) == np.inf and provided_freq_type in {'omega', 'wavenumber'})):
                 omega = SymbolicMultiplication("∞")
                 wavenumber = SymbolicMultiplication("∞")
                 period = SymbolicMultiplication("0")
@@ -110,7 +110,7 @@ class LinearPotentialFlowProblem:
                     period = frequency_data['period']
                     omega = 2*np.pi/period
 
-                if self.water_depth == np.infty:
+                if self.water_depth == np.inf:
                     wavenumber = omega**2/self.g
                 else:
                     wavenumber = newton(lambda k: k*np.tanh(k*self.water_depth) - omega**2/self.g, x0=1.0)
@@ -132,13 +132,13 @@ class LinearPotentialFlowProblem:
     def _check_data(self):
         """Sanity checks on the data."""
 
-        if self.free_surface not in {0.0, np.infty}:
+        if self.free_surface not in {0.0, np.inf}:
             raise NotImplementedError(
                 f"Free surface is {self.free_surface}. "
                 "Only z=0 and z=∞ are accepted values for the free surface position."
             )
 
-        if self.free_surface == np.infty and self.water_depth != np.infty:
+        if self.free_surface == np.inf and self.water_depth != np.inf:
             raise NotImplementedError(
                 "Problems with a sea bottom but no free surface have not been implemented."
             )
@@ -146,7 +146,7 @@ class LinearPotentialFlowProblem:
         if self.water_depth < 0.0:
             raise ValueError("`water_depth` should be strictly positive (provided water depth: {self.water_depth}).")
 
-        if float(self.omega) in {0, np.infty} and self.water_depth != np.infty:
+        if float(self.omega) in {0, np.inf} and self.water_depth != np.inf:
             LOG.warning(
                     f"Default Green function allows for {self.provided_freq_type}={float(self.__getattribute__(self.provided_freq_type))} only for infinite depth (provided water depth: {self.water_depth})."
             )
@@ -292,7 +292,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                          "The wave direction in Capytaine is defined in radians and not in degrees, so the result might not be what you expect. "
                          "If you were actually giving an angle in radians, use the modulo operator to give a value between -2π and 2π to disable this warning.")
 
-        if float(self.omega) in {0.0, np.infty}:
+        if float(self.omega) in {0.0, np.inf}:
             raise NotImplementedError(f"DiffractionProblem does not support zero or infinite frequency.")
 
         if self.body is not None:

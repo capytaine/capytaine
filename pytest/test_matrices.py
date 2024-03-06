@@ -508,3 +508,11 @@ def test_rmatvec_lowrank():
     vM_full = v @ M_full
 
     assert np.all(vM_lowrank==vM_full)
+
+def test_access_block_by_path():
+    A = BlockMatrix([[random_block_matrix([2, 2], [2, 2]), random_block_matrix([2, 2], [2, 2])],
+                     [random_block_matrix([2, 2], [2, 2]), random_block_matrix([2, 2], [2, 2])]])
+    assert A.access_block_by_path([0]) is A._stored_blocks[0, 0]
+    assert A.access_block_by_path([0, 0]) is A._stored_blocks[0, 0]._stored_blocks[0, 0]
+    assert A.access_block_by_path([0, 1]) is A._stored_blocks[0, 0]._stored_blocks[1, 1]
+    assert A.access_block_by_path([1, 0]) is A._stored_blocks[1, 1]._stored_blocks[0, 0]

@@ -6,6 +6,7 @@ User manual
    :maxdepth: 2
 
    installation.rst
+   quickstart.rst
    tutorial.rst
    mesh.rst
    hydrostatics.rst

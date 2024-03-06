@@ -155,8 +155,8 @@ class ClippableMixin(ABC):
     def keep_immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None):
         self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
         water_depth = _get_water_depth(free_surface, water_depth, sea_bottom,
-                                       default_water_depth=np.infty)
-        if water_depth < np.infty:
+                                       default_water_depth=np.inf)
+        if water_depth < np.inf:
             self.clip(Plane(normal=(0, 0, -1), point=(0, 0, free_surface-water_depth)))
         return self
 
