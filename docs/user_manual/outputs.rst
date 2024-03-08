@@ -138,30 +138,33 @@ For convenience, the radiation and diffraction data have been stored in separate
 Since this export method poorly supports complex number, the :func:`separate_complex_values <capytaine.io.xarray.separate_complex_values>` has been used to transform them to a pair of real numbers, as discussed for NetCDF export above.
 
 
-Saving the hydrostatics data
-----------------------------
+Saving the hydrostatics data of rigid body(ies) in Nemoh's format
+-----------------------------------------------------------------
 
-In order to save the following hydrostatics information:
+For a rigid body, or a set of several rigid bodies, the following information can be saved as written by Nemoh's and read by BEMIO to produce :code:`.h5` files for WEC-Sim:
 
 - Hydrostatic stiffness matrix,
 - Centre of gravity,
 - Centre of buoyancy,
 - Displacement volume
 
-There are two files that can be written using the :mod:`capytaine.io.legacy` module::
+They are stored in two files (:code:`Hydrostatics.dat` and :code:`KH.dat`) for each body, using the following syntax::
 
     from capytaine.io.legacy import export_hydrostatics
-    export_hydrostatics("directory_to_save_hydrostatics_data", bodies)
+    export_hydrostatics("directory_to_save_hydrostatics_data", body)
 
-Where :code:`bodies` can be a single :code:`FloatingBody` object or a list of :code:`FloatingBody` objects.
+for a single rigid body or, e.g.,::
 
-:func:`export_hydrostatics <capytaine.io.legacy.export_hydrostatics>` writes the :code:`Hydrostatics.dat` and :code:`KH.dat` files in the original Nemoh format. These :code:`.dat` files can be used by BEMIO to produce :code:`.h5` files for WEC-Sim.
+    from capytaine.io.legacy import export_hydrostatics
+    export_hydrostatics("directory_to_save_hydrostatics_data", [body_1, body_2, body_3])
+
+for several rigid bodies.
 
 In order to use this function, please ensure that the body's centre of gravity has been defined correctly and the following methods have been called on the :code:`FloatingBody` object before passing it to :func:`export_hydrostatics <capytaine.io.legacy.export_hydrostatics>`::
 
   body.add_all_rigid_body_dofs()
-  body.compute_rigid_body_inertia()
-  body.compute_hydrostatics()
+  body.inertia_matrix = body.compute_rigid_body_inertia()
+  body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
 
 
 Saving the data as legacy Tecplot files
