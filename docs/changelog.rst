@@ -64,6 +64,8 @@ Bug fixes
 
 * The function :func:`~capytaine.io.meshes_loaders.load_mesh` more robustly detects filetype using file extension even when the file extension is not lowercase. (:pull:`441`)
 
+* Fix bug with bodies translation or rotation when the rotation center or the center of mass had been defined as list or tuples instead of array (:pull:`472`).
+
 Internals
 ~~~~~~~~~
 
