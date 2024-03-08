@@ -173,7 +173,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
                     if hasattr(self, point_attr) and getattr(self, point_attr) is not None:
                         axis_point = getattr(self, point_attr)
                         LOG.info(f"The rotation dof {name} has been initialized around the point: "
-                                 f"{self.name}.{point_attr} = {getattr(self, point_attr)}")
+                                 f"FloatingBody(..., name={self.name}).{point_attr} = {getattr(self, point_attr)}")
                         break
                 else:
                     axis_point = np.array([0, 0, 0])
@@ -922,7 +922,9 @@ respective inertia coefficients are assigned as NaN.")
             self.dofs[dof] -= 2 * np.outer(np.dot(self.dofs[dof], plane.normal), plane.normal)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
-                self.__dict__[point_attr] -= 2 * (np.dot(self.__dict__[point_attr], plane.normal) - plane.c) * plane.normal
+                point = np.array(self.__dict__[point_attr])
+                shift = - 2 * (np.dot(point, plane.normal) - plane.c) * plane.normal
+                self.__dict__[point_attr] = point + shift
         return self
 
     @inplace_transformation
@@ -930,7 +932,7 @@ respective inertia coefficients are assigned as NaN.")
         self.mesh.translate(vector, *args, **kwargs)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
-                self.__dict__[point_attr] += vector
+                self.__dict__[point_attr] = np.array(self.__dict__[point_attr]) + vector
         return self
 
     @inplace_transformation
@@ -938,7 +940,7 @@ respective inertia coefficients are assigned as NaN.")
         self.mesh.rotate(axis, angle)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
-                self.__dict__[point_attr] = axis.rotate_points([self.__dict__[point_attr]], angle)
+                self.__dict__[point_attr] = axis.rotate_points([self.__dict__[point_attr]], angle)[0, :]
         for dof in self.dofs:
             self.dofs[dof] = axis.rotate_vectors(self.dofs[dof], angle)
         return self
