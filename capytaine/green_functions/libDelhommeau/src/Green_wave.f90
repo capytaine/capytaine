@@ -134,9 +134,16 @@ CONTAINS
     int_G = wavenumber * face_area * (                      &
                   (1 - log(wavenumber**2 * face_area / pi)) &
                   + 2 * (euler_gamma - log_2) - 2*pi*ii     &
+#ifndef XIE_CORRECTION
+                  + 4 * sqrt(pi*face_area)  &
+#endif
                 )
     int_grad_G_sym(1:2) = cmplx(zero, zero, kind=pre)
-    int_grad_G_sym(3) = wavenumber * (int_G + 4 * sqrt(pi*face_area))
+    int_grad_G_sym(3) = wavenumber * (int_G   &
+#ifdef XIE_CORRECTION
+      + 4 * sqrt(pi*face_area)   &
+#endif
+    )
     int_grad_G_antisym(1:3) = cmplx(zero, zero, kind=pre)  ! Irrelevant anyway because we are on the diagonal
   end subroutine
 
