@@ -113,6 +113,16 @@ def test_fill_dataset_without_forward_speed(body, solver):
     assert "encounter_omega" not in ds.coords
     assert "encounter_wave_direction" not in ds.coords
 
+def test_no_explicit_wave_direction(body):
+    test_matrix = xr.Dataset(coords={
+        "wavelength": np.linspace(0.1, 10.0, 2),
+        "forward_speed": [0.0, 10.0],
+        "radiating_dof": ["Surge"],
+        })
+    ds = cpt.BEMSolver().fill_dataset(test_matrix, body)
+    assert ds.wave_direction.values == np.array([0.0])
+
+
 # VALIDATION
 
 rho = 1025

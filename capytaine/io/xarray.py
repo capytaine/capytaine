@@ -126,6 +126,9 @@ def problems_from_dataset(dataset: xr.Dataset,
                                      forward_speed=forward_speed, rho=rho, g=g)
                 )
             else:
+                if wave_direction_range is None:
+                    LOG.warning("Dataset contains non-zero forward speed (forward_speed=%.2f) but no wave_direction has been provided. Wave direction of 0 rad (x-axis) has been assumed.", forward_speed)
+                    wave_direction_range = [0.0]
                 for wave_direction in wave_direction_range:
                     problems.append(
                         RadiationProblem(body=body_range[body_name], **{freq_type: freq},
