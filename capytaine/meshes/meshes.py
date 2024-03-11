@@ -157,6 +157,10 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         """Dummy method to be generalized for collections of meshes."""
         return self.__short_str__()
 
+    def path_to_leaf(self):
+        """Dummy method to be generalized for collection of meshes."""
+        return [[]]
+
     def to_meshmagick(self):
         """Convert the Mesh object as a Mesh object from meshmagick.
         Mostly for debugging."""

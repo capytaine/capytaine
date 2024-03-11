@@ -20,7 +20,7 @@ Then the function :meth:`fill_dataset <capytaine.bem.solver.BEMSolver.fill_datas
         'omega': np.linspace(0.1, 4, 40),
         'wave_direction': [0, np.pi/2],
         'radiating_dof': list(body.dofs),
-        'water_depth': [np.infty],
+        'water_depth': [np.inf],
     })
     dataset = cpt.BEMSolver().fill_dataset(test_matrix, body)
 

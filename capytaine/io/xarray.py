@@ -252,10 +252,10 @@ def collect_records(results):
     records_list = []
     warned_once_about_no_free_surface = False
     for result in results:
-        if result.free_surface == np.infty:
+        if result.free_surface == np.inf:
             if not warned_once_about_no_free_surface:
                 LOG.warning("Datasets currently only support cases with a free surface (free_surface=0.0).\n"
-                            "Cases without a free surface (free_surface=infty) are ignored.\n"
+                            "Cases without a free surface (free_surface=inf) are ignored.\n"
                             "See also https://github.com/mancellin/capytaine/issues/88")
                 warned_once_about_no_free_surface = True
             else:

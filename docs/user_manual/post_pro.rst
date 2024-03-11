@@ -94,7 +94,7 @@ hydrostatics, and inertial properties::
     solver = BEMSolver()
     test_matrix = xr.Dataset(coords={
         'rho': rho_water,
-        'water_depth': [np.infty],
+        'water_depth': [np.inf],
         'omega': omega,
         'wave_direction': 0,
         'radiating_dof': list(sphere.dofs.keys()),

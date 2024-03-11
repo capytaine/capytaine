@@ -1,5 +1,6 @@
 *.o
 *.mod
 *.bin
+prof.txt
 lib/
 results/

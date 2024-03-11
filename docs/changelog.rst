@@ -47,6 +47,11 @@ Minor changes
 
 * Rephrase mesh resolution warnings and group several of them together in a single warning. (:pull:`423`)
 
+* Add block-Jacobi/coarse-correction preconditioner for large arrays of bodies. (:pull:`436`)
+
+* Add a `faces_max_radius` argument to the predefined geometries from :mod:`~cpt.meshes.predefined` to set up the resolution by giving a length scale for the panels (:pull:`459`).
+
+
 Bug fixes
 ~~~~~~~~~
 
@@ -63,6 +68,8 @@ Bug fixes
 * Fix bug causing the quadrature method of a mesh to be forgotten when the mesh was put in a body. ``quadrature_method`` can now be passed as argument when initializing a new mesh. (:pull:`417`)
 
 * The function :func:`~capytaine.io.meshes_loaders.load_mesh` more robustly detects filetype using file extension even when the file extension is not lowercase. (:pull:`441`)
+
+* Fix bug with bodies translation or rotation when the rotation center or the center of mass had been defined as list or tuples instead of array (:pull:`472`).
 
 Internals
 ~~~~~~~~~

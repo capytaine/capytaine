@@ -173,7 +173,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
                     if hasattr(self, point_attr) and getattr(self, point_attr) is not None:
                         axis_point = getattr(self, point_attr)
                         LOG.info(f"The rotation dof {name} has been initialized around the point: "
-                                 f"{self.name}.{point_attr} = {getattr(self, point_attr)}")
+                                 f"FloatingBody(..., name={self.name}).{point_attr} = {getattr(self, point_attr)}")
                         break
                 else:
                     axis_point = np.array([0, 0, 0])
@@ -922,7 +922,9 @@ respective inertia coefficients are assigned as NaN.")
             self.dofs[dof] -= 2 * np.outer(np.dot(self.dofs[dof], plane.normal), plane.normal)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
-                self.__dict__[point_attr] -= 2 * (np.dot(self.__dict__[point_attr], plane.normal) - plane.c) * plane.normal
+                point = np.array(self.__dict__[point_attr])
+                shift = - 2 * (np.dot(point, plane.normal) - plane.c) * plane.normal
+                self.__dict__[point_attr] = point + shift
         return self
 
     @inplace_transformation
@@ -930,7 +932,7 @@ respective inertia coefficients are assigned as NaN.")
         self.mesh.translate(vector, *args, **kwargs)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
-                self.__dict__[point_attr] += vector
+                self.__dict__[point_attr] = np.array(self.__dict__[point_attr]) + vector
         return self
 
     @inplace_transformation
@@ -938,7 +940,7 @@ respective inertia coefficients are assigned as NaN.")
         self.mesh.rotate(axis, angle)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
-                self.__dict__[point_attr] = axis.rotate_points([self.__dict__[point_attr]], angle)
+                self.__dict__[point_attr] = axis.rotate_points([self.__dict__[point_attr]], angle)[0, :]
         for dof in self.dofs:
             self.dofs[dof] = axis.rotate_vectors(self.dofs[dof], angle)
         return self
@@ -1033,3 +1035,50 @@ respective inertia coefficients are assigned as NaN.")
     def minimal_computable_wavelength(self):
         """For accuracy of the resolution, wavelength should not be smaller than this value."""
         return 8*self.mesh.faces_radiuses.max()
+
+    def cluster_bodies(*bodies, name=None):
+        """
+        Builds a hierarchical clustering from a group of bodies
+
+        Parameters
+        ----------
+        bodies: list
+            a list of bodies
+        name: str, optional
+            a name for the new body
+
+        Returns
+        -------
+        FloatingBody
+            Array built from the provided bodies
+        """
+        from scipy.cluster.hierarchy import linkage, dendrogram
+        nb_buoys = len(bodies)
+
+        if any(body.center_of_buoyancy is None for body in bodies):
+            raise ValueError("The center of buoyancy of each body needs to be known for clustering")
+        buoys_positions = np.stack([body.center_of_buoyancy for body in bodies])[:,:2]
+
+        ln_matrix = linkage(buoys_positions, method='centroid', metric='euclidean')
+
+        node_list = list(bodies)  # list of nodes of the tree: the first nodes are single bodies
+
+        # Join the bodies, with an ordering consistent with the dendrogram.
+        # Done by reading the linkage matrix: its i-th row contains the labels
+        # of the two nodes that are merged to form the (n + i)-th node
+        for ii in range(len(ln_matrix)):
+            node_tag = ii + nb_buoys # the first nb_buoys tags are already taken
+            merge_left = int(ln_matrix[ii,0])
+            merge_right = int(ln_matrix[ii,1])
+            # The new node is the parent of merge_left and merge_right
+            new_node_ls = [node_list[merge_left], node_list[merge_right]]
+            new_node = FloatingBody.join_bodies(*new_node_ls, name='node_{:d}'.format(node_tag))
+            node_list.append(new_node)
+
+        # The last node is the parent of all others
+        all_buoys = new_node
+
+        if name is not None:
+            all_buoys.name = name
+
+        return all_buoys
