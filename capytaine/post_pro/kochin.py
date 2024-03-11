@@ -2,8 +2,10 @@
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
+import logging
 import numpy as np
 
+LOG = logging.getLogger(__name__)
 
 def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
     """Compute the far field coefficient
@@ -22,6 +24,9 @@ def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
     H: same type as theta
         values of the Kochin function
     """
+
+    if result.forward_speed != 0.0:
+        LOG.warning("Kochin functions with forward speed have never been validated.")
 
     if result.sources is None:
         raise Exception(f"""The values of the sources of {result} cannot been found.

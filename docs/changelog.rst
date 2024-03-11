@@ -14,6 +14,11 @@ New in next version
 Major changes
 ~~~~~~~~~~~~~
 
+* New feature: **Approximate forward speed for single rigid body**.
+  A ``forward_speed`` parameter can now be provided to :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` (or to the test matrix when using :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset`) to compute the excitation force, added mass and radiation damping with forward speed of the body in the :math:`x` direction.
+  Note that the :class:`~capytaine.bem.problems_and_results.RadiationProblem` now accept a ``wave_direction`` parameter, which is only used when `forward_speed` is non zero to compute the encounter frequency.
+  See the theory manual for references. (:pull:`376`)
+
 * Add `rich <https://rich.readthedocs.io>`_ as a dependency and improve formatting of the console output.
   Add :func:`~capytaine.tools.rich.set_logging` function to quickly set up logging with `rich`.
   :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now display a progress bar (unless turn off by the ``progress_bar`` argument). (:pull:`382`)
