@@ -211,7 +211,10 @@ class Delhommeau(AbstractGreenFunction):
             elif wavenumber == np.inf:
                 coeffs = np.array((1.0, -1.0, 0.0))
             else:
-                coeffs = np.array((1.0, 1.0, 1.0))
+                if self.fortran_core_basename == "Delhommeau":
+                    coeffs = np.array((1.0, -1.0, 1.0))
+                else:
+                    coeffs = np.array((1.0, 1.0, 1.0))
 
         else:  # Finite water_depth
             if wavenumber == 0.0 or wavenumber == np.inf:
