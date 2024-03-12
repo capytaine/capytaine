@@ -151,3 +151,16 @@ def test_no_tabulation():
 #     gf_at_depth(1e-9)
 #     gf_at_depth(1e-5)
 #     gf_at_depth(1e-2)
+
+
+@pytest.mark.parametrize("gf", gfs)
+def test_exact_integration_of_rankine_terms(gf):
+    center = np.array([0.0, 0.0, 0.0])
+    area = 1.0
+
+    mesh = cpt.mesh_rectangle(size=(np.sqrt(area), np.sqrt(area)), center=center, resolution=(1, 1))
+    rankine_g_once = gf.evaluate(center.reshape(1, -1), mesh, wavenumber=0.0)[0]
+    mesh = cpt.mesh_rectangle(size=(np.sqrt(area), np.sqrt(area)), center=center, resolution=(11, 11))
+    # Use odd number of panels to avoid having the center on a corner of a panel, which is not defined for the strong singularity of the derivative.
+    rankine_g_parts = gf.evaluate(center.reshape(1, -1), mesh, wavenumber=0.0)[0]
+    assert rankine_g_once == pytest.approx(rankine_g_parts.sum(), abs=1e-2)
