@@ -50,7 +50,7 @@ class Delhommeau(AbstractGreenFunction):
         Tabulated Delhommeau integrals.
     """
 
-    fortran_core_basename = "Delhommeau"
+    legacy_wave_part = True
 
     def __init__(self, *,
                  tabulation_nr=400,
@@ -60,12 +60,12 @@ class Delhommeau(AbstractGreenFunction):
                  floating_point_precision='float64',
                  ):
 
-        self.fortran_core = import_module(f"capytaine.green_functions.libs.{self.fortran_core_basename}_{floating_point_precision}")
+        self.fortran_core = import_module(f"capytaine.green_functions.libs.Delhommeau_{floating_point_precision}")
 
         self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(tabulation_nr)
         self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(tabulation_nz)
         self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
-                self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
+                self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points, self.legacy_wave_part,
                 )
         self.floating_point_precision = floating_point_precision
 
@@ -211,7 +211,7 @@ class Delhommeau(AbstractGreenFunction):
             elif wavenumber == np.inf:
                 coeffs = np.array((1.0, -1.0, 0.0))
             else:
-                if self.fortran_core_basename == "Delhommeau":
+                if self.legacy_wave_part:
                     coeffs = np.array((1.0, -1.0, 1.0))
                 else:
                     coeffs = np.array((1.0, 1.0, 1.0))
@@ -264,7 +264,7 @@ class Delhommeau(AbstractGreenFunction):
             coeffs,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
-            mesh1 is mesh2, adjoint_double_layer,
+            mesh1 is mesh2, self.legacy_wave_part, adjoint_double_layer,
             S, K
         )
 
@@ -284,4 +284,4 @@ class XieDelhommeau(Delhommeau):
     Same arguments and methods as :class:`Delhommeau`.
     """
 
-    fortran_core_basename = "XieDelhommeau"
+    legacy_wave_part = False

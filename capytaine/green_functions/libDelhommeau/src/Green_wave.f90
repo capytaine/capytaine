@@ -29,11 +29,13 @@ CONTAINS
   SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS                        &
       (X0I, X0J, wavenumber,                                     &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      legacy_delhommeau,                                         &
       FS, VS)
 
     ! Inputs
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I, X0J
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber
+    logical,                                  intent(in) :: legacy_delhommeau
 
     ! Tabulated data
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
@@ -72,14 +74,17 @@ CONTAINS
     !=======================================================
     IF ((size(tabulated_z_range) <= 1) .or. (size(tabulated_r_range) <= 1)) THEN
       ! No tabulation, fully recompute the Green function each time.
-      integrals = numerical_integration(r, z, 500)
+      integrals = numerical_integration(r, z, 500, legacy_delhommeau)
     ELSE
       IF ((abs(z) < abs(tabulated_z_range(size(tabulated_z_range)))) .AND. (r < tabulated_r_range(size(tabulated_r_range)))) THEN
         ! Within the range of tabulated data
         integrals = pick_in_default_tabulation(r, z, tabulated_r_range, tabulated_z_range, tabulated_integrals)
       ELSE
-        ! Asymptotic expression for distant panels
+        ! Asymptotic expression of legacy's Delhommeau Green function for distant panels
         integrals = asymptotic_approximations(MAX(r, 1e-10), z)
+        if (.not. legacy_delhommeau) then
+          integrals(1, 2) = integrals(1, 2) - 1/r1
+        endif
       ENDIF
     ENDIF
 
@@ -90,11 +95,10 @@ CONTAINS
     FS    = CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
     VS(1) = -drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
     VS(2) = -drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
-#ifdef XIE_CORRECTION
-    VS(3) = dzdx3 * CMPLX(integrals(1, 2) + ONE/r1, integrals(2, 2), KIND=PRE)
-#else
     VS(3) = dzdx3 * CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
-#endif
+    if (.not.legacy_delhommeau) then
+      VS(3) = VS(3) + dzdx3/r1
+    endif
 
     RETURN
   END SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS
@@ -104,14 +108,16 @@ CONTAINS
   SUBROUTINE WAVE_PART_INFINITE_DEPTH &
       (X0I, X0J, wavenumber,          &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      legacy_delhommeau, &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the wave part of the Green function in the infinite depth case.
     ! This is mostly the integral computed by the subroutine above.
 
     ! Inputs
-    REAL(KIND=PRE),                           INTENT(IN)  :: wavenumber
-    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0I   ! Coordinates of the source point
-    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
+    REAL(KIND=PRE),                           INTENT(IN) :: wavenumber
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I   ! Coordinates of the source point
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J   ! Coordinates of the center of the integration panel
+    logical,                                  intent(in) :: legacy_delhommeau
 
     ! Tabulated data
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
@@ -130,17 +136,18 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       X0I, X0J, wavenumber,                                      &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      legacy_delhommeau, &
       SP, VSP(:))
     SP  = 2*wavenumber*SP
     VSP = 2*wavenumber*VSP
 
-#ifndef XIE_CORRECTION
-    ! In the original Delhommeau method
-    XJ_REFLECTION(1:2) = X0J(1:2)
-    XJ_REFLECTION(3) = - X0J(3)
-    ! Only one singularity is missing in the derivative
-    VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
-#endif
+    if (legacy_delhommeau) then
+      ! In the original Delhommeau method
+      XJ_REFLECTION(1:2) = X0J(1:2)
+      XJ_REFLECTION(3) = - X0J(3)
+      ! Only one singularity is missing in the derivative
+      VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
+    endif
 
     VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
     VSP_SYM(3)       = VSP(3)
@@ -155,6 +162,7 @@ CONTAINS
   SUBROUTINE WAVE_PART_FINITE_DEPTH &
       (X0I, X0J, wavenumber, depth, &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      legacy_delhommeau, &
       NEXP, AMBDA, AR,              &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
@@ -163,6 +171,7 @@ CONTAINS
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I  ! Coordinates of the source point
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
+    logical,                                  intent(in) :: legacy_delhommeau
 
     ! Tabulated data
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
@@ -201,17 +210,18 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      legacy_delhommeau, &
       FS(1), VS(:, 1))
 
-#ifndef XIE_CORRECTION
-    ! In the original Delhommeau method, the integrals are Re[ ∫(J(ζ) - 1/ζ)dθ ]/π + i Re[ ∫(e^ζ)dθ ]
-    ! whereas we need Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ]
-    ! So the term PSR is the difference because  Re[ ∫ 1/ζ dθ ] = - π/sqrt(r² + z²)
-    !
-    ! Note however, that the derivative part of Delhommeau integrals is the derivative of
-    ! Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ] so no fix is needed for the derivative.
-    PSR(1) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-#endif
+    if (legacy_delhommeau) then
+      ! In the original Delhommeau method, the integrals are Re[ ∫(J(ζ) - 1/ζ)dθ ]/π + i Re[ ∫(e^ζ)dθ ]
+      ! whereas we need Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ]
+      ! So the term PSR is the difference because  Re[ ∫ 1/ζ dθ ] = - π/sqrt(r² + z²)
+      !
+      ! Note however, that the derivative part of Delhommeau integrals is the derivative of
+      ! Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ] so no fix is needed for the derivative.
+      PSR(1) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    endif
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
@@ -219,12 +229,13 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      legacy_delhommeau, &
       FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
-#ifndef XIE_CORRECTION
-    PSR(2) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-#endif
+    if (legacy_delhommeau) then
+      PSR(2) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    endif
 
     ! 1.c Shift and reflect XJ and compute another value of the Green function
     XI(3) =  X0I(3)
@@ -232,11 +243,12 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      legacy_delhommeau, &
       FS(3), VS(:, 3))
 
-#ifndef XIE_CORRECTION
-    PSR(3) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-#endif
+    if (legacy_delhommeau) then
+      PSR(3) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    endif
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
@@ -244,19 +256,20 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      legacy_delhommeau, &
       FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
-#ifndef XIE_CORRECTION
-    PSR(4) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-#endif
+    if (legacy_delhommeau) then
+      PSR(4) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    endif
 
     ! Add up the results of the four problems
-#ifdef XIE_CORRECTION
+
     SP               = SUM(FS(1:4))
-#else
-    SP               = SUM(FS(1:4)) - SUM(PSR(1:4))
-#endif
+    if (legacy_delhommeau) then
+      SP               = SP - SUM(PSR(1:4))
+    endif
     VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
     VSP_ANTISYM(1:2) = VS(1:2, 1) + VS(1:2, 2) + VS(1:2, 3) + VS(1:2, 4)
     VSP_SYM(3)       = VS(3, 1) + VS(3, 4)
