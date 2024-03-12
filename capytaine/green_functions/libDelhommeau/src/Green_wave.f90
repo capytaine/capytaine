@@ -27,6 +27,7 @@ CONTAINS
   ! =====================================================================
 
   SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS                        &
+      ! Returns (G^-, nabla G^+) if legacy_delhommeau and (G^+, nabla G^+) otherwise
       (X0I, X0J, wavenumber,                                     &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       legacy_delhommeau,                                         &
@@ -83,6 +84,8 @@ CONTAINS
         ! Asymptotic expression of legacy's Delhommeau Green function for distant panels
         integrals = asymptotic_approximations(MAX(r, 1e-10), z)
         if (.not. legacy_delhommeau) then
+          ! asymptotic_approximations returns always G^-
+          ! Here is the correction to retrieve G^+
           integrals(1, 2) = integrals(1, 2) - 1/r1
         endif
       ENDIF
@@ -96,7 +99,9 @@ CONTAINS
     VS(1) = -drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
     VS(2) = -drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
     VS(3) = dzdx3 * CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
-    if (.not.legacy_delhommeau) then
+    if (.not. legacy_delhommeau) then
+      ! integrals(:, 2) are G^+, but the formula is that dG^+/dz = G^-
+      ! Here is the correction
       VS(3) = VS(3) + dzdx3/r1
     endif
 
@@ -142,7 +147,8 @@ CONTAINS
     VSP = 2*wavenumber*VSP
 
     if (legacy_delhommeau) then
-      ! In the original Delhommeau method
+      ! COLLECT_DELHOMMEAU_INTEGRALS returned nabla G^+, but we actually needed nabla G^-
+      ! Here is the correction:
       XJ_REFLECTION(1:2) = X0J(1:2)
       XJ_REFLECTION(3) = - X0J(3)
       ! Only one singularity is missing in the derivative
