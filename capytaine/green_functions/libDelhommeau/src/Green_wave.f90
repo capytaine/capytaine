@@ -86,7 +86,7 @@ CONTAINS
         if (.not. legacy_delhommeau) then
           ! asymptotic_approximations returns always G^-
           ! Here is the correction to retrieve G^+
-          integrals(1, 2) = integrals(1, 2) - 1/r1
+          integrals(1, 2) = integrals(1, 2) - 2/r1
         endif
       ENDIF
     ENDIF
@@ -102,7 +102,7 @@ CONTAINS
     if (.not. legacy_delhommeau) then
       ! integrals(:, 2) are G^+, but the formula is that dG^+/dz = G^-
       ! Here is the correction
-      VS(3) = VS(3) + dzdx3/r1
+      VS(3) = VS(3) + 2*dzdx3/r1
     endif
 
     RETURN
@@ -143,8 +143,8 @@ CONTAINS
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       legacy_delhommeau, &
       SP, VSP(:))
-    SP  = 2*wavenumber*SP
-    VSP = 2*wavenumber*VSP
+    SP  = wavenumber*SP
+    VSP = wavenumber*VSP
 
     if (legacy_delhommeau) then
       ! COLLECT_DELHOMMEAU_INTEGRALS returned nabla G^+, but we actually needed nabla G^-
@@ -226,7 +226,7 @@ CONTAINS
       !
       ! Note however, that the derivative part of Delhommeau integrals is the derivative of
       ! Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ] so no fix is needed for the derivative.
-      PSR(1) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+      PSR(1) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
     endif
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
@@ -240,7 +240,7 @@ CONTAINS
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
     if (legacy_delhommeau) then
-      PSR(2) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+      PSR(2) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
     endif
 
     ! 1.c Shift and reflect XJ and compute another value of the Green function
@@ -253,7 +253,7 @@ CONTAINS
       FS(3), VS(:, 3))
 
     if (legacy_delhommeau) then
-      PSR(3) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+      PSR(3) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
     endif
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
@@ -267,7 +267,7 @@ CONTAINS
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
     if (legacy_delhommeau) then
-      PSR(4) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+      PSR(4) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
     endif
 
     ! Add up the results of the four problems
@@ -284,7 +284,7 @@ CONTAINS
     ! Multiply by some coefficients
     AMH  = wavenumber*depth
     AKH  = AMH*TANH(AMH)
-    A    = (AMH+AKH)**2/(2*depth*(AMH**2-AKH**2+AKH))
+    A    = (AMH+AKH)**2/(4*depth*(AMH**2-AKH**2+AKH))
 
     SP          = A*SP
     VSP_ANTISYM = A*VSP_ANTISYM

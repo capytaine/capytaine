@@ -82,6 +82,7 @@ contains
 
     integrals(1, 1) = integrals(1, 1)/PI
     integrals(1, 2) = integrals(1, 2)/PI
+    integrals(:, :) = 2*integrals(:, :)
 
   contains
 
@@ -158,6 +159,7 @@ contains
     integrals(2, 1) = expz_sqr*(sin_kr + cos_kr/(2*r))
     integrals(1, 2) = -expz_sqr*sin_kr + z/r1**3
     integrals(2, 2) =  expz_sqr*cos_kr
+    integrals(:, :) = 2*integrals(:, :)
 
   end function asymptotic_approximations
 
