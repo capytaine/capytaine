@@ -76,18 +76,7 @@ CONTAINS
 
     use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
 
-
-#ifndef XIE_CORRECTION
-    IF (is_infinity(depth)) THEN
-      ! In infinite depth, for finite frequency,
-      ! the original Delhommeau's method as in Nemoh uses coeffs(2) = -1.
-      ! But by default, coeffs(2) is set to 1 in delhommeau.py.
-      coeffs(2) = coeffs(2) - 2*coeffs(3)
-    ENDIF
-#endif
-
-    coeffs(:) = coeffs(:)/(4*PI)
-
+    coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
     !$OMP&  PRIVATE(J, I, SP1, VSP1, SP2, VSP2_SYM, VSP2_ANTISYM, reflected_centers_1_I, reflected_VSP1)
@@ -121,15 +110,15 @@ CONTAINS
           END IF
 
           ! Store into influence matrix
-          S(I, J) = S(I, J) - coeffs(1) * SP1                                ! Green function
+          S(I, J) = S(I, J) + coeffs(1) * SP1                                ! Green function
           if (size(K, 3) == 1) then
             if (.NOT. adjoint_double_layer) then
-              K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_2(J, :), VSP1(:))
+              K(I, J, 1) = K(I, J, 1) + coeffs(1) * DOT_PRODUCT(normals_2(J, :), VSP1(:))
             else
-              K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1(:))
+              K(I, J, 1) = K(I, J, 1) + coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1(:))
             endif
           else
-            K(I, J, :) = K(I, J, :) - coeffs(1) * VSP1(:)
+            K(I, J, :) = K(I, J, :) + coeffs(1) * VSP1(:)
           endif
 
         END DO
@@ -172,15 +161,15 @@ CONTAINS
           END IF
 
           ! Store into influence matrix
-          S(I, J) = S(I, J) - coeffs(2) * SP1                                ! Green function
+          S(I, J) = S(I, J) + coeffs(2) * SP1                                ! Green function
           if (size(K, 3) == 1) then
             if (.NOT. adjoint_double_layer) then
-              K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_2(J, :), reflected_VSP1(:))
+              K(I, J, 1) = K(I, J, 1) + coeffs(2) * DOT_PRODUCT(normals_2(J, :), reflected_VSP1(:))
             else
-              K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_VSP1(:))
+              K(I, J, 1) = K(I, J, 1) + coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_VSP1(:))
             endif
           else
-            K(I, J, :) = K(I, J, :) - coeffs(2) * reflected_VSP1(:)
+            K(I, J, :) = K(I, J, :) + coeffs(2) * reflected_VSP1(:)
           endif
         END DO
       END IF
@@ -217,18 +206,18 @@ CONTAINS
               VSP2_ANTISYM = -VSP2_ANTISYM
             END IF
 
-            S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, Q)
+            S(I, J) = S(I, J) + coeffs(3) * SP2 * quad_weights(J, Q)
 
             if (size(K, 3) == 1) then
               if (.NOT. adjoint_double_layer) then
-                K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
                   DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
               else
-                K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
                   DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
               endif
             else
-              K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
+              K(I, J, :) = K(I, J, :) + coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
             endif
 
           END DO
@@ -284,31 +273,31 @@ CONTAINS
             VSP2_ANTISYM = -VSP2_ANTISYM
           END IF
 
-          S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, 1)
+          S(I, J) = S(I, J) + coeffs(3) * SP2 * quad_weights(J, 1)
           if (size(K, 3) == 1) then
             if (.NOT. adjoint_double_layer) then
-              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+              K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
                 DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
             else
-              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+              K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
                 DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
             endif
           else
-            K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+            K(I, J, :) = K(I, J, :) + coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
           endif
 
           IF (.NOT. I==J) THEN
-            S(J, I) = S(J, I) - coeffs(3) * SP2 * quad_weights(I, 1)
+            S(J, I) = S(J, I) + coeffs(3) * SP2 * quad_weights(I, 1)
             if (size(K, 3) == 1) then
               if (.NOT. adjoint_double_layer) then
-                K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
+                K(J, I, 1) = K(J, I, 1) + coeffs(3) * &
                   DOT_PRODUCT(normals_2(I, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
               else
-                K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
+                K(J, I, 1) = K(J, I, 1) + coeffs(3) * &
                   DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
               endif
             else
-              K(J, I, :) = K(J, I, :) - coeffs(3) * (VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+              K(J, I, :) = K(J, I, :) + coeffs(3) * (VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
             endif
           END IF
         END DO
