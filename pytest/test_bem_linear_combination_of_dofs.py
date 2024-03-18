@@ -21,7 +21,7 @@ def test_sum_of_dofs(method):
     both.add_translation_dof(name="Heave")
 
     problems = [cpt.RadiationProblem(body=both, radiating_dof=dof, omega=1.0) for dof in both.dofs]
-    results = solver.solve_all(problems,method=method)
+    results = solver.solve_all(problems, method=method)
     dataset = cpt.assemble_dataset(results)
 
     both_added_mass = dataset['added_mass'].sel(radiating_dof="Heave", influenced_dof="Heave").data

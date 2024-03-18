@@ -21,6 +21,9 @@ module delhommeau_integrals
 
   implicit none
 
+  integer, parameter :: LEGACY_METHOD = 0  ! Nemoh 2
+  integer, parameter :: SCALED_NEMOH3_METHOD = 1
+
   public :: numerical_integration
   public :: asymptotic_approximations
   public :: construct_tabulation
@@ -185,42 +188,80 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  pure function default_r_spacing(nr)
+  pure function default_r_spacing(nr, rmax, method)
     integer, intent(in) :: nr
+    real(kind=pre), intent(in) :: rmax
+    integer, intent(in) :: method
     real(kind=pre), dimension(nr) :: default_r_spacing
-    integer :: i
+    real(kind=pre), dimension(nr) :: default_r_spacing2
+
+    ! Reference parameters from Nemoh 3 model
+    integer, parameter :: nr_ref = 676
+    integer, parameter :: index_of_1_ref = 81  ! index of the change of slope
+
+    ! local variables
+    integer :: i, index_of_1
+    real(kind=pre) :: r_logSpace
+
     default_r_spacing(1) = 0.0
-    do concurrent (i = 2:nr)
-      default_r_spacing(i) = min(                         &
+
+    if (method == LEGACY_METHOD) then
+      do concurrent (i = 2:nr)
+        default_r_spacing(i) = min(                    &
                                  10**((i-1.0)/5.0 - 6.0), &
                                  abs(i-32)/3.0 + 4.0/3.0  &
                                )
-      ! change of slope at r = 1.0
-    enddo
+      enddo
+    else
+      ! change of slope at r = 1.0 that is i=index_of_1
+      index_of_1 = nint(nr*1.0/nr_ref*index_of_1_ref)
+      r_logSpace = -LOG(10.0**(-10))/(index_of_1 - 1.0)
+      do concurrent (i = 2:nr)
+        if (i < index_of_1) then
+          ! Exponential spacing
+          default_r_spacing(i) =  (10.0**(-10))*(EXP(i*r_logSpace))
+        else
+          ! Linear spacing
+          default_r_spacing(i) = (rmax-1)/(nr-index_of_1)*(i-index_of_1)+1.0
+        endif
+      enddo
+    endif
   end function default_r_spacing
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  pure function default_z_spacing(nz)
+  pure function default_z_spacing(nz, zmin, method)
     integer, intent(in) :: nz
+    real(kind=pre), intent(in) :: zmin
+    integer, intent(in) :: method
     real(kind=pre), dimension(nz) :: default_z_spacing
+
     integer :: j
-    do concurrent (j = 1:nz)
-      default_z_spacing(j) = -min(10**(j/5.0-6.0), 10**(j/8.0-4.5))
-      ! change of slope at z = -1e-2
-    enddo
-    if (nz == 46) then
-      ! compatibility with Nemoh
-      default_z_spacing(46) = -16.0
+    real(kind=pre) :: dz
+
+    if (method == LEGACY_METHOD) then
+      do concurrent (j = 1:nz)
+        default_z_spacing(j) = -min(10**(j/5.0-6.0), 10**(j/8.0-4.5))
+        ! change of slope at z = -1e-2
+      enddo
+      if (nz == 46) then  ! For consistency with Nemoh 2...
+        default_z_spacing(46) = -16.0
+      endif
+    else
+      dz = (log10(abs(zmin))+10.0)/nz
+      do concurrent (j = 1:nz)
+        default_z_spacing(j) = -min(10**(dz*j-10.0), abs(zmin))
+      enddo
     endif
   end function default_z_spacing
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  pure function pick_in_default_tabulation(r, z, r_range, z_range, tabulation) result(integrals)
+  pure function pick_in_default_tabulation(r, z, method, r_range, z_range, tabulation) result(integrals)
     ! inputs
     real(kind=pre), intent(in) :: r
     real(kind=pre), intent(in) :: z
+    integer, intent(in) :: method
     real(kind=pre), dimension(:), intent(in) :: r_range
     real(kind=pre), dimension(:), intent(in) :: z_range
     real(kind=pre), dimension(size(r_range), size(z_range), 2, 2), intent(in) :: tabulation
@@ -231,8 +272,8 @@ contains
     ! local variables
     integer :: i, j
 
-    i = max(2, min(size(r_range)-1, nearest_r_index(r)))
-    j = max(2, min(size(z_range)-1, nearest_z_index(z)))
+    i = max(2, min(size(r_range)-1, nearest_r_index(r, r_range, method)))
+    j = max(2, min(size(z_range)-1, nearest_z_index(z, z_range, method)))
 
     integrals(:, :) = lagrange_polynomial_interpolation( &
       r, z,                                              &
@@ -242,30 +283,66 @@ contains
 
   contains
 
-    pure function nearest_r_index(r)
+    pure function nearest_r_index(r, r_range, method)
       real(kind=pre), intent(in) :: r
+      integer, intent(in) :: method
+      real(kind=pre), dimension(:), intent(in) :: r_range
       integer :: nearest_r_index
 
-      if (r < 1e-6) then
-        nearest_r_index = 2
-      else if (r < 1.0) then
-        nearest_r_index = int(5*(log10(r) + 6) + 1)
+      ! Reference parameters from Nemoh 3 model
+      integer, parameter :: nr_ref = 676
+      integer, parameter :: index_of_1_ref = 81  ! index of the change of slope
+
+      ! local variables
+      integer :: i, index_of_1
+      real(kind=pre) :: rmax
+
+
+      if (method == LEGACY_METHOD) then
+        if (r < 1e-6) then
+          nearest_r_index = 2
+        else if (r < 1.0) then
+          nearest_r_index = int(5*(log10(r) + 6) + 1)
+        else
+          nearest_r_index = int(3*r + 28)
+        endif
       else
-        nearest_r_index = int(3*r + 28)
+        index_of_1 = nint(size(r_range)/nr_ref*index_of_1_ref*1.0)
+        rmax = r_range(size(r_range))
+
+        if (r < 1e-9) then
+          nearest_r_index = 2
+        else if (r < 1.0) then
+          nearest_r_index = int((log10(r) + FLOOR(index_of_1/10.0))*10.0 + MOD(index_of_1, 10))
+        else
+          nearest_r_index = int((r - 1)*(size(r_range) - index_of_1)/(rmax - 1) + index_of_1)
+        endif
       endif
     end function
 
-    pure function nearest_z_index(z)
+    pure function nearest_z_index(z, z_range, method)
       real(kind=pre), intent(in) :: z
+      integer, intent(in) :: method
+      real(kind=pre), dimension(:), intent(in) :: z_range
       integer :: nearest_z_index
+
+      ! local parameters
       real(kind=pre) :: absz
+      real(kind=pre) :: dz
+      integer :: nz
 
       absz = abs(z)
+      nz = size(z_range)
 
-      if (absz > 1e-2) then
-        nearest_z_index = int(8*(log10(absz) + 4.5))
+      if (method == LEGACY_METHOD) then
+        if (absz > 1e-2) then
+          nearest_z_index = int(8*(log10(absz) + 4.5))
+        else
+          nearest_z_index = int(5*(log10(absz) + 6))
+        endif
       else
-        nearest_z_index = int(5*(log10(absz) + 6))
+        dz = (log10(abs(z_range(nz)))+10.0)/nz
+        nearest_z_index = int((log10(absz)+10)/dz)
       endif
     end function
 

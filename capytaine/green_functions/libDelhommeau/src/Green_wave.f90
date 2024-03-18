@@ -29,7 +29,7 @@ CONTAINS
   SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS                        &
       ! Returns (G^-, nabla G^+) if legacy_delhommeau and (G^+, nabla G^+) otherwise
       (X0I, X0J, wavenumber,                                     &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       legacy_delhommeau,                                         &
       FS, VS)
 
@@ -39,6 +39,7 @@ CONTAINS
     logical,                                  intent(in) :: legacy_delhommeau
 
     ! Tabulated data
+    INTEGER,                                  INTENT(IN) :: tabulation_method
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
     REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
@@ -79,7 +80,7 @@ CONTAINS
     ELSE
       IF ((abs(z) < abs(tabulated_z_range(size(tabulated_z_range)))) .AND. (r < tabulated_r_range(size(tabulated_r_range)))) THEN
         ! Within the range of tabulated data
-        integrals = pick_in_default_tabulation(r, z, tabulated_r_range, tabulated_z_range, tabulated_integrals)
+        integrals = pick_in_default_tabulation(r, z, tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals)
       ELSE
         ! Asymptotic expression of legacy's Delhommeau Green function for distant panels
         integrals = asymptotic_approximations(MAX(r, 1e-10), z)
@@ -112,7 +113,7 @@ CONTAINS
 
   SUBROUTINE WAVE_PART_INFINITE_DEPTH &
       (X0I, X0J, wavenumber,          &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       legacy_delhommeau, &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the wave part of the Green function in the infinite depth case.
@@ -125,6 +126,7 @@ CONTAINS
     logical,                                  intent(in) :: legacy_delhommeau
 
     ! Tabulated data
+    INTEGER,                                  INTENT(IN) :: tabulation_method
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
     REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
@@ -140,7 +142,7 @@ CONTAINS
     ! The integrals
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       X0I, X0J, wavenumber,                                      &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       legacy_delhommeau, &
       SP, VSP(:))
     SP  = wavenumber*SP
@@ -167,7 +169,7 @@ CONTAINS
 
   SUBROUTINE WAVE_PART_FINITE_DEPTH &
       (X0I, X0J, wavenumber, depth, &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       legacy_delhommeau, &
       NEXP, AMBDA, AR,              &
       SP, VSP_SYM, VSP_ANTISYM)
@@ -180,6 +182,7 @@ CONTAINS
     logical,                                  intent(in) :: legacy_delhommeau
 
     ! Tabulated data
+    INTEGER,                                  INTENT(IN) :: tabulation_method
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
     REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
@@ -215,7 +218,7 @@ CONTAINS
     ! 1.a First infinite depth problem
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       legacy_delhommeau, &
       FS(1), VS(:, 1))
 
@@ -234,7 +237,7 @@ CONTAINS
     XJ(3) =  X0J(3)
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       legacy_delhommeau, &
       FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
@@ -248,7 +251,7 @@ CONTAINS
     XJ(3) = -X0J(3) - 2*depth
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       legacy_delhommeau, &
       FS(3), VS(:, 3))
 
@@ -261,7 +264,7 @@ CONTAINS
     XJ(3) = -X0J(3) - 2*depth
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       legacy_delhommeau, &
       FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector

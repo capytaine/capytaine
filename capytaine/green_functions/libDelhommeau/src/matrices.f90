@@ -27,7 +27,7 @@ CONTAINS
       nb_quad_points, quad_points, quad_weights,      &
       wavenumber, depth,                              &
       coeffs,                                         &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,                                &
       same_body, legacy_delhommeau, adjoint_double_layer, &
       S, K)
@@ -53,6 +53,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3)                         :: coeffs
 
     ! Tabulated data
+    INTEGER,                                  INTENT(IN) :: tabulation_method
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
     REAL(KIND=PRE), DIMENSION(:, :, :, :),    INTENT(IN) :: tabulated_integrals
@@ -186,7 +187,7 @@ CONTAINS
                 (centers_1(I, :),           &
                 quad_points(J, Q, :),       & ! centers_2(J, :),
                 wavenumber,                 &
-                tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+                tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
                 legacy_delhommeau, &
                 SP2, VSP2_SYM, VSP2_ANTISYM &
                 )
@@ -196,7 +197,7 @@ CONTAINS
                 quad_points(J, Q, :),       & ! centers_2(J, :),
                 wavenumber,                 &
                 depth,                      &
-                tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+                tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
                 legacy_delhommeau, &
                 NEXP, AMBDA, AR,            &
                 SP2, VSP2_SYM, VSP2_ANTISYM &
@@ -255,7 +256,7 @@ CONTAINS
               (centers_1(I, :),           &
               quad_points(J, 1, :),       & ! centers_2(J, :),
               wavenumber,                 &
-              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+              tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
               legacy_delhommeau, &
               SP2, VSP2_SYM, VSP2_ANTISYM &
               )
@@ -265,7 +266,7 @@ CONTAINS
               quad_points(J, 1, :),       & ! centers_2(J, :),
               wavenumber,                 &
               depth,                      &
-              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+              tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
               legacy_delhommeau, &
               NEXP, AMBDA, AR,            &
               SP2, VSP2_SYM, VSP2_ANTISYM &
