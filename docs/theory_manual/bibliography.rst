@@ -15,10 +15,12 @@ Bibliography
 
 .. [AD18] Ancellin and Dias, **Using the floating body symmetries to speed up the numerical computation of hydrodynamics coefficients with Nemoh**, Proceedings of 37th International Conference on Ocean, Offshore and Arctic Engineering (OMAE2018), Madrid, Spain, 2018.
 
-.. [X18] Xie et al, **Comparison of existing methods for the calculation of the infinite water depth free-surface Green function for the wave-structure interaction problem**, Applied Ocean Research 81 (2018) 150--163
+.. [X18] Xie et al., **Comparison of existing methods for the calculation of the infinite water depth free-surface Green function for the wave-structure interaction problem**, Applied Ocean Research 81 (2018) 150--163
 
 .. .. [FK20] Falnes and Kurniawan, **Ocean waves and oscillating systems linear interactions including wave energy extraction**, Cambridge University Press, 2020.
 
 .. [Liu19] Liu, **HAMS: A frequency-domain preprocessor for wave-structure interactions—Theory, development, and application**, Journal of Marine Science and Engineering, 7(3), 81.
 
 .. [N20] Newman, **A simplified derivation of the ordinary differential equations for the free-surface Green functions**, Applied Ocean Research, 2020
+
+.. [D22] Donatini et al., **Implementation of forward speed effects on an open source seakeeping solver**. In 6th MASHCON: International Conference on Ship Manoeuvring in Shallow and Confined Water, 2022

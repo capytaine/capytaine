@@ -62,40 +62,40 @@ def test_supporting_symbolic_multiplication():
     c = my_linear_operator(A, b)
     assert (c/zero).shape == (10,)
 
-@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+@pytest.mark.parametrize("water_depth", [10.0, np.inf])
 def test_radiation_problem_definition_for_zero_freq(water_depth):
     body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, omega=0.0, water_depth=water_depth, radiating_dof="Heave")
-    assert float(pb.wavelength) == np.infty
+    assert float(pb.wavelength) == np.inf
 
-@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+@pytest.mark.parametrize("water_depth", [10.0, np.inf])
 def test_radiation_problem_definition_for_inf_freq(water_depth):
     body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())
-    pb = cpt.RadiationProblem(body=body, omega=np.infty, water_depth=water_depth, radiating_dof="Heave")
+    pb = cpt.RadiationProblem(body=body, omega=np.inf, water_depth=water_depth, radiating_dof="Heave")
     assert float(pb.wavelength) == 0.0
 
-@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+@pytest.mark.parametrize("water_depth", [10.0, np.inf])
 def test_radiation_problem_definition_for_zero_wavelength(water_depth):
     body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=0.0, water_depth=water_depth, radiating_dof="Heave")
     assert float(pb.period) == 0.0
-    assert float(pb.wavenumber) == np.infty
+    assert float(pb.wavenumber) == np.inf
 
-@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+@pytest.mark.parametrize("water_depth", [10.0, np.inf])
 def test_radiation_problem_definition_for_inf_wavelength(water_depth):
     body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())
-    pb = cpt.RadiationProblem(body=body, wavelength=np.infty, water_depth=water_depth, radiating_dof="Heave")
-    assert float(pb.period) == np.infty
+    pb = cpt.RadiationProblem(body=body, wavelength=np.inf, water_depth=water_depth, radiating_dof="Heave")
+    assert float(pb.period) == np.inf
     assert float(pb.wavenumber) == 0.0
 
-@pytest.mark.parametrize("omega", [0.0, np.infty])
+@pytest.mark.parametrize("omega", [0.0, np.inf])
 def test_radiation_problem_definition(omega):
     body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())
-    pb = cpt.RadiationProblem(body=body, omega=omega, water_depth=np.infty, radiating_dof="Heave")
+    pb = cpt.RadiationProblem(body=body, omega=omega, water_depth=np.inf, radiating_dof="Heave")
     res = cpt.BEMSolver().solve(pb)
     assert type(res.added_masses["Heave"]) == float
 
-@pytest.mark.parametrize("omega", [0.0, np.infty])
+@pytest.mark.parametrize("omega", [0.0, np.inf])
 def test_diffraction_problem(omega):
     body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())
     with pytest.raises(NotImplementedError):

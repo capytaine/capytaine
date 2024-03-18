@@ -35,8 +35,8 @@ def test_LinearPotentialFlowProblem():
     assert pb.wavenumber == 1.0/9.81
     assert pb.wavelength == 9.81*2*np.pi
 
-    assert LinearPotentialFlowProblem(free_surface=np.infty, water_depth=np.infty).water_depth == np.infty
-    assert LinearPotentialFlowProblem(free_surface=0.0, water_depth=np.infty).water_depth == np.infty
+    assert LinearPotentialFlowProblem(free_surface=np.inf, water_depth=np.inf).water_depth == np.inf
+    assert LinearPotentialFlowProblem(free_surface=0.0, water_depth=np.inf).water_depth == np.inf
 
     pb = LinearPotentialFlowProblem(free_surface=0.0, water_depth=1.0, omega=1.0)
     assert pb.water_depth == 1.0
@@ -46,13 +46,10 @@ def test_LinearPotentialFlowProblem():
         LinearPotentialFlowProblem(free_surface=2.0)
 
     with pytest.raises(NotImplementedError):
-        LinearPotentialFlowProblem(free_surface=np.infty, water_depth=2.0)
+        LinearPotentialFlowProblem(free_surface=np.inf, water_depth=2.0)
 
     with pytest.raises(ValueError):
         LinearPotentialFlowProblem(free_surface=0.0, water_depth=-1.0)
-
-    with pytest.raises(TypeError):
-        LinearPotentialFlowProblem(wave_direction=1.0)
 
     with pytest.raises(TypeError):
         LinearPotentialFlowProblem(radiating_dof="Heave")
@@ -85,17 +82,17 @@ def test_backward_compatibility_with_sea_bottom_argument(caplog):
         assert pb.water_depth == 10.0
     assert 'water_depth' in caplog.text
 
-@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+@pytest.mark.parametrize("water_depth", [10.0, np.inf])
 def test_setting_wavelength(water_depth):
     λ = 10*np.random.rand()
     assert np.isclose(cpt.DiffractionProblem(wavelength=λ, water_depth=water_depth).wavelength, λ)
 
-@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+@pytest.mark.parametrize("water_depth", [10.0, np.inf])
 def test_setting_wavenumber(water_depth):
     k = 10*np.random.rand()
     assert np.isclose(cpt.DiffractionProblem(wavenumber=k, water_depth=water_depth).wavenumber, k)
 
-@pytest.mark.parametrize("water_depth", [10.0, np.infty])
+@pytest.mark.parametrize("water_depth", [10.0, np.inf])
 def test_setting_period(water_depth):
     T = 10*np.random.rand()
     assert np.isclose(cpt.DiffractionProblem(period=T, water_depth=water_depth).period, T)
@@ -117,7 +114,7 @@ def test_diffraction_problem():
     with pytest.raises(TypeError):
         DiffractionProblem(boundary_conditions=[0, 0, 0])
 
-    assert "DiffractionProblem" in str(DiffractionProblem(wavenumber=1.0, g=10, rho=1025, free_surface=np.infty))
+    assert "DiffractionProblem" in str(DiffractionProblem(wavenumber=1.0, g=10, rho=1025, free_surface=np.inf))
 
     res = pb.make_results_container()
     assert isinstance(res, DiffractionResult)
@@ -146,7 +143,7 @@ def test_radiation_problem(caplog):
     pb2 = RadiationProblem(body=sphere, radiating_dof="Heave")
     assert np.all(pb.boundary_condition == pb2.boundary_condition)
 
-    assert "RadiationProblem" in str(RadiationProblem(g=10, rho=1025, free_surface=np.infty))
+    assert "RadiationProblem" in str(RadiationProblem(g=10, rho=1025, free_surface=np.inf))
 
     res = pb.make_results_container()
     assert isinstance(res, RadiationResult)
@@ -166,10 +163,10 @@ def test_Froude_Krylov():
     sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clever=True, clip_free_surface=True)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
-    problem = DiffractionProblem(body=sphere, omega=1.0, water_depth=np.infty)
+    problem = DiffractionProblem(body=sphere, omega=1.0, water_depth=np.inf)
     assert np.isclose(froude_krylov_force(problem)['Heave'], 27596, rtol=1e-3)
 
-    problem = DiffractionProblem(body=sphere, omega=2.0, water_depth=np.infty)
+    problem = DiffractionProblem(body=sphere, omega=2.0, water_depth=np.inf)
     assert np.isclose(froude_krylov_force(problem)['Heave'], 22491, rtol=1e-3)
 
     problem = DiffractionProblem(body=sphere, omega=1.0, water_depth=10.0)
@@ -189,7 +186,7 @@ def test_import_cal_file(cal_file):
     for problem in problems:
         assert problem.rho == 1000.0
         assert problem.g == 9.81
-        assert problem.water_depth == np.infty
+        assert problem.water_depth == np.inf
         assert isinstance(problem.body, FloatingBody)
         assert problem.body.nb_dofs == 6
         assert problem.body.mesh.nb_vertices == 299  # Duplicate vertices are removed during import.
@@ -206,7 +203,7 @@ def test_import_cal_file(cal_file):
     for problem in problems:
         assert problem.rho == 1000.0
         assert problem.g == 9.81
-        assert problem.water_depth == np.infty
+        assert problem.water_depth == np.inf
         assert isinstance(problem.body.mesh, ReflectionSymmetricMesh)
         assert isinstance(problem.body.mesh[0], Mesh)
         assert problem.body.nb_dofs == 6
@@ -220,12 +217,12 @@ def test_import_cal_file(cal_file):
 def test_results():
     assert isinstance(LinearPotentialFlowProblem().make_results_container(), LinearPotentialFlowResult)
 
-    pb = DiffractionProblem(g=10, rho=1023, free_surface=np.infty)
+    pb = DiffractionProblem(g=10, rho=1023, free_surface=np.inf)
     res = DiffractionResult(pb)
     assert res.g == pb.g == 10
     assert "DiffractionResult" in str(res)
 
-    pb = RadiationProblem(g=10, rho=1023, free_surface=np.infty)
+    pb = RadiationProblem(g=10, rho=1023, free_surface=np.inf)
     res = RadiationResult(pb)
     assert res.g == pb.g == 10
     assert "RadiationResult" in str(res)
@@ -239,7 +236,7 @@ def test_problems_from_dataset():
                               'radiating_dof': ["Heave"],
                               'body_name': ["sphere"],
                               'wave_direction': [0.0],
-                              'water_depth': [np.infty]})
+                              'water_depth': [np.inf]})
 
     problems = problems_from_dataset(dset, [body])
     assert RadiationProblem(body=body, omega=0.5, radiating_dof="Heave") in problems

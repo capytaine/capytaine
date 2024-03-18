@@ -101,6 +101,17 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
 
         return self.__short_str__() + '\n' + '\n'.join(body_tree_views)
 
+    def path_to_leaf(self):
+        """
+        Builds a list of lists of paths from the collection corresponding to the 
+        root of the tree to the submeshes corresponding to the leaves
+        """
+        ptl = []
+        for i, mesh in enumerate(self):
+           for path in mesh.path_to_leaf():
+               ptl.append([i] + path)
+        return ptl 
+
     def copy(self, name=None):
         from copy import deepcopy
         new_mesh = deepcopy(self)

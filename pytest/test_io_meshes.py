@@ -246,7 +246,7 @@ def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
 
     test_matrix = xr.Dataset(coords={
         'rho': rho_water,
-        'water_depth': [np.infty],
+        'water_depth': [np.inf],
         'omega': omega,
         'wave_direction': 0,
         'radiating_dof': list(fb.dofs.keys()),

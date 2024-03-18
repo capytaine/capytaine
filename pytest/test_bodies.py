@@ -122,6 +122,27 @@ def test_bodies():
     both = body.join_bodies(copy_of_body)
     assert set(both.dofs) == {'sphere__Surge', 'copy_of_sphere__Surge', 'sphere__Heave', 'copy_of_sphere__Heave'}
 
+def test_mirror_rotation_center_defined_as_tuple():
+    body = cpt.FloatingBody()
+    body.rotation_center = (0, 1, 0)
+    body.mirror(cpt.xOz_Plane)
+    assert body.rotation_center.shape == (3,)
+    np.testing.assert_allclose(body.rotation_center, np.array([0, -1, 0]))
+
+def test_translate_rotation_center_defined_as_tuple():
+    body = cpt.FloatingBody()
+    body.rotation_center = (0, 0, 0)
+    body.translate((0, 0, 1))
+    assert body.rotation_center.shape == (3,)
+    np.testing.assert_allclose(body.rotation_center, np.array([0, 0, 1]))
+
+def test_rotate_rotation_center_defined_as_tuple():
+    body = cpt.FloatingBody()
+    body.rotation_center = (1, 0, 0)
+    body.rotate_z(np.pi)
+    assert body.rotation_center.shape == (3,)
+    np.testing.assert_allclose(body.rotation_center, np.array([-1, 0, 0]), atol=1e-10)
+
 
 @pytest.mark.parametrize("z_center", [0, 2, -2])
 @pytest.mark.parametrize("as_collection_of_meshes", [True, False])
@@ -131,7 +152,7 @@ def test_clipping_of_dofs(z_center, as_collection_of_meshes):
     axis = Axis(point=(1, 0, 0), vector=(1, 0, 0))
 
     full_sphere.add_rotation_dof(axis, name="test_dof")
-    clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, water_depth=np.infty, inplace=False)
+    clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, water_depth=np.inf, inplace=False)
 
     other_clipped_sphere = FloatingBody(mesh=clipped_sphere.mesh, name="other_sphere")
     other_clipped_sphere.add_rotation_dof(axis, name="test_dof")
@@ -223,7 +244,7 @@ def test_solve_hydrodynamics(fb_array):
     solver = BEMSolver()
     test_matrix = xr.Dataset(coords={
           'rho': 1e3,
-          'water_depth': [np.infty],
+          'water_depth': [np.inf],
           'omega': np.pi * 2 / 1,
           'wave_direction': 0,
           'radiating_dof': list(fb_array.dofs.keys()),
@@ -238,3 +259,18 @@ def test_solve_hydrodynamics(fb_array):
     assert data.radiation_damping.notnull().all()
     assert data.diffraction_force.notnull().all()
     assert data.Froude_Krylov_force.notnull().all()
+
+
+def test_cluster_bodies():
+    centers = np.array([[0.0, 0.0, 0.0],
+                        [10.0, 0.0, 0.0],
+                        [11.0, 0.0, 0.0],
+                        [10.0, 1.0, 0.0]])
+    meshes = [cpt.mesh_sphere(center=c, name=str(c)) for c in centers]
+    bodies = [cpt.FloatingBody(mesh=m) for m in meshes]
+    joined_bodies = cpt.FloatingBody.join_bodies(*bodies)
+    clustered_bodies = cpt.FloatingBody.cluster_bodies(*bodies)
+    assert isinstance(clustered_bodies, cpt.FloatingBody)
+    assert isinstance(clustered_bodies.mesh, cpt.CollectionOfMeshes)
+    assert clustered_bodies.mesh.merged() == joined_bodies.mesh.merged()
+    assert meshes[0] in clustered_bodies.mesh  # The first body is at the top level independently from the other three

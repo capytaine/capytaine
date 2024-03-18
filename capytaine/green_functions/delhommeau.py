@@ -27,11 +27,17 @@ class Delhommeau(AbstractGreenFunction):
     tabulation_nr: int, optional
         Number of tabulation points for horizontal distance.
         If 0 is given, the no tabulation is used.
-        Default: 328, as in Nemoh.
+        Default: 676, as in Nemoh v3.
+    tabulation_rmax: float, optional
+        Maximum value of r range for the tabulation.
+        Default: 100, as in Nemoh v3.
     tabulation_nz: int, optional
         Number of tabulation points for vertical distance.
         If 0 is given, the no tabulation is used.
-        Default: 46, as in Nemoh.
+        Default: 124, as in Nemoh v3.
+    tabulation_zmin: float, optional
+        Minimum value of z range for the tabulation.
+        Default: -251, as in Nemoh v3.
     tabulation_nb_integration_points: int, optional
         Number of points for the numerical integration w.r.t. :math:`theta` of Delhommeau's integrals
         Default: 251, as in Nemoh.
@@ -54,10 +60,14 @@ class Delhommeau(AbstractGreenFunction):
 
     fortran_core_basename = "Delhommeau"
 
+
     def __init__(self, *,
-                 tabulation_nr=400,
-                 tabulation_nz=80,
+                 tabulation_nr=676,
+                 tabulation_rmax=100,
+                 tabulation_nz=124,
+                 tabulation_zmin=-251,
                  tabulation_nb_integration_points=251,
+                 tabulation_method='scaled_nemoh3',
                  finite_depth_prony_decomposition_method='fortran',
                  floating_point_precision='float64',
                  ):
@@ -66,7 +76,14 @@ class Delhommeau(AbstractGreenFunction):
 
         self.fortran_core = import_module(f"capytaine.green_functions.libs.{self.fortran_core_basename}_{self.floating_point_precision}")
 
-        self._create_or_load_tabulation(tabulation_nr, tabulation_nz, tabulation_nb_integration_points)
+        self.tabulation_method = tabulation_method
+        fortran_indices_for_methods = {
+                'legacy': self.fortran_core.delhommeau_integrals.legacy_method,
+                'scaled_nemoh3': self.fortran_core.delhommeau_integrals.scaled_nemoh3_method,
+                              }
+        self.tabulation_method_index = fortran_indices_for_methods[tabulation_method]
+
+        self._create_or_load_tabulation(tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin, tabulation_nb_integration_points)
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
@@ -97,10 +114,14 @@ class Delhommeau(AbstractGreenFunction):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
-    def _create_or_load_tabulation(self, tabulation_nr, tabulation_nz, tabulation_nb_integration_points):
-        filename = "tabulation_{}_{}_{}_{}_{}.npz".format(
+    def _create_or_load_tabulation(self, tabulation_nr, tabulation_rmax,
+                                   tabulation_nz, tabulation_zmin,
+                                   tabulation_nb_integration_points):
+        filename = "tabulation_{}_{}_{}_{}_{}_{}_{}_{}.npz".format(
             self.fortran_core_basename, self.floating_point_precision,
-            tabulation_nr, tabulation_nz, tabulation_nb_integration_points
+            self.tabulation_method,
+            tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin,
+            tabulation_nb_integration_points
         )
         filepath = os.path.join(cache_directory(), filename)
         if os.path.exists(filepath):
@@ -187,7 +208,7 @@ class Delhommeau(AbstractGreenFunction):
 
         return a, lamda
 
-    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.infty, wavenumber=1.0, adjoint_double_layer=True, early_dot_product=True):
+    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.inf, wavenumber=1.0, adjoint_double_layer=True, early_dot_product=True):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
 
         Parameters
@@ -217,25 +238,25 @@ class Delhommeau(AbstractGreenFunction):
 
         wavenumber = float(wavenumber)
 
-        if free_surface == np.infty: # No free surface, only a single Rankine source term
+        if free_surface == np.inf: # No free surface, only a single Rankine source term
 
             a_exp, lamda_exp = np.empty(1), np.empty(1)  # Dummy arrays that won't actually be used by the fortran code.
 
             coeffs = np.array((1.0, 0.0, 0.0))
 
-        elif water_depth == np.infty:
+        elif water_depth == np.inf:
 
             a_exp, lamda_exp = np.empty(1), np.empty(1)  # Idem
 
             if wavenumber == 0.0:
                 coeffs = np.array((1.0, 1.0, 0.0))
-            elif wavenumber == np.infty:
+            elif wavenumber == np.inf:
                 coeffs = np.array((1.0, -1.0, 0.0))
             else:
                 coeffs = np.array((1.0, 1.0, 1.0))
 
         else:  # Finite water_depth
-            if wavenumber == 0.0 or wavenumber == np.infty:
+            if wavenumber == 0.0 or wavenumber == np.inf:
                 raise NotImplementedError("Zero or infinite frequencies not implemented for finite depth.")
             else:
                 a_exp, lamda_exp = self.find_best_exponential_decomposition(
@@ -280,7 +301,7 @@ class Delhommeau(AbstractGreenFunction):
             *mesh2.quadrature_points,
             wavenumber, water_depth,
             coeffs,
-            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
+            self.tabulation_method_index, self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
             mesh1 is mesh2, adjoint_double_layer,
             S, K
