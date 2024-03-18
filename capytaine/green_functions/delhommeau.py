@@ -117,6 +117,15 @@ class Delhommeau(AbstractGreenFunction):
     def _create_or_load_tabulation(self, tabulation_nr, tabulation_rmax,
                                    tabulation_nz, tabulation_zmin,
                                    tabulation_nb_integration_points):
+        """This method either:
+            - loads an existing tabulation saved on disk
+            - generates a new tabulation with the data provided as argument and save it on disk.
+        """
+
+        # Normalize inputs
+        tabulation_rmax = float(tabulation_rmax)
+        tabulation_zmin = float(tabulation_zmin)
+
         filename = "tabulation_{}_{}_{}_{}_{}_{}_{}_{}.npz".format(
             self.fortran_core_basename, self.floating_point_precision,
             self.tabulation_method,
@@ -124,14 +133,16 @@ class Delhommeau(AbstractGreenFunction):
             tabulation_nb_integration_points
         )
         filepath = os.path.join(cache_directory(), filename)
+
         if os.path.exists(filepath):
-            LOG.debug("Loading tabulation from %s", filepath)
+            LOG.info("Loading tabulation from %s", filepath)
             loaded_arrays = np.load(filepath)
             self.tabulated_r_range = loaded_arrays["r_range"]
             self.tabulated_z_range = loaded_arrays["z_range"]
             self.tabulated_integrals = loaded_arrays["values"]
+
         else:
-            LOG.debug("Computating tabulation")
+            LOG.info("Precomputing tabulation, it may take a few seconds.")
             self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
                     tabulation_nr, tabulation_rmax, self.tabulation_method_index
                     )
@@ -142,7 +153,10 @@ class Delhommeau(AbstractGreenFunction):
                     self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
                     )
             LOG.debug("Saving tabulation in %s", filepath)
-            np.savez_compressed(filepath, r_range=self.tabulated_r_range, z_range=self.tabulated_z_range, values=self.tabulated_integrals)
+            np.savez_compressed(
+                filepath, r_range=self.tabulated_r_range, z_range=self.tabulated_z_range,
+                values=self.tabulated_integrals
+            )
 
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
