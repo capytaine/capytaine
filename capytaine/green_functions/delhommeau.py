@@ -132,8 +132,12 @@ class Delhommeau(AbstractGreenFunction):
             self.tabulated_integrals = loaded_arrays["values"]
         else:
             LOG.debug("Computating tabulation")
-            self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(tabulation_nr)
-            self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(tabulation_nz)
+            self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
+                    tabulation_nr, tabulation_rmax, self.tabulation_method_index
+                    )
+            self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(
+                    tabulation_nz, tabulation_zmin, self.tabulation_method_index
+                    )
             self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
                     self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
                     )
