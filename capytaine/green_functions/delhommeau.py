@@ -142,7 +142,7 @@ class Delhommeau(AbstractGreenFunction):
             self.tabulated_integrals = loaded_arrays["values"]
 
         else:
-            LOG.info("Precomputing tabulation, it may take a few seconds.")
+            LOG.warning("Precomputing tabulation, it may take a few seconds.")
             self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
                     tabulation_nr, tabulation_rmax, self.tabulation_method_index
                     )
