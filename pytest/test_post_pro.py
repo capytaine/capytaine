@@ -1,8 +1,9 @@
 import pytest
 import numpy as np
 import xarray as xr
-import capytaine as cpt
 
+import capytaine as cpt
+from capytaine.post_pro import irf
 
 @pytest.fixture
 def sphere_fb():
@@ -44,6 +45,12 @@ def test_rao_sphere_all(sphere_fb, solver):
 
     RAO = cpt.post_pro.rao(data)
 
+    time_series = np.arange(0,50,0.1)
+    kr = irf.rad_kernel(data, time_series)
+
+    assert kr.shape == (len(time_series), 
+                        data.radiating_dof.size,
+                        data.influenced_dof.size)
     assert RAO.radiating_dof.size == 6
     assert data.inertia_matrix.shape == (6,6)
     assert np.all(data.inertia_matrix.values == sphere_fb.inertia_matrix.values)
