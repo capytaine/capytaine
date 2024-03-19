@@ -128,7 +128,7 @@ class Delhommeau(AbstractGreenFunction):
         tabulation_zmin = float(tabulation_zmin)
 
         filename = "tabulation_{}_{}_{}_{}_{}_{}_{}_{}.npz".format(
-            self.fortran_core_basename, self.floating_point_precision,
+            self.__class__.__name__, self.floating_point_precision,
             self.tabulation_method,
             tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin,
             tabulation_nb_integration_points
