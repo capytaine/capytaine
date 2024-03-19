@@ -1,7 +1,8 @@
 """Variants of Delhommeau's method for the computation of the Green function."""
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# Copyright (C) 2017-2024 Matthieu Ancellin
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 
+import os
 import logging
 from functools import lru_cache
 from importlib import import_module
@@ -11,6 +12,7 @@ import numpy as np
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.tools.prony_decomposition import exponential_decomposition, error_exponential_decomposition
+from capytaine.tools.cache_on_disk import cache_directory
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
 
@@ -70,6 +72,7 @@ class Delhommeau(AbstractGreenFunction):
                  floating_point_precision='float64',
                  ):
 
+
         self.fortran_core = import_module(f"capytaine.green_functions.libs.Delhommeau_{floating_point_precision}")
 
         self.tabulation_method = tabulation_method
@@ -79,12 +82,9 @@ class Delhommeau(AbstractGreenFunction):
                               }
         self.tabulation_method_index = fortran_indices_for_methods[tabulation_method]
 
-        self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(tabulation_nr, tabulation_rmax, self.tabulation_method_index)
-        self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(tabulation_nz, tabulation_zmin, self.tabulation_method_index)
-        self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
-                self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points, self.legacy_wave_part,
-                )
         self.floating_point_precision = floating_point_precision
+
+        self._create_or_load_tabulation(tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin, tabulation_nb_integration_points)
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
@@ -114,6 +114,51 @@ class Delhommeau(AbstractGreenFunction):
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
+
+    def _create_or_load_tabulation(self, tabulation_nr, tabulation_rmax,
+                                   tabulation_nz, tabulation_zmin,
+                                   tabulation_nb_integration_points):
+        """This method either:
+            - loads an existing tabulation saved on disk
+            - generates a new tabulation with the data provided as argument and save it on disk.
+        """
+
+        # Normalize inputs
+        tabulation_rmax = float(tabulation_rmax)
+        tabulation_zmin = float(tabulation_zmin)
+
+        filename = "tabulation_{}_{}_{}_{}_{}_{}_{}_{}.npz".format(
+            self.fortran_core_basename, self.floating_point_precision,
+            self.tabulation_method,
+            tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin,
+            tabulation_nb_integration_points
+        )
+        filepath = os.path.join(cache_directory(), filename)
+
+        if os.path.exists(filepath):
+            LOG.info("Loading tabulation from %s", filepath)
+            loaded_arrays = np.load(filepath)
+            self.tabulated_r_range = loaded_arrays["r_range"]
+            self.tabulated_z_range = loaded_arrays["z_range"]
+            self.tabulated_integrals = loaded_arrays["values"]
+
+        else:
+            LOG.warning("Precomputing tabulation, it may take a few seconds.")
+            self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
+                    tabulation_nr, tabulation_rmax, self.tabulation_method_index
+                    )
+            self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(
+                    tabulation_nz, tabulation_zmin, self.tabulation_method_index
+                    )
+            self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
+                    self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
+                    self.legacy_wave_part,
+                    )
+            LOG.debug("Saving tabulation in %s", filepath)
+            np.savez_compressed(
+                filepath, r_range=self.tabulated_r_range, z_range=self.tabulated_z_range,
+                values=self.tabulated_integrals
+            )
 
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
