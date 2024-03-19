@@ -48,8 +48,8 @@ def test_immersed_sphere(nemoh2_solver):
     assert np.isclose(result.radiation_dampings["Heave"],  0.0, atol=1e-3*sphere.volume*problem.rho)
 
 
-def test_build_matrix_of_rankine_and_reflected_rankine():
-    gf = cpt.Delhommeau()
+def test_build_matrix_of_rankine_and_reflected_rankine(nemoh2_solver):
+    gf = nemoh2_solver.green_function
     sphere = Sphere(radius=1.0, ntheta=2, nphi=3, clip_free_surface=True)
 
     S, V = gf.evaluate(sphere.mesh, sphere.mesh, 0.0, np.inf, 0.0)
@@ -144,7 +144,7 @@ def test_alien_sphere(nemoh2_solver):
     assert np.isclose(result.forces["Heave"], 548.5 * np.exp(-2.521j), rtol=1e-2)
 
 
-def test_floating_sphere_finite_depth():
+def test_floating_sphere_finite_depth(nemoh2_solver):
     """Compare with Nemoh 2.0 for some cases of a heaving sphere at the free surface in finite depth."""
     sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
