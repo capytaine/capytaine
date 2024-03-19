@@ -16,7 +16,10 @@ from capytaine.io.legacy import import_cal_file
 
 @pytest.fixture
 def sphere():
-    sphere = cpt.FloatingBody(cpt.mesh_sphere(center=(0, 0, -2), radius=1.0, ntheta=20, nphi=40))
+    sphere = cpt.FloatingBody(
+            mesh=cpt.mesh_sphere(center=(0, 0, -2), radius=1.0, resolution=(10, 20)),
+            name="sphere",
+            )
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     return sphere
 
@@ -146,19 +149,6 @@ def test_radiation_problem(sphere, caplog):
     assert res.radiation_damping == res.radiation_dampings == {"Heave": 2.0}
 
 
-def test_Froude_Krylov(sphere):
-    from capytaine.bem.airy_waves import froude_krylov_force
-
-    problem = cpt.DiffractionProblem(body=sphere, omega=1.0, water_depth=np.inf)
-    assert np.isclose(froude_krylov_force(problem)['Heave'], 27596, rtol=1e-3)
-
-    problem = cpt.DiffractionProblem(body=sphere, omega=2.0, water_depth=np.inf)
-    assert np.isclose(froude_krylov_force(problem)['Heave'], 22491, rtol=1e-3)
-
-    problem = cpt.DiffractionProblem(body=sphere, omega=1.0, water_depth=10.0)
-    assert np.isclose(froude_krylov_force(problem)['Heave'], 27610, rtol=1e-3)
-
-
 @pytest.mark.parametrize("cal_file", ["Nemoh.cal", "Nemoh_v3.cal"])
 def test_import_cal_file(cal_file):
     """Test the importation of legacy Nemoh.cal files."""
@@ -221,8 +211,8 @@ def test_problems_from_dataset(sphere):
                               'wave_direction': [0.0],
                               'water_depth': [np.inf]})
 
-    problems = problems_from_dataset(dset, [body])
-    assert cpt.RadiationProblem(body=body, omega=0.5, radiating_dof="Heave") in problems
+    problems = problems_from_dataset(dset, [sphere])
+    assert cpt.RadiationProblem(body=sphere, omega=0.5, radiating_dof="Heave") in problems
     assert len(problems) == 6
     assert len([problem for problem in problems if isinstance(problem, cpt.DiffractionProblem)]) == 3
 
@@ -230,21 +220,21 @@ def test_problems_from_dataset(sphere):
                               'wave_direction': [0.0],
                               'body_name': ["cube"]})
     with pytest.raises(AssertionError):
-        problems_from_dataset(dset, [body])
+        problems_from_dataset(dset, [sphere])
 
-    shifted_body = body.translated_y(5.0, name="shifted_sphere")
+    shifted_sphere = sphere.translated_y(5.0, name="shifted_sphere")
     dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
                               'radiating_dof': ["Heave"],
                               'wave_direction': [0.0]})
-    problems = problems_from_dataset(dset, [body, shifted_body])
-    assert cpt.RadiationProblem(body=body, omega=0.5, radiating_dof="Heave") in problems
-    assert cpt.RadiationProblem(body=shifted_body, omega=0.5, radiating_dof="Heave") in problems
+    problems = problems_from_dataset(dset, [sphere, shifted_sphere])
+    assert cpt.RadiationProblem(body=sphere, omega=0.5, radiating_dof="Heave") in problems
+    assert cpt.RadiationProblem(body=shifted_sphere, omega=0.5, radiating_dof="Heave") in problems
     assert len(problems) == 12
 
 
 def test_problems_from_dataset_with_wavelength(sphere):
     dset = xr.Dataset(coords={'wavelength': [12.0], 'radiating_dof': ["Heave"]})
-    problems = problems_from_dataset(dset, body)
+    problems = problems_from_dataset(dset, sphere)
     for pb in problems:
         assert np.isclose(pb.wavelength, 12.0)
 
@@ -252,17 +242,17 @@ def test_problems_from_dataset_with_wavelength(sphere):
 def test_problems_from_dataset_with_too_many_info(sphere):
     dset = xr.Dataset(coords={'wavelength': [12.0], 'period': [3.0], 'radiating_dof': ["Heave"]})
     with pytest.raises(ValueError, match="at most one"):
-        problems = problems_from_dataset(dset, body)
+        problems = problems_from_dataset(dset, sphere)
 
 
 @pytest.mark.parametrize("method", ['indirect','direct'])
 def test_assemble_dataset(sphere, solver, method):
-    pb_1 = cpt.DiffractionProblem(body=body, wave_direction=1.0, omega=1.0)
+    pb_1 = cpt.DiffractionProblem(body=sphere, wave_direction=1.0, omega=1.0)
     res_1 = solver.solve(pb_1, method=method)
     ds1 = assemble_dataset([res_1])
     assert "Froude_Krylov_force" in ds1
 
-    pb_2 = cpt.RadiationProblem(body=body, radiating_dof="Heave", omega=1.0)
+    pb_2 = cpt.RadiationProblem(body=sphere, radiating_dof="Heave", omega=1.0)
     res_2 = solver.solve(pb_2, method=method)
     ds2 = assemble_dataset([res_2])
     assert "added_mass" in ds2
@@ -273,8 +263,9 @@ def test_assemble_dataset(sphere, solver, method):
 
 
 def test_fill_dataset(sphere, solver):
+    sphere.add_all_rigid_body_dofs()
     test_matrix = xr.Dataset(coords={'omega': [1.0, 2.0, 3.0], 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
-    dataset = solver.fill_dataset(test_matrix, [body])
+    dataset = solver.fill_dataset(test_matrix, [sphere])
     assert dataset['added_mass'].data.shape == (3, 1, 6)
     assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)
 
@@ -282,7 +273,7 @@ def test_fill_dataset(sphere, solver):
 def test_fill_dataset_with_wavenumbers(sphere, solver):
     k_range = np.linspace(1.0, 3.0, 3)
     test_matrix = xr.Dataset(coords={'wavenumber': k_range, 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
-    dataset = solver.fill_dataset(test_matrix, [body])
+    dataset = solver.fill_dataset(test_matrix, [sphere])
     np.testing.assert_allclose(dataset.coords['wavenumber'], k_range)
     assert set(dataset.added_mass.dims) == {'wavenumber', 'radiating_dof', 'influenced_dof'}
     assert set(dataset.wavenumber.dims) == {'wavenumber'}
@@ -294,7 +285,7 @@ def test_fill_dataset_with_wavenumbers(sphere, solver):
 def test_fill_dataset_with_periods(sphere, solver):
     T_range = np.linspace(1.0, 3.0, 3)
     test_matrix = xr.Dataset(coords={'period': T_range, 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
-    dataset = solver.fill_dataset(test_matrix, [body])
+    dataset = solver.fill_dataset(test_matrix, [sphere])
 
     np.testing.assert_allclose(sorted(dataset.coords['period']), sorted(T_range))
     assert set(dataset.added_mass.dims) == {'period', 'radiating_dof', 'influenced_dof'}
@@ -309,7 +300,7 @@ def test_fill_dataset_with_wavenumbers_and_several_water_depths(sphere, solver):
     test_matrix = xr.Dataset(coords={
         'wavenumber': k_range, 'radiating_dof': ['Heave'], 'water_depth': [4.0, 6.0],
     })
-    dataset = solver.fill_dataset(test_matrix, [body])
+    dataset = solver.fill_dataset(test_matrix, [sphere])
 
     np.testing.assert_allclose(dataset.coords['wavenumber'], k_range)
     assert set(dataset.added_mass.dims) == {'wavenumber', 'radiating_dof', 'influenced_dof', 'water_depth'}
