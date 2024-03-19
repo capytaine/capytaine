@@ -49,8 +49,9 @@ Minor changes
 
 * Add block-Jacobi/coarse-correction preconditioner for large arrays of bodies. (:pull:`436`)
 
-* Add a `faces_max_radius` argument to the predefined geometries from :mod:`~cpt.meshes.predefined` to set up the resolution by giving a length scale for the panels (:pull:`459`).
+* The tabulation is saved on disk in a cache directory instead of being recomputed at each initialization of the solver. (:pull:`454`)
 
+* Add a `faces_max_radius` argument to the predefined geometries from :mod:`~cpt.meshes.predefined` to set up the resolution by giving a length scale for the panels (:pull:`459`).
 
 Bug fixes
 ~~~~~~~~~
