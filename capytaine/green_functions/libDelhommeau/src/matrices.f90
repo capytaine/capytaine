@@ -218,12 +218,12 @@ CONTAINS
       IF (SAME_BODY) THEN
         if (abs(centers_1(j, 3)) < 1e-8) then  ! Panel on the free surface
           if (size(K, 3) == 1) then
-            K(J, J, 1) = K(J, J, 1) - 0.25
+            K(J, J, 1) = K(J, J, 1) - 1.0
           else
             if (.NOT. adjoint_double_layer) then
-              K(J, J, :) = K(J, J, :) - 0.25 * normals_2(J, :)
+              K(J, J, :) = K(J, J, :) - normals_2(J, :)
             else
-              K(J, J, :) = K(J, J, :) - 0.25 * normals_1(J, :)
+              K(J, J, :) = K(J, J, :) - normals_1(J, :)
             endif
           endif
         else
