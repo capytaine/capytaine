@@ -1,4 +1,9 @@
-;; test with guix shell -f capytaine.scm python -- python3 -c 'import capytaine; print(capytaine.__version__)'
+;; This file is a tentative of build recipe for the Guix package manager.
+;; <https://guix.gnu.org/>
+;;
+;; If you have Guix installed, it can be run with
+;; guix shell -f capytaine.scm python -- python3 -c 'import capytaine; print(capytaine.__version__)'
+;; to create a virtual environment with Python and Capytaine installed.
 
 (define-module (gnu packages python-capytaine)
   #:use-module ((guix licenses) #:prefix license:)
