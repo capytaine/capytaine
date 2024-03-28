@@ -44,7 +44,7 @@ class Delhommeau(AbstractGreenFunction):
         Only used with the :code:`"scaled_nemoh3"` method.
         Default: 100.0
     tabulation_nz: int, optional
-        Number of tabulation points for vertical distance.
+        Number of tabulation points for vertical coordinate.
         If 0 is given, no tabulation is used at all.
         Default: 372
     tabulation_zmin: float, optional
