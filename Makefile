@@ -2,7 +2,7 @@ install:
 	pip install .
 
 develop:
-	pip install meson-python ninja numpy charset-normalizer # No installed from pyproject.toml in this case...
+	pip install meson-python ninja "numpy<=1.26.2" charset-normalizer # No installed from pyproject.toml in this case...
 	pip install --no-build-isolation -e .
 
 TEMP_DIR := $(shell mktemp -d)
@@ -25,5 +25,6 @@ clean:
 	rm -rf .nox/
 	rm -rf .venv/
 	rm -rf __pycache__ */__pycache__ */*/__pycache__ */*/*/__pycache__
+	rm -rf ${HOME}/.cache/capytaine/*
 
 .PHONY: install develop test clean test_fortran_compilation

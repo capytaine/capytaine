@@ -142,3 +142,11 @@ Or the following command to make the current directory accessible from the Docke
     docker run -it -v $(pwd):/home/user capytaine:v2.0 python3 my_scipt.py
 
 Note that graphical displays (matplotlib, vtk, ...) might require a complex setup to work from the Docker image.
+
+With Guix
+---------
+
+For advanced users, `Guix <https://guix.gnu.org/>`_ package definitions are available at the root of the repository::
+
+    curl -o capytaine.scm https://raw.githubusercontent.com/capytaine/capytaine/master/capytaine.scm
+    guix shell -f capytaine.scm python -- python3 -c 'import capytaine; print(capytaine.__version__)'

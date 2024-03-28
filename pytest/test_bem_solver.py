@@ -2,20 +2,10 @@ import pytest
 
 import numpy as np
 import xarray as xr
-from numpy import pi
-
-try:
-    import joblib
-except ImportError:
-    joblib = None
 
 import capytaine as cpt
 from capytaine import __version__
-from capytaine.bem.solver import BEMSolver
-from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
-from capytaine.bem.engines import BasicMatrixEngine
-from capytaine.bem.problems_and_results import RadiationProblem
-from capytaine.bodies.predefined.spheres import Sphere
+
 #-----------------------------------------------------------------------------#
 # Test indirect solver
 #-----------------------------------------------------------------------------#
@@ -28,20 +18,22 @@ def sphere():
 
 
 def test_exportable_settings():
-    gf = Delhommeau(tabulation_nb_integration_points=50)
+    gf = cpt.Delhommeau(tabulation_nr=10, tabulation_nz=10,
+                    tabulation_method="legacy", tabulation_nb_integration_points=50)
     assert gf.exportable_settings['green_function'] == 'Delhommeau'
     assert gf.exportable_settings['tabulation_nb_integration_points'] == 50
+    assert gf.exportable_settings['tabulation_method'] == "legacy"
     assert gf.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
 
-    gf2 = XieDelhommeau()
+    gf2 = cpt.XieDelhommeau()
     assert gf2.exportable_settings['green_function'] == 'XieDelhommeau'
 
-    engine = BasicMatrixEngine(matrix_cache_size=0)
+    engine = cpt.BasicMatrixEngine(matrix_cache_size=0)
     assert engine.exportable_settings['engine'] == 'BasicMatrixEngine'
     assert engine.exportable_settings['matrix_cache_size'] == 0
     assert engine.exportable_settings['linear_solver'] == 'lu_decomposition'
 
-    solver = BEMSolver(green_function=gf, engine=engine)
+    solver = cpt.BEMSolver(green_function=gf, engine=engine)
     assert solver.exportable_settings['green_function'] == 'Delhommeau'
     assert solver.exportable_settings['tabulation_nb_integration_points'] == 50
     assert solver.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
@@ -52,17 +44,17 @@ def test_exportable_settings():
 
 def test_limit_frequencies(sphere):
     """Test if how the solver answers when asked for frequency of 0 or ∞."""
-    solver = BEMSolver()
+    solver = cpt.BEMSolver()
 
-    solver.solve(RadiationProblem(body=sphere, omega=0.0, water_depth=np.infty))
-
-    with pytest.raises(NotImplementedError):
-        solver.solve(RadiationProblem(body=sphere, omega=0.0, water_depth=1.0))
-
-    solver.solve(RadiationProblem(body=sphere, omega=np.infty, water_depth=np.infty))
+    solver.solve(cpt.RadiationProblem(body=sphere, omega=0.0, water_depth=np.inf))
 
     with pytest.raises(NotImplementedError):
-        solver.solve(RadiationProblem(body=sphere, omega=np.infty, water_depth=10))
+        solver.solve(cpt.RadiationProblem(body=sphere, omega=0.0, water_depth=1.0))
+
+    solver.solve(cpt.RadiationProblem(body=sphere, omega=np.inf, water_depth=np.inf))
+
+    with pytest.raises(NotImplementedError):
+        solver.solve(cpt.RadiationProblem(body=sphere, omega=np.inf, water_depth=10))
 
 
 def test_limit_frequencies_with_symmetries():
@@ -75,8 +67,8 @@ def test_limit_frequencies_with_symmetries():
     assert isinstance(res.added_mass['Surge'], float)
 
 
-@pytest.mark.skipif(joblib is None, reason='joblib is not installed')
 def test_parallelization(sphere):
+    joblib = pytest.importorskip("joblib")
     solver = cpt.BEMSolver()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
@@ -92,13 +84,13 @@ def test_float32_solver(sphere):
 
 
 def test_fill_dataset(sphere):
-    solver = BEMSolver()
+    solver = cpt.BEMSolver()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
-        'wave_direction': np.linspace(0.0, pi, 3),
+        'wave_direction': np.linspace(0.0, np.pi, 3),
         'radiating_dof': list(sphere.dofs.keys()),
         'rho': [1025.0],
-        'water_depth': [np.infty, 10.0],
+        'water_depth': [np.inf, 10.0],
         'g': [9.81]
     })
     dataset = solver.fill_dataset(test_matrix, sphere, n_jobs=1)
