@@ -27,6 +27,16 @@ from capytaine.tools.symbolic_multiplication import supporting_symbolic_multipli
 
 LOG = logging.getLogger(__name__)
 
+def filter_radiating_lid_multibody(sorted_problems):    
+    from capytaine.bem.problems_and_results import DiffractionProblem,RadiationProblem
+    clean_problems = [] # to remove radiating multibody of the lid
+    for pb in sorted_problems:
+        if isinstance(pb, DiffractionProblem):
+            clean_problems.append(pb)
+        elif 'lid' not in pb.radiating_dof:
+            clean_problems.append(pb)
+    return clean_problems
+
 class BEMSolver:
     """
     Solver for linear potential flow problems.
@@ -49,7 +59,9 @@ class BEMSolver:
     def __init__(self, *, green_function=None, engine=None):
         self.green_function = Delhommeau() if green_function is None else green_function
         self.engine = BasicMatrixEngine() if engine is None else engine
-
+        self.irrFrequency_removal = False
+        self.problem_without_lid  = None
+        self.problems_without_lid = None
         try:
             self.exportable_settings = {
                 **self.green_function.exportable_settings,
@@ -120,6 +132,12 @@ class BEMSolver:
                     problem.free_surface, problem.water_depth, wavenumber,
                     self.green_function, adjoint_double_layer=True
                     )
+            if self.irrFrequency_removal: 
+                LOG.info("Solve with internal lid %s.")
+                nb_panel_lid = problem.body.mesh.nb_faces - \
+                    self.problem_without_lid.body.mesh.nb_faces
+                nb_panel_body = self.problem_without_lid.body.mesh.nb_faces
+                problem.boundary_condition[nb_panel_body:] = np.zeros(nb_panel_lid,dtype=complex)
 
             sources = linear_solver(K, problem.boundary_condition)
             potential = S @ sources
@@ -130,8 +148,15 @@ class BEMSolver:
                 nabla_phi = self._compute_potential_gradient(problem.body.mesh, result)
                 pressure += problem.rho * problem.forward_speed * nabla_phi[:, 0]
 
-        forces = problem.body.integrate_pressure(pressure)
 
+        if self.irrFrequency_removal:
+            forces = self.problem_without_lid.body.integrate_pressure(pressure[0:nb_panel_body])
+            problem = self.problem_without_lid
+        else:
+            forces = problem.body.integrate_pressure(pressure)
+        # TODO: the results of irregular Frequency removal is without lid 
+        # however, in the field computation it is with lid
+            
         if not keep_details:
             result = problem.make_results_container(forces)
         else:
@@ -166,9 +191,24 @@ class BEMSolver:
 
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
+            if self.irrFrequency_removal:
+                problems = filter_radiating_lid_multibody(problems)
+
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
-            return [self.solve(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+            
+            if self.irrFrequency_removal:
+                problemsWithoutLid = sorted(self.problems_without_lid)                
+                results = []
+                for pb, pb_no_lid in zip(problems,problemsWithoutLid):
+                    self.problem_without_lid = pb_no_lid
+                    results.append(self.solve(pb, 
+                                              method=method, 
+                                              _check_wavelength=False, **kwargs))
+                    
+                return results
+            else:
+                return [self.solve(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
