@@ -18,6 +18,8 @@ MODULE GREEN_WAVE
   !                        /   \                    /
   ! WAVE_PART_INFINITE_DEPTH   WAVE_PART_FINITE_DEPTH
   !                        \   /
+  !                 INTEGRAL_OF_WAVE_PART
+  !                          |
   !                    (matrices.f90)
   !                          |
   !                    (python code)
@@ -25,6 +27,127 @@ MODULE GREEN_WAVE
 CONTAINS
 
   ! =====================================================================
+
+  subroutine integral_of_wave_part                               &
+      (x,                                                        &
+      face_center, face_normal, face_area, face_radius,          &
+      face_quadrature_points, face_quadrature_weights,           &
+      wavenumber, depth,                                         &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      nexp, ambda, ar,                                           &
+      int_G, int_grad_G_sym, int_grad_G_antisym                  &
+      )
+    ! Integral over a panel of the wave part of the Green function.
+
+    real(kind=pre), dimension(3),          intent(in) :: x
+    real(kind=pre), dimension(3),          intent(in) :: face_center, face_normal
+    real(kind=pre),                        intent(in) :: face_area, face_radius
+    real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
+    real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
+    real(kind=pre),                        intent(in) :: wavenumber, depth
+    integer,                               intent(in) :: tabulation_method
+    real(kind=pre), dimension(:),          intent(in) :: tabulated_r_range
+    real(kind=pre), dimension(:),          intent(in) :: tabulated_z_range
+    real(kind=pre), dimension(:, :, :, :), intent(in) :: tabulated_integrals
+    integer,                               intent(in) :: nexp
+    real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
+
+    complex(kind=pre),                     intent(out) :: int_G
+    complex(kind=pre), dimension(3),       intent(out) :: int_grad_G_sym, int_grad_G_antisym
+
+    ! Local variables
+    real(kind=pre)                  :: r, z
+    complex(kind=pre)               :: G_at_point
+    complex(kind=pre), dimension(3) :: grad_G_at_point_sym, grad_G_at_point_antisym
+    integer                         :: nb_quad_points, Q
+
+    nb_quad_points = size(face_quadrature_weights)
+
+    r = wavenumber * norm2(x(1:2) - face_center(1:2))
+    z = wavenumber * (x(3) + face_center(3))
+
+    if ((abs(r) < 1e-10) .and. (abs(z) < 1e-10)) then
+      ! Interaction of a panel on the free surface with itself
+      call integral_of_singularity_on_free_surface( &
+        face_area, wavenumber, &
+        int_G, int_grad_G_sym, int_grad_G_antisym &
+        )
+
+    else
+      ! Numerical integration
+      int_G = zero
+      int_grad_G_sym = zero
+      int_grad_G_antisym = zero
+
+      do q = 1, nb_quad_points
+        if (is_infinity(depth)) then
+          call wave_part_infinite_depth                                &
+            (x,                                                        &
+            face_quadrature_points(q, :),                              &
+            wavenumber,                                                &
+            tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+            g_at_point, grad_g_at_point_sym, grad_g_at_point_antisym   &
+            )
+        else
+          call wave_part_finite_depth                                  &
+            (x,                                                        &
+            face_quadrature_points(q, :),                              &
+            wavenumber,                                                &
+            depth,                                                     &
+            tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+            nexp, ambda, ar,                                           &
+            g_at_point, grad_g_at_point_sym, grad_g_at_point_antisym   &
+            )
+        end if
+
+        int_g = int_g + g_at_point * face_quadrature_weights(q)
+        int_grad_g_sym = int_grad_g_sym + grad_g_at_point_sym * face_quadrature_weights(q)
+        int_grad_g_antisym = int_grad_g_antisym + grad_g_at_point_antisym * face_quadrature_weights(q)
+      end do
+    end if
+
+  end subroutine
+
+  subroutine integral_of_singularity_on_free_surface(face_area, wavenumber, int_G, int_grad_G_sym, int_grad_G_antisym)
+  ! Integrating the wave term by approximating the panel by a circle of same area.
+  ! The singularities are integrated analytically. The rest is integrated with a 1-point integral.
+
+  ! G_w^+ = - 2 k log(k r) + rest
+  ! ∫_Γ G_w^+ dξ ∼ - 2 k ∫_Γ log(k r) dξ + |Γ| rest(0)
+  ! with
+  ! ∫_Γ log(k r) dξ = |Γ|/2 (log(k^2 Γ/π) - 1)
+  ! and
+  ! rest(0) = 2 k ( γ - log(2) ) - 2ikπ
+  !
+  ! Also
+  ! dG_w^+/dz = G_w^+ + 2/r
+  ! with
+  ! ∫_Γ 1/r dξ ∼ 2 √( π |Γ| )
+  ! TODO: replace the latter with the actual integral since we computed it anyway for the Rankine term.
+
+  ! TODO: only XieDelhommeau is implemented here
+    real(kind=pre),                        intent(in) :: wavenumber
+    real(kind=pre),                        intent(in) :: face_area
+
+    complex(kind=pre),                     intent(out) :: int_G
+    complex(kind=pre), dimension(3),       intent(out) :: int_grad_G_sym, int_grad_G_antisym
+
+    int_G = wavenumber * face_area * (                      &
+                  (1 - log(wavenumber**2 * face_area / pi)) &
+                  + 2 * (euler_gamma - log_2) - 2*pi*ii     &
+#ifndef XIE_CORRECTION
+                  + 4 * sqrt(pi*face_area)  &
+#endif
+                )
+    int_grad_G_sym(1:2) = cmplx(zero, zero, kind=pre)  ! TODO: might be needed for velocity reconstruction.
+    int_grad_G_sym(3) = wavenumber * (int_G   &
+#ifdef XIE_CORRECTION
+      + 4 * sqrt(pi*face_area)   &
+#endif
+    )
+    int_grad_G_antisym(1:3) = cmplx(zero, zero, kind=pre)  ! Irrelevant anyway because we are on the diagonal
+  end subroutine
+
 
   SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS                        &
       (X0I, X0J, wavenumber,                                     &
@@ -46,27 +169,11 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(3),          INTENT(OUT) :: VS  ! its gradient
 
     ! Local variables
-    REAL(KIND=PRE) :: r, z, r1, drdx1, drdx2, dzdx3
+    REAL(KIND=PRE) :: r, z, drdx1, drdx2, dzdx3
     REAL(KIND=PRE), dimension(2, 2) :: integrals
 
     r = wavenumber * NORM2(X0I(1:2) - X0J(1:2))
     z = wavenumber * (X0I(3) + X0J(3))
-    r1 = hypot(r, z)
-
-    IF (ABS(r) > 16*EPSILON(r)) THEN
-      drdx1 = wavenumber**2 * (X0I(1) - X0J(1))/r
-      drdx2 = wavenumber**2 * (X0I(2) - X0J(2))/r
-    ELSE
-      ! Limit when r->0 is not well defined...
-      drdx1 = ZERO
-      drdx2 = ZERO
-    END IF
-    dzdx3 = wavenumber
-
-    IF (z > -1e-8) THEN
-      PRINT*, "Error: Impossible to compute the wave part of the Green function due to panels on the free surface (z=0) or above."
-      ERROR STOP
-    ENDIF
 
     !=======================================================
     ! Evaluate the elementary integrals depending on z and r
@@ -88,11 +195,21 @@ CONTAINS
     ! Add the elementary integrals to build FS and VS
     !================================================
 
+    IF (ABS(r) > 16*EPSILON(r)) THEN
+      drdx1 = wavenumber**2 * (X0I(1) - X0J(1))/r
+      drdx2 = wavenumber**2 * (X0I(2) - X0J(2))/r
+    ELSE
+      ! Limit when r->0 is not well defined...
+      drdx1 = ZERO
+      drdx2 = ZERO
+    END IF
+    dzdx3 = wavenumber
+
     FS    = CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
     VS(1) = -drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
     VS(2) = -drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
 #ifdef XIE_CORRECTION
-    VS(3) = dzdx3 * CMPLX(integrals(1, 2) + ONE/r1, integrals(2, 2), KIND=PRE)
+    VS(3) = dzdx3 * CMPLX(integrals(1, 2) + ONE/hypot(r, z), integrals(2, 2), KIND=PRE)
 #else
     VS(3) = dzdx3 * CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
 #endif
