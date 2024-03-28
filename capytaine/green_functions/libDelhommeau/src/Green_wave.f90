@@ -138,7 +138,7 @@ CONTAINS
                   + 4 * sqrt(pi*face_area)  &
 #endif
                 )
-    int_grad_G_sym(1:2) = cmplx(zero, zero, kind=pre)
+    int_grad_G_sym(1:2) = cmplx(zero, zero, kind=pre)  ! TODO: might be needed for velocity reconstruction.
     int_grad_G_sym(3) = wavenumber * (int_G   &
 #ifdef XIE_CORRECTION
       + 4 * sqrt(pi*face_area)   &
