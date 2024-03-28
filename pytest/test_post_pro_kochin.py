@@ -15,7 +15,7 @@ from capytaine.io.xarray import kochin_data_array
 def test_kochin_array_diffraction():
     mesh = cpt.mesh_sphere().immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(tabulation_nr=5, tabulation_nz=5))
+    solver = cpt.BEMSolver()
     pb_diff = cpt.DiffractionProblem(body=body, wavelength=2.0, wave_direction=0.0)
     res_diff = solver.solve(pb_diff)
     kds_diff = kochin_data_array([res_diff], np.linspace(0.0, np.pi, 3))
@@ -26,7 +26,7 @@ def test_kochin_array_diffraction():
 def test_kochin_array_radiation():
     mesh = cpt.mesh_sphere().immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(tabulation_nr=5, tabulation_nz=5))
+    solver = cpt.BEMSolver()
     pb_rad = cpt.RadiationProblem(body=body, wavelength=2.0, radiating_dof="Heave")
     res_rad = solver.solve(pb_rad)
     kds_rad = kochin_data_array([res_rad], np.linspace(0.0, np.pi, 3))
@@ -37,7 +37,7 @@ def test_kochin_array_radiation():
 def test_kochin_array_both_radiation_and_diffraction():
     mesh = cpt.mesh_sphere().immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(tabulation_nr=5, tabulation_nz=5))
+    solver = cpt.BEMSolver()
     pb_diff = cpt.DiffractionProblem(body=body, wavelength=2.0, wave_direction=0.0)
     pb_rad = cpt.RadiationProblem(body=body, wavelength=2.0, radiating_dof="Heave")
     res_both = solver.solve_all([pb_rad, pb_diff])
@@ -49,7 +49,7 @@ def test_kochin_array_both_radiation_and_diffraction():
 def test_kochin_array_diffraction_with_forward_speed():
     mesh = cpt.mesh_sphere().immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(tabulation_nr=5, tabulation_nz=5))
+    solver = cpt.BEMSolver()
     pb_diff = [cpt.DiffractionProblem(body=body, wavelength=2.0, wave_direction=0.0, forward_speed=u) for u in [0.0, 1.0]]
     res_diff = solver.solve_all(pb_diff)
     kds_diff = kochin_data_array(res_diff, np.linspace(0.0, np.pi, 3))
@@ -60,7 +60,7 @@ def test_kochin_array_diffraction_with_forward_speed():
 def test_kochin_array_radiation_with_forward_speed():
     mesh = cpt.mesh_sphere().immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(tabulation_nr=5, tabulation_nz=5))
+    solver = cpt.BEMSolver()
     pb_rad = [cpt.RadiationProblem(body=body, wavelength=2.0, radiating_dof="Heave", forward_speed=u, wave_direction=pi) for u in [0.0, 1.0]]
     res_rad = solver.solve_all(pb_rad)
     kds_rad = kochin_data_array(res_rad, np.linspace(0.0, np.pi, 3))
@@ -71,7 +71,7 @@ def test_kochin_array_radiation_with_forward_speed():
 def test_kochin_array_both_radiation_and_diffraction_with_forward_speed():
     mesh = cpt.mesh_sphere().immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(tabulation_nr=5, tabulation_nz=5))
+    solver = cpt.BEMSolver()
     pb_diff = [cpt.DiffractionProblem(body=body, wavelength=2.0, wave_direction=pi, forward_speed=u) for u in [0.0, 1.0]]
     pb_rad = [cpt.RadiationProblem(body=body, wavelength=2.0, radiating_dof="Heave", wave_direction=pi, forward_speed=u) for u in [0.0, 1.0]]
     res_both = solver.solve_all(pb_rad + pb_diff)
@@ -113,4 +113,3 @@ def test_fill_dataset_with_kochin_functions():
     # Because of the symmetries of the body
     assert np.isclose(ds['kochin_diffraction'].sel(wave_direction=-pi/2, theta=0.0),
                       ds['kochin_diffraction'].sel(wave_direction=0.0, theta=pi/2))
-

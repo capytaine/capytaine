@@ -25,5 +25,6 @@ clean:
 	rm -rf .nox/
 	rm -rf .venv/
 	rm -rf __pycache__ */__pycache__ */*/__pycache__ */*/*/__pycache__
+	rm -rf ${HOME}/.cache/capytaine/*
 
 .PHONY: install develop test clean test_fortran_compilation
