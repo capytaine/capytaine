@@ -27,9 +27,9 @@ CONTAINS
       nb_quad_points, quad_points, quad_weights,      &
       wavenumber, depth,                              &
       coeffs,                                         &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,                                &
-      same_body,                                      &
+      same_body, adjoint_double_layer,                &
       S, K)
 
     ! Mesh data
@@ -43,6 +43,7 @@ CONTAINS
     INTEGER,                                                  INTENT(IN) :: nb_quad_points
     REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points, 3), INTENT(IN) :: quad_points
     REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points),    INTENT(IN) :: quad_weights
+    LOGICAL,                                  INTENT(IN) :: adjoint_double_layer
 
     LOGICAL,                                  INTENT(IN) :: same_body
 
@@ -51,6 +52,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3)                         :: coeffs
 
     ! Tabulated data
+    INTEGER,                                  INTENT(IN) :: tabulation_method
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
     REAL(KIND=PRE), DIMENSION(:, :, :, :),    INTENT(IN) :: tabulated_integrals
@@ -113,10 +115,19 @@ CONTAINS
             SP1, VSP1                              &
             )
 
+          ! Change the gradient terms to direct solver representation
+          IF (.NOT. adjoint_double_layer) THEN
+            VSP1(:) = -VSP1(:)
+          END IF
+
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(1) * SP1                                ! Green function
           if (size(K, 3) == 1) then
-            K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1(:))
+            if (.NOT. adjoint_double_layer) then
+              K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_2(J, :), VSP1(:))
+            else
+              K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1(:))
+            endif
           else
             K(I, J, :) = K(I, J, :) - coeffs(1) * VSP1(:)
           endif
@@ -155,10 +166,19 @@ CONTAINS
           reflected_VSP1(1:2) = VSP1(1:2)
           reflected_VSP1(3) = -VSP1(3)
 
+          ! Change the gradient terms to direct solver representation
+          if (.NOT. adjoint_double_layer) THEN
+             reflected_VSP1(1:2) = -reflected_VSP1(1:2)
+          END IF
+
           ! Store into influence matrix
           S(I, J) = S(I, J) - coeffs(2) * SP1                                ! Green function
           if (size(K, 3) == 1) then
-            K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_VSP1(:))
+            if (.NOT. adjoint_double_layer) then
+              K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_2(J, :), reflected_VSP1(:))
+            else
+              K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_VSP1(:))
+            endif
           else
             K(I, J, :) = K(I, J, :) - coeffs(2) * reflected_VSP1(:)
           endif
@@ -177,27 +197,36 @@ CONTAINS
                 (centers_1(I, :),           &
                 quad_points(J, Q, :),       & ! centers_2(J, :),
                 wavenumber,                 &
-                tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-                SP2, VSP2_SYM               &
+                tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+                SP2, VSP2_SYM, VSP2_ANTISYM &
                 )
-              VSP2_ANTISYM(:) = ZERO
             ELSE
               CALL WAVE_PART_FINITE_DEPTH   &
                 (centers_1(I, :),           &
                 quad_points(J, Q, :),       & ! centers_2(J, :),
                 wavenumber,                 &
                 depth,                      &
-                tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+                tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
                 NEXP, AMBDA, AR,            &
                 SP2, VSP2_SYM, VSP2_ANTISYM &
                 )
             END IF
 
+           ! Change the gradient terms to direct solver representation
+            IF (.NOT. adjoint_double_layer) THEN
+              VSP2_ANTISYM = -VSP2_ANTISYM
+            END IF
+
             S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, Q)
 
             if (size(K, 3) == 1) then
-              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
-                DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
+              if (.NOT. adjoint_double_layer) then
+                K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                  DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
+              else
+                K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                  DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
+              endif
             else
               K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
             endif
@@ -210,7 +239,11 @@ CONTAINS
         if (size(K, 3) == 1) then
           K(J, J, 1) = K(J, J, 1) + 0.5
         else
-          K(J, J, :) = K(J, J, :) + 0.5 * normals_1(J, :)
+          if (.NOT. adjoint_double_layer) then
+            K(J, J, :) = K(J, J, :) + 0.5 * normals_2(J, :)
+          else
+            K(J, J, :) = K(J, J, :) + 0.5 * normals_1(J, :)
+          endif
         endif
       END IF
 
@@ -231,36 +264,49 @@ CONTAINS
               (centers_1(I, :),           &
               quad_points(J, 1, :),       & ! centers_2(J, :),
               wavenumber,                 &
-              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-              SP2, VSP2_SYM               &
+              tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+              SP2, VSP2_SYM, VSP2_ANTISYM &
               )
-            VSP2_ANTISYM(:) = ZERO
           ELSE
             CALL WAVE_PART_FINITE_DEPTH   &
               (centers_1(I, :),           &
               quad_points(J, 1, :),       & ! centers_2(J, :),
               wavenumber,                 &
               depth,                      &
-              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+              tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
               NEXP, AMBDA, AR,            &
               SP2, VSP2_SYM, VSP2_ANTISYM &
               )
           END IF
 
+          ! Change the gradient terms to direct solver representation
+          IF (.NOT. adjoint_double_layer) THEN
+            VSP2_ANTISYM = -VSP2_ANTISYM
+          END IF
+
           S(I, J) = S(I, J) - coeffs(3) * SP2 * quad_weights(J, 1)
           if (size(K, 3) == 1) then
-            K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
-              DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+            if (.NOT. adjoint_double_layer) then
+              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+            else
+              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+                DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+            endif
           else
             K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
           endif
 
           IF (.NOT. I==J) THEN
-            VSP2_SYM(1:2) = -VSP2_SYM(1:2)
             S(J, I) = S(J, I) - coeffs(3) * SP2 * quad_weights(I, 1)
             if (size(K, 3) == 1) then
-              K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
-                DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+              if (.NOT. adjoint_double_layer) then
+                K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
+                  DOT_PRODUCT(normals_2(I, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+              else
+                K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
+                  DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+              endif
             else
               K(J, I, :) = K(J, I, :) - coeffs(3) * (VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
             endif

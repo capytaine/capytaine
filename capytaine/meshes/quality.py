@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Tools for mesh quality and mesh healing.
 Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 """
@@ -11,6 +9,7 @@ import logging
 import numpy as np
 
 from capytaine.meshes.geometry import inplace_transformation
+from capytaine.meshes.properties import compute_connectivity
 
 LOG = logging.getLogger(__name__)
 
@@ -163,10 +162,11 @@ def heal_normals(mesh):
     faces = mesh._faces
 
     # Building connectivities
-    v_v = mesh.vv
-    v_f = mesh.vf
-    f_f = mesh.ff
-    boundaries = mesh.boundaries
+    connectivities = compute_connectivity(mesh)
+    v_v = connectivities["v_v"]
+    v_f = connectivities["v_f"]
+    f_f = connectivities["f_f"]
+    boundaries = connectivities["boundaries"]
 
     if len(boundaries) > 0:
         mesh_closed = False
@@ -263,7 +263,7 @@ def heal_normals(mesh):
             LOG.debug('\t--> Every normals have been reversed to be outward')
 
     else:
-        LOG.info("\t--> Mesh is not closed, meshmagick cannot test if the normals are outward")
+        LOG.debug("\t--> Mesh is not closed, Capytaine cannot test if the normals are outward")
 
     return mesh
 

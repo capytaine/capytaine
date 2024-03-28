@@ -1,11 +1,11 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Computation of the Kochin function."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
+import logging
 import numpy as np
 
+LOG = logging.getLogger(__name__)
 
 def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
     """Compute the far field coefficient
@@ -25,13 +25,16 @@ def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
         values of the Kochin function
     """
 
+    if result.forward_speed != 0.0:
+        LOG.warning("Kochin functions with forward speed have never been validated.")
+
     if result.sources is None:
         raise Exception(f"""The values of the sources of {result} cannot been found.
         They probably have not been stored by the solver because the option keep_details=True have not been set.
         Please re-run the resolution with this option.""")
 
     k = result.wavenumber
-    h = result.depth
+    h = result.water_depth
 
     # omega_bar.shape = (nb_faces, 2) @ (2, nb_theta)
     omega_bar = (result.body.mesh.faces_centers[:, 0:2] - ref_point) @ (np.cos(theta), np.sin(theta))
@@ -49,4 +52,3 @@ def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
     # zs.shape = (nb_theta, nb_faces)
     # result.sources.shape = (nb_faces,)
     return zs @ result.sources/(4*np.pi)
-

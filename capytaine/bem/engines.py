@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Definition of the methods to build influence matrices, using possibly some sparse structures."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -8,6 +6,9 @@ import logging
 from abc import ABC, abstractmethod
 
 import numpy as np
+from scipy.linalg import lu_factor
+from scipy.sparse import coo_matrix
+from scipy.sparse import linalg as ssl
 
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh, TranslationalSymmetricMesh, AxialSymmetricMesh
@@ -16,7 +17,7 @@ from capytaine.matrices import linear_solvers
 from capytaine.matrices.block import BlockMatrix
 from capytaine.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
 from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockToeplitzMatrix, BlockCirculantMatrix
-from capytaine.tools.lru_cache import delete_first_lru_cache
+from capytaine.tools.lru_cache import lru_cache_with_strict_maxsize
 
 LOG = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class MatrixEngine(ABC):
     """Abstract method to build a matrix."""
 
     @abstractmethod
-    def build_matrices(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, green_function):
+    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, green_function, adjoint_double_layer):
         pass
 
     def build_S_matrix(self, *args, **kwargs):
@@ -71,7 +72,7 @@ class BasicMatrixEngine(MatrixEngine):
             self.linear_solver = linear_solver
 
         if matrix_cache_size > 0:
-            self.build_matrices = delete_first_lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
+            self.build_matrices = lru_cache_with_strict_maxsize(maxsize=matrix_cache_size)(self.build_matrices)
 
         self.exportable_settings = {
             'engine': 'BasicMatrixEngine',
@@ -90,7 +91,7 @@ class BasicMatrixEngine(MatrixEngine):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
-    def build_matrices(self, mesh1, mesh2, free_surface, sea_bottom, wavenumber, green_function):
+    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, green_function, adjoint_double_layer=True):
         r"""Build the influence matrices between mesh1 and mesh2.
 
         Parameters
@@ -101,12 +102,14 @@ class BasicMatrixEngine(MatrixEngine):
             mesh of the source body (over which the source distribution is integrated)
         free_surface: float
             position of the free surface (default: :math:`z = 0`)
-        sea_bottom: float
+        water_depth: float
             position of the sea bottom (default: :math:`z = -\infty`)
         wavenumber: float
             wavenumber (default: 1.0)
         green_function: AbstractGreenFunction
             object with an "evaluate" method that computes the Green function.
+        adjoint_double_layer: bool, optional
+            compute double layer for direct method (F) or adjoint double layer for indirect method (T) matrices (default: True)
 
         Returns
         -------
@@ -119,17 +122,17 @@ class BasicMatrixEngine(MatrixEngine):
                 and mesh1.plane == mesh2.plane):
 
             S_a, V_a = self.build_matrices(
-                mesh1[0], mesh2[0], free_surface, sea_bottom, wavenumber,
+                mesh1[0], mesh2[0], free_surface, water_depth, wavenumber,
                 green_function)
             S_b, V_b = self.build_matrices(
-                mesh1[0], mesh2[1], free_surface, sea_bottom, wavenumber,
+                mesh1[0], mesh2[1], free_surface, water_depth, wavenumber,
                 green_function)
 
             return BlockSymmetricToeplitzMatrix([[S_a, S_b]]), BlockSymmetricToeplitzMatrix([[V_a, V_b]])
 
         else:
             return green_function.evaluate(
-                mesh1, mesh2, free_surface, sea_bottom, wavenumber,
+                mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=adjoint_double_layer
             )
 
 ###################################
@@ -153,7 +156,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
     def __init__(self, *, ACA_distance=8.0, ACA_tol=1e-2, matrix_cache_size=1):
 
         if matrix_cache_size > 0:
-            self.build_matrices = delete_first_lru_cache(maxsize=matrix_cache_size)(self.build_matrices)
+            self.build_matrices = lru_cache_with_strict_maxsize(maxsize=matrix_cache_size)(self.build_matrices)
 
         self.ACA_distance = ACA_distance
         self.ACA_tol = ACA_tol
@@ -178,10 +181,19 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
 
 
     def build_matrices(self,
-                       mesh1, mesh2, free_surface, sea_bottom, wavenumber, green_function,
-                       _rec_depth=1):
+                       mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
+                       adjoint_double_layer=True):
+
+        return self._build_matrices(
+                           mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
+                           adjoint_double_layer, _rec_depth=1)
+
+
+    def _build_matrices(self,
+                       mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
+                       adjoint_double_layer, _rec_depth=1):
         """Recursively builds a hierarchical matrix between mesh1 and mesh2.
-        
+
         Same arguments as :func:`BasicMatrixEngine.build_matrices`.
 
         :code:`_rec_depth` keeps track of the recursion depth only for pretty log printing.
@@ -208,12 +220,12 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
 
             LOG.debug(log_entry + " using mirror symmetry.")
 
-            S_a, V_a = self.build_matrices(
-                mesh1[0], mesh2[0], free_surface, sea_bottom, wavenumber, green_function,
-                _rec_depth=_rec_depth+1)
-            S_b, V_b = self.build_matrices(
-                mesh1[0], mesh2[1], free_surface, sea_bottom, wavenumber, green_function,
-                _rec_depth=_rec_depth+1)
+            S_a, V_a = self._build_matrices(
+                mesh1[0], mesh2[0], free_surface, water_depth, wavenumber, green_function,
+                adjoint_double_layer=adjoint_double_layer, _rec_depth=_rec_depth+1)
+            S_b, V_b = self._build_matrices(
+                mesh1[0], mesh2[1], free_surface, water_depth, wavenumber, green_function,
+                adjoint_double_layer=adjoint_double_layer, _rec_depth=_rec_depth+1)
 
             return BlockSymmetricToeplitzMatrix([[S_a, S_b]]), BlockSymmetricToeplitzMatrix([[V_a, V_b]])
 
@@ -226,15 +238,15 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
 
             S_list, V_list = [], []
             for submesh in mesh2:
-                S, V = self.build_matrices(
-                    mesh1[0], submesh, free_surface, sea_bottom, wavenumber, green_function,
-                    _rec_depth=_rec_depth+1)
+                S, V = self._build_matrices(
+                    mesh1[0], submesh, free_surface, water_depth, wavenumber, green_function,
+                    adjoint_double_layer=adjoint_double_layer, _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
             for submesh in mesh1[1:][::-1]:
-                S, V = self.build_matrices(
-                    submesh, mesh2[0], free_surface, sea_bottom, wavenumber, green_function,
-                    _rec_depth=_rec_depth+1)
+                S, V = self._build_matrices(
+                    submesh, mesh2[0], free_surface, water_depth, wavenumber, green_function,
+                    adjoint_double_layer=adjoint_double_layer, _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
 
@@ -249,9 +261,9 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
 
             S_line, V_line = [], []
             for submesh in mesh2[:mesh2.nb_submeshes]:
-                S, V = self.build_matrices(
-                    mesh1[0], submesh, free_surface, sea_bottom, wavenumber, green_function,
-                    _rec_depth=_rec_depth+1)
+                S, V = self._build_matrices(
+                    mesh1[0], submesh, free_surface, water_depth, wavenumber, green_function,
+                    adjoint_double_layer=adjoint_double_layer, _rec_depth=_rec_depth+1)
                 S_line.append(S)
                 V_line.append(V)
 
@@ -266,14 +278,16 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             def get_row_func(i):
                 s, v = green_function.evaluate(
                     mesh1.extract_one_face(i), mesh2,
-                    free_surface, sea_bottom, wavenumber
+                    free_surface, water_depth, wavenumber,
+                    adjoint_double_layer=adjoint_double_layer
                 )
                 return s.flatten(), v.flatten()
 
             def get_col_func(j):
                 s, v = green_function.evaluate(
                     mesh1, mesh2.extract_one_face(j),
-                    free_surface, sea_bottom, wavenumber
+                    free_surface, water_depth, wavenumber,
+                    adjoint_double_layer=adjoint_double_layer
                 )
                 return s.flatten(), v.flatten()
 
@@ -297,9 +311,9 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             for submesh1 in mesh1:
                 S_line, V_line = [], []
                 for submesh2 in mesh2:
-                    S, V = self.build_matrices(
-                        submesh1, submesh2, free_surface, sea_bottom, wavenumber, green_function,
-                        _rec_depth=_rec_depth+1)
+                    S, V = self._build_matrices(
+                        submesh1, submesh2, free_surface, water_depth, wavenumber, green_function,
+                        adjoint_double_layer=adjoint_double_layer, _rec_depth=_rec_depth+1)
 
                     S_line.append(S)
                     V_line.append(V)
@@ -314,7 +328,114 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             LOG.debug(log_entry)
 
             S, V = green_function.evaluate(
-                mesh1, mesh2, free_surface, sea_bottom, wavenumber,
+                mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=adjoint_double_layer
             )
             return S, V
 
+class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
+    """An experimental matrix engine that build a hierarchical matrix with
+     some block-Toeplitz structure.
+
+    Parameters
+    ----------
+    ACA_distance: float, optional
+        Above this distance, the ACA is used to approximate the matrix with a low-rank block.
+    ACA_tol: float, optional
+        The tolerance of the ACA when building a low-rank matrix.
+    matrix_cache_size: int, optional
+        number of matrices to keep in cache
+    """
+
+    def __init__(self, *, ACA_distance=8.0, ACA_tol=1e-2, matrix_cache_size=1):
+        super().__init__(ACA_distance=ACA_distance, ACA_tol=ACA_tol, matrix_cache_size=matrix_cache_size)
+        self.linear_solver = linear_solvers.solve_precond_gmres
+
+    def build_matrices(self,
+                       mesh1, mesh2, free_surface, water_depth, wavenumber,
+                       green_function, adjoint_double_layer=True):
+        """Recursively builds a hierarchical matrix between mesh1 and mesh2,
+        and precomputes some of the quantities needed for the preconditioner.
+
+        Same arguments as :func:`BasicMatrixEngine.build_matrices`, except for rec_depth
+        """
+        # Build the matrices using the method of the parent class
+        S, K = super().build_matrices(mesh1, mesh2, free_surface, water_depth,
+                                      wavenumber, green_function,
+                                      adjoint_double_layer=adjoint_double_layer)
+
+        path_to_leaf = mesh1.path_to_leaf()
+
+        n = len(path_to_leaf)
+        N = K.shape[0]
+
+        # Navigate to the diagonal blocks and compute their LU decompositions
+        DLU = []
+        diag_shapes = []
+        for leaf in range(n):
+            # Navigate to the block containing the one we need
+            # (one layer above in the dendrogram)
+            #upper_block = self.access_block_by_path(K, path_to_leaf[leaf][:-1])
+            upper_block = K.access_block_by_path(path_to_leaf[leaf][:-1])
+            # find the local index in the full path
+            ind = path_to_leaf[leaf][-1]
+            # compute the LU decomposition and add to the list
+            DLU.append(lu_factor(upper_block.all_blocks[ind, ind]))
+            diag_shapes.append(upper_block.all_blocks[ind, ind].shape[0])
+
+        # Build the restriction and precompute its multiplication by K
+        R = np.zeros((n, N), dtype=complex)
+        RA = np.zeros((n, N), dtype=complex)
+        for ii in range(n):
+            row_slice = slice(sum(diag_shapes[:ii]), sum(diag_shapes[:ii+1]))
+            R[ii, row_slice] = 1
+            # Compute the multiplication using only the relevant slices of K
+            # The slices are found by navigating the tree
+            #RA[ii, :] = self.slice_rmatvec(R[ii, :], ii)
+            Aloc = K
+            v = R[ii, :]
+            va = np.zeros(N, dtype=complex)
+            free = [0, N]
+
+            for lvl, jj in enumerate(path_to_leaf[ii]):
+
+                Nrows = Aloc.all_blocks[jj, jj].shape[0]
+
+                if jj==0:
+                    v = v[:Nrows]
+                    w = v @ Aloc.all_blocks[0,1]
+                    va[free[1]-len(w) : free[1]] = w
+                    free[1] = free[1] - len(w)
+                else:
+                    v = v[-Nrows:]
+                    w = v @ Aloc.all_blocks[1, 0]
+                    va[free[0] : free[0]+len(w)] = w
+                    free[0] = free[0] + len(w)
+
+                Aloc = Aloc.all_blocks[jj, jj]
+
+                if lvl == len(path_to_leaf[ii])-1:
+                    w = v@Aloc
+                    va[free[0] : free[1]] = w
+                    free[0] = free[0] + len(w)
+
+            RA[ii, :] = va
+
+        Ac = RA @ R.T
+        AcLU = lu_factor(Ac)
+
+        # Now navigate again to the diagonal blocks and set them to zero
+        for leaf in range(n):
+            upper_block = K.access_block_by_path(path_to_leaf[leaf][:-1])
+            ind = path_to_leaf[leaf][-1]
+            # turn the diagonal block into a zero sparse matrix
+            upper_block.all_blocks[ind, ind] = coo_matrix(upper_block.all_blocks[ind, ind].shape)
+
+        def PinvA_mv(v):
+            v = v + 1j*np.zeros(N)
+            return v - linear_solvers._block_Jacobi_coarse_corr(
+                             K, np.zeros(N, dtype=complex), v,
+                             R, RA, AcLU, DLU, diag_shapes, n)
+
+        PinvA = ssl.LinearOperator((N, N), matvec=PinvA_mv)
+
+        return S, (K, R, RA, AcLU, DLU, diag_shapes, n, PinvA)

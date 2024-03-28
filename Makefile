@@ -2,11 +2,18 @@ install:
 	pip install .
 
 develop:
-	pip install meson-python numpy charset-normalizer # No installed from pyproject.toml in this case...
+	pip install meson-python ninja "numpy<=1.26.2" charset-normalizer # No installed from pyproject.toml in this case...
 	pip install --no-build-isolation -e .
 
-test: develop
-	python -m pytest
+TEMP_DIR := $(shell mktemp -d)
+test_fortran_compilation:
+	# Compile the Fortran code without parallelism for easier reading of the errors.
+	# It is assumed that meson and ninja are already installed.
+	meson setup --wipe $(TEMP_DIR) && meson compile -C $(TEMP_DIR) -j 1
+
+test:
+	# Build and test the current repository in a fixed environment.
+	nox -s build_and_test_on_locked_env
 
 clean:
 	rm -f capytaine/green_functions/libs/*.so
@@ -15,15 +22,9 @@ clean:
 	rm -rf capytaine.egg-info/
 	rm -rf docs/_build
 	rm -rf .pytest_cache/
-	rm -rf .hypothesis/
+	rm -rf .nox/
+	rm -rf .venv/
 	rm -rf __pycache__ */__pycache__ */*/__pycache__ */*/*/__pycache__
+	rm -rf ${HOME}/.cache/capytaine/*
 
-full_archive: clean
-	# See https://github.com/capytaine/capytaine/issues/221 for the motivation
-	read -p "Version number:" version && tar caf /tmp/capytaine-full-$$version.tar.gz --transform "s,^./,capytaine-$$version/," --exclude '*.tar.gz' --exclude './.git/*' --exclude-vcs-ignores . && mv /tmp/capytaine-full-$$version.tar.gz ./
-
-pypi: clean
-	python setup.py sdist
-	python -m twine upload dist/capytaine*.tar.gz
-
-.PHONY: install develop test clean full_archive pypi
+.PHONY: install develop test clean test_fortran_compilation

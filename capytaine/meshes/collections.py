@@ -1,25 +1,22 @@
-#!/usr/bin/env python
-# coding: utf-8
 """A set of meshes that can be used as a Mesh."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 import logging
-import reprlib
 from itertools import chain, accumulate
 from functools import lru_cache
 from typing import Iterable, Union
 
 import numpy as np
 
-from capytaine.meshes.geometry import Abstract3DObject, inplace_transformation
+from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, inplace_transformation
 from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 
 
-class CollectionOfMeshes(SurfaceIntegralsMixin, Abstract3DObject):
+class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
     """A tuple of meshes.
     It gives access to all the vertices of all the sub-meshes as if it were a mesh itself.
     Collections can be nested to store meshes in a tree structure.
@@ -39,28 +36,38 @@ class CollectionOfMeshes(SurfaceIntegralsMixin, Abstract3DObject):
         for mesh in self._meshes:
             assert isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes)
 
-        self.name = name
+        if name is None:
+            self.name = f'collection_of_meshes_{next(Mesh._ids)}'
+        else:
+            self.name = str(name)
 
         LOG.debug(f"New collection of meshes: {repr(self)}")
 
-    def __repr__(self):
-        reprer = reprlib.Repr()
-        reprer.maxstring = 100
-        reprer.maxother = 100
-        meshes_names = reprer.repr(self._meshes)
-        if self.name is not None:
-            return f"{self.__class__.__name__}({meshes_names}, name={self.name})"
-        else:
-            return f"{self.__class__.__name__}{meshes_names}"
-
-    def _repr_pretty_(self, p, cycle):
-        p.text(self.__repr__())
+    def __short_str__(self):
+        return (f"{self.__class__.__name__}(..., name=\"{self.name}\")")
 
     def __str__(self):
-        if self.name is not None:
-            return self.name
+        if len(self._meshes) < 3:
+            meshes_str = ', '.join(m.__short_str__() for m in self._meshes)
         else:
-            return repr(self)
+            meshes_str = self._meshes[0].__short_str__() + ", ..., " + self._meshes[-1].__short_str__()
+        return f"{self.__class__.__name__}([{meshes_str}], name=\"{self.name}\")"
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({', '.join(str(m) for m in self._meshes)}, name=\"{self.name}\")"
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
+
+    def __rich_repr__(self):
+        class WrappedString:
+            def __init__(self, s):
+                self.s = s
+            def __repr__(self):
+                return self.s
+        for m in self._meshes:
+            yield m
+        yield "name", self.name
 
     def __iter__(self):
         return iter(self._meshes)
@@ -92,7 +99,18 @@ class CollectionOfMeshes(SurfaceIntegralsMixin, Abstract3DObject):
                 shift  = ' │ '
             body_tree_views.append(prefix + tree_view.replace('\n', '\n' + shift))
 
-        return self.name + '\n' + '\n'.join(body_tree_views)
+        return self.__short_str__() + '\n' + '\n'.join(body_tree_views)
+
+    def path_to_leaf(self):
+        """
+        Builds a list of lists of paths from the collection corresponding to the 
+        root of the tree to the submeshes corresponding to the leaves
+        """
+        ptl = []
+        for i, mesh in enumerate(self):
+           for path in mesh.path_to_leaf():
+               ptl.append([i] + path)
+        return ptl 
 
     def copy(self, name=None):
         from copy import deepcopy
@@ -255,23 +273,10 @@ class CollectionOfMeshes(SurfaceIntegralsMixin, Abstract3DObject):
         self._clipping_data['faces_ids'] = np.asarray(self._clipping_data['faces_ids'])
         self.prune_empty_meshes()
 
-    def clipped(self, plane, **kwargs):
-        # Same API as for the other transformations
-        return self.clip(plane, inplace=False, **kwargs)
-
     def symmetrized(self, plane):
         from capytaine.meshes.symmetric import ReflectionSymmetricMesh
         half = self.clipped(plane, name=f"{self.name}_half")
         return ReflectionSymmetricMesh(half, plane=plane, name=f"symmetrized_of_{self.name}")
-
-    @inplace_transformation
-    def keep_immersed_part(self, *args, **kwargs):
-        for mesh in self:
-            mesh.keep_immersed_part(*args, **kwargs)
-        self.prune_empty_meshes()
-
-    def immersed_part(self, free_surface=0.0, sea_bottom=-np.infty):
-        return self.keep_immersed_part(free_surface, sea_bottom, inplace=False)
 
     @inplace_transformation
     def prune_empty_meshes(self):

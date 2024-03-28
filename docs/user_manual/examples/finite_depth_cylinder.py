@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 
-import logging
 import numpy as np
 import capytaine as cpt
 
-# Set up logging
-logging.basicConfig(level=logging.INFO,
-                    format="%(levelname)s:\t%(message)s")
+cpt.set_logging('INFO')
 
 # Initialize floating body by generating a geometric mesh
 mesh = cpt.mesh_horizontal_cylinder(
@@ -22,12 +19,12 @@ body = cpt.FloatingBody(mesh)
 body.add_translation_dof(name="Heave")
 
 # Define the range of water depth
-depth_range = list(range(5, 25, 2)) + [np.infty]
+depth_range = list(range(5, 25, 2)) + [np.inf]
 
 # Set up the problems: we will solve a radiation problem for each
 # water depth:
 problems = [
-    cpt.RadiationProblem(body=body, sea_bottom=-depth, omega=2.0)
+    cpt.RadiationProblem(body=body, water_depth=depth, omega=2.0)
     for depth in depth_range
 ]
 # Water density, gravity and radiating dof have not been specified.

@@ -20,7 +20,7 @@ Then the function :meth:`fill_dataset <capytaine.bem.solver.BEMSolver.fill_datas
         'omega': np.linspace(0.1, 4, 40),
         'wave_direction': [0, np.pi/2],
         'radiating_dof': list(body.dofs),
-        'water_depth': [np.infty],
+        'water_depth': [np.inf],
     })
     dataset = cpt.BEMSolver().fill_dataset(test_matrix, body)
 
@@ -51,23 +51,25 @@ It is defined as, e.g.::
 Besides the body, all the parameters are optional.
 The table below gives their definitions and their default values.
 
-+-----------------------+------------------------------------------+------------------------+ 
-| Parameter             | Description (unit)                       | Default value          |
-+=======================+==========================================+========================+
-| :code:`free_surface`  | Position of the free surface [#]_ (m)    | :math:`0.0` m          |
-+-----------------------+------------------------------------------+------------------------+
-| :code:`sea_bottom`    | Position of the sea bottom (m)           | :math:`-\infty` m      |
-+-----------------------+------------------------------------------+------------------------+
-| :code:`g`             | Acceleration of gravity :math:`g` (m/s²) | :math:`9.81` m/s²      |
-+-----------------------+------------------------------------------+------------------------+
-| :code:`rho`           | Water density (kg/m³)                    | :math:`1000.0` kg/m³   |
-+-----------------------+------------------------------------------+------------------------+
-| :code:`wave_direction`| Direction of the incoming waves (rad)    | :math:`0.0` rad [#]_   |
-|                       | (only for diffraction)                   |                        |
-+-----------------------+------------------------------------------+------------------------+
-| :code:`radiating_dof` | Name of radiating dof                    | first one found        |
-|                       | (only for radiation)                     |                        |
-+-----------------------+------------------------------------------+------------------------+
++------------------------+----------------------------------------------------+----------------------+
+| Parameter              | Description (unit)                                 | Default value        |
++========================+====================================================+======================+
+| :code:`free_surface`   | Position of the free surface [#]_ (m)              | :math:`0.0` m        |
++------------------------+----------------------------------------------------+----------------------+
+| :code:`water_depth`    | Constant depth of water (m)                        | :math:`\infty` m     |
++------------------------+----------------------------------------------------+----------------------+
+| :code:`g`              | Acceleration of gravity :math:`g` (m/s²)           | :math:`9.81` m/s²    |
++------------------------+----------------------------------------------------+----------------------+
+| :code:`rho`            | Water density (kg/m³)                              | :math:`1000.0` kg/m³ |
++------------------------+----------------------------------------------------+----------------------+
+| :code:`wave_direction` | Direction of the incoming waves (rad)              | :math:`0.0` rad [#]_ |
+|                        | (for diffraction or forward speed)                 |                      |
++------------------------+----------------------------------------------------+----------------------+
+| :code:`radiating_dof`  | Name of radiating dof                              | first one found      |
+|                        | (only for radiation)                               |                      |
++------------------------+----------------------------------------------------+----------------------+
+| :code:`forward_speed`  | Speed of the body in the :math:`x` direction (m/s) | :math:`0.0` m/s      |
++------------------------+----------------------------------------------------+----------------------+
 
 .. [#] Only two positions are accepted for the free surface: :math:`z=0.0` and
        :math:`z= +\infty`. The former is the usual case for linear potential
@@ -101,24 +103,22 @@ Setting the frequency is done by passing **one and only one** of the following m
 If no frequency is provided, a frequency :code:`omega = 1.0` rad/s is used by default.
 Once the problem has been initialized, the other parameters can be retrieved as::
 
-    problem.wavenumber
+    problem.omega
     problem.period
-    # ...
+    problem.wavelength
+    problem.wavenumber
 
-.. note::
-   Internally, the code always stores an angular frequency :code:`omega`
-   whatever the kind of data that has been provided by the user. Then the other
-   magnitudes are recomputed from the stored :code:`omega`. Hence small
-   rounding error might happend between the value provided by the user and the
-   one used by Capytaine.
+When forward speed is non zero, the encounter frequency is computed and can be retrieved as::
 
-Besides, the following attributes are also accessible:
+    problem.encounter_omega
+    problem.encounter_period
+    problem.encounter_wavelength
+    problem.encounter_wavenumber
 
-+------------------------------------+-------------------------------------------------+
-| Parameter                          | Description (unit)                              |
-+====================================+=================================================+
-| :code:`depth`                      | Water depth :math:`h` (m)                       |
-+------------------------------------+-------------------------------------------------+
+
+In some cases (radiation problems in infinite depth), setting the frequency to
+zero or infinity is possible. Simply pass the value `0.0` or `float('inf')` to
+one of the above magnitude.
 
 
 Legacy Nemoh.cal parameters files
@@ -155,4 +155,3 @@ The parameter file (in :code:`Nemoh.cal` format) passed as argument is read and 
 .. warning:: If results files already exist, they will be overwritten!
 
 If no argument is provided to the command, the code looks for a file :code:`Nemoh.cal` in the current directory.
-

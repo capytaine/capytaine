@@ -46,4 +46,4 @@ Experimental features
 
 Roadmap
 -------
-See `on Github<https://github.com/orgs/capytaine/projects/1>`_.
+See `on Github <https://github.com/orgs/capytaine/projects/1>`_.

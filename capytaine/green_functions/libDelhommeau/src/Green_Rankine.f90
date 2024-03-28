@@ -127,7 +127,7 @@ CONTAINS
     ! Local variables
     REAL(KIND=PRE) :: RO
     REAL(KIND=PRE), DIMENSION(3) :: VO
-    
+
     VO = Face_center - M
     RO = NORM2(VO) ! Distance from center of mass of the face to M.
 

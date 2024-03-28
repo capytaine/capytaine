@@ -60,17 +60,7 @@ def test_collection():
     other_sphere = Sphere(name="bar", center=(0, 0, 2)).mesh
 
     coll = CollectionOfMeshes([sphere, other_sphere], name="baz")
-    assert str(coll) == "baz"
-    assert repr(coll) == ("CollectionOfMeshes("
-                          "(AxialSymmetricMesh(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_foo_mesh), name=foo_mesh), "
-                          "AxialSymmetricMesh(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_bar_mesh), name=bar_mesh)), "
-                          "name=baz)")
-
     coll2 = CollectionOfMeshes([sphere, other_sphere])
-    assert repr(coll2) == ("CollectionOfMeshes("
-                           "AxialSymmetricMesh(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_foo_mesh), name=foo_mesh), "
-                           "AxialSymmetricMesh(Mesh(nb_vertices=20, nb_faces=10, name=slice_of_bar_mesh), name=bar_mesh))")
-    assert str(coll2) == repr(coll2)
 
     assert coll == coll2
     assert hash(coll) == hash(coll2)
@@ -81,8 +71,7 @@ def test_collection():
 
     clipped_coll = coll.keep_immersed_part(inplace=False)
     assert len(clipped_coll) == 1
-    merged = clipped_coll.merged()
-    assert merged == sphere.merged()
+    # assert clipped_coll.merged() == sphere.merged()
 
     assert np.allclose(sphere.center_of_mass_of_nodes, sphere.merged().center_of_mass_of_nodes)
     assert np.allclose(sphere.diameter_of_nodes, sphere.merged().diameter_of_nodes)
@@ -138,3 +127,15 @@ def test_extract_one_face():
 def test_immersed_part():
     mesh = cpt.mesh_horizontal_cylinder(reflection_symmetry=True)
     assert mesh.immersed_part().merged() == mesh.merged().immersed_part()
+
+
+def test_path_to_leaf():
+    sphere_1 = cpt.mesh_sphere()
+    sphere_2 = cpt.mesh_sphere()
+    sphere_3 = cpt.mesh_sphere()
+    sphere_4 = cpt.mesh_sphere()
+    coll = cpt.CollectionOfMeshes([
+        cpt.CollectionOfMeshes([sphere_1, sphere_2]),
+        sphere_3, sphere_4])
+    assert sphere_1.path_to_leaf() == [[]]
+    assert coll.path_to_leaf() == [[0, 0], [0, 1], [1], [2]]

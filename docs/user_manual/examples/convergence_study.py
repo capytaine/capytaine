@@ -1,13 +1,10 @@
-import logging
 import numpy as np
 from numpy import pi
 import xarray as xr
 import matplotlib.pyplot as plt
 import capytaine as cpt
 
-# Set up logging
-logging.basicConfig(level=logging.INFO,
-                    format="%(levelname)s:\t%(message)s")
+cpt.set_logging('INFO')
 
 def make_cylinder(resolution):
     """Make cylinder with a mesh of a given resolution in panels/meter."""

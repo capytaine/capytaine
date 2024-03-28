@@ -94,7 +94,7 @@ program test
     ZERO, depth, coeffs,                                         &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     nexp, ambda, ar,                                             &
-    .true.,                                                      &
+    .true., .true.,                                              &
     S, K)
   print*, "Rankine part: S"
   do i = 1, nb_faces
@@ -115,7 +115,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     nexp, ambda, ar,                                             &
-    .true.,                                                      &
+    .true., .true.,                                              &
     S, K)
   print*, "k=1.0, h=infty: S"
   do i = 1, nb_faces
@@ -136,7 +136,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     nexp, ambda, ar,                                             &
-    .true.,                                                      &
+    .true., .true.,                                              &
     S, K)
   print*, "k=2.0, h=infty: S"
   do i = 1, nb_faces
@@ -168,7 +168,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     nexp, ambda, ar,                                             &
-    .true.,                                                      &
+    .true., .true.,                                              &
     S, K)
   print*, "k=1.0, h=2.0: S"
   do i = 1, nb_faces
@@ -199,7 +199,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     nexp, ambda, ar,                                             &
-    .true.,                                                      &
+    .true., .true.,                                              &
     S, K)
   print*, "k=2.0, h=2.0: S"
   do i = 1, nb_faces

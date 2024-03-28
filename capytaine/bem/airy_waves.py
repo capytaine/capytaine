@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Computing the potential and velocity of Airy wave."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
 # See LICENSE file at <https://github.com/mancellin/capytaine>
@@ -26,8 +24,9 @@ def airy_waves_potential(points, pb):
 
     x, y, z = points.T
     k = pb.wavenumber
-    h = pb.depth
-    wbar = x * np.cos(pb.wave_direction) + y * np.sin(pb.wave_direction)
+    h = pb.water_depth
+    beta = pb.encounter_wave_direction
+    wbar = x * np.cos(beta) + y * np.sin(beta)
 
     if 0 <= k*h < 20:
         cih = np.cosh(k*(z+h))/np.cosh(k*h)
@@ -60,9 +59,10 @@ def airy_waves_velocity(points, pb):
 
     x, y, z = points.T
     k = pb.wavenumber
-    h = pb.depth
+    h = pb.water_depth
+    beta = pb.encounter_wave_direction
 
-    wbar = x * np.cos(pb.wave_direction) + y * np.sin(pb.wave_direction)
+    wbar = x * np.cos(beta) + y * np.sin(beta)
 
     if 0 <= k*h < 20:
         cih = np.cosh(k*(z+h))/np.cosh(k*h)
@@ -104,5 +104,3 @@ def airy_waves_free_surface_elevation(points, pb):
     """
     points, output_shape = _normalize_free_surface_points(points)
     return 1j * pb.omega / pb.g * airy_waves_potential(points, pb).reshape(output_shape)
-
-

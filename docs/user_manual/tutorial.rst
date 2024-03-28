@@ -77,16 +77,14 @@ Launch an interactive Python console such as :code:`ipython` and import the Capy
 
     import capytaine as cpt
 
-Note that Capytaine uses the logging module from Python. Then, you can optionally get some feedback from the code
-by initializing the logging module with the following commands::
+To get more details about what Capytaine is doing, use the :code:`set_logging` function::
 
-    import logging
-    logging.basicConfig(level=logging.INFO)
+    cpt.set_logging('INFO')
 
-Replace :code:`INFO` by :code:`DEBUG` to get more information on everything that is happening
-inside the solver. On the other hand, if you set the level to :code:`WARNING`, only important
-warnings will be printed out by the solver (this is the default behavior when the logging module
-has not been set up).
+Replace :code:`'INFO'` by :code:`'DEBUG'` to get more information on everything that is happening
+inside the solver. On the other hand, if you set the level to :code:`'WARNING'`, only important
+warnings will be printed out by the solver (this is the default behavior when
+:code:`set_logging` has not been called).
 
 Load a mesh
 -----------
@@ -171,8 +169,8 @@ Defining linear potential flow problems.
 
 Let us define a radiation problem for the heave of our sphere::
 
-    from numpy import infty
-    problem = cpt.RadiationProblem(body=body, radiating_dof="Heave", omega=1.0, sea_bottom=-infty, g=9.81, rho=1000)
+    from numpy import inf
+    problem = cpt.RadiationProblem(body=body, radiating_dof="Heave", omega=1.0, water_depth=inf, g=9.81, rho=1000)
 
 The argument :code:`radiating_dof` must be the name of one of the dofs of the floating body given as the
 :code:`body` argument. The wave angular frequency has been set arbitrarily as :math:`\omega = 1 \, \text{rad/s}`.
@@ -271,4 +269,3 @@ radiation damping from the result objects in an organized way. In our example, i
 You'll probably want to solve problems for a wide range of parameters without
 defining each test individually. This can be done with the :code:`fill_dataset`
 method of the solver. See :doc:`problem_setup`.
-

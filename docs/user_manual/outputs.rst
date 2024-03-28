@@ -25,7 +25,7 @@ arguments to store more information in the dataset:
 - :code:`mesh` (default: :code:`False`): add some information about the mesh in
   the dataset (number of faces, quadrature method).
 - :code:`hydrostatics` (default: :code:`True`): if hydrostatics data are
-  available in the :code:`FloatingBody`, they are added to the dataset. 
+  available in the :code:`FloatingBody`, they are added to the dataset.
 
 .. note:: The code does its best to keep the degrees of freedom in the same
           order as they have been provided by the user, but there is no
@@ -42,7 +42,7 @@ arguments to store more information in the dataset:
 
 .. note:: Datasets created with :code:`assemble_dataset` only include data on
           cases with a free surface.
-          Cases without a free surface (:code:`free_surface=infty`) are ignored.
+          Cases without a free surface (:code:`free_surface=inf`) are ignored.
 
 Building a dataset from Bemio
 -----------------------------
@@ -74,7 +74,7 @@ then called by `assemble_dataset`. For example, to create an xarray dataset from
              differences between the variable names in an xarray dataset build with Bemio and one created
              using :code:`LinearPotentialFlowResult`, even though the format will be identical. For
              example, WAMIT :code:`.out` files do not contain the radii of gyration needed to calculate
-             the moments of inertia, so the `my_dataset['inertia_matrix']` variable would not be included 
+             the moments of inertia, so the `my_dataset['inertia_matrix']` variable would not be included
              in the above example since the rigid body mass matrix cannot be calculated.
 
 Saving the dataset as NetCDF file
@@ -100,6 +100,7 @@ As a workaround, the complex-valued array can be saved as a bigger real-valued a
 
 The dataset can then be reloaded by::
 
+    import xarray as xr
     from capytaine.io.xarray import merge_complex_values
     dataset = merge_complex_values(xr.open_dataset("path/to/dataset.nc"))
 
@@ -115,9 +116,11 @@ It leads to the error :code:`ValueError: unsupported dtype for netCDF4 variable:
 
 This can be fixed by explicitly converting the strings to the right format when exporting the dataset::
 
-    dataset.to_netcdf("dataset.nc",
-                      encoding={'radiating_dof': {'dtype': 'U'},
-                                'influenced_dof': {'dtype': 'U'}})
+    separate_complex_values(dataset).to_netcdf(
+      "dataset.nc",
+      encoding={'radiating_dof': {'dtype': 'U'},
+                'influenced_dof': {'dtype': 'U'}}
+    )
 
 See also `this Github issue <https://github.com/capytaine/capytaine/issues/2>`_.
 
@@ -131,34 +134,37 @@ The example below uses the ``openpyxl`` library (that can be installed with ``pi
     from capytaine.io.xarray import separate_complex_values
     separate_complex_values(dataset[["Froude_Krylov_force", "diffraction_force"]]).to_dataframe().to_excel("diffraction_data.xlsx")
 
-For convienence, the radiation and diffraction data have been stored in separate files.
-Since this export method poorly supports complex number, the func:`~capytaine.io.xarray.separate_complex_values` has been used to transform them to a pair of real numbers, as discussed for NetCDF export above.
+For convenience, the radiation and diffraction data have been stored in separate files.
+Since this export method poorly supports complex number, the :func:`separate_complex_values <capytaine.io.xarray.separate_complex_values>` has been used to transform them to a pair of real numbers, as discussed for NetCDF export above.
 
 
-Saving the hydrostatics data
-----------------------------
+Saving the hydrostatics data of rigid body(ies) in Nemoh's format
+-----------------------------------------------------------------
 
-In order to save the following hydrostatics information:
+For a rigid body, or a set of several rigid bodies, the following information can be saved as written by Nemoh's and read by BEMIO to produce :code:`.h5` files for WEC-Sim:
 
 - Hydrostatic stiffness matrix,
 - Centre of gravity,
 - Centre of buoyancy,
 - Displacement volume
 
-There are two files that can be written using the :mod:`capytaine.io.legacy` module::
+They are stored in two files (:code:`Hydrostatics.dat` and :code:`KH.dat`) for each body, using the following syntax::
 
     from capytaine.io.legacy import export_hydrostatics
-    export_hydrostatics("directory_to_save_hydrostatics_data", bodies)
+    export_hydrostatics("directory_to_save_hydrostatics_data", body)
 
-Where :code:`bodies` can be a single :code:`FloatingBody` object or a list of :code:`FloatingBody` objects.
+for a single rigid body or, e.g.,::
 
-:func:`export_hydrostatics <capytaine.io.legacy.export_hydrostatics>` writes the :code:`Hydrostatics.dat` and :code:`KH.dat` files in the original Nemoh format. These :code:`.dat` files can be used by BEMIO to produce :code:`.h5` files for WEC-Sim.
+    from capytaine.io.legacy import export_hydrostatics
+    export_hydrostatics("directory_to_save_hydrostatics_data", [body_1, body_2, body_3])
+
+for several rigid bodies.
 
 In order to use this function, please ensure that the body's centre of gravity has been defined correctly and the following methods have been called on the :code:`FloatingBody` object before passing it to :func:`export_hydrostatics <capytaine.io.legacy.export_hydrostatics>`::
 
   body.add_all_rigid_body_dofs()
-  body.compute_rigid_body_inertia()
-  body.compute_hydrostatics()
+  body.inertia_matrix = body.compute_rigid_body_inertia()
+  body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
 
 
 Saving the data as legacy Tecplot files
@@ -170,4 +176,3 @@ The following code will write files named :code:`RadiationCoefficients.tec` and 
 
 	from capytaine.io.legacy import write_dataset_as_tecplot_files
 	write_dataset_as_tecplot_files("path/to/directory", dataset)
-

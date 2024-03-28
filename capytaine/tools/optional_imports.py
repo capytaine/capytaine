@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Tool to import optional dependencies. Inspired by similar code in pandas."""
 
 import importlib

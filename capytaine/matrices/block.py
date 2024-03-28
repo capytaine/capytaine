@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """This module implements block matrices to be used in Hierarchical Toeplitz matrices.
 
 It takes inspiration from the following works:
@@ -210,14 +208,14 @@ class BlockMatrix:
         for line in self._stored_blocks:
             for block in line:
                 if isinstance(block, np.ndarray):
-                    size += np.product(block.shape)
+                    size += np.prod(block.shape)
                 else:
                     size += block.stored_data_size
         return size
 
     @property
     def density(self):
-        return self.stored_data_size/np.product(self.shape)
+        return self.stored_data_size/np.prod(self.shape)
 
     @property
     def sparcity(self):
@@ -357,6 +355,19 @@ class BlockMatrix:
                 return self.matmat(other)
         elif other.ndim == 1:  # Other is a vector
             return self.matvec(other)
+        else:
+            return NotImplemented
+
+    def __rmatmul__(self, other: Union['BlockMatrix', np.ndarray]) -> Union['BlockMatrix', np.ndarray]:
+        if not (isinstance(other, BlockMatrix) or isinstance(other, np.ndarray)):
+            return NotImplemented
+        elif other.ndim == 2:  # Other is a matrix
+            if other.shape[1] == 1:  # Actually a column vector
+                return self.rmatvec(other.flatten())
+            else:
+                return NotImplemented
+        elif other.ndim == 1:  # Other is a vector
+            return self.rmatvec(other)
         else:
             return NotImplemented
 
@@ -567,3 +578,13 @@ class BlockMatrix:
         plt.gca().invert_yaxis()
         # plt.show()
 
+
+    def access_block_by_path(self, path):
+        """
+        Access a diagonal block in a block matrix from the path of the
+        corresponding leaf
+        """
+        this_block = self
+        for index in path:
+            this_block = this_block.all_blocks[index, index]
+        return this_block

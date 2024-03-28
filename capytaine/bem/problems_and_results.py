@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Definition of the problems to solve with the BEM solver, and the results of this resolution."""
 # Copyright (C) 2017-2023 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
@@ -10,14 +8,17 @@ import numpy as np
 import pandas as pd
 from scipy.optimize import newton
 
+from capytaine.tools.deprecation_handling import _get_water_depth
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.bem.airy_waves import airy_waves_velocity, froude_krylov_force
+from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 
 LOG = logging.getLogger(__name__)
 
 _default_parameters = {'rho': 1000.0, 'g': 9.81, 'omega': 1.0,
-                      'free_surface': 0.0, 'water_depth': np.infty,
-                      'wave_direction': 0.0}
+                      'free_surface': 0.0, 'water_depth': np.inf,
+                       'wave_direction': 0.0, 'forward_speed': 0.0}
+
 
 
 class LinearPotentialFlowProblem:
@@ -31,9 +32,11 @@ class LinearPotentialFlowProblem:
     body: FloatingBody, optional
         The body interacting with the waves
     free_surface: float, optional
-        The position of the free surface (accepted values: 0 and np.infty)
+        The position of the free surface (accepted values: 0 and np.inf)
+    water_depth: float, optional
+        The depth of water in m (default: np.inf)
     sea_bottom: float, optional
-        The position of the sea bottom
+        The position of the sea bottom (deprecated: please prefer setting water_depth)
     omega: float, optional
         The angular frequency of the waves in rad/s
     period: float, optional
@@ -42,38 +45,60 @@ class LinearPotentialFlowProblem:
         The angular wave number of the waves in rad/m
     wavelength: float, optional
         The wave length of the waves in m
+    forward_speed: float, optional
+        The speed of the body (in m/s, in the x direction, default: 0.0)
     rho: float, optional
         The density of water in kg/m3 (default: 1000.0)
     g: float, optional
         The acceleration of gravity in m/s2 (default: 9.81)
     boundary_condition: np.ndarray of shape (body.mesh.nb_faces,), optional
         The Neumann boundary condition on the floating body
-
-    TODO: more consistent use of free_surface and sea_bottom vs. water_depth
     """
 
     def __init__(self, *,
                  body=None,
                  free_surface=_default_parameters['free_surface'],
-                 sea_bottom=-_default_parameters['water_depth'],
+                 water_depth=None, sea_bottom=None,
                  omega=None, period=None, wavenumber=None, wavelength=None,
+                 forward_speed=_default_parameters['forward_speed'],
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
+                 wave_direction=_default_parameters['wave_direction'],
                  boundary_condition=None):
 
         self.body = body
         self.free_surface = float(free_surface)
-        self.sea_bottom = float(sea_bottom)
         self.rho = float(rho)
         self.g = float(g)
+        self.forward_speed = float(forward_speed)
+        self.wave_direction = float(wave_direction)  # Required for (diffraction problem) and (radiation problems with forward speed).
+
         self.boundary_condition = boundary_condition
 
-        self.omega, self.provided_freq_type = self._get_angular_frequency(omega, period, wavenumber, wavelength)
+        self.water_depth = _get_water_depth(free_surface, water_depth, sea_bottom, default_water_depth=_default_parameters["water_depth"])
+        self.omega, self.period, self.wavenumber, self.wavelength, self.provided_freq_type = \
+                self._get_frequencies(omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength)
 
         self._check_data()
 
+        if forward_speed != 0.0:
+            dopplered_omega = self.omega - self.wavenumber*self.forward_speed*np.cos(self.wave_direction)
+            self.encounter_omega, self.encounter_period, self.encounter_wavenumber, self.encounter_wavelength, _ = \
+                    self._get_frequencies(omega=abs(dopplered_omega))
 
-    def _get_angular_frequency(self, omega, period, wavenumber, wavelength):
+            if dopplered_omega >= 0.0:
+                self.encounter_wave_direction = self.wave_direction
+            else:
+                self.encounter_wave_direction = self.wave_direction + np.pi
+        else:
+            self.encounter_omega = self.omega
+            self.encounter_period = self.period
+            self.encounter_wavenumber = self.wavenumber
+            self.encounter_wavelength = self.wavelength
+            self.encounter_wave_direction = self.wave_direction
+
+
+    def _get_frequencies(self, *, omega=None, period=None, wavenumber=None, wavelength=None):
         frequency_data = dict(omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength)
         nb_provided_frequency_data = 4 - list(frequency_data.values()).count(None)
 
@@ -81,64 +106,105 @@ class LinearPotentialFlowProblem:
             raise ValueError("Settings a problem requires at most one of the following: omega (angular frequency) OR period OR wavenumber OR wavelength.\n"
                              "Received {} of them: {}".format(nb_provided_frequency_data, {k: v for k, v in frequency_data.items() if v is not None}))
 
-        if omega is not None:
-            return float(omega), "omega"
-        elif period is not None:
-            return 2*np.pi/period, "period"
-        elif wavenumber is not None:
-            return np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.depth)), "wavenumber"
-        elif wavelength is not None:
-            return np.sqrt(self.g*2*np.pi/wavelength*np.tanh(2*np.pi/wavelength*self.depth)), "wavelength"
+        if nb_provided_frequency_data == 0:
+            provided_freq_type = 'omega'
+            frequency_data = {'omega': _default_parameters['omega']}
         else:
-            return _default_parameters["omega"], "omega"
+            provided_freq_type = [k for (k, v) in frequency_data.items() if v is not None][0]
 
+        if ((float(frequency_data[provided_freq_type]) == 0.0 and provided_freq_type in {'omega', 'wavenumber'})
+            or (float(frequency_data[provided_freq_type]) == np.inf and provided_freq_type in {'period', 'wavelength'})):
+                omega = SymbolicMultiplication("0")
+                wavenumber = SymbolicMultiplication("0")
+                period = SymbolicMultiplication("∞")
+                wavelength = SymbolicMultiplication("∞")
+        elif ((float(frequency_data[provided_freq_type]) == 0.0 and provided_freq_type in {'period', 'wavelength'})
+            or (float(frequency_data[provided_freq_type]) == np.inf and provided_freq_type in {'omega', 'wavenumber'})):
+                omega = SymbolicMultiplication("∞")
+                wavenumber = SymbolicMultiplication("∞")
+                period = SymbolicMultiplication("0")
+                wavelength = SymbolicMultiplication("0")
+        else:
+
+            if provided_freq_type in {'omega', 'period'}:
+                if provided_freq_type == 'omega':
+                    omega = frequency_data['omega']
+                    period = 2*np.pi/omega
+                else:  # provided_freq_type is 'period'
+                    period = frequency_data['period']
+                    omega = 2*np.pi/period
+
+                if self.water_depth == np.inf:
+                    wavenumber = omega**2/self.g
+                else:
+                    wavenumber = newton(lambda k: k*np.tanh(k*self.water_depth) - omega**2/self.g, x0=1.0)
+                wavelength = 2*np.pi/wavenumber
+
+            else:  # provided_freq_type is 'wavelength' or 'wavenumber'
+                if provided_freq_type == 'wavelength':
+                    wavelength = frequency_data['wavelength']
+                    wavenumber = 2*np.pi/wavelength
+                else:  # provided_freq_type is 'wavenumber'
+                    wavenumber = frequency_data['wavenumber']
+                    wavelength = 2*np.pi/wavenumber
+
+                omega = np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.water_depth))
+                period = 2*np.pi/omega
+
+        return omega, period, wavenumber, wavelength, provided_freq_type
 
     def _check_data(self):
         """Sanity checks on the data."""
 
-        if self.free_surface not in [0.0, np.infty]:
+        if self.free_surface not in {0.0, np.inf}:
             raise NotImplementedError(
                 f"Free surface is {self.free_surface}. "
                 "Only z=0 and z=∞ are accepted values for the free surface position."
             )
 
-        if self.free_surface == np.infty and self.sea_bottom != -np.infty:
+        if not (-2*np.pi-1e-3 <= self.wave_direction <= 2*np.pi+1e-3):
+            LOG.warning(f"The value {self.wave_direction} has been provided for the wave direction, and it does not look like an angle in radians. "
+                         "The wave direction in Capytaine is defined in radians and not in degrees, so the result might not be what you expect. "
+                         "If you were actually giving an angle in radians, use the modulo operator to give a value between -2π and 2π to disable this warning.")
+
+        if self.free_surface == np.inf and self.water_depth != np.inf:
+
             raise NotImplementedError(
                 "Problems with a sea bottom but no free surface have not been implemented."
             )
 
-        if self.free_surface < self.sea_bottom:
-            raise ValueError("Sea bottom is above the free surface.")
+        if self.water_depth < 0.0:
+            raise ValueError("`water_depth` should be strictly positive (provided water depth: {self.water_depth}).")
 
-        if self.omega in {0, np.infty} and self.depth != np.infty:
-            raise NotImplementedError(
-                f"omega={self.omega} is only implemented for infinite depth."
-            )
+        if float(self.omega) in {0, np.inf}:
+            if self.water_depth != np.inf:
+                LOG.warning(
+                        f"Default Green function allows for {self.provided_freq_type}={float(self.__getattribute__(self.provided_freq_type))} only for infinite depth (provided water depth: {self.water_depth})."
+                        )
+
+            if self.forward_speed != 0.0:
+                raise NotImplementedError(
+                        f"omega={float(self.omega)} is only implemented without forward speed (provided forward speed: {self.forward_speed})."
+                )
+
 
         if self.body is not None:
             if ((isinstance(self.body.mesh, CollectionOfMeshes) and len(self.body.mesh) == 0)
                     or len(self.body.mesh.faces) == 0):
-                raise ValueError(f"The mesh of the body {self.body.name} is empty.")
+                raise ValueError(f"The mesh of the body {self.body.__short_str__()} is empty.")
 
             if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface)
-                    or any(self.body.mesh.faces_centers[:, 2] <= self.sea_bottom)):
+                    or any(self.body.mesh.faces_centers[:, 2] <= -self.water_depth)):
 
                 LOG.warning(
-                    f"The mesh of the body {self.body.name} is not inside the domain.\n"
-                    "Check the position of the free_surface and the sea_bottom\n"
+                    f"The mesh of the body {self.body.__short_str__()} is not inside the domain.\n"
+                    "Check the position of the free_surface and the water_depth\n"
                     "or use body.keep_immersed_part() to clip the mesh."
                 )
 
-            if self.wavelength < 8*self.body.mesh.faces_radiuses.max():
-                LOG.warning(f"Mesh resolution for {self}:\n"
-                        f"The resolution of the mesh '{self.body.mesh.name}' of the body '{self.body.name}' "
-                        f"might be insufficient for the wavelength λ={self.wavelength:.2e}.\n"
-                        f"This warning appears because the largest panel of this mesh has radius {self.body.mesh.faces_radiuses.max():.2e} > λ/8."
-                        )
-
         if self.boundary_condition is not None:
             if len(self.boundary_condition.shape) != 1:
-                raise ValueError("Expected a 1-dimensional array as boundary_condition")
+                raise ValueError(f"Expected a 1-dimensional array as boundary_condition. Provided boundary condition's shape: {self.boundary_condition.shape}.")
 
             if self.boundary_condition.shape[0] != self.body.mesh.nb_faces:
                 raise ValueError(
@@ -154,6 +220,13 @@ class LinearPotentialFlowProblem:
         return {"body_name": self.body_name,
                 "water_depth": self.water_depth,
                 "omega": self.omega,
+                "encounter_omega": self.encounter_omega,
+                "period": self.period,
+                "wavelength": self.wavelength,
+                "wavenumber": self.wavenumber,
+                "forward_speed": self.forward_speed,
+                "wave_direction": self.wave_direction,
+                "encounter_wave_direction": self.encounter_wave_direction,
                 "rho": self.rho,
                 "g": self.g}
 
@@ -170,9 +243,13 @@ class LinearPotentialFlowProblem:
 
     def __str__(self):
         """Do not display default values in str(problem)."""
-        parameters = [f"body={self.body_name}",
-                      f"omega={self.omega:.3f}",
-                      f"depth={self.depth}"]
+        parameters = [f"body={self.body.__short_str__() if self.body is not None else None}",
+                      f"{self.provided_freq_type}={self.__getattribute__(self.provided_freq_type):.3f}",
+                      f"water_depth={self.water_depth}"]
+
+        if not self.forward_speed == _default_parameters['forward_speed']:
+            parameters.append(f"forward_speed={self.forward_speed:.3f}")
+
         try:
             parameters.extend(self._str_other_attributes())
         except AttributeError:
@@ -193,8 +270,21 @@ class LinearPotentialFlowProblem:
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
+    def __rich_repr__(self):
+        yield "body", self.body, None
+        yield self.provided_freq_type, self.__getattribute__(self.provided_freq_type)
+        yield "water_depth", self.water_depth, _default_parameters["water_depth"]
+        try:
+            yield from self._specific_rich_repr()
+        except:
+            pass
+        yield "g", self.g, _default_parameters["g"]
+        yield "rho", self.rho, _default_parameters["rho"]
+
     def _astuple(self):
-        return (self.body, self.free_surface, self.sea_bottom, self.omega, self.rho, self.g)
+        return (self.body, self.free_surface, self.water_depth,
+                self.omega, self.period, self.wavenumber, self.wavelength,
+                self.forward_speed, self.rho, self.g)
 
     def __eq__(self, other):
         if isinstance(other, LinearPotentialFlowProblem):
@@ -205,40 +295,15 @@ class LinearPotentialFlowProblem:
     def __lt__(self, other):
         # Arbitrary order. Used for ordering of problems: problems with same body are grouped together.
         if isinstance(other, LinearPotentialFlowProblem):
-            return self._astuple()[:6] < other._astuple()[:6]
+            return self._astuple()[:9] < other._astuple()[:9]
             # Not the whole tuple, because when using inheriting classes,
             # "radiating_dof" cannot be compared with "wave_direction"
         else:
             return NotImplemented
 
     @property
-    def water_depth(self):
-        return self.free_surface - self.sea_bottom
-
-    @property
     def depth(self):
         return self.water_depth
-
-    @property
-    def wavenumber(self):
-        if self.depth == np.infty or self.omega**2*self.depth/self.g > 20:
-            return self.omega**2/self.g
-        else:
-            return newton(lambda k: k*np.tanh(k*self.depth) - self.omega**2/self.g, x0=1.0)
-
-    @property
-    def wavelength(self):
-        if self.wavenumber == 0.0:
-            return np.infty
-        else:
-            return 2*np.pi/self.wavenumber
-
-    @property
-    def period(self):
-        if self.omega == 0.0:
-            return np.infty
-        else:
-            return 2*np.pi/self.omega
 
     @property
     def influenced_dofs(self):
@@ -256,21 +321,19 @@ class DiffractionProblem(LinearPotentialFlowProblem):
     def __init__(self, *,
                  body=None,
                  free_surface=_default_parameters['free_surface'],
-                 sea_bottom=-_default_parameters['water_depth'],
+                 water_depth=None, sea_bottom=None,
                  omega=None, period=None, wavenumber=None, wavelength=None,
+                 forward_speed=_default_parameters['forward_speed'],
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
                  wave_direction=_default_parameters['wave_direction']):
 
-        self.wave_direction = float(wave_direction)
+        super().__init__(body=body, free_surface=free_surface, water_depth=water_depth, sea_bottom=sea_bottom,
+                         omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength, wave_direction=wave_direction,
+                         forward_speed=forward_speed, rho=rho, g=g)
 
-        super().__init__(body=body, free_surface=free_surface, sea_bottom=sea_bottom,
-                         omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength, rho=rho, g=g)
-
-        if not (-2*np.pi-1e-3 <= self.wave_direction <= 2*np.pi+1e-3):
-            LOG.warning(f"The value {self.wave_direction} has been provided for the wave direction, and it does not look like an angle in radians. "
-                         "The wave direction in Capytaine is defined in radians and not in degrees, so the result might not be what you expect. "
-                         "If you were actually giving an angle in radians, use the modulo operator to give a value between -2π and 2π to disable this warning.")
+        if float(self.omega) in {0.0, np.inf}:
+            raise NotImplementedError(f"DiffractionProblem does not support zero or infinite frequency.")
 
         if self.body is not None:
 
@@ -278,20 +341,17 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                     airy_waves_velocity(self.body.mesh.faces_centers, self)
                     * self.body.mesh.faces_normals
             ).sum(axis=1)
+            # Note that even with forward speed, this is computed based on the
+            # frequency and not the encounter frequency.
 
             if len(self.body.dofs) == 0:
                 LOG.warning(f"The body {self.body.name} used in diffraction problem has no dofs!")
 
-    def _astuple(self):
-        return super()._astuple() + (self.wave_direction,)
-
-    def _asdict(self):
-        d = super()._asdict()
-        d["wave_direction"] = self.wave_direction
-        return d
-
     def _str_other_attributes(self):
         return [f"wave_direction={self.wave_direction:.3f}"]
+
+    def _specific_rich_repr(self):
+        yield "wave_direction", self.wave_direction, _default_parameters["wave_direction"]
 
     def make_results_container(self, *args, **kwargs):
         return DiffractionResult(self, *args, **kwargs)
@@ -303,16 +363,19 @@ class RadiationProblem(LinearPotentialFlowProblem):
 
     def __init__(self, *, body=None,
                  free_surface=_default_parameters['free_surface'],
-                 sea_bottom=-_default_parameters['water_depth'],
+                 water_depth=None, sea_bottom=None,
                  omega=None, period=None, wavenumber=None, wavelength=None,
+                 forward_speed=_default_parameters['forward_speed'],
+                 wave_direction=_default_parameters['wave_direction'],
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
                  radiating_dof=None):
 
         self.radiating_dof = radiating_dof
 
-        super().__init__(body=body, free_surface=free_surface, sea_bottom=sea_bottom,
-                         omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength, rho=rho, g=g)
+        super().__init__(body=body, free_surface=free_surface, water_depth=water_depth, sea_bottom=sea_bottom,
+                         omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength,
+                         wave_direction=wave_direction, forward_speed=forward_speed, rho=rho, g=g)
 
         if self.body is not None:
 
@@ -329,7 +392,24 @@ class RadiationProblem(LinearPotentialFlowProblem):
                 raise ValueError("Unrecognized degree of freedom name.")
 
             dof = self.body.dofs[self.radiating_dof]
-            self.boundary_condition = np.sum(dof * self.body.mesh.faces_normals, axis=1)
+
+            self.boundary_condition = -1j * self.encounter_omega * np.sum(dof * self.body.mesh.faces_normals, axis=1)
+
+            if self.forward_speed != 0.0:
+                if self.radiating_dof.lower() == "pitch":
+                    ddofdx_dot_n = np.array([nz for (nx, ny, nz) in self.body.mesh.faces_normals])
+                elif self.radiating_dof.lower() == "yaw":
+                    ddofdx_dot_n = np.array([-ny for (nx, ny, nz) in self.body.mesh.faces_normals])
+                elif self.radiating_dof.lower() in {"surge", "sway", "heave", "roll"}:
+                    ddofdx_dot_n = 0.0
+                else:
+                    raise NotImplementedError(
+                            "Radiation problem with forward speed is currently only implemented for a single rigid body.\n"
+                            "Only radiating dofs with name in {'Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'} are supported.\n"
+                            f"Got instead `radiating_dof={self.radiating_dof}`"
+                            )
+                self.boundary_condition += self.forward_speed * ddofdx_dot_n
+
 
     def _astuple(self):
         return super()._astuple() + (self.radiating_dof,)
@@ -340,7 +420,13 @@ class RadiationProblem(LinearPotentialFlowProblem):
         return d
 
     def _str_other_attributes(self):
-        return [f"radiating_dof=\'{self.radiating_dof}\'"]
+        if self.forward_speed != 0.0:
+            return [f"wave_direction={self.wave_direction:.3f}, radiating_dof=\'{self.radiating_dof}\'"]
+        else:
+            return [f"radiating_dof=\'{self.radiating_dof}\'"]
+
+    def _specific_rich_repr(self):
+        yield "radiating_dof", self.radiating_dof
 
     def make_results_container(self, *args, **kwargs):
         return RadiationResult(self, *args, **kwargs)
@@ -351,48 +437,54 @@ class LinearPotentialFlowResult:
     def __init__(self, problem, forces=None, sources=None, potential=None, pressure=None):
         self.problem = problem
 
+        self.forces = forces if forces is not None else {}
         self.sources = sources
         self.potential = potential
         self.pressure = pressure
-        self.fs_elevation = {}
+
+        self.fs_elevation = {}  # Only used in legacy `get_free_surface_elevation`. To be removed?
 
         # Copy data from problem
         self.body               = self.problem.body
         self.free_surface       = self.problem.free_surface
-        self.sea_bottom         = self.problem.sea_bottom
         self.omega              = self.problem.omega
+        self.period             = self.problem.period
+        self.wavenumber         = self.problem.wavenumber
+        self.wavelength         = self.problem.wavelength
+        self.forward_speed      = self.problem.forward_speed
+        self.wave_direction     = self.problem.wave_direction
+        self.encounter_omega    = self.problem.encounter_omega
+        self.encounter_period   = self.problem.encounter_period
+        self.encounter_wavenumber = self.problem.encounter_wavenumber
+        self.encounter_wavelength = self.problem.encounter_wavelength
+        self.encounter_wave_direction = self.problem.encounter_wave_direction
         self.rho                = self.problem.rho
         self.g                  = self.problem.g
         self.boundary_condition = self.problem.boundary_condition
         self.water_depth        = self.problem.water_depth
-        self.depth              = self.problem.depth
-        self.wavenumber         = self.problem.wavenumber
-        self.wavelength         = self.problem.wavelength
-        self.period             = self.problem.period
+        self.depth              = self.problem.water_depth
+        self.provided_freq_type = self.problem.provided_freq_type
         self.body_name          = self.problem.body_name
         self.influenced_dofs    = self.problem.influenced_dofs
 
-        if forces is not None:
-            for dof in self.influenced_dofs:
-                self.store_force(dof, forces[dof])
-
-    def store_force(self, dof, force):
-        pass  # Implemented in sub-classes
+    @property
+    def force(self):
+        # Just an alias
+        return self.forces
 
     __str__ = LinearPotentialFlowProblem.__str__
     __repr__ = LinearPotentialFlowProblem.__repr__
     _repr_pretty_ = LinearPotentialFlowProblem._repr_pretty_
+    __rich_repr__ = LinearPotentialFlowProblem.__rich_repr__
 
 
 class DiffractionResult(LinearPotentialFlowResult):
 
     def __init__(self, problem, *args, **kwargs):
-        self.forces = {}
         super().__init__(problem, *args, **kwargs)
-        self.wave_direction = self.problem.wave_direction
 
-    def store_force(self, dof, force):
-        self.forces[dof] = 1j*self.omega*force
+    _str_other_attributes = DiffractionProblem._str_other_attributes
+    _specific_rich_repr = DiffractionProblem._specific_rich_repr
 
     @property
     def records(self):
@@ -408,23 +500,29 @@ class DiffractionResult(LinearPotentialFlowResult):
 class RadiationResult(LinearPotentialFlowResult):
 
     def __init__(self, problem, *args, **kwargs):
-        self.added_masses = {}
-        self.radiation_dampings = {}
         super().__init__(problem, *args, **kwargs)
         self.radiating_dof = self.problem.radiating_dof
 
-    def store_force(self, dof, force):
-        self.added_masses[dof] = force.real
-        if self.problem.omega == np.infty:
-            self.radiation_dampings[dof] = 0
-        else:
-            self.radiation_dampings[dof] = self.problem.omega * force.imag
+    _str_other_attributes = RadiationProblem._str_other_attributes
+    _specific_rich_repr = RadiationProblem._specific_rich_repr
+
+    @property
+    def added_mass(self):
+        return {dof: float(np.real(force)/(self.encounter_omega*self.encounter_omega)) for (dof, force) in self.forces.items()}
+
+    @property
+    def radiation_damping(self):
+        return {dof: float(np.imag(force)/self.encounter_omega) for (dof, force) in self.forces.items()}
+
+    # Aliases for backward compatibility
+    added_masses = added_mass
+    radiation_dampings = radiation_damping
 
     @property
     def records(self):
         params = self.problem._asdict()
         return [dict(params,
                      influenced_dof=dof,
-                     added_mass=self.added_masses[dof],
-                     radiation_damping=self.radiation_dampings[dof])
+                     added_mass=self.added_mass[dof],
+                     radiation_damping=self.radiation_damping[dof])
                 for dof in self.influenced_dofs]

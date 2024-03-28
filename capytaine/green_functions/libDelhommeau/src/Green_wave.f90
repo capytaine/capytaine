@@ -28,7 +28,7 @@ CONTAINS
 
   SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS                        &
       (X0I, X0J, wavenumber,                                     &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       FS, VS)
 
     ! Inputs
@@ -36,6 +36,7 @@ CONTAINS
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber
 
     ! Tabulated data
+    INTEGER,                                  INTENT(IN) :: tabulation_method
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
     REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
@@ -76,7 +77,7 @@ CONTAINS
     ELSE
       IF ((abs(z) < abs(tabulated_z_range(size(tabulated_z_range)))) .AND. (r < tabulated_r_range(size(tabulated_r_range)))) THEN
         ! Within the range of tabulated data
-        integrals = pick_in_default_tabulation(r, z, tabulated_r_range, tabulated_z_range, tabulated_integrals)
+        integrals = pick_in_default_tabulation(r, z, tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals)
       ELSE
         ! Asymptotic expression for distant panels
         integrals = asymptotic_approximations(MAX(r, 1e-10), z)
@@ -103,8 +104,8 @@ CONTAINS
 
   SUBROUTINE WAVE_PART_INFINITE_DEPTH &
       (X0I, X0J, wavenumber,          &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      SP, VSP)
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the wave part of the Green function in the infinite depth case.
     ! This is mostly the integral computed by the subroutine above.
 
@@ -114,21 +115,23 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
 
     ! Tabulated data
+    INTEGER,                                  INTENT(IN) :: tabulation_method
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
     REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
 
     ! Outputs
     COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
-    COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP ! Gradient of the integral of the Green function with respect to X0I.
+    COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP_SYM, VSP_ANTISYM ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
     REAL(KIND=PRE), DIMENSION(3) :: XJ_REFLECTION
+    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP
 
     ! The integrals
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       X0I, X0J, wavenumber,                                      &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       SP, VSP(:))
     SP  = 2*wavenumber*SP
     VSP = 2*wavenumber*VSP
@@ -141,6 +144,11 @@ CONTAINS
     VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
 #endif
 
+    VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
+    VSP_SYM(3)       = VSP(3)
+    VSP_ANTISYM(1:2) = VSP(1:2)
+    VSP_ANTISYM(3)   = CMPLX(ZERO, ZERO, KIND=PRE)
+
     RETURN
   END SUBROUTINE WAVE_PART_INFINITE_DEPTH
 
@@ -148,7 +156,7 @@ CONTAINS
 
   SUBROUTINE WAVE_PART_FINITE_DEPTH &
       (X0I, X0J, wavenumber, depth, &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,              &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
@@ -159,6 +167,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
 
     ! Tabulated data
+    INTEGER,                                  INTENT(IN) :: tabulation_method
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
     REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
@@ -194,7 +203,7 @@ CONTAINS
     ! 1.a First infinite depth problem
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       FS(1), VS(:, 1))
 
 #ifndef XIE_CORRECTION
@@ -212,7 +221,7 @@ CONTAINS
     XJ(3) =  X0J(3)
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
@@ -225,7 +234,7 @@ CONTAINS
     XJ(3) = -X0J(3) - 2*depth
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       FS(3), VS(:, 3))
 
 #ifndef XIE_CORRECTION
@@ -237,7 +246,7 @@ CONTAINS
     XJ(3) = -X0J(3) - 2*depth
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
@@ -251,8 +260,10 @@ CONTAINS
 #else
     SP               = SUM(FS(1:4)) - SUM(PSR(1:4))
 #endif
-    VSP_SYM(1:3)     = VS(1:3, 1) + VS(1:3, 4)
-    VSP_ANTISYM(1:3) = VS(1:3, 2) + VS(1:3, 3)
+    VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
+    VSP_ANTISYM(1:2) = VS(1:2, 1) + VS(1:2, 2) + VS(1:2, 3) + VS(1:2, 4)
+    VSP_SYM(3)       = VS(3, 1) + VS(3, 4)
+    VSP_ANTISYM(3)   = VS(3, 2) + VS(3, 3)
 
     ! Multiply by some coefficients
     AMH  = wavenumber*depth
@@ -292,8 +303,10 @@ CONTAINS
 
       ! Add all the contributions
       SP               = SP               + AQT*SUM(FTS(1:4))
-      VSP_ANTISYM(1:3) = VSP_ANTISYM(1:3) + AQT*(VTS(1:3, 1) + VTS(1:3, 4))
-      VSP_SYM(1:3)     = VSP_SYM(1:3)     + AQT*(VTS(1:3, 2) + VTS(1:3, 3))
+
+      VSP_ANTISYM(1:2) = VSP_ANTISYM(1:2) + AQT*(VTS(1:2, 1) + VTS(1:2, 2) + VTS(1:2, 3) + VTS(1:2, 4))
+      VSP_ANTISYM(3)   = VSP_ANTISYM(3) + AQT*(VTS(3, 1) + VTS(3, 4))
+      VSP_SYM(3)       = VSP_SYM(3) + AQT*(VTS(3, 2) + VTS(3, 3))
 
     END DO
 

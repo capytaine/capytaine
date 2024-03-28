@@ -1,13 +1,10 @@
-import logging
-
-import numpy as np
-from numpy import pi as π
+from numpy import pi
 
 import capytaine as cpt
 from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
 from capytaine.ui.vtk import Animation
 
-logging.basicConfig(level=logging.INFO, format='%(levelname)-8s: %(message)s')
+cpt.set_logging('INFO')
 
 bem_solver = cpt.BEMSolver()
 
@@ -37,11 +34,11 @@ def setup_animation(body, fs, omega, wave_amplitude, wave_direction):
 
     # COMPUTE FREE SURFACE ELEVATION
     # Compute the diffracted wave pattern
-    incoming_waves_elevation = airy_waves_free_surface_elevation(fs.mesh, diffraction_result)
-    diffraction_elevation = bem_solver.compute_free_surface_elevation(fs.mesh, diffraction_result)
+    incoming_waves_elevation = airy_waves_free_surface_elevation(fs, diffraction_result)
+    diffraction_elevation = bem_solver.compute_free_surface_elevation(fs, diffraction_result)
 
     # Compute the wave pattern radiated by the RAO
-    radiation_elevations_per_dof = {res.radiating_dof: (-1j*omega)*bem_solver.compute_free_surface_elevation(fs.mesh, diffraction_result) for res in radiation_results}
+    radiation_elevations_per_dof = {res.radiating_dof: bem_solver.compute_free_surface_elevation(fs, res) for res in radiation_results}
     radiation_elevation = sum(rao.sel(omega=omega, radiating_dof=dof).data * radiation_elevations_per_dof[dof] for dof in body.dofs)
 
     # SET UP ANIMATION
@@ -49,7 +46,7 @@ def setup_animation(body, fs, omega, wave_amplitude, wave_direction):
     rao_faces_motion = sum(rao.sel(omega=omega, radiating_dof=dof).data * body.dofs[dof] for dof in body.dofs)
 
     # Set up scene
-    animation = Animation(loop_duration=2*π/omega)
+    animation = Animation(loop_duration=2*pi/omega)
     animation.add_body(body, faces_motion=wave_amplitude*rao_faces_motion)
     animation.add_free_surface(fs, wave_amplitude * (incoming_waves_elevation + diffraction_elevation + radiation_elevation))
     return animation
@@ -59,7 +56,6 @@ if __name__ == '__main__':
     body = generate_boat()
     fs = cpt.FreeSurface(x_range=(-100, 75), y_range=(-100, 75), nx=100, ny=100)
 
-    anim = setup_animation(body, fs, omega=1.5, wave_amplitude=0.5, wave_direction=π)
+    anim = setup_animation(body, fs, omega=1.5, wave_amplitude=0.5, wave_direction=pi)
     anim.run(camera_position=(70, 70, 100), resolution=(800, 600))
     anim.save("animated_boat.ogv", camera_position=(70, 70, 100), resolution=(800, 600))
-

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """This module implements a class to describe a low-rank matrix as the tensor product of two smaller matrices.
 In particular, an implementation of the Adaptive Cross Approximation is used to build such a matrix.
 
@@ -325,11 +323,11 @@ class LowRankMatrix:
 
     @property
     def stored_data_size(self):
-        return np.product(self.left_matrix.shape) + np.product(self.right_matrix.shape)
+        return np.prod(self.left_matrix.shape) + np.prod(self.right_matrix.shape)
 
     @property
     def density(self):
-        return self.stored_data_size/np.product(self.shape)
+        return self.stored_data_size/np.prod(self.shape)
 
     @property
     def sparcity(self):
