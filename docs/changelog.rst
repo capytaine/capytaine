@@ -75,6 +75,8 @@ Bug fixes
 Internals
 ~~~~~~~~~
 
+* Add tentative build file for the Guix package manager (:pull:`339`).
+
 * Fix badly named variables ``VSP2_SYM`` and ``VSP2_ANTISYM`` in libDelhommeau (:pull:`391`)
 
 * Remove dependency to ``hypothesis`` for testing (:pull:`391`).
