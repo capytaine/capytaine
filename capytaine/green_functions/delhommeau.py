@@ -84,7 +84,7 @@ class Delhommeau(AbstractGreenFunction):
         Tabulated Delhommeau integrals.
     """
 
-    fortran_core_basename = "Delhommeau"
+    legacy_wave_part = True
 
 
     def __init__(self, *,
@@ -98,9 +98,8 @@ class Delhommeau(AbstractGreenFunction):
                  floating_point_precision=_default_parameters["floating_point_precision"],
                  ):
 
-        self.floating_point_precision = floating_point_precision
 
-        self.fortran_core = import_module(f"capytaine.green_functions.libs.{self.fortran_core_basename}_{self.floating_point_precision}")
+        self.fortran_core = import_module(f"capytaine.green_functions.libs.Delhommeau_{floating_point_precision}")
 
         self.tabulation_method = tabulation_method
         fortran_indices_for_methods = {
@@ -108,6 +107,8 @@ class Delhommeau(AbstractGreenFunction):
                 'scaled_nemoh3': self.fortran_core.delhommeau_integrals.scaled_nemoh3_method,
                               }
         self.tabulation_method_index = fortran_indices_for_methods[tabulation_method]
+
+        self.floating_point_precision = floating_point_precision
 
         self._create_or_load_tabulation(tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin, tabulation_nb_integration_points)
 
@@ -163,7 +164,7 @@ class Delhommeau(AbstractGreenFunction):
         tabulation_zmin = float(tabulation_zmin)
 
         filename = "tabulation_{}_{}_{}_{}_{}_{}_{}_{}.npz".format(
-            self.fortran_core_basename, self.floating_point_precision,
+            self.__class__.__name__, self.floating_point_precision,
             self.tabulation_method,
             tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin,
             tabulation_nb_integration_points
@@ -186,7 +187,8 @@ class Delhommeau(AbstractGreenFunction):
                     tabulation_nz, tabulation_zmin, self.tabulation_method_index
                     )
             self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
-                    self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
+                    self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
+                    self.legacy_wave_part,
                     )
             LOG.debug("Saving tabulation in %s", filepath)
             np.savez_compressed(
@@ -307,7 +309,10 @@ class Delhommeau(AbstractGreenFunction):
             elif wavenumber == np.inf:
                 coeffs = np.array((1.0, -1.0, 0.0))
             else:
-                coeffs = np.array((1.0, 1.0, 1.0))
+                if self.legacy_wave_part:
+                    coeffs = np.array((1.0, -1.0, 1.0))
+                else:
+                    coeffs = np.array((1.0, 1.0, 1.0))
 
         else:  # Finite water_depth
             if wavenumber == 0.0 or wavenumber == np.inf:
@@ -357,7 +362,7 @@ class Delhommeau(AbstractGreenFunction):
             coeffs,
             self.tabulation_method_index, self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
-            mesh1 is mesh2, adjoint_double_layer,
+            mesh1 is mesh2, self.legacy_wave_part, adjoint_double_layer,
             S, K
         )
 
@@ -377,4 +382,4 @@ class XieDelhommeau(Delhommeau):
     Same arguments and methods as :class:`Delhommeau`.
     """
 
-    fortran_core_basename = "XieDelhommeau"
+    legacy_wave_part = False

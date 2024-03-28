@@ -38,20 +38,10 @@ Delhommeau_float32_f2py_wrapper = custom_target('Delhommeau_float32module.c',
                                            output : ['Delhommeau_float32module.c', 'Delhommeau_float32-f2pywrappers2.f90'],
                                            command : [ py3, '-m', 'numpy.f2py', '@INPUT@', '-m', 'Delhommeau_float32', '--lower'])
 
-XieDelhommeau_float32_f2py_wrapper = custom_target('XieDelhommeau_float32module.c',
-                                           input : float32 + libDelhommeau_src,
-                                           output : ['XieDelhommeau_float32module.c', 'XieDelhommeau_float32-f2pywrappers2.f90'],
-                                           command : [ py3, '-m', 'numpy.f2py', '@INPUT@', '-m', 'XieDelhommeau_float32', '--lower'])
-
 Delhommeau_float64_f2py_wrapper = custom_target('Delhommeau_float64module.c',
                                            input : float64 + libDelhommeau_src,
                                            output : ['Delhommeau_float64module.c', 'Delhommeau_float64-f2pywrappers2.f90'],
                                            command : [ py3, '-m', 'numpy.f2py', '@INPUT@', '-m', 'Delhommeau_float64', '--lower'])
-
-XieDelhommeau_float64_f2py_wrapper = custom_target('XieDelhommeau_float64module.c',
-                                           input : float64 + libDelhommeau_src,
-                                           output : ['XieDelhommeau_float64module.c', 'XieDelhommeau_float64-f2pywrappers2.f90'],
-                                           command : [ py3, '-m', 'numpy.f2py', '@INPUT@', '-m', 'XieDelhommeau_float64', '--lower'])
 
 install_subdir(
   'capytaine',
@@ -84,24 +74,6 @@ py3.extension_module('Delhommeau_float64',
            include_directories: inc_np,
            dependencies : deps,
            fortran_args : args,
-           link_args : link_args,
-           install : true,
-           subdir : 'capytaine/green_functions/libs/')
-
-py3.extension_module('XieDelhommeau_float32',
-           float32, libDelhommeau_src, XieDelhommeau_float32_f2py_wrapper, incdir_f2py+'/fortranobject.c',
-           include_directories: inc_np,
-           dependencies : deps,
-           fortran_args : args + ['-DXIE_CORRECTION'],
-           link_args : link_args,
-           install : true,
-           subdir : 'capytaine/green_functions/libs/')
-
-py3.extension_module('XieDelhommeau_float64',
-           float64, libDelhommeau_src, XieDelhommeau_float64_f2py_wrapper, incdir_f2py+'/fortranobject.c',
-           include_directories: inc_np,
-           dependencies : deps,
-           fortran_args : args + ['-DXIE_CORRECTION'],
            link_args : link_args,
            install : true,
            subdir : 'capytaine/green_functions/libs/')
