@@ -35,9 +35,12 @@ def rao_transfer_function(dataset, dissipation=None, stiffness=None):
     if not hasattr(dataset, 'hydrostatic_stiffness'):
         raise AttributeError('Computing the impedance matrix requires an `hydrostatic_stiffness` matrix to be defined in the hydrodynamical dataset')
 
-    # ASSEMBLE MATRICES
-    omega = dataset.coords['omega']  # Range of frequencies in the dataset
+    if 'encounter_omega' in dataset.coords:
+        omega = dataset.coords['encounter_omega']
+    else:
+        omega = dataset.coords['omega']
 
+    # ASSEMBLE MATRICES
     H = (-omega**2*(dataset['inertia_matrix'] + dataset['added_mass'])
          - 1j*omega*dataset['radiation_damping']
          + dataset['hydrostatic_stiffness'])
@@ -82,4 +85,8 @@ def impedance(dataset, dissipation=None, stiffness=None):
     xarray DataArray
         The impedance as an array depending of omega and the degrees of freedom.
     """
-    return 1/(-1j * dataset.coords["omega"]) * rao_transfer_function(dataset, dissipation, stiffness)
+    if 'encounter_omega' in dataset.coords:
+        omega = dataset.coords['encounter_omega']
+    else:
+        omega = dataset.coords['omega']
+    return 1/(-1j * omega) * rao_transfer_function(dataset, dissipation, stiffness)

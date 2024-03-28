@@ -538,12 +538,108 @@ Then other magnitudes such as the Froude-Krylov forces or the added mass can be 
         m --> int;
         int --> f["Hydrodynamic forces\n(aka added mass and radiation damping)"]
 
-        classDef input fill:#FFAAAA,color:#550000,stroke:#113939
+        classDef input fill:#DDDDDD,color:#333333,stroke:#444444
         classDef step fill:#88BBBB,color:#003333,stroke:#226666
         classDef output fill:#FFE3AA,color:#553900,stroke:#AA8439
         class ω,m,un,h input
         class gf,ls,mvp,int step
         class f output
+
+
+Problem with forward speed
+==========================
+
+We refer to [D22]_ for a detailed description of the theory behind the approximate forward speed model used in Capytaine.
+
+It relies on the following hypotheses:
+
+1. The magnitude :math:`U` of the forward speed is small.
+2. The body is thin enough, such that the flow around the body assuming a rigid free surface (also called *double-body flow*) can be approximated by :math:`\overrightarrow{u} = (-U, 0, 0)` in the reference frame of the body.
+
+Then, the following modification are done to the solver to take forward speed into account:
+
+1. **Doppler shift:** The frequency used in the computation is replaced by the *encounter frequency*
+
+.. math::
+   \omega_e = \omega - k U \cos (\beta)
+
+where :math:`k` is the wavenumber and :math:`\beta` is the wave direction.
+For this purpose, the ``wave_direction`` parameter can be passed to radiation problem.
+
+2. **Normal velocity on hull:** The boundary condition on the body radiating with a dof defined by the displacement :math:`\delta\!r(x, y, z)` reads
+
+.. math::
+   \frac{\partial \phi}{\partial n} = - i \omega_e \delta\!r \cdot n + U \frac{\partial \delta\! r}{\partial x} \cdot n
+
+The above relationship has currently only been implemented for the six dofs of single rigid bodies, as follows
+
++-------+---------------------+------------------------------------------------+
+| Dof   | :math:`\delta \! r` | :math:`\frac{\partial \delta\! r}{\partial x}` |
++=======+=====================+================================================+
+| Surge | :math:`(1, 0, 0)`   | :math:`(0, 0, 0)`                              |
++-------+---------------------+------------------------------------------------+
+| Sway  | :math:`(0, 1, 0)`   | :math:`(0, 0, 0)`                              |
++-------+---------------------+------------------------------------------------+
+| Heave | :math:`(0, 0, 1)`   | :math:`(0, 0, 0)`                              |
++-------+---------------------+------------------------------------------------+
+| Roll  | :math:`(0, -z, y)`  | :math:`(0, 0, 0)`                              |
++-------+---------------------+------------------------------------------------+
+| Pitch | :math:`(-z, 0, x)`  | :math:`(0, 0, 1)`                              |
++-------+---------------------+------------------------------------------------+
+| Yaw   | :math:`(y, -x, 0)`  | :math:`(0, -1, 0)`                             |
++-------+---------------------+------------------------------------------------+
+
+In other words, the supplementary term is zero except for pitch and yaw.
+
+3. **Gradient of potential in pressure:** The equation relating the potential to the pressure is updated as follows
+
+.. math::
+   p = -\rho \left( -i \omega_e \phi + U \frac{\partial \phi}{\partial x} \right)
+
+Similarly the relationship between the potential and the free surface elevation reads
+
+.. math::
+   \eta = -\frac{1}{g} \left( -i \omega_e \phi + U \frac{\partial \phi}{\partial x} \right)
+
+In the above
+
+The computation of :math:`\frac{\partial \phi}{\partial x}` makes the problems with forward speed typically 50\% slower that problems without.
+
+
+
+The overall workflow with forward speed thus looks as follows.
+
+.. mermaid::
+    :caption: A simplified flowchart of the internals of Capytaine solver **with forward speed**, where red boxes are the supplementary steps introduced by forward speed.
+
+    graph TD
+          h[Water depth] --> gf(Assembling matrices);
+          omega[Wave frequency ω] --> doppler(Doppler shift);
+          fs[Forward speed U] --> doppler(Doppler shift);
+          fs --> un;
+          doppler -- Encounter frequency --> gf(Assembling matrices)
+          m[Mesh] --> gf;
+          gf -- K matrix --> ls(Linear solver);
+          dof[Degree of freedom] --> un(Normal velocity on hull);
+          un --  RHS of linear problem --> ls;
+          gf -- S matrix --> mvp(Matrix vector product);
+          ls -- sources distribution σ --> mvp;
+          ls -- sources distribution σ --> grad;
+          gf -- extended K matrix --> grad;
+          mvp -- potential distribution Φ --> int("Integrate pressure on mesh");
+          grad(Matrix vector product) -- gradient of Φ --> int;
+          m --> int;
+          fs --> int;
+          int --> f["Hydrodynamic forces"]
+
+          classDef input fill:#DDDDDD,color:#333333,stroke:#444444
+          classDef step fill:#88BBBB,color:#003333,stroke:#226666
+          classDef newstep fill:#FFAAAA,color:#550000,stroke:#113939
+          classDef output fill:#FFE3AA,color:#553900,stroke:#AA8439
+          class fs,omega,m,h,dof input
+          class doppler,un,grad newstep
+          class gf,ls,mvp,int step
+          class f output
 
 
 Post-processing

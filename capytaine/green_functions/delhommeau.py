@@ -1,7 +1,8 @@
 """Variants of Delhommeau's method for the computation of the Green function."""
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# Copyright (C) 2017-2024 Matthieu Ancellin
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 
+import os
 import logging
 from functools import lru_cache
 from importlib import import_module
@@ -11,10 +12,22 @@ import numpy as np
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.tools.prony_decomposition import exponential_decomposition, error_exponential_decomposition
+from capytaine.tools.cache_on_disk import cache_directory
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
 
 LOG = logging.getLogger(__name__)
+
+_default_parameters = dict(
+    tabulation_nr=676,
+    tabulation_rmax=100.0,
+    tabulation_nz=372,
+    tabulation_zmin=-251.0,
+    tabulation_nb_integration_points=1000,
+    tabulation_method="scaled_nemoh3",
+    finite_depth_prony_decomposition_method="fortran",
+    floating_point_precision="float64"
+)
 
 
 class Delhommeau(AbstractGreenFunction):
@@ -23,26 +36,47 @@ class Delhommeau(AbstractGreenFunction):
     Parameters
     ----------
     tabulation_nr: int, optional
-        Number of tabulation points for horizontal distance.
-        If 0 is given, the no tabulation is used.
-        Default: 328, as in Nemoh.
+        Number of tabulation points for horizontal coordinate.
+        If 0 is given, no tabulation is used at all.
+        Default: 676
+    tabulation_rmax: float, optional
+        Maximum value of r range for the tabulation. (Minimum is zero.)
+        Only used with the :code:`"scaled_nemoh3"` method.
+        Default: 100.0
     tabulation_nz: int, optional
-        Number of tabulation points for vertical distance.
-        If 0 is given, the no tabulation is used.
-        Default: 46, as in Nemoh.
+        Number of tabulation points for vertical coordinate.
+        If 0 is given, no tabulation is used at all.
+        Default: 372
+    tabulation_zmin: float, optional
+        Minimum value of z range for the tabulation. (Maximum is zero.)
+        Only used with the :code:`"scaled_nemoh3"` method.
+        Default: -251.0
     tabulation_nb_integration_points: int, optional
-        Number of points for the numerical integration w.r.t. :math:`theta` of Delhommeau's integrals
-        Default: 251, as in Nemoh.
+        Number of points for the numerical integration w.r.t. :math:`theta` of
+        Delhommeau's integrals
+        Default: 1000
+    tabulation_method: string, optional
+        Either :code:`"legacy"` or :code:`"scaled_nemoh3"`, which are the two
+        methods currently implemented.
+        Default: :code:`"scaled_nemoh3"`
     finite_depth_prony_decomposition_method: string, optional
-        The implementation of the Prony decomposition used to compute the finite water_depth Green function.
-        Accepted values: :code:`'fortran'` for Nemoh's implementation (by default), :code:`'python'` for an experimental Python implementation.
+        The implementation of the Prony decomposition used to compute the
+        finite water_depth Green function. Accepted values: :code:`'fortran'`
+        for Nemoh's implementation (by default), :code:`'python'` for an
+        experimental Python implementation.
         See :func:`find_best_exponential_decomposition`.
     floating_point_precision: string, optional
-        Either :code:`'float32'` for single precision computations or :code:`'float64'` for double precision computations.
+        Either :code:`'float32'` for single precision computations or
+        :code:`'float64'` for double precision computations.
         Default: :code:`'float64'`.
 
     Attributes
     ----------
+    fortran_core:
+        Compiled Fortran module with functions used to compute the Green
+        function.
+    tabulation_method_index: int
+        Integer passed to Fortran code to describe which method is used.
     tabulated_r_range: numpy.array of shape (tabulation_nr,) and type floating_point_precision
     tabulated_z_range: numpy.array of shape (tabulation_nz,) and type floating_point_precision
         Coordinates of the tabulation points.
@@ -52,30 +86,41 @@ class Delhommeau(AbstractGreenFunction):
 
     fortran_core_basename = "Delhommeau"
 
+
     def __init__(self, *,
-                 tabulation_nr=400,
-                 tabulation_nz=80,
-                 tabulation_nb_integration_points=251,
-                 finite_depth_prony_decomposition_method='fortran',
-                 floating_point_precision='float64',
+                 tabulation_nr=_default_parameters["tabulation_nr"],
+                 tabulation_rmax=_default_parameters["tabulation_rmax"],
+                 tabulation_nz=_default_parameters["tabulation_nz"],
+                 tabulation_zmin=_default_parameters["tabulation_zmin"],
+                 tabulation_nb_integration_points=_default_parameters["tabulation_nb_integration_points"],
+                 tabulation_method=_default_parameters["tabulation_method"],
+                 finite_depth_prony_decomposition_method=_default_parameters["finite_depth_prony_decomposition_method"],
+                 floating_point_precision=_default_parameters["floating_point_precision"],
                  ):
 
-        self.fortran_core = import_module(f"capytaine.green_functions.libs.{self.fortran_core_basename}_{floating_point_precision}")
-
-        self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(tabulation_nr)
-        self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(tabulation_nz)
-        self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
-                self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
-                )
         self.floating_point_precision = floating_point_precision
+
+        self.fortran_core = import_module(f"capytaine.green_functions.libs.{self.fortran_core_basename}_{self.floating_point_precision}")
+
+        self.tabulation_method = tabulation_method
+        fortran_indices_for_methods = {
+                'legacy': self.fortran_core.delhommeau_integrals.legacy_method,
+                'scaled_nemoh3': self.fortran_core.delhommeau_integrals.scaled_nemoh3_method,
+                              }
+        self.tabulation_method_index = fortran_indices_for_methods[tabulation_method]
+
+        self._create_or_load_tabulation(tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin, tabulation_nb_integration_points)
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
         self.exportable_settings = {
             'green_function': self.__class__.__name__,
             'tabulation_nr': tabulation_nr,
+            'tabulation_rmax': tabulation_rmax,
             'tabulation_nz': tabulation_nz,
+            'tabulation_zmin': tabulation_zmin,
             'tabulation_nb_integration_points': tabulation_nb_integration_points,
+            'tabulation_method': tabulation_method,
             'finite_depth_prony_decomposition_method': finite_depth_prony_decomposition_method,
             'floating_point_precision': floating_point_precision,
         }
@@ -86,17 +131,68 @@ class Delhommeau(AbstractGreenFunction):
         return self._hash
 
     def __str__(self):
-        params = f"tabulation_nz={self.exportable_settings['tabulation_nz']}"
-        params += f", tabulation_nr={self.exportable_settings['tabulation_nr']}"
-        params += f", tabulation_nb_integration_points={self.exportable_settings['tabulation_nb_integration_points']}"
-        params += f", floating_point_precision=\'{self.exportable_settings['floating_point_precision']}\'"
-        return f"{self.__class__.__name__}({params})"
+        # Print only the non-default values.
+        to_be_printed = []
+        for name, value in self.exportable_settings.items():
+            if name in _default_parameters and value != _default_parameters[name]:
+                to_be_printed.append(f"{name}={repr(value)}")
+        return f"{self.__class__.__name__}({', '.join(to_be_printed)})"
 
     def __repr__(self):
-        return self.__str__()
+        # Same as __str__ except all values are printed even when they are the
+        # default value.
+        to_be_printed = []
+        for name, value in self.exportable_settings.items():
+            if name in _default_parameters:
+                to_be_printed.append(f"{name}={repr(value)}")
+        return f"{self.__class__.__name__}({', '.join(to_be_printed)})"
 
     def _repr_pretty_(self, p, cycle):
-        p.text(self.__str__())
+        p.text(self.__repr__())
+
+    def _create_or_load_tabulation(self, tabulation_nr, tabulation_rmax,
+                                   tabulation_nz, tabulation_zmin,
+                                   tabulation_nb_integration_points):
+        """This method either:
+            - loads an existing tabulation saved on disk
+            - generates a new tabulation with the data provided as argument and save it on disk.
+        """
+
+        # Normalize inputs
+        tabulation_rmax = float(tabulation_rmax)
+        tabulation_zmin = float(tabulation_zmin)
+
+        filename = "tabulation_{}_{}_{}_{}_{}_{}_{}_{}.npz".format(
+            self.fortran_core_basename, self.floating_point_precision,
+            self.tabulation_method,
+            tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin,
+            tabulation_nb_integration_points
+        )
+        filepath = os.path.join(cache_directory(), filename)
+
+        if os.path.exists(filepath):
+            LOG.info("Loading tabulation from %s", filepath)
+            loaded_arrays = np.load(filepath)
+            self.tabulated_r_range = loaded_arrays["r_range"]
+            self.tabulated_z_range = loaded_arrays["z_range"]
+            self.tabulated_integrals = loaded_arrays["values"]
+
+        else:
+            LOG.warning("Precomputing tabulation, it may take a few seconds.")
+            self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
+                    tabulation_nr, tabulation_rmax, self.tabulation_method_index
+                    )
+            self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(
+                    tabulation_nz, tabulation_zmin, self.tabulation_method_index
+                    )
+            self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
+                    self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
+                    )
+            LOG.debug("Saving tabulation in %s", filepath)
+            np.savez_compressed(
+                filepath, r_range=self.tabulated_r_range, z_range=self.tabulated_z_range,
+                values=self.tabulated_integrals
+            )
 
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
@@ -259,7 +355,7 @@ class Delhommeau(AbstractGreenFunction):
             *mesh2.quadrature_points,
             wavenumber, water_depth,
             coeffs,
-            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
+            self.tabulation_method_index, self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
             mesh1 is mesh2, adjoint_double_layer,
             S, K

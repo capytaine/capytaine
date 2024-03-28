@@ -51,23 +51,25 @@ It is defined as, e.g.::
 Besides the body, all the parameters are optional.
 The table below gives their definitions and their default values.
 
-+-----------------------+------------------------------------------+------------------------+
-| Parameter             | Description (unit)                       | Default value          |
-+=======================+==========================================+========================+
-| :code:`free_surface`  | Position of the free surface [#]_ (m)    | :math:`0.0` m          |
-+-----------------------+------------------------------------------+------------------------+
-| :code:`water_depth`   | Constant depth of water (m)              | :math:`\infty` m       |
-+-----------------------+------------------------------------------+------------------------+
-| :code:`g`             | Acceleration of gravity :math:`g` (m/s²) | :math:`9.81` m/s²      |
-+-----------------------+------------------------------------------+------------------------+
-| :code:`rho`           | Water density (kg/m³)                    | :math:`1000.0` kg/m³   |
-+-----------------------+------------------------------------------+------------------------+
-| :code:`wave_direction`| Direction of the incoming waves (rad)    | :math:`0.0` rad [#]_   |
-|                       | (only for diffraction)                   |                        |
-+-----------------------+------------------------------------------+------------------------+
-| :code:`radiating_dof` | Name of radiating dof                    | first one found        |
-|                       | (only for radiation)                     |                        |
-+-----------------------+------------------------------------------+------------------------+
++------------------------+----------------------------------------------------+----------------------+
+| Parameter              | Description (unit)                                 | Default value        |
++========================+====================================================+======================+
+| :code:`free_surface`   | Position of the free surface [#]_ (m)              | :math:`0.0` m        |
++------------------------+----------------------------------------------------+----------------------+
+| :code:`water_depth`    | Constant depth of water (m)                        | :math:`\infty` m     |
++------------------------+----------------------------------------------------+----------------------+
+| :code:`g`              | Acceleration of gravity :math:`g` (m/s²)           | :math:`9.81` m/s²    |
++------------------------+----------------------------------------------------+----------------------+
+| :code:`rho`            | Water density (kg/m³)                              | :math:`1000.0` kg/m³ |
++------------------------+----------------------------------------------------+----------------------+
+| :code:`wave_direction` | Direction of the incoming waves (rad)              | :math:`0.0` rad [#]_ |
+|                        | (for diffraction or forward speed)                 |                      |
++------------------------+----------------------------------------------------+----------------------+
+| :code:`radiating_dof`  | Name of radiating dof                              | first one found      |
+|                        | (only for radiation)                               |                      |
++------------------------+----------------------------------------------------+----------------------+
+| :code:`forward_speed`  | Speed of the body in the :math:`x` direction (m/s) | :math:`0.0` m/s      |
++------------------------+----------------------------------------------------+----------------------+
 
 .. [#] Only two positions are accepted for the free surface: :math:`z=0.0` and
        :math:`z= +\infty`. The former is the usual case for linear potential
@@ -101,9 +103,18 @@ Setting the frequency is done by passing **one and only one** of the following m
 If no frequency is provided, a frequency :code:`omega = 1.0` rad/s is used by default.
 Once the problem has been initialized, the other parameters can be retrieved as::
 
-    problem.wavenumber
+    problem.omega
     problem.period
-    # ...
+    problem.wavelength
+    problem.wavenumber
+
+When forward speed is non zero, the encounter frequency is computed and can be retrieved as::
+
+    problem.encounter_omega
+    problem.encounter_period
+    problem.encounter_wavelength
+    problem.encounter_wavenumber
+
 
 In some cases (radiation problems in infinite depth), setting the frequency to
 zero or infinity is possible. Simply pass the value `0.0` or `float('inf')` to

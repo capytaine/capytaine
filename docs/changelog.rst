@@ -14,6 +14,11 @@ New in next version
 Major changes
 ~~~~~~~~~~~~~
 
+* New feature: **Approximate forward speed for single rigid body**.
+  A ``forward_speed`` parameter can now be provided to :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` (or to the test matrix when using :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset`) to compute the excitation force, added mass and radiation damping with forward speed of the body in the :math:`x` direction.
+  Note that the :class:`~capytaine.bem.problems_and_results.RadiationProblem` now accept a ``wave_direction`` parameter, which is only used when `forward_speed` is non zero to compute the encounter frequency.
+  See the theory manual for references. (:pull:`376`)
+
 * Add `rich <https://rich.readthedocs.io>`_ as a dependency and improve formatting of the console output.
   Add :func:`~capytaine.tools.rich.set_logging` function to quickly set up logging with `rich`.
   :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now display a progress bar (unless turn off by the ``progress_bar`` argument). (:pull:`382`)
@@ -44,8 +49,9 @@ Minor changes
 
 * Add block-Jacobi/coarse-correction preconditioner for large arrays of bodies. (:pull:`436`)
 
-* Add a `faces_max_radius` argument to the predefined geometries from :mod:`~cpt.meshes.predefined` to set up the resolution by giving a length scale for the panels (:pull:`459`).
+* The tabulation is saved on disk in a cache directory instead of being recomputed at each initialization of the solver. (:pull:`454`)
 
+* Add a `faces_max_radius` argument to the predefined geometries from :mod:`~cpt.meshes.predefined` to set up the resolution by giving a length scale for the panels (:pull:`459`).
 
 Bug fixes
 ~~~~~~~~~
@@ -64,8 +70,12 @@ Bug fixes
 
 * The function :func:`~capytaine.io.meshes_loaders.load_mesh` more robustly detects filetype using file extension even when the file extension is not lowercase. (:pull:`441`)
 
+* Fix bug with bodies translation or rotation when the rotation center or the center of mass had been defined as list or tuples instead of array (:pull:`472`).
+
 Internals
 ~~~~~~~~~
+
+* Add tentative build file for the Guix package manager (:pull:`339`).
 
 * Fix badly named variables ``VSP2_SYM`` and ``VSP2_ANTISYM`` in libDelhommeau (:pull:`391`)
 

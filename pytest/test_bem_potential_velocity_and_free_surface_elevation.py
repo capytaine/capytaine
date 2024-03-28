@@ -3,6 +3,7 @@
 """Tests related to post-processing computation of potential, velocity and free surface elevation."""
 
 import pytest
+from pytest import approx
 import numpy as np
 import capytaine as cpt
 
@@ -236,6 +237,11 @@ def test_airy_wave_free_surface_elevation_values():
     assert np.isclose(np.real(airy_waves_free_surface_elevation([0.25, 0], pb)), 0.0, atol=1e-5)
     assert np.isclose(np.real(airy_waves_free_surface_elevation([0.5, 0], pb)), -1.0)
 
+def test_integrated_pressure(solver, result):
+    pressure = solver.compute_pressure(result.body.mesh, result)
+    forces = result.body.integrate_pressure(pressure)
+    assert result.forces == approx(forces)
+
 def test_fse_zero_frequency(solver):
     mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
     body = cpt.FloatingBody(mesh=mesh)
@@ -256,3 +262,4 @@ def test_direct_solver(solver):
     points = [(0.0, 0.0, -3.0), (0.0, 1.0, -2.0), (1.0, 1.0, -1.0)]
     with pytest.raises(Exception, match="direct method"):
         pot = solver.compute_potential(points, res)
+

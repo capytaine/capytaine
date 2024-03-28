@@ -122,6 +122,27 @@ def test_bodies():
     both = body.join_bodies(copy_of_body)
     assert set(both.dofs) == {'sphere__Surge', 'copy_of_sphere__Surge', 'sphere__Heave', 'copy_of_sphere__Heave'}
 
+def test_mirror_rotation_center_defined_as_tuple():
+    body = cpt.FloatingBody()
+    body.rotation_center = (0, 1, 0)
+    body.mirror(cpt.xOz_Plane)
+    assert body.rotation_center.shape == (3,)
+    np.testing.assert_allclose(body.rotation_center, np.array([0, -1, 0]))
+
+def test_translate_rotation_center_defined_as_tuple():
+    body = cpt.FloatingBody()
+    body.rotation_center = (0, 0, 0)
+    body.translate((0, 0, 1))
+    assert body.rotation_center.shape == (3,)
+    np.testing.assert_allclose(body.rotation_center, np.array([0, 0, 1]))
+
+def test_rotate_rotation_center_defined_as_tuple():
+    body = cpt.FloatingBody()
+    body.rotation_center = (1, 0, 0)
+    body.rotate_z(np.pi)
+    assert body.rotation_center.shape == (3,)
+    np.testing.assert_allclose(body.rotation_center, np.array([-1, 0, 0]), atol=1e-10)
+
 
 @pytest.mark.parametrize("z_center", [0, 2, -2])
 @pytest.mark.parametrize("as_collection_of_meshes", [True, False])

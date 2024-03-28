@@ -95,27 +95,40 @@ class BEMSolver:
 
         if _check_wavelength: self._check_wavelength([problem])
 
+        if problem.forward_speed != 0.0:
+            omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
+        else:
+            omega, wavenumber = problem.omega, problem.wavenumber
+
         linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
         if (method == 'direct'):
-          S, D = self.engine.build_matrices(
-              problem.body.mesh, problem.body.mesh,
-              problem.free_surface, problem.water_depth, problem.wavenumber,
-              self.green_function, adjoint_double_layer=False
-          )
+            if problem.forward_speed != 0.0:
+                raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
 
-          potential = linear_solver(D, S @ problem.boundary_condition)
-          sources = None
+            S, D = self.engine.build_matrices(
+                    problem.body.mesh, problem.body.mesh,
+                    problem.free_surface, problem.water_depth, wavenumber,
+                    self.green_function, adjoint_double_layer=False
+                    )
+
+            potential = linear_solver(D, S @ problem.boundary_condition)
+            pressure = 1j * omega * problem.rho * potential
+            sources = None
         else:
-          S, K = self.engine.build_matrices(
-              problem.body.mesh, problem.body.mesh,
-              problem.free_surface, problem.water_depth, problem.wavenumber,
-              self.green_function, adjoint_double_layer=True
-          )
+            S, K = self.engine.build_matrices(
+                    problem.body.mesh, problem.body.mesh,
+                    problem.free_surface, problem.water_depth, wavenumber,
+                    self.green_function, adjoint_double_layer=True
+                    )
 
-          sources = linear_solver(K, problem.boundary_condition)
-          potential = S @ sources
-
-        pressure = 1j * problem.omega * problem.rho * potential
+            sources = linear_solver(K, problem.boundary_condition)
+            potential = S @ sources
+            pressure = 1j * omega * problem.rho * potential
+            if problem.forward_speed != 0.0:
+                result = problem.make_results_container(sources=sources)
+                # Temporary result object to compute the ∇Φ term
+                nabla_phi = self._compute_potential_gradient(problem.body.mesh, result)
+                pressure += problem.rho * problem.forward_speed * nabla_phi[:, 0]
 
         forces = problem.body.integrate_pressure(pressure)
 
@@ -258,10 +271,22 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
-        S, _ = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.wavenumber)
+        S, _ = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.encounter_wavenumber)
         potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
+    def _compute_potential_gradient(self, points, result):
+        points, output_shape = _normalize_points(points, keep_mesh=True)
+
+        if result.sources is None:
+            raise Exception(f"""The values of the sources of {result} cannot been found.
+            They probably have not been stored by the solver because the option keep_details=True have not been set.
+            Please re-run the resolution with this option.""")
+
+        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.encounter_wavenumber,
+                                                early_dot_product=False)
+        velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
+        return velocities.reshape((*output_shape, 3))
 
     def compute_velocity(self, points, result):
         """Compute the value of the velocity vector at given points for a previously solved potential flow problem.
@@ -282,18 +307,10 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        points, output_shape = _normalize_points(points, keep_mesh=True)
-
-        if result.sources is None:
-            raise Exception(f"""The values of the sources of {result} cannot been found.
-            They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
-            Please re-run the resolution with the indirect method and keep_details=True.""")
-
-        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.wavenumber,
-                                                early_dot_product=False)
-        velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
-        return velocities.reshape((*output_shape, 3))
-
+        nabla_phi = self._compute_potential_gradient(points, result)
+        if result.forward_speed != 0.0:
+            nabla_phi[..., 0] -= result.forward_speed
+        return nabla_phi
 
     def compute_pressure(self, points, result):
         """Compute the value of the pressure at given points for a previously solved potential flow problem.
@@ -314,7 +331,13 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        return 1j * result.omega * result.rho * self.compute_potential(points, result)
+        if result.forward_speed != 0:
+            pressure = 1j * result.encounter_omega * result.rho * self.compute_potential(points, result)
+            nabla_phi = self._compute_potential_gradient(points, result)
+            pressure += result.rho * result.forward_speed * nabla_phi[..., 0]
+        else:
+            pressure = 1j * result.omega * result.rho * self.compute_potential(points, result)
+        return pressure
 
 
     def compute_free_surface_elevation(self, points, result):
@@ -338,7 +361,13 @@ class BEMSolver:
         """
         points, output_shape = _normalize_free_surface_points(points, keep_mesh=True)
 
-        fs_elevation = 1j*result.omega/result.g * self.compute_potential(points, result)
+        if result.forward_speed != 0:
+            fs_elevation = -1/result.g * (-1j*result.encounter_omega) * self.compute_potential(points, result)
+            nabla_phi = self._compute_potential_gradient(points, result)
+            fs_elevation += -1/result.g * result.forward_speed * nabla_phi[..., 0]
+        else:
+            fs_elevation = -1/result.g * (-1j*result.omega) * self.compute_potential(points, result)
+
         return fs_elevation.reshape(output_shape)
 
 
@@ -425,6 +454,9 @@ class BEMSolver:
         ------
         Exception: if the :code:`Result` object given as input does not contain the source distribution.
         """
+        if result.forward_speed != 0.0:
+            raise NotImplementedError("For free surface elevation with forward speed, please use the `compute_free_surface_elevation` method.")
+
         fs_elevation = 1j*result.omega/result.g * self.get_potential_on_mesh(result, free_surface.mesh)
         if keep_details:
             result.fs_elevation[free_surface] = fs_elevation
