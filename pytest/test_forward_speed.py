@@ -192,3 +192,15 @@ def test_malenica_radiation_damping(body, solver, ref_data):
     )
     res = solver.solve(pb)
     assert np.abs(res.radiation_dampings["Surge"])/(rho*pb.encounter_omega) == approx(ref_data[1].normalized_radiation_damping, rel=1e-1)
+
+
+def test_near_zero_encounter_frequency_radiation(body, solver):
+    pb = cpt.RadiationProblem(body=body, omega=1.0, forward_speed=9.805, radiating_dof="Surge")
+    assert pb.encounter_omega > 0.0
+    solver.solve(pb)
+
+
+def test_near_zero_encounter_frequency_diffraction(body, solver):
+    pb = cpt.DiffractionProblem(body=body, omega=1.0, forward_speed=9.805)
+    assert pb.encounter_omega > 0.0
+    solver.solve(pb)
