@@ -63,7 +63,7 @@ CONTAINS
     END IF
     dzdx3 = wavenumber
 
-    IF (z > -1e-8) THEN
+    IF (z > ZERO) THEN
       PRINT*, "Error: Impossible to compute the wave part of the Green function due to panels on the free surface (z=0) or above."
       ERROR STOP
     ENDIF
