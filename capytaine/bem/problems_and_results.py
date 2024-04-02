@@ -193,14 +193,26 @@ class LinearPotentialFlowProblem:
                     or len(self.body.mesh.faces) == 0):
                 raise ValueError(f"The mesh of the body {self.body.__short_str__()} is empty.")
 
-            if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface)
-                    or any(self.body.mesh.faces_centers[:, 2] <= -self.water_depth)):
+            panels_above_fs = self.body.mesh.faces_centers[:, 2] >= self.free_surface
+            panels_below_sb = self.body.mesh.faces_centers[:, 2] <= -self.water_depth
+            if (any(panels_above_fs) or any(panels_below_sb)):
+
+                if not any(panels_below_sb):
+                    issue = f"{np.count_nonzero(panels_above_fs)} panels above the free surface"
+                elif not any(panels_above_fs):
+                    issue = f"{np.count_nonzero(panels_below_sb)} panels below the sea bottom"
+                else:
+                    issue = (f"{np.count_nonzero(panels_above_fs)} panels above the free surface " +
+                             f"and {np.count_nonzero(panels_below_sb)} panels below the sea bottom")
 
                 LOG.warning(
-                    f"The mesh of the body {self.body.__short_str__()} is not inside the domain.\n"
-                    "Check the position of the free_surface and the water_depth\n"
-                    "or use body.keep_immersed_part() to clip the mesh."
+                        f"The mesh of the body {self.body.__short_str__()} has {issue}.\n" +
+                        "It has been clipped to fit inside the domain.\n" +
+                        "To remove this warning, clip the mesh manually with the `immersed_part()` method."
                 )
+
+                self.body = self.body.immersed_part(free_surface=self.free_surface,
+                                                    water_depth=self.water_depth)
 
         if self.boundary_condition is not None:
             if len(self.boundary_condition.shape) != 1:
