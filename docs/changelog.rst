@@ -54,6 +54,8 @@ Minor changes
 
 * Add a `faces_max_radius` argument to the predefined geometries from :mod:`~cpt.meshes.predefined` to set up the resolution by giving a length scale for the panels (:pull:`459`).
 
+* Automatically clip the mesh (and display a warning) when a problem is initialized with a mesh above the free surface or below the sea bottom (:pull:`486`).
+
 Bug fixes
 ~~~~~~~~~
 
