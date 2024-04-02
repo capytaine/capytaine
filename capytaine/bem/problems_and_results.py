@@ -231,11 +231,11 @@ class LinearPotentialFlowProblem:
     def _asdict(self):
         return {"body_name": self.body_name,
                 "water_depth": self.water_depth,
-                "omega": self.omega,
-                "encounter_omega": self.encounter_omega,
-                "period": self.period,
-                "wavelength": self.wavelength,
-                "wavenumber": self.wavenumber,
+                "omega": float(self.omega),
+                "encounter_omega": float(self.encounter_omega),
+                "period": float(self.period),
+                "wavelength": float(self.wavelength),
+                "wavenumber": float(self.wavenumber),
                 "forward_speed": self.forward_speed,
                 "wave_direction": self.wave_direction,
                 "encounter_wave_direction": self.encounter_wave_direction,
@@ -295,7 +295,7 @@ class LinearPotentialFlowProblem:
 
     def _astuple(self):
         return (self.body, self.free_surface, self.water_depth,
-                self.omega, self.period, self.wavenumber, self.wavelength,
+                float(self.omega), float(self.period), float(self.wavenumber), float(self.wavelength),
                 self.forward_speed, self.rho, self.g)
 
     def __eq__(self, other):
