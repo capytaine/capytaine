@@ -1,5 +1,5 @@
 import numpy as np
-from functools import total_ordering, wraps
+from functools import wraps
 
 # @total_ordering
 class SymbolicMultiplication:
@@ -26,6 +26,9 @@ class SymbolicMultiplication:
 
     def __add__(self, x):
         return self._concretize() + x
+
+    def __radd__(self, x):
+        return x + self._concretize()
 
     def __mul__(self, x):
         return SymbolicMultiplication(self.symbol, self.value * x)
