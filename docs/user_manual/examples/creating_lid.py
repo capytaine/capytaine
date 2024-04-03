@@ -20,10 +20,10 @@ cylinderMesh = cpt.mesh_vertical_cylinder(
     center=(0, 0, 0),        # Position
     resolution=(nRadius, nTheta, nZ)    # Fineness of the mesh
     )
-cylinder = cpt.FloatingBody(cylinderMesh)
-cylinder.keep_immersed_part(free_surface=0.0,water_depth=np.infty)
-lid = cylinder.generate_lid(z=-5,info=False)
 
-body = cpt.FloatingBody(mesh=cylinder.mesh, lid_mesh=lid, dofs=cpt.rigid_body_dofs())
+lid = cylinderMesh.generate_lid(z=-5,info=True)
+body = cpt.FloatingBody(mesh=cylinderMesh, lid_mesh=lid, dofs=cpt.rigid_body_dofs())
+body.keep_immersed_part(free_surface=0.0,water_depth=np.infty)
+
 body.show()
 
