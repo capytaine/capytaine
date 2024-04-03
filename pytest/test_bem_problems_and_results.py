@@ -78,6 +78,25 @@ def test_LinearPotentialFlowProblem(sphere):
     assert res.body is pb.body
 
 
+def test_mesh_above_the_free_surface(caplog):
+    with caplog.at_level(logging.WARNING):
+        body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())
+        pb = cpt.RadiationProblem(body=body, omega=1.0)
+    assert '50 panels above the free surface' in caplog.text
+    assert np.all(pb.body.mesh.vertices[:, 2].max() <= 0.0)
+
+
+def test_mesh_below_the_sea_bottom(caplog):
+    with caplog.at_level(logging.WARNING):
+        body = cpt.FloatingBody(
+                mesh=cpt.mesh_sphere(radius=0.5, center=(0, 0, -1.0)),
+                dofs=cpt.rigid_body_dofs()
+                )
+        pb = cpt.RadiationProblem(body=body, omega=1.0, water_depth=1.0)
+    assert '50 panels below the sea bottom' in caplog.text
+    assert np.all(pb.body.mesh.vertices[:, 2].min() >= -1.0)
+
+
 def test_backward_compatibility_with_sea_bottom_argument(caplog):
     with caplog.at_level(logging.WARNING):
         pb = cpt.DiffractionProblem(sea_bottom=-10.0)

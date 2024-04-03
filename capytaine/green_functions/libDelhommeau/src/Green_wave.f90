@@ -63,11 +63,6 @@ CONTAINS
     END IF
     dzdx3 = wavenumber
 
-    IF (z > ZERO) THEN
-      PRINT*, "Error: Impossible to compute the wave part of the Green function due to panels on the free surface (z=0) or above."
-      ERROR STOP
-    ENDIF
-
     !=======================================================
     ! Evaluate the elementary integrals depending on z and r
     !=======================================================
