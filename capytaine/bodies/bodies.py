@@ -55,7 +55,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         If none is given, the one of the mesh is used.
     """
 
-    def __init__(self, mesh=None, dofs=None, mass=None, center_of_mass=None, name=None):
+    def __init__(self, mesh=None,lid_mesh=None, dofs=None, mass=None, center_of_mass=None, name=None):
         if mesh is None:
             self.mesh = Mesh(name="dummy_mesh")
 
@@ -69,6 +69,14 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         else:
             raise TypeError("Unrecognized `mesh` object passed to the FloatingBody constructor.")
 
+        if lid_mesh is not None:
+            # lid_body  = FloatingBody(mesh=lid_mesh,dofs=dofs,name='lid')   
+            self.nb_lid_internal    = lid_mesh.nb_faces
+            self.nb_hull            = mesh.nb_faces
+            mesh = mesh + lid_mesh
+
+            self.mesh = mesh
+            
         if name is None and mesh is None:
             self.name = "dummy_body"
         elif name is None:
@@ -95,9 +103,6 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         else:
             self.dofs = dofs
 
-        # internal lid parameters 
-        self.lid_vertical_position      = -0.4 # 
-        self.lid_size                   = 1
         LOG.info(f"New floating body: {self.__str__()}.")
 
     @staticmethod
@@ -1086,7 +1091,7 @@ respective inertia coefficients are assigned as NaN.")
 
         return all_buoys
     
-    def create_internal_lid(self,info=False): 
+    def generate_lid(self,z=-1e-3, faces_max_radius=None,info=False): 
         from capytaine.meshes.clipper import  _partition_mesh,_vertices_positions_wrt_plane
         from capytaine.meshes.geometry import xOy_Plane
         from capytaine.meshes.meshes import Mesh
@@ -1115,7 +1120,6 @@ respective inertia coefficients are assigned as NaN.")
         # vertices_data['vertices_on_mask']
         _, crown_mesh, _ = _partition_mesh(vertices_data, self.mesh)
 
-
         # Taking only the crown mesh to obtain the Water Plane Area information
         # water plane area is defined as the boundary
         boundary_coordinate  = crown_mesh.faces_centers[:,0:2]
@@ -1126,13 +1130,20 @@ respective inertia coefficients are assigned as NaN.")
         # creating initial Lid (rectangular)
         length_waterline    = np.max(boundary_coordinate[:,0])  - np.min(boundary_coordinate[:,0]) 
         breadth_waterline   = np.max(boundary_coordinate[:,1])  - np.min(boundary_coordinate[:,1]) 
-        # initialisation factor 1.75
-        Nx = int(1.75*length_waterline/self.lid_size) 
-        Ny = int(1.75*breadth_waterline/self.lid_size)
 
-        lid_mesh = mesh_rectangle(size=(1.75*breadth_waterline,1.75*length_waterline), 
+        if faces_max_radius is None: 
+            lid_size = self.mesh.faces_radiuses.mean()
+        else: 
+            lid_size = faces_max_radius
+
+
+        # initialisation factor 1.25
+        Nx = int(1.25*length_waterline/lid_size) 
+        Ny = int(1.25*breadth_waterline/lid_size)
+
+        lid_mesh = mesh_rectangle(size=(1.25*breadth_waterline,1.25*length_waterline), 
                                 resolution=(Ny,Nx), 
-                                center=boundary_center+[self.lid_vertical_position], 
+                                center=boundary_center+[z], 
                                 normal=(0.0, 0.0, -1))     
 
         # generating th
@@ -1161,10 +1172,10 @@ respective inertia coefficients are assigned as NaN.")
         new_lid_mesh = Mesh(lid_mesh.vertices,new_lid_face)
         new_lid_mesh.heal_mesh()
 
-        # creating the lid body
-        lid_body  = FloatingBody(new_lid_mesh)   
-        lid_body.name= 'lid'
-        lid_body.add_all_rigid_body_dofs()
+        # # creating the lid body
+        # lid_body  = FloatingBody(new_lid_mesh)   
+        # lid_body.name= 'lid'
+        # lid_body.add_all_rigid_body_dofs()
 
         # in-case want to see the lid
         if info:
@@ -1180,5 +1191,5 @@ respective inertia coefficients are assigned as NaN.")
             plt.gca().set_aspect('equal')
             plt.show()
 
-            lid_body.show()
-        return lid_body
+            new_lid_mesh.show()
+        return new_lid_mesh

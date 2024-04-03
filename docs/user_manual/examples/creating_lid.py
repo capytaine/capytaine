@@ -15,17 +15,15 @@ radius  =12.5; draught = 37.5
 nRadius = 15; nTheta = 25; nZ = 30
 
 # Initialize floating body by generating a geometric mesh
-mesh = cpt.mesh_vertical_cylinder(
+cylinderMesh = cpt.mesh_vertical_cylinder(
     length=draught* 2, radius=radius,  # Dimensions
     center=(0, 0, 0),        # Position
     resolution=(nRadius, nTheta, nZ)    # Fineness of the mesh
     )
-body = cpt.FloatingBody(mesh)
-body.name = 'cylinder'
-body.keep_immersed_part(free_surface=0.0,water_depth=np.infty)
-lid = body.create_internal_lid(info=True)
+cylinder = cpt.FloatingBody(cylinderMesh)
+cylinder.keep_immersed_part(free_surface=0.0,water_depth=np.infty)
+lid = cylinder.generate_lid(z=-5,info=False)
 
-body_with_lid = body + lid
-
-body_with_lid.show()
+body = cpt.FloatingBody(mesh=cylinder.mesh, lid_mesh=lid, dofs=cpt.rigid_body_dofs())
+body.show()
 
