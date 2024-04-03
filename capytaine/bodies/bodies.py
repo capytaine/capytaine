@@ -76,7 +76,11 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             mesh = mesh + lid_mesh
 
             self.mesh = mesh
-            
+            self.internal_lid = True
+        else: 
+            self.internal_lid = False
+
+
         if name is None and mesh is None:
             self.name = "dummy_body"
         elif name is None:
