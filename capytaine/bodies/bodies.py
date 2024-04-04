@@ -70,9 +70,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             raise TypeError("Unrecognized `mesh` object passed to the FloatingBody constructor.")
 
         if lid_mesh is not None:
-            # lid_body  = FloatingBody(mesh=lid_mesh,dofs=dofs,name='lid')   
             self.nb_lid_internal    = lid_mesh.nb_faces
-            self.nb_hull            = mesh.nb_faces
             mesh = mesh + lid_mesh
 
             self.mesh = mesh

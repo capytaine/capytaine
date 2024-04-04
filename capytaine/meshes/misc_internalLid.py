@@ -1,6 +1,11 @@
 # thanks to https://www.geeksforgeeks.org/how-to-check-if-a-given-point-lies-inside-a-polygon/
 ### RAY CASTING FUNCTIONS AND CLASS
 import numpy as np 
+def location_of_lid(omega_max= 2, length=1, breadth= 1,gravity = 9.81):
+    dummyA = np.arctanh( np.pi* gravity*np.sqrt(length **-2 + breadth **-2)/ omega_max**2)
+    dummyB = np.pi * np.sqrt(length **-2 + breadth **-2)
+
+    return dummyA/dummyB
 
 class Point:
     def __init__(self, x, y):

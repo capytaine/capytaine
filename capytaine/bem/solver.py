@@ -59,9 +59,6 @@ class BEMSolver:
     def __init__(self, *, green_function=None, engine=None):
         self.green_function = Delhommeau() if green_function is None else green_function
         self.engine = BasicMatrixEngine() if engine is None else engine
-        self.irrFrequency_removal = False
-        self.problem_without_lid  = None
-        self.problems_without_lid = None
         try:
             self.exportable_settings = {
                 **self.green_function.exportable_settings,
@@ -132,12 +129,11 @@ class BEMSolver:
                     problem.free_surface, problem.water_depth, wavenumber,
                     self.green_function, adjoint_double_layer=True
                     )
-            if self.irrFrequency_removal: 
+            if problem.body.internal_lid: 
                 LOG.info("Solve with internal lid %s.")
-                nb_panel_lid = problem.body.mesh.nb_faces - \
-                    self.problem_without_lid.body.mesh.nb_faces
-                nb_panel_body = self.problem_without_lid.body.mesh.nb_faces
-                problem.boundary_condition[nb_panel_body:] = np.zeros(nb_panel_lid,dtype=complex)
+                nb_hull = problem.body.mesh.nb_faces - problem.body.nb_lid_internal
+                problem.boundary_condition[nb_hull:] = np.zeros(problem.body.nb_lid_internal,
+                                                                             dtype=complex)
 
             sources = linear_solver(K, problem.boundary_condition)
             potential = S @ sources
@@ -148,12 +144,7 @@ class BEMSolver:
                 nabla_phi = self._compute_potential_gradient(problem.body.mesh, result)
                 pressure += problem.rho * problem.forward_speed * nabla_phi[:, 0]
 
-
-        if self.irrFrequency_removal:
-            forces = self.problem_without_lid.body.integrate_pressure(pressure[0:nb_panel_body])
-            problem = self.problem_without_lid
-        else:
-            forces = problem.body.integrate_pressure(pressure)
+        forces = problem.body.integrate_pressure(pressure)
         # TODO: the results of irregular Frequency removal is without lid 
         # however, in the field computation it is with lid
             
@@ -191,24 +182,11 @@ class BEMSolver:
 
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
-            if self.irrFrequency_removal:
-                problems = filter_radiating_lid_multibody(problems)
 
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
             
-            if self.irrFrequency_removal:
-                problemsWithoutLid = sorted(self.problems_without_lid)                
-                results = []
-                for pb, pb_no_lid in zip(problems,problemsWithoutLid):
-                    self.problem_without_lid = pb_no_lid
-                    results.append(self.solve(pb, 
-                                              method=method, 
-                                              _check_wavelength=False, **kwargs))
-                    
-                return results
-            else:
-                return [self.solve(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+            return [self.solve(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:

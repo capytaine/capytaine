@@ -745,12 +745,13 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
             self.heal_normals()
         return self
     
-    def generate_lid(self,z=-1e-3, faces_max_radius=None,info=False): 
+    def generate_lid(self,z=-1e-3, faces_max_radius=None,omega_max = 2,info=False): 
         from capytaine.meshes.clipper import  _partition_mesh,_vertices_positions_wrt_plane
         from capytaine.meshes.geometry import xOy_Plane
         from capytaine.meshes.predefined.rectangles import mesh_rectangle
 
-        from  capytaine.bodies.misc_internalLid import counterClockwiseBoundary,findCenter,isInstanceInside
+        from  capytaine.meshes.misc_internalLid import counterClockwiseBoundary,findCenter,isInstanceInside, \
+                                                        location_of_lid
 
         '''
         Create internal free surface lid based on rectangular mesh
@@ -789,6 +790,10 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         else: 
             lid_size = faces_max_radius
 
+        if z == 'auto':
+            z = -location_of_lid(omega_max=omega_max,
+                                length=length_waterline, 
+                                breadth=breadth_waterline) 
 
         # initialisation factor 1.25
         Nx = int(1.25*length_waterline/lid_size) 
@@ -834,7 +839,6 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         if info:
             import matplotlib.pyplot as plt
             plt.figure() 
-            print(lid_panels_coordinate.shape)
             plt.plot(lid_panels_coordinate[:,0],lid_panels_coordinate[:,1],
                      '*',label='faces center')
             plt.plot(boundary_coordinate[:,0],boundary_coordinate[:,1],

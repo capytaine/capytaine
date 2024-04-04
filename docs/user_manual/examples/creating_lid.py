@@ -26,4 +26,3 @@ body = cpt.FloatingBody(mesh=cylinderMesh, lid_mesh=lid, dofs=cpt.rigid_body_dof
 body.keep_immersed_part(free_surface=0.0,water_depth=np.infty)
 
 body.show()
-
