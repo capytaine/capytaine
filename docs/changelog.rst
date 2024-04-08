@@ -7,9 +7,9 @@ Changelog
    :depth: 1
    :backlinks: none
 
--------------------
-New in next version
--------------------
+-------------------------------
+New in version 2.1 (2024-04-08)
+-------------------------------
 
 Major changes
 ~~~~~~~~~~~~~
