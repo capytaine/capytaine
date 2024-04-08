@@ -8,8 +8,8 @@ on:
       - 'docs/**'
 
   pull_request:
-    paths:
-      - 'docs/**'
+    # paths:
+    #   - 'docs/**'
 
   workflow_dispatch:
 
@@ -24,6 +24,8 @@ jobs:
 
       - name: Install Capytaine and other dependencies
         run: pip install .[docs]
+        with:
+          python-version: '3.12'
 
       - name: Build documentation
         run: cd docs && make
