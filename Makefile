@@ -2,7 +2,7 @@ install:
 	pip install .
 
 develop:
-	pip install meson-python ninja "numpy<=1.26.2" charset-normalizer # No installed from pyproject.toml in this case...
+	pip install meson-python ninja "numpy>=2.0.0rc1,<2.3" charset-normalizer # No installed from pyproject.toml in this case...
 	pip install --no-build-isolation -e .
 
 TEMP_DIR := $(shell mktemp -d)
