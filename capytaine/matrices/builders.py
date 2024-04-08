@@ -41,9 +41,9 @@ def cut_matrix(full_matrix, x_shapes, y_shapes, check=False):
     return BlockMatrix(new_block_matrix, check=check)
 
 
-def random_block_matrix(x_shapes, y_shapes):
+def random_block_matrix(x_shapes, y_shapes, rng=np.random.default_rng()):
     """A random block matrix."""
-    return cut_matrix(np.random.rand(sum(x_shapes), sum(y_shapes)), x_shapes, y_shapes)
+    return cut_matrix(rng.uniform(size=(sum(x_shapes), sum(y_shapes))), x_shapes, y_shapes)
 
 
 def full_like(A, value, dtype=np.float64):
