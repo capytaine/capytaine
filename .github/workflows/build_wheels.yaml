@@ -18,7 +18,7 @@ jobs:
         os: [ubuntu-20.04, macos-11, windows-2019]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - uses: fortran-lang/setup-fortran@v1
         id: setup-fortran
@@ -27,7 +27,7 @@ jobs:
           version: '13'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.16.5
+        uses: pypa/cibuildwheel@v2.17.0
         env:
           CIBW_SKIP: "pp* *i686* *musllinux* *win32*"
         # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
@@ -39,6 +39,6 @@ jobs:
         #   output-dir: wheelhouse
         #   config-file: "{package}/pyproject.toml"
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           path: ./wheelhouse/*.whl
