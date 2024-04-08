@@ -2,10 +2,10 @@ name: Build and deploy documentation
 
 on:
   push:
-    branches:
-      - master
-    paths:
-      - 'docs/**'
+    # branches:
+    #   - master
+    # paths:
+    #   - 'docs/**'
 
   pull_request:
     # paths:
