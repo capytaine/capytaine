@@ -13,11 +13,13 @@ This documentation is for version |release| (released |today|).
 
    features.rst
 
-If you need support, you can ask questions on the `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
+Private support, custom developments and training can be provided by `Eurobios Mews Labs <https://www.mews-partners.com/en/our-offering/eurobios-mews-labs/>`_ (contact@mews-labs.com).
+
+For free support, you can ask questions on the public `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
 Please do not contact the developers directly by email, unless you are looking for private paid support.
 
 Contributions are welcome!
-Please, report bugs and suggest improvements as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
+Please report bugs and suggest improvements as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
 
 .. raw:: html
 
