@@ -1,18 +1,18 @@
 name: Build and test in fixed environments
 
-# on:
-#   push:
-#     branches:
-#       - 'master'
-#     paths-ignore:
-#       # Do not run if only the documentation has been changed
-#       - 'docs/**'
-#       - '**/*.md'
-#   pull_request:
-#     paths-ignore:
-#       # Do not run if only the documentation has been changed
-#       - 'docs/**'
-#       - '**/*.md'
+on:
+  push:
+    branches:
+      - 'master'
+    paths-ignore:
+      # Do not run if only the documentation has been changed
+      - 'docs/**'
+      - '**/*.md'
+  pull_request:
+    paths-ignore:
+      # Do not run if only the documentation has been changed
+      - 'docs/**'
+      - '**/*.md'
 
 env:
   FORCE_COLOR: 3
