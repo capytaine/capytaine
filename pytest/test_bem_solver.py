@@ -67,6 +67,24 @@ def test_limit_frequencies_with_symmetries():
     assert isinstance(res.added_mass['Surge'], float)
 
 
+def test_zero_frequency_datasets(sphere):
+    test_matrix = xr.Dataset(coords={
+        "wavenumber": np.linspace(0.0, 0.1, 3),
+        "radiating_dof": list(sphere.dofs),
+        })
+    solver = cpt.BEMSolver()
+    solver.fill_dataset(test_matrix, sphere)
+
+
+def test_infinite_frequency_datasets(sphere):
+    test_matrix = xr.Dataset(coords={
+        "wavelength": np.linspace(0.0, 0.1, 3),
+        "radiating_dof": list(sphere.dofs),
+        })
+    solver = cpt.BEMSolver()
+    solver.fill_dataset(test_matrix, sphere)
+
+
 def test_parallelization(sphere):
     joblib = pytest.importorskip("joblib")
     solver = cpt.BEMSolver()

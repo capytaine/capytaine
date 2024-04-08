@@ -193,14 +193,26 @@ class LinearPotentialFlowProblem:
                     or len(self.body.mesh.faces) == 0):
                 raise ValueError(f"The mesh of the body {self.body.__short_str__()} is empty.")
 
-            if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface)
-                    or any(self.body.mesh.faces_centers[:, 2] <= -self.water_depth)):
+            panels_above_fs = self.body.mesh.faces_centers[:, 2] >= self.free_surface
+            panels_below_sb = self.body.mesh.faces_centers[:, 2] <= -self.water_depth
+            if (any(panels_above_fs) or any(panels_below_sb)):
+
+                if not any(panels_below_sb):
+                    issue = f"{np.count_nonzero(panels_above_fs)} panels above the free surface"
+                elif not any(panels_above_fs):
+                    issue = f"{np.count_nonzero(panels_below_sb)} panels below the sea bottom"
+                else:
+                    issue = (f"{np.count_nonzero(panels_above_fs)} panels above the free surface " +
+                             f"and {np.count_nonzero(panels_below_sb)} panels below the sea bottom")
 
                 LOG.warning(
-                    f"The mesh of the body {self.body.__short_str__()} is not inside the domain.\n"
-                    "Check the position of the free_surface and the water_depth\n"
-                    "or use body.keep_immersed_part() to clip the mesh."
+                        f"The mesh of the body {self.body.__short_str__()} has {issue}.\n" +
+                        "It has been clipped to fit inside the domain.\n" +
+                        "To remove this warning, clip the mesh manually with the `immersed_part()` method."
                 )
+
+                self.body = self.body.immersed_part(free_surface=self.free_surface,
+                                                    water_depth=self.water_depth)
 
         if self.boundary_condition is not None:
             if len(self.boundary_condition.shape) != 1:
@@ -219,11 +231,11 @@ class LinearPotentialFlowProblem:
     def _asdict(self):
         return {"body_name": self.body_name,
                 "water_depth": self.water_depth,
-                "omega": self.omega,
-                "encounter_omega": self.encounter_omega,
-                "period": self.period,
-                "wavelength": self.wavelength,
-                "wavenumber": self.wavenumber,
+                "omega": float(self.omega),
+                "encounter_omega": float(self.encounter_omega),
+                "period": float(self.period),
+                "wavelength": float(self.wavelength),
+                "wavenumber": float(self.wavenumber),
                 "forward_speed": self.forward_speed,
                 "wave_direction": self.wave_direction,
                 "encounter_wave_direction": self.encounter_wave_direction,
@@ -283,7 +295,7 @@ class LinearPotentialFlowProblem:
 
     def _astuple(self):
         return (self.body, self.free_surface, self.water_depth,
-                self.omega, self.period, self.wavenumber, self.wavelength,
+                float(self.omega), float(self.period), float(self.wavenumber), float(self.wavelength),
                 self.forward_speed, self.rho, self.g)
 
     def __eq__(self, other):

@@ -202,7 +202,7 @@ class BEMSolver:
                     )
         elif nb_risky_problems > 1:
             freq_type = risky_problems[0].provided_freq_type
-            freqs = np.array([pb.__getattribute__(freq_type) for pb in risky_problems])
+            freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
             LOG.warning(f"Mesh resolution for {nb_risky_problems} problems:\n"
                          "The resolution of the mesh might be insufficient "
                         f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
