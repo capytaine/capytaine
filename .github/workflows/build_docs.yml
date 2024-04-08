@@ -1,7 +1,17 @@
 name: Build and deploy documentation
 
 on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'docs/**'
+
   pull_request:
+    # paths:
+    #   - 'docs/**'
+
+  workflow_dispatch:
 
 
 jobs:
@@ -19,7 +29,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install Capytaine and other dependencies
-        run: pip install .[docs]
+        run: pip install .[optional,docs]
 
       - name: Build documentation
         run: cd docs && make
