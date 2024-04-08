@@ -31,7 +31,7 @@ conda install -c conda-forge capytaine
 
 ## License
 
-Copyright (C) 2017-2023, Matthieu Ancellin
+Copyright (C) 2017-2024, Matthieu Ancellin
 
 Since April 2022, the development of Capytaine is funded by the Alliance for Sustainable Energy, LLC, Managing and Operating Contractor for the National Renewable Energy Laboratory (NREL) for the U.S. Department of Energy.
 
