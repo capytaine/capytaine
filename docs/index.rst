@@ -85,6 +85,7 @@ The `boat mesh`_ in the animation above is in the public domain.
 
 .. _`boat mesh`: https://opengameart.org/content/low-poly-pirate-ship
 
+
 .. Indices and tables
    ------------------
    * :ref:`genindex`
