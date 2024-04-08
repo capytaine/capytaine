@@ -72,6 +72,8 @@ This documentation is licensed under the `Creative Commons Attribution-ShareAlik
 .. |CCBYSA| image:: https://i.creativecommons.org/l/by-sa/4.0/80x15.png
 .. _`Creative Commons Attribution-ShareAlike 4.0 International License`: http://creativecommons.org/licenses/by-sa/4.0/
 
+The Fortran core routines of Capytaine are also available under the Apache License 2.0 and can be found in the ``capytaine/green_functions/libDelhommeau`` `directory of Capytaine's repository <https://github.com/capytaine/capytaine/tree/master/capytaine/green_functions/libDelhommeau>`_.
+
 Capytaine is a fork of the version 2 of Nemoh_, which has been developed by Gérard Delhommeau, Aurélien Babarit et al., (École Centrale de Nantes) and was distributed under the Apache License 2.0.
 
 Capytaine includes code from meshmagick_ by François Rongère (École Centrale de Nantes), licensed under the GNU General Public License (GPL).
