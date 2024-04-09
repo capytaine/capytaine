@@ -601,7 +601,6 @@ Similarly the relationship between the potential and the free surface elevation 
 .. math::
    \eta = -\frac{1}{g} \left( -i \omega_e \phi + U \frac{\partial \phi}{\partial x} \right)
 
-In the above
 
 The computation of :math:`\frac{\partial \phi}{\partial x}` makes the problems with forward speed typically 50\% slower that problems without.
 

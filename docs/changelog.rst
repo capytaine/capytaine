@@ -11,6 +11,15 @@ Changelog
 New in next version
 -------------------
 
+Internals
+~~~~~~~~~
+
+* Update test environments used in noxfile and add ``editable_install_requirements.txt``. (:pull:`498`)
+
+-------------------------------
+New in version 2.1 (2024-04-08)
+-------------------------------
+
 Major changes
 ~~~~~~~~~~~~~
 
@@ -23,7 +32,8 @@ Major changes
   Add :func:`~capytaine.tools.rich.set_logging` function to quickly set up logging with `rich`.
   :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now display a progress bar (unless turn off by the ``progress_bar`` argument). (:pull:`382`)
 
-* Reimplement computation of added mass in infinite depth with zero or infinite frequency. (:pull:`385`)
+* Reimplement computation of added mass and radiation damping in infinite depth with zero or infinite frequency. (:pull:`385` and :pull:`485`)
+  When using forward speed, the added mass and radiation damping are undefined, but the forces can still be computed. (pull:`483`)
 
 * Implement direct method (source-and-dipole formulation) in obtaining velocity potential solutions.
   The direct method can be used instead of the default indirect method by setting the ``method`` argument of :meth:`~capytaine.bem.solver.BEMSolver.solve`, :meth:`~capytaine.bem.solver.BEMSolver.solve_all` or :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` (:pull:`420`)
@@ -52,6 +62,8 @@ Minor changes
 * The tabulation is saved on disk in a cache directory instead of being recomputed at each initialization of the solver. (:pull:`454`)
 
 * Add a `faces_max_radius` argument to the predefined geometries from :mod:`~cpt.meshes.predefined` to set up the resolution by giving a length scale for the panels (:pull:`459`).
+
+* Automatically clip the mesh (and display a warning) when a problem is initialized with a mesh above the free surface or below the sea bottom (:pull:`486`).
 
 Bug fixes
 ~~~~~~~~~
