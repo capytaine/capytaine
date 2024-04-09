@@ -29,7 +29,7 @@ jobs:
 
     steps:
 
-    - name: Checkout repository and submodules
+    - name: Checkout repository
       uses: actions/checkout@v4
 
     - name: Set up Python ${{ matrix.python-version }}
@@ -42,3 +42,22 @@ jobs:
 
     - name: Run nox session
       run: nox -s build_and_test_on_locked_env
+
+  compile_fortran:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Fortran
+      uses: fortran-lang/setup-fortran@v1
+      with:
+        compiler: 'gcc'
+        version: '13'
+
+    - name: Compile and run example
+      working-directory: capytaine/green_functions/libDelhommeau/
+      run: make run_min_ex

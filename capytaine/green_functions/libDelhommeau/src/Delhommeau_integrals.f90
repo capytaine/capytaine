@@ -198,7 +198,6 @@ contains
     real(kind=pre), intent(in) :: rmax
     integer, intent(in) :: method
     real(kind=pre), dimension(nr) :: default_r_spacing
-    real(kind=pre), dimension(nr) :: default_r_spacing2
 
     ! Reference parameters from Nemoh 3 model
     integer, parameter :: nr_ref = 676
@@ -299,9 +298,8 @@ contains
       integer, parameter :: index_of_1_ref = 81  ! index of the change of slope
 
       ! local variables
-      integer :: i, index_of_1
+      integer :: index_of_1
       real(kind=pre) :: rmax
-
 
       if (method == LEGACY_METHOD) then
         if (r < 1e-6) then
