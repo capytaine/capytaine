@@ -60,4 +60,6 @@ jobs:
 
     - name: Compile and run example
       working-directory: capytaine/green_functions/libDelhommeau/
-      run: make run_min_ex
+      run: make example && examples/minimal/minimal_example.bin
+      # Soundness of the results is not tested, only that the compiling and
+      # execution are succeeding.
