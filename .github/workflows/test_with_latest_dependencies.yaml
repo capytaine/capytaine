@@ -16,7 +16,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.7', '3.12']
+        python-version: ['3.8', '3.12']
 
     steps:
 
@@ -32,4 +32,4 @@ jobs:
       uses: wntrblm/nox@2024.03.02
 
     - name: Run nox session
-      run: nox -s build_and_test_on_latest_env
+      run: nox -s build_and_test_on_latest_env editable_build_and_test_on_latest_env
