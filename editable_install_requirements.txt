@@ -7,6 +7,7 @@
 # pip tries to build the package before installing extra dependencies.
 
 meson-python
+ninja  # Unlike [build-system.requires], ninja need to be explicitly installed for editable install.
 charset-normalizer
 numpy !=1.26.4, !=1.26.3, <2
 
