@@ -48,6 +48,13 @@ def build_and_test_on_latest_env(session):
 
 
 @nox.session
+def editable_build_and_test_on_latest_env(session):
+    session.install("-r", "editable_install_requirements.txt")
+    session.install("--no-build-isolation", "--editable", ".[test,optional]")
+    run_tests(session)
+
+
+@nox.session
 def build_and_test_on_locked_env(session):
     if sys.version.startswith("3.8."):
         env_file = "2023-08-01-py3.8.txt"

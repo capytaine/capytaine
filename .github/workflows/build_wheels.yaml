@@ -6,7 +6,7 @@ on:
     tags:
       - v*
   schedule:
-    - cron: '5 5 5/15 * *'  # On the 5th and 20th of each month at 5:05
+    - cron: '6 6 6/16 * *'  # On the 6th and 22nd of each month at 6:06
 
 
 jobs:
