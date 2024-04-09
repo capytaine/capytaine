@@ -120,7 +120,7 @@ def test_solve_with_lu_block_circulant_problem(solved_block_circulant_problem):
     A, x_ref, b = solved_block_circulant_problem
     linear_solver = LUSolverWithCache()
     with pytest.raises(NotImplementedError):
-        x = linear_solver.solve(A, b)
+        linear_solver.solve(A, b)
 
 def test_gmres_block_circulant_problem(solved_block_circulant_problem):
     A, x_ref, b = solved_block_circulant_problem
@@ -156,7 +156,7 @@ def test_gmres_block_toeplitz_problem(solved_block_toeplitz_problem):
 @pytest.fixture
 def solved_nested_block_problem():
     A = BlockCirculantMatrix([
-        [random_block_matrix([1, 1], [1, 1]) for _ in range(6)]
+        [random_block_matrix([1, 1], [1, 1], rng=RNG) for _ in range(6)]
     ])
     x = RNG.random(A.shape[0])
     return (A, x, A @ x)
@@ -166,7 +166,7 @@ def test_solve_directly_nested_block_problem(solved_nested_block_problem):
     x = solve_directly(A, b)
     assert np.allclose(x, x_ref, rtol=1e-10)
 
-def test_gmres_block_toeplitz_problem(solved_nested_block_problem):
+def test_gmres_nested_block_problem(solved_nested_block_problem):
     A, x_ref, b = solved_nested_block_problem
     x = solve_gmres(A, b)
     assert np.allclose(x, x_ref, rtol=1e-10)

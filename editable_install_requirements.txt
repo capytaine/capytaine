@@ -1,0 +1,14 @@
+# This is similar to pyproject.toml [build-system.requires], but not exactly as
+# the present file is used to create environment for the editable install.
+# For the editable install, the build-time and runtime numpy version will be
+# the same, so the constraints are slightly different than in [build-system.requires].
+# This could be moved into pyproject.toml when/if
+# https://github.com/pypa/pip/issues/11440 is implemented, because at the moment
+# pip tries to build the package before installing extra dependencies.
+
+meson-python
+ninja  # Unlike [build-system.requires], ninja need to be explicitly installed for editable install.
+charset-normalizer
+numpy !=1.26.4, !=1.26.3, <2
+
+# Still waiting on Pandas to be compatible with Numpy 2 to be able to run on Numpy 2.
