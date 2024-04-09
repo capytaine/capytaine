@@ -7,6 +7,15 @@ Changelog
    :depth: 1
    :backlinks: none
 
+-------------------
+New in next version
+-------------------
+
+Internals
+~~~~~~~~~
+
+* Update test environments used in noxfile and add ``editable_install_requirements.txt``. (:pull:`498`)
+
 -------------------------------
 New in version 2.1 (2024-04-08)
 -------------------------------
