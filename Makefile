@@ -2,8 +2,8 @@ install:
 	pip install .
 
 develop:
-	pip install meson-python ninja "numpy>=2.0.0rc1,<2.3" charset-normalizer # No installed from pyproject.toml in this case...
-	pip install --no-build-isolation -e .
+	pip install -r editable_install_requirements.txt
+	pip install --no-build-isolation --editable .
 
 TEMP_DIR := $(shell mktemp -d)
 test_fortran_compilation:
