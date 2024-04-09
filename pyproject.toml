@@ -23,7 +23,6 @@ optional = [
   "matplotlib", "joblib>=1.3", "meshio", "quadpy-gpl",
   # "bemio @ https://github.com/mancellin/bemio/archive/fa3a6d3d4b0862491c3723919ec8ee45cc7d055a.zip"
 ]
-editable_install = ["meson-python", "charset-normalizer", "numpy !=1.26.4, !=1.26.3, <2"]
 test = ["pytest"]
 docs = ["sphinx", "sphinx-toolbox", "sphinxcontrib-proof", "sphinxcontrib-mermaid"]
 
