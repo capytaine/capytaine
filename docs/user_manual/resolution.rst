@@ -26,8 +26,8 @@ Two of them are available in the present version:
    take the form of a tabulation of these function values for a grid of
    :math:`(r, z)`, precomputed at the initialization of the program. A
    third-order Lagrange polynomial interpolation is employed to obtain the
-   values between the precomputed values. 
-   
+   values between the precomputed values.
+
    In version 1 of Capytaine (as in version 2 of Nemoh), the tabulation ranges
    of :math:`r` and :math:`z` are set as :math:`[0, 100]` with :math:`328`
    discretization values and :math:`[-16, 0]` with :math:`46` discretization
@@ -40,18 +40,18 @@ Two of them are available in the present version:
         gf = cpt.Delhommeau(tabulation_nr=324, tabulation_rmax=100,
                             tabulation_nz=46, tabulation_zmin=-16,
                             tabulation_nb_integration_points=251,
-                            tabulation_method="legacy")
+                            tabulation_grid_shape="legacy")
 
         # Default in Capytaine 2.1
         gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
                             tabulation_nz=372, tabulation_zmin=-251,
                             tabulation_nb_integration_points=1000,
-                            tabulation_method="scaled_nemoh3")
+                            tabulation_grid_shape="scaled_nemoh3")
 
    In version 2.1, the default numbers of :math:`r` and :math:`z` values have
    been increased to :math:`676` and :math:`372`, respectively. While the range
    of :math:`r` is kept the same, the z range has been extended to
-   :math:`[-251, 0]`. The option :code:`tabulation_method` is used to switched
+   :math:`[-251, 0]`. The option :code:`tabulation_grid_shape` is used to switched
    between the new distribution of points inspired by Nemoh version 3 or the
    :code:`"legacy"` approach. The :code:`tabulation_nb_integration_points`
    controls the accuracy of the precomputed tabulation points themselves.
@@ -135,7 +135,7 @@ elevation. However, when only the force on the body is of interest, they can be
 discarded to save space in memory.
 
 The optional argument :code:`method` (default value: :code:`indirect`)
-controls the approach employed to solve for the potential velocity solutions. 
+controls the approach employed to solve for the potential velocity solutions.
 Two methods are implemented including 1) direct method (source-and-dipole formulation),
 and 2) indirect method (source formulation). The direct method appears to be slightly
 more accurate on some test cases but only allows for the computation of the forces

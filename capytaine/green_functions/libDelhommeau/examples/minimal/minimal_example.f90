@@ -27,7 +27,7 @@ program test
   real(kind=pre), dimension(nb_faces, nb_quadrature_points) :: quadrature_weights
 
   ! Tabulation of the integrals used in the Green function
-  integer, parameter :: tabulation_method = 1   ! scaled_nemoh3 method
+  integer, parameter :: tabulation_grid_shape = 1   ! scaled_nemoh3 method
   integer, parameter :: tabulation_nr = 676
   integer, parameter :: tabulation_nz = 372
   real(kind=pre), dimension(tabulation_nr)                       :: tabulated_r
@@ -47,8 +47,8 @@ program test
   integer :: i
   real(kind=pre), dimension(3) :: coeffs
 
-  tabulated_r(:) = default_r_spacing(tabulation_nr, 100d0, tabulation_method)
-  tabulated_z(:) = default_z_spacing(tabulation_nz, -251d0, tabulation_method)
+  tabulated_r(:) = default_r_spacing(tabulation_nr, 100d0, tabulation_grid_shape)
+  tabulated_z(:) = default_z_spacing(tabulation_nz, -251d0, tabulation_grid_shape)
   tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 1000)
 
   depth = ieee_value(depth, ieee_positive_inf)
@@ -93,7 +93,7 @@ program test
     face_center, face_normal, face_area, face_radius,                 &
     nb_quadrature_points, quadrature_points, quadrature_weights,      &
     ZERO, depth, coeffs,                                              &
-    tabulation_method, tabulated_r, tabulated_z, tabulated_integrals, &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
     nexp, ambda, ar,                                                  &
     .true., .true.,                                                   &
     S, K)
@@ -114,7 +114,7 @@ program test
     face_center, face_normal, face_area, face_radius,                 &
     nb_quadrature_points, quadrature_points, quadrature_weights,      &
     wavenumber, depth, coeffs,                                        &
-    tabulation_method, tabulated_r, tabulated_z, tabulated_integrals, &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
     nexp, ambda, ar,                                                  &
     .true., .true.,                                                   &
     S, K)
@@ -135,7 +135,7 @@ program test
     face_center, face_normal, face_area, face_radius,                 &
     nb_quadrature_points, quadrature_points, quadrature_weights,      &
     wavenumber, depth, coeffs,                                        &
-    tabulation_method, tabulated_r, tabulated_z, tabulated_integrals, &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
     nexp, ambda, ar,                                                  &
     .true., .true.,                                                   &
     S, K)
@@ -167,7 +167,7 @@ program test
     face_center, face_normal, face_area, face_radius,                 &
     nb_quadrature_points, quadrature_points, quadrature_weights,      &
     wavenumber, depth, coeffs,                                        &
-    tabulation_method, tabulated_r, tabulated_z, tabulated_integrals, &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
     nexp, ambda, ar,                                                  &
     .true., .true.,                                                   &
     S, K)
@@ -198,7 +198,7 @@ program test
     face_center, face_normal, face_area, face_radius,                 &
     nb_quadrature_points, quadrature_points, quadrature_weights,      &
     wavenumber, depth, coeffs,                                        &
-    tabulation_method, tabulated_r, tabulated_z, tabulated_integrals, &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
     nexp, ambda, ar,                                                  &
     .true., .true.,                                                   &
     S, K)

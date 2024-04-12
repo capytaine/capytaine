@@ -21,8 +21,8 @@ module delhommeau_integrals
 
   implicit none
 
-  integer, parameter :: LEGACY_METHOD = 0  ! Nemoh 2
-  integer, parameter :: SCALED_NEMOH3_METHOD = 1
+  integer, parameter :: LEGACY_GRID = 0  ! Nemoh 2
+  integer, parameter :: SCALED_NEMOH3_GRID = 1
 
   public :: numerical_integration
   public :: asymptotic_approximations
@@ -209,7 +209,7 @@ contains
 
     default_r_spacing(1) = 0.0
 
-    if (method == LEGACY_METHOD) then
+    if (method == LEGACY_GRID) then
       do concurrent (i = 2:nr)
         default_r_spacing(i) = min(                    &
                                  10**((i-1.0)/5.0 - 6.0), &
@@ -243,7 +243,7 @@ contains
     integer :: j
     real(kind=pre) :: dz
 
-    if (method == LEGACY_METHOD) then
+    if (method == LEGACY_GRID) then
       do concurrent (j = 1:nz)
         default_z_spacing(j) = -min(10**(j/5.0-6.0), 10**(j/8.0-4.5))
         ! change of slope at z = -1e-2
@@ -301,7 +301,7 @@ contains
       integer :: index_of_1
       real(kind=pre) :: rmax
 
-      if (method == LEGACY_METHOD) then
+      if (method == LEGACY_GRID) then
         if (r < 1e-6) then
           nearest_r_index = 2
         else if (r < 1.0) then
@@ -337,7 +337,7 @@ contains
       absz = abs(z)
       nz = size(z_range)
 
-      if (method == LEGACY_METHOD) then
+      if (method == LEGACY_GRID) then
         if (absz > 1e-2) then
           nearest_z_index = int(8*(log10(absz) + 4.5))
         else
