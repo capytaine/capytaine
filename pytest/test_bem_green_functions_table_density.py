@@ -9,7 +9,7 @@ import capytaine as cpt
 #----------------------------------------------------------------------------------#
 gf = cpt.Delhommeau()
 
-legacy_method = gf.fortran_core.delhommeau_integrals.legacy_method
+legacy_grid_shape = gf.fortran_core.delhommeau_integrals.legacy_method
 scaled_nemoh3_method = gf.fortran_core.delhommeau_integrals.scaled_nemoh3_method
 '''
 
@@ -57,7 +57,7 @@ def test_green_functions_r_spacing_legacy_nr(nr):
     """Test default_r_spacing legacy model"""
 
     rmax = 4/3+abs(nr-32)/3
-    rRange = gf.fortran_core.delhommeau_integrals.default_r_spacing(nr, rmax, legacy_method)
+    rRange = gf.fortran_core.delhommeau_integrals.default_r_spacing(nr, rmax, legacy_grid_shape)
 
     r_cal = []
     for i in range(1,nr+1):
@@ -105,4 +105,3 @@ def test_green_functions_r_spacing_Nemoh_nr(nr):
             r_cal.append((rmax-1)/(nr-c)*(i-c)+1)
 
     assert all([abs(a - b) < 1e-4 for a, b in zip(rRange, r_cal)])
-
