@@ -63,8 +63,8 @@ import capytaine as cpt
 
 
 gfs = [
-        cpt.Delhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251, tabulation_method="legacy"),
-        cpt.XieDelhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251, tabulation_method="legacy"),
+        cpt.Delhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251, tabulation_grid_shape="legacy"),
+        cpt.XieDelhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251, tabulation_grid_shape="legacy"),
         ]
 
 def test_compare_tabulations_of_Delhommeau_and_XieDelhommeau():
@@ -96,14 +96,14 @@ def test_symmetry_of_the_green_function_infinite_depth(gf):
     xj = np.array([1.0, 1.0, -2.0])
     g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_infinite_depth(
         xi, xj, k,
-        gf.tabulation_method_index, gf.tabulated_r_range, gf.tabulated_z_range,
+        gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
         gf.tabulated_integrals, gf.legacy_wave_part
     )
     g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_infinite_depth(
         xj,
         xi,
         k,
-        gf.tabulation_method_index, gf.tabulated_r_range, gf.tabulated_z_range,
+        gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
         gf.tabulated_integrals, gf.legacy_wave_part
     )
     assert g1 == approx(g2)
@@ -119,13 +119,13 @@ def test_symmetry_of_the_green_function_finite_depth_no_prony(gf):
     xj = np.array([1.0, 1.0, -2.0])
     g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
         xi, xj, k, depth,
-        gf.tabulation_method_index, gf.tabulated_r_range, gf.tabulated_z_range,
+        gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
         gf.tabulated_integrals, gf.legacy_wave_part,
         np.zeros(1), np.zeros(1), 1
     )
     g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
         xj, xi, k, depth,
-        gf.tabulation_method_index, gf.tabulated_r_range, gf.tabulated_z_range,
+        gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
         gf.tabulated_integrals, gf.legacy_wave_part,
         np.zeros(1), np.zeros(1), 1
     )
@@ -143,13 +143,13 @@ def test_symmetry_of_the_green_function_finite_depth(gf):
     ambda, a, nexp = gf.fortran_core.old_prony_decomposition.lisc(k*depth*np.tanh(k*depth), k*depth)
     g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
         xi, xj, k, depth,
-        gf.tabulation_method_index, gf.tabulated_r_range, gf.tabulated_z_range,
+        gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
         gf.tabulated_integrals, gf.legacy_wave_part,
         ambda, a, 31
     )
     g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
         xj, xi, k, depth,
-        gf.tabulation_method_index, gf.tabulated_r_range, gf.tabulated_z_range,
+        gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
         gf.tabulated_integrals, gf.legacy_wave_part,
         ambda, a, 31
     )

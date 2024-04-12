@@ -24,7 +24,7 @@ _default_parameters = dict(
     tabulation_nz=372,
     tabulation_zmin=-251.0,
     tabulation_nb_integration_points=1000,
-    tabulation_method="scaled_nemoh3",
+    tabulation_grid_shape="scaled_nemoh3",
     finite_depth_prony_decomposition_method="fortran",
     floating_point_precision="float64"
 )
@@ -55,7 +55,7 @@ class Delhommeau(AbstractGreenFunction):
         Number of points for the numerical integration w.r.t. :math:`theta` of
         Delhommeau's integrals
         Default: 1000
-    tabulation_method: string, optional
+    tabulation_grid_shape: string, optional
         Either :code:`"legacy"` or :code:`"scaled_nemoh3"`, which are the two
         methods currently implemented.
         Default: :code:`"scaled_nemoh3"`
@@ -75,7 +75,7 @@ class Delhommeau(AbstractGreenFunction):
     fortran_core:
         Compiled Fortran module with functions used to compute the Green
         function.
-    tabulation_method_index: int
+    tabulation_grid_shape_index: int
         Integer passed to Fortran code to describe which method is used.
     tabulated_r_range: numpy.array of shape (tabulation_nr,) and type floating_point_precision
     tabulated_z_range: numpy.array of shape (tabulation_nz,) and type floating_point_precision
@@ -93,7 +93,7 @@ class Delhommeau(AbstractGreenFunction):
                  tabulation_nz=_default_parameters["tabulation_nz"],
                  tabulation_zmin=_default_parameters["tabulation_zmin"],
                  tabulation_nb_integration_points=_default_parameters["tabulation_nb_integration_points"],
-                 tabulation_method=_default_parameters["tabulation_method"],
+                 tabulation_grid_shape=_default_parameters["tabulation_grid_shape"],
                  finite_depth_prony_decomposition_method=_default_parameters["finite_depth_prony_decomposition_method"],
                  floating_point_precision=_default_parameters["floating_point_precision"],
                  ):
@@ -101,12 +101,12 @@ class Delhommeau(AbstractGreenFunction):
 
         self.fortran_core = import_module(f"capytaine.green_functions.libs.Delhommeau_{floating_point_precision}")
 
-        self.tabulation_method = tabulation_method
-        fortran_indices_for_methods = {
-                'legacy': self.fortran_core.delhommeau_integrals.legacy_method,
-                'scaled_nemoh3': self.fortran_core.delhommeau_integrals.scaled_nemoh3_method,
+        self.tabulation_grid_shape = tabulation_grid_shape
+        fortran_enum = {
+                'legacy': self.fortran_core.delhommeau_integrals.legacy_grid,
+                'scaled_nemoh3': self.fortran_core.delhommeau_integrals.scaled_nemoh3_grid,
                               }
-        self.tabulation_method_index = fortran_indices_for_methods[tabulation_method]
+        self.tabulation_grid_shape_index = fortran_enum[tabulation_grid_shape]
 
         self.floating_point_precision = floating_point_precision
 
@@ -121,7 +121,7 @@ class Delhommeau(AbstractGreenFunction):
             'tabulation_nz': tabulation_nz,
             'tabulation_zmin': tabulation_zmin,
             'tabulation_nb_integration_points': tabulation_nb_integration_points,
-            'tabulation_method': tabulation_method,
+            'tabulation_grid_shape': tabulation_grid_shape,
             'finite_depth_prony_decomposition_method': finite_depth_prony_decomposition_method,
             'floating_point_precision': floating_point_precision,
         }
@@ -165,7 +165,7 @@ class Delhommeau(AbstractGreenFunction):
 
         filename = "tabulation_{}_{}_{}_{}_{}_{}_{}_{}.npz".format(
             self.__class__.__name__, self.floating_point_precision,
-            self.tabulation_method,
+            self.tabulation_grid_shape,
             tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin,
             tabulation_nb_integration_points
         )
@@ -181,10 +181,10 @@ class Delhommeau(AbstractGreenFunction):
         else:
             LOG.warning("Precomputing tabulation, it may take a few seconds.")
             self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
-                    tabulation_nr, tabulation_rmax, self.tabulation_method_index
+                    tabulation_nr, tabulation_rmax, self.tabulation_grid_shape_index
                     )
             self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(
-                    tabulation_nz, tabulation_zmin, self.tabulation_method_index
+                    tabulation_nz, tabulation_zmin, self.tabulation_grid_shape_index
                     )
             self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
                     self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
@@ -360,7 +360,7 @@ class Delhommeau(AbstractGreenFunction):
             *mesh2.quadrature_points,
             wavenumber, water_depth,
             coeffs,
-            self.tabulation_method_index, self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
+            self.tabulation_grid_shape_index, self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
             mesh1 is mesh2, self.legacy_wave_part, adjoint_double_layer,
             S, K

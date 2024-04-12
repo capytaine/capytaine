@@ -29,6 +29,7 @@ real(kind=pre), dimension(nb_faces, nb_quadrature_points, 3) :: quadrature_point
 real(kind=pre), dimension(nb_faces, nb_quadrature_points) :: quadrature_weights
 
 ! Tabulation of the integrals used in the Green function
+integer, parameter :: tabulation_grid_shape = 1
 integer, parameter :: tabulation_nr = 328
 integer, parameter :: tabulation_nz = 46
 real(kind=pre), dimension(tabulation_nr)                       :: tabulated_r
@@ -55,9 +56,9 @@ call RANDOM_INIT(.true.,.true.)
 allocate(S(nb_faces, nb_faces))
 allocate(K(nb_faces, nb_faces, 1))
 
-tabulated_r(:) = default_r_spacing(tabulation_nr)
-tabulated_z(:) = default_z_spacing(tabulation_nz)
-tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 251)
+tabulated_r(:) = default_r_spacing(tabulation_nr, 100d0, tabulation_grid_shape)
+tabulated_z(:) = default_z_spacing(tabulation_nz, -251d0, tabulation_grid_shape)
+tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 1000)
 
 wavenumber = 1.0
 
@@ -94,16 +95,16 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
 
   coeffs = [1d0, 1d0, 1d0]
   call system_clock(starting_time)
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth,                                           &
-    coeffs,                                                      &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
-    .false., .true.,                                             &
+  call build_matrices(                                                &
+    nb_faces, face_center, face_normal,                               &
+    nb_vertices, nb_faces, vertices, faces,                           &
+    face_center, face_normal, face_area, face_radius,                 &
+    nb_quadrature_points, quadrature_points, quadrature_weights,      &
+    wavenumber, depth,                                                &
+    coeffs,                                                           &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
+    nexp, ambda, ar,                                                  &
+    .false., .true.,                                                  &
     S, K)
   call system_clock(final_time)
 
@@ -112,16 +113,16 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
 
   coeffs = [0d0, 0d0, 1d0]
   call system_clock(starting_time)
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth,                                           &
-    coeffs,                                                      &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
-    .false., .true.,                                             &
+  call build_matrices(                                                &
+    nb_faces, face_center, face_normal,                               &
+    nb_vertices, nb_faces, vertices, faces,                           &
+    face_center, face_normal, face_area, face_radius,                 &
+    nb_quadrature_points, quadrature_points, quadrature_weights,      &
+    wavenumber, depth,                                                &
+    coeffs,                                                           &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
+    nexp, ambda, ar,                                                  &
+    .false., .true.,                                                  &
     S, K)
   call system_clock(final_time)
 
@@ -130,16 +131,16 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
 
   coeffs = [0d0, 0d0, 1d0]
   call system_clock(starting_time)
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth,                                           &
-    coeffs,                                                      &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
-    .true., .true.,                                              &
+  call build_matrices(                                                &
+    nb_faces, face_center, face_normal,                               &
+    nb_vertices, nb_faces, vertices, faces,                           &
+    face_center, face_normal, face_area, face_radius,                 &
+    nb_quadrature_points, quadrature_points, quadrature_weights,      &
+    wavenumber, depth,                                                &
+    coeffs,                                                           &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
+    nexp, ambda, ar,                                                  &
+    .true., .true.,                                                   &
     S, K)
   call system_clock(final_time)
 

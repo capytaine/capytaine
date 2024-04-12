@@ -27,8 +27,9 @@ program test
   real(kind=pre), dimension(nb_faces, nb_quadrature_points) :: quadrature_weights
 
   ! Tabulation of the integrals used in the Green function
-  integer, parameter :: tabulation_nr = 328
-  integer, parameter :: tabulation_nz = 46
+  integer, parameter :: tabulation_grid_shape = 1   ! scaled_nemoh3 method
+  integer, parameter :: tabulation_nr = 676
+  integer, parameter :: tabulation_nz = 372
   real(kind=pre), dimension(tabulation_nr)                       :: tabulated_r
   real(kind=pre), dimension(tabulation_nz)                       :: tabulated_z
   real(kind=pre), dimension(tabulation_nr, tabulation_nz, 2, 2)  :: tabulated_integrals
@@ -46,9 +47,9 @@ program test
   integer :: i
   real(kind=pre), dimension(3) :: coeffs
 
-  tabulated_r(:) = default_r_spacing(tabulation_nr)
-  tabulated_z(:) = default_z_spacing(tabulation_nz)
-  tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 251)
+  tabulated_r(:) = default_r_spacing(tabulation_nr, 100d0, tabulation_grid_shape)
+  tabulated_z(:) = default_z_spacing(tabulation_nz, -251d0, tabulation_grid_shape)
+  tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 1000)
 
   depth = ieee_value(depth, ieee_positive_inf)
 
@@ -86,15 +87,15 @@ program test
   print*, "-- Run libdelhommeau/examples/minimal/minimal_example.f90"
 
   coeffs = [1d0, 0d0, 0d0]
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    ZERO, depth, coeffs,                                         &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
-    .true., .true.,                                              &
+  call build_matrices(                                                &
+    nb_faces, face_center, face_normal,                               &
+    nb_vertices, nb_faces, vertices, faces,                           &
+    face_center, face_normal, face_area, face_radius,                 &
+    nb_quadrature_points, quadrature_points, quadrature_weights,      &
+    ZERO, depth, coeffs,                                              &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
+    nexp, ambda, ar,                                                  &
+    .true., .true.,                                                   &
     S, K)
   print*, "Rankine part: S"
   do i = 1, nb_faces
@@ -107,15 +108,15 @@ program test
 
   wavenumber = 1d0
   coeffs = [1d0, 1d0, 1d0]
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth, coeffs,                                   &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
-    .true., .true.,                                              &
+  call build_matrices(                                                &
+    nb_faces, face_center, face_normal,                               &
+    nb_vertices, nb_faces, vertices, faces,                           &
+    face_center, face_normal, face_area, face_radius,                 &
+    nb_quadrature_points, quadrature_points, quadrature_weights,      &
+    wavenumber, depth, coeffs,                                        &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
+    nexp, ambda, ar,                                                  &
+    .true., .true.,                                                   &
     S, K)
   print*, "k=1.0, h=infty: S"
   do i = 1, nb_faces
@@ -128,15 +129,15 @@ program test
 
   wavenumber = 2d0
   coeffs = [1d0, 1d0, 1d0]
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth, coeffs,                                   &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
-    .true., .true.,                                              &
+  call build_matrices(                                                &
+    nb_faces, face_center, face_normal,                               &
+    nb_vertices, nb_faces, vertices, faces,                           &
+    face_center, face_normal, face_area, face_radius,                 &
+    nb_quadrature_points, quadrature_points, quadrature_weights,      &
+    wavenumber, depth, coeffs,                                        &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
+    nexp, ambda, ar,                                                  &
+    .true., .true.,                                                   &
     S, K)
   print*, "k=2.0, h=infty: S"
   do i = 1, nb_faces
@@ -160,15 +161,15 @@ program test
   ambda(nexp) = 0.0
   ar(nexp) = 2.0
 
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth, coeffs,                                   &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
-    .true., .true.,                                              &
+  call build_matrices(                                                &
+    nb_faces, face_center, face_normal,                               &
+    nb_vertices, nb_faces, vertices, faces,                           &
+    face_center, face_normal, face_area, face_radius,                 &
+    nb_quadrature_points, quadrature_points, quadrature_weights,      &
+    wavenumber, depth, coeffs,                                        &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
+    nexp, ambda, ar,                                                  &
+    .true., .true.,                                                   &
     S, K)
   print*, "k=1.0, h=2.0: S"
   do i = 1, nb_faces
@@ -191,15 +192,15 @@ program test
   ambda(nexp) = 0.0
   ar(nexp) = 2.0
 
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth, coeffs,                                   &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
-    .true., .true.,                                              &
+  call build_matrices(                                                &
+    nb_faces, face_center, face_normal,                               &
+    nb_vertices, nb_faces, vertices, faces,                           &
+    face_center, face_normal, face_area, face_radius,                 &
+    nb_quadrature_points, quadrature_points, quadrature_weights,      &
+    wavenumber, depth, coeffs,                                        &
+    tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals, &
+    nexp, ambda, ar,                                                  &
+    .true., .true.,                                                   &
     S, K)
   print*, "k=2.0, h=2.0: S"
   do i = 1, nb_faces

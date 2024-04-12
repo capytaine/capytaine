@@ -19,10 +19,10 @@ def sphere():
 
 def test_exportable_settings():
     gf = cpt.Delhommeau(tabulation_nr=10, tabulation_nz=10,
-                    tabulation_method="legacy", tabulation_nb_integration_points=50)
+                    tabulation_grid_shape="legacy", tabulation_nb_integration_points=50)
     assert gf.exportable_settings['green_function'] == 'Delhommeau'
     assert gf.exportable_settings['tabulation_nb_integration_points'] == 50
-    assert gf.exportable_settings['tabulation_method'] == "legacy"
+    assert gf.exportable_settings['tabulation_grid_shape'] == "legacy"
     assert gf.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
 
     gf2 = cpt.XieDelhommeau()
