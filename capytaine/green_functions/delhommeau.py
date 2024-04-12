@@ -104,8 +104,8 @@ class Delhommeau(AbstractGreenFunction):
 
         self.tabulation_grid_shape = tabulation_grid_shape
         fortran_indices_for_methods = {
-                'legacy': self.fortran_core.delhommeau_integrals.legacy_method,
-                'scaled_nemoh3': self.fortran_core.delhommeau_integrals.scaled_nemoh3_method,
+                'legacy': self.fortran_core.delhommeau_integrals.legacy_grid,
+                'scaled_nemoh3': self.fortran_core.delhommeau_integrals.scaled_nemoh3_grid,
                               }
         self.tabulation_grid_shape_index = fortran_indices_for_methods[tabulation_grid_shape]
 
