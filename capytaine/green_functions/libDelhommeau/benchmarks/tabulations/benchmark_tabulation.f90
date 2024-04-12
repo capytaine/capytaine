@@ -5,6 +5,7 @@ use delhommeau_integrals
 
 implicit none
 
+integer, parameter :: tabulation_grid_shape = 1
 integer, parameter :: n_tabulation = 4
 integer, parameter :: n_samples = 1000
 integer :: i_sample
@@ -59,14 +60,14 @@ do i_tabulation = 1, n_tabulation
   allocate(tabulated_z(tabulation_nz(i_tabulation)))
   allocate(tabulated_integrals(tabulation_nr(i_tabulation), tabulation_nz(i_tabulation), 2, 2))
 
-  tabulated_r(:) = default_r_spacing(tabulation_nr(i_tabulation))
-  tabulated_z(:) = default_z_spacing(tabulation_nz(i_tabulation))
-  tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 251)
+  tabulated_r(:) = default_r_spacing(tabulation_nr(i_tabulation), 100d0, tabulation_grid_shape)
+  tabulated_z(:) = default_z_spacing(tabulation_nz(i_tabulation), -251d0, tabulation_grid_shape)
+  tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 1000)
 
   call system_clock(starting_time)
   do i_sample = 1, n_samples
       integrals(i_sample, :, :) = pick_in_default_tabulation(r(i_sample), z(i_sample), &
-        tabulated_r, tabulated_z, tabulated_integrals)
+        tabulation_grid_shape, tabulated_r, tabulated_z, tabulated_integrals)
   enddo
   call system_clock(final_time)
   print*, "Interpolate         :", (final_time - starting_time)/clock_rate_in_ns/n_samples, " ns"

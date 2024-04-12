@@ -14,7 +14,7 @@ from capytaine.post_pro.kochin import compute_kochin
 def nemoh2_solver():
     gf = cpt.Delhommeau(
             tabulation_nr=328, tabulation_nz=46,
-            tabulation_method='legacy', tabulation_nb_integration_points=251
+            tabulation_grid_shape='legacy', tabulation_nb_integration_points=251
             )
     solver = cpt.BEMSolver(
             engine=cpt.BasicMatrixEngine(matrix_cache_size=0),

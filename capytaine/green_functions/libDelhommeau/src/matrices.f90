@@ -19,7 +19,7 @@ CONTAINS
       nb_quad_points, quad_points, quad_weights,      &
       wavenumber, depth,                              &
       coeffs,                                         &
-      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,                                &
       same_body, adjoint_double_layer,                &
       S, K)
@@ -44,7 +44,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3)                         :: coeffs
 
     ! Tabulated data
-    INTEGER,                                  INTENT(IN) :: tabulation_method
+    INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
     REAL(KIND=PRE), DIMENSION(:, :, :, :),    INTENT(IN) :: tabulated_integrals
@@ -189,7 +189,7 @@ CONTAINS
             centers_2(J, :), normals_2(J, :), areas_2(J), radiuses_2(J), &
             quad_points(J, :, :), quad_weights(J, :),                    &
             wavenumber, depth,                                           &
-            tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
+            tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
             NEXP, AMBDA, AR,                                             &
             SP2, VSP2_SYM, VSP2_ANTISYM                                  &
           )
@@ -258,7 +258,7 @@ CONTAINS
             centers_2(J, :), normals_2(J, :), areas_2(J), radiuses_2(J), &
             quad_points(J, :, :), quad_weights(J, :),                    &
             wavenumber, depth,                                           &
-            tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
+            tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
             NEXP, AMBDA, AR,                                             &
             SP2, VSP2_SYM, VSP2_ANTISYM                                  &
           )
