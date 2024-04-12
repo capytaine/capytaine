@@ -103,11 +103,11 @@ class Delhommeau(AbstractGreenFunction):
         self.fortran_core = import_module(f"capytaine.green_functions.libs.{self.fortran_core_basename}_{self.floating_point_precision}")
 
         self.tabulation_grid_shape = tabulation_grid_shape
-        fortran_indices_for_methods = {
+        fortran_enum = {
                 'legacy': self.fortran_core.delhommeau_integrals.legacy_grid,
                 'scaled_nemoh3': self.fortran_core.delhommeau_integrals.scaled_nemoh3_grid,
                               }
-        self.tabulation_grid_shape_index = fortran_indices_for_methods[tabulation_grid_shape]
+        self.tabulation_grid_shape_index = fortran_enum[tabulation_grid_shape]
 
         self._create_or_load_tabulation(tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin, tabulation_nb_integration_points)
 
