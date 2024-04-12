@@ -29,7 +29,7 @@ CONTAINS
       coeffs,                                         &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,                                &
-      same_body, legacy_delhommeau, adjoint_double_layer, &
+      same_body, gf_singularities, adjoint_double_layer, &
       S, K)
 
     ! Mesh data
@@ -45,7 +45,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points),    INTENT(IN) :: quad_weights
 
     LOGICAL,                                  INTENT(IN) :: same_body
-    LOGICAL,                                  INTENT(IN) :: legacy_delhommeau
+    integer,                                  INTENT(IN) :: gf_singularities
     LOGICAL,                                  INTENT(IN) :: adjoint_double_layer
 
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
@@ -188,7 +188,7 @@ CONTAINS
                 quad_points(J, Q, :),       & ! centers_2(J, :),
                 wavenumber,                 &
                 tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-                legacy_delhommeau, &
+                gf_singularities, &
                 SP2, VSP2_SYM, VSP2_ANTISYM &
                 )
             ELSE
@@ -198,7 +198,7 @@ CONTAINS
                 wavenumber,                 &
                 depth,                      &
                 tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-                legacy_delhommeau, &
+                gf_singularities, &
                 NEXP, AMBDA, AR,            &
                 SP2, VSP2_SYM, VSP2_ANTISYM &
                 )
@@ -257,7 +257,7 @@ CONTAINS
               quad_points(J, 1, :),       & ! centers_2(J, :),
               wavenumber,                 &
               tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-              legacy_delhommeau, &
+              gf_singularities, &
               SP2, VSP2_SYM, VSP2_ANTISYM &
               )
           ELSE
@@ -267,7 +267,7 @@ CONTAINS
               wavenumber,                 &
               depth,                      &
               tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-              legacy_delhommeau, &
+              gf_singularities, &
               NEXP, AMBDA, AR,            &
               SP2, VSP2_SYM, VSP2_ANTISYM &
               )

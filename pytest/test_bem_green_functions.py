@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Tests for the computation of the Green function using Fortran routines."""
 
 import pytest
@@ -97,14 +95,14 @@ def test_symmetry_of_the_green_function_infinite_depth(gf):
     g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_infinite_depth(
         xi, xj, k,
         gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals, gf.legacy_wave_part
+        gf.tabulated_integrals, gf.gf_singularities_index
     )
     g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_infinite_depth(
         xj,
         xi,
         k,
         gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals, gf.legacy_wave_part
+        gf.tabulated_integrals, gf.gf_singularities_index
     )
     assert g1 == approx(g2)
     assert dg1_sym == approx(dg2_sym)
@@ -120,13 +118,13 @@ def test_symmetry_of_the_green_function_finite_depth_no_prony(gf):
     g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
         xi, xj, k, depth,
         gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals, gf.legacy_wave_part,
+        gf.tabulated_integrals, gf.gf_singularities_index,
         np.zeros(1), np.zeros(1), 1
     )
     g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
         xj, xi, k, depth,
         gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals, gf.legacy_wave_part,
+        gf.tabulated_integrals, gf.gf_singularities_index,
         np.zeros(1), np.zeros(1), 1
     )
     assert g1 == approx(g2)
@@ -144,13 +142,13 @@ def test_symmetry_of_the_green_function_finite_depth(gf):
     g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
         xi, xj, k, depth,
         gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals, gf.legacy_wave_part,
+        gf.tabulated_integrals, gf.gf_singularities_index,
         ambda, a, 31
     )
     g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
         xj, xi, k, depth,
         gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals, gf.legacy_wave_part,
+        gf.tabulated_integrals, gf.gf_singularities_index,
         ambda, a, 31
     )
     assert g1 == approx(g2)

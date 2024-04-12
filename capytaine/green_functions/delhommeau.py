@@ -26,7 +26,8 @@ _default_parameters = dict(
     tabulation_nb_integration_points=1000,
     tabulation_grid_shape="scaled_nemoh3",
     finite_depth_prony_decomposition_method="fortran",
-    floating_point_precision="float64"
+    floating_point_precision="float64",
+    gf_singularities="high_freq",
 )
 
 
@@ -69,6 +70,10 @@ class Delhommeau(AbstractGreenFunction):
         Either :code:`'float32'` for single precision computations or
         :code:`'float64'` for double precision computations.
         Default: :code:`'float64'`.
+    gf_singularities: string, optional
+        Chose of the variant among the ways singularities can be extracted from
+        the Green function.
+        Default: "high_freq".
 
     Attributes
     ----------
@@ -84,7 +89,6 @@ class Delhommeau(AbstractGreenFunction):
         Tabulated Delhommeau integrals.
     """
 
-    legacy_wave_part = True
 
 
     def __init__(self, *,
@@ -96,8 +100,8 @@ class Delhommeau(AbstractGreenFunction):
                  tabulation_grid_shape=_default_parameters["tabulation_grid_shape"],
                  finite_depth_prony_decomposition_method=_default_parameters["finite_depth_prony_decomposition_method"],
                  floating_point_precision=_default_parameters["floating_point_precision"],
+                 gf_singularities=_default_parameters["gf_singularities"],
                  ):
-
 
         self.fortran_core = import_module(f"capytaine.green_functions.libs.Delhommeau_{floating_point_precision}")
 
@@ -107,6 +111,13 @@ class Delhommeau(AbstractGreenFunction):
                 'scaled_nemoh3': self.fortran_core.delhommeau_integrals.scaled_nemoh3_grid,
                               }
         self.tabulation_grid_shape_index = fortran_enum[tabulation_grid_shape]
+
+        self.gf_singularities = gf_singularities
+        fortran_enum = {
+                'high_freq': self.fortran_core.delhommeau_integrals.high_freq,
+                'low_freq': self.fortran_core.delhommeau_integrals.low_freq,
+                              }
+        self.gf_singularities_index = fortran_enum[gf_singularities]
 
         self.floating_point_precision = floating_point_precision
 
@@ -124,6 +135,7 @@ class Delhommeau(AbstractGreenFunction):
             'tabulation_grid_shape': tabulation_grid_shape,
             'finite_depth_prony_decomposition_method': finite_depth_prony_decomposition_method,
             'floating_point_precision': floating_point_precision,
+            'gf_singularities': gf_singularities,
         }
 
         self._hash = hash(self.exportable_settings.values())
@@ -164,7 +176,7 @@ class Delhommeau(AbstractGreenFunction):
         tabulation_zmin = float(tabulation_zmin)
 
         filename = "tabulation_{}_{}_{}_{}_{}_{}_{}_{}.npz".format(
-            self.__class__.__name__, self.floating_point_precision,
+            self.floating_point_precision, self.gf_singularities,
             self.tabulation_grid_shape,
             tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin,
             tabulation_nb_integration_points
@@ -188,7 +200,7 @@ class Delhommeau(AbstractGreenFunction):
                     )
             self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
                     self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
-                    self.legacy_wave_part,
+                    self.gf_singularities_index,
                     )
             LOG.debug("Saving tabulation in %s", filepath)
             np.savez_compressed(
@@ -309,7 +321,7 @@ class Delhommeau(AbstractGreenFunction):
             elif wavenumber == np.inf:
                 coeffs = np.array((1.0, -1.0, 0.0))
             else:
-                if self.legacy_wave_part:
+                if self.gf_singularities == "high_freq":
                     coeffs = np.array((1.0, -1.0, 1.0))
                 else:
                     coeffs = np.array((1.0, 1.0, 1.0))
@@ -362,7 +374,7 @@ class Delhommeau(AbstractGreenFunction):
             coeffs,
             self.tabulation_grid_shape_index, self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
-            mesh1 is mesh2, self.legacy_wave_part, adjoint_double_layer,
+            mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
             S, K
         )
 
@@ -377,9 +389,7 @@ class Delhommeau(AbstractGreenFunction):
 ################################
 
 class XieDelhommeau(Delhommeau):
-    """Variant of Nemoh's Green function, more accurate near the free surface.
+    """Legacy way to call the gf_singularities="low_freq" variant."""
 
-    Same arguments and methods as :class:`Delhommeau`.
-    """
-
-    legacy_wave_part = False
+    def __init__(self, **kwargs):
+        super().__init__(gf_singularities="low_freq", **kwargs)
