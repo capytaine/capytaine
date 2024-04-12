@@ -16,6 +16,8 @@ Internals
 
 * Update test environments used in noxfile and add ``editable_install_requirements.txt``. (:pull:`498`)
 
+* Rename ``tabulation_method`` parameter of :class:`~capytaine.green_functions.Delhommeau` as the more descriptive ``tabulation_grid_shape``, and similarly for internal variables. (:pull:`503`)
+
 -------------------------------
 New in version 2.1 (2024-04-08)
 -------------------------------
