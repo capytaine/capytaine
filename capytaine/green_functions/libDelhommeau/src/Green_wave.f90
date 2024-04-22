@@ -90,7 +90,7 @@ CONTAINS
     VS(1) = -drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
     VS(2) = -drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
 #ifdef XIE_CORRECTION
-    VS(3) = dzdx3 * CMPLX(integrals(1, 2) + ONE/r1, integrals(2, 2), KIND=PRE)
+    VS(3) = dzdx3 * CMPLX(integrals(1, 2) + 2/r1, integrals(2, 2), KIND=PRE)
 #else
     VS(3) = dzdx3 * CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
 #endif
@@ -131,8 +131,8 @@ CONTAINS
       X0I, X0J, wavenumber,                                      &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       SP, VSP(:))
-    SP  = 2*wavenumber*SP
-    VSP = 2*wavenumber*VSP
+    SP  = wavenumber*SP
+    VSP = wavenumber*VSP
 
 #ifndef XIE_CORRECTION
     ! In the original Delhommeau method
@@ -211,7 +211,7 @@ CONTAINS
     !
     ! Note however, that the derivative part of Delhommeau integrals is the derivative of
     ! Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ] so no fix is needed for the derivative.
-    PSR(1) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    PSR(1) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 #endif
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
@@ -224,7 +224,7 @@ CONTAINS
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
 #ifndef XIE_CORRECTION
-    PSR(2) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    PSR(2) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 #endif
 
     ! 1.c Shift and reflect XJ and compute another value of the Green function
@@ -236,7 +236,7 @@ CONTAINS
       FS(3), VS(:, 3))
 
 #ifndef XIE_CORRECTION
-    PSR(3) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    PSR(3) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 #endif
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
@@ -249,7 +249,7 @@ CONTAINS
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
 #ifndef XIE_CORRECTION
-    PSR(4) = ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    PSR(4) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
 #endif
 
     ! Add up the results of the four problems
@@ -266,7 +266,7 @@ CONTAINS
     ! Multiply by some coefficients
     AMH  = wavenumber*depth
     AKH  = AMH*TANH(AMH)
-    A    = (AMH+AKH)**2/(2*depth*(AMH**2-AKH**2+AKH))
+    A    = (AMH+AKH)**2/(4*depth*(AMH**2-AKH**2+AKH))
 
     SP          = A*SP
     VSP_ANTISYM = A*VSP_ANTISYM
