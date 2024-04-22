@@ -113,6 +113,11 @@ CONTAINS
       ! integrals(:, 2) are G^+, but the formula is that dG^+/dz = G^-
       ! Here is the correction
       VS(3) = VS(3) + 2*dzdx3/r1
+    elseif (gf_singularities == HIGH_FREQ) then
+      ! we have nabla G^+, but we actually need nabla G^-
+      VS(1) = VS(1) - 2*drdx1*r/r1**3
+      VS(2) = VS(2) - 2*drdx2*r/r1**3
+      VS(3) = VS(3) - 2*dzdx3*z/r1**3
     endif
 
     FS = wavenumber * FS
@@ -157,15 +162,6 @@ CONTAINS
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities, &
       SP, VSP(:))
-
-    if (gf_singularities == HIGH_FREQ) then
-      ! COLLECT_DELHOMMEAU_INTEGRALS returned nabla G^+, but we actually needed nabla G^-
-      ! Here is the correction:
-      XJ_REFLECTION(1:2) = X0J(1:2)
-      XJ_REFLECTION(3) = - X0J(3)
-      ! Only one singularity is missing in the derivative
-      VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
-    endif
 
     VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
     VSP_SYM(3)       = VSP(3)
