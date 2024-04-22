@@ -397,8 +397,8 @@ Delhommeau's method is based on expression :eq:`green_function_inf_depth_del` of
 This expression of the Green function and its derivative require the evaluation of the following real-valued integrals:
 
 .. math::
-    D_1(r, z) & = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
-    D_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} - i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right) \\
+    D_1(r, z) & = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    D_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right) \\
     Z_1(r, z) & = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
     Z_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
 
@@ -417,8 +417,8 @@ When evaluating the Green function, the values of the integrals are retrieved by
 For large values of :math:`r` and :math:`z`, these integrals are asymptotically approximated by the following expressions:
 
 .. math::
-      D_1(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \left(\cos(r - \pi/4) - \frac{1}{2r} \sin(r-\pi/4) \right) - \frac{r}{(r^2 + z^2)^{3/2}} \\
-      D_2(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \left( \sin(r - \pi/4) + \frac{1}{2r} \cos(r - \pi/4) \right) \\
+      D_1(r, z) & \simeq -e^z \sqrt{\frac{2\pi}{r}} \left(\cos(r - \pi/4) - \frac{1}{2r} \sin(r-\pi/4) \right) + \frac{r}{(r^2 + z^2)^{3/2}} \\
+      D_2(r, z) & \simeq -e^z \sqrt{\frac{2\pi}{r}} \left( \sin(r - \pi/4) + \frac{1}{2r} \cos(r - \pi/4) \right) \\
       Z_1(r, z) & \simeq - e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{z}{(r^2 + z^2)^{3/2}} \\
       Z_2(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \cos(r - \pi/4)
 
