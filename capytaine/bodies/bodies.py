@@ -173,7 +173,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
                     if hasattr(self, point_attr) and getattr(self, point_attr) is not None:
                         axis_point = getattr(self, point_attr)
                         LOG.info(f"The rotation dof {name} has been initialized around the point: "
-                                 f"FloatingBody(..., name={self.name}).{point_attr} = {getattr(self, point_attr)}")
+                                 f"{self.__short_str__()}.{point_attr} = {getattr(self, point_attr)}")
                         break
                 else:
                     axis_point = np.array([0, 0, 0])
