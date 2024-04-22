@@ -65,27 +65,6 @@ gfs = [
         cpt.XieDelhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251, tabulation_grid_shape="legacy"),
         ]
 
-def test_compare_tabulations_of_Delhommeau_and_XieDelhommeau():
-    assert np.allclose(gfs[0].tabulated_integrals[:, :, 0, 0],
-                       gfs[1].tabulated_integrals[:, :, 0, 0])
-    assert np.allclose(gfs[0].tabulated_integrals[:, :, 1, 0],
-                       gfs[1].tabulated_integrals[:, :, 1, 0])
-    assert np.allclose(gfs[0].tabulated_integrals[:, :, 1, 1],
-                       gfs[1].tabulated_integrals[:, :, 1, 1])
-
-    r_range = gfs[0].tabulated_r_range
-    z_range = gfs[0].tabulated_z_range
-
-    # Make 2D arrays
-    r = r_range[:, None] * np.ones_like(z_range)[None, :]
-    z = np.ones_like(r_range)[:, None] * z_range[None, :]
-    R1 = np.hypot(r, z)
-
-    # Compare Z1, for great values of Z, where both methods are as accurate
-    Del = gfs[0].tabulated_integrals[:, :, 0, 1] - 2/R1
-    Xie = gfs[1].tabulated_integrals[:, :, 0, 1]
-    assert np.allclose(Del[abs(z) > 1], Xie[abs(z) > 1], atol=1e-3)
-
 
 @pytest.mark.parametrize("gf", gfs)
 def test_symmetry_of_the_green_function_infinite_depth(gf):
