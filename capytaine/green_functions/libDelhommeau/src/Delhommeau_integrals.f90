@@ -165,7 +165,7 @@ contains
     integrals(1, 1) = expz_sqr*(cos_kr - sin_kr/(2*r)) - r/r1**3
     integrals(2, 1) = expz_sqr*(sin_kr + cos_kr/(2*r))
 #ifdef XIE_CORRECTION
-    integrals(1, 2) = -expz_sqr*sin_kr + z/r1**3 - 2/r1
+    integrals(1, 2) = -expz_sqr*sin_kr + z/r1**3 - 1/r1
 #else
     integrals(1, 2) = -expz_sqr*sin_kr + z/r1**3
 #endif
