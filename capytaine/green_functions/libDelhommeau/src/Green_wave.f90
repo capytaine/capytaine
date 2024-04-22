@@ -115,6 +115,9 @@ CONTAINS
       VS(3) = VS(3) + 2*dzdx3/r1
     endif
 
+    FS = wavenumber * FS
+    VS = wavenumber * VS
+
     RETURN
   END SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS
 
@@ -154,8 +157,6 @@ CONTAINS
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities, &
       SP, VSP(:))
-    SP  = wavenumber*SP
-    VSP = wavenumber*VSP
 
     if (gf_singularities == HIGH_FREQ) then
       ! COLLECT_DELHOMMEAU_INTEGRALS returned nabla G^+, but we actually needed nabla G^-
@@ -269,7 +270,7 @@ CONTAINS
     ! Multiply by some coefficients
     AMH  = wavenumber*depth
     AKH  = AMH*TANH(AMH)
-    A    = (AMH+AKH)**2/(4*depth*(AMH**2-AKH**2+AKH))
+    A    = (AMH+AKH)**2/(4*AMH*(AMH**2-AKH**2+AKH))
 
     SP          = A*SP
     VSP_ANTISYM = A*VSP_ANTISYM
