@@ -13,6 +13,9 @@ integer :: i_tabulation
 integer, dimension(n_tabulation) :: tabulation_nr
 integer, dimension(n_tabulation) :: tabulation_nz
 
+integer, parameter :: gf_singularities = 0  ! high_freq
+
+
 integer(kind=8) :: starting_time, final_time, clock_rate, clock_rate_in_ns
 
 real(kind=pre), dimension(:), allocatable          :: r, z, tabulated_r, tabulated_z
@@ -37,7 +40,7 @@ z = -10*z
 
 call system_clock(starting_time)
 do i_sample = 1, n_samples
-    integrals(i_sample, :, :) = numerical_integration(r(i_sample), z(i_sample), 2500)
+    integrals(i_sample, :, :) = numerical_integration(r(i_sample), z(i_sample), 2500, gf_singularities)
 enddo
 call system_clock(final_time)
 print*, "Integration (fine)  :", (final_time - starting_time)/clock_rate_in_ns/n_samples, " ns"
@@ -45,7 +48,7 @@ print*, "Integration (fine)  :", (final_time - starting_time)/clock_rate_in_ns/n
 
 call system_clock(starting_time)
 do i_sample = 1, n_samples
-    integrals(i_sample, :, :) = numerical_integration(r(i_sample), z(i_sample), 251)
+    integrals(i_sample, :, :) = numerical_integration(r(i_sample), z(i_sample), 251, gf_singularities)
 enddo
 call system_clock(final_time)
 print*, "Integration (coarse):", (final_time - starting_time)/clock_rate_in_ns/n_samples, " ns"
@@ -62,7 +65,7 @@ do i_tabulation = 1, n_tabulation
 
   tabulated_r(:) = default_r_spacing(tabulation_nr(i_tabulation), 100d0, tabulation_grid_shape)
   tabulated_z(:) = default_z_spacing(tabulation_nz(i_tabulation), -251d0, tabulation_grid_shape)
-  tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 1000)
+  tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 1000, gf_singularities)
 
   call system_clock(starting_time)
   do i_sample = 1, n_samples

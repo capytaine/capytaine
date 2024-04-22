@@ -17,17 +17,17 @@ test_matrix = xr.Dataset(coords={
     'radiating_dof': list(body.dofs.keys()),
 })
 
-ds2 = cpt.BEMSolver(green_function=cpt.XieDelhommeau()).fill_dataset(test_matrix, body)
-ds1 = cpt.BEMSolver(green_function=cpt.Delhommeau()).fill_dataset(test_matrix, body)
+ds2 = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="high_freq")).fill_dataset(test_matrix, body)
+ds1 = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="low_freq")).fill_dataset(test_matrix, body)
 
 plt.figure()
-ds1['added_mass'].plot(x='omega', label='Delhommeau')
-ds2['added_mass'].plot(x='omega', label='XieDelhommeau')
+ds1['added_mass'].plot(x='omega', label='High freq singularities')
+ds2['added_mass'].plot(x='omega', label='Low freq singularities')
 plt.legend()
 
 plt.figure()
-ds1['radiation_damping'].plot(x='omega', label='Delhommeau')
-ds2['radiation_damping'].plot(x='omega', label='XieDelhommeau')
+ds1['radiation_damping'].plot(x='omega', label='High freq singularities')
+ds2['radiation_damping'].plot(x='omega', label='Low freq singularities')
 plt.legend()
 
 plt.show()

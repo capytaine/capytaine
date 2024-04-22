@@ -27,13 +27,17 @@ CONTAINS
   ! =====================================================================
 
   SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS                        &
+      ! Returns (G^-, nabla G^+) if gf_singularities == HIGH_FREQ
+      ! and (G^+, nabla G^+) if gf_singularities == LOW_FREQ
       (X0I, X0J, wavenumber,                                     &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      gf_singularities,                                         &
       FS, VS)
 
     ! Inputs
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I, X0J
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber
+    integer,                                  intent(in) :: gf_singularities
 
     ! Tabulated data
     INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
@@ -68,7 +72,7 @@ CONTAINS
     !=======================================================
     IF ((size(tabulated_z_range) <= 1) .or. (size(tabulated_r_range) <= 1)) THEN
       ! No tabulation, fully recompute the Green function each time.
-      integrals = numerical_integration(r, z, 500)
+      integrals = numerical_integration(r, z, 500, gf_singularities)
     ELSE
       IF ((abs(z) < abs(tabulated_z_range(size(tabulated_z_range)))) &
           .AND. (r < tabulated_r_range(size(tabulated_r_range)))) THEN
@@ -76,9 +80,10 @@ CONTAINS
         integrals = pick_in_default_tabulation( &
             r, z, tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals &
         )
+        ! The tabulated data are expected to have been built with the correct setting of 'gf_singularities'
       ELSE
-        ! Asymptotic expression for distant panels
-        integrals = asymptotic_approximations(MAX(r, 1e-10), z)
+        ! Delhommeau's asymptotic expression of Green function for distant panels
+        integrals = asymptotic_approximations(MAX(r, 1e-10), z, gf_singularities)
       ENDIF
     ENDIF
 
@@ -89,11 +94,12 @@ CONTAINS
     FS    = CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
     VS(1) = -drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
     VS(2) = -drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
-#ifdef XIE_CORRECTION
-    VS(3) = dzdx3 * CMPLX(integrals(1, 2) + 2/r1, integrals(2, 2), KIND=PRE)
-#else
     VS(3) = dzdx3 * CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
-#endif
+    if (gf_singularities == LOW_FREQ) then
+      ! integrals(:, 2) are G^+, but the formula is that dG^+/dz = G^-
+      ! Here is the correction
+      VS(3) = VS(3) + 2*dzdx3/r1
+    endif
 
     RETURN
   END SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS
@@ -103,14 +109,16 @@ CONTAINS
   SUBROUTINE WAVE_PART_INFINITE_DEPTH &
       (X0I, X0J, wavenumber,          &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      gf_singularities, &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the wave part of the Green function in the infinite depth case.
     ! This is mostly the integral computed by the subroutine above.
 
     ! Inputs
-    REAL(KIND=PRE),                           INTENT(IN)  :: wavenumber
-    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0I   ! Coordinates of the source point
-    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN)  :: X0J   ! Coordinates of the center of the integration panel
+    REAL(KIND=PRE),                           INTENT(IN) :: wavenumber
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I   ! Coordinates of the source point
+    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J   ! Coordinates of the center of the integration panel
+    integer,                                  intent(in) :: gf_singularities
 
     ! Tabulated data
     INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
@@ -130,17 +138,19 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       X0I, X0J, wavenumber,                                      &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      gf_singularities, &
       SP, VSP(:))
     SP  = wavenumber*SP
     VSP = wavenumber*VSP
 
-#ifndef XIE_CORRECTION
-    ! In the original Delhommeau method
-    XJ_REFLECTION(1:2) = X0J(1:2)
-    XJ_REFLECTION(3) = - X0J(3)
-    ! Only one singularity is missing in the derivative
-    VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
-#endif
+    if (gf_singularities == HIGH_FREQ) then
+      ! COLLECT_DELHOMMEAU_INTEGRALS returned nabla G^+, but we actually needed nabla G^-
+      ! Here is the correction:
+      XJ_REFLECTION(1:2) = X0J(1:2)
+      XJ_REFLECTION(3) = - X0J(3)
+      ! Only one singularity is missing in the derivative
+      VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
+    endif
 
     VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
     VSP_SYM(3)       = VSP(3)
@@ -155,6 +165,7 @@ CONTAINS
   SUBROUTINE WAVE_PART_FINITE_DEPTH &
       (X0I, X0J, wavenumber, depth, &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      gf_singularities, &
       NEXP, AMBDA, AR,              &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
@@ -163,6 +174,7 @@ CONTAINS
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I  ! Coordinates of the source point
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
+    integer,                                  intent(in) :: gf_singularities
 
     ! Tabulated data
     INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
@@ -202,17 +214,18 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      gf_singularities, &
       FS(1), VS(:, 1))
 
-#ifndef XIE_CORRECTION
-    ! In the original Delhommeau method, the integrals are Re[ ∫(J(ζ) - 1/ζ)dθ ]/π + i Re[ ∫(e^ζ)dθ ]
-    ! whereas we need Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ]
-    ! So the term PSR is the difference because  Re[ ∫ 1/ζ dθ ] = - π/sqrt(r² + z²)
-    !
-    ! Note however, that the derivative part of Delhommeau integrals is the derivative of
-    ! Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ] so no fix is needed for the derivative.
-    PSR(1) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-#endif
+    if (gf_singularities == HIGH_FREQ) then
+      ! In the original Delhommeau method, the integrals are Re[ ∫(J(ζ) - 1/ζ)dθ ]/π + i Re[ ∫(e^ζ)dθ ]
+      ! whereas we need Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ]
+      ! So the term PSR is the difference because  Re[ ∫ 1/ζ dθ ] = - π/sqrt(r² + z²)
+      !
+      ! Note however, that the derivative part of Delhommeau integrals is the derivative of
+      ! Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ] so no fix is needed for the derivative.
+      PSR(1) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    endif
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
@@ -220,12 +233,13 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      gf_singularities, &
       FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
-#ifndef XIE_CORRECTION
-    PSR(2) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-#endif
+    if (gf_singularities == HIGH_FREQ) then
+      PSR(2) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    endif
 
     ! 1.c Shift and reflect XJ and compute another value of the Green function
     XI(3) =  X0I(3)
@@ -233,11 +247,12 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      gf_singularities, &
       FS(3), VS(:, 3))
 
-#ifndef XIE_CORRECTION
-    PSR(3) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-#endif
+    if (gf_singularities == HIGH_FREQ) then
+      PSR(3) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    endif
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
@@ -245,19 +260,20 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      gf_singularities, &
       FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
-#ifndef XIE_CORRECTION
-    PSR(4) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-#endif
+    if (gf_singularities == HIGH_FREQ) then
+      PSR(4) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+    endif
 
     ! Add up the results of the four problems
-#ifdef XIE_CORRECTION
+
     SP               = SUM(FS(1:4))
-#else
-    SP               = SUM(FS(1:4)) - SUM(PSR(1:4))
-#endif
+    if (gf_singularities == HIGH_FREQ) then
+      SP               = SP - SUM(PSR(1:4))
+    endif
     VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
     VSP_ANTISYM(1:2) = VS(1:2, 1) + VS(1:2, 2) + VS(1:2, 3) + VS(1:2, 4)
     VSP_SYM(3)       = VS(3, 1) + VS(3, 4)

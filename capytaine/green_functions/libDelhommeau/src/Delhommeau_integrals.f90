@@ -4,11 +4,11 @@
 ! This module contains functions to evaluate the following integrals
 ! D1 = Re[ ∫(-i cosθ)(J(ζ) - 1/ζ)dθ ]
 ! D2 = Re[ ∫(-i cosθ)(e^ζ)dθ ]
-#ifdef XIE_CORRECTION
-! Z1 = Re[ ∫(J(ζ))dθ ]
-#else
-! Z1 = Re[ ∫(J(ζ) - 1/ζ)dθ ]
-#endif
+! if (gf_singularities == HIGH_FREQ)
+!   Z1 = Re[ ∫(J(ζ) - 1/ζ)dθ ]
+! else
+!   Z1 = Re[ ∫(J(ζ))dθ ]
+! endif
 ! Z2 = Re[ ∫(e^ζ)dθ ]
 ! where ζ depends on θ, as well as two additional parameters `r ∈ [0, +∞)` and `z ∈ (-∞, 0]`.
 !
@@ -24,6 +24,11 @@ module delhommeau_integrals
   integer, parameter :: LEGACY_GRID = 0  ! Nemoh 2
   integer, parameter :: SCALED_NEMOH3_GRID = 1
 
+  ! Extracted singularities
+  integer, parameter :: HIGH_FREQ = 0  ! legacy from Nemoh
+  integer, parameter :: LOW_FREQ = 1  ! aka XieDelhommeau
+
+
   public :: numerical_integration
   public :: asymptotic_approximations
   public :: construct_tabulation
@@ -32,27 +37,22 @@ module delhommeau_integrals
 
 contains
 
-  pure function numerical_integration(r, z, nb_integration_points) result(integrals)
+  pure function numerical_integration(r, z, n, gf_singularities) result(integrals)
     ! Compute the integrals by numerical integration, with `nb_integration_points` points.
 
     ! input
     real(kind=pre), intent(in) :: r
     real(kind=pre), intent(in) :: z
-    integer,        intent(in), optional :: nb_integration_points
+    integer,        intent(in) :: n ! nb_integration_points
+    integer,        intent(in) :: gf_singularities
 
     ! output
     real(kind=pre), dimension(2, 2) :: integrals
 
     ! local variables
-    integer :: n, k
+    integer :: k
     real(kind=pre) :: theta, delta_theta, cos_theta
     complex(kind=pre) :: zeta, exp_zeta, jzeta
-
-    if (present(nb_integration_points)) then
-      n = nb_integration_points
-    else
-      n = 251
-    endif
 
     ! initial values
     integrals(:, :) = 0.0
@@ -80,11 +80,11 @@ contains
       jzeta = exp_e1(zeta) + ii*pi*exp_zeta
       integrals(1, 1) = integrals(1, 1) + delta_theta * cos_theta * aimag(jzeta - 1.0/zeta)
       integrals(2, 1) = integrals(2, 1) + delta_theta * cos_theta * aimag(exp_zeta)
-#ifdef XIE_CORRECTION
-      integrals(1, 2) = integrals(1, 2) + delta_theta * real(jzeta)
-#else
-      integrals(1, 2) = integrals(1, 2) + delta_theta * real(jzeta - 1.0/zeta)
-#endif
+      if (gf_singularities == HIGH_FREQ) then
+        integrals(1, 2) = integrals(1, 2) + delta_theta * real(jzeta - 1.0/zeta)
+      elseif (gf_singularities == LOW_FREQ) then
+        integrals(1, 2) = integrals(1, 2) + delta_theta * real(jzeta)
+      endif
       integrals(2, 2) = integrals(2, 2) + delta_theta * real(exp_zeta)
     enddo
 
@@ -147,10 +147,13 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  pure function asymptotic_approximations(r, z) result(integrals)
-    ! Compute the integrals using an approximate expression for large r and |z|
+  pure function asymptotic_approximations(r, z, gf_singularities) result(integrals)
+    ! Evaluate the wave part of legacy's Delhommeau Green function
+    ! using an approximate expression for large r and |z|
     real(kind=pre), intent(in) :: r
     real(kind=pre), intent(in) :: z
+
+    integer, intent(in) :: gf_singularities
 
     real(kind=pre), dimension(2, 2) :: integrals
 
@@ -164,30 +167,31 @@ contains
 
     integrals(1, 1) = expz_sqr*(cos_kr - sin_kr/(2*r)) - r/r1**3
     integrals(2, 1) = expz_sqr*(sin_kr + cos_kr/(2*r))
-#ifdef XIE_CORRECTION
-    integrals(1, 2) = -expz_sqr*sin_kr + z/r1**3 - 1/r1
-#else
     integrals(1, 2) = -expz_sqr*sin_kr + z/r1**3
-#endif
     integrals(2, 2) =  expz_sqr*cos_kr
     integrals(:, :) = 2*integrals(:, :)
+    if (gf_singularities == LOW_FREQ) then
+      ! correction to retrieve G^+ instead of G^-
+      integrals(1, 2) = integrals(1, 2) - 2/r1
+    endif
 
   end function asymptotic_approximations
 
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  pure function construct_tabulation(r_range, z_range, nb_integration_points) result(tabulation)
-    integer,        intent(in) :: nb_integration_points
+  pure function construct_tabulation(r_range, z_range, nb_integration_points, gf_singularities) result(tabulation)
     real(kind=pre), dimension(:), intent(in) :: r_range
     real(kind=pre), dimension(:), intent(in) :: z_range
+    integer,        intent(in) :: nb_integration_points
+    integer,        intent(in) :: gf_singularities
     real(kind=pre), dimension(size(r_range), size(z_range), 2, 2) :: tabulation
 
     integer :: i, j
 
     do concurrent (j = 1:size(z_range))
       do concurrent (i = 1:size(r_range))
-        tabulation(i, j, :, :) = numerical_integration(r_range(i), z_range(j), nb_integration_points)
+        tabulation(i, j, :, :) = numerical_integration(r_range(i), z_range(j), nb_integration_points, gf_singularities)
       enddo
     enddo
 

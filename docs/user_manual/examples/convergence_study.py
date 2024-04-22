@@ -28,7 +28,7 @@ test_matrix = xr.Dataset(coords={
 })
 
 bodies = [make_cylinder(n) for n in np.linspace(1, 5, 10)]
-ds1 = cpt.BEMSolver(green_function=cpt.XieDelhommeau()).fill_dataset(test_matrix, bodies)
+ds1 = cpt.BEMSolver().fill_dataset(test_matrix, bodies)
 
 def read_nb_faces_in_mesh_name(ds):
     """Read the name of the body to guess the resolution of the mesh."""

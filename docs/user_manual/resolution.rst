@@ -14,7 +14,7 @@ Let us discuss in more details these two objects.
 Green function
 ~~~~~~~~~~~~~~
 A class used to evaluate the Green function, deriving from :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`.
-Two of them are available in the present version:
+In the present version, a single class is implemented, although it offers many parameters for customization:
 
 :class:`~capytaine.green_functions.delhommeau.Delhommeau` (Default)
    The method implemented in Nemoh (see [Del87]_ and [Del89]_).
@@ -55,10 +55,6 @@ Two of them are available in the present version:
    between the new distribution of points inspired by Nemoh version 3 or the
    :code:`"legacy"` approach. The :code:`tabulation_nb_integration_points`
    controls the accuracy of the precomputed tabulation points themselves.
-
-:class:`~capytaine.green_functions.delhommeau.XieDelhommeau`
-   A variant of the above, more accurate near the free surface (see [X18]_).
-   Accepts the same options as :class:`Delhommeau <capytaine.green_functions.delhommeau.Delhommeau>`
 
 Advanced users can write their own class to evaluate the Green function.
 See the example in the :doc:`cookbook`.
