@@ -179,7 +179,6 @@ CONTAINS
   SUBROUTINE WAVE_PART_FINITE_DEPTH &
       (X0I, X0J, wavenumber, depth, &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities, &
       NEXP, AMBDA, AR,              &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
@@ -188,7 +187,6 @@ CONTAINS
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I  ! Coordinates of the source point
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
-    integer,                                  intent(in) :: gf_singularities
 
     ! Tabulated data
     INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
@@ -228,18 +226,8 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities, &
+      LOW_FREQ, &
       FS(1), VS(:, 1))
-
-    if (gf_singularities == HIGH_FREQ) then
-      ! In the original Delhommeau method, the integrals are Re[ ∫(J(ζ) - 1/ζ)dθ ]/π + i Re[ ∫(e^ζ)dθ ]
-      ! whereas we need Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ]
-      ! So we correct the difference Re[ ∫ 1/ζ dθ ] = - π/sqrt(r² + z²)
-      !
-      ! Note however, that the derivative part of Delhommeau integrals is the derivative of
-      ! Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ] so no fix is needed for the derivative.
-      FS(1) = FS(1) - 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-    endif
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
@@ -247,13 +235,9 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities, &
+      LOW_FREQ, &
       FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
-
-    if (gf_singularities == HIGH_FREQ) then
-      FS(2) = FS(2) - 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-    endif
 
     ! 1.c Shift and reflect XJ and compute another value of the Green function
     XI(3) =  X0I(3)
@@ -261,12 +245,8 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities, &
+      LOW_FREQ, &
       FS(3), VS(:, 3))
-
-    if (gf_singularities == HIGH_FREQ) then
-      FS(3) = FS(3) - 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-    endif
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
@@ -274,13 +254,9 @@ CONTAINS
     CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
       XI(:), XJ(:), wavenumber,                                  &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities, &
+      LOW_FREQ, &
       FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
-
-    if (gf_singularities == HIGH_FREQ) then
-      FS(4) = FS(4) - 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-    endif
 
     ! Add up the results of the four problems
 

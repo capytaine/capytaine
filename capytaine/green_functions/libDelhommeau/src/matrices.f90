@@ -198,7 +198,6 @@ CONTAINS
                 wavenumber,                 &
                 depth,                      &
                 tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-                gf_singularities, &
                 NEXP, AMBDA, AR,            &
                 SP2, VSP2_SYM, VSP2_ANTISYM &
                 )
@@ -267,7 +266,6 @@ CONTAINS
               wavenumber,                 &
               depth,                      &
               tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-              gf_singularities, &
               NEXP, AMBDA, AR,            &
               SP2, VSP2_SYM, VSP2_ANTISYM &
               )

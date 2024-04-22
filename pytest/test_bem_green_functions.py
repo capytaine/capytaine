@@ -97,13 +97,13 @@ def test_symmetry_of_the_green_function_finite_depth_no_prony(gf):
     g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
         xi, xj, k, depth,
         gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals, gf.gf_singularities_index,
+        gf.tabulated_integrals,
         np.zeros(1), np.zeros(1), 1
     )
     g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
         xj, xi, k, depth,
         gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals, gf.gf_singularities_index,
+        gf.tabulated_integrals,
         np.zeros(1), np.zeros(1), 1
     )
     assert g1 == approx(g2)
@@ -121,13 +121,13 @@ def test_symmetry_of_the_green_function_finite_depth(gf):
     g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
         xi, xj, k, depth,
         gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals, gf.gf_singularities_index,
+        gf.tabulated_integrals,
         ambda, a, 31
     )
     g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
         xj, xi, k, depth,
         gf.tabulation_grid_shape_index, gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals, gf.gf_singularities_index,
+        gf.tabulated_integrals,
         ambda, a, 31
     )
     assert g1 == approx(g2)
