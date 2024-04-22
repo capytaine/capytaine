@@ -72,7 +72,7 @@ CONTAINS
     REAL(KIND=PRE)                  :: SP1
     REAL(KIND=PRE), DIMENSION(3)    :: VSP1
     COMPLEX(KIND=PRE)               :: SP2
-    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2_SYM, VSP2_ANTISYM
+    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2, VSP2_SYM, VSP2_ANTISYM
     LOGICAL :: use_symmetry_of_wave_part
 
     use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
@@ -80,7 +80,7 @@ CONTAINS
     coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
-    !$OMP&  PRIVATE(J, I, SP1, VSP1, SP2, VSP2_SYM, VSP2_ANTISYM, reflected_centers_1_I, reflected_VSP1)
+    !$OMP&  PRIVATE(J, I, SP1, VSP1, SP2, VSP2, VSP2_SYM, VSP2_ANTISYM, reflected_centers_1_I, reflected_VSP1)
     DO J = 1, nb_faces_2
 
       !!!!!!!!!!!!!!!!!!!!
@@ -189,8 +189,12 @@ CONTAINS
                 wavenumber,                 &
                 tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
                 gf_singularities, &
-                SP2, VSP2_SYM, VSP2_ANTISYM &
+                SP2, VSP2 &
                 )
+              VSP2_SYM(1:2) = CMPLX(ZERO, ZERO, KIND=PRE)
+              VSP2_SYM(3) = VSP2(3)
+              VSP2_ANTISYM(1:2) = VSP2(1:2)
+              VSP2_ANTISYM(3) = CMPLX(ZERO, ZERO, KIND=PRE)
             ELSE
               CALL WAVE_PART_FINITE_DEPTH   &
                 (centers_1(I, :),           &
@@ -247,7 +251,7 @@ CONTAINS
       ! (More precisely, the Green function is symmetric and its derivative is the sum of a symmetric part and an anti-symmetric
       ! part.)
 
-      !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(J, I, SP2, VSP2_SYM, VSP2_ANTISYM)
+      !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(J, I, SP2, VSP2, VSP2_SYM, VSP2_ANTISYM)
       DO J = 1, nb_faces_2
         DO I = J, nb_faces_1
           IF (is_infinity(depth)) THEN
@@ -257,8 +261,12 @@ CONTAINS
               wavenumber,                 &
               tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
               gf_singularities, &
-              SP2, VSP2_SYM, VSP2_ANTISYM &
+              SP2, VSP2 &
               )
+            VSP2_SYM(1:2) = CMPLX(ZERO, ZERO, KIND=PRE)
+            VSP2_SYM(3) = VSP2(3)
+            VSP2_ANTISYM(1:2) = VSP2(1:2)
+            VSP2_ANTISYM(3) = CMPLX(ZERO, ZERO, KIND=PRE)
           ELSE
             CALL WAVE_PART_FINITE_DEPTH   &
               (centers_1(I, :),           &
