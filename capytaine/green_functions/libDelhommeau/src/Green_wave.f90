@@ -195,7 +195,7 @@ CONTAINS
     REAL(KIND=PRE)                       :: AMH, AKH, A
     REAL(KIND=PRE)                       :: AQT, R
     REAL(KIND=PRE),    DIMENSION(3)      :: XI, XJ
-    REAL(KIND=PRE),    DIMENSION(4)      :: FTS, PSR
+    REAL(KIND=PRE),    DIMENSION(4)      :: FTS
     REAL(KIND=PRE),    DIMENSION(3, 4)   :: VTS
     COMPLEX(KIND=PRE), DIMENSION(4)      :: FS
     COMPLEX(KIND=PRE), DIMENSION(3, 4)   :: VS
@@ -220,11 +220,11 @@ CONTAINS
     if (gf_singularities == HIGH_FREQ) then
       ! In the original Delhommeau method, the integrals are Re[ ∫(J(ζ) - 1/ζ)dθ ]/π + i Re[ ∫(e^ζ)dθ ]
       ! whereas we need Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ]
-      ! So the term PSR is the difference because  Re[ ∫ 1/ζ dθ ] = - π/sqrt(r² + z²)
+      ! So we correct the difference Re[ ∫ 1/ζ dθ ] = - π/sqrt(r² + z²)
       !
       ! Note however, that the derivative part of Delhommeau integrals is the derivative of
       ! Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ] so no fix is needed for the derivative.
-      PSR(1) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+      FS(1) = FS(1) - 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
     endif
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
@@ -238,7 +238,7 @@ CONTAINS
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
     if (gf_singularities == HIGH_FREQ) then
-      PSR(2) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+      FS(2) = FS(2) - 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
     endif
 
     ! 1.c Shift and reflect XJ and compute another value of the Green function
@@ -251,7 +251,7 @@ CONTAINS
       FS(3), VS(:, 3))
 
     if (gf_singularities == HIGH_FREQ) then
-      PSR(3) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+      FS(3) = FS(3) - 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
     endif
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
@@ -265,15 +265,12 @@ CONTAINS
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 
     if (gf_singularities == HIGH_FREQ) then
-      PSR(4) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
+      FS(4) = FS(4) - 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
     endif
 
     ! Add up the results of the four problems
 
     SP               = SUM(FS(1:4))
-    if (gf_singularities == HIGH_FREQ) then
-      SP               = SP - SUM(PSR(1:4))
-    endif
     VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
     VSP_ANTISYM(1:2) = VS(1:2, 1) + VS(1:2, 2) + VS(1:2, 3) + VS(1:2, 4)
     VSP_SYM(3)       = VS(3, 1) + VS(3, 4)
