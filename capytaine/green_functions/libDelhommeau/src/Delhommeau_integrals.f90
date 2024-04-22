@@ -1,10 +1,10 @@
-! Copyright (C) 2022 Matthieu Ancellin
-! See LICENSE file at <https://github.com/mancellin/capytaine>
+! Copyright (C) 2022-2024 Matthieu Ancellin
+! See LICENSE file at <https://github.com/capytaine/capytaine>
 !
 ! This module contains functions to evaluate the following integrals
 ! D1 = Re[ ∫(-i cosθ)(J(ζ) - 1/ζ)dθ ]
 ! D2 = Re[ ∫(-i cosθ)(e^ζ)dθ ]
-! Z1 = Re[ ∫(J(ζ))dθ ]
+! Z1 = Re[ ∫(J(ζ))dθ ]  ! That is G^+, the low_freq version.
 ! Z2 = Re[ ∫(e^ζ)dθ ]
 ! where ζ depends on θ, as well as two additional parameters `r ∈ [0, +∞)` and `z ∈ (-∞, 0]`.
 !
@@ -141,6 +141,7 @@ contains
   pure function asymptotic_approximations(r, z) result(integrals)
     ! Evaluate the wave part of legacy's Delhommeau Green function
     ! using an approximate expression for large r and |z|
+    ! This always is G^-, that is not exactly the same as `numerical_integration`
     real(kind=pre), intent(in) :: r
     real(kind=pre), intent(in) :: z
 
