@@ -72,7 +72,12 @@ CONTAINS
     !=======================================================
     IF ((size(tabulated_z_range) <= 1) .or. (size(tabulated_r_range) <= 1)) THEN
       ! No tabulation, fully recompute the Green function each time.
-      integrals = numerical_integration(r, z, 500, gf_singularities)
+      integrals = numerical_integration(r, z, 500)
+      if (gf_singularities == HIGH_FREQ) then
+        ! numerical_integration always computes the low_freq version,
+        ! so need a fix to get the high_freq
+        integrals(1, 2) = integrals(1, 2) + 2/r1
+      endif
     ELSE
       IF ((abs(z) < abs(tabulated_z_range(size(tabulated_z_range)))) &
           .AND. (r < tabulated_r_range(size(tabulated_r_range)))) THEN
@@ -80,10 +85,19 @@ CONTAINS
         integrals = pick_in_default_tabulation( &
             r, z, tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals &
         )
-        ! The tabulated data are expected to have been built with the correct setting of 'gf_singularities'
+        if (gf_singularities == HIGH_FREQ) then
+          ! numerical_integration always computes the low_freq version,
+          ! so need a fix to get the high_freq
+          integrals(1, 2) = integrals(1, 2) + 2/r1
+        endif
       ELSE
         ! Delhommeau's asymptotic expression of Green function for distant panels
-        integrals = asymptotic_approximations(MAX(r, 1e-10), z, gf_singularities)
+        integrals = asymptotic_approximations(MAX(r, 1e-10), z)
+        if (gf_singularities == LOW_FREQ) then
+          ! numerical_integration always computes the high_freq version,
+          ! so need a fix to get the low_freq
+          integrals(1, 2) = integrals(1, 2) - 2/r1
+        endif
       ENDIF
     ENDIF
 

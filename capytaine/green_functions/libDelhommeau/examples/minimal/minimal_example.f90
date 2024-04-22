@@ -51,7 +51,7 @@ program test
 
   tabulated_r(:) = default_r_spacing(tabulation_nr, 100d0, tabulation_grid_shape)
   tabulated_z(:) = default_z_spacing(tabulation_nz, -251d0, tabulation_grid_shape)
-  tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 1000, gf_singularities)
+  tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 1000)
 
   depth = ieee_value(depth, ieee_positive_inf)
 

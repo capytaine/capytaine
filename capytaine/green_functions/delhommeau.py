@@ -175,9 +175,8 @@ class Delhommeau(AbstractGreenFunction):
         tabulation_rmax = float(tabulation_rmax)
         tabulation_zmin = float(tabulation_zmin)
 
-        filename = "tabulation_{}_{}_{}_{}_{}_{}_{}_{}.npz".format(
-            self.floating_point_precision, self.gf_singularities,
-            self.tabulation_grid_shape,
+        filename = "tabulation_{}_{}_{}_{}_{}_{}_{}.npz".format(
+            self.floating_point_precision, self.tabulation_grid_shape,
             tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin,
             tabulation_nb_integration_points
         )
@@ -200,7 +199,6 @@ class Delhommeau(AbstractGreenFunction):
                     )
             self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
                     self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
-                    self.gf_singularities_index,
                     )
             LOG.debug("Saving tabulation in %s", filepath)
             np.savez_compressed(
