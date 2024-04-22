@@ -9,8 +9,8 @@ import capytaine as cpt
 #----------------------------------------------------------------------------------#
 gf = cpt.Delhommeau()
 
-legacy_grid = gf.fortran_core.delhommeau_integrals.legacy_grid
-scaled_nemoh3_grid = gf.fortran_core.delhommeau_integrals.scaled_nemoh3_grid
+legacy_grid = gf.fortran_core.constants.legacy_grid
+scaled_nemoh3_grid = gf.fortran_core.constants.scaled_nemoh3_grid
 '''
 
 for nr in [1000, 1500, 2000]:
