@@ -20,6 +20,8 @@ Internals
 
 * The compiled Fortran extension is not split into a ``Delhommeau`` and a ``XieDelhommeau`` version anymore. The computation of the latter can be achieved by the run-time parameter ``gf_singularities`` of the class :class:`~capytaine.green_functions.delhommeau.Delhommeau` class. The class :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is kept for backward compatibility (:pull:`475`).
 
+* The tabulation is always the tabulation of the ``low_freq`` wave part (formerly ``XieDelhommeau``) to simplify the implementation (:pull:`508`).
+
 -------------------------------
 New in version 2.1 (2024-04-08)
 -------------------------------
