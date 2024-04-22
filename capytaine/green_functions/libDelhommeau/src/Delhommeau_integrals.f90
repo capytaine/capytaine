@@ -147,11 +147,13 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  pure function asymptotic_approximations(r, z) result(integrals)
+  pure function asymptotic_approximations(r, z, gf_singularities) result(integrals)
     ! Evaluate the wave part of legacy's Delhommeau Green function
     ! using an approximate expression for large r and |z|
     real(kind=pre), intent(in) :: r
     real(kind=pre), intent(in) :: z
+
+    integer, intent(in) :: gf_singularities
 
     real(kind=pre), dimension(2, 2) :: integrals
 
@@ -168,6 +170,10 @@ contains
     integrals(1, 2) = -expz_sqr*sin_kr + z/r1**3
     integrals(2, 2) =  expz_sqr*cos_kr
     integrals(:, :) = 2*integrals(:, :)
+    if (gf_singularities == LOW_FREQ) then
+      ! correction to retrieve G^+ instead of G^-
+      integrals(1, 2) = integrals(1, 2) - 2/r1
+    endif
 
   end function asymptotic_approximations
 

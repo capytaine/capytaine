@@ -80,14 +80,10 @@ CONTAINS
         integrals = pick_in_default_tabulation( &
             r, z, tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals &
         )
+        ! The tabulated data are expected to have been built with the correct setting of 'gf_singularities'
       ELSE
-        ! Asymptotic expression of legacy's Delhommeau Green function for distant panels
-        integrals = asymptotic_approximations(MAX(r, 1e-10), z)
-        if (gf_singularities == LOW_FREQ) then
-          ! asymptotic_approximations returns always G^-
-          ! Here is the correction to retrieve G^+
-          integrals(1, 2) = integrals(1, 2) - 2/r1
-        endif
+        ! Delhommeau's asymptotic expression of Green function for distant panels
+        integrals = asymptotic_approximations(MAX(r, 1e-10), z, gf_singularities)
       ENDIF
     ENDIF
 
