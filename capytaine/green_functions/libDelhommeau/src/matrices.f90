@@ -64,7 +64,7 @@ CONTAINS
     REAL(KIND=PRE)                  :: SP1
     REAL(KIND=PRE), DIMENSION(3)    :: VSP1
     COMPLEX(KIND=PRE)               :: int_G_wave
-    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2, int_nablaG_wave_sym, int_nablaG_wave_antisym
+    COMPLEX(KIND=PRE), DIMENSION(3) :: int_nablaG_wave_sym, int_nablaG_wave_antisym
     LOGICAL :: use_symmetry_of_wave_part
 
     use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
@@ -72,7 +72,7 @@ CONTAINS
     coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
-    !$OMP&  PRIVATE(J, I, SP1, VSP1, int_G_wave, VSP2, int_nablaG_wave_sym, int_nablaG_wave_antisym, &
+    !$OMP&  PRIVATE(J, I, SP1, VSP1, int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym, &
     !$OMP&          reflected_centers_1_I, reflected_VSP1)
     DO J = 1, nb_faces_2
 
@@ -187,7 +187,7 @@ CONTAINS
 
           ! Change the gradient terms for direct solver representation
           IF (.NOT. adjoint_double_layer) THEN
-            int_nablaG_wave_antisym = -VSP2_ANTISYM
+            int_nablaG_wave_antisym = -int_nablaG_wave_antisym
           END IF
 
           S(I, J) = S(I, J) + coeffs(3) * int_G_wave
@@ -240,7 +240,7 @@ CONTAINS
       ! (More precisely, the Green function is symmetric and its derivative is the sum of a symmetric part and an anti-symmetric
       ! part.)
 
-      !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(J, I, int_G_wave, VSP2, int_nablaG_wave_sym, int_nablaG_wave_antisym)
+      !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(J, I, int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym)
       DO J = 1, nb_faces_2
         DO I = J, nb_faces_1
 
@@ -257,7 +257,7 @@ CONTAINS
 
           ! Change the gradient terms to direct solver representation
           IF (.NOT. adjoint_double_layer) THEN
-            int_nablaG_wave_antisym = -VSP2_ANTISYM
+            int_nablaG_wave_antisym = -int_nablaG_wave_antisym
           END IF
 
           S(I, J) = S(I, J) + coeffs(3) * int_G_wave
