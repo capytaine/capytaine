@@ -165,6 +165,17 @@ CONTAINS
           else
             K(I, J, :) = K(I, J, :) + coeffs(2) * reflected_VSP1(:)
           endif
+
+          if (gf_singularities == BETTER_LOW_FREQ) then
+            if (size(K, 3) == 1) then
+              if (.NOT. adjoint_double_layer) then
+                K(I, J, 1) = K(I, J, 1) + coeffs(3) * wavenumber * SP1 * normals_2(J, 3)
+              else
+                K(I, J, 1) = K(I, J, 1) + coeffs(3) * wavenumber * SP1 * normals_1(J, 3)
+              endif
+              K(I, J, 3) = K(I, J, 3) + coeffs(3) * wavenumber * SP1
+            endif
+          endif
         END DO
       END IF
 

@@ -157,8 +157,10 @@ CONTAINS
   ! =====================================================================
 
   SUBROUTINE WAVE_PART_INFINITE_DEPTH                        &
-      ! Returns (G^-, nabla G^+) if gf_singularities == HIGH_FREQ
-      ! and (G^+, nabla G^+) if gf_singularities == LOW_FREQ
+      ! Returns
+      ! (G^-, nabla G^+)               if gf_singularities == HIGH_FREQ
+      ! (G^+, nabla G^+)               if gf_singularities == LOW_FREQ
+      ! (G^+, nabla G^+ - (0, 0, k/r1) if gf_singularities == BETTER_LOW_FREQ
       (X0I, X0J, wavenumber,                                     &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                         &
@@ -213,7 +215,7 @@ CONTAINS
       ELSE
         ! Delhommeau's asymptotic expression of Green function for distant panels
         integrals = asymptotic_approximations(MAX(r, 1e-10), z)
-        if (gf_singularities == LOW_FREQ) then
+        if ((gf_singularities == LOW_FREQ) .or. (gf_singularities == BETTER_LOW_FREQ)) then
           ! numerical_integration always computes the high_freq version,
           ! so need a fix to get the low_freq
           integrals(1, 2) = integrals(1, 2) - 2/r1
@@ -244,6 +246,9 @@ CONTAINS
       ! integrals(:, 2) are G^+, but the formula is that dG^+/dz = G^-
       ! Here is the correction
       nablaG(3) = nablaG(3) + 2*dzdx3/r1
+    elseif (gf_singularities == BETTER_LOW_FREQ) then
+      ! Nothing for BETTER_LOW_FREQ since the correction is then done
+      ! in the computation of the reflected Rankine integral
     elseif (gf_singularities == HIGH_FREQ) then
       ! we have nabla G^+, but we actually need nabla G^-
       nablaG(1) = nablaG(1) - 2*drdx1*r/r1**3
