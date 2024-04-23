@@ -22,6 +22,7 @@ CONTAINS
       nb_quad_points, quad_points, quad_weights,         &
       wavenumber, depth,                                 &
       coeffs,                                            &
+      tabulation_nb_integration_points,                  &
       tabulation_grid_shape,                             &
       tabulated_r_range, tabulated_z_range,              &
       tabulated_integrals,                               &
@@ -51,6 +52,7 @@ CONTAINS
 
     ! Tabulated values for the wave part of the Green function
     INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
+    INTEGER,                                  INTENT(IN) :: tabulation_nb_integration_points
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
     REAL(KIND=PRE), DIMENSION(:, :, :, :),    INTENT(IN) :: tabulated_integrals
@@ -182,7 +184,7 @@ CONTAINS
             centers_2(J, :), normals_2(J, :), areas_2(J), radiuses_2(J), &
             quad_points(J, :, :), quad_weights(J, :),                    &
             wavenumber, depth,                                           &
-            tabulation_grid_shape,                                       &
+            tabulation_nb_integration_points, tabulation_grid_shape,     &
             tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
             gf_singularities,                                            &
             NEXP, AMBDA, AR,                                             &
@@ -233,7 +235,7 @@ CONTAINS
             centers_2(J, :), normals_2(J, :), areas_2(J), radiuses_2(J), &
             quad_points(J, :, :), quad_weights(J, :),                    &
             wavenumber, depth,                                           &
-            tabulation_grid_shape,                                       &
+            tabulation_nb_integration_points, tabulation_grid_shape,     &
             tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
             gf_singularities,                                            &
             NEXP, AMBDA, AR,                                             &
