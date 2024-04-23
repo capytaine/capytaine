@@ -66,10 +66,10 @@ CONTAINS
     ! Local variables
     INTEGER                         :: I, J, Q
     REAL(KIND=PRE), DIMENSION(3)    :: reflected_centers_1_I, reflected_int_nablaG_Rankine
-    REAL(KIND=PRE)                  :: int_G_Rankine
+    REAL(KIND=PRE)                  :: int_G_Rankine, diagonal_coef
     REAL(KIND=PRE), DIMENSION(3)    :: int_nablaG_Rankine
-    COMPLEX(KIND=PRE)               :: int_G_wave
-    COMPLEX(KIND=PRE), DIMENSION(3) :: int_nablaG_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym
+    COMPLEX(KIND=PRE)               :: int_G, int_G_wave
+    COMPLEX(KIND=PRE), DIMENSION(3) :: int_nablaG, int_nablaG_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym
     LOGICAL :: use_symmetry_of_wave_part
 
     use_symmetry_of_wave_part = ((same_body) .AND. (nb_quad_points == 1))
@@ -77,22 +77,37 @@ CONTAINS
     coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
-    !$OMP&  PRIVATE(J, I, int_G_Rankine, int_nablaG_Rankine, &
+    !$OMP&  PRIVATE(J, I, int_G, int_nablaG, int_G_Rankine, int_nablaG_Rankine, diagonal_coef, &
     !$OMP&          int_G_wave, int_nablaG_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym, &
     !$OMP&          reflected_centers_1_I, reflected_int_nablaG_Rankine)
     DO J = 1, nb_faces_2
+      DO I = 1, nb_faces_1
 
-      !!!!!!!!!!!!!!!!!!!!
-      !  Initialization  !
-      !!!!!!!!!!!!!!!!!!!!
-      S(:, J) = CZERO
-      K(:, J, :) = CZERO
+        int_G = CZERO
+        int_nablaG(:) = CZERO
 
-      !!!!!!!!!!!!!!!!!!
-      !  Rankine part  !
-      !!!!!!!!!!!!!!!!!!
-      IF (coeffs(1) .NE. ZERO) THEN
-        DO I = 1, nb_faces_1
+        !!!!!!!!!!!!!!!!!!!
+        !  Diagonal term  !
+        !!!!!!!!!!!!!!!!!!!
+        IF (I==J .and. same_body) THEN
+
+          if (abs(centers_2(j, 3)) < 1e-8) then  ! Panel on the free surface
+            diagonal_coef = -ONE
+          else
+            diagonal_coef = ONE/2
+          endif
+
+          if (adjoint_double_layer) then
+            int_nablaG(:) = int_nablaG(:) + diagonal_coef * normals_1(I, :)
+          else
+            int_nablaG(:) = int_nablaG(:) + diagonal_coef * normals_2(J, :)
+          endif
+        ENDIF
+
+        !!!!!!!!!!!!!!!!!!
+        !  Rankine part  !
+        !!!!!!!!!!!!!!!!!!
+        IF (coeffs(1) .NE. ZERO) THEN
 
           CALL COMPUTE_INTEGRAL_OF_RANKINE_SOURCE( &
             centers_1(I, :),                       &
@@ -104,33 +119,24 @@ CONTAINS
             int_G_Rankine, int_nablaG_Rankine      &
             )
 
-          ! Change the gradient terms to direct solver representation
-          IF (.NOT. adjoint_double_layer) THEN
-            int_nablaG_Rankine(:) = -int_nablaG_Rankine(:)
+          int_G = int_G + coeffs(1) * int_G_Rankine
+
+          IF (adjoint_double_layer) THEN
+            ! The gradient is with respect to the point I.
+            int_nablaG(:) = int_nablaG(:) + coeffs(1) * int_nablaG_Rankine(:)
+          ELSE
+            ! The gradient is with respect to the panel J.
+            ! Due to the symmetry of the Green function, it is just the opposite.
+            int_nablaG(:) = int_nablaG(:) - coeffs(1) * int_nablaG_Rankine(:)
           END IF
 
-          ! Store into influence matrix
-          S(I, J) = S(I, J) + coeffs(1) * int_G_Rankine
-          if (size(K, 3) == 1) then
-            if (.NOT. adjoint_double_layer) then
-              K(I, J, 1) = K(I, J, 1) + coeffs(1) * DOT_PRODUCT(normals_2(J, :), int_nablaG_Rankine(:))
-            else
-              K(I, J, 1) = K(I, J, 1) + coeffs(1) * DOT_PRODUCT(normals_1(I, :), int_nablaG_Rankine(:))
-            endif
-          else
-            K(I, J, :) = K(I, J, :) + coeffs(1) * int_nablaG_Rankine(:)
-          endif
-
-        END DO
-      END IF
+        END IF
 
 
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      !  Reflected Rankine part  !
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-      IF (coeffs(2) .NE. ZERO) THEN
-        DO I = 1, nb_faces_1
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        !  Reflected Rankine part  !
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        IF (coeffs(2) .NE. ZERO) THEN
 
           IF (is_infinity(depth)) THEN
             ! Reflection through free surface
@@ -155,31 +161,22 @@ CONTAINS
           reflected_int_nablaG_Rankine(1:2) = int_nablaG_Rankine(1:2)
           reflected_int_nablaG_Rankine(3) = -int_nablaG_Rankine(3)
 
-          ! Change the gradient terms to direct solver representation
-          if (.NOT. adjoint_double_layer) THEN
-             reflected_int_nablaG_Rankine(1:2) = -reflected_int_nablaG_Rankine(1:2)
+          int_G = int_G + coeffs(2) * int_G_Rankine
+
+          IF (adjoint_double_layer) THEN
+            int_nablaG(1:2) = int_nablaG(1:2) + coeffs(2) * reflected_int_nablaG_Rankine(1:2)
+          ELSE
+            int_nablaG(1:2) = int_nablaG(1:2) - coeffs(2) * reflected_int_nablaG_Rankine(1:2)
           END IF
+          int_nablaG(3) = int_nablaG(3) + coeffs(2) * reflected_int_nablaG_Rankine(3)
 
-          ! Store into influence matrix
-          S(I, J) = S(I, J) + coeffs(2) * int_G_Rankine
-          if (size(K, 3) == 1) then
-            if (.NOT. adjoint_double_layer) then
-              K(I, J, 1) = K(I, J, 1) + coeffs(2) * DOT_PRODUCT(normals_2(J, :), reflected_int_nablaG_Rankine(:))
-            else
-              K(I, J, 1) = K(I, J, 1) + coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_int_nablaG_Rankine(:))
-            endif
-          else
-            K(I, J, :) = K(I, J, :) + coeffs(2) * reflected_int_nablaG_Rankine(:)
-          endif
-        END DO
-      END IF
+        END IF
 
-      !!!!!!!!!!!!!!!
-      !  Wave part  !
-      !!!!!!!!!!!!!!!
+        !!!!!!!!!!!!!!!
+        !  Wave part  !
+        !!!!!!!!!!!!!!!
+        IF ((coeffs(3) .NE. ZERO) .AND. (.NOT. use_symmetry_of_wave_part)) THEN
 
-      IF ((coeffs(3) .NE. ZERO) .AND. (.NOT. use_symmetry_of_wave_part)) THEN
-        DO I = 1, nb_faces_1
           call INTEGRAL_OF_WAVE_PART(                                    &
             centers_1(I, :),                                             &
             centers_2(J, :), normals_2(J, :), areas_2(J), radiuses_2(J), &
@@ -192,51 +189,32 @@ CONTAINS
             int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym     &
           )
 
-          S(I, J) = S(I, J) + coeffs(3) * int_G_wave
+          int_G = int_G + coeffs(3) * int_G_wave
 
-          IF (.NOT. adjoint_double_layer) THEN
-            int_nablaG_wave(:) = int_nablaG_wave_sym(:) - int_nablaG_wave_antisym(:)
+          IF (adjoint_double_layer) THEN
+            int_nablaG(:) = int_nablaG(:) + coeffs(3) * (int_nablaG_wave_sym(:) + int_nablaG_wave_antisym(:))
           ELSE
-            int_nablaG_wave(:) = int_nablaG_wave_sym(:) + int_nablaG_wave_antisym(:)
+            int_nablaG(:) = int_nablaG(:) + coeffs(3) * (int_nablaG_wave_sym(:) - int_nablaG_wave_antisym(:))
           END IF
 
-          if (size(K, 3) == 1) then
-            if (.NOT. adjoint_double_layer) then
-              K(I, J, 1) = K(I, J, 1) + coeffs(3) * DOT_PRODUCT(normals_2(J, :), int_nablaG_wave(:))
-            else
-              K(I, J, 1) = K(I, J, 1) + coeffs(3) * DOT_PRODUCT(normals_1(I, :), int_nablaG_wave(:))
-            endif
-          else
-            K(I, J, :) = K(I, J, :) + coeffs(3) * int_nablaG_wave(:)
-          endif
+        END IF
 
-        END DO
-      END IF
+        !!!!!!!!!!!!!!!!!!!
+        !  Add to matrix  !
+        !!!!!!!!!!!!!!!!!!!
+        S(I, J) = int_G
 
-      IF (same_body) THEN
-        if (abs(centers_1(j, 3)) < 1e-8) then  ! Panel on the free surface
-          if (size(K, 3) == 1) then
-            K(J, J, 1) = K(J, J, 1) - 1.0
+        if (size(K, 3) == 1) then  ! early_dot_product=True
+          if (adjoint_double_layer) then
+            K(I, J, 1) = DOT_PRODUCT(normals_1(I, :), int_nablaG(:))
           else
-            if (.NOT. adjoint_double_layer) then
-              K(J, J, :) = K(J, J, :) - normals_2(J, :)
-            else
-              K(J, J, :) = K(J, J, :) - normals_1(J, :)
-            endif
+            K(I, J, 1) = DOT_PRODUCT(normals_2(J, :), int_nablaG(:))
           endif
         else
-          if (size(K, 3) == 1) then
-            K(J, J, 1) = K(J, J, 1) + 0.5
-          else
-            if (.NOT. adjoint_double_layer) then
-              K(J, J, :) = K(J, J, :) + 0.5 * normals_2(J, :)
-            else
-              K(J, J, :) = K(J, J, :) + 0.5 * normals_1(J, :)
-            endif
-          endif
+          K(I, J, :) = int_nablaG(:)
         endif
-      END IF
 
+      END DO  ! loop on I
     END DO  ! parallelized loop on J
 
 
@@ -264,10 +242,10 @@ CONTAINS
 
           S(I, J) = S(I, J) + coeffs(3) * int_G_wave
 
-          IF (.NOT. adjoint_double_layer) THEN
-            int_nablaG_wave(:) = int_nablaG_wave_sym(:) - int_nablaG_wave_antisym(:)
-          ELSE
+          IF (adjoint_double_layer) THEN
             int_nablaG_wave(:) = int_nablaG_wave_sym(:) + int_nablaG_wave_antisym(:)
+          ELSE
+            int_nablaG_wave(:) = int_nablaG_wave_sym(:) - int_nablaG_wave_antisym(:)
           END IF
 
           if (size(K, 3) == 1) then
