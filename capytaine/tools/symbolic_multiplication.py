@@ -1,7 +1,7 @@
 import numpy as np
-from functools import wraps
+from functools import wraps, total_ordering
 
-# @total_ordering
+@total_ordering
 class SymbolicMultiplication:
     def __init__(self, symbol, value=1.0):
         self.symbol = symbol

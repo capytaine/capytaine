@@ -188,7 +188,7 @@ class BEMSolver:
         """Display a warning if some of the problems have a mesh resolution
         that might not be sufficient for the given wavelength."""
         risky_problems = [pb for pb in problems
-                          if pb.wavelength < pb.body.minimal_computable_wavelength]
+                          if 0.0 < pb.wavelength < pb.body.minimal_computable_wavelength]
         nb_risky_problems = len(risky_problems)
         if nb_risky_problems == 1:
             pb = risky_problems[0]

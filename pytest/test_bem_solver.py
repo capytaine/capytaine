@@ -142,6 +142,20 @@ def test_fill_dataset(sphere):
     # wavenumbers = wavenumber_data_array(results)
     # assert isinstance(wavenumbers, xr.DataArray)
 
+def test_warning_mesh_resolution(sphere, caplog):
+    solver = cpt.BEMSolver()
+    pb = cpt.RadiationProblem(body=sphere, wavelength=0.1*sphere.minimal_computable_wavelength)
+    with caplog.at_level("WARNING"):
+        solver.solve(pb)
+    assert "resolution " in caplog.text
+
+def test_no_warning_mesh_resolution_at_zero_wavelength(sphere, caplog):
+    solver = cpt.BEMSolver()
+    pb = cpt.RadiationProblem(body=sphere, wavelength=0)
+    with caplog.at_level("WARNING"):
+        solver.solve(pb)
+    assert "resolution " not in caplog.text
+
 #-----------------------------------------------------------------------------#
 # Test direct solver
 #-----------------------------------------------------------------------------#
