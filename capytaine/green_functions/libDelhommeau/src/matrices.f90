@@ -63,8 +63,8 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3)    :: reflected_centers_1_I, reflected_VSP1
     REAL(KIND=PRE)                  :: SP1
     REAL(KIND=PRE), DIMENSION(3)    :: VSP1
-    COMPLEX(KIND=PRE)               :: SP2
-    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2, VSP2_SYM, VSP2_ANTISYM
+    COMPLEX(KIND=PRE)               :: int_G_wave
+    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2, int_nablaG_wave_sym, int_nablaG_wave_antisym
     LOGICAL :: use_symmetry_of_wave_part
 
     use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
@@ -72,7 +72,8 @@ CONTAINS
     coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
-    !$OMP&  PRIVATE(J, I, SP1, VSP1, SP2, VSP2, VSP2_SYM, VSP2_ANTISYM, reflected_centers_1_I, reflected_VSP1)
+    !$OMP&  PRIVATE(J, I, SP1, VSP1, int_G_wave, VSP2, int_nablaG_wave_sym, int_nablaG_wave_antisym, &
+    !$OMP&          reflected_centers_1_I, reflected_VSP1)
     DO J = 1, nb_faces_2
 
       !!!!!!!!!!!!!!!!!!!!
@@ -181,26 +182,26 @@ CONTAINS
             tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
             gf_singularities,                                            &
             NEXP, AMBDA, AR,                                             &
-            SP2, VSP2_SYM, VSP2_ANTISYM                                  &
+            int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym                                  &
           )
 
           ! Change the gradient terms for direct solver representation
           IF (.NOT. adjoint_double_layer) THEN
-            VSP2_ANTISYM = -VSP2_ANTISYM
+            int_nablaG_wave_antisym = -VSP2_ANTISYM
           END IF
 
-          S(I, J) = S(I, J) + coeffs(3) * SP2
+          S(I, J) = S(I, J) + coeffs(3) * int_G_wave
 
           if (size(K, 3) == 1) then
             if (.NOT. adjoint_double_layer) then
               K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
-                DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM)
+                DOT_PRODUCT(normals_2(J, :), int_nablaG_wave_sym + int_nablaG_wave_antisym)
             else
               K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
-                DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM)
+                DOT_PRODUCT(normals_1(I, :), int_nablaG_wave_sym + int_nablaG_wave_antisym)
             endif
           else
-            K(I, J, :) = K(I, J, :) + coeffs(3) * (VSP2_SYM + VSP2_ANTISYM)
+            K(I, J, :) = K(I, J, :) + coeffs(3) * (int_nablaG_wave_sym + int_nablaG_wave_antisym)
           endif
 
         END DO
@@ -239,7 +240,7 @@ CONTAINS
       ! (More precisely, the Green function is symmetric and its derivative is the sum of a symmetric part and an anti-symmetric
       ! part.)
 
-      !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(J, I, SP2, VSP2, VSP2_SYM, VSP2_ANTISYM)
+      !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(J, I, int_G_wave, VSP2, int_nablaG_wave_sym, int_nablaG_wave_antisym)
       DO J = 1, nb_faces_2
         DO I = J, nb_faces_1
 
@@ -251,39 +252,42 @@ CONTAINS
             tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
             gf_singularities,                                            &
             NEXP, AMBDA, AR,                                             &
-            SP2, VSP2_SYM, VSP2_ANTISYM                                  &
+            int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym     &
           )
 
           ! Change the gradient terms to direct solver representation
           IF (.NOT. adjoint_double_layer) THEN
-            VSP2_ANTISYM = -VSP2_ANTISYM
+            int_nablaG_wave_antisym = -VSP2_ANTISYM
           END IF
 
-          S(I, J) = S(I, J) + coeffs(3) * SP2
+          S(I, J) = S(I, J) + coeffs(3) * int_G_wave
           if (size(K, 3) == 1) then
             if (.NOT. adjoint_double_layer) then
               K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
-                DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM)
+                DOT_PRODUCT(normals_2(J, :), int_nablaG_wave_sym + int_nablaG_wave_antisym)
             else
               K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
-                DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM)
+                DOT_PRODUCT(normals_1(I, :), int_nablaG_wave_sym + int_nablaG_wave_antisym)
             endif
           else
-            K(I, J, :) = K(I, J, :) + coeffs(3) * (VSP2_SYM + VSP2_ANTISYM)
+            K(I, J, :) = K(I, J, :) + coeffs(3) * (int_nablaG_wave_sym + int_nablaG_wave_antisym)
           endif
 
           IF (.NOT. I==J) THEN
-            S(J, I) = S(J, I) + coeffs(3) * SP2 * areas_2(I)/areas_2(J)
+            S(J, I) = S(J, I) + coeffs(3) * int_G_wave * areas_2(I)/areas_2(J)
             if (size(K, 3) == 1) then
               if (.NOT. adjoint_double_layer) then
                 K(J, I, 1) = K(J, I, 1) + coeffs(3) * &
-                  DOT_PRODUCT(normals_2(I, :), VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
+                  DOT_PRODUCT(normals_2(I, :), int_nablaG_wave_sym - int_nablaG_wave_antisym) * &
+                  areas_2(I)/areas_2(J)
               else
                 K(J, I, 1) = K(J, I, 1) + coeffs(3) * &
-                  DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
+                  DOT_PRODUCT(normals_1(J, :), int_nablaG_wave_sym - int_nablaG_wave_antisym) * &
+                  areas_2(I)/areas_2(J)
               endif
             else
-              K(J, I, :) = K(J, I, :) + coeffs(3) * (VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
+              K(J, I, :) = K(J, I, :) + coeffs(3) * (int_nablaG_wave_sym - int_nablaG_wave_antisym) * &
+                areas_2(I)/areas_2(J)
             endif
           END IF
         END DO

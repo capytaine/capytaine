@@ -12,17 +12,17 @@ MODULE GREEN_WAVE
   ! Dependencies between the functions of this module:
   ! (from top to bottom: "is called by")
   !
-  !               (Delhommeau_integrals.f90)
-  !                          |
-  !              WAVE_PART_INFINITE_DEPTH           (COMPUTE_ASYMPTOTIC_RANKINE_SOURCE)
-  !                        /   \                    /
-  !                       |    WAVE_PART_FINITE_DEPTH
-  !                       \   /
-  !                 INTEGRAL_OF_WAVE_PART
-  !                          |
-  !                    (matrices.f90)
-  !                          |
-  !                    (python code)
+  !                                            (Delhommeau_integrals.f90)
+  !                                                       |
+  !                                           WAVE_PART_INFINITE_DEPTH           (COMPUTE_ASYMPTOTIC_RANKINE_SOURCE)
+  !                                                     /   \                    /
+  !          INTEGRAL_OF_SINGULARITY_ON_FREE_SURFACE   |    WAVE_PART_FINITE_DEPTH
+  !                                                \   \   /
+  !                                              INTEGRAL_OF_WAVE_PART
+  !                                                       |
+  !                                                 (matrices.f90)
+  !                                                       |
+  !                                                 (python code)
 
 CONTAINS
 
@@ -36,7 +36,7 @@ CONTAINS
       tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
       nexp, ambda, ar,                                           &
-      int_G, int_grad_G_sym, int_grad_G_antisym                  &
+      int_G, int_nablaG_sym, int_nablaG_antisym                  &
       )
     ! Integral over a panel of the wave part of the Green function.
 
@@ -55,12 +55,12 @@ CONTAINS
     real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
 
     complex(kind=pre),                     intent(out) :: int_G
-    complex(kind=pre), dimension(3),       intent(out) :: int_grad_G_sym, int_grad_G_antisym
+    complex(kind=pre), dimension(3),       intent(out) :: int_nablaG_sym, int_nablaG_antisym
 
     ! Local variables
     real(kind=pre)                  :: r, z
     complex(kind=pre)               :: G_at_point
-    complex(kind=pre), dimension(3) :: grad_G_at_point, grad_G_at_point_sym, grad_G_at_point_antisym
+    complex(kind=pre), dimension(3) :: nablaG_at_point, nablaG_at_point_sym, nablaG_at_point_antisym
     integer                         :: nb_quad_points, Q
 
     nb_quad_points = size(face_quadrature_weights)
@@ -72,14 +72,14 @@ CONTAINS
       ! Interaction of a panel on the free surface with itself
       call integral_of_singularity_on_free_surface( &
         face_area, wavenumber, &
-        int_G, int_grad_G_sym, int_grad_G_antisym &
+        int_G, int_nablaG_sym, int_nablaG_antisym &
         )
 
     else
       ! Numerical integration
       int_G = zero
-      int_grad_G_sym = zero
-      int_grad_G_antisym = zero
+      int_nablaG_sym = zero
+      int_nablaG_antisym = zero
 
       do q = 1, nb_quad_points
         if (is_infinity(depth)) then
@@ -89,12 +89,12 @@ CONTAINS
             wavenumber,                                                &
             tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
             gf_singularities,                                          &
-            g_at_point, grad_g_at_point                                &
+            G_at_point, nablaG_at_point                                &
             )
-            grad_g_at_point_sym(1:2) = cmplx(zero, zero, kind=pre)
-            grad_G_at_point_sym(3) = grad_G_at_point(3)
-            grad_G_at_point_antisym(1:2) = grad_G_at_point(1:2)
-            grad_G_at_point_antisym(3) = cmplx(zero, zero, kind=pre)
+            nablaG_at_point_sym(1:2) = cmplx(zero, zero, kind=pre)
+            nablaG_at_point_sym(3) = nablaG_at_point(3)
+            nablaG_at_point_antisym(1:2) = nablaG_at_point(1:2)
+            nablaG_at_point_antisym(3) = cmplx(zero, zero, kind=pre)
         else
           call wave_part_finite_depth                                  &
             (x,                                                        &
@@ -103,19 +103,21 @@ CONTAINS
             depth,                                                     &
             tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
             nexp, ambda, ar,                                           &
-            g_at_point, grad_g_at_point_sym, grad_g_at_point_antisym   &
+            G_at_point, nablaG_at_point_sym, nablaG_at_point_antisym   &
             )
         end if
 
-        int_g = int_g + g_at_point * face_quadrature_weights(q)
-        int_grad_g_sym = int_grad_g_sym + grad_g_at_point_sym * face_quadrature_weights(q)
-        int_grad_g_antisym = int_grad_g_antisym + grad_g_at_point_antisym * face_quadrature_weights(q)
+        int_G = int_G + G_at_point * face_quadrature_weights(q)
+        int_nablaG_sym = int_nablaG_sym + nablaG_at_point_sym * face_quadrature_weights(q)
+        int_nablaG_antisym = int_nablaG_antisym + nablaG_at_point_antisym * face_quadrature_weights(q)
       end do
     end if
 
   end subroutine
 
-  subroutine integral_of_singularity_on_free_surface(face_area, wavenumber, int_G, int_grad_G_sym, int_grad_G_antisym)
+  ! =====================================================================
+
+  subroutine integral_of_singularity_on_free_surface(face_area, wavenumber, int_G, int_nablaG_sym, int_nablaG_antisym)
   ! Integrating the wave term by approximating the panel by a circle of same area.
   ! The singularities are integrated analytically. The rest is integrated with a 1-point integral.
 
@@ -137,17 +139,18 @@ CONTAINS
     real(kind=pre),                        intent(in) :: face_area
 
     complex(kind=pre),                     intent(out) :: int_G
-    complex(kind=pre), dimension(3),       intent(out) :: int_grad_G_sym, int_grad_G_antisym
+    complex(kind=pre), dimension(3),       intent(out) :: int_nablaG_sym, int_nablaG_antisym
 
     int_G = wavenumber * face_area * (                      &
                   (1 - log(wavenumber**2 * face_area / pi)) &
                   + 2 * (euler_gamma - log_2) - 2*pi*ii     &
                 )
-    int_grad_G_sym(1:2) = cmplx(zero, zero, kind=pre)  ! TODO: might be needed for velocity reconstruction.
-    int_grad_G_sym(3) = wavenumber * (int_G + 4 * sqrt(pi*face_area))
-    int_grad_G_antisym(1:3) = cmplx(zero, zero, kind=pre)  ! Irrelevant anyway because we are on the diagonal
+    int_nablaG_sym(1:2) = cmplx(zero, zero, kind=pre)  ! TODO: might be needed for velocity reconstruction.
+    int_nablaG_sym(3) = wavenumber * (int_G + 4 * sqrt(pi*face_area))
+    int_nablaG_antisym(1:3) = cmplx(zero, zero, kind=pre)  ! Irrelevant anyway because we are on the diagonal
   end subroutine
 
+  ! =====================================================================
 
   SUBROUTINE WAVE_PART_INFINITE_DEPTH                        &
       ! Returns (G^-, nabla G^+) if gf_singularities == HIGH_FREQ
@@ -214,9 +217,9 @@ CONTAINS
       ENDIF
     ENDIF
 
-    !================================================
-    ! Add the elementary integrals to build FS and VS
-    !================================================
+    !===================================================
+    ! Add the elementary integrals to build G and nablaG
+    !===================================================
 
     IF (ABS(r) > 16*EPSILON(r)) THEN
       drdx1 = wavenumber**2 * (X0I(1) - X0J(1))/r
@@ -249,7 +252,7 @@ CONTAINS
 
   END SUBROUTINE WAVE_PART_INFINITE_DEPTH
 
-  ! ======================
+  ! =====================================================================
 
   SUBROUTINE WAVE_PART_FINITE_DEPTH &
       (X0I, X0J, wavenumber, depth, &
