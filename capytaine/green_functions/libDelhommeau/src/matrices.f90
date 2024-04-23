@@ -11,6 +11,16 @@ MODULE MATRICES
 
   IMPLICIT NONE
 
+  type pair_of_points
+    real(kind=pre), dimension(3) :: x
+    real(kind=pre), dimension(3) :: xi
+    real(kind=pre) :: r
+    real(kind=pre) :: z
+    real(kind=pre) :: r1
+    real(kind=pre) :: one_over_r
+    real(kind=pre) :: one_over_r1
+  end type
+
 CONTAINS
 
   ! =====================================================================

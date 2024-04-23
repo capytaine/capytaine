@@ -287,7 +287,7 @@ CONTAINS
     ! Local variables
     INTEGER                              :: KE
     REAL(KIND=PRE)                       :: AMH, AKH, A
-    REAL(KIND=PRE)                       :: AQT, R
+    REAL(KIND=PRE)                       :: AQT
     REAL(KIND=PRE),    DIMENSION(3)      :: XI, XJ
     REAL(KIND=PRE),    DIMENSION(4)      :: FTS
     REAL(KIND=PRE),    DIMENSION(3, 4)   :: VTS
@@ -300,9 +300,6 @@ CONTAINS
 
     XI(:) = X0I(:)
     XJ(:) = X0J(:)
-
-    ! Distance in xOy plane
-    R = NORM2(XI(1:2) - XJ(1:2))
 
     ! 1.a First infinite depth problem
     CALL WAVE_PART_INFINITE_DEPTH(                               &
