@@ -72,7 +72,8 @@ class Delhommeau(AbstractGreenFunction):
         Default: :code:`'float64'`.
     gf_singularities: string, optional
         Chose of the variant among the ways singularities can be extracted from
-        the Green function.
+        the Green function. Currently only affects the infinite depth Green
+        function.
         Default: "high_freq".
 
     Attributes
