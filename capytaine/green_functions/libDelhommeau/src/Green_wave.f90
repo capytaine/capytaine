@@ -69,6 +69,10 @@ CONTAINS
     z = wavenumber * (x(3) + face_center(3))
 
     if ((abs(r) < 1e-10) .and. (abs(z) < 1e-10)) then
+      if (gf_singularities == HIGH_FREQ) then
+        print*, "WARNING: support of free surface panels not implemented for the high_freq Green function"
+      endif
+
       ! Interaction of a panel on the free surface with itself
       call integral_of_singularity_on_free_surface( &
         face_area, wavenumber, &
@@ -134,7 +138,7 @@ CONTAINS
   ! ∫_Γ 1/r dξ ∼ 2 √( π |Γ| )
   ! TODO: replace the latter with the actual integral since we computed it anyway for the Rankine term.
 
-  ! TODO: only XieDelhommeau is implemented here
+  ! TODO: only low_freq singularities are implemented here
     real(kind=pre),                        intent(in) :: wavenumber
     real(kind=pre),                        intent(in) :: face_area
 
