@@ -16,6 +16,11 @@ Major changes
 
 * Experimental support for panels on the free surface. (:pull:`419`)
 
+Minor changes
+~~~~~~~~~~~~~
+
+* Remove mesh resolution warning when the frequency is infinite (or the wavelength is zero) (:pull:`511`).
+
 Internals
 ~~~~~~~~~
 
