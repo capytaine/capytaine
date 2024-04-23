@@ -106,8 +106,8 @@ CONTAINS
     !================================================
 
     G    = CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
-    nablaG(1) = -drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
-    nablaG(2) = -drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
+    nablaG(1) = drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
+    nablaG(2) = drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
     nablaG(3) = dzdx3 * CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
     if (gf_singularities == LOW_FREQ) then
       ! integrals(:, 2) are G^+, but the formula is that dG^+/dz = G^-
