@@ -1,5 +1,5 @@
 ! Copyright (C) 2022-2024 Matthieu Ancellin
-! See LICENSE file at <https://github.com/capytaine/capytaine>
+! See LICENSE file at <https://github.com/capytaine/libDelhommeau>
 !
 ! This module contains functions to evaluate the following integrals
 ! D1 = Re[ ∫(i cosθ)(J(ζ) - 1/ζ)dθ ]
