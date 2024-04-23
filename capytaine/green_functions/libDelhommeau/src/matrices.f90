@@ -64,7 +64,7 @@ CONTAINS
     REAL(KIND=PRE)                  :: SP1
     REAL(KIND=PRE), DIMENSION(3)    :: VSP1
     COMPLEX(KIND=PRE)               :: SP2
-    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2_SYM, VSP2_ANTISYM
+    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2, VSP2_SYM, VSP2_ANTISYM
     LOGICAL :: use_symmetry_of_wave_part
 
     use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
@@ -72,7 +72,7 @@ CONTAINS
     coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
-    !$OMP&  PRIVATE(J, I, SP1, VSP1, SP2, VSP2_SYM, VSP2_ANTISYM, reflected_centers_1_I, reflected_VSP1)
+    !$OMP&  PRIVATE(J, I, SP1, VSP1, SP2, VSP2, VSP2_SYM, VSP2_ANTISYM, reflected_centers_1_I, reflected_VSP1)
     DO J = 1, nb_faces_2
 
       !!!!!!!!!!!!!!!!!!!!
@@ -188,6 +188,7 @@ CONTAINS
           IF (.NOT. adjoint_double_layer) THEN
             VSP2_ANTISYM = -VSP2_ANTISYM
           END IF
+
           S(I, J) = S(I, J) + coeffs(3) * SP2
 
           if (size(K, 3) == 1) then
@@ -238,7 +239,7 @@ CONTAINS
       ! (More precisely, the Green function is symmetric and its derivative is the sum of a symmetric part and an anti-symmetric
       ! part.)
 
-      !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(J, I, SP2, VSP2_SYM, VSP2_ANTISYM)
+      !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(J, I, SP2, VSP2, VSP2_SYM, VSP2_ANTISYM)
       DO J = 1, nb_faces_2
         DO I = J, nb_faces_1
 

@@ -14,10 +14,10 @@ MODULE GREEN_WAVE
   !
   !               (Delhommeau_integrals.f90)
   !                          |
-  !              COLLECT_DELHOMMEAU_INTEGRALS       (COMPUTE_ASYMPTOTIC_RANKINE_SOURCE)
+  !              WAVE_PART_INFINITE_DEPTH           (COMPUTE_ASYMPTOTIC_RANKINE_SOURCE)
   !                        /   \                    /
-  ! WAVE_PART_INFINITE_DEPTH   WAVE_PART_FINITE_DEPTH
-  !                        \   /
+  !                       |    WAVE_PART_FINITE_DEPTH
+  !                       \   /
   !                 INTEGRAL_OF_WAVE_PART
   !                          |
   !                    (matrices.f90)
@@ -60,7 +60,7 @@ CONTAINS
     ! Local variables
     real(kind=pre)                  :: r, z
     complex(kind=pre)               :: G_at_point
-    complex(kind=pre), dimension(3) :: grad_G_at_point_sym, grad_G_at_point_antisym
+    complex(kind=pre), dimension(3) :: grad_G_at_point, grad_G_at_point_sym, grad_G_at_point_antisym
     integer                         :: nb_quad_points, Q
 
     nb_quad_points = size(face_quadrature_weights)
@@ -89,8 +89,12 @@ CONTAINS
             wavenumber,                                                &
             tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
             gf_singularities,                                          &
-            g_at_point, grad_g_at_point_sym, grad_g_at_point_antisym   &
+            g_at_point, grad_g_at_point                                &
             )
+            grad_g_at_point_sym(1:2) = cmplx(zero, zero, kind=pre)
+            grad_G_at_point_sym(3) = grad_G_at_point(3)
+            grad_G_at_point_antisym(1:2) = grad_G_at_point(1:2)
+            grad_G_at_point_antisym(3) = cmplx(zero, zero, kind=pre)
         else
           call wave_part_finite_depth                                  &
             (x,                                                        &
@@ -98,7 +102,6 @@ CONTAINS
             wavenumber,                                                &
             depth,                                                     &
             tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-            gf_singularities,                                          &
             nexp, ambda, ar,                                           &
             g_at_point, grad_g_at_point_sym, grad_g_at_point_antisym   &
             )
@@ -146,13 +149,13 @@ CONTAINS
   end subroutine
 
 
-  SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS                        &
+  SUBROUTINE WAVE_PART_INFINITE_DEPTH                        &
       ! Returns (G^-, nabla G^+) if gf_singularities == HIGH_FREQ
       ! and (G^+, nabla G^+) if gf_singularities == LOW_FREQ
       (X0I, X0J, wavenumber,                                     &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                         &
-      FS, VS)
+      G, nablaG)
 
     ! Inputs
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I, X0J
@@ -166,8 +169,8 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
 
     ! Outputs
-    COMPLEX(KIND=PRE),                        INTENT(OUT) :: FS  ! the integral
-    COMPLEX(KIND=PRE), DIMENSION(3),          INTENT(OUT) :: VS  ! its gradient
+    COMPLEX(KIND=PRE),                        INTENT(OUT) :: G
+    COMPLEX(KIND=PRE), DIMENSION(3),          INTENT(OUT) :: nablaG
 
     ! Local variables
     REAL(KIND=PRE) :: r, r1, z, drdx1, drdx2, dzdx3
@@ -225,73 +228,25 @@ CONTAINS
     END IF
     dzdx3 = wavenumber
 
-    FS    = CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
-    VS(1) = drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
-    VS(2) = drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
-    VS(3) = dzdx3 * CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
+    G    = CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
+    nablaG(1) = drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
+    nablaG(2) = drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
+    nablaG(3) = dzdx3 * CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
+
     if (gf_singularities == LOW_FREQ) then
       ! integrals(:, 2) are G^+, but the formula is that dG^+/dz = G^-
       ! Here is the correction
-      VS(3) = VS(3) + 2*dzdx3/r1
+      nablaG(3) = nablaG(3) + 2*dzdx3/r1
+    elseif (gf_singularities == HIGH_FREQ) then
+      ! we have nabla G^+, but we actually need nabla G^-
+      nablaG(1) = nablaG(1) - 2*drdx1*r/r1**3
+      nablaG(2) = nablaG(2) - 2*drdx2*r/r1**3
+      nablaG(3) = nablaG(3) - 2*dzdx3*z/r1**3
     endif
 
-    RETURN
-  END SUBROUTINE COLLECT_DELHOMMEAU_INTEGRALS
+    G = wavenumber * G
+    nablaG = wavenumber * nablaG
 
-  ! =========================
-
-  SUBROUTINE WAVE_PART_INFINITE_DEPTH &
-      (X0I, X0J, wavenumber,          &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities, &
-      SP, VSP_SYM, VSP_ANTISYM)
-    ! Compute the wave part of the Green function in the infinite depth case.
-    ! This is mostly the integral computed by the subroutine above.
-
-    ! Inputs
-    REAL(KIND=PRE),                           INTENT(IN) :: wavenumber
-    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I   ! Coordinates of the source point
-    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J   ! Coordinates of the center of the integration panel
-    integer,                                  intent(in) :: gf_singularities
-
-    ! Tabulated data
-    INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
-    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
-
-    ! Outputs
-    COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
-    COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP_SYM, VSP_ANTISYM ! Gradient of the integral of the Green function with respect to X0I.
-
-    ! Local variables
-    REAL(KIND=PRE), DIMENSION(3) :: XJ_REFLECTION
-    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP
-
-    ! The integrals
-    CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
-      X0I, X0J, wavenumber,                                      &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities, &
-      SP, VSP(:))
-    SP  = wavenumber*SP
-    VSP = wavenumber*VSP
-
-    if (gf_singularities == HIGH_FREQ) then
-      ! COLLECT_DELHOMMEAU_INTEGRALS returned nabla G^+, but we actually needed nabla G^-
-      ! Here is the correction:
-      XJ_REFLECTION(1:2) = X0J(1:2)
-      XJ_REFLECTION(3) = - X0J(3)
-      ! Only one singularity is missing in the derivative
-      VSP = VSP - 2*(X0I - XJ_REFLECTION)/(NORM2(X0I-XJ_REFLECTION)**3)
-    endif
-
-    VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
-    VSP_SYM(3)       = VSP(3)
-    VSP_ANTISYM(1:2) = VSP(1:2)
-    VSP_ANTISYM(3)   = CMPLX(ZERO, ZERO, KIND=PRE)
-
-    RETURN
   END SUBROUTINE WAVE_PART_INFINITE_DEPTH
 
   ! ======================
@@ -299,7 +254,6 @@ CONTAINS
   SUBROUTINE WAVE_PART_FINITE_DEPTH &
       (X0I, X0J, wavenumber, depth, &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities, &
       NEXP, AMBDA, AR,              &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
@@ -308,7 +262,6 @@ CONTAINS
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I  ! Coordinates of the source point
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
-    integer,                                  intent(in) :: gf_singularities
 
     ! Tabulated data
     INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
@@ -329,7 +282,7 @@ CONTAINS
     REAL(KIND=PRE)                       :: AMH, AKH, A
     REAL(KIND=PRE)                       :: AQT, R
     REAL(KIND=PRE),    DIMENSION(3)      :: XI, XJ
-    REAL(KIND=PRE),    DIMENSION(4)      :: FTS, PSR
+    REAL(KIND=PRE),    DIMENSION(4)      :: FTS
     REAL(KIND=PRE),    DIMENSION(3, 4)   :: VTS
     COMPLEX(KIND=PRE), DIMENSION(4)      :: FS
     COMPLEX(KIND=PRE), DIMENSION(3, 4)   :: VS
@@ -345,69 +298,44 @@ CONTAINS
     R = NORM2(XI(1:2) - XJ(1:2))
 
     ! 1.a First infinite depth problem
-    CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
+    CALL WAVE_PART_INFINITE_DEPTH(                               &
       XI(:), XJ(:), wavenumber,                                  &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities, &
+      LOW_FREQ, &
       FS(1), VS(:, 1))
-
-    if (gf_singularities == HIGH_FREQ) then
-      ! In the original Delhommeau method, the integrals are Re[ ∫(J(ζ) - 1/ζ)dθ ]/π + i Re[ ∫(e^ζ)dθ ]
-      ! whereas we need Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ]
-      ! So the term PSR is the difference because  Re[ ∫ 1/ζ dθ ] = - π/sqrt(r² + z²)
-      !
-      ! Note however, that the derivative part of Delhommeau integrals is the derivative of
-      ! Re[ ∫(J(ζ))dθ ]/π + i Re[ ∫(e^ζ)dθ ] so no fix is needed for the derivative.
-      PSR(1) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-    endif
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) =  X0J(3)
-    CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
+    CALL WAVE_PART_INFINITE_DEPTH(                               &
       XI(:), XJ(:), wavenumber,                                  &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities, &
+      LOW_FREQ, &
       FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
-
-    if (gf_singularities == HIGH_FREQ) then
-      PSR(2) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-    endif
 
     ! 1.c Shift and reflect XJ and compute another value of the Green function
     XI(3) =  X0I(3)
     XJ(3) = -X0J(3) - 2*depth
-    CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
+    CALL WAVE_PART_INFINITE_DEPTH(                               &
       XI(:), XJ(:), wavenumber,                                  &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities, &
+      LOW_FREQ, &
       FS(3), VS(:, 3))
-
-    if (gf_singularities == HIGH_FREQ) then
-      PSR(3) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-    endif
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
     XI(3) = -X0I(3) - 2*depth
     XJ(3) = -X0J(3) - 2*depth
-    CALL COLLECT_DELHOMMEAU_INTEGRALS(                           &
+    CALL WAVE_PART_INFINITE_DEPTH(                               &
       XI(:), XJ(:), wavenumber,                                  &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities, &
+      LOW_FREQ, &
       FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
-
-    if (gf_singularities == HIGH_FREQ) then
-      PSR(4) = 2*ONE/(wavenumber*SQRT(R**2+(XI(3)+XJ(3))**2))
-    endif
 
     ! Add up the results of the four problems
 
     SP               = SUM(FS(1:4))
-    if (gf_singularities == HIGH_FREQ) then
-      SP               = SP - SUM(PSR(1:4))
-    endif
     VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
     VSP_ANTISYM(1:2) = VS(1:2, 1) + VS(1:2, 2) + VS(1:2, 3) + VS(1:2, 4)
     VSP_SYM(3)       = VS(3, 1) + VS(3, 4)
@@ -416,7 +344,7 @@ CONTAINS
     ! Multiply by some coefficients
     AMH  = wavenumber*depth
     AKH  = AMH*TANH(AMH)
-    A    = (AMH+AKH)**2/(4*depth*(AMH**2-AKH**2+AKH))
+    A    = (AMH+AKH)**2/(4*AMH*(AMH**2-AKH**2+AKH))
 
     SP          = A*SP
     VSP_ANTISYM = A*VSP_ANTISYM
