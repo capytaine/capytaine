@@ -13,6 +13,7 @@ integer :: i_tabulation
 integer, dimension(n_tabulation) :: tabulation_nr
 integer, dimension(n_tabulation) :: tabulation_nz
 
+
 integer(kind=8) :: starting_time, final_time, clock_rate, clock_rate_in_ns
 
 real(kind=pre), dimension(:), allocatable          :: r, z, tabulated_r, tabulated_z

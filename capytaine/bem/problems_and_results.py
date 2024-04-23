@@ -256,7 +256,7 @@ class LinearPotentialFlowProblem:
     def __str__(self):
         """Do not display default values in str(problem)."""
         parameters = [f"body={self.body.__short_str__() if self.body is not None else None}",
-                      f"{self.provided_freq_type}={self.__getattribute__(self.provided_freq_type):.3f}",
+                      f"{self.provided_freq_type}={float(self.__getattribute__(self.provided_freq_type)):.3f}",
                       f"water_depth={self.water_depth}"]
 
         if not self.forward_speed == _default_parameters['forward_speed']:

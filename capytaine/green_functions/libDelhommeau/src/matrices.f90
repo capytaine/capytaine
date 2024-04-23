@@ -21,7 +21,7 @@ CONTAINS
       coeffs,                                         &
       tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       NEXP, AMBDA, AR,                                &
-      same_body, adjoint_double_layer,                &
+      same_body, gf_singularities, adjoint_double_layer, &
       S, K)
 
     ! Mesh data
@@ -35,9 +35,10 @@ CONTAINS
     INTEGER,                                                  INTENT(IN) :: nb_quad_points
     REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points, 3), INTENT(IN) :: quad_points
     REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points),    INTENT(IN) :: quad_weights
-    LOGICAL,                                  INTENT(IN) :: adjoint_double_layer
 
     LOGICAL,                                  INTENT(IN) :: same_body
+    integer,                                  INTENT(IN) :: gf_singularities
+    LOGICAL,                                  INTENT(IN) :: adjoint_double_layer
 
     REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
 
@@ -68,18 +69,7 @@ CONTAINS
 
     use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
 
-
-#ifndef XIE_CORRECTION
-    IF (is_infinity(depth)) THEN
-      ! In infinite depth, for finite frequency,
-      ! the original Delhommeau's method as in Nemoh uses coeffs(2) = -1.
-      ! But by default, coeffs(2) is set to 1 in delhommeau.py.
-      coeffs(2) = coeffs(2) - 2*coeffs(3)
-    ENDIF
-#endif
-
-    coeffs(:) = coeffs(:)/(4*PI)
-
+    coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
     !$OMP&  PRIVATE(J, I, SP1, VSP1, SP2, VSP2_SYM, VSP2_ANTISYM, reflected_centers_1_I, reflected_VSP1)
@@ -113,15 +103,15 @@ CONTAINS
           END IF
 
           ! Store into influence matrix
-          S(I, J) = S(I, J) - coeffs(1) * SP1                                ! Green function
+          S(I, J) = S(I, J) + coeffs(1) * SP1                                ! Green function
           if (size(K, 3) == 1) then
             if (.NOT. adjoint_double_layer) then
-              K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_2(J, :), VSP1(:))
+              K(I, J, 1) = K(I, J, 1) + coeffs(1) * DOT_PRODUCT(normals_2(J, :), VSP1(:))
             else
-              K(I, J, 1) = K(I, J, 1) - coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1(:))
+              K(I, J, 1) = K(I, J, 1) + coeffs(1) * DOT_PRODUCT(normals_1(I, :), VSP1(:))
             endif
           else
-            K(I, J, :) = K(I, J, :) - coeffs(1) * VSP1(:)
+            K(I, J, :) = K(I, J, :) + coeffs(1) * VSP1(:)
           endif
 
         END DO
@@ -164,15 +154,15 @@ CONTAINS
           END IF
 
           ! Store into influence matrix
-          S(I, J) = S(I, J) - coeffs(2) * SP1                                ! Green function
+          S(I, J) = S(I, J) + coeffs(2) * SP1                                ! Green function
           if (size(K, 3) == 1) then
             if (.NOT. adjoint_double_layer) then
-              K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_2(J, :), reflected_VSP1(:))
+              K(I, J, 1) = K(I, J, 1) + coeffs(2) * DOT_PRODUCT(normals_2(J, :), reflected_VSP1(:))
             else
-              K(I, J, 1) = K(I, J, 1) - coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_VSP1(:))
+              K(I, J, 1) = K(I, J, 1) + coeffs(2) * DOT_PRODUCT(normals_1(I, :), reflected_VSP1(:))
             endif
           else
-            K(I, J, :) = K(I, J, :) - coeffs(2) * reflected_VSP1(:)
+            K(I, J, :) = K(I, J, :) + coeffs(2) * reflected_VSP1(:)
           endif
         END DO
       END IF
@@ -183,13 +173,13 @@ CONTAINS
 
       IF ((coeffs(3) .NE. ZERO) .AND. (.NOT. use_symmetry_of_wave_part)) THEN
         DO I = 1, nb_faces_1
-
           call INTEGRAL_OF_WAVE_PART(                                    &
             centers_1(I, :),                                             &
             centers_2(J, :), normals_2(J, :), areas_2(J), radiuses_2(J), &
             quad_points(J, :, :), quad_weights(J, :),                    &
             wavenumber, depth,                                           &
             tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
+            gf_singularities,                                            &
             NEXP, AMBDA, AR,                                             &
             SP2, VSP2_SYM, VSP2_ANTISYM                                  &
           )
@@ -198,19 +188,18 @@ CONTAINS
           IF (.NOT. adjoint_double_layer) THEN
             VSP2_ANTISYM = -VSP2_ANTISYM
           END IF
-
-          S(I, J) = S(I, J) - coeffs(3) * SP2
+          S(I, J) = S(I, J) + coeffs(3) * SP2
 
           if (size(K, 3) == 1) then
             if (.NOT. adjoint_double_layer) then
-              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+              K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
                 DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM)
             else
-              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+              K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
                 DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM)
             endif
           else
-            K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM)
+            K(I, J, :) = K(I, J, :) + coeffs(3) * (VSP2_SYM + VSP2_ANTISYM)
           endif
 
         END DO
@@ -259,6 +248,7 @@ CONTAINS
             quad_points(J, :, :), quad_weights(J, :),                    &
             wavenumber, depth,                                           &
             tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
+            gf_singularities,                                            &
             NEXP, AMBDA, AR,                                             &
             SP2, VSP2_SYM, VSP2_ANTISYM                                  &
           )
@@ -268,31 +258,31 @@ CONTAINS
             VSP2_ANTISYM = -VSP2_ANTISYM
           END IF
 
-          S(I, J) = S(I, J) - coeffs(3) * SP2
+          S(I, J) = S(I, J) + coeffs(3) * SP2
           if (size(K, 3) == 1) then
             if (.NOT. adjoint_double_layer) then
-              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+              K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
                 DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM)
             else
-              K(I, J, 1) = K(I, J, 1) - coeffs(3) * &
+              K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
                 DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM)
             endif
           else
-            K(I, J, :) = K(I, J, :) - coeffs(3) * (VSP2_SYM + VSP2_ANTISYM)
+            K(I, J, :) = K(I, J, :) + coeffs(3) * (VSP2_SYM + VSP2_ANTISYM)
           endif
 
           IF (.NOT. I==J) THEN
-            S(J, I) = S(J, I) - coeffs(3) * SP2 * areas_2(I)/areas_2(J)
+            S(J, I) = S(J, I) + coeffs(3) * SP2 * areas_2(I)/areas_2(J)
             if (size(K, 3) == 1) then
               if (.NOT. adjoint_double_layer) then
-                K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
+                K(J, I, 1) = K(J, I, 1) + coeffs(3) * &
                   DOT_PRODUCT(normals_2(I, :), VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
               else
-                K(J, I, 1) = K(J, I, 1) - coeffs(3) * &
+                K(J, I, 1) = K(J, I, 1) + coeffs(3) * &
                   DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
               endif
             else
-              K(J, I, :) = K(J, I, :) - coeffs(3) * (VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
+              K(J, I, :) = K(J, I, :) + coeffs(3) * (VSP2_SYM - VSP2_ANTISYM) * areas_2(I)/areas_2(J)
             endif
           END IF
         END DO
