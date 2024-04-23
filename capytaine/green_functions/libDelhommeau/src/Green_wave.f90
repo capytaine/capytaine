@@ -249,6 +249,7 @@ CONTAINS
     elseif (gf_singularities == BETTER_LOW_FREQ) then
       ! Nothing for BETTER_LOW_FREQ since the correction is then done
       ! in the computation of the reflected Rankine integral
+      nablaG(3) = nablaG(3) + 1*dzdx3/r1
     elseif (gf_singularities == HIGH_FREQ) then
       ! we have nabla G^+, but we actually need nabla G^-
       nablaG(1) = nablaG(1) - 2*drdx1*r/r1**3

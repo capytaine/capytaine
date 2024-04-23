@@ -67,7 +67,8 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(3) :: int_nablaG_wave_sym, int_nablaG_wave_antisym
     LOGICAL :: use_symmetry_of_wave_part
 
-    use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
+    ! use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
+    use_symmetry_of_wave_part = .false.
 
     coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
@@ -171,8 +172,9 @@ CONTAINS
               if (.NOT. adjoint_double_layer) then
                 K(I, J, 1) = K(I, J, 1) + coeffs(3) * wavenumber * SP1 * normals_2(J, 3)
               else
-                K(I, J, 1) = K(I, J, 1) + coeffs(3) * wavenumber * SP1 * normals_1(J, 3)
+                K(I, J, 1) = K(I, J, 1) + coeffs(3) * wavenumber * SP1 * normals_1(I, 3)
               endif
+            else
               K(I, J, 3) = K(I, J, 3) + coeffs(3) * wavenumber * SP1
             endif
           endif
