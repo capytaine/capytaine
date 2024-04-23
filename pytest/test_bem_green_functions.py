@@ -145,3 +145,29 @@ def test_no_tabulation():
     tabed_gf = cpt.Delhommeau()
     untabed_gf = cpt.Delhommeau(tabulation_nr=0, tabulation_nz=0)
     assert np.allclose(untabed_gf.evaluate(mesh, mesh)[0], tabed_gf.evaluate(mesh, mesh)[0], atol=1e-2)
+
+
+# def test_panels_near_free_surface():
+#     area = 4.0
+#     def gf_at_depth(d):
+#         mesh = cpt.mesh_rectangle(size=(np.sqrt(area), np.sqrt(area)), resolution=(1, 1), center=(0, 0, d))
+#         x = np.array([[0, 0, 0]])
+#         S, _ = cpt.Delhommeau().evaluate(x, mesh, free_surface=0, water_depth=np.infty, wavenumber=3.0)
+#         return S
+#     gf_at_depth(0.0)
+#     gf_at_depth(1e-9)
+#     gf_at_depth(1e-5)
+#     gf_at_depth(1e-2)
+
+
+@pytest.mark.parametrize("gf", gfs)
+def test_exact_integration_of_rankine_terms(gf):
+    center = np.array([0.0, 0.0, 0.0])
+    area = 1.0
+
+    mesh = cpt.mesh_rectangle(size=(np.sqrt(area), np.sqrt(area)), center=center, resolution=(1, 1))
+    rankine_g_once = gf.evaluate(center.reshape(1, -1), mesh, wavenumber=0.0)[0]
+    mesh = cpt.mesh_rectangle(size=(np.sqrt(area), np.sqrt(area)), center=center, resolution=(11, 11))
+    # Use odd number of panels to avoid having the center on a corner of a panel, which is not defined for the strong singularity of the derivative.
+    rankine_g_parts = gf.evaluate(center.reshape(1, -1), mesh, wavenumber=0.0)[0]
+    assert rankine_g_once == pytest.approx(rankine_g_parts.sum(), abs=1e-2)

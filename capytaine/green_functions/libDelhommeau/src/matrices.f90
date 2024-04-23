@@ -1,6 +1,5 @@
 MODULE MATRICES
 
-  USE ieee_arithmetic
   USE FLOATING_POINT_PRECISION, ONLY: PRE
   USE CONSTANTS
 
@@ -10,13 +9,6 @@ MODULE MATRICES
   IMPLICIT NONE
 
 CONTAINS
-
-  ! =====================================================================
-
-  PURE LOGICAL FUNCTION is_infinity(x)
-    REAL(KIND=PRE), INTENT(IN) :: x
-    is_infinity = (.NOT. ieee_is_finite(x))
-  END FUNCTION
 
   ! =====================================================================
 
@@ -71,8 +63,8 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3)    :: reflected_centers_1_I, reflected_VSP1
     REAL(KIND=PRE)                  :: SP1
     REAL(KIND=PRE), DIMENSION(3)    :: VSP1
-    COMPLEX(KIND=PRE)               :: SP2
-    COMPLEX(KIND=PRE), DIMENSION(3) :: VSP2, VSP2_SYM, VSP2_ANTISYM
+    COMPLEX(KIND=PRE)               :: int_G_wave
+    COMPLEX(KIND=PRE), DIMENSION(3) :: int_nablaG_wave_sym, int_nablaG_wave_antisym
     LOGICAL :: use_symmetry_of_wave_part
 
     use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
@@ -80,7 +72,8 @@ CONTAINS
     coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
-    !$OMP&  PRIVATE(J, I, SP1, VSP1, SP2, VSP2, VSP2_SYM, VSP2_ANTISYM, reflected_centers_1_I, reflected_VSP1)
+    !$OMP&  PRIVATE(J, I, SP1, VSP1, int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym, &
+    !$OMP&          reflected_centers_1_I, reflected_VSP1)
     DO J = 1, nb_faces_2
 
       !!!!!!!!!!!!!!!!!!!!
@@ -181,63 +174,59 @@ CONTAINS
 
       IF ((coeffs(3) .NE. ZERO) .AND. (.NOT. use_symmetry_of_wave_part)) THEN
         DO I = 1, nb_faces_1
-          DO Q = 1, nb_quad_points
-            IF (is_infinity(depth)) THEN
-              CALL WAVE_PART_INFINITE_DEPTH &
-                (centers_1(I, :),           &
-                quad_points(J, Q, :),       & ! centers_2(J, :),
-                wavenumber,                 &
-                tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-                gf_singularities, &
-                SP2, VSP2 &
-                )
-              VSP2_SYM(1:2) = CMPLX(ZERO, ZERO, KIND=PRE)
-              VSP2_SYM(3) = VSP2(3)
-              VSP2_ANTISYM(1:2) = VSP2(1:2)
-              VSP2_ANTISYM(3) = CMPLX(ZERO, ZERO, KIND=PRE)
-            ELSE
-              CALL WAVE_PART_FINITE_DEPTH   &
-                (centers_1(I, :),           &
-                quad_points(J, Q, :),       & ! centers_2(J, :),
-                wavenumber,                 &
-                depth,                      &
-                tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-                NEXP, AMBDA, AR,            &
-                SP2, VSP2_SYM, VSP2_ANTISYM &
-                )
-            END IF
+          call INTEGRAL_OF_WAVE_PART(                                    &
+            centers_1(I, :),                                             &
+            centers_2(J, :), normals_2(J, :), areas_2(J), radiuses_2(J), &
+            quad_points(J, :, :), quad_weights(J, :),                    &
+            wavenumber, depth,                                           &
+            tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
+            gf_singularities,                                            &
+            NEXP, AMBDA, AR,                                             &
+            int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym                                  &
+          )
 
-           ! Change the gradient terms to direct solver representation
-            IF (.NOT. adjoint_double_layer) THEN
-              VSP2_ANTISYM = -VSP2_ANTISYM
-            END IF
+          ! Change the gradient terms for direct solver representation
+          IF (.NOT. adjoint_double_layer) THEN
+            int_nablaG_wave_antisym = -int_nablaG_wave_antisym
+          END IF
 
-            S(I, J) = S(I, J) + coeffs(3) * SP2 * quad_weights(J, Q)
+          S(I, J) = S(I, J) + coeffs(3) * int_G_wave
 
-            if (size(K, 3) == 1) then
-              if (.NOT. adjoint_double_layer) then
-                K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
-                  DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
-              else
-                K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
-                  DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
-              endif
+          if (size(K, 3) == 1) then
+            if (.NOT. adjoint_double_layer) then
+              K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
+                DOT_PRODUCT(normals_2(J, :), int_nablaG_wave_sym + int_nablaG_wave_antisym)
             else
-              K(I, J, :) = K(I, J, :) + coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, Q)
+              K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
+                DOT_PRODUCT(normals_1(I, :), int_nablaG_wave_sym + int_nablaG_wave_antisym)
             endif
+          else
+            K(I, J, :) = K(I, J, :) + coeffs(3) * (int_nablaG_wave_sym + int_nablaG_wave_antisym)
+          endif
 
-          END DO
         END DO
       END IF
 
       IF (SAME_BODY) THEN
-        if (size(K, 3) == 1) then
-          K(J, J, 1) = K(J, J, 1) + 0.5
-        else
-          if (.NOT. adjoint_double_layer) then
-            K(J, J, :) = K(J, J, :) + 0.5 * normals_2(J, :)
+        if (abs(centers_1(j, 3)) < 1e-8) then  ! Panel on the free surface
+          if (size(K, 3) == 1) then
+            K(J, J, 1) = K(J, J, 1) - 1.0
           else
-            K(J, J, :) = K(J, J, :) + 0.5 * normals_1(J, :)
+            if (.NOT. adjoint_double_layer) then
+              K(J, J, :) = K(J, J, :) - normals_2(J, :)
+            else
+              K(J, J, :) = K(J, J, :) - normals_1(J, :)
+            endif
+          endif
+        else
+          if (size(K, 3) == 1) then
+            K(J, J, 1) = K(J, J, 1) + 0.5
+          else
+            if (.NOT. adjoint_double_layer) then
+              K(J, J, :) = K(J, J, :) + 0.5 * normals_2(J, :)
+            else
+              K(J, J, :) = K(J, J, :) + 0.5 * normals_1(J, :)
+            endif
           endif
         endif
       END IF
@@ -251,64 +240,54 @@ CONTAINS
       ! (More precisely, the Green function is symmetric and its derivative is the sum of a symmetric part and an anti-symmetric
       ! part.)
 
-      !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(J, I, SP2, VSP2, VSP2_SYM, VSP2_ANTISYM)
+      !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(J, I, int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym)
       DO J = 1, nb_faces_2
         DO I = J, nb_faces_1
-          IF (is_infinity(depth)) THEN
-            CALL WAVE_PART_INFINITE_DEPTH &
-              (centers_1(I, :),           &
-              quad_points(J, 1, :),       & ! centers_2(J, :),
-              wavenumber,                 &
-              tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-              gf_singularities, &
-              SP2, VSP2 &
-              )
-            VSP2_SYM(1:2) = CMPLX(ZERO, ZERO, KIND=PRE)
-            VSP2_SYM(3) = VSP2(3)
-            VSP2_ANTISYM(1:2) = VSP2(1:2)
-            VSP2_ANTISYM(3) = CMPLX(ZERO, ZERO, KIND=PRE)
-          ELSE
-            CALL WAVE_PART_FINITE_DEPTH   &
-              (centers_1(I, :),           &
-              quad_points(J, 1, :),       & ! centers_2(J, :),
-              wavenumber,                 &
-              depth,                      &
-              tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-              NEXP, AMBDA, AR,            &
-              SP2, VSP2_SYM, VSP2_ANTISYM &
-              )
-          END IF
+
+          call INTEGRAL_OF_WAVE_PART(                                    &
+            centers_1(I, :),                                             &
+            centers_2(J, :), normals_2(J, :), areas_2(J), radiuses_2(J), &
+            quad_points(J, :, :), quad_weights(J, :),                    &
+            wavenumber, depth,                                           &
+            tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
+            gf_singularities,                                            &
+            NEXP, AMBDA, AR,                                             &
+            int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym     &
+          )
 
           ! Change the gradient terms to direct solver representation
           IF (.NOT. adjoint_double_layer) THEN
-            VSP2_ANTISYM = -VSP2_ANTISYM
+            int_nablaG_wave_antisym = -int_nablaG_wave_antisym
           END IF
 
-          S(I, J) = S(I, J) + coeffs(3) * SP2 * quad_weights(J, 1)
+          S(I, J) = S(I, J) + coeffs(3) * int_G_wave
           if (size(K, 3) == 1) then
             if (.NOT. adjoint_double_layer) then
               K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
-                DOT_PRODUCT(normals_2(J, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+                DOT_PRODUCT(normals_2(J, :), int_nablaG_wave_sym + int_nablaG_wave_antisym)
             else
               K(I, J, 1) = K(I, J, 1) + coeffs(3) * &
-                DOT_PRODUCT(normals_1(I, :), VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+                DOT_PRODUCT(normals_1(I, :), int_nablaG_wave_sym + int_nablaG_wave_antisym)
             endif
           else
-            K(I, J, :) = K(I, J, :) + coeffs(3) * (VSP2_SYM + VSP2_ANTISYM) * quad_weights(J, 1)
+            K(I, J, :) = K(I, J, :) + coeffs(3) * (int_nablaG_wave_sym + int_nablaG_wave_antisym)
           endif
 
           IF (.NOT. I==J) THEN
-            S(J, I) = S(J, I) + coeffs(3) * SP2 * quad_weights(I, 1)
+            S(J, I) = S(J, I) + coeffs(3) * int_G_wave * areas_2(I)/areas_2(J)
             if (size(K, 3) == 1) then
               if (.NOT. adjoint_double_layer) then
                 K(J, I, 1) = K(J, I, 1) + coeffs(3) * &
-                  DOT_PRODUCT(normals_2(I, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+                  DOT_PRODUCT(normals_2(I, :), int_nablaG_wave_sym - int_nablaG_wave_antisym) * &
+                  areas_2(I)/areas_2(J)
               else
                 K(J, I, 1) = K(J, I, 1) + coeffs(3) * &
-                  DOT_PRODUCT(normals_1(J, :), VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+                  DOT_PRODUCT(normals_1(J, :), int_nablaG_wave_sym - int_nablaG_wave_antisym) * &
+                  areas_2(I)/areas_2(J)
               endif
             else
-              K(J, I, :) = K(J, I, :) + coeffs(3) * (VSP2_SYM - VSP2_ANTISYM) * quad_weights(I, 1)
+              K(J, I, :) = K(J, I, :) + coeffs(3) * (int_nablaG_wave_sym - int_nablaG_wave_antisym) * &
+                areas_2(I)/areas_2(J)
             endif
           END IF
         END DO

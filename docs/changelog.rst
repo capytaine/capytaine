@@ -11,6 +11,11 @@ Changelog
 New in next version
 -------------------
 
+Major changes
+~~~~~~~~~~~~~
+
+* Experimental support for panels on the free surface. (:pull:`419`)
+
 Internals
 ~~~~~~~~~
 
