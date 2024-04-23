@@ -17,14 +17,6 @@ module delhommeau_integrals
 
   implicit none
 
-  integer, parameter :: LEGACY_GRID = 0  ! Nemoh 2
-  integer, parameter :: SCALED_NEMOH3_GRID = 1
-
-  ! Extracted singularities
-  integer, parameter :: HIGH_FREQ = 0  ! legacy from Nemoh
-  integer, parameter :: LOW_FREQ = 1  ! aka XieDelhommeau
-
-
   public :: numerical_integration
   public :: asymptotic_approximations
   public :: construct_tabulation

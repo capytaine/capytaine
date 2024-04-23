@@ -72,7 +72,8 @@ class Delhommeau(AbstractGreenFunction):
         Default: :code:`'float64'`.
     gf_singularities: string, optional
         Chose of the variant among the ways singularities can be extracted from
-        the Green function.
+        the Green function. Currently only affects the infinite depth Green
+        function.
         Default: "high_freq".
 
     Attributes
@@ -107,15 +108,15 @@ class Delhommeau(AbstractGreenFunction):
 
         self.tabulation_grid_shape = tabulation_grid_shape
         fortran_enum = {
-                'legacy': self.fortran_core.delhommeau_integrals.legacy_grid,
-                'scaled_nemoh3': self.fortran_core.delhommeau_integrals.scaled_nemoh3_grid,
+                'legacy': self.fortran_core.constants.legacy_grid,
+                'scaled_nemoh3': self.fortran_core.constants.scaled_nemoh3_grid,
                               }
         self.tabulation_grid_shape_index = fortran_enum[tabulation_grid_shape]
 
         self.gf_singularities = gf_singularities
         fortran_enum = {
-                'high_freq': self.fortran_core.delhommeau_integrals.high_freq,
-                'low_freq': self.fortran_core.delhommeau_integrals.low_freq,
+                'high_freq': self.fortran_core.constants.high_freq,
+                'low_freq': self.fortran_core.constants.low_freq,
                               }
         self.gf_singularities_index = fortran_enum[gf_singularities]
 

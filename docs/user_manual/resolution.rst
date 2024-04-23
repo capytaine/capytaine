@@ -40,13 +40,15 @@ In the present version, a single class is implemented, although it offers many p
         gf = cpt.Delhommeau(tabulation_nr=324, tabulation_rmax=100,
                             tabulation_nz=46, tabulation_zmin=-16,
                             tabulation_nb_integration_points=251,
-                            tabulation_grid_shape="legacy")
+                            tabulation_grid_shape="legacy",
+                            gf_singularities="high_freq")
 
         # Default in Capytaine 2.1
         gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
                             tabulation_nz=372, tabulation_zmin=-251,
                             tabulation_nb_integration_points=1000,
-                            tabulation_grid_shape="scaled_nemoh3")
+                            tabulation_grid_shape="scaled_nemoh3",
+                            gf_singularities="high_freq")
 
    In version 2.1, the default numbers of :math:`r` and :math:`z` values have
    been increased to :math:`676` and :math:`372`, respectively. While the range
