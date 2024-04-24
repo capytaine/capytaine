@@ -25,24 +25,31 @@ module delhommeau_integrals
 
 contains
 
-  pure function numerical_integration(r, z, n) result(integrals)
+  pure function numerical_integration(r, z, nb_integration_points) result(integrals)
     ! Compute the integrals by numerical integration, with `nb_integration_points` points.
 
     ! input
     real(kind=pre), intent(in) :: r
     real(kind=pre), intent(in) :: z
-    integer,        intent(in) :: n ! nb_integration_points
+    integer,        intent(in) :: nb_integration_points
 
     ! output
     real(kind=pre), dimension(2, 2) :: integrals
 
     ! local variables
-    integer :: k
+    integer :: k, n
     real(kind=pre) :: theta, delta_theta, cos_theta
     complex(kind=pre) :: zeta, exp_zeta, jzeta
 
     ! initial values
     integrals(:, :) = 0.0
+
+    ! Should have an odd number of points for Simpson rule
+    if (mod(nb_integration_points, 2) == 0) then
+      n = nb_integration_points + 1
+    else
+      n = nb_integration_points
+    endif
 
     do k = 1, n
       theta = -pi/2 + pi*(k-1.0)/(n-1.0)
