@@ -23,6 +23,11 @@ Minor changes
 
 * When computing without a tabulation (``tabulation_nr=0`` or ``tabulation_nz=0``), the value of ``tabulation_nb_integration_points`` is actually used to compute Guével-Delhommeau exact formulation of the Green function. Previously, it was only used when precomputing a tabulation (:pull:`514`).
 
+Bug fixes
+~~~~~~~~~
+
+* Always use an odd number of points for integration with Simpson rule (:pull:`515`). This bug was partly responsible for some high-frequency inaccuracy (:issue:`298`).
+
 Internals
 ~~~~~~~~~
 
