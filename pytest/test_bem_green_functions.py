@@ -175,3 +175,14 @@ def test_exact_integration_of_rankine_terms(gf):
     # Use odd number of panels to avoid having the center on a corner of a panel, which is not defined for the strong singularity of the derivative.
     rankine_g_parts = gf.evaluate(center.reshape(1, -1), mesh, wavenumber=0.0)[0]
     assert rankine_g_once == pytest.approx(rankine_g_parts.sum(), abs=1e-2)
+
+
+def test_exact_integration_with_nb_integration_points():
+    # Test that the tabulation_nb_integration_points is actually taken into account.
+    mesh = cpt.mesh_rectangle(center=(0, 0, -1), resolution=(1, 1))
+    point = np.array([[100, 0, -1]])
+    gf = cpt.Delhommeau(tabulation_nr=0, tabulation_nb_integration_points=11)
+    val1 = gf.evaluate(point, mesh)
+    gf = cpt.Delhommeau(tabulation_nr=0, tabulation_nb_integration_points=101)
+    val2 = gf.evaluate(point, mesh)
+    assert np.abs(val1[0] - val2[0]) > 1e-1

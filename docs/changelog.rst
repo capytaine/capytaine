@@ -21,6 +21,8 @@ Minor changes
 
 * Remove mesh resolution warning when the frequency is infinite (or the wavelength is zero) (:pull:`511`).
 
+* When computing without a tabulation (``tabulation_nr=0`` or ``tabulation_nz=0``), the value of ``tabulation_nb_integration_points`` is actually used to compute Guével-Delhommeau exact formulation of the Green function. Previously, it was only used when precomputing a tabulation (:pull:`514`).
+
 Internals
 ~~~~~~~~~
 
