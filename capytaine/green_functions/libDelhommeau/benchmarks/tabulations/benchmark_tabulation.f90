@@ -38,7 +38,7 @@ z = -10*z
 
 call system_clock(starting_time)
 do i_sample = 1, n_samples
-    integrals(i_sample, :, :) = numerical_integration(r(i_sample), z(i_sample), 2500)
+    integrals(i_sample, :, :) = numerical_integration(r(i_sample), z(i_sample), 2501)
 enddo
 call system_clock(final_time)
 print*, "Integration (fine)  :", (final_time - starting_time)/clock_rate_in_ns/n_samples, " ns"
@@ -63,7 +63,7 @@ do i_tabulation = 1, n_tabulation
 
   tabulated_r(:) = default_r_spacing(tabulation_nr(i_tabulation), 100d0, tabulation_grid_shape)
   tabulated_z(:) = default_z_spacing(tabulation_nz(i_tabulation), -251d0, tabulation_grid_shape)
-  tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 1000)
+  tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 1001)
 
   call system_clock(starting_time)
   do i_sample = 1, n_samples

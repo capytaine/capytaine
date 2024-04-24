@@ -192,7 +192,7 @@ CONTAINS
     !=======================================================
     IF ((size(tabulated_z_range) <= 1) .or. (size(tabulated_r_range) <= 1)) THEN
       ! No tabulation, fully recompute the Green function each time.
-      integrals = numerical_integration(r, z, 500)
+      integrals = numerical_integration(r, z, 501)
       if (gf_singularities == HIGH_FREQ) then
         ! numerical_integration always computes the low_freq version,
         ! so need a fix to get the high_freq
