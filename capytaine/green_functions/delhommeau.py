@@ -60,10 +60,9 @@ class Delhommeau(AbstractGreenFunction):
         Either :code:`"legacy"` or :code:`"scaled_nemoh3"`, which are the two
         methods currently implemented.
         Default: :code:`"scaled_nemoh3"`
-    cache_tabulation_on_disk: bool, optional
-        Whether or not to save the precomputed tabulation in a cache directory
-        of the local machine.
-        Default: True
+    tabulation_cache_dir: str or None, optional
+        Directory in which to save the tabulation file(s).
+        If None, the tabulation is not saved on disk.
     finite_depth_prony_decomposition_method: string, optional
         The implementation of the Prony decomposition used to compute the
         finite water_depth Green function. Accepted values: :code:`'fortran'`
@@ -103,7 +102,7 @@ class Delhommeau(AbstractGreenFunction):
                  tabulation_zmin=_default_parameters["tabulation_zmin"],
                  tabulation_nb_integration_points=_default_parameters["tabulation_nb_integration_points"],
                  tabulation_grid_shape=_default_parameters["tabulation_grid_shape"],
-                 cache_tabulation_on_disk=True,
+                 tabulation_cache_dir=cache_directory(),
                  finite_depth_prony_decomposition_method=_default_parameters["finite_depth_prony_decomposition_method"],
                  floating_point_precision=_default_parameters["floating_point_precision"],
                  gf_singularities=_default_parameters["gf_singularities"],
@@ -128,14 +127,16 @@ class Delhommeau(AbstractGreenFunction):
         self.floating_point_precision = floating_point_precision
         self.tabulation_nb_integration_points = tabulation_nb_integration_points
 
-        if cache_tabulation_on_disk:
-            self._create_or_load_tabulation(tabulation_nr, tabulation_rmax,
-                                            tabulation_nz, tabulation_zmin,
-                                            tabulation_nb_integration_points)
-        else:
+        self.tabulation_cache_dir = tabulation_cache_dir
+        if tabulation_cache_dir is None:
             self._create_tabulation(tabulation_nr, tabulation_rmax,
                                     tabulation_nz, tabulation_zmin,
                                     tabulation_nb_integration_points)
+        else:
+            self._create_or_load_tabulation(tabulation_nr, tabulation_rmax,
+                                            tabulation_nz, tabulation_zmin,
+                                            tabulation_nb_integration_points,
+                                            tabulation_cache_dir)
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
@@ -179,7 +180,8 @@ class Delhommeau(AbstractGreenFunction):
 
     def _create_or_load_tabulation(self, tabulation_nr, tabulation_rmax,
                                    tabulation_nz, tabulation_zmin,
-                                   tabulation_nb_integration_points):
+                                   tabulation_nb_integration_points,
+                                   tabulation_cache_dir):
         """This method either:
             - loads an existing tabulation saved on disk
             - generates a new tabulation with the data provided as argument and save it on disk.
@@ -194,7 +196,7 @@ class Delhommeau(AbstractGreenFunction):
             tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin,
             tabulation_nb_integration_points
         )
-        filepath = os.path.join(cache_directory(), filename)
+        filepath = os.path.join(tabulation_cache_dir, filename)
 
         if os.path.exists(filepath):
             LOG.info("Loading tabulation from %s", filepath)

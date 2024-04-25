@@ -9,7 +9,9 @@ from capytaine import __version__
 
 
 def cache_directory():
-    if sys.platform == "win32":  # Windows
+    if "CAPYTAINE_CACHE_DIR" in os.environ:
+        path = os.environ["CAPYTAINE_CACHE_DIR"]
+    elif sys.platform == "win32":  # Windows
         path = os.path.normpath(os.environ.get("LOCALAPPDATA"))
         path = os.path.join(path, "capytaine", "Cache", __version__)
     elif sys.platform == "darwin":  # MacOS
