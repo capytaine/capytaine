@@ -33,7 +33,8 @@ CONTAINS
       face_center, face_normal, face_area, face_radius,          &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber, depth,                                         &
-      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
       nexp, ambda, ar,                                           &
       int_G, int_nablaG_sym, int_nablaG_antisym                  &
@@ -47,7 +48,8 @@ CONTAINS
     real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
     real(kind=pre),                        intent(in) :: wavenumber, depth
     integer,                               intent(in) :: gf_singularities
-    integer,                               intent(in) :: tabulation_method
+    integer,                               intent(in) :: tabulation_nb_integration_points
+    integer,                               intent(in) :: tabulation_grid_shape
     real(kind=pre), dimension(:),          intent(in) :: tabulated_r_range
     real(kind=pre), dimension(:),          intent(in) :: tabulated_z_range
     real(kind=pre), dimension(:, :, :, :), intent(in) :: tabulated_integrals
@@ -91,7 +93,8 @@ CONTAINS
             (x,                                                        &
             face_quadrature_points(q, :),                              &
             wavenumber,                                                &
-            tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+            tabulation_nb_integration_points, tabulation_grid_shape,   &
+            tabulated_r_range, tabulated_z_range, tabulated_integrals, &
             gf_singularities,                                          &
             G_at_point, nablaG_at_point                                &
             )
@@ -105,7 +108,8 @@ CONTAINS
             face_quadrature_points(q, :),                              &
             wavenumber,                                                &
             depth,                                                     &
-            tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+            tabulation_nb_integration_points, tabulation_grid_shape,   &
+            tabulated_r_range, tabulated_z_range, tabulated_integrals, &
             nexp, ambda, ar,                                           &
             G_at_point, nablaG_at_point_sym, nablaG_at_point_antisym   &
             )
@@ -156,12 +160,13 @@ CONTAINS
 
   ! =====================================================================
 
-  SUBROUTINE WAVE_PART_INFINITE_DEPTH                        &
+  SUBROUTINE WAVE_PART_INFINITE_DEPTH                            &
       ! Returns (G^-, nabla G^+) if gf_singularities == HIGH_FREQ
       ! and (G^+, nabla G^+) if gf_singularities == LOW_FREQ
       (X0I, X0J, wavenumber,                                     &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities,                                         &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      gf_singularities,                                          &
       G, nablaG)
 
     ! Inputs
@@ -170,6 +175,7 @@ CONTAINS
     integer,                                  intent(in) :: gf_singularities
 
     ! Tabulated data
+    integer,                                  intent(in) :: tabulation_nb_integration_points
     INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
@@ -192,7 +198,7 @@ CONTAINS
     !=======================================================
     IF ((size(tabulated_z_range) <= 1) .or. (size(tabulated_r_range) <= 1)) THEN
       ! No tabulation, fully recompute the Green function each time.
-      integrals = numerical_integration(r, z, 500)
+      integrals = numerical_integration(r, z, tabulation_nb_integration_points)
       if (gf_singularities == HIGH_FREQ) then
         ! numerical_integration always computes the low_freq version,
         ! so need a fix to get the high_freq
@@ -258,10 +264,11 @@ CONTAINS
 
   ! =====================================================================
 
-  SUBROUTINE WAVE_PART_FINITE_DEPTH &
-      (X0I, X0J, wavenumber, depth, &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      NEXP, AMBDA, AR,              &
+  SUBROUTINE WAVE_PART_FINITE_DEPTH                              &
+      (X0I, X0J, wavenumber, depth,                              &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      NEXP, AMBDA, AR,                                           &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
 
@@ -271,6 +278,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
 
     ! Tabulated data
+    integer,                                  intent(in) :: tabulation_nb_integration_points
     INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
@@ -304,8 +312,9 @@ CONTAINS
     ! 1.a First infinite depth problem
     CALL WAVE_PART_INFINITE_DEPTH(                               &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      LOW_FREQ, &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      LOW_FREQ,                                                  &
       FS(1), VS(:, 1))
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
@@ -313,8 +322,9 @@ CONTAINS
     XJ(3) =  X0J(3)
     CALL WAVE_PART_INFINITE_DEPTH(                               &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      LOW_FREQ, &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      LOW_FREQ,                                                  &
       FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
@@ -323,8 +333,9 @@ CONTAINS
     XJ(3) = -X0J(3) - 2*depth
     CALL WAVE_PART_INFINITE_DEPTH(                               &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      LOW_FREQ, &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      LOW_FREQ,                                                  &
       FS(3), VS(:, 3))
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
@@ -332,8 +343,9 @@ CONTAINS
     XJ(3) = -X0J(3) - 2*depth
     CALL WAVE_PART_INFINITE_DEPTH(                               &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      LOW_FREQ, &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      LOW_FREQ,                                                  &
       FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 

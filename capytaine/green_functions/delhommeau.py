@@ -23,7 +23,7 @@ _default_parameters = dict(
     tabulation_rmax=100.0,
     tabulation_nz=372,
     tabulation_zmin=-251.0,
-    tabulation_nb_integration_points=1000,
+    tabulation_nb_integration_points=1001,
     tabulation_grid_shape="scaled_nemoh3",
     finite_depth_prony_decomposition_method="fortran",
     floating_point_precision="float64",
@@ -121,6 +121,7 @@ class Delhommeau(AbstractGreenFunction):
         self.gf_singularities_index = fortran_enum[gf_singularities]
 
         self.floating_point_precision = floating_point_precision
+        self.tabulation_nb_integration_points = tabulation_nb_integration_points
 
         self._create_or_load_tabulation(tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin, tabulation_nb_integration_points)
 
@@ -371,7 +372,8 @@ class Delhommeau(AbstractGreenFunction):
             *mesh2.quadrature_points,
             wavenumber, water_depth,
             coeffs,
-            self.tabulation_grid_shape_index, self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
+            self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
+            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
             mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
             S, K
