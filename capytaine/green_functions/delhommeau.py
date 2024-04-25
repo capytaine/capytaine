@@ -60,6 +60,10 @@ class Delhommeau(AbstractGreenFunction):
         Either :code:`"legacy"` or :code:`"scaled_nemoh3"`, which are the two
         methods currently implemented.
         Default: :code:`"scaled_nemoh3"`
+    cache_tabulation_on_disk: bool, optional
+        Whether or not to save the precomputed tabulation in a cache directory
+        of the local machine.
+        Default: True
     finite_depth_prony_decomposition_method: string, optional
         The implementation of the Prony decomposition used to compute the
         finite water_depth Green function. Accepted values: :code:`'fortran'`
@@ -99,6 +103,7 @@ class Delhommeau(AbstractGreenFunction):
                  tabulation_zmin=_default_parameters["tabulation_zmin"],
                  tabulation_nb_integration_points=_default_parameters["tabulation_nb_integration_points"],
                  tabulation_grid_shape=_default_parameters["tabulation_grid_shape"],
+                 cache_tabulation_on_disk=True,
                  finite_depth_prony_decomposition_method=_default_parameters["finite_depth_prony_decomposition_method"],
                  floating_point_precision=_default_parameters["floating_point_precision"],
                  gf_singularities=_default_parameters["gf_singularities"],
@@ -123,7 +128,14 @@ class Delhommeau(AbstractGreenFunction):
         self.floating_point_precision = floating_point_precision
         self.tabulation_nb_integration_points = tabulation_nb_integration_points
 
-        self._create_or_load_tabulation(tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin, tabulation_nb_integration_points)
+        if cache_tabulation_on_disk:
+            self._create_or_load_tabulation(tabulation_nr, tabulation_rmax,
+                                            tabulation_nz, tabulation_zmin,
+                                            tabulation_nb_integration_points)
+        else:
+            self._create_tabulation(tabulation_nr, tabulation_rmax,
+                                    tabulation_nz, tabulation_zmin,
+                                    tabulation_nb_integration_points)
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
@@ -192,21 +204,28 @@ class Delhommeau(AbstractGreenFunction):
             self.tabulated_integrals = loaded_arrays["values"]
 
         else:
-            LOG.warning("Precomputing tabulation, it may take a few seconds.")
-            self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
-                    tabulation_nr, tabulation_rmax, self.tabulation_grid_shape_index
-                    )
-            self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(
-                    tabulation_nz, tabulation_zmin, self.tabulation_grid_shape_index
-                    )
-            self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
-                    self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
-                    )
+            self._create_tabulation(tabulation_nr, tabulation_rmax,
+                                    tabulation_nz, tabulation_zmin,
+                                    tabulation_nb_integration_points)
             LOG.debug("Saving tabulation in %s", filepath)
             np.savez_compressed(
                 filepath, r_range=self.tabulated_r_range, z_range=self.tabulated_z_range,
                 values=self.tabulated_integrals
             )
+
+    def _create_tabulation(self, tabulation_nr, tabulation_rmax,
+                                   tabulation_nz, tabulation_zmin,
+                                   tabulation_nb_integration_points):
+        LOG.warning("Precomputing tabulation, it may take a few seconds.")
+        self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
+                tabulation_nr, tabulation_rmax, self.tabulation_grid_shape_index
+                )
+        self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(
+                tabulation_nz, tabulation_zmin, self.tabulation_grid_shape_index
+                )
+        self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
+                self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
+                )
 
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
@@ -234,8 +253,8 @@ class Delhommeau(AbstractGreenFunction):
             the amplitude and growth rates of the exponentials
         """
 
-        LOG.debug(f"\tCompute Prony decomposition in finite water_depth Green function "
-                  f"for dimless_omega=%.2e and dimless_wavenumber=%.2e",
+        LOG.debug("\tCompute Prony decomposition in finite water_depth Green function "
+                  "for dimless_omega=%.2e and dimless_wavenumber=%.2e",
                   dimensionless_omega, dimensionless_wavenumber)
 
         if self.finite_depth_prony_decomposition_method.lower() == 'python':
@@ -339,7 +358,7 @@ class Delhommeau(AbstractGreenFunction):
         if isinstance(mesh1, Mesh) or isinstance(mesh1, CollectionOfMeshes):
             collocation_points = mesh1.faces_centers
             nb_collocation_points = mesh1.nb_faces
-            if ( adjoint_double_layer == False ):
+            if not adjoint_double_layer:
                 early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
             else:
                 early_dot_product_normals = mesh1.faces_normals
@@ -348,7 +367,7 @@ class Delhommeau(AbstractGreenFunction):
             collocation_points = mesh1
             nb_collocation_points = mesh1.shape[0]
             early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
-            if ( adjoint_double_layer == False ):
+            if not adjoint_double_layer:
                 raise NotImplementedError("Using a list of points as collocation points is not supported in computing adjoint double layer matrices.")
         else:
             raise ValueError(f"Unrecognized input for {self.__class__.__name__}.evaluate")
