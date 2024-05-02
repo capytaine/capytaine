@@ -23,6 +23,9 @@ computed forces on the body::
 
 The force is stored as Python dictionary associating a complex value in SI
 units to the name of the influenced degree of freedom.
+In other words, in the example code above, the :math:`x`-component of the force
+vector has magnitude 23941 Newton at :math:`t =0`, while the
+:math:`y`-component of the force vector is negligible at all time.
 
 For radiation problems, the result object also contain ``added_mass`` and
 ``radiation_damping`` attributes, with the same shape of a Python dictionary.
