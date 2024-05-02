@@ -6,7 +6,7 @@ Capytaine is available on Windows, MacOS [#]_ and Linux.
 
 .. [#] For the latest informations on the Apple arm64 architectures, see https://github.com/capytaine/capytaine/issues/190
 
-Capytaine requires Python 3.7 or higher.
+The latest version of Capytaine requires Python 3.8 or higher.
 It is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
 
 
@@ -30,7 +30,7 @@ All the core feature of Capytaine are accessible from such a Jupyter-based envir
 As a standalone executable
 --------------------------
 
-An experimental distribution of Capytaine bundled with a full Python distribution in a single executable file can be found at `https://github.com/capytaine/capytaine-standalone`_.
+An experimental distribution of Capytaine bundled with a full Python distribution in a single executable file can be found at `<https://github.com/capytaine/capytaine-standalone>`_.
 Please refer to the instruction on that page for download and usage.
 
 The standalone executable is the simplest way to use Capytaine locally, although it has some limitations, such a longer startup time and the current lack of interactive Matplotlib figures.
@@ -71,7 +71,7 @@ Capytaine is also available in the Anaconda package repository, that can be acce
 .. _Mamba: https://mamba.readthedocs.io/en/latest/
 
 .. note::
-    If you experience very long processing time when installing a package with ``conda``, you might want to `install the libmamba solver with ``conda`` <https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community>`_ or `fully replace ``conda`` with Mamba_.
+    If you experience very long processing time when installing a package with ``conda``, you might want to `install the libmamba solver <https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community>`_ or fully replace ``conda`` with Mamba_.
 
 Once Conda has been installed, you can install Capytaine from the `conda-forge` channel.
 It is recommended to do the installation into a `dedicated virtual environment <https://docs.conda.io/projects/conda/en/latest/user-guide/getting-started.html#managing-environments>`_ (here arbitrarily named ``capytaine_env``)::
@@ -128,18 +128,18 @@ However, it is often more efficient to specify the packages you'd like in your e
 With Docker
 -----------
 
-The following command will create a Docker image based on Ubuntu 22.04 with the version v2.0 of Capytaine::
+The following command will create a Docker image based on Ubuntu 22.04 with the version v2.1 of Capytaine::
 
-    docker build -t capytaine:v2.0 https://github.com/capytaine/capytaine.git#v2.0
+    docker build -t capytaine:v2.1 https://github.com/capytaine/capytaine.git#v2.1
 
-Replace :code:`v2.0` by :code:`master` to download instead the latest development version.
+Replace :code:`v2.1` by :code:`master` to download instead the latest development version.
 Use the following command to open an IPython shell in which Capytaine can be imported::
 
-    docker run -it capytaine:v2.0 ipython3
+    docker run -it capytaine:v2.1 ipython3
 
 Or the following command to make the current directory accessible from the Docker image and run the file :code:`my_script.py` from the current directory::
 
-    docker run -it -v $(pwd):/home/user capytaine:v2.0 python3 my_scipt.py
+    docker run -it -v $(pwd):/home/user capytaine:v2.1 python3 my_scipt.py
 
 Note that graphical displays (matplotlib, vtk, ...) might require a complex setup to work from the Docker image.
 

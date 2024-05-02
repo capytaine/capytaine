@@ -144,6 +144,9 @@ or by checking the complete list of packages installed in the current environmen
     issue, since there won't be a local ``capytaine`` directory to confuse the
     module importer.
 
+    Alternatively, recent versions of Python (>=3.11) have the ``-P`` option
+    which will disable the loading of the local ``capytaine`` directory.
+
 When using ``make install``, you will need to re-run the installation
 for any change made to the code to take effect in the installed version. For
 development, it is more convenient to use instead::
