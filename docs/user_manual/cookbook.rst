@@ -44,6 +44,12 @@ Simulation with several bodies
 .. literalinclude:: examples/multibody.py
    :language: python
 
+Plot pressure on hull
+---------------------
+
+.. literalinclude:: examples/pressure_on_hull.py
+   :language: python
+
 Free surface elevation
 ----------------------
 

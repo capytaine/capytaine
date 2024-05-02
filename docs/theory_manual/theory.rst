@@ -647,11 +647,113 @@ Post-processing
 Forces on body surfaces
 -----------------------
 
-Forces acting on body surfaces are computed by integration of the pressure field. They can be decomposed into three contributions:
+Forces acting on body surfaces are computed by integration of the pressure field.
 
-1. The Froude-Krylov forces :math:`F_{FK, i}`, from the integration of the incident wave field pressure (incoming plane waves); :math:`i` denotes the i-th degree of freedom
-2. The diffraction forces :math:`F_{D, i}`, from the integration of the diffracted wave field (all bodies held fixed)
-3. The radiation forces :math:`F_{R, ij}`, from the result of the radiation problem with radiating degree of freedom :math:`j` and influenced degree of freedom :math:`i`
+.. math:: F_i = \int_\Gamma p(x) \, n(x) \cdot \delta\!r_i(x) \, dx = j \omega \rho \int_\Gamma \Phi(x) \, n(x) \cdot \delta\!r_i(x) \, dx
+
+where :math:`p = j \omega \rho \Phi` stands for the complex-valued pressure fields in frequency-domain, :math:`n` is the normal vector on the hull :math:`\Gamma` (oriented towards the fluid in Capytaine, see :doc:`../user_manual/conventions`) and :math:`\delta\!r_i` is the local displacement of the hull of the degree of freedom :math:`i`.
+
+For a single rigid body, the degrees of freedom reads:
+
++---------+----------------------------------------------------------------+
+| Dof     | Local hull displacement                                        |
++=========+================================================================+
+| Surge   | :math:`\delta\!r(x) = (1, 0, 0)`                               |
++---------+----------------------------------------------------------------+
+| Sway    | :math:`\delta\!r(x) = (0, 1, 0)`                               |
++---------+----------------------------------------------------------------+
+| Heave   | :math:`\delta\!r(x) = (0, 0, 1)`                               |
++---------+----------------------------------------------------------------+
+| Roll    | :math:`\delta\!r(x) = (1, 0, 0) \times (x-x_0, y-y_0, z-z_0)`  |
++---------+----------------------------------------------------------------+
+| Pitch   | :math:`\delta\!r(x) = (0, 1, 0) \times (x-x_0, y-y_0, z-z_0)`  |
++---------+----------------------------------------------------------------+
+| Yaw     | :math:`\delta\!r(x) = (0, 0, 1) \times (x-x_0, y-y_0, z-z_0)`  |
++---------+----------------------------------------------------------------+
+
+where :math:`(x_0, y_0, z_0)` is the rotation center and :math:`\times` denotes the cross product.
+
+
+The potential field can be decomposed into three contributions, and so does the resulting force:
+
+1. The Froude-Krylov forces :math:`F_{FK}`, from the integration of the
+   incident wave field pressure (incoming plane waves). In Capytaine, the
+   incident wave pressure can be retrieved with the
+   :func:`~capytaine.bem.airy_waves.airy_wave_pressure` function.
+2. The diffraction forces :math:`F_{D}`, from the integration of the diffracted
+   wave field (all bodies held fixed).
+3. The radiation forces :math:`F_{R}`, which is itself a linear combination of
+   the forces exerted by the fluid on the body in response to a motion of each
+   degree of freedom.
+
+The component :math:`i` of the radiation force :math:`F_{R}` is further rewritten as
+
+.. math:: F_{R, i} = \sum_k \left[\omega^2 A_{ik} + j \omega B_{ik}\right] X_k
+
+where :math:`A_{ik}` is the added mass matrix, :math:`B_{ik}` is the radiation
+damping matrix and :math:`X_k` is the amplitude of the motion of the body along
+the degree of freedom :math:`k`.
+
+In other words, one has
+
+.. math::
+   A_{ik} & = \frac{1}{\omega^2} \Re \left[ j \omega \rho \int_\Gamma \Phi_k(x) \, n(x) \cdot \delta \! r_i(x) \, dx \right] \\
+          & = - \frac{\rho}{\omega} \int_\Gamma \Im [\Phi_k(x)] \, n(x) \cdot \delta \! r_i(x) \, dx
+
+and
+
+.. math::
+   B_{ik} & = \frac{1}{\omega} \Im \left[ j \omega \rho \int_\Gamma \Phi_k(x) \, n(x) \cdot \delta \! r_i(x) \, dx \right] \\
+          & = \rho \int_\Gamma \Re [\Phi_k(x)] \, n(x) \cdot \delta \! r_i(x) \, dx
+
+where :math:`\Phi_k` is the potential field computed with the normal velocity on the hull :math:`\frac{\partial \Phi_k}{\partial n} = -j \omega \delta \! r_k \cdot n`.
+In Capytaine's wording, the degree of freedom :math:`k` defining the normal velocity on the hull is called ``radiating_dof``, while the degree of freedom :math:`i` used in the integration of the force is the ``influenced_dof``.
+
+.. note::
+   From Green second identity
+
+   .. math:: \int_\Gamma \left[ \Phi_i \frac{\partial \Phi_k}{\partial n} - \Phi_k \frac{\partial \Phi_i}{\partial n}\right] dx = 0
+
+   one has, when using the definition of the normal velocity of the radiation problem above,
+
+   .. math:: \iint_{\Gamma} \Phi_i \; \delta\!r_k \cdot n = \iint_{\Gamma} \Phi_k \; \delta\!r_i \cdot n
+
+   from which we can deduce the symmetry of the added mass matrix and the radiation dampings matrix.
+
+
+.. note::
+   As an alternative to :math:`\frac{\partial \Phi_k}{\partial n} = -j \omega
+   \delta \! r_k \cdot n`, some software such as the version 1 of Capytaine use
+   :math:`\frac{\partial \tilde \Phi_k}{\partial n} = \delta \! r_k \cdot n`,
+   that is :math:`\tilde \Phi_k = \frac{\Phi_k}{-j \omega}`.
+
+   It leads to the following definition of the added mass and radiation damping
+
+   .. math::
+      A_{ik} & = \frac{1}{\omega^2} \Re \left[ j \omega \rho \int_\Gamma (- j \omega \tilde \Phi_k(x)) \, n(x) \cdot \delta \! r_j(x) \, dx \right] \\
+             & = \rho \int_\Gamma \Re [\tilde \Phi_k(x)] \, n(x) \cdot \delta \! r_j(x) \, dx
+
+   and
+
+   .. math::
+      B_{ik} & = \frac{1}{\omega} \Im \left[ j \omega \rho \int_\Gamma (- j \omega \tilde \Phi_k(x)) \, n(x) \cdot \delta \! r_j(x) \, dx \right] \\
+             & = \rho \omega \int_\Gamma \Im [\tilde \Phi_k(x)] \, n(x) \cdot \delta \! r_j(x) \, dx
+
+   This form is convenient since the all the :math:`\omega` in the expression
+   of the added mass disappears, which make it possible to compute the value of
+   the added mass at frequency such as zero or infinity.
+
+   However, the implementation of :math:`\tilde \Phi` in version 1 of Capytaine
+   was not consistent with the use of :math:`\Phi` for diffraction problem and
+   it was easy to forget the missing :math:`-j\omega` for some post-processing
+   of :math:`\tilde \Phi` for radiation problems.
+
+   In version 2.0 of Capytaine, :math:`\Phi` is used everywhere instead of
+   :math:`\tilde \Phi`.
+   Since version 2.1, another method has been implemented to take into account
+   the cancelling of the :math:`\omega` in the expression of the added mass
+   allowing to compute the added mass at zero and infinite frequency.
+
 
 Dynamic coupling and impedance
 ------------------------------
@@ -667,15 +769,11 @@ where :math:`M_{ij}` is the inertia matrix, accounting for the mass distribution
 
 .. note:: The hydrostatic contribution to matrix :math:`K_{ij}` accounts for a variation of hydrostatic force in direction :math:`i` due to a unit motion in direction :math:`j`. It is a geometric property of the body.
 
-Forces :math:`F_i` can be decomposed as
+As seen above, forces :math:`F_i` can be decomposed as
 
 .. math:: F_i = F_{FK, i} + F_{D, i} + F_{R, i}
 
-and :math:`F_{R, i}` can be further rewritten as
-
-.. math:: F_{R, i} = \left[\omega^2 A_{ij} + j\omega B_{ij}\right] X_j
-
-where :math:`A_{ij}` is the added mass matrix and :math:`B_{ij}` is the radiation damping matrix; these properties are thus obtained from the real and imaginary parts of the radiation force. The full system becomes
+The full system becomes
 
 .. math:: \left[-\omega^2 (M_{ij} + A_{ij}) - j \omega (C_{ij} + B_{ij}) + K_{ij}\right] X_j = F_{FK, i} + F_{D, i}
 

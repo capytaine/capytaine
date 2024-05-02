@@ -2,6 +2,69 @@
 Outputs
 =======
 
+Outputs stored in LinearPotentialFlowResult
+-------------------------------------------
+
+Each ``LinearPotentialFlowResult`` object contains all the data defined for the
+corresponding problem::
+
+  problem = cpt.DiffractionProblem(body=body, period=1.0, wave_direction=3.14)
+  solver = cpt.BEMSolver()
+  result = solver.solve(problem, keep_details=True)
+
+  print(result.period)
+  # 1.0
+
+They also contain a supplementary attribute named ``forces``, containing the
+computed forces on the body::
+
+  print(result.forces)
+  # {'Surge': (23941.728129534735+9487.048661471363j), 'Sway': (-2.010438038269058e-09-2.8862814360763878e-09j), ...}
+
+The force is stored as Python dictionary associating a complex value in SI
+units to the name of the influenced degree of freedom.
+In other words, in the example code above, the :math:`x`-component of the force
+vector has magnitude 23941 Newton at :math:`t =0`, while the
+:math:`y`-component of the force vector is negligible at all time.
+
+For radiation problems, the result object also contain ``added_mass`` and
+``radiation_damping`` attributes, with the same shape of a Python dictionary.
+
+It the solver was called with ``keep_details=True``, the result object also
+contains the potential and pressure fields on each face of the mesh of the hull::
+
+  print(result.potential)
+  # [-1.72534485e-03+0.14128629j -3.98932611e-03+0.33387497j
+  #  -6.54135830e-03+0.54208628j ... -2.09853806e+00-0.56106653j
+  #  -2.18441640e+00-0.58402701j -2.22777755e+00-0.59562008j]
+
+  print(result.pressure)
+  # [-1.72534485e-03+0.14128629j -3.98932611e-03+0.33387497j
+  #  -6.54135830e-03+0.54208628j ... -2.09853806e+00-0.56106653j
+  #  -2.18441640e+00-0.58402701j -2.22777755e+00-0.59562008j]
+
+These magnitudes are stored in an one-dimensionnal array as long as the number
+of faces of the mesh, and stored in the same order as the faces in the ``Mesh``
+object. In other words, ``result.pressure[3]`` contains the pressure on the
+face of center ``body.mesh.faces_centers[3]``.
+
+Recall that the potential and the pressure are related by :math:`p = j \rho
+\omega \Phi`, where :math:`\rho` is the fluid density and :math:`\omega` is the
+angular frequency.
+
+The potential, the pressure and the velocity in the rest of the fluid can be
+computed in post-processing as described in :doc:`post_pro`.
+
+When using the indirect boundary integral equation (by default), the result
+object with details also contains the distribution of sources :math:`\sigma` on
+the hull, under the same form as the potential above::
+
+  print(result.sources)
+  # [  0.0281344 -0.35719578j   0.06715056-1.34127138j
+  #    0.10891061-2.26921669j ... -13.58069557+2.13219904j
+  #  -14.13645749+2.21945488j -14.41706935+2.26351156j]
+
+
 Building a dataset from LinearPotentialFlowResult
 -------------------------------------------------
 
