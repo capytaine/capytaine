@@ -656,7 +656,7 @@ where :math:`p = j \omega \rho \Phi` stands for the complex-valued pressure fiel
 For a single rigid body, the degrees of freedom reads:
 
 +---------+----------------------------------------------------------------+
-| Name    | Local hull displacement                                        |
+| Dof     | Local hull displacement                                        |
 +=========+================================================================+
 | Surge   | :math:`\delta\!r(x) = (1, 0, 0)`                               |
 +---------+----------------------------------------------------------------+
@@ -664,11 +664,11 @@ For a single rigid body, the degrees of freedom reads:
 +---------+----------------------------------------------------------------+
 | Heave   | :math:`\delta\!r(x) = (0, 0, 1)`                               |
 +---------+----------------------------------------------------------------+
-| Roll    | :math:`\delta\!r(x) = - (x-x_0, y-y_0, z-z_0) \times (1, 0, 0)`|
+| Roll    | :math:`\delta\!r(x) = (1, 0, 0) \times (x-x_0, y-y_0, z-z_0)`  |
 +---------+----------------------------------------------------------------+
-| Pitch   | :math:`\delta\!r(x) = - (x-x_0, y-y_0, z-z_0) \times (0, 1, 0)`|
+| Pitch   | :math:`\delta\!r(x) = (0, 1, 0) \times (x-x_0, y-y_0, z-z_0)`  |
 +---------+----------------------------------------------------------------+
-| Yaw     | :math:`\delta\!r(x) = - (x-x_0, y-y_0, z-z_0) \times (0, 0, 1)`|
+| Yaw     | :math:`\delta\!r(x) = (0, 0, 1) \times (x-x_0, y-y_0, z-z_0)`  |
 +---------+----------------------------------------------------------------+
 
 where :math:`(x_0, y_0, z_0)` is the rotation center and :math:`\times` denotes the cross product.
@@ -676,15 +676,23 @@ where :math:`(x_0, y_0, z_0)` is the rotation center and :math:`\times` denotes 
 
 The potential field can be decomposed into three contributions, and so does the resulting force:
 
-1. The Froude-Krylov forces :math:`F_{FK, i}`, from the integration of the incident wave field pressure (incoming plane waves); :math:`i` denotes the i-th degree of freedom
-2. The diffraction forces :math:`F_{D, i}`, from the integration of the diffracted wave field (all bodies held fixed)
-3. The radiation forces :math:`F_{R, ij}`, from the result of the radiation problem with radiating degree of freedom :math:`j` and influenced degree of freedom :math:`i`
+1. The Froude-Krylov forces :math:`F_{FK}`, from the integration of the
+   incident wave field pressure (incoming plane waves). In Capytaine, the
+   incident wave pressure can be retrieved with the
+   :func:`~capytaine.bem.airy_waves.airy_wave_pressure` function.
+2. The diffraction forces :math:`F_{D}`, from the integration of the diffracted
+   wave field (all bodies held fixed).
+3. The radiation forces :math:`F_{R}`, which is itself a linear combination of
+   the forces exerted by the fluid on the body in response to a motion of each
+   degree of freedom.
 
-The radiation force :math:`F_{R, i}` is further rewritten as
+The component :math:`i` of the radiation force :math:`F_{R}` is further rewritten as
 
 .. math:: F_{R, i} = \sum_k \left[\omega^2 A_{ik} + j \omega B_{ik}\right] X_k
 
-where :math:`A_{ik}` is the added mass matrix and :math:`B_{ik}` is the radiation damping matrix.
+where :math:`A_{ik}` is the added mass matrix, :math:`B_{ik}` is the radiation
+damping matrix and :math:`X_k` is the amplitude of the motion of the body along
+the degree of freedom :math:`k`.
 
 In other words, one has
 
@@ -740,8 +748,9 @@ In Capytaine's wording, the degree of freedom :math:`k` defining the normal velo
    it was easy to forget the missing :math:`-j\omega` for some post-processing
    of :math:`\tilde \Phi` for radiation problems.
 
-   In version 2 of Capytaine, :math:`\Phi` is used everywhere instead of
-   :math:`\tilde \Phi`, and another method has been used to take into account
+   In version 2.0 of Capytaine, :math:`\Phi` is used everywhere instead of
+   :math:`\tilde \Phi`.
+   Since version 2.1, another method has been implemented to take into account
    the cancelling of the :math:`\omega` in the expression of the added mass
    allowing to compute the added mass at zero and infinite frequency.
 
