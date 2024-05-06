@@ -81,10 +81,10 @@ output will directly be an xarray dataset.
 Both :code:`assemble_dataset` and :code:`fill_dataset` accept some optional keyword
 arguments to store more information in the dataset:
 
-- :code:`wavenumber` (default: :code:`False`): add the wavenumber of the
-  incoming waves in the dataset.
-- :code:`wavelength` (default: :code:`False`): add the wavelength of the
-  incoming waves in the dataset.
+- :code:`wavenumber`, :code:`wavelength`, :code:`period`, :code:`omega`,
+  (default: all `True`): control whether which of the representations of the
+  wave frequency are stored in the dataset. At least one should be included, by
+  default they all are.
 - :code:`mesh` (default: :code:`False`): add some information about the mesh in
   the dataset (number of faces, quadrature method).
 - :code:`hydrostatics` (default: :code:`True`): if hydrostatics data are
