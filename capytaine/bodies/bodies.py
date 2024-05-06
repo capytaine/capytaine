@@ -5,6 +5,7 @@
 import logging
 import copy
 from itertools import chain, accumulate, zip_longest
+from functools import cached_property
 
 import numpy as np
 import xarray as xr
@@ -123,7 +124,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name
 
-    @property
+    @cached_property
     def mesh_including_lid(self):
         if self.lid_mesh is not None:
             return self.mesh + self.lid_mesh
