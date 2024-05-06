@@ -15,7 +15,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-11, windows-2019]
+        os: [ubuntu-20.04, macos-11, macos-14, windows-2019]
+            # MacOS<=13 are Intel, while MacOS 14 is Apple Silicon
 
     steps:
       - uses: actions/checkout@v4
