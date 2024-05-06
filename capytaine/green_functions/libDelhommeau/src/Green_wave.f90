@@ -161,13 +161,13 @@ CONTAINS
   ! =====================================================================
 
   SUBROUTINE WAVE_PART_INFINITE_DEPTH                            &
-      ! Returns (G^-, nabla G^+) if gf_singularities == HIGH_FREQ
-      ! and (G^+, nabla G^+) if gf_singularities == LOW_FREQ
       (X0I, X0J, wavenumber,                                     &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
       G, nablaG)
+      ! Returns (G^-, nabla G^+) if gf_singularities == HIGH_FREQ
+      ! and (G^+, nabla G^+) if gf_singularities == LOW_FREQ
 
     ! Inputs
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I, X0J
