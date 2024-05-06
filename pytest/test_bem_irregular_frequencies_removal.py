@@ -57,18 +57,80 @@ def test_effect_of_lid_on_matrices(body_without_lid, body_with_lid):
     np.testing.assert_allclose(S_with[:n_hull_mesh, :n_hull_mesh], S_without, atol=1e-8)
 
 
-def test_effect_of_lid_on_regular_frequency_diffraction_force(body_without_lid, body_with_lid):
+@pytest.mark.parametrize("water_depth", [np.inf, 10.0])
+@pytest.mark.parametrize("forward_speed", [0.0, 1.0])
+def test_effect_of_lid_on_regular_frequency_diffraction_force(
+        body_without_lid, body_with_lid, water_depth, forward_speed,
+        ):
     solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
 
-    pb_with = cpt.DiffractionProblem(body=body_with_lid, wavelength=3.0)
+    pb_with = cpt.DiffractionProblem(
+            body=body_with_lid, wavelength=3.0,
+            water_depth=water_depth, forward_speed=forward_speed,
+            )
     res_with = solver.solve(pb_with)
     f_with = res_with.forces["Heave"]
 
-    pb_without = cpt.DiffractionProblem(body=body_without_lid, wavelength=3.0)
+    pb_without = cpt.DiffractionProblem(
+            body=body_without_lid, wavelength=3.0,
+            water_depth=water_depth, forward_speed=forward_speed
+            )
     res_without = solver.solve(pb_without)
     f_without = res_without.forces["Heave"]
 
     assert f_with == pytest.approx(f_without, rel=5e-2)
+
+
+@pytest.mark.parametrize("water_depth", [np.inf, 10.0])
+@pytest.mark.parametrize("forward_speed", [0.0, 1.0])
+def test_effect_of_lid_on_regular_frequency_free_surface_elevation(
+        body_without_lid, body_with_lid,
+        water_depth, forward_speed,
+        ):
+    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
+    point = np.array([[4.0, 4.0]])
+
+    pb_with = cpt.DiffractionProblem(
+            body=body_with_lid, wavelength=3.0,
+            water_depth=water_depth, forward_speed=forward_speed,
+            )
+    res_with = solver.solve(pb_with)
+    fse_with = solver.compute_free_surface_elevation(point, res_with)
+
+    pb_without = cpt.DiffractionProblem(
+            body=body_without_lid, wavelength=3.0,
+            water_depth=water_depth, forward_speed=forward_speed,
+            )
+    res_without = solver.solve(pb_without)
+    fse_without = solver.compute_free_surface_elevation(point, res_without)
+
+    assert fse_with == pytest.approx(fse_without, rel=5e-2)
+
+
+@pytest.mark.parametrize("water_depth", [np.inf, 10.0])
+@pytest.mark.parametrize("forward_speed", [0.0, 1.0])
+def test_effect_of_lid_on_regular_frequency_field_velocity(
+        body_without_lid, body_with_lid,
+        water_depth, forward_speed,
+        ):
+    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
+    point = np.array([[4.0, 4.0, -2.0]])
+
+    pb_with = cpt.DiffractionProblem(
+            body=body_with_lid, wavelength=3.0,
+            water_depth=water_depth, forward_speed=forward_speed,
+            )
+    res_with = solver.solve(pb_with)
+    u_with = solver.compute_velocity(point, res_with)
+
+    pb_without = cpt.DiffractionProblem(
+            body=body_without_lid, wavelength=3.0,
+            water_depth=water_depth, forward_speed=forward_speed,
+            )
+    res_without = solver.solve(pb_without)
+    u_without = solver.compute_velocity(point, res_without)
+
+    assert u_with == pytest.approx(u_without, rel=5e-2)
 
 
 @pytest.mark.parametrize("water_depth", [np.inf, 10.0])
