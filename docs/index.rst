@@ -24,7 +24,7 @@ Please report bugs and suggest improvements as `Github issues <https://github.co
 .. raw:: html
 
     <div style="float: right;">
-    <video src="_static/front_page_animation.ogv" loop autoplay muted width="320" height="240">
+    <video src="_static/front_page_animation.webm" loop autoplay muted width="320" height="240">
     </video>
     </div>
 
