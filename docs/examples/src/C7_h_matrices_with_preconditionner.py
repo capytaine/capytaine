@@ -1,5 +1,3 @@
-#! /usr/bin/env python3
-
 import numpy as np
 import capytaine as cpt
 from time import time

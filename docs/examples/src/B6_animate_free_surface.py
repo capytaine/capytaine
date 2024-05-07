@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import capytaine as cpt
 from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
 from capytaine.ui.vtk.animation import Animation

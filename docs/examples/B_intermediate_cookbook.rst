@@ -13,6 +13,9 @@ The scripts can be downloaded individually as Python files from the |examples_fo
 B1. Plot pressure on hull
 -------------------------
 
+This example solves a BEM problem and display the computed pressure on the hull
+on a 3D view of the mesh.
+
 .. literalinclude:: src/B1_pressure_on_hull.py
    :language: python
 
@@ -32,6 +35,9 @@ diffraction problem.
 B3. Free surface elevation
 --------------------------
 
+This example computes the free surface elevation as a post-processing step of
+a diffraction problem.
+
 .. literalinclude:: src/B3_free_surface_elevation.py
    :language: python
 
@@ -39,7 +45,8 @@ B3. Free surface elevation
 B4. Kochin function
 -------------------
 
-This example computes the Kochin function for a surging buoy and plot the results.
+This example computes the Kochin function for a surging buoy and plot the
+results.
 
 .. literalinclude:: src/B4_kochin.py
    :language: python
@@ -48,6 +55,8 @@ This example computes the Kochin function for a surging buoy and plot the result
 B5. Plot velocity in domain
 ---------------------------
 
+This example reconstruct the velocity field in the domain and display it
+using matplotlib.
 
 .. literalinclude:: src/B5_plot_velocity_in_domain.py
    :language: python
@@ -56,8 +65,8 @@ B5. Plot velocity in domain
 B6. Animated free surface elevation
 -----------------------------------
 
-This example solves a diffraction problem, it computes the free surface elevation and shows it as a
-3D animation.
+This example solves a diffraction problem, it computes the free surface
+elevation and shows it as a 3D animation.
 
 .. literalinclude:: src/B6_animate_free_surface.py
    :language: python
@@ -69,7 +78,7 @@ B7. Animation of the RAO
 This script generates the animation of the RAO motion for a wave incoming in front of a ship,
 such as the one used on the main page of this documentation.
 This script requires the mesh of the ship :code:`boat_200.mar`. It can be
-downloaded from: `<https://raw.githubusercontent.com/capytaine/capytaine/master/docs/user_manual/src/boat_200.mar>`_
+downloaded from: `<https://raw.githubusercontent.com/capytaine/capytaine/master/docs/examples/src/boat_200.mar>`_
 
 .. literalinclude:: src/B7_boat_animation.py
    :language: python

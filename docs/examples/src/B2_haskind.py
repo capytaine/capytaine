@@ -1,8 +1,6 @@
-#! /usr/bin/env python3
-
 import numpy as np
 import capytaine as cpt
-
+from capytaine.bem.airy_waves import airy_waves_potential, airy_waves_velocity, froude_krylov_force
 
 r = 1.
 draft = 0.5
@@ -35,8 +33,6 @@ rad_solution = solver.solve(rad_problem)
 faces_centers = body.mesh.faces_centers
 faces_normals = body.mesh.faces_normals
 faces_areas = body.mesh.faces_areas
-
-from capytaine.bem.airy_waves import airy_waves_potential, airy_waves_velocity, froude_krylov_force
 
 # Computation from the diffraction solution (Capytaine)
 FK = froude_krylov_force(diff_problem)['Heave']

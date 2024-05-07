@@ -8,60 +8,66 @@ The scripts can be downloaded individually as Python files from the |examples_fo
 
 .. contents:: Content
 
-Parallel computation with Joblib
---------------------------------
+C1. Parallel computation with Joblib
+------------------------------------
 
 TODO
 
 
-Direct or indirect boundary integral equation
----------------------------------------------
+C2. Direct or indirect boundary integral equation
+-------------------------------------------------
 
 TODO
 
 
-Iterative solver with preconditionning
---------------------------------------
+C3. Single precision computations
+---------------------------------
 
-.. literalinclude:: src/C_preconditioner.py
-   :language: python
-
-
-Plot the influence matrix
--------------------------
-
-This example plots the influence matrix for an horizontal cylinder.
-
-.. literalinclude:: src/C_plot_influence_matrix.py
-   :language: python
+TODO
 
 
-Toeplitz matrix of an axisymmetric buoy
----------------------------------------
-
-.. literalinclude:: src/C_axisymmetric_buoy.py
-   :language: python
-
-
-Single precision computations
+C4. Using an iterative solver
 -----------------------------
 
 TODO
 
+C5. Plot the influence matrix
+-----------------------------
 
-Compare two implementations of the Green function
--------------------------------------------------
+This example plots the influence matrix for an horizontal cylinder.
 
-This is an example of comparison of two implementations of the Green function.
-
-.. literalinclude:: src/C_compare_Green_functions.py
+.. literalinclude:: src/C5_plot_influence_matrix.py
    :language: python
 
 
-Use a custom Green function
----------------------------
+C6. Toeplitz matrix of an axisymmetric buoy
+-------------------------------------------
+
+.. literalinclude:: src/C6_axisymmetric_buoy.py
+   :language: python
+
+
+C7. Hierarchical matrices with preconditionning
+-----------------------------------------------
+
+.. literalinclude:: src/C7_h_matrices_with_preconditionner.py
+   :language: python
+
+
+
+C8. Compare two implementations of the Green function
+-----------------------------------------------------
+
+This is an example of comparison of two implementations of the Green function.
+
+.. literalinclude:: src/C8_compare_Green_functions.py
+   :language: python
+
+
+C9. Use a custom Green function
+-------------------------------
 
 This is an example of how to implement a custom Green function.
 
-.. literalinclude:: src/C_custom_Green_function.py
+.. literalinclude:: src/C9_custom_Green_function.py
    :language: python
