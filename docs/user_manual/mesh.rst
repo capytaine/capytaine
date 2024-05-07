@@ -90,7 +90,7 @@ The formats currently supported in reading are listed in the following table (ad
 
 
 Not all metadata is taken into account when reading the mesh file.
-For instance, the body symmetry is taken into account only for the `.mar` and `.hst` file formats.
+For instance, the body symmetry is taken into account only for the ``.mar``, ``.gdf`` and ``.hst`` file formats.
 Feel free to open an issue on Github to suggest improvements.
 
 
