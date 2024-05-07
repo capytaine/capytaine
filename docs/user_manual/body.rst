@@ -7,7 +7,8 @@ As described in the :doc:`tutorial`, a floating body is defined as a mesh with d
 Initialization
 --------------
 
-The floating body is set up by initializing the :code:`FloatingBody` class::
+The floating body is set up by initializing the
+:class:`~capytaine.bodies.bodies.FloatingBody` class::
 
     body = cpt.FloatingBody(mesh=mesh, dofs={})
 
@@ -18,7 +19,7 @@ Mesh
 
 The ``mesh`` can be a :class:`~capytaine.meshes.meshes.Mesh` object, or any of
 the variants defined in Capytaine, such as a
-:class:`~capytaine.meshes.symmetry.ReflectionSymmetricMesh`.
+:class:`~capytaine.meshes.symmetric.ReflectionSymmetricMesh`.
 Meshes from `meshio` can also be given directly to the ``FloatingBody``
 constructor without calling :func:`~capytaine.io.meshio.load_from_meshio`.
 
@@ -38,8 +39,9 @@ mesh::
                },
            )
 
-The ``cpt.rigid_body_dofs()`` can be used to automatically give a body the six
-degrees of freedom of a rigid body::
+:meth:`cpt.rigid_body_dofs() <~capytaine.bodies.dofs.rigid_body_dofs>` can
+be used to automatically give a body the six degrees of freedom of a rigid
+body::
 
    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1)))
    print(body.dofs.keys())
@@ -66,10 +68,12 @@ Finally, as the mesh objects, the floating body can be assigned a name.
 Display and animation
 ---------------------
 
-The methods ``show()`` and ``show_matplotlib()`` of meshes can also be used on
-``FloatingBody``.
+The methods :meth:`~capytaine.bodies.bodies.FloatingBody.show()` and
+:meth:`~capytaine.bodies.bodies.FloatingBody.show_matplotlib()` of meshes can
+also be used on ``FloatingBody``.
 
-Once a :code:`FloatingBody` with dofs has been defineds, the :code:`animate`
+Once a :code:`FloatingBody` with dofs has been defineds, the
+:meth:`~capytaine.bodies.bodies.FloatingBody.animate`
 method can be used to visualize a given motion of the body::
 
     anim = body.animate(motion={"Heave": 0.1, "Surge": 0.1j}, loop_duration=1.0)

@@ -2,7 +2,13 @@
 Meshes
 ======
 
-.. contents:: Content
+Naming
+------
+
+Meshes in Capytaine have a ``name`` attribute.
+It is optional and is mostly used for clearer logging and outputs.
+A ``name`` optional argument can be provided to all methods below to initialize
+a mesh or transform a mesh to set the name of the new mesh.
 
 Initialization
 --------------
@@ -21,7 +27,7 @@ The above example uses Nemoh's mesh format, as defined e.g. on page 19 of `Nemoh
 
 .. _`Nemoh v3.0.1 manual`: https://gitlab.com/api/v4/projects/41313230/packages/generic/nemoh/v3.0.1/Nemoh_Manual_v3.0.1.pdf
 
-Thanks to inclusion of code from `Meshmagick <https://github.com/lheea/meshmagick/`_,
+Thanks to inclusion of code from `Meshmagick <https://github.com/lheea/meshmagick/>`_,
 numerous other mesh format can be imported.
 The file format can be given with the :code:`file_format` optional argument.
 If no format is given, the code will try to infer it from the file extension::
@@ -131,13 +137,13 @@ Capytaine include mesh generators for a few simple shapes. They are mostly
 meant for teaching (they are extensively used in the examples of this
 documentation) as well as for testing.
 The most useful ones are
-:func:`~capytaine.mesh.predefined.spheres.mesh_sphere`,
-:func:`~capytaine.mesh.predefined.cylinders.mesh_vertical_cylinder`,
-:func:`~capytaine.mesh.predefined.cylinders.mesh_horizontal_cylinder`,
-:func:`~capytaine.mesh.predefined.rectangles.mesh_parallelepiped`.
+:func:`~capytaine.meshes.predefined.spheres.mesh_sphere`,
+:func:`~capytaine.meshes.predefined.cylinders.mesh_vertical_cylinder`,
+:func:`~capytaine.meshes.predefined.cylinders.mesh_horizontal_cylinder`,
+:func:`~capytaine.meshes.predefined.rectangles.mesh_parallelepiped`.
 Some applications may also make use of flat shapes
-:func:`~capytaine.mesh.predefined.cylinders.mesh_disk` and
-:func:`~capytaine.mesh.predefined.rectangles.mesh_rectangle`.
+:func:`~capytaine.meshes.predefined.cylinders.mesh_disk` and
+:func:`~capytaine.meshes.predefined.rectangles.mesh_rectangle`.
 Refer to their documentation for details about the parameters they accepts.
 
 Since version 2.1, their resolution can be set by the ``faces_max_radius``
@@ -178,7 +184,7 @@ Creating a symmetric mesh
 Several mesh symmetries can be used by Capytaine to speed up the computation.
 The most useful one is the vertical plane symmetry.
 A mesh with such a symmetry is stored by Capytaine with the
-:class:`~capytaine.meshes.symmetry.ReflectionSymmetricMesh` class.
+:class:`~capytaine.meshes.symmetric.ReflectionSymmetricMesh` class.
 It is defined with an other mesh of the half and a plane (and optionally a name
 like the usual meshes)::
 
@@ -204,11 +210,13 @@ You can consider using the ``clipped`` method discussed below to create a symmet
 Display
 -------
 
-Use the :code:`show` method to display the mesh in 3D using VTK (if installed)::
+Use the :code:`show` method to display the mesh in 3D using VTK (if installed)
+with the :meth:`~capytaine.meshes.meshes.Mesh.show`::
 
     mesh.show()
 
-or with Matplotlib (if installed)::
+or with Matplotlib (if installed) with
+:meth:`~capytaine.meshes.meshes.Mesh.show_matplotlib`::
 
     mesh.show_matplotlib()
 
@@ -271,7 +279,7 @@ determine which part of the mesh will be returned::
     lower_part = mesh.clipped(Plane(point=(0, 0, 0), normal=(0, 0, 1)))
     # mesh = lower_part + higher_part
 
-The method :code:`immersed_part` will clip the body with respect to two
+The method :meth:`immersed_part` will clip the body with respect to two
 horizontal planes at :math:`z=0` and :math:`z=-h`::
 
     clipped_body = mesh.immersed_part(water_depth=10)
@@ -318,7 +326,8 @@ and will be used automatically when needed.
 .. warning:: Quadratures schemes have been designed with quadrilateral panels.
              They work on triangular panels, but might not be as optimal then.
 
-Alternatively, the :meth:`~capytaine.meshes.quadratures.compute_quadrature` method also accepts methods from the `Quadpy` package::
+Alternatively, the :func:`~capytaine.meshes.meshes.Mesh.compute_quadrature`
+also accepts methods from the `Quadpy` package::
 
     import quadpy
     mesh.compute_quadrature(method=quadpy.c2.get_good_scheme(8))
