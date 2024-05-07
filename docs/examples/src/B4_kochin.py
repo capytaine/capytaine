@@ -23,7 +23,7 @@ test_matrix = xr.Dataset(coords={
     'omega': omega_range, 'theta': theta_range, 'radiating_dof': ["Surge"],
 })
 solver = cpt.BEMSolver()
-dataset = solver.fill_dataset(test_matrix, buoy.immersed_part(), wavenumber=True)
+dataset = solver.fill_dataset(test_matrix, buoy.immersed_part())
 
 # PLOT THE KOCHIN FUNCTION
 plt.figure()

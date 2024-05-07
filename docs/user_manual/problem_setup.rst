@@ -136,7 +136,7 @@ The function returns a list of :code:`LinearPotentialFlowProblems`.
     Some of the settings in the files (such as the free surface computation or the Kochin function) are ignored for the moment.
     See the example :code:`Nemoh.cal` below.
 
-.. literalinclude:: examples/Nemoh.cal
+.. literalinclude:: Nemoh.cal
 
 .. note:: The line setting up the frequencies is slightly different in Nemoh v2 and Nemoh v3.
    Both format are supported by Capytaine.

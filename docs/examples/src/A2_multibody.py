@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import capytaine as cpt
 
 # Define the first body

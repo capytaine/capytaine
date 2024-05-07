@@ -16,4 +16,3 @@ User manual
    outputs.rst
    post_pro.rst
    conventions.rst
-   cookbook.rst

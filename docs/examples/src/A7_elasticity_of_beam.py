@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import numpy as np
 import xarray as xr
 import capytaine as cpt
@@ -74,4 +72,3 @@ deformation_profile = sum(
 plt.plot(np.real(deformation_profile), z_range)
 
 plt.show()
-

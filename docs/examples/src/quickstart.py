@@ -12,7 +12,7 @@ all_bodies = body_1  # Replace "body_1" by "body_1 + body_2 + body_3" for multib
 
 all_bodies = all_bodies.immersed_part()  # if your mesh has panels above the free surface, remove them
 
-# Set up paramaters
+# Set up parameters
 test_matrix = xr.Dataset({
         "omega": np.linspace(0.1, 2.0, 20),  # Can also specify "period", "wavelength" or "wavenumber"
         "wave_direction": np.linspace(0, np.pi, 3),
