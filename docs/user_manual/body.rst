@@ -39,6 +39,10 @@ It is set as in the following example::
 Once a lid mesh has been defined, it is automatically used for irregular
 frequencies removal without any other action from the user.
 
+Geometries with a symmetry plane with respect to a vertical plane are
+supported, as long as the ``mesh`` and the ``lid_mesh`` have the same symmetry
+plane.
+
 Dofs
 ~~~~
 

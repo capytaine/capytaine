@@ -133,6 +133,23 @@ def test_effect_of_lid_on_regular_frequency_field_velocity(
     assert u_with == pytest.approx(u_without, rel=5e-2)
 
 
+def test_lid_with_plane_symmetry():
+    mesh = cpt.mesh_horizontal_cylinder(reflection_symmetry=True).immersed_part()
+    lid_mesh = cpt.ReflectionSymmetricMesh(
+            cpt.mesh_rectangle(size=(1.0, 10,), faces_max_radius=0.5, center=(0, 0.5, -0.05,)),
+            plane=mesh.plane
+            )
+    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
+    pb = cpt.RadiationProblem(body=body, wavelength=1.0)
+    solver = cpt.BEMSolver()
+    solver.solve(pb)
+    cached_matrices = list(solver.engine.build_matrices.__closure__[0].cell_contents.values())
+    S, K = cached_matrices[-1]
+    from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix
+    assert isinstance(S, BlockSymmetricToeplitzMatrix)
+    assert isinstance(K, BlockSymmetricToeplitzMatrix)
+
+
 @pytest.mark.parametrize("water_depth", [np.inf, 10.0])
 def test_panel_on_free_surface(water_depth):
     mesh = cpt.mesh_parallelepiped(center=(0.0, 0.0, -0.5))

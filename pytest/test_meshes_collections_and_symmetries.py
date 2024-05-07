@@ -77,6 +77,14 @@ def test_collection():
     assert np.allclose(sphere.diameter_of_nodes, sphere.merged().diameter_of_nodes)
 
 
+def test_join_reflection_symmetric_meshes():
+    cylinder_1 = cpt.mesh_horizontal_cylinder(center=(0, 0, -2), reflection_symmetry=True)
+    cylinder_2 = cpt.mesh_horizontal_cylinder(center=(0, 0, -4), reflection_symmetry=True)
+    assert cylinder_1.plane == cylinder_2.plane
+    both = cylinder_1.join_meshes(cylinder_2)
+    assert isinstance(both, cpt.ReflectionSymmetricMesh)
+
+
 def test_join_axisymmetric_disks():
     """Given two axisymmetric meshes with the same axis, build a new axisymmetric mesh combining the two."""
     disk1 = Disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), normal=(1, 0, 0), axial_symmetry=True).mesh
