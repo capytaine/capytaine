@@ -95,7 +95,7 @@ Multiple bodies
 
 Multiple bodies problems can be defined by combining several bodies with the ``join_bodies`` method::
 
-    all_bodies = FloatingBody.join_bodies(body_1, body_2, body_3, body_4)
+    all_bodies = cpt.FloatingBody.join_bodies(body_1, body_2, body_3, body_4)
 
 For two-body problems, the ``+`` operator can also be used::
 
@@ -107,10 +107,37 @@ differences with ``(body_1 + body_2) + body_3``).
 
 When two floating bodies with dofs are merged, the resulting body inherits from
 the dofs of the individual bodies with the new name :code:`body_name__dof_name`.
-For instance::
 
-    body_1.add_translation_dof(name="Heave")
-    body_2.add_translation_dof(name="Heave")
-    both_bodies = body_1 + body_2
-    assert 'body_1__Heave' in both_bodies.dofs
-    assert 'body_2__Heave' in both_bodies.dofs
+.. comment
+    mesh = cpt.mesh_sphere().immersed_part()
+    body_1 = cpt.FloatingBody(mesh, cpt.rigid_body_dofs(), name="body_1")
+    body_2 = cpt.FloatingBody(mesh.translated_x(5.0), cpt.rigid_body_dofs(), name="body_2")
+    two_bodies = body_1 + body_2
+
+.. code::
+    print(two_bodies.nb_dofs)
+    # 12
+    print(two_bodies.dofs.keys())
+    # dict_keys(['body_1__Surge', 'body_1__Sway', 'body_1__Heave', 'body_1__Roll', 'body_1__Pitch', 'body_1__Yaw', 'body_2__Surge', 'body_2__Sway', 'body_2__Heave', 'body_2__Roll', 'body_2__Pitch', 'body_2__Yaw'])
+
+Capytaine also include helper functions to create arrays of identical bodies::
+
+    array = body.assemble_regular_array(distance=1.0, nb_bodies=(4, 5))
+
+places copies of the ``body`` on a regular grid of :math:`4 \times 5` with distance between bodies of 1 meter, and::
+
+    locations = np.array([[0.0, 0.0], [1.0, 2.0], [3.0, 4.5], [3.0, -0.5]])
+    array = body.assemble_arbitrary_array(locations)
+
+places copies of the ``body`` at the list of locations specified.
+
+.. warning::
+   As currently implemented in Capytaine, the multiple bodies are stored as a
+   single body with a non-connex mesh and generalized degrees of freedom.
+   Hence some information about the individual bodies is lost.
+   It includes the center of mass and the center of rotation of the individual
+   bodies (although the latter could be recovered indirectly by studying the
+   definition of the rotation dof).
+   Although it does not affect first order wave-structure interaction, it
+   hinders the computation of hydrostatics for multiple rigid bodies and will
+   need to be fixed in the future.
