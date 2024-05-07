@@ -124,6 +124,26 @@ installed independently)::
     mesh = cpt.load_from_meshio(gmsh_mesh)
 
 
+Predefined simple shapes
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Capytaine include mesh generators for a few simple shapes. They are mostly
+meant for teaching (they are extensively used in the examples of this
+documentation) as well as for testing.
+The most useful ones are
+:func:`~capytaine.mesh.predefined.spheres.mesh_sphere`,
+:func:`~capytaine.mesh.predefined.cylinders.mesh_vertical_cylinder`,
+:func:`~capytaine.mesh.predefined.cylinders.mesh_horizontal_cylinder`,
+:func:`~capytaine.mesh.predefined.rectangles.mesh_parallelepiped`.
+Some applications may also make use of flat shapes
+:func:`~capytaine.mesh.predefined.cylinders.mesh_disk` and
+:func:`~capytaine.mesh.predefined.rectangles.mesh_rectangle`.
+Refer to their documentation for details about the parameters they accepts.
+
+Since version 2.1, their resolution can be set by the ``faces_max_radius``
+parameter which specifies the maximal size of a face in the mesh.
+
+
 Creating from scratch
 ~~~~~~~~~~~~~~~~~~~~~
 
