@@ -9,7 +9,5 @@ You can use the following script as the equivalent configuration file for Capyta
 Copy it in a Python file, edit it to suit your needs and execute it with Python to run the study.
 More example files can be found in the :doc:`cookbook`.
 
-.. literalinclude:: examples/quickstart.py
+.. literalinclude:: ../examples/src/quickstart.py
    :language: python
-
-

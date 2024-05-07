@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import numpy as np
 import capytaine as cpt
 
@@ -33,8 +31,8 @@ problems = [
 # been defined.)
 
 # Solve all radiation problems
-solver = cpt.BEMSolver(engine=cpt.HierarchicalToeplitzMatrixEngine())
-results = [solver.solve(pb) for pb in sorted(problems)]
+solver = cpt.BEMSolver()
+results = solver.solve_all(problems)
 
 # Gather the computed added mass into a labelled array.
 data = cpt.assemble_dataset(results)
