@@ -9,6 +9,7 @@ User manual
    quickstart.rst
    tutorial.rst
    mesh.rst
+   body.rst
    hydrostatics.rst
    problem_setup.rst
    resolution.rst
