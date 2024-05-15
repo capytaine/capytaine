@@ -33,9 +33,9 @@ Internals
 
 * Update test environments used in noxfile and add ``editable_install_requirements.txt``. (:pull:`498`)
 
-* Rename ``tabulation_method`` parameter of :class:`~capytaine.green_functions.Delhommeau` as the more descriptive ``tabulation_grid_shape``, and similarly for internal variables. (:pull:`503`)
+* Rename ``tabulation_method`` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau` as the more descriptive ``tabulation_grid_shape``, and similarly for internal variables. (:pull:`503`)
 
-* The compiled Fortran extension is not split into a ``Delhommeau`` and a ``XieDelhommeau`` version anymore. The computation of the latter can be achieved by the run-time parameter ``gf_singularities`` of the class :class:`~capytaine.green_functions.delhommeau.Delhommeau` class. The class :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is kept for backward compatibility (:pull:`475`). The tabulation is always the tabulation of the ``low_freq`` wave part (formerly ``XieDelhommeau``) to simplify the implementation (:pull:`508`). The finite depth Green function is always computed using the ``low_freq`` infinite water depth, so the``gf_singularities`` parameter has no effect in finite depth. (:pull:`507`).
+* The compiled Fortran extension is not split into a ``Delhommeau`` and a ``XieDelhommeau`` version anymore. The computation of the latter can be achieved by the run-time parameter ``gf_singularities`` of the class :class:`~capytaine.green_functions.delhommeau.Delhommeau` class. The class :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is kept for backward compatibility (:pull:`475`). The tabulation is always the tabulation of the ``low_freq`` wave part (formerly ``XieDelhommeau``) to simplify the implementation (:pull:`508`). The finite depth Green function is always computed using the ``low_freq`` infinite water depth, so the ``gf_singularities`` parameter has no effect in finite depth. (:pull:`507`).
 
 -------------------------------
 New in version 2.1 (2024-04-08)
@@ -44,33 +44,39 @@ New in version 2.1 (2024-04-08)
 Major changes
 ~~~~~~~~~~~~~
 
-* New feature: **Approximate forward speed for single rigid body**.
+* **New feature: Approximate forward speed for single rigid body**.
   A ``forward_speed`` parameter can now be provided to :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` (or to the test matrix when using :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset`) to compute the excitation force, added mass and radiation damping with forward speed of the body in the :math:`x` direction.
-  Note that the :class:`~capytaine.bem.problems_and_results.RadiationProblem` now accept a ``wave_direction`` parameter, which is only used when `forward_speed` is non zero to compute the encounter frequency.
+  Note that the :class:`~capytaine.bem.problems_and_results.RadiationProblem` now accept a ``wave_direction`` parameter, which is only used when ``forward_speed`` is non zero to compute the encounter frequency.
   See the theory manual for references. (:pull:`376`)
 
 * Add `rich <https://rich.readthedocs.io>`_ as a dependency and improve formatting of the console output.
-  Add :func:`~capytaine.tools.rich.set_logging` function to quickly set up logging with `rich`.
+  Add :func:`~capytaine.ui.rich.set_logging` function to quickly set up logging with `rich`.
   :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now display a progress bar (unless turn off by the ``progress_bar`` argument). (:pull:`382`)
 
 * Reimplement computation of added mass and radiation damping in infinite depth with zero or infinite frequency. (:pull:`385` and :pull:`485`)
-  When using forward speed, the added mass and radiation damping are undefined, but the forces can still be computed. (pull:`483`)
+  When using forward speed, the added mass and radiation damping are undefined, but the forces can still be computed. (:pull:`483`)
 
 * Implement direct method (source-and-dipole formulation) in obtaining velocity potential solutions.
   The direct method can be used instead of the default indirect method by setting the ``method`` argument of :meth:`~capytaine.bem.solver.BEMSolver.solve`, :meth:`~capytaine.bem.solver.BEMSolver.solve_all` or :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` (:pull:`420`)
 
+* Add new shape for the grid used for the tabulation, based on the one used in Nemoh version 3.
+  User can choose to use the Nemoh 3 grid shape (by default) or the former one by setting the ``tabulation_method`` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau`.
+  The new grid shape allows to set both the number of points (with ``tabulation_nr`` and ``tabulation_nz``) and the extent of the tabulation (with ``tabulation_rmax`` and ``tabulation_zmin``).
+  The new default tabulation might lead to slightly different results, which are likely more accurate in the new version.
+  (:pull:`439`)
+
 Minor changes
 ~~~~~~~~~~~~~
 
-* Support passing :class:`~capytaine.bodies.FloatingBody` or :class:`~capytaine.post_pro.free_surfaces.FreeSurface` objects to post-processing methods such as :meth:`~capytaine.bem.solver.BEMSolver.compute_potential` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation`. (:pull:`379`)
+* Support passing :class:`~capytaine.bodies.bodies.FloatingBody` or :class:`~capytaine.post_pro.free_surfaces.FreeSurface` objects to post-processing methods such as :meth:`~capytaine.bem.solver.BEMSolver.compute_potential` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation`. (:pull:`379`)
 
-* Add `top_light_intensity` optional arguments to :meth:`~capytaine.ui.vtk.animations.Animation.run` and :meth:`~capytaine.ui.vtk.animations.Animation.save` to illuminate the scene from top. (:pull:`380`)
+* Add ``top_light_intensity`` optional arguments to :meth:`~capytaine.ui.vtk.animation.Animation.run` and :meth:`~capytaine.ui.vtk.animation.Animation.save` to illuminate the scene from top. (:pull:`380`)
 
 * Clean up ``__str__`` and ``__repr__`` representation of many objects. Also ``rich.print`` now return even nicer representations. (:pull:`384`)
 
 * Always automatically compute and store the ``excitation_force`` next to the ``Froude_Krylov_force`` and ``diffraction_force`` in the dataset (:pull:`406`).
 
-* Computing the RAO with :func:`cpt.post_pro.rao.rao` is not restricted to a single wave direction (or a single value of any other extra parameter) at the time anymore. (:issue:`405` and :pull:`406`)
+* Computing the RAO with :func:`~capytaine.post_pro.rao.rao` is not restricted to a single wave direction (or a single value of any other extra parameter) at the time anymore. (:issue:`405` and :pull:`406`)
 
 * New computation of quadrature schemes without relying on Quadpy. (:pull:`416`)
 
@@ -82,7 +88,7 @@ Minor changes
 
 * The tabulation is saved on disk in a cache directory instead of being recomputed at each initialization of the solver. (:pull:`454`)
 
-* Add a `faces_max_radius` argument to the predefined geometries from :mod:`~cpt.meshes.predefined` to set up the resolution by giving a length scale for the panels (:pull:`459`).
+* Add a ``faces_max_radius`` argument to the predefined geometries from :mod:`~capytaine.meshes.predefined` to set up the resolution by giving a length scale for the panels (:pull:`459`).
 
 * Automatically clip the mesh (and display a warning) when a problem is initialized with a mesh above the free surface or below the sea bottom (:pull:`486`).
 
@@ -93,15 +99,15 @@ Bug fixes
 
 * Fix the single precision Green function (:code:`cpt.Delhommeau(floating_point_precision="float32")`) that was broken in v2.0. (:issue:`377` and :pull:`378`)
 
-* Update the BEMIO import feature to work with Pandas 2.0 and output periods as now done in Capytaine 2.0. A version of BEMIO that works in recent version of Python and Numpy can be found at `https://github.com/mancellin/bemio`_. (:pull:`381`)
+* Update the BEMIO import feature to work with Pandas 2.0 and output periods as now done in Capytaine 2.0. A version of BEMIO that works in recent version of Python and Numpy can be found at https://github.com/mancellin/bemio. (:pull:`381`)
 
-* Fix :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` that was broken and a relevant test. (:pull:`394`)
+* Fix :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` that was broken. (:pull:`394`)
 
 * Fix error message when computing hydrostatic stiffness of non-neutrally-buoyant body that is not a single rigid body. (:issue:`413` and :pull:`414`)
 
 * Fix bug causing the quadrature method of a mesh to be forgotten when the mesh was put in a body. ``quadrature_method`` can now be passed as argument when initializing a new mesh. (:pull:`417`)
 
-* The function :func:`~capytaine.io.meshes_loaders.load_mesh` more robustly detects filetype using file extension even when the file extension is not lowercase. (:pull:`441`)
+* The function :func:`~capytaine.io.mesh_loaders.load_mesh` more robustly detects filetype using file extension even when the file extension is not lowercase. (:pull:`441`)
 
 * Fix bug with bodies translation or rotation when the rotation center or the center of mass had been defined as list or tuples instead of array (:pull:`472`).
 
@@ -120,7 +126,7 @@ Internals
 
 * Fortran source files are not included in wheel anymore (:pull:`360`).
 
-* The `delete_first_lru_cache` decorator has been renamed :func:`~capytaine.tools.lru_cache.lru_cache_with_strict_maxsize` and now supports keyword arguments in the memoized function (:pull:`442`).
+* The ``delete_first_lru_cache`` decorator has been renamed :func:`~capytaine.tools.lru_cache.lru_cache_with_strict_maxsize` and now supports keyword arguments in the memoized function (:pull:`442`).
 
 * Fix Xarray future warning about `Dataset.dims` (:issue:`450` and :pull:`451`).
 
