@@ -12,7 +12,7 @@ Overview of the modules
     without being explicitly referenced as a dependency in the present page.
 
     .. toctree::
-       :maxdepth: 2
+       :maxdepth: 1
 
        api/capytaine.tools
 
@@ -30,7 +30,7 @@ Overview of the modules
     indendant library to make Capytaine a bit leaner.
 
     .. toctree::
-       :maxdepth: 2
+       :maxdepth: 1
 
        api/capytaine.matrices
 
@@ -47,7 +47,7 @@ Overview of the modules
 
 
     .. toctree::
-       :maxdepth: 2
+       :maxdepth: 1
 
        api/capytaine.meshes
 
@@ -60,7 +60,7 @@ Overview of the modules
     of a mesh and some degrees of freedom, as well as some more optional data.
 
     .. toctree::
-       :maxdepth: 2
+       :maxdepth: 1
 
        api/capytaine.bodies
 
@@ -72,7 +72,7 @@ Overview of the modules
     This module contains the routine to evaluate the Green function.
 
     .. toctree::
-       :maxdepth: 2
+       :maxdepth: 1
 
        api/capytaine.green_functions
 
@@ -85,7 +85,7 @@ Overview of the modules
     matrices and solve the BEM problem.
 
     .. toctree::
-       :maxdepth: 2
+       :maxdepth: 1
 
        api/capytaine.bem
 
@@ -114,10 +114,7 @@ Overview of the modules
     .. toctree::
        :maxdepth: 1
 
-       api/capytaine.post_pro.free_surfaces
-       api/capytaine.post_pro.kochin
-       api/capytaine.post_pro.impedance
-       api/capytaine.post_pro.rao
+       api/capytaine.post_pro
 
 
 :mod:`~capytaine.io`
@@ -129,11 +126,7 @@ Overview of the modules
     .. toctree::
        :maxdepth: 1
 
-       api/capytaine.io.bemio
-       api/capytaine.io.legacy
-       api/capytaine.io.mesh_loaders
-       api/capytaine.io.mesh_writers
-       api/capytaine.io.meshio
+       api/capytaine.io
 
 
 :mod:`ui <capytaine.ui>`
@@ -145,6 +138,6 @@ Overview of the modules
     and the 3D visualisations of the meshes with VTK.
 
     .. toctree::
-       :maxdepth: 2
+       :maxdepth: 1
 
        api/capytaine.ui
