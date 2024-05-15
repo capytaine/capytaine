@@ -49,7 +49,7 @@ phi_rad = rad_solution.potential
 
 # Indirect computation from the radiation solution, via the Haskind relation
 integrand = - (phi_inc * faces_normals[:,2]
-              - phi_rad * np.diag(v_inc@faces_normals.T))
+              - 1j/omega * phi_rad * np.diag(v_inc@faces_normals.T))
 F_hask = 1j * omega * rho * np.sum(integrand*faces_areas)
 
 # Direct integration of the potentials
