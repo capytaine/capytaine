@@ -64,7 +64,7 @@ where :math:`n` denotes the normal vector at the surface of the floating body.
 
 .. * in the far field,
    .. math::
-      \sqrt{R} \left( \frac{\partial \Phi}{\partial R} - i m_0 \right) \left( \Phi - Phi_0 \right)
+      \sqrt{R} \left( \frac{\partial \Phi}{\partial R} - i k \right) \left( \Phi - Phi_0 \right)
       \rightarrow 0, \qquad \text{when } R \rightarrow \infty,
 
 The normal velocity on the floating body surface is the input of the problem.
@@ -81,9 +81,9 @@ It depends on the type of problem:
     The incoming Airy's wave fields is given by
 
     .. math::
-       \Phi_0 = - i \frac{g}{\omega} \frac{\cosh (m_0 (z+h))}{\cosh (m_0 h)} e^{i m_0 (x \cos \beta + y \sin \beta)}
+       \Phi_0 = - i \frac{g}{\omega} \frac{\cosh (k (z+h))}{\cosh (k h)} e^{i k (x \cos \beta + y \sin \beta)}
 
-    in finite depth, where the wave number :math:`m_0` is defined by the dispersion relation :math:`\omega^2 = m_0 g \tanh (m_0 h)`, and by
+    in finite depth, where the wave number :math:`k` is defined by the dispersion relation :math:`\omega^2 = k g \tanh (k h)`, and by
 
     .. math::
        \Phi_0 = - i \frac{g}{\omega} e^{k z} e^{i k (x \cos \beta + y \sin \beta)}
