@@ -44,7 +44,7 @@ The formats currently supported in reading are listed in the following table (ad
 +-----------+-----------------+----------------------+-----------------+
 |   .nem    | NEMOH [#f1]_    | nemoh_mesh, nem      |                 |
 +-----------+-----------------+----------------------+-----------------+
-|   .gdf    | WAMIT [#f2]_    | wamit, gdf           |                 |
+|   .gdf    | WAMIT [#f2]_    | wamit, gdf           | Symmetries      |
 +-----------+-----------------+----------------------+-----------------+
 |   .inp    | DIODORE [#f3]_  | diodore-inp, inp     |                 |
 +-----------+-----------------+----------------------+-----------------+
@@ -90,7 +90,7 @@ The formats currently supported in reading are listed in the following table (ad
 
 
 Not all metadata is taken into account when reading the mesh file.
-For instance, the body symmetry is taken into account only for the `.mar` and `.hst` file formats.
+For instance, the body symmetry is taken into account only for the ``.mar``, ``.pnl``, ``.gdf`` and ``.hst`` file formats.
 Feel free to open an issue on Github to suggest improvements.
 
 
