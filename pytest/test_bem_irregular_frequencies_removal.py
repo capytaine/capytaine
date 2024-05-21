@@ -152,6 +152,10 @@ def test_lid_multibody(body_with_lid):
         atol=1e-6
     )
 
+    pb = cpt.DiffractionProblem(body=two_bodies, wavelength=3.0)
+    solver = cpt.BEMSolver()
+    solver.solve(pb)
+
 
 def test_lid_with_plane_symmetry():
     mesh = cpt.mesh_horizontal_cylinder(reflection_symmetry=True).immersed_part()
