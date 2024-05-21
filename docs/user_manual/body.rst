@@ -39,9 +39,10 @@ It is set as in the following example::
 Once a lid mesh has been defined, it is automatically used for irregular
 frequencies removal without any other action from the user.
 
-Geometries with a symmetry plane with respect to a vertical plane are
-supported, as long as the ``mesh`` and the ``lid_mesh`` have the same symmetry
-plane.
+Currently, meshes with a symmetry are not supported, in the sense that the
+computation will be done without using the symmetries when a lid is added. This
+should be improved to support at least vertical symmetry plane in a future
+version.
 
 Dofs
 ~~~~
