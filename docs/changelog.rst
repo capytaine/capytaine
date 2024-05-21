@@ -28,6 +28,8 @@ Bug fixes
 
 * Always use an odd number of points for integration with Simpson rule (:pull:`515`). This bug was partly responsible for some high-frequency inaccuracy (:issue:`298`).
 
+* :func:`~capytaine.meshes.predefined.cylinders.mesh_vertical_cylinder` used to return only half of the mesh when called with ``reflection_symmetry=True`` (:issue:`529` and :pull:`530`).
+
 Internals
 ~~~~~~~~~
 
