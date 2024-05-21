@@ -147,19 +147,6 @@ def test_pnl_xy_symmetry():
             2 4  5 6 7 8
             #End Definition of Node Relations
             """)
-    mesh = parse_pnl("""Mesh description
-        1.0  9.81
-        1 1
-        2
-        0.0 0.0 -1.0
-        1.0 0.0 -1.0
-        1.0 1.0 -1.0
-        0.0 1.0 -1.0
-        1.0 0.0 -1.0
-        2.0 0.0 -1.0
-        2.0 1.0 -1.0
-        1.0 1.0 -1.0
-    """)
     assert isinstance(mesh, cpt.ReflectionSymmetricMesh)
     assert isinstance(mesh.half, cpt.ReflectionSymmetricMesh)
     assert mesh.nb_faces == 8
