@@ -127,7 +127,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
     @cached_property
     def mesh_including_lid(self):
         if self.lid_mesh is not None:
-            return self.mesh.join_meshes(self.lid_mesh)
+            return CollectionOfMeshes([self.mesh, self.lid_mesh])
         else:
             return self.mesh
 

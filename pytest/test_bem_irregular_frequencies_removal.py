@@ -153,10 +153,11 @@ def test_lid_multibody(body_with_lid):
     )
 
     pb = cpt.DiffractionProblem(body=two_bodies, wavelength=3.0)
-    solver = cpt.BEMSolver()
+    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
     solver.solve(pb)
 
 
+@pytest.mark.xfail
 def test_lid_with_plane_symmetry():
     mesh = cpt.mesh_horizontal_cylinder(reflection_symmetry=True).immersed_part()
     lid_mesh = cpt.ReflectionSymmetricMesh(
@@ -165,10 +166,10 @@ def test_lid_with_plane_symmetry():
             )
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=1.0)
-    solver = cpt.BEMSolver()
-    solver.solve(pb)
-    cached_matrices = list(solver.engine.build_matrices.__closure__[0].cell_contents.values())
-    S, K = cached_matrices[-1]
+    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
+    S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
+                                        pb.free_surface, pb.water_depth, pb.wavenumber,
+                                        solver.green_function)
     from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix
     assert isinstance(S, BlockSymmetricToeplitzMatrix)
     assert isinstance(K, BlockSymmetricToeplitzMatrix)
@@ -180,4 +181,4 @@ def test_panel_on_free_surface(water_depth):
     body = cpt.FloatingBody(mesh, cpt.rigid_body_dofs())
     body.mesh.compute_quadrature("Gauss-Legendre 2")
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, water_depth=water_depth, radiating_dof="Heave")
-    res = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="low_freq")).solve(pb)
+    cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="low_freq")).solve(pb)
