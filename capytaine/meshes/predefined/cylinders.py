@@ -170,7 +170,7 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
                 resolution=(nr, ntheta//2, nz), reflection_symmetry=False, axial_symmetry=False,
                 name=f"half_{name}", _theta_max=_theta_max/2)
 
-        mesh = ReflectionSymmetricMesh(half_cylinder, plane=xOz_Plane, name=name)
+        mesh = ReflectionSymmetricMesh(half_cylinder, plane=yOz_Plane, name=name)
 
     elif axial_symmetry:
 
