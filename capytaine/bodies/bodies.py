@@ -964,6 +964,8 @@ respective inertia coefficients are assigned as NaN.")
     @inplace_transformation
     def translate(self, vector, *args, **kwargs):
         self.mesh.translate(vector, *args, **kwargs)
+        if self.lid_mesh is not None:
+            self.lid_mesh.translate(vector, *args, **kwargs)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
                 self.__dict__[point_attr] = np.array(self.__dict__[point_attr]) + vector

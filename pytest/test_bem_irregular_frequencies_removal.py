@@ -133,6 +133,26 @@ def test_effect_of_lid_on_regular_frequency_field_velocity(
     assert u_with == pytest.approx(u_without, rel=5e-2)
 
 
+def test_lid_multibody(body_with_lid):
+    two_bodies = body_with_lid + body_with_lid.translated_x(5.0)
+    assert isinstance(two_bodies.mesh, cpt.CollectionOfMeshes)
+    assert isinstance(two_bodies.lid_mesh, cpt.CollectionOfMeshes)
+
+    # Check that the lid are still positioned on top of each component
+    def horizontal_center(mesh):
+        return mesh.faces_centers.mean(axis=0)[:2]
+    np.testing.assert_allclose(
+        horizontal_center(two_bodies.lid_mesh[0]),
+        horizontal_center(two_bodies.mesh[0]),
+        atol=1e-6
+    )
+    np.testing.assert_allclose(
+        horizontal_center(two_bodies.lid_mesh[1]),
+        horizontal_center(two_bodies.mesh[1]),
+        atol=1e-6
+    )
+
+
 def test_lid_with_plane_symmetry():
     mesh = cpt.mesh_horizontal_cylinder(reflection_symmetry=True).immersed_part()
     lid_mesh = cpt.ReflectionSymmetricMesh(
