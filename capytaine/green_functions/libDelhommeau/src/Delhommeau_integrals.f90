@@ -2,11 +2,13 @@
 ! See LICENSE file at <https://github.com/capytaine/libDelhommeau>
 !
 ! This module contains functions to evaluate the following integrals
-! D1 = Re[ ∫(i cosθ)(J(ζ) - 1/ζ)dθ ]
-! D2 = Re[ ∫(i cosθ)(e^ζ)dθ ]
-! Z1 = Re[ ∫(J(ζ))dθ ]  ! That is G^+, the low_freq version.
-! Z2 = Re[ ∫(e^ζ)dθ ]
-! where ζ depends on θ, as well as two additional parameters `r ∈ [0, +∞)` and `z ∈ (-∞, 0]`.
+! for a given range of values of `r ∈ [0, +∞)` and `z ∈ (-∞, 0]`.
+! tab(1) = Re[ 𝒢^+ ] = 2/π Re[ ∫ e^ζ (E(ζ) + iπ) dθ ]
+! tab(2) = Re[ 𝒢^- ] = 2/π Re[ ∫ (e^ζ (E(ζ) + iπ) - 1/ζ) dθ ]
+! tab(3) = Im[ 𝒢^+ ] = Im[ 𝒢^- ] =  2/π Re[ ∫(e^ζ) dθ ]
+! tab(4) = Re[ ∂𝒢^+/∂r ] = 2 Re[ ∫ (i cosθ) (e^ζ (E(ζ) + iπ) - 1/ζ) dθ ]
+! tab(5) = Im[ ∂𝒢^+/∂r ] = 2 Re[ ∫ (i cosθ) (e^ζ) dθ ]
+! where ζ = z + i r cos θ.
 !
 ! They are required for the evaluation of the Green function and its gradient.
 !
@@ -34,7 +36,7 @@ contains
     integer,        intent(in) :: nb_integration_points
 
     ! output
-    real(kind=pre), dimension(2, 2) :: integrals
+    real(kind=pre), dimension(nb_tabulated_values) :: integrals
 
     ! local variables
     integer :: k, n
@@ -42,7 +44,7 @@ contains
     complex(kind=pre) :: zeta, exp_zeta, jzeta
 
     ! initial values
-    integrals(:, :) = 0.0
+    integrals(:) = 0.0
 
     ! Should have an odd number of points for Simpson rule
     if (mod(nb_integration_points, 2) == 0) then
@@ -72,15 +74,17 @@ contains
         exp_zeta = exp(zeta)
       endif
       jzeta = exp_e1(zeta) + ii*pi*exp_zeta
-      integrals(1, 1) = integrals(1, 1) - delta_theta * cos_theta * aimag(jzeta - 1.0/zeta)
-      integrals(2, 1) = integrals(2, 1) - delta_theta * cos_theta * aimag(exp_zeta)
-      integrals(1, 2) = integrals(1, 2) + delta_theta * real(jzeta)
-      integrals(2, 2) = integrals(2, 2) + delta_theta * real(exp_zeta)
+      integrals(1) = integrals(1) + delta_theta * real(jzeta)
+      integrals(2) = integrals(2) + delta_theta * real(jzeta - 1.0/zeta)
+      integrals(3) = integrals(3) + delta_theta * real(exp_zeta)
+      integrals(4) = integrals(4) - delta_theta * cos_theta * aimag(jzeta - 1.0/zeta)
+      integrals(5) = integrals(5) - delta_theta * cos_theta * aimag(exp_zeta)
     enddo
 
-    integrals(1, 1) = integrals(1, 1)/PI
-    integrals(1, 2) = integrals(1, 2)/PI
-    integrals(:, :) = 2*integrals(:, :)
+    integrals(1) = integrals(1)/PI
+    integrals(2) = integrals(2)/PI
+    integrals(4) = integrals(4)/PI
+    integrals(:) = 2*integrals(:)
 
   contains
 
@@ -140,11 +144,10 @@ contains
   pure function asymptotic_approximations(r, z) result(integrals)
     ! Evaluate the wave part of legacy's Delhommeau Green function
     ! using an approximate expression for large r and |z|
-    ! This always is G^-, that is not exactly the same as `numerical_integration`
     real(kind=pre), intent(in) :: r
     real(kind=pre), intent(in) :: z
 
-    real(kind=pre), dimension(2, 2) :: integrals
+    real(kind=pre), dimension(nb_tabulated_values) :: integrals
 
     real(kind=pre) :: r1, expz_sqr, sin_kr, cos_kr
 
@@ -154,11 +157,12 @@ contains
     cos_kr  = cos(r - pi/4)
     sin_kr  = sin(r - pi/4)
 
-    integrals(1, 1) = -expz_sqr*(cos_kr - sin_kr/(2*r)) + r/r1**3
-    integrals(2, 1) = -expz_sqr*(sin_kr + cos_kr/(2*r))
-    integrals(1, 2) = -expz_sqr*sin_kr + z/r1**3
-    integrals(2, 2) =  expz_sqr*cos_kr
-    integrals(:, :) = 2*integrals(:, :)
+    integrals(1) = -expz_sqr*sin_kr + z/r1**3 - 1/r1
+    integrals(2) = -expz_sqr*sin_kr + z/r1**3
+    integrals(3) =  expz_sqr*cos_kr
+    integrals(4) = -expz_sqr*(cos_kr - sin_kr/(2*r)) + r/r1**3
+    integrals(5) = -expz_sqr*(sin_kr + cos_kr/(2*r))
+    integrals(:) = 2*integrals(:)
 
   end function asymptotic_approximations
 
@@ -169,13 +173,13 @@ contains
     real(kind=pre), dimension(:), intent(in) :: r_range
     real(kind=pre), dimension(:), intent(in) :: z_range
     integer,        intent(in) :: nb_integration_points
-    real(kind=pre), dimension(size(r_range), size(z_range), 2, 2) :: tabulation
+    real(kind=pre), dimension(size(r_range), size(z_range), nb_tabulated_values) :: tabulation
 
     integer :: i, j
 
     do concurrent (j = 1:size(z_range))
       do concurrent (i = 1:size(r_range))
-        tabulation(i, j, :, :) = numerical_integration(r_range(i), z_range(j), nb_integration_points)
+        tabulation(i, j, :) = numerical_integration(r_range(i), z_range(j), nb_integration_points)
       enddo
     enddo
 
@@ -251,17 +255,17 @@ contains
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  pure function pick_in_default_tabulation(r, z, method, r_range, z_range, tabulation) result(integrals)
+  pure function pick_in_default_tabulation(r, z, method, r_range, z_range, tabulation) result(interpolated_values)
     ! inputs
     real(kind=pre), intent(in) :: r
     real(kind=pre), intent(in) :: z
     integer, intent(in) :: method
     real(kind=pre), dimension(:), intent(in) :: r_range
     real(kind=pre), dimension(:), intent(in) :: z_range
-    real(kind=pre), dimension(size(r_range), size(z_range), 2, 2), intent(in) :: tabulation
+    real(kind=pre), dimension(size(r_range), size(z_range), nb_tabulated_values), intent(in) :: tabulation
 
     ! output
-    real(kind=pre), dimension(2, 2) :: integrals
+    real(kind=pre), dimension(nb_tabulated_values) :: interpolated_values
 
     ! local variables
     integer :: i, j
@@ -269,10 +273,10 @@ contains
     i = max(2, min(size(r_range)-1, nearest_r_index(r, r_range, method)))
     j = max(2, min(size(z_range)-1, nearest_z_index(z, z_range, method)))
 
-    integrals(:, :) = lagrange_polynomial_interpolation( &
-      r, z,                                              &
-      r_range(i-1:i+1), z_range(j-1:j+1),                &
-      tabulation(i-1:i+1, j-1:j+1, :, :)                 &
+    interpolated_values(:) = lagrange_polynomial_interpolation( &
+      r, z,                                                     &
+      r_range(i-1:i+1), z_range(j-1:j+1),                       &
+      tabulation(i-1:i+1, j-1:j+1, :)                           &
       )
 
   contains
@@ -334,22 +338,26 @@ contains
           nearest_z_index = int(5*(log10(absz) + 6))
         endif
       else
+
         dz = (log10(abs(z_range(nz)))+10.0)/nz
         nearest_z_index = int((log10(absz)+10)/dz)
       endif
     end function
 
-    pure function lagrange_polynomial_interpolation(r, z, local_r_range, local_z_range, local_tabulation) result(integrals)
+    pure function lagrange_polynomial_interpolation(         &
+        r, z, local_r_range, local_z_range, local_tabulation &
+        ) result(interpolated_values)
       ! inputs
       real(kind=pre),                        intent(in) :: r, z
       real(kind=pre), dimension(3),          intent(in) :: local_r_range
       real(kind=pre), dimension(3),          intent(in) :: local_z_range
-      real(kind=pre), dimension(3, 3, 2, 2), intent(in) :: local_tabulation
+      real(kind=pre), dimension(3, 3, nb_tabulated_values), intent(in) :: local_tabulation
 
       ! output
-      real(kind=pre), dimension(2, 2) :: integrals
+      real(kind=pre), dimension(nb_tabulated_values) :: interpolated_values
 
       ! local variable
+      integer :: k
       real(kind=pre), dimension(3) :: xl, zl
 
       xl(1) = pl2(local_r_range(2), local_r_range(3), local_r_range(1), r)
@@ -359,10 +367,9 @@ contains
       zl(2) = pl2(local_z_range(3), local_z_range(1), local_z_range(2), z)
       zl(3) = pl2(local_z_range(1), local_z_range(2), local_z_range(3), z)
 
-      integrals(1, 1) = dot_product(xl, matmul(local_tabulation(:, :, 1, 1), zl))
-      integrals(2, 1) = dot_product(xl, matmul(local_tabulation(:, :, 2, 1), zl))
-      integrals(1, 2) = dot_product(xl, matmul(local_tabulation(:, :, 1, 2), zl))
-      integrals(2, 2) = dot_product(xl, matmul(local_tabulation(:, :, 2, 2), zl))
+      do concurrent (k=1:nb_tabulated_values)
+        interpolated_values(k) = dot_product(xl, matmul(local_tabulation(:, :, k), zl))
+      enddo
     end function lagrange_polynomial_interpolation
 
     pure function pl2(u1, u2, u3, xu)
