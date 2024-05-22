@@ -149,6 +149,11 @@ Refer to their documentation for details about the parameters they accepts.
 Since version 2.1, their resolution can be set by the ``faces_max_radius``
 parameter which specifies the maximal size of a face in the mesh.
 
+.. note::
+    There are several ways to measure the size of a face and the resolution of a mesh.
+    In Capytaine, the size of faces is usually quatified with the *radius* of the face, that is the maximal distance between the center of the face and its vertices.
+    The resolution of a mesh is estimated as the maximal radius among all the faces in the mesh, that is the radius of the biggest face.
+
 
 Creating from scratch
 ~~~~~~~~~~~~~~~~~~~~~
