@@ -3,11 +3,11 @@
 !
 ! This module contains functions to evaluate the following integrals
 ! for a given range of values of `r ∈ [0, +∞)` and `z ∈ (-∞, 0]`.
-! tab(1) = Re[ 𝒢^+ ] = 2/π Re[ ∫ e^ζ (E(ζ) + iπ) dθ ]
-! tab(2) = Re[ 𝒢^- ] = 2/π Re[ ∫ (e^ζ (E(ζ) + iπ) - 1/ζ) dθ ]
-! tab(3) = Im[ 𝒢^+ ] = Im[ 𝒢^- ] =  2/π Re[ ∫(e^ζ) dθ ]
-! tab(4) = Re[ ∂𝒢^+/∂r ] = 2 Re[ ∫ (i cosθ) (e^ζ (E(ζ) + iπ) - 1/ζ) dθ ]
-! tab(5) = Im[ ∂𝒢^+/∂r ] = 2 Re[ ∫ (i cosθ) (e^ζ) dθ ]
+! I(1) = Re[ 𝒢^+ ] = 2/π Re[ ∫ e^ζ (E(ζ) + iπ) dθ ]
+! I(2) = Re[ 𝒢^- ] = 2/π Re[ ∫ (e^ζ (E(ζ) + iπ) - 1/ζ) dθ ]
+! I(3) = Im[ 𝒢^+ ] = Im[ 𝒢^- ] =  2/π Re[ ∫(e^ζ) dθ ]
+! I(4) = Re[ ∂𝒢^+/∂r ] = 2 Re[ ∫ (i cosθ) (e^ζ (E(ζ) + iπ) - 1/ζ) dθ ]
+! I(5) = Im[ ∂𝒢^+/∂r ] = 2 Re[ ∫ (i cosθ) (e^ζ) dθ ]
 ! where ζ = z + i r cos θ.
 !
 ! They are required for the evaluation of the Green function and its gradient.
