@@ -71,7 +71,7 @@ BENCH_BIN=$(BENCH_SRC:.f90=.bin)
 ### ==============================================
 ### targets
 
-.PHONY: clean mrproper
+.PHONY: .init clean mrproper
 
 $(OBJDIR)/%.o: %.f90
 	$(COMP) $(FLAGS) -J$(OBJDIR) -c $< -o $@
