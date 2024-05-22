@@ -390,6 +390,7 @@ All higher order derivative can be expressed with the help of :math:`\mathcal{G}
 .. note::
    The same derivation is done in e.g. [N20]_ using instead the function :math:`F = \mathcal{G} - \frac{1}{\sqrt{r^2 + z^2}}` for which the expressions are slightly simpler.
 
+
 Delhommeau's method for computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

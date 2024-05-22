@@ -1,10 +1,24 @@
 import pytest
 import numpy as np
-from scipy.special import j0
 import capytaine as cpt
 
+# def test_exponential_integral(x, y):
+#     # Compare with Scipy implementation
+#     from scipy.special import exp1
+#     z = x + 1j*y
+#
+#     gf = cpt.Delhommeau()
+#     def E1(z):
+#         return np.exp(-z)*gf.fortran_core.delhommeau_integrals.exp_e1(z)
+#
+#     assert np.isclose(E1(z), exp1(z), rtol=1e-3)
+
+#     # Test property (A3.5) of the function according to [Del, p.367].
+#     if y != 0.0:
+#         assert np.isclose(E1(np.conjugate(z)), np.conjugate(E1(z)), rtol=1e-3)
 
 def test_infinite_depth_gf():
+    from scipy.special import j0
     gf = cpt.Delhommeau()
     def wave_part(*args):
         return gf.fortran_core.green_wave.wave_part_infinite_depth(
