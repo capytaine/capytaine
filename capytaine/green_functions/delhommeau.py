@@ -86,7 +86,7 @@ class Delhommeau(AbstractGreenFunction):
     tabulated_r_range: numpy.array of shape (tabulation_nr,) and type floating_point_precision
     tabulated_z_range: numpy.array of shape (tabulation_nz,) and type floating_point_precision
         Coordinates of the tabulation points.
-    tabulated_integrals: numpy.array of shape (tabulation_nr, tabulation_nz, 2, 2) and type floating_point_precision
+    tabulated_integrals: numpy.array of shape (tabulation_nr, tabulation_nz, nb_tabulated_values) and type floating_point_precision
         Tabulated Delhommeau integrals.
     """
 

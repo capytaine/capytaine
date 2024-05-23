@@ -7,59 +7,6 @@ import numpy as np
 import capytaine as cpt
 
 
-
-# from numpy import pi
-# from scipy.integrate import quad
-# from scipy.misc import derivative
-# from scipy.optimize import newton
-# from scipy.special import exp1
-# from hypothesis import given
-
-# def E1(z):
-#     return np.exp(-z)*Delhommeau_f90.initialize_green_wave.exp_e1(z)
-#
-# @given(floats(min_value=-1e2, max_value=-1e-2), floats(min_value=-1e2, max_value=1e2))
-# def test_exponential_integral(x, y):
-#     z = x + 1j*y
-#
-#     # Compare with Scipy implementation
-#     assert np.isclose(E1(z), exp1(z), rtol=1e-3)
-#
-#     # Test property (A3.5) of the function according to [Del, p.367].
-#     if y != 0.0:
-#         assert np.isclose(E1(np.conjugate(z)), np.conjugate(E1(z)), rtol=1e-3)
-#
-#     # BROKEN...
-#     # def derivative_of_complex_function(f, z, **kwargs):
-#     #     direction = 1
-#     #     return derivative(lambda eps: f(z + eps*direction), 0.0, **kwargs)
-#     # if abs(x) > 1 and abs(y) > 1:
-#     #     assert np.isclose(
-#     #         derivative_of_complex_function(Delhommeau_f90.initialize_green_wave.gg, z),
-#     #         Delhommeau_f90.initialize_green_wave.gg(z) - 1.0/z,
-#     #         atol=1e-2)
-#
-
-# CHECK OF THE THEORY, NOT THE CODE ITSELF
-# Not necessary to run every time...
-#
-# @given(r=floats(min_value=0, max_value=1e2),
-#        z=floats(min_value=-16, max_value=-1),
-#        k=floats(min_value=0.1, max_value=10)
-#        )
-# def test_zeta(r, z, k):
-#     """Check expression k/π ∫ 1/ζ(θ) dθ = - 1/r """
-
-#     def one_over_zeta(theta):
-#         return np.real(1/(k*(z + 1j*r*np.cos(theta))))
-
-#     int_one_over_zeta, *_ = quad(one_over_zeta, -pi/2, pi/2)
-
-#     assert np.isclose(k/pi * int_one_over_zeta,
-#                       -1/(np.sqrt(r**2 + z**2)),
-#                       rtol=1e-4)
-
-
 gfs = [
         cpt.Delhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251, tabulation_grid_shape="legacy"),
         cpt.XieDelhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251, tabulation_grid_shape="legacy"),

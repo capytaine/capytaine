@@ -55,7 +55,7 @@ CONTAINS
     INTEGER,                                  INTENT(IN) :: tabulation_nb_integration_points
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
-    REAL(KIND=PRE), DIMENSION(:, :, :, :),    INTENT(IN) :: tabulated_integrals
+    REAL(KIND=PRE), DIMENSION(:, :, :),       INTENT(IN) :: tabulated_integrals
 
     ! Prony decomposition for finite depth Green function
     INTEGER,                                  INTENT(IN) :: NEXP

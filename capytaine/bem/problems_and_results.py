@@ -218,7 +218,7 @@ class LinearPotentialFlowProblem:
             if len(self.boundary_condition.shape) != 1:
                 raise ValueError(f"Expected a 1-dimensional array as boundary_condition. Provided boundary condition's shape: {self.boundary_condition.shape}.")
 
-            if self.boundary_condition.shape[0] != self.body.mesh.nb_faces:
+            if self.boundary_condition.shape[0] != self.body.mesh_including_lid.nb_faces:
                 raise ValueError(
                     f"The shape of the boundary condition ({self.boundary_condition.shape})"
                     f"does not match the number of faces of the mesh ({self.body.mesh.nb_faces})."
@@ -345,7 +345,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                          forward_speed=forward_speed, rho=rho, g=g)
 
         if float(self.omega) in {0.0, np.inf}:
-            raise NotImplementedError(f"DiffractionProblem does not support zero or infinite frequency.")
+            raise NotImplementedError("DiffractionProblem does not support zero or infinite frequency.")
 
         if self.body is not None:
 
@@ -355,6 +355,9 @@ class DiffractionProblem(LinearPotentialFlowProblem):
             ).sum(axis=1)
             # Note that even with forward speed, this is computed based on the
             # frequency and not the encounter frequency.
+
+            if self.body.lid_mesh is not None:
+                self.boundary_condition = np.concatenate([self.boundary_condition, np.zeros(self.body.lid_mesh.nb_faces)])
 
             if len(self.body.dofs) == 0:
                 LOG.warning(f"The body {self.body.name} used in diffraction problem has no dofs!")
@@ -421,6 +424,9 @@ class RadiationProblem(LinearPotentialFlowProblem):
                             f"Got instead `radiating_dof={self.radiating_dof}`"
                             )
                 self.boundary_condition += self.forward_speed * ddofdx_dot_n
+
+            if self.body.lid_mesh is not None:
+                self.boundary_condition = np.concatenate([self.boundary_condition, np.zeros(self.body.lid_mesh.nb_faces)])
 
 
     def _astuple(self):

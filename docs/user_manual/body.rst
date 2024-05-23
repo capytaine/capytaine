@@ -23,6 +23,27 @@ the variants defined in Capytaine, such as a
 Meshes from `meshio` can also be given directly to the ``FloatingBody``
 constructor without calling :func:`~capytaine.io.meshio.load_from_meshio`.
 
+Lid mesh
+~~~~~~~~
+
+For irregular frequencies removal, a second mesh can be provided when defining
+the body. It is meant to be a mesh of a lid of the part of the free surface
+that is inside the body. The lid can either on the free surface or slightly
+below. This mesh is ignored for many computations (such as hydrostatics) and is
+only used when solving a BEM problem.
+
+It is set as in the following example::
+
+    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh)
+
+Once a lid mesh has been defined, it is automatically used for irregular
+frequencies removal without any other action from the user.
+
+Currently, meshes with a symmetry are not supported, in the sense that the
+computation will be done without using the symmetries when a lid is added. This
+should be improved to support at least vertical symmetry plane in a future
+version.
+
 Dofs
 ~~~~
 

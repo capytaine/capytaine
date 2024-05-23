@@ -44,7 +44,7 @@ The formats currently supported in reading are listed in the following table (ad
 +-----------+-----------------+----------------------+-----------------+
 |   .nem    | NEMOH [#f1]_    | nemoh_mesh, nem      |                 |
 +-----------+-----------------+----------------------+-----------------+
-|   .gdf    | WAMIT [#f2]_    | wamit, gdf           |                 |
+|   .gdf    | WAMIT [#f2]_    | wamit, gdf           | Symmetries      |
 +-----------+-----------------+----------------------+-----------------+
 |   .inp    | DIODORE [#f3]_  | diodore-inp, inp     |                 |
 +-----------+-----------------+----------------------+-----------------+
@@ -90,7 +90,7 @@ The formats currently supported in reading are listed in the following table (ad
 
 
 Not all metadata is taken into account when reading the mesh file.
-For instance, the body symmetry is taken into account only for the `.mar` and `.hst` file formats.
+For instance, the body symmetry is taken into account only for the ``.mar``, ``.pnl``, ``.gdf`` and ``.hst`` file formats.
 Feel free to open an issue on Github to suggest improvements.
 
 
@@ -148,6 +148,11 @@ Refer to their documentation for details about the parameters they accepts.
 
 Since version 2.1, their resolution can be set by the ``faces_max_radius``
 parameter which specifies the maximal size of a face in the mesh.
+
+.. note::
+    There are several ways to measure the size of a face and the resolution of a mesh.
+    In Capytaine, the size of faces is usually quatified with the *radius* of the face, that is the maximal distance between the center of the face and its vertices.
+    The resolution of a mesh is estimated as the maximal radius among all the faces in the mesh, that is the radius of the biggest face.
 
 
 Creating from scratch
