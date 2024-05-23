@@ -31,6 +31,7 @@ MODULE CONSTANTS
   ! Values for "gf_singularities"
   integer, parameter :: HIGH_FREQ = 0  ! legacy from Nemoh
   integer, parameter :: LOW_FREQ = 1  ! aka XieDelhommeau
+  integer, parameter :: LOW_FREQ_WITH_RANKINE_PART = 2  ! like LOW_FREQ but with a term integrated exactly
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
