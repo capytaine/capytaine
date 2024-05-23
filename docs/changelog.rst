@@ -23,7 +23,7 @@ Minor changes
 
 * When computing without a tabulation (``tabulation_nr=0`` or ``tabulation_nz=0``), the value of ``tabulation_nb_integration_points`` is actually used to compute Guével-Delhommeau exact formulation of the Green function. Previously, it was only used when precomputing a tabulation (:pull:`514`).
 
-* Add a ``tabulation_cache_dir`` parameter to :class:`~capytaine.green_functions.delhommeau.Delhommeau` to choose the directory in which the tabulation is saved on disk. If ``None`` is provided instead, the tabulation is not saved on disk and is recomputed at each initialization of the class (:pull:`516`).
+* Add a ``tabulation_cache_dir`` parameter to :class:`~capytaine.green_functions.delhommeau.Delhommeau` to choose the directory in which the tabulation is saved on disk. If ``None`` is provided instead, the tabulation is not saved on disk and is recomputed at each initialization of the class. Also, if this parameter is not set, look for the ``CAPYTAINE_CACHE_DIR`` environment variable and use it to save the tabulation if it exists. (:pull:`516`).
 
 Bug fixes
 ~~~~~~~~~
