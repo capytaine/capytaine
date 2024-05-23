@@ -88,7 +88,7 @@ def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1),
     else:
         theta_range = np.linspace(0, _theta_max, ntheta+1)
         r_range = np.linspace(0.0, radius, nr+1)
-        nodes = np.array([(0, r*sin(t), r*cos(t)) for (r, t) in product(r_range, theta_range)])
+        nodes = np.array([(0, r*sin(t), -r*cos(t)) for (r, t) in product(r_range, theta_range)])
         panels = np.array([(j+i*(ntheta+1), j+1+i*(ntheta+1), j+1+(i+1)*(ntheta+1), j+(i+1)*(ntheta+1))
                                 for (i, j) in product(range(0, nr), range(0, ntheta))])
 
@@ -170,7 +170,7 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
                 resolution=(nr, ntheta//2, nz), reflection_symmetry=False, axial_symmetry=False,
                 name=f"half_{name}", _theta_max=_theta_max/2)
 
-        mesh = ReflectionSymmetricMesh(half_cylinder, plane=xOz_Plane, name=name)
+        mesh = ReflectionSymmetricMesh(half_cylinder, plane=yOz_Plane, name=name)
 
     elif axial_symmetry:
 

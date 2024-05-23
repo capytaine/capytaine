@@ -5,7 +5,7 @@ program test
   use matrices, only: build_matrices, is_infinity
   use delhommeau_integrals, only: default_r_spacing, default_z_spacing, construct_tabulation
   use floating_point_precision, only: pre
-  use constants, only: zero
+  use constants, only: zero, nb_tabulated_values
   use old_prony_decomposition, only: lisc
 
   implicit none
@@ -28,12 +28,12 @@ program test
 
   ! Tabulation of the integrals used in the Green function
   integer, parameter :: tabulation_grid_shape = 1   ! scaled_nemoh3 method
-  integer, parameter :: tabulation_nb_integration_points = 1000
+  integer, parameter :: tabulation_nb_integration_points = 251
   integer, parameter :: tabulation_nr = 676
   integer, parameter :: tabulation_nz = 372
-  real(kind=pre), dimension(tabulation_nr)                       :: tabulated_r
-  real(kind=pre), dimension(tabulation_nz)                       :: tabulated_z
-  real(kind=pre), dimension(tabulation_nr, tabulation_nz, 2, 2)  :: tabulated_integrals
+  real(kind=pre), dimension(tabulation_nr)         :: tabulated_r
+  real(kind=pre), dimension(tabulation_nz)         :: tabulated_z
+  real(kind=pre), allocatable, dimension(:, :, :)  :: tabulated_integrals
 
   integer, parameter :: gf_singularities = 0  ! high_freq
 
@@ -52,7 +52,8 @@ program test
 
   tabulated_r(:) = default_r_spacing(tabulation_nr, 100d0, tabulation_grid_shape)
   tabulated_z(:) = default_z_spacing(tabulation_nz, -251d0, tabulation_grid_shape)
-  tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, tabulation_nb_integration_points)
+  allocate(tabulated_integrals(tabulation_nr, tabulation_nz, nb_tabulated_values))
+  tabulated_integrals = construct_tabulation(tabulated_r, tabulated_z, tabulation_nb_integration_points)
 
   depth = ieee_value(depth, ieee_positive_inf)
 

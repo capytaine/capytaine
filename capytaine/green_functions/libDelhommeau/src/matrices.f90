@@ -26,7 +26,7 @@ CONTAINS
   ! =====================================================================
 
   SUBROUTINE BUILD_MATRICES(                             &
-      nb_faces_1, centers_1, normals_1,                  &
+      nb_faces_1, centers_1, dot_product_normals,        &
       nb_vertices_2, nb_faces_2, vertices_2, faces_2,    &
       centers_2, normals_2, areas_2, radiuses_2,         &
       nb_quad_points, quad_points, quad_weights,         &
@@ -42,11 +42,18 @@ CONTAINS
 
     ! Mesh data
     INTEGER,                                     INTENT(IN) :: nb_faces_1, nb_faces_2, nb_vertices_2
-    REAL(KIND=PRE), DIMENSION(nb_faces_1, 3),    INTENT(IN) :: centers_1, normals_1
+    REAL(KIND=PRE), DIMENSION(nb_faces_1, 3),    INTENT(IN) :: centers_1
+    REAL(KIND=PRE), DIMENSION(:, :),             INTENT(IN) :: dot_product_normals
     REAL(KIND=PRE), DIMENSION(nb_vertices_2, 3), INTENT(IN) :: vertices_2
     INTEGER,        DIMENSION(nb_faces_2, 4),    INTENT(IN) :: faces_2
     REAL(KIND=PRE), DIMENSION(nb_faces_2, 3),    INTENT(IN) :: centers_2, normals_2
     REAL(KIND=PRE), DIMENSION(nb_faces_2),       INTENT(IN) :: areas_2, radiuses_2
+
+    ! dot_product_normals might be identical to normals_2, especially when adjoint_double_layer is False.
+    ! The former is used when computing the dot product with the normal vector in the double layer or adjoint double layer operator
+    ! (D or K matrices). The latter is only used when computing the exact formula to integrate the Rankine part of the Green
+    ! function over a face.
+    ! Hence, both variables fulfill different role, and may or may not be identical.
 
     INTEGER,                                                  INTENT(IN) :: nb_quad_points
     REAL(KIND=PRE), DIMENSION(nb_faces_2, nb_quad_points, 3), INTENT(IN) :: quad_points
@@ -65,7 +72,7 @@ CONTAINS
     INTEGER,                                  INTENT(IN) :: tabulation_nb_integration_points
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
-    REAL(KIND=PRE), DIMENSION(:, :, :, :),    INTENT(IN) :: tabulated_integrals
+    REAL(KIND=PRE), DIMENSION(:, :, :),       INTENT(IN) :: tabulated_integrals
 
     ! Prony decomposition for finite depth Green function
     INTEGER,                                  INTENT(IN) :: NEXP
@@ -84,7 +91,8 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(3) :: int_nablaG, int_nablaG_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym
     LOGICAL :: use_symmetry_of_wave_part
 
-    use_symmetry_of_wave_part = ((same_body) .AND. (nb_quad_points == 1))
+    ! use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
+    use_symmetry_of_wave_part = .false.
 
     coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
@@ -110,9 +118,9 @@ CONTAINS
           endif
 
           if (adjoint_double_layer) then
-            int_nablaG(:) = int_nablaG(:) + diagonal_coef * normals_1(I, :)
+            int_nablaG(:) = int_nablaG(:) + diagonal_coef * dot_product_normals(I, :)
           else
-            int_nablaG(:) = int_nablaG(:) + diagonal_coef * normals_2(J, :)
+            int_nablaG(:) = int_nablaG(:) + diagonal_coef * dot_product_normals(J, :)
           endif
         ENDIF
 
@@ -148,7 +156,8 @@ CONTAINS
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !  Reflected Rankine part  !
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        IF (coeffs(2) .NE. ZERO) THEN
+        IF ((coeffs(2) .NE. ZERO) .or. &
+            ((gf_singularities == LOW_FREQ_WITH_RANKINE_PART) .and. (coeffs(3) .NE. ZERO))) then
 
           IF (is_infinity(depth)) THEN
             ! Reflection through free surface
@@ -182,7 +191,10 @@ CONTAINS
           END IF
           int_nablaG(3) = int_nablaG(3) + coeffs(2) * reflected_int_nablaG_Rankine(3)
 
-        END IF
+          if (gf_singularities == LOW_FREQ_WITH_RANKINE_PART) then
+            int_nablaG(3) = int_nablaG(3) + coeffs(3) * 2*wavenumber * int_G_Rankine
+          endif
+        endif
 
         !!!!!!!!!!!!!!!
         !  Wave part  !
@@ -191,7 +203,7 @@ CONTAINS
 
           call INTEGRAL_OF_WAVE_PART(                                    &
             centers_1(I, :),                                             &
-            centers_2(J, :), normals_2(J, :), areas_2(J), radiuses_2(J), &
+            centers_2(J, :), areas_2(J),                                 &
             quad_points(J, :, :), quad_weights(J, :),                    &
             wavenumber, depth,                                           &
             tabulation_nb_integration_points, tabulation_grid_shape,     &
@@ -218,9 +230,9 @@ CONTAINS
 
         if (size(K, 3) == 1) then  ! early_dot_product=True
           if (adjoint_double_layer) then
-            K(I, J, 1) = DOT_PRODUCT(normals_1(I, :), int_nablaG(:))
+            K(I, J, 1) = DOT_PRODUCT(dot_product_normals(I, :), int_nablaG(:))
           else
-            K(I, J, 1) = DOT_PRODUCT(normals_2(J, :), int_nablaG(:))
+            K(I, J, 1) = DOT_PRODUCT(dot_product_normals(J, :), int_nablaG(:))
           endif
         else
           K(I, J, :) = int_nablaG(:)
@@ -242,7 +254,7 @@ CONTAINS
 
           call INTEGRAL_OF_WAVE_PART(                                    &
             centers_1(I, :),                                             &
-            centers_2(J, :), normals_2(J, :), areas_2(J), radiuses_2(J), &
+            centers_2(J, :), areas_2(J),                                 &
             quad_points(J, :, :), quad_weights(J, :),                    &
             wavenumber, depth,                                           &
             tabulation_nb_integration_points, tabulation_grid_shape,     &
@@ -262,9 +274,9 @@ CONTAINS
 
           if (size(K, 3) == 1) then
             if (.NOT. adjoint_double_layer) then
-              K(I, J, 1) = K(I, J, 1) + coeffs(3) * DOT_PRODUCT(normals_2(J, :), int_nablaG_wave(:))
+              K(I, J, 1) = K(I, J, 1) + coeffs(3) * DOT_PRODUCT(dot_product_normals(J, :), int_nablaG_wave(:))
             else
-              K(I, J, 1) = K(I, J, 1) + coeffs(3) * DOT_PRODUCT(normals_1(I, :), int_nablaG_wave(:))
+              K(I, J, 1) = K(I, J, 1) + coeffs(3) * DOT_PRODUCT(dot_product_normals(I, :), int_nablaG_wave(:))
             endif
           else
             K(I, J, :) = K(I, J, :) + coeffs(3) * int_nablaG_wave(:)
@@ -281,10 +293,10 @@ CONTAINS
             S(J, I) = S(J, I) + coeffs(3) * int_G_wave * areas_2(I)/areas_2(J)
             if (size(K, 3) == 1) then
               if (.NOT. adjoint_double_layer) then
-                K(J, I, 1) = K(J, I, 1) + coeffs(3) * DOT_PRODUCT(normals_2(I, :), int_nablaG_wave(:)) * &
+                K(J, I, 1) = K(J, I, 1) + coeffs(3) * DOT_PRODUCT(dot_product_normals(I, :), int_nablaG_wave(:)) * &
                   areas_2(I)/areas_2(J)
               else
-                K(J, I, 1) = K(J, I, 1) + coeffs(3) * DOT_PRODUCT(normals_1(J, :), int_nablaG_wave(:)) * &
+                K(J, I, 1) = K(J, I, 1) + coeffs(3) * DOT_PRODUCT(dot_product_normals(J, :), int_nablaG_wave(:)) * &
                   areas_2(I)/areas_2(J)
               endif
             else

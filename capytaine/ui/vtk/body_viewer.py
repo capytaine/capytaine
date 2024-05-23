@@ -15,6 +15,8 @@ class FloatingBodyViewer(MeshViewer):
 
     def add_body(self, body, **kwargs):
         self.add_mesh(body.mesh, **kwargs)
+        if body.lid_mesh is not None:
+            self.add_mesh(body.lid_mesh, **kwargs)
 
         for dof in body.dofs:
             vtk_data_array = vtk.vtkFloatArray()

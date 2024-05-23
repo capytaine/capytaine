@@ -8,6 +8,8 @@ It is built around a full rewrite of the open source Boundary Element Method (BE
 
 This documentation is for version |release| (released |today|).
 
+The documentations of older versions are available there: `v1.5 <https://capytaine.github.io/v1.5>`_, `v2.0 <https://capytaine.github.io/v2.0>`_, `v2.1 <https://capytaine.github.io/v2.1>`_.
+
 .. toctree::
    :maxdepth: 1
 
@@ -24,7 +26,7 @@ Please report bugs and suggest improvements as `Github issues <https://github.co
 .. raw:: html
 
     <div style="float: right;">
-    <video src="_static/front_page_animation.ogv" loop autoplay muted width="320" height="240">
+    <video src="_static/front_page_animation.webm" loop autoplay muted width="320" height="240">
     </video>
     </div>
 

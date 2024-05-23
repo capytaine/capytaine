@@ -44,6 +44,12 @@ Simulation with several bodies
 .. literalinclude:: examples/multibody.py
    :language: python
 
+Plot pressure on hull
+---------------------
+
+.. literalinclude:: examples/pressure_on_hull.py
+   :language: python
+
 Free surface elevation
 ----------------------
 
@@ -101,14 +107,6 @@ diffraction problem.
 .. literalinclude:: examples/haskind.py
     :language: python
 
-Symmetric body
---------------
-
-This example loads a mesh from a file, keeps only a part of it and defines a symmetric body from this
-half.
-
-.. literalinclude:: examples/symmetric_body.py
-   :language: python
 
 Axisymmetric body
 -----------------
