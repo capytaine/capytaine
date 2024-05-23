@@ -17,6 +17,8 @@ MODULE CONSTANTS
   REAL(KIND=PRE), PARAMETER    :: LOG_2 = LOG(REAL(2d0, kind=pre))
   COMPLEX(KIND=PRE), PARAMETER :: II = (ZERO, ONE) ! Imaginary unit
 
+  integer, parameter :: nb_tabulated_values = 5
+
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   ! Parameters for different variants of the Green function.
@@ -29,6 +31,7 @@ MODULE CONSTANTS
   ! Values for "gf_singularities"
   integer, parameter :: HIGH_FREQ = 0  ! legacy from Nemoh
   integer, parameter :: LOW_FREQ = 1  ! aka XieDelhommeau
+  integer, parameter :: LOW_FREQ_WITH_RANKINE_PART = 2  ! like LOW_FREQ but with a term integrated exactly
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
