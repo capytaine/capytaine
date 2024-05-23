@@ -236,7 +236,7 @@ CONTAINS
       nablaG(1) = drdx1 * dGdr
       nablaG(2) = drdx2 * dGdr
       if (gf_singularities == LOW_FREQ) then
-        nablaG(3) = dzdx3 * G + 2*dzdx3/r1
+        nablaG(3) = dzdx3 * (G + 2/r1)
       else
         nablaG(3) = dzdx3 * G
       endif

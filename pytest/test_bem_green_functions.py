@@ -133,3 +133,21 @@ def test_exact_integration_with_nb_integration_points():
     gf = cpt.Delhommeau(tabulation_nr=0, tabulation_nb_integration_points=101)
     val2 = gf.evaluate(point, mesh)
     assert np.abs(val1[0] - val2[0]) > 1e-1
+
+
+def test_better_low_freq_singularities():
+    import numpy as np
+    import capytaine as cpt
+    gf1 = cpt.Delhommeau(gf_singularities="low_freq")
+    gf2 = cpt.Delhommeau(gf_singularities="better_low_freq")
+    point = np.array([[0.0, 0.0, -1.0]])
+    area = 1.0
+    wavenumber = 1.0
+    mesh = cpt.mesh_rectangle(size=(np.sqrt(area), np.sqrt(area)), center=(0, 0, -1), resolution=(1, 1))
+    S1, K1 = gf1.evaluate(point, mesh, wavenumber=wavenumber, early_dot_product=False)
+    S2, K2 = gf2.evaluate(point, mesh, wavenumber=wavenumber, early_dot_product=False)
+    assert S1 == S2
+    assert np.allclose(K1[:, :, :2], K2[:, :, :2], atol=1e-12)
+    assert np.allclose(K1[:, :, 2].imag, K2[:, :, 2].imag, atol=1e-12)
+    assert not np.allclose(K1[0, 0, 2].real, K2[0, 0, 2].real, atol=1e-12)
+    assert np.allclose(K1[0, 0, 2].real, K2[0, 0, 2].real, atol=1e-1)

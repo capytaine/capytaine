@@ -146,7 +146,8 @@ CONTAINS
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !  Reflected Rankine part  !
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        IF (coeffs(2) .NE. ZERO) THEN
+        IF ((coeffs(2) .NE. ZERO) .or. &
+            ((gf_singularities == BETTER_LOW_FREQ) .and. (coeffs(3) .NE. ZERO))) then
 
           IF (is_infinity(depth)) THEN
             ! Reflection through free surface
@@ -181,7 +182,7 @@ CONTAINS
           int_nablaG(3) = int_nablaG(3) + coeffs(2) * reflected_int_nablaG_Rankine(3)
 
           if (gf_singularities == BETTER_LOW_FREQ) then
-            int_nablaG(3) = int_nablaG(3) + coeffs(3) * wavenumber * int_G_Rankine
+            int_nablaG(3) = int_nablaG(3) + coeffs(3) * 2*wavenumber * int_G_Rankine
           endif
         endif
 
