@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Tests for the mesh submodule: definition and transformation of base meshes."""
 
 import pytest
@@ -9,28 +7,26 @@ from numpy.linalg import norm
 
 import capytaine as cpt
 
-from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.clipper import clip
-from capytaine.meshes.geometry import Plane, xOz_Plane
-from capytaine.bodies.predefined import HorizontalCylinder, Sphere, Rectangle
-from capytaine.meshes.predefined import mesh_rectangle
+
+RNG = np.random.default_rng()
+
 
 # Some meshes that will be used in the following tests.
-test_mesh = Mesh(vertices=np.random.rand(4, 3), faces=[range(4)], name="test_mesh")
-cylinder = HorizontalCylinder().mesh.merged()
-sphere = Sphere(radius=1).mesh.merged()
+test_mesh = cpt.Mesh(vertices=RNG.random((4, 3)), faces=[range(4)], name="test_mesh")
+cylinder = cpt.mesh_horizontal_cylinder()
+sphere = cpt.mesh_sphere(radius=1)
 
 
 def test_mesh_initialization():
     """Test how the code checks the validity of the parameters."""
     with pytest.raises(AssertionError):
-        Mesh(vertices=np.random.rand(6, 3), faces=[(0, 1, 2), (3, 4, 5)])
+        cpt.Mesh(vertices=RNG.random((6, 3)), faces=[(0, 1, 2), (3, 4, 5)])
 
     with pytest.raises(AssertionError):
-        Mesh(vertices=np.random.rand(4, 3), faces=[(0, 1, 2, -1)])
+        cpt.Mesh(vertices=RNG.random((4, 3)), faces=[(0, 1, 2, -1)])
 
     with pytest.raises(AssertionError):
-        Mesh(vertices=np.random.rand(3, 3), faces=[(0, 1, 2, 3)])
+        cpt.Mesh(vertices=RNG.random((3, 3)), faces=[(0, 1, 2, 3)])
 
 
 def test_vertices_and_faces_get_and_set():
@@ -39,7 +35,7 @@ def test_vertices_and_faces_get_and_set():
     faces = cylinder.faces
     vertices = cylinder.vertices
 
-    new_cylinder = Mesh(name="new_cylinder")
+    new_cylinder = cpt.Mesh(name="new_cylinder")
 
     # Set faces
     with pytest.raises(AssertionError):
@@ -54,8 +50,8 @@ def test_vertices_and_faces_get_and_set():
 def test_mesh_naming():
     """Test how the mesh handle names and string representation."""
     # Test automatic naming
-    dummy_mesh = Mesh()  # Automatically named something like mesh_1
-    other_dummy_mesh = Mesh()  # Automatically named something like mesh_2
+    dummy_mesh = cpt.Mesh()  # Automatically named something like mesh_1
+    other_dummy_mesh = cpt.Mesh()  # Automatically named something like mesh_2
     assert dummy_mesh.name[:5] == "mesh_"
     assert other_dummy_mesh.name[:5] == "mesh_"
     assert int(dummy_mesh.name[5:]) + 1 == int(other_dummy_mesh.name[5:])
@@ -71,7 +67,7 @@ def test_as_set_of_faces():
     assert all(len(vertex) == 3 for face in faces for vertex in face)  # Each point is represented by 3 coordinates.
 
     assert cylinder == cylinder  # The equality is defined as the equality of the set of faces.
-    assert Mesh.from_set_of_faces(faces) == cylinder  # The mesh can be reconstructed from a set of faces.
+    assert cpt.Mesh.from_set_of_faces(faces) == cylinder  # The mesh can be reconstructed from a set of faces.
 
 
 def mesh_from_set_of_faces():
@@ -79,7 +75,7 @@ def mesh_from_set_of_faces():
 
     # Two triangular faces
     faces = {frozenset({A, B, C}), frozenset({B, C, D})}
-    mesh = Mesh.from_set_of_faces(faces)
+    mesh = cpt.Mesh.from_set_of_faces(faces)
     assert mesh.nb_vertices == 4
     assert mesh.nb_faces == 2
     assert mesh.is_triangle(0) and mesh.is_triangle(1)
@@ -109,7 +105,6 @@ def test_translate():
     assert np.allclose(translated_sphere.center_of_mass_of_nodes, (1.0, 2.0, 3.0))
     assert np.isclose(translated_sphere.diameter_of_nodes, sphere.diameter_of_nodes)
 
-
 def test_rotate():
     assert cylinder.rotated_x(0.0) == cylinder
     assert cylinder.rotated_y(0.0) == cylinder
@@ -121,14 +116,14 @@ def test_rotate():
 
 
 def test_mirror():
-    new_cylinder = cylinder.mirrored(Plane())
-    cylinder.mirror(Plane())
+    new_cylinder = cylinder.mirrored(cpt.Plane())
+    cylinder.mirror(cpt.Plane())
     assert new_cylinder == cylinder
 
 
 def test_symmetrized():
     from capytaine.meshes.symmetric import ReflectionSymmetricMesh
-    sym = cylinder.merged().symmetrized(xOz_Plane)
+    sym = cylinder.merged().symmetrized(cpt.xOz_Plane)
     assert isinstance(sym, ReflectionSymmetricMesh)
 
 
@@ -148,7 +143,7 @@ def test_heal_mesh_removes_degenerate_panels():
 
 def test_clipper():
     """Test clipping of mesh."""
-    mesh = Sphere(radius=5.0, ntheta=10).mesh.merged()
+    mesh = cpt.mesh_sphere(radius=5.0, resolution=(10, 5))
     aabb = mesh.axis_aligned_bbox
 
     mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
@@ -158,7 +153,7 @@ def test_clipper():
     assert np.allclose(mesh.axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
 
     # With CollectionOfMeshes (AxialSymmetry)
-    mesh = Sphere(radius=5.0, ntheta=10).mesh
+    mesh = cpt.mesh_sphere(radius=5.0, resolution=(10, 5), axial_symmetry=True)
     aabb = mesh.merged().axis_aligned_bbox
 
     mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
@@ -168,14 +163,14 @@ def test_clipper():
     assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
 
     # Check boundaries after clipping
-    mesh = mesh_rectangle(size=(5,5), normal=(1,0,0))
+    mesh = cpt.mesh_rectangle(size=(5,5), normal=(1,0,0))
     assert max([i[2] for i in mesh.immersed_part(free_surface=-1).vertices])<=-1
     assert max([i[2] for i in mesh.immersed_part(free_surface= 1).vertices])<= 1
     assert min([i[2] for i in mesh.immersed_part(free_surface=100, sea_bottom=-1).vertices])>=-1
     assert min([i[2] for i in mesh.immersed_part(free_surface=100, sea_bottom= 1).vertices])>= 1
 
-    mesh = mesh_rectangle(size=(4,4), resolution=(1,1), normal=(1,0,0))
-    tmp = list(mesh.clip(Plane(normal=(0,0.1,1),point=(0,0,-1)),inplace=False).vertices)
+    mesh = cpt.mesh_rectangle(size=(4,4), resolution=(1,1), normal=(1,0,0))
+    tmp = list(mesh.clip(cpt.Plane(normal=(0,0.1,1),point=(0,0,-1)),inplace=False).vertices)
     tmp.sort(key=lambda x: x[2])
     tmp.sort(key=lambda x: x[1])
     assert np.allclose([i[2] for i in tmp], [-2, -0.8, -2, -1.2])
@@ -184,8 +179,8 @@ def test_clipper():
 @pytest.mark.parametrize("size", [5, 6])
 def test_clipper_indices(size):
     """Test clipped_mesh_faces_ids."""
-    mesh = Rectangle(size=(size, size), resolution=(size, size), center=(0, 0, 0)).mesh.merged()
-    clipped_mesh = clip(mesh, plane=Plane(point=(0, 0, 0), normal=(0, 0, 1)))
+    mesh = cpt.mesh_rectangle(size=(size, size), resolution=(size, size), center=(0, 0, 0))
+    clipped_mesh = mesh.clipped(plane=cpt.Plane(point=(0, 0, 0), normal=(0, 0, 1)))
     faces_ids = clipped_mesh._clipping_data['faces_ids']
 
     assert clipped_mesh.nb_faces == len(faces_ids)
@@ -196,17 +191,17 @@ def test_clipper_indices(size):
 def test_clipper_corner_cases():
     mesh = sphere.translated_z(10.0)
 
-    plane = Plane(point=(0, 0, 0), normal=(0, 0, 1))
+    plane = cpt.Plane(point=(0, 0, 0), normal=(0, 0, 1))
     clipped_mesh = mesh.clip(plane, inplace=False)
-    assert clipped_mesh == Mesh(None, None)  # Empty mesh
+    assert clipped_mesh == cpt.Mesh(None, None)  # Empty mesh
 
-    plane = Plane(point=(0, 0, 0), normal=(0, 0, -1))
+    plane = cpt.Plane(point=(0, 0, 0), normal=(0, 0, -1))
     clipped_mesh = mesh.clip(plane, inplace=False)
     assert clipped_mesh == mesh  # Unchanged mesh
 
     # Two distinct bodies
-    two_spheres = Mesh.join_meshes(sphere.translated_z(10.0), sphere.translated_z(-10.0))
-    plane = Plane(point=(0, 0, 0), normal=(0, 0, -1))
+    two_spheres = cpt.Mesh.join_meshes(sphere.translated_z(10.0), sphere.translated_z(-10.0))
+    plane = cpt.Plane(point=(0, 0, 0), normal=(0, 0, -1))
     one_sphere_remaining = two_spheres.clip(plane, inplace=False)
     assert one_sphere_remaining == sphere.translated_z(10.0)
 

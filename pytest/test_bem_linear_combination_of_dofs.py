@@ -6,10 +6,10 @@ method = ['indirect', 'direct']
 
 @pytest.mark.parametrize("method", method)
 def test_sum_of_dofs(method):
-    body1 = cpt.Sphere(radius=1.0, ntheta=3, nphi=12, center=(0, 0, -3), name="body1")
+    body1 = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(3, 12), center=(0, 0, -3)), name="body1")
     body1.add_translation_dof(name="Heave")
 
-    body2 = cpt.Sphere(radius=1.0, ntheta=3, nphi=8,center=(5, 3, -1.5), name="body2")
+    body2 = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(3, 8), center=(5, 3, -1.5)), name="body2")
     body2.add_translation_dof(name="Heave")
 
     both = body1 + body2
@@ -29,7 +29,7 @@ def test_sum_of_dofs(method):
 
 @pytest.mark.parametrize("method", method)
 def test_rotation_axis(method):
-    body = cpt.RectangularParallelepiped(resolution=(4, 4, 4), center=(0, 0, -1), name="body")
+    body = cpt.FloatingBody(mesh=cpt.mesh_parallelepiped(resolution=(4, 4, 4), center=(0, 0, -1), name="body"))
     body.add_translation_dof(name="Sway")
     body.add_rotation_dof(axis=cpt.Axis(point=(0, 0, 0), vector=(0, 0, 1)), name="Yaw")
 
