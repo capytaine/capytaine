@@ -37,7 +37,10 @@ Internals
 
 * Rename ``tabulation_method`` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau` as the more descriptive ``tabulation_grid_shape``, and similarly for internal variables. (:pull:`503`)
 
-* The compiled Fortran extension is not split into a ``Delhommeau`` and a ``XieDelhommeau`` version anymore. The computation of the latter can be achieved by the run-time parameter ``gf_singularities`` of the class :class:`~capytaine.green_functions.delhommeau.Delhommeau` class. The class :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is kept for backward compatibility (:pull:`475`). The tabulation is always the tabulation of the ``low_freq`` wave part (formerly ``XieDelhommeau``) to simplify the implementation (:pull:`508`). The finite depth Green function is always computed using the ``low_freq`` infinite water depth, so the ``gf_singularities`` parameter has no effect in finite depth. (:pull:`507`).
+* The compiled Fortran extension is not split into a ``Delhommeau`` and a ``XieDelhommeau`` version anymore.
+  The computation of the latter can be achieved by the run-time parameter ``gf_singularities`` of the class :class:`~capytaine.green_functions.delhommeau.Delhommeau` class. The class :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is kept for backward compatibility (:pull:`475`).
+  The finite depth Green function is always computed using the ``low_freq`` infinite water depth, so the ``gf_singularities`` parameter has no effect in finite depth. (:pull:`507`).
+  The tabulation stores the data of both variants and is thus slightly longer to initialize and slightly larger to store in memory (:pull:`543`).
 
 -------------------------------
 New in version 2.1 (2024-04-08)

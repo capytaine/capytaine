@@ -17,6 +17,8 @@ MODULE CONSTANTS
   REAL(KIND=PRE), PARAMETER    :: LOG_2 = LOG(REAL(2d0, kind=pre))
   COMPLEX(KIND=PRE), PARAMETER :: II = (ZERO, ONE) ! Imaginary unit
 
+  integer, parameter :: nb_tabulated_values = 5
+
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   ! Parameters for different variants of the Green function.

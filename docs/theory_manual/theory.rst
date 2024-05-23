@@ -186,7 +186,7 @@ Introducing the dimensionless variables :math:`r = k \sqrt{(\xi_1 - x_1)^2 + (\x
 .. math::
     \mathcal{G}(r, z) & = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2}  J(\zeta(r, z, \theta)) \, \mathrm{d} \theta \right) \\
     & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
-    :label: green_function_inf_depth_xie
+    :label: green_function_inf_depth_low_freq
 
 where
 
@@ -204,7 +204,7 @@ and
     \zeta (r, z, \theta) = z + i r \cos \theta.
     :label: def_zeta
 
-The first term of :eq:`green_function_inf_depth_xie` is actually a Rankine-type singularity similar to the first term of :eq:`green_function_inf_depth`, except that one of the point has been reflected through the free surface.
+The first term of :eq:`green_function_inf_depth_low_freq` is actually a Rankine-type singularity similar to the first term of :eq:`green_function_inf_depth`, except that one of the point has been reflected through the free surface.
 
 Variants of the formulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -225,7 +225,7 @@ The above lemma allows to retrieve the expression of the Green function found e.
 .. math::
     \mathcal{G}(r, z) & = - \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(r, z, \theta)) - \frac{1}{\zeta(r, z, \theta)} \right) \, \mathrm{d} \theta \right) \\
     & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
-    :label: green_function_inf_depth_del
+    :label: green_function_inf_depth_high_freq
 
 (Note the minus sign in front of the first term.)
 
@@ -360,6 +360,7 @@ that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
     In finite depth, some terms of the derivative with respect to :math:`x_3` are symmetric and some are antisymmetric.
 
 
+
 Higher order derivative
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -390,26 +391,29 @@ All higher order derivative can be expressed with the help of :math:`\mathcal{G}
 .. note::
    The same derivation is done in e.g. [N20]_ using instead the function :math:`F = \mathcal{G} - \frac{1}{\sqrt{r^2 + z^2}}` for which the expressions are slightly simpler.
 
+
 Delhommeau's method for computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Delhommeau's method is based on expression :eq:`green_function_inf_depth_del` of the Green function.
-This expression of the Green function and its derivative require the evaluation of the following real-valued integrals:
+The current version of Capytaine can use either the low-frequency variant :eq:`green_function_inf_depth_low_freq` or high-frequency variant :eq:`green_function_inf_depth_high_freq` when evaluating the Green function and its integral over a panel.
+For this purpose, the following values needs to be computed:
 
 .. math::
-    D_1(r, z) & = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
-    D_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right) \\
-    Z_1(r, z) & = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
-    Z_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
+    I_1(r, z) & = \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right) \\
+    I_2(r, z) & = \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    I_3(r, z) & = 2 \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right) \\
+    I_4(r, z) & = \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    I_5(r, z) & = 2 \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right)
 
-
-then
+then :eq:`green_function_inf_depth_low_freq` reads
 
 .. math::
-   \mathcal{G}(r, z) = \frac{-1}{\sqrt{r^2 + z^2}} + 2 Z_1(r, z) + 2 i Z_2(r, z).
+   \mathcal{G}(r, z) = \frac{1}{\sqrt{r^2 + z^2}} + I_1(r, z) + i I_3(r, z).
 
-.. note::
-   The definition of :math:`D_1`, :math:`D_2`, :math:`Z_1` and :math:`Z_2` may differ from the original one from Delhommeau by the :math:`1/\pi` factor.
+and :eq:`green_function_inf_depth_high_freq` reads
+
+.. math::
+   \mathcal{G}(r, z) = \frac{-1}{\sqrt{r^2 + z^2}} + I_2(r, z) + i I_3(r, z).
 
 To limit the computational cost of the evaluation of these integrals, they are precomputed for selected values of :math:`r` and :math:`z` and stored in a table.
 When evaluating the Green function, the values of the integrals are retrieved by interpolating the values in the tables.
@@ -417,49 +421,20 @@ When evaluating the Green function, the values of the integrals are retrieved by
 For large values of :math:`r` and :math:`z`, these integrals are asymptotically approximated by the following expressions:
 
 .. math::
-      D_1(r, z) & \simeq -e^z \sqrt{\frac{2\pi}{r}} \left(\cos(r - \pi/4) - \frac{1}{2r} \sin(r-\pi/4) \right) + \frac{r}{(r^2 + z^2)^{3/2}} \\
-      D_2(r, z) & \simeq -e^z \sqrt{\frac{2\pi}{r}} \left( \sin(r - \pi/4) + \frac{1}{2r} \cos(r - \pi/4) \right) \\
-      Z_1(r, z) & \simeq - e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{z}{(r^2 + z^2)^{3/2}} \\
-      Z_2(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \cos(r - \pi/4)
+      I_1(r, z) & \simeq - 2 e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{2 z}{(r^2 + z^2)^{3/2}} - \frac{2}{\sqrt{r^2 + z^2}} \\
+      I_2(r, z) & \simeq - 2 e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{2 z}{(r^2 + z^2)^{3/2}} \\
+      I_3(r, z) & \simeq 2 e^z \sqrt{\frac{2\pi}{r}} \cos(r - \pi/4) \\
+      I_4(r, z) & \simeq - 2 e^z \sqrt{\frac{2\pi}{r}} \left( \cos(r - \pi/4) - \frac{1}{2r} \sin(r-\pi/4) \right) + \frac{2 r}{(r^2 + z^2)^{3/2}} \\
+      I_5(r, z) & \simeq - 2 e^z \sqrt{\frac{2\pi}{r}} \left( \sin(r - \pi/4) + \frac{1}{2r} \cos(r - \pi/4) \right)
 
 
 Incorporating these asymptotic approximation in the expression of the Green function, one gets:
 
 .. math::
-    \mathcal{G}(r, z) \simeq & -\frac{1}{\sqrt{r^2 + z^2}} - 2 k e^z \sqrt{\frac{2\pi}{r}} \left(\sin(r - \pi/4) - i\cos(r - \pi/4)\right) \\
-   & \qquad\qquad\qquad\qquad + 2 k \frac{z}{(r^2 + z^2)^{3/2}}
+    \mathcal{G}(r, z) \simeq & -\frac{1}{\sqrt{r^2 + z^2}} - 2 e^z \sqrt{\frac{2\pi}{r}} \left(\sin(r - \pi/4) - i\cos(r - \pi/4)\right) \\
+   & \qquad\qquad\qquad\qquad + 2 \frac{z}{(r^2 + z^2)^{3/2}}
    :label: green_function_asymptotical_approx
 
-
-Xie's variant
-~~~~~~~~~~~~~
-
-A slight variant is presented in [X18]_. The authors noticed that the
-interpolation of the integral :math:`Z_1` can be inaccurate due to the
-singularity :math:`\frac{1}{\zeta}`.
-Hence, they proposed to use :eq:`green_function_inf_depth_xie` and to tabulate the integral
-
-.. math::
-    \widetilde{Z_1}(r, z) = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
-
-By using :numref:`Lemma {number} <integrate_one_over_zeta>`, one has
-
-.. math::
-   Z_1 = \widetilde{Z_1} + \frac{1}{\sqrt{r^2 + z^2}}
-
-then
-
-.. math::
-   \mathcal{G}(r, z) = \frac{1}{\sqrt{r^2 + z^2}} + 2 \widetilde{Z_1}(r, z) + 2 i Z_2(r, z).
-
-The asymptotical expression for :math:`\widetilde{Z_1}` reads
-
-.. math::
-   \widetilde{Z_1}(r, z) \simeq - e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{z}{(r^2 + z^2)^{3/2}} - \frac{1}{\sqrt{r^2 + z^2}} \\
-
-while the asymptotic Green function still reads :eq:`green_function_asymptotical_approx`.
-
-Both the original Delhommeau's method and Xie's variant are implemented in Capytaine.
 
 In finite depth
 ---------------
