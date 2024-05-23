@@ -81,8 +81,8 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(3) :: int_nablaG, int_nablaG_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym
     LOGICAL :: use_symmetry_of_wave_part
 
-
-    use_symmetry_of_wave_part = ((same_body) .AND. (nb_quad_points == 1))
+    ! use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
+    use_symmetry_of_wave_part = .false.
 
     coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
@@ -146,7 +146,8 @@ CONTAINS
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !  Reflected Rankine part  !
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        IF (coeffs(2) .NE. ZERO) THEN
+        IF ((coeffs(2) .NE. ZERO) .or. &
+            ((gf_singularities == LOW_FREQ_WITH_RANKINE_PART) .and. (coeffs(3) .NE. ZERO))) then
 
           IF (is_infinity(depth)) THEN
             ! Reflection through free surface
@@ -180,7 +181,10 @@ CONTAINS
           END IF
           int_nablaG(3) = int_nablaG(3) + coeffs(2) * reflected_int_nablaG_Rankine(3)
 
-        END IF
+          if (gf_singularities == LOW_FREQ_WITH_RANKINE_PART) then
+            int_nablaG(3) = int_nablaG(3) + coeffs(3) * 2*wavenumber * int_G_Rankine
+          endif
+        endif
 
         !!!!!!!!!!!!!!!
         !  Wave part  !

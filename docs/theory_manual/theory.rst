@@ -436,6 +436,19 @@ Incorporating these asymptotic approximation in the expression of the Green func
    :label: green_function_asymptotical_approx
 
 
+
+Integration
+~~~~~~~~~~~
+
+TODO
+
+As seen in :eq:`green_function_inf_depth_dGdz`, new reflected-Rankine-type
+terms might appear in the derivative of the Green wave term.
+By default, they are integrated with the same method used for the same
+numerical quadrature method as the rest of the wave term.
+The setting ``gf_singularities="low_freq_with_rankine_term"`` is an attempt to
+integrate them exactly using the same code as the main reflected Rankine term.
+
 In finite depth
 ---------------
 

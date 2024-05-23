@@ -25,6 +25,13 @@ Minor changes
 
 * When computing without a tabulation (``tabulation_nr=0`` or ``tabulation_nz=0``), the value of ``tabulation_nb_integration_points`` is actually used to compute Guével-Delhommeau exact formulation of the Green function. Previously, it was only used when precomputing a tabulation (:pull:`514`).
 
+* The compiled Fortran extension is not split into a ``Delhommeau`` and a ``XieDelhommeau`` version anymore.
+  The computation of the latter can be achieved by the run-time parameter ``gf_singularities`` of the class :class:`~capytaine.green_functions.delhommeau.Delhommeau` class. The class :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is kept for backward compatibility (:pull:`475`).
+  The finite depth Green function is always computed using the ``low_freq`` infinite water depth, so the ``gf_singularities`` parameter has no effect in finite depth. (:pull:`507`).
+  The tabulation stores the data of both variants and is thus slightly longer to initialize and slightly larger to store in memory (:pull:`543`).
+
+* Add a new variant of the Green function integration ``gf_singularities="low_freq_with_rankine_part"`` as an experimental more accurate version of the ``low_freq`` variant (:pull:`510`).
+
 Bug fixes
 ~~~~~~~~~
 
@@ -38,11 +45,6 @@ Internals
 * Update test environments used in noxfile and add ``editable_install_requirements.txt``. (:pull:`498`)
 
 * Rename ``tabulation_method`` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau` as the more descriptive ``tabulation_grid_shape``, and similarly for internal variables. (:pull:`503`)
-
-* The compiled Fortran extension is not split into a ``Delhommeau`` and a ``XieDelhommeau`` version anymore.
-  The computation of the latter can be achieved by the run-time parameter ``gf_singularities`` of the class :class:`~capytaine.green_functions.delhommeau.Delhommeau` class. The class :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is kept for backward compatibility (:pull:`475`).
-  The finite depth Green function is always computed using the ``low_freq`` infinite water depth, so the ``gf_singularities`` parameter has no effect in finite depth. (:pull:`507`).
-  The tabulation stores the data of both variants and is thus slightly longer to initialize and slightly larger to store in memory (:pull:`543`).
 
 -------------------------------
 New in version 2.1 (2024-04-08)
