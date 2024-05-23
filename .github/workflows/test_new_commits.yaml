@@ -18,6 +18,12 @@ env:
   FORCE_COLOR: 3
   # Colors for nox
 
+# The following block is meant to cancel the workflow if a newer commit is pushed on the pull request
+# From https://stackoverflow.com/questions/66335225/how-to-cancel-previous-runs-in-the-pr-when-you-push-new-commitsupdate-the-curre
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build_and_test:
 

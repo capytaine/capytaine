@@ -106,7 +106,7 @@ class BEMSolver:
                 raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
 
             S, D = self.engine.build_matrices(
-                    problem.body.mesh, problem.body.mesh,
+                    problem.body.mesh_including_lid, problem.body.mesh_including_lid,
                     problem.free_surface, problem.water_depth, wavenumber,
                     self.green_function, adjoint_double_layer=False
                     )
@@ -116,7 +116,7 @@ class BEMSolver:
             sources = None
         else:
             S, K = self.engine.build_matrices(
-                    problem.body.mesh, problem.body.mesh,
+                    problem.body.mesh_including_lid, problem.body.mesh_including_lid,
                     problem.free_surface, problem.water_depth, wavenumber,
                     self.green_function, adjoint_double_layer=True
                     )
@@ -127,10 +127,11 @@ class BEMSolver:
             if problem.forward_speed != 0.0:
                 result = problem.make_results_container(sources=sources)
                 # Temporary result object to compute the ∇Φ term
-                nabla_phi = self._compute_potential_gradient(problem.body.mesh, result)
+                nabla_phi = self._compute_potential_gradient(problem.body.mesh_including_lid, result)
                 pressure += problem.rho * problem.forward_speed * nabla_phi[:, 0]
 
-        forces = problem.body.integrate_pressure(pressure)
+        pressure_on_hull = pressure[:problem.body.mesh.nb_faces]  # Discards pressure on lid if any
+        forces = problem.body.integrate_pressure(pressure_on_hull)
 
         if not keep_details:
             result = problem.make_results_container(forces)
@@ -188,7 +189,7 @@ class BEMSolver:
         """Display a warning if some of the problems have a mesh resolution
         that might not be sufficient for the given wavelength."""
         risky_problems = [pb for pb in problems
-                          if pb.wavelength < pb.body.minimal_computable_wavelength]
+                          if 0.0 < pb.wavelength < pb.body.minimal_computable_wavelength]
         nb_risky_problems = len(risky_problems)
         if nb_risky_problems == 1:
             pb = risky_problems[0]
@@ -271,7 +272,7 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
-        S, _ = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.encounter_wavenumber)
+        S, _ = self.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
         potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
@@ -283,7 +284,7 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.encounter_wavenumber,
+        _, gradG = self.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber,
                                                 early_dot_product=False)
         velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
         return velocities.reshape((*output_shape, 3))
@@ -409,7 +410,7 @@ class BEMSolver:
         if chunk_size > mesh.nb_faces:
             S = self.engine.build_S_matrix(
                 mesh,
-                result.body.mesh,
+                result.body.mesh_including_lid,
                 result.free_surface, result.water_depth, result.wavenumber,
                 self.green_function
             )
@@ -421,7 +422,7 @@ class BEMSolver:
                 faces_to_extract = list(range(i, min(i+chunk_size, mesh.nb_faces)))
                 S = self.engine.build_S_matrix(
                     mesh.extract_faces(faces_to_extract),
-                    result.body.mesh,
+                    result.body.mesh_including_lid,
                     result.free_surface, result.water_depth, result.wavenumber,
                     self.green_function
                 )

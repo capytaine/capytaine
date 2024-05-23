@@ -1,5 +1,5 @@
-! Copyright (C) 2017-2019 Matthieu Ancellin
-! See LICENSE file at <https://github.com/mancellin/libDelhommeau>
+! Copyright (C) 2017-2024 Matthieu Ancellin
+! See LICENSE file at <https://github.com/capytaine/libDelhommeau>
 MODULE GREEN_WAVE
 
   USE FLOATING_POINT_PRECISION, ONLY: PRE
@@ -33,7 +33,8 @@ CONTAINS
       face_center, face_normal, face_area, face_radius,          &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber, depth,                                         &
-      tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
       nexp, ambda, ar,                                           &
       int_G, int_nablaG_sym, int_nablaG_antisym                  &
@@ -47,10 +48,11 @@ CONTAINS
     real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
     real(kind=pre),                        intent(in) :: wavenumber, depth
     integer,                               intent(in) :: gf_singularities
-    integer,                               intent(in) :: tabulation_method
+    integer,                               intent(in) :: tabulation_nb_integration_points
+    integer,                               intent(in) :: tabulation_grid_shape
     real(kind=pre), dimension(:),          intent(in) :: tabulated_r_range
     real(kind=pre), dimension(:),          intent(in) :: tabulated_z_range
-    real(kind=pre), dimension(:, :, :, :), intent(in) :: tabulated_integrals
+    real(kind=pre), dimension(:, :, :),    intent(in) :: tabulated_integrals
     integer,                               intent(in) :: nexp
     real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
 
@@ -91,7 +93,8 @@ CONTAINS
             (x,                                                        &
             face_quadrature_points(q, :),                              &
             wavenumber,                                                &
-            tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+            tabulation_nb_integration_points, tabulation_grid_shape,   &
+            tabulated_r_range, tabulated_z_range, tabulated_integrals, &
             gf_singularities,                                          &
             G_at_point, nablaG_at_point                                &
             )
@@ -105,7 +108,8 @@ CONTAINS
             face_quadrature_points(q, :),                              &
             wavenumber,                                                &
             depth,                                                     &
-            tabulation_method, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+            tabulation_nb_integration_points, tabulation_grid_shape,   &
+            tabulated_r_range, tabulated_z_range, tabulated_integrals, &
             nexp, ambda, ar,                                           &
             G_at_point, nablaG_at_point_sym, nablaG_at_point_antisym   &
             )
@@ -156,15 +160,16 @@ CONTAINS
 
   ! =====================================================================
 
-  SUBROUTINE WAVE_PART_INFINITE_DEPTH                        &
+  SUBROUTINE WAVE_PART_INFINITE_DEPTH                            &
+      (X0I, X0J, wavenumber,                                     &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      gf_singularities,                                          &
+      G, nablaG)
       ! Returns
-      ! (G^-, nabla G^+)               if gf_singularities == HIGH_FREQ
+      ! (G^-, nabla G^-)               if gf_singularities == HIGH_FREQ
       ! (G^+, nabla G^+)               if gf_singularities == LOW_FREQ
       ! (G^+, nabla G^+ - (0, 0, k/r1) if gf_singularities == BETTER_LOW_FREQ
-      (X0I, X0J, wavenumber,                                     &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities,                                         &
-      G, nablaG)
 
     ! Inputs
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I, X0J
@@ -172,10 +177,11 @@ CONTAINS
     integer,                                  intent(in) :: gf_singularities
 
     ! Tabulated data
+    integer,                                  intent(in) :: tabulation_nb_integration_points
     INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
-    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
+    REAL(KIND=PRE), DIMENSION(:, :, :),       INTENT(IN) :: tabulated_integrals
 
     ! Outputs
     COMPLEX(KIND=PRE),                        INTENT(OUT) :: G
@@ -183,7 +189,8 @@ CONTAINS
 
     ! Local variables
     REAL(KIND=PRE) :: r, r1, z, drdx1, drdx2, dzdx3
-    REAL(KIND=PRE), dimension(2, 2) :: integrals
+    complex(kind=pre) :: dGdr
+    REAL(KIND=PRE), dimension(nb_tabulated_values) :: integrals
 
     r = wavenumber * NORM2(X0I(1:2) - X0J(1:2))
     z = wavenumber * (X0I(3) + X0J(3))
@@ -194,12 +201,7 @@ CONTAINS
     !=======================================================
     IF ((size(tabulated_z_range) <= 1) .or. (size(tabulated_r_range) <= 1)) THEN
       ! No tabulation, fully recompute the Green function each time.
-      integrals = numerical_integration(r, z, 500)
-      if (gf_singularities == HIGH_FREQ) then
-        ! numerical_integration always computes the low_freq version,
-        ! so need a fix to get the high_freq
-        integrals(1, 2) = integrals(1, 2) + 2/r1
-      endif
+      integrals = numerical_integration(r, z, tabulation_nb_integration_points)
     ELSE
       IF ((abs(z) < abs(tabulated_z_range(size(tabulated_z_range)))) &
           .AND. (r < tabulated_r_range(size(tabulated_r_range)))) THEN
@@ -207,19 +209,9 @@ CONTAINS
         integrals = pick_in_default_tabulation( &
             r, z, tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals &
         )
-        if (gf_singularities == HIGH_FREQ) then
-          ! numerical_integration always computes the low_freq version,
-          ! so need a fix to get the high_freq
-          integrals(1, 2) = integrals(1, 2) + 2/r1
-        endif
       ELSE
         ! Delhommeau's asymptotic expression of Green function for distant panels
         integrals = asymptotic_approximations(MAX(r, 1e-10), z)
-        if ((gf_singularities == LOW_FREQ) .or. (gf_singularities == BETTER_LOW_FREQ)) then
-          ! numerical_integration always computes the high_freq version,
-          ! so need a fix to get the low_freq
-          integrals(1, 2) = integrals(1, 2) - 2/r1
-        endif
       ENDIF
     ENDIF
 
@@ -237,24 +229,24 @@ CONTAINS
     END IF
     dzdx3 = wavenumber
 
-    G    = CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
-    nablaG(1) = drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
-    nablaG(2) = drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
-    nablaG(3) = dzdx3 * CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
-
-    if (gf_singularities == LOW_FREQ) then
-      ! integrals(:, 2) are G^+, but the formula is that dG^+/dz = G^-
-      ! Here is the correction
-      nablaG(3) = nablaG(3) + 2*dzdx3/r1
-    elseif (gf_singularities == BETTER_LOW_FREQ) then
-      ! Nothing for BETTER_LOW_FREQ since the correction is then done
-      ! in the computation of the reflected Rankine integral
-      nablaG(3) = nablaG(3) + 1*dzdx3/r1
-    elseif (gf_singularities == HIGH_FREQ) then
-      ! we have nabla G^+, but we actually need nabla G^-
-      nablaG(1) = nablaG(1) - 2*drdx1*r/r1**3
-      nablaG(2) = nablaG(2) - 2*drdx2*r/r1**3
-      nablaG(3) = nablaG(3) - 2*dzdx3*z/r1**3
+    if ((gf_singularities == LOW_FREQ) .or. (gf_singularities == BETTER_LOW_FREQ)) then
+      ! G is G^+, nablaG is nablaG^+
+      G = CMPLX(integrals(1), integrals(3), KIND=PRE)
+      dGdr = CMPLX(integrals(4), integrals(5), KIND=PRE)
+      nablaG(1) = drdx1 * dGdr
+      nablaG(2) = drdx2 * dGdr
+      if (gf_singularities == LOW_FREQ) then
+        nablaG(3) = dzdx3 * G + 2*dzdx3/r1
+      else
+        nablaG(3) = dzdx3 * G
+      endif
+    else if (gf_singularities == HIGH_FREQ) then
+      ! G is G^-, nablaG is nablaG^-
+      G = CMPLX(integrals(2), integrals(3), KIND=PRE)
+      dGdr = CMPLX(integrals(4), integrals(5), KIND=PRE)
+      nablaG(1) = drdx1 * dGdr - 2*drdx1*r/r1**3
+      nablaG(2) = drdx2 * dGdr - 2*drdx2*r/r1**3
+      nablaG(3) = dzdx3 * G    - 2*dzdx3*z/r1**3
     endif
 
     G = wavenumber * G
@@ -264,10 +256,11 @@ CONTAINS
 
   ! =====================================================================
 
-  SUBROUTINE WAVE_PART_FINITE_DEPTH &
-      (X0I, X0J, wavenumber, depth, &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      NEXP, AMBDA, AR,              &
+  SUBROUTINE WAVE_PART_FINITE_DEPTH                              &
+      (X0I, X0J, wavenumber, depth,                              &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      NEXP, AMBDA, AR,                                           &
       SP, VSP_SYM, VSP_ANTISYM)
     ! Compute the frequency-dependent part of the Green function in the finite depth case.
 
@@ -277,10 +270,11 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
 
     ! Tabulated data
+    integer,                                  intent(in) :: tabulation_nb_integration_points
     INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
-    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
+    REAL(KIND=PRE), DIMENSION(:, :, :),       INTENT(IN) :: tabulated_integrals
 
     ! Prony decomposition for finite depth
     INTEGER,                                  INTENT(IN) :: NEXP
@@ -313,8 +307,9 @@ CONTAINS
     ! 1.a First infinite depth problem
     CALL WAVE_PART_INFINITE_DEPTH(                               &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      LOW_FREQ, &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      LOW_FREQ,                                                  &
       FS(1), VS(:, 1))
 
     ! 1.b Shift and reflect XI and compute another value of the Green function
@@ -322,8 +317,9 @@ CONTAINS
     XJ(3) =  X0J(3)
     CALL WAVE_PART_INFINITE_DEPTH(                               &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      LOW_FREQ, &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      LOW_FREQ,                                                  &
       FS(2), VS(:, 2))
     VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
 
@@ -332,8 +328,9 @@ CONTAINS
     XJ(3) = -X0J(3) - 2*depth
     CALL WAVE_PART_INFINITE_DEPTH(                               &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      LOW_FREQ, &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      LOW_FREQ,                                                  &
       FS(3), VS(:, 3))
 
     ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
@@ -341,8 +338,9 @@ CONTAINS
     XJ(3) = -X0J(3) - 2*depth
     CALL WAVE_PART_INFINITE_DEPTH(                               &
       XI(:), XJ(:), wavenumber,                                  &
-      tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      LOW_FREQ, &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      LOW_FREQ,                                                  &
       FS(4), VS(:, 4))
     VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
 

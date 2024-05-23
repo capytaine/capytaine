@@ -64,7 +64,7 @@ where :math:`n` denotes the normal vector at the surface of the floating body.
 
 .. * in the far field,
    .. math::
-      \sqrt{R} \left( \frac{\partial \Phi}{\partial R} - i m_0 \right) \left( \Phi - Phi_0 \right)
+      \sqrt{R} \left( \frac{\partial \Phi}{\partial R} - i k \right) \left( \Phi - Phi_0 \right)
       \rightarrow 0, \qquad \text{when } R \rightarrow \infty,
 
 The normal velocity on the floating body surface is the input of the problem.
@@ -81,9 +81,9 @@ It depends on the type of problem:
     The incoming Airy's wave fields is given by
 
     .. math::
-       \Phi_0 = - i \frac{g}{\omega} \frac{\cosh (m_0 (z+h))}{\cosh (m_0 h)} e^{i m_0 (x \cos \beta + y \sin \beta)}
+       \Phi_0 = - i \frac{g}{\omega} \frac{\cosh (k (z+h))}{\cosh (k h)} e^{i k (x \cos \beta + y \sin \beta)}
 
-    in finite depth, where the wave number :math:`m_0` is defined by the dispersion relation :math:`\omega^2 = m_0 g \tanh (m_0 h)`, and by
+    in finite depth, where the wave number :math:`k` is defined by the dispersion relation :math:`\omega^2 = k g \tanh (k h)`, and by
 
     .. math::
        \Phi_0 = - i \frac{g}{\omega} e^{k z} e^{i k (x \cos \beta + y \sin \beta)}
@@ -186,7 +186,7 @@ Introducing the dimensionless variables :math:`r = k \sqrt{(\xi_1 - x_1)^2 + (\x
 .. math::
     \mathcal{G}(r, z) & = \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2}  J(\zeta(r, z, \theta)) \, \mathrm{d} \theta \right) \\
     & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
-    :label: green_function_inf_depth_xie
+    :label: green_function_inf_depth_low_freq
 
 where
 
@@ -204,7 +204,7 @@ and
     \zeta (r, z, \theta) = z + i r \cos \theta.
     :label: def_zeta
 
-The first term of :eq:`green_function_inf_depth_xie` is actually a Rankine-type singularity similar to the first term of :eq:`green_function_inf_depth`, except that one of the point has been reflected through the free surface.
+The first term of :eq:`green_function_inf_depth_low_freq` is actually a Rankine-type singularity similar to the first term of :eq:`green_function_inf_depth`, except that one of the point has been reflected through the free surface.
 
 Variants of the formulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -225,7 +225,7 @@ The above lemma allows to retrieve the expression of the Green function found e.
 .. math::
     \mathcal{G}(r, z) & = - \frac{1}{\sqrt{r^2 + z^2}} + \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta(r, z, \theta)) - \frac{1}{\zeta(r, z, \theta)} \right) \, \mathrm{d} \theta \right) \\
     & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
-    :label: green_function_inf_depth_del
+    :label: green_function_inf_depth_high_freq
 
 (Note the minus sign in front of the first term.)
 
@@ -360,6 +360,7 @@ that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
     In finite depth, some terms of the derivative with respect to :math:`x_3` are symmetric and some are antisymmetric.
 
 
+
 Higher order derivative
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -390,26 +391,29 @@ All higher order derivative can be expressed with the help of :math:`\mathcal{G}
 .. note::
    The same derivation is done in e.g. [N20]_ using instead the function :math:`F = \mathcal{G} - \frac{1}{\sqrt{r^2 + z^2}}` for which the expressions are slightly simpler.
 
+
 Delhommeau's method for computation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Delhommeau's method is based on expression :eq:`green_function_inf_depth_del` of the Green function.
-This expression of the Green function and its derivative require the evaluation of the following real-valued integrals:
+The current version of Capytaine can use either the low-frequency variant :eq:`green_function_inf_depth_low_freq` or high-frequency variant :eq:`green_function_inf_depth_high_freq` when evaluating the Green function and its integral over a panel.
+For this purpose, the following values needs to be computed:
 
 .. math::
-    D_1(r, z) & = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
-    D_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right) \\
-    Z_1(r, z) & = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
-    Z_2(r, z) & = \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right)
+    I_1(r, z) & = \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right) \\
+    I_2(r, z) & = \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    I_3(r, z) & = 2 \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta} \, \mathrm{d} \theta \right) \\
+    I_4(r, z) & = \frac{2}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    I_5(r, z) & = 2 \Re \left( \int^{\pi/2}_{-\pi/2} i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right)
 
-
-then
+then :eq:`green_function_inf_depth_low_freq` reads
 
 .. math::
-   \mathcal{G}(r, z) = \frac{-1}{\sqrt{r^2 + z^2}} + 2 Z_1(r, z) + 2 i Z_2(r, z).
+   \mathcal{G}(r, z) = \frac{1}{\sqrt{r^2 + z^2}} + I_1(r, z) + i I_3(r, z).
 
-.. note::
-   The definition of :math:`D_1`, :math:`D_2`, :math:`Z_1` and :math:`Z_2` may differ from the original one from Delhommeau by the :math:`1/\pi` factor.
+and :eq:`green_function_inf_depth_high_freq` reads
+
+.. math::
+   \mathcal{G}(r, z) = \frac{-1}{\sqrt{r^2 + z^2}} + I_2(r, z) + i I_3(r, z).
 
 To limit the computational cost of the evaluation of these integrals, they are precomputed for selected values of :math:`r` and :math:`z` and stored in a table.
 When evaluating the Green function, the values of the integrals are retrieved by interpolating the values in the tables.
@@ -417,49 +421,20 @@ When evaluating the Green function, the values of the integrals are retrieved by
 For large values of :math:`r` and :math:`z`, these integrals are asymptotically approximated by the following expressions:
 
 .. math::
-      D_1(r, z) & \simeq -e^z \sqrt{\frac{2\pi}{r}} \left(\cos(r - \pi/4) - \frac{1}{2r} \sin(r-\pi/4) \right) + \frac{r}{(r^2 + z^2)^{3/2}} \\
-      D_2(r, z) & \simeq -e^z \sqrt{\frac{2\pi}{r}} \left( \sin(r - \pi/4) + \frac{1}{2r} \cos(r - \pi/4) \right) \\
-      Z_1(r, z) & \simeq - e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{z}{(r^2 + z^2)^{3/2}} \\
-      Z_2(r, z) & \simeq e^z \sqrt{\frac{2\pi}{r}} \cos(r - \pi/4)
+      I_1(r, z) & \simeq - 2 e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{2 z}{(r^2 + z^2)^{3/2}} - \frac{2}{\sqrt{r^2 + z^2}} \\
+      I_2(r, z) & \simeq - 2 e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{2 z}{(r^2 + z^2)^{3/2}} \\
+      I_3(r, z) & \simeq 2 e^z \sqrt{\frac{2\pi}{r}} \cos(r - \pi/4) \\
+      I_4(r, z) & \simeq - 2 e^z \sqrt{\frac{2\pi}{r}} \left( \cos(r - \pi/4) - \frac{1}{2r} \sin(r-\pi/4) \right) + \frac{2 r}{(r^2 + z^2)^{3/2}} \\
+      I_5(r, z) & \simeq - 2 e^z \sqrt{\frac{2\pi}{r}} \left( \sin(r - \pi/4) + \frac{1}{2r} \cos(r - \pi/4) \right)
 
 
 Incorporating these asymptotic approximation in the expression of the Green function, one gets:
 
 .. math::
-    \mathcal{G}(r, z) \simeq & -\frac{1}{\sqrt{r^2 + z^2}} - 2 k e^z \sqrt{\frac{2\pi}{r}} \left(\sin(r - \pi/4) - i\cos(r - \pi/4)\right) \\
-   & \qquad\qquad\qquad\qquad + 2 k \frac{z}{(r^2 + z^2)^{3/2}}
+    \mathcal{G}(r, z) \simeq & -\frac{1}{\sqrt{r^2 + z^2}} - 2 e^z \sqrt{\frac{2\pi}{r}} \left(\sin(r - \pi/4) - i\cos(r - \pi/4)\right) \\
+   & \qquad\qquad\qquad\qquad + 2 \frac{z}{(r^2 + z^2)^{3/2}}
    :label: green_function_asymptotical_approx
 
-
-Xie's variant
-~~~~~~~~~~~~~
-
-A slight variant is presented in [X18]_. The authors noticed that the
-interpolation of the integral :math:`Z_1` can be inaccurate due to the
-singularity :math:`\frac{1}{\zeta}`.
-Hence, they proposed to use :eq:`green_function_inf_depth_xie` and to tabulate the integral
-
-.. math::
-    \widetilde{Z_1}(r, z) = \frac{1}{\pi} \Re \left( \int^{\pi/2}_{-\pi/2} J(\zeta) \, \mathrm{d} \theta \right)
-
-By using :numref:`Lemma {number} <integrate_one_over_zeta>`, one has
-
-.. math::
-   Z_1 = \widetilde{Z_1} + \frac{1}{\sqrt{r^2 + z^2}}
-
-then
-
-.. math::
-   \mathcal{G}(r, z) = \frac{1}{\sqrt{r^2 + z^2}} + 2 \widetilde{Z_1}(r, z) + 2 i Z_2(r, z).
-
-The asymptotical expression for :math:`\widetilde{Z_1}` reads
-
-.. math::
-   \widetilde{Z_1}(r, z) \simeq - e^z \sqrt{\frac{2\pi}{r}} \sin(r - \pi/4) + \frac{z}{(r^2 + z^2)^{3/2}} - \frac{1}{\sqrt{r^2 + z^2}} \\
-
-while the asymptotic Green function still reads :eq:`green_function_asymptotical_approx`.
-
-Both the original Delhommeau's method and Xie's variant are implemented in Capytaine.
 
 In finite depth
 ---------------
@@ -647,11 +622,113 @@ Post-processing
 Forces on body surfaces
 -----------------------
 
-Forces acting on body surfaces are computed by integration of the pressure field. They can be decomposed into three contributions:
+Forces acting on body surfaces are computed by integration of the pressure field.
 
-1. The Froude-Krylov forces :math:`F_{FK, i}`, from the integration of the incident wave field pressure (incoming plane waves); :math:`i` denotes the i-th degree of freedom
-2. The diffraction forces :math:`F_{D, i}`, from the integration of the diffracted wave field (all bodies held fixed)
-3. The radiation forces :math:`F_{R, ij}`, from the result of the radiation problem with radiating degree of freedom :math:`j` and influenced degree of freedom :math:`i`
+.. math:: F_i = \int_\Gamma p(x) \, n(x) \cdot \delta\!r_i(x) \, dx = j \omega \rho \int_\Gamma \Phi(x) \, n(x) \cdot \delta\!r_i(x) \, dx
+
+where :math:`p = j \omega \rho \Phi` stands for the complex-valued pressure fields in frequency-domain, :math:`n` is the normal vector on the hull :math:`\Gamma` (oriented towards the fluid in Capytaine, see :doc:`../user_manual/conventions`) and :math:`\delta\!r_i` is the local displacement of the hull of the degree of freedom :math:`i`.
+
+For a single rigid body, the degrees of freedom reads:
+
++---------+----------------------------------------------------------------+
+| Dof     | Local hull displacement                                        |
++=========+================================================================+
+| Surge   | :math:`\delta\!r(x) = (1, 0, 0)`                               |
++---------+----------------------------------------------------------------+
+| Sway    | :math:`\delta\!r(x) = (0, 1, 0)`                               |
++---------+----------------------------------------------------------------+
+| Heave   | :math:`\delta\!r(x) = (0, 0, 1)`                               |
++---------+----------------------------------------------------------------+
+| Roll    | :math:`\delta\!r(x) = (1, 0, 0) \times (x-x_0, y-y_0, z-z_0)`  |
++---------+----------------------------------------------------------------+
+| Pitch   | :math:`\delta\!r(x) = (0, 1, 0) \times (x-x_0, y-y_0, z-z_0)`  |
++---------+----------------------------------------------------------------+
+| Yaw     | :math:`\delta\!r(x) = (0, 0, 1) \times (x-x_0, y-y_0, z-z_0)`  |
++---------+----------------------------------------------------------------+
+
+where :math:`(x_0, y_0, z_0)` is the rotation center and :math:`\times` denotes the cross product.
+
+
+The potential field can be decomposed into three contributions, and so does the resulting force:
+
+1. The Froude-Krylov forces :math:`F_{FK}`, from the integration of the
+   incident wave field pressure (incoming plane waves). In Capytaine, the
+   incident wave pressure can be retrieved with the
+   :func:`~capytaine.bem.airy_waves.airy_wave_pressure` function.
+2. The diffraction forces :math:`F_{D}`, from the integration of the diffracted
+   wave field (all bodies held fixed).
+3. The radiation forces :math:`F_{R}`, which is itself a linear combination of
+   the forces exerted by the fluid on the body in response to a motion of each
+   degree of freedom.
+
+The component :math:`i` of the radiation force :math:`F_{R}` is further rewritten as
+
+.. math:: F_{R, i} = \sum_k \left[\omega^2 A_{ik} + j \omega B_{ik}\right] X_k
+
+where :math:`A_{ik}` is the added mass matrix, :math:`B_{ik}` is the radiation
+damping matrix and :math:`X_k` is the amplitude of the motion of the body along
+the degree of freedom :math:`k`.
+
+In other words, one has
+
+.. math::
+   A_{ik} & = \frac{1}{\omega^2} \Re \left[ j \omega \rho \int_\Gamma \Phi_k(x) \, n(x) \cdot \delta \! r_i(x) \, dx \right] \\
+          & = - \frac{\rho}{\omega} \int_\Gamma \Im [\Phi_k(x)] \, n(x) \cdot \delta \! r_i(x) \, dx
+
+and
+
+.. math::
+   B_{ik} & = \frac{1}{\omega} \Im \left[ j \omega \rho \int_\Gamma \Phi_k(x) \, n(x) \cdot \delta \! r_i(x) \, dx \right] \\
+          & = \rho \int_\Gamma \Re [\Phi_k(x)] \, n(x) \cdot \delta \! r_i(x) \, dx
+
+where :math:`\Phi_k` is the potential field computed with the normal velocity on the hull :math:`\frac{\partial \Phi_k}{\partial n} = -j \omega \delta \! r_k \cdot n`.
+In Capytaine's wording, the degree of freedom :math:`k` defining the normal velocity on the hull is called ``radiating_dof``, while the degree of freedom :math:`i` used in the integration of the force is the ``influenced_dof``.
+
+.. note::
+   From Green second identity
+
+   .. math:: \int_\Gamma \left[ \Phi_i \frac{\partial \Phi_k}{\partial n} - \Phi_k \frac{\partial \Phi_i}{\partial n}\right] dx = 0
+
+   one has, when using the definition of the normal velocity of the radiation problem above,
+
+   .. math:: \iint_{\Gamma} \Phi_i \; \delta\!r_k \cdot n = \iint_{\Gamma} \Phi_k \; \delta\!r_i \cdot n
+
+   from which we can deduce the symmetry of the added mass matrix and the radiation dampings matrix.
+
+
+.. note::
+   As an alternative to :math:`\frac{\partial \Phi_k}{\partial n} = -j \omega
+   \delta \! r_k \cdot n`, some software such as the version 1 of Capytaine use
+   :math:`\frac{\partial \tilde \Phi_k}{\partial n} = \delta \! r_k \cdot n`,
+   that is :math:`\tilde \Phi_k = \frac{\Phi_k}{-j \omega}`.
+
+   It leads to the following definition of the added mass and radiation damping
+
+   .. math::
+      A_{ik} & = \frac{1}{\omega^2} \Re \left[ j \omega \rho \int_\Gamma (- j \omega \tilde \Phi_k(x)) \, n(x) \cdot \delta \! r_j(x) \, dx \right] \\
+             & = \rho \int_\Gamma \Re [\tilde \Phi_k(x)] \, n(x) \cdot \delta \! r_j(x) \, dx
+
+   and
+
+   .. math::
+      B_{ik} & = \frac{1}{\omega} \Im \left[ j \omega \rho \int_\Gamma (- j \omega \tilde \Phi_k(x)) \, n(x) \cdot \delta \! r_j(x) \, dx \right] \\
+             & = \rho \omega \int_\Gamma \Im [\tilde \Phi_k(x)] \, n(x) \cdot \delta \! r_j(x) \, dx
+
+   This form is convenient since the all the :math:`\omega` in the expression
+   of the added mass disappears, which make it possible to compute the value of
+   the added mass at frequency such as zero or infinity.
+
+   However, the implementation of :math:`\tilde \Phi` in version 1 of Capytaine
+   was not consistent with the use of :math:`\Phi` for diffraction problem and
+   it was easy to forget the missing :math:`-j\omega` for some post-processing
+   of :math:`\tilde \Phi` for radiation problems.
+
+   In version 2.0 of Capytaine, :math:`\Phi` is used everywhere instead of
+   :math:`\tilde \Phi`.
+   Since version 2.1, another method has been implemented to take into account
+   the cancelling of the :math:`\omega` in the expression of the added mass
+   allowing to compute the added mass at zero and infinite frequency.
+
 
 Dynamic coupling and impedance
 ------------------------------
@@ -667,15 +744,11 @@ where :math:`M_{ij}` is the inertia matrix, accounting for the mass distribution
 
 .. note:: The hydrostatic contribution to matrix :math:`K_{ij}` accounts for a variation of hydrostatic force in direction :math:`i` due to a unit motion in direction :math:`j`. It is a geometric property of the body.
 
-Forces :math:`F_i` can be decomposed as
+As seen above, forces :math:`F_i` can be decomposed as
 
 .. math:: F_i = F_{FK, i} + F_{D, i} + F_{R, i}
 
-and :math:`F_{R, i}` can be further rewritten as
-
-.. math:: F_{R, i} = \left[\omega^2 A_{ij} + j\omega B_{ij}\right] X_j
-
-where :math:`A_{ij}` is the added mass matrix and :math:`B_{ij}` is the radiation damping matrix; these properties are thus obtained from the real and imaginary parts of the radiation force. The full system becomes
+The full system becomes
 
 .. math:: \left[-\omega^2 (M_{ij} + A_{ij}) - j \omega (C_{ij} + B_{ij}) + K_{ij}\right] X_j = F_{FK, i} + F_{D, i}
 

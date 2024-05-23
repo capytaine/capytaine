@@ -1,6 +1,10 @@
 {% extends "!layout.html" %}
 {% block extrahead %}
-    <script defer data-domain="ancell.in/capytaine" src="https://plausible.io/js/script.js"></script>
+    <script defer data-domain="capytaine.github.io" src="https://plausible.io/js/script.js"></script>
     <link rel="stylesheet" href="_static/custom.css" type="text/css" />
-    {{super}}
+    {{ super() }}
+{% endblock %}
+{% block document %}
+<div id="new-doc-warning-banner" style="width:100%; background-color:#ADD8E6; text-align: center;">This page is part of the documentation of the development version {{ version }} of Capytaine.<br><a href="https://capytaine.github.io/stable/">Latest stable version is available here.</a></div>
+    {{ super() }}
 {% endblock %}

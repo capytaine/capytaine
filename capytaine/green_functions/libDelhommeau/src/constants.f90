@@ -1,5 +1,5 @@
-! Copyright (C) 2017-2019 Matthieu Ancellin
-! See LICENSE file at <https://github.com/mancellin/libDelhommeau>
+! Copyright (C) 2017-2024 Matthieu Ancellin
+! See LICENSE file at <https://github.com/capytaine/libDelhommeau>
 
 MODULE CONSTANTS
 
@@ -8,13 +8,16 @@ MODULE CONSTANTS
 
   IMPLICIT NONE
 
-  REAL(KIND=PRE), PARAMETER :: ZERO = 0
-  REAL(KIND=PRE), PARAMETER :: ONE = 1
+  REAL(KIND=PRE), PARAMETER    :: ZERO = 0
+  COMPLEX(KIND=PRE), PARAMETER :: CZERO = CMPLX(ZERO, ZERO, KIND=PRE)
+  REAL(KIND=PRE), PARAMETER    :: ONE = 1
 
-  REAL(KIND=PRE), PARAMETER :: PI = 3.141592653588979 ! π
-  REAL(KIND=PRE), PARAMETER :: EULER_GAMMA = 0.5772156649
-  REAL(KIND=PRE), PARAMETER :: LOG_2 = LOG(REAL(2d0, kind=pre))
-  COMPLEX(KIND=PRE), PARAMETER :: II = (0, 1)         ! Imaginary unit
+  REAL(KIND=PRE), PARAMETER    :: PI = 3.141592653588979 ! π
+  REAL(KIND=PRE), PARAMETER    :: EULER_GAMMA = 0.5772156649
+  REAL(KIND=PRE), PARAMETER    :: LOG_2 = LOG(REAL(2d0, kind=pre))
+  COMPLEX(KIND=PRE), PARAMETER :: II = (ZERO, ONE) ! Imaginary unit
+
+  integer, parameter :: nb_tabulated_values = 5
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
