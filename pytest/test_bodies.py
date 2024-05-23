@@ -81,9 +81,8 @@ def test_healing_before_initializing_dofs():
 
 
 def test_bodies():
-    body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), name="sphere")
+    body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), name="sphere", center_of_mass=(0, 0, 0))
     repr(body)
-    assert np.allclose(body.geometric_center, (0, 0, 0))
     body.add_translation_dof(name="Surge")
     body.add_translation_dof(name="Heave")
 
@@ -95,7 +94,7 @@ def test_bodies():
 
     # Mirror of the dofs
     mirrored = body.mirrored(cpt.Plane(point=(1, 0, 0), normal=(1, 0, 0)))
-    assert np.allclose(mirrored.geometric_center, np.array([2, 0, 0]))
+    assert np.allclose(mirrored.center_of_mass, np.array([2, 0, 0]))
     assert np.allclose(body.dofs['Surge'], -mirrored.dofs['Surge'])
 
     # Rotation of the dofs
