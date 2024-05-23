@@ -135,11 +135,11 @@ def test_exact_integration_with_nb_integration_points():
     assert np.abs(val1[0] - val2[0]) > 1e-1
 
 
-def test_better_low_freq_singularities():
+def test_low_freq_with_rankine_part_singularities():
     import numpy as np
     import capytaine as cpt
     gf1 = cpt.Delhommeau(gf_singularities="low_freq")
-    gf2 = cpt.Delhommeau(gf_singularities="better_low_freq")
+    gf2 = cpt.Delhommeau(gf_singularities="low_freq_with_rankine_part")
     point = np.array([[0.0, 0.0, -1.0]])
     area = 1.0
     wavenumber = 1.0
