@@ -9,7 +9,7 @@ from capytaine.io.legacy import export_hydrostatics
 
 
 def test_incomplete_test_matrix():
-    body = cpt.Sphere()
+    body = cpt.FloatingBody(cpt.mesh_sphere())
     test_matrix = xr.Dataset(coords={
         "omega": np.linspace(0, 1, 2),
         })
@@ -41,9 +41,9 @@ def test_remove_complex_values():
 def test_xarray_dataset_with_more_data():
     # Store some mesh data when several bodies in dataset
     bodies = [
-        cpt.Sphere(radius=1, ntheta=3, nphi=3, name="sphere_1"),
-        cpt.Sphere(radius=2, ntheta=5, nphi=3, name="sphere_2"),
-        cpt.Sphere(radius=3, ntheta=7, nphi=3, name="sphere_3"),
+        cpt.FloatingBody(cpt.mesh_sphere(radius=1, resolution=(3, 3)), name="sphere_1"),
+        cpt.FloatingBody(cpt.mesh_sphere(radius=2, resolution=(5, 3)), name="sphere_2"),
+        cpt.FloatingBody(cpt.mesh_sphere(radius=3, resolution=(7, 3)), name="sphere_3"),
     ]
     for body in bodies:
         body.keep_immersed_part()
