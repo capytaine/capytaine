@@ -117,7 +117,7 @@ class Delhommeau(AbstractGreenFunction):
         fortran_enum = {
                 'high_freq': self.fortran_core.constants.high_freq,
                 'low_freq': self.fortran_core.constants.low_freq,
-                'better_low_freq': self.fortran_core.constants.better_low_freq,
+                'low_freq_with_rankine_part': self.fortran_core.constants.low_freq_with_rankine_part,
                               }
         self.gf_singularities_index = fortran_enum[gf_singularities]
 
@@ -324,7 +324,7 @@ class Delhommeau(AbstractGreenFunction):
             else:
                 if self.gf_singularities == "high_freq":
                     coeffs = np.array((1.0, -1.0, 1.0))
-                else:  # low_freq or better_low_freq
+                else:  # low_freq or low_freq_with_rankine_part
                     coeffs = np.array((1.0, 1.0, 1.0))
 
         else:  # Finite water_depth

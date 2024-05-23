@@ -167,9 +167,10 @@ CONTAINS
       gf_singularities,                                          &
       G, nablaG)
       ! Returns
-      ! (G^-, nabla G^-)               if gf_singularities == HIGH_FREQ
-      ! (G^+, nabla G^+)               if gf_singularities == LOW_FREQ
-      ! (G^+, nabla G^+ - (0, 0, k/r1) if gf_singularities == BETTER_LOW_FREQ
+      ! (G^-, nabla G^-)                    if gf_singularities == HIGH_FREQ
+      ! (G^+, nabla G^+)                    if gf_singularities == LOW_FREQ
+      ! (G^+, nabla G^+ - (0, 0, 2*k**2/r1) if gf_singularities == LOW_FREQ_WITH_RANKINE_PART
+      ! In the last case, the missing term will be computed with the reflected Rankine term
 
     ! Inputs
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I, X0J
@@ -229,7 +230,7 @@ CONTAINS
     END IF
     dzdx3 = wavenumber
 
-    if ((gf_singularities == LOW_FREQ) .or. (gf_singularities == BETTER_LOW_FREQ)) then
+    if ((gf_singularities == LOW_FREQ) .or. (gf_singularities == LOW_FREQ_WITH_RANKINE_PART)) then
       ! G is G^+, nablaG is nablaG^+
       G = CMPLX(integrals(1), integrals(3), KIND=PRE)
       dGdr = CMPLX(integrals(4), integrals(5), KIND=PRE)
@@ -239,6 +240,7 @@ CONTAINS
         nablaG(3) = dzdx3 * (G + 2/r1)
       else
         nablaG(3) = dzdx3 * G
+        ! The missing Rankine term is integrated as a Rankine term
       endif
     else if (gf_singularities == HIGH_FREQ) then
       ! G is G^-, nablaG is nablaG^-
