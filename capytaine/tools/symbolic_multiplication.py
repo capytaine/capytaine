@@ -64,6 +64,9 @@ class SymbolicMultiplication:
     def __rmatmul__(self, x):
         return SymbolicMultiplication(self.symbol, x @ self.value)
 
+    def __getitem__(self, item):
+        return SymbolicMultiplication(self.symbol, self.value[item])
+
     def __eq__(self, x):
         return float(self) == x
 
