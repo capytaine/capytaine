@@ -30,7 +30,7 @@ CONTAINS
 
   subroutine integral_of_wave_part                               &
       (x,                                                        &
-      face_center, face_normal, face_area, face_radius,          &
+      face_center, face_area,                                    &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber, depth,                                         &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
@@ -42,8 +42,8 @@ CONTAINS
     ! Integral over a panel of the wave part of the Green function.
 
     real(kind=pre), dimension(3),          intent(in) :: x
-    real(kind=pre), dimension(3),          intent(in) :: face_center, face_normal
-    real(kind=pre),                        intent(in) :: face_area, face_radius
+    real(kind=pre), dimension(3),          intent(in) :: face_center
+    real(kind=pre),                        intent(in) :: face_area
     real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
     real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
     real(kind=pre),                        intent(in) :: wavenumber, depth
@@ -281,7 +281,7 @@ CONTAINS
     ! Local variables
     INTEGER                              :: KE
     REAL(KIND=PRE)                       :: AMH, AKH, A
-    REAL(KIND=PRE)                       :: AQT, R
+    REAL(KIND=PRE)                       :: AQT
     REAL(KIND=PRE),    DIMENSION(3)      :: XI, XJ
     REAL(KIND=PRE),    DIMENSION(4)      :: FTS
     REAL(KIND=PRE),    DIMENSION(3, 4)   :: VTS
@@ -294,9 +294,6 @@ CONTAINS
 
     XI(:) = X0I(:)
     XJ(:) = X0J(:)
-
-    ! Distance in xOy plane
-    R = NORM2(XI(1:2) - XJ(1:2))
 
     ! 1.a First infinite depth problem
     CALL WAVE_PART_INFINITE_DEPTH(                               &
