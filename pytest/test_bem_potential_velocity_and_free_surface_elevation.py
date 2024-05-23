@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Tests related to post-processing computation of potential, velocity and free surface elevation."""
 
 import pytest
@@ -262,4 +260,3 @@ def test_direct_solver(solver):
     points = [(0.0, 0.0, -3.0), (0.0, 1.0, -2.0), (1.0, 1.0, -1.0)]
     with pytest.raises(Exception, match="direct method"):
         pot = solver.compute_potential(points, res)
-

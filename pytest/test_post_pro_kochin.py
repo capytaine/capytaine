@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Test related to the computation of Kochin functions."""
 
 import numpy as np
