@@ -39,6 +39,8 @@ Bug fixes
 
 * :func:`~capytaine.meshes.predefined.cylinders.mesh_vertical_cylinder` used to return only half of the mesh when called with ``reflection_symmetry=True`` (:issue:`529` and :pull:`530`).
 
+* Providing the frequency as a scalar coordinate in the test matrix does not result in the value being ignored anymore (:issue:`547` and :pull:`548`).
+
 Internals
 ~~~~~~~~~
 
