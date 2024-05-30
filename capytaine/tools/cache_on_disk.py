@@ -10,7 +10,7 @@ from capytaine import __version__
 
 def cache_directory():
     if "CAPYTAINE_CACHE_DIR" in os.environ:
-        path = os.environ["CAPYTAINE_CACHE_DIR"]
+        path = os.path.join(os.environ["CAPYTAINE_CACHE_DIR"], __version__)
     elif sys.platform == "win32":  # Windows
         path = os.path.normpath(os.environ.get("LOCALAPPDATA"))
         path = os.path.join(path, "capytaine", "Cache", __version__)
