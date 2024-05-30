@@ -10,14 +10,14 @@ from functools import cached_property
 import numpy as np
 import xarray as xr
 
-from capytaine.tools.optional_imports import silently_import_optional_dependency
-meshio = silently_import_optional_dependency("meshio")
-
+from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import build_regular_array_of_meshes
-from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.bodies.dofs import RigidBodyDofsPlaceholder
+
+from capytaine.tools.optional_imports import silently_import_optional_dependency
+meshio = silently_import_optional_dependency("meshio")
 
 LOG = logging.getLogger(__name__)
 
@@ -74,7 +74,10 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         else:
             raise TypeError("Unrecognized `mesh` object passed to the FloatingBody constructor.")
 
-        self.lid_mesh = lid_mesh
+        if lid_mesh is not None:
+            self.lid_mesh = lid_mesh.with_normal_vector_going_down(inplace=False)
+        else:
+            self.lid_mesh = None
 
         if name is None and mesh is None:
             self.name = "dummy_body"
