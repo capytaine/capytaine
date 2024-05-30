@@ -755,45 +755,51 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         else:
             return self
 
-    def generate_lid(self,z=-1e-3, faces_max_radius=None,omega_max = 2,info=False):
-        from capytaine.meshes.clipper import  _partition_mesh,_vertices_positions_wrt_plane
+    def generate_lid(self, z=-1e-3, faces_max_radius=None, omega_max=2, info=False):
+        """
+        Create internal free surface lid based on rectangular mesh
+        The body is updated into double body with internal mesh
+
+        Parameters
+        ----------
+        z: float or 'auto'
+            position of the lid. Default: -1e-3
+        faces_max_radius: float
+            resolution of the mesh of the lid.
+            Default: guessed from hull mesh resolution.
+        omega_max: float
+            If z == 'auto', then z is chosen such that there is no irregular frequency below omega_max.
+        info: bool
+            to show the water plane and the internal mesh created
+
+        Returns
+        -------
+        Mesh
+            lid of internal surface
+        """
+
+        from capytaine.meshes.clipper import  _partition_mesh, _vertices_positions_wrt_plane
         from capytaine.meshes.geometry import xOy_Plane
         from capytaine.meshes.predefined.rectangles import mesh_rectangle
 
-        from  capytaine.meshes.misc_internalLid import counterClockwiseBoundary,findCenter,isInstanceInside, \
+        from capytaine.meshes.misc_internalLid import counter_clockwise_boundary, find_center, is_instance_inside, \
                                                         location_of_lid
 
-        '''
-        Create internal free surface lid based on rectangular mesh
-        The body is updated into double body with internal mesh
-        Parameters
-        ----------
-        info: list
-            to show the water plane and the internal mesh created
-        Returns
-        -------
-        FloatingBody (lid of internal surface)
-            Array built from the provided bodies
-
-        '''
         # extract the water line area perimeter
-        vicinity_tol=1e-12
-        vertices_data = _vertices_positions_wrt_plane(self,
-                                                    xOy_Plane,
-                                                    vicinity_tol)
-        # vertices_data['vertices_on_mask']
+        vicinity_tol = 1e-12
+        vertices_data = _vertices_positions_wrt_plane(self, xOy_Plane, vicinity_tol)
         _, crown_mesh, _ = _partition_mesh(vertices_data, self)
 
         # Taking only the crown mesh to obtain the Water Plane Area information
         # water plane area is defined as the boundary
-        boundary_coordinate  = crown_mesh.faces_centers[:,0:2]
-        boundary_coordinate  = np.unique(boundary_coordinate,axis=0) # removing double z at the same x,y
-        boundary_coordinate  = counterClockwiseBoundary(boundary_coordinate) # make it in counterclockwise order
-        boundary_center      = findCenter(boundary_coordinate) # assuming the mean(x) and mean(y) as the center
+        boundary_coordinate  = crown_mesh.faces_centers[:, 0:2]
+        boundary_coordinate  = np.unique(boundary_coordinate, axis=0) # removing double z at the same x,y
+        boundary_coordinate  = counter_clockwise_boundary(boundary_coordinate) # make it in counterclockwise order
+        boundary_center      = find_center(boundary_coordinate) # assuming the mean(x) and mean(y) as the center
 
         # creating initial Lid (rectangular)
-        length_waterline    = np.max(boundary_coordinate[:,0])  - np.min(boundary_coordinate[:,0])
-        breadth_waterline   = np.max(boundary_coordinate[:,1])  - np.min(boundary_coordinate[:,1])
+        length_waterline    = np.max(boundary_coordinate[:, 0])  - np.min(boundary_coordinate[:, 0])
+        breadth_waterline   = np.max(boundary_coordinate[:, 1])  - np.min(boundary_coordinate[:, 1])
 
         if faces_max_radius is None:
             lid_size = self.faces_radiuses.mean()
@@ -802,57 +808,52 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
 
         if z == 'auto':
             z = -location_of_lid(omega_max=omega_max,
-                                length=length_waterline,
-                                breadth=breadth_waterline)
+                                 length=length_waterline,
+                                 breadth=breadth_waterline)
 
         # initialisation factor 1.25
-        Nx = int(1.25*length_waterline/lid_size)
-        Ny = int(1.25*breadth_waterline/lid_size)
+        n_x = int(1.25*length_waterline/lid_size)
+        n_y = int(1.25*breadth_waterline/lid_size)
 
-        lid_mesh = mesh_rectangle(size=(1.25*breadth_waterline,1.25*length_waterline),
-                                resolution=(Ny,Nx),
-                                center=boundary_center+[z],
-                                normal=(0.0, 0.0, -1))
+        lid_mesh = mesh_rectangle(size=(1.25*breadth_waterline, 1.25*length_waterline),
+                                  resolution=(n_y, n_x),
+                                  center=boundary_center+[z],
+                                  normal=(0.0, 0.0, -1.0))
 
         # generating th
-        lid_panels_coordinate  = lid_mesh.faces_centers[:,0:2]
+        lid_panels_coordinate  = lid_mesh.faces_centers[:, 0:2]
 
         # ray casting method
         # finding if the lid panels are inside the boundary coordinate
-        insideOutside = [] # True inside
+        inside_outside = [] # True inside
         for ii in range(len(lid_panels_coordinate)):
-            checkFacesCenter = isInstanceInside(lid_mesh.faces_centers[ii,0:2],boundary_coordinate)
-            if checkFacesCenter:
-                checkVertices = True
+            check_faces_center = is_instance_inside(lid_mesh.faces_centers[ii, 0:2], boundary_coordinate)
+            if check_faces_center:
+                check_vertices = True
                 for mm in range(len(lid_mesh.faces[ii])):
-                    checkVertices = checkVertices and isInstanceInside(lid_mesh.vertices[lid_mesh.faces[ii]][mm,0:2],boundary_coordinate)
+                    check_vertices = check_vertices and is_instance_inside(lid_mesh.vertices[lid_mesh.faces[ii]][mm,0:2], boundary_coordinate)
 
-            if checkFacesCenter and checkVertices:
-                insideOutside.append(True)
+            if check_faces_center and check_vertices:
+                inside_outside.append(True)
             else:
-                insideOutside.append(False)
+                inside_outside.append(False)
 
 
         # filtering out the panel outside the boundary
-        indicesInsideOutside = [i for i, x in enumerate(insideOutside) if x == 0]
+        indices_inside_outside = [i for i, x in enumerate(inside_outside) if x == 0]
 
-        new_lid_face = np.delete(lid_mesh.faces, indicesInsideOutside, axis=0)
+        new_lid_face = np.delete(lid_mesh.faces, indices_inside_outside, axis=0)
         new_lid_mesh = Mesh(lid_mesh.vertices,new_lid_face)
         new_lid_mesh.heal_mesh()
-
-        # # creating the lid body
-        # lid_body  = FloatingBody(new_lid_mesh)
-        # lid_body.name= 'lid'
-        # lid_body.add_all_rigid_body_dofs()
 
         # in-case want to see the lid
         if info:
             import matplotlib.pyplot as plt
             plt.figure()
-            plt.plot(lid_panels_coordinate[:,0],lid_panels_coordinate[:,1],
-                     '*',label='faces center')
-            plt.plot(boundary_coordinate[:,0],boundary_coordinate[:,1],
-                     '-',color='k',label='boundary')
+            plt.plot(lid_panels_coordinate[:,0], lid_panels_coordinate[:,1],
+                     '*', label='faces center')
+            plt.plot(boundary_coordinate[:,0], boundary_coordinate[:,1],
+                     '-', color='k', label='boundary')
             plt.xlabel('X Coordinate')
             plt.ylabel('Y Coordinate')
             plt.gca().set_aspect('equal')
