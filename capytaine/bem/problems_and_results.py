@@ -401,10 +401,9 @@ class RadiationProblem(LinearPotentialFlowProblem):
                 self.radiating_dof = next(iter(self.body.dofs))
 
             if self.radiating_dof not in self.body.dofs:
-                LOG.error(f"In {self}: the radiating degree of freedom {self.radiating_dof} is not one of"
-                          f"the degrees of freedom of the body.\n"
-                          f"The dofs of the body are {list(self.body.dofs.keys())}")
-                raise ValueError("Unrecognized degree of freedom name.")
+                raise ValueError(f"In {self}:\n"
+                                 f"the radiating dof {repr(self.radiating_dof)} is not one of the degrees of freedom of the body.\n"
+                                 f"The dofs of the body are {list(self.body.dofs.keys())}")
 
             dof = self.body.dofs[self.radiating_dof]
 
