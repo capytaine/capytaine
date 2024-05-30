@@ -95,5 +95,5 @@ def build_and_test_on_nightly_builds(session):
                     "numpy", "scipy", "pandas", "xarray", "rich")
     session.install("meson-python", "ninja", "charset-normalizer")
     session.install("--no-deps", "--no-build-isolation", ".")
-    session.install("pytest")
+    session.install("pytest", "matplotlib")
     run_tests(session)

@@ -3,14 +3,13 @@
 They are based on numpy solvers with a thin layer for the handling of Hierarchical Toeplitz matrices.
 """
 # Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
 
 import numpy as np
 from scipy import linalg as sl
 from scipy.sparse import linalg as ssl
-from itertools import accumulate, chain
 
 from capytaine.matrices.block import BlockMatrix
 from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockCirculantMatrix
@@ -27,7 +26,7 @@ def solve_directly(A, b):
         blocks_of_diagonalization = A.block_diagonalize()
         fft_of_rhs = np.fft.fft(np.reshape(b, (A.nb_blocks[0], A.block_shape[0])), axis=0)
         try:  # Try to run it as vectorized numpy arrays.
-            fft_of_result = np.linalg.solve(blocks_of_diagonalization, fft_of_rhs)
+            fft_of_result = np.linalg.solve(blocks_of_diagonalization, fft_of_rhs[..., np.newaxis])[..., 0]
         except np.linalg.LinAlgError:  # Or do the same thing with list comprehension.
             fft_of_result = np.array([solve_directly(block, vec) for block, vec in zip(blocks_of_diagonalization, fft_of_rhs)])
         result = np.fft.ifft(fft_of_result, axis=0).reshape((A.shape[1],))
