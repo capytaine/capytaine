@@ -41,6 +41,8 @@ Bug fixes
 
 * Providing the frequency as a scalar coordinate in the test matrix does not result in the value being ignored anymore (:issue:`547` and :pull:`548`).
 
+* Fix issue due to breaking change in linear solver broadcasting in Numpy 2.0 (:issue:`550`).
+
 Internals
 ~~~~~~~~~
 
