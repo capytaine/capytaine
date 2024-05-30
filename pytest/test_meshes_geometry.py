@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Test related to the definition and use of geometric objects (planes, axes, ...)."""
 
 import numpy as np

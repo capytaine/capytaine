@@ -1,7 +1,7 @@
 import numpy as np
-from functools import total_ordering, wraps
+from functools import wraps, total_ordering
 
-# @total_ordering
+@total_ordering
 class SymbolicMultiplication:
     def __init__(self, symbol, value=1.0):
         self.symbol = symbol
@@ -23,6 +23,12 @@ class SymbolicMultiplication:
 
     def __repr__(self):
         return f"SymbolicMultiplication(\"{self.symbol}\", {repr(self.value)})"
+
+    def __add__(self, x):
+        return self._concretize() + x
+
+    def __radd__(self, x):
+        return x + self._concretize()
 
     def __mul__(self, x):
         return SymbolicMultiplication(self.symbol, self.value * x)
@@ -58,6 +64,9 @@ class SymbolicMultiplication:
     def __rmatmul__(self, x):
         return SymbolicMultiplication(self.symbol, x @ self.value)
 
+    def __getitem__(self, item):
+        return SymbolicMultiplication(self.symbol, self.value[item])
+
     def __eq__(self, x):
         return float(self) == x
 
@@ -66,6 +75,15 @@ class SymbolicMultiplication:
 
     def __hash__(self):
         return hash((self.symbol, self.value))
+
+    def _concretize(self):
+        if isinstance(self.value, np.ndarray):
+            if self.symbol == "0":
+                return np.zeros_like(self.value)
+            elif self.symbol == "∞":
+                return np.full_like(self.value, np.inf)
+        else:
+            return float(self)
 
     def __float__(self):
         if self.symbol == "0":

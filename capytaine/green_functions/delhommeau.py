@@ -18,6 +18,18 @@ from capytaine.green_functions.abstract_green_function import AbstractGreenFunct
 
 LOG = logging.getLogger(__name__)
 
+_default_parameters = dict(
+    tabulation_nr=676,
+    tabulation_rmax=100.0,
+    tabulation_nz=372,
+    tabulation_zmin=-251.0,
+    tabulation_nb_integration_points=1001,
+    tabulation_grid_shape="scaled_nemoh3",
+    finite_depth_prony_decomposition_method="fortran",
+    floating_point_precision="float64",
+    gf_singularities="high_freq",
+)
+
 
 class Delhommeau(AbstractGreenFunction):
     """The Green function as implemented in Aquadyn and Nemoh.
@@ -25,63 +37,92 @@ class Delhommeau(AbstractGreenFunction):
     Parameters
     ----------
     tabulation_nr: int, optional
-        Number of tabulation points for horizontal distance.
-        If 0 is given, the no tabulation is used.
-        Default: 676, as in Nemoh v3.
+        Number of tabulation points for horizontal coordinate.
+        If 0 is given, no tabulation is used at all.
+        Default: 676
     tabulation_rmax: float, optional
-        Maximum value of r range for the tabulation.
-        Default: 100, as in Nemoh v3.
+        Maximum value of r range for the tabulation. (Minimum is zero.)
+        Only used with the :code:`"scaled_nemoh3"` method.
+        Default: 100.0
     tabulation_nz: int, optional
-        Number of tabulation points for vertical distance.
-        If 0 is given, the no tabulation is used.
-        Default: 124, as in Nemoh v3.
+        Number of tabulation points for vertical coordinate.
+        If 0 is given, no tabulation is used at all.
+        Default: 372
     tabulation_zmin: float, optional
-        Minimum value of z range for the tabulation.
-        Default: -251, as in Nemoh v3.
+        Minimum value of z range for the tabulation. (Maximum is zero.)
+        Only used with the :code:`"scaled_nemoh3"` method.
+        Default: -251.0
     tabulation_nb_integration_points: int, optional
-        Number of points for the numerical integration w.r.t. :math:`theta` of Delhommeau's integrals
-        Default: 251, as in Nemoh.
+        Number of points for the numerical integration w.r.t. :math:`theta` of
+        Delhommeau's integrals
+        Default: 1000
+    tabulation_grid_shape: string, optional
+        Either :code:`"legacy"` or :code:`"scaled_nemoh3"`, which are the two
+        methods currently implemented.
+        Default: :code:`"scaled_nemoh3"`
     finite_depth_prony_decomposition_method: string, optional
-        The implementation of the Prony decomposition used to compute the finite water_depth Green function.
-        Accepted values: :code:`'fortran'` for Nemoh's implementation (by default), :code:`'python'` for an experimental Python implementation.
+        The implementation of the Prony decomposition used to compute the
+        finite water_depth Green function. Accepted values: :code:`'fortran'`
+        for Nemoh's implementation (by default), :code:`'python'` for an
+        experimental Python implementation.
         See :func:`find_best_exponential_decomposition`.
     floating_point_precision: string, optional
-        Either :code:`'float32'` for single precision computations or :code:`'float64'` for double precision computations.
+        Either :code:`'float32'` for single precision computations or
+        :code:`'float64'` for double precision computations.
         Default: :code:`'float64'`.
+    gf_singularities: string, optional
+        Chose of the variant among the ways singularities can be extracted from
+        the Green function. Currently only affects the infinite depth Green
+        function.
+        Default: "high_freq".
 
     Attributes
     ----------
+    fortran_core:
+        Compiled Fortran module with functions used to compute the Green
+        function.
+    tabulation_grid_shape_index: int
+        Integer passed to Fortran code to describe which method is used.
     tabulated_r_range: numpy.array of shape (tabulation_nr,) and type floating_point_precision
     tabulated_z_range: numpy.array of shape (tabulation_nz,) and type floating_point_precision
         Coordinates of the tabulation points.
-    tabulated_integrals: numpy.array of shape (tabulation_nr, tabulation_nz, 2, 2) and type floating_point_precision
+    tabulated_integrals: numpy.array of shape (tabulation_nr, tabulation_nz, nb_tabulated_values) and type floating_point_precision
         Tabulated Delhommeau integrals.
     """
 
-    fortran_core_basename = "Delhommeau"
 
 
     def __init__(self, *,
-                 tabulation_nr=676,
-                 tabulation_rmax=100,
-                 tabulation_nz=124,
-                 tabulation_zmin=-251,
-                 tabulation_nb_integration_points=251,
-                 tabulation_method='scaled_nemoh3',
-                 finite_depth_prony_decomposition_method='fortran',
-                 floating_point_precision='float64',
+                 tabulation_nr=_default_parameters["tabulation_nr"],
+                 tabulation_rmax=_default_parameters["tabulation_rmax"],
+                 tabulation_nz=_default_parameters["tabulation_nz"],
+                 tabulation_zmin=_default_parameters["tabulation_zmin"],
+                 tabulation_nb_integration_points=_default_parameters["tabulation_nb_integration_points"],
+                 tabulation_grid_shape=_default_parameters["tabulation_grid_shape"],
+                 finite_depth_prony_decomposition_method=_default_parameters["finite_depth_prony_decomposition_method"],
+                 floating_point_precision=_default_parameters["floating_point_precision"],
+                 gf_singularities=_default_parameters["gf_singularities"],
                  ):
 
-        self.floating_point_precision = floating_point_precision
+        self.fortran_core = import_module(f"capytaine.green_functions.libs.Delhommeau_{floating_point_precision}")
 
-        self.fortran_core = import_module(f"capytaine.green_functions.libs.{self.fortran_core_basename}_{self.floating_point_precision}")
-
-        self.tabulation_method = tabulation_method
-        fortran_indices_for_methods = {
-                'legacy': self.fortran_core.delhommeau_integrals.legacy_method,
-                'scaled_nemoh3': self.fortran_core.delhommeau_integrals.scaled_nemoh3_method,
+        self.tabulation_grid_shape = tabulation_grid_shape
+        fortran_enum = {
+                'legacy': self.fortran_core.constants.legacy_grid,
+                'scaled_nemoh3': self.fortran_core.constants.scaled_nemoh3_grid,
                               }
-        self.tabulation_method_index = fortran_indices_for_methods[tabulation_method]
+        self.tabulation_grid_shape_index = fortran_enum[tabulation_grid_shape]
+
+        self.gf_singularities = gf_singularities
+        fortran_enum = {
+                'high_freq': self.fortran_core.constants.high_freq,
+                'low_freq': self.fortran_core.constants.low_freq,
+                'low_freq_with_rankine_part': self.fortran_core.constants.low_freq_with_rankine_part,
+                              }
+        self.gf_singularities_index = fortran_enum[gf_singularities]
+
+        self.floating_point_precision = floating_point_precision
+        self.tabulation_nb_integration_points = tabulation_nb_integration_points
 
         self._create_or_load_tabulation(tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin, tabulation_nb_integration_points)
 
@@ -90,10 +131,14 @@ class Delhommeau(AbstractGreenFunction):
         self.exportable_settings = {
             'green_function': self.__class__.__name__,
             'tabulation_nr': tabulation_nr,
+            'tabulation_rmax': tabulation_rmax,
             'tabulation_nz': tabulation_nz,
+            'tabulation_zmin': tabulation_zmin,
             'tabulation_nb_integration_points': tabulation_nb_integration_points,
+            'tabulation_grid_shape': tabulation_grid_shape,
             'finite_depth_prony_decomposition_method': finite_depth_prony_decomposition_method,
             'floating_point_precision': floating_point_precision,
+            'gf_singularities': gf_singularities,
         }
 
         self._hash = hash(self.exportable_settings.values())
@@ -102,17 +147,24 @@ class Delhommeau(AbstractGreenFunction):
         return self._hash
 
     def __str__(self):
-        params = f"tabulation_nz={self.exportable_settings['tabulation_nz']}"
-        params += f", tabulation_nr={self.exportable_settings['tabulation_nr']}"
-        params += f", tabulation_nb_integration_points={self.exportable_settings['tabulation_nb_integration_points']}"
-        params += f", floating_point_precision=\'{self.exportable_settings['floating_point_precision']}\'"
-        return f"{self.__class__.__name__}({params})"
+        # Print only the non-default values.
+        to_be_printed = []
+        for name, value in self.exportable_settings.items():
+            if name in _default_parameters and value != _default_parameters[name]:
+                to_be_printed.append(f"{name}={repr(value)}")
+        return f"{self.__class__.__name__}({', '.join(to_be_printed)})"
 
     def __repr__(self):
-        return self.__str__()
+        # Same as __str__ except all values are printed even when they are the
+        # default value.
+        to_be_printed = []
+        for name, value in self.exportable_settings.items():
+            if name in _default_parameters:
+                to_be_printed.append(f"{name}={repr(value)}")
+        return f"{self.__class__.__name__}({', '.join(to_be_printed)})"
 
     def _repr_pretty_(self, p, cycle):
-        p.text(self.__str__())
+        p.text(self.__repr__())
 
     def _create_or_load_tabulation(self, tabulation_nr, tabulation_rmax,
                                    tabulation_nz, tabulation_zmin,
@@ -126,9 +178,8 @@ class Delhommeau(AbstractGreenFunction):
         tabulation_rmax = float(tabulation_rmax)
         tabulation_zmin = float(tabulation_zmin)
 
-        filename = "tabulation_{}_{}_{}_{}_{}_{}_{}_{}.npz".format(
-            self.fortran_core_basename, self.floating_point_precision,
-            self.tabulation_method,
+        filename = "tabulation_{}_{}_{}_{}_{}_{}_{}.npz".format(
+            self.floating_point_precision, self.tabulation_grid_shape,
             tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin,
             tabulation_nb_integration_points
         )
@@ -144,13 +195,13 @@ class Delhommeau(AbstractGreenFunction):
         else:
             LOG.warning("Precomputing tabulation, it may take a few seconds.")
             self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
-                    tabulation_nr, tabulation_rmax, self.tabulation_method_index
+                    tabulation_nr, tabulation_rmax, self.tabulation_grid_shape_index
                     )
             self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(
-                    tabulation_nz, tabulation_zmin, self.tabulation_method_index
+                    tabulation_nz, tabulation_zmin, self.tabulation_grid_shape_index
                     )
             self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
-                    self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points
+                    self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
                     )
             LOG.debug("Saving tabulation in %s", filepath)
             np.savez_compressed(
@@ -271,7 +322,10 @@ class Delhommeau(AbstractGreenFunction):
             elif wavenumber == np.inf:
                 coeffs = np.array((1.0, -1.0, 0.0))
             else:
-                coeffs = np.array((1.0, 1.0, 1.0))
+                if self.gf_singularities == "high_freq":
+                    coeffs = np.array((1.0, -1.0, 1.0))
+                else:  # low_freq or low_freq_with_rankine_part
+                    coeffs = np.array((1.0, 1.0, 1.0))
 
         else:  # Finite water_depth
             if wavenumber == 0.0 or wavenumber == np.inf:
@@ -286,26 +340,33 @@ class Delhommeau(AbstractGreenFunction):
         if isinstance(mesh1, Mesh) or isinstance(mesh1, CollectionOfMeshes):
             collocation_points = mesh1.faces_centers
             nb_collocation_points = mesh1.nb_faces
-            if ( adjoint_double_layer == False ):
-                early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
-            else:
+            if not adjoint_double_layer: # Computing the D matrix
+                early_dot_product_normals = mesh2.faces_normals
+            else: # Computing the K matrix
                 early_dot_product_normals = mesh1.faces_normals
-        elif isinstance(mesh1, np.ndarray) and mesh1.ndim ==2 and mesh1.shape[1] == 3:
+
+        elif isinstance(mesh1, np.ndarray) and mesh1.ndim == 2 and mesh1.shape[1] == 3:
             # This is used when computing potential or velocity at given points in postprocessing
             collocation_points = mesh1
             nb_collocation_points = mesh1.shape[0]
-            early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
-            if ( adjoint_double_layer == False ):
-                raise NotImplementedError("Using a list of points as collocation points is not supported in computing adjoint double layer matrices.")
+            if not adjoint_double_layer: # Computing the D matrix
+                early_dot_product_normals = mesh2.faces_normals
+            else: # Computing the K matrix
+                early_dot_product_normals = np.zeros((nb_collocation_points, 3))
+                # Dummy argument since this method is meant to be used either
+                # - to compute potential, then only S is needed and early_dot_product_normals is irrelevant,
+                # - to compute velocity, then the adjoint full gradient is needed and early_dot_product is False and this value is unused.
+                # TODO: add an only_S argument and return an error here if (early_dot_product and not only_S)
+
         else:
-            raise ValueError(f"Unrecognized input for {self.__class__.__name__}.evaluate")
+            raise ValueError(f"Unrecognized first input for {self.__class__.__name__}.evaluate:\n{mesh1}")
 
         if self.floating_point_precision == "float32":
             dtype = "complex64"
         elif self.floating_point_precision == "float64":
             dtype = "complex128"
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"Unsupported floating point precision: {self.floating_point_precision}")
 
         S = np.empty((nb_collocation_points, mesh2.nb_faces), order="F", dtype=dtype)
         K = np.empty((nb_collocation_points, mesh2.nb_faces, 1 if early_dot_product else 3), order="F", dtype=dtype)
@@ -319,9 +380,10 @@ class Delhommeau(AbstractGreenFunction):
             *mesh2.quadrature_points,
             wavenumber, water_depth,
             coeffs,
-            self.tabulation_method_index, self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
+            self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
+            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             lamda_exp, a_exp,
-            mesh1 is mesh2, adjoint_double_layer,
+            mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
             S, K
         )
 
@@ -336,9 +398,7 @@ class Delhommeau(AbstractGreenFunction):
 ################################
 
 class XieDelhommeau(Delhommeau):
-    """Variant of Nemoh's Green function, more accurate near the free surface.
+    """Legacy way to call the gf_singularities="low_freq" variant."""
 
-    Same arguments and methods as :class:`Delhommeau`.
-    """
-
-    fortran_core_basename = "XieDelhommeau"
+    def __init__(self, **kwargs):
+        super().__init__(gf_singularities="low_freq", **kwargs)

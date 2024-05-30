@@ -2,23 +2,11 @@ import pytest
 
 import numpy as np
 import xarray as xr
-from numpy import pi
-
-try:
-    import joblib
-except ImportError:
-    joblib = None
 
 import capytaine as cpt
 from capytaine import __version__
-from capytaine.bem.solver import BEMSolver
-from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
-from capytaine.bem.engines import BasicMatrixEngine
-from capytaine.bem.problems_and_results import RadiationProblem
-from capytaine.bodies.predefined.spheres import Sphere
-#-----------------------------------------------------------------------------#
-# Test indirect solver
-#-----------------------------------------------------------------------------#
+
+
 @pytest.fixture
 def sphere():
     mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 4)).immersed_part()
@@ -28,20 +16,22 @@ def sphere():
 
 
 def test_exportable_settings():
-    gf = Delhommeau(tabulation_nb_integration_points=50)
+    gf = cpt.Delhommeau(tabulation_nr=10, tabulation_nz=10,
+                    tabulation_grid_shape="legacy", tabulation_nb_integration_points=50)
     assert gf.exportable_settings['green_function'] == 'Delhommeau'
     assert gf.exportable_settings['tabulation_nb_integration_points'] == 50
+    assert gf.exportable_settings['tabulation_grid_shape'] == "legacy"
     assert gf.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
 
-    gf2 = XieDelhommeau()
+    gf2 = cpt.XieDelhommeau()
     assert gf2.exportable_settings['green_function'] == 'XieDelhommeau'
 
-    engine = BasicMatrixEngine(matrix_cache_size=0)
+    engine = cpt.BasicMatrixEngine(matrix_cache_size=0)
     assert engine.exportable_settings['engine'] == 'BasicMatrixEngine'
     assert engine.exportable_settings['matrix_cache_size'] == 0
     assert engine.exportable_settings['linear_solver'] == 'lu_decomposition'
 
-    solver = BEMSolver(green_function=gf, engine=engine)
+    solver = cpt.BEMSolver(green_function=gf, engine=engine)
     assert solver.exportable_settings['green_function'] == 'Delhommeau'
     assert solver.exportable_settings['tabulation_nb_integration_points'] == 50
     assert solver.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
@@ -50,33 +40,16 @@ def test_exportable_settings():
     assert solver.exportable_settings['linear_solver'] == 'lu_decomposition'
 
 
-def test_limit_frequencies(sphere):
-    """Test if how the solver answers when asked for frequency of 0 or ∞."""
-    solver = BEMSolver()
-
-    solver.solve(RadiationProblem(body=sphere, omega=0.0, water_depth=np.inf))
-
-    with pytest.raises(NotImplementedError):
-        solver.solve(RadiationProblem(body=sphere, omega=0.0, water_depth=1.0))
-
-    solver.solve(RadiationProblem(body=sphere, omega=np.inf, water_depth=np.inf))
-
-    with pytest.raises(NotImplementedError):
-        solver.solve(RadiationProblem(body=sphere, omega=np.inf, water_depth=10))
-
-
-def test_limit_frequencies_with_symmetries():
-    mesh = cpt.mesh_parallelepiped(reflection_symmetry=True).immersed_part()
-    body = cpt.FloatingBody(mesh=mesh)
-    body.add_translation_dof(name="Surge")
-    pb = cpt.RadiationProblem(body=body, omega=0.0)
+def test_direct_solver(sphere):
+    problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
     solver = cpt.BEMSolver()
-    res = solver.solve(pb, keep_details=True)
-    assert isinstance(res.added_mass['Surge'], float)
+    direct_result = solver.solve(problem, method='direct')
+    indirect_result = solver.solve(problem, method='indirect')
+    assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-1)
 
 
-@pytest.mark.skipif(joblib is None, reason='joblib is not installed')
 def test_parallelization(sphere):
+    pytest.importorskip("joblib")
     solver = cpt.BEMSolver()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
@@ -92,10 +65,10 @@ def test_float32_solver(sphere):
 
 
 def test_fill_dataset(sphere):
-    solver = BEMSolver()
+    solver = cpt.BEMSolver()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
-        'wave_direction': np.linspace(0.0, pi, 3),
+        'wave_direction': np.linspace(0.0, np.pi, 3),
         'radiating_dof': list(sphere.dofs.keys()),
         'rho': [1025.0],
         'water_depth': [np.inf, 10.0],
@@ -128,16 +101,17 @@ def test_fill_dataset(sphere):
     assert np.allclose(recomputed_dataset["added_mass"].data, dataset["added_mass"].data)
 
 
-# TODO: move the code below to test_io_xarray.py
-    # wavenumbers = wavenumber_data_array(results)
-    # assert isinstance(wavenumbers, xr.DataArray)
-
-#-----------------------------------------------------------------------------#
-# Test direct solver
-#-----------------------------------------------------------------------------#
-def test_direct_solver(sphere):
-    problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
+def test_warning_mesh_resolution(sphere, caplog):
     solver = cpt.BEMSolver()
-    direct_result = solver.solve(problem, method='direct')
-    indirect_result = solver.solve(problem, method='indirect')
-    assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-1)
+    pb = cpt.RadiationProblem(body=sphere, wavelength=0.1*sphere.minimal_computable_wavelength)
+    with caplog.at_level("WARNING"):
+        solver.solve(pb)
+    assert "resolution " in caplog.text
+
+
+def test_no_warning_mesh_resolution_at_zero_wavelength(sphere, caplog):
+    solver = cpt.BEMSolver()
+    pb = cpt.RadiationProblem(body=sphere, wavelength=0)
+    with caplog.at_level("WARNING"):
+        solver.solve(pb)
+    assert "resolution " not in caplog.text

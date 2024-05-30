@@ -12,19 +12,23 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
+# import os
+# import sys
+# sys.path.insert(0, os.path.abspath('.'))
+
+# Capytaine should have been installed, for the version here, as well as for
+# the autodoc
 from capytaine import __version__
 
 
 # -- Project information -----------------------------------------------------
 
 project = 'capytaine'
-copyright = '2022, Matthieu Ancellin'
+copyright = '2024, Matthieu Ancellin'
 author = 'Matthieu Ancellin'
 
 # The short X.Y version
-version = __version__
+version = __version__.removesuffix(".dev")
 # The full version, including alpha/beta/rc tags
 release = __version__
 
@@ -43,11 +47,9 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx.ext.todo',
     'sphinx.ext.extlinks',
-    'sphinx.ext.coverage',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    # 'sphinx.ext.githubpages',
     'sphinx_toolbox.collapse',
     'sphinxcontrib.proof',
     'sphinxcontrib.mermaid',
@@ -101,8 +103,14 @@ html_theme = 'alabaster'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#
-# html_theme_options = {}
+
+html_theme_options = {
+      'github_user': 'capytaine',
+      'github_repo': 'capytaine',
+      'github_type': 'star',
+      'logo_name': "Capytaine",
+      'description': "a Python-based linear potential flow BEM solver",
+      }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -116,67 +124,14 @@ html_static_path = ['_static']
 # defined by theme itself.  Builtin themes are using these templates by
 # default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
 # 'searchbox.html']``.
-#
-# html_sidebars = {}
 
-html_sidebars = { '**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'] }
+html_sidebars = {}
 
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'capytainedoc'
-
-
-# -- Options for LaTeX output ------------------------------------------------
-
-latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    #
-    # 'papersize': 'letterpaper',
-
-    # The font size ('10pt', '11pt' or '12pt').
-    #
-    # 'pointsize': '10pt',
-
-    # Additional stuff for the LaTeX preamble.
-    #
-    # 'preamble': '',
-
-    # Latex figure (float) alignment
-    #
-    # 'figure_align': 'htbp',
-}
-
-# Grouping the document tree into LaTeX files. List of tuples
-# (source start file, target name, title,
-#  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    (master_doc, 'capytaine.tex', 'capytaine Documentation',
-     'Matthieu Ancellin', 'manual'),
-]
-
-
-# -- Options for manual page output ------------------------------------------
-
-# One entry per manual page. List of tuples
-# (source start file, name, description, authors, manual section).
-man_pages = [
-    (master_doc, 'capytaine', 'capytaine Documentation',
-     [author], 1)
-]
-
-
-# -- Options for Texinfo output ----------------------------------------------
-
-# Grouping the document tree into Texinfo files. List of tuples
-# (source start file, target name, title, author,
-#  dir menu entry, description, category)
-texinfo_documents = [
-    (master_doc, 'capytaine', 'capytaine Documentation',
-     author, 'capytaine', 'One line description of project.',
-     'Miscellaneous'),
-]
 
 
 # -- Extension configuration -------------------------------------------------

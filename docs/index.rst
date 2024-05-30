@@ -8,21 +8,25 @@ It is built around a full rewrite of the open source Boundary Element Method (BE
 
 This documentation is for version |release| (released |today|).
 
+The documentations of older versions are available there: `v1.5 <https://capytaine.github.io/v1.5>`_, `v2.0 <https://capytaine.github.io/v2.0>`_, `v2.1 <https://capytaine.github.io/v2.1>`_.
+
 .. toctree::
    :maxdepth: 1
 
    features.rst
 
-If you need support, you can ask questions on the `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
+Private support, custom developments and training can be provided by `Eurobios Mews Labs <https://www.mews-partners.com/en/our-offering/eurobios-mews-labs/>`_ (contact@mews-labs.com).
+
+For free support, you can ask questions on the public `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
 Please do not contact the developers directly by email, unless you are looking for private paid support.
 
 Contributions are welcome!
-Please, report bugs and suggest improvements as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
+Please report bugs and suggest improvements as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
 
 .. raw:: html
 
     <div style="float: right;">
-    <video src="_static/front_page_animation.ogv" loop autoplay muted width="320" height="240">
+    <video src="_static/front_page_animation.webm" loop autoplay muted width="320" height="240">
     </video>
     </div>
 
@@ -70,6 +74,8 @@ This documentation is licensed under the `Creative Commons Attribution-ShareAlik
 .. |CCBYSA| image:: https://i.creativecommons.org/l/by-sa/4.0/80x15.png
 .. _`Creative Commons Attribution-ShareAlike 4.0 International License`: http://creativecommons.org/licenses/by-sa/4.0/
 
+The Fortran core routines of Capytaine are also available under the Apache License 2.0 and can be found in the ``capytaine/green_functions/libDelhommeau`` `directory of Capytaine's repository <https://github.com/capytaine/capytaine/tree/master/capytaine/green_functions/libDelhommeau>`_.
+
 Capytaine is a fork of the version 2 of Nemoh_, which has been developed by Gérard Delhommeau, Aurélien Babarit et al., (École Centrale de Nantes) and was distributed under the Apache License 2.0.
 
 Capytaine includes code from meshmagick_ by François Rongère (École Centrale de Nantes), licensed under the GNU General Public License (GPL).
@@ -80,6 +86,7 @@ Capytaine includes code from meshmagick_ by François Rongère (École Centrale 
 The `boat mesh`_ in the animation above is in the public domain.
 
 .. _`boat mesh`: https://opengameart.org/content/low-poly-pirate-ship
+
 
 .. Indices and tables
    ------------------

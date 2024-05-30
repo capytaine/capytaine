@@ -1,8 +1,5 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Test of the matrices submodule."""
 
-from warnings import warn
 import pytest
 
 import numpy as np

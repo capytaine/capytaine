@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Test of matplotlib user interface methods."""
 
 import pytest

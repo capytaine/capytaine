@@ -57,6 +57,10 @@ def problems_from_dataset(dataset: xr.Dataset,
     if isinstance(bodies, FloatingBody):
         bodies = [bodies]
 
+    # Should be done before looking for `frequency_keys`, otherwise
+    # frequencies provided as a scalar dimension will be skipped.
+    dataset = _unsqueeze_dimensions(dataset)
+
     # SANITY CHECKS
     assert len(list(set(body.name for body in bodies))) == len(bodies), \
         "All bodies should have different names."
@@ -79,8 +83,6 @@ def problems_from_dataset(dataset: xr.Dataset,
             raise ValueError("Setting problems requires at most one of the following: omega (angular frequency) OR period OR wavenumber OR wavelength.\n"
                              "Received {}".format(frequency_keys))
     # END SANITY CHECKS
-
-    dataset = _unsqueeze_dimensions(dataset)
 
     if len(frequency_keys) == 0:
         freq_type = "omega"

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """Tests for the resolution of the BEM problems using advanced techniques."""
 
 import pytest

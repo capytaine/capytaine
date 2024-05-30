@@ -193,20 +193,32 @@ class LinearPotentialFlowProblem:
                     or len(self.body.mesh.faces) == 0):
                 raise ValueError(f"The mesh of the body {self.body.__short_str__()} is empty.")
 
-            if (any(self.body.mesh.faces_centers[:, 2] >= self.free_surface)
-                    or any(self.body.mesh.faces_centers[:, 2] <= -self.water_depth)):
+            panels_above_fs = self.body.mesh.faces_centers[:, 2] >= self.free_surface + 1e-8
+            panels_below_sb = self.body.mesh.faces_centers[:, 2] <= -self.water_depth
+            if (any(panels_above_fs) or any(panels_below_sb)):
+
+                if not any(panels_below_sb):
+                    issue = f"{np.count_nonzero(panels_above_fs)} panels above the free surface"
+                elif not any(panels_above_fs):
+                    issue = f"{np.count_nonzero(panels_below_sb)} panels below the sea bottom"
+                else:
+                    issue = (f"{np.count_nonzero(panels_above_fs)} panels above the free surface " +
+                             f"and {np.count_nonzero(panels_below_sb)} panels below the sea bottom")
 
                 LOG.warning(
-                    f"The mesh of the body {self.body.__short_str__()} is not inside the domain.\n"
-                    "Check the position of the free_surface and the water_depth\n"
-                    "or use body.keep_immersed_part() to clip the mesh."
+                        f"The mesh of the body {self.body.__short_str__()} has {issue}.\n" +
+                        "It has been clipped to fit inside the domain.\n" +
+                        "To remove this warning, clip the mesh manually with the `immersed_part()` method."
                 )
+
+                self.body = self.body.immersed_part(free_surface=self.free_surface,
+                                                    water_depth=self.water_depth)
 
         if self.boundary_condition is not None:
             if len(self.boundary_condition.shape) != 1:
                 raise ValueError(f"Expected a 1-dimensional array as boundary_condition. Provided boundary condition's shape: {self.boundary_condition.shape}.")
 
-            if self.boundary_condition.shape[0] != self.body.mesh.nb_faces:
+            if self.boundary_condition.shape[0] != self.body.mesh_including_lid.nb_faces:
                 raise ValueError(
                     f"The shape of the boundary condition ({self.boundary_condition.shape})"
                     f"does not match the number of faces of the mesh ({self.body.mesh.nb_faces})."
@@ -219,11 +231,11 @@ class LinearPotentialFlowProblem:
     def _asdict(self):
         return {"body_name": self.body_name,
                 "water_depth": self.water_depth,
-                "omega": self.omega,
-                "encounter_omega": self.encounter_omega,
-                "period": self.period,
-                "wavelength": self.wavelength,
-                "wavenumber": self.wavenumber,
+                "omega": float(self.omega),
+                "encounter_omega": float(self.encounter_omega),
+                "period": float(self.period),
+                "wavelength": float(self.wavelength),
+                "wavenumber": float(self.wavenumber),
                 "forward_speed": self.forward_speed,
                 "wave_direction": self.wave_direction,
                 "encounter_wave_direction": self.encounter_wave_direction,
@@ -244,7 +256,7 @@ class LinearPotentialFlowProblem:
     def __str__(self):
         """Do not display default values in str(problem)."""
         parameters = [f"body={self.body.__short_str__() if self.body is not None else None}",
-                      f"{self.provided_freq_type}={self.__getattribute__(self.provided_freq_type):.3f}",
+                      f"{self.provided_freq_type}={float(self.__getattribute__(self.provided_freq_type)):.3f}",
                       f"water_depth={self.water_depth}"]
 
         if not self.forward_speed == _default_parameters['forward_speed']:
@@ -283,7 +295,7 @@ class LinearPotentialFlowProblem:
 
     def _astuple(self):
         return (self.body, self.free_surface, self.water_depth,
-                self.omega, self.period, self.wavenumber, self.wavelength,
+                float(self.omega), float(self.period), float(self.wavenumber), float(self.wavelength),
                 self.forward_speed, self.rho, self.g)
 
     def __eq__(self, other):
@@ -333,7 +345,7 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                          forward_speed=forward_speed, rho=rho, g=g)
 
         if float(self.omega) in {0.0, np.inf}:
-            raise NotImplementedError(f"DiffractionProblem does not support zero or infinite frequency.")
+            raise NotImplementedError("DiffractionProblem does not support zero or infinite frequency.")
 
         if self.body is not None:
 
@@ -343,6 +355,9 @@ class DiffractionProblem(LinearPotentialFlowProblem):
             ).sum(axis=1)
             # Note that even with forward speed, this is computed based on the
             # frequency and not the encounter frequency.
+
+            if self.body.lid_mesh is not None:
+                self.boundary_condition = np.concatenate([self.boundary_condition, np.zeros(self.body.lid_mesh.nb_faces)])
 
             if len(self.body.dofs) == 0:
                 LOG.warning(f"The body {self.body.name} used in diffraction problem has no dofs!")
@@ -386,10 +401,9 @@ class RadiationProblem(LinearPotentialFlowProblem):
                 self.radiating_dof = next(iter(self.body.dofs))
 
             if self.radiating_dof not in self.body.dofs:
-                LOG.error(f"In {self}: the radiating degree of freedom {self.radiating_dof} is not one of"
-                          f"the degrees of freedom of the body.\n"
-                          f"The dofs of the body are {list(self.body.dofs.keys())}")
-                raise ValueError("Unrecognized degree of freedom name.")
+                raise ValueError(f"In {self}:\n"
+                                 f"the radiating dof {repr(self.radiating_dof)} is not one of the degrees of freedom of the body.\n"
+                                 f"The dofs of the body are {list(self.body.dofs.keys())}")
 
             dof = self.body.dofs[self.radiating_dof]
 
@@ -409,6 +423,9 @@ class RadiationProblem(LinearPotentialFlowProblem):
                             f"Got instead `radiating_dof={self.radiating_dof}`"
                             )
                 self.boundary_condition += self.forward_speed * ddofdx_dot_n
+
+            if self.body.lid_mesh is not None:
+                self.boundary_condition = np.concatenate([self.boundary_condition, np.zeros(self.body.lid_mesh.nb_faces)])
 
 
     def _astuple(self):

@@ -13,17 +13,30 @@ on:
 
   workflow_dispatch:
 
+
+# The following block is meant to cancel the workflow if a newer commit is pushed on the pull request
+# From https://stackoverflow.com/questions/66335225/how-to-cancel-previous-runs-in-the-pr-when-you-push-new-commitsupdate-the-curre
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+
 jobs:
   build:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
 
-      - uses: actions/setup-python@v3
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Install Capytaine and other dependencies
-        run: pip install .[docs]
+        run: pip install .[optional,docs]
 
       - name: Build documentation
         run: cd docs && make

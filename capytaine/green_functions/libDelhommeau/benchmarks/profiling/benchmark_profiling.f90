@@ -6,6 +6,7 @@ use ieee_arithmetic
 use matrices, only: build_matrices
 use delhommeau_integrals, only: default_r_spacing, default_z_spacing, construct_tabulation
 use constants, only: pre  ! Floating point precision
+use constants, only: nb_tabulated_values
 use old_prony_decomposition, only: lisc
 
 implicit none
@@ -29,11 +30,15 @@ real(kind=pre), dimension(nb_faces, nb_quadrature_points, 3) :: quadrature_point
 real(kind=pre), dimension(nb_faces, nb_quadrature_points) :: quadrature_weights
 
 ! Tabulation of the integrals used in the Green function
-integer, parameter :: tabulation_nr = 328
-integer, parameter :: tabulation_nz = 46
+integer, parameter :: tabulation_grid_shape = 1
+integer, parameter :: tabulation_nb_integration_points = 1000
+integer, parameter :: tabulation_nr = 676
+integer, parameter :: tabulation_nz = 372
 real(kind=pre), dimension(tabulation_nr)                       :: tabulated_r
 real(kind=pre), dimension(tabulation_nz)                       :: tabulated_z
-real(kind=pre), dimension(tabulation_nr, tabulation_nz, 2, 2)  :: tabulated_integrals
+real(kind=pre), dimension(tabulation_nr, tabulation_nz, nb_tabulated_values)  :: tabulated_integrals
+
+integer, parameter :: gf_singularities = 0
 
 ! Prony decomposition for the finite depth Green function
 integer, parameter :: nexp_max = 31
@@ -55,9 +60,9 @@ call RANDOM_INIT(.true.,.true.)
 allocate(S(nb_faces, nb_faces))
 allocate(K(nb_faces, nb_faces, 1))
 
-tabulated_r(:) = default_r_spacing(tabulation_nr)
-tabulated_z(:) = default_z_spacing(tabulation_nz)
-tabulated_integrals(:, :, :, :) = construct_tabulation(tabulated_r, tabulated_z, 251)
+tabulated_r(:) = default_r_spacing(tabulation_nr, 100d0, tabulation_grid_shape)
+tabulated_z(:) = default_z_spacing(tabulation_nz, -251d0, tabulation_grid_shape)
+tabulated_integrals(:, :, :) = construct_tabulation(tabulated_r, tabulated_z, tabulation_nb_integration_points)
 
 wavenumber = 1.0
 
@@ -85,16 +90,17 @@ do i=1, 1
 
    coeffs = [1d0, 1d0, 1d0]
    call system_clock(starting_time)
-   call build_matrices(                                           &
+   call build_matrices(                                              &
         nb_faces, face_center, face_normal,                          &
         nb_vertices, nb_faces, vertices, faces,                      &
         face_center, face_normal, face_area, face_radius,            &
         nb_quadrature_points, quadrature_points, quadrature_weights, &
         wavenumber, depth,                                           &
         coeffs,                                                      &
+        tabulation_nb_integration_points, tabulation_grid_shape,     &
         tabulated_r, tabulated_z, tabulated_integrals,               &
         nexp, ambda, ar,                                             &
-        .false., .true.,                                             &
+        .false., gf_singularities, .true.,                           &
         S, K)
    call system_clock(final_time)
 
@@ -102,36 +108,38 @@ do i=1, 1
 
    ! coeffs = [0d0, 0d0, 1d0]
    ! call system_clock(starting_time)
-   ! call build_matrices(                                           &
-   !      nb_faces, face_center, face_normal,                          &
-   !      nb_vertices, nb_faces, vertices, faces,                      &
-   !      face_center, face_normal, face_area, face_radius,            &
-   !      nb_quadrature_points, quadrature_points, quadrature_weights, &
-   !      wavenumber, depth,                                           &
-   !      coeffs,                                                      &
-   !      tabulated_r, tabulated_z, tabulated_integrals,               &
-   !      nexp, ambda, ar,                                             &
-   !      .false., .true.,                                             &
+   ! call build_matrices(                                                   &
+   !      nb_faces, face_center, face_normal,                               &
+   !      nb_vertices, nb_faces, vertices, faces,                           &
+   !      face_center, face_normal, face_area, face_radius,                 &
+   !      nb_quadrature_points, quadrature_points, quadrature_weights,      &
+   !      wavenumber, depth,                                                &
+   !      coeffs,                                                           &
+   !      tabulation_nb_integration_points, tabulation_grid_shape,          &
+   !      tabulated_r, tabulated_z, tabulated_integrals,                    &
+   !      nexp, ambda, ar,                                                  &
+   !      .false., .true.,                                                  &
    !      S, K)
    ! call system_clock(final_time)
-
-   ! print'(1F5.0,a16,1ES16.6)', depth, " wave_only ", real(final_time - starting_time)/clock_rate
-
+   !
+   ! ! print'(1F5.0,a16,1ES16.6)', depth, " wave_only ", real(final_time - starting_time)/clock_rate
+   !
    ! coeffs = [0d0, 0d0, 1d0]
    ! call system_clock(starting_time)
-   ! call build_matrices(                                           &
-   !      nb_faces, face_center, face_normal,                          &
-   !      nb_vertices, nb_faces, vertices, faces,                      &
-   !      face_center, face_normal, face_area, face_radius,            &
-   !      nb_quadrature_points, quadrature_points, quadrature_weights, &
-   !      wavenumber, depth,                                           &
-   !      coeffs,                                                      &
-   !      tabulated_r, tabulated_z, tabulated_integrals,               &
-   !      nexp, ambda, ar,                                             &
-   !      .true., .true.,                                              &
+   ! call build_matrices(                                                       &
+   !      nb_faces, face_center, face_normal,                                   &
+   !      nb_vertices, nb_faces, vertices, faces,                               &
+   !      face_center, face_normal, face_area, face_radius,                     &
+   !      nb_quadrature_points, quadrature_points, quadrature_weights,          &
+   !      wavenumber, depth,                                                    &
+   !      coeffs,                                                               &
+   !      tabulation_nb_integration_points, tabulation_grid_shape,              &
+   !      tabulated_r, tabulated_z, tabulated_integrals,                        &
+   !      nexp, ambda, ar,                                                      &
+   !      .true., gf_singularities, .true.,                                     &
    !      S, K)
    ! call system_clock(final_time)
-
+   !
    ! print'(1F5.0,a16,1ES16.6)', depth, " half_wave_only ", real(final_time - starting_time)/clock_rate
 
 end do
