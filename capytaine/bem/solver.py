@@ -27,16 +27,6 @@ from capytaine.tools.symbolic_multiplication import supporting_symbolic_multipli
 
 LOG = logging.getLogger(__name__)
 
-def filter_radiating_lid_multibody(sorted_problems):
-    from capytaine.bem.problems_and_results import DiffractionProblem,RadiationProblem
-    clean_problems = [] # to remove radiating multibody of the lid
-    for pb in sorted_problems:
-        if isinstance(pb, DiffractionProblem):
-            clean_problems.append(pb)
-        elif 'lid' not in pb.radiating_dof:
-            clean_problems.append(pb)
-    return clean_problems
-
 class BEMSolver:
     """
     Solver for linear potential flow problems.
@@ -59,6 +49,7 @@ class BEMSolver:
     def __init__(self, *, green_function=None, engine=None):
         self.green_function = Delhommeau() if green_function is None else green_function
         self.engine = BasicMatrixEngine() if engine is None else engine
+
         try:
             self.exportable_settings = {
                 **self.green_function.exportable_settings,
@@ -176,10 +167,8 @@ class BEMSolver:
 
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
-
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
-
             return [self.solve(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")

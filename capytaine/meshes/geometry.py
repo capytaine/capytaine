@@ -165,7 +165,6 @@ class ClippableMixin(ABC):
                                        sea_bottom=sea_bottom, water_depth=water_depth)
 
 
-
 ######################
 #  HELPER FUNCTIONS  #
 ######################
