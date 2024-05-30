@@ -19,9 +19,9 @@ n_theta = 25
 n_z = 30
 
 # Define the range of frequencies to solve
-omega_range = np.linspace(0.5, 2.25, 300)
+omega_range = np.linspace(1.5, 2.25, 50)
 
-def solve_excitation_basic(body, omega_range):
+def compute_excitation_force(body, omega_range):
     # Calling solver
     solver = cpt.BEMSolver()
 
@@ -61,9 +61,9 @@ body_3 = cpt.FloatingBody(mesh=cylinder_mesh, lid_mesh=lid)
 body_3.add_translation_dof(name="Surge")
 body_3.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
 
-force_1 = solve_excitation_basic(body_1, omega_range)
-force_2 = solve_excitation_basic(body_2, omega_range)
-force_3 = solve_excitation_basic(body_3, omega_range)
+force_1 = compute_excitation_force(body_1, omega_range)
+force_2 = compute_excitation_force(body_2, omega_range)
+force_3 = compute_excitation_force(body_3, omega_range)
 
 # Plot the added mass of each dofs as a function of the frequency
 import matplotlib.pyplot as plt

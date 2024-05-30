@@ -3,18 +3,12 @@
 
 import numpy as np
 
-def location_of_lid(omega_max= 2, length=1, breadth= 1,gravity = 9.81):
-    dummyA = np.arctanh( np.pi* gravity*np.sqrt(length **-2 + breadth **-2)/ omega_max**2)
-    dummyB = np.pi * np.sqrt(length **-2 + breadth **-2)
-
-    return dummyA/dummyB
-
 class Point2D:
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
-class line:
+class Line2D:
     def __init__(self, p1, p2):
         self.p1 = p1
         self.p2 = p2
@@ -75,12 +69,12 @@ def check_inside(poly, n, p):
         return False
 
     # Create a point at infinity, y is same as point p
-    exline = line(p, Point2D(9999, p.y))
+    exline = Line2D(p, Point2D(9999, p.y))
     count = 0
     i = 0
     while True:
         # Forming a line from two consecutive points of poly
-        side = line(poly[i], poly[(i + 1) % n])
+        side = Line2D(poly[i], poly[(i + 1) % n])
         if is_intersect(side, exline):
             # If side is intersects ex
             if (direction(side.p1, p, side.p2) == 0):
