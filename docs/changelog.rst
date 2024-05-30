@@ -43,6 +43,8 @@ Bug fixes
 
 * Improve exception message when giving an unknown ``radiating_dof`` to a :class:`~capytaine.bem.problems_and_results.RadiationProblem` (:pull:`549`).
 
+* Fix issue due to breaking change in linear solver broadcasting in Numpy 2.0 (:issue:`550`).
+
 Internals
 ~~~~~~~~~
 

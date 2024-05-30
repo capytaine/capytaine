@@ -55,6 +55,6 @@ def rao(dataset, wave_direction=None, dissipation=None, stiffness=None):
     # Solve and add coordinates
     rao_dims = [d for d in H.dims if d != 'influenced_dof']
     rao_coords = {c: H.coords[c] for c in H.coords if c != 'influenced_dof'}
-    rao = xr.DataArray(np.linalg.solve(H, fex), coords=rao_coords, dims=rao_dims)
+    rao = xr.DataArray(np.linalg.solve(H.values, fex.values[..., np.newaxis])[..., 0], coords=rao_coords, dims=rao_dims)
 
     return rao
