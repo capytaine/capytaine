@@ -63,6 +63,9 @@ class Delhommeau(AbstractGreenFunction):
     tabulation_cache_dir: str or None, optional
         Directory in which to save the tabulation file(s).
         If None, the tabulation is not saved on disk.
+        Default: calls capytaine.tools.cache_on_disk.cache_directory(), which
+        returns the value of the environment variable CAPYTAINE_CACHE_DIR if
+        set, or else the default cache directory on your system.
     finite_depth_prony_decomposition_method: string, optional
         The implementation of the Prony decomposition used to compute the
         finite water_depth Green function. Accepted values: :code:`'fortran'`
