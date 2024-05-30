@@ -41,6 +41,8 @@ Bug fixes
 
 * Providing the frequency as a scalar coordinate in the test matrix does not result in the value being ignored anymore (:issue:`547` and :pull:`548`).
 
+* Improve exception message when giving an unknown ``radiating_dof`` to a :class:`~capytaine.bem.problems_and_results.RadiationProblem` (:pull:`549`).
+
 Internals
 ~~~~~~~~~
 

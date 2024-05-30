@@ -168,6 +168,13 @@ def test_radiation_problem(sphere, caplog):
     assert res.radiation_damping == res.radiation_dampings == {"Heave": 2.0}
 
 
+def test_radiation_problem_with_wrong_dof_name():
+    mesh = cpt.mesh_sphere()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    with pytest.raises(ValueError, match="'Flurp'"):
+        cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Flurp")
+
+
 @pytest.mark.parametrize("cal_file", ["Nemoh.cal", "Nemoh_v3.cal"])
 def test_import_cal_file(cal_file):
     """Test the importation of legacy Nemoh.cal files."""
