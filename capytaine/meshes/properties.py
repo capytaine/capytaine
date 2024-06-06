@@ -197,3 +197,45 @@ def compute_connectivity(mesh):
             'v_f': v_f,
             'f_f': f_f,
             'boundaries': boundaries}
+
+
+def connected_components(mesh):
+    """Returns a list of meshes that each corresponds to the a connected component in the original mesh.
+    Assumes the mesh is mostly conformal without duplicate vertices.
+    """
+    from typing import Set, FrozenSet, List
+
+    vertices_components: Set[FrozenSet[int]] = set()
+    for set_of_v_in_face in map(frozenset, mesh.faces):
+        intersecting_components = [c for c in vertices_components if len(c.intersection(set_of_v_in_face)) > 0]
+        if len(intersecting_components) == 0:
+            vertices_components.add(set_of_v_in_face)
+        else:
+            for c in intersecting_components:
+                vertices_components.remove(c)
+            vertices_components.add(frozenset.union(set_of_v_in_face, *intersecting_components))
+
+    # Verification
+    for component in vertices_components:
+        assert all(len(component.intersection(c)) == 0 for c in vertices_components if c != component)
+
+    # The components are found. The rest is just about retrieving the faces in each components.
+    vertices_components: List[FrozenSet[int]] = list(vertices_components)
+    faces_components: List[List[int]] = [[] for _ in vertices_components]
+    for i_face, v_in_face in enumerate(mesh.faces):
+        for i_component, v_c in enumerate(vertices_components):
+            if any(v in v_c for v in v_in_face):
+                assert all(v in v_c for v in v_in_face)
+                faces_components[i_component].append(i_face)
+                break
+
+    components = [mesh.extract_faces(f) for f in faces_components]
+    return components
+
+
+def connected_components_of_waterline(mesh, z=0.0):
+    clipped_mesh = mesh.immersed_part(free_surface=z)
+    fs_vertices_indices = np.where(np.isclose(clipped_mesh.vertices[:, 2], z))[0]
+    fs_faces_indices = np.where(np.any(np.isin(clipped_mesh.faces, fs_vertices_indices), axis=1))[0]
+    crown_mesh = clipped_mesh.extract_faces(fs_faces_indices)
+    return connected_components(crown_mesh)
