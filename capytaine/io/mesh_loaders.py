@@ -43,31 +43,28 @@ def load_mesh(mesh, file_format=None, name=None):
     Mesh or SymmetricMesh
         the loaded mesh
     """
-    if isinstance(mesh, str):
-        filename = mesh
+    meshio = silently_import_optional_dependency("meshio")
+    if meshio is not None and isinstance(mesh, meshio._mesh.Mesh):
+        from capytaine.io.meshio import load_from_meshio
+        return load_from_meshio(mesh, name=name)
 
-        _check_file(filename)
+    filename = mesh
 
-        if file_format is None:
-            _, file_format = os.path.splitext(filename)
-            file_format = file_format.strip('.').lower()
+    _check_file(filename)
 
-        if file_format not in extension_dict:
-            raise IOError('Extension ".%s" is not known' % file_format)
+    if file_format is None:
+        _, file_format = os.path.splitext(filename)
+        file_format = file_format.strip('.').lower()
 
-        loader = extension_dict[file_format]
+    if file_format not in extension_dict:
+        raise IOError('Extension ".%s" is not known' % file_format)
 
-        if name is None:
-            name = filename
+    loader = extension_dict[file_format]
 
-        return loader(filename, name)
+    if name is None:
+        name = filename
 
-    else:
-
-        meshio = silently_import_optional_dependency("meshio")
-        if meshio is not None and isinstance(mesh, meshio._mesh.Mesh):
-            from capytaine.io.meshio import load_from_meshio
-            return load_from_meshio(mesh, name=name)
+    return loader(filename, name)
 
 
 def load_RAD(filename, name=None):
