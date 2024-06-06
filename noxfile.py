@@ -6,9 +6,13 @@ import nox
 # Create virtual environments in a temporary directory somewhere else because
 # meson-python does not like local virtualenvironments
 # (https://github.com/capytaine/capytaine/issues/396)
-nox.options.envdir = os.path.join(tempfile.mkdtemp(), "nox-capytaine")
+tempdir = tempfile.mkdtemp(prefix="nox-capytaine-")
+nox.options.envdir = os.path.join(tempdir, "venvs")
 
-NOXFILE_DIR = os.path.dirname(__file__)
+ENV = {
+        'MPLBACKEND': 'pdf',
+        'CAPYTAINE_CACHE_DIR': os.path.join(tempdir, "capytaine_cache")
+        }
 
 EXAMPLE_FILES = [
         "compare_Green_functions.py",
@@ -25,18 +29,19 @@ EXAMPLE_FILES = [
         "radiation_cylinder.py"
         ]
 
+NOXFILE_DIR = os.path.dirname(__file__)
+
 NEMOH_CASES = os.path.join(NOXFILE_DIR, "pytest", "Nemoh_verification_cases", "Cylinder")
 
 def run_tests(session):
     with session.chdir(session.create_tmp()):
-        session.run("python", "-m", "pytest", os.path.join(NOXFILE_DIR, "pytest"))
+        session.run("python", "-m", "pytest", os.path.join(NOXFILE_DIR, "pytest"), env=ENV)
         session.run('python', '-c', '"import capytaine; print(capytaine.__version__)"')
         session.run('capytaine', '--help')
-        session.run('capytaine', os.path.join(NEMOH_CASES, "Nemoh.cal"))
-        session.run('capytaine', os.path.join(NEMOH_CASES, "Nemoh_v3.cal"))
+        session.run('capytaine', os.path.join(NEMOH_CASES, "Nemoh.cal"), env=ENV)
+        session.run('capytaine', os.path.join(NEMOH_CASES, "Nemoh_v3.cal"), env=ENV)
         for example_file in EXAMPLE_FILES:
-            session.run('python', os.path.join(NOXFILE_DIR, "examples", example_file),
-                        env={'MPLBACKEND': 'pdf'})
+            session.run('python', os.path.join(NOXFILE_DIR, "examples", example_file), env=ENV)
 
 
 @nox.session
