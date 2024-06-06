@@ -52,6 +52,8 @@ Internals
 
 * Rename ``tabulation_method`` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau` as the more descriptive ``tabulation_grid_shape``, and similarly for internal variables. (:pull:`503`)
 
+* Add :func:`~capytaine.meshes.properties.connected_components` and :func:`~capytaine.meshes.properties.connected_components_of_waterline` to split a mesh into connected components. (:pull:`554`)
+
 -------------------------------
 New in version 2.1 (2024-04-08)
 -------------------------------
