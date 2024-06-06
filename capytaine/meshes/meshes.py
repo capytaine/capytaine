@@ -784,12 +784,13 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
 
         from capytaine.meshes.plane_geometry import counter_clockwise_boundary, find_center, is_instance_inside
 
-
-
         # extract the water line area perimeter
         vicinity_tol = 1e-12
         vertices_data = _vertices_positions_wrt_plane(self, Plane(point=(0, 0, z), normal=(0, 0, 1)), vicinity_tol)
         _, crown_mesh, _ = _partition_mesh(vertices_data, self)
+
+        if crown_mesh.nb_faces == 0:
+            return Mesh(None, None)  # Empty mesh
 
         # Taking only the crown mesh to obtain the Water Plane Area information
         # water plane area is defined as the boundary
