@@ -64,6 +64,9 @@ def is_intersect(l1, l2):
     return False
 
 def check_inside(poly, n, p):
+    """Check if the point p is inside the n-gon "poly".
+    Concave polygon are supported.
+    """
     # When polygon has less than 3 edge, it is not polygon
     if n < 3:
         return False
