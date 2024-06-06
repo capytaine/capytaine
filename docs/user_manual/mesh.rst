@@ -127,7 +127,7 @@ installed independently)::
         geom.translate(cone, [0, 0, offset])
         geom.boolean_union([cyl, cone])
         gmsh_mesh = geom.generate_mesh(dim=2)
-    mesh = cpt.load_from_meshio(gmsh_mesh)
+    mesh = cpt.load_mesh(gmsh_mesh, name="my_pygmsh_mesh")
 
 
 Predefined simple shapes
