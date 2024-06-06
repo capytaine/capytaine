@@ -90,7 +90,7 @@ def check_inside(poly, n, p):
 
 ####
 
-def split_horiztonal(boundary, x_split):
+def split_horizontal(boundary, x_split):
     left_points = boundary[boundary[:,0] < x_split, :]
     right_points = boundary[boundary[:,0] >= x_split, :]
     # try:
@@ -114,14 +114,14 @@ def order_counter_clockwise(points, pCm):
 
 def counter_clockwise_boundary(points):
     pCm = find_center(points)
-    point_left, point_right = split_horiztonal(points, pCm[0])
+    point_left, point_right = split_horizontal(points, pCm[0])
 
     new1 = order_counter_clockwise(point_left, pCm)
     new2 = order_counter_clockwise(point_right, pCm)
 
     return np.vstack((new1,new2))
 
-def is_instance_inside(_check_point,boundary_points):
+def is_instance_inside(_check_point, boundary_points):
     polygon = []
     for ii in range(len(boundary_points)):
         polygon.append(Point2D(boundary_points[ii, 0], boundary_points[ii, 1]))

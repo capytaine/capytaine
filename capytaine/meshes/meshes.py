@@ -846,7 +846,7 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         indices_inside_outside = [i for i, x in enumerate(inside_outside) if x == 0]
 
         new_lid_face = np.delete(lid_mesh.faces, indices_inside_outside, axis=0)
-        new_lid_mesh = Mesh(lid_mesh.vertices,new_lid_face)
+        new_lid_mesh = Mesh(lid_mesh.vertices, new_lid_face)
         new_lid_mesh.heal_mesh()
 
         # in-case want to see the lid
