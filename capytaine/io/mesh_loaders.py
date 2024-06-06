@@ -11,7 +11,7 @@ import numpy as np
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh
 from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
-from capytaine.tools.optional_imports import import_optional_dependency
+from capytaine.tools.optional_imports import import_optional_dependency, silently_import_optional_dependency
 
 LOG = logging.getLogger(__name__)
 
@@ -24,14 +24,15 @@ def _check_file(filename, name=None):
     return
 
 
-def load_mesh(filename, file_format=None, name=None):
+def load_mesh(mesh, file_format=None, name=None):
     """Driver function that loads every mesh file format known by meshmagick.
     Dispatch to one of the other function depending on file_format.
 
     Parameters
     ----------
-    filename: str
-        name of the mesh file on disk
+    mesh: str or meshio object
+        Either the path to the mesh on disk
+        or a meshio object to be loaded with the dedicated method
     file_format: str, optional
         format of the mesh defined in the extension_dict dictionary
     name: str, optional
@@ -42,6 +43,13 @@ def load_mesh(filename, file_format=None, name=None):
     Mesh or SymmetricMesh
         the loaded mesh
     """
+    meshio = silently_import_optional_dependency("meshio")
+    if meshio is not None and isinstance(mesh, meshio._mesh.Mesh):
+        from capytaine.io.meshio import load_from_meshio
+        return load_from_meshio(mesh, name=name)
+
+    filename = mesh
+
     _check_file(filename)
 
     if file_format is None:
@@ -53,7 +61,8 @@ def load_mesh(filename, file_format=None, name=None):
 
     loader = extension_dict[file_format]
 
-    if name is None: name = filename
+    if name is None:
+        name = filename
 
     return loader(filename, name)
 

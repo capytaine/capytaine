@@ -32,6 +32,8 @@ Minor changes
 
 * Add a new variant of the Green function integration ``gf_singularities="low_freq_with_rankine_part"`` as an experimental more accurate version of the ``low_freq`` variant (:pull:`510`).
 
+* Meshio objects can be directly passed to :func:`~capytaine.io.meshes_loaders.load_mesh` to get a Capytaine mesh (:pull:`555`).
+
 Bug fixes
 ~~~~~~~~~
 
