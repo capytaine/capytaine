@@ -34,6 +34,9 @@ Minor changes
 
 * Add a ``tabulation_cache_dir`` parameter to :class:`~capytaine.green_functions.delhommeau.Delhommeau` to choose the directory in which the tabulation is saved on disk. If ``None`` is provided instead, the tabulation is not saved on disk and is recomputed at each initialization of the class. Also, if this parameter is not set, look for the ``CAPYTAINE_CACHE_DIR`` environment variable and use it to save the tabulation if it exists. (:pull:`516`).
 
+* Meshio objects can be directly passed to :func:`~capytaine.io.meshes_loaders.load_mesh` to get a Capytaine mesh (:pull:`555`).
+
+
 Bug fixes
 ~~~~~~~~~
 
@@ -41,12 +44,20 @@ Bug fixes
 
 * :func:`~capytaine.meshes.predefined.cylinders.mesh_vertical_cylinder` used to return only half of the mesh when called with ``reflection_symmetry=True`` (:issue:`529` and :pull:`530`).
 
+* Providing the frequency as a scalar coordinate in the test matrix does not result in the value being ignored anymore (:issue:`547` and :pull:`548`).
+
+* Improve exception message when giving an unknown ``radiating_dof`` to a :class:`~capytaine.bem.problems_and_results.RadiationProblem` (:pull:`549`).
+
+* Fix issue due to breaking change in linear solver broadcasting in Numpy 2.0 (:issue:`550`).
+
 Internals
 ~~~~~~~~~
 
 * Update test environments used in noxfile and add ``editable_install_requirements.txt``. (:pull:`498`)
 
 * Rename ``tabulation_method`` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau` as the more descriptive ``tabulation_grid_shape``, and similarly for internal variables. (:pull:`503`)
+
+* Add :func:`~capytaine.meshes.properties.connected_components` and :func:`~capytaine.meshes.properties.connected_components_of_waterline` to split a mesh into connected components. (:pull:`554`)
 
 -------------------------------
 New in version 2.1 (2024-04-08)

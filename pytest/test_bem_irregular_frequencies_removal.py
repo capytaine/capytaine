@@ -4,6 +4,18 @@ import numpy as np
 import capytaine as cpt
 
 
+def test_lid_with_upwards_normals():
+    mesh = cpt.mesh_parallelepiped(center=(0.0, 0.0, -0.4)).immersed_part()
+    lid_mesh = cpt.mesh_rectangle(size=(1, 1), resolution=(4, 4), center=(0, 0, -0.1), normal=(0, 0, 1))
+    # Like body_with_lid() but with upward normals
+    body = cpt.FloatingBody(mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
+    np.testing.assert_allclose(body.lid_mesh.faces_normals[:, 2], -np.ones((body.lid_mesh.nb_faces,)))
+
+    # Old lid_mesh is unchanged
+    assert body.lid_mesh is not lid_mesh
+    np.testing.assert_allclose(lid_mesh.faces_normals[:, 2], np.ones((body.lid_mesh.nb_faces,)))
+
+
 @pytest.fixture
 def body_without_lid():
     mesh = cpt.mesh_parallelepiped(center=(0.0, 0.0, -0.4)).immersed_part()
@@ -14,7 +26,7 @@ def body_without_lid():
 @pytest.fixture
 def body_with_lid():
     mesh = cpt.mesh_parallelepiped(center=(0.0, 0.0, -0.4)).immersed_part()
-    lid_mesh = cpt.mesh_rectangle(size=(1, 1), resolution=(4, 4), center=(0, 0, 0), normal=(0, 0, 1))
+    lid_mesh = cpt.mesh_rectangle(size=(1, 1), resolution=(4, 4), center=(0, 0, -0.1), normal=(0, 0, -1))
     body_with_lid = cpt.FloatingBody(mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
     return body_with_lid
 

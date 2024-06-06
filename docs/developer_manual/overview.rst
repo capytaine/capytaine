@@ -2,22 +2,38 @@
 Overview of the modules
 =======================
 
+:mod:`~capytaine.tools`
+-----------------------
+    Depends on: none.
+
+    Miscellaneous independent tools, used by most of the other modules.
+    Especially :mod:`~capytaine.tools.optional_imports` and
+    :mod:`~capytaine.tools.deprecation_handling` are used all over the place
+    without being explicitly referenced as a dependency in the present page.
+
+    .. toctree::
+       :maxdepth: 1
+
+       api/capytaine.tools
+
 
 :mod:`~capytaine.matrices`
 --------------------------
     Depends on: none.
 
-    This module contains classes describing block matrices, block Toeplitz
-    matrices (stored sparsely in memory) and low-rank matrices. All block
-    matrices can nested to build hierarchical matrices.
+    This module contains data structures to represent matrices as block
+    matrices, block Toeplitz matrices (stored sparsely in memory) and low-rank
+    matrices. All block matrices can nested to build hierarchical matrices.
+
+    These matrices representations are advanced features that are not used by
+    default by Capytaine. In the future, this module could be extracted as an
+    indendant library to make Capytaine a bit leaner.
 
     .. toctree::
+       :maxdepth: 1
 
-       api/capytaine.matrices.block
-       api/capytaine.matrices.block_toeplitz
-       api/capytaine.matrices.builders
-       api/capytaine.matrices.linear_solvers
-       api/capytaine.matrices.low_rank
+       api/capytaine.matrices
+
 
 :mod:`~capytaine.meshes`
 ------------------------
@@ -26,44 +42,28 @@ Overview of the modules
     This module contains classes describing the mesh of a floating body.
     Several variants, including collections of meshes and symmetric meshes are
     also available. Most of this module comes from the `meshmagick package
-    <https://github.com/lheea/meshmagick>`_ by
-    François Rongère.
+    <https://github.com/lheea/meshmagick>`_ by François Rongère.  It also
+    contains some tools to generate meshes of simple geometrical shapes.
+
 
     .. toctree::
+       :maxdepth: 1
 
-       api/capytaine.meshes.clipper
-       api/capytaine.meshes.collections
-       api/capytaine.meshes.geometry
-       api/capytaine.meshes.meshes
-       api/capytaine.meshes.properties
-       api/capytaine.meshes.quality
-       api/capytaine.meshes.surface_integrals
-       api/capytaine.meshes.symmetric
+       api/capytaine.meshes
+
 
 :mod:`~capytaine.bodies`
 ------------------------
     Depends on: :mod:`~capytaine.meshes`.
 
     This module contains a class describing a floating body, that is the reunion
-    of a mesh and some degrees of freedom. It also contains some tools to
-    generate new bodies of simple geometrical shapes.
+    of a mesh and some degrees of freedom, as well as some more optional data.
 
     .. toctree::
+       :maxdepth: 1
 
-       api/capytaine.bodies.bodies
-       api/capytaine.bodies.predefined.spheres
-       api/capytaine.bodies.predefined.cylinders
-       api/capytaine.bodies.predefined.rectangles
+       api/capytaine.bodies
 
-:mod:`~capytaine.tools`
------------------------
-    Depends on: none.
-
-    Unsorted tools.
-
-    .. toctree::
-
-       api/capytaine.tools.prony_decomposition
 
 :mod:`~capytaine.green_functions`
 ---------------------------------
@@ -72,23 +72,23 @@ Overview of the modules
     This module contains the routine to evaluate the Green function.
 
     .. toctree::
+       :maxdepth: 1
 
-       api/capytaine.green_functions.abstract_green_function
-       api/capytaine.green_functions.delhommeau
+       api/capytaine.green_functions
+
 
 :mod:`~capytaine.bem`
 ----------------------
-    Depends on: :mod:`~capytaine.meshes`, :mod:`~capytaine.bodies`, :mod:`~capytaine.matrices`, :mod:`~capytaine.green_functions`, :mod:`io.xarray <capytaine.io.xarray>`.
+    Depends on: :mod:`~capytaine.meshes`, :mod:`~capytaine.bodies`, :mod:`~capytaine.matrices`, :mod:`~capytaine.green_functions`, :mod:`io.xarray <capytaine.io.xarray>` and :mod:`~capytaine.tools`.
 
     The module is the core of the code. It contains the routines to assemble the
     matrices and solve the BEM problem.
 
     .. toctree::
+       :maxdepth: 1
 
-       api/capytaine.bem.airy_waves
-       api/capytaine.bem.engines
-       api/capytaine.bem.solver
-       api/capytaine.bem.problems_and_results
+       api/capytaine.bem
+
 
 :mod:`io.xarray <capytaine.io.xarray>`
 ---------------------------------------
@@ -99,8 +99,10 @@ Overview of the modules
     :code:`capytaine.bem` and might be merged with it in the future.
 
     .. toctree::
+       :maxdepth: 1
 
        api/capytaine.io.xarray
+
 
 :mod:`~capytaine.post_pro`
 --------------------------
@@ -110,25 +112,10 @@ Overview of the modules
     the BEM problem.
 
     .. toctree::
+       :maxdepth: 1
 
-       api/capytaine.post_pro.free_surfaces
-       api/capytaine.post_pro.kochin
-       api/capytaine.post_pro.impedance
-       api/capytaine.post_pro.rao
+       api/capytaine.post_pro
 
-:mod:`ui.vtk <capytaine.ui.vtk>`
---------------------------------
-    Depends on: :mod:`~capytaine.meshes`, :mod:`~capytaine.bodies` and :mod:`~capytaine.post_pro`.
-
-    This module contains the calls to VTK used for the 3D display of the meshes
-    and the animation of the free surface.
-
-    .. toctree::
-
-       api/capytaine.ui.vtk.animation
-       api/capytaine.ui.vtk.body_viewer
-       api/capytaine.ui.vtk.helpers
-       api/capytaine.ui.vtk.mesh_viewer
 
 :mod:`~capytaine.io`
 --------------------
@@ -137,18 +124,20 @@ Overview of the modules
     This module contains various tools for inputs and outputs of the code.
 
     .. toctree::
+       :maxdepth: 1
 
-       api/capytaine.io.legacy
-       api/capytaine.io.mesh_loaders
-       api/capytaine.io.mesh_writers
+       api/capytaine.io
 
-:mod:`ui.cli <capytaine.ui.cli>`
----------------------------------
 
-Depends on: :mod:`~capytaine.io`, :mod:`~capytaine.bem`.
+:mod:`ui <capytaine.ui>`
+--------------------------------
+    Depends on most of the other modules.
 
-    This module contains the command-line interface of the code.
+    This modules contains the code handling the user interfaces:
+    the display of the outputs in the terminal using Rich, the command line interface
+    and the 3D visualisations of the meshes with VTK.
 
     .. toctree::
+       :maxdepth: 1
 
-       api/capytaine.ui.cli
+       api/capytaine.ui

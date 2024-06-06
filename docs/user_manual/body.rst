@@ -39,6 +39,11 @@ It is set as in the following example::
 Once a lid mesh has been defined, it is automatically used for irregular
 frequencies removal without any other action from the user.
 
+For irregular frequencies removal, the lid is expected to have normals going
+down (towards the fluid, through the body). If the lid appears to be horizontal
+with normal going up, Capytaine will switch the direction of its normal
+vectors.
+
 Currently, meshes with a symmetry are not supported, in the sense that the
 computation will be done without using the symmetries when a lid is added. This
 should be improved to support at least vertical symmetry plane in a future

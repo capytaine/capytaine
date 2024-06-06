@@ -168,6 +168,13 @@ def test_radiation_problem(sphere, caplog):
     assert res.radiation_damping == res.radiation_dampings == {"Heave": 2.0}
 
 
+def test_radiation_problem_with_wrong_dof_name():
+    mesh = cpt.mesh_sphere()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    with pytest.raises(ValueError, match="'Flurp'"):
+        cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Flurp")
+
+
 @pytest.mark.parametrize("cal_file", ["Nemoh.cal", "Nemoh_v3.cal"])
 def test_import_cal_file(cal_file):
     """Test the importation of legacy Nemoh.cal files."""
@@ -258,10 +265,23 @@ def test_problems_from_dataset_with_wavelength(sphere):
         assert np.isclose(pb.wavelength, 12.0)
 
 
-def test_problems_from_dataset_with_too_many_info(sphere):
+def test_problems_from_dataset_with_too_many_frequencies(sphere):
     dset = xr.Dataset(coords={'wavelength': [12.0], 'period': [3.0], 'radiating_dof': ["Heave"]})
     with pytest.raises(ValueError, match="at most one"):
-        problems = problems_from_dataset(dset, sphere)
+        problems_from_dataset(dset, sphere)
+
+
+def test_problems_from_dataset_without_list(sphere):
+    dset = xr.Dataset(coords={'omega': 1.5, 'radiating_dof': "Heave"})
+    problems = problems_from_dataset(dset, sphere)
+    assert all(pb.omega == 1.5 for pb in problems)
+    assert all(pb.radiating_dof == "Heave" for pb in problems)
+
+
+def test_problems_from_dataset_without_list_with_too_many_frequencies(sphere):
+    dset = xr.Dataset(coords={'omega': 1.5, 'period': 1.5, 'radiating_dof': "Heave"})
+    with pytest.raises(ValueError, match="at most one"):
+        problems_from_dataset(dset, sphere)
 
 
 @pytest.mark.parametrize("method", ['indirect','direct'])

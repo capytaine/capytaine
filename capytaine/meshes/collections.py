@@ -103,14 +103,14 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
 
     def path_to_leaf(self):
         """
-        Builds a list of lists of paths from the collection corresponding to the 
+        Builds a list of lists of paths from the collection corresponding to the
         root of the tree to the submeshes corresponding to the leaves
         """
         ptl = []
         for i, mesh in enumerate(self):
            for path in mesh.path_to_leaf():
                ptl.append([i] + path)
-        return ptl 
+        return ptl
 
     def copy(self, name=None):
         from copy import deepcopy
@@ -123,6 +123,11 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
     def heal_mesh(self, closed_mesh=False):
         for mesh in self:
             mesh.heal_mesh(closed_mesh=closed_mesh)
+
+    @inplace_transformation
+    def with_normal_vector_going_down(self):
+        for mesh in self:
+            mesh.with_normal_vector_going_down()
 
     ##############
     # Properties #

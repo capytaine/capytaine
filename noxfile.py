@@ -97,7 +97,8 @@ def build_and_test_on_nightly_builds(session):
     # https://scientific-python.org/specs/spec-0004/
     session.install("--pre", "--upgrade",
                     "--extra-index-url", "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple",
-                    "numpy", "scipy", "pandas", "xarray")
+                    "numpy", "scipy", "pandas", "xarray", "rich")
     session.install("meson-python", "ninja", "charset-normalizer")
-    session.install("--no-deps", "--no-build-isolation", ".[test,optional]")
+    session.install("--no-deps", "--no-build-isolation", ".")
+    session.install("pytest", "matplotlib")
     run_tests(session)
