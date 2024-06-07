@@ -123,3 +123,12 @@ def test_MED_file():
     pytest.importorskip("h5py", reason="h5py not installed, test skipped")
     mesh = cpt.load_mesh(os.path.join(os.path.dirname(__file__), "mesh_files_examples/barge.med"))
     assert mesh.nb_faces == 187
+
+def test_MSH2_file():
+    mesh = cpt.load_mesh(os.path.join(os.path.dirname(__file__), "mesh_files_examples/cylinder2.msh"))
+    assert mesh.nb_faces == 64
+
+def test_MSH4_file():
+    pytest.importorskip("meshio", reason="meshio not installed, test skipped")
+    mesh = cpt.load_mesh(os.path.join(os.path.dirname(__file__), "mesh_files_examples/cylinder4.msh"))
+    assert mesh.nb_faces == 64
