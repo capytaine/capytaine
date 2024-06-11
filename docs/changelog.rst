@@ -36,6 +36,8 @@ Minor changes
 
 * Meshio objects can be directly passed to :func:`~capytaine.io.meshes_loaders.load_mesh` to get a Capytaine mesh (:pull:`555`).
 
+* Load gmsh v4 format .msh file using :code:`cpt.load_mesh()` (when meshio is installed) (:pull:`556`)
+
 
 Bug fixes
 ~~~~~~~~~
