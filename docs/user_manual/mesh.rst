@@ -56,7 +56,7 @@ The formats currently supported in reading are listed in the following table (ad
 +-----------+-----------------+----------------------+-----------------+
 |   .nat    |    -            | natural, nat         |                 |
 +-----------+-----------------+----------------------+-----------------+
-|   .msh    | GMSH 2 [#f5]_   | gmsh, msh            |                 |
+|   .msh    | GMSH [#f5]_     | gmsh, msh            |                 |
 +-----------+-----------------+----------------------+-----------------+
 |   .rad    | RADIOSS         | rad, radioss         |                 |
 +-----------+-----------------+----------------------+-----------------+
@@ -80,8 +80,8 @@ The formats currently supported in reading are listed in the following table (ad
 .. [#f4] HYDROSTAR is a BEM Software for seakeeping developed by
          BUREAU VERITAS
 .. [#f5] GMSH is an open source meshing software developed by C. Geuzaine
-         and J.-F. Remacle. Version 4 of the file format is not supported at the
-         moment.
+         and J.-F. Remacle. Version 4 of the file format requires meshio
+         be installed independently.
 .. [#f6] PARAVIEW is an open source visualization software developed by
          Kitware
 .. [#f7] TECPLOT is a visualization software developed by Tecplot
