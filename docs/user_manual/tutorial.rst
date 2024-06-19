@@ -127,13 +127,7 @@ The degrees of freedoms are stored in the :code:`dofs` dictionary. To access the
     print(body.dofs.keys())
     # dict_keys(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'])
 
-Dofs can also be defined manually, for instance to model a flexible body. For this purpose, one has to define a list a vectors where each vector is the displacement of the body at the center of a face::
-
-    import numpy as np
-    body.dofs["x-shear"] = [(np.cos(np.pi*z/2), 0, 0) for x, y, z in sphere.faces_centers]
-
-    print(body.dofs.keys())
-    # dict_keys(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw', 'x-shear'])
+Dofs can also be defined manually, for instance to model a flexible body, see :doc:`body`.
 
 Hydrostatics
 ------------
@@ -146,22 +140,21 @@ Capytaine can directly perform some hydrostatic computations. You can get parame
     # 3.82267415555807
 
     print(hydrostatics["hydrostatic_stiffness"])
-    # <xarray.DataArray 'hydrostatic_stiffness' (influenced_dof: 7, radiating_dof: 7)>
+    # <xarray.DataArray 'hydrostatic_stiffness' (influenced_dof: 6, radiating_dof: 6)> Size: 288B
     # [...]
     # Coordinates:
-    #   * influenced_dof  (influenced_dof) <U7 'Surge' 'Sway' ... 'Yaw' 'x-shear'
-    #   * radiating_dof   (radiating_dof) <U7 'Surge' 'Sway' ... 'Yaw' 'x-shear'
+    #   * influenced_dof  (influenced_dof) <U5 120B 'Surge' 'Sway' ... 'Pitch' 'Yaw'
+    #   * radiating_dof   (radiating_dof) <U5 120B 'Surge' 'Sway' ... 'Pitch' 'Yaw'
 
     print(hydrostatics["inertia_matrix"])
-    # <xarray.DataArray 'inertia_matrix' (influenced_dof: 7, radiating_dof: 7)>
+    # <xarray.DataArray 'inertia_matrix' (influenced_dof: 6, radiating_dof: 6)> Size: 288B
     # [...]
     # Coordinates:
-    #   * influenced_dof  (influenced_dof) <U7 'Surge' 'Sway' ... 'Yaw' 'x-shear'
-    #   * radiating_dof   (radiating_dof) <U7 'Surge' 'Sway' ... 'Yaw' 'x-shear'
+    #   * influenced_dof  (influenced_dof) <U5 120B 'Surge' 'Sway' ... 'Pitch' 'Yaw'
+    #   * radiating_dof   (radiating_dof) <U5 120B 'Surge' 'Sway' ... 'Pitch' 'Yaw'
 
-The matrices here are :math:`7 \times 7` matrices as we have defined seven dofs for our sphere.
+The matrices here are :math:`6 \times 6` matrices as we have defined seven dofs for our sphere.
 The matrices are stored as :code:`DataArray` from the `xarray <https://xarray.dev/>`_ package (see below for an example of usage).
-Note that the inertia matrix can only be computed for rigid bodies (assuming constant density). The matrix was filled with :code:`NaN` for the generalized dof :code:`x-shear`.
 
 
 Defining linear potential flow problems.
@@ -187,9 +180,9 @@ Besides, one can give a :code:`period`, a :code:`wavelength` or a :code:`wavenum
 Some more parameters are automatically computed, such as::
 
     print(problem.wavenumber)
-    # 0.1019367991845056
+    # 0.10471975511965977
     print(problem.period)
-    # 6.283185307179586
+    # 6.199134450374511
 
 Capytaine also implement a :code:`DiffractionProblem` class which does not take a :code:`radiating_dof` argument but instead requires a :code:`wave_direction` in radians::
 
@@ -211,19 +204,21 @@ The :meth:`~capytaine.bem.solver.BEMSolver.solve` method returns a result object
 the problem it comes from::
 
     print(result.omega)
-    # 1.0
+    # 1.0135584826362327
     print(result.body.name)
     # "my buoy"
     print(result.radiating_dof)
     # "Heave"
     print(result.period)
-    # 6.283185307179586
+    # 6.199134450374511
 
 Of course, it also stores some output data. Since we solved a radiation problem, we can now access
 the added mass and radiation damping::
 
     print(result.added_masses)
-    # {'Surge': -2.2737367544323206e-13, 'Sway': 2.8421709430404007e-13, 'Heave': 2207.842170942399, 'Roll': -5.3290705182007514e-14, 'Pitch': 1.3289369604763124e-13, 'Yaw': -4.0933040491086855e -15, 'x-shear': 1.3677947663381929e-13}
+    # {'Surge': -1.6599836869615906e-13, 'Sway': -1.3833197391346588e-13,
+    #  'Heave': 2208.927428982037, 'Roll': 0.0,
+    #  'Pitch': 3.804129282620312e-14, 'Yaw': 1.018450117785757e-14}
 
 The :code:`added_masses` dictionary stores the resulting force on each of the "influenced dofs" of the body.
 In this example, the radiating dof is heave and the reaction force in the
@@ -234,13 +229,21 @@ respect to the one in the :math:`z` direction
 ::
 
     print(result.radiation_dampings)
-    # {'Surge': -9.103828801926284e-15, 'Sway': 0.0, 'Heave': 13.623038091677039, 'Roll': -1.7486012 637846216e-15, 'Pitch': 3.4937330806172895e-15, 'Yaw': 9.7897500502683e-17, 'x-shear': 7.271960811294775e-15}
+    # {'Surge': -3.3080217785235813e-14, 'Sway': 2.8041509115961483e-14,
+       'Heave': 14.803762085499228, 'Roll': -2.820581483343782e-15,
+       'Pitch': -2.6596988016482022e-15, 'Yaw': -4.486075343117886e-17}
 
 The same thing hold for the diffraction problem::
 
     diffraction_result = solver.solve(diffraction_problem)
     print(diffraction_result.forces)
-    # {'Surge': (1.2789769243681803e-13+2.1760371282653068e-13j), 'Sway': (5.9629097739514805-1923.8976950141728j), 'Heave': (-1802.7102076027684-10.957655022820937j), 'Roll': (-0.010382265075485009+4.15060693393701j), 'Pitch': (-7.799316747991725e-14+2.8310687127941492e-14j), 'Yaw': (-1.2477555116385028e-15+7.261633298807041e-14j), 'x-shear': (-8.43769498715119e-14-2.0972112935169207e-13j)}
+    # {'Surge': np.complex128(2.5934809855243657e-13+2.2870594307278225e-13j),
+    #  'Sway': np.complex128(5.969301397957423-1928.0584773706814j),
+    #  'Heave': np.complex128(-1802.2378814572921-10.9509664655968j),
+    #  'Roll': np.complex128(-0.010423009597921862+4.185948400947856j),
+    #  'Pitch': np.complex128(-3.319566843629218e-14+2.0039525594484076e-14j),
+    #  'Yaw': np.complex128(-6.444497858876913e-15+5.167800131833467e-14j)
+    #  }
 
 
 Gather results in arrays
