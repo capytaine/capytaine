@@ -10,7 +10,7 @@ from itertools import count
 import numpy as np
 
 from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
-from capytaine.meshes.properties import compute_faces_properties
+from capytaine.meshes.properties import compute_faces_properties, connected_components
 from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
@@ -791,6 +791,11 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
 
         if crown_mesh.nb_faces == 0:
             return Mesh(None, None)  # Empty mesh
+
+        nb_connected_components = len(connected_components(crown_mesh))
+        if nb_connected_components > 1:
+            raise NotImplementedError("Lid generation has only been implemented for simply connected domains. "
+                                      f"For {self.__short_str__()}, {nb_connected_components} connected components would be required.")
 
         # Taking only the crown mesh to obtain the Water Plane Area information
         # water plane area is defined as the boundary
