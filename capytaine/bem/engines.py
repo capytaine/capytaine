@@ -1,8 +1,9 @@
 """Definition of the methods to build influence matrices, using possibly some sparse structures."""
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# Copyright (C) 2017-2024 Matthieu Ancellin
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
+import time
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -18,6 +19,7 @@ from capytaine.matrices.block import BlockMatrix
 from capytaine.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
 from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockToeplitzMatrix, BlockCirculantMatrix
 from capytaine.tools.lru_cache import lru_cache_with_strict_maxsize
+from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
 
 LOG = logging.getLogger(__name__)
 
@@ -67,12 +69,14 @@ class BasicMatrixEngine(MatrixEngine):
     def __init__(self, *, linear_solver='lu_decomposition', matrix_cache_size=1):
 
         if linear_solver in self.available_linear_solvers:
-            self.linear_solver = self.available_linear_solvers[linear_solver]
+            self._linear_solver = self.available_linear_solvers[linear_solver]
         else:
-            self.linear_solver = linear_solver
+            self._linear_solver = linear_solver
 
         if matrix_cache_size > 0:
             self.build_matrices = lru_cache_with_strict_maxsize(maxsize=matrix_cache_size)(self.build_matrices)
+
+        self.reset_timer()
 
         self.exportable_settings = {
             'engine': 'BasicMatrixEngine',
@@ -90,6 +94,26 @@ class BasicMatrixEngine(MatrixEngine):
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
+
+    def reset_timer(self):
+        self.timer = {"Green function": 0.0, "Linear solver": 0.0}
+        self.nb_calls = {"Green function": 0, "Linear solver": 0}
+
+    def timer_string(self):
+        return "\n".join([
+            f"Time spent in {self.__class__.__name__} in seconds:",
+             "Task           All problems  Mean per problem",
+             f"Green function       {self.timer['Green function']:.2f}             {self.timer['Green function']/self.nb_calls['Linear solver']:.3f}",
+             f"Linear solver        {self.timer['Linear solver']:.2f}             {self.timer['Linear solver']/self.nb_calls['Linear solver']:.3f}",
+        ])
+
+    def linear_solver(self, A, b):
+        timer_start = time.perf_counter()
+        linear_solver = supporting_symbolic_multiplication(self._linear_solver)
+        x = linear_solver(A, b)
+        self.timer["Linear solver"] += time.perf_counter() - timer_start
+        self.nb_calls["Linear solver"] += 1
+        return x
 
     def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, green_function, adjoint_double_layer=True):
         r"""Build the influence matrices between mesh1 and mesh2.
@@ -117,6 +141,8 @@ class BasicMatrixEngine(MatrixEngine):
             the matrices :math:`S` and :math:`K`
         """
 
+        timer_start = time.perf_counter()
+
         if (isinstance(mesh1, ReflectionSymmetricMesh)
                 and isinstance(mesh2, ReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
@@ -128,12 +154,16 @@ class BasicMatrixEngine(MatrixEngine):
                 mesh1[0], mesh2[1], free_surface, water_depth, wavenumber,
                 green_function)
 
-            return BlockSymmetricToeplitzMatrix([[S_a, S_b]]), BlockSymmetricToeplitzMatrix([[V_a, V_b]])
+            S, K = BlockSymmetricToeplitzMatrix([[S_a, S_b]]), BlockSymmetricToeplitzMatrix([[V_a, V_b]])
 
         else:
-            return green_function.evaluate(
+            S, K = green_function.evaluate(
                 mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=adjoint_double_layer
             )
+
+        self.timer["Green function"] += time.perf_counter() - timer_start
+        self.nb_calls["Green function"] += 1
+        return S, K
 
 ###################################
 #  HIERARCHIAL TOEPLITZ MATRICES  #
@@ -161,7 +191,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
         self.ACA_distance = ACA_distance
         self.ACA_tol = ACA_tol
 
-        self.linear_solver = linear_solvers.solve_gmres
+        self.linear_solver = supporting_symbolic_multiplication(linear_solvers.solve_gmres)
 
         self.exportable_settings = {
             'engine': 'HierarchicalToeplitzMatrixEngine',
