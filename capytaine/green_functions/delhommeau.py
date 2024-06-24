@@ -60,6 +60,12 @@ class Delhommeau(AbstractGreenFunction):
         Either :code:`"legacy"` or :code:`"scaled_nemoh3"`, which are the two
         methods currently implemented.
         Default: :code:`"scaled_nemoh3"`
+    tabulation_cache_dir: str or None, optional
+        Directory in which to save the tabulation file(s).
+        If None, the tabulation is not saved on disk.
+        Default: calls capytaine.tools.cache_on_disk.cache_directory(), which
+        returns the value of the environment variable CAPYTAINE_CACHE_DIR if
+        set, or else the default cache directory on your system.
     finite_depth_prony_decomposition_method: string, optional
         The implementation of the Prony decomposition used to compute the
         finite water_depth Green function. Accepted values: :code:`'fortran'`
@@ -99,6 +105,7 @@ class Delhommeau(AbstractGreenFunction):
                  tabulation_zmin=_default_parameters["tabulation_zmin"],
                  tabulation_nb_integration_points=_default_parameters["tabulation_nb_integration_points"],
                  tabulation_grid_shape=_default_parameters["tabulation_grid_shape"],
+                 tabulation_cache_dir=cache_directory(),
                  finite_depth_prony_decomposition_method=_default_parameters["finite_depth_prony_decomposition_method"],
                  floating_point_precision=_default_parameters["floating_point_precision"],
                  gf_singularities=_default_parameters["gf_singularities"],
@@ -124,7 +131,16 @@ class Delhommeau(AbstractGreenFunction):
         self.floating_point_precision = floating_point_precision
         self.tabulation_nb_integration_points = tabulation_nb_integration_points
 
-        self._create_or_load_tabulation(tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin, tabulation_nb_integration_points)
+        self.tabulation_cache_dir = tabulation_cache_dir
+        if tabulation_cache_dir is None:
+            self._create_tabulation(tabulation_nr, tabulation_rmax,
+                                    tabulation_nz, tabulation_zmin,
+                                    tabulation_nb_integration_points)
+        else:
+            self._create_or_load_tabulation(tabulation_nr, tabulation_rmax,
+                                            tabulation_nz, tabulation_zmin,
+                                            tabulation_nb_integration_points,
+                                            tabulation_cache_dir)
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
@@ -168,7 +184,8 @@ class Delhommeau(AbstractGreenFunction):
 
     def _create_or_load_tabulation(self, tabulation_nr, tabulation_rmax,
                                    tabulation_nz, tabulation_zmin,
-                                   tabulation_nb_integration_points):
+                                   tabulation_nb_integration_points,
+                                   tabulation_cache_dir):
         """This method either:
             - loads an existing tabulation saved on disk
             - generates a new tabulation with the data provided as argument and save it on disk.
@@ -183,7 +200,7 @@ class Delhommeau(AbstractGreenFunction):
             tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin,
             tabulation_nb_integration_points
         )
-        filepath = os.path.join(cache_directory(), filename)
+        filepath = os.path.join(tabulation_cache_dir, filename)
 
         if os.path.exists(filepath):
             LOG.info("Loading tabulation from %s", filepath)
@@ -193,21 +210,28 @@ class Delhommeau(AbstractGreenFunction):
             self.tabulated_integrals = loaded_arrays["values"]
 
         else:
-            LOG.warning("Precomputing tabulation, it may take a few seconds.")
-            self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
-                    tabulation_nr, tabulation_rmax, self.tabulation_grid_shape_index
-                    )
-            self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(
-                    tabulation_nz, tabulation_zmin, self.tabulation_grid_shape_index
-                    )
-            self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
-                    self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
-                    )
+            self._create_tabulation(tabulation_nr, tabulation_rmax,
+                                    tabulation_nz, tabulation_zmin,
+                                    tabulation_nb_integration_points)
             LOG.debug("Saving tabulation in %s", filepath)
             np.savez_compressed(
                 filepath, r_range=self.tabulated_r_range, z_range=self.tabulated_z_range,
                 values=self.tabulated_integrals
             )
+
+    def _create_tabulation(self, tabulation_nr, tabulation_rmax,
+                                   tabulation_nz, tabulation_zmin,
+                                   tabulation_nb_integration_points):
+        LOG.warning("Precomputing tabulation, it may take a few seconds.")
+        self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
+                tabulation_nr, tabulation_rmax, self.tabulation_grid_shape_index
+                )
+        self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(
+                tabulation_nz, tabulation_zmin, self.tabulation_grid_shape_index
+                )
+        self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
+                self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
+                )
 
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
@@ -235,8 +259,8 @@ class Delhommeau(AbstractGreenFunction):
             the amplitude and growth rates of the exponentials
         """
 
-        LOG.debug(f"\tCompute Prony decomposition in finite water_depth Green function "
-                  f"for dimless_omega=%.2e and dimless_wavenumber=%.2e",
+        LOG.debug("\tCompute Prony decomposition in finite water_depth Green function "
+                  "for dimless_omega=%.2e and dimless_wavenumber=%.2e",
                   dimensionless_omega, dimensionless_wavenumber)
 
         if self.finite_depth_prony_decomposition_method.lower() == 'python':

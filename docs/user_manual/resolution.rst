@@ -58,6 +58,14 @@ In the present version, a single class is implemented, although it offers many p
    :code:`"legacy"` approach. The :code:`tabulation_nb_integration_points`
    controls the accuracy of the precomputed tabulation points themselves.
 
+The first time it is initialize with a given set of parameters, some tabulated
+data are precomputed and stored on disk.
+The default location is a os-dependant cache directory.
+The location at which the data is stored can be configured by passing
+``tabulation_cache_dir`` to
+:class:`~capytaine.green_functions.delhommeau.Delhommeau` or by setting the
+environment variable ``CAPYTAINE_CACHE_DIR``.
+
 Advanced users can write their own class to evaluate the Green function.
 See the example in the :doc:`cookbook`.
 

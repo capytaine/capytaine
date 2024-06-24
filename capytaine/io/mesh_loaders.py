@@ -11,7 +11,7 @@ import numpy as np
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh
 from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
-from capytaine.tools.optional_imports import import_optional_dependency
+from capytaine.tools.optional_imports import import_optional_dependency, silently_import_optional_dependency
 
 LOG = logging.getLogger(__name__)
 
@@ -24,14 +24,15 @@ def _check_file(filename, name=None):
     return
 
 
-def load_mesh(filename, file_format=None, name=None):
+def load_mesh(mesh, file_format=None, name=None):
     """Driver function that loads every mesh file format known by meshmagick.
     Dispatch to one of the other function depending on file_format.
 
     Parameters
     ----------
-    filename: str
-        name of the mesh file on disk
+    mesh: str or meshio object
+        Either the path to the mesh on disk
+        or a meshio object to be loaded with the dedicated method
     file_format: str, optional
         format of the mesh defined in the extension_dict dictionary
     name: str, optional
@@ -42,6 +43,13 @@ def load_mesh(filename, file_format=None, name=None):
     Mesh or SymmetricMesh
         the loaded mesh
     """
+    meshio = silently_import_optional_dependency("meshio")
+    if meshio is not None and isinstance(mesh, meshio._mesh.Mesh):
+        from capytaine.io.meshio import load_from_meshio
+        return load_from_meshio(mesh, name=name)
+
+    filename = mesh
+
     _check_file(filename)
 
     if file_format is None:
@@ -53,7 +61,8 @@ def load_mesh(filename, file_format=None, name=None):
 
     loader = extension_dict[file_format]
 
-    if name is None: name = filename
+    if name is None:
+        name = filename
 
     return loader(filename, name)
 
@@ -810,31 +819,46 @@ def load_MSH(filename, name=None):
 
     _check_file(filename)
 
-    with open(filename, 'r') as file:
-        data = file.read()
+    try:
+        meshio = import_optional_dependency("meshio")
+    except:
+        with open(filename, 'r') as file:
+            data = file.read()
+        version = float(re.search(r'\$MeshFormat\n(\d.\d).*\n\$EndMeshFormat', data, re.DOTALL).groups()[0])
 
-    nb_nodes, nodes_data = re.search(r'\$Nodes\n(\d+)\n(.+)\$EndNodes', data, re.DOTALL).groups()
-    nb_elts, elts_data = re.search(r'\$Elements\n(\d+)\n(.+)\$EndElements', data, re.DOTALL).groups()
+        if 4 <= version < 5:
+            message = (
+                f"Meshio is required to read MSH file format version 4. "
+                f"Use pip or conda to install Meshio."
+            )
+            raise ImportError(message) from None
+        else:
+            nb_nodes, nodes_data = re.search(r'\$Nodes\n(\d+)\n(.+)\$EndNodes', data, re.DOTALL).groups()
+            nb_elts, elts_data = re.search(r'\$Elements\n(\d+)\n(.+)\$EndElements', data, re.DOTALL).groups()
 
-    vertices = np.asarray(list(map(float, nodes_data.split())), dtype=float).reshape((-1, 4))[:, 1:]
-    vertices = np.ascontiguousarray(vertices)
-    faces = []
+            vertices = np.asarray(list(map(float, nodes_data.split())), dtype=float).reshape((-1, 4))[:, 1:]
+            vertices = np.ascontiguousarray(vertices)
+            faces = []
 
-    # Triangles
-    for tri_elt in re.findall(r'(^\d+\s2(?:\s\d+)+?$)', elts_data, re.MULTILINE):
-        tri_elt = list(map(int, tri_elt.split()))
-        triangle = tri_elt[-3:]
-        triangle.append(triangle[0])
-        faces.append(triangle)
+            # Triangles
+            for tri_elt in re.findall(r'(^\d+\s2(?:\s\d+)+?$)', elts_data, re.MULTILINE):
+                tri_elt = list(map(int, tri_elt.split()))
+                triangle = tri_elt[-3:]
+                triangle.append(triangle[0])
+                faces.append(triangle)
 
-    for quad_elt in re.findall(r'(^\d+\s3(?:\s\d+)+?$)', elts_data, re.MULTILINE):
-        quad_elt = list(map(int, quad_elt.split()))
-        quadrangle = quad_elt[-4:]
-        faces.append(quadrangle)
+            for quad_elt in re.findall(r'(^\d+\s3(?:\s\d+)+?$)', elts_data, re.MULTILINE):
+                quad_elt = list(map(int, quad_elt.split()))
+                quadrangle = quad_elt[-4:]
+                faces.append(quadrangle)
 
-    faces = np.asarray(faces, dtype=int) - 1
+            faces = np.asarray(faces, dtype=int) - 1
 
-    return Mesh(vertices, faces, name)
+            return Mesh(vertices, faces, name)
+
+    msh_mesh = meshio.read(filename)
+    from capytaine.io.meshio import load_from_meshio
+    return load_from_meshio(msh_mesh, name)
 
 
 def load_MED(filename, name=None):

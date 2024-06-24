@@ -32,6 +32,13 @@ Minor changes
 
 * Add a new variant of the Green function integration ``gf_singularities="low_freq_with_rankine_part"`` as an experimental more accurate version of the ``low_freq`` variant (:pull:`510`).
 
+* Add a ``tabulation_cache_dir`` parameter to :class:`~capytaine.green_functions.delhommeau.Delhommeau` to choose the directory in which the tabulation is saved on disk. If ``None`` is provided instead, the tabulation is not saved on disk and is recomputed at each initialization of the class. Also, if this parameter is not set, look for the ``CAPYTAINE_CACHE_DIR`` environment variable and use it to save the tabulation if it exists. (:pull:`516`).
+
+* Meshio objects can be directly passed to :func:`~capytaine.io.meshes_loaders.load_mesh` to get a Capytaine mesh (:pull:`555`).
+
+* Load gmsh v4 format .msh file using :code:`cpt.load_mesh()` (when meshio is installed) (:pull:`556`)
+
+
 Bug fixes
 ~~~~~~~~~
 
@@ -51,6 +58,8 @@ Internals
 * Update test environments used in noxfile and add ``editable_install_requirements.txt``. (:pull:`498`)
 
 * Rename ``tabulation_method`` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau` as the more descriptive ``tabulation_grid_shape``, and similarly for internal variables. (:pull:`503`)
+
+* Add :func:`~capytaine.meshes.properties.connected_components` and :func:`~capytaine.meshes.properties.connected_components_of_waterline` to split a mesh into connected components. (:pull:`554`)
 
 -------------------------------
 New in version 2.1 (2024-04-08)

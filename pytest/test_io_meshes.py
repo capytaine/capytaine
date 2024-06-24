@@ -55,33 +55,21 @@ def generate_pygmsh_sphere():
 
 @pytest.mark.parametrize("generate_pygmsh",
                          [generate_pygmsh_cylinder, generate_pygmsh_sphere, generate_pygmsh_wavebot])
-def test_from_meshio_pygmsh(generate_pygmsh, tmp_path):
+def test_from_meshio_pygmsh(generate_pygmsh):
     pytest.importorskip("pygmsh", reason="PyGMSH not installed, test skipped")
     mesh, vol_exp = generate_pygmsh()
-    fb = cpt.FloatingBody(mesh=mesh)
-    fb.mesh.heal_mesh()
-    fb.keep_immersed_part()
+    mesh = cpt.load_mesh(mesh)
+    assert mesh.immersed_part().volume == pytest.approx(vol_exp, rel=1e-1)
 
-    vol = fb.mesh.volume
-    assert pytest.approx(vol_exp, rel=1e-1) == vol
-
-    fb.add_translation_dof((0,0,1))
-
+    fb = cpt.FloatingBody(mesh)
+    fb.add_translation_dof(name="Heave")
     test_matrix = xr.Dataset(coords={
-        'rho': [1e3],
-        'water_depth': [np.inf],
         'omega': [np.pi],
-        'wave_direction': 0,
+        'wave_direction': [0],
         'radiating_dof': list(fb.dofs.keys()),
         })
-
     solver = cpt.BEMSolver()
-    solver.fill_dataset(test_matrix,
-                        bodies=[fb],
-                        hydrostatics=True,
-                        mesh=True,
-                        wavelength=True,
-                        wavenumber=True)
+    solver.fill_dataset(test_matrix, bodies=fb)
 
 #################################################################
 
@@ -135,3 +123,12 @@ def test_MED_file():
     pytest.importorskip("h5py", reason="h5py not installed, test skipped")
     mesh = cpt.load_mesh(os.path.join(os.path.dirname(__file__), "mesh_files_examples/barge.med"))
     assert mesh.nb_faces == 187
+
+def test_MSH2_file():
+    mesh = cpt.load_mesh(os.path.join(os.path.dirname(__file__), "mesh_files_examples/cylinder2.msh"))
+    assert mesh.nb_faces == 64
+
+def test_MSH4_file():
+    pytest.importorskip("meshio", reason="meshio not installed, test skipped")
+    mesh = cpt.load_mesh(os.path.join(os.path.dirname(__file__), "mesh_files_examples/cylinder4.msh"))
+    assert mesh.nb_faces == 64
