@@ -6,8 +6,9 @@ project('capytaine',
 py_mod = import('python')
 py3 = py_mod.find_installation('python3')
 py3_dep = py3.dependency()
-message(py3.path())
-message(run_command(py3, ['-c', 'import numpy; print(numpy.__version__)']).stdout().strip())
+message('Python executable: @0@'.format(py3.path()))
+numpy_version = run_command(py3, ['-c', 'import numpy; print(numpy.__version__)']).stdout().strip()
+message('Numpy version: @0@'.format(numpy_version))
 
 incdir_numpy = run_command(py3,
   ['-c', 'import os; os.chdir(".."); import numpy; print(numpy.get_include())'],
