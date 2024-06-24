@@ -9,6 +9,4 @@
 meson-python
 ninja  # Unlike [build-system.requires], ninja need to be explicitly installed for editable install.
 charset-normalizer
-numpy !=1.26.4, !=1.26.3, <2
-
-# Still waiting on Pandas to be compatible with Numpy 2 to be able to run on Numpy 2.
+numpy !=1.26.4, !=1.26.3
