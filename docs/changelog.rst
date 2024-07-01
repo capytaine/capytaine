@@ -17,6 +17,7 @@ Major changes
 * Experimental support for panels on the free surface. (:pull:`419`)
 
 * Add ``lid_mesh`` argument to :class:`~capytaine.bodies.bodies.FloatingBody` for irregular frequencies removal (:pull:`521`).
+  Add :meth:`~capytaine.meshes.meshes.Mesh.extract_lid` method to manipulate lids (:pull:`559`).
 
 Minor changes
 ~~~~~~~~~~~~~
