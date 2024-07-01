@@ -9,7 +9,7 @@ from itertools import count
 
 import numpy as np
 
-from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
+from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation, xOy_Plane
 from capytaine.meshes.properties import compute_faces_properties
 from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
@@ -754,3 +754,15 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
             self.faces = self.faces[:, ::-1]
         else:
             return self
+
+    def _face_on_plane(self, i_face, plane):
+        return (
+                self.faces_centers[i_face, :] in plane
+                and plane.is_orthogonal_to(self.faces_normals[i_face, :])
+                )
+
+    def extract_lid(self, plane=xOy_Plane):
+        faces_on_plane = [i_face for i_face in range(self.nb_faces) if self._face_on_plane(i_face, plane)]
+        lid_mesh = self.extract_faces(faces_on_plane)
+        hull_mesh = self.extract_faces(list(set(range(self.nb_faces)) - set(faces_on_plane)))
+        return hull_mesh, lid_mesh
