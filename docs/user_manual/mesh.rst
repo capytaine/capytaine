@@ -336,3 +336,12 @@ also accepts methods from the `Quadpy` package::
 
     import quadpy
     mesh.compute_quadrature(method=quadpy.c2.get_good_scheme(8))
+
+
+Extracting or generating a lid
+------------------------------
+
+If you loaded a mesh file already containing a lid on the :math:`z=0` plane, the hull and the lid can be split with the :meth:`~capytaine.meshes.meshes.Mesh.extract_lid` method::
+
+    full_mesh = cpt.load_mesh(...)
+    hull_mesh, lid_mesh = full_mesh.extract_lid()
