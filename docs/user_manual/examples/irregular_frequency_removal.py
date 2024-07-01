@@ -55,15 +55,15 @@ body_2.add_translation_dof(name="Surge")
 body_2.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
 
 
-### Body With Lid at z = auto (Body C)
-lid = cylinder_mesh.generate_lid(z='auto', omega_max=omega_range[-1])
-body_3 = cpt.FloatingBody(mesh=cylinder_mesh, lid_mesh=lid)
-body_3.add_translation_dof(name="Surge")
-body_3.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
+# ### Body With Lid at z = auto (Body C)
+# lid = cylinder_mesh.generate_lid(z='auto', omega_max=omega_range[-1])
+# body_3 = cpt.FloatingBody(mesh=cylinder_mesh, lid_mesh=lid)
+# body_3.add_translation_dof(name="Surge")
+# body_3.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
 
 force_1 = compute_excitation_force(body_1, omega_range)
 force_2 = compute_excitation_force(body_2, omega_range)
-force_3 = compute_excitation_force(body_3, omega_range)
+# force_3 = compute_excitation_force(body_3, omega_range)
 
 # Plot the added mass of each dofs as a function of the frequency
 import matplotlib.pyplot as plt
@@ -80,12 +80,12 @@ plt.plot(
     marker='*',
     label=r'$z =-3.699$m'
 )
-plt.plot(
-    omega_range,
-    np.abs(force_3.sel(influenced_dof='Surge')),
-    marker='x',
-    label=r'$z =auto$'
-)
+# plt.plot(
+#     omega_range,
+#     np.abs(force_3.sel(influenced_dof='Surge')),
+#     marker='x',
+#     label=r'$z =auto$'
+# )
 
 plt.xlabel(r'$\omega$')
 plt.ylabel(r'$F_1 (abs)$')
