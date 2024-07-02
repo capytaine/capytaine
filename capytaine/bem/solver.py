@@ -1,5 +1,5 @@
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# Copyright (C) 2017-2024 Matthieu Ancellin
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 """Solver for the BEM problem.
 
 .. code-block:: python
@@ -93,7 +93,9 @@ class BEMSolver:
         """
         LOG.info("Solve %s.", problem)
 
-        if _check_wavelength: self._check_wavelength([problem])
+        if _check_wavelength:
+            self._check_wavelength_and_mesh_resolution([problem])
+            self._check_wavelength_and_irregular_frequencies([problem])
 
         if problem.forward_speed != 0.0:
             omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
@@ -163,7 +165,9 @@ class BEMSolver:
         list of LinearPotentialFlowResult
             the solved problems
         """
-        if _check_wavelength: self._check_wavelength(problems)
+        if _check_wavelength:
+            self._check_wavelength_and_mesh_resolution(problems)
+            self._check_wavelength_and_irregular_frequencies(problems)
 
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
@@ -185,7 +189,7 @@ class BEMSolver:
             return results
 
     @staticmethod
-    def _check_wavelength(problems):
+    def _check_wavelength_and_mesh_resolution(problems):
         """Display a warning if some of the problems have a mesh resolution
         that might not be sufficient for the given wavelength."""
         risky_problems = [pb for pb in problems
@@ -196,20 +200,45 @@ class BEMSolver:
             freq_type = risky_problems[0].provided_freq_type
             freq = pb.__getattribute__(freq_type)
             LOG.warning(f"Mesh resolution for {pb}:\n"
-                    f"The resolution of the mesh of the body {pb.body.__short_str__()} might "
-                    f"be insufficient for {freq_type}={freq}.\n"
-                     "This warning appears because the largest panel of this mesh "
-                    f"has radius {pb.body.mesh.faces_radiuses.max():.3f} > wavelength/8."
-                    )
+                        f"The resolution of the mesh of the body {pb.body.__short_str__()} might "
+                        f"be insufficient for {freq_type}={freq}.\n"
+                        "This warning appears because the largest panel of this mesh "
+                        f"has radius {pb.body.mesh.faces_radiuses.max():.3f} > wavelength/8."
+                        )
         elif nb_risky_problems > 1:
             freq_type = risky_problems[0].provided_freq_type
             freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
             LOG.warning(f"Mesh resolution for {nb_risky_problems} problems:\n"
-                         "The resolution of the mesh might be insufficient "
+                        "The resolution of the mesh might be insufficient "
                         f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
-                         "This warning appears when the largest panel of this mesh "
-                         "has radius > wavelength/8."
-                    )
+                        "This warning appears when the largest panel of this mesh "
+                        "has radius > wavelength/8."
+                        )
+
+    @staticmethod
+    def _check_wavelength_and_irregular_frequencies(problems):
+        """Display a warning if some of the problems might encounter irregular frequencies."""
+        risky_problems = [pb for pb in problems
+                          if pb.body.first_irregular_frequency_estimate() < pb.omega < np.inf
+                          and pb.body.lid_mesh is None]
+        nb_risky_problems = len(risky_problems)
+        if nb_risky_problems == 1:
+            pb = risky_problems[0]
+            freq_type = risky_problems[0].provided_freq_type
+            freq = pb.__getattribute__(freq_type)
+            LOG.warning(f"Irregular frequencies for {pb}:\n"
+                        f"The body {pb.body.__short_str__()} might display irregular frequencies "
+                        f"for {freq_type}={freq} > .\n"
+                        "Defining a lid for the floating body is recommended."
+                        )
+        elif nb_risky_problems > 1:
+            freq_type = risky_problems[0].provided_freq_type
+            freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
+            LOG.warning(f"Irregular frequencies for {nb_risky_problems} problems:\n"
+                        "Irregular frequencies might be encountered "
+                        f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
+                        "Defining a lid for the floating body is recommended."
+                        )
 
     def fill_dataset(self, dataset, bodies, *, method='indirect', n_jobs=1, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.

@@ -12,6 +12,7 @@ import xarray as xr
 
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
+from capytaine.meshes.properties import connected_components, connected_components_of_waterline
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import build_regular_array_of_meshes
 from capytaine.bodies.dofs import RigidBodyDofsPlaceholder
@@ -1096,6 +1097,20 @@ respective inertia coefficients are assigned as NaN.")
             return max(8*self.mesh.faces_radiuses.max(), 8*self.lid_mesh.faces_radiuses.max())
         else:
             return 8*self.mesh.faces_radiuses.max()
+
+    def first_irregular_frequency_estimate(self, *, g=9.81):
+        """Estimates the angular frequency omega of the first irregular
+        frequency, that is the one with the minimal frequency."""
+        omega = np.inf
+        for comp in connected_components(self.mesh):
+            draft = abs(comp.vertices[:, 2].min())
+            for ccomp in connected_components_of_waterline(comp):
+                x_span = ccomp.vertices[:, 0].max() - ccomp.vertices[:, 0].min()
+                y_span = ccomp.vertices[:, 1].max() - ccomp.vertices[:, 1].min()
+                p = np.hypot(1/x_span, 1/y_span)
+                omega_comp = np.sqrt(np.pi*g*p/(np.tanh(np.pi*draft*p)))
+                omega = min(omega, omega_comp)
+        return omega
 
     def cluster_bodies(*bodies, name=None):
         """
