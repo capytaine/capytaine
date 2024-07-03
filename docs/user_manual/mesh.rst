@@ -358,6 +358,11 @@ Here the mesh is generated below the free surface, as Capytaine currently
 more robustly supports lid meshes below the free surface although they
 might not totally cancel all irregular frequencies.
 
+An estimate of the lowest position at which the lid can be put for a given
+frequency can be computed as follows::
+
+    lid_mesh = hull_mesh.generate_lid(z=hull_mesh.lowest_lid_position(omega_max=10.0))
+
 The resolution of the lid mesh can be set with the ``faces_max_radius``
 argument. By default, the mean resolution of the hull mesh is used.
 

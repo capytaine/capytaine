@@ -10,7 +10,7 @@ from itertools import count
 import numpy as np
 
 from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation, xOy_Plane
-from capytaine.meshes.properties import compute_faces_properties
+from capytaine.meshes.properties import compute_faces_properties, connected_components, connected_components_of_waterline
 from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
@@ -749,11 +749,16 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
     #  Lids  #
     ##########
 
-    # def _lowest_lid_position(self, omega_max, *, g=9.81):
-    #     length_waterline =
-    #
-    #     return - ((np.arctanh(np.pi * g * np.sqrt(1/length_waterline**2 + 1/breadth_waterline**2) / omega_max**2))
-    #             / (np.pi * np.sqrt(1/length_waterline**2 + 1/breadth_waterline**2)))
+    def lowest_lid_position(self, omega_max, *, g=9.81):
+        z_lid = 0.0
+        for comp in connected_components(self):
+            for ccomp in connected_components_of_waterline(comp):
+                x_span = ccomp.vertices[:, 0].max() - ccomp.vertices[:, 0].min()
+                y_span = ccomp.vertices[:, 1].max() - ccomp.vertices[:, 1].min()
+                p = np.hypot(1/x_span, 1/y_span)
+                z_lid_comp = -np.arctanh(np.pi*g*p/omega_max**2) / (np.pi * p)
+                z_lid = min(z_lid, z_lid_comp)
+        return 0.9*z_lid  # Add a small safety margin
 
     def generate_lid(self, z=0.0, faces_max_radius=None):
         """
@@ -767,8 +772,6 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         faces_max_radius: float
             resolution of the mesh of the lid.
             Default: mean of hull mesh resolution.
-        omega_max: float
-            Maximal frequency
 
         Returns
         -------

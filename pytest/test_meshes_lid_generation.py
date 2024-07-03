@@ -80,3 +80,10 @@ def test_lid_symmetric_body():
     def in_crown(x, y):
         return np.hypot(x, y) < 1.0
     assert all(in_crown(lid_mesh.faces_centers[:, 0], lid_mesh.faces_centers[:, 1]))
+
+
+def test_lid_auto_position():
+    mesh = cpt.mesh_vertical_cylinder(radius=1.0).immersed_part()
+    lid_mesh = mesh.generate_lid(z=mesh.lowest_lid_position(omega_max=5.0))
+    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh)
+    assert body.first_irregular_frequency_estimate() > 5.0

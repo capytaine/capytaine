@@ -232,7 +232,7 @@ class BEMSolver:
                 freq = pb.__getattribute__(freq_type)
                 LOG.warning(f"Irregular frequencies for {pb}:\n"
                             f"The body {pb.body.__short_str__()} might display irregular frequencies "
-                            f"for {freq_type}={freq} > .\n"
+                            f"for {freq_type}={freq}.\n"
                             + recommendation
                             )
             elif nb_risky_problems > 1:
