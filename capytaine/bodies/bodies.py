@@ -1,6 +1,6 @@
 """Floating bodies to be used in radiation-diffraction problems."""
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# Copyright (C) 2017-2024 Matthieu Ancellin
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
 import copy
@@ -1099,11 +1099,34 @@ respective inertia coefficients are assigned as NaN.")
             return 8*self.mesh.faces_radiuses.max()
 
     def first_irregular_frequency_estimate(self, *, g=9.81):
-        """Estimates the angular frequency omega of the first irregular
-        frequency, that is the one with the minimal frequency."""
+        r"""Estimates the angular frequency of the lowest irregular
+        frequency.
+        This is based on the formula for the lowest irregular frequency of a
+        parallelepiped of size :math:`L \times B` and draft :math:`H`:
+
+        .. math::
+            \omega = \sqrt{
+                        \frac{\pi g \sqrt{\frac{1}{B^2} + \frac{1}{L^2}}}
+                             {\tanh\left(\pi H \sqrt{\frac{1}{B^2} + \frac{1}{L^2}} \right)}
+                     }
+
+        The formula is applied to all shapes to get an estimate that is usually
+        conservative.
+        The definition of a lid (supposed to be fully covering and horizontal)
+        is taken into account.
+        """
+        if self.lid_mesh is None:
+            draft = abs(self.mesh.vertices[:, 2].min())
+        else:
+            draft = abs(self.lid_mesh.vertices[:, 2].min())
+            if draft < 1e-6:
+                return np.inf
+
+        # Look for the x and y span of each components (e.g. for multibody) and
+        # keep the one causing the lowest irregular frequency.
+        # The draft is supposed to be same for all components.
         omega = np.inf
         for comp in connected_components(self.mesh):
-            draft = abs(comp.vertices[:, 2].min())
             for ccomp in connected_components_of_waterline(comp):
                 x_span = ccomp.vertices[:, 0].max() - ccomp.vertices[:, 0].min()
                 y_span = ccomp.vertices[:, 1].max() - ccomp.vertices[:, 1].min()

@@ -219,26 +219,30 @@ class BEMSolver:
     def _check_wavelength_and_irregular_frequencies(problems):
         """Display a warning if some of the problems might encounter irregular frequencies."""
         risky_problems = [pb for pb in problems
-                          if pb.body.first_irregular_frequency_estimate() < pb.omega < np.inf
-                          and pb.body.lid_mesh is None]
+                          if pb.body.first_irregular_frequency_estimate() < pb.omega < np.inf]
         nb_risky_problems = len(risky_problems)
-        if nb_risky_problems == 1:
-            pb = risky_problems[0]
-            freq_type = risky_problems[0].provided_freq_type
-            freq = pb.__getattribute__(freq_type)
-            LOG.warning(f"Irregular frequencies for {pb}:\n"
-                        f"The body {pb.body.__short_str__()} might display irregular frequencies "
-                        f"for {freq_type}={freq} > .\n"
-                        "Defining a lid for the floating body is recommended."
-                        )
-        elif nb_risky_problems > 1:
-            freq_type = risky_problems[0].provided_freq_type
-            freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
-            LOG.warning(f"Irregular frequencies for {nb_risky_problems} problems:\n"
-                        "Irregular frequencies might be encountered "
-                        f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
-                        "Defining a lid for the floating body is recommended."
-                        )
+        if nb_risky_problems >= 1:
+            if any(pb.body.lid_mesh is None for pb in problems):
+                recommendation = "Setting a lid for the floating body is recommended."
+            else:
+                recommendation = "The lid might need to be closer to the free surface."
+            if nb_risky_problems == 1:
+                pb = risky_problems[0]
+                freq_type = risky_problems[0].provided_freq_type
+                freq = pb.__getattribute__(freq_type)
+                LOG.warning(f"Irregular frequencies for {pb}:\n"
+                            f"The body {pb.body.__short_str__()} might display irregular frequencies "
+                            f"for {freq_type}={freq} > .\n"
+                            + recommendation
+                            )
+            elif nb_risky_problems > 1:
+                freq_type = risky_problems[0].provided_freq_type
+                freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
+                LOG.warning(f"Irregular frequencies for {nb_risky_problems} problems:\n"
+                            "Irregular frequencies might be encountered "
+                            f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
+                            + recommendation
+                            )
 
     def fill_dataset(self, dataset, bodies, *, method='indirect', n_jobs=1, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
