@@ -38,6 +38,14 @@ This example runs the same simulation for several water depth and plot the resul
 .. literalinclude:: examples/finite_depth_cylinder.py
    :language: python
 
+
+Irregular frequencies removal
+-----------------------------
+
+.. literalinclude:: examples/irregular_frequency_removal.py
+   :language: python
+
+
 Simulation with several bodies
 ------------------------------
 
