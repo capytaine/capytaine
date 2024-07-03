@@ -72,3 +72,11 @@ def test_lid_multibody():
     def in_crown(x, y):
         return (np.hypot(x, y) < 1.0) | (np.hypot(x, y-5) < 1.0)
     assert all(in_crown(lid_mesh.faces_centers[:, 0], lid_mesh.faces_centers[:, 1]))
+
+
+def test_lid_symmetric_body():
+    mesh = cpt.mesh_vertical_cylinder(radius=1, reflection_symmetry=True).immersed_part()
+    lid_mesh = mesh.generate_lid()
+    def in_crown(x, y):
+        return np.hypot(x, y) < 1.0
+    assert all(in_crown(lid_mesh.faces_centers[:, 0], lid_mesh.faces_centers[:, 1]))

@@ -316,3 +316,6 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
 
     def show_matplotlib(self, *args, **kwargs):
         self.merged().show_matplotlib(*args, **kwargs)
+
+    def generate_lid(self, *args, **kwargs):
+        return self.merged().generate_lid(*args, **kwargs)
