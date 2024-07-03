@@ -21,6 +21,7 @@ Major changes
   Add :meth:`~capytaine.meshes.meshes.Mesh.generate_lid` method to generate
   lids (:pull:`477`) and :meth:`~capytaine.meshes.meshes.Mesh.extract_lid`
   method to extract lids from exernally defined meshes (:pull:`559`).
+  Add a warning to the user if irregular frequencies can be expected (:pull:`564`).
 
 Minor changes
 ~~~~~~~~~~~~~

@@ -1,6 +1,6 @@
 """Floating bodies to be used in radiation-diffraction problems."""
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# Copyright (C) 2017-2024 Matthieu Ancellin
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
 import copy
@@ -12,6 +12,7 @@ import xarray as xr
 
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
+from capytaine.meshes.properties import connected_components, connected_components_of_waterline
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import build_regular_array_of_meshes
 from capytaine.bodies.dofs import RigidBodyDofsPlaceholder
@@ -1096,6 +1097,43 @@ respective inertia coefficients are assigned as NaN.")
             return max(8*self.mesh.faces_radiuses.max(), 8*self.lid_mesh.faces_radiuses.max())
         else:
             return 8*self.mesh.faces_radiuses.max()
+
+    def first_irregular_frequency_estimate(self, *, g=9.81):
+        r"""Estimates the angular frequency of the lowest irregular
+        frequency.
+        This is based on the formula for the lowest irregular frequency of a
+        parallelepiped of size :math:`L \times B` and draft :math:`H`:
+
+        .. math::
+            \omega = \sqrt{
+                        \frac{\pi g \sqrt{\frac{1}{B^2} + \frac{1}{L^2}}}
+                             {\tanh\left(\pi H \sqrt{\frac{1}{B^2} + \frac{1}{L^2}} \right)}
+                     }
+
+        The formula is applied to all shapes to get an estimate that is usually
+        conservative.
+        The definition of a lid (supposed to be fully covering and horizontal)
+        is taken into account.
+        """
+        if self.lid_mesh is None:
+            draft = abs(self.mesh.vertices[:, 2].min())
+        else:
+            draft = abs(self.lid_mesh.vertices[:, 2].min())
+            if draft < 1e-6:
+                return np.inf
+
+        # Look for the x and y span of each components (e.g. for multibody) and
+        # keep the one causing the lowest irregular frequency.
+        # The draft is supposed to be same for all components.
+        omega = np.inf
+        for comp in connected_components(self.mesh):
+            for ccomp in connected_components_of_waterline(comp):
+                x_span = ccomp.vertices[:, 0].max() - ccomp.vertices[:, 0].min()
+                y_span = ccomp.vertices[:, 1].max() - ccomp.vertices[:, 1].min()
+                p = np.hypot(1/x_span, 1/y_span)
+                omega_comp = np.sqrt(np.pi*g*p/(np.tanh(np.pi*draft*p)))
+                omega = min(omega, omega_comp)
+        return omega
 
     def cluster_bodies(*bodies, name=None):
         """

@@ -834,7 +834,7 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         # For lid meshes for irregular frequencies removal
         if np.allclose(self.faces_normals[:, 2], np.ones((self.nb_faces,))):
             # The mesh is horizontal with normal vectors going up
-            LOG.warning(f"Inverting the direction of the normal vectors of {self} to be upward.")
+            LOG.warning(f"Inverting the direction of the normal vectors of {self} to be downward.")
             self.faces = self.faces[:, ::-1]
         else:
             return self

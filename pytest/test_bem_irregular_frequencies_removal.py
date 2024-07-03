@@ -4,6 +4,26 @@ import numpy as np
 import capytaine as cpt
 
 
+def test_irr_freq_warning_no_lid():
+    mesh = cpt.mesh_parallelepiped(size=(1, 1, 1)).immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, lid_mesh=None, dofs=cpt.rigid_body_dofs())
+    assert 6.0 < body.first_irregular_frequency_estimate() < 7.0
+
+
+def test_irr_freq_warning_subsurface_lid():
+    mesh = cpt.mesh_parallelepiped(size=(1, 1, 1)).immersed_part()
+    lid_mesh = cpt.mesh_rectangle(size=(1, 1), center=(0, 0, -0.1))
+    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
+    assert 10.0 < body.first_irregular_frequency_estimate() < 11.0
+
+
+def test_irr_freq_warning_surface_lid():
+    mesh = cpt.mesh_parallelepiped(size=(1, 1, 1)).immersed_part()
+    lid_mesh = cpt.mesh_rectangle(size=(1, 1), center=(0, 0, 0))
+    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
+    assert body.first_irregular_frequency_estimate() == np.inf
+
+
 def test_lid_with_upwards_normals():
     mesh = cpt.mesh_parallelepiped(center=(0.0, 0.0, -0.4)).immersed_part()
     lid_mesh = cpt.mesh_rectangle(size=(1, 1), resolution=(4, 4), center=(0, 0, -0.1), normal=(0, 0, 1))
