@@ -234,8 +234,9 @@ def connected_components(mesh):
 
 
 def connected_components_of_waterline(mesh, z=0.0):
-    clipped_mesh = mesh.immersed_part(free_surface=z)
-    fs_vertices_indices = np.where(np.isclose(clipped_mesh.vertices[:, 2], z))[0]
-    fs_faces_indices = np.where(np.any(np.isin(clipped_mesh.faces, fs_vertices_indices), axis=1))[0]
-    crown_mesh = clipped_mesh.extract_faces(fs_faces_indices)
+    if np.any(mesh.vertices[:, 2] > z + 1e-8):
+        mesh = mesh.immersed_part(free_surface=z)
+    fs_vertices_indices = np.where(np.isclose(mesh.vertices[:, 2], z))[0]
+    fs_faces_indices = np.where(np.any(np.isin(mesh.faces, fs_vertices_indices), axis=1))[0]
+    crown_mesh = mesh.extract_faces(fs_faces_indices)
     return connected_components(crown_mesh)
