@@ -36,7 +36,7 @@ In the present version, a single class is implemented, although it offers many p
 
         import capytaine as cpt
 
-        # Legacy (previous version)
+        # Legacy (versions 1.x)
         gf = cpt.Delhommeau(tabulation_nr=324, tabulation_rmax=100,
                             tabulation_nz=46, tabulation_zmin=-16,
                             tabulation_nb_integration_points=251,
@@ -50,6 +50,13 @@ In the present version, a single class is implemented, although it offers many p
                             tabulation_grid_shape="scaled_nemoh3",
                             gf_singularities="high_freq")
 
+        # Default in Capytaine 2.2
+        gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
+                            tabulation_nz=372, tabulation_zmin=-251,
+                            tabulation_nb_integration_points=1000,
+                            tabulation_grid_shape="scaled_nemoh3",
+                            gf_singularities="low_freq")
+
    In version 2.1, the default numbers of :math:`r` and :math:`z` values have
    been increased to :math:`676` and :math:`372`, respectively. While the range
    of :math:`r` is kept the same, the z range has been extended to
@@ -57,6 +64,12 @@ In the present version, a single class is implemented, although it offers many p
    between the new distribution of points inspired by Nemoh version 3 or the
    :code:`"legacy"` approach. The :code:`tabulation_nb_integration_points`
    controls the accuracy of the precomputed tabulation points themselves.
+
+   In version 2.2, the way singularities are extracted of the infinite depth
+   Green function to be integrated has changed. The ``"low_freq"`` variant is
+   expected to be more accurate at low frequency and near the free surface. The
+   former variant is still available by setting the ``gf_singularities``
+   parameter as in the above example.
 
 The first time it is initialize with a given set of parameters, some tabulated
 data are precomputed and stored on disk.
