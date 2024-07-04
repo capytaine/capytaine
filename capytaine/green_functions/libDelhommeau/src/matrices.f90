@@ -102,7 +102,7 @@ CONTAINS
         IF (I==J .and. same_body) THEN
 
           if (abs(centers_2(j, 3)) < 1e-8) then  ! Panel on the free surface
-            diagonal_coef = -ONE
+            diagonal_coef = ONE
           else
             diagonal_coef = ONE/2
           endif
