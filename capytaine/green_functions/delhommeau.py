@@ -27,7 +27,7 @@ _default_parameters = dict(
     tabulation_grid_shape="scaled_nemoh3",
     finite_depth_prony_decomposition_method="fortran",
     floating_point_precision="float64",
-    gf_singularities="high_freq",
+    gf_singularities="low_freq",
 )
 
 
@@ -80,7 +80,7 @@ class Delhommeau(AbstractGreenFunction):
         Chose of the variant among the ways singularities can be extracted from
         the Green function. Currently only affects the infinite depth Green
         function.
-        Default: "high_freq".
+        Default: "low_freq".
 
     Attributes
     ----------
@@ -384,6 +384,10 @@ class Delhommeau(AbstractGreenFunction):
 
         else:
             raise ValueError(f"Unrecognized first input for {self.__class__.__name__}.evaluate:\n{mesh1}")
+
+        if (np.any(abs(mesh2.faces_centers[:, 2]) < 1e-6)  # free surface panel
+            and self.gf_singularities != "low_freq"):
+            raise NotImplementedError("Free surface panels are only supported for cpt.Delhommeau(..., gf_singularities='low_freq').")
 
         if self.floating_point_precision == "float32":
             dtype = "complex64"
