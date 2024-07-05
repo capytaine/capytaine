@@ -14,8 +14,11 @@ New in next version
 Major changes
 ~~~~~~~~~~~~~
 
-* Add ``lid_mesh`` argument to :class:`~capytaine.bodies.bodies.FloatingBody` for irregular frequencies removal (:pull:`521`).
-  Add :meth:`~capytaine.meshes.meshes.Mesh.extract_lid` method to manipulate lids (:pull:`559`).
+* Add ``lid_mesh`` argument to :class:`~capytaine.bodies.bodies.FloatingBody`
+  for irregular frequencies removal (:pull:`521`).
+  Add :meth:`~capytaine.meshes.meshes.Mesh.generate_lid` method to generate
+  lids (:pull:`477`) and :meth:`~capytaine.meshes.meshes.Mesh.extract_lid`
+  method to extract lids from exernally defined meshes (:pull:`559`).
   Add a warning to the user if irregular frequencies can be expected (:pull:`564`).
 
 * The compiled Fortran extension is not split into a ``Delhommeau`` and a ``XieDelhommeau`` version anymore.

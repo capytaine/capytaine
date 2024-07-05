@@ -341,7 +341,30 @@ also accepts methods from the `Quadpy` package::
 Extracting or generating a lid
 ------------------------------
 
-If you loaded a mesh file already containing a lid on the :math:`z=0` plane, the hull and the lid can be split with the :meth:`~capytaine.meshes.meshes.Mesh.extract_lid` method::
+If you loaded a mesh file already containing a lid on the :math:`z=0` plane,
+the hull and the lid can be split with the
+:meth:`~capytaine.meshes.meshes.Mesh.extract_lid` method::
 
     full_mesh = cpt.load_mesh(...)
     hull_mesh, lid_mesh = full_mesh.extract_lid()
+
+If your mesh does not have a lid, and you'd like to have irregular frequencies
+removal, you can generate a lid using
+:meth:`~capytaine.meshes.meshes.Mesh.generate_lid` as follows::
+
+    lid_mesh = hull_mesh.generate_lid(z=-0.1)
+
+Here the mesh is generated below the free surface, as Capytaine currently
+more robustly supports lid meshes below the free surface although they
+might not totally cancel all irregular frequencies.
+
+An estimate of the lowest position at which the lid can be put for a given
+frequency can be computed as follows::
+
+    lid_mesh = hull_mesh.generate_lid(z=hull_mesh.lowest_lid_position(omega_max=10.0))
+
+The resolution of the lid mesh can be set with the ``faces_max_radius``
+argument. By default, the mean resolution of the hull mesh is used.
+
+See :doc:`body` for detail on how to assign a lid mesh when defining a floating
+body.
