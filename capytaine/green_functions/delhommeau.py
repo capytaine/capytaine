@@ -27,7 +27,7 @@ _default_parameters = dict(
     tabulation_grid_shape="scaled_nemoh3",
     finite_depth_prony_decomposition_method="fortran",
     floating_point_precision="float64",
-    gf_singularities="high_freq",
+    gf_singularities="low_freq",
 )
 
 
@@ -80,7 +80,7 @@ class Delhommeau(AbstractGreenFunction):
         Chose of the variant among the ways singularities can be extracted from
         the Green function. Currently only affects the infinite depth Green
         function.
-        Default: "high_freq".
+        Default: "low_freq".
 
     Attributes
     ----------

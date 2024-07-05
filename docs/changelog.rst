@@ -14,11 +14,19 @@ New in next version
 Major changes
 ~~~~~~~~~~~~~
 
-* Experimental support for panels on the free surface. (:pull:`419`)
-
 * Add ``lid_mesh`` argument to :class:`~capytaine.bodies.bodies.FloatingBody` for irregular frequencies removal (:pull:`521`).
   Add :meth:`~capytaine.meshes.meshes.Mesh.extract_lid` method to manipulate lids (:pull:`559`).
   Add a warning to the user if irregular frequencies can be expected (:pull:`564`).
+
+* The compiled Fortran extension is not split into a ``Delhommeau`` and a ``XieDelhommeau`` version anymore.
+  The same effect is now achieved by the run-time parameter ``gf_singularities`` of the class :class:`~capytaine.green_functions.delhommeau.Delhommeau` (:pull:`475`).
+  (The class :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is kept for backward compatibility.).
+  The new default method in infinite depth is ``gf_singularities="low_freq"`` (formerly ``XieDelhommeau``) instead of ``gf_singularities="high_freq"``.
+  The new one is expected to be more accurate near the surface and at low frequency (:pull:`566`)
+  The finite depth Green function is always computed using the ``low_freq`` variant, so the ``gf_singularities`` parameter has no effect in finite depth. (:pull:`507`).
+  The tabulation stores the data of both variants and is thus slightly longer to initialize and slightly larger to store in memory (:pull:`543`).
+
+* Experimental support for panels on the free surface, when using ``gf_singularities="low_freq"``.  (:pull:`419`)
 
 Minor changes
 ~~~~~~~~~~~~~
@@ -26,11 +34,6 @@ Minor changes
 * Remove mesh resolution warning when the frequency is infinite (or the wavelength is zero) (:pull:`511`).
 
 * When computing without a tabulation (``tabulation_nr=0`` or ``tabulation_nz=0``), the value of ``tabulation_nb_integration_points`` is actually used to compute Guével-Delhommeau exact formulation of the Green function. Previously, it was only used when precomputing a tabulation (:pull:`514`).
-
-* The compiled Fortran extension is not split into a ``Delhommeau`` and a ``XieDelhommeau`` version anymore.
-  The computation of the latter can be achieved by the run-time parameter ``gf_singularities`` of the class :class:`~capytaine.green_functions.delhommeau.Delhommeau` class. The class :class:`~capytaine.green_functions.delhommeau.XieDelhommeau` is kept for backward compatibility (:pull:`475`).
-  The finite depth Green function is always computed using the ``low_freq`` infinite water depth, so the ``gf_singularities`` parameter has no effect in finite depth. (:pull:`507`).
-  The tabulation stores the data of both variants and is thus slightly longer to initialize and slightly larger to store in memory (:pull:`543`).
 
 * Add a new variant of the Green function integration ``gf_singularities="low_freq_with_rankine_part"`` as an experimental more accurate version of the ``low_freq`` variant (:pull:`510`).
 
