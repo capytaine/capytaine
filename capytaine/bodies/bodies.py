@@ -287,7 +287,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         """Returns volume of the FloatingBody."""
         return self.mesh.volume
 
-    def disp_mass(self, *, rho=1000):
+    def disp_mass(self, *, rho=1000.0):
         return self.mesh.disp_mass(rho=rho)
 
     @property
@@ -556,7 +556,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         K = hs_set.hydrostatic_stiffness.sel(influenced_dof=list(self.dofs.keys()), radiating_dof=list(self.dofs.keys()))
         return K
 
-    def compute_rigid_body_inertia(self, *, rho=1000, output_type="body_dofs"):
+    def compute_rigid_body_inertia(self, *, rho=1000.0, output_type="body_dofs"):
         """
         Inertia Mass matrix of the body for 6 rigid DOFs.
 
