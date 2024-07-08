@@ -107,7 +107,8 @@ html_theme = 'alabaster'
 html_theme_options = {
       'github_user': 'capytaine',
       'github_repo': 'capytaine',
-      'github_type': 'star',
+      'github_banner': 'false',  # "Fork me on Github" banner
+      'github_button': 'false',  # Button with e.g. stars number
       'logo_name': "Capytaine",
       'description': "a Python-based linear potential flow BEM solver",
       }
