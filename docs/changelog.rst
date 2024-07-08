@@ -60,6 +60,8 @@ Bug fixes
 
 * Fix issue due to breaking change in linear solver broadcasting in Numpy 2.0 (:issue:`550`).
 
+* Remove warning mentioning missing divergence for rigid body dofs when computing hydrostatics (:pull:`487` and :pull:`570`)
+
 Internals
 ~~~~~~~~~
 
