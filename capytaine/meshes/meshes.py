@@ -762,8 +762,7 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
 
     def generate_lid(self, z=0.0, faces_max_radius=None):
         """
-        Create internal free surface lid based on rectangular mesh
-        The body is updated into double body with internal mesh
+        Return a mesh of the internal free surface of the body.
 
         Parameters
         ----------
