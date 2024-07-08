@@ -762,8 +762,7 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
 
     def generate_lid(self, z=0.0, faces_max_radius=None):
         """
-        Create internal free surface lid based on rectangular mesh
-        The body is updated into double body with internal mesh
+        Return a mesh of the internal free surface of the body.
 
         Parameters
         ----------
@@ -849,6 +848,20 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
                 )
 
     def extract_lid(self, plane=xOy_Plane):
+        """
+        Split the mesh into a mesh of the hull and a mesh of the lid.
+        By default, the lid is composed of the horizontal faces on the z=0 plane.
+
+        Parameters
+        ----------
+        plane: Plane
+            The plane on which to look for lid faces.
+
+        Returns
+        -------
+        2-ple of Mesh
+            hull mesh and lid mesh
+        """
         faces_on_plane = [i_face for i_face in range(self.nb_faces) if self._face_on_plane(i_face, plane)]
         lid_mesh = self.extract_faces(faces_on_plane)
         hull_mesh = self.extract_faces(list(set(range(self.nb_faces)) - set(faces_on_plane)))

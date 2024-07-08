@@ -7,14 +7,15 @@ Changelog
    :depth: 1
    :backlinks: none
 
--------------------
-New in next version
--------------------
+-------------------------------
+New in version 2.2 (2024-07-08)
+-------------------------------
 
 Major changes
 ~~~~~~~~~~~~~
 
-* Add ``lid_mesh`` argument to :class:`~capytaine.bodies.bodies.FloatingBody`
+* **New feature: lid-based irregular frequencies removal**.
+  Add ``lid_mesh`` argument to :class:`~capytaine.bodies.bodies.FloatingBody`
   for irregular frequencies removal (:pull:`521`).
   Add :meth:`~capytaine.meshes.meshes.Mesh.generate_lid` method to generate
   lids (:pull:`477`) and :meth:`~capytaine.meshes.meshes.Mesh.extract_lid`
