@@ -532,7 +532,9 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             raise AttributeError("Cannot compute hydrostatics stiffness on {} since no dof has been defined.".format(self.name))
 
         def divergence_dof(influenced_dof):
-            if divergence is None:
+            if influenced_dof.lower() in [*TRANSLATION_DOFS_DIRECTIONS, *ROTATION_DOFS_AXIS]:
+                return 0.0  # Dummy value that is not actually used afterwards.
+            elif divergence is None:
                 return 0.0
             elif isinstance(divergence, dict) and influenced_dof in divergence.keys():
                 return divergence[influenced_dof]
@@ -646,8 +648,8 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
 
         if output_type == "body_dofs":
             if len(non_rigid_dofs) > 0:
-                LOG.warning(f"Non-rigid dofs: {non_rigid_dofs} are detected and \
-respective inertia coefficients are assigned as NaN.")
+                LOG.warning(f"Non-rigid dofs {non_rigid_dofs} detected: their \
+inertia coefficients are assigned as NaN.")
 
             inertia_matrix_xr = total_mass_xr.sel(influenced_dof=body_dof_names,
                                                   radiating_dof=body_dof_names)
