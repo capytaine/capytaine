@@ -76,7 +76,11 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             raise TypeError("Unrecognized `mesh` object passed to the FloatingBody constructor.")
 
         if lid_mesh is not None:
-            self.lid_mesh = lid_mesh.with_normal_vector_going_down(inplace=False)
+            if lid_mesh.nb_faces == 0:
+                LOG.warning("Lid mesh %s provided for body initialization is empty. The lid mesh is ignored.", lid_mesh)
+                self.lid_mesh = None
+            else:
+                self.lid_mesh = lid_mesh.with_normal_vector_going_down(inplace=False)
         else:
             self.lid_mesh = None
 
@@ -996,6 +1000,9 @@ respective inertia coefficients are assigned as NaN.")
         self.mesh.clip(plane)
         if self.lid_mesh is not None:
             self.lid_mesh.clip(plane)
+            if self.lid_mesh.nb_faces == 0:
+                LOG.warning("Lid mesh %s is empty after clipping. The lid mesh is removed.", self.lid_mesh)
+                self.lid_mesh = None
 
         # Clip dofs
         ids = self.mesh._clipping_data['faces_ids']

@@ -94,3 +94,18 @@ def test_lid_immersed_part():
     lid_mesh = mesh.generate_lid(z=0.0)
     assert lid_mesh.immersed_part().nb_faces > 0
     assert lid_mesh.immersed_part() == lid_mesh
+
+
+def test_clipped_lid_above_the_free_surface():
+    mesh = cpt.mesh_vertical_cylinder(radius=1.0).immersed_part()
+    lid_mesh = mesh.generate_lid(z=0.5).immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh)
+    assert body.lid_mesh is None
+
+
+def test_clipped_lid_above_the_free_surface__():
+    mesh = cpt.mesh_vertical_cylinder(radius=1.0).immersed_part()
+    lid_mesh = mesh.generate_lid(z=0.5)
+    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh)
+    body = body.immersed_part()
+    assert body.lid_mesh is None
