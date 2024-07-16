@@ -7,6 +7,17 @@ Changelog
    :depth: 1
    :backlinks: none
 
+-------------------
+New in next version
+-------------------
+
+Bug fixes
+~~~~~~~~~
+
+* Lid meshes on the free surface do not cause errors when clipped.
+  Also empty lid meshes are properly handled when initializing or clipping a mesh
+  (:issue:`573` and :pull:`575`).
+
 -------------------------------
 New in version 2.2 (2024-07-08)
 -------------------------------
