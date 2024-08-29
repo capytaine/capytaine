@@ -721,6 +721,7 @@ def load_GDF(filename, name=None):
         npan = int(gdf_file.readline().split()[0])
         faces_vertices = np.genfromtxt(gdf_file)
 
+    faces_vertices = faces_vertices.reshape(-1, 3)
     vertices, indices = np.unique(faces_vertices, axis=0, return_inverse=True)
     faces = indices.reshape(-1, 4)
 
