@@ -265,7 +265,7 @@ The results can be gathered together as follow::
 
 The new object is a NetCDF-like dataset from the xarray package. It is storing the added mass and
 radiation damping from the result objects in an organized way. In our example, it is basically two
-7×7 matrices. The matrices can be accessed for instance in the following way::
+6×6 matrices. The matrices can be accessed for instance in the following way::
 
     dataset['added_mass'].sel(radiating_dof=["Surge", "Heave"], influenced_dof=["Surge", "Heave"], omega=1.0)
 
