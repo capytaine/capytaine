@@ -18,6 +18,10 @@ Bug fixes
   Also empty lid meshes are properly handled when initializing or clipping a mesh
   (:issue:`573` and :pull:`575`).
 
+* GDF meshes are accepted in the alternate format now.
+  Meshes files can list points in either 3 x 4*nPanels or a 12 x nPanels format.
+  (:issue:`540` and :pull:`585`).
+
 -------------------------------
 New in version 2.2 (2024-07-08)
 -------------------------------
