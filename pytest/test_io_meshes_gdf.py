@@ -34,7 +34,6 @@ def test_gdf_no_symmetry():
     assert mesh.nb_faces == 2
 
 
-@pytest.mark.xfail # See https://github.com/capytaine/capytaine/issues/540
 def test_gdf_no_symmetry_alternative_format():
     mesh = parse_gdf("""Mesh description
         1.0  9.81
