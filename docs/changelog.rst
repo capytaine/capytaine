@@ -22,6 +22,12 @@ Bug fixes
   Meshes files can list points in either 3 x 4*nPanels or a 12 x nPanels format.
   (:issue:`540` and :pull:`585`).
 
+* When filling a test matrix with both diffraction problems and radiation
+  problems, zero and infinite frequencies can now be provided. (Previously, the
+  computation was failing because these frequencies are not defined for
+  diffraction problems.) (:pull:`587`)
+
+
 -------------------------------
 New in version 2.2 (2024-07-08)
 -------------------------------
