@@ -120,10 +120,11 @@ def problems_from_dataset(dataset: xr.Dataset,
                 )
             elif freq in {0.0, np.inf} and radiating_dofs is not None:
                 # Diffraction problems are not defined for 0 and infinite frequency.
-                # But we don't want the computation to fail, as these frequencies are there for the radiation problems.
+                # But we don't want the whole batch to fail, as these frequencies are there for the radiation problems.
+                # The excitation force will be NaN for these frequencies in the resulting dataset.
                 pass
             else:
-                raise ValueError("Zero and infinite frequencies are not defined when solving diffraction problems.")
+                raise ValueError("Zero and infinite frequencies are not defined when solving only diffraction problems.")
 
     if radiating_dofs is not None:
         for freq, radiating_dof, water_depth, body_name, forward_speed, rho, g \

@@ -117,17 +117,26 @@ def test_no_warning_mesh_resolution_at_zero_wavelength(sphere, caplog):
     assert "resolution " not in caplog.text
 
 
-def test_dataset_with_zero_frequency():
-    body = cpt.FloatingBody(mesh=cpt.mesh_parallelepiped().immersed_part(), dofs=cpt.rigid_body_dofs())
+def test_dataset_with_zero_frequency_including_radiation_and_diffraction(sphere):
     test_matrix = xr.Dataset(coords={
         'omega': [0.0, 1.0, np.inf],
         'wave_direction': [0.0],
-        'radiating_dof': list(body.dofs),
+        'radiating_dof': list(sphere.dofs),
     })
     solver = cpt.BEMSolver()
-    ds = solver.fill_dataset(test_matrix, body)
+    ds = solver.fill_dataset(test_matrix, sphere)
     assert np.all(np.isnan(ds.diffraction_force.sel(omega=0.0)))
     assert not np.any(np.isnan(ds.diffraction_force.sel(omega=1.0)))
     assert np.all(np.isnan(ds.diffraction_force.sel(omega=np.inf)))
     assert not np.any(np.isnan(ds.added_mass))
     assert not np.any(np.isnan(ds.radiation_damping))
+
+
+def test_dataset_with_zero_frequency_diffraction_only(sphere):
+    test_matrix = xr.Dataset(coords={
+        'omega': [0.0, 1.0, np.inf],
+        'wave_direction': [0.0, np.pi],
+    })
+    solver = cpt.BEMSolver()
+    with pytest.raises(ValueError):
+        solver.fill_dataset(test_matrix, sphere)
