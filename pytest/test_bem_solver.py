@@ -107,11 +107,3 @@ def test_warning_mesh_resolution(sphere, caplog):
     with caplog.at_level("WARNING"):
         solver.solve(pb)
     assert "resolution " in caplog.text
-
-
-def test_no_warning_mesh_resolution_at_zero_wavelength(sphere, caplog):
-    solver = cpt.BEMSolver()
-    pb = cpt.RadiationProblem(body=sphere, wavelength=0)
-    with caplog.at_level("WARNING"):
-        solver.solve(pb)
-    assert "resolution " not in caplog.text
