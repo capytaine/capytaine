@@ -97,9 +97,9 @@ class SymbolicMultiplication:
 
     def __float__(self):
         if self.symbol == "0":
-            return 0.0 * self.value
+            return 0.0 * float(self.value)
         elif self.symbol == "∞":
-            return np.inf * self.value
+            return np.inf * float(self.value)
         else:
             raise NotImplementedError
 

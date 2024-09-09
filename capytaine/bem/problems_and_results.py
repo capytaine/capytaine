@@ -529,7 +529,7 @@ class RadiationResult(LinearPotentialFlowResult):
 
     @property
     def radiation_damping(self):
-        if float(self.encounter_omega) in {0.0, np.inf}:
+        if float(self.encounter_omega) in {0.0, np.inf} and self.forward_speed == 0.0:
             return {dof: 0.0 for dof in self.forces.keys()}
         else:
             return {dof: float(np.imag(force)/self.encounter_omega) for (dof, force) in self.forces.items()}
