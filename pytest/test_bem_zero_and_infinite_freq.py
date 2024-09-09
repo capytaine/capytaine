@@ -30,6 +30,14 @@ def test_limit_frequencies(sphere):
         solver.solve(cpt.RadiationProblem(body=sphere, omega=np.inf, water_depth=10))
 
 
+def test_radiation_damping_value(sphere):
+    solver = cpt.BEMSolver()
+    res = solver.solve(cpt.RadiationProblem(body=sphere, omega=0.0, water_depth=np.inf))
+    assert res.radiation_damping['Surge'] == 0.0
+    res = solver.solve(cpt.RadiationProblem(body=sphere, omega=np.inf, water_depth=np.inf))
+    assert res.radiation_damping['Surge'] == 0.0
+
+
 def test_limit_frequencies_with_symmetries():
     mesh = cpt.mesh_parallelepiped(reflection_symmetry=True).immersed_part()
     body = cpt.FloatingBody(mesh=mesh)
