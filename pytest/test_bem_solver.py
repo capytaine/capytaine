@@ -115,3 +115,19 @@ def test_no_warning_mesh_resolution_at_zero_wavelength(sphere, caplog):
     with caplog.at_level("WARNING"):
         solver.solve(pb)
     assert "resolution " not in caplog.text
+
+
+def test_dataset_with_zero_frequency():
+    body = cpt.FloatingBody(mesh=cpt.mesh_parallelepiped().immersed_part(), dofs=cpt.rigid_body_dofs())
+    test_matrix = xr.Dataset(coords={
+        'omega': [0.0, 1.0, np.inf],
+        'wave_direction': [0.0],
+        'radiating_dof': list(body.dofs),
+    })
+    solver = cpt.BEMSolver()
+    ds = solver.fill_dataset(test_matrix, body)
+    assert np.all(np.isnan(ds.diffraction_force.sel(omega=0.0)))
+    assert not np.any(np.isnan(ds.diffraction_force.sel(omega=1.0)))
+    assert np.all(np.isnan(ds.diffraction_force.sel(omega=np.inf)))
+    assert not np.any(np.isnan(ds.added_mass))
+    assert not np.any(np.isnan(ds.radiation_damping))
