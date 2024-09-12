@@ -27,6 +27,9 @@ Bug fixes
   computation was failing because these frequencies are not defined for
   diffraction problems.) (:pull:`587`)
 
+* Radiation damping at infinite frequency is now zero instead of infinity.
+  When forward speed is non-zero, added mass and radiation dampings at zero encounter frequency is NaN.
+  (:pull:`588`)
 
 -------------------------------
 New in version 2.2 (2024-07-08)
