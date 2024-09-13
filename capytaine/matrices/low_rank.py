@@ -318,7 +318,7 @@ class LowRankMatrix:
         else:
             return self.left_matrix @ self.right_matrix
 
-    def __array__(self, dtype=None, copy=None):
+    def __array__(self, dtype=None, copy=True):
         if not copy:
             raise ValueError("Making an ndarray out of a BlockMatrix requires copy")
         return self.full_matrix(dtype=dtype)
