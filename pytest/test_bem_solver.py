@@ -48,6 +48,18 @@ def test_direct_solver(sphere):
     assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-1)
 
 
+@pytest.mark.parametrize("method", ["direct", "indirect"])
+def test_same_result_with_symmetries(method):
+    solver = cpt.BEMSolver()
+    sym_mesh = cpt.ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), cpt.xOz_Plane)
+    sym_body = cpt.FloatingBody(mesh=sym_mesh, dofs=cpt.rigid_body_dofs())
+    sym_result = solver.solve(cpt.DiffractionProblem(body=sym_body, omega=1.0), method=method)
+    mesh = sym_mesh.merged()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    result = solver.solve(cpt.DiffractionProblem(body=body, omega=1.0), method=method)
+    assert sym_result.forces["Surge"] == pytest.approx(result.forces["Surge"], rel=1e-10)
+
+
 def test_parallelization(sphere):
     pytest.importorskip("joblib")
     solver = cpt.BEMSolver()
