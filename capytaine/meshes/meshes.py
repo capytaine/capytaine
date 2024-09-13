@@ -470,8 +470,9 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         Other parameters are passed to Poly3DCollection.
         """
         matplotlib = import_optional_dependency("matplotlib")
-        plt = matplotlib.pyplot
-        cm = matplotlib.cm
+        import importlib
+        plt = importlib.import_module("matplotlib.pyplot")
+        cm = importlib.import_module("matplotlib.cm")
 
         mpl_toolkits = import_optional_dependency("mpl_toolkits", package_name="matplotlib")
         Poly3DCollection = mpl_toolkits.mplot3d.art3d.Poly3DCollection

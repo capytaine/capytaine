@@ -31,7 +31,10 @@ Bug fixes
   When forward speed is non-zero, added mass and radiation dampings at zero encounter frequency is NaN.
   (:pull:`588`)
 
+* User does not need to import `pyplot` themself before running `show_matplotlib()` (:pull:`592`)
+
 * Fixes usage of ``ReflectionSymmetricMesh`` with direct solver (:issue:`593` and :pull:`594`).
+
 
 -------------------------------
 New in version 2.2 (2024-07-08)
