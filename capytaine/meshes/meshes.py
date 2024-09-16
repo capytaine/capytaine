@@ -809,7 +809,8 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         # edges_of_hull_faces.shape = (nb_full_faces, 4, 2)
         lid_points_in_local_coords = candidate_lid_points[:, np.newaxis, np.newaxis, :] - hull_faces[:, :, :]
         # lid_points_in_local_coords.shape = (nb_candidate_lid_points, nb_full_faces, 4, 2)
-        side_of_hull_edges = np.cross(lid_points_in_local_coords, edges_of_hull_faces)
+        side_of_hull_edges = (lid_points_in_local_coords[..., 0] * edges_of_hull_faces[..., 1]
+                             - lid_points_in_local_coords[..., 1] * edges_of_hull_faces[..., 0])
         # side_of_hull_edges.shape = (nb_candidate_lid_points, nb_full_faces, 4)
         point_is_above_panel = np.all(side_of_hull_edges <= 0, axis=-1) | np.all(side_of_hull_edges >= 0, axis=-1)
         # point_is_above_panel.shape = (nb_candidate_lid_points, nb_full_faces)
