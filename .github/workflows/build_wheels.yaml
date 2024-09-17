@@ -15,8 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # os: [ubuntu-20.04, macos-12, macos-14, windows-2019]
-        os: [ubuntu-20.04, macos-14, windows-2019]
+        os: [ubuntu-20.04, macos-12, macos-14, windows-2019]
             # MacOS<=13 are Intel, while MacOS 14 is Apple Silicon
 
     steps:
@@ -31,7 +30,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.1
         env:
-          CIBW_SKIP: "pp* *i686* *musllinux* *win32*"
+          CIBW_SKIP: "pp* *i686* *musllinux* *win32* cp38-macosx*"
         # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
         # delvewheel cannot mangle the libraries, stripping does not work.
           CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
