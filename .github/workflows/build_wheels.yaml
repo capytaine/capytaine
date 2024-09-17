@@ -45,14 +45,14 @@ jobs:
         if: matrix.os == 'macos-14'
         uses: pypa/cibuildwheel@v2.21.1
         env:
-          CIBW_SKIP: "pp*"
+          CIBW_SKIP: "pp* cp313*"
           CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=14.0
 
       - name: Build wheels
         if: matrix.os == 'windows-2019'
         uses: pypa/cibuildwheel@v2.21.1
         env:
-          CIBW_SKIP: "pp* *win32*"
+          CIBW_SKIP: "pp* cp313* *win32*"
           CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel show {wheel} && delvewheel repair -w {dest_dir} {wheel} --no-mangle-all"
           # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
