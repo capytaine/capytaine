@@ -44,7 +44,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Set up nox
-      uses: wntrblm/nox@2024.03.02
+      uses: wntrblm/nox@2024.04.15
 
     - name: Run nox session
       run: nox -s build_and_test_on_locked_env
