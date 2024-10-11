@@ -83,8 +83,9 @@ class BEMSolver:
         keep_details: bool, optional
             if True, store the sources and the potential on the floating body in the output object
             (default: True)
-        _check_wavelength: bool, optional
-            if True, check the mesh resolution with respect to the wavelength
+        _check_wavelength: bool, optional (default: True)
+            If True, the frequencies are compared to the mesh resolution and
+            the estimated first irregular frequency to warn the user.
 
         Returns
         -------
@@ -159,6 +160,9 @@ class BEMSolver:
             By defaults: do not use joblib and solve sequentially.
         progress_bar: bool, optional (default: True)
             Display a progress bar while solving
+        _check_wavelength: bool, optional (default: True)
+            If True, the frequencies are compared to the mesh resolution and
+            the estimated first irregular frequency to warn the user.
 
         Returns
         -------
@@ -192,6 +196,7 @@ class BEMSolver:
     def _check_wavelength_and_mesh_resolution(problems):
         """Display a warning if some of the problems have a mesh resolution
         that might not be sufficient for the given wavelength."""
+        LOG.debug("Check wavelength with mesh resolution.")
         risky_problems = [pb for pb in problems
                           if 0.0 < pb.wavelength < pb.body.minimal_computable_wavelength]
         nb_risky_problems = len(risky_problems)
@@ -218,8 +223,9 @@ class BEMSolver:
     @staticmethod
     def _check_wavelength_and_irregular_frequencies(problems):
         """Display a warning if some of the problems might encounter irregular frequencies."""
+        LOG.debug("Check wavelength with estimated irregular frequency.")
         risky_problems = [pb for pb in problems
-                          if pb.body.first_irregular_frequency_estimate() < pb.omega < np.inf]
+                          if pb.body.first_irregular_frequency_estimate(g=pb.g) < pb.omega < np.inf]
         nb_risky_problems = len(risky_problems)
         if nb_risky_problems >= 1:
             if any(pb.body.lid_mesh is None for pb in problems):
@@ -244,7 +250,7 @@ class BEMSolver:
                             + recommendation
                             )
 
-    def fill_dataset(self, dataset, bodies, *, method='indirect', n_jobs=1, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, method='indirect', n_jobs=1, _check_wavelength=True, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -261,6 +267,9 @@ class BEMSolver:
             By defaults: do not use joblib and solve sequentially.
         progress_bar: bool, optional (default: True)
             Display a progress bar while solving
+        _check_wavelength: bool, optional (default: True)
+            If True, the frequencies are compared to the mesh resolution and
+            the estimated first irregular frequency to warn the user.
 
         Returns
         -------
@@ -270,12 +279,12 @@ class BEMSolver:
                  **self.exportable_settings}
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
-            results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs)
+            results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength)
             kochin = kochin_data_array(results, dataset.coords['theta'])
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
             dataset.update(kochin)
         else:
-            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs)
+            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 
