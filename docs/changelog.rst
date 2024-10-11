@@ -35,6 +35,11 @@ Bug fixes
 
 * Fixes usage of ``ReflectionSymmetricMesh`` with direct solver (:issue:`593` and :pull:`594`).
 
+* Do not recompute the same
+  :meth:`~capytaine.bodies.bodies.FloatingBody.first_irregular_frequency_estimate``
+  for the same body several times.
+  Also better expose the ``_check_wavelength`` option to skip wavelength check,
+  including irregular frequency estimation. (:issue:`601` and :pull:`602`).
 
 -------------------------------
 New in version 2.2 (2024-07-08)
