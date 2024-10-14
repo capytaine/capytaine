@@ -243,6 +243,8 @@ def clustering(faces: NDArray[np.integer]) -> list[NDArray[np.integer]]:
         while not np.allclose(new:=faces_in_group(remaining_faces, group), rem_mask):
             group = np.unique(remaining_faces[new])
             rem_mask = new
+        else:
+            group = np.unique(remaining_faces[new])
         vert_groups.append(group)
         # Identify faces that have no vertices in current groups
         mask = ~reduce(np.logical_or, [faces_in_group(faces, group) for group in vert_groups])
