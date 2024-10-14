@@ -201,7 +201,7 @@ def compute_connectivity(mesh):
             'f_f': f_f,
             'boundaries': boundaries}
 
-def faces_in_group(faces: NDArray[np.integer], group: NDArray[np.integer]) -> NDArray[np.bool]:
+def faces_in_group(faces: NDArray[np.integer], group: NDArray[np.integer]) -> NDArray[np.bool_]:
     """Identification of faces with vertices within group.
 
     Parameters
