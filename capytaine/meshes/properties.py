@@ -5,6 +5,7 @@ Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 from functools import reduce
+from itertools import chain
 import numpy as np
 from numpy.typing import NDArray
 
@@ -200,23 +201,36 @@ def compute_connectivity(mesh):
             'f_f': f_f,
             'boundaries': boundaries}
 
+def faces_in_group(faces: NDArray[np.integer], group: NDArray[np.integer]) -> NDArray[np.bool]:
+    """Identification of faces with vertices within group.
+
+    Parameters
+    ----------
+    faces : NDArray[np.integer]
+        Mesh faces. Expecting a numpy array of shape N_faces x N_vertices_per_face.
+    group : NDArray[np.integer]
+        Group of connected vertices
+
+    Returns
+    -------
+    NDArray[np.bool]
+        Mask of faces containing vertices from the group
+    """
+    return np.any(np.isin(faces, group), axis=1)
+
 def clustering(faces: NDArray[np.integer]) -> list[NDArray[np.integer]]:
     """Clustering of vertices per connected faces.
 
     Parameters
     ----------
     faces : NDArray[np.integer]
-        List of faces. Expecting a numpy array of shape N_faces x N_vertices_per_face.
+        Mesh faces. Expecting a numpy array of shape N_faces x N_vertices_per_face.
 
     Returns
     -------
     list[NDArray[np.integer]]
         Groups of connected vertices.
     """
-    def faces_in_group(faces:NDArray[np.integer], group:NDArray[np.integer]) -> NDArray[np.bool]:
-        """Identification of faces with vertices within group."""
-        return np.any(np.isin(faces, group), axis=1)
-
     vert_groups: list[NDArray[np.integer]] = []
     mask = np.ones(faces.shape[0], dtype=bool)
     while np.any(mask):
@@ -239,32 +253,13 @@ def connected_components(mesh):
     """Returns a list of meshes that each corresponds to the a connected component in the original mesh.
     Assumes the mesh is mostly conformal without duplicate vertices.
     """
-    from typing import Set, FrozenSet, List
-
-    vertices_components: Set[FrozenSet[int]] = set()
-    for set_of_v_in_face in map(frozenset, mesh.faces):
-        intersecting_components = [c for c in vertices_components if len(c.intersection(set_of_v_in_face)) > 0]
-        if len(intersecting_components) == 0:
-            vertices_components.add(set_of_v_in_face)
-        else:
-            for c in intersecting_components:
-                vertices_components.remove(c)
-            vertices_components.add(frozenset.union(set_of_v_in_face, *intersecting_components))
-
+    # Get connected vertices
+    vertices_components = clustering(mesh.faces)
     # Verification
-    for component in vertices_components:
-        assert all(len(component.intersection(c)) == 0 for c in vertices_components if c != component)
-
+    if sum(len(group) for group in vertices_components) != len(set(chain.from_iterable(vertices_components))):
+        raise ValueError("Error in connected components clustering. Some elements are duplicated")
     # The components are found. The rest is just about retrieving the faces in each components.
-    vertices_components: List[FrozenSet[int]] = list(vertices_components)
-    faces_components: List[List[int]] = [[] for _ in vertices_components]
-    for i_face, v_in_face in enumerate(mesh.faces):
-        for i_component, v_c in enumerate(vertices_components):
-            if any(v in v_c for v in v_in_face):
-                assert all(v in v_c for v in v_in_face)
-                faces_components[i_component].append(i_face)
-                break
-
+    faces_components = [np.argwhere(faces_in_group(mesh.faces, group)) for group in vertices_components]
     components = [mesh.extract_faces(f) for f in faces_components]
     return components
 
