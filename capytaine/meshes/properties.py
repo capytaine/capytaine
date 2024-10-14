@@ -4,7 +4,9 @@ Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 # Copyright (C) 2017-2019 Matthieu Ancellin, based on the work of François Rongère
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
+from functools import reduce
 import numpy as np
+from numpy.typing import NDArray
 
 
 def compute_faces_properties(mesh):
@@ -197,6 +199,40 @@ def compute_connectivity(mesh):
             'v_f': v_f,
             'f_f': f_f,
             'boundaries': boundaries}
+
+def clustering(faces: NDArray[np.integer]) -> list[NDArray[np.integer]]:
+    """Clustering of vertices per connected faces.
+
+    Parameters
+    ----------
+    faces : NDArray[np.integer]
+        List of faces. Expecting a numpy array of shape N_faces x N_vertices_per_face.
+
+    Returns
+    -------
+    list[NDArray[np.integer]]
+        Groups of connected vertices.
+    """
+    def faces_in_group(faces:NDArray[np.integer], group:NDArray[np.integer]) -> NDArray[np.bool]:
+        """Identification of faces with vertices within group."""
+        return np.any(np.isin(faces, group), axis=1)
+
+    vert_groups: list[NDArray[np.integer]] = []
+    mask = np.ones(faces.shape[0], dtype=bool)
+    while np.any(mask):
+        # Consider faces whose vertices are not already identified in a group.
+        # Start new group by considering first face
+        remaining_faces = faces[mask]
+        group = remaining_faces[0]
+        rem_mask = np.ones(remaining_faces.shape[0], dtype=bool)
+        # Iterative update of vertices group. Output final result to frozenset
+        while not np.allclose(new:=faces_in_group(remaining_faces, group), rem_mask):
+            group = np.unique(remaining_faces[new])
+            rem_mask = new
+        vert_groups.append(group)
+        # Identify faces that have no vertices in current groups
+        mask = ~reduce(np.logical_or, [faces_in_group(faces, group) for group in vert_groups])
+    return vert_groups
 
 
 def connected_components(mesh):
