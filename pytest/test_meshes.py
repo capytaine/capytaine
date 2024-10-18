@@ -4,9 +4,10 @@ import pytest
 
 import numpy as np
 from numpy.linalg import norm
+from numpy.typing import NDArray
 
 import capytaine as cpt
-
+from capytaine.meshes.properties import clustering
 
 RNG = np.random.default_rng()
 
@@ -314,3 +315,27 @@ def test_extract_lid():
     hull_mesh, lid_mesh = mesh.extract_lid()
     assert lid_mesh.nb_faces == 2*8
 
+
+###################################
+#  Connected vertices clustering  #
+###################################
+
+@pytest.mark.parametrize("faces", [
+    np.array([[1, 2], [1, 3], [2, 3], [4, 5], [5, 6], [7, 8], [3, 9]]),
+    np.array([[0, 1, 2, 3], [1, 2, 6, 7]]),
+])
+def test_vertice_clustering(faces: NDArray[np.integer]):
+    """Test the clustering algorithm for connected faces & vertices."""
+    # Legacy way to cluster
+    vertices_components: set[frozenset[int]] = set()
+    for set_of_v_in_face in map(frozenset, faces):
+        intersecting_components = [c for c in vertices_components if len(c.intersection(set_of_v_in_face)) > 0]
+        if len(intersecting_components) == 0:
+            vertices_components.add(set_of_v_in_face)
+        else:
+            for c in intersecting_components:
+                vertices_components.remove(c)
+            vertices_components.add(frozenset.union(set_of_v_in_face, *intersecting_components))
+    # Vectorized clustering
+    vert_groups = clustering(faces)
+    assert {frozenset({*group}) for group in vert_groups} == vertices_components

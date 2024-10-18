@@ -11,6 +11,11 @@ Changelog
 New in next version
 -------------------
 
+Minor change
+~~~~~~~~~~~~
+
+* More efficient implementation of the mesh connected-component clustering algorithm (:pull:`603`).
+
 Bug fixes
 ~~~~~~~~~
 
