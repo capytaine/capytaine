@@ -32,4 +32,4 @@ jobs:
       uses: wntrblm/nox@2024.03.02
 
     - name: Run nox session
-      run: nox -s build_and_test_on_latest_env editable_build_and_test_on_latest_env
+      run: nox --force-python ${{ matrix.python-version }} -s build_and_test_on_latest_env editable_build_and_test_on_latest_env

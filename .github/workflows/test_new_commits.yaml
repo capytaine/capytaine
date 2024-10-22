@@ -47,7 +47,7 @@ jobs:
       uses: wntrblm/nox@2024.04.15
 
     - name: Run nox session
-      run: nox -s build_and_test_on_locked_env
+      run: nox --force-python ${{ matrix.python-version }} -s build_and_test_on_locked_env
 
   compile_fortran:
 
