@@ -299,9 +299,9 @@ contains
       if (r < 1e-6) then
         nearest_r_index = 1
       else if (r < 1.0) then
-        nearest_r_index = int(5*(log10(r) + 6) + 1)
+        nearest_r_index = nint(5*(log10(r) + 6) + 1)
       else
-        nearest_r_index = int(3*r + 28)
+        nearest_r_index = nint(3*r + 28)
       endif
     else
       index_of_1 = nint(real(size(r_range)*index_of_1_ref)/nr_ref)
@@ -310,9 +310,9 @@ contains
       if (r < 1e-10) then
         nearest_r_index = 1
       else if (r < 1.0) then
-        nearest_r_index = int((log10(r)/10.0 + 1.0)*(index_of_1-1) + 1)
+        nearest_r_index = nint((log10(r)/10.0 + 1.0)*(index_of_1-1) + 1)
       else
-        nearest_r_index = int((r - 1)*(size(r_range) - index_of_1)/(rmax - 1) + index_of_1)
+        nearest_r_index = nint((r - 1)*(size(r_range) - index_of_1)/(rmax - 1) + index_of_1)
       endif
     endif
   end function
@@ -335,14 +335,13 @@ contains
 
     if (method == LEGACY_GRID) then
       if (absz > 1e-2) then
-        nearest_z_index = int(8*(log10(absz) + 4.5))
+        nearest_z_index = nint(8*(log10(absz) + 4.5))
       else
-        nearest_z_index = int(5*(log10(absz) + 6))
+        nearest_z_index = nint(5*(log10(absz) + 6))
       endif
     else
-
       dz = (log10(abs(z_range(nz)))+10.0)/nz
-      nearest_z_index = int((log10(absz)+10)/dz)
+      nearest_z_index = nint((log10(absz)+10)/dz)
     endif
   end function
 

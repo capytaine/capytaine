@@ -119,7 +119,7 @@ def test_r_range_inversion(params):
     nr, rmax, grid_shape = params
     r_range = fortran_core.delhommeau_integrals.default_r_spacing(nr, rmax, grid_shape)
     indices = np.array([fortran_core.delhommeau_integrals.nearest_r_index(r, r_range, grid_shape) for r in r_range])
-    assert np.all(np.abs(indices - np.arange(nr)) <= 1)
+    assert np.all(np.abs(indices - np.arange(1, nr+1)) == 0)
 
 
 @pytest.mark.parametrize("params", [
@@ -130,5 +130,5 @@ def test_z_range_inversion(params):
     nz, zmin, grid_shape = params
     z_range = fortran_core.delhommeau_integrals.default_z_spacing(nz, zmin, grid_shape)
     indices = np.array([fortran_core.delhommeau_integrals.nearest_z_index(z, z_range, grid_shape) for z in z_range])
-    assert np.all(np.abs(indices - np.arange(nz)) <= 1)
+    assert np.all(np.abs(indices - np.arange(1, nz+1)) == 0)
 
