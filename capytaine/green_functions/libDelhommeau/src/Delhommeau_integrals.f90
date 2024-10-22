@@ -25,7 +25,7 @@ module delhommeau_integrals
   public :: default_r_spacing, default_z_spacing
   public :: pick_in_default_tabulation
 
-  private  ! Other functions are private by default
+  !private  ! Other functions are private by default
 
 contains
 
@@ -200,7 +200,6 @@ contains
 
     ! local variables
     integer :: i, index_of_1
-    real(kind=pre) :: r_logSpace
 
     default_r_spacing(1) = 0.0
 
@@ -214,14 +213,13 @@ contains
     else
       ! change of slope at r = 1.0 that is i=index_of_1
       index_of_1 = nint(nr*1.0/nr_ref*index_of_1_ref)
-      r_logSpace = -LOG(10.0**(-10))/(index_of_1 - 1.0)
-      do concurrent (i = 2:nr)
+      do concurrent (i = 1:nr)
         if (i < index_of_1) then
           ! Exponential spacing
-          default_r_spacing(i) =  (10.0**(-10))*(EXP(i*r_logSpace))
+          default_r_spacing(i) = 10.0**(-10*(1-real(i-1)/(index_of_1-1)))
         else
           ! Linear spacing
-          default_r_spacing(i) = (rmax-1)/(nr-index_of_1)*(i-index_of_1)+1.0
+          default_r_spacing(i) = (rmax-1.0)/(nr-index_of_1)*(i-index_of_1)+1.0
         endif
       enddo
     endif
@@ -299,20 +297,20 @@ contains
 
     if (method == LEGACY_GRID) then
       if (r < 1e-6) then
-        nearest_r_index = 2
+        nearest_r_index = 1
       else if (r < 1.0) then
         nearest_r_index = int(5*(log10(r) + 6) + 1)
       else
         nearest_r_index = int(3*r + 28)
       endif
     else
-      index_of_1 = nint(real(size(r_range))/nr_ref*index_of_1_ref)
+      index_of_1 = nint(real(size(r_range)*index_of_1_ref)/nr_ref)
       rmax = r_range(size(r_range))
 
-      if (r < 1e-9) then
-        nearest_r_index = 2
+      if (r < 1e-10) then
+        nearest_r_index = 1
       else if (r < 1.0) then
-        nearest_r_index = int((log10(r) + FLOOR(index_of_1/10.0))*10.0 + MOD(index_of_1, 10))
+        nearest_r_index = int((log10(r)/10.0 + 1.0)*(index_of_1-1) + 1)
       else
         nearest_r_index = int((r - 1)*(size(r_range) - index_of_1)/(rmax - 1) + index_of_1)
       endif
