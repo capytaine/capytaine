@@ -105,3 +105,24 @@ def test_green_functions_r_spacing_Nemoh_nr(nr):
             r_cal.append((rmax-1)/(nr-c)*(i-c)+1)
 
     assert all([abs(a - b) < 1e-4 for a, b in zip(rRange, r_cal)])
+
+
+def test_r_range_inversion():
+    import capytaine.green_functions.libs.Delhommeau_float64 as fortran_core
+    # nr, rmax, grid_shape = (324, 100.0, fortran_core.constants.legacy_grid)
+    # nr, rmax, grid_shape = (676, 100.0, fortran_core.constants.scaled_nemoh3_grid)
+    nr, rmax, grid_shape = (1000, 120.0, fortran_core.constants.scaled_nemoh3_grid)
+
+    r_range = fortran_core.delhommeau_integrals.default_r_spacing(nr, rmax, grid_shape)
+    indices = np.array([fortran_core.delhommeau_integrals.nearest_r_index(r, r_range, grid_shape) for r in r_range])
+    print(indices - np.arange(nr))
+
+
+def test_z_range_inversion():
+    import capytaine.green_functions.libs.Delhommeau_float64 as fortran_core
+    # nz, zmin, grid_shape = (46, -16.0, fortran_core.constants.legacy_grid)
+    nz, zmin, grid_shape = (372, -251.0, fortran_core.constants.scaled_nemoh3_grid)
+
+    z_range = fortran_core.delhommeau_integrals.default_z_spacing(nz, zmin, grid_shape)
+    indices = np.array([fortran_core.delhommeau_integrals.nearest_z_index(z, z_range, grid_shape) for z in z_range])
+    print(indices - np.arange(nz))

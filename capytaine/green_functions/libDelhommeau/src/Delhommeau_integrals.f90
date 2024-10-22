@@ -25,6 +25,8 @@ module delhommeau_integrals
   public :: default_r_spacing, default_z_spacing
   public :: pick_in_default_tabulation
 
+  private  ! Other functions are private by default
+
 contains
 
   pure function numerical_integration(r, z, nb_integration_points) result(integrals)
@@ -166,7 +168,6 @@ contains
 
   end function asymptotic_approximations
 
-
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   pure function construct_tabulation(r_range, z_range, nb_integration_points) result(tabulation)
@@ -278,106 +279,111 @@ contains
       r_range(i-1:i+1), z_range(j-1:j+1),                       &
       tabulation(i-1:i+1, j-1:j+1, :)                           &
       )
-
-  contains
-
-    pure function nearest_r_index(r, r_range, method)
-      real(kind=pre), intent(in) :: r
-      integer, intent(in) :: method
-      real(kind=pre), dimension(:), intent(in) :: r_range
-      integer :: nearest_r_index
-
-      ! Reference parameters from Nemoh 3 model
-      integer, parameter :: nr_ref = 676
-      integer, parameter :: index_of_1_ref = 81  ! index of the change of slope
-
-      ! local variables
-      integer :: index_of_1
-      real(kind=pre) :: rmax
-
-      if (method == LEGACY_GRID) then
-        if (r < 1e-6) then
-          nearest_r_index = 2
-        else if (r < 1.0) then
-          nearest_r_index = int(5*(log10(r) + 6) + 1)
-        else
-          nearest_r_index = int(3*r + 28)
-        endif
-      else
-        index_of_1 = nint(size(r_range)/nr_ref*index_of_1_ref*1.0)
-        rmax = r_range(size(r_range))
-
-        if (r < 1e-9) then
-          nearest_r_index = 2
-        else if (r < 1.0) then
-          nearest_r_index = int((log10(r) + FLOOR(index_of_1/10.0))*10.0 + MOD(index_of_1, 10))
-        else
-          nearest_r_index = int((r - 1)*(size(r_range) - index_of_1)/(rmax - 1) + index_of_1)
-        endif
-      endif
-    end function
-
-    pure function nearest_z_index(z, z_range, method)
-      real(kind=pre), intent(in) :: z
-      integer, intent(in) :: method
-      real(kind=pre), dimension(:), intent(in) :: z_range
-      integer :: nearest_z_index
-
-      ! local parameters
-      real(kind=pre) :: absz
-      real(kind=pre) :: dz
-      integer :: nz
-
-      absz = abs(z)
-      nz = size(z_range)
-
-      if (method == LEGACY_GRID) then
-        if (absz > 1e-2) then
-          nearest_z_index = int(8*(log10(absz) + 4.5))
-        else
-          nearest_z_index = int(5*(log10(absz) + 6))
-        endif
-      else
-
-        dz = (log10(abs(z_range(nz)))+10.0)/nz
-        nearest_z_index = int((log10(absz)+10)/dz)
-      endif
-    end function
-
-    pure function lagrange_polynomial_interpolation(         &
-        r, z, local_r_range, local_z_range, local_tabulation &
-        ) result(interpolated_values)
-      ! inputs
-      real(kind=pre),                        intent(in) :: r, z
-      real(kind=pre), dimension(3),          intent(in) :: local_r_range
-      real(kind=pre), dimension(3),          intent(in) :: local_z_range
-      real(kind=pre), dimension(3, 3, nb_tabulated_values), intent(in) :: local_tabulation
-
-      ! output
-      real(kind=pre), dimension(nb_tabulated_values) :: interpolated_values
-
-      ! local variable
-      integer :: k
-      real(kind=pre), dimension(3) :: xl, zl
-
-      xl(1) = pl2(local_r_range(2), local_r_range(3), local_r_range(1), r)
-      xl(2) = pl2(local_r_range(3), local_r_range(1), local_r_range(2), r)
-      xl(3) = pl2(local_r_range(1), local_r_range(2), local_r_range(3), r)
-      zl(1) = pl2(local_z_range(2), local_z_range(3), local_z_range(1), z)
-      zl(2) = pl2(local_z_range(3), local_z_range(1), local_z_range(2), z)
-      zl(3) = pl2(local_z_range(1), local_z_range(2), local_z_range(3), z)
-
-      do concurrent (k=1:nb_tabulated_values)
-        interpolated_values(k) = dot_product(xl, matmul(local_tabulation(:, :, k), zl))
-      enddo
-    end function lagrange_polynomial_interpolation
-
-    pure function pl2(u1, u2, u3, xu)
-      real(kind=pre), intent(in) :: u1, u2, u3, xu
-      real(kind=pre) :: pl2
-      pl2 = ((xu-u1)*(xu-u2))/((u3-u1)*(u3-u2))
-    end function pl2
-
   end function pick_in_default_tabulation
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  pure function nearest_r_index(r, r_range, method)
+    real(kind=pre), intent(in) :: r
+    integer, intent(in) :: method
+    real(kind=pre), dimension(:), intent(in) :: r_range
+    integer :: nearest_r_index
+
+    ! Reference parameters from Nemoh 3 model
+    integer, parameter :: nr_ref = 676
+    integer, parameter :: index_of_1_ref = 81  ! index of the change of slope
+
+    ! local variables
+    integer :: index_of_1
+    real(kind=pre) :: rmax
+
+    if (method == LEGACY_GRID) then
+      if (r < 1e-6) then
+        nearest_r_index = 2
+      else if (r < 1.0) then
+        nearest_r_index = int(5*(log10(r) + 6) + 1)
+      else
+        nearest_r_index = int(3*r + 28)
+      endif
+    else
+      index_of_1 = nint(real(size(r_range))/nr_ref*index_of_1_ref)
+      rmax = r_range(size(r_range))
+
+      if (r < 1e-9) then
+        nearest_r_index = 2
+      else if (r < 1.0) then
+        nearest_r_index = int((log10(r) + FLOOR(index_of_1/10.0))*10.0 + MOD(index_of_1, 10))
+      else
+        nearest_r_index = int((r - 1)*(size(r_range) - index_of_1)/(rmax - 1) + index_of_1)
+      endif
+    endif
+  end function
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  pure function nearest_z_index(z, z_range, method)
+    real(kind=pre), intent(in) :: z
+    integer, intent(in) :: method
+    real(kind=pre), dimension(:), intent(in) :: z_range
+    integer :: nearest_z_index
+
+    ! local parameters
+    real(kind=pre) :: absz
+    real(kind=pre) :: dz
+    integer :: nz
+
+    absz = abs(z)
+    nz = size(z_range)
+
+    if (method == LEGACY_GRID) then
+      if (absz > 1e-2) then
+        nearest_z_index = int(8*(log10(absz) + 4.5))
+      else
+        nearest_z_index = int(5*(log10(absz) + 6))
+      endif
+    else
+
+      dz = (log10(abs(z_range(nz)))+10.0)/nz
+      nearest_z_index = int((log10(absz)+10)/dz)
+    endif
+  end function
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  pure function lagrange_polynomial_interpolation(         &
+      r, z, local_r_range, local_z_range, local_tabulation &
+      ) result(interpolated_values)
+    ! inputs
+    real(kind=pre),                        intent(in) :: r, z
+    real(kind=pre), dimension(3),          intent(in) :: local_r_range
+    real(kind=pre), dimension(3),          intent(in) :: local_z_range
+    real(kind=pre), dimension(3, 3, nb_tabulated_values), intent(in) :: local_tabulation
+
+    ! output
+    real(kind=pre), dimension(nb_tabulated_values) :: interpolated_values
+
+    ! local variable
+    integer :: k
+    real(kind=pre), dimension(3) :: xl, zl
+
+    xl(1) = pl2(local_r_range(2), local_r_range(3), local_r_range(1), r)
+    xl(2) = pl2(local_r_range(3), local_r_range(1), local_r_range(2), r)
+    xl(3) = pl2(local_r_range(1), local_r_range(2), local_r_range(3), r)
+    zl(1) = pl2(local_z_range(2), local_z_range(3), local_z_range(1), z)
+    zl(2) = pl2(local_z_range(3), local_z_range(1), local_z_range(2), z)
+    zl(3) = pl2(local_z_range(1), local_z_range(2), local_z_range(3), z)
+
+    do concurrent (k=1:nb_tabulated_values)
+      interpolated_values(k) = dot_product(xl, matmul(local_tabulation(:, :, k), zl))
+    enddo
+  end function lagrange_polynomial_interpolation
+
+  pure function pl2(u1, u2, u3, xu)
+    real(kind=pre), intent(in) :: u1, u2, u3, xu
+    real(kind=pre) :: pl2
+    pl2 = ((xu-u1)*(xu-u2))/((u3-u1)*(u3-u2))
+  end function pl2
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 end module delhommeau_integrals
