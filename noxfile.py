@@ -61,6 +61,7 @@ def editable_build_and_test_on_latest_env(session):
 
 @nox.session
 def build_and_test_on_locked_env(session):
+    print(sys.version)
     if sys.version.startswith("3.8."):
         env_file = "2023-08-01-py3.8.txt"
         # Lock file was created with the following command
