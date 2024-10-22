@@ -5,7 +5,7 @@
 import logging
 import copy
 from itertools import chain, accumulate, zip_longest
-from functools import cached_property, cache
+from functools import cached_property, lru_cache
 
 import numpy as np
 import xarray as xr
@@ -1107,7 +1107,7 @@ respective inertia coefficients are assigned as NaN.")
         else:
             return 8*self.mesh.faces_radiuses.max()
 
-    @cache
+    @lru_cache
     def first_irregular_frequency_estimate(self, *, g=9.81):
         r"""Estimates the angular frequency of the lowest irregular
         frequency.

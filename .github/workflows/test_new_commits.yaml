@@ -47,7 +47,7 @@ jobs:
       uses: wntrblm/nox@2024.04.15
 
     - name: Run nox session
-      run: nox -s build_and_test_on_locked_env
+      run: nox --force-python ${{ matrix.python-version }} -s build_and_test_on_locked_env
 
   compile_fortran:
 
@@ -58,11 +58,15 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Fortran
-      uses: fortran-lang/setup-fortran@v1
-      with:
-        compiler: 'gcc'
-        version: '13'
+    # # 2024-10-22: disabling this step because it takes a few minutes to
+    # download a specific version of GCC, but it is not really required as GCC
+    # is already installed on the Ubuntu runner.
+    #
+    # - name: Set up Fortran
+    #   uses: fortran-lang/setup-fortran@v1
+    #   with:
+    #     compiler: 'gcc'
+    #     version: '13'
 
     - name: Compile and run example
       working-directory: capytaine/green_functions/libDelhommeau/

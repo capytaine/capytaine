@@ -59,9 +59,9 @@ def editable_build_and_test_on_latest_env(session):
     run_tests(session)
 
 
-@nox.session
+@nox.session(python=['3.8', '3.12'])
 def build_and_test_on_locked_env(session):
-    if sys.version.startswith("3.8."):
+    if session.python == '3.8':
         env_file = "2023-08-01-py3.8.txt"
         # Lock file was created with the following command
         # PY=3.8 DATE=2023-08-01 uv pip compile \
@@ -70,7 +70,7 @@ def build_and_test_on_locked_env(session):
         # --extra optional --extra test \
         # -o pytest/envs/$DATE-py$PY.txt
         # Older date where not possible to reach because of the joblib>=1.3 requirement.
-    elif sys.version.startswith("3.12."):
+    elif session.python == '3.12':
         env_file = "2024-04-08-py3.12.txt"
         # PY=3.12 DATE=2024-04-08 uv pip compile \
         # pyproject.toml editable_install_requirements.txt \

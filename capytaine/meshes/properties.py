@@ -7,6 +7,7 @@ Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
 from functools import reduce
 from itertools import chain
 import numpy as np
+from typing import List
 from numpy.typing import NDArray
 
 
@@ -218,7 +219,7 @@ def faces_in_group(faces: NDArray[np.integer], group: NDArray[np.integer]) -> ND
     """
     return np.any(np.isin(faces, group), axis=1)
 
-def clustering(faces: NDArray[np.integer]) -> list[NDArray[np.integer]]:
+def clustering(faces: NDArray[np.integer]) -> List[NDArray[np.integer]]:
     """Clustering of vertices per connected faces.
 
     Parameters
