@@ -71,8 +71,8 @@ def build_and_test_on_locked_env(session):
         # -o pytest/envs/$DATE-py$PY.txt
         # Older date where not possible to reach because of the joblib>=1.3 requirement.
     elif session.python == '3.12':
-        env_file = "2024-04-08-py3.12.txt"
-        # PY=3.12 DATE=2024-04-08 uv pip compile \
+        env_file = "2024-10-22-py3.12.txt"
+        # PY=3.12 DATE=2024-10-22 uv pip compile \
         # pyproject.toml editable_install_requirements.txt \
         # --python-version $PY --exclude-newer $DATE \
         # --extra optional --extra test \
