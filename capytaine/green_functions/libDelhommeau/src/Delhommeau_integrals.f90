@@ -299,9 +299,9 @@ contains
       if (r < 1e-6) then
         nearest_r_index = 1
       else if (r < 1.0) then
-        nearest_r_index = nint(5*(log10(r) + 6) + 1)
+        nearest_r_index = int(5*(log10(r) + 6) + 1)
       else
-        nearest_r_index = nint(3*r + 28)
+        nearest_r_index = int(3*r + 28)
       endif
     else
       index_of_1 = nint(real(size(r_range)*index_of_1_ref)/nr_ref)
@@ -335,9 +335,9 @@ contains
 
     if (method == LEGACY_GRID) then
       if (absz > 1e-2) then
-        nearest_z_index = nint(8*(log10(absz) + 4.5))
+        nearest_z_index = int(8*(log10(absz) + 4.5))
       else
-        nearest_z_index = nint(5*(log10(absz) + 6))
+        nearest_z_index = int(5*(log10(absz) + 6))
       endif
     else
       dz = (log10(abs(z_range(nz)))+10.0)/nz
@@ -373,13 +373,16 @@ contains
     do concurrent (k=1:nb_tabulated_values)
       interpolated_values(k) = dot_product(xl, matmul(local_tabulation(:, :, k), zl))
     enddo
-  end function lagrange_polynomial_interpolation
 
-  pure function pl2(u1, u2, u3, xu)
-    real(kind=pre), intent(in) :: u1, u2, u3, xu
-    real(kind=pre) :: pl2
-    pl2 = ((xu-u1)*(xu-u2))/((u3-u1)*(u3-u2))
-  end function pl2
+    contains
+
+    pure function pl2(u1, u2, u3, xu)
+      real(kind=pre), intent(in) :: u1, u2, u3, xu
+      real(kind=pre) :: pl2
+      pl2 = ((xu-u1)*(xu-u2))/((u3-u1)*(u3-u2))
+    end function pl2
+
+  end function lagrange_polynomial_interpolation
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
