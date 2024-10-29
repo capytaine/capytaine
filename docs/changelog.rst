@@ -46,6 +46,9 @@ Bug fixes
   Also better expose the ``_check_wavelength`` option to skip wavelength check,
   including irregular frequency estimation. (:issue:`601` and :pull:`602`).
 
+* Fix bug in the :math:`r`-range of the tabulation of the Green function
+  (:issue:`538` and :pull:˙611`).
+
 -------------------------------
 New in version 2.2 (2024-07-08)
 -------------------------------
