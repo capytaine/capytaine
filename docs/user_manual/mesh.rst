@@ -304,40 +304,6 @@ horizontal planes at :math:`z=0` and :math:`z=-h`::
     complicated and their removal might be considered in the future.
 
 
-Defining an integration quadrature
-----------------------------------
-
-During the resolution of the BEM problem, the Green function has to be
-integrated on each panel of the mesh. Parts of the Green function (such as the
-:math:`1/r` Rankine terms) are integrated using an exact analytical expression
-for the integral. Other parts of the Green function rely on numerical
-integration. By default, this numerical integration is done by taking the value
-at the center of the panel and multiplying by its area. For a more accurate
-intagration, an higher order quadrature can be defined.
-
-To define a quadrature scheme for a mesh, run the following command::
-
-    mesh.compute_quadrature(method="Gauss-Legendre 2")
-
-The quadrature data can then be accessed at::
-
-    mesh.quadrature_points
-
-and will be used automatically when needed.
-
-.. warning:: Transformations of the mesh (merging, clipping, ...) may reset the quadrature.
-             Compute it only on your final mesh.
-
-.. warning:: Quadratures schemes have been designed with quadrilateral panels.
-             They work on triangular panels, but might not be as optimal then.
-
-Alternatively, the :func:`~capytaine.meshes.meshes.Mesh.compute_quadrature`
-also accepts methods from the `Quadpy` package::
-
-    import quadpy
-    mesh.compute_quadrature(method=quadpy.c2.get_good_scheme(8))
-
-
 Extracting or generating a lid
 ------------------------------
 
@@ -368,3 +334,42 @@ argument. By default, the mean resolution of the hull mesh is used.
 
 See :doc:`body` for detail on how to assign a lid mesh when defining a floating
 body.
+
+
+Defining an integration quadrature
+----------------------------------
+
+.. note::
+   Quadratures are an advanced feature meant to experiment with numerical schemes.
+   The best compromise between precision and performance is often not to bother
+   with it and keep the default integration scheme.
+
+During the resolution of the BEM problem, the Green function has to be
+integrated on each panel of the mesh. Parts of the Green function (such as the
+:math:`1/r` Rankine terms) are integrated using an exact analytical expression
+for the integral. Other parts of the Green function rely on numerical
+integration. By default, this numerical integration is done by taking the value
+at the center of the panel and multiplying by its area. For a more accurate
+intagration, an higher order quadrature can be defined.
+
+To define a quadrature scheme for a mesh, run the following command::
+
+    mesh.compute_quadrature(method="Gauss-Legendre 2")
+
+The quadrature data can then be accessed at::
+
+    mesh.quadrature_points
+
+and will be used automatically when needed.
+
+.. warning:: Transformations of the mesh (merging, clipping, ...) may reset the quadrature.
+             Compute it only on your final mesh.
+
+.. warning:: Quadratures schemes have been designed with quadrilateral panels.
+             They work on triangular panels, but might not be as optimal then.
+
+Alternatively, the :func:`~capytaine.meshes.meshes.Mesh.compute_quadrature`
+also accepts methods from the `Quadpy` package::
+
+    import quadpy
+    mesh.compute_quadrature(method=quadpy.c2.get_good_scheme(8))
