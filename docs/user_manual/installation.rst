@@ -2,12 +2,11 @@
 Installation for users
 ======================
 
-Capytaine is available on Windows, MacOS [#]_ and Linux.
+Capytaine requires Python 3.8 or higher.
+It is regularly tested on Windows, MacOS and Linux using `all currently supported version of Python <https://devguide.python.org/versions/>`_
 
-.. [#] For the latest informations on the Apple arm64 architectures, see https://github.com/capytaine/capytaine/issues/190
-
-The latest version of Capytaine requires Python 3.8 or higher.
-It is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
+Precompiled packages are distributed for Windows, MacOS (both Intel and ARM processors) and Linux for all supported versions of Python.
+However, it might take a few weeks before precompiled packages for the latest version of Python (3.13 at the time of writing) are available and you might prefer using an earlier version of Python.
 
 
 On a cloud platform
@@ -18,7 +17,7 @@ On such a `Jupyter <https://jupyter.org/>`_-based environment, Capytaine can be 
 
     %pip install capytaine
 
-Then run the following line to check that the latest version of Capytaine has been installed::
+Then run the following line to check which version of Capytaine has been installed::
 
     import capytaine as cpt; print(cpt.__version__)
 
@@ -44,7 +43,7 @@ You can check the bundled version of Capytaine with the following command::
 Installing with pip package manager
 -----------------------------------
 
-Since version 2.0, Capytaine is available as precompiled package on all platform on `PyPI <https://pypi.org/project/capytaine/>`_, the package registry used by the ``pip`` command. After installing a Python interpreter, run the following command line in a terminal to install Capytaine and its dependencies::
+Since version 2.0, Capytaine is available as precompiled package on all platforms on `PyPI <https://pypi.org/project/capytaine/>`_, the package registry used by the ``pip`` command. After installing a Python interpreter, run the following command line in a terminal to install Capytaine and its dependencies::
 
     python -m pip install capytaine
 
@@ -54,8 +53,12 @@ Then run the following line to check that the latest version of Capytaine has be
 
 You might want to use a `virtual environment <https://docs.python.org/3/library/venv.html>`_ to install Capytaine independently of your other Python packages and avoid any risk of dependency conflict.
 
-The package can also be installed by other modern PyPI-based Python package managers, such as PDM_ or poetry_.
+The package can also be installed by other modern PyPI-based Python package managers, such as UV_, PDM_ or poetry_.
+Below is an example command to run a Python script in an environment created on the fly by UV::
 
+    uv run --with capytaine my_script.py
+
+.. _UV: https://docs.astral.sh/uv/
 .. _PDM: https://pdm.fming.dev
 .. _poetry: https://python-poetry.org
 
@@ -102,19 +105,21 @@ All the required dependencies should be installed automatically when installing 
 More optional dependencies can be manually installed.
 They are nice to have but not necessary for Capytaine's main features.
 
-+------------+------------------------------------------+------------------------------+
-| Name       | Example installation command             | Usage                        |
-+============+==========================================+==============================+
-| matplotlib | :code:`conda install matplotlib`         | Used in several examples     |
-|            |                                          | in the documentation and     |
-|            |                                          | the cookbook                 |
-+------------+------------------------------------------+------------------------------+
-| vtk        | :code:`conda install -c conda-forge vtk` | For 3D visualization         |
-+------------+------------------------------------------+------------------------------+
-| joblib     | :code:`conda install joblib`             | For parallel resolution      |
-+------------+------------------------------------------+------------------------------+
-| meshio     | :code:`pip install meshio`               | To load more mesh formats    |
-+------------+------------------------------------------+------------------------------+
++------------+--------------------------------+------------------------------+
+| Name       | Example installation command   | Usage                        |
++============+================================+==============================+
+| matplotlib | :code:`pip install matplotlib` | Used in several examples     |
+|            |                                | in the documentation and     |
+|            |                                | the cookbook                 |
++------------+--------------------------------+------------------------------+
+| vtk        | :code:`pip install vtk`        | For 3D visualization         |
++------------+--------------------------------+------------------------------+
+| meshio     | :code:`pip install meshio`     | To load more mesh formats    |
++------------+--------------------------------+------------------------------+
+| netcdf4    | :code:`pip install meshio`     | To export in NetCDF4 format  |
++------------+--------------------------------+------------------------------+
+| joblib     | :code:`pip install joblib`     | For parallel resolution      |
++------------+--------------------------------+------------------------------+
 
 After creating the Conda environment containing Capytaine, you can add more packages to this environment by activating it with ``conda activate`` and then using the ``conda install`` or ``pip install`` commands.
 However, it is often more efficient to specify the packages you'd like in your environment from the start when creating it, such as in the following example::
@@ -122,28 +127,8 @@ However, it is often more efficient to specify the packages you'd like in your e
     conda create --name capy_and_other_env --channel conda-forge capytaine jupyter matplotlib vtk
 
 
-With Docker
------------
+More build recipes
+------------------
 
-The following command will create a Docker image based on Ubuntu 22.04 with the version v2.1 of Capytaine::
-
-    docker build -t capytaine:v2.1 https://github.com/capytaine/capytaine.git#v2.1
-
-Replace :code:`v2.1` by :code:`master` to download instead the latest development version.
-Use the following command to open an IPython shell in which Capytaine can be imported::
-
-    docker run -it capytaine:v2.1 ipython3
-
-Or the following command to make the current directory accessible from the Docker image and run the file :code:`my_script.py` from the current directory::
-
-    docker run -it -v $(pwd):/home/user capytaine:v2.1 python3 my_scipt.py
-
-Note that graphical displays (matplotlib, vtk, ...) might require a complex setup to work from the Docker image.
-
-With Guix
----------
-
-For advanced users, `Guix <https://guix.gnu.org/>`_ package definitions are available at the root of the repository::
-
-    curl -o capytaine.scm https://raw.githubusercontent.com/capytaine/capytaine/master/capytaine.scm
-    guix shell -f capytaine.scm python -- python3 -c 'import capytaine; print(capytaine.__version__)'
+More advanced build recipes for Capytaine are available in the dedicated repository `https://github.com/capytaine/capytaine-extra-build-recipes`_.
+In particular, build recipes for Docker and Guix might be useful for reproducible computations.
