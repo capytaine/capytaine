@@ -7,9 +7,9 @@ Changelog
    :depth: 1
    :backlinks: none
 
--------------------
-New in next version
--------------------
+---------------------------------
+New in version 2.2.1 (2024-11-18)
+---------------------------------
 
 Minor change
 ~~~~~~~~~~~~
@@ -33,10 +33,10 @@ Bug fixes
   diffraction problems.) (:pull:`587`)
 
 * Radiation damping at infinite frequency is now zero instead of infinity.
-  When forward speed is non-zero, added mass and radiation dampings at zero encounter frequency is NaN.
+  When forward speed is non-zero, added mass and radiation dampings at zero encounter frequency are NaN.
   (:pull:`588`)
 
-* User does not need to import `pyplot` themself before running `show_matplotlib()` (:pull:`592`)
+* User does not need to import ``pyplot`` themself before running `show_matplotlib()` (:pull:`592`)
 
 * Fixes usage of ``ReflectionSymmetricMesh`` with direct solver (:issue:`593` and :pull:`594`).
 
@@ -47,7 +47,7 @@ Bug fixes
   including irregular frequency estimation. (:issue:`601` and :pull:`602`).
 
 * Fix bug in the :math:`r`-range of the tabulation of the Green function
-  (:issue:`538` and :pull:˙611`).
+  (:issue:`538` and :pull:`611`).
 
 -------------------------------
 New in version 2.2 (2024-07-08)
