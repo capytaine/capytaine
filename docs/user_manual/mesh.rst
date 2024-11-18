@@ -10,6 +10,14 @@ It is optional and is mostly used for clearer logging and outputs.
 A ``name`` optional argument can be provided to all methods below to initialize
 a mesh or transform a mesh to set the name of the new mesh.
 
+
+.. note::
+   A mesh in Capytaine is merely a set of independent faces (triangles or quadrangles).
+   Connectivities are not required for the resolution.
+   Having a mesh that is not watertight, with small gaps between the faces or a
+   few missing faces, does not lead to qualitatively different results.
+
+
 Initialization
 --------------
 
