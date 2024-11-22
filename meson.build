@@ -26,6 +26,7 @@ libDelhommeau_src = [
       'capytaine/green_functions/libDelhommeau/src/constants.f90',
       'capytaine/green_functions/libDelhommeau/src/Delhommeau_integrals.f90',
       'capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90',
+      'capytaine/green_functions/LiangWuNoblesse_Green_function/Module_GreenFuncGlobal.f90',
       'capytaine/green_functions/libDelhommeau/src/Green_Rankine.f90',
       'capytaine/green_functions/libDelhommeau/src/Green_wave.f90',
       'capytaine/green_functions/libDelhommeau/src/matrices.f90',

@@ -215,3 +215,11 @@ def test_low_freq_with_rankine_part_singularities():
     assert np.allclose(K1[:, :, 2].imag, K2[:, :, 2].imag, atol=1e-12)
     assert not np.allclose(K1[0, 0, 2].real, K2[0, 0, 2].real, atol=1e-12)
     assert np.allclose(K1[0, 0, 2].real, K2[0, 0, 2].real, atol=1e-1)
+
+
+def test_liangwunoblesse_wave_term():
+    core = cpt.Delhommeau().fortran_core
+    gf, gf_r = core.liangwunoblessewaveterm.havelockgf(1.0, -1.0)
+    re_gf, _, im_gf, re_gf_r, im_gf_r = core.delhommeau_integrals(1.0, -1.0, 1000)
+    assert gf == pytest.approx(- re_gf - im_gf*1j, rel=5e-2)
+    assert gf_r == pytest.approx(- re_gf_r - im_gf_r*1j, rel=5e-2)
