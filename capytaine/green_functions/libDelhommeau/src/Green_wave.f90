@@ -5,6 +5,7 @@ MODULE GREEN_WAVE
   USE FLOATING_POINT_PRECISION, ONLY: PRE
   USE CONSTANTS
   USE DELHOMMEAU_INTEGRALS
+  USE LIANGWUNOBLESSEWAVETERM, ONLY: HavelockGF
   USE GREEN_RANKINE, ONLY: COMPUTE_ASYMPTOTIC_RANKINE_SOURCE
 
   IMPLICIT NONE
@@ -191,34 +192,12 @@ CONTAINS
     ! Local variables
     REAL(KIND=PRE) :: r, r1, z, drdx1, drdx2, dzdx3
     complex(kind=pre) :: dGdr
+    complex(kind=8) :: G_, dGdr_
     REAL(KIND=PRE), dimension(nb_tabulated_values) :: integrals
 
     r = wavenumber * NORM2(X0I(1:2) - X0J(1:2))
     z = wavenumber * (X0I(3) + X0J(3))
     r1 = hypot(r, z)
-
-    !=======================================================
-    ! Evaluate the elementary integrals depending on z and r
-    !=======================================================
-    IF ((size(tabulated_z_range) <= 1) .or. (size(tabulated_r_range) <= 1)) THEN
-      ! No tabulation, fully recompute the Green function each time.
-      integrals = numerical_integration(r, z, tabulation_nb_integration_points)
-    ELSE
-      IF ((abs(z) < abs(tabulated_z_range(size(tabulated_z_range)))) &
-          .AND. (r < tabulated_r_range(size(tabulated_r_range)))) THEN
-        ! Within the range of tabulated data
-        integrals = pick_in_default_tabulation( &
-            r, z, tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals &
-        )
-      ELSE
-        ! Delhommeau's asymptotic expression of Green function for distant panels
-        integrals = asymptotic_approximations(MAX(r, 1e-10), z)
-      ENDIF
-    ENDIF
-
-    !===================================================
-    ! Add the elementary integrals to build G and nablaG
-    !===================================================
 
     IF (ABS(r) > 16*EPSILON(r)) THEN
       drdx1 = wavenumber**2 * (X0I(1) - X0J(1))/r
@@ -229,6 +208,40 @@ CONTAINS
       drdx2 = ZERO
     END IF
     dzdx3 = wavenumber
+
+    IF (tabulation_grid_shape == LIANG_WU_NOBLESSE) THEN
+      call HavelockGF(real(r, kind=8), real(z, kind=8), G_, dGdr_)
+      G = -complex(real(G_, kind=pre), real(imag(G_), kind=pre))
+      dGdr = -complex(real(dGdr_, kind=pre), real(imag(dGdr_), kind=pre))
+      ! Type conversion shenanigans to support float32...
+      nablaG(1) = drdx1 * dGdr
+      nablaG(2) = drdx2 * dGdr
+      nablaG(3) = dzdx3 * (G + 2/r1)
+
+    ELSE
+
+    !=======================================================
+    ! Evaluate the elementary integrals depending on z and r
+    !=======================================================
+      IF ((size(tabulated_z_range) <= 1) .or. (size(tabulated_r_range) <= 1)) THEN
+        ! No tabulation, fully recompute the Green function each time.
+        integrals = numerical_integration(r, z, tabulation_nb_integration_points)
+      ELSE
+        IF ((abs(z) < abs(tabulated_z_range(size(tabulated_z_range)))) &
+          .AND. (r < tabulated_r_range(size(tabulated_r_range)))) THEN
+          ! Within the range of tabulated data
+          integrals = pick_in_default_tabulation( &
+            r, z, tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals &
+            )
+        ELSE
+          ! Delhommeau's asymptotic expression of Green function for distant panels
+          integrals = asymptotic_approximations(MAX(r, 1e-10), z)
+        ENDIF
+      ENDIF
+
+    !===================================================
+    ! Add the elementary integrals to build G and nablaG
+    !===================================================
 
     if ((gf_singularities == LOW_FREQ) .or. (gf_singularities == LOW_FREQ_WITH_RANKINE_PART)) then
       ! G is G^+, nablaG is nablaG^+
@@ -250,6 +263,7 @@ CONTAINS
       nablaG(2) = drdx2 * dGdr - 2*drdx2*r/r1**3
       nablaG(3) = dzdx3 * G    - 2*dzdx3*z/r1**3
     endif
+    ENDIF
 
     G = wavenumber * G
     nablaG = wavenumber * nablaG

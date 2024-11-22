@@ -218,8 +218,19 @@ def test_low_freq_with_rankine_part_singularities():
 
 
 def test_liangwunoblesse_wave_term():
-    core = cpt.Delhommeau().fortran_core
+    core = cpt.LiangWuNoblesseGF().fortran_core
     gf, gf_r = core.liangwunoblessewaveterm.havelockgf(1.0, -1.0)
     re_gf, _, im_gf, re_gf_r, im_gf_r = core.delhommeau_integrals(1.0, -1.0, 1000)
     assert gf == pytest.approx(- re_gf - im_gf*1j, rel=5e-2)
     assert gf_r == pytest.approx(- re_gf_r - im_gf_r*1j, rel=5e-2)
+
+def test_full_liangwunoblesse():
+    gf = cpt.LiangWuNoblesseGF()
+    ref_gf = cpt.Delhommeau()
+    mesh = cpt.mesh_sphere().immersed_part()
+    wavenumber = 1.0
+    S, K = gf.evaluate(mesh, mesh, 0.0, np.inf, wavenumber)
+    ref_S, ref_K = ref_gf.evaluate(mesh, mesh, 0.0, np.inf, wavenumber)
+    assert np.allclose(S, ref_S, rtol=1e-2)
+    assert np.allclose(K, ref_K, rtol=1e-2)
+

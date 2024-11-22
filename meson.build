@@ -33,7 +33,8 @@ libDelhommeau_src = [
 ]
 
 float32 = ['capytaine/green_functions/libDelhommeau/src/float32.f90',]
-float64 = ['capytaine/green_functions/libDelhommeau/src/float64.f90',]
+float64 = ['capytaine/green_functions/libDelhommeau/src/float64.f90',
+  ]
 
 Delhommeau_float32_f2py_wrapper = custom_target('Delhommeau_float32module.c',
                                            input : float32 + libDelhommeau_src,
