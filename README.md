@@ -23,6 +23,8 @@ and Conda-forge
 conda install -c conda-forge capytaine
 ```
 
+or as a standalone executable (with some drawbacks) at https://github.com/capytaine/capytaine-standalone.
+
 ## Documentation
 
 [https://capytaine.github.io/](https://capytaine.github.io/)
