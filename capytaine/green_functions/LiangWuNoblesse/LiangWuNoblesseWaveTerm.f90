@@ -5,7 +5,8 @@
 !              Green function and derivatives in deep water
 ! 
 !              Code Original Author: Hui Liang       created on  2016.12.26    
-! 
+!              Superficially adapted for Capytaine by Matthieu Ancellin, 2022--2024 
+!
 !  License:
 !
 !
@@ -51,7 +52,7 @@
 !                   
 !   We define the flow-field point (x,y,z) and source point (xi,eta,zeta).               
 !   Please note that all variables are non-dimensionalized with respect to 
-!	the wavenumber k0
+!	  the wavenumber k0
 !                   
 !   The Green function is defiend as                
 !                   
@@ -64,14 +65,11 @@
 !
 !   Parameters:
 !
-!       Input:      dx  --- x-xi
-!                   dy  --- y-eta
+!       Input:      hh  --- sqrt((x-xi)^2 + (y-eta)^2)
 !                   vv  --- z+zeta
 ! 
-!       Output:     GF(0)  --- free surface itself GF
-!                   GF(1)  --- x-derivative GF_x
-!                   GF(2)  --- y-derivative GF_y
-!                   GF(3)  --- part of z-derivative GF_z = GF(3) - 2/d
+!       Output:     GF  --- free surface itself GF
+!                   GFh  --- derivative of GF with respect to hh
 !
 ! ==================================================================================
 
@@ -95,10 +93,10 @@ subroutine HavelockGF(hh,vv,GF,GFh)
 ! --- Local variables -------------------------------------
 	real(8)								::	dd, alpha, beta, rho
 
-	  dd = dsqrt(hh*hh+vv*vv)
-	  alpha = -vv/dd
-	  beta = hh/dd
-	  rho = dd/(1.0d0+dd)
+	dd = sqrt(hh*hh+vv*vv)
+	alpha = -vv/dd
+	beta = hh/dd
+	rho = dd/(1.0d0+dd)
  
 	GF	=	GF_Func_L0(hh, vv, dd, alpha, beta, rho) + GF_Func_W(hh, vv)
 	GFh		=	GF_Func_Ls(hh, vv, dd, alpha, beta, rho) + GF_Func_Wh(hh, vv)

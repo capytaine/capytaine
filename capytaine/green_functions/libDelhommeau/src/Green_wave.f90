@@ -5,7 +5,9 @@ MODULE GREEN_WAVE
   USE FLOATING_POINT_PRECISION, ONLY: PRE
   USE CONSTANTS
   USE DELHOMMEAU_INTEGRALS
-  USE LIANGWUNOBLESSEWAVETERM, ONLY: HavelockGF
+#ifdef LIANGWUNOBLESSE
+    USE LIANGWUNOBLESSEWAVETERM, ONLY: HavelockGF
+#endif
   USE GREEN_RANKINE, ONLY: COMPUTE_ASYMPTOTIC_RANKINE_SOURCE
 
   IMPLICIT NONE
@@ -210,14 +212,15 @@ CONTAINS
     dzdx3 = wavenumber
 
     IF (tabulation_grid_shape == LIANG_WU_NOBLESSE) THEN
-      call HavelockGF(real(r, kind=8), real(z, kind=8), G_, dGdr_)
-      G = -complex(real(G_, kind=pre), real(imag(G_), kind=pre))
-      dGdr = -complex(real(dGdr_, kind=pre), real(imag(dGdr_), kind=pre))
-      ! Type conversion shenanigans to support float32...
-      nablaG(1) = drdx1 * dGdr
-      nablaG(2) = drdx2 * dGdr
-      nablaG(3) = dzdx3 * (G + 2/r1)
-
+#ifdef LIANGWUNOBLESSE
+        call HavelockGF(real(r, kind=8), real(z, kind=8), G_, dGdr_)
+        G = -complex(real(G_, kind=pre), real(imag(G_), kind=pre))
+        dGdr = -complex(real(dGdr_, kind=pre), real(imag(dGdr_), kind=pre))
+        ! Type conversion shenanigans to support float32...
+        nablaG(1) = drdx1 * dGdr
+        nablaG(2) = drdx2 * dGdr
+        nablaG(3) = dzdx3 * (G + 2/r1)
+#endif
     ELSE
 
     !=======================================================
