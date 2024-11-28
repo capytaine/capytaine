@@ -8,6 +8,17 @@ Changelog
    :backlinks: none
 
 ---------------------------------
+New in version 2.3 (2025-??-??)
+---------------------------------
+
+Major change
+~~~~~~~~~~~~
+
+* The implementation of the Green function in infinite depth from [Liang, Wu, Noblesse, 2018] is included in Capytaine as :class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`. It can be used instead of Delhommeau's method by passing it to the BEM solver::
+
+  solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
+
+---------------------------------
 New in version 2.2.1 (2024-11-18)
 ---------------------------------
 
