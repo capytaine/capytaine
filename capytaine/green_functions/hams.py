@@ -7,6 +7,11 @@ from capytaine.green_functions.abstract_green_function import AbstractGreenFunct
 
 
 class LiangWuNoblesseGF(AbstractGreenFunction):
+    """Wrapper for the Fortran implementation of the infinite depth Green function of [Liang, Wu, Noblesse, 2018].
+
+    Uses the same implementation as Delhommeau() for the Rankine and reflected Rankine terms.
+
+    """
     fortran_core = import_module("capytaine.green_functions.libs.Delhommeau_float64")
     tabulation_grid_shape_index = fortran_core.constants.liang_wu_noblesse
     gf_singularities_index = fortran_core.constants.low_freq
@@ -18,6 +23,15 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
     tabulated_r_range = np.empty(1)
     tabulated_z_range = np.empty(1)
     tabulated_integrals = np.empty(1)
+
+    def __str__(self):
+        return "LiangWuNoblesseGF()"
+
+    def __repr__(self):
+        return "LiangWuNoblesseGF()"
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__repr__())
 
     def evaluate(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True, early_dot_product=True):
         if free_surface == np.inf: # No free surface, only a single Rankine source term
