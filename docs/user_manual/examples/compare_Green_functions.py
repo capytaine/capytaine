@@ -31,6 +31,8 @@ fig, axs = plt.subplots(2, 1, sharex=True, layout="constrained")
 for gf, ds in zip(green_functions, data):
     ds['added_mass'].plot(ax=axs[0], x='omega', label=str(gf))
     ds['radiation_damping'].plot(ax=axs[1], x='omega', label=str(gf))
+axs[0].set_title("Added mass")
 axs[0].legend()
+axs[1].set_title("Radiation damping")
 
 plt.show()
