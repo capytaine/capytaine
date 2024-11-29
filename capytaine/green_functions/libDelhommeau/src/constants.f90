@@ -25,6 +25,7 @@ MODULE CONSTANTS
   ! The actual number should be irrelevant as long as they are different.
 
   ! Values for "tabulation_grid_shape"
+  integer, parameter :: LIANG_WU_NOBLESSE = -1
   integer, parameter :: LEGACY_GRID = 0  ! Nemoh 2
   integer, parameter :: SCALED_NEMOH3_GRID = 1
 

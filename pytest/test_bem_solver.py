@@ -10,9 +10,9 @@ from capytaine import __version__
 @pytest.fixture
 def sphere():
     mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 4)).immersed_part()
-    body = cpt.FloatingBody(mesh=mesh)
-    body.add_translation_dof(direction=(1, 0, 0), name="Surge")
-    return body
+    sphere = cpt.FloatingBody(mesh=mesh)
+    sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
+    return sphere
 
 
 def test_exportable_settings():
@@ -74,6 +74,18 @@ def test_float32_solver(sphere):
     solver = cpt.BEMSolver(green_function=cpt.Delhommeau(floating_point_precision="float32"))
     pb = cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=1.0)
     solver.solve(pb)
+
+
+def test_LiangWuNoblesseGF(sphere):
+    test_matrix = xr.Dataset(coords={
+        'omega': np.linspace(0.1, 4.0, 3),
+        'radiating_dof': list(sphere.dofs),
+    })
+    solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
+    ref_solver = cpt.BEMSolver(green_function=cpt.Delhommeau())
+    ds = solver.fill_dataset(test_matrix, sphere)
+    ref_ds = ref_solver.fill_dataset(test_matrix, sphere)
+    assert np.allclose(ds.added_mass.values, ref_ds.added_mass.values, rtol=1e-2)
 
 
 def test_fill_dataset(sphere):
