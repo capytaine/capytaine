@@ -277,6 +277,7 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
             self._clipping_data['faces_ids'].extend([i + faces_shift for i in mesh._clipping_data['faces_ids']])
         self._clipping_data['faces_ids'] = np.asarray(self._clipping_data['faces_ids'])
         self.prune_empty_meshes()
+        self.heal_mesh()
 
     def symmetrized(self, plane):
         from capytaine.meshes.symmetric import ReflectionSymmetricMesh

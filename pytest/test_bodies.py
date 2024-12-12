@@ -265,3 +265,13 @@ def test_cluster_bodies():
     assert isinstance(clustered_bodies.mesh, cpt.CollectionOfMeshes)
     assert clustered_bodies.mesh.merged() == joined_bodies.mesh.merged()
     assert meshes[0] in clustered_bodies.mesh  # The first body is at the top level independently from the other three
+
+
+def test_consitency_after_clipping():
+    # Reproducing https://github.com/capytaine/capytaine/issues/620
+    mesh = cpt.mesh_sphere()
+    bad_mesh = cpt.Mesh(mesh.vertices, np.concatenate([mesh.faces, mesh.faces]))
+    body = cpt.FloatingBody(bad_mesh)
+    body.add_all_rigid_body_dofs()
+    body.keep_immersed_part()
+    both_body = body + body.translated_x(1.0)
