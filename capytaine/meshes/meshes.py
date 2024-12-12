@@ -605,7 +605,6 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         self.vertices = clipped_self.vertices
         self.faces = clipped_self.faces
         self._clipping_data = clipped_self._clipping_data
-        self.heal_mesh()
         return self
 
     @inplace_transformation
