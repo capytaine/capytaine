@@ -64,7 +64,8 @@ EXAMPLES_BIN=$(EXAMPLES_SRC:.f90=.bin)
 
 BENCH_SRC=benchmarks/openmp/benchmark_omp.f90\
 	  benchmarks/tabulations/benchmark_tabulation.f90\
-	  benchmarks/profiling/benchmark_profiling.f90
+	  benchmarks/profiling/benchmark_profiling.f90\
+	  benchmarks/rankine/benchmark_rankine.f90
 BENCH_BIN=$(BENCH_SRC:.f90=.bin)
 
 
@@ -99,6 +100,9 @@ run_min_ex: example
 	@$(EXAMPLES_BIN)
 	@echo ''
 	@python3 examples/minimal/minimal_example.py
+
+run_bench_rankine: benchmark
+	@benchmarks/rankine/benchmark_rankine.bin
 
 run_bench_tab: benchmark
 	@benchmarks/tabulations/benchmark_tabulation.bin
