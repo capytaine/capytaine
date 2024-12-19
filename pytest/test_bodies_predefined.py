@@ -114,6 +114,13 @@ def test_parallelepiped_generation():
     # trans_para.show()
 
 
+def test_parallelepiped_center():
+    para = RectangularParallelepiped(size=(5.0, 1.0, 3.0), center=(0, 0, -1.5),
+                                     resolution=(6, 2, 3),
+                                     translational_symmetry=False, name="full_test")
+    assert np.allclose(para.geometric_center, np.array([0.0, 0.0, -1.5]))
+
+
 def test_disk():
     a = Disk(resolution=(6, 6))
     b = Disk(resolution=(6, 6), axial_symmetry=True)
