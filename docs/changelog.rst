@@ -18,6 +18,13 @@ Major change
 
   solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
 
+
+Bug fixes
+~~~~~~~~~
+
+* Fix missing geometric center in legacy predefined body ``ReflectionSymmetricMesh`` (:pull:`625`)
+
+
 ---------------------------------
 New in version 2.2.1 (2024-11-18)
 ---------------------------------

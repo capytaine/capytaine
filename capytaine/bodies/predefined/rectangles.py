@@ -101,6 +101,8 @@ class RectangularParallelepiped(FloatingBody):
                 translation_symmetry=translational_symmetry, reflection_symmetry=reflection_symmetry,
                 name=f"{name}_mesh")
 
+        self.geometric_center = np.asarray(center, dtype=float)
+
         FloatingBody.__init__(self, mesh=mesh, name=name)
 
 class OpenRectangularParallelepiped(RectangularParallelepiped):
