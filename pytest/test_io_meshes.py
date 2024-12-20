@@ -61,7 +61,7 @@ def test_from_meshio_pygmsh(generate_pygmsh):
     mesh = cpt.load_mesh(mesh)
     assert mesh.immersed_part().volume == pytest.approx(vol_exp, rel=1e-1)
 
-    fb = cpt.FloatingBody(mesh)
+    fb = cpt.FloatingBody(mesh.immersed_part())
     fb.add_translation_dof(name="Heave")
     test_matrix = xr.Dataset(coords={
         'omega': [np.pi],
