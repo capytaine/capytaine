@@ -63,6 +63,7 @@ def clip(source_mesh: Mesh, plane: Plane, vicinity_tol=1e-12, name=None):
     if name is None:
         clipped_mesh.name = f'{source_mesh.name}_clipped'
     clipped_mesh.remove_unused_vertices()
+    clipped_mesh.remove_degenerated_faces()
 
     return clipped_mesh
 

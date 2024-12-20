@@ -22,6 +22,8 @@ Major change
 Bug fixes
 ~~~~~~~~~
 
+* Always remove degenerate faces after clipping (:issue:`620` and :pull:`624`).
+
 * Fix missing geometric center in legacy predefined body :class:`~capytaine.bodies.predefined.rectangles.ReflectionSymmetricMesh`. It was causing inconsistent definition of dofs with respect to earlier versions. (:pull:`625`)
 
 
