@@ -22,7 +22,7 @@ Major change
 Bug fixes
 ~~~~~~~~~
 
-* Fix missing geometric center in legacy predefined body ``ReflectionSymmetricMesh`` (:pull:`625`)
+* Fix missing geometric center in legacy predefined body :class:`~capytaine.bodies.predefined.rectangles.ReflectionSymmetricMesh`. It was causing inconsistent definition of dofs with respect to earlier versions. (:pull:`625`)
 
 
 ---------------------------------
