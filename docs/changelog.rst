@@ -18,6 +18,11 @@ Major change
 
   solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
 
+Bug fixes
+~~~~~~~~~
+
+* Always remove degenerate faces after clipping (:issue:`620` and :pull:`624`).
+
 ---------------------------------
 New in version 2.2.1 (2024-11-18)
 ---------------------------------
