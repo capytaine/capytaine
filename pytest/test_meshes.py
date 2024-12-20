@@ -142,6 +142,28 @@ def test_heal_mesh_removes_degenerate_panels():
     mesh.heal_mesh()
     assert mesh.nb_faces == 1
 
+@pytest.mark.xfail
+def test_heal_mesh_with_complicated_connectivities():
+    vertices = np.array([
+        [-8.00000000e+00,  1.65358984e+00, -4.99999996e-02],
+        [-8.00000000e+00,  1.65358984e+00,  5.00000003e-02],
+        [-8.00000000e+00,  1.74019238e+00, -9.99999998e-02],
+        [-8.00000000e+00,  1.74019238e+00, -1.78037182e-10],
+        [-8.00000000e+00,  1.74019238e+00,  1.00000000e-01],
+        [-8.00000000e+00,  1.82679492e+00, -5.00000002e-02],
+        [-8.00000000e+00,  1.82679492e+00,  4.99999997e-02]
+        ])
+    faces = np.array([
+        [5, 3, 6, 5],
+        [5, 2, 3, 5],
+        [3, 4, 6, 3],
+        [3, 4, 6, 3],
+        [2, 0, 3, 2],
+        [0, 1, 3, 0],
+        [1, 4, 3, 1]
+        ])
+    mesh = cpt.Mesh(vertices, faces)
+    mesh.heal_mesh()
 
 def test_extract_one_face():
     i = 2
