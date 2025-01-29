@@ -29,17 +29,25 @@ All the core feature of Capytaine are accessible from such a Jupyter-based envir
 Locally with the `uv` package manager
 -------------------------------------
 
-As of 2025, the best compromise between ease-of-use, speed and flexibility to install Capytaine on your machine is to use the `uv <https://docs.astral.sh/uv/>`_
+As of 2025, the best compromise between ease-of-use, speed and flexibility to install Capytaine on your machine is to use the `uv <https://docs.astral.sh/uv/>`_ package manager.
 Once you have installed `uv`, run the following command to run a file script::
 
-    uv run --with capytaine path/to/my_script.py
+    uv run --with capytaine --script path/to/my_script.py
 
-`UV` will take care of installing Python and all required dependencies on the fly.
+`uv` will take care of installing Python and all required dependencies on the fly.
 You can start an interactive console with Capytaine available as follows::
 
     uv run --with capytaine --with ipython ipython
 
-Executhe the following code in the Python console to check that Python is correctly installed::
+Or a Matlab-like development environment with::
+
+    uv run --with capytaine --with spyder spyder
+
+Or the Jupyter notebook interface::
+
+    uv run --with capytaine --with jupyter jupyter lab
+
+Execute the following Python code to check that Capytaine is correctly installed::
 
     import capytaine as cpt; print(cpt.__version__)
 
@@ -94,6 +102,7 @@ Then run the following line to check that the latest version of Capytaine has be
     python -c 'import capytaine as cpt; print(cpt.__version__)'
 
 You might want to use a `virtual environment <https://docs.python.org/3/library/venv.html>`_ to install Capytaine independently of your other Python packages and avoid any risk of dependency conflict.
+If you are using an IDE, you can install Capytaine in a virtual environment using the graphical interface such as `in PyCharm <https://www.jetbrains.com/help/pycharm/creating-virtual-environment.html>`_ or `in VSCode <https://code.visualstudio.com/docs/python/environments#_creating-environments>`_.
 
 The package can also be installed by other modern PyPI-based Python package managers, such as UV_ (see above), PDM_ or poetry_.
 
