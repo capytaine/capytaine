@@ -1,3 +1,4 @@
+uv.lock
 .idea/
 pytest/Nemoh_verification_cases/*/results/
 docs/_static/
