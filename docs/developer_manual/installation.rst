@@ -2,29 +2,95 @@
 Installation for developers
 ===========================
 
-Development environment
------------------------
+The development of Capytaine mostly happens on Linux or Windows Subsystem for Linux (WSL).
+You can find below some instructions to compile Capytaine on macOS or Windows.
+These instruction are not updated regularly and might be out-of-date.
+Please open an issue on Github if you need help.
 
-To work on the source of Capytaine, it is recommended to use Conda_ (or the alternative implementation with the same user interface Mamba_) as package manager and virtual environment manager.
-Other Python package manager such as PDM_ can also be used.
-However Conda/Mamba can simplify the installation of some non-Python tools such as the Fortran compiler and will thus be used as example for the rest of this page.
-
-Please check also the section on Conda in the :doc:`user installation instructions </user_manual/installation>`.
+Previous versions of this documentation recommended the use of Conda_ (or Mamba_) to develop Capytaine.
+This is not really necessary on Linux, where it might be simpler and faster to use a PyPI-based workflow.
+Conda might nonetheless be useful on Windows in order to install development tools such as `git`, `make` or `gfortran`.
 
 .. _Conda: https://conda.io
 .. _Mamba: https://mamba.readthedocs.io/en/latest/
-.. _PDM: https://pdm.fming.dev/latest/
 
+
+Installation for development using `pip` on Linux or WSL
+--------------------------------------------------------
+
+As of February 2025, the build backend used by Capytaine since version 2.0 (meson-python_) is not fully compatible with some modern tools such as `uv` for development (see https://github.com/astral-sh/uv/issues/10214).
+
+.. _meson-python: https://mesonbuild.com/meson-python/index.html
+
+You might need to have Python installed as well as common development tools such as ``git``, ``make`` and ``gfortran``.
+On Ubuntu or Debian, this can be done with::
+
+    sudo apt install python3 python3-pip python3-venv python-is-python3 git make gfortran
+
+Get the source code from Github using ``git``::
+
+    git clone https://github.com/capytaine/capytaine
+    cd capytaine
+
+If you wish to contribute to the project, you might want to create a fork of the project and clone it using the SSH interface (see Github's documentation for more details).
+Let us create a virtual environment in which the development version of Capytaine and its dependencies will be installed::
+
+    python -m venv .venv
+
+Feel free to chose any other directory than the default ``.venv``.
+Activate the virtual environment with::
+
+    source .venv/bin/activate  # with bash shell, change accordingly for e.g. fish
+
+To prepare the development environment, we'll install the required dependencies::
+
+    pip install -r editable_install_requirements.txt
+
+and then build Capytaine in editable mode::
+
+    pip install --no-build-isolation --editable .
+
+The above two commands can also be executed by typing::
+
+    make develop
+
+As long as the virtual environment is activated, every import of Capytaine in Python will use the development version in this directory.
+All change made to the source code should automatically affects the
+installed package. (You may need to restard you Python interpreter, but
+rerunning `pip install` should not be necessary.)
+
+Call for instance the following line to check that Capytaine has been correctly installed::
+
+    python -c 'import capytaine as cpt; print(cpt.__version__)'
+
+.. note::
+
+    If you have an error of the form::
+
+        ModuleNotFoundError:: No module named 'capytaine.green_functions.libs.Delhommeau_float64'
+
+    when importing Capytaine, it may be because the Python interpreter is
+    trying to load the content of the local directory ``capytaine`` (containing
+    only the source code) and not the actual compiled package.
+
+    Running ``python`` from any other directory on your system should fix the
+    issue, since there won't be a local ``capytaine`` directory to confuse the
+    module importer.
+
+    Alternatively, recent versions of Python (>=3.11) have the ``-P`` option
+    which will disable the loading of the local ``capytaine`` directory.
+
+
+Installation for development using Conda
+----------------------------------------
+
+If you are for instance on Windows, it is recommended to use Conda_ (or the alternative implementation with the same user interface Mamba_) as package manager and virtual environment manager to install Capytaine for development.
 Let us first `create a new virtual environment <https://conda.io/docs/user-guide/tasks/manage-environments.html>`_ with::
 
     conda create --name capy_dev python pip
     conda activate capy_dev
 
 By default, Conda will install the latest version of Python.
-Capytaine requires Python 3.7 or higher, and is compatible with `all currently supported version of Python <https://devguide.python.org/versions/>`_.
-
-Getting the source code
------------------------
 
 If ``git`` is not available in your environment, you can install it through ``conda``::
 
@@ -36,9 +102,6 @@ Then the source code can be downloaded using ``git`` with::
     cd capytaine
 
 Alternatively, the source code can be directly downloaded from Github web interface.
-
-Getting a Fortran compiler
---------------------------
 
 Several options are available to get a Fortran compiler.
 Please choose below the most relevant to your case.
@@ -105,56 +168,26 @@ Please choose below the most relevant to your case.
     Test if your Fortran compiler was installed correctly by entering :code:`ifort` on your command line
 
 
-Compiling and installing the code
----------------------------------
+Once you have a Fortran compiler installed, the same instructions as above can be used to install the Python dependencies of Capytaine::
 
-The ``Makefile`` file in Capytaine repository contains short forms for the most common commands required to build Capytaine.
+    pip install -r editable_install_requirements.txt
+
+and then build Capytaine in editable mode::
+
+    pip install --no-build-isolation --editable .
 
 If ``make`` is not available in your environment, you can install it through ``conda``::
 
     conda install -c conda-forge make
 
-To compile the code and install it in the current environment, you can run::
+and simply use the following line to install Capytaine in editable mode in your conda environment::
 
-    make install
-
-which is just synonym of::
-
-    pip install .
+    make develop
 
 You can check that the package is installed by running::
 
     python -c 'import capytaine as cpt; print(cpt.__version__)'
 
-or by checking the complete list of packages installed in the current environment with::
-
-    conda list
-
-.. note::
-
-    If you have an error of the form::
-
-        ModuleNotFoundError:: No module named 'capytaine.green_functions.libs.Delhommeau_float64'
-
-    when importing Capytaine, it may be because the Python interpreter is
-    trying to load the content of the local directory ``capytaine`` (containing
-    only the source code) and not the actual compiled package.
-
-    Running ``python`` from any other directory on your system should fix the
-    issue, since there won't be a local ``capytaine`` directory to confuse the
-    module importer.
-
-    Alternatively, recent versions of Python (>=3.11) have the ``-P`` option
-    which will disable the loading of the local ``capytaine`` directory.
-
-When using ``make install``, you will need to re-run the installation
-for any change made to the code to take effect in the installed version. For
-development, it is more convenient to use instead::
-
-    make develop
-
-Then all change made to the source code should automatically affects the
-installed package. (You may need to restard you Python interpreter.)
 
 Testing
 -------
@@ -183,7 +216,24 @@ will test the code in an environment using the latest available version of Capyt
 Building the documentation
 --------------------------
 
-TODO
+In a ``pip`` or ``conda`` virtual environment (which can be the same as above or a different one), install Capytaine in editable mode with the extra dependencies::
+
+    pip install -r editable_install_requirements.txt
+    pip install --no-build-isolation --editable .[optional,docs]
+
+if you want to edit the code of Capytaine, or install Capytaine directly::
+
+    pip install .[optional,docs]
+
+if you only care about the documentation.
+
+Then run the ``make`` command in the ``docs/`` directory::
+
+    cd docs/
+    make
+
+and the documentation will be built in the ``docs/_build`` directory.
+
 
 Contributing
 ------------
