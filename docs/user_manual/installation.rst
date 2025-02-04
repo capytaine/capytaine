@@ -53,7 +53,7 @@ Execute the following Python code to check that Capytaine is correctly installed
 
 More optional dependencies can be specified, as well as specific versions of capytaine::
 
-    uv run --with "capytaine==2.1" --with matplotlib --with meshio path/to/my_script.py
+    uv run --with "capytaine==2.1" --with matplotlib --with meshio --script path/to/my_script.py
 
 The following optional dependencies can be used together with Capytaine.
 
@@ -73,7 +73,7 @@ The following optional dependencies can be used together with Capytaine.
 
 You can ask UV to install them all at the same time as Capytaine with the following command::
 
-    uv run --with "capytaine[optional]" path/to/my_script.py
+    uv run --with "capytaine[optional]" --script path/to/my_script.py
 
 
 As a standalone executable
