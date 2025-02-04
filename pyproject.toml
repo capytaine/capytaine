@@ -1,7 +1,7 @@
 [project]
 name = "capytaine"
 description = "Python BEM solver for linear potential flow, based on Nemoh"
-authors = [{name = "Matthieu Ancellin", email = "matthieu.ancellin@eurobios.com"}]
+authors = [{name = "Matthieu Ancellin", email = "matthieu.ancellin@mews-labs.com"}]
 requires-python = ">=3.8"
 dependencies = [
    "numpy>=1.20; python_version>='3.9'",
@@ -30,11 +30,11 @@ optional = [
   "matplotlib", "joblib>=1.3", "meshio", "netcdf4", "vtk"
   # "bemio @ https://github.com/mancellin/bemio/archive/fa3a6d3d4b0862491c3723919ec8ee45cc7d055a.zip"
 ]
-
-[dependency-groups]
 test = ["pytest"]
 docs = ["sphinx", "sphinx-toolbox", "sphinxcontrib-proof", "sphinxcontrib-mermaid"]
-# dev = [...]   see editable_install_requirements.txt
+
+[dependency-groups]
+# dev = [...]   see editable_install_requirements.txt for blocking issues to use this.
 
 [build-system]
 build-backend = 'mesonpy'
