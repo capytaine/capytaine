@@ -1,7 +1,7 @@
 [project]
 name = "capytaine"
 description = "Python BEM solver for linear potential flow, based on Nemoh"
-authors = [{name = "Matthieu Ancellin", email = "matthieu.ancellin@eurobios.com"}]
+authors = [{name = "Matthieu Ancellin", email = "matthieu.ancellin@mews-labs.com"}]
 requires-python = ">=3.8"
 dependencies = [
    "numpy>=1.20; python_version>='3.9'",
@@ -11,7 +11,7 @@ dependencies = [
    "xarray",
    "rich"
 ]
-urls = {repository = "https://github.com/capytaine/capytaine"}
+urls = {homepage = "https://capytaine.org", repository = "https://github.com/capytaine/capytaine"}
 readme = "README.md"
 license = {file = "LICENSE"}
 classifiers = [
@@ -32,6 +32,9 @@ optional = [
 ]
 test = ["pytest"]
 docs = ["sphinx", "sphinx-toolbox", "sphinxcontrib-proof", "sphinxcontrib-mermaid"]
+
+[dependency-groups]
+# dev = [...]   see editable_install_requirements.txt for blocking issues to use this.
 
 [build-system]
 build-backend = 'mesonpy'
