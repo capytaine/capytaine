@@ -213,6 +213,28 @@ to test the current source code in an environment with fixed versions of Capytai
 will test the code in an environment using the latest available version of Capytaine's dependencies.
 
 
+Building the documentation
+--------------------------
+
+In a ``pip`` or ``conda`` virtual environment (which can be the same as above or a different one), install Capytaine in editable mode with the extra dependencies::
+
+    pip install -r editable_install_requirements.txt
+    pip install --no-build-isolation --editable .[optional,docs]
+
+if you want to edit the code of Capytaine, or install Capytaine directly::
+
+    pip install .[optional,docs]
+
+if you only care about the documentation.
+
+Then run the ``make`` command in the ``docs/`` directory::
+
+    cd docs/
+    make
+
+and the documentation will be built in the ``docs/_build`` directory.
+
+
 Contributing
 ------------
 
