@@ -234,7 +234,7 @@ class Delhommeau(AbstractGreenFunction):
                 )
 
     @lru_cache(maxsize=128)
-    def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
+    def find_best_exponential_decomposition(self, dimensionless_wavenumber, *, method=None):
         """Compute the decomposition of a part of the finite water_depth Green function as a sum of exponential functions.
 
         Two implementations are available: the legacy Fortran implementation from Nemoh and a newer one written in Python.
@@ -246,12 +246,10 @@ class Delhommeau(AbstractGreenFunction):
 
         Parameters
         ----------
-        dimensionless_omega: float
-            dimensionless angular frequency: :math:`kh \\tanh (kh) = \\omega^2 h/g`
         dimensionless_wavenumber: float
             dimensionless wavenumber: :math:`kh`
-        method: string, optional
-            the implementation that should be used to compute the Prony decomposition
+        method: str, optional
+            "python" or "fortran". If not provided, uses self.finite_depth_prony_decomposition_method.
 
         Returns
         -------
@@ -259,15 +257,19 @@ class Delhommeau(AbstractGreenFunction):
             the amplitude and growth rates of the exponentials
         """
 
-        LOG.debug("\tCompute Prony decomposition in finite water_depth Green function "
-                  "for dimless_omega=%.2e and dimless_wavenumber=%.2e",
-                  dimensionless_omega, dimensionless_wavenumber)
+        if method is None:
+            method = self.finite_depth_prony_decomposition_method
 
-        if self.finite_depth_prony_decomposition_method.lower() == 'python':
+        dimensionless_omega = dimensionless_wavenumber*np.tanh(dimensionless_wavenumber)
+
+        LOG.debug("\tCompute Prony decomposition in finite water_depth Green function "
+                  "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
+
+        if method.lower() == 'python':
             # The function that will be approximated.
             @np.vectorize
             def f(x):
-                return self.fortran_core.initialize_green_wave.ff(x, dimensionless_omega, dimensionless_wavenumber)
+                return self.fortran_core.old_prony_decomposition.ff(x, dimensionless_omega, dimensionless_wavenumber)
 
             # Try different increasing number of exponentials
             for n_exp in range(4, 31, 2):
@@ -283,10 +285,9 @@ class Delhommeau(AbstractGreenFunction):
 
             else:
                 LOG.warning("No suitable exponential decomposition has been found"
-                            "for dimless_omega=%.2e and dimless_wavenumber=%.2e",
-                            dimensionless_omega, dimensionless_wavenumber)
+                            "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
 
-        elif self.finite_depth_prony_decomposition_method.lower() == 'fortran':
+        elif method.lower() == 'fortran':
             lamda, a, nexp = self.fortran_core.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
             lamda = lamda[:nexp]
             a = a[:nexp]
@@ -356,7 +357,6 @@ class Delhommeau(AbstractGreenFunction):
                 raise NotImplementedError("Zero or infinite frequencies not implemented for finite depth.")
             else:
                 a_exp, lamda_exp = self.find_best_exponential_decomposition(
-                    wavenumber*water_depth*np.tanh(wavenumber*water_depth),
                     wavenumber*water_depth,
                 )
                 coeffs = np.array((1.0, 1.0, 1.0))
