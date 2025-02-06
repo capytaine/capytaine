@@ -23,7 +23,6 @@ from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
-from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
 
 LOG = logging.getLogger(__name__)
 
@@ -103,7 +102,6 @@ class BEMSolver:
         else:
             omega, wavenumber = problem.omega, problem.wavenumber
 
-        linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
         if (method == 'direct'):
             if problem.forward_speed != 0.0:
                 raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
@@ -114,7 +112,7 @@ class BEMSolver:
                     self.green_function, adjoint_double_layer=False
                     )
 
-            potential = linear_solver(D, S @ problem.boundary_condition)
+            potential = self.engine.linear_solver(D, S @ problem.boundary_condition)
             pressure = 1j * omega * problem.rho * potential
             sources = None
         else:
@@ -124,7 +122,7 @@ class BEMSolver:
                     self.green_function, adjoint_double_layer=True
                     )
 
-            sources = linear_solver(K, problem.boundary_condition)
+            sources = self.engine.linear_solver(K, problem.boundary_condition)
             potential = S @ sources
             pressure = 1j * omega * problem.rho * potential
             if problem.forward_speed != 0.0:
