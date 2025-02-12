@@ -107,6 +107,9 @@ arguments to store more information in the dataset:
           cases with a free surface.
           Cases without a free surface (:code:`free_surface=inf`) are ignored.
 
+The results can also be collected by :func:`~capytaine.io.xarray.assemble_matrices`, which returns the matrices of :func:`~capytaine.io.xarray.assemble_dataset` as numpy arrays stripped of their metadata.
+This function is meant to be used for teaching, to assemble the matrices without getting the students in contact with ``xarray``.
+
 Building a dataset from Bemio
 -----------------------------
 
