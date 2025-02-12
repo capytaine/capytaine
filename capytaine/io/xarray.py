@@ -481,6 +481,43 @@ def assemble_dataset(results,
     return dataset
 
 
+def assemble_matrices(results):
+    """Simplified version of assemble_dataset, returning only bare matrices.
+    Meant mainly for teaching without introducing Xarray to begginers.
+
+    Parameters
+    ----------
+    results: list of LinearPotentialFlowResult
+        The results that will be read.
+
+    Returns
+    -------
+    3-ple of (np.arrays or None)
+        The added mass matrix, the radiation damping matrix and the excitation force.
+        If the data are no available in the results, returns None instead.
+    """
+
+    ds = assemble_dataset(results)
+
+    if "added_mass" in ds:
+        A = np.atleast_2d(ds.added_mass.values.squeeze())
+    else:
+        A = None
+
+    if "radiation_damping" in ds:
+        B = np.atleast_2d(ds.radiation_damping.values.squeeze())
+    else:
+        B = None
+
+    if "excitation_force" in ds:
+        F = np.atleast_1d(ds.excitation_force.values.squeeze())
+    else:
+        F = None
+
+    return A, B, F
+
+
+
 ################################
 #  Handling of complex values  #
 ################################
