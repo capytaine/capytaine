@@ -7,6 +7,7 @@ Developer manual
 
    installation.rst
    overview.rst
+   contributing.rst
    testing.rst
    making_a_release.rst
    api/modules.rst
