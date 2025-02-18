@@ -30,6 +30,10 @@ Bug fixes
 
 * Fix missing geometric center in legacy predefined body :class:`~capytaine.bodies.predefined.rectangles.ReflectionSymmetricMesh`. It was causing inconsistent definition of dofs with respect to earlier versions. (:pull:`625`)
 
+Internals
+~~~~~~~~~
+
+* Add ``interface.f90`` Fortran file to group some routines used only for wrapping the Fortran core. (:pull:`612`)
 
 ---------------------------------
 New in version 2.2.1 (2024-11-18)
