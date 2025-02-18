@@ -11,7 +11,8 @@ nox.options.envdir = os.path.join(tempdir, "venvs")
 
 ENV = {
         'MPLBACKEND': 'pdf',
-        'CAPYTAINE_CACHE_DIR': os.path.join(tempdir, "capytaine_cache")
+        'CAPYTAINE_CACHE_DIR': os.path.join(tempdir, "capytaine_cache"),
+        'CAPYTAINE_PROGRESS_BAR': 'False'
         }
 
 EXAMPLE_FILES = [
