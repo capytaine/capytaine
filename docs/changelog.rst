@@ -18,6 +18,10 @@ Major change
 
   solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
 
+Minor change
+~~~~~~~~~~~~
+
+* Add :func:`~capytaine.io.xarray.assemble_matrices` function which is a simplified version of `~capytaine.io.xarray.assemble_dataset` without metadata, meant to be used mostly for teaching. (:pull:`643`)
 
 Bug fixes
 ~~~~~~~~~

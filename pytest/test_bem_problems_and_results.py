@@ -301,6 +301,45 @@ def test_assemble_dataset(sphere, solver, method):
     assert "added_mass" in ds12
 
 
+def test_assemble_matrices(sphere, solver):
+    pbs = [cpt.DiffractionProblem(body=sphere, wave_direction=1.0, omega=1.0),
+           cpt.RadiationProblem(body=sphere, wave_direction=1.0, radiating_dof="Heave")]
+    res = solver.solve_all(pbs)
+    A, B, F = cpt.assemble_matrices(res)
+    assert A.shape == (1, 1)
+    assert A.dtype == np.float64
+    assert B.shape == (1, 1)
+    assert B.dtype == np.float64
+    assert F.shape == (1,)
+    assert F.dtype == np.complex128
+
+
+def test_assemble_matrices_rad_only(sphere, solver):
+    pbs = [cpt.RadiationProblem(body=sphere, wave_direction=1.0, radiating_dof="Heave")]
+    res = solver.solve_all(pbs)
+    A, B, F = cpt.assemble_matrices(res)
+    assert A.shape == (1, 1)
+    assert A.dtype == np.float64
+    assert B.shape == (1, 1)
+    assert B.dtype == np.float64
+    assert F is None
+
+
+def test_assemble_matrices_dif_only(sphere, solver):
+    pbs = [cpt.DiffractionProblem(body=sphere, wave_direction=1.0, omega=1.0)]
+    res = solver.solve_all(pbs)
+    A, B, F = cpt.assemble_matrices(res)
+    assert A is None
+    assert B is None
+    assert F.shape == (1,)
+    assert F.dtype == np.complex128
+
+
+def test_assemble_matrices_no_data():
+    with pytest.raises(ValueError):
+        cpt.assemble_matrices([])
+
+
 def test_fill_dataset(sphere, solver):
     sphere.add_all_rigid_body_dofs()
     test_matrix = xr.Dataset(coords={'omega': [1.0, 2.0, 3.0], 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
