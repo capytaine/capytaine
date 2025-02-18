@@ -20,15 +20,18 @@ Before submitting a pull request, please take a look at the following points:
   If you'd like to add a feature, please add the relevant tests to the `pytest`
   directory.
 
-- All modifications of the code are listed in the `docs/changelog.rst`.
+- All modifications of the code are listed in the ``docs/changelog.rst``.
   If you submit a bug fix or a new feature, please add a line in the changelog.
 
-- New features should also be documented in the user manual (`docs/user_manual/`).
+- New features should also be documented in the user manual (``docs/user_manual/``).
   Please add a short documentation of the feature in the relevant page.
 
-- The code follows the [PEP8](https://pep8.org/) guidelines for code style.
+- The code follows the `PEP8`_ guidelines for code style.
   Indentation is done with four spaces.
   Try to avoid trailing whitespaces whenever possible.
+
+.. _`PEP8`: https://pep8.org/
+
 
 The whole of Capytaine is currently licensed under the terms of the General
 Public License (GPL). In the future, some modules might be extracted and
