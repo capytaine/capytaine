@@ -209,11 +209,3 @@ Then run the ``make`` command in the ``docs/`` directory::
     make
 
 and the documentation will be built in the ``docs/_build`` directory.
-
-
-Contributing
-------------
-
-For instructions about how to help with the development of Capytaine, see the `contributing guide`_.
-
-.. _`contributing guide`: https://github.com/capytaine/capytaine/blob/master/CONTRIBUTING.md
