@@ -296,7 +296,6 @@ class Delhommeau(AbstractGreenFunction):
             raise ValueError("Unrecognized method name for the Prony decomposition.")
 
         # Add one more exponential function (actually a constant).
-        # It is not clear where it comes from exactly in the theory...
         a = np.concatenate([a, np.array([2])])
         lamda = np.concatenate([lamda, np.array([0.0])])
 
