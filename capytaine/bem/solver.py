@@ -9,6 +9,7 @@
 
 """
 
+import os
 import logging
 
 import numpy as np
@@ -145,7 +146,7 @@ class BEMSolver:
 
         return result
 
-    def solve_all(self, problems, *, method='indirect', n_jobs=1, progress_bar=True, _check_wavelength=True, **kwargs):
+    def solve_all(self, problems, *, method='indirect', n_jobs=1, progress_bar=None, _check_wavelength=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -158,8 +159,11 @@ class BEMSolver:
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
-        progress_bar: bool, optional (default: True)
-            Display a progress bar while solving
+        progress_bar: bool, optional
+            Display a progress bar while solving.
+            If no value is provided to this method directly,
+            check whether the environment variable `CAPYTAINE_PROGRESS_BAR` is defined
+            and otherwise default to True.
         _check_wavelength: bool, optional (default: True)
             If True, the frequencies are compared to the mesh resolution and
             the estimated first irregular frequency to warn the user.
@@ -172,6 +176,18 @@ class BEMSolver:
         if _check_wavelength:
             self._check_wavelength_and_mesh_resolution(problems)
             self._check_wavelength_and_irregular_frequencies(problems)
+
+        if progress_bar is None:
+            if "CAPYTAINE_PROGRESS_BAR" in os.environ:
+                env_var = os.environ["CAPYTAINE_PROGRESS_BAR"].lower()
+                if env_var in {'true', '1', 't'}:
+                    progress_bar = True
+                elif env_var in {'false', '0', 'f'}:
+                    progress_bar = False
+                else:
+                    raise ValueError("Invalid value '{}' for the environment variable CAPYTAINE_PROGRESS_BAR.".format(os.environ["CAPYTAINE_PROGRESS_BAR"]))
+            else:
+                progress_bar = True
 
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
@@ -265,8 +281,11 @@ class BEMSolver:
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
-        progress_bar: bool, optional (default: True)
-            Display a progress bar while solving
+        progress_bar: bool, optional
+            Display a progress bar while solving.
+            If no value is provided to this method directly,
+            check whether the environment variable `CAPYTAINE_PROGRESS_BAR` is defined
+            and otherwise default to True.
         _check_wavelength: bool, optional (default: True)
             If True, the frequencies are compared to the mesh resolution and
             the estimated first irregular frequency to warn the user.
