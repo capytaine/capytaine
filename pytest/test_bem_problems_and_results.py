@@ -335,11 +335,9 @@ def test_assemble_matrices_dif_only(sphere, solver):
     assert F.dtype == np.complex128
 
 
-def test_assemble_matrices_no_data(sphere, solver):
-    A, B, F = cpt.assemble_matrices([])
-    assert A is None
-    assert B is None
-    assert F is None
+def test_assemble_matrices_no_data():
+    with pytest.raises(ValueError):
+        cpt.assemble_matrices([])
 
 
 def test_fill_dataset(sphere, solver):

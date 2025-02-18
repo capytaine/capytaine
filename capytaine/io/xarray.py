@@ -310,6 +310,8 @@ def assemble_dataset(results,
 
     error_msg = 'The first argument of `assemble_dataset` must be either a list of LinearPotentialFlowResult or a bemio.io object'
     if hasattr(results, '__iter__'):
+        if len(results) == 0:
+            raise ValueError("Iterable provided to `assemble_dataset` is empty.")
         try:
             if 'capytaine' in results[0].__module__:
                 bemio_import = False
@@ -483,7 +485,7 @@ def assemble_dataset(results,
 
 def assemble_matrices(results):
     """Simplified version of assemble_dataset, returning only bare matrices.
-    Meant mainly for teaching without introducing Xarray to begginers.
+    Meant mainly for teaching without introducing Xarray to beginers.
 
     Parameters
     ----------
