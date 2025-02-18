@@ -28,6 +28,7 @@ MODULE CONSTANTS
   integer, parameter :: LIANG_WU_NOBLESSE = -1
   integer, parameter :: LEGACY_GRID = 0  ! Nemoh 2
   integer, parameter :: SCALED_NEMOH3_GRID = 1
+  integer, parameter :: LINEAR_GRID = 2
 
   ! Values for "gf_singularities"
   integer, parameter :: HIGH_FREQ = 0  ! legacy from Nemoh
