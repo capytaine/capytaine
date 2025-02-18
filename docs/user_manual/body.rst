@@ -136,15 +136,8 @@ strictly associative (that is ``body_1 + (body_2 + body_3)`` has some internal
 differences with ``(body_1 + body_2) + body_3``).
 
 When two floating bodies with dofs are merged, the resulting body inherits from
-the dofs of the individual bodies with the new name :code:`body_name__dof_name`.
+the dofs of the individual bodies with the new name :code:`body_name__dof_name`::
 
-.. comment
-    mesh = cpt.mesh_sphere().immersed_part()
-    body_1 = cpt.FloatingBody(mesh, cpt.rigid_body_dofs(), name="body_1")
-    body_2 = cpt.FloatingBody(mesh.translated_x(5.0), cpt.rigid_body_dofs(), name="body_2")
-    two_bodies = body_1 + body_2
-
-.. code::
     print(two_bodies.nb_dofs)
     # 12
     print(two_bodies.dofs.keys())
