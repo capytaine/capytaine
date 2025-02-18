@@ -8,6 +8,9 @@ MODULE GREEN_WAVE
 #ifdef LIANGWUNOBLESSE
     USE LIANGWUNOBLESSEWAVETERM, ONLY: HavelockGF
 #endif
+!#ifdef FINGREEN3D
+!    USE fingreen3d_module, ONLY: fingreen3d_routine, dispersion
+!#endif
   USE GREEN_RANKINE, ONLY: COMPUTE_ASYMPTOTIC_RANKINE_SOURCE
 
   IMPLICIT NONE
@@ -415,5 +418,51 @@ CONTAINS
 
     RETURN
   END SUBROUTINE
+
+  ! =====================================================================
+
+!#ifdef FINGREEN3D
+!  SUBROUTINE WAVE_PART_FINITE_DEPTH_FINGREEN3D                   &
+!      (X0I, X0J, wavenumber, depth,                              &
+!      g, nablag_sym, nablag_antisym)
+!
+!    ! inputs
+!    real(kind=pre),                           intent(in) :: wavenumber, depth
+!    real(kind=pre), dimension(3),             intent(in) :: x0i
+!    real(kind=pre), dimension(3),             intent(in) :: x0j
+!
+!    ! outputs
+!    complex(kind=pre),               intent(out) :: g  ! integral of the green function over the panel.
+!    complex(kind=pre), dimension(3), intent(out) :: nablag_sym, nablag_antisym ! gradient of the integral of the green function with respect to x0i.
+!
+!    complex(kind=pre), dimension(3) :: reduced_g_nablag, nablag
+!    real(kind=pre) :: omega, omega2_over_g
+!
+!    omega2_over_g  = wavenumber*depth*TANH(wavenumber*depth)
+!    omega = sqrt(omega2_over_g * 9.81)
+!    r = NORM2(X0I(1:2) - X0J(1:2))
+!
+!    call dispersion(roots_of_dispersion_relationship, nk, omega, depth)  ! TODO: factor out of the loop on panels
+!
+!    call fingreen3d_routine(r, x0I(3), x0j(3), sqrt(g*omega), roots_of_dispersion_relationship, nk, depth, reduced_g)
+!
+!    g = reduced_g(1)
+!
+!    IF (ABS(r) > 16*EPSILON(r)) THEN
+!      drdx1 = (X0I(1) - X0J(1))/r
+!      drdx2 = (X0I(2) - X0J(2))/r
+!    ELSE
+!      ! Limit when r->0 is not well defined...
+!      drdx1 = ZERO
+!      drdx2 = ZERO
+!    END IF
+!
+!    nablag(1) = drdx1 * reduced_g(2)
+!    nablag(2) = drdx2 * reduced_g(2)
+!    nablag(3) = reduced_g(3)
+!
+!
+!  END SUBROUTINE
+!#endif
 
 END MODULE GREEN_WAVE
