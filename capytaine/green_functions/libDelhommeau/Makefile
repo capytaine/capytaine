@@ -27,19 +27,21 @@ FLAGS += $(OPT)
 
 SRC_S=src/float32.f90\
       src/constants.f90\
+      src/old_Prony_decomposition.f90\
       src/Green_Rankine.f90\
       src/Delhommeau_integrals.f90\
       src/Green_wave.f90\
       src/matrices.f90\
-      src/old_Prony_decomposition.f90
+      src/interface.f90
 
 SRC_D=src/float64.f90\
       src/constants.f90\
+      src/old_Prony_decomposition.f90\
       src/Green_Rankine.f90\
       src/Delhommeau_integrals.f90\
       src/Green_wave.f90\
       src/matrices.f90\
-      src/old_Prony_decomposition.f90
+      src/interface.f90
 
 ### !! choose single or double comp.
 # SRC=$(SRC_S)
