@@ -157,6 +157,35 @@ def test_clipping_of_dofs(z_center, as_collection_of_meshes):
         assert len(clipped_sphere.dofs['test_dof']) == 0
 
 
+def test_complicated_clipping_of_dofs():
+    # 1 face becomes 2 faces after clipping
+    mesh = cpt.Mesh(vertices=[[0.0, 0.0, 0.5], [-0.5, 0.0, -0.5], [0.0, 0.0, -1.5], [0.0, 0.5, -0.5]], faces=[[0, 1, 2, 3]])
+    body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
+    clipped_body = body.immersed_part()
+    assert len(clipped_body.dofs["Heave"]) == clipped_body.mesh.nb_faces
+
+
+@pytest.mark.xfail
+def test_clipping_of_dofs_with_degenerate_faces():
+    vertices = np.array([
+        [-8.00000000e+00,  1.65358984e+00, -4.99999996e-02],
+        [-8.00000000e+00,  1.65358984e+00,  5.00000003e-02],
+        [-8.00000000e+00,  1.74019238e+00, -9.99999998e-02],
+        [-8.00000000e+00,  1.74019238e+00, -1.78037182e-10],
+        [-8.00000000e+00,  1.74019238e+00,  1.00000000e-01],
+        [-8.00000000e+00,  1.82679492e+00, -5.00000002e-02],
+        [-8.00000000e+00,  1.82679492e+00,  4.99999997e-02]
+        ])
+    faces = np.array([
+        [3, 4, 6, 3],
+        [2, 0, 3, 2],
+        ])
+    mesh = cpt.Mesh(vertices, faces)
+    body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
+    clipped_body = body.immersed_part()
+    assert len(clipped_body.dofs["Heave"]) == clipped_body.mesh.nb_faces
+
+
 def test_cropping_body_with_manual_dof():
     # https://github.com/capytaine/capytaine/issues/204
     sphere = cpt.FloatingBody(cpt.mesh_sphere())

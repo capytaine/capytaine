@@ -24,11 +24,12 @@ from capytaine.bem.problems_and_results import RadiationProblem, DiffractionProb
 from capytaine.bem.solver import BEMSolver
 from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine, HierarchicalPrecondMatrixEngine
 from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
+from capytaine.green_functions.hams import LiangWuNoblesseGF
 
 from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.io.mesh_loaders import load_mesh
-from capytaine.io.xarray import assemble_dataset
+from capytaine.io.xarray import assemble_dataset, assemble_matrices
 
 from capytaine.ui.rich import set_logging
 

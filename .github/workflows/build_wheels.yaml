@@ -15,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-13, macos-14, windows-2019]
+        os: [ubuntu-22.04, macos-13, macos-14, windows-2019]
             # MacOS<=13 are Intel, while MacOS 14 is Apple Silicon
 
     steps:
@@ -28,7 +28,7 @@ jobs:
           version: '13'
 
       - name: Build wheels
-        if: matrix.os == 'ubuntu-20.04'
+        if: matrix.os == 'ubuntu-22.04'
         uses: pypa/cibuildwheel@v2.21.3
         env:
           CIBW_SKIP: "pp* *i686* *musllinux*"

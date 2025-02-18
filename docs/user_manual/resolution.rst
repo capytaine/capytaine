@@ -14,7 +14,7 @@ Let us discuss in more details these two objects.
 Green function
 ~~~~~~~~~~~~~~
 A class used to evaluate the Green function, deriving from :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`.
-In the present version, a single class is implemented, although it offers many parameters for customization:
+The following classes are available:
 
 :class:`~capytaine.green_functions.delhommeau.Delhommeau` (Default)
    The method implemented in Nemoh (see [Del87]_ and [Del89]_).
@@ -71,13 +71,30 @@ In the present version, a single class is implemented, although it offers many p
    former variant is still available by setting the ``gf_singularities``
    parameter as in the above example.
 
-The first time it is initialize with a given set of parameters, some tabulated
-data are precomputed and stored on disk.
-The default location is a os-dependant cache directory.
-The location at which the data is stored can be configured by passing
-``tabulation_cache_dir`` to
-:class:`~capytaine.green_functions.delhommeau.Delhommeau` or by setting the
-environment variable ``CAPYTAINE_CACHE_DIR``.
+   The first time it is initialize with a given set of parameters, some tabulated
+   data are precomputed and stored on disk.
+   The default location is a os-dependant cache directory.
+   The location at which the data is stored can be configured by passing
+   ``tabulation_cache_dir`` to
+   :class:`~capytaine.green_functions.delhommeau.Delhommeau` or by setting the
+   environment variable ``CAPYTAINE_CACHE_DIR``.
+
+
+:class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`
+   The infinite depth Green function from the following papers:
+
+   [1]  H. Wu, C. Zhang, Y. Zhu, W. Li, D. Wan, F. Noblesse, 
+        A global approximation to the Green function for 
+        diffraction radiation of water waves, 
+        Eur. J. Mech. B Fluids 65 (2017) 54-64.
+
+    [2] H. Liang, H. Wu, F. Noblesse,
+        Validation of a global approximation for 
+        wave diffraction-radiation in deep water,
+        Appl. Ocean Res. 74 (2018) 80-86.
+
+    Please cite them if you use this implementation.
+
 
 Advanced users can write their own class to evaluate the Green function.
 See the example in the :doc:`cookbook`.

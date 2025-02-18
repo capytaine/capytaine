@@ -26,6 +26,7 @@ libDelhommeau_src = [
       'capytaine/green_functions/libDelhommeau/src/constants.f90',
       'capytaine/green_functions/libDelhommeau/src/Delhommeau_integrals.f90',
       'capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90',
+      'capytaine/green_functions/LiangWuNoblesse/LiangWuNoblesseWaveTerm.f90',
       'capytaine/green_functions/libDelhommeau/src/Green_Rankine.f90',
       'capytaine/green_functions/libDelhommeau/src/Green_wave.f90',
       'capytaine/green_functions/libDelhommeau/src/matrices.f90',
@@ -33,7 +34,8 @@ libDelhommeau_src = [
 ]
 
 float32 = ['capytaine/green_functions/libDelhommeau/src/float32.f90',]
-float64 = ['capytaine/green_functions/libDelhommeau/src/float64.f90',]
+float64 = ['capytaine/green_functions/libDelhommeau/src/float64.f90',
+  ]
 
 Delhommeau_float32_f2py_wrapper = custom_target('Delhommeau_float32module.c',
                                            input : float32 + libDelhommeau_src,
@@ -58,7 +60,7 @@ else
   omp = dependency('openmp')
 endif
 
-args = ['-cpp']
+args = ['-cpp', '-DLIANGWUNOBLESSE']
 link_args = ['-lquadmath']  # Required for the Windows build with cibuildwheel
 deps = [py3_dep, omp]
 
