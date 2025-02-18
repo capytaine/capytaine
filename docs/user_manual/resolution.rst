@@ -83,13 +83,13 @@ The following classes are available:
 :class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`
    The infinite depth Green function from the following papers:
 
-   [1]  H. Wu, C. Zhang, Y. Zhu, W. Li, D. Wan, F. Noblesse, 
-        A global approximation to the Green function for 
-        diffraction radiation of water waves, 
+   [1]  H. Wu, C. Zhang, Y. Zhu, W. Li, D. Wan, F. Noblesse,
+        A global approximation to the Green function for
+        diffraction radiation of water waves,
         Eur. J. Mech. B Fluids 65 (2017) 54-64.
 
     [2] H. Liang, H. Wu, F. Noblesse,
-        Validation of a global approximation for 
+        Validation of a global approximation for
         wave diffraction-radiation in deep water,
         Appl. Ocean Res. 74 (2018) 80-86.
 
@@ -181,6 +181,17 @@ body. Any other post-processing requires the indirect method.
 A list of problems can be solved at once in an optimal order with::
 
 	list_of_results = solver.solve_all(list_of_problems, keep_details=False)
+
+Progress bar
+------------
+
+The methods :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and
+:meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` display by default an
+animated progress bar while solving.
+This behavior can be turned off by giving the optional argument
+``progress_bar=False`` to either method or by setting the environment variable
+``CAPYTAINE_PROGRESS_BAR`` to ``False``.
+This might be useful in testing environments and CI.
 
 Parallelization
 ---------------
