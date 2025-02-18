@@ -22,7 +22,10 @@ incdir_f2py = run_command(py3,
 
 inc_np = include_directories(incdir_numpy, incdir_f2py)
 
-libDelhommeau_src = [
+float32 = ['capytaine/green_functions/libDelhommeau/src/float32.f90',]
+float64 = ['capytaine/green_functions/libDelhommeau/src/float64.f90',]
+
+src_to_interface_with_python = [
       'capytaine/green_functions/libDelhommeau/src/constants.f90',
       'capytaine/green_functions/libDelhommeau/src/Delhommeau_integrals.f90',
       'capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90',
@@ -33,17 +36,18 @@ libDelhommeau_src = [
       'capytaine/green_functions/libDelhommeau/src/interface.f90',
 ]
 
-float32 = ['capytaine/green_functions/libDelhommeau/src/float32.f90',]
-float64 = ['capytaine/green_functions/libDelhommeau/src/float64.f90',
+other_src = [
+      'capytaine/green_functions/FinGreen3D/FinGrnExtSubs.f90',
+      'capytaine/green_functions/FinGreen3D/FinGreen3D.f90',
   ]
 
 Delhommeau_float32_f2py_wrapper = custom_target('Delhommeau_float32module.c',
-                                           input : float32 + libDelhommeau_src,
+                                           input : float32 + src_to_interface_with_python,
                                            output : ['Delhommeau_float32module.c', 'Delhommeau_float32-f2pywrappers2.f90'],
                                            command : [ py3, '-m', 'numpy.f2py', '@INPUT@', '-m', 'Delhommeau_float32', '--lower'])
 
 Delhommeau_float64_f2py_wrapper = custom_target('Delhommeau_float64module.c',
-                                           input : float64 + libDelhommeau_src,
+                                           input : float64 + src_to_interface_with_python,
                                            output : ['Delhommeau_float64module.c', 'Delhommeau_float64-f2pywrappers2.f90'],
                                            command : [ py3, '-m', 'numpy.f2py', '@INPUT@', '-m', 'Delhommeau_float64', '--lower'])
 
@@ -60,12 +64,12 @@ else
   omp = dependency('openmp')
 endif
 
-args = ['-cpp', '-DLIANGWUNOBLESSE']
+args = ['-cpp', '-DLIANGWUNOBLESSE', '-DFINGREEN3D']
 link_args = ['-lquadmath']  # Required for the Windows build with cibuildwheel
 deps = [py3_dep, omp]
 
 py3.extension_module('Delhommeau_float32',
-           float32, libDelhommeau_src, Delhommeau_float32_f2py_wrapper, incdir_f2py+'/fortranobject.c',
+           float32, other_src, src_to_interface_with_python, Delhommeau_float32_f2py_wrapper, incdir_f2py+'/fortranobject.c',
            include_directories: inc_np,
            dependencies : deps,
            fortran_args : args,
@@ -74,7 +78,7 @@ py3.extension_module('Delhommeau_float32',
            subdir : 'capytaine/green_functions/libs/')
 
 py3.extension_module('Delhommeau_float64',
-           float64, libDelhommeau_src, Delhommeau_float64_f2py_wrapper, incdir_f2py+'/fortranobject.c',
+           float64, other_src, src_to_interface_with_python, Delhommeau_float64_f2py_wrapper, incdir_f2py+'/fortranobject.c',
            include_directories: inc_np,
            dependencies : deps,
            fortran_args : args,
