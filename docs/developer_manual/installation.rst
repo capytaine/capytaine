@@ -189,30 +189,6 @@ You can check that the package is installed by running::
     python -c 'import capytaine as cpt; print(cpt.__version__)'
 
 
-Testing
--------
-
-To check that the installed packaged is working fine, you can run the test suite with Pytest.
-If Pytest is not already install, it can be done with::
-
-    pip install pytest
-
-Then run the following command from the root of Capytaine repository to test the code::
-
-    python -m pytest
-
-Alternatively, `Nox <https://nox.thea.codes>`_ can be used to set up an isolated environment and build and test the code.
-After installing Nox, use::
-
-    nox -s build_and_test_on_locked_env
-
-to test the current source code in an environment with fixed versions of Capytaine's dependencies, whereas::
-
-    nox -s build_and_test_on_latest_env
-
-will test the code in an environment using the latest available version of Capytaine's dependencies.
-
-
 Building the documentation
 --------------------------
 
