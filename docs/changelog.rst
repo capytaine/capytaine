@@ -34,6 +34,12 @@ Bug fixes
 
 * Fix Python implementation of the Prony decomposition for the finite depth Green function. The default is still the legacy Fortran implementation. (:pull:`621`).
 
+Internals
+~~~~~~~~~
+
+* Add ``interface.f90`` Fortran file to group some routines used only for wrapping the Fortran core. (:pull:`612`)
+
+
 ---------------------------------
 New in version 2.2.1 (2024-11-18)
 ---------------------------------

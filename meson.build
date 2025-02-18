@@ -30,6 +30,7 @@ libDelhommeau_src = [
       'capytaine/green_functions/libDelhommeau/src/Green_Rankine.f90',
       'capytaine/green_functions/libDelhommeau/src/Green_wave.f90',
       'capytaine/green_functions/libDelhommeau/src/matrices.f90',
+      'capytaine/green_functions/libDelhommeau/src/interface.f90',
 ]
 
 float32 = ['capytaine/green_functions/libDelhommeau/src/float32.f90',]
