@@ -18,6 +18,19 @@ Major change
 
   solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
 
+Minor change
+~~~~~~~~~~~~
+
+* Add :func:`~capytaine.io.xarray.assemble_matrices` function which is a simplified version of `~capytaine.io.xarray.assemble_dataset` without metadata, meant to be used mostly for teaching. (:pull:`643`)
+
+Bug fixes
+~~~~~~~~~
+
+* Always remove degenerate faces after clipping (:issue:`620` and :pull:`624`).
+
+* Fix missing geometric center in legacy predefined body :class:`~capytaine.bodies.predefined.rectangles.ReflectionSymmetricMesh`. It was causing inconsistent definition of dofs with respect to earlier versions. (:pull:`625`)
+
+
 ---------------------------------
 New in version 2.2.1 (2024-11-18)
 ---------------------------------
