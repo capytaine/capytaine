@@ -6,6 +6,7 @@ Developer manual
    :maxdepth: 2
 
    installation.rst
-   making_a_release.rst
    overview.rst
+   testing.rst
+   making_a_release.rst
    api/modules.rst
