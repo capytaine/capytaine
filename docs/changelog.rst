@@ -39,6 +39,7 @@ Internals
 
 * Add ``interface.f90`` Fortran file to group some routines used only for wrapping the Fortran core. (:pull:`612`)
 
+* Add :meth:`~capytaine.green_functions.delhommeau.Delhommeau.all_tabulation_parameters` to make it easier to test Fortran core from Python (:pull:`648`)
 
 ---------------------------------
 New in version 2.2.1 (2024-11-18)
