@@ -37,7 +37,6 @@ src_to_interface_with_python = [
 ]
 
 other_src = [
-      'capytaine/green_functions/FinGreen3D/FinGrnExtSubs.f90',
       'capytaine/green_functions/FinGreen3D/FinGreen3D.f90',
   ]
 
