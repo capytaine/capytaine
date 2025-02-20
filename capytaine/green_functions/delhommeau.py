@@ -233,6 +233,12 @@ class Delhommeau(AbstractGreenFunction):
                 self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
                 )
 
+    @property
+    def all_tabulation_parameters(self):
+        """An alias meant to pass to the Fortran functions all the parameters controlling the tabulation in a single item."""
+        return (self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
+                self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals)
+
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_wavenumber, *, method=None):
         """Compute the decomposition of a part of the finite water_depth Green function as a sum of exponential functions.
@@ -383,9 +389,7 @@ class Delhommeau(AbstractGreenFunction):
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
             wavenumber, water_depth,
-            coeffs,
-            self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
-            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
+            coeffs, *self.all_tabulation_parameters,
             lamda_exp, a_exp,
             mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
             S, K

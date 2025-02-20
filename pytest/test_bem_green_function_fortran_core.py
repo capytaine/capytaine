@@ -27,9 +27,7 @@ def test_infinite_depth_gf_singularities_variants():
     gf = cpt.Delhommeau()
     def wave_part(*args):
         return gf.fortran_core.green_wave.wave_part_infinite_depth(
-                *args[:3], gf.tabulation_nb_integration_points, gf.tabulation_grid_shape_index,
-                gf.tabulated_r_range, gf.tabulated_z_range, gf.tabulated_integrals,
-                args[3])
+                *args[:3], *gf.all_tabulation_parameters, args[3])
     xi = np.array([0.0, 0.0, -0.5])
     xj = np.array([0.0, 1.0, -0.5])
     k = 2.0
@@ -49,14 +47,10 @@ def test_infinite_depth_gf_finite_differences(gf_singularities):
     gf = cpt.Delhommeau(gf_singularities=gf_singularities)
     def wave_part(*args):
         return gf.fortran_core.green_wave.wave_part_infinite_depth(
-                *args[:3], gf.tabulation_nb_integration_points, gf.tabulation_grid_shape_index,
-                gf.tabulated_r_range, gf.tabulated_z_range, gf.tabulated_integrals,
-                gf.gf_singularities_index)[0]
+                *args[:3], *gf.all_tabulation_parameters, gf.gf_singularities_index)[0]
     def nabla_wave_part(*args):
         return gf.fortran_core.green_wave.wave_part_infinite_depth(
-                *args[:3], gf.tabulation_nb_integration_points, gf.tabulation_grid_shape_index,
-                gf.tabulated_r_range, gf.tabulated_z_range, gf.tabulated_integrals,
-                gf.gf_singularities_index)[1]
+                *args[:3], *gf.all_tabulation_parameters, gf.gf_singularities_index)[1]
     k = 1.0
     xi = np.array([0.0, 0.0, -0.5])
     xj = np.array([1.0, 1.0, -0.5])
@@ -84,16 +78,10 @@ def test_symmetry_of_the_green_function_infinite_depth(gf):
     xi = np.array([0.0, 0.0, -1.0])
     xj = np.array([1.0, 1.0, -2.0])
     g1, dg1 = gf.fortran_core.green_wave.wave_part_infinite_depth(
-        xi, xj, k,
-        gf.tabulation_nb_integration_points, gf.tabulation_grid_shape_index,
-        gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals, gf.gf_singularities_index
+        xi, xj, k, *gf.all_tabulation_parameters, gf.gf_singularities_index
     )
     g2, dg2 = gf.fortran_core.green_wave.wave_part_infinite_depth(
-        xj, xi, k,
-        gf.tabulation_nb_integration_points, gf.tabulation_grid_shape_index,
-        gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals, gf.gf_singularities_index
+        xj, xi, k, *gf.all_tabulation_parameters, gf.gf_singularities_index
     )
     assert g1 == pytest.approx(g2)
     assert dg1[0:2] == pytest.approx(-dg2[0:2])
@@ -107,18 +95,10 @@ def test_symmetry_of_the_green_function_finite_depth_no_prony(gf):
     xi = np.array([0.0, 0.0, -1.0])
     xj = np.array([1.0, 1.0, -2.0])
     g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
-        xi, xj, k, depth,
-        gf.tabulation_nb_integration_points, gf.tabulation_grid_shape_index,
-        gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals,
-        np.zeros(1), np.zeros(1), 1
+        xi, xj, k, depth, *gf.all_tabulation_parameters, np.zeros(1), np.zeros(1), 1
     )
     g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
-        xj, xi, k, depth,
-        gf.tabulation_nb_integration_points, gf.tabulation_grid_shape_index,
-        gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals,
-        np.zeros(1), np.zeros(1), 1
+        xj, xi, k, depth, *gf.all_tabulation_parameters, np.zeros(1), np.zeros(1), 1
     )
     assert g1 == pytest.approx(g2)
     assert dg1_sym == pytest.approx(dg2_sym)
@@ -133,18 +113,10 @@ def test_symmetry_of_the_green_function_finite_depth(gf):
     xj = np.array([1.0, 1.0, -2.0])
     ambda, a, nexp = gf.fortran_core.old_prony_decomposition.lisc(k*depth*np.tanh(k*depth), k*depth)
     g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
-        xi, xj, k, depth,
-        gf.tabulation_nb_integration_points, gf.tabulation_grid_shape_index,
-        gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals,
-        ambda, a, 31
+        xi, xj, k, depth, *gf.all_tabulation_parameters, ambda, a, 31
     )
     g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
-        xj, xi, k, depth,
-        gf.tabulation_nb_integration_points, gf.tabulation_grid_shape_index,
-        gf.tabulated_r_range, gf.tabulated_z_range,
-        gf.tabulated_integrals,
-        ambda, a, 31
+        xj, xi, k, depth, *gf.all_tabulation_parameters, ambda, a, 31
     )
     assert g1 == pytest.approx(g2)
     assert dg1_sym == pytest.approx(dg2_sym)
@@ -233,4 +205,3 @@ def test_full_liangwunoblesse():
     ref_S, ref_K = ref_gf.evaluate(mesh, mesh, 0.0, np.inf, wavenumber)
     assert np.allclose(S, ref_S, rtol=1e-2)
     assert np.allclose(K, ref_K, rtol=1e-2)
-
