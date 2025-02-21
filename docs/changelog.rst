@@ -32,7 +32,7 @@ Bug fixes
 
 * Fix missing geometric center in legacy predefined body :class:`~capytaine.bodies.predefined.rectangles.ReflectionSymmetricMesh`. It was causing inconsistent definition of dofs with respect to earlier versions. (:pull:`625`)
 
-* Fix Python implementation of the Prony decomposition for the finite depth Green function. The default is still the legacy Fortran implementation. (:pull:`621`).
+* Fix Python implementation of the Prony decomposition for the finite depth Green function. The default is still the legacy Fortran implementation. (:pull:`621`). Move some code of its code to the :mod:`~capytaine.tools.prony_decomposition` module. (:pull:`649`)
 
 Internals
 ~~~~~~~~~
