@@ -41,6 +41,8 @@ Internals
 
 * Add :meth:`~capytaine.green_functions.delhommeau.Delhommeau.all_tabulation_parameters` to make it easier to test Fortran core from Python (:pull:`648`)
 
+* Refactor implementation of Delhommeau's finite depth Green function to compute all the frequency-independant Rankine terms at the same time (for future caching) (:pull:`652`)
+
 ---------------------------------
 New in version 2.2.1 (2024-11-18)
 ---------------------------------
