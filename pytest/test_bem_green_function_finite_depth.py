@@ -34,3 +34,9 @@ def test_python_and_fortran_prony_decomposition_for_green_function():
     assert np.allclose(decomp_default[0], decomp_p[0])
     assert np.allclose(decomp_p[0], decomp_f[0], rtol=0.2)
     assert np.allclose(decomp_p[1], decomp_f[1], rtol=0.2)
+
+def test_fingreen3D():
+    gf = cpt.FinGreen3D()
+    mesh = cpt.mesh_sphere().immersed_part()
+    gf.evaluate(mesh, mesh, 0.0, 10.0, 1.0)
+

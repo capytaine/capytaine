@@ -8,6 +8,9 @@ MODULE GREEN_WAVE
 #ifdef LIANGWUNOBLESSE
     USE LIANGWUNOBLESSEWAVETERM, ONLY: HavelockGF
 #endif
+#ifdef FINGREEN3D
+    USE fingreen3d_module, ONLY: fingreen3d_routine, dispersion
+#endif
   USE GREEN_RANKINE, ONLY: COMPUTE_ASYMPTOTIC_RANKINE_SOURCE
 
   IMPLICIT NONE
@@ -39,7 +42,7 @@ CONTAINS
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
-      nexp, ambda, ar,                                           &
+      finite_depth_method, nexp, ambda, ar,                      &
       int_G, int_nablaG_sym, int_nablaG_antisym                  &
       )
     ! Integral over a panel of the wave part of the Green function.
@@ -56,7 +59,7 @@ CONTAINS
     real(kind=pre), dimension(:),          intent(in) :: tabulated_r_range
     real(kind=pre), dimension(:),          intent(in) :: tabulated_z_range
     real(kind=pre), dimension(:, :, :),    intent(in) :: tabulated_integrals
-    integer,                               intent(in) :: nexp
+    integer,                               intent(in) :: nexp, finite_depth_method
     real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
 
     complex(kind=pre),                     intent(out) :: int_G
@@ -106,16 +109,26 @@ CONTAINS
             nablaG_at_point_antisym(1:2) = nablaG_at_point(1:2)
             nablaG_at_point_antisym(3) = cmplx(zero, zero, kind=pre)
         else
-          call wave_part_finite_depth                                  &
-            (x,                                                        &
-            face_quadrature_points(q, :),                              &
-            wavenumber,                                                &
-            depth,                                                     &
-            tabulation_nb_integration_points, tabulation_grid_shape,   &
-            tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-            nexp, ambda, ar,                                           &
-            G_at_point, nablaG_at_point_sym, nablaG_at_point_antisym   &
-            )
+          if (finite_depth_method == LEGACY_FINITE_DEPTH) then
+            call wave_part_finite_depth                                  &
+              (x,                                                        &
+              face_quadrature_points(q, :),                              &
+              wavenumber,                                                &
+              depth,                                                     &
+              tabulation_nb_integration_points, tabulation_grid_shape,   &
+              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+              nexp, ambda, ar,                                           &
+              G_at_point, nablaG_at_point_sym, nablaG_at_point_antisym   &
+              )
+          else if (finite_depth_method == FINGREEN3D_METHOD) then
+            call wave_part_finite_depth_fingreen3D               &
+            (x, face_quadrature_points(q, :), wavenumber, depth, &
+            G_at_point, nablaG_at_point_sym)
+            nablaG_at_point_antisym(:) = cmplx(zero, zero, kind=pre)
+          else
+            print*, "Not implemented finite depth method", finite_depth_method
+            error stop
+          end if
         end if
 
         int_G = int_G + G_at_point * face_quadrature_weights(q)
@@ -415,5 +428,60 @@ CONTAINS
 
     RETURN
   END SUBROUTINE
+
+  ! =====================================================================
+
+#ifdef FINGREEN3D
+  SUBROUTINE WAVE_PART_FINITE_DEPTH_FINGREEN3D                   &
+      (X0I, X0J, wavenumber, depth,                              &
+      g, nablag)
+
+    ! inputs
+    real(kind=pre),                           intent(in) :: wavenumber, depth
+    real(kind=pre), dimension(3),             intent(in) :: x0i
+    real(kind=pre), dimension(3),             intent(in) :: x0j
+
+    ! outputs
+    complex(kind=pre),               intent(out) :: g  ! integral of the green function over the panel.
+    complex(kind=pre), dimension(3), intent(out) :: nablag
+
+    integer, parameter :: nk = 200
+    real(kind=pre) ::  omega, omega2_over_g, r, drdx1, drdx2
+    real(kind=8), dimension(nk) :: roots_of_dispersion_relationship
+    complex(kind=8), dimension(3) :: reduced_g_nablag
+
+    omega2_over_g  = wavenumber*depth*TANH(wavenumber*depth)
+    omega = sqrt(omega2_over_g * 9.81)
+    r = NORM2(X0I(1:2) - X0J(1:2))
+
+    call dispersion(roots_of_dispersion_relationship, nk, real(omega, kind=8), real(depth, kind=8))  ! TODO: factor out of the loop on panels
+
+    call fingreen3d_routine(            &
+      real(r, kind=8),                  &
+      real(x0I(3), kind=8),             &
+      real(x0j(3), kind=8),             &
+      real(sqrt(g*omega), kind=8),      &
+      roots_of_dispersion_relationship, &
+      nk,                               &
+      real(depth, kind=8),              &
+      reduced_g_nablag                  &
+    )
+
+    g = reduced_g_nablag(1)
+
+    IF (ABS(r) > 16*EPSILON(r)) THEN
+      drdx1 = (X0I(1) - X0J(1))/r
+      drdx2 = (X0I(2) - X0J(2))/r
+    ELSE
+      ! Limit when r->0 is not well defined...
+      drdx1 = ZERO
+      drdx2 = ZERO
+    END IF
+
+    nablag(1) = drdx1 * reduced_g_nablag(2)
+    nablag(2) = drdx2 * reduced_g_nablag(2)
+    nablag(3) = reduced_g_nablag(3)
+  END SUBROUTINE
+#endif
 
 END MODULE GREEN_WAVE
