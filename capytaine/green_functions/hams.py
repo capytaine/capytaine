@@ -21,6 +21,7 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
     tabulated_r_range = np.empty(1)
     tabulated_z_range = np.empty(1)
     tabulated_integrals = np.empty(1)
+    dummy_param = -999
 
     def __str__(self):
         return "LiangWuNoblesseGF()"
@@ -58,7 +59,74 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
             coeffs,
             self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
-            self.lamda_exp, self.a_exp,
+            self.dummy_param, self.lamda_exp, self.a_exp,
+            mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
+            S, K
+        )
+
+        if np.any(np.isnan(S)) or np.any(np.isnan(K)):
+            raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
+                    "It could be due to overlapping panels.")
+
+        if early_dot_product: K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
+
+        return S, K
+
+
+class FinGreen3D(AbstractGreenFunction):
+    """Wrapper for the Fortran implementation of the finite depth Green function of [Liu et al.].
+
+    Uses the same implementation as Delhommeau() for the Rankine and reflected Rankine terms.
+
+    """
+    fortran_core = import_module("capytaine.green_functions.libs.Delhommeau_float64")
+    finite_depth_method_index = fortran_core.constants.fingreen3d_method
+    gf_singularities_index = fortran_core.constants.low_freq
+    exportable_settings = {'green_function': "FinGreen3D"}
+
+    # Dummy arrays that won't actually be used by the fortran code.
+    a_exp, lamda_exp = np.empty(1), np.empty(1)
+    tabulation_nb_integration_points = 1
+    tabulated_r_range = np.empty(1)
+    tabulated_z_range = np.empty(1)
+    tabulated_integrals = np.empty(1)
+    dummy_param = -999
+
+    def __str__(self):
+        return "FinGreen3D()"
+
+    def __repr__(self):
+        return "FinGreen3D()"
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__repr__())
+
+    def evaluate(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True, early_dot_product=True):
+        if free_surface == np.inf or water_depth == np.inf:
+            raise NotImplementedError()
+        elif free_surface == 0.0 and water_depth < np.inf:
+            if wavenumber == 0.0:
+                raise NotImplementedError()
+            elif wavenumber == np.inf:
+                raise NotImplementedError()
+            else:
+                coeffs = np.array((1.0, 1.0, 1.0))
+
+        collocation_points, early_dot_product_normals = self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
+
+        S, K = self._init_matrices((collocation_points.shape[0], mesh2.nb_faces), "complex128", early_dot_product=early_dot_product)
+
+        self.fortran_core.matrices.build_matrices(
+            collocation_points,  early_dot_product_normals,
+            mesh2.vertices,      mesh2.faces + 1,
+            mesh2.faces_centers, mesh2.faces_normals,
+            mesh2.faces_areas,   mesh2.faces_radiuses,
+            *mesh2.quadrature_points,
+            wavenumber, np.inf,
+            coeffs,
+            self.tabulation_nb_integration_points, self.dummy_param,
+            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
+            self.finite_depth_method_index, self.lamda_exp, self.a_exp,
             mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
             S, K
         )

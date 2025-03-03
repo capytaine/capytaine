@@ -42,7 +42,7 @@ CONTAINS
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
-      nexp, ambda, ar,                                           &
+      finite_depth_method, nexp, ambda, ar,                      &
       int_G, int_nablaG_sym, int_nablaG_antisym                  &
       )
     ! Integral over a panel of the wave part of the Green function.
@@ -59,7 +59,7 @@ CONTAINS
     real(kind=pre), dimension(:),          intent(in) :: tabulated_r_range
     real(kind=pre), dimension(:),          intent(in) :: tabulated_z_range
     real(kind=pre), dimension(:, :, :),    intent(in) :: tabulated_integrals
-    integer,                               intent(in) :: nexp
+    integer,                               intent(in) :: nexp, finite_depth_method
     real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
 
     complex(kind=pre),                     intent(out) :: int_G
@@ -109,16 +109,22 @@ CONTAINS
             nablaG_at_point_antisym(1:2) = nablaG_at_point(1:2)
             nablaG_at_point_antisym(3) = cmplx(zero, zero, kind=pre)
         else
-          call wave_part_finite_depth                                  &
-            (x,                                                        &
-            face_quadrature_points(q, :),                              &
-            wavenumber,                                                &
-            depth,                                                     &
-            tabulation_nb_integration_points, tabulation_grid_shape,   &
-            tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-            nexp, ambda, ar,                                           &
-            G_at_point, nablaG_at_point_sym, nablaG_at_point_antisym   &
-            )
+          if (finite_depth_method == LEGACY_FINITE_DEPTH) then
+            call wave_part_finite_depth                                  &
+              (x,                                                        &
+              face_quadrature_points(q, :),                              &
+              wavenumber,                                                &
+              depth,                                                     &
+              tabulation_nb_integration_points, tabulation_grid_shape,   &
+              tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+              nexp, ambda, ar,                                           &
+              G_at_point, nablaG_at_point_sym, nablaG_at_point_antisym   &
+              )
+          else if (finite_depth_method == FINGREEN3D_METHOD) then
+            call wave_part_finite_depth_fingreen3D               &
+            (x, face_quadrature_points(q, :), wavenumber, depth, &
+            G_at_point, nablaG_at_point_sym)
+          end if
         end if
 
         int_G = int_G + G_at_point * face_quadrature_weights(q)
