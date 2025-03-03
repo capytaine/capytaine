@@ -122,7 +122,7 @@ class FinGreen3D(AbstractGreenFunction):
             mesh2.faces_centers, mesh2.faces_normals,
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
-            wavenumber, np.inf,
+            wavenumber, water_depth,
             coeffs,
             self.tabulation_nb_integration_points, self.dummy_param,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,

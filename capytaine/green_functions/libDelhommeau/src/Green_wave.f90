@@ -124,6 +124,10 @@ CONTAINS
             call wave_part_finite_depth_fingreen3D               &
             (x, face_quadrature_points(q, :), wavenumber, depth, &
             G_at_point, nablaG_at_point_sym)
+            nablaG_at_point_antisym(:) = cmplx(zero, zero, kind=pre)
+          else
+            print*, "Not implemented finite depth method", finite_depth_method
+            error stop
           end if
         end if
 
