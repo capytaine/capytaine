@@ -12,7 +12,7 @@ MODULE GREEN_RANKINE
 
 CONTAINS
 
-  PURE SUBROUTINE COMPUTE_INTEGRAL_OF_RANKINE_SOURCE                &
+  PURE SUBROUTINE exact_integral_of_rankine                &
       (M,                                                           &
       Face_nodes, Face_center, Face_normal, Face_area, Face_radius, &
       derivative_with_respect_to_first_variable,                    &
@@ -110,11 +110,11 @@ CONTAINS
     if (.not. derivative_with_respect_to_first_variable) then
       VS0(:) = - VS0(:)
     end if
-  END SUBROUTINE COMPUTE_INTEGRAL_OF_RANKINE_SOURCE
+  END SUBROUTINE exact_integral_of_rankine
 
   ! =========================
 
-  PURE SUBROUTINE COMPUTE_ASYMPTOTIC_RANKINE_SOURCE &
+  PURE SUBROUTINE one_point_integral_of_rankine &
       (M,                                      &
       Face_center, Face_area,                  &
       derivative_with_respect_to_first_variable, &
@@ -151,11 +151,11 @@ CONTAINS
     if (.not. derivative_with_respect_to_first_variable) then
       VS0(:) = -VS0(:)
     endif
-  END SUBROUTINE COMPUTE_ASYMPTOTIC_RANKINE_SOURCE
+  END SUBROUTINE one_point_integral_of_rankine
 
   ! ====================================
 
-  PURE SUBROUTINE COMPUTE_INTEGRAL_OF_REFLECTED_RANKINE_SOURCE      &
+  PURE SUBROUTINE exact_integral_of_reflected_rankine      &
       (M,                                                           &
       Face_nodes, Face_center, Face_normal, Face_area, Face_radius, &
       derivative_with_respect_to_first_variable,                    &
@@ -185,7 +185,7 @@ CONTAINS
     ! reflection_coefs = (-1.0, 0.0) for free surface symmetry
     ! reflection_coefs = (-1.0, -2*h) for sea bottom symmetry
 
-    call COMPUTE_INTEGRAL_OF_RANKINE_SOURCE &
+    call exact_integral_of_rankine &
       (reflected_M,                         &
       Face_nodes, Face_center,              &
       Face_normal, Face_area,               &
@@ -203,9 +203,9 @@ CONTAINS
       endif
     end if
 
-  END SUBROUTINE
+  END SUBROUTINE exact_integral_of_reflected_rankine
 
-  PURE SUBROUTINE COMPUTE_ASYMPTOTIC_REFLECTED_RANKINE_SOURCE &
+  PURE SUBROUTINE one_point_integral_of_reflected_rankine &
       (M,                                                     &
       Face_center, Face_area,                                 &
       derivative_with_respect_to_first_variable,              &
@@ -229,7 +229,7 @@ CONTAINS
     reflected_M(1:2) = M(1:2)
     reflected_M(3)   = reflection_coefs(1) * M(3) + reflection_coefs(2)
 
-    call COMPUTE_ASYMPTOTIC_RANKINE_SOURCE( &
+    call one_point_integral_of_rankine( &
       reflected_M, Face_center, Face_area,  &
       .true.,                               &
       int_G, int_nabla_G)
@@ -243,5 +243,5 @@ CONTAINS
       endif
     end if
 
-  END SUBROUTINE
+  END SUBROUTINE one_point_integral_of_reflected_rankine
 END MODULE GREEN_RANKINE

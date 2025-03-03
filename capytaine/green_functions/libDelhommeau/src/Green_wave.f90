@@ -8,7 +8,7 @@ MODULE GREEN_WAVE
 #ifdef LIANGWUNOBLESSE
     USE LIANGWUNOBLESSEWAVETERM, ONLY: HavelockGF
 #endif
-  USE GREEN_RANKINE, ONLY: COMPUTE_ASYMPTOTIC_RANKINE_SOURCE
+  USE GREEN_RANKINE, ONLY: one_point_integral_of_rankine
 
   IMPLICIT NONE
 
@@ -17,7 +17,7 @@ MODULE GREEN_WAVE
   !
   !                                            (Delhommeau_integrals.f90)
   !                                                       |
-  !                                           WAVE_PART_INFINITE_DEPTH           (COMPUTE_ASYMPTOTIC_RANKINE_SOURCE)
+  !                                           WAVE_PART_INFINITE_DEPTH           (one_point_integral_of_rankine)
   !                                                     /   \                    /
   !          INTEGRAL_OF_SINGULARITY_ON_FREE_SURFACE   |    WAVE_PART_FINITE_DEPTH
   !                                                \   \   /
@@ -386,21 +386,21 @@ CONTAINS
 
       ! 2.a Shift observation point and compute integral
       XI(3) =  X0I(3) + depth*AMBDA(KE) - 2*depth
-      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, .true., FTS(1), VTS(:, 1))
+      CALL one_point_integral_of_rankine(XI(:), X0J(:), ONE, .true., FTS(1), VTS(:, 1))
 
       ! 2.b Shift and reflect observation point and compute integral
       XI(3) = -X0I(3) - depth*AMBDA(KE)
-      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, .true., FTS(2), VTS(:, 2))
+      CALL one_point_integral_of_rankine(XI(:), X0J(:), ONE, .true., FTS(2), VTS(:, 2))
       VTS(3, 2) = -VTS(3, 2) ! Reflection of the output vector
 
       ! 2.c Shift and reflect observation point and compute integral
       XI(3) = -X0I(3) + depth*AMBDA(KE) - 4*depth
-      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, .true., FTS(3), VTS(:, 3))
+      CALL one_point_integral_of_rankine(XI(:), X0J(:), ONE, .true., FTS(3), VTS(:, 3))
       VTS(3, 3) = -VTS(3, 3) ! Reflection of the output vector
 
       ! 2.d Shift observation point and compute integral
       XI(3) =  X0I(3) - depth*AMBDA(KE) + 2*depth
-      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, .true., FTS(4), VTS(:, 4))
+      CALL one_point_integral_of_rankine(XI(:), X0J(:), ONE, .true., FTS(4), VTS(:, 4))
 
       AQT = AR(KE)/2
 

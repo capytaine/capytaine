@@ -121,7 +121,7 @@ CONTAINS
         !!!!!!!!!!!!!!!!!!
         IF (coeffs(1) .NE. ZERO) THEN
 
-          CALL COMPUTE_INTEGRAL_OF_RANKINE_SOURCE( &
+          CALL exact_integral_of_rankine( &
             centers_1(I, :),                       &
             vertices_2(faces_2(J, :), :),          &
             centers_2(J, :),                       &
@@ -144,7 +144,7 @@ CONTAINS
             ((gf_singularities == LOW_FREQ_WITH_RANKINE_PART) .and. (coeffs(3) .NE. ZERO))) then
 
           IF (is_infinity(depth)) THEN
-            CALL COMPUTE_INTEGRAL_OF_REFLECTED_RANKINE_SOURCE( &
+            CALL exact_integral_of_reflected_rankine( &
               centers_1(I, :),                                 &
               vertices_2(faces_2(J, :), :),                    &
               centers_2(J, :),                                 &
@@ -158,7 +158,7 @@ CONTAINS
               )
           ELSE
             ! Legacy behavior in finite depth... To be fixed...
-            CALL COMPUTE_ASYMPTOTIC_REFLECTED_RANKINE_SOURCE( &
+            CALL one_point_integral_of_reflected_rankine( &
               centers_1(I, :),                                &
               centers_2(J, :),                                &
               areas_2(J),                                     &
@@ -182,7 +182,7 @@ CONTAINS
           if (.not. (is_infinity(depth))) then
             ! 1. Reflection through sea bottom
 
-            CALL COMPUTE_INTEGRAL_OF_REFLECTED_RANKINE_SOURCE( &
+            CALL exact_integral_of_reflected_rankine( &
               centers_1(I, :),                                 &
               vertices_2(faces_2(J, :), :),                    &
               centers_2(J, :),                                 &
@@ -199,7 +199,7 @@ CONTAINS
             ! 2. Reflection through sea bottom and free surface
             ! For this term, the gradient is symmetric by exchange of points
 
-            CALL COMPUTE_ASYMPTOTIC_REFLECTED_RANKINE_SOURCE( &
+            CALL one_point_integral_of_reflected_rankine( &
               centers_1(I, :),                                &
               centers_2(J, :),                                &
               areas_2(J),                                     &
@@ -214,7 +214,7 @@ CONTAINS
             ! 3. Reflection through free surface and sea bottom
             ! For this term, the gradient is symmetric by exchange of points
 
-            CALL COMPUTE_ASYMPTOTIC_REFLECTED_RANKINE_SOURCE( &
+            CALL one_point_integral_of_reflected_rankine( &
               centers_1(I, :),                                &
               centers_2(J, :),                                &
               areas_2(J),                                     &
@@ -228,7 +228,7 @@ CONTAINS
 
             ! 4. Reflection through sea bottom and free surface and sea bottom again
 
-            CALL COMPUTE_ASYMPTOTIC_REFLECTED_RANKINE_SOURCE( &
+            CALL one_point_integral_of_reflected_rankine( &
               centers_1(I, :),                                &
               centers_2(J, :),                                &
               areas_2(J),                                     &
