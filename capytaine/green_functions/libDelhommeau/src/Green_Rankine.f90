@@ -159,6 +159,7 @@ CONTAINS
       (M,                                                           &
       Face_nodes, Face_center, Face_normal, Face_area, Face_radius, &
       derivative_with_respect_to_first_variable,                    &
+      reflection_coefs,                                             &
       int_g, int_nabla_g)
     ! Reflecting with respect to the free surface
 
@@ -168,6 +169,7 @@ CONTAINS
     real(kind=pre), dimension(3),    intent(in) :: face_center, face_normal
     real(kind=pre),                  intent(in) :: face_area, face_radius
     logical,                         intent(in) :: derivative_with_respect_to_first_variable
+    real(kind=pre), dimension(2),    intent(in) :: reflection_coefs
 
     ! Outputs
     real(kind=pre),               intent(out) :: int_g
@@ -177,7 +179,11 @@ CONTAINS
     real(kind=pre), dimension(3)              :: reflected_M
 
     reflected_M(1:2) = M(1:2)
-    reflected_M(3)   = -M(3)
+    reflected_M(3)   = reflection_coefs(1) * M(3) + reflection_coefs(2)
+
+    ! For instance
+    ! reflection_coefs = (-1.0, 0.0) for free surface symmetry
+    ! reflection_coefs = (-1.0, -2*h) for sea bottom symmetry
 
     call COMPUTE_INTEGRAL_OF_RANKINE_SOURCE &
       (reflected_M,                         &
@@ -187,18 +193,23 @@ CONTAINS
       .true.,                               &
       int_g, int_nabla_g)
 
-    int_nabla_g(3) = -int_nabla_g(3)  ! Because we mirrored M
+    ! Because we mirrored M, we mirror the gradient
+    int_nabla_g(3) = reflection_coefs(1) * int_nabla_g(3)
 
     if (.not. derivative_with_respect_to_first_variable) then
       int_nabla_g(1:2) = -int_nabla_g(1:2)
+      if (reflection_coefs(1) > 0) then
+        int_nabla_G(3) = -int_nabla_g(3)
+      endif
     end if
 
   END SUBROUTINE
 
   PURE SUBROUTINE COMPUTE_ASYMPTOTIC_REFLECTED_RANKINE_SOURCE &
-      (M,                                      &
-      Face_center, Face_area,                  &
-      derivative_with_respect_to_first_variable, &
+      (M,                                                     &
+      Face_center, Face_area,                                 &
+      derivative_with_respect_to_first_variable,              &
+      reflection_coefs,                                       &
       int_G, int_nabla_G)
 
     ! Inputs
@@ -206,28 +217,30 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3), INTENT(IN) :: Face_center
     REAL(KIND=PRE),               INTENT(IN) :: Face_area
     logical,                      intent(in) :: derivative_with_respect_to_first_variable
+    real(kind=pre), dimension(2), intent(in) :: reflection_coefs
 
     ! Outputs
     REAL(KIND=PRE),               INTENT(OUT) :: int_G
     REAL(KIND=PRE), DIMENSION(3), INTENT(OUT) :: int_nabla_G
 
     ! local
-    real(kind=pre), dimension(3)              :: reflected_M, reflected_int_nabla_G
+    real(kind=pre), dimension(3)              :: reflected_M
 
     reflected_M(1:2) = M(1:2)
-    reflected_M(3)   = -M(3)
+    reflected_M(3)   = reflection_coefs(1) * M(3) + reflection_coefs(2)
 
     call COMPUTE_ASYMPTOTIC_RANKINE_SOURCE( &
       reflected_M, Face_center, Face_area,  &
       .true.,                               &
-      int_G, reflected_int_nabla_G)
+      int_G, int_nabla_G)
 
-    int_nabla_G(3) = -reflected_int_nabla_G(3)  ! Because we mirrored M
+    int_nabla_g(3) = reflection_coefs(1) * int_nabla_g(3)
 
     if (.not. derivative_with_respect_to_first_variable) then
-      int_nabla_G(1:2) = -reflected_int_nabla_G(1:2)
-    else
-      int_nabla_G(1:2) = reflected_int_nabla_G(1:2)
+      int_nabla_G(1:2) = -int_nabla_g(1:2)
+      if (reflection_coefs(1) > 0) then
+        int_nabla_G(3) = -int_nabla_g(3)
+      endif
     end if
 
   END SUBROUTINE
