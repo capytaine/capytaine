@@ -289,10 +289,6 @@ class Delhommeau(AbstractGreenFunction):
         else:
             raise ValueError("Unrecognized method name for the Prony decomposition.")
 
-        # Add one more exponential function (actually a constant).
-        a = np.concatenate([a, np.array([2])])
-        lamda = np.concatenate([lamda, np.array([0.0])])
-
         return a, lamda
 
     def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.inf, wavenumber=1.0, adjoint_double_layer=True, early_dot_product=True):
