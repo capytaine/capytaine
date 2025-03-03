@@ -386,21 +386,21 @@ CONTAINS
 
       ! 2.a Shift observation point and compute integral
       XI(3) =  X0I(3) + depth*AMBDA(KE) - 2*depth
-      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(1), VTS(:, 1))
+      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, .true., FTS(1), VTS(:, 1))
 
       ! 2.b Shift and reflect observation point and compute integral
       XI(3) = -X0I(3) - depth*AMBDA(KE)
-      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(2), VTS(:, 2))
+      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, .true., FTS(2), VTS(:, 2))
       VTS(3, 2) = -VTS(3, 2) ! Reflection of the output vector
 
       ! 2.c Shift and reflect observation point and compute integral
       XI(3) = -X0I(3) + depth*AMBDA(KE) - 4*depth
-      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(3), VTS(:, 3))
+      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, .true., FTS(3), VTS(:, 3))
       VTS(3, 3) = -VTS(3, 3) ! Reflection of the output vector
 
       ! 2.d Shift observation point and compute integral
       XI(3) =  X0I(3) - depth*AMBDA(KE) + 2*depth
-      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(4), VTS(:, 4))
+      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, .true., FTS(4), VTS(:, 4))
 
       AQT = AR(KE)/2
 

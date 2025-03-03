@@ -15,6 +15,7 @@ CONTAINS
   PURE SUBROUTINE COMPUTE_INTEGRAL_OF_RANKINE_SOURCE                &
       (M,                                                           &
       Face_nodes, Face_center, Face_normal, Face_area, Face_radius, &
+      derivative_with_respect_to_first_variable,                    &
       S0, VS0)
     ! Estimate the integral S0 = ∫∫ 1/MM' dS(M') over a face
     ! and its derivative VS0 with respect to M.
@@ -27,6 +28,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(4, 3), INTENT(IN) :: Face_nodes
     REAL(KIND=PRE), DIMENSION(3),    INTENT(IN) :: Face_center, Face_normal
     REAL(KIND=PRE),                  INTENT(IN) :: Face_area, Face_radius
+    logical,                         intent(in) :: derivative_with_respect_to_first_variable
 
     ! Outputs
     REAL(KIND=PRE),               INTENT(OUT) :: S0
@@ -105,6 +107,9 @@ CONTAINS
       END DO
     END IF
 
+    if (.not. derivative_with_respect_to_first_variable) then
+      VS0(:) = - VS0(:)
+    end if
   END SUBROUTINE COMPUTE_INTEGRAL_OF_RANKINE_SOURCE
 
   ! =========================
@@ -112,6 +117,7 @@ CONTAINS
   PURE SUBROUTINE COMPUTE_ASYMPTOTIC_RANKINE_SOURCE &
       (M,                                      &
       Face_center, Face_area,                  &
+      derivative_with_respect_to_first_variable, &
       S0, VS0)
     ! Same as above, but always use the approximate aymptotic value.
 
@@ -119,6 +125,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3), INTENT(IN) :: M
     REAL(KIND=PRE), DIMENSION(3), INTENT(IN) :: Face_center
     REAL(KIND=PRE),               INTENT(IN) :: Face_area
+    logical,                      intent(in) :: derivative_with_respect_to_first_variable
 
     ! Outputs
     REAL(KIND=PRE),               INTENT(OUT) :: S0
@@ -141,8 +148,87 @@ CONTAINS
       VS0(1:3) = ZERO
     END IF
 
+    if (.not. derivative_with_respect_to_first_variable) then
+      VS0(:) = -VS0(:)
+    endif
   END SUBROUTINE COMPUTE_ASYMPTOTIC_RANKINE_SOURCE
 
   ! ====================================
 
+  PURE SUBROUTINE COMPUTE_INTEGRAL_OF_REFLECTED_RANKINE_SOURCE      &
+      (M,                                                           &
+      Face_nodes, Face_center, Face_normal, Face_area, Face_radius, &
+      derivative_with_respect_to_first_variable,                    &
+      int_g, int_nabla_g)
+    ! Reflecting with respect to the free surface
+
+    ! Inputs
+    real(kind=pre), dimension(3),    intent(in) :: M
+    real(kind=pre), dimension(4, 3), intent(in) :: face_nodes
+    real(kind=pre), dimension(3),    intent(in) :: face_center, face_normal
+    real(kind=pre),                  intent(in) :: face_area, face_radius
+    logical,                         intent(in) :: derivative_with_respect_to_first_variable
+
+    ! Outputs
+    real(kind=pre),               intent(out) :: int_g
+    real(kind=pre), dimension(3), intent(out) :: int_nabla_g
+
+    ! local
+    real(kind=pre), dimension(3)              :: reflected_M
+
+    reflected_M(1:2) = M(1:2)
+    reflected_M(3)   = -M(3)
+
+    call COMPUTE_INTEGRAL_OF_RANKINE_SOURCE &
+      (reflected_M,                         &
+      Face_nodes, Face_center,              &
+      Face_normal, Face_area,               &
+      Face_radius,                          &
+      .true.,                               &
+      int_g, int_nabla_g)
+
+    int_nabla_g(3) = -int_nabla_g(3)  ! Because we mirrored M
+
+    if (.not. derivative_with_respect_to_first_variable) then
+      int_nabla_g(1:2) = -int_nabla_g(1:2)
+    end if
+
+  END SUBROUTINE
+
+  PURE SUBROUTINE COMPUTE_ASYMPTOTIC_REFLECTED_RANKINE_SOURCE &
+      (M,                                      &
+      Face_center, Face_area,                  &
+      derivative_with_respect_to_first_variable, &
+      int_G, int_nabla_G)
+
+    ! Inputs
+    REAL(KIND=PRE), DIMENSION(3), INTENT(IN) :: M
+    REAL(KIND=PRE), DIMENSION(3), INTENT(IN) :: Face_center
+    REAL(KIND=PRE),               INTENT(IN) :: Face_area
+    logical,                      intent(in) :: derivative_with_respect_to_first_variable
+
+    ! Outputs
+    REAL(KIND=PRE),               INTENT(OUT) :: int_G
+    REAL(KIND=PRE), DIMENSION(3), INTENT(OUT) :: int_nabla_G
+
+    ! local
+    real(kind=pre), dimension(3)              :: reflected_M, reflected_int_nabla_G
+
+    reflected_M(1:2) = M(1:2)
+    reflected_M(3)   = -M(3)
+
+    call COMPUTE_ASYMPTOTIC_RANKINE_SOURCE( &
+      reflected_M, Face_center, Face_area,  &
+      .true.,                               &
+      int_G, reflected_int_nabla_G)
+
+    int_nabla_G(3) = -reflected_int_nabla_G(3)  ! Because we mirrored M
+
+    if (.not. derivative_with_respect_to_first_variable) then
+      int_nabla_G(1:2) = -reflected_int_nabla_G(1:2)
+    else
+      int_nabla_G(1:2) = reflected_int_nabla_G(1:2)
+    end if
+
+  END SUBROUTINE
 END MODULE GREEN_RANKINE
