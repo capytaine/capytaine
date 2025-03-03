@@ -32,13 +32,16 @@ Bug fixes
 
 * Fix missing geometric center in legacy predefined body :class:`~capytaine.bodies.predefined.rectangles.ReflectionSymmetricMesh`. It was causing inconsistent definition of dofs with respect to earlier versions. (:pull:`625`)
 
-* Fix Python implementation of the Prony decomposition for the finite depth Green function. The default is still the legacy Fortran implementation. (:pull:`621`).
+* Fix Python implementation of the Prony decomposition for the finite depth Green function. The default is still the legacy Fortran implementation. (:pull:`621`). Move some code of its code to the :mod:`~capytaine.tools.prony_decomposition` module. (:pull:`649`)
 
 Internals
 ~~~~~~~~~
 
 * Add ``interface.f90`` Fortran file to group some routines used only for wrapping the Fortran core. (:pull:`612`)
 
+* Add :meth:`~capytaine.green_functions.delhommeau.Delhommeau.all_tabulation_parameters` to make it easier to test Fortran core from Python (:pull:`648`)
+
+* Refactor implementation of Delhommeau's finite depth Green function to compute all the frequency-independant Rankine terms at the same time (for future caching) (:pull:`652`)
 
 ---------------------------------
 New in version 2.2.1 (2024-11-18)

@@ -9,9 +9,7 @@ from importlib import import_module
 
 import numpy as np
 
-from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.tools.prony_decomposition import exponential_decomposition, error_exponential_decomposition
+from capytaine.tools.prony_decomposition import find_best_exponential_decomposition, NoConvergenceError
 from capytaine.tools.cache_on_disk import cache_directory
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
@@ -233,6 +231,12 @@ class Delhommeau(AbstractGreenFunction):
                 self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
                 )
 
+    @property
+    def all_tabulation_parameters(self):
+        """An alias meant to pass to the Fortran functions all the parameters controlling the tabulation in a single item."""
+        return (self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
+                self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals)
+
     @lru_cache(maxsize=128)
     def find_best_exponential_decomposition(self, dimensionless_wavenumber, *, method=None):
         """Compute the decomposition of a part of the finite water_depth Green function as a sum of exponential functions.
@@ -271,19 +275,9 @@ class Delhommeau(AbstractGreenFunction):
             def f(x):
                 return self.fortran_core.old_prony_decomposition.ff(x, dimensionless_omega, dimensionless_wavenumber)
 
-            # Try different increasing number of exponentials
-            for n_exp in range(4, 31, 2):
-
-                # The coefficients are computed on a resolution of 4*n_exp+1 ...
-                X = np.linspace(-0.1, 20.0, 4*n_exp+1)
-                a, lamda = exponential_decomposition(X, f(X), n_exp)
-
-                # ... and they are evaluated on a finer discretization.
-                X = np.linspace(-0.1, 20.0, 8*n_exp+1)
-                if error_exponential_decomposition(X, f(X), a, lamda) < 1e-4:
-                    break
-
-            else:
+            try:
+                a, lamda = find_best_exponential_decomposition(f, x_min=-0.1, x_max=20.0, n_exp_range=range(4, 31, 2), tol=1e-4)
+            except NoConvergenceError:
                 LOG.warning("No suitable exponential decomposition has been found"
                             "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
 
@@ -294,10 +288,6 @@ class Delhommeau(AbstractGreenFunction):
 
         else:
             raise ValueError("Unrecognized method name for the Prony decomposition.")
-
-        # Add one more exponential function (actually a constant).
-        a = np.concatenate([a, np.array([2])])
-        lamda = np.concatenate([lamda, np.array([0.0])])
 
         return a, lamda
 
@@ -383,9 +373,7 @@ class Delhommeau(AbstractGreenFunction):
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
             wavenumber, water_depth,
-            coeffs,
-            self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
-            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
+            coeffs, *self.all_tabulation_parameters,
             lamda_exp, a_exp,
             mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
             S, K
