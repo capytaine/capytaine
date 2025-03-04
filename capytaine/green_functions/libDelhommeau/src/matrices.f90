@@ -121,15 +121,15 @@ CONTAINS
         !!!!!!!!!!!!!!!!!!
         IF (coeffs(1) .NE. ZERO) THEN
 
-          CALL exact_integral_of_rankine( &
-            centers_1(I, :),                       &
-            vertices_2(faces_2(J, :), :),          &
-            centers_2(J, :),                       &
-            normals_2(J, :),                       &
-            areas_2(J),                            &
-            radiuses_2(J),                         &
+          CALL integral_of_rankine(                    &
+            centers_1(I, :),                           &
+            vertices_2(faces_2(J, :), :),              &
+            centers_2(J, :),                           &
+            normals_2(J, :),                           &
+            areas_2(J),                                &
+            radiuses_2(J),                             &
             derivative_with_respect_to_first_variable, &
-            int_G_Rankine, int_nablaG_Rankine      &
+            int_G_Rankine, int_nablaG_Rankine          &
             )
 
           int_G = int_G + coeffs(1) * int_G_Rankine
@@ -144,7 +144,7 @@ CONTAINS
             ((gf_singularities == LOW_FREQ_WITH_RANKINE_PART) .and. (coeffs(3) .NE. ZERO))) then
 
           IF (is_infinity(depth)) THEN
-            CALL exact_integral_of_reflected_rankine( &
+            CALL integral_of_reflected_Rankine( &
               centers_1(I, :),                                 &
               vertices_2(faces_2(J, :), :),                    &
               centers_2(J, :),                                 &
@@ -182,7 +182,7 @@ CONTAINS
           if (.not. (is_infinity(depth))) then
             ! 1. Reflection through sea bottom
 
-            CALL exact_integral_of_reflected_rankine( &
+            CALL integral_of_reflected_Rankine( &
               centers_1(I, :),                                 &
               vertices_2(faces_2(J, :), :),                    &
               centers_2(J, :),                                 &
