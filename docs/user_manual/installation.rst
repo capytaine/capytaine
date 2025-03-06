@@ -8,6 +8,7 @@ It is regularly tested on Windows, MacOS and Linux using `all currently supporte
 Precompiled packages are distributed on `PyPI <https://pypi.org/project/capytaine/>`_ and `Conda-forge <https://conda-forge.org/>`_ for Windows, MacOS (both Intel and ARM processors) and Linux for all supported versions of Python.
 However, it might take a few weeks before precompiled packages for the latest version of Python (3.13 at the time of writing) are available and you might prefer using an earlier version of Python.
 
+Capytaine is not tested on the `free-threaded versions of Python <https://docs.python.org/3/howto/free-threading-python.html>`_, only on the standard version.
 
 On a cloud platform
 -------------------
