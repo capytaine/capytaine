@@ -79,10 +79,16 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(3)    :: int_nablaG_Rankine
     COMPLEX(KIND=PRE)               :: int_G, int_G_wave
     COMPLEX(KIND=PRE), DIMENSION(3) :: int_nablaG, int_nablaG_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym
-    LOGICAL :: use_symmetry_of_wave_part
+    LOGICAL :: use_symmetry_of_wave_part, derivative_with_respect_to_first_variable
 
     ! use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
     use_symmetry_of_wave_part = .false.
+
+    derivative_with_respect_to_first_variable = adjoint_double_layer
+    ! When computing the adjoint double layer operator (K), the derivative of the Green function is computed with respect to its
+    ! first variable (field point, often written x, or sometimes M in this code).
+    ! When computing the double layer operator (D), the derivative of the Green function is computed with respect to its second
+    ! variable (source point, often written xi, or sometimes M' in this code).
 
     coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
@@ -117,74 +123,57 @@ CONTAINS
         !!!!!!!!!!!!!!!!!!
         !  Rankine part  !
         !!!!!!!!!!!!!!!!!!
-        IF (coeffs(1) .NE. ZERO) THEN
+        if (coeffs(1) .NE. ZERO) then
 
-          CALL COMPUTE_INTEGRAL_OF_RANKINE_SOURCE( &
-            centers_1(I, :),                       &
-            vertices_2(faces_2(J, :), :),          &
-            centers_2(J, :),                       &
-            normals_2(J, :),                       &
-            areas_2(J),                            &
-            radiuses_2(J),                         &
-            int_G_Rankine, int_nablaG_Rankine      &
+          call integral_of_Rankine(                    &
+            centers_1(I, :),                           &
+            vertices_2(faces_2(J, :), :),              &
+            centers_2(J, :),                           &
+            normals_2(J, :),                           &
+            areas_2(J),                                &
+            radiuses_2(J),                             &
+            derivative_with_respect_to_first_variable, &
+            int_G_Rankine, int_nablaG_Rankine          &
             )
 
           int_G = int_G + coeffs(1) * int_G_Rankine
-
-          IF (adjoint_double_layer) THEN
-            ! The gradient is with respect to the point I.
-            int_nablaG(:) = int_nablaG(:) + coeffs(1) * int_nablaG_Rankine(:)
-          ELSE
-            ! The gradient is with respect to the panel J.
-            ! Due to the symmetry of the Green function, it is just the opposite.
-            int_nablaG(:) = int_nablaG(:) - coeffs(1) * int_nablaG_Rankine(:)
-          END IF
-
-        END IF
+          int_nablaG(:) = int_nablaG(:) + coeffs(1) * int_nablaG_Rankine(:)
+        endif
 
 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !  Reflected Rankine part  !
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        IF ((coeffs(2) .NE. ZERO) .or. &
+        if ((coeffs(2) .NE. ZERO) .or. &
             ((gf_singularities == LOW_FREQ_WITH_RANKINE_PART) .and. (coeffs(3) .NE. ZERO))) then
 
-          ! Free surface reflection
-          reflected_centers_1_I(1:2) = centers_1(I, 1:2)
-          reflected_centers_1_I(3)   = -centers_1(I, 3)
-
-          IF (is_infinity(depth)) THEN
-            CALL COMPUTE_INTEGRAL_OF_RANKINE_SOURCE( &
-              reflected_centers_1_I(:),              &
-              vertices_2(faces_2(J, :), :),          &
-              centers_2(J, :),                       &
-              normals_2(J, :),                       &
-              areas_2(J),                            &
-              radiuses_2(J),                         &
-              int_G_Rankine, int_nablaG_Rankine      &
+          if (is_infinity(depth)) then
+            call integral_of_reflected_Rankine(          &
+              centers_1(I, :),                           &
+              vertices_2(faces_2(J, :), :),              &
+              centers_2(J, :),                           &
+              normals_2(J, :),                           &
+              areas_2(J),                                &
+              radiuses_2(J),                             &
+              derivative_with_respect_to_first_variable, &
+              [-ONE, ZERO],                              &
+              int_G_Rankine,                             &
+              int_nablaG_Rankine                         &
               )
-          ELSE
+          else
             ! Legacy behavior in finite depth... To be fixed...
-            CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE( &
-              reflected_centers_1_I(:),             &
-              centers_2(J, :),                      &
-              areas_2(J),                           &
-              int_G_Rankine,                        &
-              int_nablaG_Rankine                    &
+            call one_point_integral_of_reflected_Rankine( &
+              centers_1(I, :),                            &
+              centers_2(J, :),                            &
+              areas_2(J),                                 &
+              derivative_with_respect_to_first_variable,  &
+              [-ONE, ZERO],                               &
+              int_G_Rankine,                              &
+              int_nablaG_Rankine                          &
             )
-          END IF
-
-          reflected_int_nablaG_Rankine(1:2) = int_nablaG_Rankine(1:2)
-          reflected_int_nablaG_Rankine(3) = -int_nablaG_Rankine(3)
-
+          endif
           int_G = int_G + coeffs(2) * int_G_Rankine
-
-          IF (adjoint_double_layer) THEN
-            int_nablaG(1:2) = int_nablaG(1:2) + coeffs(2) * reflected_int_nablaG_Rankine(1:2)
-          ELSE
-            int_nablaG(1:2) = int_nablaG(1:2) - coeffs(2) * reflected_int_nablaG_Rankine(1:2)
-          END IF
-          int_nablaG(3) = int_nablaG(3) + coeffs(2) * reflected_int_nablaG_Rankine(3)
+          int_nablaG(:) = int_nablaG(:) + coeffs(2) * int_nablaG_Rankine(:)
 
           if (gf_singularities == LOW_FREQ_WITH_RANKINE_PART) then
             int_nablaG(3) = int_nablaG(3) + coeffs(3) * 2*wavenumber * int_G_Rankine
@@ -195,95 +184,57 @@ CONTAINS
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           if (.not. (is_infinity(depth))) then
             ! 1. Reflection through sea bottom
-            reflected_centers_1_I(1:2) = centers_1(I, 1:2)
-            reflected_centers_1_I(3)   = -centers_1(I, 3) - 2*depth
-
-            CALL COMPUTE_INTEGRAL_OF_RANKINE_SOURCE( &
-              reflected_centers_1_I(:),              &
-              vertices_2(faces_2(J, :), :),          &
-              centers_2(J, :),                       &
-              normals_2(J, :),                       &
-              areas_2(J),                            &
-              radiuses_2(J),                         &
-              int_G_Rankine, int_nablaG_Rankine      &
+            call integral_of_reflected_Rankine(          &
+              centers_1(I, :),                           &
+              vertices_2(faces_2(J, :), :),              &
+              centers_2(J, :),                           &
+              normals_2(J, :),                           &
+              areas_2(J),                                &
+              radiuses_2(J),                             &
+              derivative_with_respect_to_first_variable, &
+              [-ONE, -2*depth],                          &
+              int_G_Rankine, int_nablaG_Rankine          &
               )
-
-            reflected_int_nablaG_Rankine(1:2) = int_nablaG_Rankine(1:2)
-            reflected_int_nablaG_Rankine(3) = -int_nablaG_Rankine(3)
-
             int_G = int_G + coeffs(2) * int_G_Rankine
-
-            IF (adjoint_double_layer) THEN
-              int_nablaG(1:2) = int_nablaG(1:2) + coeffs(2) * reflected_int_nablaG_Rankine(1:2)
-            ELSE
-              int_nablaG(1:2) = int_nablaG(1:2) - coeffs(2) * reflected_int_nablaG_Rankine(1:2)
-            END IF
-            int_nablaG(3) = int_nablaG(3) + coeffs(2) * reflected_int_nablaG_Rankine(3)
+            int_nablaG(:) = int_nablaG(:) + coeffs(2) * int_nablaG_Rankine(:)
 
             ! 2. Reflection through sea bottom and free surface
-            ! For this term, the gradient is symmetric by exchange of points
-            reflected_centers_1_I(1:2) = centers_1(I, 1:2)
-            reflected_centers_1_I(3)   = centers_1(I, 3) - 2*depth
-
-            CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(  &
-              reflected_centers_1_I(:),              &
-              centers_2(J, :),                       &
-              areas_2(J),                            &
-              int_G_Rankine, int_nablaG_Rankine      &
+            call one_point_integral_of_reflected_Rankine( &
+              centers_1(I, :),                            &
+              centers_2(J, :),                            &
+              areas_2(J),                                 &
+              derivative_with_respect_to_first_variable,  &
+              [ONE, -2*depth],                            &
+              int_G_Rankine, int_nablaG_Rankine           &
               )
-
             int_G = int_G + coeffs(2) * int_G_Rankine
-
-            IF (adjoint_double_layer) THEN
-              int_nablaG(:) = int_nablaG(:) + coeffs(2) * int_nablaG_Rankine(:)
-            ELSE
-              int_nablaG(:) = int_nablaG(:) - coeffs(2) * int_nablaG_Rankine(:)
-            END IF
-
+            int_nablaG(:) = int_nablaG(:) + coeffs(2) * int_nablaG_Rankine(:)
 
             ! 3. Reflection through free surface and sea bottom
-            ! For this term, the gradient is symmetric by exchange of points
-            reflected_centers_1_I(1:2) = centers_1(I, 1:2)
-            reflected_centers_1_I(3)   = centers_1(I, 3) + 2*depth
-
-            CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(  &
-              reflected_centers_1_I(:),              &
-              centers_2(J, :),                       &
-              areas_2(J),                            &
-              int_G_Rankine, int_nablaG_Rankine      &
+            call one_point_integral_of_reflected_Rankine( &
+              centers_1(I, :),                            &
+              centers_2(J, :),                            &
+              areas_2(J),                                 &
+              derivative_with_respect_to_first_variable,  &
+              [ONE, 2*depth],                             &
+              int_G_Rankine, int_nablaG_Rankine           &
               )
-
             int_G = int_G + coeffs(2) * int_G_Rankine
-
-            IF (adjoint_double_layer) THEN
-              int_nablaG(:) = int_nablaG(:) + coeffs(2) * int_nablaG_Rankine(:)
-            ELSE
-              int_nablaG(:) = int_nablaG(:) - coeffs(2) * int_nablaG_Rankine(:)
-            END IF
+            int_nablaG(:) = int_nablaG(:) + coeffs(2) * int_nablaG_Rankine(:)
 
             ! 4. Reflection through sea bottom and free surface and sea bottom again
-            reflected_centers_1_I(1:2) = centers_1(I, 1:2)
-            reflected_centers_1_I(3)   = -centers_1(I, 3) - 4*depth
-
-            CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(  &
-              reflected_centers_1_I(:),              &
-              centers_2(J, :),                       &
-              areas_2(J),                            &
-              int_G_Rankine, int_nablaG_Rankine      &
+            call one_point_integral_of_reflected_rankine( &
+              centers_1(I, :),                            &
+              centers_2(J, :),                            &
+              areas_2(J),                                 &
+              derivative_with_respect_to_first_variable,  &
+              [-ONE, -4*depth],                           &
+              int_G_Rankine, int_nablaG_Rankine           &
               )
-
-            reflected_int_nablaG_Rankine(1:2) = int_nablaG_Rankine(1:2)
-            reflected_int_nablaG_Rankine(3) = -int_nablaG_Rankine(3)
-
             int_G = int_G + coeffs(2) * int_G_Rankine
+            int_nablaG(:) = int_nablaG(:) + coeffs(2) * int_nablaG_Rankine(:)
 
-            IF (adjoint_double_layer) THEN
-              int_nablaG(1:2) = int_nablaG(1:2) + coeffs(2) * reflected_int_nablaG_Rankine(1:2)
-            ELSE
-              int_nablaG(1:2) = int_nablaG(1:2) - coeffs(2) * reflected_int_nablaG_Rankine(1:2)
-            END IF
-            int_nablaG(3) = int_nablaG(3) + coeffs(2) * reflected_int_nablaG_Rankine(3)
-          END IF
+          endif
 
         endif
 
