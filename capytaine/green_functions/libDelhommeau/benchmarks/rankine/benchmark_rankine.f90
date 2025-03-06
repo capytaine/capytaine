@@ -16,6 +16,7 @@ real(kind=pre), dimension(3) :: face_center
 real(kind=pre), dimension(3) :: face_normal
 real(kind=pre) :: face_area
 real(kind=pre) :: face_radius
+logical, parameter :: derivative_with_respect_to_first_variable = .true.
 
 real(kind=pre), dimension(:), allocatable :: S
 real(kind=pre), dimension(:, :), allocatable :: VS
@@ -43,22 +44,25 @@ allocate(VS(3, n_samples))
 
 call system_clock(starting_time)
 do i_sample = 1, n_samples
-    call COMPUTE_INTEGRAL_OF_RANKINE_SOURCE(                          &
-        points(:, i_sample),                                          &
-        face_nodes, face_center, face_normal, face_area, face_radius, &
-        S(i_sample), VS(:, i_sample)                                  &
+    call exact_integral_of_Rankine(                &
+        points(:, i_sample),                       &
+        face_nodes, face_center, face_normal,      &
+        face_area, face_radius,                    &
+        derivative_with_respect_to_first_variable, &
+        S(i_sample), VS(:, i_sample)               &
     )
 enddo
 call system_clock(final_time)
-print*, "Rankine             :", (final_time - starting_time)/clock_rate_in_ns/n_samples, " ns"
+print*, "Exact Rankine       :", (final_time - starting_time)/clock_rate_in_ns/n_samples, " ns"
 
 
 call system_clock(starting_time)
 do i_sample = 1, n_samples
-    call COMPUTE_ASYMPTOTIC_RANKINE_SOURCE( &
-        points(:, i_sample),                &
-        face_nodes, face_area,              &
-        S(i_sample), VS(:, i_sample)        &
+    call one_point_integral_of_Rankine(            &
+        points(:, i_sample),                       &
+        face_nodes, face_area,                     &
+        derivative_with_respect_to_first_variable, &
+        S(i_sample), VS(:, i_sample)               &
     )
 enddo
 call system_clock(final_time)
