@@ -85,6 +85,10 @@ CONTAINS
     use_symmetry_of_wave_part = .false.
 
     derivative_with_respect_to_first_variable = adjoint_double_layer
+    ! When computing the adjoint double layer operator (K), the derivative of the Green function is computed with respect to its
+    ! first variable (field point, often written x, or sometimes M in this code).
+    ! When computing the double layer operator (D), the derivative of the Green function is computed with respect to its second
+    ! variable (source point, often written xi, or sometimes M' in this code).
 
     coeffs(:) = coeffs(:)/(-4*PI)  ! Factored out coefficient
 
@@ -168,7 +172,6 @@ CONTAINS
               int_nablaG_Rankine                          &
             )
           endif
-
           int_G = int_G + coeffs(2) * int_G_Rankine
           int_nablaG(:) = int_nablaG(:) + coeffs(2) * int_nablaG_Rankine(:)
 
@@ -181,7 +184,6 @@ CONTAINS
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           if (.not. (is_infinity(depth))) then
             ! 1. Reflection through sea bottom
-
             call integral_of_reflected_Rankine(          &
               centers_1(I, :),                           &
               vertices_2(faces_2(J, :), :),              &
@@ -205,7 +207,6 @@ CONTAINS
               [ONE, -2*depth],                            &
               int_G_Rankine, int_nablaG_Rankine           &
               )
-
             int_G = int_G + coeffs(2) * int_G_Rankine
             int_nablaG(:) = int_nablaG(:) + coeffs(2) * int_nablaG_Rankine(:)
 
@@ -218,7 +219,6 @@ CONTAINS
               [ONE, 2*depth],                             &
               int_G_Rankine, int_nablaG_Rankine           &
               )
-
             int_G = int_G + coeffs(2) * int_G_Rankine
             int_nablaG(:) = int_nablaG(:) + coeffs(2) * int_nablaG_Rankine(:)
 
@@ -231,7 +231,6 @@ CONTAINS
               [-ONE, -4*depth],                           &
               int_G_Rankine, int_nablaG_Rankine           &
               )
-
             int_G = int_G + coeffs(2) * int_G_Rankine
             int_nablaG(:) = int_nablaG(:) + coeffs(2) * int_nablaG_Rankine(:)
 

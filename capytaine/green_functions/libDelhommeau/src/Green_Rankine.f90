@@ -261,8 +261,8 @@ contains
     reflected_M(3)   = reflection_coefs(1) * M(3) + reflection_coefs(2)
 
     ! For instance
-    ! reflection_coefs = (-1.0, 0.0) for free surface symmetry
-    ! reflection_coefs = (-1.0, -2*h) for sea bottom symmetry
+    ! reflection_coefs = [-1.0, 0.0] for free surface symmetry
+    ! reflection_coefs = [-1.0, -2*h] for sea bottom symmetry
 
     call exact_integral_of_Rankine &
       (reflected_M,                &
@@ -272,7 +272,7 @@ contains
       .true.,                      &
       int_g, int_nabla_g)
 
-    ! Because we mirrored M, we mirror the gradient
+    ! If we mirrored M, we mirror the gradient
     int_nabla_g(3) = reflection_coefs(1) * int_nabla_g(3)
 
     if (.not. derivative_with_respect_to_first_variable) then
