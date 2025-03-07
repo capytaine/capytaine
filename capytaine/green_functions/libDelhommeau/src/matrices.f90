@@ -81,8 +81,7 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(3) :: int_nablaG, int_nablaG_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym
     LOGICAL :: use_symmetry_of_wave_part, derivative_with_respect_to_first_variable
 
-    ! use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
-    use_symmetry_of_wave_part = .false.
+     use_symmetry_of_wave_part = ((same_body) .AND. (nb_quad_points == 1))
 
     derivative_with_respect_to_first_variable = adjoint_double_layer
     ! When computing the adjoint double layer operator (K), the derivative of the Green function is computed with respect to its
