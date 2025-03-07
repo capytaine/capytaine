@@ -243,7 +243,11 @@ CONTAINS
 
           call integral_of_wave_part(                                  &
             centers_1(I, :),                                           &
-            centers_2(J, :), areas_2(J),                               &
+            vertices_2(faces_2(J, :), :),                              &
+            centers_2(J, :),                                           &
+            normals_2(J, :),                                           &
+            areas_2(J),                                                &
+            radiuses_2(J),                                             &
             quad_points(J, :, :), quad_weights(J, :),                  &
             wavenumber, depth,                                         &
             tabulation_nb_integration_points, tabulation_grid_shape,   &

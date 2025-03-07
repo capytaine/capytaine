@@ -35,7 +35,8 @@ CONTAINS
 
   subroutine integral_of_wave_part                               &
       (x,                                                        &
-      face_center, face_area,                                    &
+      face_nodes,                                                &
+      face_center, face_normal, face_area, face_radius,          &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber, depth,                                         &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
@@ -47,8 +48,9 @@ CONTAINS
       )
 
     real(kind=pre), dimension(3),          intent(in) :: x
-    real(kind=pre), dimension(3),          intent(in) :: face_center
-    real(kind=pre),                        intent(in) :: face_area
+    real(kind=pre), dimension(4, 3),       intent(in) :: face_nodes
+    real(kind=pre), dimension(3),          intent(in) :: face_center, face_normal
+    real(kind=pre),                        intent(in) :: face_area, face_radius
     real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
     real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
     real(kind=pre),                        intent(in) :: wavenumber, depth
@@ -65,7 +67,7 @@ CONTAINS
     complex(kind=pre),                     intent(out) :: int_G
     complex(kind=pre), dimension(3),       intent(out) :: int_nablaG
 
-    if is_infinity(depth) then
+    if (is_infinity(depth)) then
       call integral_of_wave_part_infinite_depth                    &
         (x,                                                        &
         face_center, face_area,                                    &
@@ -80,12 +82,13 @@ CONTAINS
     else
       call integral_of_wave_part_finite_depth                      &
         (x,                                                        &
-        face_center, face_area,                                    &
+        face_nodes,                                                &
+        face_center, face_normal, face_area, face_radius,          &
         face_quadrature_points, face_quadrature_weights,           &
         wavenumber, depth,                                         &
         tabulation_nb_integration_points, tabulation_grid_shape,   &
         tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-        gf_singularities,                                          &
+        ! gf_singularities,                                          &  ! Unimplemented for now
         nexp, ambda, ar,                                           &
         derivative_with_respect_to_first_variable,                 &
         int_G, int_nablaG                                          &
@@ -119,8 +122,6 @@ CONTAINS
     real(kind=pre), dimension(:),          intent(in) :: tabulated_r_range
     real(kind=pre), dimension(:),          intent(in) :: tabulated_z_range
     real(kind=pre), dimension(:, :, :),    intent(in) :: tabulated_integrals
-    integer,                               intent(in) :: nexp
-    real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
     logical,                               intent(in) :: derivative_with_respect_to_first_variable
 
     complex(kind=pre),                     intent(out) :: int_G
@@ -129,7 +130,7 @@ CONTAINS
     ! Local variables
     real(kind=pre)                  :: r, z
     complex(kind=pre)               :: G_at_point
-    complex(kind=pre), dimension(3) :: nablaG_at_point, nablaG_at_point
+    complex(kind=pre), dimension(3) :: nablaG_at_point
     integer                         :: nb_quad_points, Q
 
     r = wavenumber * norm2(x(1:2) - face_center(1:2))
@@ -158,6 +159,7 @@ CONTAINS
           wavenumber,                                                &
           tabulation_nb_integration_points, tabulation_grid_shape,   &
           tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+          gf_singularities,                                          &
           G_at_point, nablaG_at_point                                &
           )
         int_G = int_G + G_at_point * face_quadrature_weights(q)
@@ -166,7 +168,7 @@ CONTAINS
     end if
 
     if (.not. derivative_with_respect_to_first_variable) then
-      int_nabla_g(1:2) = -int_nabla_g(1:2)
+      int_nablaG(1:2) = -int_nablaG(1:2)
     endif
 
   end subroutine
@@ -320,8 +322,8 @@ CONTAINS
   ! =====================================================================
 
   pure function symmetric_of_vector(n) result(n_sym)
-    real(kind=pre), dimension(3), intent(in) :: n
-    real(kind=pre), dimension(3) :: n_sym
+    complex(kind=pre), dimension(3), intent(in) :: n
+    complex(kind=pre), dimension(3) :: n_sym
 
     n_sym(1:2) = n(1:2)
     n_sym(3)   = -n(3)
@@ -345,19 +347,20 @@ CONTAINS
     real(kind=pre), dimension(:, :), intent(in) :: face_quadrature_points
     real(kind=pre),                  intent(in) :: depth
     real(kind=pre), dimension(3),    intent(out) :: face_center_sym
-    real(kind=pre), dimension(size(face_quadrature_points, 1), size(face_quadrature_points, 2)), intent(out) :: face_quadrature_points_sym
+    real(kind=pre), dimension(:, :), intent(out) :: face_quadrature_points_sym
 
     integer :: i
 
-    face_center_sym = sea_bottom_symmetric_of_point(face_center)
+    face_center_sym = sea_bottom_symmetric_of_point(face_center, depth)
     do i = 1, size(face_quadrature_points, 1)
-      face_quadrature_points_sym(i, :) = sea_bottom_symmetric_of_point(face_quadrature_points(i, :))
+      face_quadrature_points_sym(i, :) = sea_bottom_symmetric_of_point(face_quadrature_points(i, :), depth)
     end do
-  end function
+  end subroutine
 
   subroutine integral_of_wave_part_finite_depth                  &
       (x,                                                        &
-      face_center, face_area,                                    &
+      face_nodes,                                                &
+      face_center, face_normal, face_area, face_radius,          &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber, depth,                                         &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
@@ -369,8 +372,9 @@ CONTAINS
 
     ! Inputs
     real(kind=pre), dimension(3),             intent(in) :: x
-    real(kind=pre), dimension(3),             intent(in) :: face_center
-    real(kind=pre),                           intent(in) :: face_area
+    real(kind=pre), dimension(4, 3),          intent(in) :: face_nodes
+    real(kind=pre), dimension(3),             intent(in) :: face_center, face_normal
+    real(kind=pre),                           intent(in) :: face_area, face_radius
     real(kind=pre), dimension(:),             intent(in) :: face_quadrature_weights
     real(kind=pre), dimension(:, :),          intent(in) :: face_quadrature_points
     real(kind=pre),                           intent(in) :: wavenumber, depth
@@ -389,17 +393,20 @@ CONTAINS
 
     ! Outputs
     complex(kind=pre),               intent(out) :: int_G  ! integral of the Green function over the panel.
-    complex(kind=pre), dimension(3), intent(out) :: int_nabla_G ! Gradient of the integral of the Green function with respect to X0I.
+    complex(kind=pre), dimension(3), intent(out) :: int_nablaG ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
-    real(kind=pre),    dimension(3) :: x_sym, face_center_sym
+    real(kind=pre), dimension(3)    :: x_sym, face_center_sym
+    real(kind=pre), dimension(size(face_quadrature_points, 1), size(face_quadrature_points, 2)) :: face_quadrature_points_sym
     real(kind=pre)                  :: amh, akh, a
+    real(kind=pre)                  :: int_G_term_Rankine
+    real(kind=pre), dimension(3)    :: int_nablaG_term_Rankine
     complex(kind=pre)               :: int_G_term
-    complex(kind=pre), dimension(3) :: int_nabla_G_term
+    complex(kind=pre), dimension(3) :: int_nablaG_term
     integer                         :: ke
 
     int_G = czero
-    int_nabla_G = czero
+    int_nablaG = czero
 
     ! Some coefficient
     AMH  = wavenumber*depth
@@ -428,7 +435,7 @@ CONTAINS
       int_G_term, int_nablaG_term                                &
       )
     int_G = int_G + A * int_G_term
-    int_nabla_G = int_nabla_G + A * int_nabla_G_term
+    int_nablaG = int_nablaG + A * int_nablaG_term
 
     ! 1.b Reflect X and compute another value of the Green function
     CALL integral_of_wave_part_infinite_depth                    &
@@ -443,10 +450,10 @@ CONTAINS
       int_G_term, int_nablaG_term                                &
       )
     int_G = int_G + A * int_G_term
-    if derivative_with_respect_to_first_variable then
-      int_nabla_G = int_nabla_G + A * symmetric_of_vector(int_nabla_G_term)
+    if (derivative_with_respect_to_first_variable) then
+      int_nablaG = int_nablaG + A * symmetric_of_vector(int_nablaG_term)
     else
-      int_nabla_G = int_nabla_G + A * int_nabla_G_term
+      int_nablaG = int_nablaG + A * int_nablaG_term
     endif
 
     ! 1.c Reflect face and compute another value of the Green function
@@ -462,10 +469,10 @@ CONTAINS
       int_G_term, int_nablaG_term                                &
       )
     int_G = int_G + A * int_G_term
-    if derivative_with_respect_to_first_variable then
-      int_nabla_G = int_nabla_G + A * int_nabla_G_term
+    if (derivative_with_respect_to_first_variable) then
+      int_nablaG = int_nablaG + A * int_nablaG_term
     else
-      int_nabla_G = int_nabla_G + A * symmetric_of_vector(int_nabla_G_term)
+      int_nablaG = int_nablaG + A * symmetric_of_vector(int_nablaG_term)
     endif
 
     ! 1.d Reflect both x and face and compute another value of the Green function
@@ -481,7 +488,7 @@ CONTAINS
       int_G_term, int_nablaG_term                                &
       )
     int_G = int_G + A * int_G_term
-    int_nabla_G = int_nabla_G + A * symmetric_of_vector(int_nabla_G_term)
+    int_nablaG = int_nablaG + A * symmetric_of_vector(int_nablaG_term)
 
     !=======================================
     ! Part 2: Integrate NEXP×4 Rankine terms
@@ -489,47 +496,47 @@ CONTAINS
     do ke = 1, size(ambda)
       ! 2.a
       call integral_of_reflected_Rankine(          &
-        (w,                                        &
+        x,                                         &
         face_nodes, face_center, face_normal,      &
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
-        [1.0, depth*ambda(ke) - 2*depth],          &
-        int_G_term, int_nabla_G_term)
-      int_G = int_G + ar(ke)/2 * int_G_term
-      int_nabla_G = int_nabla_G + ar(ke)/2 * int_nabla_G_term
+        [ONE, depth*ambda(ke) - 2*depth],          &
+        int_G_term_Rankine, int_nablaG_term_Rankine)
+      int_G = int_G + ar(ke)/2 * int_G_term_Rankine
+      int_nablaG = int_nablaG + ar(ke)/2 * int_nablaG_term_Rankine
 
       ! 2.b
       call integral_of_reflected_Rankine(          &
-        (w,                                        &
+        x,                                         &
         face_nodes, face_center, face_normal,      &
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
-        [-1.0, -depth*ambda(ke)],                  &
-        int_G_term, int_nabla_G_term)
-      int_G = int_G + ar(ke)/2 * int_G_term
-      int_nabla_G = int_nabla_G + ar(ke)/2 * int_nabla_G_term
+        [-ONE, -depth*ambda(ke)],                  &
+        int_G_term_Rankine, int_nablaG_term_Rankine)
+      int_G = int_G + ar(ke)/2 * int_G_term_Rankine
+      int_nablaG = int_nablaG + ar(ke)/2 * int_nablaG_term_Rankine
 
       ! 2.c
       call integral_of_reflected_Rankine(          &
-        (w,                                        &
+        x,                                         &
         face_nodes, face_center, face_normal,      &
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
-        [-1.0, depth*ambda(ke) - 4*depth],         &
-        int_G_term, int_nabla_G_term)
-      int_G = int_G + ar(ke)/2 * int_G_term
-      int_nabla_G = int_nabla_G + ar(ke)/2 * int_nabla_G_term
+        [-ONE, depth*ambda(ke) - 4*depth],         &
+        int_G_term_Rankine, int_nablaG_term_Rankine)
+      int_G = int_G + ar(ke)/2 * int_G_term_Rankine
+      int_nablaG = int_nablaG + ar(ke)/2 * int_nablaG_term_Rankine
 
       ! 2.d
       call integral_of_reflected_Rankine(          &
-        (w,                                        &
+        x,                                         &
         face_nodes, face_center, face_normal,      &
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
-        [-1.0, -depth*ambda(ke) + 2*depth],        &
-        int_G_term, int_nabla_G_term)
-      int_G = int_G + ar(ke)/2 * int_G_term
-      int_nabla_G = int_nabla_G + ar(ke)/2 * int_nabla_G_term
+        [ONE, -depth*ambda(ke) + 2*depth],        &
+        int_G_term_Rankine, int_nablaG_term_Rankine)
+      int_G = int_G + ar(ke)/2 * int_G_term_Rankine
+      int_nablaG = int_nablaG + ar(ke)/2 * int_nablaG_term_Rankine
     end do
   end subroutine
 
