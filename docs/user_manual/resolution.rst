@@ -41,6 +41,7 @@ The following classes are available:
                             tabulation_nz=46, tabulation_zmin=-16,
                             tabulation_nb_integration_points=251,
                             tabulation_grid_shape="legacy",
+                            finite_depth_method="legacy",
                             gf_singularities="high_freq")
 
         # Default in Capytaine 2.1
@@ -48,6 +49,7 @@ The following classes are available:
                             tabulation_nz=372, tabulation_zmin=-251,
                             tabulation_nb_integration_points=1000,
                             tabulation_grid_shape="scaled_nemoh3",
+                            finite_depth_method="legacy",
                             gf_singularities="high_freq")
 
         # Default in Capytaine 2.2
@@ -55,6 +57,7 @@ The following classes are available:
                             tabulation_nz=372, tabulation_zmin=-251,
                             tabulation_nb_integration_points=1000,
                             tabulation_grid_shape="scaled_nemoh3",
+                            finite_depth_method="legacy",
                             gf_singularities="low_freq")
 
    In version 2.1, the default numbers of :math:`r` and :math:`z` values have
