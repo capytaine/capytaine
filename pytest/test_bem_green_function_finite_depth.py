@@ -5,6 +5,30 @@ import capytaine as cpt
 
 from capytaine.tools.prony_decomposition import exponential_decomposition, find_best_exponential_decomposition
 
+list_of_faces = [
+    cpt.Mesh(vertices=[[0.0, 0.0, -1.0], [1.0, 0.0, -1.0], [1.0, 1.0, -1.0], [0.0, 1.0, -1.0]], faces=np.array([[0, 1, 2, 3]])),
+    cpt.Mesh(vertices=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]], faces=np.array([[0, 1, 2, 3]])),
+        ]
+
+@pytest.mark.parametrize("face", list_of_faces, ids=["immersed", "free_surface"])
+def test_deep_water_asymptotics(face):
+    gf = cpt.Delhommeau()
+    k = 1.0
+    depth = 1000.0
+    ambda, a, nexp = gf.fortran_core.old_prony_decomposition.lisc(k*depth*np.tanh(k*depth), k*depth)
+    s_inf, k_inf = gf.fortran_core.green_wave.integral_of_wave_part_infinite_depth(
+        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
+        k, *gf.all_tabulation_parameters, gf.gf_singularities_index, True
+    )
+    s_finite, k_finite = gf.fortran_core.green_wave.integral_of_wave_part_finite_depth(
+        face.faces_centers[0, :], face.vertices[face.faces[0, :], :], face.faces_centers[0, :] , face.faces_normals[0, :],
+        face.faces_areas[0], face.faces_radiuses[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
+        k, depth, *gf.all_tabulation_parameters, ambda, a, True
+    )
+    np.testing.assert_allclose(s_inf, s_finite, rtol=1e-2)
+    np.testing.assert_allclose(k_inf, k_finite, rtol=1e-2)
+
+
 def test_prony_decomposition():
     x = np.linspace(0.0, 1.0, 100)
     y = 2*np.exp(-x) - 4*np.exp(-2*x)
@@ -39,4 +63,3 @@ def test_fingreen3D():
     gf = cpt.FinGreen3D()
     mesh = cpt.mesh_sphere().immersed_part()
     gf.evaluate(mesh, mesh, 0.0, 10.0, 1.0)
-
