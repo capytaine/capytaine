@@ -42,7 +42,7 @@ CONTAINS
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
-      nexp, ambda, ar,                                           &
+      finite_depth_method, nexp, ambda, ar,                      &
       derivative_with_respect_to_first_variable,                 &
       int_G, int_nablaG                                          &
       )
@@ -60,6 +60,7 @@ CONTAINS
     real(kind=pre), dimension(:),          intent(in) :: tabulated_r_range
     real(kind=pre), dimension(:),          intent(in) :: tabulated_z_range
     real(kind=pre), dimension(:, :, :),    intent(in) :: tabulated_integrals
+    integer,                               intent(in) :: finite_depth_method
     integer,                               intent(in) :: nexp
     real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
     logical,                               intent(in) :: derivative_with_respect_to_first_variable

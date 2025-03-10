@@ -15,6 +15,7 @@ def nemoh2_solver():
     gf = cpt.Delhommeau(
             tabulation_nr=328, tabulation_nz=46,
             tabulation_grid_shape='legacy', tabulation_nb_integration_points=251,
+            finite_depth_method="legacy",
             gf_singularities="high_freq",
             )
     solver = cpt.BEMSolver(
