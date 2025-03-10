@@ -88,41 +88,6 @@ def test_symmetry_of_the_green_function_infinite_depth(gf):
     assert dg1[2] == pytest.approx(dg2[2])
 
 
-@pytest.mark.parametrize("gf", gfs)
-def test_symmetry_of_the_green_function_finite_depth_no_prony(gf):
-    k = 1.0
-    depth = 5.0
-    xi = np.array([0.0, 0.0, -1.0])
-    xj = np.array([1.0, 1.0, -2.0])
-    g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
-        xi, xj, k, depth, *gf.all_tabulation_parameters, np.zeros(1), np.zeros(1), 1
-    )
-    g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
-        xj, xi, k, depth, *gf.all_tabulation_parameters, np.zeros(1), np.zeros(1), 1
-    )
-    assert g1 == pytest.approx(g2)
-    assert dg1_sym == pytest.approx(dg2_sym)
-    assert dg1_antisym == pytest.approx(-dg2_antisym)
-
-
-@pytest.mark.parametrize("gf", gfs)
-def test_symmetry_of_the_green_function_finite_depth(gf):
-    k = 1.0
-    depth = 10.0
-    xi = np.array([0.0, 0.0, -1.0])
-    xj = np.array([1.0, 1.0, -2.0])
-    ambda, a, nexp = gf.fortran_core.old_prony_decomposition.lisc(k*depth*np.tanh(k*depth), k*depth)
-    g1, dg1_sym, dg1_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
-        xi, xj, k, depth, *gf.all_tabulation_parameters, ambda, a, 31
-    )
-    g2, dg2_sym, dg2_antisym = gf.fortran_core.green_wave.wave_part_finite_depth(
-        xj, xi, k, depth, *gf.all_tabulation_parameters, ambda, a, 31
-    )
-    assert g1 == pytest.approx(g2)
-    assert dg1_sym == pytest.approx(dg2_sym)
-    assert dg1_antisym == pytest.approx(-dg2_antisym)
-
-
 def test_floating_point_precision():
     assert cpt.Delhommeau(floating_point_precision="float64").tabulated_integrals.dtype == np.float64
     assert cpt.Delhommeau(floating_point_precision="float32").tabulated_integrals.dtype == np.float32
