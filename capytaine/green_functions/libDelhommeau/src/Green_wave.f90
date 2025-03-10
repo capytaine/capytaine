@@ -72,7 +72,7 @@ CONTAINS
         (x,                                                        &
         face_center, face_area,                                    &
         face_quadrature_points, face_quadrature_weights,           &
-        wavenumber, depth,                                         &
+        wavenumber,                                                &
         tabulation_nb_integration_points, tabulation_grid_shape,   &
         tabulated_r_range, tabulated_z_range, tabulated_integrals, &
         gf_singularities,                                          &
@@ -102,7 +102,7 @@ CONTAINS
       (x,                                                        &
       face_center, face_area,                                    &
       face_quadrature_points, face_quadrature_weights,           &
-      wavenumber, depth,                                         &
+      wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
@@ -115,7 +115,7 @@ CONTAINS
     real(kind=pre),                        intent(in) :: face_area
     real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
     real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
-    real(kind=pre),                        intent(in) :: wavenumber, depth
+    real(kind=pre),                        intent(in) :: wavenumber
     integer,                               intent(in) :: gf_singularities
     integer,                               intent(in) :: tabulation_nb_integration_points
     integer,                               intent(in) :: tabulation_grid_shape
@@ -427,7 +427,7 @@ CONTAINS
       (x,                                                        &
       face_center, face_area,                                    &
       face_quadrature_points, face_quadrature_weights,           &
-      wavenumber, depth,                                         &
+      wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       LOW_FREQ,                                                  &
@@ -442,7 +442,7 @@ CONTAINS
       (x_sym,                                                    &
       face_center, face_area,                                    &
       face_quadrature_points, face_quadrature_weights,           &
-      wavenumber, depth,                                         &
+      wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       LOW_FREQ,                                                  &
@@ -461,7 +461,7 @@ CONTAINS
       (x,                                                        &
       face_center_sym, face_area,                                &
       face_quadrature_points_sym, face_quadrature_weights,       &
-      wavenumber, depth,                                         &
+      wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       LOW_FREQ,                                                  &
@@ -480,7 +480,7 @@ CONTAINS
       (x_sym,                                                    &
       face_center_sym, face_area,                                &
       face_quadrature_points_sym, face_quadrature_weights,       &
-      wavenumber, depth,                                         &
+      wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       LOW_FREQ,                                                  &
