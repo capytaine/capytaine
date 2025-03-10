@@ -26,7 +26,7 @@ CONTAINS
       tabulation_grid_shape,                             &
       tabulated_r_range, tabulated_z_range,              &
       tabulated_integrals,                               &
-      NEXP, AMBDA, AR,                                   &
+      finite_depth_method, NEXP, AMBDA, AR,              &
       same_body, gf_singularities, adjoint_double_layer, &
       S, K)
 
@@ -65,6 +65,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(:, :, :),       INTENT(IN) :: tabulated_integrals
 
     ! Prony decomposition for finite depth Green function
+    integer,                                  intent(in) :: finite_depth_method
     INTEGER,                                  INTENT(IN) :: NEXP
     REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
 
@@ -80,7 +81,8 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(3) :: int_nablaG, int_nablaG_wave
     LOGICAL :: use_symmetry_of_wave_part, derivative_with_respect_to_first_variable
 
-    ! use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1))
+    ! use_symmetry_of_wave_part = ((SAME_BODY) .AND. (nb_quad_points == 1)   &
+    !                              .AND. (.not. (is_infinity(depth) .and. (finite_depth_method == FINGREEN3D))))
     use_symmetry_of_wave_part = .false.
 
     derivative_with_respect_to_first_variable = adjoint_double_layer
@@ -145,7 +147,7 @@ CONTAINS
         if ((coeffs(2) .NE. ZERO) .or. &
             ((gf_singularities == LOW_FREQ_WITH_RANKINE_PART) .and. (coeffs(3) .NE. ZERO))) then
 
-          if (is_infinity(depth)) then
+          if (is_infinity(depth) .or. (finite_depth_method .ne. LEGACY_FINITE_DEPTH)) then
             call integral_of_reflected_Rankine(          &
               centers_1(I, :),                           &
               vertices_2(faces_2(J, :), :),              &
@@ -180,7 +182,7 @@ CONTAINS
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           !  Supplementary Rankine parts in finite depth  !
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          if (.not. (is_infinity(depth))) then
+          if (.not. (is_infinity(depth)) .and. finite_depth_method == LEGACY_FINITE_DEPTH) then
             ! 1. Reflection through sea bottom
             call integral_of_reflected_Rankine(          &
               centers_1(I, :),                           &
@@ -253,7 +255,7 @@ CONTAINS
             tabulation_nb_integration_points, tabulation_grid_shape,   &
             tabulated_r_range, tabulated_z_range, tabulated_integrals, &
             gf_singularities,                                          &
-            NEXP, AMBDA, AR,                                           &
+            finite_depth_method, NEXP, AMBDA, AR,                      &
             derivative_with_respect_to_first_variable,                 &
             int_G_wave, int_nablaG_wave                                &
           )
@@ -300,7 +302,7 @@ CONTAINS
 !            tabulation_nb_integration_points, tabulation_grid_shape,     &
 !            tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
 !            gf_singularities,                                            &
-!            NEXP, AMBDA, AR,                                             &
+!            finite_depth_method, NEXP, AMBDA, AR,                        &
 !            int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym     &
 !          )
 !
