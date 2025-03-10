@@ -159,9 +159,10 @@ Two of them are available in the present version:
 Solving the problem
 -------------------
 
-Once the solver has been initialized, it can be used to solve problems with the :meth:`~capytaine.bem.solver.BEMSolver.solve` method::
+Once the solver has been initialized, it can be used to solve problems with the
+:meth:`~capytaine.bem.solver.BEMSolver.solve` method::
 
-	result = solver.solve(problem, keep_details=False, method='indirect')
+	result = solver.solve(problem, keep_details=False, method="indirect")
 
 The optional argument :code:`keep_details` (default value: :code:`True`)
 controls whether the source and potential distributions should be saved in the
@@ -170,17 +171,27 @@ computation of the Kochin function or the reconstruction of the free surface
 elevation. However, when only the force on the body is of interest, they can be
 discarded to save space in memory.
 
-The optional argument :code:`method` (default value: :code:`indirect`) controls
-the approach employed to solve for the potential velocity solutions. Two
-methods are implemented including 1) direct method (also known as "potential
-formulation", among other names), and 2) indirect method (also known as "source
-formulation"). The direct method appears to be slightly more accurate on some
-test cases but only allows for the computation of the forces on the floating
-body. Any other post-processing requires the indirect method.
+The optional argument :code:`method` (default value: :code:`"indirect"`) controls
+the approach employed to solve for the potential velocity solutions.
+Two methods are implemented:
+
+#. direct method (also known as "potential formulation", among other names)
+   with :code:`method="direct"`,
+#. indirect method (also known as "source formulation"), by default and with
+   :code:`method="indirect"`.
+
+The direct method appears to be slightly more accurate on some
+test cases (especially when thin plates are involved) but is only implemented
+for the computation of the forces on the floating body without forward speed.
+Any other post-processing (e.g. free surface elevation) and forward speed
+currently require the indirect method.
 
 A list of problems can be solved at once in an optimal order with::
 
-	list_of_results = solver.solve_all(list_of_problems, keep_details=False)
+	list_of_results = solver.solve_all(list_of_problems, keep_details=False, method="indirect")
+
+where :meth:`~capytaine.bem.solver.BEMSolver.solve_all` accepts the same
+optional keyword arguments as :meth:`~capytaine.bem.solver.BEMSolver.solve`.
 
 Progress bar
 ------------
