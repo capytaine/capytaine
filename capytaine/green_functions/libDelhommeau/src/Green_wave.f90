@@ -1,6 +1,6 @@
 ! Copyright (C) 2017-2025 Matthieu Ancellin
 ! See LICENSE file at <https://github.com/capytaine/libDelhommeau>
-module green_wave
+module Green_Wave
 
   use floating_point_precision, only: pre
   use constants
@@ -84,19 +84,30 @@ CONTAINS
         int_G, int_nablaG                                          &
         )
     else
-      call integral_of_wave_part_finite_depth                      &
-        (x,                                                        &
-        face_nodes,                                                &
-        face_center, face_normal, face_area, face_radius,          &
-        face_quadrature_points, face_quadrature_weights,           &
-        wavenumber, depth,                                         &
-        tabulation_nb_integration_points, tabulation_grid_shape,   &
-        tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-        ! gf_singularities,                                          &  ! Unimplemented for now
-        nexp, ambda, ar,                                           &
-        derivative_with_respect_to_first_variable,                 &
-        int_G, int_nablaG                                          &
-        )
+      if (finite_depth_method == FINGREEN3D_METHOD) then
+        call integral_of_wave_part_fingreen3D                        &
+          (x,                                                        &
+          face_center, face_area,                                    &
+          face_quadrature_points, face_quadrature_weights,           &
+          wavenumber, depth,                                         &
+          derivative_with_respect_to_first_variable,                 &
+          int_G, int_nablaG                                          &
+          )
+      else
+        call integral_of_wave_part_finite_depth                      &
+          (x,                                                        &
+          face_nodes,                                                &
+          face_center, face_normal, face_area, face_radius,          &
+          face_quadrature_points, face_quadrature_weights,           &
+          wavenumber, depth,                                         &
+          tabulation_nb_integration_points, tabulation_grid_shape,   &
+          tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+          ! gf_singularities,                                          &  ! Unimplemented for now
+          nexp, ambda, ar,                                           &
+          derivative_with_respect_to_first_variable,                 &
+          int_G, int_nablaG                                          &
+          )
+      endif
     endif
   end subroutine
 
@@ -547,56 +558,75 @@ CONTAINS
   ! =====================================================================
 
 #ifdef FINGREEN3D
-  SUBROUTINE WAVE_PART_FINITE_DEPTH_FINGREEN3D                   &
-      (X0I, X0J, wavenumber, depth,                              &
-      g, nablag)
+  subroutine integral_of_wave_part_fingreen3D                  &
+    (x,                                                        &
+    face_center, face_area,                                    &
+    face_quadrature_points, face_quadrature_weights,           &
+    wavenumber, depth,                                         &
+    derivative_with_respect_to_first_variable,                 &
+    int_G, int_nablaG                                          &
+    )
 
-    ! inputs
-    real(kind=pre),                           intent(in) :: wavenumber, depth
-    real(kind=pre), dimension(3),             intent(in) :: x0i
-    real(kind=pre), dimension(3),             intent(in) :: x0j
+    real(kind=pre), dimension(3),          intent(in) :: x
+    real(kind=pre), dimension(3),          intent(in) :: face_center
+    real(kind=pre),                        intent(in) :: face_area
+    real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
+    real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
+    real(kind=pre),                        intent(in) :: wavenumber, depth
+    logical,                               intent(in) :: derivative_with_respect_to_first_variable
 
-    ! outputs
-    complex(kind=pre),               intent(out) :: g  ! integral of the green function over the panel.
-    complex(kind=pre), dimension(3), intent(out) :: nablag
+    complex(kind=pre),                     intent(out) :: int_G
+    complex(kind=pre), dimension(3),       intent(out) :: int_nablaG
 
     integer, parameter :: nk = 200
-    real(kind=pre) ::  omega, omega2_over_g, r, drdx1, drdx2
+    integer :: q, nb_quad_points
+    real(kind=pre) ::  omega, omega2_over_g, drdx1, drdx2
     real(kind=8), dimension(nk) :: roots_of_dispersion_relationship
-    complex(kind=8), dimension(3) :: reduced_g_nablag
+    real(kind=8) :: r, G_at_point
+    real(kind=8), dimension(3) :: xi_q
+    complex(kind=8), dimension(3) :: reduced_G_nablaG, nablaG_at_point
 
     omega2_over_g  = wavenumber*depth*TANH(wavenumber*depth)
     omega = sqrt(omega2_over_g * 9.81)
-    r = NORM2(X0I(1:2) - X0J(1:2))
-
     call dispersion(roots_of_dispersion_relationship, nk, real(omega, kind=8), real(depth, kind=8))  ! TODO: factor out of the loop on panels
 
-    call fingreen3d_routine(            &
-      real(r, kind=8),                  &
-      real(x0I(3), kind=8),             &
-      real(x0j(3), kind=8),             &
-      real(sqrt(g*omega), kind=8),      &
-      roots_of_dispersion_relationship, &
-      nk,                               &
-      real(depth, kind=8),              &
-      reduced_g_nablag                  &
-    )
+    int_G = zero
+    int_nablaG = zero
 
-    g = reduced_g_nablag(1)
+    nb_quad_points = size(face_quadrature_weights)
 
-    IF (ABS(r) > 16*EPSILON(r)) THEN
-      drdx1 = (X0I(1) - X0J(1))/r
-      drdx2 = (X0I(2) - X0J(2))/r
-    ELSE
-      ! Limit when r->0 is not well defined...
-      drdx1 = ZERO
-      drdx2 = ZERO
-    END IF
+    do q = 1, nb_quad_points
+      xi_q = face_quadrature_points(q, :)
+      r = norm2(x(1:2) - xi_q(1:2))
+      call fingreen3d_routine(            &
+        r,                                &
+        real(x(3), kind=8),               &
+        xi_q(3),                          &
+        real(omega2_over_g, kind=8),      &
+        roots_of_dispersion_relationship, &
+        nk,                               &
+        real(depth, kind=8),              &
+        reduced_G_nablaG                  &
+      )
 
-    nablag(1) = drdx1 * reduced_g_nablag(2)
-    nablag(2) = drdx2 * reduced_g_nablag(2)
-    nablag(3) = reduced_g_nablag(3)
-  END SUBROUTINE
+      G_at_point = reduced_G_nablaG(1)
+
+      if (abs(r) > 16*epsilon(r)) then
+        drdx1 = (x(1) - xi_q(1))/r
+        drdx2 = (x(2) - xi_q(2))/r
+      else
+        ! Limit when r->0 is not well defined...
+        drdx1 = ZERO
+        drdx2 = ZERO
+      end if
+      nablaG_at_point(1) = drdx1 * reduced_G_nablaG(2)
+      nablaG_at_point(2) = drdx2 * reduced_G_nablaG(2)
+      nablaG_at_point(3) = reduced_G_nablaG(3)
+
+      int_G = int_G + G_at_point * face_quadrature_weights(q)
+      int_nablaG(:) = int_nablaG(:) + nablaG_at_point(:) * face_quadrature_weights(q)
+    enddo
+  end subroutine
 #endif
 
-END MODULE GREEN_WAVE
+end module Green_Wave

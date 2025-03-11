@@ -182,7 +182,7 @@ CONTAINS
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           !  Supplementary Rankine parts in finite depth  !
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-          if (.not. (is_infinity(depth)) .and. finite_depth_method == LEGACY_FINITE_DEPTH) then
+          if (.not. (is_infinity(depth)) .and. (finite_depth_method .ne. FINGREEN3D_METHOD)) then
             ! 1. Reflection through sea bottom
             call integral_of_reflected_Rankine(          &
               centers_1(I, :),                           &
