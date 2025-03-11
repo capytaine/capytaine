@@ -35,7 +35,7 @@ program test
   real(kind=pre), dimension(tabulation_nz)         :: tabulated_z
   real(kind=pre), allocatable, dimension(:, :, :)  :: tabulated_integrals
 
-  integer, parameter :: gf_singularities = 1  ! high_freq
+  integer, parameter :: gf_singularities = 1  ! low_freq
 
   ! Prony decomposition for the finite depth Green function
   integer, parameter :: finite_depth_method = 1  ! newer
