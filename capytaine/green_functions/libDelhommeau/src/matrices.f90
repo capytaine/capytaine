@@ -26,7 +26,7 @@ CONTAINS
       tabulation_grid_shape,                             &
       tabulated_r_range, tabulated_z_range,              &
       tabulated_integrals,                               &
-      NEXP, AMBDA, AR,                                   &
+      finite_depth_method, NEXP, AMBDA, AR,              &
       same_body, gf_singularities, adjoint_double_layer, &
       S, K)
 
@@ -64,6 +64,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
     REAL(KIND=PRE), DIMENSION(:, :, :),       INTENT(IN) :: tabulated_integrals
 
+    integer,                                  intent(in) :: finite_depth_method
     ! Prony decomposition for finite depth Green function
     INTEGER,                                  INTENT(IN) :: NEXP
     REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
@@ -145,7 +146,18 @@ CONTAINS
         if ((coeffs(2) .NE. ZERO) .or. &
             ((gf_singularities == LOW_FREQ_WITH_RANKINE_PART) .and. (coeffs(3) .NE. ZERO))) then
 
-          if (is_infinity(depth)) then
+          if ((.not. is_infinity(depth)) .and. (finite_depth_method == LEGACY_FINITE_DEPTH)) then
+            ! Dubious legacy behavior in finite depth...
+            call one_point_integral_of_reflected_Rankine( &
+              centers_1(I, :),                            &
+              centers_2(J, :),                            &
+              areas_2(J),                                 &
+              derivative_with_respect_to_first_variable,  &
+              [-ONE, ZERO],                               &
+              int_G_Rankine,                              &
+              int_nablaG_Rankine                          &
+            )
+          else
             call integral_of_reflected_Rankine(          &
               centers_1(I, :),                           &
               vertices_2(faces_2(J, :), :),              &
@@ -158,17 +170,6 @@ CONTAINS
               int_G_Rankine,                             &
               int_nablaG_Rankine                         &
               )
-          else
-            ! Legacy behavior in finite depth... To be fixed...
-            call one_point_integral_of_reflected_Rankine( &
-              centers_1(I, :),                            &
-              centers_2(J, :),                            &
-              areas_2(J),                                 &
-              derivative_with_respect_to_first_variable,  &
-              [-ONE, ZERO],                               &
-              int_G_Rankine,                              &
-              int_nablaG_Rankine                          &
-            )
           endif
           int_G = int_G + coeffs(2) * int_G_Rankine
           int_nablaG(:) = int_nablaG(:) + coeffs(2) * int_nablaG_Rankine(:)
@@ -253,7 +254,7 @@ CONTAINS
             tabulation_nb_integration_points, tabulation_grid_shape,   &
             tabulated_r_range, tabulated_z_range, tabulated_integrals, &
             gf_singularities,                                          &
-            NEXP, AMBDA, AR,                                           &
+            finite_depth_method, NEXP, AMBDA, AR,                      &
             derivative_with_respect_to_first_variable,                 &
             int_G_wave, int_nablaG_wave                                &
           )
@@ -300,7 +301,7 @@ CONTAINS
 !            tabulation_nb_integration_points, tabulation_grid_shape,     &
 !            tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
 !            gf_singularities,                                            &
-!            NEXP, AMBDA, AR,                                             &
+!            finite_depth_method, NEXP, AMBDA, AR,                        &
 !            int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym     &
 !          )
 !

@@ -40,6 +40,7 @@ real(kind=pre), dimension(tabulation_nr, tabulation_nz, nb_tabulated_values)  ::
 
 integer, parameter :: gf_singularities = 0
 
+integer, parameter :: finite_depth_method = 1
 ! Prony decomposition for the finite depth Green function
 integer, parameter :: nexp_max = 31
 integer :: nexp
@@ -99,7 +100,7 @@ do i=1, 1
         coeffs,                                                      &
         tabulation_nb_integration_points, tabulation_grid_shape,     &
         tabulated_r, tabulated_z, tabulated_integrals,               &
-        nexp, ambda, ar,                                             &
+        finite_depth_method, nexp, ambda, ar,                        &
         .false., gf_singularities, .true.,                           &
         S, K)
    call system_clock(final_time)
@@ -117,7 +118,7 @@ do i=1, 1
    !      coeffs,                                                           &
    !      tabulation_nb_integration_points, tabulation_grid_shape,          &
    !      tabulated_r, tabulated_z, tabulated_integrals,                    &
-   !      nexp, ambda, ar,                                                  &
+   !      finite_depth_method, nexp, ambda, ar,                             &
    !      .false., .true.,                                                  &
    !      S, K)
    ! call system_clock(final_time)
@@ -135,7 +136,7 @@ do i=1, 1
    !      coeffs,                                                               &
    !      tabulation_nb_integration_points, tabulation_grid_shape,              &
    !      tabulated_r, tabulated_z, tabulated_integrals,                        &
-   !      nexp, ambda, ar,                                                      &
+   !      finite_depth_method, nexp, ambda, ar,                                 &
    !      .true., gf_singularities, .true.,                                     &
    !      S, K)
    ! call system_clock(final_time)

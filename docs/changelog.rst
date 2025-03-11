@@ -18,6 +18,8 @@ Major change
 
   solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
 
+* Add :code:`finite_depth_method` parameter to :class:`~capytaine.green_functions.delhommeau.Delhommeau` allowing to customize the behavior of the finite depth Green function. The legacy behavior of previous versions is available as :code:`finite_depth_method="legacy"`, while a better behavior is used by default.
+
 Minor change
 ~~~~~~~~~~~~
 

@@ -24,10 +24,14 @@ MODULE CONSTANTS
   ! Parameters for different variants of the Green function.
   ! The actual number should be irrelevant as long as they are different.
 
-  ! Values for "tabulation_grid_shape"
+  ! Values for "tabulation_grid_shape", which could be generalized to "infinite_depth_method"
   integer, parameter :: LIANG_WU_NOBLESSE = -1
   integer, parameter :: LEGACY_GRID = 0  ! Nemoh 2
   integer, parameter :: SCALED_NEMOH3_GRID = 1
+
+  ! Values for "finite_depth_method"
+  integer, parameter :: LEGACY_FINITE_DEPTH = 0
+  integer, parameter :: NEWER_FINITE_DEPTH = 1
 
   ! Values for "gf_singularities"
   integer, parameter :: HIGH_FREQ = 0  ! legacy from Nemoh
