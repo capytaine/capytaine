@@ -63,7 +63,8 @@ CONTAINS
     real(kind=pre), dimension(:),          intent(in) :: tabulated_r_range
     real(kind=pre), dimension(:),          intent(in) :: tabulated_z_range
     real(kind=pre), dimension(:, :, :),    intent(in) :: tabulated_integrals
-    integer,                               intent(in) :: nexp, finite_depth_method
+    integer,                               intent(in) :: finite_depth_method
+    integer,                               intent(in) :: nexp
     real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
     logical,                               intent(in) :: derivative_with_respect_to_first_variable
 

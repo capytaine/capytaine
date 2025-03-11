@@ -23,6 +23,7 @@ _default_parameters = dict(
     tabulation_zmin=-251.0,
     tabulation_nb_integration_points=1001,
     tabulation_grid_shape="scaled_nemoh3",
+    finite_depth_method="newer",
     finite_depth_prony_decomposition_method="fortran",
     floating_point_precision="float64",
     gf_singularities="low_freq",
@@ -64,6 +65,8 @@ class Delhommeau(AbstractGreenFunction):
         Default: calls capytaine.tools.cache_on_disk.cache_directory(), which
         returns the value of the environment variable CAPYTAINE_CACHE_DIR if
         set, or else the default cache directory on your system.
+    finite_depth_method: string, optional
+        The method used to compute the finite depth Green function.
     finite_depth_prony_decomposition_method: string, optional
         The implementation of the Prony decomposition used to compute the
         finite water_depth Green function. Accepted values: :code:`'fortran'`
@@ -86,7 +89,9 @@ class Delhommeau(AbstractGreenFunction):
         Compiled Fortran module with functions used to compute the Green
         function.
     tabulation_grid_shape_index: int
-        Integer passed to Fortran code to describe which method is used.
+    gf_singularities_index: int
+    finite_depth_method_index: int
+        Integers passed to Fortran code to describe which method is used.
     tabulated_r_range: numpy.array of shape (tabulation_nr,) and type floating_point_precision
     tabulated_z_range: numpy.array of shape (tabulation_nz,) and type floating_point_precision
         Coordinates of the tabulation points.
@@ -104,6 +109,7 @@ class Delhommeau(AbstractGreenFunction):
                  tabulation_nb_integration_points=_default_parameters["tabulation_nb_integration_points"],
                  tabulation_grid_shape=_default_parameters["tabulation_grid_shape"],
                  tabulation_cache_dir=cache_directory(),
+                 finite_depth_method=_default_parameters["finite_depth_method"],
                  finite_depth_prony_decomposition_method=_default_parameters["finite_depth_prony_decomposition_method"],
                  floating_point_precision=_default_parameters["floating_point_precision"],
                  gf_singularities=_default_parameters["gf_singularities"],
@@ -125,6 +131,13 @@ class Delhommeau(AbstractGreenFunction):
                 'low_freq_with_rankine_part': self.fortran_core.constants.low_freq_with_rankine_part,
                               }
         self.gf_singularities_index = fortran_enum[gf_singularities]
+
+        self.finite_depth_method = finite_depth_method
+        fortran_enum = {
+                'legacy': self.fortran_core.constants.legacy_finite_depth,
+                'newer': self.fortran_core.constants.newer_finite_depth,
+                              }
+        self.finite_depth_method_index = fortran_enum[finite_depth_method]
 
         self.floating_point_precision = floating_point_precision
         self.tabulation_nb_integration_points = tabulation_nb_integration_points
@@ -150,6 +163,7 @@ class Delhommeau(AbstractGreenFunction):
             'tabulation_zmin': tabulation_zmin,
             'tabulation_nb_integration_points': tabulation_nb_integration_points,
             'tabulation_grid_shape': tabulation_grid_shape,
+            'finite_depth_method': finite_depth_method,
             'finite_depth_prony_decomposition_method': finite_depth_prony_decomposition_method,
             'floating_point_precision': floating_point_precision,
             'gf_singularities': gf_singularities,
@@ -374,7 +388,7 @@ class Delhommeau(AbstractGreenFunction):
             *mesh2.quadrature_points,
             wavenumber, water_depth,
             coeffs, *self.all_tabulation_parameters,
-            lamda_exp, a_exp,
+            self.finite_depth_method_index, lamda_exp, a_exp,
             mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
             S, K
         )

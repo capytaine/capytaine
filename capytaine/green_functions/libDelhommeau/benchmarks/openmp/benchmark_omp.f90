@@ -38,8 +38,9 @@ real(kind=pre), dimension(tabulation_nr)                       :: tabulated_r
 real(kind=pre), dimension(tabulation_nz)                       :: tabulated_z
 real(kind=pre), dimension(tabulation_nr, tabulation_nz, nb_tabulated_values)  :: tabulated_integrals
 
-integer, parameter :: gf_singularities = 0  ! high_freq
+integer, parameter :: gf_singularities = 1  ! low_freq
 
+integer, parameter :: finite_depth_method = 1
 ! Prony decomposition for the finite depth Green function
 integer, parameter :: nexp_max = 31
 integer :: nexp
@@ -73,9 +74,6 @@ else
    call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), ambda_f32, ar_f32, nexp)
    ambda(:) = real(ambda_f32(:), kind=pre)
    ar(:) = real(ar_f32(:), kind=pre)
-   nexp = nexp + 1
-   ambda(nexp) = 0.0
-   ar(nexp) = 2.0
 end if
 
 call random_panels(nb_faces, vertices, faces, face_center, face_normal, face_area, face_radius)
@@ -108,7 +106,7 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     coeffs,                                                      &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
+    finite_depth_method, nexp, ambda, ar,                        &
     .false., gf_singularities, .true.,                           &
     S, K)
   call system_clock(final_time)
@@ -127,7 +125,7 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     coeffs,                                                      &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
+    finite_depth_method, nexp, ambda, ar,                        &
     .false., gf_singularities, .true.,                           &
     S, K)
   call system_clock(final_time)
@@ -146,7 +144,7 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     coeffs,                                                      &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
+    finite_depth_method, nexp, ambda, ar,                        &
     .true., gf_singularities, .true.,                            &
     S, K)
   call system_clock(final_time)

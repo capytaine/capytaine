@@ -17,6 +17,7 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
 
     # Dummy arrays that won't actually be used by the fortran code.
     a_exp, lamda_exp = np.empty(1), np.empty(1)
+    finite_depth_method_index = -9999
     tabulation_nb_integration_points = 1
     tabulated_r_range = np.empty(1)
     tabulated_z_range = np.empty(1)
@@ -138,4 +139,3 @@ class FinGreen3D(AbstractGreenFunction):
         if early_dot_product: K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
 
         return S, K
-
