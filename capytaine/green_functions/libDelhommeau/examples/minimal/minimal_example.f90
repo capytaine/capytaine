@@ -28,16 +28,17 @@ program test
 
   ! Tabulation of the integrals used in the Green function
   integer, parameter :: tabulation_grid_shape = 1   ! scaled_nemoh3 method
-  integer, parameter :: tabulation_nb_integration_points = 251
+  integer, parameter :: tabulation_nb_integration_points = 1000
   integer, parameter :: tabulation_nr = 676
   integer, parameter :: tabulation_nz = 372
   real(kind=pre), dimension(tabulation_nr)         :: tabulated_r
   real(kind=pre), dimension(tabulation_nz)         :: tabulated_z
   real(kind=pre), allocatable, dimension(:, :, :)  :: tabulated_integrals
 
-  integer, parameter :: gf_singularities = 0  ! high_freq
+  integer, parameter :: gf_singularities = 1  ! high_freq
 
   ! Prony decomposition for the finite depth Green function
+  integer, parameter :: finite_depth_method = 1  ! newer
   integer, parameter :: nexp_max = 31
   integer :: nexp
   real, dimension(nexp_max) :: ambda_f32, ar_f32
@@ -99,7 +100,7 @@ program test
     ZERO, depth, coeffs,                                         &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
+    finite_depth_method, nexp, ambda, ar,                        &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "Rankine part: S"
@@ -121,7 +122,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
+    finite_depth_method, nexp, ambda, ar,                        &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=1.0, h=infty: S"
@@ -143,7 +144,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
+    finite_depth_method, nexp, ambda, ar,                        &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=2.0, h=infty: S"
@@ -164,9 +165,6 @@ program test
   call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), ambda_f32, ar_f32, nexp)
   ambda(:) = real(ambda_f32(:), kind=pre)
   ar(:) = real(ar_f32(:), kind=pre)
-  nexp = nexp + 1
-  ambda(nexp) = 0.0
-  ar(nexp) = 2.0
 
   call build_matrices(                                           &
     nb_faces, face_center, face_normal,                          &
@@ -176,7 +174,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
+    finite_depth_method, nexp, ambda, ar,                        &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=1.0, h=2.0: S"
@@ -196,9 +194,6 @@ program test
   call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), ambda_f32, ar_f32, nexp)
   ambda(:) = real(ambda_f32(:), kind=pre)
   ar(:) = real(ar_f32(:), kind=pre)
-  nexp = nexp + 1
-  ambda(nexp) = 0.0
-  ar(nexp) = 2.0
 
   call build_matrices(                                           &
     nb_faces, face_center, face_normal,                          &
@@ -208,7 +203,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    nexp, ambda, ar,                                             &
+    finite_depth_method, nexp, ambda, ar,                        &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=2.0, h=2.0: S"
