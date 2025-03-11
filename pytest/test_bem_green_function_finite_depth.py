@@ -60,8 +60,36 @@ def test_python_and_fortran_prony_decomposition_for_green_function():
     assert np.allclose(decomp_p[1], decomp_f[1], rtol=0.2)
 
 def test_fingreen3D():
-    mesh = cpt.mesh_sphere().immersed_part()
-    S, D = cpt.FinGreen3D().evaluate(mesh, mesh, free_surface=0.0, water_depth=10.0, wavenumber=1.0, adjoint_double_layer=False)
-    S_ref, D_ref = cpt.Delhommeau().evaluate(mesh, mesh, free_surface=0.0, water_depth=10.0, wavenumber=1.0, adjoint_double_layer=False)
+    # cpt.FinGreen3D().fortran_core.green_wave.integral_of_wave_part_fingreen3d(
+    #         np.array([0.0, 0.0, -1.0]),
+    #         np.array([1.0, 0.0, -1.0]), np.array([1.0]),
+    #         k, h, False,
+    #         )
+    import matplotlib.pyplot as plt
+
+    k = 5.0
+    h = 1.0
+    r_range = np.linspace(0.01, 6.0, 60)
+    data = []
+    for r in r_range:
+        G, dG = cpt.FinGreen3D().fortran_core.green_wave.integral_of_wave_part_fingreen3d(
+                np.array([0.0, 0.0, -1.0]), np.array([[r, 0.0, -1.0]]), np.array([1.0]), k, h, False)
+        data.append(G)
+
+    plt.figure()
+    plt.plot(r_range, np.real(data), label="real")
+    plt.plot(r_range, np.imag(data), label="imag")
+    plt.legend()
+    plt.show()
+
+def test_fingreen3D_():
+    k = 5.0
+    h = 2.0
+    mesh = cpt.mesh_sphere(radius=0.5, center=(0.0, 0.0, -1.0), resolution=(4, 4))
+    S, D = cpt.FinGreen3D().evaluate(mesh, mesh, free_surface=0.0, water_depth=h, wavenumber=k, adjoint_double_layer=False)
+    S_ref, D_ref = cpt.Delhommeau().evaluate(mesh, mesh, free_surface=0.0, water_depth=h, wavenumber=k, adjoint_double_layer=False)
+    np.diag(S), np.diag(S_ref)
+    np.diag(S, 1), np.diag(S_ref, 1)
+    np.diag(D), np.diag(D_ref)
     np.testing.assert_allclose(S, S_ref, rtol=1e-1)
     np.testing.assert_allclose(D, D_ref, rtol=1e-1)

@@ -113,7 +113,6 @@ contains
         ENDIF
         GRN(3)=FG(3)
 
-
         RETURN
         END SUBROUTINE fingreen3d_routine
 

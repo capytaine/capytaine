@@ -87,7 +87,6 @@ CONTAINS
       if (finite_depth_method == FINGREEN3D_METHOD) then
         call integral_of_wave_part_fingreen3D                        &
           (x,                                                        &
-          face_center, face_area,                                    &
           face_quadrature_points, face_quadrature_weights,           &
           wavenumber, depth,                                         &
           derivative_with_respect_to_first_variable,                 &
@@ -558,9 +557,25 @@ CONTAINS
   ! =====================================================================
 
 #ifdef FINGREEN3D
+
+  function dispersion_roots(nk, omega2_over_g, depth) result(roots_of_dispersion_relationship)
+    integer, intent(in) :: nk
+    real(kind=pre), intent(in) :: omega2_over_g, depth
+    real(kind=pre), dimension(nk) :: roots_of_dispersion_relationship
+
+    real(kind=8) :: omega, depth_f64
+    real(kind=8), dimension(nk) :: roots_of_dispersion_relationship_f64
+    depth_f64 = depth
+    omega = sqrt(omega2_over_g * 9.81d0)
+
+    ! Calls FinGreen3D.f90
+    call dispersion(roots_of_dispersion_relationship_f64, nk, omega, depth_f64)
+
+    roots_of_dispersion_relationship = roots_of_dispersion_relationship_f64
+  end function
+
   subroutine integral_of_wave_part_fingreen3D                  &
     (x,                                                        &
-    face_center, face_area,                                    &
     face_quadrature_points, face_quadrature_weights,           &
     wavenumber, depth,                                         &
     derivative_with_respect_to_first_variable,                 &
@@ -568,8 +583,6 @@ CONTAINS
     )
 
     real(kind=pre), dimension(3),          intent(in) :: x
-    real(kind=pre), dimension(3),          intent(in) :: face_center
-    real(kind=pre),                        intent(in) :: face_area
     real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
     real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
     real(kind=pre),                        intent(in) :: wavenumber, depth
@@ -580,18 +593,23 @@ CONTAINS
 
     integer, parameter :: nk = 200
     integer :: q, nb_quad_points
-    real(kind=pre) ::  omega, omega2_over_g, drdx1, drdx2
-    real(kind=8), dimension(nk) :: roots_of_dispersion_relationship
-    real(kind=8) :: r, G_at_point
+    real(kind=pre) :: omega, omega2_over_g, drdx1, drdx2
+    real(kind=8) :: r, x3
     real(kind=8), dimension(3) :: xi_q
+    real(kind=8), dimension(nk) :: roots_of_dispersion_relationship
+    complex(kind=8) :: G_at_point
     complex(kind=8), dimension(3) :: reduced_G_nablaG, nablaG_at_point
 
-    omega2_over_g  = wavenumber*depth*TANH(wavenumber*depth)
-    omega = sqrt(omega2_over_g * 9.81)
-    call dispersion(roots_of_dispersion_relationship, nk, real(omega, kind=8), real(depth, kind=8))  ! TODO: factor out of the loop on panels
+    if (derivative_with_respect_to_first_variable) then
+      print*, "Not implemented error: FinGreen3D only supports direct method"
+      error stop
+    endif
 
-    int_G = zero
-    int_nablaG = zero
+    omega2_over_g  = wavenumber*TANH(wavenumber*depth)
+    roots_of_dispersion_relationship = dispersion_roots(nk, omega2_over_g, depth)
+
+    int_G = czero
+    int_nablaG = czero
 
     nb_quad_points = size(face_quadrature_weights)
 
