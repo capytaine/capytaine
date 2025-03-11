@@ -60,6 +60,8 @@ def test_python_and_fortran_prony_decomposition_for_green_function():
     assert np.allclose(decomp_p[1], decomp_f[1], rtol=0.2)
 
 def test_fingreen3D():
-    gf = cpt.FinGreen3D()
     mesh = cpt.mesh_sphere().immersed_part()
-    gf.evaluate(mesh, mesh, 0.0, 10.0, 1.0)
+    S, D = cpt.FinGreen3D().evaluate(mesh, mesh, free_surface=0.0, water_depth=10.0, wavenumber=1.0, adjoint_double_layer=False)
+    S_ref, D_ref = cpt.Delhommeau().evaluate(mesh, mesh, free_surface=0.0, water_depth=10.0, wavenumber=1.0, adjoint_double_layer=False)
+    np.testing.assert_allclose(S, S_ref, rtol=1e-1)
+    np.testing.assert_allclose(D, D_ref, rtol=1e-1)
