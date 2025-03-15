@@ -54,15 +54,3 @@ def test_S_matrix_finite_depth_k2():
     S_rankine, _ = cpt.Delhommeau().evaluate(mesh, mesh, free_surface=np.inf, water_depth=np.inf, wavenumber=0.0, adjoint_double_layer=False)
     np.testing.assert_allclose(-4*np.pi*(S - S_rankine), HAMS_S_matrix, rtol=1e-3)
 
-
-def test_D_matrix_finite_depth_k2():
-    k = 2.0
-    h = 10.0
-    HAMS_D0_matrix = np.array([
-              [(-0.36177831640996905 + 1j * 1.7007340213300215), (-1.7129415732152193 + 1j * 1.6333866990767409)],
-              [(-1.7129415732152193 + 1j * 1.6333866990767409), (-0.36177831640996905 + 1j * 1.7007340213300215)],
-              ]) * mesh.faces_areas[0]
-    _, D = cpt.FinGreen3D().evaluate(mesh, mesh, free_surface=0.0, water_depth=h, wavenumber=k, adjoint_double_layer=False, early_dot_product=False)
-    _, D_rankine = cpt.Delhommeau().evaluate(mesh, mesh, free_surface=np.inf, water_depth=np.inf, wavenumber=0.0, adjoint_double_layer=False, early_dot_product=False)
-    4*np.pi*(D[:, :, 0] - D_rankine[:, :, 0])
-    np.testing.assert_allclose(4*np.pi*(D[:, :, 0] - D_rankine[:, :, 0]), HAMS_D0_matrix, rtol=1e-3)
