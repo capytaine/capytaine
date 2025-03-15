@@ -8,8 +8,8 @@ module Green_Wave
 #ifdef LIANGWUNOBLESSE
     use liangwunoblessewaveterm, only: havelockgf
 #endif
-#ifdef FINGREEN3D
-    USE fingreen3d_module, ONLY: fingreen3d_routine, dispersion
+#ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
+    use fingreen3d_module, only: fingreen3d_routine, dispersion
 #endif
   use green_rankine, only: integral_of_reflected_rankine
 
@@ -556,7 +556,6 @@ CONTAINS
 
   ! =====================================================================
 
-#ifdef FINGREEN3D
 
   function dispersion_roots(nk, omega2_over_g, depth) result(roots_of_dispersion_relationship)
     integer, intent(in) :: nk
@@ -568,8 +567,13 @@ CONTAINS
     depth_f64 = depth
     omega = sqrt(omega2_over_g * 9.81d0)
 
+#ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
     ! Calls FinGreen3D.f90
     call dispersion(roots_of_dispersion_relationship_f64, nk, omega, depth_f64)
+#else
+    print*, "The library has not been compiled with FinGreen3D.f90 optional dependecy"
+    error stop
+#endif
 
     roots_of_dispersion_relationship = roots_of_dispersion_relationship_f64
   end function
@@ -611,6 +615,7 @@ CONTAINS
     do q = 1, nb_quad_points
       xi_q = face_quadrature_points(q, :)
       r = norm2(x(1:2) - xi_q(1:2))
+#ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
       if (.not. derivative_with_respect_to_first_variable) then
         ! For direct method as implemented in HAMS
         call fingreen3d_routine(            &
@@ -636,6 +641,10 @@ CONTAINS
           reduced_G_nablaG                  &
         )
       endif
+#else
+    print*, "The library has not been compiled with FinGreen3D.f90 optional dependecy"
+    error stop
+#endif
 
       G_at_point = reduced_G_nablaG(1)
 
@@ -660,6 +669,5 @@ CONTAINS
       int_nablaG(:) = int_nablaG(:) + nablaG_at_point(:) * face_quadrature_weights(q)
     enddo
   end subroutine
-#endif
 
 end module Green_Wave

@@ -63,7 +63,7 @@ else
   omp = dependency('openmp')
 endif
 
-args = ['-cpp', '-DLIANGWUNOBLESSE', '-DFINGREEN3D']
+args = ['-cpp', '-DLIANGWUNOBLESSE', '-DFINGREEN3D_OPTIONAL_DEPENDENCY']
 link_args = ['-lquadmath']  # Required for the Windows build with cibuildwheel
 deps = [py3_dep, omp]
 
