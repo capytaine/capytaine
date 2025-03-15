@@ -68,3 +68,18 @@ def test_fingreen3D():
     S_ref, D_ref = cpt.Delhommeau().evaluate(mesh, mesh, free_surface=0.0, water_depth=h, wavenumber=k, adjoint_double_layer=False)
     np.testing.assert_allclose(S, S_ref, rtol=1e-1, atol=1e-1)
     np.testing.assert_allclose(D, D_ref, rtol=1e-1, atol=1e-1)
+
+@pytest.mark.parametrize("depth", [0.5, 1.0, 2.0])
+def test_fingreen3D_roots(depth):
+    from scipy.optimize import newton
+    nk = 100
+    omega2_over_g = 1.0
+    all_roots = cpt.FinGreen3D().fortran_core.green_wave.dispersion_roots(nk, omega2_over_g, depth)
+    wavenumber = newton(lambda x: omega2_over_g - x*np.tanh(x*depth), omega2_over_g)
+    assert np.isclose(wavenumber, all_roots[0], rtol=1e-3)
+    roots_idempotent = newton(lambda x: -omega2_over_g - x*np.tan(x*depth), all_roots[1:])
+    np.testing.assert_allclose(roots_idempotent, all_roots[1:], rtol=1e-3)
+
+    roots_ = newton(lambda x: -omega2_over_g - x*np.tan(x*depth), (np.arange(1, nk) + 0.25)*np.pi/depth)
+    np.testing.assert_allclose(roots_, all_roots[1:], rtol=1e-4)
+
