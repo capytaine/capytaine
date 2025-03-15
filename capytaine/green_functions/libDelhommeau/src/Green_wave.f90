@@ -640,8 +640,13 @@ CONTAINS
       G_at_point = reduced_G_nablaG(1)
 
       if (abs(r) > 16*epsilon(r)) then
-        drdx1 = (x(1) - xi_q(1))/r
-        drdx2 = (x(2) - xi_q(2))/r
+        if (derivative_with_respect_to_first_variable) then
+          drdx1 = (x(1) - xi_q(1))/r
+          drdx2 = (x(2) - xi_q(2))/r
+        else
+          drdx1 = -(x(1) - xi_q(1))/r
+          drdx2 = -(x(2) - xi_q(2))/r
+        endif
       else
         ! Limit when r->0 is not well defined...
         drdx1 = ZERO
