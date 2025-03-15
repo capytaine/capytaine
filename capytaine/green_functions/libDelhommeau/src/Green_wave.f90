@@ -600,11 +600,6 @@ CONTAINS
     complex(kind=8) :: G_at_point
     complex(kind=8), dimension(3) :: reduced_G_nablaG, nablaG_at_point
 
-    if (derivative_with_respect_to_first_variable) then
-      print*, "Not implemented error: FinGreen3D only supports direct method"
-      error stop
-    endif
-
     omega2_over_g  = wavenumber*TANH(wavenumber*depth)
     roots_of_dispersion_relationship = dispersion_roots(nk, omega2_over_g, depth)
 
@@ -616,16 +611,31 @@ CONTAINS
     do q = 1, nb_quad_points
       xi_q = face_quadrature_points(q, :)
       r = norm2(x(1:2) - xi_q(1:2))
-      call fingreen3d_routine(            &
-        r,                                &
-        real(x(3), kind=8),               &
-        xi_q(3),                          &
-        real(omega2_over_g, kind=8),      &
-        roots_of_dispersion_relationship, &
-        nk,                               &
-        real(depth, kind=8),              &
-        reduced_G_nablaG                  &
-      )
+      if (.not. derivative_with_respect_to_first_variable) then
+        ! For direct method as implemented in HAMS
+        call fingreen3d_routine(            &
+          r,                                &
+          real(x(3), kind=8),               &
+          xi_q(3),                          &
+          real(omega2_over_g, kind=8),      &
+          roots_of_dispersion_relationship, &
+          nk,                               &
+          real(depth, kind=8),              &
+          reduced_G_nablaG                  &
+        )
+      else
+        ! Switched inputs
+        call fingreen3d_routine(            &
+          r,                                &
+          xi_q(3),                          &
+          real(x(3), kind=8),               &
+          real(omega2_over_g, kind=8),      &
+          roots_of_dispersion_relationship, &
+          nk,                               &
+          real(depth, kind=8),              &
+          reduced_G_nablaG                  &
+        )
+      endif
 
       G_at_point = reduced_G_nablaG(1)
 
