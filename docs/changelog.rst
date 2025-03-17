@@ -16,13 +16,13 @@ Major change
 
 * The implementations of the Green function used in HAMS are now included in Capytaine:
 
-  * The infinite depth version from [Liang, Wu, Noblesse, 2018] is :class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`,
-  * The finite depth version from [Liu et al., 2018] is :class:`~capytaine.green_functions.hams.FinGreen3D`,
+  * The infinite depth version from [Liang, Wu, Noblesse, 2018] is :class:`~capytaine.green_functions.hams.LiangWuNoblesseGF` (:pull:`617`),
+  * The finite depth version from [Liu et al., 2018] is :class:`~capytaine.green_functions.hams.FinGreen3D` (:pull:`647`),
+  * The class :class:`~capytaine.green_functions.hams.HAMS_GF` is a thin wrapper using one or the other method above depending of the water depth (:pull:`658`).
 
-  they can be passed to Capytaine's solver as follows::
+  They can be passed to Capytaine's solver as follows::
 
-    solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
-    solver = cpt.BEMSolver(green_function=cpt.FinGreen3D())
+    solver = cpt.BEMSolver(green_function=cpt.HAMS_GF())
 
   Please cite the corresponding papers if you use them in a scientific publication (see the :doc:`citing` page).
 

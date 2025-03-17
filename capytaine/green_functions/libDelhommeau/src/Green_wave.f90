@@ -5,7 +5,7 @@ module Green_Wave
   use floating_point_precision, only: pre
   use constants
   use delhommeau_integrals
-#ifdef LIANGWUNOBLESSE
+#ifdef LIANGWUNOBLESSE_OPTIONAL_DEPENDENCY
     use liangwunoblessewaveterm, only: havelockgf
 #endif
 #ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
@@ -254,8 +254,7 @@ CONTAINS
 
     ! Local variables
     REAL(KIND=PRE) :: r, r1, z, drdx1, drdx2, dzdx3
-    complex(kind=pre) :: dGdr
-    complex(kind=8) :: G_, dGdr_
+    complex(kind=pre) :: G_, dGdr_, dGdr
     REAL(KIND=PRE), dimension(nb_tabulated_values) :: integrals
 
     r = wavenumber * NORM2(X0I(1:2) - X0J(1:2))
@@ -273,11 +272,10 @@ CONTAINS
     dzdx3 = wavenumber
 
     IF (tabulation_grid_shape == LIANG_WU_NOBLESSE) THEN
-#ifdef LIANGWUNOBLESSE
-        call HavelockGF(real(r, kind=8), real(z, kind=8), G_, dGdr_)
-        G = -complex(real(G_, kind=pre), real(imag(G_), kind=pre))
-        dGdr = -complex(real(dGdr_, kind=pre), real(imag(dGdr_), kind=pre))
-        ! Type conversion shenanigans to support float32...
+#ifdef LIANGWUNOBLESSE_OPTIONAL_DEPENDENCY
+        call HavelockGF(r, z, G_, dGdr_)
+        G = - G_
+        dGdr = - dGdr_
         nablaG(1) = drdx1 * dGdr
         nablaG(2) = drdx2 * dGdr
         nablaG(3) = dzdx3 * (G + 2/r1)

@@ -56,9 +56,14 @@ Donatini et al., **Implementation of forward speed effects on an open source sea
 Alternative Green functions
 ---------------------------
 
-If you use the finite depth Green function from HAMS, please cite:
+If you use alternative Green function implementations included in Capytaine, please cite the following papers:
+
+HAMS' finite depth Green function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Yingyi Liu, Shigeo Yoshida, Changhong Hu, Makoto Sueyoshi, Liang Sun, Junliang Gao, Peiwen Cong, Guanghua He. **A reliable open-source package for performance evaluation of floating renewable energy systems in coastal and offshore regions**. Energy Conversion and Management, 174 (2018): 516-536.
+
+Yingyi Liu **HAMS: A Frequency-Domain Preprocessor for Wave-Structure Interactions—Theory, Development, and Application.** Journal of Marine Science and Engineering, (2019) 7: 81.
 
 .. code-block:: bib
 
@@ -68,6 +73,47 @@ Yingyi Liu, Shigeo Yoshida, Changhong Hu, Makoto Sueyoshi, Liang Sun, Junliang G
       journal={Energy conversion and Management},
       volume={174},
       pages={516--536},
+      year={2018},
+      publisher={Elsevier}
+    }
+
+   @article{liu2019hams,
+      title={HAMS: A frequency-domain preprocessor for wave-structure interactions—Theory, development, and application},
+      author={Liu, Yingyi},
+      journal={Journal of Marine Science and Engineering},
+      volume={7},
+      number={3},
+      pages={81},
+      year={2019},
+      publisher={MDPI}
+    }
+
+
+HAMS' infinite depth Green function
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+H. Wu, C. Zhang, Y. Zhu, W. Li, D. Wan, F. Noblesse, **A global approximation to the Green function for diffraction radiation of water waves**, Eur. J. Mech. B Fluids 65 (2017) 54-64.
+
+H. Liang, H. Wu, F. Noblesse, **Validation of a global approximation for wave diffraction-radiation in deep water**, Appl. Ocean Res. 74 (2018) 80-86.
+
+.. code-block:: bib
+
+   @article{wu2017global,
+      title={A global approximation to the Green function for diffraction radiation of water waves},
+      author={Wu, Huiyu and Zhang, Chenliang and Zhu, Yi and Li, Wei and Wan, Decheng and Noblesse, Francis},
+      journal={European Journal of Mechanics-B/Fluids},
+      volume={65},
+      pages={54--64},
+      year={2017},
+      publisher={Elsevier}
+    }
+
+    @article{liang2018validation,
+      title={Validation of a global approximation for wave diffraction-radiation in deep water},
+      author={Liang, Hui and Wu, Huiyu and Noblesse, Francis},
+      journal={Applied Ocean Research},
+      volume={74},
+      pages={80--86},
       year={2018},
       publisher={Elsevier}
     }

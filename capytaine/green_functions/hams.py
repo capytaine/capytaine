@@ -85,7 +85,6 @@ class FinGreen3D(AbstractGreenFunction):
     fortran_core = import_module("capytaine.green_functions.libs.Delhommeau_float64")
     finite_depth_method_index = fortran_core.constants.fingreen3d_method
     gf_singularities_index = fortran_core.constants.low_freq
-    exportable_settings = {'green_function': "FinGreen3D"}
 
     # Dummy arrays that won't actually be used by the fortran code.
     a_exp, lamda_exp = np.empty(1), np.empty(1)
@@ -97,12 +96,16 @@ class FinGreen3D(AbstractGreenFunction):
 
     def __init__(self, *, nb_dispersion_roots=200):
         self.nb_dispersion_roots = nb_dispersion_roots
+        self.exportable_settings = {
+            'green_function': "FinGreen3D",
+            'nb_dispersion_roots': nb_dispersion_roots
+        }
 
     def __str__(self):
-        return "FinGreen3D()"
+        return f"FinGreen3D(nb_dispersion_roots={self.nb_dispersion_roots})"
 
     def __repr__(self):
-        return "FinGreen3D()"
+        return f"FinGreen3D(nb_dispersion_roots={self.nb_dispersion_roots})"
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__repr__())
@@ -152,3 +155,26 @@ class FinGreen3D(AbstractGreenFunction):
         if early_dot_product: K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
 
         return S, K
+
+
+class HAMS_GF(AbstractGreenFunction):
+    exportable_settings = {'green_function': "HAMS_GF"}
+
+    def __init__(self):
+        self.infinite_depth_gf = LiangWuNoblesseGF()
+        self.finite_depth_gf = FinGreen3D(nb_dispersion_roots=200)
+
+    def __str__(self):
+        return "HAMS_GF()"
+
+    def __repr__(self):
+        return "HAMS_GF()"
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__repr__())
+
+    def evaluate(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True, early_dot_product=True):
+        if water_depth == np.inf:
+            return self.infinite_depth_gf.evaluate(mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer, early_dot_product)
+        else:
+            return self.finite_depth_gf.evaluate(mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer, early_dot_product)
