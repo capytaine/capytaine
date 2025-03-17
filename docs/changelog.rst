@@ -14,9 +14,17 @@ New in version 2.3 (2025-??-??)
 Major change
 ~~~~~~~~~~~~
 
-* The implementation of the Green function in infinite depth from [Liang, Wu, Noblesse, 2018] is included in Capytaine as :class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`. It can be used instead of Delhommeau's method by passing it to the BEM solver::
+* The implementations of the Green function used in HAMS are now included in Capytaine:
 
-  solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
+  * The infinite depth version from [Liang, Wu, Noblesse, 2018] is :class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`,
+  * The finite depth version from [Liu et al., 2018] is :class:`~capytaine.green_functions.hams.FinGreen3D`,
+
+  they can be passed to Capytaine's solver as follows::
+
+    solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
+    solver = cpt.BEMSolver(green_function=cpt.FinGreen3D())
+
+  Please cite the corresponding papers if you use them in a scientific publication (see the :doc:`citing` page).
 
 * Add :code:`finite_depth_method` parameter to :class:`~capytaine.green_functions.delhommeau.Delhommeau` allowing to customize the behavior of the finite depth Green function. The legacy behavior of previous versions is available as :code:`finite_depth_method="legacy"`, while a better behavior is used by default.
 

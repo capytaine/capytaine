@@ -53,6 +53,26 @@ Donatini et al., **Implementation of forward speed effects on an open source sea
     }
 
 
+Alternative Green functions
+---------------------------
+
+If you use the finite depth Green function from HAMS, please cite:
+
+Yingyi Liu, Shigeo Yoshida, Changhong Hu, Makoto Sueyoshi, Liang Sun, Junliang Gao, Peiwen Cong, Guanghua He. **A reliable open-source package for performance evaluation of floating renewable energy systems in coastal and offshore regions**. Energy Conversion and Management, 174 (2018): 516-536.
+
+.. code-block:: bib
+
+   @article{liu2018reliable,
+      title={A reliable open-source package for performance evaluation of floating renewable energy systems in coastal and offshore regions},
+      author={Liu, Yingyi and Yoshida, Shigeo and Hu, Changhong and Sueyoshi, Makoto and Sun, Liang and Gao, Junliang and Cong, Peiwen and He, Guanghua},
+      journal={Energy conversion and Management},
+      volume={174},
+      pages={516--536},
+      year={2018},
+      publisher={Elsevier}
+    }
+
+
 Source code
 -----------
 

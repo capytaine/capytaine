@@ -83,7 +83,7 @@ The following classes are available:
    environment variable ``CAPYTAINE_CACHE_DIR``.
 
 
-:class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`
+:class:`~capytaine.green_functions.hams.FinGreen3D`
    The infinite depth Green function from the following papers:
 
    [1]  H. Wu, C. Zhang, Y. Zhu, W. Li, D. Wan, F. Noblesse,
@@ -97,6 +97,18 @@ The following classes are available:
         Appl. Ocean Res. 74 (2018) 80-86.
 
     Please cite them if you use this implementation.
+
+
+:class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`
+   The finite depth Green function from the following paper, as implemented in HAMS:
+
+   Yingyi Liu, Shigeo Yoshida, Changhong Hu, Makoto Sueyoshi, Liang Sun,
+   Junliang Gao, Peiwen Cong, Guanghua He.
+   **A reliable open-source package for performance evaluation of floating
+   renewable energy systems in coastal and offshore regions**.
+   Energy Conversion and Management, 174 (2018): 516-536.
+
+   Please cite this paper if you use this implementation.
 
 
 Advanced users can write their own class to evaluate the Green function.
