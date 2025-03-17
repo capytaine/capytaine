@@ -26,7 +26,7 @@ CONTAINS
       tabulation_grid_shape,                             &
       tabulated_r_range, tabulated_z_range,              &
       tabulated_integrals,                               &
-      finite_depth_method, NEXP, AMBDA, AR, dispersion_roots, &
+      finite_depth_method, prony_decomposition, dispersion_roots,  &
       same_body, gf_singularities, adjoint_double_layer, &
       S, K)
 
@@ -65,9 +65,7 @@ CONTAINS
     REAL(KIND=PRE), DIMENSION(:, :, :),       INTENT(IN) :: tabulated_integrals
 
     integer,                                  intent(in) :: finite_depth_method
-    ! Prony decomposition for finite depth Green function
-    INTEGER,                                  INTENT(IN) :: NEXP
-    REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
+    real(kind=pre), dimension(:, :),          intent(in) :: prony_decomposition  ! For Delhommeau's finite depth, dummy otherwise
     real(kind=pre), dimension(:),             intent(in) :: dispersion_roots  ! For FinGreen3D, dummy otherwise
 
     ! Outputs
@@ -75,7 +73,7 @@ CONTAINS
     COMPLEX(KIND=PRE), DIMENSION(:, :, :), INTENT(INOUT) :: K  ! integrals of the gradient of the Green function
 
     ! Local variables
-    INTEGER                         :: I, J, Q
+    INTEGER                         :: I, J
     REAL(KIND=PRE)                  :: int_G_Rankine, diagonal_coef
     REAL(KIND=PRE), DIMENSION(3)    :: int_nablaG_Rankine
     COMPLEX(KIND=PRE)               :: int_G, int_G_wave
@@ -256,7 +254,7 @@ CONTAINS
             tabulation_nb_integration_points, tabulation_grid_shape,   &
             tabulated_r_range, tabulated_z_range, tabulated_integrals, &
             gf_singularities,                                          &
-            finite_depth_method, NEXP, AMBDA, AR, dispersion_roots,    &
+            finite_depth_method, prony_decomposition, dispersion_roots,&
             derivative_with_respect_to_first_variable,                 &
             int_G_wave, int_nablaG_wave                                &
           )
@@ -303,7 +301,7 @@ CONTAINS
 !            tabulation_nb_integration_points, tabulation_grid_shape,     &
 !            tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
 !            gf_singularities,                                            &
-!            finite_depth_method, NEXP, AMBDA, AR,                        &
+!            finite_depth_method, prony_decomposition, dispersion_roots,  &
 !            int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym     &
 !          )
 !

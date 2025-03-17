@@ -42,11 +42,9 @@ integer, parameter :: gf_singularities = 0
 
 integer, parameter :: finite_depth_method = 1
 ! Prony decomposition for the finite depth Green function
-integer, parameter :: nexp_max = 31
 integer :: nexp
-real, dimension(nexp_max) :: ambda_f32, ar_f32
-real(kind=pre), dimension(nexp_max) :: ambda, ar
-real(kind=pre), dimension(1) :: dispersion_roots
+real(kind=pre), dimension(2, 31) :: prony_decomposition
+real(kind=pre), dimension(1) :: dispersion_roots  ! dummy
 
 integer i
 real(kind=pre), dimension(3) :: coeffs
@@ -80,12 +78,7 @@ do i=1, 1
       depth = ieee_value(depth, ieee_positive_inf)
    else
       depth = 50.
-      call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), ambda_f32, ar_f32, nexp)
-      ambda(:) = real(ambda_f32(:), kind=pre)
-      ar(:) = real(ar_f32(:), kind=pre)
-      nexp = nexp + 1
-      ambda(nexp) = 0.0
-      ar(nexp) = 2.0
+      call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), nexp, prony_decomposition)
    end if
 
    call system_clock(count_rate=clock_rate)
@@ -101,7 +94,7 @@ do i=1, 1
         coeffs,                                                      &
         tabulation_nb_integration_points, tabulation_grid_shape,     &
         tabulated_r, tabulated_z, tabulated_integrals,               &
-        finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
+        finite_depth_method, prony_decomposition, dispersion_roots,  &
         .false., gf_singularities, .true.,                           &
         S, K)
    call system_clock(final_time)
@@ -119,7 +112,7 @@ do i=1, 1
    !      coeffs,                                                           &
    !      tabulation_nb_integration_points, tabulation_grid_shape,          &
    !      tabulated_r, tabulated_z, tabulated_integrals,                    &
-   !      finite_depth_method, nexp, ambda, ar, dispersion_roots,           &
+   !      finite_depth_method, prony_decomposition, dispersion_roots,       &
    !      .false., .true.,                                                  &
    !      S, K)
    ! call system_clock(final_time)
@@ -128,17 +121,17 @@ do i=1, 1
    !
    ! coeffs = [0d0, 0d0, 1d0]
    ! call system_clock(starting_time)
-   ! call build_matrices(                                                       &
-   !      nb_faces, face_center, face_normal,                                   &
-   !      nb_vertices, nb_faces, vertices, faces,                               &
-   !      face_center, face_normal, face_area, face_radius,                     &
-   !      nb_quadrature_points, quadrature_points, quadrature_weights,          &
-   !      wavenumber, depth,                                                    &
-   !      coeffs,                                                               &
-   !      tabulation_nb_integration_points, tabulation_grid_shape,              &
-   !      tabulated_r, tabulated_z, tabulated_integrals,                        &
-   !      finite_depth_method, nexp, ambda, ar, dispersion_roots,               &
-   !      .true., gf_singularities, .true.,                                     &
+   ! call build_matrices(                                                   &
+   !      nb_faces, face_center, face_normal,                               &
+   !      nb_vertices, nb_faces, vertices, faces,                           &
+   !      face_center, face_normal, face_area, face_radius,                 &
+   !      nb_quadrature_points, quadrature_points, quadrature_weights,      &
+   !      wavenumber, depth,                                                &
+   !      coeffs,                                                           &
+   !      tabulation_nb_integration_points, tabulation_grid_shape,          &
+   !      tabulated_r, tabulated_z, tabulated_integrals,                    &
+   !      finite_depth_method, prony_decomposition, dispersion_roots,       &
+   !      .true., gf_singularities, .true.,                                 &
    !      S, K)
    ! call system_clock(final_time)
    !

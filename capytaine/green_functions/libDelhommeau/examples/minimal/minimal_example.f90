@@ -39,11 +39,9 @@ program test
 
   ! Prony decomposition for the finite depth Green function
   integer, parameter :: finite_depth_method = 1  ! newer
-  integer, parameter :: nexp_max = 31
   integer :: nexp
-  real, dimension(nexp_max) :: ambda_f32, ar_f32
-  real(kind=pre), dimension(nexp_max) :: ambda, ar
-  real(kind=pre), dimension(1) :: dispersion_roots
+  real(kind=pre), dimension(2, 31) :: prony_decomposition
+  real(kind=pre), dimension(1) :: dispersion_roots  ! dummy
 
   ! The interaction matrices to be computed
   complex(kind=pre), dimension(nb_faces, nb_faces) :: S
@@ -101,7 +99,7 @@ program test
     ZERO, depth, coeffs,                                         &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
+    finite_depth_method, prony_decomposition, dispersion_roots,  &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "Rankine part: S"
@@ -123,7 +121,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
+    finite_depth_method, prony_decomposition, dispersion_roots,  &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=1.0, h=infty: S"
@@ -145,7 +143,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
+    finite_depth_method, prony_decomposition, dispersion_roots,  &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=2.0, h=infty: S"
@@ -163,9 +161,7 @@ program test
   wavenumber = 1d0
   coeffs = [1d0, 1d0, 1d0]
 
-  call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), ambda_f32, ar_f32, nexp)
-  ambda(:) = real(ambda_f32(:), kind=pre)
-  ar(:) = real(ar_f32(:), kind=pre)
+  call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), nexp, prony_decomposition)
 
   call build_matrices(                                           &
     nb_faces, face_center, face_normal,                          &
@@ -175,7 +171,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
+    finite_depth_method, prony_decomposition, dispersion_roots,  &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=1.0, h=2.0: S"
@@ -192,9 +188,7 @@ program test
   wavenumber = 2d0
   coeffs = [1d0, 1d0, 1d0]
 
-  call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), ambda_f32, ar_f32, nexp)
-  ambda(:) = real(ambda_f32(:), kind=pre)
-  ar(:) = real(ar_f32(:), kind=pre)
+  call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), nexp, prony_decomposition)
 
   call build_matrices(                                           &
     nb_faces, face_center, face_normal,                          &
@@ -204,7 +198,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
+    finite_depth_method, prony_decomposition, dispersion_roots,  &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=2.0, h=2.0: S"
