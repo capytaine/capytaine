@@ -43,6 +43,7 @@ program test
   integer :: nexp
   real, dimension(nexp_max) :: ambda_f32, ar_f32
   real(kind=pre), dimension(nexp_max) :: ambda, ar
+  real(kind=pre), dimension(1) :: dispersion_roots
 
   ! The interaction matrices to be computed
   complex(kind=pre), dimension(nb_faces, nb_faces) :: S
@@ -100,7 +101,7 @@ program test
     ZERO, depth, coeffs,                                         &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar,                        &
+    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "Rankine part: S"
@@ -122,7 +123,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar,                        &
+    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=1.0, h=infty: S"
@@ -144,7 +145,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar,                        &
+    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=2.0, h=infty: S"
@@ -174,7 +175,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar,                        &
+    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=1.0, h=2.0: S"
@@ -203,7 +204,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar,                        &
+    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=2.0, h=2.0: S"
