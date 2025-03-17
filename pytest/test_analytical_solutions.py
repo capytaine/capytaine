@@ -8,8 +8,9 @@ from scipy.special import j0, y0, jn, yn  # Bessel functions
 
 
 @pytest.mark.parametrize("k", [5.0, 10.0])
+@pytest.mark.parametrize("gf", [cpt.Delhommeau(), cpt.FinGreen3D()])
 @pytest.mark.parametrize("method", ["direct", "indirect"])
-def test_mccamy_and_fuchs(k, method):
+def test_mccamy_and_fuchs(k, gf, method):
     h = 1.0  # Water depth
     R = 0.3  # Cylinder radius
 
@@ -23,7 +24,7 @@ def test_mccamy_and_fuchs(k, method):
     dj = (j0(m0*R) - jn(2, m0*R))
     analytical_force = (4*pb.rho*pb.g*h*R) * (-1j*2*h/R) * np.tanh(m0*h)/(m0*h)**2 * (dy + 1j*dj)/(dy**2 + dj**2)
 
-    solver = cpt.BEMSolver()
+    solver = cpt.BEMSolver(green_function=gf)
     res = solver.solve(pb, method=method)
     numerical_force = res.force["Surge"] + froude_krylov_force(res)["Surge"]
 

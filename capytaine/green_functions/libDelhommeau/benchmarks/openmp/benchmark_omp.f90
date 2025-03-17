@@ -46,6 +46,7 @@ integer, parameter :: nexp_max = 31
 integer :: nexp
 real, dimension(nexp_max) :: ambda_f32, ar_f32
 real(kind=pre), dimension(nexp_max) :: ambda, ar
+real(kind=pre), dimension(1) :: dispersion_roots  ! Dummy, only for FinGreen3D
 
 integer n_threads
 real(kind=pre), dimension(3) :: coeffs
@@ -106,7 +107,7 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     coeffs,                                                      &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar,                        &
+    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
     .false., gf_singularities, .true.,                           &
     S, K)
   call system_clock(final_time)
@@ -125,7 +126,7 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     coeffs,                                                      &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar,                        &
+    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
     .false., gf_singularities, .true.,                           &
     S, K)
   call system_clock(final_time)
@@ -144,7 +145,7 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     coeffs,                                                      &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar,                        &
+    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
     .true., gf_singularities, .true.,                            &
     S, K)
   call system_clock(final_time)

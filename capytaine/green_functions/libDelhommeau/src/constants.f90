@@ -30,6 +30,7 @@ MODULE CONSTANTS
   integer, parameter :: SCALED_NEMOH3_GRID = 1
 
   ! Values for "finite_depth_method"
+  integer, parameter :: FINGREEN3D_METHOD = -1
   integer, parameter :: LEGACY_FINITE_DEPTH = 0
   integer, parameter :: NEWER_FINITE_DEPTH = 1
 

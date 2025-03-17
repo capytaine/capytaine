@@ -58,3 +58,35 @@ def test_python_and_fortran_prony_decomposition_for_green_function():
     assert np.allclose(decomp_default[0], decomp_p[0])
     assert np.allclose(decomp_p[0], decomp_f[0], rtol=0.2)
     assert np.allclose(decomp_p[1], decomp_f[1], rtol=0.2)
+
+
+def test_fingreen3D():
+    k = 5.0
+    h = 2.0
+    mesh = cpt.mesh_sphere(radius=0.5, center=(0.0, 0.0, -1.0), resolution=(4, 4))
+    S, D = cpt.FinGreen3D().evaluate(mesh, mesh, free_surface=0.0, water_depth=h, wavenumber=k, adjoint_double_layer=False)
+    S_ref, D_ref = cpt.Delhommeau().evaluate(mesh, mesh, free_surface=0.0, water_depth=h, wavenumber=k, adjoint_double_layer=False)
+    np.testing.assert_allclose(S, S_ref, rtol=1e-1, atol=1e-1)
+    np.testing.assert_allclose(D, D_ref, rtol=1e-1, atol=1e-1)
+
+
+@pytest.mark.parametrize("omega", [0.1, 1.0, 10.0])
+@pytest.mark.parametrize("depth", [0.1, 1.0, 10.0])
+def test_fingreen3D_roots(omega, depth):
+    from scipy.optimize import newton, brentq
+    nk = 100
+    omega2_over_g = omega**2/9.81
+    all_roots = cpt.FinGreen3D().fortran_core.green_wave.compute_dispersion_roots(nk, omega2_over_g, depth)
+    wavenumber = newton(lambda x: omega2_over_g - x*np.tanh(x*depth), omega2_over_g)
+    assert np.isclose(wavenumber, all_roots[0], rtol=1e-3)
+
+    roots_idempotent = newton(lambda x: -omega2_over_g - x*np.tan(x*depth), all_roots[1:])
+    np.testing.assert_allclose(roots_idempotent, all_roots[1:], rtol=1e-3)
+
+    def root(i_root):
+        return brentq(lambda y: omega2_over_g*depth + y*np.tan(y), (2*i_root+1)*np.pi/2 + 1e-10, (2*i_root+2)*np.pi/2 - 1e-10)/depth
+    roots_2 = [root(i_root) for i_root in range(nk-1)]
+    np.testing.assert_allclose(roots_2, all_roots[1:], rtol=1e-4)
+
+    all_roots_python = cpt.FinGreen3D().compute_dispersion_relation_roots(nk, wavenumber, depth)
+    np.testing.assert_allclose(all_roots_python, all_roots, rtol=1e-3)

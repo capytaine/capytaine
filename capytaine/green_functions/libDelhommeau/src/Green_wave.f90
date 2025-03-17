@@ -1,12 +1,15 @@
 ! Copyright (C) 2017-2025 Matthieu Ancellin
 ! See LICENSE file at <https://github.com/capytaine/libDelhommeau>
-module green_wave
+module Green_Wave
 
   use floating_point_precision, only: pre
   use constants
   use delhommeau_integrals
 #ifdef LIANGWUNOBLESSE
     use liangwunoblessewaveterm, only: havelockgf
+#endif
+#ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
+    use fingreen3d_module, only: fingreen3d_routine, dispersion
 #endif
   use green_rankine, only: integral_of_reflected_rankine
 
@@ -42,7 +45,7 @@ CONTAINS
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
-      finite_depth_method, nexp, ambda, ar,                      &
+      finite_depth_method, nexp, ambda, ar, dispersion_roots,    &
       derivative_with_respect_to_first_variable,                 &
       int_G, int_nablaG                                          &
       )
@@ -63,6 +66,7 @@ CONTAINS
     integer,                               intent(in) :: finite_depth_method
     integer,                               intent(in) :: nexp
     real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
+    real(kind=pre), dimension(:),          intent(in) :: dispersion_roots  ! For FinGreen3D, dummy otherwise
     logical,                               intent(in) :: derivative_with_respect_to_first_variable
 
     complex(kind=pre),                     intent(out) :: int_G
@@ -81,19 +85,29 @@ CONTAINS
         int_G, int_nablaG                                          &
         )
     else
-      call integral_of_wave_part_finite_depth                      &
-        (x,                                                        &
-        face_nodes,                                                &
-        face_center, face_normal, face_area, face_radius,          &
-        face_quadrature_points, face_quadrature_weights,           &
-        wavenumber, depth,                                         &
-        tabulation_nb_integration_points, tabulation_grid_shape,   &
-        tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-        ! gf_singularities,                                          &  ! Unimplemented for now
-        nexp, ambda, ar,                                           &
-        derivative_with_respect_to_first_variable,                 &
-        int_G, int_nablaG                                          &
-        )
+      if (finite_depth_method == FINGREEN3D_METHOD) then
+        call integral_of_wave_part_fingreen3D                        &
+          (x,                                                        &
+          face_quadrature_points, face_quadrature_weights,           &
+          wavenumber, depth, dispersion_roots,                       &
+          derivative_with_respect_to_first_variable,                 &
+          int_G, int_nablaG                                          &
+          )
+      else
+        call integral_of_wave_part_finite_depth                      &
+          (x,                                                        &
+          face_nodes,                                                &
+          face_center, face_normal, face_area, face_radius,          &
+          face_quadrature_points, face_quadrature_weights,           &
+          wavenumber, depth,                                         &
+          tabulation_nb_integration_points, tabulation_grid_shape,   &
+          tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+          ! gf_singularities,                                          &  ! Unimplemented for now
+          nexp, ambda, ar,                                           &
+          derivative_with_respect_to_first_variable,                 &
+          int_G, int_nablaG                                          &
+          )
+      endif
     endif
   end subroutine
 
@@ -541,4 +555,102 @@ CONTAINS
     end do
   end subroutine
 
-END MODULE GREEN_WAVE
+  ! =====================================================================
+
+
+  function compute_dispersion_roots(nk, omega2_over_g, depth) result(roots_of_dispersion_relationship)
+    integer, intent(in) :: nk
+    real(kind=pre), intent(in) :: omega2_over_g, depth
+    real(kind=pre), dimension(nk) :: roots_of_dispersion_relationship
+
+    real(kind=8) :: omega, depth_f64
+    real(kind=8), dimension(nk) :: roots_of_dispersion_relationship_f64
+    depth_f64 = depth
+    omega = sqrt(omega2_over_g * 9.81d0)
+
+#ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
+    ! Calls FinGreen3D.f90
+    call dispersion(roots_of_dispersion_relationship_f64, nk, omega, depth_f64)
+#else
+    print*, "The library has not been compiled with FinGreen3D.f90 optional dependency"
+    error stop
+#endif
+
+    roots_of_dispersion_relationship = roots_of_dispersion_relationship_f64
+  end function
+
+  subroutine integral_of_wave_part_fingreen3D                  &
+    (x,                                                        &
+    face_quadrature_points, face_quadrature_weights,           &
+    wavenumber, depth, dispersion_roots,                       &
+    derivative_with_respect_to_first_variable,                 &
+    int_G, int_nablaG                                          &
+    )
+
+    real(kind=pre), dimension(3),          intent(in) :: x
+    real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
+    real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
+    real(kind=pre),                        intent(in) :: wavenumber, depth
+    real(kind=pre), dimension(:),          intent(in) :: dispersion_roots
+    logical,                               intent(in) :: derivative_with_respect_to_first_variable
+
+    complex(kind=pre),                     intent(out) :: int_G
+    complex(kind=pre), dimension(3),       intent(out) :: int_nablaG
+
+    integer, parameter :: nk = 200
+    integer :: q, nb_quad_points
+    real(kind=pre) :: omega, omega2_over_g, drdx1, drdx2
+    real(kind=pre) :: r, x3
+    real(kind=pre), dimension(3) :: xi_q
+    real(kind=pre), dimension(nk) :: roots_of_dispersion_relationship
+    complex(kind=pre) :: G_at_point
+    complex(kind=pre), dimension(3) :: reduced_G_nablaG, nablaG_at_point
+
+    omega2_over_g  = wavenumber*TANH(wavenumber*depth)
+
+    int_G = czero
+    int_nablaG = czero
+
+    nb_quad_points = size(face_quadrature_weights)
+
+    do q = 1, nb_quad_points
+      xi_q = face_quadrature_points(q, :)
+      r = norm2(x(1:2) - xi_q(1:2))
+#ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
+      if (.not. derivative_with_respect_to_first_variable) then
+        ! For direct method as implemented in HAMS
+        call fingreen3d_routine(r, x(3), xi_q(3), omega2_over_g, dispersion_roots, nk, depth, reduced_G_nablaG)
+      else
+        ! Switched inputs
+        call fingreen3d_routine(r, xi_q(3), x(3), omega2_over_g, dispersion_roots, nk, depth, reduced_G_nablaG)
+      endif
+#else
+    print*, "The library has not been compiled with FinGreen3D.f90 optional dependency"
+    error stop
+#endif
+
+      G_at_point = reduced_G_nablaG(1)
+
+      if (abs(r) > 16*epsilon(r)) then
+        if (derivative_with_respect_to_first_variable) then
+          drdx1 = (x(1) - xi_q(1))/r
+          drdx2 = (x(2) - xi_q(2))/r
+        else
+          drdx1 = -(x(1) - xi_q(1))/r
+          drdx2 = -(x(2) - xi_q(2))/r
+        endif
+      else
+        ! Limit when r->0 is not well defined...
+        drdx1 = ZERO
+        drdx2 = ZERO
+      end if
+      nablaG_at_point(1) = drdx1 * reduced_G_nablaG(2)
+      nablaG_at_point(2) = drdx2 * reduced_G_nablaG(2)
+      nablaG_at_point(3) = reduced_G_nablaG(3)
+
+      int_G = int_G + G_at_point * face_quadrature_weights(q)
+      int_nablaG(:) = int_nablaG(:) + nablaG_at_point(:) * face_quadrature_weights(q)
+    enddo
+  end subroutine
+
+end module Green_Wave
