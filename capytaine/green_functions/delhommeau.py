@@ -279,7 +279,7 @@ class Delhommeau(AbstractGreenFunction):
         if method is None:
             method = self.finite_depth_prony_decomposition_method
 
-        dimensionless_omega = dimensionless_wavenumber*np.tanh(dimensionless_wavenumber)
+        omega2_h_over_g = dimensionless_wavenumber*np.tanh(dimensionless_wavenumber)
 
         LOG.debug("\tCompute Prony decomposition in finite water_depth Green function "
                   "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
@@ -288,23 +288,21 @@ class Delhommeau(AbstractGreenFunction):
             # The function that will be approximated.
             @np.vectorize
             def f(x):
-                return self.fortran_core.old_prony_decomposition.ff(x, dimensionless_omega, dimensionless_wavenumber)
+                return self.fortran_core.old_prony_decomposition.ff(x, omega2_h_over_g, dimensionless_wavenumber)
 
             try:
                 a, lamda = find_best_exponential_decomposition(f, x_min=-0.1, x_max=20.0, n_exp_range=range(4, 31, 2), tol=1e-4)
             except NoConvergenceError:
                 LOG.warning("No suitable exponential decomposition has been found"
                             "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
+            return np.stack([lamda, a])
 
         elif method.lower() == 'fortran':
-            lamda, a, nexp = self.fortran_core.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
-            lamda = lamda[:nexp]
-            a = a[:nexp]
+            nexp, pr_d = self.fortran_core.old_prony_decomposition.lisc(omega2_h_over_g, dimensionless_wavenumber)
+            return pr_d[:, :nexp]
 
         else:
             raise ValueError("Unrecognized method name for the Prony decomposition.")
-
-        return a, lamda
 
     def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.inf, wavenumber=1.0, adjoint_double_layer=True, early_dot_product=True):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
@@ -338,13 +336,13 @@ class Delhommeau(AbstractGreenFunction):
 
         if free_surface == np.inf: # No free surface, only a single Rankine source term
 
-            a_exp, lamda_exp = np.empty(1), np.empty(1)  # Dummy arrays that won't actually be used by the fortran code.
+            prony_decomposition = np.empty((1, 1))  # Dummy array that won't actually be used by the fortran code.
 
             coeffs = np.array((1.0, 0.0, 0.0))
 
         elif water_depth == np.inf:
 
-            a_exp, lamda_exp = np.empty(1), np.empty(1)  # Idem
+            prony_decomposition = np.empty((1, 1))  # Idem
 
             if wavenumber == 0.0:
                 coeffs = np.array((1.0, 1.0, 0.0))
@@ -360,9 +358,7 @@ class Delhommeau(AbstractGreenFunction):
             if wavenumber == 0.0 or wavenumber == np.inf:
                 raise NotImplementedError("Zero or infinite frequencies not implemented for finite depth.")
             else:
-                a_exp, lamda_exp = self.find_best_exponential_decomposition(
-                    wavenumber*water_depth,
-                )
+                prony_decomposition = self.find_best_exponential_decomposition(wavenumber*water_depth)
                 coeffs = np.array((1.0, 1.0, 1.0))
 
         collocation_points, early_dot_product_normals = self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
@@ -389,7 +385,7 @@ class Delhommeau(AbstractGreenFunction):
             *mesh2.quadrature_points,
             wavenumber, water_depth,
             coeffs, *self.all_tabulation_parameters,
-            self.finite_depth_method_index, lamda_exp, a_exp, self.dispersion_relation_roots,
+            self.finite_depth_method_index, prony_decomposition, self.dispersion_relation_roots,
             mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
             S, K
         )

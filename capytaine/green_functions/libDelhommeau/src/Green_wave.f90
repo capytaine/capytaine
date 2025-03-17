@@ -45,7 +45,7 @@ CONTAINS
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
-      finite_depth_method, nexp, ambda, ar, dispersion_roots,    &
+      finite_depth_method, prony_decomposition, dispersion_roots,&
       derivative_with_respect_to_first_variable,                 &
       int_G, int_nablaG                                          &
       )
@@ -64,8 +64,7 @@ CONTAINS
     real(kind=pre), dimension(:),          intent(in) :: tabulated_z_range
     real(kind=pre), dimension(:, :, :),    intent(in) :: tabulated_integrals
     integer,                               intent(in) :: finite_depth_method
-    integer,                               intent(in) :: nexp
-    real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
+    real(kind=pre), dimension(:, :),       intent(in) :: prony_decomposition  ! For Delhommeau's finite depth, dummy otherwise
     real(kind=pre), dimension(:),          intent(in) :: dispersion_roots  ! For FinGreen3D, dummy otherwise
     logical,                               intent(in) :: derivative_with_respect_to_first_variable
 
@@ -103,7 +102,7 @@ CONTAINS
           tabulation_nb_integration_points, tabulation_grid_shape,   &
           tabulated_r_range, tabulated_z_range, tabulated_integrals, &
           ! gf_singularities,                                          &  ! Unimplemented for now
-          nexp, ambda, ar,                                           &
+          prony_decomposition,                                       &
           derivative_with_respect_to_first_variable,                 &
           int_G, int_nablaG                                          &
           )
@@ -378,7 +377,7 @@ CONTAINS
       wavenumber, depth,                                         &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      nexp, ambda, ar,                                           &
+      prony_decomposition,                                       &
       derivative_with_respect_to_first_variable,                 &
       int_G, int_nablaG                                          &
       )
@@ -400,9 +399,7 @@ CONTAINS
     real(kind=pre), dimension(:),             intent(in) :: tabulated_z_range
     real(kind=pre), dimension(:, :, :),       intent(in) :: tabulated_integrals
 
-    ! Prony decomposition for finite depth
-    integer,                                  intent(in) :: nexp
-    real(kind=pre), dimension(nexp),          intent(in) :: ambda, ar
+    real(kind=pre), dimension(:, :),          intent(in) :: prony_decomposition
 
     ! Outputs
     complex(kind=pre),               intent(out) :: int_G  ! integral of the Green function over the panel.
@@ -411,6 +408,7 @@ CONTAINS
     ! Local variables
     real(kind=pre), dimension(3)    :: x_sym, face_center_sym
     real(kind=pre), dimension(size(face_quadrature_points, 1), size(face_quadrature_points, 2)) :: face_quadrature_points_sym
+    real(kind=pre)                  :: lambda_k, a_k
     real(kind=pre)                  :: amh, akh, a
     real(kind=pre)                  :: int_G_term_Rankine
     real(kind=pre), dimension(3)    :: int_nablaG_term_Rankine
@@ -503,20 +501,23 @@ CONTAINS
     int_G = int_G + A * int_G_term
     int_nablaG = int_nablaG + A * symmetric_of_vector(int_nablaG_term)
 
-    !=======================================
-    ! Part 2: Integrate NEXP×4 Rankine terms
-    !=======================================
-    do ke = 1, size(ambda)
+    !=============================================================
+    ! Part 2: Integrate Rankine terms approximating remaining term
+    !=============================================================
+    do ke = 1, size(prony_decomposition, 2)
+      lambda_k = prony_decomposition(1, ke)
+      a_k = prony_decomposition(2, ke)
+
       ! 2.a
       call integral_of_reflected_Rankine(          &
         x,                                         &
         face_nodes, face_center, face_normal,      &
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
-        [ONE, depth*ambda(ke) - 2*depth],          &
+        [ONE, depth*lambda_k - 2*depth],           &
         int_G_term_Rankine, int_nablaG_term_Rankine)
-      int_G = int_G + ar(ke)/2 * int_G_term_Rankine
-      int_nablaG = int_nablaG + ar(ke)/2 * int_nablaG_term_Rankine
+      int_G = int_G + a_k/2 * int_G_term_Rankine
+      int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
 
       ! 2.b
       call integral_of_reflected_Rankine(          &
@@ -524,10 +525,10 @@ CONTAINS
         face_nodes, face_center, face_normal,      &
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
-        [-ONE, -depth*ambda(ke)],                  &
+        [-ONE, -depth*lambda_k],                   &
         int_G_term_Rankine, int_nablaG_term_Rankine)
-      int_G = int_G + ar(ke)/2 * int_G_term_Rankine
-      int_nablaG = int_nablaG + ar(ke)/2 * int_nablaG_term_Rankine
+      int_G = int_G + a_k/2 * int_G_term_Rankine
+      int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
 
       ! 2.c
       call integral_of_reflected_Rankine(          &
@@ -535,10 +536,10 @@ CONTAINS
         face_nodes, face_center, face_normal,      &
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
-        [-ONE, depth*ambda(ke) - 4*depth],         &
+        [-ONE, depth*lambda_k - 4*depth],          &
         int_G_term_Rankine, int_nablaG_term_Rankine)
-      int_G = int_G + ar(ke)/2 * int_G_term_Rankine
-      int_nablaG = int_nablaG + ar(ke)/2 * int_nablaG_term_Rankine
+      int_G = int_G + a_k/2 * int_G_term_Rankine
+      int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
 
       ! 2.d
       call integral_of_reflected_Rankine(          &
@@ -546,10 +547,10 @@ CONTAINS
         face_nodes, face_center, face_normal,      &
         face_area, face_radius,                    &
         derivative_with_respect_to_first_variable, &
-        [ONE, -depth*ambda(ke) + 2*depth],        &
+        [ONE, -depth*lambda_k + 2*depth],          &
         int_G_term_Rankine, int_nablaG_term_Rankine)
-      int_G = int_G + ar(ke)/2 * int_G_term_Rankine
-      int_nablaG = int_nablaG + ar(ke)/2 * int_nablaG_term_Rankine
+      int_G = int_G + a_k/2 * int_G_term_Rankine
+      int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
     end do
   end subroutine
 
@@ -597,8 +598,7 @@ CONTAINS
 
     integer, parameter :: nk = 200
     integer :: q, nb_quad_points
-    real(kind=pre) :: omega, omega2_over_g, drdx1, drdx2
-    real(kind=pre) :: r, x3
+    real(kind=pre) :: omega2_over_g, r, drdx1, drdx2
     real(kind=pre), dimension(3) :: xi_q
     real(kind=pre), dimension(nk) :: roots_of_dispersion_relationship
     complex(kind=pre) :: G_at_point

@@ -54,12 +54,11 @@ CONTAINS
   END FUNCTION FF
 
 
-  SUBROUTINE LISC(AK0, wavenumber, &
-                  AMBDA, AR, NEXP)
-    ! Compute AMBDA and AR and test their values
+  SUBROUTINE LISC(omega2_h_over_g, wavenumber, nexp, prony_decomposition)
+    ! Compute Prony decomposition and test its accuracty
 
-    INTEGER, PARAMETER :: NEXR = 31
-    INTEGER, PARAMETER :: NMAX = 4*(31-1)
+    INTEGER, PARAMETER :: NEXR = 31  ! Max number of terms?
+    INTEGER, PARAMETER :: NMAX = 4*(31-1)  ! Max number of values for approximation
 
     ! Range on which the function FF is tabulated
     REAL, PARAMETER :: A = -0.1
@@ -68,13 +67,14 @@ CONTAINS
     REAL, PARAMETER :: PRECI = 1.0e-2
 
     ! Inputs
-    REAL, INTENT(IN)                 :: AK0, wavenumber
+    REAL, INTENT(IN)  :: omega2_h_over_g, wavenumber
 
     ! Outputs
-    INTEGER, INTENT(OUT)             :: NEXP
-    REAL, DIMENSION(31), INTENT(OUT) :: AMBDA, AR
+    integer, intent(out)                  :: nexp
+    real, dimension(2, NEXR), intent(out) :: prony_decomposition
 
     ! Local variables
+    REAL, DIMENSION(NEXR) :: AMBDA, AR
     LOGICAL :: ISOR
     INTEGER :: I, J
     INTEGER :: NK, NM, NMO
@@ -82,8 +82,8 @@ CONTAINS
     REAL :: XT(4*(31-1)+1), YT(4*(31-1)+1) ! Tabulation of FF
 
     ! Initialize variables to be computed
-    AMBDA = 0.0
-    AR = 0.0
+    AMBDA(:) = 0.0
+    AR(:) = 0.0
 
     ! Number of points in the tabulation (first try)
     NK = 4
@@ -93,7 +93,7 @@ CONTAINS
     ! Tabulate the function FF
     DO I = 1, (4*NK)+1
       XT(I) = A + (B-A)*(I-1)/(4*NK)
-      YT(I) = FF(XT(I), AK0, wavenumber)
+      YT(I) = FF(XT(I), omega2_h_over_g, wavenumber)
     END DO
 
     ! Compute AMBDA and AR based on this tabulation
@@ -107,7 +107,7 @@ CONTAINS
       XX = (I-1)*B/(NMO-1)
 
       ! Exact value
-      YY = FF(XX, AK0, wavenumber)
+      YY = FF(XX, omega2_h_over_g, wavenumber)
 
       ! Compute the sum of exponentials
       TT = 0.0
@@ -129,7 +129,8 @@ CONTAINS
     ! Final number of exponentials in the sum
     NEXP = NM
 
-    RETURN
+    prony_decomposition(1, :) = ambda
+    prony_decomposition(2, :) = ar
 
   END SUBROUTINE LISC
 
@@ -155,7 +156,7 @@ CONTAINS
     COMPLEX :: COM(31)
 
     INTEGER::I,J,K,JJ,II,IJ,MN,NEXP
-    REAL::H,EPS
+    REAL::H
 
     ! Assemble an over-determined linear system
     NPP = 4*NM+1
