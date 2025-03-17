@@ -1,4 +1,5 @@
 from importlib import import_module
+from scipy.optimize import brentq
 import numpy as np
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
@@ -17,6 +18,7 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
 
     # Dummy arrays that won't actually be used by the fortran code.
     a_exp, lamda_exp = np.empty(1), np.empty(1)
+    dispersion_relation_roots = np.empty(1)
     finite_depth_method_index = -9999
     tabulation_nb_integration_points = 1
     tabulated_r_range = np.empty(1)
@@ -60,7 +62,7 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
             coeffs,
             self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
-            self.dummy_param, self.lamda_exp, self.a_exp,
+            self.dummy_param, self.lamda_exp, self.a_exp, self.dispersion_relation_roots,
             mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
             S, K
         )
@@ -93,6 +95,9 @@ class FinGreen3D(AbstractGreenFunction):
     tabulated_integrals = np.empty(1)
     dummy_param = -999
 
+    def __init__(self, *, nb_dispersion_roots=200):
+        self.nb_dispersion_roots = nb_dispersion_roots
+
     def __str__(self):
         return "FinGreen3D()"
 
@@ -101,6 +106,12 @@ class FinGreen3D(AbstractGreenFunction):
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__repr__())
+
+    def compute_dispersion_relation_roots(self, nk, wavenumber, depth):
+        omega2_h_over_g = wavenumber*np.tanh(wavenumber*depth)*depth
+        def root(i_root):
+            return brentq(lambda y: omega2_h_over_g + y*np.tan(y), (2*i_root+1)*np.pi/2 + 1e-10, (2*i_root+2)*np.pi/2 - 1e-10)/depth
+        return np.array([wavenumber] + [root(i_root) for i_root in range(nk-1)])
 
     def evaluate(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True, early_dot_product=True):
         if free_surface == np.inf or water_depth == np.inf:
@@ -112,6 +123,8 @@ class FinGreen3D(AbstractGreenFunction):
                 raise NotImplementedError()
             else:
                 coeffs = np.array((1.0, 1.0, 1.0))
+
+        dispersion_relation_roots = self.compute_dispersion_relation_roots(self.nb_dispersion_roots, wavenumber, water_depth)
 
         collocation_points, early_dot_product_normals = self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
 
@@ -127,7 +140,7 @@ class FinGreen3D(AbstractGreenFunction):
             coeffs,
             self.tabulation_nb_integration_points, self.dummy_param,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
-            self.finite_depth_method_index, self.lamda_exp, self.a_exp,
+            self.finite_depth_method_index, self.lamda_exp, self.a_exp, dispersion_relation_roots,
             mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
             S, K
         )

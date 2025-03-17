@@ -26,7 +26,7 @@ CONTAINS
       tabulation_grid_shape,                             &
       tabulated_r_range, tabulated_z_range,              &
       tabulated_integrals,                               &
-      finite_depth_method, NEXP, AMBDA, AR,              &
+      finite_depth_method, NEXP, AMBDA, AR, dispersion_roots, &
       same_body, gf_singularities, adjoint_double_layer, &
       S, K)
 
@@ -68,6 +68,7 @@ CONTAINS
     ! Prony decomposition for finite depth Green function
     INTEGER,                                  INTENT(IN) :: NEXP
     REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
+    real(kind=pre), dimension(:),             intent(in) :: dispersion_roots  ! For FinGreen3D, dummy otherwise
 
     ! Outputs
     COMPLEX(KIND=PRE), DIMENSION(:, :), INTENT(INOUT) :: S  ! integrals of the Green function
@@ -255,7 +256,7 @@ CONTAINS
             tabulation_nb_integration_points, tabulation_grid_shape,   &
             tabulated_r_range, tabulated_z_range, tabulated_integrals, &
             gf_singularities,                                          &
-            finite_depth_method, NEXP, AMBDA, AR,                      &
+            finite_depth_method, NEXP, AMBDA, AR, dispersion_roots,    &
             derivative_with_respect_to_first_variable,                 &
             int_G_wave, int_nablaG_wave                                &
           )

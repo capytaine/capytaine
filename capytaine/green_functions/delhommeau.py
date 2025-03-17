@@ -99,6 +99,7 @@ class Delhommeau(AbstractGreenFunction):
         Tabulated Delhommeau integrals.
     """
 
+    dispersion_relation_roots = np.empty(1)  # dummy array
 
 
     def __init__(self, *,
@@ -388,7 +389,7 @@ class Delhommeau(AbstractGreenFunction):
             *mesh2.quadrature_points,
             wavenumber, water_depth,
             coeffs, *self.all_tabulation_parameters,
-            self.finite_depth_method_index, lamda_exp, a_exp,
+            self.finite_depth_method_index, lamda_exp, a_exp, self.dispersion_relation_roots,
             mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
             S, K
         )

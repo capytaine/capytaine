@@ -45,7 +45,7 @@ CONTAINS
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
-      finite_depth_method, nexp, ambda, ar,                      &
+      finite_depth_method, nexp, ambda, ar, dispersion_roots,    &
       derivative_with_respect_to_first_variable,                 &
       int_G, int_nablaG                                          &
       )
@@ -66,6 +66,7 @@ CONTAINS
     integer,                               intent(in) :: finite_depth_method
     integer,                               intent(in) :: nexp
     real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
+    real(kind=pre), dimension(:),          intent(in) :: dispersion_roots  ! For FinGreen3D, dummy otherwise
     logical,                               intent(in) :: derivative_with_respect_to_first_variable
 
     complex(kind=pre),                     intent(out) :: int_G
@@ -88,7 +89,7 @@ CONTAINS
         call integral_of_wave_part_fingreen3D                        &
           (x,                                                        &
           face_quadrature_points, face_quadrature_weights,           &
-          wavenumber, depth,                                         &
+          wavenumber, depth, dispersion_roots,                       &
           derivative_with_respect_to_first_variable,                 &
           int_G, int_nablaG                                          &
           )
@@ -557,7 +558,7 @@ CONTAINS
   ! =====================================================================
 
 
-  function dispersion_roots(nk, omega2_over_g, depth) result(roots_of_dispersion_relationship)
+  function compute_dispersion_roots(nk, omega2_over_g, depth) result(roots_of_dispersion_relationship)
     integer, intent(in) :: nk
     real(kind=pre), intent(in) :: omega2_over_g, depth
     real(kind=pre), dimension(nk) :: roots_of_dispersion_relationship
@@ -571,7 +572,7 @@ CONTAINS
     ! Calls FinGreen3D.f90
     call dispersion(roots_of_dispersion_relationship_f64, nk, omega, depth_f64)
 #else
-    print*, "The library has not been compiled with FinGreen3D.f90 optional dependecy"
+    print*, "The library has not been compiled with FinGreen3D.f90 optional dependency"
     error stop
 #endif
 
@@ -581,7 +582,7 @@ CONTAINS
   subroutine integral_of_wave_part_fingreen3D                  &
     (x,                                                        &
     face_quadrature_points, face_quadrature_weights,           &
-    wavenumber, depth,                                         &
+    wavenumber, depth, dispersion_roots,                       &
     derivative_with_respect_to_first_variable,                 &
     int_G, int_nablaG                                          &
     )
@@ -590,6 +591,7 @@ CONTAINS
     real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
     real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
     real(kind=pre),                        intent(in) :: wavenumber, depth
+    real(kind=pre), dimension(:),          intent(in) :: dispersion_roots
     logical,                               intent(in) :: derivative_with_respect_to_first_variable
 
     complex(kind=pre),                     intent(out) :: int_G
@@ -598,14 +600,13 @@ CONTAINS
     integer, parameter :: nk = 200
     integer :: q, nb_quad_points
     real(kind=pre) :: omega, omega2_over_g, drdx1, drdx2
-    real(kind=8) :: r, x3
-    real(kind=8), dimension(3) :: xi_q
-    real(kind=8), dimension(nk) :: roots_of_dispersion_relationship
-    complex(kind=8) :: G_at_point
-    complex(kind=8), dimension(3) :: reduced_G_nablaG, nablaG_at_point
+    real(kind=pre) :: r, x3
+    real(kind=pre), dimension(3) :: xi_q
+    real(kind=pre), dimension(nk) :: roots_of_dispersion_relationship
+    complex(kind=pre) :: G_at_point
+    complex(kind=pre), dimension(3) :: reduced_G_nablaG, nablaG_at_point
 
     omega2_over_g  = wavenumber*TANH(wavenumber*depth)
-    roots_of_dispersion_relationship = dispersion_roots(nk, omega2_over_g, depth)
 
     int_G = czero
     int_nablaG = czero
@@ -618,31 +619,13 @@ CONTAINS
 #ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
       if (.not. derivative_with_respect_to_first_variable) then
         ! For direct method as implemented in HAMS
-        call fingreen3d_routine(            &
-          r,                                &
-          real(x(3), kind=8),               &
-          xi_q(3),                          &
-          real(omega2_over_g, kind=8),      &
-          roots_of_dispersion_relationship, &
-          nk,                               &
-          real(depth, kind=8),              &
-          reduced_G_nablaG                  &
-        )
+        call fingreen3d_routine(r, x(3), xi_q(3), omega2_over_g, dispersion_roots, nk, depth, reduced_G_nablaG)
       else
         ! Switched inputs
-        call fingreen3d_routine(            &
-          r,                                &
-          xi_q(3),                          &
-          real(x(3), kind=8),               &
-          real(omega2_over_g, kind=8),      &
-          roots_of_dispersion_relationship, &
-          nk,                               &
-          real(depth, kind=8),              &
-          reduced_G_nablaG                  &
-        )
+        call fingreen3d_routine(r, xi_q(3), x(3), omega2_over_g, dispersion_roots, nk, depth, reduced_G_nablaG)
       endif
 #else
-    print*, "The library has not been compiled with FinGreen3D.f90 optional dependecy"
+    print*, "The library has not been compiled with FinGreen3D.f90 optional dependency"
     error stop
 #endif
 
