@@ -161,6 +161,7 @@ def test_liangwunoblesse_wave_term():
     assert gf == pytest.approx(- re_gf - im_gf*1j, rel=5e-2)
     assert gf_r == pytest.approx(- re_gf_r - im_gf_r*1j, rel=5e-2)
 
+
 def test_full_liangwunoblesse():
     gf = cpt.LiangWuNoblesseGF()
     ref_gf = cpt.Delhommeau()
@@ -168,5 +169,5 @@ def test_full_liangwunoblesse():
     wavenumber = 1.0
     S, K = gf.evaluate(mesh, mesh, 0.0, np.inf, wavenumber)
     ref_S, ref_K = ref_gf.evaluate(mesh, mesh, 0.0, np.inf, wavenumber)
-    assert np.allclose(S, ref_S, rtol=1e-2)
-    assert np.allclose(K, ref_K, rtol=1e-2)
+    np.testing.assert_allclose(S, ref_S, rtol=1e-2)
+    np.testing.assert_allclose(K, ref_K, rtol=1e-2)

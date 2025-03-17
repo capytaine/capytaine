@@ -83,23 +83,23 @@ The following classes are available:
    environment variable ``CAPYTAINE_CACHE_DIR``.
 
 
-:class:`~capytaine.green_functions.hams.FinGreen3D`
+:class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`
    The infinite depth Green function from the following papers:
 
-   [1]  H. Wu, C. Zhang, Y. Zhu, W. Li, D. Wan, F. Noblesse,
-        A global approximation to the Green function for
-        diffraction radiation of water waves,
-        Eur. J. Mech. B Fluids 65 (2017) 54-64.
+   [1] H. Wu, C. Zhang, Y. Zhu, W. Li, D. Wan, F. Noblesse,
+       **A global approximation to the Green function for
+       diffraction radiation of water waves**,
+       Eur. J. Mech. B Fluids 65 (2017) 54-64.
 
-    [2] H. Liang, H. Wu, F. Noblesse,
-        Validation of a global approximation for
-        wave diffraction-radiation in deep water,
-        Appl. Ocean Res. 74 (2018) 80-86.
+   [2] H. Liang, H. Wu, F. Noblesse,
+       **Validation of a global approximation for
+       wave diffraction-radiation in deep water**,
+       Appl. Ocean Res. 74 (2018) 80-86.
 
-    Please cite them if you use this implementation.
+   Please cite them if you use this implementation.
 
 
-:class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`
+:class:`~capytaine.green_functions.hams.FinGreen3D`
    The finite depth Green function from the following paper, as implemented in HAMS:
 
    Yingyi Liu, Shigeo Yoshida, Changhong Hu, Makoto Sueyoshi, Liang Sun,
@@ -109,6 +109,11 @@ The following classes are available:
    Energy Conversion and Management, 174 (2018): 516-536.
 
    Please cite this paper if you use this implementation.
+
+
+:class:`~capytaine.green_functions.hams.HAMS_GF`
+   This class is just a thin wrapper around the two implementation above, using
+   one or the other depending of the water depth.
 
 
 Advanced users can write their own class to evaluate the Green function.

@@ -13,14 +13,15 @@ body = cpt.FloatingBody(mesh)
 body.add_translation_dof(name="Heave")
 
 test_matrix = xr.Dataset(coords={
-    'omega': np.linspace(0.5, 4, 100),
+    'omega': np.linspace(0.5, 4, 20),
     'radiating_dof': list(body.dofs.keys()),
+    'water_depth': [np.inf, 4.0]
 })
 
 green_functions = [
         cpt.Delhommeau(gf_singularities="low_freq"),
         # cpt.Delhommeau(gf_singularities="high_freq"),  # For this problem, more difficult to converge
-        cpt.LiangWuNoblesseGF(),
+        cpt.HAMS_GF(),
         ]
 
 data = []
@@ -29,8 +30,10 @@ for gf in green_functions:
 
 fig, axs = plt.subplots(2, 1, sharex=True, layout="constrained")
 for gf, ds in zip(green_functions, data):
-    ds['added_mass'].plot(ax=axs[0], x='omega', label=str(gf))
-    ds['radiation_damping'].plot(ax=axs[1], x='omega', label=str(gf))
+    ds['added_mass'].sel(water_depth=np.inf).plot(ax=axs[0], x='omega', linestyle="--", label=f"Infinite depth {gf}")
+    ds['added_mass'].sel(water_depth=4.0).plot(ax=axs[0], x='omega', label=f"Finite depth {gf}")
+    ds['radiation_damping'].sel(water_depth=np.inf).plot(ax=axs[1], x='omega', linestyle="--", label=f"Infinite depth {gf}")
+    ds['radiation_damping'].sel(water_depth=4.0).plot(ax=axs[1], x='omega', label=f"Finite depth {gf}")
 axs[0].set_title("Added mass")
 axs[0].legend()
 axs[1].set_title("Radiation damping")

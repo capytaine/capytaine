@@ -63,8 +63,8 @@ else
   omp = dependency('openmp')
 endif
 
-args_f32 = ['-cpp']
-args_f64 = ['-cpp', '-DLIANGWUNOBLESSE', '-DFINGREEN3D_OPTIONAL_DEPENDENCY']
+args = ['-cpp']
+optional_dependencies_flags = ['-DLIANGWUNOBLESSE_OPTIONAL_DEPENDENCY', '-DFINGREEN3D_OPTIONAL_DEPENDENCY']
 link_args = ['-lquadmath']  # Required for the Windows build with cibuildwheel
 deps = [py3_dep, omp]
 
@@ -72,7 +72,7 @@ py3.extension_module('Delhommeau_float32',
            float32, src_to_interface_with_python, Delhommeau_float32_f2py_wrapper, incdir_f2py+'/fortranobject.c',
            include_directories: inc_np,
            dependencies : deps,
-           fortran_args : args_f32,
+           fortran_args : args,
            link_args : link_args,
            install : true,
            subdir : 'capytaine/green_functions/libs/')
@@ -81,7 +81,7 @@ py3.extension_module('Delhommeau_float64',
            float64, other_src, src_to_interface_with_python, Delhommeau_float64_f2py_wrapper, incdir_f2py+'/fortranobject.c',
            include_directories: inc_np,
            dependencies : deps,
-           fortran_args : args_f64,
+           fortran_args : args + optional_dependencies_flags,
            link_args : link_args,
            install : true,
            subdir : 'capytaine/green_functions/libs/')

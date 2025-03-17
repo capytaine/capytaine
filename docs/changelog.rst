@@ -18,11 +18,11 @@ Major change
 
   * The infinite depth version from [Liang, Wu, Noblesse, 2018] is :class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`,
   * The finite depth version from [Liu et al., 2018] is :class:`~capytaine.green_functions.hams.FinGreen3D`,
+  * The clase :class:`~capytaine.green_functions.hams.HAMS_GF` is a thin wrapper using one or the other depending of the water depth.
 
-  they can be passed to Capytaine's solver as follows::
+  They can be passed to Capytaine's solver as follows::
 
-    solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
-    solver = cpt.BEMSolver(green_function=cpt.FinGreen3D())
+    solver = cpt.BEMSolver(green_function=cpt.HAMS_GF())
 
   Please cite the corresponding papers if you use them in a scientific publication (see the :doc:`citing` page).
 
