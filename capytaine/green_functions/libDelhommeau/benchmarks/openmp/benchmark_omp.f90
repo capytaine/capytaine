@@ -42,10 +42,8 @@ integer, parameter :: gf_singularities = 1  ! low_freq
 
 integer, parameter :: finite_depth_method = 1
 ! Prony decomposition for the finite depth Green function
-integer, parameter :: nexp_max = 31
 integer :: nexp
-real, dimension(nexp_max) :: ambda_f32, ar_f32
-real(kind=pre), dimension(nexp_max) :: ambda, ar
+real(kind=pre), dimension(:, :) :: prony_decomposition
 real(kind=pre), dimension(1) :: dispersion_roots  ! Dummy, only for FinGreen3D
 
 integer n_threads
@@ -72,9 +70,7 @@ if (.true.) then
    depth = ieee_value(depth, ieee_positive_inf)
 else
    depth = 50.
-   call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), ambda_f32, ar_f32, nexp)
-   ambda(:) = real(ambda_f32(:), kind=pre)
-   ar(:) = real(ar_f32(:), kind=pre)
+   call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), nexp, prony_decomposition)
 end if
 
 call random_panels(nb_faces, vertices, faces, face_center, face_normal, face_area, face_radius)
@@ -107,7 +103,7 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     coeffs,                                                      &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
+    finite_depth_method, prony_decomposition, dispersion_roots,  &
     .false., gf_singularities, .true.,                           &
     S, K)
   call system_clock(final_time)
@@ -126,7 +122,7 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     coeffs,                                                      &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
+    finite_depth_method, prony_decomposition, dispersion_roots,  &
     .false., gf_singularities, .true.,                           &
     S, K)
   call system_clock(final_time)
@@ -145,7 +141,7 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     coeffs,                                                      &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
+    finite_depth_method, prony_decomposition, dispersion_roots,  &
     .true., gf_singularities, .true.,                            &
     S, K)
   call system_clock(final_time)

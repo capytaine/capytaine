@@ -70,8 +70,8 @@ CONTAINS
     REAL, INTENT(IN)  :: omega2_h_over_g, wavenumber
 
     ! Outputs
-    integer, intent(out)                  :: nexp
-    real, dimension(2, NEXR), intent(out) :: prony_decomposition
+    integer, intent(out)                            :: nexp
+    real(kind=pre), dimension(2, NEXR), intent(out) :: prony_decomposition
 
     ! Local variables
     REAL, DIMENSION(NEXR) :: AMBDA, AR
