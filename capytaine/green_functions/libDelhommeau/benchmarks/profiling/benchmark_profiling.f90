@@ -43,7 +43,7 @@ integer, parameter :: gf_singularities = 0
 integer, parameter :: finite_depth_method = 1
 ! Prony decomposition for the finite depth Green function
 integer :: nexp
-real(kind=pre), dimension(:, :) :: prony_decomposition
+real(kind=pre), dimension(2, 31) :: prony_decomposition
 real(kind=pre), dimension(1) :: dispersion_roots  ! dummy
 
 integer i

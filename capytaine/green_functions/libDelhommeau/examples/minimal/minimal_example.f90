@@ -40,7 +40,7 @@ program test
   ! Prony decomposition for the finite depth Green function
   integer, parameter :: finite_depth_method = 1  ! newer
   integer :: nexp
-  real, dimension(:,:) :: prony_decomposition
+  real(kind=pre), dimension(2, 31) :: prony_decomposition
   real(kind=pre), dimension(1) :: dispersion_roots  ! dummy
 
   ! The interaction matrices to be computed
@@ -99,7 +99,7 @@ program test
     ZERO, depth, coeffs,                                         &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
+    finite_depth_method, prony_decomposition, dispersion_roots,  &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "Rankine part: S"
@@ -121,7 +121,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
+    finite_depth_method, prony_decomposition, dispersion_roots,  &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=1.0, h=infty: S"
@@ -143,7 +143,7 @@ program test
     wavenumber, depth, coeffs,                                   &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, nexp, ambda, ar, dispersion_roots,      &
+    finite_depth_method, prony_decomposition, dispersion_roots,  &
     .true., gf_singularities, .true.,                            &
     S, K)
   print*, "k=2.0, h=infty: S"
