@@ -46,6 +46,8 @@ Bug fixes
 
 * After joining several bodies, editing the mesh of one of the components does not affect the joined body anymore (:issue:`660` and :pull:`662`:).
 
+* Check the consistency of the dofs with the mesh and raises ``ValueError`` when an inconsistency is detected (:pull:`663`).
+
 Internals
 ~~~~~~~~~
 
