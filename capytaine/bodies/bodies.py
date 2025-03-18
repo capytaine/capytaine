@@ -766,14 +766,14 @@ respective inertia coefficients are assigned as NaN.")
         if name is None:
             name = "+".join(body.name for body in bodies)
         meshes = CollectionOfMeshes(
-                [body.mesh for body in bodies],
+                [body.mesh.copy() for body in bodies],
                 name=f"{name}_mesh"
                 )
         if all(body.lid_mesh is None for body in bodies):
             lid_meshes = None
         else:
             lid_meshes = CollectionOfMeshes(
-                    [body.lid_mesh for body in bodies if body.lid_mesh is not None],
+                    [body.lid_mesh.copy() for body in bodies if body.lid_mesh is not None],
                     name=f"{name}_lid_mesh"
                     )
         dofs = FloatingBody.combine_dofs(bodies)
