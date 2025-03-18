@@ -112,6 +112,8 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
 
         LOG.info(f"New floating body: {self.__str__()}.")
 
+        self._check_dofs_shape_consistency()
+
     @staticmethod
     def from_meshio(mesh, name=None) -> 'FloatingBody':
         """Create a FloatingBody from a meshio mesh object.
@@ -263,6 +265,14 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         return xr.DataArray(data=np.asarray(matrix), dims=['influenced_dof', 'radiating_dof'],
                             coords={'influenced_dof': list(self.dofs), 'radiating_dof': list(self.dofs)},
                             )
+
+    def _check_dofs_shape_consistency(self):
+        for dof_name, dof in self.dofs.items():
+            if np.array(dof).shape != (self.mesh.nb_faces, 3):
+                raise ValueError(f"The array defining the dof {dof_name} of body {self.name} does not have the expected shape.\n"
+                                 f"Expected shape: ({self.mesh.nb_faces}, 3)\n"
+                                 f"  Actual shape: {dof.shape}")
+
 
     ###################
     # Hydrostatics #
@@ -796,6 +806,8 @@ respective inertia coefficients are assigned as NaN.")
     @staticmethod
     def combine_dofs(bodies) -> dict:
         """Combine the degrees of freedom of several bodies."""
+        for body in bodies:
+            body._check_dofs_shape_consistency()
         dofs = {}
         cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in bodies)))
         total_nb_faces = sum(body.mesh.nb_faces for body in bodies)
@@ -823,6 +835,8 @@ respective inertia coefficients are assigned as NaN.")
         name : str, optional
             a name for the new copy
         """
+        self._check_dofs_shape_consistency()
+
         new_body = copy.deepcopy(self)
         if name is None:
             new_body.name = f"copy_of_{self.name}"
@@ -995,6 +1009,8 @@ respective inertia coefficients are assigned as NaN.")
 
     @inplace_transformation
     def clip(self, plane):
+        self._check_dofs_shape_consistency()
+
         # Clip mesh
         LOG.info(f"Clipping {self.name} with respect to {plane}")
         self.mesh.clip(plane)

@@ -165,6 +165,13 @@ def test_complicated_clipping_of_dofs():
     assert len(clipped_body.dofs["Heave"]) == clipped_body.mesh.nb_faces
 
 
+def test_clipping_of_inconsistent_dof():
+    body = cpt.FloatingBody(cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())
+    body.mesh.keep_immersed_part()  # Dofs and mesh are now inconsistent
+    with pytest.raises(ValueError):
+        body.keep_immersed_part()
+
+
 @pytest.mark.xfail
 def test_clipping_of_dofs_with_degenerate_faces():
     vertices = np.array([

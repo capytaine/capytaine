@@ -78,6 +78,15 @@ def test_LinearPotentialFlowProblem(sphere):
     assert res.body is pb.body
 
 
+def test_mesh_inconsistent_with_dofs(sphere):
+    n = sphere.mesh.nb_faces
+    sphere.dofs["Wrong_dof"] = np.ones((n//2, 3))
+    with pytest.raises(ValueError):
+        cpt.RadiationProblem(body=sphere, wavenumber=1.0)
+    with pytest.raises(ValueError):
+        cpt.DiffractionProblem(body=sphere, wavenumber=1.0)
+
+
 def test_mesh_above_the_free_surface(caplog):
     with caplog.at_level(logging.WARNING):
         body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())

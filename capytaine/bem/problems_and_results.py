@@ -193,6 +193,8 @@ class LinearPotentialFlowProblem:
                     or len(self.body.mesh.faces) == 0):
                 raise ValueError(f"The mesh of the body {self.body.__short_str__()} is empty.")
 
+            self.body._check_dofs_shape_consistency()
+
             panels_above_fs = self.body.mesh.faces_centers[:, 2] >= self.free_surface + 1e-8
             panels_below_sb = self.body.mesh.faces_centers[:, 2] <= -self.water_depth
             if (any(panels_above_fs) or any(panels_below_sb)):
