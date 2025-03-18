@@ -67,7 +67,8 @@ EXAMPLES_BIN=$(EXAMPLES_SRC:.f90=.bin)
 BENCH_SRC=benchmarks/openmp/benchmark_omp.f90\
 	  benchmarks/tabulations/benchmark_tabulation.f90\
 	  benchmarks/profiling/benchmark_profiling.f90\
-	  benchmarks/rankine/benchmark_rankine.f90
+	  benchmarks/rankine/benchmark_rankine.f90\
+	  benchmarks/waves/benchmark_waves.f90
 BENCH_BIN=$(BENCH_SRC:.f90=.bin)
 
 
@@ -105,6 +106,9 @@ run_min_ex: example
 
 run_bench_rankine: benchmark
 	@benchmarks/rankine/benchmark_rankine.bin
+
+run_bench_waves: benchmark
+	@benchmarks/waves/benchmark_waves.bin
 
 run_bench_tab: benchmark
 	@benchmarks/tabulations/benchmark_tabulation.bin
