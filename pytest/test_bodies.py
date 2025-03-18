@@ -294,3 +294,20 @@ def test_cluster_bodies():
     assert isinstance(clustered_bodies.mesh, cpt.CollectionOfMeshes)
     assert clustered_bodies.mesh.merged() == joined_bodies.mesh.merged()
     assert meshes[0] in clustered_bodies.mesh  # The first body is at the top level independently from the other three
+
+
+def test_clip_component_of_multibody():
+    # https://github.com/capytaine/capytaine/issues/660
+    body_1 = cpt.FloatingBody(
+        mesh=cpt.mesh_sphere(center=(0.0, 0.0, 0.0)),
+        dofs=cpt.rigid_body_dofs(rotation_center=(0.0, 0.0, 0.0)),
+        name="body_1"
+    )
+    body_2 = cpt.FloatingBody(
+        mesh=cpt.mesh_sphere(center=(5.0, 0.0, 0.0)),
+        dofs=cpt.rigid_body_dofs(rotation_center=(5.0, 0.0, 0.0)),
+        name="body_2"
+    )
+    both = body_1 + body_2
+    body_2.keep_immersed_part()
+    assert both.dofs["body_1__Heave"].shape[0] == both.mesh.nb_faces

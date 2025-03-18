@@ -44,6 +44,8 @@ Bug fixes
 
 * Fix Python implementation of the Prony decomposition for the finite depth Green function. The default is still the legacy Fortran implementation. (:pull:`621`). Move some code of its code to the :mod:`~capytaine.tools.prony_decomposition` module. (:pull:`649`)
 
+* After joining several bodies, editing the mesh of one of the components does not affect the joined body anymore (:issue:`660` and :pull:`662`:).
+
 Internals
 ~~~~~~~~~
 
