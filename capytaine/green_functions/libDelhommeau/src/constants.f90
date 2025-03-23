@@ -28,6 +28,7 @@ MODULE CONSTANTS
   integer, parameter :: LIANG_WU_NOBLESSE = -1
   integer, parameter :: LEGACY_GRID = 0  ! Nemoh 2
   integer, parameter :: SCALED_NEMOH3_GRID = 1
+  integer, parameter :: LINEAR_GRID = 2
 
   ! Values for "finite_depth_method"
   integer, parameter :: FINGREEN3D_METHOD = -1

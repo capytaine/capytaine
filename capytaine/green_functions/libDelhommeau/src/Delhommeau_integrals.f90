@@ -14,6 +14,7 @@
 !
 module delhommeau_integrals
 
+  use ieee_arithmetic
   use floating_point_precision, only: pre
   use constants
 
@@ -201,16 +202,17 @@ contains
     ! local variables
     integer :: i, index_of_1
 
-    default_r_spacing(1) = 0.0
-
     if (method == LEGACY_GRID) then
+      ! rmax is unused with this method
+      default_r_spacing(1) = 0.0
       do concurrent (i = 2:nr)
         default_r_spacing(i) = min(                    &
                                  10**((i-1.0)/5.0 - 6.0), &
                                  abs(i-32)/3.0 + 4.0/3.0  &
                                )
       enddo
-    else
+    else if (method == SCALED_NEMOH3_GRID) then
+      default_r_spacing(1) = 0.0
       ! change of slope at r = 1.0 that is i=index_of_1
       index_of_1 = nint(nr*1.0/nr_ref*index_of_1_ref)
       do concurrent (i = 1:nr)
@@ -222,6 +224,12 @@ contains
           default_r_spacing(i) = (rmax-1.0)/(nr-index_of_1)*(i-index_of_1)+1.0
         endif
       enddo
+    else if (method == LINEAR_GRID) then
+      do concurrent (i = 1:nr)
+        default_r_spacing(i) = (i-1.0)*rmax/nr
+      enddo
+    else
+      default_r_spacing = ieee_value(default_r_spacing, ieee_quiet_nan)
     endif
   end function default_r_spacing
 
@@ -238,17 +246,24 @@ contains
 
     if (method == LEGACY_GRID) then
       do concurrent (j = 1:nz)
+        ! zmin is not used in this case
         default_z_spacing(j) = -min(10**(j/5.0-6.0), 10**(j/8.0-4.5))
         ! change of slope at z = -1e-2
       enddo
       if (nz == 46) then  ! For consistency with Nemoh 2...
         default_z_spacing(46) = -16.0
       endif
-    else
+    else if (method == SCALED_NEMOH3_GRID) then
       dz = (log10(abs(zmin))+10.0)/nz
       do concurrent (j = 1:nz)
         default_z_spacing(j) = -min(10**(dz*j-10.0), abs(zmin))
       enddo
+    else if (method == LINEAR_GRID) then
+      do concurrent (j = 1:nz)
+        default_z_spacing(j) = (j-1.0)*zmin/nz
+      enddo
+    else
+      default_z_spacing = ieee_value(default_z_spacing, ieee_quiet_nan)
     endif
   end function default_z_spacing
 
@@ -292,8 +307,10 @@ contains
     integer, parameter :: index_of_1_ref = 81  ! index of the change of slope
 
     ! local variables
-    integer :: index_of_1
+    integer :: index_of_1, nr
     real(kind=pre) :: rmax
+
+    nr = size(r_range)
 
     if (method == LEGACY_GRID) then
       if (r < 1e-6) then
@@ -303,9 +320,9 @@ contains
       else
         nearest_r_index = int(3*r + 28)
       endif
-    else
-      index_of_1 = nint(real(size(r_range)*index_of_1_ref)/nr_ref)
-      rmax = r_range(size(r_range))
+    else if (method == SCALED_NEMOH3_GRID) then
+      index_of_1 = nint(real(nr*index_of_1_ref)/nr_ref)
+      rmax = r_range(nr)
 
       if (r < 1e-10) then
         nearest_r_index = 1
@@ -314,6 +331,9 @@ contains
       else
         nearest_r_index = nint((r - 1)*(size(r_range) - index_of_1)/(rmax - 1) + index_of_1)
       endif
+    else if (method == LINEAR_GRID) then
+      rmax = r_range(nr)
+      nearest_r_index = nint(r*nr/rmax) + 1
     endif
   end function
 
@@ -339,9 +359,11 @@ contains
       else
         nearest_z_index = int(5*(log10(absz) + 6))
       endif
-    else
+    else if (method == SCALED_NEMOH3_GRID) then
       dz = (log10(abs(z_range(nz)))+10.0)/nz
       nearest_z_index = nint((log10(absz)+10)/dz)
+    else if (method == LINEAR_GRID) then
+      nearest_z_index = nint(z*nz/z_range(nz)) + 1
     endif
   end function
 
@@ -350,6 +372,8 @@ contains
   pure function lagrange_polynomial_interpolation(         &
       r, z, local_r_range, local_z_range, local_tabulation &
       ) result(interpolated_values)
+    ! Second-order polynomial interpolation on a 3x3 stencil
+
     ! inputs
     real(kind=pre),                        intent(in) :: r, z
     real(kind=pre), dimension(3),          intent(in) :: local_r_range
