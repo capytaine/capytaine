@@ -15,5 +15,6 @@ User manual
    resolution.rst
    outputs.rst
    post_pro.rst
+   accuracy.rst
    conventions.rst
    cookbook.rst
