@@ -18,7 +18,8 @@ PROF = -pg
 
 ### !! choose debug or optim
 # FLAGS += $(DEBUG)
-FLAGS += $(OPT)
+# FLAGS += $(OPT)
+FLAGS += $(OPT) -DFINGREEN3D_OPTIONAL_DEPENDENCY -DLIANGWUNOBLESSE_OPTIONAL_DEPENDENCY
 #FLAGS += $(PROF)
 
 
@@ -37,6 +38,8 @@ SRC_S=src/float32.f90\
 SRC_D=src/float64.f90\
       src/constants.f90\
       src/old_Prony_decomposition.f90\
+      src/FinGreen3D.f90\
+      src/LiangWuNoblesseWaveTerm.f90\
       src/Green_Rankine.f90\
       src/Delhommeau_integrals.f90\
       src/Green_wave.f90\
