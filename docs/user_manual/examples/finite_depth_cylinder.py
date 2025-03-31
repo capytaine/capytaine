@@ -1,7 +1,6 @@
-#!/usr/bin/env python
-
 import numpy as np
 import capytaine as cpt
+import matplotlib.pyplot as plt
 
 cpt.set_logging('INFO')
 
@@ -33,20 +32,24 @@ problems = [
 # been defined.)
 
 # Solve all radiation problems
-solver = cpt.BEMSolver(engine=cpt.HierarchicalToeplitzMatrixEngine())
-results = [solver.solve(pb) for pb in sorted(problems)]
+solver = cpt.BEMSolver()
+results = solver.solve_all(problems)
 
 # Gather the computed added mass into a labelled array.
 data = cpt.assemble_dataset(results)
 
 # Plot the added mass of each dofs as a function of the water depth.
-import matplotlib.pyplot as plt
-plt.figure()
-plt.plot(
+fig, ax = plt.subplots(layout="constrained")
+ax.plot(
     depth_range,
     data['added_mass'].sel(omega=2.0, radiating_dof="Heave", influenced_dof="Heave"),
-    marker="s",
+    marker="s", label="Finite depth"
 )
-plt.xlabel('water depth')
-plt.ylabel('added mass')
+ax.hlines(
+    data['added_mass'].sel(omega=2.0, radiating_dof="Heave", influenced_dof="Heave", water_depth=np.inf),
+    xmin=20, xmax=30, label="Infinite depth",
+    linestyle="--"
+)
+ax.set(xlabel='Water depth', ylabel='Heave-heave added mass')
+ax.legend()
 plt.show()
