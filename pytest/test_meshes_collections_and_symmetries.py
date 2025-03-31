@@ -140,3 +140,9 @@ def test_path_to_leaf():
         sphere_3, sphere_4])
     assert sphere_1.path_to_leaf() == [[]]
     assert coll.path_to_leaf() == [[0, 0], [0, 1], [1], [2]]
+
+
+def test_empty_symmetric_mesh():
+    mesh = cpt.mesh_sphere(center=(0, 0, 2), radius=0.5, axial_symmetry=True)
+    empty_mesh = mesh.immersed_part()
+    assert empty_mesh.first_slice.nb_faces == 0
