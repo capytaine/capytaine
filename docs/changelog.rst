@@ -48,6 +48,8 @@ Bug fixes
 
 * Check the consistency of the dofs with the mesh and raises ``ValueError`` when an inconsistency is detected (:pull:`663`).
 
+* Fix error when removing all the faces from a symmetric mesh (:pull:`668`)
+
 Internals
 ~~~~~~~~~
 
