@@ -76,4 +76,4 @@ jobs:
 
     - name: Run simple benchmark
       working-directory: capytaine/green_functions/libDelhommeau/
-      run: make run_bench_rankine && make run_bench_tab
+      run: make run_bench_rankine && make run_bench_waves
