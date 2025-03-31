@@ -898,7 +898,7 @@ respective inertia coefficients are assigned as NaN.")
         if return_index:
             new_mesh, id_v = self.mesh.extract_faces(id_faces_to_extract, return_index)
         else:
-            new_mesh = self.mesh.extract_faces(self.mesh, id_faces_to_extract, return_index)
+            new_mesh = self.mesh.extract_faces(id_faces_to_extract, return_index)
         new_body = FloatingBody(new_mesh)
         LOG.info(f"Extract floating body from {self.name}.")
 
