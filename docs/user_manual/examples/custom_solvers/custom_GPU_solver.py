@@ -18,7 +18,6 @@ def lu_linear_solver_with_cache_on_GPU(A, b):
     A_on_GPU = torch.from_numpy(np.array(A)).cfloat().to(device)
     # Compute the LU decomposition, which is handy for recalculating the solution, with various B values for the same A matrix
     latest_LU_decomp = torch.linalg.lu_factor(A_on_GPU)
-    print("Computing LU decomposition with Pytorch")
 
     # Its important to use the appropriate mechnism to transfer data to the GPU
     b_on_GPU = torch.from_numpy(b.reshape(-1, 1)).cfloat().to(device)
