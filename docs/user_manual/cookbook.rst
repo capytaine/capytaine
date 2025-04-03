@@ -159,3 +159,19 @@ This is an example of how to implement a custom Green function.
 
 .. literalinclude:: examples/custom_Green_function.py
    :language: python
+
+Implementation of a GPU Custom Solver
+-------------------------------------
+
+This is an example of how to implement a custom solver that leverages your computers's GPU. Your mileage may vary as performance will vary wildly across different hardware. Please also note this is not an officially supported feature of Capytaine, so please address any issues in the appropriate GPU solver forum.
+
+.. literalinclude:: examples/custom_solvers/custom_GPU_solver.py
+   :language: python
+   
+
+Benchmark Of Solver Performance vs Problem Size
+----------------------------------------------
+A comparison of various solver's for different size problems
+
+.. literalinclude:: examples/custom_solvers/custom_solver_comparison.py
+   :language: python
