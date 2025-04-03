@@ -116,6 +116,9 @@ class BEMSolver:
                     )
 
             potential = linear_solver(D, S @ problem.boundary_condition)
+            if not potential.shape == problem.boundary_condition.shape:
+                raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({potential.shape}) "
+                                 f"does not match the expected shape ({problem.boundary_condition.shape})")
             pressure = 1j * omega * problem.rho * potential
             sources = None
         else:
@@ -126,6 +129,9 @@ class BEMSolver:
                     )
 
             sources = linear_solver(K, problem.boundary_condition)
+            if not sources.shape == problem.boundary_condition.shape:
+                raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({sources.shape}) "
+                                 f"does not match the expected shape ({problem.boundary_condition.shape})")
             potential = S @ sources
             pressure = 1j * omega * problem.rho * potential
             if problem.forward_speed != 0.0:

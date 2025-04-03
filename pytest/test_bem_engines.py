@@ -53,3 +53,20 @@ def test_custom_linear_solver(method):
 
     result = my_bem_solver.solve(problem,method=method)
     assert np.isclose(reference_result.added_masses['Surge'], result.added_masses['Surge'])
+
+
+@pytest.mark.parametrize("method", ['indirect', 'direct'])
+def test_custom_linear_solver_returning_wrong_shape(method):
+    sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(4, 3)).immersed_part())
+    sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
+    problem = cpt.RadiationProblem(body=sphere, omega=1.0, water_depth=np.inf)
+
+    def my_linear_solver(A, b):
+        """A dumb solver for testing."""
+        return np.linalg.inv(A) @ b.reshape(-1, 1)
+
+    my_bem_solver = cpt.BEMSolver(
+        engine=cpt.BasicMatrixEngine(linear_solver=my_linear_solver)
+    )
+    with pytest.raises(ValueError):
+        my_bem_solver.solve(problem)
