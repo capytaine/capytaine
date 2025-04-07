@@ -261,7 +261,7 @@ the degrees of freedom will also be transformed::
     my_axis = Axis(vector=[1, 1, 1], point=[3, 4, 5])
     mesh.rotated(axis=my_axis, angle=3.14/5)
 
-    # Rotation around a point such that vec1 would become equal to vec2
+    # Rotation around a point such that vec1 becomes aligned with vec2
     mesh.rotated_around_center_to_align_vector(
         center=(0, 0, 0),
         vec1=(1, 4, 7),
