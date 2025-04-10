@@ -159,3 +159,17 @@ This is an example of how to implement a custom Green function.
 
 .. literalinclude:: examples/custom_Green_function.py
    :language: python
+
+Implementation of a GPU Custom Linear Solver
+--------------------------------------------
+
+This is an example of how to implement a custom solver for linear systems that
+leverages your computers's GPU, here with PyTorch.
+Your mileage may vary as performance will vary wildly across different hardware.
+Please also note that you are expected to already be familiar with GPU
+frameworks and have a working setup to use this; Capytaine's developpers can
+offer no support for GPU issues unrelated to Capytaine.
+
+.. literalinclude:: examples/custom_linear_solver_on_gpu.py
+   :language: python
+
