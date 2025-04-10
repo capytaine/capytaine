@@ -6,6 +6,8 @@ import torch
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+reference_cpu_solver = cpt.BEMSolver()
+
 
 # A simple implementation of a linear solver on GPU using PyTorch
 def linear_solver_on_GPU(A, b):
@@ -14,8 +16,13 @@ def linear_solver_on_GPU(A, b):
     res = torch.linalg.solve(A_on_GPU, b_on_GPU)
     return res.cpu().numpy()
 
+naive_gpu_solver = cpt.BEMSolver(
+    engine=cpt.BasicMatrixEngine(linear_solver=linear_solver_on_GPU)
+)
 
-# An optimization of the above to avoid doing the same GPU transfer and LU factorization twice
+
+# Alternatively, an optimization of the above to avoid doing the same GPU
+# transfer and LU factorization twice
 latest_A = None
 latest_LU_decomp = None
 def lu_linear_solver_with_cache_on_GPU(A, b):
@@ -30,10 +37,9 @@ def lu_linear_solver_with_cache_on_GPU(A, b):
     res = torch.linalg.lu_solve(*latest_LU_decomp, b_on_GPU).reshape(-1)
     return res.cpu().numpy()
 
-
-cpu_solver = cpt.BEMSolver()
-naive_gpu_solver = cpt.BEMSolver(engine=cpt.BasicMatrixEngine(linear_solver=linear_solver_on_GPU))
-gpu_solver = cpt.BEMSolver(engine=cpt.BasicMatrixEngine(linear_solver=lu_linear_solver_with_cache_on_GPU))
+gpu_solver = cpt.BEMSolver(
+    engine=cpt.BasicMatrixEngine(linear_solver=lu_linear_solver_with_cache_on_GPU)
+)
 
 
 ###############
@@ -44,14 +50,16 @@ mesh = cpt.mesh_sphere(resolution=(50, 50)).immersed_part()
 print(mesh.nb_faces, "faces")
 body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
 
-test_matrix = xr.Dataset(coords={
-    "omega": np.linspace(0.0, 4.0, 20),
-    "radiating_dof": list(body.dofs),
-    "water_depth": [np.inf],
-    })
+test_matrix = xr.Dataset(
+    coords={
+        "omega": np.linspace(0.0, 4.0, 20),
+        "radiating_dof": list(body.dofs),
+        "water_depth": [np.inf],
+    }
+)
 
 start = time.perf_counter()
-ds1 = cpu_solver.fill_dataset(test_matrix, body)
+ds1 = reference_cpu_solver.fill_dataset(test_matrix, body)
 print("CPU:", time.perf_counter() - start)
 
 start = time.perf_counter()
@@ -65,8 +73,18 @@ print("Slighly faster GPU:", time.perf_counter() - start)
 
 # Check outputs
 import matplotlib.pyplot as plt
+
 fig, ax = plt.subplots()
-ax.plot(ds1.omega.values, ds1.added_mass.sel(radiating_dof="Roll", influenced_dof="Roll").values)
-ax.plot(ds2.omega.values, ds2.added_mass.sel(radiating_dof="Roll", influenced_dof="Roll").values)
-ax.plot(ds3.omega.values, ds3.added_mass.sel(radiating_dof="Roll", influenced_dof="Roll").values)
+ax.plot(
+    ds1.omega.values,
+    ds1.added_mass.sel(radiating_dof="Roll", influenced_dof="Roll").values,
+)
+ax.plot(
+    ds2.omega.values,
+    ds2.added_mass.sel(radiating_dof="Roll", influenced_dof="Roll").values,
+)
+ax.plot(
+    ds3.omega.values,
+    ds3.added_mass.sel(radiating_dof="Roll", influenced_dof="Roll").values,
+)
 plt.show()
