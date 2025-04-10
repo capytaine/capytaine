@@ -50,6 +50,8 @@ Bug fixes
 
 * Fix error when removing all the faces from a symmetric mesh (:pull:`668`)
 
+* Add safeguard if a custom linear solver returns a result vector of wrong shape (e.g. column instead of row) (:pull:`670`)
+
 Internals
 ~~~~~~~~~
 

@@ -16,6 +16,8 @@ class SymbolicMultiplication:
     def __init__(self, symbol, value=1.0):
         self.symbol = symbol
         self.value = value
+        if hasattr(value, "shape"):
+            self.shape = value.shape  # When wrapping Numpy arrays
 
     def __format__(self, format_spec):
         return f"{self.symbol}×{self.value.__format__(format_spec)}"
