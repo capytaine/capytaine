@@ -44,7 +44,8 @@ jobs:
       - name: Deploy pages
         if: |
           github.repository_owner == 'capytaine' &&
-          github.ref == 'refs/heads/master'   # Only deploy the version merged into the master branch of capytaine/capytaine
+          github.ref == 'refs/heads/master'
+        # Only deploy the version merged into the master branch of capytaine/capytaine
         uses: JamesIves/github-pages-deploy-action@releases/v4
         with:
           folder: ./docs/_build/html/
