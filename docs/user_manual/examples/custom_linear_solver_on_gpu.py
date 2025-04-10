@@ -22,9 +22,11 @@ def lu_linear_solver_with_cache_on_GPU(A, b):
     global latest_A, latest_LU_decomp
     if A is not latest_A:
         latest_A = A
-        A_on_GPU = torch.from_numpy(np.array(A)).cfloat().to(device)
+        A_on_GPU = torch.tensor(np.array(A), dtype=torch.complex64, device=device)
         latest_LU_decomp = torch.linalg.lu_factor(A_on_GPU)
     b_on_GPU = torch.tensor(np.array(b), dtype=torch.complex64, device=device).reshape(-1, 1)
+    # Reshaping because `torch.linalg.lu_solve` wants a column vector on the
+    # right-hand-side (unlike `torch.linalg.solve`).
     res = torch.linalg.lu_solve(*latest_LU_decomp, b_on_GPU).reshape(-1)
     return res.cpu().numpy()
 
