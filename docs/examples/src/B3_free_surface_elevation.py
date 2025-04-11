@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import numpy as np
 import capytaine as cpt
 from capytaine.bem.airy_waves import airy_waves_free_surface_elevation

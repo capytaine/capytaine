@@ -41,6 +41,11 @@ Documentation
 .. toctree::
    :maxdepth: 2
 
+   examples/index.rst
+
+.. toctree::
+   :maxdepth: 2
+
    developer_manual/index.rst
 
 .. toctree::

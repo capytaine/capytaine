@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import numpy as np
 import capytaine as cpt
 import capytaine.io.xarray
@@ -24,7 +22,7 @@ problems = [cpt.RadiationProblem(body=buoy, radiating_dof='Heave', omega=omega)
 
 # Solve the problems using the axial symmetry
 solver = cpt.BEMSolver(engine=cpt.HierarchicalToeplitzMatrixEngine())
-results = [solver.solve(pb) for pb in sorted(problems)]
+results = solver.solve_all(problems)
 dataset = capytaine.io.xarray.assemble_dataset(results)
 
 # Plot results

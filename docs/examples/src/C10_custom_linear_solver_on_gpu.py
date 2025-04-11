@@ -68,7 +68,7 @@ print("GPU:", time.perf_counter() - start)
 
 start = time.perf_counter()
 ds3 = gpu_solver.fill_dataset(test_matrix, body)
-print("Slighly faster GPU:", time.perf_counter() - start)
+print("Slightly faster GPU:", time.perf_counter() - start)
 
 
 # Check outputs
