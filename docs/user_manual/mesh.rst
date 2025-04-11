@@ -10,6 +10,14 @@ It is optional and is mostly used for clearer logging and outputs.
 A ``name`` optional argument can be provided to all methods below to initialize
 a mesh or transform a mesh to set the name of the new mesh.
 
+
+.. note::
+   A mesh in Capytaine is merely a set of independent faces (triangles or quadrangles).
+   Connectivities are not required for the resolution.
+   Having a mesh that is not watertight, with small gaps between the faces or a
+   few missing faces, does not lead to qualitatively different results.
+
+
 Initialization
 --------------
 
@@ -44,7 +52,7 @@ The formats currently supported in reading are listed in the following table (ad
 +-----------+-----------------+----------------------+-----------------+
 |   .nem    | NEMOH [#f1]_    | nemoh_mesh, nem      |                 |
 +-----------+-----------------+----------------------+-----------------+
-|   .gdf    | WAMIT [#f2]_    | wamit, gdf           |                 |
+|   .gdf    | WAMIT [#f2]_    | wamit, gdf           | Symmetries      |
 +-----------+-----------------+----------------------+-----------------+
 |   .inp    | DIODORE [#f3]_  | diodore-inp, inp     |                 |
 +-----------+-----------------+----------------------+-----------------+
@@ -56,7 +64,7 @@ The formats currently supported in reading are listed in the following table (ad
 +-----------+-----------------+----------------------+-----------------+
 |   .nat    |    -            | natural, nat         |                 |
 +-----------+-----------------+----------------------+-----------------+
-|   .msh    | GMSH 2 [#f5]_   | gmsh, msh            |                 |
+|   .msh    | GMSH [#f5]_     | gmsh, msh            |                 |
 +-----------+-----------------+----------------------+-----------------+
 |   .rad    | RADIOSS         | rad, radioss         |                 |
 +-----------+-----------------+----------------------+-----------------+
@@ -80,8 +88,8 @@ The formats currently supported in reading are listed in the following table (ad
 .. [#f4] HYDROSTAR is a BEM Software for seakeeping developed by
          BUREAU VERITAS
 .. [#f5] GMSH is an open source meshing software developed by C. Geuzaine
-         and J.-F. Remacle. Version 4 of the file format is not supported at the
-         moment.
+         and J.-F. Remacle. Version 4 of the file format requires meshio
+         be installed independently.
 .. [#f6] PARAVIEW is an open source visualization software developed by
          Kitware
 .. [#f7] TECPLOT is a visualization software developed by Tecplot
@@ -90,7 +98,7 @@ The formats currently supported in reading are listed in the following table (ad
 
 
 Not all metadata is taken into account when reading the mesh file.
-For instance, the body symmetry is taken into account only for the `.mar` and `.hst` file formats.
+For instance, the body symmetry is taken into account only for the ``.mar``, ``.pnl``, ``.gdf`` and ``.hst`` file formats.
 Feel free to open an issue on Github to suggest improvements.
 
 
@@ -127,7 +135,7 @@ installed independently)::
         geom.translate(cone, [0, 0, offset])
         geom.boolean_union([cyl, cone])
         gmsh_mesh = geom.generate_mesh(dim=2)
-    mesh = cpt.load_from_meshio(gmsh_mesh)
+    mesh = cpt.load_mesh(gmsh_mesh, name="my_pygmsh_mesh")
 
 
 Predefined simple shapes
@@ -148,6 +156,11 @@ Refer to their documentation for details about the parameters they accepts.
 
 Since version 2.1, their resolution can be set by the ``faces_max_radius``
 parameter which specifies the maximal size of a face in the mesh.
+
+.. note::
+    There are several ways to measure the size of a face and the resolution of a mesh.
+    In Capytaine, the size of faces is usually quantified with the *radius* of the face, that is the maximal distance between the center of the face and its vertices.
+    The resolution of a mesh is estimated as the maximal radius among all the faces in the mesh, that is the radius of the biggest face.
 
 
 Creating from scratch
@@ -248,7 +261,7 @@ the degrees of freedom will also be transformed::
     my_axis = Axis(vector=[1, 1, 1], point=[3, 4, 5])
     mesh.rotated(axis=my_axis, angle=3.14/5)
 
-    # Rotation around a point such that vec1 would become equal to vec2
+    # Rotation around a point such that vec1 becomes aligned with vec2
     mesh.rotated_around_center_to_align_vector(
         center=(0, 0, 0),
         vec1=(1, 4, 7),
@@ -299,8 +312,58 @@ horizontal planes at :math:`z=0` and :math:`z=-h`::
     complicated and their removal might be considered in the future.
 
 
+Extracting or generating a lid
+------------------------------
+
+If you loaded a mesh file already containing a lid on the :math:`z=0` plane,
+the hull and the lid can be split with the
+:meth:`~capytaine.meshes.meshes.Mesh.extract_lid` method::
+
+    full_mesh = cpt.load_mesh(...)
+    hull_mesh, lid_mesh = full_mesh.extract_lid()
+
+If your mesh does not have a lid, and you'd like to have irregular frequencies
+removal, you can generate a lid using
+:meth:`~capytaine.meshes.meshes.Mesh.generate_lid` as follows::
+
+    lid_mesh = hull_mesh.generate_lid()
+
+The mesh is generated on the free surface by default.
+Since support for panels on the free surface is still experimental, it might be
+more robust (but less efficient) to define a lid slightly below the free surface::
+
+    lid_mesh = hull_mesh.generate_lid(z=-0.1)
+
+The lower the lid, the more robust the computation, but also the less
+irregular frequencies are removed. The method
+:meth:`~capytaine.meshes.meshes.Mesh.lowest_lid_position` estimates the lowest
+position such that all irregular frequencies below a given frequency are removed::
+
+    lid_mesh = hull_mesh.generate_lid(z=hull_mesh.lowest_lid_position(omega_max=10.0))
+
+The method :meth:`~capytaine.meshes.meshes.Mesh.extract_lid` also accepts an
+optional argument ``faces_max_radius`` to set the resolution of the lid. By
+default, the mean resolution of the hull mesh is used.
+
+See :doc:`body` for detail on how to assign a lid mesh when defining a floating
+body.
+
+.. note::
+   The lid does not need neither to cover the whole interior free surface, nor
+   to be connected with the hull mesh. The lid automatically generated by
+   :meth:`~capytaine.meshes.meshes.Mesh.extract_lid` typically does not.
+   Nonetheless, the more interior free surface is covered, the more efficiently
+   the irregular frequencies will be removed.
+
+
+
 Defining an integration quadrature
 ----------------------------------
+
+.. note::
+   Quadratures are an advanced feature meant to experiment with numerical schemes.
+   The best compromise between precision and performance is often not to bother
+   with it and keep the default integration scheme.
 
 During the resolution of the BEM problem, the Green function has to be
 integrated on each panel of the mesh. Parts of the Green function (such as the

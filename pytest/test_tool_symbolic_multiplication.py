@@ -50,6 +50,10 @@ def test_numpy_matmul():
     c = A @ b
     assert (c/zero).shape == (10,)
 
+def test_undefined_case():
+    assert np.isnan(float(SymbolicMultiplication("0", np.inf)))
+    assert np.isnan(float(SymbolicMultiplication("∞", 0.0)))
+
 def test_supporting_symbolic_multiplication():
     zero = SymbolicMultiplication("0")
 

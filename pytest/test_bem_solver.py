@@ -6,15 +6,13 @@ import xarray as xr
 import capytaine as cpt
 from capytaine import __version__
 
-#-----------------------------------------------------------------------------#
-# Test indirect solver
-#-----------------------------------------------------------------------------#
+
 @pytest.fixture
 def sphere():
     mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 4)).immersed_part()
-    body = cpt.FloatingBody(mesh=mesh)
-    body.add_translation_dof(direction=(1, 0, 0), name="Surge")
-    return body
+    sphere = cpt.FloatingBody(mesh=mesh)
+    sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
+    return sphere
 
 
 def test_exportable_settings():
@@ -42,51 +40,28 @@ def test_exportable_settings():
     assert solver.exportable_settings['linear_solver'] == 'lu_decomposition'
 
 
-def test_limit_frequencies(sphere):
-    """Test if how the solver answers when asked for frequency of 0 or ∞."""
+def test_direct_solver(sphere):
+    problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
     solver = cpt.BEMSolver()
-
-    solver.solve(cpt.RadiationProblem(body=sphere, omega=0.0, water_depth=np.inf))
-
-    with pytest.raises(NotImplementedError):
-        solver.solve(cpt.RadiationProblem(body=sphere, omega=0.0, water_depth=1.0))
-
-    solver.solve(cpt.RadiationProblem(body=sphere, omega=np.inf, water_depth=np.inf))
-
-    with pytest.raises(NotImplementedError):
-        solver.solve(cpt.RadiationProblem(body=sphere, omega=np.inf, water_depth=10))
+    direct_result = solver.solve(problem, method='direct')
+    indirect_result = solver.solve(problem, method='indirect')
+    assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-1)
 
 
-def test_limit_frequencies_with_symmetries():
-    mesh = cpt.mesh_parallelepiped(reflection_symmetry=True).immersed_part()
-    body = cpt.FloatingBody(mesh=mesh)
-    body.add_translation_dof(name="Surge")
-    pb = cpt.RadiationProblem(body=body, omega=0.0)
+@pytest.mark.parametrize("method", ["direct", "indirect"])
+def test_same_result_with_symmetries(method):
     solver = cpt.BEMSolver()
-    res = solver.solve(pb, keep_details=True)
-    assert isinstance(res.added_mass['Surge'], float)
-
-
-def test_zero_frequency_datasets(sphere):
-    test_matrix = xr.Dataset(coords={
-        "wavenumber": np.linspace(0.0, 0.1, 3),
-        "radiating_dof": list(sphere.dofs),
-        })
-    solver = cpt.BEMSolver()
-    solver.fill_dataset(test_matrix, sphere)
-
-
-def test_infinite_frequency_datasets(sphere):
-    test_matrix = xr.Dataset(coords={
-        "wavelength": np.linspace(0.0, 0.1, 3),
-        "radiating_dof": list(sphere.dofs),
-        })
-    solver = cpt.BEMSolver()
-    solver.fill_dataset(test_matrix, sphere)
+    sym_mesh = cpt.ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), cpt.xOz_Plane)
+    sym_body = cpt.FloatingBody(mesh=sym_mesh, dofs=cpt.rigid_body_dofs())
+    sym_result = solver.solve(cpt.DiffractionProblem(body=sym_body, omega=1.0), method=method)
+    mesh = sym_mesh.merged()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    result = solver.solve(cpt.DiffractionProblem(body=body, omega=1.0), method=method)
+    assert sym_result.forces["Surge"] == pytest.approx(result.forces["Surge"], rel=1e-10)
 
 
 def test_parallelization(sphere):
-    joblib = pytest.importorskip("joblib")
+    pytest.importorskip("joblib")
     solver = cpt.BEMSolver()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
@@ -99,6 +74,18 @@ def test_float32_solver(sphere):
     solver = cpt.BEMSolver(green_function=cpt.Delhommeau(floating_point_precision="float32"))
     pb = cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=1.0)
     solver.solve(pb)
+
+
+def test_LiangWuNoblesseGF(sphere):
+    test_matrix = xr.Dataset(coords={
+        'omega': np.linspace(0.1, 4.0, 3),
+        'radiating_dof': list(sphere.dofs),
+    })
+    solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
+    ref_solver = cpt.BEMSolver(green_function=cpt.Delhommeau())
+    ds = solver.fill_dataset(test_matrix, sphere)
+    ref_ds = ref_solver.fill_dataset(test_matrix, sphere)
+    assert np.allclose(ds.added_mass.values, ref_ds.added_mass.values, rtol=1e-2)
 
 
 def test_fill_dataset(sphere):
@@ -138,30 +125,9 @@ def test_fill_dataset(sphere):
     assert np.allclose(recomputed_dataset["added_mass"].data, dataset["added_mass"].data)
 
 
-# TODO: move the code below to test_io_xarray.py
-    # wavenumbers = wavenumber_data_array(results)
-    # assert isinstance(wavenumbers, xr.DataArray)
-
 def test_warning_mesh_resolution(sphere, caplog):
     solver = cpt.BEMSolver()
     pb = cpt.RadiationProblem(body=sphere, wavelength=0.1*sphere.minimal_computable_wavelength)
     with caplog.at_level("WARNING"):
         solver.solve(pb)
     assert "resolution " in caplog.text
-
-def test_no_warning_mesh_resolution_at_zero_wavelength(sphere, caplog):
-    solver = cpt.BEMSolver()
-    pb = cpt.RadiationProblem(body=sphere, wavelength=0)
-    with caplog.at_level("WARNING"):
-        solver.solve(pb)
-    assert "resolution " not in caplog.text
-
-#-----------------------------------------------------------------------------#
-# Test direct solver
-#-----------------------------------------------------------------------------#
-def test_direct_solver(sphere):
-    problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
-    solver = cpt.BEMSolver()
-    direct_result = solver.solve(problem, method='direct')
-    indirect_result = solver.solve(problem, method='indirect')
-    assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-1)

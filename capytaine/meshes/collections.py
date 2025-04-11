@@ -103,14 +103,14 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
 
     def path_to_leaf(self):
         """
-        Builds a list of lists of paths from the collection corresponding to the 
+        Builds a list of lists of paths from the collection corresponding to the
         root of the tree to the submeshes corresponding to the leaves
         """
         ptl = []
         for i, mesh in enumerate(self):
            for path in mesh.path_to_leaf():
                ptl.append([i] + path)
-        return ptl 
+        return ptl
 
     def copy(self, name=None):
         from copy import deepcopy
@@ -123,6 +123,11 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
     def heal_mesh(self, closed_mesh=False):
         for mesh in self:
             mesh.heal_mesh(closed_mesh=closed_mesh)
+
+    @inplace_transformation
+    def with_normal_vector_going_down(self):
+        for mesh in self:
+            mesh.with_normal_vector_going_down()
 
     ##############
     # Properties #
@@ -281,7 +286,11 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
     @inplace_transformation
     def prune_empty_meshes(self):
         """Remove empty meshes from the collection."""
-        self._meshes = tuple(mesh for mesh in self if mesh.nb_faces > 0 and mesh.nb_vertices > 0)
+        remaining_meshes = tuple(mesh for mesh in self if mesh.nb_faces > 0 and mesh.nb_vertices > 0)
+        if len(remaining_meshes) == 0:
+            self._meshes = (Mesh(name="empty_mesh"),)
+        else:
+            self._meshes = remaining_meshes
 
     @property
     def axis_aligned_bbox(self):
@@ -311,3 +320,9 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
 
     def show_matplotlib(self, *args, **kwargs):
         self.merged().show_matplotlib(*args, **kwargs)
+
+    def lowest_lid_position(self, *args, **kwargs):
+        return self.merged().lowest_lid_position(*args, **kwargs)
+
+    def generate_lid(self, *args, **kwargs):
+        return self.merged().generate_lid(*args, **kwargs)

@@ -30,14 +30,14 @@ def clip(source_mesh: Mesh, plane: Plane, vicinity_tol=1e-12, name=None):
     """
     vertices_data = _vertices_positions_wrt_plane(source_mesh, plane, vicinity_tol)
 
-    nb_vertices_above_or_on_plane = np.count_nonzero(
-        vertices_data['vertices_above_mask'] | vertices_data['vertices_on_mask']
+    nb_vertices_strictly_above_plane = np.count_nonzero(
+        vertices_data['vertices_above_mask']
     )
     nb_vertices_below_or_on_plane = np.count_nonzero(
         vertices_data['vertices_below_mask'] | vertices_data['vertices_on_mask']
     )
 
-    if nb_vertices_above_or_on_plane == source_mesh.nb_vertices:
+    if nb_vertices_strictly_above_plane == source_mesh.nb_vertices:
         LOG.warning(f"Clipping {source_mesh.name} by {plane}: all vertices are removed.")
         clipped_mesh = Mesh(None, None)
         clipped_mesh._clipping_data = dict(faces_ids=[])
@@ -63,6 +63,7 @@ def clip(source_mesh: Mesh, plane: Plane, vicinity_tol=1e-12, name=None):
     if name is None:
         clipped_mesh.name = f'{source_mesh.name}_clipped'
     clipped_mesh.remove_unused_vertices()
+    clipped_mesh.remove_degenerated_faces()
 
     return clipped_mesh
 

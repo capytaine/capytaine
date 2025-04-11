@@ -57,6 +57,10 @@ def problems_from_dataset(dataset: xr.Dataset,
     if isinstance(bodies, FloatingBody):
         bodies = [bodies]
 
+    # Should be done before looking for `frequency_keys`, otherwise
+    # frequencies provided as a scalar dimension will be skipped.
+    dataset = _unsqueeze_dimensions(dataset)
+
     # SANITY CHECKS
     assert len(list(set(body.name for body in bodies))) == len(bodies), \
         "All bodies should have different names."
@@ -79,8 +83,6 @@ def problems_from_dataset(dataset: xr.Dataset,
             raise ValueError("Setting problems requires at most one of the following: omega (angular frequency) OR period OR wavenumber OR wavelength.\n"
                              "Received {}".format(frequency_keys))
     # END SANITY CHECKS
-
-    dataset = _unsqueeze_dimensions(dataset)
 
     if len(frequency_keys) == 0:
         freq_type = "omega"
@@ -110,11 +112,19 @@ def problems_from_dataset(dataset: xr.Dataset,
     if wave_direction_range is not None:
         for freq, wave_direction, water_depth, body_name, forward_speed, rho, g \
                 in product(freq_range, wave_direction_range, water_depth_range, body_range, forward_speed_range, rho_range, g_range):
-            problems.append(
-                DiffractionProblem(body=body_range[body_name], **{freq_type: freq},
-                                   wave_direction=wave_direction, water_depth=water_depth,
-                                   forward_speed=forward_speed, rho=rho, g=g)
-            )
+            if freq not in {0.0, np.inf}:
+                problems.append(
+                    DiffractionProblem(body=body_range[body_name], **{freq_type: freq},
+                                       wave_direction=wave_direction, water_depth=water_depth,
+                                       forward_speed=forward_speed, rho=rho, g=g)
+                )
+            elif freq in {0.0, np.inf} and radiating_dofs is not None:
+                # Diffraction problems are not defined for 0 and infinite frequency.
+                # But we don't want the whole batch to fail, as these frequencies are there for the radiation problems.
+                # The excitation force will be NaN for these frequencies in the resulting dataset.
+                pass
+            else:
+                raise ValueError("Zero and infinite frequencies are not defined when solving only diffraction problems.")
 
     if radiating_dofs is not None:
         for freq, radiating_dof, water_depth, body_name, forward_speed, rho, g \
@@ -300,6 +310,8 @@ def assemble_dataset(results,
 
     error_msg = 'The first argument of `assemble_dataset` must be either a list of LinearPotentialFlowResult or a bemio.io object'
     if hasattr(results, '__iter__'):
+        if len(results) == 0:
+            raise ValueError("Iterable provided to `assemble_dataset` is empty.")
         try:
             if 'capytaine' in results[0].__module__:
                 bemio_import = False
@@ -469,6 +481,43 @@ def assemble_dataset(results,
     dataset.attrs.update(attrs)
     dataset.attrs['capytaine_version'] = __version__
     return dataset
+
+
+def assemble_matrices(results):
+    """Simplified version of assemble_dataset, returning only bare matrices.
+    Meant mainly for teaching without introducing Xarray to beginers.
+
+    Parameters
+    ----------
+    results: list of LinearPotentialFlowResult
+        The results that will be read.
+
+    Returns
+    -------
+    3-ple of (np.arrays or None)
+        The added mass matrix, the radiation damping matrix and the excitation force.
+        If the data are no available in the results, returns None instead.
+    """
+
+    ds = assemble_dataset(results)
+
+    if "added_mass" in ds:
+        A = np.atleast_2d(ds.added_mass.values.squeeze())
+    else:
+        A = None
+
+    if "radiation_damping" in ds:
+        B = np.atleast_2d(ds.radiation_damping.values.squeeze())
+    else:
+        B = None
+
+    if "excitation_force" in ds:
+        F = np.atleast_1d(ds.excitation_force.values.squeeze())
+    else:
+        F = None
+
+    return A, B, F
+
 
 
 ################################

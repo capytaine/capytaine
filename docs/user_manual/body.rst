@@ -23,6 +23,32 @@ the variants defined in Capytaine, such as a
 Meshes from `meshio` can also be given directly to the ``FloatingBody``
 constructor without calling :func:`~capytaine.io.meshio.load_from_meshio`.
 
+Lid mesh
+~~~~~~~~
+
+For irregular frequencies removal, a second mesh can be provided when defining
+the body. It is meant to be a mesh of a lid of the part of the free surface
+that is inside the body. The lid can either on the free surface or slightly
+below. This mesh is ignored for many computations (such as hydrostatics) and is
+only used when solving a BEM problem.
+
+It is set as in the following example::
+
+    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh)
+
+Once a lid mesh has been defined, it is automatically used for irregular
+frequencies removal without any other action from the user.
+
+For irregular frequencies removal, the lid is expected to have normals going
+down (towards the fluid, through the body). If the lid appears to be horizontal
+with normal going up, Capytaine will switch the direction of its normal
+vectors.
+
+Currently, meshes with a symmetry are not supported, in the sense that the
+computation will be done without using the symmetries when a lid is added. This
+should be improved to support at least vertical symmetry plane in a future
+version.
+
 Dofs
 ~~~~
 
@@ -110,15 +136,8 @@ strictly associative (that is ``body_1 + (body_2 + body_3)`` has some internal
 differences with ``(body_1 + body_2) + body_3``).
 
 When two floating bodies with dofs are merged, the resulting body inherits from
-the dofs of the individual bodies with the new name :code:`body_name__dof_name`.
+the dofs of the individual bodies with the new name :code:`body_name__dof_name`::
 
-.. comment
-    mesh = cpt.mesh_sphere().immersed_part()
-    body_1 = cpt.FloatingBody(mesh, cpt.rigid_body_dofs(), name="body_1")
-    body_2 = cpt.FloatingBody(mesh.translated_x(5.0), cpt.rigid_body_dofs(), name="body_2")
-    two_bodies = body_1 + body_2
-
-.. code::
     print(two_bodies.nb_dofs)
     # 12
     print(two_bodies.dofs.keys())

@@ -66,7 +66,8 @@ TODO
 A6. Irregular frequencies removal
 ---------------------------------
 
-TODO
+.. literalinclude:: examples/A6_irregular_frequency_removal.py
+   :language: python
 
 
 A7. Elastic beam

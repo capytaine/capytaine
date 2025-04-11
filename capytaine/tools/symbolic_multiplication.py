@@ -1,3 +1,13 @@
+"""This module is used for the handling of zero and infinite frequencies.
+In this cases, the magnitudes that the solver has to manipulate are in the form of ω times a non-zero term.
+Instead of evaluating this multiplication as zero of infinity, we keep it symbolic using the class defined here.
+
+The frequency can be provided to the solver as something like
+`SymbolicMultiplication("0", 1.0)` (that is zero) and the solver will return an
+output of the form `SymbolicMultiplication("0", np.array(...))`
+(that is also actually zero, except we may be intested in the non-zero array).
+"""
+
 import numpy as np
 from functools import wraps, total_ordering
 
@@ -6,6 +16,8 @@ class SymbolicMultiplication:
     def __init__(self, symbol, value=1.0):
         self.symbol = symbol
         self.value = value
+        if hasattr(value, "shape"):
+            self.shape = value.shape  # When wrapping Numpy arrays
 
     def __format__(self, format_spec):
         return f"{self.symbol}×{self.value.__format__(format_spec)}"
@@ -64,6 +76,9 @@ class SymbolicMultiplication:
     def __rmatmul__(self, x):
         return SymbolicMultiplication(self.symbol, x @ self.value)
 
+    def __getitem__(self, item):
+        return SymbolicMultiplication(self.symbol, self.value[item])
+
     def __eq__(self, x):
         return float(self) == x
 
@@ -84,9 +99,9 @@ class SymbolicMultiplication:
 
     def __float__(self):
         if self.symbol == "0":
-            return 0.0
+            return 0.0 * float(self.value)
         elif self.symbol == "∞":
-            return np.inf
+            return np.inf * float(self.value)
         else:
             raise NotImplementedError
 
@@ -95,6 +110,12 @@ class SymbolicMultiplication:
 
 
 def supporting_symbolic_multiplication(f):
+    """
+    When this decorator is applied to a function, this function can now take
+    as input a `SymbolicMultiplication` object. The function is applied on the
+    `value` part of the `SymbolicMultiplication` without modifying the
+    `symbol`.
+    """
     @wraps(f)
     def wrapped_f(a, x):
         if hasattr(x, 'symbol'):

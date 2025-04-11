@@ -1,5 +1,5 @@
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# Copyright (C) 2017-2024 Matthieu Ancellin
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 """Solver for the BEM problem.
 
 .. code-block:: python
@@ -9,6 +9,7 @@
 
 """
 
+import os
 import logging
 
 import numpy as np
@@ -83,8 +84,9 @@ class BEMSolver:
         keep_details: bool, optional
             if True, store the sources and the potential on the floating body in the output object
             (default: True)
-        _check_wavelength: bool, optional
-            if True, check the mesh resolution with respect to the wavelength
+        _check_wavelength: bool, optional (default: True)
+            If True, the frequencies are compared to the mesh resolution and
+            the estimated first irregular frequency to warn the user.
 
         Returns
         -------
@@ -93,7 +95,9 @@ class BEMSolver:
         """
         LOG.info("Solve %s.", problem)
 
-        if _check_wavelength: self._check_wavelength([problem])
+        if _check_wavelength:
+            self._check_wavelength_and_mesh_resolution([problem])
+            self._check_wavelength_and_irregular_frequencies([problem])
 
         if problem.forward_speed != 0.0:
             omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
@@ -106,31 +110,38 @@ class BEMSolver:
                 raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
 
             S, D = self.engine.build_matrices(
-                    problem.body.mesh, problem.body.mesh,
+                    problem.body.mesh_including_lid, problem.body.mesh_including_lid,
                     problem.free_surface, problem.water_depth, wavenumber,
                     self.green_function, adjoint_double_layer=False
                     )
 
             potential = linear_solver(D, S @ problem.boundary_condition)
+            if not potential.shape == problem.boundary_condition.shape:
+                raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({potential.shape}) "
+                                 f"does not match the expected shape ({problem.boundary_condition.shape})")
             pressure = 1j * omega * problem.rho * potential
             sources = None
         else:
             S, K = self.engine.build_matrices(
-                    problem.body.mesh, problem.body.mesh,
+                    problem.body.mesh_including_lid, problem.body.mesh_including_lid,
                     problem.free_surface, problem.water_depth, wavenumber,
                     self.green_function, adjoint_double_layer=True
                     )
 
             sources = linear_solver(K, problem.boundary_condition)
+            if not sources.shape == problem.boundary_condition.shape:
+                raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({sources.shape}) "
+                                 f"does not match the expected shape ({problem.boundary_condition.shape})")
             potential = S @ sources
             pressure = 1j * omega * problem.rho * potential
             if problem.forward_speed != 0.0:
                 result = problem.make_results_container(sources=sources)
                 # Temporary result object to compute the ∇Φ term
-                nabla_phi = self._compute_potential_gradient(problem.body.mesh, result)
+                nabla_phi = self._compute_potential_gradient(problem.body.mesh_including_lid, result)
                 pressure += problem.rho * problem.forward_speed * nabla_phi[:, 0]
 
-        forces = problem.body.integrate_pressure(pressure)
+        pressure_on_hull = pressure[:problem.body.mesh.nb_faces]  # Discards pressure on lid if any
+        forces = problem.body.integrate_pressure(pressure_on_hull)
 
         if not keep_details:
             result = problem.make_results_container(forces)
@@ -141,7 +152,7 @@ class BEMSolver:
 
         return result
 
-    def solve_all(self, problems, *, method='indirect', n_jobs=1, progress_bar=True, _check_wavelength=True, **kwargs):
+    def solve_all(self, problems, *, method='indirect', n_jobs=1, progress_bar=None, _check_wavelength=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -154,15 +165,35 @@ class BEMSolver:
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
-        progress_bar: bool, optional (default: True)
-            Display a progress bar while solving
+        progress_bar: bool, optional
+            Display a progress bar while solving.
+            If no value is provided to this method directly,
+            check whether the environment variable `CAPYTAINE_PROGRESS_BAR` is defined
+            and otherwise default to True.
+        _check_wavelength: bool, optional (default: True)
+            If True, the frequencies are compared to the mesh resolution and
+            the estimated first irregular frequency to warn the user.
 
         Returns
         -------
         list of LinearPotentialFlowResult
             the solved problems
         """
-        if _check_wavelength: self._check_wavelength(problems)
+        if _check_wavelength:
+            self._check_wavelength_and_mesh_resolution(problems)
+            self._check_wavelength_and_irregular_frequencies(problems)
+
+        if progress_bar is None:
+            if "CAPYTAINE_PROGRESS_BAR" in os.environ:
+                env_var = os.environ["CAPYTAINE_PROGRESS_BAR"].lower()
+                if env_var in {'true', '1', 't'}:
+                    progress_bar = True
+                elif env_var in {'false', '0', 'f'}:
+                    progress_bar = False
+                else:
+                    raise ValueError("Invalid value '{}' for the environment variable CAPYTAINE_PROGRESS_BAR.".format(os.environ["CAPYTAINE_PROGRESS_BAR"]))
+            else:
+                progress_bar = True
 
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
@@ -184,9 +215,10 @@ class BEMSolver:
             return results
 
     @staticmethod
-    def _check_wavelength(problems):
+    def _check_wavelength_and_mesh_resolution(problems):
         """Display a warning if some of the problems have a mesh resolution
         that might not be sufficient for the given wavelength."""
+        LOG.debug("Check wavelength with mesh resolution.")
         risky_problems = [pb for pb in problems
                           if 0.0 < pb.wavelength < pb.body.minimal_computable_wavelength]
         nb_risky_problems = len(risky_problems)
@@ -195,22 +227,52 @@ class BEMSolver:
             freq_type = risky_problems[0].provided_freq_type
             freq = pb.__getattribute__(freq_type)
             LOG.warning(f"Mesh resolution for {pb}:\n"
-                    f"The resolution of the mesh of the body {pb.body.__short_str__()} might "
-                    f"be insufficient for {freq_type}={freq}.\n"
-                     "This warning appears because the largest panel of this mesh "
-                    f"has radius {pb.body.mesh.faces_radiuses.max():.3f} > wavelength/8."
-                    )
+                        f"The resolution of the mesh of the body {pb.body.__short_str__()} might "
+                        f"be insufficient for {freq_type}={freq}.\n"
+                        "This warning appears because the largest panel of this mesh "
+                        f"has radius {pb.body.mesh.faces_radiuses.max():.3f} > wavelength/8."
+                        )
         elif nb_risky_problems > 1:
             freq_type = risky_problems[0].provided_freq_type
             freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
             LOG.warning(f"Mesh resolution for {nb_risky_problems} problems:\n"
-                         "The resolution of the mesh might be insufficient "
+                        "The resolution of the mesh might be insufficient "
                         f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
-                         "This warning appears when the largest panel of this mesh "
-                         "has radius > wavelength/8."
-                    )
+                        "This warning appears when the largest panel of this mesh "
+                        "has radius > wavelength/8."
+                        )
 
-    def fill_dataset(self, dataset, bodies, *, method='indirect', n_jobs=1, **kwargs):
+    @staticmethod
+    def _check_wavelength_and_irregular_frequencies(problems):
+        """Display a warning if some of the problems might encounter irregular frequencies."""
+        LOG.debug("Check wavelength with estimated irregular frequency.")
+        risky_problems = [pb for pb in problems
+                          if pb.body.first_irregular_frequency_estimate(g=pb.g) < pb.omega < np.inf]
+        nb_risky_problems = len(risky_problems)
+        if nb_risky_problems >= 1:
+            if any(pb.body.lid_mesh is None for pb in problems):
+                recommendation = "Setting a lid for the floating body is recommended."
+            else:
+                recommendation = "The lid might need to be closer to the free surface."
+            if nb_risky_problems == 1:
+                pb = risky_problems[0]
+                freq_type = risky_problems[0].provided_freq_type
+                freq = pb.__getattribute__(freq_type)
+                LOG.warning(f"Irregular frequencies for {pb}:\n"
+                            f"The body {pb.body.__short_str__()} might display irregular frequencies "
+                            f"for {freq_type}={freq}.\n"
+                            + recommendation
+                            )
+            elif nb_risky_problems > 1:
+                freq_type = risky_problems[0].provided_freq_type
+                freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
+                LOG.warning(f"Irregular frequencies for {nb_risky_problems} problems:\n"
+                            "Irregular frequencies might be encountered "
+                            f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
+                            + recommendation
+                            )
+
+    def fill_dataset(self, dataset, bodies, *, method='indirect', n_jobs=1, _check_wavelength=True, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -225,8 +287,14 @@ class BEMSolver:
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
-        progress_bar: bool, optional (default: True)
-            Display a progress bar while solving
+        progress_bar: bool, optional
+            Display a progress bar while solving.
+            If no value is provided to this method directly,
+            check whether the environment variable `CAPYTAINE_PROGRESS_BAR` is defined
+            and otherwise default to True.
+        _check_wavelength: bool, optional (default: True)
+            If True, the frequencies are compared to the mesh resolution and
+            the estimated first irregular frequency to warn the user.
 
         Returns
         -------
@@ -236,12 +304,12 @@ class BEMSolver:
                  **self.exportable_settings}
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
-            results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs)
+            results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength)
             kochin = kochin_data_array(results, dataset.coords['theta'])
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
             dataset.update(kochin)
         else:
-            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs)
+            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 
@@ -271,7 +339,7 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
-        S, _ = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.encounter_wavenumber)
+        S, _ = self.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
         potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
@@ -283,7 +351,7 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        _, gradG = self.green_function.evaluate(points, result.body.mesh, result.free_surface, result.water_depth, result.encounter_wavenumber,
+        _, gradG = self.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber,
                                                 early_dot_product=False)
         velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
         return velocities.reshape((*output_shape, 3))
@@ -409,7 +477,7 @@ class BEMSolver:
         if chunk_size > mesh.nb_faces:
             S = self.engine.build_S_matrix(
                 mesh,
-                result.body.mesh,
+                result.body.mesh_including_lid,
                 result.free_surface, result.water_depth, result.wavenumber,
                 self.green_function
             )
@@ -421,7 +489,7 @@ class BEMSolver:
                 faces_to_extract = list(range(i, min(i+chunk_size, mesh.nb_faces)))
                 S = self.engine.build_S_matrix(
                     mesh.extract_faces(faces_to_extract),
-                    result.body.mesh,
+                    result.body.mesh_including_lid,
                     result.free_surface, result.water_depth, result.wavenumber,
                     self.green_function
                 )

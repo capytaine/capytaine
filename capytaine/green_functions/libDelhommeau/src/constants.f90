@@ -17,18 +17,27 @@ MODULE CONSTANTS
   REAL(KIND=PRE), PARAMETER    :: LOG_2 = LOG(REAL(2d0, kind=pre))
   COMPLEX(KIND=PRE), PARAMETER :: II = (ZERO, ONE) ! Imaginary unit
 
+  integer, parameter :: nb_tabulated_values = 5
+
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   ! Parameters for different variants of the Green function.
   ! The actual number should be irrelevant as long as they are different.
 
-  ! Values for "tabulation_grid_shape"
+  ! Values for "tabulation_grid_shape", which could be generalized to "infinite_depth_method"
+  integer, parameter :: LIANG_WU_NOBLESSE = -1
   integer, parameter :: LEGACY_GRID = 0  ! Nemoh 2
   integer, parameter :: SCALED_NEMOH3_GRID = 1
+
+  ! Values for "finite_depth_method"
+  integer, parameter :: FINGREEN3D_METHOD = -1
+  integer, parameter :: LEGACY_FINITE_DEPTH = 0
+  integer, parameter :: NEWER_FINITE_DEPTH = 1
 
   ! Values for "gf_singularities"
   integer, parameter :: HIGH_FREQ = 0  ! legacy from Nemoh
   integer, parameter :: LOW_FREQ = 1  ! aka XieDelhommeau
+  integer, parameter :: LOW_FREQ_WITH_RANKINE_PART = 2  ! like LOW_FREQ but with a term integrated exactly
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 

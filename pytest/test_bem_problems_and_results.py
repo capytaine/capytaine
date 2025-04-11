@@ -78,6 +78,15 @@ def test_LinearPotentialFlowProblem(sphere):
     assert res.body is pb.body
 
 
+def test_mesh_inconsistent_with_dofs(sphere):
+    n = sphere.mesh.nb_faces
+    sphere.dofs["Wrong_dof"] = np.ones((n//2, 3))
+    with pytest.raises(ValueError):
+        cpt.RadiationProblem(body=sphere, wavenumber=1.0)
+    with pytest.raises(ValueError):
+        cpt.DiffractionProblem(body=sphere, wavenumber=1.0)
+
+
 def test_mesh_above_the_free_surface(caplog):
     with caplog.at_level(logging.WARNING):
         body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())
@@ -166,6 +175,13 @@ def test_radiation_problem(sphere, caplog):
     res = pb.make_results_container(forces={"Heave": 1.0 + 2.0j})
     assert res.added_mass == res.added_masses == {"Heave": 1.0}
     assert res.radiation_damping == res.radiation_dampings == {"Heave": 2.0}
+
+
+def test_radiation_problem_with_wrong_dof_name():
+    mesh = cpt.mesh_sphere()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    with pytest.raises(ValueError, match="'Flurp'"):
+        cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Flurp")
 
 
 @pytest.mark.parametrize("cal_file", ["Nemoh.cal", "Nemoh_v3.cal"])
@@ -258,10 +274,23 @@ def test_problems_from_dataset_with_wavelength(sphere):
         assert np.isclose(pb.wavelength, 12.0)
 
 
-def test_problems_from_dataset_with_too_many_info(sphere):
+def test_problems_from_dataset_with_too_many_frequencies(sphere):
     dset = xr.Dataset(coords={'wavelength': [12.0], 'period': [3.0], 'radiating_dof': ["Heave"]})
     with pytest.raises(ValueError, match="at most one"):
-        problems = problems_from_dataset(dset, sphere)
+        problems_from_dataset(dset, sphere)
+
+
+def test_problems_from_dataset_without_list(sphere):
+    dset = xr.Dataset(coords={'omega': 1.5, 'radiating_dof': "Heave"})
+    problems = problems_from_dataset(dset, sphere)
+    assert all(pb.omega == 1.5 for pb in problems)
+    assert all(pb.radiating_dof == "Heave" for pb in problems)
+
+
+def test_problems_from_dataset_without_list_with_too_many_frequencies(sphere):
+    dset = xr.Dataset(coords={'omega': 1.5, 'period': 1.5, 'radiating_dof': "Heave"})
+    with pytest.raises(ValueError, match="at most one"):
+        problems_from_dataset(dset, sphere)
 
 
 @pytest.mark.parametrize("method", ['indirect','direct'])
@@ -279,6 +308,45 @@ def test_assemble_dataset(sphere, solver, method):
     ds12 = assemble_dataset([res_1, res_2])
     assert "Froude_Krylov_force" in ds12
     assert "added_mass" in ds12
+
+
+def test_assemble_matrices(sphere, solver):
+    pbs = [cpt.DiffractionProblem(body=sphere, wave_direction=1.0, omega=1.0),
+           cpt.RadiationProblem(body=sphere, wave_direction=1.0, radiating_dof="Heave")]
+    res = solver.solve_all(pbs)
+    A, B, F = cpt.assemble_matrices(res)
+    assert A.shape == (1, 1)
+    assert A.dtype == np.float64
+    assert B.shape == (1, 1)
+    assert B.dtype == np.float64
+    assert F.shape == (1,)
+    assert F.dtype == np.complex128
+
+
+def test_assemble_matrices_rad_only(sphere, solver):
+    pbs = [cpt.RadiationProblem(body=sphere, wave_direction=1.0, radiating_dof="Heave")]
+    res = solver.solve_all(pbs)
+    A, B, F = cpt.assemble_matrices(res)
+    assert A.shape == (1, 1)
+    assert A.dtype == np.float64
+    assert B.shape == (1, 1)
+    assert B.dtype == np.float64
+    assert F is None
+
+
+def test_assemble_matrices_dif_only(sphere, solver):
+    pbs = [cpt.DiffractionProblem(body=sphere, wave_direction=1.0, omega=1.0)]
+    res = solver.solve_all(pbs)
+    A, B, F = cpt.assemble_matrices(res)
+    assert A is None
+    assert B is None
+    assert F.shape == (1,)
+    assert F.dtype == np.complex128
+
+
+def test_assemble_matrices_no_data():
+    with pytest.raises(ValueError):
+        cpt.assemble_matrices([])
 
 
 def test_fill_dataset(sphere, solver):

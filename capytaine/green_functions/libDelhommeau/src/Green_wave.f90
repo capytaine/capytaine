@@ -1,24 +1,32 @@
-! Copyright (C) 2017-2024 Matthieu Ancellin
+! Copyright (C) 2017-2025 Matthieu Ancellin
 ! See LICENSE file at <https://github.com/capytaine/libDelhommeau>
-MODULE GREEN_WAVE
+module Green_Wave
 
-  USE FLOATING_POINT_PRECISION, ONLY: PRE
-  USE CONSTANTS
-  USE DELHOMMEAU_INTEGRALS
-  USE GREEN_RANKINE, ONLY: COMPUTE_ASYMPTOTIC_RANKINE_SOURCE
+  use floating_point_precision, only: pre
+  use constants
+  use delhommeau_integrals
+#ifdef LIANGWUNOBLESSE_OPTIONAL_DEPENDENCY
+    use liangwunoblessewaveterm, only: havelockgf
+#endif
+#ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
+    use fingreen3d_module, only: fingreen3d_routine, dispersion
+#endif
+  use green_rankine, only: integral_of_reflected_rankine
 
-  IMPLICIT NONE
+  implicit none
 
   ! Dependencies between the functions of this module:
   ! (from top to bottom: "is called by")
   !
-  !                                            (Delhommeau_integrals.f90)
-  !                                                       |
-  !                                           WAVE_PART_INFINITE_DEPTH           (COMPUTE_ASYMPTOTIC_RANKINE_SOURCE)
-  !                                                     /   \                    /
-  !          INTEGRAL_OF_SINGULARITY_ON_FREE_SURFACE   |    WAVE_PART_FINITE_DEPTH
-  !                                                \   \   /
-  !                                              INTEGRAL_OF_WAVE_PART
+  !                                            (Delhommeau_integrals.f90 or LiangWuNoblesseWaveTerm.f90)
+  !                                                                       |
+  !                integral_of_singularity_on_free_surface          wave_part_infinite_depth
+  !                                                       \               |
+  !                    integral_of_reflected_Rankine      integral_of_wave_part_infinite_depth
+  !                                             |         /          |
+  !                     integral_of_wave_part_finite_depth           |
+  !                                              \                   /
+  !                                              integral_of_wave_part
   !                                                       |
   !                                                 (matrices.f90)
   !                                                       |
@@ -30,18 +38,20 @@ CONTAINS
 
   subroutine integral_of_wave_part                               &
       (x,                                                        &
+      face_nodes,                                                &
       face_center, face_normal, face_area, face_radius,          &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber, depth,                                         &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
-      nexp, ambda, ar,                                           &
-      int_G, int_nablaG_sym, int_nablaG_antisym                  &
+      finite_depth_method, prony_decomposition, dispersion_roots,&
+      derivative_with_respect_to_first_variable,                 &
+      int_G, int_nablaG                                          &
       )
-    ! Integral over a panel of the wave part of the Green function.
 
     real(kind=pre), dimension(3),          intent(in) :: x
+    real(kind=pre), dimension(4, 3),       intent(in) :: face_nodes
     real(kind=pre), dimension(3),          intent(in) :: face_center, face_normal
     real(kind=pre),                        intent(in) :: face_area, face_radius
     real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
@@ -52,20 +62,90 @@ CONTAINS
     integer,                               intent(in) :: tabulation_grid_shape
     real(kind=pre), dimension(:),          intent(in) :: tabulated_r_range
     real(kind=pre), dimension(:),          intent(in) :: tabulated_z_range
-    real(kind=pre), dimension(:, :, :, :), intent(in) :: tabulated_integrals
-    integer,                               intent(in) :: nexp
-    real(kind=pre), dimension(nexp),       intent(in) :: ambda, ar
+    real(kind=pre), dimension(:, :, :),    intent(in) :: tabulated_integrals
+    integer,                               intent(in) :: finite_depth_method
+    real(kind=pre), dimension(:, :),       intent(in) :: prony_decomposition  ! For Delhommeau's finite depth, dummy otherwise
+    real(kind=pre), dimension(:),          intent(in) :: dispersion_roots  ! For FinGreen3D, dummy otherwise
+    logical,                               intent(in) :: derivative_with_respect_to_first_variable
 
     complex(kind=pre),                     intent(out) :: int_G
-    complex(kind=pre), dimension(3),       intent(out) :: int_nablaG_sym, int_nablaG_antisym
+    complex(kind=pre), dimension(3),       intent(out) :: int_nablaG
+
+    if (is_infinity(depth)) then
+      call integral_of_wave_part_infinite_depth                    &
+        (x,                                                        &
+        face_center, face_area,                                    &
+        face_quadrature_points, face_quadrature_weights,           &
+        wavenumber,                                                &
+        tabulation_nb_integration_points, tabulation_grid_shape,   &
+        tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+        gf_singularities,                                          &
+        derivative_with_respect_to_first_variable,                 &
+        int_G, int_nablaG                                          &
+        )
+    else
+      if (finite_depth_method == FINGREEN3D_METHOD) then
+        call integral_of_wave_part_fingreen3D                        &
+          (x,                                                        &
+          face_quadrature_points, face_quadrature_weights,           &
+          wavenumber, depth, dispersion_roots,                       &
+          derivative_with_respect_to_first_variable,                 &
+          int_G, int_nablaG                                          &
+          )
+      else
+        call integral_of_wave_part_finite_depth                      &
+          (x,                                                        &
+          face_nodes,                                                &
+          face_center, face_normal, face_area, face_radius,          &
+          face_quadrature_points, face_quadrature_weights,           &
+          wavenumber, depth,                                         &
+          tabulation_nb_integration_points, tabulation_grid_shape,   &
+          tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+          ! gf_singularities,                                          &  ! Unimplemented for now
+          prony_decomposition,                                       &
+          derivative_with_respect_to_first_variable,                 &
+          int_G, int_nablaG                                          &
+          )
+      endif
+    endif
+  end subroutine
+
+  ! =====================================================================
+
+  subroutine integral_of_wave_part_infinite_depth                &
+      (x,                                                        &
+      face_center, face_area,                                    &
+      face_quadrature_points, face_quadrature_weights,           &
+      wavenumber,                                                &
+      tabulation_nb_integration_points, tabulation_grid_shape,   &
+      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+      gf_singularities,                                          &
+      derivative_with_respect_to_first_variable,                 &
+      int_G, int_nablaG                                          &
+      )
+
+    real(kind=pre), dimension(3),          intent(in) :: x
+    real(kind=pre), dimension(3),          intent(in) :: face_center
+    real(kind=pre),                        intent(in) :: face_area
+    real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
+    real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
+    real(kind=pre),                        intent(in) :: wavenumber
+    integer,                               intent(in) :: gf_singularities
+    integer,                               intent(in) :: tabulation_nb_integration_points
+    integer,                               intent(in) :: tabulation_grid_shape
+    real(kind=pre), dimension(:),          intent(in) :: tabulated_r_range
+    real(kind=pre), dimension(:),          intent(in) :: tabulated_z_range
+    real(kind=pre), dimension(:, :, :),    intent(in) :: tabulated_integrals
+    logical,                               intent(in) :: derivative_with_respect_to_first_variable
+
+    complex(kind=pre),                     intent(out) :: int_G
+    complex(kind=pre), dimension(3),       intent(out) :: int_nablaG
 
     ! Local variables
     real(kind=pre)                  :: r, z
     complex(kind=pre)               :: G_at_point
-    complex(kind=pre), dimension(3) :: nablaG_at_point, nablaG_at_point_sym, nablaG_at_point_antisym
+    complex(kind=pre), dimension(3) :: nablaG_at_point
     integer                         :: nb_quad_points, Q
-
-    nb_quad_points = size(face_quadrature_weights)
 
     r = wavenumber * norm2(x(1:2) - face_center(1:2))
     z = wavenumber * (x(3) + face_center(3))
@@ -77,55 +157,39 @@ CONTAINS
 
       ! Interaction of a panel on the free surface with itself
       call integral_of_singularity_on_free_surface( &
-        face_area, wavenumber, &
-        int_G, int_nablaG_sym, int_nablaG_antisym &
-        )
+        face_area, wavenumber, int_G, int_nablaG)
 
     else
       ! Numerical integration
       int_G = zero
-      int_nablaG_sym = zero
-      int_nablaG_antisym = zero
+      int_nablaG = zero
+
+      nb_quad_points = size(face_quadrature_weights)
 
       do q = 1, nb_quad_points
-        if (is_infinity(depth)) then
-          call wave_part_infinite_depth                                &
-            (x,                                                        &
-            face_quadrature_points(q, :),                              &
-            wavenumber,                                                &
-            tabulation_nb_integration_points, tabulation_grid_shape,   &
-            tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-            gf_singularities,                                          &
-            G_at_point, nablaG_at_point                                &
-            )
-            nablaG_at_point_sym(1:2) = cmplx(zero, zero, kind=pre)
-            nablaG_at_point_sym(3) = nablaG_at_point(3)
-            nablaG_at_point_antisym(1:2) = nablaG_at_point(1:2)
-            nablaG_at_point_antisym(3) = cmplx(zero, zero, kind=pre)
-        else
-          call wave_part_finite_depth                                  &
-            (x,                                                        &
-            face_quadrature_points(q, :),                              &
-            wavenumber,                                                &
-            depth,                                                     &
-            tabulation_nb_integration_points, tabulation_grid_shape,   &
-            tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-            nexp, ambda, ar,                                           &
-            G_at_point, nablaG_at_point_sym, nablaG_at_point_antisym   &
-            )
-        end if
-
+        call wave_part_infinite_depth                                &
+          (x,                                                        &
+          face_quadrature_points(q, :),                              &
+          wavenumber,                                                &
+          tabulation_nb_integration_points, tabulation_grid_shape,   &
+          tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+          gf_singularities,                                          &
+          G_at_point, nablaG_at_point                                &
+          )
         int_G = int_G + G_at_point * face_quadrature_weights(q)
-        int_nablaG_sym = int_nablaG_sym + nablaG_at_point_sym * face_quadrature_weights(q)
-        int_nablaG_antisym = int_nablaG_antisym + nablaG_at_point_antisym * face_quadrature_weights(q)
+        int_nablaG(:) = int_nablaG(:) + nablaG_at_point(:) * face_quadrature_weights(q)
       end do
     end if
+
+    if (.not. derivative_with_respect_to_first_variable) then
+      int_nablaG(1:2) = -int_nablaG(1:2)
+    endif
 
   end subroutine
 
   ! =====================================================================
 
-  subroutine integral_of_singularity_on_free_surface(face_area, wavenumber, int_G, int_nablaG_sym, int_nablaG_antisym)
+  subroutine integral_of_singularity_on_free_surface(face_area, wavenumber, int_G, int_nablaG)
   ! Integrating the wave term by approximating the panel by a circle of same area.
   ! The singularities are integrated analytically. The rest is integrated with a 1-point integral.
 
@@ -147,15 +211,14 @@ CONTAINS
     real(kind=pre),                        intent(in) :: face_area
 
     complex(kind=pre),                     intent(out) :: int_G
-    complex(kind=pre), dimension(3),       intent(out) :: int_nablaG_sym, int_nablaG_antisym
+    complex(kind=pre), dimension(3),       intent(out) :: int_nablaG
 
     int_G = wavenumber * face_area * (                      &
                   (1 - log(wavenumber**2 * face_area / pi)) &
                   + 2 * (euler_gamma - log_2) - 2*pi*ii     &
                 )
-    int_nablaG_sym(1:2) = cmplx(zero, zero, kind=pre)  ! TODO: might be needed for velocity reconstruction.
-    int_nablaG_sym(3) = wavenumber * (int_G + 4 * sqrt(pi*face_area))
-    int_nablaG_antisym(1:3) = cmplx(zero, zero, kind=pre)  ! Irrelevant anyway because we are on the diagonal
+    int_nablaG(1:2) = cmplx(zero, zero, kind=pre)  ! TODO: might be needed for velocity reconstruction.
+    int_nablaG(3) = wavenumber * (int_G + 4 * sqrt(pi*face_area))
   end subroutine
 
   ! =====================================================================
@@ -166,8 +229,11 @@ CONTAINS
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
       G, nablaG)
-      ! Returns (G^-, nabla G^+) if gf_singularities == HIGH_FREQ
-      ! and (G^+, nabla G^+) if gf_singularities == LOW_FREQ
+      ! Returns
+      ! (G^-, nabla G^-)                    if gf_singularities == HIGH_FREQ
+      ! (G^+, nabla G^+)                    if gf_singularities == LOW_FREQ
+      ! (G^+, nabla G^+ - (0, 0, 2*k**2/r1) if gf_singularities == LOW_FREQ_WITH_RANKINE_PART
+      ! In the last case, the missing term will be computed with the reflected Rankine term
 
     ! Inputs
     REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I, X0J
@@ -179,7 +245,7 @@ CONTAINS
     INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
     REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
-    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
+    REAL(KIND=PRE), DIMENSION(:, :, :),       INTENT(IN) :: tabulated_integrals
 
     ! Outputs
     COMPLEX(KIND=PRE),                        INTENT(OUT) :: G
@@ -187,49 +253,12 @@ CONTAINS
 
     ! Local variables
     REAL(KIND=PRE) :: r, r1, z, drdx1, drdx2, dzdx3
-    REAL(KIND=PRE), dimension(2, 2) :: integrals
+    complex(kind=pre) :: G_, dGdr_, dGdr
+    REAL(KIND=PRE), dimension(nb_tabulated_values) :: integrals
 
     r = wavenumber * NORM2(X0I(1:2) - X0J(1:2))
     z = wavenumber * (X0I(3) + X0J(3))
     r1 = hypot(r, z)
-
-    !=======================================================
-    ! Evaluate the elementary integrals depending on z and r
-    !=======================================================
-    IF ((size(tabulated_z_range) <= 1) .or. (size(tabulated_r_range) <= 1)) THEN
-      ! No tabulation, fully recompute the Green function each time.
-      integrals = numerical_integration(r, z, tabulation_nb_integration_points)
-      if (gf_singularities == HIGH_FREQ) then
-        ! numerical_integration always computes the low_freq version,
-        ! so need a fix to get the high_freq
-        integrals(1, 2) = integrals(1, 2) + 2/r1
-      endif
-    ELSE
-      IF ((abs(z) < abs(tabulated_z_range(size(tabulated_z_range)))) &
-          .AND. (r < tabulated_r_range(size(tabulated_r_range)))) THEN
-        ! Within the range of tabulated data
-        integrals = pick_in_default_tabulation( &
-            r, z, tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals &
-        )
-        if (gf_singularities == HIGH_FREQ) then
-          ! numerical_integration always computes the low_freq version,
-          ! so need a fix to get the high_freq
-          integrals(1, 2) = integrals(1, 2) + 2/r1
-        endif
-      ELSE
-        ! Delhommeau's asymptotic expression of Green function for distant panels
-        integrals = asymptotic_approximations(MAX(r, 1e-10), z)
-        if (gf_singularities == LOW_FREQ) then
-          ! numerical_integration always computes the high_freq version,
-          ! so need a fix to get the low_freq
-          integrals(1, 2) = integrals(1, 2) - 2/r1
-        endif
-      ENDIF
-    ENDIF
-
-    !===================================================
-    ! Add the elementary integrals to build G and nablaG
-    !===================================================
 
     IF (ABS(r) > 16*EPSILON(r)) THEN
       drdx1 = wavenumber**2 * (X0I(1) - X0J(1))/r
@@ -241,21 +270,61 @@ CONTAINS
     END IF
     dzdx3 = wavenumber
 
-    G    = CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
-    nablaG(1) = drdx1 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
-    nablaG(2) = drdx2 * CMPLX(integrals(1, 1), integrals(2, 1), KIND=PRE)
-    nablaG(3) = dzdx3 * CMPLX(integrals(1, 2), integrals(2, 2), KIND=PRE)
+    IF (tabulation_grid_shape == LIANG_WU_NOBLESSE) THEN
+#ifdef LIANGWUNOBLESSE_OPTIONAL_DEPENDENCY
+        call HavelockGF(r, z, G_, dGdr_)
+        G = - G_
+        dGdr = - dGdr_
+        nablaG(1) = drdx1 * dGdr
+        nablaG(2) = drdx2 * dGdr
+        nablaG(3) = dzdx3 * (G + 2/r1)
+#endif
+    ELSE
 
-    if (gf_singularities == LOW_FREQ) then
-      ! integrals(:, 2) are G^+, but the formula is that dG^+/dz = G^-
-      ! Here is the correction
-      nablaG(3) = nablaG(3) + 2*dzdx3/r1
-    elseif (gf_singularities == HIGH_FREQ) then
-      ! we have nabla G^+, but we actually need nabla G^-
-      nablaG(1) = nablaG(1) - 2*drdx1*r/r1**3
-      nablaG(2) = nablaG(2) - 2*drdx2*r/r1**3
-      nablaG(3) = nablaG(3) - 2*dzdx3*z/r1**3
+    !=======================================================
+    ! Evaluate the elementary integrals depending on z and r
+    !=======================================================
+      IF ((size(tabulated_z_range) <= 1) .or. (size(tabulated_r_range) <= 1)) THEN
+        ! No tabulation, fully recompute the Green function each time.
+        integrals = numerical_integration(r, z, tabulation_nb_integration_points)
+      ELSE
+        IF ((abs(z) < abs(tabulated_z_range(size(tabulated_z_range)))) &
+          .AND. (r < tabulated_r_range(size(tabulated_r_range)))) THEN
+          ! Within the range of tabulated data
+          integrals = pick_in_default_tabulation( &
+            r, z, tabulation_grid_shape, tabulated_r_range, tabulated_z_range, tabulated_integrals &
+            )
+        ELSE
+          ! Delhommeau's asymptotic expression of Green function for distant panels
+          integrals = asymptotic_approximations(MAX(r, 1e-10), z)
+        ENDIF
+      ENDIF
+
+    !===================================================
+    ! Add the elementary integrals to build G and nablaG
+    !===================================================
+
+    if ((gf_singularities == LOW_FREQ) .or. (gf_singularities == LOW_FREQ_WITH_RANKINE_PART)) then
+      ! G is G^+, nablaG is nablaG^+
+      G = CMPLX(integrals(1), integrals(3), KIND=PRE)
+      dGdr = CMPLX(integrals(4), integrals(5), KIND=PRE)
+      nablaG(1) = drdx1 * dGdr
+      nablaG(2) = drdx2 * dGdr
+      if (gf_singularities == LOW_FREQ) then
+        nablaG(3) = dzdx3 * (G + 2/r1)
+      else
+        nablaG(3) = dzdx3 * G
+        ! The missing Rankine term is integrated as a Rankine term
+      endif
+    else if (gf_singularities == HIGH_FREQ) then
+      ! G is G^-, nablaG is nablaG^-
+      G = CMPLX(integrals(2), integrals(3), KIND=PRE)
+      dGdr = CMPLX(integrals(4), integrals(5), KIND=PRE)
+      nablaG(1) = drdx1 * dGdr - 2*drdx1*r/r1**3
+      nablaG(2) = drdx2 * dGdr - 2*drdx2*r/r1**3
+      nablaG(3) = dzdx3 * G    - 2*dzdx3*z/r1**3
     endif
+    ENDIF
 
     G = wavenumber * G
     nablaG = wavenumber * nablaG
@@ -264,148 +333,322 @@ CONTAINS
 
   ! =====================================================================
 
-  SUBROUTINE WAVE_PART_FINITE_DEPTH                              &
-      (X0I, X0J, wavenumber, depth,                              &
+  pure function symmetric_of_vector(n) result(n_sym)
+    complex(kind=pre), dimension(3), intent(in) :: n
+    complex(kind=pre), dimension(3) :: n_sym
+
+    n_sym(1:2) = n(1:2)
+    n_sym(3)   = -n(3)
+  end function
+
+  pure function sea_bottom_symmetric_of_point(x, depth) result(x_sym)
+    real(kind=pre), dimension(3), intent(in) :: x
+    real(kind=pre),               intent(in) :: depth
+    real(kind=pre), dimension(3) :: x_sym
+
+    x_sym(1:2) = x(1:2)
+    x_sym(3) = -x(3) - 2*depth
+  end function
+
+  pure subroutine sea_bottom_symmetric_of_face( &
+    face_center, face_quadrature_points,        &
+    depth,                                      &
+    face_center_sym, face_quadrature_points_sym &
+    )
+    real(kind=pre), dimension(3),    intent(in) :: face_center
+    real(kind=pre), dimension(:, :), intent(in) :: face_quadrature_points
+    real(kind=pre),                  intent(in) :: depth
+    real(kind=pre), dimension(3),    intent(out) :: face_center_sym
+    real(kind=pre), dimension(:, :), intent(out) :: face_quadrature_points_sym
+
+    integer :: i
+
+    face_center_sym = sea_bottom_symmetric_of_point(face_center, depth)
+    do i = 1, size(face_quadrature_points, 1)
+      face_quadrature_points_sym(i, :) = sea_bottom_symmetric_of_point(face_quadrature_points(i, :), depth)
+    end do
+  end subroutine
+
+  subroutine integral_of_wave_part_finite_depth                  &
+      (x,                                                        &
+      face_nodes,                                                &
+      face_center, face_normal, face_area, face_radius,          &
+      face_quadrature_points, face_quadrature_weights,           &
+      wavenumber, depth,                                         &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      NEXP, AMBDA, AR,                                           &
-      SP, VSP_SYM, VSP_ANTISYM)
-    ! Compute the frequency-dependent part of the Green function in the finite depth case.
+      prony_decomposition,                                       &
+      derivative_with_respect_to_first_variable,                 &
+      int_G, int_nablaG                                          &
+      )
 
     ! Inputs
-    REAL(KIND=PRE),                           INTENT(IN) :: wavenumber, depth
-    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0I  ! Coordinates of the source point
-    REAL(KIND=PRE), DIMENSION(3),             INTENT(IN) :: X0J  ! Coordinates of the center of the integration panel
+    real(kind=pre), dimension(3),             intent(in) :: x
+    real(kind=pre), dimension(4, 3),          intent(in) :: face_nodes
+    real(kind=pre), dimension(3),             intent(in) :: face_center, face_normal
+    real(kind=pre),                           intent(in) :: face_area, face_radius
+    real(kind=pre), dimension(:),             intent(in) :: face_quadrature_weights
+    real(kind=pre), dimension(:, :),          intent(in) :: face_quadrature_points
+    real(kind=pre),                           intent(in) :: wavenumber, depth
+    logical,                                  intent(in) :: derivative_with_respect_to_first_variable
 
     ! Tabulated data
     integer,                                  intent(in) :: tabulation_nb_integration_points
-    INTEGER,                                  INTENT(IN) :: tabulation_grid_shape
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_r_range
-    REAL(KIND=PRE), DIMENSION(:),             INTENT(IN) :: tabulated_z_range
-    REAL(KIND=PRE), DIMENSION(size(tabulated_r_range), size(tabulated_z_range), 2, 2), INTENT(IN) :: tabulated_integrals
+    integer,                                  intent(in) :: tabulation_grid_shape
+    real(kind=pre), dimension(:),             intent(in) :: tabulated_r_range
+    real(kind=pre), dimension(:),             intent(in) :: tabulated_z_range
+    real(kind=pre), dimension(:, :, :),       intent(in) :: tabulated_integrals
 
-    ! Prony decomposition for finite depth
-    INTEGER,                                  INTENT(IN) :: NEXP
-    REAL(KIND=PRE), DIMENSION(NEXP),          INTENT(IN) :: AMBDA, AR
+    real(kind=pre), dimension(:, :),          intent(in) :: prony_decomposition
 
     ! Outputs
-    COMPLEX(KIND=PRE),               INTENT(OUT) :: SP  ! Integral of the Green function over the panel.
-    COMPLEX(KIND=PRE), DIMENSION(3), INTENT(OUT) :: VSP_SYM, VSP_ANTISYM ! Gradient of the integral of the Green function with respect to X0I.
+    complex(kind=pre),               intent(out) :: int_G  ! integral of the Green function over the panel.
+    complex(kind=pre), dimension(3), intent(out) :: int_nablaG ! Gradient of the integral of the Green function with respect to X0I.
 
     ! Local variables
-    INTEGER                              :: KE
-    REAL(KIND=PRE)                       :: AMH, AKH, A
-    REAL(KIND=PRE)                       :: AQT, R
-    REAL(KIND=PRE),    DIMENSION(3)      :: XI, XJ
-    REAL(KIND=PRE),    DIMENSION(4)      :: FTS
-    REAL(KIND=PRE),    DIMENSION(3, 4)   :: VTS
-    COMPLEX(KIND=PRE), DIMENSION(4)      :: FS
-    COMPLEX(KIND=PRE), DIMENSION(3, 4)   :: VS
+    real(kind=pre), dimension(3)    :: x_sym, face_center_sym
+    real(kind=pre), dimension(size(face_quadrature_points, 1), size(face_quadrature_points, 2)) :: face_quadrature_points_sym
+    real(kind=pre)                  :: lambda_k, a_k
+    real(kind=pre)                  :: amh, akh, a
+    real(kind=pre)                  :: int_G_term_Rankine
+    real(kind=pre), dimension(3)    :: int_nablaG_term_Rankine
+    complex(kind=pre)               :: int_G_term
+    complex(kind=pre), dimension(3) :: int_nablaG_term
+    integer                         :: ke
+
+    int_G = czero
+    int_nablaG = czero
+
+    ! Some coefficient
+    AMH  = wavenumber*depth
+    AKH  = AMH*TANH(AMH)
+    A    = (AMH+AKH)**2/(4*AMH*(AMH**2-AKH**2+AKH))
 
     !========================================
     ! Part 1: Solve 4 infinite depth problems
     !========================================
 
-    XI(:) = X0I(:)
-    XJ(:) = X0J(:)
-
-    ! Distance in xOy plane
-    R = NORM2(XI(1:2) - XJ(1:2))
+    x_sym = sea_bottom_symmetric_of_point(x, depth)
+    call sea_bottom_symmetric_of_face(            &
+      face_center, face_quadrature_points, depth, &
+      face_center_sym, face_quadrature_points_sym)
 
     ! 1.a First infinite depth problem
-    CALL WAVE_PART_INFINITE_DEPTH(                               &
-      XI(:), XJ(:), wavenumber,                                  &
+    CALL integral_of_wave_part_infinite_depth                    &
+      (x,                                                        &
+      face_center, face_area,                                    &
+      face_quadrature_points, face_quadrature_weights,           &
+      wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       LOW_FREQ,                                                  &
-      FS(1), VS(:, 1))
+      derivative_with_respect_to_first_variable,                 &
+      int_G_term, int_nablaG_term                                &
+      )
+    int_G = int_G + A * int_G_term
+    int_nablaG = int_nablaG + A * int_nablaG_term
 
-    ! 1.b Shift and reflect XI and compute another value of the Green function
-    XI(3) = -X0I(3) - 2*depth
-    XJ(3) =  X0J(3)
-    CALL WAVE_PART_INFINITE_DEPTH(                               &
-      XI(:), XJ(:), wavenumber,                                  &
+    ! 1.b Reflect X and compute another value of the Green function
+    CALL integral_of_wave_part_infinite_depth                    &
+      (x_sym,                                                    &
+      face_center, face_area,                                    &
+      face_quadrature_points, face_quadrature_weights,           &
+      wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       LOW_FREQ,                                                  &
-      FS(2), VS(:, 2))
-    VS(3, 2) = -VS(3, 2) ! Reflection of the output vector
+      derivative_with_respect_to_first_variable,                 &
+      int_G_term, int_nablaG_term                                &
+      )
+    int_G = int_G + A * int_G_term
+    if (derivative_with_respect_to_first_variable) then
+      int_nablaG = int_nablaG + A * symmetric_of_vector(int_nablaG_term)
+    else
+      int_nablaG = int_nablaG + A * int_nablaG_term
+    endif
 
-    ! 1.c Shift and reflect XJ and compute another value of the Green function
-    XI(3) =  X0I(3)
-    XJ(3) = -X0J(3) - 2*depth
-    CALL WAVE_PART_INFINITE_DEPTH(                               &
-      XI(:), XJ(:), wavenumber,                                  &
+    ! 1.c Reflect face and compute another value of the Green function
+    CALL integral_of_wave_part_infinite_depth                    &
+      (x,                                                        &
+      face_center_sym, face_area,                                &
+      face_quadrature_points_sym, face_quadrature_weights,       &
+      wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       LOW_FREQ,                                                  &
-      FS(3), VS(:, 3))
+      derivative_with_respect_to_first_variable,                 &
+      int_G_term, int_nablaG_term                                &
+      )
+    int_G = int_G + A * int_G_term
+    if (derivative_with_respect_to_first_variable) then
+      int_nablaG = int_nablaG + A * int_nablaG_term
+    else
+      int_nablaG = int_nablaG + A * symmetric_of_vector(int_nablaG_term)
+    endif
 
-    ! 1.d Shift and reflect both XI and XJ and compute another value of the Green function
-    XI(3) = -X0I(3) - 2*depth
-    XJ(3) = -X0J(3) - 2*depth
-    CALL WAVE_PART_INFINITE_DEPTH(                               &
-      XI(:), XJ(:), wavenumber,                                  &
+    ! 1.d Reflect both x and face and compute another value of the Green function
+    CALL integral_of_wave_part_infinite_depth                    &
+      (x_sym,                                                    &
+      face_center_sym, face_area,                                &
+      face_quadrature_points_sym, face_quadrature_weights,       &
+      wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       LOW_FREQ,                                                  &
-      FS(4), VS(:, 4))
-    VS(3, 4) = -VS(3, 4) ! Reflection of the output vector
+      derivative_with_respect_to_first_variable,                 &
+      int_G_term, int_nablaG_term                                &
+      )
+    int_G = int_G + A * int_G_term
+    int_nablaG = int_nablaG + A * symmetric_of_vector(int_nablaG_term)
 
-    ! Add up the results of the four problems
+    !=============================================================
+    ! Part 2: Integrate Rankine terms approximating remaining term
+    !=============================================================
+    do ke = 1, size(prony_decomposition, 2)
+      lambda_k = prony_decomposition(1, ke)
+      a_k = prony_decomposition(2, ke)
 
-    SP               = SUM(FS(1:4))
-    VSP_SYM(1:2)     = CMPLX(ZERO, ZERO, KIND=PRE)
-    VSP_ANTISYM(1:2) = VS(1:2, 1) + VS(1:2, 2) + VS(1:2, 3) + VS(1:2, 4)
-    VSP_SYM(3)       = VS(3, 1) + VS(3, 4)
-    VSP_ANTISYM(3)   = VS(3, 2) + VS(3, 3)
+      ! 2.a
+      call integral_of_reflected_Rankine(          &
+        x,                                         &
+        face_nodes, face_center, face_normal,      &
+        face_area, face_radius,                    &
+        derivative_with_respect_to_first_variable, &
+        [ONE, depth*lambda_k - 2*depth],           &
+        int_G_term_Rankine, int_nablaG_term_Rankine)
+      int_G = int_G + a_k/2 * int_G_term_Rankine
+      int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
 
-    ! Multiply by some coefficients
-    AMH  = wavenumber*depth
-    AKH  = AMH*TANH(AMH)
-    A    = (AMH+AKH)**2/(4*AMH*(AMH**2-AKH**2+AKH))
+      ! 2.b
+      call integral_of_reflected_Rankine(          &
+        x,                                         &
+        face_nodes, face_center, face_normal,      &
+        face_area, face_radius,                    &
+        derivative_with_respect_to_first_variable, &
+        [-ONE, -depth*lambda_k],                   &
+        int_G_term_Rankine, int_nablaG_term_Rankine)
+      int_G = int_G + a_k/2 * int_G_term_Rankine
+      int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
 
-    SP          = A*SP
-    VSP_ANTISYM = A*VSP_ANTISYM
-    VSP_SYM     = A*VSP_SYM
+      ! 2.c
+      call integral_of_reflected_Rankine(          &
+        x,                                         &
+        face_nodes, face_center, face_normal,      &
+        face_area, face_radius,                    &
+        derivative_with_respect_to_first_variable, &
+        [-ONE, depth*lambda_k - 4*depth],          &
+        int_G_term_Rankine, int_nablaG_term_Rankine)
+      int_G = int_G + a_k/2 * int_G_term_Rankine
+      int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
 
-    !=====================================================
-    ! Part 2: Integrate (NEXP+1)×4 terms of the form 1/MM'
-    !=====================================================
+      ! 2.d
+      call integral_of_reflected_Rankine(          &
+        x,                                         &
+        face_nodes, face_center, face_normal,      &
+        face_area, face_radius,                    &
+        derivative_with_respect_to_first_variable, &
+        [ONE, -depth*lambda_k + 2*depth],          &
+        int_G_term_Rankine, int_nablaG_term_Rankine)
+      int_G = int_G + a_k/2 * int_G_term_Rankine
+      int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
+    end do
+  end subroutine
 
-    DO KE = 1, NEXP
-      XI(:) = X0I(:)
+  ! =====================================================================
 
-      ! 2.a Shift observation point and compute integral
-      XI(3) =  X0I(3) + depth*AMBDA(KE) - 2*depth
-      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(1), VTS(:, 1))
 
-      ! 2.b Shift and reflect observation point and compute integral
-      XI(3) = -X0I(3) - depth*AMBDA(KE)
-      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(2), VTS(:, 2))
-      VTS(3, 2) = -VTS(3, 2) ! Reflection of the output vector
+  function compute_dispersion_roots(nk, omega2_over_g, depth) result(roots_of_dispersion_relationship)
+    integer, intent(in) :: nk
+    real(kind=pre), intent(in) :: omega2_over_g, depth
+    real(kind=pre), dimension(nk) :: roots_of_dispersion_relationship
 
-      ! 2.c Shift and reflect observation point and compute integral
-      XI(3) = -X0I(3) + depth*AMBDA(KE) - 4*depth
-      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(3), VTS(:, 3))
-      VTS(3, 3) = -VTS(3, 3) ! Reflection of the output vector
+    real(kind=8) :: omega, depth_f64
+    real(kind=8), dimension(nk) :: roots_of_dispersion_relationship_f64
+    depth_f64 = depth
+    omega = sqrt(omega2_over_g * 9.81d0)
 
-      ! 2.d Shift observation point and compute integral
-      XI(3) =  X0I(3) - depth*AMBDA(KE) + 2*depth
-      CALL COMPUTE_ASYMPTOTIC_RANKINE_SOURCE(XI(:), X0J(:), ONE, FTS(4), VTS(:, 4))
+#ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
+    ! Calls FinGreen3D.f90
+    call dispersion(roots_of_dispersion_relationship_f64, nk, omega, depth_f64)
+#else
+    print*, "The library has not been compiled with FinGreen3D.f90 optional dependency"
+    error stop
+#endif
 
-      AQT = AR(KE)/2
+    roots_of_dispersion_relationship = roots_of_dispersion_relationship_f64
+  end function
 
-      ! Add all the contributions
-      SP               = SP               + AQT*SUM(FTS(1:4))
+  subroutine integral_of_wave_part_fingreen3D                  &
+    (x,                                                        &
+    face_quadrature_points, face_quadrature_weights,           &
+    wavenumber, depth, dispersion_roots,                       &
+    derivative_with_respect_to_first_variable,                 &
+    int_G, int_nablaG                                          &
+    )
 
-      VSP_ANTISYM(1:2) = VSP_ANTISYM(1:2) + AQT*(VTS(1:2, 1) + VTS(1:2, 2) + VTS(1:2, 3) + VTS(1:2, 4))
-      VSP_ANTISYM(3)   = VSP_ANTISYM(3) + AQT*(VTS(3, 1) + VTS(3, 4))
-      VSP_SYM(3)       = VSP_SYM(3) + AQT*(VTS(3, 2) + VTS(3, 3))
+    real(kind=pre), dimension(3),          intent(in) :: x
+    real(kind=pre), dimension(:),          intent(in) :: face_quadrature_weights
+    real(kind=pre), dimension(:, :),       intent(in) :: face_quadrature_points
+    real(kind=pre),                        intent(in) :: wavenumber, depth
+    real(kind=pre), dimension(:),          intent(in) :: dispersion_roots
+    logical,                               intent(in) :: derivative_with_respect_to_first_variable
 
-    END DO
+    complex(kind=pre),                     intent(out) :: int_G
+    complex(kind=pre), dimension(3),       intent(out) :: int_nablaG
 
-    RETURN
-  END SUBROUTINE
+    integer, parameter :: nk = 200
+    integer :: q, nb_quad_points
+    real(kind=pre) :: omega2_over_g, r, drdx1, drdx2
+    real(kind=pre), dimension(3) :: xi_q
+    real(kind=pre), dimension(nk) :: roots_of_dispersion_relationship
+    complex(kind=pre) :: G_at_point
+    complex(kind=pre), dimension(3) :: reduced_G_nablaG, nablaG_at_point
 
-END MODULE GREEN_WAVE
+    omega2_over_g  = wavenumber*TANH(wavenumber*depth)
+
+    int_G = czero
+    int_nablaG = czero
+
+    nb_quad_points = size(face_quadrature_weights)
+
+    do q = 1, nb_quad_points
+      xi_q = face_quadrature_points(q, :)
+      r = norm2(x(1:2) - xi_q(1:2))
+#ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
+      if (.not. derivative_with_respect_to_first_variable) then
+        ! For direct method as implemented in HAMS
+        call fingreen3d_routine(r, x(3), xi_q(3), omega2_over_g, dispersion_roots, nk, depth, reduced_G_nablaG)
+      else
+        ! Switched inputs
+        call fingreen3d_routine(r, xi_q(3), x(3), omega2_over_g, dispersion_roots, nk, depth, reduced_G_nablaG)
+      endif
+#else
+    print*, "The library has not been compiled with FinGreen3D.f90 optional dependency"
+    error stop
+#endif
+
+      G_at_point = reduced_G_nablaG(1)
+
+      if (abs(r) > 16*epsilon(r)) then
+        if (derivative_with_respect_to_first_variable) then
+          drdx1 = (x(1) - xi_q(1))/r
+          drdx2 = (x(2) - xi_q(2))/r
+        else
+          drdx1 = -(x(1) - xi_q(1))/r
+          drdx2 = -(x(2) - xi_q(2))/r
+        endif
+      else
+        ! Limit when r->0 is not well defined...
+        drdx1 = ZERO
+        drdx2 = ZERO
+      end if
+      nablaG_at_point(1) = drdx1 * reduced_G_nablaG(2)
+      nablaG_at_point(2) = drdx2 * reduced_G_nablaG(2)
+      nablaG_at_point(3) = reduced_G_nablaG(3)
+
+      int_G = int_G + G_at_point * face_quadrature_weights(q)
+      int_nablaG(:) = int_nablaG(:) + nablaG_at_point(:) * face_quadrature_weights(q)
+    enddo
+  end subroutine
+
+end module Green_Wave

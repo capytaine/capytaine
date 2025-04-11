@@ -9,9 +9,7 @@ from importlib import import_module
 
 import numpy as np
 
-from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.tools.prony_decomposition import exponential_decomposition, error_exponential_decomposition
+from capytaine.tools.prony_decomposition import find_best_exponential_decomposition, NoConvergenceError
 from capytaine.tools.cache_on_disk import cache_directory
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
@@ -25,9 +23,10 @@ _default_parameters = dict(
     tabulation_zmin=-251.0,
     tabulation_nb_integration_points=1001,
     tabulation_grid_shape="scaled_nemoh3",
+    finite_depth_method="newer",
     finite_depth_prony_decomposition_method="fortran",
     floating_point_precision="float64",
-    gf_singularities="high_freq",
+    gf_singularities="low_freq",
 )
 
 
@@ -60,6 +59,14 @@ class Delhommeau(AbstractGreenFunction):
         Either :code:`"legacy"` or :code:`"scaled_nemoh3"`, which are the two
         methods currently implemented.
         Default: :code:`"scaled_nemoh3"`
+    tabulation_cache_dir: str or None, optional
+        Directory in which to save the tabulation file(s).
+        If None, the tabulation is not saved on disk.
+        Default: calls capytaine.tools.cache_on_disk.cache_directory(), which
+        returns the value of the environment variable CAPYTAINE_CACHE_DIR if
+        set, or else the default cache directory on your system.
+    finite_depth_method: string, optional
+        The method used to compute the finite depth Green function.
     finite_depth_prony_decomposition_method: string, optional
         The implementation of the Prony decomposition used to compute the
         finite water_depth Green function. Accepted values: :code:`'fortran'`
@@ -74,7 +81,7 @@ class Delhommeau(AbstractGreenFunction):
         Chose of the variant among the ways singularities can be extracted from
         the Green function. Currently only affects the infinite depth Green
         function.
-        Default: "high_freq".
+        Default: "low_freq".
 
     Attributes
     ----------
@@ -82,14 +89,17 @@ class Delhommeau(AbstractGreenFunction):
         Compiled Fortran module with functions used to compute the Green
         function.
     tabulation_grid_shape_index: int
-        Integer passed to Fortran code to describe which method is used.
+    gf_singularities_index: int
+    finite_depth_method_index: int
+        Integers passed to Fortran code to describe which method is used.
     tabulated_r_range: numpy.array of shape (tabulation_nr,) and type floating_point_precision
     tabulated_z_range: numpy.array of shape (tabulation_nz,) and type floating_point_precision
         Coordinates of the tabulation points.
-    tabulated_integrals: numpy.array of shape (tabulation_nr, tabulation_nz, 2, 2) and type floating_point_precision
+    tabulated_integrals: numpy.array of shape (tabulation_nr, tabulation_nz, nb_tabulated_values) and type floating_point_precision
         Tabulated Delhommeau integrals.
     """
 
+    dispersion_relation_roots = np.empty(1)  # dummy array
 
 
     def __init__(self, *,
@@ -99,6 +109,8 @@ class Delhommeau(AbstractGreenFunction):
                  tabulation_zmin=_default_parameters["tabulation_zmin"],
                  tabulation_nb_integration_points=_default_parameters["tabulation_nb_integration_points"],
                  tabulation_grid_shape=_default_parameters["tabulation_grid_shape"],
+                 tabulation_cache_dir=cache_directory(),
+                 finite_depth_method=_default_parameters["finite_depth_method"],
                  finite_depth_prony_decomposition_method=_default_parameters["finite_depth_prony_decomposition_method"],
                  floating_point_precision=_default_parameters["floating_point_precision"],
                  gf_singularities=_default_parameters["gf_singularities"],
@@ -117,13 +129,30 @@ class Delhommeau(AbstractGreenFunction):
         fortran_enum = {
                 'high_freq': self.fortran_core.constants.high_freq,
                 'low_freq': self.fortran_core.constants.low_freq,
+                'low_freq_with_rankine_part': self.fortran_core.constants.low_freq_with_rankine_part,
                               }
         self.gf_singularities_index = fortran_enum[gf_singularities]
+
+        self.finite_depth_method = finite_depth_method
+        fortran_enum = {
+                'legacy': self.fortran_core.constants.legacy_finite_depth,
+                'newer': self.fortran_core.constants.newer_finite_depth,
+                              }
+        self.finite_depth_method_index = fortran_enum[finite_depth_method]
 
         self.floating_point_precision = floating_point_precision
         self.tabulation_nb_integration_points = tabulation_nb_integration_points
 
-        self._create_or_load_tabulation(tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin, tabulation_nb_integration_points)
+        self.tabulation_cache_dir = tabulation_cache_dir
+        if tabulation_cache_dir is None:
+            self._create_tabulation(tabulation_nr, tabulation_rmax,
+                                    tabulation_nz, tabulation_zmin,
+                                    tabulation_nb_integration_points)
+        else:
+            self._create_or_load_tabulation(tabulation_nr, tabulation_rmax,
+                                            tabulation_nz, tabulation_zmin,
+                                            tabulation_nb_integration_points,
+                                            tabulation_cache_dir)
 
         self.finite_depth_prony_decomposition_method = finite_depth_prony_decomposition_method
 
@@ -135,6 +164,7 @@ class Delhommeau(AbstractGreenFunction):
             'tabulation_zmin': tabulation_zmin,
             'tabulation_nb_integration_points': tabulation_nb_integration_points,
             'tabulation_grid_shape': tabulation_grid_shape,
+            'finite_depth_method': finite_depth_method,
             'finite_depth_prony_decomposition_method': finite_depth_prony_decomposition_method,
             'floating_point_precision': floating_point_precision,
             'gf_singularities': gf_singularities,
@@ -167,7 +197,8 @@ class Delhommeau(AbstractGreenFunction):
 
     def _create_or_load_tabulation(self, tabulation_nr, tabulation_rmax,
                                    tabulation_nz, tabulation_zmin,
-                                   tabulation_nb_integration_points):
+                                   tabulation_nb_integration_points,
+                                   tabulation_cache_dir):
         """This method either:
             - loads an existing tabulation saved on disk
             - generates a new tabulation with the data provided as argument and save it on disk.
@@ -182,7 +213,7 @@ class Delhommeau(AbstractGreenFunction):
             tabulation_nr, tabulation_rmax, tabulation_nz, tabulation_zmin,
             tabulation_nb_integration_points
         )
-        filepath = os.path.join(cache_directory(), filename)
+        filepath = os.path.join(tabulation_cache_dir, filename)
 
         if os.path.exists(filepath):
             LOG.info("Loading tabulation from %s", filepath)
@@ -192,24 +223,37 @@ class Delhommeau(AbstractGreenFunction):
             self.tabulated_integrals = loaded_arrays["values"]
 
         else:
-            LOG.warning("Precomputing tabulation, it may take a few seconds.")
-            self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
-                    tabulation_nr, tabulation_rmax, self.tabulation_grid_shape_index
-                    )
-            self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(
-                    tabulation_nz, tabulation_zmin, self.tabulation_grid_shape_index
-                    )
-            self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
-                    self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
-                    )
+            self._create_tabulation(tabulation_nr, tabulation_rmax,
+                                    tabulation_nz, tabulation_zmin,
+                                    tabulation_nb_integration_points)
             LOG.debug("Saving tabulation in %s", filepath)
             np.savez_compressed(
                 filepath, r_range=self.tabulated_r_range, z_range=self.tabulated_z_range,
                 values=self.tabulated_integrals
             )
 
+    def _create_tabulation(self, tabulation_nr, tabulation_rmax,
+                                   tabulation_nz, tabulation_zmin,
+                                   tabulation_nb_integration_points):
+        LOG.warning("Precomputing tabulation, it may take a few seconds.")
+        self.tabulated_r_range = self.fortran_core.delhommeau_integrals.default_r_spacing(
+                tabulation_nr, tabulation_rmax, self.tabulation_grid_shape_index
+                )
+        self.tabulated_z_range = self.fortran_core.delhommeau_integrals.default_z_spacing(
+                tabulation_nz, tabulation_zmin, self.tabulation_grid_shape_index
+                )
+        self.tabulated_integrals = self.fortran_core.delhommeau_integrals.construct_tabulation(
+                self.tabulated_r_range, self.tabulated_z_range, tabulation_nb_integration_points,
+                )
+
+    @property
+    def all_tabulation_parameters(self):
+        """An alias meant to pass to the Fortran functions all the parameters controlling the tabulation in a single item."""
+        return (self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
+                self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals)
+
     @lru_cache(maxsize=128)
-    def find_best_exponential_decomposition(self, dimensionless_omega, dimensionless_wavenumber):
+    def find_best_exponential_decomposition(self, dimensionless_wavenumber, *, method=None):
         """Compute the decomposition of a part of the finite water_depth Green function as a sum of exponential functions.
 
         Two implementations are available: the legacy Fortran implementation from Nemoh and a newer one written in Python.
@@ -221,12 +265,10 @@ class Delhommeau(AbstractGreenFunction):
 
         Parameters
         ----------
-        dimensionless_omega: float
-            dimensionless angular frequency: :math:`kh \\tanh (kh) = \\omega^2 h/g`
         dimensionless_wavenumber: float
             dimensionless wavenumber: :math:`kh`
-        method: string, optional
-            the implementation that should be used to compute the Prony decomposition
+        method: str, optional
+            "python" or "fortran". If not provided, uses self.finite_depth_prony_decomposition_method.
 
         Returns
         -------
@@ -234,47 +276,33 @@ class Delhommeau(AbstractGreenFunction):
             the amplitude and growth rates of the exponentials
         """
 
-        LOG.debug(f"\tCompute Prony decomposition in finite water_depth Green function "
-                  f"for dimless_omega=%.2e and dimless_wavenumber=%.2e",
-                  dimensionless_omega, dimensionless_wavenumber)
+        if method is None:
+            method = self.finite_depth_prony_decomposition_method
 
-        if self.finite_depth_prony_decomposition_method.lower() == 'python':
+        omega2_h_over_g = dimensionless_wavenumber*np.tanh(dimensionless_wavenumber)
+
+        LOG.debug("\tCompute Prony decomposition in finite water_depth Green function "
+                  "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
+
+        if method.lower() == 'python':
             # The function that will be approximated.
             @np.vectorize
             def f(x):
-                return self.fortran_core.initialize_green_wave.ff(x, dimensionless_omega, dimensionless_wavenumber)
+                return self.fortran_core.old_prony_decomposition.ff(x, omega2_h_over_g, dimensionless_wavenumber)
 
-            # Try different increasing number of exponentials
-            for n_exp in range(4, 31, 2):
-
-                # The coefficients are computed on a resolution of 4*n_exp+1 ...
-                X = np.linspace(-0.1, 20.0, 4*n_exp+1)
-                a, lamda = exponential_decomposition(X, f(X), n_exp)
-
-                # ... and they are evaluated on a finer discretization.
-                X = np.linspace(-0.1, 20.0, 8*n_exp+1)
-                if error_exponential_decomposition(X, f(X), a, lamda) < 1e-4:
-                    break
-
-            else:
+            try:
+                a, lamda = find_best_exponential_decomposition(f, x_min=-0.1, x_max=20.0, n_exp_range=range(4, 31, 2), tol=1e-4)
+            except NoConvergenceError:
                 LOG.warning("No suitable exponential decomposition has been found"
-                            "for dimless_omega=%.2e and dimless_wavenumber=%.2e",
-                            dimensionless_omega, dimensionless_wavenumber)
+                            "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
+            return np.stack([lamda, a])
 
-        elif self.finite_depth_prony_decomposition_method.lower() == 'fortran':
-            lamda, a, nexp = self.fortran_core.old_prony_decomposition.lisc(dimensionless_omega, dimensionless_wavenumber)
-            lamda = lamda[:nexp]
-            a = a[:nexp]
+        elif method.lower() == 'fortran':
+            nexp, pr_d = self.fortran_core.old_prony_decomposition.lisc(omega2_h_over_g, dimensionless_wavenumber)
+            return pr_d[:, :nexp]
 
         else:
             raise ValueError("Unrecognized method name for the Prony decomposition.")
-
-        # Add one more exponential function (actually a constant).
-        # It is not clear where it comes from exactly in the theory...
-        a = np.concatenate([a, np.array([2])])
-        lamda = np.concatenate([lamda, np.array([0.0])])
-
-        return a, lamda
 
     def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.inf, wavenumber=1.0, adjoint_double_layer=True, early_dot_product=True):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
@@ -308,13 +336,13 @@ class Delhommeau(AbstractGreenFunction):
 
         if free_surface == np.inf: # No free surface, only a single Rankine source term
 
-            a_exp, lamda_exp = np.empty(1), np.empty(1)  # Dummy arrays that won't actually be used by the fortran code.
+            prony_decomposition = np.empty((1, 1))  # Dummy array that won't actually be used by the fortran code.
 
             coeffs = np.array((1.0, 0.0, 0.0))
 
         elif water_depth == np.inf:
 
-            a_exp, lamda_exp = np.empty(1), np.empty(1)  # Idem
+            prony_decomposition = np.empty((1, 1))  # Idem
 
             if wavenumber == 0.0:
                 coeffs = np.array((1.0, 1.0, 0.0))
@@ -323,45 +351,30 @@ class Delhommeau(AbstractGreenFunction):
             else:
                 if self.gf_singularities == "high_freq":
                     coeffs = np.array((1.0, -1.0, 1.0))
-                else:
+                else:  # low_freq or low_freq_with_rankine_part
                     coeffs = np.array((1.0, 1.0, 1.0))
 
         else:  # Finite water_depth
             if wavenumber == 0.0 or wavenumber == np.inf:
                 raise NotImplementedError("Zero or infinite frequencies not implemented for finite depth.")
             else:
-                a_exp, lamda_exp = self.find_best_exponential_decomposition(
-                    wavenumber*water_depth*np.tanh(wavenumber*water_depth),
-                    wavenumber*water_depth,
-                )
+                prony_decomposition = self.find_best_exponential_decomposition(wavenumber*water_depth)
                 coeffs = np.array((1.0, 1.0, 1.0))
 
-        if isinstance(mesh1, Mesh) or isinstance(mesh1, CollectionOfMeshes):
-            collocation_points = mesh1.faces_centers
-            nb_collocation_points = mesh1.nb_faces
-            if ( adjoint_double_layer == False ):
-                early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
-            else:
-                early_dot_product_normals = mesh1.faces_normals
-        elif isinstance(mesh1, np.ndarray) and mesh1.ndim ==2 and mesh1.shape[1] == 3:
-            # This is used when computing potential or velocity at given points in postprocessing
-            collocation_points = mesh1
-            nb_collocation_points = mesh1.shape[0]
-            early_dot_product_normals = np.zeros((nb_collocation_points, 3))  # Should not be used
-            if ( adjoint_double_layer == False ):
-                raise NotImplementedError("Using a list of points as collocation points is not supported in computing adjoint double layer matrices.")
-        else:
-            raise ValueError(f"Unrecognized input for {self.__class__.__name__}.evaluate")
+        collocation_points, early_dot_product_normals = self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
+
+        if (np.any(abs(mesh2.faces_centers[:, 2]) < 1e-6)  # free surface panel
+            and self.gf_singularities != "low_freq"):
+            raise NotImplementedError("Free surface panels are only supported for cpt.Delhommeau(..., gf_singularities='low_freq').")
 
         if self.floating_point_precision == "float32":
             dtype = "complex64"
         elif self.floating_point_precision == "float64":
             dtype = "complex128"
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"Unsupported floating point precision: {self.floating_point_precision}")
 
-        S = np.empty((nb_collocation_points, mesh2.nb_faces), order="F", dtype=dtype)
-        K = np.empty((nb_collocation_points, mesh2.nb_faces, 1 if early_dot_product else 3), order="F", dtype=dtype)
+        S, K = self._init_matrices((collocation_points.shape[0], mesh2.nb_faces), dtype, early_dot_product)
 
         # Main call to Fortran code
         self.fortran_core.matrices.build_matrices(
@@ -371,10 +384,8 @@ class Delhommeau(AbstractGreenFunction):
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
             wavenumber, water_depth,
-            coeffs,
-            self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
-            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
-            lamda_exp, a_exp,
+            coeffs, *self.all_tabulation_parameters,
+            self.finite_depth_method_index, prony_decomposition, self.dispersion_relation_roots,
             mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
             S, K
         )
@@ -383,7 +394,7 @@ class Delhommeau(AbstractGreenFunction):
             raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
                     "It could be due to overlapping panels.")
 
-        if early_dot_product: K = K.reshape((nb_collocation_points, mesh2.nb_faces))
+        if early_dot_product: K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
 
         return S, K
 

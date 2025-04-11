@@ -123,10 +123,10 @@ class BasicMatrixEngine(MatrixEngine):
 
             S_a, V_a = self.build_matrices(
                 mesh1[0], mesh2[0], free_surface, water_depth, wavenumber,
-                green_function)
+                green_function, adjoint_double_layer=adjoint_double_layer)
             S_b, V_b = self.build_matrices(
                 mesh1[0], mesh2[1], free_surface, water_depth, wavenumber,
-                green_function)
+                green_function, adjoint_double_layer=adjoint_double_layer)
 
             return BlockSymmetricToeplitzMatrix([[S_a, S_b]]), BlockSymmetricToeplitzMatrix([[V_a, V_b]])
 

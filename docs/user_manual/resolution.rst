@@ -14,7 +14,7 @@ Let us discuss in more details these two objects.
 Green function
 ~~~~~~~~~~~~~~
 A class used to evaluate the Green function, deriving from :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`.
-In the present version, a single class is implemented, although it offers many parameters for customization:
+The following classes are available:
 
 :class:`~capytaine.green_functions.delhommeau.Delhommeau` (Default)
    The method implemented in Nemoh (see [Del87]_ and [Del89]_).
@@ -36,11 +36,12 @@ In the present version, a single class is implemented, although it offers many p
 
         import capytaine as cpt
 
-        # Legacy (previous version)
+        # Legacy (versions 1.x)
         gf = cpt.Delhommeau(tabulation_nr=324, tabulation_rmax=100,
                             tabulation_nz=46, tabulation_zmin=-16,
                             tabulation_nb_integration_points=251,
                             tabulation_grid_shape="legacy",
+                            finite_depth_method="legacy",
                             gf_singularities="high_freq")
 
         # Default in Capytaine 2.1
@@ -48,7 +49,16 @@ In the present version, a single class is implemented, although it offers many p
                             tabulation_nz=372, tabulation_zmin=-251,
                             tabulation_nb_integration_points=1000,
                             tabulation_grid_shape="scaled_nemoh3",
+                            finite_depth_method="legacy",
                             gf_singularities="high_freq")
+
+        # Default in Capytaine 2.2
+        gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
+                            tabulation_nz=372, tabulation_zmin=-251,
+                            tabulation_nb_integration_points=1000,
+                            tabulation_grid_shape="scaled_nemoh3",
+                            finite_depth_method="legacy",
+                            gf_singularities="low_freq")
 
    In version 2.1, the default numbers of :math:`r` and :math:`z` values have
    been increased to :math:`676` and :math:`372`, respectively. While the range
@@ -57,6 +67,54 @@ In the present version, a single class is implemented, although it offers many p
    between the new distribution of points inspired by Nemoh version 3 or the
    :code:`"legacy"` approach. The :code:`tabulation_nb_integration_points`
    controls the accuracy of the precomputed tabulation points themselves.
+
+   In version 2.2, the way singularities are extracted of the infinite depth
+   Green function to be integrated has changed. The ``"low_freq"`` variant is
+   expected to be more accurate at low frequency and near the free surface. The
+   former variant is still available by setting the ``gf_singularities``
+   parameter as in the above example.
+
+   The first time it is initialize with a given set of parameters, some tabulated
+   data are precomputed and stored on disk.
+   The default location is a os-dependant cache directory.
+   The location at which the data is stored can be configured by passing
+   ``tabulation_cache_dir`` to
+   :class:`~capytaine.green_functions.delhommeau.Delhommeau` or by setting the
+   environment variable ``CAPYTAINE_CACHE_DIR``.
+
+
+:class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`
+   The infinite depth Green function from the following papers:
+
+   [1] H. Wu, C. Zhang, Y. Zhu, W. Li, D. Wan, F. Noblesse,
+       **A global approximation to the Green function for
+       diffraction radiation of water waves**,
+       Eur. J. Mech. B Fluids 65 (2017) 54-64.
+
+   [2] H. Liang, H. Wu, F. Noblesse,
+       **Validation of a global approximation for
+       wave diffraction-radiation in deep water**,
+       Appl. Ocean Res. 74 (2018) 80-86.
+
+   Please cite them if you use this implementation.
+
+
+:class:`~capytaine.green_functions.hams.FinGreen3D`
+   The finite depth Green function from the following paper, as implemented in HAMS:
+
+   Yingyi Liu, Shigeo Yoshida, Changhong Hu, Makoto Sueyoshi, Liang Sun,
+   Junliang Gao, Peiwen Cong, Guanghua He.
+   **A reliable open-source package for performance evaluation of floating
+   renewable energy systems in coastal and offshore regions**.
+   Energy Conversion and Management, 174 (2018): 516-536.
+
+   Please cite this paper if you use this implementation.
+
+
+:class:`~capytaine.green_functions.hams.HAMS_GF`
+   This class is just a thin wrapper around the two implementation above, using
+   one or the other depending of the water depth.
+
 
 Advanced users can write their own class to evaluate the Green function.
 See the example in the :doc:`cookbook`.
@@ -121,9 +179,10 @@ Two of them are available in the present version:
 Solving the problem
 -------------------
 
-Once the solver has been initialized, it can be used to solve problems with the :meth:`~capytaine.bem.solver.BEMSolver.solve` method::
+Once the solver has been initialized, it can be used to solve problems with the
+:meth:`~capytaine.bem.solver.BEMSolver.solve` method::
 
-	result = solver.solve(problem, keep_details=False, method='indirect')
+	result = solver.solve(problem, keep_details=False, method="indirect")
 
 The optional argument :code:`keep_details` (default value: :code:`True`)
 controls whether the source and potential distributions should be saved in the
@@ -132,16 +191,38 @@ computation of the Kochin function or the reconstruction of the free surface
 elevation. However, when only the force on the body is of interest, they can be
 discarded to save space in memory.
 
-The optional argument :code:`method` (default value: :code:`indirect`)
-controls the approach employed to solve for the potential velocity solutions.
-Two methods are implemented including 1) direct method (source-and-dipole formulation),
-and 2) indirect method (source formulation). The direct method appears to be slightly
-more accurate on some test cases but only allows for the computation of the forces
-on the floating body. Any other post-processing requires the indirect method.
+The optional argument :code:`method` (default value: :code:`"indirect"`) controls
+the approach employed to solve for the potential velocity solutions.
+Two methods are implemented:
+
+#. direct method (also known as "potential formulation", among other names)
+   with :code:`method="direct"`,
+#. indirect method (also known as "source formulation"), by default and with
+   :code:`method="indirect"`.
+
+The direct method appears to be slightly more accurate on some
+test cases (especially when thin plates are involved) but is only implemented
+for the computation of the forces on the floating body without forward speed.
+Any other post-processing (e.g. free surface elevation) and forward speed
+currently require the indirect method.
 
 A list of problems can be solved at once in an optimal order with::
 
-	list_of_results = solver.solve_all(list_of_problems, keep_details=False)
+	list_of_results = solver.solve_all(list_of_problems, keep_details=False, method="indirect")
+
+where :meth:`~capytaine.bem.solver.BEMSolver.solve_all` accepts the same
+optional keyword arguments as :meth:`~capytaine.bem.solver.BEMSolver.solve`.
+
+Progress bar
+------------
+
+The methods :meth:`~capytaine.bem.solver.BEMSolver.solve_all` and
+:meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` display by default an
+animated progress bar while solving.
+This behavior can be turned off by giving the optional argument
+``progress_bar=False`` to either method or by setting the environment variable
+``CAPYTAINE_PROGRESS_BAR`` to ``False``.
+This might be useful in testing environments and CI.
 
 Parallelization
 ---------------

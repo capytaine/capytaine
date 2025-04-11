@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
 """
 Tests for the functions that computes hydrostatic from the mesh vertices
 and faces

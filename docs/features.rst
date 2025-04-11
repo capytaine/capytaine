@@ -30,6 +30,7 @@ Core features
 * Faster computation for plane-symmetric bodies.
 * Approximate forward speed (for single rigid body only at the moment).
 * Set up problems with either angular frequency, period, wavelength or angular wavenumber.
+* Lid-based irregular frequencies removal.
 * Computation of the pressure field, the velocity field, the free surface elevation and the Kochin function.
 * Computation of the hydrostatic stiffness and rigid body inertia. Non-neutrally buoyant bodies are partially supported.
 * 3D animations of the body motion and the free surface elevation.

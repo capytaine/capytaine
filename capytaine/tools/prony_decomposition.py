@@ -1,8 +1,8 @@
 """Prony decomposition: tool to approximate a function as a sum of exponentials.
 Used in particular in the finite depth Green function.
 """
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# Copyright (C) 2017-2024 Matthieu Ancellin
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
 
@@ -66,8 +66,8 @@ def exponential_decomposition(X, F, m):
 
 
 def error_exponential_decomposition(X, F, a, lamda):
-    """Compare exponential decomposition defined by the coefficients a and lamda to the reference
-    values in F.
+    """Mean square error of the exponential decomposition defined by the
+    coefficients a and lamda with respect to the reference values in F.
 
     Parameters
     ----------
@@ -92,3 +92,40 @@ def error_exponential_decomposition(X, F, a, lamda):
         return np.sum(a * np.exp(lamda*x), axis=0)
 
     return np.square(f(X) - F).mean()
+
+
+class NoConvergenceError(Exception):
+    pass
+
+
+def find_best_exponential_decomposition(f, x_min, x_max, n_exp_range, tol=1e-4):
+    """Tries to construct an exponential decompositoin of the function f on the
+    domain [x_min, x_max] by testing the number of exponentials in n_exp_range.
+
+    Parameters
+    ----------
+    f: callable
+        The function ℝ→ℝ to be approximated.
+        Should support vectorized calls (that is passing a vector of inputs
+        and get the vector of corresponding outputs)
+    x_min, x_max: floats
+        The bounds of the domain of input in which f should be approximated
+    n_exp_range: iterable of ints
+        The decomposition sizes that will be tested
+    tol: float, optional
+        The target mean square error.
+
+    """
+    # Try different number of exponentials
+    for n_exp in n_exp_range:
+
+        # The coefficients are computed on a resolution of 4*n_exp+1 ...
+        X = np.linspace(x_min, x_max, 4*n_exp+1)
+        a, lamda = exponential_decomposition(X, f(X), n_exp)
+
+        # ... and they are evaluated on a finer discretization.
+        X = np.linspace(x_min, x_max, 8*n_exp+1)
+        if error_exponential_decomposition(X, f(X), a, lamda) < tol:
+            return a, lamda
+
+    raise NoConvergenceError(f"No suitable exponential decomposition has been found in provided range for tol={tol}.")

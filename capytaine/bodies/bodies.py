@@ -1,22 +1,24 @@
 """Floating bodies to be used in radiation-diffraction problems."""
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# Copyright (C) 2017-2024 Matthieu Ancellin
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
 import copy
 from itertools import chain, accumulate, zip_longest
+from functools import cached_property, lru_cache
 
 import numpy as np
 import xarray as xr
 
-from capytaine.tools.optional_imports import silently_import_optional_dependency
-meshio = silently_import_optional_dependency("meshio")
-
+from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
+from capytaine.meshes.properties import connected_components, connected_components_of_waterline
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import build_regular_array_of_meshes
-from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.bodies.dofs import RigidBodyDofsPlaceholder
+
+from capytaine.tools.optional_imports import silently_import_optional_dependency
+meshio = silently_import_optional_dependency("meshio")
 
 LOG = logging.getLogger(__name__)
 
@@ -38,8 +40,12 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
     Parameters
     ----------
     mesh : Mesh or CollectionOfMeshes, optional
-        the mesh describing the geometry of the floating body.
+        the mesh describing the geometry of the hull of the floating body.
         If none is given, a empty one is created.
+    lid_mesh : Mesh or CollectionOfMeshes or None, optional
+        a mesh of an internal lid for irregular frequencies removal.
+        Unlike the mesh of the hull, no dof is defined on the lid_mesh.
+        If none is given, none is used when solving the Boundary Integral Equation.
     dofs : dict, optional
         the degrees of freedom of the body.
         If none is given, a empty dictionary is initialized.
@@ -55,7 +61,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         If none is given, the one of the mesh is used.
     """
 
-    def __init__(self, mesh=None, dofs=None, mass=None, center_of_mass=None, name=None):
+    def __init__(self, mesh=None, dofs=None, mass=None, center_of_mass=None, name=None, *, lid_mesh=None):
         if mesh is None:
             self.mesh = Mesh(name="dummy_mesh")
 
@@ -68,6 +74,15 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
 
         else:
             raise TypeError("Unrecognized `mesh` object passed to the FloatingBody constructor.")
+
+        if lid_mesh is not None:
+            if lid_mesh.nb_faces == 0:
+                LOG.warning("Lid mesh %s provided for body initialization is empty. The lid mesh is ignored.", lid_mesh)
+                self.lid_mesh = None
+            else:
+                self.lid_mesh = lid_mesh.with_normal_vector_going_down(inplace=False)
+        else:
+            self.lid_mesh = None
 
         if name is None and mesh is None:
             self.name = "dummy_body"
@@ -97,15 +112,19 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
 
         LOG.info(f"New floating body: {self.__str__()}.")
 
+        self._check_dofs_shape_consistency()
+
     @staticmethod
     def from_meshio(mesh, name=None) -> 'FloatingBody':
-        """Create a FloatingBody from a meshio mesh object."""
+        """Create a FloatingBody from a meshio mesh object.
+        Kinda deprecated, use cpt.load_mesh instead."""
         from capytaine.io.meshio import load_from_meshio
         return FloatingBody(mesh=load_from_meshio(mesh, name), name=name)
 
     @staticmethod
     def from_file(filename: str, file_format=None, name=None) -> 'FloatingBody':
-        """Create a FloatingBody from a mesh file using meshmagick."""
+        """Create a FloatingBody from a mesh file using meshmagick.
+        Kinda deprecated, use cpt.load_mesh instead."""
         from capytaine.io.mesh_loaders import load_mesh
         if name is None: name = filename
         mesh = load_mesh(filename, file_format, name=f"{name}_mesh")
@@ -114,6 +133,13 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
     def __lt__(self, other: 'FloatingBody') -> bool:
         """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name
+
+    @cached_property
+    def mesh_including_lid(self):
+        if self.lid_mesh is not None:
+            return CollectionOfMeshes([self.mesh, self.lid_mesh])
+        else:
+            return self.mesh
 
     ##########
     #  Dofs  #
@@ -240,6 +266,14 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
                             coords={'influenced_dof': list(self.dofs), 'radiating_dof': list(self.dofs)},
                             )
 
+    def _check_dofs_shape_consistency(self):
+        for dof_name, dof in self.dofs.items():
+            if np.array(dof).shape != (self.mesh.nb_faces, 3):
+                raise ValueError(f"The array defining the dof {dof_name} of body {self.name} does not have the expected shape.\n"
+                                 f"Expected shape: ({self.mesh.nb_faces}, 3)\n"
+                                 f"  Actual shape: {dof.shape}")
+
+
     ###################
     # Hydrostatics #
     ###################
@@ -267,7 +301,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         """Returns volume of the FloatingBody."""
         return self.mesh.volume
 
-    def disp_mass(self, *, rho=1000):
+    def disp_mass(self, *, rho=1000.0):
         return self.mesh.disp_mass(rho=rho)
 
     @property
@@ -512,7 +546,9 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             raise AttributeError("Cannot compute hydrostatics stiffness on {} since no dof has been defined.".format(self.name))
 
         def divergence_dof(influenced_dof):
-            if divergence is None:
+            if influenced_dof.lower() in [*TRANSLATION_DOFS_DIRECTIONS, *ROTATION_DOFS_AXIS]:
+                return 0.0  # Dummy value that is not actually used afterwards.
+            elif divergence is None:
                 return 0.0
             elif isinstance(divergence, dict) and influenced_dof in divergence.keys():
                 return divergence[influenced_dof]
@@ -536,7 +572,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         K = hs_set.hydrostatic_stiffness.sel(influenced_dof=list(self.dofs.keys()), radiating_dof=list(self.dofs.keys()))
         return K
 
-    def compute_rigid_body_inertia(self, *, rho=1000, output_type="body_dofs"):
+    def compute_rigid_body_inertia(self, *, rho=1000.0, output_type="body_dofs"):
         """
         Inertia Mass matrix of the body for 6 rigid DOFs.
 
@@ -626,8 +662,8 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
 
         if output_type == "body_dofs":
             if len(non_rigid_dofs) > 0:
-                LOG.warning(f"Non-rigid dofs: {non_rigid_dofs} are detected and \
-respective inertia coefficients are assigned as NaN.")
+                LOG.warning(f"Non-rigid dofs {non_rigid_dofs} detected: their \
+inertia coefficients are assigned as NaN.")
 
             inertia_matrix_xr = total_mass_xr.sel(influenced_dof=body_dof_names,
                                                   radiating_dof=body_dof_names)
@@ -729,7 +765,17 @@ respective inertia coefficients are assigned as NaN.")
     def join_bodies(*bodies, name=None) -> 'FloatingBody':
         if name is None:
             name = "+".join(body.name for body in bodies)
-        meshes = CollectionOfMeshes([body.mesh for body in bodies], name=f"{name}_mesh")
+        meshes = CollectionOfMeshes(
+                [body.mesh.copy() for body in bodies],
+                name=f"{name}_mesh"
+                )
+        if all(body.lid_mesh is None for body in bodies):
+            lid_meshes = None
+        else:
+            lid_meshes = CollectionOfMeshes(
+                    [body.lid_mesh.copy() for body in bodies if body.lid_mesh is not None],
+                    name=f"{name}_lid_mesh"
+                    )
         dofs = FloatingBody.combine_dofs(bodies)
 
         if all(body.mass is not None for body in bodies):
@@ -744,7 +790,8 @@ respective inertia coefficients are assigned as NaN.")
             new_cog = None
 
         joined_bodies = FloatingBody(
-            mesh=meshes, dofs=dofs, mass=new_mass, center_of_mass=new_cog, name=name
+            mesh=meshes, lid_mesh=lid_meshes, dofs=dofs,
+            mass=new_mass, center_of_mass=new_cog, name=name
             )
 
         for matrix_name in ["inertia_matrix", "hydrostatic_stiffness"]:
@@ -759,6 +806,8 @@ respective inertia coefficients are assigned as NaN.")
     @staticmethod
     def combine_dofs(bodies) -> dict:
         """Combine the degrees of freedom of several bodies."""
+        for body in bodies:
+            body._check_dofs_shape_consistency()
         dofs = {}
         cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in bodies)))
         total_nb_faces = sum(body.mesh.nb_faces for body in bodies)
@@ -786,6 +835,8 @@ respective inertia coefficients are assigned as NaN.")
         name : str, optional
             a name for the new copy
         """
+        self._check_dofs_shape_consistency()
+
         new_body = copy.deepcopy(self)
         if name is None:
             new_body.name = f"copy_of_{self.name}"
@@ -820,7 +871,6 @@ respective inertia coefficients are assigned as NaN.")
         if not isinstance(locations, np.ndarray):
             raise TypeError('locations must be of type np.ndarray')
         assert locations.shape[1] == 2, 'locations must be of shape nx2, received {:}'.format(locations.shape)
-        n = locations.shape[0]
 
         fb_list = []
         for idx, li in enumerate(locations):
@@ -836,6 +886,7 @@ respective inertia coefficients are assigned as NaN.")
     def extract_faces(self, id_faces_to_extract, return_index=False):
         """Create a new FloatingBody by extracting some faces from the mesh.
         The dofs evolve accordingly.
+        The lid_mesh, center_of_mass, mass and hydrostatics data are discarded.
         """
         if isinstance(self.mesh, CollectionOfMeshes):
             raise NotImplementedError  # TODO
@@ -857,7 +908,12 @@ respective inertia coefficients are assigned as NaN.")
             return new_body
 
     def sliced_by_plane(self, plane):
-        return FloatingBody(mesh=self.mesh.sliced_by_plane(plane), dofs=self.dofs, name=self.name)
+        """Return the same body, but replace the mesh by a set of two meshes
+        corresponding to each sides of the plane."""
+        return FloatingBody(mesh=self.mesh.sliced_by_plane(plane),
+                            lid_mesh=self.lid_mesh.sliced_by_plane(plane)
+                                        if self.lid_mesh is not None else None,
+                            dofs=self.dofs, name=self.name)
 
     def minced(self, nb_slices=(8, 8, 4)):
         """Experimental method decomposing the mesh as a hierarchical structure.
@@ -918,6 +974,8 @@ respective inertia coefficients are assigned as NaN.")
     @inplace_transformation
     def mirror(self, plane):
         self.mesh.mirror(plane)
+        if self.lid_mesh is not None:
+            self.lid_mesh.mirror(plane)
         for dof in self.dofs:
             self.dofs[dof] -= 2 * np.outer(np.dot(self.dofs[dof], plane.normal), plane.normal)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
@@ -930,6 +988,8 @@ respective inertia coefficients are assigned as NaN.")
     @inplace_transformation
     def translate(self, vector, *args, **kwargs):
         self.mesh.translate(vector, *args, **kwargs)
+        if self.lid_mesh is not None:
+            self.lid_mesh.translate(vector, *args, **kwargs)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
                 self.__dict__[point_attr] = np.array(self.__dict__[point_attr]) + vector
@@ -938,6 +998,8 @@ respective inertia coefficients are assigned as NaN.")
     @inplace_transformation
     def rotate(self, axis, angle):
         self.mesh.rotate(axis, angle)
+        if self.lid_mesh is not None:
+            self.lid_mesh.rotate(axis, angle)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
                 self.__dict__[point_attr] = axis.rotate_points([self.__dict__[point_attr]], angle)[0, :]
@@ -947,9 +1009,16 @@ respective inertia coefficients are assigned as NaN.")
 
     @inplace_transformation
     def clip(self, plane):
+        self._check_dofs_shape_consistency()
+
         # Clip mesh
         LOG.info(f"Clipping {self.name} with respect to {plane}")
         self.mesh.clip(plane)
+        if self.lid_mesh is not None:
+            self.lid_mesh.clip(plane)
+            if self.lid_mesh.nb_faces == 0:
+                LOG.warning("Lid mesh %s is empty after clipping. The lid mesh is removed.", self.lid_mesh)
+                self.lid_mesh = None
 
         # Clip dofs
         ids = self.mesh._clipping_data['faces_ids']
@@ -976,11 +1045,25 @@ respective inertia coefficients are assigned as NaN.")
 
     def __str__(self):
         short_dofs = '{' + ', '.join('"{}": ...'.format(d) for d in self.dofs) + '}'
-        return (f"{self.__class__.__name__}(mesh={self.mesh.__short_str__()}, dofs={short_dofs}, {self._optional_params_str()}name=\"{self.name}\")")
+
+        if self.lid_mesh is not None:
+            lid_mesh_str = self.lid_mesh.__short_str__()
+        else:
+            lid_mesh_str = str(None)
+
+        return (f"{self.__class__.__name__}(mesh={self.mesh.__short_str__()}, lid_mesh={lid_mesh_str}, "
+                f"dofs={short_dofs}, {self._optional_params_str()}name=\"{self.name}\")")
 
     def __repr__(self):
         short_dofs = '{' + ', '.join('"{}": ...'.format(d) for d in self.dofs) + '}'
-        return (f"{self.__class__.__name__}(mesh={str(self.mesh)}, dofs={short_dofs}, {self._optional_params_str()}name=\"{self.name}\")")
+
+        if self.lid_mesh is not None:
+            lid_mesh_str = str(self.lid_mesh)
+        else:
+            lid_mesh_str = str(None)
+
+        return (f"{self.__class__.__name__}(mesh={str(self.mesh)}, lid_mesh={lid_mesh_str}, "
+                f"dofs={short_dofs}, {self._optional_params_str()}name=\"{self.name}\")")
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
@@ -990,6 +1073,7 @@ respective inertia coefficients are assigned as NaN.")
             def __repr__(self):
                 return '...'
         yield "mesh", self.mesh
+        yield "lid_mesh", self.lid_mesh
         yield "dofs", {d: DofWithShortRepr() for d in self.dofs}
         if self.mass is not None:
             yield "mass", self.mass, None
@@ -1034,7 +1118,48 @@ respective inertia coefficients are assigned as NaN.")
     @property
     def minimal_computable_wavelength(self):
         """For accuracy of the resolution, wavelength should not be smaller than this value."""
-        return 8*self.mesh.faces_radiuses.max()
+        if self.lid_mesh is not None:
+            return max(8*self.mesh.faces_radiuses.max(), 8*self.lid_mesh.faces_radiuses.max())
+        else:
+            return 8*self.mesh.faces_radiuses.max()
+
+    @lru_cache
+    def first_irregular_frequency_estimate(self, *, g=9.81):
+        r"""Estimates the angular frequency of the lowest irregular
+        frequency.
+        This is based on the formula for the lowest irregular frequency of a
+        parallelepiped of size :math:`L \times B` and draft :math:`H`:
+
+        .. math::
+            \omega = \sqrt{
+                        \frac{\pi g \sqrt{\frac{1}{B^2} + \frac{1}{L^2}}}
+                             {\tanh\left(\pi H \sqrt{\frac{1}{B^2} + \frac{1}{L^2}} \right)}
+                     }
+
+        The formula is applied to all shapes to get an estimate that is usually
+        conservative.
+        The definition of a lid (supposed to be fully covering and horizontal)
+        is taken into account.
+        """
+        if self.lid_mesh is None:
+            draft = abs(self.mesh.vertices[:, 2].min())
+        else:
+            draft = abs(self.lid_mesh.vertices[:, 2].min())
+            if draft < 1e-6:
+                return np.inf
+
+        # Look for the x and y span of each components (e.g. for multibody) and
+        # keep the one causing the lowest irregular frequency.
+        # The draft is supposed to be same for all components.
+        omega = np.inf
+        for comp in connected_components(self.mesh):
+            for ccomp in connected_components_of_waterline(comp):
+                x_span = ccomp.vertices[:, 0].max() - ccomp.vertices[:, 0].min()
+                y_span = ccomp.vertices[:, 1].max() - ccomp.vertices[:, 1].min()
+                p = np.hypot(1/x_span, 1/y_span)
+                omega_comp = np.sqrt(np.pi*g*p/(np.tanh(np.pi*draft*p)))
+                omega = min(omega, omega_comp)
+        return omega
 
     def cluster_bodies(*bodies, name=None):
         """
@@ -1052,7 +1177,7 @@ respective inertia coefficients are assigned as NaN.")
         FloatingBody
             Array built from the provided bodies
         """
-        from scipy.cluster.hierarchy import linkage, dendrogram
+        from scipy.cluster.hierarchy import linkage
         nb_buoys = len(bodies)
 
         if any(body.center_of_buoyancy is None for body in bodies):

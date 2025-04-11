@@ -9,8 +9,8 @@ from itertools import count
 
 import numpy as np
 
-from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
-from capytaine.meshes.properties import compute_faces_properties
+from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation, xOy_Plane
+from capytaine.meshes.properties import compute_faces_properties, connected_components, connected_components_of_waterline
 from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
@@ -470,8 +470,9 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         Other parameters are passed to Poly3DCollection.
         """
         matplotlib = import_optional_dependency("matplotlib")
-        plt = matplotlib.pyplot
-        cm = matplotlib.cm
+        import importlib
+        plt = importlib.import_module("matplotlib.pyplot")
+        cm = importlib.import_module("matplotlib.cm")
 
         mpl_toolkits = import_optional_dependency("mpl_toolkits", package_name="matplotlib")
         Poly3DCollection = mpl_toolkits.mplot3d.art3d.Poly3DCollection
@@ -744,3 +745,126 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         if closed_mesh:
             self.heal_normals()
         return self
+
+    ##########
+    #  Lids  #
+    ##########
+
+    def lowest_lid_position(self, omega_max, *, g=9.81):
+        z_lid = 0.0
+        for comp in connected_components(self):
+            for ccomp in connected_components_of_waterline(comp):
+                x_span = ccomp.vertices[:, 0].max() - ccomp.vertices[:, 0].min()
+                y_span = ccomp.vertices[:, 1].max() - ccomp.vertices[:, 1].min()
+                p = np.hypot(1/x_span, 1/y_span)
+                z_lid_comp = -np.arctanh(np.pi*g*p/omega_max**2) / (np.pi * p)
+                z_lid = min(z_lid, z_lid_comp)
+        return 0.9*z_lid  # Add a small safety margin
+
+    def generate_lid(self, z=0.0, faces_max_radius=None):
+        """
+        Return a mesh of the internal free surface of the body.
+
+        Parameters
+        ----------
+        z: float
+            Vertical position of the lid. Default: 0.0
+        faces_max_radius: float
+            resolution of the mesh of the lid.
+            Default: mean of hull mesh resolution.
+
+        Returns
+        -------
+        Mesh
+            lid of internal surface
+        """
+        from capytaine.meshes.predefined.rectangles import mesh_rectangle
+
+        clipped_hull_mesh = self.clipped(Plane(normal=(0, 0, 1), point=(0, 0, z)))
+        # Alternatively: could keep only faces below z without proper clipping,
+        # and it would work similarly.
+
+        if clipped_hull_mesh.nb_faces == 0:
+            return Mesh(None, None, name="lid for {}".format(self.name))
+
+        x_span = clipped_hull_mesh.vertices[:, 0].max() - clipped_hull_mesh.vertices[:, 0].min()
+        y_span = clipped_hull_mesh.vertices[:, 1].max() - clipped_hull_mesh.vertices[:, 1].min()
+        x_mean = (clipped_hull_mesh.vertices[:, 0].max() + clipped_hull_mesh.vertices[:, 0].min())/2
+        y_mean = (clipped_hull_mesh.vertices[:, 1].max() + clipped_hull_mesh.vertices[:, 1].min())/2
+
+        if faces_max_radius is None:
+            faces_max_radius = np.mean(clipped_hull_mesh.faces_radiuses)
+
+        candidate_lid_mesh = mesh_rectangle(
+                size=(1.1*y_span, 1.1*x_span),  # TODO Fix mesh_rectangle
+                faces_max_radius=faces_max_radius,
+                center=(x_mean, y_mean, z),
+                normal=(0.0, 0.0, -1.0),
+                )
+
+        candidate_lid_points = candidate_lid_mesh.vertices[:, 0:2]
+
+        hull_faces = clipped_hull_mesh.vertices[clipped_hull_mesh.faces, 0:2]
+        edges_of_hull_faces = hull_faces[:, [1, 2, 3, 0], :] - hull_faces[:, :, :]  # Vectors between two consecutive points in a face
+        # edges_of_hull_faces.shape = (nb_full_faces, 4, 2)
+        lid_points_in_local_coords = candidate_lid_points[:, np.newaxis, np.newaxis, :] - hull_faces[:, :, :]
+        # lid_points_in_local_coords.shape = (nb_candidate_lid_points, nb_full_faces, 4, 2)
+        side_of_hull_edges = (lid_points_in_local_coords[..., 0] * edges_of_hull_faces[..., 1]
+                             - lid_points_in_local_coords[..., 1] * edges_of_hull_faces[..., 0])
+        # side_of_hull_edges.shape = (nb_candidate_lid_points, nb_full_faces, 4)
+        point_is_above_panel = np.all(side_of_hull_edges <= 0, axis=-1) | np.all(side_of_hull_edges >= 0, axis=-1)
+        # point_is_above_panel.shape = (nb_candidate_lid_points, nb_full_faces)
+
+        # For all point in candidate_lid_points, and for all edges of all faces of
+        # the hull mesh, check on which side of the edge is the point by using a
+        # cross product.
+        # If a point on the same side of all edges of a face, then it is inside.
+
+        nb_panels_below_point = np.sum(point_is_above_panel, axis=-1)
+        needs_lid = (nb_panels_below_point % 2 == 1).nonzero()[0]
+
+        lid_faces = candidate_lid_mesh.faces[np.all(np.isin(candidate_lid_mesh.faces, needs_lid), axis=-1), :]
+
+        if len(lid_faces) == 0:
+            return Mesh(None, None, name="lid for {}".format(self.name))
+
+        lid_mesh = Mesh(candidate_lid_mesh.vertices, lid_faces, name="lid for {}".format(self.name))
+        lid_mesh.heal_mesh()
+
+        return lid_mesh
+
+    @inplace_transformation
+    def with_normal_vector_going_down(self):
+        # For lid meshes for irregular frequencies removal
+        if np.allclose(self.faces_normals[:, 2], np.ones((self.nb_faces,))):
+            # The mesh is horizontal with normal vectors going up
+            LOG.warning(f"Inverting the direction of the normal vectors of {self} to be downward.")
+            self.faces = self.faces[:, ::-1]
+        else:
+            return self
+
+    def _face_on_plane(self, i_face, plane):
+        return (
+                self.faces_centers[i_face, :] in plane
+                and plane.is_orthogonal_to(self.faces_normals[i_face, :])
+                )
+
+    def extract_lid(self, plane=xOy_Plane):
+        """
+        Split the mesh into a mesh of the hull and a mesh of the lid.
+        By default, the lid is composed of the horizontal faces on the z=0 plane.
+
+        Parameters
+        ----------
+        plane: Plane
+            The plane on which to look for lid faces.
+
+        Returns
+        -------
+        2-ple of Mesh
+            hull mesh and lid mesh
+        """
+        faces_on_plane = [i_face for i_face in range(self.nb_faces) if self._face_on_plane(i_face, plane)]
+        lid_mesh = self.extract_faces(faces_on_plane)
+        hull_mesh = self.extract_faces(list(set(range(self.nb_faces)) - set(faces_on_plane)))
+        return hull_mesh, lid_mesh

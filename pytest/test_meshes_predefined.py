@@ -64,6 +64,8 @@ def test_mesh_vertical_cylinder_reflection_symmetry():
     v = mesh_vertical_cylinder(reflection_symmetry=True, center=(5.0, 5.0, 6.0))
     assert isinstance(v, cpt.ReflectionSymmetricMesh)
     assert v.merged().nb_faces == mesh_vertical_cylinder(reflection_symmetry=False).nb_faces
+    assert np.all(v.half.vertices[:, 0] >= 5.0)
+    assert not np.all(v.vertices[:, 0] >= 5.0)
     assert np.all(v.vertices[:, 2] > 0.0)
 
 def test_mesh_vertical_cylinder_axial_symmetry():
@@ -97,14 +99,16 @@ def test_mesh_horizontal_cylinder_position():
     assert np.isclose(np.min(h.vertices[:, 0]), 5.0)
     assert np.isclose(np.min(h.vertices[:, 1]), 0.0)
 
-def test_mesh_horizontal_reflection_symmetry():
+def test_mesh_horizontal_cylinder_reflection_symmetry():
     from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
     h = mesh_horizontal_cylinder(reflection_symmetry=True, center=(5.0, 5.0, 5.0))
     assert isinstance(h, cpt.ReflectionSymmetricMesh)
     assert h.merged().nb_faces == mesh_horizontal_cylinder(reflection_symmetry=False).nb_faces
+    assert not np.all(h.vertices[:, 1] >= 5.0)  # All panels are on the same side
+    assert np.all(h.half.vertices[:, 1] >= 5.0)  # All panels are on the same side
     assert np.all(h.vertices[:, 2] > 0.0)
 
-def test_mesh_horizontal_translation_symmetry():
+def test_mesh_horizontal_cylinder_translation_symmetry():
     from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
     length = 10.0
     h = mesh_horizontal_cylinder(length=length, resolution=(0, 8, 10), translation_symmetry=True)
@@ -117,7 +121,7 @@ def test_mesh_horizontal_translation_symmetry():
     assert isinstance(h, cpt.CollectionOfMeshes)
     assert isinstance(h[0], cpt.TranslationalSymmetricMesh)
 
-def test_mesh_horizontal_both_symmetries():
+def test_mesh_horizontal_cylinder_both_symmetries():
     from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
     h = mesh_horizontal_cylinder(resolution=(0, 8, 10), reflection_symmetry=True, translation_symmetry=True)
     assert isinstance(h, cpt.ReflectionSymmetricMesh)

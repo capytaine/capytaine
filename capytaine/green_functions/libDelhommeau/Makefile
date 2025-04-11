@@ -18,7 +18,8 @@ PROF = -pg
 
 ### !! choose debug or optim
 # FLAGS += $(DEBUG)
-FLAGS += $(OPT)
+# FLAGS += $(OPT)
+FLAGS += $(OPT) -DFINGREEN3D_OPTIONAL_DEPENDENCY -DLIANGWUNOBLESSE_OPTIONAL_DEPENDENCY
 #FLAGS += $(PROF)
 
 
@@ -27,19 +28,23 @@ FLAGS += $(OPT)
 
 SRC_S=src/float32.f90\
       src/constants.f90\
+      src/old_Prony_decomposition.f90\
       src/Green_Rankine.f90\
       src/Delhommeau_integrals.f90\
       src/Green_wave.f90\
       src/matrices.f90\
-      src/old_Prony_decomposition.f90
+      src/interface.f90
 
 SRC_D=src/float64.f90\
       src/constants.f90\
+      src/old_Prony_decomposition.f90\
+      src/FinGreen3D.f90\
+      src/LiangWuNoblesseWaveTerm.f90\
       src/Green_Rankine.f90\
       src/Delhommeau_integrals.f90\
       src/Green_wave.f90\
       src/matrices.f90\
-      src/old_Prony_decomposition.f90
+      src/interface.f90
 
 ### !! choose single or double comp.
 # SRC=$(SRC_S)
@@ -64,14 +69,16 @@ EXAMPLES_BIN=$(EXAMPLES_SRC:.f90=.bin)
 
 BENCH_SRC=benchmarks/openmp/benchmark_omp.f90\
 	  benchmarks/tabulations/benchmark_tabulation.f90\
-	  benchmarks/profiling/benchmark_profiling.f90
+	  benchmarks/profiling/benchmark_profiling.f90\
+	  benchmarks/rankine/benchmark_rankine.f90\
+	  benchmarks/waves/benchmark_waves.f90
 BENCH_BIN=$(BENCH_SRC:.f90=.bin)
 
 
 ### ==============================================
 ### targets
 
-.PHONY: clean mrproper
+.PHONY: .init clean mrproper
 
 $(OBJDIR)/%.o: %.f90
 	$(COMP) $(FLAGS) -J$(OBJDIR) -c $< -o $@
@@ -99,6 +106,12 @@ run_min_ex: example
 	@$(EXAMPLES_BIN)
 	@echo ''
 	@python3 examples/minimal/minimal_example.py
+
+run_bench_rankine: benchmark
+	@benchmarks/rankine/benchmark_rankine.bin
+
+run_bench_waves: benchmark
+	@benchmarks/waves/benchmark_waves.bin
 
 run_bench_tab: benchmark
 	@benchmarks/tabulations/benchmark_tabulation.bin

@@ -107,6 +107,9 @@ arguments to store more information in the dataset:
           cases with a free surface.
           Cases without a free surface (:code:`free_surface=inf`) are ignored.
 
+The results can also be collected by :func:`~capytaine.io.xarray.assemble_matrices`, which returns the matrices of :func:`~capytaine.io.xarray.assemble_dataset` as numpy arrays stripped of their metadata.
+This function is meant to be used for teaching, to assemble the matrices without getting the students in contact with ``xarray``.
+
 Building a dataset from Bemio
 -----------------------------
 
@@ -189,7 +192,7 @@ See also `this Github issue <https://github.com/capytaine/capytaine/issues/2>`_.
 
 
 Saving the rotation center of rigid bodies
------------------------------------------
+------------------------------------------
 
 Some software downstream of Capytaine, such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_, require the NetCDF file to store the rotation center of each body.
 While this is not yet done automatically by Capytaine, it can be added to the dataset manually as in the following example, which is an extension of the :doc:`quickstart` example::

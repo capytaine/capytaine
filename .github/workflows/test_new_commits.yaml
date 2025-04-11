@@ -18,6 +18,12 @@ env:
   FORCE_COLOR: 3
   # Colors for nox
 
+# The following block is meant to cancel the workflow if a newer commit is pushed on the pull request
+# From https://stackoverflow.com/questions/66335225/how-to-cancel-previous-runs-in-the-pr-when-you-push-new-commitsupdate-the-curre
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build_and_test:
 
@@ -38,10 +44,10 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Set up nox
-      uses: wntrblm/nox@2024.03.02
+      uses: wntrblm/nox@2024.04.15
 
     - name: Run nox session
-      run: nox -s build_and_test_on_locked_env
+      run: nox --force-python ${{ matrix.python-version }} -s build_and_test_on_locked_env
 
   compile_fortran:
 
@@ -52,14 +58,22 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Fortran
-      uses: fortran-lang/setup-fortran@v1
-      with:
-        compiler: 'gcc'
-        version: '13'
+    # # 2024-10-22: disabling this step because it takes a few minutes to
+    # download a specific version of GCC, but it is not really required as GCC
+    # is already installed on the Ubuntu runner.
+    #
+    # - name: Set up Fortran
+    #   uses: fortran-lang/setup-fortran@v1
+    #   with:
+    #     compiler: 'gcc'
+    #     version: '13'
 
     - name: Compile and run example
       working-directory: capytaine/green_functions/libDelhommeau/
       run: make example && examples/minimal/minimal_example.bin
       # Soundness of the results is not tested, only that the compiling and
       # execution are succeeding.
+
+    - name: Run simple benchmark
+      working-directory: capytaine/green_functions/libDelhommeau/
+      run: make run_bench_rankine && make run_bench_waves
