@@ -290,7 +290,11 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
     @inplace_transformation
     def prune_empty_meshes(self):
         """Remove empty meshes from the collection."""
-        self._meshes = tuple(mesh for mesh in self if mesh.nb_faces > 0 and mesh.nb_vertices > 0)
+        remaining_meshes = tuple(mesh for mesh in self if mesh.nb_faces > 0 and mesh.nb_vertices > 0)
+        if len(remaining_meshes) == 0:
+            self._meshes = (Mesh(name="empty_mesh"),)
+        else:
+            self._meshes = remaining_meshes
 
     @property
     def axis_aligned_bbox(self):
