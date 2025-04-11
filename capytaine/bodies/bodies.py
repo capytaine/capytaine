@@ -40,10 +40,10 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
 
     Parameters
     ----------
-    mesh : mesh-like object, optional
+    mesh : MeshLike, optional
         the mesh describing the geometry of the hull of the floating body.
         If none is given, a empty one is created.
-    lid_mesh : mesh-like object or None, optional
+    lid_mesh : MeshLike or None, optional
         a mesh of an internal lid for irregular frequencies removal.
         Unlike the mesh of the hull, no dof is defined on the lid_mesh.
         If none is given, none is used when solving the Boundary Integral Equation.
@@ -141,7 +141,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
     @cached_property
     def mesh_including_lid(self):
         if self.lid_mesh is not None:
-            return CollectionOfMeshes([self.mesh, self.lid_mesh])
+            return self.mesh.join_meshes(self.lid_mesh)
         else:
             return self.mesh
 
