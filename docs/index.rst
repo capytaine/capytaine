@@ -8,14 +8,14 @@ It is built around a full rewrite of the open source Boundary Element Method (BE
 
 This documentation is for version |release| (released |today|).
 
-The documentations of older versions are available there: `v1.5 <https://capytaine.github.io/v1.5>`_, `v2.0 <https://capytaine.github.io/v2.0>`_, `v2.1 <https://capytaine.github.io/v2.1>`_, `v2.2 <https://capytaine.github.io/v2.2>`_.
+The documentations of older versions are available there: `v1.5 <https://capytaine.github.io/v1.5>`_, `v2.0 <https://capytaine.github.io/v2.0>`_, `v2.1 <https://capytaine.github.io/v2.1>`_, `v2.2.1 <https://capytaine.github.io/v2.2.1>`_.
 
 .. toctree::
    :maxdepth: 1
 
    features.rst
 
-Private support, custom developments and training can be provided by `Eurobios Mews Labs <https://www.mews-partners.com/en/our-offering/eurobios-mews-labs/>`_ (contact@mews-labs.com).
+Private support, custom developments and training can be provided by `Mews Labs <https://www.mews-labs.com/>`_ (contact@mews-labs.com).
 
 For free support, you can ask questions on the public `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
 Please do not contact the developers directly by email, unless you are looking for private paid support.
