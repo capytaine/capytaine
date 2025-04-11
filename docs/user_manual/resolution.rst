@@ -224,6 +224,13 @@ This behavior can be turned off by giving the optional argument
 ``CAPYTAINE_PROGRESS_BAR`` to ``False``.
 This might be useful in testing environments and CI.
 
+Timer
+-----
+
+The solver :class:`~capytaine.bem.solver.BEMSolver` keeps track of the time spent in some step of the resolution.
+Results are stored in ``timer`` attribute and can also be accessed by :meth:`~capytaine.bem.solver.BEMSolver.timer_summary`.
+
+
 Parallelization
 ---------------
 
