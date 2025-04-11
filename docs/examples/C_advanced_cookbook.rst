@@ -83,5 +83,5 @@ Please also note that you are expected to already be familiar with GPU
 frameworks and have a working setup to use this; Capytaine's developers can
 offer no support for GPU issues unrelated to Capytaine.
 
-.. literalinclude:: examples/C10_custom_linear_solver_on_gpu.py
+.. literalinclude:: src/C10_custom_linear_solver_on_gpu.py
    :language: python

@@ -66,7 +66,7 @@ TODO
 A6. Irregular frequencies removal
 ---------------------------------
 
-.. literalinclude:: examples/A6_irregular_frequency_removal.py
+.. literalinclude:: src/A6_irregular_frequency_removal.py
    :language: python
 
 
