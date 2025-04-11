@@ -5,7 +5,15 @@ from numpy.typing import ArrayLike
 @runtime_checkable
 class MeshLike(Protocol):
     """Minimal API that a class describing a mesh should implement to be
-    usable with the rest of Capytaine."""
+    usable with the rest of Capytaine.
+
+    The goal is two-fold:
+       1. Use at runtime to identify a mesh for functions that behaves
+       differently depending on the type of the input (e.g. Delhommeau().evaluate).
+       2. Use as documentation for third-party mesh implementation.
+
+    In the future, it could also be used for static typing.
+    """
     vertices: ArrayLike
     faces: ArrayLike
     nb_vertices: int
