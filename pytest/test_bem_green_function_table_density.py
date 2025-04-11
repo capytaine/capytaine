@@ -113,6 +113,7 @@ import capytaine.green_functions.libs.Delhommeau_float64 as fortran_core
         (324, 100.0, fortran_core.constants.legacy_grid),
         (676, 100.0, fortran_core.constants.scaled_nemoh3_grid),
         (600, 120.0, fortran_core.constants.scaled_nemoh3_grid),
+        (1000, 100.0, fortran_core.constants.linear_grid),
     ])
 def test_r_range_inversion(params):
     nr, rmax, grid_shape = params
