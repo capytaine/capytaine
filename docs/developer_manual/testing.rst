@@ -131,7 +131,7 @@ Both only run on Linux, testing other platforms is only done with the
 ``build_wheel.yaml`` workflow described below.
 
 The workflow ``build_docs.yaml`` builds the documentation and push it to
-`https://capytaine.org/master/`, whenever a commit modifies the sources in the
+`<https://capytaine.org/master/>`_, whenever a commit modifies the sources in the
 ``docs/`` directory.
 
 The workflow ``build_wheels.yaml`` builds the wheels (precompiled packages) for
