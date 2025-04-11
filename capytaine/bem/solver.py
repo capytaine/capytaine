@@ -13,6 +13,7 @@ import os
 import logging
 
 import numpy as np
+import pandas as pd
 
 from datetime import datetime
 
@@ -25,6 +26,7 @@ from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
+from capytaine.tools.timer import Timer
 
 LOG = logging.getLogger(__name__)
 
@@ -43,6 +45,8 @@ class BEMSolver:
 
     Attributes
     ----------
+    timer: dict[str, Timer]
+        Storing the time spent on each subtasks of the resolution
     exportable_settings : dict
         Settings of the solver that can be saved to reinit the same solver later.
     """
@@ -50,6 +54,10 @@ class BEMSolver:
     def __init__(self, *, green_function=None, engine=None):
         self.green_function = Delhommeau() if green_function is None else green_function
         self.engine = BasicMatrixEngine() if engine is None else engine
+
+        self.timer = {"Solve total": Timer(), "  Green function": Timer(), "  Linear solver": Timer()}
+
+        self.solve = self.timer["Solve total"].wraps_function(self.solve)
 
         try:
             self.exportable_settings = {
@@ -64,6 +72,15 @@ class BEMSolver:
 
     def __repr__(self):
         return self.__str__()
+
+    def timer_summary(self):
+        return pd.DataFrame([
+            {
+                "task": name,
+                "total": self.timer[name].total,
+                "nb_calls": self.timer[name].nb_timings,
+                "mean": self.timer[name].mean
+            } for name in self.timer]).set_index("task")
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
@@ -109,23 +126,33 @@ class BEMSolver:
             if problem.forward_speed != 0.0:
                 raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
 
-            S, D = self.engine.build_matrices(
-                    problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                    problem.free_surface, problem.water_depth, wavenumber,
-                    self.green_function, adjoint_double_layer=False
-                    )
-
-            potential = linear_solver(D, S @ problem.boundary_condition)
+            with self.timer["  Green function"]:
+                S, D = self.engine.build_matrices(
+                        problem.body.mesh_including_lid, problem.body.mesh_including_lid,
+                        problem.free_surface, problem.water_depth, wavenumber,
+                        self.green_function, adjoint_double_layer=False
+                        )
+            rhs = S @ problem.boundary_condition
+            with self.timer["  Linear solver"]:
+                potential = linear_solver(D, rhs)
+            if not potential.shape == problem.boundary_condition.shape:
+                raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({potential.shape}) "
+                                 f"does not match the expected shape ({problem.boundary_condition.shape})")
             pressure = 1j * omega * problem.rho * potential
             sources = None
         else:
-            S, K = self.engine.build_matrices(
-                    problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                    problem.free_surface, problem.water_depth, wavenumber,
-                    self.green_function, adjoint_double_layer=True
-                    )
+            with self.timer["  Green function"]:
+                S, K = self.engine.build_matrices(
+                        problem.body.mesh_including_lid, problem.body.mesh_including_lid,
+                        problem.free_surface, problem.water_depth, wavenumber,
+                        self.green_function, adjoint_double_layer=True
+                        )
 
-            sources = linear_solver(K, problem.boundary_condition)
+            with self.timer["  Linear solver"]:
+                sources = linear_solver(K, problem.boundary_condition)
+            if not sources.shape == problem.boundary_condition.shape:
+                raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({sources.shape}) "
+                                 f"does not match the expected shape ({problem.boundary_condition.shape})")
             potential = S @ sources
             pressure = 1j * omega * problem.rho * potential
             if problem.forward_speed != 0.0:
@@ -193,7 +220,7 @@ class BEMSolver:
             problems = sorted(problems)
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
-            return [self.solve(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+            results = [self.solve(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
@@ -206,7 +233,8 @@ class BEMSolver:
                                           total=len(groups_of_problems),
                                           description=f"Solving BEM problems with {n_jobs} threads:")
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
-            return results
+        LOG.info("Solver timer summary:\n%s", self.timer_summary())
+        return results
 
     @staticmethod
     def _check_wavelength_and_mesh_resolution(problems):
@@ -333,7 +361,8 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
-        S, _ = self.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
+        with self.timer["  Green function"]:
+            S, _ = self.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
         potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
@@ -345,7 +374,8 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        _, gradG = self.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber,
+        with self.timer["  Green function"]:
+            _, gradG = self.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber,
                                                 early_dot_product=False)
         velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
         return velocities.reshape((*output_shape, 3))

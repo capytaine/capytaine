@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import numpy as np
 from numpy import dot, pi
 from numpy.linalg import norm

@@ -16,18 +16,27 @@ ENV = {
         }
 
 EXAMPLE_FILES = [
-        "compare_Green_functions.py",
-        "convergence_study.py",
-        "custom_dofs.py",
-        "custom_Green_function.py",
-        "finite_depth_cylinder.py",
-        "free_surface_elevation.py",
-        "haskind.py",
-        "kochin.py",
-        "multibody.py",
-        "plot_influence_matrix.py",
-        "plot_velocity_in_domain.py",
-        "radiation_cylinder.py"
+    # "quickstart.py",
+    "A1_radiation_cylinder.py",
+    "A2_multibody.py",
+    "A3_finite_depth_cylinder.py",
+    "A4_custom_dofs.py",
+    "A5_convergence_study.py",
+    # "A6_irregular_frequency_removal.py",      # Slow
+    "A7_elasticity_of_beam.py",
+    "B1_pressure_on_hull.py",
+    "B2_haskind.py",
+    "B3_free_surface_elevation.py",
+    "B4_kochin.py",
+    "B5_plot_velocity_in_domain.py",
+    # "B6_animate_free_surface.py",             # Requires VTK
+    # "B7_boat_animation.py",                   # Requires VTK
+    "C5_plot_influence_matrix.py",
+    # "C6_axisymmetric_buoy.py",                # Requires VTK
+    # "C7_h_matrices_with_preconditionner.py",  # Slow
+    "C8_compare_Green_functions.py",
+    "C9_custom_Green_function.py",
+    # "C10_custom_linear_solver_on_gpu.py",     # Requires torch
         ]
 
 NOXFILE_DIR = os.path.dirname(__file__)
@@ -42,7 +51,7 @@ def run_tests(session):
         session.run('capytaine', os.path.join(NEMOH_CASES, "Nemoh.cal"), env=ENV)
         session.run('capytaine', os.path.join(NEMOH_CASES, "Nemoh_v3.cal"), env=ENV)
         for example_file in EXAMPLE_FILES:
-            session.run('python', os.path.join(NOXFILE_DIR, "examples", example_file), env=ENV)
+            session.run('python', os.path.join(NOXFILE_DIR, "docs", "examples", "src", example_file), env=ENV)
 
 
 @nox.session

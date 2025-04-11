@@ -119,7 +119,7 @@ Capytaine is also available in the Anaconda package repository, that can be acce
 
 .. _Conda: https://conda.io
 .. _`Anaconda distribution`: https://www.anaconda.com/download/
-.. _Miniconda: https://conda.io/miniconda.html
+.. _Miniconda: https://docs.anaconda.com/miniconda/
 .. _Miniforge: https://github.com/conda-forge/miniforge
 .. _Mamba: https://mamba.readthedocs.io/en/latest/
 
@@ -152,5 +152,5 @@ It is often more efficient to specify all the optional packages you'd like in yo
 More build recipes
 ------------------
 
-More advanced build recipes for Capytaine are available in the dedicated repository `https://github.com/capytaine/capytaine-extra-build-recipes`_.
+More advanced build recipes for Capytaine are available in the dedicated repository `<https://github.com/capytaine/capytaine-extra-build-recipes>`_.
 In particular, build recipes for Docker and Guix might be useful for reproducible computations.

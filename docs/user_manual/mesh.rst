@@ -182,8 +182,15 @@ The faces are provided as a Numpy array of ints with shape ``(nb_faces, 4)``, su
 
 The ordering of the vertices define the direction of the normal vector, using
 normal right rotation. In other words, the normal vector is towards you if you
-see the vertices as being in counterclockwise order. In the above example, the
-normal vector is going up.
+see the vertices as being in counterclockwise order. In the above code sample,
+the normal vector is going up.
+
+.. figure:: Panel_convention.svg
+   :scale: 20 %
+   :alt: Schematics of the ordering of the vertices around a panel
+
+   The ordering of the vertices in a panel defines the direction of the normal
+   vector.
 
 Triangular faces are supported as quadrilateral faces with the same vertex
 repeated twice::
@@ -261,7 +268,7 @@ the degrees of freedom will also be transformed::
     my_axis = Axis(vector=[1, 1, 1], point=[3, 4, 5])
     mesh.rotated(axis=my_axis, angle=3.14/5)
 
-    # Rotation around a point such that vec1 would become equal to vec2
+    # Rotation around a point such that vec1 becomes aligned with vec2
     mesh.rotated_around_center_to_align_vector(
         center=(0, 0, 0),
         vec1=(1, 4, 7),

@@ -35,6 +35,8 @@ Minor change
 
 * The environment variable ``CAPYTAINE_PROGRESS_BAR`` can be used to disable globally the display of a progress bar when solving problems. This is meant mostly for testing environments and CI. (:pull:`646`)
 
+* Add ``timer`` attribute to :class:`~capytaine.bem.solver.BEMSolver` storing the time spent in each steps of the resolution. Summary can be accessed by :meth:`~capytaine.bem.solver.BEMSolver.timer_summary`. (:pull:`674`)
+
 Bug fixes
 ~~~~~~~~~
 
@@ -49,6 +51,8 @@ Bug fixes
 * Check the consistency of the dofs with the mesh and raises ``ValueError`` when an inconsistency is detected (:pull:`663`).
 
 * Fix error when removing all the faces from a symmetric mesh (:pull:`668`)
+
+* Add safeguard if a custom linear solver returns a result vector of wrong shape (e.g. column instead of row) (:pull:`670`)
 
 Internals
 ~~~~~~~~~
