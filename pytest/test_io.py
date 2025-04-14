@@ -67,6 +67,43 @@ def test_dataset_from_bemio():
     assert (np.moveaxis(bemio_data.body[0].am.all, 2, 0) * bemio_data.body[0].rho == \
         new_dataset['added_mass'].values).all()
 
+@pytest.fixture
+def dataset():
+    mesh = cpt.mesh_sphere().immersed_part()
+    body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
+    body.dofs["Shear"] = np.array([(x, 0, 0) for x, y, z in mesh.faces_centers])
+    test_matrix = xr.Dataset(coords={
+        "omega": [1.0, 2.0, 3.0],
+        "wave_direction": [0.0, np.pi],
+        "radiating_dof": list(body.dofs),
+        "water_depth": [np.infty, 10.0],
+        })
+    ds = cpt.BEMSolver().fill_dataset(test_matrix, body)
+    return ds
+
+
+def test_export_to_bemio_dataset_shape(tmp_path, dataset):
+    pytest.importorskip("h5py", reason="h5py not installed, test skipped.")
+    from capytaine.io.bemio import save_as_bemio_hdf5
+    with pytest.raises(ValueError, match="single value of the following"):
+        save_as_bemio_hdf5(os.path.join(tmp_path, "test.h5"), dataset)
+
+def test_export_to_bemio_non_rigid_body(tmp_path, dataset):
+    pytest.importorskip("h5py", reason="h5py not installed, test skipped.")
+    from capytaine.io.bemio import save_as_bemio_hdf5
+    dataset = dataset.sel(water_depth=10.0, wave_direction=0.0)
+    with pytest.raises(ValueError, match="only been implemented for a single rigid body"):
+        save_as_bemio_hdf5(os.path.join(tmp_path, "test.h5"), dataset)
+
+def test_export_to_bemio(tmp_path, dataset):
+    pytest.importorskip("h5py", reason="h5py not installed, test skipped.")
+    from capytaine.io.bemio import save_as_bemio_hdf5
+    dataset = dataset.sel(water_depth=10.0, wave_direction=0.0,
+                          radiating_dof=["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"],
+                          influenced_dof=["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
+                          )
+    save_as_bemio_hdf5(os.path.join(tmp_path, "test.h5"), dataset)
+
 
 def test_legacy_export_hydrostatics():
     # create two cylinders & compute inertia & hydrostatic data
