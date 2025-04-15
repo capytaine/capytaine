@@ -63,6 +63,8 @@ Internals
 
 * Refactor implementation of Delhommeau's finite depth Green function to compute all the frequency-independant Rankine terms at the same time (for future caching) (:pull:`652`)
 
+* NaN values are not striped out of output data (:pull:`676`)
+
 ---------------------------------
 New in version 2.2.1 (2024-11-18)
 ---------------------------------
