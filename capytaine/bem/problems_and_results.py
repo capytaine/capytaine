@@ -512,7 +512,8 @@ class DiffractionResult(LinearPotentialFlowResult):
         return [dict(**params,
                      influenced_dof=dof,
                      diffraction_force=self.forces[dof],
-                     Froude_Krylov_force=FK[dof])
+                     Froude_Krylov_force=FK[dof],
+                     kind="DiffractionResult")
                 for dof in self.influenced_dofs]
 
 
@@ -546,5 +547,6 @@ class RadiationResult(LinearPotentialFlowResult):
         return [dict(params,
                      influenced_dof=dof,
                      added_mass=self.added_mass[dof],
-                     radiation_damping=self.radiation_damping[dof])
+                     radiation_damping=self.radiation_damping[dof],
+                     kind="RadiationResult")
                 for dof in self.influenced_dofs]

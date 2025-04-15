@@ -196,12 +196,8 @@ def _dataset_from_dataframe(df: pd.DataFrame,
         They will appears as dimension in the output dataset only if they have
         more than one different values.
     """
-
-    for variable_name in variables:
-        df = df[df[variable_name].notnull()].dropna(axis='columns')  # Keep only records with non null values of all the variables
     df = df.drop_duplicates(optional_dims + dimensions)
     df = df.set_index(optional_dims + dimensions)
-
     da = df.to_xarray()[variables]
     da = _squeeze_dimensions(da, dimensions=optional_dims)
     return da
@@ -355,9 +351,9 @@ def assemble_dataset(results,
     optional_dims = ['g', 'rho', 'body_name', 'water_depth', 'forward_speed']
 
     # RADIATION RESULTS
-    if 'added_mass' in records.columns:
+    if "RadiationResult" in set(records['kind']):
         radiation_cases = _dataset_from_dataframe(
-            records,
+            records[records['kind'] == "RadiationResult"],
             variables=['added_mass', 'radiation_damping'],
             dimensions=[main_freq_type, 'radiating_dof', 'influenced_dof'],
             optional_dims=optional_dims + ['wave_direction'])
@@ -368,9 +364,9 @@ def assemble_dataset(results,
         dataset = xr.merge([dataset, radiation_cases])
 
     # DIFFRACTION RESULTS
-    if 'diffraction_force' in records.columns:
+    if "DiffractionResult" in set(records['kind']):
         diffraction_cases = _dataset_from_dataframe(
-            records,
+            records[records['kind'] == "DiffractionResult"],
             variables=['diffraction_force', 'Froude_Krylov_force'],
             dimensions=[main_freq_type, 'wave_direction', 'influenced_dof'],
             optional_dims=optional_dims)
