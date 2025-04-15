@@ -3,8 +3,8 @@
 .. todo:: This module could be tidied up a bit and some methods merged or
           uniformized.
 """
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# Copyright (C) 2017-2025 Matthieu Ancellin
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
 from datetime import datetime
@@ -31,6 +31,16 @@ LOG = logging.getLogger(__name__)
 #########################
 #  Reading test matrix  #
 #########################
+
+def _unsqueeze_dimensions(data_array, dimensions=None):
+    """Add scalar coordinates as dimensions of size 1."""
+    if dimensions is None:
+        dimensions = list(data_array.coords.keys())
+    for dim in dimensions:
+        if len(data_array.coords[dim].values.shape) == 0:
+            data_array = xr.concat([data_array], dim=dim)
+    return data_array
+
 
 def problems_from_dataset(dataset: xr.Dataset,
                           bodies: Union[FloatingBody, Sequence[FloatingBody]],
@@ -150,6 +160,28 @@ def problems_from_dataset(dataset: xr.Dataset,
     return sorted(problems)
 
 
+######################
+#  Dataset creation  #
+######################
+
+def collect_records(results):
+    records_list = []
+    warned_once_about_no_free_surface = False
+    for result in results:
+        if result.free_surface == np.inf:
+            if not warned_once_about_no_free_surface:
+                LOG.warning("Datasets currently only support cases with a free surface (free_surface=0.0).\n"
+                            "Cases without a free surface (free_surface=inf) are ignored.\n"
+                            "See also https://github.com/mancellin/capytaine/issues/88")
+                warned_once_about_no_free_surface = True
+            else:
+                pass
+        else:
+            for record in result.records:
+                records_list.append(record)
+    return records_list
+
+
 def _squeeze_dimensions(data_array, dimensions=None):
     """Remove dimensions if they are of size 1. The coordinates become scalar coordinates."""
     if dimensions is None:
@@ -159,20 +191,6 @@ def _squeeze_dimensions(data_array, dimensions=None):
             data_array = data_array.squeeze(dim, drop=False)
     return data_array
 
-
-def _unsqueeze_dimensions(data_array, dimensions=None):
-    """Add scalar coordinates as dimensions of size 1."""
-    if dimensions is None:
-        dimensions = list(data_array.coords.keys())
-    for dim in dimensions:
-        if len(data_array.coords[dim].values.shape) == 0:
-            data_array = xr.concat([data_array], dim=dim)
-    return data_array
-
-
-######################
-#  Dataset creation  #
-######################
 
 def _dataset_from_dataframe(df: pd.DataFrame,
                             variables: Union[str, Sequence[str]],
@@ -256,23 +274,6 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
 
     return kochin_data
 
-
-def collect_records(results):
-    records_list = []
-    warned_once_about_no_free_surface = False
-    for result in results:
-        if result.free_surface == np.inf:
-            if not warned_once_about_no_free_surface:
-                LOG.warning("Datasets currently only support cases with a free surface (free_surface=0.0).\n"
-                            "Cases without a free surface (free_surface=inf) are ignored.\n"
-                            "See also https://github.com/mancellin/capytaine/issues/88")
-                warned_once_about_no_free_surface = True
-            else:
-                pass
-        else:
-            for record in result.records:
-                records_list.append(record)
-    return records_list
 
 def assemble_dataset(results,
                      omega=True, wavenumber=True, wavelength=True, period=True,
