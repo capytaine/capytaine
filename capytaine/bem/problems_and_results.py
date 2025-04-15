@@ -233,6 +233,7 @@ class LinearPotentialFlowProblem:
     def _asdict(self):
         return {"body_name": self.body_name,
                 "water_depth": self.water_depth,
+                "free_surface": self.free_surface,
                 "omega": float(self.omega),
                 "encounter_omega": float(self.encounter_omega),
                 "period": float(self.period),

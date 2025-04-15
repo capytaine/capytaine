@@ -138,4 +138,11 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
         ])
     df = df.astype({'added_mass': np.float64, 'radiation_damping': np.float64, 'diffraction_force': np.complex128, 'Froude_Krylov_force': np.complex128})
 
+    all_dofs_in_order = ['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw']
+    inf_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order)
+    df["influenced_dof"] = df["influenced_dof"].astype(inf_dof_cat)
+    if 'added_mass' in df.columns:
+        rad_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order)
+        df["radiating_dof"] = df["radiating_dof"].astype(rad_dof_cat)
+
     return df
