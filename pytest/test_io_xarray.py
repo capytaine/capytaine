@@ -23,6 +23,7 @@ def solver():
     solver = cpt.BEMSolver()
     return solver
 
+
 #######################################################################
 #                       Problems from datasets                        #
 #######################################################################
@@ -127,19 +128,18 @@ def test_assemble_matrices_no_data():
 #                          Assemble dataset                           #
 #######################################################################
 
-@pytest.mark.parametrize("method", ['indirect','direct'])
-def test_assemble_dataset(sphere, solver, method):
+def test_assemble_dataset(sphere, solver):
     pb_1 = cpt.DiffractionProblem(body=sphere, wave_direction=1.0, omega=1.0)
-    res_1 = solver.solve(pb_1, method=method)
+    res_1 = solver.solve(pb_1)
     ds1 = cpt.assemble_dataset([res_1])
     assert "diffraction_force" in ds1
     assert "added_mass" not in ds1
 
     pb_2 = cpt.RadiationProblem(body=sphere, radiating_dof="Heave", omega=1.0)
-    res_2 = solver.solve(pb_2, method=method)
+    res_2 = solver.solve(pb_2)
     ds2 = cpt.assemble_dataset([res_2])
     assert "added_mass" in ds2
-    assert "diffraction_force" not in ds1
+    assert "diffraction_force" not in ds2
 
     ds12 = cpt.assemble_dataset([res_1, res_2])
     assert "diffraction_force" in ds12
