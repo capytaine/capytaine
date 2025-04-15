@@ -349,10 +349,12 @@ def assemble_dataset(results,
     if 'added_mass' in records.columns:
         records["radiating_dof"] = records["radiating_dof"].astype(rad_dof_cat)
 
+    kinds_of_results = set(records['kind'])
+
     optional_dims = ['g', 'rho', 'body_name', 'water_depth', 'forward_speed']
 
     # RADIATION RESULTS
-    if "RadiationResult" in set(records['kind']):
+    if "RadiationResult" in kinds_of_results:
         radiation_cases = _dataset_from_dataframe(
             records[records['kind'] == "RadiationResult"],
             variables=['added_mass', 'radiation_damping'],
@@ -365,7 +367,7 @@ def assemble_dataset(results,
         dataset = xr.merge([dataset, radiation_cases])
 
     # DIFFRACTION RESULTS
-    if "DiffractionResult" in set(records['kind']):
+    if "DiffractionResult" in kinds_of_results:
         diffraction_cases = _dataset_from_dataframe(
             records[records['kind'] == "DiffractionResult"],
             variables=['diffraction_force', 'Froude_Krylov_force'],
