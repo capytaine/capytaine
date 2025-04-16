@@ -83,6 +83,35 @@ def test_problems_from_dataset_without_list_with_too_many_frequencies(sphere):
 
 
 #######################################################################
+#                         Assemble dataframes                         #
+#######################################################################
+
+def test_assemble_dataframe(sphere, solver):
+    pb_1 = cpt.DiffractionProblem(body=sphere, wave_direction=1.0, omega=1.0)
+    res_1 = solver.solve(pb_1)
+    df1 = cpt.assemble_dataframe([res_1])
+    assert "diffraction_force" in df1
+    assert "added_mass" not in df1
+
+    pb_2 = cpt.RadiationProblem(body=sphere, radiating_dof="Heave", omega=1.0)
+    res_2 = solver.solve(pb_2)
+    df2 = cpt.assemble_dataframe([res_2])
+    assert "added_mass" in df2
+    assert "diffraction_force" not in df2
+
+    df12 = cpt.assemble_dataframe([res_1, res_2])
+    assert "diffraction_force" in df12
+    assert "added_mass" in df12
+
+
+def test_assemble_dataframe_with_infinite_free_surface(sphere, solver):
+    pb = cpt.RadiationProblem(body=sphere, free_surface=np.inf)
+    res = solver.solve(pb)
+    df = cpt.assemble_dataframe([res])
+    assert "free_surface" in df
+
+
+#######################################################################
 #                          Assemble matrices                          #
 #######################################################################
 
@@ -144,6 +173,15 @@ def test_assemble_dataset(sphere, solver):
     ds12 = cpt.assemble_dataset([res_1, res_2])
     assert "diffraction_force" in ds12
     assert "added_mass" in ds12
+
+
+def test_assemble_dataset_with_infinite_free_surface(caplog, sphere, solver):
+    pb = cpt.RadiationProblem(body=sphere, free_surface=np.inf)
+    res = solver.solve(pb)
+    with caplog.at_level("WARNING"):
+        ds = cpt.assemble_dataset([res])
+    assert "ignored" in caplog.text
+    assert len(ds) == 0
 
 
 def test_assemble_dataset_with_nans(sphere):

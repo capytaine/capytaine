@@ -65,15 +65,19 @@ the hull, under the same form as the potential above::
   #  -14.13645749+2.21945488j -14.41706935+2.26351156j]
 
 
-Building a dataset from LinearPotentialFlowResult
--------------------------------------------------
+Building a dataframe or a dataset from LinearPotentialFlowResult
+----------------------------------------------------------------
 
 If you have a list of :code:`LinearPotentialFlowResult`, you can assemble
-them in a xarray dataset for a more convenient post-processing. Use the
-following syntax::
+them in a `pandas <https://pandas.pydata.org/>`_ DataFrame or a `xarray
+<https://docs.xarray.dev>`_ dataset for a more convenient post-processing. Use
+the following syntax::
 
-   from capytaine import assemble_dataset
-   dataset = assemble_dataset(list_of_results)
+   dataframe = cpt.assemble_dataframe(list_of_results)
+
+or::
+
+   dataset = cpt.assemble_dataset(list_of_results)
 
 If you gave a test matrix to the :code:`BEMSolver.fill_dataset` method, the
 output will directly be an xarray dataset.
@@ -113,22 +117,22 @@ This function is meant to be used for teaching, to assemble the matrices without
 Building a dataset from Bemio
 -----------------------------
 
-An xarray dataset can also be created from data structures generated using the `Bemio
-<https://wec-sim.github.io/bemio/>`_ package, which reads hydrodynamic output data
-from NEMOH, WAMIT, and AQWA. This allows for Capytaine post-processing of hydrodynamic
-data generated from other BEM codes.
+A DataFrame or a Dataset can also be created from data structures generated
+using the `Bemio <https://wec-sim.github.io/bemio/>`_ package, which reads
+hydrodynamic output data from NEMOH, WAMIT, and AQWA. This allows for Capytaine
+post-processing of hydrodynamic data generated from other BEM codes.
 
 Bemio does not come packaged with Capytaine and needs to to be installed independently.
 Note that `the base repository of Bemio <https://github.com/WEC-Sim/bemio/>`_ has been
 archived and is only compatible with Python 2.7.x, so using a Python 3 compatible fork is
-recommended, available `here <https://github.com/michaelcdevin/bemio>`_ or installed with::
+recommended, available `here <https://github.com/mancellin/bemio>`_ or installed with::
 
-  pip install git+https://github.com/michaelcdevin/bemio.git
+  pip install git+https://github.com/mancellin/bemio.git
 
 To build the xarray dataset using Capytaine, the output files from the BEM program in
 question must be read into a Bemio :code:`data_structures.ben.HydrodynamicData` class, which is
-then called by `assemble_dataset`. For example, to create an xarray dataset from a WAMIT
-:code:`.out` file::
+then called by `assemble_dataframe` or `assemble_dataset`. For example, to
+create an xarray dataset from a WAMIT :code:`.out` file::
 
   from bemio.io.wamit import read as read_wamit
   import capytaine as cpt

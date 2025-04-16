@@ -51,7 +51,9 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['period'] = 2*np.pi/omega
                 temp_dict['rho'] = rho
                 temp_dict['g'] = g
+                temp_dict['kind'] = "DiffractionResult"
                 temp_dict['forward_speed'] = 0.0
+                temp_dict['free_surface'] = 0.0
                 temp_dict['wave_direction'] = np.radians(dir)
                 temp_dict['influenced_dof'] = dofs
 
@@ -104,6 +106,8 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['omega'] = omega
                 temp_dict['rho'] = rho
                 temp_dict['g'] = g
+                temp_dict['kind'] = "RadiationResult"
+                temp_dict['free_surface'] = 0.0
                 temp_dict['forward_speed'] = 0.0
                 temp_dict['wave_direction'] = 0.0
                 temp_dict['influenced_dof'] = dofs
@@ -137,5 +141,12 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
         pd.DataFrame.from_dict(rad_dict).explode(['influenced_dof', 'added_mass', 'radiation_damping'])
         ])
     df = df.astype({'added_mass': np.float64, 'radiation_damping': np.float64, 'diffraction_force': np.complex128, 'Froude_Krylov_force': np.complex128})
+
+    all_dofs_in_order = ['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw']
+    inf_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order)
+    df["influenced_dof"] = df["influenced_dof"].astype(inf_dof_cat)
+    if 'added_mass' in df.columns:
+        rad_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order)
+        df["radiating_dof"] = df["radiating_dof"].astype(rad_dof_cat)
 
     return df
