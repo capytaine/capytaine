@@ -213,6 +213,12 @@ A list of problems can be solved at once in an optimal order with::
 where :meth:`~capytaine.bem.solver.BEMSolver.solve_all` accepts the same
 optional keyword arguments as :meth:`~capytaine.bem.solver.BEMSolver.solve`.
 
+When using :meth:`~capytaine.bem.solver.BEMSolver.solve_all`, a single problem
+raising an error do not interrupt the full resolution. Instead, the error is
+displayed in the log and the output result is replaced by a
+:class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or a
+:class:`~capytaine.bem.problems_and_results.FailedRadiationResult`.
+
 Progress bar
 ------------
 

@@ -82,6 +82,11 @@ or::
 If you gave a test matrix to the :code:`BEMSolver.fill_dataset` method, the
 output will directly be an xarray dataset.
 
+Errored resolutions stored as a
+:class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or a
+:class:`~capytaine.bem.problems_and_results.FailedRadiationResult` will appear
+as `NaN` in the dataset.
+
 Both :code:`assemble_dataset` and :code:`fill_dataset` accept some optional keyword
 arguments to store more information in the dataset:
 

@@ -233,3 +233,29 @@ def test_results():
     res = RadiationResult(pb)
     assert res.g == pb.g == 10
     assert "RadiationResult" in str(res)
+
+
+@pytest.fixture
+def broken_bem_solver():
+    ref_gf = cpt.Delhommeau()
+    class BrokenGreenFunction:
+        def evaluate(self, m1, m2, fs, wd, wavenumber, *args, **kwargs):
+            if wavenumber < 2.0:
+                raise NotImplementedError("I'm potato")
+            else:
+                return ref_gf.evaluate(m1, m2, fs, wd, wavenumber, *args, **kwargs)
+    broken_bem_solver = cpt.BEMSolver(green_function=BrokenGreenFunction())
+    return broken_bem_solver
+
+
+def test_failed_resolution_failing(broken_bem_solver, sphere):
+    pb = cpt.DiffractionProblem(body=sphere, wavenumber=1.0, wave_direction=0.0)
+    with pytest.raises(NotImplementedError):
+        broken_bem_solver.solve(pb)
+
+
+def test_failed_resolution_catched(broken_bem_solver, sphere):
+    from capytaine.bem.problems_and_results import FailedDiffractionResult
+    pb = cpt.DiffractionProblem(body=sphere, wavenumber=1.0, wave_direction=0.0)
+    failed_res = broken_bem_solver.solve_all([pb])[0]
+    assert isinstance(failed_res, FailedDiffractionResult)

@@ -238,3 +238,23 @@ def test_fill_dataset_with_wavenumbers_and_several_water_depths(sphere, solver):
     assert set(dataset.wavelength.dims) == {'wavenumber'}
     assert set(dataset.omega.dims)      == {'wavenumber', 'water_depth'}
     assert set(dataset.period.dims)     == {'wavenumber', 'water_depth'}
+
+
+@pytest.fixture
+def broken_bem_solver():
+    ref_gf = cpt.Delhommeau()
+    class BrokenGreenFunction:
+        def evaluate(self, m1, m2, fs, wd, wavenumber, *args, **kwargs):
+            if wavenumber < 2.0:
+                raise NotImplementedError("I'm potato")
+            else:
+                return ref_gf.evaluate(m1, m2, fs, wd, wavenumber, *args, **kwargs)
+    broken_bem_solver = cpt.BEMSolver(green_function=BrokenGreenFunction())
+    return broken_bem_solver
+
+
+def test_failed_resolution_in_dataset(broken_bem_solver, sphere):
+    test_matrix = xr.Dataset(coords={"wavenumber": np.linspace(0.1, 5.0, 5), "wave_direction": [0.0], "radiating_dof": ["Heave"]})
+    ds = broken_bem_solver.fill_dataset(test_matrix, sphere)
+    assert len(ds.wavenumber) == 5
+    assert np.any(np.isnan(ds.added_mass.values))
