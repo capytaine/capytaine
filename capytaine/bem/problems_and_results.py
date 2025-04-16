@@ -327,6 +327,9 @@ class LinearPotentialFlowProblem:
     def make_results_container(self):
         return LinearPotentialFlowResult(self)
 
+    def make_failed_results_container(self, *args, **kwargs):
+        return FailedLinearPotentialFlowResult(self, *args, **kwargs)
+
 
 class DiffractionProblem(LinearPotentialFlowProblem):
     """Particular LinearPotentialFlowProblem with boundary conditions
@@ -372,6 +375,9 @@ class DiffractionProblem(LinearPotentialFlowProblem):
 
     def make_results_container(self, *args, **kwargs):
         return DiffractionResult(self, *args, **kwargs)
+
+    def make_failed_results_container(self, *args, **kwargs):
+        return FailedDiffractionResult(self, *args, **kwargs)
 
 
 class RadiationProblem(LinearPotentialFlowProblem):
@@ -450,6 +456,9 @@ class RadiationProblem(LinearPotentialFlowProblem):
     def make_results_container(self, *args, **kwargs):
         return RadiationResult(self, *args, **kwargs)
 
+    def make_failed_results_container(self, *args, **kwargs):
+        return FailedRadiationResult(self, *args, **kwargs)
+
 
 class LinearPotentialFlowResult:
 
@@ -497,6 +506,13 @@ class LinearPotentialFlowResult:
     __rich_repr__ = LinearPotentialFlowProblem.__rich_repr__
 
 
+class FailedLinearPotentialFlowResult(LinearPotentialFlowResult):
+    def __init__(self, problem, exception):
+        LinearPotentialFlowResult.__init__(self, problem)
+        self.forces = {dof: np.nan for dof in self.influenced_dofs}
+        self.exception = exception
+
+
 class DiffractionResult(LinearPotentialFlowResult):
 
     def __init__(self, problem, *args, **kwargs):
@@ -515,6 +531,13 @@ class DiffractionResult(LinearPotentialFlowResult):
                      Froude_Krylov_force=FK[dof],
                      kind="DiffractionResult")
                 for dof in self.influenced_dofs]
+
+
+class FailedDiffractionResult(DiffractionResult):
+    def __init__(self, problem, exception):
+        DiffractionResult.__init__(self, problem)
+        self.forces = {dof: np.nan for dof in self.influenced_dofs}
+        self.exception = exception
 
 
 class RadiationResult(LinearPotentialFlowResult):
@@ -550,3 +573,10 @@ class RadiationResult(LinearPotentialFlowResult):
                      radiation_damping=self.radiation_damping[dof],
                      kind="RadiationResult")
                 for dof in self.influenced_dofs]
+
+
+class FailedRadiationResult(RadiationResult):
+    def __init__(self, problem, exception):
+        RadiationResult.__init__(self, problem)
+        self.forces = {dof: np.nan for dof in self.influenced_dofs}
+        self.exception = exception

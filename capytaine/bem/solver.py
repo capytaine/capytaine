@@ -19,7 +19,7 @@ from datetime import datetime
 
 from rich.progress import track
 
-from capytaine.bem.problems_and_results import LinearPotentialFlowProblem
+from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, FailedLinearPotentialFlowResult
 from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
@@ -65,7 +65,7 @@ class BEMSolver:
                 **self.engine.exportable_settings
             }
         except AttributeError:
-            pass
+            self.exportable_settings = {}
 
     def __str__(self):
         return f"BEMSolver(engine={self.engine}, green_function={self.green_function})"
@@ -173,6 +173,16 @@ class BEMSolver:
 
         return result
 
+    def _solve_and_catch_errors(self, problem, *args, **kwargs):
+        """Same as BEMSolver.solve() but returns a
+        FailedLinearPotentialFlowResult when the resolution failed."""
+        try:
+            res = self.solve(problem, *args, **kwargs)
+        except Exception as e:
+            LOG.error(f"Error while solving {problem}\n{repr(e)}")
+            res = problem.make_failed_results_container(e)
+        return res
+
     def solve_all(self, problems, *, method='indirect', n_jobs=1, progress_bar=None, _check_wavelength=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
@@ -220,7 +230,7 @@ class BEMSolver:
             problems = sorted(problems)
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
-            results = [self.solve(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+            results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
