@@ -28,6 +28,8 @@ Major change
 
 * Add :code:`finite_depth_method` parameter to :class:`~capytaine.green_functions.delhommeau.Delhommeau` allowing to customize the behavior of the finite depth Green function. The legacy behavior of previous versions is available as :code:`finite_depth_method="legacy"`, while a better behavior is used by default.
 
+* Do not interrupt a batch of resolutions when one of them fails. Instead the error message is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a `NaN` value for these parameters. (:pull:`678`)
+
 Minor change
 ~~~~~~~~~~~~
 
