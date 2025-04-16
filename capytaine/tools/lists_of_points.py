@@ -1,7 +1,7 @@
 import numpy as np
 from capytaine.bodies import FloatingBody
 from capytaine.post_pro.free_surfaces import FreeSurface
-from capytaine.meshes import Mesh, CollectionOfMeshes
+from capytaine.meshes.interface import MeshLike
 
 
 def _normalize_points(points, keep_mesh=False):
@@ -11,7 +11,7 @@ def _normalize_points(points, keep_mesh=False):
         else:
             return points.mesh.faces_centers, (points.mesh.nb_faces,)
 
-    if isinstance(points, (Mesh, CollectionOfMeshes)):
+    if isinstance(points, MeshLike):
         if keep_mesh:
             return points, (points.nb_faces,)
         else:
@@ -41,7 +41,7 @@ def _normalize_free_surface_points(points, keep_mesh=False):
     if keep_mesh and isinstance(points, (FloatingBody, FreeSurface)):
         return points.mesh, (points.mesh.nb_faces,)
 
-    if keep_mesh and isinstance(points, (Mesh, CollectionOfMeshes)):
+    if keep_mesh and isinstance(points, MeshLike):
         return points, (points.nb_faces,)
 
     points, output_shape = _normalize_points(points, keep_mesh)
