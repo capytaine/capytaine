@@ -37,8 +37,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
         if bemio_obj.body[i].water_depth == 'infinite':
             bemio_obj.body[i].water_depth = np.inf
 
-        if bemio_obj.body[i].bem_code == 'WAMIT': # WAMIT coefficients need to be dimensionalized
-            from_wamit = True
+        from_wamit = (bemio_obj.body[i].bem_code == 'WAMIT') # WAMIT coefficients need to be dimensionalized
 
         for omega_idx, omega in enumerate(np.sort(bemio_obj.body[i].w)):
 
