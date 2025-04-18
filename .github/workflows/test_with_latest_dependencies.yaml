@@ -16,20 +16,17 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['3.8', '3.12']
+        python-version: ['3.8', '3.13']
 
     steps:
 
     - name: Checkout repository and submodules
       uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    - name: Set up UV
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Set up nox
-      uses: wntrblm/nox@2024.03.02
+        enable-cache: true
 
     - name: Run nox session
-      run: nox --force-python ${{ matrix.python-version }} -s build_and_test_on_latest_env editable_build_and_test_on_latest_env
+      run: uvx nox --force-python ${{ matrix.python-version }} -s build_and_test_on_latest_env editable_build_and_test_on_latest_env
