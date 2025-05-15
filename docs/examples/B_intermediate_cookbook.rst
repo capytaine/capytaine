@@ -86,7 +86,7 @@ downloaded from: `<https://raw.githubusercontent.com/capytaine/capytaine/master/
 B8. Pressure field for zero or infinite frequency
 -------------------------------------------------
 
-The computations for zero and infinite frequencies are tricky, because several magnitudes such as the pressure are zero or infinity, but they can be expressed as $\omega$ or $\omega^2$ times some finite value.
+The computations for zero and infinite frequencies are tricky, because several magnitudes such as the pressure are zero or infinity, but they can be expressed as :math:`\omega` or :math:`\omega^2` times some finite value.
 The example below shows an example of extracting this value.
 
 .. literalinclude:: src/B8_pressure_infinite_frequency.py
