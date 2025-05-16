@@ -16,8 +16,8 @@ def test_sum_of_dofs(method):
     both.add_translation_dof(name="Heave")
 
     problems = [cpt.RadiationProblem(body=both, radiating_dof=dof, omega=1.0) for dof in both.dofs]
-    solver = cpt.BEMSolver()
-    results = solver.solve_all(problems, method=method)
+    solver = cpt.BEMSolver(method=method)
+    results = solver.solve_all(problems)
     dataset = cpt.assemble_dataset(results)
 
     both_added_mass = dataset['added_mass'].sel(radiating_dof="Heave", influenced_dof="Heave").data
@@ -39,8 +39,8 @@ def test_rotation_axis(method):
     assert np.allclose(body.dofs['other_rotation'], (body.dofs['Yaw'] - l*body.dofs['Sway']))
 
     problems = [cpt.RadiationProblem(body=body, radiating_dof=dof, omega=1.0) for dof in body.dofs]
-    solver = cpt.BEMSolver()
-    results = solver.solve_all(problems, keep_details=True, method=method)
+    solver = cpt.BEMSolver(method=method)
+    results = solver.solve_all(problems, keep_details=True)
     dataset = cpt.assemble_dataset(results)
 
     if ( method == 'indirect' ):

@@ -52,21 +52,22 @@ def test_solver_update_timer(sphere):
 
 def test_direct_solver(sphere):
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
-    solver = cpt.BEMSolver()
-    direct_result = solver.solve(problem, method='direct')
-    indirect_result = solver.solve(problem, method='indirect')
+    direct_solver = cpt.BEMSolver(method='direct')
+    direct_result = direct_solver.solve(problem)
+    indirect_solver = cpt.BEMSolver(method='indirect')
+    indirect_result = indirect_solver.solve(problem)
     assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-1)
 
 
 @pytest.mark.parametrize("method", ["direct", "indirect"])
 def test_same_result_with_symmetries(method):
-    solver = cpt.BEMSolver()
+    solver = cpt.BEMSolver(method=method)
     sym_mesh = cpt.ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), cpt.xOz_Plane)
     sym_body = cpt.FloatingBody(mesh=sym_mesh, dofs=cpt.rigid_body_dofs())
-    sym_result = solver.solve(cpt.DiffractionProblem(body=sym_body, omega=1.0), method=method)
+    sym_result = solver.solve(cpt.DiffractionProblem(body=sym_body, omega=1.0))
     mesh = sym_mesh.merged()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    result = solver.solve(cpt.DiffractionProblem(body=body, omega=1.0), method=method)
+    result = solver.solve(cpt.DiffractionProblem(body=body, omega=1.0))
     assert sym_result.forces["Surge"] == pytest.approx(result.forces["Surge"], rel=1e-10)
 
 

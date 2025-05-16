@@ -24,8 +24,8 @@ def test_mccamy_and_fuchs(k, gf, method):
     dj = (j0(m0*R) - jn(2, m0*R))
     analytical_force = (4*pb.rho*pb.g*h*R) * (-1j*2*h/R) * np.tanh(m0*h)/(m0*h)**2 * (dy + 1j*dj)/(dy**2 + dj**2)
 
-    solver = cpt.BEMSolver(green_function=gf)
-    res = solver.solve(pb, method=method)
+    solver = cpt.BEMSolver(method=method, green_function=gf)
+    res = solver.solve(pb)
     numerical_force = res.force["Surge"] + froude_krylov_force(res)["Surge"]
 
     np.testing.assert_allclose(numerical_force, analytical_force, rtol=0.05)
