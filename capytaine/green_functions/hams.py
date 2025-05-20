@@ -11,6 +11,8 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
     Uses the same implementation as Delhommeau() for the Rankine and reflected Rankine terms.
 
     """
+    floating_point_precision = 'float64'
+
     fortran_core = import_module("capytaine.green_functions.libs.Delhommeau_float64")
     tabulation_grid_shape_index = fortran_core.constants.liang_wu_noblesse
     gf_singularities_index = fortran_core.constants.low_freq
@@ -82,6 +84,8 @@ class FinGreen3D(AbstractGreenFunction):
     Uses the same implementation as Delhommeau() for the Rankine and reflected Rankine terms.
 
     """
+    floating_point_precision = 'float64'
+
     fortran_core = import_module("capytaine.green_functions.libs.Delhommeau_float64")
     finite_depth_method_index = fortran_core.constants.fingreen3d_method
     gf_singularities_index = fortran_core.constants.low_freq
@@ -158,6 +162,8 @@ class FinGreen3D(AbstractGreenFunction):
 
 
 class HAMS_GF(AbstractGreenFunction):
+    floating_point_precision = 'float64'
+
     exportable_settings = {'green_function': "HAMS_GF"}
 
     def __init__(self):

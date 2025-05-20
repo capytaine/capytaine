@@ -72,6 +72,9 @@ class LUSolverWithCache:
         self.cached_matrix = None
         self.cached_decomp = None
 
+    def __call__(self, A, b):
+        return self.solve(A, b)
+
     def solve(self, A, b):
         return self.solve_with_decomp(self.cached_lu_decomp(A), b)
 
