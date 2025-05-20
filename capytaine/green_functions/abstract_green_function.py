@@ -12,6 +12,8 @@ from capytaine.meshes.collections import CollectionOfMeshes
 class AbstractGreenFunction(ABC):
     """Abstract method to evaluate the Green function."""
 
+    floating_point_precision: str
+
     def _get_colocation_points_and_normals(self, mesh1, mesh2, adjoint_double_layer):
         if isinstance(mesh1, Mesh) or isinstance(mesh1, CollectionOfMeshes):
             collocation_points = mesh1.faces_centers

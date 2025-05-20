@@ -22,6 +22,7 @@ from rich.progress import track
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, FailedLinearPotentialFlowResult
 from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine
+from capytaine.matrices.linear_solvers import LUSolverWithCache
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
@@ -172,6 +173,20 @@ class BEMSolver:
         LOG.debug("Done!")
 
         return result
+
+    def _estimate_ram_requirement(self, problem):
+        """Returns an estimation of the RAM required to solve this problem in bytes."""
+        matrix_size = problem.body.mesh.nb_faces**2
+        if self.green_function.floating_point_precision == 'float64':
+            coef_size = 128  # complex based on float64
+        elif self.green_function.floating_point_precision == 'float32':
+            coef_size = 64  # complex based on float32
+        if isinstance(self.engine.linear_solver, LUSolverWithCache):
+            nb_matrices = 3  # That is a kind of bug in v2 of Capytaine
+        else:
+            nb_matrices = 2
+        return nb_matrices*matrix_size*coef_size
+
 
     def _solve_and_catch_errors(self, problem, *args, **kwargs):
         """Same as BEMSolver.solve() but returns a

@@ -141,3 +141,10 @@ def test_warning_mesh_resolution(sphere, caplog):
     with caplog.at_level("WARNING"):
         solver.solve(pb)
     assert "resolution " in caplog.text
+
+
+@pytest.mark.parametrize("gf", [cpt.Delhommeau(), cpt.HAMS_GF()])
+def test_estimate_ram_usage(sphere, gf):
+    solver = cpt.BEMSolver(green_function=gf)
+    pb = cpt.DiffractionProblem(body=sphere)
+    solver._estimate_ram_requirement(pb)
