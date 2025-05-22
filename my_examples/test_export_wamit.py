@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 import capytaine as cpt
 from capytaine.io.xarray import separate_complex_values
-from capytaine.io.io_wamit import export_to_wamit
+from capytaine.io.wamit import export_to_wamit
 
 # =====================
 # 1. Simulation
@@ -49,7 +49,7 @@ separate_complex_values(dataset).to_netcdf(
     }
 )
 # ... WAMIT format
-export_to_wamit(dataset, problem_name=str(export_dir / "boat_200"), exports=("1", "2", "3"))
+export_to_wamit(dataset, problem_name=str(export_dir / "boat_200"),  exports=("1", "3", "3fk", "3sc"))
 
 # =====================
 # 2. Unit Tests
@@ -79,11 +79,14 @@ class TestWAMITFileFormat(unittest.TestCase):
     def test_wamit_1(self):
         self.check_wamit_file("my_examples/boat_200.1", expected_fields=5, header_lines=1)
 
-    def test_wamit_2(self):
-        self.check_wamit_file("my_examples/boat_200.2", expected_fields=7, header_lines=1)
-
     def test_wamit_3(self):
         self.check_wamit_file("my_examples/boat_200.3", expected_fields=7, header_lines=1)
+
+    def test_wamit_3fk(self):
+        self.check_wamit_file("my_examples/boat_200.3fk", expected_fields=7, header_lines=1)
+
+    def test_wamit_3sc(self):
+        self.check_wamit_file("my_examples/boat_200.3sc", expected_fields=7, header_lines=1)
 
 class TestWAMITPhysicalConsistency(unittest.TestCase):
     def setUp(self):
