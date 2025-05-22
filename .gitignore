@@ -158,3 +158,5 @@ pytest/io_legacy_cases/two_bodies_list/KH_1.dat
 *.2
 *.mmx
 *.hst
+*.3fk
+*.3sc
