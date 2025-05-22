@@ -16,7 +16,7 @@ DOF_TYPE = {
     "Roll": "rot", "Pitch": "rot", "Yaw": "rot",
 }
 
-# Type-pair to exponent k
+# Type-pair to exponent pow
 K_LOOKUP = {
     ("trans", "trans"): 3,
     ("trans", "rot"): 4,
@@ -25,18 +25,18 @@ K_LOOKUP = {
 }
 
 def get_dof_index_and_k(dof_i, dof_j):
-    i = DOF_INDEX[dof_i]
-    j = DOF_INDEX[dof_j]
-    k = K_LOOKUP[(DOF_TYPE[dof_i], DOF_TYPE[dof_j])]
-    return i, j, k
+    i_dof = DOF_INDEX[dof_i]
+    j_dof = DOF_INDEX[dof_j]
+    pow = K_LOOKUP[(DOF_TYPE[dof_i], DOF_TYPE[dof_j])]
+    return i_dof, j_dof, pow
 
-def export_wamit_1_from_dataset(dataset, filename, L=1.0):
+def export_wamit_1_from_dataset(dataset, filename, length_scale=1.0):
     """
     Export added mass and radiation damping coefficients to a WAMIT .1 file.
 
     Coefficients are normalized as:
-        Aij = Aij / (rho * L^k)
-        Bij = Bij / (omega * rho * L^k)
+        Aij = Aij / (rho * length_scale^pow)
+        Bij = Bij / (omega * rho * length_scale^pow)
 
     Format:
         PER     I     J     Aij     Bij
@@ -47,7 +47,7 @@ def export_wamit_1_from_dataset(dataset, filename, L=1.0):
         Must contain 'added_mass' and 'radiation_damping'.
     filename : str
         Path to output .1 file.
-    L : float
+    length_scale : float
         Reference length scale for normalization (default is 1.0).
     """
     if "added_mass" not in dataset or "radiation_damping" not in dataset:
@@ -66,12 +66,12 @@ def export_wamit_1_from_dataset(dataset, filename, L=1.0):
                 for dof_j in dofs:
                     A = added_mass.sel(omega=omega, influenced_dof=dof_i, radiating_dof=dof_j).item()
                     B = damping.sel(omega=omega, influenced_dof=dof_i, radiating_dof=dof_j).item()
-                    i, j, k = get_dof_index_and_k(dof_i, dof_j)
-                    norm = rho * (L ** k)
+                    i_dof, j_dof, pow = get_dof_index_and_k(dof_i, dof_j)
+                    norm = rho * (length_scale ** pow)
                     A_norm = A / norm
                     B_norm = B / (omega * norm)
 
-                    f.write(f"{period:12.6e}\t{i:5d}\t{j:5d}\t{A_norm:12.6e}\t{B_norm:12.6e}\n")
+                    f.write(f"{period:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\t{B_norm:12.6e}\n")
 
 def _format_excitation_line(period, beta_deg, i_dof, force):
     force_conj = np.conj(force)
