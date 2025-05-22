@@ -129,7 +129,7 @@ def export_wamit_3sc_from_dataset(dataset, filename):
     """Export scattered (diffraction) contribution to WAMIT .3sc file."""
     _export_wamit_excitation_force(dataset, "diffraction_force", filename)
 
-def export_to_wamit(dataset, problem_name="WAMIT_OUTPUT", exports=("1", "3", "3fk", "3sc")):
+def export_to_wamit(dataset, problem_name, exports=("1", "3", "3fk", "3sc")):
     """
     Master function to export a Capytaine dataset to WAMIT-format files.
 
