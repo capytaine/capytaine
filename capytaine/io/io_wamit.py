@@ -1,5 +1,13 @@
 import numpy as np
 
+def _format_excitation_line(period, beta_deg, i_dof, force):
+    mod_f = np.abs(force)
+    phi_f = np.degrees(np.angle(force))
+    return "{:12.6e}\t{:12.6f}\t{:5d}\t{:12.6e}\t{:12.3f}\t{:12.6e}\t{:12.6e}\n".format(
+        period, beta_deg, i_dof, mod_f, phi_f, force.real, -force.imag
+    )
+
+
 def export_wamit_1_from_dataset(dataset, filename):
     """
     Export added mass and radiation damping coefficients to a WAMIT .1 file.
@@ -19,8 +27,6 @@ def export_wamit_1_from_dataset(dataset, filename):
         Must contain "added_mass" and "radiation_damping" terms.
     filename : str
         Output file path for the .1 file.
-    dof_order : list of str, optional
-        Custom DOF ordering. If None, the order from the dataset is used.
     """
     if "added_mass" not in dataset or "radiation_damping" not in dataset:
         raise ValueError("Missing 'added_mass' or 'radiation_damping' in dataset")
@@ -32,10 +38,9 @@ def export_wamit_1_from_dataset(dataset, filename):
  
     with open(filename, "w") as f:
         for omega in omegas:
+            period = 2 * np.pi / omega
             for i, dof_i in enumerate(dofs, 1):
                 for j, dof_j in enumerate(dofs, 1):
-                
-                    period = 2 * np.pi / omega
                     A = added_mass.sel(
                         influenced_dof=dof_i, radiating_dof=dof_j, omega=omega
                     ).item()
@@ -65,16 +70,14 @@ def export_wamit_2_from_dataset(dataset, filename):
         Must contain the complex-valued "excitation" field.
     filename : str
         Output file path for the .2 file.
-    dof_order : list of str, optional
-        Custom DOF ordering. If None, the order from the dataset is used.
     """
-    if "excitation" not in dataset:
-        raise ValueError("Missing excitation in dataset.")
+    if "excitation_force" not in dataset:
+        raise ValueError("Missing 'excitation_force' in dataset.")
 
     omega_list = dataset["omega"].values
     beta_list = dataset["wave_direction"].values
-    excitation = dataset["excitation"]
-    dofs = list(excitation.coords["influenced_dof"].values)
+    excitation_force = dataset["excitation_force"]
+    dofs = list(excitation_force.coords["influenced_dof"].values)
         
     with open(filename, "w") as f:
         for omega in omega_list:
@@ -82,15 +85,13 @@ def export_wamit_2_from_dataset(dataset, filename):
             for beta in beta_list:
                 beta_deg = np.degrees(beta)
                 for i_dof, dof in enumerate(dofs, 1):
-                    F = excitation.sel(omega=omega, wave_direction=beta, influenced_dof=dof).item()
-                    absF = np.abs(F)
-                    phaF = np.degrees(np.angle(F))
-                    line = "{:12.6e}\t{:12.6f}\t{:5d}\t{:12.6e}\t{:12.3f}\t{:12.6e}\t{:12.6e}\n".format(period, beta_deg, i_dof, absF, phaF, F.real, -F.imag)
+                    force = excitation_force.sel(omega=omega, wave_direction=beta, influenced_dof=dof).item()
+                    line = _format_excitation_line(period, beta_deg, i_dof, force)
                     f.write(line)
 
 def export_wamit_3_from_dataset(dataset, filename):
     """
-    Export diffraction forces to a WAMIT .3 file (earth-fixed reference frame).
+    Export diffraction forces to a WAMIT .3 file.
 
     Format:
         PER     BETA     I     |Fi|     Pha(Fi)     Re(Fi)     Im(Fi)
@@ -109,8 +110,6 @@ def export_wamit_3_from_dataset(dataset, filename):
         Must contain the complex-valued "diffraction_force" field in global frame.
     filename : str
         Output file path for the .3 file.
-    dof_order : list of str, optional
-        Custom DOF ordering. If None, the order from the dataset is used.
     """
     if "diffraction_force" not in dataset:
         raise ValueError("Missing diffraction_force in dataset.")
@@ -123,50 +122,47 @@ def export_wamit_3_from_dataset(dataset, filename):
     with open(filename, "w") as f:
         for omega in omegas:
             period = 2 * np.pi / omega
-            for i_dof, dof in enumerate(dofs, 1):
-                for beta in betas:
-                    beta_deg = np.degrees(beta)
-                    F = diffraction_force.sel(influenced_dof=dof, omega=omega, wave_direction=beta).item()
-                    absF = np.abs(F)
-                    phaF = np.degrees(np.angle(F))
-                    f.write("{:12.6e}\t{:12.6f}\t{:5d}\t{:12.6e}\t{:12.3f}\t{:12.6e}\t{:12.6e}\n".format(
-                        period, beta_deg, i_dof, absF, phaF, F.real, -F.imag))
+            for beta in betas:
+                beta_deg = np.degrees(beta)
+                for i_dof, dof in enumerate(dofs, 1):
+                    force = dataset["diffraction_force"].sel(
+                        omega=omega, wave_direction=beta, influenced_dof=dof
+                    ).item()
+                    line = _format_excitation_line(period, beta_deg, i_dof, force)
+                    f.write(line)
 
 def export_to_wamit(dataset, problem_name="WAMIT_OUTPUT", exports=("1", "2", "3")):
     """
-    Master function to export Capytaine dataset to WAMIT format files.
+    Master function to export a Capytaine dataset to WAMIT-format files.
 
     Parameters
     ----------
     dataset : xarray.Dataset
-        The Capytaine dataset containing radiation and/or diffraction results.
+        The Capytaine dataset containing hydrodynamic results (radiation, excitation, etc.).
     problem_name : str
-        Base name used for output files (e.g., 'problem' → 'problem.1').
+        Base name for the output files (e.g., 'problem' → 'problem.1', 'problem.2', etc.).
     exports : tuple of str
-        Choose which files to export. Any combination of ("1", "2", "3").
+        Which files to export. Valid values are any combination of "1", "2", and "3":
+            - "1": Added mass and radiation damping (WAMIT .1)
+            - "2": Excitation from Haskind relations (WAMIT .2)
+            - "3": Excitation from diffraction potential (WAMIT .3)
     """
+    export_status = {
+        "1": ("radiation coefficients", export_wamit_1_from_dataset, ".1"),
+        "2": ("excitation forces (haskind)", export_wamit_2_from_dataset, ".2"),
+        "3": ("excitation forces (diffraction)", export_wamit_3_from_dataset, ".3"),
+    }
 
-    if "excitation" not in dataset and "diffraction_force" in dataset:
-        dataset["excitation"] = dataset["diffraction_force"]
+    for key in exports:
+        if key not in export_status:
+            print(f"[!] Unknown export option: '{key}' – skipping.")
+            continue
 
+        description, export_func, ext = export_status[key]
+        output_file = f"{problem_name}{ext}"
 
-    if "1" in exports:
         try:
-            export_wamit_1_from_dataset(dataset, f"{problem_name}.1")
-            print(f"[✓] Exported {problem_name}.1 (radiation coefficients)")
+            export_func(dataset, output_file)
+            print(f"[✓] Exported {output_file} ({description})")
         except Exception as e:
-            print(f"[!] Failed to export {problem_name}.1: {e}")
-
-    if "2" in exports:
-        try:
-            export_wamit_2_from_dataset(dataset, f"{problem_name}.2")
-            print(f"[✓] Exported {problem_name}.2 (excitation forces, mod/phase)")
-        except Exception as e:
-            print(f"[!] Failed to export {problem_name}.2: {e}")
-
-    if "3" in exports:
-        try:
-            export_wamit_3_from_dataset(dataset, f"{problem_name}.3")
-            print(f"[✓] Exported {problem_name}.3 (excitation forces, Re/Im)")
-        except Exception as e:
-            print(f"[!] Failed to export {problem_name}.3: {e}")
+            print(f"[X] Failed to export {output_file}: {e}")
