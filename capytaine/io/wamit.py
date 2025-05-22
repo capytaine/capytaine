@@ -1,6 +1,5 @@
 import numpy as np
 
-
 # DOF string to index (WAMIT-style)
 DOF_INDEX = {
     "Surge": 1,
