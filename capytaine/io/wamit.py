@@ -74,7 +74,6 @@ def export_wamit_1_from_dataset(dataset, filename, L=1.0):
 
                     f.write(f"{period:12.6e}\t{i:5d}\t{j:5d}\t{A_norm:12.6e}\t{B_norm:12.6e}\n")
 
-
 def _format_excitation_line(period, beta_deg, i_dof, force):
     force_conj = np.conj(force)
     mod_f = np.abs(force_conj)
@@ -82,7 +81,6 @@ def _format_excitation_line(period, beta_deg, i_dof, force):
     return "{:12.6e}\t{:12.6f}\t{:5d}\t{:12.6e}\t{:12.3f}\t{:12.6e}\t{:12.6e}\n".format(
         period, beta_deg, i_dof, mod_f, phi_f, force_conj.real, force_conj.imag
     )
-
 
 def _export_wamit_excitation_force(dataset, field_name, filename):
     """
@@ -114,15 +112,11 @@ def _export_wamit_excitation_force(dataset, field_name, filename):
                     i_dof = DOF_INDEX.get(dof)
                     if i_dof is None:
                         raise KeyError(f"DOF '{dof}' is not recognized in DOF_INDEX mapping.")
-
                     force = field.sel(
                         omega=omega, wave_direction=beta, influenced_dof=dof
                     ).item()
-
-                    f.write(_format_excitation_line(period, beta_deg, i_dof, force))
-
-
-
+                    line = _format_excitation_line(period, beta_deg, i_dof, force)
+                    f.write(line)
 
 def export_wamit_3_from_dataset(dataset, filename):
     """Export total excitation to WAMIT .3 file."""
