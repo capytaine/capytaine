@@ -569,3 +569,48 @@ def merge_complex_values(ds: xr.Dataset) -> xr.Dataset:
                 ds[variable] = new_da
         ds = ds.drop_vars('complex')
     return ds
+
+
+##################
+#  Save dataset  #
+##################
+
+def save_dataset_as_netcdf(filename, dataset):
+    """Save `dataset` as a NetCDF file with name (or path) `filename`"""
+    ds = separate_complex_values(dataset)
+
+    # Workaround https://github.com/capytaine/capytaine/issues/683
+    ds['radiating_dof'] = ds['radiating_dof'].astype('str')
+    ds['influenced_dof'] = ds['influenced_dof'].astype('str')
+
+    # Make sure all strings are exported as strings and not Python objects
+    encoding = {'radiating_dof': {'dtype': 'U'},
+                'influenced_dof': {'dtype': 'U'}}
+
+    ds.to_netcdf(filename, encoding=encoding)
+
+
+def save_dataset(filename, dataset, format=None):
+    """Save `dataset` into a format, provided by the `format` argument or inferred by the `filename`.
+
+    Parameters
+    ----------
+    filename: str or Path
+        Where to store the data
+    dataset: xarray.Dataset
+        Dataset, which is assumed to have been computed by Capytaine
+    format: str, optional
+        Format of output. Accepted values: "netcdf"
+
+    Returns
+    -------
+    None
+    """
+    if (
+            (format is not None and format.lower() == "netcdf") or
+            (format is None and str(filename).endswith(".nc"))
+            ):
+        save_dataset_as_netcdf(filename, dataset)
+    else:
+        raise ValueError("`save_dataset` could not infer export format based on filename or `format` argument.\n"
+                         f"provided filename: {filename}\nprovided format: {format}")

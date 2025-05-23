@@ -157,47 +157,17 @@ Saving the dataset as NetCDF file
 
 The xarray dataset produced by :func:`assemble_dataset <capytaine.results.assemble_dataset>` (or :meth:`fill_dataset <capytaine.bem.solver.BEMSolver.fill_dataset>`) has a structure close to the NetCDF file format and can easily be saved to this format::
 
-	dataset.to_netcdf("path/to/dataset.nc")
-
-See the `documentation of xarray <http://xarray.pydata.org/en/stable/io.html>`_ for details and options.
-
-There are however a couple of issues you should be aware of:
+	cpt.save_dataset("path/to/dataset.nc", dataset, format="netcdf")
 
 
-Complex numbers
-~~~~~~~~~~~~~~~
-
-The netCDF standard does not handle complex numbers.
-As a workaround, the complex-valued array can be saved as a bigger real-valued array with the help of the :mod:`capytaine.io.xarray` module::
-
-    from capytaine.io.xarray import separate_complex_values
-    separate_complex_values(dataset).to_netcdf("path/to/dataset.nc")
-
-The dataset can then be reloaded by::
-
-    import xarray as xr
-    from capytaine.io.xarray import merge_complex_values
-    dataset = merge_complex_values(xr.open_dataset("path/to/dataset.nc"))
-
-
-String format
-~~~~~~~~~~~~~
-
-There is an issue with the handling of strings in xarray.
-It affects the coordinates with strings as labels such as :code:`radiating_dof` and :code:`influenced_dof`.
-They can be stored in xarray either as NetCDF string objects, which can be written in a NetCDF file, or as Python strings stored as generic Python objects, which cannot be written in a NetCDF file.
-The issue is that the xarray library sometimes changes from one to the other without warnings.
-It leads to the error :code:`ValueError: unsupported dtype for netCDF4 variable: object` when trying to export a dataset.
-
-This can be fixed by explicitly converting the strings to the right format when exporting the dataset::
-
-    separate_complex_values(dataset).to_netcdf(
-      "dataset.nc",
-      encoding={'radiating_dof': {'dtype': 'U'},
-                'influenced_dof': {'dtype': 'U'}}
-    )
-
-See also `this Github issue <https://github.com/capytaine/capytaine/issues/2>`_.
+.. note:: **Complex numbers:**
+    The netCDF standard does not handle complex numbers.
+    Capytaine is using a non-standard representation of complex numbers, by
+     adding one transforming all complex-valued arrays of shape ``(...)`` into
+     real-valued arrays of shape ``(..., 2)``` using the functions
+     :func:`~capytaine.io.xarray.separate_complex_values` and
+     :func:`~capytaine.io.xarray.merge_complex_values`.
+    See also `https://github.com/PlasmaFAIR/nc-complex`_ for more context and alternative.
 
 
 Saving the rotation center of rigid bodies
