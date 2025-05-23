@@ -32,6 +32,7 @@ EXAMPLE_FILES = [
     "B5_plot_velocity_in_domain.py",
     # "B6_animate_free_surface.py",             # Requires VTK
     # "B7_boat_animation.py",                   # Requires VTK
+    "B8_pressure_infinite_frequency.py",
     "C5_plot_influence_matrix.py",
     # "C6_axisymmetric_buoy.py",                # Requires VTK
     # "C7_h_matrices_with_preconditionner.py",  # Slow
