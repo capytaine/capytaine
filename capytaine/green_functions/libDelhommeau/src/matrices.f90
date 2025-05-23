@@ -112,11 +112,10 @@ CONTAINS
             diagonal_coef = ONE/2
           endif
 
-          if (adjoint_double_layer) then
-            int_nablaG(:) = int_nablaG(:) + diagonal_coef * dot_product_normals(I, :)
-          else
-            int_nablaG(:) = int_nablaG(:) + diagonal_coef * dot_product_normals(J, :)
-          endif
+          int_nablaG(:) = int_nablaG(:) + diagonal_coef * dot_product_normals(I, :)
+          ! if (.not. adjoint_double_layer) then we should have used the Jth normal instead of the Ith,
+          ! such that later the dot product with dot_product_normals(J, :) gives 1.
+          ! Except that here, I==J, so there is no need to branch based on adjoint_double_layer.
         ENDIF
 
         !!!!!!!!!!!!!!!!!!
