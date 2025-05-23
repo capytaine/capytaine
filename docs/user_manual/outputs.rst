@@ -2,6 +2,8 @@
 Outputs
 =======
 
+.. contents:: Content
+
 Outputs stored in LinearPotentialFlowResult
 -------------------------------------------
 
@@ -155,19 +157,22 @@ create an xarray dataset from a WAMIT :code:`.out` file::
 Saving the dataset as NetCDF file
 ---------------------------------
 
-The xarray dataset produced by :func:`assemble_dataset <capytaine.results.assemble_dataset>` (or :meth:`fill_dataset <capytaine.bem.solver.BEMSolver.fill_dataset>`) has a structure close to the NetCDF file format and can easily be saved to this format::
+The xarray dataset produced by :func:`assemble_dataset <capytaine.io.xarray.assemble_dataset>` (or :meth:`fill_dataset <capytaine.bem.solver.BEMSolver.fill_dataset>`) has a structure close to the NetCDF file format and can easily be saved to this format by :func:`~capytaine.io.xarray.save_dataset`::
 
 	cpt.save_dataset("path/to/dataset.nc", dataset, format="netcdf")
 
 
-.. note:: **Complex numbers:**
-    The netCDF standard does not handle complex numbers.
-    Capytaine is using a non-standard representation of complex numbers, by
-     adding one transforming all complex-valued arrays of shape ``(...)`` into
-     real-valued arrays of shape ``(..., 2)``` using the functions
-     :func:`~capytaine.io.xarray.separate_complex_values` and
-     :func:`~capytaine.io.xarray.merge_complex_values`.
-    See also `https://github.com/PlasmaFAIR/nc-complex`_ for more context and alternative.
+.. note::
+        The netCDF standard does not handle **complex numbers**.
+
+        Capytaine is using a non-standard representation of complex numbers by
+        transforming all complex-valued arrays of shape ``(...)`` into real-valued
+        arrays of shape ``(..., 2)``` using the functions
+        :func:`~capytaine.io.xarray.separate_complex_values` and
+        :func:`~capytaine.io.xarray.merge_complex_values` (done automatically by :func:`~capytaine.io.xarray.save_dataset`).
+
+
+        See also https://github.com/PlasmaFAIR/nc-complex for more context and alternatives.
 
 
 Saving the rotation center of rigid bodies
