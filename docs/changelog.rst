@@ -30,6 +30,13 @@ Major change
 
 * Do not interrupt a batch of resolutions when one of them fails. Instead the error message is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a `NaN` value for these parameters. (:pull:`678`)
 
+* The Boundary Integral Equation (``method`` keyword argument) used to solve the problem can now be specified when initializing a solver and will then be use for all resolution with this solver. This general setting can be over overridden by using the ``method`` argument when solving::
+
+  solver = cpt.BEMSolver(method="direct")  # That is new and recommended
+  solver.solve(problem, method="direct")  # That is still possible and override the above setting.
+
+The method is also saved in the metadata of the results with the other parameters of the solver (whether it was defined when initializing the solver or later). (:pull:`686`)
+
 Minor change
 ~~~~~~~~~~~~
 
