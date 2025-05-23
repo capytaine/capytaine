@@ -57,6 +57,8 @@ Bug fixes
 
 * Add safeguard if a custom linear solver returns a result vector of wrong shape (e.g. column instead of row) (:pull:`670`)
 
+* Fix loading BEMIO datasets from Nemoh (:pull:`681`)
+
 Internals
 ~~~~~~~~~
 
