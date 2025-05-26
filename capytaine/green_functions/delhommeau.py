@@ -275,6 +275,7 @@ class Delhommeau(AbstractGreenFunction):
         Tuple[np.ndarray, np.ndarray]
             the amplitude and growth rates of the exponentials
         """
+        kh = dimensionless_wavenumber
 
         if method is None:
             method = self.finite_depth_prony_decomposition_method
@@ -283,12 +284,16 @@ class Delhommeau(AbstractGreenFunction):
                   "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
 
         if method.lower() == 'python':
-            # The function that will be approximated.
-            kh = dimensionless_wavenumber
-            sing_coef = (1 + np.tanh(kh))**2/(1 - np.tanh(kh)**2 + np.tanh(kh)/kh)
-            def ref_function(x):
-                """The function that should be approximated by a sum of exponentials."""
-                return ((x + kh*np.tanh(kh)) * np.exp(x))/(x*np.sinh(x) - kh*np.tanh(kh)*np.cosh(x)) - sing_coef/(x - kh) - 2
+            if kh < 1e5:
+                # The function that will be approximated.
+                sing_coef = (1 + np.tanh(kh))**2/(1 - np.tanh(kh)**2 + np.tanh(kh)/kh)
+                def ref_function(x):
+                    """The function that should be approximated by a sum of exponentials."""
+                    return ((x + kh*np.tanh(kh)) * np.exp(x))/(x*np.sinh(x) - kh*np.tanh(kh)*np.cosh(x)) - sing_coef/(x - kh) - 2
+            else:
+                # Asymptotic approximation of the function for large kh, including infinite frequency
+                def ref_function(x):
+                    return -2/(1 + np.exp(-2*x)) + 2
 
             try:
                 a, lamda = find_best_exponential_decomposition(ref_function, x_min=-0.1, x_max=20.0, n_exp_range=range(4, 31, 2), tol=1e-4)
@@ -300,8 +305,10 @@ class Delhommeau(AbstractGreenFunction):
                 ) from e
 
         elif method.lower() == 'fortran':
-            omega2_h_over_g = dimensionless_wavenumber*np.tanh(dimensionless_wavenumber)
-            nexp, pr_d = self.fortran_core.old_prony_decomposition.lisc(omega2_h_over_g, dimensionless_wavenumber)
+            if kh > 1e5:
+                raise NotImplementedError("Fortran implementation of the Prony decomposition does not support infinite frequency")
+            omega2_h_over_g = kh*np.tanh(kh)
+            nexp, pr_d = self.fortran_core.old_prony_decomposition.lisc(omega2_h_over_g, kh)
             return pr_d[0:2, :nexp]
 
         else:
@@ -359,7 +366,7 @@ class Delhommeau(AbstractGreenFunction):
 
         else:  # Finite water_depth
             if wavenumber == 0.0 or wavenumber == np.inf:
-                raise NotImplementedError("Zero or infinite frequencies not implemented for finite depth.")
+                raise NotImplementedError("Zero or infinite frequency are not implemented for finite depth.")
             else:
                 prony_decomposition = self.find_best_exponential_decomposition(wavenumber*water_depth)
                 coeffs = np.array((1.0, 1.0, 1.0))
