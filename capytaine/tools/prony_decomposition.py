@@ -118,20 +118,19 @@ def find_best_exponential_decomposition(f, x_min, x_max, n_exp_range, tol=1e-4):
     """
     # Try different number of exponentials
     for n_exp in n_exp_range:
-
-        # The coefficients are computed on a resolution of 4*n_exp+1 ...
-        X = np.linspace(x_min, x_max, 4*n_exp+1)
         try:
+            # The coefficients are computed on a resolution of 4*n_exp+1 ...
+            X = np.linspace(x_min, x_max, 4*n_exp+1)
             a, lamda = exponential_decomposition(X, f(X), n_exp)
-        except RuntimeError:
+
+            # ... and they are evaluated on a finer discretization.
+            X = np.linspace(x_min, x_max, 8*n_exp+1)
+            if error_exponential_decomposition(X, f(X), a, lamda) < tol:
+                return a, lamda
+        except Exception:
             # If something bad happened while computing the decomposition, try
             # the next one.
             continue
-
-        # ... and they are evaluated on a finer discretization.
-        X = np.linspace(x_min, x_max, 8*n_exp+1)
-        if error_exponential_decomposition(X, f(X), a, lamda) < tol:
-            return a, lamda
 
     raise PronyDecompositionFailure(
             "No suitable Prony decomposition has been found in "
