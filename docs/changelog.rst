@@ -28,7 +28,7 @@ Major change
 
 * Revamp of default **finite depth Green function** implementation.
 
-  * The new implementation should better hangle panels on or near the free surface and have the right asymptotic consistency with the infinite depth method when depth goes to infinity.
+  * The new implementation should better handle panels on or near the free surface and have the right asymptotic consistency with the infinite depth method when depth goes to infinity.
     The legacy behavior of previous versions is still available by setting the parameter :code:`finite_depth_method` added to :class:`~capytaine.green_functions.delhommeau.Delhommeau` to :code:`finite_depth_method="legacy"`, while the better behavior is used by default. (:pull:`654` and :pull:`656`)
   * The Prony decomposition is now done in Python and its failure (typically for :math:`kh < 0.1`) raises an error instead of returning wrong values.
     This behavior is controlled by the :code:`finite_depth_prony_decomposition_method` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau`, which is now :code:`"python"` by default. (:pull:`675`)
