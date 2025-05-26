@@ -9,6 +9,11 @@ import numpy as np
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
 
+
+class GreenFunctionEvaluationError(Exception):
+    pass
+
+
 class AbstractGreenFunction(ABC):
     """Abstract method to evaluate the Green function."""
 

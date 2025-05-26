@@ -14,7 +14,7 @@ New in version 2.3 (2025-??-??)
 Major change
 ~~~~~~~~~~~~
 
-* The implementations of the Green function used in HAMS are now included in Capytaine:
+* The implementations of the **Green function from HAMS** are now included in Capytaine:
 
   * The infinite depth version from [Liang, Wu, Noblesse, 2018] is :class:`~capytaine.green_functions.hams.LiangWuNoblesseGF` (:pull:`617`),
   * The finite depth version from [Liu et al., 2018] is :class:`~capytaine.green_functions.hams.FinGreen3D` (:pull:`647`),
@@ -26,7 +26,12 @@ Major change
 
   Please cite the corresponding papers if you use them in a scientific publication (see the :doc:`citing` page).
 
-* Add :code:`finite_depth_method` parameter to :class:`~capytaine.green_functions.delhommeau.Delhommeau` allowing to customize the behavior of the finite depth Green function. The legacy behavior of previous versions is available as :code:`finite_depth_method="legacy"`, while a better behavior is used by default.
+* Revamp of default **finite depth Green function** implementation.
+
+  * The new implementation should better handle panels on or near the free surface and have the right asymptotic consistency with the infinite depth method when depth goes to infinity.
+    The legacy behavior of previous versions is still available by setting the parameter :code:`finite_depth_method` added to :class:`~capytaine.green_functions.delhommeau.Delhommeau` to :code:`finite_depth_method="legacy"`, while the better behavior is used by default. (:pull:`654` and :pull:`656`)
+  * The Prony decomposition is now done in Python and its failure (typically for :math:`kh < 0.1`) raises an error instead of returning wrong values.
+    This behavior is controlled by the :code:`finite_depth_prony_decomposition_method` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau`, which is now :code:`"python"` by default. (:pull:`675`)
 
 * Do not interrupt a batch of resolutions when one of them fails. Instead the error message is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a `NaN` value for these parameters. (:pull:`678`)
 

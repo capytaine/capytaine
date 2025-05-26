@@ -16,8 +16,12 @@ def sphere():
 
 
 def test_exportable_settings():
-    gf = cpt.Delhommeau(tabulation_nr=10, tabulation_nz=10,
-                    tabulation_grid_shape="legacy", tabulation_nb_integration_points=50)
+    gf = cpt.Delhommeau(
+            tabulation_nr=10, tabulation_nz=10,
+            tabulation_grid_shape="legacy",
+            tabulation_nb_integration_points=50,
+            finite_depth_prony_decomposition_method="fortran"
+            )
     assert gf.exportable_settings['green_function'] == 'Delhommeau'
     assert gf.exportable_settings['tabulation_nb_integration_points'] == 50
     assert gf.exportable_settings['tabulation_grid_shape'] == "legacy"
@@ -106,7 +110,7 @@ def test_fill_dataset(sphere):
         'wave_direction': np.linspace(0.0, np.pi, 3),
         'radiating_dof': list(sphere.dofs.keys()),
         'rho': [1025.0],
-        'water_depth': [np.inf, 10.0],
+        'water_depth': [np.inf, 30.0],
         'g': [9.81]
     })
     dataset = solver.fill_dataset(test_matrix, sphere, n_jobs=1)

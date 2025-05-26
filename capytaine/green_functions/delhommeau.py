@@ -9,10 +9,10 @@ from importlib import import_module
 
 import numpy as np
 
-from capytaine.tools.prony_decomposition import find_best_exponential_decomposition, NoConvergenceError
+from capytaine.tools.prony_decomposition import find_best_exponential_decomposition, PronyDecompositionFailure
 from capytaine.tools.cache_on_disk import cache_directory
 
-from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
+from capytaine.green_functions.abstract_green_function import AbstractGreenFunction, GreenFunctionEvaluationError
 
 LOG = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ _default_parameters = dict(
     tabulation_nb_integration_points=1001,
     tabulation_grid_shape="scaled_nemoh3",
     finite_depth_method="newer",
-    finite_depth_prony_decomposition_method="fortran",
+    finite_depth_prony_decomposition_method="python",
     floating_point_precision="float64",
     gf_singularities="low_freq",
 )
@@ -279,30 +279,33 @@ class Delhommeau(AbstractGreenFunction):
         if method is None:
             method = self.finite_depth_prony_decomposition_method
 
-        omega2_h_over_g = dimensionless_wavenumber*np.tanh(dimensionless_wavenumber)
-
         LOG.debug("\tCompute Prony decomposition in finite water_depth Green function "
                   "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
 
         if method.lower() == 'python':
             # The function that will be approximated.
-            @np.vectorize
-            def f(x):
-                return self.fortran_core.old_prony_decomposition.ff(x, omega2_h_over_g, dimensionless_wavenumber)
+            kh = dimensionless_wavenumber
+            sing_coef = (1 + np.tanh(kh))**2/(1 - np.tanh(kh)**2 + np.tanh(kh)/kh)
+            def ref_function(x):
+                """The function that should be approximated by a sum of exponentials."""
+                return ((x + kh*np.tanh(kh)) * np.exp(x))/(x*np.sinh(x) - kh*np.tanh(kh)*np.cosh(x)) - sing_coef/(x - kh) - 2
 
             try:
-                a, lamda = find_best_exponential_decomposition(f, x_min=-0.1, x_max=20.0, n_exp_range=range(4, 31, 2), tol=1e-4)
-            except NoConvergenceError:
-                LOG.warning("No suitable exponential decomposition has been found"
-                            "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
-            return np.stack([lamda, a])
+                a, lamda = find_best_exponential_decomposition(ref_function, x_min=-0.1, x_max=20.0, n_exp_range=range(4, 31, 2), tol=1e-4)
+                return np.stack([lamda, a])
+            except PronyDecompositionFailure as e:
+                raise GreenFunctionEvaluationError(
+                    f"{self} cannot evaluate finite depth Green function "
+                    f"for kh={dimensionless_wavenumber}"
+                ) from e
 
         elif method.lower() == 'fortran':
+            omega2_h_over_g = dimensionless_wavenumber*np.tanh(dimensionless_wavenumber)
             nexp, pr_d = self.fortran_core.old_prony_decomposition.lisc(omega2_h_over_g, dimensionless_wavenumber)
-            return pr_d[:, :nexp]
+            return pr_d[0:2, :nexp]
 
         else:
-            raise ValueError("Unrecognized method name for the Prony decomposition.")
+            raise ValueError(f"Unrecognized name for the Prony decomposition method: {repr(method)}. Expected 'python' or 'fortran'.")
 
     def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.inf, wavenumber=1.0, adjoint_double_layer=True, early_dot_product=True):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
