@@ -94,7 +94,7 @@ def error_exponential_decomposition(X, F, a, lamda):
     return np.square(f(X) - F).mean()
 
 
-class NoConvergenceError(Exception):
+class PronyDecompositionFailure(Exception):
     pass
 
 
@@ -121,11 +121,20 @@ def find_best_exponential_decomposition(f, x_min, x_max, n_exp_range, tol=1e-4):
 
         # The coefficients are computed on a resolution of 4*n_exp+1 ...
         X = np.linspace(x_min, x_max, 4*n_exp+1)
-        a, lamda = exponential_decomposition(X, f(X), n_exp)
+        try:
+            a, lamda = exponential_decomposition(X, f(X), n_exp)
+        except RuntimeError:
+            # If something bad happened while computing the decomposition, try
+            # the next one.
+            continue
 
         # ... and they are evaluated on a finer discretization.
         X = np.linspace(x_min, x_max, 8*n_exp+1)
         if error_exponential_decomposition(X, f(X), a, lamda) < tol:
             return a, lamda
 
-    raise NoConvergenceError(f"No suitable exponential decomposition has been found in provided range for tol={tol}.")
+    raise PronyDecompositionFailure(
+            "No suitable Prony decomposition has been found in "
+            f"[{x_min}, {x_max}] for tol={tol} "
+            f"using a number of terms in {n_exp_range}."
+            )

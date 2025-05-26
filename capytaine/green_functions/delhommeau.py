@@ -9,10 +9,10 @@ from importlib import import_module
 
 import numpy as np
 
-from capytaine.tools.prony_decomposition import find_best_exponential_decomposition, NoConvergenceError
+from capytaine.tools.prony_decomposition import find_best_exponential_decomposition, PronyDecompositionFailure
 from capytaine.tools.cache_on_disk import cache_directory
 
-from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
+from capytaine.green_functions.abstract_green_function import AbstractGreenFunction, GreenFunctionEvaluationError
 
 LOG = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ _default_parameters = dict(
     tabulation_nb_integration_points=1001,
     tabulation_grid_shape="scaled_nemoh3",
     finite_depth_method="newer",
-    finite_depth_prony_decomposition_method="fortran",
+    finite_depth_prony_decomposition_method="python",
     floating_point_precision="float64",
     gf_singularities="low_freq",
 )
@@ -292,10 +292,12 @@ class Delhommeau(AbstractGreenFunction):
 
             try:
                 a, lamda = find_best_exponential_decomposition(ref_function, x_min=-0.1, x_max=20.0, n_exp_range=range(4, 31, 2), tol=1e-4)
-            except NoConvergenceError:
-                LOG.warning("No suitable exponential decomposition has been found"
-                            "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
-            return np.stack([lamda, a])
+                return np.stack([lamda, a])
+            except PronyDecompositionFailure as e:
+                raise GreenFunctionEvaluationError(
+                    f"{self} cannot evaluate finite depth Green function "
+                    f"for kh={dimensionless_wavenumber}"
+                ) from e
 
         elif method.lower() == 'fortran':
             omega2_h_over_g = dimensionless_wavenumber*np.tanh(dimensionless_wavenumber)

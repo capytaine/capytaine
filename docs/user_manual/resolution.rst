@@ -42,22 +42,34 @@ The following classes are available:
                             tabulation_nb_integration_points=251,
                             tabulation_grid_shape="legacy",
                             finite_depth_method="legacy",
+                            finite_depth_prony_decomposition_method="fortran",
                             gf_singularities="high_freq")
 
         # Default in Capytaine 2.1
         gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
                             tabulation_nz=372, tabulation_zmin=-251,
-                            tabulation_nb_integration_points=1000,
+                            tabulation_nb_integration_points=1001,
                             tabulation_grid_shape="scaled_nemoh3",
                             finite_depth_method="legacy",
+                            finite_depth_prony_decomposition_method="fortran",
                             gf_singularities="high_freq")
 
         # Default in Capytaine 2.2
         gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
                             tabulation_nz=372, tabulation_zmin=-251,
-                            tabulation_nb_integration_points=1000,
+                            tabulation_nb_integration_points=1001,
                             tabulation_grid_shape="scaled_nemoh3",
                             finite_depth_method="legacy",
+                            finite_depth_prony_decomposition_method="fortran",
+                            gf_singularities="low_freq")
+
+        # Default in Capytaine 2.3
+        gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
+                            tabulation_nz=372, tabulation_zmin=-251,
+                            tabulation_nb_integration_points=1001,
+                            tabulation_grid_shape="scaled_nemoh3",
+                            finite_depth_method="newer",
+                            finite_depth_prony_decomposition_method="python",
                             gf_singularities="low_freq")
 
    In version 2.1, the default numbers of :math:`r` and :math:`z` values have
@@ -73,6 +85,9 @@ The following classes are available:
    expected to be more accurate at low frequency and near the free surface. The
    former variant is still available by setting the ``gf_singularities``
    parameter as in the above example.
+
+   In version 2.3, some better variants to compute the finite depth Green
+   function were introduced.
 
    The first time it is initialize with a given set of parameters, some tabulated
    data are precomputed and stored on disk.

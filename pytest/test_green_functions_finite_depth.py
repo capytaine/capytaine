@@ -50,6 +50,20 @@ def test_find_best_prony_decomposition():
     assert np.allclose(np.sort(lamda_ref), np.sort(lamda_ref))
 
 
+def test_failure_for_low_kh():
+    gf = cpt.Delhommeau()
+
+    # Legacy method returning crappy value
+    gf.find_best_exponential_decomposition(0.10, method="fortran")
+
+    # Newer method fails properly
+    from capytaine.green_functions.abstract_green_function import GreenFunctionEvaluationError
+    with pytest.raises(GreenFunctionEvaluationError):
+        gf.find_best_exponential_decomposition(0.10, method="python")
+    with pytest.raises(GreenFunctionEvaluationError):
+        gf.find_best_exponential_decomposition(0.01, method="python")
+
+
 def test_python_and_fortran_prony_decomposition_for_green_function():
     gf = cpt.Delhommeau(finite_depth_prony_decomposition_method="python")
     decomp_default = gf.find_best_exponential_decomposition(1.0)
