@@ -259,3 +259,10 @@ def test_failed_resolution_catched(broken_bem_solver, sphere):
     pb = cpt.DiffractionProblem(body=sphere, wavenumber=1.0, wave_direction=0.0)
     failed_res = broken_bem_solver.solve_all([pb])[0]
     assert isinstance(failed_res, FailedDiffractionResult)
+
+
+def test_failed_resolution_replaced_by_nan(broken_bem_solver, sphere):
+    pb = cpt.RadiationProblem(body=sphere, wavenumber=1.0, radiating_dof="Heave")
+    failed_ds = cpt.assemble_dataset(broken_bem_solver.solve_all([pb]))
+    assert np.isnan(failed_ds.added_mass.values[0, 0, 0])
+    assert np.isnan(failed_ds.radiation_damping.values[0, 0, 0])

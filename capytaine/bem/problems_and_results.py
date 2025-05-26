@@ -510,7 +510,7 @@ class LinearPotentialFlowResult:
 class FailedLinearPotentialFlowResult(LinearPotentialFlowResult):
     def __init__(self, problem, exception):
         LinearPotentialFlowResult.__init__(self, problem)
-        self.forces = {dof: np.nan for dof in self.influenced_dofs}
+        self.forces = {dof: np.nan + 1j*np.nan for dof in self.influenced_dofs}
         self.exception = exception
 
 
@@ -579,5 +579,5 @@ class RadiationResult(LinearPotentialFlowResult):
 class FailedRadiationResult(RadiationResult):
     def __init__(self, problem, exception):
         RadiationResult.__init__(self, problem)
-        self.forces = {dof: np.nan for dof in self.influenced_dofs}
+        self.forces = {dof: np.nan + 1j*np.nan for dof in self.influenced_dofs}
         self.exception = exception
