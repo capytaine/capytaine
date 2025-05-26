@@ -305,7 +305,7 @@ class Delhommeau(AbstractGreenFunction):
             return pr_d[0:2, :nexp]
 
         else:
-            raise ValueError(f"Unrecognized method name for the Prony decomposition: {repr(method)}. Expected 'python' or 'fortran'.")
+            raise ValueError(f"Unrecognized name for the Prony decomposition method: {repr(method)}. Expected 'python' or 'fortran'.")
 
     def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.inf, wavenumber=1.0, adjoint_double_layer=True, early_dot_product=True):
         r"""The main method of the class, called by the engine to assemble the influence matrices.

@@ -73,6 +73,12 @@ def test_python_and_fortran_prony_decomposition_for_green_function():
     assert np.allclose(decomp_p, decomp_f, rtol=0.2)
 
 
+def test_failure_unknown_method():
+    gf = cpt.Delhommeau()
+    with pytest.raises(ValueError):
+        gf.find_best_exponential_decomposition(1.0, method="potato")
+
+
 def test_fingreen3D():
     k = 5.0
     h = 2.0
