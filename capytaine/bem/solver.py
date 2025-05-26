@@ -19,7 +19,7 @@ from datetime import datetime
 
 from rich.progress import track
 
-from capytaine.bem.problems_and_results import LinearPotentialFlowProblem
+from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, FailedLinearPotentialFlowResult
 from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
@@ -42,6 +42,10 @@ class BEMSolver:
     engine: MatrixEngine, optional
         Object handling the building of matrices and the resolution of linear systems with these matrices.
         (default: :class:`~capytaine.bem.engines.BasicMatrixEngine`)
+    method: string, optional
+        select boundary integral equation used to solve the problems.
+        Accepted values: "indirect" (as in e.g. Nemoh), "direct" (as in e.g. WAMIT)
+        Default value: "indirect"
 
     Attributes
     ----------
@@ -51,9 +55,13 @@ class BEMSolver:
         Settings of the solver that can be saved to reinit the same solver later.
     """
 
-    def __init__(self, *, green_function=None, engine=None):
+    def __init__(self, *, green_function=None, engine=None, method="indirect"):
         self.green_function = Delhommeau() if green_function is None else green_function
         self.engine = BasicMatrixEngine() if engine is None else engine
+
+        if method.lower() not in {"direct", "indirect"}:
+            raise ValueError(f"Unrecognized method when initializing solver: {repr(method)}. Expected \"direct\" or \"indirect\".")
+        self.method = method.lower()
 
         self.timer = {"Solve total": Timer(), "  Green function": Timer(), "  Linear solver": Timer()}
 
@@ -62,10 +70,11 @@ class BEMSolver:
         try:
             self.exportable_settings = {
                 **self.green_function.exportable_settings,
-                **self.engine.exportable_settings
+                **self.engine.exportable_settings,
+                "method": self.method,
             }
         except AttributeError:
-            pass
+            self.exportable_settings = {}
 
     def __str__(self):
         return f"BEMSolver(engine={self.engine}, green_function={self.green_function})"
@@ -89,7 +98,7 @@ class BEMSolver:
     def from_exported_settings(settings):
         raise NotImplementedError
 
-    def solve(self, problem, method='indirect', keep_details=True, _check_wavelength=True):
+    def solve(self, problem, method=None, keep_details=True, _check_wavelength=True):
         """Solve the linear potential flow problem.
 
         Parameters
@@ -97,7 +106,9 @@ class BEMSolver:
         problem: LinearPotentialFlowProblem
             the problem to be solved
         method: string, optional
-            select boundary integral approach indirect (i.e.Nemoh)/direct (i.e.WAMIT) (default: indirect)
+            select boundary integral equation used to solve the problem.
+            It is recommended to set the method more globally when initializing the solver.
+            If provided here, the value in argument of `solve` overrides the global one.
         keep_details: bool, optional
             if True, store the sources and the potential on the floating body in the output object
             (default: True)
@@ -122,6 +133,7 @@ class BEMSolver:
             omega, wavenumber = problem.omega, problem.wavenumber
 
         linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
+        method = method if method is not None else self.method
         if (method == 'direct'):
             if problem.forward_speed != 0.0:
                 raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
@@ -173,7 +185,17 @@ class BEMSolver:
 
         return result
 
-    def solve_all(self, problems, *, method='indirect', n_jobs=1, progress_bar=None, _check_wavelength=True, **kwargs):
+    def _solve_and_catch_errors(self, problem, *args, **kwargs):
+        """Same as BEMSolver.solve() but returns a
+        FailedLinearPotentialFlowResult when the resolution failed."""
+        try:
+            res = self.solve(problem, *args, **kwargs)
+        except Exception as e:
+            LOG.error(f"Error while solving {problem}\n{repr(e)}")
+            res = problem.make_failed_results_container(e)
+        return res
+
+    def solve_all(self, problems, *, method=None, n_jobs=1, progress_bar=None, _check_wavelength=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -182,7 +204,9 @@ class BEMSolver:
         problems: list of LinearPotentialFlowProblem
             several problems to be solved
         method: string, optional
-            select boundary integral approach indirect (i.e.Nemoh)/direct (i.e.WAMIT) (default: indirect)
+            select boundary integral equation used to solve the problems.
+            It is recommended to set the method more globally when initializing the solver.
+            If provided here, the value in argument of `solve_all` overrides the global one.
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
@@ -220,7 +244,7 @@ class BEMSolver:
             problems = sorted(problems)
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
-            results = [self.solve(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+            results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
@@ -294,7 +318,7 @@ class BEMSolver:
                             + recommendation
                             )
 
-    def fill_dataset(self, dataset, bodies, *, method='indirect', n_jobs=1, _check_wavelength=True, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, _check_wavelength=True, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -305,7 +329,9 @@ class BEMSolver:
             The body or bodies involved in the problems
             They should all have different names.
         method: string, optional
-            select boundary integral approach indirect (i.e.Nemoh)/direct (i.e.WAMIT) (default: indirect)
+            select boundary integral equation used to solve the problems.
+            It is recommended to set the method more globally when initializing the solver.
+            If provided here, the value in argument of `fill_dataset` overrides the global one.
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency `joblib`
             By defaults: do not use joblib and solve sequentially.
@@ -324,6 +350,8 @@ class BEMSolver:
         """
         attrs = {'start_of_computation': datetime.now().isoformat(),
                  **self.exportable_settings}
+        if method is not None:  # Overrides the method in self.exportable_settings
+            attrs["method"] = method
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
             results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength)

@@ -3,8 +3,8 @@
 .. todo:: This module could be tidied up a bit and some methods merged or
           uniformized.
 """
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# Copyright (C) 2017-2025 Matthieu Ancellin
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
 from datetime import datetime
@@ -31,6 +31,16 @@ LOG = logging.getLogger(__name__)
 #########################
 #  Reading test matrix  #
 #########################
+
+def _unsqueeze_dimensions(data_array, dimensions=None):
+    """Add scalar coordinates as dimensions of size 1."""
+    if dimensions is None:
+        dimensions = list(data_array.coords.keys())
+    for dim in dimensions:
+        if len(data_array.coords[dim].values.shape) == 0:
+            data_array = xr.concat([data_array], dim=dim)
+    return data_array
+
 
 def problems_from_dataset(dataset: xr.Dataset,
                           bodies: Union[FloatingBody, Sequence[FloatingBody]],
@@ -150,6 +160,61 @@ def problems_from_dataset(dataset: xr.Dataset,
     return sorted(problems)
 
 
+########################
+#  Dataframe creation  #
+########################
+
+def _detect_bemio_results(results, calling_function="_detect_bemio_results"):
+    error_msg = (
+        f"The function {calling_function} expected either a non-empty list of LinearPotentialFlowResult or a bemio.io object.\n"
+        f"Instead, it received:\n{repr(results)}"
+        )
+
+    if hasattr(results, '__iter__'):
+        if len(results) == 0:
+            raise ValueError("Iterable provided to `assemble_dataset` is empty.")
+        try:
+            if 'capytaine' in results[0].__module__:
+                bemio_import = False
+            else:
+                raise TypeError(error_msg)
+        except:
+            raise TypeError(error_msg)
+
+    else:
+        try:
+            if 'bemio.io' in results.__module__:
+                bemio_import = True
+            else:
+                raise TypeError(error_msg)
+        except:
+            raise TypeError(error_msg)
+
+    return bemio_import
+
+
+def assemble_dataframe(results, wavenumber=True, wavelength=True):
+    if _detect_bemio_results(results, calling_function="assemble_dataframe"):
+        return dataframe_from_bemio(results, wavenumber, wavelength) # TODO add hydrostatics
+
+    records_list = [record for result in results for record in result.records]
+    df = pd.DataFrame(records_list)
+
+    all_dofs_in_order = list({k: None for r in results for k in r.body.dofs.keys()})
+    # Using a dict above to remove duplicates while conserving ordering
+    inf_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order)
+    df["influenced_dof"] = df["influenced_dof"].astype(inf_dof_cat)
+    if 'added_mass' in df.columns:
+        rad_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order)
+        df["radiating_dof"] = df["radiating_dof"].astype(rad_dof_cat)
+
+    return df
+
+
+######################
+#  Dataset creation  #
+######################
+
 def _squeeze_dimensions(data_array, dimensions=None):
     """Remove dimensions if they are of size 1. The coordinates become scalar coordinates."""
     if dimensions is None:
@@ -159,20 +224,6 @@ def _squeeze_dimensions(data_array, dimensions=None):
             data_array = data_array.squeeze(dim, drop=False)
     return data_array
 
-
-def _unsqueeze_dimensions(data_array, dimensions=None):
-    """Add scalar coordinates as dimensions of size 1."""
-    if dimensions is None:
-        dimensions = list(data_array.coords.keys())
-    for dim in dimensions:
-        if len(data_array.coords[dim].values.shape) == 0:
-            data_array = xr.concat([data_array], dim=dim)
-    return data_array
-
-
-######################
-#  Dataset creation  #
-######################
 
 def _dataset_from_dataframe(df: pd.DataFrame,
                             variables: Union[str, Sequence[str]],
@@ -196,12 +247,8 @@ def _dataset_from_dataframe(df: pd.DataFrame,
         They will appears as dimension in the output dataset only if they have
         more than one different values.
     """
-
-    for variable_name in variables:
-        df = df[df[variable_name].notnull()].dropna(axis='columns')  # Keep only records with non null values of all the variables
     df = df.drop_duplicates(optional_dims + dimensions)
     df = df.set_index(optional_dims + dimensions)
-
     da = df.to_xarray()[variables]
     da = _squeeze_dimensions(da, dimensions=optional_dims)
     return da
@@ -231,6 +278,7 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
         :meth:`~capytaine.post_pro.kochin.compute_kochin`
             The present function is just a wrapper around :code:`compute_kochin`.
     """
+    # TODO: this not very good to mix computation and data manipulation here...
     records = pd.DataFrame([
         dict(**result.problem._asdict(), theta=theta, kochin=kochin, kind=result.__class__.__name__)
         for result in results
@@ -261,23 +309,6 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
     return kochin_data
 
 
-def collect_records(results):
-    records_list = []
-    warned_once_about_no_free_surface = False
-    for result in results:
-        if result.free_surface == np.inf:
-            if not warned_once_about_no_free_surface:
-                LOG.warning("Datasets currently only support cases with a free surface (free_surface=0.0).\n"
-                            "Cases without a free surface (free_surface=inf) are ignored.\n"
-                            "See also https://github.com/mancellin/capytaine/issues/88")
-                warned_once_about_no_free_surface = True
-            else:
-                pass
-        else:
-            for record in result.records:
-                records_list.append(record)
-    return records_list
-
 def assemble_dataset(results,
                      omega=True, wavenumber=True, wavelength=True, period=True,
                      mesh=False, hydrostatics=True, attrs=None) -> xr.Dataset:
@@ -289,7 +320,7 @@ def assemble_dataset(results,
 
     Parameters
     ----------
-    results: list of LinearPotentialFlowResult
+    results: list of LinearPotentialFlowResult or BEMIO dataset
         The results that will be read.
     omega: bool, optional
         If True, the coordinate 'omega' will be added to the output dataset.
@@ -306,58 +337,35 @@ def assemble_dataset(results,
     attrs: dict, optional
         Attributes that should be added to the output dataset.
     """
-    dataset = xr.Dataset()
+    bemio_import = _detect_bemio_results(results, calling_function="assemble_dataset")
 
-    error_msg = 'The first argument of `assemble_dataset` must be either a list of LinearPotentialFlowResult or a bemio.io object'
-    if hasattr(results, '__iter__'):
-        if len(results) == 0:
-            raise ValueError("Iterable provided to `assemble_dataset` is empty.")
-        try:
-            if 'capytaine' in results[0].__module__:
-                bemio_import = False
-            else:
-                raise TypeError(error_msg)
-        except:
-            raise TypeError(error_msg)
-
-    else:
-        try:
-            if 'bemio.io' in results.__module__:
-                bemio_import = True
-            else:
-                raise TypeError(error_msg)
-        except:
-            raise TypeError(error_msg)
+    records = assemble_dataframe(results)
 
     if bemio_import:
-        records = dataframe_from_bemio(results, wavenumber, wavelength) # TODO add hydrostatics
-        all_dofs_in_order = {'Surge': None, 'Sway': None, 'Heave': None, 'Roll': None, 'Pitch': None, 'Yaw': None}
         main_freq_type = "omega"
-
     else:
-        records = pd.DataFrame(collect_records(results))
-        all_dofs_in_order = {k: None for r in results for k in r.body.dofs.keys()}
         main_freq_type = Counter((res.provided_freq_type for res in results)).most_common(1)[0][0]
+
+    if np.any(records["free_surface"] != 0.0):
+        LOG.warning("Datasets only support cases with a free surface (free_surface=0.0).\n"
+                    "Cases without a free surface (free_surface=inf) are ignored.\n"
+                    "See also https://github.com/mancellin/capytaine/issues/88")
+        records = records[records["free_surface"] == 0.0]
 
     if attrs is None:
         attrs = {}
     attrs['creation_of_dataset'] = datetime.now().isoformat()
 
-    if len(records) == 0:
-        raise ValueError("No result passed to assemble_dataset.")
-
-    inf_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
-    records["influenced_dof"] = records["influenced_dof"].astype(inf_dof_cat)
-    rad_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order.keys())
-    if 'added_mass' in records.columns:
-        records["radiating_dof"] = records["radiating_dof"].astype(rad_dof_cat)
+    kinds_of_results = set(records['kind'])
 
     optional_dims = ['g', 'rho', 'body_name', 'water_depth', 'forward_speed']
 
+    dataset = xr.Dataset()
+
     # RADIATION RESULTS
-    if 'added_mass' in records.columns:
+    if "RadiationResult" in kinds_of_results:
         radiation_cases = _dataset_from_dataframe(
-            records,
+            records[records['kind'] == "RadiationResult"],
             variables=['added_mass', 'radiation_damping'],
             dimensions=[main_freq_type, 'radiating_dof', 'influenced_dof'],
             optional_dims=optional_dims + ['wave_direction'])
@@ -368,9 +376,9 @@ def assemble_dataset(results,
         dataset = xr.merge([dataset, radiation_cases])
 
     # DIFFRACTION RESULTS
-    if 'diffraction_force' in records.columns:
+    if "DiffractionResult" in kinds_of_results:
         diffraction_cases = _dataset_from_dataframe(
-            records,
+            records[records['kind'] == "DiffractionResult"],
             variables=['diffraction_force', 'Froude_Krylov_force'],
             dimensions=[main_freq_type, 'wave_direction', 'influenced_dof'],
             optional_dims=optional_dims)

@@ -28,10 +28,20 @@ Major change
 
 * Add :code:`finite_depth_method` parameter to :class:`~capytaine.green_functions.delhommeau.Delhommeau` allowing to customize the behavior of the finite depth Green function. The legacy behavior of previous versions is available as :code:`finite_depth_method="legacy"`, while a better behavior is used by default.
 
+* Do not interrupt a batch of resolutions when one of them fails. Instead the error message is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a `NaN` value for these parameters. (:pull:`678`)
+
+* The Boundary Integral Equation (``method`` keyword argument) used to solve the problem can now be specified when initializing a solver and will then be use for all resolution with this solver. This general setting can be over overridden by using the ``method`` argument when solving::
+
+  solver = cpt.BEMSolver(method="direct")  # That is new and recommended
+  solver.solve(problem, method="direct")  # That is still possible and override the above setting.
+
+The method is also saved in the metadata of the results with the other parameters of the solver (whether it was defined when initializing the solver or later). (:pull:`686`)
+
 Minor change
 ~~~~~~~~~~~~
 
-* Add :func:`~capytaine.io.xarray.assemble_matrices` function which is a simplified version of `~capytaine.io.xarray.assemble_dataset` without metadata, meant to be used mostly for teaching. (:pull:`643`)
+* Add :func:`~capytaine.io.xarray.assemble_dataframe` which collect results into a Pandas DataFrame (this was already done internally in `~capytaine.io.xarray.assemble_dataset`) (:pull:`677`).
+  Also add :func:`~capytaine.io.xarray.assemble_matrices` function which is a simplified version of `~capytaine.io.xarray.assemble_dataset` without metadata, meant to be used mostly for teaching. (:pull:`643`)
 
 * The environment variable ``CAPYTAINE_PROGRESS_BAR`` can be used to disable globally the display of a progress bar when solving problems. This is meant mostly for testing environments and CI. (:pull:`646`)
 
@@ -54,6 +64,8 @@ Bug fixes
 
 * Add safeguard if a custom linear solver returns a result vector of wrong shape (e.g. column instead of row) (:pull:`670`)
 
+* Fix loading BEMIO datasets from Nemoh (:pull:`681`)
+
 Internals
 ~~~~~~~~~
 
@@ -62,6 +74,8 @@ Internals
 * Add :meth:`~capytaine.green_functions.delhommeau.Delhommeau.all_tabulation_parameters` to make it easier to test Fortran core from Python (:pull:`648`)
 
 * Refactor implementation of Delhommeau's finite depth Green function to compute all the frequency-independant Rankine terms at the same time (for future caching) (:pull:`652`)
+
+* NaN values are not striped out of output data (:pull:`676`)
 
 ---------------------------------
 New in version 2.2.1 (2024-11-18)

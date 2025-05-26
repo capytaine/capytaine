@@ -13,7 +13,7 @@ test_fortran_compilation:
 
 test:
 	# Build and test the current repository in a fixed environment.
-	nox -s build_and_test_on_locked_env
+	uvx nox --python 3.12 --session build_and_test_on_locked_env
 
 clean:
 	rm -f capytaine/green_functions/libs/*.so
