@@ -14,10 +14,6 @@ exceptiongroup==1.1.2
     # via pytest
 fonttools==4.41.1
     # via matplotlib
-gmsh==4.11.1
-    # via
-    #   capytaine (pyproject.toml)
-    #   pygmsh
 importlib-resources==6.0.0
     # via matplotlib
 iniconfig==2.0.0
@@ -35,9 +31,7 @@ matplotlib==3.7.2
 mdurl==0.1.2
     # via markdown-it-py
 meshio==5.3.4
-    # via
-    #   capytaine (pyproject.toml)
-    #   pygmsh
+    # via capytaine (pyproject.toml)
 meson==1.2.0
     # via meson-python
 meson-python==0.13.2
@@ -56,7 +50,6 @@ numpy==1.24.2
     #   meshio
     #   netcdf4
     #   pandas
-    #   pygmsh
     #   scipy
     #   xarray
 packaging==23.1
@@ -75,8 +68,6 @@ pluggy==1.2.0
     # via pytest
 pygments==2.15.1
     # via rich
-pygmsh==7.1.17
-    # via capytaine (pyproject.toml)
 pyparsing==3.0.9
     # via matplotlib
 pyproject-metadata==0.7.1
