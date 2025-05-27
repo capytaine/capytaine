@@ -340,42 +340,11 @@ class Delhommeau(AbstractGreenFunction):
         -------
         tuple of numpy arrays
             the matrices :math:`S` and :math:`K`
+            the dtype of the matrix can be real or complex and depends on self.floating_point_precision
         """
 
-        wavenumber = float(wavenumber)
-
-        if free_surface == np.inf: # No free surface, only a single Rankine source term
-
-            prony_decomposition = np.empty((1, 1))  # Dummy array that won't actually be used by the fortran code.
-
-            coeffs = np.array((1.0, 0.0, 0.0))
-
-        elif water_depth == np.inf:
-
-            prony_decomposition = np.empty((1, 1))  # Idem
-
-            if wavenumber == 0.0:
-                coeffs = np.array((1.0, 1.0, 0.0))
-            elif wavenumber == np.inf:
-                coeffs = np.array((1.0, -1.0, 0.0))
-            else:
-                if self.gf_singularities == "high_freq":
-                    coeffs = np.array((1.0, -1.0, 1.0))
-                else:  # low_freq or low_freq_with_rankine_part
-                    coeffs = np.array((1.0, 1.0, 1.0))
-
-        else:  # Finite water_depth
-            if wavenumber == 0.0 or wavenumber == np.inf:
-                raise NotImplementedError("Zero or infinite frequency are not implemented for finite depth.")
-            else:
-                prony_decomposition = self.find_best_exponential_decomposition(wavenumber*water_depth)
-                coeffs = np.array((1.0, 1.0, 1.0))
-
-        collocation_points, early_dot_product_normals = self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
-
-        if (np.any(abs(mesh2.faces_centers[:, 2]) < 1e-6)  # free surface panel
-            and self.gf_singularities != "low_freq"):
-            raise NotImplementedError("Free surface panels are only supported for cpt.Delhommeau(..., gf_singularities='low_freq').")
+        collocation_points, early_dot_product_normals = \
+                self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
 
         if self.floating_point_precision == "float32":
             dtype = "complex64"
@@ -384,27 +353,85 @@ class Delhommeau(AbstractGreenFunction):
         else:
             raise NotImplementedError(f"Unsupported floating point precision: {self.floating_point_precision}")
 
-        S, K = self._init_matrices((collocation_points.shape[0], mesh2.nb_faces), dtype, early_dot_product)
+        if free_surface == np.inf:  # No free surface, only a single Rankine source term
+            if water_depth != np.inf:
+                raise ValueError("When setting free_surface=inf, "
+                                 "the water depth should also be infinite "
+                                 f"(got water_depth={water_depth})")
 
-        # Main call to Fortran code
-        self.fortran_core.matrices.build_matrices(
-            collocation_points,  early_dot_product_normals,
-            mesh2.vertices,      mesh2.faces + 1,
-            mesh2.faces_centers, mesh2.faces_normals,
-            mesh2.faces_areas,   mesh2.faces_radiuses,
-            *mesh2.quadrature_points,
-            wavenumber, water_depth,
-            coeffs, *self.all_tabulation_parameters,
-            self.finite_depth_method_index, prony_decomposition, self.dispersion_relation_roots,
-            mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
-            S, K
-        )
+            S, K = self._init_matrices(
+                (collocation_points.shape[0], mesh2.nb_faces),
+                dtype, early_dot_product
+            )
+
+            if mesh1 is mesh2:
+                self.fortran_core.matrices.add_diagonal_term(
+                        mesh2.faces_centers, early_dot_product_normals, free_surface, K,
+                        )
+
+            self.fortran_core.matrices.add_rankine_term_only(
+                    collocation_points,  early_dot_product_normals,
+                    mesh2.vertices,      mesh2.faces + 1,
+                    mesh2.faces_centers, mesh2.faces_normals,
+                    mesh2.faces_areas,   mesh2.faces_radiuses,
+                    *mesh2.quadrature_points,
+                    adjoint_double_layer,
+                    S, K)
+
+            S, K = np.real(S), np.real(K)
+
+        else:  # General case
+
+            S, K = self._init_matrices((collocation_points.shape[0], mesh2.nb_faces), dtype, early_dot_product)
+
+            wavenumber = float(wavenumber)
+
+            if water_depth == np.inf:
+
+                prony_decomposition = np.empty((1, 1))  # Idem
+
+                if wavenumber == 0.0:
+                    coeffs = np.array((1.0, 1.0, 0.0))
+                elif wavenumber == np.inf:
+                    coeffs = np.array((1.0, -1.0, 0.0))
+                else:
+                    if self.gf_singularities == "high_freq":
+                        coeffs = np.array((1.0, -1.0, 1.0))
+                    else:  # low_freq or low_freq_with_rankine_part
+                        coeffs = np.array((1.0, 1.0, 1.0))
+
+            else:  # Finite water_depth
+                if wavenumber == 0.0 or wavenumber == np.inf:
+                    raise NotImplementedError("Zero or infinite frequency are not implemented for finite depth.")
+                else:
+                    prony_decomposition = self.find_best_exponential_decomposition(wavenumber*water_depth)
+                    coeffs = np.array((1.0, 1.0, 1.0))
+
+            if (np.any(abs(mesh2.faces_centers[:, 2]) < 1e-6)  # free surface panel
+                and self.gf_singularities != "low_freq"):
+                raise NotImplementedError("Free surface panels are only supported for cpt.Delhommeau(..., gf_singularities='low_freq').")
+
+            # Main call to Fortran code
+            self.fortran_core.matrices.build_matrices(
+                collocation_points,  early_dot_product_normals,
+                mesh2.vertices,      mesh2.faces + 1,
+                mesh2.faces_centers, mesh2.faces_normals,
+                mesh2.faces_areas,   mesh2.faces_radiuses,
+                *mesh2.quadrature_points,
+                wavenumber, water_depth,
+                coeffs, *self.all_tabulation_parameters,
+                self.finite_depth_method_index, prony_decomposition, self.dispersion_relation_roots,
+                mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
+                S, K
+            )
 
         if np.any(np.isnan(S)) or np.any(np.isnan(K)):
-            raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
+            raise GreenFunctionEvaluationError(
+                    "Green function returned a NaN in the interaction matrix.\n"
                     "It could be due to overlapping panels.")
 
-        if early_dot_product: K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
+        if early_dot_product:
+            K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
 
         return S, K
 
