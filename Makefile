@@ -2,8 +2,10 @@ install:
 	pip install .
 
 develop:
-	pip install -r editable_install_requirements.txt
+	uv pip install -r editable_install_requirements.txt
+	uv pip install .[test,optional,more_optional]
 	pip install --no-build-isolation --editable .
+	# The last line is not support by uv
 
 TEMP_DIR := $(shell mktemp -d)
 test_fortran_compilation:
