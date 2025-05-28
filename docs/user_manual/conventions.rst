@@ -77,7 +77,7 @@ Similarly, the source distribution follows a different convention than in Capyta
 .. math::
    \sigma_W = -\frac{\sigma}{4 \pi}.
 
-Together with the convention on the normal vector mentionned above, it results in a slightly different expression for the boundary integral expression.
+Together with the convention on the normal vector mentioned above, it results in a slightly different expression for the boundary integral expression.
 
 
 With respect to Nemoh and Aquadyn
