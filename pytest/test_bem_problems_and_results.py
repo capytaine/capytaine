@@ -127,6 +127,12 @@ def test_setting_period(water_depth):
     assert np.isclose(cpt.DiffractionProblem(period=T, water_depth=water_depth).period, T)
 
 
+@pytest.mark.parametrize("water_depth", [10.0, np.inf])
+def test_setting_freq(water_depth):
+    f = 1*np.random.rand()
+    assert np.isclose(cpt.DiffractionProblem(freq=f, water_depth=water_depth).freq, f)
+
+
 def test_setting_too_many_frequencies():
     with pytest.raises(ValueError, match="at most one"):
         cpt.DiffractionProblem(omega=1.0, wavelength=1.0)

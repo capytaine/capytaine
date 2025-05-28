@@ -78,7 +78,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     # Warn user in case of key with unrecognized name (e.g. misspells)
     keys_in_dataset = set(dataset.dims)
     accepted_keys = {'wave_direction', 'radiating_dof', 'influenced_dof',
-                     'body_name', 'omega', 'period', 'wavelength', 'wavenumber',
+                     'body_name', 'omega', 'freq', 'period', 'wavelength', 'wavenumber',
                      'forward_speed', 'water_depth', 'rho', 'g', 'theta'}
     unrecognized_keys = keys_in_dataset.difference(accepted_keys)
     if len(unrecognized_keys) > 0:
@@ -88,9 +88,9 @@ def problems_from_dataset(dataset: xr.Dataset,
         raise ValueError("Neither 'radiating_dof' nor 'wave_direction' has been provided in the dataset. "
                 "No linear potential flow problem can be inferred.")
 
-    frequency_keys = keys_in_dataset & {'omega', 'period', 'wavelength', 'wavenumber'}
+    frequency_keys = keys_in_dataset & {'omega', 'freq', 'period', 'wavelength', 'wavenumber'}
     if len(frequency_keys) > 1:
-            raise ValueError("Setting problems requires at most one of the following: omega (angular frequency) OR period OR wavenumber OR wavelength.\n"
+            raise ValueError("Setting problems requires at most one of the following: omega (angular frequency) OR freq (in Hz) OR period OR wavenumber OR wavelength.\n"
                              "Received {}".format(frequency_keys))
     # END SANITY CHECKS
 
@@ -310,7 +310,7 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
 
 
 def assemble_dataset(results,
-                     omega=True, wavenumber=True, wavelength=True, period=True,
+                     omega=True, freq=True, wavenumber=True, wavelength=True, period=True,
                      mesh=False, hydrostatics=True, attrs=None) -> xr.Dataset:
     """Transform a list of :class:`LinearPotentialFlowResult` into a :class:`xarray.Dataset`.
 
@@ -324,6 +324,8 @@ def assemble_dataset(results,
         The results that will be read.
     omega: bool, optional
         If True, the coordinate 'omega' will be added to the output dataset.
+    freq: bool, optional
+        If True, the coordinate 'freq' will be added to the output dataset.
     wavenumber: bool, optional
         If True, the coordinate 'wavenumber' will be added to the output dataset.
     wavelength: bool, optional
@@ -401,6 +403,17 @@ def assemble_dataset(results,
         dataset.coords['omega'] = omega_ds['omega']
         dataset.omega.attrs['long_name'] = 'Angular frequency'
         dataset.omega.attrs['units'] = 'rad/s'
+        
+    if freq and main_freq_type != "freq":
+        freq_ds = _dataset_from_dataframe(
+                records,
+                variables=['freq'],
+                dimensions=[main_freq_type],
+                optional_dims=['g', 'water_depth'] if main_freq_type in {'wavelength', 'wavenumber'} else []
+                )
+        dataset.coords['freq'] = freq_ds['freq']
+        dataset.omega.attrs['long_name'] = 'Frequency'
+        dataset.omega.attrs['units'] = 'Hz'
 
     if period and main_freq_type != "period":
         period_ds = _dataset_from_dataframe(
