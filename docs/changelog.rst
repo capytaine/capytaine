@@ -74,13 +74,21 @@ Bug fixes
 Internals
 ~~~~~~~~~
 
-* Add ``interface.f90`` Fortran file to group some routines used only for wrapping the Fortran core. (:pull:`612`)
+* Major refactoring of the Fortran core, including its interface in Python:
 
-* Add :meth:`~capytaine.green_functions.delhommeau.Delhommeau.all_tabulation_parameters` to make it easier to test Fortran core from Python (:pull:`648`)
+  * Add ``interface.f90`` Fortran file to group some routines used only for wrapping the Fortran core. (:pull:`612`)
 
-* Refactor implementation of Delhommeau's finite depth Green function to compute all the frequency-independant Rankine terms at the same time (for future caching) (:pull:`652`)
+  * Add :meth:`~capytaine.green_functions.delhommeau.Delhommeau.all_tabulation_parameters` to make it easier to test Fortran core from Python (:pull:`648`)
+
+  * Refactor implementation of Delhommeau's finite depth Green function to compute all the frequency-independant Rankine terms at the same time (for future caching) (:pull:`652`)
+
+  * The main interface to the Fortran core ``build_matrices`` does not take ``coeffs`` and ``same_body`` inputs anymore.
+    The role of the former is played by ``gf_singularities`` and ``wavenumber``.
+    The diagonal term added by the latter is now added independently.
+    (:pull:`701`)
 
 * NaN values are not striped out of output data (:pull:`676`)
+
 
 ---------------------------------
 New in version 2.2.1 (2024-11-18)

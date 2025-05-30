@@ -2,7 +2,7 @@ from importlib import import_module
 from scipy.optimize import brentq
 import numpy as np
 
-from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
+from capytaine.green_functions.abstract_green_function import AbstractGreenFunction, GreenFunctionEvaluationError
 
 
 class LiangWuNoblesseGF(AbstractGreenFunction):
@@ -15,11 +15,10 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
 
     fortran_core = import_module("capytaine.green_functions.libs.Delhommeau_float64")
     tabulation_grid_shape_index = fortran_core.constants.liang_wu_noblesse
-    gf_singularities_index = fortran_core.constants.low_freq
     exportable_settings = {'green_function': "LiangWuNoblesseGF"}
 
     # Dummy arrays that won't actually be used by the fortran code.
-    prony_decomposition = np.empty((1, 1))
+    prony_decomposition = np.zeros((1, 1))
     dispersion_relation_roots = np.empty(1)
     finite_depth_method_index = -9999
     tabulation_nb_integration_points = 1
@@ -37,20 +36,22 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__repr__())
 
-    def evaluate(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True, early_dot_product=True):
-        if free_surface == np.inf: # No free surface, only a single Rankine source term
-            coeffs = np.array((1.0, 0.0, 0.0))
-        elif free_surface == 0.0 and water_depth < np.inf:
-            raise NotImplementedError()
-        else:  # Infinite water depth
-            if wavenumber == 0.0:
-                coeffs = np.array((1.0, 1.0, 0.0))
-            elif wavenumber == np.inf:
-                coeffs = np.array((1.0, -1.0, 0.0))
-            else:
-                coeffs = np.array((1.0, 1.0, 1.0))
+    def evaluate(self,
+                 mesh1, mesh2,
+                 free_surface=0.0, water_depth=np.inf, wavenumber=1.0,
+                 adjoint_double_layer=True, early_dot_product=True
+                 ):
 
-        collocation_points, early_dot_product_normals = self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
+        if free_surface == np.inf or water_depth < np.inf:
+            raise NotImplementedError("LiangWuNoblesseGF() is only implemented for infinite depth with a free surface")
+
+        if wavenumber == np.inf:
+            gf_singularities_index = self.fortran_core.constants.high_freq
+        else:
+            gf_singularities_index = self.fortran_core.constants.low_freq
+
+        collocation_points, early_dot_product_normals = \
+                self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
 
         S, K = self._init_matrices(
             (collocation_points.shape[0], mesh2.nb_faces), early_dot_product=early_dot_product
@@ -63,19 +64,25 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
             wavenumber, np.inf,
-            coeffs,
             self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             self.dummy_param, self.prony_decomposition, self.dispersion_relation_roots,
-            mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
+            gf_singularities_index, adjoint_double_layer,
             S, K
         )
 
+        if mesh1 is mesh2:
+            self.fortran_core.matrices.add_diagonal_term(
+                    mesh2.faces_centers, early_dot_product_normals, free_surface, K,
+                    )
+
         if np.any(np.isnan(S)) or np.any(np.isnan(K)):
-            raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
+            raise GreenFunctionEvaluationError(
+                    "Green function returned a NaN in the interaction matrix.\n"
                     "It could be due to overlapping panels.")
 
-        if early_dot_product: K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
+        if early_dot_product:
+            K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
 
         return S, K
 
@@ -93,7 +100,7 @@ class FinGreen3D(AbstractGreenFunction):
     gf_singularities_index = fortran_core.constants.low_freq
 
     # Dummy arrays that won't actually be used by the fortran code.
-    prony_decomposition = np.empty((1, 1))
+    prony_decomposition = np.zeros((1, 1))
     tabulation_nb_integration_points = 1
     tabulated_r_range = np.empty(1)
     tabulated_z_range = np.empty(1)
@@ -123,19 +130,20 @@ class FinGreen3D(AbstractGreenFunction):
         return np.array([wavenumber] + [root(i_root) for i_root in range(nk-1)])
 
     def evaluate(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True, early_dot_product=True):
+
         if free_surface == np.inf or water_depth == np.inf:
-            raise NotImplementedError()
-        elif free_surface == 0.0 and water_depth < np.inf:
-            if wavenumber == 0.0:
-                raise NotImplementedError()
-            elif wavenumber == np.inf:
-                raise NotImplementedError()
-            else:
-                coeffs = np.array((1.0, 1.0, 1.0))
+            raise NotImplementedError("FinGreen3D is only implemented for finite depth with a free surface.")
+        if wavenumber == 0.0 or wavenumber == np.inf:
+            raise NotImplementedError("FinGreen3D is only implemented for non-zero and non-infinite frequencies")
 
-        dispersion_relation_roots = self.compute_dispersion_relation_roots(self.nb_dispersion_roots, wavenumber, water_depth)
+        dispersion_relation_roots = self.compute_dispersion_relation_roots(
+            self.nb_dispersion_roots,
+            wavenumber,
+            water_depth
+        )
 
-        collocation_points, early_dot_product_normals = self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
+        collocation_points, early_dot_product_normals = \
+                self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
 
         S, K = self._init_matrices(
             (collocation_points.shape[0], mesh2.nb_faces), early_dot_product=early_dot_product
@@ -148,19 +156,25 @@ class FinGreen3D(AbstractGreenFunction):
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
             wavenumber, water_depth,
-            coeffs,
             self.tabulation_nb_integration_points, self.dummy_param,
             self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
             self.finite_depth_method_index, self.prony_decomposition, dispersion_relation_roots,
-            mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
+            self.gf_singularities_index, adjoint_double_layer,
             S, K
         )
 
+        if mesh1 is mesh2:
+            self.fortran_core.matrices.add_diagonal_term(
+                    mesh2.faces_centers, early_dot_product_normals, free_surface, K,
+                    )
+
         if np.any(np.isnan(S)) or np.any(np.isnan(K)):
-            raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
+            raise GreenFunctionEvaluationError(
+                    "Green function returned a NaN in the interaction matrix.\n"
                     "It could be due to overlapping panels.")
 
-        if early_dot_product: K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
+        if early_dot_product:
+            K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
 
         return S, K
 

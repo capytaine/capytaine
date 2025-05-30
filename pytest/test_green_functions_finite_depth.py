@@ -18,12 +18,11 @@ def test_deep_water_asymptotics(face):
     nexp, prony_decomposition = gf.fortran_core.old_prony_decomposition.lisc(k*depth*np.tanh(k*depth), k*depth)
     s_inf, k_inf = gf.fortran_core.green_wave.integral_of_wave_part_infinite_depth(
         face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
-        k, *gf.all_tabulation_parameters, gf.gf_singularities_index, True
+        k, *gf.all_tabulation_parameters, gf.fortran_core.constants.low_freq, True
     )
-    s_finite, k_finite = gf.fortran_core.green_wave.integral_of_wave_part_finite_depth(
-        face.faces_centers[0, :], face.vertices[face.faces[0, :], :], face.faces_centers[0, :] , face.faces_normals[0, :],
-        face.faces_areas[0], face.faces_radiuses[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
-        k, depth, *gf.all_tabulation_parameters, prony_decomposition[:, :nexp], True
+    s_finite, k_finite = gf.fortran_core.green_wave.integral_of_wave_parts_finite_depth(
+        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
+        k, depth, *gf.all_tabulation_parameters, True
     )
     np.testing.assert_allclose(s_inf, s_finite, rtol=1e-2)
     np.testing.assert_allclose(k_inf, k_finite, rtol=1e-2)

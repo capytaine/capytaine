@@ -126,12 +126,11 @@ class Delhommeau(AbstractGreenFunction):
         self.tabulation_grid_shape_index = fortran_enum[tabulation_grid_shape]
 
         self.gf_singularities = gf_singularities
-        fortran_enum = {
+        self.gf_singularities_fortran_enum = {
                 'high_freq': self.fortran_core.constants.high_freq,
                 'low_freq': self.fortran_core.constants.low_freq,
                 'low_freq_with_rankine_part': self.fortran_core.constants.low_freq_with_rankine_part,
-                              }
-        self.gf_singularities_index = fortran_enum[gf_singularities]
+                }
 
         self.finite_depth_method = finite_depth_method
         fortran_enum = {
@@ -348,11 +347,6 @@ class Delhommeau(AbstractGreenFunction):
             (collocation_points.shape[0], mesh2.nb_faces), early_dot_product
         )
 
-        if mesh1 is mesh2:
-            self.fortran_core.matrices.add_diagonal_term(
-                    mesh2.faces_centers, early_dot_product_normals, np.inf, K,
-                    )
-
         self.fortran_core.matrices.add_rankine_term_only(
                 collocation_points,  early_dot_product_normals,
                 mesh2.vertices,      mesh2.faces + 1,
@@ -361,6 +355,11 @@ class Delhommeau(AbstractGreenFunction):
                 *mesh2.quadrature_points,
                 adjoint_double_layer,
                 S, K)
+
+        if mesh1 is mesh2:
+            self.fortran_core.matrices.add_diagonal_term(
+                    mesh2.faces_centers, early_dot_product_normals, np.inf, K,
+                    )
 
         S, K = np.real(S), np.real(K)
 
@@ -430,30 +429,40 @@ class Delhommeau(AbstractGreenFunction):
 
         wavenumber = float(wavenumber)
 
+        # Overrides gf_singularities setting in some specific cases, else use the class one.
+        if water_depth < np.inf and self.finite_depth_method == 'legacy' and not self.gf_singularities == 'low_freq':
+            gf_singularities = "low_freq"  # Reproduce legacy method behavior
+            LOG.debug(
+                f"Overriding gf_singularities='{self.gf_singularities}' because of finite_depth_method=='legacy'"
+            )
+        elif wavenumber == 0.0 and not self.gf_singularities == 'low_freq':
+            gf_singularities = "low_freq"
+            LOG.debug(
+                f"Overriding gf_singularities='{self.gf_singularities}' because of wavenumber==0.0"
+            )
+        elif wavenumber == np.inf and not self.gf_singularities == 'high_freq':
+            gf_singularities = "high_freq"
+            LOG.debug(
+                f"Overriding gf_singularities='{self.gf_singularities}' because of wavenumber==np.inf"
+            )
+        elif np.any(abs(mesh2.faces_centers[:, 2]) < 1e-6) and not self.gf_singularities == 'low_freq':
+            gf_singularities = "low_freq"
+            LOG.warning(
+                f"Overriding gf_singularities='{self.gf_singularities}' because of free surface panels, "
+                "which are currently only supported by gf_singularities='low_freq'"
+            )
+        else:
+            gf_singularities = self.gf_singularities
+        gf_singularities_index = self.gf_singularities_fortran_enum[gf_singularities]
+
         if water_depth == np.inf:
-
-            prony_decomposition = np.empty((1, 1))  # Idem
-
-            if wavenumber == 0.0:
-                coeffs = np.array((1.0, 1.0, 0.0))
-            elif wavenumber == np.inf:
-                coeffs = np.array((1.0, -1.0, 0.0))
-            else:
-                if self.gf_singularities == "high_freq":
-                    coeffs = np.array((1.0, -1.0, 1.0))
-                else:  # low_freq or low_freq_with_rankine_part
-                    coeffs = np.array((1.0, 1.0, 1.0))
-
-        else:  # Finite water_depth
+            prony_decomposition = np.zeros((1, 1))  # Dummy array that won't actually be used by the fortran code.
+        else:
             if wavenumber == 0.0 or wavenumber == np.inf:
-                raise NotImplementedError("Zero or infinite frequency are not implemented for finite depth.")
-            else:
-                prony_decomposition = self.find_best_exponential_decomposition(wavenumber*water_depth)
-                coeffs = np.array((1.0, 1.0, 1.0))
-
-        if (np.any(abs(mesh2.faces_centers[:, 2]) < 1e-6)  # free surface panel
-            and self.gf_singularities != "low_freq"):
-            raise NotImplementedError("Free surface panels are only supported for cpt.Delhommeau(..., gf_singularities='low_freq').")
+                raise NotImplementedError(
+                    "Zero or infinite frequency are not implemented for finite depth."
+                )
+            prony_decomposition = self.find_best_exponential_decomposition(wavenumber*water_depth)
 
         # Main call to Fortran code
         self.fortran_core.matrices.build_matrices(
@@ -463,11 +472,16 @@ class Delhommeau(AbstractGreenFunction):
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
             wavenumber, water_depth,
-            coeffs, *self.all_tabulation_parameters,
+            *self.all_tabulation_parameters,
             self.finite_depth_method_index, prony_decomposition, self.dispersion_relation_roots,
-            mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
+            gf_singularities_index, adjoint_double_layer,
             S, K
         )
+
+        if mesh1 is mesh2:
+            self.fortran_core.matrices.add_diagonal_term(
+                    mesh2.faces_centers, early_dot_product_normals, free_surface, K,
+                    )
 
         if np.any(np.isnan(S)) or np.any(np.isnan(K)):
             raise GreenFunctionEvaluationError(

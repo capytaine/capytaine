@@ -47,7 +47,6 @@ real(kind=pre), dimension(2, 31) :: prony_decomposition
 real(kind=pre), dimension(1) :: dispersion_roots  ! Dummy, only for FinGreen3D
 
 integer n_threads
-real(kind=pre), dimension(3) :: coeffs
 
 ! The interaction matrices to be computed
 complex(kind=pre), dimension(:, :), allocatable :: S
@@ -92,7 +91,6 @@ write(210, '(a)') "n_threads,elapsed_time,kind"
 do n_threads = 1, OMP_GET_MAX_THREADS()
   call omp_set_num_threads(n_threads)
 
-  coeffs = [1d0, 1d0, 1d0]
   call system_clock(starting_time)
   call build_matrices(                                           &
     nb_faces, face_center, face_normal,                          &
@@ -100,54 +98,15 @@ do n_threads = 1, OMP_GET_MAX_THREADS()
     face_center, face_normal, face_area, face_radius,            &
     nb_quadrature_points, quadrature_points, quadrature_weights, &
     wavenumber, depth,                                           &
-    coeffs,                                                      &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     finite_depth_method, prony_decomposition, dispersion_roots,  &
-    .false., gf_singularities, .true.,                           &
+    gf_singularities, .true.,                                    &
     S, K)
   call system_clock(final_time)
 
   print'(a15,1i15,a,1ES16.6)', " full", n_threads, ' ', real(final_time - starting_time)/clock_rate
   write(210,'(1i3,a,1ES12.6,a)') n_threads, ",", real(final_time - starting_time)/clock_rate, ",full"
-
-  coeffs = [0d0, 0d0, 1d0]
-  call system_clock(starting_time)
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth,                                           &
-    coeffs,                                                      &
-    tabulation_nb_integration_points, tabulation_grid_shape,     &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, prony_decomposition, dispersion_roots,  &
-    .false., gf_singularities, .true.,                           &
-    S, K)
-  call system_clock(final_time)
-
-  print'(a15,1i15,a,1ES16.6)', " wave_only", n_threads, ' ', real(final_time - starting_time)/clock_rate
-  write(210,'(1i3,a,1ES12.6,a)') n_threads, ",", real(final_time - starting_time)/clock_rate, ",wave_only"
-
-  coeffs = [0d0, 0d0, 1d0]
-  call system_clock(starting_time)
-  call build_matrices(                                           &
-    nb_faces, face_center, face_normal,                          &
-    nb_vertices, nb_faces, vertices, faces,                      &
-    face_center, face_normal, face_area, face_radius,            &
-    nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth,                                           &
-    coeffs,                                                      &
-    tabulation_nb_integration_points, tabulation_grid_shape,     &
-    tabulated_r, tabulated_z, tabulated_integrals,               &
-    finite_depth_method, prony_decomposition, dispersion_roots,  &
-    .true., gf_singularities, .true.,                            &
-    S, K)
-  call system_clock(final_time)
-
-  print'(a15,1i15,a,1ES16.6)', " half_wave_only", n_threads, ' ', real(final_time - starting_time)/clock_rate
-  write(210,'(1i3,a,1ES12.6,a)') n_threads, ",", real(final_time - starting_time)/clock_rate, ",half_wave_only"
 enddo
 
 contains
