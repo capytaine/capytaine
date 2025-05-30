@@ -45,6 +45,8 @@ The method is also saved in the metadata of the results with the other parameter
 Minor change
 ~~~~~~~~~~~~
 
+* Add optional :code:`freq` argument (frequency in Hz) for problem set up and output.
+
 * Add :func:`~capytaine.io.xarray.assemble_dataframe` which collect results into a Pandas DataFrame (this was already done internally in `~capytaine.io.xarray.assemble_dataset`) (:pull:`677`).
   Also add :func:`~capytaine.io.xarray.assemble_matrices` function which is a simplified version of `~capytaine.io.xarray.assemble_dataset` without metadata, meant to be used mostly for teaching. (:pull:`643`)
 
