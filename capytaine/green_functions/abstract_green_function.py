@@ -45,8 +45,8 @@ class AbstractGreenFunction(ABC):
         return collocation_points, early_dot_product_normals
 
     def _init_matrices(self, shape, dtype, early_dot_product):
-        S = np.empty(shape, order="F", dtype=dtype)
-        K = np.empty((shape[0], shape[1], 1 if early_dot_product else 3), order="F", dtype=dtype)
+        S = np.zeros(shape, order="F", dtype=dtype)
+        K = np.zeros((shape[0], shape[1], 1 if early_dot_product else 3), order="F", dtype=dtype)
         return S, K
 
     @abstractmethod

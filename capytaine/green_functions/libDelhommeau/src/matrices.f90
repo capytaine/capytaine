@@ -280,73 +280,110 @@ CONTAINS
 
       end do  ! loop on I
     end do  ! parallelized loop on J
+  end subroutine
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-!    IF ((coeffs(3) .NE. ZERO) .AND. use_symmetry_of_wave_part) THEN
-!      ! If we are computing the influence of some cells upon themselves, the resulting matrices have some symmetries.
-!      ! This is due to the symmetry of the Green function, and the way the integral on the face is approximated.
-!      ! (More precisely, the Green function is symmetric and its derivative is the sum of a symmetric part and an anti-symmetric
-!      ! part.)
-!
-!      !$OMP PARALLEL DO SCHEDULE(DYNAMIC) PRIVATE(J, I, int_G_wave, int_nablaG_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym)
-!      DO J = 1, nb_faces_2
-!        DO I = J, nb_faces_1
-!
-!          call INTEGRAL_OF_WAVE_PART(                                    &
-!            centers_1(I, :),                                             &
-!            centers_2(J, :), areas_2(J),                                 &
-!            quad_points(J, :, :), quad_weights(J, :),                    &
-!            wavenumber, depth,                                           &
-!            tabulation_nb_integration_points, tabulation_grid_shape,     &
-!            tabulated_r_range, tabulated_z_range, tabulated_integrals,   &
-!            gf_singularities,                                            &
-!            finite_depth_method, prony_decomposition, dispersion_roots,  &
-!            int_G_wave, int_nablaG_wave_sym, int_nablaG_wave_antisym     &
-!          )
-!
-!          S(I, J) = S(I, J) + coeffs(3) * int_G_wave
-!
-!          IF (adjoint_double_layer) THEN
-!            int_nablaG_wave(:) = int_nablaG_wave_sym(:) + int_nablaG_wave_antisym(:)
-!          ELSE
-!            int_nablaG_wave(:) = int_nablaG_wave_sym(:) - int_nablaG_wave_antisym(:)
-!          END IF
-!
-!          if (size(K, 3) == 1) then
-!            if (.NOT. adjoint_double_layer) then
-!              K(I, J, 1) = K(I, J, 1) + coeffs(3) * DOT_PRODUCT(dot_product_normals(J, :), int_nablaG_wave(:))
-!            else
-!              K(I, J, 1) = K(I, J, 1) + coeffs(3) * DOT_PRODUCT(dot_product_normals(I, :), int_nablaG_wave(:))
-!            endif
-!          else
-!            K(I, J, :) = K(I, J, :) + coeffs(3) * int_nablaG_wave(:)
-!          endif
-!
-!          IF (.NOT. I==J) THEN
-!
-!            IF (.NOT. adjoint_double_layer) THEN
-!              int_nablaG_wave(:) = int_nablaG_wave_sym(:) + int_nablaG_wave_antisym(:)
-!            ELSE
-!              int_nablaG_wave(:) = int_nablaG_wave_sym(:) - int_nablaG_wave_antisym(:)
-!            END IF
-!
-!            S(J, I) = S(J, I) + coeffs(3) * int_G_wave * areas_2(I)/areas_2(J)
-!            if (size(K, 3) == 1) then
-!              if (.NOT. adjoint_double_layer) then
-!                K(J, I, 1) = K(J, I, 1) + coeffs(3) * DOT_PRODUCT(dot_product_normals(I, :), int_nablaG_wave(:)) * &
-!                  areas_2(I)/areas_2(J)
-!              else
-!                K(J, I, 1) = K(J, I, 1) + coeffs(3) * DOT_PRODUCT(dot_product_normals(J, :), int_nablaG_wave(:)) * &
-!                  areas_2(I)/areas_2(J)
-!              endif
-!            else
-!              K(J, I, :) = K(J, I, :) + coeffs(3) * int_nablaG_wave(:) * areas_2(I)/areas_2(J)
-!            endif
-!          END IF
-!        END DO
-!      END DO
-!    END IF
+  subroutine add_diagonal_term(                               &
+      nb_faces, centers, dot_product_normals, free_surface, K &
+      )
 
+    integer, intent(in)                                :: nb_faces
+    real(kind=pre), dimension(nb_faces, 3), intent(in) :: centers
+    real(kind=pre), dimension(nb_faces, 3), intent(in) :: dot_product_normals
+    real(kind=pre),                         intent(in) :: free_surface
+    complex(kind=pre), dimension(:, :, :),  intent(inout) :: K
+
+    ! Local variables
+    integer        :: i
+    real(kind=pre) :: diagonal_coef
+
+    !$OMP PARALLEL DO PRIVATE(i, diagonal_coef)
+    do i = 1, nb_faces
+      if (abs(centers(i, 3) - free_surface) < 1e-8) then  ! Panel on the free surface
+        diagonal_coef = ONE
+      else
+        diagonal_coef = ONE/2
+      endif
+
+      if (size(K, 3) == 1) then  ! early_dot_product=True
+        K(i, i, 1) = K(i, i, 1) + diagonal_coef
+      else
+        K(i, i, :) = K(i, i, :) + diagonal_coef * dot_product_normals(i, :)
+        ! if (.not. adjoint_double_layer) then we should have used the jth normal instead of the i-th,
+        ! such that later the dot product with dot_product_normals(j, :) gives 1.
+        ! Except that on the diagonal, i==j, so there is no need to branch based on adjoint_double_layer.
+      endif
+    enddo
+
+  end subroutine
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+  subroutine add_rankine_term_only(                                   &
+      nb_collocation_points, collocation_points, dot_product_normals, &
+      nb_vertices, nb_faces, vertices, faces,                         &
+      centers, normals, areas, radiuses,                              &
+      nb_quad_points, quad_points, quad_weights,                      &
+      adjoint_double_layer,                                           &
+      S, K)
+
+    integer,                                                intent(in) :: nb_collocation_points
+    real(kind=pre), dimension(nb_collocation_points, 3),    intent(in) :: collocation_points
+    real(kind=pre), dimension(:, :),                        intent(in) :: dot_product_normals
+    ! If adjoint_double_layer:     size(dot_product_normals) == (nb_collocation_points, 3)
+    ! If not adjoint_double_layer: size(dot_product_normals) == (nb_faces, 3)
+
+    integer,                                                intent(in) :: nb_faces, nb_vertices
+    real(kind=pre), dimension(nb_vertices, 3),              intent(in) :: vertices
+    integer,        dimension(nb_faces, 4),                 intent(in) :: faces
+    real(kind=pre), dimension(nb_faces, 3),                 intent(in) :: centers, normals
+    real(kind=pre), dimension(nb_faces),                    intent(in) :: areas, radiuses
+    integer,                                                intent(in) :: nb_quad_points
+    real(kind=pre), dimension(nb_faces, nb_quad_points, 3), intent(in) :: quad_points
+    real(kind=pre), dimension(nb_faces, nb_quad_points),    intent(in) :: quad_weights
+
+    logical,                                                intent(in) :: adjoint_double_layer
+
+    complex(kind=pre), dimension(:, :),                     intent(inout) :: S
+    complex(kind=pre), dimension(:, :, :),                  intent(inout) :: K
+
+    ! Local variables
+    real(kind=pre)               :: int_G_Rankine
+    real(kind=pre), dimension(3) :: int_nablaG_Rankine
+    integer                      :: I, J
+    logical                      :: derivative_with_respect_to_first_variable
+
+    derivative_with_respect_to_first_variable = adjoint_double_layer
+
+    !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
+    !$OMP&  PRIVATE(J, I, int_G_Rankine, int_nablaG_Rankine)
+    do J = 1, nb_faces
+      do I = 1, nb_collocation_points
+        call integral_of_Rankine(                    &
+          collocation_points(I, :),                  &
+          vertices(faces(J, :), :),                  &
+          centers(J, :),                             &
+          normals(J, :),                             &
+          areas(J),                                  &
+          radiuses(J),                               &
+          derivative_with_respect_to_first_variable, &
+          int_G_Rankine, int_nablaG_Rankine          &
+          )
+
+        S(I, J) = S(I, J) + MINUS_ONE_OVER_FOURPI * int_G_Rankine
+
+        if (size(K, 3) == 1) then  ! early_dot_product=True
+          if (adjoint_double_layer) then
+            K(I, J, 1) = K(I, J, 1) + MINUS_ONE_OVER_FOURPI * dot_product(dot_product_normals(I, :), int_nablaG_Rankine(:))
+          else
+            K(I, J, 1) = K(I, J, 1) + MINUS_ONE_OVER_FOURPI * dot_product(dot_product_normals(J, :), int_nablaG_Rankine(:))
+          endif
+        else
+          K(I, J, :) = K(I, J, :) + MINUS_ONE_OVER_FOURPI * int_nablaG_Rankine(:)
+        endif
+      enddo
+    enddo
   end subroutine
 
 end module matrices

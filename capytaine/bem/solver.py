@@ -293,7 +293,8 @@ class BEMSolver:
         """Display a warning if some of the problems might encounter irregular frequencies."""
         LOG.debug("Check wavelength with estimated irregular frequency.")
         risky_problems = [pb for pb in problems
-                          if pb.body.first_irregular_frequency_estimate(g=pb.g) < pb.omega < np.inf]
+                          if pb.free_surface != np.inf and
+                          pb.body.first_irregular_frequency_estimate(g=pb.g) < pb.omega < np.inf]
         nb_risky_problems = len(risky_problems)
         if nb_risky_problems >= 1:
             if any(pb.body.lid_mesh is None for pb in problems):
