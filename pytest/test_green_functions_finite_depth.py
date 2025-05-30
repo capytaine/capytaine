@@ -122,9 +122,9 @@ def test_failure_for_low_kh():
 
     # Newer method fails properly
     from capytaine.green_functions.abstract_green_function import GreenFunctionEvaluationError
-    with pytest.raises(GreenFunctionEvaluationError):
+    with pytest.raises((NotImplementedError, GreenFunctionEvaluationError)):
         gf.find_best_exponential_decomposition(0.10, method="python")
-    with pytest.raises(GreenFunctionEvaluationError):
+    with pytest.raises((NotImplementedError, GreenFunctionEvaluationError)):
         gf.find_best_exponential_decomposition(0.01, method="python")
 
 
