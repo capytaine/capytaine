@@ -227,6 +227,18 @@ def test_fill_dataset(sphere, solver):
     assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)
 
 
+def test_fill_dataset_with_freqs(sphere, solver):
+    f_range = np.linspace(0.1, 1, 3)
+    test_matrix = xr.Dataset(coords={'freq': f_range, 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
+    dataset = solver.fill_dataset(test_matrix, [sphere])
+    np.testing.assert_allclose(dataset.coords['freq'], f_range)
+    assert set(dataset.added_mass.dims) == {'freq', 'radiating_dof', 'influenced_dof'}
+    assert set(dataset.freq.dims) == {'freq'}
+    assert set(dataset.wavelength.dims) == {'freq'}
+    assert set(dataset.omega.dims)      == {'freq'}
+    assert set(dataset.period.dims)     == {'freq'}
+
+
 def test_fill_dataset_with_wavenumbers(sphere, solver):
     k_range = np.linspace(1.0, 3.0, 3)
     test_matrix = xr.Dataset(coords={'wavenumber': k_range, 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})

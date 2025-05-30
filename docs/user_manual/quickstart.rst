@@ -7,7 +7,7 @@ If you want to understand the internal structure of Capytaine to customize it to
 
 You can use the following script as the equivalent configuration file for Capytaine.
 Copy it in a Python file, edit it to suit your needs and execute it with Python to run the study.
-More example files can be found in the :doc:`../examples/index` section.
+More examples files can be found in the :doc:`../examples/index` section.
 
 .. literalinclude:: ../examples/src/quickstart.py
    :language: python
