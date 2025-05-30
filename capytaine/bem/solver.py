@@ -319,7 +319,7 @@ class BEMSolver:
                             + recommendation
                             )
 
-    def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, _check_wavelength=True, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, _check_wavelength=True, progress_bar=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -355,12 +355,12 @@ class BEMSolver:
             attrs["method"] = method
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
-            results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength)
+            results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
             kochin = kochin_data_array(results, dataset.coords['theta'])
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
             dataset.update(kochin)
         else:
-            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength)
+            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 
