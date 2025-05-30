@@ -9,6 +9,8 @@ from capytaine.green_functions.abstract_green_function import AbstractGreenFunct
 class MyGreenFunction(AbstractGreenFunction):
     """An example of a custom routine to evaluate the Green function."""
 
+    floating_point_precision = "float64"  # Optional, could allow for RAM usage optimisations
+
     def evaluate(
         self,
         mesh1,

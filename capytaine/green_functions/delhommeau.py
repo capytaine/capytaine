@@ -344,18 +344,8 @@ class Delhommeau(AbstractGreenFunction):
         collocation_points, early_dot_product_normals = \
                 self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
 
-        if self.floating_point_precision == "float32":
-            dtype = "complex64"
-        elif self.floating_point_precision == "float64":
-            dtype = "complex128"
-        else:
-            raise NotImplementedError(
-                    f"Unsupported floating point precision: {self.floating_point_precision}"
-                    )
-
         S, K = self._init_matrices(
-            (collocation_points.shape[0], mesh2.nb_faces),
-            dtype, early_dot_product
+            (collocation_points.shape[0], mesh2.nb_faces), early_dot_product
         )
 
         if mesh1 is mesh2:
@@ -434,14 +424,9 @@ class Delhommeau(AbstractGreenFunction):
         collocation_points, early_dot_product_normals = \
                 self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
 
-        if self.floating_point_precision == "float32":
-            dtype = "complex64"
-        elif self.floating_point_precision == "float64":
-            dtype = "complex128"
-        else:
-            raise NotImplementedError(f"Unsupported floating point precision: {self.floating_point_precision}")
-
-        S, K = self._init_matrices((collocation_points.shape[0], mesh2.nb_faces), dtype, early_dot_product)
+        S, K = self._init_matrices(
+            (collocation_points.shape[0], mesh2.nb_faces), early_dot_product
+        )
 
         wavenumber = float(wavenumber)
 
