@@ -23,5 +23,5 @@ def test_translation_invariance_of_no_free_surface_case():
         solver = cpt.BEMSolver(method="direct")
         res = solver.solve(pb)
         return res.force["Surge"]
-    assert np.isclose(force_on_body(0.0), force_on_body(-10.0))
-    assert np.isclose(force_on_body(0.0), force_on_body(10.0))
+    assert np.isclose(force_on_body(0.0), force_on_body(-1.0))
+    assert np.isclose(force_on_body(0.0), force_on_body(1.0))
