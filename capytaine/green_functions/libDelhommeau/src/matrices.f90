@@ -288,14 +288,15 @@ CONTAINS
       nb_faces, centers, dot_product_normals, free_surface, K &
       )
 
-      integer, intent(in) :: nb_faces
-      real(kind=pre), dimension(nb_faces, 3), intent(in) :: centers
-      real(kind=pre), dimension(:, :),        intent(in) :: dot_product_normals
-      real(kind=pre),                         intent(in) :: free_surface
-      complex(kind=pre), dimension(:, :, :),  intent(inout) :: K
+    integer, intent(in)                                :: nb_faces
+    real(kind=pre), dimension(nb_faces, 3), intent(in) :: centers
+    real(kind=pre), dimension(nb_faces, 3), intent(in) :: dot_product_normals
+    real(kind=pre),                         intent(in) :: free_surface
+    complex(kind=pre), dimension(:, :, :),  intent(inout) :: K
 
-      integer :: i
-      real(kind=pre) :: diagonal_coef
+    ! Local variables
+    integer        :: i
+    real(kind=pre) :: diagonal_coef
 
     !$OMP PARALLEL DO PRIVATE(i, diagonal_coef)
     do i = 1, nb_faces
@@ -319,47 +320,53 @@ CONTAINS
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-  subroutine add_rankine_term_only(                   &
-      nb_faces_1, centers_1, dot_product_normals,     &
-      nb_vertices_2, nb_faces_2, vertices_2, faces_2, &
-      centers_2, normals_2, areas_2, radiuses_2,      &
-      nb_quad_points, quad_points, quad_weights,      &
-      adjoint_double_layer,                           &
+  subroutine add_rankine_term_only(                                   &
+      nb_collocation_points, collocation_points, dot_product_normals, &
+      nb_vertices, nb_faces, vertices, faces,                         &
+      centers, normals, areas, radiuses,                              &
+      nb_quad_points, quad_points, quad_weights,                      &
+      adjoint_double_layer,                                           &
       S, K)
 
-    integer,                                     intent(in) :: nb_faces_1, nb_faces_2, nb_vertices_2
-    real(kind=pre), dimension(nb_faces_1, 3),    intent(in) :: centers_1
-    real(kind=pre), dimension(:, :),             intent(in) :: dot_product_normals
-    real(kind=pre), dimension(nb_vertices_2, 3), intent(in) :: vertices_2
-    integer,        dimension(nb_faces_2, 4),    intent(in) :: faces_2
-    real(kind=pre), dimension(nb_faces_2, 3),    intent(in) :: centers_2, normals_2
-    real(kind=pre), dimension(nb_faces_2),       intent(in) :: areas_2, radiuses_2
-    integer,                                                  intent(in) :: nb_quad_points
-    real(kind=pre), dimension(nb_faces_2, nb_quad_points, 3), intent(in) :: quad_points
-    real(kind=pre), dimension(nb_faces_2, nb_quad_points),    intent(in) :: quad_weights
-    logical,                                     intent(in) :: adjoint_double_layer
+    integer,                                                intent(in) :: nb_collocation_points
+    real(kind=pre), dimension(nb_collocation_points, 3),    intent(in) :: collocation_points
+    real(kind=pre), dimension(:, :),                        intent(in) :: dot_product_normals
+    ! If adjoint_double_layer:     size(dot_product_normals) == (nb_collocation_points, 3)
+    ! If not adjoint_double_layer: size(dot_product_normals) == (nb_faces, 3)
 
-    complex(kind=pre), dimension(:, :),          intent(inout) :: S
-    complex(kind=pre), dimension(:, :, :),       intent(inout) :: K
+    integer,                                                intent(in) :: nb_faces, nb_vertices
+    real(kind=pre), dimension(nb_vertices, 3),              intent(in) :: vertices
+    integer,        dimension(nb_faces, 4),                 intent(in) :: faces
+    real(kind=pre), dimension(nb_faces, 3),                 intent(in) :: centers, normals
+    real(kind=pre), dimension(nb_faces),                    intent(in) :: areas, radiuses
+    integer,                                                intent(in) :: nb_quad_points
+    real(kind=pre), dimension(nb_faces, nb_quad_points, 3), intent(in) :: quad_points
+    real(kind=pre), dimension(nb_faces, nb_quad_points),    intent(in) :: quad_weights
 
-    real(kind=pre) :: int_G_Rankine
+    logical,                                                intent(in) :: adjoint_double_layer
+
+    complex(kind=pre), dimension(:, :),                     intent(inout) :: S
+    complex(kind=pre), dimension(:, :, :),                  intent(inout) :: K
+
+    ! Local variables
+    real(kind=pre)               :: int_G_Rankine
     real(kind=pre), dimension(3) :: int_nablaG_Rankine
-    integer :: i, j
-    logical :: derivative_with_respect_to_first_variable
+    integer                      :: I, J
+    logical                      :: derivative_with_respect_to_first_variable
 
     derivative_with_respect_to_first_variable = adjoint_double_layer
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
     !$OMP&  PRIVATE(J, I, int_G_Rankine, int_nablaG_Rankine)
-    do J = 1, nb_faces_2
-      do I = 1, nb_faces_1
+    do J = 1, nb_faces
+      do I = 1, nb_collocation_points
         call integral_of_Rankine(                    &
-          centers_1(I, :),                           &
-          vertices_2(faces_2(J, :), :),              &
-          centers_2(J, :),                           &
-          normals_2(J, :),                           &
-          areas_2(J),                                &
-          radiuses_2(J),                             &
+          collocation_points(I, :),                  &
+          vertices(faces(J, :), :),                  &
+          centers(J, :),                             &
+          normals(J, :),                             &
+          areas(J),                                  &
+          radiuses(J),                               &
           derivative_with_respect_to_first_variable, &
           int_G_Rankine, int_nablaG_Rankine          &
           )
@@ -377,7 +384,6 @@ CONTAINS
         endif
       enddo
     enddo
-
   end subroutine
 
 end module matrices
