@@ -43,7 +43,7 @@ contains the potential and pressure fields on each face of the mesh of the hull:
   #  -6.54135830e-03+0.54208628j ... -2.09853806e+00-0.56106653j
   #  -2.18441640e+00-0.58402701j -2.22777755e+00-0.59562008j]
 
-These magnitudes are stored in an one-dimensionnal array as long as the number
+These magnitudes are stored in an one-dimensional array as long as the number
 of faces of the mesh, and stored in the same order as the faces in the ``Mesh``
 object. In other words, ``result.pressure[3]`` contains the pressure on the
 face of center ``body.mesh.faces_centers[3]``.
