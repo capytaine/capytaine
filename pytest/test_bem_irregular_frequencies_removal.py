@@ -216,10 +216,11 @@ def test_panel_on_free_surface(water_depth):
     cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="low_freq")).solve(pb)
 
 
-def test_panel_on_free_surface_with_high_freq():
+def test_panel_on_free_surface_with_high_freq(caplog):
     mesh = cpt.mesh_rectangle(center=(0.0, 0.0, 0.0), size=(1.0, 1.0))
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
     cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="low_freq")).solve(pb)
-    with pytest.raises(NotImplementedError):
+    with caplog.at_level("WARNING"):
         cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="high_freq")).solve(pb)
+    assert "free surface panel" in caplog.text
