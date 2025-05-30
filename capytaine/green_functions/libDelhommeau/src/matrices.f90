@@ -179,8 +179,9 @@ contains
               )
               int_G = int_G + int_G_wave
               int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
+          ! else zero, assuming gf_singularities has been set up correctly, that is
+          ! low_freq for wavenumber = 0 and high_freq for wavenumber = inf
           endif
-          ! else zero
 
         else  ! Finite depth
 
@@ -267,12 +268,14 @@ contains
                 wavenumber, depth,                                         &
                 tabulation_nb_integration_points, tabulation_grid_shape,   &
                 tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-                ! gf_singularities,                                          &
+                gf_singularities,                                          &
                 derivative_with_respect_to_first_variable,                 &
                 int_G_wave, int_nablaG_wave                                &
                 )
               int_G = int_G + int_G_wave
               int_nablaG(:) = int_nablaG(:) + int_nablaG_wave(:)
+            ! else zero, assuming gf_singularities has been set up correctly, that is
+            ! low_freq for wavenumber = 0 and high_freq for wavenumber = inf
             endif
 
             call integral_of_prony_decomp_finite_depth        &
