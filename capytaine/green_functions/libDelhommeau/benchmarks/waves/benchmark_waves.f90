@@ -41,6 +41,9 @@ real(kind=pre) :: face_area
 real(kind=pre) :: face_radius
 logical, parameter :: derivative_with_respect_to_first_variable = .true.
 
+complex(kind=pre) :: int_G_wave
+complex(kind=pre), dimension(3) :: int_nablaG_wave
+
 complex(kind=pre), dimension(:), allocatable :: S
 complex(kind=pre), dimension(:, :), allocatable :: VS
 
@@ -81,16 +84,14 @@ depth = ieee_value(1d0, ieee_positive_inf)
 wavenumber = 1d0
 call system_clock(starting_time)
 do i_sample = 1, n_samples
-  call integral_of_wave_part                                     &
+  call integral_of_wave_part_infinite_depth                      &
       (points(:, i_sample),                                      &
-      face_nodes,                                                &
-      face_center, face_normal, face_area, face_radius,          &
+      face_center, face_area,                                    &
       face_quadrature_points, face_quadrature_weights,           &
-      wavenumber, depth,                                         &
+      wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
-      finite_depth_method, prony_decomposition, dispersion_roots,&
       derivative_with_respect_to_first_variable,                 &
       S(i_sample), VS(:, i_sample)                               &
       )
@@ -105,16 +106,14 @@ depth = ieee_value(1d0, ieee_positive_inf)
 wavenumber = 1d0
 call system_clock(starting_time)
 do i_sample = 1, n_samples
-  call integral_of_wave_part                                     &
+  call integral_of_wave_part_infinite_depth                      &
       (points(:, i_sample),                                      &
-      face_nodes,                                                &
-      face_center, face_normal, face_area, face_radius,          &
+      face_center, face_area,                                    &
       face_quadrature_points, face_quadrature_weights,           &
-      wavenumber, depth,                                         &
+      wavenumber,                                                &
       tabulation_nb_integration_points, LIANG_WU_NOBLESSE,       &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
       gf_singularities,                                          &
-      finite_depth_method, prony_decomposition, dispersion_roots,&
       derivative_with_respect_to_first_variable,                 &
       S(i_sample), VS(:, i_sample)                               &
       )
@@ -131,19 +130,30 @@ wavenumber = 1d0
 call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), nexp, prony_decomposition)
 call system_clock(starting_time)
 do i_sample = 1, n_samples
-  call integral_of_wave_part                                     &
-      (points(:, i_sample),                                      &
-      face_nodes,                                                &
-      face_center, face_normal, face_area, face_radius,          &
-      face_quadrature_points, face_quadrature_weights,           &
-      wavenumber, depth,                                         &
-      tabulation_nb_integration_points, tabulation_grid_shape,   &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities,                                          &
-      finite_depth_method, prony_decomposition, dispersion_roots,&
-      derivative_with_respect_to_first_variable,                 &
-      S(i_sample), VS(:, i_sample)                               &
-      )
+  call integral_of_wave_parts_finite_depth                     &
+    (points(:, i_sample),                                      &
+    face_center, face_area,                                    &
+    face_quadrature_points, face_quadrature_weights,           &
+    wavenumber, depth,                                         &
+    tabulation_nb_integration_points, tabulation_grid_shape,   &
+    tabulated_r_range, tabulated_z_range, tabulated_integrals, &
+    ! gf_singularities,                                          &
+    derivative_with_respect_to_first_variable,                 &
+    int_G_wave, int_nablaG_wave                                &
+    )
+  S(i_sample) = S(i_sample) + int_G_wave
+  VS(i_sample, :) = VS(i_sample, :) + int_nablaG_wave
+  call integral_of_prony_decomp_finite_depth        &
+    (points(:, i_sample),                           &
+    face_nodes, face_center, face_normal,           &
+    face_area, face_radius,                         &
+    depth,                                          &
+    prony_decomposition,                            &
+    derivative_with_respect_to_first_variable,      &
+    int_G_wave, int_nablaG_wave                     &
+    )
+  S(i_sample) = S(i_sample) + int_G_wave
+  VS(i_sample, :) = VS(i_sample, :) + int_nablaG_wave
 enddo
 call system_clock(final_time)
 print*, "Finite depth (Delhommeau):", (final_time - starting_time)/clock_rate_in_ns/n_samples, " ns"
@@ -157,16 +167,11 @@ wavenumber = 1d0
 dispersion_roots = compute_dispersion_roots(200, wavenumber*tanh(wavenumber*depth), depth)
 call system_clock(starting_time)
 do i_sample = 1, n_samples
-  call integral_of_wave_part                                     &
+  call integral_of_wave_part_fingreen3d                          &
       (points(:, i_sample),                                      &
-      face_nodes,                                                &
-      face_center, face_normal, face_area, face_radius,          &
       face_quadrature_points, face_quadrature_weights,           &
       wavenumber, depth,                                         &
-      tabulation_nb_integration_points, LIANG_WU_NOBLESSE,       &
-      tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-      gf_singularities,                                          &
-      finite_depth_method, prony_decomposition, dispersion_roots,&
+      dispersion_roots,                                          &
       derivative_with_respect_to_first_variable,                 &
       S(i_sample), VS(:, i_sample)                               &
       )

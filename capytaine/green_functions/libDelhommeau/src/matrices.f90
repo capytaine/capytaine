@@ -256,6 +256,9 @@ contains
             int_G = int_G + sign_reflected_Rankine * int_G_Rankine
             int_nablaG(:) = int_nablaG(:) + sign_reflected_Rankine * int_nablaG_Rankine(:)
 
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+            !  Delhommeau's finite depth wave term  !
+            !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             if (finite_wavenumber) then
               call integral_of_wave_parts_finite_depth                     &
                 (collocation_points(I, :),                                 &
