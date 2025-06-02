@@ -75,6 +75,8 @@ Bug fixes
 
 * Fix loading BEMIO datasets from Nemoh (:pull:`681`)
 
+* Fix computing zero and infinite frequency radiation problems with a lid for irregular frequencies removal (:issue:`704` and :pull:`708`)
+
 Internals
 ~~~~~~~~~
 

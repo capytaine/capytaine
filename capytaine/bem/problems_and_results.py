@@ -428,7 +428,11 @@ class RadiationProblem(LinearPotentialFlowProblem):
 
             dof = self.body.dofs[self.radiating_dof]
 
-            self.boundary_condition = -1j * self.encounter_omega * np.sum(dof * self.body.mesh.faces_normals, axis=1)
+            displacement_on_face = np.sum(dof * self.body.mesh.faces_normals, axis=1)  # This is a dot product on each face
+            if self.body.lid_mesh is not None:
+                displacement_on_face = np.concatenate([displacement_on_face, np.zeros(self.body.lid_mesh.nb_faces)])
+
+            self.boundary_condition = -1j * self.encounter_omega * displacement_on_face
 
             if self.forward_speed != 0.0:
                 if self.radiating_dof.lower() == "pitch":
@@ -445,8 +449,6 @@ class RadiationProblem(LinearPotentialFlowProblem):
                             )
                 self.boundary_condition += self.forward_speed * ddofdx_dot_n
 
-            if self.body.lid_mesh is not None:
-                self.boundary_condition = np.concatenate([self.boundary_condition, np.zeros(self.body.lid_mesh.nb_faces)])
 
 
     def _astuple(self):
