@@ -99,7 +99,7 @@ class PronyDecompositionFailure(Exception):
     pass
 
 
-def find_best_exponential_decomposition(f, x_min, x_max, n_exp_range, tol=1e-4):
+def find_best_exponential_decomposition(f, x_min, x_max, n_exp_range, *, tol=1e-4, noise_on_domain_points_std=0.01):
     """Tries to construct an exponential decompositoin of the function f on the
     domain [x_min, x_max] by testing the number of exponentials in n_exp_range.
 
@@ -115,6 +115,9 @@ def find_best_exponential_decomposition(f, x_min, x_max, n_exp_range, tol=1e-4):
         The decomposition sizes that will be tested
     tol: float, optional
         The target mean square error.
+    noise_on_domain_points_std: float, optional
+        Introduces some random variability on the points where the function is evaluated.
+        Set this parameter to zero to disable randomness.
 
     """
     # Try different range of evaluation points to construct the decomposition.
@@ -124,7 +127,7 @@ def find_best_exponential_decomposition(f, x_min, x_max, n_exp_range, tol=1e-4):
         # (for the use-case of delhommeau.py, it is when x = kh exactly).
         # Thus we slightly randomize the range of evaluation points for the Prony decomposition.
         # This way, if one of the evaluation points hits the singular point, it will most likely not hit it again at the next iteration.
-        x_max_iter = (1 + 0.01*RNG.uniform())*x_max
+        x_max_iter = (1 + noise_on_domain_points_std*RNG.uniform())*x_max
 
         try:
             # The coefficients are computed on a resolution of 4*n_exp+1 ...
