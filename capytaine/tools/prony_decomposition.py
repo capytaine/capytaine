@@ -12,6 +12,7 @@ from scipy.optimize import curve_fit
 from scipy.linalg import toeplitz
 
 LOG = logging.getLogger(__name__)
+RNG = np.random.default_rng()
 
 
 def exponential_decomposition(X, F, m):
@@ -116,15 +117,22 @@ def find_best_exponential_decomposition(f, x_min, x_max, n_exp_range, tol=1e-4):
         The target mean square error.
 
     """
-    # Try different number of exponentials
+    # Try different range of evaluation points to construct the decomposition.
     for n_exp in n_exp_range:
+
+        # f might be ill-defined at some single specific values
+        # (for the use-case of delhommeau.py, it is when x = kh exactly).
+        # Thus we slightly randomize the range of evaluation points for the Prony decomposition.
+        # This way, if one of the evaluation points hits the singular point, it will most likely not hit it again at the next iteration.
+        x_max_iter = (1 + 0.01*RNG.uniform())*x_max
+
         try:
             # The coefficients are computed on a resolution of 4*n_exp+1 ...
-            X = np.linspace(x_min, x_max, 4*n_exp+1)
+            X = np.linspace(x_min, x_max_iter, 4*n_exp+1)
             a, lamda = exponential_decomposition(X, f(X), n_exp)
 
             # ... and they are evaluated on a finer discretization.
-            X = np.linspace(x_min, x_max, 8*n_exp+1)
+            X = np.linspace(x_min, x_max_iter, 8*n_exp+1)
             if error_exponential_decomposition(X, f(X), a, lamda) < tol:
                 return a, lamda
         except Exception:

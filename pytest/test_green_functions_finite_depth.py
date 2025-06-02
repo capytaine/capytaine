@@ -89,6 +89,11 @@ def test_python_and_fortran_prony_decomposition_for_green_function():
     assert np.allclose(decomp_p, decomp_f, rtol=0.2)
 
 
+def test_prony_decomposition_specific_value():
+    gf = cpt.Delhommeau(finite_depth_prony_decomposition_method="python")
+    gf.find_best_exponential_decomposition(20.0)
+
+
 def test_failure_unknown_method():
     gf = cpt.Delhommeau()
     with pytest.raises(ValueError):
