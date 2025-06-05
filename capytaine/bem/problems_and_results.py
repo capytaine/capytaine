@@ -337,8 +337,8 @@ class LinearPotentialFlowProblem:
         # TODO: let the user choose the influenced dofs
         return self.body.dofs if self.body is not None else set()
 
-    def make_results_container(self):
-        return LinearPotentialFlowResult(self)
+    def make_results_container(self, *args, **kwargs):
+        return LinearPotentialFlowResult(self, *args, **kwargs)
 
     def make_failed_results_container(self, *args, **kwargs):
         return FailedLinearPotentialFlowResult(self, *args, **kwargs)

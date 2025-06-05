@@ -204,8 +204,6 @@ def test_transform_into_result(sphere):
     assert res.period == pb.period
     assert res.body is pb.body
 
-
-@pytest.mark.xfail
 def test_transform_into_result_and_set_result_values(sphere):
     pb = LinearPotentialFlowProblem()
     res = pb.make_results_container(forces={"Heave": 1.0 + 2.0j}, potential=np.array([]), sources=np.array([]), pressure=np.array([]))
