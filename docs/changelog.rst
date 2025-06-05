@@ -77,6 +77,8 @@ Bug fixes
 
 * Fix computing zero and infinite frequency radiation problems with a lid for irregular frequencies removal (:issue:`704` and :pull:`708`)
 
+* Fix solving :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` directly.
+
 Internals
 ~~~~~~~~~
 
