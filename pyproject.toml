@@ -58,3 +58,9 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["E402", "F401"]
+
+[tool.pytest.ini_options]
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+xfail_strict = true
+log_cli_level = "info"
+testpaths = ["pytest/"]
