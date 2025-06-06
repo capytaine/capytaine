@@ -56,24 +56,37 @@ def export_wamit_1_from_dataset(dataset, filename, length_scale=1.0):
     damping = dataset["radiation_damping"]
     dofs = list(added_mass.coords["influenced_dof"].values)
 
-    with open(filename, "w") as f:
-        for omega, period in zip(omegas, periods):
-            for dof_i in dofs:
-                for dof_j in dofs:
-                    A = added_mass.sel(omega=omega, influenced_dof=dof_i, radiating_dof=dof_j).item()
-                    B = damping.sel(omega=omega, influenced_dof=dof_i, radiating_dof=dof_j).item()
-                    i_dof, j_dof, k = get_dof_index_and_k(dof_i, dof_j)
-                    norm = rho * (length_scale ** k)
-                    A_norm = A / norm
+    omega_blocks = {
+        "inf": [],
+        "zero": [],
+        "regular": []
+    }
 
-                    # Special cases: omit damping for ω = 0 or ω = inf
-                    if np.isinf(omega):
-                        f.write(f"{-1.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n")
-                    elif np.isclose(omega, 0.0):
-                        f.write(f"{0.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n")
-                    else:
-                        B_norm = B / (omega * norm)
-                        f.write(f"{period:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\t{B_norm:12.6e}\n")
+    for omega, period in zip(omegas, periods):
+        for dof_i in dofs:
+            for dof_j in dofs:
+                A = added_mass.sel(omega=omega, influenced_dof=dof_i, radiating_dof=dof_j).item()
+                B = damping.sel(omega=omega, influenced_dof=dof_i, radiating_dof=dof_j).item()
+                i_dof, j_dof, k = get_dof_index_and_k(dof_i, dof_j)
+                norm = rho * (length_scale ** k)
+                A_norm = A / norm
+
+                if np.isinf(omega):
+                    line = f"{-1.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n"
+                    omega_blocks["inf"].append(line)
+                elif np.isclose(omega, 0.0):
+                    line = f"{0.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n"
+                    omega_blocks["zero"].append(line)
+                else:
+                    B_norm = B / (omega * norm)
+                    line = f"{period:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\t{B_norm:12.6e}\n"
+                    omega_blocks["regular"].append(line)
+
+    with open(filename, "w") as f:
+        f.writelines(omega_blocks["inf"])
+        f.writelines(omega_blocks["zero"])
+        f.writelines(omega_blocks["regular"])
+
 
 def _format_excitation_line(period, beta_deg, i_dof, force):
     force_conj = np.conj(force)

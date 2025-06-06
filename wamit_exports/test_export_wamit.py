@@ -1,16 +1,16 @@
 import numpy as np
-import xarray as xr
 import unittest
 import re
 import os
 from pathlib import Path
+import xarray as xr
 import capytaine as cpt
 from capytaine.io.xarray import separate_complex_values
 from capytaine.io.wamit import export_to_wamit
 
-# =====================
+# ================================
 # 1. Simulation
-# =====================
+# ================================
 
 # Load mesh and setup body
 mesh = cpt.load_mesh("docs/examples/src/boat_200.mar", file_format="nemoh")
@@ -21,7 +21,7 @@ immersed_body = full_body.immersed_part()
 # Setup simulation parameters
 test_matrix = xr.Dataset({
     # Incident wave frequencies in rad/s
-    "omega": np.linspace(0.1, 1.0, 5),
+    "omega": [0] + np.linspace(0.1, 1.0, 5).tolist() + [np.inf],
     # Incident wave angles in rad
     "wave_direction": np.linspace(0, np.pi, 3),
     # Degrees of freedom that radiate waves (['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'])
@@ -38,7 +38,7 @@ solver = cpt.BEMSolver()
 dataset = solver.fill_dataset(test_matrix, immersed_body)
 
 # Export simulation results to ...
-export_dir = Path("my_examples")
+export_dir = Path("wamit_exports")
 export_dir.mkdir(exist_ok=True)
 # ... NetCDF format
 separate_complex_values(dataset).to_netcdf(
@@ -49,7 +49,9 @@ separate_complex_values(dataset).to_netcdf(
     }
 )
 # ... WAMIT format
-export_to_wamit(dataset, problem_name=str(export_dir / "boat_200"),  exports=("1", "3", "3fk", "3sc"))
+export_to_wamit(dataset, problem_name=str(export_dir / "boat_200"), 
+                exports=("1", "3", "3fk", "3sc"))
+
 
 # =====================
 # 2. Unit Tests
@@ -77,20 +79,20 @@ class TestWAMITFileFormat(unittest.TestCase):
                     self.fail(f"Non-numeric value found: {val} in line: {line.strip()}")
 
     def test_wamit_1(self):
-        self.check_wamit_file("my_examples/boat_200.1", expected_fields=5, header_lines=1)
+        self.check_wamit_file("wamit_exports/boat_200.1", expected_fields=5, header_lines=1)
 
     def test_wamit_3(self):
-        self.check_wamit_file("my_examples/boat_200.3", expected_fields=7, header_lines=1)
+        self.check_wamit_file("wamit_exports/boat_200.3", expected_fields=7, header_lines=1)
 
     def test_wamit_3fk(self):
-        self.check_wamit_file("my_examples/boat_200.3fk", expected_fields=7, header_lines=1)
+        self.check_wamit_file("wamit_exports/boat_200.3fk", expected_fields=7, header_lines=1)
 
     def test_wamit_3sc(self):
-        self.check_wamit_file("my_examples/boat_200.3sc", expected_fields=7, header_lines=1)
+        self.check_wamit_file("wamit_exports/boat_200.3sc", expected_fields=7, header_lines=1)
 
 class TestWAMITPhysicalConsistency(unittest.TestCase):
     def setUp(self):
-        self.base_filename = "my_examples/boat_200"
+        self.base_filename = "wamit_exports/boat_200"
         self.nc_path = self.base_filename + ".nc"
         self.wamit_1_path = self.base_filename + ".1"
         self.wamit_3_path = self.base_filename + ".3"
