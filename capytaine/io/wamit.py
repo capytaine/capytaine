@@ -1,4 +1,7 @@
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 DOF_INDEX = {"Surge": 1, "Sway": 2, "Heave": 3, "Roll": 4, "Pitch": 5, "Yaw": 6}
 
@@ -204,7 +207,7 @@ def export_wamit_3sc(dataset, filename):
     """Export scattered (diffraction) contribution to WAMIT .3sc file."""
     _export_wamit_excitation_force(dataset, "diffraction_force", filename)
 
-def export_to_wamit(dataset, problem_name, exports=("1", "3", "3fk", "3sc")):
+def export_to_wamit(dataset, problem_name, exports=("1", "3", "3fk", "3sc", "hst")):
     """
     Master function to export a Capytaine dataset to WAMIT-format files.
 
@@ -215,19 +218,19 @@ def export_to_wamit(dataset, problem_name, exports=("1", "3", "3fk", "3sc")):
     problem_name : str
         Base filename for WAMIT files (e.g. "output" → output.1, output.3fk, etc.).
     exports : tuple of str
-        Which files to export: any combination of "1", "2", "3", "3fk", "3sc".
+        Which files to export: any combination of "1", "3", "3fk", "3sc", "hst".
     """
     export_map = {
         "1":    ("radiation coefficients", export_wamit_1, ".1"),
         "3":    ("total excitation force", export_wamit_3, ".3"),
         "3fk":  ("Froude-Krylov force",    export_wamit_3fk, ".3fk"),
         "3sc":  ("diffraction force",      export_wamit_3sc, ".3sc"),
-        'hst': ('hydrostatics', export_wamit_hst, '.hst')
+        "hst":  ("hydrostatics",           export_wamit_hst, ".hst"),
     }
 
     for key in exports:
         if key not in export_map:
-            print(f"[!] Unknown export option '{key}' — skipping.")
+            logger.warning(f"Unknown export option '{key}' — skipping.")
             continue
 
         description, func, ext = export_map[key]
@@ -235,6 +238,6 @@ def export_to_wamit(dataset, problem_name, exports=("1", "3", "3fk", "3sc")):
 
         try:
             func(dataset, filepath)
-            print(f"[✓] Exported {filepath} ({description})")
+            logger.info(f"Exported {filepath} ({description})")
         except Exception as e:
-            print(f"[X] Failed to export {filepath}: {e}")
+            logger.error(f"Failed to export {filepath}: {e}")
