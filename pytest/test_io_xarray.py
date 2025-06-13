@@ -202,6 +202,15 @@ def test_xarray_dataset_with_more_data():
     assert set(ds.coords['nb_faces'].values) == set([b.mesh.nb_faces for b in bodies])
 
 
+def test_variables_attrs(sphere, solver):
+    pb = cpt.RadiationProblem(body=sphere, omega=1.0, radiating_dof="Heave")
+    ds = cpt.assemble_dataset([solver.solve(pb)])
+    assert 'long_name' in ds.omega.attrs
+    assert 'long_name' in ds.wavenumber.attrs
+    assert 'long_name' in ds.freq.attrs
+    assert 'long_name' in ds.added_mass.attrs
+
+
 def test_assemble_dataset_with_infinite_free_surface(caplog, sphere, solver):
     pb = cpt.RadiationProblem(body=sphere, free_surface=np.inf)
     res = solver.solve(pb)

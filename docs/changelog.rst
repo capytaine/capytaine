@@ -79,6 +79,8 @@ Bug fixes
 
 * Fix solving :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` directly.
 
+* Fix missing variable attributes for main frequency variable (:issue:`702` and :pull:`717`)
+
 Internals
 ~~~~~~~~~
 
