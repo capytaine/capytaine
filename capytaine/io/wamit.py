@@ -18,7 +18,51 @@ def get_dof_index_and_k(dof_i, dof_j):
     k = K_LOOKUP[(t_i, t_j)]
     return i, j, k
 
-def export_wamit_1_from_dataset(dataset, filename, length_scale=1.0):
+def export_wamit_hst(dataset, filename, length_scale=1.0):
+    """
+    Export the nondimensional hydrostatic stiffness matrix to a WAMIT .hst file.
+
+    Format:
+        I     J     C(I,J)
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Must contain 'hydrostatics' field with 'hydrostatic_stiffness' (named-dict or labeled 6x6 array).
+        Must also contain 'rho' and 'g' (either in dataset or within hydrostatics).
+    filename : str
+        Output path for the .hst file.
+    length_scale : float
+        Reference length scale L for nondimensionalization.
+    """
+    if "hydrostatics" not in dataset:
+        raise ValueError("Dataset must contain a 'hydrostatics' field.")
+
+    hydro = dataset["hydrostatics"].item()
+    C = np.asarray(hydro.get("hydrostatic_stiffness", None))
+    if C is None or C.shape != (6, 6):
+        raise ValueError("'hydrostatic_stiffness' must be a 6x6 matrix.")
+
+    rho = dataset.get("rho", hydro.get("rho", 1025.0))
+    g = dataset.get("g", hydro.get("g", 9.81))
+    L = length_scale
+
+    # DOF order used in Capytaine
+    dof_names = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
+
+    with open(filename, "w") as f:
+        for i_local, dof_i in enumerate(dof_names):
+            for j_local, dof_j in enumerate(dof_names):
+                cij = C[i_local, j_local]
+                if np.isclose(cij, 0.0):
+                    continue
+                i, j, k = get_dof_index_and_k(dof_i, dof_j)
+                norm = rho * g * (L ** k)
+                cij_nd = cij / norm
+                f.write(f"{i:5d} {j:5d} {cij_nd:12.6e}\n")
+
+
+def export_wamit_1(dataset, filename, length_scale=1.0):
     """
     Export added mass and radiation damping coefficients to a WAMIT .1 file.
 
@@ -148,15 +192,15 @@ def _export_wamit_excitation_force(dataset, field_name, filename, length_scale=1
                         f, period, omega, beta, dof, field, rho, g, wave_amplitude, length_scale
                     )
 
-def export_wamit_3_from_dataset(dataset, filename):
+def export_wamit_3(dataset, filename):
     """Export total excitation to WAMIT .3 file."""
     _export_wamit_excitation_force(dataset, "excitation_force", filename)
 
-def export_wamit_3fk_from_dataset(dataset, filename):
+def export_wamit_3fk(dataset, filename):
     """Export Froude-Krylov contribution to WAMIT .3fk file."""
     _export_wamit_excitation_force(dataset, "Froude_Krylov_force", filename)
 
-def export_wamit_3sc_from_dataset(dataset, filename):
+def export_wamit_3sc(dataset, filename):
     """Export scattered (diffraction) contribution to WAMIT .3sc file."""
     _export_wamit_excitation_force(dataset, "diffraction_force", filename)
 
@@ -174,10 +218,11 @@ def export_to_wamit(dataset, problem_name, exports=("1", "3", "3fk", "3sc")):
         Which files to export: any combination of "1", "2", "3", "3fk", "3sc".
     """
     export_map = {
-        "1":    ("radiation coefficients", export_wamit_1_from_dataset, ".1"),
-        "3":    ("total excitation force", export_wamit_3_from_dataset, ".3"),
-        "3fk":  ("Froude-Krylov force",    export_wamit_3fk_from_dataset, ".3fk"),
-        "3sc":  ("diffraction force",      export_wamit_3sc_from_dataset, ".3sc"),
+        "1":    ("radiation coefficients", export_wamit_1, ".1"),
+        "3":    ("total excitation force", export_wamit_3, ".3"),
+        "3fk":  ("Froude-Krylov force",    export_wamit_3fk, ".3fk"),
+        "3sc":  ("diffraction force",      export_wamit_3sc, ".3sc"),
+        'hst': ('hydrostatics', export_wamit_hst, '.hst')
     }
 
     for key in exports:
