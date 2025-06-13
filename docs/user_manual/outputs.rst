@@ -203,8 +203,9 @@ See also `this Github issue <https://github.com/capytaine/capytaine/issues/2>`_.
 Saving the rotation center of rigid bodies
 ------------------------------------------
 
-Some software downstream of Capytaine, such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_, require the NetCDF file to store the rotation center of each body.
-While this is not yet done automatically by Capytaine, it can be added to the dataset manually as in the following example, which is an extension of the :doc:`quickstart` example::
+Saving rotation hydrodynamic coefficients without explicitly defining the rotation axes can be ambiguous and can lead to confusion downstream.
+While this is not done automatically by Capytaine at the moment, it can be added to the dataset manually.
+The example below, which is an extension of the :doc:`quickstart` example, saves the rotation centers of a multibody problem in a way that is understood notably by `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_::
 
   import numpy as np
   import xarray as xr
