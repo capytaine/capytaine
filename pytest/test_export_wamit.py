@@ -155,21 +155,17 @@ def test_simulation_omega_classic_export_hydrostatics():
         lines = [line.strip() for line in f if line.strip()]
     # Only keep data lines (skip headers/comments)
     data_lines = [
-        line
-        for line in lines
-        if re.match(r"^-?\d+\.?\d*[eE]?[-+]?\d*\s+\d+\s+\d+\s+[-+eE0-9.]+$", line)
+        line for line in lines if re.match(r"^\s*\d+\s+\d+\s+[-+eE0-9.]+$", line)
     ]
+    print(data_lines)
     assert data_lines, "No data lines found in the .hst file for omega classic."
     for line in data_lines:
         fields = re.split(r"\s+", line)
         assert (
-            len(fields) == 4
-        ), f"For hydrostatics, each line in the .hst file must have 4 fields: {fields}"
+            len(fields) == 3
+        ), f"For hydrostatics, each line in the .hst file must have 3 fields: {fields}"
     # Check the number of data lines: only one line for hydrostatics
-    expected_lines = 1
+    expected_lines = 36  # 6 dofs * 6 directions = 36
     assert (
         len(data_lines) == expected_lines
     ), f"Expected {expected_lines} data lines, found {len(data_lines)}."
-
-
-test_simulation_omega_classic_export_hydrostatics()
