@@ -283,7 +283,12 @@ class Delhommeau(AbstractGreenFunction):
                   "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
 
         if method.lower() == 'python':
-            if kh < 1e5:
+            if kh <= 0.1:
+                raise NotImplementedError(
+                    f"{self} cannot evaluate finite depth Green function "
+                    f"for kh<0.1 (kh={kh})"
+                    )
+            elif kh < 1e5:
                 # The function that will be approximated.
                 sing_coef = (1 + np.tanh(kh))**2/(1 - np.tanh(kh)**2 + np.tanh(kh)/kh)
                 def ref_function(x):
@@ -458,10 +463,6 @@ class Delhommeau(AbstractGreenFunction):
         if water_depth == np.inf:
             prony_decomposition = np.zeros((1, 1))  # Dummy array that won't actually be used by the fortran code.
         else:
-            if wavenumber == 0.0 or wavenumber == np.inf:
-                raise NotImplementedError(
-                    "Zero or infinite frequency are not implemented for finite depth."
-                )
             prony_decomposition = self.find_best_exponential_decomposition(wavenumber*water_depth)
 
         # Main call to Fortran code
