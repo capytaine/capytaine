@@ -45,23 +45,14 @@ def export_wamit_hst(dataset, filename, length_scale=1.0):
     if "hydrostatic_stiffness" not in dataset:
         raise ValueError("Dataset must contain a 'hydrostatic_stiffness' field.")
 
-    # Ensure we are working with a single case (all dims except 6x6 are size 1)
-    while dataset["hydrostatic_stiffness"].ndim > 2:
-        dataset = dataset.isel(
-            {
-                dim: 0
-                for dim in dataset["hydrostatic_stiffness"].dims
-                if dataset["hydrostatic_stiffness"].sizes[dim] > 1
-            }
-        )
-
-    hydro = dataset["hydrostatic_stiffness"].item()
-    C = np.asarray(hydro.get("hydrostatic_stiffness", None))
+    # Reduce all extra dimensions to their first value, except the last two (should be 6x6)
+    hydrostatic = dataset["hydrostatic_stiffness"]
+    C = np.asarray(hydrostatic)
     if C is None or C.shape != (6, 6):
         raise ValueError("'hydrostatic_stiffness' must be a 6x6 matrix.")
 
-    rho = float(np.atleast_1d(dataset.get("rho", hydro.get("rho", 1025.0))).item())
-    g = float(np.atleast_1d(dataset.get("g", hydro.get("g", 9.81))).item())
+    rho = float(np.atleast_1d(dataset.get("rho")).item())
+    g = float(np.atleast_1d(dataset.get("g")).item())
 
     # DOF order used in Capytaine
     dof_names = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
@@ -70,8 +61,6 @@ def export_wamit_hst(dataset, filename, length_scale=1.0):
         for i_local, dof_i in enumerate(dof_names):
             for j_local, dof_j in enumerate(dof_names):
                 cij = C[i_local, j_local]
-                if np.isclose(cij, 0.0):
-                    continue
                 i, j, k = get_dof_index_and_k(dof_i, dof_j)
                 norm = rho * g * (length_scale**k)
                 cij_nd = cij / norm
