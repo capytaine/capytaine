@@ -45,6 +45,16 @@ def export_wamit_hst(dataset, filename, length_scale=1.0):
     if "hydrostatic_stiffness" not in dataset:
         raise ValueError("Dataset must contain a 'hydrostatic_stiffness' field.")
 
+    # Ensure we are working with a single case (all dims except 6x6 are size 1)
+    while dataset["hydrostatic_stiffness"].ndim > 2:
+        dataset = dataset.isel(
+            {
+                dim: 0
+                for dim in dataset["hydrostatic_stiffness"].dims
+                if dataset["hydrostatic_stiffness"].sizes[dim] > 1
+            }
+        )
+
     hydro = dataset["hydrostatic_stiffness"].item()
     C = np.asarray(hydro.get("hydrostatic_stiffness", None))
     if C is None or C.shape != (6, 6):

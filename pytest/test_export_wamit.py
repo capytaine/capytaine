@@ -146,9 +146,10 @@ def test_simulation_omega_classic_export_hydrostatics():
     dataset = solver.fill_dataset(test_matrix, immersed_body)
     export_dir = Path(__file__).parent.parent / "pytest"
     export_to_wamit(
-        dataset, problem_name=str(export_dir / "boat_200_omega0"), exports=("hst",)
+        dataset, problem_name=str(export_dir / "boat_200_omega"), exports=("hst",)
     )
-    wamit_hst_path = export_dir / "boat_200_omega0.hst"
+
+    wamit_hst_path = export_dir / "boat_200_omega.hst"
     assert wamit_hst_path.exists(), f"File {wamit_hst_path} was not generated."
     with open(wamit_hst_path, "r", encoding="utf-8") as f:
         lines = [line.strip() for line in f if line.strip()]
@@ -171,4 +172,4 @@ def test_simulation_omega_classic_export_hydrostatics():
     ), f"Expected {expected_lines} data lines, found {len(data_lines)}."
 
 
-test_simulation_omega_inf_export()
+test_simulation_omega_classic_export_hydrostatics()
