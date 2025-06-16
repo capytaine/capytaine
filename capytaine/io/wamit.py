@@ -5,13 +5,16 @@ logger = logging.getLogger(__name__)
 
 DOF_INDEX = {"Surge": 1, "Sway": 2, "Heave": 3, "Roll": 4, "Pitch": 5, "Yaw": 6}
 
-DOF_TYPE = {dof: "trans" if dof in {"Surge", "Sway", "Heave"} else "rot" for dof in DOF_INDEX}
+DOF_TYPE = {
+    dof: "trans" if dof in {"Surge", "Sway", "Heave"} else "rot" for dof in DOF_INDEX
+}
 K_LOOKUP = {
     ("trans", "trans"): 3,
     ("trans", "rot"): 4,
     ("rot", "trans"): 4,
     ("rot", "rot"): 5,
 }
+
 
 def get_dof_index_and_k(dof_i, dof_j):
     i = DOF_INDEX[dof_i]
@@ -20,6 +23,7 @@ def get_dof_index_and_k(dof_i, dof_j):
     t_j = DOF_TYPE[dof_j]
     k = K_LOOKUP[(t_i, t_j)]
     return i, j, k
+
 
 def export_wamit_hst(dataset, filename, length_scale=1.0):
     """
@@ -38,17 +42,16 @@ def export_wamit_hst(dataset, filename, length_scale=1.0):
     length_scale : float
         Reference length scale L for nondimensionalization.
     """
-    if "hydrostatics" not in dataset:
-        raise ValueError("Dataset must contain a 'hydrostatics' field.")
+    if "hydrostatic_stiffness" not in dataset:
+        raise ValueError("Dataset must contain a 'hydrostatic_stiffness' field.")
 
-    hydro = dataset["hydrostatics"].item()
+    hydro = dataset["hydrostatic_stiffness"].item()
     C = np.asarray(hydro.get("hydrostatic_stiffness", None))
     if C is None or C.shape != (6, 6):
         raise ValueError("'hydrostatic_stiffness' must be a 6x6 matrix.")
 
-    rho = dataset.get("rho", hydro.get("rho", 1025.0))
-    g = dataset.get("g", hydro.get("g", 9.81))
-    L = length_scale
+    rho = float(np.atleast_1d(dataset.get("rho", hydro.get("rho", 1025.0))).item())
+    g = float(np.atleast_1d(dataset.get("g", hydro.get("g", 9.81))).item())
 
     # DOF order used in Capytaine
     dof_names = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
@@ -60,7 +63,7 @@ def export_wamit_hst(dataset, filename, length_scale=1.0):
                 if np.isclose(cij, 0.0):
                     continue
                 i, j, k = get_dof_index_and_k(dof_i, dof_j)
-                norm = rho * g * (L ** k)
+                norm = rho * g * (length_scale**k)
                 cij_nd = cij / norm
                 f.write(f"{i:5d} {j:5d} {cij_nd:12.6e}\n")
 
@@ -92,7 +95,7 @@ def export_wamit_1(dataset, filename, length_scale=1.0):
     if "added_mass" not in dataset or "radiation_damping" not in dataset:
         raise ValueError("Missing 'added_mass' or 'radiation_damping' in dataset")
 
-    forward_speed = dataset['forward_speed'].values
+    forward_speed = dataset["forward_speed"].values
     if not np.isclose(forward_speed, 0.0):
         raise ValueError("Forward speed must be zero for WAMIT export.")
 
@@ -103,19 +106,19 @@ def export_wamit_1(dataset, filename, length_scale=1.0):
     damping = dataset["radiation_damping"]
     dofs = list(added_mass.coords["influenced_dof"].values)
 
-    omega_blocks = {
-        "inf": [],
-        "zero": [],
-        "regular": []
-    }
+    omega_blocks = {"inf": [], "zero": [], "regular": []}
 
     for omega, period in zip(omegas, periods):
         for dof_i in dofs:
             for dof_j in dofs:
-                A = added_mass.sel(omega=omega, influenced_dof=dof_i, radiating_dof=dof_j).item()
-                B = damping.sel(omega=omega, influenced_dof=dof_i, radiating_dof=dof_j).item()
+                A = added_mass.sel(
+                    omega=omega, influenced_dof=dof_i, radiating_dof=dof_j
+                ).item()
+                B = damping.sel(
+                    omega=omega, influenced_dof=dof_i, radiating_dof=dof_j
+                ).item()
                 i_dof, j_dof, k = get_dof_index_and_k(dof_i, dof_j)
-                norm = rho * (length_scale ** k)
+                norm = rho * (length_scale**k)
                 A_norm = A / norm
 
                 if np.isinf(omega):
@@ -143,22 +146,26 @@ def _format_excitation_line(period, beta_deg, i_dof, force):
         period, beta_deg, i_dof, mod_f, phi_f, force_conj.real, force_conj.imag
     )
 
-def _write_wamit_excitation_line(f, period, omega, beta, dof, field, rho, g, wave_amplitude, length_scale):
+
+def _write_wamit_excitation_line(
+    f, period, omega, beta, dof, field, rho, g, wave_amplitude, length_scale
+):
     beta_deg = np.degrees(beta)
     i_dof = DOF_INDEX.get(dof)
     if i_dof is None:
         raise KeyError(f"DOF '{dof}' is not recognized in DOF_INDEX mapping.")
-    force = field.sel(
-        omega=omega, wave_direction=beta, influenced_dof=dof
-    ).item()
+    force = field.sel(omega=omega, wave_direction=beta, influenced_dof=dof).item()
     dof_type = DOF_TYPE.get(dof, "trans")
     m = 2 if dof_type == "trans" else 3
-    norm = rho * g * wave_amplitude * (length_scale ** m)
+    norm = rho * g * wave_amplitude * (length_scale**m)
     force_normalized = force / norm
     line = _format_excitation_line(period, beta_deg, i_dof, force_normalized)
     f.write(line)
 
-def _export_wamit_excitation_force(dataset, field_name, filename, length_scale=1.0, wave_amplitude=1.0):
+
+def _export_wamit_excitation_force(
+    dataset, field_name, filename, length_scale=1.0, wave_amplitude=1.0
+):
     """
     Generic exporter for excitation-like forces in WAMIT .3-style format.
 
@@ -171,10 +178,10 @@ def _export_wamit_excitation_force(dataset, field_name, filename, length_scale=1
     filename : str
         Output path for the .3/.3fk/.3sc file.
     """
-    forward_speed = dataset['forward_speed'].values
+    forward_speed = dataset["forward_speed"].values
     if not np.isclose(forward_speed, 0.0):
         raise ValueError("Forward speed must be zero for WAMIT export.")
-        
+
     if field_name not in dataset:
         raise ValueError(f"Missing field '{field_name}' in dataset.")
 
@@ -192,20 +199,33 @@ def _export_wamit_excitation_force(dataset, field_name, filename, length_scale=1
             for beta in betas:
                 for dof in dofs:
                     _write_wamit_excitation_line(
-                        f, period, omega, beta, dof, field, rho, g, wave_amplitude, length_scale
+                        f,
+                        period,
+                        omega,
+                        beta,
+                        dof,
+                        field,
+                        rho,
+                        g,
+                        wave_amplitude,
+                        length_scale,
                     )
+
 
 def export_wamit_3(dataset, filename):
     """Export total excitation to WAMIT .3 file."""
     _export_wamit_excitation_force(dataset, "excitation_force", filename)
 
+
 def export_wamit_3fk(dataset, filename):
     """Export Froude-Krylov contribution to WAMIT .3fk file."""
     _export_wamit_excitation_force(dataset, "Froude_Krylov_force", filename)
 
+
 def export_wamit_3sc(dataset, filename):
     """Export scattered (diffraction) contribution to WAMIT .3sc file."""
     _export_wamit_excitation_force(dataset, "diffraction_force", filename)
+
 
 def export_to_wamit(dataset, problem_name, exports=("1", "3", "3fk", "3sc", "hst")):
     """
@@ -221,11 +241,11 @@ def export_to_wamit(dataset, problem_name, exports=("1", "3", "3fk", "3sc", "hst
         Which files to export: any combination of "1", "3", "3fk", "3sc", "hst".
     """
     export_map = {
-        "1":    ("radiation coefficients", export_wamit_1, ".1"),
-        "3":    ("total excitation force", export_wamit_3, ".3"),
-        "3fk":  ("Froude-Krylov force",    export_wamit_3fk, ".3fk"),
-        "3sc":  ("diffraction force",      export_wamit_3sc, ".3sc"),
-        "hst":  ("hydrostatics",           export_wamit_hst, ".hst"),
+        "1": ("radiation coefficients", export_wamit_1, ".1"),
+        "3": ("total excitation force", export_wamit_3, ".3"),
+        "3fk": ("Froude-Krylov force", export_wamit_3fk, ".3fk"),
+        "3sc": ("diffraction force", export_wamit_3sc, ".3sc"),
+        "hst": ("hydrostatics", export_wamit_hst, ".hst"),
     }
 
     for key in exports:
