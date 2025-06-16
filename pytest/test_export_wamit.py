@@ -90,7 +90,7 @@ def test_simulation_omega_inf_export():
     )
     solver = cpt.BEMSolver()
     dataset = solver.fill_dataset(test_matrix, immersed_body)
-    export_dir = Path(__file__).parent.parent / "pytest"
+    export_dir = Path(__file__).parent
     export_to_wamit(
         dataset, problem_name=str(export_dir / "boat_200_omegaINF"), exports=("1",)
     )
@@ -171,4 +171,4 @@ def test_simulation_omega_classic_export_hydrostatics():
     ), f"Expected {expected_lines} data lines, found {len(data_lines)}."
 
 
-test_simulation_omega_classic_export_hydrostatics()
+test_simulation_omega_inf_export()
