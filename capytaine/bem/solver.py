@@ -370,7 +370,7 @@ class BEMSolver:
 
         Parameters
         ----------
-        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or MeshLike object
             Coordinates of the point(s) at which the potential should be computed
         result: LinearPotentialFlowResult
             The return of the BEM solver
@@ -414,7 +414,7 @@ class BEMSolver:
 
         Parameters
         ----------
-        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or MeshLike object
             Coordinates of the point(s) at which the velocity should be computed
         result: LinearPotentialFlowResult
             The return of the BEM solver
@@ -438,7 +438,7 @@ class BEMSolver:
 
         Parameters
         ----------
-        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or MeshLike object
             Coordinates of the point(s) at which the pressure should be computed
         result: LinearPotentialFlowResult
             The return of the BEM solver
@@ -466,7 +466,7 @@ class BEMSolver:
 
         Parameters
         ----------
-        points: array of shape (2,) or (N, 2), or 2-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
+        points: array of shape (2,) or (N, 2), or 2-ple of arrays returned by meshgrid, or MeshLike object
             Coordinates of the point(s) at which the free surface elevation should be computed
         result: LinearPotentialFlowResult
             The return of the BEM solver
@@ -505,7 +505,7 @@ class BEMSolver:
         ----------
         result : LinearPotentialFlowResult
             the return of the BEM solver
-        mesh : Mesh or CollectionOfMeshes
+        mesh : MeshLike
             a mesh
         chunk_size: int, optional
             Number of lines to compute in the matrix.
