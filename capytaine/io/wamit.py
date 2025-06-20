@@ -195,6 +195,10 @@ def _export_wamit_excitation_force(
 
     with open(filename, "w") as f:
         for period, omega in zip(periods, omegas):
+            # TODO: So far, we skip omega=0 and omega=inf for .3-style exports
+            # TODO: Check https://www.wamit.com/manual6.4/Chap4.pdf - CH4-13
+            if np.isclose(omega, 0.0) or np.isinf(omega):
+                continue
             for beta in betas:
                 for dof in dofs:
                     _write_wamit_excitation_line(
