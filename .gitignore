@@ -160,3 +160,4 @@ pytest/io_legacy_cases/two_bodies_list/KH_1.dat
 *.hst
 *.3fk
 *.3sc
+exports/export_wamit_test_bemrosetta.py
