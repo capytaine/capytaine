@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import re
 from pathlib import Path
@@ -5,6 +6,60 @@ import xarray as xr
 import capytaine as cpt
 from capytaine.io.wamit import export_to_wamit
 import random
+import pandas as pd
+
+
+def test_wamit_export_and_import_force():
+    """
+    Run a capytaine simulation for a unique known frequency, export to WAMIT (.1 and .3 files),
+    then reload and check that the frequency matches.
+    """
+    mar_file = (
+        Path(__file__).parent.parent / "docs" / "examples" / "src" / "boat_200.mar"
+    )
+    mesh = cpt.load_mesh(str(mar_file), file_format="nemoh")
+    dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
+    full_body = cpt.FloatingBody(mesh, dofs)
+    full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
+    immersed_body = full_body.immersed_part()
+    immersed_body.compute_hydrostatics()
+    known_omega = 0.75
+    known_period = 2 * np.pi / known_omega
+    test_matrix = xr.Dataset(
+        {
+            "omega": [known_omega],
+            "wave_direction": [0.0],
+            "radiating_dof": list(immersed_body.dofs),
+            "water_depth": [np.inf],
+            "rho": [1025],
+        }
+    )
+    solver = cpt.BEMSolver()
+    dataset = solver.fill_dataset(test_matrix, immersed_body)
+    export_dir = Path(__file__).parent.parent / "pytest"
+    problem_name = str(export_dir / "boat_200_unique")
+    export_to_wamit(dataset, problem_name=problem_name, exports=("1", "3"))
+    wamit_1_path = export_dir / "boat_200_unique.1"
+    wamit_3_path = export_dir / "boat_200_unique.3"
+    assert wamit_1_path.exists(), f"File {wamit_1_path} was not generated."
+    assert wamit_3_path.exists(), f"File {wamit_3_path} was not generated."
+    # Now import the .1 file and check the frequency
+    imported_df = pd.read_csv(wamit_1_path, sep=r"\s+", header=None)
+    # The first column is PERIOD
+    imported_period = float(imported_df.iloc[0, 0])
+    assert np.isclose(
+        imported_period, known_period
+    ), f"Imported period {imported_period} does not match expected {known_period}"
+    os.remove(wamit_1_path)
+
+    # Now import the .3 file and check the frequency
+    imported_df = pd.read_csv(wamit_3_path, sep=r"\s+", header=None)
+    # The first column is omega
+    imported_period = float(imported_df.iloc[0, 0])
+    assert np.isclose(
+        imported_period, known_period
+    ), f"Imported period {imported_period} does not match expected {known_period}"
+    os.remove(wamit_3_path)
 
 
 def test_wamit_export_omega_zero():
@@ -57,6 +112,7 @@ def test_wamit_export_omega_zero():
     assert (
         len(data_lines) == expected_lines
     ), f"Expected {expected_lines} data lines, found {len(data_lines)}."
+    os.remove(wamit_1_path)  # Clean up after test
 
 
 def test_wamit_export_omega_inf():
@@ -109,6 +165,7 @@ def test_wamit_export_omega_inf():
     assert (
         len(data_lines) == expected_lines
     ), f"Expected {expected_lines} data lines, found {len(data_lines)}."
+    os.remove(wamit_1_path)  # Clean up after test
 
 
 def test_wamit_export_hydrostatics():
@@ -159,3 +216,4 @@ def test_wamit_export_hydrostatics():
     assert (
         len(data_lines) == expected_lines
     ), f"Expected {expected_lines} data lines, found {len(data_lines)}."
+    os.remove(wamit_hst_path)  # Clean up after test
