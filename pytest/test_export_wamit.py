@@ -9,7 +9,7 @@ import random
 import pandas as pd
 
 
-def test_wamit_export_and_import_force():
+def test_export_wamit_and_import_force():
     """
     Run a capytaine simulation for a unique known frequency, export to WAMIT (.1 and .3 files),
     then reload and check that the frequency matches.
@@ -62,7 +62,7 @@ def test_wamit_export_and_import_force():
     os.remove(wamit_3_path)
 
 
-def test_wamit_export_omega_zero():
+def test_export_wamit_omega_zero():
     """
     Test a simulation with omega=0, export to WAMIT, and check the .1 file:
     - The file must exist
@@ -115,7 +115,7 @@ def test_wamit_export_omega_zero():
     os.remove(wamit_1_path)  # Clean up after test
 
 
-def test_wamit_export_omega_inf():
+def test_export_wamit_omega_inf():
     """
     Test a simulation with omega=inf, export to WAMIT, and check the .1 file:
     - The file must exist
@@ -168,7 +168,7 @@ def test_wamit_export_omega_inf():
     os.remove(wamit_1_path)  # Clean up after test
 
 
-def test_wamit_export_hydrostatics():
+def test_export_wamit_hydrostatics():
     """
     Test a simulation with multiple classic omega values, export hydrostatics to WAMIT, and check the .hst file:
     - The file must exist
