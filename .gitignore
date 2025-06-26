@@ -152,3 +152,12 @@ pytest/io_legacy_cases/two_bodies_list/Hydrostatics_0.dat
 pytest/io_legacy_cases/two_bodies_list/Hydrostatics_1.dat
 pytest/io_legacy_cases/two_bodies_list/KH_0.dat
 pytest/io_legacy_cases/two_bodies_list/KH_1.dat
+*.nc
+*.1
+*.3
+*.2
+*.mmx
+*.hst
+*.3fk
+*.3sc
+exports/export_wamit_test_bemrosetta.py
