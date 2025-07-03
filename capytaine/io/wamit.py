@@ -298,7 +298,7 @@ def export_wamit_3sc(dataset: xarray.Dataset, filename: str) -> None:
 def export_to_wamit(
     dataset: xarray.Dataset,
     problem_name: str,
-    exports: tuple[str, ...] = ("1", "3", "3fk", "3sc", "hst"),
+    exports: Tuple[str, ...] = ("1", "3", "3fk", "3sc", "hst"),
 ) -> None:
     """
     Master function to export a Capytaine dataset to WAMIT-format files.
