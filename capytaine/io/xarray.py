@@ -121,20 +121,13 @@ def problems_from_dataset(dataset: xr.Dataset,
     problems = []
     if wave_direction_range is not None:
         for freq, wave_direction, water_depth, body_name, forward_speed, rho, g \
-                in product(freq_range, wave_direction_range, water_depth_range, body_range, forward_speed_range, rho_range, g_range):
-            if freq not in {0.0, np.inf}:
-                problems.append(
-                    DiffractionProblem(body=body_range[body_name], **{freq_type: freq},
-                                       wave_direction=wave_direction, water_depth=water_depth,
-                                       forward_speed=forward_speed, rho=rho, g=g)
-                )
-            elif freq in {0.0, np.inf} and radiating_dofs is not None:
-                # Diffraction problems are not defined for 0 and infinite frequency.
-                # But we don't want the whole batch to fail, as these frequencies are there for the radiation problems.
-                # The excitation force will be NaN for these frequencies in the resulting dataset.
-                pass
-            else:
-                raise ValueError("Zero and infinite frequencies are not defined when solving only diffraction problems.")
+                in product(freq_range, wave_direction_range, water_depth_range, body_range,
+                           forward_speed_range, rho_range, g_range):
+            problems.append(
+                DiffractionProblem(body=body_range[body_name], **{freq_type: freq},
+                                   wave_direction=wave_direction, water_depth=water_depth,
+                                   forward_speed=forward_speed, rho=rho, g=g)
+            )
 
     if radiating_dofs is not None:
         for freq, radiating_dof, water_depth, body_name, forward_speed, rho, g \

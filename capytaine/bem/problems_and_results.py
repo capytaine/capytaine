@@ -362,9 +362,6 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                          omega=omega, freq=freq, period=period, wavenumber=wavenumber, wavelength=wavelength, wave_direction=wave_direction,
                          forward_speed=forward_speed, rho=rho, g=g)
 
-        if float(self.omega) in {0.0, np.inf}:
-            raise NotImplementedError("DiffractionProblem does not support zero or infinite frequency.")
-
         if self.body is not None:
 
             self.boundary_condition = -(
