@@ -1,6 +1,6 @@
 import numpy as np
 import logging
-from typing import Tuple, TextIO
+from typing import Iterable, Tuple, TextIO
 import xarray
 
 logger = logging.getLogger(__name__)
@@ -21,12 +21,17 @@ K_LOOKUP = {
 def get_dof_index_and_k(dof_i: str, dof_j: str) -> Tuple[int, int, int]:
     """Get the degree of freedom indices and the corresponding stiffness matrix index.
 
-    Args:
-        dof_i (str): The first degree of freedom.
-        dof_j (str): The second degree of freedom.
+    Parameters
+    ----------
+    dof_i: str
+        The name of the first degree of freedom.
+    dof_j: str
+        The name of the second degree of freedom.
 
-    Returns:
-        tuple: A tuple containing the indices (i, j) and the stiffness matrix index k.
+    Returns
+    -------
+    tuple
+        A tuple containing the indices (i, j) and the stiffness matrix index k.
     """
     i = DOF_INDEX[dof_i]
     j = DOF_INDEX[dof_j]
@@ -45,11 +50,15 @@ def export_wamit_hst(
     Format:
         I     J     C(I,J)
 
-    Args:
-        dataset (xarray.Dataset): Must contain 'hydrostatics' field with 'hydrostatic_stiffness' (named-dict or labeled 6x6 array).
-            Must also contain 'rho' and 'g' (either in dataset or within hydrostatics).
-        filename (str): Output path for the .hst file.
-        length_scale (float): Reference length scale L for nondimensionalization.
+    Parameters
+    ----------
+    dataset: xarray.Dataset
+        Must contain 'hydrostatics' field with 'hydrostatic_stiffness' (named-dict or labeled 6x6 array).
+        Must also contain 'rho' and 'g' (either in dataset or within hydrostatics).
+    filename: str
+        Output path for the .hst file.
+    length_scale: float
+        Reference length scale L for nondimensionalization.
     """
     if "hydrostatic_stiffness" not in dataset:
         raise ValueError("Dataset must contain a 'hydrostatic_stiffness' field.")
@@ -93,14 +102,19 @@ def export_wamit_1(
         - For PER = -1 (omega = inf), only Aij is written.
         - For PER = 0  (omega = 0), only Aij is written.
 
-    Args:
-        dataset (xarray.Dataset) : Must contain 'added_mass', 'radiation_damping', 'omega', 'period'.
-        filename (str) : Path to output .1 file.
-        length_scale (float) : Reference length scale (L) for normalization.
+    Parameters
+    ----------
+    dataset: xarray.Dataset
+        Must contain 'added_mass', 'radiation_damping', 'omega', 'period'.
+    filename: str
+        Path to output .1 file.
+    length_scale: float
+        Reference length scale (L) for normalization.
 
-    Raises:
-        ValueError: If the excitation line is not properly formatted.
-        ValueError: If the excitation line is not properly formatted.
+    Raises
+    ------
+    ValueError
+        If the data are missing in the dataset or if forward speed is not zero
     """
     if "added_mass" not in dataset or "radiation_damping" not in dataset:
         raise ValueError("Missing 'added_mass' or 'radiation_damping' in dataset")
@@ -153,14 +167,21 @@ def _format_excitation_line(
 ) -> str:
     """Format a WAMIT excitation line.
 
-    Args:
-        period (float): Wave period.
-        beta_deg (float): Wave direction (degrees).
-        i_dof (int): Degree of freedom index.
-        force (complex): Excitation force (complex).
+    Parameters
+    ----------
+    period: float
+        Wave period.
+    beta_deg: float
+        Wave direction (degrees).
+    i_dof: int
+        Degree of freedom index.
+    force: complex
+        Excitation force (complex).
 
-    Returns:
-        str: Formatted excitation line.
+    Returns
+    -------
+    str
+        Formatted excitation line.
     """
     force_conj = np.conj(force)
     mod_f = np.abs(force_conj)
@@ -184,20 +205,33 @@ def _write_wamit_excitation_line(
 ):
     """Write a WAMIT excitation line to the file.
 
-    Args:
-        f (TextIO): File object to write to.
-        period (float): Wave period.
-        omega (float): Wave frequency.
-        beta (float): Wave direction (radians).
-        dof (str): Degree of freedom.
-        field (xarray.DataArray): Field containing the excitation forces.
-        rho (float): Water density.
-        g (float): Gravitational acceleration.
-        wave_amplitude (float): Wave amplitude.
-        length_scale (float): Length scale for normalization.
+    Parameters
+    ----------
+    f: TextIO
+        File object to write to.
+    period: float
+        Wave period.
+    omega: float
+        Wave frequency.
+    beta: float
+        Wave direction (radians).
+    dof: str
+        Degree of freedom.
+    field: xarray.DataArray
+        Field containing the excitation forces.
+    rho: float
+        Water density.
+    g: float
+        Gravitational acceleration.
+    wave_amplitude: float
+        Wave amplitude.
+    length_scale: float
+        Length scale for normalization.
 
-    Raises:
-        KeyError: If the degree of freedom is not recognized.
+    Raises
+    ------
+    KeyError
+        If the degree of freedom is not recognized.
     """
     beta_deg = np.degrees(beta)
     i_dof = DOF_INDEX.get(dof)
@@ -222,10 +256,14 @@ def _export_wamit_excitation_force(
     """
     Generic exporter for excitation-like forces in WAMIT .3-style format.
 
-    Args:
-        dataset (xarray.Dataset): Dataset containing the desired complex-valued force field.
-        field_name (str): Name of the variable in dataset (e.g. "excitation_force", "Froude_Krylov_force").
-        filename (str): Output path for the .3/.3fk/.3sc file.
+    Parameters
+    ----------
+    dataset: xarray.Dataset
+        Dataset containing the desired complex-valued force field.
+    field_name: str
+        Name of the variable in dataset (e.g. "excitation_force", "Froude_Krylov_force").
+    filename: str
+        Output path for the .3/.3fk/.3sc file.
     """
     forward_speed = dataset["forward_speed"].values
     if not np.isclose(forward_speed, 0.0):
@@ -268,9 +306,12 @@ def _export_wamit_excitation_force(
 def export_wamit_3(dataset: xarray.Dataset, filename: str) -> None:
     """Export total excitation to WAMIT .3 file.
 
-    Args:
-        dataset (xarray.Dataset): Dataset containing the desired complex-valued force field.
-        filename (str): Output path for the .3 file.
+    Parameters
+    ----------
+    dataset: xarray.Dataset
+        Dataset containing the desired complex-valued force field.
+    filename: str
+        Output path for the .3 file.
     """
     _export_wamit_excitation_force(dataset, "excitation_force", filename)
 
@@ -278,9 +319,12 @@ def export_wamit_3(dataset: xarray.Dataset, filename: str) -> None:
 def export_wamit_3fk(dataset: xarray.Dataset, filename: str) -> None:
     """Export Froude-Krylov contribution to WAMIT .3fk file.
 
-    Args:
-        dataset (xarray.Dataset): Dataset containing the desired complex-valued force field.
-        filename (str): Output path for the .3fk file.
+    Parameters
+    ----------
+    dataset: xarray.Dataset
+        Dataset containing the desired complex-valued force field.
+    filename: str
+        Output path for the .3fk file.
     """
     _export_wamit_excitation_force(dataset, "Froude_Krylov_force", filename)
 
@@ -288,9 +332,12 @@ def export_wamit_3fk(dataset: xarray.Dataset, filename: str) -> None:
 def export_wamit_3sc(dataset: xarray.Dataset, filename: str) -> None:
     """Export scattered (diffraction) contribution to WAMIT .3sc file.
 
-    Args:
-        dataset (xarray.Dataset): Dataset containing the desired complex-valued force field.
-        filename (str): Output path for the .3sc file.
+    Parameters
+    ----------
+    dataset: xarray.Dataset
+        Dataset containing the desired complex-valued force field.
+    filename: str
+        Output path for the .3sc file.
     """
     _export_wamit_excitation_force(dataset, "diffraction_force", filename)
 
@@ -298,15 +345,19 @@ def export_wamit_3sc(dataset: xarray.Dataset, filename: str) -> None:
 def export_to_wamit(
     dataset: xarray.Dataset,
     problem_name: str,
-    exports: Tuple[str, ...] = ("1", "3", "3fk", "3sc", "hst"),
+    exports: Iterable[str] = ("1", "3", "3fk", "3sc", "hst"),
 ) -> None:
     """
     Master function to export a Capytaine dataset to WAMIT-format files.
 
-    Args:
-        dataset (xarray.Dataset): Dataset containing the desired complex-valued force field.
-        problem_name (str): Base filename for WAMIT files (e.g. "output" → output.1, output.3fk, etc.).
-        exports (tuple of str): Which files to export: any combination of "1", "3", "3fk", "3sc", "hst".
+    Parameters
+    ----------
+    dataset: xarray.Dataset
+        Dataset containing the desired complex-valued force field.
+    problem_name: str
+        Base filename for WAMIT files (e.g. "output" → output.1, output.3fk, etc.).
+    exports: iterable of str
+        Which files to export: any combination of "1", "3", "3fk", "3sc", "hst".
     """
     export_map = {
         "1": ("radiation coefficients", export_wamit_1, ".1"),
@@ -318,7 +369,7 @@ def export_to_wamit(
 
     for key in exports:
         if key not in export_map:
-            logger.warning(f"Unknown export option '{key}' — skipping.")
+            logger.warning(f"Export to WAMIT format: unknown option '{key}' — skipping.")
             continue
 
         description, func, ext = export_map[key]
@@ -326,6 +377,6 @@ def export_to_wamit(
 
         try:
             func(dataset, filepath)
-            logger.info(f"Exported {filepath} ({description})")
+            logger.info(f"Export to WAMIT format: exported {filepath} ({description})")
         except Exception as e:
-            logger.warning(f"Did not export {filepath}: {e}")
+            logger.warning(f"Export to WAMIT format: did not export {filepath}: {e}")

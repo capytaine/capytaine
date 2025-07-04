@@ -323,6 +323,9 @@ This will produce the following files (depending on the fields present in the da
 
 Invalid or unavailable exports are skipped with a warning.
 
+The length scale used for normalization in WAMIT data is taken by default as
+:math:`1` meter.
+
 .. note::
     These exports require that the ``forward_speed`` in the dataset is zero.
     If not, a ``ValueError`` is raised to avoid exporting inconsistent results.
