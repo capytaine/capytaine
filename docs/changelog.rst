@@ -32,6 +32,7 @@ Major change
     The legacy behavior of previous versions is still available by setting the parameter :code:`finite_depth_method` added to :class:`~capytaine.green_functions.delhommeau.Delhommeau` to :code:`finite_depth_method="legacy"`, while the better behavior is used by default. (:pull:`654` and :pull:`656`)
   * The Prony decomposition is now done in Python and its failure (typically for :math:`kh < 0.1`) raises an error instead of returning wrong values.
     This behavior is controlled by the :code:`finite_depth_prony_decomposition_method` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau`, which is now :code:`"python"` by default. (:pull:`675`)
+  * Infinite frequency is now supported in finite depth (zero frequency is still not and returns the same error as other finite depth low-frequency cases). (:pull:`703`)
 
 * Do not interrupt a batch of resolutions when one of them fails. Instead the error message is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a `NaN` value for these parameters. (:pull:`678`)
 

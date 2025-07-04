@@ -137,7 +137,7 @@ do i_sample = 1, n_samples
     wavenumber, depth,                                         &
     tabulation_nb_integration_points, tabulation_grid_shape,   &
     tabulated_r_range, tabulated_z_range, tabulated_integrals, &
-    ! gf_singularities,                                          &
+    gf_singularities,                                          &
     derivative_with_respect_to_first_variable,                 &
     int_G_wave, int_nablaG_wave                                &
     )

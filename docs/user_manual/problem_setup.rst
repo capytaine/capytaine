@@ -120,9 +120,11 @@ When forward speed is non zero, the encounter frequency is computed and can be r
     problem.encounter_wavenumber
 
 
-In some cases (radiation problems in infinite depth), setting the frequency to
-zero or infinity is possible. Simply pass the value `0.0` or `float('inf')` to
-one of the above magnitude.
+For radiation problems, setting the frequency to zero or infinity is possible.
+Simply pass the value `0.0` or `float('inf')` to one of the above magnitude.
+The default Green function supports zero and infinite frequency in infinite
+depth, and infinite frequency in finite depth (but not zero frequency in finite
+depth).
 
 
 Legacy Nemoh.cal parameters files
