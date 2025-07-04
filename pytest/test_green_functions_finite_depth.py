@@ -5,17 +5,17 @@ import capytaine as cpt
 
 from capytaine.tools.prony_decomposition import exponential_decomposition, find_best_exponential_decomposition
 
-list_of_faces = [
-    cpt.Mesh(vertices=[[0.0, 0.0, -1.0], [1.0, 0.0, -1.0], [1.0, 1.0, -1.0], [0.0, 1.0, -1.0]], faces=np.array([[0, 1, 2, 3]])),
-    cpt.Mesh(vertices=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]], faces=np.array([[0, 1, 2, 3]])),
-        ]
+faces_examples = {
+        "immersed": cpt.Mesh(vertices=[[0.0, 0.0, -1.0], [1.0, 0.0, -1.0], [1.0, 1.0, -1.0], [0.0, 1.0, -1.0]], faces=np.array([[0, 1, 2, 3]])),
+        "free_surface": cpt.Mesh(vertices=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]], faces=np.array([[0, 1, 2, 3]])),
+        }
 
-@pytest.mark.parametrize("gf_singularities", ['low_freq', 'high_freq'])
-@pytest.mark.parametrize("face", list_of_faces, ids=["immersed", "free_surface"])
-def test_deep_water_asymptotics_of_wave_terms(face, gf_singularities):
+@pytest.mark.parametrize("derivative_with_respect_to_first_variable", [True, False])
+@pytest.mark.parametrize("face_location", ["immersed", "free_surface"])
+def test_deep_water_asymptotics_of_wave_terms_low_freq(derivative_with_respect_to_first_variable, face_location):
     gf = cpt.Delhommeau()
-    derivative_with_respect_to_first_variable = True
-    gf_singularities_index = gf.gf_singularities_fortran_enum[gf_singularities]
+    gf_singularities_index = gf.gf_singularities_fortran_enum["low_freq"]
+    face = faces_examples[face_location]
     k = 1.0
     depth = 1000.0
     s_inf, k_inf = gf.fortran_core.green_wave.integral_of_wave_part_infinite_depth(
@@ -30,12 +30,33 @@ def test_deep_water_asymptotics_of_wave_terms(face, gf_singularities):
     np.testing.assert_allclose(k_inf, k_finite, rtol=1e-2)
 
 
-@pytest.mark.parametrize("face", list_of_faces, ids=["immersed", "free_surface"])
-def test_deep_water_asymptotics_of_prony_decomposition(face):
+@pytest.mark.parametrize("derivative_with_respect_to_first_variable", [True, False])
+@pytest.mark.parametrize("face_location", ["immersed"])
+def test_deep_water_asymptotics_of_wave_terms_high_freq(derivative_with_respect_to_first_variable, face_location):
     gf = cpt.Delhommeau()
-    derivative_with_respect_to_first_variable = True
+    gf_singularities_index = gf.gf_singularities_fortran_enum["high_freq"]
+    face = faces_examples[face_location]
     k = 1.0
     depth = 1000.0
+    s_inf, k_inf = gf.fortran_core.green_wave.integral_of_wave_part_infinite_depth(
+        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
+        k, *gf.all_tabulation_parameters, gf_singularities_index, derivative_with_respect_to_first_variable
+    )
+    s_finite, k_finite = gf.fortran_core.green_wave.integral_of_wave_parts_finite_depth(
+        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
+        k, depth, *gf.all_tabulation_parameters, gf_singularities_index, derivative_with_respect_to_first_variable
+    )
+    np.testing.assert_allclose(s_inf, s_finite, rtol=1e-2)
+    np.testing.assert_allclose(k_inf, k_finite, rtol=1e-2)
+
+
+@pytest.mark.parametrize("derivative_with_respect_to_first_variable", [True, False])
+@pytest.mark.parametrize("face_location", ["immersed", "free_surface"])
+def test_deep_water_asymptotics_of_prony_decomposition(derivative_with_respect_to_first_variable, face_location):
+    gf = cpt.Delhommeau()
+    k = 1.0
+    depth = 1000.0
+    face = faces_examples[face_location]
     decomp = gf.find_best_exponential_decomposition(k*depth, method="python")
     s_prony, k_prony = gf.fortran_core.green_wave.integral_of_prony_decomp_finite_depth(
             face.faces_centers[0, :], face.vertices[face.faces[0, :], :], face.faces_centers[0, :], face.faces_normals[0, :], face.faces_areas[0], face.faces_radiuses[0],
