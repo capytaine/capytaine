@@ -46,6 +46,8 @@ The method is also saved in the metadata of the results with the other parameter
 Minor change
 ~~~~~~~~~~~~
 
+* Add optional :code:`freq` argument (frequency in Hz) for problem set up and output.
+
 * Add :func:`~capytaine.io.xarray.assemble_dataframe` which collect results into a Pandas DataFrame (this was already done internally in `~capytaine.io.xarray.assemble_dataset`) (:pull:`677`).
   Also add :func:`~capytaine.io.xarray.assemble_matrices` function which is a simplified version of `~capytaine.io.xarray.assemble_dataset` without metadata, meant to be used mostly for teaching. (:pull:`643`)
 
@@ -55,6 +57,8 @@ Minor change
 
 Bug fixes
 ~~~~~~~~~
+
+* Properly use `progress_bar` argument in :func:`~capytaine.bem.solver.fill_dataset` to disable progress bar.
 
 * Always remove degenerate faces after clipping (:issue:`620` and :pull:`624`).
 
@@ -71,6 +75,12 @@ Bug fixes
 * Add safeguard if a custom linear solver returns a result vector of wrong shape (e.g. column instead of row) (:pull:`670`)
 
 * Fix loading BEMIO datasets from Nemoh (:pull:`681`)
+
+* Fix computing zero and infinite frequency radiation problems with a lid for irregular frequencies removal (:issue:`704` and :pull:`708`)
+
+* Fix solving :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` directly.
+
+* Fix missing variable attributes for main frequency variable (:issue:`702` and :pull:`717`)
 
 Internals
 ~~~~~~~~~

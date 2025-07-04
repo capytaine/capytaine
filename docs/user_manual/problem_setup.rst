@@ -93,6 +93,8 @@ Setting the frequency is done by passing **one and only one** of the following m
 +====================+=============================================================+
 | :code:`omega`      | Angular frequency :math:`\omega` (rad/s)                    |
 +--------------------+-------------------------------------------------------------+
+| :code:`freq`       | Frequency :math:`f` (Hz)                                    |
++--------------------+-------------------------------------------------------------+
 | :code:`period`     | Period :math:`T = \frac{2\pi}{\omega}` (s)                  |
 +--------------------+-------------------------------------------------------------+
 | :code:`wavelength` | Wavelength :math:`\lambda` (m)                              |
@@ -104,6 +106,7 @@ If no frequency is provided, a frequency :code:`omega = 1.0` rad/s is used by de
 Once the problem has been initialized, the other parameters can be retrieved as::
 
     problem.omega
+    problem.freq
     problem.period
     problem.wavelength
     problem.wavenumber
@@ -111,6 +114,7 @@ Once the problem has been initialized, the other parameters can be retrieved as:
 When forward speed is non zero, the encounter frequency is computed and can be retrieved as::
 
     problem.encounter_omega
+    problem.encounter_freq
     problem.encounter_period
     problem.encounter_wavelength
     problem.encounter_wavenumber

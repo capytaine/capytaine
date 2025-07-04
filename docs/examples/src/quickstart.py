@@ -14,7 +14,7 @@ all_bodies = all_bodies.immersed_part()  # if your mesh has panels above the fre
 
 # Set up parameters
 test_matrix = xr.Dataset({
-        "omega": np.linspace(0.1, 2.0, 20),  # Can also specify "period", "wavelength" or "wavenumber"
+        "omega": np.linspace(0.1, 2.0, 20),  # Can also specify "freq" (in Hz), "period", "wavelength" or "wavenumber"
         "wave_direction": np.linspace(0, np.pi, 3),
         "radiating_dof": list(all_bodies.dofs),
         "water_depth": [np.inf],

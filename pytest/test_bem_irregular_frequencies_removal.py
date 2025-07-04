@@ -113,6 +113,26 @@ def test_effect_of_lid_on_regular_frequency_diffraction_force(
     assert f_with == pytest.approx(f_without, rel=5e-2)
 
 
+def test_effect_of_lid_on_infinite_frequency(
+        body_without_lid, body_with_lid,
+        ):
+    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
+
+    pb_with = cpt.RadiationProblem(
+            body=body_with_lid, wavenumber=np.inf, radiating_dof="Heave"
+            )
+    res_with = solver.solve(pb_with)
+    f_with = res_with.forces["Heave"]
+
+    pb_without = cpt.RadiationProblem(
+            body=body_without_lid, wavenumber=np.inf, radiating_dof="Heave"
+            )
+    res_without = solver.solve(pb_without)
+    f_without = res_without.forces["Heave"]
+
+    assert f_with == pytest.approx(f_without, rel=5e-2)
+
+
 @pytest.mark.parametrize("water_depth", [np.inf, 10.0])
 @pytest.mark.parametrize("forward_speed", [0.0, 1.0])
 def test_effect_of_lid_on_regular_frequency_free_surface_elevation(
