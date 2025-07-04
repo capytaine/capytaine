@@ -32,6 +32,7 @@ Major change
     The legacy behavior of previous versions is still available by setting the parameter :code:`finite_depth_method` added to :class:`~capytaine.green_functions.delhommeau.Delhommeau` to :code:`finite_depth_method="legacy"`, while the better behavior is used by default. (:pull:`654` and :pull:`656`)
   * The Prony decomposition is now done in Python and its failure (typically for :math:`kh < 0.1`) raises an error instead of returning wrong values.
     This behavior is controlled by the :code:`finite_depth_prony_decomposition_method` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau`, which is now :code:`"python"` by default. (:pull:`675`)
+  * Infinite frequency is now supported in finite depth (zero frequency is still not and returns the same error as other finite depth low-frequency cases). (:pull:`703`)
 
 * Do not interrupt a batch of resolutions when one of them fails. Instead the error message is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a `NaN` value for these parameters. (:pull:`678`)
 
@@ -53,6 +54,9 @@ Minor change
 * The environment variable ``CAPYTAINE_PROGRESS_BAR`` can be used to disable globally the display of a progress bar when solving problems. This is meant mostly for testing environments and CI. (:pull:`646`)
 
 * Add ``timer`` attribute to :class:`~capytaine.bem.solver.BEMSolver` storing the time spent in each steps of the resolution. Summary can be accessed by :meth:`~capytaine.bem.solver.BEMSolver.timer_summary`. (:pull:`674`)
+
+* Add :func:`~capytaine.io.wamit.export_to_wamit` as a unified interface to export hydrodynamic results to WAMIT-compatible files. (:pull:`714`)
+
 
 Bug fixes
 ~~~~~~~~~
@@ -80,6 +84,8 @@ Bug fixes
 * Fix solving :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` directly.
 
 * Fix missing variable attributes for main frequency variable (:issue:`702` and :pull:`717`)
+
+* Trying to generate a lid over a purely vertical mesh does not raise an error anymore (:issue:`625`).
 
 Internals
 ~~~~~~~~~

@@ -5,27 +5,97 @@ import capytaine as cpt
 
 from capytaine.tools.prony_decomposition import exponential_decomposition, find_best_exponential_decomposition
 
-list_of_faces = [
-    cpt.Mesh(vertices=[[0.0, 0.0, -1.0], [1.0, 0.0, -1.0], [1.0, 1.0, -1.0], [0.0, 1.0, -1.0]], faces=np.array([[0, 1, 2, 3]])),
-    cpt.Mesh(vertices=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]], faces=np.array([[0, 1, 2, 3]])),
-        ]
+faces_examples = {
+        "immersed": cpt.Mesh(vertices=[[0.0, 0.0, -1.0], [1.0, 0.0, -1.0], [1.0, 1.0, -1.0], [0.0, 1.0, -1.0]], faces=np.array([[0, 1, 2, 3]])),
+        "free_surface": cpt.Mesh(vertices=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]], faces=np.array([[0, 1, 2, 3]])),
+        }
 
-@pytest.mark.parametrize("face", list_of_faces, ids=["immersed", "free_surface"])
-def test_deep_water_asymptotics(face):
+@pytest.mark.parametrize("derivative_with_respect_to_first_variable", [True, False])
+@pytest.mark.parametrize("face_location", ["immersed", "free_surface"])
+def test_deep_water_asymptotics_of_wave_terms_low_freq(derivative_with_respect_to_first_variable, face_location):
     gf = cpt.Delhommeau()
+    gf_singularities_index = gf.gf_singularities_fortran_enum["low_freq"]
+    face = faces_examples[face_location]
     k = 1.0
     depth = 1000.0
-    nexp, prony_decomposition = gf.fortran_core.old_prony_decomposition.lisc(k*depth*np.tanh(k*depth), k*depth)
     s_inf, k_inf = gf.fortran_core.green_wave.integral_of_wave_part_infinite_depth(
         face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
-        k, *gf.all_tabulation_parameters, gf.fortran_core.constants.low_freq, True
+        k, *gf.all_tabulation_parameters, gf_singularities_index, derivative_with_respect_to_first_variable
     )
     s_finite, k_finite = gf.fortran_core.green_wave.integral_of_wave_parts_finite_depth(
         face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
-        k, depth, *gf.all_tabulation_parameters, True
+        k, depth, *gf.all_tabulation_parameters, gf_singularities_index, derivative_with_respect_to_first_variable
     )
     np.testing.assert_allclose(s_inf, s_finite, rtol=1e-2)
     np.testing.assert_allclose(k_inf, k_finite, rtol=1e-2)
+
+
+@pytest.mark.parametrize("derivative_with_respect_to_first_variable", [True, False])
+@pytest.mark.parametrize("face_location", ["immersed"])
+def test_deep_water_asymptotics_of_wave_terms_high_freq(derivative_with_respect_to_first_variable, face_location):
+    gf = cpt.Delhommeau()
+    gf_singularities_index = gf.gf_singularities_fortran_enum["high_freq"]
+    face = faces_examples[face_location]
+    k = 1.0
+    depth = 1000.0
+    s_inf, k_inf = gf.fortran_core.green_wave.integral_of_wave_part_infinite_depth(
+        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
+        k, *gf.all_tabulation_parameters, gf_singularities_index, derivative_with_respect_to_first_variable
+    )
+    s_finite, k_finite = gf.fortran_core.green_wave.integral_of_wave_parts_finite_depth(
+        face.faces_centers[0, :], face.faces_centers[0, :], face.faces_areas[0], face.quadrature_points[0][0, :, :], face.quadrature_points[1][0],
+        k, depth, *gf.all_tabulation_parameters, gf_singularities_index, derivative_with_respect_to_first_variable
+    )
+    np.testing.assert_allclose(s_inf, s_finite, rtol=1e-2)
+    np.testing.assert_allclose(k_inf, k_finite, rtol=1e-2)
+
+
+@pytest.mark.parametrize("derivative_with_respect_to_first_variable", [True, False])
+@pytest.mark.parametrize("face_location", ["immersed", "free_surface"])
+def test_deep_water_asymptotics_of_prony_decomposition(derivative_with_respect_to_first_variable, face_location):
+    gf = cpt.Delhommeau()
+    k = 1.0
+    depth = 1000.0
+    face = faces_examples[face_location]
+    decomp = gf.find_best_exponential_decomposition(k*depth, method="python")
+    s_prony, k_prony = gf.fortran_core.green_wave.integral_of_prony_decomp_finite_depth(
+            face.faces_centers[0, :], face.vertices[face.faces[0, :], :], face.faces_centers[0, :], face.faces_normals[0, :], face.faces_areas[0], face.faces_radiuses[0],
+            depth, decomp, derivative_with_respect_to_first_variable)
+    np.testing.assert_allclose(s_prony, 0.0, atol=1e-3)
+    np.testing.assert_allclose(k_prony, 0.0, atol=1e-3)
+
+
+def test_high_freq_vs_low_freq():
+    gf = cpt.Delhommeau()
+    mesh = cpt.mesh_sphere().immersed_part()
+    k = 1.0
+    depth = 10.0
+    decomp = gf.find_best_exponential_decomposition(k*depth, method="python")
+    def compute_matrices(gf_singularities):
+        adjoint_double_layer = True
+        S, K = gf._init_matrices(
+            (mesh.nb_faces, mesh.nb_faces), early_dot_product=True
+        )
+        gf.fortran_core.matrices.build_matrices(
+                mesh.faces_centers, mesh.faces_normals,
+                mesh.vertices, mesh.faces + 1,
+                mesh.faces_centers, mesh.faces_normals,
+                mesh.faces_areas, mesh.faces_radiuses,
+                *mesh.quadrature_points,
+                k, depth,
+                *gf.all_tabulation_parameters,
+                gf.finite_depth_method_index, decomp,
+                gf.dispersion_relation_roots,
+                gf.gf_singularities_fortran_enum[gf_singularities],
+                adjoint_double_layer,
+                S, K,
+                )
+        return S, K
+    S_low, K_low = compute_matrices('low_freq')
+    S_high, K_high = compute_matrices('high_freq')
+    np.testing.assert_allclose(S_low, S_high, atol=1e-2*np.linalg.norm(S_low))
+    np.testing.assert_allclose(K_low, K_high, atol=2e-2*np.linalg.norm(K_low))
+
 
 
 def test_infinite_frequency_prony_decomposition():
@@ -35,14 +105,13 @@ def test_infinite_frequency_prony_decomposition():
     gf.find_best_exponential_decomposition(np.inf, method='python')
 
 
-@pytest.mark.xfail
 def test_infinite_frequency():
-    gf = cpt.Delhommeau()
+    gf = cpt.Delhommeau(gf_singularities='high_freq')
     mesh = cpt.mesh_sphere().immersed_part()
-    S_, K_ = gf.evaluate(mesh, mesh, free_surface=0.0, water_depth=10.0, wavenumber=100.0)
+    S_, K_ = gf.evaluate(mesh, mesh, free_surface=0.0, water_depth=10.0, wavenumber=1000.0)
     S, K = gf.evaluate(mesh, mesh, free_surface=0.0, water_depth=10.0, wavenumber=np.inf)
-    np.testing.assert_allclose(S, S_, rtol=1-2)
-    np.testing.assert_allclose(K, K_, rtol=1-2)
+    np.testing.assert_allclose(S/np.linalg.norm(S), S_/np.linalg.norm(S_), atol=1e-3)
+    np.testing.assert_allclose(K/np.linalg.norm(K), K_/np.linalg.norm(K_), atol=1e-3)
 
 
 def test_prony_decomposition():
@@ -74,9 +143,9 @@ def test_failure_for_low_kh():
 
     # Newer method fails properly
     from capytaine.green_functions.abstract_green_function import GreenFunctionEvaluationError
-    with pytest.raises(GreenFunctionEvaluationError):
+    with pytest.raises((NotImplementedError, GreenFunctionEvaluationError)):
         gf.find_best_exponential_decomposition(0.10, method="python")
-    with pytest.raises(GreenFunctionEvaluationError):
+    with pytest.raises((NotImplementedError, GreenFunctionEvaluationError)):
         gf.find_best_exponential_decomposition(0.01, method="python")
 
 

@@ -25,6 +25,7 @@ EXAMPLE_FILES = [
     "A5_convergence_study.py",
     # "A6_irregular_frequency_removal.py",      # Slow
     "A7_elasticity_of_beam.py",
+    "A8_export_to_wamit_format.py",
     "B1_pressure_on_hull.py",
     "B2_haskind.py",
     "B3_free_surface_elevation.py",
