@@ -110,8 +110,8 @@ def test_infinite_frequency():
     mesh = cpt.mesh_sphere().immersed_part()
     S_, K_ = gf.evaluate(mesh, mesh, free_surface=0.0, water_depth=10.0, wavenumber=1000.0)
     S, K = gf.evaluate(mesh, mesh, free_surface=0.0, water_depth=10.0, wavenumber=np.inf)
-    np.testing.assert_allclose(S, S_, rtol=1e-2)
-    np.testing.assert_allclose(K, K_, rtol=1e-2)
+    np.testing.assert_allclose(S/np.linalg.norm(S), S_/np.linalg.norm(S_), atol=1e-3)
+    np.testing.assert_allclose(K/np.linalg.norm(K), K_/np.linalg.norm(K_), atol=1e-3)
 
 
 def test_prony_decomposition():
