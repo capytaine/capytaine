@@ -300,3 +300,34 @@ The following code will write files named :code:`RadiationCoefficients.tec` and 
 
 	from capytaine.io.legacy import write_dataset_as_tecplot_files
 	write_dataset_as_tecplot_files("path/to/directory", dataset)
+
+
+Exporting to WAMIT format
+-------------------------
+
+The hydrodynamic results from a Capytaine ``xarray.Dataset`` can be exported into WAMIT-compatible text files (``.1``, ``.3``, ``.3fk``, ``.3sc``, ``.hst``) using::
+
+    from capytaine.io.wamit import export_to_wamit
+    export_to_wamit(dataset, "problem_name", exports=("1", "3", "3fk", "3sc", "hst"))
+
+This will produce the following files (depending on the fields present in the dataset):
+
+* ``problem_name.1`` for added mass and radiation damping coefficients,
+
+* ``problem_name.3`` for total excitation forces (Froude-Krylov + diffraction),
+
+* ``problem_name.3fk`` for Froude-Krylov forces only,
+
+* ``problem_name.3sc`` for diffraction forces only.
+
+* ``problem_name.hst`` for hydrostatics results (if supported)
+
+Invalid or unavailable exports are skipped with a warning.
+
+The length scale used for normalization in WAMIT data is taken by default as
+:math:`1` meter.
+
+.. note::
+    These exports require that the ``forward_speed`` in the dataset is zero.
+    If not, a ``ValueError`` is raised to avoid exporting inconsistent results.
+

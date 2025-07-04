@@ -55,6 +55,9 @@ Minor change
 
 * Add ``timer`` attribute to :class:`~capytaine.bem.solver.BEMSolver` storing the time spent in each steps of the resolution. Summary can be accessed by :meth:`~capytaine.bem.solver.BEMSolver.timer_summary`. (:pull:`674`)
 
+* Add :func:`~capytaine.io.wamit.export_to_wamit` as a unified interface to export hydrodynamic results to WAMIT-compatible files. (:pull:`714`)
+
+
 Bug fixes
 ~~~~~~~~~
 
