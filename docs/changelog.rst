@@ -85,6 +85,8 @@ Bug fixes
 
 * Fix missing variable attributes for main frequency variable (:issue:`702` and :pull:`717`)
 
+* Trying to generate a lid over a purely vertical mesh does not raise an error anymore (:issue:`625`).
+
 Internals
 ~~~~~~~~~
 
