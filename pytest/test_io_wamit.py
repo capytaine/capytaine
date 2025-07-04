@@ -5,7 +5,6 @@ from pathlib import Path
 import xarray as xr
 import capytaine as cpt
 from capytaine.io.wamit import export_to_wamit
-import random
 import pandas as pd
 
 

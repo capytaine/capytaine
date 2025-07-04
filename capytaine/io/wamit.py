@@ -328,4 +328,4 @@ def export_to_wamit(
             func(dataset, filepath)
             logger.info(f"Exported {filepath} ({description})")
         except Exception as e:
-            logger.error(f"Failed to export {filepath}: {e}")
+            logger.warning(f"Did not export {filepath}: {e}")

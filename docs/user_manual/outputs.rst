@@ -300,109 +300,30 @@ The following code will write files named :code:`RadiationCoefficients.tec` and 
 	from capytaine.io.legacy import write_dataset_as_tecplot_files
 	write_dataset_as_tecplot_files("path/to/directory", dataset)
 
+
 Exporting to WAMIT format
----------------------------------------
+-------------------------
 
-The hydrodynamic results from a Capytaine `xarray.Dataset` can be exported into WAMIT-compatible text files (`.1`, `.3`, `.3fk`, `.3sc`, `.hst`) using:
+The hydrodynamic results from a Capytaine ``xarray.Dataset`` can be exported into WAMIT-compatible text files (``.1``, ``.3``, ``.3fk``, ``.3sc``, ``.hst``) using::
 
-```python
-from capytaine.io.wamit import export_to_wamit
-
-export_to_wamit(dataset, "problem_name", exports=("1", "3", "3fk", "3sc"))
-```
+    from capytaine.io.wamit import export_to_wamit
+    export_to_wamit(dataset, "problem_name", exports=("1", "3", "3fk", "3sc", "hst"))
 
 This will produce the following files (depending on the fields present in the dataset):
 
-    `problem_name.1` for added mass and radiation damping coefficients,
+* ``problem_name.1`` for added mass and radiation damping coefficients,
 
-    `problem_name.3` for total excitation forces (Froude-Krylov + diffraction),
+* ``problem_name.3`` for total excitation forces (Froude-Krylov + diffraction),
 
-    `problem_name.3fk` for Froude-Krylov forces only,
+* ``problem_name.3fk`` for Froude-Krylov forces only,
 
-    `problem_name.3sc` for diffraction forces only.
-    
-    `problem_name.hst` for hydrostatics results (if supported)
+* ``problem_name.3sc`` for diffraction forces only.
 
-  Note
-    These exports require that the `forward_speed` in the dataset is zero.
-    If not, a `ValueError`` is raised to avoid exporting inconsistent results.
-
-This function serves as a wrapper for the following specialized export functions:
-
-    `export_wamit_1`
-
-    `export_wamit_3`
-
-    `export_wamit_3fk`
-
-    `export_wamit_3sc`
-
-    `export_wamit_hst`
+* ``problem_name.hst`` for hydrostatics results (if supported)
 
 Invalid or unavailable exports are skipped with a warning.
 
-Example script with associated dataset
-~~~~~~~~~~~~~~~
+.. note::
+    These exports require that the ``forward_speed`` in the dataset is zero.
+    If not, a ``ValueError`` is raised to avoid exporting inconsistent results.
 
-The following script demonstrates how to generate a hydrodynamic dataset using Capytaine and export the results to WAMIT-compatible files:
-
-```python
-import numpy as np
-from pathlib import Path
-import xarray as xr
-import capytaine as cpt
-from capytaine.io.xarray import separate_complex_values
-from capytaine.io.wamit import export_to_wamit
-
-# --- Parameters ---
-mar_file = Path("docs/examples/src/boat_200.mar")
-output_dir = Path("exports_wamit")
-output_dir.mkdir(exist_ok=True)
-
-# --- Load mesh and set up body ---
-mesh = cpt.load_mesh(str(mar_file), file_format="nemoh")
-dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
-full_body = cpt.FloatingBody(mesh, dofs)
-full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
-immersed_body = full_body.immersed_part()
-immersed_body.compute_hydrostatics()
-
-# --- Define parameter grid ---
-omegas = np.concatenate(([0], np.linspace(0.1, 1.0, 10), [np.inf]))  # 0, 5 values, inf
-wave_directions = np.linspace(0, np.pi, 3)  # 3 directions: 0, pi/2, pi
-
-test_matrix = xr.Dataset(
-    {
-        "omega": omegas,
-        "wave_direction": wave_directions,
-        "radiating_dof": list(immersed_body.dofs),
-        "water_depth": [np.inf],
-        "rho": [1025],
-    }
-)
-
-# --- Run simulation ---
-solver = cpt.BEMSolver()
-dataset = solver.fill_dataset(test_matrix, immersed_body)
-
-# --- Export Capytaine NetCDF (.nc) ---
-separate_complex_values(dataset).to_netcdf(
-    output_dir / "test_boat200.nc",
-    encoding={"radiating_dof": {"dtype": "U"}, "influenced_dof": {"dtype": "U"}},
-)
-
-# --- Export all WAMIT formats: .1, .3, .3fk, .3sc, .hst ---
-export_to_wamit(
-    dataset,
-    problem_name=str(output_dir / "test_boat200"),
-    exports=("1", "3", "3fk", "3sc", "hst"),
-)
-
-print("Export complete:")
-print(f"- Capytaine NetCDF: {output_dir / 'test_boat200.nc'}")
-print(f"- WAMIT .1 file: {output_dir / 'test_boat200.1'}")
-print(f"- WAMIT .3 file: {output_dir / 'test_boat200.3'}")
-print(f"- WAMIT .3fk file: {output_dir / 'test_boat200.3fk'}")
-print(f"- WAMIT .3sc file: {output_dir / 'test_boat200.3sc'}")
-print(f"- WAMIT .hst file: {output_dir / 'test_boat200.hst'}")
-```
