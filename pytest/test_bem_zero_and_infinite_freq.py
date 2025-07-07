@@ -91,6 +91,19 @@ def test_define_problem_for_inf_wavelength(water_depth):
 #  Solve radiation problems with zero or infinite frequency  #
 ##############################################################
 
+@pytest.mark.parametrize("omega", [0.0, np.inf])
+@pytest.mark.parametrize("water_depth", [10.0, np.inf])
+def test_radiation_bc_is_defined_at_limit_freq(omega, water_depth):
+    pb = cpt.RadiationProblem(
+        body=make_simple_body(),
+        omega=omega,
+        water_depth=water_depth,
+    )
+    from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
+    assert isinstance(pb.boundary_condition, SymbolicMultiplication)
+    assert isinstance(pb.boundary_condition.value, np.ndarray)
+    assert not np.any(np.isnan(pb.boundary_condition.value))
+
 @pytest.mark.parametrize("body", BODIES)
 @pytest.mark.parametrize("omega", [0.0, np.inf])
 @pytest.mark.parametrize("solver", SOLVERS)
@@ -146,9 +159,8 @@ def test_no_warning_mesh_resolution_at_zero_wavelength(caplog):
 
 @pytest.mark.parametrize("omega", [0.0, np.inf])
 @pytest.mark.parametrize("water_depth", [10.0, np.inf])
-@pytest.mark.parametrize("method", ["direct", "indirect"])
-def test_diffraction_problem(omega, water_depth, method):
-    solver = cpt.BEMSolver(method=method)
+@pytest.mark.parametrize("solver", SOLVERS)
+def test_fail_to_solve_diffraction_problem_with_limit_freq(omega, water_depth, solver):
     pb = cpt.DiffractionProblem(
         body=make_simple_body(),
         omega=omega,
@@ -157,6 +169,26 @@ def test_diffraction_problem(omega, water_depth, method):
     with pytest.raises(ValueError, match="zero or infinite frequency"):
         solver.solve(pb)
 
+@pytest.mark.parametrize("omega", [0.0, np.inf])
+@pytest.mark.parametrize("water_depth", [10.0, np.inf])
+def test_diffraction_bc_is_nan_at_limit_freq(omega, water_depth):
+    pb = cpt.DiffractionProblem(
+        body=make_simple_body(),
+        omega=omega,
+        water_depth=water_depth
+    )
+    assert np.all(np.isnan(pb.boundary_condition))
+
+@pytest.mark.parametrize("omega", [0.0, np.inf])
+@pytest.mark.parametrize("water_depth", [10.0, np.inf])
+def test_froude_krylov_is_nan_at_limit_freq(omega, water_depth):
+    from capytaine.bem.airy_waves import froude_krylov_force
+    pb = cpt.DiffractionProblem(
+        body=make_simple_body(),
+        omega=omega,
+        water_depth=water_depth
+    )
+    assert np.all(np.isnan(froude_krylov_force(pb)['Surge']))
 
 ###########################################
 #  Fill datasets with limite frequencies  #
