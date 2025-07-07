@@ -24,8 +24,8 @@ _default_parameters = {'rho': 1000.0, 'g': 9.81, 'omega': 1.0,
 class LinearPotentialFlowProblem:
     """General class of a potential flow problem.
 
-    At most one of the following parameter must be provided: omega, period, wavenumber or wavelength.
-    Internally only omega is stored, hence setting another parameter can lead to small rounding errors.
+    At most one of the following parameters must be provided:
+        omega, freq, period, wavenumber or wavelength.
 
     Parameters
     ----------
@@ -39,6 +39,8 @@ class LinearPotentialFlowProblem:
         The position of the sea bottom (deprecated: please prefer setting water_depth)
     omega: float, optional
         The angular frequency of the waves in rad/s
+    freq: float, optional
+        The frequency of the waves in Hz
     period: float, optional
         The period of the waves in s
     wavenumber: float, optional
@@ -178,7 +180,6 @@ class LinearPotentialFlowProblem:
                          "If you were actually giving an angle in radians, use the modulo operator to give a value between -2π and 2π to disable this warning.")
 
         if self.free_surface == np.inf and self.water_depth != np.inf:
-
             raise NotImplementedError(
                 "Problems with a sea bottom but no free surface have not been implemented."
             )

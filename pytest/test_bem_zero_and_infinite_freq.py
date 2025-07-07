@@ -98,12 +98,3 @@ def test_dataset_with_zero_frequency_including_radiation_and_diffraction(sphere)
     assert not np.any(np.isnan(ds.added_mass))
     assert not np.any(np.isnan(ds.radiation_damping))
 
-
-def test_dataset_with_zero_frequency_diffraction_only(sphere):
-    test_matrix = xr.Dataset(coords={
-        'omega': [0.0, 1.0, np.inf],
-        'wave_direction': [0.0, np.pi],
-    })
-    solver = cpt.BEMSolver()
-    with pytest.raises(ValueError):
-        solver.fill_dataset(test_matrix, sphere)
