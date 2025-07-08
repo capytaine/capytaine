@@ -34,6 +34,8 @@ independently and the output dataset contains one dimension more.
 
 :code:`fill_dataset` returns an :code:`xarray.Dataset` with the same
 coordinates as its input but filled with additional output data.
+See :doc:`export_outputs` for methods to export this dataset in various
+formats.
 
 If the coordinate :code:`theta` is added to the test matrix, the code will
 compute the Kochin function for these values of :math:`\theta`.
