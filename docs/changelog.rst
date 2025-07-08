@@ -89,6 +89,8 @@ Bug fixes
 
 * Trying to generate a lid over a purely vertical mesh does not raise an error anymore (:issue:`625`).
 
+* When the hull mesh and the lid mesh are both symmetric with the same reflection plane, the symmetry is not lost anymore when solving the BEM problem (:issue:`527` and :pull:`667`).
+
 Internals
 ~~~~~~~~~
 
@@ -107,6 +109,7 @@ Internals
 
 * NaN values are not striped out of output data (:pull:`676`)
 
+* Define a :class:`~capytaine.meshes.mesh_like_protocol.MeshLike` protocol that classes implementing a mesh should follow. Also ensure that :class:`~capytaine.meshes.meshes.Mesh` and :class:`~capytaine.meshes.collections.CollectionOfMeshes` follow it. (:pull:`667`)
 
 ---------------------------------
 New in version 2.2.1 (2024-11-18)

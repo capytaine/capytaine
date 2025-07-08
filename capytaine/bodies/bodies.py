@@ -10,6 +10,7 @@ from functools import cached_property, lru_cache
 import numpy as np
 import xarray as xr
 
+from capytaine.meshes.mesh_like_protocol import MeshLike
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
 from capytaine.meshes.properties import connected_components, connected_components_of_waterline
@@ -39,10 +40,10 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
 
     Parameters
     ----------
-    mesh : Mesh or CollectionOfMeshes, optional
+    mesh : MeshLike, optional
         the mesh describing the geometry of the hull of the floating body.
         If none is given, a empty one is created.
-    lid_mesh : Mesh or CollectionOfMeshes or None, optional
+    lid_mesh : MeshLike or None, optional
         a mesh of an internal lid for irregular frequencies removal.
         Unlike the mesh of the hull, no dof is defined on the lid_mesh.
         If none is given, none is used when solving the Boundary Integral Equation.
@@ -69,7 +70,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
             from capytaine.io.meshio import load_from_meshio
             self.mesh = load_from_meshio(mesh)
 
-        elif isinstance(mesh, Mesh) or isinstance(mesh, CollectionOfMeshes):
+        elif isinstance(mesh, MeshLike):
             self.mesh = mesh
 
         else:
@@ -87,7 +88,10 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         if name is None and mesh is None:
             self.name = "dummy_body"
         elif name is None:
-            self.name = self.mesh.name
+            if hasattr(self.mesh, "name"):
+                self.name = self.mesh.name
+            else:
+                self.name = "anonymous_body"
         else:
             self.name = name
 
@@ -97,7 +101,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         else:
             self.center_of_mass = None
 
-        if self.mesh.nb_vertices > 0 and self.mesh.nb_faces > 0:
+        if hasattr(self.mesh, "heal_mesh") and self.mesh.nb_vertices > 0 and self.mesh.nb_faces > 0:
             self.mesh.heal_mesh()
 
         if dofs is None:
@@ -137,7 +141,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
     @cached_property
     def mesh_including_lid(self):
         if self.lid_mesh is not None:
-            return CollectionOfMeshes([self.mesh, self.lid_mesh])
+            return self.mesh.join_meshes(self.lid_mesh)
         else:
             return self.mesh
 
@@ -892,9 +896,9 @@ respective inertia coefficients are assigned as NaN.")
             raise NotImplementedError  # TODO
 
         if return_index:
-            new_mesh, id_v = Mesh.extract_faces(self.mesh, id_faces_to_extract, return_index)
+            new_mesh, id_v = self.mesh.extract_faces(id_faces_to_extract, return_index)
         else:
-            new_mesh = Mesh.extract_faces(self.mesh, id_faces_to_extract, return_index)
+            new_mesh = self.mesh.extract_faces(id_faces_to_extract, return_index)
         new_body = FloatingBody(new_mesh)
         LOG.info(f"Extract floating body from {self.name}.")
 

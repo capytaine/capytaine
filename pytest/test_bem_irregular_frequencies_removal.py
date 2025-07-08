@@ -209,7 +209,6 @@ def test_lid_multibody(body_with_lid):
     solver.solve(pb)
 
 
-@pytest.mark.xfail
 def test_lid_with_plane_symmetry():
     mesh = cpt.mesh_horizontal_cylinder(reflection_symmetry=True).immersed_part()
     lid_mesh = cpt.ReflectionSymmetricMesh(
