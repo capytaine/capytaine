@@ -3,6 +3,9 @@ import pytest
 import numpy as np
 import capytaine as cpt
 
+##################
+#  Generate lid  #
+##################
 
 def test_lid_below_free_surface():
     mesh = cpt.AxialSymmetricMesh.from_profile(lambda z: (z + 1.0)**2, np.linspace(-1.0, 0.0, 10)).merged()
@@ -74,11 +77,22 @@ def test_lid_multibody():
     assert all(in_crown(lid_mesh.faces_centers[:, 0], lid_mesh.faces_centers[:, 1]))
 
 
-def test_lid_symmetric_body():
+def test_lid_symmetric_mesh():
     mesh = cpt.mesh_vertical_cylinder(radius=1, reflection_symmetry=True).immersed_part()
     lid_mesh = mesh.generate_lid()
+    assert isinstance(lid_mesh, cpt.ReflectionSymmetricMesh)
     def in_crown(x, y):
         return np.hypot(x, y) < 1.0
+    assert all(in_crown(lid_mesh.faces_centers[:, 0], lid_mesh.faces_centers[:, 1]))
+
+
+def test_lid_nested_symmetric_mesh():
+    mesh = cpt.mesh_parallelepiped(reflection_symmetry=True).immersed_part()
+    lid_mesh = mesh.generate_lid()
+    assert isinstance(lid_mesh, cpt.ReflectionSymmetricMesh)
+    assert isinstance(lid_mesh.half, cpt.ReflectionSymmetricMesh)
+    def in_crown(x, y):
+        return np.maximum(np.abs(x), np.abs(y)) < 0.5
     assert all(in_crown(lid_mesh.faces_centers[:, 0], lid_mesh.faces_centers[:, 1]))
 
 
@@ -116,3 +130,29 @@ def test_lid_on_vertical_panels_only():
     # https://github.com/capytaine/capytaine/issues/625
     mesh = cpt.mesh_rectangle(normal=(1, 0, 0))
     lid_mesh = mesh.generate_lid()
+
+
+####################
+#  Lid extraction  #
+####################
+
+def test_extract_lid():
+    mesh = cpt.mesh_vertical_cylinder(center=(0, 0, -2), length=4, resolution=(2, 8, 10))
+    hull_mesh, lid_mesh = mesh.extract_lid()
+    assert lid_mesh.nb_faces == 2*8
+
+
+def test_extract_lid_symmetric_mesh():
+    mesh = cpt.mesh_vertical_cylinder(center=(0, 0, -2), length=4, resolution=(2, 8, 10), reflection_symmetry=True)
+    hull_mesh, lid_mesh = mesh.extract_lid()
+    assert isinstance(hull_mesh, cpt.ReflectionSymmetricMesh)
+    assert isinstance(lid_mesh, cpt.ReflectionSymmetricMesh)
+
+
+def test_extract_lid_nested_symmetric_mesh():
+    mesh = cpt.mesh_parallelepiped(center=(0, 0, -1), reflection_symmetry=True)
+    hull_mesh, lid_mesh = mesh.extract_lid()
+    assert isinstance(hull_mesh, cpt.ReflectionSymmetricMesh)
+    assert isinstance(hull_mesh.half, cpt.ReflectionSymmetricMesh)
+    assert isinstance(lid_mesh, cpt.ReflectionSymmetricMesh)
+    assert isinstance(lid_mesh.half, cpt.ReflectionSymmetricMesh)

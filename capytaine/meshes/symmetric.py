@@ -89,7 +89,7 @@ class ReflectionSymmetricMesh(SymmetricMesh):
             "Only meshes with the same symmetry can be joined together."
         assert all(meshes[0].plane == mesh.plane for mesh in meshes), \
             "Only reflection symmetric meshes with the same reflection plane can be joined together."
-        half_mesh = CollectionOfMeshes([mesh.half for mesh in meshes], name=f"half_of_{name}" if name is not None else None)
+        half_mesh = meshes[0].half.join_meshes(*(mesh.half for mesh in meshes[1:]), name=f"half_of_{name}" if name is not None else None)
         return ReflectionSymmetricMesh(half_mesh, plane=meshes[0].plane, name=name)
 
     @inplace_transformation
@@ -116,7 +116,8 @@ class ReflectionSymmetricMesh(SymmetricMesh):
         return ReflectionSymmetricMesh(self.half.generate_lid(z, faces_max_radius), self.plane, name=name)
 
     def extract_lid(self, plane=xOy_Plane):
-        return ReflectionSymmetricMesh(self.half.extract_lid(plane), self.plane)
+        hull, lid = self.half.extract_lid(plane)
+        return ReflectionSymmetricMesh(hull, self.plane), ReflectionSymmetricMesh(lid, self.plane)
 
 
 class TranslationalSymmetricMesh(SymmetricMesh):

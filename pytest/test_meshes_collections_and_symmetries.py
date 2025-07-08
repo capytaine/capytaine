@@ -78,6 +78,15 @@ def test_join_reflection_symmetric_meshes():
     assert isinstance(both, cpt.ReflectionSymmetricMesh)
 
 
+def test_join_nested_reflection_symmetric_meshes():
+    cylinder_1 = cpt.mesh_parallelepiped(center=(0, 0, -2), reflection_symmetry=True)
+    cylinder_2 = cpt.mesh_parallelepiped(center=(0, 0, -4), reflection_symmetry=True)
+    assert cylinder_1.plane == cylinder_2.plane
+    both = cylinder_1 + cylinder_2
+    assert isinstance(both, cpt.ReflectionSymmetricMesh)
+    assert isinstance(both.half, cpt.ReflectionSymmetricMesh)
+
+
 def test_join_axisymmetric_disks():
     """Given two axisymmetric meshes with the same axis, build a new axisymmetric mesh combining the two."""
     disk1 = cpt.mesh_disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), normal=(1, 0, 0), axial_symmetry=True)

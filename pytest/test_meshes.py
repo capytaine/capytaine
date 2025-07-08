@@ -258,15 +258,6 @@ def test_connected_components_at_waterline_of_torus():
     cc = connected_components_of_waterline(mesh)
     assert len(cc) == 2
 
-####################
-#  Lid extraction  #
-####################
-
-def test_extract_lid():
-    mesh = cpt.mesh_vertical_cylinder(center=(0, 0, -2), length=4, resolution=(2, 8, 10))
-    hull_mesh, lid_mesh = mesh.extract_lid()
-    assert lid_mesh.nb_faces == 2*8
-
 
 ###################################
 #  Connected vertices clustering  #
