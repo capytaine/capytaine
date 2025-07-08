@@ -78,7 +78,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     # Warn user in case of key with unrecognized name (e.g. misspells)
     keys_in_dataset = set(dataset.dims)
     accepted_keys = {'wave_direction', 'radiating_dof', 'influenced_dof',
-                     'body_name', 'omega', 'period', 'wavelength', 'wavenumber',
+                     'body_name', 'omega', 'freq', 'period', 'wavelength', 'wavenumber',
                      'forward_speed', 'water_depth', 'rho', 'g', 'theta'}
     unrecognized_keys = keys_in_dataset.difference(accepted_keys)
     if len(unrecognized_keys) > 0:
@@ -88,9 +88,9 @@ def problems_from_dataset(dataset: xr.Dataset,
         raise ValueError("Neither 'radiating_dof' nor 'wave_direction' has been provided in the dataset. "
                 "No linear potential flow problem can be inferred.")
 
-    frequency_keys = keys_in_dataset & {'omega', 'period', 'wavelength', 'wavenumber'}
+    frequency_keys = keys_in_dataset & {'omega', 'freq', 'period', 'wavelength', 'wavenumber'}
     if len(frequency_keys) > 1:
-            raise ValueError("Setting problems requires at most one of the following: omega (angular frequency) OR period OR wavenumber OR wavelength.\n"
+            raise ValueError("Setting problems requires at most one of the following: omega (angular frequency) OR freq (in Hz) OR period OR wavenumber OR wavelength.\n"
                              "Received {}".format(frequency_keys))
     # END SANITY CHECKS
 
@@ -121,20 +121,13 @@ def problems_from_dataset(dataset: xr.Dataset,
     problems = []
     if wave_direction_range is not None:
         for freq, wave_direction, water_depth, body_name, forward_speed, rho, g \
-                in product(freq_range, wave_direction_range, water_depth_range, body_range, forward_speed_range, rho_range, g_range):
-            if freq not in {0.0, np.inf}:
-                problems.append(
-                    DiffractionProblem(body=body_range[body_name], **{freq_type: freq},
-                                       wave_direction=wave_direction, water_depth=water_depth,
-                                       forward_speed=forward_speed, rho=rho, g=g)
-                )
-            elif freq in {0.0, np.inf} and radiating_dofs is not None:
-                # Diffraction problems are not defined for 0 and infinite frequency.
-                # But we don't want the whole batch to fail, as these frequencies are there for the radiation problems.
-                # The excitation force will be NaN for these frequencies in the resulting dataset.
-                pass
-            else:
-                raise ValueError("Zero and infinite frequencies are not defined when solving only diffraction problems.")
+                in product(freq_range, wave_direction_range, water_depth_range, body_range,
+                           forward_speed_range, rho_range, g_range):
+            problems.append(
+                DiffractionProblem(body=body_range[body_name], **{freq_type: freq},
+                                   wave_direction=wave_direction, water_depth=water_depth,
+                                   forward_speed=forward_speed, rho=rho, g=g)
+            )
 
     if radiating_dofs is not None:
         for freq, radiating_dof, water_depth, body_name, forward_speed, rho, g \
@@ -308,9 +301,61 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
 
     return kochin_data
 
+VARIABLES_ATTRIBUTES = {
+        "omega": {
+            'long_name': 'Angular frequency',
+            'units': 'rad/s',
+            },
+        "freq": {
+            'long_name': 'Frequency',
+            'units': 'Hz',
+            },
+        "period": {
+            'long_name': 'Period',
+            'units': 's',
+            },
+        "wavenumber": {
+            'long_name': "Angular wavenumber",
+            'units': 'rad/m',
+            },
+        "wavelength": {
+            'long_name': "Wave length",
+            'units': 'm',
+            },
+        "encounter_omega": {
+            'long_name': "Encounter angular frequency",
+            'units': 'rad/s',
+            },
+        "encounter_wave_direction": {
+            'long_name': "Encounter wave direction",
+            'units': 'rad',
+            },
+        "wave_direction": {
+            'long_name': "Wave direction",
+            'units': "rad"
+            },
+        "radiating_dof": {
+            'long_name': 'Radiating DOF',
+            },
+        "influenced_dof": {
+            'long_name': 'Influenced DOF',
+            },
+        "added_mass": {
+            'long_name': 'Added mass',
+            },
+        "radiation_damping": {
+            'long_name': 'Radiation damping',
+            },
+        "diffraction_force": {
+            'long_name': "Diffraction force",
+            },
+        "Froude_Krylov_force": {
+            'long_name': "Froude Krylov force",
+            },
+        }
 
 def assemble_dataset(results,
-                     omega=True, wavenumber=True, wavelength=True, period=True,
+                     omega=True, freq=True, wavenumber=True, wavelength=True, period=True,
                      mesh=False, hydrostatics=True, attrs=None) -> xr.Dataset:
     """Transform a list of :class:`LinearPotentialFlowResult` into a :class:`xarray.Dataset`.
 
@@ -324,6 +369,8 @@ def assemble_dataset(results,
         The results that will be read.
     omega: bool, optional
         If True, the coordinate 'omega' will be added to the output dataset.
+    freq: bool, optional
+        If True, the coordinate 'freq' will be added to the output dataset.
     wavenumber: bool, optional
         If True, the coordinate 'wavenumber' will be added to the output dataset.
     wavelength: bool, optional
@@ -369,10 +416,6 @@ def assemble_dataset(results,
             variables=['added_mass', 'radiation_damping'],
             dimensions=[main_freq_type, 'radiating_dof', 'influenced_dof'],
             optional_dims=optional_dims + ['wave_direction'])
-        radiation_cases.added_mass.attrs['long_name'] = 'Added mass'
-        radiation_cases.radiation_damping.attrs['long_name'] = 'Radiation damping'
-        radiation_cases.radiating_dof.attrs['long_name'] = 'Radiating DOF'
-        radiation_cases.influenced_dof.attrs['long_name'] = 'Influenced DOF'
         dataset = xr.merge([dataset, radiation_cases])
 
     # DIFFRACTION RESULTS
@@ -382,11 +425,6 @@ def assemble_dataset(results,
             variables=['diffraction_force', 'Froude_Krylov_force'],
             dimensions=[main_freq_type, 'wave_direction', 'influenced_dof'],
             optional_dims=optional_dims)
-        diffraction_cases.diffraction_force.attrs['long_name'] = 'Diffraction force'
-        diffraction_cases.Froude_Krylov_force.attrs['long_name'] = 'Froude Krylov force'
-        diffraction_cases.influenced_dof.attrs['long_name'] = 'Influenced DOF'
-        diffraction_cases.wave_direction.attrs['long_name'] = 'Wave direction'
-        diffraction_cases.wave_direction.attrs['units'] = 'rad'
         dataset = xr.merge([dataset, diffraction_cases])
         dataset['excitation_force'] = dataset['Froude_Krylov_force'] + dataset['diffraction_force']
 
@@ -399,8 +437,15 @@ def assemble_dataset(results,
                 optional_dims=['g', 'water_depth'] if main_freq_type in {'wavelength', 'wavenumber'} else []
                 )
         dataset.coords['omega'] = omega_ds['omega']
-        dataset.omega.attrs['long_name'] = 'Angular frequency'
-        dataset.omega.attrs['units'] = 'rad/s'
+
+    if freq and main_freq_type != "freq":
+        freq_ds = _dataset_from_dataframe(
+                records,
+                variables=['freq'],
+                dimensions=[main_freq_type],
+                optional_dims=['g', 'water_depth'] if main_freq_type in {'wavelength', 'wavenumber'} else []
+                )
+        dataset.coords['freq'] = freq_ds['freq']
 
     if period and main_freq_type != "period":
         period_ds = _dataset_from_dataframe(
@@ -410,8 +455,6 @@ def assemble_dataset(results,
                 optional_dims=['g', 'water_depth'] if main_freq_type in {'wavelength', 'wavenumber'} else []
                 )
         dataset.coords['period'] = period_ds['period']
-        dataset.period.attrs['long_name'] = 'Period'
-        dataset.period.attrs['units'] = 's'
 
     if wavenumber and main_freq_type != "wavenumber":
         wavenumber_ds = _dataset_from_dataframe(
@@ -421,8 +464,6 @@ def assemble_dataset(results,
                 optional_dims=['g', 'water_depth'] if main_freq_type in {'period', 'omega'} else []
                 )
         dataset.coords['wavenumber'] = wavenumber_ds['wavenumber']
-        dataset.wavenumber.attrs['long_name'] = 'Angular wavenumber'
-        dataset.wavenumber.attrs['units'] = 'rad/m'
 
     if wavelength and main_freq_type != "wavelength":
         wavelength_ds = _dataset_from_dataframe(
@@ -432,8 +473,6 @@ def assemble_dataset(results,
                 optional_dims=['g', 'water_depth'] if main_freq_type in {'period', 'omega'} else []
                 )
         dataset.coords['wavelength'] = wavelength_ds['wavelength']
-        dataset.wavelength.attrs['long_name'] = 'Wave length'
-        dataset.wavelength.attrs['units'] = 'm'
 
     if not all(records["forward_speed"] == 0.0):
         omegae_ds = _dataset_from_dataframe(
@@ -443,8 +482,6 @@ def assemble_dataset(results,
                 optional_dims=['g', 'water_depth'],
                 )
         dataset.coords['encounter_omega'] = omegae_ds['encounter_omega']
-        dataset.encounter_omega.attrs['long_name'] = 'Encounter angular frequency'
-        dataset.encounter_omega.attrs['units'] = 'rad/s'
 
         encounter_wave_direction_ds = _dataset_from_dataframe(
                 records,
@@ -453,8 +490,6 @@ def assemble_dataset(results,
                 optional_dims=[],
                 )
         dataset.coords['encounter_wave_direction'] = encounter_wave_direction_ds['encounter_wave_direction']
-        dataset.encounter_wave_direction.attrs['long_name'] = 'Encounter wave direction'
-        dataset.encounter_wave_direction.attrs['units'] = 'rad'
 
     if mesh:
         if bemio_import:
@@ -485,6 +520,10 @@ def assemble_dataset(results,
         else:
             bodies = list({result.body for result in results})
             dataset = xr.merge([dataset, hydrostatics_dataset(bodies)])
+
+    for var in set(dataset) | set(dataset.coords):
+        if var in VARIABLES_ATTRIBUTES:
+            dataset[var].attrs.update(VARIABLES_ATTRIBUTES[var])
 
     dataset.attrs.update(attrs)
     dataset.attrs['capytaine_version'] = __version__

@@ -1,4 +1,5 @@
 import numpy as np
+import xarray as xr
 import capytaine as cpt
 import matplotlib.pyplot as plt
 
@@ -6,50 +7,40 @@ cpt.set_logging('INFO')
 
 # Initialize floating body by generating a geometric mesh
 mesh = cpt.mesh_horizontal_cylinder(
-    length=10.0, radius=1.0,  # Dimensions
-    center=(0, 0, -2),        # Position
+    length=10.0, radius=0.5,  # Dimensions
+    center=(0, 0, 0),         # Position
     resolution=(5, 20, 40)    # Fineness of the mesh
-    )
-body = cpt.FloatingBody(mesh)
-
-# Define a degree of freedom. The keyword "Heave"
-# is recognized by the code and the vertical translation
-# motion is automatically defined.
-body.add_translation_dof(name="Heave")
+    ).immersed_part()
+body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
 
 # Define the range of water depth
-depth_range = list(range(5, 25, 2)) + [np.inf]
+depth_range = np.concatenate([np.linspace(2, 100, 10), [np.inf]])
 
-# Set up the problems: we will solve a radiation problem for each
-# water depth:
-problems = [
-    cpt.RadiationProblem(body=body, water_depth=depth, omega=2.0)
-    for depth in depth_range
-]
-# Water density, gravity and radiating dof have not been specified.
-# Default values are used. (For the radiating dof, the default value
-# is usually the first one that has been defined. Here only one has
-# been defined.)
+test_matrix = xr.Dataset(coords={
+    "wavelength": 100.0,
+    "water_depth": depth_range,
+    "radiating_dof": ["Heave"]
+    })
 
 # Solve all radiation problems
 solver = cpt.BEMSolver()
-results = solver.solve_all(problems)
+data = solver.fill_dataset(test_matrix, body)
 
-# Gather the computed added mass into a labelled array.
-data = cpt.assemble_dataset(results)
+# Note that the solver could not solve the most shallow case and returned NaN:
+data.added_mass.sel(radiating_dof="Heave", influenced_dof="Heave", water_depth=2.0).values
 
 # Plot the added mass of each dofs as a function of the water depth.
 fig, ax = plt.subplots(layout="constrained")
 ax.plot(
-    depth_range,
-    data['added_mass'].sel(omega=2.0, radiating_dof="Heave", influenced_dof="Heave"),
+    data.water_depth * data.wavenumber,
+    data['added_mass'].sel(radiating_dof="Heave", influenced_dof="Heave"),
     marker="s", label="Finite depth"
 )
 ax.hlines(
-    data['added_mass'].sel(omega=2.0, radiating_dof="Heave", influenced_dof="Heave", water_depth=np.inf),
-    xmin=20, xmax=30, label="Infinite depth",
+    data['added_mass'].sel(radiating_dof="Heave", influenced_dof="Heave", water_depth=np.inf),
+    xmin=5, xmax=8, label="Infinite depth",
     linestyle="--"
 )
-ax.set(xlabel='Water depth', ylabel='Heave-heave added mass')
+ax.set(xlabel='wavenumber * water_depth', ylabel='Heave-heave added mass')
 ax.legend()
 plt.show()

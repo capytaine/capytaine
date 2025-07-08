@@ -24,8 +24,8 @@ _default_parameters = {'rho': 1000.0, 'g': 9.81, 'omega': 1.0,
 class LinearPotentialFlowProblem:
     """General class of a potential flow problem.
 
-    At most one of the following parameter must be provided: omega, period, wavenumber or wavelength.
-    Internally only omega is stored, hence setting another parameter can lead to small rounding errors.
+    At most one of the following parameters must be provided:
+        omega, freq, period, wavenumber or wavelength.
 
     Parameters
     ----------
@@ -39,6 +39,8 @@ class LinearPotentialFlowProblem:
         The position of the sea bottom (deprecated: please prefer setting water_depth)
     omega: float, optional
         The angular frequency of the waves in rad/s
+    freq: float, optional
+        The frequency of the waves in Hz
     period: float, optional
         The period of the waves in s
     wavenumber: float, optional
@@ -59,7 +61,7 @@ class LinearPotentialFlowProblem:
                  body=None,
                  free_surface=_default_parameters['free_surface'],
                  water_depth=None, sea_bottom=None,
-                 omega=None, period=None, wavenumber=None, wavelength=None,
+                 omega=None, freq=None, period=None, wavenumber=None, wavelength=None,
                  forward_speed=_default_parameters['forward_speed'],
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
@@ -76,14 +78,14 @@ class LinearPotentialFlowProblem:
         self.boundary_condition = boundary_condition
 
         self.water_depth = _get_water_depth(free_surface, water_depth, sea_bottom, default_water_depth=_default_parameters["water_depth"])
-        self.omega, self.period, self.wavenumber, self.wavelength, self.provided_freq_type = \
-                self._get_frequencies(omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength)
+        self.omega, self.freq, self.period, self.wavenumber, self.wavelength, self.provided_freq_type = \
+                self._get_frequencies(omega=omega, freq=freq, period=period, wavenumber=wavenumber, wavelength=wavelength)
 
         self._check_data()
 
         if forward_speed != 0.0:
             dopplered_omega = self.omega - self.wavenumber*self.forward_speed*np.cos(self.wave_direction)
-            self.encounter_omega, self.encounter_period, self.encounter_wavenumber, self.encounter_wavelength, _ = \
+            self.encounter_omega, self.encounter_freq, self.encounter_period, self.encounter_wavenumber, self.encounter_wavelength, _ = \
                     self._get_frequencies(omega=abs(dopplered_omega))
 
             if dopplered_omega >= 0.0:
@@ -92,18 +94,19 @@ class LinearPotentialFlowProblem:
                 self.encounter_wave_direction = self.wave_direction + np.pi
         else:
             self.encounter_omega = self.omega
+            self.encounter_freq = self.freq
             self.encounter_period = self.period
             self.encounter_wavenumber = self.wavenumber
             self.encounter_wavelength = self.wavelength
             self.encounter_wave_direction = self.wave_direction
 
 
-    def _get_frequencies(self, *, omega=None, period=None, wavenumber=None, wavelength=None):
-        frequency_data = dict(omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength)
-        nb_provided_frequency_data = 4 - list(frequency_data.values()).count(None)
+    def _get_frequencies(self, *, omega=None, freq=None, period=None, wavenumber=None, wavelength=None):
+        frequency_data = dict(omega=omega, freq=freq, period=period, wavenumber=wavenumber, wavelength=wavelength)
+        nb_provided_frequency_data = len(frequency_data) - list(frequency_data.values()).count(None)
 
         if nb_provided_frequency_data > 1:
-            raise ValueError("Settings a problem requires at most one of the following: omega (angular frequency) OR period OR wavenumber OR wavelength.\n"
+            raise ValueError("Settings a problem requires at most one of the following: omega (angular frequency) OR freq (in Hz) OR period OR wavenumber OR wavelength.\n"
                              "Received {} of them: {}".format(nb_provided_frequency_data, {k: v for k, v in frequency_data.items() if v is not None}))
 
         if nb_provided_frequency_data == 0:
@@ -112,27 +115,35 @@ class LinearPotentialFlowProblem:
         else:
             provided_freq_type = [k for (k, v) in frequency_data.items() if v is not None][0]
 
-        if ((float(frequency_data[provided_freq_type]) == 0.0 and provided_freq_type in {'omega', 'wavenumber'})
+        if ((float(frequency_data[provided_freq_type]) == 0.0 and provided_freq_type in {'omega', 'freq', 'wavenumber'})
             or (float(frequency_data[provided_freq_type]) == np.inf and provided_freq_type in {'period', 'wavelength'})):
                 omega = SymbolicMultiplication("0")
+                freq = SymbolicMultiplication("0")
                 wavenumber = SymbolicMultiplication("0")
                 period = SymbolicMultiplication("∞")
                 wavelength = SymbolicMultiplication("∞")
         elif ((float(frequency_data[provided_freq_type]) == 0.0 and provided_freq_type in {'period', 'wavelength'})
-            or (float(frequency_data[provided_freq_type]) == np.inf and provided_freq_type in {'omega', 'wavenumber'})):
+            or (float(frequency_data[provided_freq_type]) == np.inf and provided_freq_type in {'omega', 'freq', 'wavenumber'})):
                 omega = SymbolicMultiplication("∞")
+                freq = SymbolicMultiplication("∞")
                 wavenumber = SymbolicMultiplication("∞")
                 period = SymbolicMultiplication("0")
                 wavelength = SymbolicMultiplication("0")
         else:
 
-            if provided_freq_type in {'omega', 'period'}:
+            if provided_freq_type in {'omega', 'freq', 'period'}:
                 if provided_freq_type == 'omega':
                     omega = frequency_data['omega']
                     period = 2*np.pi/omega
+                    freq = omega/2/np.pi
+                elif provided_freq_type == 'freq':
+                    freq = frequency_data['freq']
+                    omega = 2*np.pi*freq
+                    period = 1/freq
                 else:  # provided_freq_type is 'period'
                     period = frequency_data['period']
                     omega = 2*np.pi/period
+                    freq = 1/period
 
                 if self.water_depth == np.inf:
                     wavenumber = omega**2/self.g
@@ -150,8 +161,9 @@ class LinearPotentialFlowProblem:
 
                 omega = np.sqrt(self.g*wavenumber*np.tanh(wavenumber*self.water_depth))
                 period = 2*np.pi/omega
+                freq = 1/period
 
-        return omega, period, wavenumber, wavelength, provided_freq_type
+        return omega, freq, period, wavenumber, wavelength, provided_freq_type
 
     def _check_data(self):
         """Sanity checks on the data."""
@@ -168,7 +180,6 @@ class LinearPotentialFlowProblem:
                          "If you were actually giving an angle in radians, use the modulo operator to give a value between -2π and 2π to disable this warning.")
 
         if self.free_surface == np.inf and self.water_depth != np.inf:
-
             raise NotImplementedError(
                 "Problems with a sea bottom but no free surface have not been implemented."
             )
@@ -177,11 +188,6 @@ class LinearPotentialFlowProblem:
             raise ValueError("`water_depth` should be strictly positive (provided water depth: {self.water_depth}).")
 
         if float(self.omega) in {0, np.inf}:
-            if self.water_depth != np.inf:
-                LOG.warning(
-                        f"Default Green function allows for {self.provided_freq_type}={float(self.__getattribute__(self.provided_freq_type))} only for infinite depth (provided water depth: {self.water_depth})."
-                        )
-
             if self.forward_speed != 0.0:
                 raise NotImplementedError(
                         f"omega={float(self.omega)} is only implemented without forward speed (provided forward speed: {self.forward_speed})."
@@ -235,7 +241,9 @@ class LinearPotentialFlowProblem:
                 "water_depth": self.water_depth,
                 "free_surface": self.free_surface,
                 "omega": float(self.omega),
+                "freq": float(self.freq),
                 "encounter_omega": float(self.encounter_omega),
+                "encounter_freq": float(self.encounter_freq),
                 "period": float(self.period),
                 "wavelength": float(self.wavelength),
                 "wavenumber": float(self.wavenumber),
@@ -325,8 +333,8 @@ class LinearPotentialFlowProblem:
         # TODO: let the user choose the influenced dofs
         return self.body.dofs if self.body is not None else set()
 
-    def make_results_container(self):
-        return LinearPotentialFlowResult(self)
+    def make_results_container(self, *args, **kwargs):
+        return LinearPotentialFlowResult(self, *args, **kwargs)
 
     def make_failed_results_container(self, *args, **kwargs):
         return FailedLinearPotentialFlowResult(self, *args, **kwargs)
@@ -340,18 +348,15 @@ class DiffractionProblem(LinearPotentialFlowProblem):
                  body=None,
                  free_surface=_default_parameters['free_surface'],
                  water_depth=None, sea_bottom=None,
-                 omega=None, period=None, wavenumber=None, wavelength=None,
+                 omega=None, freq=None, period=None, wavenumber=None, wavelength=None,
                  forward_speed=_default_parameters['forward_speed'],
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
                  wave_direction=_default_parameters['wave_direction']):
 
         super().__init__(body=body, free_surface=free_surface, water_depth=water_depth, sea_bottom=sea_bottom,
-                         omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength, wave_direction=wave_direction,
+                         omega=omega, freq=freq, period=period, wavenumber=wavenumber, wavelength=wavelength, wave_direction=wave_direction,
                          forward_speed=forward_speed, rho=rho, g=g)
-
-        if float(self.omega) in {0.0, np.inf}:
-            raise NotImplementedError("DiffractionProblem does not support zero or infinite frequency.")
 
         if self.body is not None:
 
@@ -388,7 +393,7 @@ class RadiationProblem(LinearPotentialFlowProblem):
     def __init__(self, *, body=None,
                  free_surface=_default_parameters['free_surface'],
                  water_depth=None, sea_bottom=None,
-                 omega=None, period=None, wavenumber=None, wavelength=None,
+                 omega=None, freq=None, period=None, wavenumber=None, wavelength=None,
                  forward_speed=_default_parameters['forward_speed'],
                  wave_direction=_default_parameters['wave_direction'],
                  rho=_default_parameters['rho'],
@@ -398,7 +403,7 @@ class RadiationProblem(LinearPotentialFlowProblem):
         self.radiating_dof = radiating_dof
 
         super().__init__(body=body, free_surface=free_surface, water_depth=water_depth, sea_bottom=sea_bottom,
-                         omega=omega, period=period, wavenumber=wavenumber, wavelength=wavelength,
+                         omega=omega, freq=freq, period=period, wavenumber=wavenumber, wavelength=wavelength,
                          wave_direction=wave_direction, forward_speed=forward_speed, rho=rho, g=g)
 
         if self.body is not None:
@@ -416,7 +421,11 @@ class RadiationProblem(LinearPotentialFlowProblem):
 
             dof = self.body.dofs[self.radiating_dof]
 
-            self.boundary_condition = -1j * self.encounter_omega * np.sum(dof * self.body.mesh.faces_normals, axis=1)
+            displacement_on_face = np.sum(dof * self.body.mesh.faces_normals, axis=1)  # This is a dot product on each face
+            if self.body.lid_mesh is not None:
+                displacement_on_face = np.concatenate([displacement_on_face, np.zeros(self.body.lid_mesh.nb_faces)])
+
+            self.boundary_condition = -1j * self.encounter_omega * displacement_on_face
 
             if self.forward_speed != 0.0:
                 if self.radiating_dof.lower() == "pitch":
@@ -433,8 +442,6 @@ class RadiationProblem(LinearPotentialFlowProblem):
                             )
                 self.boundary_condition += self.forward_speed * ddofdx_dot_n
 
-            if self.body.lid_mesh is not None:
-                self.boundary_condition = np.concatenate([self.boundary_condition, np.zeros(self.body.lid_mesh.nb_faces)])
 
 
     def _astuple(self):
@@ -477,12 +484,14 @@ class LinearPotentialFlowResult:
         self.body               = self.problem.body
         self.free_surface       = self.problem.free_surface
         self.omega              = self.problem.omega
+        self.freq              = self.problem.freq
         self.period             = self.problem.period
         self.wavenumber         = self.problem.wavenumber
         self.wavelength         = self.problem.wavelength
         self.forward_speed      = self.problem.forward_speed
         self.wave_direction     = self.problem.wave_direction
         self.encounter_omega    = self.problem.encounter_omega
+        self.encounter_freq    = self.problem.encounter_freq
         self.encounter_period   = self.problem.encounter_period
         self.encounter_wavenumber = self.problem.encounter_wavenumber
         self.encounter_wavelength = self.problem.encounter_wavelength
@@ -510,7 +519,7 @@ class LinearPotentialFlowResult:
 class FailedLinearPotentialFlowResult(LinearPotentialFlowResult):
     def __init__(self, problem, exception):
         LinearPotentialFlowResult.__init__(self, problem)
-        self.forces = {dof: np.nan for dof in self.influenced_dofs}
+        self.forces = {dof: np.nan + 1j*np.nan for dof in self.influenced_dofs}
         self.exception = exception
 
 
@@ -579,5 +588,5 @@ class RadiationResult(LinearPotentialFlowResult):
 class FailedRadiationResult(RadiationResult):
     def __init__(self, problem, exception):
         RadiationResult.__init__(self, problem)
-        self.forces = {dof: np.nan for dof in self.influenced_dofs}
+        self.forces = {dof: np.nan + 1j*np.nan for dof in self.influenced_dofs}
         self.exception = exception

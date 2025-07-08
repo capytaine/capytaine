@@ -98,7 +98,7 @@ The methods :meth:`~capytaine.bodies.bodies.FloatingBody.show()` and
 :meth:`~capytaine.bodies.bodies.FloatingBody.show_matplotlib()` of meshes can
 also be used on ``FloatingBody``.
 
-Once a :code:`FloatingBody` with dofs has been defineds, the
+Once a :code:`FloatingBody` with dofs has been defined, the
 :meth:`~capytaine.bodies.bodies.FloatingBody.animate`
 method can be used to visualize a given motion of the body::
 
@@ -156,7 +156,7 @@ places copies of the ``body`` at the list of locations specified.
 
 .. warning::
    As currently implemented in Capytaine, the multiple bodies are stored as a
-   single body with a non-connex mesh and generalized degrees of freedom.
+   single body with a non-convex mesh and generalized degrees of freedom.
    Hence some information about the individual bodies is lost.
    It includes the center of mass and the center of rotation of the individual
    bodies (although the latter could be recovered indirectly by studying the

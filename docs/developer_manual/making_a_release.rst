@@ -2,7 +2,7 @@
 Making a release
 ================
 
-This page is a memo for the Capytaine developer(s) detailling the process of doing a new release.
+This page is a memo for the Capytaine developer(s) detailing the process of doing a new release.
 
 Last commit of released version
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

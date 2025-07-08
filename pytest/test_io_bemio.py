@@ -22,6 +22,5 @@ def test_dataset_from_nemoh_via_bemio(tmp_path):
     nemoh_data = os.path.join(current_file_path, "Nemoh_verification_cases", "Cylinder")
     shutil.copytree(nemoh_data, tmp_path, dirs_exist_ok=True)
     shutil.move(tmp_path / "reference_results", tmp_path / "Results")
-    tmp_path = "/tmp/pytest-of-mancellin/pytest-14/test_dataset_from_nemoh_via_be0/"
     bemio_data = bemio.read(tmp_path)
     cpt.assemble_dataset(bemio_data)

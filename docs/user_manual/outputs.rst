@@ -45,7 +45,7 @@ contains the potential and pressure fields on each face of the mesh of the hull:
   #  -6.54135830e-03+0.54208628j ... -2.09853806e+00-0.56106653j
   #  -2.18441640e+00-0.58402701j -2.22777755e+00-0.59562008j]
 
-These magnitudes are stored in an one-dimensionnal array as long as the number
+These magnitudes are stored in an one-dimensional array as long as the number
 of faces of the mesh, and stored in the same order as the faces in the ``Mesh``
 object. In other words, ``result.pressure[3]`` contains the pressure on the
 face of center ``body.mesh.faces_centers[3]``.
@@ -178,8 +178,9 @@ The xarray dataset produced by :func:`assemble_dataset <capytaine.io.xarray.asse
 Saving the rotation center of rigid bodies
 ------------------------------------------
 
-Some software downstream of Capytaine, such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_, require the NetCDF file to store the rotation center of each body.
-While this is not yet done automatically by Capytaine, it can be added to the dataset manually as in the following example, which is an extension of the :doc:`quickstart` example::
+Saving rotation hydrodynamic coefficients without explicitly defining the rotation axes can be ambiguous and can lead to confusion downstream.
+While this is not done automatically by Capytaine at the moment, it can be added to the dataset manually.
+The example below, which is an extension of the :doc:`quickstart` example, saves the rotation centers of a multibody problem in a way that is understood notably by `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_::
 
   import numpy as np
   import xarray as xr
@@ -274,3 +275,34 @@ The following code will write files named :code:`RadiationCoefficients.tec` and 
 
 	from capytaine.io.legacy import write_dataset_as_tecplot_files
 	write_dataset_as_tecplot_files("path/to/directory", dataset)
+
+
+Exporting to WAMIT format
+-------------------------
+
+The hydrodynamic results from a Capytaine ``xarray.Dataset`` can be exported into WAMIT-compatible text files (``.1``, ``.3``, ``.3fk``, ``.3sc``, ``.hst``) using::
+
+    from capytaine.io.wamit import export_to_wamit
+    export_to_wamit(dataset, "problem_name", exports=("1", "3", "3fk", "3sc", "hst"))
+
+This will produce the following files (depending on the fields present in the dataset):
+
+* ``problem_name.1`` for added mass and radiation damping coefficients,
+
+* ``problem_name.3`` for total excitation forces (Froude-Krylov + diffraction),
+
+* ``problem_name.3fk`` for Froude-Krylov forces only,
+
+* ``problem_name.3sc`` for diffraction forces only.
+
+* ``problem_name.hst`` for hydrostatics results (if supported)
+
+Invalid or unavailable exports are skipped with a warning.
+
+The length scale used for normalization in WAMIT data is taken by default as
+:math:`1` meter.
+
+.. note::
+    These exports require that the ``forward_speed`` in the dataset is zero.
+    If not, a ``ValueError`` is raised to avoid exporting inconsistent results.
+

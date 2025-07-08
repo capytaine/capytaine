@@ -19,7 +19,7 @@ from datetime import datetime
 
 from rich.progress import track
 
-from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, FailedLinearPotentialFlowResult
+from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem
 from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
@@ -126,6 +126,16 @@ class BEMSolver:
         if _check_wavelength:
             self._check_wavelength_and_mesh_resolution([problem])
             self._check_wavelength_and_irregular_frequencies([problem])
+
+            if isinstance(problem, DiffractionProblem) and float(problem.encounter_omega) in {0.0, np.inf}:
+                raise ValueError("Diffraction problems at zero or infinite frequency are not defined")
+                # This error used to be raised when initializing the problem.
+                # It is now raised here, in order to be catchable by
+                # _solve_and_catch_errors, such that batch resolution
+                # can include this kind of problems without the full batch
+                # failing.
+                # Note that if this error was not raised here, the resolution
+                # would still fail with a less explicit error message.
 
         if problem.forward_speed != 0.0:
             omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
@@ -293,7 +303,8 @@ class BEMSolver:
         """Display a warning if some of the problems might encounter irregular frequencies."""
         LOG.debug("Check wavelength with estimated irregular frequency.")
         risky_problems = [pb for pb in problems
-                          if pb.body.first_irregular_frequency_estimate(g=pb.g) < pb.omega < np.inf]
+                          if pb.free_surface != np.inf and
+                          pb.body.first_irregular_frequency_estimate(g=pb.g) < pb.omega < np.inf]
         nb_risky_problems = len(risky_problems)
         if nb_risky_problems >= 1:
             if any(pb.body.lid_mesh is None for pb in problems):
@@ -318,7 +329,7 @@ class BEMSolver:
                             + recommendation
                             )
 
-    def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, _check_wavelength=True, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, _check_wavelength=True, progress_bar=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -354,12 +365,12 @@ class BEMSolver:
             attrs["method"] = method
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
-            results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength)
+            results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
             kochin = kochin_data_array(results, dataset.coords['theta'])
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
             dataset.update(kochin)
         else:
-            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength)
+            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 
@@ -369,7 +380,7 @@ class BEMSolver:
 
         Parameters
         ----------
-        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or MeshLike object
             Coordinates of the point(s) at which the potential should be computed
         result: LinearPotentialFlowResult
             The return of the BEM solver
@@ -413,7 +424,7 @@ class BEMSolver:
 
         Parameters
         ----------
-        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or MeshLike object
             Coordinates of the point(s) at which the velocity should be computed
         result: LinearPotentialFlowResult
             The return of the BEM solver
@@ -437,7 +448,7 @@ class BEMSolver:
 
         Parameters
         ----------
-        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or MeshLike object
             Coordinates of the point(s) at which the pressure should be computed
         result: LinearPotentialFlowResult
             The return of the BEM solver
@@ -465,7 +476,7 @@ class BEMSolver:
 
         Parameters
         ----------
-        points: array of shape (2,) or (N, 2), or 2-ple of arrays returned by meshgrid, or cpt.Mesh or cpt.CollectionOfMeshes object
+        points: array of shape (2,) or (N, 2), or 2-ple of arrays returned by meshgrid, or MeshLike object
             Coordinates of the point(s) at which the free surface elevation should be computed
         result: LinearPotentialFlowResult
             The return of the BEM solver
@@ -504,7 +515,7 @@ class BEMSolver:
         ----------
         result : LinearPotentialFlowResult
             the return of the BEM solver
-        mesh : Mesh or CollectionOfMeshes
+        mesh : MeshLike
             a mesh
         chunk_size: int, optional
             Number of lines to compute in the matrix.

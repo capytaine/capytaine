@@ -113,6 +113,26 @@ def test_effect_of_lid_on_regular_frequency_diffraction_force(
     assert f_with == pytest.approx(f_without, rel=5e-2)
 
 
+def test_effect_of_lid_on_infinite_frequency(
+        body_without_lid, body_with_lid,
+        ):
+    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
+
+    pb_with = cpt.RadiationProblem(
+            body=body_with_lid, wavenumber=np.inf, radiating_dof="Heave"
+            )
+    res_with = solver.solve(pb_with)
+    f_with = res_with.forces["Heave"]
+
+    pb_without = cpt.RadiationProblem(
+            body=body_without_lid, wavenumber=np.inf, radiating_dof="Heave"
+            )
+    res_without = solver.solve(pb_without)
+    f_without = res_without.forces["Heave"]
+
+    assert f_with == pytest.approx(f_without, rel=5e-2)
+
+
 @pytest.mark.parametrize("water_depth", [np.inf, 10.0])
 @pytest.mark.parametrize("forward_speed", [0.0, 1.0])
 def test_effect_of_lid_on_regular_frequency_free_surface_elevation(
@@ -189,7 +209,6 @@ def test_lid_multibody(body_with_lid):
     solver.solve(pb)
 
 
-@pytest.mark.xfail
 def test_lid_with_plane_symmetry():
     mesh = cpt.mesh_horizontal_cylinder(reflection_symmetry=True).immersed_part()
     lid_mesh = cpt.ReflectionSymmetricMesh(
@@ -198,13 +217,29 @@ def test_lid_with_plane_symmetry():
             )
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=1.0)
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
+    solver = cpt.BEMSolver()
     S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
                                         pb.free_surface, pb.water_depth, pb.wavenumber,
                                         solver.green_function)
     from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix
     assert isinstance(S, BlockSymmetricToeplitzMatrix)
     assert isinstance(K, BlockSymmetricToeplitzMatrix)
+
+
+def test_lid_with_nested_plane_symmetry():
+    mesh = cpt.mesh_parallelepiped(center=(0, 0, -1.0), reflection_symmetry=True)
+    hull_mesh, lid_mesh = mesh.extract_lid()
+    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
+    pb = cpt.RadiationProblem(body=body, wavelength=1.0)
+    solver = cpt.BEMSolver()
+    S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
+                                        pb.free_surface, pb.water_depth, pb.wavenumber,
+                                        solver.green_function)
+    from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix
+    assert isinstance(S, BlockSymmetricToeplitzMatrix)
+    assert isinstance(S.all_blocks[0, 0], BlockSymmetricToeplitzMatrix)
+    assert isinstance(K, BlockSymmetricToeplitzMatrix)
+    assert isinstance(K.all_blocks[0, 0], BlockSymmetricToeplitzMatrix)
 
 
 @pytest.mark.parametrize("water_depth", [np.inf, 10.0])
@@ -216,10 +251,11 @@ def test_panel_on_free_surface(water_depth):
     cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="low_freq")).solve(pb)
 
 
-def test_panel_on_free_surface_with_high_freq():
+def test_panel_on_free_surface_with_high_freq(caplog):
     mesh = cpt.mesh_rectangle(center=(0.0, 0.0, 0.0), size=(1.0, 1.0))
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
     cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="low_freq")).solve(pb)
-    with pytest.raises(NotImplementedError):
+    with caplog.at_level("WARNING"):
         cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="high_freq")).solve(pb)
+    assert "free surface panel" in caplog.text

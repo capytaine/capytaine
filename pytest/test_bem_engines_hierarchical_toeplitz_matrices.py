@@ -30,7 +30,7 @@ adjoint_double_layer = [True,False]
 
 
 @pytest.mark.parametrize("method", method)
-@pytest.mark.parametrize("depth", [10.0, np.inf])
+@pytest.mark.parametrize("depth", [20.0, np.inf])
 @pytest.mark.parametrize("omega", [0.1, 10.0])
 def test_floating_sphere(depth, omega, method):
     """Comparison of the added mass and radiation damping

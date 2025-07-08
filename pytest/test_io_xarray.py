@@ -202,6 +202,15 @@ def test_xarray_dataset_with_more_data():
     assert set(ds.coords['nb_faces'].values) == set([b.mesh.nb_faces for b in bodies])
 
 
+def test_variables_attrs(sphere, solver):
+    pb = cpt.RadiationProblem(body=sphere, omega=1.0, radiating_dof="Heave")
+    ds = cpt.assemble_dataset([solver.solve(pb)])
+    assert 'long_name' in ds.omega.attrs
+    assert 'long_name' in ds.wavenumber.attrs
+    assert 'long_name' in ds.freq.attrs
+    assert 'long_name' in ds.added_mass.attrs
+
+
 def test_assemble_dataset_with_infinite_free_surface(caplog, sphere, solver):
     pb = cpt.RadiationProblem(body=sphere, free_surface=np.inf)
     res = solver.solve(pb)
@@ -225,6 +234,18 @@ def test_fill_dataset(sphere, solver):
     dataset = solver.fill_dataset(test_matrix, [sphere])
     assert dataset['added_mass'].data.shape == (3, 1, 6)
     assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)
+
+
+def test_fill_dataset_with_freqs(sphere, solver):
+    f_range = np.linspace(0.1, 1, 3)
+    test_matrix = xr.Dataset(coords={'freq': f_range, 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
+    dataset = solver.fill_dataset(test_matrix, [sphere])
+    np.testing.assert_allclose(dataset.coords['freq'], f_range)
+    assert set(dataset.added_mass.dims) == {'freq', 'radiating_dof', 'influenced_dof'}
+    assert set(dataset.freq.dims) == {'freq'}
+    assert set(dataset.wavelength.dims) == {'freq'}
+    assert set(dataset.omega.dims)      == {'freq'}
+    assert set(dataset.period.dims)     == {'freq'}
 
 
 def test_fill_dataset_with_wavenumbers(sphere, solver):
