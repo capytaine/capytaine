@@ -42,6 +42,9 @@ class SymbolicMultiplication:
     def __radd__(self, x):
         return x + self._concretize()
 
+    def __neg__(self):
+        return SymbolicMultiplication(self.symbol, -self.value)
+
     def __mul__(self, x):
         return SymbolicMultiplication(self.symbol, self.value * x)
 
@@ -107,6 +110,13 @@ class SymbolicMultiplication:
 
     def reshape(self, *args):
         return SymbolicMultiplication(self.symbol, self.value.reshape(*args))
+
+    def sum(self, *args, **kwargs):
+        return SymbolicMultiplication(self.symbol, self.value.sum(*args, **kwargs))
+
+    @property
+    def T(self):
+        return SymbolicMultiplication(self.symbol, self.value.T)
 
 
 def supporting_symbolic_multiplication(f):
