@@ -89,7 +89,9 @@ Bug fixes
 
 * Trying to generate a lid over a purely vertical mesh does not raise an error anymore (:issue:`625`).
 
-* When the hull mesh and the lid mesh are both symmetric with the same reflection plane, the symmetry is not lost anymore when solving the BEM problem (:issue:`527` and :pull:`667`).
+* When the hull mesh and the lid mesh are both symmetric with the same reflection plane, the symmetry is not lost anymore when solving the BEM problem.
+  Also ``generate_lid`` and ``extract_lid`` should now work with reflection symmetric meshes without losing the symmetry. (:issue:`527`, :pull:`667`, :pull:`720`).
+
 
 Internals
 ~~~~~~~~~

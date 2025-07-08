@@ -226,6 +226,8 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
     def join_meshes(*meshes, name=None):
         return CollectionOfMeshes(meshes, name=name)
 
+    def __add__(self, mesh_to_add):
+        return self.join_meshes(mesh_to_add)
 
     def merged(self, name=None) -> Mesh:
         """Merge the sub-meshes and return a full mesh.
