@@ -10,7 +10,7 @@ import numpy as np
 
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.geometry import Axis, Plane, Oz_axis, inplace_transformation
+from capytaine.meshes.geometry import Axis, Plane, xOy_Plane, Oz_axis, inplace_transformation
 
 LOG = logging.getLogger(__name__)
 
@@ -109,6 +109,14 @@ class ReflectionSymmetricMesh(SymmetricMesh):
         self.plane.mirror(plane)
         CollectionOfMeshes.mirror(self, plane)
         return self
+
+    def generate_lid(self, z=0.0, faces_max_radius=None, name=None):
+        if name is None:
+            name = "lid for {}".format(self.name)
+        return ReflectionSymmetricMesh(self.half.generate_lid(z, faces_max_radius), self.plane, name=name)
+
+    def extract_lid(self, plane=xOy_Plane):
+        return ReflectionSymmetricMesh(self.half.extract_lid(plane), self.plane)
 
 
 class TranslationalSymmetricMesh(SymmetricMesh):
