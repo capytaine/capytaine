@@ -2,8 +2,10 @@ install:
 	pip install .
 
 develop:
-	pip install -r editable_install_requirements.txt
+	uv pip install -r editable_install_requirements.txt
+	uv pip install .[test,optional,more_optional]
 	pip install --no-build-isolation --editable .
+	# The last line is not support by uv
 
 TEMP_DIR := $(shell mktemp -d)
 test_fortran_compilation:
@@ -13,7 +15,7 @@ test_fortran_compilation:
 
 test:
 	# Build and test the current repository in a fixed environment.
-	nox -s build_and_test_on_locked_env
+	uvx nox --python 3.12 --session build_and_test_on_locked_env
 
 clean:
 	rm -f capytaine/green_functions/libs/*.so

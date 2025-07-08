@@ -48,7 +48,6 @@ program test
   complex(kind=pre), dimension(nb_faces, nb_faces, 1) :: K
 
   integer :: i
-  real(kind=pre), dimension(3) :: coeffs
 
   tabulated_r(:) = default_r_spacing(tabulation_nr, 100d0, tabulation_grid_shape)
   tabulated_z(:) = default_z_spacing(tabulation_nz, -251d0, tabulation_grid_shape)
@@ -90,39 +89,38 @@ program test
 
   print*, "-- Run libdelhommeau/examples/minimal/minimal_example.f90"
 
-  coeffs = [1d0, 0d0, 0d0]
+  wavenumber = 0d0
   call build_matrices(                                           &
     nb_faces, face_center, face_normal,                          &
     nb_vertices, nb_faces, vertices, faces,                      &
     face_center, face_normal, face_area, face_radius,            &
     nb_quadrature_points, quadrature_points, quadrature_weights, &
-    ZERO, depth, coeffs,                                         &
+    wavenumber, depth,                                           &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     finite_depth_method, prony_decomposition, dispersion_roots,  &
-    .true., gf_singularities, .true.,                            &
+    gf_singularities, .true.,                                    &
     S, K)
-  print*, "Rankine part: S"
+  print*, "k=0.0, h=infty: S"
   do i = 1, nb_faces
     print"(4ES20.12)", S(i, :)
   enddo
-  print*, "Rankine part: K"
+  print*, "k=0.0, h=infty: K"
   do i = 1, nb_faces
     print"(4ES20.12)", K(i, :, 1)
   enddo
 
   wavenumber = 1d0
-  coeffs = [1d0, 1d0, 1d0]
   call build_matrices(                                           &
     nb_faces, face_center, face_normal,                          &
     nb_vertices, nb_faces, vertices, faces,                      &
     face_center, face_normal, face_area, face_radius,            &
     nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth, coeffs,                                   &
+    wavenumber, depth,                                           &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     finite_depth_method, prony_decomposition, dispersion_roots,  &
-    .true., gf_singularities, .true.,                            &
+    gf_singularities, .true.,                                    &
     S, K)
   print*, "k=1.0, h=infty: S"
   do i = 1, nb_faces
@@ -134,17 +132,16 @@ program test
   enddo
 
   wavenumber = 2d0
-  coeffs = [1d0, 1d0, 1d0]
   call build_matrices(                                           &
     nb_faces, face_center, face_normal,                          &
     nb_vertices, nb_faces, vertices, faces,                      &
     face_center, face_normal, face_area, face_radius,            &
     nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth, coeffs,                                   &
+    wavenumber, depth,                                           &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     finite_depth_method, prony_decomposition, dispersion_roots,  &
-    .true., gf_singularities, .true.,                            &
+    gf_singularities, .true.,                                    &
     S, K)
   print*, "k=2.0, h=infty: S"
   do i = 1, nb_faces
@@ -159,7 +156,6 @@ program test
 
   depth = 2.0
   wavenumber = 1d0
-  coeffs = [1d0, 1d0, 1d0]
 
   call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), nexp, prony_decomposition)
 
@@ -168,11 +164,11 @@ program test
     nb_vertices, nb_faces, vertices, faces,                      &
     face_center, face_normal, face_area, face_radius,            &
     nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth, coeffs,                                   &
+    wavenumber, depth,                                           &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     finite_depth_method, prony_decomposition, dispersion_roots,  &
-    .true., gf_singularities, .true.,                            &
+    gf_singularities, .true.,                                    &
     S, K)
   print*, "k=1.0, h=2.0: S"
   do i = 1, nb_faces
@@ -186,7 +182,6 @@ program test
 
   depth = 2.0
   wavenumber = 2d0
-  coeffs = [1d0, 1d0, 1d0]
 
   call lisc(real(wavenumber*depth*tanh(wavenumber*depth)), real(wavenumber*depth), nexp, prony_decomposition)
 
@@ -195,11 +190,11 @@ program test
     nb_vertices, nb_faces, vertices, faces,                      &
     face_center, face_normal, face_area, face_radius,            &
     nb_quadrature_points, quadrature_points, quadrature_weights, &
-    wavenumber, depth, coeffs,                                   &
+    wavenumber, depth,                                           &
     tabulation_nb_integration_points, tabulation_grid_shape,     &
     tabulated_r, tabulated_z, tabulated_integrals,               &
     finite_depth_method, prony_decomposition, dispersion_roots,  &
-    .true., gf_singularities, .true.,                            &
+    gf_singularities, .true.,                                    &
     S, K)
   print*, "k=2.0, h=2.0: S"
   do i = 1, nb_faces

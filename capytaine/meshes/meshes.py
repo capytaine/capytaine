@@ -795,8 +795,14 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         if faces_max_radius is None:
             faces_max_radius = np.mean(clipped_hull_mesh.faces_radiuses)
 
+        candidate_lid_size = (
+                    max(faces_max_radius/2, 1.1*x_span),
+                    max(faces_max_radius/2, 1.1*y_span),
+                )
+        # The size of the lid is at least the characteristic length of a face
+
         candidate_lid_mesh = mesh_rectangle(
-                size=(1.1*y_span, 1.1*x_span),  # TODO Fix mesh_rectangle
+                size=(candidate_lid_size[1], candidate_lid_size[0]),  # TODO Fix: Exchange x and y in mesh_rectangle
                 faces_max_radius=faces_max_radius,
                 center=(x_mean, y_mean, z),
                 normal=(0.0, 0.0, -1.0),

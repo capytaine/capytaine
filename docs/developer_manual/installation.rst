@@ -56,7 +56,7 @@ The above two commands can also be executed by typing::
 
 As long as the virtual environment is activated, every import of Capytaine in Python will use the development version in this directory.
 All change made to the source code should automatically affects the
-installed package. (You may need to restard you Python interpreter, but
+installed package. (You may need to restart you Python interpreter, but
 rerunning `pip install` should not be necessary.)
 
 Call for instance the following line to check that Capytaine has been correctly installed::

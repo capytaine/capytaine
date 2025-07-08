@@ -1,5 +1,4 @@
 import os
-import sys
 import tempfile
 import nox
 
@@ -8,6 +7,8 @@ import nox
 # (https://github.com/capytaine/capytaine/issues/396)
 tempdir = tempfile.mkdtemp(prefix="nox-capytaine-")
 nox.options.envdir = os.path.join(tempdir, "venvs")
+
+nox.options.default_venv_backend = "uv|virtualenv"
 
 ENV = {
         'MPLBACKEND': 'pdf',
@@ -24,6 +25,7 @@ EXAMPLE_FILES = [
     "A5_convergence_study.py",
     # "A6_irregular_frequency_removal.py",      # Slow
     "A7_elasticity_of_beam.py",
+    "A8_export_to_wamit_format.py",
     "B1_pressure_on_hull.py",
     "B2_haskind.py",
     "B3_free_surface_elevation.py",
@@ -31,6 +33,7 @@ EXAMPLE_FILES = [
     "B5_plot_velocity_in_domain.py",
     # "B6_animate_free_surface.py",             # Requires VTK
     # "B7_boat_animation.py",                   # Requires VTK
+    "B8_pressure_infinite_frequency.py",
     "C5_plot_influence_matrix.py",
     # "C6_axisymmetric_buoy.py",                # Requires VTK
     # "C7_h_matrices_with_preconditionner.py",  # Slow
@@ -81,8 +84,8 @@ def build_and_test_on_locked_env(session):
         # -o pytest/envs/$DATE-py$PY.txt
         # Older date where not possible to reach because of the joblib>=1.3 requirement.
     elif session.python == '3.12':
-        env_file = "2024-10-22-py3.12.txt"
-        # PY=3.12 DATE=2024-10-22 uv pip compile \
+        env_file = "2025-04-18-py3.12.txt"
+        # PY=3.12 DATE=2025-04-18 uv pip compile \
         # pyproject.toml editable_install_requirements.txt \
         # --python-version $PY --exclude-newer $DATE \
         # --extra optional --extra test \
@@ -91,7 +94,7 @@ def build_and_test_on_locked_env(session):
         # On CI, this session is only run on Python 3.8 and 3.12
         # (see .github/workflows/test_new_commits.yaml)
         # This fallback might be useful for local tests:
-        env_file = "2024-04-08-py3.12.txt"
+        env_file = "2025-04-18-py3.12.txt"
 
     session.install('-r', f"pytest/envs/{env_file}")
 

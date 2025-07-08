@@ -109,3 +109,10 @@ def test_clipped_lid_above_the_free_surface__():
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh)
     body = body.immersed_part()
     assert body.lid_mesh is None
+
+
+def test_lid_on_vertical_panels_only():
+    # Used to raise an error.
+    # https://github.com/capytaine/capytaine/issues/625
+    mesh = cpt.mesh_rectangle(normal=(1, 0, 0))
+    lid_mesh = mesh.generate_lid()

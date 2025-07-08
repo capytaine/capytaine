@@ -914,7 +914,7 @@ def load_MED(filename, name=None):
     if nb_quadrangles == 0:
         quadrangles = np.zeros((0, 4), dtype=int)
 
-    faces = np.row_stack([triangles, quadrangles])
+    faces = np.vstack([triangles, quadrangles])
 
     return Mesh(vertices, faces, name=name)
 

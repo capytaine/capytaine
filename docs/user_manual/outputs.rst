@@ -43,7 +43,7 @@ contains the potential and pressure fields on each face of the mesh of the hull:
   #  -6.54135830e-03+0.54208628j ... -2.09853806e+00-0.56106653j
   #  -2.18441640e+00-0.58402701j -2.22777755e+00-0.59562008j]
 
-These magnitudes are stored in an one-dimensionnal array as long as the number
+These magnitudes are stored in an one-dimensional array as long as the number
 of faces of the mesh, and stored in the same order as the faces in the ``Mesh``
 object. In other words, ``result.pressure[3]`` contains the pressure on the
 face of center ``body.mesh.faces_centers[3]``.
@@ -65,18 +65,27 @@ the hull, under the same form as the potential above::
   #  -14.13645749+2.21945488j -14.41706935+2.26351156j]
 
 
-Building a dataset from LinearPotentialFlowResult
--------------------------------------------------
+Building a dataframe or a dataset from LinearPotentialFlowResult
+----------------------------------------------------------------
 
 If you have a list of :code:`LinearPotentialFlowResult`, you can assemble
-them in a xarray dataset for a more convenient post-processing. Use the
-following syntax::
+them in a `pandas <https://pandas.pydata.org/>`_ DataFrame or a `xarray
+<https://docs.xarray.dev>`_ dataset for a more convenient post-processing. Use
+the following syntax::
 
-   from capytaine import assemble_dataset
-   dataset = assemble_dataset(list_of_results)
+   dataframe = cpt.assemble_dataframe(list_of_results)
+
+or::
+
+   dataset = cpt.assemble_dataset(list_of_results)
 
 If you gave a test matrix to the :code:`BEMSolver.fill_dataset` method, the
 output will directly be an xarray dataset.
+
+Errored resolutions stored as a
+:class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or a
+:class:`~capytaine.bem.problems_and_results.FailedRadiationResult` will appear
+as `NaN` in the dataset.
 
 Both :code:`assemble_dataset` and :code:`fill_dataset` accept some optional keyword
 arguments to store more information in the dataset:
@@ -113,22 +122,22 @@ This function is meant to be used for teaching, to assemble the matrices without
 Building a dataset from Bemio
 -----------------------------
 
-An xarray dataset can also be created from data structures generated using the `Bemio
-<https://wec-sim.github.io/bemio/>`_ package, which reads hydrodynamic output data
-from NEMOH, WAMIT, and AQWA. This allows for Capytaine post-processing of hydrodynamic
-data generated from other BEM codes.
+A DataFrame or a Dataset can also be created from data structures generated
+using the `Bemio <https://wec-sim.github.io/bemio/>`_ package, which reads
+hydrodynamic output data from NEMOH, WAMIT, and AQWA. This allows for Capytaine
+post-processing of hydrodynamic data generated from other BEM codes.
 
 Bemio does not come packaged with Capytaine and needs to to be installed independently.
 Note that `the base repository of Bemio <https://github.com/WEC-Sim/bemio/>`_ has been
 archived and is only compatible with Python 2.7.x, so using a Python 3 compatible fork is
-recommended, available `here <https://github.com/michaelcdevin/bemio>`_ or installed with::
+recommended, available `here <https://github.com/mancellin/bemio>`_ or installed with::
 
-  pip install git+https://github.com/michaelcdevin/bemio.git
+  pip install git+https://github.com/mancellin/bemio.git
 
 To build the xarray dataset using Capytaine, the output files from the BEM program in
 question must be read into a Bemio :code:`data_structures.ben.HydrodynamicData` class, which is
-then called by `assemble_dataset`. For example, to create an xarray dataset from a WAMIT
-:code:`.out` file::
+then called by `assemble_dataframe` or `assemble_dataset`. For example, to
+create an xarray dataset from a WAMIT :code:`.out` file::
 
   from bemio.io.wamit import read as read_wamit
   import capytaine as cpt
@@ -194,8 +203,9 @@ See also `this Github issue <https://github.com/capytaine/capytaine/issues/2>`_.
 Saving the rotation center of rigid bodies
 ------------------------------------------
 
-Some software downstream of Capytaine, such as `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_, require the NetCDF file to store the rotation center of each body.
-While this is not yet done automatically by Capytaine, it can be added to the dataset manually as in the following example, which is an extension of the :doc:`quickstart` example::
+Saving rotation hydrodynamic coefficients without explicitly defining the rotation axes can be ambiguous and can lead to confusion downstream.
+While this is not done automatically by Capytaine at the moment, it can be added to the dataset manually.
+The example below, which is an extension of the :doc:`quickstart` example, saves the rotation centers of a multibody problem in a way that is understood notably by `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_::
 
   import numpy as np
   import xarray as xr
@@ -290,3 +300,34 @@ The following code will write files named :code:`RadiationCoefficients.tec` and 
 
 	from capytaine.io.legacy import write_dataset_as_tecplot_files
 	write_dataset_as_tecplot_files("path/to/directory", dataset)
+
+
+Exporting to WAMIT format
+-------------------------
+
+The hydrodynamic results from a Capytaine ``xarray.Dataset`` can be exported into WAMIT-compatible text files (``.1``, ``.3``, ``.3fk``, ``.3sc``, ``.hst``) using::
+
+    from capytaine.io.wamit import export_to_wamit
+    export_to_wamit(dataset, "problem_name", exports=("1", "3", "3fk", "3sc", "hst"))
+
+This will produce the following files (depending on the fields present in the dataset):
+
+* ``problem_name.1`` for added mass and radiation damping coefficients,
+
+* ``problem_name.3`` for total excitation forces (Froude-Krylov + diffraction),
+
+* ``problem_name.3fk`` for Froude-Krylov forces only,
+
+* ``problem_name.3sc`` for diffraction forces only.
+
+* ``problem_name.hst`` for hydrostatics results (if supported)
+
+Invalid or unavailable exports are skipped with a warning.
+
+The length scale used for normalization in WAMIT data is taken by default as
+:math:`1` meter.
+
+.. note::
+    These exports require that the ``forward_speed`` in the dataset is zero.
+    If not, a ``ValueError`` is raised to avoid exporting inconsistent results.
+

@@ -4,12 +4,12 @@ Resolution
 
 Settings of the solver
 ----------------------
-The :class:`~capytaine.bem.solver.BEMSolver` class takes two (keyword-only) arguments at the time of its initialization::
+The :class:`~capytaine.bem.solver.BEMSolver` class takes three (keyword-only) arguments at the time of its initialization::
 
     from capytaine import BEMSolver
-    solver = BEMSolver(green_function=..., engine=...)
+    solver = BEMSolver(green_function=..., engine=..., method=...)
 
-Let us discuss in more details these two objects.
+Let us discuss in more details these parameters.
 
 Green function
 ~~~~~~~~~~~~~~
@@ -42,22 +42,34 @@ The following classes are available:
                             tabulation_nb_integration_points=251,
                             tabulation_grid_shape="legacy",
                             finite_depth_method="legacy",
+                            finite_depth_prony_decomposition_method="fortran",
                             gf_singularities="high_freq")
 
         # Default in Capytaine 2.1
         gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
                             tabulation_nz=372, tabulation_zmin=-251,
-                            tabulation_nb_integration_points=1000,
+                            tabulation_nb_integration_points=1001,
                             tabulation_grid_shape="scaled_nemoh3",
                             finite_depth_method="legacy",
+                            finite_depth_prony_decomposition_method="fortran",
                             gf_singularities="high_freq")
 
         # Default in Capytaine 2.2
         gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
                             tabulation_nz=372, tabulation_zmin=-251,
-                            tabulation_nb_integration_points=1000,
+                            tabulation_nb_integration_points=1001,
                             tabulation_grid_shape="scaled_nemoh3",
                             finite_depth_method="legacy",
+                            finite_depth_prony_decomposition_method="fortran",
+                            gf_singularities="low_freq")
+
+        # Default in Capytaine 2.3
+        gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
+                            tabulation_nz=372, tabulation_zmin=-251,
+                            tabulation_nb_integration_points=1001,
+                            tabulation_grid_shape="scaled_nemoh3",
+                            finite_depth_method="newer",
+                            finite_depth_prony_decomposition_method="python",
                             gf_singularities="low_freq")
 
    In version 2.1, the default numbers of :math:`r` and :math:`z` values have
@@ -73,6 +85,9 @@ The following classes are available:
    expected to be more accurate at low frequency and near the free surface. The
    former variant is still available by setting the ``gf_singularities``
    parameter as in the above example.
+
+   In version 2.3, some better variants to compute the finite depth Green
+   function were introduced.
 
    The first time it is initialize with a given set of parameters, some tabulated
    data are precomputed and stored on disk.
@@ -175,23 +190,10 @@ Two of them are available in the present version:
       Parameters of the Adaptive Cross Approximation (ACA) used to set the
       precision of the low-rank matrices.
 
+Method
+~~~~~~
 
-Solving the problem
--------------------
-
-Once the solver has been initialized, it can be used to solve problems with the
-:meth:`~capytaine.bem.solver.BEMSolver.solve` method::
-
-	result = solver.solve(problem, keep_details=False, method="indirect")
-
-The optional argument :code:`keep_details` (default value: :code:`True`)
-controls whether the source and potential distributions should be saved in the
-result object. These data are necessary for some post-processing such as the
-computation of the Kochin function or the reconstruction of the free surface
-elevation. However, when only the force on the body is of interest, they can be
-discarded to save space in memory.
-
-The optional argument :code:`method` (default value: :code:`"indirect"`) controls
+The argument :code:`method` (default value: :code:`"indirect"`) controls
 the approach employed to solve for the potential velocity solutions.
 Two methods are implemented:
 
@@ -206,12 +208,42 @@ for the computation of the forces on the floating body without forward speed.
 Any other post-processing (e.g. free surface elevation) and forward speed
 currently require the indirect method.
 
+Since v2.3, the method is a parameter of :class:`~capytaine.bem.solver.BEMSolver`.
+For backward compatibility, it can also be passed to
+:meth:`~capytaine.bem.solver.BEMSolver.solve`,
+:meth:`~capytaine.bem.solver.BEMSolver.solve_all` and
+:meth:`~capytaine.bem.solver.BEMSolver.fill_dataset`, then overriding the
+general setting of the solver.
+
+
+Solving the problem
+-------------------
+
+Once the solver has been initialized, it can be used to solve problems with the
+:meth:`~capytaine.bem.solver.BEMSolver.solve` method::
+
+	result = solver.solve(problem, keep_details=False)
+
+The optional argument :code:`keep_details` (default value: :code:`True`)
+controls whether the source and potential distributions should be saved in the
+result object. These data are necessary for some post-processing such as the
+computation of the Kochin function or the reconstruction of the free surface
+elevation. However, when only the force on the body is of interest, they can be
+discarded to save space in memory.
+
+
 A list of problems can be solved at once in an optimal order with::
 
-	list_of_results = solver.solve_all(list_of_problems, keep_details=False, method="indirect")
+	list_of_results = solver.solve_all(list_of_problems, keep_details=False)
 
 where :meth:`~capytaine.bem.solver.BEMSolver.solve_all` accepts the same
 optional keyword arguments as :meth:`~capytaine.bem.solver.BEMSolver.solve`.
+
+When using :meth:`~capytaine.bem.solver.BEMSolver.solve_all`, a single problem
+raising an error do not interrupt the full resolution. Instead, the error is
+displayed in the log and the output result is replaced by a
+:class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or a
+:class:`~capytaine.bem.problems_and_results.FailedRadiationResult`.
 
 Progress bar
 ------------

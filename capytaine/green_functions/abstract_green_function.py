@@ -8,8 +8,15 @@ import numpy as np
 
 from capytaine.meshes.interface import MeshLike
 
+
+class GreenFunctionEvaluationError(Exception):
+    pass
+
+
 class AbstractGreenFunction(ABC):
     """Abstract method to evaluate the Green function."""
+
+    floating_point_precision: str
 
     def _get_colocation_points_and_normals(self, mesh1, mesh2, adjoint_double_layer):
         if isinstance(mesh1, MeshLike):
@@ -38,9 +45,18 @@ class AbstractGreenFunction(ABC):
 
         return collocation_points, early_dot_product_normals
 
-    def _init_matrices(self, shape, dtype, early_dot_product):
-        S = np.empty(shape, order="F", dtype=dtype)
-        K = np.empty((shape[0], shape[1], 1 if early_dot_product else 3), order="F", dtype=dtype)
+    def _init_matrices(self, shape, early_dot_product):
+        if self.floating_point_precision == "float32":
+            dtype = "complex64"
+        elif self.floating_point_precision == "float64":
+            dtype = "complex128"
+        else:
+            raise NotImplementedError(
+                    f"Unsupported floating point precision: {self.floating_point_precision}"
+                    )
+
+        S = np.zeros(shape, order="F", dtype=dtype)
+        K = np.zeros((shape[0], shape[1], 1 if early_dot_product else 3), order="F", dtype=dtype)
         return S, K
 
     @abstractmethod
