@@ -1,5 +1,5 @@
 ==============
-Export Outputs
+Export outputs
 ==============
 
 Saving the dataset as NetCDF file
