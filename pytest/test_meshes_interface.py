@@ -2,7 +2,7 @@ import numpy as np
 import xarray as xr
 import capytaine as cpt
 
-from capytaine.meshes.interface import MeshLike
+from capytaine.meshes.mesh_like_protocol import MeshLike
 
 
 def test_existing_classes_are_meshlike():

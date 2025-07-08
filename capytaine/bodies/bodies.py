@@ -10,7 +10,7 @@ from functools import cached_property, lru_cache
 import numpy as np
 import xarray as xr
 
-from capytaine.meshes.interface import MeshLike
+from capytaine.meshes.mesh_like_protocol import MeshLike
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation
 from capytaine.meshes.properties import connected_components, connected_components_of_waterline

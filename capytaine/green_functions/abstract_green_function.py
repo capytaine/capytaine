@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from capytaine.meshes.interface import MeshLike
+from capytaine.meshes.mesh_like_protocol import MeshLike
 
 
 class GreenFunctionEvaluationError(Exception):
