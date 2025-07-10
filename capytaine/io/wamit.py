@@ -119,7 +119,7 @@ def export_wamit_1(
     if "added_mass" not in dataset or "radiation_damping" not in dataset:
         raise ValueError("Missing 'added_mass' or 'radiation_damping' in dataset")
 
-    forward_speed = dataset["forward_speed"].values
+    forward_speed = dataset["forward_speed"].item()
     if not np.isclose(forward_speed, 0.0):
         raise ValueError("Forward speed must be zero for WAMIT export.")
 
@@ -130,16 +130,29 @@ def export_wamit_1(
     damping = dataset["radiation_damping"]
     dofs = list(added_mass.coords["influenced_dof"].values)
 
+    ##TODO: find better solution for this
+    # Determine main frequency selection coordinate
+    if "omega" in added_mass.dims and "omega" in damping.dims:
+        freq_coord = "omega"
+        freqs = omegas
+    elif "period" in added_mass.dims and "period" in damping.dims:
+        freq_coord = "period"
+        freqs = periods
+    else:
+        raise ValueError(
+            "Neither 'omega' nor 'period' is a shared dimension in the dataset."
+        )
+
     omega_blocks = {"inf": [], "zero": [], "regular": []}
 
-    for omega, period in zip(omegas, periods):
+    for omega, period, freq in zip(omegas, periods, freqs):
         for dof_i in dofs:
             for dof_j in dofs:
                 A = added_mass.sel(
-                    omega=omega, influenced_dof=dof_i, radiating_dof=dof_j
+                    {freq_coord: freq, "influenced_dof": dof_i, "radiating_dof": dof_j}
                 ).item()
                 B = damping.sel(
-                    omega=omega, influenced_dof=dof_i, radiating_dof=dof_j
+                    {freq_coord: freq, "influenced_dof": dof_i, "radiating_dof": dof_j}
                 ).item()
                 j_dof, i_dof, k = get_dof_index_and_k(dof_i, dof_j)
                 norm = rho * (length_scale**k)
@@ -186,9 +199,10 @@ def _format_excitation_line(
     force_conj = np.conj(force)
     mod_f = np.abs(force_conj)
     phi_f = np.degrees(np.angle(force_conj))
-    return "{:12.6e}\t{:12.6f}\t{:5d}\t{:12.6e}\t{:12.3f}\t{:12.6e}\t{:12.6e}\n".format(
+    char = "{:12.6e}\t{:12.6f}\t{:5d}\t{:12.6e}\t{:12.3f}\t{:12.6e}\t{:12.6e}\n".format(
         period, beta_deg, i_dof, mod_f, phi_f, force_conj.real, force_conj.imag
     )
+    return char
 
 
 def _write_wamit_excitation_line(
@@ -207,41 +221,63 @@ def _write_wamit_excitation_line(
 
     Parameters
     ----------
-    f: TextIO
-        File object to write to.
-    period: float
+    f : TextIO
+        Output file object.
+    period : float
         Wave period.
-    omega: float
-        Wave frequency.
-    beta: float
+    omega : float
+        Wave frequency (rad/s).
+    beta : float
         Wave direction (radians).
-    dof: str
-        Degree of freedom.
-    field: xarray.DataArray
-        Field containing the excitation forces.
-    rho: float
-        Water density.
-    g: float
-        Gravitational acceleration.
-    wave_amplitude: float
-        Wave amplitude.
-    length_scale: float
-        Length scale for normalization.
+    dof : str
+        Degree of freedom (e.g., 'Surge', 'Heave', etc.).
+    field : xarray.DataArray
+        Complex-valued force field from the dataset.
+    rho : float
+        Water density (kg/m³).
+    g : float
+        Gravitational acceleration (m/s²).
+    wave_amplitude : float
+        Amplitude of the incoming wave.
+    length_scale : float
+        Normalization length scale.
 
     Raises
     ------
     KeyError
-        If the degree of freedom is not recognized.
+        If the DOF is not recognized.
+    ValueError
+        If neither 'omega' nor 'period' is a dimension in the field.
     """
     beta_deg = np.degrees(beta)
     i_dof = DOF_INDEX.get(dof)
     if i_dof is None:
-        raise KeyError(f"DOF '{dof}' is not recognized in DOF_INDEX mapping.")
-    force = field.sel(omega=omega, wave_direction=beta, influenced_dof=dof).item()
+        raise KeyError(f"DOF '{dof}' is not recognized in DOF_INDEX.")
+
+    # Determine which frequency coordinate is used
+    if "omega" in field.dims:
+        time_key = "omega"
+        time_value = omega
+    elif "period" in field.dims:
+        time_key = "period"
+        time_value = period
+    else:
+        raise ValueError(
+            "Neither 'omega' nor 'period' is a dimension in the force field."
+        )
+
+    # Select the corresponding value
+    force = field.sel(
+        {time_key: time_value, "wave_direction": beta, "influenced_dof": dof}
+    ).item()
+
+    # Normalize
     dof_type = DOF_TYPE.get(dof, "trans")
     m = 2 if dof_type == "trans" else 3
     norm = rho * g * wave_amplitude * (length_scale**m)
     force_normalized = force / norm
+
+    # Format and write the line
     line = _format_excitation_line(period, beta_deg, i_dof, force_normalized)
     f.write(line)
 
@@ -275,7 +311,7 @@ def _export_wamit_excitation_force(
     field = dataset[field_name]
     periods = dataset["period"].values
     omegas = dataset["omega"].values
-    rho = dataset["rho"].values
+    rho = dataset["rho"].item()
     g = dataset["g"].values
 
     betas = field.coords["wave_direction"].values
@@ -369,7 +405,9 @@ def export_to_wamit(
 
     for key in exports:
         if key not in export_map:
-            logger.warning(f"Export to WAMIT format: unknown option '{key}' — skipping.")
+            logger.warning(
+                f"Export to WAMIT format: unknown option '{key}' — skipping."
+            )
             continue
 
         description, func, ext = export_map[key]
