@@ -124,8 +124,8 @@ def export_wamit_1(
         raise ValueError("Forward speed must be zero for WAMIT export.")
 
     rho = dataset["rho"].item()
-    omegas = dataset["omega"].values
-    periods = dataset["period"].values
+    omegas = np.asarray(dataset["omega"].values)
+    periods = np.asarray(dataset["period"].values)
     added_mass = dataset["added_mass"]
     damping = dataset["radiation_damping"]
     dofs = list(added_mass.coords["influenced_dof"].values)
@@ -291,6 +291,9 @@ def _export_wamit_excitation_force(
 ):
     """
     Generic exporter for excitation-like forces in WAMIT .3-style format.
+
+    Format:
+        PER     BETA    I     Fmagnitude  Fphase  Freal  Fimaginary
 
     Parameters
     ----------
