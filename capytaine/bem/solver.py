@@ -127,15 +127,15 @@ class BEMSolver:
             self._check_wavelength_and_mesh_resolution([problem])
             self._check_wavelength_and_irregular_frequencies([problem])
 
-            if isinstance(problem, DiffractionProblem) and float(problem.encounter_omega) in {0.0, np.inf}:
-                raise ValueError("Diffraction problems at zero or infinite frequency are not defined")
-                # This error used to be raised when initializing the problem.
-                # It is now raised here, in order to be catchable by
-                # _solve_and_catch_errors, such that batch resolution
-                # can include this kind of problems without the full batch
-                # failing.
-                # Note that if this error was not raised here, the resolution
-                # would still fail with a less explicit error message.
+        if isinstance(problem, DiffractionProblem) and float(problem.encounter_omega) in {0.0, np.inf}:
+            raise ValueError("Diffraction problems at zero or infinite frequency are not defined")
+            # This error used to be raised when initializing the problem.
+            # It is now raised here, in order to be catchable by
+            # _solve_and_catch_errors, such that batch resolution
+            # can include this kind of problems without the full batch
+            # failing.
+            # Note that if this error was not raised here, the resolution
+            # would still fail with a less explicit error message.
 
         if problem.forward_speed != 0.0:
             omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
