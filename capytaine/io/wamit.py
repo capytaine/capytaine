@@ -132,7 +132,19 @@ def export_wamit_1(
 
     omega_blocks = {"inf": [], "zero": [], "regular": []}
 
-    for omega, period in zip(omegas, periods):
+    # Identify regular frequencies (finite, > 0)
+    regular_mask = np.isfinite(omegas) & (omegas > 0)
+    regular_freqs = freqs[regular_mask]
+    regular_omegas = omegas[regular_mask]
+    regular_periods = periods[regular_mask]
+
+    # Sort by increasing period
+    sorted_indices = np.argsort(regular_periods)
+    sorted_freqs = regular_freqs[sorted_indices]
+    sorted_omegas = regular_omegas[sorted_indices]
+    sorted_periods = regular_periods[sorted_indices]
+
+    for omega, period, freq in zip(sorted_omegas, sorted_periods, sorted_freqs):
         for dof_i in dofs:
             for dof_j in dofs:
                 A = added_mass.sel(
@@ -144,17 +156,9 @@ def export_wamit_1(
                 j_dof, i_dof, k = get_dof_index_and_k(dof_i, dof_j)
                 norm = rho * (length_scale**k)
                 A_norm = A / norm
-
-                if np.isinf(omega):
-                    line = f"{-1.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n"
-                    omega_blocks["inf"].append(line)
-                elif np.isclose(omega, 0.0):
-                    line = f"{0.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n"
-                    omega_blocks["zero"].append(line)
-                else:
-                    B_norm = B / (omega * norm)
-                    line = f"{period:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\t{B_norm:12.6e}\n"
-                    omega_blocks["regular"].append(line)
+                B_norm = B / (omega * norm)
+                line = f"{period:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\t{B_norm:12.6e}\n"
+                omega_blocks["regular"].append(line)
 
     with open(filename, "w") as f:
         f.writelines(omega_blocks["inf"])
@@ -284,6 +288,10 @@ def _export_wamit_excitation_force(
     betas = field.coords["wave_direction"].values
     dofs = list(field.coords["influenced_dof"].values)
 
+    sorted_indices = np.argsort(periods)
+    periods = periods[sorted_indices]
+    omegas = omegas[sorted_indices]
+
     with open(filename, "w") as f:
         for period, omega in zip(periods, omegas):
             # TODO: So far, we skip omega=0 and omega=inf for .3-style exports
@@ -372,7 +380,9 @@ def export_to_wamit(
 
     for key in exports:
         if key not in export_map:
-            logger.warning(f"Export to WAMIT format: unknown option '{key}' — skipping.")
+            logger.warning(
+                f"Export to WAMIT format: unknown option '{key}' — skipping."
+            )
             continue
 
         description, func, ext = export_map[key]
