@@ -119,8 +119,7 @@ def export_wamit_1(
     if "added_mass" not in dataset or "radiation_damping" not in dataset:
         raise ValueError("Missing 'added_mass' or 'radiation_damping' in dataset")
 
-    forward_speed = dataset["forward_speed"].values
-    if not np.isclose(forward_speed, 0.0):
+    if not np.isclose(dataset["forward_speed"].item(), 0.0):
         raise ValueError("Forward speed must be zero for WAMIT export.")
 
     rho = dataset["rho"].item()
@@ -130,53 +129,46 @@ def export_wamit_1(
     damping = dataset["radiation_damping"]
     dofs = list(added_mass.coords["influenced_dof"].values)
 
-    # TODO: find better solution for this
-    # Determine main frequency selection coordinate
-    if "omega" in added_mass.dims and "omega" in damping.dims:
-        freq_coord = "omega"
-        freqs = omegas
-    elif "period" in added_mass.dims and "period" in damping.dims:
-        freq_coord = "period"
-        freqs = periods
-    else:
-        raise ValueError(
-            "Neither 'omega' nor 'period' is a shared dimension in the dataset."
-        )
+    period_blocks = {
+        "T_zero": [],  # period = 0    <=> omega = inf
+        "T_inf": [],  # period = inf  <=> omega = 0
+        "T_regular": [],  # 0 < period < inf
+    }
 
-    omega_blocks = {"inf": [], "zero": [], "regular": []}
-
-    # Identify regular frequencies (finite, > 0)
-    regular_mask = np.isfinite(omegas) & (omegas > 0)
-    regular_freqs = freqs[regular_mask]
-    regular_omegas = omegas[regular_mask]
-    regular_periods = periods[regular_mask]
-
-    # Sort by increasing period
-    sorted_indices = np.argsort(regular_periods)
-    sorted_freqs = regular_freqs[sorted_indices]
-    sorted_omegas = regular_omegas[sorted_indices]
-    sorted_periods = regular_periods[sorted_indices]
-
-    for omega, period, freq in zip(sorted_omegas, sorted_periods, sorted_freqs):
+    for omega, period in zip(omegas, periods):
         for dof_i in dofs:
             for dof_j in dofs:
                 A = added_mass.sel(
                     omega=omega, influenced_dof=dof_i, radiating_dof=dof_j
                 ).item()
-                B = damping.sel(
-                    omega=omega, influenced_dof=dof_i, radiating_dof=dof_j
-                ).item()
                 j_dof, i_dof, k = get_dof_index_and_k(dof_i, dof_j)
                 norm = rho * (length_scale**k)
                 A_norm = A / norm
-                B_norm = B / (omega * norm)
-                line = f"{period:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\t{B_norm:12.6e}\n"
-                omega_blocks["regular"].append(line)
+
+                if np.isclose(period, 0.0):
+                    # omega = inf
+                    line = f"{-1.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n"
+                    period_blocks["T_zero"].append(line)
+                elif np.isinf(period):
+                    # omega = 0
+                    line = f"{0.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n"
+                    period_blocks["T_inf"].append(line)
+                else:
+                    B = damping.sel(
+                        omega=omega, influenced_dof=dof_i, radiating_dof=dof_j
+                    ).item()
+                    B_norm = B / (omega * norm)
+                    line = f"{period:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\t{B_norm:12.6e}\n"
+                    period_blocks["T_regular"].append((period, line))
+
+    # Sort regular lines by increasing period
+    sorted_regular = sorted(period_blocks["T_regular"], key=lambda t: t[0])
+    sorted_lines = [line for _, line in sorted_regular]
 
     with open(filename, "w") as f:
-        f.writelines(omega_blocks["inf"])
-        f.writelines(omega_blocks["zero"])
-        f.writelines(omega_blocks["regular"])
+        f.writelines(period_blocks["T_zero"])
+        f.writelines(period_blocks["T_inf"])
+        f.writelines(sorted_lines)
 
 
 def _format_excitation_line(
