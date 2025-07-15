@@ -3,8 +3,10 @@ Export outputs
 ==============
 
 
-The ``Dataset`` output format is a standard object from Xarray and all methods from `https://docs.xarray.dev/en/stable/user-guide/io.html`_ can be used to manipulate and export it.
+The ``Dataset`` output format is a standard object from Xarray and all methods from `Xarray's manual <https://docs.xarray.dev/en/stable/user-guide/io.html>`_ can be used to manipulate and export it.
 On top of that, Capytaine provides some wrappers functions to simplify the export into a NetCDF file, as well as into other formats more specific to hydrodynamics.
+
+.. contents:: Contents
 
 Exporting hydrodynamic dataset
 ------------------------------
@@ -31,9 +33,8 @@ The xarray dataset produced by :func:`assemble_dataset <capytaine.io.xarray.asse
 
 .. note::
     Exporting more outputs such as pressure field on the hull in a NetCDF
-    file is begin considered in the future.
-    See https://github.com/capytaine/capytaine/issue/??? for some example of
-    such outputs.
+    file is considered in the future.
+    See https://github.com/capytaine/capytaine/issues/520 for examples of such outputs.
 
 Wamit format
 ~~~~~~~~~~~~
@@ -69,6 +70,9 @@ Nemoh format
 The following code will write files named :code:`RadiationCoefficients.tec` and :code:`ExcitationForce.tec` in a format roughly matching the one of Nemoh 2::
 
     cpt.save_dataset("path/to/result_dir/", dataset, format="nemoh")
+
+This feature is still experimental. Please report issues encountered with this.
+
 
 Excel format
 ~~~~~~~~~~~~
