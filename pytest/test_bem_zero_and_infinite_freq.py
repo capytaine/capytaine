@@ -190,11 +190,11 @@ def test_froude_krylov_is_nan_at_limit_freq(omega, water_depth):
     )
     assert np.all(np.isnan(froude_krylov_force(pb)['Surge']))
 
-###########################################
-#  Fill datasets with limite frequencies  #
-###########################################
+##########################################
+#  Fill datasets with limit frequencies  #
+##########################################
 
-def test_dataset_with_limit_frequency_including_radiation_and_diffraction():
+def test_dataset_with_limit_frequency_including_radiation_and_diffraction(caplog):
     sphere = make_simple_body()
     test_matrix = xr.Dataset(coords={
         'omega': [0.0, 1.0, np.inf],
@@ -202,10 +202,11 @@ def test_dataset_with_limit_frequency_including_radiation_and_diffraction():
         'radiating_dof': list(sphere.dofs),
     })
     solver = cpt.BEMSolver()
-    ds = solver.fill_dataset(test_matrix, sphere)
+    with caplog.at_level("ERROR"):
+        ds = solver.fill_dataset(test_matrix, sphere)
     assert np.all(np.isnan(ds.diffraction_force.sel(omega=0.0)))
     assert not np.any(np.isnan(ds.diffraction_force.sel(omega=1.0)))
     assert np.all(np.isnan(ds.diffraction_force.sel(omega=np.inf)))
     assert not np.any(np.isnan(ds.added_mass))
     assert not np.any(np.isnan(ds.radiation_damping))
-
+    assert "Diffraction problems at zero or infinite frequency are not defined" in caplog.text
