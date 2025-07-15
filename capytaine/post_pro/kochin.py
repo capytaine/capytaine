@@ -1,6 +1,6 @@
 """Computation of the Kochin function."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
 import numpy as np
@@ -29,9 +29,9 @@ def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
         LOG.warning("Kochin functions with forward speed have never been validated.")
 
     if result.sources is None:
-        raise Exception(f"""The values of the sources of {result} cannot been found.
-        They probably have not been stored by the solver because the option keep_details=True have not been set.
-        Please re-run the resolution with this option.""")
+        raise ValueError(f"""The values of the sources of {result} cannot been found.
+        They have not been stored by the solver either because the direct method has been used or the option keep_details=True have not been set.
+        Please re-run the resolution with `method='indirect'` and `keep_details=True`.""")
 
     k = result.wavenumber
     h = result.water_depth

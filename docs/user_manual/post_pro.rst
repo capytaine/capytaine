@@ -53,7 +53,7 @@ Recall that the potential and the pressure are related by :math:`p = j \rho
 angular frequency.
 
 The potential, the pressure and the velocity in the rest of the fluid can be
-computed in post-processing as described in :doc:`post_pro`.
+computed in post-processing as described below.
 
 When using the indirect boundary integral equation (by default), the result
 object with details also contains the distribution of sources :math:`\sigma` on
@@ -237,3 +237,20 @@ amplitude operator (RAO)::
     from capytaine.post_pro import rao
     rao = rao(data)
 
+Kochin functions
+----------------
+
+The function :func:`~capytaine.post_pro.kochin.compute_kochin` can compute the
+Kochin function of the waves for a
+:class:`~capytaine.bem.problems_and_results.LinearPotentialFlowResult`
+containing the source distribution (that is, if it has been solved with the
+indirect method)::
+
+    from capytaine.post_pro.kochin import compute_kochin
+    thetas = np.linspace(0, 2*np.pi, 20)
+    kochin_values = compute_kochin(result, thetas)
+
+Alternatively, if the ``test_matrix`` of
+:func:`~capytaine.bem.solver.BEMSolver.fill_dataset` contains a coordinate called
+``theta``, it is used to compute the Kochin function of all solved problems
+(see cookbook example).
