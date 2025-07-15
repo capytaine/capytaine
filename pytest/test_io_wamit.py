@@ -129,7 +129,7 @@ def test_export_wamit_omega_inf(full_dataset, tmpdir):
     ), f"Expected {expected_lines} data lines, found {len(data_lines)}."
 
 
-def test_export_wamit_hydrostatics(full_dataset, tmpdir):
+def test_export_wamit_hydrostatic(full_dataset, tmpdir):
     """
     Test a simulation with multiple classic omega values, export hydrostatics to WAMIT, and check the .hst file:
     - The file must exist
