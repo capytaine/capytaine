@@ -650,6 +650,16 @@ def save_dataset(filename, dataset, format=None):
             (format is None and str(filename).endswith(".nc"))
             ):
         save_dataset_as_netcdf(filename, dataset)
+    elif (
+            (format is not None and format.lower() == "wamit")
+            ):
+        from capytaine.io.wamit import export_to_wamit
+        export_to_wamit(dataset, filename)
+    elif (
+            (format is not None and format.lower() == "nemoh")
+            ):
+        from capytaine.io.legacy import write_dataset_as_tecplot_files
+        write_dataset_as_tecplot_files(filename, dataset)
     else:
         raise ValueError("`save_dataset` could not infer export format based on filename or `format` argument.\n"
                          f"provided filename: {filename}\nprovided format: {format}")

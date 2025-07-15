@@ -2,6 +2,9 @@
 Export outputs
 ==============
 
+The ``Dataset`` output format is a standard object from Xarray and all methods from `https://docs.xarray.dev/en/stable/user-guide/io.html`_ can be used to manipulate and export it.
+On top of that, Capytaine provides some wrappers functions to simplify the export into a NetCDF file, as well as into other formats more specific to hydrodynamics.
+
 Saving the dataset as NetCDF file
 ---------------------------------
 
