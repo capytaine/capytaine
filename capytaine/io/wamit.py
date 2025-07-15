@@ -41,6 +41,105 @@ def get_dof_index_and_k(dof_i: str, dof_j: str) -> Tuple[int, int, int]:
     return i, j, k
 
 
+def check_dataset_ready_for_export(ds: xarray.Dataset) -> None:
+    """
+    Sanity checks to validate that the dataset is exportable to BEMIO/WAMIT-like formats.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        The dataset to be validated.
+
+    Raises
+    ------
+    ValueError
+        If any unsupported coordinate has multiple values or
+        if non-rigid-body DOFs are present.
+    """
+    # 1. Check for singleton coordinates
+    critical_coords = ["water_depth", "g", "rho"]
+    coords_with_multiple_values = [
+        k
+        for k in critical_coords
+        if k in ds.coords and len(ds.coords[k].dims) > 0 and ds.sizes[k] > 1
+    ]
+
+    if coords_with_multiple_values:
+        msg = (
+            "Export formats like WAMIT require only one value for each of the following coordinates: "
+            f"{', '.join(critical_coords)}.\n"
+            f"Problematic dimensions: {coords_with_multiple_values}.\n"
+            "You can extract a subset using:\n"
+            f"    ds_slice = ds.sel({', '.join([f'{k}={repr(ds.coords[k].values[0])}' for k in coords_with_multiple_values])})"
+        )
+        raise ValueError(msg)
+
+    # 2. Check for rigid-body DOFs only
+    rigid_body_dofs = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"}
+    if "influenced_dof" in ds.coords:
+        dofs = set(ds.influenced_dof.values)
+        non_rigid_dofs = dofs.difference(rigid_body_dofs)
+        if non_rigid_dofs:
+            raise ValueError(
+                "Export is only supported for rigid body DOFs.\n"
+                f"Unexpected DOFs: {sorted(non_rigid_dofs)}.\n"
+                f"Allowed DOFs: {sorted(rigid_body_dofs)}"
+            )
+
+
+def identify_frequency_axis(
+    dataset: xarray.Dataset | xarray.DataArray,
+) -> tuple[str, np.ndarray, np.ndarray]:
+    """
+    Identify the frequency axis in the dataset and return its values along with the periods.
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset or xarray.DataArray
+        Dataset that must include 'period' and one of:
+        'omega', 'freq', 'period', 'wavenumber', or 'wavelength'.
+
+    Returns
+    -------
+    freq_key : str
+        The name of the main frequency-like coordinate.
+    freq_vals : np.ndarray
+        The values from the frequency coordinate (as present in the dataset).
+    period_vals : np.ndarray
+        The values of the 'period' coordinate in seconds.
+
+    Raises
+    ------
+    ValueError
+        If 'period' is missing or if multiple frequency-like keys are found.
+    """
+    allowed_keys = {"omega", "freq", "wavenumber", "wavelength", "period"}
+    dataset_dims = set(dataset.dims)
+    keys_in_dataset = dataset_dims & allowed_keys
+
+    if "period" not in dataset:
+        raise ValueError("Dataset must contain a 'period' coordinate.")
+
+    if len(keys_in_dataset) == 0:
+        raise ValueError(
+            "Dataset must contain at least one of the following dimensions: "
+            "'omega', 'freq', 'period', 'wavenumber', or 'wavelength'."
+        )
+
+    if len(keys_in_dataset) > 1:
+        raise ValueError(
+            "Ambiguous frequency axis. Only one of the following is allowed: "
+            "'omega', 'freq', 'period', 'wavenumber', or 'wavelength'.\n"
+            f"Found: {sorted(keys_in_dataset)}"
+        )
+
+    freq_key = keys_in_dataset.pop()
+    freq_vals = np.asarray(dataset[freq_key].values)
+    period_vals = np.asarray(dataset["period"].values)
+
+    return freq_key, freq_vals, period_vals
+
+
 def export_wamit_hst(
     dataset: xarray.Dataset, filename: str, length_scale: float = 1.0
 ) -> None:
@@ -105,59 +204,69 @@ def export_wamit_1(
     Parameters
     ----------
     dataset: xarray.Dataset
-        Must contain 'added_mass', 'radiation_damping', 'omega', 'period'.
+        Must contain 'added_mass', 'radiation_damping', and either 'omega' or 'period'.
     filename: str
-        Path to output .1 file.
+        Output .1 file.
     length_scale: float
-        Reference length scale (L) for normalization.
+        Reference length scale (L) used for normalization.
 
     Raises
     ------
     ValueError
-        If the data are missing in the dataset or if forward speed is not zero
+        If required fields are missing or forward speed is not zero.
     """
     if "added_mass" not in dataset or "radiation_damping" not in dataset:
-        raise ValueError("Missing 'added_mass' or 'radiation_damping' in dataset")
+        raise ValueError("Missing 'added_mass' or 'radiation_damping' in dataset.")
 
     if not np.isclose(dataset["forward_speed"].item(), 0.0):
         raise ValueError("Forward speed must be zero for WAMIT export.")
 
     rho = dataset["rho"].item()
-    omegas = np.asarray(dataset["omega"].values)
-    periods = np.asarray(dataset["period"].values)
     added_mass = dataset["added_mass"]
     damping = dataset["radiation_damping"]
     dofs = list(added_mass.coords["influenced_dof"].values)
 
+    # Determine main frequency coordinate
+    freq_key, freq_vals, period_vals = identify_frequency_axis(dataset=added_mass)
+
+    # Separate lines into blocks depending on period type
     period_blocks = {
-        "T_zero": [],  # period = 0    <=> omega = inf
-        "T_inf": [],  # period = inf  <=> omega = 0
-        "T_regular": [],  # 0 < period < inf
+        "T_zero": [],  # period == 0    → omega = inf  → PER = -1
+        "T_inf": [],  # period == inf  → omega = 0    → PER = 0
+        "T_regular": [],  # finite, non-zero periods
     }
 
-    for omega, period in zip(omegas, periods):
+    for freq_val, period in zip(freq_vals, period_vals):
         for dof_i in dofs:
             for dof_j in dofs:
-                A = added_mass.sel(
-                    omega=omega, influenced_dof=dof_i, radiating_dof=dof_j
-                ).item()
                 j_dof, i_dof, k = get_dof_index_and_k(dof_i, dof_j)
+                A = added_mass.sel(
+                    {
+                        freq_key: freq_val,
+                        "influenced_dof": dof_i,
+                        "radiating_dof": dof_j,
+                    }
+                ).item()
                 norm = rho * (length_scale**k)
                 A_norm = A / norm
 
                 if np.isclose(period, 0.0):
-                    # omega = inf
+                    # Case PER = -1 (omega = inf)
                     line = f"{-1.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n"
                     period_blocks["T_zero"].append(line)
                 elif np.isinf(period):
-                    # omega = 0
+                    # Case PER = 0 (omega = 0)
                     line = f"{0.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n"
                     period_blocks["T_inf"].append(line)
                 else:
                     B = damping.sel(
-                        omega=omega, influenced_dof=dof_i, radiating_dof=dof_j
+                        {
+                            freq_key: freq_val,
+                            "influenced_dof": dof_i,
+                            "radiating_dof": dof_j,
+                        }
                     ).item()
-                    B_norm = B / (omega * norm)
+                    B_norm = B / (freq_val * norm)
                     line = f"{period:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\t{B_norm:12.6e}\n"
                     period_blocks["T_regular"].append((period, line))
 
@@ -165,6 +274,7 @@ def export_wamit_1(
     sorted_regular = sorted(period_blocks["T_regular"], key=lambda t: t[0])
     sorted_lines = [line for _, line in sorted_regular]
 
+    # Write to file
     with open(filename, "w") as f:
         f.writelines(period_blocks["T_zero"])
         f.writelines(period_blocks["T_inf"])
@@ -202,8 +312,9 @@ def _format_excitation_line(
 
 def _write_wamit_excitation_line(
     f: TextIO,
+    freq_key: str,
+    freq_val: float,
     period: float,
-    omega: float,
     beta: float,
     dof: str,
     field: xarray.DataArray,
@@ -212,45 +323,22 @@ def _write_wamit_excitation_line(
     wave_amplitude: float,
     length_scale: float,
 ):
-    """Write a WAMIT excitation line to the file.
-
-    Parameters
-    ----------
-    f: TextIO
-        File object to write to.
-    period: float
-        Wave period.
-    omega: float
-        Wave frequency.
-    beta: float
-        Wave direction (radians).
-    dof: str
-        Degree of freedom.
-    field: xarray.DataArray
-        Field containing the excitation forces.
-    rho: float
-        Water density.
-    g: float
-        Gravitational acceleration.
-    wave_amplitude: float
-        Wave amplitude.
-    length_scale: float
-        Length scale for normalization.
-
-    Raises
-    ------
-    KeyError
-        If the degree of freedom is not recognized.
-    """
+    """Write a single line for WAMIT .3 file format, using freq_key (omega or period)."""
     beta_deg = np.degrees(beta)
     i_dof = DOF_INDEX.get(dof)
     if i_dof is None:
         raise KeyError(f"DOF '{dof}' is not recognized in DOF_INDEX mapping.")
-    force = field.sel(omega=omega, wave_direction=beta, influenced_dof=dof).item()
+
     dof_type = DOF_TYPE.get(dof, "trans")
     m = 2 if dof_type == "trans" else 3
     norm = rho * g * wave_amplitude * (length_scale**m)
+
+    # Select value using appropriate key (omega or period)
+    force = field.sel(
+        {freq_key: freq_val, "wave_direction": beta, "influenced_dof": dof}
+    ).item()
     force_normalized = force / norm
+
     line = _format_excitation_line(period, beta_deg, i_dof, force_normalized)
     f.write(line)
 
@@ -263,19 +351,10 @@ def _export_wamit_excitation_force(
     wave_amplitude: float = 1.0,
 ):
     """
-    Generic exporter for excitation-like forces in WAMIT .3-style format.
+    Export excitation-like forces to a WAMIT .3-style file.
 
     Format:
         PER     BETA    I     Fmagnitude  Fphase  Freal  Fimaginary
-
-    Parameters
-    ----------
-    dataset: xarray.Dataset
-        Dataset containing the desired complex-valued force field.
-    field_name: str
-        Name of the variable in dataset (e.g. "excitation_force", "Froude_Krylov_force").
-    filename: str
-        Output path for the .3/.3fk/.3sc file.
     """
     forward_speed = dataset["forward_speed"].values
     if not np.isclose(forward_speed, 0.0):
@@ -285,37 +364,41 @@ def _export_wamit_excitation_force(
         raise ValueError(f"Missing field '{field_name}' in dataset.")
 
     field = dataset[field_name]
-    periods = dataset["period"].values
-    omegas = dataset["omega"].values
-    rho = dataset["rho"].values
-    g = dataset["g"].values
-
+    rho = dataset["rho"].item()
     betas = field.coords["wave_direction"].values
     dofs = list(field.coords["influenced_dof"].values)
+    water_depth = dataset["water_depth"].item()
+    g = dataset["g"].item()
 
-    sorted_indices = np.argsort(periods)
-    periods = periods[sorted_indices]
-    omegas = omegas[sorted_indices]
+    # Determine main frequency coordinate
+    freq_key, freq_vals, period_vals = identify_frequency_axis(
+        dataset=dataset, water_depth=water_depth, g=g
+    )
+
+    # Sort by increasing period
+    sorted_indices = np.argsort(period_vals)
+    sorted_periods = period_vals[sorted_indices]
+    sorted_freqs = freq_vals[sorted_indices]
 
     with open(filename, "w") as f:
-        for period, omega in zip(periods, omegas):
-            # TODO: So far, we skip omega=0 and omega=inf for .3-style exports
-            # TODO: Check https://www.wamit.com/manual6.4/Chap4.pdf - CH4-13
-            if np.isclose(omega, 0.0) or np.isinf(omega):
+        for freq_val, period in zip(sorted_freqs, sorted_periods):
+            # Skip WAMIT special cases
+            if np.isclose(freq_val, 0.0) or np.isinf(freq_val):
                 continue
             for beta in betas:
                 for dof in dofs:
                     _write_wamit_excitation_line(
-                        f,
-                        period,
-                        omega,
-                        beta,
-                        dof,
-                        field,
-                        rho,
-                        g,
-                        wave_amplitude,
-                        length_scale,
+                        f=f,
+                        freq_key=freq_key,
+                        freq_val=freq_val,
+                        period=period,
+                        beta=beta,
+                        dof=dof,
+                        field=field,
+                        rho=rho,
+                        g=g,
+                        wave_amplitude=wave_amplitude,
+                        length_scale=length_scale,
                     )
 
 
@@ -382,6 +465,7 @@ def export_to_wamit(
         "3sc": ("diffraction force", export_wamit_3sc, ".3sc"),
         "hst": ("hydrostatics", export_wamit_hst, ".hst"),
     }
+    check_dataset_ready_for_export(dataset)
 
     for key in exports:
         if key not in export_map:
