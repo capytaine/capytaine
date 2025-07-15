@@ -45,6 +45,8 @@ Major change
 
 The method is also saved in the metadata of the results with the other parameters of the solver (whether it was defined when initializing the solver or later). (:pull:`686`)
 
+* Add :func:`~capytaine.io.xarray.export_dataset` method to more conveniently export a dataset to NetCDF or other formats (:pull:`690`).
+
 Minor change
 ~~~~~~~~~~~~
 

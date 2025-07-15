@@ -29,7 +29,7 @@ from capytaine.green_functions.hams import LiangWuNoblesseGF, FinGreen3D, HAMS_G
 from capytaine.post_pro.free_surfaces import FreeSurface
 
 from capytaine.io.mesh_loaders import load_mesh
-from capytaine.io.xarray import assemble_dataframe, assemble_dataset, assemble_matrices
+from capytaine.io.xarray import assemble_dataframe, assemble_dataset, assemble_matrices, export_dataset
 
 from capytaine.ui.rich import set_logging
 
