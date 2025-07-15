@@ -129,6 +129,40 @@ depth, and infinite frequency in finite depth (but not zero frequency in finite
 depth).
 
 
+Importing a dataset from Bemio
+------------------------------
+
+A DataFrame or a Dataset can also be created from data structures generated
+using the `Bemio <https://wec-sim.github.io/bemio/>`_ package, which reads
+hydrodynamic output data from NEMOH, WAMIT, and AQWA. This allows for Capytaine
+post-processing of hydrodynamic data generated from other BEM codes.
+
+Bemio does not come packaged with Capytaine and needs to to be installed independently.
+Note that `the base repository of Bemio <https://github.com/WEC-Sim/bemio/>`_ has been
+archived and is only compatible with Python 2.7.x, so using a Python 3 compatible fork is
+recommended, available `here <https://github.com/mancellin/bemio>`_ or installed with::
+
+  pip install git+https://github.com/mancellin/bemio.git
+
+To build the xarray dataset using Capytaine, the output files from the BEM program in
+question must be read into a Bemio :code:`data_structures.ben.HydrodynamicData` class, which is
+then called by `assemble_dataframe` or `assemble_dataset`. For example, to
+create an xarray dataset from a WAMIT :code:`.out` file::
+
+  from bemio.io.wamit import read as read_wamit
+  import capytaine as cpt
+  bemio_data = read_wamit("myfile.out")
+  my_dataset = cpt.assemble_dataset(bemio_data, hydrostatics=False)
+
+.. warning:: The created dataset will only contain quantities that can be directly calculated
+             from the values given in the original dataset. Because of this, there may be minor
+             differences between the variable names in an xarray dataset build with Bemio and one created
+             using :code:`LinearPotentialFlowResult`, even though the format will be identical. For
+             example, WAMIT :code:`.out` files do not contain the radii of gyration needed to calculate
+             the moments of inertia, so the `my_dataset['inertia_matrix']` variable would not be included
+             in the above example since the rigid body mass matrix cannot be calculated.
+
+
 Legacy Nemoh.cal parameters files
 ---------------------------------
 

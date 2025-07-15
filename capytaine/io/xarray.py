@@ -629,7 +629,7 @@ def save_dataset_as_netcdf(filename, dataset):
     ds.to_netcdf(filename, encoding=encoding)
 
 
-def save_dataset(filename, dataset, format=None):
+def save_dataset(filename, dataset, format=None, **kwargs):
     """Save `dataset` into a format, provided by the `format` argument or inferred by the `filename`.
 
     Parameters
@@ -640,6 +640,9 @@ def save_dataset(filename, dataset, format=None):
         Dataset, which is assumed to have been computed by Capytaine
     format: str, optional
         Format of output. Accepted values: "netcdf"
+    **kwargs: optional
+        Remaining argument are passed to the specific export function,
+        such as ``save_dataset_as_netcdf``, ``export_to_wamit`` or ``write_dataset_as_tecplot_files``.
 
     Returns
     -------
@@ -649,17 +652,17 @@ def save_dataset(filename, dataset, format=None):
             (format is not None and format.lower() == "netcdf") or
             (format is None and str(filename).endswith(".nc"))
             ):
-        save_dataset_as_netcdf(filename, dataset)
+        save_dataset_as_netcdf(filename, dataset, **kwargs)
     elif (
             (format is not None and format.lower() == "wamit")
             ):
         from capytaine.io.wamit import export_to_wamit
-        export_to_wamit(dataset, filename)
+        export_to_wamit(dataset, filename, **kwargs)
     elif (
             (format is not None and format.lower() == "nemoh")
             ):
         from capytaine.io.legacy import write_dataset_as_tecplot_files
-        write_dataset_as_tecplot_files(filename, dataset)
+        write_dataset_as_tecplot_files(filename, dataset, **kwargs)
     else:
         raise ValueError("`save_dataset` could not infer export format based on filename or `format` argument.\n"
                          f"provided filename: {filename}\nprovided format: {format}")
