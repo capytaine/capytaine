@@ -37,6 +37,33 @@ def full_dataset():
     return dataset
 
 
+@pytest.fixture
+def dataset_with_multiple_rho():
+    mar_file = (
+        Path(__file__).parent.parent / "docs" / "examples" / "src" / "boat_200.mar"
+    )
+    mesh = cpt.load_mesh(str(mar_file), file_format="nemoh")
+    dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
+    full_body = cpt.FloatingBody(mesh, dofs)
+    full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
+    immersed_body = full_body.immersed_part()
+
+    # Define a test matrix with multiple rho
+    test_matrix = xr.Dataset(
+        {
+            "omega": ("omega", [1.0]),
+            "wave_direction": ("wave_direction", [0.0]),
+            "radiating_dof": ("radiating_dof", list(immersed_body.dofs)),
+            "water_depth": ("water_depth", [np.inf]),
+            "rho": ("rho", [1020.0, 1025.0]),  # ➜ should lead to an error
+        }
+    )
+
+    solver = cpt.BEMSolver()
+    dataset = solver.fill_dataset(test_matrix, immersed_body)
+    return dataset
+
+
 def test_export_wamit_and_import_force(full_dataset, tmpdir):
     """Export to WAMIT (.1 and .3 files), then reload and check that the frequency matches."""
     dataset = full_dataset.sel(omega=[1.0])
@@ -281,3 +308,11 @@ def test_export_wamit_equivalent_period_vs_omega(export_type, omega_val, tmpdir)
     assert f_period.exists(), f"File {f_period} not generated"
 
     compare_wamit_files(f_omega, f_period)
+
+
+def test_export_wamit_fails_with_multiple_rho(dataset_with_multiple_rho, tmpdir):
+    """Test that export fails when multiple rho values are present."""
+    problem_name = tmpdir / "boat_invalid_rho"
+
+    with pytest.raises(ValueError, match="only one value.*rho"):
+        export_to_wamit(dataset_with_multiple_rho, problem_name=str(problem_name))
