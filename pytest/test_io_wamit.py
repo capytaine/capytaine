@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 
 import numpy as np
+import re
 import pandas as pd
 import xarray as xr
 import pytest
@@ -33,6 +34,7 @@ def full_dataset():
     )
     solver = cpt.BEMSolver()
     dataset = solver.fill_dataset(test_matrix, immersed_body)
+
     return dataset
 
 
@@ -160,10 +162,116 @@ def test_export_wamit_hydrostatics(full_dataset, tmpdir):
 def test_warning_for_wrong_format(full_dataset, tmpdir, caplog):
     """Test the warning when trying to export excitation force but they are not in the dataset"""
     radiation_only_ds = full_dataset[["added_mass", "radiation_damping"]]
-    problem_name = str(tmpdir / 'radiation_data')
+    problem_name = str(tmpdir / "radiation_data")
     with caplog.at_level(logging.WARNING):
-        export_to_wamit(
-                radiation_only_ds, problem_name=problem_name, exports=["3"]
-                )
+        export_to_wamit(radiation_only_ds, problem_name=problem_name, exports=["3"])
     assert "Missing field 'excitation_force'" in caplog.text
-    assert not (tmpdir / 'radiation_data.3').exists()
+    assert not (tmpdir / "radiation_data.3").exists()
+
+
+def compare_wamit_files(file1, file2, atol=1e-14):
+    """Compare two WAMIT output files by parsing numerical values.
+
+    Args:
+        file1 (str): Path to the first WAMIT file.
+        file2 (str): Path to the second WAMIT file.
+        atol (float): Absolute tolerance for numerical comparison.
+
+    Raises:
+        AssertionError: If line counts differ or any value mismatches beyond tolerance.
+    """
+    with open(file1, "r", encoding="utf-8") as f:
+        lines1 = [line.strip() for line in f if line.strip()]
+    with open(file2, "r", encoding="utf-8") as f:
+        lines2 = [line.strip() for line in f if line.strip()]
+
+    assert len(lines1) == len(
+        lines2
+    ), f"Line count mismatch: {len(lines1)} vs {len(lines2)}"
+
+    for i, (l1, l2) in enumerate(zip(lines1, lines2)):
+        try:
+            vals1 = [float(s) for s in re.split(r"\s+", l1)]
+            vals2 = [float(s) for s in re.split(r"\s+", l2)]
+        except ValueError:
+            raise AssertionError(f"Line {i} contains non-numeric data:\n{l1}\n{l2}")
+
+        assert len(vals1) == len(
+            vals2
+        ), f"Line {i} has different number of columns: {vals1} vs {vals2}"
+
+        if not np.allclose(vals1, vals2, atol=atol):
+            diffs = [
+                f"{v1} ≠ {v2}"
+                for v1, v2 in zip(vals1, vals2)
+                if not np.isclose(v1, v2, atol=atol)
+            ]
+            raise AssertionError(
+                f"Line {i} values differ beyond tolerance: {l1} // {l2} -- Differences: {', '.join(diffs)}"
+            )
+
+
+@pytest.mark.parametrize(
+    "omega_val", [np.random.default_rng(seed=42).uniform(0.5, 5.0)]
+)
+def test_export_wamit_equivalent_period_vs_omega(omega_val, tmpdir):
+    """
+    Run Capytaine simulation with a single omega, then:
+    - create two datasets: one with omega as dimension, one with period
+    - export both
+    - compare the resulting .1 and .3 files
+    """
+    # Load mesh and run BEM simulation for 1 omega
+    mar_file = (
+        Path(__file__).parent.parent / "docs" / "examples" / "src" / "boat_200.mar"
+    )
+    mesh = cpt.load_mesh(str(mar_file), file_format="nemoh")
+    dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
+    full_body = cpt.FloatingBody(mesh, dofs)
+    full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
+    immersed_body = full_body.immersed_part()
+    immersed_body.compute_hydrostatics()
+
+    test_matrix_omega = xr.Dataset(
+        {
+            "omega": [omega_val],
+            "wave_direction": [0.0],
+            "radiating_dof": list(immersed_body.dofs),
+            "water_depth": [np.inf],
+            "rho": [1025],
+        }
+    )
+
+    solver = cpt.BEMSolver()
+    ds_omega = solver.fill_dataset(test_matrix_omega, immersed_body)
+
+    # Create period-based version
+    period_val = 2 * np.pi / omega_val
+    test_matrix_period = xr.Dataset(
+        {
+            "period": [period_val],
+            "wave_direction": [0.0],
+            "radiating_dof": list(immersed_body.dofs),
+            "water_depth": [np.inf],
+            "rho": [1025],
+        }
+    )
+
+    solver = cpt.BEMSolver()
+    ds_period = solver.fill_dataset(test_matrix_period, immersed_body)
+
+    # Export both
+    tmpdir = Path(tmpdir)
+    omega_name = tmpdir / "omega_export"
+    period_name = tmpdir / "period_export"
+    wamit_exports = ("1", "3", "hst")
+    export_to_wamit(ds_omega, problem_name=str(omega_name), exports=wamit_exports)
+    export_to_wamit(ds_period, problem_name=str(period_name), exports=wamit_exports)
+
+    # Compare .1 and .3 files
+    for ext in wamit_exports:
+        f_omega = omega_name.with_suffix(ext)
+        f_period = period_name.with_suffix(ext)
+        assert f_omega.exists(), f"File {f_omega} not generated"
+        assert f_period.exists(), f"File {f_period} not generated"
+        compare_wamit_files(f_omega, f_period)
