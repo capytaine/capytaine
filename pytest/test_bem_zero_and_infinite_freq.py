@@ -202,7 +202,7 @@ def test_dataset_with_limit_frequency_including_radiation_and_diffraction(caplog
         'radiating_dof': list(sphere.dofs),
     })
     solver = cpt.BEMSolver()
-    with caplog.at_level("ERROR"):
+    with caplog.at_level("INFO"):
         ds = solver.fill_dataset(test_matrix, sphere)
     assert np.all(np.isnan(ds.diffraction_force.sel(omega=0.0)))
     assert not np.any(np.isnan(ds.diffraction_force.sel(omega=1.0)))
