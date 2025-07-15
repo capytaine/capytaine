@@ -316,3 +316,81 @@ def test_export_wamit_fails_with_multiple_rho(dataset_with_multiple_rho, tmpdir)
 
     with pytest.raises(ValueError, match="only one value.*rho"):
         export_to_wamit(dataset_with_multiple_rho, problem_name=str(problem_name))
+
+
+@pytest.mark.parametrize("omega_val", omega_values)
+@pytest.mark.parametrize("export_type", ["hst", "1", "3"])
+def test_export_wamit_frequency_axis_representations(export_type, omega_val, tmpdir):
+    """
+    Run Capytaine simulation with a single omega, then:
+    - create two datasets: one with omega as dimension, one with period
+    - export both
+    - compare the resulting .1 and .3 files
+    """
+    # Load mesh and run BEM simulation for 1 omega
+    mar_file = (
+        Path(__file__).parent.parent / "docs" / "examples" / "src" / "boat_200.mar"
+    )
+    mesh = cpt.load_mesh(str(mar_file), file_format="nemoh")
+    dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
+    full_body = cpt.FloatingBody(mesh, dofs)
+    full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
+    immersed_body = full_body.immersed_part()
+    if export_type == "hst":
+        immersed_body.compute_hydrostatics()
+
+    test_matrix_omega = xr.Dataset(
+        {
+            "omega": np.asarray(omega_val),
+            "wave_direction": [0.0],
+            "radiating_dof": list(immersed_body.dofs),
+            "water_depth": [np.inf],
+            "rho": [1025],
+        }
+    )
+
+    solver = cpt.BEMSolver()
+    ds_omega = solver.fill_dataset(test_matrix_omega, immersed_body)
+
+    # Create period-based version
+    ds_period = ds_omega.swap_dims({"omega": "period"})
+    ds_wavenumber = ds_period.swap_dims({"period": "wavenumber"})
+    ds_wavelength = ds_wavenumber.swap_dims({"wavenumber": "wavelength"})
+
+    # Export all
+    tmpdir = Path(tmpdir)
+    omega_name = tmpdir / f"omega_export_{export_type}"
+    period_name = tmpdir / f"period_export_{export_type}"
+    wavenumber_name = tmpdir / f"wavenumber_export_{export_type}"
+    wavelength_name = tmpdir / f"wavelength_export_{export_type}"
+
+    export_to_wamit(ds_omega, problem_name=str(omega_name), exports=[export_type])
+    export_to_wamit(ds_period, problem_name=str(period_name), exports=[export_type])
+    export_to_wamit(
+        ds_wavenumber, problem_name=str(wavenumber_name), exports=[export_type]
+    )
+    export_to_wamit(
+        ds_wavelength, problem_name=str(wavelength_name), exports=[export_type]
+    )
+
+    f_omega = omega_name.with_name(f"{omega_name.name}.{export_type}")
+    f_period = period_name.with_name(f"{period_name.name}.{export_type}")
+    f_wavenumber = wavenumber_name.with_name(f"{wavenumber_name.name}.{export_type}")
+    f_wavelength = wavelength_name.with_name(f"{wavelength_name.name}.{export_type}")
+
+    assert f_omega.exists(), f"File {f_omega} not generated"
+    assert f_period.exists(), f"File {f_period} not generated"
+    assert f_wavenumber.exists(), f"File {f_wavenumber} not generated"
+    assert f_wavelength.exists(), f"File {f_wavelength} not generated"
+
+    compare_wamit_files(f_omega, f_period)
+    compare_wamit_files(f_omega, f_wavenumber)
+    compare_wamit_files(f_omega, f_wavelength)
+
+
+def test_export_wamit_fails_with_multiple_rho(dataset_with_multiple_rho, tmpdir):
+    """Test that export fails when multiple rho values are present."""
+    problem_name = tmpdir / "boat_invalid_rho"
+
+    with pytest.raises(ValueError, match="only one value.*rho"):
+        export_to_wamit(dataset_with_multiple_rho, problem_name=str(problem_name))
