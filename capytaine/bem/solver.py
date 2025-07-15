@@ -201,7 +201,7 @@ class BEMSolver:
         try:
             res = self.solve(problem, *args, **kwargs)
         except Exception as e:
-            LOG.error(f"Error while solving {problem}\n{repr(e)}")
+            LOG.info(f"Skipped {problem}\nbecause of {repr(e)}")
             res = problem.make_failed_results_container(e)
         return res
 
