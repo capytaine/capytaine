@@ -130,7 +130,7 @@ def export_wamit_1(
     damping = dataset["radiation_damping"]
     dofs = list(added_mass.coords["influenced_dof"].values)
 
-    ##TODO: find better solution for this
+    # TODO: find better solution for this
     # Determine main frequency selection coordinate
     if "omega" in added_mass.dims and "omega" in damping.dims:
         freq_coord = "omega"
