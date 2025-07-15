@@ -652,7 +652,7 @@ def export_dataset(filename, dataset, format=None, **kwargs):
             (format is not None and format.lower() == "netcdf") or
             (format is None and str(filename).endswith(".nc"))
             ):
-        export_dataset_as_netcdf(filename, dataset, **kwargs)
+        save_dataset_as_netcdf(filename, dataset, **kwargs)
     elif (
             (format is not None and format.lower() == "wamit")
             ):
