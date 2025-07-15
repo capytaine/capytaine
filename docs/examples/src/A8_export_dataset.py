@@ -35,10 +35,10 @@ solver = cpt.BEMSolver()
 dataset = solver.fill_dataset(test_matrix, immersed_body)
 
 
-cpt.save_dataset(output_dir / "test_boat200.nc", dataset)  # Format is deduced from filename suffix.
-cpt.save_dataset(output_dir / "wamit_data", dataset, format="wamit")
+cpt.export_dataset(output_dir / "test_boat200.nc", dataset)  # Format is deduced from filename suffix.
+cpt.export_dataset(output_dir / "wamit_data", dataset, format="wamit")
 (output_dir / 'nemoh_data').mkdir(exist_ok=True)
-cpt.save_dataset(output_dir / "nemoh_data", dataset, format="nemoh")
+cpt.export_dataset(output_dir / "nemoh_data", dataset, format="nemoh")
 
 print("Exported files:")
 for file in output_dir.glob("**/*"):

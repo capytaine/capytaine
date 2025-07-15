@@ -14,9 +14,9 @@ Exporting hydrodynamic dataset
 NetCDF format
 ~~~~~~~~~~~~~
 
-The xarray dataset produced by :func:`assemble_dataset <capytaine.io.xarray.assemble_dataset>` (or :meth:`fill_dataset <capytaine.bem.solver.BEMSolver.fill_dataset>`) has a structure close to the NetCDF file format and can easily be saved to this format by :func:`~capytaine.io.xarray.save_dataset`::
+The xarray dataset produced by :func:`assemble_dataset <capytaine.io.xarray.assemble_dataset>` (or :meth:`fill_dataset <capytaine.bem.solver.BEMSolver.fill_dataset>`) has a structure close to the NetCDF file format and can easily be saved to this format by :func:`~capytaine.io.xarray.export_dataset`::
 
-    cpt.save_dataset("path/to/dataset.nc", dataset, format="netcdf")
+    cpt.export_dataset("path/to/dataset.nc", dataset, format="netcdf")
 
 
 .. note::
@@ -26,7 +26,8 @@ The xarray dataset produced by :func:`assemble_dataset <capytaine.io.xarray.asse
     transforming all complex-valued arrays of shape ``(...)`` into real-valued
     arrays of shape ``(..., 2)``` using the functions
     :func:`~capytaine.io.xarray.separate_complex_values` and
-    :func:`~capytaine.io.xarray.merge_complex_values` (done automatically by :func:`~capytaine.io.xarray.save_dataset`).
+    :func:`~capytaine.io.xarray.merge_complex_values` (done automatically by
+    :func:`~capytaine.io.xarray.export_dataset`).
 
 
     See also https://github.com/PlasmaFAIR/nc-complex for more context and alternatives.
@@ -41,7 +42,7 @@ Wamit format
 
 The hydrodynamic results from a Capytaine ``xarray.Dataset`` can be exported into WAMIT-compatible text files (``.1``, ``.3``, ``.3fk``, ``.3sc``, ``.hst``) using::
 
-    cpt.save_dataset("problem_name", dataset, format="wamit", exports=("1", "3", "3fk", "3sc", "hst"))
+    cpt.export_dataset("problem_name", dataset, format="wamit", exports=("1", "3", "3fk", "3sc", "hst"))
 
 This will produce the following files (depending on the fields present in the dataset and the flags passed to the optional ``exports`` argument):
 
@@ -69,7 +70,7 @@ Nemoh format
 
 The following code will write files named :code:`RadiationCoefficients.tec` and :code:`ExcitationForce.tec` in a format roughly matching the one of Nemoh 2::
 
-    cpt.save_dataset("path/to/result_dir/", dataset, format="nemoh")
+    cpt.export_dataset("path/to/result_dir/", dataset, format="nemoh")
 
 This feature is still experimental. Please report issues encountered with this.
 
@@ -77,7 +78,7 @@ This feature is still experimental. Please report issues encountered with this.
 Excel format
 ~~~~~~~~~~~~
 
-Export to Excel format is not currently built in :func:`~capytaine.io.xarray.save_dataset`.
+Export to Excel format is not currently built in :func:`~capytaine.io.xarray.export_dataset`.
 This section is meant to show an example of exporting to a format that is not explicitly implemented in Capytaine.
 We use here the ``openpyxl`` library (that can be installed with ``pip install openpyxl``) to export a dataset to Excel format::
 
@@ -131,7 +132,7 @@ The example below, which is an extension of the :doc:`quickstart` example, saves
   dataset["center_of_mass"] = (["rigid_body_component", "point_coordinates"], [body.center_of_mass for body in list_of_bodies])
 
   # Export to NetCDF file
-  cpt.save_dataset("dataset.nc", dataset, format="netcdf")
+  cpt.export_dataset("dataset.nc", dataset, format="netcdf")
 
 The support for this in Capytaine should be improved in the future.
 
