@@ -3,7 +3,6 @@ import logging
 from pathlib import Path
 
 import numpy as np
-import re
 import pandas as pd
 import xarray as xr
 import pytest
