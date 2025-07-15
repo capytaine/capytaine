@@ -200,21 +200,27 @@ def compare_wamit_files(file1, file2, atol=1e-14):
             vals2
         ), f"Line {i} has different number of columns: {vals1} vs {vals2}"
 
-        if not np.allclose(vals1, vals2, atol=atol):
+        def condition(vals1, vals2, atol):
+            return not np.allclose(vals1, vals2, atol=atol)
+
+        if condition(vals1, vals2, atol):
             diffs = [
                 f"{v1} ≠ {v2}"
                 for v1, v2 in zip(vals1, vals2)
-                if not np.isclose(v1, v2, atol=atol)
+                if condition([v1], [v2], atol)
             ]
             raise AssertionError(
                 f"Line {i} values differ beyond tolerance: {l1} // {l2} -- Differences: {', '.join(diffs)}"
             )
 
 
-@pytest.mark.parametrize(
-    "omega_val", [np.random.default_rng(seed=42).uniform(0.5, 5.0)]
-)
-def test_export_wamit_equivalent_period_vs_omega(omega_val, tmpdir):
+rng = np.random.default_rng(seed=42)
+omega_values = rng.uniform(0.5, 5.0, size=3)
+
+
+@pytest.mark.parametrize("omega_val", omega_values)
+@pytest.mark.parametrize("export_type", ["hst", "1", "3"])
+def test_export_wamit_equivalent_period_vs_omega(export_type, omega_val, tmpdir):
     """
     Run Capytaine simulation with a single omega, then:
     - create two datasets: one with omega as dimension, one with period
@@ -230,11 +236,12 @@ def test_export_wamit_equivalent_period_vs_omega(omega_val, tmpdir):
     full_body = cpt.FloatingBody(mesh, dofs)
     full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
     immersed_body = full_body.immersed_part()
-    immersed_body.compute_hydrostatics()
+    if export_type == "hst":
+        immersed_body.compute_hydrostatics()
 
     test_matrix_omega = xr.Dataset(
         {
-            "omega": [omega_val],
+            "omega": np.asarray(omega_val),
             "wave_direction": [0.0],
             "radiating_dof": list(immersed_body.dofs),
             "water_depth": [np.inf],
@@ -249,7 +256,7 @@ def test_export_wamit_equivalent_period_vs_omega(omega_val, tmpdir):
     period_val = 2 * np.pi / omega_val
     test_matrix_period = xr.Dataset(
         {
-            "period": [period_val],
+            "period": np.asarray(period_val),
             "wave_direction": [0.0],
             "radiating_dof": list(immersed_body.dofs),
             "water_depth": [np.inf],
@@ -262,16 +269,16 @@ def test_export_wamit_equivalent_period_vs_omega(omega_val, tmpdir):
 
     # Export both
     tmpdir = Path(tmpdir)
-    omega_name = tmpdir / "omega_export"
-    period_name = tmpdir / "period_export"
-    wamit_exports = ("1", "3", "hst")
-    export_to_wamit(ds_omega, problem_name=str(omega_name), exports=wamit_exports)
-    export_to_wamit(ds_period, problem_name=str(period_name), exports=wamit_exports)
+    omega_name = tmpdir / f"omega_export_{export_type}"
+    period_name = tmpdir / f"period_export_{export_type}"
 
-    # Compare .1 and .3 files
-    for ext in wamit_exports:
-        f_omega = omega_name.with_suffix(ext)
-        f_period = period_name.with_suffix(ext)
-        assert f_omega.exists(), f"File {f_omega} not generated"
-        assert f_period.exists(), f"File {f_period} not generated"
-        compare_wamit_files(f_omega, f_period)
+    export_to_wamit(ds_omega, problem_name=str(omega_name), exports=[export_type])
+    export_to_wamit(ds_period, problem_name=str(period_name), exports=[export_type])
+
+    f_omega = omega_name.with_name(f"{omega_name.name}.{export_type}")
+    f_period = period_name.with_name(f"{period_name.name}.{export_type}")
+
+    assert f_omega.exists(), f"File {f_omega} not generated"
+    assert f_period.exists(), f"File {f_period} not generated"
+
+    compare_wamit_files(f_omega, f_period)
