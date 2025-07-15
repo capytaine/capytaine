@@ -96,8 +96,8 @@ def identify_frequency_axis(
     Parameters
     ----------
     dataset : xarray.Dataset or xarray.DataArray
-        Dataset that must include 'period' and one of:
-        'omega', 'freq', 'period', 'wavenumber', or 'wavelength'.
+        Dataset that must include 'period' coordinate and at least one of:
+        'omega', 'freq', 'period', 'wavenumber', or 'wavelength' as dimension.
 
     Returns
     -------
@@ -111,29 +111,26 @@ def identify_frequency_axis(
     Raises
     ------
     ValueError
-        If 'period' is missing or if multiple frequency-like keys are found.
+        If 'period' is not a coordinate or if no frequency-like dimension is found.
     """
     allowed_keys = {"omega", "freq", "wavenumber", "wavelength", "period"}
     dataset_dims = set(dataset.dims)
     keys_in_dataset = dataset_dims & allowed_keys
 
-    if "period" not in dataset:
-        raise ValueError("Dataset must contain a 'period' coordinate.")
+    if "period" not in dataset.coords:
+        raise ValueError("Dataset must contain 'period' as a coordinate.")
 
-    if len(keys_in_dataset) == 0:
+    # Prioritize 'period' if it is one of the dimensions
+    if "period" in dataset_dims:
+        freq_key = "period"
+    elif len(keys_in_dataset) >= 1:
+        freq_key = sorted(keys_in_dataset)[0]  # deterministic choice
+    else:
         raise ValueError(
-            "Dataset must contain at least one of the following dimensions: "
-            "'omega', 'freq', 'period', 'wavenumber', or 'wavelength'."
+            "Dataset must contain at least one frequency-like dimension among: "
+            "'omega', 'freq', 'wavenumber', 'wavelength', or 'period'."
         )
 
-    if len(keys_in_dataset) > 1:
-        raise ValueError(
-            "Ambiguous frequency axis. Only one of the following is allowed: "
-            "'omega', 'freq', 'period', 'wavenumber', or 'wavelength'.\n"
-            f"Found: {sorted(keys_in_dataset)}"
-        )
-
-    freq_key = keys_in_dataset.pop()
     freq_vals = np.asarray(dataset[freq_key].values)
     period_vals = np.asarray(dataset["period"].values)
 
@@ -224,6 +221,7 @@ def export_wamit_1(
     rho = dataset["rho"].item()
     added_mass = dataset["added_mass"]
     damping = dataset["radiation_damping"]
+    omegas = dataset["omega"]
     dofs = list(added_mass.coords["influenced_dof"].values)
 
     # Determine main frequency coordinate
@@ -236,7 +234,7 @@ def export_wamit_1(
         "T_regular": [],  # finite, non-zero periods
     }
 
-    for freq_val, period in zip(freq_vals, period_vals):
+    for omega, freq_val, period in zip(omegas, freq_vals, period_vals):
         for dof_i in dofs:
             for dof_j in dofs:
                 j_dof, i_dof, k = get_dof_index_and_k(dof_i, dof_j)
@@ -266,7 +264,7 @@ def export_wamit_1(
                             "radiating_dof": dof_j,
                         }
                     ).item()
-                    B_norm = B / (freq_val * norm)
+                    B_norm = B / (omega * norm)
                     line = f"{period:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\t{B_norm:12.6e}\n"
                     period_blocks["T_regular"].append((period, line))
 
@@ -367,13 +365,10 @@ def _export_wamit_excitation_force(
     rho = dataset["rho"].item()
     betas = field.coords["wave_direction"].values
     dofs = list(field.coords["influenced_dof"].values)
-    water_depth = dataset["water_depth"].item()
     g = dataset["g"].item()
 
     # Determine main frequency coordinate
-    freq_key, freq_vals, period_vals = identify_frequency_axis(
-        dataset=dataset, water_depth=water_depth, g=g
-    )
+    freq_key, freq_vals, period_vals = identify_frequency_axis(dataset=dataset)
 
     # Sort by increasing period
     sorted_indices = np.argsort(period_vals)
