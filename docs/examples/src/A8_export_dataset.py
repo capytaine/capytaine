@@ -3,14 +3,12 @@ from pathlib import Path
 import xarray as xr
 
 import capytaine as cpt
-from capytaine.io.xarray import separate_complex_values
-from capytaine.io.wamit import export_to_wamit
 
 # --- Parameters ---
 output_dir = Path("outputs")
 output_dir.mkdir(exist_ok=True)
 
-# --- Load mesh and set up body ---
+# --- Create mesh and set up body ---
 mesh = cpt.mesh_sphere()
 dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
 full_body = cpt.FloatingBody(mesh, dofs)
@@ -36,23 +34,12 @@ test_matrix = xr.Dataset(
 solver = cpt.BEMSolver()
 dataset = solver.fill_dataset(test_matrix, immersed_body)
 
-# --- Export Capytaine NetCDF (.nc) ---
-separate_complex_values(dataset).to_netcdf(
-    output_dir / "test_boat200.nc",
-    encoding={"radiating_dof": {"dtype": "U"}, "influenced_dof": {"dtype": "U"}},
-)
 
-# --- Export all WAMIT formats: .1, .3, .3fk, .3sc, .hst ---
-export_to_wamit(
-    dataset,
-    problem_name=str(output_dir / "test_boat200"),
-    exports=("1", "3", "3fk", "3sc", "hst"),
-)
+cpt.export_dataset(output_dir / "test_boat200.nc", dataset)  # Format is deduced from filename suffix.
+cpt.export_dataset(output_dir / "wamit_data", dataset, format="wamit")
+(output_dir / 'nemoh_data').mkdir(exist_ok=True)
+cpt.export_dataset(output_dir / "nemoh_data", dataset, format="nemoh")
 
-print("Export complete:")
-print(f"- Capytaine NetCDF: {output_dir / 'test_boat200.nc'}")
-print(f"- WAMIT .1 file: {output_dir / 'test_boat200.1'}")
-print(f"- WAMIT .3 file: {output_dir / 'test_boat200.3'}")
-print(f"- WAMIT .3fk file: {output_dir / 'test_boat200.3fk'}")
-print(f"- WAMIT .3sc file: {output_dir / 'test_boat200.3sc'}")
-print(f"- WAMIT .hst file: {output_dir / 'test_boat200.hst'}")
+print("Exported files:")
+for file in output_dir.glob("**/*"):
+    print(file)

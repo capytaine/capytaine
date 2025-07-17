@@ -800,4 +800,44 @@ For a fully coupled problem (bodies free to oscillate, i.e. diffraction and radi
 Far-field coefficients
 ----------------------
 
-TODO
+Far from the floating body, the potential of an infinite depth problem can be written as
+
+.. math:: \Phi(x) \sim - \sqrt{\frac{2 \pi k}{\rho(x)}} e^{k x_3} H(\theta(x)) e^{i k \rho(x)} e^{i \pi/4} + O\left(\frac{1}{\rho(x)}\right)
+
+where :math:`\rho(x)` and :math:`\theta(x)` are the cylindrical coordinates of :math:`x` and :math:`H` is the so-called Kochin function which can be computed as
+
+.. math:: H(\theta) = \frac{1}{4 \pi} \int_\Gamma \sigma(\xi) e^{k \xi_3} e^{- i k (\xi_1 \cos \theta + \xi_2 \sin \theta)} \, d \xi
+
+
+.. proof:proof::
+   Let us first note, following [Del87]_ (p.79), that for large :math:`\rho(x)`:
+
+   .. math::
+      :nowrap:
+
+      \begin{align*}
+         r & = \sqrt{(x_1 - \xi_1)^2 + (x_2 - \xi_2)^2} \\
+           & = \sqrt{\rho(x)^2 + \rho(\xi)^2 - 2 \rho(x) \rho(\xi) \cos(\theta(x) - \theta(\xi))\} \\
+           & \sim \rho(x) - \rho(\xi) \cos(\theta(x) - \theta(\xi)) \\
+           & \sim \rho(x) - (\xi_1 \cos\theta(x) + \xi_2 \sin\theta(x))
+      \end{align*}
+
+   Then the asymptotic behavior of the infinite depth Green function :ref:`green_function_asymptotical_approx` reads
+
+   .. math:: - 4 \pi G(x, \xi) \sim 2 k \sqrt{\frac{\pi}{k r}} e^{k z + i k r}(1+i) + O\left(\frac{1}{r}\right)
+
+   which can be rewritten as
+
+   .. math:: - 4 \pi G(x, \xi) \sim \sqrt{\frac{2 \pi k}{\rho(x)}} e^{k z + i k (\rho(x) - (\xi_1 \cos\theta(x) + \xi_2 \sin\theta(x))} e^{i\pi/4} + O\left(\frac{1}{\rho(x)}\right)
+
+   Incorporating into the source representation :ref:`potential_representation`, we have
+
+   .. math:: \Phi \sim - e^{k x_3} e^{ik\rho(x)} e^{i \pi/4} \sqrt{\frac{2\pi k}{\rho(x)}} \underbrace{\frac{1}{4\pi} \int_\Gamma \sigma(\xi) e^{k \xi_3} e^{-ik(\xi_1 \cos \theta + \xi_2 \sin \theta))} d\xi}_{H(\theta)}
+
+
+Capytaine computes the Kochin function in finite depth as
+
+.. math:: H(\theta) = \frac{1}{4 \pi} \int_\Gamma \sigma(\xi) \frac{\cosh (k (\xi_3+h))}{\cosh (k h)} e^{- i k (\xi_1 \cos \theta + \xi_2 \sin \theta)} \, d \xi
+
+
+Note that other work might define the Kochin function slightly differently, with a different normalization.

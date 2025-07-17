@@ -35,7 +35,7 @@ Major change
   * Infinite frequency is now supported in finite depth (zero frequency is still not and returns the same error as other finite depth low-frequency cases). (:pull:`703`)
 
 * Do not interrupt a batch of resolutions when one of them fails.
-  Instead the error message is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a `NaN` value for these parameters. (:pull:`678`)
+  Instead the exception is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a `NaN` value for these parameters. (:pull:`678`)
   Diffraction problems with zero or infinite frequencies used to have a special treatment to be run with a batch resolution despite raising an error when run alone, they have been reworked to use the same design as other failing resolutions. (:pull:`719`)
 
 * The Boundary Integral Equation (``method`` keyword argument) used to solve the problem can now be specified when initializing a solver and will then be use for all resolution with this solver. This general setting can be over overridden by using the ``method`` argument when solving::
@@ -44,6 +44,8 @@ Major change
   solver.solve(problem, method="direct")  # That is still possible and override the above setting.
 
 The method is also saved in the metadata of the results with the other parameters of the solver (whether it was defined when initializing the solver or later). (:pull:`686`)
+
+* Add :func:`~capytaine.io.xarray.export_dataset` method to more conveniently export a dataset to NetCDF or other formats (:pull:`690`).
 
 Minor change
 ~~~~~~~~~~~~
