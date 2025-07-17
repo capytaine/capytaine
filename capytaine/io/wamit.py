@@ -89,7 +89,7 @@ def check_dataset_ready_for_export(ds: xarray.Dataset) -> None:
 
 def identify_frequency_axis(
     dataset: Union[xarray.Dataset, xarray.DataArray],
-) -> tuple[str, np.ndarray, np.ndarray]:
+) -> Tuple[str, np.ndarray, np.ndarray]:
     """
     Identify the frequency axis in the dataset and return its values along with the periods.
 
