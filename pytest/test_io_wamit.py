@@ -13,10 +13,7 @@ from capytaine.io.wamit import export_to_wamit
 
 @pytest.fixture
 def full_dataset():
-    mar_file = (
-        Path(__file__).parent.parent / "docs" / "examples" / "src" / "boat_200.mar"
-    )
-    mesh = cpt.load_mesh(str(mar_file), file_format="nemoh")
+    mesh = cpt.mesh_sphere(resolution=(4, 4))
     dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
     full_body = cpt.FloatingBody(mesh, dofs)
     full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
@@ -39,10 +36,7 @@ def full_dataset():
 
 @pytest.fixture
 def dataset_with_multiple_rho():
-    mar_file = (
-        Path(__file__).parent.parent / "docs" / "examples" / "src" / "boat_200.mar"
-    )
-    mesh = cpt.load_mesh(str(mar_file), file_format="nemoh")
+    mesh = cpt.mesh_sphere(resolution=(4, 4))
     dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
     full_body = cpt.FloatingBody(mesh, dofs)
     full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
@@ -262,10 +256,7 @@ def test_export_wamit_frequency_axis_representations(export_type, omega_val, tmp
     - compare the resulting .1 and .3 files
     """
     # Load mesh and run BEM simulation for 1 omega
-    mar_file = (
-        Path(__file__).parent.parent / "docs" / "examples" / "src" / "boat_200.mar"
-    )
-    mesh = cpt.load_mesh(str(mar_file), file_format="nemoh")
+    mesh = cpt.mesh_sphere(resolution=(4, 4))
     dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
     full_body = cpt.FloatingBody(mesh, dofs)
     full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
