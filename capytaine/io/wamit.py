@@ -1,6 +1,6 @@
 import numpy as np
 import logging
-from typing import Iterable, Tuple, TextIO
+from typing import Union, Iterable, Tuple, TextIO
 import xarray
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ def check_dataset_ready_for_export(ds: xarray.Dataset) -> None:
 
 
 def identify_frequency_axis(
-    dataset: xarray.Dataset | xarray.DataArray,
+    dataset: Union[xarray.Dataset, xarray.DataArray],
 ) -> tuple[str, np.ndarray, np.ndarray]:
     """
     Identify the frequency axis in the dataset and return its values along with the periods.
