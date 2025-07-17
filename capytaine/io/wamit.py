@@ -70,20 +70,20 @@ def check_dataset_ready_for_export(ds: xarray.Dataset) -> None:
             f"{', '.join(critical_coords)}.\n"
             f"Problematic dimensions: {coords_with_multiple_values}.\n"
             "You can extract a subset using:\n"
-            f"    ds_slice = ds.sel({', '.join([f'{k}={repr(ds.coords[k].values[0])}' for k in coords_with_multiple_values])})"
+            f"    ds_slice = ds.sel({', '.join([f'{k}={str(ds.coords[k].values[0])}' for k in coords_with_multiple_values])})"
         )
         raise ValueError(msg)
 
     # 2. Check for rigid-body DOFs only
-    rigid_body_dofs = {"Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"}
+    rigid_body_dofs = ("Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw")
     if "influenced_dof" in ds.coords:
         dofs = set(ds.influenced_dof.values)
-        non_rigid_dofs = dofs.difference(rigid_body_dofs)
+        non_rigid_dofs = dofs.difference(set(rigid_body_dofs))
         if non_rigid_dofs:
             raise ValueError(
-                "Export is only supported for rigid body DOFs.\n"
-                f"Unexpected DOFs: {sorted(non_rigid_dofs)}.\n"
-                f"Allowed DOFs: {sorted(rigid_body_dofs)}"
+                "WAMIT Export is only supported for single rigid body.\n"
+                f"Unexpected DOFs: {non_rigid_dofs}.\n"
+                f"Allowed DOFs: {rigid_body_dofs}"
             )
 
 
