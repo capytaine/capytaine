@@ -30,7 +30,7 @@ optional = [
   "matplotlib", "joblib>=1.3", "meshio", "netcdf4", "vtk",
 ]
 more_optional = [  # Other optional dependencies, but might cause issue when testing
-  "bemio @ https://github.com/mancellin/bemio/archive/56559c838e0636916669994712473ad7438d23be.zip",
+  # "bemio @ https://github.com/mancellin/bemio/archive/56559c838e0636916669994712473ad7438d23be.zip",
   "pygmsh", "gmsh",
 ]
 test = ["pytest", "capytaine[optional]"]
