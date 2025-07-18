@@ -25,8 +25,5 @@ test_matrix = xr.Dataset({
 solver = cpt.BEMSolver()
 dataset = solver.fill_dataset(test_matrix, all_bodies)
 
-# Export to NetCDF file
-from capytaine.io.xarray import separate_complex_values
-separate_complex_values(dataset).to_netcdf("dataset.nc",
-                                           encoding={'radiating_dof': {'dtype': 'U'},
-                                                     'influenced_dof': {'dtype': 'U'}})
+# Export to netcdf file
+cpt.export_dataset("capy_dataset.nc", dataset)
