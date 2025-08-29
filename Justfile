@@ -52,7 +52,7 @@ _test:
     capytaine {{NEMOH_CASES}}/Nemoh.cal
     capytaine {{NEMOH_CASES}}/Nemoh_v3.cal
     for f in {{EXAMPLES_FILES}}; do
-        echo "\n---> Running {{BOLD + UNDERLINE + MAGENTA}}$f{{NORMAL}}\n";
+        echo "\n---> Running $f\n";
         python {{EXAMPLES_DIR}}/$f;
     done
 
