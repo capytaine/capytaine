@@ -44,7 +44,7 @@ EXAMPLES_FILES := ' \
 _test:
     #!/usr/bin/env bash
     set -euxo pipefail
-    uv pip list | grep -Ei "numpy|xarray|capytaine"
+    uv pip list | grep -Ei "numpy|xarray|capytaine" || true
     cd {{TEMP_DIR}}
     export {{ENV}}
     python -c "import capytaine; print(capytaine.__version__)"
