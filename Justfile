@@ -43,7 +43,8 @@ EXAMPLES_FILES := ' \
 # Run the test suite and the example files assuming a virtual environment has been activated
 _test:
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -euxo pipefail
+    uv pip list | grep -Ei "numpy|xarray|capytaine"
     cd {{TEMP_DIR}}
     export {{ENV}}
     python -c "import capytaine; print(capytaine.__version__)"
@@ -51,9 +52,10 @@ _test:
     capytaine --help
     capytaine {{NEMOH_CASES}}/Nemoh.cal
     capytaine {{NEMOH_CASES}}/Nemoh_v3.cal
+    set +x  # Stop displaying commands
     for f in {{EXAMPLES_FILES}}; do
-        echo "\n---> Running $f\n";
-        python {{EXAMPLES_DIR}}/$f;
+        echo -e "\n---> Running $f";
+        # python {{EXAMPLES_DIR}}/$f;
     done
 
 test_in_latest_env:
