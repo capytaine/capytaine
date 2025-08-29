@@ -570,7 +570,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
                 )
             for radiating_dof_name in self.dofs
             for influenced_dof_name in self.dofs
-            ])
+            ], compat='no_conflicts', join="outer")
 
         # Reorder dofs
         K = hs_set.hydrostatic_stiffness.sel(influenced_dof=list(self.dofs.keys()), radiating_dof=list(self.dofs.keys()))
@@ -660,7 +660,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
                                             'radiating_dof': body_dof_names},
                                     name="inertia_matrix")
 
-        total_mass_xr = xr.merge([rigid_inertia_matrix_xr, other_dofs_inertia_matrix_xr], compat="override").inertia_matrix
+        total_mass_xr = xr.merge([rigid_inertia_matrix_xr, other_dofs_inertia_matrix_xr], compat="override", join="outer").inertia_matrix
 
         non_rigid_dofs = set(body_dof_names) - set(rigid_dof_names)
 

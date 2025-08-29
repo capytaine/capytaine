@@ -257,7 +257,7 @@ def hydrostatics_dataset(bodies: Sequence[FloatingBody]) -> xr.Dataset:
         if len(bodies_properties) > 0:
             bodies_properties = xr.concat(bodies_properties.values(), pd.Index(bodies_properties.keys(), name='body_name'))
             bodies_properties = _squeeze_dimensions(bodies_properties, dimensions=['body_name'])
-            dataset = xr.merge([dataset, {body_property: bodies_properties}])
+            dataset = xr.merge([dataset, {body_property: bodies_properties}], compat="no_conflicts", join="outer")
     return dataset
 
 
@@ -416,7 +416,7 @@ def assemble_dataset(results,
             variables=['added_mass', 'radiation_damping'],
             dimensions=[main_freq_type, 'radiating_dof', 'influenced_dof'],
             optional_dims=optional_dims + ['wave_direction'])
-        dataset = xr.merge([dataset, radiation_cases])
+        dataset = xr.merge([dataset, radiation_cases], compat="no_conflicts", join="outer")
 
     # DIFFRACTION RESULTS
     if "DiffractionResult" in kinds_of_results:
@@ -425,7 +425,7 @@ def assemble_dataset(results,
             variables=['diffraction_force', 'Froude_Krylov_force'],
             dimensions=[main_freq_type, 'wave_direction', 'influenced_dof'],
             optional_dims=optional_dims)
-        dataset = xr.merge([dataset, diffraction_cases])
+        dataset = xr.merge([dataset, diffraction_cases], compat="no_conflicts", join="outer")
         dataset['excitation_force'] = dataset['Froude_Krylov_force'] + dataset['diffraction_force']
 
     # OTHER FREQUENCIES TYPES
@@ -519,7 +519,7 @@ def assemble_dataset(results,
             LOG.warning('Bemio data import being used, hydrostatics=True is ignored.')
         else:
             bodies = list({result.body for result in results})
-            dataset = xr.merge([dataset, hydrostatics_dataset(bodies)])
+            dataset = xr.merge([dataset, hydrostatics_dataset(bodies)], compat="no_conflicts", join="outer")
 
     for var in set(dataset) | set(dataset.coords):
         if var in VARIABLES_ATTRIBUTES:
