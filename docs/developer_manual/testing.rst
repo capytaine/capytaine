@@ -30,23 +30,17 @@ Some useful features of Pytest include:
 
    python -m pytest --failed-first
 
-
 .. _`Pytest`: https://docs.pytest.org/
 
 
-Testing in isolated environments with Nox
------------------------------------------
+Testing in isolated environments
+--------------------------------
 
-`Nox`_ can be used to set up an isolated environment
-and build and run the unit test suite as well as some of the example code from
-the cookbook (``docs/user_manual/examples/`` directory).
-The test protocols are defined in the ``noxfile.py`` file at the root of the
-repository.
+The ``Justfile`` contains recipes to run the test suite as well as some of the example code from
+the cookbook (``docs/user_manual/examples/`` directory) in isolated environements using ``UV``.
 
-.. _`Nox`: https://nox.thea.codes
-
-The ``build_and_test_on_locked_env`` Nox session is used to test the current
-source code in an environment with fixed versions of Capytaine's dependencies.
+The ``test_in_*_reference_env`` recipes is used to test the current source code
+in an environment with fixed versions of Capytaine's dependencies.
 This is meant to test changes in Capytaine without interferences from possible
 changes in dependencies.
 Two environments are predefined for this test, one is older and meant to be
@@ -54,33 +48,34 @@ used with the oldest version of Python supported by Capytaine (Python 3.8 at
 the time of writing), while the other is more recent and is meant to be used
 with a recent version of Python (Python 3.12 at the time of writing).
 Their lockfiles can be found in the ``pytest/envs/`` directory.
-Assuming you have `uv <https://docs.astral.sh/uv/>`_ installed, you can them with::
 
-    uv run --with nox --python 3.8 nox -s build_and_test_on_locked_env
-    uv run --with nox --python 3.12 nox -s build_and_test_on_locked_env
+You can run them locally with::
 
-This Nox session is the main part of the
+    just test_in_py38_reference_env
+    just test_in_py312_reference_env
+
+assuming you have UV installed.
+
+These recipes are the main part of the
 ``.github/workflows/test_new_commits.yaml`` Github Actions workflow that is run
 at each new commit and pull request.
 
-Alternatively, the Nox sessions ``build_and_test_on_latest_env`` and
-``editable_build_and_test_on_latest_env`` uses the latest dependencies
+Alternatively, the recipe ``test_in_latest_env`` and
+``editable_build_and_test_in_latest_env`` uses the latest dependencies
 available on PyPI to test Capytaine, respectively by installing it as a normal
 package or by installing it in development mode as described above on this
 page.
-You can run it locally with, e.g.::
 
-    nox -s build_and_test_on_latest_env
+You can run them locally with::
 
-assuming you have ``nox`` installed.
-If you have ``uv`` installed, you can prefix the above command with ``uv run
---with nox`` to install ``nox`` on-the-fly and run the tests.
+    just test_in_latest_env
+    just editable_build_and_test_in_latest_env
 
-It is the main part of the
+They are the main part of the
 ``.github/workflows/test_with_latest_dependencies.yaml`` Github Actions workflow
 that is run twice a month on the main branch of the Github repository.
 
-Finally the session ``build_and_test_on_nightly_builds`` fetches yet-unreleased
+Finally the session ``test_in_nightly_env`` fetches yet-unreleased
 versions of Capytaine dependencies and run the same tests. It is mostly meant
 to anticipate breaking changes in the dependencies, such as the Numpy 1 to
 Numpy 2 transition.
@@ -100,9 +95,9 @@ It is done in CI for each new commit in ``.github/workflows/test_new_commits.yam
 While testing new developments in the Fortran core it is also useful to test
 the compilation of Capytaine's Fortran core AND its Python binding, but without
 the full Capytaine test suite.
-This can be done with Capytaine's main ``Makefile`` as::
+This can be done with Capytaine's main ``Justfile`` as::
 
-   make test_fortran_compilation
+   just test_fortran_compilation
 
 
 Sanity checks with Pre-commit
@@ -123,10 +118,10 @@ Testing in CI with Github Actions
 The directory ``.github/workflows/`` contains the definition of the Github
 Actions that are run to test Capytaine in CI.
 The workflows ``test_new_commits.yaml`` and
-``test_with_latest_dependencies.yaml`` are mostly thin wrapper around the Nox
-sessions described above.
+``test_with_latest_dependencies.yaml`` are mostly thin wrapper around the Just
+recipes described above.
 The former is run on each new commit, while the latter is run periodically.
-Follow the instruction above in the section about Nox to run them locally.
+Follow the instructions in the section above to run them locally.
 Both only run on Linux, testing other platforms is only done with the
 ``build_wheel.yaml`` workflow described below.
 
