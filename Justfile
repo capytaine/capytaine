@@ -55,7 +55,7 @@ _test:
     set +x  # Stop displaying commands
     for f in {{EXAMPLES_FILES}}; do
         echo -e "\n---> Running $f";
-        # python {{EXAMPLES_DIR}}/$f;
+        python {{EXAMPLES_DIR}}/$f;
     done
 
 test_in_latest_env:
