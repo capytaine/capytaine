@@ -7,7 +7,6 @@ on:
 
 env:
   FORCE_COLOR: 3
-  # Colors for nox
 
 jobs:
   build_and_test:
@@ -28,5 +27,5 @@ jobs:
       with:
         enable-cache: true
 
-    - name: Run nox session
-      run: uvx nox --force-python ${{ matrix.python-version }} -s build_and_test_on_latest_env editable_build_and_test_on_latest_env
+    - name: Run test sessions
+      run: just test_in_latest_env test_in_nightly_env
