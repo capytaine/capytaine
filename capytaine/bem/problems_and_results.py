@@ -55,6 +55,8 @@ class LinearPotentialFlowProblem:
         The acceleration of gravity in m/s2 (default: 9.81)
     boundary_condition: np.ndarray of shape (body.mesh.nb_faces,), optional
         The Neumann boundary condition on the floating body
+    lid_boundary_condition: np.ndarray of shape (body.lid_mesh.nb_face), optional
+        The Neumann boundary condition on the lid, i.e. the internal free surface
     """
 
     def __init__(self, *,
@@ -66,7 +68,8 @@ class LinearPotentialFlowProblem:
                  rho=_default_parameters['rho'],
                  g=_default_parameters['g'],
                  wave_direction=_default_parameters['wave_direction'],
-                 boundary_condition=None):
+                 boundary_condition=None,
+                 lid_boundary_condition=None):
 
         self.body = body
         self.free_surface = float(free_surface)
@@ -76,6 +79,7 @@ class LinearPotentialFlowProblem:
         self.wave_direction = float(wave_direction)  # Required for (diffraction problem) and (radiation problems with forward speed).
 
         self.boundary_condition = boundary_condition
+        self.lid_boundary_condition = lid_boundary_condition
 
         self.water_depth = _get_water_depth(free_surface, water_depth, sea_bottom, default_water_depth=_default_parameters["water_depth"])
         self.omega, self.freq, self.period, self.wavenumber, self.wavelength, self.provided_freq_type = \
@@ -226,10 +230,21 @@ class LinearPotentialFlowProblem:
             if len(self.boundary_condition.shape) != 1:
                 raise ValueError(f"Expected a 1-dimensional array as boundary_condition. Provided boundary condition's shape: {self.boundary_condition.shape}.")
 
-            if self.boundary_condition.shape[0] != self.body.mesh_including_lid.nb_faces:
+            if self.boundary_condition.shape[0] not in [self.body.mesh_including_lid.nb_faces, self.body.mesh.nb_faces]:
                 raise ValueError(
                     f"The shape of the boundary condition ({self.boundary_condition.shape})"
-                    f"does not match the number of faces of the mesh ({self.body.mesh.nb_faces})."
+                    f"does not match the number of faces of the body mesh ({self.body.mesh.nb_faces}) or "
+                    f"of the body and lid meshes ({self.body.mesh_including_lid.nb_face})."
+                )
+
+        if self.lid_boundary_condition is not None:
+            if len(self.lid_boundary_condition.shape) != 1:
+                raise ValueError(f"Expected a 1-dimensional array as boundary_condition. Provided boundary condition's shape: {self.boundary_condition.shape}.")
+
+            if self.lid_boundary_condition.shape[0] != self.body.lid_mesh.nb_faces:
+                raise ValueError(
+                    f"The shape of the lid boundary condition ({self.lid_boundary_condition.shape})"
+                    f"does not match the number of faces of the lid mesh ({self.body.lid_mesh.nb_faces})."
                 )
 
     @property
