@@ -16,44 +16,48 @@ Main concepts
     stores some data computed from the vertices and the faces such as the faces
     normals, the faces centers and the faces areas.
 
-**Dof**
-    A degree of freedom (or dof) defines a small motion or deformation of a floating body
-    around its average position. It is stored as a vector at the center of each faces of the mesh.
-
-    Degrees of freedom appears in two forms in the code:
-    :code:`radiating_dof` denotes an actual motion of the body, whereas
-    :code:`influenced_dof` denotes a component of a (generalized) force.
-
-    .. note:: For mathematicians in the field of Galerkin Boundary Element Method, the concept
-        of degree of freedom might have a different meaning (a basis function of the Galerkin
-        decomposition). Here, the degrees of freedom are the physical degrees of freedom of the
-        floating body, typically the rigid body translations and rotations.
-
 :class:`~capytaine.bodies.bodies.FloatingBody`
     A :code:`FloatingBody` is mainly the reunion of the mesh of a floating
     body's hull in its averaged position and some degrees of freedom.
 
-    The degree of freedom of the body are referred by a name (e.g. `Heave`).
-    They should stay in the order in which they have been defined, but
-    accessing them by name rather than by index is usually preferred.
+    **Degrees of freedom (dof)**
+        A degree of freedom (or dof) defines a small motion or deformation of a
+        floating body around its average position. The motion or deformation is
+        stored as a vector at the center of each faces of the mesh.
 
-    Beside the mesh and the dofs, some other physical information can be
-    stored in a :code:`FloatingBody` instance, such as the mass and the
-    position of the center of mass. This information is only required for
-    some specific actions (see :doc:`hydrostatics`) and can be left unspecified
-    in many cases.
+        The degrees of freedom of the body are referred by a name (e.g. `Heave`).
+        They should stay in the order in which they have been defined, but
+        accessing them by name rather than by index is usually preferred.
 
-**Lid**
-    Besides the mandatory ``mesh`` of the hull, the body can have a
-    ``lid_mesh`` also given as an instance of the
-    :class:`~capytaine.meshes.meshes.Mesh` class.
+        The names of the degrees of freedom appear in two forms:
+        :code:`radiating_dof` denotes an actual motion of the body, whereas
+        :code:`influenced_dof` denotes a component of a (generalized) force.
 
-    The lid mesh is a numerical tool used for the regularisation of the
-    solutions given by the BEM solver to avoid the so-called irregular
-    frequencies.
-    Despite its name, the ``lid_mesh`` is not restricted to faces on the free
-    surface (although it is usually more efficient there), nor is the main
-    ``mesh`` restricted to faces strictly below the free surface.
+        .. note::
+            For mathematicians in the field of Boundary Element Method,
+            the concept of degree of freedom might have a different meaning (a
+            basis function of the Galerkin decomposition). Here, the degrees of
+            freedom are the physical degrees of freedom of the floating body,
+            typically the rigid body translations and rotations.
+
+    **Lid**
+        Besides the mandatory ``mesh`` of the hull, the body can have a
+        ``lid_mesh`` also given as an instance of the
+        :class:`~capytaine.meshes.meshes.Mesh` class.
+
+        The lid mesh is a non-physical numerical tool used for the
+        regularisation of the solutions given by the BEM solver to avoid the
+        so-called irregular frequencies.
+        Despite its name, the ``lid_mesh`` is not restricted to faces on the free
+        surface (although it is usually more efficient there), nor is the hull
+        ``mesh`` restricted to faces strictly below the free surface.
+
+    **Hydrostatics parameters**
+        Beside the mesh and the dofs, some other physical information can be
+        stored in a :code:`FloatingBody` instance, such as the mass and the
+        position of the center of mass. This information is only required for
+        some specific actions (see :doc:`hydrostatics`) and can be left unspecified
+        in many cases.
 
 
 :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem`
@@ -67,7 +71,7 @@ Main concepts
 
     Most of the parameters are optional. A default value is used when they are not provided (see the page :doc:`problem_setup`).
 
-:class:`Solver <capytaine.bem.solver.BEMSolver>`
+:class:`~capytaine.bem.solver.BEMSolver`
     The core of the code. It has a :meth:`~capytaine.bem.solver.BEMSolver.solve` method that takes a
     :code:`LinearPotentialFlowProblem` as input and returns a :code:`LinearPotentialFlowResult`.
     It calls a class computing the Green function and a class to build the matrices.
