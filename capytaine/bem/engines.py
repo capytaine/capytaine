@@ -60,7 +60,7 @@ class BasicMatrixEngine(MatrixEngine):
     """
 
     available_linear_solvers = {'direct': linear_solvers.solve_directly,
-                                'lu_decomposition': linear_solvers.LUSolverWithCache().solve,
+                                'lu_decomposition': linear_solvers.LUSolverWithCache(),
                                 'gmres': linear_solvers.solve_gmres,
                                 }
 
