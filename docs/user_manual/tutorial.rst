@@ -6,19 +6,18 @@ Main concepts
 =============
 
 :class:`~capytaine.meshes.meshes.Mesh`
-    The mesh of a floating body in its averaged position. It is stored as a
-    instance of the :code:`Mesh` class.
+    Capytaine is working with meshes of 2D surfaces in a 3D space, using
+    quadrilaterals (or triangles, which are treated as degenerate
+    quadrilaterals).
 
-    The mesh is defined as a list of vertices (a vertex is a triplet of real-valued coordinates)
-    and a list of faces (a face is a quadruplet of indices of vertices). By default, faces are
-    assumed to be quadrangular. Triangular faces are supported as quadrangles with two identical
-    vertices.
-
-    The :code:`Mesh` class also stores some data computed from the vertices and the faces such as
-    the faces normals, the faces centers and the faces areas.
+    The :class:`~capytaine.meshes.meshes.Mesh` class stores the mesh as a list
+    of vertices (a vertex is a triplet of real-valued coordinates) and a list
+    of faces (a face is a quadruplet of indices of vertices). The class also
+    stores some data computed from the vertices and the faces such as the faces
+    normals, the faces centers and the faces areas.
 
 **Dof**
-    A degree of freedom (or dof) defines a small motion or deformation of the floating body
+    A degree of freedom (or dof) defines a small motion or deformation of a floating body
     around its average position. It is stored as a vector at the center of each faces of the mesh.
 
     Degrees of freedom appears in two forms in the code:
@@ -31,18 +30,31 @@ Main concepts
         floating body, typically the rigid body translations and rotations.
 
 :class:`~capytaine.bodies.bodies.FloatingBody`
-    A :code:`FloatingBody` is mainly the reunion of a :code:`Mesh` and some degrees of freedom.
+    A :code:`FloatingBody` is mainly the reunion of the mesh of a floating
+    body's hull in its averaged position and some degrees of freedom.
 
     The degree of freedom of the body are referred by a name (e.g. `Heave`).
-    They should stay in the order in which they have been defined, but `the code
-    does not strictly guarantee it <https://github.com/capytaine/capytaine/issues/4>`_.
-    Accessing them by name rather than by index should be preferred.
+    They should stay in the order in which they have been defined, but
+    accessing them by name rather than by index is usually preferred.
 
     Beside the mesh and the dofs, some other physical information can be
     stored in a :code:`FloatingBody` instance, such as the mass and the
     position of the center of mass. This information is only required for
     some specific actions (see :doc:`hydrostatics`) and can be left unspecified
     in many cases.
+
+**Lid**
+    Besides the mandatory ``mesh`` of the hull, the body can have a
+    ``lid_mesh`` also given as an instance of the
+    :class:`~capytaine.meshes.meshes.Mesh` class.
+
+    The lid mesh is a numerical tool used for the regularisation of the
+    solutions given by the BEM solver to avoid the so-called irregular
+    frequencies.
+    Despite its name, the ``lid_mesh`` is not restricted to faces on the free
+    surface (although it is usually more efficient there), nor is the main
+    ``mesh`` restricted to faces strictly below the free surface.
+
 
 :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem`
     A problem is a collection of several parameters: a :code:`FloatingBody`, the wave angular frequency
