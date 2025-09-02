@@ -75,3 +75,10 @@ A7. Elastic beam
 
 .. literalinclude:: src/A7_elasticity_of_beam.py
    :language: python
+
+
+A8. Export dataset
+------------------
+
+.. literalinclude:: src/A8_export_dataset.py
+   :language: python

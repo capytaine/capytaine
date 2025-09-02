@@ -10,7 +10,7 @@ import numpy as np
 
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.geometry import Axis, Plane, Oz_axis, inplace_transformation
+from capytaine.meshes.geometry import Axis, Plane, xOy_Plane, Oz_axis, inplace_transformation
 
 LOG = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ class ReflectionSymmetricMesh(SymmetricMesh):
             "Only meshes with the same symmetry can be joined together."
         assert all(meshes[0].plane == mesh.plane for mesh in meshes), \
             "Only reflection symmetric meshes with the same reflection plane can be joined together."
-        half_mesh = CollectionOfMeshes([mesh.half for mesh in meshes], name=f"half_of_{name}" if name is not None else None)
+        half_mesh = meshes[0].half.join_meshes(*(mesh.half for mesh in meshes[1:]), name=f"half_of_{name}" if name is not None else None)
         return ReflectionSymmetricMesh(half_mesh, plane=meshes[0].plane, name=name)
 
     @inplace_transformation
@@ -109,6 +109,15 @@ class ReflectionSymmetricMesh(SymmetricMesh):
         self.plane.mirror(plane)
         CollectionOfMeshes.mirror(self, plane)
         return self
+
+    def generate_lid(self, z=0.0, faces_max_radius=None, name=None):
+        if name is None:
+            name = "lid for {}".format(self.name)
+        return ReflectionSymmetricMesh(self.half.generate_lid(z, faces_max_radius), self.plane, name=name)
+
+    def extract_lid(self, plane=xOy_Plane):
+        hull, lid = self.half.extract_lid(plane)
+        return ReflectionSymmetricMesh(hull, self.plane), ReflectionSymmetricMesh(lid, self.plane)
 
 
 class TranslationalSymmetricMesh(SymmetricMesh):

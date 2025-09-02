@@ -47,10 +47,10 @@ def test_infinite_depth_gf_finite_differences(gf_singularities):
     gf = cpt.Delhommeau(gf_singularities=gf_singularities)
     def wave_part(*args):
         return gf.fortran_core.green_wave.wave_part_infinite_depth(
-                *args[:3], *gf.all_tabulation_parameters, gf.gf_singularities_index)[0]
+                *args[:3], *gf.all_tabulation_parameters, gf.gf_singularities_fortran_enum[gf.gf_singularities])[0]
     def nabla_wave_part(*args):
         return gf.fortran_core.green_wave.wave_part_infinite_depth(
-                *args[:3], *gf.all_tabulation_parameters, gf.gf_singularities_index)[1]
+                *args[:3], *gf.all_tabulation_parameters, gf.gf_singularities_fortran_enum[gf.gf_singularities])[1]
     k = 1.0
     xi = np.array([0.0, 0.0, -0.5])
     xj = np.array([1.0, 1.0, -0.5])
@@ -66,6 +66,19 @@ def test_infinite_depth_gf_finite_differences(gf_singularities):
     assert nablag_ref == pytest.approx(nabla_g, abs=1e-2)
 
 
+def test_value_of_inf_depth_green_function_wave_part():
+    gf = cpt.Delhommeau()
+    def wave_part(*args):
+        return gf.fortran_core.green_wave.wave_part_infinite_depth(
+                *args[:3], *gf.all_tabulation_parameters, gf.fortran_core.constants.low_freq)
+    k = 1.0
+    xi = np.array([0.0, 0.0, -0.5])
+    xj = np.array([1.0, 1.0, -0.5])
+    g, nabla_g = wave_part(xi, xj, k)
+    assert g == pytest.approx(-2.04 + 1.29j, abs=0.1)
+    assert nabla_g == pytest.approx([0.25+0.88j,  0.25+0.88j, -0.88+1.29j], abs=0.1)
+
+
 gfs = [
         cpt.Delhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251, tabulation_grid_shape="legacy"),
         cpt.XieDelhommeau(tabulation_nr=328, tabulation_nz=46, tabulation_nb_integration_points=251, tabulation_grid_shape="legacy"),
@@ -78,10 +91,10 @@ def test_symmetry_of_the_green_function_infinite_depth(gf):
     xi = np.array([0.0, 0.0, -1.0])
     xj = np.array([1.0, 1.0, -2.0])
     g1, dg1 = gf.fortran_core.green_wave.wave_part_infinite_depth(
-        xi, xj, k, *gf.all_tabulation_parameters, gf.gf_singularities_index
+        xi, xj, k, *gf.all_tabulation_parameters, gf.gf_singularities_fortran_enum[gf.gf_singularities]
     )
     g2, dg2 = gf.fortran_core.green_wave.wave_part_infinite_depth(
-        xj, xi, k, *gf.all_tabulation_parameters, gf.gf_singularities_index
+        xj, xi, k, *gf.all_tabulation_parameters, gf.gf_singularities_fortran_enum[gf.gf_singularities]
     )
     assert g1 == pytest.approx(g2)
     assert dg1[0:2] == pytest.approx(-dg2[0:2])
@@ -117,13 +130,34 @@ def test_exact_integration_of_rankine_terms():
     gf = cpt.Delhommeau()
     center = np.array([0.0, 0.0, 0.0])
     area = 1.0
-
     mesh = cpt.mesh_rectangle(size=(np.sqrt(area), np.sqrt(area)), center=center, resolution=(1, 1))
-    rankine_g_once = gf.evaluate(center.reshape(1, -1), mesh, wavenumber=0.0)[0]
+    rankine_g_once = gf.evaluate_rankine_only(center.reshape(1, -1), mesh)[0]
     mesh = cpt.mesh_rectangle(size=(np.sqrt(area), np.sqrt(area)), center=center, resolution=(11, 11))
     # Use odd number of panels to avoid having the center on a corner of a panel, which is not defined for the strong singularity of the derivative.
-    rankine_g_parts = gf.evaluate(center.reshape(1, -1), mesh, wavenumber=0.0)[0]
+    rankine_g_parts = gf.evaluate_rankine_only(center.reshape(1, -1), mesh)[0]
     assert rankine_g_once == pytest.approx(rankine_g_parts.sum(), abs=1e-2)
+
+
+def test_rankine_term_alone_or_in_zero_freq():
+    import capytaine as cpt
+    gf = cpt.Delhommeau()
+    collocation_point = np.array([1.0, 0.0, -1.0]).reshape(1, -1)
+    mirror_collocation_point = np.array([1.0, 0.0, 1.0]).reshape(1, -1)
+    mesh = cpt.mesh_rectangle(size=(1.0, 1.0), center=(0.0, 0.0, -1.0), resolution=(1, 1))
+    rankine_only = gf.evaluate_rankine_only(collocation_point, mesh)[0] + gf.evaluate_rankine_only(mirror_collocation_point, mesh)[0]
+    zero_freq = gf.evaluate(collocation_point, mesh, water_depth=np.inf, wavenumber=0.0)[0]
+    assert rankine_only == pytest.approx(zero_freq)
+
+
+def test_rankine_term_alone_or_in_inf_freq():
+    import capytaine as cpt
+    gf = cpt.Delhommeau()
+    collocation_point = np.array([1.0, 0.0, -1.0]).reshape(1, -1)
+    mirror_collocation_point = np.array([1.0, 0.0, 1.0]).reshape(1, -1)
+    mesh = cpt.mesh_rectangle(size=(1.0, 1.0), center=(0.0, 0.0, -1.0), resolution=(1, 1))
+    rankine_only = gf.evaluate_rankine_only(collocation_point, mesh)[0] - gf.evaluate_rankine_only(mirror_collocation_point, mesh)[0]
+    inf_freq = gf.evaluate(collocation_point, mesh, water_depth=np.inf, wavenumber=np.inf)[0]
+    assert rankine_only == pytest.approx(inf_freq)
 
 
 def test_exact_integration_with_nb_integration_points():
@@ -162,11 +196,11 @@ def test_liangwunoblesse_wave_term():
     assert gf_r == pytest.approx(- re_gf_r - im_gf_r*1j, rel=5e-2)
 
 
-def test_full_liangwunoblesse():
+@pytest.mark.parametrize("wavenumber", [0.0, 1.0, np.inf])
+def test_full_liangwunoblesse(wavenumber):
     gf = cpt.LiangWuNoblesseGF()
     ref_gf = cpt.Delhommeau()
     mesh = cpt.mesh_sphere().immersed_part()
-    wavenumber = 1.0
     S, K = gf.evaluate(mesh, mesh, 0.0, np.inf, wavenumber)
     ref_S, ref_K = ref_gf.evaluate(mesh, mesh, 0.0, np.inf, wavenumber)
     np.testing.assert_allclose(S, ref_S, rtol=1e-2)

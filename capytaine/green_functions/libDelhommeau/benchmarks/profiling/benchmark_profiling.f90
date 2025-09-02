@@ -47,7 +47,6 @@ real(kind=pre), dimension(2, 31) :: prony_decomposition
 real(kind=pre), dimension(1) :: dispersion_roots  ! dummy
 
 integer i
-real(kind=pre), dimension(3) :: coeffs
 
 ! The interaction matrices to be computed
 complex(kind=pre), dimension(:, :), allocatable :: S
@@ -83,7 +82,6 @@ do i=1, 1
 
    call system_clock(count_rate=clock_rate)
 
-   coeffs = [1d0, 1d0, 1d0]
    call system_clock(starting_time)
    call build_matrices(                                              &
         nb_faces, face_center, face_normal,                          &
@@ -91,52 +89,14 @@ do i=1, 1
         face_center, face_normal, face_area, face_radius,            &
         nb_quadrature_points, quadrature_points, quadrature_weights, &
         wavenumber, depth,                                           &
-        coeffs,                                                      &
         tabulation_nb_integration_points, tabulation_grid_shape,     &
         tabulated_r, tabulated_z, tabulated_integrals,               &
         finite_depth_method, prony_decomposition, dispersion_roots,  &
-        .false., gf_singularities, .true.,                           &
+        gf_singularities, .true.,                                    &
         S, K)
    call system_clock(final_time)
 
    print'(1F5.0,a16,1ES16.6)', depth, " full ", real(final_time - starting_time)/clock_rate
-
-   ! coeffs = [0d0, 0d0, 1d0]
-   ! call system_clock(starting_time)
-   ! call build_matrices(                                                   &
-   !      nb_faces, face_center, face_normal,                               &
-   !      nb_vertices, nb_faces, vertices, faces,                           &
-   !      face_center, face_normal, face_area, face_radius,                 &
-   !      nb_quadrature_points, quadrature_points, quadrature_weights,      &
-   !      wavenumber, depth,                                                &
-   !      coeffs,                                                           &
-   !      tabulation_nb_integration_points, tabulation_grid_shape,          &
-   !      tabulated_r, tabulated_z, tabulated_integrals,                    &
-   !      finite_depth_method, prony_decomposition, dispersion_roots,       &
-   !      .false., .true.,                                                  &
-   !      S, K)
-   ! call system_clock(final_time)
-   !
-   ! ! print'(1F5.0,a16,1ES16.6)', depth, " wave_only ", real(final_time - starting_time)/clock_rate
-   !
-   ! coeffs = [0d0, 0d0, 1d0]
-   ! call system_clock(starting_time)
-   ! call build_matrices(                                                   &
-   !      nb_faces, face_center, face_normal,                               &
-   !      nb_vertices, nb_faces, vertices, faces,                           &
-   !      face_center, face_normal, face_area, face_radius,                 &
-   !      nb_quadrature_points, quadrature_points, quadrature_weights,      &
-   !      wavenumber, depth,                                                &
-   !      coeffs,                                                           &
-   !      tabulation_nb_integration_points, tabulation_grid_shape,          &
-   !      tabulated_r, tabulated_z, tabulated_integrals,                    &
-   !      finite_depth_method, prony_decomposition, dispersion_roots,       &
-   !      .true., gf_singularities, .true.,                                 &
-   !      S, K)
-   ! call system_clock(final_time)
-   !
-   ! print'(1F5.0,a16,1ES16.6)', depth, " half_wave_only ", real(final_time - starting_time)/clock_rate
-
 end do
 
 contains

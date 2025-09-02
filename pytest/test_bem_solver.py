@@ -16,8 +16,12 @@ def sphere():
 
 
 def test_exportable_settings():
-    gf = cpt.Delhommeau(tabulation_nr=10, tabulation_nz=10,
-                    tabulation_grid_shape="legacy", tabulation_nb_integration_points=50)
+    gf = cpt.Delhommeau(
+            tabulation_nr=10, tabulation_nz=10,
+            tabulation_grid_shape="legacy",
+            tabulation_nb_integration_points=50,
+            finite_depth_prony_decomposition_method="fortran"
+            )
     assert gf.exportable_settings['green_function'] == 'Delhommeau'
     assert gf.exportable_settings['tabulation_nb_integration_points'] == 50
     assert gf.exportable_settings['tabulation_grid_shape'] == "legacy"
@@ -52,21 +56,22 @@ def test_solver_update_timer(sphere):
 
 def test_direct_solver(sphere):
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
-    solver = cpt.BEMSolver()
-    direct_result = solver.solve(problem, method='direct')
-    indirect_result = solver.solve(problem, method='indirect')
+    direct_solver = cpt.BEMSolver(method='direct')
+    direct_result = direct_solver.solve(problem)
+    indirect_solver = cpt.BEMSolver(method='indirect')
+    indirect_result = indirect_solver.solve(problem)
     assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-1)
 
 
 @pytest.mark.parametrize("method", ["direct", "indirect"])
 def test_same_result_with_symmetries(method):
-    solver = cpt.BEMSolver()
+    solver = cpt.BEMSolver(method=method)
     sym_mesh = cpt.ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), cpt.xOz_Plane)
     sym_body = cpt.FloatingBody(mesh=sym_mesh, dofs=cpt.rigid_body_dofs())
-    sym_result = solver.solve(cpt.DiffractionProblem(body=sym_body, omega=1.0), method=method)
+    sym_result = solver.solve(cpt.DiffractionProblem(body=sym_body, omega=1.0))
     mesh = sym_mesh.merged()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    result = solver.solve(cpt.DiffractionProblem(body=body, omega=1.0), method=method)
+    result = solver.solve(cpt.DiffractionProblem(body=body, omega=1.0))
     assert sym_result.forces["Surge"] == pytest.approx(result.forces["Surge"], rel=1e-10)
 
 
@@ -105,7 +110,7 @@ def test_fill_dataset(sphere):
         'wave_direction': np.linspace(0.0, np.pi, 3),
         'radiating_dof': list(sphere.dofs.keys()),
         'rho': [1025.0],
-        'water_depth': [np.inf, 10.0],
+        'water_depth': [np.inf, 30.0],
         'g': [9.81]
     })
     dataset = solver.fill_dataset(test_matrix, sphere, n_jobs=1)

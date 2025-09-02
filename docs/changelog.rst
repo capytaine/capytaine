@@ -7,14 +7,21 @@ Changelog
    :depth: 1
    :backlinks: none
 
----------------------------------
-New in version 2.3 (2025-??-??)
----------------------------------
+
+-------------------------------
+New in version 3.0 (2025-??-??)
+-------------------------------
+
+
+
+-------------------------------
+New in version 2.3 (2025-07-17)
+-------------------------------
 
 Major change
 ~~~~~~~~~~~~
 
-* The implementations of the Green function used in HAMS are now included in Capytaine:
+* The implementations of the **Green function from HAMS** are now included in Capytaine:
 
   * The infinite depth version from [Liang, Wu, Noblesse, 2018] is :class:`~capytaine.green_functions.hams.LiangWuNoblesseGF` (:pull:`617`),
   * The finite depth version from [Liu et al., 2018] is :class:`~capytaine.green_functions.hams.FinGreen3D` (:pull:`647`),
@@ -26,12 +33,31 @@ Major change
 
   Please cite the corresponding papers if you use them in a scientific publication (see the :doc:`citing` page).
 
-* Add :code:`finite_depth_method` parameter to :class:`~capytaine.green_functions.delhommeau.Delhommeau` allowing to customize the behavior of the finite depth Green function. The legacy behavior of previous versions is available as :code:`finite_depth_method="legacy"`, while a better behavior is used by default.
+* Revamp of default **finite depth Green function** implementation.
 
-* Do not interrupt a batch of resolutions when one of them fails. Instead the error message is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a `NaN` value for these parameters. (:pull:`678`)
+  * The new implementation should better handle panels on or near the free surface and have the right asymptotic consistency with the infinite depth method when depth goes to infinity.
+    The legacy behavior of previous versions is still available by setting the parameter :code:`finite_depth_method` added to :class:`~capytaine.green_functions.delhommeau.Delhommeau` to :code:`finite_depth_method="legacy"`, while the better behavior is used by default. (:pull:`654` and :pull:`656`)
+  * The Prony decomposition is now done in Python and its failure (typically for :math:`kh < 0.1`) raises an error instead of returning wrong values.
+    This behavior is controlled by the :code:`finite_depth_prony_decomposition_method` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau`, which is now :code:`"python"` by default. (:pull:`675`)
+  * Infinite frequency is now supported in finite depth (zero frequency is still not and returns the same error as other finite depth low-frequency cases). (:pull:`703`)
+
+* Do not interrupt a batch of resolutions when one of them fails.
+  Instead the exception is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a `NaN` value for these parameters. (:pull:`678`)
+  Diffraction problems with zero or infinite frequencies used to have a special treatment to be run with a batch resolution despite raising an error when run alone, they have been reworked to use the same design as other failing resolutions. (:pull:`719`)
+
+* The Boundary Integral Equation (``method`` keyword argument) used to solve the problem can now be specified when initializing a solver and will then be use for all resolution with this solver. This general setting can be over overridden by using the ``method`` argument when solving::
+
+  solver = cpt.BEMSolver(method="direct")  # That is new and recommended
+  solver.solve(problem, method="direct")  # That is still possible and override the above setting.
+
+The method is also saved in the metadata of the results with the other parameters of the solver (whether it was defined when initializing the solver or later). (:pull:`686`)
+
+* Add :func:`~capytaine.io.xarray.export_dataset` method to more conveniently export a dataset to NetCDF or other formats (:pull:`690`).
 
 Minor change
 ~~~~~~~~~~~~
+
+* Add optional :code:`freq` argument (frequency in Hz) for problem set up and output.
 
 * Add :func:`~capytaine.io.xarray.assemble_dataframe` which collect results into a Pandas DataFrame (this was already done internally in `~capytaine.io.xarray.assemble_dataset`) (:pull:`677`).
   Also add :func:`~capytaine.io.xarray.assemble_matrices` function which is a simplified version of `~capytaine.io.xarray.assemble_dataset` without metadata, meant to be used mostly for teaching. (:pull:`643`)
@@ -40,14 +66,19 @@ Minor change
 
 * Add ``timer`` attribute to :class:`~capytaine.bem.solver.BEMSolver` storing the time spent in each steps of the resolution. Summary can be accessed by :meth:`~capytaine.bem.solver.BEMSolver.timer_summary`. (:pull:`674`)
 
+* Add :func:`~capytaine.io.wamit.export_to_wamit` as a unified interface to export hydrodynamic results to WAMIT-compatible files. (:pull:`714`)
+
+
 Bug fixes
 ~~~~~~~~~
+
+* Properly use `progress_bar` argument in :func:`~capytaine.bem.solver.fill_dataset` to disable progress bar.
 
 * Always remove degenerate faces after clipping (:issue:`620` and :pull:`624`).
 
 * Fix missing geometric center in legacy predefined body :class:`~capytaine.bodies.predefined.rectangles.ReflectionSymmetricMesh`. It was causing inconsistent definition of dofs with respect to earlier versions. (:pull:`625`)
 
-* Fix Python implementation of the Prony decomposition for the finite depth Green function. The default is still the legacy Fortran implementation. (:pull:`621`). Move some code of its code to the :mod:`~capytaine.tools.prony_decomposition` module. (:pull:`649`)
+* Fix Python implementation of the Prony decomposition for the finite depth Green function, which is now the default. (:pull:`621`). Move some code of its code to the :mod:`~capytaine.tools.prony_decomposition` module. (:pull:`649`)
 
 * After joining several bodies, editing the mesh of one of the components does not affect the joined body anymore (:issue:`660` and :pull:`662`:).
 
@@ -57,16 +88,39 @@ Bug fixes
 
 * Add safeguard if a custom linear solver returns a result vector of wrong shape (e.g. column instead of row) (:pull:`670`)
 
+* Fix loading BEMIO datasets from Nemoh (:pull:`681`)
+
+* Fix computing zero and infinite frequency radiation problems with a lid for irregular frequencies removal (:issue:`704` and :pull:`708`)
+
+* Fix solving :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` directly.
+
+* Fix missing variable attributes for main frequency variable (:issue:`702` and :pull:`717`)
+
+* Trying to generate a lid over a purely vertical mesh does not raise an error anymore (:issue:`625`).
+
+* When the hull mesh and the lid mesh are both symmetric with the same reflection plane, the symmetry is not lost anymore when solving the BEM problem.
+  Also ``generate_lid`` and ``extract_lid`` should now work with reflection symmetric meshes without losing the symmetry. (:issue:`527`, :pull:`667`, :pull:`720`).
+
+
 Internals
 ~~~~~~~~~
 
-* Add ``interface.f90`` Fortran file to group some routines used only for wrapping the Fortran core. (:pull:`612`)
+* Major refactoring of the Fortran core, including its interface in Python:
 
-* Add :meth:`~capytaine.green_functions.delhommeau.Delhommeau.all_tabulation_parameters` to make it easier to test Fortran core from Python (:pull:`648`)
+  * Add ``interface.f90`` Fortran file to group some routines used only for wrapping the Fortran core. (:pull:`612`)
 
-* Refactor implementation of Delhommeau's finite depth Green function to compute all the frequency-independant Rankine terms at the same time (for future caching) (:pull:`652`)
+  * Add :meth:`~capytaine.green_functions.delhommeau.Delhommeau.all_tabulation_parameters` to make it easier to test Fortran core from Python (:pull:`648`)
+
+  * Refactor implementation of Delhommeau's finite depth Green function to compute all the frequency-independant Rankine terms at the same time (for future caching) (:pull:`652`)
+
+  * The main interface to the Fortran core ``build_matrices`` does not take ``coeffs`` and ``same_body`` inputs anymore.
+    The role of the former is played by ``gf_singularities`` and ``wavenumber``.
+    The diagonal term added by the latter is now added independently.
+    (:pull:`701`)
 
 * NaN values are not striped out of output data (:pull:`676`)
+
+* Define a :class:`~capytaine.meshes.mesh_like_protocol.MeshLike` protocol that classes implementing a mesh should follow. Also ensure that :class:`~capytaine.meshes.meshes.Mesh` and :class:`~capytaine.meshes.collections.CollectionOfMeshes` follow it. (:pull:`667`)
 
 ---------------------------------
 New in version 2.2.1 (2024-11-18)

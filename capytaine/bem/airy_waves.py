@@ -22,6 +22,9 @@ def airy_waves_potential(points, pb):
     """
     points, output_shape = _normalize_points(points)
 
+    if float(pb.wavenumber) == 0.0 or float(pb.wavenumber) == np.inf:
+        return np.nan * np.ones(output_shape)
+
     x, y, z = points.T
     k = pb.wavenumber
     h = pb.water_depth
@@ -54,8 +57,10 @@ def airy_waves_velocity(points, pb):
     array of shape (3) or (N x 3)
         the velocity vectors
     """
-
     points, output_shape = _normalize_points(points)
+
+    if float(pb.wavenumber) == 0.0 or float(pb.wavenumber) == np.inf:
+        return np.nan * np.ones((*output_shape, 3))
 
     x, y, z = points.T
     k = pb.wavenumber
@@ -79,7 +84,7 @@ def airy_waves_velocity(points, pb):
 
 
 def airy_waves_pressure(points, pb):
-    return 1j * pb.omega * pb.rho * airy_waves_potential(points, pb)
+    return 1j * float(pb.omega) * pb.rho * airy_waves_potential(points, pb)
 
 
 def froude_krylov_force(pb):

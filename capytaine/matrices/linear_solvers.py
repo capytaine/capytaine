@@ -130,7 +130,7 @@ def solve_gmres(A, b):
 
     if LOG.isEnabledFor(logging.INFO):
         counter = Counter()
-        x, info = ssl.gmres(A, b, atol=1e-6, callback=counter)
+        x, info = ssl.gmres(A, b, atol=1e-6, callback=counter, callback_type="pr_norm")
         LOG.info(f"End of GMRES after {counter.nb_iter} iterations.")
 
     else:

@@ -13,6 +13,6 @@ User manual
    hydrostatics.rst
    problem_setup.rst
    resolution.rst
-   outputs.rst
    post_pro.rst
+   export_output.rst
    conventions.rst

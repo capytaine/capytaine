@@ -25,6 +25,7 @@ EXAMPLE_FILES = [
     "A5_convergence_study.py",
     # "A6_irregular_frequency_removal.py",      # Slow
     "A7_elasticity_of_beam.py",
+    "A8_export_dataset.py",
     "B1_pressure_on_hull.py",
     "B2_haskind.py",
     "B3_free_surface_elevation.py",
@@ -32,6 +33,7 @@ EXAMPLE_FILES = [
     "B5_plot_velocity_in_domain.py",
     # "B6_animate_free_surface.py",             # Requires VTK
     # "B7_boat_animation.py",                   # Requires VTK
+    "B8_pressure_infinite_frequency.py",
     "C5_plot_influence_matrix.py",
     # "C6_axisymmetric_buoy.py",                # Requires VTK
     # "C7_h_matrices_with_preconditionner.py",  # Slow

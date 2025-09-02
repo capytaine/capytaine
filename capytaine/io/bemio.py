@@ -37,8 +37,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
         if bemio_obj.body[i].water_depth == 'infinite':
             bemio_obj.body[i].water_depth = np.inf
 
-        if bemio_obj.body[i].bem_code == 'WAMIT': # WAMIT coefficients need to be dimensionalized
-            from_wamit = True
+        from_wamit = (bemio_obj.body[i].bem_code == 'WAMIT') # WAMIT coefficients need to be dimensionalized
 
         for omega_idx, omega in enumerate(np.sort(bemio_obj.body[i].w)):
 
@@ -48,6 +47,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['body_name'] = bemio_obj.body[i].name
                 temp_dict['water_depth'] = bemio_obj.body[i].water_depth
                 temp_dict['omega'] = omega
+                temp_dict['freq'] = omega/(2*np.pi)
                 temp_dict['period'] = 2*np.pi/omega
                 temp_dict['rho'] = rho
                 temp_dict['g'] = g
@@ -104,6 +104,7 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['body_name'] = bemio_obj.body[i].name
                 temp_dict['water_depth'] = bemio_obj.body[i].water_depth
                 temp_dict['omega'] = omega
+                temp_dict['freq'] = omega/(2*np.pi)
                 temp_dict['rho'] = rho
                 temp_dict['g'] = g
                 temp_dict['kind'] = "RadiationResult"

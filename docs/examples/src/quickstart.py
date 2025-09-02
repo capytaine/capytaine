@@ -14,7 +14,7 @@ all_bodies = all_bodies.immersed_part()  # if your mesh has panels above the fre
 
 # Set up parameters
 test_matrix = xr.Dataset({
-        "omega": np.linspace(0.1, 2.0, 20),  # Can also specify "period", "wavelength" or "wavenumber"
+        "omega": np.linspace(0.1, 2.0, 20),  # Can also specify "freq" (in Hz), "period", "wavelength" or "wavenumber"
         "wave_direction": np.linspace(0, np.pi, 3),
         "radiating_dof": list(all_bodies.dofs),
         "water_depth": [np.inf],
@@ -25,8 +25,5 @@ test_matrix = xr.Dataset({
 solver = cpt.BEMSolver()
 dataset = solver.fill_dataset(test_matrix, all_bodies)
 
-# Export to NetCDF file
-from capytaine.io.xarray import separate_complex_values
-separate_complex_values(dataset).to_netcdf("dataset.nc",
-                                           encoding={'radiating_dof': {'dtype': 'U'},
-                                                     'influenced_dof': {'dtype': 'U'}})
+# Export to netcdf file
+cpt.export_dataset("capy_dataset.nc", dataset)

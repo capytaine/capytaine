@@ -34,6 +34,8 @@ independently and the output dataset contains one dimension more.
 
 :code:`fill_dataset` returns an :code:`xarray.Dataset` with the same
 coordinates as its input but filled with additional output data.
+See :doc:`export_outputs` for methods to export this dataset in various
+formats.
 
 If the coordinate :code:`theta` is added to the test matrix, the code will
 compute the Kochin function for these values of :math:`\theta`.
@@ -93,6 +95,8 @@ Setting the frequency is done by passing **one and only one** of the following m
 +====================+=============================================================+
 | :code:`omega`      | Angular frequency :math:`\omega` (rad/s)                    |
 +--------------------+-------------------------------------------------------------+
+| :code:`freq`       | Frequency :math:`f` (Hz)                                    |
++--------------------+-------------------------------------------------------------+
 | :code:`period`     | Period :math:`T = \frac{2\pi}{\omega}` (s)                  |
 +--------------------+-------------------------------------------------------------+
 | :code:`wavelength` | Wavelength :math:`\lambda` (m)                              |
@@ -104,6 +108,7 @@ If no frequency is provided, a frequency :code:`omega = 1.0` rad/s is used by de
 Once the problem has been initialized, the other parameters can be retrieved as::
 
     problem.omega
+    problem.freq
     problem.period
     problem.wavelength
     problem.wavenumber
@@ -111,14 +116,51 @@ Once the problem has been initialized, the other parameters can be retrieved as:
 When forward speed is non zero, the encounter frequency is computed and can be retrieved as::
 
     problem.encounter_omega
+    problem.encounter_freq
     problem.encounter_period
     problem.encounter_wavelength
     problem.encounter_wavenumber
 
 
-In some cases (radiation problems in infinite depth), setting the frequency to
-zero or infinity is possible. Simply pass the value `0.0` or `float('inf')` to
-one of the above magnitude.
+For radiation problems, setting the frequency to zero or infinity is possible.
+Simply pass the value `0.0` or `float('inf')` to one of the above magnitude.
+The default Green function supports zero and infinite frequency in infinite
+depth, and infinite frequency in finite depth (but not zero frequency in finite
+depth).
+
+
+Importing a dataset from Bemio
+------------------------------
+
+A DataFrame or a Dataset can also be created from data structures generated
+using the `Bemio <https://wec-sim.github.io/bemio/>`_ package, which reads
+hydrodynamic output data from NEMOH, WAMIT, and AQWA. This allows for Capytaine
+post-processing of hydrodynamic data generated from other BEM codes.
+
+Bemio does not come packaged with Capytaine and needs to to be installed independently.
+Note that `the base repository of Bemio <https://github.com/WEC-Sim/bemio/>`_ has been
+archived and is only compatible with Python 2.7.x, so using a Python 3 compatible fork is
+recommended, available `here <https://github.com/mancellin/bemio>`_ or installed with::
+
+  pip install git+https://github.com/mancellin/bemio.git
+
+To build the xarray dataset using Capytaine, the output files from the BEM program in
+question must be read into a Bemio :code:`data_structures.ben.HydrodynamicData` class, which is
+then called by `assemble_dataframe` or `assemble_dataset`. For example, to
+create an xarray dataset from a WAMIT :code:`.out` file::
+
+  from bemio.io.wamit import read as read_wamit
+  import capytaine as cpt
+  bemio_data = read_wamit("myfile.out")
+  my_dataset = cpt.assemble_dataset(bemio_data, hydrostatics=False)
+
+.. warning:: The created dataset will only contain quantities that can be directly calculated
+             from the values given in the original dataset. Because of this, there may be minor
+             differences between the variable names in an xarray dataset build with Bemio and one created
+             using :code:`LinearPotentialFlowResult`, even though the format will be identical. For
+             example, WAMIT :code:`.out` files do not contain the radii of gyration needed to calculate
+             the moments of inertia, so the `my_dataset['inertia_matrix']` variable would not be included
+             in the above example since the rigid body mass matrix cannot be calculated.
 
 
 Legacy Nemoh.cal parameters files

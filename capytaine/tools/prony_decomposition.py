@@ -12,6 +12,7 @@ from scipy.optimize import curve_fit
 from scipy.linalg import toeplitz
 
 LOG = logging.getLogger(__name__)
+RNG = np.random.default_rng()
 
 
 def exponential_decomposition(X, F, m):
@@ -94,11 +95,11 @@ def error_exponential_decomposition(X, F, a, lamda):
     return np.square(f(X) - F).mean()
 
 
-class NoConvergenceError(Exception):
+class PronyDecompositionFailure(Exception):
     pass
 
 
-def find_best_exponential_decomposition(f, x_min, x_max, n_exp_range, tol=1e-4):
+def find_best_exponential_decomposition(f, x_min, x_max, n_exp_range, *, tol=1e-4, noise_on_domain_points_std=0.01):
     """Tries to construct an exponential decompositoin of the function f on the
     domain [x_min, x_max] by testing the number of exponentials in n_exp_range.
 
@@ -114,18 +115,36 @@ def find_best_exponential_decomposition(f, x_min, x_max, n_exp_range, tol=1e-4):
         The decomposition sizes that will be tested
     tol: float, optional
         The target mean square error.
+    noise_on_domain_points_std: float, optional
+        Introduces some random variability on the points where the function is evaluated.
+        Set this parameter to zero to disable randomness.
 
     """
-    # Try different number of exponentials
+    # Try different range of evaluation points to construct the decomposition.
     for n_exp in n_exp_range:
 
-        # The coefficients are computed on a resolution of 4*n_exp+1 ...
-        X = np.linspace(x_min, x_max, 4*n_exp+1)
-        a, lamda = exponential_decomposition(X, f(X), n_exp)
+        # f might be ill-defined at some single specific values
+        # (for the use-case of delhommeau.py, it is when x = kh exactly).
+        # Thus we slightly randomize the range of evaluation points for the Prony decomposition.
+        # This way, if one of the evaluation points hits the singular point, it will most likely not hit it again at the next iteration.
+        x_max_iter = (1 + noise_on_domain_points_std*RNG.uniform())*x_max
 
-        # ... and they are evaluated on a finer discretization.
-        X = np.linspace(x_min, x_max, 8*n_exp+1)
-        if error_exponential_decomposition(X, f(X), a, lamda) < tol:
-            return a, lamda
+        try:
+            # The coefficients are computed on a resolution of 4*n_exp+1 ...
+            X = np.linspace(x_min, x_max_iter, 4*n_exp+1)
+            a, lamda = exponential_decomposition(X, f(X), n_exp)
 
-    raise NoConvergenceError(f"No suitable exponential decomposition has been found in provided range for tol={tol}.")
+            # ... and they are evaluated on a finer discretization.
+            X = np.linspace(x_min, x_max_iter, 8*n_exp+1)
+            if error_exponential_decomposition(X, f(X), a, lamda) < tol:
+                return a, lamda
+        except Exception:
+            # If something bad happened while computing the decomposition, try
+            # the next one.
+            continue
+
+    raise PronyDecompositionFailure(
+            "No suitable Prony decomposition has been found in "
+            f"[{x_min}, {x_max}] for tol={tol} "
+            f"using a number of terms in {n_exp_range}."
+            )

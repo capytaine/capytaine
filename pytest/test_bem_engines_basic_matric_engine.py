@@ -38,20 +38,22 @@ def test_custom_linear_solver(method):
     problem = cpt.RadiationProblem(body=sphere, omega=1.0, water_depth=np.inf)
 
     reference_solver = cpt.BEMSolver(
-        engine=cpt.BasicMatrixEngine(linear_solver="gmres", matrix_cache_size=0)
+        engine=cpt.BasicMatrixEngine(linear_solver="gmres", matrix_cache_size=0),
+        method=method
     )
-    reference_result = reference_solver.solve(problem,method=method)
+    reference_result = reference_solver.solve(problem)
 
     def my_linear_solver(A, b):
         """A dumb solver for testing."""
         return np.linalg.inv(A) @ b
 
     my_bem_solver = cpt.BEMSolver(
-        engine=cpt.BasicMatrixEngine(linear_solver=my_linear_solver, matrix_cache_size=0)
+        engine=cpt.BasicMatrixEngine(linear_solver=my_linear_solver, matrix_cache_size=0),
+        method=method
     )
     assert 'my_linear_solver' in my_bem_solver.exportable_settings['linear_solver']
 
-    result = my_bem_solver.solve(problem,method=method)
+    result = my_bem_solver.solve(problem)
     assert np.isclose(reference_result.added_masses['Surge'], result.added_masses['Surge'])
 
 
@@ -66,6 +68,7 @@ def test_custom_linear_solver_returning_wrong_shape(method):
         return np.linalg.inv(A) @ b.reshape(-1, 1)
 
     my_bem_solver = cpt.BEMSolver(
+        method=method,
         engine=cpt.BasicMatrixEngine(linear_solver=my_linear_solver)
     )
     with pytest.raises(ValueError):

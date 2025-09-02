@@ -9,10 +9,10 @@ from importlib import import_module
 
 import numpy as np
 
-from capytaine.tools.prony_decomposition import find_best_exponential_decomposition, NoConvergenceError
+from capytaine.tools.prony_decomposition import find_best_exponential_decomposition, PronyDecompositionFailure
 from capytaine.tools.cache_on_disk import cache_directory
 
-from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
+from capytaine.green_functions.abstract_green_function import AbstractGreenFunction, GreenFunctionEvaluationError
 
 LOG = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ _default_parameters = dict(
     tabulation_nb_integration_points=1001,
     tabulation_grid_shape="scaled_nemoh3",
     finite_depth_method="newer",
-    finite_depth_prony_decomposition_method="fortran",
+    finite_depth_prony_decomposition_method="python",
     floating_point_precision="float64",
     gf_singularities="low_freq",
 )
@@ -126,12 +126,11 @@ class Delhommeau(AbstractGreenFunction):
         self.tabulation_grid_shape_index = fortran_enum[tabulation_grid_shape]
 
         self.gf_singularities = gf_singularities
-        fortran_enum = {
+        self.gf_singularities_fortran_enum = {
                 'high_freq': self.fortran_core.constants.high_freq,
                 'low_freq': self.fortran_core.constants.low_freq,
                 'low_freq_with_rankine_part': self.fortran_core.constants.low_freq_with_rankine_part,
-                              }
-        self.gf_singularities_index = fortran_enum[gf_singularities]
+                }
 
         self.finite_depth_method = finite_depth_method
         fortran_enum = {
@@ -275,44 +274,124 @@ class Delhommeau(AbstractGreenFunction):
         Tuple[np.ndarray, np.ndarray]
             the amplitude and growth rates of the exponentials
         """
+        kh = dimensionless_wavenumber
 
         if method is None:
             method = self.finite_depth_prony_decomposition_method
-
-        omega2_h_over_g = dimensionless_wavenumber*np.tanh(dimensionless_wavenumber)
 
         LOG.debug("\tCompute Prony decomposition in finite water_depth Green function "
                   "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
 
         if method.lower() == 'python':
-            # The function that will be approximated.
-            @np.vectorize
-            def f(x):
-                return self.fortran_core.old_prony_decomposition.ff(x, omega2_h_over_g, dimensionless_wavenumber)
+            if kh <= 0.1:
+                raise NotImplementedError(
+                    f"{self} cannot evaluate finite depth Green function "
+                    f"for kh<0.1 (kh={kh})"
+                    )
+            elif kh < 1e5:
+                # The function that will be approximated.
+                sing_coef = (1 + np.tanh(kh))**2/(1 - np.tanh(kh)**2 + np.tanh(kh)/kh)
+                def ref_function(x):
+                    """The function that should be approximated by a sum of exponentials."""
+                    return ((x + kh*np.tanh(kh)) * np.exp(x))/(x*np.sinh(x) - kh*np.tanh(kh)*np.cosh(x)) - sing_coef/(x - kh) - 2
+            else:
+                # Asymptotic approximation of the function for large kh, including infinite frequency
+                def ref_function(x):
+                    return -2/(1 + np.exp(-2*x)) + 2
 
             try:
-                a, lamda = find_best_exponential_decomposition(f, x_min=-0.1, x_max=20.0, n_exp_range=range(4, 31, 2), tol=1e-4)
-            except NoConvergenceError:
-                LOG.warning("No suitable exponential decomposition has been found"
-                            "for dimensionless_wavenumber=%.2e", dimensionless_wavenumber)
-            return np.stack([lamda, a])
+                a, lamda = find_best_exponential_decomposition(ref_function, x_min=-0.1, x_max=20.0, n_exp_range=range(4, 31, 2), tol=1e-4)
+                return np.stack([lamda, a])
+            except PronyDecompositionFailure as e:
+                raise GreenFunctionEvaluationError(
+                    f"{self} cannot evaluate finite depth Green function "
+                    f"for kh={dimensionless_wavenumber}"
+                ) from e
 
         elif method.lower() == 'fortran':
-            nexp, pr_d = self.fortran_core.old_prony_decomposition.lisc(omega2_h_over_g, dimensionless_wavenumber)
-            return pr_d[:, :nexp]
+            if kh > 1e5:
+                raise NotImplementedError("Fortran implementation of the Prony decomposition does not support infinite frequency")
+            omega2_h_over_g = kh*np.tanh(kh)
+            nexp, pr_d = self.fortran_core.old_prony_decomposition.lisc(omega2_h_over_g, kh)
+            return pr_d[0:2, :nexp]
 
         else:
-            raise ValueError("Unrecognized method name for the Prony decomposition.")
+            raise ValueError(f"Unrecognized name for the Prony decomposition method: {repr(method)}. Expected 'python' or 'fortran'.")
 
-    def evaluate(self, mesh1, mesh2, free_surface=0.0, water_depth=np.inf, wavenumber=1.0, adjoint_double_layer=True, early_dot_product=True):
-        r"""The main method of the class, called by the engine to assemble the influence matrices.
+    def evaluate_rankine_only(self,
+                              mesh1, mesh2,
+                              adjoint_double_layer=True, early_dot_product=True
+                              ):
+        r"""Construct the matrices between mesh1 (that can also be a list of points)
+        and mesh2 for a Rankine kernel.
 
         Parameters
         ----------
         mesh1: Mesh or CollectionOfMeshes or list of points
             mesh of the receiving body (where the potential is measured)
-            if only S is wanted or early_dot_product is False, then only a list of points as an array of shape (n, 3) can be passed.
+            if only S is wanted or early_dot_product is False, then only a list
+            of points as an array of shape (n, 3) can be passed.
         mesh2: Mesh or CollectionOfMeshes
+            mesh of the source body (over which the source distribution is integrated)
+        adjoint_double_layer: bool, optional
+            compute double layer for direct method (F) or adjoint double layer
+            for indirect method (T) matrices (default: True)
+        early_dot_product: boolean, optional
+            if False, return K as a (n, m, 3) array storing ∫∇G
+            if True, return K as a (n, m) array storing ∫∇G·n
+
+        Returns
+        -------
+        tuple of real-valued numpy arrays
+            the matrices :math:`S` and :math:`K`
+        """
+        collocation_points, early_dot_product_normals = \
+                self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
+
+        S, K = self._init_matrices(
+            (collocation_points.shape[0], mesh2.nb_faces), early_dot_product
+        )
+
+        self.fortran_core.matrices.add_rankine_term_only(
+                collocation_points,  early_dot_product_normals,
+                mesh2.vertices,      mesh2.faces + 1,
+                mesh2.faces_centers, mesh2.faces_normals,
+                mesh2.faces_areas,   mesh2.faces_radiuses,
+                *mesh2.quadrature_points,
+                adjoint_double_layer,
+                S, K)
+
+        if mesh1 is mesh2:
+            self.fortran_core.matrices.add_diagonal_term(
+                    mesh2.faces_centers, early_dot_product_normals, np.inf, K,
+                    )
+
+        S, K = np.real(S), np.real(K)
+
+        if np.any(np.isnan(S)) or np.any(np.isnan(K)):
+            raise GreenFunctionEvaluationError(
+                    "Green function returned a NaN in the interaction matrix.\n"
+                    "It could be due to overlapping panels.")
+
+        if early_dot_product:
+            K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
+
+        return S, K
+
+
+    def evaluate(self,
+                 mesh1, mesh2,
+                 free_surface=0.0, water_depth=np.inf, wavenumber=1.0,
+                 adjoint_double_layer=True, early_dot_product=True
+                 ):
+        r"""The main method of the class, called by the engine to assemble the influence matrices.
+
+        Parameters
+        ----------
+        mesh1: MeshLike or list of points
+            mesh of the receiving body (where the potential is measured)
+            if only S is wanted or early_dot_product is False, then only a list of points as an array of shape (n, 3) can be passed.
+        mesh2: MeshLike
             mesh of the source body (over which the source distribution is integrated)
         free_surface: float, optional
             position of the free surface (default: :math:`z = 0`)
@@ -330,51 +409,61 @@ class Delhommeau(AbstractGreenFunction):
         -------
         tuple of numpy arrays
             the matrices :math:`S` and :math:`K`
+            the dtype of the matrix can be real or complex and depends on self.floating_point_precision
         """
+
+        if free_surface == np.inf:  # No free surface, only a single Rankine source term
+            if water_depth != np.inf:
+                raise ValueError("When setting free_surface=inf, "
+                                 "the water depth should also be infinite "
+                                 f"(got water_depth={water_depth})")
+
+            return self.evaluate_rankine_only(
+                mesh1, mesh2,
+                adjoint_double_layer=adjoint_double_layer,
+                early_dot_product=early_dot_product,
+            )
+
+        # Main case:
+        collocation_points, early_dot_product_normals = \
+                self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
+
+        S, K = self._init_matrices(
+            (collocation_points.shape[0], mesh2.nb_faces), early_dot_product
+        )
 
         wavenumber = float(wavenumber)
 
-        if free_surface == np.inf: # No free surface, only a single Rankine source term
-
-            prony_decomposition = np.empty((1, 1))  # Dummy array that won't actually be used by the fortran code.
-
-            coeffs = np.array((1.0, 0.0, 0.0))
-
-        elif water_depth == np.inf:
-
-            prony_decomposition = np.empty((1, 1))  # Idem
-
-            if wavenumber == 0.0:
-                coeffs = np.array((1.0, 1.0, 0.0))
-            elif wavenumber == np.inf:
-                coeffs = np.array((1.0, -1.0, 0.0))
-            else:
-                if self.gf_singularities == "high_freq":
-                    coeffs = np.array((1.0, -1.0, 1.0))
-                else:  # low_freq or low_freq_with_rankine_part
-                    coeffs = np.array((1.0, 1.0, 1.0))
-
-        else:  # Finite water_depth
-            if wavenumber == 0.0 or wavenumber == np.inf:
-                raise NotImplementedError("Zero or infinite frequencies not implemented for finite depth.")
-            else:
-                prony_decomposition = self.find_best_exponential_decomposition(wavenumber*water_depth)
-                coeffs = np.array((1.0, 1.0, 1.0))
-
-        collocation_points, early_dot_product_normals = self._get_colocation_points_and_normals(mesh1, mesh2, adjoint_double_layer)
-
-        if (np.any(abs(mesh2.faces_centers[:, 2]) < 1e-6)  # free surface panel
-            and self.gf_singularities != "low_freq"):
-            raise NotImplementedError("Free surface panels are only supported for cpt.Delhommeau(..., gf_singularities='low_freq').")
-
-        if self.floating_point_precision == "float32":
-            dtype = "complex64"
-        elif self.floating_point_precision == "float64":
-            dtype = "complex128"
+        # Overrides gf_singularities setting in some specific cases, else use the class one.
+        if water_depth < np.inf and self.finite_depth_method == 'legacy' and not self.gf_singularities == 'low_freq':
+            gf_singularities = "low_freq"  # Reproduce legacy method behavior
+            LOG.debug(
+                f"Overriding gf_singularities='{self.gf_singularities}' because of finite_depth_method=='legacy'"
+            )
+        elif wavenumber == 0.0 and not self.gf_singularities == 'low_freq':
+            gf_singularities = "low_freq"
+            LOG.debug(
+                f"Overriding gf_singularities='{self.gf_singularities}' because of wavenumber==0.0"
+            )
+        elif wavenumber == np.inf and not self.gf_singularities == 'high_freq':
+            gf_singularities = "high_freq"
+            LOG.debug(
+                f"Overriding gf_singularities='{self.gf_singularities}' because of wavenumber==np.inf"
+            )
+        elif np.any(abs(mesh2.faces_centers[:, 2]) < 1e-6) and not self.gf_singularities == 'low_freq':
+            gf_singularities = "low_freq"
+            LOG.warning(
+                f"Overriding gf_singularities='{self.gf_singularities}' because of free surface panels, "
+                "which are currently only supported by gf_singularities='low_freq'"
+            )
         else:
-            raise NotImplementedError(f"Unsupported floating point precision: {self.floating_point_precision}")
+            gf_singularities = self.gf_singularities
+        gf_singularities_index = self.gf_singularities_fortran_enum[gf_singularities]
 
-        S, K = self._init_matrices((collocation_points.shape[0], mesh2.nb_faces), dtype, early_dot_product)
+        if water_depth == np.inf:
+            prony_decomposition = np.zeros((1, 1))  # Dummy array that won't actually be used by the fortran code.
+        else:
+            prony_decomposition = self.find_best_exponential_decomposition(wavenumber*water_depth)
 
         # Main call to Fortran code
         self.fortran_core.matrices.build_matrices(
@@ -384,17 +473,24 @@ class Delhommeau(AbstractGreenFunction):
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
             wavenumber, water_depth,
-            coeffs, *self.all_tabulation_parameters,
+            *self.all_tabulation_parameters,
             self.finite_depth_method_index, prony_decomposition, self.dispersion_relation_roots,
-            mesh1 is mesh2, self.gf_singularities_index, adjoint_double_layer,
+            gf_singularities_index, adjoint_double_layer,
             S, K
         )
 
+        if mesh1 is mesh2:
+            self.fortran_core.matrices.add_diagonal_term(
+                    mesh2.faces_centers, early_dot_product_normals, free_surface, K,
+                    )
+
         if np.any(np.isnan(S)) or np.any(np.isnan(K)):
-            raise RuntimeError("Green function returned a NaN in the interaction matrix.\n"
+            raise GreenFunctionEvaluationError(
+                    "Green function returned a NaN in the interaction matrix.\n"
                     "It could be due to overlapping panels.")
 
-        if early_dot_product: K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
+        if early_dot_product:
+            K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))
 
         return S, K
 

@@ -761,17 +761,19 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
                 z_lid = min(z_lid, z_lid_comp)
         return 0.9*z_lid  # Add a small safety margin
 
-    def generate_lid(self, z=0.0, faces_max_radius=None):
+    def generate_lid(self, z=0.0, faces_max_radius=None, name=None):
         """
         Return a mesh of the internal free surface of the body.
 
         Parameters
         ----------
-        z: float
+        z: float, optional
             Vertical position of the lid. Default: 0.0
-        faces_max_radius: float
+        faces_max_radius: float, optional
             resolution of the mesh of the lid.
             Default: mean of hull mesh resolution.
+        name: str, optional
+            A name for the new mesh
 
         Returns
         -------
@@ -795,8 +797,14 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         if faces_max_radius is None:
             faces_max_radius = np.mean(clipped_hull_mesh.faces_radiuses)
 
+        candidate_lid_size = (
+                    max(faces_max_radius/2, 1.1*x_span),
+                    max(faces_max_radius/2, 1.1*y_span),
+                )
+        # The size of the lid is at least the characteristic length of a face
+
         candidate_lid_mesh = mesh_rectangle(
-                size=(1.1*y_span, 1.1*x_span),  # TODO Fix mesh_rectangle
+                size=(candidate_lid_size[1], candidate_lid_size[0]),  # TODO Fix: Exchange x and y in mesh_rectangle
                 faces_max_radius=faces_max_radius,
                 center=(x_mean, y_mean, z),
                 normal=(0.0, 0.0, -1.0),
@@ -825,10 +833,13 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
 
         lid_faces = candidate_lid_mesh.faces[np.all(np.isin(candidate_lid_mesh.faces, needs_lid), axis=-1), :]
 
-        if len(lid_faces) == 0:
-            return Mesh(None, None, name="lid for {}".format(self.name))
+        if name is None:
+            name = "lid for {}".format(self.name)
 
-        lid_mesh = Mesh(candidate_lid_mesh.vertices, lid_faces, name="lid for {}".format(self.name))
+        if len(lid_faces) == 0:
+            return Mesh(None, None, name=name)
+
+        lid_mesh = Mesh(candidate_lid_mesh.vertices, lid_faces, name=name)
         lid_mesh.heal_mesh()
 
         return lid_mesh
