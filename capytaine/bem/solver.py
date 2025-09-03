@@ -195,6 +195,92 @@ class BEMSolver:
 
         return result
 
+    def solve_owc(self, problem, method=None, keep_details=True, _check_wavelength=True):
+        """Solve OWC pressure oscillation, linear potential flow, problem.
+
+        Parameters
+        ----------
+        problem: LinearPotentialFlowProblem
+            the problem to be solved
+        method: string, optional
+            select boundary integral equation used to solve the problem.
+            It is recommended to set the method more globally when initializing the solver.
+            If provided here, the value in argument of `solve` overrides the global one.
+        keep_details: bool, optional
+            if True, store the sources and the potential on the floating body in the output object
+            (default: True)
+        _check_wavelength: bool, optional (default: True)
+            If True, the frequencies are compared to the mesh resolution and
+            the estimated first irregular frequency to warn the user.
+
+        Returns
+        -------
+        LinearPotentialFlowResult
+            an object storing the problem data and its results
+        """
+        LOG.info("Solve %s.", problem)
+
+        factor = -1/(4*np.pi)  # TODO
+
+        if _check_wavelength:
+            self._check_wavelength_and_mesh_resolution([problem])
+            self._check_wavelength_and_irregular_frequencies([problem])
+
+        linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
+        method = method if method is not None else self.method
+        if (method == 'direct'):
+            with self.timer["  Green function"]:
+                S, D = self.engine.build_matrices(
+                        problem.body.mesh_including_lid, problem.body.mesh_including_lid,
+                        problem.free_surface, problem.water_depth, problem.wavenumber,
+                        self.green_function, adjoint_double_layer=False
+                        )
+            rhs = S[:problem.nb_faces_body, problem.nb_faces_body:] @ problem.boundary_condition
+            with self.timer["  Linear solver"]:
+                potential = linear_solver(D[:problem.nb_faces_body, :problem.nb_faces_body], rhs)
+            if not potential.shape == (problem.nb_faces_body,):
+                raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({potential.shape}) "
+                                 f"does not match the expected shape ({(problem.nb_faces_body,)})")
+            # sources using indirect formulation
+            rhs_2 = potential - factor * (S[:problem.nb_faces_body, problem.nb_faces_body:] @ problem.boundary_condition)
+            sources = linear_solver(S[:problem.nb_faces_body, :problem.nb_faces_body], rhs_2)
+        else:
+            with self.timer["  Green function"]:
+                S, K = self.engine.build_matrices(
+                        problem.body.mesh_including_lid, problem.body.mesh_including_lid,
+                        problem.free_surface, problem.water_depth, problem.wavenumber,
+                        self.green_function, adjoint_double_layer=True
+                        )
+
+            rhs = -factor * K[:problem.nb_faces_body, problem.nb_faces_body:] @ problem.boundary_condition
+            with self.timer["  Linear solver"]:
+                sources = linear_solver(K[:problem.nb_faces_body, :problem.nb_faces_body], rhs)
+            if not sources.shape == (problem.nb_faces_body,):
+                raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({sources.shape}) "
+                                 f"does not match the expected shape ({(problem.nb_faces_body,)})")
+
+        # lid potentials
+        lid_potential = S[problem.nb_faces_body:, :problem.nb_faces_body] @ sources + factor * (S[problem.nb_faces_body:, problem.nb_faces_body:] @ problem.boundary_condition)
+
+        # vertical gradient
+        points, output_shape = _normalize_points(problem.body.lid_mesh.faces_centers, keep_mesh=True)
+        with self.timer["  Green function"]:
+            _, gradG = self.green_function.evaluate(points, problem.body.mesh, problem.free_surface, problem.water_depth, problem.encounter_wavenumber, early_dot_product=False)
+        gradients = (np.einsum('ijk,j->ik', gradG, sources)).reshape((*output_shape, 3))
+        vertical_gradient = gradients[:,2]
+
+        # volumetric flow in the chamber
+        flow = (1j*problem.omega / (problem.rho * problem.g)) * np.sum(vertical_gradient * problem.body.lid_mesh.faces_areas)
+
+        if not keep_details:
+            result = problem.make_results_container(flow)
+        else:
+            result = problem.make_results_container(flow, sources, lid_potential, vertical_gradient)
+
+        LOG.debug("Done!")
+
+        return result
+
     def _solve_and_catch_errors(self, problem, *args, **kwargs):
         """Same as BEMSolver.solve() but returns a
         FailedLinearPotentialFlowResult when the resolution failed."""
