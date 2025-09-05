@@ -215,21 +215,25 @@ class Delhommeau(AbstractGreenFunction):
         filepath = os.path.join(tabulation_cache_dir, filename)
 
         if os.path.exists(filepath):
-            LOG.info("Loading tabulation from %s", filepath)
-            loaded_arrays = np.load(filepath)
-            self.tabulated_r_range = loaded_arrays["r_range"]
-            self.tabulated_z_range = loaded_arrays["z_range"]
-            self.tabulated_integrals = loaded_arrays["values"]
+            try:
+                LOG.info("Loading tabulation from %s", filepath)
+                loaded_arrays = np.load(filepath)
+                self.tabulated_r_range = loaded_arrays["r_range"]
+                self.tabulated_z_range = loaded_arrays["z_range"]
+                self.tabulated_integrals = loaded_arrays["values"]
+                return
+            except (EOFError, FileNotFoundError, KeyError):
+                LOG.warning("Error loading tabulation from %s", filepath)
 
-        else:
-            self._create_tabulation(tabulation_nr, tabulation_rmax,
-                                    tabulation_nz, tabulation_zmin,
-                                    tabulation_nb_integration_points)
-            LOG.debug("Saving tabulation in %s", filepath)
-            np.savez_compressed(
-                filepath, r_range=self.tabulated_r_range, z_range=self.tabulated_z_range,
-                values=self.tabulated_integrals
-            )
+        self._create_tabulation(tabulation_nr, tabulation_rmax,
+                                tabulation_nz, tabulation_zmin,
+                                tabulation_nb_integration_points)
+        LOG.debug("Saving tabulation in %s", filepath)
+        np.savez_compressed(
+            filepath, r_range=self.tabulated_r_range, z_range=self.tabulated_z_range,
+            values=self.tabulated_integrals
+        )
+        return
 
     def _create_tabulation(self, tabulation_nr, tabulation_rmax,
                                    tabulation_nz, tabulation_zmin,

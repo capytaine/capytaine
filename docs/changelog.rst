@@ -12,6 +12,10 @@ Changelog
 New in version 3.0 (2025-??-??)
 -------------------------------
 
+Bug fixes
+~~~~~~~~~
+
+* If loading the tabulation from the file fails, then the tabulation is recomputed (`Issue 739 <https://github.com/capytaine/capytaine/issues/739#issuecomment-3190735343>`_)
 
 
 -------------------------------
