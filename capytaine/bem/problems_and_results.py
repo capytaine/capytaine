@@ -226,11 +226,11 @@ class LinearPotentialFlowProblem:
             if len(self.boundary_condition.shape) != 1:
                 raise ValueError(f"Expected a 1-dimensional array as boundary_condition. Provided boundary condition's shape: {self.boundary_condition.shape}.")
 
-            if self.boundary_condition.shape[0] != self.body.mesh_including_lid.nb_faces:
-                raise ValueError(
-                    f"The shape of the boundary condition ({self.boundary_condition.shape})"
-                    f"does not match the number of faces of the mesh ({self.body.mesh.nb_faces})."
-                )
+            # if self.boundary_condition.shape[0] != self.body.mesh_including_lid.nb_faces:
+            #     raise ValueError(
+            #         f"The shape of the boundary condition ({self.boundary_condition.shape})"
+            #         f"does not match the number of faces of the mesh ({self.body.mesh.nb_faces})."
+            #     )
 
     @property
     def body_name(self):
@@ -338,6 +338,38 @@ class LinearPotentialFlowProblem:
 
     def make_failed_results_container(self, *args, **kwargs):
         return FailedLinearPotentialFlowResult(self, *args, **kwargs)
+
+
+class OWCRadiationProblem(LinearPotentialFlowProblem):
+    """LinearPotentialFlowProblem with oscillating pressure forcing on
+    the lid free surface."""
+
+    def __init__(self, *,
+                 body,
+                 free_surface=_default_parameters['free_surface'],
+                 water_depth=None, sea_bottom=None,
+                 omega=None, freq=None, period=None, wavenumber=None, wavelength=None,
+                 rho=_default_parameters['rho'],
+                 g=_default_parameters['g']):
+
+        super().__init__(body=body, free_surface=free_surface, water_depth=water_depth, sea_bottom=sea_bottom,
+                         omega=omega, freq=freq, period=period, wavenumber=wavenumber, wavelength=wavelength, rho=rho, g=g)
+
+        if body.mesh is None:
+            raise ValueError(f"Body {self.body.name} does not have a body mesh.")
+        if body.lid_mesh is None:
+            raise ValueError(f"Body {self.body.name} does not have a lid mesh.")
+
+        self.nb_faces_body = body.mesh.nb_faces
+        self.nb_faces_lid = body.lid_mesh.nb_faces
+
+        self.boundary_condition = np.ones(self.nb_faces_lid)
+
+    def make_results_container(self, *args, **kwargs):
+        return OWCRadiationResult(self, *args, **kwargs)
+
+    def make_failed_results_container(self, *args, **kwargs):
+        return FailedOWCRadiationResult(self, *args, **kwargs)
 
 
 class DiffractionProblem(LinearPotentialFlowProblem):
@@ -589,4 +621,26 @@ class FailedRadiationResult(RadiationResult):
     def __init__(self, problem, exception):
         RadiationResult.__init__(self, problem)
         self.forces = {dof: np.nan + 1j*np.nan for dof in self.influenced_dofs}
+        self.exception = exception
+
+
+class OWCRadiationResult(LinearPotentialFlowResult):
+
+    def __init__(self, problem, flow, body_sources=None, lid_potential=None, lid_gradient=None):
+        super().__init__(problem, sources=body_sources, potential=lid_potential, forces=None, pressure=None,)
+        self.flow = flow
+        self.potential_vertical_gradient = lid_gradient
+
+    @property
+    def conductance(self):
+        return np.real(-self.flow)
+
+    @property
+    def susceptance(self):
+        return np.imag(-self.flow)
+
+
+class FailedOWCRadiationResult(OWCRadiationResult):
+    def __init__(self, problem, exception):
+        OWCRadiationResult.__init__(self, problem, None)
         self.exception = exception
