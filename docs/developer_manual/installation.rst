@@ -9,7 +9,7 @@ Please open an issue on Github if you need help.
 
 Previous versions of this documentation recommended the use of Conda_ (or Mamba_) to develop Capytaine.
 This is not really necessary on Linux, where it might be simpler and faster to use a PyPI-based workflow.
-Conda might nonetheless be useful on Windows in order to install development tools such as `git`, `make` or `gfortran`.
+Conda might nonetheless be useful on Windows in order to install development tools such as `git`, `just` or `gfortran`.
 
 .. _Conda: https://conda.io
 .. _Mamba: https://mamba.readthedocs.io/en/latest/
@@ -22,10 +22,12 @@ As of February 2025, the build backend used by Capytaine since version 2.0 (meso
 
 .. _meson-python: https://mesonbuild.com/meson-python/index.html
 
-You might need to have Python installed as well as common development tools such as ``git``, ``make`` and ``gfortran``.
+You might need to have Python installed as well as common development tools such as ``git``, ``gfortran`` and ``just``.
 On Ubuntu or Debian, this can be done with::
 
-    sudo apt install python3 python3-pip python3-venv python-is-python3 git make gfortran
+    sudo apt install python3 python3-pip python3-venv python-is-python3 git gfortran just
+
+Not that ``just`` is only available in this way in recent versions of Ubuntu (24.04 and newer) and Debian (13 and newer).
 
 Get the source code from Github using ``git``::
 
@@ -52,7 +54,7 @@ and then build Capytaine in editable mode::
 
 The above two commands can also be executed by typing::
 
-    make develop
+    just editable_install
 
 As long as the virtual environment is activated, every import of Capytaine in Python will use the development version in this directory.
 All change made to the source code should automatically affects the
@@ -176,13 +178,13 @@ and then build Capytaine in editable mode::
 
     pip install --no-build-isolation --editable .
 
-If ``make`` is not available in your environment, you can install it through ``conda``::
+If ``just`` is not available in your environment, you can install it through ``conda``::
 
-    conda install -c conda-forge make
+    conda install -c conda-forge just
 
 and simply use the following line to install Capytaine in editable mode in your conda environment::
 
-    make develop
+    just editable_install
 
 You can check that the package is installed by running::
 
