@@ -1,3 +1,6 @@
+set shell := ["bash", "-c"]
+set windows-shell := ["powershell.exe", "-c"]
+
 default:
     just --list
 
@@ -6,7 +9,13 @@ editable_install:
     uv pip install -r pyproject.toml --all-extras  # and only the extras
     pip install --no-build-isolation --editable .  # This is not (yet?) supported by uv, hence done with good old pip.
 
-TEMP_DIR := `mktemp --directory --tmpdir capytainedev-XXXXX`
+# Define the temporary directory differently based on OS
+TEMP_DIR := if os_family() == 'windows' {
+    `$temp = Join-Path $env:TEMP ('capytainedev-' + [System.IO.Path]::GetRandomFileName()); New-Item -ItemType Directory -Path $temp -Force | Out-Null; Write-Output $temp`
+} else {
+    `mktemp --directory --tmpdir capytainedev-XXXXX`
+}
+
 ENV := "MPLBACKEND=pdf CAPYTAINE_PROGRESS_BAR=False CAPYTAINE_CACHE_DIR=" + TEMP_DIR + "/cache/"
 
 TEST_DIR := justfile_directory() / 'pytest'
@@ -41,6 +50,7 @@ EXAMPLES_FILES := ' \
 # C10_custom_linear_solver_on_gpu.py \    # Requires torch
 
 # Run the test suite and the example files assuming a virtual environment has been activated
+[unix]
 _test:
     #!/usr/bin/env bash
     set -euxo pipefail
@@ -57,6 +67,18 @@ _test:
         echo -e "\n---> Running $f";
         python {{EXAMPLES_DIR}}/$f;
     done
+
+# Simplified version of the above, working on Windows
+[windows]
+_test:
+    #! powershell
+    cd {{TEMP_DIR}}
+    python -c "import capytaine; print(capytaine.__version__)"
+    python -m pytest {{TEST_DIR}}
+    capytaine --help
+    capytaine {{NEMOH_CASES}}/Nemoh.cal
+    capytaine {{NEMOH_CASES}}/Nemoh_v3.cal
+
 
 test_in_latest_env:
     uv run \
@@ -115,4 +137,3 @@ clean:
     rm -rf __pycache__ */__pycache__ */*/__pycache__ */*/*/__pycache__
     rm -rf $HOME/.cache/capytaine/*
     rm -rf /tmp/capytainedev-*/
-
