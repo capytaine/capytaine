@@ -84,33 +84,33 @@ _test:
 
 test_in_latest_env:
     uv run \
-        --no-project \
-        --with .[test,optional] \
+        --isolated \
+        --group test \
         just _test
 
 test_in_py38_reference_env:
     uv run \
-        --no-project \
+        --isolated \
+        --group test \
         --python 3.8 \
         --with-requirements {{TEST_DIR}}/envs/2023-08-01-py3.8.txt \
-        --with .[test,optional] \
         just _test
     # TODO: Also build Capytaine in this environment?
 
 test_in_py312_reference_env:
     uv run \
-        --no-project \
+        --isolated \
+        --group test \
         --python 3.12 \
         --with-requirements {{TEST_DIR}}/envs/2025-04-18-py3.12.txt \
-        --with .[test,optional] \
         just _test
     # TODO: Also build Capytaine in this environment?
 
 test_in_nightly_env:
     uv run \
-        --no-project \
+        --isolated \
         --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple \
-        --with .[test,optional] \
+        --group test \
         just _test
     # TODO: Also build Capytaine in this environment?
 
