@@ -35,17 +35,18 @@ Get the source code from Github using ``git``::
     cd capytaine
 
 If you wish to contribute to the project, you might want to create a fork of the project and clone it using the SSH interface (see Github's documentation for more details).
-Let us create a virtual environment in which the development version of Capytaine and its dependencies will be installed::
+Let us create a virtual environment in which the development version of Capytaine and its dependencies will be installed, such as::
 
-    python -m venv .venv
+    python -m venv /tmp/capy_dev_venv
 
-Feel free to chose any other directory than the default ``.venv``.
+Note that the build-system used by Capytaine does not like the use of virtual environment in the same directory as the source code (https://github.com/capytaine/capytaine/issues/396).
+
 Activate the virtual environment with::
 
-    source .venv/bin/activate  # with bash shell, change accordingly for e.g. fish
+    source /tmp/capy_dev_venv/bin/activate  # with bash shell, change accordingly for other shell
 
 To prepare the development environment, we'll install the required dependencies.
-Assuming you have a recent version of ``pip``, this can be done with::
+Assuming you have a recent enough version of ``pip``, this can be done with::
 
     pip install --group editable_install
 
@@ -185,8 +186,7 @@ In a ``pip`` or ``conda`` virtual environment (which can be the same as above or
 
 Then run the ``make`` command in the ``docs/`` directory::
 
-    cd docs/
-    make
+    make --directory="./docs/"
 
 and the documentation will be built in the ``docs/_build`` directory.
 
