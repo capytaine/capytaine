@@ -75,7 +75,7 @@ py3.extension_module('Delhommeau_float32',
            fortran_args : args,
            link_args : link_args,
            install : true,
-           subdir : 'src/capytaine/green_functions/libs/')
+           subdir : 'capytaine/green_functions/libs/')
 
 py3.extension_module('Delhommeau_float64',
            float64, other_src, src_to_interface_with_python, Delhommeau_float64_f2py_wrapper, incdir_f2py+'/fortranobject.c',
@@ -84,4 +84,4 @@ py3.extension_module('Delhommeau_float64',
            fortran_args : args + optional_dependencies_flags,
            link_args : link_args,
            install : true,
-           subdir : 'src/capytaine/green_functions/libs/')
+           subdir : 'capytaine/green_functions/libs/')
