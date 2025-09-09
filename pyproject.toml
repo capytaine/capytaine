@@ -27,18 +27,20 @@ dynamic = ['version']
 
 [project.optional-dependencies]
 optional = [
-  "matplotlib", "joblib>=1.3", "meshio", "netcdf4", "vtk", "pygmsh", "gmsh",
+  "matplotlib", "joblib>=1.3", "meshio", "netcdf4", "vtk",
 ]
 
 [dependency-groups]
+test = ["pytest", "capytaine[optional]"]
 more_optional = [
   "bemio @ https://github.com/mancellin/bemio/archive/56559c838e0636916669994712473ad7438d23be.zip",
   # This optional dependency cannot be with the other because PyPI only accepts
   # optional dependenceis that are on PyPI.
+  "pygmsh", "gmsh",
+  # These dependencies are causing issues in CI.
   ]
-test = ["pytest", "capytaine[optional]", {include-group = "more_optional"}]
 docs = ["sphinx", "sphinx-toolbox", "sphinxcontrib-proof", "sphinxcontrib-mermaid"]
-dev =  [{include-group = "docs"}, {include-group = "test"}]
+dev =  [{include-group = "docs"}, {include-group = "test"}, {include-group = "more_optional"}]
 editable_install = [
   "meson-python",
   "ninja",  # Unlike [build-system.requires], ninja need to be explicitly installed for editable install.
