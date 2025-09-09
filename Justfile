@@ -5,9 +5,11 @@ default:
     just --list
 
 editable_install:
-    uv pip install -r editable_install_requirements.txt
-    uv pip install -r pyproject.toml --all-extras  # and only the extras
-    pip install --no-build-isolation --editable .  # This is not (yet?) supported by uv, hence done with good old pip.
+    uv pip install -r pyproject.toml \
+        --group editable_install \
+        --group dev
+    pip install --no-build-isolation --editable .
+    # Meson-backed editable install is not (yet?) supported by uv (https://github.com/astral-sh/uv/issues/10214)
 
 # Define the temporary directory differently based on OS
 TEMP_DIR := if os_family() == 'windows' {
