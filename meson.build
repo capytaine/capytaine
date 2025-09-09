@@ -1,6 +1,6 @@
 project('capytaine',
   ['c', 'fortran'],
-  version : run_command('capytaine/__about__.py', check: true).stdout().strip(),
+  version : run_command('src/capytaine/__about__.py', check: true).stdout().strip(),
   default_options : ['warning_level=2'])
 
 py_mod = import('python')
@@ -22,22 +22,22 @@ incdir_f2py = run_command(py3,
 
 inc_np = include_directories(incdir_numpy, incdir_f2py)
 
-float32 = ['capytaine/green_functions/libDelhommeau/src/float32.f90',]
-float64 = ['capytaine/green_functions/libDelhommeau/src/float64.f90',]
+float32 = ['src/capytaine/green_functions/libDelhommeau/src/float32.f90',]
+float64 = ['src/capytaine/green_functions/libDelhommeau/src/float64.f90',]
 
 src_to_interface_with_python = [
-      'capytaine/green_functions/libDelhommeau/src/constants.f90',
-      'capytaine/green_functions/libDelhommeau/src/Delhommeau_integrals.f90',
-      'capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90',
-      'capytaine/green_functions/LiangWuNoblesse/LiangWuNoblesseWaveTerm.f90',
-      'capytaine/green_functions/libDelhommeau/src/Green_Rankine.f90',
-      'capytaine/green_functions/libDelhommeau/src/Green_wave.f90',
-      'capytaine/green_functions/libDelhommeau/src/matrices.f90',
-      'capytaine/green_functions/libDelhommeau/src/interface.f90',
+      'src/capytaine/green_functions/libDelhommeau/src/constants.f90',
+      'src/capytaine/green_functions/libDelhommeau/src/Delhommeau_integrals.f90',
+      'src/capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90',
+      'src/capytaine/green_functions/LiangWuNoblesse/LiangWuNoblesseWaveTerm.f90',
+      'src/capytaine/green_functions/libDelhommeau/src/Green_Rankine.f90',
+      'src/capytaine/green_functions/libDelhommeau/src/Green_wave.f90',
+      'src/capytaine/green_functions/libDelhommeau/src/matrices.f90',
+      'src/capytaine/green_functions/libDelhommeau/src/interface.f90',
 ]
 
 other_src = [
-      'capytaine/green_functions/FinGreen3D/FinGreen3D.f90',
+      'src/capytaine/green_functions/FinGreen3D/FinGreen3D.f90',
   ]
 
 Delhommeau_float32_f2py_wrapper = custom_target('Delhommeau_float32module.c',
@@ -51,7 +51,7 @@ Delhommeau_float64_f2py_wrapper = custom_target('Delhommeau_float64module.c',
                                            command : [ py3, '-m', 'numpy.f2py', '@INPUT@', '-m', 'Delhommeau_float64', '--lower'])
 
 install_subdir(
-  'capytaine',
+  'src/capytaine',
   exclude_directories: ['green_functions/libDelhommeau/'],  # The Fortran source files do not need to be distributed in the wheel
   install_dir: py3.get_install_dir(pure: false),
   )

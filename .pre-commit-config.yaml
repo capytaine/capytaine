@@ -37,4 +37,4 @@ repos:
     rev: "v2.2.5"
     hooks:
       - id: codespell
-        args: ["-L", "ans,ba,informations,inout,ist,lamda,ment,noe,periode,sur", "--skip", "capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90"]
+        args: ["-L", "ans,ba,informations,inout,ist,lamda,ment,noe,periode,sur", "--skip", "src/capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90"]

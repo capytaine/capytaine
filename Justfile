@@ -127,10 +127,10 @@ test_fortran_compilation:
     meson setup --wipe {{TEMP_DIR}}/build && meson compile -C {{TEMP_DIR}}/build -j 1
 
 clean:
-    rm -f capytaine/green_functions/libs/*.so
+    rm -f src/capytaine/green_functions/libs/*.so
     rm -rf build/
     rm -rf dist/
-    rm -rf capytaine.egg-info/
+    rm -rf src/capytaine.egg-info/
     rm -rf docs/_build
     rm -rf .pytest_cache/
     rm -rf .venv/
