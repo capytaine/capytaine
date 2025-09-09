@@ -65,23 +65,6 @@ Call for instance the following line to check that Capytaine has been correctly 
 
     python -c 'import capytaine as cpt; print(cpt.__version__)'
 
-.. note::
-
-    If you have an error of the form::
-
-        ModuleNotFoundError:: No module named 'capytaine.green_functions.libs.Delhommeau_float64'
-
-    when importing Capytaine, it may be because the Python interpreter is
-    trying to load the content of the local directory ``capytaine`` (containing
-    only the source code) and not the actual compiled package.
-
-    Running ``python`` from any other directory on your system should fix the
-    issue, since there won't be a local ``capytaine`` directory to confuse the
-    module importer.
-
-    Alternatively, recent versions of Python (>=3.11) have the ``-P`` option
-    which will disable the loading of the local ``capytaine`` directory.
-
 
 Installation for development using Conda
 ----------------------------------------

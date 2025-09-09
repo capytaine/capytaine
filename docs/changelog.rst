@@ -13,6 +13,10 @@ New in version 3.0 (2025-??-??)
 -------------------------------
 
 
+Internals
+~~~~~~~~~
+
+- The source code moved from ``capytaine`` to ``src/capytaine`` in the main repository to avoid importing the local folder instead of the installed version (:issue:`395` and :pull:`749`).
 
 -------------------------------
 New in version 2.3 (2025-07-17)
