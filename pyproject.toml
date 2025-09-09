@@ -29,15 +29,28 @@ dynamic = ['version']
 optional = [
   "matplotlib", "joblib>=1.3", "meshio", "netcdf4", "vtk",
 ]
-more_optional = [  # Other optional dependencies, but might cause issue when testing
-  # "bemio @ https://github.com/mancellin/bemio/archive/56559c838e0636916669994712473ad7438d23be.zip",
-  "pygmsh", "gmsh",
-]
-test = ["pytest", "capytaine[optional]"]
-docs = ["sphinx", "sphinx-toolbox", "sphinxcontrib-proof", "sphinxcontrib-mermaid"]
 
 [dependency-groups]
-# dev = [...]   see editable_install_requirements.txt for blocking issues to use this.
+test = ["pytest", "capytaine[optional]"]
+more_optional = [
+  "bemio @ https://github.com/mancellin/bemio/archive/56559c838e0636916669994712473ad7438d23be.zip",
+  # This optional dependency cannot be with the other because PyPI only accepts
+  # optional dependenceis that are on PyPI.
+  "pygmsh", "gmsh",
+  # These dependencies are causing issues in CI.
+  ]
+docs = ["sphinx", "sphinx-toolbox", "sphinxcontrib-proof", "sphinxcontrib-mermaid", "capytaine[optional]"]
+dev =  [{include-group = "docs"}, {include-group = "test"}, {include-group = "more_optional"}]
+editable_install = [
+  "meson-python",
+  "ninja",  # Unlike [build-system.requires], ninja need to be explicitly installed for editable install.
+  "charset-normalizer",
+  "numpy!=1.26.4,!=1.26.3"
+]
+# `editable_install` is similar to [build-system.requires], but not exactly as
+# it is used to create environment for the editable install. For the editable
+# install, the build-time and runtime numpy version will be the same, so the
+# constraints are slightly different than in [build-system.requires].
 
 [build-system]
 build-backend = 'mesonpy'

@@ -5,9 +5,11 @@ default:
     just --list
 
 editable_install:
-    uv pip install -r editable_install_requirements.txt
-    uv pip install -r pyproject.toml --all-extras  # and only the extras
-    pip install --no-build-isolation --editable .  # This is not (yet?) supported by uv, hence done with good old pip.
+    uv pip install -r pyproject.toml \
+        --group editable_install \
+        --group dev
+    pip install --no-build-isolation --editable .
+    # Meson-backed editable install is not (yet?) supported by uv (https://github.com/astral-sh/uv/issues/10214)
 
 # Define the temporary directory differently based on OS
 TEMP_DIR := if os_family() == 'windows' {
@@ -82,33 +84,33 @@ _test:
 
 test_in_latest_env:
     uv run \
-        --no-project \
-        --with .[test,optional] \
+        --isolated --no-editable \
+        --only-group test \
         just _test
 
 test_in_py38_reference_env:
     uv run \
-        --no-project \
+        --isolated --no-editable \
+        --only-group test \
         --python 3.8 \
         --with-requirements {{TEST_DIR}}/envs/2023-08-01-py3.8.txt \
-        --with .[test,optional] \
         just _test
     # TODO: Also build Capytaine in this environment?
 
 test_in_py312_reference_env:
     uv run \
-        --no-project \
+        --isolated --no-editable \
+        --only-group test \
         --python 3.12 \
         --with-requirements {{TEST_DIR}}/envs/2025-04-18-py3.12.txt \
-        --with .[test,optional] \
         just _test
     # TODO: Also build Capytaine in this environment?
 
 test_in_nightly_env:
     uv run \
-        --no-project \
+        --isolated --no-editable \
         --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple \
-        --with .[test,optional] \
+        --only-group test \
         just _test
     # TODO: Also build Capytaine in this environment?
 
@@ -125,6 +127,15 @@ create_test_env_file python="3.8" date="2023-08-01":
 test_fortran_compilation:
     # It is assumed that meson and ninja are already installed (e.g. with editable_install).
     meson setup --wipe {{TEMP_DIR}}/build && meson compile -C {{TEMP_DIR}}/build -j 1
+
+
+build_docs:
+    uv run \
+        --isolated --no-editable \
+        --only-group docs \
+        -- \
+        make --directory="./docs/"
+
 
 clean:
     rm -f src/capytaine/green_functions/libs/*.so
