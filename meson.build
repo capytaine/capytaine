@@ -1,13 +1,14 @@
 project('capytaine',
   ['c', 'fortran'],
+  meson_version : '>= 1.0.0',
   version : run_command('src/capytaine/__about__.py', check: true).stdout().strip(),
   default_options : ['warning_level=2'])
 
 py_mod = import('python')
 py3 = py_mod.find_installation('python3')
 py3_dep = py3.dependency()
-message('Python executable: @0@'.format(py3.path()))
-numpy_version = run_command(py3, ['-c', 'import numpy; print(numpy.__version__)']).stdout().strip()
+message('Python executable: @0@'.format(py3.full_path()))
+numpy_version = run_command(py3, ['-c', 'import numpy; print(numpy.__version__)'], check: true).stdout().strip()
 message('Numpy version: @0@'.format(numpy_version))
 
 incdir_numpy = run_command(py3,
