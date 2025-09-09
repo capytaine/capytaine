@@ -84,14 +84,14 @@ _test:
 
 test_in_latest_env:
     uv run \
-        --isolated \
-        --group test \
+        --isolated --no-editable \
+        --only-group test \
         just _test
 
 test_in_py38_reference_env:
     uv run \
-        --isolated \
-        --group test \
+        --isolated --no-editable \
+        --only-group test \
         --python 3.8 \
         --with-requirements {{TEST_DIR}}/envs/2023-08-01-py3.8.txt \
         just _test
@@ -99,8 +99,8 @@ test_in_py38_reference_env:
 
 test_in_py312_reference_env:
     uv run \
-        --isolated \
-        --group test \
+        --isolated --no-editable \
+        --only-group test \
         --python 3.12 \
         --with-requirements {{TEST_DIR}}/envs/2025-04-18-py3.12.txt \
         just _test
@@ -108,9 +108,9 @@ test_in_py312_reference_env:
 
 test_in_nightly_env:
     uv run \
-        --isolated \
+        --isolated --no-editable \
         --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple \
-        --group test \
+        --only-group test \
         just _test
     # TODO: Also build Capytaine in this environment?
 
@@ -127,6 +127,15 @@ create_test_env_file python="3.8" date="2023-08-01":
 test_fortran_compilation:
     # It is assumed that meson and ninja are already installed (e.g. with editable_install).
     meson setup --wipe {{TEMP_DIR}}/build && meson compile -C {{TEMP_DIR}}/build -j 1
+
+
+build_docs:
+    uv run \
+        --isolated --no-editable \
+        --only-group docs \
+        -- \
+        make --directory="./docs/"
+
 
 clean:
     rm -f src/capytaine/green_functions/libs/*.so
