@@ -66,7 +66,7 @@ def test_effect_of_lid_on_matrices(body_without_lid, body_with_lid):
     n_hull_mesh = body_without_lid.mesh.nb_faces
     solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
 
-    params = [0.0, np.inf, 1.0, solver.green_function]
+    params = [0.0, np.inf, 1.0]
     S_with, K_with = solver.engine.build_matrices(
             body_with_lid.mesh_including_lid, body_with_lid.mesh_including_lid,
             *params, adjoint_double_layer=True,
@@ -219,8 +219,7 @@ def test_lid_with_plane_symmetry():
     pb = cpt.RadiationProblem(body=body, wavelength=1.0)
     solver = cpt.BEMSolver()
     S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
-                                        pb.free_surface, pb.water_depth, pb.wavenumber,
-                                        solver.green_function)
+                                        pb.free_surface, pb.water_depth, pb.wavenumber)
     from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix
     assert isinstance(S, BlockSymmetricToeplitzMatrix)
     assert isinstance(K, BlockSymmetricToeplitzMatrix)
@@ -233,8 +232,7 @@ def test_lid_with_nested_plane_symmetry():
     pb = cpt.RadiationProblem(body=body, wavelength=1.0)
     solver = cpt.BEMSolver()
     S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
-                                        pb.free_surface, pb.water_depth, pb.wavenumber,
-                                        solver.green_function)
+                                        pb.free_surface, pb.water_depth, pb.wavenumber)
     from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix
     assert isinstance(S, BlockSymmetricToeplitzMatrix)
     assert isinstance(S.all_blocks[0, 0], BlockSymmetricToeplitzMatrix)

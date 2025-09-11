@@ -9,14 +9,13 @@ cylinder = cpt.FloatingBody(
             resolution=(1, 6, 8)
             ))
 
-engine = cpt.BasicMatrixEngine()
 green_function = cpt.Delhommeau()
+engine = cpt.BasicMatrixEngine(green_function=green_function)
 
 S, K = engine.build_matrices(
     cylinder.mesh, cylinder.mesh,
     free_surface=0.0, water_depth=np.inf,
     wavenumber=1.0,
-    green_function=green_function,
 )
 
 # Plot the absolute value of the matrix S

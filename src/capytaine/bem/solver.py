@@ -5,7 +5,7 @@
 .. code-block:: python
 
     problem = RadiationProblem(...)
-    result = BEMSolver(green_functions=..., engine=...).solve(problem)
+    result = BEMSolver(engine=..., method=...).solve(problem)
 
 """
 
@@ -20,7 +20,6 @@ from datetime import datetime
 from rich.progress import track
 
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem
-from capytaine.green_functions.delhommeau import Delhommeau
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.optional_imports import silently_import_optional_dependency
@@ -36,9 +35,6 @@ class BEMSolver:
 
     Parameters
     ----------
-    green_function: AbstractGreenFunction, optional
-        Object handling the computation of the Green function.
-        (default: :class:`~capytaine.green_function.delhommeau.Delhommeau`)
     engine: MatrixEngine, optional
         Object handling the building of matrices and the resolution of linear systems with these matrices.
         (default: :class:`~capytaine.bem.engines.BasicMatrixEngine`)
@@ -46,6 +42,10 @@ class BEMSolver:
         select boundary integral equation used to solve the problems.
         Accepted values: "indirect" (as in e.g. Nemoh), "direct" (as in e.g. WAMIT)
         Default value: "indirect"
+    green_function: AbstractGreenFunction, optional
+        For convenience and backward compatibility, the Green function can be
+        set here if the engine is the default one.
+        This argument is just passed to the default engine at initialization.
 
     Attributes
     ----------
@@ -56,8 +56,15 @@ class BEMSolver:
     """
 
     def __init__(self, *, green_function=None, engine=None, method="indirect"):
-        self.green_function = Delhommeau() if green_function is None else green_function
-        self.engine = BasicMatrixEngine() if engine is None else engine
+
+        if engine is None:
+            self.engine = BasicMatrixEngine(green_function=green_function)
+        else:
+            if green_function is not None:
+                raise ValueError("If you are not using the default engine, set the Green function in the engine.\n"
+                                 "Setting the Green function in the solver is only a shortcut to set up "
+                                 "the Green function of the default engine since Capytaine version 3.0")
+            self.engine = engine
 
         if method.lower() not in {"direct", "indirect"}:
             raise ValueError(f"Unrecognized method when initializing solver: {repr(method)}. Expected \"direct\" or \"indirect\".")
@@ -67,17 +74,13 @@ class BEMSolver:
 
         self.solve = self.timer["Solve total"].wraps_function(self.solve)
 
-        try:
-            self.exportable_settings = {
-                **self.green_function.exportable_settings,
-                **self.engine.exportable_settings,
-                "method": self.method,
-            }
-        except AttributeError:
-            self.exportable_settings = {}
+        self.exportable_settings = {
+            **self.engine.exportable_settings,
+            "method": self.method,
+        }
 
     def __str__(self):
-        return f"BEMSolver(engine={self.engine}, green_function={self.green_function})"
+        return f"BEMSolver(engine={self.engine}, method={self.method})"
 
     def __repr__(self):
         return self.__str__()
@@ -152,7 +155,7 @@ class BEMSolver:
                 S, D = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
                         problem.free_surface, problem.water_depth, wavenumber,
-                        self.green_function, adjoint_double_layer=False
+                        adjoint_double_layer=False
                         )
             rhs = S @ problem.boundary_condition
             with self.timer["  Linear solver"]:
@@ -167,7 +170,7 @@ class BEMSolver:
                 S, K = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
                         problem.free_surface, problem.water_depth, wavenumber,
-                        self.green_function, adjoint_double_layer=True
+                        adjoint_double_layer=True
                         )
 
             with self.timer["  Linear solver"]:
@@ -401,7 +404,7 @@ class BEMSolver:
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
         with self.timer["  Green function"]:
-            S, _ = self.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
+            S, _ = self.engine.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
         potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
@@ -414,7 +417,7 @@ class BEMSolver:
             Please re-run the resolution with this option.""")
 
         with self.timer["  Green function"]:
-            _, gradG = self.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber,
+            _, gradG = self.engine.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber,
                                                 early_dot_product=False)
         velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
         return velocities.reshape((*output_shape, 3))
@@ -542,7 +545,6 @@ class BEMSolver:
                 mesh,
                 result.body.mesh_including_lid,
                 result.free_surface, result.water_depth, result.wavenumber,
-                self.green_function
             )
             phi = S @ result.sources
 
@@ -554,7 +556,6 @@ class BEMSolver:
                     mesh.extract_faces(faces_to_extract),
                     result.body.mesh_including_lid,
                     result.free_surface, result.water_depth, result.wavenumber,
-                    self.green_function
                 )
                 phi[i:i+chunk_size] = S @ result.sources
 

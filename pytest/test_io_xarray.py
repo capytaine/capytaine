@@ -292,6 +292,7 @@ def test_fill_dataset_with_wavenumbers_and_several_water_depths(sphere, solver):
 def broken_bem_solver():
     ref_gf = cpt.Delhommeau()
     class BrokenGreenFunction:
+        exportable_settings = {}
         def evaluate(self, m1, m2, fs, wd, wavenumber, *args, **kwargs):
             if wavenumber < 2.0:
                 raise NotImplementedError("I'm potato")

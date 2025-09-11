@@ -4,12 +4,108 @@ Resolution
 
 Settings of the solver
 ----------------------
-The :class:`~capytaine.bem.solver.BEMSolver` class takes three (keyword-only) arguments at the time of its initialization::
+The settings of the solver can be customized by passing parameters at the initialization of :class:`~capytaine.bem.solver.BEMSolver`::
 
-    from capytaine import BEMSolver
-    solver = BEMSolver(green_function=..., engine=..., method=...)
+    solver = cpt.BEMSolver(engine=..., method=...)
 
-Let us discuss in more details these parameters.
+.. note::
+   As a shortcut, assuming you want to use the default engine, the ``green_function`` argument
+   can be used to directly change the implementation of the Green function::
+
+       solver = cpt.BEMSolver(green_function=..., method=...)
+
+   which is equivalent to
+
+       solver = cpt.BEMSolver(engine=BasicMatrixEngine(green_function=...), method=...)
+
+Method
+~~~~~~
+
+The argument :code:`method` (default value: :code:`"indirect"`) controls
+the approach employed to solve for the potential velocity solutions.
+Two methods are implemented:
+
+#. direct method (also known as "potential formulation", among other names)
+   with :code:`method="direct"`,
+#. indirect method (also known as "source formulation"), by default and with
+   :code:`method="indirect"`.
+
+The direct method appears to be slightly more accurate on some
+test cases (especially when thin plates are involved) but is only implemented
+for the computation of the forces on the floating body without forward speed.
+Any other post-processing (e.g. free surface elevation) and forward speed
+currently require the indirect method.
+
+Since v2.3, the method is a parameter of :class:`~capytaine.bem.solver.BEMSolver`.
+For backward compatibility, it can also be passed to
+:meth:`~capytaine.bem.solver.BEMSolver.solve`,
+:meth:`~capytaine.bem.solver.BEMSolver.solve_all` and
+:meth:`~capytaine.bem.solver.BEMSolver.fill_dataset`, then overriding the
+general setting of the solver.
+
+
+Engine
+~~~~~~
+A class to build a interaction matrix, deriving from :class:`MatrixEngine <capytaine.bem.engines.MatrixEngine>`.
+Two of them are available in the present version:
+
+:class:`~capytaine.bem.engines.BasicMatrixEngine` (Default)
+   A simple engine fairly similar to the one in Nemoh.
+   It builds the full matrices with few optimizations.
+   Only a reflection symmetry can be used to make the resolution faster.
+
+   The object can be initialized with the following options:
+
+   :code:`green_function`
+           See below for details.
+
+   :code:`matrix_cache_size` (Default: :code:`1`)
+           The solver keeps in memory the last interaction matrices that has been computed.
+           This setting controls the number of old matrices that are saved.
+           Setting it to :code:`0` will reduce the RAM usage of the code but might
+           increase the computation time.
+
+   :code:`linear_solver` (Default: :code:`'lu_decomposition'`)
+           This option is used to set the solver for linear systems that is used in the resolution of the BEM problem.
+           Passing a string will make the code use one of the predefined solver. Three of them are available:
+           :code:`'direct'` for a simple direct solver,
+           :code:`'lu_decomposition'` for a faster direct solver with caching of the LU decomposition,
+           or :code:`'gmres'` for an iterative solver.
+
+           A direct solver is used by default (since version 1.4) because it is more robust and the computation time is more predictable.
+           Advanced users might want to change the solver to :code:`gmres`, which is faster in many situations (and completely fails in other).
+
+           Alternatively, any function taking as arguments a matrix and a vector and returning a vector can be given to the solver::
+
+                   import numpy as np
+
+                   def my_linear_solver(A, b):
+                           """A dumb solver for testing."""
+                           return np.linalg.inv(A) @ b
+
+                   my_bem_solver = cpt.BEMSolver(
+                      engine=BasicMatrixEngine(linear_solver=my_linear_solver)
+                      )
+
+           This option can be used for instance to apply a custom preconditioning to
+           the iterative solver.
+
+:class:`~capytaine.bem.engines.HierarchicalToeplitzMatrixEngine`
+   Experimental engine using hierarchical structure in the mesh to build
+   hierarchical influence matrices.
+
+   The object can be initialized with the following options:
+
+   :code:`green_function`
+           See below for details.
+
+   :code:`matrix_cache_size` (Default: :code:`1`)
+      Same as above.
+
+   :code:`ACA_distance` and :code:`ACA_tol`
+      Parameters of the Adaptive Cross Approximation (ACA) used to set the
+      precision of the low-rank matrices.
+
 
 Green function
 ~~~~~~~~~~~~~~
@@ -133,87 +229,6 @@ The following classes are available:
 
 Advanced users can write their own class to evaluate the Green function.
 See the example in the :doc:`cookbook`.
-
-Engine
-~~~~~~
-A class to build a interaction matrix, deriving from :class:`MatrixEngine <capytaine.bem.engines.MatrixEngine>`.
-Two of them are available in the present version:
-
-:class:`~capytaine.bem.engines.BasicMatrixEngine` (Default)
-   A simple engine fairly similar to the one in Nemoh.
-   It builds the full matrices with few optimizations.
-   Only a reflection symmetry can be used to make the resolution faster.
-
-   The object can be initialized with the following options:
-
-   :code:`matrix_cache_size` (Default: :code:`1`)
-           The solver keeps in memory the last interaction matrices that has been computed.
-           This setting controls the number of old matrices that are saved.
-           Setting it to :code:`0` will reduce the RAM usage of the code but might
-           increase the computation time.
-
-   :code:`linear_solver` (Default: :code:`'lu_decomposition'`)
-           This option is used to set the solver for linear systems that is used in the resolution of the BEM problem.
-           Passing a string will make the code use one of the predefined solver. Three of them are available:
-           :code:`'direct'` for a simple direct solver,
-           :code:`'lu_decomposition'` for a faster direct solver with caching of the LU decomposition,
-           or :code:`'gmres'` for an iterative solver.
-
-           A direct solver is used by default (since version 1.4) because it is more robust and the computation time is more predictable.
-           Advanced users might want to change the solver to :code:`gmres`, which is faster in many situations (and completely fails in other).
-
-           Alternatively, any function taking as arguments a matrix and a vector and returning a vector can be given to the solver::
-
-                   import numpy as np
-
-                   def my_linear_solver(A, b):
-                           """A dumb solver for testing."""
-                           return np.linalg.inv(A) @ b
-
-                   my_bem_solver = cpt.BEMSolver(
-                      engine=BasicMatrixEngine(linear_solver=my_linear_solver)
-                      )
-
-           This option can be used for instance to apply a custom preconditioning to
-           the iterative solver.
-
-:class:`~capytaine.bem.engines.HierarchicalToeplitzMatrixEngine`
-   Experimental engine using hierarchical structure in the mesh to build
-   hierarchical influence matrices.
-
-   The object can be initialized with the following options:
-
-   :code:`matrix_cache_size` (Default: :code:`1`)
-      Same as above.
-
-   :code:`ACA_distance` and :code:`ACA_tol`
-      Parameters of the Adaptive Cross Approximation (ACA) used to set the
-      precision of the low-rank matrices.
-
-Method
-~~~~~~
-
-The argument :code:`method` (default value: :code:`"indirect"`) controls
-the approach employed to solve for the potential velocity solutions.
-Two methods are implemented:
-
-#. direct method (also known as "potential formulation", among other names)
-   with :code:`method="direct"`,
-#. indirect method (also known as "source formulation"), by default and with
-   :code:`method="indirect"`.
-
-The direct method appears to be slightly more accurate on some
-test cases (especially when thin plates are involved) but is only implemented
-for the computation of the forces on the floating body without forward speed.
-Any other post-processing (e.g. free surface elevation) and forward speed
-currently require the indirect method.
-
-Since v2.3, the method is a parameter of :class:`~capytaine.bem.solver.BEMSolver`.
-For backward compatibility, it can also be passed to
-:meth:`~capytaine.bem.solver.BEMSolver.solve`,
-:meth:`~capytaine.bem.solver.BEMSolver.solve_all` and
-:meth:`~capytaine.bem.solver.BEMSolver.fill_dataset`, then overriding the
-general setting of the solver.
 
 
 Solving the problem
