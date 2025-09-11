@@ -43,6 +43,14 @@ def test_exportable_settings():
     assert solver.exportable_settings['matrix_cache_size'] == 0
     assert solver.exportable_settings['linear_solver'] == 'lu_decomposition'
 
+    solver = cpt.BEMSolver(green_function=gf)
+    assert solver.exportable_settings['green_function'] == 'Delhommeau'
+    assert solver.exportable_settings['tabulation_nb_integration_points'] == 50
+    assert solver.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
+
+def test_cannot_define_gf_and_engine_in_solver():
+    with pytest.raises(ValueError):
+        cpt.BEMSolver(engine=cpt.BasicMatrixEngine(), green_function=cpt.Delhommeau())
 
 def test_solver_has_initialized_timer():
     s = cpt.BEMSolver()
