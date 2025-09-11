@@ -16,9 +16,15 @@ New in version 3.0 (2025-??-??)
 Internals
 ~~~~~~~~~
 
-- The source code moved from ``capytaine`` to ``src/capytaine`` in the main repository to avoid importing the local folder instead of the installed version (:issue:`395` and :pull:`749`).
+* **Breaking** The ``green_function`` is not an attribute of the :class:`~capytaine.bem.solver.BEMSolver` anymore, but of the engine.
+  The motivation is that not all engines can be made compatible with all Green function implementations (although the builtins one are).
+  The possibility to call ``BEMSolver(green_function=...)`` is kept as a convenient shortcut to ``BEMSolver(engine=BasicMatrixEngine(green_function=...))``.
+  Calls to ``BEMSolver(green_function=..., engine=...)`` now raise an error. (:pull:`752`)
 
-- Replace development dependencies in ``editable_install_requirements.txt`` and ``[project.optional-dependencies]`` with ``[dependency-groups]`` (:pull:`750`).
+
+* The source code moved from ``capytaine`` to ``src/capytaine`` in the main repository to avoid importing the local folder instead of the installed version (:issue:`395` and :pull:`749`).
+
+* Replace development dependencies in ``editable_install_requirements.txt`` and ``[project.optional-dependencies]`` with ``[dependency-groups]`` (:pull:`750`).
 
 -------------------------------
 New in version 2.3 (2025-07-17)
