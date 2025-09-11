@@ -98,6 +98,25 @@ class BasicMatrixEngine(MatrixEngine):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
+    def build_S_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+        """Similar to :code:`build_matrices`, but returning only :math:`S`"""
+        # Calls directly evaluate instead of build_matrices because the caching
+        # mechanism of build_matrices is not compatible with giving mesh1 as a
+        # list of points, but we need that for post-processing
+        S, _ = self.green_function.evaluate(
+                mesh1, mesh2, free_surface, water_depth, wavenumber
+            )
+        return S
+
+    def build_fullK_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+        """Similar to :code:`build_matrices`, but returning only full :math:`K`
+        (that is the three components of the gradient, not just the normal one)"""
+        _, fullK = self.green_function.evaluate(
+                mesh1, mesh2, free_surface, water_depth, wavenumber,
+                adjoint_double_layer=True, early_dot_product=False,
+            )
+        return fullK
+
     def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True):
         r"""Build the influence matrices between mesh1 and mesh2.
 
@@ -137,7 +156,8 @@ class BasicMatrixEngine(MatrixEngine):
 
         else:
             return self.green_function.evaluate(
-                mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=adjoint_double_layer
+                mesh1, mesh2, free_surface, water_depth, wavenumber,
+                adjoint_double_layer=adjoint_double_layer, early_dot_product=True,
             )
 
 ###################################
@@ -188,6 +208,20 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
+    def build_S_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+        """Similar to :code:`build_matrices`, but returning only :math:`S`"""
+        S, _ = self.green_function.evaluate(
+                mesh1, mesh2, free_surface, water_depth, wavenumber
+            )
+        return S
+
+    def build_fullK_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+        """Similar to :code:`build_matrices`, but returning only full :math:`K`
+        (that is the three components of the gradient, not just the normal one)"""
+        _, fullK = self.green_function.evaluate(
+                mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True, early_dot_product=False,
+            )
+        return fullK
 
     def build_matrices(self,
                        mesh1, mesh2, free_surface, water_depth, wavenumber,

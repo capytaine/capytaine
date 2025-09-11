@@ -404,7 +404,7 @@ class BEMSolver:
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
         with self.timer["  Green function"]:
-            S, _ = self.engine.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
+            S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
         potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
@@ -417,8 +417,7 @@ class BEMSolver:
             Please re-run the resolution with this option.""")
 
         with self.timer["  Green function"]:
-            _, gradG = self.engine.green_function.evaluate(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber,
-                                                early_dot_product=False)
+            gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
         velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
         return velocities.reshape((*output_shape, 3))
 
