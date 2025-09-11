@@ -19,10 +19,7 @@ def nemoh2_solver():
             finite_depth_prony_decomposition_method="fortran",
             gf_singularities="high_freq",
             )
-    solver = cpt.BEMSolver(
-            engine=cpt.BasicMatrixEngine(matrix_cache_size=0),
-            green_function=gf
-            )
+    solver = cpt.BEMSolver(green_function=gf)
     return solver
 
 
@@ -52,7 +49,7 @@ def test_immersed_sphere(nemoh2_solver):
 
 
 def test_build_matrix_of_rankine_and_reflected_rankine(nemoh2_solver):
-    gf = nemoh2_solver.green_function
+    gf = nemoh2_solver.engine.green_function
     sphere = Sphere(radius=1.0, ntheta=2, nphi=3, clip_free_surface=True)
 
     S, V = gf.evaluate(sphere.mesh, sphere.mesh, 0.0, np.inf, 0.0)

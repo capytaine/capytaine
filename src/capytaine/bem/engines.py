@@ -1,6 +1,6 @@
 """Definition of the methods to build influence matrices, using possibly some sparse structures."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
 from abc import ABC, abstractmethod
@@ -17,6 +17,9 @@ from capytaine.matrices import linear_solvers
 from capytaine.matrices.block import BlockMatrix
 from capytaine.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
 from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockToeplitzMatrix, BlockCirculantMatrix
+
+from capytaine.green_functions.delhommeau import Delhommeau
+
 from capytaine.tools.lru_cache import lru_cache_with_strict_maxsize
 
 LOG = logging.getLogger(__name__)
@@ -64,7 +67,9 @@ class BasicMatrixEngine(MatrixEngine):
                                 'gmres': linear_solvers.solve_gmres,
                                 }
 
-    def __init__(self, *, linear_solver='lu_decomposition', matrix_cache_size=1):
+    def __init__(self, *, green_function=None, linear_solver='lu_decomposition', matrix_cache_size=1):
+
+        self.green_function = Delhommeau() if green_function is None else green_function
 
         if linear_solver in self.available_linear_solvers:
             self.linear_solver = self.available_linear_solvers[linear_solver]
@@ -78,12 +83,14 @@ class BasicMatrixEngine(MatrixEngine):
             'engine': 'BasicMatrixEngine',
             'matrix_cache_size': matrix_cache_size,
             'linear_solver': str(linear_solver),
+            **self.green_function.exportable_settings,
         }
 
     def __str__(self):
-        params = f"linear_solver=\'{self.exportable_settings['linear_solver']}\'"
-        params += f", matrix_cache_size={self.exportable_settings['matrix_cache_size']}" if self.exportable_settings['matrix_cache_size'] != 1 else ""
-        return f"BasicMatrixEngine({params})"
+        params= [f"green_function={self.green_function}", f"linear_solver=\'{self.exportable_settings['linear_solver']}\'"]
+        if self.exportable_settings['matrix_cache_size'] != 1:
+            params.append(f"matrix_cache_size={self.exportable_settings['matrix_cache_size']}")
+        return f"BasicMatrixEngine({', '.join(params)})"
 
     def __repr__(self):
         return self.__str__()
@@ -91,7 +98,7 @@ class BasicMatrixEngine(MatrixEngine):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
-    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, green_function, adjoint_double_layer=True):
+    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True):
         r"""Build the influence matrices between mesh1 and mesh2.
 
         Parameters
@@ -106,8 +113,6 @@ class BasicMatrixEngine(MatrixEngine):
             position of the sea bottom (default: :math:`z = -\infty`)
         wavenumber: float
             wavenumber (default: 1.0)
-        green_function: AbstractGreenFunction
-            object with an "evaluate" method that computes the Green function.
         adjoint_double_layer: bool, optional
             compute double layer for direct method (F) or adjoint double layer for indirect method (T) matrices (default: True)
 
@@ -123,15 +128,15 @@ class BasicMatrixEngine(MatrixEngine):
 
             S_a, V_a = self.build_matrices(
                 mesh1[0], mesh2[0], free_surface, water_depth, wavenumber,
-                green_function, adjoint_double_layer=adjoint_double_layer)
+                adjoint_double_layer=adjoint_double_layer)
             S_b, V_b = self.build_matrices(
                 mesh1[0], mesh2[1], free_surface, water_depth, wavenumber,
-                green_function, adjoint_double_layer=adjoint_double_layer)
+                adjoint_double_layer=adjoint_double_layer)
 
             return BlockSymmetricToeplitzMatrix([[S_a, S_b]]), BlockSymmetricToeplitzMatrix([[V_a, V_b]])
 
         else:
-            return green_function.evaluate(
+            return self.green_function.evaluate(
                 mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=adjoint_double_layer
             )
 
@@ -153,7 +158,9 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
         number of matrices to keep in cache
     """
 
-    def __init__(self, *, ACA_distance=8.0, ACA_tol=1e-2, matrix_cache_size=1):
+    def __init__(self, *, green_function=None, ACA_distance=8.0, ACA_tol=1e-2, matrix_cache_size=1):
+
+        self.green_function = Delhommeau() if green_function is None else green_function
 
         if matrix_cache_size > 0:
             self.build_matrices = lru_cache_with_strict_maxsize(maxsize=matrix_cache_size)(self.build_matrices)
@@ -168,29 +175,31 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             'ACA_distance': ACA_distance,
             'ACA_tol': ACA_tol,
             'matrix_cache_size': matrix_cache_size,
+            **self.green_function.exportable_settings
         }
 
     def __str__(self):
-        params = f"ACA_distance={self.ACA_distance}"
-        params += f", ACA_tol={self.ACA_tol}"
-        params += f", matrix_cache_size={self.exportable_settings['matrix_cache_size']}" if self.exportable_settings['matrix_cache_size'] != 1 else ""
-        return f"HierarchicalToeplitzMatrixEngine({params})"
+        params = [f"green_function={self.green_function}", f"ACA_distance={self.ACA_distance}"]
+        params.append(f"ACA_tol={self.ACA_tol}")
+        if self.exportable_settings['matrix_cache_size'] != 1:
+            params.append(f"matrix_cache_size={self.exportable_settings['matrix_cache_size']}")
+        return f"HierarchicalToeplitzMatrixEngine({','.join(params)})"
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
 
     def build_matrices(self,
-                       mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
+                       mesh1, mesh2, free_surface, water_depth, wavenumber,
                        adjoint_double_layer=True):
 
         return self._build_matrices(
-                           mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
+                           mesh1, mesh2, free_surface, water_depth, wavenumber,
                            adjoint_double_layer, _rec_depth=1)
 
 
     def _build_matrices(self,
-                       mesh1, mesh2, free_surface, water_depth, wavenumber, green_function,
+                       mesh1, mesh2, free_surface, water_depth, wavenumber,
                        adjoint_double_layer, _rec_depth=1):
         """Recursively builds a hierarchical matrix between mesh1 and mesh2.
 
@@ -221,10 +230,10 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             LOG.debug(log_entry + " using mirror symmetry.")
 
             S_a, V_a = self._build_matrices(
-                mesh1[0], mesh2[0], free_surface, water_depth, wavenumber, green_function,
+                mesh1[0], mesh2[0], free_surface, water_depth, wavenumber,
                 adjoint_double_layer=adjoint_double_layer, _rec_depth=_rec_depth+1)
             S_b, V_b = self._build_matrices(
-                mesh1[0], mesh2[1], free_surface, water_depth, wavenumber, green_function,
+                mesh1[0], mesh2[1], free_surface, water_depth, wavenumber,
                 adjoint_double_layer=adjoint_double_layer, _rec_depth=_rec_depth+1)
 
             return BlockSymmetricToeplitzMatrix([[S_a, S_b]]), BlockSymmetricToeplitzMatrix([[V_a, V_b]])
@@ -239,13 +248,13 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             S_list, V_list = [], []
             for submesh in mesh2:
                 S, V = self._build_matrices(
-                    mesh1[0], submesh, free_surface, water_depth, wavenumber, green_function,
+                    mesh1[0], submesh, free_surface, water_depth, wavenumber,
                     adjoint_double_layer=adjoint_double_layer, _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
             for submesh in mesh1[1:][::-1]:
                 S, V = self._build_matrices(
-                    submesh, mesh2[0], free_surface, water_depth, wavenumber, green_function,
+                    submesh, mesh2[0], free_surface, water_depth, wavenumber,
                     adjoint_double_layer=adjoint_double_layer, _rec_depth=_rec_depth+1)
                 S_list.append(S)
                 V_list.append(V)
@@ -262,7 +271,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             S_line, V_line = [], []
             for submesh in mesh2[:mesh2.nb_submeshes]:
                 S, V = self._build_matrices(
-                    mesh1[0], submesh, free_surface, water_depth, wavenumber, green_function,
+                    mesh1[0], submesh, free_surface, water_depth, wavenumber,
                     adjoint_double_layer=adjoint_double_layer, _rec_depth=_rec_depth+1)
                 S_line.append(S)
                 V_line.append(V)
@@ -276,7 +285,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
             LOG.debug(log_entry + " using ACA.")
 
             def get_row_func(i):
-                s, v = green_function.evaluate(
+                s, v = self.green_function.evaluate(
                     mesh1.extract_one_face(i), mesh2,
                     free_surface, water_depth, wavenumber,
                     adjoint_double_layer=adjoint_double_layer
@@ -284,7 +293,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
                 return s.flatten(), v.flatten()
 
             def get_col_func(j):
-                s, v = green_function.evaluate(
+                s, v = self.green_function.evaluate(
                     mesh1, mesh2.extract_one_face(j),
                     free_surface, water_depth, wavenumber,
                     adjoint_double_layer=adjoint_double_layer
@@ -312,7 +321,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
                 S_line, V_line = [], []
                 for submesh2 in mesh2:
                     S, V = self._build_matrices(
-                        submesh1, submesh2, free_surface, water_depth, wavenumber, green_function,
+                        submesh1, submesh2, free_surface, water_depth, wavenumber,
                         adjoint_double_layer=adjoint_double_layer, _rec_depth=_rec_depth+1)
 
                     S_line.append(S)
@@ -327,7 +336,7 @@ class HierarchicalToeplitzMatrixEngine(MatrixEngine):
         else:
             LOG.debug(log_entry)
 
-            S, V = green_function.evaluate(
+            S, V = self.green_function.evaluate(
                 mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=adjoint_double_layer
             )
             return S, V

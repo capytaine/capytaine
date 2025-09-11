@@ -255,6 +255,7 @@ def test_transform_radiation_problem_into_radiation_result_and_setting_force():
 def broken_bem_solver():
     ref_gf = cpt.Delhommeau()
     class BrokenGreenFunction:
+        exportable_settings = {}
         def evaluate(self, m1, m2, fs, wd, wavenumber, *args, **kwargs):
             if wavenumber < 2.0:
                 raise NotImplementedError("I'm potato")
