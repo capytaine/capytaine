@@ -33,13 +33,16 @@ class MatrixEngine(ABC):
     """Abstract method to build a matrix."""
 
     @abstractmethod
-    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, green_function, adjoint_double_layer):
+    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer):
         pass
 
-    def build_S_matrix(self, *args, **kwargs):
-        """Similar to :code:`build_matrices`, but returning only :math:`S`"""
-        S, _ = self.build_matrices(*args, **kwargs)  # Could be optimized...
-        return S
+    @abstractmethod
+    def build_S_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+        pass
+
+    @abstractmethod
+    def build_fullK_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+        pass
 
 
 ##################
@@ -111,6 +114,8 @@ class BasicMatrixEngine(MatrixEngine):
     def build_fullK_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
         """Similar to :code:`build_matrices`, but returning only full :math:`K`
         (that is the three components of the gradient, not just the normal one)"""
+        # TODO: could use symmetries. In particular for forward, we compute the
+        # full velocity on the same mesh so symmetries could be used.
         _, fullK = self.green_function.evaluate(
                 mesh1, mesh2, free_surface, water_depth, wavenumber,
                 adjoint_double_layer=True, early_dot_product=False,
