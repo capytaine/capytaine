@@ -20,6 +20,7 @@ Internals
   The motivation is that not all engines can be made compatible with all Green function implementations (although the builtins one are).
   The possibility to call ``BEMSolver(green_function=...)`` is kept as a convenient shortcut to ``BEMSolver(engine=BasicMatrixEngine(green_function=...))``.
   Calls to ``BEMSolver(green_function=..., engine=...)`` now raise an error. (:pull:`752`)
+  Post-processing new requires the implementation of the methods ``build_S_matrix`` and ``build_fullK_matrix`` by the engine (:pull:`753`)
 
 
 * The source code moved from ``capytaine`` to ``src/capytaine`` in the main repository to avoid importing the local folder instead of the installed version (:issue:`395` and :pull:`749`).
