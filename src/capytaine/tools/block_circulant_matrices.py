@@ -2,10 +2,13 @@
 # Copyright (C) 2025 Capytaine developers
 # See LICENSE file at <https://github.com/capytaine/capytaine>
 
+import logging
 import numpy as np
 from typing import List
 from numpy.typing import ArrayLike
 import scipy.linalg as sl
+
+LOG = logging.getLogger(__name__)
 
 
 def circular_permutation(l: List, i: int) -> List:
@@ -69,10 +72,12 @@ class BlockCirculantMatrix:
             raise NotImplementedError()
 
     def solve(self, b: np.ndarray) -> np.ndarray:
+        LOG.debug("Called solve on %s of shape %s with rhs: %s", self.__class__.__name__, self.shape, b)
         n = self.nb_blocks
         b_fft = np.fft.fft(b.reshape((n, b.shape[0]//n)), axis=0).reshape(b.shape)
         res_fft = self.block_diagonalize().solve(b_fft)
         res = np.fft.ifft(res_fft.reshape((n, b.shape[0]//n)), axis=0).reshape(b.shape)
+        LOG.debug("Done")
         return res
 
 
@@ -92,7 +97,7 @@ class BlockDiagonalMatrix:
         The blocks [a, b, c, d, ...]
     """
     def __init__(self, blocks):
-        self.blocks = [np.atleast_2d(b) for b in blocks]
+        self.blocks = [b for b in blocks]
         self.nb_blocks = len(blocks)
         assert all(blocks[0].shape == b.shape for b in blocks[1:])
         self.shape = (
@@ -112,10 +117,12 @@ class BlockDiagonalMatrix:
             for i in range(self.nb_blocks)])
 
     def solve(self, b: np.ndarray) -> np.ndarray:
+        LOG.debug("Called solve on %s of shape %s with rhs: %s", self.__class__.__name__, self.shape, b)
         n = self.nb_blocks
         rhs = np.split(b, n)
         res = [np.linalg.solve(Ai, bi) if isinstance(Ai, np.ndarray) else Ai.solve(bi)
                for (Ai, bi) in zip(self.blocks, rhs)]
+        LOG.debug("Done")
         return np.hstack(res)
 
 
