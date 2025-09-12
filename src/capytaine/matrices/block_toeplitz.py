@@ -261,7 +261,7 @@ class EvenBlockSymmetricCirculantMatrix(BlockCirculantMatrix, BlockSymmetricToep
         BCBA
 
         ABCDCB
-        BABCDB
+        BABCDC
         CBABCD
         DCBABC
         CDCBAB
