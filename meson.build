@@ -58,16 +58,11 @@ install_subdir(
   )
 # Alternatively: would need to list all the .py files and use py3.install_source()
 
-if build_machine.system() == 'darwin'
-  omp = []  # Waiting for https://github.com/mesonbuild/meson/issues/7435
-else
-  omp = dependency('openmp')
-endif
 
 args = ['-cpp']
 optional_dependencies_flags = ['-DLIANGWUNOBLESSE_OPTIONAL_DEPENDENCY', '-DFINGREEN3D_OPTIONAL_DEPENDENCY']
 link_args = ['-lquadmath']  # Required for the Windows build with cibuildwheel
-deps = [py3_dep, omp]
+deps = [py3_dep, dependency('openmp')]
 
 py3.extension_module('Delhommeau_float32',
            float32, src_to_interface_with_python, Delhommeau_float32_f2py_wrapper, incdir_f2py+'/fortranobject.c',

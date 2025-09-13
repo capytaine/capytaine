@@ -55,6 +55,7 @@ editable_install = [
 [build-system]
 build-backend = 'mesonpy'
 requires = [
+    "meson>=1.5",
     "meson-python",
     "charset-normalizer",
     "numpy>=2.0.0; python_version>='3.9'",
