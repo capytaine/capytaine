@@ -11,7 +11,10 @@ The scripts can be downloaded individually as Python files from the |examples_fo
 C1. Parallel computation with Joblib
 ------------------------------------
 
-TODO
+This example runs a parallel speedup study.
+
+.. literalinclude:: src/C1_joblib.py
+   :language: python
 
 
 C2. Direct or indirect boundary integral equation
