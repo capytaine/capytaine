@@ -4,6 +4,7 @@
 
 import logging
 from abc import ABC, abstractmethod
+from typing import Tuple, Union, Optional, Callable
 
 import numpy as np
 from scipy.linalg import lu_factor
@@ -18,11 +19,13 @@ from capytaine.matrices.block import BlockMatrix
 from capytaine.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
 from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockToeplitzMatrix, BlockCirculantMatrix
 
+from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
 from capytaine.green_functions.delhommeau import Delhommeau
 
 from capytaine.tools.block_circulant_matrices import (
         BlockCirculantMatrix as NewBlockCirculantMatrix,
-        lu_decompose, has_been_lu_decomposed
+        lu_decompose, has_been_lu_decomposed,
+        MatrixLike, LUDecomposedMatrixLike
         )
 from capytaine.tools.lru_cache import lru_cache_with_strict_maxsize
 
@@ -79,6 +82,9 @@ def solve_gmres(A, b):
     return x
 
 
+LUDecomposedMatrixOrNot = Union[MatrixLike, LUDecomposedMatrixLike]
+
+
 class BasicMatrixEngine(MatrixEngine):
     """
     Default matrix engine.
@@ -98,6 +104,10 @@ class BasicMatrixEngine(MatrixEngine):
         (available: "lu_decomposition" and "gmres", the former is the default choice)
         or by passing directly a solver function.
     """
+
+    green_function: AbstractGreenFunction
+    _linear_solver: Union[str, Callable]
+    last_computed_matrices: Optional[Tuple[MatrixLike, LUDecomposedMatrixOrNot]]
 
     def __init__(self, *, green_function=None, linear_solver='lu_decomposition'):
 
@@ -124,7 +134,9 @@ class BasicMatrixEngine(MatrixEngine):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
-    def build_S_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+    def build_S_matrix(
+            self, mesh1, mesh2, free_surface, water_depth, wavenumber
+            ) -> np.ndarray:
         """Similar to :code:`build_matrices`, but returning only :math:`S`"""
         # Calls directly evaluate instead of build_matrices because the caching
         # mechanism of build_matrices is not compatible with giving mesh1 as a
@@ -134,7 +146,9 @@ class BasicMatrixEngine(MatrixEngine):
             )
         return S
 
-    def build_fullK_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+    def build_fullK_matrix(
+            self, mesh1, mesh2, free_surface, water_depth, wavenumber
+            ) -> np.ndarray:
         """Similar to :code:`build_matrices`, but returning only full :math:`K`
         (that is the three components of the gradient, not just the normal one)"""
         # TODO: could use symmetries. In particular for forward, we compute the
@@ -145,19 +159,19 @@ class BasicMatrixEngine(MatrixEngine):
             )
         return fullK
 
-    def build_matrices_with_symmetries(
+    def _build_matrices_with_symmetries(
             self, mesh1, mesh2, *, free_surface, water_depth, wavenumber, adjoint_double_layer
-            ):
+            ) -> Tuple[MatrixLike, MatrixLike]:
         if (isinstance(mesh1, ReflectionSymmetricMesh)
                 and isinstance(mesh2, ReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
 
-            S_a, K_a = self.build_matrices_with_symmetries(
+            S_a, K_a = self._build_matrices_with_symmetries(
                 mesh1[0], mesh2[0],
                 free_surface=free_surface, water_depth=water_depth,
                 wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
                 )
-            S_b, K_b = self.build_matrices_with_symmetries(
+            S_b, K_b = self._build_matrices_with_symmetries(
                 mesh1[0], mesh2[1],
                 free_surface=free_surface, water_depth=water_depth,
                 wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
@@ -171,16 +185,16 @@ class BasicMatrixEngine(MatrixEngine):
                 adjoint_double_layer=adjoint_double_layer, early_dot_product=True,
             )
 
-    def build_and_cache_matrices_with_symmetries(
+    def _build_and_cache_matrices_with_symmetries(
             self, mesh1, mesh2, *, free_surface, water_depth, wavenumber, adjoint_double_layer
-            ):
+            ) -> Tuple[MatrixLike, LUDecomposedMatrixOrNot]:
         if (mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer) == self.last_computed_inputs:
             LOG.debug("%s: reading cache.", self.__class__.__name__)
             return self.last_computed_matrices
         else:
             LOG.debug("%s: computing new matrices.", self.__class__.__name__)
             self.last_computed_matrices = None  # Unlink former cached values, so the memory can be freed to compute new matrices.
-            S, K = self.build_matrices_with_symmetries(
+            S, K = self._build_matrices_with_symmetries(
                     mesh1, mesh2,
                     free_surface=free_surface, water_depth=water_depth,
                     wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
@@ -213,13 +227,13 @@ class BasicMatrixEngine(MatrixEngine):
         tuple of matrix-like (Numpy arrays or BlockCirculantMatrix)
             the matrices :math:`S` and :math:`K`
         """
-        return self.build_and_cache_matrices_with_symmetries(
+        return self._build_and_cache_matrices_with_symmetries(
             mesh1, mesh2,
             free_surface=free_surface, water_depth=water_depth,
             wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
         )
 
-    def linear_solver(self, A, b: np.ndarray) -> np.ndarray:
+    def linear_solver(self, A: LUDecomposedMatrixOrNot, b: np.ndarray) -> np.ndarray:
         """Solve a linear system with left-hand side A and right-hand-side b
 
         Parameters
@@ -249,9 +263,13 @@ class BasicMatrixEngine(MatrixEngine):
             if not has_been_lu_decomposed(A):
                 luA = lu_decompose(A)
                 if A is self.last_computed_matrices[1]:
+                    # In normal operation of Capytaine, `A` is always the $D$
+                    # or $K$ matrix stored in the cache of the solver.
+                    # Here we replace the matrix by its LU decomposition in the
+                    # cache to avoid doing the decomposition again.
                     self.last_computed_matrices = (self.last_computed_matrices[0], luA)
             else:
-                luA = A
+                luA: LUDecomposedMatrixLike = A
             return luA.solve(b)
 
         elif self._linear_solver == "gmres":

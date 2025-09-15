@@ -17,17 +17,17 @@ def test_cache_matrices():
 
     # No cache
     engine = cpt.BasicMatrixEngine()
-    S, K             = engine.build_matrices_with_symmetries(mesh, mesh, **params_1)
-    S_again, K_again = engine.build_matrices_with_symmetries(mesh, mesh, **params_1)
+    S, K             = engine._build_matrices_with_symmetries(mesh, mesh, **params_1)
+    S_again, K_again = engine._build_matrices_with_symmetries(mesh, mesh, **params_1)
     assert S is not S_again
     assert K is not K_again
 
     # Cache
     engine = cpt.BasicMatrixEngine()
-    S, K                     = engine.build_and_cache_matrices_with_symmetries(mesh, mesh, **params_1)
-    S_again, K_again         = engine.build_and_cache_matrices_with_symmetries(mesh, mesh, **params_1)
-    _, _                     = engine.build_and_cache_matrices_with_symmetries(mesh, mesh, **params_2)
-    S_once_more, K_once_more = engine.build_and_cache_matrices_with_symmetries(mesh, mesh, **params_2)
+    S, K                     = engine._build_and_cache_matrices_with_symmetries(mesh, mesh, **params_1)
+    S_again, K_again         = engine._build_and_cache_matrices_with_symmetries(mesh, mesh, **params_1)
+    _, _                     = engine._build_and_cache_matrices_with_symmetries(mesh, mesh, **params_2)
+    S_once_more, K_once_more = engine._build_and_cache_matrices_with_symmetries(mesh, mesh, **params_2)
     assert S is S_again
     assert S is not S_once_more
     assert K is K_again
