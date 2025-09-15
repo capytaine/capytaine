@@ -16,6 +16,10 @@ New in version 3.0 (2025-??-??)
 Internals
 ~~~~~~~~~
 
+* The source code moved from ``capytaine`` to ``src/capytaine`` in the main repository to avoid importing the local folder instead of the installed version (:issue:`395` and :pull:`749`).
+
+* Replace development dependencies in ``editable_install_requirements.txt`` and ``[project.optional-dependencies]`` with ``[dependency-groups]`` (:pull:`750`).
+
 * **Breaking** The ``green_function`` is not an attribute of the :class:`~capytaine.bem.solver.BEMSolver` anymore, but of the engine.
   The motivation is that not all engines can be made compatible with all Green function implementations (although the builtins one are).
   The possibility to call ``BEMSolver(green_function=...)`` is kept as a convenient shortcut to ``BEMSolver(engine=BasicMatrixEngine(green_function=...))``.
@@ -25,9 +29,10 @@ Internals
 * New implementation of the block symmetric matrices for mesh symmetry, now
   used by :class:`~capytaine.bem.engines.BasicMatrixEngine` (:pull:`754`).
 
-* The source code moved from ``capytaine`` to ``src/capytaine`` in the main repository to avoid importing the local folder instead of the installed version (:issue:`395` and :pull:`749`).
+* Rafactor of the :class:`~capytaine.bem.engines.BasicMatrixEngine` to make the
+  caching more straightforward and improve its interaction with LU
+  decomposition and symmetries. (:pull:`755`)
 
-* Replace development dependencies in ``editable_install_requirements.txt`` and ``[project.optional-dependencies]`` with ``[dependency-groups]`` (:pull:`750`).
 
 -------------------------------
 New in version 2.3 (2025-07-17)
