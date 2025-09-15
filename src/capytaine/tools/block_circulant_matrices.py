@@ -59,6 +59,8 @@ class BlockCirculantMatrix:
     def __array__(self, dtype=None, copy=True):
         if not copy:
             raise NotImplementedError
+        if dtype is None:
+            dtype = self.dtype
         full_blocks = [np.array(b) for b in self.blocks]  # Transform all blocks to numpy arrays
         first_row = [full_blocks[0], *(full_blocks[1:][::-1])]
         if self.ndim >= 3:
@@ -131,6 +133,8 @@ class BlockDiagonalMatrix:
     def __array__(self, dtype=None, copy=True):
         if not copy:
             raise NotImplementedError
+        if dtype is None:
+            dtype = self.dtype
         full_blocks = [np.array(b) for b in self.blocks]  # Transform all blocks to numpy arrays
         if self.ndim >= 3:
             full_blocks = [leading_dimensions_at_the_end(b) for b in full_blocks]
