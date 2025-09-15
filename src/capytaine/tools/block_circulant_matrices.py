@@ -18,13 +18,13 @@ def circular_permutation(l: List, i: int) -> List:
 def leading_dimensions_at_the_end(a):
     """Transform an array of shape (n, m, ...) into (..., n, m).
     Invert of `leading_dimensions_at_the_end`"""
-    return np.permute_dims(a, (*(range(2, a.ndim)), 0, 1))
+    return np.moveaxis(a, [0, 1], [-2, -1])
 
 
 def ending_dimensions_at_the_beginning(a):
     """Transform an array of shape (..., n, m) into (n, m, ...).
     Invert of `leading_dimensions_at_the_end`"""
-    return np.permute_dims(a, (-2, -1, *(range(a.ndim-2))))
+    return np.moveaxis(a, [-2, -1], [0, 1])
 
 
 class BlockCirculantMatrix:
