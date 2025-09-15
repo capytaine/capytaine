@@ -15,6 +15,18 @@ def circular_permutation(l: List, i: int) -> List:
     return l[-i:] + l[:-i]
 
 
+def leading_dimensions_at_the_end(a):
+    """Transform an array of shape (n, m, ...) into (..., n, m).
+    Invert of `leading_dimensions_at_the_end`"""
+    return np.permute_dims(a, (*(range(2, a.ndim)), 0, 1))
+
+
+def ending_dimensions_at_the_beginning(a):
+    """Transform an array of shape (..., n, m) into (n, m, ...).
+    Invert of `leading_dimensions_at_the_end`"""
+    return np.permute_dims(a, (-2, -1, *(range(a.ndim-2))))
+
+
 class BlockCirculantMatrix:
     """Data-sparse representation of a block matrix of the following form
 
@@ -38,8 +50,10 @@ class BlockCirculantMatrix:
         assert all(self.blocks[0].dtype == b.dtype for b in self.blocks[1:])
         self.shape = (
             self.nb_blocks*self.blocks[0].shape[0],
-            self.nb_blocks*self.blocks[0].shape[1]
+            self.nb_blocks*self.blocks[0].shape[1],
+            *self.blocks[0].shape[2:]
         )
+        self.ndim = len(self.shape)
         self.dtype = self.blocks[0].dtype
 
     def __array__(self, dtype=None, copy=True):
@@ -47,8 +61,14 @@ class BlockCirculantMatrix:
             raise NotImplementedError
         full_blocks = [np.array(b) for b in self.blocks]  # Transform all blocks to numpy arrays
         first_row = [full_blocks[0], *(full_blocks[1:][::-1])]
-        return np.block([[b for b in circular_permutation(first_row, i)]
+        if self.ndim >= 3:
+            first_row = [leading_dimensions_at_the_end(b) for b in first_row]
+            # Need to permute_dims to conform to `block` usage when the array is more than 2D
+        full_matrix = np.block([[b for b in circular_permutation(first_row, i)]
                          for i in range(self.nb_blocks)]).astype(dtype)
+        if self.ndim >= 3:
+            full_matrix = ending_dimensions_at_the_beginning(full_matrix)
+        return full_matrix
 
     def __add__(self, other):
         if isinstance(other, BlockCirculantMatrix) and self.shape == other.shape:
@@ -63,10 +83,10 @@ class BlockCirculantMatrix:
             return NotImplemented
 
     def block_diagonalize(self) -> "BlockDiagonalMatrix":
-        if all(isinstance(b, BlockCirculantMatrix) for b in self.blocks) and self.nb_blocks == 2:
+        if self.ndim == 2 and all(isinstance(b, BlockCirculantMatrix) for b in self.blocks) and self.nb_blocks == 2:
             a, b = self.blocks
             return BlockDiagonalMatrix([a + b, a - b])
-        elif all(isinstance(b, np.ndarray) for b in self.blocks):
+        elif self.ndim == 2 and all(isinstance(b, np.ndarray) for b in self.blocks):
             return BlockDiagonalMatrix(np.fft.fft(np.array(self.blocks), axis=0))
         else:
             raise NotImplementedError()
@@ -112,10 +132,15 @@ class BlockDiagonalMatrix:
         if not copy:
             raise NotImplementedError
         full_blocks = [np.array(b) for b in self.blocks]  # Transform all blocks to numpy arrays
-        return np.block([
+        if self.ndim >= 3:
+            full_blocks = [leading_dimensions_at_the_end(b) for b in full_blocks]
+        full_matrix = np.block([
             [full_blocks[i] if i == j else np.zeros(full_blocks[i].shape)
              for j in range(self.nb_blocks)]
             for i in range(self.nb_blocks)])
+        if self.ndim >= 3:
+            full_matrix = ending_dimensions_at_the_beginning(full_matrix)
+        return full_matrix
 
     def solve(self, b: np.ndarray) -> np.ndarray:
         LOG.debug("Called solve on %s of shape %s",

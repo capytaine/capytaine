@@ -1,5 +1,8 @@
 import numpy as np
-from capytaine.tools.block_circulant_matrices import BlockCirculantMatrix, lu_decompose
+from capytaine.tools.block_circulant_matrices import (
+        BlockCirculantMatrix, lu_decompose,
+        leading_dimensions_at_the_end, ending_dimensions_at_the_beginning
+        )
 
 RNG = np.random.default_rng(seed=0)
 
@@ -20,6 +23,32 @@ def test_2x2_block_circulant_matrices():
         lu_decompose(A).solve(b),
         A.solve(b)
     )
+
+
+def test_permute_dims():
+    a = RNG.normal(size=(1, 2, 3, 4, 5))
+    assert leading_dimensions_at_the_end(a).shape == (3, 4, 5, 1, 2)
+    assert ending_dimensions_at_the_beginning(a).shape == (4, 5, 1, 2, 3)
+    assert np.allclose(ending_dimensions_at_the_beginning(
+        leading_dimensions_at_the_end(a)
+    ), a)
+    assert np.allclose(leading_dimensions_at_the_end(
+        ending_dimensions_at_the_beginning(a)
+    ), a)
+
+
+def test_deeper_2x2_block_circulant_matrices():
+    import numpy as np
+    from capytaine.tools.block_circulant_matrices import BlockCirculantMatrix, lu_decompose
+    RNG = np.random.default_rng(seed=0)
+
+    A = BlockCirculantMatrix([
+        RNG.normal(size=(2, 2, 3)),
+        RNG.normal(size=(2, 2, 3)),
+    ])
+    full_A = np.array(A)
+    assert full_A.shape == (4, 4, 3)
+
 
 def test_2x2_nested_block_circulant_matrices():
     A = BlockCirculantMatrix([
