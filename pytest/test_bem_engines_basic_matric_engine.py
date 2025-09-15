@@ -12,22 +12,22 @@ def test_engine_repr():
 def test_cache_matrices():
     """Test how the BasicMatrixEngine caches the interaction matrices."""
     mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 3)).immersed_part()
-    params_1 = (mesh, mesh, 0.0, np.inf, 1.0)
-    params_2 = (mesh, mesh, 0.0, np.inf, 2.0)
+    params_1 = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, adjoint_double_layer=True)
+    params_2 = dict(free_surface=0.0, water_depth=np.inf, wavenumber=2.0, adjoint_double_layer=True)
 
     # No cache
     engine = cpt.BasicMatrixEngine()
-    S, K             = engine.build_matrices_with_symmetries(*params_1)
-    S_again, K_again = engine.build_matrices_with_symmetries(*params_1)
+    S, K             = engine.build_matrices_with_symmetries(mesh, mesh, **params_1)
+    S_again, K_again = engine.build_matrices_with_symmetries(mesh, mesh, **params_1)
     assert S is not S_again
     assert K is not K_again
 
     # Cache
     engine = cpt.BasicMatrixEngine()
-    S, K                     = engine.build_and_cache_matrices(*params_1)
-    S_again, K_again         = engine.build_and_cache_matrices(*params_1)
-    _, _                     = engine.build_and_cache_matrices(*params_2)
-    S_once_more, K_once_more = engine.build_and_cache_matrices(*params_2)
+    S, K                     = engine.build_and_cache_matrices_with_symmetries(mesh, mesh, **params_1)
+    S_again, K_again         = engine.build_and_cache_matrices_with_symmetries(mesh, mesh, **params_1)
+    _, _                     = engine.build_and_cache_matrices_with_symmetries(mesh, mesh, **params_2)
+    S_once_more, K_once_more = engine.build_and_cache_matrices_with_symmetries(mesh, mesh, **params_2)
     assert S is S_again
     assert S is not S_once_more
     assert K is K_again

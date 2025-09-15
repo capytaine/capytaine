@@ -145,17 +145,23 @@ class BasicMatrixEngine(MatrixEngine):
             )
         return fullK
 
-    def build_matrices_with_symmetries(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True):
+    def build_matrices_with_symmetries(
+            self, mesh1, mesh2, *, free_surface, water_depth, wavenumber, adjoint_double_layer
+            ):
         if (isinstance(mesh1, ReflectionSymmetricMesh)
                 and isinstance(mesh2, ReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
 
-            S_a, K_a = self.build_matrices(
-                mesh1[0], mesh2[0], free_surface, water_depth, wavenumber,
-                adjoint_double_layer=adjoint_double_layer)
-            S_b, K_b = self.build_matrices(
-                mesh1[0], mesh2[1], free_surface, water_depth, wavenumber,
-                adjoint_double_layer=adjoint_double_layer)
+            S_a, K_a = self.build_matrices_with_symmetries(
+                mesh1[0], mesh2[0],
+                free_surface=free_surface, water_depth=water_depth,
+                wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
+                )
+            S_b, K_b = self.build_matrices_with_symmetries(
+                mesh1[0], mesh2[1],
+                free_surface=free_surface, water_depth=water_depth,
+                wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
+                )
 
             return NewBlockCirculantMatrix([S_a, S_b]), NewBlockCirculantMatrix([K_a, K_b])
 
@@ -165,36 +171,96 @@ class BasicMatrixEngine(MatrixEngine):
                 adjoint_double_layer=adjoint_double_layer, early_dot_product=True,
             )
 
-    def build_and_cache_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True):
+    def build_and_cache_matrices_with_symmetries(
+            self, mesh1, mesh2, *, free_surface, water_depth, wavenumber, adjoint_double_layer
+            ):
         if (mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer) == self.last_computed_inputs:
             LOG.debug("%s: reading cache.", self.__class__.__name__)
             return self.last_computed_matrices
         else:
             LOG.debug("%s: computing new matrices.", self.__class__.__name__)
             self.last_computed_matrices = None  # Unlink former cached values, so the memory can be freed to compute new matrices.
-            S, K = self.build_matrices_with_symmetries(mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer)
+            S, K = self.build_matrices_with_symmetries(
+                    mesh1, mesh2,
+                    free_surface=free_surface, water_depth=water_depth,
+                    wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
+                    )
             self.last_computed_inputs = (mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer)
-            if self._linear_solver == "cached_lu_decomposition":
-                self.last_computed_matrices = (S, lu_decompose(K))
-            else:
-                self.last_computed_matrices = (S, K)
+            self.last_computed_matrices = (S, K)
             return self.last_computed_matrices
 
-    # Interface of the AbstractGreenFunction
-    build_matrices = build_and_cache_matrices
+    # Main interface for compliance with AbstractGreenFunction interface
+    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True):
+        r"""Build the influence matrices between mesh1 and mesh2.
 
-    def linear_solver(self, A, b):
+        Parameters
+        ----------
+        mesh1: MeshLike or list of points
+            mesh of the receiving body (where the potential is measured)
+        mesh2: MeshLike
+            mesh of the source body (over which the source distribution is integrated)
+        free_surface: float
+            position of the free surface (default: :math:`z = 0`)
+        water_depth: float
+            position of the sea bottom (default: :math:`z = -\infty`)
+        wavenumber: float
+            wavenumber (default: 1.0)
+        adjoint_double_layer: bool, optional
+            compute double layer for direct method (F) or adjoint double layer for indirect method (T) matrices (default: True)
+
+        Returns
+        -------
+        tuple of matrix-like (Numpy arrays or BlockCirculantMatrix)
+            the matrices :math:`S` and :math:`K`
+        """
+        return self.build_and_cache_matrices_with_symmetries(
+            mesh1, mesh2,
+            free_surface=free_surface, water_depth=water_depth,
+            wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
+        )
+
+    def linear_solver(self, A, b: np.ndarray) -> np.ndarray:
+        """Solve a linear system with left-hand side A and right-hand-side b
+
+        Parameters
+        ----------
+        A: matrix-like
+            Expected to be the second output of `build_matrices`
+        b: np.ndarray
+            Vector of the correct length
+
+        Returns
+        -------
+        x: np.ndarray
+            Vector such that A@x = b
+        """
         if not isinstance(self._linear_solver, str):
-            # If not a string, expected to be a custom function that can be
-            # called to solve the system
-            return self._linear_solver(A, b)
+            # If not a string, it is expected to be a custom function that can
+            # be called to solve the system
+            x = self._linear_solver(A, b)
+
+            if not x.shape == b.shape:
+                raise ValueError(f"Error in linear solver of {self}: the shape of the output ({x.shape}) "
+                                 f"does not match the expected shape ({b.shape})")
+
+            return x
+
         elif self._linear_solver == "lu_decomposition":
             if not has_been_lu_decomposed(A):
-                A = lu_decompose(A)
-            return A.solve(b)
+                luA = lu_decompose(A)
+                if A is self.last_computed_matrices[1]:
+                    self.last_computed_matrices = (self.last_computed_matrices[0], luA)
+            else:
+                luA = A
+            return luA.solve(b)
+
         elif self._linear_solver == "gmres":
             return solve_gmres(A, b)
-        raise NotImplementedError
+
+        else:
+            raise NotImplementedError(
+                f"Unknown `linear_solver` in BasicMatrixEngine: {self._linear_solver}"
+            )
 
 
 ###################################
