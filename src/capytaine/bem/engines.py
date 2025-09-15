@@ -20,7 +20,10 @@ from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, Bloc
 
 from capytaine.green_functions.delhommeau import Delhommeau
 
-from capytaine.tools.block_circulant_matrices import BlockCirculantMatrix as NewBlockCirculantMatrix, lu_decompose
+from capytaine.tools.block_circulant_matrices import (
+        BlockCirculantMatrix as NewBlockCirculantMatrix,
+        lu_decompose, has_been_lu_decomposed
+        )
 from capytaine.tools.lru_cache import lru_cache_with_strict_maxsize
 
 LOG = logging.getLogger(__name__)
@@ -35,99 +38,6 @@ class MatrixEngine(ABC):
 
     @abstractmethod
     def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer):
-        pass
-
-    @abstractmethod
-    def build_S_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
-        pass
-
-    @abstractmethod
-    def build_fullK_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
-        pass
-
-
-##################
-#  BASIC ENGINE  #
-##################
-
-class BasicMatrixEngine(MatrixEngine):
-    """
-    Simple engine that assemble a full matrix (except for one reflection symmetry).
-    Basically only calls :code:`green_function.evaluate`.
-
-    Parameters
-    ----------
-    linear_solver: str or function, optional
-        Setting of the numerical solver for linear problems Ax = b.
-        It can be set with the name of a preexisting solver
-        (available: "direct" and "gmres", the former is the default choice)
-        or by passing directly a solver function.
-    matrix_cache_size: int, optional
-        number of matrices to keep in cache
-    """
-
-    available_linear_solvers = {'direct': linear_solvers.solve_directly,
-                                'lu_decomposition': linear_solvers.LUSolverWithCache().solve,
-                                'gmres': linear_solvers.solve_gmres,
-                                }
-
-    def __init__(self, *, green_function=None, linear_solver='lu_decomposition', matrix_cache_size=1):
-
-        self.green_function = Delhommeau() if green_function is None else green_function
-
-        if linear_solver in self.available_linear_solvers:
-            self._linear_solver = self.available_linear_solvers[linear_solver]
-        else:
-            self._linear_solver = linear_solver
-
-        if matrix_cache_size > 0:
-            self.build_matrices = lru_cache_with_strict_maxsize(maxsize=matrix_cache_size)(self.build_matrices)
-
-        self.exportable_settings = {
-            'engine': 'BasicMatrixEngine',
-            'matrix_cache_size': matrix_cache_size,
-            'linear_solver': str(linear_solver),
-            **self.green_function.exportable_settings,
-        }
-
-    def __str__(self):
-        params= [f"green_function={self.green_function}", f"linear_solver=\'{self.exportable_settings['linear_solver']}\'"]
-        if self.exportable_settings['matrix_cache_size'] != 1:
-            params.append(f"matrix_cache_size={self.exportable_settings['matrix_cache_size']}")
-        return f"BasicMatrixEngine({', '.join(params)})"
-
-    def __repr__(self):
-        return self.__str__()
-
-    def _repr_pretty_(self, p, cycle):
-        p.text(self.__str__())
-
-    def linear_solver(self, A, b):
-        # Symmetry optimizations are temporarily disabled!
-        return self._linear_solver(np.array(A), b)
-
-    def build_S_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
-        """Similar to :code:`build_matrices`, but returning only :math:`S`"""
-        # Calls directly evaluate instead of build_matrices because the caching
-        # mechanism of build_matrices is not compatible with giving mesh1 as a
-        # list of points, but we need that for post-processing
-        S, _ = self.green_function.evaluate(
-                mesh1, mesh2, free_surface, water_depth, wavenumber
-            )
-        return S
-
-    def build_fullK_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
-        """Similar to :code:`build_matrices`, but returning only full :math:`K`
-        (that is the three components of the gradient, not just the normal one)"""
-        # TODO: could use symmetries. In particular for forward, we compute the
-        # full velocity on the same mesh so symmetries could be used.
-        _, fullK = self.green_function.evaluate(
-                mesh1, mesh2, free_surface, water_depth, wavenumber,
-                adjoint_double_layer=True, early_dot_product=False,
-            )
-        return fullK
-
-    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True):
         r"""Build the influence matrices between mesh1 and mesh2.
 
         Parameters
@@ -150,7 +60,109 @@ class BasicMatrixEngine(MatrixEngine):
         tuple of matrix-like (Numpy arrays or BlockCirculantMatrix)
             the matrices :math:`S` and :math:`K`
         """
+        pass
 
+    @abstractmethod
+    def build_S_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+        pass
+
+    @abstractmethod
+    def build_fullK_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+        pass
+
+
+##################
+#  BASIC ENGINE  #
+##################
+
+class Counter:
+    def __init__(self):
+        self.nb_iter = 0
+
+    def __call__(self, *args, **kwargs):
+        self.nb_iter += 1
+
+
+def solve_gmres(A, b):
+    LOG.debug(f"Solve with GMRES for {A}.")
+
+    if LOG.isEnabledFor(logging.INFO):
+        counter = Counter()
+        x, info = ssl.gmres(A, b, atol=1e-6, callback=counter)
+        LOG.info(f"End of GMRES after {counter.nb_iter} iterations.")
+
+    else:
+        x, info = ssl.gmres(A, b, atol=1e-6)
+
+    if info > 0:
+        raise RuntimeError(f"No convergence of the GMRES after {info} iterations.\n"
+                            "This can be due to overlapping panels or irregular frequencies.")
+
+    return x
+
+
+class BasicMatrixEngine(MatrixEngine):
+    """
+    Default matrix engine.
+
+    Parameters
+    ----------
+    green_function: AbstractGreenFunction
+        the low level implementation used to compute the coefficients of the matrices.
+    linear_solver: str or function, optional
+        Setting of the numerical solver for linear problems Ax = b.
+        It can be set with the name of a preexisting solver
+        (available: "lu_decomposition" and "gmres", the former is the default choice)
+        or by passing directly a solver function.
+    """
+
+    def __init__(self, *, green_function=None, linear_solver='lu_decomposition'):
+
+        self.green_function = Delhommeau() if green_function is None else green_function
+
+        self._linear_solver = linear_solver
+
+        self.last_computed_inputs = None
+        self.last_computed_matrices = None
+
+        self.exportable_settings = {
+            'engine': 'BasicMatrixEngine',
+            'linear_solver': str(linear_solver),
+            **self.green_function.exportable_settings,
+        }
+
+    def __str__(self):
+        params= [f"green_function={self.green_function}", f"linear_solver=\'{self.exportable_settings['linear_solver']}\'"]
+        return f"BasicMatrixEngine({', '.join(params)})"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
+
+    def build_S_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+        """Similar to :code:`build_matrices`, but returning only :math:`S`"""
+        # Calls directly evaluate instead of build_matrices because the caching
+        # mechanism of build_matrices is not compatible with giving mesh1 as a
+        # list of points, but we need that for post-processing
+        S, _ = self.green_function.evaluate(
+                mesh1, mesh2, free_surface, water_depth, wavenumber
+            )
+        return S
+
+    def build_fullK_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+        """Similar to :code:`build_matrices`, but returning only full :math:`K`
+        (that is the three components of the gradient, not just the normal one)"""
+        # TODO: could use symmetries. In particular for forward, we compute the
+        # full velocity on the same mesh so symmetries could be used.
+        _, fullK = self.green_function.evaluate(
+                mesh1, mesh2, free_surface, water_depth, wavenumber,
+                adjoint_double_layer=True, early_dot_product=False,
+            )
+        return fullK
+
+    def build_matrices_with_symmetries(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True):
         if (isinstance(mesh1, ReflectionSymmetricMesh)
                 and isinstance(mesh2, ReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
@@ -169,6 +181,38 @@ class BasicMatrixEngine(MatrixEngine):
                 mesh1, mesh2, free_surface, water_depth, wavenumber,
                 adjoint_double_layer=adjoint_double_layer, early_dot_product=True,
             )
+
+    def build_and_cache_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True):
+        if (mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer) == self.last_computed_inputs:
+            LOG.debug("%s: reading cache.", self.__class__.__name__)
+            return self.last_computed_matrices
+        else:
+            LOG.debug("%s: computing new matrices.", self.__class__.__name__)
+            self.last_computed_matrices = None  # Unlink former cached values, so the memory can be freed to compute new matrices.
+            S, K = self.build_matrices_with_symmetries(mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer)
+            self.last_computed_inputs = (mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer)
+            if self._linear_solver == "cached_lu_decomposition":
+                self.last_computed_matrices = (S, lu_decompose(K))
+            else:
+                self.last_computed_matrices = (S, K)
+            return self.last_computed_matrices
+
+    # Interface of the AbstractGreenFunction
+    build_matrices = build_and_cache_matrices
+
+    def linear_solver(self, A, b):
+        if not isinstance(self._linear_solver, str):
+            # If not a string, expected to be a custom function that can be
+            # called to solve the system
+            return self._linear_solver(A, b)
+        elif self._linear_solver == "lu_decomposition":
+            if not has_been_lu_decomposed(A):
+                A = lu_decompose(A)
+            return A.solve(b)
+        elif self._linear_solver == "gmres":
+            return solve_gmres(A, b)
+        raise NotImplementedError
+
 
 ###################################
 #  HIERARCHIAL TOEPLITZ MATRICES  #

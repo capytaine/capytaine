@@ -4,26 +4,30 @@ import numpy as np
 import capytaine as cpt
 
 
+def test_engine_repr():
+    r = repr(cpt.BasicMatrixEngine())
+    assert "Delhommeau" in r
+
+
 def test_cache_matrices():
     """Test how the BasicMatrixEngine caches the interaction matrices."""
     mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 3)).immersed_part()
-    gf = cpt.Delhommeau()
-    params_1 = (mesh, mesh, 0.0, np.inf, 1.0, gf)
-    params_2 = (mesh, mesh, 0.0, np.inf, 2.0, gf)
+    params_1 = (mesh, mesh, 0.0, np.inf, 1.0)
+    params_2 = (mesh, mesh, 0.0, np.inf, 2.0)
 
     # No cache
-    engine = cpt.BasicMatrixEngine(matrix_cache_size=0)
-    S, K             = engine.build_matrices(*params_1)
-    S_again, K_again = engine.build_matrices(*params_1)
+    engine = cpt.BasicMatrixEngine()
+    S, K             = engine.build_matrices_with_symmetries(*params_1)
+    S_again, K_again = engine.build_matrices_with_symmetries(*params_1)
     assert S is not S_again
     assert K is not K_again
 
     # Cache
-    engine = cpt.BasicMatrixEngine(matrix_cache_size=1)
-    S, K                     = engine.build_matrices(*params_1)
-    S_again, K_again         = engine.build_matrices(*params_1)
-    _, _                     = engine.build_matrices(*params_2)
-    S_once_more, K_once_more = engine.build_matrices(*params_2)
+    engine = cpt.BasicMatrixEngine()
+    S, K                     = engine.build_and_cache_matrices(*params_1)
+    S_again, K_again         = engine.build_and_cache_matrices(*params_1)
+    _, _                     = engine.build_and_cache_matrices(*params_2)
+    S_once_more, K_once_more = engine.build_and_cache_matrices(*params_2)
     assert S is S_again
     assert S is not S_once_more
     assert K is K_again
@@ -37,10 +41,7 @@ def test_custom_linear_solver(method):
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     problem = cpt.RadiationProblem(body=sphere, omega=1.0, water_depth=np.inf)
 
-    reference_solver = cpt.BEMSolver(
-        engine=cpt.BasicMatrixEngine(linear_solver="gmres", matrix_cache_size=0),
-        method=method
-    )
+    reference_solver = cpt.BEMSolver(engine=cpt.BasicMatrixEngine(), method=method)
     reference_result = reference_solver.solve(problem)
 
     def my_linear_solver(A, b):
@@ -48,7 +49,7 @@ def test_custom_linear_solver(method):
         return np.linalg.inv(A) @ b
 
     my_bem_solver = cpt.BEMSolver(
-        engine=cpt.BasicMatrixEngine(linear_solver=my_linear_solver, matrix_cache_size=0),
+        engine=cpt.BasicMatrixEngine(linear_solver=my_linear_solver),
         method=method
     )
     assert 'my_linear_solver' in my_bem_solver.exportable_settings['linear_solver']

@@ -168,6 +168,14 @@ def lu_decompose(A: ArrayLike):
         raise NotImplementedError
 
 
+def has_been_lu_decomposed(A):
+    return isinstance(A, (
+            LUDecomposedMatrix,
+            LUDecomposedBlockDiagonalMatrix,
+            LUDecomposedBlockCirculantMatrix
+        ))
+
+
 class LUDecomposedMatrix:
     def __init__(self, A: np.ndarray):
         LOG.debug("LU decomp of %s of shape %s",
