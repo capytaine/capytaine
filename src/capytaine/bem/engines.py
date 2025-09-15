@@ -38,28 +38,6 @@ class MatrixEngine(ABC):
 
     @abstractmethod
     def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer):
-        r"""Build the influence matrices between mesh1 and mesh2.
-
-        Parameters
-        ----------
-        mesh1: MeshLike or list of points
-            mesh of the receiving body (where the potential is measured)
-        mesh2: MeshLike
-            mesh of the source body (over which the source distribution is integrated)
-        free_surface: float
-            position of the free surface (default: :math:`z = 0`)
-        water_depth: float
-            position of the sea bottom (default: :math:`z = -\infty`)
-        wavenumber: float
-            wavenumber (default: 1.0)
-        adjoint_double_layer: bool, optional
-            compute double layer for direct method (F) or adjoint double layer for indirect method (T) matrices (default: True)
-
-        Returns
-        -------
-        tuple of matrix-like (Numpy arrays or BlockCirculantMatrix)
-            the matrices :math:`S` and :math:`K`
-        """
         pass
 
     @abstractmethod
@@ -105,6 +83,11 @@ class BasicMatrixEngine(MatrixEngine):
     """
     Default matrix engine.
 
+    Features:
+        - Caching of the last computed matrices.
+        - Supports plane symmetries and nested plane symmetries.
+        - Linear solver can be customized. Default is `lu_decomposition` with caching of the LU decomposition.
+
     Parameters
     ----------
     green_function: AbstractGreenFunction
@@ -132,7 +115,7 @@ class BasicMatrixEngine(MatrixEngine):
         }
 
     def __str__(self):
-        params= [f"green_function={self.green_function}", f"linear_solver=\'{self.exportable_settings['linear_solver']}\'"]
+        params= [f"green_function={self.green_function}", f"linear_solver={repr(self._linear_solver)}"]
         return f"BasicMatrixEngine({', '.join(params)})"
 
     def __repr__(self):
