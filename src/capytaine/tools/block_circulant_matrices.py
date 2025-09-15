@@ -4,8 +4,8 @@
 
 import logging
 import numpy as np
-from typing import List
-from numpy.typing import ArrayLike
+from typing import List, Union
+from numpy.typing import NDArray, ArrayLike
 import scipy.linalg as sl
 
 LOG = logging.getLogger(__name__)
@@ -157,7 +157,10 @@ class BlockDiagonalMatrix:
         return np.hstack(res)
 
 
-def lu_decompose(A: ArrayLike):
+MatrixLike = Union[np.ndarray, BlockDiagonalMatrix, BlockCirculantMatrix]
+
+
+def lu_decompose(A: MatrixLike):
     if isinstance(A, np.ndarray):
         return LUDecomposedMatrix(A)
     elif isinstance(A, BlockDiagonalMatrix):
@@ -165,11 +168,11 @@ def lu_decompose(A: ArrayLike):
     elif isinstance(A, BlockCirculantMatrix):
         return LUDecomposedBlockCirculantMatrix(A)
     else:
-        raise NotImplementedError
+        raise NotImplementedError()
 
 
 class LUDecomposedMatrix:
-    def __init__(self, A: np.ndarray):
+    def __init__(self, A: NDArray):
         LOG.debug("LU decomp of %s of shape %s",
                   A.__class__.__name__, A.shape)
         self._lu_decomp = sl.lu_factor(A)
@@ -215,3 +218,11 @@ class LUDecomposedBlockCirculantMatrix:
         res_fft = self._lu_decomp.solve(b_fft)
         res = np.fft.ifft(res_fft.reshape((n, b.shape[0]//n)), axis=0).reshape(b.shape)
         return res
+
+
+LUDecomposedMatrixLike = Union[LUDecomposedMatrix, LUDecomposedBlockDiagonalMatrix, LUDecomposedBlockCirculantMatrix]
+
+
+def has_been_lu_decomposed(A):
+    # Python 3.8 does not support isinstance(A, LUDecomposedMatrixLike)
+    return isinstance(A, (LUDecomposedMatrix, LUDecomposedBlockDiagonalMatrix, LUDecomposedBlockCirculantMatrix))

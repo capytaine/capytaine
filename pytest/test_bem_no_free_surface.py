@@ -12,7 +12,7 @@ def test_analytical_solution(z_center):
     pb = cpt.RadiationProblem(body=body, free_surface=np.inf, radiating_dof="Surge")
     solver = cpt.BEMSolver(method="direct")
     res = solver.solve(pb)
-    assert np.allclose(2/3*np.pi*pb.rho*radius**3, res.forces["Surge"], rtol=1e-2)
+    assert res.forces["Surge"] == pytest.approx(2/3*np.pi*pb.rho*radius**3, rel=1e-2)
 
 
 def test_translation_invariance_of_no_free_surface_case():

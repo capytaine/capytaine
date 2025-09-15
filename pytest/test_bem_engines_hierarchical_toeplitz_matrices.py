@@ -21,7 +21,7 @@ from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
 from capytaine.matrices.low_rank import LowRankMatrix
 
 solver_with_sym = cpt.BEMSolver(engine=cpt.HierarchicalToeplitzMatrixEngine(ACA_distance=8, matrix_cache_size=0))
-solver_without_sym = cpt.BEMSolver(engine=cpt.BasicMatrixEngine(matrix_cache_size=0))
+solver_without_sym = cpt.BEMSolver(engine=cpt.BasicMatrixEngine())
 method = ['indirect','direct']
 adjoint_double_layer = [True,False]
 

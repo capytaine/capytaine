@@ -50,26 +50,18 @@ A class to build a interaction matrix, deriving from :class:`MatrixEngine <capyt
 Two of them are available in the present version:
 
 :class:`~capytaine.bem.engines.BasicMatrixEngine` (Default)
-   A simple engine fairly similar to the one in Nemoh.
-   It builds the full matrices with few optimizations.
-   Only a reflection symmetry can be used to make the resolution faster.
+   Capytaine's default engine, that should be a good compromise between robustness, complexity and speed.
 
    The object can be initialized with the following options:
 
    :code:`green_function`
            See below for details.
 
-   :code:`matrix_cache_size` (Default: :code:`1`)
-           The solver keeps in memory the last interaction matrices that has been computed.
-           This setting controls the number of old matrices that are saved.
-           Setting it to :code:`0` will reduce the RAM usage of the code but might
-           increase the computation time.
-
    :code:`linear_solver` (Default: :code:`'lu_decomposition'`)
            This option is used to set the solver for linear systems that is used in the resolution of the BEM problem.
-           Passing a string will make the code use one of the predefined solver. Three of them are available:
-           :code:`'direct'` for a simple direct solver,
-           :code:`'lu_decomposition'` for a faster direct solver with caching of the LU decomposition,
+           Passing a string will make the code use one of the predefined solver.
+           Two of them are available:
+           :code:`'lu_decomposition'` for a direct linear solver with caching of the LU decomposition,
            or :code:`'gmres'` for an iterative solver.
 
            A direct solver is used by default (since version 1.4) because it is more robust and the computation time is more predictable.
