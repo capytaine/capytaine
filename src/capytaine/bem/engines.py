@@ -20,6 +20,7 @@ from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, Bloc
 
 from capytaine.green_functions.delhommeau import Delhommeau
 
+from capytaine.tools.block_circulant_matrices import BlockCirculantMatrix as NewBlockCirculantMatrix, lu_decompose
 from capytaine.tools.lru_cache import lru_cache_with_strict_maxsize
 
 LOG = logging.getLogger(__name__)
@@ -75,9 +76,9 @@ class BasicMatrixEngine(MatrixEngine):
         self.green_function = Delhommeau() if green_function is None else green_function
 
         if linear_solver in self.available_linear_solvers:
-            self.linear_solver = self.available_linear_solvers[linear_solver]
+            self._linear_solver = self.available_linear_solvers[linear_solver]
         else:
-            self.linear_solver = linear_solver
+            self._linear_solver = linear_solver
 
         if matrix_cache_size > 0:
             self.build_matrices = lru_cache_with_strict_maxsize(maxsize=matrix_cache_size)(self.build_matrices)
@@ -100,6 +101,10 @@ class BasicMatrixEngine(MatrixEngine):
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
+
+    def linear_solver(self, A, b):
+        # Symmetry optimizations are temporarily disabled!
+        return self._linear_solver(np.array(A), b)
 
     def build_S_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
         """Similar to :code:`build_matrices`, but returning only :math:`S`"""
@@ -127,9 +132,9 @@ class BasicMatrixEngine(MatrixEngine):
 
         Parameters
         ----------
-        mesh1: Mesh or CollectionOfMeshes
+        mesh1: MeshLike or list of points
             mesh of the receiving body (where the potential is measured)
-        mesh2: Mesh or CollectionOfMeshes
+        mesh2: MeshLike
             mesh of the source body (over which the source distribution is integrated)
         free_surface: float
             position of the free surface (default: :math:`z = 0`)
@@ -142,7 +147,7 @@ class BasicMatrixEngine(MatrixEngine):
 
         Returns
         -------
-        tuple of matrix-like
+        tuple of matrix-like (Numpy arrays or BlockCirculantMatrix)
             the matrices :math:`S` and :math:`K`
         """
 
@@ -150,14 +155,14 @@ class BasicMatrixEngine(MatrixEngine):
                 and isinstance(mesh2, ReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
 
-            S_a, V_a = self.build_matrices(
+            S_a, K_a = self.build_matrices(
                 mesh1[0], mesh2[0], free_surface, water_depth, wavenumber,
                 adjoint_double_layer=adjoint_double_layer)
-            S_b, V_b = self.build_matrices(
+            S_b, K_b = self.build_matrices(
                 mesh1[0], mesh2[1], free_surface, water_depth, wavenumber,
                 adjoint_double_layer=adjoint_double_layer)
 
-            return BlockSymmetricToeplitzMatrix([[S_a, S_b]]), BlockSymmetricToeplitzMatrix([[V_a, V_b]])
+            return NewBlockCirculantMatrix([S_a, S_b]), NewBlockCirculantMatrix([K_a, K_b])
 
         else:
             return self.green_function.evaluate(

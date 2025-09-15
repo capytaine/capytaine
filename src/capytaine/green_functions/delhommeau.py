@@ -327,11 +327,11 @@ class Delhommeau(AbstractGreenFunction):
 
         Parameters
         ----------
-        mesh1: Mesh or CollectionOfMeshes or list of points
+        mesh1: MeshLike or list of points
             mesh of the receiving body (where the potential is measured)
             if only S is wanted or early_dot_product is False, then only a list
             of points as an array of shape (n, 3) can be passed.
-        mesh2: Mesh or CollectionOfMeshes
+        mesh2: MeshLike
             mesh of the source body (over which the source distribution is integrated)
         adjoint_double_layer: bool, optional
             compute double layer for direct method (F) or adjoint double layer
