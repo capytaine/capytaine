@@ -220,9 +220,9 @@ def test_lid_with_plane_symmetry():
     solver = cpt.BEMSolver()
     S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
                                         pb.free_surface, pb.water_depth, pb.wavenumber)
-    from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix
-    assert isinstance(S, BlockSymmetricToeplitzMatrix)
-    assert isinstance(K, BlockSymmetricToeplitzMatrix)
+    from capytaine.tools.block_circulant_matrices import BlockCirculantMatrix
+    assert isinstance(S, BlockCirculantMatrix)
+    assert isinstance(K, BlockCirculantMatrix)
 
 
 def test_lid_with_nested_plane_symmetry():
@@ -233,11 +233,11 @@ def test_lid_with_nested_plane_symmetry():
     solver = cpt.BEMSolver()
     S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
                                         pb.free_surface, pb.water_depth, pb.wavenumber)
-    from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix
-    assert isinstance(S, BlockSymmetricToeplitzMatrix)
-    assert isinstance(S.all_blocks[0, 0], BlockSymmetricToeplitzMatrix)
-    assert isinstance(K, BlockSymmetricToeplitzMatrix)
-    assert isinstance(K.all_blocks[0, 0], BlockSymmetricToeplitzMatrix)
+    from capytaine.tools.block_circulant_matrices import BlockCirculantMatrix
+    assert isinstance(S, BlockCirculantMatrix)
+    assert isinstance(S.blocks[0], BlockCirculantMatrix)
+    assert isinstance(K, BlockCirculantMatrix)
+    assert isinstance(K.blocks[0], BlockCirculantMatrix)
 
 
 @pytest.mark.parametrize("water_depth", [np.inf, 10.0])

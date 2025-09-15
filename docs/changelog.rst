@@ -22,6 +22,8 @@ Internals
   Calls to ``BEMSolver(green_function=..., engine=...)`` now raise an error. (:pull:`752`)
   Post-processing new requires the implementation of the methods ``build_S_matrix`` and ``build_fullK_matrix`` by the engine (:pull:`753`)
 
+* New implementation of the block symmetric matrices for mesh symmetry, now
+  used by :class:`~capytaine.bem.engines.BasicMatrixEngine` (:pull:`754`).
 
 * The source code moved from ``capytaine`` to ``src/capytaine`` in the main repository to avoid importing the local folder instead of the installed version (:issue:`395` and :pull:`749`).
 
