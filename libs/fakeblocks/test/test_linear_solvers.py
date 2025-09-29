@@ -1,11 +1,10 @@
 import pytest
 import numpy as np
 from numpy.random import default_rng
-import capytaine as cpt
 
-from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockCirculantMatrix, BlockToeplitzMatrix
-from capytaine.matrices.builders import random_block_matrix
-from capytaine.matrices.linear_solvers import solve_directly, LUSolverWithCache, solve_gmres
+from fakeblocks.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockCirculantMatrix, BlockToeplitzMatrix
+from fakeblocks.matrices.builders import random_block_matrix
+from fakeblocks.matrices.linear_solvers import solve_directly, solve_gmres, LUSolverWithCache
 
 RNG = default_rng(seed=0)
 

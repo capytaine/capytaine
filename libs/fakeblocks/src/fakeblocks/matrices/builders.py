@@ -1,14 +1,14 @@
 """This module contains some helpful functions to create block matrices."""
 # Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# See LICENSE file at <https://github.com/capytaine/fakeblocks>
 
 import logging
 from itertools import accumulate
 
 import numpy as np
 
-from capytaine.matrices.block import BlockMatrix
-from capytaine.matrices.low_rank import LowRankMatrix
+from fakeblocks.matrices.block import BlockMatrix
+from fakeblocks.matrices.low_rank import LowRankMatrix
 
 LOG = logging.getLogger(__name__)
 

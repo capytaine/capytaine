@@ -1,5 +1,6 @@
 import numpy as np
 import capytaine as cpt
+from fakeblocks.engines import HierarchicalToeplitzMatrixEngine, HierarchicalPrecondMatrixEngine
 from time import time
 
 radius = 2.
@@ -42,7 +43,7 @@ cpt.set_logging(level='INFO')  # prints the number of iterations
 # Hierarchical solve, with preconditioner
 print('Solving hierarchical problem with preconditioner')
 t0 = time()
-sparse_engine = cpt.HierarchicalPrecondMatrixEngine(ACA_distance=2.0, ACA_tol=1e-2)
+sparse_engine = HierarchicalPrecondMatrixEngine(ACA_distance=2.0, ACA_tol=1e-2)
 solver = cpt.BEMSolver(engine=sparse_engine)
 presults = solver.solve_all(problems)
 tP = time() - t0
@@ -52,7 +53,7 @@ data = cpt.assemble_dataset(presults)
 # Hierarchical solve, no preconditioner
 print('Solving hierarchical problem without preconditioner')
 t0 = time()
-sparse_engine = cpt.HierarchicalToeplitzMatrixEngine(ACA_distance=2.0, ACA_tol=1e-2)
+sparse_engine = HierarchicalToeplitzMatrixEngine(ACA_distance=2.0, ACA_tol=1e-2)
 solver = cpt.BEMSolver(engine=sparse_engine)
 hresults = solver.solve_all(problems)
 tNP = time() - t0

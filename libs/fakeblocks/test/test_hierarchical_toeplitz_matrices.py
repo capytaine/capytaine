@@ -1,5 +1,4 @@
 """Tests for the resolution of the BEM problems using advanced techniques."""
-
 import pytest
 
 import numpy as np
@@ -18,9 +17,11 @@ from capytaine.io.xarray import assemble_dataset
 
 from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
 
-from capytaine.matrices.low_rank import LowRankMatrix
+from fakeblocks.matrices.block import BlockMatrix
+from fakeblocks.matrices.low_rank import LowRankMatrix
+from fakeblocks.engines import HierarchicalToeplitzMatrixEngine
 
-solver_with_sym = cpt.BEMSolver(engine=cpt.HierarchicalToeplitzMatrixEngine(ACA_distance=8, matrix_cache_size=0))
+solver_with_sym = cpt.BEMSolver(engine=HierarchicalToeplitzMatrixEngine(ACA_distance=8, matrix_cache_size=0))
 solver_without_sym = cpt.BEMSolver(engine=cpt.BasicMatrixEngine())
 method = ['indirect','direct']
 adjoint_double_layer = [True,False]
@@ -203,14 +204,12 @@ def test_array_of_spheres(method, adjoint_double_layer):
     #
     array = buoy.assemble_regular_array(distance=4.0, nb_bodies=(3, 1))
 
-    fullS, fullV = solver_without_sym.engine.build_matrices(
-            array.mesh, array.mesh, 0.0, np.inf, 1.0, adjoint_double_layer=adjoint_double_layer
-            )
-    S, V = solver_with_sym.engine.build_matrices(
-            array.mesh, array.mesh, 0.0, np.inf, 1.0, adjoint_double_layer=adjoint_double_layer
-            )
+    fullS, fullV = solver_without_sym.engine.build_matrices(array.mesh, array.mesh, 0.0, np.inf,
+                                                            1.0, adjoint_double_layer=adjoint_double_layer)
+    S, V = solver_with_sym.engine.build_matrices(array.mesh, array.mesh, 0.0, np.inf,
+                                                 1.0, adjoint_double_layer=adjoint_double_layer)
 
-    assert isinstance(S, cpt.matrices.block.BlockMatrix)
+    assert isinstance(S, BlockMatrix)
     assert np.allclose(S.full_matrix(), fullS)
     assert np.allclose(V.full_matrix(), fullV)
 

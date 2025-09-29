@@ -6,7 +6,7 @@ It takes inspiration from the following works:
 * `HierarchicalMatrices by Markus Neumann (GPL licensed) <https://github.com/maekke97/HierarchicalMatrices>`_
 """
 # Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# See LICENSE file at <https://github.com/capytaine/fakeblocks>
 
 import logging
 
@@ -17,7 +17,7 @@ from collections.abc import Iterator
 
 import numpy as np
 
-from capytaine.matrices.low_rank import LowRankMatrix
+from fakeblocks.matrices.low_rank import LowRankMatrix
 from capytaine.tools.optional_imports import import_optional_dependency
 
 LOG = logging.getLogger(__name__)

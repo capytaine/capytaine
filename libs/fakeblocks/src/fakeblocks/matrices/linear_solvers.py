@@ -11,8 +11,8 @@ import numpy as np
 from scipy import linalg as sl
 from scipy.sparse import linalg as ssl
 
-from capytaine.matrices.block import BlockMatrix
-from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockCirculantMatrix
+from fakeblocks.matrices.block import BlockMatrix
+from fakeblocks.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockCirculantMatrix
 
 LOG = logging.getLogger(__name__)
 

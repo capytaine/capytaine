@@ -1,6 +1,7 @@
 import numpy as np
 import capytaine as cpt
 import capytaine.io.xarray
+from fakeblocks.engines import HierarchicalToeplitzMatrixEngine
 
 cpt.set_logging('INFO')
 
@@ -21,7 +22,7 @@ problems = [cpt.RadiationProblem(body=buoy, radiating_dof='Heave', omega=omega)
             for omega in omega_range]
 
 # Solve the problems using the axial symmetry
-solver = cpt.BEMSolver(engine=cpt.HierarchicalToeplitzMatrixEngine())
+solver = cpt.BEMSolver(engine=HierarchicalToeplitzMatrixEngine())
 results = solver.solve_all(problems)
 dataset = capytaine.io.xarray.assemble_dataset(results)
 
