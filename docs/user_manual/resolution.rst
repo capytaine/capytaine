@@ -47,7 +47,7 @@ general setting of the solver.
 Engine
 ~~~~~~
 A class to build a interaction matrix, deriving from :class:`MatrixEngine <capytaine.bem.engines.MatrixEngine>`.
-Two of them are available in the present version:
+A single one is built-in, but others with other features can be found in other packages.
 
 :class:`~capytaine.bem.engines.BasicMatrixEngine` (Default)
    Capytaine's default engine, that should be a good compromise between robustness, complexity and speed.
@@ -81,22 +81,6 @@ Two of them are available in the present version:
 
            This option can be used for instance to apply a custom preconditioning to
            the iterative solver.
-
-:class:`~capytaine.bem.engines.HierarchicalToeplitzMatrixEngine`
-   Experimental engine using hierarchical structure in the mesh to build
-   hierarchical influence matrices.
-
-   The object can be initialized with the following options:
-
-   :code:`green_function`
-           See below for details.
-
-   :code:`matrix_cache_size` (Default: :code:`1`)
-      Same as above.
-
-   :code:`ACA_distance` and :code:`ACA_tol`
-      Parameters of the Adaptive Cross Approximation (ACA) used to set the
-      precision of the low-rank matrices.
 
 
 Green function

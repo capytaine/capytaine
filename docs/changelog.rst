@@ -33,6 +33,10 @@ Internals
   caching more straightforward and improve its interaction with LU
   decomposition and symmetries. (:pull:`755`)
 
+* The whole ``matrices`` module as well as the corresponding engines in
+  ``bem/engines.py`` have been removed from Capytaine. For compatibility, they
+  will remain accessible from a separate package. (:pull:`757`)
+
 
 -------------------------------
 New in version 2.3 (2025-07-17)
