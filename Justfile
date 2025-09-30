@@ -110,8 +110,12 @@ test_in_nightly_env:
     uv run \
         --isolated --no-editable \
         --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple \
+        --index-strategy unsafe-best-match \
+        --python 3.13 \
         --only-group test \
         just _test
+    # "--index-strategy unsafe-best-match" means uv should not ignore wheels
+    # from PyPI during universal resolution
     # TODO: Also build Capytaine in this environment?
 
 # How the requirements files from the above recipes where generated.
