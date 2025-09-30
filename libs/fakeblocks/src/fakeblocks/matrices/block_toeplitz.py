@@ -4,14 +4,14 @@ The module also contains several special cases such as block symmetric Toeplitz 
 All classes inherits from the BlockMatrix class.
 """
 # Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# See LICENSE file at <https://github.com/capytaine/fakeblocks>
 
 import logging
 from typing import Tuple, List, Set, Iterable
 
 import numpy as np
 
-from capytaine.matrices.block import BlockMatrix
+from fakeblocks.matrices.block import BlockMatrix
 
 LOG = logging.getLogger(__name__)
 

@@ -40,21 +40,6 @@ This example plots the influence matrix for an horizontal cylinder.
    :language: python
 
 
-C6. Toeplitz matrix of an axisymmetric buoy
--------------------------------------------
-
-.. literalinclude:: src/C6_axisymmetric_buoy.py
-   :language: python
-
-
-C7. Hierarchical matrices with preconditionning
------------------------------------------------
-
-.. literalinclude:: src/C7_h_matrices_with_preconditionner.py
-   :language: python
-
-
-
 C8. Compare two implementations of the Green function
 -----------------------------------------------------
 

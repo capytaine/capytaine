@@ -22,7 +22,7 @@ from capytaine.bodies.predefined.rectangles import Rectangle, RectangularParalle
 
 from capytaine.bem.problems_and_results import RadiationProblem, DiffractionProblem
 from capytaine.bem.solver import BEMSolver
-from capytaine.bem.engines import BasicMatrixEngine, HierarchicalToeplitzMatrixEngine, HierarchicalPrecondMatrixEngine
+from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
 from capytaine.green_functions.hams import LiangWuNoblesseGF, FinGreen3D, HAMS_GF
 

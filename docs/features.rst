@@ -52,7 +52,6 @@ Advanced features
 Experimental features
 ---------------------
 
-* Hierarchical matrices with low-rank blocks for faster simulations.
 * Toeplitz matrices for faster simulations for floating bodies with local symmetries or for regular arrays of identical floating bodies.
 
 Roadmap

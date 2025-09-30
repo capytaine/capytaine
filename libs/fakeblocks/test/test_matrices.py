@@ -5,10 +5,10 @@ import pytest
 import numpy as np
 from numpy.linalg import norm, matrix_rank
 
-from capytaine.matrices.block import BlockMatrix
-from capytaine.matrices.block_toeplitz import *
-from capytaine.matrices.builders import *
-from capytaine.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
+from fakeblocks.matrices.block import BlockMatrix
+from fakeblocks.matrices.block_toeplitz import *
+from fakeblocks.matrices.builders import *
+from fakeblocks.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
 
 try:
     import matplotlib.pyplot as plt
