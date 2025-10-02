@@ -21,7 +21,7 @@ contains
       nb_collocation_points, collocation_points, dot_product_normals, &
       nb_vertices, nb_faces, vertices, faces,                         &
       centers, normals, areas, radiuses,                              &
-      nb_quad_points, quad_points, quad_weights,                      &
+      nb_quad_points, quadrature_points, quadrature_weights,          &
       wavenumber, depth,                                              &
       tabulation_nb_integration_points,                               &
       tabulation_grid_shape,                                          &
@@ -50,8 +50,8 @@ contains
     real(kind=pre), dimension(nb_faces, 3),                 intent(in) :: centers, normals
     real(kind=pre), dimension(nb_faces),                    intent(in) :: areas, radiuses
     integer,                                                intent(in) :: nb_quad_points
-    real(kind=pre), dimension(nb_faces, nb_quad_points, 3), intent(in) :: quad_points
-    real(kind=pre), dimension(nb_faces, nb_quad_points),    intent(in) :: quad_weights
+    real(kind=pre), dimension(nb_faces, nb_quad_points, 3), intent(in) :: quadrature_points
+    real(kind=pre), dimension(nb_faces, nb_quad_points),    intent(in) :: quadrature_weights
 
     ! Solver parameters
     integer,                                  intent(in) :: gf_singularities
@@ -106,14 +106,14 @@ contains
     !$OMP&          int_G_wave, int_nablaG_wave, face_J)
     do J = 1, nb_faces
       ! Create Face object for current panel
-      face_J = create_face(       &
-        vertices(faces(J, :), :), &
-        centers(J, :),            &
-        normals(J, :),            &
-        areas(J),                 &
-        radiuses(J),              &
-        quad_points(J, :, :),     &
-        quad_weights(J, :))
+      face_J = create_face(         &
+        vertices(faces(J, :), :),   &
+        centers(J, :),              &
+        normals(J, :),              &
+        areas(J),                   &
+        radiuses(J),                &
+        quadrature_points(J, :, :), &
+        quadrature_weights(J, :))
 
       do I = 1, nb_collocation_points
 
@@ -347,7 +347,7 @@ contains
       nb_collocation_points, collocation_points, dot_product_normals, &
       nb_vertices, nb_faces, vertices, faces,                         &
       centers, normals, areas, radiuses,                              &
-      nb_quad_points, quad_points, quad_weights,                      &
+      nb_quad_points, quadrature_points, quadrature_weights,          &
       adjoint_double_layer,                                           &
       S, K)
 
@@ -363,8 +363,8 @@ contains
     real(kind=pre), dimension(nb_faces, 3),                 intent(in) :: centers, normals
     real(kind=pre), dimension(nb_faces),                    intent(in) :: areas, radiuses
     integer,                                                intent(in) :: nb_quad_points
-    real(kind=pre), dimension(nb_faces, nb_quad_points, 3), intent(in) :: quad_points
-    real(kind=pre), dimension(nb_faces, nb_quad_points),    intent(in) :: quad_weights
+    real(kind=pre), dimension(nb_faces, nb_quad_points, 3), intent(in) :: quadrature_points
+    real(kind=pre), dimension(nb_faces, nb_quad_points),    intent(in) :: quadrature_weights
 
     logical,                                                intent(in) :: adjoint_double_layer
 
@@ -384,14 +384,14 @@ contains
     !$OMP&  PRIVATE(J, I, int_G_Rankine, int_nablaG_Rankine, face_J)
     do J = 1, nb_faces
       ! Create Face object for current panel
-      face_J = create_face(       &
-        vertices(faces(J, :), :), &
-        centers(J, :),            &
-        normals(J, :),            &
-        areas(J),                 &
-        radiuses(J),              &
-        quad_points(J, :, :),     &
-        quad_weights(J, :))
+      face_J = create_face(         &
+        vertices(faces(J, :), :),   &
+        centers(J, :),              &
+        normals(J, :),              &
+        areas(J),                   &
+        radiuses(J),                &
+        quadrature_points(J, :, :), &
+        quadrature_weights(J, :))
 
       do I = 1, nb_collocation_points
         call integral_of_Rankine(                    &

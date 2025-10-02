@@ -66,7 +66,7 @@ contains
       x,                                         &
       vertices, center, normal,                  &
       area, radius,                              &
-      quad_points, quad_weights,                 &
+      quadrature_points, quadrature_weights,                 &
       derivative_with_respect_to_first_variable, &
       int_G, int_nablaG)
 
@@ -74,8 +74,8 @@ contains
     real(kind=pre), dimension(:, :),          intent(in) :: vertices
     real(kind=pre), dimension(3),             intent(in) :: center, normal
     real(kind=pre),                           intent(in) :: area, radius
-    real(kind=pre), dimension(:, :),          intent(in) :: quad_points
-    real(kind=pre), dimension(:),             intent(in) :: quad_weights
+    real(kind=pre), dimension(:, :),          intent(in) :: quadrature_points
+    real(kind=pre), dimension(:),             intent(in) :: quadrature_weights
     logical,                                  intent(in) :: derivative_with_respect_to_first_variable
 
     real(kind=pre),                           intent(out) :: int_G
@@ -85,7 +85,7 @@ contains
     type(face_type) :: face
 
     ! Convert array inputs to Face type
-    face = create_face(vertices, center, normal, area, radius, quad_points, quad_weights)
+    face = create_face(vertices, center, normal, area, radius, quadrature_points, quadrature_weights)
 
     ! Call the face_type version
     call integral_of_Rankine_typed(              &
@@ -107,7 +107,7 @@ contains
       x,                                                         &
       vertices, center, normal,                                  &
       area, radius,                                              &
-      quad_points, quad_weights,                                 &
+      quadrature_points, quadrature_weights,                     &
       wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
@@ -119,8 +119,8 @@ contains
     real(kind=pre), dimension(:, :),       intent(in) :: vertices
     real(kind=pre), dimension(3),          intent(in) :: center, normal
     real(kind=pre),                        intent(in) :: area, radius
-    real(kind=pre), dimension(:, :),       intent(in) :: quad_points
-    real(kind=pre), dimension(:),          intent(in) :: quad_weights
+    real(kind=pre), dimension(:, :),       intent(in) :: quadrature_points
+    real(kind=pre), dimension(:),          intent(in) :: quadrature_weights
 
     real(kind=pre),                        intent(in) :: wavenumber
     integer,                               intent(in) :: gf_singularities
@@ -138,7 +138,7 @@ contains
     type(face_type) :: face
 
     ! Convert array inputs to Face type
-    face = create_face(vertices, center, normal, area, radius, quad_points, quad_weights)
+    face = create_face(vertices, center, normal, area, radius, quadrature_points, quadrature_weights)
 
     ! Call the face_type version
     call integral_of_wave_part_infinite_depth_typed(             &
@@ -163,7 +163,7 @@ contains
       (x,                                                        &
       vertices, center, normal,                                  &
       area, radius,                                              &
-      quad_points, quad_weights,                                 &
+      quadrature_points, quadrature_weights,                     &
       wavenumber, depth,                                         &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
@@ -177,8 +177,8 @@ contains
     real(kind=pre), dimension(:, :),       intent(in) :: vertices
     real(kind=pre), dimension(3),          intent(in) :: center, normal
     real(kind=pre),                        intent(in) :: area, radius
-    real(kind=pre), dimension(:, :),       intent(in) :: quad_points
-    real(kind=pre), dimension(:),          intent(in) :: quad_weights
+    real(kind=pre), dimension(:, :),       intent(in) :: quadrature_points
+    real(kind=pre), dimension(:),          intent(in) :: quadrature_weights
     real(kind=pre),                        intent(in) :: wavenumber, depth
     logical,                               intent(in) :: derivative_with_respect_to_first_variable
 
@@ -199,7 +199,7 @@ contains
     type(face_type) :: face
 
     ! Convert array inputs to Face type
-    face = create_face(vertices, center, normal, area, radius, quad_points, quad_weights)
+    face = create_face(vertices, center, normal, area, radius, quadrature_points, quadrature_weights)
 
     ! Call the face_type version
     call integral_of_wave_parts_finite_depth_typed(              &
@@ -220,15 +220,15 @@ contains
 
   ! =====================================================================
 
-  subroutine integral_of_prony_decomp_finite_depth               &
-      (x,                                                        &
-      vertices, center, normal,                                  &
-      area, radius,                                              &
-      quad_points, quad_weights,                                 &
-      depth,                                                     &
-      prony_decomposition,                                       &
-      derivative_with_respect_to_first_variable,                 &
-      int_G, int_nablaG                                          &
+  subroutine integral_of_prony_decomp_finite_depth &
+      (x,                                          &
+      vertices, center, normal,                    &
+      area, radius,                                &
+      quadrature_points, quadrature_weights,       &
+      depth,                                       &
+      prony_decomposition,                         &
+      derivative_with_respect_to_first_variable,   &
+      int_G, int_nablaG                            &
       )
 
     ! Inputs
@@ -236,8 +236,8 @@ contains
     real(kind=pre), dimension(:, :),       intent(in) :: vertices
     real(kind=pre), dimension(3),          intent(in) :: center, normal
     real(kind=pre),                        intent(in) :: area, radius
-    real(kind=pre), dimension(:, :),       intent(in) :: quad_points
-    real(kind=pre), dimension(:),          intent(in) :: quad_weights
+    real(kind=pre), dimension(:, :),       intent(in) :: quadrature_points
+    real(kind=pre), dimension(:),          intent(in) :: quadrature_weights
     real(kind=pre),                        intent(in) :: depth
     logical,                               intent(in) :: derivative_with_respect_to_first_variable
 
@@ -251,7 +251,7 @@ contains
     type(face_type) :: face
 
     ! Convert array inputs to Face type
-    face = create_face(vertices, center, normal, area, radius, quad_points, quad_weights)
+    face = create_face(vertices, center, normal, area, radius, quadrature_points, quadrature_weights)
 
     ! Call the face_type version
     call integral_of_prony_decomp_finite_depth_typed(            &

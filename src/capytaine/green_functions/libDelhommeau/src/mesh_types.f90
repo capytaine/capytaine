@@ -25,14 +25,14 @@ module mesh_types
 
   function create_face(face_vertices, face_center, &
                        face_normal, face_area, face_radius, &
-                       face_quad_points, face_quad_weights) result(face)
+                       face_quadrature_points, face_quadrature_weights) result(face)
     real(kind=pre), dimension(4,3), intent(in) :: face_vertices
     real(kind=pre), dimension(3), intent(in)   :: face_center
     real(kind=pre), dimension(3), intent(in)   :: face_normal
     real(kind=pre), intent(in)                 :: face_area
     real(kind=pre), intent(in)                 :: face_radius
-    real(kind=pre), dimension(:,:), intent(in) :: face_quad_points
-    real(kind=pre), dimension(:), intent(in)   :: face_quad_weights
+    real(kind=pre), dimension(:,:), intent(in) :: face_quadrature_points
+    real(kind=pre), dimension(:), intent(in)   :: face_quadrature_weights
     type(face_type) :: face
 
     face%vertices = face_vertices
@@ -42,16 +42,16 @@ module mesh_types
     face%radius = face_radius
 
     ! Allocate and copy quadrature data
-    allocate(face%quad_points(size(face_quad_points,1), size(face_quad_points,2)))
-    allocate(face%quad_weights(size(face_quad_weights)))
-    face%quad_points = face_quad_points
-    face%quad_weights = face_quad_weights
+    allocate(face%quadrature_points(size(face_quadrature_points,1), size(face_quadrature_points,2)))
+    allocate(face%quadrature_weights(size(face_quadrature_weights)))
+    face%quadrature_points = face_quadrature_points
+    face%quadrature_weights = face_quadrature_weights
   end function create_face
 
   subroutine deallocate_face(face)
     type(face_type), intent(inout) :: face
-    if (allocated(face%quad_points)) deallocate(face%quad_points)
-    if (allocated(face%quad_weights)) deallocate(face%quad_weights)
+    if (allocated(face%quadrature_points)) deallocate(face%quadrature_points)
+    if (allocated(face%quadrature_weights)) deallocate(face%quadrature_weights)
   end subroutine deallocate_face
 
 end module mesh_types

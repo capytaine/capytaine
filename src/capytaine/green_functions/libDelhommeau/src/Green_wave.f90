@@ -87,20 +87,20 @@ CONTAINS
       int_G = zero
       int_nablaG = zero
 
-      nb_quad_points = size(face%quad_weights)
+      nb_quad_points = size(face%quadrature_weights)
 
       do q = 1, nb_quad_points
         call wave_part_infinite_depth                                &
           (x,                                                        &
-          face%quad_points(q, :),                                    &
+          face%quadrature_points(q, :),                              &
           wavenumber,                                                &
           tabulation_nb_integration_points, tabulation_grid_shape,   &
           tabulated_r_range, tabulated_z_range, tabulated_integrals, &
           gf_singularities,                                          &
           G_at_point, nablaG_at_point                                &
           )
-        int_G = int_G + G_at_point * face%quad_weights(q)
-        int_nablaG(:) = int_nablaG(:) + nablaG_at_point(:) * face%quad_weights(q)
+        int_G = int_G + G_at_point * face%quadrature_weights(q)
+        int_nablaG(:) = int_nablaG(:) + nablaG_at_point(:) * face%quadrature_weights(q)
       end do
     end if
 
@@ -283,8 +283,9 @@ CONTAINS
     ! Copy the original face and update symmetric properties
     face_sym = face
     face_sym%center = sea_bottom_symmetric_of_point(face%center, depth)
-    do i = 1, size(face%quad_points, 1)
-      face_sym%quad_points(i, :) = sea_bottom_symmetric_of_point(face%quad_points(i, :), depth)
+    do i = 1, size(face%quadrature_points, 1)
+      face_sym%quadrature_points(i, :) = &
+                    sea_bottom_symmetric_of_point(face%quadrature_points(i, :), depth)
     end do
   end function sea_bottom_symmetric_of_face
 
@@ -515,7 +516,7 @@ CONTAINS
     )
 
     real(kind=pre), dimension(3),          intent(in) :: x
-    type(face_type),                            intent(in) :: face
+    type(face_type),                       intent(in) :: face
     real(kind=pre),                        intent(in) :: wavenumber, depth
     real(kind=pre), dimension(:),          intent(in) :: dispersion_roots
     logical,                               intent(in) :: derivative_with_respect_to_first_variable
@@ -536,10 +537,10 @@ CONTAINS
     int_G = czero
     int_nablaG = czero
 
-    nb_quad_points = size(face%quad_weights)
+    nb_quad_points = size(face%quadrature_weights)
 
     do q = 1, nb_quad_points
-      xi_q = face%quad_points(q, :)
+      xi_q = face%quadrature_points(q, :)
       r = norm2(x(1:2) - xi_q(1:2))
 #ifdef FINGREEN3D_OPTIONAL_DEPENDENCY
       if (.not. derivative_with_respect_to_first_variable) then
@@ -573,8 +574,8 @@ CONTAINS
       nablaG_at_point(2) = drdx2 * reduced_G_nablaG(2)
       nablaG_at_point(3) = reduced_G_nablaG(3)
 
-      int_G = int_G + G_at_point * face%quad_weights(q)
-      int_nablaG(:) = int_nablaG(:) + nablaG_at_point(:) * face%quad_weights(q)
+      int_G = int_G + G_at_point * face%quadrature_weights(q)
+      int_nablaG(:) = int_nablaG(:) + nablaG_at_point(:) * face%quadrature_weights(q)
     enddo
   end subroutine
 

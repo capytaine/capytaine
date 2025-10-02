@@ -66,7 +66,7 @@ class AbstractGreenFunction(ABC):
 
 ##############################################################################
 
-def fortran_interface(mesh):
+def fortran_interface(mesh: MeshLike):
     """All the arrays passed to Fortran in the right order."""
     return (
             mesh.vertices[:, :],
@@ -78,7 +78,7 @@ def fortran_interface(mesh):
             *mesh.quadrature_points
             )
 
-def fortran_interface_face(mesh, face_id):
+def fortran_interface_face(mesh: MeshLike, face_id: int):
     """All the arrays passed to Fortran for one face in the right order."""
     return (
             mesh.vertices[mesh.faces[face_id, :], :],
