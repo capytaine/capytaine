@@ -17,8 +17,8 @@ module mesh_types
     real(kind=pre), dimension(4,3) :: vertices    ! Coordinates of the 4 vertices
     real(kind=pre)                 :: area        ! Area of the face
     real(kind=pre)                 :: radius      ! Radius of the circumscribed circle
-    real(kind=pre), dimension(:,:), allocatable :: quad_points  ! Integration points
-    real(kind=pre), dimension(:), allocatable   :: quad_weights ! Integration weights
+    real(kind=pre), dimension(:,:), allocatable :: quadrature_points  ! Integration points
+    real(kind=pre), dimension(:), allocatable   :: quadrature_weights ! Integration weights
   end type face_type
 
   contains
