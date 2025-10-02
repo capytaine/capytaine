@@ -31,14 +31,15 @@ src_to_interface_with_python = [
       'src/capytaine/green_functions/libDelhommeau/src/Delhommeau_integrals.f90',
       'src/capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90',
       'src/capytaine/green_functions/LiangWuNoblesse/LiangWuNoblesseWaveTerm.f90',
-      'src/capytaine/green_functions/libDelhommeau/src/Green_Rankine.f90',
-      'src/capytaine/green_functions/libDelhommeau/src/Green_wave.f90',
       'src/capytaine/green_functions/libDelhommeau/src/matrices.f90',
       'src/capytaine/green_functions/libDelhommeau/src/interface.f90',
 ]
 
 other_src = [
       'src/capytaine/green_functions/FinGreen3D/FinGreen3D.f90',
+      'src/capytaine/green_functions/libDelhommeau/src/mesh_types.f90',
+      'src/capytaine/green_functions/libDelhommeau/src/Green_Rankine.f90',
+      'src/capytaine/green_functions/libDelhommeau/src/Green_wave.f90',
   ]
 
 Delhommeau_float32_f2py_wrapper = custom_target('Delhommeau_float32module.c',
@@ -70,7 +71,7 @@ link_args = ['-lquadmath']  # Required for the Windows build with cibuildwheel
 deps = [py3_dep, omp]
 
 py3.extension_module('Delhommeau_float32',
-           float32, src_to_interface_with_python, Delhommeau_float32_f2py_wrapper, incdir_f2py+'/fortranobject.c',
+           float32, other_src, src_to_interface_with_python, Delhommeau_float32_f2py_wrapper, incdir_f2py+'/fortranobject.c',
            include_directories: inc_np,
            dependencies : deps,
            fortran_args : args,

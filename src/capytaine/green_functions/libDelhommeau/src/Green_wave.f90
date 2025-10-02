@@ -5,6 +5,8 @@ module Green_Wave
   use floating_point_precision, only: pre
   use constants
   use delhommeau_integrals
+  use mesh_types, only: face_type
+
 #ifdef LIANGWUNOBLESSE_OPTIONAL_DEPENDENCY
     use liangwunoblessewaveterm, only: havelockgf
 #endif
@@ -24,7 +26,7 @@ module Green_Wave
   !                                                       \               |
   !                    integral_of_reflected_Rankine      integral_of_wave_part_infinite_depth
   !                                             |         /          |
-  !                     integral_of_wave_part_finite_depth           |
+  !                     integral_of_wave_parts_finite_depth          |
   !                                              \                   /
   !                                              integral_of_wave_part
   !                                                       |
@@ -48,7 +50,7 @@ CONTAINS
       )
 
     real(kind=pre), dimension(3),          intent(in) :: x
-    type(Face),                            intent(in) :: face
+    type(face_type),                       intent(in) :: face
     real(kind=pre),                        intent(in) :: wavenumber
     integer,                               intent(in) :: gf_singularities
     integer,                               intent(in) :: tabulation_nb_integration_points
@@ -128,7 +130,7 @@ CONTAINS
   ! TODO: replace the latter with the actual integral since we computed it anyway for the Rankine term.
 
   ! TODO: only low_freq singularities are implemented here
-    type(Face),                            intent(in) :: face
+    type(face_type),                       intent(in) :: face
     real(kind=pre),                        intent(in) :: wavenumber
 
     complex(kind=pre),                     intent(out) :: int_G
@@ -260,7 +262,7 @@ CONTAINS
 
     n_sym(1:2) = n(1:2)
     n_sym(3)   = -n(3)
-  end function
+  end function symmetric_of_vector
 
   pure function sea_bottom_symmetric_of_point(x, depth) result(x_sym)
     real(kind=pre), dimension(3), intent(in) :: x
@@ -269,12 +271,12 @@ CONTAINS
 
     x_sym(1:2) = x(1:2)
     x_sym(3) = -x(3) - 2*depth
-  end function
+  end function sea_bottom_symmetric_of_point
 
   pure function sea_bottom_symmetric_of_face(face, depth) result(face_sym)
-    type(Face),                  intent(in) :: face
+    type(face_type),            intent(in) :: face
     real(kind=pre),             intent(in) :: depth
-    type(Face)                             :: face_sym
+    type(face_type)             :: face_sym
 
     integer :: i
 
@@ -284,7 +286,7 @@ CONTAINS
     do i = 1, size(face%quad_points, 1)
       face_sym%quad_points(i, :) = sea_bottom_symmetric_of_point(face%quad_points(i, :), depth)
     end do
-  end subroutine
+  end function sea_bottom_symmetric_of_face
 
   subroutine integral_of_wave_parts_finite_depth                 &
       (x,                                                        &
@@ -299,7 +301,7 @@ CONTAINS
 
     ! Inputs
     real(kind=pre), dimension(3),             intent(in) :: x
-    type(Face),                               intent(in) :: face
+    type(face_type),                          intent(in) :: face
     real(kind=pre),                           intent(in) :: wavenumber, depth
     logical,                                  intent(in) :: derivative_with_respect_to_first_variable
 
@@ -318,7 +320,10 @@ CONTAINS
 
     ! Local variables
     real(kind=pre), dimension(3)    :: x_sym
-    type(Face)                      :: face_sym
+    real(kind=pre)                  :: AMH, AKH, A
+    complex(kind=pre)               :: int_G_term
+    complex(kind=pre), dimension(3) :: int_nablaG_term
+    type(face_type)                 :: face_sym
 
     int_G = czero
     int_nablaG = czero
@@ -398,7 +403,7 @@ CONTAINS
     int_G = A * int_G
     int_nablaG = A * int_nablaG
 
-  end subroutine
+  end subroutine integral_of_wave_parts_finite_depth
 
   subroutine integral_of_prony_decomp_finite_depth               &
       (x,                                                        &
@@ -411,7 +416,7 @@ CONTAINS
 
     ! Inputs
     real(kind=pre), dimension(3),             intent(in) :: x
-    type(Face),                               intent(in) :: face
+    type(face_type),                          intent(in) :: face
     real(kind=pre),                           intent(in) :: depth
     logical,                                  intent(in) :: derivative_with_respect_to_first_variable
 
@@ -474,7 +479,8 @@ CONTAINS
       int_G = int_G + a_k/2 * int_G_term_Rankine
       int_nablaG = int_nablaG + a_k/2 * int_nablaG_term_Rankine
     end do
-  end subroutine
+  end subroutine integral_of_prony_decomp_finite_depth
+
 
   ! =====================================================================
 
@@ -509,7 +515,7 @@ CONTAINS
     )
 
     real(kind=pre), dimension(3),          intent(in) :: x
-    type(Face),                            intent(in) :: face
+    type(face_type),                            intent(in) :: face
     real(kind=pre),                        intent(in) :: wavenumber, depth
     real(kind=pre), dimension(:),          intent(in) :: dispersion_roots
     logical,                               intent(in) :: derivative_with_respect_to_first_variable

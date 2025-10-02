@@ -19,7 +19,7 @@ contains
                                 derivative_with_respect_to_first_variable, &
                                 int_G, int_nabla_G)
     real(kind=pre), dimension(3), intent(in) :: field_point
-    type(Face), intent(in) :: source_face
+    type(face_type), intent(in) :: source_face
     logical, intent(in) :: derivative_with_respect_to_first_variable
     real(kind=pre), intent(out) :: int_G
     real(kind=pre), dimension(3), intent(out) :: int_nabla_G
@@ -31,16 +31,14 @@ contains
 
     if (r0 > 7*source_face%radius) then
       call one_point_integral_of_Rankine           &
-        (field_point%position,                     &
-        source_face%center, source_face%area,      &
+        (field_point,                              &
+        source_face,                               &
         derivative_with_respect_to_first_variable, &
         int_G, int_nabla_G)
     else
       call exact_integral_of_Rankine               &
-        (field_point%position,                     &
-        source_face%vertices, source_face%center,  &
-        source_face%normal,                        &
-        source_face%area, source_face%radius,      &
+        (field_point,                              &
+        source_face,                               &
         derivative_with_respect_to_first_variable, &
         int_G, int_nabla_G)
     end if
@@ -60,7 +58,7 @@ contains
 
     ! Inputs
     real(kind=pre), dimension(3), intent(in) :: field_point
-    type(Face), intent(in) :: face
+    type(face_type), intent(in) :: face
     logical,                         intent(in) :: derivative_with_respect_to_first_variable
 
     ! Outputs
@@ -93,7 +91,7 @@ contains
         GYX(1) = face%normal(2)*PJ(3) - face%normal(3)*PJ(2)
         GYX(2) = face%normal(3)*PJ(1) - face%normal(1)*PJ(3)
         GYX(3) = face%normal(1)*PJ(2) - face%normal(2)*PJ(1)
-        GY = dot_product(field_point%position - face%vertices(L, :), GYX)                                    ! Called Y_k in  [Del]
+        GY = dot_product(field_point - face%vertices(L, :), GYX)                       ! Called Y_k in  [Del]
 
         ANT = 2*GY*DK                                                                  ! Called N^t_k in [Del]
         DNT = (RR(NEXT_NODE(L))+RR(L))**2 - DK*DK + 2*abs(GZ)*(RR(NEXT_NODE(L))+RR(L)) ! Called D^t_k in [Del]
@@ -101,7 +99,7 @@ contains
         DNL = RR(NEXT_NODE(L)) + RR(L) - DK                                            ! Called D^l_k in [Del]
         ALDEN = log(ANL/DNL)
 
-        if (abs(GZ) >= real(1e-4, PRE)*face_radius) then
+        if (abs(GZ) >= real(1e-4, PRE)*face%radius) then
           AT = atan(ANT/DNT)
         else
           AT = 0.
@@ -111,7 +109,7 @@ contains
 
         ANTX(:) = 2*DK*GYX(:)                                         ! Called N^t_k_{x,y,z} in [Del]
         DNTX(:) = 2*(RR(NEXT_NODE(L)) + RR(L) + abs(GZ))*ANLX(:)      &
-          + 2*sign(ONE, GZ)*(RR(NEXT_NODE(L)) + RR(L))*face_normal(:) ! Called D^t_k_{x,y,z} in [Del]
+          + 2*sign(ONE, GZ)*(RR(NEXT_NODE(L)) + RR(L))*face%normal(:) ! Called D^t_k_{x,y,z} in [Del]
 
         if (abs(GY) < 1e-5) then
           ! Edge case where the singularity is on the boundary of the face (GY = 0, ALDEN = infty).
@@ -124,7 +122,7 @@ contains
         end if
 
         int_nabla_G(:) = int_nabla_G(:) + ALDEN*GYX(:) &
-          - 2*sign(ONE, GZ)*AT*face_normal(:)          &
+          - 2*sign(ONE, GZ)*AT*face%normal(:)          &
           + GY*(DNL-ANL)/(ANL*DNL)*ANLX(:)             &
           - 2*abs(GZ)*(ANTX(:)*DNT - DNTX(:)*ANT)/(ANT*ANT+DNT*DNT)
       end if
@@ -145,7 +143,7 @@ contains
 
     ! Inputs
     real(kind=pre), dimension(3), intent(in) :: field_point
-    type(Face), intent(in) :: face
+    type(face_type), intent(in) :: face
     logical,    intent(in) :: derivative_with_respect_to_first_variable
 
     ! Outputs
@@ -183,7 +181,7 @@ contains
       int_G, int_nabla_G)
 
     real(kind=pre), dimension(3), intent(in) :: field_point
-    type(Face), intent(in) :: face
+    type(face_type), intent(in) :: face
     logical,                         intent(in) :: derivative_with_respect_to_first_variable
     real(kind=pre), dimension(2),    intent(in) :: reflection_coefs
 
@@ -223,7 +221,7 @@ contains
 
     ! Inputs
     real(kind=pre), dimension(3), intent(in) :: field_point
-    type(Face), intent(in) :: face
+    type(face_type), intent(in) :: face
     logical,                      intent(in) :: derivative_with_respect_to_first_variable
     real(kind=pre), dimension(2), intent(in) :: reflection_coefs
 
@@ -269,7 +267,7 @@ contains
 
     ! Inputs
     real(kind=pre), dimension(3), intent(in) :: field_point
-    type(Face), intent(in) :: face
+    type(face_type), intent(in) :: face
     logical,                      intent(in) :: derivative_with_respect_to_first_variable
     real(kind=pre), dimension(2), intent(in) :: reflection_coefs
 

@@ -80,7 +80,7 @@ contains
     complex(kind=pre)               :: int_G, int_G_wave
     complex(kind=pre), dimension(3) :: int_nablaG, int_nablaG_wave
     logical :: derivative_with_respect_to_first_variable, finite_depth, finite_wavenumber
-    type(Face) :: current_face
+    type(face_type) :: current_face
     derivative_with_respect_to_first_variable = adjoint_double_layer
     ! When computing the adjoint double layer operator (K), the derivative of the Green function is computed with respect to its
     ! first variable (field point, often written x, or sometimes M in this code).
@@ -185,7 +185,7 @@ contains
           if (finite_depth_method == FINGREEN3D_METHOD) then
             call integral_of_wave_part_fingreen3D                 &
               (collocation_points(I, :),                          &
-              quad_points(J, :, :), quad_weights(J, :),           &
+              current_face,                                       &
               wavenumber, depth, dispersion_roots,                &
               derivative_with_respect_to_first_variable,          &
               int_G_wave, int_nablaG_wave                         &
@@ -293,7 +293,7 @@ contains
         endif
 
       end do  ! loop on I
-      
+
       ! Clean up allocatable arrays in Face object
       call destroy_face(current_face)
     end do  ! parallelized loop on J
@@ -370,7 +370,7 @@ contains
     real(kind=pre), dimension(3) :: int_nablaG_Rankine
     integer                      :: I, J
     logical                      :: derivative_with_respect_to_first_variable
-    type(Face)                   :: current_face
+    type(face_type)              :: current_face
 
     derivative_with_respect_to_first_variable = adjoint_double_layer
 
@@ -378,13 +378,14 @@ contains
     !$OMP&  PRIVATE(J, I, int_G_Rankine, int_nablaG_Rankine, current_face)
     do J = 1, nb_faces
       ! Create Face object for current panel
-      current_face = create_face(vertices(faces(J, :), :), &
-                               centers(J, :), &
-                               normals(J, :), &
-                               areas(J), &
-                               radiuses(J), &
-                               quad_points(J, :, :), &
-                               quad_weights(J, :))
+      current_face = create_face( &
+        vertices(faces(J, :), :), &
+        centers(J, :),            &
+        normals(J, :),            &
+        areas(J),                 &
+        radiuses(J),              &
+        quad_points(J, :, :),     &
+        quad_weights(J, :))
 
       do I = 1, nb_collocation_points
         call integral_of_Rankine(collocation_points(I, :), current_face, &
@@ -403,7 +404,7 @@ contains
           K(I, J, :) = K(I, J, :) + MINUS_ONE_OVER_FOURPI * int_nablaG_Rankine(:)
         endif
       enddo
-      
+
       ! Clean up allocatable arrays in Face object
       call destroy_face(current_face)
     enddo
