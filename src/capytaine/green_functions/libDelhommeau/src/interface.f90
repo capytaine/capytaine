@@ -3,7 +3,9 @@ module interface
 
   use floating_point_precision, only: pre
   use constants
+  use mesh_types
   use green_wave, only: wave_part_infinite_depth
+  use green_Rankine, only: integral_of_Rankine
 
   implicit none
 
@@ -55,5 +57,40 @@ contains
 
   ! =====================================================================
 
+
+  ! =====================================================================
+
+  subroutine integral_of_Rankine_array( &
+      x,                                &
+      vertices, center, normal,         &
+      area, radius,                     &
+      quad_points, quad_weights,        &
+      derivative_with_respect_to_first_variable, &
+      int_G, int_nablaG)
+
+    real(kind=pre), dimension(3),             intent(in) :: x
+    real(kind=pre), dimension(:, :),          intent(in) :: vertices
+    real(kind=pre), dimension(3),             intent(in) :: center, normal
+    real(kind=pre),                           intent(in) :: area, radius
+    real(kind=pre), dimension(:, :),          intent(in) :: quad_points
+    real(kind=pre), dimension(:),             intent(in) :: quad_weights
+    logical,                                  intent(in) :: derivative_with_respect_to_first_variable
+
+    real(kind=pre),                           intent(out) :: int_G
+    real(kind=pre), dimension(3),             intent(out) :: int_nablaG
+
+    ! Local variables
+    type(Face) :: face
+
+    ! Convert array inputs to Face type
+    face = create_face(vertices, center, normal, area, radius, quad_points, quad_weights)
+
+    ! Call the Face-based version
+    call integral_of_Rankine(x, face, derivative_with_respect_to_first_variable, int_G, int_nablaG)
+
+    ! Clean up
+    call destroy_face(face)
+
+  end subroutine integral_of_Rankine_array
 
 end module
