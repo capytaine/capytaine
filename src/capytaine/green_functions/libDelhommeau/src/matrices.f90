@@ -5,11 +5,13 @@ module matrices
 
   use floating_point_precision, only: pre
   use constants
-  use mesh_types
+  use mesh_types, only: face_type, create_face, deallocate_face
   use green_Rankine
   use green_wave
 
   implicit none
+
+  public
 
 contains
 
@@ -32,7 +34,7 @@ contains
     ! Mesh data
     integer,                                              intent(in) :: nb_collocation_points
     real(kind=pre), dimension(nb_collocation_points, 3),  intent(in) :: collocation_points
-    real(kind=pre), dimension(:, :),           intent(in) :: dot_product_normals
+    real(kind=pre), dimension(:, :),                      intent(in) :: dot_product_normals
     ! If adjoint_double_layer:     size(dot_product_normals) == (nb_collocation_points, 3)
     ! If not adjoint_double_layer: size(dot_product_normals) == (nb_faces, 3)
 
@@ -42,11 +44,11 @@ contains
     ! function over a face.
     ! Hence, both variables fulfill different role, and may or may not be identical.
 
-    integer, intent(in)                                   :: nb_vertices, nb_faces
-    real(kind=pre), dimension(nb_vertices, 3), intent(in) :: vertices
-    integer,        dimension(nb_faces, 4),    intent(in) :: faces
-    real(kind=pre), dimension(nb_faces, 3),    intent(in) :: centers, normals
-    real(kind=pre), dimension(nb_faces),       intent(in) :: areas, radiuses
+    integer, intent(in)                                                :: nb_vertices, nb_faces
+    real(kind=pre), dimension(nb_vertices, 3),              intent(in) :: vertices
+    integer,        dimension(nb_faces, 4),                 intent(in) :: faces
+    real(kind=pre), dimension(nb_faces, 3),                 intent(in) :: centers, normals
+    real(kind=pre), dimension(nb_faces),                    intent(in) :: areas, radiuses
     integer,                                                intent(in) :: nb_quad_points
     real(kind=pre), dimension(nb_faces, nb_quad_points, 3), intent(in) :: quad_points
     real(kind=pre), dimension(nb_faces, nb_quad_points),    intent(in) :: quad_weights
@@ -79,8 +81,10 @@ contains
     real(kind=pre), dimension(3)    :: int_nablaG_rankine
     complex(kind=pre)               :: int_G, int_G_wave
     complex(kind=pre), dimension(3) :: int_nablaG, int_nablaG_wave
-    logical :: derivative_with_respect_to_first_variable, finite_depth, finite_wavenumber
-    type(face_type) :: current_face
+    logical                         :: derivative_with_respect_to_first_variable
+    logical                         :: finite_depth, finite_wavenumber
+    type(face_type)                 :: face_J
+
     derivative_with_respect_to_first_variable = adjoint_double_layer
     ! When computing the adjoint double layer operator (K), the derivative of the Green function is computed with respect to its
     ! first variable (field point, often written x, or sometimes M in this code).
@@ -99,16 +103,17 @@ contains
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
     !$OMP&  PRIVATE(J, I, int_G, int_nablaG, int_G_Rankine, int_nablaG_Rankine, diagonal_coef, &
-    !$OMP&          int_G_wave, int_nablaG_wave, current_face)
+    !$OMP&          int_G_wave, int_nablaG_wave, face_J)
     do J = 1, nb_faces
       ! Create Face object for current panel
-      current_face = create_face(vertices(faces(J, :), :), &
-                               centers(J, :), &
-                               normals(J, :), &
-                               areas(J), &
-                               radiuses(J), &
-                               quad_points(J, :, :), &
-                               quad_weights(J, :))
+      face_J = create_face(       &
+        vertices(faces(J, :), :), &
+        centers(J, :),            &
+        normals(J, :),            &
+        areas(J),                 &
+        radiuses(J),              &
+        quad_points(J, :, :),     &
+        quad_weights(J, :))
 
       do I = 1, nb_collocation_points
 
@@ -118,9 +123,10 @@ contains
         !!!!!!!!!!!!!!!!!!
         !  Rankine part  !
         !!!!!!!!!!!!!!!!!!
-        call integral_of_Rankine(collocation_points(I, :), current_face, &
-                               derivative_with_respect_to_first_variable, &
-                               int_G_Rankine, int_nablaG_Rankine)
+        call integral_of_Rankine(                    &
+          collocation_points(I, :), face_J,          &
+          derivative_with_respect_to_first_variable, &
+          int_G_Rankine, int_nablaG_Rankine)
 
         int_G = int_G + int_G_Rankine
         int_nablaG(:) = int_nablaG(:) + int_nablaG_Rankine(:)
@@ -133,7 +139,7 @@ contains
         if (finite_depth .and. (finite_depth_method == LEGACY_FINITE_DEPTH)) then
           ! Reproduce behavior of legacy finite depth method
           call one_point_integral_of_reflected_Rankine( &
-            collocation_points(I, :), current_face,     &
+            collocation_points(I, :), face_J,           &
             derivative_with_respect_to_first_variable,  &
             [-ONE, ZERO],                               &
             int_G_Rankine,                              &
@@ -141,7 +147,7 @@ contains
           )
         else
           call integral_of_reflected_Rankine(           &
-            collocation_points(I, :), current_face,     &
+            collocation_points(I, :), face_J,           &
             derivative_with_respect_to_first_variable,  &
             [-ONE, ZERO],                               &
             int_G_Rankine,                              &
@@ -163,7 +169,7 @@ contains
           if (finite_wavenumber) then
             call integral_of_wave_part_infinite_depth                    &
               (collocation_points(I, :),                                 &
-              current_face,                                              &
+              face_J,                                                    &
               wavenumber,                                                &
               tabulation_nb_integration_points, tabulation_grid_shape,   &
               tabulated_r_range, tabulated_z_range, tabulated_integrals, &
@@ -185,7 +191,7 @@ contains
           if (finite_depth_method == FINGREEN3D_METHOD) then
             call integral_of_wave_part_fingreen3D                 &
               (collocation_points(I, :),                          &
-              current_face,                                       &
+              face_J,                                             &
               wavenumber, depth, dispersion_roots,                &
               derivative_with_respect_to_first_variable,          &
               int_G_wave, int_nablaG_wave                         &
@@ -201,7 +207,7 @@ contains
             ! 1. Reflection through sea bottom
             call integral_of_reflected_Rankine(          &
               collocation_points(I, :),                  &
-              current_face,                              &
+              face_J,                                    &
               derivative_with_respect_to_first_variable, &
               [-ONE, -2*depth],                          &
               int_G_Rankine, int_nablaG_Rankine          &
@@ -214,7 +220,7 @@ contains
             ! 2. Reflection through sea bottom and free surface
             call one_point_integral_of_reflected_Rankine( &
               collocation_points(I, :),                   &
-              current_face,                               &
+              face_J,                                     &
               derivative_with_respect_to_first_variable,  &
               [ONE, -2*depth],                            &
               int_G_Rankine, int_nablaG_Rankine           &
@@ -225,7 +231,7 @@ contains
             ! 3. Reflection through free surface and sea bottom
             call one_point_integral_of_reflected_Rankine( &
               collocation_points(I, :),                   &
-              current_face,                               &
+              face_J,                                     &
               derivative_with_respect_to_first_variable,  &
               [ONE, 2*depth],                             &
               int_G_Rankine, int_nablaG_Rankine           &
@@ -236,7 +242,7 @@ contains
             ! 4. Reflection through sea bottom and free surface and sea bottom again
             call one_point_integral_of_reflected_rankine( &
               collocation_points(I, :),                   &
-              current_face,                               &
+              face_J,                                     &
               derivative_with_respect_to_first_variable,  &
               [-ONE, -4*depth],                           &
               int_G_Rankine, int_nablaG_Rankine           &
@@ -250,7 +256,7 @@ contains
             if (finite_wavenumber) then
               call integral_of_wave_parts_finite_depth                     &
                 (collocation_points(I, :),                                 &
-                current_face,                                              &
+                face_J,                                                    &
                 wavenumber, depth,                                         &
                 tabulation_nb_integration_points, tabulation_grid_shape,   &
                 tabulated_r_range, tabulated_z_range, tabulated_integrals, &
@@ -266,7 +272,7 @@ contains
 
             call integral_of_prony_decomp_finite_depth        &
               (collocation_points(I, :),                      &
-              current_face,                                   &
+              face_J,                                         &
               depth,                                          &
               prony_decomposition,                            &
               derivative_with_respect_to_first_variable,      &
@@ -295,9 +301,9 @@ contains
       end do  ! loop on I
 
       ! Clean up allocatable arrays in Face object
-      call destroy_face(current_face)
+      call deallocate_face(face_J)
     end do  ! parallelized loop on J
-  end subroutine
+  end subroutine build_matrices
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -333,7 +339,7 @@ contains
       endif
     enddo
 
-  end subroutine
+  end subroutine add_diagonal_term
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -370,15 +376,15 @@ contains
     real(kind=pre), dimension(3) :: int_nablaG_Rankine
     integer                      :: I, J
     logical                      :: derivative_with_respect_to_first_variable
-    type(face_type)              :: current_face
+    type(face_type)              :: face_J
 
     derivative_with_respect_to_first_variable = adjoint_double_layer
 
     !$OMP PARALLEL DO SCHEDULE(DYNAMIC) &
-    !$OMP&  PRIVATE(J, I, int_G_Rankine, int_nablaG_Rankine, current_face)
+    !$OMP&  PRIVATE(J, I, int_G_Rankine, int_nablaG_Rankine, face_J)
     do J = 1, nb_faces
       ! Create Face object for current panel
-      current_face = create_face( &
+      face_J = create_face(       &
         vertices(faces(J, :), :), &
         centers(J, :),            &
         normals(J, :),            &
@@ -388,9 +394,11 @@ contains
         quad_weights(J, :))
 
       do I = 1, nb_collocation_points
-        call integral_of_Rankine(collocation_points(I, :), current_face, &
-                               derivative_with_respect_to_first_variable, &
-                               int_G_Rankine, int_nablaG_Rankine)
+        call integral_of_Rankine(                    &
+          collocation_points(I, :), face_J,          &
+          derivative_with_respect_to_first_variable, &
+          int_G_Rankine, int_nablaG_Rankine          &
+          )
 
         S(I, J) = S(I, J) + MINUS_ONE_OVER_FOURPI * int_G_Rankine
 
@@ -406,8 +414,8 @@ contains
       enddo
 
       ! Clean up allocatable arrays in Face object
-      call destroy_face(current_face)
+      call deallocate_face(face_J)
     enddo
-  end subroutine
+  end subroutine add_rankine_term_only
 
 end module matrices

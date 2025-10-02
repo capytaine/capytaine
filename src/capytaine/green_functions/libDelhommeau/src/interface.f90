@@ -3,7 +3,7 @@ module interface
 
   use floating_point_precision, only: pre
   use constants
-  use mesh_types, only: face_type, create_face, destroy_face
+  use mesh_types, only: face_type, create_face, deallocate_face
   use green_wave, only: &
     wave_part_infinite_depth, &
     integral_of_wave_part_infinite_depth_typed => integral_of_wave_part_infinite_depth, &
@@ -97,7 +97,7 @@ contains
     )
 
     ! Clean up
-    call destroy_face(face)
+    call deallocate_face(face)
 
   end subroutine integral_of_Rankine
 
@@ -153,7 +153,7 @@ contains
     )
 
     ! Clean up
-    call destroy_face(face)
+    call deallocate_face(face)
 
   end subroutine integral_of_wave_part_infinite_depth
 
@@ -214,7 +214,7 @@ contains
     )
 
     ! Clean up
-    call destroy_face(face)
+    call deallocate_face(face)
 
   end subroutine integral_of_wave_parts_finite_depth
 
@@ -264,7 +264,7 @@ contains
     )
 
     ! Clean up
-    call destroy_face(face)
+    call deallocate_face(face)
 
   end subroutine integral_of_prony_decomp_finite_depth
 

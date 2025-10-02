@@ -8,6 +8,8 @@ module mesh_types
 
   implicit none
 
+  public
+
   ! Custom type to represent a face/panel in the mesh
   type face_type
     real(kind=pre), dimension(3)   :: center      ! Center point of the face
@@ -21,8 +23,9 @@ module mesh_types
 
   contains
 
-  function create_face(face_vertices, face_center, face_normal, face_area, face_radius, &
-                      face_quad_points, face_quad_weights) result(face)
+  function create_face(face_vertices, face_center, &
+                       face_normal, face_area, face_radius, &
+                       face_quad_points, face_quad_weights) result(face)
     real(kind=pre), dimension(4,3), intent(in) :: face_vertices
     real(kind=pre), dimension(3), intent(in)   :: face_center
     real(kind=pre), dimension(3), intent(in)   :: face_normal
@@ -45,10 +48,10 @@ module mesh_types
     face%quad_weights = face_quad_weights
   end function create_face
 
-  subroutine destroy_face(face)
+  subroutine deallocate_face(face)
     type(face_type), intent(inout) :: face
     if (allocated(face%quad_points)) deallocate(face%quad_points)
     if (allocated(face%quad_weights)) deallocate(face%quad_weights)
-  end subroutine destroy_face
+  end subroutine deallocate_face
 
 end module mesh_types

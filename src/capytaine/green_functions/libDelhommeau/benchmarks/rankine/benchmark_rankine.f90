@@ -2,6 +2,7 @@ program benchmark_rankine
 
 use constants, only: pre  ! Floating point precision
 use constants, only: nb_tabulated_values
+use mesh_types, only: face_type, create_face
 use green_rankine
 
 implicit none
@@ -16,7 +17,10 @@ real(kind=pre), dimension(3) :: face_center
 real(kind=pre), dimension(3) :: face_normal
 real(kind=pre) :: face_area
 real(kind=pre) :: face_radius
+real(kind=pre), dimension(1, 3) :: face_quadrature_points
+real(kind=pre), dimension(1) :: face_quadrature_weights
 logical, parameter :: derivative_with_respect_to_first_variable = .true.
+type(face_type) :: face
 
 real(kind=pre), dimension(:), allocatable :: S
 real(kind=pre), dimension(:, :), allocatable :: VS
@@ -37,6 +41,18 @@ face_center(:) = [0.5d0, 0.5d0, 0d0]
 face_normal(:) = [0d0, 0d0, 1d0]
 face_area = 1d0
 face_radius = sqrt(2d0)/2
+face_quadrature_points(1, :) = face_center
+face_quadrature_weights(1) = face_area
+
+face = create_face(         &
+    face_nodes,             &
+    face_center,            &
+    face_normal,            &
+    face_area,              &
+    face_radius,            &
+    face_quadrature_points, &
+    face_quadrature_weights &
+)
 
 allocate(S(n_samples))
 allocate(VS(3, n_samples))
@@ -46,8 +62,7 @@ call system_clock(starting_time)
 do i_sample = 1, n_samples
     call exact_integral_of_Rankine(                &
         points(:, i_sample),                       &
-        face_nodes, face_center, face_normal,      &
-        face_area, face_radius,                    &
+        face,                                      &
         derivative_with_respect_to_first_variable, &
         S(i_sample), VS(:, i_sample)               &
     )
@@ -60,7 +75,7 @@ call system_clock(starting_time)
 do i_sample = 1, n_samples
     call one_point_integral_of_Rankine(            &
         points(:, i_sample),                       &
-        face_nodes, face_area,                     &
+        face,                                      &
         derivative_with_respect_to_first_variable, &
         S(i_sample), VS(:, i_sample)               &
     )
