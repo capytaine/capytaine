@@ -3,13 +3,14 @@ program benchmark_waves
 use, intrinsic :: ieee_arithmetic
 use constants
 use ieee_arithmetic
+use mesh_types, only: face_type, create_face
 use old_prony_decomposition, only: lisc
 use delhommeau_integrals, only: default_r_spacing, default_z_spacing, construct_tabulation
 use green_wave
 
 implicit none
 
-integer, parameter :: n_samples = 1000
+integer, parameter :: n_samples = 10000
 integer :: i_sample
 
 integer(kind=8) :: starting_time, final_time, clock_rate, clock_rate_in_ns
@@ -41,6 +42,8 @@ real(kind=pre) :: face_area
 real(kind=pre) :: face_radius
 logical, parameter :: derivative_with_respect_to_first_variable = .true.
 
+type(face_type) :: face
+
 complex(kind=pre) :: int_G_wave
 complex(kind=pre), dimension(3) :: int_nablaG_wave
 
@@ -70,6 +73,16 @@ face_normal(:) = [0d0, 0d0, 1d0]
 face_area = 1d0
 face_radius = sqrt(2d0)/2
 
+face = create_face(         &
+    face_nodes,             &
+    face_center,            &
+    face_normal,            &
+    face_area,              &
+    face_radius,            &
+    face_quadrature_points, &
+    face_quadrature_weights &
+)
+
 tabulated_r_range(:) = default_r_spacing(tabulation_nr, 100d0, tabulation_grid_shape)
 tabulated_z_range(:) = default_z_spacing(tabulation_nz, -251d0, tabulation_grid_shape)
 allocate(tabulated_integrals(tabulation_nr, tabulation_nz, nb_tabulated_values))
@@ -86,8 +99,7 @@ call system_clock(starting_time)
 do i_sample = 1, n_samples
   call integral_of_wave_part_infinite_depth                      &
       (points(:, i_sample),                                      &
-      face_center, face_area,                                    &
-      face_quadrature_points, face_quadrature_weights,           &
+      face,                                                      &
       wavenumber,                                                &
       tabulation_nb_integration_points, tabulation_grid_shape,   &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
@@ -108,8 +120,7 @@ call system_clock(starting_time)
 do i_sample = 1, n_samples
   call integral_of_wave_part_infinite_depth                      &
       (points(:, i_sample),                                      &
-      face_center, face_area,                                    &
-      face_quadrature_points, face_quadrature_weights,           &
+      face,                                                      &
       wavenumber,                                                &
       tabulation_nb_integration_points, LIANG_WU_NOBLESSE,       &
       tabulated_r_range, tabulated_z_range, tabulated_integrals, &
@@ -132,8 +143,7 @@ call system_clock(starting_time)
 do i_sample = 1, n_samples
   call integral_of_wave_parts_finite_depth                     &
     (points(:, i_sample),                                      &
-    face_center, face_area,                                    &
-    face_quadrature_points, face_quadrature_weights,           &
+    face,                                                      &
     wavenumber, depth,                                         &
     tabulation_nb_integration_points, tabulation_grid_shape,   &
     tabulated_r_range, tabulated_z_range, tabulated_integrals, &
@@ -145,8 +155,7 @@ do i_sample = 1, n_samples
   VS(i_sample, :) = VS(i_sample, :) + int_nablaG_wave
   call integral_of_prony_decomp_finite_depth        &
     (points(:, i_sample),                           &
-    face_nodes, face_center, face_normal,           &
-    face_area, face_radius,                         &
+    face,                                           &
     depth,                                          &
     prony_decomposition,                            &
     derivative_with_respect_to_first_variable,      &
@@ -167,13 +176,13 @@ wavenumber = 1d0
 dispersion_roots = compute_dispersion_roots(200, wavenumber*tanh(wavenumber*depth), depth)
 call system_clock(starting_time)
 do i_sample = 1, n_samples
-  call integral_of_wave_part_fingreen3d                          &
-      (points(:, i_sample),                                      &
-      face_quadrature_points, face_quadrature_weights,           &
-      wavenumber, depth,                                         &
-      dispersion_roots,                                          &
-      derivative_with_respect_to_first_variable,                 &
-      S(i_sample), VS(:, i_sample)                               &
+  call integral_of_wave_part_fingreen3d          &
+      (points(:, i_sample),                      &
+      face,                                      &
+      wavenumber, depth,                         &
+      dispersion_roots,                          &
+      derivative_with_respect_to_first_variable, &
+      S(i_sample), VS(:, i_sample)               &
       )
 enddo
 call system_clock(final_time)

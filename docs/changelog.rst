@@ -37,6 +37,18 @@ Internals
   ``bem/engines.py`` have been removed from Capytaine. For compatibility, they
   will remain accessible from a separate package. (:pull:`757`)
 
+* Refactor the Fortran core to use a dedicated type ``face_type`` instead of
+  passing arrays around. Since f2py does not understand this custom Fortran
+  type, several Fortran routines can not be called from Python anymore.
+  Intefaces for some of them can be found in the dedicated Fortran module
+  ``ìnterface.f90``.
+  Since all Fortran functions taking faces data as input now have a similar
+  signature, add
+  :func:`~capytaine.green_functions.abstract_green_function.fortran_interface`
+  and
+  :func:`~capytaine.green_functions.abstract_green_function.fortran_interface_face`
+  to make their call more straightforward from Python.
+
 
 -------------------------------
 New in version 2.3 (2025-07-17)

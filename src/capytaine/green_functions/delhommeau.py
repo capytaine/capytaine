@@ -12,7 +12,10 @@ import numpy as np
 from capytaine.tools.prony_decomposition import find_best_exponential_decomposition, PronyDecompositionFailure
 from capytaine.tools.cache_on_disk import cache_directory
 
-from capytaine.green_functions.abstract_green_function import AbstractGreenFunction, GreenFunctionEvaluationError
+from capytaine.green_functions.abstract_green_function import (
+        AbstractGreenFunction, GreenFunctionEvaluationError,
+        fortran_interface
+        )
 
 LOG = logging.getLogger(__name__)
 
@@ -468,10 +471,7 @@ class Delhommeau(AbstractGreenFunction):
         # Main call to Fortran code
         self.fortran_core.matrices.build_matrices(
             collocation_points,  early_dot_product_normals,
-            mesh2.vertices,      mesh2.faces + 1,
-            mesh2.faces_centers, mesh2.faces_normals,
-            mesh2.faces_areas,   mesh2.faces_radiuses,
-            *mesh2.quadrature_points,
+            *fortran_interface(mesh2),
             wavenumber, water_depth,
             *self.all_tabulation_parameters,
             self.finite_depth_method_index, prony_decomposition, self.dispersion_relation_roots,
