@@ -183,7 +183,7 @@ class BEMSolver:
                 nabla_phi = self._compute_potential_gradient(problem.body.mesh_including_lid, result)
                 pressure += problem.rho * problem.forward_speed * nabla_phi[:, 0]
 
-        pressure_on_hull = pressure[:problem.body.mesh.nb_faces]  # Discards pressure on lid if any
+        pressure_on_hull = pressure[problem.body.hull_mask]  # Discards pressure on lid if any
         forces = problem.body.integrate_pressure(pressure_on_hull)
 
         if not keep_details:
