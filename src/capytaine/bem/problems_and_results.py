@@ -360,15 +360,17 @@ class DiffractionProblem(LinearPotentialFlowProblem):
 
         if self.body is not None:
 
-            self.boundary_condition = -(
+            self.boundary_condition = np.zeros(
+                shape=(self.body.mesh_including_lid.nb_faces,),
+                dtype=np.complex128
+            )
+
+            self.boundary_condition[self.body.hull_mask] = -(
                     airy_waves_velocity(self.body.mesh.faces_centers, self)
                     * self.body.mesh.faces_normals
             ).sum(axis=1)
             # Note that even with forward speed, this is computed based on the
             # frequency and not the encounter frequency.
-
-            if self.body.lid_mesh is not None:
-                self.boundary_condition = np.concatenate([self.boundary_condition, np.zeros(self.body.lid_mesh.nb_faces)])
 
             if len(self.body.dofs) == 0:
                 LOG.warning(f"The body {self.body.name} used in diffraction problem has no dofs!")
@@ -421,11 +423,16 @@ class RadiationProblem(LinearPotentialFlowProblem):
 
             dof = self.body.dofs[self.radiating_dof]
 
-            displacement_on_face = np.sum(dof * self.body.mesh.faces_normals, axis=1)  # This is a dot product on each face
-            if self.body.lid_mesh is not None:
-                displacement_on_face = np.concatenate([displacement_on_face, np.zeros(self.body.lid_mesh.nb_faces)])
+            self.boundary_condition = self.encounter_omega * np.zeros(
+                shape=(self.body.mesh_including_lid.nb_faces,),
+                dtype=np.complex128
+            )
+            # The multiplication by encounter_omega is just a programming trick to ensure that boundary_condition
+            # is implemented with the correct type (for zero and infinite frequencies), it does not affect the value.
+            # Below the value is update on the hull. It remains zero on the lid.
 
-            self.boundary_condition = -1j * self.encounter_omega * displacement_on_face
+            displacement_on_face = np.sum(dof * self.body.mesh.faces_normals, axis=1)  # This is a dot product on each face
+            self.boundary_condition[self.body.hull_mask] = -1j * self.encounter_omega * displacement_on_face
 
             if self.forward_speed != 0.0:
                 if self.radiating_dof.lower() == "pitch":
@@ -440,7 +447,8 @@ class RadiationProblem(LinearPotentialFlowProblem):
                             "Only radiating dofs with name in {'Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'} are supported.\n"
                             f"Got instead `radiating_dof={self.radiating_dof}`"
                             )
-                self.boundary_condition += self.forward_speed * ddofdx_dot_n
+
+                self.boundary_condition[self.body.hull_mask] += self.forward_speed * ddofdx_dot_n
 
 
 

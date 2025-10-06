@@ -24,6 +24,26 @@ Internals
 
 - Replace development dependencies in ``editable_install_requirements.txt`` and ``[project.optional-dependencies]`` with ``[dependency-groups]`` (:pull:`750`).
 
+---------------------------------
+New in version 2.3.1 (2025-10-??)
+---------------------------------
+
+Bug fix
+~~~~~~~
+
+* Fix major bug of version 2.3 where the resolution of problem with both mesh
+  symmetries and a lid for irregular frequencies removal returned wrong values.
+  (:issue:`761`)
+
+* Fix issue where in-place transformation of a ``FloatingBody`` (such as
+  ``body.keep_immersed_part()`` or ``body.translate(...)``) were sometimes not
+  taken into account. In-place transformation are not recommended and might be
+  removed in a future version, use the versions returning new objects as seen
+  in the documentation (e.g. ``body.immersed_part()`` and
+  ``body.translated(...)``).
+
+
+
 -------------------------------
 New in version 2.3 (2025-07-17)
 -------------------------------
