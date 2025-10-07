@@ -77,15 +77,36 @@ def test_join_reflection_symmetric_meshes():
     both = cylinder_1.join_meshes(cylinder_2)
     assert isinstance(both, cpt.ReflectionSymmetricMesh)
 
+def test_join_reflection_symmetric_meshes_masks():
+    cylinder_1 = cpt.mesh_horizontal_cylinder(center=(0, 0, -2), reflection_symmetry=True)
+    cylinder_2 = cpt.mesh_horizontal_cylinder(center=(0, 0, -4), reflection_symmetry=True)
+    assert cylinder_1.plane == cylinder_2.plane
+    both, masks = cylinder_1.join_meshes(cylinder_2, return_masks=True)
+    assert isinstance(both, cpt.ReflectionSymmetricMesh)
+    assert masks[0].shape == masks[1].shape == (both.nb_faces,)
+    assert np.all(masks[0] ^ masks[1])
+    assert sum(masks[0]) == cylinder_1.nb_faces
+    assert sum(masks[1]) == cylinder_2.nb_faces
 
 def test_join_nested_reflection_symmetric_meshes():
-    cylinder_1 = cpt.mesh_parallelepiped(center=(0, 0, -2), reflection_symmetry=True)
-    cylinder_2 = cpt.mesh_parallelepiped(center=(0, 0, -4), reflection_symmetry=True)
-    assert cylinder_1.plane == cylinder_2.plane
-    both = cylinder_1 + cylinder_2
+    cube_1 = cpt.mesh_parallelepiped(center=(0, 0, -2), reflection_symmetry=True)
+    cube_2 = cpt.mesh_parallelepiped(center=(0, 0, -4), reflection_symmetry=True)
+    assert cube_1.plane == cube_2.plane
+    both = cube_1 + cube_2
     assert isinstance(both, cpt.ReflectionSymmetricMesh)
     assert isinstance(both.half, cpt.ReflectionSymmetricMesh)
 
+def test_join_nested_reflection_symmetric_meshes_masks():
+    cube_1 = cpt.mesh_parallelepiped(center=(0, 0, -2), reflection_symmetry=True)
+    cube_2 = cpt.mesh_parallelepiped(center=(0, 0, -4), reflection_symmetry=True)
+    assert cube_1.plane == cube_2.plane
+    both, masks = cube_1.join_meshes(cube_2, return_masks=True)
+    assert isinstance(both, cpt.ReflectionSymmetricMesh)
+    assert isinstance(both.half, cpt.ReflectionSymmetricMesh)
+    assert masks[0].shape == masks[1].shape == (both.nb_faces,)
+    assert np.all(masks[0] ^ masks[1])
+    assert sum(masks[0]) == cube_1.nb_faces
+    assert sum(masks[1]) == cube_2.nb_faces
 
 def test_join_axisymmetric_disks():
     """Given two axisymmetric meshes with the same axis, build a new axisymmetric mesh combining the two."""
@@ -93,12 +114,23 @@ def test_join_axisymmetric_disks():
     disk2 = cpt.mesh_disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), normal=(1, 0, 0), axial_symmetry=True)
     joined = disk1.join_meshes(disk2, name="two_disks")
     assert isinstance(joined, cpt.AxialSymmetricMesh)
+    assert joined.nb_faces == disk1.nb_faces + disk2.nb_faces
     joined.tree_view()
 
     disk3 = cpt.mesh_disk(radius=1.0, center=(0, 0, 0), resolution=(6, 4), axial_symmetry=True)
     with pytest.raises(AssertionError):
         disk1.join_meshes(disk3)
 
+def test_join_axisymmetric_disks_masks():
+    """Given two axisymmetric meshes with the same axis, build a new axisymmetric mesh combining the two."""
+    disk1 = cpt.mesh_disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), normal=(1, 0, 0), axial_symmetry=True)
+    disk2 = cpt.mesh_disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), normal=(1, 0, 0), axial_symmetry=True)
+    joined, masks = disk1.join_meshes(disk2, name="two_disks", return_masks=True)
+    assert isinstance(joined, cpt.AxialSymmetricMesh)
+    assert masks[0].shape == masks[1].shape == (joined.nb_faces,)
+    assert np.all(masks[0] ^ masks[1])
+    assert sum(masks[0]) == disk1.nb_faces
+    assert sum(masks[1]) == disk2.nb_faces
 
 def test_join_translational_cylinders():
     """Given two meshes with the same translation symmetry, join them into a single mesh with the same symmetry."""
@@ -108,6 +140,17 @@ def test_join_translational_cylinders():
     joined = mesh1.join_meshes(mesh2)
     assert isinstance(joined, cpt.TranslationalSymmetricMesh)
 
+def test_join_translational_cylinders_masks():
+    """Given two meshes with the same translation symmetry, join them into a single mesh with the same symmetry."""
+    params = dict(length=10.0, reflection_symmetry=False, translation_symmetry=True, resolution=(0, 10, 10))
+    mesh1 = cpt.mesh_horizontal_cylinder(radius=1.0, center=(0, 5, -5), **params)
+    mesh2 = cpt.mesh_horizontal_cylinder(radius=2.0, center=(0, -5, -5), **params)
+    joined, masks = mesh1.join_meshes(mesh2, return_masks=True)
+    assert isinstance(joined, cpt.TranslationalSymmetricMesh)
+    assert masks[0].shape == masks[1].shape == (joined.nb_faces,)
+    assert np.all(masks[0] ^ masks[1])
+    assert sum(masks[0]) == mesh1.nb_faces
+    assert sum(masks[1]) == mesh2.nb_faces
 
 def test_mesh_splitting():
     mesh = cpt.mesh_sphere()

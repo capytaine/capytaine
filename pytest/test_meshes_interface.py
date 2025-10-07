@@ -11,6 +11,7 @@ def test_existing_classes_are_meshlike():
     assert isinstance(cpt.CollectionOfMeshes([mesh, mesh.translated_x(0.1)]), MeshLike)
 
 class MyMesh:
+    """A set of horizontal panels at a list of depths"""
     def __init__(self, zs=[-1.0]):
         self.zs = zs
         self.vertices = np.array(
@@ -39,8 +40,18 @@ class MyMesh:
     def extract_faces(self, *args, **kwargs):
         return self
 
-    def join_meshes(*meshes):
-        return MyMesh(sum([m.zs for m in meshes], []))
+    def join_meshes(*meshes, return_masks=False):
+        joined = MyMesh(sum([m.zs for m in meshes], []))
+        # Concatenate the lists of vertical positions
+        if not return_masks:
+            return joined
+        else:
+            masks = [np.full((joined.nb_faces,), False) for _ in meshes]
+            accumulate_shifts = 0
+            for i, m in enumerate(meshes):
+                masks[i][accumulate_shifts:accumulate_shifts+m.nb_faces] = True
+                accumulate_shifts = accumulate_shifts + m.nb_faces
+            return joined, masks
 
     def with_normal_vector_going_down(self, **kwargs):
         return self
