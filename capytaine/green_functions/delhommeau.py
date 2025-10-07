@@ -221,8 +221,8 @@ class Delhommeau(AbstractGreenFunction):
                 self.tabulated_r_range = loaded_arrays["r_range"]
                 self.tabulated_z_range = loaded_arrays["z_range"]
                 self.tabulated_integrals = loaded_arrays["values"]
-                return
-            except (EOFError, FileNotFoundError, KeyError):
+                return filename
+            except (EOFError, FileNotFoundError, KeyError, ValueError):
                 LOG.warning("Error loading tabulation from %s", filepath)
 
         self._create_tabulation(tabulation_nr, tabulation_rmax,
@@ -233,7 +233,7 @@ class Delhommeau(AbstractGreenFunction):
             filepath, r_range=self.tabulated_r_range, z_range=self.tabulated_z_range,
             values=self.tabulated_integrals
         )
-        return
+        return filename
 
     def _create_tabulation(self, tabulation_nr, tabulation_rmax,
                                    tabulation_nz, tabulation_zmin,
