@@ -9,7 +9,7 @@ Please open an issue on Github if you need help.
 
 Previous versions of this documentation recommended the use of Conda_ (or Mamba_) to develop Capytaine.
 This is not really necessary on Linux, where it might be simpler and faster to use a PyPI-based workflow.
-Conda might nonetheless be useful on Windows in order to install development tools such as `git`, `make` or `gfortran`.
+Conda might nonetheless be useful on Windows in order to install development tools such as `git`, `just` or `gfortran`.
 
 .. _Conda: https://conda.io
 .. _Mamba: https://mamba.readthedocs.io/en/latest/
@@ -22,10 +22,12 @@ As of February 2025, the build backend used by Capytaine since version 2.0 (meso
 
 .. _meson-python: https://mesonbuild.com/meson-python/index.html
 
-You might need to have Python installed as well as common development tools such as ``git``, ``make`` and ``gfortran``.
+You might need to have Python installed as well as common development tools such as ``git``, ``gfortran`` and ``just``.
 On Ubuntu or Debian, this can be done with::
 
-    sudo apt install python3 python3-pip python3-venv python-is-python3 git make gfortran
+    sudo apt install python3 python3-pip python3-venv python-is-python3 git gfortran just
+
+Not that ``just`` is only available in this way in recent versions of Ubuntu (24.04 and newer) and Debian (13 and newer).
 
 Get the source code from Github using ``git``::
 
@@ -33,18 +35,20 @@ Get the source code from Github using ``git``::
     cd capytaine
 
 If you wish to contribute to the project, you might want to create a fork of the project and clone it using the SSH interface (see Github's documentation for more details).
-Let us create a virtual environment in which the development version of Capytaine and its dependencies will be installed::
+Let us create a virtual environment in which the development version of Capytaine and its dependencies will be installed, such as::
 
-    python -m venv .venv
+    python -m venv /tmp/capy_dev_venv
 
-Feel free to chose any other directory than the default ``.venv``.
+Note that the build-system used by Capytaine does not like the use of virtual environment in the same directory as the source code (https://github.com/capytaine/capytaine/issues/396).
+
 Activate the virtual environment with::
 
-    source .venv/bin/activate  # with bash shell, change accordingly for e.g. fish
+    source /tmp/capy_dev_venv/bin/activate  # with bash shell, change accordingly for other shell
 
-To prepare the development environment, we'll install the required dependencies::
+To prepare the development environment, we'll install the required dependencies.
+Assuming you have a recent enough version of ``pip``, this can be done with::
 
-    pip install -r editable_install_requirements.txt
+    pip install --group editable_install
 
 and then build Capytaine in editable mode::
 
@@ -52,7 +56,7 @@ and then build Capytaine in editable mode::
 
 The above two commands can also be executed by typing::
 
-    make develop
+    just editable_install
 
 As long as the virtual environment is activated, every import of Capytaine in Python will use the development version in this directory.
 All change made to the source code should automatically affects the
@@ -62,23 +66,6 @@ rerunning `pip install` should not be necessary.)
 Call for instance the following line to check that Capytaine has been correctly installed::
 
     python -c 'import capytaine as cpt; print(cpt.__version__)'
-
-.. note::
-
-    If you have an error of the form::
-
-        ModuleNotFoundError:: No module named 'capytaine.green_functions.libs.Delhommeau_float64'
-
-    when importing Capytaine, it may be because the Python interpreter is
-    trying to load the content of the local directory ``capytaine`` (containing
-    only the source code) and not the actual compiled package.
-
-    Running ``python`` from any other directory on your system should fix the
-    issue, since there won't be a local ``capytaine`` directory to confuse the
-    module importer.
-
-    Alternatively, recent versions of Python (>=3.11) have the ``-P`` option
-    which will disable the loading of the local ``capytaine`` directory.
 
 
 Installation for development using Conda
@@ -170,19 +157,19 @@ Please choose below the most relevant to your case.
 
 Once you have a Fortran compiler installed, the same instructions as above can be used to install the Python dependencies of Capytaine::
 
-    pip install -r editable_install_requirements.txt
+    pip install --group editable_install
 
 and then build Capytaine in editable mode::
 
     pip install --no-build-isolation --editable .
 
-If ``make`` is not available in your environment, you can install it through ``conda``::
+If ``just`` is not available in your environment, you can install it through ``conda``::
 
-    conda install -c conda-forge make
+    conda install -c conda-forge just
 
 and simply use the following line to install Capytaine in editable mode in your conda environment::
 
-    make develop
+    just editable_install
 
 You can check that the package is installed by running::
 
@@ -192,20 +179,17 @@ You can check that the package is installed by running::
 Building the documentation
 --------------------------
 
-In a ``pip`` or ``conda`` virtual environment (which can be the same as above or a different one), install Capytaine in editable mode with the extra dependencies::
+In a ``pip`` or ``conda`` virtual environment (which can be the same as above or a different one), install Capytaine with the extra dependencies ``docs``::
 
-    pip install -r editable_install_requirements.txt
-    pip install --no-build-isolation --editable .[optional,docs]
-
-if you want to edit the code of Capytaine, or install Capytaine directly::
-
-    pip install .[optional,docs]
-
-if you only care about the documentation.
+    pip install --group docs
+    pip install .[optional]
 
 Then run the ``make`` command in the ``docs/`` directory::
 
-    cd docs/
-    make
+    make --directory="./docs/"
 
 and the documentation will be built in the ``docs/_build`` directory.
+
+Alternatively, use::
+
+    just build_docs

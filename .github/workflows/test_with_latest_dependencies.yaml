@@ -7,20 +7,14 @@ on:
 
 env:
   FORCE_COLOR: 3
-  # Colors for nox
 
 jobs:
-  build_and_test:
+  "test_in_latest_env":
 
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        python-version: ['3.8', '3.13']
-
     steps:
-
-    - name: Checkout repository and submodules
+    - name: Checkout repository
       uses: actions/checkout@v4
 
     - name: Set up UV
@@ -28,5 +22,27 @@ jobs:
       with:
         enable-cache: true
 
-    - name: Run nox session
-      run: uvx nox --force-python ${{ matrix.python-version }} -s build_and_test_on_latest_env editable_build_and_test_on_latest_env
+    - name: Set up Just
+      run: sudo apt install -y just
+
+    - name: Run tests
+      run: just test_in_latest_env
+
+  "test_in_nightly_env":
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up UV
+      uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+
+    - name: Set up Just
+      run: sudo apt install -y just
+
+    - name: Run tests
+      run: just test_in_nightly_env

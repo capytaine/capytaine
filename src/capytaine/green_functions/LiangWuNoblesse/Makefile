@@ -14,5 +14,3 @@ $(BUILD_DIR)/LiangWuNoblesseWaveTerm.o: LiangWuNoblesseWaveTerm.f90
 clean:
 	rm -rf $(BUILD_DIR)
 .PHONY: run_test clean
-
-
