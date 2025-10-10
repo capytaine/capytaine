@@ -8,31 +8,15 @@ Changelog
    :backlinks: none
 
 
--------------------------------
-New in version 3.0 (2025-??-??)
--------------------------------
-
-Bug fixes
-~~~~~~~~~
-
-* If loading the tabulation from the file fails, then the tabulation is recomputed (`Issue 739 <https://github.com/capytaine/capytaine/issues/739#issuecomment-3190735343>`_)
-
-Internals
-~~~~~~~~~
-
-- The source code moved from ``capytaine`` to ``src/capytaine`` in the main repository to avoid importing the local folder instead of the installed version (:issue:`395` and :pull:`749`).
-
-- Replace development dependencies in ``editable_install_requirements.txt`` and ``[project.optional-dependencies]`` with ``[dependency-groups]`` (:pull:`750`).
-
 ---------------------------------
-New in version 2.3.1 (2025-10-??)
+New in version 2.3.1 (2025-10-14)
 ---------------------------------
 
 Bug fix
 ~~~~~~~
 
-* Fix major bug of version 2.3 where the resolution of problem with both mesh
-  symmetries and a lid for irregular frequencies removal returned wrong values.
+* Fix **major bug of version 2.3** where the resolution of problem with **both mesh
+  symmetries and a lid** for irregular frequencies removal returned wrong values.
   (:issue:`761`)
 
 * Fix issue where in-place transformation of a ``FloatingBody`` (such as
@@ -42,6 +26,20 @@ Bug fix
   in the documentation (e.g. ``body.immersed_part()`` and
   ``body.translated(...)``).
 
+* If loading the tabulation from the file fails, then the tabulation is
+  recomputed (`Issue 739
+  <https://github.com/capytaine/capytaine/issues/739#issuecomment-3190735343>`_)
+
+Internals
+~~~~~~~~~
+
+- The source code moved from ``capytaine`` to ``src/capytaine`` in the main
+  repository to avoid importing the local folder instead of the installed
+  version (:issue:`395` and :pull:`749`).
+
+- Replace development dependencies in ``editable_install_requirements.txt`` and
+  ``[project.optional-dependencies]`` with ``[dependency-groups]``
+  (:pull:`750`).
 
 
 -------------------------------
