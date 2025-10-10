@@ -51,7 +51,8 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx_toolbox.collapse',
-    'sphinxcontrib.proof',
+    'sphinx_proof',
+    'sphinx_copybutton',
     'sphinxcontrib.mermaid',
 ]
 

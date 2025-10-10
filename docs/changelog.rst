@@ -8,31 +8,15 @@ Changelog
    :backlinks: none
 
 
--------------------------------
-New in version 3.0 (2025-??-??)
--------------------------------
-
-Bug fixes
-~~~~~~~~~
-
-* If loading the tabulation from the file fails, then the tabulation is recomputed (`Issue 739 <https://github.com/capytaine/capytaine/issues/739#issuecomment-3190735343>`_)
-
-Internals
-~~~~~~~~~
-
-- The source code moved from ``capytaine`` to ``src/capytaine`` in the main repository to avoid importing the local folder instead of the installed version (:issue:`395` and :pull:`749`).
-
-- Replace development dependencies in ``editable_install_requirements.txt`` and ``[project.optional-dependencies]`` with ``[dependency-groups]`` (:pull:`750`).
-
 ---------------------------------
-New in version 2.3.1 (2025-10-??)
+New in version 2.3.1 (2025-10-14)
 ---------------------------------
 
 Bug fix
 ~~~~~~~
 
-* Fix major bug of version 2.3 where the resolution of problem with both mesh
-  symmetries and a lid for irregular frequencies removal returned wrong values.
+* Fix **major bug of version 2.3** where the resolution of problem with **both mesh
+  symmetries and a lid** for irregular frequencies removal returned wrong values.
   (:issue:`761`)
 
 * Fix issue where in-place transformation of a ``FloatingBody`` (such as
@@ -42,6 +26,20 @@ Bug fix
   in the documentation (e.g. ``body.immersed_part()`` and
   ``body.translated(...)``).
 
+* If loading the tabulation from the file fails, then the tabulation is
+  recomputed (`Issue 739
+  <https://github.com/capytaine/capytaine/issues/739#issuecomment-3190735343>`_)
+
+Internals
+~~~~~~~~~
+
+- The source code moved from ``capytaine`` to ``src/capytaine`` in the main
+  repository to avoid importing the local folder instead of the installed
+  version (:issue:`395` and :pull:`749`).
+
+- Replace development dependencies in ``editable_install_requirements.txt`` and
+  ``[project.optional-dependencies]`` with ``[dependency-groups]``
+  (:pull:`750`).
 
 
 -------------------------------
@@ -72,13 +70,13 @@ Major change
   * Infinite frequency is now supported in finite depth (zero frequency is still not and returns the same error as other finite depth low-frequency cases). (:pull:`703`)
 
 * Do not interrupt a batch of resolutions when one of them fails.
-  Instead the exception is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a `NaN` value for these parameters. (:pull:`678`)
+  Instead the exception is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a ``NaN`` value for these parameters. (:pull:`678`)
   Diffraction problems with zero or infinite frequencies used to have a special treatment to be run with a batch resolution despite raising an error when run alone, they have been reworked to use the same design as other failing resolutions. (:pull:`719`)
 
 * The Boundary Integral Equation (``method`` keyword argument) used to solve the problem can now be specified when initializing a solver and will then be use for all resolution with this solver. This general setting can be over overridden by using the ``method`` argument when solving::
 
-  solver = cpt.BEMSolver(method="direct")  # That is new and recommended
-  solver.solve(problem, method="direct")  # That is still possible and override the above setting.
+    solver = cpt.BEMSolver(method="direct")  # That is new and recommended
+    solver.solve(problem, method="direct")  # That is still possible and override the above setting.
 
 The method is also saved in the metadata of the results with the other parameters of the solver (whether it was defined when initializing the solver or later). (:pull:`686`)
 
@@ -89,8 +87,8 @@ Minor change
 
 * Add optional :code:`freq` argument (frequency in Hz) for problem set up and output.
 
-* Add :func:`~capytaine.io.xarray.assemble_dataframe` which collect results into a Pandas DataFrame (this was already done internally in `~capytaine.io.xarray.assemble_dataset`) (:pull:`677`).
-  Also add :func:`~capytaine.io.xarray.assemble_matrices` function which is a simplified version of `~capytaine.io.xarray.assemble_dataset` without metadata, meant to be used mostly for teaching. (:pull:`643`)
+* Add :func:`~capytaine.io.xarray.assemble_dataframe` which collect results into a Pandas DataFrame (this was already done internally in :func:`~capytaine.io.xarray.assemble_dataset`) (:pull:`677`).
+  Also add :func:`~capytaine.io.xarray.assemble_matrices` function which is a simplified version of :func:`~capytaine.io.xarray.assemble_dataset` without metadata, meant to be used mostly for teaching. (:pull:`643`)
 
 * The environment variable ``CAPYTAINE_PROGRESS_BAR`` can be used to disable globally the display of a progress bar when solving problems. This is meant mostly for testing environments and CI. (:pull:`646`)
 
@@ -102,7 +100,7 @@ Minor change
 Bug fixes
 ~~~~~~~~~
 
-* Properly use `progress_bar` argument in :func:`~capytaine.bem.solver.fill_dataset` to disable progress bar.
+* Properly use ``progress_bar`` argument in :func:`~capytaine.bem.solver.fill_dataset` to disable progress bar.
 
 * Always remove degenerate faces after clipping (:issue:`620` and :pull:`624`).
 
@@ -169,7 +167,7 @@ Bug fixes
   (:issue:`573` and :pull:`575`).
 
 * GDF meshes are accepted in the alternate format now.
-  Meshes files can list points in either 3 x 4*nPanels or a 12 x nPanels format.
+  Meshes files can list points in either 3×4 × ``nb_faces`` or a 12 × ``nb_faces`` format.
   (:issue:`540` and :pull:`585`).
 
 * When filling a test matrix with both diffraction problems and radiation
@@ -181,12 +179,12 @@ Bug fixes
   When forward speed is non-zero, added mass and radiation dampings at zero encounter frequency are NaN.
   (:pull:`588`)
 
-* User does not need to import ``pyplot`` themself before running `show_matplotlib()` (:pull:`592`)
+* User does not need to import ``pyplot`` themself before running :meth:`~capytaine.meshes.meshes.Mesh.show_matplotlib()` (:pull:`592`)
 
 * Fixes usage of ``ReflectionSymmetricMesh`` with direct solver (:issue:`593` and :pull:`594`).
 
 * Do not recompute the same
-  :meth:`~capytaine.bodies.bodies.FloatingBody.first_irregular_frequency_estimate``
+  :meth:`~capytaine.bodies.bodies.FloatingBody.first_irregular_frequency_estimate`
   for the same body several times.
   Also better expose the ``_check_wavelength`` option to skip wavelength check,
   including irregular frequency estimation. (:issue:`601` and :pull:`602`).
@@ -230,9 +228,9 @@ Minor changes
 
 * Add a ``tabulation_cache_dir`` parameter to :class:`~capytaine.green_functions.delhommeau.Delhommeau` to choose the directory in which the tabulation is saved on disk. If ``None`` is provided instead, the tabulation is not saved on disk and is recomputed at each initialization of the class. Also, if this parameter is not set, look for the ``CAPYTAINE_CACHE_DIR`` environment variable and use it to save the tabulation if it exists. (:pull:`516`).
 
-* Meshio objects can be directly passed to :func:`~capytaine.io.meshes_loaders.load_mesh` to get a Capytaine mesh (:pull:`555`).
+* Meshio objects can be directly passed to :func:`~capytaine.io.mesh_loaders.load_mesh` to get a Capytaine mesh (:pull:`555`).
 
-* Load gmsh v4 format .msh file using :code:`cpt.load_mesh()` (when meshio is installed) (:pull:`556`)
+* Load gmsh v4 format .msh file using :func:`~capytaine.io.mesh_loaders.load_mesh` (when meshio is installed) (:pull:`556`)
 
 
 Bug fixes
@@ -727,7 +725,7 @@ Major changes
   to migrate to the new structure.
 
   See :doc:`user_manual/resolution` for the full documentation of the new structure
-  and :doc:`user_manual/cookbook` for examples.
+  and the cookbook for examples.
 
 
 * Add Xie's variant of Delhommeau's Green function

@@ -39,7 +39,12 @@ more_optional = [
   "pygmsh", "gmsh",
   # These dependencies are causing issues in CI.
   ]
-docs = ["sphinx", "sphinx-toolbox", "sphinxcontrib-proof", "sphinxcontrib-mermaid", "capytaine[optional]"]
+docs = [
+  "sphinx",
+  "sphinx-toolbox", "sphinx-copybutton",
+  "sphinx-proof", "sphinxcontrib-mermaid",
+  "capytaine[optional]"
+]
 dev =  [{include-group = "docs"}, {include-group = "test"}, {include-group = "more_optional"}]
 editable_install = [
   "meson-python",
