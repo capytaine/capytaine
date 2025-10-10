@@ -1,13 +1,14 @@
 name: Build with alternative compilers
 
 on:
+  pull_request:
   workflow_dispatch:
   schedule:
     - cron: '2 22 2/16 * *'  # On the 2th and 18nd of each month at 2:22
 
 jobs:
   "build_wheel":
-    name: Build test version with ${{ matrix.toolchain.compiler }} on ${{ matrix.os }}
+    name: Build test wheel with ${{ matrix.toolchain.compiler }} on ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -22,6 +23,7 @@ jobs:
           - os: windows-latest
             toolchain: {compiler: nvidia-hpc}
     runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v4
 
