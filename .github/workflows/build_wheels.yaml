@@ -20,12 +20,12 @@ jobs:
       - uses: fortran-lang/setup-fortran@v1
         with:
           compiler: 'gcc'
-          version: '15'
+          version: '13'
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.2.0
         env:
-          CIBW_SKIP: "pp* *win32* cp314t*"
+          CIBW_SKIP: "*win32* cp314t*"
           CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel show {wheel} && delvewheel repair -w {dest_dir} {wheel} --no-mangle-all"
           # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
@@ -51,12 +51,13 @@ jobs:
       - name: Build wheels on Ubuntu
         uses: pypa/cibuildwheel@v3.2.0
         env:
-          CIBW_SKIP: "pp* *i686* *musllinux*"
+          CIBW_SKIP: "*i686* *musllinux*"
 
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-ubuntu
           path: ./wheelhouse/*.whl
+
 
   "build_wheels_on_macos_intel":
     name: Build wheels on MacOS Intel
@@ -75,13 +76,13 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.2.0
         env:
-          CIBW_SKIP: "pp*"
           CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=13.0
 
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-macos-intel
           path: ./wheelhouse/*.whl
+
 
   "build_wheels_on_macos_arm":
     name: Build wheels on MacOS ARM
@@ -93,12 +94,11 @@ jobs:
       - uses: fortran-lang/setup-fortran@v1
         with:
           compiler: 'gcc'
-          version: '15'
+          version: '13'
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.2.0
         env:
-          CIBW_SKIP: "pp*"
           CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=14.0
 
       - uses: actions/upload-artifact@v4
@@ -106,17 +106,23 @@ jobs:
           name: wheels-macos-arm
           path: ./wheelhouse/*.whl
 
-  "test_all_fortran_compilers_on_ubuntu":
-    name: Test ${{ matrix.compiler }}
-    runs-on: ubuntu-latest
+
+  "test_various_fortran_compilers":
+    name: Test ${{ matrix.toolchain.compiler }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        toolchain:
+        "os": [windows-latest, ubuntu-latest]
+        "toolchain":
           - {compiler: gcc, version: 'latest'}
-          - {compiler: intel, version: '2025.0'}
-          - {compiler: intel-classic, version: '2021.10'}
+          - {compiler: intel, version: '2025.2'}
+          - {compiler: intel-classic, version: '2021.12'}
           - {compiler: nvidia-hpc, version: '25.1'}
           - {compiler: lfortran, version: '0.45.0'}
+        exclude:
+          - os: windows-latest
+            toolchain: {compiler: nvidia-hpc}
 
     steps:
       - uses: actions/checkout@v4
@@ -126,12 +132,12 @@ jobs:
           compiler: ${{ matrix.toolchain.compiler }}
           version: ${{ matrix.toolchain.version }}
 
-      - name: Build wheels on Ubuntu
+      - name: Build wheels
         uses: pypa/cibuildwheel@v3.2.0
         env:
           CIBW_BUILD: "cp313-manylinux_x86_64"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-test-${{ matrix.compiler }}
+          name: wheels-test-${{ matrix.os }}-${{ matrix.compiler }}
           path: ./wheelhouse/*.whl
