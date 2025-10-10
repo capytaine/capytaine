@@ -105,39 +105,3 @@ jobs:
         with:
           name: wheels-macos-arm
           path: ./wheelhouse/*.whl
-
-
-  "use_various_fortran_compilers":
-    name: Build test version with ${{ matrix.toolchain.compiler }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        "os": [ubuntu-latest]
-        "toolchain":
-          - {compiler: gcc, version: 'latest'}
-          - {compiler: intel, version: '2025.2'}
-          - {compiler: intel-classic, version: '2021.12'}
-          - {compiler: nvidia-hpc, version: '25.1'}
-          - {compiler: lfortran, version: '0.45.0'}
-        exclude:
-          - os: windows-latest
-            toolchain: {compiler: nvidia-hpc}
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: fortran-lang/setup-fortran@v1
-        with:
-          compiler: ${{ matrix.toolchain.compiler }}
-          version: ${{ matrix.toolchain.version }}
-
-      - name: Build wheels
-        uses: pypa/cibuildwheel@v3.2.0
-        env:
-          CIBW_BUILD: "cp313-manylinux_x86_64"
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wheels-test-${{ matrix.os }}-${{ matrix.toolchain.compiler }}
-          path: ./wheelhouse/*.whl
