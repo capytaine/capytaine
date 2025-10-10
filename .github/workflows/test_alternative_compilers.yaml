@@ -1,7 +1,9 @@
-name: Build some wheel with many compilers
+name: Build wheel with many compilers
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '2 22 2/16 * *'  # On the 2th and 18nd of each month at 2:22
 
 jobs:
   "build_wheel":
