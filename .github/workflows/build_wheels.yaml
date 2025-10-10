@@ -107,13 +107,13 @@ jobs:
           path: ./wheelhouse/*.whl
 
 
-  "test_various_fortran_compilers":
-    name: Test ${{ matrix.toolchain.compiler }} on ${{ matrix.os }}
+  "use_various_fortran_compilers":
+    name: Build test version with ${{ matrix.toolchain.compiler }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        "os": [windows-latest, ubuntu-latest]
+        "os": [ubuntu-latest]
         "toolchain":
           - {compiler: gcc, version: 'latest'}
           - {compiler: intel, version: '2025.2'}
@@ -139,5 +139,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-test-${{ matrix.os }}-${{ matrix.compiler }}
+          name: wheels-test-${{ matrix.os }}-${{ matrix.toolchain.compiler }}
           path: ./wheelhouse/*.whl
