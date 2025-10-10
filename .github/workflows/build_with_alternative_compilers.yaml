@@ -1,0 +1,52 @@
+name: Build with alternative compilers
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '2 22 2/16 * *'  # On the 2th and 18nd of each month at 2:22
+
+jobs:
+  "build_wheel":
+    name: Build test version with ${{ matrix.toolchain.compiler }} on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        "os": [ubuntu-latest, windows-latest]
+        "toolchain":
+          - {compiler: gcc, version: 'latest'}
+          - {compiler: intel, version: '2025.2'}
+          - {compiler: intel-classic, version: '2021.12'}
+          - {compiler: nvidia-hpc, version: '25.1'}
+          - {compiler: lfortran, version: '0.45.0'}
+        exclude:
+          - os: windows-latest
+            toolchain: {compiler: nvidia-hpc}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: fortran-lang/setup-fortran@v1
+        with:
+          compiler: ${{ matrix.toolchain.compiler }}
+          version: ${{ matrix.toolchain.version }}
+
+      - name: Build wheels
+        if: matrix.os == 'ubuntu-latest'
+        uses: pypa/cibuildwheel@v3.2.0
+        env:
+          CIBW_BUILD: "cp313-manylinux_x86_64"
+
+      - name: Build wheels
+        if: matrix.os == 'windows-latest'
+        uses: pypa/cibuildwheel@v3.2.0
+        env:
+          CIBW_BUILD: "cp313-win_amd64"
+          CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel show {wheel} && delvewheel repair -w {dest_dir} {wheel} --no-mangle-all"
+          # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
+          # delvewheel cannot mangle the libraries, stripping does not work.
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-test-${{ matrix.os }}-${{ matrix.toolchain.compiler }}
+          path: ./wheelhouse/*.whl
