@@ -20,12 +20,12 @@ jobs:
       - uses: fortran-lang/setup-fortran@v1
         with:
           compiler: 'gcc'
-          version: '13'
+          version: '15'
 
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.2.0
         env:
-          CIBW_SKIP: "pp* *win32*"
+          CIBW_SKIP: "pp* *win32* cp314t*"
           CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel show {wheel} && delvewheel repair -w {dest_dir} {wheel} --no-mangle-all"
           # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
@@ -58,35 +58,11 @@ jobs:
           name: wheels-ubuntu
           path: ./wheelhouse/*.whl
 
-  #
-  # The runner macos-15-intel does not seem to be supported by setup-fortran?
-  #
-  # "build_wheels_on_macos_intel":
-  #   name: Build wheels on MacOS Intel
-  #   runs-on: macos-15-intel
-  #
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #
-  #     - uses: fortran-lang/setup-fortran@v1
-  #       with:
-  #         compiler: 'gcc'
-  #         version: '13'
-  #
-  #     - name: Build wheels
-  #       uses: pypa/cibuildwheel@v3.2.0
-  #       env:
-  #         CIBW_SKIP: "pp*"
-  #         CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=15.0
-  #
-  #     - uses: actions/upload-artifact@v4
-  #       with:
-  #         name: wheels-macos-intel
-  #         path: ./wheelhouse/*.whl
-
-  "build_wheels_on_macos_arm":
-    name: Build wheels on MacOS ARM
-    runs-on: macos-14
+  "build_wheels_on_macos_intel":
+    name: Build wheels on MacOS Intel
+    runs-on: macos-13
+    # Should be replaced by macos-15-intel soon, but it does not seem to be
+    # supported by setup-fortran?
 
     steps:
       - uses: actions/checkout@v4
@@ -100,9 +76,62 @@ jobs:
         uses: pypa/cibuildwheel@v3.2.0
         env:
           CIBW_SKIP: "pp*"
+          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=13.0
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-intel
+          path: ./wheelhouse/*.whl
+
+  "build_wheels_on_macos_arm":
+    name: Build wheels on MacOS ARM
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: fortran-lang/setup-fortran@v1
+        with:
+          compiler: 'gcc'
+          version: '15'
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v3.2.0
+        env:
+          CIBW_SKIP: "pp*"
           CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=14.0
 
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-macos-arm
+          path: ./wheelhouse/*.whl
+
+  "test_all_fortran_compilers_on_ubuntu":
+    name: Test ${{ matrix.compiler }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - {compiler: gcc, version: 'latest'}
+          - {compiler: intel, version: '2025.0'}
+          - {compiler: intel-classic, version: '2021.10'}
+          - {compiler: nvidia-hpc, version: '25.1'}
+          - {compiler: lfortran, version: '0.45.0'}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: fortran-lang/setup-fortran@v1
+        with:
+          compiler: ${{ matrix.toolchain.compiler }}
+          version: ${{ matrix.toolchain.version }}
+
+      - name: Build wheels on Ubuntu
+        uses: pypa/cibuildwheel@v3.2.0
+        env:
+          CIBW_BUILD: "cp313-manylinux_x86_64"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-test-${{ matrix.compiler }}
           path: ./wheelhouse/*.whl
