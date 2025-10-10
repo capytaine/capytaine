@@ -34,8 +34,9 @@ Internals
   decomposition and symmetries. (:pull:`755`)
 
 * The whole ``matrices`` module as well as the corresponding engines in
-  ``bem/engines.py`` have been removed from Capytaine. For compatibility, they
-  will remain accessible from a separate package. (:pull:`757`)
+  ``bem/engines.py`` and ``tool/lru_caches.py`` have been removed from
+  Capytaine. For compatibility, they will remain accessible from a separate
+  package. (:pull:`757`, :pull:`765`)
 
 
 -------------------------------
