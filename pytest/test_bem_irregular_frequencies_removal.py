@@ -216,7 +216,7 @@ def test_lid_with_plane_symmetry():
             plane=mesh.plane
             )
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
-    pb = cpt.RadiationProblem(body=body, wavelength=1.0)
+    pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
     solver = cpt.BEMSolver()
     S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
                                         pb.free_surface, pb.water_depth, pb.wavenumber,
@@ -224,6 +224,13 @@ def test_lid_with_plane_symmetry():
     from capytaine.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix
     assert isinstance(S, BlockSymmetricToeplitzMatrix)
     assert isinstance(K, BlockSymmetricToeplitzMatrix)
+
+    res = solver.solve(pb)
+
+    ref_body = cpt.FloatingBody(mesh=mesh.merged(), lid_mesh=lid_mesh.merged(), dofs=cpt.rigid_body_dofs())
+    ref_pb = cpt.RadiationProblem(body=ref_body, wavelength=1.0, radiating_dof="Heave")
+    ref_res = solver.solve(ref_pb)
+    assert res.force["Heave"] == pytest.approx(ref_res.force["Heave"])
 
 
 def test_lid_with_nested_plane_symmetry():

@@ -223,8 +223,16 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
     # Transformation #
     ##################
 
-    def join_meshes(*meshes, name=None):
-        return CollectionOfMeshes(meshes, name=name)
+    def join_meshes(*meshes, name=None, return_masks=False):
+        coll = CollectionOfMeshes(meshes, name=name)
+        if return_masks:
+            masks = []
+            for i_mesh in range(len(meshes)):
+                mask = np.full((coll.nb_faces,), False)
+                mask[coll.indices_of_mesh(i_mesh)] = True
+                masks.append(mask)
+            return coll, masks
+        return coll
 
     def __add__(self, mesh_to_add):
         return self.join_meshes(mesh_to_add)

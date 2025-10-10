@@ -30,7 +30,7 @@ class MeshLike(Protocol):
     def extract_faces(self, faces_id):
         ...
 
-    def join_meshes(*meshes):
+    def join_meshes(*meshes, return_mask):
         ...
 
     def with_normal_vector_going_down(self, **kwargs):

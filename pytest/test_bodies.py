@@ -138,6 +138,16 @@ def test_rotate_rotation_center_defined_as_tuple():
     np.testing.assert_allclose(body.rotation_center, np.array([-1, 0, 0]), atol=1e-10)
 
 
+def test_inplace_transform_with_lid():
+    mesh = cpt.mesh_sphere().immersed_part()
+    lid_mesh = mesh.generate_lid()
+    body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh)
+    body.mesh_including_lid
+    body.translate_x(10.0)
+    assert np.all(body.mesh.vertices[:, 0] > 5.0)
+    assert np.all(body.mesh_including_lid.vertices[:, 0] > 5.0)
+
+
 @pytest.mark.parametrize("z_center", [0, 2, -2])
 @pytest.mark.parametrize("as_collection_of_meshes", [True, False])
 def test_clipping_of_dofs(z_center, as_collection_of_meshes):

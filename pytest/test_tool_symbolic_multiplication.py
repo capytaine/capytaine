@@ -49,6 +49,16 @@ def test_numpy_matmul():
     c = A @ b
     assert (c/zero).shape == (10,)
 
+def test_comparison():
+    a = SymbolicMultiplication("0", np.arange(10))
+    assert np.all(a == 0)
+
+def test_setitem_mask():
+    a = SymbolicMultiplication("0", np.arange(10))
+    b = SymbolicMultiplication("0", 99)
+    a[a.value > 5] = b
+    assert np.all(a.value == np.array([0, 1, 2, 3, 4, 5, 99, 99, 99, 99]))
+
 def test_undefined_case():
     assert np.isnan(float(SymbolicMultiplication("0", np.inf)))
     assert np.isnan(float(SymbolicMultiplication("∞", 0.0)))
@@ -64,4 +74,3 @@ def test_supporting_symbolic_multiplication():
     A = np.random.rand(10, 10)
     c = my_linear_operator(A, b)
     assert (c/zero).shape == (10,)
-
