@@ -3,11 +3,9 @@ name: Build some wheel with many compilers
 on:
   workflow_dispatch:
 
-
 jobs:
-  "compile_with_various_fortran_compilers":
+  "build_wheel":
     name: Build test version with ${{ matrix.toolchain.compiler }} on ${{ matrix.os }}
-
     strategy:
       fail-fast: false
       matrix:
@@ -21,7 +19,6 @@ jobs:
         exclude:
           - os: windows-latest
             toolchain: {compiler: nvidia-hpc}
-
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
