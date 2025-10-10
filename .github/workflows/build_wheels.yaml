@@ -15,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-15-intel, macos-14, windows-2025]
+        os: [ubuntu-22.04, macos-14, windows-2025]
 
     steps:
       - uses: actions/checkout@v4
@@ -33,12 +33,12 @@ jobs:
           CIBW_SKIP: "pp* *i686* *musllinux*"
           # As of Sept 2024, Python 3.13 is troublesome because of lack of Pandas for Python 3.13.
 
-      - name: Build wheels on MacOS Intel
-        if: matrix.os == 'macos-15-intel'
-        uses: pypa/cibuildwheel@v3.2.0
-        env:
-          CIBW_SKIP: "pp*"
-          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=15.0
+      # - name: Build wheels on MacOS Intel
+      #   if: matrix.os == 'macos-15-intel'
+      #   uses: pypa/cibuildwheel@v3.2.0
+      #   env:
+      #     CIBW_SKIP: "pp*"
+      #     CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=15.0
 
       - name: Build wheels on MacOS ARM
         if: matrix.os == 'macos-14'
