@@ -725,7 +725,7 @@ Major changes
   to migrate to the new structure.
 
   See :doc:`user_manual/resolution` for the full documentation of the new structure
-  and :doc:`user_manual/cookbook` for examples.
+  and the cookbook for examples.
 
 
 * Add Xie's variant of Delhommeau's Green function

@@ -8,22 +8,24 @@ class Timer:
 
     Example
     -------
-    timer = Timer()
-    with timer:
-        sleep(1.0)
+    ::
 
-    print(timer.total)  # 1.0...
+        timer = Timer()
+        with timer:
+            sleep(1.0)
 
-    @timer.wraps_function
-    def my_function():
-        sleep(0.5)
+        print(timer.total)  # 1.0...
 
-    my_function()
-    print(timer.total)  # 1.5...
-    my_function()
-    print(timer.total)  # 2.0...
+        @timer.wraps_function
+        def my_function():
+            sleep(0.5)
 
-    print(timer.timings)  # [1.0, 0.5, 0.5]
+        my_function()
+        print(timer.total)  # 1.5...
+        my_function()
+        print(timer.total)  # 2.0...
+
+        print(timer.timings)  # [1.0, 0.5, 0.5]
     """
 
     def __init__(self, timings=None):
