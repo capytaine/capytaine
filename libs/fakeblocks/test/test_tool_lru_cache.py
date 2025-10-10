@@ -3,7 +3,7 @@ from functools import lru_cache
 import pytest
 import numpy as np
 
-from capytaine.tools.lru_cache import lru_cache_with_strict_maxsize
+from fakeblocks.tools.lru_cache import lru_cache_with_strict_maxsize
 
 
 def get_random_id(n):
