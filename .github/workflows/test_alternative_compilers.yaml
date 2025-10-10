@@ -3,24 +3,25 @@ name: Build some wheel with many compilers
 on:
   workflow_dispatch:
 
-strategy:
-  fail-fast: false
-  matrix:
-    "os": [ubuntu-latest, windows-latest]
-    "toolchain":
-      - {compiler: gcc, version: 'latest'}
-      - {compiler: intel, version: '2025.2'}
-      - {compiler: intel-classic, version: '2021.12'}
-      - {compiler: nvidia-hpc, version: '25.1'}
-      - {compiler: lfortran, version: '0.45.0'}
-    exclude:
-      - os: windows-latest
-        toolchain: {compiler: nvidia-hpc}
-
 
 jobs:
   "compile_with_various_fortran_compilers":
     name: Build test version with ${{ matrix.toolchain.compiler }} on ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        "os": [ubuntu-latest, windows-latest]
+        "toolchain":
+          - {compiler: gcc, version: 'latest'}
+          - {compiler: intel, version: '2025.2'}
+          - {compiler: intel-classic, version: '2021.12'}
+          - {compiler: nvidia-hpc, version: '25.1'}
+          - {compiler: lfortran, version: '0.45.0'}
+        exclude:
+          - os: windows-latest
+            toolchain: {compiler: nvidia-hpc}
+
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
