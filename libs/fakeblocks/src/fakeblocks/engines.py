@@ -14,7 +14,7 @@ from fakeblocks.matrices.block import BlockMatrix
 from fakeblocks.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
 from fakeblocks.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockToeplitzMatrix, BlockCirculantMatrix
 
-from capytaine.tools.lru_cache import lru_cache_with_strict_maxsize
+from fakeblocks.tools.lru_cache import lru_cache_with_strict_maxsize
 
 LOG = logging.getLogger(__name__)
 
