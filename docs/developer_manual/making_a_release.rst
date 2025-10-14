@@ -72,7 +72,9 @@ In the repository of the website https://github.com/capytaine/capytaine.github.i
 
 In the new version documentation (`v2.1` in this example), remove the banner on top of the pages ::
 
-    sed -i '/new-doc-warning-banner/d' $(rg -l 'new-doc')
+    sed -i '/sed/!{/new-doc-warning-banner/d}' $(rg -l 'new-doc')
+
+where the ``/sed/!{...}`` pattern is only meant to avoid deleting this line here in the documentation.
 
 In the former stable documentation (`v2.0` in this example), add a banner on top of the pages just after the ``<body>`` tag::
 

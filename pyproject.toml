@@ -41,7 +41,7 @@ more_optional = [
   ]
 docs = [
   "sphinx",
-  "sphinx-toolbox", "sphinx-copybutton",
+  "sphinx-copybutton", "sphinx-tabs",
   "sphinx-proof", "sphinxcontrib-mermaid",
   "capytaine[optional]"
 ]
