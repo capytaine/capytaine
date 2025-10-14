@@ -273,8 +273,6 @@ Note that :math:`E_1`, :math:`J_0` and :math:`H_0` are available for instance in
        \tilde{\zeta} (\theta) = k \left( x_3 + \xi_3 + i \left( (x_1 - \xi_1) \cos\theta + (x_2 - \xi_2) \sin\theta \right) \right).
 
 .. prf:proof::
-   :class: dropdown
-
    Let us note that:
 
    .. math::
@@ -813,8 +811,6 @@ where :math:`\rho(x)` and :math:`\theta(x)` are the cylindrical coordinates of :
 
 
 .. prf:proof::
-   :class: dropdown
-
    Let us first note, following [Del87]_ (p.79), that for large :math:`\rho(x)`:
 
    .. math::
