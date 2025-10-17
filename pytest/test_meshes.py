@@ -171,6 +171,15 @@ def test_extract_one_face():
     assert np.all(one_face.faces_centers[0] == sphere.faces_centers[i])
 
 
+def test_join_meshes_masks():
+    a = cpt.mesh_sphere(resolution=(2, 3))
+    b = cpt.mesh_sphere(center=(10, 0, 0), resolution=(3, 3))
+    joined, masks = a.join_meshes(b, return_masks=True)
+    assert np.all(masks[0] ^ masks[1])
+    assert sum(masks[0]) == a.nb_faces
+    assert sum(masks[1]) == b.nb_faces
+
+
 ##########################
 #  Connected components  #
 ##########################

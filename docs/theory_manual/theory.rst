@@ -169,7 +169,7 @@ The infinite depth Green function takes the following form
    G(\xi, x) = - \frac{1}{4 \pi} \left( \frac{1}{\|x - \xi\|} + k \mathcal{G}\left(k \sqrt{(x_1 - \xi_1)^2 + (x_2 - \xi_2)^2}, k (x_3 + \xi_3) \right) \right)
    :label: green_function_inf_depth
 
-.. proof:property::
+.. prf:property::
 
    The function :math:`G` is symmetric in the sense of
 
@@ -210,9 +210,9 @@ Variants of the formulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
-.. _integrate_one_over_zeta:
 
-.. proof:lemma::
+.. prf:lemma::
+   :label: integrate-one-over-zeta
 
     The following identity holds [Del89]_:
 
@@ -229,7 +229,7 @@ The above lemma allows to retrieve the expression of the Green function found e.
 
 (Note the minus sign in front of the first term.)
 
-.. proof:lemma::
+.. prf:lemma::
 
     The `zeroth order Bessel function of the first kind <https://personal.math.ubc.ca/~cbm/aands/page_360.htm>`_ :math:`J_0` and `the Struve function <https://personal.math.ubc.ca/~cbm/aands/page_496.htm>`_ :math:`H_0` are such that
 
@@ -259,7 +259,7 @@ Noblesse [N82]_ splits the function :math:`\mathcal{G}` into a near field term :
 Note that :math:`E_1`, :math:`J_0` and :math:`H_0` are available for instance in the `Scipy library <https://docs.scipy.org/doc/scipy/reference/special.html>`_.
 
 
-.. proof:lemma::
+.. prf:lemma::
 
     For any function :math:`f`, the following two formulations of the integral are equivalent [Del89]_:
 
@@ -272,7 +272,8 @@ Note that :math:`E_1`, :math:`J_0` and :math:`H_0` are available for instance in
     .. math::
        \tilde{\zeta} (\theta) = k \left( x_3 + \xi_3 + i \left( (x_1 - \xi_1) \cos\theta + (x_2 - \xi_2) \sin\theta \right) \right).
 
-.. proof:proof::
+.. prf:proof::
+   Let us note that:
 
    .. math::
       :nowrap:
@@ -336,7 +337,7 @@ and
    \frac{\partial \mathcal{G}}{\partial z} = & - \frac{z}{(r^2 + z^2)^{3/2}} + \frac{2}{\pi} \Re \left( \int_{-\pi/2}^{\pi/2} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d}\theta \right) \\
     & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta } \, \mathrm{d} \theta \right) \\
 
-that is, using :numref:`Lemma {number} <integrate_one_over_zeta>`
+that is, using :prf:ref:`integrate-one-over-zeta`
 
 .. math::
    \frac{\partial \mathcal{G}}{\partial z} = \mathcal{G}(r, z) + \frac{2}{\sqrt{r^2 + z^2}} - \frac{z}{(r^2 + z^2)^{3/2}}
@@ -809,20 +810,20 @@ where :math:`\rho(x)` and :math:`\theta(x)` are the cylindrical coordinates of :
 .. math:: H(\theta) = \frac{1}{4 \pi} \int_\Gamma \sigma(\xi) e^{k \xi_3} e^{- i k (\xi_1 \cos \theta + \xi_2 \sin \theta)} \, d \xi
 
 
-.. proof:proof::
+.. prf:proof::
    Let us first note, following [Del87]_ (p.79), that for large :math:`\rho(x)`:
 
    .. math::
       :nowrap:
 
       \begin{align*}
-         r & = \sqrt{(x_1 - \xi_1)^2 + (x_2 - \xi_2)^2} \\
-           & = \sqrt{\rho(x)^2 + \rho(\xi)^2 - 2 \rho(x) \rho(\xi) \cos(\theta(x) - \theta(\xi))\} \\
-           & \sim \rho(x) - \rho(\xi) \cos(\theta(x) - \theta(\xi)) \\
-           & \sim \rho(x) - (\xi_1 \cos\theta(x) + \xi_2 \sin\theta(x))
+      r & = \sqrt{(x_1 - \xi_1)^2 + (x_2 - \xi_2)^2} \\
+        & = \sqrt{\rho(x)^2 + \rho(\xi)^2 - 2 \rho(x) \rho(\xi) \cos(\theta(x) - \theta(\xi))} \\
+        & \sim \rho(x) - \rho(\xi) \cos(\theta(x) - \theta(\xi)) \\
+        & \sim \rho(x) - (\xi_1 \cos\theta(x) + \xi_2 \sin\theta(x))
       \end{align*}
 
-   Then the asymptotic behavior of the infinite depth Green function :ref:`green_function_asymptotical_approx` reads
+   Then the asymptotic behavior of the infinite depth Green function :eq:`green_function_asymptotical_approx` reads
 
    .. math:: - 4 \pi G(x, \xi) \sim 2 k \sqrt{\frac{\pi}{k r}} e^{k z + i k r}(1+i) + O\left(\frac{1}{r}\right)
 
@@ -830,7 +831,7 @@ where :math:`\rho(x)` and :math:`\theta(x)` are the cylindrical coordinates of :
 
    .. math:: - 4 \pi G(x, \xi) \sim \sqrt{\frac{2 \pi k}{\rho(x)}} e^{k z + i k (\rho(x) - (\xi_1 \cos\theta(x) + \xi_2 \sin\theta(x))} e^{i\pi/4} + O\left(\frac{1}{\rho(x)}\right)
 
-   Incorporating into the source representation :ref:`potential_representation`, we have
+   Incorporating into the source representation :eq:`potential_representation`, we have
 
    .. math:: \Phi \sim - e^{k x_3} e^{ik\rho(x)} e^{i \pi/4} \sqrt{\frac{2\pi k}{\rho(x)}} \underbrace{\frac{1}{4\pi} \int_\Gamma \sigma(\xi) e^{k \xi_3} e^{-ik(\xi_1 \cos \theta + \xi_2 \sin \theta))} d\xi}_{H(\theta)}
 

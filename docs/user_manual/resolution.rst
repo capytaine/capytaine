@@ -204,7 +204,7 @@ The following classes are available:
 
 
 Advanced users can write their own class to evaluate the Green function.
-See the example in the :doc:`cookbook`.
+See the example in the :doc:`../examples/index` section.
 
 
 Solving the problem

@@ -114,9 +114,20 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         else:
             self.dofs = dofs
 
+        self._evaluate_full_mesh()
+
         LOG.info(f"New floating body: {self.__str__()}.")
 
         self._check_dofs_shape_consistency()
+
+    def _evaluate_full_mesh(self):
+        """Merge the mesh and lid_mesh, while keeping track of where each panel came from."""
+        if self.lid_mesh is None:
+            self.mesh_including_lid = self.mesh
+            self.hull_mask = np.full((self.mesh.nb_faces,), True)
+        else:
+            self.mesh_including_lid, masks = self.mesh.join_meshes(self.lid_mesh, return_masks=True)
+            self.hull_mask = masks[0]
 
     @staticmethod
     def from_meshio(mesh, name=None) -> 'FloatingBody':
@@ -137,13 +148,6 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
     def __lt__(self, other: 'FloatingBody') -> bool:
         """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name
-
-    @cached_property
-    def mesh_including_lid(self):
-        if self.lid_mesh is not None:
-            return self.mesh.join_meshes(self.lid_mesh)
-        else:
-            return self.mesh
 
     ##########
     #  Dofs  #
@@ -980,6 +984,7 @@ respective inertia coefficients are assigned as NaN.")
         self.mesh.mirror(plane)
         if self.lid_mesh is not None:
             self.lid_mesh.mirror(plane)
+        self._evaluate_full_mesh()
         for dof in self.dofs:
             self.dofs[dof] -= 2 * np.outer(np.dot(self.dofs[dof], plane.normal), plane.normal)
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
@@ -994,6 +999,7 @@ respective inertia coefficients are assigned as NaN.")
         self.mesh.translate(vector, *args, **kwargs)
         if self.lid_mesh is not None:
             self.lid_mesh.translate(vector, *args, **kwargs)
+        self._evaluate_full_mesh()
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
                 self.__dict__[point_attr] = np.array(self.__dict__[point_attr]) + vector
@@ -1004,6 +1010,7 @@ respective inertia coefficients are assigned as NaN.")
         self.mesh.rotate(axis, angle)
         if self.lid_mesh is not None:
             self.lid_mesh.rotate(axis, angle)
+        self._evaluate_full_mesh()
         for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
             if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
                 self.__dict__[point_attr] = axis.rotate_points([self.__dict__[point_attr]], angle)[0, :]
@@ -1023,6 +1030,7 @@ respective inertia coefficients are assigned as NaN.")
             if self.lid_mesh.nb_faces == 0:
                 LOG.warning("Lid mesh %s is empty after clipping. The lid mesh is removed.", self.lid_mesh)
                 self.lid_mesh = None
+        self._evaluate_full_mesh()
 
         # Clip dofs
         ids = self.mesh._clipping_data['faces_ids']

@@ -17,7 +17,7 @@ Then run the following command from the root of Capytaine repository to test the
 
 Note that some tests are skipped if the required optional dependencies are not
 installed, hence it is advisable to install all of Capytaine optional
-dependencies (see :doc:`../user_manual/installation.rst`) to fully test
+dependencies (see :doc:`../user_manual/installation`) to fully test
 the code.
 
 Some useful features of Pytest include:
