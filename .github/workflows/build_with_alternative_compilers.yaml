@@ -35,6 +35,10 @@ jobs:
           compiler: ${{ matrix.toolchain.compiler }}
           version: ${{ matrix.toolchain.version }}
 
+      - run: source /opt/intel/oneapi/setvars.sh
+        if: matrix.compiler == 'intel'
+
+
       - name: Build wheels
         if: matrix.os == 'ubuntu-latest'
         run: |
