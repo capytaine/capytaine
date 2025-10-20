@@ -12,7 +12,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        "os": [ubuntu-latest, windows-latest]
+        "os": [
+          ubuntu-latest,
+          # windows-latest
+        ]
         "toolchain":
           - {compiler: gcc, version: 'latest'}
           - {compiler: intel, version: '2025.2'}
@@ -36,17 +39,20 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         uses: pypa/cibuildwheel@v3.2.0
         env:
-          CIBW_BUILD: "cp313-manylinux_x86_64"
+          CIBW_BUILD_FRONTEND: "build"  # No docker container. No PyPA compliant.
+          CIBW_SKIP: "*-manylinux* *-musllinux*"
+          CIBW_ENVIRONMENT: "FC=${{ matrix.compiler }} CC=${{ matrix.compiler }}"
+          # CIBW_BUILD: "cp313-manylinux_x86_64"
 
-      - name: Build wheels
-        if: matrix.os == 'windows-latest'
-        uses: pypa/cibuildwheel@v3.2.0
-        env:
-          CIBW_BUILD: "cp313-win_amd64"
-          CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
-          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel show {wheel} && delvewheel repair -w {dest_dir} {wheel} --no-mangle-all"
-          # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
-          # delvewheel cannot mangle the libraries, stripping does not work.
+      # - name: Build wheels
+      #   if: matrix.os == 'windows-latest'
+      #   uses: pypa/cibuildwheel@v3.2.0
+      #   env:
+      #     CIBW_BUILD: "cp313-win_amd64"
+      #     CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
+      #     CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel show {wheel} && delvewheel repair -w {dest_dir} {wheel} --no-mangle-all"
+      #     # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
+      #     # delvewheel cannot mangle the libraries, stripping does not work.
 
       - uses: actions/upload-artifact@v4
         with:
