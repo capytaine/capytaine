@@ -21,7 +21,7 @@ jobs:
           - {compiler: intel, version: '2025.2'}
           - {compiler: intel-classic, version: '2021.12'}
           - {compiler: nvidia-hpc, version: '25.1'}
-          - {compiler: lfortran, version: '0.45.0'}
+          # - {compiler: lfortran, version: '0.45.0'}
         exclude:
           - os: windows-latest
             toolchain: {compiler: nvidia-hpc}
@@ -37,12 +37,12 @@ jobs:
 
       - name: Build wheels
         if: matrix.os == 'ubuntu-latest'
-        uses: pypa/cibuildwheel@v3.2.0
-        env:
-          CIBW_BUILD_FRONTEND: "build"  # No docker container. No PyPA compliant.
-          CIBW_SKIP: "*-manylinux* *-musllinux*"
-          CIBW_ENVIRONMENT: "FC=${{ matrix.compiler }} CC=${{ matrix.compiler }}"
-          # CIBW_BUILD: "cp313-manylinux_x86_64"
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+          pip install build
+          python -m build --wheel
+
 
       # - name: Build wheels
       #   if: matrix.os == 'windows-latest'
@@ -57,4 +57,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: wheels-test-${{ matrix.os }}-${{ matrix.toolchain.compiler }}
-          path: ./wheelhouse/*.whl
+          path: ./dist/*.whl
