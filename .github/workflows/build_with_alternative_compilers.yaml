@@ -36,7 +36,7 @@ jobs:
           version: ${{ matrix.toolchain.version }}
 
       - run: source /opt/intel/oneapi/setvars.sh
-        if: matrix.compiler == 'intel'
+        if: matrix.toolchain.compiler == 'intel'
 
 
       - name: Build wheels
