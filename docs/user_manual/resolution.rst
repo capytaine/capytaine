@@ -92,6 +92,10 @@ The following classes are available:
    The method implemented in Nemoh (see [Del87]_ and [Del89]_).
    See the documentation for details on the available options.
 
+   The ``floating_point_precision`` argument accepts the ``float64`` (default)
+   and ``float32`` values. The latter uses less RAM, so it might be preferable
+   for very large meshes.
+
    In Capytaine (and Nemoh), the integral of the wave term
    :math:`\mathcal{G}(r, z)` (and its derivative :math:`\frac{\partial
    \mathcal{G}}{\partial r}`) are approximated using surrogate models, which
@@ -115,7 +119,8 @@ The following classes are available:
                             tabulation_grid_shape="legacy",
                             finite_depth_method="legacy",
                             finite_depth_prony_decomposition_method="fortran",
-                            gf_singularities="high_freq")
+                            gf_singularities="high_freq",
+                            floating_point_precision="float64")
 
         # Default in Capytaine 2.1
         gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
@@ -124,25 +129,28 @@ The following classes are available:
                             tabulation_grid_shape="scaled_nemoh3",
                             finite_depth_method="legacy",
                             finite_depth_prony_decomposition_method="fortran",
-                            gf_singularities="high_freq")
+                            gf_singularities="high_freq",
+                            floating_point_precision="float64")
 
-        # Default in Capytaine 2.2
+        # Default in Capytaine 2.2 and 2.2.1
         gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
                             tabulation_nz=372, tabulation_zmin=-251,
                             tabulation_nb_integration_points=1001,
                             tabulation_grid_shape="scaled_nemoh3",
                             finite_depth_method="legacy",
                             finite_depth_prony_decomposition_method="fortran",
-                            gf_singularities="low_freq")
+                            gf_singularities="low_freq",
+                            floating_point_precision="float64")
 
-        # Default in Capytaine 2.3
+        # Default in Capytaine 2.3 and 2.3.1
         gf = cpt.Delhommeau(tabulation_nr=676, tabulation_rmax=100,
                             tabulation_nz=372, tabulation_zmin=-251,
                             tabulation_nb_integration_points=1001,
                             tabulation_grid_shape="scaled_nemoh3",
                             finite_depth_method="newer",
                             finite_depth_prony_decomposition_method="python",
-                            gf_singularities="low_freq")
+                            gf_singularities="low_freq",
+                            floating_point_precision="float64")
 
    In version 2.1, the default numbers of :math:`r` and :math:`z` values have
    been increased to :math:`676` and :math:`372`, respectively. While the range
