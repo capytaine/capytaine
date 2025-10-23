@@ -9,7 +9,7 @@ Last commit of released version
 
 Open a pull request similar to https://github.com/capytaine/capytaine/pull/613 to update:
 
-- the version number in ``capytaine/__about__.py``,
+- the version number in ``meson.build``,
 
 - the changelog in ``docs/changelog.rst``,
 

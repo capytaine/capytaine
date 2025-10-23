@@ -1,7 +1,7 @@
 project('capytaine',
   ['c', 'fortran'],
   meson_version : '>= 1.0.0',
-  version : run_command('src/capytaine/__about__.py', check: true).stdout().strip(),
+  version : '3.0.dev',
   default_options : ['warning_level=2'])
 
 py_mod = import('python')
@@ -54,9 +54,25 @@ Delhommeau_float64_f2py_wrapper = custom_target('Delhommeau_float64module.c',
 install_subdir(
   'src/capytaine',
   exclude_directories: ['green_functions/libDelhommeau/'],  # The Fortran source files do not need to be distributed in the wheel
+  exclude_files: ['__about__.py.in'],
   install_dir: py3.get_install_dir(pure: false),
   )
 # Alternatively: would need to list all the .py files and use py3.install_source()
+
+# Write version and build information to be accessible at runtime
+fc = meson.get_compiler('fortran')
+configure_file(
+  input: 'src/capytaine/__about__.py.in',
+  output: '__about__.py',
+  configuration: {
+    'version': meson.project_version(),
+    'build_time': run_command('date', '+%Y-%m-%dT%H:%M:%SZ').stdout().strip(),
+    'compiler': fc.get_id(),
+    'compiler_version': fc.version(),
+  },
+  install: true,
+  install_dir: py3.get_install_dir(pure: false) / 'capytaine',
+)
 
 if build_machine.system() == 'darwin'
   omp = []  # Waiting for https://github.com/mesonbuild/meson/issues/7435
