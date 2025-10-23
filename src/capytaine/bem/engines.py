@@ -91,7 +91,7 @@ class BasicMatrixEngine(MatrixEngine):
     linear_solver: str or function, optional
         Setting of the numerical solver for linear problems Ax = b.
         It can be set with the name of a preexisting solver
-        (available: "lu_decomposition" and "gmres", the former is the default choice)
+        (available: "lu_decomposition", "lu_decompositon_with_overwrite" and "gmres", the former is the default choice)
         or by passing directly a solver function.
     """
 
@@ -249,9 +249,10 @@ class BasicMatrixEngine(MatrixEngine):
 
             return x
 
-        elif self._linear_solver == "lu_decomposition":
+        elif self._linear_solver in ("lu_decomposition", "lu_decompositon_with_overwrite") :
+            overwrite_a = (self._linear_solver == "lu_decompositon_with_overwrite")
             if not has_been_lu_decomposed(A):
-                luA = lu_decompose(A)
+                luA = lu_decompose(A, overwrite_a)
                 if A is self.last_computed_matrices[1]:
                     # In normal operation of Capytaine, `A` is always the $D$
                     # or $K$ matrix stored in the cache of the solver.
