@@ -60,8 +60,9 @@ A single one is built-in, but others with other features can be found in other p
    :code:`linear_solver` (Default: :code:`'lu_decomposition'`)
            This option is used to set the solver for linear systems that is used in the resolution of the BEM problem.
            Passing a string will make the code use one of the predefined solver.
-           Two of them are available:
+           Three of them are available:
            :code:`'lu_decomposition'` for a direct linear solver with caching of the LU decomposition,
+           :code:`'lu_decompositon_with_overwrite'` for a direct linear solver with caching of the LU decomposition by overwriting the data,
            or :code:`'gmres'` for an iterative solver.
 
            A direct solver is used by default (since version 1.4) because it is more robust and the computation time is more predictable.

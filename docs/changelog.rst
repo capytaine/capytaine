@@ -93,6 +93,8 @@ Minor change
 
 * Add :func:`~capytaine.io.wamit.export_to_wamit` as a unified interface to export hydrodynamic results to WAMIT-compatible files. (:pull:`714`)
 
+* Add option :code:`'lu_decompositon_with_overwrite'` for the :code:`linear_solver` of :class:`~capytaine.bem.engines.BasicMatrixEngine`
+
 
 Bug fixes
 ~~~~~~~~~
