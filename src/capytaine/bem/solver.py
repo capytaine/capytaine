@@ -159,7 +159,7 @@ class BEMSolver:
                         )
             rhs = S @ problem.boundary_condition
             with self.timer["  Linear solver"]:
-                potential = linear_solver(D, rhs)
+                potential = linear_solver(D, rhs.astype(D.dtype))
             pressure = 1j * omega * problem.rho * potential
             sources = None
         else:
@@ -169,9 +169,9 @@ class BEMSolver:
                         problem.free_surface, problem.water_depth, wavenumber,
                         adjoint_double_layer=True
                         )
-
+            
             with self.timer["  Linear solver"]:
-                sources = linear_solver(K, problem.boundary_condition)
+                sources = linear_solver(K, problem.boundary_condition.astype(K.dtype))
             potential = S @ sources
             pressure = 1j * omega * problem.rho * potential
             if problem.forward_speed != 0.0:
@@ -182,7 +182,7 @@ class BEMSolver:
 
         pressure_on_hull = pressure[:problem.body.mesh.nb_faces]  # Discards pressure on lid if any
         forces = problem.body.integrate_pressure(pressure_on_hull)
-
+        
         if not keep_details:
             result = problem.make_results_container(forces)
         else:

@@ -177,6 +177,7 @@ class LUDecomposedMatrix:
                   A.__class__.__name__, A.shape)
         self._lu_decomp = sl.lu_factor(A)
         self.shape = A.shape
+        self.dtype = A.dtype
 
     def solve(self, b: np.ndarray) -> np.ndarray:
         LOG.debug("Called solve on %s of shape %s",
