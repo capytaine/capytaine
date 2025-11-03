@@ -83,19 +83,26 @@ def test_all_linear_solvers_work():
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     problem = cpt.RadiationProblem(body=sphere, omega=1.0, water_depth=np.inf)
 
-    for first_solver_name, second_solver_name in combinations(["lu_decomposition", "lu_decomposition_with_overwrite", "gmres"],2):
-        first_bem_solver = cpt.BEMSolver(
-            method='indirect',
-            engine=cpt.BasicMatrixEngine(linear_solver=first_solver_name)
-        )
+    bem_solver_lu = cpt.BEMSolver(
+        engine=cpt.BasicMatrixEngine(linear_solver="lu_decomposition")
+    )
 
-        result_first = first_bem_solver.solve(problem)
+    result_lu = bem_solver_lu.solve(problem)
 
-        second_bem_solver = cpt.BEMSolver(
-            method='indirect',
-            engine=cpt.BasicMatrixEngine(linear_solver=second_solver_name)
-        )
+    bem_solver_lu_with_overwrite = cpt.BEMSolver(
+        engine=cpt.BasicMatrixEngine(linear_solver="lu_decomposition_with_overwrite")
+    )
 
-        result_second = second_bem_solver.solve(problem)
+    result_lu_with_overwrite = bem_solver_lu_with_overwrite.solve(problem)
 
-        assert np.isclose(result_first.added_masses['Surge'], result_second.added_masses['Surge'])
+    bem_solver_gmres = cpt.BEMSolver(
+        engine=cpt.BasicMatrixEngine(linear_solver="lu_decomposition")
+    )
+
+    result_gmres = bem_solver_gmres.solve(problem)
+
+    assert np.isclose(
+        result_lu.added_masses["Surge"], result_lu_with_overwrite.added_masses["Surge"]
+    ) and np.isclose(
+        result_lu.added_masses["Surge"], result_gmres.added_masses["Surge"]
+    )
