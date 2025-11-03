@@ -94,7 +94,9 @@ def test_parallelization(sphere):
 def test_float32_solver(sphere):
     solver = cpt.BEMSolver(green_function=cpt.Delhommeau(floating_point_precision="float32"))
     pb = cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=1.0)
-    solver.solve(pb)
+    result = solver.solve(pb)
+
+    assert result.pressure.dtype == 'complex64' and result.potential.dtype == 'complex64'
 
 
 def test_LiangWuNoblesseGF(sphere):
