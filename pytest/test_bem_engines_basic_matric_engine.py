@@ -1,4 +1,5 @@
 import pytest
+from itertools import combinations
 
 import numpy as np
 import capytaine as cpt
@@ -74,3 +75,27 @@ def test_custom_linear_solver_returning_wrong_shape(method):
     )
     with pytest.raises(ValueError):
         my_bem_solver.solve(problem)
+
+
+def test_all_linear_solvers_work():
+    """Test that all built-in linear solvers work i.e. "lu_decomposition", "lu_decomposition_with_overwrite" and "gmres"."""
+    sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(4, 3)).immersed_part())
+    sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
+    problem = cpt.RadiationProblem(body=sphere, omega=1.0, water_depth=np.inf)
+
+    for first_solver_name, second_solver_name in combinations(["lu_decomposition", "lu_decomposition_with_overwrite", "gmres"],2):
+        first_bem_solver = cpt.BEMSolver(
+            method='indirect',
+            engine=cpt.BasicMatrixEngine(linear_solver=first_solver_name)
+        )
+
+        result_first = first_bem_solver.solve(problem)
+
+        second_bem_solver = cpt.BEMSolver(
+            method='indirect',
+            engine=cpt.BasicMatrixEngine(linear_solver=second_solver_name)
+        )
+
+        result_second = second_bem_solver.solve(problem)
+
+        assert np.isclose(result_first.added_masses['Surge'], result_second.added_masses['Surge'])
