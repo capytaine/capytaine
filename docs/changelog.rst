@@ -126,6 +126,8 @@ Bug fixes
 * When the hull mesh and the lid mesh are both symmetric with the same reflection plane, the symmetry is not lost anymore when solving the BEM problem.
   Also ``generate_lid`` and ``extract_lid`` should now work with reflection symmetric meshes without losing the symmetry. (:issue:`527`, :pull:`667`, :pull:`720`).
 
+* Fix type when using option :code:`floating_point_precision = 'float32'` in :func:`~capytaine.green_functions.delhommeau.Delhommeau`. The right hand-side of the liner system was not modified when using this option. 
+
 
 Internals
 ~~~~~~~~~
