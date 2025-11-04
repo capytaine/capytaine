@@ -14,6 +14,8 @@ New in version 3.0 (2025-??-??)
 Minor changes
 ~~~~~~~~~~~~~
 
+* Velocity in the fluid can be post-processed in the limit frequencies (:math:`\omega = 0` or :math:`\omega = \infty`). Divide it by :math:`\omega` to have a finite value.
+
 * Add option :code:`'lu_decompositon_with_overwrite'` for the :code:`linear_solver` of :class:`~capytaine.bem.engines.BasicMatrixEngine`, which reduces the RAM usage of the solver (:pull:`775`).
 
 

@@ -42,11 +42,24 @@ def test_numpy_array_sum():
     b = np.ones(10) * zero
     assert (np.sum(b) / zero) == 10
 
+def test_numpy_array_sum_with_initialization():
+    zero = SymbolicMultiplication("0")
+    b = np.ones(10) * zero
+    with pytest.raises(TypeError):  # Not implemented (yet?) for these types
+        np.sum(b, zero*0)
+
 def test_numpy_matmul():
     zero = SymbolicMultiplication("0")
     b = np.random.rand(10) * zero
     A = np.random.rand(10, 10)
     c = A @ b
+    assert (c/zero).shape == (10,)
+
+def test_numpy_einsum():
+    zero = SymbolicMultiplication("0")
+    b = np.random.rand(10) * zero
+    A = np.random.rand(10, 10)
+    c = np.einsum('ij,j->i', A, b)
     assert (c/zero).shape == (10,)
 
 def test_comparison():

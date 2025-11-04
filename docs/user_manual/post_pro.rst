@@ -185,6 +185,18 @@ The returned values is an array of shape matching the shape of the input points.
 For potential, pressure and velocity, 3 coordinates :math:`(x, y, z)` are expected for each points.
 For the free surface elevation, 2 coordinates :math:`(x, y)` are sufficient.
 
+.. note::
+   In the limit cases of zero and infinite frequencies, these magnitudes can also be computed.
+   Strictly speaking, their value is 0 (resp. infinity) at these frequencies.
+   Nonetheless, the following magnitudes :math:`\phi/\omega`, :math:`u/\omega`, :math:`\eta/\omega^2` and :math:`p/\omega^2` are well defined and have a finite value.
+   They can be accessed in Capytaine as in the following example::
+
+       [...]
+       pb = cpt.RadiationProblem(body=body, omega=0, radiating_dof="Heave")
+       res = solver.solve(pb, keep_details=True)
+       pressure_over_omega_2 = solver.compute_pressure(points, res)/(pb.omega*pb.omega)
+
+
 Impedance and RAO
 -----------------
 
