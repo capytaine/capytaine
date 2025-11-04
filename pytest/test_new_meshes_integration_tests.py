@@ -35,7 +35,7 @@ def test_minimal_implementation_compute_velocity():
     res = solver.solve(pb, method="indirect")
     solver.compute_velocity(mesh, res)
 
-@pytest.xfail
+@pytest.mark.xfail
 def test_minimal_implementation_solve_pb_with_lid():
     mesh = meshes.Mesh(
         vertices=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, -1.0]]),
@@ -50,7 +50,7 @@ def test_minimal_implementation_solve_pb_with_lid():
     pb = cpt.RadiationProblem(body=body, omega=1.0, radiating_dof="Heave")
     solver.solve(pb, method="indirect")
 
-@pytest.xfail
+@pytest.mark.xfail
 def test_minimal_implementation_fill_dataset():
     mesh = meshes.Mesh(
         vertices=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, -1.0]]),
