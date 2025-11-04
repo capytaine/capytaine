@@ -55,6 +55,7 @@ EXAMPLES_FILES := ' \
 [unix]
 _test:
     #!/usr/bin/env bash
+    uv pip install --no-build-isolation .
     set -euxo pipefail
     uv pip list | grep -Ei "numpy|xarray|capytaine" || true
     cd {{TEMP_DIR}}
@@ -95,7 +96,6 @@ test_in_py38_reference_env:
         --python 3.8 \
         --with-requirements {{TEST_DIR}}/envs/2023-08-01-py3.8.txt \
         just _test
-    # TODO: Also build Capytaine in this environment?
 
 test_in_py312_reference_env:
     uv run \
@@ -104,7 +104,6 @@ test_in_py312_reference_env:
         --python 3.12 \
         --with-requirements {{TEST_DIR}}/envs/2025-04-18-py3.12.txt \
         just _test
-    # TODO: Also build Capytaine in this environment?
 
 test_in_nightly_env:
     uv run \
@@ -116,7 +115,6 @@ test_in_nightly_env:
         just _test
     # "--index-strategy unsafe-best-match" means uv should not ignore wheels
     # from PyPI during universal resolution
-    # TODO: Also build Capytaine in this environment?
 
 # How the requirements files from the above recipes where generated.
 create_test_env_file python="3.8" date="2023-08-01":
