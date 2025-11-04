@@ -160,22 +160,22 @@ class BlockDiagonalMatrix:
 MatrixLike = Union[np.ndarray, BlockDiagonalMatrix, BlockCirculantMatrix]
 
 
-def lu_decompose(A: MatrixLike, ovewrite_a : bool = False):
+def lu_decompose(A: MatrixLike, *, overwrite_a : bool = False):
     if isinstance(A, np.ndarray):
-        return LUDecomposedMatrix(A, ovewrite_a)
+        return LUDecomposedMatrix(A, overwrite_a=overwrite_a)
     elif isinstance(A, BlockDiagonalMatrix):
-        return LUDecomposedBlockDiagonalMatrix(A, ovewrite_a)
+        return LUDecomposedBlockDiagonalMatrix(A, overwrite_a=overwrite_a)
     elif isinstance(A, BlockCirculantMatrix):
-        return LUDecomposedBlockCirculantMatrix(A, ovewrite_a)
+        return LUDecomposedBlockCirculantMatrix(A, overwrite_a=overwrite_a)
     else:
         raise NotImplementedError()
 
 
 class LUDecomposedMatrix:
-    def __init__(self, A: NDArray, ovewrite_a : bool = False):
+    def __init__(self, A: NDArray, *, overwrite_a : bool = False):
         LOG.debug("LU decomp of %s of shape %s",
                   A.__class__.__name__, A.shape)
-        self._lu_decomp = sl.lu_factor(A, overwrite_a = ovewrite_a)
+        self._lu_decomp = sl.lu_factor(A, overwrite_a=overwrite_a)
         self.shape = A.shape
 
     def solve(self, b: np.ndarray) -> np.ndarray:
@@ -187,10 +187,10 @@ class LUDecomposedMatrix:
 class LUDecomposedBlockDiagonalMatrix:
     """LU decomposition of a BlockDiagonalMatrix,
     stored as the LU decomposition of each block."""
-    def __init__(self, bdm: BlockDiagonalMatrix, ovewrite_a : bool = False):
+    def __init__(self, bdm: BlockDiagonalMatrix, *, overwrite_a : bool = False):
         LOG.debug("LU decomp of %s of shape %s",
                   bdm.__class__.__name__, bdm.shape)
-        self._lu_decomp = [lu_decompose(bl, ovewrite_a) for bl in bdm.blocks]
+        self._lu_decomp = [lu_decompose(bl, overwrite_a=overwrite_a) for bl in bdm.blocks]
         self.shape = bdm.shape
         self.nb_blocks = bdm.nb_blocks
 
@@ -203,10 +203,10 @@ class LUDecomposedBlockDiagonalMatrix:
 
 
 class LUDecomposedBlockCirculantMatrix:
-    def __init__(self, bcm: BlockCirculantMatrix, ovewrite_a : bool = False):
+    def __init__(self, bcm: BlockCirculantMatrix, *, overwrite_a : bool = False):
         LOG.debug("LU decomp of %s of shape %s",
                   bcm.__class__.__name__, bcm.shape)
-        self._lu_decomp = lu_decompose(bcm.block_diagonalize(), ovewrite_a)
+        self._lu_decomp = lu_decompose(bcm.block_diagonalize(), overwrite_a=overwrite_a)
         self.shape = bcm.shape
         self.nb_blocks = bcm.nb_blocks
 
