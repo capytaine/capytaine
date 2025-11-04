@@ -240,17 +240,23 @@ def test_integrated_pressure(solver, result):
     forces = result.body.integrate_pressure(pressure)
     assert result.forces == approx(forces)
 
-def test_fse_zero_frequency(solver):
+@pytest.mark.parametrize("omega", [0.0, np.inf])
+def test_post_processing_limit_frequency(solver, omega):
+    from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
     mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
     body = cpt.FloatingBody(mesh=mesh)
     body.add_translation_dof(name="Heave")
-    pb = cpt.RadiationProblem(body=body, omega=0.0, radiating_dof="Heave")
+    pb = cpt.RadiationProblem(body=body, omega=omega, radiating_dof="Heave")
     res = solver.solve(pb, keep_details=True)
     points = -np.random.rand(10, 3)
     pot = solver.compute_potential(points, res)
+    assert isinstance(pot, SymbolicMultiplication) and isinstance(pot/pb.omega, np.ndarray)
+    press = solver.compute_pressure(points, res)
+    assert isinstance(press, SymbolicMultiplication) and isinstance(press/(pb.omega*pb.omega), np.ndarray)
     fse = solver.compute_free_surface_elevation(points, res)
-    with pytest.raises(TypeError):
-        vel = solver.compute_velocity(points, res)
+    assert isinstance(fse, SymbolicMultiplication) and isinstance(fse/(pb.omega*pb.omega), np.ndarray)
+    vel = solver.compute_velocity(points, res)
+    assert isinstance(vel, SymbolicMultiplication) and isinstance(vel/(pb.omega), np.ndarray)
 
 def test_direct_solver(solver):
     mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()

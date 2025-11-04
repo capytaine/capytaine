@@ -24,11 +24,20 @@ class SymbolicMultiplication:
     __array_priority__ = 1.0
 
     def __array_function__(self, func, types, *args, **kwargs):
-        if func in {np.real, np.imag, np.sum}:
+        actual_args = args[0]  # args = (actual_args, kwargs) for some reason
+        if func in {np.real, np.imag, np.sum} and len(actual_args) == 1 and len(kwargs) == 0:
             return SymbolicMultiplication(self.symbol, func(self.value))
+        elif (
+                func in {np.einsum} and
+                len([a for a in actual_args if isinstance(a, SymbolicMultiplication)]) == 1 and
+                "out" not in kwargs
+                ):
+            # Einsum with one of the array being wrapped in SymbolicMultiplication
+            unwrapped = [a.value if isinstance(a, SymbolicMultiplication) else a for a in actual_args]
+            return SymbolicMultiplication(self.symbol, func(*unwrapped, **kwargs))
         else:
             return NotImplemented
-        
+
     def astype(self, proper_type):
         return SymbolicMultiplication(self.symbol, proper_type(self.value))
 
