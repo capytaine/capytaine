@@ -1,5 +1,4 @@
 import pytest
-from itertools import combinations
 
 import numpy as np
 import capytaine as cpt
