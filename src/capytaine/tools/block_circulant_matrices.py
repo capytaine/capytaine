@@ -177,6 +177,7 @@ class LUDecomposedMatrix:
                   A.__class__.__name__, A.shape)
         self._lu_decomp = sl.lu_factor(A, overwrite_a=overwrite_a)
         self.shape = A.shape
+        self.dtype = A.dtype
 
     def solve(self, b: np.ndarray) -> np.ndarray:
         LOG.debug("Called solve on %s of shape %s",
@@ -193,6 +194,7 @@ class LUDecomposedBlockDiagonalMatrix:
         self._lu_decomp = [lu_decompose(bl, overwrite_a=overwrite_a) for bl in bdm.blocks]
         self.shape = bdm.shape
         self.nb_blocks = bdm.nb_blocks
+        self.dtype = bdm.dtype
 
     def solve(self, b: np.ndarray) -> np.ndarray:
         LOG.debug("Called solve on %s of shape %s",
@@ -209,6 +211,7 @@ class LUDecomposedBlockCirculantMatrix:
         self._lu_decomp = lu_decompose(bcm.block_diagonalize(), overwrite_a=overwrite_a)
         self.shape = bcm.shape
         self.nb_blocks = bcm.nb_blocks
+        self.dtype = bcm.dtype
 
     def solve(self, b: np.ndarray) -> np.ndarray:
         LOG.debug("Called solve on %s of shape %s",

@@ -14,8 +14,13 @@ New in version 3.0 (2025-??-??)
 Minor changes
 ~~~~~~~~~~~~~
 
-* Add option :code:`'lu_decompositon_with_overwrite'` for the :code:`linear_solver` of :class:`~capytaine.bem.engines.BasicMatrixEngine`, which reduces the RAM usage of the solver (:pull:`775`).
+* Add option :code:`'lu_decomposition_with_overwrite'` for the :code:`linear_solver` of :class:`~capytaine.bem.engines.BasicMatrixEngine`, which reduces the RAM usage of the solver (:pull:`775`).
 
+Bug fixes
+~~~~~~~~~
+
+* Fix type of the right-hand-side of the linear solver when using option :code:`floating_point_precision = 'float32'` in :class:`~capytaine.green_functions.delhommeau.Delhommeau`.
+  As a consequence, the whole computation is done in single precision and the RAM usage is lower as expected. (:pull:`774`)
 
 Internals
 ~~~~~~~~~
