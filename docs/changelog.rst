@@ -12,6 +12,11 @@ Changelog
 New in version 3.0 (2025-??-??)
 -------------------------------
 
+Minor changes
+~~~~~~~~~~~~~
+
+* Add option :code:`'lu_decompositon_with_overwrite'` for the :code:`linear_solver` of :class:`~capytaine.bem.engines.BasicMatrixEngine`, which reduces the RAM usage of the solver (:pull:`775`).
+
 
 Internals
 ~~~~~~~~~
@@ -92,9 +97,6 @@ Minor change
 * Add ``timer`` attribute to :class:`~capytaine.bem.solver.BEMSolver` storing the time spent in each steps of the resolution. Summary can be accessed by :meth:`~capytaine.bem.solver.BEMSolver.timer_summary`. (:pull:`674`)
 
 * Add :func:`~capytaine.io.wamit.export_to_wamit` as a unified interface to export hydrodynamic results to WAMIT-compatible files. (:pull:`714`)
-
-* Add option :code:`'lu_decompositon_with_overwrite'` for the :code:`linear_solver` of :class:`~capytaine.bem.engines.BasicMatrixEngine`
-
 
 Bug fixes
 ~~~~~~~~~
