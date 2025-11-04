@@ -74,3 +74,34 @@ def test_custom_linear_solver_returning_wrong_shape(method):
     )
     with pytest.raises(ValueError):
         my_bem_solver.solve(problem)
+
+
+def test_all_linear_solvers_work():
+    """Test that all built-in linear solvers work i.e. "lu_decomposition", "lu_decomposition_with_overwrite" and "gmres"."""
+    sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(4, 3)).immersed_part())
+    sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
+    problem = cpt.RadiationProblem(body=sphere, omega=1.0, water_depth=np.inf)
+
+    bem_solver_lu = cpt.BEMSolver(
+        engine=cpt.BasicMatrixEngine(linear_solver="lu_decomposition")
+    )
+
+    result_lu = bem_solver_lu.solve(problem)
+
+    bem_solver_lu_with_overwrite = cpt.BEMSolver(
+        engine=cpt.BasicMatrixEngine(linear_solver="lu_decomposition_with_overwrite")
+    )
+
+    result_lu_with_overwrite = bem_solver_lu_with_overwrite.solve(problem)
+
+    bem_solver_gmres = cpt.BEMSolver(
+        engine=cpt.BasicMatrixEngine(linear_solver="lu_decomposition")
+    )
+
+    result_gmres = bem_solver_gmres.solve(problem)
+
+    assert np.isclose(
+        result_lu.added_masses["Surge"], result_lu_with_overwrite.added_masses["Surge"]
+    ) and np.isclose(
+        result_lu.added_masses["Surge"], result_gmres.added_masses["Surge"]
+    )

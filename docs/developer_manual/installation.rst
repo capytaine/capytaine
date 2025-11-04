@@ -93,66 +93,67 @@ Alternatively, the source code can be directly downloaded from Github web interf
 Several options are available to get a Fortran compiler.
 Please choose below the most relevant to your case.
 
-.. collapse:: GFortran compiler on Linux or Windows Subsystem for Linux
+.. tabs::
+   .. tab:: Linux or WSL
 
-    You can install ``gfortran`` with the package
-    manager of your distribution. For instance on Debian or Ubuntu::
+       You can install ``gfortran`` with the package
+       manager of your distribution. For instance on Debian or Ubuntu::
 
-        sudo apt install gfortran
+           sudo apt install gfortran
 
-    Alternatively, ``gfortran`` is also available from the ``conda-forge``
-    channel of the Conda package repository::
+       Alternatively, ``gfortran`` is also available from the ``conda-forge``
+       channel of the Conda package repository::
 
-        conda install -c conda-forge gfortran
-
-
-.. collapse:: GFortran compiler on macOS
-
-    You can install ``gfortran`` via `Homebrew`_::
-
-        brew install gcc
-
-    Make sure that the compilers installed by Homebrew are in you path (e.g.,
-    :code:`which gcc`); this can be accomplished by adding the relevant
-    directories to your path::
-
-        export PATH="/usr/local/bin:$PATH"
-
-    or through the use of aliases, e.g.,::
-
-        alias gcc=/usr/local/bin/gcc-10
-
-.. _`Homebrew`: https://brew.sh
+           conda install -c conda-forge gfortran
 
 
-.. collapse:: GFortran on Windows
+   .. tab:: macOS
 
-   The GNU toolchain, including ``gfortran`` can be installed with the help of ``conda``::
+       You can install ``gfortran`` via `Homebrew`_::
 
-        conda install -c conda-forge m2w64-toolchain
+           brew install gcc
+
+       Make sure that the compilers installed by Homebrew are in you path (e.g.,
+       :code:`which gcc`); this can be accomplished by adding the relevant
+       directories to your path::
+
+           export PATH="/usr/local/bin:$PATH"
+
+       or through the use of aliases, e.g.,::
+
+           alias gcc=/usr/local/bin/gcc-10
+
+   .. _`Homebrew`: https://brew.sh
 
 
-.. collapse:: Intel compiler on Windows
+   .. tab:: Windows (GFortran)
 
-    Microsoft Visual Studio is required for linking the Fortran binaries
+      The GNU toolchain, including ``gfortran`` can be installed with the help of ``conda``::
 
-        * https://visualstudio.microsoft.com/downloads/
-        * During installation check the box to include :code:`Desktop development with C++`
+           conda install -c conda-forge m2w64-toolchain
 
-    Intel oneAPI HPC toolkit is required for compiling the Fortran binaries (you do not need the base kit)
 
-        * https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit-download.html
-        * Install to the default file location
+   .. tab:: Windows (Intel)
 
-    Create a ``LIB`` environment variable to point towards the intel directory for compiler ``.lib`` files
+       Microsoft Visual Studio is required for linking the Fortran binaries
 
-        * If oneAPI is installed to the default location, assign the LIB user variable a value of::
+           * https://visualstudio.microsoft.com/downloads/
+           * During installation check the box to include :code:`Desktop development with C++`
 
-            C:\Program Files (x86)\Intel\oneAPI\compiler\2022.1.0\windows\compiler\lib\intel64_win
+       Intel oneAPI HPC toolkit is required for compiling the Fortran binaries (you do not need the base kit)
 
-        * If oneAPI is installed to a different location then adjust the path above as necessary
+           * https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit-download.html
+           * Install to the default file location
 
-    Test if your Fortran compiler was installed correctly by entering :code:`ifort` on your command line
+       Create a ``LIB`` environment variable to point towards the intel directory for compiler ``.lib`` files
+
+           * If oneAPI is installed to the default location, assign the LIB user variable a value of::
+
+               C:\Program Files (x86)\Intel\oneAPI\compiler\2022.1.0\windows\compiler\lib\intel64_win
+
+           * If oneAPI is installed to a different location then adjust the path above as necessary
+
+       Test if your Fortran compiler was installed correctly by entering :code:`ifort` on your command line
 
 
 Once you have a Fortran compiler installed, the same instructions as above can be used to install the Python dependencies of Capytaine::

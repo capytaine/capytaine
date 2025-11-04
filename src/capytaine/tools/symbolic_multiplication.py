@@ -11,7 +11,6 @@ output of the form `SymbolicMultiplication("0", np.array(...))`
 import numpy as np
 from functools import wraps, total_ordering
 
-@total_ordering
 class SymbolicMultiplication:
     def __init__(self, symbol, value=1.0):
         self.symbol = symbol
@@ -85,11 +84,26 @@ class SymbolicMultiplication:
     def __getitem__(self, item):
         return SymbolicMultiplication(self.symbol, self.value[item])
 
-    def __eq__(self, x):
-        return float(self) == x
+    def __setitem__(self, item, val):
+        if isinstance(val, SymbolicMultiplication) and self.symbol == val.symbol:
+            self.value.__setitem__(item, val.value)
+        else:
+            raise NotImplementedError
 
     def __lt__(self, x):
-        return float(self) < x
+        return self._concretize() < x
+
+    def __le__(self, x):
+        return self._concretize() <= x
+
+    def __eq__(self, x):
+        return self._concretize() == x
+
+    def __ge__(self, x):
+        return self._concretize() >= x
+
+    def __gt__(self, x):
+        return self._concretize() > x
 
     def __hash__(self):
         return hash((self.symbol, self.value))
