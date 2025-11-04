@@ -11,6 +11,12 @@ Changelog
 New in version 3.0 (2025-??-??)
 -------------------------------
 
+Minor changes
+~~~~~~~~~~~~~
+
+* Add option :code:`'lu_decompositon_with_overwrite'` for the :code:`linear_solver` of :class:`~capytaine.bem.engines.BasicMatrixEngine`, which reduces the RAM usage of the solver (:pull:`775`).
+
+
 Internals
 ~~~~~~~~~
 
