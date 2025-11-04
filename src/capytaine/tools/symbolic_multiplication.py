@@ -29,6 +29,9 @@ class SymbolicMultiplication:
             return SymbolicMultiplication(self.symbol, func(self.value))
         else:
             return NotImplemented
+        
+    def astype(self, proper_type):
+        return SymbolicMultiplication(self.symbol, proper_type(self.value))
 
     def __str__(self):
         return f"{self.symbol}×{self.value}"

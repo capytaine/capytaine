@@ -159,7 +159,8 @@ class BEMSolver:
                         )
             rhs = S @ problem.boundary_condition
             with self.timer["  Linear solver"]:
-                potential = linear_solver(D, rhs.astype(D.dtype))
+                proper_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(D.dtype.type)
+                potential = linear_solver(D, rhs.astype(proper_type))
             pressure = 1j * omega * problem.rho * potential
             sources = None
         else:
@@ -171,7 +172,8 @@ class BEMSolver:
                         )
             
             with self.timer["  Linear solver"]:
-                sources = linear_solver(K, problem.boundary_condition.astype(K.dtype))
+                proper_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(K.dtype.type)
+                sources = linear_solver(K, problem.boundary_condition.astype(proper_type))
             potential = S @ sources
             pressure = 1j * omega * problem.rho * potential
             if problem.forward_speed != 0.0:
