@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import logging
+from typing import List
 from itertools import chain
 
 import numpy as np
@@ -151,7 +152,7 @@ def indices_of_non_convex_faces(vertices, faces):
 
 
 def mesh_to_pyvista(
-    vertices: np.ndarray, faces: list[list[int]]
+    vertices: np.ndarray, faces: List[List[int]]
 ) -> "pv.UnstructuredGrid":
     """
     Build a PyVista UnstructuredGrid from a list of faces (triangles or quads).

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-from typing import List
+from typing import List, Tuple, Dict
 
 import numpy as np
 from scipy.spatial import cKDTree
@@ -23,7 +23,7 @@ LOG = logging.getLogger(__name__)
 
 def clean_mesh(
     vertices: np.ndarray, faces: List[List[int]], max_iter: int = 5, tol: float = 1e-8
-) -> tuple[np.ndarray, List[List[int]]]:
+) -> Tuple[np.ndarray, List[List[int]]]:
     """Iteratively clean a mesh by applying geometric simplifications.
 
     Parameters
@@ -56,7 +56,7 @@ def clean_mesh(
 
 def clean_mesh_once(
     vertices: np.ndarray, faces: List[List[int]], tol: float = 1e-10
-) -> tuple[np.ndarray, List[List[int]]]:
+) -> Tuple[np.ndarray, List[List[int]]]:
     """Run a single cleaning pass on the mesh data.
 
     Parameters
@@ -122,7 +122,7 @@ def clean_mesh_once(
 
 def merge_near_duplicate_vertices(
     vertices: np.ndarray, faces: List[List[int]], tol: float = 1e-8
-) -> tuple[np.ndarray, List[List[int]]]:
+) -> Tuple[np.ndarray, List[List[int]]]:
     """Merge vertices that are closer than a tolerance.
 
     Parameters
@@ -161,7 +161,7 @@ def merge_near_duplicate_vertices(
 
 def remove_duplicate_vertices(
     vertices: np.ndarray, faces: List[List[int]]
-) -> tuple[np.ndarray, List[List[int]]]:
+) -> Tuple[np.ndarray, List[List[int]]]:
     """Remove exactly repeated vertices and remap faces accordingly.
 
     Parameters
@@ -230,8 +230,8 @@ def warn_superimposed_faces(
     if not faces or len(faces) < 2:
         return
 
-    keyed_faces: dict[tuple, tuple[int, np.ndarray]] = {}
-    duplicates: list[tuple[int, int, float]] = []
+    keyed_faces: Dict[Tuple, Tuple[int, np.ndarray]] = {}
+    duplicates: List[Tuple[int, int, float]] = []
     scale = 1.0 / max(tol, 1e-12)
 
     for idx, face in enumerate(faces):
@@ -264,7 +264,7 @@ def warn_superimposed_faces(
 
 def remove_unused_vertices(
     vertices: np.ndarray, faces: List[List[int]]
-) -> tuple[np.ndarray, List[List[int]]]:
+) -> Tuple[np.ndarray, List[List[int]]]:
     """Remove vertices that are not referenced by any face.
 
     Parameters

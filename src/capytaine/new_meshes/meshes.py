@@ -459,7 +459,7 @@ class Mesh:
         return np.array(faces_as_quad, dtype=int)
 
     @property
-    def quadrature_points(self) -> tuple[np.ndarray, np.ndarray]:
+    def quadrature_points(self) -> Tuple[np.ndarray, np.ndarray]:
         """Quadrature points and weights for numerical integration.
 
         Returns
