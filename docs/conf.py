@@ -50,8 +50,9 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'sphinx_toolbox.collapse',
-    'sphinxcontrib.proof',
+    'sphinx_tabs.tabs',
+    'sphinx_proof',
+    'sphinx_copybutton',
     'sphinxcontrib.mermaid',
 ]
 

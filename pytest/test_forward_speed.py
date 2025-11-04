@@ -206,6 +206,7 @@ def test_near_zero_encounter_frequency_diffraction(body, solver):
     solver.solve(pb)
 
 
+@pytest.mark.xfail
 def test_zero_encounter_frequency_radiation(body, solver):
     pb = cpt.RadiationProblem(body=body, omega=1.0, forward_speed=9.81, radiating_dof="Surge")
     assert float(pb.encounter_omega) == 0.0

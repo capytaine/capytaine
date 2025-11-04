@@ -84,13 +84,27 @@ class ReflectionSymmetricMesh(SymmetricMesh):
     def __deepcopy__(self, *args):
         return ReflectionSymmetricMesh(self.half.copy(), self.plane, name=self.name)
 
-    def join_meshes(*meshes, name=None):
+    def join_meshes(*meshes, name=None, return_masks=False):
         assert all(isinstance(mesh, ReflectionSymmetricMesh) for mesh in meshes), \
             "Only meshes with the same symmetry can be joined together."
         assert all(meshes[0].plane == mesh.plane for mesh in meshes), \
             "Only reflection symmetric meshes with the same reflection plane can be joined together."
-        half_mesh = meshes[0].half.join_meshes(*(mesh.half for mesh in meshes[1:]), name=f"half_of_{name}" if name is not None else None)
-        return ReflectionSymmetricMesh(half_mesh, plane=meshes[0].plane, name=name)
+        if not return_masks:
+            name = name=f"half_of_{name}" if name is not None else None
+            half_mesh = meshes[0].half.join_meshes(
+                *(mesh.half for mesh in meshes[1:]),
+                name=name, return_masks=False
+            )
+            return ReflectionSymmetricMesh(half_mesh, plane=meshes[0].plane, name=name)
+        else:
+            name = name=f"half_of_{name}" if name is not None else None
+            half_mesh, half_masks = meshes[0].half.join_meshes(
+                *(mesh.half for mesh in meshes[1:]),
+                name=name, return_masks=True
+            )
+            masks = [np.concatenate([half_mask, half_mask]) for half_mask in half_masks]
+            joined = ReflectionSymmetricMesh(half_mesh, plane=meshes[0].plane, name=name)
+            return joined, masks
 
     @inplace_transformation
     def translate(self, vector):
@@ -203,15 +217,43 @@ class TranslationalSymmetricMesh(SymmetricMesh):
         CollectionOfMeshes.mirror(self, plane)
         return self
 
-    def join_meshes(*meshes, name=None):
+    def join_meshes(*meshes, name=None, return_masks=False):
         assert all(isinstance(mesh, TranslationalSymmetricMesh) for mesh in meshes), \
             "Only meshes with the same symmetry can be joined together."
         assert all(np.allclose(meshes[0].translation, mesh.translation) for mesh in meshes), \
             "Only translation symmetric meshes with the same translation vector can be joined together."
         assert all(len(meshes[0]) == len(mesh) for mesh in meshes), \
             "Only symmetric meshes with the same number of elements can be joined together."
-        mesh_strip = CollectionOfMeshes([mesh.first_slice for mesh in meshes], name=f"strip_of_{name}" if name is not None else None)
-        return TranslationalSymmetricMesh(mesh_strip, translation=meshes[0].translation, nb_repetitions=len(meshes[0]) - 1, name=name)
+        if not return_masks:
+            strip_name = f"strip_of_{name}" if name is not None else None
+            mesh_strip = meshes[0].first_slice.join_meshes(
+                *(mesh.first_slice for mesh in meshes[1:]),
+                name=strip_name,
+                return_masks=False
+            )
+            return TranslationalSymmetricMesh(
+                mesh_strip,
+                translation=meshes[0].translation,
+                nb_repetitions=len(meshes[0]) - 1,
+                name=name
+            )
+        else:
+            strip_name = f"strip_of_{name}" if name is not None else None
+            mesh_strip, strip_masks = meshes[0].first_slice.join_meshes(
+                *(mesh.first_slice for mesh in meshes[1:]),
+                name=strip_name,
+                return_masks=True
+            )
+            joined = TranslationalSymmetricMesh(
+                mesh_strip,
+                translation=meshes[0].translation,
+                nb_repetitions=len(meshes[0]) - 1,
+                name=name
+            )
+            masks = [np.concatenate([
+                strip_mask for _ in range(len(meshes[0]))
+            ]) for strip_mask in strip_masks]
+            return joined, masks
 
 
 def build_regular_array_of_meshes(base_mesh, distance, nb_bodies):
@@ -363,15 +405,43 @@ class AxialSymmetricMesh(SymmetricMesh):
     def __deepcopy__(self, *args):
         return AxialSymmetricMesh(self.first_slice.copy(), axis=self.axis.copy(), nb_repetitions=len(self) - 1, name=self.name)
 
-    def join_meshes(*meshes, name=None):
+    def join_meshes(*meshes, name=None, return_masks=False):
         assert all(isinstance(mesh, AxialSymmetricMesh) for mesh in meshes), \
             "Only meshes with the same symmetry can be joined together."
         assert all(meshes[0].axis == mesh.axis for mesh in meshes), \
             "Only axisymmetric meshes with the same symmetry axis can be joined together."
         assert all(len(meshes[0]) == len(mesh) for mesh in meshes), \
             "Only axisymmetric meshes with the same number of elements can be joined together."
-        mesh_slice = CollectionOfMeshes([mesh.first_slice for mesh in meshes], name=f"slice_of_{name}" if name is not None else None)
-        return AxialSymmetricMesh(mesh_slice, axis=meshes[0].axis, nb_repetitions=len(meshes[0]) - 1, name=name)
+        if not return_masks:
+            slice_name = f"slice_of_{name}" if name is not None else None
+            mesh_slice = meshes[0].first_slice.join_meshes(
+                *(mesh.first_slice for mesh in meshes[1:]),
+                name=slice_name,
+                return_masks=False
+            )
+            return AxialSymmetricMesh(
+                mesh_slice,
+                axis=meshes[0].axis,
+                nb_repetitions=len(meshes[0]) - 1,
+                name=name
+            )
+        else:
+            slice_name = f"slice_of_{name}" if name is not None else None
+            mesh_slice, slice_masks = meshes[0].first_slice.join_meshes(
+                *(mesh.first_slice for mesh in meshes[1:]),
+                name=slice_name,
+                return_masks=True
+            )
+            joined = AxialSymmetricMesh(
+                mesh_slice,
+                axis=meshes[0].axis,
+                nb_repetitions=len(meshes[0]) - 1,
+                name=name
+            )
+            masks = [np.concatenate([
+                slice_mask for _ in range(len(meshes[0]))
+            ]) for slice_mask in slice_masks]
+            return joined, masks
 
     @inplace_transformation
     def translate(self, vector):
