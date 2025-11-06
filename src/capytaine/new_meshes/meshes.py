@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import logging
+from functools import cached_property
 from typing import List
 
 import numpy as np
@@ -27,7 +28,7 @@ from .geometry import (
     get_vertices_face,
 )
 from .clean import clean_mesh
-from .quality import check_mesh_quality
+from .quality import _is_valid, check_mesh_quality
 
 LOG = logging.getLogger(__name__)
 
@@ -80,32 +81,43 @@ class Mesh:
         self.name = str(name) if name is not None else None
 
         # Skip cleaning/quality if mesh is completely empty
-        n_faces = len(self._faces)
-        n_vertices = len(self.vertices)
-        if not (n_vertices == 0 and n_faces == 0):
+        if not (len(self.vertices) == 0 and len(self._faces) == 0):
+            if not _is_valid(vertices, faces):
+                raise ValueError(
+                    "Mesh is invalid: faces contain out-of-bounds or negative indices."
+                )
+
+            if np.any(np.isnan(vertices)):
+                raise ValueError(
+                    "Mesh is invalid: vertices coordinates contains NaN values."
+                )
+
             if auto_clean:
-                self._clean()
+                self.vertices, self._faces = clean_mesh(
+                    self.vertices, self._faces, max_iter=5, tol=1e-8
+                )
+
             if auto_check:
-                self.check_quality()
+                check_mesh_quality(self.vertices, self._faces)
 
     ## MAIN METRICS AND DISPLAY
 
-    @property
+    @cached_property
     def nb_vertices(self) -> int:
         """Number of vertices in the mesh."""
         return len(self.vertices)
 
-    @property
+    @cached_property
     def nb_faces(self) -> int:
         """Number of faces in the mesh."""
         return len(self._faces)
 
-    @property
+    @cached_property
     def nb_triangles(self) -> int:
         """Number of triangular faces (3-vertex) in the mesh."""
         return sum(1 for f in self._faces if len(f) == 3)
 
-    @property
+    @cached_property
     def nb_quads(self) -> int:
         """Number of quadrilateral faces (4-vertex) in the mesh."""
         return sum(1 for f in self._faces if len(f) == 4)
@@ -274,7 +286,7 @@ class Mesh:
 
     ## INTERFACE FOR BEM SOLVER
 
-    @property
+    @cached_property
     def faces_vertices_centers(self) -> np.ndarray:
         """Calculate the center of vertices that form the faces.
 
@@ -295,7 +307,7 @@ class Mesh:
                 centers_vertices.append(mean)
         return np.array(centers_vertices)
 
-    @property
+    @cached_property
     def faces_normals(self) -> np.ndarray:
         """Normal vectors for each face.
 
@@ -306,7 +318,7 @@ class Mesh:
         """
         return compute_faces_normals(self.vertices, self._faces)
 
-    @property
+    @cached_property
     def faces_areas(self) -> np.ndarray:
         """Surface area of each face.
 
@@ -317,7 +329,7 @@ class Mesh:
         """
         return compute_faces_areas(self.vertices, self._faces)
 
-    @property
+    @cached_property
     def faces_centers(self) -> np.ndarray:
         """Geometric centers of each face.
 
@@ -328,7 +340,7 @@ class Mesh:
         """
         return compute_faces_centers(self.vertices, self._faces)
 
-    @property
+    @cached_property
     def faces_radiuses(self) -> np.ndarray:
         """Radii of each face (circumradius or characteristic size).
 
@@ -339,7 +351,7 @@ class Mesh:
         """
         return compute_faces_radii(self.vertices, self._faces)
 
-    @property
+    @cached_property
     def faces(self) -> np.ndarray:
         """Face connectivity as quadrilateral array.
 
@@ -357,7 +369,7 @@ class Mesh:
         faces_as_quad = [f if len(f) == 4 else f + [f[-1]] for f in self._faces]
         return np.array(faces_as_quad, dtype=int)
 
-    @property
+    @cached_property
     def quadrature_points(self) -> Tuple[np.ndarray, np.ndarray]:
         """Quadrature points and weights for numerical integration.
 
@@ -381,19 +393,6 @@ class Mesh:
         tol : float, optional
             Tolerance for merging vertices and removing small faces. Defaults to 1e-8.
         """
-        self.vertices, self._faces = clean_mesh(
-            self.vertices, self._faces, max_iter, tol
-        )
-
-    def check_quality(self):
-        """Run geometric and metric quality checks on the mesh instance.
-
-        Notes
-        -----
-        Logs warnings for potential mesh quality issues such as degenerate faces,
-        non-manifold edges, or improper face orientations.
-        """
-        check_mesh_quality(self.vertices, self._faces)
 
     ## TRANSFORMATIONS
 

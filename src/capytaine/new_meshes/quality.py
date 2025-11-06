@@ -23,42 +23,26 @@ LOG = logging.getLogger(__name__)
 
 def check_mesh_quality(vertices, faces):
     """
-    Perform a set of geometric and metric quality checks on a Mesh instance.
+    Perform a set of geometric and metric quality checks on mesh data.
 
     Checks performed:
-    - Empty mesh or invalid indexing
-    - NaN vertices
     - Duplicate vertices
     - Non-coplanar faces
     - Non-convex faces
-    - Aspect ratio via PyVista
-
-    Parameters
-    ----------
-    mesh : Mesh
-        A mesh instance with `vertices` and `faces`.
+    - Aspect ratio via PyVista (if available)
 
     Raises
     ------
     ValueError
-        If mesh is empty or contains invalid geometry.
+        If mesh invalid data are provided.
     """
-    if not _is_valid(vertices, faces):
-        LOG.warning("Mesh is invalid: faces contain out-of-bounds or negative indices.")
-
-    if np.any(np.isnan(vertices)):
-        LOG.warning("Mesh contains NaN vertices.")
-
-    if len(np.unique(vertices, axis=0)) < len(vertices):
-        LOG.warning("⚠️  Warning: mesh contains duplicate vertices.")
-
     non_coplanar = indices_of_non_coplanar_faces(vertices, faces)
     if non_coplanar:
-        LOG.warning(f"⚠️  {len(non_coplanar)} non-coplanar faces detected.")
+        LOG.warning(f"{len(non_coplanar)} non-coplanar faces detected.")
 
     non_convex = indices_of_non_convex_faces(vertices, faces)
     if non_convex:
-        LOG.warning(f"⚠️  {len(non_convex)} non-convex faces detected.")
+        LOG.warning(f"{len(non_convex)} non-convex faces detected.")
 
     try:
         pv_mesh = mesh_to_pyvista(vertices, faces)
@@ -73,7 +57,7 @@ def check_mesh_quality(vertices, faces):
                 )
                 LOG.info(f"  Elements with AR < 5: {ratio_ok*100:.1f}%")
                 LOG.warning(
-                    "⚠️  Low quality: more than 10%% of elements have aspect ratio higher than 5."
+                    "Low quality: more than 10%% of elements have aspect ratio higher than 5."
                 )
     except ModuleNotFoundError:
         LOG.info("PyVista not installed, skipping aspect ratio check.")

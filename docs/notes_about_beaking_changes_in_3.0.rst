@@ -37,6 +37,8 @@ Main differences
 
   without any risk to overwriting the original ``full_mesh``.
 
+  Subsequently, the ``copy()`` method has been removed.
+
   The only usage of in-place transformations is for performance critical part of the code.
   Given that most hydrodynamical meshes are usually below 100k faces, Capytaine's mesh class is usually not the performance bottleneck.
   Computation intensive mesh transformations should be done with a dedicated meshing tool and not directly in Capytaine anyway.
