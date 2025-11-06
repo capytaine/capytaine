@@ -187,20 +187,20 @@ def test_effect_of_lid_on_regular_frequency_field_velocity(
 
 def test_lid_multibody(body_with_lid):
     two_bodies = body_with_lid + body_with_lid.translated_x(5.0)
-    assert isinstance(two_bodies.mesh, cpt.CollectionOfMeshes)
-    assert isinstance(two_bodies.lid_mesh, cpt.CollectionOfMeshes)
+    n = body_with_lid.mesh.nb_faces
+    nl = body_with_lid.lid_mesh.nb_faces
 
     # Check that the lid are still positioned on top of each component
     def horizontal_center(mesh):
         return mesh.faces_centers.mean(axis=0)[:2]
     np.testing.assert_allclose(
-        horizontal_center(two_bodies.lid_mesh[0]),
-        horizontal_center(two_bodies.mesh[0]),
+        horizontal_center(two_bodies.lid_mesh.extract_faces(list(range(0, nl)))),
+        horizontal_center(two_bodies.mesh.extract_faces(list(range(0, n)))),
         atol=1e-6
     )
     np.testing.assert_allclose(
-        horizontal_center(two_bodies.lid_mesh[1]),
-        horizontal_center(two_bodies.mesh[1]),
+        horizontal_center(two_bodies.lid_mesh.extract_faces(list(range(nl, 2*nl)))),
+        horizontal_center(two_bodies.mesh.extract_faces(list(range(n, 2*n)))),
         atol=1e-6
     )
 
