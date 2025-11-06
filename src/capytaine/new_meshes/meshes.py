@@ -381,19 +381,6 @@ class Mesh:
         """
         return (self.faces_centers.reshape((-1, 1, 3)), self.faces_areas.reshape(-1, 1))
 
-    ## QUALITY CHECK
-
-    def _clean(self, max_iter=5, tol=1e-8):
-        """Clean the mesh by applying geometric and topological simplifications iteratively.
-
-        Parameters
-        ----------
-        max_iter : int, optional
-            Maximum number of iterations to perform. Defaults to 5.
-        tol : float, optional
-            Tolerance for merging vertices and removing small faces. Defaults to 1e-8.
-        """
-
     ## TRANSFORMATIONS
 
     def extract_faces(self, faces_id, *, name=None) -> "Mesh":
