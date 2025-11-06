@@ -140,7 +140,7 @@ class Mesh:
     def __str__(self) -> str:
         return (f"Mesh(vertices=[[... {self.nb_vertices} vertices ...]], "
                 + f"faces=[[... {self.nb_faces} faces ...]]"
-                + f", name=\"{self.name}\")" if self.name is not None else ")")
+                + (f", name=\"{self.name}\")" if self.name is not None else ")"))
 
     def __short_str__(self) -> str:
         if self.name is not None:
@@ -551,3 +551,13 @@ class Mesh:
             return Mesh(vertices=self.vertices, faces=self.faces[:, ::-1], name=self.name)
         else:
             return self
+
+    def copy(self):
+        # No-op for backward compatibility
+        return self
+
+
+def to_new_mesh(old_mesh):
+    # Temporary method for testing new method while the former implementation
+    # is still the default
+    return Mesh(old_mesh.vertices, old_mesh.faces, old_mesh.name)

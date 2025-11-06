@@ -773,17 +773,19 @@ respective inertia coefficients are assigned as NaN.")
     def join_bodies(*bodies, name=None) -> 'FloatingBody':
         if name is None:
             name = "+".join(body.name for body in bodies)
-        meshes = CollectionOfMeshes(
-                [body.mesh.copy() for body in bodies],
+        meshes = bodies[0].mesh.join_meshes(
+                *(b.mesh.copy() for b in bodies[1:]),
                 name=f"{name}_mesh"
                 )
         if all(body.lid_mesh is None for body in bodies):
             lid_meshes = None
         else:
-            lid_meshes = CollectionOfMeshes(
-                    [body.lid_mesh.copy() for body in bodies if body.lid_mesh is not None],
-                    name=f"{name}_lid_mesh"
-                    )
+            lid_meshes = [body.lid_mesh.copy() for body in bodies if body.lid_mesh is not None]
+            lid_meshes = lid_meshes[0].join_meshes(
+                *(l.copy() for l in lid_meshes[1:]),
+                name=f"{name}_lid_mesh"
+                )
+
         dofs = FloatingBody.combine_dofs(bodies)
 
         if all(body.mass is not None for body in bodies):
