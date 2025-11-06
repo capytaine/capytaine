@@ -81,7 +81,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
                 LOG.warning("Lid mesh %s provided for body initialization is empty. The lid mesh is ignored.", lid_mesh)
                 self.lid_mesh = None
             else:
-                self.lid_mesh = lid_mesh.with_normal_vector_going_down()
+                self.lid_mesh = lid_mesh.with_normal_vector_going_down(inplace=False)
         else:
             self.lid_mesh = None
 

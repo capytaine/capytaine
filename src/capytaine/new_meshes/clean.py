@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 
 import numpy as np
 from scipy.spatial import cKDTree
@@ -107,8 +107,6 @@ def clean_mesh_once(
             f"Dropping {len(degenerate_faces)} degenerate faces with <3 vertices: "
             f"{degenerate_faces[:5]}{' ...' if len(degenerate_faces) > 5 else ''}"
         )
-
-    warn_superimposed_faces(vertices, new_faces, tol=tol)
 
     # 3) continue cleaning pipeline, all functions must accept List-of-lists too
     vertices, faces = remove_duplicate_vertices(vertices, new_faces)
@@ -210,56 +208,6 @@ def remove_duplicate_faces(faces: List[List[int]]) -> List[List[int]]:
             face_set.add(face_tuple)
             unique_faces.append(face)
     return unique_faces
-
-
-def warn_superimposed_faces(
-    vertices: np.ndarray, faces: List[List[int]], tol: float = 1e-8
-):
-    """Emit a warning when panels are duplicated within a tolerance.
-
-    Parameters
-    ----------
-    vertices : numpy.ndarray
-        Vertex coordinates of the mesh.
-    faces : list of list of int
-        Face connectivity referencing ``vertices``.
-    tol : float, default=1e-8
-        Tolerance used to determine whether two faces coincide.
-    """
-
-    if not faces or len(faces) < 2:
-        return
-
-    keyed_faces: Dict[Tuple, Tuple[int, np.ndarray]] = {}
-    duplicates: List[Tuple[int, int, float]] = []
-    scale = 1.0 / max(tol, 1e-12)
-
-    for idx, face in enumerate(faces):
-        coords = vertices[face]
-        quantized_points = [
-            tuple(np.round(pt * scale).astype(np.int64)) for pt in coords
-        ]
-        quantized = tuple(sorted(quantized_points))
-        sorted_coords = np.array(sorted(coords.tolist()))
-        key = (len(face), quantized)
-        if key in keyed_faces:
-            base_idx, base_coords = keyed_faces[key]
-            max_dev = float(
-                np.max(np.linalg.norm(sorted_coords - base_coords, axis=1))
-            )
-            duplicates.append((base_idx, idx, max_dev))
-        else:
-            keyed_faces[key] = (idx, sorted_coords)
-
-    if duplicates:
-        sample = duplicates[:3]
-        LOG.warning(
-            "Detected %d panels that are superimposed or nearly identical (tol=%.1e). "
-            "Example index pairs (i, j, max_dev): %s",
-            len(duplicates),
-            tol,
-            sample,
-        )
 
 
 def remove_unused_vertices(

@@ -80,7 +80,7 @@ class Mesh:
         # Optional name
         self.name = str(name) if name is not None else None
 
-        # Skip cleaning/quality if mesh is completely empty
+        # Cleaning/quality (unless mesh is completely empty)
         if not (len(self.vertices) == 0 and len(self._faces) == 0):
             if not _is_valid(vertices, faces):
                 raise ValueError(
@@ -522,7 +522,9 @@ class Mesh:
             name = None
         return self.join_meshes(other, name=name)
 
-    def with_normal_vector_going_down(self) -> "Mesh":
+    def with_normal_vector_going_down(self, **kwargs) -> "Mesh":
+        # Kwargs are for backward compatibility with former inplace implementation of this.
+        # It could be removed in the final release.
         """Ensure normal vectors point downward (negative z-direction).
 
         Returns

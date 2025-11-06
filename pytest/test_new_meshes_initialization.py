@@ -263,6 +263,7 @@ def test_faces_as_list_no_count_column():
             [1.0, 0.0, 0.0],
             [1.0, 1.0, 0.0],
             [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
         ]
     )
     # List input with values that could be misinterpreted as count
