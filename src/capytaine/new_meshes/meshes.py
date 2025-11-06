@@ -418,122 +418,73 @@ class Mesh:
         selected_faces = [all_faces[i] for i in faces_id]
         return Mesh.from_list_of_faces(selected_faces, name=name)
 
-    def translated(self, dx=0.0, dy=0.0, dz=0.0, *, name=None) -> "Mesh":
-        """Return a new Mesh translated along x, y, z axes.
+    def translated(self, shift, *, name=None) -> "Mesh":
+        """Return a new Mesh translated along vector-like `shift`."""
+        return Mesh(
+            vertices=self.vertices + np.asarray(shift),
+            faces=self._faces,
+            name=name
+        )
 
-        Parameters
-        ----------
-        dx : float, optional
-            Translation along the x-axis. Defaults to 0.0.
-        dy : float, optional
-            Translation along the y-axis. Defaults to 0.0.
-        dz : float, optional
-            Translation along the z-axis. Defaults to 0.0.
-        name: str, optional
-            A name for the new translated object
+    def translated_x(self, dx: float, *, name=None) -> "Mesh":
+        """Return a new Mesh translated in the x-direction along `dx`."""
+        return self.translated([dx, 0.0, 0.0], name=name)
 
-        Returns
-        -------
-        Mesh
-            New translated mesh instance.
-        """
-        shift = np.array([dx, dy, dz])
-        return Mesh(vertices=self.vertices + shift, faces=self._faces, name=name)
+    def translated_y(self, dy: float, *, name=None) -> "Mesh":
+        """Return a new Mesh translated in the y-direction along `dy`."""
+        return self.translated([0.0, dy, 0.0], name=name)
 
-    def rotated(
-        self,
-        angle: float = 0.0,
-        axis: str = "z",
-        angle_type: str = "rad",
-        rotation_matrix: np.ndarray = None,
-        *,
-        name=None
-    ) -> "Mesh":
-        """Return a new Mesh rotated either by an angle around an axis or by a provided rotation matrix.
+    def translated_z(self, dz: float, *, name=None) -> "Mesh":
+        """Return a new Mesh translated in the z-direction along `dz`."""
+        return self.translated([0.0, 0.0, dz], name=name)
 
-        Parameters
-        ----------
-        angle : float, optional
-            Angle of rotation. Interpreted in radians by default, unless angle_type is 'deg'.
-            Ignored if rotation_matrix is provided.
-        axis : str, optional
-            Axis of rotation: 'x', 'y', or 'z'. Ignored if rotation_matrix is provided.
-        angle_type : str, optional
-            Unit of the angle: 'rad' (default) or 'deg'.
-        rotation_matrix : np.ndarray, optional
-            Directly provide a 3x3 rotation matrix. If given, angle and axis are ignored.
-        name: str, optional
-            A name for the new translated object
-
-        Returns
-        -------
-        Mesh
-            New rotated mesh instance.
-        """
-        if rotation_matrix is not None:
-            if rotation_matrix.shape != (3, 3):
-                raise ValueError("rotation_matrix must be of shape (3, 3)")
-            R = rotation_matrix
-        else:
-            # Convert angle if needed
-            if angle_type == "deg":
-                angle = np.deg2rad(angle)
-            elif angle_type != "rad":
-                raise ValueError("angle_type must be 'rad' or 'deg'.")
-
-            c, s = np.cos(angle), np.sin(angle)
-            if axis == "x":
-                R = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
-            elif axis == "y":
-                R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
-            elif axis == "z":
-                R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
-            else:
-                raise ValueError("Axis must be 'x', 'y', or 'z'.")
-
-        # Apply rotation
+    def rotated_with_matrix(self, R, *, name=None) -> "Mesh":
+        """Return a new Mesh rotated using the provided 3×3 rotation matrix."""
         new_vertices = self.vertices @ R.T
         return Mesh(vertices=new_vertices, faces=self._faces, name=name)
 
+    def rotated_x(self, angle: float, *, name=None) -> "Mesh":
+        """Return a new Mesh rotated around the x-axis using the provided rotation angle in radians"""
+        c, s = np.cos(angle), np.sin(angle)
+        R = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+        return self.rotated_with_matrix(R, name=name)
 
-    def join_meshes(self, other: "Mesh", *, name=None) -> "Mesh":
+    def rotated_y(self, angle: float, *, name=None) -> "Mesh":
+        """Return a new Mesh rotated around the y-axis using the provided rotation angle in radians"""
+        c, s = np.cos(angle), np.sin(angle)
+        R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+        return self.rotated_with_matrix(R, name=name)
+
+    def rotated_z(self, angle: float, *, name=None) -> "Mesh":
+        """Return a new Mesh rotated around the z-axis using the provided rotation angle in radians"""
+        c, s = np.cos(angle), np.sin(angle)
+        R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
+        return self.rotated_with_matrix(R, name=name)
+
+    def join_meshes(*meshes: List["Mesh"], name=None) -> "Mesh":
         """Join two meshes and return a new Mesh instance.
 
         Parameters
         ----------
-        other : Mesh
-            Another mesh to combine with this one.
+        meshes : List[Mesh]
+            Meshes to be joined
         name: str, optional
             A name for the new object
 
         Returns
         -------
         Mesh
-            New mesh containing vertices and faces from both meshes.
+            New mesh containing vertices and faces from all meshes.
 
         See Also
         --------
         __add__ : Implements the + operator for mesh joining.
         """
-        if not isinstance(other, Mesh):
+        if not all(isinstance(m, Mesh) for m in meshes):
             raise TypeError("Only Mesh instances can be added together.")
 
-        # 1) Stack the vertices
-        offset = len(self.vertices)
-        new_vertices = np.vstack([self.vertices, other.vertices])
-
-        # 2) Offset each face index in `other.faces` by `offset`
-        #    and concatenate the two face‐lists
-        new_faces = []
-        # copy self._faces
-        for face in self._faces:
-            new_faces.append(list(face))
-        # offset other.faces
-        for face in other._faces:
-            new_faces.append([idx + offset for idx in face])
-
-        # 3) Return a new Mesh
-        return Mesh(vertices=new_vertices, faces=new_faces, name=name)
+        faces = sum((m.as_list_of_faces() for m in meshes), [])
+        return Mesh.from_list_of_faces(faces, name=name)
 
     def __add__(self, other: "Mesh") -> "Mesh":
         """Combine two meshes using the + operator.

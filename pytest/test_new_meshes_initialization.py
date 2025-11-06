@@ -125,12 +125,12 @@ def test_translation():
     v = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]])
     f = np.array([[0, 1, 2, 3]])
     mesh1 = meshes.Mesh(vertices=v, faces=f)
-    mesh2 = mesh1.translated(dx=1.0)
+    mesh2 = mesh1.translated_x(1.0)
     assert mesh2.nb_faces == mesh1.nb_faces
     assert np.allclose(mesh2.faces_normals, mesh1.faces_normals)
     assert np.allclose(mesh2.faces_centers, np.array([1.5, 0.5, 0.0]))
 
-    mesh3 = mesh1.translated(dz=1.0)
+    mesh3 = mesh1.translated_z(1.0)
     assert mesh2.nb_faces == mesh1.nb_faces
     assert np.allclose(mesh2.faces_normals, mesh1.faces_normals)
     assert np.allclose(mesh3.faces_centers, np.array([0.5, 0.5, 1.0]))
@@ -142,13 +142,13 @@ def test_rotation():
     f = np.array([[0, 1, 2, 3]])
     mesh1 = meshes.Mesh(vertices=v, faces=f)
 
-    mesh2 = mesh1.rotated(angle=np.pi / 2, axis="x")
+    mesh2 = mesh1.rotated_x(angle=np.pi / 2)
     assert np.allclose(mesh2.faces_normals, np.array([[0.0, -1.0, 0.0]]))
 
-    mesh3 = mesh1.rotated(angle=-np.pi / 2, axis="x")
+    mesh3 = mesh1.rotated_x(angle=-np.pi / 2)
     assert np.allclose(mesh3.faces_normals, np.array([[0.0, 1.0, 0.0]]))
 
-    mesh4 = mesh1.rotated(angle=np.pi, axis="x")
+    mesh4 = mesh1.rotated_x(angle=np.pi)
     assert np.allclose(mesh4.faces_normals, np.array([[0.0, 0.0, -1.0]]))
 
 
