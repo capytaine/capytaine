@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, List
+from typing import List
 
 import numpy as np
 
@@ -61,8 +61,9 @@ class Mesh:
     def __init__(
         self,
         vertices: np.ndarray = None,
-        faces: UnionList[List[int]] = None,
+        faces: Union[List[List[int]], np.ndarray] = None,
         name: str = None,
+        *,
         auto_clean: bool = True,
         auto_check: bool = True,
     ):
@@ -83,9 +84,76 @@ class Mesh:
         n_vertices = len(self.vertices)
         if not (n_vertices == 0 and n_faces == 0):
             if auto_clean:
-                self.clean()
+                self._clean()
             if auto_check:
                 self.check_quality()
+
+    ## MAIN METRICS AND DISPLAY
+
+    @property
+    def nb_vertices(self) -> int:
+        """Number of vertices in the mesh."""
+        return len(self.vertices)
+
+    @property
+    def nb_faces(self) -> int:
+        """Number of faces in the mesh."""
+        return len(self._faces)
+
+    @property
+    def nb_triangles(self) -> int:
+        """Number of triangular faces (3-vertex) in the mesh."""
+        return sum(1 for f in self._faces if len(f) == 3)
+
+    @property
+    def nb_quads(self) -> int:
+        """Number of quadrilateral faces (4-vertex) in the mesh."""
+        return sum(1 for f in self._faces if len(f) == 4)
+
+    def summary(self):
+        """Print a summary of the mesh properties.
+
+        Notes
+        -----
+        Displays the mesh name, vertex count, face count, and bounding box.
+        """
+        print("Mesh Summary")
+        print(f"  Name           : {self.name}")
+        print(f"  Vertices count : {self.nb_vertices}")
+        print(f"  Faces count    : {self.nb_faces}")
+        print(
+            f"  Bounding box     : {self.vertices.min(axis=0)} to {self.vertices.max(axis=0)}"
+        )
+
+    def __str__(self) -> str:
+        return (f"Mesh(vertices=[[... {self.nb_vertices} vertices ...]], "
+                + f"faces=[[... {self.nb_faces} faces ...]]"
+                + ", name=\"{self.name}\")" if self.name is not None else ")")
+
+    def __short_str__(self) -> str:
+        if self.name is not None:
+            return f"Mesh(..., name={self.name})"
+        else:
+            return "Mesh(...)"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__str__())
+
+    def __rich_repr__(self):
+        class CustomRepr:
+            def __init__(self, n, kind):
+                self.n = n
+                self.kind = kind
+            def __repr__(self):
+                return "[[... {} {} ...]]".format(self.n, self.kind)
+        yield "vertices", CustomRepr(self.nb_vertices, "vertices")
+        yield "faces", CustomRepr(self.nb_faces, "faces")
+        yield "name", self.name
+
+    ## INITIALISATION
 
     @staticmethod
     def _has_leading_count_column(arr: np.ndarray) -> bool:
@@ -147,7 +215,7 @@ class Mesh:
             return arr.tolist()
 
     @classmethod
-    def from_list_of_faces(cls, list_faces) -> "Mesh":
+    def from_list_of_faces(cls, list_faces, *, name=None) -> "Mesh":
         """
         Create a Mesh instance from a list of faces defined by vertex coordinates.
 
@@ -159,6 +227,8 @@ class Mesh:
                 [[x1, y1, z1], [x2, y2, z2], [x3, y3, z3]],
                 [[x4, y4, z4], [x5, y5, z5], [x6, y6, z6]]
             ]
+        name: str, optional
+            A name for the new mesh.
 
         Returns
         -------
@@ -181,7 +251,7 @@ class Mesh:
                 indexed_face.append(vertices_map[key])
             indexed_faces.append(indexed_face)
 
-        return cls(vertices=np.array(unique_vertices), faces=indexed_faces)
+        return cls(vertices=np.array(unique_vertices), faces=indexed_faces, name=name)
 
     def as_list_of_faces(self) -> List[List[List[float]]]:
         """
@@ -202,178 +272,7 @@ class Mesh:
             list_faces.append(face_coords)
         return list_faces
 
-    def extract_faces(self, faces_id) -> "Mesh":
-        """Extract a subset of faces by their indices and return a new Mesh instance.
-
-        Parameters
-        ----------
-        faces_id : array_like
-            Indices of faces to extract.
-
-        Returns
-        -------
-        Mesh
-            New mesh containing only the specified faces.
-        """
-        if isinstance(faces_id, np.ndarray):
-            faces_id = faces_id.ravel()
-        all_faces = self.as_list_of_faces()
-        selected_faces = [all_faces[i] for i in faces_id]
-        return Mesh.from_list_of_faces(selected_faces)
-
-    def clean(self, max_iter=5, tol=1e-8):
-        """Clean the mesh by applying geometric and topological simplifications iteratively.
-
-        Parameters
-        ----------
-        max_iter : int, optional
-            Maximum number of iterations to perform. Defaults to 5.
-        tol : float, optional
-            Tolerance for merging vertices and removing small faces. Defaults to 1e-8.
-        """
-        self.vertices, self._faces = clean_mesh(
-            self.vertices, self._faces, max_iter, tol
-        )
-
-    def check_quality(self):
-        """Run geometric and metric quality checks on the mesh instance.
-
-        Notes
-        -----
-        Logs warnings for potential mesh quality issues such as degenerate faces,
-        non-manifold edges, or improper face orientations.
-        """
-        check_mesh_quality(self.vertices, self._faces)
-
-    def translated(self, dx=0.0, dy=0.0, dz=0.0) -> "Mesh":
-        """Return a new Mesh translated along x, y, z axes.
-
-        Parameters
-        ----------
-        dx : float, optional
-            Translation along the x-axis. Defaults to 0.0.
-        dy : float, optional
-            Translation along the y-axis. Defaults to 0.0.
-        dz : float, optional
-            Translation along the z-axis. Defaults to 0.0.
-
-        Returns
-        -------
-        Mesh
-            New translated mesh instance.
-        """
-        shift = np.array([dx, dy, dz])
-        return Mesh(vertices=self.vertices + shift, faces=self._faces)
-
-    def rotated(
-        self,
-        angle: float = 0.0,
-        axis: str = "z",
-        angle_type: str = "rad",
-        rotation_matrix: np.ndarray = None,
-    ) -> "Mesh":
-        """Return a new Mesh rotated either by an angle around an axis or by a provided rotation matrix.
-
-        Parameters
-        ----------
-        angle : float, optional
-            Angle of rotation. Interpreted in radians by default, unless angle_type is 'deg'.
-            Ignored if rotation_matrix is provided.
-        axis : str, optional
-            Axis of rotation: 'x', 'y', or 'z'. Ignored if rotation_matrix is provided.
-        angle_type : str, optional
-            Unit of the angle: 'rad' (default) or 'deg'.
-        rotation_matrix : np.ndarray, optional
-            Directly provide a 3x3 rotation matrix. If given, angle and axis are ignored.
-
-        Returns
-        -------
-        Mesh
-            New rotated mesh instance.
-        """
-        if rotation_matrix is not None:
-            if rotation_matrix.shape != (3, 3):
-                raise ValueError("rotation_matrix must be of shape (3, 3)")
-            R = rotation_matrix
-        else:
-            # Convert angle if needed
-            if angle_type == "deg":
-                angle = np.deg2rad(angle)
-            elif angle_type != "rad":
-                raise ValueError("angle_type must be 'rad' or 'deg'.")
-
-            c, s = np.cos(angle), np.sin(angle)
-            if axis == "x":
-                R = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
-            elif axis == "y":
-                R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
-            elif axis == "z":
-                R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
-            else:
-                raise ValueError("Axis must be 'x', 'y', or 'z'.")
-
-        # Apply rotation
-        new_vertices = self.vertices @ R.T
-        return Mesh(vertices=new_vertices, faces=self._faces)
-
-    def summary(self):
-        """Print a summary of the mesh properties.
-
-        Notes
-        -----
-        Displays the mesh name, vertex count, face count, and bounding box.
-        """
-        print("Mesh Summary")
-        print(f"  Name           : {self.name}")
-        print(f"  Vertices count : {len(self.vertices)}")
-        print(f"  Faces count    : {len(self._faces)}")
-        print(
-            f"  Bounding box     : {self.vertices.min(axis=0)} to {self.vertices.max(axis=0)}"
-        )
-
-    @property
-    def nb_vertices(self) -> int:
-        """Number of vertices in the mesh.
-
-        Returns
-        -------
-        int
-            Count of vertices.
-        """
-        return len(self.vertices)
-
-    @property
-    def nb_faces(self) -> int:
-        """Number of faces in the mesh.
-
-        Returns
-        -------
-        int
-            Count of faces.
-        """
-        return len(self._faces)
-
-    @property
-    def nb_triangles(self) -> int:
-        """Number of triangular faces (3-vertex) in the mesh.
-
-        Returns
-        -------
-        int
-            Count of triangular faces.
-        """
-        return sum(1 for f in self._faces if len(f) == 3)
-
-    @property
-    def nb_quads(self) -> int:
-        """Number of quadrilateral faces (4-vertex) in the mesh.
-
-        Returns
-        -------
-        int
-            Count of quad faces.
-        """
-        return sum(1 for f in self._faces if len(f) == 4)
+    ## INTERFACE FOR BEM SOLVER
 
     @property
     def faces_vertices_centers(self) -> np.ndarray:
@@ -470,25 +369,142 @@ class Mesh:
         """
         return (self.faces_centers.reshape((-1, 1, 3)), self.faces_areas.reshape(-1, 1))
 
-    def __str__(self) -> str:
-        return (f"Mesh(vertices=[[... {self.nb_vertices} vertices ...]], "
-                f"faces=[[... {self.nb_faces} faces ...]], name=\"{self.name}\")")
+    ## QUALITY CHECK
 
-    def __short_str__(self) -> str:
-        return f"Mesh(..., name={self.name})"
+    def _clean(self, max_iter=5, tol=1e-8):
+        """Clean the mesh by applying geometric and topological simplifications iteratively.
 
-    def __repr__(self) -> str:
-        return f"Mesh with {len(self.vertices)} vertices and {len(self._faces)} faces"
-        return (f"Mesh(vertices=[[... {self.nb_vertices} vertices ...]], "
-                f"faces=[[... {self.nb_faces} faces ...]], name=\"{self.name}\")")
+        Parameters
+        ----------
+        max_iter : int, optional
+            Maximum number of iterations to perform. Defaults to 5.
+        tol : float, optional
+            Tolerance for merging vertices and removing small faces. Defaults to 1e-8.
+        """
+        self.vertices, self._faces = clean_mesh(
+            self.vertices, self._faces, max_iter, tol
+        )
 
-    def join_meshes(self, other: "Mesh") -> "Mesh":
+    def check_quality(self):
+        """Run geometric and metric quality checks on the mesh instance.
+
+        Notes
+        -----
+        Logs warnings for potential mesh quality issues such as degenerate faces,
+        non-manifold edges, or improper face orientations.
+        """
+        check_mesh_quality(self.vertices, self._faces)
+
+    ## TRANSFORMATIONS
+
+    def extract_faces(self, faces_id, *, name=None) -> "Mesh":
+        """Extract a subset of faces by their indices and return a new Mesh instance.
+
+        Parameters
+        ----------
+        faces_id : array_like
+            Indices of faces to extract.
+        name: str, optional
+            A name for the new mesh
+
+        Returns
+        -------
+        Mesh
+            New mesh containing only the specified faces.
+        """
+        if isinstance(faces_id, np.ndarray):
+            faces_id = faces_id.ravel()
+        all_faces = self.as_list_of_faces()
+        selected_faces = [all_faces[i] for i in faces_id]
+        return Mesh.from_list_of_faces(selected_faces, name=name)
+
+    def translated(self, dx=0.0, dy=0.0, dz=0.0, *, name=None) -> "Mesh":
+        """Return a new Mesh translated along x, y, z axes.
+
+        Parameters
+        ----------
+        dx : float, optional
+            Translation along the x-axis. Defaults to 0.0.
+        dy : float, optional
+            Translation along the y-axis. Defaults to 0.0.
+        dz : float, optional
+            Translation along the z-axis. Defaults to 0.0.
+        name: str, optional
+            A name for the new translated object
+
+        Returns
+        -------
+        Mesh
+            New translated mesh instance.
+        """
+        shift = np.array([dx, dy, dz])
+        return Mesh(vertices=self.vertices + shift, faces=self._faces, name=name)
+
+    def rotated(
+        self,
+        angle: float = 0.0,
+        axis: str = "z",
+        angle_type: str = "rad",
+        rotation_matrix: np.ndarray = None,
+        *,
+        name=None
+    ) -> "Mesh":
+        """Return a new Mesh rotated either by an angle around an axis or by a provided rotation matrix.
+
+        Parameters
+        ----------
+        angle : float, optional
+            Angle of rotation. Interpreted in radians by default, unless angle_type is 'deg'.
+            Ignored if rotation_matrix is provided.
+        axis : str, optional
+            Axis of rotation: 'x', 'y', or 'z'. Ignored if rotation_matrix is provided.
+        angle_type : str, optional
+            Unit of the angle: 'rad' (default) or 'deg'.
+        rotation_matrix : np.ndarray, optional
+            Directly provide a 3x3 rotation matrix. If given, angle and axis are ignored.
+        name: str, optional
+            A name for the new translated object
+
+        Returns
+        -------
+        Mesh
+            New rotated mesh instance.
+        """
+        if rotation_matrix is not None:
+            if rotation_matrix.shape != (3, 3):
+                raise ValueError("rotation_matrix must be of shape (3, 3)")
+            R = rotation_matrix
+        else:
+            # Convert angle if needed
+            if angle_type == "deg":
+                angle = np.deg2rad(angle)
+            elif angle_type != "rad":
+                raise ValueError("angle_type must be 'rad' or 'deg'.")
+
+            c, s = np.cos(angle), np.sin(angle)
+            if axis == "x":
+                R = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+            elif axis == "y":
+                R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+            elif axis == "z":
+                R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
+            else:
+                raise ValueError("Axis must be 'x', 'y', or 'z'.")
+
+        # Apply rotation
+        new_vertices = self.vertices @ R.T
+        return Mesh(vertices=new_vertices, faces=self._faces, name=name)
+
+
+    def join_meshes(self, other: "Mesh", *, name=None) -> "Mesh":
         """Join two meshes and return a new Mesh instance.
 
         Parameters
         ----------
         other : Mesh
             Another mesh to combine with this one.
+        name: str, optional
+            A name for the new object
 
         Returns
         -------
@@ -499,7 +515,25 @@ class Mesh:
         --------
         __add__ : Implements the + operator for mesh joining.
         """
-        return self + other
+        if not isinstance(other, Mesh):
+            raise TypeError("Only Mesh instances can be added together.")
+
+        # 1) Stack the vertices
+        offset = len(self.vertices)
+        new_vertices = np.vstack([self.vertices, other.vertices])
+
+        # 2) Offset each face index in `other.faces` by `offset`
+        #    and concatenate the two face‐lists
+        new_faces = []
+        # copy self._faces
+        for face in self._faces:
+            new_faces.append(list(face))
+        # offset other.faces
+        for face in other._faces:
+            new_faces.append([idx + offset for idx in face])
+
+        # 3) Return a new Mesh
+        return Mesh(vertices=new_vertices, faces=new_faces, name=name)
 
     def __add__(self, other: "Mesh") -> "Mesh":
         """Combine two meshes using the + operator.
@@ -524,33 +558,14 @@ class Mesh:
         Vertex indices in the second mesh are automatically offset to account
         for vertices from the first mesh.
         """
-        if not isinstance(other, Mesh):
-            raise TypeError("Only Mesh instances can be added together.")
+        if self.name is not None or other.name is not None:
+            name = f"{self.name}+{other.name}"
+        else:
+            name = None
+        return self.join_meshes(other, name=name)
 
-        # 1) Stack the vertices
-        offset = len(self.vertices)
-        new_vertices = np.vstack([self.vertices, other.vertices])
-
-        # 2) Offset each face index in `other.faces` by `offset`
-        #    and concatenate the two face‐lists
-        new_faces = []
-        # copy self._faces
-        for face in self._faces:
-            new_faces.append(list(face))
-        # offset other.faces
-        for face in other._faces:
-            new_faces.append([idx + offset for idx in face])
-
-        # 3) Return a new Mesh
-        return Mesh(vertices=new_vertices, faces=new_faces)
-
-    def with_normal_vector_going_down(self, **kwargs) -> "Mesh":
+    def with_normal_vector_going_down(self) -> "Mesh":
         """Ensure normal vectors point downward (negative z-direction).
-
-        Parameters
-        ----------
-        **kwargs
-            Additional keyword arguments (currently unused).
 
         Returns
         -------
