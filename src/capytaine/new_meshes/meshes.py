@@ -140,7 +140,7 @@ class Mesh:
     def __str__(self) -> str:
         return (f"Mesh(vertices=[[... {self.nb_vertices} vertices ...]], "
                 + f"faces=[[... {self.nb_faces} faces ...]]"
-                + ", name=\"{self.name}\")" if self.name is not None else ")")
+                + f", name=\"{self.name}\")" if self.name is not None else ")")
 
     def __short_str__(self) -> str:
         if self.name is not None:
@@ -227,7 +227,7 @@ class Mesh:
             return arr.tolist()
 
     @classmethod
-    def from_list_of_faces(cls, list_faces, *, name=None) -> "Mesh":
+    def from_list_of_faces(cls, list_faces, *, name=None, auto_clean=True, auto_check=True) -> "Mesh":
         """
         Create a Mesh instance from a list of faces defined by vertex coordinates.
 
@@ -241,6 +241,10 @@ class Mesh:
             ]
         name: str, optional
             A name for the new mesh.
+        auto_clean : bool, optional
+            Whether to automatically clean the mesh upon initialization. Defaults to True.
+        auto_check : bool, optional
+            Whether to automatically check mesh quality upon initialization. Defaults to True.
 
         Returns
         -------
@@ -402,7 +406,12 @@ class Mesh:
             faces_id = faces_id.ravel()
         all_faces = self.as_list_of_faces()
         selected_faces = [all_faces[i] for i in faces_id]
-        return Mesh.from_list_of_faces(selected_faces, name=name)
+        return Mesh.from_list_of_faces(
+            selected_faces,
+            name=name,
+            auto_clean=False,
+            auto_check=False
+        )
 
     def translated(self, shift, *, name=None) -> "Mesh":
         """Return a new Mesh translated along vector-like `shift`."""
@@ -474,11 +483,20 @@ class Mesh:
             raise TypeError("Only Mesh instances can be added together.")
 
         faces = sum((m.as_list_of_faces() for m in meshes), [])
-        joined_mesh = Mesh.from_list_of_faces(faces, name=name)
         if not return_masks:
-            return joined_mesh
+            return Mesh.from_list_of_faces(faces, name=name)
         else:
-            raise NotImplementedError()
+            joined_mesh = Mesh.from_list_of_faces(faces, name=name, auto_clean=False, auto_check=True)
+            # No cleaning so we are sure that the faces stay in same order
+            # TODO: improve this by passing some metadata along with the faces?
+            masks = []
+            acc_nb_faces = 0
+            for i_mesh in range(len(meshes)):
+                mask = np.full((joined_mesh.nb_faces,), False)
+                mask[acc_nb_faces:acc_nb_faces+meshes[i_mesh].nb_faces] = True
+                masks.append(mask)
+                acc_nb_faces = acc_nb_faces + meshes[i_mesh].nb_faces
+            return joined_mesh, masks
 
     def __add__(self, other: "Mesh") -> "Mesh":
         """Combine two meshes using the + operator.

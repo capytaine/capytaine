@@ -152,7 +152,7 @@ def test_rotation():
     assert np.allclose(mesh4.faces_normals, np.array([[0.0, 0.0, -1.0]]))
 
 
-def test_join_meshes():
+def test_add_meshes():
     mesh1 = meshes.Mesh.from_list_of_faces(
         [
             [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]],
@@ -168,6 +168,21 @@ def test_join_meshes():
     joined_mesh = mesh1 + mesh2
     assert joined_mesh.nb_faces == 2
     assert joined_mesh.nb_vertices == 6  # Duplicate vertices had been removed
+
+def test_join_meshes_return_masks():
+    mesh1 = meshes.Mesh.from_list_of_faces(
+        [
+            [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]],
+        ]
+    )
+    mesh2 = meshes.Mesh.from_list_of_faces(
+        [
+            [[1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [2.0, 1.0, 0.0], [1.0, 1.0, 0.0]],
+        ]
+    )
+    joined, masks = meshes.Mesh.join_meshes(mesh1, mesh2, name="bar", return_masks=True)
+    assert np.allclose(joined.faces_centers[masks[0], :], mesh1.faces_centers[:, :])
+    assert np.allclose(joined.faces_centers[masks[1], :], mesh2.faces_centers[:, :])
 
 
 def test_leading_count_column_uniform_quads():

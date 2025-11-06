@@ -35,7 +35,6 @@ def test_minimal_implementation_compute_velocity():
     res = solver.solve(pb, method="indirect")
     solver.compute_velocity(mesh, res)
 
-@pytest.mark.xfail
 def test_minimal_implementation_solve_pb_with_lid():
     mesh = meshes.Mesh(
         vertices=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, -1.0]]),
