@@ -460,13 +460,17 @@ class Mesh:
         R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
         return self.rotated_with_matrix(R, name=name)
 
-    def join_meshes(*meshes: List["Mesh"], name=None) -> "Mesh":
+    def join_meshes(*meshes: List["Mesh"], return_masks=False, name=None) -> "Mesh":
         """Join two meshes and return a new Mesh instance.
 
         Parameters
         ----------
-        meshes : List[Mesh]
+        meshes: List[Mesh]
             Meshes to be joined
+        return_masks: bool, optional
+            If True, additionally return a list of numpy masks establishing the
+            origin of each face in the new mesh.
+            (Default: False)
         name: str, optional
             A name for the new object
 
@@ -483,7 +487,11 @@ class Mesh:
             raise TypeError("Only Mesh instances can be added together.")
 
         faces = sum((m.as_list_of_faces() for m in meshes), [])
-        return Mesh.from_list_of_faces(faces, name=name)
+        joined_mesh = Mesh.from_list_of_faces(faces, name=name)
+        if not return_masks:
+            return joined_mesh
+        else:
+            raise NotImplementedError()
 
     def __add__(self, other: "Mesh") -> "Mesh":
         """Combine two meshes using the + operator.
