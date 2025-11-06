@@ -773,17 +773,24 @@ respective inertia coefficients are assigned as NaN.")
     def join_bodies(*bodies, name=None) -> 'FloatingBody':
         if name is None:
             name = "+".join(body.name for body in bodies)
-        meshes = CollectionOfMeshes(
-                [body.mesh.copy() for body in bodies],
-                name=f"{name}_mesh"
-                )
-        if all(body.lid_mesh is None for body in bodies):
-            lid_meshes = None
-        else:
-            lid_meshes = CollectionOfMeshes(
-                    [body.lid_mesh.copy() for body in bodies if body.lid_mesh is not None],
-                    name=f"{name}_lid_mesh"
+
+        meshes = [body.mesh.copy() for body in bodies if body.mesh.nb_faces > 0]
+        if len(meshes) > 0:
+            joined_mesh = meshes[0].join_meshes(
+                    *(m for m in meshes[1:]),
+                    name=f"{name}_mesh"
                     )
+        else:
+            joined_mesh = Mesh()
+
+        if all(body.lid_mesh is None for body in bodies):
+            joined_lid = None
+        else:
+            lid_meshes = [body.lid_mesh.copy() for body in bodies if body.lid_mesh is not None]
+            joined_lid = lid_meshes[0].join_meshes(
+                *(l.copy() for l in lid_meshes[1:]),
+                name=f"{name}_lid_mesh"
+                )
         dofs = FloatingBody.combine_dofs(bodies)
 
         if all(body.mass is not None for body in bodies):
@@ -798,7 +805,7 @@ respective inertia coefficients are assigned as NaN.")
             new_cog = None
 
         joined_bodies = FloatingBody(
-            mesh=meshes, lid_mesh=lid_meshes, dofs=dofs,
+            mesh=joined_mesh, lid_mesh=joined_lid, dofs=dofs,
             mass=new_mass, center_of_mass=new_cog, name=name
             )
 

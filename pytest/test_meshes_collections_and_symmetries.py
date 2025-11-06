@@ -118,8 +118,7 @@ def test_join_axisymmetric_disks():
     joined.tree_view()
 
     disk3 = cpt.mesh_disk(radius=1.0, center=(0, 0, 0), resolution=(6, 4), axial_symmetry=True)
-    with pytest.raises(AssertionError):
-        disk1.join_meshes(disk3)
+    assert isinstance(disk1.join_meshes(disk3), cpt.Mesh)
 
 def test_join_axisymmetric_disks_masks():
     """Given two axisymmetric meshes with the same axis, build a new axisymmetric mesh combining the two."""
