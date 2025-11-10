@@ -270,3 +270,17 @@ class BasicMatrixEngine(MatrixEngine):
             raise NotImplementedError(
                 f"Unknown `linear_solver` in BasicMatrixEngine: {self._linear_solver}"
             )
+        
+    def compute_ram_estimation(self, problem, n_jobs):
+        nb_faces = problem.body.mesh.nb_faces
+        nb_matrices = 2
+        nb_bytes = 16 
+
+        if self._linear_solver == "lu_decomposition":
+            nb_matrices += 1
+
+        if self.green_function.floating_point_precision == "float32":
+            nb_bytes = 8
+
+        peak_memory = n_jobs*nb_faces**2*nb_matrices*nb_bytes/1e9
+        return np.round(peak_memory)

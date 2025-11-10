@@ -235,6 +235,8 @@ class BEMSolver:
             self._check_wavelength_and_mesh_resolution(problems)
             self._check_wavelength_and_irregular_frequencies(problems)
 
+        self._check_ram(problems, n_jobs)
+
         if progress_bar is None:
             if "CAPYTAINE_PROGRESS_BAR" in os.environ:
                 env_var = os.environ["CAPYTAINE_PROGRESS_BAR"].lower()
@@ -325,6 +327,19 @@ class BEMSolver:
                             f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
                             + recommendation
                             )
+                
+    def _check_ram(self,problems, n_jobs = 1):
+        """Display a warning if the RAM estimation is larger than a certain limit."""
+        LOG.debug("Check RAM estimation.")
+        ram_limit = 8
+
+        ram_estimation = max({self.engine.compute_ram_estimation(pb, n_jobs) for pb in problems})
+
+        if ram_estimation < ram_limit:
+            LOG.info(f"The RAM estimate is {ram_estimation} GB, which is below the set limit of {ram_limit} GB.")
+
+        else:
+            LOG.warning(f"The RAM estimate is {ram_estimation} GB, which is above the set limit of {ram_limit} GB.")
 
     def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, _check_wavelength=True, progress_bar=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
