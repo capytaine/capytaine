@@ -93,6 +93,12 @@ class BEMSolver:
                 "nb_calls": self.timer[name].nb_timings,
                 "mean": self.timer[name].mean
             } for name in self.timer]).set_index("task")
+    
+    def concatenate_timer_summary(self, list_of_timers, n_jobs):
+        return pd.concat([
+                data_frame[["total"]] for data_frame in list_of_timers], 
+                axis = 1, 
+                keys=[f"process {nb}" for nb in range(1,n_jobs + 1)])
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
@@ -252,21 +258,30 @@ class BEMSolver:
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
             results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+            timer_info = self.timer_summary()
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
                 raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
             parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
-            groups_of_results = parallel(joblib.delayed(self.solve_all)(grp, method=method, n_jobs=1, progress_bar=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
+            groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_jobs=1, progress_bar=False, _check_wavelength=False,**kwargs) for grp in groups_of_problems)
             if progress_bar:
                 groups_of_results = track(groups_of_results,
                                           total=len(groups_of_problems),
-                                          description=f"Solving BEM problems with {n_jobs} threads:")
-            results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
-        LOG.info("Solver timer summary:\n%s", self.timer_summary())
+                                          description=f"Solving BEM problems with {n_jobs} process:")
+            results = []
+            timers = []
+            for grp_results, timer in groups_of_results:
+                results.extend(grp_results)
+                timers.append(timer)
+            timer_info = self.concatenate_timer_summary(timers, n_jobs)
+        LOG.info("Solver timer summary:\n%s", timer_info)
         return results
-
+    
+    def _solve_all_and_return_timer(self, grp, *,method, n_jobs, progress_bar, _check_wavelength, **kwargs):
+        return self.solve_all(grp, method=method, n_jobs=n_jobs, progress_bar=progress_bar, _check_wavelength=_check_wavelength, **kwargs), self.timer_summary()
+    
     @staticmethod
     def _check_wavelength_and_mesh_resolution(problems):
         """Display a warning if some of the problems have a mesh resolution
