@@ -22,6 +22,7 @@ from rich.progress import track
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
+from capytaine.tools.memory_monitor import MemoryMonitor
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
@@ -249,11 +250,13 @@ class BEMSolver:
             else:
                 progress_bar = True
 
+        monitor = MemoryMonitor()
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
             results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+            memory_peak = monitor.get_memory() / 1e9
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
@@ -266,6 +269,9 @@ class BEMSolver:
                                           total=len(groups_of_problems),
                                           description=f"Solving BEM problems with {n_jobs} threads:")
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
+            monitor.join()
+            memory_peak = max(monitor.memory_buffer) / 1e9
+        LOG.info(f"The memory peak is {round(memory_peak,2)} GB.")  
         LOG.info("Solver timer summary:\n%s", self.timer_summary())
         return results
 
