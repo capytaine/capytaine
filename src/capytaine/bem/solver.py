@@ -333,6 +333,9 @@ class BEMSolver:
         LOG.debug("Check RAM estimation.")
         ram_limit = 8
 
+        if n_jobs == - 1:
+            n_jobs = os.cpu_count()
+
         ram_estimation = max({self.engine.compute_ram_estimation(pb, n_jobs) for pb in problems})
 
         if ram_estimation < ram_limit:
