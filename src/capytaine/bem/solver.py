@@ -94,11 +94,11 @@ class BEMSolver:
                 "mean": self.timer[name].mean
             } for name in self.timer]).set_index("task")
     
-    def concatenate_timer_summary(self, list_of_timers, n_jobs):
+    def concatenate_timer_summary(self, list_of_timers):
         return pd.concat([
                 data_frame[["total"]] for data_frame in list_of_timers], 
                 axis = 1, 
-                keys=[f"process {nb}" for nb in range(1,n_jobs + 1)])
+                keys=[f"process {nb}" for nb in range(1,len(list_of_timers) + 1)])
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
@@ -275,7 +275,7 @@ class BEMSolver:
             for grp_results, timer in groups_of_results:
                 results.extend(grp_results)
                 timers.append(timer)
-            timer_info = self.concatenate_timer_summary(timers, n_jobs)
+            timer_info = self.concatenate_timer_summary(timers)
         LOG.info("Solver timer summary:\n%s", timer_info)
         return results
     
