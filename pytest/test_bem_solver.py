@@ -52,13 +52,13 @@ def test_cannot_define_gf_and_engine_in_solver():
 
 def test_solver_has_initialized_timer():
     s = cpt.BEMSolver()
-    assert all(t.total == 0.0 for t in s.timer.values())
+    assert all(t[0].total == 0.0 for t in s.timer.values())
 
 def test_solver_update_timer(sphere):
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
     s = cpt.BEMSolver()
     s.solve(problem)
-    assert not all(t.total == 0.0 for t in s.timer.values())
+    assert not all(t[0].total == 0.0 for t in s.timer.values())
 
 def test_direct_solver(sphere):
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)

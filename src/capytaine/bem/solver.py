@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 from datetime import datetime
+from collections import defaultdict
 
 from rich.progress import track
 
@@ -70,9 +71,9 @@ class BEMSolver:
             raise ValueError(f"Unrecognized method when initializing solver: {repr(method)}. Expected \"direct\" or \"indirect\".")
         self.method = method.lower()
 
-        self.timer = {"Solve total": Timer(), "  Green function": Timer(), "  Linear solver": Timer()}
+        self.timer = {"Solve total": defaultdict(Timer), "  Green function": defaultdict(Timer), "  Linear solver": defaultdict(Timer)}
 
-        self.solve = self.timer["Solve total"].wraps_function(self.solve)
+        self.solve = self.timer["Solve total"][0].wraps_function(self.solve)
 
         self.exportable_settings = {
             **self.engine.exportable_settings,
@@ -86,13 +87,20 @@ class BEMSolver:
         return self.__str__()
 
     def timer_summary(self):
-        return pd.DataFrame([
-            {
-                "task": name,
-                "total": self.timer[name].total,
-                "nb_calls": self.timer[name].nb_timings,
-                "mean": self.timer[name].mean
-            } for name in self.timer]).set_index("task")
+        nb_process = len(self.timer["Solve total"])
+        list_dataframe = [pd.DataFrame([
+                {
+                    "task": name,
+                    "total": self.timer[name][process_id].total,
+                    "nb_calls": self.timer[name][process_id].nb_timings,
+                    "mean": self.timer[name][process_id].mean
+                } for name in self.timer]).set_index("task")
+                        for process_id in range(nb_process)]
+        
+        if nb_process == 1 :
+            return list_dataframe[0] 
+        else : 
+            return self.concatenate_timer_summary(list_dataframe[1::])
     
     def concatenate_timer_summary(self, list_of_timers):
         return pd.concat([
@@ -157,26 +165,26 @@ class BEMSolver:
             if problem.forward_speed != 0.0:
                 raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
 
-            with self.timer["  Green function"]:
+            with self.timer["  Green function"][0]:
                 S, D = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
                         problem.free_surface, problem.water_depth, wavenumber,
                         adjoint_double_layer=False
                         )
             rhs = S @ problem.boundary_condition
-            with self.timer["  Linear solver"]:
+            with self.timer["  Linear solver"][0]:
                 rhs_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(D.dtype.type)
                 potential = linear_solver(D, rhs.astype(rhs_type))
             pressure = 1j * omega * problem.rho * potential
             sources = None
         else:
-            with self.timer["  Green function"]:
+            with self.timer["  Green function"][0]:
                 S, K = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
                         problem.free_surface, problem.water_depth, wavenumber,
                         adjoint_double_layer=True
                         )
-            with self.timer["  Linear solver"]:
+            with self.timer["  Linear solver"][0]:
                 rhs_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(K.dtype.type)
                 sources = linear_solver(K, problem.boundary_condition.astype(rhs_type))
             potential = S @ sources
@@ -258,7 +266,6 @@ class BEMSolver:
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
             results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
-            timer_info = self.timer_summary()
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
@@ -271,16 +278,16 @@ class BEMSolver:
                                           total=len(groups_of_problems),
                                           description=f"Solving BEM problems with {n_jobs} process:")
             results = []
-            timers = []
-            for grp_results, timer in groups_of_results:
+            for id_group_results, (grp_results, timer) in enumerate(groups_of_results):
                 results.extend(grp_results)
-                timers.append(timer)
-            timer_info = self.concatenate_timer_summary(timers)
-        LOG.info("Solver timer summary:\n%s", timer_info)
+                for timer_key in self.timer:
+                    id_process_that_solved_that_group = id_group_results + 1
+                    self.timer[timer_key][id_process_that_solved_that_group].add_data_from_other_timer(timer[timer_key][0])
+        LOG.info("Solver timer summary:\n%s", self.timer_summary())
         return results
     
     def _solve_all_and_return_timer(self, grp, *,method, n_jobs, progress_bar, _check_wavelength, **kwargs):
-        return self.solve_all(grp, method=method, n_jobs=n_jobs, progress_bar=progress_bar, _check_wavelength=_check_wavelength, **kwargs), self.timer_summary()
+        return self.solve_all(grp, method=method, n_jobs=n_jobs, progress_bar=progress_bar, _check_wavelength=_check_wavelength, **kwargs), self.timer
     
     @staticmethod
     def _check_wavelength_and_mesh_resolution(problems):
@@ -412,7 +419,7 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
-        with self.timer["  Green function"]:
+        with self.timer["  Green function"][0]:
             S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
         potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
@@ -425,7 +432,7 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        with self.timer["  Green function"]:
+        with self.timer["  Green function"][0]:
             gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
         velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
         return velocities.reshape((*output_shape, 3))
