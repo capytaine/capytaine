@@ -20,6 +20,7 @@ from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
 from fakeblocks.matrices.block import BlockMatrix
 from fakeblocks.matrices.low_rank import LowRankMatrix
 from fakeblocks.engines import HierarchicalToeplitzMatrixEngine
+from fakeblocks.bodies import join_bodies
 
 solver_with_sym = cpt.BEMSolver(engine=HierarchicalToeplitzMatrixEngine(ACA_distance=8, matrix_cache_size=0))
 solver_without_sym = cpt.BEMSolver(engine=cpt.BasicMatrixEngine())
@@ -86,7 +87,7 @@ def test_two_vertical_cylinders():
     buoy.mesh = buoy.mesh.keep_immersed_part()
     buoy.add_translation_dof(name="Sway")
 
-    two_buoys = FloatingBody.join_bodies(buoy, buoy.translated_x(distance))
+    two_buoys = join_bodies(buoy, buoy.translated_x(distance))
     two_buoys.mesh = buoy.mesh.symmetrized(yOz_Plane)  # Use a ReflectionSymmetry as mesh...
 
     problems = [RadiationProblem(body=two_buoys, omega=1.0, radiating_dof=dof) for dof in two_buoys.dofs]
@@ -159,7 +160,7 @@ def test_low_rank_matrices(method):
                   ntheta=int(perimeter*resolution/2), nphi=int(perimeter*resolution),
                   clip_free_surface=True, axial_symmetry=False, name="buoy")
     buoy.add_translation_dof(name="Heave")
-    two_distant_buoys = FloatingBody.join_bodies(buoy, buoy.translated_x(20))
+    two_distant_buoys = join_bodies(buoy, buoy.translated_x(20))
     two_distant_buoys.mesh._meshes[1].name = "other_buoy_mesh"
 
     S, V = solver_with_sym.engine.build_matrices(two_distant_buoys.mesh, two_distant_buoys.mesh, 0.0, np.inf, 1.0)
