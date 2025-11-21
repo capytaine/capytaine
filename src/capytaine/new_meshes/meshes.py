@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import List
+from typing import List, Union, Tuple
 
 import numpy as np
 
@@ -98,7 +98,7 @@ class Mesh:
                 )
 
             if auto_check:
-                check_mesh_quality(self.vertices, self._faces)
+                check_mesh_quality(self)
 
     ## MAIN METRICS AND DISPLAY
 

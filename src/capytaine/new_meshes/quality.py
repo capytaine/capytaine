@@ -23,7 +23,7 @@ LOG = logging.getLogger(__name__)
 SHOWED_PYVISTA_WARNING = False
 
 
-def check_mesh_quality(vertices, faces, *, tol=1e-8):
+def check_mesh_quality(mesh, *, tol=1e-8):
     """
     Perform a set of geometric and metric quality checks on mesh data.
 
@@ -32,22 +32,22 @@ def check_mesh_quality(vertices, faces, *, tol=1e-8):
     - Non-convex faces
     - Aspect ratio via PyVista (if available)
     """
-    non_coplanar = indices_of_non_coplanar_faces(vertices, faces)
+    non_coplanar = indices_of_non_coplanar_faces(mesh.vertices, mesh._faces)
     if non_coplanar:
-        LOG.warning(f"{len(non_coplanar)} non-coplanar faces detected.")
+        LOG.warning(f"{len(non_coplanar)} non-coplanar faces detected in {mesh}.")
 
-    non_convex = indices_of_non_convex_faces(vertices, faces)
+    non_convex = indices_of_non_convex_faces(mesh.vertices, mesh._faces)
     if non_convex:
-        LOG.warning(f"{len(non_convex)} non-convex faces detected.")
+        LOG.warning(f"{len(non_convex)} non-convex faces detected in {mesh}.")
 
     try:
-        pv_mesh = mesh_to_pyvista(vertices, faces)
+        pv_mesh = mesh_to_pyvista(mesh.vertices, mesh._faces)
 
         arq = pv_mesh.compute_cell_quality("aspect_ratio").cell_data.get("CellQuality")
         if arq is not None:
             ratio_ok = np.sum(arq < 5) / len(arq)
             if ratio_ok < 0.9:
-                LOG.info("Aspect Ratio:")
+                LOG.info(f"Aspect Ratio of {mesh}:")
                 LOG.info(
                     f"  Min: {np.min(arq):.3f} | Max: {np.max(arq):.3f} | Mean: {np.mean(arq):.3f}"
                 )

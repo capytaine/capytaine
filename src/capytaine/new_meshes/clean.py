@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple
 
 import numpy as np
 from scipy.spatial import cKDTree
