@@ -13,12 +13,14 @@
 # limitations under the License.
 
 import logging
-from typing import List
 from itertools import chain
 
 import numpy as np
 
+from .export import mesh_to_pyvista
+
 LOG = logging.getLogger(__name__)
+SHOWED_PYVISTA_WARNING = False
 
 
 def check_mesh_quality(vertices, faces, *, tol=1e-8):
@@ -26,15 +28,9 @@ def check_mesh_quality(vertices, faces, *, tol=1e-8):
     Perform a set of geometric and metric quality checks on mesh data.
 
     Checks performed:
-    - Duplicate vertices
     - Non-coplanar faces
     - Non-convex faces
     - Aspect ratio via PyVista (if available)
-
-    Raises
-    ------
-    ValueError
-        If mesh invalid data are provided.
     """
     non_coplanar = indices_of_non_coplanar_faces(vertices, faces)
     if non_coplanar:
@@ -43,8 +39,6 @@ def check_mesh_quality(vertices, faces, *, tol=1e-8):
     non_convex = indices_of_non_convex_faces(vertices, faces)
     if non_convex:
         LOG.warning(f"{len(non_convex)} non-convex faces detected.")
-
-    warn_superimposed_faces(vertices, faces, tol=tol)
 
     try:
         pv_mesh = mesh_to_pyvista(vertices, faces)
@@ -61,8 +55,11 @@ def check_mesh_quality(vertices, faces, *, tol=1e-8):
                 LOG.warning(
                     "Low quality: more than 10%% of elements have aspect ratio higher than 5."
                 )
-    except ModuleNotFoundError:
-        LOG.info("PyVista not installed, skipping aspect ratio check.")
+    except ImportError:
+        global SHOWED_PYVISTA_WARNING
+        if LOG.isEnabledFor(logging.INFO) and not SHOWED_PYVISTA_WARNING:
+            LOG.info("PyVista not installed, skipping aspect ratio check.")
+            SHOWED_PYVISTA_WARNING = True
 
 
 def extract_face_vertices(vertices, face):
@@ -137,34 +134,6 @@ def indices_of_non_convex_faces(vertices, faces):
     return indices
 
 
-def mesh_to_pyvista(
-    vertices: np.ndarray, faces: List[List[int]]
-) -> "pv.UnstructuredGrid":
-    """
-    Build a PyVista UnstructuredGrid from a list of faces (triangles or quads).
-    """
-    import pyvista as pv
-    # flatten into the VTK cell‐array format: [n0, i0, i1, ..., in-1, n1, j0, j1, ...]
-    flat_cells = []
-    cell_types = []
-    for face in faces:
-        n = len(face)
-        flat_cells.append(n)
-        flat_cells.extend(face)
-        if n == 3:
-            cell_types.append(pv.CellType.TRIANGLE)
-        elif n == 4:
-            cell_types.append(pv.CellType.QUAD)
-        else:
-            # if you ever have ngons, you can map them as POLYGON:
-            cell_types.append(pv.CellType.POLYGON)
-
-    cells_array = np.array(flat_cells, dtype=np.int64)
-    cell_types = np.array(cell_types, dtype=np.uint8)
-
-    return pv.UnstructuredGrid(cells_array, cell_types, vertices.astype(np.float32))
-
-
 def _is_valid(vertices, faces):
     """
     Check that every face index is valid for the given vertices.
@@ -187,53 +156,3 @@ def _is_valid(vertices, faces):
         return False
 
     return True
-
-
-def warn_superimposed_faces(
-    vertices: np.ndarray, faces: List[List[int]], *, tol: float = 1e-8
-):
-    """Emit a warning when panels are duplicated within a tolerance.
-
-    Parameters
-    ----------
-    vertices : numpy.ndarray
-        Vertex coordinates of the mesh.
-    faces : list of list of int
-        Face connectivity referencing ``vertices``.
-    tol : float, default=1e-8
-        Tolerance used to determine whether two faces coincide.
-    """
-
-    if not faces or len(faces) < 2:
-        return
-
-    keyed_faces: Dict[Tuple, Tuple[int, np.ndarray]] = {}
-    duplicates: List[Tuple[int, int, float]] = []
-    scale = 1.0 / max(tol, 1e-12)
-
-    for idx, face in enumerate(faces):
-        coords = vertices[face]
-        quantized_points = [
-            tuple(np.round(pt * scale).astype(np.int64)) for pt in coords
-        ]
-        quantized = tuple(sorted(quantized_points))
-        sorted_coords = np.array(sorted(coords.tolist()))
-        key = (len(face), quantized)
-        if key in keyed_faces:
-            base_idx, base_coords = keyed_faces[key]
-            max_dev = float(
-                np.max(np.linalg.norm(sorted_coords - base_coords, axis=1))
-            )
-            duplicates.append((base_idx, idx, max_dev))
-        else:
-            keyed_faces[key] = (idx, sorted_coords)
-
-    if duplicates:
-        sample = duplicates[:3]
-        LOG.warning(
-            "Detected %d panels that are superimposed or nearly identical (tol=%.1e). "
-            "Example index pairs (i, j, max_dev): %s",
-            len(duplicates),
-            tol,
-            sample,
-        )

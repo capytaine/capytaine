@@ -43,18 +43,6 @@ def test_invalid_indices():
         meshes.Mesh(vertices=v, faces=[[0, 1, -1, 2]])
 
 
-@pytest.mark.xfail
-def test_superimposed_faces(caplog):
-    with caplog.at_level(logging.WARNING):
-        mesh = meshes.Mesh.from_list_of_faces(
-            [
-                [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]],
-                [[0.5, 0.5, 0.0], [1.5, 0.5, 0.0], [1.5, 1.5, 0.0], [0.5, 1.5, 0.0]],
-            ]
-        )
-    assert "superimposed" in caplog.text
-
-
 def test_coplanar_quads(caplog):
     """All quadrilaterals are coplanar → no indices returned."""
     with caplog.at_level(logging.WARNING):
