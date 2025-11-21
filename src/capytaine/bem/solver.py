@@ -250,13 +250,15 @@ class BEMSolver:
             else:
                 progress_bar = True
 
-        monitor = MemoryMonitor()
+        psutil = silently_import_optional_dependency("psutil")
+        if psutil is None:
+            LOG.info("To get the RAM consumption the dependency 'psutil' is necessary.")
+        monitor = MemoryMonitor(psutil)
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
             results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
-            memory_peak = monitor.get_memory() / 1e9
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
@@ -269,9 +271,8 @@ class BEMSolver:
                                           total=len(groups_of_problems),
                                           description=f"Solving BEM problems with {n_jobs} threads:")
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
-            monitor.join()
-            memory_peak = max(monitor.memory_buffer) / 1e9
-        LOG.info(f"The memory peak is {round(memory_peak,2)} GB.")  
+        memory_peak = monitor.get_memory_peak()
+        LOG.info(f"The memory peak is {memory_peak} GB.")  
         LOG.info("Solver timer summary:\n%s", self.timer_summary())
         return results
 
