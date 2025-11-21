@@ -45,6 +45,9 @@ Internals
   Capytaine. For compatibility, they will remain accessible from a separate
   package. (:pull:`757`, :pull:`765`)
 
+* Instead of creating a ``CollectionOfMeshes``, now ``join_bodies`` merges the
+  meshes of the bodies together. The legacy behavior is still available from
+  Fakeblocks ``join_bodies``. (:pull:`779`)
 
 ---------------------------------
 New in version 2.3.1 (2025-10-14)

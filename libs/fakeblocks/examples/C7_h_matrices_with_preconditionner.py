@@ -1,6 +1,7 @@
 import numpy as np
 import capytaine as cpt
 from fakeblocks.engines import HierarchicalToeplitzMatrixEngine, HierarchicalPrecondMatrixEngine
+from fakeblocks.bodies import join_bodies, cluster_bodies
 from time import time
 
 radius = 2.
@@ -25,7 +26,7 @@ for body in bodies:
 
 # Dense problem setup and solution
 print('Solving dense problem')
-all_bodies = cpt.FloatingBody.join_bodies(*bodies, name="joined bodies")
+all_bodies = join_bodies(*bodies, name="joined bodies")
 problems = [cpt.RadiationProblem(body=all_bodies, radiating_dof=dof, omega=omega)
         for dof in all_bodies.dofs]
 solver = cpt.BEMSolver()
@@ -34,7 +35,7 @@ ddata = cpt.assemble_dataset(dresults)
 
 
 # Hierarchical problem setup
-all_bodies = cpt.FloatingBody.cluster_bodies(*bodies, name="clustered bodies")
+all_bodies = cluster_bodies(*bodies, name="clustered bodies")
 problems = [cpt.RadiationProblem(body=all_bodies, radiating_dof=dof, omega=omega)
             for dof in all_bodies.dofs]
 

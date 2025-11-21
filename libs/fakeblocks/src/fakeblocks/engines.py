@@ -1,5 +1,6 @@
 import logging
 import numpy as np
+from scipy import linalg as sl
 from scipy.linalg import lu_factor
 from scipy.sparse import coo_matrix
 from scipy.sparse import linalg as ssl
@@ -9,7 +10,7 @@ from capytaine import Delhommeau
 from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh, TranslationalSymmetricMesh, AxialSymmetricMesh
 
-from fakeblocks.matrices import linear_solvers
+from fakeblocks.matrices.linear_solvers import solve_gmres, Counter
 from fakeblocks.matrices.block import BlockMatrix
 from fakeblocks.matrices.low_rank import LowRankMatrix, NoConvergenceOfACA
 from fakeblocks.matrices.block_toeplitz import BlockSymmetricToeplitzMatrix, BlockToeplitzMatrix, BlockCirculantMatrix
@@ -45,8 +46,6 @@ class HierarchicalToeplitzMatrixEngine:
 
         self.ACA_distance = ACA_distance
         self.ACA_tol = ACA_tol
-
-        self.linear_solver = linear_solvers.solve_gmres
 
         self.exportable_settings = {
             'engine': 'HierarchicalToeplitzMatrixEngine',
@@ -233,6 +232,76 @@ class HierarchicalToeplitzMatrixEngine:
             )
             return S, V
 
+    def linear_solver(self, A, b):
+        return solve_gmres(A, b)
+
+
+##############################################################################
+
+class MatrixWithPrecondData:
+    def __init__(self, A, R, RA, AcLU, DLU, diag_shapes, n, PinvA):
+        self.A = A
+        self.dtype = A.dtype
+        self.R = R
+        self.RA = RA
+        self.AcLU = AcLU
+        self.DLU = DLU
+        self.diag_shapes = diag_shapes
+        self.n = n
+        self.PinvA = PinvA
+
+def _block_Jacobi_coarse_corr(A, b, x0, R, RA, AcLU, DLU, diag_shapes, n):
+    """
+    Performs a single step of the block-Jacobi method with coarse correction.
+    Can be used as a preconditioner for matrix A.
+
+    Parameters
+    ----------
+    A: BlockMatrix
+        System matrix
+    b: array
+        System right hand side vector
+    x0: array
+        Initial guess of the solution
+    R: array
+        Coarse space restriction matrix
+    RA: array
+        Precomputed product of R and A
+    AcLU: list
+        LU decomposition data of the coarse system matrix Ac (output of
+        scipy.linalg.lu_factor)
+    DLU: list
+        List of LU decomposition data for the diagonal blocks of A
+    diag_shapes: list
+        List of shapes of diagonal blocks
+    n: integer
+        Size of the coarse problem (e.g. number of bodies simulated)
+
+    Returns
+    -------
+    array
+        Action of a step of the method on vector x0
+    """
+    # x_ps = x after the pre-smoothing step (block-Jacobi)
+    x_ps = np.zeros(A.shape[0], dtype=complex)
+
+    # the diagonal blocks of A have already been put to zero in build_matrices
+    # they are not needed anymore
+    q = b - A@x0
+    # loop over diagonal blocks
+    for kk in range(n):
+        local_slice = slice(sum(diag_shapes[:kk]), sum(diag_shapes[:kk+1]))
+        local_rhs = q[local_slice]
+        local_sol = sl.lu_solve(DLU[kk], local_rhs, check_finite=False)
+
+        x_ps[local_slice] = local_sol
+
+    r_c = R@b - RA@x_ps #restricted residual
+    e_c = sl.lu_solve(AcLU, r_c, check_finite=False)
+    # update
+    return x_ps + R.T@e_c
+
+
 class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
     """An experimental matrix engine that build a hierarchical matrix with
      some block-Toeplitz structure.
@@ -249,7 +318,6 @@ class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
 
     def __init__(self, *, ACA_distance=8.0, ACA_tol=1e-2, matrix_cache_size=1):
         super().__init__(ACA_distance=ACA_distance, ACA_tol=ACA_tol, matrix_cache_size=matrix_cache_size)
-        self.linear_solver = linear_solvers.solve_precond_gmres
 
     def build_matrices(self,
                        mesh1, mesh2, free_surface, water_depth, wavenumber,
@@ -333,10 +401,37 @@ class HierarchicalPrecondMatrixEngine(HierarchicalToeplitzMatrixEngine):
 
         def PinvA_mv(v):
             v = v + 1j*np.zeros(N)
-            return v - linear_solvers._block_Jacobi_coarse_corr(
+            return v - _block_Jacobi_coarse_corr(
                              K, np.zeros(N, dtype=complex), v,
                              R, RA, AcLU, DLU, diag_shapes, n)
 
         PinvA = ssl.LinearOperator((N, N), matvec=PinvA_mv)
 
-        return S, (K, R, RA, AcLU, DLU, diag_shapes, n, PinvA)
+        return S, MatrixWithPrecondData(K, R, RA, AcLU, DLU, diag_shapes, n, PinvA)
+
+    def linear_solver(self, A_: MatrixWithPrecondData, b):
+        """
+        Implementation of the preconditioner presented in
+        `<https://doi.org/10.1007/978-3-031-50769-4_14>`.
+        """
+        A, R, RA, AcLU, DLU, diag_shapes, n, PinvA = A_.A, A_.R, A_.RA, A_.AcLU, A_.DLU, A_.diag_shapes, A_.n, A_.PinvA
+        N = A.shape[0]
+
+        Pinvb = _block_Jacobi_coarse_corr(A, b, np.zeros(N, dtype=complex), R, RA, AcLU, DLU, diag_shapes, n)
+
+        LOG.debug(f"Solve with GMRES for {A}.")
+
+        if LOG.isEnabledFor(logging.INFO):
+            counter = Counter()
+            x, info = ssl.gmres(PinvA, Pinvb, atol=1e-6, callback=counter)
+            LOG.info(f"End of GMRES after {counter.nb_iter} iterations.")
+
+        else:
+            x, info = ssl.gmres(PinvA, Pinvb, atol=1e-6)
+
+        if info > 0:
+            raise RuntimeError(f"No convergence of the GMRES after {info} iterations.\n"
+                                "This can be due to overlapping panels or irregular frequencies.\n"
+                                "In the latter case, using a direct solver can help (https://github.com/mancellin/capytaine/issues/30).")
+
+        return x
