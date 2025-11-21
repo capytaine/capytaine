@@ -776,10 +776,7 @@ respective inertia coefficients are assigned as NaN.")
 
         meshes = [body.mesh.copy() for body in bodies if body.mesh.nb_faces > 0]
         if len(meshes) > 0:
-            joined_mesh = meshes[0].join_meshes(
-                    *(m for m in meshes[1:]),
-                    name=f"{name}_mesh"
-                    )
+            joined_mesh = meshes[0].join_meshes(*meshes[1:], name=f"{name}_mesh")
         else:
             joined_mesh = Mesh()
 
@@ -787,10 +784,8 @@ respective inertia coefficients are assigned as NaN.")
             joined_lid = None
         else:
             lid_meshes = [body.lid_mesh.copy() for body in bodies if body.lid_mesh is not None]
-            joined_lid = lid_meshes[0].join_meshes(
-                *(l.copy() for l in lid_meshes[1:]),
-                name=f"{name}_lid_mesh"
-                )
+            joined_lid = lid_meshes[0].join_meshes(*lid_meshes[1:], name=f"{name}_lid_mesh")
+
         dofs = FloatingBody.combine_dofs(bodies)
 
         if all(body.mass is not None for body in bodies):
