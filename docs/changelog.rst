@@ -14,8 +14,15 @@ New in version 3.0 (2025-??-??)
 Minor changes
 ~~~~~~~~~~~~~
 
-* Add option :code:`'lu_decompositon_with_overwrite'` for the :code:`linear_solver` of :class:`~capytaine.bem.engines.BasicMatrixEngine`, which reduces the RAM usage of the solver (:pull:`775`).
+* Add option :code:`'lu_decomposition_with_overwrite'` for the :code:`linear_solver` of :class:`~capytaine.bem.engines.BasicMatrixEngine`, which reduces the RAM usage of the solver (:pull:`775`).
 
+* Velocity in the fluid can be post-processed in the limit frequencies (:math:`\omega = 0` or :math:`\omega = \infty`). Divide it by :math:`\omega` to have a finite value (:pull:`777`).
+
+Bug fixes
+~~~~~~~~~
+
+* Fix type of the right-hand-side of the linear solver when using option :code:`floating_point_precision = 'float32'` in :class:`~capytaine.green_functions.delhommeau.Delhommeau`.
+  As a consequence, the whole computation is done in single precision and the RAM usage is lower as expected. (:pull:`774`)
 
 Internals
 ~~~~~~~~~
@@ -38,6 +45,9 @@ Internals
   Capytaine. For compatibility, they will remain accessible from a separate
   package. (:pull:`757`, :pull:`765`)
 
+* Instead of creating a ``CollectionOfMeshes``, now ``join_bodies`` merges the
+  meshes of the bodies together. The legacy behavior is still available from
+  Fakeblocks ``join_bodies``. (:pull:`779`)
 
 ---------------------------------
 New in version 2.3.1 (2025-10-14)

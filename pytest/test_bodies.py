@@ -223,16 +223,6 @@ def test_immersed_part():
     assert not np.allclose(new_immersed_sphere.mesh.axis_aligned_bbox, immersed_sphere.mesh.axis_aligned_bbox)
 
 
-def test_mincing():
-    body = cpt.FloatingBody(mesh=cpt.mesh_horizontal_cylinder(length=10, radius=0.5))
-    body = body.minced((4, 1, 1))
-    assert len(body.mesh) == 2
-    assert np.all(body.mesh[0].faces_centers[:, 0] < 0)
-    assert isinstance(body.mesh[0][0], cpt.Mesh)
-    body = body.minced((1, 2, 2))
-    assert isinstance(body.mesh[0][0][0][0], cpt.Mesh)
-
-
 def test_assemble_regular_array():
     body = cpt.FloatingBody(mesh=cpt.mesh_sphere())
     body.add_all_rigid_body_dofs()
@@ -296,21 +286,6 @@ def test_solve_hydrodynamics(fb_array):
     assert data.radiation_damping.notnull().all()
     assert data.diffraction_force.notnull().all()
     assert data.Froude_Krylov_force.notnull().all()
-
-
-def test_cluster_bodies():
-    centers = np.array([[0.0, 0.0, 0.0],
-                        [10.0, 0.0, 0.0],
-                        [11.0, 0.0, 0.0],
-                        [10.0, 1.0, 0.0]])
-    meshes = [cpt.mesh_sphere(center=c, name=str(c)) for c in centers]
-    bodies = [cpt.FloatingBody(mesh=m) for m in meshes]
-    joined_bodies = cpt.FloatingBody.join_bodies(*bodies)
-    clustered_bodies = cpt.FloatingBody.cluster_bodies(*bodies)
-    assert isinstance(clustered_bodies, cpt.FloatingBody)
-    assert isinstance(clustered_bodies.mesh, cpt.CollectionOfMeshes)
-    assert clustered_bodies.mesh.merged() == joined_bodies.mesh.merged()
-    assert meshes[0] in clustered_bodies.mesh  # The first body is at the top level independently from the other three
 
 
 def test_clip_component_of_multibody():

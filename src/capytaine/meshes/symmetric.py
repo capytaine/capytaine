@@ -85,10 +85,9 @@ class ReflectionSymmetricMesh(SymmetricMesh):
         return ReflectionSymmetricMesh(self.half.copy(), self.plane, name=self.name)
 
     def join_meshes(*meshes, name=None, return_masks=False):
-        assert all(isinstance(mesh, ReflectionSymmetricMesh) for mesh in meshes), \
-            "Only meshes with the same symmetry can be joined together."
-        assert all(meshes[0].plane == mesh.plane for mesh in meshes), \
-            "Only reflection symmetric meshes with the same reflection plane can be joined together."
+        if not (all(isinstance(mesh, ReflectionSymmetricMesh) for mesh in meshes)
+            and all(meshes[0].plane == mesh.plane for mesh in meshes)):
+            return Mesh.join_meshes(*[m.merged() for m in meshes], name=name, return_masks=return_masks)
         if not return_masks:
             name = name=f"half_of_{name}" if name is not None else None
             half_mesh = meshes[0].half.join_meshes(
@@ -218,12 +217,10 @@ class TranslationalSymmetricMesh(SymmetricMesh):
         return self
 
     def join_meshes(*meshes, name=None, return_masks=False):
-        assert all(isinstance(mesh, TranslationalSymmetricMesh) for mesh in meshes), \
-            "Only meshes with the same symmetry can be joined together."
-        assert all(np.allclose(meshes[0].translation, mesh.translation) for mesh in meshes), \
-            "Only translation symmetric meshes with the same translation vector can be joined together."
-        assert all(len(meshes[0]) == len(mesh) for mesh in meshes), \
-            "Only symmetric meshes with the same number of elements can be joined together."
+        if not (all(isinstance(mesh, TranslationalSymmetricMesh) for mesh in meshes)
+                and all(np.allclose(meshes[0].translation, mesh.translation) for mesh in meshes)
+                and all(len(meshes[0]) == len(mesh) for mesh in meshes)):
+            return Mesh.join_meshes(*[m.merged() for m in meshes], name=name, return_masks=return_masks)
         if not return_masks:
             strip_name = f"strip_of_{name}" if name is not None else None
             mesh_strip = meshes[0].first_slice.join_meshes(
@@ -406,12 +403,10 @@ class AxialSymmetricMesh(SymmetricMesh):
         return AxialSymmetricMesh(self.first_slice.copy(), axis=self.axis.copy(), nb_repetitions=len(self) - 1, name=self.name)
 
     def join_meshes(*meshes, name=None, return_masks=False):
-        assert all(isinstance(mesh, AxialSymmetricMesh) for mesh in meshes), \
-            "Only meshes with the same symmetry can be joined together."
-        assert all(meshes[0].axis == mesh.axis for mesh in meshes), \
-            "Only axisymmetric meshes with the same symmetry axis can be joined together."
-        assert all(len(meshes[0]) == len(mesh) for mesh in meshes), \
-            "Only axisymmetric meshes with the same number of elements can be joined together."
+        if not (all(isinstance(mesh, AxialSymmetricMesh) for mesh in meshes)
+                and all(meshes[0].axis == mesh.axis for mesh in meshes)
+                and all(len(meshes[0]) == len(mesh) for mesh in meshes)):
+            return Mesh.join_meshes(*[m.merged() for m in meshes], name=name, return_masks=return_masks)
         if not return_masks:
             slice_name = f"slice_of_{name}" if name is not None else None
             mesh_slice = meshes[0].first_slice.join_meshes(
