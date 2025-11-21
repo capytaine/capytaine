@@ -24,8 +24,8 @@ a mesh or transform a mesh to set the name of the new mesh.
 
 .. _loading-a-mesh:
 
-Initialization
---------------
+Mesh initialization
+-------------------
 
 Importing with included Meshmagick readers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
