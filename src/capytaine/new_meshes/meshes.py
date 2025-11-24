@@ -29,7 +29,7 @@ from .geometry import (
 )
 from .clean import clean_mesh
 from .quality import _is_valid, check_mesh_quality
-from .visualization import show_matplotlib, show_pyvista
+from .visualization import show_3d
 
 LOG = logging.getLogger(__name__)
 
@@ -172,10 +172,13 @@ class Mesh:
         Parameters
         ----------
         backend : str, optional
-            Visualization backend to use. Options are 'matplotlib' or 'pyvista'.
+            Visualization backend to use. Options are 'pyvista' or 'matplotlib'.
             By default, try several until an installed one is found.
+        normal_vectors: bool, optional
+            If True, display normal vectors on each face.
         **kwargs
             Additional keyword arguments passed to the visualization backend.
+            See :mod:`~capytaine.new_meshes.visualization`
 
         Returns
         -------
@@ -187,32 +190,21 @@ class Mesh:
         NotImplementedError
             If the specified backend is not supported.
         """
-        backends_functions = {
-                "pyvista": show_pyvista,
-                "matplotlib": show_matplotlib,
-                }
-        if backend is not None:
-            if backend in backends_functions:
-                return backends_functions[backend](self, **kwargs)
-            else:
-                raise NotImplementedError(f"Backend '{backend}' is not implemented.")
-        else:
-            for backend in backends_functions:
-                try:
-                    return backends_functions[backend](self, **kwargs)
-                except (NotImplementedError, ImportError):
-                    pass
-                raise NotImplementedError(f"No compatible backend found to show the mesh {self}"
-                                          "Consider installing `matplotlib` or `pyvista`.")
-
-
-    def show_matplotlib(self, **kwargs):
-        """Equivalent to show(backend="matplotlib")."""
-        return self.show(backend="matplotlib", **kwargs)
+        return show_3d(self, **kwargs)
 
     def show_pyvista(self, **kwargs):
-        """Equivalent to show(backend="pyvista")."""
+        """
+        Equivalent to show(backend="pyvista").
+        See also :func:`~capytaine.new_meshes.visualization.show_pyvista`
+        """
         return self.show(backend="pyvista", **kwargs)
+
+    def show_matplotlib(self, **kwargs):
+        """
+        Equivalent to show(backend="matplotlib").
+        See also :func:`~capytaine.new_meshes.visualization.show_matplotlib`
+        """
+        return self.show(backend="matplotlib", **kwargs)
 
     ## INITIALISATION
 

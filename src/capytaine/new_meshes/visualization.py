@@ -22,6 +22,27 @@ from capytaine.tools.optional_imports import import_optional_dependency
 from capytaine.new_meshes.export import mesh_to_pyvista
 
 
+def show_3d(mesh, *, backend=None, **kwargs):
+    """Dispatch the 3D viewing to one of the available backends below."""
+    backends_functions = {
+            "pyvista": show_pyvista,
+            "matplotlib": show_matplotlib,
+            }
+    if backend is not None:
+        if backend in backends_functions:
+            return backends_functions[backend](mesh, **kwargs)
+        else:
+            raise NotImplementedError(f"Backend '{backend}' is not implemented.")
+    else:
+        for backend in backends_functions:
+            try:
+                return backends_functions[backend](mesh, **kwargs)
+            except (NotImplementedError, ImportError):
+                pass
+            raise NotImplementedError(f"No compatible backend found to show the mesh {mesh}"
+                                      "Consider installing `matplotlib` or `pyvista`.")
+
+
 def show_pyvista(
     mesh,
     *,
@@ -61,6 +82,8 @@ def show_pyvista(
         default_plotter = False
 
     kwargs.setdefault("show_edges", True)
+    if "opacity" in kwargs:
+        kwargs.setdefault("edge_opacity", kwargs["opacity"])
     plotter.add_mesh(pv_mesh, name="hull", **kwargs)
 
     # NORMALS
