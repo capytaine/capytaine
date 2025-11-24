@@ -57,6 +57,8 @@ def show_pyvista(
     """
     Visualize the mesh using PyVista.
 
+    PyVista default keyboards controls: https://docs.pyvista.org/api/plotting/plotting
+
     Parameters
     ----------
     mesh : Mesh
@@ -82,6 +84,8 @@ def show_pyvista(
     """
     pv = import_optional_dependency("pyvista")
     pv_mesh = mesh_to_pyvista(mesh.vertices, mesh._faces)
+    if color_field is not None:
+        pv_mesh.cell_data["color_field"] = color_field
 
     if plotter is None:
         default_plotter = True
@@ -92,7 +96,8 @@ def show_pyvista(
     kwargs.setdefault("show_edges", True)
     if "opacity" in kwargs:
         kwargs.setdefault("edge_opacity", kwargs["opacity"])
-    kwargs.setdefault("scalars", color_field)
+    if color_field is not None:
+        kwargs.setdefault("scalars", "color_field")
     kwargs.setdefault("scalar_bar_args", {"title": cbar_label})
     plotter.add_mesh(pv_mesh, name="hull", **kwargs)
 
@@ -195,7 +200,6 @@ def show_pyvista(
             view_clipping[dir] = -1
         else:
             view_clipping[dir] = 0
-        plotter.remove_actor("hull")
         plotter.add_mesh(clipped_mesh(), name="hull", **kwargs)
 
     plotter.add_key_event("X", lambda : toggle_view_clipping("x"))
