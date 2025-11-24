@@ -11,6 +11,11 @@ mesh = cpt.mesh_horizontal_cylinder(
     center=(0, 0, 0),         # Position
     resolution=(5, 20, 40)    # Fineness of the mesh
     ).immersed_part()
+
+# Temporary: test with the new mesh class
+from capytaine.new_meshes import Mesh
+mesh = Mesh(mesh.vertices, mesh.faces)
+
 body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
 
 # Define the range of water depth

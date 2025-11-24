@@ -88,7 +88,7 @@ class FloatingBody(ClippableMixin, Abstract3DObject):
         if name is None and mesh is None:
             self.name = "dummy_body"
         elif name is None:
-            if hasattr(self.mesh, "name"):
+            if hasattr(self.mesh, "name") and self.mesh.name is not None:
                 self.name = self.mesh.name
             else:
                 self.name = "anonymous_body"
@@ -773,7 +773,6 @@ respective inertia coefficients are assigned as NaN.")
     def join_bodies(*bodies, name=None) -> 'FloatingBody':
         if name is None:
             name = "+".join(body.name for body in bodies)
-
         meshes = [body.mesh.copy() for body in bodies if body.mesh.nb_faces > 0]
         if len(meshes) > 0:
             joined_mesh = meshes[0].join_meshes(*meshes[1:], name=f"{name}_mesh")

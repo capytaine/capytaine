@@ -27,7 +27,7 @@ dynamic = ['version']
 
 [project.optional-dependencies]
 optional = [
-  "matplotlib", "joblib>=1.3", "meshio", "netcdf4", "vtk",
+  "matplotlib", "joblib>=1.3", "meshio", "netcdf4", "vtk", "pyvista",
 ]
 
 [dependency-groups]
