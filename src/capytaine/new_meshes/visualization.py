@@ -50,6 +50,8 @@ def show_pyvista(
     normal_vectors=False,
     display_free_surface=True,
     water_depth=np.inf,
+    color_field=None,
+    cbar_label="",
     **kwargs
 ) -> Optional["pv.Plotter"]:  # noqa: F821
     """
@@ -69,6 +71,12 @@ def show_pyvista(
         (default: True)
     water_depth: float, optional
         Where to display the sea bottom if `display_free_surface` is True
+    color_field: array of shape (nb_faces, ), optional
+        Scalar field to be plot on the mesh.
+    cmap: matplotlib colormap, optional
+        Colormap to use for scalar field plotting.
+    cbar_label: string, optional
+        Label for colorbar show color field scale
     kwargs : additional optional arguments
         Additional arguments passed to PyVista's add_mesh methods for customization (e.g. mesh color).
     """
@@ -84,6 +92,8 @@ def show_pyvista(
     kwargs.setdefault("show_edges", True)
     if "opacity" in kwargs:
         kwargs.setdefault("edge_opacity", kwargs["opacity"])
+    kwargs.setdefault("scalars", color_field)
+    kwargs.setdefault("scalar_bar_args", {"title": cbar_label})
     plotter.add_mesh(pv_mesh, name="hull", **kwargs)
 
     # NORMALS
@@ -157,35 +167,48 @@ def show_pyvista(
             bounds = True
 
 
-    plotter.add_key_event("a", lambda: toggle_bounds())
+    plotter.add_key_event("b", lambda: toggle_bounds())
 
-    plotter.add_key_event("t", lambda : plotter.view_xy())
-    plotter.add_key_event("b", lambda : plotter.view_xy(negative=True))
-    plotter.add_key_event("s", lambda : plotter.view_xz())
-    plotter.add_key_event("p", lambda : plotter.view_xz(negative=True))
-    plotter.add_key_event("f", lambda : plotter.view_yz())
-    plotter.add_key_event("r", lambda : plotter.view_yz(negative=True))
+    plotter.add_key_event("T", lambda : plotter.view_xy())
+    plotter.add_key_event("B", lambda : plotter.view_xy(negative=True))
+    plotter.add_key_event("S", lambda : plotter.view_xz())
+    plotter.add_key_event("P", lambda : plotter.view_xz(negative=True))
+    plotter.add_key_event("F", lambda : plotter.view_yz())
+    plotter.add_key_event("R", lambda : plotter.view_yz(negative=True))
 
-    # view_clipping = False
-    # def toggle_view_clipping():
-    #     nonlocal view_clipping
-    #     if view_clipping:
-    #         plotter.remove_actor("clipped_hull")
-    #         plotter.add_mesh(pv_mesh, show_edges=show_edges, name="hull", **kwargs)
-    #         view_clipping = False
-    #     else:
-    #         plotter.remove_actor("hull")
-    #         plotter.add_mesh_clip_plane(pv_mesh, show_edges=show_edges, name="clipped_hull", **kwargs)
-    #         view_clipping = True
-    # plotter.add_key_event("c", lambda : toggle_view_clipping())
+    view_clipping = {'x': 0, 'y': 0}  # 0 = no clipping, +1 clipping one side, -1 clipping other side
+    def clipped_mesh():
+        nonlocal view_clipping
+        clipped_pv_mesh = pv_mesh
+        for dir in ['x', 'y']:
+            if view_clipping[dir] == 1:
+                clipped_pv_mesh = clipped_pv_mesh.clip(dir)
+            elif view_clipping[dir] == -1:
+                clipped_pv_mesh = clipped_pv_mesh.clip("-" + dir)
+        return clipped_pv_mesh
+
+    def toggle_view_clipping(dir):
+        nonlocal view_clipping
+        if view_clipping[dir] == 0:
+            view_clipping[dir] = +1
+        elif view_clipping[dir] == +1:
+            view_clipping[dir] = -1
+        else:
+            view_clipping[dir] = 0
+        plotter.remove_actor("hull")
+        plotter.add_mesh(clipped_mesh(), name="hull", **kwargs)
+
+    plotter.add_key_event("X", lambda : toggle_view_clipping("x"))
+    plotter.add_key_event("Y", lambda : toggle_view_clipping("y"))
 
     plotter.add_text(
         f"Capytaine version {__version__}\n\n"
         """Keyboard controls:
+        b: toggle scale and bounding box
         h: toggle free surface (and sea bottom if water depth was given)
         n: toggle normal vectors
-        a: toggle scale and bounding box
-        t,b,p,s,f,r: view [t]op, [b]ottom, [p]ort, [s]tarboard, [f]ront, [r]ear
+        T,B,P,S,F,R: view [T]op, [B]ottom, [P]ort, [S]tarboard, [F]ront, [R]ear
+        X, Y: toggle displaying clipped mesh in x or y direction
         q: exit
         """,
         position="upper_left",
@@ -220,9 +243,9 @@ def show_matplotlib(mesh, ax=None, bounding_box=None,
     color_field: array of shape (nb_faces, ), optional
         Scalar field to be plot on the mesh (optional).
     cmap: matplotlib colormap, optional
-        Colormap to use for field plotting.
+        Colormap to use for scalar field plotting.
     cbar_label: string, optional
-        Label for colormap
+        Label for colorbar show color field scale
 
     Other parameters are passed to Poly3DCollection.
     """

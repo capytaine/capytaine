@@ -190,7 +190,7 @@ class Mesh:
         NotImplementedError
             If the specified backend is not supported.
         """
-        return show_3d(self, **kwargs)
+        return show_3d(self, backend=backend, **kwargs)
 
     def show_pyvista(self, **kwargs):
         """
