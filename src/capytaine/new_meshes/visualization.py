@@ -13,12 +13,24 @@
 # limitations under the License.
 
 import importlib
+from typing import Optional
 
+import numpy as np
+
+from capytaine import __version__
 from capytaine.tools.optional_imports import import_optional_dependency
 from capytaine.new_meshes.export import mesh_to_pyvista
 
 
-def show_pyvista(mesh, **kwargs):
+def show_pyvista(
+    mesh,
+    *,
+    plotter=None,
+    normal_vectors=False,
+    display_free_surface=True,
+    water_depth=np.inf,
+    **kwargs
+) -> Optional["pv.Plotter"]:  # noqa: F821
     """
     Visualize the mesh using PyVista.
 
@@ -26,15 +38,142 @@ def show_pyvista(mesh, **kwargs):
     ----------
     mesh : Mesh
         The mesh object to visualize.
+    plotter: pv.Plotter, optional
+        If provided, use this PyVista plotter and return it at the end.
+        Otherwise a new one is created and the 3D view is displayed at the end.
+    normal_vectors: bool, optional
+        If True, display normal vector (default: True)
+    display_free_surface: bool, optional
+        If True, display free surface and if `water_depth` is finite display the sea bottom.
+        (default: True)
+    water_depth: float, optional
+        Where to display the sea bottom if `display_free_surface` is True
     kwargs : additional optional arguments
-        Additional arguments passed to PyVista's add_mesh and plotter methods for customization.
+        Additional arguments passed to PyVista's add_mesh methods for customization (e.g. mesh color).
     """
     pv = import_optional_dependency("pyvista")
     pv_mesh = mesh_to_pyvista(mesh.vertices, mesh._faces)
-    plotter = pv.Plotter()
+
+    if plotter is None:
+        default_plotter = True
+        plotter = pv.Plotter()
+    else:
+        default_plotter = False
+
     kwargs.setdefault("show_edges", True)
-    plotter.add_mesh(pv_mesh, **kwargs)
-    plotter.show()
+    plotter.add_mesh(pv_mesh, name="hull", **kwargs)
+
+    # NORMALS
+    def show_normals():
+        mini = mesh.vertices.min()
+        maxi = mesh.vertices.max()
+        plotter.add_arrows(
+            mesh.faces_centers,
+            mesh.faces_normals,
+            name="normals",
+            mag=0.04*(maxi-mini),
+            show_scalar_bar=False
+        )
+
+    def toggle_normals():
+        nonlocal normal_vectors
+        if normal_vectors:
+            normal_vectors = False
+            plotter.remove_actor('normals')
+        else:
+            normal_vectors = True
+            show_normals()
+
+    if normal_vectors:
+        show_normals()
+    plotter.add_key_event("n", lambda : toggle_normals())
+
+    # FREE SURFACE
+    def show_free_surface():
+        mini = mesh.vertices[:, :2].min(axis=0)
+        maxi = mesh.vertices[:, :2].max(axis=0)
+        center = (mini + maxi) / 2
+        diam = 1.1*(maxi - mini)
+        plane = pv.Plane(center=(*center, 0), direction=(0, 0, 1), i_size=diam[0], j_size=diam[1])
+        plotter.add_mesh(plane, color="blue", opacity=0.5, name="display_free_surface")
+        if water_depth != np.inf:
+            plane = pv.Plane(center=(*center, -water_depth), direction=(0, 0, 1), i_size=diam[0], j_size=diam[1])
+            plotter.add_mesh(plane, color="brown", opacity=0.5, name="display_sea_bottom")
+
+
+    def toggle_free_surface():
+        nonlocal display_free_surface
+        if display_free_surface:
+            display_free_surface = False
+            plotter.remove_actor('display_free_surface')
+            if water_depth != np.inf:
+                plotter.remove_actor('display_sea_bottom')
+        else:
+            display_free_surface = True
+            show_free_surface()
+
+    if display_free_surface:
+        show_free_surface()
+
+    plotter.add_key_event("h", lambda : toggle_free_surface())
+
+    # BOUNDS
+    def show_bounds():
+        plotter.show_bounds(grid='back', location='outer', n_xlabels=2, n_ylabels=2, n_zlabels=2)
+
+    bounds = True
+    show_bounds()
+    def toggle_bounds():
+        nonlocal bounds
+        if bounds:
+            plotter.remove_bounds_axes()
+            bounds = False
+        else:
+            show_bounds()
+            plotter.update()
+            bounds = True
+
+
+    plotter.add_key_event("a", lambda: toggle_bounds())
+
+    plotter.add_key_event("t", lambda : plotter.view_xy())
+    plotter.add_key_event("b", lambda : plotter.view_xy(negative=True))
+    plotter.add_key_event("s", lambda : plotter.view_xz())
+    plotter.add_key_event("p", lambda : plotter.view_xz(negative=True))
+    plotter.add_key_event("f", lambda : plotter.view_yz())
+    plotter.add_key_event("r", lambda : plotter.view_yz(negative=True))
+
+    # view_clipping = False
+    # def toggle_view_clipping():
+    #     nonlocal view_clipping
+    #     if view_clipping:
+    #         plotter.remove_actor("clipped_hull")
+    #         plotter.add_mesh(pv_mesh, show_edges=show_edges, name="hull", **kwargs)
+    #         view_clipping = False
+    #     else:
+    #         plotter.remove_actor("hull")
+    #         plotter.add_mesh_clip_plane(pv_mesh, show_edges=show_edges, name="clipped_hull", **kwargs)
+    #         view_clipping = True
+    # plotter.add_key_event("c", lambda : toggle_view_clipping())
+
+    plotter.add_text(
+        f"Capytaine version {__version__}\n\n"
+        """Keyboard controls:
+        h: toggle free surface (and sea bottom if water depth was given)
+        n: toggle normal vectors
+        a: toggle scale and bounding box
+        t,b,p,s,f,r: view [t]op, [b]ottom, [p]ort, [s]tarboard, [f]ront, [r]ear
+        q: exit
+        """,
+        position="upper_left",
+        font_size=10
+    )
+    plotter.show_axes()  # xyz in bottom left corner
+
+    if default_plotter:
+        plotter.show()
+    else:
+        return plotter
 
 
 def show_matplotlib(mesh, ax=None, bounding_box=None,
@@ -52,7 +191,7 @@ def show_matplotlib(mesh, ax=None, bounding_box=None,
     bounding_box: tuple[tuple[int]], optional
         Min and max coordinates values to display in each three dimensions.
     normal_vectors: bool, optional
-        If True, print normal vector.
+        If True, display normal vector.
     scale_normal_vector: array of shape (nb_faces, ), optional
         Scale separately each of the normal vectors.
     color_field: array of shape (nb_faces, ), optional

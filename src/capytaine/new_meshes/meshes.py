@@ -188,8 +188,8 @@ class Mesh:
             If the specified backend is not supported.
         """
         backends_functions = {
-                "matplotlib": show_matplotlib,
                 "pyvista": show_pyvista,
+                "matplotlib": show_matplotlib,
                 }
         if backend is not None:
             if backend in backends_functions:
