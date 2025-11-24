@@ -29,6 +29,7 @@ from .geometry import (
 )
 from .clean import clean_mesh
 from .quality import _is_valid, check_mesh_quality
+from .visualization import show_matplotlib, show_pyvista
 
 LOG = logging.getLogger(__name__)
 
@@ -164,6 +165,54 @@ class Mesh:
         yield "vertices", CustomRepr(self.nb_vertices, "vertices")
         yield "faces", CustomRepr(self.nb_faces, "faces")
         yield "name", self.name
+
+    def show(self, *, backend=None, **kwargs):
+        """Visualize the mesh using the specified backend.
+
+        Parameters
+        ----------
+        backend : str, optional
+            Visualization backend to use. Options are 'matplotlib' or 'pyvista'.
+            By default, try several until an installed one is found.
+        **kwargs
+            Additional keyword arguments passed to the visualization backend.
+
+        Returns
+        -------
+        object
+            Visualization object returned by the backend (e.g., matplotlib figure).
+
+        Raises
+        ------
+        NotImplementedError
+            If the specified backend is not supported.
+        """
+        backends_functions = {
+                "matplotlib": show_matplotlib,
+                "pyvista": show_pyvista,
+                }
+        if backend is not None:
+            if backend in backends_functions:
+                return backends_functions[backend](self, **kwargs)
+            else:
+                raise NotImplementedError(f"Backend '{backend}' is not implemented.")
+        else:
+            for backend in backends_functions:
+                try:
+                    return backends_functions[backend](self, **kwargs)
+                except (NotImplementedError, ImportError):
+                    pass
+                raise NotImplementedError(f"No compatible backend found to show the mesh {self}"
+                                          "Consider installing `matplotlib` or `pyvista`.")
+
+
+    def show_matplotlib(self, **kwargs):
+        """Equivalent to show(backend="matplotlib")."""
+        return self.show(backend="matplotlib", **kwargs)
+
+    def show_pyvista(self, **kwargs):
+        """Equivalent to show(backend="pyvista")."""
+        return self.show(backend="pyvista", **kwargs)
 
     ## INITIALISATION
 

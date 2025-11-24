@@ -43,7 +43,7 @@ def check_mesh_quality(mesh, *, tol=1e-8):
     try:
         pv_mesh = mesh_to_pyvista(mesh.vertices, mesh._faces)
 
-        arq = pv_mesh.compute_cell_quality("aspect_ratio").cell_data.get("CellQuality")
+        arq = pv_mesh.cell_quality("aspect_ratio").cell_data.get("aspect_ratio")
         if arq is not None:
             ratio_ok = np.sum(arq < 5) / len(arq)
             if ratio_ok < 0.9:
