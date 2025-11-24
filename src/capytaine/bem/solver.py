@@ -282,7 +282,7 @@ class BEMSolver:
                 results.extend(grp_results)
                 for timer_key in self.timer:
                     id_process_that_solved_that_group = id_group_results + 1
-                    self.timer[timer_key][id_process_that_solved_that_group] = timer[timer_key][0]
+                    self.timer[timer_key][id_process_that_solved_that_group].add_data_from_other_timer(timer[timer_key][0])
         LOG.info("Solver timer summary:\n%s", self.timer_summary())
         return results
     
