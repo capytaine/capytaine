@@ -91,6 +91,17 @@ def test_parallelization(sphere):
     solver.fill_dataset(test_matrix, sphere, n_jobs=2)
 
 
+def test_nb_timer(sphere):
+    solver = cpt.BEMSolver()
+    n_jobs = 3
+    problems = [
+    cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=omega)
+    for omega in np.linspace(0.1, 3.0, 5)
+    ]
+    solver.solve_all(problems, n_jobs = n_jobs)
+    assert len(solver.timer["Solve total"]) == n_jobs + 1 
+
+
 def test_float32_solver(sphere):
     solver = cpt.BEMSolver(green_function=cpt.Delhommeau(floating_point_precision="float32"))
     pb = cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=1.0)

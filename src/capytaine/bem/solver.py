@@ -278,16 +278,19 @@ class BEMSolver:
                                           total=len(groups_of_problems),
                                           description=f"Solving BEM problems with {n_jobs} process:")
             results = []
-            for id_group_results, (grp_results, timer) in enumerate(groups_of_results):
+            process_id_mapping = {}
+            for grp_results, timer, process_id in groups_of_results:
                 results.extend(grp_results)
+                if process_id not in process_id_mapping:
+                    process_id_mapping[process_id] = len(process_id_mapping) + 1
                 for timer_key in self.timer:
-                    id_process_that_solved_that_group = id_group_results + 1
+                    id_process_that_solved_that_group = process_id_mapping[process_id]
                     self.timer[timer_key][id_process_that_solved_that_group].add_data_from_other_timer(timer[timer_key][0])
         LOG.info("Solver timer summary:\n%s", self.timer_summary())
         return results
     
-    def _solve_all_and_return_timer(self, grp, *,method, n_jobs, progress_bar, _check_wavelength, **kwargs):
-        return self.solve_all(grp, method=method, n_jobs=n_jobs, progress_bar=progress_bar, _check_wavelength=_check_wavelength, **kwargs), self.timer
+    def _solve_all_and_return_timer(self, grp, *,method, n_jobs, progress_bar, _check_wavelength,**kwargs):
+        return self.solve_all(grp, method=method, n_jobs=n_jobs, progress_bar=progress_bar, _check_wavelength=_check_wavelength, **kwargs), self.timer, os.getpid()
     
     @staticmethod
     def _check_wavelength_and_mesh_resolution(problems):
