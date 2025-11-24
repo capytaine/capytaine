@@ -1,23 +1,28 @@
+import logging
 import time
 from threading import Thread
 
-from psutil import Process
+from capytaine.tools.optional_imports import silently_import_optional_dependency
+
+LOG = logging.getLogger(__name__)
 
 class MemoryMonitor(Thread):
     """Monitor the memory usage in a separate thread.
     from : https://joblib.readthedocs.io/en/stable/auto_examples/parallel_generator.html#sphx-glr-auto-examples-parallel-generator-py
     """
 
-    def __init__(self, psutil):
+    def __init__(self):
         super().__init__()
         self.stop = False
         self.memory_buffer = [0]
-        self.psutil = psutil 
+        self.psutil = silently_import_optional_dependency("psutil")
+        if self.psutil is None:
+            LOG.info("To get the RAM consumption the dependency 'psutil' is necessary.")
         self.start()
 
     def get_memory(self):
         "Get memory of a process and its children."
-        p = Process()
+        p = self.psutil.Process()
         memory = p.memory_info().rss
         for c in p.children():
             memory += c.memory_info().rss

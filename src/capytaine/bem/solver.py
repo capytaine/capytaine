@@ -250,10 +250,7 @@ class BEMSolver:
             else:
                 progress_bar = True
 
-        psutil = silently_import_optional_dependency("psutil")
-        if psutil is None:
-            LOG.info("To get the RAM consumption the dependency 'psutil' is necessary.")
-        monitor = MemoryMonitor(psutil)
+        monitor = MemoryMonitor()
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
             if progress_bar:
@@ -272,7 +269,7 @@ class BEMSolver:
                                           description=f"Solving BEM problems with {n_jobs} threads:")
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
         memory_peak = monitor.get_memory_peak()
-        LOG.info(f"The memory peak is {memory_peak} GB.")  
+        LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")  
         LOG.info("Solver timer summary:\n%s", self.timer_summary())
         return results
 
@@ -343,13 +340,17 @@ class BEMSolver:
         if n_jobs == - 1:
             n_jobs = os.cpu_count()
 
-        ram_estimation = max({self.engine.compute_ram_estimation(pb, n_jobs) for pb in problems})
+        ram_estimation = {n_jobs*self.engine.compute_ram_estimation(pb) for pb in problems}
+        estimated_peak_memory = np.round(max(ram_estimation))
 
-        if ram_estimation < ram_limit:
-            LOG.info(f"The RAM estimate is {ram_estimation} GB, which is below the set limit of {ram_limit} GB.")
+        if estimated_peak_memory == 0:
+            LOG.info(f"Estimated peak RAM usage: <1 GB.")
+
+        elif estimated_peak_memory < ram_limit:
+            LOG.info(f"Estimated peak RAM usage: {estimated_peak_memory} GB.")
 
         else:
-            LOG.warning(f"The RAM estimate is {ram_estimation} GB, which is above the set limit of {ram_limit} GB.")
+            LOG.warning(f"Estimated peak RAM usage: {estimated_peak_memory} GB.")
 
     def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, _check_wavelength=True, progress_bar=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
