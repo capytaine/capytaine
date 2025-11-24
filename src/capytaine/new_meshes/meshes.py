@@ -20,6 +20,7 @@ from typing import List, Union, Tuple
 
 import numpy as np
 
+from capytaine.tools.deprecation_handling import _get_water_depth
 from .geometry import (
     compute_faces_areas,
     compute_faces_centers,
@@ -27,6 +28,7 @@ from .geometry import (
     compute_faces_radii,
     get_vertices_face,
 )
+from .clip import clip_faces
 from .clean import clean_mesh
 from .quality import _is_valid, check_mesh_quality
 
@@ -555,6 +557,52 @@ class Mesh:
     def copy(self):
         # No-op for backward compatibility
         return self
+
+    def clipped(self, *, origin, normal, name=None) -> "Mesh":
+        """
+        Clip the mesh by a plane defined by `origin` and `normal`.
+
+        Parameters
+        ----------
+        origin : np.ndarray
+            The point in space where the clipping plane intersects (3D point).
+        normal : np.ndarray
+            The normal vector defining the orientation of the clipping plane.
+        name: Optional[str]
+            A name for the newly created mesh
+
+        Returns
+        -------
+        Mesh
+            A new Mesh instance that has been clipped.
+        """
+        new_vertices, new_faces = clip_faces(self.vertices, self._faces, normal, origin)
+        if name is None:
+            name = f"{self.name}_clipped"
+        return Mesh(vertices=new_vertices, faces=new_faces, name=name)
+
+    def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None) -> "Mesh":
+        """
+        Clip the mesh to keep only the part below the free surface.
+
+        Parameters
+        ----------
+        free_surface: float
+            The :math:`z` coordinate of the free surface (default: 0.0)
+        water_depth: Optional[float]
+            The water depth, as a positive value (default: infinity)
+
+        Returns
+        -------
+        Mesh
+            A new Mesh instance that has been clipped.
+        """
+        clipped = self.clipped(origin=(0, 0, 0), normal=(0, 0, 1))
+        water_depth = _get_water_depth(free_surface, water_depth, sea_bottom,
+                                       default_water_depth=np.inf)
+        if water_depth < np.inf:
+            clipped = clipped.clipped(origin=(0, 0, free_surface-water_depth), normal=(0, 0, -1))
+        return clipped
 
 
 def to_new_mesh(old_mesh):
