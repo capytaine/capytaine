@@ -27,6 +27,7 @@ FLAGS += $(OPT) -DFINGREEN3D_OPTIONAL_DEPENDENCY -DLIANGWUNOBLESSE_OPTIONAL_DEPE
 ### source selection
 
 SRC_S=src/float32.f90\
+      src/mesh_types.f90\
       src/constants.f90\
       src/old_Prony_decomposition.f90\
       src/Green_Rankine.f90\
@@ -37,6 +38,7 @@ SRC_S=src/float32.f90\
 
 SRC_D=src/float64.f90\
       src/constants.f90\
+	  src/mesh_types.f90\
       src/old_Prony_decomposition.f90\
       src/FinGreen3D.f90\
       src/LiangWuNoblesseWaveTerm.f90\

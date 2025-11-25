@@ -25,9 +25,10 @@ def test_infinite_depth_gf_singularities_variants():
     """Test how the values of the variants of the infinite depth Green function are related."""
     from scipy.special import j0
     gf = cpt.Delhommeau()
-    def wave_part(*args):
-        return gf.fortran_core.green_wave.wave_part_infinite_depth(
-                *args[:3], *gf.all_tabulation_parameters, args[3])
+    def wave_part(xi, xj, k, gf_singularities):
+        return gf.fortran_core.interface.vectorized_wave_part_infinite_depth(
+                xi.reshape(1, 3), xj.reshape(1, 3),
+                k, *gf.all_tabulation_parameters, gf_singularities)
     xi = np.array([0.0, 0.0, -0.5])
     xj = np.array([0.0, 1.0, -0.5])
     k = 2.0
@@ -45,12 +46,14 @@ def test_infinite_depth_gf_finite_differences(gf_singularities):
     """Compare the gradient of the Green function as returned by the code with the finite difference gradient"""
     # TODO: same in finite depth
     gf = cpt.Delhommeau(gf_singularities=gf_singularities)
-    def wave_part(*args):
-        return gf.fortran_core.green_wave.wave_part_infinite_depth(
-                *args[:3], *gf.all_tabulation_parameters, gf.gf_singularities_fortran_enum[gf.gf_singularities])[0]
+    def wave_part(xi, xj, k):
+        return gf.fortran_core.interface.vectorized_wave_part_infinite_depth(
+                xi.reshape(1, 3), xj.reshape(1, 3), k,
+                *gf.all_tabulation_parameters, gf.gf_singularities_fortran_enum[gf.gf_singularities])[0]
     def nabla_wave_part(*args):
-        return gf.fortran_core.green_wave.wave_part_infinite_depth(
-                *args[:3], *gf.all_tabulation_parameters, gf.gf_singularities_fortran_enum[gf.gf_singularities])[1]
+        return gf.fortran_core.interface.vectorized_wave_part_infinite_depth(
+                xi.reshape(1, 3), xj.reshape(1, 3), k,
+                *gf.all_tabulation_parameters, gf.gf_singularities_fortran_enum[gf.gf_singularities])[1]
     k = 1.0
     xi = np.array([0.0, 0.0, -0.5])
     xj = np.array([1.0, 1.0, -0.5])
@@ -61,22 +64,23 @@ def test_infinite_depth_gf_finite_differences(gf_singularities):
     g_x = (wave_part(xi + x_eps, xj, k) - g)/np.linalg.norm(x_eps)
     g_y = (wave_part(xi + y_eps, xj, k) - g)/np.linalg.norm(y_eps)
     g_z = (wave_part(xi + z_eps, xj, k) - g)/np.linalg.norm(z_eps)
-    nabla_g = np.array([g_x, g_y, g_z])
+    nabla_g = np.array([g_x, g_y, g_z]).reshape(1, 3)
     nablag_ref = nabla_wave_part(xi, xj, k)
     assert nablag_ref == pytest.approx(nabla_g, abs=1e-2)
 
 
 def test_value_of_inf_depth_green_function_wave_part():
     gf = cpt.Delhommeau()
-    def wave_part(*args):
-        return gf.fortran_core.green_wave.wave_part_infinite_depth(
-                *args[:3], *gf.all_tabulation_parameters, gf.fortran_core.constants.low_freq)
+    def wave_part(xi, xj, k):
+        return gf.fortran_core.interface.vectorized_wave_part_infinite_depth(
+                xi.reshape(1, 3), xj.reshape(1, 3),
+                k, *gf.all_tabulation_parameters, gf.fortran_core.constants.low_freq)
     k = 1.0
     xi = np.array([0.0, 0.0, -0.5])
     xj = np.array([1.0, 1.0, -0.5])
     g, nabla_g = wave_part(xi, xj, k)
     assert g == pytest.approx(-2.04 + 1.29j, abs=0.1)
-    assert nabla_g == pytest.approx([0.25+0.88j,  0.25+0.88j, -0.88+1.29j], abs=0.1)
+    assert nabla_g.reshape(3) == pytest.approx([0.25+0.88j,  0.25+0.88j, -0.88+1.29j], abs=0.1)
 
 
 gfs = [
@@ -88,17 +92,17 @@ gfs = [
 @pytest.mark.parametrize("gf", gfs)
 def test_symmetry_of_the_green_function_infinite_depth(gf):
     k = 1.0
-    xi = np.array([0.0, 0.0, -1.0])
-    xj = np.array([1.0, 1.0, -2.0])
-    g1, dg1 = gf.fortran_core.green_wave.wave_part_infinite_depth(
+    xi = np.array([[0.0, 0.0, -1.0]])
+    xj = np.array([[1.0, 1.0, -2.0]])
+    g1, dg1 = gf.fortran_core.interface.vectorized_wave_part_infinite_depth(
         xi, xj, k, *gf.all_tabulation_parameters, gf.gf_singularities_fortran_enum[gf.gf_singularities]
     )
-    g2, dg2 = gf.fortran_core.green_wave.wave_part_infinite_depth(
+    g2, dg2 = gf.fortran_core.interface.vectorized_wave_part_infinite_depth(
         xj, xi, k, *gf.all_tabulation_parameters, gf.gf_singularities_fortran_enum[gf.gf_singularities]
     )
     assert g1 == pytest.approx(g2)
-    assert dg1[0:2] == pytest.approx(-dg2[0:2])
-    assert dg1[2] == pytest.approx(dg2[2])
+    assert dg1[:, 0:2] == pytest.approx(-dg2[:, 0:2])
+    assert dg1[:, 2] == pytest.approx(dg2[:, 2])
 
 
 def test_floating_point_precision():
