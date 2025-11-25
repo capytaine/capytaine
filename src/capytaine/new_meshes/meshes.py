@@ -29,6 +29,7 @@ from .geometry import (
 )
 from .clean import clean_mesh
 from .quality import _is_valid, check_mesh_quality
+from .visualization import show_3d
 
 LOG = logging.getLogger(__name__)
 
@@ -164,6 +165,46 @@ class Mesh:
         yield "vertices", CustomRepr(self.nb_vertices, "vertices")
         yield "faces", CustomRepr(self.nb_faces, "faces")
         yield "name", self.name
+
+    def show(self, *, backend=None, **kwargs):
+        """Visualize the mesh using the specified backend.
+
+        Parameters
+        ----------
+        backend : str, optional
+            Visualization backend to use. Options are 'pyvista' or 'matplotlib'.
+            By default, try several until an installed one is found.
+        normal_vectors: bool, optional
+            If True, display normal vectors on each face.
+        **kwargs
+            Additional keyword arguments passed to the visualization backend.
+            See :mod:`~capytaine.new_meshes.visualization`
+
+        Returns
+        -------
+        object
+            Visualization object returned by the backend (e.g., matplotlib figure).
+
+        Raises
+        ------
+        NotImplementedError
+            If the specified backend is not supported.
+        """
+        return show_3d(self, backend=backend, **kwargs)
+
+    def show_pyvista(self, **kwargs):
+        """
+        Equivalent to show(backend="pyvista").
+        See also :func:`~capytaine.new_meshes.visualization.show_pyvista`
+        """
+        return self.show(backend="pyvista", **kwargs)
+
+    def show_matplotlib(self, **kwargs):
+        """
+        Equivalent to show(backend="matplotlib").
+        See also :func:`~capytaine.new_meshes.visualization.show_matplotlib`
+        """
+        return self.show(backend="matplotlib", **kwargs)
 
     ## INITIALISATION
 

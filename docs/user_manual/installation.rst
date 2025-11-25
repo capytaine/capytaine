@@ -63,7 +63,7 @@ The following optional dependencies can be used together with Capytaine.
 +=================+=================================================================================+
 | matplotlib      | To plot graphs. Used in several examples in the documentation and the cookbook. |
 +-----------------+---------------------------------------------------------------------------------+
-| vtk             | For 3D visualization                                                            |
+| pyvista         | For 3D visualization                                                            |
 +-----------------+---------------------------------------------------------------------------------+
 | meshio          | To load more mesh formats                                                       |
 +-----------------+---------------------------------------------------------------------------------+
@@ -150,7 +150,7 @@ The latest version is currently |version|.
 
 It is often more efficient to specify all the optional packages you'd like in your environment from the start when creating it, such as in the following example::
 
-    conda create --name capy_and_other_env --channel conda-forge capytaine jupyter matplotlib vtk
+    conda create --name capy_and_other_env --channel conda-forge capytaine jupyter matplotlib pyvista
 
 
 More build recipes
