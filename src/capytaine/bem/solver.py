@@ -269,7 +269,10 @@ class BEMSolver:
                                           description=f"Solving BEM problems with {n_jobs} threads:")
             results = [res for grp in groups_of_results for res in grp]  # flatten the nested list
         memory_peak = monitor.get_memory_peak()
-        LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")  
+        if memory_peak is None:
+            LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
+        else:
+            LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")  
         LOG.info("Solver timer summary:\n%s", self.timer_summary())
         return results
 

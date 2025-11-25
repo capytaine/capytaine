@@ -16,8 +16,6 @@ class MemoryMonitor(Thread):
         self.stop = False
         self.memory_buffer = [0]
         self.psutil = silently_import_optional_dependency("psutil")
-        if self.psutil is None:
-            LOG.info("To get the RAM consumption the dependency 'psutil' is necessary.")
         self.start()
 
     def get_memory(self):
