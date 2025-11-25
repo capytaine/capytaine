@@ -272,7 +272,7 @@ class BEMSolver:
         if memory_peak is None:
             LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
         else:
-            LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")  
+            LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")
         LOG.info("Solver timer summary:\n%s", self.timer_summary())
         return results
 
@@ -334,7 +334,7 @@ class BEMSolver:
                             f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
                             + recommendation
                             )
-                
+
     def _check_ram(self,problems, n_jobs = 1):
         """Display a warning if the RAM estimation is larger than a certain limit."""
         LOG.debug("Check RAM estimation.")
@@ -343,17 +343,16 @@ class BEMSolver:
         if n_jobs == - 1:
             n_jobs = os.cpu_count()
 
-        ram_estimation = {n_jobs*self.engine.compute_ram_estimation(pb) for pb in problems}
-        estimated_peak_memory = np.round(max(ram_estimation))
+        estimated_peak_memory = n_jobs*max(self.engine.compute_ram_estimation(pb) for pb in problems)
 
-        if estimated_peak_memory == 0:
-            LOG.info(f"Estimated peak RAM usage: <1 GB.")
+        if estimated_peak_memory < 0.5:
+            LOG.info("Estimated peak RAM usage: <1 GB.")
 
         elif estimated_peak_memory < ram_limit:
-            LOG.info(f"Estimated peak RAM usage: {estimated_peak_memory} GB.")
+            LOG.info(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
 
         else:
-            LOG.warning(f"Estimated peak RAM usage: {estimated_peak_memory} GB.")
+            LOG.warning(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
 
     def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, _check_wavelength=True, progress_bar=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
