@@ -24,6 +24,8 @@ Bug fixes
 * Fix type of the right-hand-side of the linear solver when using option :code:`floating_point_precision = 'float32'` in :class:`~capytaine.green_functions.delhommeau.Delhommeau`.
   As a consequence, the whole computation is done in single precision and the RAM usage is lower as expected. (:pull:`774`)
 
+* Fix the timer for parallel resolution, i.e. when :code:`n_jobs` is greater than 1. Now the durations for each process are displayed. (:pull:`782`)
+
 Internals
 ~~~~~~~~~
 
