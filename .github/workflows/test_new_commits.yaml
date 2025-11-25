@@ -30,7 +30,7 @@ jobs:
 
     strategy:
       matrix:
-        python-version: ['38', '312']
+        python-version: ['38', '313']
 
     steps:
 
