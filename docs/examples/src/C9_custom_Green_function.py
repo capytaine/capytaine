@@ -106,5 +106,5 @@ print(f"    Default solver:   {default_result.added_masses['Surge']:.2e}")
 
 print()
 print("Timer:")
-print(f"    Custom solver:  {custom_solver.timer['  Green function'].mean:.1e} s")
-print(f"    Default solver: {default_solver.timer['  Green function'].mean:.1e} s")
+print(f"    Custom solver:  {custom_solver.timer['  Green function'][0].mean:.1e} s")
+print(f"    Default solver: {default_solver.timer['  Green function'][0].mean:.1e} s")
