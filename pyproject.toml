@@ -31,7 +31,7 @@ optional = [
 ]
 
 [dependency-groups]
-test = ["pytest", "capytaine[optional]"]
+test = ["pytest"]
 more_optional = [
   "bemio @ https://github.com/mancellin/bemio/archive/56559c838e0636916669994712473ad7438d23be.zip",
   # This optional dependency cannot be with the other because PyPI only accepts
@@ -42,8 +42,7 @@ more_optional = [
 docs = [
   "sphinx",
   "sphinx-copybutton", "sphinx-tabs",
-  "sphinx-proof", "sphinxcontrib-mermaid",
-  "capytaine[optional]"
+  "sphinx-proof", "sphinxcontrib-mermaid"
 ]
 dev =  [{include-group = "docs"}, {include-group = "test"}, {include-group = "more_optional"}]
 editable_install = [
