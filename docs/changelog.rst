@@ -18,6 +18,8 @@ Minor changes
 
 * Velocity in the fluid can be post-processed in the limit frequencies (:math:`\omega = 0` or :math:`\omega = \infty`). Divide it by :math:`\omega` to have a finite value (:pull:`777`).
 
+* Display in the log the RAM usage estimation before a batch resolution and the measured RAM usage at the end of the resolution (:pull:`784`)
+
 Bug fixes
 ~~~~~~~~~
 
