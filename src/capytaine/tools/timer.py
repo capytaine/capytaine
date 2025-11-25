@@ -58,6 +58,9 @@ class Timer:
     def __exit__(self, *exc):
         self.timings.append(time.perf_counter() - self.start_time)
 
+    def add_data_from_other_timer(self, timer):
+        self.timings.extend(timer.timings)
+
     def wraps_function(self, f):
         @wraps(f)
         def wrapped_f(*args, **kwargs):
