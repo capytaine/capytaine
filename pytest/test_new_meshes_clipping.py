@@ -114,3 +114,13 @@ def test_clip_partial_2():
     ), f"Expected 1 triangle, got {clipped_mesh.nb_triangles}"
     assert clipped_mesh.nb_quads == 1, f"Expected 1 quad, got {clipped_mesh.nb_quads}"
     print("Test 4 (Partial clipping 2) passed.")
+
+
+def test_faces_on_the_free_surface():
+    vertices = [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]
+    faces = [[0, 1, 2, 3]]
+    mesh = Mesh(vertices=vertices, faces=faces)
+    assert mesh.immersed_part().nb_faces == 1
+    assert mesh.translated_z(-1e-10).immersed_part().nb_faces == 1
+    assert mesh.translated_z(1e-9).immersed_part().nb_faces == 1  # Within tol of 1e-8
+    assert mesh.translated_z(1e-7).immersed_part().nb_faces == 0

@@ -618,7 +618,7 @@ class Mesh:
             A new Mesh instance that has been clipped.
         """
         new_vertices, new_faces = clip_faces(self.vertices, self._faces, normal, origin)
-        if name is None:
+        if name is None and self.name is not None:
             name = f"{self.name}_clipped"
         return Mesh(vertices=new_vertices, faces=new_faces, name=name)
 
