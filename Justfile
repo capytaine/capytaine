@@ -99,10 +99,14 @@ _install_and_test:
 # because the default behavior of uv is to install the local project in
 # editable mode, but we don't want that because of an incompatibility with
 # meson-python (https://github.com/astral-sh/uv/issues/10214)
+#
+# besides, we have --no-default-groups because uv loads by default the `dev`
+# dependency-group from pyproject.toml, but we don't need it here and it can
+# actually cause issue in CI.
 
 test_in_latest_env:
     uv run \
-        --isolated \
+        --isolated --no-default-groups \
         --no-editable --with "capytaine[optional] @ ." \
         --group test \
         -- \
@@ -114,7 +118,7 @@ test_in_latest_env:
 
 test_in_nightly_env:
     uv run \
-        --isolated \
+        --isolated --no-default-groups \
         --python 3.14 \
         --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple \
         --index-strategy unsafe-best-match \
@@ -126,7 +130,7 @@ test_in_nightly_env:
 
 test_in_py38_reference_env:
     uv run \
-        --isolated \
+        --isolated --no-default-groups \
         --python 3.8 \
         --no-editable \
         --with-requirements {{TEST_DIR}}/envs/2023-08-01-py3.8.txt \
@@ -135,7 +139,7 @@ test_in_py38_reference_env:
 
 test_in_py313_reference_env:
     uv run \
-        --isolated \
+        --isolated --no-default-groups \
         --python 3.13 \
         --no-editable \
         --with-requirements {{TEST_DIR}}/envs/2025-11-25-py3.13.txt \
