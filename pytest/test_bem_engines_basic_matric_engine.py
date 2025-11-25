@@ -105,3 +105,33 @@ def test_all_linear_solvers_work():
     ) and np.isclose(
         result_lu.added_masses["Surge"], result_gmres.added_masses["Surge"]
     )
+
+
+def test_ram_estimation():
+    sphere = cpt.FloatingBody(
+        mesh=cpt.mesh_sphere(radius=1.0, resolution=(4, 3)).immersed_part()
+    )
+    sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
+    problem = cpt.RadiationProblem(body=sphere, omega=1.0, water_depth=np.inf)
+    nb_faces = problem.body.mesh.nb_faces
+    green_function = cpt.green_functions.delhommeau.Delhommeau(
+        floating_point_precision="float32"
+    )
+
+    reference_estimation = cpt.BasicMatrixEngine(
+        linear_solver="gmres"
+    ).compute_ram_estimation(problem)
+    float_estimation = cpt.BasicMatrixEngine(
+        linear_solver="gmres", green_function=green_function
+    ).compute_ram_estimation(problem)
+    lu_estimation = cpt.BasicMatrixEngine(
+        linear_solver="lu_decomposition"
+    ).compute_ram_estimation(problem)
+    lu_and_float_estimation = cpt.BasicMatrixEngine(
+        linear_solver="lu_decomposition", green_function=green_function
+    ).compute_ram_estimation(problem)
+
+    assert reference_estimation == nb_faces**2 * 16 * 2 / 1e9
+    assert float_estimation == nb_faces**2 * 8 * 2 / 1e9
+    assert lu_estimation == nb_faces**2 * 16 * 3 / 1e9
+    assert lu_and_float_estimation == nb_faces**2 * 8 * 3 / 1e9

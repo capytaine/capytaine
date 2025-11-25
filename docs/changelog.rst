@@ -18,11 +18,15 @@ Minor changes
 
 * Velocity in the fluid can be post-processed in the limit frequencies (:math:`\omega = 0` or :math:`\omega = \infty`). Divide it by :math:`\omega` to have a finite value (:pull:`777`).
 
+* Display in the log the RAM usage estimation before a batch resolution and the measured RAM usage at the end of the resolution (:pull:`784`)
+
 Bug fixes
 ~~~~~~~~~
 
 * Fix type of the right-hand-side of the linear solver when using option :code:`floating_point_precision = 'float32'` in :class:`~capytaine.green_functions.delhommeau.Delhommeau`.
   As a consequence, the whole computation is done in single precision and the RAM usage is lower as expected. (:pull:`774`)
+
+* Fix the timer for parallel resolution, i.e. when :code:`n_jobs` is greater than 1. Now the durations for each process are displayed. (:pull:`782`)
 
 Internals
 ~~~~~~~~~

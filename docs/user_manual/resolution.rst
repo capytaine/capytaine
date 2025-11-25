@@ -264,6 +264,18 @@ Timer
 The solver :class:`~capytaine.bem.solver.BEMSolver` keeps track of the time spent in some step of the resolution.
 Results are stored in ``timer`` attribute and can also be accessed by :meth:`~capytaine.bem.solver.BEMSolver.timer_summary`.
 
+RAM usage
+---------
+
+At the beginning of a batch of computation, the solver will compute the
+estimated RAM usage of the resolutions, taking the parallelisation into account.
+The estimation is displayed at the ``INFO`` log level (off by default) if it is
+low, and ``WARNING`` log level (on by default) if it is higher than 8 GB.
+Expect the resolution to fail if the RAM usage is higher than the available RAM.
+
+If the optional dependency `psutil <https://psutil.readthedocs.io/>`_ is
+installed, the actual RAM usage is measured and displayed at the end of the
+computation at the ``INFO`` log level.
 
 Parallelization
 ---------------
