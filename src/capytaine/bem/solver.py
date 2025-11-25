@@ -23,6 +23,7 @@ from rich.progress import track
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
+from capytaine.tools.memory_monitor import MemoryMonitor
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
@@ -249,6 +250,8 @@ class BEMSolver:
             self._check_wavelength_and_mesh_resolution(problems)
             self._check_wavelength_and_irregular_frequencies(problems)
 
+        self._check_ram(problems, n_jobs)
+
         if progress_bar is None:
             if "CAPYTAINE_PROGRESS_BAR" in os.environ:
                 env_var = os.environ["CAPYTAINE_PROGRESS_BAR"].lower()
@@ -261,6 +264,7 @@ class BEMSolver:
             else:
                 progress_bar = True
 
+        monitor = MemoryMonitor()
         if n_jobs == 1:  # force sequential resolution
             problems = sorted(problems)
             if progress_bar:
@@ -276,7 +280,7 @@ class BEMSolver:
             if progress_bar:
                 groups_of_results = track(groups_of_results,
                                           total=len(groups_of_problems),
-                                          description=f"Solving BEM problems with {n_jobs} process:")
+                                          description=f"Solving BEM problems with {n_jobs} processes:")
             results = []
             process_id_mapping = {}
             for grp_results, timer, process_id in groups_of_results:
@@ -286,6 +290,11 @@ class BEMSolver:
                 for timer_key in self.timer:
                     id_process_that_solved_that_group = process_id_mapping[process_id]
                     self.timer[timer_key][id_process_that_solved_that_group].add_data_from_other_timer(timer[timer_key][0])
+        memory_peak = monitor.get_memory_peak()
+        if memory_peak is None:
+            LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
+        else:
+            LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")
         LOG.info("Solver timer summary:\n%s", self.timer_summary())
         return results
     
@@ -350,6 +359,25 @@ class BEMSolver:
                             f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
                             + recommendation
                             )
+
+    def _check_ram(self,problems, n_jobs = 1):
+        """Display a warning if the RAM estimation is larger than a certain limit."""
+        LOG.debug("Check RAM estimation.")
+        ram_limit = 8
+
+        if n_jobs == - 1:
+            n_jobs = os.cpu_count()
+
+        estimated_peak_memory = n_jobs*max(self.engine.compute_ram_estimation(pb) for pb in problems)
+
+        if estimated_peak_memory < 0.5:
+            LOG.info("Estimated peak RAM usage: <1 GB.")
+
+        elif estimated_peak_memory < ram_limit:
+            LOG.info(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
+
+        else:
+            LOG.warning(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
 
     def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, _check_wavelength=True, progress_bar=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.

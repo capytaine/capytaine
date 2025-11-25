@@ -73,6 +73,8 @@ The following optional dependencies can be used together with Capytaine.
 +-----------------+---------------------------------------------------------------------------------+
 | gmsh and pygmsh | To generate meshes                                                              |
 +-----------------+---------------------------------------------------------------------------------+
+| psutil          | Monitor RAM usage                                                               |
++-----------------+---------------------------------------------------------------------------------+
 
 You can ask UV to install them all at the same time as Capytaine with the following command::
 
