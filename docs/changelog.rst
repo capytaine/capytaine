@@ -28,6 +28,14 @@ Bug fixes
 
 * Fix the timer for parallel resolution, i.e. when :code:`n_jobs` is greater than 1. Now the durations for each process are displayed. (:pull:`782`)
 
+* Hydrostatics methods better take into account the free surface even when
+  the mesh has not been clipped yet.
+  Internally, the mesh is clipped before computing methods such as
+  :meth:`~cpt.bodies.bodies.FloatingBody.disp_volume` or
+  :meth:`~cpt.bodies.bodies.FloatingBody.center_of_buoyancy`, such that the
+  computed displaced mass is actually the volume below $z=0$ and the center
+  of buoyancy is actually the center of it. (:pull:``)
+
 Internals
 ~~~~~~~~~
 
@@ -52,6 +60,8 @@ Internals
 * Instead of creating a ``CollectionOfMeshes``, now ``join_bodies`` merges the
   meshes of the bodies together. The legacy behavior is still available from
   Fakeblocks ``join_bodies``. (:pull:`779`)
+
+* Move hydrostatics routines in a dedicated module (:pull:``)
 
 ---------------------------------
 New in version 2.3.1 (2025-10-14)
