@@ -7,6 +7,8 @@ import numpy as np
 import xarray as xr
 from abc import ABC
 
+from capytaine.bodies.dofs import TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
+
 LOG = logging.getLogger(__name__)
 
 class _HydrostaticsMixin(ABC):
@@ -182,30 +184,31 @@ class _HydrostaticsMixin(ABC):
                                  f"Suggested solution: define a `center_of_mass` attribute for the FloatingBody {self.name}.")
             mass = self.disp_mass(rho=rho) if self.mass is None else self.mass
             xc, yc, zc = self._infer_rotation_center()
+            immersed_mesh = self.mesh.immersed_part()
 
             if dof_pair == ("Heave", "Heave"):
-                norm_hs_stiff = self.waterplane_area
+                norm_hs_stiff = immersed_mesh.waterplane_area
             elif dof_pair in [("Heave", "Roll"), ("Roll", "Heave")]:
-                norm_hs_stiff = -self.waterplane_integral(self.mesh.faces_centers[:,1] - yc)
+                norm_hs_stiff = -immersed_mesh.waterplane_integral(immersed_mesh.faces_centers[:,1] - yc)
             elif dof_pair in [("Heave", "Pitch"), ("Pitch", "Heave")]:
-                norm_hs_stiff = self.waterplane_integral(self.mesh.faces_centers[:,0] - xc)
+                norm_hs_stiff = immersed_mesh.waterplane_integral(immersed_mesh.faces_centers[:,0] - xc)
             elif dof_pair == ("Roll", "Roll"):
                 norm_hs_stiff = (
-                        -self.waterplane_integral((self.mesh.faces_centers[:,1] - yc)**2)
-                        + self.volume*(self.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
+                        -immersed_mesh.waterplane_integral((immersed_mesh.faces_centers[:,1] - yc)**2)
+                        + immersed_mesh.volume*(immersed_mesh.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
                 )
             elif dof_pair in [("Roll", "Pitch"), ("Pitch", "Roll")]:
-                norm_hs_stiff = self.waterplane_integral((self.mesh.faces_centers[:,0] - xc)
-                                                          * (self.mesh.faces_centers[:,1] - yc))
+                norm_hs_stiff = immersed_mesh.waterplane_integral((immersed_mesh.faces_centers[:,0] - xc)
+                                                          * (immersed_mesh.faces_centers[:,1] - yc))
             elif dof_pair == ("Roll", "Yaw"):
-                norm_hs_stiff = - self.volume*(self.center_of_buoyancy[0] - xc) + mass/rho*(self.center_of_mass[0] - xc)
+                norm_hs_stiff = - immersed_mesh.volume*(immersed_mesh.center_of_buoyancy[0] - xc) + mass/rho*(self.center_of_mass[0] - xc)
             elif dof_pair == ("Pitch", "Pitch"):
                 norm_hs_stiff = (
-                        -self.waterplane_integral((self.mesh.faces_centers[:,0] - xc)**2)
-                        + self.volume*(self.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
+                        -immersed_mesh.waterplane_integral((immersed_mesh.faces_centers[:,0] - xc)**2)
+                        + immersed_mesh.volume*(immersed_mesh.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
                         )
             elif dof_pair == ("Pitch", "Yaw"):
-                norm_hs_stiff = - self.volume*(self.center_of_buoyancy[1] - yc) + mass/rho*(self.center_of_mass[1] - yc)
+                norm_hs_stiff = - immersed_mesh.volume*(immersed_mesh.center_of_buoyancy[1] - yc) + mass/rho*(self.center_of_mass[1] - yc)
             else:
                 norm_hs_stiff = 0.0
         else:
@@ -216,14 +219,21 @@ class _HydrostaticsMixin(ABC):
                         f"This case has not been implemented in Capytaine. You need either a single rigid body or a neutrally buoyant body."
                         )
 
+            if np.any(self.mesh.faces_centers[:, 2] > 1e-2) and np.any(influenced_dof_div != 0.0):
+                raise NotImplementedError(
+                        "When computing hydrostatics of flexible dofs while providing the divergence of the dof, please make sure the mesh is clipped beforehand and provide the divergence only on the immersed faces of the clipped mesh."
+                        )
+
+            immersed_self = self.immersed_part()
+
             # Newman (1994) formula for flexible DOFs
-            influenced_dof = np.array(self.dofs[influenced_dof_name])
-            radiating_dof = np.array(self.dofs[radiating_dof_name])
+            influenced_dof = np.array(immersed_self.dofs[influenced_dof_name])
+            radiating_dof = np.array(immersed_self.dofs[radiating_dof_name])
             influenced_dof_div_array = np.array(influenced_dof_div)
 
-            radiating_dof_normal = self.dof_normals(radiating_dof)
-            z_influenced_dof_div = influenced_dof[:,2] + self.mesh.faces_centers[:,2] * influenced_dof_div_array
-            norm_hs_stiff = self.surface_integral( -radiating_dof_normal * z_influenced_dof_div)
+            radiating_dof_normal = immersed_self.dof_normals(radiating_dof)
+            z_influenced_dof_div = influenced_dof[:,2] + immersed_self.mesh.faces_centers[:,2] * influenced_dof_div_array
+            norm_hs_stiff = immersed_self.surface_integral( -radiating_dof_normal * z_influenced_dof_div)
 
         hs_stiff = rho * g * norm_hs_stiff
 
