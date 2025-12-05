@@ -217,7 +217,7 @@ class BEMSolver:
             res = problem.make_failed_results_container(e)
         return res
 
-    def solve_all(self, problems, *, method=None, n_jobs=1, progress_bar=None, _check_wavelength=True, **kwargs):
+    def solve_all(self, problems, *, method=None, n_jobs=1, n_threads=None, progress_bar=None, _check_wavelength=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -265,18 +265,20 @@ class BEMSolver:
                 progress_bar = True
 
         monitor = MemoryMonitor()
-        if n_jobs == 1:  # force sequential resolution
+        threadpoolctl = silently_import_optional_dependency("threadpoolctl")
+        if n_jobs == 1: # force sequential resolution
             problems = sorted(problems)
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
-            results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+            with threadpoolctl.threadpool_limits(limits=n_threads):
+                results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
                 raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
-            parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
-            groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_jobs=1, progress_bar=False, _check_wavelength=False,**kwargs) for grp in groups_of_problems)
+            parallel = joblib.Parallel(return_as="generator", n_jobs = n_jobs)
+            groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_jobs=1, n_threads=n_threads, progress_bar=False, _check_wavelength=False,**kwargs) for grp in groups_of_problems)
             if progress_bar:
                 groups_of_results = track(groups_of_results,
                                           total=len(groups_of_problems),
@@ -298,8 +300,8 @@ class BEMSolver:
         LOG.info("Solver timer summary:\n%s", self.timer_summary())
         return results
     
-    def _solve_all_and_return_timer(self, grp, *,method, n_jobs, progress_bar, _check_wavelength,**kwargs):
-        return self.solve_all(grp, method=method, n_jobs=n_jobs, progress_bar=progress_bar, _check_wavelength=_check_wavelength, **kwargs), self.timer, os.getpid()
+    def _solve_all_and_return_timer(self, grp, *,method, n_jobs, n_threads, progress_bar, _check_wavelength,**kwargs):
+        return self.solve_all(grp, method=method, n_jobs=n_jobs, n_threads=n_threads,progress_bar=progress_bar, _check_wavelength=_check_wavelength, **kwargs), self.timer, os.getpid()
     
     @staticmethod
     def _check_wavelength_and_mesh_resolution(problems):
@@ -379,7 +381,7 @@ class BEMSolver:
         else:
             LOG.warning(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
 
-    def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, _check_wavelength=True, progress_bar=None, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, n_threads=None, _check_wavelength=True, progress_bar=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -415,12 +417,12 @@ class BEMSolver:
             attrs["method"] = method
         problems = problems_from_dataset(dataset, bodies)
         if 'theta' in dataset.coords:
-            results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
+            results = self.solve_all(problems, keep_details=True, method=method, n_jobs=n_jobs, n_threads=n_threads, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
             kochin = kochin_data_array(results, dataset.coords['theta'])
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
             dataset.update(kochin)
         else:
-            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
+            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs, n_threads=n_threads, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 
