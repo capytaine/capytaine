@@ -72,7 +72,7 @@ def test_export_wamit_and_import_force(full_dataset, tmpdir):
     imported_df = pd.read_csv(wamit_1_path, sep=r"\s+", header=None)
     # The first column is PERIOD
     imported_period = float(imported_df.iloc[0, 0])
-    ref_period = float(dataset.period)
+    ref_period = float(dataset.period.values[0])
     assert np.isclose(
         imported_period, ref_period
     ), f"Imported period {imported_period} does not match expected {ref_period}"

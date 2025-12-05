@@ -92,6 +92,7 @@ def test_parallelization(sphere):
 
 
 def test_nb_timer(sphere):
+    pytest.importorskip("joblib")
     solver = cpt.BEMSolver()
     n_jobs = 3
     problems = [
@@ -99,7 +100,7 @@ def test_nb_timer(sphere):
     for omega in np.linspace(0.1, 3.0, 5)
     ]
     solver.solve_all(problems, n_jobs = n_jobs)
-    assert len(solver.timer["Solve total"]) == n_jobs + 1 
+    assert len(solver.timer["Solve total"]) == n_jobs + 1
 
 
 def test_float32_solver(sphere):
