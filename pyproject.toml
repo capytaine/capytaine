@@ -31,7 +31,10 @@ optional = [
 ]
 
 [dependency-groups]
-test = ["pytest"]
+test = [
+  "pytest",
+  "matplotlib",  # No for the pytest suite but for the docs examples which are run in CI
+]
 more_optional = [
   "bemio @ https://github.com/mancellin/bemio/archive/56559c838e0636916669994712473ad7438d23be.zip",
   # This optional dependency cannot be with the other because PyPI only accepts
