@@ -365,7 +365,11 @@ class BEMSolver:
     def _check_ram(self,problems, n_jobs = 1):
         """Display a warning if the RAM estimation is larger than a certain limit."""
         LOG.debug("Check RAM estimation.")
-        ram_limit = 8
+        psutil = silently_import_optional_dependency("psutil")
+        if psutil is None :
+            ram_limit = 8
+        else :
+            ram_limit = psutil.virtual_memory().total / (1024**3) * 0.8
 
         if n_jobs == - 1:
             n_jobs = os.cpu_count()
