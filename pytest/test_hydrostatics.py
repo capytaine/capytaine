@@ -1,4 +1,4 @@
-from functools import cache
+from functools import lru_cache
 import logging
 import json
 from pathlib import Path
@@ -11,7 +11,7 @@ import capytaine as cpt
 
 ######################################################################
 
-@cache
+@lru_cache
 def immersed_sphere():
     return cpt.mesh_sphere(
         radius=1.0,
@@ -58,7 +58,7 @@ def test_waterplane_center_of_submerged_sphere():
 
 ######################################################################
 
-@cache
+@lru_cache
 def floating_sphere():
     return cpt.mesh_sphere(
         radius=1.0,
@@ -116,7 +116,7 @@ def test_infer_rotation_center():
     assert np.allclose(body._infer_rotation_center(), (7, 8, 9))
     body_ = cpt.FloatingBody(
         mesh=floating_sphere(),
-        dofs=body.dofs,  # Copied from other body without the rotation center being explicitely copied
+        dofs=body.dofs,  # Copied from other body without the rotation center being explicitly copied
     )
     assert np.allclose(body_._infer_rotation_center(), (7, 8, 9))
 
@@ -137,7 +137,7 @@ def test_stiffness_no_center_of_mass():
     with pytest.raises(ValueError, match=".*no center of mass.*"):
         body.compute_hydrostatic_stiffness()
 
-@cache
+@lru_cache
 def rigid_body():
     rigid_body = cpt.FloatingBody(
         mesh=floating_sphere(),
@@ -146,7 +146,7 @@ def rigid_body():
     )
     return rigid_body
 
-@cache
+@lru_cache
 def custom_dof_body():
     custom_dof_body = cpt.FloatingBody(
         mesh=floating_sphere(),
