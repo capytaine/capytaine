@@ -37,6 +37,10 @@ class _HydrostaticsMixin(ABC):
         """Returns volume of the FloatingBody."""
         return self.mesh.volume
 
+    @property
+    def disp_volume(self):
+        return self.mesh.disp_volume
+
     def disp_mass(self, *, rho=1000.0):
         return self.mesh.disp_mass(rho=rho)
 
@@ -351,7 +355,7 @@ class _HydrostaticsMixin(ABC):
             for axis, normal_i in enumerate(self.mesh.faces_normals.T)])
 
 
-        inertias = np.array([
+        inertias = 1/self.volume * np.array([
             (integrals[0,1]   + integrals[0,2]   + integrals[1,1]/3
              + integrals[1,2]   + integrals[2,1] + integrals[2,2]/3)/3,
             (integrals[0,0]/3 + integrals[0,2]   + integrals[1,0]
@@ -364,23 +368,16 @@ class _HydrostaticsMixin(ABC):
         ])
 
         cog = self.center_of_mass - rc
-        volume = self.volume
-        volumic_inertia_matrix = np.array([
-            [ volume        , 0              , 0               ,
-              0             , volume*cog[2]  , -volume*cog[1]  ],
-            [ 0             , volume         , 0               ,
-             -volume*cog[2] , 0              , volume*cog[0]   ],
-            [ 0             , 0              , volume          ,
-              volume*cog[1] , -volume*cog[0] , 0 ]             ,
-            [ 0             , -volume*cog[2] , volume*cog[1]   ,
-              inertias[0]   , -inertias[3]   , -inertias[5]    ],
-            [ volume*cog[2] , 0              , -volume*cog[0]  ,
-             -inertias[3]   , inertias[1]    , -inertias[4]    ],
-            [-volume*cog[1] , volume*cog[0]  , 0               ,
-             -inertias[5]   , -inertias[4]   , inertias[2]     ],
+        volumic_inertia_matrix = self.mesh.disp_volume * np.array([
+            [1.0,     0,       0,       0,            cog[2],       -cog[1]     ],
+            [0,       1.0,     0,       -cog[2],      0,            cog[0]      ],
+            [0,       0,       1.0,     cog[1],       -cog[0],      0           ],
+            [0,       -cog[2], cog[1],  inertias[0],  -inertias[3], -inertias[5]],
+            [cog[2],  0,       -cog[0], -inertias[3], inertias[1],  -inertias[4]],
+            [-cog[1], cog[0],  0,       -inertias[5], -inertias[4], inertias[2] ],
         ])
 
-        density = rho if self.mass is None else self.mass/volume
+        density = rho if self.mass is None else self.mass/self.volume
         inertia_matrix = density * volumic_inertia_matrix
 
         # Rigid DOFs
@@ -497,4 +494,3 @@ respective inertia coefficients are assigned as NaN.")
             self.inertia_matrix = hydrostatics["inertia_matrix"] = self.compute_rigid_body_inertia(rho=rho)
 
         return hydrostatics
-
