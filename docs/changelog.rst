@@ -8,7 +8,7 @@ Changelog
    :backlinks: none
 
 -------------------------------
-New in version 3.0 (2025-??-??)
+New in version 3.0 (2026-??-??)
 -------------------------------
 
 Minor changes
