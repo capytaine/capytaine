@@ -31,7 +31,10 @@ optional = [
 ]
 
 [dependency-groups]
-test = ["pytest", "capytaine[optional]"]
+test = [
+  "pytest",
+  "matplotlib",  # No for the pytest suite but for the docs examples which are run in CI
+]
 more_optional = [
   "bemio @ https://github.com/mancellin/bemio/archive/56559c838e0636916669994712473ad7438d23be.zip",
   # This optional dependency cannot be with the other because PyPI only accepts
@@ -40,10 +43,9 @@ more_optional = [
   # These dependencies are causing issues in CI.
   ]
 docs = [
-  "sphinx",
+  "sphinx", "docutils<0.22",
   "sphinx-copybutton", "sphinx-tabs",
-  "sphinx-proof", "sphinxcontrib-mermaid",
-  "capytaine[optional]"
+  "sphinx-proof", "sphinxcontrib-mermaid"
 ]
 dev =  [{include-group = "docs"}, {include-group = "test"}, {include-group = "more_optional"}]
 editable_install = [
@@ -65,6 +67,10 @@ requires = [
     "numpy>=2.0.0; python_version>='3.9'",
     "numpy==1.24.4; python_version=='3.8'",
 ]
+
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true } }]
+# Rebuilt the cached Capytaine from local dir if git commit changed.
 
 [tool.cibuildwheel]
 test-requires = ["pytest"]

@@ -4,12 +4,14 @@ set windows-shell := ["powershell.exe", "-c"]
 default:
     just --list
 
+# Run the recipe below in a clean virtual environment to install Capytaine in
+# editable mode.
 editable_install:
     uv pip install -r pyproject.toml \
+        --extra optional \
         --group editable_install \
         --group dev
-    pip install --no-build-isolation --editable .
-    # Meson-backed editable install is not (yet?) supported by uv (https://github.com/astral-sh/uv/issues/10214)
+    uv pip install --no-build-isolation --editable .
 
 # Define the temporary directory differently based on OS
 TEMP_DIR := if os_family() == 'windows' {
@@ -48,10 +50,10 @@ EXAMPLES_FILES := ' \
 # B6_animate_free_surface.py  \           # Requires VTK
 # B7_boat_animation.py  \                 # Requires VTK
 # C6_axisymmetric_buoy.py  \              # Requires VTK
-# C7_h_matrices_with_preconditionner.py \ # Slow
 # C10_custom_linear_solver_on_gpu.py \    # Requires torch
 
-# Run the test suite and the example files assuming a virtual environment has been activated
+# Run the test suite and the example files assuming a virtual environment with
+# Capytaine installed has been activated
 [unix]
 _test:
     #!/usr/bin/env bash
@@ -81,51 +83,80 @@ _test:
     capytaine {{NEMOH_CASES}}/Nemoh.cal
     capytaine {{NEMOH_CASES}}/Nemoh_v3.cal
 
+_install_and_test:
+    uv pip install --no-deps --no-build-isolation .
+    just _test
+
+
+# In the recipes below, we have
+#
+#    --no-editable --with "capytaine @ ." -- just _test
+#
+# or
+#
+#    --no-editable -- just _install_and_test
+#
+# because the default behavior of uv is to install the local project in
+# editable mode, but we don't want that because of an incompatibility with
+# meson-python (https://github.com/astral-sh/uv/issues/10214)
+#
+# besides, we have --no-default-groups because uv loads by default the `dev`
+# dependency-group from pyproject.toml, but we don't need it here and it can
+# actually cause issue in CI.
 
 test_in_latest_env:
     uv run \
-        --isolated --no-editable \
-        --only-group test \
+        --isolated --no-default-groups \
+        --no-editable --with "capytaine[optional] @ ." \
+        --group test \
+        -- \
         just _test
 
-test_in_py38_reference_env:
-    uv run \
-        --isolated --no-editable \
-        --only-group test \
-        --python 3.8 \
-        --with-requirements {{TEST_DIR}}/envs/2023-08-01-py3.8.txt \
-        just _test
-    # TODO: Also build Capytaine in this environment?
-
-test_in_py312_reference_env:
-    uv run \
-        --isolated --no-editable \
-        --only-group test \
-        --python 3.12 \
-        --with-requirements {{TEST_DIR}}/envs/2025-04-18-py3.12.txt \
-        just _test
-    # TODO: Also build Capytaine in this environment?
+# In the recipe below,
+# "--index-strategy unsafe-best-match" means uv should not ignore wheels
+# from PyPI during universal resolution
 
 test_in_nightly_env:
     uv run \
-        --isolated --no-editable \
+        --isolated --no-default-groups \
+        --python 3.14 \
         --pre --extra-index-url https://pypi.anaconda.org/scientific-python-nightly-wheels/simple \
         --index-strategy unsafe-best-match \
-        --python 3.13 \
-        --only-group test \
+        --no-editable --with "capytaine @ ." \
+        --group test \
+        -- \
         just _test
-    # "--index-strategy unsafe-best-match" means uv should not ignore wheels
-    # from PyPI during universal resolution
-    # TODO: Also build Capytaine in this environment?
+
+
+test_in_py38_reference_env:
+    uv run \
+        --isolated --no-default-groups \
+        --python 3.8 \
+        --no-editable \
+        --with-requirements {{TEST_DIR}}/envs/2023-08-01-py3.8.txt \
+        -- \
+        just _install_and_test
+
+test_in_py313_reference_env:
+    uv run \
+        --isolated --no-default-groups \
+        --python 3.13 \
+        --no-editable \
+        --with-requirements {{TEST_DIR}}/envs/2025-11-25-py3.13.txt \
+        -- \
+        just _install_and_test
 
 # How the requirements files from the above recipes where generated.
 create_test_env_file python="3.8" date="2023-08-01":
     uv pip compile \
-        pyproject.toml editable_install_requirements.txt \
+        pyproject.toml \
         --python-version {{python}} \
+        --group test \
+        --group editable_install \
+        --extra optional \
         --exclude-newer {{date}} \
-        --extra optional --extra test \
         -o {{TEST_DIR}}/envs/{{date}}-py{{python}}.txt
+
 
 # Compile the Fortran code without parallelism for easier reading of the errors.
 test_fortran_compilation:
@@ -135,8 +166,9 @@ test_fortran_compilation:
 
 build_docs:
     uv run \
-        --isolated --no-editable \
-        --only-group docs \
+        --isolated \
+        --no-editable --with "capytaine[optional] @ ." \
+        --group docs \
         -- \
         make --directory="./docs/"
 

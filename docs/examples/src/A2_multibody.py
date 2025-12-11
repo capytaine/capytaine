@@ -20,7 +20,7 @@ other_sphere.add_translation_dof(name="Heave")
 mesh_3 = cpt.mesh_horizontal_cylinder(
             length=5.0, radius=1.0,
             center=(1.5, 3.0, -3.0),
-            resolution=(20, 20, 3))
+            resolution=(3, 20, 20))
 mesh_3 = to_new_mesh(mesh_3)
 cylinder = cpt.FloatingBody(mesh=mesh_3, name="cylinder")
 cylinder.add_translation_dof(name="Surge")
