@@ -43,7 +43,7 @@ more_optional = [
   # These dependencies are causing issues in CI.
   ]
 docs = [
-  "sphinx",
+  "sphinx", "docutils<0.22",
   "sphinx-copybutton", "sphinx-tabs",
   "sphinx-proof", "sphinxcontrib-mermaid"
 ]
