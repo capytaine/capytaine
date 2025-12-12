@@ -207,7 +207,9 @@ def test_stiffness_with_malformed_divergence(caplog):
 
 # MULTIBODY
 
-@lru_cache
+# No caching here because we assign attributes
+# (hydrostatic_stiffness and inertia_matrix) to the objects in the tests below
+# @lru_cache
 def several_bodies():
     a = cpt.FloatingBody(
             mesh=floating_sphere(),
