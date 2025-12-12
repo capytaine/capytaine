@@ -91,6 +91,18 @@ def test_parallelization(sphere):
     solver.fill_dataset(test_matrix, sphere, n_jobs=2)
 
 
+@pytest.mark.parametrize("n_jobs", [1, 2])
+def test_control_threads(sphere, n_jobs):
+    pytest.importorskip("joblib")
+    pytest.importorskip("threadpoolctl")
+    solver = cpt.BEMSolver()
+    test_matrix = xr.Dataset(coords={
+        'omega': np.linspace(0.1, 4.0, 3),
+        'radiating_dof': list(sphere.dofs.keys()),
+    })
+    solver.fill_dataset(test_matrix, sphere, n_jobs=n_jobs, n_threads=1)
+
+
 def test_nb_timer(sphere):
     pytest.importorskip("joblib")
     solver = cpt.BEMSolver()
