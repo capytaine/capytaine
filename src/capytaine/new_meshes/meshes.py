@@ -350,6 +350,31 @@ class Mesh:
             LOG.info(f"Dropping metadata of {self} to export as list of faces.")
         return list_faces
 
+    def with_metadata(self, **new_metadata):
+        faces_metadata = self.faces_metadata.copy()
+        for k, v in new_metadata.items():
+            faces_metadata[k] = v
+        return Mesh(self.vertices, self._faces,
+                    faces_metadata=faces_metadata,
+                    name=self.name,
+                    auto_clean=False, auto_check=False)
+
+    def without_metadata(self, *metadata_names):
+        faces_metadata = self.faces_metadata.copy()
+        for k in metadata_names:
+            del faces_metadata[k]
+        return Mesh(self.vertices, self._faces,
+                    faces_metadata=faces_metadata,
+                    name=self.name,
+                    auto_clean=False, auto_check=False)
+
+    def without_any_metadata(self):
+        return Mesh(self.vertices, self._faces,
+                    faces_metadata=None,
+                    name=self.name,
+                    auto_clean=False, auto_check=False)
+
+
     ## INTERFACE FOR BEM SOLVER
 
     @cached_property
@@ -555,6 +580,10 @@ class Mesh:
         if not all(isinstance(m, Mesh) for m in meshes):
             raise TypeError("Only Mesh instances can be added together.")
 
+        if return_masks:
+            meshes = [m.with_metadata(origin_mesh_index=np.array([i]*m.nb_faces))
+                      for i, m in enumerate(meshes)]
+
         faces = sum((m.as_list_of_faces() for m in meshes), [])
 
         faces_metadata = {k: np.concatenate([m.faces_metadata[k] for m in meshes], axis=0)
@@ -562,20 +591,14 @@ class Mesh:
         # Assume all meshes have the exact same metadata
         # TODO: improve error message if not.
 
-        if not return_masks:
-            return Mesh.from_list_of_faces(faces, faces_metadata=faces_metadata, name=name)
+        joined_mesh = Mesh.from_list_of_faces(faces, faces_metadata=faces_metadata, name=name)
+        # If list of faces is trimmed for some reason, metadata will be updated accordingly
+
+        if return_masks:
+            masks = [joined_mesh.faces_metadata['origin_mesh_index'] == i for i in range(len(meshes))]
+            return joined_mesh.without_metadata('origin_mesh_index'), masks
         else:
-            joined_mesh = Mesh.from_list_of_faces(faces, name=name, faces_metadata=faces_metadata, auto_clean=False, auto_check=True)
-            # No cleaning so we are sure that the faces stay in same order
-            # TODO: improve this by passing some metadata along with the faces?
-            masks = []
-            acc_nb_faces = 0
-            for i_mesh in range(len(meshes)):
-                mask = np.full((joined_mesh.nb_faces,), False)
-                mask[acc_nb_faces:acc_nb_faces+meshes[i_mesh].nb_faces] = True
-                masks.append(mask)
-                acc_nb_faces = acc_nb_faces + meshes[i_mesh].nb_faces
-            return joined_mesh, masks
+            return joined_mesh
 
     def __add__(self, other: "Mesh") -> "Mesh":
         """Combine two meshes using the + operator.
