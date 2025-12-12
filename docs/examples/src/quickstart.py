@@ -10,12 +10,11 @@ body_1 = cpt.FloatingBody(
             center_of_mass=(0, 0, 0)  # Optional, only for hydrostatics
         )
 body_1.inertia_matrix = body_1.compute_rigid_body_inertia(rho=1025)
-body_1.hydrostatic_stiffness = body_1.immersed_part().compute_hydrostatic_stiffness(rho=1025)
+body_1.hydrostatic_stiffness = body_1.compute_hydrostatic_stiffness(rho=1025)
 
 # If you have several rigid bodies, copy the code above to define "body_2", "body_3", etc.
 
 all_bodies = body_1  # Replace "body_1" by "body_1 + body_2 + body_3" for multibody problem.
-all_bodies = all_bodies.immersed_part()  # if the mesh has panels above the free surface, this command removes them
 
 # Set up parameters
 test_matrix = xr.Dataset({
@@ -28,7 +27,7 @@ test_matrix = xr.Dataset({
 
 # Do the resolution
 solver = cpt.BEMSolver()
-dataset = solver.fill_dataset(test_matrix, all_bodies)
+dataset = solver.fill_dataset(test_matrix, all_bodies.immersed_part())
 
 # Export to netcdf file
 cpt.export_dataset("capy_dataset.nc", dataset)

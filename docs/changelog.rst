@@ -33,8 +33,11 @@ Bug fixes
   Internally, the mesh is clipped before computing methods such as
   :meth:`~cpt.bodies.bodies.FloatingBody.disp_volume` or
   :meth:`~cpt.bodies.bodies.FloatingBody.center_of_buoyancy`, such that the
-  computed displaced mass is actually the volume below $z=0$ and the center
-  of buoyancy is actually the center of it. (:pull:`794`)
+  computed displaced volume is always actually the volume below $z=0$ and the
+  center of buoyancy is always below the free surface.
+  The inertia matrix always uses the displaced water mass for the mass and
+  compute the inertia moments on the full shape if the full mesh is provided.
+  (:pull:`794`)
 
 Internals
 ~~~~~~~~~
