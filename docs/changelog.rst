@@ -53,6 +53,10 @@ Internals
   meshes of the bodies together. The legacy behavior is still available from
   Fakeblocks ``join_bodies``. (:pull:`779`)
 
+* The new ``Mesh`` class has a ``faces_metadata`` attribute storing fields
+  defined on each faces of the mesh. When faces are added or removed, the
+  metadata are automatically updated accordingly. (:pull:`791`)
+
 ---------------------------------
 New in version 2.3.1 (2025-10-14)
 ---------------------------------
