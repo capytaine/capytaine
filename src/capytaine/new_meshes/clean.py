@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import logging
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import numpy as np
 from scipy.spatial import cKDTree
@@ -22,7 +22,11 @@ LOG = logging.getLogger(__name__)
 
 
 def clean_mesh(
-    vertices: np.ndarray, faces: List[List[int]], max_iter: int = 5, tol: float = 1e-8
+    vertices: np.ndarray,
+    faces: List[List[int]],
+    faces_metadata: Dict[str, np.ndarray],
+    max_iter: int = 5,
+    tol: float = 1e-8
 ) -> Tuple[np.ndarray, List[List[int]]]:
     """Iteratively clean a mesh by applying geometric simplifications.
 
@@ -32,6 +36,9 @@ def clean_mesh(
         Vertex coordinates of the input mesh.
     faces : list of list of int
         Face connectivity describing the mesh panels.
+    faces_metadata: Dict[str, np.ndarray]
+        Some arrays with the same first dimension (should be the number of faces)
+        storing some fields defined on all the faces of the mesh.
     max_iter : int, default=5
         Maximum number of cleaning iterations to perform.
     tol : float, default=1e-8
@@ -46,16 +53,19 @@ def clean_mesh(
         nb_vertices_before = len(vertices)
         nb_faces_before = len(faces)
 
-        vertices, faces = clean_mesh_once(vertices, faces, tol=tol)
+        vertices, faces, faces_metadata = clean_mesh_once(vertices, faces, faces_metadata, tol=tol)
 
         if len(vertices) == nb_vertices_before and len(faces) == nb_faces_before:
             break
 
-    return vertices, faces
+    return vertices, faces, faces_metadata
 
 
 def clean_mesh_once(
-    vertices: np.ndarray, faces: List[List[int]], tol: float = 1e-10
+    vertices: np.ndarray,
+    faces: List[List[int]],
+    faces_metadata: Dict[str, np.ndarray],
+    tol: float = 1e-10
 ) -> Tuple[np.ndarray, List[List[int]]]:
     """Run a single cleaning pass on the mesh data.
 
@@ -65,6 +75,9 @@ def clean_mesh_once(
         Vertex coordinates describing the mesh geometry.
     faces : list of list of int
         Face connectivity with indices referencing ``vertices``.
+    faces_metadata: Dict[str, np.ndarray]
+        Some arrays with the same first dimension (should be the number of faces)
+        storing some fields defined on all the faces of the mesh.
     tol : float, default=1e-10
         Tolerance for considering vertices as duplicates.
 
@@ -81,11 +94,12 @@ def clean_mesh_once(
     # 1) merge almost‐duplicate vertices
     vertices, faces = merge_near_duplicate_vertices(vertices, faces, tol=tol)
 
-    # 2) collapse degenerate quads → tris, drop <3‐pt faces
+    # 2) remove duplicate vertices indices in faces
+    # and check that all faces have 3 or 4 unique vertices
     new_faces = []
-    degenerate_faces = []
+    degenerate_faces_indices = []
 
-    for face in faces:
+    for i_face, face in enumerate(faces):
         seen = set()
         uniq = []
         for vi in face:
@@ -96,26 +110,27 @@ def clean_mesh_once(
         if len(uniq) in (3, 4):
             new_faces.append(uniq)
         elif len(uniq) < 3:
-            degenerate_faces.append(uniq)
+            degenerate_faces_indices.append(i_face)
         else:
             raise ValueError(
                 f"Face with {len(uniq)} unique vertices: only 3 or 4 supported."
             )
 
-    if degenerate_faces:
+    if len(degenerate_faces_indices) > 0:
         LOG.warning(
-            f"Dropping {len(degenerate_faces)} degenerate faces with <3 vertices: "
-            f"{degenerate_faces[:5]}{' ...' if len(degenerate_faces) > 5 else ''}"
+            f"Dropping {len(degenerate_faces_indices)} degenerate faces with <3 vertices: "
+            f"{[faces[i] for i in degenerate_faces_indices[:5]]}{' ...' if len(degenerate_faces_indices) > 5 else ''}"
         )
+        faces_metadata = {k: np.delete(faces_metadata[k], degenerate_faces_indices, axis=0) for k in faces_metadata}
 
     # 3) continue cleaning pipeline, all functions must accept List-of-lists too
     vertices, faces = remove_duplicate_vertices(vertices, new_faces)
-    faces = remove_duplicate_faces(faces)
+    faces, faces_metadata = remove_duplicate_faces(faces, faces_metadata)
     vertices, faces = remove_unused_vertices(vertices, faces)
-    faces = remove_small_faces(vertices, faces, tol=tol)
+    faces, faces_metadata = remove_small_faces(vertices, faces, faces_metadata, tol=tol)
     vertices, faces = remove_unused_vertices(vertices, faces)
 
-    return vertices, faces
+    return vertices, faces, faces_metadata
 
 
 def merge_near_duplicate_vertices(
@@ -187,27 +202,37 @@ def remove_duplicate_vertices(
     return new_vertices, new_faces
 
 
-def remove_duplicate_faces(faces: List[List[int]]) -> List[List[int]]:
+def remove_duplicate_faces(faces, faces_metadata):
     """Eliminate duplicate faces while preserving order.
 
     Parameters
     ----------
     faces : list of list of int
         Face connectivity to deduplicate.
+    faces_metadata: Dict[str, np.ndarray]
+        Fields associated to faces
 
     Returns
     -------
     list of list of int
         Face connectivity with duplicates removed.
+    Dict[str, np.ndarray]
+        Updated metadata
     """
     unique_faces = []
     face_set = set()
-    for face in faces:
+    deduplicated_faces_indices = []
+    for i_face, face in enumerate(faces):
         face_tuple = tuple(sorted(face))
         if face_tuple not in face_set:
             face_set.add(face_tuple)
             unique_faces.append(face)
-    return unique_faces
+        else:
+            deduplicated_faces_indices.append(i_face)
+
+    faces_metadata = {k: np.delete(faces_metadata[k], deduplicated_faces_indices, axis=0) for k in faces_metadata}
+
+    return unique_faces, faces_metadata
 
 
 def remove_unused_vertices(
@@ -235,22 +260,27 @@ def remove_unused_vertices(
 
 
 def remove_small_faces(
-    vertices: np.ndarray, faces: List[int], tol: float = 1e-8
-) -> List[int]:
+    vertices: np.ndarray,
+    faces: List[List[int]],
+    faces_metadata: Dict[str, np.ndarray],
+    tol: float = 1e-8
+):
     """Remove faces whose area falls below a tolerance.
 
     Parameters
     ----------
     vertices : numpy.ndarray
         Vertex coordinates used to evaluate surface area.
-    faces : list of int
+    faces : list of list of int
         Face connectivity referencing ``vertices``.
+    faces_metadata: Dict[str, np.ndarray]
+        Fields associated to faces
     tol : float, default=1e-8
         Minimum allowable face area.
 
     Returns
     -------
-    list of int
+    list of list of int
         Faces that exceed the area threshold.
     """
 
@@ -267,5 +297,6 @@ def remove_small_faces(
     areas = np.array([face_area(face) for face in faces])
     mask = areas > tol
     faces = [face for face, keep in zip(faces, mask) if keep]
+    faces_metadata = {k: faces_metadata[k][mask, ...] for k in faces_metadata}
 
-    return faces
+    return faces, faces_metadata
