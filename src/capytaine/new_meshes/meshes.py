@@ -639,4 +639,4 @@ class Mesh:
 def to_new_mesh(old_mesh):
     # Temporary method for testing new method while the former implementation
     # is still the default
-    return Mesh(old_mesh.vertices, old_mesh.faces, old_mesh.name)
+    return Mesh(old_mesh.vertices, old_mesh.faces, name=old_mesh.name)
