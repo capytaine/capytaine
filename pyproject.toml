@@ -85,6 +85,7 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+markers = ["slow"]
 xfail_strict = true
 log_cli_level = "info"
 testpaths = ["pytest/"]
