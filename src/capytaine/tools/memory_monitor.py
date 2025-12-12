@@ -23,7 +23,10 @@ class MemoryMonitor(Thread):
         p = self.psutil.Process()
         memory = p.memory_info().rss
         for c in p.children():
-            memory += c.memory_info().rss
+            try:
+                memory += c.memory_info().rss
+            except self.psutil.NoSuchProcess:
+                pass
         return memory
 
     def run(self):
