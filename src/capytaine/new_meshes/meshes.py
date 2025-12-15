@@ -137,6 +137,10 @@ class Mesh:
         """Number of quadrilateral faces (4-vertex) in the mesh."""
         return sum(1 for f in self._faces if len(f) == 4)
 
+    @cached_property
+    def z_span(self) -> Tuple[float, float]:
+        return (self.vertices[:, 2].min(), self.vertices[:, 2].max())
+
     def summary(self):
         """Print a summary of the mesh properties.
 
@@ -681,10 +685,12 @@ class Mesh:
         Mesh
             A new Mesh instance that has been clipped.
         """
-        new_vertices, new_faces = clip_faces(self.vertices, self._faces, normal, origin)
+        new_vertices, new_faces, face_parent = \
+                clip_faces(self.vertices, self._faces, normal, origin)
+        new_metadata = {k: self.faces_metadata[k][face_parent] for k in self.faces_metadata}
         if name is None and self.name is not None:
             name = f"{self.name}_clipped"
-        return Mesh(vertices=new_vertices, faces=new_faces, name=name)
+        return Mesh(vertices=new_vertices, faces=new_faces, faces_metadata=new_metadata, name=name)
 
     def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None) -> "Mesh":
         """
@@ -702,9 +708,12 @@ class Mesh:
         Mesh
             A new Mesh instance that has been clipped.
         """
-        clipped = self.clipped(origin=(0, 0, 0), normal=(0, 0, 1))
         water_depth = _get_water_depth(free_surface, water_depth, sea_bottom,
                                        default_water_depth=np.inf)
+        if (free_surface - water_depth <= self.z_span[0]
+            and self.z_span[1] <= free_surface):  # Already clipped
+            return self  # Shortcut for performance
+        clipped = self.clipped(origin=(0, 0, 0), normal=(0, 0, 1))
         if water_depth < np.inf:
             clipped = clipped.clipped(origin=(0, 0, free_surface-water_depth), normal=(0, 0, -1))
         return clipped

@@ -124,3 +124,11 @@ def test_faces_on_the_free_surface():
     assert mesh.translated_z(-1e-10).immersed_part().nb_faces == 1
     assert mesh.translated_z(1e-9).immersed_part().nb_faces == 1  # Within tol of 1e-8
     assert mesh.translated_z(1e-7).immersed_part().nb_faces == 0
+
+
+def test_clip_metadata():
+    vertices = [[0, 0, -1], [0, 0, 1], [1, 0, 1], [1, 0, -1]]
+    faces = [[0, 1, 2, 3]]
+    mesh = Mesh(vertices=vertices, faces=faces, faces_metadata={'foo': ['a']})
+    imm_mesh = mesh.immersed_part()
+    assert np.all(imm_mesh.faces_metadata['foo'] == np.array(['a', 'a']))

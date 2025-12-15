@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from __future__ import annotations
+from typing import List, Set, Tuple
 
 import numpy as np
 
@@ -261,7 +262,7 @@ def clip_faces(
     normal: np.ndarray,
     origin: np.ndarray,
     tol: float = 1e-8,
-) -> tuple[np.ndarray, list[list[int]]]:
+) -> Tuple[np.ndarray, List[List[int]], np.ndarray]:
     """Clip faces of a mesh against a plane.
 
     The kept half-space is defined by ``(v - origin) · normal >= -tol``.
@@ -281,17 +282,23 @@ def clip_faces(
 
     Returns
     -------
-    tuple[numpy.ndarray, list of list of int]
-        The pruned vertex array and the list of clipped faces.
+    np.ndarray of floats of shape (new_nb_vertices, 3)
+        The pruned vertex array
+    list of list of int
+        The list of of length new_nb_faces with clipped faces
+    np.ndarray of ints of shape (new_nb_faces,)
+        For each new face, the index of the face it comes from in the input.
     """
     normal = np.asarray(normal, dtype=float)
     origin = np.asarray(origin, dtype=float)
 
-    verts: list[list[float]] = vertices.astype(float).tolist()
-    new_faces: list[list[int]] = []
-    dropped_vs: set[int] = set()
+    verts: List[List[float]] = vertices.astype(float).tolist()
+    new_faces: List[Tuple[int, List[int]]] = []
+    # A new face is a tuple storing the index of the parent face in the
+    # original mesh and a list of vertices
+    dropped_vs: Set[int] = set()
 
-    for face in faces:
+    for i_face, face in enumerate(faces):
         keep, unkeep, _ = _compute_keep_sets(verts, face, normal, origin, tol)
         dropped_vs.update(unkeep)
 
@@ -299,7 +306,7 @@ def clip_faces(
             continue  # fully outside
         if len(keep) == len(face):
             # Face fully inside → keep original (quad or triangle unchanged)
-            new_faces.append(list(face))
+            new_faces.append((i_face, list(face)))
             continue
 
         edge_inters = _compute_edge_intersections(
@@ -308,31 +315,33 @@ def clip_faces(
         boundary = _build_clipped_boundary(face, keep, edge_inters)
 
         if len(boundary) == 3:
-            new_faces.append(boundary)
+            new_faces.append((i_face, boundary))
         elif len(boundary) == 4:
             # clipped quad → 2 triangles
-            new_faces.append([boundary[0], boundary[1], boundary[2]])
-            new_faces.append([boundary[0], boundary[2], boundary[3]])
+            new_faces.append((i_face, [boundary[0], boundary[1], boundary[2]]))
+            new_faces.append((i_face, [boundary[0], boundary[2], boundary[3]]))
         elif len(boundary) == 5:
             # pentagon → 1 triangle + 1 quad
             tri = [boundary[0], boundary[1], boundary[2]]
             quad = [boundary[0], boundary[2], boundary[3], boundary[4]]
-            new_faces.append(tri)
-            new_faces.append(quad)
+            new_faces.append((i_face, tri))
+            new_faces.append((i_face, quad))
         else:
             # fallback: fan triangulation
             for k in range(1, len(boundary) - 1):
-                new_faces.append([boundary[0], boundary[k], boundary[k + 1]])
+                new_faces.append((i_face, [boundary[0], boundary[k], boundary[k + 1]]))
 
     if not new_faces:
         return np.empty((0, 3), dtype=float), []
 
-    used = {idx for f in new_faces for idx in f}
+    used = {idx for (_, f) in new_faces for idx in f}
     dropped_vs -= used
     keep_vs = [i for i in range(len(verts)) if i not in dropped_vs]
     remap = {old: new for new, old in enumerate(keep_vs)}
 
     pruned_verts = np.asarray([verts[i] for i in keep_vs], dtype=float)
-    pruned_faces = [[remap[i] for i in face] for face in new_faces]
+    pruned_faces = [[remap[i] for i in face] for (_, face) in new_faces]
 
-    return pruned_verts, pruned_faces
+    parent_of_face = np.array([i_parent_face for (i_parent_face, _) in new_faces])
+
+    return pruned_verts, pruned_faces, parent_of_face
