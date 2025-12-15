@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Dict
 
 import numpy as np
 
@@ -47,6 +47,9 @@ class Mesh:
     faces : List[List[int]] or np.ndarray, optional
         Array of mesh connectivities for panels. Each row contains indices
         of vertices that form a face (triangles or quads).
+    faces_metadata: Dict[str, np.ndarray]
+        Some arrays with the same first dimension (should be the number of faces)
+        storing some fields defined on all the faces of the mesh.
     name : str, optional
         Optional name for the mesh instance.
     auto_clean : bool, optional
@@ -66,8 +69,9 @@ class Mesh:
         self,
         vertices: np.ndarray = None,
         faces: Union[List[List[int]], np.ndarray] = None,
-        name: str = None,
         *,
+        faces_metadata: Dict[str, np.ndarray] = None,
+        name: str = None,
         auto_clean: bool = True,
         auto_check: bool = True,
     ):
@@ -79,6 +83,14 @@ class Mesh:
 
         # --- Faces: process using helper method ---
         self._faces: List[List[int]] = self._process_faces(faces)
+
+        if faces_metadata is None:
+            self.faces_metadata = {}
+        else:
+            self.faces_metadata = {k: np.asarray(faces_metadata[k]) for k in faces_metadata}
+
+        for m in self.faces_metadata:
+            assert self.faces_metadata[m].shape[0] == len(self._faces)
 
         # Optional name
         self.name = str(name) if name is not None else None
@@ -96,8 +108,8 @@ class Mesh:
                 )
 
             if auto_clean:
-                self.vertices, self._faces = clean_mesh(
-                    self.vertices, self._faces, max_iter=5, tol=1e-8
+                self.vertices, self._faces, self.faces_metadata = clean_mesh(
+                    self.vertices, self._faces, self.faces_metadata, max_iter=5, tol=1e-8
                 )
 
             if auto_check:
@@ -139,6 +151,7 @@ class Mesh:
         print(
             f"  Bounding box     : {self.vertices.min(axis=0)} to {self.vertices.max(axis=0)}"
         )
+        print(f"  Metadata keys  : {self.faces_metadata.keys()}")
 
     def __str__(self) -> str:
         return (f"Mesh(vertices=[[... {self.nb_vertices} vertices ...]], "
@@ -270,7 +283,7 @@ class Mesh:
             return arr.tolist()
 
     @classmethod
-    def from_list_of_faces(cls, list_faces, *, name=None, auto_clean=True, auto_check=True) -> "Mesh":
+    def from_list_of_faces(cls, list_faces, *, faces_metadata=None, name=None, auto_clean=True, auto_check=True) -> "Mesh":
         """
         Create a Mesh instance from a list of faces defined by vertex coordinates.
 
@@ -282,6 +295,7 @@ class Mesh:
                 [[x1, y1, z1], [x2, y2, z2], [x3, y3, z3]],
                 [[x4, y4, z4], [x5, y5, z5], [x6, y6, z6]]
             ]
+        faces_metadata: Optional[Dict[str, np.ndarray]]
         name: str, optional
             A name for the new mesh.
         auto_clean : bool, optional
@@ -310,7 +324,12 @@ class Mesh:
                 indexed_face.append(vertices_map[key])
             indexed_faces.append(indexed_face)
 
-        return cls(vertices=np.array(unique_vertices), faces=indexed_faces, name=name)
+        return cls(
+            vertices=np.array(unique_vertices),
+            faces=indexed_faces,
+            faces_metadata=faces_metadata,
+            name=name
+        )
 
     def as_list_of_faces(self) -> List[List[List[float]]]:
         """
@@ -329,7 +348,34 @@ class Mesh:
         for face in self._faces:
             face_coords = [self.vertices[idx].tolist() for idx in face]
             list_faces.append(face_coords)
+        if len(self.faces_metadata) > 0:
+            LOG.info(f"Dropping metadata of {self} to export as list of faces.")
         return list_faces
+
+    def with_metadata(self, **new_metadata):
+        faces_metadata = self.faces_metadata.copy()
+        for k, v in new_metadata.items():
+            faces_metadata[k] = v
+        return Mesh(self.vertices, self._faces,
+                    faces_metadata=faces_metadata,
+                    name=self.name,
+                    auto_clean=False, auto_check=False)
+
+    def without_metadata(self, *metadata_names):
+        faces_metadata = self.faces_metadata.copy()
+        for k in metadata_names:
+            del faces_metadata[k]
+        return Mesh(self.vertices, self._faces,
+                    faces_metadata=faces_metadata,
+                    name=self.name,
+                    auto_clean=False, auto_check=False)
+
+    def without_any_metadata(self):
+        return Mesh(self.vertices, self._faces,
+                    faces_metadata=None,
+                    name=self.name,
+                    auto_clean=False, auto_check=False)
+
 
     ## INTERFACE FOR BEM SOLVER
 
@@ -451,6 +497,7 @@ class Mesh:
         selected_faces = [all_faces[i] for i in faces_id]
         return Mesh.from_list_of_faces(
             selected_faces,
+            faces_metadata={k: self.faces_metadata[k][selected_faces, ...] for k in self.faces_metadata},
             name=name,
             auto_clean=False,
             auto_check=False
@@ -461,7 +508,10 @@ class Mesh:
         return Mesh(
             vertices=self.vertices + np.asarray(shift),
             faces=self._faces,
-            name=name
+            faces_metadata=self.faces_metadata,
+            name=name,
+            auto_clean=False,
+            auto_check=False,
         )
 
     def translated_x(self, dx: float, *, name=None) -> "Mesh":
@@ -479,7 +529,14 @@ class Mesh:
     def rotated_with_matrix(self, R, *, name=None) -> "Mesh":
         """Return a new Mesh rotated using the provided 3×3 rotation matrix."""
         new_vertices = self.vertices @ R.T
-        return Mesh(vertices=new_vertices, faces=self._faces, name=name)
+        return Mesh(
+            vertices=new_vertices,
+            faces=self._faces,
+            name=name,
+            faces_metadata=self.faces_metadata,
+            auto_clean=False,
+            auto_check=False,
+        )
 
     def rotated_x(self, angle: float, *, name=None) -> "Mesh":
         """Return a new Mesh rotated around the x-axis using the provided rotation angle in radians"""
@@ -525,21 +582,28 @@ class Mesh:
         if not all(isinstance(m, Mesh) for m in meshes):
             raise TypeError("Only Mesh instances can be added together.")
 
+        if return_masks:
+            meshes = [m.with_metadata(origin_mesh_index=np.array([i]*m.nb_faces))
+                      for i, m in enumerate(meshes)]
+
         faces = sum((m.as_list_of_faces() for m in meshes), [])
-        if not return_masks:
-            return Mesh.from_list_of_faces(faces, name=name)
+
+        metadata_keys = [set(m.faces_metadata.keys()) for m in meshes]
+        common_metadata_keys = set.intersection(*metadata_keys)
+        lost_metadata_keys = set.union(*metadata_keys) - common_metadata_keys
+        if len(lost_metadata_keys) > 0:
+            LOG.warning(f'The following metadata have been dropped when joining meshes: {lost_metadata_keys}')
+        faces_metadata = {k: np.concatenate([m.faces_metadata[k] for m in meshes], axis=0)
+                             for k in common_metadata_keys}
+
+        joined_mesh = Mesh.from_list_of_faces(faces, faces_metadata=faces_metadata, name=name)
+        # If list of faces is trimmed for some reason, metadata will be updated accordingly
+
+        if return_masks:
+            masks = [joined_mesh.faces_metadata['origin_mesh_index'] == i for i in range(len(meshes))]
+            return joined_mesh.without_metadata('origin_mesh_index'), masks
         else:
-            joined_mesh = Mesh.from_list_of_faces(faces, name=name, auto_clean=False, auto_check=True)
-            # No cleaning so we are sure that the faces stay in same order
-            # TODO: improve this by passing some metadata along with the faces?
-            masks = []
-            acc_nb_faces = 0
-            for i_mesh in range(len(meshes)):
-                mask = np.full((joined_mesh.nb_faces,), False)
-                mask[acc_nb_faces:acc_nb_faces+meshes[i_mesh].nb_faces] = True
-                masks.append(mask)
-                acc_nb_faces = acc_nb_faces + meshes[i_mesh].nb_faces
-            return joined_mesh, masks
+            return joined_mesh
 
     def __add__(self, other: "Mesh") -> "Mesh":
         """Combine two meshes using the + operator.
@@ -649,4 +713,4 @@ class Mesh:
 def to_new_mesh(old_mesh):
     # Temporary method for testing new method while the former implementation
     # is still the default
-    return Mesh(old_mesh.vertices, old_mesh.faces, old_mesh.name)
+    return Mesh(old_mesh.vertices, old_mesh.faces, name=old_mesh.name)
