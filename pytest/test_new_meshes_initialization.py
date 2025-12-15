@@ -176,23 +176,24 @@ def test_add_meshes():
     assert np.all(joined_mesh.faces_metadata["foo"] == np.array([1.0, 2.0]))
 
 
-def test_add_meshes_different_metadata():
-    mesh1 = meshes.Mesh.from_list_of_faces(
+def test_join_meshes_with_metadata(caplog):
+    v = np.array(
         [
-            [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]],
-        ],
-        faces_metadata={"foo": [1.0]}
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0],
+        ]
     )
-
-    mesh2 = meshes.Mesh.from_list_of_faces(
-        [
-            [[1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [2.0, 1.0, 0.0], [1.0, 1.0, 0.0]],
-        ],
-        faces_metadata={"bar": [1.0]}
-    )
-
-    with pytest.raises(KeyError):
-        mesh1 + mesh2
+    f = [[0, 1, 2],]
+    metadata_1 = {"foo": np.array([1.0]), "bar": np.array([2.0])}
+    mesh_1 = meshes.Mesh(vertices=v, faces=f, faces_metadata=metadata_1)
+    metadata_2 = {"foo": np.array([1.0])}
+    mesh_2 = meshes.Mesh(vertices=v+np.array([0.0, 0.0, 1.0]), faces=f, faces_metadata=metadata_2)
+    with caplog.at_level(logging.WARNING):
+        joined = mesh_1 + mesh_2
+    assert "foo" in joined.faces_metadata.keys()
+    assert "bar" not in joined.faces_metadata.keys()
+    assert "bar" in caplog.text
 
 
 def test_join_meshes_return_masks():
@@ -331,23 +332,3 @@ def test_degenerate_vertices_indices_in_face(caplog):
     assert "Dropping 1 degenerate faces" in caplog.text
     assert mesh.faces_metadata["scalar"].shape == (1,)
     assert mesh.faces_metadata["vector"].shape == (1, 3)
-
-
-def test_join_meshes_with_metadata(caplog):
-    v = np.array(
-        [
-            [0.0, 0.0, 0.0],
-            [1.0, 0.0, 0.0],
-            [1.0, 1.0, 0.0],
-        ]
-    )
-    f = [[0, 1, 2],]
-    metadata_1 = {"foo": np.array([1.0]), "bar": np.array([2.0])}
-    mesh_1 = meshes.Mesh(vertices=v, faces=f, faces_metadata=metadata_1)
-    metadata_2 = {"foo": np.array([1.0])}
-    mesh_2 = meshes.Mesh(vertices=v+np.array([0.0, 0.0, 1.0]), faces=f, faces_metadata=metadata_2)
-    with caplog.at_level(logging.WARNING):
-        joined = mesh_1 + mesh_2
-    assert "foo" in joined.faces_metadata.keys()
-    assert "bar" not in joined.faces_metadata.keys()
-    assert "bar" in caplog.text
