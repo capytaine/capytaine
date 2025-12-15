@@ -5,24 +5,12 @@ Hydrostatics
 Capytaine can compute some of the hydrostatic parameters of a given :code:`FloatingBody`.
 
 
-.. note::
-    Here the integration of a function over the immersed hull is approximated as the summation of the data function at face centers multiplied by the respective face areas.
-
-    .. math::
-
-        \iint_S f(x,y,z) dS \approx \sum_i^N f(x_i, y_i, z_i) \Delta S_i
-
-    where :math:`i` is the face index, :math:`(x_i, y_i, z_i)` is :math:`i` th face center, and :math:`S_i` is :math:`i` th face area.
-
 Hydrostatic parameters
 ----------------------
 
 For each hydrostatic parameter a separate method is available in Capytaine.
 Some of them may require the definition of the center of mass of the body.
 It can be done by setting the attribute `center_of_mass` as in the example below.
-
-.. note::
-    Before computing individual hydrostatic parameters, make sure to crop the body to only keep the immersed part.
 
 ::
 
@@ -33,7 +21,7 @@ It can be done by setting the attribute `center_of_mass` as in the example below
             mesh=cpt.mesh_sphere(radius=1.0, center=(0, 0, 0)),
             dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.3)),
             center_of_mass=(0, 0, -0.3)
-            ).immersed_part()
+            )
 
     print("Volume:", rigid_sphere.volume)
     print("Center of buoyancy:", rigid_sphere.center_of_buoyancy)
@@ -51,38 +39,48 @@ It can be done by setting the attribute `center_of_mass` as in the example below
 Hydrostatic stiffness
 ---------------------
 
-The equation to compute the hydrostatic stiffness of a floating body is
+The method :meth:`~capytaine.bodies.FloatingBody.compute_hydrostatic_stiffness`
+computes the hydrostatic stiffness and returns a (DOF count x DOF count) 2D
+matrix as an :code:`xarray.DataArray`. ::
+
+    hs = rigid_sphere.compute_hydrostatic_stiffness()
+
+Capytaine has two built-in methods to compute the hydrostatic stiffness:
+
+- for rigid-body degrees of freedom, exact analytical expressions are available.
+
+- for generalized degrees of freedom (e.g. elastic bodies), the following expression is used
 
 .. math::
 
     C_{ij} = \iint_S (\hat{n} \cdot V_j) (w_i + z D_i)  dS
 
 where :math:`\hat{n}` is the surface normal,
-
 :math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is the dof vector and
-
 :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
 
-The method :meth:`~capytaine.bodies.FloatingBody.compute_hydrostatic_stiffness`
-computes the hydrostatic stiffness and returns a (DOF count x DOF count) 2D
-matrix as an :code:`xarray.DataArray`. ::
+Note that the latter method is an approximation and does not recover the former
+expression for rigid-body dofs, even when passing a dof vector and a divergence
+corresponding to the rigid-body dof.
 
-    rigid_sphere.hydrostatic_stiffness = rigid_sphere.compute_hydrostatic_stiffness()
+.. warning::
+   Currently, the detection of a rigid-body degree of freedom to use the exact
+   analytical expression is not very robust. Changing the name of the dof or
+   combining several rigid bodies usually makes Capytaine use the approximate
+   method for generalize dofs instead.
+   This is planned to be fixed in a later release of Capytaine.
 
 
-.. note::
-   For rigid body dofs, the exact formula above can be evaluated.
-   However, in general, the divergence :math:`D_i` of an arbitrary dofs is not known.
-   User can pass a value for `D_i` as an input to :code:`compute_hydrostatics`.
-   Otherwise the code assumes zero divergence :math:`D_{i} = 0`.
+If the divergence is not provided by the user, zero is used as an approximation.
+Here is an example of setting the divergence of the dof::
 
-::
-
+    mesh = cpt.mesh_sphere(radius=1.0, center=(0, 0, 0)).immersed_part()
+    dof = np.array([(0, 0, z) for (x, y, z) in elastic_sphere.mesh.faces_centers])
     elastic_sphere = cpt.FloatingBody(
-            mesh=cpt.mesh_sphere(radius=1.0, center=(0, 0, 0)),
-            center_of_mass=(0, 0, -0.3)
-            ).immersed_part()
-    elastic_sphere.dofs["elongate_in_z"] = np.array([(0, 0, z) for (x, y, z) in elastic_sphere.mesh.faces_centers])
+            mesh=mesh,
+            center_of_mass=(0, 0, -0.3),
+            dofs={"elongate_in_z": dof},
+            )
 
     dofs_divergence = {"elongate_in_z": np.ones(elastic_sphere.mesh.nb_faces)}
 
@@ -91,21 +89,34 @@ matrix as an :code:`xarray.DataArray`. ::
     elongate_in_z_hs = elastic_sphere.compute_hydrostatic_stiffness(divergence=dofs_divergence, rho=density, g=gravity)
 
     analytical_hs = - density * gravity * (4 * elastic_sphere.volume * elastic_sphere.center_of_buoyancy[2])
-
     print(np.isclose(elongate_in_z_hs.values[0, 0], analytical_hs))
     # True
 
 
+.. warning::
+   In the example above, all computations are done on a mesh clipped with
+   ``immersed_part()``.
+   Defining a divergence for generalized dofs is one of the only cases where
+   the user should make sure that the body contains only immersed panels, and
+   that the divergence field is defined only on these panels.
+   It is planned to remove this requirement in a future release of Capytaine.
+
 If the mass is not specified (as in the examples above), the body is assumed to
-be in buoyancy equilibrium. It's mass is the mass of the displaced volume of
+be in buoyancy equilibrium. Its mass is the mass of the displaced volume of
 water.
 
 Non-neutrally buoyant bodies are partially implemented (only for a single rigid body).
 In this case, the mass of the body can be given by setting the :code:`mass`
 attribute of the :code:`FloatingBody`::
 
-    rigid_sphere.mass = 0.8 * rigid_sphere.disp_mass(rho=1000)
-    rigid_sphere.hydrostatic_stiffness = rigid_sphere.compute_hydrostatic_stiffness()
+    mesh = cpt.mesh_sphere(radius=1.0, center=(0, 0, 0))
+    rigid_sphere = cpt.FloatingBody(
+            mesh=mesh,
+            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.3)),
+            center_of_mass=(0, 0, -0.3),
+            mass=0.8*mesh.disp_mass(rho=1000),
+            )
+    hs = rigid_sphere.compute_hydrostatic_stiffness()
 
 
 Inertia matrix
@@ -117,7 +128,7 @@ The inertia coefficient of other degrees of freedom are filled with :code:`NaN` 
 
 ::
 
-    rigid_sphere.inertia_matrix = elastic_sphere.compute_rigid_body_inertia()
+    M = rigid_sphere.compute_rigid_body_inertia()
 
 
 As for the hydrostatic stiffness, the mass is assumed to be the displaced mass
@@ -134,9 +145,6 @@ Compute all hydrostatics parameters
 -----------------------------------
 
 Instead of computing each hydrostatic parameters individually, :code:`compute_hydrostatics` returns a :code:`dict` containing all hydrostatic parameters.
-
-.. note::
-    No need to apply :code:`immersed_part` to use :code:`compute_hydrostatics`.
 
 ::
 
