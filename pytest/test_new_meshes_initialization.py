@@ -1,3 +1,6 @@
+import logging
+
+import pytest
 import numpy as np
 
 import capytaine.new_meshes as meshes
@@ -156,18 +159,42 @@ def test_add_meshes():
     mesh1 = meshes.Mesh.from_list_of_faces(
         [
             [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]],
-        ]
+        ],
+        faces_metadata={"foo": [1.0]}
     )
 
     mesh2 = meshes.Mesh.from_list_of_faces(
         [
             [[1.0, 0.0, 0.0], [2.0, 0.0, 0.0], [2.0, 1.0, 0.0], [1.0, 1.0, 0.0]],
-        ]
+        ],
+        faces_metadata={"foo": [2.0]}
     )
 
     joined_mesh = mesh1 + mesh2
     assert joined_mesh.nb_faces == 2
     assert joined_mesh.nb_vertices == 6  # Duplicate vertices had been removed
+    assert np.all(joined_mesh.faces_metadata["foo"] == np.array([1.0, 2.0]))
+
+
+def test_join_meshes_with_metadata(caplog):
+    v = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0],
+        ]
+    )
+    f = [[0, 1, 2],]
+    metadata_1 = {"foo": np.array([1.0]), "bar": np.array([2.0])}
+    mesh_1 = meshes.Mesh(vertices=v, faces=f, faces_metadata=metadata_1)
+    metadata_2 = {"foo": np.array([1.0])}
+    mesh_2 = meshes.Mesh(vertices=v+np.array([0.0, 0.0, 1.0]), faces=f, faces_metadata=metadata_2)
+    with caplog.at_level(logging.WARNING):
+        joined = mesh_1 + mesh_2
+    assert "foo" in joined.faces_metadata.keys()
+    assert "bar" not in joined.faces_metadata.keys()
+    assert "bar" in caplog.text
+
 
 def test_join_meshes_return_masks():
     mesh1 = meshes.Mesh.from_list_of_faces(
@@ -288,3 +315,20 @@ def test_faces_as_list_no_count_column():
     # List input should pass through unchanged
     assert mesh._faces == [[4, 0, 1, 2], [3, 1, 2, 3]]
     assert mesh.nb_faces == 2
+
+
+def test_degenerate_vertices_indices_in_face(caplog):
+    v = np.array(
+        [
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0],
+        ]
+    )
+    f = [[0, 1, 2], [0, 0, 1, 1]]
+    metadata = {"scalar": np.array([1, 2]), "vector": np.array([[1, 1, 1], [2, 2, 2]])}
+    with caplog.at_level(logging.WARNING):
+        mesh = meshes.Mesh(vertices=v, faces=f, faces_metadata=metadata)
+    assert "Dropping 1 degenerate faces" in caplog.text
+    assert mesh.faces_metadata["scalar"].shape == (1,)
+    assert mesh.faces_metadata["vector"].shape == (1, 3)
