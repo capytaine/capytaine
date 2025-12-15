@@ -32,7 +32,8 @@ mm_mesh = meshmagick.mesh.Mesh(body.mesh.vertices, body.mesh.faces, name=body.me
 
 mm_hsdb = meshmagick.hydrostatics.compute_hydrostatics(mm_mesh, cog=cog, rho_water=density, grav=gravity)
 
-mm_hsdb["inertia_matrix"] = mm_mesh.eval_plain_mesh_inertias(rho_medium=density).inertia_matrix
+rho_medium = 1000*body.mesh.disp_volume/body.mesh.volume
+mm_hsdb["inertia_matrix"] = mm_mesh.eval_plain_mesh_inertias(rho_medium=rho_medium).inertia_matrix
 mm_hsdb["center_of_buoyancy"] = mm_hsdb["buoyancy_center"]
 
 
