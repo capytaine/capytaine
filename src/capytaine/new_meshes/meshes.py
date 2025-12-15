@@ -586,10 +586,13 @@ class Mesh:
 
         faces = sum((m.as_list_of_faces() for m in meshes), [])
 
+        metadata_keys = [set(m.faces_metadata.keys()) for m in meshes]
+        common_metadata_keys = set.intersection(*metadata_keys)
+        lost_metadata_keys = set.union(*metadata_keys) - common_metadata_keys
+        if len(lost_metadata_keys) > 0:
+            LOG.warning(f'The following metadata have been dropped when joining meshes: {lost_metadata_keys}')
         faces_metadata = {k: np.concatenate([m.faces_metadata[k] for m in meshes], axis=0)
-                             for k in meshes[0].faces_metadata.keys()}
-        # Assume all meshes have the exact same metadata
-        # TODO: improve error message if not.
+                             for k in common_metadata_keys}
 
         joined_mesh = Mesh.from_list_of_faces(faces, faces_metadata=faces_metadata, name=name)
         # If list of faces is trimmed for some reason, metadata will be updated accordingly
