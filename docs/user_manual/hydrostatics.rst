@@ -10,9 +10,7 @@ Hydrostatic parameters
 
 For each hydrostatic parameter a separate method is available in Capytaine.
 Some of them may require the definition of the center of mass of the body.
-It can be done by setting the attribute `center_of_mass` as in the example below.
-
-::
+It can be done by setting the ``center_of_mass`` at body initilization as in the example below::
 
     import capytaine as cpt
     import numpy as np
@@ -130,13 +128,20 @@ The inertia coefficient of other degrees of freedom are filled with :code:`NaN` 
 
     M = rigid_sphere.compute_rigid_body_inertia()
 
-
 As for the hydrostatic stiffness, the mass is assumed to be the displaced mass
-of water, unless a :code:`mass` attribute has been specified.
+of water for a body at equilibrium, unless a :code:`mass` attribute has been specified when setting up the body.
 
-A custom matrix can be provided. For consistency with the data computed with
-Capytaine, it is recommended to wrap it in a :code:`xarray.DataArray` with dof
-names as labels::
+When computing the inertia moments, the density of the body mass is assumed to be uniform whithin the body (which may or may not be consistent with the center of mass defined when initializing the floating body).
+Note also that unlike most other hydrostatics properties, the rigid body inertia depends not only on the shape of immersed part of the body but also on the shape above the free surface.
+Computing the inertia on only the immersed part leads to a different result since it neglects this contribution to the moment of inertia::
+
+    M_ = rigid_sphere.immersed_part().compute_rigid_body_inertia()
+
+The latter might still be a relevant approximation since most floating bodies have most of their mass below the free surface for equilibrium.
+
+This feature of Capytaine is limited in scope, it is meant to provide examples of data for teaching and testing.
+The best practice is usually to use another dedicated method or tool that is aware of the true distribution of mass within the body.
+When providing a matrix computed externally, it is recommended to wrap it in a :code:`xarray.DataArray` with dof names as labels, for consistency with the data computed with Capytaine::
 
     elastic_sphere.inertia_matrix = elastic_sphere.add_dofs_labels_to_matrix(np.array([[1000.0]]))
 
