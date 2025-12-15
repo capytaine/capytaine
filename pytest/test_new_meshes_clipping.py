@@ -39,7 +39,6 @@ def test_clip_above_geometry():
     assert np.array_equal(
         clipped_mesh.faces, faces
     ), "Expected faces to remain unchanged, got {}".format(clipped_mesh.faces)
-    print("Test 1 (Clipping above the geometry) passed.")
 
 
 def test_clip_below_geometry():
@@ -67,7 +66,6 @@ def test_clip_below_geometry():
     ), "Expected no vertices to remain after clipping, got {}".format(
         clipped_mesh.nb_vertices
     )
-    print("Test 2 (Clipping below the geometry) passed.")
 
 
 def test_clip_partial():
@@ -91,7 +89,6 @@ def test_clip_partial():
         clipped_mesh.nb_triangles == 2
     ), f"Expected 2 triangles, got {clipped_mesh.nb_triangles}"
     assert clipped_mesh.nb_quads == 0, f"Expected 0 quads, got {clipped_mesh.nb_quads}"
-    print("Test 3 (Partial clipping) passed.")
 
 
 def test_clip_partial_2():
@@ -113,7 +110,6 @@ def test_clip_partial_2():
         clipped_mesh.nb_triangles == 1
     ), f"Expected 1 triangle, got {clipped_mesh.nb_triangles}"
     assert clipped_mesh.nb_quads == 1, f"Expected 1 quad, got {clipped_mesh.nb_quads}"
-    print("Test 4 (Partial clipping 2) passed.")
 
 
 def test_faces_on_the_free_surface():

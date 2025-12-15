@@ -332,7 +332,7 @@ def clip_faces(
                 new_faces.append((i_face, [boundary[0], boundary[k], boundary[k + 1]]))
 
     if not new_faces:
-        return np.empty((0, 3), dtype=float), []
+        return np.empty((0, 3), dtype=float), [], np.empty((0,), dtype=int)
 
     used = {idx for (_, f) in new_faces for idx in f}
     dropped_vs -= used
