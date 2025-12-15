@@ -4,13 +4,14 @@ import capytaine as cpt
 import meshmagick.mesh
 import meshmagick.hydrostatics
 
-radius = 10
-cog = np.array((0, 0, 0))
+radius = 10.0
+cog = np.array([0, 0, 0])
 mesh = cpt.mesh_sphere(radius=radius, center=cog, resolution=(100, 100))
-body = cpt.FloatingBody(mesh=mesh, center_of_mass=cog)
-
-body.add_all_rigid_body_dofs()
-body = body.immersed_part()
+body = cpt.FloatingBody(
+    mesh=mesh,
+    dofs=cpt.rigid_body_dofs(rotation_center=cog),
+    center_of_mass=cog
+)
 
 density = 1000
 gravity = 9.81
@@ -26,7 +27,6 @@ mass_compare_dofs = ["Roll", "Pitch", "Yaw"]
 capy_hsdb["inertia_matrix"] = capy_hsdb["inertia_matrix"].sel(
     influenced_dof=mass_compare_dofs, radiating_dof=mass_compare_dofs
     ).values
-
 
 mm_mesh = meshmagick.mesh.Mesh(body.mesh.vertices, body.mesh.faces, name=body.mesh.name)
 
