@@ -46,6 +46,9 @@ Main differences
 
 * Different quality checks suite for given meshes.
 
+* ``Mesh.clipped`` and ``FloatingBody.clipped`` don't take as argument a
+  ``Plane`` object, but directly a point and a normal (as two 3-ple of floats).
+
 * Rotations and symmetries are only available around the main axis. The ``Plane`` and ``Axis`` objects have been removed.
   Most transformation can still be performed by combining translation, rotation and mirroring.
   More complex transformations should be done in a dedicated meshing software.

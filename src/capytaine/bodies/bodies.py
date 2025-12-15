@@ -16,6 +16,7 @@ from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, inplace_
 from capytaine.meshes.properties import connected_components, connected_components_of_waterline
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import build_regular_array_of_meshes
+from capytaine.new_meshes.meshes import Mesh as NewMesh
 from capytaine.bodies.dofs import RigidBodyDofsPlaceholder, TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
 from capytaine.bodies.hydrostatics import _HydrostaticsMixin
 
@@ -496,6 +497,69 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
                 self.dofs[dof] = np.empty((0, 3))
         return self
 
+    def _apply_on_mesh(self, func, args, kwargs):
+        mesh_with_dofs = self.mesh.with_metadata(**self.dofs)
+        transformed_mesh = func(mesh_with_dofs, *args, **kwargs)
+        new_dofs = {k: transformed_mesh.faces_metadata[k] for k in self.dofs}
+        transformed_mesh = transformed_mesh.without_metadata(*self.dofs.keys())
+
+        if self.lid_mesh is not None:
+            transformed_lid_mesh = func(self.lid_mesh, *args, **kwargs)
+            if transformed_lid_mesh.nb_faces == 0:
+                LOG.warning("Empty lid mesh %s has been removed.", self.lid_mesh)
+                transformed_lid_mesh = None
+        else:
+            transformed_lid_mesh = None
+
+        return transformed_mesh, transformed_lid_mesh, new_dofs
+
+    def clipped(self, *, origin, normal, name=None) -> "FloatingBody":
+        if not isinstance(self.mesh, NewMesh):
+            # Legacy path, to be removed
+            return self.clip(
+                    cpt.Plane(point=origin, normal=normal),
+                    inplace=False,
+                    name=name
+                    )
+
+        clipped_mesh, clipped_lid_mesh, updated_dofs = self._apply_on_mesh(
+            self.mesh.__class__.clipped,
+            (),
+            {'origin': origin, 'normal': normal}
+        )
+        if name is None:
+            name = "clipped_" + self.name
+        return FloatingBody(
+            mesh=clipped_mesh,
+            lid_mesh=clipped_lid_mesh,
+            dofs=updated_dofs,
+            name=name
+        )
+
+    def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None, name=None) -> "FloatingBody":
+        if not isinstance(self.mesh, NewMesh):
+            # Legacy path, to be removed
+            return self.keep_immersed_part(
+                    free_surface,
+                    inplace=False,
+                    sea_bottom=sea_bottom,
+                    water_depth=water_depth,
+                    name=self.name if name is None else name,
+                    )
+
+        clipped_mesh, clipped_lid_mesh, updated_dofs = self._apply_on_mesh(
+            self.mesh.__class__.immersed_part,
+            (free_surface,),
+            {'sea_bottom': sea_bottom, 'water_depth': water_depth}
+        )
+        if name is None:
+            name = "immersed_part_of_" + self.name
+        return FloatingBody(
+            mesh=clipped_mesh,
+            lid_mesh=clipped_lid_mesh,
+            dofs=updated_dofs,
+            name=name
+        )
 
     #############
     #  Display  #
