@@ -92,7 +92,8 @@ def test_parallelization(sphere):
 
 
 @pytest.mark.parametrize("n_jobs", [1, 2])
-def test_control_threads(sphere, n_jobs):
+@pytest.mark.parametrize("n_threads", [1, 2])
+def test_control_threads(sphere, n_jobs, n_threads):
     pytest.importorskip("joblib")
     pytest.importorskip("threadpoolctl")
     solver = cpt.BEMSolver()
@@ -100,7 +101,7 @@ def test_control_threads(sphere, n_jobs):
         'omega': np.linspace(0.1, 4.0, 3),
         'radiating_dof': list(sphere.dofs.keys()),
     })
-    solver.fill_dataset(test_matrix, sphere, n_jobs=n_jobs, n_threads=1)
+    solver.fill_dataset(test_matrix, sphere, n_jobs=n_jobs, n_threads=n_threads)
 
 
 def test_nb_timer(sphere):
