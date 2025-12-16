@@ -21,6 +21,7 @@ from typing import List, Union, Tuple, Dict
 import numpy as np
 
 from capytaine.tools.deprecation_handling import _get_water_depth
+from .abstract_meshes import AbstractMesh
 from .geometry import (
     compute_faces_areas,
     compute_faces_centers,
@@ -36,7 +37,7 @@ from .visualization import show_3d
 LOG = logging.getLogger(__name__)
 
 
-class Mesh:
+class Mesh(AbstractMesh):
     """Mesh class for representing and manipulating 3D surface meshes.
 
     Parameters
@@ -211,19 +212,6 @@ class Mesh:
         """
         return show_3d(self, backend=backend, **kwargs)
 
-    def show_pyvista(self, **kwargs):
-        """
-        Equivalent to show(backend="pyvista").
-        See also :func:`~capytaine.new_meshes.visualization.show_pyvista`
-        """
-        return self.show(backend="pyvista", **kwargs)
-
-    def show_matplotlib(self, **kwargs):
-        """
-        Equivalent to show(backend="matplotlib").
-        See also :func:`~capytaine.new_meshes.visualization.show_matplotlib`
-        """
-        return self.show(backend="matplotlib", **kwargs)
 
     ## INITIALISATION
 
@@ -518,18 +506,6 @@ class Mesh:
             auto_check=False,
         )
 
-    def translated_x(self, dx: float, *, name=None) -> "Mesh":
-        """Return a new Mesh translated in the x-direction along `dx`."""
-        return self.translated([dx, 0.0, 0.0], name=name)
-
-    def translated_y(self, dy: float, *, name=None) -> "Mesh":
-        """Return a new Mesh translated in the y-direction along `dy`."""
-        return self.translated([0.0, dy, 0.0], name=name)
-
-    def translated_z(self, dz: float, *, name=None) -> "Mesh":
-        """Return a new Mesh translated in the z-direction along `dz`."""
-        return self.translated([0.0, 0.0, dz], name=name)
-
     def rotated_with_matrix(self, R, *, name=None) -> "Mesh":
         """Return a new Mesh rotated using the provided 3×3 rotation matrix."""
         new_vertices = self.vertices @ R.T
@@ -541,24 +517,6 @@ class Mesh:
             auto_clean=False,
             auto_check=False,
         )
-
-    def rotated_x(self, angle: float, *, name=None) -> "Mesh":
-        """Return a new Mesh rotated around the x-axis using the provided rotation angle in radians"""
-        c, s = np.cos(angle), np.sin(angle)
-        R = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
-        return self.rotated_with_matrix(R, name=name)
-
-    def rotated_y(self, angle: float, *, name=None) -> "Mesh":
-        """Return a new Mesh rotated around the y-axis using the provided rotation angle in radians"""
-        c, s = np.cos(angle), np.sin(angle)
-        R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
-        return self.rotated_with_matrix(R, name=name)
-
-    def rotated_z(self, angle: float, *, name=None) -> "Mesh":
-        """Return a new Mesh rotated around the z-axis using the provided rotation angle in radians"""
-        c, s = np.cos(angle), np.sin(angle)
-        R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
-        return self.rotated_with_matrix(R, name=name)
 
     def mirrored(self, plane: Literal['xOz', 'yOz'], *, name=None):
         new_vertices = self.vertices.copy()
@@ -628,35 +586,6 @@ class Mesh:
             return joined_mesh.without_metadata('origin_mesh_index'), masks
         else:
             return joined_mesh
-
-    def __add__(self, other: "Mesh") -> "Mesh":
-        """Combine two meshes using the + operator.
-
-        Parameters
-        ----------
-        other : Mesh
-            Another mesh to combine with this one.
-
-        Returns
-        -------
-        Mesh
-            New mesh containing vertices and faces from both meshes.
-
-        Raises
-        ------
-        TypeError
-            If other is not a Mesh instance.
-
-        Notes
-        -----
-        Vertex indices in the second mesh are automatically offset to account
-        for vertices from the first mesh.
-        """
-        if self.name is not None or other.name is not None:
-            name = f"{self.name}+{other.name}"
-        else:
-            name = None
-        return self.join_meshes(other, name=name)
 
     def with_normal_vector_going_down(self, **kwargs) -> "Mesh":
         # Kwargs are for backward compatibility with former inplace implementation of this.
