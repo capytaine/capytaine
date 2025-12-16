@@ -16,11 +16,10 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import List, Union, Tuple, Dict
+from typing import List, Union, Tuple, Dict, Optional
 
 import numpy as np
 
-from capytaine.tools.deprecation_handling import _get_water_depth
 from .abstract_meshes import AbstractMesh
 from .geometry import (
     compute_faces_areas,
@@ -71,8 +70,8 @@ class Mesh(AbstractMesh):
         vertices: np.ndarray = None,
         faces: Union[List[List[int]], np.ndarray] = None,
         *,
-        faces_metadata: Dict[str, np.ndarray] = None,
-        name: str = None,
+        faces_metadata: Optional[Dict[str, np.ndarray]] = None,
+        name: Optional[str] = None,
         auto_clean: bool = True,
         auto_check: bool = True,
     ):
@@ -137,10 +136,6 @@ class Mesh(AbstractMesh):
     def nb_quads(self) -> int:
         """Number of quadrilateral faces (4-vertex) in the mesh."""
         return sum(1 for f in self._faces if len(f) == 4)
-
-    @cached_property
-    def z_span(self) -> Tuple[float, float]:
-        return (self.vertices[:, 2].min(), self.vertices[:, 2].max())
 
     def summary(self):
         """Print a summary of the mesh properties.
@@ -344,31 +339,6 @@ class Mesh(AbstractMesh):
             LOG.info(f"Dropping metadata of {self} to export as list of faces.")
         return list_faces
 
-    def with_metadata(self, **new_metadata):
-        faces_metadata = self.faces_metadata.copy()
-        for k, v in new_metadata.items():
-            faces_metadata[k] = v
-        return Mesh(self.vertices, self._faces,
-                    faces_metadata=faces_metadata,
-                    name=self.name,
-                    auto_clean=False, auto_check=False)
-
-    def without_metadata(self, *metadata_names):
-        faces_metadata = self.faces_metadata.copy()
-        for k in metadata_names:
-            del faces_metadata[k]
-        return Mesh(self.vertices, self._faces,
-                    faces_metadata=faces_metadata,
-                    name=self.name,
-                    auto_clean=False, auto_check=False)
-
-    def without_any_metadata(self):
-        return Mesh(self.vertices, self._faces,
-                    faces_metadata=None,
-                    name=self.name,
-                    auto_clean=False, auto_check=False)
-
-
     ## INTERFACE FOR BEM SOLVER
 
     @cached_property
@@ -570,13 +540,8 @@ class Mesh(AbstractMesh):
 
         faces = sum((m.as_list_of_faces() for m in meshes), [])
 
-        metadata_keys = [set(m.faces_metadata.keys()) for m in meshes]
-        common_metadata_keys = set.intersection(*metadata_keys)
-        lost_metadata_keys = set.union(*metadata_keys) - common_metadata_keys
-        if len(lost_metadata_keys) > 0:
-            LOG.warning(f'The following metadata have been dropped when joining meshes: {lost_metadata_keys}')
         faces_metadata = {k: np.concatenate([m.faces_metadata[k] for m in meshes], axis=0)
-                             for k in common_metadata_keys}
+                             for k in AbstractMesh._common_metadata_keys(*meshes)}
 
         joined_mesh = Mesh.from_list_of_faces(faces, faces_metadata=faces_metadata, name=name)
         # If list of faces is trimmed for some reason, metadata will be updated accordingly
@@ -608,17 +573,33 @@ class Mesh(AbstractMesh):
             LOG.warning(
                 f"Inverting the direction of the normal vectors of {self} to be downward."
             )
-            return Mesh(vertices=self.vertices, faces=self.faces[:, ::-1], name=self.name)
+            return Mesh(
+                vertices=self.vertices,
+                faces=self.faces[:, ::-1],
+                faces_metadata=self.faces_metadata,
+                name=self.name
+            )
         else:
             return self
 
-    def copy(self):
+    def copy(self, *, faces_metadata=None, name=None) -> Mesh:
         # No-op for backward compatibility
-        return self
+        if faces_metadata is None:
+            faces_metadata = self.faces_metadata.copy()
+        if name is None:
+            name = self.name
+        return Mesh(
+            vertices=self.vertices,
+            faces=self._faces,
+            faces_metadata=faces_metadata,
+            name=name,
+            auto_clean=False,
+            auto_check=False
+        )
 
-    def merged(self):
+    def merged(self, *, name=None) -> Mesh:
         # No-op to be extended to symmetries
-        return self
+        return self.copy(name=name)
 
     def clipped(self, *, origin, normal, name=None) -> "Mesh":
         """
@@ -644,32 +625,6 @@ class Mesh(AbstractMesh):
         if name is None and self.name is not None:
             name = f"{self.name}_clipped"
         return Mesh(vertices=new_vertices, faces=new_faces, faces_metadata=new_metadata, name=name)
-
-    def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None) -> "Mesh":
-        """
-        Clip the mesh to keep only the part below the free surface.
-
-        Parameters
-        ----------
-        free_surface: float
-            The :math:`z` coordinate of the free surface (default: 0.0)
-        water_depth: Optional[float]
-            The water depth, as a positive value (default: infinity)
-
-        Returns
-        -------
-        Mesh
-            A new Mesh instance that has been clipped.
-        """
-        water_depth = _get_water_depth(free_surface, water_depth, sea_bottom,
-                                       default_water_depth=np.inf)
-        if (free_surface - water_depth <= self.z_span[0]
-            and self.z_span[1] <= free_surface):  # Already clipped
-            return self  # Shortcut for performance
-        clipped = self.clipped(origin=(0, 0, 0), normal=(0, 0, 1))
-        if water_depth < np.inf:
-            clipped = clipped.clipped(origin=(0, 0, free_surface-water_depth), normal=(0, 0, -1))
-        return clipped
 
 
 def to_new_mesh(old_mesh):
