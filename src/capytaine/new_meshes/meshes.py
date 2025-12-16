@@ -560,6 +560,26 @@ class Mesh:
         R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
         return self.rotated_with_matrix(R, name=name)
 
+    def mirrored(self, plane: Literal['xOz', 'yOz'], *, name=None):
+        new_vertices = self.vertices.copy()
+        if plane == "xOz":
+            new_vertices[:, 1] *= -1
+        elif plane == "yOz":
+            new_vertices[:, 0] *= -1
+        else:
+            raise ValueError(f"Unsupported value for plane: {plane}")
+        new_faces = [f[::-1] for f in self._faces]  # Invert normals
+        if name is None and self.name is not None:
+            name = f"mirrored_{self.name}"
+        return Mesh(
+            new_vertices,
+            new_faces,
+            faces_metadata=self.faces_metadata,
+            name=name,
+            auto_clean=False,
+            auto_check=False
+        )
+
     def join_meshes(*meshes: List["Mesh"], return_masks=False, name=None) -> "Mesh":
         """Join two meshes and return a new Mesh instance.
 
@@ -665,6 +685,10 @@ class Mesh:
 
     def copy(self):
         # No-op for backward compatibility
+        return self
+
+    def merged(self):
+        # No-op to be extended to symmetries
         return self
 
     def clipped(self, *, origin, normal, name=None) -> "Mesh":
