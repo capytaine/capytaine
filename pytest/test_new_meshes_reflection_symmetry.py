@@ -200,3 +200,13 @@ def test_join_with_metadata():
     # First the metadata on result.half, then on result.other_half
     assert np.allclose(result.faces_metadata['center'], result.faces_centers[:, 0])
     assert np.allclose(result.faces_metadata['is_ghost'], [False, False, True, True])
+
+def test_clipped_symmetric_mesh():
+    vertices = np.array([[0, 0.5, -0.5], [0, 0.5, 0.5], [0, 1.5, 0.5], [0, 1.5, -0.5]])
+    faces = [[0, 1, 2, 3]]
+    half = Mesh(vertices=vertices, faces=faces, faces_metadata={"foo": [1.0]})
+    sym = ReflectionSymmetricMesh(half=half, plane="xOz", faces_metadata={'bar': [2.0, 3.0]})
+    imm_sym = sym.immersed_part()
+    assert np.isclose(imm_sym.faces_areas.sum(), 0.5*sym.faces_areas.sum())
+    assert imm_sym.faces_metadata['foo'].shape[0] == imm_sym.nb_faces
+    assert np.allclose(imm_sym.faces_metadata['bar'][imm_sym.faces_centers[:, 1] > 0.0], 2.0)

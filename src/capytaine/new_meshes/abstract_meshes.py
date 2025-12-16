@@ -169,7 +169,8 @@ class AbstractMesh(ABC):
         return self.copy(faces_metadata=faces_metadata)
 
     def pop_metadata(self, metadata_name) -> Tuple[AbstractMesh, np.ndarray]:
-        faces_metadata, data = self.faces_metadata.copy().pop(metadata_name)
+        faces_metadata = self.faces_metadata.copy()
+        data = faces_metadata.pop(metadata_name)
         return self.copy(faces_metadata=faces_metadata), data
 
     def without_metadata(self, *metadata_names) -> AbstractMesh:

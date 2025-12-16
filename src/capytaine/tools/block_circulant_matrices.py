@@ -84,6 +84,14 @@ class BlockCirculantMatrix:
         else:
             return NotImplemented
 
+    def __matmul__(self, other):
+        if self.nb_blocks == 2 and isinstance(other, np.ndarray) and other.ndim == 1:
+            a, b = self.blocks
+            x1, x2 = other[:len(other)//2], other[len(other)//2:]
+            return np.concatenate([a @ x1 + b @ x2, b @ x1 + a @ x2], axis=0)
+        else:
+            return NotImplemented
+
     def block_diagonalize(self) -> "BlockDiagonalMatrix":
         if self.ndim == 2 and all(isinstance(b, BlockCirculantMatrix) for b in self.blocks) and self.nb_blocks == 2:
             a, b = self.blocks

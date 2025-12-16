@@ -237,14 +237,14 @@ class ReflectionSymmetricMesh(AbstractMesh):
             or(self.plane == 'yOz' and abs(normal[1]) < 1e-12)):
             clipped_half, indices = (
                     self.half
-                    .with_metadata(index=range(self.half.nb_faces))
+                    .with_metadata(index=np.arange(self.half.nb_faces))
                     .clipped(origin=origin, normal=normal)
                     .pop_metadata("index")
                     )
             all_indices = np.concatenate([indices, indices + self.half.nb_faces])
             metadata = {k: self.faces_metadata[k][all_indices] for k in self.faces_metadata.keys()}
             return ReflectionSymmetricMesh(
-                    mesh=clipped_half,
+                    half=clipped_half,
                     plane=self.plane,
                     faces_metadata=metadata,
                     name=name)
