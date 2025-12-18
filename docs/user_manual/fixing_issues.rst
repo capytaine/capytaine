@@ -1,6 +1,8 @@
 Common issues
 =============
 
+.. contents:: Contents
+
 There are NaNs in my dataset output
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
