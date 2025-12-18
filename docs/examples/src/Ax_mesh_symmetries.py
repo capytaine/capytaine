@@ -18,6 +18,8 @@ from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh
 new_simple_symmetric_mesh = ReflectionSymmetricMesh(half=to_new_mesh(half_mesh), plane="yOz", name="new_simple_symmetric_mesh")
 new_nested_symmetric_mesh = ReflectionSymmetricMesh(half=ReflectionSymmetricMesh(half=to_new_mesh(quarter_mesh), plane="xOz"), plane="yOz", name="new_nested_symmetric_mesh")
 
+# new_simple_symmetric_mesh.show(color_field=new_simple_symmetric_mesh.faces_centers[:, 2], backend="matplotlib")
+# new_nested_symmetric_mesh.show(color_field=new_nested_symmetric_mesh.faces_centers[:, 2], backend="matplotlib")
 
 for mesh in [reference_mesh, old_simple_symmetric_mesh, old_nested_symmetric_mesh, new_simple_symmetric_mesh, new_nested_symmetric_mesh]:
     body = cpt.FloatingBody(

@@ -46,6 +46,7 @@ def show_3d(mesh, *, backend=None, **kwargs):
 def show_pyvista(
     mesh,
     *,
+    ghost_meshes=None,
     plotter=None,
     normal_vectors=False,
     display_free_surface=True,
@@ -63,6 +64,8 @@ def show_pyvista(
     ----------
     mesh : Mesh
         The mesh object to visualize.
+    ghost_meshes: List[Mesh], optional
+        Additional meshes, shown in transparency
     plotter: pv.Plotter, optional
         If provided, use this PyVista plotter and return it at the end.
         Otherwise a new one is created and the 3D view is displayed at the end.
@@ -83,9 +86,16 @@ def show_pyvista(
         Additional arguments passed to PyVista's add_mesh methods for customization (e.g. mesh color).
     """
     pv = import_optional_dependency("pyvista")
-    pv_mesh = mesh_to_pyvista(mesh.vertices, mesh._faces)
-    if color_field is not None:
-        pv_mesh.cell_data["color_field"] = color_field
+
+    all_meshes_in_scene: List[Mesh] = [mesh] if ghost_meshes is None else [mesh, *ghost_meshes]
+    pv_meshes = [mesh_to_pyvista(m.vertices, m._faces) for m in all_meshes_in_scene]
+
+    if color_field is not None and isinstance(color_field, np.ndarray):
+        acc_faces = 0
+        # Split the content of color_fields into the meshes in the scene
+        for m in pv_meshes:
+            m.cell_data["color_field"] = color_field[acc_faces:acc_faces+m.n_cells]
+            acc_faces = acc_faces + m.n_cells
 
     if plotter is None:
         default_plotter = True
@@ -93,13 +103,19 @@ def show_pyvista(
     else:
         default_plotter = False
 
-    kwargs.setdefault("show_edges", True)
-    if "opacity" in kwargs:
-        kwargs.setdefault("edge_opacity", kwargs["opacity"])
     if color_field is not None:
         kwargs.setdefault("scalars", "color_field")
     kwargs.setdefault("scalar_bar_args", {"title": cbar_label})
-    plotter.add_mesh(pv_mesh, name="hull", **kwargs)
+    plotter.add_mesh(pv_meshes[0], name="hull", show_edges=True, **kwargs)
+
+    for i_ghost, g_mesh in enumerate(pv_meshes[1:]):
+        plotter.add_mesh(
+                g_mesh,
+                name=f"symmetric_hull_{i_ghost}",
+                opacity=0.4,
+                show_edges=False,
+                **kwargs
+                )
 
     # NORMALS
     def show_normals():
@@ -126,12 +142,13 @@ def show_pyvista(
         show_normals()
     plotter.add_key_event("n", lambda : toggle_normals())
 
+    scene_min = np.min([m.vertices[:, :].min(axis=0) for m in all_meshes_in_scene], axis=0)
+    scene_max = np.max([m.vertices[:, :].max(axis=0) for m in all_meshes_in_scene], axis=0)
+
     # FREE SURFACE
     def show_free_surface():
-        mini = mesh.vertices[:, :2].min(axis=0)
-        maxi = mesh.vertices[:, :2].max(axis=0)
-        center = (mini + maxi) / 2
-        diam = 1.1*(maxi - mini)
+        center = (scene_min[:2] + scene_max[:2]) / 2
+        diam = 1.1*(scene_max[:2] - scene_min[:2])
         plane = pv.Plane(center=(*center, 0), direction=(0, 0, 1), i_size=diam[0], j_size=diam[1])
         plotter.add_mesh(plane, color="blue", opacity=0.5, name="display_free_surface")
         if water_depth != np.inf:
@@ -184,7 +201,7 @@ def show_pyvista(
     view_clipping = {'x': 0, 'y': 0}  # 0 = no clipping, +1 clipping one side, -1 clipping other side
     def clipped_mesh():
         nonlocal view_clipping
-        clipped_pv_mesh = pv_mesh
+        clipped_pv_mesh = pv_meshes[0]
         for dir in ['x', 'y']:
             if view_clipping[dir] == 1:
                 clipped_pv_mesh = clipped_pv_mesh.clip(dir)
@@ -200,7 +217,7 @@ def show_pyvista(
             view_clipping[dir] = -1
         else:
             view_clipping[dir] = 0
-        plotter.add_mesh(clipped_mesh(), name="hull", **kwargs)
+        plotter.add_mesh(clipped_mesh(), name="hull", show_edges=True, **kwargs)
 
     plotter.add_key_event("X", lambda : toggle_view_clipping("x"))
     plotter.add_key_event("Y", lambda : toggle_view_clipping("y"))
@@ -226,16 +243,28 @@ def show_pyvista(
         return plotter
 
 
-def show_matplotlib(mesh, ax=None, bounding_box=None,
-                    normal_vectors=False, scale_normal_vector=None,
-                    color_field=None, cmap=None,
-                    cbar_label=None,
-                    **kwargs):
+def show_matplotlib(
+    mesh,
+    *,
+    ghost_meshes=None,
+    ax=None,
+    bounding_box=None,
+    normal_vectors=False,
+    scale_normal_vector=None,
+    color_field=None,
+    cmap=None,
+    cbar_label=None,
+    **kwargs
+):
     """
     Visualize the mesh using Matplotlib.
 
     Parameters
     ----------
+    mesh : Mesh
+        The mesh object to visualize.
+    ghost_meshes: List[Mesh], optional
+        Additional meshes. In the matplotlib viewer, they are just merged with the main mesh.
     ax: matplotlib axis
         The 3d axis in which to plot the mesh. If not provided, create a new one.
     bounding_box: tuple[tuple[int]], optional
@@ -266,10 +295,13 @@ def show_matplotlib(mesh, ax=None, bounding_box=None,
         ax = fig.add_subplot(111, projection="3d")
         ax.set_box_aspect([1, 1, 1])  # Equal aspect ratio
 
+    all_meshes_in_scene: List[Mesh] = [mesh] if ghost_meshes is None else [mesh, *ghost_meshes]
+
     faces = []
-    for face in mesh.faces:
-        vertices = [mesh.vertices[int(index_vertex), :] for index_vertex in face]
-        faces.append(vertices)
+    for m in all_meshes_in_scene:
+        for face in m.faces:
+            vertices = [m.vertices[int(index_vertex), :] for index_vertex in face]
+            faces.append(vertices)
 
     if color_field is None:
         if 'facecolors' not in kwargs:

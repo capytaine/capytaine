@@ -254,5 +254,8 @@ class ReflectionSymmetricMesh(AbstractMesh):
                         f"with origin {origin} and normal {normal}")
             return self.merged().clipped(origin=origin, normal=normal, name=name)
 
-    def show(self, *, backend=None, **kwargs):
-        ...
+    def show(self, *, backend=None, ghost_meshes=None, **kwargs):
+        if ghost_meshes is None:
+            ghost_meshes = []
+        ghost_meshes = ghost_meshes + [self.other_half.merged()]
+        return self.half.show(backend=backend, ghost_meshes=ghost_meshes, **kwargs)
