@@ -16,3 +16,4 @@ User manual
    post_pro.rst
    export_output.rst
    conventions.rst
+   fixing_issues.rst
