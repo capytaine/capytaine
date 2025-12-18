@@ -290,6 +290,17 @@ class BasicMatrixEngine(MatrixEngine):
             )
 
     def compute_ram_estimation(self, problem):
+        if isinstance(problem.body.mesh, ReflectionSymmetricMesh):
+            if isinstance(problem.body.mesh.half, ReflectionSymmetricMesh):
+                # Should not go deeper than that, there is currently only two
+                # symmetries available
+                symmetry_factor = 0.25
+            else:
+                symmetry_factor = 0.5
+        else:
+            symmetry_factor = 1.0
+
+
         nb_faces = problem.body.mesh.nb_faces
         nb_matrices = 2
         nb_bytes = 16
@@ -300,5 +311,5 @@ class BasicMatrixEngine(MatrixEngine):
         if self.green_function.floating_point_precision == "float32":
             nb_bytes = 8
 
-        peak_memory = nb_faces**2*nb_matrices*nb_bytes/1e9
+        peak_memory = symmetry_factor * nb_faces**2 * nb_matrices * nb_bytes/1e9
         return peak_memory
