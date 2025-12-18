@@ -230,8 +230,14 @@ class BEMSolver:
             It is recommended to set the method more globally when initializing the solver.
             If provided here, the value in argument of `solve_all` overrides the global one.
         n_jobs: int, optional (default: 1)
-            the number of jobs to run in parallel using the optional dependency `joblib`
+            the number of jobs to run in parallel using the optional dependency ``joblib``
             By defaults: do not use joblib and solve sequentially.
+        n_threads: int, optional
+            the number of threads used to solve each problem.
+            The total number of used CPU will be n_jobs×n_threads.
+            By default: use as much as possible.
+            Requires the optional dependency ``threadpoolctl`` if ``n_jobs==1``.
+            Also controlled by the environment variables ``OMP_NUM_THREADS`` and ``MKL_NUM_THREADS``.
         progress_bar: bool, optional
             Display a progress bar while solving.
             If no value is provided to this method directly,
@@ -406,8 +412,14 @@ class BEMSolver:
             It is recommended to set the method more globally when initializing the solver.
             If provided here, the value in argument of `fill_dataset` overrides the global one.
         n_jobs: int, optional (default: 1)
-            the number of jobs to run in parallel using the optional dependency `joblib`
+            the number of jobs to run in parallel using the optional dependency ``joblib``.
             By defaults: do not use joblib and solve sequentially.
+        n_threads: int, optional
+            the number of threads used to solve each problem.
+            The total number of used CPU will be n_jobs×n_threads.
+            By default: use as much as possible.
+            Requires the optional dependency ``threadpoolctl`` if ``n_jobs==1``.
+            Also controlled by the environment variables ``OMP_NUM_THREADS`` and ``MKL_NUM_THREADS``.
         progress_bar: bool, optional
             Display a progress bar while solving.
             If no value is provided to this method directly,
