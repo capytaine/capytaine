@@ -1,6 +1,3 @@
-import os
-os.environ["OMP_NUM_THREADS"] = '1'
-
 import numpy as np
 import xarray as xr
 import capytaine as cpt
@@ -18,8 +15,7 @@ from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh
 new_simple_symmetric_mesh = ReflectionSymmetricMesh(half=to_new_mesh(half_mesh), plane="yOz", name="new_simple_symmetric_mesh")
 new_nested_symmetric_mesh = ReflectionSymmetricMesh(half=ReflectionSymmetricMesh(half=to_new_mesh(quarter_mesh), plane="xOz"), plane="yOz", name="new_nested_symmetric_mesh")
 
-# new_simple_symmetric_mesh.show(color_field=new_simple_symmetric_mesh.faces_centers[:, 2], backend="matplotlib")
-# new_nested_symmetric_mesh.show(color_field=new_nested_symmetric_mesh.faces_centers[:, 2], backend="matplotlib")
+# new_simple_symmetric_mesh.show()
 
 for mesh in [reference_mesh, old_simple_symmetric_mesh, old_nested_symmetric_mesh, new_simple_symmetric_mesh, new_nested_symmetric_mesh]:
     body = cpt.FloatingBody(
@@ -37,7 +33,11 @@ for mesh in [reference_mesh, old_simple_symmetric_mesh, old_nested_symmetric_mes
             })
 
     solver = cpt.BEMSolver(method='indirect')
-    dataset = solver.fill_dataset(test_matrix, body.immersed_part())
+    dataset = solver.fill_dataset(
+        test_matrix,
+        body.immersed_part(),
+        n_threads=1,  # No parallel resolution for cleaner benchmark
+    )
     print(mesh.name)
     print(dataset.added_mass.sel(radiating_dof='Heave', influenced_dof='Heave').values)
     print(solver.timer_summary())
