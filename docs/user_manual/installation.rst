@@ -71,9 +71,11 @@ The following optional dependencies can be used together with Capytaine.
 +-----------------+---------------------------------------------------------------------------------+
 | joblib          | For parallel resolution                                                         |
 +-----------------+---------------------------------------------------------------------------------+
-| gmsh and pygmsh | To generate meshes                                                              |
+| threadpoolctl   | To control number of threads                                                    |
 +-----------------+---------------------------------------------------------------------------------+
 | psutil          | Monitor RAM usage                                                               |
++-----------------+---------------------------------------------------------------------------------+
+| gmsh and pygmsh | To generate meshes                                                              |
 +-----------------+---------------------------------------------------------------------------------+
 
 You can ask UV to install them all at the same time as Capytaine with the following command::
