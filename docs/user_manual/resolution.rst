@@ -270,7 +270,9 @@ RAM usage
 At the beginning of a batch of computation, the solver will compute the
 estimated RAM usage of the resolutions, taking the parallelisation into account.
 The estimation is displayed at the ``INFO`` log level (off by default) if it is
-low, and ``WARNING`` log level (on by default) if it is higher than 8 GB.
+low, and ``WARNING`` log level (on by default) if it is higher than a certain limit.
+This limit is equal to 30% of the total RAM if the optional dependency
+`psutil <https://psutil.readthedocs.io/>`_ is installed, otherwise the limit is equal to 8 GB.
 Expect the resolution to fail if the RAM usage is higher than the available RAM.
 
 If the optional dependency `psutil <https://psutil.readthedocs.io/>`_ is
@@ -282,31 +284,47 @@ Parallelization
 
 Capytaine includes two kinds of parallelization.
 
-+---------------------------+----------------+--------+
-|                           | `joblib`       | OpenMP |
-+---------------------------+----------------+--------+
-| Single resolution         | ✗              | ✓      |
-| (:code:`solve`)           |                |        |
-+---------------------------+----------------+--------+
-| Batch resolution          | ✓              | ✓      |
-| (:code:`solve_all`        | (if installed) |        |
-| and :code:`fill_dataset`) |                |        |
-+---------------------------+----------------+--------+
++---------------------------+-------------------------+-----------------------+
+|                           | processes with `joblib` | threads with `OpenMP` |
++---------------------------+-------------------------+-----------------------+
+| Single resolution         | ✗                       | ✓                     |
+| (:code:`solve`)           |                         |                       |
++---------------------------+-------------------------+-----------------------+
+| Batch resolution          | ✓                       | ✓                     |
+| (:code:`solve_all`        | (if installed)          |                       |
+| and :code:`fill_dataset`) |                         |                       |
++---------------------------+-------------------------+-----------------------+
 
 Single problem with OpenMP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When solving a single problem, matrix constructions and linear algebra
 operations (using BLAS or MKL depending on your installation) can be
-parallelized by OpenMP. This feature is installed and on by default. The number
-of threads used can be controlled by the environment variable
+parallelized by OpenMP. This feature is installed and on by default.
+The number of threads used can be controlled via the keyword-argument
+:code:`n_threads` in the methods :meth:`~capytaine.bem.solver.BEMSolver.solve_all`
+and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset`.
+This feature requires either the
+`threadpoolctl library <https://github.com/joblib/threadpoolctl>`_
+if :code:`n_jobs=1` (default), or the optional dependency
+`joblib <https://github.com/joblib/joblib>`_ for parallel resolution.
+See the dedicated section :ref:`joblib-resolution`
+for more information on parallelization with joblib.
+Another way to control the number of threads is via the environment variable
 :code:`OMP_NUM_THREADS`, as well as :code:`MKL_NUM_THREADS` (for the linear
 algebra when using Intel's MKL library usually distributed with conda). Note
-that the environment variable should be set *before* the start of the Python
-interpreter. Alternatively, if you'd like to change dynamically the number of
-threads, it can be done with the `threadpoolctl library
-<https://github.com/joblib/threadpoolctl>`_ (see also :issue:`47`).
+that the environment variable should be set *before* importing any library such
+as Numpy, Scipy or Capytaine::
 
+   import os
+   os.environ["OMP_NUM_THREADS"] = "1"
+
+   import numpy
+   import capytaine
+   ...
+
+
+.. _joblib-resolution:
 Batch resolution with joblib
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
