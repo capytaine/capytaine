@@ -373,8 +373,30 @@ class BEMSolver:
                             f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
                             + recommendation
                             )
+                
+    def dispatch(self, problems, memory, n_cpu=None):
+        """Manage the allocation of threads and processes based on the available RAM (in GB)."""
+        if not isinstance(problems, (list, tuple)):
+            problems = [problems]
 
-    def _check_ram(self,problems, n_jobs = 1):
+        estimated_memory_per_job = max(self.engine.compute_ram_estimation(pb) for pb in problems)
+        max_jobs = memory // estimated_memory_per_job
+        if max_jobs == 0:
+            LOG.warning(f"The given memory: {memory} GB might be not enough for the computation.")
+            max_jobs = 1
+
+        if n_cpu is None:
+            psutil = silently_import_optional_dependency("psutil")
+            if psutil is not None:
+                n_cpu = psutil.cpu_count(logical=False)
+
+        nb_threads_per_jobs = int(n_cpu // max_jobs) if n_cpu is not None else None
+        if nb_threads_per_jobs == 0:
+            nb_threads_per_jobs = None
+
+        return max_jobs, nb_threads_per_jobs
+
+    def _check_ram(self,problems, n_jobs=1):
         """Display a warning if the RAM estimation is larger than a certain limit."""
         LOG.debug("Check RAM estimation.")
         psutil = silently_import_optional_dependency("psutil")
