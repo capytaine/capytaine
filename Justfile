@@ -29,11 +29,12 @@ EXAMPLES_DIR := justfile_directory() / 'docs' / 'examples' / 'src'
 EXAMPLES_FILES := ' \
     A1_radiation_cylinder.py \
     A2_multibody.py \
-    A3_finite_depth_cylinder.py \
+    A3_finite_depth_flap.py \
     A4_custom_dofs.py \
     A5_convergence_study.py \
     A7_elasticity_of_beam.py \
     A8_export_dataset.py \
+    A9_parametric_study_depth.py \
     B1_pressure_on_hull.py \
     B2_haskind.py \
     B3_free_surface_elevation.py \

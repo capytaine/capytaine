@@ -1,3 +1,5 @@
+"""Example of parametric study by giving several water depth in the test matrix"""
+
 import numpy as np
 import xarray as xr
 import capytaine as cpt
