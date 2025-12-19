@@ -52,6 +52,8 @@ Main differences
 * Rotations and symmetries are only available around the main axis. The ``Plane`` and ``Axis`` objects have been removed.
   Most transformation can still be performed by combining translation, rotation and mirroring.
   More complex transformations should be done in a dedicated meshing software.
+  Similarly ``ReflectionSymmetricMeshes`` can now only be defined for global symmetries across the ``'xOz'`` and ``'yOz'`` planes.
+  Other planes and local symmetries used to be supported in the previous version of Capytaine, but they were making the implementation much more complicated for little practical gain, so it has been chosen for this new version to reduce the scope but make sure that this feature is well integrated with all the other features of Capytaine
 
 * If no name is provided, no generic name is given to the mesh, no name is used.
   Meshes' names are only useful to keep track of Python objects, since printing the full list of points and faces is not very convenient.
