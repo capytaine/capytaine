@@ -316,6 +316,9 @@ class RotationSymmetricMesh(AbstractMesh):
             LOG.warning("RotationSymmetricMesh containing ReflectionSymmetricMesh are not fully supported at the moment. "
                         "You might prefer to define instead a ReflectionSymmetricMesh of a RotationSymmetricMesh.")
 
+        if n < 2:
+            raise ValueError(f"Rotation order must be >= 2, got: {n}")
+
         self.wedge = wedge
         self.n = n
         self.axis = 'z'

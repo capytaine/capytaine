@@ -163,11 +163,11 @@ def nested_symmetry_with_inner_reflection():
 def test_nested_symmetry_with_inner_reflection():
     sym = nested_symmetry_with_inner_reflection()
 
-    assert outer_sym.nb_faces == 8  # 1 * 2 * 4
-    assert outer_sym.nb_vertices == 32  # 4 * 2 * 4
+    assert sym.nb_faces == 8  # 1 * 2 * 4
+    assert sym.nb_vertices == 32  # 4 * 2 * 4
 
     # Merge to get full mesh
-    merged = outer_sym.merged()
+    merged = sym.merged()
     assert merged.nb_faces == 8
 
 def test_transforming_symmetries_with_inner_reflection():
