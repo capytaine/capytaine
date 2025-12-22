@@ -9,7 +9,8 @@ from typing import Tuple, Union, Optional, Callable
 import numpy as np
 import scipy.sparse.linalg as ssl
 
-from capytaine.meshes.symmetric import ReflectionSymmetricMesh
+from capytaine.meshes.symmetric import ReflectionSymmetricMesh as OldReflectionSymmetricMesh
+from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
 from capytaine.green_functions.delhommeau import Delhommeau
@@ -152,8 +153,8 @@ class BasicMatrixEngine(MatrixEngine):
     def _build_matrices_with_symmetries(
             self, mesh1, mesh2, *, free_surface, water_depth, wavenumber, adjoint_double_layer
             ) -> Tuple[MatrixLike, MatrixLike]:
-        if (isinstance(mesh1, ReflectionSymmetricMesh)
-                and isinstance(mesh2, ReflectionSymmetricMesh)
+        if (isinstance(mesh1, OldReflectionSymmetricMesh)
+                and isinstance(mesh2, OldReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
 
             S_a, K_a = self._build_matrices_with_symmetries(
@@ -163,6 +164,23 @@ class BasicMatrixEngine(MatrixEngine):
                 )
             S_b, K_b = self._build_matrices_with_symmetries(
                 mesh1[0], mesh2[1],
+                free_surface=free_surface, water_depth=water_depth,
+                wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
+                )
+
+            return BlockCirculantMatrix([S_a, S_b]), BlockCirculantMatrix([K_a, K_b])
+
+        elif (isinstance(mesh1, ReflectionSymmetricMesh)
+                and isinstance(mesh2, ReflectionSymmetricMesh)
+                and mesh1.plane == mesh2.plane):
+
+            S_a, K_a = self._build_matrices_with_symmetries(
+                mesh1.half, mesh2.half,
+                free_surface=free_surface, water_depth=water_depth,
+                wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
+                )
+            S_b, K_b = self._build_matrices_with_symmetries(
+                mesh1.half, mesh2.other_half,
                 free_surface=free_surface, water_depth=water_depth,
                 wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
                 )
@@ -270,11 +288,22 @@ class BasicMatrixEngine(MatrixEngine):
             raise NotImplementedError(
                 f"Unknown `linear_solver` in BasicMatrixEngine: {self._linear_solver}"
             )
-        
+
     def compute_ram_estimation(self, problem):
+        if isinstance(problem.body.mesh, ReflectionSymmetricMesh):
+            if isinstance(problem.body.mesh.half, ReflectionSymmetricMesh):
+                # Should not go deeper than that, there is currently only two
+                # symmetries available
+                symmetry_factor = 0.25
+            else:
+                symmetry_factor = 0.5
+        else:
+            symmetry_factor = 1.0
+
+
         nb_faces = problem.body.mesh.nb_faces
         nb_matrices = 2
-        nb_bytes = 16 
+        nb_bytes = 16
 
         if self._linear_solver == "lu_decomposition":
             nb_matrices += 1
@@ -282,5 +311,5 @@ class BasicMatrixEngine(MatrixEngine):
         if self.green_function.floating_point_precision == "float32":
             nb_bytes = 8
 
-        peak_memory = nb_faces**2*nb_matrices*nb_bytes/1e9
+        peak_memory = symmetry_factor * nb_faces**2 * nb_matrices * nb_bytes/1e9
         return peak_memory

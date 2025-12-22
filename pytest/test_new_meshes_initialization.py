@@ -154,6 +154,19 @@ def test_rotation():
     mesh4 = mesh1.rotated_x(angle=np.pi)
     assert np.allclose(mesh4.faces_normals, np.array([[0.0, 0.0, -1.0]]))
 
+def test_mirrored():
+    v = np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]])
+    f = np.array([[0, 1, 2, 3]])
+    mesh1 = meshes.Mesh(vertices=v, faces=f)
+
+    mesh2 = mesh1.mirrored("xOz")
+    assert np.all(mesh2.vertices[:, 1] <= 0.0)
+    assert np.allclose(mesh2.faces_normals, np.array([[0.0, 0.0, 1.0]]))
+
+    mesh3 = mesh1.mirrored("yOz")
+    assert np.all(mesh3.vertices[:, 0] <= 0.0)
+    assert np.allclose(mesh3.faces_normals, np.array([[0.0, 0.0, 1.0]]))
+
 
 def test_add_meshes():
     mesh1 = meshes.Mesh.from_list_of_faces(

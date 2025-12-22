@@ -16,7 +16,7 @@ from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, inplace_
 from capytaine.meshes.properties import connected_components, connected_components_of_waterline
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric import build_regular_array_of_meshes
-from capytaine.new_meshes.meshes import Mesh as NewMesh
+from capytaine.new_meshes.abstract_meshes import AbstractMesh
 from capytaine.bodies.dofs import RigidBodyDofsPlaceholder, TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
 from capytaine.bodies.hydrostatics import _HydrostaticsMixin
 
@@ -537,7 +537,7 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
         )
 
     def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None, name=None) -> "FloatingBody":
-        if not isinstance(self.mesh, NewMesh):
+        if not isinstance(self.mesh, AbstractMesh):
             # Legacy path, to be removed
             return self.keep_immersed_part(
                     free_surface,

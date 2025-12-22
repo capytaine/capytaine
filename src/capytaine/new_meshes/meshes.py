@@ -16,11 +16,11 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import List, Union, Tuple, Dict
+from typing import List, Union, Tuple, Dict, Optional
 
 import numpy as np
 
-from capytaine.tools.deprecation_handling import _get_water_depth
+from .abstract_meshes import AbstractMesh
 from .geometry import (
     compute_faces_areas,
     compute_faces_centers,
@@ -36,7 +36,7 @@ from .visualization import show_3d
 LOG = logging.getLogger(__name__)
 
 
-class Mesh:
+class Mesh(AbstractMesh):
     """Mesh class for representing and manipulating 3D surface meshes.
 
     Parameters
@@ -70,8 +70,8 @@ class Mesh:
         vertices: np.ndarray = None,
         faces: Union[List[List[int]], np.ndarray] = None,
         *,
-        faces_metadata: Dict[str, np.ndarray] = None,
-        name: str = None,
+        faces_metadata: Optional[Dict[str, np.ndarray]] = None,
+        name: Optional[str] = None,
         auto_clean: bool = True,
         auto_check: bool = True,
     ):
@@ -136,10 +136,6 @@ class Mesh:
     def nb_quads(self) -> int:
         """Number of quadrilateral faces (4-vertex) in the mesh."""
         return sum(1 for f in self._faces if len(f) == 4)
-
-    @cached_property
-    def z_span(self) -> Tuple[float, float]:
-        return (self.vertices[:, 2].min(), self.vertices[:, 2].max())
 
     def summary(self):
         """Print a summary of the mesh properties.
@@ -211,19 +207,6 @@ class Mesh:
         """
         return show_3d(self, backend=backend, **kwargs)
 
-    def show_pyvista(self, **kwargs):
-        """
-        Equivalent to show(backend="pyvista").
-        See also :func:`~capytaine.new_meshes.visualization.show_pyvista`
-        """
-        return self.show(backend="pyvista", **kwargs)
-
-    def show_matplotlib(self, **kwargs):
-        """
-        Equivalent to show(backend="matplotlib").
-        See also :func:`~capytaine.new_meshes.visualization.show_matplotlib`
-        """
-        return self.show(backend="matplotlib", **kwargs)
 
     ## INITIALISATION
 
@@ -355,31 +338,6 @@ class Mesh:
         if len(self.faces_metadata) > 0:
             LOG.info(f"Dropping metadata of {self} to export as list of faces.")
         return list_faces
-
-    def with_metadata(self, **new_metadata):
-        faces_metadata = self.faces_metadata.copy()
-        for k, v in new_metadata.items():
-            faces_metadata[k] = v
-        return Mesh(self.vertices, self._faces,
-                    faces_metadata=faces_metadata,
-                    name=self.name,
-                    auto_clean=False, auto_check=False)
-
-    def without_metadata(self, *metadata_names):
-        faces_metadata = self.faces_metadata.copy()
-        for k in metadata_names:
-            del faces_metadata[k]
-        return Mesh(self.vertices, self._faces,
-                    faces_metadata=faces_metadata,
-                    name=self.name,
-                    auto_clean=False, auto_check=False)
-
-    def without_any_metadata(self):
-        return Mesh(self.vertices, self._faces,
-                    faces_metadata=None,
-                    name=self.name,
-                    auto_clean=False, auto_check=False)
-
 
     ## INTERFACE FOR BEM SOLVER
 
@@ -518,18 +476,6 @@ class Mesh:
             auto_check=False,
         )
 
-    def translated_x(self, dx: float, *, name=None) -> "Mesh":
-        """Return a new Mesh translated in the x-direction along `dx`."""
-        return self.translated([dx, 0.0, 0.0], name=name)
-
-    def translated_y(self, dy: float, *, name=None) -> "Mesh":
-        """Return a new Mesh translated in the y-direction along `dy`."""
-        return self.translated([0.0, dy, 0.0], name=name)
-
-    def translated_z(self, dz: float, *, name=None) -> "Mesh":
-        """Return a new Mesh translated in the z-direction along `dz`."""
-        return self.translated([0.0, 0.0, dz], name=name)
-
     def rotated_with_matrix(self, R, *, name=None) -> "Mesh":
         """Return a new Mesh rotated using the provided 3×3 rotation matrix."""
         new_vertices = self.vertices @ R.T
@@ -542,23 +488,25 @@ class Mesh:
             auto_check=False,
         )
 
-    def rotated_x(self, angle: float, *, name=None) -> "Mesh":
-        """Return a new Mesh rotated around the x-axis using the provided rotation angle in radians"""
-        c, s = np.cos(angle), np.sin(angle)
-        R = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
-        return self.rotated_with_matrix(R, name=name)
-
-    def rotated_y(self, angle: float, *, name=None) -> "Mesh":
-        """Return a new Mesh rotated around the y-axis using the provided rotation angle in radians"""
-        c, s = np.cos(angle), np.sin(angle)
-        R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
-        return self.rotated_with_matrix(R, name=name)
-
-    def rotated_z(self, angle: float, *, name=None) -> "Mesh":
-        """Return a new Mesh rotated around the z-axis using the provided rotation angle in radians"""
-        c, s = np.cos(angle), np.sin(angle)
-        R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
-        return self.rotated_with_matrix(R, name=name)
+    def mirrored(self, plane: Literal['xOz', 'yOz'], *, name=None):
+        new_vertices = self.vertices.copy()
+        if plane == "xOz":
+            new_vertices[:, 1] *= -1
+        elif plane == "yOz":
+            new_vertices[:, 0] *= -1
+        else:
+            raise ValueError(f"Unsupported value for plane: {plane}")
+        new_faces = [f[::-1] for f in self._faces]  # Invert normals
+        if name is None and self.name is not None:
+            name = f"mirrored_{self.name}"
+        return Mesh(
+            new_vertices,
+            new_faces,
+            faces_metadata=self.faces_metadata,
+            name=name,
+            auto_clean=False,
+            auto_check=False
+        )
 
     def join_meshes(*meshes: List["Mesh"], return_masks=False, name=None) -> "Mesh":
         """Join two meshes and return a new Mesh instance.
@@ -592,13 +540,8 @@ class Mesh:
 
         faces = sum((m.as_list_of_faces() for m in meshes), [])
 
-        metadata_keys = [set(m.faces_metadata.keys()) for m in meshes]
-        common_metadata_keys = set.intersection(*metadata_keys)
-        lost_metadata_keys = set.union(*metadata_keys) - common_metadata_keys
-        if len(lost_metadata_keys) > 0:
-            LOG.warning(f'The following metadata have been dropped when joining meshes: {lost_metadata_keys}')
         faces_metadata = {k: np.concatenate([m.faces_metadata[k] for m in meshes], axis=0)
-                             for k in common_metadata_keys}
+                             for k in AbstractMesh._common_metadata_keys(*meshes)}
 
         joined_mesh = Mesh.from_list_of_faces(faces, faces_metadata=faces_metadata, name=name)
         # If list of faces is trimmed for some reason, metadata will be updated accordingly
@@ -608,35 +551,6 @@ class Mesh:
             return joined_mesh.without_metadata('origin_mesh_index'), masks
         else:
             return joined_mesh
-
-    def __add__(self, other: "Mesh") -> "Mesh":
-        """Combine two meshes using the + operator.
-
-        Parameters
-        ----------
-        other : Mesh
-            Another mesh to combine with this one.
-
-        Returns
-        -------
-        Mesh
-            New mesh containing vertices and faces from both meshes.
-
-        Raises
-        ------
-        TypeError
-            If other is not a Mesh instance.
-
-        Notes
-        -----
-        Vertex indices in the second mesh are automatically offset to account
-        for vertices from the first mesh.
-        """
-        if self.name is not None or other.name is not None:
-            name = f"{self.name}+{other.name}"
-        else:
-            name = None
-        return self.join_meshes(other, name=name)
 
     def with_normal_vector_going_down(self, **kwargs) -> "Mesh":
         # Kwargs are for backward compatibility with former inplace implementation of this.
@@ -659,13 +573,33 @@ class Mesh:
             LOG.warning(
                 f"Inverting the direction of the normal vectors of {self} to be downward."
             )
-            return Mesh(vertices=self.vertices, faces=self.faces[:, ::-1], name=self.name)
+            return Mesh(
+                vertices=self.vertices,
+                faces=self.faces[:, ::-1],
+                faces_metadata=self.faces_metadata,
+                name=self.name
+            )
         else:
             return self
 
-    def copy(self):
+    def copy(self, *, faces_metadata=None, name=None) -> Mesh:
         # No-op for backward compatibility
-        return self
+        if faces_metadata is None:
+            faces_metadata = self.faces_metadata.copy()
+        if name is None:
+            name = self.name
+        return Mesh(
+            vertices=self.vertices,
+            faces=self._faces,
+            faces_metadata=faces_metadata,
+            name=name,
+            auto_clean=False,
+            auto_check=False
+        )
+
+    def merged(self, *, name=None) -> Mesh:
+        # No-op to be extended to symmetries
+        return self.copy(name=name)
 
     def clipped(self, *, origin, normal, name=None) -> "Mesh":
         """
@@ -691,32 +625,6 @@ class Mesh:
         if name is None and self.name is not None:
             name = f"{self.name}_clipped"
         return Mesh(vertices=new_vertices, faces=new_faces, faces_metadata=new_metadata, name=name)
-
-    def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None) -> "Mesh":
-        """
-        Clip the mesh to keep only the part below the free surface.
-
-        Parameters
-        ----------
-        free_surface: float
-            The :math:`z` coordinate of the free surface (default: 0.0)
-        water_depth: Optional[float]
-            The water depth, as a positive value (default: infinity)
-
-        Returns
-        -------
-        Mesh
-            A new Mesh instance that has been clipped.
-        """
-        water_depth = _get_water_depth(free_surface, water_depth, sea_bottom,
-                                       default_water_depth=np.inf)
-        if (free_surface - water_depth <= self.z_span[0]
-            and self.z_span[1] <= free_surface):  # Already clipped
-            return self  # Shortcut for performance
-        clipped = self.clipped(origin=(0, 0, 0), normal=(0, 0, 1))
-        if water_depth < np.inf:
-            clipped = clipped.clipped(origin=(0, 0, free_surface-water_depth), normal=(0, 0, -1))
-        return clipped
 
 
 def to_new_mesh(old_mesh):
