@@ -259,3 +259,8 @@ class ReflectionSymmetricMesh(AbstractMesh):
             ghost_meshes = []
         ghost_meshes = ghost_meshes + [self.other_half.merged()]
         return self.half.show(backend=backend, ghost_meshes=ghost_meshes, **kwargs)
+
+
+# For some backward compatibility:
+yOz_Plane = "yOz"
+xOz_Plane = "xOz"
