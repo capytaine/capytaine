@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
 from functools import cached_property
 from itertools import chain
@@ -22,6 +23,10 @@ import numpy as np
 
 from .abstract_meshes import AbstractMesh
 from .meshes import Mesh
+
+
+LOG = logging.getLogger(__name__)
+
 
 class ReflectionSymmetricMesh(AbstractMesh):
     """A mesh with reflection symmetry across a plane.
@@ -306,6 +311,10 @@ class RotationSymmetricMesh(AbstractMesh):
             faces_metadata: Optional[Dict[str, np.ndarray]] = None,
             name: Optional[str] = None
             ):
+
+        if isinstance(wedge, ReflectionSymmetricMesh):
+            LOG.warning("RotationSymmetricMesh containing ReflectionSymmetricMesh are not fully supported at the moment. "
+                        "You might prefer to define instead a ReflectionSymmetricMesh of a RotationSymmetricMesh.")
 
         self.wedge = wedge
         self.n = n

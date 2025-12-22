@@ -10,7 +10,7 @@ import numpy as np
 import scipy.sparse.linalg as ssl
 
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh as OldReflectionSymmetricMesh
-from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh
+from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
 from capytaine.green_functions.delhommeau import Delhommeau
@@ -186,6 +186,20 @@ class BasicMatrixEngine(MatrixEngine):
                 )
 
             return BlockCirculantMatrix([S_a, S_b]), BlockCirculantMatrix([K_a, K_b])
+
+        elif (isinstance(mesh1, RotationSymmetricMesh)
+                and isinstance(mesh2, RotationSymmetricMesh)
+                and mesh1.n == mesh2.n):
+
+            S_and_K_blocks = [
+                    self._build_matrices_with_symmetries(
+                        mesh1.wedge, w,
+                        free_surface=free_surface, water_depth=water_depth,
+                        wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
+                        )
+                    for w in mesh2.all_wedges]
+
+            return BlockCirculantMatrix([b[0] for b in S_and_K_blocks]), BlockCirculantMatrix([b[1] for b in S_and_K_blocks])
 
         else:
             return self.green_function.evaluate(
