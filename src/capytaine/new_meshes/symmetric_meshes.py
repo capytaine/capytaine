@@ -321,6 +321,46 @@ class RotationSymmetricMesh(AbstractMesh):
 
         self.name = str(name) if name is not None else None
 
+    @classmethod
+    def from_profile_points(cls, points: np.ndarray, n: int, *, faces_metadata=None, name=None):
+        """Return the mesh defined by the set of `points` repeted `n` times around the z-axis.
+
+        Points will be sorted by increasing z-coordinate before making a mesh,
+        in order to ensure that the normal vector are outwards.
+
+        Parameters
+        ---------
+        points: array of shape (..., 3)
+            A list of points in 3D.
+        n: int
+            The rotation order (number of rotations to complete full circle)
+        faces_metadata: Dict[str, np.ndarray], optional
+            Some arrays with the same first dimension (should be the number
+            of faces of the whole mesh) storing some fields defined on all the
+            faces of the mesh.
+        name: str, optional
+            Name for the mesh
+
+        Example
+        -------
+        >>> meridian_points = np.array([(np.sqrt(1-z**2), 0.0, z) for z in np.linspace(-1.0, 1.0, 10)])
+        >>> sphere = RotationSymmetricMesh.from_profile_points(meridian_points, n=10)
+        """
+        c, s = np.cos(2*np.pi/n), np.sin(2*np.pi/n)
+        rotation_matrix = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
+
+        points = np.asarray(sorted(list(points), key=lambda p: p[2]))  # Sort by increasing z
+        vertices = np.concatenate([points, points @ rotation_matrix.T])
+        faces = np.array([(i, i+len(points), i+len(points)+1, i+1) for i in range(len(points)-1)])
+        wedge = Mesh(vertices=vertices, faces=faces)
+
+        return RotationSymmetricMesh(
+            wedge=wedge,
+            n=n,
+            faces_metadata=faces_metadata,
+            name=name
+        )
+
     @cached_property
     def nb_vertices(self) -> int:
         return self.n * self.wedge.nb_vertices

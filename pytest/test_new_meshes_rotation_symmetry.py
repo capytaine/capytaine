@@ -72,6 +72,20 @@ def test_repr():
     assert "RotationSymmetricMesh" in repr_str
     assert "n=3" in repr_str
 
+def test_create_from_profile_bottom_to_top():
+    meridian_points = np.array([(np.sqrt(1-z**2), 0.0, z) for z in np.linspace(-1.0, 1.0, 5)])
+    sphere = RotationSymmetricMesh.from_profile_points(meridian_points, n=5)
+    assert sphere.wedge.nb_faces == 4
+    assert sphere.nb_faces == 4*5
+    assert np.all(np.array([sphere.faces_normals[i, :] @ sphere.faces_centers[i, :] for i in range(sphere.nb_faces)]) >= 0.0)  # Outwards normals
+
+def test_create_from_profile_top_to_bottom():
+    meridian_points = np.array([(np.sqrt(1-z**2), 0.0, z) for z in np.linspace(1.0, -1.0, 5)])
+    sphere = RotationSymmetricMesh.from_profile_points(meridian_points, n=5)
+    assert sphere.wedge.nb_faces == 4
+    assert sphere.nb_faces == 4*5
+    assert np.all(np.array([sphere.faces_normals[i, :] @ sphere.faces_centers[i, :] for i in range(sphere.nb_faces)]) >= 0.0)  # Outwards normals
+
 def test_create_symmetric_mesh_with_inherited_metadata():
     mesh = single_panel().with_metadata(foo=[1.0])
     sym_mesh = RotationSymmetricMesh(wedge=mesh, n=4)
