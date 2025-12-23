@@ -11,6 +11,7 @@ User manual
    mesh.rst
    body.rst
    hydrostatics.rst
+   symmetries.rst
    problem_setup.rst
    resolution.rst
    post_pro.rst

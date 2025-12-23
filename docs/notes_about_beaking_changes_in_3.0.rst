@@ -52,6 +52,12 @@ Main differences
   Most transformation can still be performed by combining translation, rotation and mirroring.
   More complex transformations should be done in a dedicated meshing software.
 
+* **Rotation symmetric meshes have been completely reworked.**
+  They are now well integrated with the other features such as irregular frequencies removal.
+  The user interface has been changed since the experimental methods from previous versions.
+  See :class:`~capytaine.new_meshes.symmetric_meshes.RotationSymmetricMesh`.
+  The method to create a symmetric mesh from a profile of points has also changed, see :meth:`~capytaine.new_meshes.symmetric_meshes.RotationSymmetricMesh.from_profile_points`.
+
 * Different quality checks suite for given meshes.
 
 * ``Mesh.clipped`` and ``FloatingBody.clipped`` don't take as argument a

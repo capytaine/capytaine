@@ -20,6 +20,10 @@ def test_2x2_block_circulant_matrices():
 
     b = RNG.normal(size=(A.shape[0],))
     assert np.allclose(
+            A @ b,
+            full_A @ b,
+            )
+    assert np.allclose(
         lu_decompose(A).solve(b),
         np.linalg.solve(full_A, b)
     )
@@ -65,6 +69,10 @@ def test_2x2_nested_block_circulant_matrices():
     assert full_A.shape == (8, 8)
     b = RNG.normal(size=(A.shape[0],))
     assert np.allclose(
+            A @ b,
+            full_A @ b,
+            )
+    assert np.allclose(
         lu_decompose(A).solve(b),
         np.linalg.solve(full_A, b)
     )
@@ -82,6 +90,10 @@ def test_3x3_block_circulant_matrices():
     ])
     full_A = np.array(A)
     b = RNG.normal(size=(A.shape[0],))
+    assert np.allclose(
+            A @ b,
+            full_A @ b,
+            )
     assert np.allclose(
         lu_decompose(A).solve(b),
         np.linalg.solve(full_A, b)
@@ -106,6 +118,10 @@ def test_nested_3x3_block_circulant_matrices():
         ])
     full_A = np.array(A)
     b = RNG.normal(size=(A.shape[0],))
+    assert np.allclose(
+            A @ b,
+            full_A @ b,
+            )
     assert np.allclose(
             lu_decompose(A).solve(b),
             np.linalg.solve(full_A, b)

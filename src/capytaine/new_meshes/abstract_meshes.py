@@ -190,6 +190,58 @@ class AbstractMesh(ABC):
     def clipped(self, *, origin, normal, name=None) -> AbstractMesh:
         ...
 
+    def extract_wedge(self, n: int, axis: str = "z") -> AbstractMesh:
+        """Extract a wedge (angular sector) from the mesh for rotational symmetry.
+
+        Extracts a 1/n sector of the mesh by clipping at angular boundaries.
+        This creates proper faces at the wedge boundaries for clean reconstruction.
+
+        Parameters
+        ----------
+        n : int
+            The rotation order. The wedge will span 360/n degrees.
+        axis : str, optional
+            Only "z" is currently supported.
+
+        Returns
+        -------
+        Mesh
+            A new mesh containing the wedge sector with proper boundary faces.
+
+        Examples
+        --------
+        Extract 1/3 of a sphere (120-degree wedge):
+
+        >>> sphere = mesh_sphere(radius=1.0, resolution=(12, 12))
+        >>> wedge = sphere.extract_wedge(n=3)
+        >>> wedge.nb_faces  # Approximately 1/3 of sphere.nb_faces
+        """
+        if axis != "z":
+            raise NotImplementedError(
+                f"Only 'z' axis is currently supported, got '{axis}'"
+            )
+        if n < 2:
+            raise ValueError(f"Rotation order must be >= 2, got {n}")
+
+        # Wedge angle in radians
+        wedge_angle = 2 * np.pi / n
+
+        # First clip: keep the half with y >= 0 (theta in [0, pi])
+        # This corresponds to the plane y=0, keeping positive y side
+        origin = np.array([0.0, 0.0, 0.0])
+        normal_1 = np.array([0.0, -1.0, 0.0])  # Keep y >= 0
+        wedge = self.clipped(origin=origin, normal=normal_1)
+
+        # Second clip: create the wedge boundary at angle = wedge_angle
+        # The plane passes through the z-axis and has a normal perpendicular to the boundary
+        # For a wedge from theta=0 to theta=wedge_angle, we need to keep theta <= wedge_angle
+        # Normal vector points outward from the wedge (to reject the side we don't want)
+        # At angle theta, the outward normal is [-sin(theta), cos(theta), 0]
+        normal_2 = np.array([-np.sin(wedge_angle), np.cos(wedge_angle), 0.0])
+        wedge = wedge.clipped(origin=origin, normal=normal_2, name=f"{self.name}_wedge_n{n}")
+
+        return wedge
+
     def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None) -> AbstractMesh:
         """
         Clip the mesh to keep only the part below the free surface.

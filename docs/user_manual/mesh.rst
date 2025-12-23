@@ -204,35 +204,6 @@ repeated twice::
     single_triangle_mesh = cpt.Mesh(vertices=v, faces=np.array([[0, 1, 2, 2]]))
 
 
-Creating a symmetric mesh
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Several mesh symmetries can be used by Capytaine to speed up the computation.
-The most useful one is the vertical plane symmetry.
-A mesh with such a symmetry is stored by Capytaine with the
-:class:`~capytaine.meshes.symmetric.ReflectionSymmetricMesh` class.
-It is defined with an other mesh of the half and a plane (and optionally a name
-like the usual meshes)::
-
-    half_mesh = cpt.load_mesh(...)
-    mesh = cpt.ReflectionSymmetricMesh(half_mesh, cpt.xOz_Plane, name="my full mesh")
-
-Two vertical plane symmetries can be nested to be used by Capytaine (assuming
-that the two planes are orthogonal)::
-
-    quarter_mesh = cpt.load_mesh(...)
-    half_mesh = cpt.ReflectionSymmetricMesh(half_mesh, cpt.yOz_Plane)
-    mesh = cpt.ReflectionSymmetricMesh(half_mesh, cpt.xOz_Plane)
-
-All the method defined afterwards in this documentation should be applicable
-for ``ReflectionSymmetricMesh`` as well as for standard ``Mesh``.
-
-You can consider using the ``clipped`` method discussed below to create a symmetric mesh::
-
-    half_mesh = original_mesh.clipped(plane=cpt.xOz_Plane)
-    mesh = cpt.ReflectionSymmetricMesh(half_mesh, cpt.xOz_Plane)
-
-
 Display
 -------
 
