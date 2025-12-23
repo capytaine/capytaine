@@ -88,7 +88,18 @@ class BlockCirculantMatrix:
         if self.nb_blocks == 2 and isinstance(other, np.ndarray) and other.ndim == 1:
             a, b = self.blocks
             x1, x2 = other[:len(other)//2], other[len(other)//2:]
-            return np.concatenate([a @ x1 + b @ x2, b @ x1 + a @ x2], axis=0)
+            y = np.concatenate([a @ x1 + b @ x2, b @ x1 + a @ x2], axis=0)
+            return y
+        elif self.nb_blocks == 3 and isinstance(other, np.ndarray) and other.ndim == 1:
+            a, b, c = self.blocks
+            n = len(other)
+            x1, x2, x3 = other[:n//3], other[n//3:2*n//3], other[2*n//3:]
+            y = np.concatenate([
+                a @ x1 + c @ x2 + b @ x3,
+                b @ x1 + a @ x2 + c @ x3,
+                c @ x1 + b @ x2 + a @ x3,
+            ], axis=0)
+            return y
         else:
             return NotImplemented
 

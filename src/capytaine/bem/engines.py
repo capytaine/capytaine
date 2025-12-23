@@ -197,7 +197,7 @@ class BasicMatrixEngine(MatrixEngine):
                         free_surface=free_surface, water_depth=water_depth,
                         wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
                         )
-                    for w in mesh2.all_wedges]
+                    for w in [mesh2.wedge]+list(reversed(mesh2.all_wedges[1:]))]
 
             return BlockCirculantMatrix([b[0] for b in S_and_K_blocks]), BlockCirculantMatrix([b[1] for b in S_and_K_blocks])
 
