@@ -62,3 +62,30 @@ class AbstractGreenFunction(ABC):
     @abstractmethod
     def evaluate(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True, early_dot_product=True):
         pass
+
+
+##############################################################################
+
+def fortran_interface(mesh: MeshLike):
+    """All the arrays passed to Fortran in the right order."""
+    return (
+            mesh.vertices[:, :],
+            mesh.faces[:, :] + 1,
+            mesh.faces_centers[:, :],
+            mesh.faces_normals[:, :],
+            mesh.faces_areas[:],
+            mesh.faces_radiuses[:],
+            *mesh.quadrature_points
+            )
+
+def fortran_interface_face(mesh: MeshLike, face_id: int):
+    """All the arrays passed to Fortran for one face in the right order."""
+    return (
+            mesh.vertices[mesh.faces[face_id, :], :],
+            mesh.faces_centers[face_id, :],
+            mesh.faces_normals[face_id, :],
+            mesh.faces_areas[face_id],
+            mesh.faces_radiuses[face_id],
+            mesh.quadrature_points[0][face_id, :, :],
+            mesh.quadrature_points[1][face_id, :],
+            )
