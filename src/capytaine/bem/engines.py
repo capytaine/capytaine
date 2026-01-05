@@ -268,7 +268,7 @@ class BasicMatrixEngine(MatrixEngine):
             return x
 
         elif self._linear_solver in ("lu_decomposition", "lu_decomposition_with_overwrite") :
-            overwrite_a = (self._linear_solver == "lu_decompositon_with_overwrite")
+            overwrite_a = (self._linear_solver == "lu_decomposition_with_overwrite")
             if not has_been_lu_decomposed(A):
                 luA = lu_decompose(A, overwrite_a=overwrite_a)
                 if A is self.last_computed_matrices[1]:
