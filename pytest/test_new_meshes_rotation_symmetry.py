@@ -45,7 +45,7 @@ def test_create_rotation_symmetric_mesh_sphere(n):
     rot_sym = RotationSymmetricMesh(wedge=wedge, n=n)
 
     assert rot_sym.n == n
-    assert rot_sym.axis == "z"
+    assert rot_sym.axis == "z+"
     assert rot_sym.wedge.nb_faces == wedge.nb_faces
 
     merged = rot_sym.merged()
@@ -107,6 +107,28 @@ def test_transform_keeping_symmetry():
     sym_mesh = RotationSymmetricMesh(wedge=single_panel(), n=4)
     rotated = sym_mesh.rotated_z(np.pi/4)
     assert isinstance(rotated, RotationSymmetricMesh)
+
+def test_merged_face_ordering():
+    sym_mesh = RotationSymmetricMesh(wedge=single_panel(), n=4).with_metadata(foo=range(4))
+    assert np.allclose(
+            sym_mesh.merged().faces_centers,
+            sym_mesh.faces_centers,
+            )
+    assert np.allclose(
+            sym_mesh.merged().faces_metadata['foo'],
+            sym_mesh.faces_metadata['foo'],
+            )
+
+def test_mirrored():
+    sym_mesh = RotationSymmetricMesh(wedge=single_panel(), n=4).with_metadata(foo=range(4))
+    assert np.allclose(
+            sym_mesh.merged().mirrored("xOz").faces_centers,
+            sym_mesh.mirrored("xOz").merged().faces_centers,
+            )
+    assert np.allclose(
+            sym_mesh.merged().mirrored("xOz").faces_metadata['foo'],
+            sym_mesh.mirrored("xOz").merged().faces_metadata['foo'],
+            )
 
 def test_join_same_symmetries():
     sym_mesh = RotationSymmetricMesh(wedge=single_panel(), n=4)

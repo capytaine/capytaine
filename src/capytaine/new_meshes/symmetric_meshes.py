@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Optional, Union, Dict, Literal
 from functools import cached_property
 from itertools import chain
 
@@ -287,6 +287,9 @@ class RotationSymmetricMesh(AbstractMesh):
         The wedge mesh (1/n of the full mesh)
     n: int
         The rotation order (number of rotations to complete full circle)
+    axis: either 'z+' or 'z-'
+        Only the z-axis is supported, but two possible orientations can be used.
+        Both are equivalent, except for the ordering of the sub-meshes.
     faces_metadata: Dict[str, np.ndarray], optional
         Some arrays with the same first dimension (should be the number
         of faces of the whole mesh) storing some fields defined on all the
@@ -308,6 +311,7 @@ class RotationSymmetricMesh(AbstractMesh):
             self,
             wedge: AbstractMesh,
             n: int, *,
+            axis: Literal['z+', 'z-'] = 'z+',
             faces_metadata: Optional[Dict[str, np.ndarray]] = None,
             name: Optional[str] = None
             ):
@@ -321,8 +325,13 @@ class RotationSymmetricMesh(AbstractMesh):
 
         self.wedge = wedge
         self.n = n
-        self.axis = 'z'
-        self.all_wedges = [self.wedge] + [self.wedge.rotated_z(2*i*np.pi/n) for i in range(1, n)]
+        self.axis = axis
+        if self.axis == 'z+':
+            self.all_wedges = [self.wedge] + [self.wedge.rotated_z(2*i*np.pi/n) for i in range(1, n)]
+        elif self.axis == 'z-':
+            self.all_wedges = [self.wedge] + [self.wedge.rotated_z(-2*i*np.pi/n) for i in range(1, n)]
+        else:
+            raise ValueError(f"Unsupported axis for RotationSymmetricMesh: {axis}")
 
         self.faces_metadata = {k: np.concatenate([v]*n) for k, v in wedge.faces_metadata.items()}
         if faces_metadata is not None:
@@ -435,6 +444,7 @@ class RotationSymmetricMesh(AbstractMesh):
             return RotationSymmetricMesh(
                     self.wedge.translated_z(shift[2]),
                     n=self.n,
+                    axis=self.axis,
                     faces_metadata=self.faces_metadata,
                     name=name)
         else:
@@ -447,6 +457,7 @@ class RotationSymmetricMesh(AbstractMesh):
             return RotationSymmetricMesh(
                     self.wedge.rotated_with_matrix(R),
                     n=self.n,
+                    axis=self.axis,
                     faces_metadata=self.faces_metadata,
                     name=name,
                     )
@@ -457,6 +468,7 @@ class RotationSymmetricMesh(AbstractMesh):
         return RotationSymmetricMesh(
             wedge=self.wedge.mirrored(plane),
             n=self.n,
+            axis='z-' if self.axis == 'z+' else 'z+',
             faces_metadata=self.faces_metadata,
             name=name
         )
@@ -488,6 +500,7 @@ class RotationSymmetricMesh(AbstractMesh):
                 joined_mesh = RotationSymmetricMesh(
                         wedge=joined_wegdes,
                         n=self.n,
+                        axis=self.axis,
                         faces_metadata=faces_metadata,
                         name=name,
                         )
@@ -509,6 +522,7 @@ class RotationSymmetricMesh(AbstractMesh):
         return RotationSymmetricMesh(
                 wedge=self.wedge.with_normal_vector_going_down(),
                 n=self.n,
+                axis=self.axis,
                 faces_metadata=self.faces_metadata,
                 name=self.name)
 
@@ -520,6 +534,7 @@ class RotationSymmetricMesh(AbstractMesh):
         return RotationSymmetricMesh(
                 wedge=self.wedge.copy(),
                 n=self.n,
+                axis=self.axis,
                 faces_metadata=faces_metadata,
                 name=self.name)
 
@@ -544,6 +559,7 @@ class RotationSymmetricMesh(AbstractMesh):
             return RotationSymmetricMesh(
                     wedge=clipped_wedge,
                     n=self.n,
+                    axis=self.axis,
                     faces_metadata=metadata,
                     name=name)
         else:
