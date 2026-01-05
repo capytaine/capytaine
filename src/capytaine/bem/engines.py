@@ -180,7 +180,7 @@ class BasicMatrixEngine(MatrixEngine):
                 wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
                 )
             S_b, K_b = self._build_matrices_with_symmetries(
-                mesh1.half, mesh2.other_half,
+                mesh1.other_half, mesh2.half,
                 free_surface=free_surface, water_depth=water_depth,
                 wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
                 )
@@ -193,11 +193,12 @@ class BasicMatrixEngine(MatrixEngine):
 
             S_and_K_blocks = [
                     self._build_matrices_with_symmetries(
-                        mesh1.wedge, w,
+                        w, mesh2.wedge,
                         free_surface=free_surface, water_depth=water_depth,
                         wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
                         )
-                    for w in [mesh2.wedge]+list(reversed(mesh2.all_wedges[1:]))]
+                    for w in mesh1.all_wedges]
+            # Building the first column of blocks, that is the interactions of all the rotated wedges of mesh1 with the reference wedge of mesh2.
 
             return BlockCirculantMatrix([b[0] for b in S_and_K_blocks]), BlockCirculantMatrix([b[1] for b in S_and_K_blocks])
 
