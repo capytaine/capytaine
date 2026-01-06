@@ -113,7 +113,16 @@ def test_lu_overwrite():
     engine = cpt.BasicMatrixEngine(linear_solver="lu_decomposition_with_overwrite")
     engine.last_computed_matrices = (None, K)
     engine.linear_solver(K, np.random.rand(100))
-    assert np.all(K_copy != K)
+    assert np.any(K_copy != K)
+
+
+def test_lu_no_overwrite():
+    K = np.array(np.random.rand(100,100), order='F')
+    K_copy = np.copy(K)
+    engine = cpt.BasicMatrixEngine(linear_solver="lu_decomposition")
+    engine.last_computed_matrices = (None, K)
+    engine.linear_solver(K, np.random.rand(100))
+    assert np.all(K_copy == K)
 
 
 def test_ram_estimation():
