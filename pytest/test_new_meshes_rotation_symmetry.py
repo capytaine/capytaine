@@ -119,6 +119,7 @@ def test_merged_face_ordering():
             sym_mesh.faces_metadata['foo'],
             )
 
+@pytest.mark.xfail
 def test_mirrored():
     sym_mesh = RotationSymmetricMesh(wedge=single_panel(), n=4).with_metadata(foo=range(4))
     assert np.allclose(

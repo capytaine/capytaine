@@ -100,13 +100,39 @@ class BlockCirculantMatrix:
                 c @ x1 + b @ x2 + a @ x3,
             ], axis=0)
             return y
+        elif self.nb_blocks == 4 and isinstance(other, np.ndarray) and other.ndim == 1:
+            a, b, c, d = self.blocks
+            n = len(other)
+            x1, x2, x3, x4 = other[:n//4], other[n//4:2*n//4], other[2*n//4:3*n//4], other[3*n//4:]
+            y = np.concatenate([
+                a @ x1 + d @ x2 + c @ x3 + b @ x4,
+                b @ x1 + a @ x2 + d @ x3 + c @ x4,
+                c @ x1 + b @ x2 + a @ x3 + d @ x4,
+                d @ x1 + c @ x2 + b @ x3 + a @ x4,
+            ], axis=0)
+            return y
         else:
             return NotImplemented
 
     def block_diagonalize(self) -> "BlockDiagonalMatrix":
-        if self.ndim == 2 and all(isinstance(b, BlockCirculantMatrix) for b in self.blocks) and self.nb_blocks == 2:
+        if self.ndim == 2 and self.nb_blocks == 2:
             a, b = self.blocks
             return BlockDiagonalMatrix([a + b, a - b])
+        elif self.ndim == 2 and self.nb_blocks == 3:
+            a, b, c = self.blocks
+            return BlockDiagonalMatrix([
+                a + b + c,
+                a + np.exp(-2j*np.pi/3) * b + np.exp(2j*np.pi/3) * c,
+                a + np.exp(2j*np.pi/3) * b + np.exp(-2j*np.pi/3) * c,
+            ])
+        elif self.ndim == 2 and self.nb_blocks == 4:
+            a, b, c, d = self.blocks
+            return BlockDiagonalMatrix([
+                a + b + c + d,
+                a - 1j*b - c + 1j*d,
+                a - b + c - d,
+                a + 1j*b - c - 1j*d,
+            ])
         elif self.ndim == 2 and all(isinstance(b, np.ndarray) for b in self.blocks):
             return BlockDiagonalMatrix(np.fft.fft(np.array(self.blocks), axis=0))
         else:

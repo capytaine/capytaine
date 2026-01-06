@@ -316,8 +316,8 @@ class RotationSymmetricMesh(AbstractMesh):
             name: Optional[str] = None
             ):
 
-        if isinstance(wedge, ReflectionSymmetricMesh):
-            LOG.warning("RotationSymmetricMesh containing ReflectionSymmetricMesh are not fully supported at the moment. "
+        if isinstance(wedge, ReflectionSymmetricMesh) and n > 4:
+            LOG.warning("RotationSymmetricMesh with n>4 and containing ReflectionSymmetricMesh are not fully supported at the moment. "
                         "You might prefer to define instead a ReflectionSymmetricMesh of a RotationSymmetricMesh.")
 
         if n < 2:
@@ -468,7 +468,7 @@ class RotationSymmetricMesh(AbstractMesh):
         return RotationSymmetricMesh(
             wedge=self.wedge.mirrored(plane),
             n=self.n,
-            axis='z-' if self.axis == 'z+' else 'z+',
+            axis=self.axis,
             faces_metadata=self.faces_metadata,
             name=name
         )

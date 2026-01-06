@@ -4,28 +4,23 @@ import capytaine as cpt
 from capytaine.new_meshes.meshes import to_new_mesh
 from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
 
-reference_mesh = cpt.mesh_sphere(resolution=(60, 60), name="reference_mesh")
-new_reference_mesh = to_new_mesh(reference_mesh)
-wedge = new_reference_mesh.extract_wedge(n=5)
-half_wedge = wedge.rotated_z(-np.pi/5).clipped(origin=(0, 0, 0), normal=(0.0, 1.0, 0.0))
+# sphere = to_new_mesh(cpt.mesh_sphere(resolution=(20, 20), center=(2.0, 0.0, 0.0), name="sphere")).immersed_part()
+sphere = to_new_mesh(cpt.mesh_parallelepiped(resolution=(10, 10, 10), center=(2.0, 0.0, 0.0))).immersed_part()
+half_sphere = sphere.clipped(origin=(0, 0, 0), normal=(0.0, 1.0, 0.0))
 
-print(reference_mesh.nb_faces)
-
-symmetric_mesh = RotationSymmetricMesh(wedge=wedge, n=5)
-nested_symmetric_mesh_1 = ReflectionSymmetricMesh(RotationSymmetricMesh(wedge=half_wedge, n=5), plane="xOz")
-
-# Currently not fully implemented, use the equivalent solution above
-nested_symmetric_mesh_2 = RotationSymmetricMesh(wedge=ReflectionSymmetricMesh(half_wedge, plane="xOz"), n=5)
+symmetric_mesh = RotationSymmetricMesh(wedge=sphere, n=4)
+nested_symmetric_mesh_1 = ReflectionSymmetricMesh(RotationSymmetricMesh(wedge=half_sphere, n=4), plane="xOz")
+nested_symmetric_mesh_2 = RotationSymmetricMesh(wedge=ReflectionSymmetricMesh(half_sphere, plane="xOz"), n=4)
 
 # symmetric_mesh.show()
 # nested_symmetric_mesh_1.show()
 # nested_symmetric_mesh_2.show()
 
 for mesh in [
-    reference_mesh,
+    symmetric_mesh.merged(),
     symmetric_mesh,
     nested_symmetric_mesh_1,
-    # nested_symmetric_mesh_2
+    nested_symmetric_mesh_2
 ]:
     body = cpt.FloatingBody(
         mesh=mesh,
@@ -41,12 +36,23 @@ for mesh in [
             "rho": [1025],
             })
 
-    solver = cpt.BEMSolver(method='indirect')
+    solver = cpt.BEMSolver(method='direct')
     dataset = solver.fill_dataset(
         test_matrix,
         body.immersed_part(),
         n_threads=1,  # No parallel resolution for cleaner benchmark
+        progress_bar=False,
     )
-    print(mesh.name)
-    print(dataset.added_mass.sel(radiating_dof='Heave', influenced_dof='Heave').values)
+
+    print(mesh.nb_faces)
+    print("Added mass", dataset.added_mass.sel(radiating_dof='Surge', influenced_dof='Surge').values)
+    print("Diffraction", dataset.diffraction_force.real.sel(wave_direction=0.0, influenced_dof='Surge').values)
     print(solver.timer_summary())
+
+    S = solver.engine.last_computed_matrices[0]
+    print(type(S), end='')
+    try:
+        print([type(b) for b in S.blocks])
+    except Exception:
+        print()
+    print()

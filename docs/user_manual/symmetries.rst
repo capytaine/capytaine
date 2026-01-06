@@ -48,11 +48,10 @@ Four kind of symmetries are supported by Capytaine:
     It is defined by nesting a ``RotationSymmetricMesh`` into a ``ReflectionSymmetricMesh``::
 
         half_wedge = cpt.load_mesh(...)
-        inner_mesh = cpt.RotationSymmetricMesh(half_wedge, n=5)
+        inner_mesh = cpt.RotationSymmetricMesh(half_wedge, n=4)
         mesh = cpt.ReflectionSymmetricMesh(half=inner_mesh, plane="xOz")
 
-    Although they are equivalent in theory, the nesting in the other order is
-    not fully supported by Capytaine at the moment.
+    The nesting in the other order is supported, but not as efficient.
 
 Manipulating a symmetric mesh
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
