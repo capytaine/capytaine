@@ -43,15 +43,16 @@ Four kind of symmetries are supported by Capytaine:
         meridian_points = np.array([(np.sqrt(1-z**2), 0.0, z) for z in np.linspace(-1.0, 1.0, 10)])
         sphere = cpt.RotationSymmetricMesh.from_profile_points(meridian_points, n=10)
 
-* **Dihedral symmetry** is the combination of a plane symmetry and the rotation symmetry.
+..
+    * **Dihedral symmetry** is the combination of a plane symmetry and the rotation symmetry.
 
-    It is defined by nesting a ``RotationSymmetricMesh`` into a ``ReflectionSymmetricMesh``::
+        It is defined by nesting a ``RotationSymmetricMesh`` into a ``ReflectionSymmetricMesh``::
 
-        half_wedge = cpt.load_mesh(...)
-        inner_mesh = cpt.RotationSymmetricMesh(half_wedge, n=4)
-        mesh = cpt.ReflectionSymmetricMesh(half=inner_mesh, plane="xOz")
+            half_wedge = cpt.load_mesh(...)
+            inner_mesh = cpt.RotationSymmetricMesh(half_wedge, n=4)
+            mesh = cpt.ReflectionSymmetricMesh(half=inner_mesh, plane="xOz")
 
-    The nesting in the other order is supported, but not as efficient.
+        The nesting in the other order is supported, but not as efficient.
 
 Manipulating a symmetric mesh
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
