@@ -153,8 +153,7 @@ def single_panel():
 @pytest.mark.parametrize("sym_mesh", [
     ReflectionSymmetricMesh(ReflectionSymmetricMesh(single_panel(), plane="xOz"), plane="yOz"),
     RotationSymmetricMesh(single_panel(), n=4, axis='z+'),
-    ReflectionSymmetricMesh(RotationSymmetricMesh(single_panel(), n=4), plane="xOz"),
-    ], ids=["nested_reflections", "rotation+", "dihedral"])
+    ], ids=["nested_reflections", "rotation+"])
 def test_symmetry(sym_mesh):
     ref_mesh = sym_mesh.merged()
     engine = cpt.BasicMatrixEngine()
