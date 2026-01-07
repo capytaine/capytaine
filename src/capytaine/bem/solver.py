@@ -213,7 +213,6 @@ class BEMSolver:
         try:
             res = self.solve(problem, *args, **kwargs)
         except Exception as e:
-            LOG.info(f"Skipped {problem}\nbecause of {repr(e)}")
             res = problem.make_failed_results_container(e)
         return res
 
@@ -309,6 +308,9 @@ class BEMSolver:
             LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
         else:
             LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")
+        for res in results:
+            if hasattr(res, "exception") and hasattr(res, "problem"):   
+                LOG.info("Skipped %s\nbecause of %r", res.problem, res.exception)
         LOG.info("Solver timer summary:\n%s", self.timer_summary())
         return results
 
