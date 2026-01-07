@@ -113,6 +113,9 @@ class BlockCirculantMatrix:
             return y
         else:
             return NotImplemented
+        
+    def matvec(self, other):
+        return self.__matmul__(other)
 
     def block_diagonalize(self) -> "BlockDiagonalMatrix":
         if self.ndim == 2 and self.nb_blocks == 2:
