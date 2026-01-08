@@ -89,7 +89,7 @@ class BEMSolver:
         self.timer = Timer(default_tags={"process": 0})
         self.solve = self.timer.wraps_function(step="Total solve function")(self._solve)
 
-    def timer_summary(self, width=None):
+    def timer_summary(self):
         df = self.timer.as_dataframe()
         df["step"] = df["step"].where(
                 df["step"].str.startswith("Total"), "  " + df["step"]
@@ -99,12 +99,17 @@ class BEMSolver:
                 ["timing"].sum()
                 .unstack()
                 )
+        return total
+
+    def displayed_total_summary(self, width=None):
+        total = self.timer_summary()
         if width is None:
             width = shutil.get_terminal_size(fallback=(80, 20)).columns - 25
-        return total.to_string(
+        total_str = total.to_string(
                 float_format="{:.2f}".format,
                 line_width=width,
                 )
+        return textwrap.indent(total_str, "  ")
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
@@ -306,10 +311,7 @@ class BEMSolver:
             LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
         else:
             LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")
-        LOG.info(
-            "Solver timer summary (in seconds):\n%s",
-            textwrap.indent(str(self.timer_summary()), "  ")
-        )
+        LOG.info("Solver timer summary (in seconds):\n%s", self.displayed_total_summary())
         return results
 
     def _solve_all_and_return_timer(
