@@ -15,14 +15,12 @@
 from typing import Union, Any
 from io import TextIOBase
 from pathlib import Path
+import tempfile
 import logging
 
 import numpy as np
 
-from capytaine.tools.optional_imports import (
-    silently_import_optional_dependency,
-    import_optional_dependency
-)
+from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.new_meshes import Mesh, ReflectionSymmetricMesh
 
 meshio = silently_import_optional_dependency("meshio")
@@ -38,6 +36,28 @@ _BUILTIN_EXTS = {"pnl", "hst", "mar", "gdf"}
 
 _ALL_EXTS = _MESHIO_EXTS | _TRIMESH_EXTS | _BUILTIN_EXTS
 
+# Structure of the function calls:
+#
+#                                  load_mesh
+#                                  /     | \
+#                         if path /      |  \
+#                                /       |   \
+#                  _load_from_path       |    --------------------\
+#                    |         \         |                        |
+#                    |          \        | if opened file         | if object from external lib
+#   if implemented   |           \       |                        |
+#   by external lib  |         _read_mesh_from_file_like_object   |
+#                    |                   |  \                     |
+#                    |   if implemented  |   \ if built-in        |
+#                    |   by external lib |    \                   |
+#                    \                   |    _read_***           |
+#                     \                  |                        |
+#                      \                 |        ----------------/
+#                       \                |       /
+#                      _import_from_***_mesh_class
+#
+
+
 def load_mesh(mesh_to_be_loaded, file_format=None) -> Union[Mesh, ReflectionSymmetricMesh]:
     """Load a mesh from a file or file-like object.
 
@@ -47,12 +67,15 @@ def load_mesh(mesh_to_be_loaded, file_format=None) -> Union[Mesh, ReflectionSymm
     Parameters
     ----------
     mesh_to_be_loaded : str, pathlib.Path, or file-like object
-        Path to a mesh file, or a file-like object with mesh data.
+        Can be either:
+            - a path to a mesh file
+            - a file-like object with mesh file data
+            - a mesh object from one of the compatible external libraries (meshio, trimesh)
     file_format : str, optional
         Format hint used only when loading from file-like objects, since the
-        filename extension is unavailable. Valid values include ``"stl"``,
-        ``"obj"``, ``"hst"``, ``"pnl"``, etc. Not required when loading from a
-        regular file path.
+        filename extension is unavailable.
+        Valid values include ``"stl"``, ``"obj"``, ``"hst"``, ``"pnl"``, etc.
+        Can be automatically inferred from file extension when a path is provided as first argument.
 
     Returns
     -------
@@ -83,56 +106,19 @@ def load_mesh(mesh_to_be_loaded, file_format=None) -> Union[Mesh, ReflectionSymm
     >>> with open("model.obj", "rb") as handler:
     ...     load_mesh(handler, file_format="obj")
 
-    Notes
-    -----
-    Some mesh formats (e.g., HST, PNL) include symmetry information. When present,
-    this function will automatically return a ReflectionSymmetricMesh.
     """
     if isinstance(mesh_to_be_loaded, TextIOBase):  # A file already opened
-        return _read_mesh(mesh_to_be_loaded, file_format)
-
-    elif meshio is not None and isinstance(mesh_to_be_loaded, meshio.Mesh):
-        return _import_from_meshio_mesh_class(mesh_to_be_loaded)
+        return _read_mesh_from_file_like_object(mesh_to_be_loaded, file_format)
 
     elif trimesh is not None and isinstance(mesh_to_be_loaded, trimesh.base.Trimesh):
         return _import_from_trimesh_mesh_class(mesh_to_be_loaded)
 
+    elif meshio is not None and isinstance(mesh_to_be_loaded, meshio.Mesh):
+        return _import_from_meshio_mesh_class(mesh_to_be_loaded)
+
     else:  # Must be the path to a file to be open
-        path = Path(mesh_to_be_loaded)
-        if not path.exists():
-            raise FileNotFoundError(f"Mesh file not found: {path}")
+        return _load_from_path(Path(mesh_to_be_loaded), file_format)
 
-        fmt_hint = _normalise_format_hint(file_format)
-        compound_ext = _get_compound_extension(path)
-
-        if meshio is not None and fmt_hint in _MESHIO_EXTS:
-            # Meshio does not support reading an opened file, so it is opened here
-            meshio_mesh = meshio.read(mesh_to_be_loaded, file_format=fmt_hint)
-            return _import_from_meshio_mesh_class(meshio_mesh)
-
-        if meshio is not None and fmt_hint in _TRIMESH_EXTS:
-            # Meshio does not support reading an opened file, so it is opened here
-            trimesh_mesh = trimesh.load(mesh_to_be_loaded, force="mesh", file_type=fmt_hint)
-            return _import_from_trimesh_mesh_class(trimesh_mesh)
-
-        if compound_ext.endswith(".gz"):
-            inner_ext = fmt_hint or compound_ext[: -len(".gz")]
-            if inner_ext is None:
-                raise ValueError(
-                    "Unable to determine mesh format for gzip-compressed file. "
-                    "Please provide file_format explicitly."
-                )
-            with gzip.open(path, "rb") as gz_stream:
-                return _read_mesh(gz_stream, inner_ext)
-
-        fmt = fmt_hint or compound_ext
-        if not fmt:
-            raise ValueError(
-                f"Unable to determine mesh format for {path}. Specify file_format explicitly."
-            )
-
-        with open(path, 'r') as f:
-            return _read_mesh(f, fmt)
 
 
 def _normalise_format_hint(value: Any) -> str:
@@ -142,14 +128,58 @@ def _normalise_format_hint(value: Any) -> str:
     return text
 
 
-def _get_compound_extension(filepath):
-    """Extract the effective extension, preserving gzip suffixes."""
-    suffixes = [s.lower().lstrip(".") for s in Path(filepath).suffixes]
-    if len(suffixes) >= 2 and suffixes[-1] == "gz":
-        return suffixes[-2] + ".gz"
-    if suffixes:
-        return suffixes[-1]
-    return ""
+def _load_from_path(path: Path, file_format: str):
+    if not path.exists():
+        raise FileNotFoundError(f"Mesh file not found: {path}")
+
+    fmt = _normalise_format_hint(file_format)
+
+    if trimesh is not None and fmt in _TRIMESH_EXTS:
+        trimesh_mesh = trimesh.load(path, force="mesh", file_type=fmt)
+        return _import_from_trimesh_mesh_class(trimesh_mesh)
+        # We could skip this, as _read_mesh_from_file_like_object would also try to pass the opened file to trimesh.
+        # However, some file format might supported by trimesh require the file to be opened in byte mode, and we don't want to handle that.
+
+    if meshio is not None and fmt in _MESHIO_EXTS:
+        meshio_mesh = meshio.read(path, file_format=fmt)
+        return _import_from_meshio_mesh_class(meshio_mesh)
+        # We could skip this, as _read_mesh_from_file_like_object would also try to pass the opened file to meshio.
+        # But meshio does not support reading from an opened file, so we avoid the need for a temporary file by loading from the path here.
+
+    with open(path, 'r') as f:
+        return _read_mesh_from_file_like_object(f, file_format)
+
+
+
+def _read_mesh_from_file_like_object(file_obj: TextIOBase, file_format: str) -> Union[Mesh, ReflectionSymmetricMesh]:
+    fmt = _normalise_format_hint(file_format)
+
+    if fmt in _BUILTIN_EXTS:
+        if fmt == "mar":
+            return _read_mar(file_obj)
+        elif fmt == "gdf":
+            return _read_gdf(file_obj)
+        elif fmt == "hst":
+            return _read_hst(file_obj)
+        elif fmt == "pnl":
+            return _read_pnl(file_obj)
+    elif trimesh is not None and fmt in _TRIMESH_EXTS:
+        trimesh_mesh = trimesh.load(file_obj, force="mesh", file_type=fmt)
+        return _import_from_trimesh_mesh_class(trimesh_mesh)
+    elif meshio is not None and fmt in _MESHIO_EXTS:
+        # Meshio does not support reading from opened file, so it is written in a temporary file here
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            content = file_obj.read()
+            if isinstance(content, str):
+                temp_file.write(content.encode("utf-8"))
+            else:
+                temp_file.write(content)
+        meshio_mesh = meshio.read(temp_file.name, file_format=fmt)
+        return _import_from_meshio_mesh_class(meshio_mesh)
+    else:
+        raise ValueError(
+                f"Unrecognized or unsupported mesh format: {file_format}. Supported extensions: {sorted(_ALL_EXTS)}"
+        )
 
 
 def _import_from_meshio_mesh_class(meshio_mesh):
@@ -171,26 +201,7 @@ def _import_from_trimesh_mesh_class(trimesh_mesh):
     return Mesh(trimesh_mesh.vertices, trimesh_mesh.faces)
 
 
-
-def _read_mesh(file_obj: TextIOBase, file_format: str) -> Union[Mesh, ReflectionSymmetricMesh]:
-    fmt = _normalise_format_hint(file_format)
-
-    if fmt in _BUILTIN_EXTS:
-        if fmt == "mar":
-            return _read_mar(file_obj)
-        elif fmt == "gdf":
-            return _read_gdf(file_obj)
-        elif fmt == "hst":
-            return _read_hst(file_obj)
-        elif fmt == "pnl":
-            return _read_pnl(file_obj)
-    else:
-        raise ValueError(
-            f"Unrecognized or unsupported mesh format: {fmt}. Supported extensions: {sorted(_ALL_EXTS)}"
-        )
-
-
-def _read_hst(file_obj):
+def _read_hst(file_obj: TextIOBase) -> Union[Mesh, ReflectionSymmetricMesh]:
     """HST files have a 1-based indexing"""
 
     lines = file_obj.readlines()
@@ -271,7 +282,7 @@ def _read_hst(file_obj):
 
     if len(ignored_lines) > 0:
         formatted_ignored_lines = ["{: 4} | {}".format(i, line.strip('\n')) for (i, line) in ignored_lines]
-        LOG.warning(f"HST mesh reader ignored the following lines:\n" + "\n".join(formatted_ignored_lines))
+        LOG.warning("HST mesh reader ignored the following lines:\n" + "\n".join(formatted_ignored_lines))
 
     vertices = np.array(vertices, dtype=float)
     faces = np.array(faces, dtype=int) - 1
@@ -287,7 +298,7 @@ def _read_hst(file_obj):
         return Mesh(vertices, faces)
 
 
-def _read_gdf(file_obj):
+def _read_gdf(file_obj: TextIOBase) -> Union[Mesh, ReflectionSymmetricMesh]:
     title = file_obj.readline()
     ulen, grav = map(float, file_obj.readline().split()[:2])
     isx, isy = map(int, file_obj.readline().split()[:2])
@@ -317,7 +328,7 @@ def _read_gdf(file_obj):
         return Mesh(vertices, faces)
 
 
-def _read_mar(file_obj):
+def _read_mar(file_obj) -> Union[Mesh, ReflectionSymmetricMesh]:
     vertices = []
     faces = []
 
@@ -349,7 +360,7 @@ def _read_mar(file_obj):
         return Mesh(vertices, faces)
 
 
-def _read_pnl(file_obj):
+def _read_pnl(file_obj) -> Union[Mesh, ReflectionSymmetricMesh]:
     # Skip 3 title lines
     file_obj.readline()
     file_obj.readline()
