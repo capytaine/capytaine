@@ -464,11 +464,19 @@ class RotationSymmetricMesh(AbstractMesh):
         else:
             return self.merged().rotated_with_matrix(R, name=name)
 
+    @property
+    def _opposite_axis(self):
+        if self.axis == 'z+':
+            return 'z-'
+        else:
+            return 'z+'
+
+
     def mirrored(self, plane: Literal['xOz', 'yOz'], *, name=None) -> RotationSymmetricMesh:
         return RotationSymmetricMesh(
             wedge=self.wedge.mirrored(plane),
             n=self.n,
-            axis=self.axis,
+            axis=self._opposite_axis,
             faces_metadata=self.faces_metadata,
             name=name
         )
