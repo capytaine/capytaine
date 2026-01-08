@@ -17,11 +17,15 @@ from __future__ import annotations
 from typing import Optional
 from functools import cached_property
 from itertools import chain
+import logging
 
 import numpy as np
 
 from .abstract_meshes import AbstractMesh
 from .meshes import Mesh
+
+LOG = logging.getLogger(__name__)
+
 
 class ReflectionSymmetricMesh(AbstractMesh):
     """A mesh with reflection symmetry across a plane.
@@ -259,6 +263,14 @@ class ReflectionSymmetricMesh(AbstractMesh):
             ghost_meshes = []
         ghost_meshes = ghost_meshes + [self.other_half.merged()]
         return self.half.show(backend=backend, ghost_meshes=ghost_meshes, **kwargs)
+
+    def export_to_pyvista(self):
+        LOG.warning(f"Losing symmetric structure when exporting {self} to Pyvista")
+        return self.merged().export_to_pyvista()
+
+    def export_to_xarray(self):
+        LOG.warning(f"Losing symmetric structure when exporting {self} to Xarray")
+        return self.merged().export_to_xarray()
 
 
 # For some backward compatibility:

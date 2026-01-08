@@ -12,13 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Union, Any
+from typing import Union, Any, Optional
 from io import TextIOBase
 from pathlib import Path
 import tempfile
 import logging
 
 import numpy as np
+import xarray as xr
 
 from capytaine.tools.optional_imports import silently_import_optional_dependency
 from capytaine.new_meshes import Mesh, ReflectionSymmetricMesh
@@ -32,9 +33,11 @@ _MESHIO_EXTS = {"inp", "msh", "avs", "cgns", "xml", "e", "exo", "f3grid", "h5m",
 
 _TRIMESH_EXTS = {"obj", "stl", "ply", "glb", "gltf", "off"}
 
-_BUILTIN_EXTS = {"pnl", "hst", "mar", "gdf"}
+_XARRAY_EXTS = {"nc", "netcdf"}
 
-_ALL_EXTS = _MESHIO_EXTS | _TRIMESH_EXTS | _BUILTIN_EXTS
+_BUILTIN_EXTS = {"pnl", "hst", "mar", "gdf", "nemoh", "wamit", "hydrostar", "hams"}
+
+_ALL_EXTS = _MESHIO_EXTS | _TRIMESH_EXTS | _XARRAY_EXTS | _BUILTIN_EXTS
 
 # Structure of the function calls:
 #
@@ -110,6 +113,9 @@ def load_mesh(mesh_to_be_loaded, file_format=None) -> Union[Mesh, ReflectionSymm
     if isinstance(mesh_to_be_loaded, TextIOBase):  # A file already opened
         return _read_mesh_from_file_like_object(mesh_to_be_loaded, file_format)
 
+    elif isinstance(mesh_to_be_loaded, xr.Dataset):
+        return _import_from_xarray_dataset(mesh_to_be_loaded)
+
     elif trimesh is not None and isinstance(mesh_to_be_loaded, trimesh.base.Trimesh):
         return _import_from_trimesh_mesh_class(mesh_to_be_loaded)
 
@@ -128,10 +134,15 @@ def _normalise_format_hint(value: Any) -> str:
     return text
 
 
-def _load_from_path(path: Path, file_format: str):
+def _load_from_path(path: Path, file_format: Optional[str] = None):
     if not path.exists():
         raise FileNotFoundError(f"Mesh file not found: {path}")
 
+    if file_format is None:
+        if len(path.suffixes) == 1:
+            file_format = path.suffixes[0]
+        else:
+            raise ValueError(f"No file format has been provided, nor can it be inferred from path: {path}")
     fmt = _normalise_format_hint(file_format)
 
     if trimesh is not None and fmt in _TRIMESH_EXTS:
@@ -146,6 +157,10 @@ def _load_from_path(path: Path, file_format: str):
         # We could skip this, as _read_mesh_from_file_like_object would also try to pass the opened file to meshio.
         # But meshio does not support reading from an opened file, so we avoid the need for a temporary file by loading from the path here.
 
+    if fmt in _XARRAY_EXTS:
+        dataset = xr.load_dataset(path)
+        return _import_from_xarray_dataset(dataset)
+
     with open(path, 'r') as f:
         return _read_mesh_from_file_like_object(f, file_format)
 
@@ -155,13 +170,13 @@ def _read_mesh_from_file_like_object(file_obj: TextIOBase, file_format: str) -> 
     fmt = _normalise_format_hint(file_format)
 
     if fmt in _BUILTIN_EXTS:
-        if fmt == "mar":
+        if fmt == "mar" or fmt == "nemoh":
             return _read_mar(file_obj)
-        elif fmt == "gdf":
+        elif fmt == "gdf" or fmt == "wamit":
             return _read_gdf(file_obj)
-        elif fmt == "hst":
+        elif fmt == "hst" or fmt == "hydrostar":
             return _read_hst(file_obj)
-        elif fmt == "pnl":
+        elif fmt == "pnl" or fmt == "hams":
             return _read_pnl(file_obj)
     elif trimesh is not None and fmt in _TRIMESH_EXTS:
         trimesh_mesh = trimesh.load(file_obj, force="mesh", file_type=fmt)
@@ -176,9 +191,15 @@ def _read_mesh_from_file_like_object(file_obj: TextIOBase, file_format: str) -> 
                 temp_file.write(content)
         meshio_mesh = meshio.read(temp_file.name, file_format=fmt)
         return _import_from_meshio_mesh_class(meshio_mesh)
+    elif fmt in _XARRAY_EXTS:
+        # Seems to be supported according to documentation of xarray,
+        # but could not make it work with any backend in practice...
+        dataset = xr.load_dataset(file_obj)
+        return _import_from_xarray_dataset(dataset)
     else:
         raise ValueError(
-                f"Unrecognized or unsupported mesh format: {file_format}. Supported extensions: {sorted(_ALL_EXTS)}"
+                f"Unrecognized or unsupported mesh format: {file_format}."
+                f"Supported mesh formats (some may require external libraries to be installed): {sorted(_ALL_EXTS)}"
         )
 
 
@@ -199,6 +220,10 @@ def _import_from_trimesh_mesh_class(trimesh_mesh):
     if not isinstance(trimesh_mesh, trimesh.base.Trimesh):
         raise TypeError(f"Expected trimesh.base.Trimesh, received {type(trimesh_mesh)}")
     return Mesh(trimesh_mesh.vertices, trimesh_mesh.faces)
+
+
+def _import_from_xarray_dataset(dataset):
+    return Mesh.from_list_of_faces(dataset["mesh_vertices"].values)
 
 
 def _read_hst(file_obj: TextIOBase) -> Union[Mesh, ReflectionSymmetricMesh]:

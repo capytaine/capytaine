@@ -18,8 +18,10 @@ import logging
 from functools import cached_property
 from typing import List, Union, Tuple, Dict, Optional
 
+import xarray as xr
 import numpy as np
 
+from capytaine.tools.optional_imports import import_optional_dependency
 from .abstract_meshes import AbstractMesh
 from .geometry import (
     compute_faces_areas,
@@ -338,6 +340,53 @@ class Mesh(AbstractMesh):
         if len(self.faces_metadata) > 0:
             LOG.info(f"Dropping metadata of {self} to export as list of faces.")
         return list_faces
+
+    def as_array_of_faces(self) -> np.ndarray:
+        """Similare to as_list_of_faces but returns an array of shape
+        (nb_faces, 3, 3) if only triangles, or (nb_faces, 4, 3) otherwise.
+        """
+        array = self.vertices[self.faces[:, :], :]
+        if self.nb_quads == 0:
+            array = array[:, :3, :]
+        return array
+
+    def export_to_pyvista(self) -> "pv.UnstructuredGrid":
+        """
+        Build a PyVista UnstructuredGrid from a list of faces (triangles or quads).
+        """
+        pv = import_optional_dependency("pyvista")
+
+        # flatten into the VTK cell‐array format: [n0, i0, i1, ..., in-1, n1, j0, j1, ...]
+        flat_cells = []
+        cell_types = []
+        for face in self._faces:
+            n = len(face)
+            flat_cells.append(n)
+            flat_cells.extend(face)
+            if n == 3:
+                cell_types.append(pv.CellType.TRIANGLE)
+            elif n == 4:
+                cell_types.append(pv.CellType.QUAD)
+            else:
+                # if you ever have ngons, you can map them as POLYGON:
+                cell_types.append(pv.CellType.POLYGON)
+
+        cells_array = np.array(flat_cells, dtype=np.int64)
+        cell_types = np.array(cell_types, dtype=np.uint8)
+
+        return pv.UnstructuredGrid(cells_array, cell_types, self.vertices.astype(np.float32))
+
+    def export_to_xarray(self):
+        return xr.Dataset(
+                {
+                    "mesh_vertices": (
+                        ["face", "vertices_of_face", "space_coordinate"],
+                        self.as_array_of_faces()
+                        )
+                    },
+                coords={
+                    "space_coordinate": ["x", "y", "z"],
+                    })
 
     ## INTERFACE FOR BEM SOLVER
 

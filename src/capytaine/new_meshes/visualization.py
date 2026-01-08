@@ -13,13 +13,12 @@
 # limitations under the License.
 
 import importlib
-from typing import Optional
+from typing import Optional, List
 
 import numpy as np
 
 from capytaine import __version__
 from capytaine.tools.optional_imports import import_optional_dependency
-from capytaine.new_meshes.export import mesh_to_pyvista
 
 
 def show_3d(mesh, *, backend=None, **kwargs):
@@ -88,7 +87,7 @@ def show_pyvista(
     pv = import_optional_dependency("pyvista")
 
     all_meshes_in_scene: List[Mesh] = [mesh] if ghost_meshes is None else [mesh, *ghost_meshes]
-    pv_meshes = [mesh_to_pyvista(m.vertices, m._faces) for m in all_meshes_in_scene]
+    pv_meshes = [m.export_to_pyvista() for m in all_meshes_in_scene]
 
     if color_field is not None and isinstance(color_field, np.ndarray):
         acc_faces = 0
