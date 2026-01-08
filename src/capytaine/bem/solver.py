@@ -494,9 +494,8 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
-        with self.timer(step="Green function"):
+        with self.timer(step="Post-processing potential"):
             S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
-        with self.timer(step="Matrix-vector product"):
             potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
@@ -508,9 +507,8 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        with self.timer(step="Green function"):
+        with self.timer(step="Post-processing velocity"):
             gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
-        with self.timer(step="Matrix-vector product"):
             velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
         return velocities.reshape((*output_shape, 3))
 

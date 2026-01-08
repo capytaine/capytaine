@@ -70,6 +70,8 @@ Internals
 
 * Move hydrostatics routines in a dedicated module and rewrite corresponding tests (:pull:`794`)
 
+* Refactor the implementation of the timer to make it easier to include more steps (:pull:`809`)
+
 ---------------------------------
 New in version 2.3.1 (2025-10-14)
 ---------------------------------
