@@ -315,18 +315,25 @@ class BasicMatrixEngine(MatrixEngine):
         if self.green_function.floating_point_precision == "float32":
             nb_bytes = 8
 
+        # In theory a simple symmetry is a gain of factor 1/2
+        # and a nested symmetry is a gain of factor 1/4.
+        # For the solvers that use LU decomposition the gain is a bit less.
         solver_factors = {
+            # Formula to compute the factor of gain:
+            # (2 matrices * theoritical symmetry factor + LU decomposition + intermediate_step) / nb matrices without symmetry
             "lu_decomposition": {
-                "double": 5 / 12,
-                "single": 2 / 3,
+                "simple": 2 / 3, # (2 * (1/2) + 1/2 + 1/2) / 3
+                "nested": 5 / 12,  # (2 * (1/4) + 1/4 + 1/2) / 3
             },
+            # Formula to compute the factor of gain:
+            # (2 matrices * theoritical symmetry factor + intermediate step) / nb matrices without symmetry
             "lu_decomposition_with_overwrite": {
-                "double": 1 / 3,
-                "single": 3 / 4,
+                "simple": 3 / 4, # (2 * (1/2) + 1/2) / 2
+                "nested": 1 / 2, # (2 * (1/4) + 1/2) / 2
             },
             "gmres": {
-                "double": 1 / 4,
-                "single": 1 / 2,
+                "simple": 1 / 4,
+                "nested": 1 / 2,
             },
         }
 
@@ -334,12 +341,12 @@ class BasicMatrixEngine(MatrixEngine):
             if isinstance(problem.body.mesh.half, ReflectionSymmetricMesh):
                 # Should not go deeper than that, there is currently only two
                 # symmetries available
-                symmetry_type = "double"
+                symmetry_type = "simple"
             else:
-                symmetry_type = "single"
+                symmetry_type = "nested"
             symmetry_factor = solver_factors[self._linear_solver][symmetry_type]
         else:
             symmetry_factor = 1.0
 
-        memory_peak = symmetry_factor * nb_faces**2 * nb_matrices * nb_bytes / 1e9
+        memory_peak = symmetry_factor * nb_faces**2 * nb_matrices * nb_bytes/1e9
         return memory_peak
