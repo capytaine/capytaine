@@ -5,6 +5,7 @@ import pytest
 import numpy as np
 import capytaine as cpt
 from capytaine.new_meshes import Mesh, RotationSymmetricMesh, ReflectionSymmetricMesh
+from capytaine.new_meshes.meshes import to_new_mesh
 
 
 def test_engine_repr():
@@ -180,3 +181,74 @@ def test_symmetry(sym_mesh):
     S, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
     assert np.allclose(np.array(S), S_ref)
     assert np.allclose(np.array(K), K_ref)
+
+
+def test_ram_1symmetry_estimation():
+    reference_mesh = cpt.mesh_parallelepiped(resolution=(5, 5, 5), name="reference_mesh", center =(0, 0, -2,))
+    half_mesh = reference_mesh.clipped(cpt.Plane(point=(0, 0, 0), normal=(1, 0, 0)))
+    mesh = ReflectionSymmetricMesh(half=to_new_mesh(half_mesh), plane="yOz", name="new_simple_symmetric_mesh")
+    body = cpt.FloatingBody(
+            mesh=mesh,
+            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.25,)),
+            name=mesh.name,
+            )
+    problem = cpt.RadiationProblem(body=body, omega=1.0, water_depth=np.inf)
+    nb_faces = problem.body.mesh.nb_faces
+
+    green_function = cpt.green_functions.delhommeau.Delhommeau(
+        floating_point_precision="float32"
+    )
+
+    gmres_estimation = cpt.BasicMatrixEngine(
+        linear_solver="gmres"
+    ).compute_ram_estimation(problem)
+    gmres_estimation_float = cpt.BasicMatrixEngine(
+        linear_solver="gmres",  green_function=green_function
+    ).compute_ram_estimation(problem)
+    lu_estimation = cpt.BasicMatrixEngine(
+        linear_solver="lu_decomposition"
+    ).compute_ram_estimation(problem)
+    lu_overwrite_estimation = cpt.BasicMatrixEngine(
+        linear_solver="lu_decomposition_with_overwrite"
+    ).compute_ram_estimation(problem)
+
+    assert gmres_estimation == nb_faces**2 * 2 * 16 / 1e9 / 2
+    assert gmres_estimation_float == nb_faces**2 * 2 * 8 / 1e9 / 2
+    assert round(lu_estimation,7) == nb_faces**2 * 16 * (2 * 1/2 + 1/2 + 1/2) / 1e9
+    assert lu_overwrite_estimation == nb_faces**2 * 16 * (2 * 1/2 + 1/2) / 1e9
+
+
+def test_ram_2symmetry_estimation():
+    reference_mesh = cpt.mesh_parallelepiped(resolution=(5, 5, 5), name="reference_mesh", center =(0, 0, -2,))
+    half_mesh = reference_mesh.clipped(cpt.Plane(point=(0, 0, 0), normal=(1, 0, 0)))
+    quarter_mesh = half_mesh.clipped(cpt.Plane(point=(0, 0, 0), normal=(0, 1, 0)))
+    mesh = ReflectionSymmetricMesh(half=ReflectionSymmetricMesh(half=to_new_mesh(quarter_mesh), plane="xOz"), plane="yOz", name="new_nested_symmetric_mesh")
+    body = cpt.FloatingBody(
+            mesh=mesh,
+            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.25,)),
+            name=mesh.name,
+            )
+    problem = cpt.RadiationProblem(body=body, omega=1.0, water_depth=np.inf)
+    nb_faces = problem.body.mesh.nb_faces
+
+    green_function = cpt.green_functions.delhommeau.Delhommeau(
+        floating_point_precision="float32"
+    )
+
+    gmres_estimation = cpt.BasicMatrixEngine(
+        linear_solver="gmres"
+    ).compute_ram_estimation(problem)
+    gmres_estimation_float = cpt.BasicMatrixEngine(
+        linear_solver="gmres",  green_function=green_function
+    ).compute_ram_estimation(problem)
+    lu_estimation = cpt.BasicMatrixEngine(
+        linear_solver="lu_decomposition"
+    ).compute_ram_estimation(problem)
+    lu_overwrite_estimation = cpt.BasicMatrixEngine(
+        linear_solver="lu_decomposition_with_overwrite"
+    ).compute_ram_estimation(problem)
+
+    assert gmres_estimation == nb_faces**2 * 2 * 16 / 1e9 / 4
+    assert gmres_estimation_float == nb_faces**2 * 2 * 8 / 1e9 / 4
+    assert lu_estimation == nb_faces**2 * 16 * (2 * 1/4 + 1/4 + 1/2) / 1e9
+    assert lu_overwrite_estimation == nb_faces**2 * 16 * (2 * 1/4 + 1/2) / 1e9

@@ -322,18 +322,18 @@ class BasicMatrixEngine(MatrixEngine):
             # Formula to compute the factor of gain:
             # (2 matrices * theoritical symmetry factor + LU decomposition + intermediate_step) / nb matrices without symmetry
             "lu_decomposition": {
-                "simple": 2 / 3, # (2 * (1/2) + 1/2 + 1/2) / 3
-                "nested": 5 / 12,  # (2 * (1/4) + 1/4 + 1/2) / 3
+                "simple": 2 / 3, # (2 * 1/2 + 1/2 + 1/2) / 3
+                "nested": 5 / 12,  # (2 * 1/4 + 1/4 + 1/2) / 3
             },
             # Formula to compute the factor of gain:
             # (2 matrices * theoritical symmetry factor + intermediate step) / nb matrices without symmetry
             "lu_decomposition_with_overwrite": {
-                "simple": 3 / 4, # (2 * (1/2) + 1/2) / 2
-                "nested": 1 / 2, # (2 * (1/4) + 1/2) / 2
+                "simple": 3 / 4, # (2 * 1/2 + 1/2) / 2
+                "nested": 1 / 2, # (2 * 1/4 + 1/2) / 2
             },
             "gmres": {
-                "simple": 1 / 4,
-                "nested": 1 / 2,
+                "simple": 1 / 2,
+                "nested": 1 / 4,
             },
         }
 
@@ -341,9 +341,9 @@ class BasicMatrixEngine(MatrixEngine):
             if isinstance(problem.body.mesh.half, ReflectionSymmetricMesh):
                 # Should not go deeper than that, there is currently only two
                 # symmetries available
-                symmetry_type = "simple"
-            else:
                 symmetry_type = "nested"
+            else:
+                symmetry_type = "simple"
             symmetry_factor = solver_factors[self._linear_solver][symmetry_type]
         else:
             symmetry_factor = 1.0
