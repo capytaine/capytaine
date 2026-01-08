@@ -10,6 +10,8 @@
 """
 
 import os
+import shutil
+import textwrap
 import logging
 
 import numpy as np
@@ -85,15 +87,24 @@ class BEMSolver:
 
     def reset_timer(self):
         self.timer = Timer(default_tags={"process": 0})
+        self.solve = self.timer.wraps_function(step="Total solve function")(self._solve)
 
-    def timer_summary(self):
+    def timer_summary(self, width=None):
+        df = self.timer.as_dataframe()
+        df["step"] = df["step"].where(
+                df["step"].str.startswith("Total"), "  " + df["step"]
+                )
         total = (
-            self.timer.as_dataframe()
-            .groupby(["step", "process"])
-            ["timing"].sum()
-            .unstack()
-        )
-        return total
+                df.groupby(["step", "process"])
+                ["timing"].sum()
+                .unstack()
+                )
+        if width is None:
+            width = shutil.get_terminal_size(fallback=(80, 20)).columns - 25
+        return total.to_string(
+                float_format="{:.2f}".format,
+                line_width=width,
+                )
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
@@ -102,7 +113,7 @@ class BEMSolver:
     def from_exported_settings(settings):
         raise NotImplementedError
 
-    def solve(self, problem, method=None, keep_details=True, _check_wavelength=True):
+    def _solve(self, problem, method=None, keep_details=True, _check_wavelength=True):
         """Solve the linear potential flow problem.
 
         Parameters
@@ -126,71 +137,70 @@ class BEMSolver:
             an object storing the problem data and its results
         """
         LOG.info("Solve %s.", problem)
-        with self.timer(step="Total solve method"):
 
-            if _check_wavelength:
-                self._check_wavelength_and_mesh_resolution([problem])
-                self._check_wavelength_and_irregular_frequencies([problem])
+        if _check_wavelength:
+            self._check_wavelength_and_mesh_resolution([problem])
+            self._check_wavelength_and_irregular_frequencies([problem])
 
-            if isinstance(problem, DiffractionProblem) and float(problem.encounter_omega) in {0.0, np.inf}:
-                raise ValueError("Diffraction problems at zero or infinite frequency are not defined")
-                # This error used to be raised when initializing the problem.
-                # It is now raised here, in order to be catchable by
-                # _solve_and_catch_errors, such that batch resolution
-                # can include this kind of problems without the full batch
-                # failing.
-                # Note that if this error was not raised here, the resolution
-                # would still fail with a less explicit error message.
+        if isinstance(problem, DiffractionProblem) and float(problem.encounter_omega) in {0.0, np.inf}:
+            raise ValueError("Diffraction problems at zero or infinite frequency are not defined")
+            # This error used to be raised when initializing the problem.
+            # It is now raised here, in order to be catchable by
+            # _solve_and_catch_errors, such that batch resolution
+            # can include this kind of problems without the full batch
+            # failing.
+            # Note that if this error was not raised here, the resolution
+            # would still fail with a less explicit error message.
 
+        if problem.forward_speed != 0.0:
+            omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
+        else:
+            omega, wavenumber = problem.omega, problem.wavenumber
+
+        linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
+        method = method if method is not None else self.method
+        if (method == 'direct'):
             if problem.forward_speed != 0.0:
-                omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
-            else:
-                omega, wavenumber = problem.omega, problem.wavenumber
+                raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
 
-            linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
-            method = method if method is not None else self.method
-            if (method == 'direct'):
-                if problem.forward_speed != 0.0:
-                    raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
+            with self.timer(step="Green function"):
+                S, D = self.engine.build_matrices(
+                        problem.body.mesh_including_lid, problem.body.mesh_including_lid,
+                        problem.free_surface, problem.water_depth, wavenumber,
+                        adjoint_double_layer=False
+                        )
+            with self.timer(step="Matrix-vector product"):
+                rhs = S @ problem.boundary_condition
+            with self.timer(step="Linear solver"):
+                rhs_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(D.dtype.type)
+                potential = linear_solver(D, rhs.astype(rhs_type))
+            pressure = 1j * omega * problem.rho * potential
+            sources = None
+        else:
+            with self.timer(step="Green function"):
+                S, K = self.engine.build_matrices(
+                        problem.body.mesh_including_lid, problem.body.mesh_including_lid,
+                        problem.free_surface, problem.water_depth, wavenumber,
+                        adjoint_double_layer=True
+                        )
+            with self.timer(step="Linear solver"):
+                rhs_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(K.dtype.type)
+                sources = linear_solver(K, problem.boundary_condition.astype(rhs_type))
+            with self.timer(step="Matrix-vector product"):
+                potential = S @ sources
+            pressure = 1j * omega * problem.rho * potential
+            if problem.forward_speed != 0.0:
+                result = problem.make_results_container(sources=sources)
+                # Temporary result object to compute the ∇Φ term
+                nabla_phi = self._compute_potential_gradient(problem.body.mesh_including_lid, result)
+                pressure += problem.rho * problem.forward_speed * nabla_phi[:, 0]
 
-                with self.timer(step="  Green function"):
-                    S, D = self.engine.build_matrices(
-                            problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                            problem.free_surface, problem.water_depth, wavenumber,
-                            adjoint_double_layer=False
-                            )
-                with self.timer(step="  Matrix-vector product"):
-                    rhs = S @ problem.boundary_condition
-                with self.timer(step="  Linear solver"):
-                    rhs_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(D.dtype.type)
-                    potential = linear_solver(D, rhs.astype(rhs_type))
-                pressure = 1j * omega * problem.rho * potential
-                sources = None
-            else:
-                with self.timer(step="  Green function"):
-                    S, K = self.engine.build_matrices(
-                            problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                            problem.free_surface, problem.water_depth, wavenumber,
-                            adjoint_double_layer=True
-                            )
-                with self.timer(step="  Linear solver"):
-                    rhs_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(K.dtype.type)
-                    sources = linear_solver(K, problem.boundary_condition.astype(rhs_type))
-                with self.timer(step="  Matrix-vector product"):
-                    potential = S @ sources
-                pressure = 1j * omega * problem.rho * potential
-                if problem.forward_speed != 0.0:
-                    result = problem.make_results_container(sources=sources)
-                    # Temporary result object to compute the ∇Φ term
-                    nabla_phi = self._compute_potential_gradient(problem.body.mesh_including_lid, result)
-                    pressure += problem.rho * problem.forward_speed * nabla_phi[:, 0]
-
-            pressure_on_hull = pressure[problem.body.hull_mask]  # Discards pressure on lid if any
-            forces = problem.body.integrate_pressure(pressure_on_hull)
-            if not keep_details:
-                result = problem.make_results_container(forces)
-            else:
-                result = problem.make_results_container(forces, sources, potential, pressure)
+        pressure_on_hull = pressure[problem.body.hull_mask]  # Discards pressure on lid if any
+        forces = problem.body.integrate_pressure(pressure_on_hull)
+        if not keep_details:
+            result = problem.make_results_container(forces)
+        else:
+            result = problem.make_results_container(forces, sources, potential, pressure)
 
         LOG.debug("Done!")
 
@@ -296,7 +306,10 @@ class BEMSolver:
             LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
         else:
             LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")
-        LOG.info("Solver timer summary:\n%s", self.timer_summary())
+        LOG.info(
+            "Solver timer summary (in seconds):\n%s",
+            textwrap.indent(str(self.timer_summary()), "  ")
+        )
         return results
 
     def _solve_all_and_return_timer(
@@ -479,9 +492,9 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
-        with self.timer(step="  Green function"):
+        with self.timer(step="Green function"):
             S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
-        with self.timer(step="  Matrix-vector product"):
+        with self.timer(step="Matrix-vector product"):
             potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
@@ -493,9 +506,9 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        with self.timer(step="  Green function"):
+        with self.timer(step="Green function"):
             gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
-        with self.timer(step="  Matrix-vector product"):
+        with self.timer(step="Matrix-vector product"):
             velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
         return velocities.reshape((*output_shape, 3))
 
