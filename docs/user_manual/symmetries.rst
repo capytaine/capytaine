@@ -108,7 +108,6 @@ Asymptotically for large problems:
 | 1 plane symmetry    | 1/2             | 1/2       |
 | 2 plane symmetries  | 1/4             | 1/4       |
 | n rotation symmetry | 1/n             | 1/n       |
-| n dihedral symmetry | 1/(2n)          | 1/(2n)    |
 +---------------------+-----------------+-----------+
 
 Note that the theoretical performance gain described above might not be reached
