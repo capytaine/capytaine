@@ -305,17 +305,6 @@ class BasicMatrixEngine(MatrixEngine):
             )
 
     def compute_ram_estimation(self, problem):
-        if isinstance(problem.body.mesh, ReflectionSymmetricMesh):
-            if isinstance(problem.body.mesh.half, ReflectionSymmetricMesh):
-                # Should not go deeper than that, there is currently only two
-                # symmetries available
-                symmetry_factor = 0.25
-            else:
-                symmetry_factor = 0.5
-        else:
-            symmetry_factor = 1.0
-
-
         nb_faces = problem.body.mesh.nb_faces
         nb_matrices = 2
         nb_bytes = 16
@@ -326,5 +315,31 @@ class BasicMatrixEngine(MatrixEngine):
         if self.green_function.floating_point_precision == "float32":
             nb_bytes = 8
 
-        peak_memory = symmetry_factor * nb_faces**2 * nb_matrices * nb_bytes/1e9
-        return peak_memory
+        solver_factors = {
+            "lu_decomposition": {
+                "double": 5 / 12,
+                "single": 2 / 3,
+            },
+            "lu_decomposition_with_overwrite": {
+                "double": 1 / 3,
+                "single": 3 / 4,
+            },
+            "gmres": {
+                "double": 1 / 4,
+                "single": 1 / 2,
+            },
+        }
+
+        if isinstance(problem.body.mesh, ReflectionSymmetricMesh):
+            if isinstance(problem.body.mesh.half, ReflectionSymmetricMesh):
+                # Should not go deeper than that, there is currently only two
+                # symmetries available
+                symmetry_type = "double"
+            else:
+                symmetry_type = "single"
+            symmetry_factor = solver_factors[self._linear_solver][symmetry_type]
+        else:
+            symmetry_factor = 1.0
+
+        memory_peak = symmetry_factor * nb_faces**2 * nb_matrices * nb_bytes / 1e9
+        return memory_peak
