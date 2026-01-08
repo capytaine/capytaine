@@ -1,7 +1,10 @@
+from functools import lru_cache
+
 import pytest
 
 import numpy as np
 import capytaine as cpt
+from capytaine.new_meshes import Mesh, RotationSymmetricMesh, ReflectionSymmetricMesh
 
 
 def test_engine_repr():
@@ -107,6 +110,24 @@ def test_all_linear_solvers_work():
     )
 
 
+def test_lu_overwrite():
+    K = np.array(np.random.rand(100,100), order='F')
+    K_copy = np.copy(K)
+    engine = cpt.BasicMatrixEngine(linear_solver="lu_decomposition_with_overwrite")
+    engine.last_computed_matrices = (None, K)
+    engine.linear_solver(K, np.random.rand(100))
+    assert np.any(K_copy != K)
+
+
+def test_lu_no_overwrite():
+    K = np.array(np.random.rand(100,100), order='F')
+    K_copy = np.copy(K)
+    engine = cpt.BasicMatrixEngine(linear_solver="lu_decomposition")
+    engine.last_computed_matrices = (None, K)
+    engine.linear_solver(K, np.random.rand(100))
+    assert np.all(K_copy == K)
+
+
 def test_ram_estimation():
     sphere = cpt.FloatingBody(
         mesh=cpt.mesh_sphere(radius=1.0, resolution=(4, 3)).immersed_part()
@@ -135,3 +156,27 @@ def test_ram_estimation():
     assert float_estimation == nb_faces**2 * 8 * 2 / 1e9
     assert lu_estimation == nb_faces**2 * 16 * 3 / 1e9
     assert lu_and_float_estimation == nb_faces**2 * 8 * 3 / 1e9
+
+
+@lru_cache
+def single_panel():
+    vertices = np.array(
+        [[0.5, 0.0, 0.0], [0.5, 0.0, -0.5], [0.5, 0.5, -0.3], [0.5, 0.5, -0.2]]
+    )
+    faces = np.array([[0, 1, 2, 3]])
+    single_panel = Mesh(vertices=vertices, faces=faces)
+    return single_panel
+
+
+@pytest.mark.parametrize("sym_mesh", [
+    ReflectionSymmetricMesh(ReflectionSymmetricMesh(single_panel(), plane="xOz"), plane="yOz"),
+    RotationSymmetricMesh(single_panel(), n=4, axis='z+'),
+    ], ids=["nested_reflections", "rotation+"])
+def test_symmetry(sym_mesh):
+    ref_mesh = sym_mesh.merged()
+    engine = cpt.BasicMatrixEngine()
+    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
+    S_ref, K_ref = engine.build_matrices(ref_mesh, ref_mesh, **params)
+    S, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
+    assert np.allclose(np.array(S), S_ref)
+    assert np.allclose(np.array(K), K_ref)

@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from functools import cached_property
-from typing import List, Union, Tuple, Dict, Optional
+from typing import List, Union, Tuple, Dict, Optional, Literal
 
 import xarray as xr
 import numpy as np

@@ -10,7 +10,7 @@ import numpy as np
 import scipy.sparse.linalg as ssl
 
 from capytaine.meshes.symmetric import ReflectionSymmetricMesh as OldReflectionSymmetricMesh
-from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh
+from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
 from capytaine.green_functions.delhommeau import Delhommeau
@@ -180,12 +180,27 @@ class BasicMatrixEngine(MatrixEngine):
                 wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
                 )
             S_b, K_b = self._build_matrices_with_symmetries(
-                mesh1.half, mesh2.other_half,
+                mesh1.other_half, mesh2.half,
                 free_surface=free_surface, water_depth=water_depth,
                 wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
                 )
 
             return BlockCirculantMatrix([S_a, S_b]), BlockCirculantMatrix([K_a, K_b])
+
+        elif (isinstance(mesh1, RotationSymmetricMesh)
+                and isinstance(mesh2, RotationSymmetricMesh)
+                and mesh1.n == mesh2.n):
+
+            S_and_K_blocks = [
+                    self._build_matrices_with_symmetries(
+                        w, mesh2.wedge,
+                        free_surface=free_surface, water_depth=water_depth,
+                        wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
+                        )
+                    for w in mesh1.all_wedges]
+            # Building the first column of blocks, that is the interactions of all the rotated wedges of mesh1 with the reference wedge of mesh2.
+
+            return BlockCirculantMatrix([b[0] for b in S_and_K_blocks]), BlockCirculantMatrix([b[1] for b in S_and_K_blocks])
 
         else:
             return self.green_function.evaluate(
@@ -268,7 +283,7 @@ class BasicMatrixEngine(MatrixEngine):
             return x
 
         elif self._linear_solver in ("lu_decomposition", "lu_decomposition_with_overwrite") :
-            overwrite_a = (self._linear_solver == "lu_decompositon_with_overwrite")
+            overwrite_a = (self._linear_solver == "lu_decomposition_with_overwrite")
             if not has_been_lu_decomposed(A):
                 luA = lu_decompose(A, overwrite_a=overwrite_a)
                 if A is self.last_computed_matrices[1]:
