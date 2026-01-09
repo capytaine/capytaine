@@ -324,16 +324,19 @@ class BasicMatrixEngine(MatrixEngine):
             "lu_decomposition": {
                 "simple": 2 / 3, # (2 * 1/2 + 1/2 + 1/2) / 3
                 "nested": 5 / 12,  # (2 * 1/4 + 1/4 + 1/2) / 3
+                "rotation": 4 / 3, 
             },
             # Formula to compute the factor of gain:
             # (2 matrices * theoritical symmetry factor + intermediate step) / nb matrices without symmetry
             "lu_decomposition_with_overwrite": {
                 "simple": 3 / 4, # (2 * 1/2 + 1/2) / 2
                 "nested": 1 / 2, # (2 * 1/4 + 1/2) / 2
+                "rotation": 3 / 2, 
             },
             "gmres": {
                 "simple": 1 / 2,
                 "nested": 1 / 4,
+                "rotation": 1,
             },
         }
 
@@ -345,6 +348,8 @@ class BasicMatrixEngine(MatrixEngine):
             else:
                 symmetry_type = "simple"
             symmetry_factor = solver_factors[self._linear_solver][symmetry_type]
+        elif isinstance(problem.body.mesh, RotationSymmetricMesh):
+            symmetry_factor = solver_factors[self._linear_solver]["rotation"] / problem.body.mesh.n 
         else:
             symmetry_factor = 1.0
 
