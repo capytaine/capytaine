@@ -305,17 +305,6 @@ class BasicMatrixEngine(MatrixEngine):
             )
 
     def compute_ram_estimation(self, problem):
-        if isinstance(problem.body.mesh, ReflectionSymmetricMesh):
-            if isinstance(problem.body.mesh.half, ReflectionSymmetricMesh):
-                # Should not go deeper than that, there is currently only two
-                # symmetries available
-                symmetry_factor = 0.25
-            else:
-                symmetry_factor = 0.5
-        else:
-            symmetry_factor = 1.0
-
-
         nb_faces = problem.body.mesh.nb_faces
         nb_matrices = 2
         nb_bytes = 16
@@ -326,5 +315,43 @@ class BasicMatrixEngine(MatrixEngine):
         if self.green_function.floating_point_precision == "float32":
             nb_bytes = 8
 
-        peak_memory = symmetry_factor * nb_faces**2 * nb_matrices * nb_bytes/1e9
-        return peak_memory
+        # In theory a simple symmetry is a gain of factor 1/2
+        # and a nested symmetry is a gain of factor 1/4.
+        # For the solvers that use LU decomposition the gain is a bit less.
+        solver_factors = {
+            # Formula to compute the factor of gain:
+            # (2 matrices * theoritical symmetry factor + LU decomposition + intermediate_step) / nb matrices without symmetry
+            "lu_decomposition": {
+                "simple": 2 / 3, # (2 * 1/2 + 1/2 + 1/2) / 3
+                "nested": 5 / 12,  # (2 * 1/4 + 1/4 + 1/2) / 3
+                "rotation": 4 / 3, 
+            },
+            # Formula to compute the factor of gain:
+            # (2 matrices * theoritical symmetry factor + intermediate step) / nb matrices without symmetry
+            "lu_decomposition_with_overwrite": {
+                "simple": 3 / 4, # (2 * 1/2 + 1/2) / 2
+                "nested": 1 / 2, # (2 * 1/4 + 1/2) / 2
+                "rotation": 3 / 2, 
+            },
+            "gmres": {
+                "simple": 1 / 2,
+                "nested": 1 / 4,
+                "rotation": 1,
+            },
+        }
+
+        if isinstance(problem.body.mesh, ReflectionSymmetricMesh):
+            if isinstance(problem.body.mesh.half, ReflectionSymmetricMesh):
+                # Should not go deeper than that, there is currently only two
+                # symmetries available
+                symmetry_type = "nested"
+            else:
+                symmetry_type = "simple"
+            symmetry_factor = solver_factors[self._linear_solver][symmetry_type]
+        elif isinstance(problem.body.mesh, RotationSymmetricMesh):
+            symmetry_factor = solver_factors[self._linear_solver]["rotation"] / problem.body.mesh.n 
+        else:
+            symmetry_factor = 1.0
+
+        memory_peak = symmetry_factor * nb_faces**2 * nb_matrices * nb_bytes/1e9
+        return memory_peak
