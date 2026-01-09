@@ -66,6 +66,7 @@ def test_load_from_meshio(tmp_path):
 
 def test_MED_file():
     pytest.importorskip("meshio", reason="meshio not installed, test skipped")
+    pytest.importorskip("h5py", reason="h5py not installed, test skipped")
     mesh = load_mesh(os.path.join(os.path.dirname(__file__), "mesh_files_examples/barge.med"))
     assert mesh.nb_faces == 187
 
