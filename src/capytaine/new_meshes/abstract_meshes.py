@@ -17,7 +17,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from functools import cached_property
-from typing import Literal
+from typing import Literal, Tuple
 
 import numpy as np
 
@@ -120,7 +120,7 @@ class AbstractMesh(ABC):
         R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
         return self.rotated_with_matrix(R, name=name)
 
-    def mirrored(self, plane: Literal['xOz', 'yOz'], *, name=None) -> AbstracMesh:
+    def mirrored(self, plane: Literal['xOz', 'yOz'], *, name=None) -> AbstractMesh:
         ...
 
     @abstractmethod
@@ -285,3 +285,19 @@ class AbstractMesh(ABC):
         See also :func:`~capytaine.new_meshes.visualization.show_matplotlib`
         """
         return self.show(backend="matplotlib", **kwargs)
+
+    @abstractmethod
+    def export(self, format, **kwargs):
+        ...
+
+    def export_to_pyvista(self, **kwargs):
+        return self.export(format="pyvista", **kwargs)
+
+    def export_to_xarray(self, **kwargs):
+        return self.export(format="xarray", **kwargs)
+
+    def export_to_meshio(self, **kwargs):
+        return self.export(format="meshio", **kwargs)
+
+    def export_to_trimesh(self, **kwargs):
+        return self.export(format="trimesh", **kwargs)

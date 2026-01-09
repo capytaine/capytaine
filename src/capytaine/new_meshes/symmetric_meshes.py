@@ -24,7 +24,6 @@ import numpy as np
 from .abstract_meshes import AbstractMesh
 from .meshes import Mesh
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -264,6 +263,10 @@ class ReflectionSymmetricMesh(AbstractMesh):
             ghost_meshes = []
         ghost_meshes = ghost_meshes + [self.other_half.merged()]
         return self.half.show(backend=backend, ghost_meshes=ghost_meshes, **kwargs)
+
+    def export(self, format, **kwargs):
+        LOG.warning(f"Losing symmetric structure when exporting {self} to {format}")
+        return self.merged().export(format, **kwargs)
 
 
 # For some backward compatibility:
@@ -581,3 +584,7 @@ class RotationSymmetricMesh(AbstractMesh):
             ghost_meshes = []
         ghost_meshes = ghost_meshes + [w.merged() for w in self.all_wedges[1:]]
         return self.wedge.show(backend=backend, ghost_meshes=ghost_meshes, **kwargs)
+
+    def export(self, format, **kwargs):
+        LOG.warning(f"Losing symmetric structure when exporting {self} to {format}")
+        return self.merged().export(format, **kwargs)

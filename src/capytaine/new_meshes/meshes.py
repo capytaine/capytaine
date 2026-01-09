@@ -18,6 +18,7 @@ import logging
 from functools import cached_property
 from typing import List, Union, Tuple, Dict, Optional, Literal
 
+import xarray as xr
 import numpy as np
 
 from .abstract_meshes import AbstractMesh
@@ -30,6 +31,7 @@ from .geometry import (
 )
 from .clip import clip_faces
 from .clean import clean_mesh
+from .export import export_mesh
 from .quality import _is_valid, check_mesh_quality
 from .visualization import show_3d
 
@@ -338,6 +340,18 @@ class Mesh(AbstractMesh):
         if len(self.faces_metadata) > 0:
             LOG.info(f"Dropping metadata of {self} to export as list of faces.")
         return list_faces
+
+    def as_array_of_faces(self) -> np.ndarray:
+        """Similare to as_list_of_faces but returns an array of shape
+        (nb_faces, 3, 3) if only triangles, or (nb_faces, 4, 3) otherwise.
+        """
+        array = self.vertices[self.faces[:, :], :]
+        if self.nb_quads == 0:
+            array = array[:, :3, :]
+        return array
+
+    def export(self, format, **kwargs):
+        return export_mesh(self, format, **kwargs)
 
     ## INTERFACE FOR BEM SOLVER
 
