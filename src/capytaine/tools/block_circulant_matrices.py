@@ -125,8 +125,8 @@ class BlockCirculantMatrix:
             a, b, c = self.blocks
             return BlockDiagonalMatrix([
                 a + b + c,
-                a + np.exp(-2j*np.pi/3) * b + np.exp(2j*np.pi/3) * c,
-                a + np.exp(2j*np.pi/3) * b + np.exp(-2j*np.pi/3) * c,
+                a + np.exp(-2j*np.pi/3, dtype=self.dtype) * b + np.exp(2j*np.pi/3, dtype=self.dtype) * c,
+                a + np.exp(2j*np.pi/3, dtype=self.dtype) * b + np.exp(-2j*np.pi/3, dtype=self.dtype) * c,
             ])
         elif self.ndim == 2 and self.nb_blocks == 4:
             a, b, c, d = self.blocks
