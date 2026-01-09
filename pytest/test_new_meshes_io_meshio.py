@@ -1,6 +1,8 @@
 import os
+import lzma
 import pytest
 
+from capytaine.new_meshes.meshes import Mesh
 from capytaine.new_meshes.io import load_mesh
 
 def test_load_directly_from_meshio():
@@ -43,7 +45,7 @@ def test_load_from_meshio(tmp_path):
     test_file = tmp_path / "dummy.obj"
     meshio.write(test_file, meshio_mesh)
 
-    mesh = load_mesh(test_file, "obj")
+    mesh = load_mesh(test_file, "obj", backend="meshio")
     assert mesh.nb_faces == 3
     assert mesh.nb_vertices == 6
 
@@ -74,3 +76,18 @@ def test_MSH4_file():
     with open(os.path.join(os.path.dirname(__file__), "mesh_files_examples/cylinder4.msh"), 'r') as f:
         mesh = load_mesh(f, file_format="gmsh")
     assert mesh.nb_faces == 64
+
+def test_export_to_meshio():
+    pytest.importorskip("meshio", reason="meshio not installed, test skipped")
+    cpt_mesh = Mesh.from_list_of_faces([[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]]])
+    meshio_mesh = cpt_mesh.export_to_meshio()
+    assert len(meshio_mesh.cells[0]) == 1
+
+def test_compressed_stl():
+    path = os.path.join(
+        os.path.dirname(__file__),
+        "mesh_files_examples/viking_ship.stl.xz"
+    )
+    with lzma.open(path, 'r') as f:
+        mesh = load_mesh(f, file_format="stl", backend="meshio")
+    assert mesh.nb_faces == 2346

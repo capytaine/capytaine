@@ -1,14 +1,15 @@
-
+import os
+import lzma
 import pytest
 
 from capytaine.new_meshes.io import load_mesh
-from capytaine.new_meshes import Mesh, ReflectionSymmetricMesh
+from capytaine.new_meshes import Mesh
 
 def test_load_directly_from_trimesh(tmp_path):
     """
     Test loading a simple triangle mesh from an .obj file using trimesh.
     """
-    pytest.importorskip("trimesh")
+    pytest.importorskip("trimesh", reason="trimesh not installed, test skipped")
 
     import trimesh
     trimesh_mesh = trimesh.Trimesh(
@@ -23,7 +24,7 @@ def test_load_from_trimesh(tmp_path):
     """
     Test loading a simple triangle mesh from an .obj file using trimesh.
     """
-    pytest.importorskip("trimesh")
+    pytest.importorskip("trimesh", reason="trimesh not installed, test skipped")
 
     import trimesh
     trimesh_mesh = trimesh.Trimesh(
@@ -36,3 +37,18 @@ def test_load_from_trimesh(tmp_path):
     mesh = load_mesh(test_file, "glb")
     assert mesh.nb_faces == 1
     assert mesh.nb_vertices == 3
+
+def test_export_to_trimesh():
+    pytest.importorskip("trimesh", reason="trimesh not installed, test skipped")
+    cpt_mesh = Mesh.from_list_of_faces([[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]]])
+    trimesh_mesh = cpt_mesh.export_to_trimesh()
+    assert trimesh_mesh.faces.shape == (2, 3)
+
+def test_compressed_stl():
+    path = os.path.join(
+        os.path.dirname(__file__),
+        "mesh_files_examples/viking_ship.stl.xz"
+    )
+    with lzma.open(path, 'r') as f:
+        mesh = load_mesh(f, file_format="stl", backend="trimesh")
+    assert mesh.nb_faces == 2346

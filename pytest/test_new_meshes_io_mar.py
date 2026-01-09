@@ -1,6 +1,7 @@
 """Tests for the mesh import of mesh from AQUADYN and NEMOH's file format"""
 
 import os
+import gzip
 from io import StringIO
 
 from capytaine.new_meshes.io import load_mesh
@@ -65,6 +66,7 @@ def test_symmetric_mar_from_path():
     assert isinstance(mesh, ReflectionSymmetricMesh)
     assert mesh.nb_faces == 2*300
 
+
 def test_symmetric_mar_from_file():
     with open(os.path.join(
         os.path.dirname(__file__),
@@ -74,6 +76,7 @@ def test_symmetric_mar_from_file():
     assert isinstance(mesh, ReflectionSymmetricMesh)
     assert mesh.nb_faces == 2*300
 
+
 def test_mar_from_path():
     mesh = load_mesh(os.path.join(
         os.path.dirname(__file__),
@@ -81,6 +84,7 @@ def test_mar_from_path():
     ), file_format="nemoh")
     assert isinstance(mesh, Mesh)
     assert mesh.nb_faces == 280
+
 
 def test_mar_from_file():
     with open(os.path.join(
@@ -90,3 +94,14 @@ def test_mar_from_file():
         mesh = load_mesh(f, file_format="nemoh")
     assert isinstance(mesh, Mesh)
     assert mesh.nb_faces == 280
+
+
+def test_mar_from_compressed_file():
+    path = os.path.join(
+        # os.path.dirname(__file__),
+        "pytest",
+        "mesh_files_examples/boat_200.mar.gz"
+        )
+    with gzip.open(path, 'rt') as f:
+        mesh = load_mesh(f, file_format="nemoh")
+    assert mesh.nb_faces == 500
