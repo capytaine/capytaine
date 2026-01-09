@@ -182,3 +182,23 @@ def test_4x4_block_circulant_matrices():
         lu_decompose(A).solve(b),
         A.solve(b)
     )
+
+def test_10x10_block_circulant_matrices():
+    A = BlockCirculantMatrix([
+        (lambda: np.eye(2) + _rand(2, 2))()
+        for _ in range(10)
+    ])
+    full_A = np.array(A)
+    b = RNG.normal(size=(A.shape[0],))
+    assert np.allclose(
+            A @ b,
+            full_A @ b,
+            )
+    assert np.allclose(
+        lu_decompose(A).solve(b),
+        np.linalg.solve(full_A, b)
+    )
+    assert np.allclose(
+        lu_decompose(A).solve(b),
+        A.solve(b)
+    )

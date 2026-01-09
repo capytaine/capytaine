@@ -191,16 +191,20 @@ class BasicMatrixEngine(MatrixEngine):
                 and isinstance(mesh2, RotationSymmetricMesh)
                 and mesh1.n == mesh2.n):
 
-            S_and_K_blocks = [
-                    self._build_matrices_with_symmetries(
-                        w, mesh2.wedge,
-                        free_surface=free_surface, water_depth=water_depth,
-                        wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
-                        )
-                    for w in mesh1.all_wedges]
-            # Building the first column of blocks, that is the interactions of all the rotated wedges of mesh1 with the reference wedge of mesh2.
+            S_cols, K_cols = self.green_function.evaluate(
+                    mesh1.merged(), mesh2.wedge,
+                    free_surface=free_surface, water_depth=water_depth, wavenumber=wavenumber,
+                    adjoint_double_layer=adjoint_double_layer, early_dot_product=True,
+                    )
+            # Building the first column of blocks, that is the interactions of all of mesh1 with the reference wedge of mesh2.
 
-            return BlockCirculantMatrix([b[0] for b in S_and_K_blocks]), BlockCirculantMatrix([b[1] for b in S_and_K_blocks])
+            n_blocks = mesh1.n # == mesh2.n
+            block_shape = (mesh2.wedge.nb_faces, mesh2.wedge.nb_faces)
+
+            return (
+                    BlockCirculantMatrix(S_cols.reshape((n_blocks, *block_shape))),
+                    BlockCirculantMatrix(K_cols.reshape((n_blocks, *block_shape))),
+                    )
 
         else:
             return self.green_function.evaluate(
