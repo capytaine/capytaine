@@ -1,4 +1,3 @@
-import pytest
 import numpy as np
 
 import capytaine as cpt
