@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 from typing import Optional, Union, Dict, Literal
-from functools import cached_property
+from functools import cached_property, lru_cache
 from itertools import chain
 
 import numpy as np
@@ -228,6 +228,7 @@ class ReflectionSymmetricMesh(AbstractMesh):
                 faces_metadata=faces_metadata,
                 name=self.name)
 
+    @lru_cache
     def merged(self, name=None) -> Mesh:
         return Mesh.join_meshes(
             self.half.merged(),
@@ -549,6 +550,7 @@ class RotationSymmetricMesh(AbstractMesh):
                 faces_metadata=faces_metadata,
                 name=self.name)
 
+    @lru_cache
     def merged(self, name=None) -> Mesh:
         return Mesh.join_meshes(
                 *[w.merged() for w in self.all_wedges]

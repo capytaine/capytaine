@@ -1,24 +1,22 @@
 import numpy as np
-import xarray as xr
 import capytaine as cpt
-from capytaine.new_meshes.meshes import to_new_mesh
+import xarray as xr
 from capytaine.new_meshes.symmetric_meshes import RotationSymmetricMesh
 
-single_pillar = cpt.mesh_parallelepiped(resolution=(10, 10, 10), center=(2.0, 0.0, 0.0)).immersed_part()
-single_lid_mesh = single_pillar.generate_lid()
-symmetric_mesh = RotationSymmetricMesh(wedge=to_new_mesh(single_pillar), n=4)
-symmetric_lid_mesh = RotationSymmetricMesh(wedge=to_new_mesh(single_lid_mesh), n=4)
+cpt.set_logging('WARNING')
+
+meridian_points = np.array([(np.sqrt(1-z**2), 0.0, z) for z in np.linspace(-1.0, 1.0, 50)])
+sphere_mesh = RotationSymmetricMesh.from_profile_points(meridian_points, n=50).immersed_part()
+
 
 symmetric_body = cpt.FloatingBody(
-        mesh=symmetric_mesh,
-        lid_mesh=symmetric_lid_mesh,
+        mesh=sphere_mesh,
         dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
         name='symmetric'
         )
 
 full_body = cpt.FloatingBody(
-        mesh=symmetric_mesh.merged(),
-        lid_mesh=symmetric_lid_mesh.merged(),
+        mesh=sphere_mesh.merged(),
         dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
         name='full'
         )
@@ -44,11 +42,4 @@ for body in [full_body, symmetric_body]:
     print("Added mass", dataset.added_mass.sel(radiating_dof='Surge', influenced_dof='Surge').values)
     print("Diffraction", dataset.diffraction_force.real.sel(wave_direction=0.0, influenced_dof='Surge').values)
     print(solver.timer_summary())
-
-    S = solver.engine.last_computed_matrices[0]
-    print(type(S), end='')
-    try:
-        print([type(b) for b in S.blocks])
-    except Exception:
-        print()
     print()
