@@ -287,9 +287,17 @@ class AbstractMesh(ABC):
         return self.show(backend="matplotlib", **kwargs)
 
     @abstractmethod
-    def export_to_pyvista(self):
+    def export(self, format, **kwargs):
         ...
 
-    @abstractmethod
-    def export_to_xarray(self):
-        ...
+    def export_to_pyvista(self, **kwargs):
+        return self.export(format="pyvista", **kwargs)
+
+    def export_to_xarray(self, **kwargs):
+        return self.export(format="xarray", **kwargs)
+
+    def export_to_meshio(self, **kwargs):
+        return self.export(format="meshio", **kwargs)
+
+    def export_to_trimesh(self, **kwargs):
+        return self.export(format="trimesh", **kwargs)

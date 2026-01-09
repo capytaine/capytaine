@@ -264,13 +264,9 @@ class ReflectionSymmetricMesh(AbstractMesh):
         ghost_meshes = ghost_meshes + [self.other_half.merged()]
         return self.half.show(backend=backend, ghost_meshes=ghost_meshes, **kwargs)
 
-    def export_to_pyvista(self):
-        LOG.warning(f"Losing symmetric structure when exporting {self} to Pyvista")
-        return self.merged().export_to_pyvista()
-
-    def export_to_xarray(self):
-        LOG.warning(f"Losing symmetric structure when exporting {self} to Xarray")
-        return self.merged().export_to_xarray()
+    def export(self, format, **kwargs):
+        LOG.warning(f"Losing symmetric structure when exporting {self} to {format}")
+        return self.merged().export(format, **kwargs)
 
 
 # For some backward compatibility:
@@ -589,10 +585,6 @@ class RotationSymmetricMesh(AbstractMesh):
         ghost_meshes = ghost_meshes + [w.merged() for w in self.all_wedges[1:]]
         return self.wedge.show(backend=backend, ghost_meshes=ghost_meshes, **kwargs)
 
-    def export_to_pyvista(self):
-        LOG.warning(f"Losing symmetric structure when exporting {self} to Pyvista")
-        return self.merged().export_to_pyvista()
-
-    def export_to_xarray(self):
-        LOG.warning(f"Losing symmetric structure when exporting {self} to Xarray")
-        return self.merged().export_to_xarray()
+    def export(self, format, **kwargs):
+        LOG.warning(f"Losing symmetric structure when exporting {self} to {format}")
+        return self.merged().export(format, **kwargs)
