@@ -52,13 +52,16 @@ def test_load_from_trimesh(tmp_path):
     assert mesh.nb_faces == 1
     assert mesh.nb_vertices == 3
 
+
 def test_export_to_trimesh():
     pytest.importorskip("trimesh", reason="trimesh not installed, test skipped")
     cpt_mesh = Mesh.from_list_of_faces([[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]]])
     trimesh_mesh = cpt_mesh.export_to_trimesh()
     assert trimesh_mesh.faces.shape == (2, 3)
 
+
 def test_compressed_stl():
+    pytest.importorskip("trimesh", reason="trimesh not installed, test skipped")
     path = os.path.join(
         os.path.dirname(__file__),
         "mesh_files_examples/viking_ship.stl.xz"

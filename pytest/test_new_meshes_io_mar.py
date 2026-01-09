@@ -112,8 +112,7 @@ def test_mar_from_file():
 
 def test_mar_from_compressed_file():
     path = os.path.join(
-        # os.path.dirname(__file__),
-        "pytest",
+        os.path.dirname(__file__),
         "mesh_files_examples/boat_200.mar.gz"
         )
     with gzip.open(path, 'rt') as f:

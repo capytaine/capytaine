@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
 import xarray as xr
@@ -61,19 +62,21 @@ def test_mesh_to_xarray_roundtrip():
     assert np.allclose(mesh_.faces_centers, mesh.faces_centers)
     assert np.allclose(mesh_.faces_normals, mesh.faces_normals)
 
+
 def test_xarray_to_mesh_from_file_detecting_extension(tmpdir):
     mesh = simple_triangle_mesh()
     ds = mesh.export_to_xarray()
-    filepath = tmpdir / "mesh.nc"
+    filepath = Path(tmpdir / "mesh.nc")
     ds.to_netcdf(filepath)
     mesh_ = load_mesh(filepath)
     assert np.allclose(mesh_.faces_centers, mesh.faces_centers)
     assert np.allclose(mesh_.faces_normals, mesh.faces_normals)
 
+
 def test_xarray_to_mesh_from_file_explicit_format(tmpdir):
     mesh = simple_triangle_mesh()
     ds = mesh.export_to_xarray()
-    filepath = tmpdir / "mesh"
+    filepath = Path(tmpdir / "mesh")
     ds.to_netcdf(filepath)
     mesh_ = load_mesh(filepath, file_format="nc")
     assert np.allclose(mesh_.faces_centers, mesh.faces_centers)

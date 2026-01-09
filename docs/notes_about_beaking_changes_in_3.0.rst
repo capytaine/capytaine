@@ -44,6 +44,11 @@ Main differences
   Computation intensive mesh transformations should be done with a dedicated meshing tool and not directly in Capytaine anyway.
   If you find yourself nonetheless struggling with performance issues of the new mesh module in Capytaine, please open an issue on Github.
 
+* **Only a few built-in mesh loaders, but transparently use external libraries**
+  Only the domain mesh file formats (Nemoh's, WAMIT's, Hydrostar's and HAMS's) are built-in in Capytaine.
+  Loading a mesh in a general purpose file format such as GMSH or STL is still easy, assuming a third party library supporting this file format is installed (see :doc:`mesh`).
+  To reduce the burden of maintenance, mesh writers have been removed, but the mesh objects can be exported to external libraries that can write mesh files.
+
 * **Symmetries are only available around the main axis.**
   The ``Plane`` and ``Axis`` objects have been removed.
   Symmetric meshes using ``ReflectionSymmetricMesh`` can now only be defined for global symmetries across the ``'xOz'`` and ``'yOz'`` planes.

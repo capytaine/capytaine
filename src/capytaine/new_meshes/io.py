@@ -126,7 +126,7 @@ def load_mesh(mesh_to_be_loaded, file_format=None, *, backend=None) -> Union[Mes
         return _load_from_path(Path(mesh_to_be_loaded), file_format, backend=backend)
 
     else:
-        raise TypeError(f"load_mesh() can't interpret the type of input of {mesh_to_be_loaded}"
+        raise TypeError(f"load_mesh() can't interpret the type of input of {repr(mesh_to_be_loaded)}"
                         + "" if backend is None else f" when using backend={backend}")
 
 
@@ -206,7 +206,7 @@ def _read_mesh_from_file_like_object(
         return _import_from_xarray_dataset(dataset)
     else:
         raise ValueError(
-                f"Unrecognized or unsupported mesh format: {file_format}."
+                f"Unrecognized or unsupported mesh format: {file_format}. "
                 f"Supported mesh formats (some may require external libraries to be installed): {sorted(_ALL_EXTS)}"
         )
 
