@@ -29,7 +29,7 @@ trimesh = silently_import_optional_dependency("trimesh")
 
 LOG = logging.getLogger(__name__)
 
-_MESHIO_EXTS = {"inp", "msh", "avs", "cgns", "xml", "e", "exo", "f3grid", "h5m", "mdpa", "mesh", "meshb", "med", "bdf", "fem", "nas", "vol", "vol.gz", "obj", "off", "post", "post.gz", "dato", "dato.gz", "ply", "stl", "dat", "node", "ele", "svg", "su2", "ugrid", "vtk", "vtu", "wkt", "xdmf", "xmf",}
+_MESHIO_EXTS = {"inp", "msh", "avs", "cgns", "xml", "e", "exo", "f3grid", "h5m", "mdpa", "mesh", "meshb", "med", "bdf", "fem", "nas", "vol", "vol.gz", "obj", "off", "post", "post.gz", "dato", "dato.gz", "ply", "stl", "dat", "node", "ele", "svg", "su2", "ugrid", "vtk", "vtu", "wkt", "xdmf", "xmf", "gmsh"}
 
 _TRIMESH_EXTS = {"obj", "stl", "ply", "glb", "gltf", "off"}
 
@@ -122,8 +122,11 @@ def load_mesh(mesh_to_be_loaded, file_format=None) -> Union[Mesh, ReflectionSymm
     elif meshio is not None and isinstance(mesh_to_be_loaded, meshio.Mesh):
         return _import_from_meshio_mesh_class(mesh_to_be_loaded)
 
-    else:  # Must be the path to a file to be open
+    elif isinstance(mesh_to_be_loaded, (str, Path)):
         return _load_from_path(Path(mesh_to_be_loaded), file_format)
+
+    else:
+        raise TypeError(f"load_mesh() can't interpret the type of input of {mesh_to_be_loaded}")
 
 
 

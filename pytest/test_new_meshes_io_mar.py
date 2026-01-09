@@ -1,5 +1,6 @@
-"""Tests for the mesh import of mesh from DIODORE-MARE file format"""
+"""Tests for the mesh import of mesh from AQUADYN and NEMOH's file format"""
 
+import os
 from io import StringIO
 
 from capytaine.new_meshes.io import load_mesh
@@ -54,3 +55,38 @@ def test_mar_symmetry():
     assert isinstance(mesh, ReflectionSymmetricMesh)
     assert mesh.nb_faces == 4
     assert mesh.plane == "xOz"
+
+
+def test_symmetric_mar_from_path():
+    mesh = load_mesh(os.path.join(
+        os.path.dirname(__file__),
+        "Nemoh_verification_cases/Cylinder/Cylinder.dat"
+    ), file_format="nemoh")
+    assert isinstance(mesh, ReflectionSymmetricMesh)
+    assert mesh.nb_faces == 2*300
+
+def test_symmetric_mar_from_file():
+    with open(os.path.join(
+        os.path.dirname(__file__),
+        "Nemoh_verification_cases/Cylinder/Cylinder.dat"
+        ), 'r') as f:
+        mesh = load_mesh(f, file_format="nemoh")
+    assert isinstance(mesh, ReflectionSymmetricMesh)
+    assert mesh.nb_faces == 2*300
+
+def test_mar_from_path():
+    mesh = load_mesh(os.path.join(
+        os.path.dirname(__file__),
+        "Nemoh_verification_cases/NonSymmetrical/NonSymmetrical.dat"
+    ), file_format="nemoh")
+    assert isinstance(mesh, Mesh)
+    assert mesh.nb_faces == 280
+
+def test_mar_from_file():
+    with open(os.path.join(
+        os.path.dirname(__file__),
+        "Nemoh_verification_cases/NonSymmetrical/NonSymmetrical.dat"
+        ), 'r') as f:
+        mesh = load_mesh(f, file_format="nemoh")
+    assert isinstance(mesh, Mesh)
+    assert mesh.nb_faces == 280
