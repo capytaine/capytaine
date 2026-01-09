@@ -72,6 +72,10 @@ Internals
 
 * Refactor the implementation of the timer to make it easier to include more steps (:pull:`809`)
 
+* Parameters ``free_surface``, ``water_depth`` and ``wavenumber`` are always
+  keyword arguments in the engine and the Green function (:pull:`812`)
+
+
 ---------------------------------
 New in version 2.3.1 (2025-10-14)
 ---------------------------------
