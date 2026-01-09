@@ -16,16 +16,17 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from functools import cached_property
+from functools import cached_property, lru_cache
 from typing import Literal, Tuple
 
 import numpy as np
 
+from capytaine.new_meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.tools.deprecation_handling import _get_water_depth
 
 LOG = logging.getLogger(__name__)
 
-class AbstractMesh(ABC):
+class AbstractMesh(SurfaceIntegralsMixin, ABC):
     @property
     @abstractmethod
     def nb_vertices(self) -> int:
@@ -242,6 +243,7 @@ class AbstractMesh(ABC):
 
         return wedge
 
+    @lru_cache
     def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None) -> AbstractMesh:
         """
         Clip the mesh to keep only the part below the free surface.
