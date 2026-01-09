@@ -88,6 +88,6 @@ def test_compressed_stl():
         os.path.dirname(__file__),
         "mesh_files_examples/viking_ship.stl.xz"
     )
-    with lzma.open(path, 'r') as f:
+    with lzma.open(path, 'rb') as f:
         mesh = load_mesh(f, file_format="stl", backend="meshio")
     assert mesh.nb_faces == 2346
