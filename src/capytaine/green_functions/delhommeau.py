@@ -323,7 +323,7 @@ class Delhommeau(AbstractGreenFunction):
             raise ValueError(f"Unrecognized name for the Prony decomposition method: {repr(method)}. Expected 'python' or 'fortran'.")
 
     def evaluate_rankine_only(self,
-                              mesh1, mesh2,
+                              mesh1, mesh2, *,
                               adjoint_double_layer=True, early_dot_product=True
                               ):
         r"""Construct the matrices between mesh1 (that can also be a list of points)
@@ -384,7 +384,7 @@ class Delhommeau(AbstractGreenFunction):
 
 
     def evaluate(self,
-                 mesh1, mesh2,
+                 mesh1, mesh2, *,
                  free_surface=0.0, water_depth=np.inf, wavenumber=1.0,
                  adjoint_double_layer=True, early_dot_product=True
                  ):

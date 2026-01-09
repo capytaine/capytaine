@@ -125,48 +125,31 @@ class BasicMatrixEngine(MatrixEngine):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
-    def build_S_matrix(
-            self, mesh1, mesh2, free_surface, water_depth, wavenumber
-            ) -> np.ndarray:
+    def build_S_matrix(self, mesh1, mesh2, **gf_params) -> np.ndarray:
         """Similar to :code:`build_matrices`, but returning only :math:`S`"""
         # Calls directly evaluate instead of build_matrices because the caching
         # mechanism of build_matrices is not compatible with giving mesh1 as a
         # list of points, but we need that for post-processing
-        S, _ = self.green_function.evaluate(
-                mesh1, mesh2, free_surface, water_depth, wavenumber
-            )
+        S, _ = self.green_function.evaluate(mesh1, mesh2, **gf_params)
         return S
 
-    def build_fullK_matrix(
-            self, mesh1, mesh2, free_surface, water_depth, wavenumber
-            ) -> np.ndarray:
+    def build_fullK_matrix(self, mesh1, mesh2, **gf_params) -> np.ndarray:
         """Similar to :code:`build_matrices`, but returning only full :math:`K`
         (that is the three components of the gradient, not just the normal one)"""
         # TODO: could use symmetries. In particular for forward, we compute the
         # full velocity on the same mesh so symmetries could be used.
-        _, fullK = self.green_function.evaluate(
-                mesh1, mesh2, free_surface, water_depth, wavenumber,
-                adjoint_double_layer=True, early_dot_product=False,
-            )
+        gf_params.setdefault("adjoint_double_layer", True)
+        gf_params.setdefault("early_dot_product", False)
+        _, fullK = self.green_function.evaluate(mesh1, mesh2, **gf_params)
         return fullK
 
-    def _build_matrices_with_symmetries(
-            self, mesh1, mesh2, *, free_surface, water_depth, wavenumber, adjoint_double_layer
-            ) -> Tuple[MatrixLike, MatrixLike]:
+    def _build_matrices_with_symmetries(self, mesh1, mesh2, **gf_params) -> Tuple[MatrixLike, MatrixLike]:
         if (isinstance(mesh1, OldReflectionSymmetricMesh)
                 and isinstance(mesh2, OldReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
 
-            S_a, K_a = self._build_matrices_with_symmetries(
-                mesh1[0], mesh2[0],
-                free_surface=free_surface, water_depth=water_depth,
-                wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
-                )
-            S_b, K_b = self._build_matrices_with_symmetries(
-                mesh1[0], mesh2[1],
-                free_surface=free_surface, water_depth=water_depth,
-                wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
-                )
+            S_a, K_a = self._build_matrices_with_symmetries(mesh1[0], mesh2[0], **gf_params)
+            S_b, K_b = self._build_matrices_with_symmetries(mesh1[0], mesh2[1], **gf_params)
 
             return BlockCirculantMatrix([S_a, S_b]), BlockCirculantMatrix([K_a, K_b])
 
@@ -174,16 +157,8 @@ class BasicMatrixEngine(MatrixEngine):
                 and isinstance(mesh2, ReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
 
-            S_a, K_a = self._build_matrices_with_symmetries(
-                mesh1.half, mesh2.half,
-                free_surface=free_surface, water_depth=water_depth,
-                wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
-                )
-            S_b, K_b = self._build_matrices_with_symmetries(
-                mesh1.other_half, mesh2.half,
-                free_surface=free_surface, water_depth=water_depth,
-                wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
-                )
+            S_a, K_a = self._build_matrices_with_symmetries(mesh1.half, mesh2.half, **gf_params)
+            S_b, K_b = self._build_matrices_with_symmetries(mesh1.other_half, mesh2.half, **gf_params)
 
             return BlockCirculantMatrix([S_a, S_b]), BlockCirculantMatrix([K_a, K_b])
 
@@ -192,42 +167,32 @@ class BasicMatrixEngine(MatrixEngine):
                 and mesh1.n == mesh2.n):
 
             S_and_K_blocks = [
-                    self._build_matrices_with_symmetries(
-                        w, mesh2.wedge,
-                        free_surface=free_surface, water_depth=water_depth,
-                        wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
-                        )
+                    self._build_matrices_with_symmetries(w, mesh2.wedge, **gf_params)
                     for w in mesh1.all_wedges]
             # Building the first column of blocks, that is the interactions of all the rotated wedges of mesh1 with the reference wedge of mesh2.
 
             return BlockCirculantMatrix([b[0] for b in S_and_K_blocks]), BlockCirculantMatrix([b[1] for b in S_and_K_blocks])
 
         else:
-            return self.green_function.evaluate(
-                mesh1, mesh2, free_surface, water_depth, wavenumber,
-                adjoint_double_layer=adjoint_double_layer, early_dot_product=True,
-            )
+            gf_params.setdefault("early_dot_product", True)
+            return self.green_function.evaluate(mesh1, mesh2, **gf_params)
 
     def _build_and_cache_matrices_with_symmetries(
-            self, mesh1, mesh2, *, free_surface, water_depth, wavenumber, adjoint_double_layer
+            self, mesh1, mesh2, **gf_params
             ) -> Tuple[MatrixLike, LUDecomposedMatrixOrNot]:
-        if (mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer) == self.last_computed_inputs:
+        if (mesh1, mesh2, gf_params) == self.last_computed_inputs:
             LOG.debug("%s: reading cache.", self.__class__.__name__)
             return self.last_computed_matrices
         else:
             LOG.debug("%s: computing new matrices.", self.__class__.__name__)
             self.last_computed_matrices = None  # Unlink former cached values, so the memory can be freed to compute new matrices.
-            S, K = self._build_matrices_with_symmetries(
-                    mesh1, mesh2,
-                    free_surface=free_surface, water_depth=water_depth,
-                    wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
-                    )
-            self.last_computed_inputs = (mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer)
+            S, K = self._build_matrices_with_symmetries(mesh1, mesh2, **gf_params)
+            self.last_computed_inputs = (mesh1, mesh2, gf_params)
             self.last_computed_matrices = (S, K)
             return self.last_computed_matrices
 
     # Main interface for compliance with AbstractGreenFunction interface
-    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True):
+    def build_matrices(self, mesh1, mesh2, **gf_params):
         r"""Build the influence matrices between mesh1 and mesh2.
 
         Parameters
@@ -251,9 +216,7 @@ class BasicMatrixEngine(MatrixEngine):
             the matrices :math:`S` and :math:`K`
         """
         return self._build_and_cache_matrices_with_symmetries(
-            mesh1, mesh2,
-            free_surface=free_surface, water_depth=water_depth,
-            wavenumber=wavenumber, adjoint_double_layer=adjoint_double_layer
+            mesh1, mesh2, **gf_params
         )
 
     def linear_solver(self, A: LUDecomposedMatrixOrNot, b: np.ndarray) -> np.ndarray:
