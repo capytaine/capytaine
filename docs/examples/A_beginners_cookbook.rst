@@ -27,12 +27,13 @@ A2. Simulation with several bodies
    :language: python
 
 
-A3. Influence of the water depth
---------------------------------
+A3. Finite depth flap
+---------------------
 
-This example runs the same simulation for several water depth and plot the results.
+This example illustrates the following features: finite depth, rotation around
+an arbitrary axis (flap's hinge) and fixed obstacle without degrees of freedom.
 
-.. literalinclude:: src/A3_finite_depth_cylinder.py
+.. literalinclude:: src/A3_finite_depth_flap.py
    :language: python
 
 
@@ -81,4 +82,13 @@ A8. Export dataset
 ------------------
 
 .. literalinclude:: src/A8_export_dataset.py
+   :language: python
+
+
+A9. Paremetric study with several water depth
+---------------------------------------------
+
+This example runs the same simulation for several water depth and plot the results.
+
+.. literalinclude:: src/A9_parametric_study_depth.py
    :language: python
