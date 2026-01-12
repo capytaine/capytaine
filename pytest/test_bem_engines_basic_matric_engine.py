@@ -283,8 +283,8 @@ def single_panel():
 def test_symmetry(sym_mesh):
     ref_mesh = sym_mesh.merged()
     engine = cpt.BasicMatrixEngine()
-    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
+    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
     S_ref, K_ref = engine.build_matrices(ref_mesh, ref_mesh, **params)
     S, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
-    assert np.allclose(np.array(S), S_ref)
-    assert np.allclose(np.array(K), K_ref)
+    np.testing.assert_allclose(np.array(S), S_ref)
+    np.testing.assert_allclose(np.array(K), K_ref)

@@ -52,20 +52,29 @@ def test_gradient_G_a_posteriori_scalar_product_directBIE():
 
 def test_gradient_G_with_collocation_points():
     mesh = cpt.mesh_sphere(radius=1, center=(0, 0, 0), resolution=(10, 10)).immersed_part()
-    _, gradG_1 = cpt.Delhommeau().evaluate(mesh.faces_centers, mesh, wavenumber=1.0, early_dot_product=False)
-    _, gradG_2 = cpt.Delhommeau().evaluate(mesh.copy(), mesh, wavenumber=1.0, early_dot_product=False)
+    _, gradG_1 = cpt.Delhommeau().evaluate(mesh.faces_centers, mesh, wavenumber=1.0, early_dot_product=False, diagonal_term_in_double_layer=False)
+    _, gradG_2 = cpt.Delhommeau().evaluate(mesh, mesh, wavenumber=1.0, early_dot_product=False, diagonal_term_in_double_layer=False)
+    np.testing.assert_allclose(gradG_1, gradG_2, atol=1e-10, rtol=1e-10)
+
+
+@pytest.mark.xfail
+def test_gradient_Iover2_G_with_collocation_points():
+    # Cannot be done with only collocation points as the diagonal term would require the normals of mesh1
+    mesh = cpt.mesh_sphere(radius=1, center=(0, 0, 0), resolution=(10, 10)).immersed_part()
+    _, gradG_1 = cpt.Delhommeau().evaluate(mesh.faces_centers, mesh, wavenumber=1.0, early_dot_product=False, diagonal_term_in_double_layer=True)
+    _, gradG_2 = cpt.Delhommeau().evaluate(mesh, mesh, wavenumber=1.0, early_dot_product=False, diagonal_term_in_double_layer=True)
     np.testing.assert_allclose(gradG_1, gradG_2, atol=1e-10, rtol=1e-10)
 
 
 @pytest.mark.parametrize("adjoint_double_layer", [True, False])
 def test_gradient_G_diagonal_term(adjoint_double_layer):
     mesh = cpt.mesh_sphere(radius=1, center=(0, 0, 0), resolution=(10, 10)).immersed_part()
-    # Passing two different Python objects
-    _, gradG_1 = cpt.Delhommeau().evaluate(mesh.copy(), mesh, wavenumber=1.0,
-                                           early_dot_product=False, adjoint_double_layer=adjoint_double_layer)
-    # Passing the same Python object
+    _, gradG_1 = cpt.Delhommeau().evaluate(mesh, mesh, wavenumber=1.0,
+                                           early_dot_product=False, adjoint_double_layer=adjoint_double_layer,
+                                           diagonal_term_in_double_layer=False)
     _, gradG_2 = cpt.Delhommeau().evaluate(mesh, mesh, wavenumber=1.0,
-                                           early_dot_product=False, adjoint_double_layer=adjoint_double_layer)
+                                           early_dot_product=False, adjoint_double_layer=adjoint_double_layer,
+                                           diagonal_term_in_double_layer=True)
 
     diag_normal = np.zeros_like(gradG_2)
     for i in range(mesh.nb_faces):
