@@ -317,21 +317,24 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
   subroutine add_diagonal_term(                               &
-      nb_faces, centers, dot_product_normals, free_surface, K &
+      centers, dot_product_normals, free_surface, K &
       )
 
-    integer, intent(in)                                :: nb_faces
-    real(kind=pre), dimension(nb_faces, 3), intent(in) :: centers
-    real(kind=pre), dimension(nb_faces, 3), intent(in) :: dot_product_normals
+    real(kind=pre), dimension(:, :), intent(in)        :: centers
+    real(kind=pre), dimension(:, :), intent(in)        :: dot_product_normals
     real(kind=pre),                         intent(in) :: free_surface
     complex(kind=pre), dimension(:, :, :),  intent(inout) :: K
 
     ! Local variables
+    integer        :: n, m
     integer        :: i
     real(kind=pre) :: diagonal_coef
 
+    n = size(K, 1)
+    m = size(K, 2)
+
     !$OMP PARALLEL DO PRIVATE(i, diagonal_coef)
-    do i = 1, nb_faces
+    do i = 1, min(n, m)
       if (abs(centers(i, 3) - free_surface) < 1e-8) then  ! Panel on the free surface
         diagonal_coef = ONE
       else

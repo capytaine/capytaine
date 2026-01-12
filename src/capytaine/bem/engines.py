@@ -138,18 +138,21 @@ class BasicMatrixEngine(MatrixEngine):
         (that is the three components of the gradient, not just the normal one)"""
         # TODO: could use symmetries. In particular for forward, we compute the
         # full velocity on the same mesh so symmetries could be used.
+        gf_params.setdefault("diagonal_term_in_double_layer", True)
         gf_params.setdefault("adjoint_double_layer", True)
         gf_params.setdefault("early_dot_product", False)
         _, fullK = self.green_function.evaluate(mesh1, mesh2, **gf_params)
         return fullK
 
-    def _build_matrices_with_symmetries(self, mesh1, mesh2, **gf_params) -> Tuple[MatrixLike, MatrixLike]:
+    def _build_matrices_with_symmetries(self, mesh1, mesh2, *, diagonal_term_in_double_layer=True, **gf_params) -> Tuple[MatrixLike, MatrixLike]:
         if (isinstance(mesh1, OldReflectionSymmetricMesh)
                 and isinstance(mesh2, OldReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
 
-            S_a, K_a = self._build_matrices_with_symmetries(mesh1[0], mesh2[0], **gf_params)
-            S_b, K_b = self._build_matrices_with_symmetries(mesh1[0], mesh2[1], **gf_params)
+            S_a, K_a = self._build_matrices_with_symmetries(mesh1[0], mesh2[0],
+                                                            diagonal_term_in_double_layer=diagonal_term_in_double_layer, **gf_params)
+            S_b, K_b = self._build_matrices_with_symmetries(mesh1[0], mesh2[1],
+                                                            diagonal_term_in_double_layer=False, **gf_params)
 
             return BlockCirculantMatrix([S_a, S_b]), BlockCirculantMatrix([K_a, K_b])
 
@@ -157,8 +160,10 @@ class BasicMatrixEngine(MatrixEngine):
                 and isinstance(mesh2, ReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
 
-            S_a, K_a = self._build_matrices_with_symmetries(mesh1.half, mesh2.half, **gf_params)
-            S_b, K_b = self._build_matrices_with_symmetries(mesh1.other_half, mesh2.half, **gf_params)
+            S_a, K_a = self._build_matrices_with_symmetries(mesh1.half, mesh2.half,
+                                                            diagonal_term_in_double_layer=diagonal_term_in_double_layer, **gf_params)
+            S_b, K_b = self._build_matrices_with_symmetries(mesh1.other_half, mesh2.half,
+                                                            diagonal_term_in_double_layer=False, **gf_params)
 
             return BlockCirculantMatrix([S_a, S_b]), BlockCirculantMatrix([K_a, K_b])
 
@@ -167,15 +172,17 @@ class BasicMatrixEngine(MatrixEngine):
                 and mesh1.n == mesh2.n):
 
             S_and_K_blocks = [
-                    self._build_matrices_with_symmetries(w, mesh2.wedge, **gf_params)
-                    for w in mesh1.all_wedges]
+                    self._build_matrices_with_symmetries(w, mesh2.wedge,
+                                                         diagonal_term_in_double_layer=diagonal_term_in_double_layer if i == 0 else False,
+                                                         **gf_params)
+                    for i, w in enumerate(mesh1.all_wedges)]
             # Building the first column of blocks, that is the interactions of all the rotated wedges of mesh1 with the reference wedge of mesh2.
 
             return BlockCirculantMatrix([b[0] for b in S_and_K_blocks]), BlockCirculantMatrix([b[1] for b in S_and_K_blocks])
 
         else:
             gf_params.setdefault("early_dot_product", True)
-            return self.green_function.evaluate(mesh1, mesh2, **gf_params)
+            return self.green_function.evaluate(mesh1, mesh2, diagonal_term_in_double_layer=diagonal_term_in_double_layer, **gf_params)
 
     def _build_and_cache_matrices_with_symmetries(
             self, mesh1, mesh2, **gf_params
@@ -283,18 +290,18 @@ class BasicMatrixEngine(MatrixEngine):
         # For the solvers that use LU decomposition the gain is a bit less.
         solver_factors = {
             # Formula to compute the factor of gain:
-            # (2 matrices * theoritical symmetry factor + LU decomposition + intermediate_step) / nb matrices without symmetry
+            # (2 matrices * theoretical symmetry factor + LU decomposition + intermediate_step) / nb matrices without symmetry
             "lu_decomposition": {
                 "simple": 2 / 3, # (2 * 1/2 + 1/2 + 1/2) / 3
                 "nested": 5 / 12,  # (2 * 1/4 + 1/4 + 1/2) / 3
-                "rotation": 4 / 3, 
+                "rotation": 4 / 3,
             },
             # Formula to compute the factor of gain:
-            # (2 matrices * theoritical symmetry factor + intermediate step) / nb matrices without symmetry
+            # (2 matrices * theoretical symmetry factor + intermediate step) / nb matrices without symmetry
             "lu_decomposition_with_overwrite": {
                 "simple": 3 / 4, # (2 * 1/2 + 1/2) / 2
                 "nested": 1 / 2, # (2 * 1/4 + 1/2) / 2
-                "rotation": 3 / 2, 
+                "rotation": 3 / 2,
             },
             "gmres": {
                 "simple": 1 / 2,
@@ -312,7 +319,7 @@ class BasicMatrixEngine(MatrixEngine):
                 symmetry_type = "simple"
             symmetry_factor = solver_factors[self._linear_solver][symmetry_type]
         elif isinstance(problem.body.mesh, RotationSymmetricMesh):
-            symmetry_factor = solver_factors[self._linear_solver]["rotation"] / problem.body.mesh.n 
+            symmetry_factor = solver_factors[self._linear_solver]["rotation"] / problem.body.mesh.n
         else:
             symmetry_factor = 1.0
 

@@ -131,10 +131,10 @@ def test_exact_integration_of_rankine_terms():
     center = np.array([0.0, 0.0, 0.0])
     area = 1.0
     mesh = cpt.mesh_rectangle(size=(np.sqrt(area), np.sqrt(area)), center=center, resolution=(1, 1))
-    rankine_g_once = gf.evaluate_rankine_only(center.reshape(1, -1), mesh)[0]
+    rankine_g_once = gf.evaluate_rankine_only(center.reshape(1, -1), mesh, diagonal_term_in_double_layer=False)[0]
     mesh = cpt.mesh_rectangle(size=(np.sqrt(area), np.sqrt(area)), center=center, resolution=(11, 11))
     # Use odd number of panels to avoid having the center on a corner of a panel, which is not defined for the strong singularity of the derivative.
-    rankine_g_parts = gf.evaluate_rankine_only(center.reshape(1, -1), mesh)[0]
+    rankine_g_parts = gf.evaluate_rankine_only(center.reshape(1, -1), mesh, diagonal_term_in_double_layer=False)[0]
     assert rankine_g_once == pytest.approx(rankine_g_parts.sum(), abs=1e-2)
 
 

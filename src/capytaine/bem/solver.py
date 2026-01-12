@@ -180,7 +180,7 @@ class BEMSolver:
             with self.timer(step="Green function"):
                 S, D = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        **gf_params, adjoint_double_layer=False
+                        **gf_params, adjoint_double_layer=False, diagonal_term_in_double_layer=True,
                         )
             with self.timer(step="Matrix-vector product"):
                 rhs = S @ problem.boundary_condition
@@ -193,7 +193,7 @@ class BEMSolver:
             with self.timer(step="Green function"):
                 S, K = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        **gf_params, adjoint_double_layer=True
+                        **gf_params, adjoint_double_layer=True, diagonal_term_in_double_layer=True,
                         )
             with self.timer(step="Linear solver"):
                 rhs = problem.boundary_condition.astype(COMPLEX_DTYPE[K.dtype.type])
@@ -495,13 +495,14 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        points, output_shape = _normalize_points(points, keep_mesh=True)
+        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
+
+        points, output_shape = _normalize_points(points)
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
-        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
         with self.timer(step="Post-processing potential"):
             S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, **gf_params)
             potential = S @ result.sources  # Sum the contributions of all panels in the mesh
@@ -509,6 +510,7 @@ class BEMSolver:
 
     def _compute_potential_gradient(self, points, result):
         points, output_shape = _normalize_points(points, keep_mesh=True)
+        # keep_mesh, because we need the normal vectors associated with each collocation points to compute the fullK matrix
 
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
@@ -592,7 +594,7 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        points, output_shape = _normalize_free_surface_points(points, keep_mesh=True)
+        points, output_shape = _normalize_free_surface_points(points)
 
         if result.forward_speed != 0:
             fs_elevation = -1/result.g * (-1j*result.encounter_omega) * self.compute_potential(points, result)

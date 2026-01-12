@@ -24,6 +24,7 @@ class MyGreenFunction(AbstractGreenFunction):
         wavenumber,
         adjoint_double_layer=True,
         early_dot_product=True,
+        diagonal_term_in_double_layer=True
     ):
         """The main method that needs to be implemented in the class."""
 
@@ -53,7 +54,7 @@ class MyGreenFunction(AbstractGreenFunction):
                     # function over the panel by taking the integral over a
                     # circle of same center and same area.
                     S[i, i] = -1 / (4 * pi) * 2 * np.sqrt(area * pi)
-                    if mesh1 is mesh2:
+                    if diagonal_term_in_double_layer:
                         if early_dot_product:
                             K[i, i] = 1 / 2
                         else:
