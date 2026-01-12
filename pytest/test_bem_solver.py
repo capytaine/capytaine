@@ -52,13 +52,13 @@ def test_cannot_define_gf_and_engine_in_solver():
 
 def test_solver_has_initialized_timer():
     s = cpt.BEMSolver()
-    assert all(t[0].total == 0.0 for t in s.timer.values())
+    assert s.timer.total == 0.0
 
 def test_solver_update_timer(sphere):
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
     s = cpt.BEMSolver()
     s.solve(problem)
-    assert not all(t[0].total == 0.0 for t in s.timer.values())
+    assert s.timer.total > 0.0
 
 def test_direct_solver(sphere):
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
@@ -91,16 +91,29 @@ def test_parallelization(sphere):
     solver.fill_dataset(test_matrix, sphere, n_jobs=2)
 
 
+@pytest.mark.parametrize("n_jobs", [1, 2])
+@pytest.mark.parametrize("n_threads", [1, 2])
+def test_control_threads(sphere, n_jobs, n_threads):
+    pytest.importorskip("joblib")
+    pytest.importorskip("threadpoolctl")
+    solver = cpt.BEMSolver()
+    test_matrix = xr.Dataset(coords={
+        'omega': np.linspace(0.1, 4.0, 3),
+        'radiating_dof': list(sphere.dofs.keys()),
+    })
+    solver.fill_dataset(test_matrix, sphere, n_jobs=n_jobs, n_threads=n_threads)
+
+
 def test_nb_timer(sphere):
     pytest.importorskip("joblib")
     solver = cpt.BEMSolver()
     n_jobs = 3
     problems = [
-    cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=omega)
-    for omega in np.linspace(0.1, 3.0, 5)
-    ]
-    solver.solve_all(problems, n_jobs = n_jobs)
-    assert len(solver.timer["Solve total"]) == n_jobs + 1
+            cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=omega)
+            for omega in np.linspace(0.1, 3.0, 5)
+            ]
+    solver.solve_all(problems, n_jobs=n_jobs)
+    assert len(solver.timer_summary().columns) == n_jobs
 
 
 def test_float32_solver(sphere):
