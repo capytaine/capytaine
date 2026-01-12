@@ -215,6 +215,23 @@ class BEMSolver:
         except Exception as e:
             res = problem.make_failed_results_container(e)
         return res
+    
+    @staticmethod
+    def _display_errors(results):
+        """Displays errors that occur during the solver execution and groups them according 
+        to the problem type and exception type for easier reading."""
+        failed_results = defaultdict(list)
+        for res in results:
+            if hasattr(res, "exception") and hasattr(res, "problem"):
+                key = (type(res.problem), type(res.exception), str(res.exception))  
+                failed_results[key].append(res.problem)  
+
+        for (_, exc_type, exc_msg), problems in failed_results.items():
+            nb = len(problems)
+            if nb > 1:
+                LOG.info("Skipped %d %s\nbecause of %s(%r)", nb, problems[0], exc_type.__name__, exc_msg)
+            else:
+                LOG.info("Skipped %s\nbecause of %s(%r)", problems[0], exc_type.__name__, exc_msg)
 
     def solve_all(self, problems, *, method=None, n_jobs=1, n_threads=None, progress_bar=None, _check_wavelength=True, **kwargs):
         """Solve several problems.
@@ -308,9 +325,7 @@ class BEMSolver:
             LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
         else:
             LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")
-        for res in results:
-            if hasattr(res, "exception") and hasattr(res, "problem"):   
-                LOG.info("Skipped %s\nbecause of %r", res.problem, res.exception)
+        self._display_errors(results)
         LOG.info("Solver timer summary:\n%s", self.timer_summary())
         return results
 
