@@ -54,7 +54,7 @@ def check_mesh_quality(mesh, *, tol=1e-8):
                 )
                 LOG.info(f"  Elements with AR < 5: {ratio_ok*100:.1f}%")
                 LOG.warning(
-                    "Low quality: more than 10%% of elements have aspect ratio higher than 5."
+                    "Low quality: more than 10% of elements have aspect ratio higher than 5."
                 )
     except ImportError:
         global SHOWED_PYVISTA_WARNING
