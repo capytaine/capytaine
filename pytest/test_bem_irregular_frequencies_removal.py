@@ -66,22 +66,22 @@ def test_effect_of_lid_on_matrices(body_without_lid, body_with_lid):
     n_hull_mesh = body_without_lid.mesh.nb_faces
     solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
 
-    params = [0.0, np.inf, 1.0]
+    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
     S_with, K_with = solver.engine.build_matrices(
             body_with_lid.mesh_including_lid, body_with_lid.mesh_including_lid,
-            *params, adjoint_double_layer=True,
+            **params, adjoint_double_layer=True,
             )
     S_without, K_without = solver.engine.build_matrices(
             body_without_lid.mesh, body_without_lid.mesh,
-            *params, adjoint_double_layer=True,
+            **params, adjoint_double_layer=True,
             )
     _, D_with = solver.engine.build_matrices(
             body_with_lid.mesh_including_lid, body_with_lid.mesh_including_lid,
-            *params, adjoint_double_layer=False,
+            **params, adjoint_double_layer=False,
             )
     _, D_without = solver.engine.build_matrices(
             body_without_lid.mesh, body_without_lid.mesh,
-            *params, adjoint_double_layer=False,
+            **params, adjoint_double_layer=False,
             )
 
     np.testing.assert_allclose(K_with[:n_hull_mesh, :n_hull_mesh], K_without, atol=1e-8)
@@ -219,7 +219,8 @@ def test_lid_with_plane_symmetry():
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
     solver = cpt.BEMSolver()
     S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
-                                        pb.free_surface, pb.water_depth, pb.wavenumber)
+                                        free_surface=pb.free_surface, water_depth=pb.water_depth,
+                                        wavenumber=pb.wavenumber)
     from capytaine.tools.block_circulant_matrices import BlockCirculantMatrix
     assert isinstance(S, BlockCirculantMatrix)
     assert isinstance(K, BlockCirculantMatrix)
@@ -239,7 +240,8 @@ def test_lid_with_nested_plane_symmetry():
     pb = cpt.RadiationProblem(body=body, wavelength=1.0)
     solver = cpt.BEMSolver()
     S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
-                                        pb.free_surface, pb.water_depth, pb.wavenumber)
+                                        free_surface=pb.free_surface, water_depth=pb.water_depth,
+                                        wavenumber=pb.wavenumber)
     from capytaine.tools.block_circulant_matrices import BlockCirculantMatrix
     assert isinstance(S, BlockCirculantMatrix)
     assert isinstance(S.blocks[0], BlockCirculantMatrix)

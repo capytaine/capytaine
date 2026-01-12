@@ -257,11 +257,11 @@ def broken_bem_solver():
     class BrokenGreenFunction:
         floating_point_precision = None
         exportable_settings = {}
-        def evaluate(self, m1, m2, fs, wd, wavenumber, *args, **kwargs):
+        def evaluate(self, m1, m2, *, wavenumber, **kwargs):
             if wavenumber < 2.0:
                 raise NotImplementedError("I'm potato")
             else:
-                return ref_gf.evaluate(m1, m2, fs, wd, wavenumber, *args, **kwargs)
+                return ref_gf.evaluate(m1, m2, wavenumber=wavenumber, **kwargs)
     broken_bem_solver = cpt.BEMSolver(green_function=BrokenGreenFunction())
     return broken_bem_solver
 
