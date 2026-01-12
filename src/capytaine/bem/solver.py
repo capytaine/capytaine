@@ -380,7 +380,7 @@ class BEMSolver:
             problems = [problems]
 
         estimated_memory_per_job = max(self.engine.compute_ram_estimation(pb) for pb in problems)
-        max_jobs = memory // estimated_memory_per_job
+        max_jobs = min(int(memory // estimated_memory_per_job), 20) 
         if max_jobs == 0:
             LOG.warning(f"The given memory: {memory} GB might be not enough for the computation.")
             max_jobs = 1
@@ -392,9 +392,11 @@ class BEMSolver:
 
         nb_threads_per_jobs = int(n_cpu // max_jobs) if n_cpu is not None else None
         if nb_threads_per_jobs == 0:
-            nb_threads_per_jobs = None
+            while nb_threads_per_jobs == 0:
+                max_jobs -= 1
+                nb_threads_per_jobs = int(n_cpu // max_jobs)
 
-        return max_jobs, nb_threads_per_jobs
+        return {"n_jobs": max_jobs, "n_threads": nb_threads_per_jobs}
 
     def _check_ram(self,problems, n_jobs=1):
         """Display a warning if the RAM estimation is larger than a certain limit."""
