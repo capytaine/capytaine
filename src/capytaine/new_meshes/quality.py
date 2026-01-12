@@ -17,8 +17,6 @@ from itertools import chain
 
 import numpy as np
 
-from .export import mesh_to_pyvista
-
 LOG = logging.getLogger(__name__)
 SHOWED_PYVISTA_WARNING = False
 
@@ -41,7 +39,7 @@ def check_mesh_quality(mesh, *, tol=1e-8):
         LOG.warning(f"{len(non_convex)} non-convex faces detected in {mesh}.")
 
     try:
-        pv_mesh = mesh_to_pyvista(mesh.vertices, mesh._faces)
+        pv_mesh = mesh.export_to_pyvista()
 
         try:
             arq = pv_mesh.cell_quality("aspect_ratio").cell_data.get("aspect_ratio")
@@ -56,7 +54,7 @@ def check_mesh_quality(mesh, *, tol=1e-8):
                 )
                 LOG.info(f"  Elements with AR < 5: {ratio_ok*100:.1f}%")
                 LOG.warning(
-                    "Low quality: more than 10%% of elements have aspect ratio higher than 5."
+                    "Low quality: more than 10% of elements have aspect ratio higher than 5."
                 )
     except ImportError:
         global SHOWED_PYVISTA_WARNING

@@ -24,6 +24,7 @@ class MyGreenFunction(AbstractGreenFunction):
         wavenumber,
         adjoint_double_layer=True,
         early_dot_product=True,
+        diagonal_term_in_double_layer=True
     ):
         """The main method that needs to be implemented in the class."""
 
@@ -53,7 +54,7 @@ class MyGreenFunction(AbstractGreenFunction):
                     # function over the panel by taking the integral over a
                     # circle of same center and same area.
                     S[i, i] = -1 / (4 * pi) * 2 * np.sqrt(area * pi)
-                    if mesh1 is mesh2:
+                    if diagonal_term_in_double_layer:
                         if early_dot_product:
                             K[i, i] = 1 / 2
                         else:
@@ -106,5 +107,7 @@ print(f"    Default solver:   {default_result.added_masses['Surge']:.2e}")
 
 print()
 print("Timer:")
-print(f"    Custom solver:  {custom_solver.timer['  Green function'][0].mean:.1e} s")
-print(f"    Default solver: {default_solver.timer['  Green function'][0].mean:.1e} s")
+df = custom_solver.timer.as_dataframe()
+print(f"    Custom solver:  {df[df['step'] == '  Green function']['timing'].mean():.1e} s")
+df = default_solver.timer.as_dataframe()
+print(f"    Default solver: {df[df['step'] == '  Green function']['timing'].mean():.1e} s")

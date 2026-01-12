@@ -10,13 +10,13 @@
 """
 
 import os
+import shutil
+import textwrap
 import logging
 
 import numpy as np
-import pandas as pd
 
 from datetime import datetime
-from collections import defaultdict
 
 from rich.progress import track
 
@@ -30,6 +30,14 @@ from capytaine.tools.symbolic_multiplication import supporting_symbolic_multipli
 from capytaine.tools.timer import Timer
 
 LOG = logging.getLogger(__name__)
+
+# Mapping between a dtype and its complex version
+COMPLEX_DTYPE = {
+                    np.float32: np.complex64,
+                    np.float64: np.complex128,
+                    np.complex64 : np.complex64,
+                    np.complex128 : np.complex128
+                }
 
 class BEMSolver:
     """
@@ -51,7 +59,7 @@ class BEMSolver:
 
     Attributes
     ----------
-    timer: dict[str, Timer]
+    timer: Timer
         Storing the time spent on each subtasks of the resolution
     exportable_settings : dict
         Settings of the solver that can be saved to reinit the same solver later.
@@ -72,9 +80,7 @@ class BEMSolver:
             raise ValueError(f"Unrecognized method when initializing solver: {repr(method)}. Expected \"direct\" or \"indirect\".")
         self.method = method.lower()
 
-        self.timer = {"Solve total": defaultdict(Timer), "  Green function": defaultdict(Timer), "  Linear solver": defaultdict(Timer)}
-
-        self.solve = self.timer["Solve total"][0].wraps_function(self.solve)
+        self.reset_timer()
 
         self.exportable_settings = {
             **self.engine.exportable_settings,
@@ -87,27 +93,31 @@ class BEMSolver:
     def __repr__(self):
         return self.__str__()
 
+    def reset_timer(self):
+        self.timer = Timer(default_tags={"process": 0})
+        self.solve = self.timer.wraps_function(step="Total solve function")(self._solve)
+
     def timer_summary(self):
-        nb_process = len(self.timer["Solve total"])
-        list_dataframe = [pd.DataFrame([
-                {
-                    "task": name,
-                    "total": self.timer[name][process_id].total,
-                    "nb_calls": self.timer[name][process_id].nb_timings,
-                    "mean": self.timer[name][process_id].mean
-                } for name in self.timer]).set_index("task")
-                        for process_id in range(nb_process)]
+        df = self.timer.as_dataframe()
+        df["step"] = df["step"].where(
+                df["step"].str.startswith("Total"), "  " + df["step"]
+                )
+        total = (
+                df.groupby(["step", "process"])
+                ["timing"].sum()
+                .unstack()
+                )
+        return total
 
-        if nb_process == 1 :
-            return list_dataframe[0]
-        else :
-            return self.concatenate_timer_summary(list_dataframe[1::])
-
-    def concatenate_timer_summary(self, list_of_timers):
-        return pd.concat([
-                data_frame[["total"]] for data_frame in list_of_timers],
-                axis = 1,
-                keys=[f"process {nb}" for nb in range(1,len(list_of_timers) + 1)])
+    def displayed_total_summary(self, width=None):
+        total = self.timer_summary()
+        if width is None:
+            width = shutil.get_terminal_size(fallback=(80, 20)).columns - 25
+        total_str = total.to_string(
+                float_format="{:.2f}".format,
+                line_width=width,
+                )
+        return textwrap.indent(total_str, "  ")
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
@@ -116,7 +126,7 @@ class BEMSolver:
     def from_exported_settings(settings):
         raise NotImplementedError
 
-    def solve(self, problem, method=None, keep_details=True, _check_wavelength=True):
+    def _solve(self, problem, method=None, keep_details=True, _check_wavelength=True):
         """Solve the linear potential flow problem.
 
         Parameters
@@ -159,6 +169,7 @@ class BEMSolver:
             omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
         else:
             omega, wavenumber = problem.omega, problem.wavenumber
+        gf_params = dict(free_surface=problem.free_surface, water_depth=problem.water_depth, wavenumber=wavenumber)
 
         linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
         method = method if method is not None else self.method
@@ -166,29 +177,29 @@ class BEMSolver:
             if problem.forward_speed != 0.0:
                 raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
 
-            with self.timer["  Green function"][0]:
+            with self.timer(step="Green function"):
                 S, D = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        problem.free_surface, problem.water_depth, wavenumber,
-                        adjoint_double_layer=False
+                        **gf_params, adjoint_double_layer=False, diagonal_term_in_double_layer=True,
                         )
-            rhs = S @ problem.boundary_condition
-            with self.timer["  Linear solver"][0]:
-                rhs_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(D.dtype.type)
-                potential = linear_solver(D, rhs.astype(rhs_type))
+            with self.timer(step="Matrix-vector product"):
+                rhs = S @ problem.boundary_condition
+            with self.timer(step="Linear solver"):
+                rhs = rhs.astype(COMPLEX_DTYPE[D.dtype.type])
+                potential = linear_solver(D, rhs)
             pressure = 1j * omega * problem.rho * potential
             sources = None
         else:
-            with self.timer["  Green function"][0]:
+            with self.timer(step="Green function"):
                 S, K = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        problem.free_surface, problem.water_depth, wavenumber,
-                        adjoint_double_layer=True
+                        **gf_params, adjoint_double_layer=True, diagonal_term_in_double_layer=True,
                         )
-            with self.timer["  Linear solver"][0]:
-                rhs_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(K.dtype.type)
-                sources = linear_solver(K, problem.boundary_condition.astype(rhs_type))
-            potential = S @ sources
+            with self.timer(step="Linear solver"):
+                rhs = problem.boundary_condition.astype(COMPLEX_DTYPE[K.dtype.type])
+                sources = linear_solver(K, rhs)
+            with self.timer(step="Matrix-vector product"):
+                potential = S @ sources
             pressure = 1j * omega * problem.rho * potential
             if problem.forward_speed != 0.0:
                 result = problem.make_results_container(sources=sources)
@@ -306,31 +317,47 @@ class BEMSolver:
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
             with joblib.parallel_config(backend='loky', inner_max_num_threads=n_threads):
                 parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
-                groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_jobs=1, n_threads=None, progress_bar=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
+                groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_threads=None, progress_bar=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
             if progress_bar:
                 groups_of_results = track(groups_of_results,
                                           total=len(groups_of_problems),
                                           description=f"Solving BEM problems with {n_jobs} processes:")
             results = []
             process_id_mapping = {}
-            for grp_results, timer, process_id in groups_of_results:
+            for grp_results, other_timer, process_id in groups_of_results:
                 results.extend(grp_results)
                 if process_id not in process_id_mapping:
                     process_id_mapping[process_id] = len(process_id_mapping) + 1
-                for timer_key in self.timer:
-                    id_process_that_solved_that_group = process_id_mapping[process_id]
-                    self.timer[timer_key][id_process_that_solved_that_group].add_data_from_other_timer(timer[timer_key][0])
+                self.timer.add_data_from_other_timer(other_timer, process=process_id_mapping[process_id])
         memory_peak = monitor.get_memory_peak()
         if memory_peak is None:
             LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
         else:
             LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")
         self._display_errors(results)
-        LOG.info("Solver timer summary:\n%s", self.timer_summary())
+        LOG.info("Solver timer summary (in seconds):\n%s", self.displayed_total_summary())
         return results
 
-    def _solve_all_and_return_timer(self, grp, *,method, n_jobs, n_threads, progress_bar, _check_wavelength,**kwargs):
-        return self.solve_all(grp, method=method, n_jobs=n_jobs, n_threads=n_threads, progress_bar=progress_bar, _check_wavelength=_check_wavelength, **kwargs), self.timer, os.getpid()
+    def _solve_all_and_return_timer(
+        self, grp, *,
+        method, n_threads,
+        progress_bar, _check_wavelength, **kwargs
+    ):
+        # This method is only called in joblib's Parallel loop.
+        # It contains some pre-processing and post-processing that
+        # should be done in each process when solving the batch of problems.
+
+        self.reset_timer()
+        # Timer data will be concatenated to the Timer of process 0.
+        # We reset the timer at each call to avoid concatenating
+        # the same data twice in the main process.
+
+        results = self.solve_all(
+            grp, method=method, n_jobs=1,
+            n_threads=n_threads, progress_bar=progress_bar,
+            _check_wavelength=_check_wavelength, **kwargs
+        )
+        return results, self.timer, os.getpid()
 
     @staticmethod
     def _check_wavelength_and_mesh_resolution(problems):
@@ -485,28 +512,32 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        points, output_shape = _normalize_points(points, keep_mesh=True)
+        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
+
+        points, output_shape = _normalize_points(points)
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
-        with self.timer["  Green function"][0]:
-            S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
-        potential = S @ result.sources  # Sum the contributions of all panels in the mesh
+        with self.timer(step="Post-processing potential"):
+            S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, **gf_params)
+            potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
     def _compute_potential_gradient(self, points, result):
         points, output_shape = _normalize_points(points, keep_mesh=True)
+        # keep_mesh, because we need the normal vectors associated with each collocation points to compute the fullK matrix
 
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        with self.timer["  Green function"][0]:
-            gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
-        velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
+        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
+        with self.timer(step="Post-processing velocity"):
+            gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, **gf_params)
+            velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
         return velocities.reshape((*output_shape, 3))
 
     def compute_velocity(self, points, result):
@@ -580,7 +611,7 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        points, output_shape = _normalize_free_surface_points(points, keep_mesh=True)
+        points, output_shape = _normalize_free_surface_points(points)
 
         if result.forward_speed != 0:
             fs_elevation = -1/result.g * (-1j*result.encounter_omega) * self.compute_potential(points, result)
@@ -627,12 +658,9 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
+        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
         if chunk_size > mesh.nb_faces:
-            S = self.engine.build_S_matrix(
-                mesh,
-                result.body.mesh_including_lid,
-                result.free_surface, result.water_depth, result.wavenumber,
-            )
+            S = self.engine.build_S_matrix(mesh, result.body.mesh_including_lid, **gf_params)
             phi = S @ result.sources
 
         else:
@@ -642,7 +670,7 @@ class BEMSolver:
                 S = self.engine.build_S_matrix(
                     mesh.extract_faces(faces_to_extract),
                     result.body.mesh_including_lid,
-                    result.free_surface, result.water_depth, result.wavenumber,
+                    **gf_params
                 )
                 phi[i:i+chunk_size] = S @ result.sources
 

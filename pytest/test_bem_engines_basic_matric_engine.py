@@ -1,7 +1,11 @@
+from functools import lru_cache
+
 import pytest
 
 import numpy as np
 import capytaine as cpt
+from capytaine.new_meshes import Mesh, RotationSymmetricMesh, ReflectionSymmetricMesh
+from capytaine.new_meshes.meshes import to_new_mesh
 
 
 def test_engine_repr():
@@ -153,3 +157,134 @@ def test_ram_estimation():
     assert float_estimation == nb_faces**2 * 8 * 2 / 1e9
     assert lu_estimation == nb_faces**2 * 16 * 3 / 1e9
     assert lu_and_float_estimation == nb_faces**2 * 8 * 3 / 1e9
+
+
+def test_ram_1_reflection_symmetry_estimation():
+    reference_mesh = cpt.mesh_parallelepiped(resolution=(5, 5, 5), center =(0, 0, -2,))
+    half_mesh = reference_mesh.clipped(cpt.Plane(point=(0, 0, 0), normal=(1, 0, 0)))
+    mesh = ReflectionSymmetricMesh(half=to_new_mesh(half_mesh), plane="yOz")
+    body = cpt.FloatingBody(
+            mesh=mesh,
+            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.25,)),
+            name=mesh.name,
+            )
+    problem = cpt.RadiationProblem(body=body, omega=1.0, water_depth=np.inf)
+    nb_faces = problem.body.mesh.nb_faces
+
+    green_function = cpt.green_functions.delhommeau.Delhommeau(
+        floating_point_precision="float32"
+    )
+
+    gmres_estimation = cpt.BasicMatrixEngine(
+        linear_solver="gmres"
+    ).compute_ram_estimation(problem)
+    gmres_estimation_float = cpt.BasicMatrixEngine(
+        linear_solver="gmres",  green_function=green_function
+    ).compute_ram_estimation(problem)
+    lu_estimation = cpt.BasicMatrixEngine(
+        linear_solver="lu_decomposition"
+    ).compute_ram_estimation(problem)
+    lu_overwrite_estimation = cpt.BasicMatrixEngine(
+        linear_solver="lu_decomposition_with_overwrite"
+    ).compute_ram_estimation(problem)
+
+    assert gmres_estimation == nb_faces**2 * 2 * 16 / 1e9 / 2
+    assert gmres_estimation_float == nb_faces**2 * 2 * 8 / 1e9 / 2
+    assert round(lu_estimation,7) == nb_faces**2 * 16 * (2 * 1/2 + 1/2 + 1/2) / 1e9
+    assert lu_overwrite_estimation == nb_faces**2 * 16 * (2 * 1/2 + 1/2) / 1e9
+
+
+def test_ram_2_reflection_symmetries_estimation():
+    reference_mesh = cpt.mesh_parallelepiped(resolution=(5, 5, 5), center =(0, 0, -2,))
+    half_mesh = reference_mesh.clipped(cpt.Plane(point=(0, 0, 0), normal=(1, 0, 0)))
+    quarter_mesh = half_mesh.clipped(cpt.Plane(point=(0, 0, 0), normal=(0, 1, 0)))
+    mesh = ReflectionSymmetricMesh(half=ReflectionSymmetricMesh(half=to_new_mesh(quarter_mesh), plane="xOz"), plane="yOz")
+    body = cpt.FloatingBody(
+            mesh=mesh,
+            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.25,)),
+            )
+    problem = cpt.RadiationProblem(body=body, omega=1.0, water_depth=np.inf)
+    nb_faces = problem.body.mesh.nb_faces
+
+    green_function = cpt.green_functions.delhommeau.Delhommeau(
+        floating_point_precision="float32"
+    )
+
+    gmres_estimation = cpt.BasicMatrixEngine(
+        linear_solver="gmres"
+    ).compute_ram_estimation(problem)
+    gmres_estimation_float = cpt.BasicMatrixEngine(
+        linear_solver="gmres",  green_function=green_function
+    ).compute_ram_estimation(problem)
+    lu_estimation = cpt.BasicMatrixEngine(
+        linear_solver="lu_decomposition"
+    ).compute_ram_estimation(problem)
+    lu_overwrite_estimation = cpt.BasicMatrixEngine(
+        linear_solver="lu_decomposition_with_overwrite"
+    ).compute_ram_estimation(problem)
+
+    assert gmres_estimation == nb_faces**2 * 2 * 16 / 1e9 / 4
+    assert gmres_estimation_float == nb_faces**2 * 2 * 8 / 1e9 / 4
+    assert lu_estimation == nb_faces**2 * 16 * (2 * 1/4 + 1/4 + 1/2) / 1e9
+    assert lu_overwrite_estimation == nb_faces**2 * 16 * (2 * 1/4 + 1/2) / 1e9
+
+
+@pytest.mark.parametrize("n", [2,3,4])
+def test_ram_rotation_symmetries_estimation(n):
+    reference_mesh = cpt.mesh_sphere(radius = 1, resolution=(5, 5), center=(0,0,-2))
+    new_reference_mesh = to_new_mesh(reference_mesh)
+    wedge = new_reference_mesh.extract_wedge(n=n)
+    rotation_mesh = RotationSymmetricMesh(wedge=wedge, n=n)
+
+    body = cpt.FloatingBody(
+            mesh=rotation_mesh,
+            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.25,)),
+            )
+    problem = cpt.RadiationProblem(body=body, omega=1.0, water_depth=np.inf)
+    nb_faces = problem.body.mesh.nb_faces
+
+    green_function = cpt.green_functions.delhommeau.Delhommeau(
+        floating_point_precision="float32"
+    )
+
+    gmres_estimation = cpt.BasicMatrixEngine(
+        linear_solver="gmres"
+    ).compute_ram_estimation(problem)
+    gmres_estimation_float = cpt.BasicMatrixEngine(
+        linear_solver="gmres",  green_function=green_function
+    ).compute_ram_estimation(problem)
+    lu_estimation = cpt.BasicMatrixEngine(
+        linear_solver="lu_decomposition"
+    ).compute_ram_estimation(problem)
+    lu_overwrite_estimation = cpt.BasicMatrixEngine(
+        linear_solver="lu_decomposition_with_overwrite"
+    ).compute_ram_estimation(problem)
+
+    assert gmres_estimation == nb_faces**2 * 2 * 16 / 1e9 / n
+    assert gmres_estimation_float == nb_faces**2 * 2 * 8 / 1e9 / n
+    assert lu_estimation == nb_faces**2 * 16 * (2 * 1/n + 1/n + 1/n) / 1e9
+    assert lu_overwrite_estimation == nb_faces**2 * 16 * (2 * 1/n + 1/n) / 1e9
+
+
+@lru_cache
+def single_panel():
+    vertices = np.array(
+        [[0.5, 0.0, 0.0], [0.5, 0.0, -0.5], [0.5, 0.5, -0.3], [0.5, 0.5, -0.2]]
+    )
+    faces = np.array([[0, 1, 2, 3]])
+    single_panel = Mesh(vertices=vertices, faces=faces)
+    return single_panel
+
+
+@pytest.mark.parametrize("sym_mesh", [
+    ReflectionSymmetricMesh(ReflectionSymmetricMesh(single_panel(), plane="xOz"), plane="yOz"),
+    RotationSymmetricMesh(single_panel(), n=4, axis='z+'),
+    ], ids=["nested_reflections", "rotation+"])
+def test_symmetry(sym_mesh):
+    ref_mesh = sym_mesh.merged()
+    engine = cpt.BasicMatrixEngine()
+    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
+    S_ref, K_ref = engine.build_matrices(ref_mesh, ref_mesh, **params)
+    S, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
+    np.testing.assert_allclose(np.array(S), S_ref)
+    np.testing.assert_allclose(np.array(K), K_ref)
