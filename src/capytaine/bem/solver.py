@@ -31,6 +31,14 @@ from capytaine.tools.timer import Timer
 
 LOG = logging.getLogger(__name__)
 
+# Mapping between a dtype and its complex version
+COMPLEX_DTYPE = {
+                    np.float32: np.complex64,
+                    np.float64: np.complex128,
+                    np.complex64 : np.complex64,
+                    np.complex128 : np.complex128
+                }
+
 class BEMSolver:
     """
     Solver for linear potential flow problems.
@@ -161,6 +169,7 @@ class BEMSolver:
             omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
         else:
             omega, wavenumber = problem.omega, problem.wavenumber
+        gf_params = dict(free_surface=problem.free_surface, water_depth=problem.water_depth, wavenumber=wavenumber)
 
         linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
         method = method if method is not None else self.method
@@ -171,26 +180,24 @@ class BEMSolver:
             with self.timer(step="Green function"):
                 S, D = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        problem.free_surface, problem.water_depth, wavenumber,
-                        adjoint_double_layer=False
+                        **gf_params, adjoint_double_layer=False, diagonal_term_in_double_layer=True,
                         )
             with self.timer(step="Matrix-vector product"):
                 rhs = S @ problem.boundary_condition
             with self.timer(step="Linear solver"):
-                rhs_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(D.dtype.type)
-                potential = linear_solver(D, rhs.astype(rhs_type))
+                rhs = rhs.astype(COMPLEX_DTYPE[D.dtype.type])
+                potential = linear_solver(D, rhs)
             pressure = 1j * omega * problem.rho * potential
             sources = None
         else:
             with self.timer(step="Green function"):
                 S, K = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        problem.free_surface, problem.water_depth, wavenumber,
-                        adjoint_double_layer=True
+                        **gf_params, adjoint_double_layer=True, diagonal_term_in_double_layer=True,
                         )
             with self.timer(step="Linear solver"):
-                rhs_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(K.dtype.type)
-                sources = linear_solver(K, problem.boundary_condition.astype(rhs_type))
+                rhs = problem.boundary_condition.astype(COMPLEX_DTYPE[K.dtype.type])
+                sources = linear_solver(K, rhs)
             with self.timer(step="Matrix-vector product"):
                 potential = S @ sources
             pressure = 1j * omega * problem.rho * potential
@@ -488,27 +495,31 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        points, output_shape = _normalize_points(points, keep_mesh=True)
+        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
+
+        points, output_shape = _normalize_points(points)
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
         with self.timer(step="Post-processing potential"):
-            S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
+            S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, **gf_params)
             potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
     def _compute_potential_gradient(self, points, result):
         points, output_shape = _normalize_points(points, keep_mesh=True)
+        # keep_mesh, because we need the normal vectors associated with each collocation points to compute the fullK matrix
 
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
+        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
         with self.timer(step="Post-processing velocity"):
-            gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
+            gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, **gf_params)
             velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
         return velocities.reshape((*output_shape, 3))
 
@@ -583,7 +594,7 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        points, output_shape = _normalize_free_surface_points(points, keep_mesh=True)
+        points, output_shape = _normalize_free_surface_points(points)
 
         if result.forward_speed != 0:
             fs_elevation = -1/result.g * (-1j*result.encounter_omega) * self.compute_potential(points, result)
@@ -630,12 +641,9 @@ class BEMSolver:
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
+        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
         if chunk_size > mesh.nb_faces:
-            S = self.engine.build_S_matrix(
-                mesh,
-                result.body.mesh_including_lid,
-                result.free_surface, result.water_depth, result.wavenumber,
-            )
+            S = self.engine.build_S_matrix(mesh, result.body.mesh_including_lid, **gf_params)
             phi = S @ result.sources
 
         else:
@@ -645,7 +653,7 @@ class BEMSolver:
                 S = self.engine.build_S_matrix(
                     mesh.extract_faces(faces_to_extract),
                     result.body.mesh_including_lid,
-                    result.free_surface, result.water_depth, result.wavenumber,
+                    **gf_params
                 )
                 phi[i:i+chunk_size] = S @ result.sources
 

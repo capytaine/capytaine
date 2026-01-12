@@ -36,11 +36,12 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__repr__())
 
-    def evaluate(self,
-                 mesh1, mesh2,
-                 free_surface=0.0, water_depth=np.inf, wavenumber=1.0,
-                 adjoint_double_layer=True, early_dot_product=True
-                 ):
+    def evaluate(
+            self, mesh1, mesh2, *,
+            free_surface=0.0, water_depth=np.inf, wavenumber,
+            adjoint_double_layer=True, early_dot_product=True,
+            diagonal_term_in_double_layer=True,
+            ):
 
         if free_surface == np.inf or water_depth < np.inf:
             raise NotImplementedError("LiangWuNoblesseGF() is only implemented for infinite depth with a free surface")
@@ -71,7 +72,7 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
             S, K
         )
 
-        if mesh1 is mesh2:
+        if diagonal_term_in_double_layer:
             self.fortran_core.matrices.add_diagonal_term(
                     mesh2.faces_centers, early_dot_product_normals, free_surface, K,
                     )
@@ -129,7 +130,12 @@ class FinGreen3D(AbstractGreenFunction):
             return brentq(lambda y: omega2_h_over_g + y*np.tan(y), (2*i_root+1)*np.pi/2 + 1e-10, (2*i_root+2)*np.pi/2 - 1e-10)/depth
         return np.array([wavenumber] + [root(i_root) for i_root in range(nk-1)])
 
-    def evaluate(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True, early_dot_product=True):
+    def evaluate(
+            self, mesh1, mesh2, *,
+            free_surface=0.0, water_depth=np.inf, wavenumber,
+            adjoint_double_layer=True, early_dot_product=True,
+            diagonal_term_in_double_layer=True,
+            ):
 
         if free_surface == np.inf or water_depth == np.inf:
             raise NotImplementedError("FinGreen3D is only implemented for finite depth with a free surface.")
@@ -163,7 +169,7 @@ class FinGreen3D(AbstractGreenFunction):
             S, K
         )
 
-        if mesh1 is mesh2:
+        if diagonal_term_in_double_layer:
             self.fortran_core.matrices.add_diagonal_term(
                     mesh2.faces_centers, early_dot_product_normals, free_surface, K,
                     )
@@ -197,8 +203,8 @@ class HAMS_GF(AbstractGreenFunction):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__repr__())
 
-    def evaluate(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True, early_dot_product=True):
+    def evaluate(self, mesh1, mesh2, *, water_depth=np.inf, **kwargs):
         if water_depth == np.inf:
-            return self.infinite_depth_gf.evaluate(mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer, early_dot_product)
+            return self.infinite_depth_gf.evaluate(mesh1, mesh2, water_depth=water_depth, **kwargs)
         else:
-            return self.finite_depth_gf.evaluate(mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer, early_dot_product)
+            return self.finite_depth_gf.evaluate(mesh1, mesh2, water_depth=water_depth, **kwargs)
