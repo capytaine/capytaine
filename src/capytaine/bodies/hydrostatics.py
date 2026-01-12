@@ -14,14 +14,6 @@ LOG = logging.getLogger(__name__)
 class _HydrostaticsMixin(ABC):
     # This class is not meant to be instantiated but only to be inherited by other classes to give them more methods.
 
-    def surface_integral(self, data, **kwargs):
-        """Returns integral of given data along wet surface area."""
-        return self.mesh.surface_integral(data, **kwargs)
-
-    def waterplane_integral(self, data, **kwargs):
-        """Returns integral of given data along water plane area."""
-        return self.mesh.waterplane_integral(data, **kwargs)
-
     @property
     def wet_surface_area(self):
         """Returns wet surface area."""
@@ -65,14 +57,16 @@ class _HydrostaticsMixin(ABC):
     @property
     def transversal_metacentric_radius(self):
         """Returns transversal metacentric radius of the mesh."""
-        inertia_moment = -self.waterplane_integral(self.mesh.faces_centers[:,1]**2)
-        return inertia_moment / self.volume
+        immersed_mesh = self.mesh.immersed_part()
+        inertia_moment = -immersed_mesh.waterplane_integral(immersed_mesh.faces_centers[:,1]**2)
+        return inertia_moment / self.disp_volume
 
     @property
     def longitudinal_metacentric_radius(self):
         """Returns longitudinal metacentric radius of the mesh."""
-        inertia_moment = -self.waterplane_integral(self.mesh.faces_centers[:,0]**2)
-        return inertia_moment / self.volume
+        immersed_mesh = self.mesh.immersed_part()
+        inertia_moment = -immersed_mesh.waterplane_integral(immersed_mesh.faces_centers[:,0]**2)
+        return inertia_moment / self.disp_volume
 
     @property
     def transversal_metacentric_height(self):
@@ -237,7 +231,7 @@ class _HydrostaticsMixin(ABC):
 
             radiating_dof_normal = immersed_self.dof_normals(radiating_dof)
             z_influenced_dof_div = influenced_dof[:,2] + immersed_self.mesh.faces_centers[:,2] * influenced_dof_div_array
-            norm_hs_stiff = immersed_self.surface_integral( -radiating_dof_normal * z_influenced_dof_div)
+            norm_hs_stiff = immersed_self.mesh.surface_integral( -radiating_dof_normal * z_influenced_dof_div)
 
         hs_stiff = rho * g * norm_hs_stiff
 
@@ -445,17 +439,15 @@ respective inertia coefficients are assigned as NaN.")
             raise ValueError(f"Trying to compute hydrostatics for {self.name}, but no center of mass has been defined.\n"
                              f"Suggested solution: define a `center_of_mass` attribute for the FloatingBody {self.name}.")
 
-        immersed_self = self.immersed_part()
-
         full_mesh_vertices = self.mesh.vertices
         coord_max = full_mesh_vertices.max(axis=0)
         coord_min = full_mesh_vertices.min(axis=0)
         full_length, full_breadth, depth = full_mesh_vertices.max(axis=0) - full_mesh_vertices.min(axis=0)
 
-        vertices = immersed_self.mesh.vertices
+        vertices = self.mesh.immersed_part().vertices
         sub_length, sub_breadth, _ = vertices.max(axis=0) - vertices.min(axis=0)
 
-        if abs(immersed_self.waterplane_area) > 1e-10:
+        if abs(self.waterplane_area) > 1e-10:
             water_plane_idx = np.isclose(vertices[:,2], 0.0)
             water_plane = vertices[water_plane_idx][:,:-1]
             wl_length, wl_breadth = water_plane.max(axis=0) - water_plane.min(axis=0)
@@ -467,18 +459,17 @@ respective inertia coefficients are assigned as NaN.")
         hydrostatics["rho"] = rho
         hydrostatics["center_of_mass"] = self.center_of_mass
 
-        hydrostatics["wet_surface_area"] = immersed_self.wet_surface_area
-        hydrostatics["disp_volumes"] = immersed_self.volumes
-        hydrostatics["disp_volume"] = immersed_self.volume
-        hydrostatics["disp_mass"] = immersed_self.disp_mass(rho=rho)
-        hydrostatics["center_of_buoyancy"] = immersed_self.center_of_buoyancy
-        hydrostatics["waterplane_center"] = np.append(immersed_self.waterplane_center, 0.0)
-        hydrostatics["waterplane_area"] = immersed_self.waterplane_area
-        hydrostatics["transversal_metacentric_radius"] = immersed_self.transversal_metacentric_radius
-        hydrostatics["longitudinal_metacentric_radius"] = immersed_self.longitudinal_metacentric_radius
-        hydrostatics["transversal_metacentric_height"] = immersed_self.transversal_metacentric_height
-        hydrostatics["longitudinal_metacentric_height"] = immersed_self.longitudinal_metacentric_height
-        self.hydrostatic_stiffness = hydrostatics["hydrostatic_stiffness"] = immersed_self.compute_hydrostatic_stiffness(
+        hydrostatics["wet_surface_area"] = self.wet_surface_area
+        hydrostatics["disp_volume"] = self.disp_volume
+        hydrostatics["disp_mass"] = self.disp_mass(rho=rho)
+        hydrostatics["center_of_buoyancy"] = self.center_of_buoyancy
+        hydrostatics["waterplane_center"] = np.append(self.waterplane_center, 0.0)
+        hydrostatics["waterplane_area"] = self.waterplane_area
+        hydrostatics["transversal_metacentric_radius"] = self.transversal_metacentric_radius
+        hydrostatics["longitudinal_metacentric_radius"] = self.longitudinal_metacentric_radius
+        hydrostatics["transversal_metacentric_height"] = self.transversal_metacentric_height
+        hydrostatics["longitudinal_metacentric_height"] = self.longitudinal_metacentric_height
+        self.hydrostatic_stiffness = hydrostatics["hydrostatic_stiffness"] = self.compute_hydrostatic_stiffness(
             divergence=divergence, rho=rho, g=g)
 
         hydrostatics["length_overall"] = full_length
