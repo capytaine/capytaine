@@ -53,7 +53,6 @@ Delhommeau_float64_f2py_wrapper = custom_target('Delhommeau_float64module.c',
 
 install_subdir(
   'src/capytaine',
-  exclude_directories: ['green_functions/libDelhommeau/'],  # The Fortran source files do not need to be distributed in the wheel
   exclude_files: ['__about__.py.in'],
   install_dir: py3.get_install_dir(pure: false),
   )
