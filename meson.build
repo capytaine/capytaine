@@ -23,22 +23,22 @@ incdir_f2py = run_command(py3,
 
 inc_np = include_directories(incdir_numpy, incdir_f2py)
 
-float32 = ['src/capytaine/green_functions/libDelhommeau/src/float32.f90',]
-float64 = ['src/capytaine/green_functions/libDelhommeau/src/float64.f90',]
+float32 = ['libs/libDelhommeau/src/float32.f90',]
+float64 = ['libs/libDelhommeau/src/float64.f90',]
 
 src_to_interface_with_python = [
-      'src/capytaine/green_functions/libDelhommeau/src/constants.f90',
-      'src/capytaine/green_functions/libDelhommeau/src/Delhommeau_integrals.f90',
-      'src/capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90',
-      'src/capytaine/green_functions/LiangWuNoblesse/LiangWuNoblesseWaveTerm.f90',
-      'src/capytaine/green_functions/libDelhommeau/src/Green_Rankine.f90',
-      'src/capytaine/green_functions/libDelhommeau/src/Green_wave.f90',
-      'src/capytaine/green_functions/libDelhommeau/src/matrices.f90',
-      'src/capytaine/green_functions/libDelhommeau/src/interface.f90',
+      'libs/libDelhommeau/src/constants.f90',
+      'libs/libDelhommeau/src/Delhommeau_integrals.f90',
+      'libs/libDelhommeau/src/old_Prony_decomposition.f90',
+      'libs/LiangWuNoblesse/LiangWuNoblesseWaveTerm.f90',
+      'libs/libDelhommeau/src/Green_Rankine.f90',
+      'libs/libDelhommeau/src/Green_wave.f90',
+      'libs/libDelhommeau/src/matrices.f90',
+      'libs/libDelhommeau/src/interface.f90',
 ]
 
 other_src = [
-      'src/capytaine/green_functions/FinGreen3D/FinGreen3D.f90',
+      'libs/FinGreen3D/FinGreen3D.f90',
   ]
 
 Delhommeau_float32_f2py_wrapper = custom_target('Delhommeau_float32module.c',
@@ -92,7 +92,7 @@ py3.extension_module('Delhommeau_float32',
            fortran_args : args,
            link_args : link_args,
            install : true,
-           subdir : 'capytaine/green_functions/libs/')
+           subdir : 'capytaine/green_functions/')
 
 py3.extension_module('Delhommeau_float64',
            float64, other_src, src_to_interface_with_python, Delhommeau_float64_f2py_wrapper, incdir_f2py+'/fortranobject.c',
@@ -101,4 +101,4 @@ py3.extension_module('Delhommeau_float64',
            fortran_args : args + optional_dependencies_flags,
            link_args : link_args,
            install : true,
-           subdir : 'capytaine/green_functions/libs/')
+           subdir : 'capytaine/green_functions/')

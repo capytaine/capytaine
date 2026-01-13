@@ -13,7 +13,7 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
     """
     floating_point_precision = "float64"
 
-    fortran_core = import_module("capytaine.green_functions.libs.Delhommeau_float64")
+    fortran_core = import_module("capytaine.green_functions.Delhommeau_float64")
     tabulation_grid_shape_index = fortran_core.constants.liang_wu_noblesse
     exportable_settings = {'green_function': "LiangWuNoblesseGF"}
 
@@ -96,7 +96,7 @@ class FinGreen3D(AbstractGreenFunction):
     """
     floating_point_precision = "float64"
 
-    fortran_core = import_module("capytaine.green_functions.libs.Delhommeau_float64")
+    fortran_core = import_module("capytaine.green_functions.Delhommeau_float64")
     finite_depth_method_index = fortran_core.constants.fingreen3d_method
     gf_singularities_index = fortran_core.constants.low_freq
 
