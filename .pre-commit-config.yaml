@@ -3,30 +3,19 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: "v6.0.0"
     hooks:
-      # Prevent giant files from being committed
-      - id: check-added-large-files
-      # Simply check whether files parse as valid python
-      - id: check-ast
-      # Check for files with names that would conflict on a case-insensitive filesystem like MacOS HFS+ or Windows FAT
-      - id: check-case-conflict
-      # Check for files that contain merge conflict strings
-      - id: check-merge-conflict
-      # Checks for symlinks which do not point to anything
-      - id: check-symlinks
-      # Attempts to load all TOML files to verify syntax
-      - id: check-toml
-      # Attempts to load all YAML files to verify syntax
-      - id: check-yaml
-      # Check for calls to breakpoint()
-      - id: debug-statements
-      # Makes sure files end in a newline and only a newline
-      - id: end-of-file-fixer
-      # Disallow commiting directly to "master"
-      - id: no-commit-to-branch
-      # Check the kind of line ending (LF or CRLF)
-      - id: mixed-line-ending
-      # Trim trailing whitespaces
-      - id: trailing-whitespace
+      - id: check-added-large-files  # Prevent giant files from being committed
+      - id: check-ast  # Simply check whether files parse as valid python
+      - id: check-case-conflict  # Check for filenames that would conflict on a case-insensitive filesystem
+      - id: check-illegal-windows-names  # Check for filenames that could not exist on Windows
+      - id: check-merge-conflict  # Check for files that contain merge conflict strings
+      - id: check-symlinks  # Checks for symlinks which do not point to anything
+      - id: check-toml  # Attempts to load all TOML files to verify syntax
+      - id: check-yaml  # Attempts to load all YAML files to verify syntax
+      - id: debug-statements  # Check for calls to breakpoint()
+      - id: end-of-file-fixer  # Makes sure files end in a newline and only a newline
+      - id: no-commit-to-branch  # Disallow commiting directly to "master"
+      - id: mixed-line-ending  # Check the kind of line ending (LF or CRLF)
+      - id: trailing-whitespace  # Trim trailing whitespaces
 
   - repo: https://github.com/codespell-project/codespell
     rev: "v2.4.1"
