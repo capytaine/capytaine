@@ -116,7 +116,7 @@ class Delhommeau(AbstractGreenFunction):
                  gf_singularities=_default_parameters["gf_singularities"],
                  ):
 
-        self.fortran_core = import_module(f"capytaine.green_functions.libs.Delhommeau_{floating_point_precision}")
+        self.fortran_core = import_module(f"capytaine.green_functions.Delhommeau_{floating_point_precision}")
 
         self.tabulation_grid_shape = tabulation_grid_shape
         fortran_enum = {
