@@ -1,7 +1,7 @@
 exclude: "pytest/.*/.*"
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: "v4.4.0"
+    rev: "v6.0.0"
     hooks:
       # Prevent giant files from being committed
       - id: check-added-large-files
@@ -28,13 +28,9 @@ repos:
       # Trim trailing whitespaces
       - id: trailing-whitespace
 
-  # - repo: https://github.com/astral-sh/ruff-pre-commit
-  #   rev: "v0.0.291"
-  #   hooks:
-  #     - id: ruff
-
   - repo: https://github.com/codespell-project/codespell
-    rev: "v2.2.5"
+    rev: "v2.4.1"
     hooks:
       - id: codespell
-        args: ["-L", "ans,ba,expors,informations,inout,ist,lamda,ment,noe,periode,sur", "--skip", "src/capytaine/green_functions/libDelhommeau/src/old_Prony_decomposition.f90"]
+        additional_dependencies:
+        - tomli

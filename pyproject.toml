@@ -91,3 +91,7 @@ markers = ["slow"]
 xfail_strict = true
 log_cli_level = "info"
 testpaths = ["pytest/"]
+
+[tool.codespell]
+skip = "libs/libDelhommeau/src/old_Prony_decomposition.f90"
+ignore-words-list = "ans,ba,expors,informations,inout,ist,lamda,ment,noe,periode,sur"
