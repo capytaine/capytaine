@@ -235,17 +235,18 @@ class BEMSolver:
         failed_results = defaultdict(list)
         for res in results:
             if hasattr(res, "exception") and hasattr(res, "problem"):
-                key = (type(res.problem), type(res.exception), str(res.exception))  
+                key = (type(res.exception), str(res.exception), res.problem.omega, res.problem.water_depth)  
                 failed_results[key].append(res.problem)  
 
-        for (_, exc_type, exc_msg), problems in failed_results.items():
+        for (exc_type, exc_msg, omega, water_depth), problems in failed_results.items():
             nb = len(problems)
             if nb > 1:
-                LOG.info("Skipped %d %s\nbecause of %s(%r)", nb, problems[0], exc_type.__name__, exc_msg)
+                LOG.warning("Skipped %d problems for body=%s, omega=%s, water_depth=%s\nbecause of %s(%r)", 
+                            nb, problems[0].body, omega, water_depth, exc_type.__name__, exc_msg)
             else:
-                LOG.info("Skipped %s\nbecause of %s(%r)", problems[0], exc_type.__name__, exc_msg)
+                LOG.warning("Skipped %s\nbecause of %s(%r)", problems[0], exc_type.__name__, exc_msg)
 
-    def solve_all(self, problems, *, method=None, n_jobs=1, n_threads=None, progress_bar=None, _check_wavelength=True, **kwargs):
+    def solve_all(self, problems, *, method=None, n_jobs=1, n_threads=None, progress_bar=None, _check_wavelength=True, _display_errors=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -311,6 +312,8 @@ class BEMSolver:
                     raise ImportError(f"Setting the `n_threads` argument to {n_threads} with `n_jobs=1` requires the missing optional dependency 'threadpoolctl'.")
                 with threadpoolctl.threadpool_limits(limits=n_threads):
                     results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+            if _display_errors:
+                self._display_errors(results)
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
@@ -327,6 +330,7 @@ class BEMSolver:
             process_id_mapping = {}
             for grp_results, other_timer, process_id in groups_of_results:
                 results.extend(grp_results)
+                self._display_errors(grp_results)
                 if process_id not in process_id_mapping:
                     process_id_mapping[process_id] = len(process_id_mapping) + 1
                 self.timer.add_data_from_other_timer(other_timer, process=process_id_mapping[process_id])
@@ -335,7 +339,6 @@ class BEMSolver:
             LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
         else:
             LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")
-        self._display_errors(results)
         LOG.info("Solver timer summary (in seconds):\n%s", self.displayed_total_summary())
         return results
 
@@ -356,7 +359,7 @@ class BEMSolver:
         results = self.solve_all(
             grp, method=method, n_jobs=1,
             n_threads=n_threads, progress_bar=progress_bar,
-            _check_wavelength=_check_wavelength, **kwargs
+            _check_wavelength=_check_wavelength, _display_errors=False, **kwargs
         )
         return results, self.timer, os.getpid()
 
