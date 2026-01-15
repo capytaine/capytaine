@@ -24,7 +24,7 @@ from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, Diffr
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.memory_monitor import MemoryMonitor
-from capytaine.tools.optional_imports import silently_import_optional_dependency
+from capytaine.tools.optional_imports import silently_import_optional_dependency, import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
 from capytaine.tools.timer import Timer
@@ -376,6 +376,8 @@ class BEMSolver:
                 
     def dispatch(self, problems, memory, n_cpu=None):
         """Manage the allocation of threads and processes based on the available RAM (in GB)."""
+        joblib = import_optional_dependency("joblib")
+
         if not isinstance(problems, (list, tuple)):
             problems = [problems]
 
@@ -386,9 +388,7 @@ class BEMSolver:
             max_jobs = 1
 
         if n_cpu is None:
-            psutil = silently_import_optional_dependency("psutil")
-            if psutil is not None:
-                n_cpu = psutil.cpu_count(logical=False)
+            n_cpu = joblib.cpu_count(only_physical_cores=True)
 
         nb_threads_per_jobs = int(n_cpu // max_jobs) if n_cpu is not None else None
         if nb_threads_per_jobs == 0:
