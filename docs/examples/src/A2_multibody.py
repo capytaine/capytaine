@@ -27,7 +27,7 @@ cylinder.add_translation_dof(name="Surge")
 cylinder.add_translation_dof(name="Heave")
 
 # Combine the three individual bodies into a single body.
-all_bodies = cylinder + sphere + other_sphere
+all_bodies = cpt.Multibody([cylinder, sphere, other_sphere])
 
 print("Merged body name:", all_bodies.name)
 print("Merged body dofs:", list(all_bodies.dofs.keys()))

@@ -14,6 +14,7 @@ from capytaine.meshes.predefined.spheres import mesh_sphere
 from capytaine.meshes.predefined.rectangles import mesh_rectangle, mesh_parallelepiped
 
 from capytaine.bodies.bodies import FloatingBody
+from capytaine.bodies.multibodies import Multibody
 from capytaine.bodies.dofs import rigid_body_dofs
 
 from capytaine.bodies.predefined.spheres import Sphere
