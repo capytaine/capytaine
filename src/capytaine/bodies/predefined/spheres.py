@@ -63,7 +63,7 @@ class Sphere(FloatingBody):
         mesh = mesh_sphere(radius=radius, center=center, resolution=(ntheta, nphi), axial_symmetry=axial_symmetry, name=f"{name}_mesh")
 
         if clip_free_surface:
-            mesh.keep_immersed_part()
+            mesh = mesh.immersed_part()
 
         self.radius = radius
         self.geometric_center = np.array(center, dtype=float)

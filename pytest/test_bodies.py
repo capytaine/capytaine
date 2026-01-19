@@ -90,7 +90,7 @@ def test_bodies():
     body.extract_faces(np.where(body.mesh.faces_centers[:, 2] < 0)[0])
 
     # Clipping
-    body.keep_immersed_part(inplace=False)
+    body = body.immersed_part()
 
     # Mirror of the dofs
     mirrored = body.mirrored(cpt.Plane(point=(1, 0, 0), normal=(1, 0, 0)))
@@ -156,7 +156,7 @@ def test_clipping_of_dofs(z_center, as_collection_of_meshes):
     axis = cpt.Axis(point=(1, 0, 0), vector=(1, 0, 0))
 
     full_sphere.add_rotation_dof(axis, name="test_dof")
-    clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, water_depth=np.inf, inplace=False)
+    clipped_sphere = full_sphere.immersed_part(free_surface=0.0, water_depth=np.inf, inplace=False)
 
     other_clipped_sphere = cpt.FloatingBody(mesh=clipped_sphere.mesh, name="other_sphere")
     other_clipped_sphere.add_rotation_dof(axis, name="test_dof")
@@ -177,9 +177,9 @@ def test_complicated_clipping_of_dofs():
 
 def test_clipping_of_inconsistent_dof():
     body = cpt.FloatingBody(cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())
-    body.mesh.keep_immersed_part()  # Dofs and mesh are now inconsistent
+    body.mesh = body.mesh.immersed_part()  # Dofs and mesh are now inconsistent
     with pytest.raises(ValueError):
-        body.keep_immersed_part()
+        body.immersed_part()
 
 
 @pytest.mark.xfail
@@ -207,7 +207,7 @@ def test_cropping_body_with_manual_dof():
     # https://github.com/capytaine/capytaine/issues/204
     sphere = cpt.FloatingBody(cpt.mesh_sphere())
     sphere.dofs["Surge"] = [(1, 0, 0) for face in sphere.mesh.faces]
-    sphere.keep_immersed_part()
+    sphere = sphere.immersed_part()
 
 
 def test_immersed_part():
@@ -249,7 +249,7 @@ def fb_array():
     sphere = cpt.FloatingBody(cpt.mesh_sphere(radius=r, center=(0, 0, 0), resolution=(10, 4)))
     my_axis = cpt.Axis((0, 1, 0), point=(0,0,0))
     sphere.add_rotation_dof(axis=my_axis)
-    sphere.keep_immersed_part()
+    sphere = sphere.immersed_part()
 
     return sphere.assemble_arbitrary_array(locations)
 
@@ -301,5 +301,5 @@ def test_clip_component_of_multibody():
         name="body_2"
     )
     both = body_1 + body_2
-    body_2.keep_immersed_part()
+    body_2 = body_2.immersed_part()
     assert both.dofs["body_1__Heave"].shape[0] == both.mesh.nb_faces

@@ -12,21 +12,21 @@ def test_clipper():
     mesh = cpt.mesh_sphere(radius=5.0, resolution=(10, 5))
     aabb = mesh.axis_aligned_bbox
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
-    assert np.allclose(mesh.axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
+    m = mesh.immersed_part(free_surface=0.0, water_depth=np.inf)
+    assert np.allclose(m.axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=1.0)
-    assert np.allclose(mesh.axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
+    m = mesh.immersed_part(free_surface=0.0, water_depth=1.0)
+    assert np.allclose(m.axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
 
     # With CollectionOfMeshes (AxialSymmetry)
     mesh = cpt.mesh_sphere(radius=5.0, resolution=(10, 5), axial_symmetry=True)
     aabb = mesh.merged().axis_aligned_bbox
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
-    assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
+    m = mesh.immersed_part(free_surface=0.0, water_depth=np.inf)
+    assert np.allclose(m.merged().axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=1.0)
-    assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
+    m = mesh.immersed_part(free_surface=0.0, water_depth=1.0)
+    assert np.allclose(m.merged().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
 
     # Check boundaries after clipping
     mesh = cpt.mesh_rectangle(size=(5,5), normal=(1,0,0))
@@ -36,7 +36,7 @@ def test_clipper():
     assert min([i[2] for i in mesh.immersed_part(free_surface=100, sea_bottom= 1).vertices])>= 1
 
     mesh = cpt.mesh_rectangle(size=(4,4), resolution=(1,1), normal=(1,0,0))
-    tmp = list(mesh.clip(cpt.Plane(normal=(0,0.1,1),point=(0,0,-1)),inplace=False).vertices)
+    tmp = list(mesh.clip(cpt.Plane(normal=(0,0.1,1),point=(0,0,-1)), inplace=False).vertices)
     tmp.sort(key=lambda x: x[2])
     tmp.sort(key=lambda x: x[1])
     assert np.allclose([i[2] for i in tmp], [-2, -0.8, -2, -1.2])
