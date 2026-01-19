@@ -11,6 +11,15 @@ Changelog
 New in version 3.0 (2026-??-??)
 -------------------------------
 
+Major changes
+~~~~~~~~~~~~~
+
+* Add :class:`~capytaine.bodies.multibodies.Multibody` meant to represent a
+  multibody system. For hydrodynamics, this is equivalent to the previous
+  behavior of coalescing bodies together. For hydrostatics, the new class
+  is slightly more powerful, for instance by being able to keep track of
+  several center of buoyancy and center of mass. (:pull:`822`)
+
 Minor changes
 ~~~~~~~~~~~~~
 

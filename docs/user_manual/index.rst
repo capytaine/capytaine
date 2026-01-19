@@ -10,6 +10,7 @@ User manual
    tutorial.rst
    mesh.rst
    body.rst
+   multibody.rst
    hydrostatics.rst
    symmetries.rst
    problem_setup.rst
