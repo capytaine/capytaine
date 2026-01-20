@@ -9,7 +9,6 @@ from capytaine.new_meshes.predefined import (
     mesh_parallelepiped,
     mesh_rectangle
 )
-from capytaine.new_meshes.meshes import to_new_mesh
 from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
 
 ##################
@@ -17,7 +16,8 @@ from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh, Rotat
 ##################
 
 def test_lid_below_free_surface():
-    mesh = to_new_mesh(cpt.AxialSymmetricMesh.from_profile(lambda z: (z + 1.0)**2, np.linspace(-1.0, 0.0, 10)).merged())
+    points = np.array([((z + 1.0)**2, 0, z) for z in np.linspace(-1.0, 0.0, 10)])
+    mesh = RotationSymmetricMesh.from_profile_points(points, n=10).merged()
     lid_mesh = mesh.generate_lid(z=-0.5)
     x, y, z = lid_mesh.faces_centers.T
     assert np.all(np.hypot(x, y) <= (z + 1.0)**2)

@@ -5,7 +5,6 @@ import pytest
 import numpy as np
 import capytaine as cpt
 from capytaine.new_meshes import Mesh, RotationSymmetricMesh, ReflectionSymmetricMesh
-from capytaine.new_meshes.meshes import to_new_mesh
 
 
 def test_engine_repr():
@@ -162,7 +161,7 @@ def test_ram_estimation():
 def test_ram_1_reflection_symmetry_estimation():
     reference_mesh = cpt.mesh_parallelepiped(resolution=(5, 5, 5), center =(0, 0, -2,))
     half_mesh = reference_mesh.clipped(origin=(0, 0, 0), normal=(1, 0, 0))
-    mesh = ReflectionSymmetricMesh(half=to_new_mesh(half_mesh), plane="yOz")
+    mesh = ReflectionSymmetricMesh(half=half_mesh, plane="yOz")
     body = cpt.FloatingBody(
             mesh=mesh,
             dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.25,)),
@@ -198,7 +197,7 @@ def test_ram_2_reflection_symmetries_estimation():
     reference_mesh = cpt.mesh_parallelepiped(resolution=(5, 5, 5), center =(0, 0, -2,))
     half_mesh = reference_mesh.clipped(origin=(0, 0, 0), normal=(1, 0, 0))
     quarter_mesh = half_mesh.clipped(origin=(0, 0, 0), normal=(0, 1, 0))
-    mesh = ReflectionSymmetricMesh(half=ReflectionSymmetricMesh(half=to_new_mesh(quarter_mesh), plane="xOz"), plane="yOz")
+    mesh = ReflectionSymmetricMesh(half=ReflectionSymmetricMesh(half=quarter_mesh, plane="xOz"), plane="yOz")
     body = cpt.FloatingBody(
             mesh=mesh,
             dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.25,)),
@@ -232,8 +231,7 @@ def test_ram_2_reflection_symmetries_estimation():
 @pytest.mark.parametrize("n", [2,3,4])
 def test_ram_rotation_symmetries_estimation(n):
     reference_mesh = cpt.mesh_sphere(radius = 1, resolution=(5, 5), center=(0,0,-2))
-    new_reference_mesh = to_new_mesh(reference_mesh)
-    wedge = new_reference_mesh.extract_wedge(n=n)
+    wedge = reference_mesh.extract_wedge(n=n)
     rotation_mesh = RotationSymmetricMesh(wedge=wedge, n=n)
 
     body = cpt.FloatingBody(

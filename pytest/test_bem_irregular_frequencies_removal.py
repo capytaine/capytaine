@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 import capytaine as cpt
 
+from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh
 from capytaine.new_meshes.predefined import mesh_parallelepiped, mesh_rectangle, mesh_vertical_cylinder, mesh_horizontal_cylinder
 
 def test_irr_freq_warning_no_lid():
@@ -213,7 +214,7 @@ def test_lid_multibody(body_with_lid):
 
 def test_lid_with_plane_symmetry():
     mesh = mesh_horizontal_cylinder(reflection_symmetry=True).immersed_part()
-    lid_mesh = cpt.ReflectionSymmetricMesh(
+    lid_mesh = ReflectionSymmetricMesh(
             mesh_rectangle(size=(1.0, 10,), faces_max_radius=0.5, center=(0, 0.5, -0.05,)),
             plane=mesh.plane
             )
