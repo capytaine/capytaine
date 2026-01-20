@@ -363,7 +363,7 @@ class BEMSolver:
         results = self.solve_all(
             grp, method=method, n_jobs=1,
             n_threads=n_threads, progress_bar=progress_bar,
-            _check_wavelength=_check_wavelength, _display_errors=False, **kwargs
+            _check_wavelength=_check_wavelength, **kwargs
         )
         return results, self.timer, os.getpid()
 
