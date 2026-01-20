@@ -99,6 +99,7 @@ def test_export_to_meshio():
     assert len(meshio_mesh.cells[0]) == 1
 
 def test_compressed_stl():
+    pytest.importorskip("meshio", reason="meshio not installed, test skipped")
     path = os.path.join(
         os.path.dirname(__file__),
         "mesh_files_examples/viking_ship.stl.xz"

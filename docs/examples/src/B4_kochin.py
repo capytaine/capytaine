@@ -29,7 +29,7 @@ dataset = solver.fill_dataset(test_matrix, buoy.immersed_part())
 plt.figure()
 dataset = dataset.swap_dims({'omega': 'wavenumber'})  # Use wavenumber to index data
 for k in dataset.coords['wavenumber']:
-    (dataset['kochin']
+    (dataset['kochin_radiation']
      .sel(radiating_dof="Surge", wavenumber=k)
      .real
      .plot(x='theta', label=f"k={float(k):.2f} m¯¹", ax=plt.gca()))

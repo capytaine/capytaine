@@ -63,6 +63,9 @@ Main differences
   See :class:`~capytaine.new_meshes.symmetric_meshes.RotationSymmetricMesh`.
   The method to create a symmetric mesh from a profile of points has also changed, see :meth:`~capytaine.new_meshes.symmetric_meshes.RotationSymmetricMesh.from_profile_points`.
 
+* **Prototype translation symmetry has been removed.**
+  As a consequence, the ``translation_symmetry`` arguments of the mesh generations functions has been removed.
+
 * Different quality checks suite for given meshes.
 
 * ``Mesh.clipped`` and ``FloatingBody.clipped`` don't take as argument a
@@ -75,3 +78,5 @@ Main differences
   Animation support has not been implemented in this new backend yet, only static mesh viewing is available.
   The ``matplotlib`` backend is also still available for static mesh viewing.
   Some keyword argument might have been changed to uniformize usage of the two 3D backends.
+
+* The barely-used and barely-documented ``geometric_center`` attribute of the mesh and the bodies have been removed.

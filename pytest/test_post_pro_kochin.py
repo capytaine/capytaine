@@ -90,12 +90,12 @@ def test_fill_dataset_with_kochin_functions():
     })
     ds = solver.fill_dataset(test_matrix, [sphere])
     assert 'theta' in ds.coords
-    assert 'kochin' in ds
+    assert 'kochin_radiation' in ds
     assert 'kochin_diffraction' not in ds
 
     # Because of the symmetries of the body
-    assert np.isclose(ds['kochin'].sel(radiating_dof="Heave", theta=0.0),
-                      ds['kochin'].sel(radiating_dof="Heave", theta=pi/2))
+    assert np.isclose(ds['kochin_radiation'].sel(radiating_dof="Heave", theta=0.0),
+                      ds['kochin_radiation'].sel(radiating_dof="Heave", theta=pi/2))
 
     test_matrix = xr.Dataset(coords={
         'omega': [1.0],
@@ -105,7 +105,7 @@ def test_fill_dataset_with_kochin_functions():
     })
     ds = solver.fill_dataset(test_matrix, [sphere])
     assert 'theta' in ds.coords
-    assert 'kochin' in ds
+    assert 'kochin_radiation' in ds
     assert 'kochin_diffraction' in ds
 
     # Because of the symmetries of the body

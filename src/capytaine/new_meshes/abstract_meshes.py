@@ -120,6 +120,52 @@ class AbstractMesh(ABC):
         R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
         return self.rotated_with_matrix(R, name=name)
 
+    def rotated_such_that_vectors_are_aligned(self, a, b, *, eps=1e-8, name=None) -> AbstractMesh:
+        a = np.asarray(a, dtype=float)
+        b = np.asarray(b, dtype=float)
+
+        # Normalize input vectors
+        a_norm = np.linalg.norm(a)
+        b_norm = np.linalg.norm(b)
+        if a_norm < eps or b_norm < eps:
+            raise ValueError("Input vectors must be non-zero")
+
+        a_hat = a / a_norm
+        b_hat = b / b_norm
+
+        # Cross and dot products
+        v = np.cross(a_hat, b_hat)
+        c = np.dot(a_hat, b_hat)
+        s = np.linalg.norm(v)
+
+        # Case 1: vectors are already aligned
+        if s < eps and c > 0:
+            return self.copy(name=name)
+
+        # Case 2: vectors are opposite
+        if s < eps and c < 0:
+            # Find an arbitrary orthogonal vector
+            # Prefer axis least aligned with a_hat
+            axis = np.array([1.0, 0.0, 0.0])
+            if abs(a_hat[0]) > abs(a_hat[1]):
+                axis = np.array([0.0, 1.0, 0.0])
+            axis = axis - a_hat * np.dot(a_hat, axis)
+            axis /= np.linalg.norm(axis)
+
+            # Rotation by pi around axis
+            K = np.array([[0, -axis[2], axis[1]],
+                          [axis[2], 0, -axis[0]],
+                          [-axis[1], axis[0], 0]])
+            return self.rotated_with_matrix(np.eye(3) + 2 * K @ K, name=name)
+
+        # General case: Rodrigues' rotation formula
+        K = np.array([[0, -v[2], v[1]],
+                      [v[2], 0, -v[0]],
+                      [-v[1], v[0], 0]])
+
+        R = np.eye(3) + K + K @ K * ((1 - c) / (s ** 2))
+        return self.rotated_with_matrix(R, name=name)
+
     def mirrored(self, plane: Literal['xOz', 'yOz'], *, name=None) -> AbstractMesh:
         ...
 
