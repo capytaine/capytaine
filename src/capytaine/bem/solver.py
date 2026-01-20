@@ -219,30 +219,36 @@ class BEMSolver:
 
         return result
 
-    def _solve_and_catch_errors(self, problem, *args, **kwargs):
+    def _solve_and_catch_errors(self, problem, *args, _display_errors, **kwargs):
         """Same as BEMSolver.solve() but returns a
         FailedLinearPotentialFlowResult when the resolution failed."""
         try:
             res = self.solve(problem, *args, **kwargs)
         except Exception as e:
             res = problem.make_failed_results_container(e)
+            if _display_errors:
+                self._display_errors([res])
         return res
-    
+
     @staticmethod
     def _display_errors(results):
-        """Displays errors that occur during the solver execution and groups them according 
+        """Displays errors that occur during the solver execution and groups them according
         to the problem type and exception type for easier reading."""
         failed_results = defaultdict(list)
         for res in results:
             if hasattr(res, "exception") and hasattr(res, "problem"):
-                key = (type(res.exception), str(res.exception), res.problem.omega, res.problem.water_depth)  
-                failed_results[key].append(res.problem)  
+                key = (type(res.exception), str(res.exception), res.problem.omega, res.problem.water_depth, res.problem.forward_speed)
+                failed_results[key].append(res.problem)
 
-        for (exc_type, exc_msg, omega, water_depth), problems in failed_results.items():
+        for (exc_type, exc_msg, omega, water_depth, forward_speed), problems in failed_results.items():
             nb = len(problems)
             if nb > 1:
-                LOG.warning("Skipped %d problems for body=%s, omega=%s, water_depth=%s\nbecause of %s(%r)", 
-                            nb, problems[0].body, omega, water_depth, exc_type.__name__, exc_msg)
+                if forward_speed != 0.0:
+                    LOG.warning("Skipped %d problems for body=%s, omega=%s, water_depth=%s, forward_speed=%s\nbecause of %s(%r)",
+                                nb, problems[0].body.__short_str__(), omega, water_depth, forward_speed, exc_type.__name__, exc_msg)
+                else:
+                    LOG.warning("Skipped %d problems for body=%s, omega=%s, water_depth=%s\nbecause of %s(%r)",
+                                nb, problems[0].body.__short_str__(), omega, water_depth, exc_type.__name__, exc_msg)
             else:
                 LOG.warning("Skipped %s\nbecause of %s(%r)", problems[0], exc_type.__name__, exc_msg)
 
@@ -305,15 +311,13 @@ class BEMSolver:
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
             if n_threads is None:
-                results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+                results = [self._solve_and_catch_errors(pb, method=method, _display_errors=_display_errors, _check_wavelength=False, **kwargs) for pb in problems]
             else:
                 threadpoolctl = silently_import_optional_dependency("threadpoolctl")
                 if threadpoolctl is None:
                     raise ImportError(f"Setting the `n_threads` argument to {n_threads} with `n_jobs=1` requires the missing optional dependency 'threadpoolctl'.")
                 with threadpoolctl.threadpool_limits(limits=n_threads):
-                    results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
-            if _display_errors:
-                self._display_errors(results)
+                    results = [self._solve_and_catch_errors(pb, method=method, _display_errors=_display_errors, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
@@ -321,7 +325,7 @@ class BEMSolver:
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
             with joblib.parallel_config(backend='loky', inner_max_num_threads=n_threads):
                 parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
-                groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_threads=None, progress_bar=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
+                groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_threads=None, progress_bar=False, _display_errors=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
             if progress_bar:
                 groups_of_results = track(groups_of_results,
                                           total=len(groups_of_problems),
