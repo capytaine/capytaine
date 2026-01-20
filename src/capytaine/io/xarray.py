@@ -288,7 +288,7 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
             dimensions=['omega', 'radiating_dof', 'theta'],
             optional_dims=['g', 'rho', 'body_name', 'water_depth', 'forward_speed', 'wave_direction']
         )
-        kochin_data['kochin'] = radiation['kochin']
+        kochin_data['kochin_radiation'] = radiation['kochin']
 
     if "DiffractionResult" in set(records['kind']):
         diffraction = _dataset_from_dataframe(
