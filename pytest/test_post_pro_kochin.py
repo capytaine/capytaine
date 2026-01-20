@@ -19,7 +19,7 @@ def test_kochin_array_diffraction():
     kds_diff = kochin_data_array([res_diff], np.linspace(0.0, np.pi, 3))
     assert "kochin_diffraction" in kds_diff
     assert "kochin_radiation" not in kds_diff
-    assert kds_diff.dims == ({'wavelength': 1, 'wave_direction': 1, 'theta': 3})
+    assert kds_diff.sizes == ({'wavelength': 1, 'wave_direction': 1, 'theta': 3})
 
 def test_kochin_array_radiation():
     mesh = cpt.mesh_sphere().immersed_part()
@@ -30,7 +30,7 @@ def test_kochin_array_radiation():
     kds_rad = kochin_data_array([res_rad], np.linspace(0.0, np.pi, 3))
     assert "kochin_diffraction" not in kds_rad
     assert "kochin_radiation" in kds_rad
-    assert kds_rad.dims == ({'wavelength': 1, 'radiating_dof': 1, 'theta': 3})
+    assert kds_rad.sizes == ({'wavelength': 1, 'radiating_dof': 1, 'theta': 3})
 
 def test_kochin_array_both_radiation_and_diffraction():
     mesh = cpt.mesh_sphere().immersed_part()
@@ -42,7 +42,7 @@ def test_kochin_array_both_radiation_and_diffraction():
     kds_both = kochin_data_array(res_both, np.linspace(0.0, np.pi, 3))
     assert "kochin_diffraction" in kds_both
     assert "kochin_radiation" in kds_both
-    assert kds_both.dims == ({'wavelength': 1, 'wave_direction': 1, 'radiating_dof': 1, 'theta': 3})
+    assert kds_both.sizes == ({'wavelength': 1, 'wave_direction': 1, 'radiating_dof': 1, 'theta': 3})
 
 def test_kochin_array_diffraction_with_forward_speed():
     mesh = cpt.mesh_sphere().immersed_part()
@@ -53,7 +53,7 @@ def test_kochin_array_diffraction_with_forward_speed():
     kds_diff = kochin_data_array(res_diff, np.linspace(0.0, np.pi, 3))
     assert "kochin_diffraction" in kds_diff
     assert "kochin_radiation" not in kds_diff
-    assert kds_diff.dims == ({'wavelength': 1, 'wave_direction': 1, 'forward_speed': 2, 'theta': 3})
+    assert kds_diff.sizes == ({'wavelength': 1, 'wave_direction': 1, 'forward_speed': 2, 'theta': 3})
 
 def test_kochin_array_radiation_with_forward_speed():
     mesh = cpt.mesh_sphere().immersed_part()
@@ -64,7 +64,7 @@ def test_kochin_array_radiation_with_forward_speed():
     kds_rad = kochin_data_array(res_rad, np.linspace(0.0, np.pi, 3))
     assert "kochin_diffraction" not in kds_rad
     assert "kochin_radiation" in kds_rad
-    assert kds_rad.dims == ({'wavelength': 1, 'radiating_dof': 1, 'forward_speed': 2, 'theta': 3})
+    assert kds_rad.sizes == ({'wavelength': 1, 'radiating_dof': 1, 'forward_speed': 2, 'theta': 3})
 
 def test_kochin_array_both_radiation_and_diffraction_with_forward_speed():
     mesh = cpt.mesh_sphere().immersed_part()
@@ -76,7 +76,7 @@ def test_kochin_array_both_radiation_and_diffraction_with_forward_speed():
     kds_both = kochin_data_array(res_both, np.linspace(0.0, np.pi, 3))
     assert "kochin_diffraction" in kds_both
     assert "kochin_radiation" in kds_both
-    assert kds_both.dims == ({'wavelength': 1, 'wave_direction': 1, 'radiating_dof': 1, 'forward_speed': 2, 'theta': 3})
+    assert kds_both.sizes == ({'wavelength': 1, 'wave_direction': 1, 'radiating_dof': 1, 'forward_speed': 2, 'theta': 3})
 
 def test_fill_dataset_with_kochin_functions():
     sphere = cpt.Sphere(clip_free_surface=True)
