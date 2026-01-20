@@ -155,7 +155,7 @@ def test_inplace_transform_with_lid():
 @pytest.mark.parametrize("as_collection_of_meshes", [True, False])
 def test_clipping_of_dofs(z_center, as_collection_of_meshes):
     """Check that clipping a body with a dof is the same as clipping the body ant then adding the dof."""
-    full_sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(center=(0, 0, z_center), axial_symmetry=as_collection_of_meshes), name="sphere")
+    full_sphere = cpt.FloatingBody(mesh=mesh_sphere(center=(0, 0, z_center), axial_symmetry=as_collection_of_meshes), name="sphere")
 
     full_sphere.add_rotation_dof(rotation_center=(1, 0, 0), direction=(1, 0, 0), name="test_dof")
     clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, water_depth=np.inf, inplace=False)
@@ -248,10 +248,9 @@ n_bodies = locations.shape[0]
 
 @pytest.fixture
 def fb_array():
-    sphere = cpt.FloatingBody(cpt.mesh_sphere(radius=r, center=(0, 0, 0), resolution=(10, 4)))
+    sphere = cpt.FloatingBody(mesh_sphere(radius=r, center=(0, 0, 0), resolution=(10, 4)))
     sphere.add_rotation_dof(rotation_center=(0, 0, 0), direction=(0, 1, 0))
     sphere = sphere.immersed_part()
-
     return sphere.assemble_arbitrary_array(locations)
 
 
