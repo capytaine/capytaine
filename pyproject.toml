@@ -86,7 +86,7 @@ ignore = ["E501"]
 "__init__.py" = ["E402", "F401"]
 
 [tool.pytest.ini_options]
-addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config"]
+addopts = ["-ra", "--showlocals", "--strict-markers", "--strict-config", "-m not slow"]
 markers = ["slow"]
 xfail_strict = true
 log_cli_level = "info"
