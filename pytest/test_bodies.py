@@ -18,8 +18,8 @@ def test_dof():
     body.add_translation_dof(direction=(0.0, 1.0, 0.0), name="2")
     assert np.allclose(body.dofs["2"], np.array([0.0, 1.0, 0.0]))
 
-    body.add_rotation_dof(cpt.Axis(vector=(0.0, 0.0, 1.0)), name="3")
-    body.add_rotation_dof(cpt.Axis(point=(0.5, 0, 0), vector=(0.0, 0.0, 1.0)), name="4")
+    body.add_rotation_dof(direction=(0.0, 0.0, 1.0), name="3")
+    body.add_rotation_dof(rotation_center=(0.5, 0, 0), direction=(0.0, 0.0, 1.0), name="4")
 
 
 def test_dof_name_inference():
@@ -153,13 +153,12 @@ def test_inplace_transform_with_lid():
 def test_clipping_of_dofs(z_center, as_collection_of_meshes):
     """Check that clipping a body with a dof is the same as clipping the body ant then adding the dof."""
     full_sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(center=(0, 0, z_center), axial_symmetry=as_collection_of_meshes), name="sphere")
-    axis = cpt.Axis(point=(1, 0, 0), vector=(1, 0, 0))
 
-    full_sphere.add_rotation_dof(axis, name="test_dof")
+    full_sphere.add_rotation_dof(rotation_center=(1, 0, 0), direction=(1, 0, 0), name="test_dof")
     clipped_sphere = full_sphere.immersed_part(free_surface=0.0, water_depth=np.inf, inplace=False)
 
     other_clipped_sphere = cpt.FloatingBody(mesh=clipped_sphere.mesh, name="other_sphere")
-    other_clipped_sphere.add_rotation_dof(axis, name="test_dof")
+    other_clipped_sphere.add_rotation_dof(rotation_center=(1, 0, 0), direction=(1, 0, 0), name="test_dof")
 
     if clipped_sphere.mesh.nb_faces > 0:
         assert np.allclose(clipped_sphere.dofs['test_dof'], other_clipped_sphere.dofs['test_dof'])
@@ -247,9 +246,8 @@ n_bodies = locations.shape[0]
 @pytest.fixture
 def fb_array():
     sphere = cpt.FloatingBody(cpt.mesh_sphere(radius=r, center=(0, 0, 0), resolution=(10, 4)))
-    my_axis = cpt.Axis((0, 1, 0), point=(0,0,0))
-    sphere.add_rotation_dof(axis=my_axis)
-    sphere = sphere.immersed_part()
+    sphere.add_rotation_dof(rotation_center=(0, 0, 0), direction=(0, 1, 0))
+    sphere = sphere.keep_immersed_part()
 
     return sphere.assemble_arbitrary_array(locations)
 

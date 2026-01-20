@@ -16,16 +16,18 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from functools import cached_property
+from functools import cached_property, lru_cache
 from typing import Literal, Tuple
 
 import numpy as np
 
+from capytaine.new_meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.tools.deprecation_handling import _get_water_depth
+from capytaine.new_meshes.geometry import connected_components, connected_components_of_waterline
 
 LOG = logging.getLogger(__name__)
 
-class AbstractMesh(ABC):
+class AbstractMesh(SurfaceIntegralsMixin, ABC):
     @property
     @abstractmethod
     def nb_vertices(self) -> int:
@@ -79,6 +81,10 @@ class AbstractMesh(ABC):
         ...
 
     @abstractmethod
+    def with_quadrature(self, quadrature_method):
+        ...
+
+    @abstractmethod
     def extract_faces(self, faces_id, *, name=None) -> AbstractMesh:
         ...
 
@@ -120,6 +126,52 @@ class AbstractMesh(ABC):
         R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
         return self.rotated_with_matrix(R, name=name)
 
+    def rotated_such_that_vectors_are_aligned(self, a, b, *, eps=1e-8, name=None) -> AbstractMesh:
+        a = np.asarray(a, dtype=float)
+        b = np.asarray(b, dtype=float)
+
+        # Normalize input vectors
+        a_norm = np.linalg.norm(a)
+        b_norm = np.linalg.norm(b)
+        if a_norm < eps or b_norm < eps:
+            raise ValueError("Input vectors must be non-zero")
+
+        a_hat = a / a_norm
+        b_hat = b / b_norm
+
+        # Cross and dot products
+        v = np.cross(a_hat, b_hat)
+        c = np.dot(a_hat, b_hat)
+        s = np.linalg.norm(v)
+
+        # Case 1: vectors are already aligned
+        if s < eps and c > 0:
+            return self.copy(name=name)
+
+        # Case 2: vectors are opposite
+        if s < eps and c < 0:
+            # Find an arbitrary orthogonal vector
+            # Prefer axis least aligned with a_hat
+            axis = np.array([1.0, 0.0, 0.0])
+            if abs(a_hat[0]) > abs(a_hat[1]):
+                axis = np.array([0.0, 1.0, 0.0])
+            axis = axis - a_hat * np.dot(a_hat, axis)
+            axis /= np.linalg.norm(axis)
+
+            # Rotation by pi around axis
+            K = np.array([[0, -axis[2], axis[1]],
+                          [axis[2], 0, -axis[0]],
+                          [-axis[1], axis[0], 0]])
+            return self.rotated_with_matrix(np.eye(3) + 2 * K @ K, name=name)
+
+        # General case: Rodrigues' rotation formula
+        K = np.array([[0, -v[2], v[1]],
+                      [v[2], 0, -v[0]],
+                      [-v[1], v[0], 0]])
+
+        R = np.eye(3) + K + K @ K * ((1 - c) / (s ** 2))
+        return self.rotated_with_matrix(R, name=name)
+
     def mirrored(self, plane: Literal['xOz', 'yOz'], *, name=None) -> AbstractMesh:
         ...
 
@@ -153,6 +205,25 @@ class AbstractMesh(ABC):
         else:
             name = None
         return self.join_meshes(other, name=name)
+
+    def lowest_lid_position(self, omega_max, *, g=9.81):
+        z_lid = 0.0
+        for comp in connected_components(self):
+            for ccomp in connected_components_of_waterline(comp):
+                x_span = ccomp.vertices[:, 0].max() - ccomp.vertices[:, 0].min()
+                y_span = ccomp.vertices[:, 1].max() - ccomp.vertices[:, 1].min()
+                p = np.hypot(1/x_span, 1/y_span)
+                z_lid_comp = -np.arctanh(np.pi*g*p/omega_max**2) / (np.pi * p)
+                z_lid = min(z_lid, z_lid_comp)
+        return 0.9*z_lid  # Add a small safety margin
+
+    @abstractmethod
+    def generate_lid(self, z=0.0, faces_max_radius=None, name=None):
+        ...
+
+    @abstractmethod
+    def extract_lid(self, z=0.0):
+        ...
 
     @abstractmethod
     def with_normal_vector_going_down(self, **kwargs) -> AbstractMesh:
@@ -242,6 +313,7 @@ class AbstractMesh(ABC):
 
         return wedge
 
+    @lru_cache
     def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None) -> AbstractMesh:
         """
         Clip the mesh to keep only the part below the free surface.

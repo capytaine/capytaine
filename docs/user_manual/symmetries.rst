@@ -88,6 +88,9 @@ The symmetric mesh can be used to setup a floating body::
    When using a lid mesh for irregular frequencies removal, the lid mesh and
    the hull mesh should have the same symmetry, otherwise the symmetry will be
    ignored when solving the BEM problem.
+   The methods ``generate_lid`` and ``extract_lid`` preserve the symmetry,
+   although the generated lid might not be optimal when the stub of the
+   symmetric mesh is small.
 
 .. note::
    For all the symmetries described above, the **mesh** (and the lid mesh)

@@ -279,22 +279,24 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
                                  compute_kochin(result, theta_range, **kwargs))
     ])
 
+    main_freq_type = Counter((res.provided_freq_type for res in results)).most_common(1)[0][0]
+
     kochin_data = xr.Dataset()
 
     if "RadiationResult" in set(records['kind']):
         radiation = _dataset_from_dataframe(
             records[records['kind'] == "RadiationResult"],
             variables=['kochin'],
-            dimensions=['omega', 'radiating_dof', 'theta'],
+            dimensions=[main_freq_type, 'radiating_dof', 'theta'],
             optional_dims=['g', 'rho', 'body_name', 'water_depth', 'forward_speed', 'wave_direction']
         )
-        kochin_data['kochin'] = radiation['kochin']
+        kochin_data['kochin_radiation'] = radiation['kochin']
 
     if "DiffractionResult" in set(records['kind']):
         diffraction = _dataset_from_dataframe(
             records[records['kind'] == "DiffractionResult"],
             ['kochin'],
-            dimensions=['omega', 'wave_direction', 'theta'],
+            dimensions=[main_freq_type, 'wave_direction', 'theta'],
             optional_dims=['g', 'rho', 'body_name', 'water_depth', 'forward_speed']
         )
         kochin_data['kochin_diffraction'] = diffraction['kochin']

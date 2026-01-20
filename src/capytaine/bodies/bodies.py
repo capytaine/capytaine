@@ -192,37 +192,42 @@ class FloatingBody(_HydrostaticsMixin):
         motion[:, :] = direction
         self.dofs[name] = amplitude * motion
 
-    def add_rotation_dof(self, axis=None, name=None, amplitude=1.0) -> None:
+    def add_rotation_dof(self, rotation_center=None, direction=None, name=None, amplitude=1.0) -> None:
         """Add a new rotation dof (in place).
         If no axis is given, the code tries to infer it from the name.
 
         Parameters
         ----------
-        axis: Axis, optional
-            the axis of the rotation
+        rotation_center: array of shape (3,), optional
+            One point on the rotation axis
+        direction: array of shape (3,), optional
+            The direction of the rotation axis
         name : str, optional
             a name for the degree of freedom
         amplitude : float, optional
             amplitude of the dof (default: 1.0)
         """
-        if axis is None:
-            if name is not None and name.lower() in ROTATION_DOFS_AXIS:
-                axis_direction = ROTATION_DOFS_AXIS[name.lower()]
-                for point_attr in ('rotation_center', 'center_of_mass', 'geometric_center'):
-                    if hasattr(self, point_attr) and getattr(self, point_attr) is not None:
-                        axis_point = getattr(self, point_attr)
-                        LOG.info(f"The rotation dof {name} has been initialized around the point: "
-                                 f"{self.__short_str__()}.{point_attr} = {getattr(self, point_attr)}")
-                        break
+        if rotation_center is None:
+            for point_attr in ('rotation_center', 'center_of_mass'):
+                if hasattr(self, point_attr) and getattr(self, point_attr) is not None:
+                    axis_point = getattr(self, point_attr)
+                    LOG.info(f"The rotation dof {name} has been initialized around the point: "
+                             f"{self.__short_str__()}.{point_attr} = {getattr(self, point_attr)}")
+                    break
                 else:
                     axis_point = np.array([0, 0, 0])
                     LOG.warning(f"The rotation dof {name} has been initialized "
                                 f"around the origin of the domain (0, 0, 0).")
-            else:
-                raise ValueError("A direction needs to be specified for the dof.")
         else:
-            axis_point = axis.point
-            axis_direction = axis.vector
+            axis_point = rotation_center
+
+        if direction is None:
+            if name is not None and name.lower() in ROTATION_DOFS_AXIS:
+                axis_direction = ROTATION_DOFS_AXIS[name.lower()]
+            else:
+                raise ValueError("A direction needs to be specified for the rotation dof.")
+        else:
+            axis_direction = direction
 
         if name is None:
             name = f"dof_{self.nb_dofs}_rotation"
@@ -578,6 +583,8 @@ class FloatingBody(_HydrostaticsMixin):
             mesh=clipped_mesh,
             lid_mesh=clipped_lid_mesh,
             dofs=updated_dofs,
+            center_of_mass=self.center_of_mass,
+            mass=self.mass,
             name=name
         )
 

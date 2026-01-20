@@ -114,17 +114,6 @@ def test_parallelepiped_generation():
     # trans_para.show()
 
 
-@pytest.mark.parametrize(
-        "shape", [RectangularParallelepiped, HorizontalCylinder, VerticalCylinder, Sphere]
-        )
-def test_geometric_center(shape):
-    center = (10, 5, -1.5)
-    body = shape(center=center)
-    assert hasattr(body, "geometric_center")
-    body.add_all_rigid_body_dofs()
-    assert np.allclose(body._infer_rotation_center(), center)
-
-
 def test_disk():
     a = Disk(resolution=(6, 6))
     b = Disk(resolution=(6, 6), axial_symmetry=True)
