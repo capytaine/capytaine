@@ -27,6 +27,7 @@ from .geometry import (
     compute_faces_centers,
     compute_faces_normals,
     compute_faces_radii,
+    compute_gauss_legendre_2_quadrature,
     get_vertices_face,
 )
 from .clip import clip_faces
@@ -73,6 +74,7 @@ class Mesh(AbstractMesh):
         faces: Union[List[List[int]], np.ndarray] = None,
         *,
         faces_metadata: Optional[Dict[str, np.ndarray]] = None,
+        quadrature_method: Optional[str] = None,
         name: Optional[str] = None,
         auto_clean: bool = True,
         auto_check: bool = True,
@@ -96,6 +98,8 @@ class Mesh(AbstractMesh):
 
         # Optional name
         self.name = str(name) if name is not None else None
+
+        self.quadrature_method = quadrature_method
 
         # Cleaning/quality (unless mesh is completely empty)
         if not (len(self.vertices) == 0 and len(self._faces) == 0):
@@ -154,11 +158,16 @@ class Mesh(AbstractMesh):
             f"  Bounding box     : {self.vertices.min(axis=0)} to {self.vertices.max(axis=0)}"
         )
         print(f"  Metadata keys  : {self.faces_metadata.keys()}")
+        print(f"  Quadrature     : {self.quadrature_method}")
 
     def __str__(self) -> str:
-        return (f"Mesh(vertices=[[... {self.nb_vertices} vertices ...]], "
+        return (
+                f"Mesh(vertices=[[... {self.nb_vertices} vertices ...]], "
                 + f"faces=[[... {self.nb_faces} faces ...]]"
-                + (f", name=\"{self.name}\")" if self.name is not None else ")"))
+                + (f", quadrature_method={repr(self.quadrature_method)}" if self.quadrature_method is not None else "")
+                + (f", name={repr(self.name)}" if self.name is not None else "")
+                + ")"
+        )
 
     def __short_str__(self) -> str:
         if self.name is not None:
@@ -181,6 +190,7 @@ class Mesh(AbstractMesh):
                 return "[[... {} {} ...]]".format(self.n, self.kind)
         yield "vertices", CustomRepr(self.nb_vertices, "vertices")
         yield "faces", CustomRepr(self.nb_faces, "faces")
+        yield "quadrature_method", self.quadrature_method
         yield "name", self.name
 
     def show(self, *, backend=None, **kwargs):
@@ -272,7 +282,16 @@ class Mesh(AbstractMesh):
             return arr.tolist()
 
     @classmethod
-    def from_list_of_faces(cls, list_faces, *, faces_metadata=None, name=None, auto_clean=True, auto_check=True) -> "Mesh":
+    def from_list_of_faces(
+        cls,
+        list_faces,
+        *,
+        quadrature_method=None,
+        faces_metadata=None,
+        name=None,
+        auto_clean=True,
+        auto_check=True
+    ) -> "Mesh":
         """
         Create a Mesh instance from a list of faces defined by vertex coordinates.
 
@@ -316,6 +335,7 @@ class Mesh(AbstractMesh):
         return cls(
             vertices=np.array(unique_vertices),
             faces=indexed_faces,
+            quadrature_method=quadrature_method,
             faces_metadata=faces_metadata,
             name=name
         )
@@ -342,7 +362,7 @@ class Mesh(AbstractMesh):
         return list_faces
 
     def as_array_of_faces(self) -> np.ndarray:
-        """Similare to as_list_of_faces but returns an array of shape
+        """Similar to as_list_of_faces but returns an array of shape
         (nb_faces, 3, 3) if only triangles, or (nb_faces, 4, 3) otherwise.
         """
         array = self.vertices[self.faces[:, :], :]
@@ -448,9 +468,25 @@ class Mesh(AbstractMesh):
             (points, weights) where points has shape (n_faces, 1, 3) and
             weights has shape (n_faces, 1), using face centers and areas.
         """
-        return (self.faces_centers.reshape((-1, 1, 3)), self.faces_areas.reshape(-1, 1))
+        if self.quadrature_method is None:
+            return (self.faces_centers.reshape((-1, 1, 3)), self.faces_areas.reshape(-1, 1))
+        elif self.quadrature_method == "Gauss-Legendre 2":
+            return compute_gauss_legendre_2_quadrature(self.vertices, self.faces)
+        else:
+            raise ValueError(f"Unknown quadrature_method: {self.quadrature_method}")
 
     ## TRANSFORMATIONS
+
+    def with_quadrature(self, quadrature_method):
+        return Mesh(
+                self.vertices,
+                self.faces,
+                faces_metadata=self.faces_metadata,
+                quadrature_method=quadrature_method,
+                name=self.name,
+                auto_clean=False,
+                auto_check=False
+                )
 
     def extract_faces(self, faces_id, *, name=None) -> "Mesh":
         """Extract a subset of faces by their indices and return a new Mesh instance.
@@ -475,6 +511,7 @@ class Mesh(AbstractMesh):
             selected_faces,
             faces_metadata={k: self.faces_metadata[k][selected_faces, ...] for k in self.faces_metadata},
             name=name,
+            quadrature_method=self.quadrature_method,
             auto_clean=False,
             auto_check=False
         )
@@ -486,6 +523,7 @@ class Mesh(AbstractMesh):
             faces=self._faces,
             faces_metadata=self.faces_metadata,
             name=name,
+            quadrature_method=self.quadrature_method,
             auto_clean=False,
             auto_check=False,
         )
@@ -498,6 +536,7 @@ class Mesh(AbstractMesh):
             faces=self._faces,
             name=name,
             faces_metadata=self.faces_metadata,
+            quadrature_method=self.quadrature_method,
             auto_clean=False,
             auto_check=False,
         )
@@ -517,6 +556,7 @@ class Mesh(AbstractMesh):
             new_vertices,
             new_faces,
             faces_metadata=self.faces_metadata,
+            quadrature_method=self.quadrature_method,
             name=name,
             auto_clean=False,
             auto_check=False
@@ -557,7 +597,18 @@ class Mesh(AbstractMesh):
         faces_metadata = {k: np.concatenate([m.faces_metadata[k] for m in meshes], axis=0)
                              for k in AbstractMesh._common_metadata_keys(*meshes)}
 
-        joined_mesh = Mesh.from_list_of_faces(faces, faces_metadata=faces_metadata, name=name)
+        if all(meshes[0].quadrature_method == m.quadrature_method for m in meshes[1:]):
+            quadrature_method = meshes[0].quadrature_method
+        else:
+            LOG.info("Dropping inconsistent quadrature method when joining meshes")
+            quadrature_method = None
+
+        joined_mesh = Mesh.from_list_of_faces(
+            faces,
+            quadrature_method=quadrature_method,
+            faces_metadata=faces_metadata,
+            name=name
+        )
         # If list of faces is trimmed for some reason, metadata will be updated accordingly
 
         if return_masks:
@@ -591,6 +642,7 @@ class Mesh(AbstractMesh):
                 vertices=self.vertices,
                 faces=self.faces[:, ::-1],
                 faces_metadata=self.faces_metadata,
+                quadrature_method=self.quadrature_method,
                 name=self.name
             )
         else:
@@ -606,6 +658,7 @@ class Mesh(AbstractMesh):
             vertices=self.vertices,
             faces=self._faces,
             faces_metadata=faces_metadata,
+            quadrature_method=self.quadrature_method,
             name=name,
             auto_clean=False,
             auto_check=False
@@ -638,7 +691,13 @@ class Mesh(AbstractMesh):
         new_metadata = {k: self.faces_metadata[k][face_parent] for k in self.faces_metadata}
         if name is None and self.name is not None:
             name = f"{self.name}_clipped"
-        return Mesh(vertices=new_vertices, faces=new_faces, faces_metadata=new_metadata, name=name)
+        return Mesh(
+            vertices=new_vertices,
+            faces=new_faces,
+            faces_metadata=new_metadata,
+            quadrature_method=self.quadrature_method,
+            name=name
+        )
 
 
 def to_new_mesh(old_mesh):

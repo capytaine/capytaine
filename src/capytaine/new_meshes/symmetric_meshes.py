@@ -128,6 +128,14 @@ class ReflectionSymmetricMesh(AbstractMesh):
                 np.concatenate([self.half.quadrature_points[1], self.other_half.quadrature_points[1]]),
                 )
 
+    def with_quadrature(self, quadrature_method):
+        return ReflectionSymmetricMesh(
+                self.half.with_quadrature(quadrature_method),
+                plane=self.plane,
+                faces_metadata=self.faces_metadata,
+                name=self.name,
+                )
+
     def __str__(self) -> str:
         return (f"ReflectionSymmetricMesh(half={str(self.half)}"
                 + f", plane='{self.plane}'"
@@ -348,7 +356,7 @@ class RotationSymmetricMesh(AbstractMesh):
 
     @classmethod
     def from_profile_points(cls, points: np.ndarray, n: int, *, faces_metadata=None, name=None):
-        """Return the mesh defined by the set of `points` repeted `n` times around the z-axis.
+        """Return the mesh defined by the set of `points` repeated `n` times around the z-axis.
 
         Points will be sorted by increasing z-coordinate before making a mesh,
         in order to ensure that the normal vector are outwards.
@@ -423,6 +431,15 @@ class RotationSymmetricMesh(AbstractMesh):
         return (
                 np.concatenate([w.quadrature_points[0] for w in self.all_wedges]),
                 np.concatenate([w.quadrature_points[1] for w in self.all_wedges]),
+                )
+
+    def with_quadrature(self, quadrature_method):
+        return RotationSymmetricMesh(
+                self.wedge.with_quadrature(quadrature_method),
+                n=self.n,
+                axis=self.axis,
+                faces_metadata=self.faces_metadata,
+                name=self.name,
                 )
 
     def __str__(self) -> str:

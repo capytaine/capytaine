@@ -80,6 +80,39 @@ def compute_faces_radii(vertices, faces):
     return np.array(distances)
 
 
+def compute_gauss_legendre_2_quadrature(vertices, faces):
+    # Parameters of Gauss-Legendre 2 quadrature scheme
+    local_points = np.array([(+1/np.sqrt(3), +1/np.sqrt(3)),
+             (+1/np.sqrt(3), -1/np.sqrt(3)),
+             (-1/np.sqrt(3), +1/np.sqrt(3)),
+             (-1/np.sqrt(3), -1/np.sqrt(3))])
+    local_weights = np.array([1/4, 1/4, 1/4, 1/4])
+
+    # Application to mesh
+    faces = vertices[faces[:, :], :]
+    nb_faces = faces.shape[0]
+    nb_quad_points = len(local_weights)
+    points = np.empty((nb_faces, nb_quad_points, 3))
+    weights = np.empty((nb_faces, nb_quad_points))
+    for i_face in range(nb_faces):
+        for k_quad in range(nb_quad_points):
+            xk, yk = local_points[k_quad, :]
+            points[i_face, k_quad, :] = (
+                      (1+xk)*(1+yk) * faces[i_face, 0, :]
+                    + (1+xk)*(1-yk) * faces[i_face, 1, :]
+                    + (1-xk)*(1-yk) * faces[i_face, 2, :]
+                    + (1-xk)*(1+yk) * faces[i_face, 3, :]
+                    )/4
+            dxidx = ((1+yk)*faces[i_face, 0, :] + (1-yk)*faces[i_face, 1, :]
+                     - (1-yk)*faces[i_face, 2, :] - (1+yk)*faces[i_face, 3, :])/4
+            dxidy = ((1+xk)*faces[i_face, 0, :] - (1+xk)*faces[i_face, 1, :]
+                     - (1-xk)*faces[i_face, 2, :] + (1-xk)*faces[i_face, 3, :])/4
+            detJ = np.linalg.norm(np.cross(dxidx, dxidy))
+            weights[i_face, k_quad] = local_weights[k_quad] * 4 * detJ
+
+    return points, weights
+
+
 def _triangle_normal(vertices, v0_idx, v1_idx, v2_idx):
     """
     Compute normal vector of a triangle face.
