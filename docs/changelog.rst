@@ -42,6 +42,9 @@ Bug fixes
   compute the inertia moments on the full shape if the full mesh is provided.
   (:pull:`794`)
 
+* Fix the frequency type in the dimensions of the dataset returned by :meth:`~cpt.io.xarray.kochin_data_array`. Previously, the dimension was always named ``omega``;
+  it is now named ``omega``, ``freq``, ``period``,  ``wavenumber`` or ``wavelength`` depending on the user settings. 
+
 Internals
 ~~~~~~~~~
 
