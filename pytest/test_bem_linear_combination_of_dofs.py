@@ -1,5 +1,6 @@
 import numpy as np
 import capytaine as cpt
+from capytaine.meshes.geometry import Axis
 import pytest
 
 method = ['indirect', 'direct']
@@ -31,10 +32,10 @@ def test_sum_of_dofs(method):
 def test_rotation_axis(method):
     body = cpt.FloatingBody(mesh=cpt.mesh_parallelepiped(resolution=(4, 4, 4), center=(0, 0, -1), name="body"))
     body.add_translation_dof(name="Sway")
-    body.add_rotation_dof(axis=cpt.Axis(point=(0, 0, 0), vector=(0, 0, 1)), name="Yaw")
+    body.add_rotation_dof(axis=Axis(point=(0, 0, 0), vector=(0, 0, 1)), name="Yaw")
 
     l = 2.0
-    body.add_rotation_dof(axis=cpt.Axis(point=(l, 0, 0), vector=(0, 0, 1)), name="other_rotation")
+    body.add_rotation_dof(axis=Axis(point=(l, 0, 0), vector=(0, 0, 1)), name="other_rotation")
 
     assert np.allclose(body.dofs['other_rotation'], (body.dofs['Yaw'] - l*body.dofs['Sway']))
 

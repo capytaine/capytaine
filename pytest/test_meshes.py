@@ -3,18 +3,19 @@
 import pytest
 
 import numpy as np
-from numpy.linalg import norm
 from numpy.typing import NDArray
 
 import capytaine as cpt
+from capytaine.meshes.meshes import Mesh as OldMesh
 from capytaine.meshes.properties import clustering
 from capytaine.meshes.predefined import mesh_sphere, mesh_horizontal_cylinder
+from capytaine.meshes.geometry import Plane, xOz_Plane
 
 RNG = np.random.default_rng()
 
 
 # Some meshes that will be used in the following tests.
-test_mesh = cpt.Mesh(vertices=RNG.random((4, 3)), faces=[range(4)], name="test_mesh")
+test_mesh = OldMesh(vertices=RNG.random((4, 3)), faces=[range(4)], name="test_mesh")
 cylinder = mesh_horizontal_cylinder()
 sphere = mesh_sphere(radius=1)
 
@@ -22,13 +23,13 @@ sphere = mesh_sphere(radius=1)
 def test_mesh_initialization():
     """Test how the code checks the validity of the parameters."""
     with pytest.raises(AssertionError):
-        cpt.Mesh(vertices=RNG.random((6, 3)), faces=[(0, 1, 2), (3, 4, 5)])
+        OldMesh(vertices=RNG.random((6, 3)), faces=[(0, 1, 2), (3, 4, 5)])
 
     with pytest.raises(AssertionError):
-        cpt.Mesh(vertices=RNG.random((4, 3)), faces=[(0, 1, 2, -1)])
+        OldMesh(vertices=RNG.random((4, 3)), faces=[(0, 1, 2, -1)])
 
     with pytest.raises(AssertionError):
-        cpt.Mesh(vertices=RNG.random((3, 3)), faces=[(0, 1, 2, 3)])
+        OldMesh(vertices=RNG.random((3, 3)), faces=[(0, 1, 2, 3)])
 
 
 def test_vertices_and_faces_get_and_set():
@@ -37,7 +38,7 @@ def test_vertices_and_faces_get_and_set():
     faces = cylinder.faces
     vertices = cylinder.vertices
 
-    new_cylinder = cpt.Mesh(name="new_cylinder")
+    new_cylinder = OldMesh(name="new_cylinder")
 
     # Set faces
     with pytest.raises(AssertionError):
@@ -52,8 +53,8 @@ def test_vertices_and_faces_get_and_set():
 def test_mesh_naming():
     """Test how the mesh handle names and string representation."""
     # Test automatic naming
-    dummy_mesh = cpt.Mesh()  # Automatically named something like mesh_1
-    other_dummy_mesh = cpt.Mesh()  # Automatically named something like mesh_2
+    dummy_mesh = OldMesh()  # Automatically named something like mesh_1
+    other_dummy_mesh = OldMesh()  # Automatically named something like mesh_2
     assert dummy_mesh.name[:5] == "mesh_"
     assert other_dummy_mesh.name[:5] == "mesh_"
     assert int(dummy_mesh.name[5:]) + 1 == int(other_dummy_mesh.name[5:])
@@ -69,7 +70,7 @@ def test_as_set_of_faces():
     assert all(len(vertex) == 3 for face in faces for vertex in face)  # Each point is represented by 3 coordinates.
 
     assert cylinder == cylinder  # The equality is defined as the equality of the set of faces.
-    assert cpt.Mesh.from_set_of_faces(faces) == cylinder  # The mesh can be reconstructed from a set of faces.
+    assert OldMesh.from_set_of_faces(faces) == cylinder  # The mesh can be reconstructed from a set of faces.
 
 
 def mesh_from_set_of_faces():
@@ -118,14 +119,14 @@ def test_rotate():
 
 
 def test_mirror():
-    new_cylinder = cylinder.mirrored(cpt.Plane())
-    cylinder.mirror(cpt.Plane())
+    new_cylinder = cylinder.mirrored(Plane())
+    cylinder.mirror(Plane())
     assert new_cylinder == cylinder
 
 
 def test_symmetrized():
     from capytaine.meshes.symmetric import ReflectionSymmetricMesh
-    sym = cylinder.merged().symmetrized(cpt.xOz_Plane)
+    sym = cylinder.merged().symmetrized(xOz_Plane)
     assert isinstance(sym, ReflectionSymmetricMesh)
 
 
@@ -138,7 +139,7 @@ def test_mesh_quality():
 def test_heal_mesh_removes_degenerate_panels():
     vertices = np.array([(0.0, 0.0, 0.0), (0.0, 1.0, 0.0), (1.0, 1.0, 0.0), (1.0, 0.0, 0.0)])
     faces = np.array([[0, 1, 2, 3], [1, 2, 2, 1]])
-    mesh = cpt.Mesh(vertices, faces)
+    mesh = OldMesh(vertices, faces)
     assert mesh.nb_faces == 2
     mesh.heal_mesh()
     assert mesh.nb_faces == 1
@@ -163,7 +164,7 @@ def test_heal_mesh_with_complicated_connectivities():
         [0, 1, 3, 0],
         [1, 4, 3, 1]
         ])
-    mesh = cpt.Mesh(vertices, faces)
+    mesh = OldMesh(vertices, faces)
     mesh.heal_mesh()
 
 def test_extract_one_face():
@@ -187,7 +188,7 @@ def test_join_meshes_masks():
 
 def test_connected_components_of_empty_mesh():
     from capytaine.meshes.properties import connected_components
-    mesh = cpt.Mesh()
+    mesh = OldMesh()
     cc = connected_components(mesh)
     assert len(cc) == 0
 

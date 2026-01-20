@@ -2,8 +2,10 @@ import pytest
 import numpy as np
 from numpy.linalg import norm
 import capytaine as cpt
+from capytaine.meshes.meshes import Mesh as OldMesh
 
 from capytaine.meshes.predefined import mesh_sphere, mesh_rectangle, mesh_vertical_cylinder
+from capytaine.meshes.geometry import Plane
 
 sphere = mesh_sphere(radius=1)
 
@@ -37,7 +39,7 @@ def test_clipper():
     assert min([i[2] for i in mesh.immersed_part(free_surface=100, sea_bottom= 1).vertices])>= 1
 
     mesh = mesh_rectangle(size=(4,4), resolution=(1,1), normal=(1,0,0))
-    tmp = list(mesh.clip(cpt.Plane(normal=(0,0.1,1),point=(0,0,-1)),inplace=False).vertices)
+    tmp = list(mesh.clip(Plane(normal=(0,0.1,1),point=(0,0,-1)),inplace=False).vertices)
     tmp.sort(key=lambda x: x[2])
     tmp.sort(key=lambda x: x[1])
     assert np.allclose([i[2] for i in tmp], [-2, -0.8, -2, -1.2])
@@ -47,7 +49,7 @@ def test_clipper():
 def test_clipper_indices(size):
     """Test clipped_mesh_faces_ids."""
     mesh = mesh_rectangle(size=(size, size), resolution=(size, size), center=(0, 0, 0))
-    clipped_mesh = mesh.clipped(plane=cpt.Plane(point=(0, 0, 0), normal=(0, 0, 1)))
+    clipped_mesh = mesh.clipped(plane=Plane(point=(0, 0, 0), normal=(0, 0, 1)))
     faces_ids = clipped_mesh._clipping_data['faces_ids']
 
     assert clipped_mesh.nb_faces == len(faces_ids)
@@ -58,17 +60,17 @@ def test_clipper_indices(size):
 def test_clipper_corner_cases():
     mesh = sphere.translated_z(10.0)
 
-    plane = cpt.Plane(point=(0, 0, 0), normal=(0, 0, 1))
+    plane = Plane(point=(0, 0, 0), normal=(0, 0, 1))
     clipped_mesh = mesh.clip(plane, inplace=False)
-    assert clipped_mesh == cpt.Mesh(None, None)  # Empty mesh
+    assert clipped_mesh == OldMesh(None, None)  # Empty mesh
 
-    plane = cpt.Plane(point=(0, 0, 0), normal=(0, 0, -1))
+    plane = Plane(point=(0, 0, 0), normal=(0, 0, -1))
     clipped_mesh = mesh.clip(plane, inplace=False)
     assert clipped_mesh == mesh  # Unchanged mesh
 
     # Two distinct bodies
-    two_spheres = cpt.Mesh.join_meshes(sphere.translated_z(10.0), sphere.translated_z(-10.0))
-    plane = cpt.Plane(point=(0, 0, 0), normal=(0, 0, -1))
+    two_spheres = OldMesh.join_meshes(sphere.translated_z(10.0), sphere.translated_z(-10.0))
+    plane = Plane(point=(0, 0, 0), normal=(0, 0, -1))
     one_sphere_remaining = two_spheres.clip(plane, inplace=False)
     assert one_sphere_remaining == sphere.translated_z(10.0)
 
@@ -98,6 +100,6 @@ def test_degenerate_faces():
         [0, 1, 3, 0],
         [1, 4, 3, 1]
         ])
-    mesh = cpt.Mesh(vertices, faces)
+    mesh = OldMesh(vertices, faces)
     clipped_mesh = mesh.immersed_part()
     assert clipped_mesh.nb_faces == 4

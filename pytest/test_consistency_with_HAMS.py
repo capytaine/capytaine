@@ -1,5 +1,6 @@
 import numpy as np
 import capytaine as cpt
+from capytaine.meshes.meshes import Mesh as OldMesh
 
 
 vertices = np.array([
@@ -11,7 +12,7 @@ vertices = np.array([
     [-0.8,  0.0, -0.5],
     ])
 faces = np.array([[0, 1, 2, 3], [4, 0, 3, 5]])
-mesh = cpt.Mesh(vertices, faces)
+mesh = OldMesh(vertices, faces)
 
 
 def test_S_matrix_pure_Rankine():

@@ -5,11 +5,12 @@ import capytaine as cpt
 from capytaine.meshes.mesh_like_protocol import MeshLike
 
 from capytaine.meshes.predefined import mesh_sphere
+from capytaine.meshes.collections import CollectionOfMeshes
 
 def test_existing_classes_are_meshlike():
     mesh = mesh_sphere()
     assert isinstance(mesh, MeshLike)
-    assert isinstance(cpt.CollectionOfMeshes([mesh, mesh.translated_x(0.1)]), MeshLike)
+    assert isinstance(CollectionOfMeshes([mesh, mesh.translated_x(0.1)]), MeshLike)
 
 class MyMesh:
     """A set of horizontal panels at a list of depths"""

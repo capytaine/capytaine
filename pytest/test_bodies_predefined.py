@@ -2,10 +2,13 @@ import pytest
 
 import numpy as np
 import capytaine as cpt
+from capytaine.meshes.meshes import Mesh as OldMesh
 
 from capytaine.bodies.predefined.rectangles import Rectangle, OpenRectangularParallelepiped, RectangularParallelepiped
 from capytaine.bodies.predefined.spheres import Sphere
 from capytaine.bodies.predefined.cylinders import Disk, HorizontalCylinder, VerticalCylinder
+from capytaine.meshes.symmetric import TranslationalSymmetricMesh as OldTranslationalSymmetricMesh, ReflectionSymmetricMesh as OldReflectionSymmetricMesh, AxialSymmetricMesh as OldAxialSymmetricMesh
+from capytaine.meshes.collections import CollectionOfMeshes as OldCollectionOfMeshes
 
 
 def test_rectangle_generation():
@@ -28,7 +31,7 @@ def test_rectangle_generation():
                     center=(0, 0, -5), name="test")
 
     assert rec.name == "test"
-    assert isinstance(rec.mesh, cpt.Mesh)
+    assert isinstance(rec.mesh, OldMesh)
     assert rec.mesh.name == "test_mesh"
     assert all(rec.size == [10.0, 10.0])
     assert all(rec.geometric_center == [0, 0, -5.0])
@@ -50,24 +53,24 @@ def test_rectangle_generation():
     sym_rec = Rectangle(size=(10, 10), resolution=(6, 2),
                         translational_symmetry=False, reflection_symmetry=True,
                         center=(0, 0, -5))
-    assert isinstance(sym_rec.mesh, cpt.ReflectionSymmetricMesh)
+    assert isinstance(sym_rec.mesh, OldReflectionSymmetricMesh)
     assert sym_rec.mesh.nb_submeshes == 2
     assert sym_rec.mesh.nb_faces == 12
 
     sym_rec_merged_mesh = sym_rec.mesh.merged()
-    assert isinstance(sym_rec_merged_mesh, cpt.Mesh)
+    assert isinstance(sym_rec_merged_mesh, OldMesh)
     # assert sym_rec_merged_mesh == rec.mesh
 
     # Test mesh with translation symmetry
     trans_rec = Rectangle(size=(10, 10), resolution=(6, 2),
                           translational_symmetry=True, reflection_symmetry=False,
                           center=(0, 0, -5))
-    assert isinstance(trans_rec.mesh, cpt.TranslationalSymmetricMesh)
+    assert isinstance(trans_rec.mesh, OldTranslationalSymmetricMesh)
     assert trans_rec.mesh.nb_submeshes == 6
     assert trans_rec.mesh.nb_faces == 12
 
     trans_rec_merged_mesh = trans_rec.mesh.merged()
-    assert isinstance(trans_rec_merged_mesh, cpt.Mesh)
+    assert isinstance(trans_rec_merged_mesh, OldMesh)
     # assert trans_rec_merged_mesh == rec.mesh
 
 
@@ -76,7 +79,7 @@ def test_open_parallelepiped_generation():
                                          resolution=(5, 2, 3),
                                          translational_symmetry=False, name="test")
     assert para.name == "test"
-    assert isinstance(para.mesh, cpt.Mesh)
+    assert isinstance(para.mesh, OldMesh)
     assert para.mesh.name == "test_mesh"
     assert para.mesh.nb_faces == 42
 
@@ -90,8 +93,8 @@ def test_open_parallelepiped_generation():
                                                 translational_symmetry=True, name="clever_test")
 
     assert clever_para.mesh.nb_faces == 42
-    assert isinstance(clever_para.mesh, cpt.CollectionOfMeshes)
-    assert any(isinstance(submesh, cpt.TranslationalSymmetricMesh) for submesh in clever_para.mesh)
+    assert isinstance(clever_para.mesh, OldCollectionOfMeshes)
+    assert any(isinstance(submesh, OldTranslationalSymmetricMesh) for submesh in clever_para.mesh)
 
 
 def test_parallelepiped_generation():
@@ -155,11 +158,11 @@ def test_sphere_name():
 
 def test_sphere_axisymmetric():
     sphere = Sphere(axial_symmetry=True)
-    assert isinstance(sphere.mesh, cpt.AxialSymmetricMesh)
+    assert isinstance(sphere.mesh, OldAxialSymmetricMesh)
 
 def test_sphere_not_axisymmetric():
     sphere = Sphere(axial_symmetry=False)
-    assert isinstance(sphere.mesh, cpt.Mesh)
+    assert isinstance(sphere.mesh, OldMesh)
 
 def test_sphere_nb_panels():
     sphere = Sphere(ntheta=5, nphi=5, clip_free_surface=False)
