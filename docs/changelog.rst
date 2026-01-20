@@ -19,9 +19,9 @@ Minor changes
 * Velocity in the fluid can be post-processed in the limit frequencies (:math:`\omega = 0` or :math:`\omega = \infty`). Divide it by :math:`\omega` to have a finite value (:pull:`777`).
 
 * Display in the log the RAM usage estimation before a batch resolution and the measured RAM usage at the end of the resolution (:pull:`784`)
-  
+
 * **Breaking** When building the dataset in :meth:`~cpt.bem.solver.fill_dataset`, the previous ``kochin`` attribute has been renamed to ``kochin_radiation``
-  to be consistent with the existing ``kochin_diffraction`` attribute. 
+  to be consistent with the existing ``kochin_diffraction`` attribute.
 
 Bug fixes
 ~~~~~~~~~
@@ -43,7 +43,7 @@ Bug fixes
   (:pull:`794`)
 
 * Fix the frequency type in the dimensions of the dataset returned by :meth:`~cpt.io.xarray.kochin_data_array`. Previously, the dimension was always named ``omega``;
-  it is now named ``omega``, ``freq``, ``period``,  ``wavenumber`` or ``wavelength`` depending on the user settings. 
+  it is now named ``omega``, ``freq``, ``period``,  ``wavenumber`` or ``wavelength`` depending on the user settings.
 
 Internals
 ~~~~~~~~~
@@ -81,6 +81,10 @@ Internals
 * Parameters ``free_surface``, ``water_depth`` and ``wavenumber`` are always
   keyword arguments in the engine and the Green function (:pull:`812`)
 
+* **Breaking** :meth:`~capytaine.bodies.FloatingBody.add_rotation_dof` takes
+  arguments called ``rotation_center`` and ``direction`` instead of an ``Axis``
+  object. Also the geometric center is not used anymore as a fallback value for
+  ``rotation_center``.
 
 ---------------------------------
 New in version 2.3.1 (2025-10-14)
