@@ -19,6 +19,9 @@ Minor changes
 * Velocity in the fluid can be post-processed in the limit frequencies (:math:`\omega = 0` or :math:`\omega = \infty`). Divide it by :math:`\omega` to have a finite value (:pull:`777`).
 
 * Display in the log the RAM usage estimation before a batch resolution and the measured RAM usage at the end of the resolution (:pull:`784`)
+  
+* **Breaking** When building the dataset in :meth:`~cpt.bem.solver.fill_dataset`, the previous ``kochin`` attribute has been renamed to ``kochin_radiation``
+  to be consistent with the existing ``kochin_diffraction`` attribute. 
 
 Bug fixes
 ~~~~~~~~~
@@ -38,6 +41,9 @@ Bug fixes
   The inertia matrix always uses the displaced water mass for the mass and
   compute the inertia moments on the full shape if the full mesh is provided.
   (:pull:`794`)
+
+* Fix the frequency type in the dimensions of the dataset returned by :meth:`~cpt.io.xarray.kochin_data_array`. Previously, the dimension was always named ``omega``;
+  it is now named ``omega``, ``freq``, ``period``,  ``wavenumber`` or ``wavelength`` depending on the user settings. 
 
 Internals
 ~~~~~~~~~
