@@ -80,3 +80,5 @@ Main differences
   Some keyword argument might have been changed to uniformize usage of the two 3D backends.
 
 * The barely-used and barely-documented ``geometric_center`` attribute of the mesh and the bodies have been removed.
+
+* Support for optionallay using quadratures from Quadpy has been removed.

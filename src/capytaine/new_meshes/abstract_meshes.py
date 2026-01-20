@@ -79,6 +79,10 @@ class AbstractMesh(ABC):
         ...
 
     @abstractmethod
+    def with_quadrature(self, quadrature_method):
+        ...
+
+    @abstractmethod
     def extract_faces(self, faces_id, *, name=None) -> AbstractMesh:
         ...
 
