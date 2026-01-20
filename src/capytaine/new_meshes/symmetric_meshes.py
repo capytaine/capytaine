@@ -78,7 +78,10 @@ class ReflectionSymmetricMesh(AbstractMesh):
 
         self.half = half
         self.plane = plane
-        self.other_half = self.half.mirrored(plane)
+        if self.half.nb_faces > 0:
+            self.other_half = self.half.mirrored(plane)
+        else:
+            self.other_half = half  # Degenerate case without any face...
 
         self.faces_metadata = {k: np.concatenate([v, v]) for k, v in half.faces_metadata.items()}
         if faces_metadata is not None:
@@ -217,6 +220,20 @@ class ReflectionSymmetricMesh(AbstractMesh):
                 return_masks=return_masks,
                 name=name
             )
+
+    def generate_lid(self, z=0.0, faces_max_radius=None, name=None):
+        return ReflectionSymmetricMesh(
+                self.half.generate_lid(z=z, faces_max_radius=faces_max_radius),
+                plane=self.plane,
+                name=name
+                )
+
+    def extract_lid(self, z=0.0):
+        half_hull, half_lid = self.half.extract_lid(z=z)
+        return (
+                ReflectionSymmetricMesh(half_hull, plane=self.plane),
+                ReflectionSymmetricMesh(half_lid, plane=self.plane),
+                )
 
     def with_normal_vector_going_down(self, **kwargs) -> ReflectionSymmetricMesh:
         return ReflectionSymmetricMesh(
@@ -546,6 +563,21 @@ class RotationSymmetricMesh(AbstractMesh):
                 return_masks=return_masks,
                 name=name
             )
+
+    def generate_lid(self, z=0.0, faces_max_radius=None, name=None):
+        return RotationSymmetricMesh(
+                self.wedge.generate_lid(z=z, faces_max_radius=faces_max_radius),
+                axis=self.axis,
+                n=self.n,
+                name=name
+                )
+
+    def extract_lid(self, z=0.0):
+        wedge_hull, wedge_lid = self.wedge.extract_lid(z=z)
+        return (
+                RotationSymmetricMesh(wedge_hull, axis=self.axis, n=self.n),
+                RotationSymmetricMesh(wedge_lid, axis=self.axis, n=self.n),
+                )
 
     def with_normal_vector_going_down(self, **kwargs) -> RotationSymmetricMesh:
         return RotationSymmetricMesh(

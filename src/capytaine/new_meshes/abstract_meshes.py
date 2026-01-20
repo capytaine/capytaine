@@ -22,6 +22,7 @@ from typing import Literal, Tuple
 import numpy as np
 
 from capytaine.tools.deprecation_handling import _get_water_depth
+from capytaine.new_meshes.geometry import connected_components, connected_components_of_waterline
 
 LOG = logging.getLogger(__name__)
 
@@ -203,6 +204,25 @@ class AbstractMesh(ABC):
         else:
             name = None
         return self.join_meshes(other, name=name)
+
+    def lowest_lid_position(self, omega_max, *, g=9.81):
+        z_lid = 0.0
+        for comp in connected_components(self):
+            for ccomp in connected_components_of_waterline(comp):
+                x_span = ccomp.vertices[:, 0].max() - ccomp.vertices[:, 0].min()
+                y_span = ccomp.vertices[:, 1].max() - ccomp.vertices[:, 1].min()
+                p = np.hypot(1/x_span, 1/y_span)
+                z_lid_comp = -np.arctanh(np.pi*g*p/omega_max**2) / (np.pi * p)
+                z_lid = min(z_lid, z_lid_comp)
+        return 0.9*z_lid  # Add a small safety margin
+
+    @abstractmethod
+    def generate_lid(self, z=0.0, faces_max_radius=None, name=None):
+        ...
+
+    @abstractmethod
+    def extract_lid(self, z=0.0):
+        ...
 
     @abstractmethod
     def with_normal_vector_going_down(self, **kwargs) -> AbstractMesh:
