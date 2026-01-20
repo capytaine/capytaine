@@ -617,6 +617,115 @@ class Mesh(AbstractMesh):
         else:
             return joined_mesh
 
+    def generate_lid(self, z=0.0, faces_max_radius=None, name=None):
+        """
+        Return a mesh of the internal free surface of the body.
+
+        Parameters
+        ----------
+        z: float, optional
+            Vertical position of the lid. Default: 0.0
+        faces_max_radius: float, optional
+            resolution of the mesh of the lid.
+            Default: mean of hull mesh resolution.
+        name: str, optional
+            A name for the new mesh
+
+        Returns
+        -------
+        Mesh
+            lid of internal surface
+        """
+        from capytaine.new_meshes.predefined.rectangles import mesh_rectangle
+
+        if name is None and self.name is not None:
+            name = "lid for {}".format(self.name)
+
+        clipped_hull_mesh = self.clipped(normal=(0, 0, 1), origin=(0, 0, z))
+        # Alternatively: could keep only faces below z without proper clipping,
+        # and it would work similarly.
+
+        if clipped_hull_mesh.nb_faces == 0:
+            return Mesh(None, None, name=name)
+
+        x_span = clipped_hull_mesh.vertices[:, 0].max() - clipped_hull_mesh.vertices[:, 0].min()
+        y_span = clipped_hull_mesh.vertices[:, 1].max() - clipped_hull_mesh.vertices[:, 1].min()
+        x_mean = (clipped_hull_mesh.vertices[:, 0].max() + clipped_hull_mesh.vertices[:, 0].min())/2
+        y_mean = (clipped_hull_mesh.vertices[:, 1].max() + clipped_hull_mesh.vertices[:, 1].min())/2
+
+        if faces_max_radius is None:
+            faces_max_radius = np.mean(clipped_hull_mesh.faces_radiuses)
+
+        candidate_lid_size = (
+                    max(faces_max_radius/2, 1.1*x_span),
+                    max(faces_max_radius/2, 1.1*y_span),
+                )
+        # The size of the lid is at least the characteristic length of a face
+
+        candidate_lid_mesh = mesh_rectangle(
+                size=(candidate_lid_size[1], candidate_lid_size[0]),  # TODO Fix: Exchange x and y in mesh_rectangle
+                faces_max_radius=faces_max_radius,
+                center=(x_mean, y_mean, z),
+                normal=(0.0, 0.0, -1.0),
+                )
+
+        candidate_lid_points = candidate_lid_mesh.vertices[:, 0:2]
+
+        hull_faces = clipped_hull_mesh.vertices[clipped_hull_mesh.faces, 0:2]
+        edges_of_hull_faces = hull_faces[:, [1, 2, 3, 0], :] - hull_faces[:, :, :]  # Vectors between two consecutive points in a face
+        # edges_of_hull_faces.shape = (nb_full_faces, 4, 2)
+        lid_points_in_local_coords = candidate_lid_points[:, np.newaxis, np.newaxis, :] - hull_faces[:, :, :]
+        # lid_points_in_local_coords.shape = (nb_candidate_lid_points, nb_full_faces, 4, 2)
+        side_of_hull_edges = (lid_points_in_local_coords[..., 0] * edges_of_hull_faces[..., 1]
+                             - lid_points_in_local_coords[..., 1] * edges_of_hull_faces[..., 0])
+        # side_of_hull_edges.shape = (nb_candidate_lid_points, nb_full_faces, 4)
+        point_is_above_panel = np.all(side_of_hull_edges <= 0, axis=-1) | np.all(side_of_hull_edges >= 0, axis=-1)
+        # point_is_above_panel.shape = (nb_candidate_lid_points, nb_full_faces)
+
+        # For all point in candidate_lid_points, and for all edges of all faces of
+        # the hull mesh, check on which side of the edge is the point by using a
+        # cross product.
+        # If a point on the same side of all edges of a face, then it is inside.
+
+        nb_panels_below_point = np.sum(point_is_above_panel, axis=-1)
+        needs_lid = (nb_panels_below_point % 2 == 1).nonzero()[0]
+
+        lid_faces = candidate_lid_mesh.faces[np.all(np.isin(candidate_lid_mesh.faces, needs_lid), axis=-1), :]
+
+        if len(lid_faces) == 0:
+            return Mesh(None, None, name=name)
+
+        lid_mesh = Mesh(candidate_lid_mesh.vertices, lid_faces, name=name)
+        return lid_mesh
+
+    def extract_lid(self, z=0.0):
+        """
+        Split the mesh into a mesh of the hull and a mesh of the lid.
+        By default, the lid is composed of the horizontal faces on the z=0 plane.
+
+        Parameters
+        ----------
+        plane: Plane
+            The plane on which to look for lid faces.
+
+        Returns
+        -------
+        2-ple of Mesh
+            hull mesh and lid mesh
+        """
+        def is_on_plane(i_face):
+            return np.isclose(self.faces_centers[i_face, 2], z) and (\
+                    np.allclose(self.faces_normals[i_face, :], np.array([0.0, 0.0, 1.0])) or \
+                    np.allclose(self.faces_normals[i_face, :], np.array([0.0, 0.0, -1.0]))
+                                                                     )
+
+        faces_on_plane = [
+            i_face for i_face in range(self.nb_faces) if is_on_plane(i_face)
+        ]
+        lid_mesh = self.extract_faces(faces_on_plane)
+        hull_mesh = self.extract_faces(list(set(range(self.nb_faces)) - set(faces_on_plane)))
+        return hull_mesh, lid_mesh
+
     def with_normal_vector_going_down(self, **kwargs) -> "Mesh":
         # Kwargs are for backward compatibility with former inplace implementation of this.
         # It could be removed in the final release.
