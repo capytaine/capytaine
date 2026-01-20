@@ -6,6 +6,7 @@ import xarray as xr
 import capytaine as cpt
 from capytaine.green_functions.abstract_green_function import GreenFunctionEvaluationError
 
+from capytaine.meshes.predefined import mesh_sphere
 
 ###########
 #  Setup  #
@@ -24,7 +25,7 @@ def make_symmetric_body():
     return body
 
 def make_lid_body():
-    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
+    mesh = mesh_sphere(resolution=(4, 4)).immersed_part()
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=mesh.generate_lid())
     body.add_translation_dof(direction=(1, 0, 0), name="Surge")
     return body

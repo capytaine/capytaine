@@ -8,6 +8,7 @@ import capytaine as cpt
 from capytaine.io.mesh_loaders import load_GDF
 from capytaine.io.mesh_writers import write_GDF
 
+from capytaine.meshes.predefined import mesh_horizontal_cylinder
 
 def parse_gdf(file_content):
     # Workaround to avoid actually writing/reading a file on disk
@@ -108,7 +109,7 @@ def test_gdf_xy_symmetry():
 def test_write_and_load_gdf(tmpdir):
     mesh_path = tmpdir.join("temp_mesh.gdf")
 
-    original_mesh = cpt.mesh_horizontal_cylinder()
+    original_mesh = mesh_horizontal_cylinder()
     write_GDF(str(mesh_path), original_mesh.vertices, original_mesh.faces, ulen=1, gravity=9.81, isx=0, isy=0)
 
     read_mesh = load_GDF(str(mesh_path))

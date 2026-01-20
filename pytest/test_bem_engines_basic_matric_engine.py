@@ -161,7 +161,7 @@ def test_ram_estimation():
 
 def test_ram_1_reflection_symmetry_estimation():
     reference_mesh = cpt.mesh_parallelepiped(resolution=(5, 5, 5), center =(0, 0, -2,))
-    half_mesh = reference_mesh.clipped(cpt.Plane(point=(0, 0, 0), normal=(1, 0, 0)))
+    half_mesh = reference_mesh.clipped(origin=(0, 0, 0), normal=(1, 0, 0))
     mesh = ReflectionSymmetricMesh(half=to_new_mesh(half_mesh), plane="yOz")
     body = cpt.FloatingBody(
             mesh=mesh,
@@ -196,8 +196,8 @@ def test_ram_1_reflection_symmetry_estimation():
 
 def test_ram_2_reflection_symmetries_estimation():
     reference_mesh = cpt.mesh_parallelepiped(resolution=(5, 5, 5), center =(0, 0, -2,))
-    half_mesh = reference_mesh.clipped(cpt.Plane(point=(0, 0, 0), normal=(1, 0, 0)))
-    quarter_mesh = half_mesh.clipped(cpt.Plane(point=(0, 0, 0), normal=(0, 1, 0)))
+    half_mesh = reference_mesh.clipped(origin=(0, 0, 0), normal=(1, 0, 0))
+    quarter_mesh = half_mesh.clipped(origin=(0, 0, 0), normal=(0, 1, 0))
     mesh = ReflectionSymmetricMesh(half=ReflectionSymmetricMesh(half=to_new_mesh(quarter_mesh), plane="xOz"), plane="yOz")
     body = cpt.FloatingBody(
             mesh=mesh,

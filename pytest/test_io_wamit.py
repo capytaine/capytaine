@@ -10,13 +10,13 @@ import pytest
 import capytaine as cpt
 from capytaine.io.wamit import export_to_wamit
 
+from capytaine.meshes.predefined import mesh_sphere
 
 @pytest.fixture
 def full_dataset():
-    mesh = cpt.mesh_sphere(resolution=(4, 4))
+    mesh = mesh_sphere(resolution=(4, 4))
     dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
-    full_body = cpt.FloatingBody(mesh, dofs)
-    full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
+    full_body = cpt.FloatingBody(mesh, dofs, center_of_mass=(0, 0, 0))
     immersed_body = full_body.immersed_part()
     immersed_body.compute_hydrostatics()
     test_matrix = xr.Dataset(
@@ -36,10 +36,9 @@ def full_dataset():
 
 @pytest.fixture
 def dataset_with_multiple_rho():
-    mesh = cpt.mesh_sphere(resolution=(4, 4))
+    mesh = mesh_sphere(resolution=(4, 4))
     dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
-    full_body = cpt.FloatingBody(mesh, dofs)
-    full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
+    full_body = cpt.FloatingBody(mesh, dofs, center_of_mass=(0, 0, 0))
     immersed_body = full_body.immersed_part()
 
     # Define a test matrix with multiple rho
@@ -256,10 +255,9 @@ def test_export_wamit_frequency_axis_representations(export_type, omega_val, tmp
     - compare the resulting .1 and .3 files
     """
     # Load mesh and run BEM simulation for 1 omega
-    mesh = cpt.mesh_sphere(resolution=(4, 4))
+    mesh = mesh_sphere(resolution=(4, 4))
     dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
-    full_body = cpt.FloatingBody(mesh, dofs)
-    full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
+    full_body = cpt.FloatingBody(mesh, dofs, center_of_mass=(0, 0, 0))
     immersed_body = full_body.immersed_part()
     if export_type == "hst":
         immersed_body.compute_hydrostatics()

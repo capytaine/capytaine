@@ -3,7 +3,7 @@ import pytest
 import numpy as np
 import capytaine as cpt
 
-from capytaine.new_meshes.predefined import mesh_parallelepiped, mesh_rectangle, mesh_vertical_cylinder
+from capytaine.new_meshes.predefined import mesh_parallelepiped, mesh_rectangle, mesh_vertical_cylinder, mesh_horizontal_cylinder
 
 def test_irr_freq_warning_no_lid():
     mesh = mesh_parallelepiped(size=(1, 1, 1)).immersed_part()
@@ -47,7 +47,7 @@ def body_without_lid():
 @pytest.fixture
 def body_with_lid():
     mesh = mesh_parallelepiped(center=(0.0, 0.0, -0.4)).immersed_part()
-    lid_mesh = mesh_rectangle(size=(1, 1), resolution=(4, 4), center=(0, 0, 0.0), normal=(0, 0, -1))
+    lid_mesh = mesh_rectangle(size=(1, 1), resolution=(4, 4), center=(0, 0, 0), normal=(0, 0, -1))
     body_with_lid = cpt.FloatingBody(mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
     return body_with_lid
 
@@ -212,9 +212,9 @@ def test_lid_multibody(body_with_lid):
 
 
 def test_lid_with_plane_symmetry():
-    mesh = cpt.mesh_horizontal_cylinder(reflection_symmetry=True).immersed_part()
+    mesh = mesh_horizontal_cylinder(reflection_symmetry=True).immersed_part()
     lid_mesh = cpt.ReflectionSymmetricMesh(
-            cpt.mesh_rectangle(size=(1.0, 10,), faces_max_radius=0.5, center=(0, 0.5, -0.05,)),
+            mesh_rectangle(size=(1.0, 10,), faces_max_radius=0.5, center=(0, 0.5, -0.05,)),
             plane=mesh.plane
             )
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
@@ -236,7 +236,7 @@ def test_lid_with_plane_symmetry():
 
 
 def test_lid_with_nested_plane_symmetry():
-    mesh = cpt.mesh_parallelepiped(center=(0, 0, -0.5), size=(1, 1, 1), reflection_symmetry=True)
+    mesh = mesh_parallelepiped(center=(0, 0, -1.0), reflection_symmetry=True)
     hull_mesh, lid_mesh = mesh.extract_lid()
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
@@ -280,15 +280,14 @@ def test_lid_with_rotation_symmetry():
 
 @pytest.mark.parametrize("water_depth", [np.inf, 10.0])
 def test_panel_on_free_surface(water_depth):
-    mesh = cpt.mesh_parallelepiped(center=(0.0, 0.0, -0.5))
+    mesh = mesh_parallelepiped(center=(0.0, 0.0, -0.5)).with_quadrature("Gauss-Legendre 2")
     body = cpt.FloatingBody(mesh, cpt.rigid_body_dofs())
-    body.mesh.compute_quadrature("Gauss-Legendre 2")
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, water_depth=water_depth, radiating_dof="Heave")
     cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="low_freq")).solve(pb)
 
 
 def test_panel_on_free_surface_with_high_freq(caplog):
-    mesh = cpt.mesh_rectangle(center=(0.0, 0.0, 0.0), size=(1.0, 1.0))
+    mesh = mesh_rectangle(center=(0.0, 0.0, 0.0), size=(1.0, 1.0))
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
     cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="low_freq")).solve(pb)

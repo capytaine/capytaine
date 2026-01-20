@@ -64,6 +64,8 @@ class Mesh(AbstractMesh):
     ----------
     vertices : np.ndarray
         Array of vertex coordinates with shape (n_vertices, 3).
+    quadrature_method: str
+        The name of the method used to compute quadrature points on this mesh
     name : str or None
         Name of the mesh instance.
     """

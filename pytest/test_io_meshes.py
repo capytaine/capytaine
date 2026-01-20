@@ -9,6 +9,7 @@ import xarray as xr
 from capytaine.io.mesh_writers import write_STL
 from capytaine.io.mesh_loaders import load_STL
 import capytaine as cpt
+from capytaine.meshes.predefined import mesh_sphere
 
 #################################################################
 
@@ -75,7 +76,7 @@ def test_from_meshio_pygmsh(generate_pygmsh):
 
 def test_STL(tmp_path):
     pytest.importorskip("vtk", reason="VTK not installed, test skipped.")
-    mesh = cpt.mesh_sphere()
+    mesh = mesh_sphere()
     filepath = tmp_path / "test.stl"
     write_STL(filepath, mesh.vertices, mesh.faces)
     reloaded_mesh = load_STL(str(filepath), name="Bla")
@@ -86,7 +87,7 @@ def test_STL(tmp_path):
 
 def test_STL_with_uppercase_file_extension(tmp_path):
     pytest.importorskip("vtk", reason="VTK not installed, test skipped.")
-    mesh = cpt.mesh_sphere()
+    mesh = mesh_sphere()
     filepath = tmp_path / "test.STL"
     write_STL(filepath, mesh.vertices, mesh.faces)
     reloaded_mesh = cpt.load_mesh(str(filepath), name="Bla")

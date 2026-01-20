@@ -4,9 +4,10 @@ import capytaine as cpt
 
 from capytaine.meshes.mesh_like_protocol import MeshLike
 
+from capytaine.meshes.predefined import mesh_sphere
 
 def test_existing_classes_are_meshlike():
-    mesh = cpt.mesh_sphere()
+    mesh = mesh_sphere()
     assert isinstance(mesh, MeshLike)
     assert isinstance(cpt.CollectionOfMeshes([mesh, mesh.translated_x(0.1)]), MeshLike)
 

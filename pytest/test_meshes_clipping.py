@@ -3,13 +3,14 @@ import numpy as np
 from numpy.linalg import norm
 import capytaine as cpt
 
+from capytaine.meshes.predefined import mesh_sphere, mesh_rectangle, mesh_vertical_cylinder
 
-sphere = cpt.mesh_sphere(radius=1)
+sphere = mesh_sphere(radius=1)
 
 
 def test_clipper():
     """Test clipping of mesh."""
-    mesh = cpt.mesh_sphere(radius=5.0, resolution=(10, 5))
+    mesh = mesh_sphere(radius=5.0, resolution=(10, 5))
     aabb = mesh.axis_aligned_bbox
 
     mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
@@ -19,7 +20,7 @@ def test_clipper():
     assert np.allclose(mesh.axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
 
     # With CollectionOfMeshes (AxialSymmetry)
-    mesh = cpt.mesh_sphere(radius=5.0, resolution=(10, 5), axial_symmetry=True)
+    mesh = mesh_sphere(radius=5.0, resolution=(10, 5), axial_symmetry=True)
     aabb = mesh.merged().axis_aligned_bbox
 
     mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
@@ -29,13 +30,13 @@ def test_clipper():
     assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
 
     # Check boundaries after clipping
-    mesh = cpt.mesh_rectangle(size=(5,5), normal=(1,0,0))
+    mesh = mesh_rectangle(size=(5,5), normal=(1,0,0))
     assert max([i[2] for i in mesh.immersed_part(free_surface=-1).vertices])<=-1
     assert max([i[2] for i in mesh.immersed_part(free_surface= 1).vertices])<= 1
     assert min([i[2] for i in mesh.immersed_part(free_surface=100, sea_bottom=-1).vertices])>=-1
     assert min([i[2] for i in mesh.immersed_part(free_surface=100, sea_bottom= 1).vertices])>= 1
 
-    mesh = cpt.mesh_rectangle(size=(4,4), resolution=(1,1), normal=(1,0,0))
+    mesh = mesh_rectangle(size=(4,4), resolution=(1,1), normal=(1,0,0))
     tmp = list(mesh.clip(cpt.Plane(normal=(0,0.1,1),point=(0,0,-1)),inplace=False).vertices)
     tmp.sort(key=lambda x: x[2])
     tmp.sort(key=lambda x: x[1])
@@ -45,7 +46,7 @@ def test_clipper():
 @pytest.mark.parametrize("size", [5, 6])
 def test_clipper_indices(size):
     """Test clipped_mesh_faces_ids."""
-    mesh = cpt.mesh_rectangle(size=(size, size), resolution=(size, size), center=(0, 0, 0))
+    mesh = mesh_rectangle(size=(size, size), resolution=(size, size), center=(0, 0, 0))
     clipped_mesh = mesh.clipped(plane=cpt.Plane(point=(0, 0, 0), normal=(0, 0, 1)))
     faces_ids = clipped_mesh._clipping_data['faces_ids']
 
@@ -73,7 +74,7 @@ def test_clipper_corner_cases():
 
 
 def test_clipper_tolerance():
-    mesh = cpt.mesh_vertical_cylinder(length=10.001, center=(0, 0, -5))
+    mesh = mesh_vertical_cylinder(length=10.001, center=(0, 0, -5))
     mesh = mesh.immersed_part()
     np.testing.assert_allclose(mesh.vertices[:, 2].max(), 0.0, atol=1e-12)
 

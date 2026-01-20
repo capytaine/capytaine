@@ -3,11 +3,12 @@ import numpy as np
 import xarray as xr
 import capytaine as cpt
 
+from capytaine.meshes.predefined import mesh_sphere
 
 @pytest.fixture
 def sphere_fb():
     m = 1.866e+03
-    mesh = cpt.mesh_sphere(radius=1.0, resolution=(3, 12)).immersed_part()
+    mesh = mesh_sphere(radius=1.0, resolution=(3, 12)).immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), mass=m)
     body.inertia_matrix = body.add_dofs_labels_to_matrix(
             [[ m ,  0.0, 0.0, 0.0,        0.0,       0.0       ],

@@ -4,6 +4,7 @@ import pytest
 import numpy as np
 import capytaine as cpt
 
+from capytaine.meshes.predefined import mesh_sphere, mesh_disk, mesh_horizontal_cylinder, mesh_parallelepiped
 
 def test_collection_of_meshes():
     # Create some dummy meshes
@@ -49,8 +50,8 @@ def test_collection_of_meshes():
 
 
 def test_collection():
-    sphere = cpt.mesh_sphere(name="foo", center=(0, 0, -2))
-    other_sphere = cpt.mesh_sphere(name="bar", center=(0, 0, 2))
+    sphere = mesh_sphere(name="foo", center=(0, 0, -2))
+    other_sphere = mesh_sphere(name="bar", center=(0, 0, 2))
 
     coll = cpt.CollectionOfMeshes([sphere, other_sphere], name="baz")
     coll2 = cpt.CollectionOfMeshes([sphere, other_sphere])
@@ -71,15 +72,15 @@ def test_collection():
 
 
 def test_join_reflection_symmetric_meshes():
-    cylinder_1 = cpt.mesh_horizontal_cylinder(center=(0, 0, -2), reflection_symmetry=True)
-    cylinder_2 = cpt.mesh_horizontal_cylinder(center=(0, 0, -4), reflection_symmetry=True)
+    cylinder_1 = mesh_horizontal_cylinder(center=(0, 0, -2), reflection_symmetry=True)
+    cylinder_2 = mesh_horizontal_cylinder(center=(0, 0, -4), reflection_symmetry=True)
     assert cylinder_1.plane == cylinder_2.plane
     both = cylinder_1.join_meshes(cylinder_2)
     assert isinstance(both, cpt.ReflectionSymmetricMesh)
 
 def test_join_reflection_symmetric_meshes_masks():
-    cylinder_1 = cpt.mesh_horizontal_cylinder(center=(0, 0, -2), reflection_symmetry=True)
-    cylinder_2 = cpt.mesh_horizontal_cylinder(center=(0, 0, -4), reflection_symmetry=True)
+    cylinder_1 = mesh_horizontal_cylinder(center=(0, 0, -2), reflection_symmetry=True)
+    cylinder_2 = mesh_horizontal_cylinder(center=(0, 0, -4), reflection_symmetry=True)
     assert cylinder_1.plane == cylinder_2.plane
     both, masks = cylinder_1.join_meshes(cylinder_2, return_masks=True)
     assert isinstance(both, cpt.ReflectionSymmetricMesh)
@@ -89,16 +90,16 @@ def test_join_reflection_symmetric_meshes_masks():
     assert sum(masks[1]) == cylinder_2.nb_faces
 
 def test_join_nested_reflection_symmetric_meshes():
-    cube_1 = cpt.mesh_parallelepiped(center=(0, 0, -2), reflection_symmetry=True)
-    cube_2 = cpt.mesh_parallelepiped(center=(0, 0, -4), reflection_symmetry=True)
+    cube_1 = mesh_parallelepiped(center=(0, 0, -2), reflection_symmetry=True)
+    cube_2 = mesh_parallelepiped(center=(0, 0, -4), reflection_symmetry=True)
     assert cube_1.plane == cube_2.plane
     both = cube_1 + cube_2
     assert isinstance(both, cpt.ReflectionSymmetricMesh)
     assert isinstance(both.half, cpt.ReflectionSymmetricMesh)
 
 def test_join_nested_reflection_symmetric_meshes_masks():
-    cube_1 = cpt.mesh_parallelepiped(center=(0, 0, -2), reflection_symmetry=True)
-    cube_2 = cpt.mesh_parallelepiped(center=(0, 0, -4), reflection_symmetry=True)
+    cube_1 = mesh_parallelepiped(center=(0, 0, -2), reflection_symmetry=True)
+    cube_2 = mesh_parallelepiped(center=(0, 0, -4), reflection_symmetry=True)
     assert cube_1.plane == cube_2.plane
     both, masks = cube_1.join_meshes(cube_2, return_masks=True)
     assert isinstance(both, cpt.ReflectionSymmetricMesh)
@@ -110,20 +111,20 @@ def test_join_nested_reflection_symmetric_meshes_masks():
 
 def test_join_axisymmetric_disks():
     """Given two axisymmetric meshes with the same axis, build a new axisymmetric mesh combining the two."""
-    disk1 = cpt.mesh_disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), normal=(1, 0, 0), axial_symmetry=True)
-    disk2 = cpt.mesh_disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), normal=(1, 0, 0), axial_symmetry=True)
+    disk1 = mesh_disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), normal=(1, 0, 0), axial_symmetry=True)
+    disk2 = mesh_disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), normal=(1, 0, 0), axial_symmetry=True)
     joined = disk1.join_meshes(disk2, name="two_disks")
     assert isinstance(joined, cpt.AxialSymmetricMesh)
     assert joined.nb_faces == disk1.nb_faces + disk2.nb_faces
     joined.tree_view()
 
-    disk3 = cpt.mesh_disk(radius=1.0, center=(0, 0, 0), resolution=(6, 4), axial_symmetry=True)
+    disk3 = mesh_disk(radius=1.0, center=(0, 0, 0), resolution=(6, 4), axial_symmetry=True)
     assert isinstance(disk1.join_meshes(disk3), cpt.Mesh)
 
 def test_join_axisymmetric_disks_masks():
     """Given two axisymmetric meshes with the same axis, build a new axisymmetric mesh combining the two."""
-    disk1 = cpt.mesh_disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), normal=(1, 0, 0), axial_symmetry=True)
-    disk2 = cpt.mesh_disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), normal=(1, 0, 0), axial_symmetry=True)
+    disk1 = mesh_disk(radius=1.0, center=(-1, 0, 0), resolution=(6, 6), normal=(1, 0, 0), axial_symmetry=True)
+    disk2 = mesh_disk(radius=2.0, center=(1, 0, 0), resolution=(8, 6), normal=(1, 0, 0), axial_symmetry=True)
     joined, masks = disk1.join_meshes(disk2, name="two_disks", return_masks=True)
     assert isinstance(joined, cpt.AxialSymmetricMesh)
     assert masks[0].shape == masks[1].shape == (joined.nb_faces,)
@@ -134,16 +135,16 @@ def test_join_axisymmetric_disks_masks():
 def test_join_translational_cylinders():
     """Given two meshes with the same translation symmetry, join them into a single mesh with the same symmetry."""
     params = dict(length=10.0, reflection_symmetry=False, translation_symmetry=True, resolution=(0, 10, 10))
-    mesh1 = cpt.mesh_horizontal_cylinder(radius=1.0, center=(0, 5, -5), **params)
-    mesh2 = cpt.mesh_horizontal_cylinder(radius=2.0, center=(0, -5, -5), **params)
+    mesh1 = mesh_horizontal_cylinder(radius=1.0, center=(0, 5, -5), **params)
+    mesh2 = mesh_horizontal_cylinder(radius=2.0, center=(0, -5, -5), **params)
     joined = mesh1.join_meshes(mesh2)
     assert isinstance(joined, cpt.TranslationalSymmetricMesh)
 
 def test_join_translational_cylinders_masks():
     """Given two meshes with the same translation symmetry, join them into a single mesh with the same symmetry."""
     params = dict(length=10.0, reflection_symmetry=False, translation_symmetry=True, resolution=(0, 10, 10))
-    mesh1 = cpt.mesh_horizontal_cylinder(radius=1.0, center=(0, 5, -5), **params)
-    mesh2 = cpt.mesh_horizontal_cylinder(radius=2.0, center=(0, -5, -5), **params)
+    mesh1 = mesh_horizontal_cylinder(radius=1.0, center=(0, 5, -5), **params)
+    mesh2 = mesh_horizontal_cylinder(radius=2.0, center=(0, -5, -5), **params)
     joined, masks = mesh1.join_meshes(mesh2, return_masks=True)
     assert isinstance(joined, cpt.TranslationalSymmetricMesh)
     assert masks[0].shape == masks[1].shape == (joined.nb_faces,)
@@ -152,7 +153,7 @@ def test_join_translational_cylinders_masks():
     assert sum(masks[1]) == mesh2.nb_faces
 
 def test_mesh_splitting():
-    mesh = cpt.mesh_sphere()
+    mesh = mesh_sphere()
 
     splitted_mesh = mesh.sliced_by_plane(cpt.xOz_Plane.translated_y(0.5))
     assert isinstance(splitted_mesh, cpt.CollectionOfMeshes)
@@ -165,7 +166,7 @@ def test_mesh_splitting():
 
 
 def test_extract_one_face():
-    sphere = cpt.mesh_sphere(axial_symmetry=True)
+    sphere = mesh_sphere(axial_symmetry=True)
     assert sphere.submesh_containing_face(0) == (0, 0)
     assert sphere.submesh_containing_face(1) == (0, 1)
     assert sphere.submesh_containing_face(sphere[0].nb_faces-1) == (0, sphere[0].nb_faces-1)
@@ -177,15 +178,15 @@ def test_extract_one_face():
 
 
 def test_immersed_part():
-    mesh = cpt.mesh_horizontal_cylinder(reflection_symmetry=True)
+    mesh = mesh_horizontal_cylinder(reflection_symmetry=True)
     assert mesh.immersed_part().merged() == mesh.merged().immersed_part()
 
 
 def test_path_to_leaf():
-    sphere_1 = cpt.mesh_sphere()
-    sphere_2 = cpt.mesh_sphere()
-    sphere_3 = cpt.mesh_sphere()
-    sphere_4 = cpt.mesh_sphere()
+    sphere_1 = mesh_sphere()
+    sphere_2 = mesh_sphere()
+    sphere_3 = mesh_sphere()
+    sphere_4 = mesh_sphere()
     coll = cpt.CollectionOfMeshes([
         cpt.CollectionOfMeshes([sphere_1, sphere_2]),
         sphere_3, sphere_4])
@@ -194,6 +195,6 @@ def test_path_to_leaf():
 
 
 def test_empty_symmetric_mesh():
-    mesh = cpt.mesh_sphere(center=(0, 0, 2), radius=0.5, axial_symmetry=True)
+    mesh = mesh_sphere(center=(0, 0, 2), radius=0.5, axial_symmetry=True)
     empty_mesh = mesh.immersed_part()
     assert empty_mesh.first_slice.nb_faces == 0

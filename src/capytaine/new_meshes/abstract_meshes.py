@@ -27,6 +27,8 @@ from capytaine.new_meshes.geometry import connected_components, connected_compon
 LOG = logging.getLogger(__name__)
 
 class AbstractMesh(ABC):
+    quadrature_method = None
+
     @property
     @abstractmethod
     def nb_vertices(self) -> int:

@@ -7,6 +7,11 @@ import pytest
 
 import numpy as np
 import capytaine as cpt
+from capytaine.meshes.predefined import (
+    mesh_sphere,
+    mesh_horizontal_cylinder,
+    mesh_vertical_cylinder,
+)
 
 ######################################################################
 
@@ -16,7 +21,7 @@ import capytaine as cpt
 
 @lru_cache
 def immersed_sphere():
-    return cpt.mesh_sphere(
+    return mesh_sphere(
         radius=1.0,
         center=(0, 0, -2),
         resolution=(30, 30)
@@ -63,7 +68,7 @@ def test_waterplane_center_of_submerged_sphere():
 
 @lru_cache
 def floating_sphere():
-    return cpt.mesh_sphere(
+    return mesh_sphere(
         radius=1.0,
         center=(0, 0, 0),
         resolution=(30, 30)
@@ -358,17 +363,17 @@ def test_all_hydrostatics():
     density = 1000
     gravity = 9.80665
 
-    sphere = cpt.mesh_sphere(
+    sphere = mesh_sphere(
         radius=10.0,
         center=(0,0,-1),
         resolution=(100, 50)
     )
-    horizontal_cylinder = cpt.mesh_horizontal_cylinder(
+    horizontal_cylinder = mesh_horizontal_cylinder(
         length=10.0, radius=5.0,
         center=(0,10,-1),
         resolution=(100, 10, 100)
     )
-    vertical_cylinder = cpt.mesh_vertical_cylinder(
+    vertical_cylinder = mesh_vertical_cylinder(
         length=10.0, radius=5.0,
         center=(10,0,0),
         resolution=(200, 10, 200)
@@ -457,7 +462,7 @@ def test_center_of_mass_joined_bodies_with_missing_mass():
     assert (a + b).center_of_mass is None
 
 def test_not_single_rigid_and_non_neutrally_buoyant_body():
-    m = cpt.mesh_sphere()
+    m = mesh_sphere()
     a = cpt.FloatingBody(
         mesh=m, mass=100, center_of_mass=(0, 0, 0),
         dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
@@ -471,7 +476,7 @@ def test_not_single_rigid_and_non_neutrally_buoyant_body():
 
 @lru_cache
 def non_neutrally_buoyant_body(length=2.0):
-    mesh = cpt.mesh_vertical_cylinder(
+    mesh = mesh_vertical_cylinder(
         radius=1.0,
         length=length,
         center=(0.0, 0.0, 0.0),
@@ -511,7 +516,7 @@ def test_non_neutrally_buoyant_stiffness():
         dict(body_density=500,  z_cog=-0.50, K55=5.0),
         ])
 def test_non_neutrally_buoyant_K55(data):
-    mesh = cpt.mesh_vertical_cylinder(
+    mesh = mesh_vertical_cylinder(
         radius=1.0,
         length=2.0,
         center=(0.0, 0.0, 0.0),
@@ -537,7 +542,7 @@ def test_non_neutrally_buoyant_stiffness_invariance_by_translation():
     assert np.allclose(K1, K2)
 
 def test_non_neutrally_buoyant_inertia():
-    mesh = cpt.mesh_vertical_cylinder(
+    mesh = mesh_vertical_cylinder(
         radius=1.0,
         length=1.0,
         center=(0.0, 0.0, -0.5),

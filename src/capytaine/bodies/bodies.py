@@ -557,6 +557,8 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
         return FloatingBody(
             mesh=clipped_mesh,
             lid_mesh=clipped_lid_mesh,
+            center_of_mass=self.center_of_mass,
+            mass=self.mass,
             dofs=updated_dofs,
             name=name
         )

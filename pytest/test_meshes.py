@@ -8,14 +8,15 @@ from numpy.typing import NDArray
 
 import capytaine as cpt
 from capytaine.meshes.properties import clustering
+from capytaine.meshes.predefined import mesh_sphere, mesh_horizontal_cylinder
 
 RNG = np.random.default_rng()
 
 
 # Some meshes that will be used in the following tests.
 test_mesh = cpt.Mesh(vertices=RNG.random((4, 3)), faces=[range(4)], name="test_mesh")
-cylinder = cpt.mesh_horizontal_cylinder()
-sphere = cpt.mesh_sphere(radius=1)
+cylinder = mesh_horizontal_cylinder()
+sphere = mesh_sphere(radius=1)
 
 
 def test_mesh_initialization():
@@ -172,8 +173,8 @@ def test_extract_one_face():
 
 
 def test_join_meshes_masks():
-    a = cpt.mesh_sphere(resolution=(2, 3))
-    b = cpt.mesh_sphere(center=(10, 0, 0), resolution=(3, 3))
+    a = mesh_sphere(resolution=(2, 3))
+    b = mesh_sphere(center=(10, 0, 0), resolution=(3, 3))
     joined, masks = a.join_meshes(b, return_masks=True)
     assert np.all(masks[0] ^ masks[1])
     assert sum(masks[0]) == a.nb_faces
@@ -193,21 +194,21 @@ def test_connected_components_of_empty_mesh():
 
 def test_connected_components_of_sphere():
     from capytaine.meshes.properties import connected_components
-    mesh = cpt.mesh_sphere()
+    mesh = mesh_sphere()
     cc = connected_components(mesh)
     assert len(cc) == 1
 
 
 def test_connected_components_of_two_spheres():
     from capytaine.meshes.properties import connected_components
-    mesh = cpt.mesh_sphere() + cpt.mesh_sphere(center=(5, 0, 0))
+    mesh = mesh_sphere() + mesh_sphere(center=(5, 0, 0))
     cc = connected_components(mesh)
     assert len(cc) == 2
 
 
 def test_connected_components_of_open_sphere():
     from capytaine.meshes.properties import connected_components
-    mesh = cpt.mesh_sphere().immersed_part()
+    mesh = mesh_sphere().immersed_part()
     cc = connected_components(mesh)
     assert len(cc) == 1
 
@@ -230,28 +231,28 @@ def test_connected_components_of_torus():
 
 def test_connected_components_at_waterline_of_sphere():
     from capytaine.meshes.properties import connected_components_of_waterline
-    mesh = cpt.mesh_sphere()
+    mesh = mesh_sphere()
     cc = connected_components_of_waterline(mesh)
     assert len(cc) == 1
 
 
 def test_connected_components_at_waterline_of_two_spheres():
     from capytaine.meshes.properties import connected_components_of_waterline
-    mesh = cpt.mesh_sphere() + cpt.mesh_sphere(center=(5, 0, 0))
+    mesh = mesh_sphere() + mesh_sphere(center=(5, 0, 0))
     cc = connected_components_of_waterline(mesh)
     assert len(cc) == 2
 
 
 def test_connected_components_at_waterline_of_open_sphere():
     from capytaine.meshes.properties import connected_components_of_waterline
-    mesh = cpt.mesh_sphere().immersed_part()
+    mesh = mesh_sphere().immersed_part()
     cc = connected_components_of_waterline(mesh)
     assert len(cc) == 1
 
 
 def test_connected_components_at_waterline_of_immersed_sphere():
     from capytaine.meshes.properties import connected_components_of_waterline
-    mesh = cpt.mesh_sphere(center=(0, 0, -5))
+    mesh = mesh_sphere(center=(0, 0, -5))
     cc = connected_components_of_waterline(mesh, z=0.0)
     assert len(cc) == 0
 
