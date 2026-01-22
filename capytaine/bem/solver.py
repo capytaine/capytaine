@@ -250,8 +250,7 @@ class BEMSolver:
                 raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({potential_N.shape}) "
                                  f"does not match the expected shape ({(problem.nb_faces_body,)})")
             # lid potentials
-            potential_M = 2 * (-D_MN @ potential_N + S_MM @ qf_M)
-            potential_M /= -2 # TODO: this factor is needed to match expected results
+            potential_M = D_MN @ potential_N - S_MM @ qf_M
             # normal gradient on internal surface
             vertical_gradient = problem.omega**2/problem.g * potential_M + problem.boundary_condition
             sources = None
