@@ -28,7 +28,6 @@ def solver():
 #                       Problems from datasets                        #
 #######################################################################
 
-@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_problems_from_dataset(sphere):
     dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
                               'radiating_dof': ["Heave"],

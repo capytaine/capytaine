@@ -23,7 +23,7 @@ def test_dof():
 
 
 def test_dof_name_inference():
-    body = cpt.FloatingBody(mesh=mesh_horizontal_cylinder())
+    body = cpt.FloatingBody(mesh=cpt.mesh_horizontal_cylinder())
     body.add_translation_dof(direction=(1, 0, 0), name="Surge_1")
     for dofname in ['Surge', 'SURGE', 'surge']:
         body.add_translation_dof(name=dofname)
@@ -62,7 +62,6 @@ def test_rigid_body_dofs_neither_a_rotation_center_nor_a_center_of_mass():
     assert np.allclose(body._infer_rotation_center(), (0.0, 0.0, 0.0))
 
 
-@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_defining_rotation_center_with_ints():
     # Issue #319
     mesh = cpt.mesh_sphere().immersed_part()
@@ -173,7 +172,6 @@ def test_immersed_part():
     assert immersed_sphere.mesh.vertices[:, 2].max() <= 0.0
 
 
-@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_assemble_regular_array():
     body = cpt.FloatingBody(mesh=cpt.mesh_sphere())
     body.add_all_rigid_body_dofs()
@@ -203,7 +201,6 @@ def fb_array():
     return sphere.assemble_arbitrary_array(locations)
 
 
-@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_consistent_dofs_to_faces(fb_array):
     num_active_faces = []
     for fb_dof in fb_array.dofs.items():
@@ -217,7 +214,6 @@ def test_consistent_dofs_to_faces(fb_array):
     assert np.all(ma==exp_active_faces_per_dof)
 
 
-@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_solve_hydrodynamics(fb_array):
     solver = cpt.BEMSolver()
     test_matrix = xr.Dataset(coords={
