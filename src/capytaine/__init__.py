@@ -16,10 +16,6 @@ from capytaine.new_meshes.predefined.rectangles import mesh_rectangle, mesh_para
 from capytaine.bodies.bodies import FloatingBody
 from capytaine.bodies.dofs import rigid_body_dofs
 
-from capytaine.bodies.predefined.spheres import Sphere
-from capytaine.bodies.predefined.cylinders import VerticalCylinder, HorizontalCylinder, Disk
-from capytaine.bodies.predefined.rectangles import Rectangle, RectangularParallelepiped, OpenRectangularParallelepiped
-
 from capytaine.bem.problems_and_results import RadiationProblem, DiffractionProblem
 from capytaine.bem.solver import BEMSolver
 from capytaine.bem.engines import BasicMatrixEngine
