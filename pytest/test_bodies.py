@@ -5,8 +5,6 @@ import xarray as xr
 
 import capytaine as cpt
 
-from capytaine.meshes.geometry import Axis, Plane, xOz_Plane
-
 def test_dof():
     nodes = np.array([[0, 0, 0], [0, 0, 1], [1, 0, 1], [1, 0, 0]])
     faces = np.array([[0, 1, 2, 3]])
