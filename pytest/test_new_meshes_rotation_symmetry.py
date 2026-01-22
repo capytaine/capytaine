@@ -24,7 +24,6 @@ from capytaine.new_meshes import (
     RotationSymmetricMesh,
     ReflectionSymmetricMesh
 )
-from capytaine.new_meshes.meshes import to_new_mesh
 
 
 @lru_cache
@@ -40,7 +39,7 @@ def single_panel():
 @pytest.mark.parametrize("n", [3, 4, 6])
 def test_create_rotation_symmetric_mesh_sphere(n):
     """Create a sphere with 3-fold rotation symmetry and reconstruct it."""
-    sphere = to_new_mesh(cpt.mesh_sphere(radius=1.0, center=(0, 0, 0), resolution=(12, 12)))
+    sphere = cpt.mesh_sphere(radius=1.0, center=(0, 0, 0), resolution=(12, 12))
     wedge = sphere.extract_wedge(n=n)
     rot_sym = RotationSymmetricMesh(wedge=wedge, n=n)
 

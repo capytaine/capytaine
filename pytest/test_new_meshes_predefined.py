@@ -156,6 +156,15 @@ def test_mesh_sphere_max_size(max_rad):
 
 # RECTANGLES
 
+def test_invalid_input():
+    from capytaine.new_meshes.predefined.rectangles import mesh_rectangle
+    with pytest.raises(AssertionError):
+        mesh_rectangle(size=(-4, 5))
+    with pytest.raises(AssertionError):
+        mesh_rectangle(resolution=(4.1, 5))
+    with pytest.raises(ValueError):
+        mesh_rectangle(resolution=(3, 3), reflection_symmetry=True)
+
 def test_mesh_rectangle():
     from capytaine.new_meshes.predefined.rectangles import mesh_rectangle
     d = mesh_rectangle(resolution=(3, 6), name="foo")

@@ -806,9 +806,3 @@ class Mesh(AbstractMesh):
             quadrature_method=self.quadrature_method,
             name=name
         )
-
-
-def to_new_mesh(old_mesh):
-    # Temporary method for testing new method while the former implementation
-    # is still the default
-    return Mesh(old_mesh.vertices, old_mesh.faces, name=old_mesh.name)
