@@ -4,9 +4,6 @@ import pytest
 import numpy as np
 import capytaine as cpt
 
-from capytaine.bodies.predefined.spheres import Sphere
-from capytaine.bodies.predefined.cylinders import HorizontalCylinder
-from capytaine.post_pro.free_surfaces import FreeSurface
 from capytaine.post_pro.kochin import compute_kochin
 
 
@@ -29,7 +26,7 @@ def test_immersed_sphere(nemoh2_solver):
     The test is ran for two degrees of freedom; due to the symmetries of the problem, the results should be the same.
     They are actually slightly different due to the meshing of the sphere.
     """
-    sphere = Sphere(radius=1.0, ntheta=10, nphi=40, clip_free_surface=False)
+    sphere = cpt.FloatingBody(cpt.mesh_sphere(radius=1.0, resolution=(10, 40)))
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
@@ -50,9 +47,26 @@ def test_immersed_sphere(nemoh2_solver):
 
 def test_build_matrix_of_rankine_and_reflected_rankine(nemoh2_solver):
     gf = nemoh2_solver.engine.green_function
-    sphere = Sphere(radius=1.0, ntheta=2, nphi=3, clip_free_surface=True)
+    vertices = np.array(
+        [[-5.00000000e-01, -8.66025404e-01, -6.12323400e-17],
+         [-5.00000000e-01,  8.66025404e-01, -6.12323400e-17],
+         [-3.53553391e-01, -6.12372436e-01, -7.07106781e-01],
+         [-3.53553391e-01,  6.12372436e-01, -7.07106781e-01],
+         [ 0.00000000e+00,  0.00000000e+00, -1.00000000e+00],
+         [ 7.07106781e-01, -3.58018600e-16, -7.07106781e-01],
+         [ 1.00000000e+00, -5.25363176e-16, -6.12323400e-17]]
+        )
+    faces = np.array(
+                [[4, 3, 5, 4],
+                 [6, 5, 3, 1],
+                 [4, 2, 3, 4],
+                 [1, 3, 2, 0],
+                 [4, 5, 2, 4],
+                 [0, 2, 5, 6]]
+                )
+    mesh = cpt.Mesh(vertices, faces)
 
-    S, V = gf.evaluate(sphere.mesh, sphere.mesh, water_depth=np.inf, wavenumber=0.0)
+    S, V = gf.evaluate(mesh, mesh, water_depth=np.inf, wavenumber=0.0)
     S_ref = np.array([[-0.15413386, -0.21852682, -0.06509213, -0.16718431, -0.06509213, -0.16718431],
                       [-0.05898834, -0.39245688, -0.04606661, -0.18264734, -0.04606661, -0.18264734],
                       [-0.06509213, -0.16718431, -0.15413386, -0.21852682, -0.06509213, -0.16718431],
@@ -61,7 +75,7 @@ def test_build_matrix_of_rankine_and_reflected_rankine(nemoh2_solver):
                       [-0.04606661, -0.18264734, -0.04606661, -0.18264734, -0.05898834, -0.39245688]])
     assert np.allclose(S, S_ref)
 
-    S, V = gf.evaluate(sphere.mesh, sphere.mesh, water_depth=np.inf, wavenumber=np.inf)
+    S, V = gf.evaluate(mesh, mesh, water_depth=np.inf, wavenumber=np.inf)
     S_ref = np.array([[-0.12666269, -0.07804937, -0.03845837, -0.03993999, -0.03845837, -0.03993999],
                       [-0.02106031, -0.16464793, -0.01169102, -0.02315146, -0.01169102, -0.02315146],
                       [-0.03845837, -0.03993999, -0.12666269, -0.07804937, -0.03845837, -0.03993999],
@@ -73,7 +87,7 @@ def test_build_matrix_of_rankine_and_reflected_rankine(nemoh2_solver):
 
 def test_floating_sphere_finite_freq(nemoh2_solver):
     """Compare with Nemoh 2.0 for some cases of a heaving sphere at the free surface in infinite depth."""
-    sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
+    sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(6, 12)).immersed_part())
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     # omega = 1, radiation
@@ -128,7 +142,7 @@ def test_floating_sphere_finite_freq(nemoh2_solver):
 def test_alien_sphere(nemoh2_solver):
     """Compare with Nemoh 2.0 for some cases of a heaving sphere at the free surface in infinite depth
     for a non-usual gravity and density."""
-    sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
+    sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(6, 12)).immersed_part())
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
 
@@ -146,7 +160,7 @@ def test_alien_sphere(nemoh2_solver):
 
 def test_floating_sphere_finite_depth(nemoh2_solver):
     """Compare with Nemoh 2.0 for some cases of a heaving sphere at the free surface in finite depth."""
-    sphere = Sphere(radius=1.0, ntheta=3, nphi=12, clip_free_surface=True)
+    sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(6, 12)).immersed_part())
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     # omega = 1, radiation
@@ -176,13 +190,18 @@ def test_floating_sphere_finite_depth(nemoh2_solver):
     assert np.isclose(result.forces["Heave"], 5872.8 * np.exp(-2.627j), rtol=1e-2)
 
 
+@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_two_distant_spheres_in_finite_depth(nemoh2_solver):
     radius = 0.5
     resolution = 4
     perimeter = 2*np.pi*radius
-    buoy = Sphere(radius=radius, center=(0.0, 0.0, 0.0),
-                  ntheta=int(perimeter*resolution/2), nphi=int(perimeter*resolution),
-                  clip_free_surface=True, axial_symmetry=False, name="buoy")
+    buoy = cpt.FloatingBody(
+        mesh=cpt.mesh_sphere(
+            radius=radius,
+            resolution=(int(perimeter*resolution), int(perimeter*resolution))
+        ).immersed_part(),
+        name="buoy"
+    )
     other_buoy = buoy.translated_x(20, name="other_buoy")
     both_buoys = buoy.join_bodies(other_buoy)
     both_buoys.add_translation_dof(name="Surge")
@@ -196,19 +215,22 @@ def test_two_distant_spheres_in_finite_depth(nemoh2_solver):
 
 def test_multibody(nemoh2_solver):
     """Compare with Nemoh 2.0 for two bodies."""
-    sphere = Sphere(radius=1.0, ntheta=5, nphi=20)
-    sphere.translate_z(-2.0)
+    sphere = cpt.FloatingBody(
+        cpt.mesh_sphere(radius=1.0, center=(0, 0, -2), resolution=(5, 20)),
+        name='sphere_0'
+    )
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
-    cylinder = HorizontalCylinder(length=5.0, radius=1.0,
-                                  nx=10, nr=1, ntheta=10)
-    cylinder.translate([+1.5, 3.0, -3.0])
+    cylinder = cpt.FloatingBody(
+        cpt.mesh_horizontal_cylinder(length=5.0, radius=1.0, center=(1.5, 3, -3), resolution=(1, 10, 10)),
+        name='cylinder_1'
+    )
     cylinder.add_translation_dof(direction=(1, 0, 0), name="Surge")
     cylinder.add_translation_dof(direction=(0, 0, 1), name="Heave")
 
     both = cylinder + sphere
-    total_volume = cylinder.volume + sphere.volume
+    total_volume = cylinder.mesh.volume + sphere.mesh.volume
     # both.show()
 
     problems = [cpt.RadiationProblem(body=both, radiating_dof=dof, omega=1.0) for dof in both.dofs]

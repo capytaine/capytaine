@@ -1,13 +1,12 @@
 import numpy as np
 import xarray as xr
 import capytaine as cpt
-from capytaine.new_meshes.meshes import to_new_mesh
 from capytaine.new_meshes.symmetric_meshes import RotationSymmetricMesh
 
 single_pillar = cpt.mesh_parallelepiped(resolution=(10, 10, 10), center=(2.0, 0.0, 0.0)).immersed_part()
 single_lid_mesh = single_pillar.generate_lid()
-symmetric_mesh = RotationSymmetricMesh(wedge=to_new_mesh(single_pillar), n=4)
-symmetric_lid_mesh = RotationSymmetricMesh(wedge=to_new_mesh(single_lid_mesh), n=4)
+symmetric_mesh = RotationSymmetricMesh(wedge=single_pillar, n=4)
+symmetric_lid_mesh = RotationSymmetricMesh(wedge=single_lid_mesh, n=4)
 
 symmetric_body = cpt.FloatingBody(
         mesh=symmetric_mesh,
