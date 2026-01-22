@@ -195,7 +195,7 @@ class BEMSolver:
 
         return result
 
-    def solve_owc(self, problem, method=None, keep_details=True, _check_wavelength=True):
+    def solve_owc_radiation(self, problem, method=None, keep_details=True, _check_wavelength=True):
         """Solve OWC pressure oscillation, linear potential flow, problem.
 
         Parameters
@@ -245,23 +245,119 @@ class BEMSolver:
             D_MN = D[N:, :N]
             # D_MM = D[N:, N:]
             with self.timer["  Linear solver"]:
-                potential_N = linear_solver(D_NN, S_NM @ qf_M) # TODO : Org
-                # potential_N = linear_solver(D_NN-np.eye(N), S_NM @ qf_M) # TODO: Alt
-                # potential_N *= -1 # TODO: Alt
+                potential_N = linear_solver(D_NN, S_NM @ qf_M)
             if not potential_N.shape == (problem.nb_faces_body,):
                 raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({potential_N.shape}) "
                                  f"does not match the expected shape ({(problem.nb_faces_body,)})")
             # lid potentials
-            potential_M = 2 * (-D_MN @ potential_N + S_MM @ qf_M) # TODO: Org
-            potential_M /= -2 # TODO: Alt
+            potential_M = 2 * (-D_MN @ potential_N + S_MM @ qf_M)
+            potential_M /= -2 # TODO: this factor is needed to match expected results
             # normal gradient on internal surface
             vertical_gradient = problem.omega**2/problem.g * potential_M + problem.boundary_condition
             sources = None
         else:
-            raise NotImplementedError("Indirect method for fixed OWC not implemented.")
+            raise NotImplementedError("Indirect method for fixed OWC radiation not implemented.")
 
         # volumetric flow in the chamber
         flow = np.sum(vertical_gradient * problem.body.lid_mesh.faces_areas) * 1j * problem.omega / (problem.rho * problem.g)
+
+        if not keep_details:
+            result = problem.make_results_container(flow)
+        else:
+            result = problem.make_results_container(flow, sources, potential_M, vertical_gradient)
+
+        LOG.debug("Done!")
+
+        return result
+
+    def solve_owc_diffraction(self, problem, method=None, keep_details=True, _check_wavelength=True):
+        """Solve the linear potential flow problem.
+
+        Parameters
+        ----------
+        problem: LinearPotentialFlowProblem
+            the problem to be solved
+        method: string, optional
+            select boundary integral equation used to solve the problem.
+            It is recommended to set the method more globally when initializing the solver.
+            If provided here, the value in argument of `solve` overrides the global one.
+        keep_details: bool, optional
+            if True, store the sources and the potential on the floating body in the output object
+            (default: True)
+        _check_wavelength: bool, optional (default: True)
+            If True, the frequencies are compared to the mesh resolution and
+            the estimated first irregular frequency to warn the user.
+
+        Returns
+        -------
+        LinearPotentialFlowResult
+            an object storing the problem data and its results
+        """
+        LOG.info("Solve %s.", problem)
+
+        if _check_wavelength:
+            self._check_wavelength_and_mesh_resolution([problem])
+            self._check_wavelength_and_irregular_frequencies([problem])
+
+        linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
+        method = method if method is not None else self.method
+        if (method == 'direct'):
+            with self.timer["  Green function"]:
+                S, D = self.engine.build_matrices(
+                        problem.body.mesh_including_lid, problem.body.mesh_including_lid,
+                        problem.free_surface, problem.water_depth, problem.wavenumber,
+                        self.green_function, adjoint_double_layer=False
+                        )
+            # N cells on rigid body, M cells on internal free surface
+            N = problem.nb_faces_body
+            qb_N = problem.boundary_condition
+            # S_NM = S[:N, N:]
+            S_NN = S[:N, :N]
+            S_MN = S[N:, :N]
+            # S_MM = S[N:, N:]
+            # D_NM = D[:N, N:]
+            D_NN = D[:N, :N]
+            D_MN = D[N:, :N]
+            # D_MM = D[N:, N:]
+            with self.timer["  Linear solver"]:
+                potential_N = linear_solver(D_NN, S_NN @ qb_N)
+            if not potential_N.shape == (problem.nb_faces_body,):
+                raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({potential_N.shape}) "
+                                 f"does not match the expected shape ({(problem.nb_faces_body,)})")
+            # lid potentials
+            potential_M = 2 * (-D_MN @ potential_N + S_MN @ qb_N)
+            vertical_gradient = problem.omega**2/problem.g * potential_M
+            sources = None
+        else:
+            # raise NotImplementedError("Indirect method for fixed OWC not implemented.")
+            with self.timer["  Green function"]:
+                S, K = self.engine.build_matrices(
+                        problem.body.mesh_including_lid, problem.body.mesh_including_lid,
+                        problem.free_surface, problem.water_depth, problem.wavenumber,
+                        self.green_function, adjoint_double_layer=True
+                        )
+            # N cells on rigid body, M cells on internal free surface
+            N = problem.nb_faces_body
+            qb_N = problem.boundary_condition
+            # S_NM = S[:N, N:]
+            # S_NN = S[:N, :N]
+            S_MN = S[N:, :N]
+            # S_MM = S[N:, N:]
+            # K_NM = K[:N, N:]
+            K_NN = K[:N, :N]
+            # K_MN = K[N:, :N]
+            # K_MM = K[N:, N:]
+            with self.timer["  Linear solver"]:
+                sources = linear_solver(K_NN, qb_N)
+            if not sources.shape == (problem.nb_faces_body,):
+                raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({sources.shape}) "
+                                 f"does not match the expected shape ({problem.boundary_condition.shape})")
+            potential_M = S_MN @ sources
+            vertical_gradient = problem.omega**2/problem.g * potential_M
+
+
+        # volumetric flow in the chamber
+        flow = np.sum(vertical_gradient * problem.body.lid_mesh.faces_areas)
 
         if not keep_details:
             result = problem.make_results_container(flow)

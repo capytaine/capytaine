@@ -372,6 +372,40 @@ class OWCRadiationProblem(LinearPotentialFlowProblem):
         return FailedOWCRadiationResult(self, *args, **kwargs)
 
 
+class OWCDiffractionProblem(LinearPotentialFlowProblem):
+    """Particular LinearPotentialFlowProblem with boundary conditions
+    computed from an incoming Airy wave."""
+
+    def __init__(self, *,
+                 body=None,
+                 free_surface=_default_parameters['free_surface'],
+                 water_depth=None, sea_bottom=None,
+                 omega=None, freq=None, period=None, wavenumber=None, wavelength=None,
+                 rho=_default_parameters['rho'],
+                 g=_default_parameters['g'],
+                 wave_direction=_default_parameters['wave_direction']):
+
+        super().__init__(body=body, free_surface=free_surface, water_depth=water_depth, sea_bottom=sea_bottom,
+                         omega=omega, freq=freq, period=period, wavenumber=wavenumber, wavelength=wavelength, wave_direction=wave_direction,
+                         rho=rho, g=g)
+
+        if self.body is not None:
+
+            self.boundary_condition = -(
+                    airy_waves_velocity(self.body.mesh.faces_centers, self)
+                    * self.body.mesh.faces_normals
+            ).sum(axis=1)
+
+        self.nb_faces_body = body.mesh.nb_faces
+        self.nb_faces_lid = body.lid_mesh.nb_faces
+
+    def make_results_container(self, *args, **kwargs):
+        return OWCDiffractionResult(self, *args, **kwargs)
+
+    def make_failed_results_container(self, *args, **kwargs):
+        return FailedOWCDiffractionResult(self, *args, **kwargs)
+
+
 class DiffractionProblem(LinearPotentialFlowProblem):
     """Particular LinearPotentialFlowProblem with boundary conditions
     computed from an incoming Airy wave."""
@@ -641,6 +675,34 @@ class OWCRadiationResult(LinearPotentialFlowResult):
 
 
 class FailedOWCRadiationResult(OWCRadiationResult):
+    def __init__(self, problem, exception):
+        OWCRadiationResult.__init__(self, problem, None)
+        self.exception = exception
+
+
+class OWCDiffractionResult(LinearPotentialFlowResult):
+
+    def __init__(self, problem, flow, body_sources=None, lid_potential=None, lid_gradient=None):
+        super().__init__(problem, sources=body_sources, potential=lid_potential, forces=None, pressure=None,)
+        self.flow = flow
+        self.potential_vertical_gradient = lid_gradient
+        airy_vertical_velocity = airy_waves_velocity(problem.body.lid_mesh.faces_centers, problem)[:,2]
+        self.flow_airy = np.sum(airy_vertical_velocity * problem.body.lid_mesh.faces_areas)
+
+    @property
+    def diffraction_flow(self):
+        return self.flow
+
+    @property
+    def airy_flow(self):
+        return self.flow_airy
+
+    @property
+    def excitation_flow(self):
+        return self.flow + self.flow_airy
+
+
+class FailedOWCDiffractionResult(OWCRadiationResult):
     def __init__(self, problem, exception):
         OWCRadiationResult.__init__(self, problem, None)
         self.exception = exception
