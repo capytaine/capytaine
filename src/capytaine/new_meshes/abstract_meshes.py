@@ -28,7 +28,6 @@ from capytaine.new_meshes.geometry import connected_components, connected_compon
 LOG = logging.getLogger(__name__)
 
 class AbstractMesh(SurfaceIntegralsMixin, ABC):
-
     @property
     @abstractmethod
     def nb_vertices(self) -> int:
