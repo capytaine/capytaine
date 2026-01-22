@@ -120,7 +120,6 @@ class FloatingBody(_HydrostaticsMixin):
 
     @staticmethod
     def from_meshio(mesh, name=None) -> 'FloatingBody':
-        raise
         """Create a FloatingBody from a meshio mesh object.
         Kinda deprecated, use cpt.load_mesh instead."""
         LOG.warning("Deprecation warning: The method FloatingBody.from_meshio(...) is deprecated. "
