@@ -23,6 +23,16 @@ Minor changes
 * **Breaking** When building the dataset in :meth:`~cpt.bem.solver.fill_dataset`, the previous ``kochin`` attribute has been renamed to ``kochin_radiation``
   to be consistent with the existing ``kochin_diffraction`` attribute.
 
+* **Breaking** Remove the geometric body classes ``cpt.Sphere()``,
+  ``cpt.VerticalCylinder()``, ``cpt.HorizontalCylinder()``, ``cpt.Disk()``,
+  ``cpt.Rectangle()``, ``cpt.RectangularParallelepiped()``, that were marked as
+  deprecated since version 2.0. Consider using instead::
+
+    cpt.FloatingBody(mesh=cpt.mesh_sphere(...), ...)
+
+  or something equivalent, separating the geometric mesh generation from the
+  floating body definition.
+
 Bug fixes
 ~~~~~~~~~
 
