@@ -104,6 +104,22 @@ def test_control_threads(sphere, n_jobs, n_threads):
     solver.fill_dataset(test_matrix, sphere, n_jobs=n_jobs, n_threads=n_threads)
 
 
+@pytest.mark.parametrize("memory", [2, 3, 10])
+@pytest.mark.parametrize("n_cpu", [1, 2, 4])
+def test_dispatch(memory, n_cpu):
+    solver = cpt.BEMSolver()
+    mesh = cpt.mesh_sphere(radius=1.0, resolution=(100, 100)).immersed_part()
+    sphere = cpt.FloatingBody(mesh=mesh)
+    sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
+    problems = cpt.RadiationProblem(body=sphere, omega=0.2)    
+    dict = solver.dispatch(problems = problems, memory=memory, n_cpu=n_cpu)
+    n_jobs = dict["n_jobs"]
+    n_threads = dict["n_threads"]
+    estimated_memory_per_job = solver.engine.compute_ram_estimation(problems)
+    assert n_jobs*estimated_memory_per_job <= memory
+    assert n_threads*n_jobs <= n_cpu
+ 
+
 def test_nb_timer(sphere):
     pytest.importorskip("joblib")
     solver = cpt.BEMSolver()
