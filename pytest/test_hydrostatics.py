@@ -174,7 +174,6 @@ def test_stiffness_invariance_by_clipping_at_free_surface(body):
     K2 = body().immersed_part().compute_hydrostatic_stiffness()
     assert np.allclose(K1, K2)
 
-@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 @pytest.mark.parametrize("body", [rigid_body, custom_dof_body])
 def test_stiffness_invariance_by_translation(body):
     K1 = body().compute_hydrostatic_stiffness()
@@ -297,7 +296,6 @@ def test_inertia_rigid_body_dofs():
     assert np.all(sphere.compute_rigid_body_inertia(output_type="rigid_dofs")
             == sphere.compute_rigid_body_inertia(output_type="body_dofs"))
 
-@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_inertia_invariance_by_translation():
     sphere = rigid_body()
     M1 = sphere.compute_rigid_body_inertia()
@@ -534,7 +532,6 @@ def test_non_neutrally_buoyant_K55(data):
     ).values
     assert np.isclose(K55, data["K55"], atol=rho_g*1e-2)
 
-@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_non_neutrally_buoyant_stiffness_invariance_by_translation():
     body = non_neutrally_buoyant_body()
     K1 = body.compute_hydrostatic_stiffness()
@@ -557,7 +554,6 @@ def test_non_neutrally_buoyant_inertia():
     M = body.compute_rigid_body_inertia().values
     assert np.allclose(np.diag(M), np.array([1570, 1570, 1570, 936, 936, 801]), rtol=5e-2)
 
-@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_non_neutrally_buoyant_inertia_invariance_by_translation():
     body = non_neutrally_buoyant_body()
     M1 = body.compute_rigid_body_inertia()

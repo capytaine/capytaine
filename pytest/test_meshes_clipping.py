@@ -15,21 +15,21 @@ def test_clipper():
     mesh = mesh_sphere(radius=5.0, resolution=(10, 5))
     aabb = mesh.axis_aligned_bbox
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
-    assert np.allclose(mesh.axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
+    m = mesh.immersed_part(free_surface=0.0, water_depth=np.inf)
+    assert np.allclose(m.axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=1.0)
-    assert np.allclose(mesh.axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
+    m = mesh.immersed_part(free_surface=0.0, water_depth=1.0)
+    assert np.allclose(m.axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
 
     # With CollectionOfMeshes (AxialSymmetry)
     mesh = mesh_sphere(radius=5.0, resolution=(10, 5), axial_symmetry=True)
     aabb = mesh.merged().axis_aligned_bbox
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
-    assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
+    m = mesh.immersed_part(free_surface=0.0, water_depth=np.inf)
+    assert np.allclose(m.merged().axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=1.0)
-    assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
+    m = mesh.immersed_part(free_surface=0.0, water_depth=1.0)
+    assert np.allclose(m.merged().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
 
     # Check boundaries after clipping
     mesh = mesh_rectangle(size=(5,5), normal=(1,0,0))

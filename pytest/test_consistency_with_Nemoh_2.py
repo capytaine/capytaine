@@ -190,7 +190,6 @@ def test_floating_sphere_finite_depth(nemoh2_solver):
     assert np.isclose(result.forces["Heave"], 5872.8 * np.exp(-2.627j), rtol=1e-2)
 
 
-@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_two_distant_spheres_in_finite_depth(nemoh2_solver):
     radius = 0.5
     resolution = 4

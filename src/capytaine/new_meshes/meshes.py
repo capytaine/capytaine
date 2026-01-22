@@ -540,7 +540,7 @@ class Mesh(AbstractMesh):
             auto_check=False,
         )
 
-    def mirrored(self, plane: Literal['xOz', 'yOz'], *, name=None):
+    def mirrored(self, plane: Literal['xOz', 'yOz'], *, name=None) -> "Mesh":
         new_vertices = self.vertices.copy()
         if plane == "xOz":
             new_vertices[:, 1] *= -1

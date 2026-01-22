@@ -79,7 +79,8 @@ def test_kochin_array_both_radiation_and_diffraction_with_forward_speed():
     assert kds_both.sizes == ({'wavelength': 1, 'wave_direction': 1, 'radiating_dof': 1, 'forward_speed': 2, 'theta': 3})
 
 def test_fill_dataset_with_kochin_functions():
-    sphere = cpt.Sphere(clip_free_surface=True)
+    mesh = cpt.mesh_sphere().immersed_part()
+    sphere = cpt.FloatingBody(mesh=mesh)
     sphere.add_translation_dof(name="Heave")
     solver = cpt.BEMSolver()
 
