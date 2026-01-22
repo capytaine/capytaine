@@ -9,7 +9,6 @@ from typing import Tuple, Union, Optional, Callable
 import numpy as np
 import scipy.sparse.linalg as ssl
 
-from capytaine.meshes.symmetric import ReflectionSymmetricMesh as OldReflectionSymmetricMesh
 from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
@@ -145,18 +144,7 @@ class BasicMatrixEngine(MatrixEngine):
         return fullK
 
     def _build_matrices_with_symmetries(self, mesh1, mesh2, *, diagonal_term_in_double_layer=True, **gf_params) -> Tuple[MatrixLike, MatrixLike]:
-        if (isinstance(mesh1, OldReflectionSymmetricMesh)
-                and isinstance(mesh2, OldReflectionSymmetricMesh)
-                and mesh1.plane == mesh2.plane):
-
-            S_a, K_a = self._build_matrices_with_symmetries(mesh1[0], mesh2[0],
-                                                            diagonal_term_in_double_layer=diagonal_term_in_double_layer, **gf_params)
-            S_b, K_b = self._build_matrices_with_symmetries(mesh1[0], mesh2[1],
-                                                            diagonal_term_in_double_layer=False, **gf_params)
-
-            return BlockCirculantMatrix([S_a, S_b]), BlockCirculantMatrix([K_a, K_b])
-
-        elif (isinstance(mesh1, ReflectionSymmetricMesh)
+        if (isinstance(mesh1, ReflectionSymmetricMesh)
                 and isinstance(mesh2, ReflectionSymmetricMesh)
                 and mesh1.plane == mesh2.plane):
 

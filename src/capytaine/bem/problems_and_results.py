@@ -9,7 +9,6 @@ import pandas as pd
 from scipy.optimize import newton
 
 from capytaine.tools.deprecation_handling import _get_water_depth
-from capytaine.meshes.collections import CollectionOfMeshes
 from capytaine.bem.airy_waves import airy_waves_velocity, froude_krylov_force
 from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 
@@ -195,8 +194,7 @@ class LinearPotentialFlowProblem:
 
 
         if self.body is not None:
-            if ((isinstance(self.body.mesh, CollectionOfMeshes) and len(self.body.mesh) == 0)
-                    or len(self.body.mesh.faces) == 0):
+            if self.body.mesh.nb_faces == 0:
                 raise ValueError(f"The mesh of the body {self.body.__short_str__()} is empty.")
 
             self.body._check_dofs_shape_consistency()
