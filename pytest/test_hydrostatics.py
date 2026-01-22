@@ -7,11 +7,6 @@ import pytest
 
 import numpy as np
 import capytaine as cpt
-from capytaine.meshes.predefined import (
-    mesh_sphere,
-    mesh_horizontal_cylinder,
-    mesh_vertical_cylinder,
-)
 
 from capytaine.new_meshes.predefined import mesh_sphere, mesh_horizontal_cylinder, mesh_vertical_cylinder
 

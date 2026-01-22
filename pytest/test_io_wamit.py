@@ -10,11 +10,9 @@ import pytest
 import capytaine as cpt
 from capytaine.io.wamit import export_to_wamit
 
-from capytaine.meshes.predefined import mesh_sphere
-
 @pytest.fixture
 def full_dataset():
-    mesh = mesh_sphere(resolution=(4, 4))
+    mesh = cpt.mesh_sphere(resolution=(4, 4))
     dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
     full_body = cpt.FloatingBody(mesh, dofs, center_of_mass=(0, 0, 0))
     immersed_body = full_body.immersed_part()
@@ -36,7 +34,7 @@ def full_dataset():
 
 @pytest.fixture
 def dataset_with_multiple_rho():
-    mesh = mesh_sphere(resolution=(4, 4))
+    mesh = cpt.mesh_sphere(resolution=(4, 4))
     dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
     full_body = cpt.FloatingBody(mesh, dofs, center_of_mass=(0, 0, 0))
     immersed_body = full_body.immersed_part()
@@ -255,7 +253,7 @@ def test_export_wamit_frequency_axis_representations(export_type, omega_val, tmp
     - compare the resulting .1 and .3 files
     """
     # Load mesh and run BEM simulation for 1 omega
-    mesh = mesh_sphere(resolution=(4, 4))
+    mesh = cpt.mesh_sphere(resolution=(4, 4))
     dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
     full_body = cpt.FloatingBody(mesh, dofs, center_of_mass=(0, 0, 0))
     immersed_body = full_body.immersed_part()

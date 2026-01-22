@@ -2,13 +2,12 @@ import pytest
 
 import numpy as np
 import capytaine as cpt
-from capytaine.meshes.meshes import Mesh as OldMesh
 
 from capytaine.tools.prony_decomposition import exponential_decomposition, find_best_exponential_decomposition
 
 faces_examples = {
-        "immersed": OldMesh(vertices=[[0.0, 0.0, -1.0], [1.0, 0.0, -1.0], [1.0, 1.0, -1.0], [0.0, 1.0, -1.0]], faces=np.array([[0, 1, 2, 3]])),
-        "free_surface": OldMesh(vertices=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]], faces=np.array([[0, 1, 2, 3]])),
+        "immersed": cpt.Mesh(vertices=[[0.0, 0.0, -1.0], [1.0, 0.0, -1.0], [1.0, 1.0, -1.0], [0.0, 1.0, -1.0]], faces=np.array([[0, 1, 2, 3]])),
+        "free_surface": cpt.Mesh(vertices=[[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0], [0.0, 1.0, 0.0]], faces=np.array([[0, 1, 2, 3]])),
         }
 
 @pytest.mark.parametrize("derivative_with_respect_to_first_variable", [True, False])

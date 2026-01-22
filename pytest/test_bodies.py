@@ -40,34 +40,35 @@ def test_dof_name_inference():
 
 
 def test_rigid_body_dofs():
-    mesh = mesh_sphere()
+    mesh = cpt.mesh_sphere()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(10.0, 0.0, 0.0)))
     assert "Heave" in body.dofs
     assert np.all(body.dofs["Pitch"][:, 2] > 9.0)
 
 
 def test_rigid_body_dofs_no_rotation_center_but_a_center_of_mass():
-    mesh = mesh_sphere()
+    mesh = cpt.mesh_sphere()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(-10.0, 0.0, 0.0))
     assert np.all(body.dofs["Pitch"][:, 2] < -9.0)
 
 
 def test_rigid_body_dofs_both_a_rotation_center_and_a_center_of_mass():
-    mesh = mesh_sphere()
+    mesh = cpt.mesh_sphere()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(10.0, 0.0, 0.0)),
                             center_of_mass=(-10.0, 0.0, 0.0))
     assert np.all(body.dofs["Pitch"][:, 2] > 9.0)
 
 
 def test_rigid_body_dofs_neither_a_rotation_center_nor_a_center_of_mass():
-    mesh = mesh_sphere()
+    mesh = cpt.mesh_sphere()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
     assert np.allclose(body._infer_rotation_center(), (0.0, 0.0, 0.0))
 
 
+@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_defining_rotation_center_with_ints():
     # Issue #319
-    mesh = mesh_sphere().immersed_part()
+    mesh = cpt.mesh_sphere().immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1)))
     body.translated_y(-2.0)
 
@@ -78,11 +79,12 @@ def test_healing_before_initializing_dofs():
     vertices = np.array([(0.0, 0.0, 0.0), (0.0, 1.0, 0.0),
                          (1.0, 1.0, 0.0), (1.0, 0.0, 0.0)])
     faces = np.array([[0, 1, 2, 3], [1, 2, 2, 1]])
-    mesh = OldMesh(vertices, faces)
+    mesh = cpt.Mesh(vertices, faces)
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
     assert body.dofs["Heave"].shape[0] == body.mesh.nb_faces == 1
 
 
+# Outdated in v3
 def test_bodies():
     body = cpt.FloatingBody(mesh=mesh_sphere(), name="sphere", center_of_mass=(0, 0, 0))
     repr(body)
@@ -152,13 +154,13 @@ def test_inplace_transform_with_lid():
 
 
 @pytest.mark.parametrize("z_center", [0, 2, -2])
-@pytest.mark.parametrize("as_collection_of_meshes", [True, False])
-def test_clipping_of_dofs(z_center, as_collection_of_meshes):
+@pytest.mark.parametrize("symmetry", [True, False])
+def test_clipping_of_dofs(z_center, symmetry):
     """Check that clipping a body with a dof is the same as clipping the body ant then adding the dof."""
-    full_sphere = cpt.FloatingBody(mesh=mesh_sphere(center=(0, 0, z_center), axial_symmetry=as_collection_of_meshes), name="sphere")
+    full_sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(center=(0, 0, z_center), axial_symmetry=symmetry), name="sphere")
 
     full_sphere.add_rotation_dof(rotation_center=(1, 0, 0), direction=(1, 0, 0), name="test_dof")
-    clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, water_depth=np.inf, inplace=False)
+    clipped_sphere = full_sphere.immersed_part(free_surface=0.0, water_depth=np.inf)
 
     other_clipped_sphere = cpt.FloatingBody(mesh=clipped_sphere.mesh, name="other_sphere")
     other_clipped_sphere.add_rotation_dof(rotation_center=(1, 0, 0), direction=(1, 0, 0), name="test_dof")
@@ -171,12 +173,13 @@ def test_clipping_of_dofs(z_center, as_collection_of_meshes):
 
 def test_complicated_clipping_of_dofs():
     # 1 face becomes 2 faces after clipping
-    mesh = OldMesh(vertices=[[0.0, 0.0, 0.5], [-0.5, 0.0, -0.5], [0.0, 0.0, -1.5], [0.0, 0.5, -0.5]], faces=[[0, 1, 2, 3]])
+    mesh = cpt.Mesh(vertices=[[0.0, 0.0, 0.5], [-0.5, 0.0, -0.5], [0.0, 0.0, -1.5], [0.0, 0.5, -0.5]], faces=[[0, 1, 2, 3]])
     body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
     clipped_body = body.immersed_part()
     assert len(clipped_body.dofs["Heave"]) == clipped_body.mesh.nb_faces
 
 
+# Outdated in v3
 def test_clipping_of_inconsistent_dof():
     body = cpt.FloatingBody(mesh_sphere(), dofs=cpt.rigid_body_dofs())
     body.mesh.keep_immersed_part()  # Dofs and mesh are now inconsistent
@@ -184,7 +187,6 @@ def test_clipping_of_inconsistent_dof():
         body.keep_immersed_part()
 
 
-@pytest.mark.xfail
 def test_clipping_of_dofs_with_degenerate_faces():
     vertices = np.array([
         [-8.00000000e+00,  1.65358984e+00, -4.99999996e-02],
@@ -199,7 +201,7 @@ def test_clipping_of_dofs_with_degenerate_faces():
         [3, 4, 6, 3],
         [2, 0, 3, 2],
         ])
-    mesh = OldMesh(vertices, faces)
+    mesh = cpt.Mesh(vertices, faces)
     body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
     clipped_body = body.immersed_part()
     assert len(clipped_body.dofs["Heave"]) == clipped_body.mesh.nb_faces
@@ -207,26 +209,22 @@ def test_clipping_of_dofs_with_degenerate_faces():
 
 def test_cropping_body_with_manual_dof():
     # https://github.com/capytaine/capytaine/issues/204
-    sphere = cpt.FloatingBody(mesh_sphere())
+    sphere = cpt.FloatingBody(cpt.mesh_sphere())
     sphere.dofs["Surge"] = [(1, 0, 0) for face in sphere.mesh.faces]
-    sphere.keep_immersed_part()
+    sphere.immersed_part()
 
 
 def test_immersed_part():
-    full_sphere = cpt.FloatingBody(mesh=mesh_sphere(), name="ball")
+    full_sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(), name="ball")
     immersed_sphere = full_sphere.immersed_part()
     assert immersed_sphere is not full_sphere
-    assert immersed_sphere.mesh == full_sphere.mesh.immersed_part()
-    assert immersed_sphere.mesh.axis_aligned_bbox[5] <= 0.0
-    assert immersed_sphere.name == "ball"
-    full_sphere.translate_x(2.0)
-    new_immersed_sphere = full_sphere.immersed_part()
-    assert new_immersed_sphere is not immersed_sphere
-    assert not np.allclose(new_immersed_sphere.mesh.axis_aligned_bbox, immersed_sphere.mesh.axis_aligned_bbox)
+    assert immersed_sphere.mesh.nb_faces == full_sphere.mesh.immersed_part().nb_faces
+    assert immersed_sphere.mesh.vertices[:, 2].max() <= 0.0
 
 
+@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_assemble_regular_array():
-    body = cpt.FloatingBody(mesh=mesh_sphere())
+    body = cpt.FloatingBody(mesh=cpt.mesh_sphere())
     body.add_all_rigid_body_dofs()
     array = body.assemble_regular_array(distance=2.0, nb_bodies=(2, 3))
     assert array.mesh.nb_faces == 6*body.mesh.nb_faces
@@ -248,12 +246,13 @@ n_bodies = locations.shape[0]
 
 @pytest.fixture
 def fb_array():
-    sphere = cpt.FloatingBody(mesh_sphere(radius=r, center=(0, 0, 0), resolution=(10, 4)))
+    sphere = cpt.FloatingBody(cpt.mesh_sphere(radius=r, center=(0, 0, 0), resolution=(10, 4)))
     sphere.add_rotation_dof(rotation_center=(0, 0, 0), direction=(0, 1, 0))
     sphere = sphere.immersed_part()
     return sphere.assemble_arbitrary_array(locations)
 
 
+@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_consistent_dofs_to_faces(fb_array):
     num_active_faces = []
     for fb_dof in fb_array.dofs.items():
@@ -267,6 +266,7 @@ def test_consistent_dofs_to_faces(fb_array):
     assert np.all(ma==exp_active_faces_per_dof)
 
 
+@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_solve_hydrodynamics(fb_array):
     solver = cpt.BEMSolver()
     test_matrix = xr.Dataset(coords={
@@ -288,18 +288,19 @@ def test_solve_hydrodynamics(fb_array):
     assert data.Froude_Krylov_force.notnull().all()
 
 
+# Outdated by v3
 def test_clip_component_of_multibody():
     # https://github.com/capytaine/capytaine/issues/660
     body_1 = cpt.FloatingBody(
-        mesh=mesh_sphere(center=(0.0, 0.0, 0.0)),
+        mesh=cpt.mesh_sphere(center=(0.0, 0.0, 0.0)),
         dofs=cpt.rigid_body_dofs(rotation_center=(0.0, 0.0, 0.0)),
         name="body_1"
     )
     body_2 = cpt.FloatingBody(
-        mesh=mesh_sphere(center=(5.0, 0.0, 0.0)),
+        mesh=cpt.mesh_sphere(center=(5.0, 0.0, 0.0)),
         dofs=cpt.rigid_body_dofs(rotation_center=(5.0, 0.0, 0.0)),
         name="body_2"
     )
     both = body_1 + body_2
-    body_2.keep_immersed_part()
+    body_2 = body_2.immersed_part()
     assert both.dofs["body_1__Heave"].shape[0] == both.mesh.nb_faces

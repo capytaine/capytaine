@@ -5,11 +5,11 @@ import numpy as np
 import pytest
 
 import capytaine as cpt
-from capytaine.meshes.meshes import Mesh as OldMesh
+from capytaine.new_meshes.meshes import Mesh
+from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, \
         LinearPotentialFlowResult, DiffractionResult, RadiationResult
 from capytaine.io.legacy import import_cal_file
-from capytaine.meshes.symmetric import ReflectionSymmetricMesh
 
 
 #####################################
@@ -115,7 +115,7 @@ def test_define_problem_without_body():
 
 def test_define_problem_with_empty_body():
     with pytest.raises(ValueError):
-        LinearPotentialFlowProblem(body=cpt.FloatingBody(mesh=OldMesh([], [])))
+        LinearPotentialFlowProblem(body=cpt.FloatingBody(mesh=cpt.Mesh([], [])))
 
 
 def test_define_generic_problem_with_its_boundary_condition(sphere):
@@ -324,7 +324,7 @@ def test_import_cal_file(cal_file):
         assert problem.g == 9.81
         assert problem.water_depth == np.inf
         assert isinstance(problem.body.mesh, ReflectionSymmetricMesh)
-        assert isinstance(problem.body.mesh[0], OldMesh)
+        assert isinstance(problem.body.mesh.half, Mesh)
         assert problem.body.nb_dofs == 6
         # assert problem.body.mesh.nb_vertices == 2*540
         assert problem.body.mesh.nb_faces == 2*300

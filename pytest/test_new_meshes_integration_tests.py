@@ -3,18 +3,18 @@ import numpy as np
 import capytaine as cpt
 import xarray as xr
 
-import capytaine.new_meshes as meshes
+from capytaine.new_meshes import Mesh
 from capytaine.meshes.mesh_like_protocol import MeshLike
 
 def test_meshes_are_meshlike():
-    mesh = meshes.Mesh(
+    mesh = Mesh(
         vertices=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, -1.0]]),
         faces=np.array([[0, 1, 2, 2]])
     )
     assert isinstance(mesh, MeshLike)
 
 def test_meshes_can_be_used_to_solve_pb():
-    mesh = meshes.Mesh(
+    mesh = Mesh(
         vertices=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, -1.0]]),
         faces=np.array([[0, 1, 2, 2]])
     )
@@ -24,7 +24,7 @@ def test_meshes_can_be_used_to_solve_pb():
     solver.solve(pb, method="indirect")
 
 def test_minimal_implementation_compute_velocity():
-    mesh = meshes.Mesh(
+    mesh = Mesh(
         vertices=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, -1.0]]),
         faces=np.array([[0, 1, 2, 2]])
     )
@@ -35,11 +35,11 @@ def test_minimal_implementation_compute_velocity():
     solver.compute_velocity(mesh, res)
 
 def test_minimal_implementation_solve_pb_with_lid():
-    mesh = meshes.Mesh(
+    mesh = Mesh(
         vertices=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, -1.0]]),
         faces=np.array([[0, 1, 2, 2]])
     )
-    lid_mesh = meshes.Mesh(
+    lid_mesh = Mesh(
         vertices=np.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [1.0, 1.0, 0.0]]),
         faces=np.array([[0, 1, 2, 2]])
     )
@@ -49,7 +49,7 @@ def test_minimal_implementation_solve_pb_with_lid():
     solver.solve(pb, method="indirect")
 
 def test_minimal_implementation_fill_dataset():
-    mesh = meshes.Mesh(
+    mesh = Mesh(
         vertices=np.array([[0.0, 0.0, 0.0], [0.0, 0.0, -1.0], [1.0, 0.0, -1.0]]),
         faces=np.array([[0, 1, 2, 2]])
     )

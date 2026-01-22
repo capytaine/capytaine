@@ -10,6 +10,7 @@ import numpy as np
 from capytaine.bem.solver import BEMSolver
 from capytaine.io.xarray import assemble_dataset
 from capytaine.io.mesh_writers import write_MAR
+from capytaine.new_meshes.io import load_mesh
 from capytaine.bodies.bodies import FloatingBody
 from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
 
@@ -46,7 +47,7 @@ def import_cal_file(filepath):
                 spec.loader.exec_module(body_initialization)
                 body = body_initialization.body
             else:
-                body = FloatingBody.from_file(mesh_file)
+                body = FloatingBody(mesh=load_mesh(mesh_file, file_format='nemoh'))
 
             nb_dofs = int(cal_file.readline().split()[0])
             for i_dof in range(nb_dofs):

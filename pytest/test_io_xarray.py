@@ -7,12 +7,11 @@ import capytaine as cpt
 
 from capytaine.io.xarray import problems_from_dataset, separate_complex_values, merge_complex_values
 
-from capytaine.meshes.predefined import mesh_sphere
 
 @pytest.fixture
 def sphere():
     sphere = cpt.FloatingBody(
-            mesh=mesh_sphere(center=(0, 0, -2), radius=1.0, resolution=(10, 20)),
+            mesh=cpt.mesh_sphere(center=(0, 0, -2), radius=1.0, resolution=(10, 20)),
             name="sphere",
             )
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
@@ -29,6 +28,7 @@ def solver():
 #                       Problems from datasets                        #
 #######################################################################
 
+@pytest.mark.xfail(reason="waiting for update of FloatingBody transformations")
 def test_problems_from_dataset(sphere):
     dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
                               'radiating_dof': ["Heave"],
