@@ -11,13 +11,9 @@ from typing import Literal
 import numpy as np
 import xarray as xr
 
-from capytaine.meshes.mesh_like_protocol import MeshLike
-from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.geometry import inplace_transformation, Plane
-from capytaine.meshes.properties import connected_components, connected_components_of_waterline
-from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.symmetric import build_regular_array_of_meshes
 from capytaine.new_meshes.abstract_meshes import AbstractMesh
+from capytaine.new_meshes.meshes import Mesh
+from capytaine.new_meshes.geometry import connected_components, connected_components_of_waterline
 from capytaine.bodies.dofs import RigidBodyDofsPlaceholder, TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
 from capytaine.bodies.hydrostatics import _HydrostaticsMixin
 
@@ -40,10 +36,10 @@ class FloatingBody(_HydrostaticsMixin):
 
     Parameters
     ----------
-    mesh : MeshLike, optional
+    mesh : AbstractMesh, optional
         the mesh describing the geometry of the hull of the floating body.
         If none is given, a empty one is created.
-    lid_mesh : MeshLike or None, optional
+    lid_mesh : AbstractMesh or None, optional
         a mesh of an internal lid for irregular frequencies removal.
         Unlike the mesh of the hull, no dof is defined on the lid_mesh.
         If none is given, none is used when solving the Boundary Integral Equation.
@@ -62,28 +58,24 @@ class FloatingBody(_HydrostaticsMixin):
         If none is given, the one of the mesh is used.
     """
 
-    def __init__(self, mesh=None, dofs=None, mass=None, center_of_mass=None, name=None, *, lid_mesh=None):
+    def __init__(self, mesh=None, dofs=None, *, mass=None, center_of_mass=None, name=None, lid_mesh=None):
         if mesh is None:
             self.mesh = Mesh(name="dummy_mesh")
-
-        elif meshio is not None and isinstance(mesh, meshio._mesh.Mesh):
-            from capytaine.io.meshio import load_from_meshio
-            self.mesh = load_from_meshio(mesh)
-
-        elif isinstance(mesh, MeshLike):
+        elif isinstance(mesh, AbstractMesh):
             self.mesh = mesh
-
         else:
             raise TypeError("Unrecognized `mesh` object passed to the FloatingBody constructor.")
 
-        if lid_mesh is not None:
+        if lid_mesh is None:
+            self.lid_mesh = None
+        elif isinstance(mesh, AbstractMesh):
             if lid_mesh.nb_faces == 0:
                 LOG.warning("Lid mesh %s provided for body initialization is empty. The lid mesh is ignored.", lid_mesh)
                 self.lid_mesh = None
             else:
                 self.lid_mesh = lid_mesh.with_normal_vector_going_down(inplace=False)
         else:
-            self.lid_mesh = None
+            raise TypeError("Unrecognized `lid_mesh` object passed to the FloatingBody constructor.")
 
         if name is None and mesh is None:
             self.name = "dummy_body"
@@ -100,9 +92,6 @@ class FloatingBody(_HydrostaticsMixin):
             self.center_of_mass = np.asarray(center_of_mass, dtype=float)
         else:
             self.center_of_mass = None
-
-        if hasattr(self.mesh, "heal_mesh") and self.mesh.nb_vertices > 0 and self.mesh.nb_faces > 0:
-            self.mesh.heal_mesh()
 
         if dofs is None:
             self.dofs = {}
@@ -146,7 +135,8 @@ class FloatingBody(_HydrostaticsMixin):
         LOG.warning("Deprecation warning: The method FloatingBody.from_file(...) is deprecated. "
                     "Please prefer FloatingBody(mesh=cpt.load_mesh(...), ...)")
         from capytaine.io.mesh_loaders import load_mesh
-        if name is None: name = filename
+        if name is None:
+            name = filename
         mesh = load_mesh(filename, file_format, name=f"{name}_mesh")
         return FloatingBody(mesh, name=name)
 
@@ -257,18 +247,23 @@ class FloatingBody(_HydrostaticsMixin):
             forces[dof_name] = np.sum(pressure * normal_dof_amplitude_on_face * self.mesh.faces_areas)
         return forces
 
-    @inplace_transformation
-    def keep_only_dofs(self, dofs):
-        for dof in list(self.dofs.keys()):
-            if dof not in dofs:
-                del self.dofs[dof]
+    def keep_only_dofs(self, *args, **kwargs):
+        raise NotImplementedError("`keep_only_dofs` has been removed. Consider using `body = body.with_only_dofs(['dof_name'])` instead.")
+
+    def with_only_dofs(self, dofs):
+        body = FloatingBody(mesh=self.mesh,
+                            lid_mesh=self.lid_mesh,
+                            dofs={k: v for k, v in self.dofs.items() if k in dofs},
+                            mass=self.mass,
+                            center_of_mass=self.center_of_mass,
+                            name=self.name)
 
         if hasattr(self, 'inertia_matrix'):
-            self.inertia_matrix = self.inertia_matrix.sel(radiating_dof=dofs, influenced_dof=dofs)
+            body.inertia_matrix = self.inertia_matrix.sel(radiating_dof=dofs, influenced_dof=dofs)
         if hasattr(self, 'hydrostatic_stiffness'):
-            self.hydrostatic_stiffness = self.hydrostatic_stiffness.sel(radiating_dof=dofs, influenced_dof=dofs)
+            body.hydrostatic_stiffness = self.hydrostatic_stiffness.sel(radiating_dof=dofs, influenced_dof=dofs)
 
-        return self
+        return body
 
     def add_dofs_labels_to_vector(self, vector):
         """Helper function turning a bare vector into a vector labelled by the name of the dofs of the body,
@@ -401,50 +396,20 @@ class FloatingBody(_HydrostaticsMixin):
         """
         bodies = (self.translated((i*distance, j*distance, 0), name=f"{i}_{j}") for j in range(nb_bodies[1]) for i in range(nb_bodies[0]))
         array = FloatingBody.join_bodies(*bodies)
-        array.mesh = build_regular_array_of_meshes(self.mesh, distance, nb_bodies)
         array.name = f"array_of_{self.name}"
         return array
 
     def assemble_arbitrary_array(self, locations:np.ndarray):
-
         if not isinstance(locations, np.ndarray):
             raise TypeError('locations must be of type np.ndarray')
         assert locations.shape[1] == 2, 'locations must be of shape nx2, received {:}'.format(locations.shape)
 
         fb_list = []
         for idx, li in enumerate(locations):
-            fb1 = self.copy()
-            fb1.translate(np.append(li,0))
-            fb1.name = 'arbitrary_array_body{:02d}'.format(idx)
-            fb_list.append(fb1)
-
-        arbitrary_array = fb_list[0].join_bodies(*fb_list[1:])
+            fb_list.append(self.translated(np.append(li, 0), name='arbitrary_array_body{:02d}'.format(idx)))
+        arbitrary_array = FloatingBody.join_bodies(*fb_list)
 
         return arbitrary_array
-
-    def extract_faces(self, id_faces_to_extract, return_index=False):
-        """Create a new FloatingBody by extracting some faces from the mesh.
-        The dofs evolve accordingly.
-        The lid_mesh, center_of_mass, mass and hydrostatics data are discarded.
-        """
-        if isinstance(self.mesh, CollectionOfMeshes):
-            raise NotImplementedError  # TODO
-
-        if return_index:
-            new_mesh, id_v = self.mesh.extract_faces(id_faces_to_extract, return_index)
-        else:
-            new_mesh = self.mesh.extract_faces(id_faces_to_extract, return_index)
-        new_body = FloatingBody(new_mesh)
-        LOG.info(f"Extract floating body from {self.name}.")
-
-        new_body.dofs = {}
-        for name, dof in self.dofs.items():
-            new_body.dofs[name] = dof[id_faces_to_extract, :]
-
-        if return_index:
-            return new_body, id_v
-        else:
-            return new_body
 
     def mirrored(self, plane: Literal['xOz', 'yOz']) -> "FloatingBody":
         if plane == "xOz":
@@ -539,14 +504,6 @@ class FloatingBody(_HydrostaticsMixin):
         return transformed_mesh, transformed_lid_mesh, new_dofs
 
     def clipped(self, *, origin, normal, name=None) -> "FloatingBody":
-        if not isinstance(self.mesh, AbstractMesh):
-            # Legacy path, to be removed
-            return self.clip(
-                    Plane(point=origin, normal=normal),
-                    inplace=False,
-                    name=name
-                    )
-
         clipped_mesh, clipped_lid_mesh, updated_dofs = self._apply_on_mesh(
             self.mesh.__class__.clipped,
             (),
@@ -562,16 +519,6 @@ class FloatingBody(_HydrostaticsMixin):
         )
 
     def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None, name=None) -> "FloatingBody":
-        if not isinstance(self.mesh, AbstractMesh):
-            # Legacy path, to be removed
-            return self.keep_immersed_part(
-                    free_surface,
-                    inplace=False,
-                    sea_bottom=sea_bottom,
-                    water_depth=water_depth,
-                    name=self.name if name is None else name,
-                    )
-
         clipped_mesh, clipped_lid_mesh, updated_dofs = self._apply_on_mesh(
             self.mesh.__class__.immersed_part,
             (free_surface,),
@@ -639,12 +586,11 @@ class FloatingBody(_HydrostaticsMixin):
             yield "center_of_mass", tuple(self.center_of_mass)
         yield "name", self.name
 
-    def show(self, **kwargs):
-        from capytaine.ui.vtk.body_viewer import FloatingBodyViewer
-        viewer = FloatingBodyViewer()
-        viewer.add_body(self, **kwargs)
-        viewer.show()
-        viewer.finalize()
+    def show(self, *args, **kwargs):
+        return self.mesh.show(*args, **kwargs)
+
+    def show_pyvista(self, *args, **kwargs):
+        return self.mesh.show_pyvista(*args, **kwargs)
 
     def show_matplotlib(self, *args, **kwargs):
         return self.mesh.show_matplotlib(*args, **kwargs)

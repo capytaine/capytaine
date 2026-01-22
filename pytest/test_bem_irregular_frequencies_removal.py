@@ -187,7 +187,6 @@ def test_effect_of_lid_on_regular_frequency_field_velocity(
     assert u_with == pytest.approx(u_without, rel=5e-2)
 
 
-@pytest.mark.xfail  # Need to update body class
 def test_lid_multibody(body_with_lid):
     two_bodies = body_with_lid + body_with_lid.translated_x(5.0)
     n = body_with_lid.mesh.nb_faces

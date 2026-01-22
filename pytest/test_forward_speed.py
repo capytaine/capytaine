@@ -46,7 +46,6 @@ def test_encounter_frequency_radiation_problem(body):
     assert pb.forward_speed == 1.0
     assert pb.encounter_omega < pb.omega
 
-@pytest.mark.xfail  # Just wait for the update of the body class
 def test_multibody(body, solver):
     two_bodies = body + body.translated_x(5.0, name="other_body")
     with pytest.raises(NotImplementedError):
