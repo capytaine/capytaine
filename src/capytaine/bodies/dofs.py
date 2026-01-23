@@ -40,7 +40,8 @@ def evaluate_translation_dof(mesh, direction=None, name=None, amplitude=1.0) -> 
     assert direction.shape == (3,)
     motion = np.empty((mesh.nb_faces, 3))
     motion[:, :] = direction
-    return motion
+    return amplitude * motion
+
 
 def evaluate_rotation_dof(mesh, rotation_center=None, direction=None, name=None, amplitude=1.0) -> np.array:
     if rotation_center is None:
