@@ -100,8 +100,6 @@ class Mesh(AbstractMesh):
 
         self.quadrature_method = quadrature_method
 
-        LOG.debug("New %s", str(self))
-
         # Cleaning/quality (unless mesh is completely empty)
         if not (len(self.vertices) == 0 and len(self._faces) == 0):
             if not _is_valid(vertices, faces):
@@ -115,33 +113,36 @@ class Mesh(AbstractMesh):
                 )
 
             if auto_clean:
-                LOG.debug("Cleaning %s", str(self))
                 self.vertices, self._faces, self.faces_metadata = clean_mesh(
                     self.vertices, self._faces, self.faces_metadata, max_iter=5, tol=1e-8
                 )
+                LOG.debug("Cleaned %s", str(self))
 
             if auto_check:
-                LOG.debug("Checking quality of %s", str(self))
                 check_mesh_quality(self)
+                LOG.debug("Checked quality of %s", str(self))
+
+        LOG.debug("New %s", str(self))
+
 
     ## MAIN METRICS AND DISPLAY
 
-    @cached_property
+    @property
     def nb_vertices(self) -> int:
         """Number of vertices in the mesh."""
         return len(self.vertices)
 
-    @cached_property
+    @property
     def nb_faces(self) -> int:
         """Number of faces in the mesh."""
         return len(self._faces)
 
-    @cached_property
+    @property
     def nb_triangles(self) -> int:
         """Number of triangular faces (3-vertex) in the mesh."""
         return sum(1 for f in self._faces if len(f) == 3)
 
-    @cached_property
+    @property
     def nb_quads(self) -> int:
         """Number of quadrilateral faces (4-vertex) in the mesh."""
         return sum(1 for f in self._faces if len(f) == 4)
@@ -594,6 +595,7 @@ class Mesh(AbstractMesh):
         faces = sum((m.as_list_of_faces() for m in meshes), [])
 
         if return_masks:
+            # Add a temporary metadata to keep track of the origin of each face
             meshes = [m.with_metadata(origin_mesh_index=np.array([i]*m.nb_faces))
                       for i, m in enumerate(meshes)]
 
@@ -619,6 +621,7 @@ class Mesh(AbstractMesh):
         # If list of faces is trimmed for some reason, metadata will be updated accordingly
 
         if return_masks:
+            # Extract the temporary metadata
             masks = [joined_mesh.faces_metadata['origin_mesh_index'] == i for i in range(len(meshes))]
             return joined_mesh.without_metadata('origin_mesh_index'), masks
         else:
