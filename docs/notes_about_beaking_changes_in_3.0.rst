@@ -69,7 +69,11 @@ Main differences
 * **Only a few built-in mesh loaders, but transparently use external libraries**
   Only the domain mesh file formats (Nemoh's, WAMIT's, Hydrostar's and HAMS's) are built-in in Capytaine.
   Loading a mesh in a general purpose file format such as GMSH or STL is still easy, assuming a third party library supporting this file format is installed (see :doc:`mesh`).
-  To reduce the burden of maintenance, mesh writers have been removed, but the mesh objects can be exported to external libraries that can write mesh files.
+
+* **No more mesh writers**
+  To reduce the burden of maintenance, mesh writers have been removed, but the
+  mesh objects can be exported to external libraries that can write mesh files.
+  As a consequence ``export_as_Nemoh_directory`` has been moved out of Capytaine.
 
 * **Symmetries are only available around the main axis.**
   The ``Plane`` and ``Axis`` objects have been removed.

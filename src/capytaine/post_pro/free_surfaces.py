@@ -7,7 +7,7 @@ from itertools import product
 
 import numpy as np
 
-from capytaine.meshes.meshes import Mesh
+from capytaine.new_meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 
@@ -48,10 +48,7 @@ class FreeSurface():
         self.y_range = y_range
         self.ny = ny
 
-        if name is None:
-            self.name = f"free_surface_{next(Mesh._ids)}"
-        else:
-            self.name = name
+        self.name = name
 
         self.mesh = self._generate_mesh()
 
