@@ -1,6 +1,10 @@
 import numpy as np
 import pytest
 import capytaine as cpt
+from capytaine.meshes.meshes import Mesh as OldMesh
+
+from capytaine.meshes.symmetric import AxialSymmetricMesh as OldAxialSymmetricMesh, TranslationalSymmetricMesh as OldTranslationalSymmetricMesh, ReflectionSymmetricMesh as OldReflectionSymmetricMesh
+from capytaine.meshes.collections import CollectionOfMeshes as OldCollectionOfMeshes
 
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -11,7 +15,7 @@ logging.basicConfig(level=logging.DEBUG)
 def test_mesh_disk():
     from capytaine.meshes.predefined.cylinders import mesh_disk
     d = mesh_disk(resolution=(3, 6), name="foo")
-    assert isinstance(d, cpt.Mesh)
+    assert isinstance(d, OldMesh)
     assert d.nb_faces == 18
     assert d.name == "foo"
 
@@ -23,13 +27,13 @@ def test_mesh_disk_position():
 def test_mesh_disk_reflection_symmetry():
     from capytaine.meshes.predefined.cylinders import mesh_disk
     d = mesh_disk(resolution=(3, 6), reflection_symmetry=True, normal=(1, 0, 0))
-    assert isinstance(d, cpt.ReflectionSymmetricMesh)
+    assert isinstance(d, OldReflectionSymmetricMesh)
     assert np.all(d.half.vertices[:, 1] >= 0.0)
 
 def test_mesh_disk_axial_symmetry():
     from capytaine.meshes.predefined.cylinders import mesh_disk
     d = mesh_disk(resolution=(3, 6), normal=(0, 1, 0), axial_symmetry=True)
-    assert isinstance(d, cpt.AxialSymmetricMesh)
+    assert isinstance(d, OldAxialSymmetricMesh)
     assert np.allclose(d.axis.vector, (0, 1, 0))
 
 def test_mesh_disk_both_symmetries():
@@ -48,7 +52,7 @@ def test_mesh_disk_max_size(max_rad):
 def test_mesh_vertical_cylinder():
     from capytaine.meshes.predefined.cylinders import mesh_vertical_cylinder
     v = mesh_vertical_cylinder(resolution=(2, 8, 10), name="foo")
-    assert isinstance(v, cpt.Mesh)
+    assert isinstance(v, OldMesh)
     assert v.nb_faces == (10+2*2)*8
     assert v.name == "foo"
 
@@ -62,7 +66,7 @@ def test_mesh_vertical_cylinder_position():
 def test_mesh_vertical_cylinder_reflection_symmetry():
     from capytaine.meshes.predefined.cylinders import mesh_vertical_cylinder
     v = mesh_vertical_cylinder(reflection_symmetry=True, center=(5.0, 5.0, 6.0))
-    assert isinstance(v, cpt.ReflectionSymmetricMesh)
+    assert isinstance(v, OldReflectionSymmetricMesh)
     assert v.merged().nb_faces == mesh_vertical_cylinder(reflection_symmetry=False).nb_faces
     assert np.all(v.half.vertices[:, 0] >= 5.0)
     assert not np.all(v.vertices[:, 0] >= 5.0)
@@ -71,7 +75,7 @@ def test_mesh_vertical_cylinder_reflection_symmetry():
 def test_mesh_vertical_cylinder_axial_symmetry():
     from capytaine.meshes.predefined.cylinders import mesh_vertical_cylinder
     v = mesh_vertical_cylinder(axial_symmetry=True)
-    assert isinstance(v, cpt.AxialSymmetricMesh)
+    assert isinstance(v, OldAxialSymmetricMesh)
 
 def test_mesh_vertical_cylinder_both_symmetries():
     from capytaine.meshes.predefined.cylinders import mesh_vertical_cylinder
@@ -89,7 +93,7 @@ def test_mesh_vertical_max_size(max_rad):
 def test_mesh_horizontal_cylinder():
     from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
     h = mesh_horizontal_cylinder(resolution=(2, 8, 10), name="foo")
-    assert isinstance(h, cpt.Mesh)
+    assert isinstance(h, OldMesh)
     assert h.nb_faces == (10+2*2)*8
     assert h.name == "foo"
 
@@ -102,7 +106,7 @@ def test_mesh_horizontal_cylinder_position():
 def test_mesh_horizontal_cylinder_reflection_symmetry():
     from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
     h = mesh_horizontal_cylinder(reflection_symmetry=True, center=(5.0, 5.0, 5.0))
-    assert isinstance(h, cpt.ReflectionSymmetricMesh)
+    assert isinstance(h, OldReflectionSymmetricMesh)
     assert h.merged().nb_faces == mesh_horizontal_cylinder(reflection_symmetry=False).nb_faces
     assert not np.all(h.vertices[:, 1] >= 5.0)  # All panels are on the same side
     assert np.all(h.half.vertices[:, 1] >= 5.0)  # All panels are on the same side
@@ -112,26 +116,26 @@ def test_mesh_horizontal_cylinder_translation_symmetry():
     from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
     length = 10.0
     h = mesh_horizontal_cylinder(length=length, resolution=(0, 8, 10), translation_symmetry=True)
-    assert isinstance(h, cpt.TranslationalSymmetricMesh)
+    assert isinstance(h, OldTranslationalSymmetricMesh)
     assert np.isclose(np.min(h.vertices[:, 0]), -length/2)
     assert np.isclose(np.max(h.vertices[:, 0]), length/2)
 
     h = mesh_horizontal_cylinder(resolution=(2, 8, 10), translation_symmetry=True)
     print(h.tree_view())
-    assert isinstance(h, cpt.CollectionOfMeshes)
-    assert isinstance(h[0], cpt.TranslationalSymmetricMesh)
+    assert isinstance(h, OldCollectionOfMeshes)
+    assert isinstance(h[0], OldTranslationalSymmetricMesh)
 
 def test_mesh_horizontal_cylinder_both_symmetries():
     from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
     h = mesh_horizontal_cylinder(resolution=(0, 8, 10), reflection_symmetry=True, translation_symmetry=True)
-    assert isinstance(h, cpt.ReflectionSymmetricMesh)
-    assert isinstance(h[0], cpt.TranslationalSymmetricMesh)
+    assert isinstance(h, OldReflectionSymmetricMesh)
+    assert isinstance(h[0], OldTranslationalSymmetricMesh)
 
     h = mesh_horizontal_cylinder(resolution=(2, 8, 10), reflection_symmetry=True, translation_symmetry=True)
-    assert isinstance(h, cpt.ReflectionSymmetricMesh)
-    assert isinstance(h[0], cpt.CollectionOfMeshes)
-    assert isinstance(h[0][0], cpt.TranslationalSymmetricMesh)
-    assert isinstance(h[0][1], cpt.Mesh)
+    assert isinstance(h, OldReflectionSymmetricMesh)
+    assert isinstance(h[0], OldCollectionOfMeshes)
+    assert isinstance(h[0][0], OldTranslationalSymmetricMesh)
+    assert isinstance(h[0][1], OldMesh)
 
 @pytest.mark.parametrize("max_rad", [0.5, 1.0, 5.0])
 def test_mesh_horizontal_max_size(max_rad):
@@ -144,7 +148,7 @@ def test_mesh_horizontal_max_size(max_rad):
 def test_mesh_sphere():
     from capytaine.meshes.predefined.spheres import mesh_sphere
     d = mesh_sphere(resolution=(3, 6), name="foo")
-    assert isinstance(d, cpt.Mesh)
+    assert isinstance(d, OldMesh)
     assert d.nb_faces == 18
     assert d.name == "foo"
 
@@ -159,7 +163,7 @@ def test_mesh_sphere_position():
 def test_mesh_sphere_axial_symmetry():
     from capytaine.meshes.predefined.spheres import mesh_sphere
     d = mesh_sphere(resolution=(3, 6), axial_symmetry=True)
-    assert isinstance(d, cpt.AxialSymmetricMesh)
+    assert isinstance(d, OldAxialSymmetricMesh)
     assert np.allclose(d.axis.vector, (0, 0, 1))
 
 @pytest.mark.parametrize("max_rad", [0.5, 1.0, 5.0])
@@ -177,7 +181,7 @@ def test_mesh_sphere_max_size(max_rad):
 def test_mesh_rectangle():
     from capytaine.meshes.predefined.rectangles import mesh_rectangle
     d = mesh_rectangle(resolution=(3, 6), name="foo")
-    assert isinstance(d, cpt.Mesh)
+    assert isinstance(d, OldMesh)
     assert d.nb_faces == 18
     assert d.name == "foo"
 
@@ -189,7 +193,7 @@ def test_mesh_rectangle_position():
 def test_mesh_rectangle_reflection_symmetry():
     from capytaine.meshes.predefined.rectangles import mesh_rectangle
     d = mesh_rectangle(resolution=(4, 6), reflection_symmetry=True, normal=(1, 0, 0))
-    assert isinstance(d, cpt.ReflectionSymmetricMesh)
+    assert isinstance(d, OldReflectionSymmetricMesh)
 
 def test_mesh_rectangle_both_symmetries():
     from capytaine.meshes.predefined.rectangles import mesh_rectangle
@@ -207,7 +211,7 @@ def test_mesh_rectangle_max_size(max_rad):
 def test_mesh_parallelepiped():
     from capytaine.meshes.predefined.rectangles import mesh_parallelepiped
     p = mesh_parallelepiped(resolution=(3, 6, 3), name="foo")
-    assert isinstance(p, cpt.Mesh)
+    assert isinstance(p, OldMesh)
     assert p.nb_faces == 90
     assert p.name == "foo"
 
@@ -227,15 +231,15 @@ def test_mesh_parallelepiped_position():
 def test_mesh_parallelepiped_reflection_symmetry():
     from capytaine.meshes.predefined.rectangles import mesh_parallelepiped
     p = mesh_parallelepiped(resolution=(4, 4, 4), reflection_symmetry=True)
-    assert isinstance(p, cpt.ReflectionSymmetricMesh)
-    assert isinstance(p.half, cpt.ReflectionSymmetricMesh)
+    assert isinstance(p, OldReflectionSymmetricMesh)
+    assert isinstance(p.half, OldReflectionSymmetricMesh)
     assert p.nb_faces == 6*16
 
 def test_mesh_parallelepiped_translation_symmetry():
     from capytaine.meshes.predefined.rectangles import mesh_parallelepiped
     p = mesh_parallelepiped(resolution=(4, 4, 4), translation_symmetry=True)
-    assert isinstance(p, cpt.CollectionOfMeshes)
-    assert isinstance(p[0], cpt.TranslationalSymmetricMesh)
+    assert isinstance(p, OldCollectionOfMeshes)
+    assert isinstance(p[0], OldTranslationalSymmetricMesh)
     assert p.nb_faces == 6*16
 
 @pytest.mark.parametrize("max_rad", [0.5, 1.0, 5.0])

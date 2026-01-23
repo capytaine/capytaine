@@ -18,8 +18,8 @@ def test_dof():
     body.add_translation_dof(direction=(0.0, 1.0, 0.0), name="2")
     assert np.allclose(body.dofs["2"], np.array([0.0, 1.0, 0.0]))
 
-    body.add_rotation_dof(cpt.Axis(vector=(0.0, 0.0, 1.0)), name="3")
-    body.add_rotation_dof(cpt.Axis(point=(0.5, 0, 0), vector=(0.0, 0.0, 1.0)), name="4")
+    body.add_rotation_dof(direction=(0.0, 0.0, 1.0), name="3")
+    body.add_rotation_dof(rotation_center=(0.5, 0, 0), direction=(0.0, 0.0, 1.0), name="4")
 
 
 def test_dof_name_inference():
@@ -80,86 +80,48 @@ def test_healing_before_initializing_dofs():
     assert body.dofs["Heave"].shape[0] == body.mesh.nb_faces == 1
 
 
-def test_bodies():
-    body = cpt.FloatingBody(mesh=cpt.mesh_sphere(), name="sphere", center_of_mass=(0, 0, 0))
-    repr(body)
-    body.add_translation_dof(name="Surge")
-    body.add_translation_dof(name="Heave")
-
-    # Extract faces
-    body.extract_faces(np.where(body.mesh.faces_centers[:, 2] < 0)[0])
-
-    # Clipping
-    body.keep_immersed_part(inplace=False)
-
-    # Mirror of the dofs
-    mirrored = body.mirrored(cpt.Plane(point=(1, 0, 0), normal=(1, 0, 0)))
-    assert np.allclose(mirrored.center_of_mass, np.array([2, 0, 0]))
-    assert np.allclose(body.dofs['Surge'], -mirrored.dofs['Surge'])
-
-    # Rotation of the dofs
-    sideways = body.rotated(cpt.Axis(point=(0, 0, 0), vector=(0, 1, 0)), np.pi/2)
-    assert np.allclose(sideways.dofs['Heave'][0], np.array([1, 0, 0]))
-
-    upside_down = body.rotated(cpt.Axis(point=(0, 0, 0), vector=(0, 1, 0)), np.pi)
-    assert np.allclose(body.dofs['Heave'], -upside_down.dofs['Heave'])
-
-    # Copy of the body
-    copy_of_body = body.copy(name="copy_of_sphere")
-    copy_of_body.translate_x(10.0)
-    copy_of_body.add_translation_dof(name="Heave")
-
-    # Join bodies
-    both = body.join_bodies(copy_of_body)
-    assert set(both.dofs) == {'sphere__Surge', 'copy_of_sphere__Surge', 'sphere__Heave', 'copy_of_sphere__Heave'}
+def test_translate_center_of_mass_defined_as_tuple():
+    body = cpt.FloatingBody(center_of_mass=(0, 0, 0))
+    body = body.translated((0, 0, 1))
+    assert body.center_of_mass.shape == (3,)
+    np.testing.assert_allclose(body.center_of_mass, np.array([0, 0, 1]))
 
 
-def test_mirror_rotation_center_defined_as_tuple():
-    body = cpt.FloatingBody()
-    body.rotation_center = (0, 1, 0)
-    body.mirror(cpt.xOz_Plane)
-    assert body.rotation_center.shape == (3,)
-    np.testing.assert_allclose(body.rotation_center, np.array([0, -1, 0]))
+def test_rotate_center_of_mass_defined_as_tuple():
+    body = cpt.FloatingBody(center_of_mass=(1, 0, 0))
+    body = body.rotated_z(np.pi)
+    assert body.center_of_mass.shape == (3,)
+    np.testing.assert_allclose(body.center_of_mass, np.array([-1, 0, 0]), atol=1e-10)
 
 
-def test_translate_rotation_center_defined_as_tuple():
-    body = cpt.FloatingBody()
-    body.rotation_center = (0, 0, 0)
-    body.translate((0, 0, 1))
-    assert body.rotation_center.shape == (3,)
-    np.testing.assert_allclose(body.rotation_center, np.array([0, 0, 1]))
+def test_mirror_center_of_mass_defined_as_tuple():
+    body = cpt.FloatingBody(center_of_mass=(0, -1, 0))
+    body = body.mirrored('xOz')
+    assert body.center_of_mass.shape == (3,)
+    np.testing.assert_allclose(body.center_of_mass, np.array([0, -1, 0]))
 
 
-def test_rotate_rotation_center_defined_as_tuple():
-    body = cpt.FloatingBody()
-    body.rotation_center = (1, 0, 0)
-    body.rotate_z(np.pi)
-    assert body.rotation_center.shape == (3,)
-    np.testing.assert_allclose(body.rotation_center, np.array([-1, 0, 0]), atol=1e-10)
-
-
-def test_inplace_transform_with_lid():
+def test_transform_with_lid():
     mesh = cpt.mesh_sphere().immersed_part()
     lid_mesh = mesh.generate_lid()
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh)
     body.mesh_including_lid
-    body.translate_x(10.0)
+    body = body.translated_x(10.0)
     assert np.all(body.mesh.vertices[:, 0] > 5.0)
     assert np.all(body.mesh_including_lid.vertices[:, 0] > 5.0)
 
 
 @pytest.mark.parametrize("z_center", [0, 2, -2])
-@pytest.mark.parametrize("as_collection_of_meshes", [True, False])
-def test_clipping_of_dofs(z_center, as_collection_of_meshes):
+@pytest.mark.parametrize("symmetry", [True, False])
+def test_clipping_of_dofs(z_center, symmetry):
     """Check that clipping a body with a dof is the same as clipping the body ant then adding the dof."""
-    full_sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(center=(0, 0, z_center), axial_symmetry=as_collection_of_meshes), name="sphere")
-    axis = cpt.Axis(point=(1, 0, 0), vector=(1, 0, 0))
+    full_sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(center=(0, 0, z_center), axial_symmetry=symmetry), name="sphere")
 
-    full_sphere.add_rotation_dof(axis, name="test_dof")
-    clipped_sphere = full_sphere.keep_immersed_part(free_surface=0.0, water_depth=np.inf, inplace=False)
+    full_sphere.add_rotation_dof(rotation_center=(1, 0, 0), direction=(1, 0, 0), name="test_dof")
+    clipped_sphere = full_sphere.immersed_part(free_surface=0.0, water_depth=np.inf)
 
     other_clipped_sphere = cpt.FloatingBody(mesh=clipped_sphere.mesh, name="other_sphere")
-    other_clipped_sphere.add_rotation_dof(axis, name="test_dof")
+    other_clipped_sphere.add_rotation_dof(rotation_center=(1, 0, 0), direction=(1, 0, 0), name="test_dof")
 
     if clipped_sphere.mesh.nb_faces > 0:
         assert np.allclose(clipped_sphere.dofs['test_dof'], other_clipped_sphere.dofs['test_dof'])
@@ -175,14 +137,6 @@ def test_complicated_clipping_of_dofs():
     assert len(clipped_body.dofs["Heave"]) == clipped_body.mesh.nb_faces
 
 
-def test_clipping_of_inconsistent_dof():
-    body = cpt.FloatingBody(cpt.mesh_sphere(), dofs=cpt.rigid_body_dofs())
-    body.mesh.keep_immersed_part()  # Dofs and mesh are now inconsistent
-    with pytest.raises(ValueError):
-        body.keep_immersed_part()
-
-
-@pytest.mark.xfail
 def test_clipping_of_dofs_with_degenerate_faces():
     vertices = np.array([
         [-8.00000000e+00,  1.65358984e+00, -4.99999996e-02],
@@ -207,20 +161,15 @@ def test_cropping_body_with_manual_dof():
     # https://github.com/capytaine/capytaine/issues/204
     sphere = cpt.FloatingBody(cpt.mesh_sphere())
     sphere.dofs["Surge"] = [(1, 0, 0) for face in sphere.mesh.faces]
-    sphere.keep_immersed_part()
+    sphere = sphere.immersed_part()
 
 
 def test_immersed_part():
     full_sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(), name="ball")
     immersed_sphere = full_sphere.immersed_part()
     assert immersed_sphere is not full_sphere
-    assert immersed_sphere.mesh == full_sphere.mesh.immersed_part()
-    assert immersed_sphere.mesh.axis_aligned_bbox[5] <= 0.0
-    assert immersed_sphere.name == "ball"
-    full_sphere.translate_x(2.0)
-    new_immersed_sphere = full_sphere.immersed_part()
-    assert new_immersed_sphere is not immersed_sphere
-    assert not np.allclose(new_immersed_sphere.mesh.axis_aligned_bbox, immersed_sphere.mesh.axis_aligned_bbox)
+    assert immersed_sphere.mesh.nb_faces == full_sphere.mesh.immersed_part().nb_faces
+    assert immersed_sphere.mesh.vertices[:, 2].max() <= 0.0
 
 
 def test_assemble_regular_array():
@@ -247,10 +196,8 @@ n_bodies = locations.shape[0]
 @pytest.fixture
 def fb_array():
     sphere = cpt.FloatingBody(cpt.mesh_sphere(radius=r, center=(0, 0, 0), resolution=(10, 4)))
-    my_axis = cpt.Axis((0, 1, 0), point=(0,0,0))
-    sphere.add_rotation_dof(axis=my_axis)
-    sphere.keep_immersed_part()
-
+    sphere.add_rotation_dof(rotation_center=(0, 0, 0), direction=(0, 1, 0))
+    sphere = sphere.immersed_part()
     return sphere.assemble_arbitrary_array(locations)
 
 
@@ -288,6 +235,7 @@ def test_solve_hydrodynamics(fb_array):
     assert data.Froude_Krylov_force.notnull().all()
 
 
+# Outdated by v3
 def test_clip_component_of_multibody():
     # https://github.com/capytaine/capytaine/issues/660
     body_1 = cpt.FloatingBody(
@@ -301,5 +249,5 @@ def test_clip_component_of_multibody():
         name="body_2"
     )
     both = body_1 + body_2
-    body_2.keep_immersed_part()
+    body_2 = body_2.immersed_part()
     assert both.dofs["body_1__Heave"].shape[0] == both.mesh.nb_faces

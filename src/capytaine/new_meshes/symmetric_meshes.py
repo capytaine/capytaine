@@ -78,7 +78,10 @@ class ReflectionSymmetricMesh(AbstractMesh):
 
         self.half = half
         self.plane = plane
-        self.other_half = self.half.mirrored(plane)
+        if self.half.nb_faces > 0:
+            self.other_half = self.half.mirrored(plane)
+        else:
+            self.other_half = half  # Degenerate case without any face...
 
         self.faces_metadata = {k: np.concatenate([v, v]) for k, v in half.faces_metadata.items()}
         if faces_metadata is not None:
@@ -126,6 +129,14 @@ class ReflectionSymmetricMesh(AbstractMesh):
         return (
                 np.concatenate([self.half.quadrature_points[0], self.other_half.quadrature_points[0]]),
                 np.concatenate([self.half.quadrature_points[1], self.other_half.quadrature_points[1]]),
+                )
+
+    def with_quadrature(self, quadrature_method):
+        return ReflectionSymmetricMesh(
+                self.half.with_quadrature(quadrature_method),
+                plane=self.plane,
+                faces_metadata=self.faces_metadata,
+                name=self.name,
                 )
 
     def __str__(self) -> str:
@@ -209,6 +220,20 @@ class ReflectionSymmetricMesh(AbstractMesh):
                 return_masks=return_masks,
                 name=name
             )
+
+    def generate_lid(self, z=0.0, faces_max_radius=None, name=None):
+        return ReflectionSymmetricMesh(
+                self.half.generate_lid(z=z, faces_max_radius=faces_max_radius),
+                plane=self.plane,
+                name=name
+                )
+
+    def extract_lid(self, z=0.0):
+        half_hull, half_lid = self.half.extract_lid(z=z)
+        return (
+                ReflectionSymmetricMesh(half_hull, plane=self.plane),
+                ReflectionSymmetricMesh(half_lid, plane=self.plane),
+                )
 
     def with_normal_vector_going_down(self, **kwargs) -> ReflectionSymmetricMesh:
         return ReflectionSymmetricMesh(
@@ -348,7 +373,7 @@ class RotationSymmetricMesh(AbstractMesh):
 
     @classmethod
     def from_profile_points(cls, points: np.ndarray, n: int, *, faces_metadata=None, name=None):
-        """Return the mesh defined by the set of `points` repeted `n` times around the z-axis.
+        """Return the mesh defined by the set of `points` repeated `n` times around the z-axis.
 
         Points will be sorted by increasing z-coordinate before making a mesh,
         in order to ensure that the normal vector are outwards.
@@ -423,6 +448,15 @@ class RotationSymmetricMesh(AbstractMesh):
         return (
                 np.concatenate([w.quadrature_points[0] for w in self.all_wedges]),
                 np.concatenate([w.quadrature_points[1] for w in self.all_wedges]),
+                )
+
+    def with_quadrature(self, quadrature_method):
+        return RotationSymmetricMesh(
+                self.wedge.with_quadrature(quadrature_method),
+                n=self.n,
+                axis=self.axis,
+                faces_metadata=self.faces_metadata,
+                name=self.name,
                 )
 
     def __str__(self) -> str:
@@ -529,6 +563,21 @@ class RotationSymmetricMesh(AbstractMesh):
                 return_masks=return_masks,
                 name=name
             )
+
+    def generate_lid(self, z=0.0, faces_max_radius=None, name=None):
+        return RotationSymmetricMesh(
+                self.wedge.generate_lid(z=z, faces_max_radius=faces_max_radius),
+                axis=self.axis,
+                n=self.n,
+                name=name
+                )
+
+    def extract_lid(self, z=0.0):
+        wedge_hull, wedge_lid = self.wedge.extract_lid(z=z)
+        return (
+                RotationSymmetricMesh(wedge_hull, axis=self.axis, n=self.n),
+                RotationSymmetricMesh(wedge_lid, axis=self.axis, n=self.n),
+                )
 
     def with_normal_vector_going_down(self, **kwargs) -> RotationSymmetricMesh:
         return RotationSymmetricMesh(

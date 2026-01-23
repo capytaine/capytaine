@@ -1,6 +1,5 @@
 import numpy as np
 import capytaine as cpt
-from capytaine.new_meshes.meshes import to_new_mesh
 
 cpt.set_logging('INFO')
 
@@ -31,17 +30,17 @@ cylinder_mesh = cpt.mesh_vertical_cylinder(
     ).immersed_part()
 
 ### Body Without Lid (Body A)
-body_1 = cpt.FloatingBody(mesh=to_new_mesh(cylinder_mesh))
+body_1 = cpt.FloatingBody(mesh=cylinder_mesh, name="body_without_lid")
 body_1.add_translation_dof(name="Surge")
 
 ### Body With Lid at z = -3.699 (Body B)
 lid_mesh = cylinder_mesh.generate_lid(z=-3.699)
-body_2 = cpt.FloatingBody(mesh=to_new_mesh(cylinder_mesh), lid_mesh=to_new_mesh(lid_mesh))
+body_2 = cpt.FloatingBody(mesh=cylinder_mesh, lid_mesh=lid_mesh, name="body_with_immersed_lid")
 body_2.add_translation_dof(name="Surge")
 
 ### Body With Lid at z = auto (Body C)
 lid_mesh = cylinder_mesh.generate_lid(z=cylinder_mesh.lowest_lid_position(omega_max=omega_range.max()))
-body_3 = cpt.FloatingBody(mesh=to_new_mesh(cylinder_mesh), lid_mesh=to_new_mesh(lid_mesh))
+body_3 = cpt.FloatingBody(mesh=cylinder_mesh, lid_mesh=lid_mesh, name="body_with_lid_on_free_surface")
 body_3.add_translation_dof(name="Surge")
 
 force_1 = compute_excitation_force(body_1, omega_range)

@@ -11,9 +11,6 @@ mesh = cpt.mesh_horizontal_cylinder(
     resolution=(10, 20, 30,)
 )
 
-from capytaine.new_meshes.meshes import to_new_mesh
-mesh = to_new_mesh(mesh)
-
 # Define a rigid body using this mesh
 cylinder = cpt.FloatingBody(
     mesh=mesh,

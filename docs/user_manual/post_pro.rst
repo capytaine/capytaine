@@ -143,35 +143,39 @@ The result object should have been computed with the indirect method (on by defa
 The solver does not need to be the one that computed the result object.
 
 .. note::
-    The functions in the :mod:`~capytaine.bem.airy_waves`, used to compute the same magnitudes for an undisturbed incoming wave field, have the same structure.
+    The functions in the :mod:`~capytaine.bem.airy_waves` module, used to compute the same magnitudes for an undisturbed incoming wave field, have the same structure.
 
 The point(s) can be given in several ways:
 
 - Either a single point, given as a list, a tuple, or an 1d-array::
 
-    solver.compute_potential([3.0, -2.0, -5.0], results)
+    solver.compute_potential([3.0, -2.0, -5.0], result)
 
 - or a list of points, given as a list of lists, or a list of tuples, or a 2d-array::
 
-    solver.compute_potential([[3.0, -2.0, -5.0], [4.0, 5.0, -2.0]], results)
+    solver.compute_potential([[3.0, -2.0, -5.0], [4.0, 5.0, -2.0]], result)
 
 - or the return of a call to ``meshgrid``::
 
     points = np.meshgrid(np.linspace(-2.0, 2.0, 10), np.linspace(-3.0, 3.0, 20), np.linspace(-2.0, 0.0, 30))
-    solver.compute_potential(points, results)
+    solver.compute_potential(points, result)
 
 - or a mesh, in which case the centers of the faces of the mesh are used::
 
-    solver.compute_potential(mesh, results)
+    solver.compute_potential(mesh, result)
+
+in particular, the following can be used to compute the value on the mesh used for the resolution::
+
+    solver.compute_potential(result.body.mesh, result)
 
 - or a floating body, in which case the corresponding mesh will be used::
 
-    solver.compute_potential(body, results)
+    solver.compute_potential(body, result)
 
 - or a :class:`~capytaine.post_pro.free_surfaces.FreeSurface` object, although the use of this object is not recommended unless you are preparing a 3D animation with the Capytaine's VTK viewer which still require this object at the moment::
 
     fs = cpt.FreeSurface(x_range=(-10, 10), y_range=(-10, 10))
-    solver.compute_potential(fs, results)
+    solver.compute_potential(fs, result)
 
 The returned values is an array of shape matching the shape of the input points.
 

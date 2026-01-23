@@ -11,8 +11,7 @@ output_dir.mkdir(exist_ok=True)
 # --- Create mesh and set up body ---
 mesh = cpt.mesh_sphere()
 dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
-full_body = cpt.FloatingBody(mesh, dofs)
-full_body.center_of_mass = np.copy(full_body.mesh.center_of_mass_of_nodes)
+full_body = cpt.FloatingBody(mesh, dofs, center_of_mass=mesh.center_of_buoyancy)
 immersed_body = full_body.immersed_part()
 immersed_body.compute_hydrostatics()
 

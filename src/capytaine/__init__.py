@@ -5,21 +5,17 @@ from .__about__ import (
     __title__, __description__, __version__, __author__, __uri__, __license__, __build_info__
 )
 
-from capytaine.meshes.geometry import Axis, Plane, xOz_Plane, yOz_Plane, xOy_Plane
-from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.symmetric import ReflectionSymmetricMesh, TranslationalSymmetricMesh, AxialSymmetricMesh
-from capytaine.meshes.predefined.cylinders import mesh_disk, mesh_horizontal_cylinder, mesh_vertical_cylinder
-from capytaine.meshes.predefined.spheres import mesh_sphere
-from capytaine.meshes.predefined.rectangles import mesh_rectangle, mesh_parallelepiped
+from capytaine.new_meshes.meshes import Mesh
+from capytaine.new_meshes.io import load_mesh
+from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
+
+from capytaine.new_meshes.predefined.cylinders import mesh_disk, mesh_horizontal_cylinder, mesh_vertical_cylinder
+from capytaine.new_meshes.predefined.spheres import mesh_sphere
+from capytaine.new_meshes.predefined.rectangles import mesh_rectangle, mesh_parallelepiped
 
 from capytaine.bodies.bodies import FloatingBody
 from capytaine.bodies.multibodies import Multibody
 from capytaine.bodies.dofs import rigid_body_dofs
-
-from capytaine.bodies.predefined.spheres import Sphere
-from capytaine.bodies.predefined.cylinders import VerticalCylinder, HorizontalCylinder, Disk
-from capytaine.bodies.predefined.rectangles import Rectangle, RectangularParallelepiped, OpenRectangularParallelepiped
 
 from capytaine.bem.problems_and_results import RadiationProblem, DiffractionProblem
 from capytaine.bem.solver import BEMSolver
@@ -29,7 +25,6 @@ from capytaine.green_functions.hams import LiangWuNoblesseGF, FinGreen3D, HAMS_G
 
 from capytaine.post_pro.free_surfaces import FreeSurface
 
-from capytaine.io.mesh_loaders import load_mesh
 from capytaine.io.xarray import assemble_dataframe, assemble_dataset, assemble_matrices, export_dataset
 
 from capytaine.ui.rich import set_logging

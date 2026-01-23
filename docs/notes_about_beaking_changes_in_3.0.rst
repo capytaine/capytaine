@@ -44,10 +44,36 @@ Main differences
   Computation intensive mesh transformations should be done with a dedicated meshing tool and not directly in Capytaine anyway.
   If you find yourself nonetheless struggling with performance issues of the new mesh module in Capytaine, please open an issue on Github.
 
+* **No in-place mutation of the body objects.**
+  For the same reasons as above, the in-place transformations of the ``FloatingBody`` object have been removed.
+
+  Code such as the following::
+
+    body = cpt.FloatingBody(mesh=mesh)
+    body.rotation_center = (0, 0, -1)
+    body.add_all_rigid_body_dofs()
+    body.keep_only_dofs(['Heave'])
+    body.keep_immersed_part()
+    body.translate([0, 1, 0])
+
+  can be rewritten as::
+
+    body = cpt.FloatingBody(
+      mesh=mesh,
+      dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1))
+    )
+    body = body.with_only_dofs(['Heave'])
+    body = body.immersed_part()
+    body = body.translated([0, 1, 0])
+
 * **Only a few built-in mesh loaders, but transparently use external libraries**
   Only the domain mesh file formats (Nemoh's, WAMIT's, Hydrostar's and HAMS's) are built-in in Capytaine.
   Loading a mesh in a general purpose file format such as GMSH or STL is still easy, assuming a third party library supporting this file format is installed (see :doc:`mesh`).
-  To reduce the burden of maintenance, mesh writers have been removed, but the mesh objects can be exported to external libraries that can write mesh files.
+
+* **No more mesh writers**
+  To reduce the burden of maintenance, mesh writers have been removed, but the
+  mesh objects can be exported to external libraries that can write mesh files.
+  As a consequence ``export_as_Nemoh_directory`` has been moved out of Capytaine.
 
 * **Symmetries are only available around the main axis.**
   The ``Plane`` and ``Axis`` objects have been removed.
@@ -63,6 +89,9 @@ Main differences
   See :class:`~capytaine.new_meshes.symmetric_meshes.RotationSymmetricMesh`.
   The method to create a symmetric mesh from a profile of points has also changed, see :meth:`~capytaine.new_meshes.symmetric_meshes.RotationSymmetricMesh.from_profile_points`.
 
+* **Prototype translation symmetry has been removed.**
+  As a consequence, the ``translation_symmetry`` arguments of the mesh generations functions has been removed.
+
 * Different quality checks suite for given meshes.
 
 * ``Mesh.clipped`` and ``FloatingBody.clipped`` don't take as argument a
@@ -75,3 +104,7 @@ Main differences
   Animation support has not been implemented in this new backend yet, only static mesh viewing is available.
   The ``matplotlib`` backend is also still available for static mesh viewing.
   Some keyword argument might have been changed to uniformize usage of the two 3D backends.
+
+* The barely-used and barely-documented ``geometric_center`` attribute of the mesh and the bodies have been removed.
+
+* Support for optionallay using quadratures from Quadpy has been removed.
