@@ -1,7 +1,8 @@
 # Copyright (C) 2017-2022 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
 
-from abc import ABC
+from abc import ABC, abstractmethod
+from functools import lru_cache
 import logging
 
 import numpy as np
@@ -11,19 +12,28 @@ LOG = logging.getLogger(__name__)
 
 
 class AbstractDof(ABC):
-    ...
+    @abstractmethod
+    def evaluate_motion(self, mesh):
+        ...
+
+    @abstractmethod
+    def evaluate_gradient_of_motion(self, mesh):
+        ...
 
 
 class TranslationDof(AbstractDof):
     def __init__(self, direction, amplitude=1.0):
         self.direction = np.asarray(direction)
-        assert direction.shape == (3,)
+        assert self.direction.shape == (3,)
         self.amplitude = amplitude
 
+    @lru_cache
     def evaluate_motion(self, mesh) -> np.array:
-        motion = np.empty((mesh.nb_faces, 3))
-        motion[:, :] = self.direction
-        return self.amplitude * motion
+        return self.amplitude * np.tile(self.direction, (mesh.nb_faces, 1))
+
+    @lru_cache
+    def evaluate_gradient_of_motion(self, mesh) -> np.array:
+        return np.zeros((mesh.nb_faces, 3, 3))
 
 
 class RotationDof(AbstractDof):
@@ -34,12 +44,34 @@ class RotationDof(AbstractDof):
         assert self.rotation_center.shape == (3,)
         self.amplitude = amplitude
 
+    @lru_cache
     def evaluate_motion(self, mesh) -> np.array:
         if mesh.nb_faces == 0:
             return np.empty((mesh.nb_faces, 3))
         else:
-            motion = np.cross(self.rotation_center - mesh.faces_centers, self.direction)
+            motion = np.cross(self.direction, mesh.faces_centers - self.rotation_center)
             return self.amplitude * motion
+
+    @lru_cache
+    def evaluate_gradient_of_motion(self, mesh) -> np.array:
+        grad = np.cross(self.direction, np.eye(3))
+        return self.amplitude * np.tile(grad, (mesh.nb_faces, 1, 1))
+
+
+class DofOnSubmesh(AbstractDof):
+    def __init__(self, dof: AbstractDof, faces):
+        self.dof = dof
+        self.faces = faces
+
+    def evaluate_motion(self, mesh):
+        motion = np.zeros((mesh.nb_faces, 3))
+        motion[self.faces, :] = self.dof.evaluate_motion(mesh.extract_faces(self.faces))
+        return motion
+
+    def evaluate_gradient_of_motion(self, mesh) -> np.array:
+        grad = np.zeros((mesh.nb_faces, 3))
+        grad[self.faces, :, :] = self.dof.evaluate_gradient_of_motion(mesh.extract_faces(self.faces))
+        return grad
 
 
 def rigid_body_dofs(only=None, rotation_center=None):
@@ -68,6 +100,10 @@ def rigid_body_dofs(only=None, rotation_center=None):
     if only is not None:
         dofs = {k: v for k, v in dofs.items() if k in only}
     return dofs
+
+
+def normalize_name(name):
+    return name[0].upper() + name[1:].lower()
 
 
 def add_dofs_labels_to_vector(dof_names, vector):

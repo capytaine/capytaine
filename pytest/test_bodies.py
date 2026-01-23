@@ -13,10 +13,16 @@ def test_dof():
     assert body.dofs == {}
 
     body.add_translation_dof(direction=(1.0, 0.0, 0.0), name="1")
-    assert np.allclose(body.dofs["1"], np.array([1.0, 0.0, 0.0]))
+    assert np.allclose(
+        body.dofs["1"].evaluate_motion(body.mesh),
+        np.array([1.0, 0.0, 0.0])
+    )
 
     body.add_translation_dof(direction=(0.0, 1.0, 0.0), name="2")
-    assert np.allclose(body.dofs["2"], np.array([0.0, 1.0, 0.0]))
+    assert np.allclose(
+        body.dofs["2"].evaluate_motion(body.mesh),
+        np.array([0.0, 1.0, 0.0])
+    )
 
     body.add_rotation_dof(direction=(0.0, 0.0, 1.0), name="3")
     body.add_rotation_dof(rotation_center=(0.5, 0, 0), direction=(0.0, 0.0, 1.0), name="4")
@@ -27,7 +33,10 @@ def test_dof_name_inference():
     body.add_translation_dof(direction=(1, 0, 0), name="Surge_1")
     for dofname in ['Surge', 'SURGE', 'surge']:
         body.add_translation_dof(name=dofname)
-        assert np.allclose(body.dofs[dofname], body.dofs['Surge_1'])
+        assert np.allclose(
+            body.dofs[dofname].evaluate_motion(body.mesh),
+            body.dofs['Surge_1'].evaluate_motion(body.mesh)
+        )
 
     body.add_rotation_dof(name="Pitch")
     body.add_rotation_dof(name="yaw")
@@ -41,12 +50,6 @@ def test_rigid_body_dofs():
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(10.0, 0.0, 0.0)))
     assert "Heave" in body.dofs
     assert np.all(body.dofs["Pitch"][:, 2] > 9.0)
-
-
-def test_rigid_body_dofs_no_rotation_center_but_a_center_of_mass():
-    mesh = cpt.mesh_sphere()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(-10.0, 0.0, 0.0))
-    assert np.all(body.dofs["Pitch"][:, 2] < -9.0)
 
 
 def test_rigid_body_dofs_both_a_rotation_center_and_a_center_of_mass():

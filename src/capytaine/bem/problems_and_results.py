@@ -422,7 +422,9 @@ class RadiationProblem(LinearPotentialFlowProblem):
 
             dof = self.body.dofs[self.radiating_dof]
             if isinstance(dof, AbstractDof):
-                dof = dof.evaluate_motion(self.body.mesh)
+                dof_motion = dof.evaluate_motion(self.body.mesh)
+            else:
+                dof_motion = dof
 
             self.boundary_condition = self.encounter_omega * np.zeros(
                 shape=(self.body.mesh_including_lid.nb_faces,),
@@ -432,20 +434,17 @@ class RadiationProblem(LinearPotentialFlowProblem):
             # is implemented with the correct type (for zero and infinite frequencies), it does not affect the value.
             # Below the value is update on the hull. It remains zero on the lid.
 
-            displacement_on_face = np.sum(dof * self.body.mesh.faces_normals, axis=1)  # This is a dot product on each face
+            displacement_on_face = np.sum(dof_motion * self.body.mesh.faces_normals, axis=1)  # This is a dot product on each face
             self.boundary_condition[self.body.hull_mask] = -1j * self.encounter_omega * displacement_on_face
 
             if self.forward_speed != 0.0:
-                if self.radiating_dof.lower() == "pitch":
-                    ddofdx_dot_n = np.array([nz for (nx, ny, nz) in self.body.mesh.faces_normals])
-                elif self.radiating_dof.lower() == "yaw":
-                    ddofdx_dot_n = np.array([-ny for (nx, ny, nz) in self.body.mesh.faces_normals])
-                elif self.radiating_dof.lower() in {"surge", "sway", "heave", "roll"}:
-                    ddofdx_dot_n = 0.0
-                else:
+                try:
+                    ddofdx = dof.evaluate_gradient_of_motion(self.body.mesh)[:, :, 0]
+                    ddofdx_dot_n = np.sum(ddofdx * self.body.mesh.faces_normals)
+                except AttributeError:
                     raise NotImplementedError(
                             "Radiation problem with forward speed is currently only implemented for a single rigid body.\n"
-                            "Only radiating dofs with name in {'Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'} are supported.\n"
+                            "Only radiating dofs instantiating a TranslationDof or a RotationDof are supported.\n"
                             f"Got instead `radiating_dof={self.radiating_dof}`"
                             )
 

@@ -24,9 +24,8 @@ flap_mesh = cpt.mesh_parallelepiped(
 flap_body = cpt.FloatingBody(
     mesh=flap_mesh,
     lid_mesh=flap_mesh.generate_lid(),
-    dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -flap_draft)),
-    # This rigid body has 6 dofs, although only the pitch is really of interest.
-    # The rotation dofs are defined around the hinge at z=-flap_draft.
+    dofs=cpt.rigid_body_dofs(only=['Pitch'], rotation_center=(0, 0, -flap_draft)),
+    # The Pitch dof is defined around the hinge at z=-flap_draft.
     center_of_mass=(0, 0, -flap_draft + flap_height/2),
     name="flap"
 )
@@ -48,9 +47,9 @@ base_body = cpt.FloatingBody(
 full_flap = flap_body + base_body
 
 test_matrix = xr.Dataset(coords={
-    "wavelength": np.linspace(2.0, 30.0, 20),
+    "wavelength": np.linspace(5.0, 30.0, 10),
     "radiating_dof": ["flap__Pitch"],
-    "wave_direction": np.linspace(0.0, np.pi/2, 2),
+    "wave_direction": [0.0],
     "water_depth": [water_depth],
     "rho": [1000.0],
     })

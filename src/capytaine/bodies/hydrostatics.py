@@ -7,7 +7,7 @@ import numpy as np
 import xarray as xr
 from abc import ABC
 
-from capytaine.bodies.dofs import TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
+from capytaine.bodies.dofs import TranslationDof, RotationDof
 
 LOG = logging.getLogger(__name__)
 
@@ -288,7 +288,7 @@ class _HydrostaticsMixin(ABC):
             raise AttributeError("Cannot compute hydrostatics stiffness on {} since no dof has been defined.".format(self.name))
 
         def divergence_dof(influenced_dof):
-            if influenced_dof.lower() in [*TRANSLATION_DOFS_DIRECTIONS, *ROTATION_DOFS_AXIS]:
+            if isinstance(influenced_dof, (TranslationDof, RotationDof)):
                 return 0.0  # Dummy value that is not actually used afterwards.
             elif divergence is None:
                 return 0.0

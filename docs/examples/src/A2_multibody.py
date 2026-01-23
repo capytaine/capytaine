@@ -2,24 +2,30 @@ import capytaine as cpt
 
 # Define the first body
 mesh_1 = cpt.mesh_sphere(radius=1.0, center=(0, 0, -2.0), resolution=(20, 20))
-sphere = cpt.FloatingBody(mesh=mesh_1, name="sphere_1")
-sphere.add_translation_dof(name="Surge")
-sphere.add_translation_dof(name="Heave")
+sphere = cpt.FloatingBody(
+    mesh=mesh_1,
+    dofs=cpt.rigid_body_dofs(only=['Surge', 'Heave']),
+    name="sphere_1"
+)
 
 # Define the second body
 mesh_2 = cpt.mesh_sphere(radius=0.5, center=(-2, -3, -1), resolution=(20, 20))
-other_sphere = cpt.FloatingBody(mesh=mesh_2, name="sphere_2")
-other_sphere.add_translation_dof(name="Surge")
-other_sphere.add_translation_dof(name="Heave")
+other_sphere = cpt.FloatingBody(
+    mesh=mesh_2,
+    dofs=cpt.rigid_body_dofs(only=['Surge', 'Heave']),
+    name="sphere_2"
+)
 
 # Define the third body
 mesh_3 = cpt.mesh_horizontal_cylinder(
             length=5.0, radius=1.0,
             center=(1.5, 3.0, -3.0),
             resolution=(3, 20, 20))
-cylinder = cpt.FloatingBody(mesh=mesh_3, name="cylinder")
-cylinder.add_translation_dof(name="Surge")
-cylinder.add_translation_dof(name="Heave")
+cylinder = cpt.FloatingBody(
+    mesh=mesh_3,
+    dofs=cpt.rigid_body_dofs(only=['Surge', 'Heave']),
+    name="cylinder"
+)
 
 # Combine the three individual bodies into a single body.
 all_bodies = cylinder + sphere + other_sphere
