@@ -14,11 +14,14 @@ import xarray as xr
 from capytaine.new_meshes.abstract_meshes import AbstractMesh
 from capytaine.new_meshes.meshes import Mesh
 from capytaine.new_meshes.geometry import connected_components, connected_components_of_waterline
-from capytaine.bodies.dofs import RigidBodyDofsPlaceholder, TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
+from capytaine.bodies.dofs import (
+    RigidBodyDofsPlaceholder,
+    evaluate_translation_dof,
+    evaluate_rotation_dof,
+    add_dofs_labels_to_vector,
+    add_dofs_labels_to_matrix
+)
 from capytaine.bodies.hydrostatics import _HydrostaticsMixin
-
-from capytaine.tools.optional_imports import silently_import_optional_dependency
-meshio = silently_import_optional_dependency("meshio")
 
 LOG = logging.getLogger(__name__)
 
@@ -165,21 +168,14 @@ class FloatingBody(_HydrostaticsMixin):
         amplitude : float, optional
             amplitude of the dof (default: 1.0 m/s)
         """
-        if direction is None:
-            if name is not None and name.lower() in TRANSLATION_DOFS_DIRECTIONS:
-                direction = TRANSLATION_DOFS_DIRECTIONS[name.lower()]
-            else:
-                raise ValueError("A direction needs to be specified for the dof.")
-
         if name is None:
             name = f"dof_{self.nb_dofs}_translation"
-
-        direction = np.asarray(direction)
-        assert direction.shape == (3,)
-
-        motion = np.empty((self.mesh.nb_faces, 3))
-        motion[:, :] = direction
-        self.dofs[name] = amplitude * motion
+        self.dofs[name] = evaluate_translation_dof(
+            self.mesh,
+            direction=direction,
+            name=name,
+            amplitude=amplitude
+        )
 
     def add_rotation_dof(self, rotation_center=None, direction=None, name=None, amplitude=1.0) -> None:
         """Add a new rotation dof (in place).
@@ -196,36 +192,23 @@ class FloatingBody(_HydrostaticsMixin):
         amplitude : float, optional
             amplitude of the dof (default: 1.0)
         """
+        if name is None:
+            name = f"dof_{self.nb_dofs}_rotation"
         if rotation_center is None:
             for point_attr in ('rotation_center', 'center_of_mass'):
                 if hasattr(self, point_attr) and getattr(self, point_attr) is not None:
-                    axis_point = getattr(self, point_attr)
+                    rotation_center = getattr(self, point_attr)
                     LOG.info(f"The rotation dof {name} has been initialized around the point: "
                              f"{self.__short_str__()}.{point_attr} = {getattr(self, point_attr)}")
                     break
-            else:  # If no break
-                axis_point = np.array([0, 0, 0])
-                LOG.warning(f"The rotation dof {name} has been initialized "
-                            f"around the origin of the domain (0, 0, 0).")
-        else:
-            axis_point = rotation_center
+        self.dofs[name] = evaluate_rotation_dof(
+            self.mesh,
+            rotation_center=rotation_center,
+            direction=direction,
+            name=name,
+            amplitude=amplitude
+        )
 
-        if direction is None:
-            if name is not None and name.lower() in ROTATION_DOFS_AXIS:
-                axis_direction = ROTATION_DOFS_AXIS[name.lower()]
-            else:
-                raise ValueError("A direction needs to be specified for the rotation dof.")
-        else:
-            axis_direction = direction
-
-        if name is None:
-            name = f"dof_{self.nb_dofs}_rotation"
-
-        if self.mesh.nb_faces == 0:
-            self.dofs[name] = np.empty((self.mesh.nb_faces, 3))
-        else:
-            motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
-            self.dofs[name] = amplitude * motion
 
     def add_all_rigid_body_dofs(self) -> None:
         """Add the six degrees of freedom of rigid bodies (in place)."""
@@ -267,16 +250,12 @@ class FloatingBody(_HydrostaticsMixin):
     def add_dofs_labels_to_vector(self, vector):
         """Helper function turning a bare vector into a vector labelled by the name of the dofs of the body,
         to be used for instance for the computation of RAO."""
-        return xr.DataArray(data=np.asarray(vector), dims=['influenced_dof'],
-                            coords={'influenced_dof': list(self.dofs)},
-                            )
+        return add_dofs_labels_to_vector(self.dofs.keys(), vector)
 
     def add_dofs_labels_to_matrix(self, matrix):
         """Helper function turning a bare matrix into a matrix labelled by the name of the dofs of the body,
         to be used for instance for the computation of RAO."""
-        return xr.DataArray(data=np.asarray(matrix), dims=['influenced_dof', 'radiating_dof'],
-                            coords={'influenced_dof': list(self.dofs), 'radiating_dof': list(self.dofs)},
-                            )
+        return add_dofs_labels_to_matrix(self.dofs.keys(), matrix)
 
     def _check_dofs_shape_consistency(self):
         for dof_name, dof in self.dofs.items():
