@@ -43,7 +43,7 @@ def test_lid_concave_body():
         cyl2 = geom.add_cylinder([d, 0, 0], [0.0, 0, -1.0],  1.0)
         geom.boolean_union([cyl1, cyl2])
         gmsh_mesh = geom.generate_mesh(dim=2)
-    mesh = cpt.load_mesh(gmsh_mesh)
+    mesh, _ = cpt.load_mesh(gmsh_mesh).extract_lid()  # Remove existing lid to generate a new one
     lid_mesh = mesh.generate_lid()
     def in_crown(x, y):
         return (np.hypot(x, y) < 1.0) | (np.hypot(x-d, y) < 1.0)
@@ -55,7 +55,7 @@ def test_lid_non_simply_connected_crown():
     with pygmsh.occ.Geometry() as geom:
         geom.add_torus((0, 0, 0), 2.0, 0.5, mesh_size=0.3)
         gmsh_mesh = geom.generate_mesh(dim=2)
-    mesh = cpt.load_mesh(gmsh_mesh).immersed_part().heal_mesh()
+    mesh = cpt.load_mesh(gmsh_mesh).immersed_part()
     lid_mesh = mesh.generate_lid()
     def in_crown(x, y):
         return (np.hypot(x, y) < 2.5) & (np.hypot(x, y) > 1.5)
@@ -67,7 +67,7 @@ def test_lid_non_connex_crown():
     with pygmsh.occ.Geometry() as geom:
         geom.add_torus((0, 0, 0), 2.0, 0.5, mesh_size=0.4)
         gmsh_mesh = geom.generate_mesh(dim=2)
-    mesh = cpt.load_mesh(gmsh_mesh).rotated_x(np.pi/2).immersed_part().heal_mesh()
+    mesh = cpt.load_mesh(gmsh_mesh).rotated_x(np.pi/2).immersed_part()
     lid_mesh = mesh.generate_lid()
     def in_crown(x, y):
         return (np.hypot(x-2.0, y) < 0.5) | (np.hypot(x+2.0, y) < 0.5)
