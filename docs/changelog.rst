@@ -20,6 +20,13 @@ Major changes
   is slightly more powerful, for instance by being able to keep track of
   several center of buoyancy and center of mass. (:pull:`822`)
 
+  Joining bodies with :meth:`~capytaine.bodies.bodies.FloatingBody.join_bodies`
+  or ``+`` now creates a :class:`~capytaine.bodies.multibodies.Multibody` instance. It can be converted back to a
+  :class:`~capytaine.bodies.bodies.FloatingBody` instance with::
+
+    both = body_1 + body_2  # `both` is now a Multibody
+    both = (body_1 + body_2).as_FloatingBody()  # Recover former behavior of joining FloatingBody with a FloatingBody
+
 Minor changes
 ~~~~~~~~~~~~~
 

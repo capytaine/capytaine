@@ -8,13 +8,13 @@ Multiple bodies problems can be defined by combining several bodies in the :clas
 
 The resulting object can be used in the same way as the single :doc:`body`.
 
-.. For two-body problems, the ``+`` operator can also be used::
-..
-..    two_bodies = body_1 + body_2
-..
-.. But it is not recommended to use it for large number of bodies as it is not
-.. strictly associative (that is ``body_1 + (body_2 + body_3)`` has some internal
-.. differences with ``(body_1 + body_2) + body_3``).
+For two-body problems, the ``+`` operator can also be used::
+
+   two_bodies = body_1 + body_2
+
+But it is not recommended to use it for large number of bodies as it is not
+strictly associative (that is ``body_1 + (body_2 + body_3)`` has some minor
+internal differences with ``(body_1 + body_2) + body_3``).
 
 The multi-body object inherits the dofs of the individual bodies with the new name :code:`body_name__dof_name`::
 
@@ -35,4 +35,3 @@ The multi-body object inherits the dofs of the individual bodies with the new na
 ..     array = body.assemble_arbitrary_array(locations)
 ..
 .. places copies of the ``body`` at the list of locations specified.
-
