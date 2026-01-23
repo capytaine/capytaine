@@ -340,7 +340,7 @@ def test_degenerate_vertices_indices_in_face(caplog):
     )
     f = [[0, 1, 2], [0, 0, 1, 1]]
     metadata = {"scalar": np.array([1, 2]), "vector": np.array([[1, 1, 1], [2, 2, 2]])}
-    with caplog.at_level(logging.WARNING):
+    with caplog.at_level(logging.DEBUG):
         mesh = Mesh(vertices=v, faces=f, faces_metadata=metadata)
     assert "Dropping 1 degenerate faces" in caplog.text
     assert mesh.faces_metadata["scalar"].shape == (1,)

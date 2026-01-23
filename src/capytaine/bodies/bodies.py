@@ -202,10 +202,10 @@ class FloatingBody(_HydrostaticsMixin):
                     LOG.info(f"The rotation dof {name} has been initialized around the point: "
                              f"{self.__short_str__()}.{point_attr} = {getattr(self, point_attr)}")
                     break
-                else:
-                    axis_point = np.array([0, 0, 0])
-                    LOG.warning(f"The rotation dof {name} has been initialized "
-                                f"around the origin of the domain (0, 0, 0).")
+            else:  # If no break
+                axis_point = np.array([0, 0, 0])
+                LOG.warning(f"The rotation dof {name} has been initialized "
+                            f"around the origin of the domain (0, 0, 0).")
         else:
             axis_point = rotation_center
 
@@ -446,7 +446,7 @@ class FloatingBody(_HydrostaticsMixin):
             {'origin': origin, 'normal': normal}
         )
         if name is None:
-            name = "clipped_" + self.name
+            name = self.name
         return FloatingBody(
             mesh=clipped_mesh,
             lid_mesh=clipped_lid_mesh,
