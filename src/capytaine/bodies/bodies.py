@@ -509,7 +509,7 @@ class FloatingBody(_HydrostaticsMixin):
             {'origin': origin, 'normal': normal}
         )
         if name is None:
-            name = "clipped_" + self.name
+            name = self.name
         return FloatingBody(
             mesh=clipped_mesh,
             lid_mesh=clipped_lid_mesh,
@@ -524,7 +524,7 @@ class FloatingBody(_HydrostaticsMixin):
             {'sea_bottom': sea_bottom, 'water_depth': water_depth}
         )
         if name is None:
-            name = "immersed_part_of_" + self.name
+            name = self.name
         return FloatingBody(
             mesh=clipped_mesh,
             lid_mesh=clipped_lid_mesh,
