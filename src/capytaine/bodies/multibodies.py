@@ -1,12 +1,25 @@
-from functools import cached_property
+from __future__ import annotations
+
+import logging
+from itertools import chain, accumulate
+from typing import Union, Dict, List, Optional
+from functools import cached_property, cache
 
 import numpy as np
 import xarray as xr
 
-from capytaine.bodies.bodies import FloatingBody
+
+LOG = logging.getLogger(__name__)
+
 
 class Multibody:
-    def __init__(self, bodies, own_dofs=None, *, name=None):
+    def __init__(
+        self,
+        bodies: List[Union[FloatingBody, Multibody]],
+        own_dofs: Optional[Dict[str, np.array]] = None,
+        *,
+        name: Optional[str] = None
+    ):
         self.bodies = bodies
 
         if len(set(b.name for b in self.bodies)) < len(self.bodies):
@@ -25,7 +38,18 @@ class Multibody:
         else:
             self.name = name
 
+        # for matrix_name in ["inertia_matrix", "hydrostatic_stiffness"]:
+        #     if all(hasattr(body, matrix_name) for body in bodies):
+        #         from scipy.linalg import block_diag
+        #         setattr(self, matrix_name, self.add_dofs_labels_to_matrix(
+        #                 block_diag(*[getattr(body, matrix_name) for body in bodies])
+        #                 ))
+
+        LOG.debug(f"New multibody: {self.__str__()}.")
+
+    @cache
     def as_FloatingBody(self):
+        from capytaine.bodies.bodies import FloatingBody
         if all(body.mass is not None for body in self.bodies):
             total_mass = sum(body.mass for body in self.bodies)
         else:
@@ -95,7 +119,27 @@ class Multibody:
 
     @property
     def dofs(self):
-        componenents_dofs = FloatingBody.combine_dofs(self.bodies)
+        for body in self.bodies:
+            body._check_dofs_shape_consistency()
+
+        componenents_dofs = {}
+        cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in self.bodies)))
+        total_nb_faces = sum(body.mesh.nb_faces for body in self.bodies)
+        for body, nbf in zip(self.bodies, cum_nb_faces):
+            # nbf is the cumulative number of faces of the previous subbodies,
+            # that is the offset of the indices of the faces of the current body.
+            for name, dof in body.dofs.items():
+                new_dof = np.zeros((total_nb_faces, 3))
+                new_dof[nbf:nbf+len(dof), :] = dof
+                if '__' not in name:
+                    new_dof_name = '__'.join([body.name, name])
+                else:
+                    # The body is probably a combination of bodies already.
+                    # So for the associativity of the + operation,
+                    # it is better to keep the same name.
+                    new_dof_name = name
+                componenents_dofs[new_dof_name] = new_dof
+
         return {**componenents_dofs, **self.own_dofs}
 
     def immersed_part(self, *args, **kwargs):

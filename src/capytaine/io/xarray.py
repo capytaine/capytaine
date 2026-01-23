@@ -18,6 +18,7 @@ import xarray as xr
 
 from capytaine import __version__
 from capytaine.bodies.bodies import FloatingBody
+from capytaine.bodies.multibodies import Multibody
 from capytaine.bem.problems_and_results import (
     LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem,
     LinearPotentialFlowResult, _default_parameters)
@@ -43,7 +44,7 @@ def _unsqueeze_dimensions(data_array, dimensions=None):
 
 
 def problems_from_dataset(dataset: xr.Dataset,
-                          bodies: Union[FloatingBody, Sequence[FloatingBody]],
+                          bodies: Union[FloatingBody, Sequence[FloatingBody], Multibody, Sequence[Multibody]],
                           ) -> List[LinearPotentialFlowProblem]:
     """Generate a list of problems from a test matrix.
 
@@ -64,7 +65,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     ValueError
         if required fields are missing in the dataset
     """
-    if isinstance(bodies, FloatingBody):
+    if isinstance(bodies, (FloatingBody, Multibody)):
         bodies = [bodies]
 
     # Should be done before looking for `frequency_keys`, otherwise
@@ -534,7 +535,7 @@ def assemble_dataset(results,
 
 def assemble_matrices(results):
     """Simplified version of assemble_dataset, returning only bare matrices.
-    Meant mainly for teaching without introducing Xarray to beginers.
+    Meant mainly for teaching without introducing Xarray to beginners.
 
     Parameters
     ----------
