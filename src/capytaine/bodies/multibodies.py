@@ -8,6 +8,10 @@ from functools import cached_property, lru_cache
 import numpy as np
 import xarray as xr
 
+from capytaine.bodies.dofs import (
+    add_dofs_labels_to_vector,
+    add_dofs_labels_to_matrix
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -38,12 +42,13 @@ class Multibody:
         else:
             self.name = name
 
-        # for matrix_name in ["inertia_matrix", "hydrostatic_stiffness"]:
-        #     if all(hasattr(body, matrix_name) for body in bodies):
-        #         from scipy.linalg import block_diag
-        #         setattr(self, matrix_name, self.add_dofs_labels_to_matrix(
-        #                 block_diag(*[getattr(body, matrix_name) for body in bodies])
-        #                 ))
+        # Keep legacy behavior of former mesh joining
+        for matrix_name in ["inertia_matrix", "hydrostatic_stiffness"]:
+            if all(hasattr(body, matrix_name) for body in bodies):
+                from scipy.linalg import block_diag
+                setattr(self, matrix_name, self.add_dofs_labels_to_matrix(
+                        block_diag(*[getattr(body, matrix_name) for body in bodies])
+                        ))
 
         LOG.debug(f"New multibody: {self.__str__()}.")
 
@@ -65,7 +70,7 @@ class Multibody:
                 mesh=self.mesh,
                 dofs=self.dofs,
                 lid_mesh=self.lid_mesh,
-                mass=self.mass,
+                mass=total_mass,
                 center_of_mass=new_cog,
                 name=self.name,
                 )
@@ -117,7 +122,7 @@ class Multibody:
     def nb_dofs(self):
         return sum(b.nb_dofs for b in self.bodies) + len(self.own_dofs)
 
-    @property
+    @cached_property
     def dofs(self):
         for body in self.bodies:
             body._check_dofs_shape_consistency()
@@ -142,11 +147,28 @@ class Multibody:
 
         return {**componenents_dofs, **self.own_dofs}
 
+    def add_dofs_labels_to_vector(self, vector):
+        """Helper function turning a bare vector into a vector labelled by the name of the dofs of the body,
+        to be used for instance for the computation of RAO."""
+        return add_dofs_labels_to_vector(self.dofs.keys(), vector)
+
+    def add_dofs_labels_to_matrix(self, matrix):
+        """Helper function turning a bare matrix into a matrix labelled by the name of the dofs of the body,
+        to be used for instance for the computation of RAO."""
+        return add_dofs_labels_to_matrix(self.dofs.keys(), matrix)
+
     def immersed_part(self, *args, **kwargs):
         return Multibody(
                 [b.immersed_part() for b in self.bodies],
                 own_dofs=None,  # TODO
                 )
+
+    def __add__(self, body_to_add):
+        return self.join_bodies(body_to_add)
+
+    def join_bodies(*bodies, name=None):
+        from capytaine.bodies.multibodies import Multibody
+        return Multibody(bodies, name=name)
 
     def integrate_pressure(self, pressure):
         return self.as_FloatingBody().integrate_pressure(pressure)
