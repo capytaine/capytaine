@@ -16,12 +16,13 @@ from capytaine.new_meshes.abstract_meshes import AbstractMesh
 from capytaine.new_meshes.meshes import Mesh
 from capytaine.new_meshes.geometry import connected_components, connected_components_of_waterline
 from capytaine.bodies.dofs import (
-    RigidBodyDofsPlaceholder,
-    evaluate_translation_dof,
-    evaluate_rotation_dof,
-    add_dofs_labels_to_vector,
-    add_dofs_labels_to_matrix
-)
+        AbstractDof,
+        TranslationDof,
+        RotationDof,
+        rigid_body_dofs,
+        add_dofs_labels_to_vector,
+        add_dofs_labels_to_matrix
+        )
 from capytaine.bodies.hydrostatics import _HydrostaticsMixin
 
 LOG = logging.getLogger(__name__)
@@ -113,13 +114,6 @@ class FloatingBody(_HydrostaticsMixin):
 
         if dofs is None:
             self.dofs = {}
-        elif isinstance(dofs, RigidBodyDofsPlaceholder):
-            self.dofs = {}
-            self.add_all_rigid_body_dofs(only=dofs.only, rotation_center=dofs.rotation_center)
-            if dofs.rotation_center is not None:
-                # Keep a copy of rotation center here have a workaround for _infer_rotation_center
-                # Could be removed if we have a better dof model
-                self.rotation_center = np.asarray(dofs.rotation_center, dtype=float)
         else:
             self.dofs = dofs
 
@@ -176,12 +170,13 @@ class FloatingBody(_HydrostaticsMixin):
         """
         if name is None:
             name = f"dof_{self.nb_dofs}_translation"
-        self.dofs[name] = evaluate_translation_dof(
-            self.mesh,
-            direction=direction,
-            name=name,
-            amplitude=amplitude
-        )
+        if direction is None and name in {"Surge", "Sway", "Heave"}:
+            self.dofs[name] = rigid_body_dofs()[name]
+        else:
+            self.dofs[name] = TranslationDof(
+                direction=direction,
+                amplitude=amplitude
+            )
 
     def add_rotation_dof(self, rotation_center=None, direction=None, name=None, amplitude=1.0) -> None:
         """Add a new rotation dof (in place).
@@ -207,34 +202,33 @@ class FloatingBody(_HydrostaticsMixin):
                     LOG.info(f"The rotation dof {name} has been initialized around the point: "
                              f"{self.__short_str__()}.{point_attr} = {getattr(self, point_attr)}")
                     break
-        self.dofs[name] = evaluate_rotation_dof(
-            self.mesh,
-            rotation_center=rotation_center,
-            direction=direction,
-            name=name,
-            amplitude=amplitude
-        )
+        if direction is None and name in {"Roll", "Pitch", "Yaw"}:
+            self.dofs[name] = rigid_body_dofs(rotation_center=rotation_center)[name]
+        else:
+            self.dofs[name] = RotationDof(
+                    rotation_center=rotation_center,
+                    direction=direction,
+                    amplitude=amplitude
+                    )
 
-    def add_all_rigid_body_dofs(self, only=None, rotation_center=None) -> None:
+    def add_all_rigid_body_dofs(self, rotation_center=None) -> None:
         """Add the six degrees of freedom of rigid bodies (in place)."""
-        if only is None or "Surge" in only:
-            self.add_translation_dof(name="Surge")
-        if only is None or "Sway" in only:
-            self.add_translation_dof(name="Sway")
-        if only is None or "Heave" in only:
-            self.add_translation_dof(name="Heave")
-        if only is None or "Roll" in only:
-            self.add_rotation_dof(rotation_center=rotation_center, name="Roll")
-        if only is None or "Pitch" in only:
-            self.add_rotation_dof(rotation_center=rotation_center, name="Pitch")
-        if only is None or "Yaw" in only:
-            self.add_rotation_dof(rotation_center=rotation_center, name="Yaw")
+        self.add_translation_dof(name="Surge")
+        self.add_translation_dof(name="Sway")
+        self.add_translation_dof(name="Heave")
+        self.add_rotation_dof(rotation_center=rotation_center, name="Roll")
+        self.add_rotation_dof(rotation_center=rotation_center, name="Pitch")
+        self.add_rotation_dof(rotation_center=rotation_center, name="Yaw")
 
     def integrate_pressure(self, pressure):
         forces = {}
         for dof_name in self.dofs:
+            if isinstance(self.dofs[dof_name], AbstractDof):
+                dof = self.dofs[dof_name].evaluate_motion(self.mesh)
+            else:
+                dof = self.dofs[dof_name]
             # Scalar product on each face:
-            normal_dof_amplitude_on_face = - np.sum(self.dofs[dof_name] * self.mesh.faces_normals, axis=1)
+            normal_dof_amplitude_on_face = - np.sum(dof * self.mesh.faces_normals, axis=1)
             # The minus sign in the above line is because we want the force of the fluid on the body and not the force of the body on the fluid.
             # Sum over all faces:
             forces[dof_name] = np.sum(pressure * normal_dof_amplitude_on_face * self.mesh.faces_areas)

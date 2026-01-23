@@ -10,6 +10,7 @@ from scipy.optimize import newton
 
 from capytaine.tools.deprecation_handling import _get_water_depth
 from capytaine.bem.airy_waves import airy_waves_velocity, froude_krylov_force
+from capytaine.bodies.dofs import AbstractDof
 from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 
 LOG = logging.getLogger(__name__)
@@ -420,6 +421,8 @@ class RadiationProblem(LinearPotentialFlowProblem):
                                  f"The dofs of the body are {list(self.body.dofs.keys())}")
 
             dof = self.body.dofs[self.radiating_dof]
+            if isinstance(dof, AbstractDof):
+                dof = dof.evaluate_motion(self.body.mesh)
 
             self.boundary_condition = self.encounter_omega * np.zeros(
                 shape=(self.body.mesh_including_lid.nb_faces,),
