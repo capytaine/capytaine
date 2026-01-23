@@ -42,7 +42,7 @@ def evaluate_translation_dof(mesh, direction=None, name=None, amplitude=1.0) -> 
     motion[:, :] = direction
     return motion
 
-def evaluate_rotation_dof(mesh, rotation_center=None, direction=None, name=None, amplitude=1.0) -> np.array():
+def evaluate_rotation_dof(mesh, rotation_center=None, direction=None, name=None, amplitude=1.0) -> np.array:
     if rotation_center is None:
         rotation_center = np.array([0, 0, 0])
         LOG.warning(f"The rotation dof {name} has been initialized "
@@ -53,9 +53,9 @@ def evaluate_rotation_dof(mesh, rotation_center=None, direction=None, name=None,
         else:
             raise ValueError("A direction needs to be specified for the rotation dof.")
     if mesh.nb_faces == 0:
-        return np.empty((self.mesh.nb_faces, 3))
+        return np.empty((mesh.nb_faces, 3))
     else:
-        motion = np.cross(rotation_center - self.mesh.faces_centers, direction)
+        motion = np.cross(rotation_center - mesh.faces_centers, direction)
         return amplitude * motion
 
 
