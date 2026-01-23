@@ -117,7 +117,7 @@ def clean_mesh_once(
             )
 
     if len(degenerate_faces_indices) > 0:
-        LOG.warning(
+        LOG.debug(
             f"Dropping {len(degenerate_faces_indices)} degenerate faces with <3 vertices: "
             f"{[faces[i] for i in degenerate_faces_indices[:5]]}{' ...' if len(degenerate_faces_indices) > 5 else ''}"
         )

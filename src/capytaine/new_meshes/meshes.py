@@ -116,28 +116,33 @@ class Mesh(AbstractMesh):
                 self.vertices, self._faces, self.faces_metadata = clean_mesh(
                     self.vertices, self._faces, self.faces_metadata, max_iter=5, tol=1e-8
                 )
+                LOG.debug("Cleaned %s", str(self))
 
             if auto_check:
                 check_mesh_quality(self)
+                LOG.debug("Checked quality of %s", str(self))
+
+        LOG.debug("New %s", str(self))
+
 
     ## MAIN METRICS AND DISPLAY
 
-    @cached_property
+    @property
     def nb_vertices(self) -> int:
         """Number of vertices in the mesh."""
         return len(self.vertices)
 
-    @cached_property
+    @property
     def nb_faces(self) -> int:
         """Number of faces in the mesh."""
         return len(self._faces)
 
-    @cached_property
+    @property
     def nb_triangles(self) -> int:
         """Number of triangular faces (3-vertex) in the mesh."""
         return sum(1 for f in self._faces if len(f) == 3)
 
-    @cached_property
+    @property
     def nb_quads(self) -> int:
         """Number of quadrilateral faces (4-vertex) in the mesh."""
         return sum(1 for f in self._faces if len(f) == 4)
@@ -170,7 +175,7 @@ class Mesh(AbstractMesh):
 
     def __short_str__(self) -> str:
         if self.name is not None:
-            return f"Mesh(..., name={self.name})"
+            return f"Mesh(..., name={repr(self.name)})"
         else:
             return "Mesh(...)"
 
@@ -357,7 +362,7 @@ class Mesh(AbstractMesh):
             face_coords = [self.vertices[idx].tolist() for idx in face]
             list_faces.append(face_coords)
         if len(self.faces_metadata) > 0:
-            LOG.info(f"Dropping metadata of {self} to export as list of faces.")
+            LOG.debug(f"Dropping metadata of {self} to export as list of faces.")
         return list_faces
 
     def as_array_of_faces(self) -> np.ndarray:
@@ -562,7 +567,7 @@ class Mesh(AbstractMesh):
         )
 
     def join_meshes(*meshes: List["Mesh"], return_masks=False, name=None) -> "Mesh":
-        """Join two meshes and return a new Mesh instance.
+        """Join several meshes and return a new Mesh instance.
 
         Parameters
         ----------
@@ -587,11 +592,12 @@ class Mesh(AbstractMesh):
         if not all(isinstance(m, Mesh) for m in meshes):
             raise TypeError("Only Mesh instances can be added together.")
 
+        faces = sum((m.as_list_of_faces() for m in meshes), [])
+
         if return_masks:
+            # Add a temporary metadata to keep track of the origin of each face
             meshes = [m.with_metadata(origin_mesh_index=np.array([i]*m.nb_faces))
                       for i, m in enumerate(meshes)]
-
-        faces = sum((m.as_list_of_faces() for m in meshes), [])
 
         faces_metadata = {k: np.concatenate([m.faces_metadata[k] for m in meshes], axis=0)
                              for k in AbstractMesh._common_metadata_keys(*meshes)}
@@ -602,15 +608,20 @@ class Mesh(AbstractMesh):
             LOG.info("Dropping inconsistent quadrature method when joining meshes")
             quadrature_method = None
 
+        if name is None and all(m.name is not None for m in meshes):
+            name = "+".join([m.name for m in meshes])
+
         joined_mesh = Mesh.from_list_of_faces(
             faces,
             quadrature_method=quadrature_method,
             faces_metadata=faces_metadata,
-            name=name
+            name=name,
+            auto_check=False,
         )
         # If list of faces is trimmed for some reason, metadata will be updated accordingly
 
         if return_masks:
+            # Extract the temporary metadata
             masks = [joined_mesh.faces_metadata['origin_mesh_index'] == i for i in range(len(meshes))]
             return joined_mesh.without_metadata('origin_mesh_index'), masks
         else:
@@ -636,6 +647,8 @@ class Mesh(AbstractMesh):
             lid of internal surface
         """
         from capytaine.new_meshes.predefined.rectangles import mesh_rectangle
+
+        LOG.debug(f"Generating lid for {self.__str__()}")
 
         if name is None and self.name is not None:
             name = "lid for {}".format(self.name)
@@ -666,6 +679,7 @@ class Mesh(AbstractMesh):
                 faces_max_radius=faces_max_radius,
                 center=(x_mean, y_mean, z),
                 normal=(0.0, 0.0, -1.0),
+                name="candidate_lid_mesh"
                 )
 
         candidate_lid_points = candidate_lid_mesh.vertices[:, 0:2]
@@ -694,7 +708,7 @@ class Mesh(AbstractMesh):
         if len(lid_faces) == 0:
             return Mesh(None, None, name=name)
 
-        lid_mesh = Mesh(candidate_lid_mesh.vertices, lid_faces, name=name)
+        lid_mesh = Mesh(candidate_lid_mesh.vertices, lid_faces, name=name, auto_check=False)
         return lid_mesh
 
     def extract_lid(self, z=0.0):
@@ -751,7 +765,9 @@ class Mesh(AbstractMesh):
                 faces=self.faces[:, ::-1],
                 faces_metadata=self.faces_metadata,
                 quadrature_method=self.quadrature_method,
-                name=self.name
+                name=self.name,
+                auto_clean=False,
+                auto_check=False,
             )
         else:
             return self
@@ -794,6 +810,7 @@ class Mesh(AbstractMesh):
         Mesh
             A new Mesh instance that has been clipped.
         """
+        LOG.debug(f"Clipping {self.__str__()} with origin={origin} and normal={normal}")
         new_vertices, new_faces, face_parent = \
                 clip_faces(self.vertices, self._faces, normal, origin)
         new_metadata = {k: self.faces_metadata[k][face_parent] for k in self.faces_metadata}
@@ -804,5 +821,6 @@ class Mesh(AbstractMesh):
             faces=new_faces,
             faces_metadata=new_metadata,
             quadrature_method=self.quadrature_method,
-            name=name
+            name=name,
+            auto_check=False,
         )
