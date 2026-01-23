@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from itertools import chain, accumulate
 from typing import Union, Dict, List, Optional
-from functools import cached_property, cache
+from functools import cached_property, lru_cache
 
 import numpy as np
 import xarray as xr
@@ -47,7 +47,7 @@ class Multibody:
 
         LOG.debug(f"New multibody: {self.__str__()}.")
 
-    @cache
+    @lru_cache
     def as_FloatingBody(self):
         from capytaine.bodies.bodies import FloatingBody
         if all(body.mass is not None for body in self.bodies):
