@@ -16,8 +16,9 @@ ROTATION_DOFS_AXIS = {"roll": (1, 0, 0), "pitch": (0, 1, 0), "yaw": (0, 0, 1)}
 class RigidBodyDofsPlaceholder:
     """Pass an instance of this class to the FloatingBody initializer to initialize the 6 ridig body dofs."""
 
-    def __init__(self, rotation_center=None):
+    def __init__(self, only=None, rotation_center=None):
         self.rotation_center = rotation_center
+        self.only = only
 
     def __str__(self):
         return "RigidBodyDofsPlaceholder()"
@@ -26,8 +27,18 @@ class RigidBodyDofsPlaceholder:
         p.text(self.__str__())
 
 
-def rigid_body_dofs(rotation_center=None):
-    return RigidBodyDofsPlaceholder(rotation_center=rotation_center)
+def rigid_body_dofs(only=None, rotation_center=None):
+    """Pass this to FloatingBody initializer to give it rigid body dofs.
+
+    Parameters
+    ----------
+    only: sequence of str, optional
+        list of the name of the rigid body dofs to be included.
+        By default: all six of them
+    rotation_center: np.array, optional
+        the center for the definition of the rotations
+    """
+    return RigidBodyDofsPlaceholder(only=only, rotation_center=rotation_center)
 
 
 def evaluate_translation_dof(mesh, direction=None, name=None, amplitude=1.0) -> np.array:
@@ -41,6 +52,7 @@ def evaluate_translation_dof(mesh, direction=None, name=None, amplitude=1.0) -> 
     motion = np.empty((mesh.nb_faces, 3))
     motion[:, :] = direction
     return motion
+
 
 def evaluate_rotation_dof(mesh, rotation_center=None, direction=None, name=None, amplitude=1.0) -> np.array:
     if rotation_center is None:
@@ -57,7 +69,6 @@ def evaluate_rotation_dof(mesh, rotation_center=None, direction=None, name=None,
     else:
         motion = np.cross(rotation_center - mesh.faces_centers, direction)
         return amplitude * motion
-
 
 
 def add_dofs_labels_to_vector(dof_names, vector):
