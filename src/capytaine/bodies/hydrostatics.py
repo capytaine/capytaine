@@ -339,13 +339,16 @@ class _HydrostaticsMixin(ABC):
             raise ValueError(f"Trying to compute rigid-body inertia matrix for {self.name}, but no center of mass has been defined.\n"
                              f"Suggested solution: define a `center_of_mass` attribute for the FloatingBody {self.name}.")
 
-        if any(isinstance(dof, RotationDof) for dof in self.dofs.values()):
+        rotation_dofs = [dof for dof in self.dofs.values() if isinstance(dof, RotationDof)]
+        if len(rotation_dofs) == 0:
+            rc = np.array([np.nan, np.nan, np.nan])  # Dummy placeholder
+        elif len(rotation_dofs) == 1:
+            rc = rotation_dofs[0].rotation_center
+        else:
             rcs = [dof.rotation_center for dof in self.dofs.values() if isinstance(dof, RotationDof)]
             if not np.all(np.all(np.isclose(rcs[0], rcs[1:]), axis=1)):
                 raise NotImplementedError(f"Trying to compute rigid-body inertia matrix for {self.name}, but the rotations dofs have different rotation centers.")
             rc = rcs[0]
-        else:
-            rc = np.array([np.nan, np.nan, np.nan])  # Dummy placeholder
 
         for dof in self.dofs.values():
             if is_rigid_body_dof(dof) and not hasattr(dof, "_standard_name"):

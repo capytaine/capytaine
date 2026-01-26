@@ -164,6 +164,33 @@ def test_stiffness_invariance_by_translation(body):
     K2 = body().translated([1.0, 0.0, 0.0]).compute_hydrostatic_stiffness()
     assert np.allclose(K1, K2)
 
+def test_stiffness_single_rotation_dof():
+    # Was actually not possible in version 2.x
+    mesh = cpt.mesh_parallelepiped()
+    body_1 = cpt.FloatingBody(
+        mesh=mesh,
+        dofs=cpt.rigid_body_dofs(only=["Pitch"], rotation_center=(0, 0, -2)),
+        center_of_mass=(0, 0, 0)
+    )
+    K_1 = body_1.compute_hydrostatic_stiffness()
+    assert K_1.shape == (1, 1)
+
+    body_2 = cpt.FloatingBody(mesh=mesh, center_of_mass=(0, 0, 0))
+    body_2.add_rotation_dof(rotation_center=(0, 0, -2), direction=(0, 1, 0), name="pitch oh mon pitch")
+    # Non standard name, but still a rigid body rotation
+    K_2 = body_2.compute_hydrostatic_stiffness()
+    assert K_2.shape == (1, 1)
+    assert np.allclose(K_2.values, K_1.values)
+
+    ref_body = cpt.FloatingBody(
+        mesh=mesh,
+        dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -2)),
+        center_of_mass=(0, 0, 0)
+    )
+    full_K = ref_body.compute_hydrostatic_stiffness()
+    assert np.isclose(K_1.values[0, 0], full_K.values[3, 3])
+
+
 # DIVERGENCE
 
 def test_stiffness_elastic_dof_with_divergence():
@@ -276,6 +303,32 @@ def test_inertia_invariance_by_translation():
     M1 = sphere.compute_rigid_body_inertia()
     M2 = sphere.translated([1.0, 0.0, 0.0]).compute_rigid_body_inertia()
     assert np.allclose(M1, M2)
+
+def test_inertia_single_rotation_dof():
+    # Was actually not possible in version 2.x
+    mesh = cpt.mesh_parallelepiped()
+    body_1 = cpt.FloatingBody(
+        mesh=mesh,
+        dofs=cpt.rigid_body_dofs(only=["Pitch"], rotation_center=(0, 0, -2)),
+        center_of_mass=(0, 0, 0)
+    )
+    M_1 = body_1.compute_rigid_body_inertia()
+    assert M_1.shape == (1, 1)
+
+    body_2 = cpt.FloatingBody(mesh=mesh, center_of_mass=(0, 0, 0))
+    body_2.add_rotation_dof(rotation_center=(0, 0, -2), direction=(0, 1, 0), name="pitch oh mon pitch")
+    # Non standard name, but still a rigid body rotation
+    M_2 = body_2.compute_rigid_body_inertia()
+    assert M_2.shape == (1, 1)
+    assert np.allclose(M_2.values, M_1.values)
+
+    ref_body = cpt.FloatingBody(
+        mesh=mesh,
+        dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -2)),
+        center_of_mass=(0, 0, 0)
+    )
+    full_M = ref_body.compute_rigid_body_inertia()
+    assert np.isclose(M_1.values[0, 0], full_M.values[3, 3])
 
 # Multibody
 
