@@ -1,6 +1,8 @@
 # Copyright (C) 2017-2022 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
 
+from abc import ABC, abstractmethod
+from functools import lru_cache
 import logging
 
 import numpy as np
@@ -9,56 +11,119 @@ import xarray as xr
 LOG = logging.getLogger(__name__)
 
 
-TRANSLATION_DOFS_DIRECTIONS = {"surge": (1, 0, 0), "sway": (0, 1, 0), "heave": (0, 0, 1)}
-ROTATION_DOFS_AXIS = {"roll": (1, 0, 0), "pitch": (0, 1, 0), "yaw": (0, 0, 1)}
+class AbstractDof(ABC):
+    @abstractmethod
+    def evaluate_motion(self, mesh):
+        ...
+
+    @abstractmethod
+    def evaluate_gradient_of_motion(self, mesh):
+        ...
 
 
-class RigidBodyDofsPlaceholder:
-    """Pass an instance of this class to the FloatingBody initializer to initialize the 6 ridig body dofs."""
-
-    def __init__(self, rotation_center=None):
-        self.rotation_center = rotation_center
+class TranslationDof(AbstractDof):
+    def __init__(self, direction):
+        self.direction = np.asarray(direction)
+        assert self.direction.shape == (3,)
 
     def __str__(self):
-        return "RigidBodyDofsPlaceholder()"
+        return f"TranslationDof(direction={self.direction})"
 
-    def _repr_pretty_(self, p, cycle):
-        p.text(self.__str__())
+    @lru_cache
+    def evaluate_motion(self, mesh) -> np.array:
+        return np.tile(self.direction, (mesh.nb_faces, 1))
+
+    @lru_cache
+    def evaluate_gradient_of_motion(self, mesh) -> np.array:
+        return np.zeros((mesh.nb_faces, 3, 3))
 
 
-def rigid_body_dofs(rotation_center=None):
-    return RigidBodyDofsPlaceholder(rotation_center=rotation_center)
-
-
-def evaluate_translation_dof(mesh, direction=None, name=None, amplitude=1.0) -> np.array:
-    if direction is None:
-        if name is not None and name.lower() in TRANSLATION_DOFS_DIRECTIONS:
-            direction = TRANSLATION_DOFS_DIRECTIONS[name.lower()]
+class RotationDof(AbstractDof):
+    def __init__(self, rotation_center, direction):
+        self.direction = np.asarray(direction)
+        assert self.direction.shape == (3,)
+        if rotation_center is None:
+            self.rotation_center = np.array([0, 0, 0])
+            LOG.warning("Rigid body rotation dof has been initialized "
+                        "around the origin of the domain (0, 0, 0).")
         else:
-            raise ValueError("A direction needs to be specified for the translation dof.")
-    direction = np.asarray(direction)
-    assert direction.shape == (3,)
-    motion = np.empty((mesh.nb_faces, 3))
-    motion[:, :] = direction
-    return amplitude * motion
+            self.rotation_center = np.asarray(rotation_center)
+        assert self.rotation_center.shape == (3,)
+
+    def __str__(self):
+        return f"RotationDof(rotation_center={self.rotation_center}, direction={self.direction})"
+
+    @lru_cache
+    def evaluate_motion(self, mesh) -> np.array:
+        if mesh.nb_faces == 0:
+            return np.empty((mesh.nb_faces, 3))
+        else:
+            motion = np.cross(self.direction, mesh.faces_centers - self.rotation_center)
+            return motion
+
+    @lru_cache
+    def evaluate_gradient_of_motion(self, mesh) -> np.array:
+        grad = np.cross(self.direction, np.eye(3))
+        return np.tile(grad, (mesh.nb_faces, 1, 1))
 
 
-def evaluate_rotation_dof(mesh, rotation_center=None, direction=None, name=None, amplitude=1.0) -> np.array:
+class DofOnSubmesh(AbstractDof):
+    def __init__(self, dof: AbstractDof, faces):
+        self.dof = dof
+        self.faces = faces
+
+    def evaluate_motion(self, mesh):
+        motion = np.zeros((mesh.nb_faces, 3))
+        motion[self.faces, :] = self.dof.evaluate_motion(mesh.extract_faces(self.faces))
+        return motion
+
+    def evaluate_gradient_of_motion(self, mesh) -> np.array:
+        grad = np.zeros((mesh.nb_faces, 3, 3))
+        grad[self.faces, :, :] = self.dof.evaluate_gradient_of_motion(mesh.extract_faces(self.faces))
+        return grad
+
+
+def is_rigid_body_dof(dof):
+    return (
+            isinstance(dof, TranslationDof)
+            or isinstance(dof, RotationDof)
+            # or (isinstance(dof, DofOnSubmesh) and is_rigid_body_dof(dof.dof))
+            )
+
+
+def rigid_body_dofs(only=None, rotation_center=None):
+    """Pass this to FloatingBody initializer to give it rigid body dofs.
+
+    Parameters
+    ----------
+    only: sequence of str, optional
+        list of the name of the rigid body dofs to be included.
+        By default: all six of them
+    rotation_center: np.array, optional
+        the center for the definition of the rotations
+    """
     if rotation_center is None:
         rotation_center = np.array([0, 0, 0])
-        LOG.warning(f"The rotation dof {name} has been initialized "
-                    f"around the origin of the domain (0, 0, 0).")
-    if direction is None:
-        if name is not None and name.lower() in ROTATION_DOFS_AXIS:
-            direction = ROTATION_DOFS_AXIS[name.lower()]
-        else:
-            raise ValueError("A direction needs to be specified for the rotation dof.")
-    if mesh.nb_faces == 0:
-        return np.empty((mesh.nb_faces, 3))
-    else:
-        motion = np.cross(rotation_center - mesh.faces_centers, direction)
-        return amplitude * motion
+        LOG.warning("Rigid body rotation dofs have been initialized "
+                    "around the origin of the domain (0, 0, 0).")
+        # This warning is redundant with the one in RotationDof.__init__,
+        # but it is done here to have a single warning displayed on screen
+        # when a rigid body is initialized.
+    dofs = {
+        "Surge": TranslationDof(direction=(1, 0, 0)),
+        "Sway": TranslationDof(direction=(0, 1, 0)),
+        "Heave": TranslationDof(direction=(0, 0, 1)),
+        "Roll": RotationDof(rotation_center=rotation_center, direction=(1, 0, 0)),
+        "Pitch": RotationDof(rotation_center=rotation_center, direction=(0, 1, 0)),
+        "Yaw": RotationDof(rotation_center=rotation_center, direction=(0, 0, 1)),
+        }
+    if only is not None:
+        dofs = {k: v for k, v in dofs.items() if k in only}
+    return dofs
 
+
+def normalize_name(name):
+    return name[0].upper() + name[1:].lower()
 
 
 def add_dofs_labels_to_vector(dof_names, vector):

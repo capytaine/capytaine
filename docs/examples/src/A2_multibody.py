@@ -9,7 +9,7 @@ mesh_1 = cpt.mesh_sphere(radius=1.0, center=(0, 0, 0), resolution=(20, 20))
 sphere = cpt.FloatingBody(
     mesh=mesh_1,
     lid_mesh=mesh_1.generate_lid(),
-    dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
+    dofs=cpt.rigid_body_dofs(only=['Surge', 'Heave'], rotation_center=(0, 0, 0)),
     center_of_mass=(0, 0, 0),
     name="sphere_1",
 )
@@ -19,7 +19,7 @@ mesh_2 = cpt.mesh_sphere(radius=0.5, center=(-2, -3, 0), resolution=(20, 20))
 other_sphere = cpt.FloatingBody(
     mesh=mesh_2,
     lid_mesh=mesh_2.generate_lid(),
-    dofs=cpt.rigid_body_dofs(rotation_center=(-2, -3, 0)),
+    dofs=cpt.rigid_body_dofs(only=['Surge', 'Heave'], rotation_center=(-2, -3, 0)),
     center_of_mass=(-2, -3, 0),
     name="sphere_2",
 )
@@ -31,7 +31,7 @@ mesh_3 = cpt.mesh_horizontal_cylinder(
 cylinder = cpt.FloatingBody(
     mesh=mesh_3,
     lid_mesh=mesh_3.generate_lid(),
-    dofs=cpt.rigid_body_dofs(rotation_center=(0.5, 3.0, -0.5)),
+    dofs=cpt.rigid_body_dofs(only=['Surge', 'Heave'], rotation_center=(0.5, 3.0, -0.5)),
     center_of_mass=(0.5, 3.0, -0.5),
     name="cylinder",
 )

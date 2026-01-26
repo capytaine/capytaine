@@ -13,10 +13,16 @@ def test_dof():
     assert body.dofs == {}
 
     body.add_translation_dof(direction=(1.0, 0.0, 0.0), name="1")
-    assert np.allclose(body.dofs["1"], np.array([1.0, 0.0, 0.0]))
+    assert np.allclose(
+        body.dofs["1"].evaluate_motion(body.mesh),
+        np.array([1.0, 0.0, 0.0])
+    )
 
     body.add_translation_dof(direction=(0.0, 1.0, 0.0), name="2")
-    assert np.allclose(body.dofs["2"], np.array([0.0, 1.0, 0.0]))
+    assert np.allclose(
+        body.dofs["2"].evaluate_motion(body.mesh),
+        np.array([0.0, 1.0, 0.0])
+    )
 
     body.add_rotation_dof(direction=(0.0, 0.0, 1.0), name="3")
     body.add_rotation_dof(rotation_center=(0.5, 0, 0), direction=(0.0, 0.0, 1.0), name="4")
@@ -27,7 +33,10 @@ def test_dof_name_inference():
     body.add_translation_dof(direction=(1, 0, 0), name="Surge_1")
     for dofname in ['Surge', 'SURGE', 'surge']:
         body.add_translation_dof(name=dofname)
-        assert np.allclose(body.dofs[dofname], body.dofs['Surge_1'])
+        assert np.allclose(
+            body.dofs[dofname].evaluate_motion(body.mesh),
+            body.dofs['Surge_1'].evaluate_motion(body.mesh)
+        )
 
     body.add_rotation_dof(name="Pitch")
     body.add_rotation_dof(name="yaw")
@@ -40,26 +49,14 @@ def test_rigid_body_dofs():
     mesh = cpt.mesh_sphere()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(10.0, 0.0, 0.0)))
     assert "Heave" in body.dofs
-    assert np.all(body.dofs["Pitch"][:, 2] > 9.0)
-
-
-def test_rigid_body_dofs_no_rotation_center_but_a_center_of_mass():
-    mesh = cpt.mesh_sphere()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(-10.0, 0.0, 0.0))
-    assert np.all(body.dofs["Pitch"][:, 2] < -9.0)
+    assert np.all(body.dofs["Pitch"].evaluate_motion(mesh)[:, 2] > 9.0)
 
 
 def test_rigid_body_dofs_both_a_rotation_center_and_a_center_of_mass():
     mesh = cpt.mesh_sphere()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(10.0, 0.0, 0.0)),
                             center_of_mass=(-10.0, 0.0, 0.0))
-    assert np.all(body.dofs["Pitch"][:, 2] > 9.0)
-
-
-def test_rigid_body_dofs_neither_a_rotation_center_nor_a_center_of_mass():
-    mesh = cpt.mesh_sphere()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    assert np.allclose(body._infer_rotation_center(), (0.0, 0.0, 0.0))
+    assert np.all(body.dofs["Pitch"].evaluate_motion(mesh)[:, 2] > 9.0)
 
 
 def test_defining_rotation_center_with_ints():
@@ -77,7 +74,7 @@ def test_healing_before_initializing_dofs():
     faces = np.array([[0, 1, 2, 3], [1, 2, 2, 1]])
     mesh = cpt.Mesh(vertices, faces)
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    assert body.dofs["Heave"].shape[0] == body.mesh.nb_faces == 1
+    assert body.dofs["Heave"].evaluate_motion(mesh).shape[0] == body.mesh.nb_faces == 1
 
 
 def test_translate_center_of_mass_defined_as_tuple():
@@ -124,17 +121,20 @@ def test_clipping_of_dofs(z_center, symmetry):
     other_clipped_sphere.add_rotation_dof(rotation_center=(1, 0, 0), direction=(1, 0, 0), name="test_dof")
 
     if clipped_sphere.mesh.nb_faces > 0:
-        assert np.allclose(clipped_sphere.dofs['test_dof'], other_clipped_sphere.dofs['test_dof'])
+        assert np.allclose(
+            clipped_sphere.dofs['test_dof'].evaluate_motion(clipped_sphere.mesh),
+            other_clipped_sphere.dofs['test_dof'].evaluate_motion(other_clipped_sphere.mesh)
+        )
     else:
-        assert len(clipped_sphere.dofs['test_dof']) == 0
+        assert len(clipped_sphere.dofs['test_dof'].evaluate_motion(clipped_sphere.mesh)) == 0
 
 
 def test_complicated_clipping_of_dofs():
     # 1 face becomes 2 faces after clipping
     mesh = cpt.Mesh(vertices=[[0.0, 0.0, 0.5], [-0.5, 0.0, -0.5], [0.0, 0.0, -1.5], [0.0, 0.5, -0.5]], faces=[[0, 1, 2, 3]])
-    body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
+    body = cpt.FloatingBody(mesh, dofs={'Shear': np.array([(x, 0, 0) for (x, y, z) in mesh.faces_centers])})
     clipped_body = body.immersed_part()
-    assert len(clipped_body.dofs["Heave"]) == clipped_body.mesh.nb_faces
+    assert len(clipped_body.dofs["Shear"]) == clipped_body.mesh.nb_faces
 
 
 def test_clipping_of_dofs_with_degenerate_faces():
@@ -154,13 +154,13 @@ def test_clipping_of_dofs_with_degenerate_faces():
     mesh = cpt.Mesh(vertices, faces)
     body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
     clipped_body = body.immersed_part()
-    assert len(clipped_body.dofs["Heave"]) == clipped_body.mesh.nb_faces
+    assert len(clipped_body.dofs["Heave"].evaluate_motion(clipped_body.mesh)) == clipped_body.mesh.nb_faces
 
 
 def test_cropping_body_with_manual_dof():
     # https://github.com/capytaine/capytaine/issues/204
     sphere = cpt.FloatingBody(cpt.mesh_sphere())
-    sphere.dofs["Surge"] = [(1, 0, 0) for face in sphere.mesh.faces]
+    sphere.dofs["Shear"] = [(x, 0, 0) for (x, y, z) in sphere.mesh.faces_centers]
     sphere = sphere.immersed_part()
 
 

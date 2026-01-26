@@ -60,26 +60,55 @@ Otherwise, the symmetry is discarded and a full resolution is done.
 Dofs
 ~~~~
 
-The degrees of freedom are defined as a Python dictionary associating the name
-of each dof to a Numpy array of shape ``(nb_faces, 3)``.
+Degrees of freedoms are stored in a Python dictionary associating the name
+of each dof to the description of the corresponding motion or deformation.
+
+For rigid bodies, the motion is encoded in an ad-hoc Python object of class
+:class:`~capytaine.bodies.dofs.TranslationDof` or :class:`~capytaine.bodies.dofs.RotationDof`.
+It is recommended to initialize them in the following way::
+
+   body = cpt.FloatingBody(
+       mesh=mesh,
+       dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1)),
+   )
+
+If no ``rotation_center`` is provided, :math:`(0, 0, 0)` is used as a default.
+The standard names used to refer to the rigid body dofs are::
+
+   print(body.dofs.keys())
+   # dict_keys(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'])
+
+If only some dofs are of interest, you can use the following syntax::
+
+   body = cpt.FloatingBody(
+       mesh=mesh,
+       dofs=cpt.rigid_body_dofs(only=["Heave"], rotation_center=(0, 0, -1))
+   )
+   print(body.dofs.keys())
+   # dict_keys(['Heave'])
+
+Generalized degrees of freedom can be defined as a Numpy array of shape ``(nb_faces, 3)``.
 This array stores the displacement vector at the center of each face of the
 mesh::
 
    body = cpt.FloatingBody(
            mesh=mesh,
            dofs={
-               "heave": np.array([(0, 0, 1) for x, y, z in mesh.faces_centers]),
+               "heave-like": np.array([(0, 0, 1) for x, y, z in mesh.faces_centers]),
                "x-shear": np.array([(np.cos(np.pi*z/2), 0, 0) for x, y, z in mesh.faces_centers])
                },
            )
 
-:meth:`cpt.rigid_body_dofs() <~capytaine.bodies.dofs.rigid_body_dofs>` can
-be used to automatically give a body the six degrees of freedom of a rigid
-body::
+Defining a rigid-body-dof as a generalized dof (as in the example above for
+heave) does not make a difference for first-order hydrodynamics without forward
+speed. It makes a difference for the hydrostatic stiffness, when the
+generalized dofs are using a approximate formula, whereas exact values can be
+returned for rigid body dofs.
 
-   body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1)))
-   print(body.dofs.keys())
-   # dict_keys(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'])
+For multiple bodies, the dofs of the component bodies should transparently be
+defined for the compound body object. See also the section dedicated to
+multiple bodies.
+
 
 Other parameters
 ~~~~~~~~~~~~~~~~
@@ -126,5 +155,3 @@ Geometric transformations
 All the geometric transformation defined on meshes in :doc:`mesh` can also be
 applied to ``FloatingBody``. Beside updating the mesh, they also update the
 definition of the degrees of freedom and the center of mass (if relevant).
-
-

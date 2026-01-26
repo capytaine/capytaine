@@ -2,13 +2,15 @@ from __future__ import annotations
 
 import logging
 from itertools import chain, accumulate
-from typing import Union, Dict, List, Optional
+from typing import Union, List, Optional
 from functools import cached_property, lru_cache
 
 import numpy as np
 import xarray as xr
 
 from capytaine.bodies.dofs import (
+    AbstractDof,
+    DofOnSubmesh,
     add_dofs_labels_to_vector,
     add_dofs_labels_to_matrix
 )
@@ -134,8 +136,12 @@ class Multibody:
             # nbf is the cumulative number of faces of the previous subbodies,
             # that is the offset of the indices of the faces of the current body.
             for name, dof in body.dofs.items():
-                new_dof = np.zeros((total_nb_faces, 3))
-                new_dof[nbf:nbf+len(dof), :] = dof
+                if isinstance(dof, AbstractDof):
+                    new_dof = DofOnSubmesh(dof, range(nbf, nbf+body.mesh.nb_faces))
+                else:
+                    new_dof = np.zeros((total_nb_faces, 3))
+                    new_dof[nbf:nbf+len(dof), :] = dof
+
                 if '__' not in name:
                     new_dof_name = '__'.join([body.name, name])
                 else:

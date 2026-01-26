@@ -27,6 +27,16 @@ Major changes
     both = body_1 + body_2  # `both` is now a Multibody
     both = (body_1 + body_2).as_FloatingBody()  # Recover former behavior of joining FloatingBody with a FloatingBody
 
+* New internal data model for rigid body dofs with the classes
+  :class:`~capytaine.bodies.dofs.TranslationDof` and
+  :class:`~capytaine.bodies.dofs.RotationDof`. (:pull:`838`)
+  This should ensure that rigid dofs are detected and treated as such, without
+  relying only on their name.
+  This is relevant for multiple bodies and articulated bodies when computing:
+    * hydrostatics, where the exact hydrostatic stiffness formula for rigid body dofs can be used instead of the approximation for generalized dofs.
+    * forward speed, where the m-term is currently only implemented for rigid dofs.
+
+
 Minor changes
 ~~~~~~~~~~~~~
 
@@ -48,6 +58,11 @@ Minor changes
 
   or something equivalent, separating the geometric mesh generation from the
   floating body definition.
+
+* :func:`~capytaine.bodies.dofs.rigid_body_dofs` now instantiate the new dof class instead of a placeholder.
+  It now has an additional input argument ``only`` to have only some of the six rigid body dofs.
+  Also a rotation center should be passed, because the properties of the body
+  (e.g. `center_of_mass`) cannot be accessed at that stage. (:pull:`838`)
 
 Bug fixes
 ~~~~~~~~~
