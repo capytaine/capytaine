@@ -25,13 +25,13 @@ The multi-body object inherits the dofs of the individual bodies with the new na
 
 
 
-.. Capytaine also include helper functions to create arrays of identical bodies::
-..
-..     array = body.assemble_regular_array(distance=1.0, nb_bodies=(4, 5))
-..
-.. places copies of the ``body`` on a regular grid of :math:`4 \times 5` with distance between bodies of 1 meter, and::
-..
-..     locations = np.array([[0.0, 0.0], [1.0, 2.0], [3.0, 4.5], [3.0, -0.5]])
-..     array = body.assemble_arbitrary_array(locations)
-..
-.. places copies of the ``body`` at the list of locations specified.
+Capytaine also include helper functions to create arrays of identical bodies::
+
+    array = body.assemble_regular_array(distance=1.0, nb_bodies=(4, 5))
+
+places copies of the ``body`` on a regular grid of :math:`4 \times 5` with distance between bodies of 1 meter, and::
+
+    locations = np.array([[0.0, 0.0], [1.0, 2.0], [3.0, 4.5], [3.0, -0.5]])
+    array = body.assemble_arbitrary_array(locations)
+
+places copies of the ``body`` at the list of locations specified.
