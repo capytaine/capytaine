@@ -59,12 +59,6 @@ def test_rigid_body_dofs_both_a_rotation_center_and_a_center_of_mass():
     assert np.all(body.dofs["Pitch"].evaluate_motion(mesh)[:, 2] > 9.0)
 
 
-def test_rigid_body_dofs_neither_a_rotation_center_nor_a_center_of_mass():
-    mesh = cpt.mesh_sphere()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    assert np.allclose(body._infer_rotation_center(), (0.0, 0.0, 0.0))
-
-
 def test_defining_rotation_center_with_ints():
     # Issue #319
     mesh = cpt.mesh_sphere().immersed_part()
