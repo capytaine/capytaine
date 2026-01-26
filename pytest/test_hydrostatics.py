@@ -175,13 +175,6 @@ def test_stiffness_single_rotation_dof():
     K_1 = body_1.compute_hydrostatic_stiffness()
     assert K_1.shape == (1, 1)
 
-    body_2 = cpt.FloatingBody(mesh=mesh, center_of_mass=(0, 0, 0))
-    body_2.add_rotation_dof(rotation_center=(0, 0, -2), direction=(0, 1, 0), name="pitch oh mon pitch")
-    # Non standard name, but still a rigid body rotation
-    K_2 = body_2.compute_hydrostatic_stiffness()
-    assert K_2.shape == (1, 1)
-    assert np.allclose(K_2.values, K_1.values)
-
     ref_body = cpt.FloatingBody(
         mesh=mesh,
         dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -2)),
@@ -189,6 +182,23 @@ def test_stiffness_single_rotation_dof():
     )
     full_K = ref_body.compute_hydrostatic_stiffness()
     assert np.isclose(K_1.values[0, 0], full_K.values[3, 3])
+
+    body_2 = cpt.FloatingBody(mesh=mesh, center_of_mass=(0, 0, 0))
+    body_2.add_rotation_dof(rotation_center=(0, 0, -2), direction=(0, 1, 0), name="pitch oh mon pitch")
+    # Non standard name, but still a rigid body rotation
+    K_2 = body_2.compute_hydrostatic_stiffness()
+    assert K_2.shape == (1, 1)
+    assert np.isclose(K_2.values, K_1.values)
+
+    # Generalized dof approach despite standard name
+    body_3 = cpt.FloatingBody(
+        mesh=mesh,
+        dofs={"Pitch": body_1.dofs["Pitch"].evaluate_motion(mesh)},
+        center_of_mass=(0, 0, 0)
+    )
+    K_3 = body_3.compute_hydrostatic_stiffness()
+    assert K_3.shape == (1, 1)
+    assert not np.isclose(K_3.values, K_1.values)
 
 
 # DIVERGENCE
@@ -315,13 +325,6 @@ def test_inertia_single_rotation_dof():
     M_1 = body_1.compute_rigid_body_inertia()
     assert M_1.shape == (1, 1)
 
-    body_2 = cpt.FloatingBody(mesh=mesh, center_of_mass=(0, 0, 0))
-    body_2.add_rotation_dof(rotation_center=(0, 0, -2), direction=(0, 1, 0), name="pitch oh mon pitch")
-    # Non standard name, but still a rigid body rotation
-    M_2 = body_2.compute_rigid_body_inertia()
-    assert M_2.shape == (1, 1)
-    assert np.allclose(M_2.values, M_1.values)
-
     ref_body = cpt.FloatingBody(
         mesh=mesh,
         dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -2)),
@@ -329,6 +332,23 @@ def test_inertia_single_rotation_dof():
     )
     full_M = ref_body.compute_rigid_body_inertia()
     assert np.isclose(M_1.values[0, 0], full_M.values[3, 3])
+
+    body_2 = cpt.FloatingBody(mesh=mesh, center_of_mass=(0, 0, 0))
+    body_2.add_rotation_dof(rotation_center=(0, 0, -2), direction=(0, 1, 0), name="pitch oh mon pitch")
+    # Non standard name, but still a rigid body rotation
+    M_2 = body_2.compute_rigid_body_inertia()
+    assert M_2.shape == (1, 1)
+    assert np.allclose(M_2.values, M_1.values)
+
+    # Generalized dof approach despite standard name
+    body_3 = cpt.FloatingBody(
+        mesh=mesh,
+        dofs={"Pitch": body_1.dofs["Pitch"].evaluate_motion(mesh)},
+        center_of_mass=(0, 0, 0)
+    )
+    K_3 = body_3.compute_rigid_body_inertia()
+    assert K_3.shape == (1, 1)
+    assert np.isnan(K_3.values[0, 0])
 
 # Multibody
 

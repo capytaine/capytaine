@@ -342,6 +342,8 @@ class _HydrostaticsMixin(ABC):
         rotation_dofs = [dof for dof in self.dofs.values() if isinstance(dof, RotationDof)]
         if len(rotation_dofs) == 0:
             rc = np.array([np.nan, np.nan, np.nan])  # Dummy placeholder
+            if output_type != "body_dofs":
+                raise ValueError("Cannot compute rigid body inertia of a body without any rotation dofs, since the rotation center cannot be defined.")
         elif len(rotation_dofs) == 1:
             rc = rotation_dofs[0].rotation_center
         else:
@@ -412,15 +414,25 @@ class _HydrostaticsMixin(ABC):
 
         rigid_dofs = {name: dof for name, dof in self.dofs.items() if is_rigid_body_dof(dof)}
         rigid_dof_names = list(rigid_dofs.keys())
+        if len(rigid_dof_names) > 0:
+            data = [
+                        [
+                            rigid_inertia_matrix_xr.sel(
+                                influenced_dof=influenced_dof._standard_name,
+                                radiating_dof=radiating_dof._standard_name
+                                ).values
+                            for radiating_dof in rigid_dofs.values()
+                            ]
+                        for influenced_dof in rigid_dofs.values()
+                        ]
+        else:
+            data = np.empty((0, 0))
         rigid_inertia_matrix_xr = xr.DataArray(
-                data=[[rigid_inertia_matrix_xr.sel(
-                    influenced_dof=influenced_dof._standard_name,
-                    radiating_dof=radiating_dof._standard_name
-                ).values for radiating_dof in rigid_dofs.values()]for influenced_dof in rigid_dofs.values()],
+                data=data,
                 dims=['influenced_dof', 'radiating_dof'],
                 coords={'influenced_dof': rigid_dof_names,
                         'radiating_dof': rigid_dof_names},
-                            name="inertia_matrix"
+                name="inertia_matrix"
                 )
 
         # Body DOFs (Default as np.nan)
