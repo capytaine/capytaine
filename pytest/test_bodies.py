@@ -138,9 +138,9 @@ def test_clipping_of_dofs(z_center, symmetry):
 def test_complicated_clipping_of_dofs():
     # 1 face becomes 2 faces after clipping
     mesh = cpt.Mesh(vertices=[[0.0, 0.0, 0.5], [-0.5, 0.0, -0.5], [0.0, 0.0, -1.5], [0.0, 0.5, -0.5]], faces=[[0, 1, 2, 3]])
-    body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
+    body = cpt.FloatingBody(mesh, dofs={'Shear': np.array([(x, 0, 0) for (x, y, z) in mesh.faces_centers])})
     clipped_body = body.immersed_part()
-    assert len(clipped_body.dofs["Heave"]) == clipped_body.mesh.nb_faces
+    assert len(clipped_body.dofs["Shear"]) == clipped_body.mesh.nb_faces
 
 
 def test_clipping_of_dofs_with_degenerate_faces():
@@ -160,7 +160,7 @@ def test_clipping_of_dofs_with_degenerate_faces():
     mesh = cpt.Mesh(vertices, faces)
     body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
     clipped_body = body.immersed_part()
-    assert len(clipped_body.dofs["Heave"].evaluate_motion(mesh)) == clipped_body.mesh.nb_faces
+    assert len(clipped_body.dofs["Heave"].evaluate_motion(clipped_body.mesh)) == clipped_body.mesh.nb_faces
 
 
 def test_cropping_body_with_manual_dof():

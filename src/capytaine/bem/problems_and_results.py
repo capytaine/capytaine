@@ -438,12 +438,13 @@ class RadiationProblem(LinearPotentialFlowProblem):
             self.boundary_condition[self.body.hull_mask] = -1j * self.encounter_omega * displacement_on_face
 
             if self.forward_speed != 0.0:
+                # Adding the "m-terms":
                 try:
                     ddofdx = dof.evaluate_gradient_of_motion(self.body.mesh)[:, :, 0]
                     ddofdx_dot_n = np.sum(ddofdx * self.body.mesh.faces_normals)
                 except AttributeError:
                     raise NotImplementedError(
-                            "Radiation problem with forward speed is currently only implemented for a single rigid body.\n"
+                            "Radiation problem with forward speed is currently only implemented for rigid bodies.\n"
                             "Only radiating dofs instantiating a TranslationDof or a RotationDof are supported.\n"
                             f"Got instead `radiating_dof={self.radiating_dof}`"
                             )

@@ -528,15 +528,16 @@ class FloatingBody(_HydrostaticsMixin):
 
         new_dofs = {}
         for name, dof in self.dofs.items():
-            if isinstance(dof, np.ndarray):
-                new_dofs[name] = dof[faces_ids]
-            elif isinstance(dof, DofOnSubmesh):
+            if isinstance(dof, DofOnSubmesh):
                 former_mask = np.zeros(self.mesh.nb_faces, dtype=bool)
                 former_mask[dof.faces] = True
                 new_mask = former_mask[faces_ids]
                 new_dofs[name] = DofOnSubmesh(dof.dof, np.where(new_mask)[0])
-            else:
+            elif isinstance(dof, AbstractDof):
                 new_dofs[name] = dof
+            else:
+                # dof is an array or array-like
+                new_dofs[name] = np.asarray(dof)[faces_ids]
 
         return transformed_mesh, transformed_lid_mesh, new_dofs
 

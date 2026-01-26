@@ -74,7 +74,7 @@ class DofOnSubmesh(AbstractDof):
         return motion
 
     def evaluate_gradient_of_motion(self, mesh) -> np.array:
-        grad = np.zeros((mesh.nb_faces, 3))
+        grad = np.zeros((mesh.nb_faces, 3, 3))
         grad[self.faces, :, :] = self.dof.evaluate_gradient_of_motion(mesh.extract_faces(self.faces))
         return grad
 
@@ -103,7 +103,7 @@ def rigid_body_dofs(only=None, rotation_center=None):
         "Heave": TranslationDof(direction=(0, 0, 1)),
         "Roll": RotationDof(rotation_center=rotation_center, direction=(1, 0, 0)),
         "Pitch": RotationDof(rotation_center=rotation_center, direction=(0, 1, 0)),
-        "Yaw": RotationDof(rotation_center=rotation_center, direction=(0, 1, 0)),
+        "Yaw": RotationDof(rotation_center=rotation_center, direction=(0, 0, 1)),
         }
     if only is not None:
         dofs = {k: v for k, v in dofs.items() if k in only}

@@ -252,10 +252,11 @@ def test_joining_stiffness_when_joining_bodies():
 @pytest.mark.parametrize("rho", [1000, 444])
 def test_inertia_matrix_values_of_sphere(rho, mesh_and_immersed_volume):
     mesh, immersed_volume = mesh_and_immersed_volume
+    center = np.mean(mesh.vertices, axis=0)
     sphere = cpt.FloatingBody(
         mesh=mesh,
-        dofs=cpt.rigid_body_dofs(),
-        center_of_mass=np.mean(mesh.vertices, axis=0),
+        dofs=cpt.rigid_body_dofs(rotation_center=center),
+        center_of_mass=center,
     )
     mass = rho*immersed_volume
     assert np.isclose(sphere.disp_mass(rho=rho), mass, rtol=5e-2)
