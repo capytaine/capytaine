@@ -439,37 +439,38 @@ def test_all_hydrostatics():
 ###########################
 
 def test_mass_joined_bodies():
-    a = cpt.FloatingBody(mass=100)
-    b = cpt.FloatingBody(mass=300)
-    assert (a + b).mass == 400
+    a = cpt.FloatingBody(mass=100, name="body_1")
+    b = cpt.FloatingBody(mass=300, name="body_2")
+    assert (a + b).as_FloatingBody().mass == 400
 
 def test_mass_joined_bodies_with_missing_mass():
-    a = cpt.FloatingBody()
-    b = cpt.FloatingBody(mass=300)
-    assert (a + b).mass is None
+    a = cpt.FloatingBody(name="body_1")
+    b = cpt.FloatingBody(mass=300, name="body_2")
+    assert (a + b).as_FloatingBody().mass is None
 
 def test_center_of_mass_joined_bodies():
-    a = cpt.FloatingBody(mass=100, center_of_mass=(0, 0, 0))
-    b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0))
-    assert np.allclose((a + b).center_of_mass, (0.75, 0, 0))
+    a = cpt.FloatingBody(mass=100, center_of_mass=(0, 0, 0), name="body_1")
+    b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0), name="body_2")
+    assert np.allclose((a + b).as_FloatingBody().center_of_mass, (0.75, 0, 0))
 
 def test_center_of_mass_joined_bodies_with_missing_mass():
-    a = cpt.FloatingBody()
-    b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0))
-    assert (a + b).center_of_mass is None
+    a = cpt.FloatingBody(name="body_1")
+    b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0), name="body_2")
+    assert (a + b).as_FloatingBody().center_of_mass is None
 
 def test_not_single_rigid_and_non_neutrally_buoyant_body():
     m = mesh_sphere()
     a = cpt.FloatingBody(
         mesh=m, mass=100, center_of_mass=(0, 0, 0),
         dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
+        name="body_1",
     )
     b = cpt.FloatingBody(
         mesh=m.translated_x(2.0), mass=300, center_of_mass=(2, 0, 0),
         dofs=cpt.rigid_body_dofs(rotation_center=(2, 0, 0)),
+        name="body_2",
     )
-    with pytest.raises(NotImplementedError):
-        (a + b).compute_hydrostatic_stiffness()
+    (a + b).compute_hydrostatic_stiffness()
 
 @lru_cache
 def non_neutrally_buoyant_body(length=2.0):

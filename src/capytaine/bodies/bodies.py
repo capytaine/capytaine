@@ -4,7 +4,6 @@
 
 import logging
 import copy
-from itertools import chain, accumulate
 from functools import lru_cache
 from typing import Literal
 
@@ -270,74 +269,12 @@ class FloatingBody(_HydrostaticsMixin):
     # Transformations #
     ###################
 
-    def __add__(self, body_to_add: 'FloatingBody') -> 'FloatingBody':
+    def __add__(self, body_to_add: 'FloatingBody'):
         return self.join_bodies(body_to_add)
 
-    def join_bodies(*bodies, name=None) -> 'FloatingBody':
-        if name is None:
-            name = "+".join(body.name for body in bodies)
-        meshes = [body.mesh.copy() for body in bodies if body.mesh.nb_faces > 0]
-        if len(meshes) > 0:
-            joined_mesh = meshes[0].join_meshes(*meshes[1:], name=f"{name}_mesh")
-        else:
-            joined_mesh = Mesh()
-
-        if all(body.lid_mesh is None for body in bodies):
-            joined_lid = None
-        else:
-            lid_meshes = [body.lid_mesh.copy() for body in bodies if body.lid_mesh is not None]
-            joined_lid = lid_meshes[0].join_meshes(*lid_meshes[1:], name=f"{name}_lid_mesh")
-
-        dofs = FloatingBody.combine_dofs(bodies)
-
-        if all(body.mass is not None for body in bodies):
-            new_mass = sum(body.mass for body in bodies)
-        else:
-            new_mass = None
-
-        if (all(body.mass is not None for body in bodies)
-                and all(body.center_of_mass is not None for body in bodies)):
-            new_cog = sum(body.mass*np.asarray(body.center_of_mass) for body in bodies)/new_mass
-        else:
-            new_cog = None
-
-        joined_bodies = FloatingBody(
-            mesh=joined_mesh, lid_mesh=joined_lid, dofs=dofs,
-            mass=new_mass, center_of_mass=new_cog, name=name
-            )
-
-        for matrix_name in ["inertia_matrix", "hydrostatic_stiffness"]:
-            if all(hasattr(body, matrix_name) for body in bodies):
-                from scipy.linalg import block_diag
-                setattr(joined_bodies, matrix_name, joined_bodies.add_dofs_labels_to_matrix(
-                        block_diag(*[getattr(body, matrix_name) for body in bodies])
-                        ))
-
-        return joined_bodies
-
-    @staticmethod
-    def combine_dofs(bodies) -> dict:
-        """Combine the degrees of freedom of several bodies."""
-        for body in bodies:
-            body._check_dofs_shape_consistency()
-        dofs = {}
-        cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in bodies)))
-        total_nb_faces = sum(body.mesh.nb_faces for body in bodies)
-        for body, nbf in zip(bodies, cum_nb_faces):
-            # nbf is the cumulative number of faces of the previous subbodies,
-            # that is the offset of the indices of the faces of the current body.
-            for name, dof in body.dofs.items():
-                new_dof = np.zeros((total_nb_faces, 3))
-                new_dof[nbf:nbf+len(dof), :] = dof
-                if '__' not in name:
-                    new_dof_name = '__'.join([body.name, name])
-                else:
-                    # The body is probably a combination of bodies already.
-                    # So for the associativity of the + operation,
-                    # it is better to keep the same name.
-                    new_dof_name = name
-                dofs[new_dof_name] = new_dof
-        return dofs
+    def join_bodies(*bodies, name=None):
+        from capytaine.bodies.multibodies import Multibody
+        return Multibody(bodies, name=name)
 
     def copy(self, name=None) -> 'FloatingBody':
         """Return a deep copy of the body.

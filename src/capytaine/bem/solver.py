@@ -456,7 +456,7 @@ class BEMSolver:
         ----------
         dataset : xarray Dataset
             dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
-        bodies : FloatingBody or list of FloatingBody
+        bodies : FloatingBody or Multibody or list of FloatingBody or list of Multibody
             The body or bodies involved in the problems
             They should all have different names.
         method: string, optional

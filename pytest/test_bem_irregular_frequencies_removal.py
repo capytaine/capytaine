@@ -49,7 +49,7 @@ def body_without_lid():
 def body_with_lid():
     mesh = mesh_parallelepiped(center=(0.0, 0.0, -0.4)).immersed_part()
     lid_mesh = mesh_rectangle(size=(1, 1), resolution=(4, 4), center=(0, 0, 0), normal=(0, 0, -1))
-    body_with_lid = cpt.FloatingBody(mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
+    body_with_lid = cpt.FloatingBody(mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs(), name="body with lid")
     return body_with_lid
 
 
@@ -188,7 +188,7 @@ def test_effect_of_lid_on_regular_frequency_field_velocity(
 
 
 def test_lid_multibody(body_with_lid):
-    two_bodies = body_with_lid + body_with_lid.translated_x(5.0)
+    two_bodies = body_with_lid + body_with_lid.translated_x(5.0, name="translated body")
     n = body_with_lid.mesh.nb_faces
     nl = body_with_lid.lid_mesh.nb_faces
 

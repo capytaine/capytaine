@@ -202,7 +202,7 @@ def test_two_distant_spheres_in_finite_depth(nemoh2_solver):
         name="buoy"
     )
     other_buoy = buoy.translated_x(20, name="other_buoy")
-    both_buoys = buoy.join_bodies(other_buoy)
+    both_buoys = buoy.join_bodies(other_buoy).as_FloatingBody()
     both_buoys.add_translation_dof(name="Surge")
     problem = cpt.RadiationProblem(body=both_buoys, radiating_dof="Surge", water_depth=10, omega=7.0)
     result = nemoh2_solver.solve(problem)

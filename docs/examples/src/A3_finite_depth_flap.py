@@ -48,7 +48,7 @@ base_body = cpt.FloatingBody(
 full_flap = flap_body + base_body
 
 test_matrix = xr.Dataset(coords={
-    "wavelength": np.linspace(2.0, 30.0, 20),
+    "wavelength": np.linspace(2.0, 30.0, 10),
     "radiating_dof": ["flap__Pitch"],
     "wave_direction": np.linspace(0.0, np.pi/2, 2),
     "water_depth": [water_depth],
