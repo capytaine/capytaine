@@ -10,55 +10,94 @@ on:
 
 
 jobs:
-  build_wheels:
-    name: Build wheels on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-20.04, macos-13, macos-14, windows-2019]
-            # MacOS<=13 are Intel, while MacOS 14 is Apple Silicon
+  "build_wheels_on_windows":
+    name: Build wheels on Windows
+    runs-on: windows-2025
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: fortran-lang/setup-fortran@v1
-        id: setup-fortran
         with:
           compiler: 'gcc'
           version: '13'
 
       - name: Build wheels
-        if: matrix.os == 'ubuntu-20.04'
-        uses: pypa/cibuildwheel@v2.21.3
+        uses: pypa/cibuildwheel@v3.3.0
         env:
-          CIBW_SKIP: "pp* *i686* *musllinux*"
-          # As of Sept 2024, Python 3.13 is troublesome because of lack of Pandas for Python 3.13.
-
-      - name: Build wheels
-        if: matrix.os == 'macos-13'
-        uses: pypa/cibuildwheel@v2.21.3
-        env:
-          CIBW_SKIP: "pp*"
-          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=13.0
-
-      - name: Build wheels
-        if: matrix.os == 'macos-14'
-        uses: pypa/cibuildwheel@v2.21.3
-        env:
-          CIBW_SKIP: "pp*"
-          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=14.0
-
-      - name: Build wheels
-        if: matrix.os == 'windows-2019'
-        uses: pypa/cibuildwheel@v2.21.3
-        env:
-          CIBW_SKIP: "pp* *win32*"
+          CIBW_SKIP: "*win32* cp314t*"
           CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel show {wheel} && delvewheel repair -w {dest_dir} {wheel} --no-mangle-all"
           # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
           # delvewheel cannot mangle the libraries, stripping does not work.
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
-          name: wheels-${{ matrix.os }}
+          name: wheels-windows
+          path: ./wheelhouse/*.whl
+
+  "build_wheels_on_ubuntu":
+    name: Build wheels on Ubuntu
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # No need to setup fortran, it won't be used by CIbuildwheel which is
+      # using a Manylinux container
+
+      - name: Build wheels on Ubuntu
+        uses: pypa/cibuildwheel@v3.3.0
+        env:
+          CIBW_SKIP: "*i686* *musllinux*"
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: wheels-ubuntu
+          path: ./wheelhouse/*.whl
+
+
+  "build_wheels_on_macos_intel":
+    name: Build wheels on MacOS Intel
+    runs-on: macos-15-intel
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: fortran-lang/setup-fortran@v1
+        with:
+          compiler: 'gcc'
+          version: '13'
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v3.3.0
+        env:
+          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=15.0
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: wheels-macos-intel
+          path: ./wheelhouse/*.whl
+
+
+  "build_wheels_on_macos_arm":
+    name: Build wheels on MacOS ARM
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: fortran-lang/setup-fortran@v1
+        with:
+          compiler: 'gcc'
+          version: '13'
+
+      - name: Build wheels
+        uses: pypa/cibuildwheel@v3.3.0
+        env:
+          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=14.0
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: wheels-macos-arm
           path: ./wheelhouse/*.whl

@@ -10,11 +10,13 @@ User manual
    tutorial.rst
    mesh.rst
    body.rst
+   multibody.rst
    hydrostatics.rst
+   symmetries.rst
    problem_setup.rst
    resolution.rst
-   outputs.rst
    post_pro.rst
    accuracy.rst
+   export_output.rst
    conventions.rst
-   cookbook.rst
+   fixing_issues.rst

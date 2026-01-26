@@ -7,25 +7,252 @@ Changelog
    :depth: 1
    :backlinks: none
 
+-------------------------------
+New in version 3.0 (2026-??-??)
+-------------------------------
+
+Major changes
+~~~~~~~~~~~~~
+
+* Add :class:`~capytaine.bodies.multibodies.Multibody` meant to represent a
+  multibody system. For hydrodynamics, this is equivalent to the previous
+  behavior of coalescing bodies together. For hydrostatics, the new class
+  is slightly more powerful, for instance by being able to keep track of
+  several center of buoyancy and center of mass. (:pull:`822`)
+
+  Joining bodies with :meth:`~capytaine.bodies.bodies.FloatingBody.join_bodies`
+  or ``+`` now creates a :class:`~capytaine.bodies.multibodies.Multibody` instance. It can be converted back to a
+  :class:`~capytaine.bodies.bodies.FloatingBody` instance with::
+
+    both = body_1 + body_2  # `both` is now a Multibody
+    both = (body_1 + body_2).as_FloatingBody()  # Recover former behavior of joining FloatingBody with a FloatingBody
+
+Minor changes
+~~~~~~~~~~~~~
+
+* Add option :code:`'lu_decomposition_with_overwrite'` for the :code:`linear_solver` of :class:`~capytaine.bem.engines.BasicMatrixEngine`, which reduces the RAM usage of the solver (:pull:`775`).
+
+* Velocity in the fluid can be post-processed in the limit frequencies (:math:`\omega = 0` or :math:`\omega = \infty`). Divide it by :math:`\omega` to have a finite value (:pull:`777`).
+
+* Display in the log the RAM usage estimation before a batch resolution and the measured RAM usage at the end of the resolution (:pull:`784`)
+
+* **Breaking** When building the dataset in :meth:`~cpt.bem.solver.fill_dataset`, the previous ``kochin`` attribute has been renamed to ``kochin_radiation``
+  to be consistent with the existing ``kochin_diffraction`` attribute.
+
+* **Breaking** Remove the geometric body classes ``cpt.Sphere()``,
+  ``cpt.VerticalCylinder()``, ``cpt.HorizontalCylinder()``, ``cpt.Disk()``,
+  ``cpt.Rectangle()``, ``cpt.RectangularParallelepiped()``, that were marked as
+  deprecated since version 2.0. Consider using instead::
+
+    cpt.FloatingBody(mesh=cpt.mesh_sphere(...), ...)
+
+  or something equivalent, separating the geometric mesh generation from the
+  floating body definition.
+
+Bug fixes
+~~~~~~~~~
+
+* Fix type of the right-hand-side of the linear solver when using option :code:`floating_point_precision = 'float32'` in :class:`~capytaine.green_functions.delhommeau.Delhommeau`.
+  As a consequence, the whole computation is done in single precision and the RAM usage is lower as expected. (:pull:`774`)
+
+* Fix the timer for parallel resolution, i.e. when :code:`n_jobs` is greater than 1. Now the durations for each process are displayed. (:pull:`782`)
+
+* Hydrostatics methods better take into account the free surface even when
+  the mesh has not been clipped yet.
+  Internally, the mesh is clipped before computing methods such as
+  :meth:`~cpt.bodies.bodies.FloatingBody.disp_volume` or
+  :meth:`~cpt.bodies.bodies.FloatingBody.center_of_buoyancy`, such that the
+  computed displaced volume is always actually the volume below $z=0$ and the
+  center of buoyancy is always below the free surface.
+  The inertia matrix always uses the displaced water mass for the mass and
+  compute the inertia moments on the full shape if the full mesh is provided.
+  (:pull:`794`)
+
+* Fix the frequency type in the dimensions of the dataset returned by :meth:`~cpt.io.xarray.kochin_data_array`. Previously, the dimension was always named ``omega``;
+  it is now named ``omega``, ``freq``, ``period``,  ``wavenumber`` or ``wavelength`` depending on the user settings.
+
+Internals
+~~~~~~~~~
+
+* **Breaking** The ``green_function`` is not an attribute of the :class:`~capytaine.bem.solver.BEMSolver` anymore, but of the engine.
+  The motivation is that not all engines can be made compatible with all Green function implementations (although the builtins one are).
+  The possibility to call ``BEMSolver(green_function=...)`` is kept as a convenient shortcut to ``BEMSolver(engine=BasicMatrixEngine(green_function=...))``.
+  Calls to ``BEMSolver(green_function=..., engine=...)`` now raise an error. (:pull:`752`)
+  Post-processing new requires the implementation of the methods ``build_S_matrix`` and ``build_fullK_matrix`` by the engine (:pull:`753`)
+
+* New implementation of the block symmetric matrices for mesh symmetry, now
+  used by :class:`~capytaine.bem.engines.BasicMatrixEngine` (:pull:`754`).
+
+* Rafactor of the :class:`~capytaine.bem.engines.BasicMatrixEngine` to make the
+  caching more straightforward and improve its interaction with LU
+  decomposition and symmetries. (:pull:`755`)
+
+* The whole ``matrices`` module as well as the corresponding engines in
+  ``bem/engines.py`` and ``tool/lru_caches.py`` have been removed from
+  Capytaine. For compatibility, they will remain accessible from a separate
+  package. (:pull:`757`, :pull:`765`)
+
+* Instead of creating a ``CollectionOfMeshes``, now ``join_bodies`` merges the
+  meshes of the bodies together. The legacy behavior is still available from
+  Fakeblocks ``join_bodies``. (:pull:`779`)
+
+* The new ``Mesh`` class has a ``faces_metadata`` attribute storing fields
+  defined on each faces of the mesh. When faces are added or removed, the
+  metadata are automatically updated accordingly. (:pull:`791`)
+
+* Move hydrostatics routines in a dedicated module and rewrite corresponding tests (:pull:`794`)
+
+* Refactor the implementation of the timer to make it easier to include more steps (:pull:`809`)
+
+* Parameters ``free_surface``, ``water_depth`` and ``wavenumber`` are always
+  keyword arguments in the engine and the Green function (:pull:`812`)
+
+* **Breaking** :meth:`~capytaine.bodies.FloatingBody.add_rotation_dof` takes
+  arguments called ``rotation_center`` and ``direction`` instead of an ``Axis``
+  object. Also the geometric center is not used anymore as a fallback value for
+  ``rotation_center``.
+
 ---------------------------------
-New in version 2.3 (2025-??-??)
+New in version 2.3.1 (2025-10-14)
 ---------------------------------
+
+Bug fix
+~~~~~~~
+
+* Fix **major bug of version 2.3** where the resolution of problem with **both mesh
+  symmetries and a lid** for irregular frequencies removal returned wrong values.
+  (:issue:`761`)
+
+* Fix issue where in-place transformation of a ``FloatingBody`` (such as
+  ``body.keep_immersed_part()`` or ``body.translate(...)``) were sometimes not
+  taken into account. In-place transformation are not recommended and might be
+  removed in a future version, use the versions returning new objects as seen
+  in the documentation (e.g. ``body.immersed_part()`` and
+  ``body.translated(...)``).
+
+* If loading the tabulation from the file fails, then the tabulation is
+  recomputed (`Issue 739
+  <https://github.com/capytaine/capytaine/issues/739#issuecomment-3190735343>`_)
+
+Internals
+~~~~~~~~~
+
+- The source code moved from ``capytaine`` to ``src/capytaine`` in the main
+  repository to avoid importing the local folder instead of the installed
+  version (:issue:`395` and :pull:`749`).
+
+- Replace development dependencies in ``editable_install_requirements.txt`` and
+  ``[project.optional-dependencies]`` with ``[dependency-groups]``
+  (:pull:`750`).
+
+
+-------------------------------
+New in version 2.3 (2025-07-17)
+-------------------------------
 
 Major change
 ~~~~~~~~~~~~
 
-* The implementation of the Green function in infinite depth from [Liang, Wu, Noblesse, 2018] is included in Capytaine as :class:`~capytaine.green_functions.hams.LiangWuNoblesseGF`. It can be used instead of Delhommeau's method by passing it to the BEM solver::
+* The implementations of the **Green function from HAMS** are now included in Capytaine:
 
-  solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
+  * The infinite depth version from [Liang, Wu, Noblesse, 2018] is :class:`~capytaine.green_functions.hams.LiangWuNoblesseGF` (:pull:`617`),
+  * The finite depth version from [Liu et al., 2018] is :class:`~capytaine.green_functions.hams.FinGreen3D` (:pull:`647`),
+  * The class :class:`~capytaine.green_functions.hams.HAMS_GF` is a thin wrapper using one or the other method above depending of the water depth (:pull:`658`).
+
+  They can be passed to Capytaine's solver as follows::
+
+    solver = cpt.BEMSolver(green_function=cpt.HAMS_GF())
+
+  Please cite the corresponding papers if you use them in a scientific publication (see the :doc:`citing` page).
+
+* Revamp of default **finite depth Green function** implementation.
+
+  * The new implementation should better handle panels on or near the free surface and have the right asymptotic consistency with the infinite depth method when depth goes to infinity.
+    The legacy behavior of previous versions is still available by setting the parameter :code:`finite_depth_method` added to :class:`~capytaine.green_functions.delhommeau.Delhommeau` to :code:`finite_depth_method="legacy"`, while the better behavior is used by default. (:pull:`654` and :pull:`656`)
+  * The Prony decomposition is now done in Python and its failure (typically for :math:`kh < 0.1`) raises an error instead of returning wrong values.
+    This behavior is controlled by the :code:`finite_depth_prony_decomposition_method` parameter of :class:`~capytaine.green_functions.delhommeau.Delhommeau`, which is now :code:`"python"` by default. (:pull:`675`)
+  * Infinite frequency is now supported in finite depth (zero frequency is still not and returns the same error as other finite depth low-frequency cases). (:pull:`703`)
+
+* Do not interrupt a batch of resolutions when one of them fails.
+  Instead the exception is displayed in the log and the results are replaced by a :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`. The output dataset is filled with a ``NaN`` value for these parameters. (:pull:`678`)
+  Diffraction problems with zero or infinite frequencies used to have a special treatment to be run with a batch resolution despite raising an error when run alone, they have been reworked to use the same design as other failing resolutions. (:pull:`719`)
+
+* The Boundary Integral Equation (``method`` keyword argument) used to solve the problem can now be specified when initializing a solver and will then be use for all resolution with this solver. This general setting can be over overridden by using the ``method`` argument when solving::
+
+    solver = cpt.BEMSolver(method="direct")  # That is new and recommended
+    solver.solve(problem, method="direct")  # That is still possible and override the above setting.
+
+The method is also saved in the metadata of the results with the other parameters of the solver (whether it was defined when initializing the solver or later). (:pull:`686`)
+
+* Add :func:`~capytaine.io.xarray.export_dataset` method to more conveniently export a dataset to NetCDF or other formats (:pull:`690`).
+
+Minor change
+~~~~~~~~~~~~
+
+* Add optional :code:`freq` argument (frequency in Hz) for problem set up and output.
+
+* Add :func:`~capytaine.io.xarray.assemble_dataframe` which collect results into a Pandas DataFrame (this was already done internally in :func:`~capytaine.io.xarray.assemble_dataset`) (:pull:`677`).
+  Also add :func:`~capytaine.io.xarray.assemble_matrices` function which is a simplified version of :func:`~capytaine.io.xarray.assemble_dataset` without metadata, meant to be used mostly for teaching. (:pull:`643`)
+
+* The environment variable ``CAPYTAINE_PROGRESS_BAR`` can be used to disable globally the display of a progress bar when solving problems. This is meant mostly for testing environments and CI. (:pull:`646`)
+
+* Add ``timer`` attribute to :class:`~capytaine.bem.solver.BEMSolver` storing the time spent in each steps of the resolution. Summary can be accessed by :meth:`~capytaine.bem.solver.BEMSolver.timer_summary`. (:pull:`674`)
+
+* Add :func:`~capytaine.io.wamit.export_to_wamit` as a unified interface to export hydrodynamic results to WAMIT-compatible files. (:pull:`714`)
 
 
 Bug fixes
 ~~~~~~~~~
 
+* Properly use ``progress_bar`` argument in :func:`~capytaine.bem.solver.fill_dataset` to disable progress bar.
+
 * Always remove degenerate faces after clipping (:issue:`620` and :pull:`624`).
 
 * Fix missing geometric center in legacy predefined body :class:`~capytaine.bodies.predefined.rectangles.ReflectionSymmetricMesh`. It was causing inconsistent definition of dofs with respect to earlier versions. (:pull:`625`)
 
+* Fix Python implementation of the Prony decomposition for the finite depth Green function, which is now the default. (:pull:`621`). Move some code of its code to the :mod:`~capytaine.tools.prony_decomposition` module. (:pull:`649`)
+
+* After joining several bodies, editing the mesh of one of the components does not affect the joined body anymore (:issue:`660` and :pull:`662`:).
+
+* Check the consistency of the dofs with the mesh and raises ``ValueError`` when an inconsistency is detected (:pull:`663`).
+
+* Fix error when removing all the faces from a symmetric mesh (:pull:`668`)
+
+* Add safeguard if a custom linear solver returns a result vector of wrong shape (e.g. column instead of row) (:pull:`670`)
+
+* Fix loading BEMIO datasets from Nemoh (:pull:`681`)
+
+* Fix computing zero and infinite frequency radiation problems with a lid for irregular frequencies removal (:issue:`704` and :pull:`708`)
+
+* Fix solving :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowProblem` directly.
+
+* Fix missing variable attributes for main frequency variable (:issue:`702` and :pull:`717`)
+
+* Trying to generate a lid over a purely vertical mesh does not raise an error anymore (:issue:`625`).
+
+* When the hull mesh and the lid mesh are both symmetric with the same reflection plane, the symmetry is not lost anymore when solving the BEM problem.
+  Also ``generate_lid`` and ``extract_lid`` should now work with reflection symmetric meshes without losing the symmetry. (:issue:`527`, :pull:`667`, :pull:`720`).
+
+
+Internals
+~~~~~~~~~
+
+* Major refactoring of the Fortran core, including its interface in Python:
+
+  * Add ``interface.f90`` Fortran file to group some routines used only for wrapping the Fortran core. (:pull:`612`)
+
+  * Add :meth:`~capytaine.green_functions.delhommeau.Delhommeau.all_tabulation_parameters` to make it easier to test Fortran core from Python (:pull:`648`)
+
+  * Refactor implementation of Delhommeau's finite depth Green function to compute all the frequency-independant Rankine terms at the same time (for future caching) (:pull:`652`)
+
+  * The main interface to the Fortran core ``build_matrices`` does not take ``coeffs`` and ``same_body`` inputs anymore.
+    The role of the former is played by ``gf_singularities`` and ``wavenumber``.
+    The diagonal term added by the latter is now added independently.
+    (:pull:`701`)
+
+* NaN values are not striped out of output data (:pull:`676`)
+
+* Define a :class:`~capytaine.meshes.mesh_like_protocol.MeshLike` protocol that classes implementing a mesh should follow. Also ensure that :class:`~capytaine.meshes.meshes.Mesh` and :class:`~capytaine.meshes.collections.CollectionOfMeshes` follow it. (:pull:`667`)
 
 ---------------------------------
 New in version 2.2.1 (2024-11-18)
@@ -44,7 +271,7 @@ Bug fixes
   (:issue:`573` and :pull:`575`).
 
 * GDF meshes are accepted in the alternate format now.
-  Meshes files can list points in either 3 x 4*nPanels or a 12 x nPanels format.
+  Meshes files can list points in either 3×4 × ``nb_faces`` or a 12 × ``nb_faces`` format.
   (:issue:`540` and :pull:`585`).
 
 * When filling a test matrix with both diffraction problems and radiation
@@ -56,12 +283,12 @@ Bug fixes
   When forward speed is non-zero, added mass and radiation dampings at zero encounter frequency are NaN.
   (:pull:`588`)
 
-* User does not need to import ``pyplot`` themself before running `show_matplotlib()` (:pull:`592`)
+* User does not need to import ``pyplot`` themself before running :meth:`~capytaine.meshes.meshes.Mesh.show_matplotlib()` (:pull:`592`)
 
 * Fixes usage of ``ReflectionSymmetricMesh`` with direct solver (:issue:`593` and :pull:`594`).
 
 * Do not recompute the same
-  :meth:`~capytaine.bodies.bodies.FloatingBody.first_irregular_frequency_estimate``
+  :meth:`~capytaine.bodies.bodies.FloatingBody.first_irregular_frequency_estimate`
   for the same body several times.
   Also better expose the ``_check_wavelength`` option to skip wavelength check,
   including irregular frequency estimation. (:issue:`601` and :pull:`602`).
@@ -105,9 +332,9 @@ Minor changes
 
 * Add a ``tabulation_cache_dir`` parameter to :class:`~capytaine.green_functions.delhommeau.Delhommeau` to choose the directory in which the tabulation is saved on disk. If ``None`` is provided instead, the tabulation is not saved on disk and is recomputed at each initialization of the class. Also, if this parameter is not set, look for the ``CAPYTAINE_CACHE_DIR`` environment variable and use it to save the tabulation if it exists. (:pull:`516`).
 
-* Meshio objects can be directly passed to :func:`~capytaine.io.meshes_loaders.load_mesh` to get a Capytaine mesh (:pull:`555`).
+* Meshio objects can be directly passed to :func:`~capytaine.io.mesh_loaders.load_mesh` to get a Capytaine mesh (:pull:`555`).
 
-* Load gmsh v4 format .msh file using :code:`cpt.load_mesh()` (when meshio is installed) (:pull:`556`)
+* Load gmsh v4 format .msh file using :func:`~capytaine.io.mesh_loaders.load_mesh` (when meshio is installed) (:pull:`556`)
 
 
 Bug fixes
@@ -602,7 +829,7 @@ Major changes
   to migrate to the new structure.
 
   See :doc:`user_manual/resolution` for the full documentation of the new structure
-  and :doc:`user_manual/cookbook` for examples.
+  and the cookbook for examples.
 
 
 * Add Xie's variant of Delhommeau's Green function

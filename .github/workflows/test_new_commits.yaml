@@ -16,7 +16,6 @@ on:
 
 env:
   FORCE_COLOR: 3
-  # Colors for nox
 
 # The following block is meant to cancel the workflow if a newer commit is pushed on the pull request
 # From https://stackoverflow.com/questions/66335225/how-to-cancel-previous-runs-in-the-pr-when-you-push-new-commitsupdate-the-curre
@@ -25,31 +24,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build_and_test:
+  "build_and_test":
 
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: ['3.8', '3.12']
+        python-version: ['38', '313']
 
     steps:
 
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    # - name: Set up Just
+    #   uses: extractions/setup-just@v3
+    #   with:
+    #       just-version: 1.40
+    - name: Set up Just
+      run: sudo apt install -y just
+
+    - name: Set up UV
+      uses: astral-sh/setup-uv@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        enable-cache: true
 
-    - name: Set up nox
-      uses: wntrblm/nox@2024.04.15
+    - name: Run tests
+      run: just test_in_py${{ matrix.python-version }}_reference_env
 
-    - name: Run nox session
-      run: nox --force-python ${{ matrix.python-version }} -s build_and_test_on_locked_env
-
-  compile_fortran:
+  "compile_fortran":
 
     runs-on: ubuntu-latest
 
@@ -69,11 +72,11 @@ jobs:
     #     version: '13'
 
     - name: Compile and run example
-      working-directory: capytaine/green_functions/libDelhommeau/
+      working-directory: libs/libDelhommeau/
       run: make example && examples/minimal/minimal_example.bin
       # Soundness of the results is not tested, only that the compiling and
       # execution are succeeding.
 
     - name: Run simple benchmark
-      working-directory: capytaine/green_functions/libDelhommeau/
-      run: make run_bench_rankine && make run_bench_tab
+      working-directory: libs/libDelhommeau/
+      run: make run_bench_rankine && make run_bench_waves

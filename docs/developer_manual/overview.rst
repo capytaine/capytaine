@@ -17,24 +17,6 @@ Overview of the modules
        api/capytaine.tools
 
 
-:mod:`~capytaine.matrices`
---------------------------
-    Depends on: none.
-
-    This module contains data structures to represent matrices as block
-    matrices, block Toeplitz matrices (stored sparsely in memory) and low-rank
-    matrices. All block matrices can nested to build hierarchical matrices.
-
-    These matrices representations are advanced features that are not used by
-    default by Capytaine. In the future, this module could be extracted as an
-    indendant library to make Capytaine a bit leaner.
-
-    .. toctree::
-       :maxdepth: 1
-
-       api/capytaine.matrices
-
-
 :mod:`~capytaine.meshes`
 ------------------------
     Depends on: none.

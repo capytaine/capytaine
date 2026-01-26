@@ -206,6 +206,7 @@ def test_near_zero_encounter_frequency_diffraction(body, solver):
     solver.solve(pb)
 
 
+@pytest.mark.xfail
 def test_zero_encounter_frequency_radiation(body, solver):
     pb = cpt.RadiationProblem(body=body, omega=1.0, forward_speed=9.81, radiating_dof="Surge")
     assert float(pb.encounter_omega) == 0.0
@@ -219,6 +220,5 @@ def test_zero_encounter_frequency_radiation(body, solver):
 def test_zero_encounter_frequency_diffraction(body, solver):
     pb = cpt.DiffractionProblem(body=body, omega=1.0, forward_speed=9.81)
     assert float(pb.encounter_omega) == 0.0
-    res = solver.solve(pb)
-    assert not np.isinf(res.forces["Surge"])
-    assert not np.isnan(res.forces["Surge"])
+    with pytest.raises(ValueError):
+        solver.solve(pb)

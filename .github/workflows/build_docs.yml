@@ -31,18 +31,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
+      - name: Set up Just
+        run: sudo apt install -y just
 
-      - name: Install Capytaine and other dependencies
-        run: pip install .[optional,docs]
+      - name: Set up UV
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
       - name: Build documentation
-        run: cd docs && make
+        run: just build_docs
 
       - name: Deploy pages
-        if: github.ref == 'refs/heads/master'  # Only deploy the version merged into the master branch
+        if: |
+          github.repository_owner == 'capytaine' &&
+          github.ref == 'refs/heads/master'
+        # Only deploy the version merged into the master branch of capytaine/capytaine
         uses: JamesIves/github-pages-deploy-action@releases/v4
         with:
           folder: ./docs/_build/html/

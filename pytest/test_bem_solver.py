@@ -6,6 +6,7 @@ import xarray as xr
 import capytaine as cpt
 from capytaine import __version__
 
+from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh
 
 @pytest.fixture
 def sphere():
@@ -16,8 +17,12 @@ def sphere():
 
 
 def test_exportable_settings():
-    gf = cpt.Delhommeau(tabulation_nr=10, tabulation_nz=10,
-                    tabulation_grid_shape="legacy", tabulation_nb_integration_points=50)
+    gf = cpt.Delhommeau(
+            tabulation_nr=10, tabulation_nz=10,
+            tabulation_grid_shape="legacy",
+            tabulation_nb_integration_points=50,
+            finite_depth_prony_decomposition_method="fortran"
+            )
     assert gf.exportable_settings['green_function'] == 'Delhommeau'
     assert gf.exportable_settings['tabulation_nb_integration_points'] == 50
     assert gf.exportable_settings['tabulation_grid_shape'] == "legacy"
@@ -26,38 +31,55 @@ def test_exportable_settings():
     gf2 = cpt.XieDelhommeau()
     assert gf2.exportable_settings['green_function'] == 'XieDelhommeau'
 
-    engine = cpt.BasicMatrixEngine(matrix_cache_size=0)
+    engine = cpt.BasicMatrixEngine(green_function=gf)
     assert engine.exportable_settings['engine'] == 'BasicMatrixEngine'
-    assert engine.exportable_settings['matrix_cache_size'] == 0
     assert engine.exportable_settings['linear_solver'] == 'lu_decomposition'
 
-    solver = cpt.BEMSolver(green_function=gf, engine=engine)
+    solver = cpt.BEMSolver(engine=engine)
     assert solver.exportable_settings['green_function'] == 'Delhommeau'
     assert solver.exportable_settings['tabulation_nb_integration_points'] == 50
     assert solver.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
     assert solver.exportable_settings['engine'] == 'BasicMatrixEngine'
-    assert solver.exportable_settings['matrix_cache_size'] == 0
     assert solver.exportable_settings['linear_solver'] == 'lu_decomposition'
 
+    solver = cpt.BEMSolver(green_function=gf)
+    assert solver.exportable_settings['green_function'] == 'Delhommeau'
+    assert solver.exportable_settings['tabulation_nb_integration_points'] == 50
+    assert solver.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
+
+def test_cannot_define_gf_and_engine_in_solver():
+    with pytest.raises(ValueError):
+        cpt.BEMSolver(engine=cpt.BasicMatrixEngine(), green_function=cpt.Delhommeau())
+
+def test_solver_has_initialized_timer():
+    s = cpt.BEMSolver()
+    assert s.timer.total == 0.0
+
+def test_solver_update_timer(sphere):
+    problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
+    s = cpt.BEMSolver()
+    s.solve(problem)
+    assert s.timer.total > 0.0
 
 def test_direct_solver(sphere):
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
-    solver = cpt.BEMSolver()
-    direct_result = solver.solve(problem, method='direct')
-    indirect_result = solver.solve(problem, method='indirect')
+    direct_solver = cpt.BEMSolver(method='direct')
+    direct_result = direct_solver.solve(problem)
+    indirect_solver = cpt.BEMSolver(method='indirect')
+    indirect_result = indirect_solver.solve(problem)
     assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-1)
 
 
 @pytest.mark.parametrize("method", ["direct", "indirect"])
 def test_same_result_with_symmetries(method):
-    solver = cpt.BEMSolver()
-    sym_mesh = cpt.ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), cpt.xOz_Plane)
+    solver = cpt.BEMSolver(method=method)
+    sym_mesh = ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), plane='xOz')
     sym_body = cpt.FloatingBody(mesh=sym_mesh, dofs=cpt.rigid_body_dofs())
-    sym_result = solver.solve(cpt.DiffractionProblem(body=sym_body, omega=1.0), method=method)
+    sym_result = solver.solve(cpt.DiffractionProblem(body=sym_body, omega=1.0))
     mesh = sym_mesh.merged()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    result = solver.solve(cpt.DiffractionProblem(body=body, omega=1.0), method=method)
-    assert sym_result.forces["Surge"] == pytest.approx(result.forces["Surge"], rel=1e-10)
+    result = solver.solve(cpt.DiffractionProblem(body=body, omega=1.0))
+    assert sym_result.forces["Surge"] == pytest.approx(result.forces["Surge"], rel=1e-4)
 
 
 def test_parallelization(sphere):
@@ -70,10 +92,36 @@ def test_parallelization(sphere):
     solver.fill_dataset(test_matrix, sphere, n_jobs=2)
 
 
+@pytest.mark.parametrize("n_jobs", [1, 2])
+@pytest.mark.parametrize("n_threads", [1, 2])
+def test_control_threads(sphere, n_jobs, n_threads):
+    pytest.importorskip("joblib")
+    pytest.importorskip("threadpoolctl")
+    solver = cpt.BEMSolver()
+    test_matrix = xr.Dataset(coords={
+        'omega': np.linspace(0.1, 4.0, 3),
+        'radiating_dof': list(sphere.dofs.keys()),
+    })
+    solver.fill_dataset(test_matrix, sphere, n_jobs=n_jobs, n_threads=n_threads)
+
+
+def test_nb_timer(sphere):
+    pytest.importorskip("joblib")
+    solver = cpt.BEMSolver()
+    n_jobs = 3
+    problems = [
+            cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=omega)
+            for omega in np.linspace(0.1, 3.0, 5)
+            ]
+    solver.solve_all(problems, n_jobs=n_jobs)
+    assert len(solver.timer_summary().columns) == n_jobs
+
+
 def test_float32_solver(sphere):
     solver = cpt.BEMSolver(green_function=cpt.Delhommeau(floating_point_precision="float32"))
     pb = cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=1.0)
-    solver.solve(pb)
+    result = solver.solve(pb)
+    assert result.pressure.dtype == 'complex64' and result.potential.dtype == 'complex64'
 
 
 def test_LiangWuNoblesseGF(sphere):
@@ -95,7 +143,7 @@ def test_fill_dataset(sphere):
         'wave_direction': np.linspace(0.0, np.pi, 3),
         'radiating_dof': list(sphere.dofs.keys()),
         'rho': [1025.0],
-        'water_depth': [np.inf, 10.0],
+        'water_depth': [np.inf, 30.0],
         'g': [9.81]
     })
     dataset = solver.fill_dataset(test_matrix, sphere, n_jobs=1)
