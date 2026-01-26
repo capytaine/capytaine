@@ -20,7 +20,7 @@ class Multibody:
     def __init__(
         self,
         bodies: List[Union[FloatingBody, Multibody]],
-        own_dofs: Optional[Dict[str, np.array]] = None,
+        # own_dofs: Optional[Dict[str, np.array]] = None,
         *,
         name: Optional[str] = None
     ):
@@ -32,10 +32,10 @@ class Multibody:
                 f"Got: {[b.name for b in self.bodies]}"
                 )
 
-        if own_dofs is None:
-            self.own_dofs = {}
-        else:
-            self.own_dofs = own_dofs
+        # if own_dofs is None:
+        #     self.own_dofs = {}
+        # else:
+        #     self.own_dofs = own_dofs
 
         if name is None:
             self.name = '+'.join(b.name for b in self.bodies)
@@ -77,8 +77,8 @@ class Multibody:
 
     def __str__(self):
         short_bodies = ', '.join(b.__short_str__() for b in self.bodies)
-        short_dofs = '{' + ', '.join('"{}": ...'.format(d) for d in self.own_dofs) + '}'
-        return f"Multibody({short_bodies}, own_dofs={short_dofs})"
+        # short_dofs = '{' + ', '.join('"{}": ...'.format(d) for d in self.own_dofs) + '}'
+        return f"Multibody({short_bodies})" #, own_dofs={short_dofs})"
 
     def __short_str__(self):
         return str(self)
@@ -120,7 +120,7 @@ class Multibody:
 
     @property
     def nb_dofs(self):
-        return sum(b.nb_dofs for b in self.bodies) + len(self.own_dofs)
+        return sum(b.nb_dofs for b in self.bodies) # + len(self.own_dofs)
 
     @cached_property
     def dofs(self):
@@ -145,7 +145,7 @@ class Multibody:
                     new_dof_name = name
                 componenents_dofs[new_dof_name] = new_dof
 
-        return {**componenents_dofs, **self.own_dofs}
+        return {**componenents_dofs} #, **self.own_dofs}
 
     def add_dofs_labels_to_vector(self, vector):
         """Helper function turning a bare vector into a vector labelled by the name of the dofs of the body,
@@ -160,7 +160,7 @@ class Multibody:
     def immersed_part(self, *args, **kwargs):
         return Multibody(
                 [b.immersed_part() for b in self.bodies],
-                own_dofs=None,  # TODO
+                # own_dofs=None,  # TODO
                 )
 
     def __add__(self, body_to_add):

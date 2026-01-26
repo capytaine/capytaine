@@ -35,17 +35,17 @@ def test_multibody_resolution():
             )
     multi = Multibody(
         [body_1, body_2],
-        own_dofs={
-            "Heave": np.array([[0.0, 0.0, 1.0] for _ in range(body_1.mesh.nb_faces + body_2.mesh.nb_faces)])
-        }
+        # own_dofs={
+        #     "Heave": np.array([[0.0, 0.0, 1.0] for _ in range(body_1.mesh.nb_faces + body_2.mesh.nb_faces)])
+        # }
     )
     solver = cpt.BEMSolver()
     res = solver.solve(cpt.DiffractionProblem(body=multi, omega=1.0, wave_direction=0.0))
     ref_res = solver.solve(cpt.DiffractionProblem(body=multi.as_FloatingBody(), omega=1.0, wave_direction=0.0))
     assert all(np.isclose(ref_res.forces[k], res.forces[k]) for k in multi.dofs)
 
-    res = solver.solve(cpt.RadiationProblem(body=multi, omega=1.0, radiating_dof="Heave"))
-    ref_res = solver.solve(cpt.RadiationProblem(body=multi.as_FloatingBody(), omega=1.0, radiating_dof="Heave"))
+    res = solver.solve(cpt.RadiationProblem(body=multi, omega=1.0, radiating_dof="body_1__Heave"))
+    ref_res = solver.solve(cpt.RadiationProblem(body=multi.as_FloatingBody(), omega=1.0, radiating_dof="body_1__Heave"))
     assert all(np.isclose(ref_res.forces[k], res.forces[k]) for k in multi.dofs)
 
 def test_multibody_hydrostatics():
@@ -65,9 +65,9 @@ def test_multibody_hydrostatics():
             )
     multi = Multibody(
             [body_1, body_2],
-            own_dofs={
-                "Heave": np.array([[0.0, 0.0, 1.0] for _ in range(body_1.mesh.nb_faces + body_2.mesh.nb_faces)])
-                }
+            # own_dofs={
+            #     "Heave": np.array([[0.0, 0.0, 1.0] for _ in range(body_1.mesh.nb_faces + body_2.mesh.nb_faces)])
+            #     }
             )
     assert np.allclose(multi.center_of_mass['body_1'], body_1.center_of_mass)
     assert np.allclose(multi.center_of_mass['body_2'], body_2.center_of_mass)
