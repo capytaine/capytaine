@@ -40,7 +40,12 @@ class RotationDof(AbstractDof):
     def __init__(self, rotation_center, direction, amplitude=1.0):
         self.direction = np.asarray(direction)
         assert self.direction.shape == (3,)
-        self.rotation_center = np.asarray(rotation_center)
+        if rotation_center is None:
+            self.rotation_center = np.array([0, 0, 0])
+            LOG.warning("Rigid body rotation dof has been initialized "
+                        "around the origin of the domain (0, 0, 0).")
+        else:
+            self.rotation_center = np.asarray(rotation_center)
         assert self.rotation_center.shape == (3,)
         self.amplitude = amplitude
 
@@ -89,6 +94,9 @@ def rigid_body_dofs(only=None, rotation_center=None):
         rotation_center = np.array([0, 0, 0])
         LOG.warning("Rigid body rotation dofs have been initialized "
                     "around the origin of the domain (0, 0, 0).")
+        # This warning is redundant with the one in RotationDof.__init__,
+        # but it is done here to have a single warning displayed on screen
+        # when a rigid body is initialized.
     dofs = {
         "Surge": TranslationDof(direction=(1, 0, 0)),
         "Sway": TranslationDof(direction=(0, 1, 0)),

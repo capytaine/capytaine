@@ -117,7 +117,10 @@ class FloatingBody(_HydrostaticsMixin):
         if dofs is None:
             self.dofs = {}
         else:
-            self.dofs = dofs
+            self.dofs = {
+                    k: v if isinstance(v, AbstractDof) else np.asarray(v)
+                    for k, v in dofs.items()
+                    }
 
         self._check_dofs_shape_consistency()
 
@@ -268,7 +271,7 @@ class FloatingBody(_HydrostaticsMixin):
         for dof_name, dof in self.dofs.items():
             if (not isinstance(dof, AbstractDof) and
                     (np.array(dof).shape != (self.mesh.nb_faces, 3))):
-                raise ValueError(f"The array defining the dof {dof_name} of body {self.name} does not have the expected shape.\n"
+                raise ValueError(f"The array defining the dof {dof_name} of {self.__short_str__()} does not have the expected shape.\n"
                                  f"Expected shape: ({self.mesh.nb_faces}, 3)\n"
                                  f"  Actual shape: {dof.shape}")
 
@@ -511,11 +514,9 @@ class FloatingBody(_HydrostaticsMixin):
         return self.rotated_with_matrix(R, name=name)
 
     def _apply_on_mesh(self, func, args, kwargs):
-        array_dofs = {k: v for k, v in self.dofs.items() if isinstance(v, np.ndarray)}
-        mesh_with_dofs = self.mesh.with_metadata(**array_dofs)
-        transformed_mesh = func(mesh_with_dofs, *args, **kwargs)
-        transformed_array_dofs = {k: transformed_mesh.faces_metadata[k] for k in array_dofs}
-        transformed_mesh = transformed_mesh.without_metadata(*array_dofs.keys())
+        mesh_with_ids = self.mesh.with_metadata(origin_panel=np.arange(self.mesh.nb_faces))
+        transformed_mesh = func(mesh_with_ids, *args, **kwargs)
+        transformed_mesh, faces_ids = transformed_mesh.pop_metadata("origin_panel")
 
         if self.lid_mesh is not None:
             transformed_lid_mesh = func(self.lid_mesh, *args, **kwargs)
@@ -526,11 +527,16 @@ class FloatingBody(_HydrostaticsMixin):
             transformed_lid_mesh = None
 
         new_dofs = {}
-        for k in self.dofs.keys():
-            if k in transformed_array_dofs:
-                new_dofs[k] = transformed_array_dofs[k]
+        for name, dof in self.dofs.items():
+            if isinstance(dof, np.ndarray):
+                new_dofs[name] = dof[faces_ids]
+            elif isinstance(dof, DofOnSubmesh):
+                former_mask = np.zeros(self.mesh.nb_faces, dtype=bool)
+                former_mask[dof.faces] = True
+                new_mask = former_mask[faces_ids]
+                new_dofs[name] = DofOnSubmesh(dof.dof, np.where(new_mask)[0])
             else:
-                new_dofs[k] = self.dofs[k]
+                new_dofs[name] = dof
 
         return transformed_mesh, transformed_lid_mesh, new_dofs
 

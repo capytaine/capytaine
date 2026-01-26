@@ -36,7 +36,10 @@ def test_rotation_axis(method):
     l = 2.0
     body.add_rotation_dof(rotation_center=(l, 0, 0), direction=(0, 0, 1), name="other_rotation")
 
-    assert np.allclose(body.dofs['other_rotation'], (body.dofs['Yaw'] - l*body.dofs['Sway']))
+    assert np.allclose(
+        body.dofs['other_rotation'].evaluate_motion(body.mesh),
+        (body.dofs['Yaw'].evaluate_motion(body.mesh) - l*body.dofs['Sway'].evaluate_motion(body.mesh))
+    )
 
     problems = [cpt.RadiationProblem(body=body, radiating_dof=dof, omega=1.0) for dof in body.dofs]
     solver = cpt.BEMSolver(method=method)

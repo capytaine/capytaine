@@ -94,12 +94,12 @@ class _HydrostaticsMixin(ABC):
 
         else:
             try:
-                xc1 = self.dofs["Pitch"][:, 2] + self.mesh.faces_centers[:, 0]
-                xc2 = -self.dofs["Yaw"][:, 1] + self.mesh.faces_centers[:, 0]
-                yc1 = self.dofs["Yaw"][:, 0] + self.mesh.faces_centers[:, 1]
-                yc2 = -self.dofs["Roll"][:, 2] + self.mesh.faces_centers[:, 1]
-                zc1 = -self.dofs["Pitch"][:, 0] + self.mesh.faces_centers[:, 2]
-                zc2 = self.dofs["Roll"][:, 1] + self.mesh.faces_centers[:, 2]
+                xc1 = self.dofs["Pitch"].evaluate_motion(self.mesh)[:, 2] + self.mesh.faces_centers[:, 0]
+                xc2 = -self.dofs["Yaw"].evaluate_motion(self.mesh)[:, 1] + self.mesh.faces_centers[:, 0]
+                yc1 = self.dofs["Yaw"].evaluate_motion(self.mesh)[:, 0] + self.mesh.faces_centers[:, 1]
+                yc2 = -self.dofs["Roll"].evaluate_motion(self.mesh)[:, 2] + self.mesh.faces_centers[:, 1]
+                zc1 = -self.dofs["Pitch"].evaluate_motion(self.mesh)[:, 0] + self.mesh.faces_centers[:, 2]
+                zc2 = self.dofs["Roll"].evaluate_motion(self.mesh)[:, 1] + self.mesh.faces_centers[:, 2]
 
                 # All items should be identical in a given vector
                 assert np.isclose(xc1, xc1[0]).all()
