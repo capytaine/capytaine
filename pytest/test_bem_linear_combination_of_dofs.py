@@ -12,7 +12,7 @@ def test_sum_of_dofs(method):
     body2 = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(3, 8), center=(5, 3, -1.5)), name="body2")
     body2.add_translation_dof(name="Heave")
 
-    both = body1 + body2
+    both = (body1 + body2).as_FloatingBody()
     both.add_translation_dof(name="Heave")
 
     problems = [cpt.RadiationProblem(body=both, radiating_dof=dof, omega=1.0) for dof in both.dofs]
