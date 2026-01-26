@@ -159,7 +159,7 @@ class FloatingBody(_HydrostaticsMixin):
         """Number of degrees of freedom."""
         return len(self.dofs)
 
-    def add_translation_dof(self, direction=None, name=None, amplitude=1.0) -> None:
+    def add_translation_dof(self, direction=None, name=None) -> None:
         """Add a new translation dof (in place).
         If no direction is given, the code tries to infer it from the name.
 
@@ -169,8 +169,6 @@ class FloatingBody(_HydrostaticsMixin):
             the direction of the translation
         name : str, optional
             a name for the degree of freedom
-        amplitude : float, optional
-            amplitude of the dof (default: 1.0 m/s)
         """
         if name is None:
             name = f"dof_{self.nb_dofs}_translation"
@@ -179,10 +177,9 @@ class FloatingBody(_HydrostaticsMixin):
         else:
             self.dofs[name] = TranslationDof(
                 direction=direction,
-                amplitude=amplitude
             )
 
-    def add_rotation_dof(self, rotation_center=None, direction=None, name=None, amplitude=1.0) -> None:
+    def add_rotation_dof(self, rotation_center=None, direction=None, name=None) -> None:
         """Add a new rotation dof (in place).
         If no axis is given, the code tries to infer it from the name.
 
@@ -194,8 +191,6 @@ class FloatingBody(_HydrostaticsMixin):
             The direction of the rotation axis
         name : str, optional
             a name for the degree of freedom
-        amplitude : float, optional
-            amplitude of the dof (default: 1.0)
         """
         if name is None:
             name = f"dof_{self.nb_dofs}_rotation"
@@ -212,7 +207,6 @@ class FloatingBody(_HydrostaticsMixin):
             self.dofs[name] = RotationDof(
                     rotation_center=rotation_center,
                     direction=direction,
-                    amplitude=amplitude
                     )
 
     def add_all_rigid_body_dofs(self, rotation_center=None) -> None:
@@ -347,13 +341,11 @@ class FloatingBody(_HydrostaticsMixin):
             if isinstance(p, TranslationDof):
                 return TranslationDof(
                     direction=mirror(p.direction),
-                    amplitude=p.amplitude
                 )
             if isinstance(p, RotationDof):
                 return RotationDof(
                     rotation_center=mirror(p.rotation_center),
                     direction=mirror(p.direction),
-                    amplitude=p.amplitude
                 )
             elif isinstance(p, np.ndarray):
                 mirrored_p = p.copy()
@@ -378,7 +370,6 @@ class FloatingBody(_HydrostaticsMixin):
                 return RotationDof(
                     rotation_center=d.rotation_center + shift,
                     direction=d.direction,
-                    amplitude=d.amplitude
                 )
             else:
                 return d
@@ -409,13 +400,11 @@ class FloatingBody(_HydrostaticsMixin):
             if isinstance(d, TranslationDof):
                 return TranslationDof(
                     direction=d.direction @ R.T,
-                    amplitude=d.amplitude
                         )
             elif isinstance(d, RotationDof):
                 return RotationDof(
                     rotation_center=d.rotation_center @ R.T,
                     direction=d.direction @ R.T,
-                    amplitude=d.amplitude
                 )
             else:
                 return d

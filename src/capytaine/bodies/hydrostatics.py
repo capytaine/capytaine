@@ -7,7 +7,7 @@ import numpy as np
 import xarray as xr
 from abc import ABC
 
-from capytaine.bodies.dofs import TranslationDof, RotationDof
+from capytaine.bodies.dofs import TranslationDof, RotationDof, is_rigid_body_dof
 
 LOG = logging.getLogger(__name__)
 
@@ -84,42 +84,6 @@ class _HydrostaticsMixin(ABC):
         """Returns dot product of the surface face normals and DOF"""
         return np.sum(self.mesh.faces_normals * dof, axis=1)
 
-    def _infer_rotation_center(self):
-        """Hacky way to infer the point around which the rotation dofs are defined.
-        (Assuming all three rotation dofs are defined around the same point).
-        In the future, should be replaced by something more robust.
-        """
-        if hasattr(self, "rotation_center"):
-            return np.asarray(self.rotation_center)
-
-        else:
-            try:
-                xc1 = self.dofs["Pitch"].evaluate_motion(self.mesh)[:, 2] + self.mesh.faces_centers[:, 0]
-                xc2 = -self.dofs["Yaw"].evaluate_motion(self.mesh)[:, 1] + self.mesh.faces_centers[:, 0]
-                yc1 = self.dofs["Yaw"].evaluate_motion(self.mesh)[:, 0] + self.mesh.faces_centers[:, 1]
-                yc2 = -self.dofs["Roll"].evaluate_motion(self.mesh)[:, 2] + self.mesh.faces_centers[:, 1]
-                zc1 = -self.dofs["Pitch"].evaluate_motion(self.mesh)[:, 0] + self.mesh.faces_centers[:, 2]
-                zc2 = self.dofs["Roll"].evaluate_motion(self.mesh)[:, 1] + self.mesh.faces_centers[:, 2]
-
-                # All items should be identical in a given vector
-                assert np.isclose(xc1, xc1[0]).all()
-                assert np.isclose(yc1, yc1[0]).all()
-                assert np.isclose(zc1, zc1[0]).all()
-
-                # Both vector should be identical
-                assert np.allclose(xc1, xc2)
-                assert np.allclose(yc1, yc2)
-                assert np.allclose(zc1, zc2)
-
-                return np.array([xc1[0], yc1[0], zc1[0]])
-
-            except Exception as e:
-                raise ValueError(
-                        f"Failed to infer the rotation center of {self.name} to compute rigid body hydrostatics.\n"
-                        f"Possible fix: add a `rotation_center` attribute to {self.name}.\n"
-                        "Note that rigid body hydrostatic methods currently assume that the three rotation dofs have the same rotation center."
-                        ) from e
-
     def each_hydrostatic_stiffness(self, influenced_dof_name, radiating_dof_name, *,
                                          influenced_dof_div=0.0, rho=1000.0, g=9.81):
         r"""
@@ -173,17 +137,47 @@ class _HydrostaticsMixin(ABC):
         # restoring coefficient for rigid modes and use Newman equation for elastic
         # modes.
 
-        rigid_dof_names = ("Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw")
-        dof_pair = (influenced_dof_name, radiating_dof_name)
+        immersed_self = self.immersed_part()
+        immersed_mesh = immersed_self.mesh
+        influenced_dof = immersed_self.dofs[influenced_dof_name]
+        radiating_dof = immersed_self.dofs[radiating_dof_name]
 
-        if set(dof_pair).issubset(set(rigid_dof_names)):
+        if is_rigid_body_dof(influenced_dof) and is_rigid_body_dof(radiating_dof):
+            # Check that the directions of both dofs are canonical directions (1, 0, 0), (0, 1, 0) or (0, 0, 1)
+            for dof in (influenced_dof, radiating_dof):
+                if not hasattr(dof, "_standard_name"):
+                    standard_dir = np.all(np.isclose(dof.direction, np.eye(3)), axis=1)
+                    if not np.any(standard_dir):
+                        raise NotImplementedError("Cannot evaluate hydrostatic stiffness for rigid body dof with non-standard directions. "
+                                         f"Got direction: {dof.direction}")
+                    if isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 0:
+                        dof._standard_name = "Surge"
+                    elif isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 1:
+                        dof._standard_name = "Sway"
+                    elif isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 2:
+                        dof._standard_name = "Heave"
+                    elif isinstance(dof, RotationDof) and np.where(standard_dir)[0] == 0:
+                        dof._standard_name = "Roll"
+                    elif isinstance(dof, RotationDof) and np.where(standard_dir)[0] == 1:
+                        dof._standard_name = "Pitch"
+                    elif isinstance(dof, RotationDof) and np.where(standard_dir)[0] == 2:
+                        dof._standard_name = "Yaw"
+
             if self.center_of_mass is None:
                 raise ValueError(f"Trying to compute rigid-body hydrostatic stiffness for {self.name}, but no center of mass has been defined.\n"
-                                 f"Suggested solution: define a `center_of_mass` attribute for the FloatingBody {self.name}.")
+                                 f"Suggested solution: define a `center_of_mass` when initializing the FloatingBody {self.__short_str__()}.")
             mass = self.disp_mass(rho=rho) if self.mass is None else self.mass
-            xc, yc, zc = self._infer_rotation_center()
-            immersed_mesh = self.mesh.immersed_part()
 
+            if isinstance(influenced_dof, RotationDof) or isinstance(radiating_dof, RotationDof):
+                if isinstance(influenced_dof, RotationDof) and isinstance(radiating_dof, RotationDof):
+                    if not np.allclose(influenced_dof.rotation_center, radiating_dof.rotation_center):
+                        raise NotImplementedError("Cannot evaluate hydrostatic stiffness when rotation dofs have different rotation center.")
+                if isinstance(influenced_dof, RotationDof):
+                    xc, yc, zc = influenced_dof.rotation_center
+                else:
+                    xc, yc, zc = radiating_dof.rotation_center
+
+            dof_pair = (influenced_dof._standard_name, radiating_dof._standard_name)
             if dof_pair == ("Heave", "Heave"):
                 norm_hs_stiff = immersed_mesh.waterplane_area
             elif dof_pair in [("Heave", "Roll"), ("Roll", "Heave")]:
@@ -209,6 +203,7 @@ class _HydrostaticsMixin(ABC):
                 norm_hs_stiff = - immersed_mesh.volume*(immersed_mesh.center_of_buoyancy[1] - yc) + mass/rho*(self.center_of_mass[1] - yc)
             else:
                 norm_hs_stiff = 0.0
+
         else:
             if self.mass is not None and not np.isclose(self.mass, self.disp_mass(rho=rho), rtol=1e-4):
                 raise NotImplementedError(
@@ -221,8 +216,6 @@ class _HydrostaticsMixin(ABC):
                 raise NotImplementedError(
                         "When computing hydrostatics of flexible dofs while providing the divergence of the dof, please make sure the mesh is clipped beforehand and provide the divergence only on the immersed faces of the clipped mesh."
                         )
-
-            immersed_self = self.immersed_part()
 
             # Newman (1994) formula for flexible DOFs
             influenced_dof = np.array(immersed_self.dofs[influenced_dof_name])
@@ -288,7 +281,7 @@ class _HydrostaticsMixin(ABC):
             raise AttributeError("Cannot compute hydrostatics stiffness on {} since no dof has been defined.".format(self.name))
 
         def divergence_dof(influenced_dof):
-            if isinstance(influenced_dof, (TranslationDof, RotationDof)):
+            if is_rigid_body_dof(influenced_dof):
                 return 0.0  # Dummy value that is not actually used afterwards.
             elif divergence is None:
                 return 0.0
@@ -335,11 +328,44 @@ class _HydrostaticsMixin(ABC):
         ValueError
             If output_type is not in {"body_dofs", "rigid_dofs", "all_dofs"}.
         """
+        if len(self.dofs) == 0:
+            return xr.DataArray(np.nan * np.zeros([0, 0]),
+                                    dims=['influenced_dof', 'radiating_dof'],
+                                    coords={'influenced_dof': [],
+                                            'radiating_dof': []},
+                                    name="inertia_matrix")
+
         if self.center_of_mass is None:
             raise ValueError(f"Trying to compute rigid-body inertia matrix for {self.name}, but no center of mass has been defined.\n"
                              f"Suggested solution: define a `center_of_mass` attribute for the FloatingBody {self.name}.")
 
-        rc = self._infer_rotation_center()
+        if any(isinstance(dof, RotationDof) for dof in self.dofs.values()):
+            rcs = [dof.rotation_center for dof in self.dofs.values() if isinstance(dof, RotationDof)]
+            if not np.all(np.all(np.isclose(rcs[0], rcs[1:]), axis=1)):
+                raise NotImplementedError(f"Trying to compute rigid-body inertia matrix for {self.name}, but the rotations dofs have different rotation centers.")
+            rc = rcs[0]
+        else:
+            rc = np.array([np.nan, np.nan, np.nan])  # Dummy placeholder
+
+        for dof in self.dofs.values():
+            if is_rigid_body_dof(dof) and not hasattr(dof, "_standard_name"):
+                standard_dir = np.all(np.isclose(dof.direction, np.eye(3)), axis=1)
+                if not np.any(standard_dir):
+                    raise NotImplementedError("Cannot evaluate hydrostatic stiffness for rigid body dof with non-standard directions. "
+                                     f"Got direction: {dof.direction}")
+                if isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 0:
+                    dof._standard_name = "Surge"
+                elif isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 1:
+                    dof._standard_name = "Sway"
+                elif isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 2:
+                    dof._standard_name = "Heave"
+                elif isinstance(dof, RotationDof) and np.where(standard_dir)[0] == 0:
+                    dof._standard_name = "Roll"
+                elif isinstance(dof, RotationDof) and np.where(standard_dir)[0] == 1:
+                    dof._standard_name = "Pitch"
+                elif isinstance(dof, RotationDof) and np.where(standard_dir)[0] == 2:
+                    dof._standard_name = "Yaw"
+
         fcs = (self.mesh.faces_centers - rc).T
         combinations = np.array([fcs[0]**2, fcs[1]**2, fcs[2]**2, fcs[0]*fcs[1],
                                  fcs[1]*fcs[2], fcs[2]*fcs[0]])
@@ -347,7 +373,6 @@ class _HydrostaticsMixin(ABC):
             [np.sum(normal_i * fcs[axis] * combination * self.mesh.faces_areas)
             for combination in combinations]
             for axis, normal_i in enumerate(self.mesh.faces_normals.T)])
-
 
         inertias = 1/self.volume * np.array([
             (integrals[0,1]   + integrals[0,2]   + integrals[1,1]/3
@@ -374,17 +399,30 @@ class _HydrostaticsMixin(ABC):
         density = rho if self.mass is None else self.mass/self.volume
         inertia_matrix = density * volumic_inertia_matrix
 
-        # Rigid DOFs
-        rigid_dof_names = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
+        standard_rigid_dof_names = ["Surge", "Sway", "Heave", "Roll", "Pitch", "Yaw"]
         rigid_inertia_matrix_xr = xr.DataArray(data=np.asarray(inertia_matrix),
                             dims=['influenced_dof', 'radiating_dof'],
-                            coords={'influenced_dof': rigid_dof_names,
-                                    'radiating_dof': rigid_dof_names},
+                            coords={'influenced_dof': standard_rigid_dof_names,
+                                    'radiating_dof': standard_rigid_dof_names,
+                                    },
                             name="inertia_matrix")
+
+        rigid_dofs = {name: dof for name, dof in self.dofs.items() if is_rigid_body_dof(dof)}
+        rigid_dof_names = list(rigid_dofs.keys())
+        rigid_inertia_matrix_xr = xr.DataArray(
+                data=[[rigid_inertia_matrix_xr.sel(
+                    influenced_dof=influenced_dof._standard_name,
+                    radiating_dof=radiating_dof._standard_name
+                ).values for radiating_dof in rigid_dofs.values()]for influenced_dof in rigid_dofs.values()],
+                dims=['influenced_dof', 'radiating_dof'],
+                coords={'influenced_dof': rigid_dof_names,
+                        'radiating_dof': rigid_dof_names},
+                            name="inertia_matrix"
+                )
 
         # Body DOFs (Default as np.nan)
         body_dof_names = list(self.dofs)
-        body_dof_count = len(body_dof_names)
+        body_dof_count = len(self.dofs)
         other_dofs_inertia_matrix_xr = xr.DataArray(np.nan * np.zeros([body_dof_count, body_dof_count]),
                                     dims=['influenced_dof', 'radiating_dof'],
                                     coords={'influenced_dof': body_dof_names,

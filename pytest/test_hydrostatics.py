@@ -111,22 +111,6 @@ def test_waterplane_center_of_floating_sphere():
         [0.0, 0.0]
     )
 
-######################################################################
-
-def test_infer_rotation_center():
-    body = cpt.FloatingBody(
-        mesh=floating_sphere(),
-        dofs=cpt.rigid_body_dofs(rotation_center=(7, 8, 9))
-    )
-    assert np.allclose(body._infer_rotation_center(), (7, 8, 9))
-    body_ = cpt.FloatingBody(
-        mesh=floating_sphere(),
-        dofs=body.dofs,  # Copied from other body without the rotation center being explicitly copied
-    )
-    assert np.allclose(body_._infer_rotation_center(), (7, 8, 9))
-
-######################################################################
-
 #############
 # Stiffness #
 #############
@@ -276,7 +260,6 @@ def test_inertia_when_no_dofs():
         mesh=floating_sphere(),
         center_of_mass=(0, 0, -0.3),
     )
-    sphere.rotation_center = (0, 0, 0)
     m = sphere.compute_rigid_body_inertia()
     assert m.shape == (0, 0)
 
@@ -288,25 +271,11 @@ def test_inertia_no_cog():
     with pytest.raises(ValueError, match=".*no center of mass.*"):
         sphere.compute_rigid_body_inertia()
 
-# Output types
-
-def test_inertia_rigid_body_dofs():
-    sphere = rigid_body()
-    assert np.all(sphere.compute_rigid_body_inertia(output_type="rigid_dofs")
-            == sphere.compute_rigid_body_inertia(output_type="all_dofs"))
-    assert np.all(sphere.compute_rigid_body_inertia(output_type="rigid_dofs")
-            == sphere.compute_rigid_body_inertia(output_type="body_dofs"))
-
 def test_inertia_invariance_by_translation():
     sphere = rigid_body()
     M1 = sphere.compute_rigid_body_inertia()
     M2 = sphere.translated([1.0, 0.0, 0.0]).compute_rigid_body_inertia()
     assert np.allclose(M1, M2)
-
-def test_inertia_wrong_output_type():
-    sphere = rigid_body()
-    with pytest.raises(ValueError):
-        sphere.compute_rigid_body_inertia(output_type="foo")
 
 # Multibody
 

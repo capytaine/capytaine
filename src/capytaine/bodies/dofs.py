@@ -22,14 +22,16 @@ class AbstractDof(ABC):
 
 
 class TranslationDof(AbstractDof):
-    def __init__(self, direction, amplitude=1.0):
+    def __init__(self, direction):
         self.direction = np.asarray(direction)
         assert self.direction.shape == (3,)
-        self.amplitude = amplitude
+
+    def __str__(self):
+        return f"TranslationDof(direction={self.direction})"
 
     @lru_cache
     def evaluate_motion(self, mesh) -> np.array:
-        return self.amplitude * np.tile(self.direction, (mesh.nb_faces, 1))
+        return np.tile(self.direction, (mesh.nb_faces, 1))
 
     @lru_cache
     def evaluate_gradient_of_motion(self, mesh) -> np.array:
@@ -37,7 +39,7 @@ class TranslationDof(AbstractDof):
 
 
 class RotationDof(AbstractDof):
-    def __init__(self, rotation_center, direction, amplitude=1.0):
+    def __init__(self, rotation_center, direction):
         self.direction = np.asarray(direction)
         assert self.direction.shape == (3,)
         if rotation_center is None:
@@ -47,7 +49,9 @@ class RotationDof(AbstractDof):
         else:
             self.rotation_center = np.asarray(rotation_center)
         assert self.rotation_center.shape == (3,)
-        self.amplitude = amplitude
+
+    def __str__(self):
+        return f"RotationDof(rotation_center={self.rotation_center}, direction={self.direction})"
 
     @lru_cache
     def evaluate_motion(self, mesh) -> np.array:
@@ -55,12 +59,12 @@ class RotationDof(AbstractDof):
             return np.empty((mesh.nb_faces, 3))
         else:
             motion = np.cross(self.direction, mesh.faces_centers - self.rotation_center)
-            return self.amplitude * motion
+            return motion
 
     @lru_cache
     def evaluate_gradient_of_motion(self, mesh) -> np.array:
         grad = np.cross(self.direction, np.eye(3))
-        return self.amplitude * np.tile(grad, (mesh.nb_faces, 1, 1))
+        return np.tile(grad, (mesh.nb_faces, 1, 1))
 
 
 class DofOnSubmesh(AbstractDof):
@@ -77,6 +81,14 @@ class DofOnSubmesh(AbstractDof):
         grad = np.zeros((mesh.nb_faces, 3, 3))
         grad[self.faces, :, :] = self.dof.evaluate_gradient_of_motion(mesh.extract_faces(self.faces))
         return grad
+
+
+def is_rigid_body_dof(dof):
+    return (
+            isinstance(dof, TranslationDof)
+            or isinstance(dof, RotationDof)
+            # or (isinstance(dof, DofOnSubmesh) and is_rigid_body_dof(dof.dof))
+            )
 
 
 def rigid_body_dofs(only=None, rotation_center=None):
