@@ -486,7 +486,7 @@ class FloatingBody(_HydrostaticsMixin):
         )
         if name is None:
             name = self.name
-        return FloatingBody(
+        new_body = FloatingBody(
             mesh=clipped_mesh,
             lid_mesh=clipped_lid_mesh,
             dofs=updated_dofs,
@@ -494,6 +494,11 @@ class FloatingBody(_HydrostaticsMixin):
             mass=self.mass,
             name=name
         )
+        if hasattr(self, 'inertia_matrix'):
+            new_body.inertia_matrix = self.inertia_matrix
+        if hasattr(self, 'hydrostatic_stiffness'):
+            new_body.hydrostatic_stiffness = self.hydrostatic_stiffness
+        return new_body
 
     #############
     #  Display  #

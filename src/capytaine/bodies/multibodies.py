@@ -164,10 +164,15 @@ class Multibody:
         return add_dofs_labels_to_matrix(self.dofs.keys(), matrix)
 
     def immersed_part(self, *args, **kwargs):
-        return Multibody(
+        new_multibody = Multibody(
                 [b.immersed_part() for b in self.bodies],
                 # own_dofs=None,  # TODO
                 )
+        if hasattr(self, 'inertia_matrix'):
+            new_multibody.inertia_matrix = self.inertia_matrix
+        if hasattr(self, 'hydrostatic_stiffness'):
+            new_multibody.hydrostatic_stiffness = self.hydrostatic_stiffness
+        return new_multibody
 
     def __add__(self, body_to_add):
         return self.join_bodies(body_to_add)

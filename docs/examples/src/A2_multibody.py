@@ -31,7 +31,7 @@ mesh_3 = cpt.mesh_horizontal_cylinder(
 cylinder = cpt.FloatingBody(
     mesh=mesh_3,
     lid_mesh=mesh_3.generate_lid(),
-    dofs=cpt.rigid_body_dofs(only=["Surge", "Heave"], rotation_center=(0.5, 3.0, -0.5)),
+    dofs=cpt.rigid_body_dofs(only=["Pitch"], rotation_center=(0.5, 3.0, -0.5)),
     center_of_mass=(0.5, 3.0, -0.5),
     name="cylinder",
 )
@@ -46,8 +46,8 @@ print("Merged body dofs:", list(all_bodies.dofs.keys()))
 print("Multibody centers of mass:", all_bodies.center_of_mass)
 
 # Compute multibody hydrostatics
-M = all_bodies.compute_rigid_body_inertia()
-K = all_bodies.compute_hydrostatic_stiffness()
+all_bodies.inertia_matrix = M = all_bodies.compute_rigid_body_inertia()
+all_bodies.hydrostatic_stiffness = K = all_bodies.compute_hydrostatic_stiffness()
 
 with np.printoptions(precision=2, suppress=True):
     print(M)
