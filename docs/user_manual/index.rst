@@ -16,7 +16,6 @@ User manual
    problem_setup.rst
    resolution.rst
    post_pro.rst
-   accuracy.rst
    export_output.rst
    conventions.rst
    fixing_issues.rst
