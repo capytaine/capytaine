@@ -11,6 +11,7 @@ from datetime import datetime
 from itertools import product
 from collections import Counter
 from typing import Sequence, List, Union
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -665,6 +666,7 @@ def export_dataset(filename, dataset, format=None, **kwargs):
             (format is not None and format.lower() == "nemoh")
             ):
         from capytaine.io.legacy import write_dataset_as_tecplot_files
+        Path(filename).mkdir(exist_ok=True)
         write_dataset_as_tecplot_files(filename, dataset, **kwargs)
     else:
         raise ValueError("`export_dataset` could not infer export format based on filename or `format` argument.\n"
