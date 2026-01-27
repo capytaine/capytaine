@@ -6,7 +6,6 @@ from functools import lru_cache
 import logging
 
 import numpy as np
-import pandas as pd
 import xarray as xr
 
 LOG = logging.getLogger(__name__)
