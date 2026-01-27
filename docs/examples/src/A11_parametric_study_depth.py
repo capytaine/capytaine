@@ -9,16 +9,16 @@ cpt.set_logging('INFO')
 
 # Initialize floating body by generating a geometric mesh
 mesh = cpt.mesh_horizontal_cylinder(
-    length=10.0, radius=0.5,  # Dimensions
-    center=(0, 0, 0),         # Position
-    resolution=(5, 20, 40)    # Fineness of the mesh
+    length=10.0, radius=0.5,
+    center=(0, 0, 0),
+    faces_max_radius=0.2
     ).immersed_part()
 
-# Temporary: test with the new mesh class
-from capytaine.new_meshes import Mesh
-mesh = Mesh(mesh.vertices, mesh.faces)
-
-body = cpt.FloatingBody(mesh, dofs=cpt.rigid_body_dofs())
+body = cpt.FloatingBody(
+    mesh=mesh,
+    lid_mesh=mesh.generate_lid(),
+    dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
+)
 
 # Define the range of water depth
 depth_range = np.concatenate([np.linspace(2, 100, 10), [np.inf]])
