@@ -112,3 +112,14 @@ def test_fill_dataset_with_kochin_functions():
     # Because of the symmetries of the body
     assert np.isclose(ds['kochin_diffraction'].sel(wave_direction=-pi/2, theta=0.0),
                       ds['kochin_diffraction'].sel(wave_direction=0.0, theta=pi/2))
+    
+def test_kochin_mesh_lid():
+    mesh = cpt.mesh_sphere().immersed_part()
+    lid_mesh = mesh.generate_lid()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), lid_mesh=lid_mesh)
+    problem = cpt.RadiationProblem(body=body, radiating_dof='Surge', omega=0.3)
+    solver = cpt.BEMSolver()
+    res = solver.solve(problem)
+    theta = 0.2
+    H = cpt.post_pro.compute_kochin(res, theta)
+    
