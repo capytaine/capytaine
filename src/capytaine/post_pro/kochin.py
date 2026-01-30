@@ -36,7 +36,7 @@ def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
     k = result.wavenumber
     h = result.water_depth
 
-    # omega_bar.shape = (nb_faces, 2) @ (2, nb_theta)
+    # omega_bar.shape = (nb_faces_including_lid, 2) @ (2, nb_theta)
     omega_bar = (result.body.mesh_including_lid.faces_centers[:, 0:2] - ref_point) @ (np.cos(theta), np.sin(theta))
 
     if 0 <= k*h < 20:
@@ -44,11 +44,11 @@ def compute_kochin(result, theta, ref_point=(0.0, 0.0)):
     else:
         cih = np.exp(k*result.body.mesh_including_lid.faces_centers[:, 2])
 
-    # cih.shape = (nb_faces,)
-    # omega_bar.T.shape = (nb_theta, nb_faces)
-    # result.body.mesh.faces_areas.shape = (nb_faces,)
+    # cih.shape = (nb_faces_including_lid,)
+    # omega_bar.T.shape = (nb_theta, nb_faces_including_lid)
+    # result.body.mesh.faces_areas.shape = (nb_faces_including_lid,)
     zs = cih * np.exp(-1j * k * omega_bar.T) * result.body.mesh_including_lid.faces_areas
 
-    # zs.shape = (nb_theta, nb_faces)
-    # result.sources.shape = (nb_faces,)
+    # zs.shape = (nb_theta, nb_faces_including_lid)
+    # result.sources.shape = (nb_faces_including_lid,)
     return zs @ result.sources/(4*np.pi)

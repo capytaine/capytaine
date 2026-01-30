@@ -118,8 +118,17 @@ def test_kochin_mesh_lid():
     lid_mesh = mesh.generate_lid()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), lid_mesh=lid_mesh)
     problem = cpt.RadiationProblem(body=body, radiating_dof='Surge', omega=0.3)
+    body_without_lid = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    body_with_lid = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), lid_mesh=lid_mesh)
+    omega = 0.3
+    problem_without_lid = cpt.RadiationProblem(body=body_without_lid, radiating_dof='Surge', omega=omega)
+    problem_with_lid = cpt.RadiationProblem(body=body_with_lid, radiating_dof='Surge', omega=omega)
     solver = cpt.BEMSolver()
     res = solver.solve(problem)
+    res_without_lid = solver.solve(problem_without_lid)
+    res_with_lid = solver.solve(problem_with_lid)
     theta = 0.2
     H = cpt.post_pro.compute_kochin(res, theta)
-    
+    H_without_lid = cpt.post_pro.compute_kochin(res_without_lid, theta)
+    H_with_lid = cpt.post_pro.compute_kochin(res_with_lid, theta)
+    assert np.isclose(H_without_lid, H_with_lid, atol=1e-05)
