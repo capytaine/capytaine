@@ -16,8 +16,8 @@
 
 from io import StringIO
 
-from capytaine.new_meshes.io import load_mesh
-from capytaine.new_meshes import Mesh, ReflectionSymmetricMesh
+from capytaine.meshes.io import load_mesh
+from capytaine.meshes import Mesh, ReflectionSymmetricMesh
 
 
 def parse_pnl(content):

@@ -8,8 +8,8 @@ from itertools import product
 import numpy as np
 from numpy import pi, cos, sin
 
-from capytaine.new_meshes.meshes import Mesh
-from capytaine.new_meshes.symmetric_meshes import RotationSymmetricMesh, ReflectionSymmetricMesh
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.symmetric_meshes import RotationSymmetricMesh, ReflectionSymmetricMesh
 
 LOG = logging.getLogger(__name__)
 

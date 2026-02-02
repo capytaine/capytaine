@@ -5,8 +5,8 @@ import numpy as np
 import pytest
 
 import capytaine as cpt
-from capytaine.new_meshes.meshes import Mesh
-from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, \
         LinearPotentialFlowResult, DiffractionResult, RadiationResult
 from capytaine.io.legacy import import_cal_file

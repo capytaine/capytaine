@@ -86,8 +86,8 @@ Main differences
 * **Rotation symmetric meshes have been completely reworked.**
   They are now well integrated with the other features such as irregular frequencies removal.
   The user interface has been changed since the experimental methods from previous versions.
-  See :class:`~capytaine.new_meshes.symmetric_meshes.RotationSymmetricMesh`.
-  The method to create a symmetric mesh from a profile of points has also changed, see :meth:`~capytaine.new_meshes.symmetric_meshes.RotationSymmetricMesh.from_profile_points`.
+  See :class:`~capytaine.meshes.symmetric_meshes.RotationSymmetricMesh`.
+  The method to create a symmetric mesh from a profile of points has also changed, see :meth:`~capytaine.meshes.symmetric_meshes.RotationSymmetricMesh.from_profile_points`.
 
 * **Prototype translation symmetry has been removed.**
   As a consequence, the ``translation_symmetry`` arguments of the mesh generations functions has been removed.

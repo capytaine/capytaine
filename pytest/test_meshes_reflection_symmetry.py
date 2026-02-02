@@ -18,7 +18,7 @@ from functools import lru_cache
 import numpy as np
 import pytest
 
-from capytaine.new_meshes import (
+from capytaine.meshes import (
     Mesh,
     ReflectionSymmetricMesh,
 )

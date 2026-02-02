@@ -3,13 +3,13 @@ import pytest
 import numpy as np
 import capytaine as cpt
 
-from capytaine.new_meshes.predefined import (
+from capytaine.meshes.predefined import (
     mesh_sphere,
     mesh_vertical_cylinder,
     mesh_parallelepiped,
     mesh_rectangle
 )
-from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
+from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
 
 ##################
 #  Generate lid  #

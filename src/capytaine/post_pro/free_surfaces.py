@@ -7,7 +7,7 @@ from itertools import product
 
 import numpy as np
 
-from capytaine.new_meshes.meshes import Mesh
+from capytaine.meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 

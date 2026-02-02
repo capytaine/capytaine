@@ -4,7 +4,7 @@ import pytest
 
 import numpy as np
 import capytaine as cpt
-from capytaine.new_meshes import Mesh, RotationSymmetricMesh, ReflectionSymmetricMesh
+from capytaine.meshes import Mesh, RotationSymmetricMesh, ReflectionSymmetricMesh
 
 
 def test_engine_repr():

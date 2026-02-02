@@ -18,8 +18,8 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from capytaine.new_meshes import Mesh
-from capytaine.new_meshes.io import load_mesh
+from capytaine.meshes import Mesh
+from capytaine.meshes.io import load_mesh
 
 @lru_cache
 def simple_triangle_mesh():

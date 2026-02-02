@@ -3,7 +3,7 @@ import numpy as np
 import capytaine as cpt
 import matplotlib.pyplot as plt
 
-from capytaine.new_meshes import (
+from capytaine.meshes import (
     RotationSymmetricMesh,
     ReflectionSymmetricMesh
 )

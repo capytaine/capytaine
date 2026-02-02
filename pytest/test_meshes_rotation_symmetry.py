@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 import capytaine as cpt
 
-from capytaine.new_meshes import (
+from capytaine.meshes import (
     Mesh,
     RotationSymmetricMesh,
     ReflectionSymmetricMesh
