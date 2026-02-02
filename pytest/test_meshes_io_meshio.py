@@ -16,8 +16,8 @@ import os
 import lzma
 import pytest
 
-from capytaine.new_meshes.meshes import Mesh
-from capytaine.new_meshes.io import load_mesh
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.io import load_mesh
 
 def test_load_directly_from_meshio():
     pytest.importorskip("meshio")

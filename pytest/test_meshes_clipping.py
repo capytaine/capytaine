@@ -14,7 +14,7 @@
 
 import numpy as np
 
-from capytaine.new_meshes.meshes import Mesh
+from capytaine.meshes.meshes import Mesh
 
 
 def test_clip_above_geometry():

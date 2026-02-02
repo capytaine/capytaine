@@ -1,7 +1,7 @@
 import numpy as np
 from capytaine.bodies import FloatingBody
 from capytaine.post_pro.free_surfaces import FreeSurface
-from capytaine.new_meshes.abstract_meshes import AbstractMesh
+from capytaine.meshes.abstract_meshes import AbstractMesh
 
 
 def _normalize_points(points, keep_mesh=False):

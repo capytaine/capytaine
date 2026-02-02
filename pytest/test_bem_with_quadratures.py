@@ -3,7 +3,7 @@ import numpy as np
 import xarray as xr
 import capytaine as cpt
 
-from capytaine.new_meshes.predefined import mesh_sphere, mesh_horizontal_cylinder
+from capytaine.meshes.predefined import mesh_sphere, mesh_horizontal_cylinder
 
 def test_quadrature_points_are_coplanar():
     # Check that all quadrature points are within the plane containing the panel

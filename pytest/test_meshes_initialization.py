@@ -3,7 +3,7 @@ import logging
 import pytest
 import numpy as np
 
-from capytaine.new_meshes import Mesh
+from capytaine.meshes import Mesh
 
 
 def test_single_face_mesh():

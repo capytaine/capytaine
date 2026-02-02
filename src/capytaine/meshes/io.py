@@ -22,7 +22,7 @@ import numpy as np
 import xarray as xr
 
 from capytaine.tools.optional_imports import silently_import_optional_dependency
-from capytaine.new_meshes import Mesh, ReflectionSymmetricMesh
+from capytaine.meshes import Mesh, ReflectionSymmetricMesh
 
 meshio = silently_import_optional_dependency("meshio")
 trimesh = silently_import_optional_dependency("trimesh")

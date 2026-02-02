@@ -5,13 +5,13 @@ from .__about__ import (
     __title__, __description__, __version__, __author__, __uri__, __license__, __build_info__
 )
 
-from capytaine.new_meshes.meshes import Mesh
-from capytaine.new_meshes.io import load_mesh
-from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.io import load_mesh
+from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
 
-from capytaine.new_meshes.predefined.cylinders import mesh_disk, mesh_horizontal_cylinder, mesh_vertical_cylinder
-from capytaine.new_meshes.predefined.spheres import mesh_sphere
-from capytaine.new_meshes.predefined.rectangles import mesh_rectangle, mesh_parallelepiped
+from capytaine.meshes.predefined.cylinders import mesh_disk, mesh_horizontal_cylinder, mesh_vertical_cylinder
+from capytaine.meshes.predefined.spheres import mesh_sphere
+from capytaine.meshes.predefined.rectangles import mesh_rectangle, mesh_parallelepiped
 
 from capytaine.bodies.bodies import FloatingBody
 from capytaine.bodies.multibodies import Multibody

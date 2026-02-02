@@ -21,9 +21,9 @@ from typing import Literal, Tuple
 
 import numpy as np
 
-from capytaine.new_meshes.surface_integrals import SurfaceIntegralsMixin
+from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
 from capytaine.tools.deprecation_handling import _get_water_depth
-from capytaine.new_meshes.geometry import connected_components, connected_components_of_waterline
+from capytaine.meshes.geometry import connected_components, connected_components_of_waterline
 
 LOG = logging.getLogger(__name__)
 
@@ -347,14 +347,14 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
     def show_pyvista(self, **kwargs):
         """
         Equivalent to show(backend="pyvista").
-        See also :func:`~capytaine.new_meshes.visualization.show_pyvista`
+        See also :func:`~capytaine.meshes.visualization.show_pyvista`
         """
         return self.show(backend="pyvista", **kwargs)
 
     def show_matplotlib(self, **kwargs):
         """
         Equivalent to show(backend="matplotlib").
-        See also :func:`~capytaine.new_meshes.visualization.show_matplotlib`
+        See also :func:`~capytaine.meshes.visualization.show_matplotlib`
         """
         return self.show(backend="matplotlib", **kwargs)
 

@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from capytaine.new_meshes.abstract_meshes import AbstractMesh
+from capytaine.meshes.abstract_meshes import AbstractMesh
 
 
 class GreenFunctionEvaluationError(Exception):

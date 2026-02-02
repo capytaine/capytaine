@@ -9,7 +9,7 @@ import numpy as np
 
 from capytaine.bem.solver import BEMSolver
 from capytaine.io.xarray import assemble_dataset
-from capytaine.new_meshes.io import load_mesh
+from capytaine.meshes.io import load_mesh
 from capytaine.bodies.bodies import FloatingBody
 from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
 

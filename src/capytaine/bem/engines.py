@@ -9,7 +9,7 @@ from typing import Tuple, Union, Optional, Callable
 import numpy as np
 import scipy.sparse.linalg as ssl
 
-from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
+from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
 from capytaine.green_functions.delhommeau import Delhommeau
