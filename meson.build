@@ -1,7 +1,7 @@
 project('capytaine',
   ['c', 'fortran'],
   meson_version : '>= 1.0.0',
-  version : '3.0.dev',
+  version : '3.0.0a1',
   default_options : ['warning_level=2'])
 
 py_mod = import('python')
