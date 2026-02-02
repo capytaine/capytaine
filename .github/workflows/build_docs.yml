@@ -2,8 +2,6 @@ name: Build and deploy documentation
 
 on:
   push:
-    branches:
-      - master
     paths:
       - 'docs/**'
 
@@ -44,14 +42,13 @@ jobs:
 
       - name: Deploy pages
         if: |
-          github.repository_owner == 'capytaine' &&
-          github.ref == 'refs/heads/master'
-        # Only deploy the version merged into the master branch of capytaine/capytaine
+          github.repository_owner == 'capytaine'
+        # Only deploy the version of capytaine/capytaine
         uses: JamesIves/github-pages-deploy-action@releases/v4
         with:
           folder: ./docs/_build/html/
           repository-name: capytaine/capytaine.github.io
           branch: main
-          target-folder: master/
+          target-folder: ${{ github.ref_name }}/
           clean: true
           token: ${{ secrets.TOKEN_PAGES }}
