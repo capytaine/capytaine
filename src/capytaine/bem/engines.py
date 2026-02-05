@@ -11,7 +11,7 @@ import scipy.sparse.linalg as ssl
 
 from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
 
-from capytaine.green_functions.abstract_green_function import AbstractGreenFunction
+from capytaine.green_functions.abstract_green_function import AbstractGreenFunction, GreenFunctionEvaluationError
 from capytaine.green_functions.delhommeau import Delhommeau
 
 from capytaine.tools.block_circulant_matrices import (
@@ -130,6 +130,10 @@ class BasicMatrixEngine(MatrixEngine):
         # mechanism of build_matrices is not compatible with giving mesh1 as a
         # list of points, but we need that for post-processing
         S, _ = self.green_function.evaluate(mesh1, mesh2, **gf_params)
+        if np.any(np.isnan(S)):
+            raise GreenFunctionEvaluationError(
+                    "Green function returned a NaN in the interaction matrix.\n"
+                    "It could be due to overlapping panels.")
         return S
 
     def build_fullK_matrix(self, mesh1, mesh2, **gf_params) -> np.ndarray:
@@ -141,6 +145,10 @@ class BasicMatrixEngine(MatrixEngine):
         gf_params.setdefault("adjoint_double_layer", True)
         gf_params.setdefault("early_dot_product", False)
         _, fullK = self.green_function.evaluate(mesh1, mesh2, **gf_params)
+        if np.any(np.isnan(fullK)):
+            raise GreenFunctionEvaluationError(
+                    "Green function returned a NaN in the interaction matrix.\n"
+                    "It could be due to overlapping panels.")
         return fullK
 
     def _build_matrices_with_symmetries(self, mesh1, mesh2, *, diagonal_term_in_double_layer=True, **gf_params) -> Tuple[MatrixLike, MatrixLike]:
@@ -165,6 +173,10 @@ class BasicMatrixEngine(MatrixEngine):
                     **gf_params,
                     )
             # Building the first column of blocks, that is the interactions of all of mesh1 with the reference wedge of mesh2.
+            if np.any(np.isnan(S_cols)) or np.any(np.isnan(K_cols)):
+                raise GreenFunctionEvaluationError(
+                    "Green function returned a NaN in the interaction matrix.\n"
+                    "It could be due to overlapping panels.")
 
             n_blocks = mesh1.n # == mesh2.n
             block_shape = (mesh2.wedge.nb_faces, mesh2.wedge.nb_faces)
@@ -176,8 +188,13 @@ class BasicMatrixEngine(MatrixEngine):
 
         else:
             gf_params.setdefault("early_dot_product", True)
-            return self.green_function.evaluate(mesh1, mesh2, diagonal_term_in_double_layer=diagonal_term_in_double_layer, **gf_params)
-
+            S, K = self.green_function.evaluate(mesh1, mesh2, diagonal_term_in_double_layer=diagonal_term_in_double_layer, **gf_params)
+            if np.any(np.isnan(S)) or np.any(np.isnan(K)):
+                raise GreenFunctionEvaluationError(
+                    "Green function returned a NaN in the interaction matrix.\n"
+                    "It could be due to overlapping panels.")
+            return S, K
+        
     def _build_and_cache_matrices_with_symmetries(
             self, mesh1, mesh2, **gf_params
             ) -> Tuple[MatrixLike, LUDecomposedMatrixOrNot]:
