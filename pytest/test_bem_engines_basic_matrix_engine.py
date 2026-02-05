@@ -293,10 +293,9 @@ def test_symmetry(sym_mesh):
 def test_build_S_matrix_despite_invalid_K_matrix():
     mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 3))
     sphere = cpt.FloatingBody(mesh=mesh).immersed_part()
+    problem = cpt.DiffractionProblem(body=sphere, wavenumber=1, wave_direction=0)
     solver = cpt.BEMSolver()
-    problem = [cpt.DiffractionProblem(body=sphere, wavenumber=1, wave_direction=0)]
-    solver = cpt.BEMSolver()
-    result = solver.solve_all(problem)[0]
+    result = solver._solve(problem)
     gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
     pytest.raises(GreenFunctionEvaluationError, solver.engine.build_fullK_matrix, mesh.vertices[2:5,:], result.body.mesh_including_lid, **gf_params)
     # check that there is no exception for matrix S 
