@@ -5,6 +5,8 @@ import pytest
 import numpy as np
 import capytaine as cpt
 from capytaine.meshes import Mesh, RotationSymmetricMesh, ReflectionSymmetricMesh
+from capytaine.green_functions.abstract_green_function import GreenFunctionEvaluationError
+
 
 
 def test_engine_repr():
@@ -296,4 +298,6 @@ def test_build_S_matrix_despite_invalid_K_matrix():
     solver = cpt.BEMSolver()
     result = solver.solve_all(problem)[0]
     gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
+    pytest.raises(GreenFunctionEvaluationError, solver.engine.build_fullK_matrix, mesh.vertices[2:5,:], result.body.mesh_including_lid, **gf_params)
+    # check that there is no exception for matrix S 
     solver.engine.build_S_matrix(mesh.vertices[2:5,:], result.body.mesh_including_lid, **gf_params)
