@@ -31,10 +31,10 @@ def rotation(n=4):
     wedge = new_reference_mesh.extract_wedge(n=n)
     return RotationSymmetricMesh(wedge=wedge, n=n)
 
-# def rotation_of_reflection(n=4):
-#     half_sphere = cpt.mesh_sphere(center=(1.0, 0.0, 0.0), radius=0.2, resolution=(8, 8)).immersed_part().clipped(origin=(1, 0, 0), normal=(0, 1, 0))
-#     return RotationSymmetricMesh(ReflectionSymmetricMesh(half_sphere, plane="xOz"), n=n)
-#
+def rotation_of_reflection(n=4):
+    half_sphere = cpt.mesh_sphere(center=(1.0, 0.0, 0.0), radius=0.2, resolution=(8, 8)).immersed_part().clipped(origin=(1, 0, 0), normal=(0, 1, 0))
+    return RotationSymmetricMesh(ReflectionSymmetricMesh(half_sphere, plane="xOz"), n=n)
+
 # def reflection_of_rotation(n=4):
 #     half_sphere = cpt.mesh_sphere(center=(1.0, 0.0, 0.0), radius=0.2, resolution=(8, 8)).immersed_part().clipped(origin=(1, 0, 0), normal=(0, 1, 0))
 #     return ReflectionSymmetricMesh(RotationSymmetricMesh(wedge=half_sphere, n=n), plane="xOz")
@@ -61,9 +61,9 @@ def test(sym_mesh):
     plt.colorbar(ims, ax=axs[2])
 
 # test(reflection())
-test(nested_reflections())
+# test(nested_reflections())
 # test(rotation(n=3))
-# test(rotation_of_reflection(n=3))
+test(rotation_of_reflection(n=4))
 # test(reflection_of_rotation(n=6))
 
 plt.show()
