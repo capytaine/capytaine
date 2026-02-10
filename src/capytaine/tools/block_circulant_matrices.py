@@ -148,6 +148,84 @@ class BlockCirculantMatrix:
         return res
 
 
+class NestedBlockCirculantMatrix:
+    """Data-sparse representation of a block matrix of the following form
+
+       ( a  b | e  d | c  f )
+       ( b  a | f  c | d  e )
+       ( ------------------ )
+       ( c  f | a  b | e  d )
+       ( d  e | b  a | f  c )
+       ( ------------------ )
+       ( e  d | c  f | a  b )
+       ( f  c | d  e | b  a )
+
+    where a, b, c, d, e and f are matrices of the same shape,
+    that is a block circulant matrix (here of size 3x3, but arbitrary outer sizes are supported),
+    where diagonal blocks are 2x2 block circulant matrices and off-diagonal blocks have subblocks in common.
+
+    Reordering the lines and columns, this matrix is equivalent to the following shape
+
+       ( a  e  c | b  d  f )
+       ( c  a  e | f  b  d )
+       ( e  c  a | d  f  b )
+       ( ----------------- )
+       ( b  f  d | a  c  e )
+       ( d  b  f | e  a  c )
+       ( f  d  b | c  e  a )
+
+    that is a 2x2 block matrix of block circulant matrices, the block circulant matrices of the bottom row being the transpose of the block circulant matrices of the top row.
+
+    In the 2x2x2x2 limit case, the matrix is a nested block circulant matrix
+
+       ( a  b | c  d )
+       ( b  a | d  c )
+       ( ----------- )
+       ( c  d | a  b )
+       ( d  c | b  a )
+
+    Parameters
+    ----------
+    blocks: Sequence of matrix-like, can be also a ndarray of shape (nb_blocks, n, n, ...)
+        The **first column** of blocks [a, b, c, d, ...]
+        Each block should have the same shape, and the number of blocks should be even.
+    """
+    def __init__(self, blocks: Sequence[ArrayLike]):
+        self.blocks = blocks
+        self.nb_blocks = len(blocks)
+        assert self.nb_blocks % 2 == 0
+        assert all(self.blocks[0].shape == b.shape for b in self.blocks[1:])
+        assert all(self.blocks[0].dtype == b.dtype for b in self.blocks[1:])
+        self.shape = (
+            self.nb_blocks*self.blocks[0].shape[0],
+            self.nb_blocks*self.blocks[0].shape[1],
+            *self.blocks[0].shape[2:]
+        )
+        self.ndim = len(self.shape)
+        self.dtype = self.blocks[0].dtype
+
+    def __array__(self, dtype=None, copy=True):
+        if not copy:
+            raise NotImplementedError
+        if dtype is None:
+            dtype = self.dtype
+        full_blocks = [np.asarray(b) for b in self.blocks]  # Transform all blocks to numpy arrays
+        ...
+
+
+    def __matmul__(self, other):
+        ...
+
+    def matvec(self, other):
+        return self.__matmul__(other)
+
+    def block_diagonalize(self) -> "BlockDiagonalMatrix":
+        ...
+
+    def solve(self, b: np.ndarray) -> np.ndarray:
+        ...
+
+
 class BlockDiagonalMatrix:
     """Data-sparse representation of a block matrix of the following form
 
