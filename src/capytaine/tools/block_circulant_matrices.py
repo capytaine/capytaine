@@ -263,7 +263,26 @@ class NestedBlockCirculantMatrix:
         return self.__matmul__(other)
 
     def block_diagonalize(self) -> "BlockDiagonalMatrix":
-        return self.to_BlockCirculantMatrix().block_diagonalize()
+        if self.nb_blocks == 4:
+            # Special case for 2x2x2x2: fully block-diagonalize both outer and inner structures
+            # Given blocks [a, b, c, d], the matrix is:
+            # ( a  b | c  d )
+            # ( b  a | d  c )
+            # ( ----------- )
+            # ( c  d | a  b )
+            # ( d  c | b  a )
+            # First diagonalize outer 2x2: gives BlockCirculantMatrix([a+c, b+d]) and BlockCirculantMatrix([a-c, b-d])
+            # Then diagonalize each inner 2x2: (a+c)±(b+d) and (a-c)±(b-d)
+            a, b, c, d = self.blocks
+            return BlockDiagonalMatrix([
+                a + b + c + d,
+                a - b + c - d,
+                a + b - c - d,
+                a - b - c + d
+            ])
+        else:
+            # Drop the inner structure
+            return self.to_BlockCirculantMatrix().block_diagonalize()
 
     def solve(self, b: np.ndarray) -> np.ndarray:
         return self.to_BlockCirculantMatrix().solve(b)

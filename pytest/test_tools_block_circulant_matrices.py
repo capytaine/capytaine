@@ -232,7 +232,7 @@ def test_2x2x2x2_nested_block_circulant_matrices():
 
     # Test block_diagonalize
     bd = A.block_diagonalize()
-    assert bd.nb_blocks == 2  # 4 original blocks -> 2 macro-blocks
+    assert bd.nb_blocks == 4  # 2x2x2x2 fully diagonalized -> 4 blocks
 
 
 def test_3x2_nested_block_circulant_matrices():
