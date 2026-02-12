@@ -254,7 +254,7 @@ class NestedBlockCirculantMatrix:
         return BlockCirculantMatrix(macro_blocks)
 
     def __array__(self, dtype=None, copy=True):
-        return np.asarray(self.to_BlockCirculantMatrix(), dtype=dtype, copy=copy)
+        return self.to_BlockCirculantMatrix().__array__(dtype=dtype, copy=copy)
 
     def __matmul__(self, other):
         return self.to_BlockCirculantMatrix() @ other
