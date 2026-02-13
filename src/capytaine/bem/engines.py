@@ -160,7 +160,11 @@ class BasicMatrixEngine(MatrixEngine):
                     and isinstance(mesh2.half, ReflectionSymmetricMesh)
                     and mesh1.half.plane == mesh2.half.plane):
                 # Nested plane symmetries
-                S, K = self.green_function.evaluate(mesh1.merged(), mesh2.half.half, diagonal_term_in_double_layer=diagonal_term_in_double_layer, **gf_params)
+                S, K = self.green_function.evaluate(
+                    mesh1.merged(), mesh2.half.half,
+                    diagonal_term_in_double_layer=diagonal_term_in_double_layer,
+                    **gf_params
+                )
                 check_if_nan_in_matrix([S, K])
                 block_shape = (mesh2.half.half.nb_faces, mesh2.half.half.nb_faces)
                 return NestedBlockCirculantMatrix(S.reshape((4, *block_shape))), NestedBlockCirculantMatrix(K.reshape((4, *block_shape)))
@@ -171,7 +175,11 @@ class BasicMatrixEngine(MatrixEngine):
 
             else:
                 # Single plane symmetries
-                S, K = self.green_function.evaluate(mesh1.merged(), mesh2.half, diagonal_term_in_double_layer=diagonal_term_in_double_layer, **gf_params)
+                S, K = self.green_function.evaluate(
+                    mesh1.merged(), mesh2.half,
+                    diagonal_term_in_double_layer=diagonal_term_in_double_layer,
+                    **gf_params
+                )
                 check_if_nan_in_matrix([S, K])
                 block_shape = (mesh2.half.nb_faces, mesh2.half.nb_faces)
                 return BlockCirculantMatrix(S.reshape((2, *block_shape))), BlockCirculantMatrix(K.reshape((2, *block_shape)))
@@ -184,7 +192,11 @@ class BasicMatrixEngine(MatrixEngine):
                     and isinstance(mesh2.wedge, ReflectionSymmetricMesh)
                     and mesh1.wedge.plane == mesh2.wedge.plane):
                 # Dihedral symmetry
-                S, K = self.green_function.evaluate(mesh1.merged(), mesh2.wedge.half, diagonal_term_in_double_layer=diagonal_term_in_double_layer, **gf_params)
+                S, K = self.green_function.evaluate(
+                    mesh1.merged(), mesh2.wedge.half,
+                    diagonal_term_in_double_layer=diagonal_term_in_double_layer,
+                    **gf_params
+                )
                 check_if_nan_in_matrix([S, K])
                 n_blocks = 2*mesh1.n # == mesh2.n
                 block_shape = (mesh2.wedge.half.nb_faces, mesh2.wedge.half.nb_faces)
@@ -209,7 +221,11 @@ class BasicMatrixEngine(MatrixEngine):
                         )
 
         else:
-            S, K = self.green_function.evaluate(mesh1, mesh2, diagonal_term_in_double_layer=diagonal_term_in_double_layer, **gf_params)
+            S, K = self.green_function.evaluate(
+                mesh1, mesh2,
+                diagonal_term_in_double_layer=diagonal_term_in_double_layer,
+                **gf_params
+            )
             check_if_nan_in_matrix([S, K])
             return S, K
 

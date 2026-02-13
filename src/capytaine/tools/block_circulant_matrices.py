@@ -4,6 +4,7 @@
 
 import logging
 import numpy as np
+from functools import lru_cache
 from typing import List, Union, Sequence
 from numpy.typing import NDArray, ArrayLike
 import scipy.linalg as sl
@@ -218,6 +219,7 @@ class NestedBlockCirculantMatrix:
         self.ndim = len(self.shape)
         self.dtype = self.blocks[0].dtype
 
+    @lru_cache
     def to_BlockCirculantMatrix(self):
         """Convert to a BlockCirculantMatrix with combined macro-blocks.
 
