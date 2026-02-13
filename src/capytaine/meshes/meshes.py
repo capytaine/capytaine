@@ -469,8 +469,8 @@ class Mesh(AbstractMesh):
         Returns
         -------
         tuple[np.ndarray, np.ndarray]
-            (points, weights) where points has shape (n_faces, 1, 3) and
-            weights has shape (n_faces, 1), using face centers and areas.
+            (points, weights) where points has shape (n_faces, nb_quad_points, 3) and
+            weights has shape (n_faces, nb_quad_points).
         """
         if self.quadrature_method is None:
             return (self.faces_centers.reshape((-1, 1, 3)), self.faces_areas.reshape(-1, 1))
