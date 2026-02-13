@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from capytaine.meshes.mesh_like_protocol import MeshLike
+from capytaine.meshes.abstract_meshes import AbstractMesh
 
 
 class GreenFunctionEvaluationError(Exception):
@@ -19,7 +19,7 @@ class AbstractGreenFunction(ABC):
     floating_point_precision: str
 
     def _get_colocation_points_and_normals(self, mesh1, mesh2, adjoint_double_layer):
-        if isinstance(mesh1, MeshLike):
+        if isinstance(mesh1, AbstractMesh):
             collocation_points = mesh1.faces_centers
             nb_collocation_points = mesh1.nb_faces
             if not adjoint_double_layer: # Computing the D matrix

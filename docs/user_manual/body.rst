@@ -19,9 +19,7 @@ Mesh
 
 The ``mesh`` can be a :class:`~capytaine.meshes.meshes.Mesh` object, or any of
 the variants defined in Capytaine, such as a
-:class:`~capytaine.meshes.symmetric.ReflectionSymmetricMesh`.
-Meshes from `meshio` can also be given directly to the ``FloatingBody``
-constructor without calling :func:`~capytaine.io.meshio.load_from_meshio`.
+:class:`~capytaine.meshes.symmetric_meshes.ReflectionSymmetricMesh`.
 
 .. _set-lid-mesh-in-body:
 
@@ -62,26 +60,55 @@ Otherwise, the symmetry is discarded and a full resolution is done.
 Dofs
 ~~~~
 
-The degrees of freedom are defined as a Python dictionary associating the name
-of each dof to a Numpy array of shape ``(nb_faces, 3)``.
+Degrees of freedoms are stored in a Python dictionary associating the name
+of each dof to the description of the corresponding motion or deformation.
+
+For rigid bodies, the motion is encoded in an ad-hoc Python object of class
+:class:`~capytaine.bodies.dofs.TranslationDof` or :class:`~capytaine.bodies.dofs.RotationDof`.
+It is recommended to initialize them in the following way::
+
+   body = cpt.FloatingBody(
+       mesh=mesh,
+       dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1)),
+   )
+
+If no ``rotation_center`` is provided, :math:`(0, 0, 0)` is used as a default.
+The standard names used to refer to the rigid body dofs are::
+
+   print(body.dofs.keys())
+   # dict_keys(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'])
+
+If only some dofs are of interest, you can use the following syntax::
+
+   body = cpt.FloatingBody(
+       mesh=mesh,
+       dofs=cpt.rigid_body_dofs(only=["Heave"], rotation_center=(0, 0, -1))
+   )
+   print(body.dofs.keys())
+   # dict_keys(['Heave'])
+
+Generalized degrees of freedom can be defined as a Numpy array of shape ``(nb_faces, 3)``.
 This array stores the displacement vector at the center of each face of the
 mesh::
 
    body = cpt.FloatingBody(
            mesh=mesh,
            dofs={
-               "heave": np.array([(0, 0, 1) for x, y, z in mesh.faces_centers]),
+               "heave-like": np.array([(0, 0, 1) for x, y, z in mesh.faces_centers]),
                "x-shear": np.array([(np.cos(np.pi*z/2), 0, 0) for x, y, z in mesh.faces_centers])
                },
            )
 
-:meth:`cpt.rigid_body_dofs() <~capytaine.bodies.dofs.rigid_body_dofs>` can
-be used to automatically give a body the six degrees of freedom of a rigid
-body::
+Defining a rigid-body-dof as a generalized dof (as in the example above for
+heave) does not make a difference for first-order hydrodynamics without forward
+speed. It makes a difference for the hydrostatic stiffness, when the
+generalized dofs are using a approximate formula, whereas exact values can be
+returned for rigid body dofs.
 
-   body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1)))
-   print(body.dofs.keys())
-   # dict_keys(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw'])
+For multiple bodies, the dofs of the component bodies should transparently be
+defined for the compound body object. See also the section dedicated to
+multiple bodies.
+
 
 Other parameters
 ~~~~~~~~~~~~~~~~
@@ -108,18 +135,18 @@ The methods :meth:`~capytaine.bodies.bodies.FloatingBody.show()` and
 :meth:`~capytaine.bodies.bodies.FloatingBody.show_matplotlib()` of meshes can
 also be used on ``FloatingBody``.
 
-Once a :code:`FloatingBody` with dofs has been defined, the
-:meth:`~capytaine.bodies.bodies.FloatingBody.animate`
-method can be used to visualize a given motion of the body::
-
-    anim = body.animate(motion={"Heave": 0.1, "Surge": 0.1j}, loop_duration=1.0)
-    anim.run()
-
-The above example will present an interactive animation of the linear combination of heave and surge.
-
-Jupyter notebooks can also include a (non-interactive) video of the animation::
-
-    anim.embed_in_notebook(camera_position=(-1.0, -1.0, 1.0), resolution=(400, 300))
+.. Once a :code:`FloatingBody` with dofs has been defined, the
+.. :meth:`~capytaine.bodies.bodies.FloatingBody.animate`
+.. method can be used to visualize a given motion of the body::
+..
+..     anim = body.animate(motion={"Heave": 0.1, "Surge": 0.1j}, loop_duration=1.0)
+..     anim.run()
+..
+.. The above example will present an interactive animation of the linear combination of heave and surge.
+..
+.. Jupyter notebooks can also include a (non-interactive) video of the animation::
+..
+..     anim.embed_in_notebook(camera_position=(-1.0, -1.0, 1.0), resolution=(400, 300))
 
 
 Geometric transformations
@@ -128,49 +155,3 @@ Geometric transformations
 All the geometric transformation defined on meshes in :doc:`mesh` can also be
 applied to ``FloatingBody``. Beside updating the mesh, they also update the
 definition of the degrees of freedom and the center of mass (if relevant).
-
-
-Multiple bodies
----------------
-
-Multiple bodies problems can be defined by combining several bodies with the ``join_bodies`` method::
-
-    all_bodies = cpt.FloatingBody.join_bodies(body_1, body_2, body_3, body_4)
-
-For two-body problems, the ``+`` operator can also be used::
-
-   two_bodies = body_1 + body_2
-
-But it is not recommended to use it for large number of bodies as it is not
-strictly associative (that is ``body_1 + (body_2 + body_3)`` has some internal
-differences with ``(body_1 + body_2) + body_3``).
-
-When two floating bodies with dofs are merged, the resulting body inherits from
-the dofs of the individual bodies with the new name :code:`body_name__dof_name`::
-
-    print(two_bodies.nb_dofs)
-    # 12
-    print(two_bodies.dofs.keys())
-    # dict_keys(['body_1__Surge', 'body_1__Sway', 'body_1__Heave', 'body_1__Roll', 'body_1__Pitch', 'body_1__Yaw', 'body_2__Surge', 'body_2__Sway', 'body_2__Heave', 'body_2__Roll', 'body_2__Pitch', 'body_2__Yaw'])
-
-Capytaine also include helper functions to create arrays of identical bodies::
-
-    array = body.assemble_regular_array(distance=1.0, nb_bodies=(4, 5))
-
-places copies of the ``body`` on a regular grid of :math:`4 \times 5` with distance between bodies of 1 meter, and::
-
-    locations = np.array([[0.0, 0.0], [1.0, 2.0], [3.0, 4.5], [3.0, -0.5]])
-    array = body.assemble_arbitrary_array(locations)
-
-places copies of the ``body`` at the list of locations specified.
-
-.. warning::
-   As currently implemented in Capytaine, the multiple bodies are stored as a
-   single body with a non-convex mesh and generalized degrees of freedom.
-   Hence some information about the individual bodies is lost.
-   It includes the center of mass and the center of rotation of the individual
-   bodies (although the latter could be recovered indirectly by studying the
-   definition of the rotation dof).
-   Although it does not affect first order wave-structure interaction, it
-   hinders the computation of hydrostatics for multiple rigid bodies and will
-   need to be fixed in the future.

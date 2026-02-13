@@ -17,6 +17,7 @@ import logging
 import numpy as np
 
 from datetime import datetime
+from collections import defaultdict
 
 from rich.progress import track
 
@@ -218,17 +219,40 @@ class BEMSolver:
 
         return result
 
-    def _solve_and_catch_errors(self, problem, *args, **kwargs):
+    def _solve_and_catch_errors(self, problem, *args, _display_errors, **kwargs):
         """Same as BEMSolver.solve() but returns a
         FailedLinearPotentialFlowResult when the resolution failed."""
         try:
             res = self.solve(problem, *args, **kwargs)
         except Exception as e:
-            LOG.info(f"Skipped {problem}\nbecause of {repr(e)}")
             res = problem.make_failed_results_container(e)
+            if _display_errors:
+                self._display_errors([res])
         return res
 
-    def solve_all(self, problems, *, method=None, n_jobs=1, n_threads=None, progress_bar=None, _check_wavelength=True, **kwargs):
+    @staticmethod
+    def _display_errors(results):
+        """Displays errors that occur during the solver execution and groups them according
+        to the problem type and exception type for easier reading."""
+        failed_results = defaultdict(list)
+        for res in results:
+            if hasattr(res, "exception") and hasattr(res, "problem"):
+                key = (type(res.exception), str(res.exception), res.problem.omega, res.problem.water_depth, res.problem.forward_speed)
+                failed_results[key].append(res.problem)
+
+        for (exc_type, exc_msg, omega, water_depth, forward_speed), problems in failed_results.items():
+            nb = len(problems)
+            if nb > 1:
+                if forward_speed != 0.0:
+                    LOG.warning("Skipped %d problems for body=%s, omega=%s, water_depth=%s, forward_speed=%s\nbecause of %s(%r)",
+                                nb, problems[0].body.__short_str__(), omega, water_depth, forward_speed, exc_type.__name__, exc_msg)
+                else:
+                    LOG.warning("Skipped %d problems for body=%s, omega=%s, water_depth=%s\nbecause of %s(%r)",
+                                nb, problems[0].body.__short_str__(), omega, water_depth, exc_type.__name__, exc_msg)
+            else:
+                LOG.warning("Skipped %s\nbecause of %s(%r)", problems[0], exc_type.__name__, exc_msg)
+
+    def solve_all(self, problems, *, method=None, n_jobs=1, n_threads=None, progress_bar=None, _check_wavelength=True, _display_errors=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -287,13 +311,13 @@ class BEMSolver:
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
             if n_threads is None:
-                results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+                results = [self._solve_and_catch_errors(pb, method=method, _display_errors=_display_errors, _check_wavelength=False, **kwargs) for pb in problems]
             else:
                 threadpoolctl = silently_import_optional_dependency("threadpoolctl")
                 if threadpoolctl is None:
                     raise ImportError(f"Setting the `n_threads` argument to {n_threads} with `n_jobs=1` requires the missing optional dependency 'threadpoolctl'.")
                 with threadpoolctl.threadpool_limits(limits=n_threads):
-                    results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+                    results = [self._solve_and_catch_errors(pb, method=method, _display_errors=_display_errors, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
@@ -301,7 +325,7 @@ class BEMSolver:
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
             with joblib.parallel_config(backend='loky', inner_max_num_threads=n_threads):
                 parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
-                groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_threads=None, progress_bar=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
+                groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_threads=None, progress_bar=False, _display_errors=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
             if progress_bar:
                 groups_of_results = track(groups_of_results,
                                           total=len(groups_of_problems),
@@ -310,6 +334,7 @@ class BEMSolver:
             process_id_mapping = {}
             for grp_results, other_timer, process_id in groups_of_results:
                 results.extend(grp_results)
+                self._display_errors(grp_results)
                 if process_id not in process_id_mapping:
                     process_id_mapping[process_id] = len(process_id_mapping) + 1
                 self.timer.add_data_from_other_timer(other_timer, process=process_id_mapping[process_id])
@@ -431,7 +456,7 @@ class BEMSolver:
         ----------
         dataset : xarray Dataset
             dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
-        bodies : FloatingBody or list of FloatingBody
+        bodies : FloatingBody or Multibody or list of FloatingBody or list of Multibody
             The body or bodies involved in the problems
             They should all have different names.
         method: string, optional

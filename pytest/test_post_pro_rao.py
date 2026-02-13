@@ -80,16 +80,15 @@ def test_rao_several_water_depth(sphere_fb, solver):
 
 
 @pytest.fixture
-def sphere_heave_data(sphere_fb, solver):
-    sphere_fb.keep_only_dofs(['Heave'])
-
+def sphere_heave_data(solver, sphere_fb):
+    body = sphere_fb.with_only_dofs(['Heave'])
     test_matrix = xr.Dataset(coords={
           'omega': np.linspace(0.5, 10.0, 5),
           'wave_direction': [0],
-          'radiating_dof': list(sphere_fb.dofs.keys()),
+          'radiating_dof': list(body.dofs.keys()),
           })
 
-    data = solver.fill_dataset(test_matrix, [sphere_fb], hydrostatics=True)
+    data = solver.fill_dataset(test_matrix, [body], hydrostatics=True)
 
     return data
 

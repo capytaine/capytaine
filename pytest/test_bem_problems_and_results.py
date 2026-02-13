@@ -5,6 +5,8 @@ import numpy as np
 import pytest
 
 import capytaine as cpt
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, \
         LinearPotentialFlowResult, DiffractionResult, RadiationResult
 from capytaine.io.legacy import import_cal_file
@@ -321,8 +323,8 @@ def test_import_cal_file(cal_file):
         assert problem.rho == 1000.0
         assert problem.g == 9.81
         assert problem.water_depth == np.inf
-        assert isinstance(problem.body.mesh, cpt.ReflectionSymmetricMesh)
-        assert isinstance(problem.body.mesh[0], cpt.Mesh)
+        assert isinstance(problem.body.mesh, ReflectionSymmetricMesh)
+        assert isinstance(problem.body.mesh.half, Mesh)
         assert problem.body.nb_dofs == 6
         # assert problem.body.mesh.nb_vertices == 2*540
         assert problem.body.mesh.nb_faces == 2*300

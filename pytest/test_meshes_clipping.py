@@ -1,102 +1,130 @@
-import pytest
+# Copyright 2025 Mews Labs
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import numpy as np
-from numpy.linalg import norm
-import capytaine as cpt
+
+from capytaine.meshes.meshes import Mesh
 
 
-sphere = cpt.mesh_sphere(radius=1)
+def test_clip_above_geometry():
+    """Test clipping above the geometry (no faces should be removed)"""
+
+    # Define a simple mesh (a square)
+    vertices = [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]]
+    faces = [[0, 1, 2, 3]]
+    mesh = Mesh(vertices=vertices, faces=faces)
+
+    origin = np.array([1.5, 0, 1.5])
+    normal = np.array([0, 0, 1])
+
+    clipped_mesh = mesh.clipped(origin=origin, normal=normal)
+
+    # Check that the faces have not been removed
+    assert (
+        len(clipped_mesh.faces) == 1
+    ), "Expected 1 face to remain after clipping, got {}".format(
+        len(clipped_mesh.faces)
+    )  # The mesh should remain unchanged
+    assert np.array_equal(
+        clipped_mesh.faces, faces
+    ), "Expected faces to remain unchanged, got {}".format(clipped_mesh.faces)
 
 
-def test_clipper():
-    """Test clipping of mesh."""
-    mesh = cpt.mesh_sphere(radius=5.0, resolution=(10, 5))
-    aabb = mesh.axis_aligned_bbox
+def test_clip_below_geometry():
+    """Test clipping below the geometry (all faces should be removed)"""
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
-    assert np.allclose(mesh.axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
+    # Define a simple mesh (a square)
+    vertices = [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]]
+    faces = [[0, 1, 2, 3]]
+    mesh = Mesh(vertices=vertices, faces=faces)
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=1.0)
-    assert np.allclose(mesh.axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
+    # Define the clipping plane below the mesh (normal = +z)
+    origin = np.array([-0.5, 0, -0.5])  # A point above the mesh
+    normal = np.array([0, 0, 1])
 
-    # With CollectionOfMeshes (AxialSymmetry)
-    mesh = cpt.mesh_sphere(radius=5.0, resolution=(10, 5), axial_symmetry=True)
-    aabb = mesh.merged().axis_aligned_bbox
+    clipped_mesh = mesh.clipped(origin=origin, normal=normal)
 
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=np.inf)
-    assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:5] + (0,))  # the last item of the tuple has changed
-
-    mesh.keep_immersed_part(free_surface=0.0, water_depth=1.0)
-    assert np.allclose(mesh.merged().axis_aligned_bbox, aabb[:4] + (-1, 0,))  # the last item of the tuple has changed
-
-    # Check boundaries after clipping
-    mesh = cpt.mesh_rectangle(size=(5,5), normal=(1,0,0))
-    assert max([i[2] for i in mesh.immersed_part(free_surface=-1).vertices])<=-1
-    assert max([i[2] for i in mesh.immersed_part(free_surface= 1).vertices])<= 1
-    assert min([i[2] for i in mesh.immersed_part(free_surface=100, sea_bottom=-1).vertices])>=-1
-    assert min([i[2] for i in mesh.immersed_part(free_surface=100, sea_bottom= 1).vertices])>= 1
-
-    mesh = cpt.mesh_rectangle(size=(4,4), resolution=(1,1), normal=(1,0,0))
-    tmp = list(mesh.clip(cpt.Plane(normal=(0,0.1,1),point=(0,0,-1)),inplace=False).vertices)
-    tmp.sort(key=lambda x: x[2])
-    tmp.sort(key=lambda x: x[1])
-    assert np.allclose([i[2] for i in tmp], [-2, -0.8, -2, -1.2])
+    # Check that all faces have been removed (the mesh should be empty)
+    assert (
+        clipped_mesh.nb_faces == 0
+    ), "Expected no faces to remain after clipping, got {}".format(
+        clipped_mesh.nb_faces
+    )
+    assert (
+        clipped_mesh.nb_vertices == 0
+    ), "Expected no vertices to remain after clipping, got {}".format(
+        clipped_mesh.nb_vertices
+    )
 
 
-@pytest.mark.parametrize("size", [5, 6])
-def test_clipper_indices(size):
-    """Test clipped_mesh_faces_ids."""
-    mesh = cpt.mesh_rectangle(size=(size, size), resolution=(size, size), center=(0, 0, 0))
-    clipped_mesh = mesh.clipped(plane=cpt.Plane(point=(0, 0, 0), normal=(0, 0, 1)))
-    faces_ids = clipped_mesh._clipping_data['faces_ids']
+def test_clip_partial():
+    """Test partial clipping (some faces should be cut by the plane)"""
 
-    assert clipped_mesh.nb_faces == len(faces_ids)
-    assert all(norm(clipped_mesh.faces_centers[i] - mesh.faces_centers[face_id]) < 0.3
-               for i, face_id in enumerate(faces_ids))
+    # Define a simple mesh (a square face)
+    vertices = [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]]
+    faces = [[0, 1, 2, 3]]
+    mesh = Mesh(vertices=vertices, faces=faces)
+    print(mesh.faces)
 
+    # Define the clipping plane that partially cuts the face (normal = +z)
+    origin = np.array([0.5, 0.0, 0.5])
+    normal = np.array([0, 0, 1])
 
-def test_clipper_corner_cases():
-    mesh = sphere.translated_z(10.0)
+    # Check that the face was split into two triangles
+    clipped_mesh = mesh.clipped(origin=origin, normal=normal)
 
-    plane = cpt.Plane(point=(0, 0, 0), normal=(0, 0, 1))
-    clipped_mesh = mesh.clip(plane, inplace=False)
-    assert clipped_mesh == cpt.Mesh(None, None)  # Empty mesh
-
-    plane = cpt.Plane(point=(0, 0, 0), normal=(0, 0, -1))
-    clipped_mesh = mesh.clip(plane, inplace=False)
-    assert clipped_mesh == mesh  # Unchanged mesh
-
-    # Two distinct bodies
-    two_spheres = cpt.Mesh.join_meshes(sphere.translated_z(10.0), sphere.translated_z(-10.0))
-    plane = cpt.Plane(point=(0, 0, 0), normal=(0, 0, -1))
-    one_sphere_remaining = two_spheres.clip(plane, inplace=False)
-    assert one_sphere_remaining == sphere.translated_z(10.0)
+    # Check that the face was split into two triangles
+    assert (
+        clipped_mesh.nb_triangles == 2
+    ), f"Expected 2 triangles, got {clipped_mesh.nb_triangles}"
+    assert clipped_mesh.nb_quads == 0, f"Expected 0 quads, got {clipped_mesh.nb_quads}"
 
 
-def test_clipper_tolerance():
-    mesh = cpt.mesh_vertical_cylinder(length=10.001, center=(0, 0, -5))
-    mesh = mesh.immersed_part()
-    np.testing.assert_allclose(mesh.vertices[:, 2].max(), 0.0, atol=1e-12)
+def test_clip_partial_2():
+    """Test partial clipping (some faces should be cut by the plane)"""
+
+    # Define a simple mesh (a square face)
+    vertices = [[0, 0, 0], [1, 0, 0], [1, 0, 2], [0, 0, 1]]
+    faces = [[0, 1, 2, 3]]
+    mesh = Mesh(vertices=vertices, faces=faces)
+
+    # Define the clipping plane that partially cuts the face (normal = +z)
+    origin = np.array([0.5, 0, 1.2])
+    normal = np.array([0, 0, 1])
+
+    clipped_mesh = mesh.clipped(origin=origin, normal=normal)
+
+    # Check that the face was split into one triangle and one quad
+    assert (
+        clipped_mesh.nb_triangles == 1
+    ), f"Expected 1 triangle, got {clipped_mesh.nb_triangles}"
+    assert clipped_mesh.nb_quads == 1, f"Expected 1 quad, got {clipped_mesh.nb_quads}"
 
 
-def test_degenerate_faces():
-    vertices = np.array([
-        [-8.00000000e+00,  1.65358984e+00, -4.99999996e-02],
-        [-8.00000000e+00,  1.65358984e+00,  5.00000003e-02],
-        [-8.00000000e+00,  1.74019238e+00, -9.99999998e-02],
-        [-8.00000000e+00,  1.74019238e+00, -1.78037182e-10],
-        [-8.00000000e+00,  1.74019238e+00,  1.00000000e-01],
-        [-8.00000000e+00,  1.82679492e+00, -5.00000002e-02],
-        [-8.00000000e+00,  1.82679492e+00,  4.99999997e-02]
-        ])
-    faces = np.array([
-        [5, 3, 6, 5],
-        [5, 2, 3, 5],
-        [3, 4, 6, 3],
-        [3, 4, 6, 3],
-        [2, 0, 3, 2],
-        [0, 1, 3, 0],
-        [1, 4, 3, 1]
-        ])
-    mesh = cpt.Mesh(vertices, faces)
-    clipped_mesh = mesh.immersed_part()
-    assert clipped_mesh.nb_faces == 4
+def test_faces_on_the_free_surface():
+    vertices = [[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]]
+    faces = [[0, 1, 2, 3]]
+    mesh = Mesh(vertices=vertices, faces=faces)
+    assert mesh.immersed_part().nb_faces == 1
+    assert mesh.translated_z(-1e-10).immersed_part().nb_faces == 1
+    assert mesh.translated_z(1e-9).immersed_part().nb_faces == 1  # Within tol of 1e-8
+    assert mesh.translated_z(1e-7).immersed_part().nb_faces == 0
+
+
+def test_clip_metadata():
+    vertices = [[0, 0, -1], [0, 0, 1], [1, 0, 1], [1, 0, -1]]
+    faces = [[0, 1, 2, 3]]
+    mesh = Mesh(vertices=vertices, faces=faces, faces_metadata={'foo': ['a']})
+    imm_mesh = mesh.immersed_part()
+    assert np.all(imm_mesh.faces_metadata['foo'] == np.array(['a', 'a']))

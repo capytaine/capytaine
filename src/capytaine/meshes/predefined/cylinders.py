@@ -1,5 +1,5 @@
 """Generate meshes of cylinders and disks"""
-# Copyright (C) 2017-2022 Matthieu Ancellin
+# Copyright (C) 2017-2025 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
@@ -8,10 +8,8 @@ from itertools import product
 import numpy as np
 from numpy import pi, cos, sin
 
-from capytaine.meshes.geometry import xOz_Plane, yOz_Plane, Oz_axis
 from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.symmetric import TranslationalSymmetricMesh, AxialSymmetricMesh, ReflectionSymmetricMesh
+from capytaine.meshes.symmetric_meshes import RotationSymmetricMesh, ReflectionSymmetricMesh
 
 LOG = logging.getLogger(__name__)
 
@@ -61,9 +59,6 @@ def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1),
             nr = int(np.ceil(radius / (np.sqrt(2) * faces_max_radius)))
             ntheta = int(np.ceil(2*pi*radius / (np.sqrt(2) * faces_max_radius)))
 
-    if name is None:
-        name = f"disk_{next(Mesh._ids)}"
-
     if reflection_symmetry and axial_symmetry:
         raise NotImplementedError("Disks with both symmetries have not been implemented.")
 
@@ -77,13 +72,13 @@ def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1),
         half_mesh = mesh_disk(radius=radius, _theta_max=_theta_max/2, resolution=(nr, ntheta//2),
                 center=(0, 0, 0), normal=(0, 0, 1),
                 reflection_symmetry=False, axial_symmetry=False, name=f"half_of_{name}")
-        mesh = ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=name)
+        mesh = ReflectionSymmetricMesh(half_mesh, plane='xOz', name=name)
 
     elif axial_symmetry:
         mesh_slice = mesh_disk(radius=radius, _theta_max=_theta_max/ntheta, resolution=(nr, 1),
                 center=(0, 0, 0), normal=(0, 0, 1),
                 reflection_symmetry=False, axial_symmetry=False, name=f"slice_of_{name}")
-        mesh = AxialSymmetricMesh(mesh_slice, axis=Oz_axis, nb_repetitions=ntheta - 1, name=name)
+        mesh = RotationSymmetricMesh(mesh_slice, axis='z+', n=ntheta, name=name)
 
     else:
         theta_range = np.linspace(0, _theta_max, ntheta+1)
@@ -94,10 +89,8 @@ def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1),
 
         mesh = Mesh(nodes, panels, name=name)
 
-    mesh.heal_mesh()
-    mesh.translate(center)
-    mesh.rotate_around_center_to_align_vectors(center, mesh.faces_normals[0], normal)
-    mesh.geometric_center = np.asarray(center, dtype=float)
+    mesh = mesh.rotated_such_that_vectors_are_aligned(mesh.faces_normals[0], normal)
+    mesh = mesh.translated(center, name=name)
     return mesh
 
 
@@ -153,9 +146,6 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
             ntheta = 2*int(np.ceil(pi*radius / (np.sqrt(2) * faces_max_radius)))
             nz = int(np.ceil(length / (np.sqrt(2) * faces_max_radius)))
 
-    if name is None:
-        name = f"cylinder_{next(Mesh._ids)}"
-
     LOG.debug(f"New vertical cylinder of length {length}, radius {radius} and resolution {resolution}, named {name}.")
 
     if reflection_symmetry and axial_symmetry:
@@ -170,13 +160,13 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
                 resolution=(nr, ntheta//2, nz), reflection_symmetry=False, axial_symmetry=False,
                 name=f"half_{name}", _theta_max=_theta_max/2)
 
-        mesh = ReflectionSymmetricMesh(half_cylinder, plane=yOz_Plane, name=name)
+        mesh = ReflectionSymmetricMesh(half_cylinder, plane='yOz', name=name)
 
     elif axial_symmetry:
 
         mesh_slice = mesh_vertical_cylinder(length=length, radius=radius, resolution=(nr, 1, nz), center=(0, 0, 0),
                 reflection_symmetry=False, axial_symmetry=False, name=f"slice_of_{name}", _theta_max=_theta_max/ntheta)
-        mesh = AxialSymmetricMesh(mesh_slice, axis=Oz_axis, nb_repetitions=ntheta - 1, name=name)
+        mesh = RotationSymmetricMesh(mesh_slice, axis='z+', n=ntheta, name=name)
 
     else:
         theta_range = np.linspace(0, _theta_max, ntheta+1)
@@ -196,15 +186,13 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
 
         mesh = Mesh(nodes, panels, name=name)
 
-    mesh.heal_mesh()
-    mesh.translate(center)
-    mesh.geometric_center = np.asarray(center, dtype=float)
+    mesh = mesh.translated(center, name=name)
     return mesh
 
 
 def mesh_horizontal_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
         resolution=(2, 8, 10), faces_max_radius=None,
-        reflection_symmetry=False, translation_symmetry=False, name=None, _theta_max=2*pi):
+        reflection_symmetry=False, name=None, _theta_max=2*pi):
     """Cylinder aligned along Ox axis.
 
     Total number of panels = (2*resolution[0] + resolution[2])*resolution[1]
@@ -243,9 +231,6 @@ def mesh_horizontal_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
 
     assert len(center) == 3, "Position of the center of a cylinder should be given a 3-ple of values."
 
-    if name is None:
-        name = f"cylinder_{next(Mesh._ids)}"
-
     LOG.debug(f"New horizontal cylinder of length {length}, radius {radius} and resolution {resolution}, named {name}.")
 
     nr, ntheta, nx = resolution
@@ -268,47 +253,28 @@ def mesh_horizontal_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
         half_cylinder = mesh_horizontal_cylinder(
                 length=length, radius=radius, center=(0, 0, 0),
                 resolution=(nr, ntheta//2, nx),
-                reflection_symmetry=False, translation_symmetry=translation_symmetry,
+                reflection_symmetry=False,
                 name=f"half_{name}", _theta_max=_theta_max/2,
                 )
 
-        mesh = ReflectionSymmetricMesh(half_cylinder, plane=xOz_Plane, name=name)
+        mesh = ReflectionSymmetricMesh(half_cylinder, plane='xOz', name=name)
 
-    else:
-        if translation_symmetry:
-            slice = mesh_horizontal_cylinder(
-                    length=length/nx, radius=radius, center=(-length/2 + length/(2*nx), 0, 0),
-                    resolution=(0, ntheta, 1),
-                    reflection_symmetry=False, translation_symmetry=False,
-                    name=f"slice_of_{name}", _theta_max=_theta_max,
-                    )
+    else: # General case
+        theta_range = np.linspace(0, _theta_max, ntheta+1)
+        x_range = np.linspace(-length/2, length/2, nx+1)
+        nodes = np.array([(x, radius*sin(t), -radius*cos(t)) for (x, t) in product(x_range, theta_range)])
 
-            open_cylinder = TranslationalSymmetricMesh(
-                    slice, translation=np.asarray([length / nx, 0.0, 0.0]),
-                    nb_repetitions=nx-1, name=f"open_{name}")
+        panels = np.array([(i+j*(ntheta+1), i+1+j*(ntheta+1), i+1+(j+1)*(ntheta+1), i+(j+1)*(ntheta+1))
+                            for (i, j) in product(range(ntheta), range(nx))])
 
-        else: # General case
-            theta_range = np.linspace(0, _theta_max, ntheta+1)
-            x_range = np.linspace(-length/2, length/2, nx+1)
-            nodes = np.array([(x, radius*sin(t), -radius*cos(t)) for (x, t) in product(x_range, theta_range)])
-
-            panels = np.array([(i+j*(ntheta+1), i+1+j*(ntheta+1), i+1+(j+1)*(ntheta+1), i+(j+1)*(ntheta+1))
-                                for (i, j) in product(range(ntheta), range(nx))])
-
-            open_cylinder = Mesh(nodes, panels, name=f"open_{name}")
+        mesh = Mesh(nodes, panels, name=f"open_{name}")
 
         if nr > 0:
             side = mesh_disk(radius=radius, center=(-length/2, 0, 0), normal=(-1, 0, 0),
                              reflection_symmetry=False, resolution=(nr, ntheta), name=f"side_of_{name}",
                              _theta_max=_theta_max)
-            other_side = side.mirrored(yOz_Plane, name=f"other_side_of_{name}")
-            mesh = CollectionOfMeshes([open_cylinder, side, other_side], name=name)
-            if not translation_symmetry:
-                mesh = mesh.merged()
-        else:
-            mesh = open_cylinder.copy(name=name)
+            other_side = side.mirrored('yOz', name=f"other_side_of_{name}")
+            mesh = Mesh.join_meshes(mesh, side, other_side, name=name)
 
-    mesh.heal_mesh()
-    mesh.translate(center)
-    mesh.geometric_center = np.asarray(center, dtype=float)
+    mesh = mesh.translated(center, name=name)
     return mesh

@@ -11,7 +11,7 @@ Four kind of symmetries are supported by Capytaine:
   This is the symmetry of most ship hulls and is thus implemented in almost all linear sea-keeping codes.
 
     A mesh with such a symmetry is stored by Capytaine with the
-    :class:`~capytaine.new_meshes.symmetric_meshes.ReflectionSymmetricMesh` class.
+    :class:`~capytaine.meshes.symmetric_meshes.ReflectionSymmetricMesh` class.
     It is defined with an other mesh of the half and a plane (and optionally a name
     like the usual meshes)::
 
@@ -88,6 +88,9 @@ The symmetric mesh can be used to setup a floating body::
    When using a lid mesh for irregular frequencies removal, the lid mesh and
    the hull mesh should have the same symmetry, otherwise the symmetry will be
    ignored when solving the BEM problem.
+   The methods ``generate_lid`` and ``extract_lid`` preserve the symmetry,
+   although the generated lid might not be optimal when the stub of the
+   symmetric mesh is small.
 
 .. note::
    For all the symmetries described above, the **mesh** (and the lid mesh)

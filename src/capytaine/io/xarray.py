@@ -11,6 +11,7 @@ from datetime import datetime
 from itertools import product
 from collections import Counter
 from typing import Sequence, List, Union
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -18,6 +19,7 @@ import xarray as xr
 
 from capytaine import __version__
 from capytaine.bodies.bodies import FloatingBody
+from capytaine.bodies.multibodies import Multibody
 from capytaine.bem.problems_and_results import (
     LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem,
     LinearPotentialFlowResult, _default_parameters)
@@ -43,7 +45,7 @@ def _unsqueeze_dimensions(data_array, dimensions=None):
 
 
 def problems_from_dataset(dataset: xr.Dataset,
-                          bodies: Union[FloatingBody, Sequence[FloatingBody]],
+                          bodies: Union[FloatingBody, Sequence[FloatingBody], Multibody, Sequence[Multibody]],
                           ) -> List[LinearPotentialFlowProblem]:
     """Generate a list of problems from a test matrix.
 
@@ -64,7 +66,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     ValueError
         if required fields are missing in the dataset
     """
-    if isinstance(bodies, FloatingBody):
+    if isinstance(bodies, (FloatingBody, Multibody)):
         bodies = [bodies]
 
     # Should be done before looking for `frequency_keys`, otherwise
@@ -279,22 +281,24 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
                                  compute_kochin(result, theta_range, **kwargs))
     ])
 
+    main_freq_type = Counter((res.provided_freq_type for res in results)).most_common(1)[0][0]
+
     kochin_data = xr.Dataset()
 
     if "RadiationResult" in set(records['kind']):
         radiation = _dataset_from_dataframe(
             records[records['kind'] == "RadiationResult"],
             variables=['kochin'],
-            dimensions=['omega', 'radiating_dof', 'theta'],
+            dimensions=[main_freq_type, 'radiating_dof', 'theta'],
             optional_dims=['g', 'rho', 'body_name', 'water_depth', 'forward_speed', 'wave_direction']
         )
-        kochin_data['kochin'] = radiation['kochin']
+        kochin_data['kochin_radiation'] = radiation['kochin']
 
     if "DiffractionResult" in set(records['kind']):
         diffraction = _dataset_from_dataframe(
             records[records['kind'] == "DiffractionResult"],
             ['kochin'],
-            dimensions=['omega', 'wave_direction', 'theta'],
+            dimensions=[main_freq_type, 'wave_direction', 'theta'],
             optional_dims=['g', 'rho', 'body_name', 'water_depth', 'forward_speed']
         )
         kochin_data['kochin_diffraction'] = diffraction['kochin']
@@ -532,7 +536,7 @@ def assemble_dataset(results,
 
 def assemble_matrices(results):
     """Simplified version of assemble_dataset, returning only bare matrices.
-    Meant mainly for teaching without introducing Xarray to beginers.
+    Meant mainly for teaching without introducing Xarray to beginners.
 
     Parameters
     ----------
@@ -662,6 +666,7 @@ def export_dataset(filename, dataset, format=None, **kwargs):
             (format is not None and format.lower() == "nemoh")
             ):
         from capytaine.io.legacy import write_dataset_as_tecplot_files
+        Path(filename).mkdir(exist_ok=True)
         write_dataset_as_tecplot_files(filename, dataset, **kwargs)
     else:
         raise ValueError("`export_dataset` could not infer export format based on filename or `format` argument.\n"

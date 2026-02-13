@@ -27,14 +27,14 @@ NEMOH_CASES := TEST_DIR / 'Nemoh_verification_cases' / 'Cylinder'
 
 EXAMPLES_DIR := justfile_directory() / 'docs' / 'examples' / 'src'
 EXAMPLES_FILES := ' \
-    A1_radiation_cylinder.py \
+    A1_single_body_hydrodynamics.py \
     A2_multibody.py \
     A3_finite_depth_flap.py \
-    A4_custom_dofs.py \
-    A5_convergence_study.py \
-    A7_elasticity_of_beam.py \
-    A8_export_dataset.py \
-    A9_parametric_study_depth.py \
+    A4_forward_speed_on_vertical_cylinder.py \
+    A7_custom_dofs.py \
+    A8_convergence_study.py \
+    A10_elasticity_of_beam.py \
+    A11_parametric_study_depth.py \
     B1_pressure_on_hull.py \
     B2_haskind.py \
     B3_free_surface_elevation.py \
@@ -47,7 +47,9 @@ EXAMPLES_FILES := ' \
 '
 
 ## Reason for skipping some example files:
-# A6_irregular_frequency_removal.py \     # Slow
+# A5_benchmark_plane_symmetries.py \
+# A6_benchmark_axisymmetric_mesh.py \
+# A9_test_irregular_frequency_removal.py \ # Slow
 # B6_animate_free_surface.py  \           # Requires VTK
 # B7_boat_animation.py  \                 # Requires VTK
 # C6_axisymmetric_buoy.py  \              # Requires VTK

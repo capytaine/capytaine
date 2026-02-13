@@ -72,11 +72,11 @@ jobs:
     #     version: '13'
 
     - name: Compile and run example
-      working-directory: src/capytaine/green_functions/libDelhommeau/
+      working-directory: libs/libDelhommeau/
       run: make example && examples/minimal/minimal_example.bin
       # Soundness of the results is not tested, only that the compiling and
       # execution are succeeding.
 
     - name: Run simple benchmark
-      working-directory: src/capytaine/green_functions/libDelhommeau/
+      working-directory: libs/libDelhommeau/
       run: make run_bench_rankine && make run_bench_waves

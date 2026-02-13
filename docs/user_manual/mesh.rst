@@ -130,6 +130,8 @@ installed independently)::
     r1 = 0.88
     r2 = 0.35
     with pygmsh.occ.Geometry() as geom:
+        geom.characteristic_length_min = 0.05
+        geom.characteristic_length_max = 0.1
         cyl = geom.add_cylinder([0, 0, 0], [0, 0, -T1],  r1)
         cone = geom.add_cone([0, 0, -T1], [0, 0, -T2], r1, r2)
         geom.translate(cyl, [0, 0, offset])
@@ -331,11 +333,14 @@ integrated on each panel of the mesh. Parts of the Green function (such as the
 for the integral. Other parts of the Green function rely on numerical
 integration. By default, this numerical integration is done by taking the value
 at the center of the panel and multiplying by its area. For a more accurate
-intagration, an higher order quadrature can be defined.
+integration, an higher order quadrature can be defined.
 
-To define a quadrature scheme for a mesh, run the following command::
+Setting a quadrature for a mesh can be done with the ``with_quadrature`` method::
 
-    mesh.compute_quadrature(method="Gauss-Legendre 2")
+    mesh = mesh.with_quadrature("Gauss-Legendre 2")
+
+Currently, the only supported methods are ``None``, that is the default 1-point
+quadrature, and ``"Gauss-Legendre 2"``.
 
 The quadrature data can then be accessed at::
 
@@ -343,14 +348,5 @@ The quadrature data can then be accessed at::
 
 and will be used automatically when needed.
 
-.. warning:: Transformations of the mesh (merging, clipping, ...) may reset the quadrature.
-             Compute it only on your final mesh.
-
 .. warning:: Quadratures schemes have been designed with quadrilateral panels.
              They work on triangular panels, but might not be as optimal then.
-
-Alternatively, the :func:`~capytaine.meshes.meshes.Mesh.compute_quadrature`
-also accepts methods from the `Quadpy` package::
-
-    import quadpy
-    mesh.compute_quadrature(method=quadpy.c2.get_good_scheme(8))

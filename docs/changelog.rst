@@ -11,6 +11,32 @@ Changelog
 New in version 3.0 (2026-??-??)
 -------------------------------
 
+Major changes
+~~~~~~~~~~~~~
+
+* Add :class:`~capytaine.bodies.multibodies.Multibody` meant to represent a
+  multibody system. For hydrodynamics, this is equivalent to the previous
+  behavior of coalescing bodies together. For hydrostatics, the new class
+  is slightly more powerful, for instance by being able to keep track of
+  several center of buoyancy and center of mass. (:pull:`822`)
+
+  Joining bodies with :meth:`~capytaine.bodies.bodies.FloatingBody.join_bodies`
+  or ``+`` now creates a :class:`~capytaine.bodies.multibodies.Multibody` instance. It can be converted back to a
+  :class:`~capytaine.bodies.bodies.FloatingBody` instance with::
+
+    both = body_1 + body_2  # `both` is now a Multibody
+    both = (body_1 + body_2).as_FloatingBody()  # Recover former behavior of joining FloatingBody with a FloatingBody
+
+* New internal data model for rigid body dofs with the classes
+  :class:`~capytaine.bodies.dofs.TranslationDof` and
+  :class:`~capytaine.bodies.dofs.RotationDof`. (:pull:`838`)
+  This should ensure that rigid dofs are detected and treated as such, without
+  relying only on their name.
+  This is relevant for multiple bodies and articulated bodies when computing:
+    * hydrostatics, where the exact hydrostatic stiffness formula for rigid body dofs can be used instead of the approximation for generalized dofs.
+    * forward speed, where the m-term is currently only implemented for rigid dofs.
+
+
 Minor changes
 ~~~~~~~~~~~~~
 
@@ -19,6 +45,24 @@ Minor changes
 * Velocity in the fluid can be post-processed in the limit frequencies (:math:`\omega = 0` or :math:`\omega = \infty`). Divide it by :math:`\omega` to have a finite value (:pull:`777`).
 
 * Display in the log the RAM usage estimation before a batch resolution and the measured RAM usage at the end of the resolution (:pull:`784`)
+
+* **Breaking** When building the dataset in :meth:`~cpt.bem.solver.fill_dataset`, the previous ``kochin`` attribute has been renamed to ``kochin_radiation``
+  to be consistent with the existing ``kochin_diffraction`` attribute.
+
+* **Breaking** Remove the geometric body classes ``cpt.Sphere()``,
+  ``cpt.VerticalCylinder()``, ``cpt.HorizontalCylinder()``, ``cpt.Disk()``,
+  ``cpt.Rectangle()``, ``cpt.RectangularParallelepiped()``, that were marked as
+  deprecated since version 2.0. Consider using instead::
+
+    cpt.FloatingBody(mesh=cpt.mesh_sphere(...), ...)
+
+  or something equivalent, separating the geometric mesh generation from the
+  floating body definition.
+
+* :func:`~capytaine.bodies.dofs.rigid_body_dofs` now instantiate the new dof class instead of a placeholder.
+  It now has an additional input argument ``only`` to have only some of the six rigid body dofs.
+  Also a rotation center should be passed, because the properties of the body
+  (e.g. `center_of_mass`) cannot be accessed at that stage. (:pull:`838`)
 
 Bug fixes
 ~~~~~~~~~
@@ -38,6 +82,11 @@ Bug fixes
   The inertia matrix always uses the displaced water mass for the mass and
   compute the inertia moments on the full shape if the full mesh is provided.
   (:pull:`794`)
+
+* Fix the frequency type in the dimensions of the dataset returned by :meth:`~cpt.io.xarray.kochin_data_array`. Previously, the dimension was always named ``omega``;
+  it is now named ``omega``, ``freq``, ``period``,  ``wavenumber`` or ``wavelength`` depending on the user settings.
+
+* Fix a bug when computing the Kochin function on a mesh with a lid. The Kochin function now also takes the faces on the lid into account. (:issue:`833`)
 
 Internals
 ~~~~~~~~~
@@ -75,6 +124,13 @@ Internals
 * Parameters ``free_surface``, ``water_depth`` and ``wavenumber`` are always
   keyword arguments in the engine and the Green function (:pull:`812`)
 
+* **Breaking** :meth:`~capytaine.bodies.FloatingBody.add_rotation_dof` takes
+  arguments called ``rotation_center`` and ``direction`` instead of an ``Axis``
+  object. Also the geometric center is not used anymore as a fallback value for
+  ``rotation_center``.
+
+* The S matrix can now be computed even if the K matrix is not defined, 
+  for example when evaluating the :meth:`~capytaine.bem.solver.compute_free_surface_elevation` along the waterline. 
 
 ---------------------------------
 New in version 2.3.1 (2025-10-14)

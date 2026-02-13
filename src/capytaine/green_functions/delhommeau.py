@@ -116,7 +116,7 @@ class Delhommeau(AbstractGreenFunction):
                  gf_singularities=_default_parameters["gf_singularities"],
                  ):
 
-        self.fortran_core = import_module(f"capytaine.green_functions.libs.Delhommeau_{floating_point_precision}")
+        self.fortran_core = import_module(f"capytaine.green_functions.Delhommeau_{floating_point_precision}")
 
         self.tabulation_grid_shape = tabulation_grid_shape
         fortran_enum = {
@@ -502,11 +502,6 @@ class Delhommeau(AbstractGreenFunction):
             self.fortran_core.matrices.add_diagonal_term(
                     mesh2.faces_centers[:n, :], early_dot_product_normals, free_surface, K,
                     )
-
-        if np.any(np.isnan(S)) or np.any(np.isnan(K)):
-            raise GreenFunctionEvaluationError(
-                    "Green function returned a NaN in the interaction matrix.\n"
-                    "It could be due to overlapping panels.")
 
         if early_dot_product:
             K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))

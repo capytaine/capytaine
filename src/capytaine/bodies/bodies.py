@@ -1,32 +1,35 @@
 """Floating bodies to be used in radiation-diffraction problems."""
 # Copyright (C) 2017-2024 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
+from __future__ import annotations
 
 import logging
 import copy
-from itertools import chain, accumulate
 from functools import lru_cache
+from typing import Literal
 
 import numpy as np
 import xarray as xr
 
-from capytaine.meshes.mesh_like_protocol import MeshLike
-from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, inplace_transformation
-from capytaine.meshes.properties import connected_components, connected_components_of_waterline
+from capytaine.meshes.abstract_meshes import AbstractMesh
 from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.symmetric import build_regular_array_of_meshes
-from capytaine.new_meshes.abstract_meshes import AbstractMesh
-from capytaine.bodies.dofs import RigidBodyDofsPlaceholder, TRANSLATION_DOFS_DIRECTIONS, ROTATION_DOFS_AXIS
+from capytaine.meshes.geometry import connected_components, connected_components_of_waterline
+from capytaine.bodies.dofs import (
+        AbstractDof,
+        TranslationDof,
+        RotationDof,
+        DofOnSubmesh,
+        normalize_name,
+        rigid_body_dofs,
+        add_dofs_labels_to_vector,
+        add_dofs_labels_to_matrix
+        )
 from capytaine.bodies.hydrostatics import _HydrostaticsMixin
-
-from capytaine.tools.optional_imports import silently_import_optional_dependency
-meshio = silently_import_optional_dependency("meshio")
 
 LOG = logging.getLogger(__name__)
 
 
-class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
+class FloatingBody(_HydrostaticsMixin):
     """A floating body described as a mesh and some degrees of freedom.
 
     The mesh structure is stored as a Mesh from capytaine.mesh.mesh or a
@@ -39,50 +42,60 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
 
     Parameters
     ----------
-    mesh : MeshLike, optional
+    mesh : AbstractMesh, optional
         the mesh describing the geometry of the hull of the floating body.
         If none is given, a empty one is created.
-    lid_mesh : MeshLike or None, optional
-        a mesh of an internal lid for irregular frequencies removal.
-        Unlike the mesh of the hull, no dof is defined on the lid_mesh.
-        If none is given, none is used when solving the Boundary Integral Equation.
     dofs : dict, optional
         the degrees of freedom of the body.
         If none is given, a empty dictionary is initialized.
+    lid_mesh : AbstractMesh or None, optional
+        a mesh of an internal lid for irregular frequencies removal.
+        Unlike the mesh of the hull, no dof is defined on the lid_mesh.
+        If none is given, none is used when solving the Boundary Integral Equation.
+    center_of_mass: 3-element array, optional
+        the position of the center of mass.
+        Required only for some hydrostatics computation.
     mass : float or None, optional
         the mass of the body in kilograms.
         Required only for some hydrostatics computation.
         If None, the mass is implicitly assumed to be the mass of displaced water.
-    center_of_mass: 3-element array, optional
-        the position of the center of mass.
-        Required only for some hydrostatics computation.
     name : str, optional
         a name for the body.
         If none is given, the one of the mesh is used.
+
+    Attributes
+    ----------
+    mesh_including_lid: AbstractMesh
+        The hull mesh joined with the lid mesh
+    hull_mask: np.array
+        The indices of the faces in mesh_including_lid that are part of the hull
     """
 
-    def __init__(self, mesh=None, dofs=None, mass=None, center_of_mass=None, name=None, *, lid_mesh=None):
+    def __init__(self, mesh=None, dofs=None, *, lid_mesh=None, center_of_mass=None, mass=None, name=None):
         if mesh is None:
             self.mesh = Mesh(name="dummy_mesh")
-
-        elif meshio is not None and isinstance(mesh, meshio._mesh.Mesh):
-            from capytaine.io.meshio import load_from_meshio
-            self.mesh = load_from_meshio(mesh)
-
-        elif isinstance(mesh, MeshLike):
+        elif isinstance(mesh, AbstractMesh):
             self.mesh = mesh
-
         else:
             raise TypeError("Unrecognized `mesh` object passed to the FloatingBody constructor.")
 
-        if lid_mesh is not None:
+        if lid_mesh is None:
+            self.lid_mesh = None
+        elif isinstance(mesh, AbstractMesh):
             if lid_mesh.nb_faces == 0:
                 LOG.warning("Lid mesh %s provided for body initialization is empty. The lid mesh is ignored.", lid_mesh)
                 self.lid_mesh = None
             else:
                 self.lid_mesh = lid_mesh.with_normal_vector_going_down(inplace=False)
         else:
-            self.lid_mesh = None
+            raise TypeError("Unrecognized `lid_mesh` object passed to the FloatingBody constructor.")
+
+        if self.lid_mesh is None:
+            self.mesh_including_lid = self.mesh
+            self.hull_mask = np.full((self.mesh.nb_faces,), True)
+        else:
+            self.mesh_including_lid, masks = self.mesh.join_meshes(self.lid_mesh, return_masks=True)
+            self.hull_mask = masks[0]
 
         if name is None and mesh is None:
             self.name = "dummy_body"
@@ -100,38 +113,24 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
         else:
             self.center_of_mass = None
 
-        if hasattr(self.mesh, "heal_mesh") and self.mesh.nb_vertices > 0 and self.mesh.nb_faces > 0:
-            self.mesh.heal_mesh()
-
         if dofs is None:
             self.dofs = {}
-        elif isinstance(dofs, RigidBodyDofsPlaceholder):
-            if dofs.rotation_center is not None:
-                self.rotation_center = np.asarray(dofs.rotation_center, dtype=float)
-            self.dofs = {}
-            self.add_all_rigid_body_dofs()
         else:
-            self.dofs = dofs
-
-        self._evaluate_full_mesh()
-
-        LOG.info(f"New floating body: {self.__str__()}.")
+            self.dofs = {
+                    k: v if isinstance(v, AbstractDof) else np.asarray(v)
+                    for k, v in dofs.items()
+                    }
 
         self._check_dofs_shape_consistency()
 
-    def _evaluate_full_mesh(self):
-        """Merge the mesh and lid_mesh, while keeping track of where each panel came from."""
-        if self.lid_mesh is None:
-            self.mesh_including_lid = self.mesh
-            self.hull_mask = np.full((self.mesh.nb_faces,), True)
-        else:
-            self.mesh_including_lid, masks = self.mesh.join_meshes(self.lid_mesh, return_masks=True)
-            self.hull_mask = masks[0]
+        LOG.debug(f"New floating body: {self.__str__()}.")
 
     @staticmethod
     def from_meshio(mesh, name=None) -> 'FloatingBody':
         """Create a FloatingBody from a meshio mesh object.
         Kinda deprecated, use cpt.load_mesh instead."""
+        LOG.warning("Deprecation warning: The method FloatingBody.from_meshio(...) is deprecated. "
+                    "Please prefer FloatingBody(mesh=cpt.load_mesh(...), ...)")
         from capytaine.io.meshio import load_from_meshio
         return FloatingBody(mesh=load_from_meshio(mesh, name), name=name)
 
@@ -139,8 +138,11 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
     def from_file(filename: str, file_format=None, name=None) -> 'FloatingBody':
         """Create a FloatingBody from a mesh file using meshmagick.
         Kinda deprecated, use cpt.load_mesh instead."""
+        LOG.warning("Deprecation warning: The method FloatingBody.from_file(...) is deprecated. "
+                    "Please prefer FloatingBody(mesh=cpt.load_mesh(...), ...)")
         from capytaine.io.mesh_loaders import load_mesh
-        if name is None: name = filename
+        if name is None:
+            name = filename
         mesh = load_mesh(filename, file_format, name=f"{name}_mesh")
         return FloatingBody(mesh, name=name)
 
@@ -157,7 +159,7 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
         """Number of degrees of freedom."""
         return len(self.dofs)
 
-    def add_translation_dof(self, direction=None, name=None, amplitude=1.0) -> None:
+    def add_translation_dof(self, direction=None, name=None) -> None:
         """Add a new translation dof (in place).
         If no direction is given, the code tries to infer it from the name.
 
@@ -167,193 +169,116 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
             the direction of the translation
         name : str, optional
             a name for the degree of freedom
-        amplitude : float, optional
-            amplitude of the dof (default: 1.0 m/s)
         """
-        if direction is None:
-            if name is not None and name.lower() in TRANSLATION_DOFS_DIRECTIONS:
-                direction = TRANSLATION_DOFS_DIRECTIONS[name.lower()]
-            else:
-                raise ValueError("A direction needs to be specified for the dof.")
-
         if name is None:
             name = f"dof_{self.nb_dofs}_translation"
+        if direction is None and normalize_name(name) in {"Surge", "Sway", "Heave"}:
+            self.dofs[name] = rigid_body_dofs()[normalize_name(name)]
+        else:
+            self.dofs[name] = TranslationDof(
+                direction=direction,
+            )
 
-        direction = np.asarray(direction)
-        assert direction.shape == (3,)
-
-        motion = np.empty((self.mesh.nb_faces, 3))
-        motion[:, :] = direction
-        self.dofs[name] = amplitude * motion
-
-    def add_rotation_dof(self, axis=None, name=None, amplitude=1.0) -> None:
+    def add_rotation_dof(self, rotation_center=None, direction=None, name=None) -> None:
         """Add a new rotation dof (in place).
         If no axis is given, the code tries to infer it from the name.
 
         Parameters
         ----------
-        axis: Axis, optional
-            the axis of the rotation
+        rotation_center: array of shape (3,), optional
+            One point on the rotation axis
+        direction: array of shape (3,), optional
+            The direction of the rotation axis
         name : str, optional
             a name for the degree of freedom
-        amplitude : float, optional
-            amplitude of the dof (default: 1.0)
         """
-        if axis is None:
-            if name is not None and name.lower() in ROTATION_DOFS_AXIS:
-                axis_direction = ROTATION_DOFS_AXIS[name.lower()]
-                for point_attr in ('rotation_center', 'center_of_mass', 'geometric_center'):
-                    if hasattr(self, point_attr) and getattr(self, point_attr) is not None:
-                        axis_point = getattr(self, point_attr)
-                        LOG.info(f"The rotation dof {name} has been initialized around the point: "
-                                 f"{self.__short_str__()}.{point_attr} = {getattr(self, point_attr)}")
-                        break
-                else:
-                    axis_point = np.array([0, 0, 0])
-                    LOG.warning(f"The rotation dof {name} has been initialized "
-                                f"around the origin of the domain (0, 0, 0).")
-            else:
-                raise ValueError("A direction needs to be specified for the dof.")
-        else:
-            axis_point = axis.point
-            axis_direction = axis.vector
-
         if name is None:
             name = f"dof_{self.nb_dofs}_rotation"
-
-        if self.mesh.nb_faces == 0:
-            self.dofs[name] = np.empty((self.mesh.nb_faces, 3))
+        if rotation_center is None:
+            for point_attr in ('rotation_center', 'center_of_mass'):
+                if hasattr(self, point_attr) and getattr(self, point_attr) is not None:
+                    rotation_center = getattr(self, point_attr)
+                    LOG.info(f"The rotation dof {name} has been initialized around the point: "
+                             f"{self.__short_str__()}.{point_attr} = {getattr(self, point_attr)}")
+                    break
+        if direction is None and normalize_name(name) in {"Roll", "Pitch", "Yaw"}:
+            self.dofs[name] = rigid_body_dofs(rotation_center=rotation_center)[normalize_name(name)]
         else:
-            motion = np.cross(axis_point - self.mesh.faces_centers, axis_direction)
-            self.dofs[name] = amplitude * motion
+            self.dofs[name] = RotationDof(
+                    rotation_center=rotation_center,
+                    direction=direction,
+                    )
 
-    def add_all_rigid_body_dofs(self) -> None:
+    def add_all_rigid_body_dofs(self, rotation_center=None) -> None:
         """Add the six degrees of freedom of rigid bodies (in place)."""
         self.add_translation_dof(name="Surge")
         self.add_translation_dof(name="Sway")
         self.add_translation_dof(name="Heave")
-        self.add_rotation_dof(name="Roll")
-        self.add_rotation_dof(name="Pitch")
-        self.add_rotation_dof(name="Yaw")
+        self.add_rotation_dof(rotation_center=rotation_center, name="Roll")
+        self.add_rotation_dof(rotation_center=rotation_center, name="Pitch")
+        self.add_rotation_dof(rotation_center=rotation_center, name="Yaw")
 
     def integrate_pressure(self, pressure):
         forces = {}
         for dof_name in self.dofs:
+            if isinstance(self.dofs[dof_name], AbstractDof):
+                dof = self.dofs[dof_name].evaluate_motion(self.mesh)
+            else:
+                dof = self.dofs[dof_name]
             # Scalar product on each face:
-            normal_dof_amplitude_on_face = - np.sum(self.dofs[dof_name] * self.mesh.faces_normals, axis=1)
+            normal_dof_amplitude_on_face = - np.sum(dof * self.mesh.faces_normals, axis=1)
             # The minus sign in the above line is because we want the force of the fluid on the body and not the force of the body on the fluid.
             # Sum over all faces:
             forces[dof_name] = np.sum(pressure * normal_dof_amplitude_on_face * self.mesh.faces_areas)
         return forces
 
-    @inplace_transformation
-    def keep_only_dofs(self, dofs):
-        for dof in list(self.dofs.keys()):
-            if dof not in dofs:
-                del self.dofs[dof]
+    def keep_only_dofs(self, *args, **kwargs):
+        raise NotImplementedError("`keep_only_dofs` has been removed. Consider using `body = body.with_only_dofs(['dof_name'])` instead.")
+
+    def with_only_dofs(self, dofs):
+        body = FloatingBody(mesh=self.mesh,
+                            lid_mesh=self.lid_mesh,
+                            dofs={k: v for k, v in self.dofs.items() if k in dofs},
+                            mass=self.mass,
+                            center_of_mass=self.center_of_mass,
+                            name=self.name)
 
         if hasattr(self, 'inertia_matrix'):
-            self.inertia_matrix = self.inertia_matrix.sel(radiating_dof=dofs, influenced_dof=dofs)
+            body.inertia_matrix = self.inertia_matrix.sel(radiating_dof=dofs, influenced_dof=dofs)
         if hasattr(self, 'hydrostatic_stiffness'):
-            self.hydrostatic_stiffness = self.hydrostatic_stiffness.sel(radiating_dof=dofs, influenced_dof=dofs)
+            body.hydrostatic_stiffness = self.hydrostatic_stiffness.sel(radiating_dof=dofs, influenced_dof=dofs)
 
-        return self
+        return body
 
     def add_dofs_labels_to_vector(self, vector):
         """Helper function turning a bare vector into a vector labelled by the name of the dofs of the body,
         to be used for instance for the computation of RAO."""
-        return xr.DataArray(data=np.asarray(vector), dims=['influenced_dof'],
-                            coords={'influenced_dof': list(self.dofs)},
-                            )
+        return add_dofs_labels_to_vector(self.dofs.keys(), vector)
 
     def add_dofs_labels_to_matrix(self, matrix):
         """Helper function turning a bare matrix into a matrix labelled by the name of the dofs of the body,
         to be used for instance for the computation of RAO."""
-        return xr.DataArray(data=np.asarray(matrix), dims=['influenced_dof', 'radiating_dof'],
-                            coords={'influenced_dof': list(self.dofs), 'radiating_dof': list(self.dofs)},
-                            )
+        return add_dofs_labels_to_matrix(self.dofs.keys(), matrix)
 
     def _check_dofs_shape_consistency(self):
         for dof_name, dof in self.dofs.items():
-            if np.array(dof).shape != (self.mesh.nb_faces, 3):
-                raise ValueError(f"The array defining the dof {dof_name} of body {self.name} does not have the expected shape.\n"
+            if (not isinstance(dof, AbstractDof) and
+                    (np.array(dof).shape != (self.mesh.nb_faces, 3))):
+                raise ValueError(f"The array defining the dof {dof_name} of {self.__short_str__()} does not have the expected shape.\n"
                                  f"Expected shape: ({self.mesh.nb_faces}, 3)\n"
                                  f"  Actual shape: {dof.shape}")
-
 
 
     ###################
     # Transformations #
     ###################
 
-    def __add__(self, body_to_add: 'FloatingBody') -> 'FloatingBody':
+    def __add__(self, body_to_add: 'FloatingBody'):
         return self.join_bodies(body_to_add)
 
-    def join_bodies(*bodies, name=None) -> 'FloatingBody':
-        if name is None:
-            name = "+".join(body.name for body in bodies)
-        meshes = [body.mesh.copy() for body in bodies if body.mesh.nb_faces > 0]
-        if len(meshes) > 0:
-            joined_mesh = meshes[0].join_meshes(*meshes[1:], name=f"{name}_mesh")
-        else:
-            joined_mesh = Mesh()
-
-        if all(body.lid_mesh is None for body in bodies):
-            joined_lid = None
-        else:
-            lid_meshes = [body.lid_mesh.copy() for body in bodies if body.lid_mesh is not None]
-            joined_lid = lid_meshes[0].join_meshes(*lid_meshes[1:], name=f"{name}_lid_mesh")
-
-        dofs = FloatingBody.combine_dofs(bodies)
-
-        if all(body.mass is not None for body in bodies):
-            new_mass = sum(body.mass for body in bodies)
-        else:
-            new_mass = None
-
-        if (all(body.mass is not None for body in bodies)
-                and all(body.center_of_mass is not None for body in bodies)):
-            new_cog = sum(body.mass*np.asarray(body.center_of_mass) for body in bodies)/new_mass
-        else:
-            new_cog = None
-
-        joined_bodies = FloatingBody(
-            mesh=joined_mesh, lid_mesh=joined_lid, dofs=dofs,
-            mass=new_mass, center_of_mass=new_cog, name=name
-            )
-
-        for matrix_name in ["inertia_matrix", "hydrostatic_stiffness"]:
-            if all(hasattr(body, matrix_name) for body in bodies):
-                from scipy.linalg import block_diag
-                setattr(joined_bodies, matrix_name, joined_bodies.add_dofs_labels_to_matrix(
-                        block_diag(*[getattr(body, matrix_name) for body in bodies])
-                        ))
-
-        return joined_bodies
-
-    @staticmethod
-    def combine_dofs(bodies) -> dict:
-        """Combine the degrees of freedom of several bodies."""
-        for body in bodies:
-            body._check_dofs_shape_consistency()
-        dofs = {}
-        cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in bodies)))
-        total_nb_faces = sum(body.mesh.nb_faces for body in bodies)
-        for body, nbf in zip(bodies, cum_nb_faces):
-            # nbf is the cumulative number of faces of the previous subbodies,
-            # that is the offset of the indices of the faces of the current body.
-            for name, dof in body.dofs.items():
-                new_dof = np.zeros((total_nb_faces, 3))
-                new_dof[nbf:nbf+len(dof), :] = dof
-                if '__' not in name:
-                    new_dof_name = '__'.join([body.name, name])
-                else:
-                    # The body is probably a combination of bodies already.
-                    # So for the associativity of the + operation,
-                    # it is better to keep the same name.
-                    new_dof_name = name
-                dofs[new_dof_name] = new_dof
-        return dofs
+    def join_bodies(*bodies, name=None):
+        from capytaine.bodies.multibodies import Multibody
+        return Multibody(bodies, name=name)
 
     def copy(self, name=None) -> 'FloatingBody':
         """Return a deep copy of the body.
@@ -390,118 +315,130 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
         """
         bodies = (self.translated((i*distance, j*distance, 0), name=f"{i}_{j}") for j in range(nb_bodies[1]) for i in range(nb_bodies[0]))
         array = FloatingBody.join_bodies(*bodies)
-        array.mesh = build_regular_array_of_meshes(self.mesh, distance, nb_bodies)
         array.name = f"array_of_{self.name}"
         return array
 
     def assemble_arbitrary_array(self, locations:np.ndarray):
-
         if not isinstance(locations, np.ndarray):
             raise TypeError('locations must be of type np.ndarray')
         assert locations.shape[1] == 2, 'locations must be of shape nx2, received {:}'.format(locations.shape)
 
         fb_list = []
         for idx, li in enumerate(locations):
-            fb1 = self.copy()
-            fb1.translate(np.append(li,0))
-            fb1.name = 'arbitrary_array_body{:02d}'.format(idx)
-            fb_list.append(fb1)
-
-        arbitrary_array = fb_list[0].join_bodies(*fb_list[1:])
+            fb_list.append(self.translated(np.append(li, 0), name='arbitrary_array_body{:02d}'.format(idx)))
+        arbitrary_array = FloatingBody.join_bodies(*fb_list)
 
         return arbitrary_array
 
-    def extract_faces(self, id_faces_to_extract, return_index=False):
-        """Create a new FloatingBody by extracting some faces from the mesh.
-        The dofs evolve accordingly.
-        The lid_mesh, center_of_mass, mass and hydrostatics data are discarded.
-        """
-        if isinstance(self.mesh, CollectionOfMeshes):
-            raise NotImplementedError  # TODO
-
-        if return_index:
-            new_mesh, id_v = self.mesh.extract_faces(id_faces_to_extract, return_index)
+    def mirrored(self, plane: Literal['xOz', 'yOz']) -> "FloatingBody":
+        if plane == "xOz":
+            mirrored_coord = 1
+        elif plane == "yOz":
+            mirrored_coord = 0
         else:
-            new_mesh = self.mesh.extract_faces(id_faces_to_extract, return_index)
-        new_body = FloatingBody(new_mesh)
-        LOG.info(f"Extract floating body from {self.name}.")
+            raise ValueError(f"Unsupported value for plane: {plane}")
+        def mirror(p):
+            if isinstance(p, TranslationDof):
+                return TranslationDof(
+                    direction=mirror(p.direction),
+                )
+            if isinstance(p, RotationDof):
+                return RotationDof(
+                    rotation_center=mirror(p.rotation_center),
+                    direction=mirror(p.direction),
+                )
+            elif isinstance(p, np.ndarray):
+                mirrored_p = p.copy()
+                mirrored_p[..., mirrored_coord] *= -1
+                return p
+        mirrored_dofs = {k: mirror(v) for k,v in self.dofs.items()}
+        mirrored_self = FloatingBody(
+            mesh=self.mesh.mirrored(plane),
+            lid_mesh=self.lid_mesh.mirrored(plane) if self.lid_mesh is not None else None,
+            dofs=mirrored_dofs,
+            center_of_mass=mirror(self.center_of_mass) if self.center_of_mass is not None else None,
+            mass=self.mass,
+            )
+        if hasattr(self, 'rotation_center'):
+            mirrored_self.rotation_center = mirror(self.rotation_center)
+        return mirrored_self
 
-        new_body.dofs = {}
-        for name, dof in self.dofs.items():
-            new_body.dofs[name] = dof[id_faces_to_extract, :]
-
-        if return_index:
-            return new_body, id_v
-        else:
-            return new_body
-
-    @inplace_transformation
-    def mirror(self, plane):
-        self.mesh.mirror(plane)
-        if self.lid_mesh is not None:
-            self.lid_mesh.mirror(plane)
-        self._evaluate_full_mesh()
-        for dof in self.dofs:
-            self.dofs[dof] -= 2 * np.outer(np.dot(self.dofs[dof], plane.normal), plane.normal)
-        for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
-            if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
-                point = np.array(self.__dict__[point_attr])
-                shift = - 2 * (np.dot(point, plane.normal) - plane.c) * plane.normal
-                self.__dict__[point_attr] = point + shift
-        return self
-
-    @inplace_transformation
-    def translate(self, vector, *args, **kwargs):
-        self.mesh.translate(vector, *args, **kwargs)
-        if self.lid_mesh is not None:
-            self.lid_mesh.translate(vector, *args, **kwargs)
-        self._evaluate_full_mesh()
-        for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
-            if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
-                self.__dict__[point_attr] = np.array(self.__dict__[point_attr]) + vector
-        return self
-
-    @inplace_transformation
-    def rotate(self, axis, angle):
-        self.mesh.rotate(axis, angle)
-        if self.lid_mesh is not None:
-            self.lid_mesh.rotate(axis, angle)
-        self._evaluate_full_mesh()
-        for point_attr in ('geometric_center', 'rotation_center', 'center_of_mass'):
-            if point_attr in self.__dict__ and self.__dict__[point_attr] is not None:
-                self.__dict__[point_attr] = axis.rotate_points([self.__dict__[point_attr]], angle)[0, :]
-        for dof in self.dofs:
-            self.dofs[dof] = axis.rotate_vectors(self.dofs[dof], angle)
-        return self
-
-    @inplace_transformation
-    def clip(self, plane):
-        self._check_dofs_shape_consistency()
-
-        # Clip mesh
-        LOG.info(f"Clipping {self.name} with respect to {plane}")
-        self.mesh.clip(plane)
-        if self.lid_mesh is not None:
-            self.lid_mesh.clip(plane)
-            if self.lid_mesh.nb_faces == 0:
-                LOG.warning("Lid mesh %s is empty after clipping. The lid mesh is removed.", self.lid_mesh)
-                self.lid_mesh = None
-        self._evaluate_full_mesh()
-
-        # Clip dofs
-        ids = self.mesh._clipping_data['faces_ids']
-        for dof in self.dofs:
-            if len(ids) > 0:
-                self.dofs[dof] = np.array(self.dofs[dof])[ids]
+    def translated(self, shift, *, name=None) -> "FloatingBody":
+        shift = np.asarray(shift)
+        def translate_dof(d):
+            if isinstance(d, RotationDof):
+                return RotationDof(
+                    rotation_center=d.rotation_center + shift,
+                    direction=d.direction,
+                )
             else:
-                self.dofs[dof] = np.empty((0, 3))
-        return self
+                return d
+
+        translated_self = FloatingBody(
+            mesh=self.mesh.translated(shift),
+            lid_mesh=self.lid_mesh.translated(shift) if self.lid_mesh is not None else None,
+            dofs={k: translate_dof(v) for k, v in self.dofs.items()},
+            center_of_mass=self.center_of_mass + shift if self.center_of_mass is not None else None,
+            mass=self.mass,
+            name=name
+            )
+        if hasattr(self, 'rotation_center'):
+            translated_self.rotation_center = self.rotation_center + shift
+        return translated_self
+
+    def translated_x(self, dx: float, *, name=None) -> "FloatingBody":
+        return self.translated([dx, 0.0, 0.0], name=name)
+
+    def translated_y(self, dy: float, *, name=None) -> "FloatingBody":
+        return self.translated([0.0, dy, 0.0], name=name)
+
+    def translated_z(self, dz: float, *, name=None) -> "FloatingBody":
+        return self.translated([0.0, 0.0, dz], name=name)
+
+    def rotated_with_matrix(self, R, *, name=None) -> "FloatingBody":
+        def rotate_dof(d):
+            if isinstance(d, TranslationDof):
+                return TranslationDof(
+                    direction=d.direction @ R.T,
+                        )
+            elif isinstance(d, RotationDof):
+                return RotationDof(
+                    rotation_center=d.rotation_center @ R.T,
+                    direction=d.direction @ R.T,
+                )
+            else:
+                return d
+        rotated_self = FloatingBody(
+            mesh=self.mesh.rotated_with_matrix(R),
+            lid_mesh=self.lid_mesh.rotated_with_matrix(R) if self.lid_mesh is not None else None,
+            dofs={k: rotate_dof(v) for k, v in self.dofs.items()},
+            center_of_mass=self.center_of_mass @ R.T if self.center_of_mass is not None else None,
+            mass=self.mass,
+            name=name
+            )
+        if hasattr(self, 'rotation_center'):
+            rotated_self.rotation_center = self.rotation_center @ R.T
+        return rotated_self
+
+    def rotated_x(self, angle: float, *, name=None) -> "FloatingBody":
+        c, s = np.cos(angle), np.sin(angle)
+        R = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
+        return self.rotated_with_matrix(R, name=name)
+
+    def rotated_y(self, angle: float, *, name=None) -> "FloatingBody":
+        c, s = np.cos(angle), np.sin(angle)
+        R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
+        return self.rotated_with_matrix(R, name=name)
+
+    def rotated_z(self, angle: float, *, name=None) -> "FloatingBody":
+        c, s = np.cos(angle), np.sin(angle)
+        R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
+        return self.rotated_with_matrix(R, name=name)
 
     def _apply_on_mesh(self, func, args, kwargs):
-        mesh_with_dofs = self.mesh.with_metadata(**self.dofs)
-        transformed_mesh = func(mesh_with_dofs, *args, **kwargs)
-        new_dofs = {k: transformed_mesh.faces_metadata[k] for k in self.dofs}
-        transformed_mesh = transformed_mesh.without_metadata(*self.dofs.keys())
+        mesh_with_ids = self.mesh.with_metadata(origin_panel=np.arange(self.mesh.nb_faces))
+        transformed_mesh = func(mesh_with_ids, *args, **kwargs)
+        transformed_mesh, faces_ids = transformed_mesh.pop_metadata("origin_panel")
 
         if self.lid_mesh is not None:
             transformed_lid_mesh = func(self.lid_mesh, *args, **kwargs)
@@ -511,24 +448,29 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
         else:
             transformed_lid_mesh = None
 
+        new_dofs = {}
+        for name, dof in self.dofs.items():
+            if isinstance(dof, DofOnSubmesh):
+                former_mask = np.zeros(self.mesh.nb_faces, dtype=bool)
+                former_mask[dof.faces] = True
+                new_mask = former_mask[faces_ids]
+                new_dofs[name] = DofOnSubmesh(dof.dof, np.where(new_mask)[0])
+            elif isinstance(dof, AbstractDof):
+                new_dofs[name] = dof
+            else:
+                # dof is an array or array-like
+                new_dofs[name] = np.asarray(dof)[faces_ids]
+
         return transformed_mesh, transformed_lid_mesh, new_dofs
 
     def clipped(self, *, origin, normal, name=None) -> "FloatingBody":
-        if not isinstance(self.mesh, NewMesh):
-            # Legacy path, to be removed
-            return self.clip(
-                    cpt.Plane(point=origin, normal=normal),
-                    inplace=False,
-                    name=name
-                    )
-
         clipped_mesh, clipped_lid_mesh, updated_dofs = self._apply_on_mesh(
             self.mesh.__class__.clipped,
             (),
             {'origin': origin, 'normal': normal}
         )
         if name is None:
-            name = "clipped_" + self.name
+            name = self.name
         return FloatingBody(
             mesh=clipped_mesh,
             lid_mesh=clipped_lid_mesh,
@@ -537,27 +479,19 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
         )
 
     def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None, name=None) -> "FloatingBody":
-        if not isinstance(self.mesh, AbstractMesh):
-            # Legacy path, to be removed
-            return self.keep_immersed_part(
-                    free_surface,
-                    inplace=False,
-                    sea_bottom=sea_bottom,
-                    water_depth=water_depth,
-                    name=self.name if name is None else name,
-                    )
-
         clipped_mesh, clipped_lid_mesh, updated_dofs = self._apply_on_mesh(
             self.mesh.__class__.immersed_part,
             (free_surface,),
             {'sea_bottom': sea_bottom, 'water_depth': water_depth}
         )
         if name is None:
-            name = "immersed_part_of_" + self.name
+            name = self.name
         return FloatingBody(
             mesh=clipped_mesh,
             lid_mesh=clipped_lid_mesh,
             dofs=updated_dofs,
+            center_of_mass=self.center_of_mass,
+            mass=self.mass,
             name=name
         )
 
@@ -612,12 +546,11 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
             yield "center_of_mass", tuple(self.center_of_mass)
         yield "name", self.name
 
-    def show(self, **kwargs):
-        from capytaine.ui.vtk.body_viewer import FloatingBodyViewer
-        viewer = FloatingBodyViewer()
-        viewer.add_body(self, **kwargs)
-        viewer.show()
-        viewer.finalize()
+    def show(self, *args, **kwargs):
+        return self.mesh.show(*args, **kwargs)
+
+    def show_pyvista(self, *args, **kwargs):
+        return self.mesh.show_pyvista(*args, **kwargs)
 
     def show_matplotlib(self, *args, **kwargs):
         return self.mesh.show_matplotlib(*args, **kwargs)
@@ -645,6 +578,10 @@ class FloatingBody(_HydrostaticsMixin, ClippableMixin, Abstract3DObject):
         animation = Animation(*args, **kwargs)
         animation._add_actor(self.mesh.merged(), faces_motion=sum(motion[dof_name] * dof for dof_name, dof in self.dofs.items() if dof_name in motion))
         return animation
+
+    #################################
+    # Irregular frequencies removal #
+    #################################
 
     @property
     def minimal_computable_wavelength(self):

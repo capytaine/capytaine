@@ -3,11 +3,10 @@ import numpy as np
 import capytaine as cpt
 import matplotlib.pyplot as plt
 
-from capytaine.new_meshes import (
+from capytaine.meshes import (
     RotationSymmetricMesh,
     ReflectionSymmetricMesh
 )
-from capytaine.new_meshes.meshes import to_new_mesh
 
 class DistanceKernelFunction:
     exportable_settings = {}
@@ -17,27 +16,27 @@ class DistanceKernelFunction:
 
 def reflection():
     reference_mesh = cpt.mesh_parallelepiped(resolution=(8, 12, 9), name="reference_mesh")
-    half_mesh = reference_mesh.clipped(cpt.Plane(point=(0, 0, 0), normal=(1, 0, 0)))
-    return ReflectionSymmetricMesh(half=to_new_mesh(half_mesh), plane="yOz", name="new_simple_symmetric_mesh")
+    half_mesh = reference_mesh.clipped(origin=(0, 0, 0), normal=(1, 0, 0))
+    return ReflectionSymmetricMesh(half=half_mesh, plane="yOz", name="new_simple_symmetric_mesh")
 
 def nested_reflections():
     reference_mesh = cpt.mesh_parallelepiped(resolution=(8, 12, 9), name="reference_mesh")
-    half_mesh = reference_mesh.clipped(cpt.Plane(point=(0, 0, 0), normal=(1, 0, 0)))
-    quarter_mesh = half_mesh.clipped(cpt.Plane(point=(0, 0, 0), normal=(0, 1, 0)))
-    return ReflectionSymmetricMesh(half=ReflectionSymmetricMesh(half=to_new_mesh(quarter_mesh), plane="xOz"), plane="yOz", name="new_nested_symmetric_mesh")
+    half_mesh = reference_mesh.clipped(origin=(0, 0, 0), normal=(1, 0, 0))
+    quarter_mesh = half_mesh.clipped(origin=(0, 0, 0), normal=(0, 1, 0))
+    return ReflectionSymmetricMesh(half=ReflectionSymmetricMesh(half=quarter_mesh, plane="xOz"), plane="yOz", name="new_nested_symmetric_mesh")
 
 def rotation(n=4):
     reference_mesh = cpt.mesh_sphere(resolution=(20, 20), name="reference_mesh")
-    new_reference_mesh = to_new_mesh(reference_mesh)
+    new_reference_mesh = reference_mesh
     wedge = new_reference_mesh.extract_wedge(n=n)
     return RotationSymmetricMesh(wedge=wedge, n=n)
 
 # def rotation_of_reflection(n=4):
-#     half_sphere = to_new_mesh(cpt.mesh_sphere(center=(1.0, 0.0, 0.0), radius=0.2, resolution=(8, 8)).immersed_part()).clipped(origin=(1, 0, 0), normal=(0, 1, 0))
+#     half_sphere = cpt.mesh_sphere(center=(1.0, 0.0, 0.0), radius=0.2, resolution=(8, 8)).immersed_part().clipped(origin=(1, 0, 0), normal=(0, 1, 0))
 #     return RotationSymmetricMesh(ReflectionSymmetricMesh(half_sphere, plane="xOz"), n=n)
 #
 # def reflection_of_rotation(n=4):
-#     half_sphere = to_new_mesh(cpt.mesh_sphere(center=(1.0, 0.0, 0.0), radius=0.2, resolution=(8, 8)).immersed_part()).clipped(origin=(1, 0, 0), normal=(0, 1, 0))
+#     half_sphere = cpt.mesh_sphere(center=(1.0, 0.0, 0.0), radius=0.2, resolution=(8, 8)).immersed_part().clipped(origin=(1, 0, 0), normal=(0, 1, 0))
 #     return ReflectionSymmetricMesh(RotationSymmetricMesh(wedge=half_sphere, n=n), plane="xOz")
 
 def test(sym_mesh):

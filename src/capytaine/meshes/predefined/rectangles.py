@@ -1,22 +1,21 @@
 """Generate rectangular bodies."""
 # Copyright (C) 2017-2024 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
+
 import logging
 from itertools import product
 
 import numpy as np
 
-from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
 from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.symmetric import TranslationalSymmetricMesh, ReflectionSymmetricMesh
-from capytaine.meshes.collections import CollectionOfMeshes
+from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
 
 LOG = logging.getLogger(__name__)
 
 def mesh_rectangle(*, size=(5.0, 5.0), center=(0.0, 0.0, 0.0),
         resolution=(5, 5), faces_max_radius=None,
         normal=(0.0, 0.0, 1.0),
-        translation_symmetry=False, reflection_symmetry=False,
+        reflection_symmetry=False,
         name=None):
     """One-sided rectangle.
 
@@ -36,8 +35,6 @@ def mesh_rectangle(*, size=(5.0, 5.0), center=(0.0, 0.0, 0.0),
         changed to fit the constraint on the maximal radius.
     normal: 3-ple of floats, optional
         normal vector, default: (0, 0, 1)
-    translation_symmetry : bool, optional
-        if True, use the translation symmetry to speed up the computations
     reflection_symmetry : bool, optional
         if True, use the reflection symmetry to speed up the computations
     name : string, optional
@@ -62,33 +59,21 @@ def mesh_rectangle(*, size=(5.0, 5.0), center=(0.0, 0.0, 0.0),
             nw = int(np.ceil(width / (np.sqrt(2) * faces_max_radius)))
             nh = int(np.ceil(height / (np.sqrt(2) * faces_max_radius)))
 
-    if name is None:
-        name = f"rectangle_{next(Mesh._ids)}"
-
-    if translation_symmetry and reflection_symmetry:
-        raise NotImplementedError("Rectangle generation with both reflection and translation symmetries "
-                                  "has not been implemented.")
-
     if reflection_symmetry:
         if nw % 2 == 1:
-            raise ValueError("To use the reflection symmetry of the mesh, "
+            raise ValueError("To define a rectangle mesh with reflection symmetry, "
                              "it should have an even number of panels in this direction.")
 
-        half_mesh = mesh_rectangle(size=(width/2, height), resolution=(nw//2, nh),
-                                   center=(0, -width/4, 0), normal=(0.0, 0.0, 1.0),
-                                   translation_symmetry=False, reflection_symmetry=False,
-                                   name=f"half_of_{name}")
-        mesh = ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=name)
+        if not np.isclose(center[1], 0.0) or not np.isclose(normal[1], 0.0):
+            raise ValueError("To define a rectangle mesh with reflection symmetry, "
+                             "its center should be in the xOz plane (that is y=0) "
+                             "and so should also be its normal vector.")
 
-    elif translation_symmetry:
-            strip = mesh_rectangle(size=(width/nw, height), resolution=(1, nh),
-                                   center=(0, -width/2 + width/(2*nw), 0), normal=(0.0, 0.0, 1.0),
-                                   translation_symmetry=False, reflection_symmetry=False,
-                                   name=f"strip_of_{name}")
-            mesh = TranslationalSymmetricMesh(strip,
-                                              translation=np.asarray([0, width/nw, 0]),
-                                              nb_repetitions=int(nw)-1,
-                                              name=name)
+        half_mesh = mesh_rectangle(size=(width/2, height), resolution=(nw//2, nh),
+                                   center=(0, -width/4, 0), normal=normal,
+                                   reflection_symmetry=False,
+                                   name=f"half_of_{name}")
+        mesh = ReflectionSymmetricMesh(half_mesh, plane='xOz', name=name)
 
     else:
         y_range = np.linspace(-width/2, width/2, nw+1)
@@ -98,17 +83,15 @@ def mesh_rectangle(*, size=(5.0, 5.0), center=(0.0, 0.0, 0.0),
                              for (i, j) in product(range(nw), range(nh))])
 
         mesh = Mesh(nodes, panels, name=name)
+        mesh = mesh.rotated_such_that_vectors_are_aligned(mesh.faces_normals[0], normal)
 
-    mesh.heal_mesh()
-    mesh.translate(center)
-    mesh.rotate_around_center_to_align_vectors(center, mesh.faces_normals[0], normal)
-    mesh.geometric_center = np.asarray(center, dtype=float)
+    mesh = mesh.translated(center, name=name)
     return mesh
 
 
 def mesh_parallelepiped(size=(1.0, 1.0, 1.0), center=(0, 0, 0),
                         resolution=(4, 4, 4), faces_max_radius=None,
-                        missing_sides=set(), reflection_symmetry=False, translation_symmetry=False,
+                        missing_sides=set(), reflection_symmetry=False,
                         name=None):
     """Six rectangles forming a parallelepiped.
 
@@ -130,9 +113,6 @@ def mesh_parallelepiped(size=(1.0, 1.0, 1.0), center=(0, 0, 0),
         May be ignored when building a mesh with a symmetry.
     reflection_symmetry : bool, optional
         use xOz and yOz symmetry plane to generate the mesh
-    translation_symmetry : bool, optional
-        if True, use the translation symmetry in the x direction to speed up the computations.
-        To use the translation symmetry in the y direction, create a x-symmetric body and then rotate it by pi/2.
     name : string, optional
         a name for the body
     """
@@ -163,62 +143,25 @@ def mesh_parallelepiped(size=(1.0, 1.0, 1.0), center=(0, 0, 0),
             nth = int(np.ceil(thickness / (np.sqrt(2) * faces_max_radius)))
             nh = int(np.ceil(height / (np.sqrt(2) * faces_max_radius)))
 
-    if name is None:
-        name = f"rectangular_parallelepiped_{next(Mesh._ids)}"
-
-    if translation_symmetry and reflection_symmetry:
-        raise NotImplementedError("Parallelepiped generation with both reflection and translation symmetries "
-                                  "has not been implemented.")
-
     if reflection_symmetry:
         if (nw % 2 == 1 or nth % 2 == 1):
-            raise ValueError("To use the reflection symmetry of the mesh, "
-                             "it should have an even number of panels in this direction.")
+            raise ValueError("To define a parallelepiped mesh with reflection symmetry, "
+                             "it should have an even number of panels in both direction.")
+
+        if not np.isclose(center[0], 0.0) or not np.isclose(center[1], 0.0):
+            raise ValueError("To define a rectangle mesh with reflection symmetry, "
+                             "its center should be on the Oz axis (that is x=0 and y=0).")
 
         missing_sides_in_quarter = missing_sides | {"right", "back"}
         quarter_mesh = mesh_parallelepiped(
                 size=(width/2, thickness/2, height), resolution=(nw//2, nth//2, nh),
                 center=(-width/4, -thickness/4, 0), missing_sides=missing_sides_in_quarter,
-                reflection_symmetry=False, translation_symmetry=False,
+                reflection_symmetry=False,
                 name=f"quarter_of_{name}"
                 )
 
-        half_mesh = ReflectionSymmetricMesh(quarter_mesh, plane=yOz_Plane, name=f"half_of_{name}")
-        mesh = ReflectionSymmetricMesh(half_mesh, plane=xOz_Plane, name=f"{name}")
-
-    elif translation_symmetry:
-
-        missing_sides_in_strip = missing_sides | {"left", "right"}
-        strip = mesh_parallelepiped(
-                size=(width/nw, thickness, height), resolution=(1, nth, nh),
-                center=(-width/2 + width/(2*nw), 0, 0), missing_sides=missing_sides_in_strip,
-                reflection_symmetry=False, translation_symmetry=False,
-                name=f"strip_of_{name}"
-                )
-
-        open_parallelepiped = TranslationalSymmetricMesh(
-            strip,
-            translation=(width/nw, 0, 0), nb_repetitions=int(nw)-1,
-            name=f"body_of_{name}"
-        )
-
-        components_of_mesh = [open_parallelepiped]
-        if "right" not in missing_sides:
-            components_of_mesh.append(
-                    mesh_rectangle(
-                        size=(thickness, height), resolution=(nth, nh),
-                        center=(width/2, 0, 0), normal=(1, 0, 0),
-                        name=f"right_side_of_{name}"
-                        ))
-        if "left" not in missing_sides:
-            components_of_mesh.append(
-                    mesh_rectangle(
-                        size=(thickness, height), resolution=(nth, nh),
-                        center=(-width/2, 0, 0), normal=(-1, 0, 0),
-                        name=f"left_side_of_{name}"
-                        ))
-
-        mesh = CollectionOfMeshes(components_of_mesh, name=name)
+        half_mesh = ReflectionSymmetricMesh(quarter_mesh, plane='yOz', name=f"half_of_{name}")
+        mesh = ReflectionSymmetricMesh(half_mesh, plane='xOz', name=f"{name}")
 
     else:
 
@@ -253,9 +196,7 @@ def mesh_parallelepiped(size=(1.0, 1.0, 1.0), center=(0, 0, 0),
                     mesh_rectangle(size=(thickness, width), resolution=(nth, nw), center=(0, 0, -height/2),
                         normal=(0, 0, -1), name=f"bottom_of_{name}")
                     )
-        mesh = CollectionOfMeshes(sides, name=name).merged()
+        mesh = Mesh.join_meshes(*sides, name=name)
 
-    mesh.heal_mesh()
-    mesh.translate(center)
-    mesh.geometric_center = np.asarray(center, dtype=float)
+    mesh = mesh.translated(center, name=name)
     return mesh
