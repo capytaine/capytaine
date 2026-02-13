@@ -5,9 +5,6 @@ cpt.set_logging("INFO")
 
 radius = 12.5
 draught = 37.5
-n_radius = 15
-n_theta = 25
-n_z = 30
 
 # Define the range of frequencies to solve
 omega_range = np.linspace(1.5, 2.25, 50)

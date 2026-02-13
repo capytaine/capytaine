@@ -130,6 +130,8 @@ installed independently)::
     r1 = 0.88
     r2 = 0.35
     with pygmsh.occ.Geometry() as geom:
+        geom.characteristic_length_min = 0.05
+        geom.characteristic_length_max = 0.1
         cyl = geom.add_cylinder([0, 0, 0], [0, 0, -T1],  r1)
         cone = geom.add_cone([0, 0, -T1], [0, 0, -T2], r1, r2)
         geom.translate(cyl, [0, 0, offset])
