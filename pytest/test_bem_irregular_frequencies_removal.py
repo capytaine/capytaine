@@ -244,11 +244,9 @@ def test_lid_with_nested_plane_symmetry():
     S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
                                         free_surface=pb.free_surface, water_depth=pb.water_depth,
                                         wavenumber=pb.wavenumber)
-    from capytaine.tools.block_circulant_matrices import BlockCirculantMatrix
-    assert isinstance(S, BlockCirculantMatrix)
-    assert isinstance(S.blocks[0], BlockCirculantMatrix)
-    assert isinstance(K, BlockCirculantMatrix)
-    assert isinstance(K.blocks[0], BlockCirculantMatrix)
+    from capytaine.tools.block_circulant_matrices import NestedBlockCirculantMatrix
+    assert isinstance(S, NestedBlockCirculantMatrix)
+    assert isinstance(K, NestedBlockCirculantMatrix)
 
     res = solver.solve(pb)
 
