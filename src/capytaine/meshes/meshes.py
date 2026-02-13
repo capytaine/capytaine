@@ -209,7 +209,7 @@ class Mesh(AbstractMesh):
             If True, display normal vectors on each face.
         **kwargs
             Additional keyword arguments passed to the visualization backend.
-            See :mod:`~capytaine.new_meshes.visualization`
+            See :mod:`~capytaine.meshes.visualization`
 
         Returns
         -------
@@ -646,7 +646,7 @@ class Mesh(AbstractMesh):
         Mesh
             lid of internal surface
         """
-        from capytaine.new_meshes.predefined.rectangles import mesh_rectangle
+        from capytaine.meshes.predefined.rectangles import mesh_rectangle
 
         LOG.debug(f"Generating lid for {self.__str__()}")
 

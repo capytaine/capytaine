@@ -7,7 +7,7 @@ import logging
 import numpy as np
 from numpy import pi
 
-from capytaine.new_meshes.symmetric_meshes import RotationSymmetricMesh
+from capytaine.meshes.symmetric_meshes import RotationSymmetricMesh
 
 LOG = logging.getLogger(__name__)
 

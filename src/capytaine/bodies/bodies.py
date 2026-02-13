@@ -11,9 +11,9 @@ from typing import Literal
 import numpy as np
 import xarray as xr
 
-from capytaine.new_meshes.abstract_meshes import AbstractMesh
-from capytaine.new_meshes.meshes import Mesh
-from capytaine.new_meshes.geometry import connected_components, connected_components_of_waterline
+from capytaine.meshes.abstract_meshes import AbstractMesh
+from capytaine.meshes.meshes import Mesh
+from capytaine.meshes.geometry import connected_components, connected_components_of_waterline
 from capytaine.bodies.dofs import (
         AbstractDof,
         TranslationDof,

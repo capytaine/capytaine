@@ -3,8 +3,8 @@ import pytest
 import numpy as np
 import capytaine as cpt
 
-from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh
-from capytaine.new_meshes.predefined import mesh_parallelepiped, mesh_rectangle, mesh_vertical_cylinder, mesh_horizontal_cylinder
+from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
+from capytaine.meshes.predefined import mesh_parallelepiped, mesh_rectangle, mesh_vertical_cylinder, mesh_horizontal_cylinder
 
 def test_irr_freq_warning_no_lid():
     mesh = mesh_parallelepiped(size=(1, 1, 1)).immersed_part()

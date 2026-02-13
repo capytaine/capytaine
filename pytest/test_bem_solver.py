@@ -6,7 +6,7 @@ import xarray as xr
 import capytaine as cpt
 from capytaine import __version__
 
-from capytaine.new_meshes.symmetric_meshes import ReflectionSymmetricMesh
+from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
 
 @pytest.fixture
 def sphere():

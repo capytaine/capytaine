@@ -3,8 +3,8 @@ import logging
 import pytest
 import numpy as np
 
-import capytaine.new_meshes as meshes
-from capytaine.new_meshes.quality import (
+import capytaine.meshes as meshes
+from capytaine.meshes.quality import (
     indices_of_non_convex_faces,
     indices_of_non_coplanar_faces,
 )

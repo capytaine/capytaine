@@ -86,6 +86,8 @@ Bug fixes
 * Fix the frequency type in the dimensions of the dataset returned by :meth:`~cpt.io.xarray.kochin_data_array`. Previously, the dimension was always named ``omega``;
   it is now named ``omega``, ``freq``, ``period``,  ``wavenumber`` or ``wavelength`` depending on the user settings.
 
+* Fix a bug when computing the Kochin function on a mesh with a lid. The Kochin function now also takes the faces on the lid into account. (:issue:`833`)
+
 Internals
 ~~~~~~~~~
 
@@ -126,6 +128,9 @@ Internals
   arguments called ``rotation_center`` and ``direction`` instead of an ``Axis``
   object. Also the geometric center is not used anymore as a fallback value for
   ``rotation_center``.
+
+* The S matrix can now be computed even if the K matrix is not defined, 
+  for example when evaluating the :meth:`~capytaine.bem.solver.compute_free_surface_elevation` along the waterline. 
 
 ---------------------------------
 New in version 2.3.1 (2025-10-14)

@@ -16,8 +16,8 @@ import os
 import lzma
 import pytest
 
-from capytaine.new_meshes.io import load_mesh
-from capytaine.new_meshes import Mesh
+from capytaine.meshes.io import load_mesh
+from capytaine.meshes import Mesh
 
 def test_load_directly_from_trimesh(tmp_path):
     """
