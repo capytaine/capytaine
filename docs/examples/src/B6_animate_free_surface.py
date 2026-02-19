@@ -1,44 +1,60 @@
+from time import sleep
+import numpy as np
 import capytaine as cpt
-from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
-from capytaine.ui.vtk.animation import Animation
+from vedo import Plotter, Text2D, Mesh, Video
+from capytaine.bem.airy_waves import airy_waves_free_surface_elevation, airy_waves_pressure
 
-cpt.set_logging('INFO')
-
-# Generate the mesh of a sphere
-
-full_mesh = cpt.mesh_sphere(radius=3, center=(0, 0, 0), resolution=(20, 20))
-full_sphere = cpt.FloatingBody(mesh=full_mesh)
-full_sphere.add_translation_dof(name="Heave")
-
-# Keep only the immersed part of the mesh
-sphere = full_sphere.immersed_part()
-
-# Set up and solve problem
+omega = 3.0
+T = 2*np.pi/omega
+mesh = cpt.mesh_sphere(radius=3, center=(0, 0, 0), resolution=(20, 20))
+sphere = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(only=["Heave"])).immersed_part()
 solver = cpt.BEMSolver()
-
-diffraction_problem = cpt.DiffractionProblem(body=sphere, wave_direction=0.0, omega=2.0)
+diffraction_problem = cpt.DiffractionProblem(body=sphere, wave_direction=0.0, omega=omega)
 diffraction_result = solver.solve(diffraction_problem)
 
-radiation_problem = cpt.RadiationProblem(body=sphere, radiating_dof="Heave", omega=2.0)
-radiation_result = solver.solve(radiation_problem)
+free_surface_mesh = cpt.mesh_rectangle(size=(50.0, 50.0), center=(0.0, 0.0, 0.0), resolution=(100, 100))
 
-# Define a mesh of the free surface and compute the free surface elevation
-free_surface = cpt.FreeSurface(x_range=(-50, 50), y_range=(-50, 50), nx=150, ny=150)
-diffraction_elevation_at_faces = solver.compute_free_surface_elevation(free_surface, diffraction_result)
-radiation_elevation_at_faces = solver.compute_free_surface_elevation(free_surface, radiation_result)
+amplitude = 0.2
+diffraction_elevation_at_faces = amplitude*(
+        solver.compute_free_surface_elevation(free_surface_mesh.vertices, diffraction_result) +
+        airy_waves_free_surface_elevation(free_surface_mesh.vertices, diffraction_problem)
+        )
+pressure_on_sphere = amplitude*(
+        solver.compute_pressure(sphere.mesh.vertices, diffraction_result) +
+        airy_waves_pressure(sphere.mesh.vertices, diffraction_problem)
+        )
 
-# Add incoming waves
-diffraction_elevation_at_faces = diffraction_elevation_at_faces + airy_waves_free_surface_elevation(free_surface, diffraction_problem)
 
-# Run the animations
-animation = Animation(loop_duration=diffraction_result.period)
-animation.add_body(full_sphere, faces_motion=None)
-animation.add_free_surface(free_surface, faces_elevation=0.5*diffraction_elevation_at_faces)
-animation.run(camera_position=(-30, -30, 30))  # The camera is oriented towards (0, 0, 0) by default.
-# animation.save("path/to/the/video/file.ogv", camera_position=(-30, -30, 30))
+duration = 3*T
+fps = 24
+video = Video("vedo_video.mp4", duration=duration, fps=fps)
 
-animation = Animation(loop_duration=radiation_result.period)
-animation.add_body(full_sphere, faces_motion=full_sphere.dofs["Heave"])
-animation.add_free_surface(free_surface, faces_elevation=3.0*radiation_elevation_at_faces)
-animation.run(camera_position=(-30, -30, 30))
-# animation.save("path/to/the/video/file.ogv", camera_position=(-30, -30, 30))
+txt = Text2D(font='Brachium', pos='bottom-left', bg='yellow5')
+vedo_sphere = Mesh([sphere.mesh.vertices, sphere.mesh.faces])
+vedo_fs = Mesh([free_surface_mesh.vertices, free_surface_mesh.faces])
+
+cam = dict(
+    pos=(-30.0, -30.0, -30.0),
+    viewup=(0, 0, 1),
+)
+plt = Plotter(axes=1, size=(1000,700), interactive=False)
+plt.show(vedo_sphere, vedo_fs, txt, "diffracted wave", camera=cam)
+
+t_range = np.linspace(0.0, duration, int(duration*fps))
+for t in t_range:
+    wave = np.real(diffraction_elevation_at_faces * np.exp(-1j*omega * t)).ravel()
+    pressure = np.real(pressure_on_sphere * np.exp(-1j*omega * t)).ravel()
+    vedo_fs.cmap("Blues", wave, vmin=-np.abs(diffraction_elevation_at_faces).max(), vmax=np.abs(diffraction_elevation_at_faces).max())
+    vedo_sphere.cmap("RdBu_r", pressure, vmin=-np.abs(pressure_on_sphere).max(), vmax=np.abs(pressure_on_sphere).max())
+    txt.text(f"time: {t/T:.2f} period")
+    # newpts = grid.points
+    # newpts[:, 2] = wave
+    # grid.points = newpts
+    new_pts = vedo_fs.vertices
+    new_pts[:, 2] = wave
+    vedo_fs.vertices = new_pts
+    plt.render()
+    video.add_frame()
+
+video.close()
+plt.close()
