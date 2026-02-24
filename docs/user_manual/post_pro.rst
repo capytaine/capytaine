@@ -270,3 +270,31 @@ Alternatively, if the ``test_matrix`` of
 :func:`~capytaine.bem.solver.BEMSolver.fill_dataset` contains a coordinate called
 ``theta``, it is used to compute the Kochin function of all solved problems
 (see cookbook example).
+
+Mean drift forces
+-----------------
+
+The horizontal mean drift forces can be computed using the function :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force`, 
+here is an example::
+
+    import numpy as np
+    import xarray as xr
+    import capytaine as cpt 
+    from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force
+
+    mesh = cpt.mesh_sphere().immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
+    body.inertia_matrix = body.compute_rigid_body_inertia()
+    body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
+    solver = cpt.BEMSolver()
+    k = [1.16, 1.24, 1.39]
+    theta = np.linspace(0, 2*np.pi, 10)
+    test_matrix = xr.Dataset(coords={
+                'wavenumber': k , 
+                'wave_direction' : 0,
+                'theta': theta, 
+                'radiating_dof': list(body.dofs.keys())
+            })
+    dataset = solver.fill_dataset(test_matrix, body, hydrostatics=True)
+    X = cpt.post_pro.rao(dataset)
+    mean_drift_forces = far_field_mean_drift_force(X, dataset)

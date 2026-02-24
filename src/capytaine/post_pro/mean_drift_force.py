@@ -5,7 +5,23 @@
 import numpy as np
 import xarray as xr
 
-def far_field_formulation(X, dataset):
+def far_field_mean_drift_force(X, dataset):
+    """Compute the mean drift forces using far field formulation. 
+    Note that the forces are proportional to the square of the wave amplitude, but this implementation 
+    does not take into account the wave amplitude. 
+
+    Parameters
+    ----------
+    X : xarray DataArray
+        The motion RAO. 
+    dataset : xarray Dataset
+        This function supposes that variables named 'kochin_diffraction' and 'kochin_radiation' are in the dataset.
+
+    Returns
+    -------
+    xarray Dataset
+        The horizontal mean drift forces, depending on omega and the wave direction. 
+    """
     omega = dataset['omega']
     k = dataset['wavenumber']
     h = dataset['water_depth']
@@ -17,7 +33,7 @@ def far_field_formulation(X, dataset):
 
     H_rad_tot = sum(H_rad.sel(radiating_dof=d)*X.sel(radiating_dof=d) for d in X.radiating_dof) 
     H_tot = np.exp(1j*np.pi/2)*(H_diff + H_rad_tot)
-    H_beta = H_tot.sel(theta=beta) #assumes that wave direction is in the list of angle passed to the Kochin function 
+    H_beta = H_tot.interp(theta=beta)  
 
     coef1 = 2*np.pi*rho*omega
     if h == np.inf:
