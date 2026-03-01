@@ -25,7 +25,7 @@ from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, Diffr
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.memory_monitor import MemoryMonitor
-from capytaine.tools.optional_imports import silently_import_optional_dependency
+from capytaine.tools.optional_imports import silently_import_optional_dependency, import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
 from capytaine.tools.timer import Timer
@@ -425,8 +425,32 @@ class BEMSolver:
                             f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
                             + recommendation
                             )
+                
+    def dispatch(self, problems, memory, n_cpu=None):
+        """Manage the allocation of threads and processes based on the available RAM (in GB)."""
+        joblib = import_optional_dependency("joblib")
 
-    def _check_ram(self,problems, n_jobs = 1):
+        if not isinstance(problems, (list, tuple)):
+            problems = [problems]
+
+        estimated_memory_per_job = max(self.engine.compute_ram_estimation(pb) for pb in problems)
+        max_jobs = min(int(memory // estimated_memory_per_job), 20) 
+        if max_jobs == 0:
+            LOG.warning(f"The given memory: {memory} GB might be not enough for the computation.")
+            max_jobs = 1
+
+        if n_cpu is None:
+            n_cpu = joblib.cpu_count(only_physical_cores=True)
+
+        nb_threads_per_jobs = int(n_cpu // max_jobs) if n_cpu is not None else None
+        if nb_threads_per_jobs == 0:
+            while nb_threads_per_jobs == 0:
+                max_jobs -= 1
+                nb_threads_per_jobs = int(n_cpu // max_jobs)
+
+        return {"n_jobs": max_jobs, "n_threads": nb_threads_per_jobs}
+
+    def _check_ram(self,problems, n_jobs=1):
         """Display a warning if the RAM estimation is larger than a certain limit."""
         LOG.debug("Check RAM estimation.")
         psutil = silently_import_optional_dependency("psutil")
