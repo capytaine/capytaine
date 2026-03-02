@@ -79,6 +79,9 @@ class DofOnSubmesh(AbstractDof):
         motion[self.faces, :] = self.dof.evaluate_motion(mesh.extract_faces(self.faces))
         return motion
 
+    def evaluate_motion_at_points(self, points):
+        raise NotImplementedError()
+
     def evaluate_gradient_of_motion(self, mesh) -> np.array:
         grad = np.zeros((mesh.nb_faces, 3, 3))
         grad[self.faces, :, :] = self.dof.evaluate_gradient_of_motion(mesh.extract_faces(self.faces))

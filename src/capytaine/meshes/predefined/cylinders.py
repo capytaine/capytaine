@@ -87,7 +87,7 @@ def mesh_disk(*, radius=1.0, center=(0, 0, 0), normal=(0, 0, 1),
         panels = np.array([(j+i*(ntheta+1), j+1+i*(ntheta+1), j+1+(i+1)*(ntheta+1), j+(i+1)*(ntheta+1))
                                 for (i, j) in product(range(0, nr), range(0, ntheta))])
 
-        mesh = Mesh(nodes, panels, name=name, auto_check=False, auto_clean=False)
+        mesh = Mesh(nodes, panels, name=name, auto_check=False)
 
     mesh = mesh.rotated_such_that_vectors_are_aligned(mesh.faces_normals[0], normal)
     mesh = mesh.translated(center, name=name)
@@ -184,7 +184,7 @@ def mesh_vertical_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
         panels = np.array([(j+i*(ntheta+1), j+(i+1)*(ntheta+1), j+1+(i+1)*(ntheta+1), j+1+i*(ntheta+1), )
                                 for (i, j) in product(range(nz+2*(len(r_range))), range(ntheta))])
 
-        mesh = Mesh(nodes, panels, name=name, auto_check=False, auto_clean=False)
+        mesh = Mesh(nodes, panels, name=name, auto_check=False)
 
     mesh = mesh.translated(center, name=name)
     return mesh
@@ -267,7 +267,7 @@ def mesh_horizontal_cylinder(*, length=10.0, radius=1.0, center=(0, 0, 0),
         panels = np.array([(i+j*(ntheta+1), i+1+j*(ntheta+1), i+1+(j+1)*(ntheta+1), i+(j+1)*(ntheta+1))
                             for (i, j) in product(range(ntheta), range(nx))])
 
-        mesh = Mesh(nodes, panels, name=f"open_{name}", auto_check=False, auto_clean=False)
+        mesh = Mesh(nodes, panels, name=f"open_{name}", auto_check=False)
 
         if nr > 0:
             side = mesh_disk(radius=radius, center=(-length/2, 0, 0), normal=(-1, 0, 0),
