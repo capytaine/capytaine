@@ -88,6 +88,8 @@ Bug fixes
 
 * Fix a bug when computing the Kochin function on a mesh with a lid. The Kochin function now also takes the faces on the lid into account. (:issue:`833`)
 
+* Fix WAMIT output in ``.1`` file where 0 and infinite frequency added mass where interverted. (:pull:`855`)
+
 Internals
 ~~~~~~~~~
 
@@ -129,8 +131,8 @@ Internals
   object. Also the geometric center is not used anymore as a fallback value for
   ``rotation_center``.
 
-* The S matrix can now be computed even if the K matrix is not defined, 
-  for example when evaluating the :meth:`~capytaine.bem.solver.compute_free_surface_elevation` along the waterline. 
+* The S matrix can now be computed even if the K matrix is not defined,
+  for example when evaluating the :meth:`~capytaine.bem.solver.compute_free_surface_elevation` along the waterline.
 
 ---------------------------------
 New in version 2.3.1 (2025-10-14)
