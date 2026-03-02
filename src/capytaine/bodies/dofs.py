@@ -12,8 +12,16 @@ LOG = logging.getLogger(__name__)
 
 
 class AbstractDof(ABC):
-    @abstractmethod
+    @lru_cache
     def evaluate_motion(self, mesh):
+        if mesh.nb_faces == 0:
+            return np.empty((mesh.nb_faces, 3))
+        else:
+            return self.evaluate_motion_at_points(mesh.faces_centers)
+
+    @abstractmethod
+    def evaluate_motion_at_points(self, points):
+        # points is an array of shape (nb_points, 3)
         ...
 
     @abstractmethod
@@ -29,9 +37,8 @@ class TranslationDof(AbstractDof):
     def __str__(self):
         return f"TranslationDof(direction={self.direction})"
 
-    @lru_cache
-    def evaluate_motion(self, mesh) -> np.array:
-        return np.tile(self.direction, (mesh.nb_faces, 1))
+    def evaluate_motion_at_points(self, points) -> np.array:
+        return np.tile(self.direction, (points.shape[0], 1))
 
     @lru_cache
     def evaluate_gradient_of_motion(self, mesh) -> np.array:
@@ -53,13 +60,8 @@ class RotationDof(AbstractDof):
     def __str__(self):
         return f"RotationDof(rotation_center={self.rotation_center}, direction={self.direction})"
 
-    @lru_cache
-    def evaluate_motion(self, mesh) -> np.array:
-        if mesh.nb_faces == 0:
-            return np.empty((mesh.nb_faces, 3))
-        else:
-            motion = np.cross(self.direction, mesh.faces_centers - self.rotation_center)
-            return motion
+    def evaluate_motion_at_points(self, points) -> np.array:
+        return np.cross(self.direction, points - self.rotation_center)
 
     @lru_cache
     def evaluate_gradient_of_motion(self, mesh) -> np.array:
