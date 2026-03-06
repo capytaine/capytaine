@@ -35,6 +35,9 @@ def far_field_mean_drift_force(X, dataset):
     H_tot = np.exp(1j*np.pi/2)*(H_diff + H_rad_tot)
     H_beta = H_tot.interp(theta=beta)  
 
+    H_derivative = H_tot.differentiate("theta") 
+    H_derivative_beta = H_derivative.interp(theta=beta)
+
     coef1 = 2*np.pi*rho*omega
     if h == np.inf:
         coef2 = 2*np.pi*rho*k**2
@@ -61,4 +64,11 @@ def far_field_mean_drift_force(X, dataset):
         name='drift_force_sway'
         )
     
-    return xr.Dataset({Fx.name: Fx, Fy.name: Fy})
+    Mz = xr.DataArray(
+        data=coef1/k*np.real(H_derivative_beta) - coef2/k*(np.conjugate(H_tot) * H_derivative).integrate("theta"),
+        coords=coords,
+        dims=dims,
+        name='drift_force_yaw'
+        )
+    
+    return xr.Dataset({Fx.name: Fx, Fy.name: Fy, Mz.name: Mz})
