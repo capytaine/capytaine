@@ -45,9 +45,11 @@ def test_lid_concave_body():
         gmsh_mesh = geom.generate_mesh(dim=2)
     mesh, _ = cpt.load_mesh(gmsh_mesh).extract_lid()  # Remove existing lid to generate a new one
     lid_mesh = mesh.generate_lid()
-    def in_crown(x, y):
+    def in_crowns(x, y):
         return (np.hypot(x, y) < 1.0) | (np.hypot(x-d, y) < 1.0)
-    assert all(in_crown(lid_mesh.faces_centers[:, 0], lid_mesh.faces_centers[:, 1]))
+    assert all(in_crowns(lid_mesh.vertices[:, 0], lid_mesh.vertices[:, 1]))
+    # Issue: even when all four vertices of a face are in the crowns,
+    # part of the face (including its center) might be outside, because of the concavity of the crowns.
 
 
 def test_lid_non_simply_connected_crown():
