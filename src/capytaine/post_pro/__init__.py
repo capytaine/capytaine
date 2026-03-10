@@ -4,3 +4,4 @@
 from capytaine.post_pro.rao import rao
 from capytaine.post_pro.impedance import impedance, rao_transfer_function
 from capytaine.post_pro.kochin import compute_kochin
+from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force
