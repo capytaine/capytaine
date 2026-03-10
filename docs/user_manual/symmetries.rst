@@ -43,16 +43,17 @@ Four kind of symmetries are supported by Capytaine:
         meridian_points = np.array([(np.sqrt(1-z**2), 0.0, z) for z in np.linspace(-1.0, 1.0, 10)])
         sphere = cpt.RotationSymmetricMesh.from_profile_points(meridian_points, n=10)
 
-..
-    * **Dihedral symmetry** is the combination of a plane symmetry and the rotation symmetry.
 
-        It is defined by nesting a ``RotationSymmetricMesh`` into a ``ReflectionSymmetricMesh``::
+* **Dihedral symmetry** is the combination of a plane symmetry and the rotation symmetry.
 
-            half_wedge = cpt.load_mesh(...)
-            inner_mesh = cpt.RotationSymmetricMesh(half_wedge, n=4)
-            mesh = cpt.ReflectionSymmetricMesh(half=inner_mesh, plane="xOz")
+    It is defined by nesting a ``ReflectionSymmetricMesh`` into ``RotationSymmetricMesh``::
 
-        The nesting in the other order is supported, but not as efficient.
+        half_wedge = cpt.load_mesh(...)
+        wedge = cpt.ReflectionSymmetricMesh(half_wedge, plane="xOz")
+        mesh = cpt.RotationSymmetricMesh(half=wedge, n=4)
+
+    The converse of nesting a ``RotationSymmetricMesh`` into a ``ReflectionSymmetricMesh`` is not currently implemented (but could be in the future).
+
 
 Manipulating a symmetric mesh
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -111,6 +112,7 @@ Asymptotically for large problems:
 | 1 plane symmetry    | 1/2             | 1/2       |
 | 2 plane symmetries  | 1/4             | 1/4       |
 | n rotation symmetry | 1/n             | 1/n       |
+| n dihedral symmetry | 1/(2n)          | 1/n       |
 +---------------------+-----------------+-----------+
 
 Note that the theoretical performance gain described above might not be reached

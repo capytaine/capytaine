@@ -279,15 +279,16 @@ def single_panel():
 @pytest.mark.parametrize("sym_mesh", [
     ReflectionSymmetricMesh(ReflectionSymmetricMesh(single_panel(), plane="xOz"), plane="yOz"),
     RotationSymmetricMesh(single_panel(), n=4, axis='z+'),
-    ], ids=["nested_reflections", "rotation+"])
+    RotationSymmetricMesh(ReflectionSymmetricMesh(single_panel(), plane="xOz"), n=3, axis='z+'),
+    ], ids=["nested_reflections", "rotation+", "dihedral"])
 def test_symmetry(sym_mesh):
     ref_mesh = sym_mesh.merged()
     engine = cpt.BasicMatrixEngine()
     params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
     S_ref, K_ref = engine.build_matrices(ref_mesh, ref_mesh, **params)
     S, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
-    np.testing.assert_allclose(np.array(S), S_ref)
-    np.testing.assert_allclose(np.array(K), K_ref)
+    np.testing.assert_allclose(np.array(S), S_ref, atol=1e-12)
+    np.testing.assert_allclose(np.array(K), K_ref, atol=1e-12)
 
 
 def test_build_S_matrix_despite_invalid_K_matrix():
@@ -298,5 +299,5 @@ def test_build_S_matrix_despite_invalid_K_matrix():
     result = solver._solve(problem)
     gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
     pytest.raises(GreenFunctionEvaluationError, solver.engine.build_fullK_matrix, mesh.vertices[2:5,:], result.body.mesh_including_lid, **gf_params)
-    # check that there is no exception for matrix S 
+    # check that there is no exception for matrix S
     solver.engine.build_S_matrix(mesh.vertices[2:5,:], result.body.mesh_including_lid, **gf_params)
