@@ -88,6 +88,7 @@ Main differences
   The user interface has been changed since the experimental methods from previous versions.
   See :class:`~capytaine.meshes.symmetric_meshes.RotationSymmetricMesh`.
   The method to create a symmetric mesh from a profile of points has also changed, see :meth:`~capytaine.meshes.symmetric_meshes.RotationSymmetricMesh.from_profile_points`.
+  Also the dihedral symmetry (nested reflection symmetry within a rotation symmetry) is now supported.
 
 * **Prototype translation symmetry has been removed.**
   As a consequence, the ``translation_symmetry`` arguments of the mesh generations functions has been removed.

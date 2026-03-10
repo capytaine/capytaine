@@ -64,6 +64,9 @@ Minor changes
   Also a rotation center should be passed, because the properties of the body
   (e.g. `center_of_mass`) cannot be accessed at that stage. (:pull:`838`)
 
+* Add function :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force` to compute the horizontal mean drift forces using far field formulation. 
+  Only the single-direction second-order term is currently implemented.
+
 Bug fixes
 ~~~~~~~~~
 
@@ -87,6 +90,8 @@ Bug fixes
   it is now named ``omega``, ``freq``, ``period``,  ``wavenumber`` or ``wavelength`` depending on the user settings.
 
 * Fix a bug when computing the Kochin function on a mesh with a lid. The Kochin function now also takes the faces on the lid into account. (:issue:`833`)
+
+* Fix WAMIT output in ``.1`` file where 0 and infinite frequency added mass where interverted. (:pull:`855`)
 
 Internals
 ~~~~~~~~~
@@ -129,8 +134,8 @@ Internals
   object. Also the geometric center is not used anymore as a fallback value for
   ``rotation_center``.
 
-* The S matrix can now be computed even if the K matrix is not defined, 
-  for example when evaluating the :meth:`~capytaine.bem.solver.compute_free_surface_elevation` along the waterline. 
+* The S matrix can now be computed even if the K matrix is not defined,
+  for example when evaluating the :meth:`~capytaine.bem.solver.compute_free_surface_elevation` along the waterline.
 
 ---------------------------------
 New in version 2.3.1 (2025-10-14)

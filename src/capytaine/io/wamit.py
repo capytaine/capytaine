@@ -229,8 +229,8 @@ def export_wamit_1(
 
     # Separate lines into blocks depending on period type
     period_blocks = {
-        "T_zero": [],  # period == 0    → omega = inf  → PER = -1
-        "T_inf": [],  # period == inf  → omega = 0    → PER = 0
+        "T_inf": [],  # period == inf  → omega = 0    → PER = -1
+        "T_zero": [],  # period == 0    → omega = inf  → PER = 0
         "T_regular": [],  # finite, non-zero periods
     }
 
@@ -249,12 +249,12 @@ def export_wamit_1(
                 A_norm = A / norm
 
                 if np.isclose(period, 0.0):
-                    # Case PER = -1 (omega = inf)
-                    line = f"{-1.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n"
+                    # Case PER = 0 (omega = inf)
+                    line = f"{0.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n"
                     period_blocks["T_zero"].append(line)
                 elif np.isinf(period):
-                    # Case PER = 0 (omega = 0)
-                    line = f"{0.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n"
+                    # Case PER = -1 (omega = 0)
+                    line = f"{-1.0:12.6e}\t{i_dof:5d}\t{j_dof:5d}\t{A_norm:12.6e}\n"
                     period_blocks["T_inf"].append(line)
                 else:
                     B = damping.sel(
@@ -274,8 +274,8 @@ def export_wamit_1(
 
     # Write to file
     with open(filename, "w") as f:
-        f.writelines(period_blocks["T_zero"])
         f.writelines(period_blocks["T_inf"])
+        f.writelines(period_blocks["T_zero"])
         f.writelines(sorted_lines)
 
 
