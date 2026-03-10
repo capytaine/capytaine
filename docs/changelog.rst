@@ -65,6 +65,7 @@ Minor changes
   (e.g. `center_of_mass`) cannot be accessed at that stage. (:pull:`838`)
 
 * Add function :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force` to compute the horizontal mean drift forces using far field formulation. 
+  Only the single-direction second-order term is currently implemented.
 
 Bug fixes
 ~~~~~~~~~
