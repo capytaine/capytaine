@@ -33,7 +33,7 @@ class Animation:
 
     def __init__(self, *, loop_duration, fps=24):
         self.duration = loop_duration
-        self.fps = 24
+        self.fps = fps
         self.components = []
 
 
