@@ -101,10 +101,10 @@ Main differences
 * If no name is provided, no generic name is given to the mesh, no name is used.
   Meshes' names are only useful to keep track of Python objects, since printing the full list of points and faces is not very convenient.
 
-* Default 3D display now uses ``pyvista`` as a backend instead of raw ``vtk``. Please consider installing ``pyvista``.
-  Animation support has not been implemented in this new backend yet, only static mesh viewing is available.
+* Default 3D display now uses `pyvista <https://docs.pyvista.org/>`_ as a backend instead of raw ``vtk``. Please consider installing ``pyvista``.
   The ``matplotlib`` backend is also still available for static mesh viewing.
   Some keyword argument might have been changed to uniformize usage of the two 3D backends.
+  Former animation tooling has been replaced with new tools using the `vedo <https://vedo.embl.es/>`_ library as a backend. They can be found in :mod:`~capytaine.ui.vedo_animations` with examples of usage in the cookbook.
 
 * The barely-used and barely-documented ``geometric_center`` attribute of the mesh and the bodies have been removed.
 
