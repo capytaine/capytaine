@@ -41,7 +41,7 @@ def _normalize_free_surface_points(points, keep_mesh=False):
     if keep_mesh and isinstance(points, (FloatingBody, FreeSurface)):
         return points.mesh, (points.mesh.nb_faces,)
 
-    if keep_mesh and isinstance(points, MeshLike):
+    if keep_mesh and isinstance(points, AbstractMesh):
         return points, (points.nb_faces,)
 
     points, output_shape = _normalize_points(points, keep_mesh)
