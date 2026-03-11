@@ -173,6 +173,14 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         return self.rotated_with_matrix(R, name=name)
     
     def edges_faces_water_line(self): 
+        """Extract the water line of the mesh.
+
+        Returns
+        -------
+        (np.ndarray, np.ndarray)
+            A tuple (edges, faces) where the edges are the edges of the water line (pairs of vertex indices) 
+            and the faces are the corresponding faces of the mesh that contain these edges (quadruplet of vertex indices).
+        """
         epsilon = 1e-6
         edges_water_line = []
         faces_water_line = []
@@ -186,16 +194,24 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
 
         return np.array(edges_water_line), np.array(faces_water_line)
     
+    @property
+    def nb_edges_waterline(self) -> int:
+        """Number of edges in the water line."""
+        return np.shape(self.edges_waterline)[0]
+    
     @cached_property
     def edges_waterline(self):
+        """Return an array with the edges of the water line as pairs of vertex indices with shape (nb_edges_waterline,2)."""
         return self.edges_faces_water_line()[0]
     
     @cached_property
     def faces_water_line(self):
+        """Return an array with the faces of the water line as quadruplets of vertex indices with shape (nb_edges_waterline,4)."""
         return self.edges_faces_water_line()[1]
     
     @cached_property
     def length_edges_water_line(self):
+        """Return an array with the lengths of the edges of the water line with shape (nb_edges_waterline,)."""
         edges = self.edges_waterline
         vertices_left = self.vertices[edges[:,0],:]
         vertices_right = self.vertices[edges[:,1],:]
@@ -203,6 +219,18 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         return length_water_line
     
     def water_line_integral(self, data):
+        """Returns integral of given data along the water line.
+
+        Parameters
+        ----------
+        data : np.ndarray
+            Values of the function to integrate, with shape (nb_edges_waterline,).
+
+        Returns
+        -------
+        float
+            Value of the integral. 
+        """
         return np.sum(self.length_edges_water_line*data)
 
     def mirrored(self, plane: Literal['xOz', 'yOz'], *, name=None) -> AbstractMesh:
