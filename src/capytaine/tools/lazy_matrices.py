@@ -41,7 +41,7 @@ class LazyMatrix:
         return np.concatenate(rows).astype(dtype)
 
     def __matmul__(self, other):
-        if isinstance(other, np.ndarray) and other.ndim == 1 and other.shape[0] == self.shape[0]:
+        if isinstance(other, np.ndarray) and other.ndim == 1 and other.shape[0] == self.shape[1]:
             # Only matrix-vector product is actually implemented
             # Compute `chunk_size` rows and multiply them by `other`
             output_chunks = [self.row_constructor(sl) @ other for sl in self._slices]
