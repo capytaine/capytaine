@@ -21,7 +21,7 @@ LOG = logging.getLogger(__name__)
 SHOWED_PYVISTA_WARNING = False
 
 
-def check_mesh_quality(mesh, *, tol=1e-8):
+def check_mesh_quality(mesh):
     """
     Perform a set of geometric and metric quality checks on mesh data.
 

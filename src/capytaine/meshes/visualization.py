@@ -295,6 +295,7 @@ def show_matplotlib(
         ax = fig.add_subplot(111, projection="3d")
         ax.set_box_aspect([1, 1, 1])  # Equal aspect ratio
 
+    from capytaine.meshes import Mesh  # Just for the typehint below
     all_meshes_in_scene: List[Mesh] = [mesh] if ghost_meshes is None else [mesh, *ghost_meshes]
 
     faces = []
