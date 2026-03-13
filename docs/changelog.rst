@@ -137,6 +137,8 @@ Internals
 * The S matrix can now be computed even if the K matrix is not defined,
   for example when evaluating the :meth:`~capytaine.bem.solver.compute_free_surface_elevation` along the waterline.
 
+* New function implemented :func:`~capytaine.meshes.water_line_integral` to compute the integral of a function along the water line of a mesh. 
+
 ---------------------------------
 New in version 2.3.1 (2025-10-14)
 ---------------------------------
