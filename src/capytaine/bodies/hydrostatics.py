@@ -58,14 +58,14 @@ class _HydrostaticsMixin(ABC):
     def transversal_metacentric_radius(self):
         """Returns transversal metacentric radius of the mesh."""
         immersed_mesh = self.mesh.immersed_part()
-        inertia_moment = -immersed_mesh.waterplane_integral(immersed_mesh.faces_centers[:,1]**2)
+        inertia_moment = immersed_mesh.waterplane_integral(immersed_mesh.quadrature_points[0][:,:,1]**2)
         return inertia_moment / self.disp_volume
 
     @property
     def longitudinal_metacentric_radius(self):
         """Returns longitudinal metacentric radius of the mesh."""
         immersed_mesh = self.mesh.immersed_part()
-        inertia_moment = -immersed_mesh.waterplane_integral(immersed_mesh.faces_centers[:,0]**2)
+        inertia_moment = immersed_mesh.waterplane_integral(immersed_mesh.quadrature_points[0][:,:,0]**2)
         return inertia_moment / self.disp_volume
 
     @property
@@ -178,25 +178,26 @@ class _HydrostaticsMixin(ABC):
                     xc, yc, zc = radiating_dof.rotation_center
 
             dof_pair = (influenced_dof._standard_name, radiating_dof._standard_name)
+            x = immersed_mesh.quadrature_points[0][:,:,0]
+            y = immersed_mesh.quadrature_points[0][:,:,1]
             if dof_pair == ("Heave", "Heave"):
                 norm_hs_stiff = immersed_mesh.waterplane_area
             elif dof_pair in [("Heave", "Roll"), ("Roll", "Heave")]:
-                norm_hs_stiff = -immersed_mesh.waterplane_integral(immersed_mesh.faces_centers[:,1] - yc)
+                norm_hs_stiff = immersed_mesh.waterplane_integral(y - yc)
             elif dof_pair in [("Heave", "Pitch"), ("Pitch", "Heave")]:
-                norm_hs_stiff = immersed_mesh.waterplane_integral(immersed_mesh.faces_centers[:,0] - xc)
+                norm_hs_stiff = -immersed_mesh.waterplane_integral(x - xc)
             elif dof_pair == ("Roll", "Roll"):
                 norm_hs_stiff = (
-                        -immersed_mesh.waterplane_integral((immersed_mesh.faces_centers[:,1] - yc)**2)
+                        immersed_mesh.waterplane_integral((y - yc)**2)
                         + immersed_mesh.volume*(immersed_mesh.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
                 )
             elif dof_pair in [("Roll", "Pitch"), ("Pitch", "Roll")]:
-                norm_hs_stiff = immersed_mesh.waterplane_integral((immersed_mesh.faces_centers[:,0] - xc)
-                                                          * (immersed_mesh.faces_centers[:,1] - yc))
+                norm_hs_stiff = -immersed_mesh.waterplane_integral((x - xc) * (y - yc))
             elif dof_pair == ("Roll", "Yaw"):
                 norm_hs_stiff = - immersed_mesh.volume*(immersed_mesh.center_of_buoyancy[0] - xc) + mass/rho*(self.center_of_mass[0] - xc)
             elif dof_pair == ("Pitch", "Pitch"):
                 norm_hs_stiff = (
-                        -immersed_mesh.waterplane_integral((immersed_mesh.faces_centers[:,0] - xc)**2)
+                        immersed_mesh.waterplane_integral((x - xc)**2)
                         + immersed_mesh.volume*(immersed_mesh.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
                         )
             elif dof_pair == ("Pitch", "Yaw"):
@@ -223,7 +224,8 @@ class _HydrostaticsMixin(ABC):
             influenced_dof_div_array = np.array(influenced_dof_div)
 
             radiating_dof_normal = immersed_self.dof_normals(radiating_dof)
-            z_influenced_dof_div = influenced_dof[:,2] + immersed_self.mesh.faces_centers[:,2] * influenced_dof_div_array
+            z = immersed_mesh.quadrature_points[0][:,:,2]
+            z_influenced_dof_div = influenced_dof[:, None, 2] + z * influenced_dof_div_array
             norm_hs_stiff = immersed_self.mesh.surface_integral( -radiating_dof_normal * z_influenced_dof_div)
 
         hs_stiff = rho * g * norm_hs_stiff
