@@ -32,7 +32,8 @@ class Animation:
     vedo = import_optional_dependency("vedo")
 
     def __init__(self, *, loop_duration, fps=24):
-        self.duration = loop_duration
+        self.loop_duration = loop_duration
+        self.omega = 2 * np.pi / self.loop_duration
         self.fps = fps
         self.components = []
 
@@ -81,12 +82,12 @@ class Animation:
     def update(self, t):
         for component in self.components:
             if component.vertices_motion is not None:
-                motion = np.real(component.vertices_motion * np.exp(-1j * 2 * np.pi * t))
+                motion = np.real(component.vertices_motion * np.exp(-1j * self.omega * t))
                 new_pts = component.vedo_mesh.vertices
                 new_pts[:, :] = component.mean_mesh.vertices + motion[:, :]
                 component.vedo_mesh.vertices = new_pts
             if component.vertices_colors is not None:
-                colors = np.real(component.vertices_colors * np.exp(-1j * 2 * np.pi * t)).ravel()
+                colors = np.real(component.vertices_colors * np.exp(-1j * self.omega * t)).ravel()
                 component.vedo_mesh.cmap(component.cmap, colors, vmin=component.vmin, vmax=component.vmax)
 
 
@@ -101,7 +102,7 @@ class Animation:
             *[comp.vedo_mesh for comp in self.components],
             camera=camera
         )
-        t_range = np.linspace(0.0, self.duration, int(self.duration * self.fps))
+        t_range = np.linspace(0.0, self.loop_duration, int(self.loop_duration * self.fps))
         for t in t_range:
             self.update(t)
             plt.render()
@@ -115,13 +116,13 @@ class Animation:
         for k, v in _default_camera.items():
             camera.setdefault(k, v)
         kwargs.setdefault("size", resolution)
-        video = self.vedo.Video(filename, duration=self.duration, fps=self.fps)
+        video = self.vedo.Video(filename, duration=self.loop_duration, fps=self.fps)
         plt = self.vedo.Plotter(axes=1, interactive=False, **kwargs)
         plt.show(
             *[comp.vedo_mesh for comp in self.components],
             camera=camera
         )
-        t_range = np.linspace(0.0, self.duration, int(self.duration * self.fps))
+        t_range = np.linspace(0.0, self.loop_duration, int(self.loop_duration * self.fps))
         for t in t_range:
             self.update(t)
             video.add_frame()
