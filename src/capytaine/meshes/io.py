@@ -240,7 +240,7 @@ def _read_hst(file_obj: IOBase) -> Union[Mesh, ReflectionSymmetricMesh]:
     lines = file_obj.readlines()
 
     optional_keywords = ['PROJECT', 'SYMMETRY']
-    not_implemented_optional_keywords = ['USER', 'REFLENGTH', 'GRAVITY', 'RHO', 'NBBODY']
+    # not_implemented_optional_keywords = ['USER', 'REFLENGTH', 'GRAVITY', 'RHO', 'NBBODY']
 
     vertices = []
     faces = []
