@@ -23,8 +23,6 @@ from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
 from capytaine.green_functions.hams import LiangWuNoblesseGF, FinGreen3D, HAMS_GF
 
-from capytaine.post_pro.free_surfaces import FreeSurface
-
 from capytaine.io.xarray import assemble_dataframe, assemble_dataset, assemble_matrices, export_dataset
 
 from capytaine.ui.rich import set_logging
