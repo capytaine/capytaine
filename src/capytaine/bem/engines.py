@@ -14,6 +14,8 @@ from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationS
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction, GreenFunctionEvaluationError
 from capytaine.green_functions.delhommeau import Delhommeau
 
+from capytaine.tools.lazy_matrices import LazyMatrix
+from capytaine.tools.lists_of_points import _normalize_points
 from capytaine.tools.block_circulant_matrices import (
     BlockCirculantMatrix,
     NestedBlockCirculantMatrix,
@@ -128,14 +130,28 @@ class BasicMatrixEngine(MatrixEngine):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
-    def build_S_matrix(self, mesh1, mesh2, **gf_params) -> np.ndarray:
-        """Similar to :code:`build_matrices`, but returning only :math:`S`"""
-        # Calls directly evaluate instead of build_matrices because the caching
-        # mechanism of build_matrices is not compatible with giving mesh1 as a
-        # list of points, but we need that for post-processing
-        S, _ = self.green_function.evaluate(mesh1, mesh2, **gf_params)
-        check_if_nan_in_matrix([S])
-        return S
+    def build_S_matrix(self, points, mesh, **gf_params) -> np.ndarray:
+        """Similar to :code:`build_matrices`, but returning only :math:`S`
+
+        points: np.ndarray of shape (nb_collocations_points, 3)
+            List of collocation points. Usually went through `_normalize_points`.
+        """
+        def build_S_rows(slice_):
+            S, _ = self.green_function.evaluate(points[slice_, :], mesh, **gf_params)
+            check_if_nan_in_matrix([S])
+            return S
+
+        nb_points = points.shape[0]
+
+        if nb_points < 500:
+            return build_S_rows(slice(0, nb_points))  # Just the full matrix
+        else:
+            return LazyMatrix(
+                build_S_rows,
+                shape=(points.shape[0], mesh.nb_faces),
+                dtype=complex,
+                chunk_size=100
+            )
 
     def build_fullK_matrix(self, mesh1, mesh2, **gf_params) -> np.ndarray:
         """Similar to :code:`build_matrices`, but returning only full :math:`K`
