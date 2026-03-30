@@ -23,13 +23,26 @@ def slices(start, stop, chunk_size):
 class LazyMatrix:
     def __init__(self, row_constructor, shape, *, chunk_size=10, dtype=float):
         """
-        We assume that row_constructor(slice(n, n+m)) returns a numpy array of shape (m, d) corresponding to the m rows of indices between n and n+m.
+        A matrix (2D array) that is never fully stored in memory, but instead recomputed from a `row_constructor` method when required.
+
+        Parameters
+        ----------
+        row_constructor: callable
+            Function returning a numpy array containing a few rows of the matrix.
+            We assume that row_constructor(slice(n, n+m)) returns a numpy array of shape (m, d) corresponding to the m rows of indices between n and n+m.
+            The dtype of the output of row_constructor should match self.dtype.
+        shape: 2-ple of int
+            The shape of the matrix.
+        chunk_size: int
+            The number of row requested to row_constructor at each call.
+        dtype: numpy.dtype
+            The type of data contained in the matrix.
         """
         self.row_constructor: Callable[range, np.ndarray] = row_constructor
         self.shape = shape
-        self.ndim = 2
         self.chunk_size = chunk_size
         self.dtype = dtype
+        self.ndim = 2  # Other shapes not implemented
         self._slices = list(slices(0, self.shape[0], self.chunk_size))
 
     def __array__(self, dtype=None, copy=True):
@@ -48,3 +61,4 @@ class LazyMatrix:
             return np.concatenate(output_chunks)
         else:
             return NotImplemented
+            # Usually fallback on building the full matrix with __array__ above.
