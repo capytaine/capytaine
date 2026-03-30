@@ -64,7 +64,7 @@ Minor changes
   Also a rotation center should be passed, because the properties of the body
   (e.g. `center_of_mass`) cannot be accessed at that stage. (:pull:`838`)
 
-* Add function :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force` to compute the horizontal mean drift forces using far field formulation. 
+* Add function :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force` to compute the horizontal mean drift forces using far field formulation.
   Only the single-direction second-order term is currently implemented.
 
 Bug fixes
@@ -92,6 +92,9 @@ Bug fixes
 * Fix a bug when computing the Kochin function on a mesh with a lid. The Kochin function now also takes the faces on the lid into account. (:issue:`833`)
 
 * Fix WAMIT output in ``.1`` file where 0 and infinite frequency added mass where interverted. (:pull:`855`)
+
+* Computing the pressure or free surface elevation in post-processing does not allocate a very large matrix for a single matrix-vector product, but instead allocate and evaluate only a few rows of the matrix at a time (:pull:`860`).
+
 
 Internals
 ~~~~~~~~~
