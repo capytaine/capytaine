@@ -213,6 +213,9 @@ Bug fixes
 
 * Fix WAMIT output in ``.1`` file where 0 and infinite frequency added mass where interverted. (:pull:`855`)
 
+* Computing the pressure or free surface elevation in post-processing does not allocate a very large matrix for a single matrix-vector product, but instead allocate and evaluate only a few rows of the matrix at a time (:pull:`860`).
+
+
 Internals
 ~~~~~~~~~
 
