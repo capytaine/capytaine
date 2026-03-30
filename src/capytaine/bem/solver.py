@@ -375,24 +375,30 @@ class BEMSolver:
         risky_problems = [pb for pb in problems
                           if 0.0 < pb.wavelength < pb.body.minimal_computable_wavelength]
         nb_risky_problems = len(risky_problems)
+        if any(pb.body.lid_mesh is not None for pb in problems):
+            mesh_str = "mesh or lid_mesh"
+        else:
+            mesh_str = "mesh"
         if nb_risky_problems == 1:
             pb = risky_problems[0]
             freq_type = risky_problems[0].provided_freq_type
             freq = pb.__getattribute__(freq_type)
             LOG.warning(f"Mesh resolution for {pb}:\n"
-                        f"The resolution of the mesh of the body {pb.body.__short_str__()} might "
+                        f"The resolution of the {mesh_str} of body {pb.body.__short_str__()} might "
                         f"be insufficient for {freq_type}={freq}.\n"
-                        "This warning appears because the largest panel of this mesh "
-                        f"has radius {pb.body.mesh.faces_radiuses.max():.3f} > wavelength/8."
+                        f"This warning appears because the largest panel of the {mesh_str} "
+                        f"has radius ({pb.body.mesh_including_lid.faces_radiuses.max():.3f} m) > wavelength/8 ({pb.wavelength / 8:.3f} m)."
                         )
         elif nb_risky_problems > 1:
             freq_type = risky_problems[0].provided_freq_type
-            freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
+            risky_freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
+            risky_wavelengths = np.array([pb.wavelength for pb in risky_problems])
+            max_radius = max(pb.body.mesh_including_lid.faces_radiuses.max() for pb in risky_problems)
             LOG.warning(f"Mesh resolution for {nb_risky_problems} problems:\n"
-                        "The resolution of the mesh might be insufficient "
-                        f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
-                        "This warning appears when the largest panel of this mesh "
-                        "has radius > wavelength/8."
+                        f"The resolution of the {mesh_str} might be insufficient "
+                        f"for {freq_type} ranging from {risky_freqs.min():.3f} to {risky_freqs.max():.3f}.\n"
+                        f"This warning appears because the largest panel of the {mesh_str} "
+                        f"has radius ({max_radius:.3f} m) > wavelength/8 ({risky_wavelengths.min() / 8:.3f} to {risky_wavelengths.max() / 8:.3f} m)."
                         )
 
     @staticmethod
