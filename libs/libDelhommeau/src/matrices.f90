@@ -300,14 +300,14 @@ contains
         !!!!!!!!!!!!!!!!!!!
         S(I, J) = MINUS_ONE_OVER_FOURPI * int_G
 
-        if (size(K, 3) == 1) then  ! early_dot_product=True
+        if (size(K, 1) == 1) then  ! early_dot_product=True
           if (adjoint_double_layer) then
-            K(I, J, 1) = MINUS_ONE_OVER_FOURPI * DOT_PRODUCT(dot_product_normals(I, :), int_nablaG(:))
+            K(1, I, J) = MINUS_ONE_OVER_FOURPI * DOT_PRODUCT(dot_product_normals(I, :), int_nablaG(:))
           else
-            K(I, J, 1) = MINUS_ONE_OVER_FOURPI * DOT_PRODUCT(dot_product_normals(J, :), int_nablaG(:))
+            K(1, I, J) = MINUS_ONE_OVER_FOURPI * DOT_PRODUCT(dot_product_normals(J, :), int_nablaG(:))
           endif
         else
-          K(I, J, :) = MINUS_ONE_OVER_FOURPI * int_nablaG(:)
+          K(:, I, J) = MINUS_ONE_OVER_FOURPI * int_nablaG(:)
         endif
 
       end do  ! loop on I
@@ -330,8 +330,8 @@ contains
     integer        :: i
     real(kind=pre) :: diagonal_coef
 
-    n = size(K, 1)
-    m = size(K, 2)
+    n = size(K, 2)
+    m = size(K, 3)
 
     !$OMP PARALLEL DO PRIVATE(i, diagonal_coef)
     do i = 1, min(n, m)
@@ -341,10 +341,10 @@ contains
         diagonal_coef = ONE/2
       endif
 
-      if (size(K, 3) == 1) then  ! early_dot_product=True
-        K(i, i, 1) = K(i, i, 1) + diagonal_coef
+      if (size(K, 1) == 1) then  ! early_dot_product=True
+        K(1, i, i) = K(1, i, i) + diagonal_coef
       else
-        K(i, i, :) = K(i, i, :) + diagonal_coef * dot_product_normals(i, :)
+        K(:, i, i) = K(:, i, i) + diagonal_coef * dot_product_normals(i, :)
         ! if (.not. adjoint_double_layer) then we should have used the jth normal instead of the i-th,
         ! such that later the dot product with dot_product_normals(j, :) gives 1.
         ! Except that on the diagonal, i==j, so there is no need to branch based on adjoint_double_layer.
@@ -408,14 +408,14 @@ contains
 
         S(I, J) = S(I, J) + MINUS_ONE_OVER_FOURPI * int_G_Rankine
 
-        if (size(K, 3) == 1) then  ! early_dot_product=True
+        if (size(K, 1) == 1) then  ! early_dot_product=True
           if (adjoint_double_layer) then
-            K(I, J, 1) = K(I, J, 1) + MINUS_ONE_OVER_FOURPI * dot_product(dot_product_normals(I, :), int_nablaG_Rankine(:))
+            K(1, I, J) = K(1, I, J) + MINUS_ONE_OVER_FOURPI * dot_product(dot_product_normals(I, :), int_nablaG_Rankine(:))
           else
-            K(I, J, 1) = K(I, J, 1) + MINUS_ONE_OVER_FOURPI * dot_product(dot_product_normals(J, :), int_nablaG_Rankine(:))
+            K(1, I, J) = K(1, I, J) + MINUS_ONE_OVER_FOURPI * dot_product(dot_product_normals(J, :), int_nablaG_Rankine(:))
           endif
         else
-          K(I, J, :) = K(I, J, :) + MINUS_ONE_OVER_FOURPI * int_nablaG_Rankine(:)
+          K(:, I, J) = K(:, I, J) + MINUS_ONE_OVER_FOURPI * int_nablaG_Rankine(:)
         endif
       enddo
     enddo

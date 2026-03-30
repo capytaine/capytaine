@@ -545,8 +545,10 @@ class BEMSolver:
         gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
         with self.timer(step="Post-processing velocity"):
             gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, **gf_params)
-            velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
-        return velocities.reshape((*output_shape, 3))
+            # velocities = np.einsum('kij,j->ki', gradG, result.sources)  # Sum the contributions of all panels in the mesh
+            velocities = gradG @ result.sources  # Sum the contributions of all panels in the mesh
+            # velocities.shape = (3, nb_points)
+        return np.transpose(velocities).reshape((*output_shape, 3))
 
     def compute_velocity(self, points, result):
         """Compute the value of the velocity vector at given points for a previously solved potential flow problem.

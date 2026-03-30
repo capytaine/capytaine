@@ -25,7 +25,7 @@ class SymbolicMultiplication:
 
     def __array_function__(self, func, types, *args, **kwargs):
         actual_args = args[0]  # args = (actual_args, kwargs) for some reason
-        if func in {np.real, np.imag, np.sum} and len(actual_args) == 1 and len(kwargs) == 0:
+        if func in {np.real, np.imag, np.sum, np.transpose} and len(actual_args) == 1 and len(kwargs) == 0:
             return SymbolicMultiplication(self.symbol, func(self.value))
         elif (
                 func in {np.einsum} and

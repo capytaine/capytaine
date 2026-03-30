@@ -182,10 +182,10 @@ def test_low_freq_with_rankine_part_singularities():
     S1, K1 = gf1.evaluate(point, mesh, wavenumber=wavenumber, early_dot_product=False)
     S2, K2 = gf2.evaluate(point, mesh, wavenumber=wavenumber, early_dot_product=False)
     assert S1 == S2
-    assert np.allclose(K1[:, :, :2], K2[:, :, :2], atol=1e-12)
-    assert np.allclose(K1[:, :, 2].imag, K2[:, :, 2].imag, atol=1e-12)
-    assert not np.allclose(K1[0, 0, 2].real, K2[0, 0, 2].real, atol=1e-12)
-    assert np.allclose(K1[0, 0, 2].real, K2[0, 0, 2].real, atol=1e-1)
+    assert np.allclose(K1[:2, :, :], K2[:2, :, :], atol=1e-12)
+    assert np.allclose(K1[2, :, :].imag, K2[2, :, :].imag, atol=1e-12)
+    assert not np.allclose(K1[2, 0, 0].real, K2[2, 0, 0].real, atol=1e-12)
+    assert np.allclose(K1[2, 0, 0].real, K2[2, 0, 0].real, atol=1e-1)
 
 
 def test_liangwunoblesse_wave_term():
