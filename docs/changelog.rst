@@ -184,6 +184,9 @@ Minor changes
 * Add function :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force` to compute the horizontal mean drift forces using far field formulation.
   Only the single-direction second-order term is currently implemented.
 
+* **Breaking** The deprecated ``FreeSurface`` class and ``BEMSolver.get_potential_on_mesh`` and ``BEMSolver.get_free_surface_elevation`` methods have been removed.
+  They can be replaced by just any mesh representation of the free surface and the methods :meth:`~capytaine.bem.solver.BEMSolver.compute_potential` and :meth:`~capytaine.bem.solvr.BEMSolver.compute_free_surface_elevation`.
+
 Bug fixes
 ~~~~~~~~~
 
@@ -253,3 +256,5 @@ Internals
 
 * The S matrix can now be computed even if the K matrix is not defined,
   for example when evaluating the :meth:`~capytaine.bem.solver.compute_free_surface_elevation` along the waterline.
+
+* New function implemented :func:`~capytaine.meshes.water_line_integral` to compute the integral of a function along the water line of a mesh.
