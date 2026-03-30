@@ -5,9 +5,11 @@ Changelog
 This page is for changes introduced in versions 3.x of Capytaine.
 For older changelogs, see:
 
-* :doc:`changelog_from_2_to_3`
+.. toctree::
+   :maxdepth: 1
 
-* :doc:`changelog_before_2`
+   changelog_from_2_to_3
+   changelog_before_2
 
 
 
@@ -84,7 +86,7 @@ About the new mesh module
 
 * **Only a few built-in mesh loaders, but transparently use external libraries**
   Only the domain mesh file formats (Nemoh's, WAMIT's, Hydrostar's and HAMS's) are built-in in Capytaine.
-  Loading a mesh in a general purpose file format such as GMSH or STL is still easy, assuming a third party library supporting this file format is installed (see :doc:`mesh`).
+  Loading a mesh in a general purpose file format such as GMSH or STL is still easy, assuming a third party library supporting this file format is installed (see :doc:`user_manual/mesh`).
 
 * **No more mesh writers**
   To reduce the burden of maintenance, mesh writers have been removed, but the
@@ -148,8 +150,8 @@ Major changes
   This should ensure that rigid dofs are detected and treated as such, without
   relying only on their name.
   This is relevant for multiple bodies and articulated bodies when computing:
-    * hydrostatics, where the exact hydrostatic stiffness formula for rigid body dofs can be used instead of the approximation for generalized dofs.
-    * forward speed, where the m-term is currently only implemented for rigid dofs.
+  * hydrostatics, where the exact hydrostatic stiffness formula for rigid body dofs can be used instead of the approximation for generalized dofs.
+  * forward speed, where the m-term is currently only implemented for rigid dofs.
 
 
 Minor changes
@@ -195,7 +197,7 @@ Bug fixes
   Internally, the mesh is clipped before computing methods such as
   :meth:`~cpt.bodies.bodies.FloatingBody.disp_volume` or
   :meth:`~cpt.bodies.bodies.FloatingBody.center_of_buoyancy`, such that the
-  computed displaced volume is always actually the volume below $z=0$ and the
+  computed displaced volume is always actually the volume below :math:`z=0` and the
   center of buoyancy is always below the free surface.
   The inertia matrix always uses the displaced water mass for the mass and
   compute the inertia moments on the full shape if the full mesh is provided.
