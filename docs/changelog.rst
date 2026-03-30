@@ -213,6 +213,8 @@ Bug fixes
 
 * Fix WAMIT output in ``.1`` file where 0 and infinite frequency added mass where interverted. (:pull:`855`)
 
+* Fix resolution warning message to include ``lid_mesh`` (:issue:`867` and :pull:`868`)
+
 Internals
 ~~~~~~~~~
 
