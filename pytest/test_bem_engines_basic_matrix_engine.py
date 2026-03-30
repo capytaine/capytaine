@@ -301,3 +301,14 @@ def test_build_S_matrix_despite_invalid_K_matrix():
     pytest.raises(GreenFunctionEvaluationError, solver.engine.build_fullK_matrix, mesh.vertices[2:5,:], result.body.mesh_including_lid, **gf_params)
     # check that there is no exception for matrix S
     solver.engine.build_S_matrix(mesh.vertices[2:5,:], result.body.mesh_including_lid, **gf_params)
+
+
+def test_lazy_S_matrix():
+    from capytaine.tools.lazy_matrices import LazyMatrix
+    mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 3))
+    points = np.random.rand(1000, 3)
+    engine = cpt.BasicMatrixEngine()
+    S = engine.build_S_matrix(points, mesh, wavenumber=1.0)
+    assert isinstance(S, LazyMatrix)
+    full_S, _ = engine.green_function.evaluate(points, mesh, wavenumber=1.0)
+    assert np.allclose(np.array(S), full_S)

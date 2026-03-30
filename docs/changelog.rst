@@ -187,6 +187,9 @@ Minor changes
 * **Breaking** The deprecated ``FreeSurface`` class and ``BEMSolver.get_potential_on_mesh`` and ``BEMSolver.get_free_surface_elevation`` methods have been removed.
   They can be replaced by just any mesh representation of the free surface and the methods :meth:`~capytaine.bem.solver.BEMSolver.compute_potential` and :meth:`~capytaine.bem.solvr.BEMSolver.compute_free_surface_elevation`.
 
+* Computing the pressure or free surface elevation in post-processing does not allocate a very large matrix for a single matrix-vector product, but instead allocate and evaluate only a few rows of the matrix at a time (:pull:`860`).
+
+
 Bug fixes
 ~~~~~~~~~
 
@@ -214,6 +217,7 @@ Bug fixes
 * Fix WAMIT output in ``.1`` file where 0 and infinite frequency added mass where interverted. (:pull:`855`)
 
 * Fix resolution warning message to include ``lid_mesh`` (:issue:`867` and :pull:`868`)
+
 
 Internals
 ~~~~~~~~~
