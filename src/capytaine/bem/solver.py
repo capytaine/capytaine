@@ -545,10 +545,16 @@ class BEMSolver:
         gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
         with self.timer(step="Post-processing velocity"):
             gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, **gf_params)
-            # velocities = np.einsum('kij,j->ki', gradG, result.sources)  # Sum the contributions of all panels in the mesh
-            velocities = gradG @ result.sources  # Sum the contributions of all panels in the mesh
-            # velocities.shape = (3, nb_points)
-        return np.transpose(velocities).reshape((*output_shape, 3))
+            # gradG is either:
+            # - an array of shape (3, nb_points, mesh_including_lid.nb_faces)
+            # - a 3-ple of matrices of the shape (nb_points, mesh_including_lid), that could be stored as LazyMatrix.
+            vx = gradG[0] @ result.sources
+            vy = gradG[1] @ result.sources
+            vz = gradG[2] @ result.sources
+            # The matrix-vector product here computes the integral over the mesh of the contributions of each panel in the mesh
+            velocities = np.stack([vx, vy, vz], axis=-1)
+            # velocities.shape = (nb_points, 3)
+        return velocities.reshape((*output_shape, 3))
 
     def compute_velocity(self, points, result):
         """Compute the value of the velocity vector at given points for a previously solved potential flow problem.
