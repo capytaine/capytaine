@@ -64,6 +64,12 @@ Minor changes
   Also a rotation center should be passed, because the properties of the body
   (e.g. `center_of_mass`) cannot be accessed at that stage. (:pull:`838`)
 
+* Mesh quadrature (if defined) is used for hydrostatics computations.
+  Since meshes have no quadrature by default, the default hydrostatics results remain the same.
+  Using `mesh.with_quadrature('Gauss-Legendre 2')` can lead to slightly better results,
+  although the limitation is often the geometric approximation of the shape by a flat panels mesh.
+  (:pull:`847`)
+
 Bug fixes
 ~~~~~~~~~
 
@@ -129,8 +135,8 @@ Internals
   object. Also the geometric center is not used anymore as a fallback value for
   ``rotation_center``.
 
-* The S matrix can now be computed even if the K matrix is not defined, 
-  for example when evaluating the :meth:`~capytaine.bem.solver.compute_free_surface_elevation` along the waterline. 
+* The S matrix can now be computed even if the K matrix is not defined,
+  for example when evaluating the :meth:`~capytaine.bem.solver.compute_free_surface_elevation` along the waterline.
 
 ---------------------------------
 New in version 2.3.1 (2025-10-14)
