@@ -81,7 +81,9 @@ class _HydrostaticsMixin(ABC):
         return self.longitudinal_metacentric_radius - gb[2]
 
     def dof_normals(self, dof):
-        """Returns dot product of the surface face normals and DOF"""
+        """Returns dot product of the surface face normals and DOF.
+        Shape: (nb_faces,)
+        """
         return np.sum(self.mesh.faces_normals * dof, axis=1)
 
     def each_hydrostatic_stiffness(self, influenced_dof_name, radiating_dof_name, *,
@@ -223,10 +225,20 @@ class _HydrostaticsMixin(ABC):
             radiating_dof = np.array(immersed_self.dofs[radiating_dof_name])
             influenced_dof_div_array = np.array(influenced_dof_div)
 
+            if influenced_dof_div_array.shape == ():
+                pass
+            elif influenced_dof_div_array.shape == (immersed_self.mesh.nb_faces,):
+                influenced_dof_div_array = influenced_dof_div_array.reshape(immersed_self.mesh.nb_faces, 1)
+            elif influenced_dof_div_array.shape == immersed_self.mesh.quadrature_points[1].shape:
+                pass
+            else:
+                raise ValueError(f"Incompatible shape of influenced_dof_div: {influenced_dof_div_array.shape}")
+
             radiating_dof_normal = immersed_self.dof_normals(radiating_dof)
             z = immersed_mesh.quadrature_points[0][:,:,2]
             z_influenced_dof_div = influenced_dof[:, None, 2] + z * influenced_dof_div_array
-            norm_hs_stiff = immersed_self.mesh.surface_integral( -radiating_dof_normal * z_influenced_dof_div)
+            # z_influenced_dof_div[i_face, i_quad_point] = influenced_dof[i_face, 2] + z[i_frac, i_quad_point, 2] * influenced_dof_div[i_face, i_quad_point]
+            norm_hs_stiff = immersed_self.mesh.surface_integral(-radiating_dof_normal[:, None] * z_influenced_dof_div)
 
         hs_stiff = rho * g * norm_hs_stiff
 

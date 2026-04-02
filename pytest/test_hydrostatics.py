@@ -110,6 +110,10 @@ def test_waterplane_center_of_floating_sphere():
         floating_sphere().waterplane_center,
         [0.0, 0.0]
     )
+    assert np.allclose(
+        floating_sphere().translated_x(10.0).waterplane_center,
+        [10.0, 0.0]
+    )
 
 #############
 # Stiffness #
