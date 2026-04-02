@@ -9,13 +9,13 @@ from capytaine.io.legacy import export_hydrostatics
 
 def test_legacy_export_hydrostatics():
     # create two cylinders & compute inertia & hydrostatic data
-    cylinder1_mesh = cpt.meshes.predefined.mesh_vertical_cylinder(length=5.0, center = (1.0, 1.0, -0.5))
+    cylinder1_mesh = cpt.mesh_vertical_cylinder(length=5.0, center=(1.0, 1.0, -0.5))
     cylinder1 = cpt.FloatingBody(cylinder1_mesh, center_of_mass=[1.0, 1.0, -2.0])
     cylinder1.add_all_rigid_body_dofs()
     cylinder1.compute_rigid_body_inertia()
     cylinder1.compute_hydrostatics()
 
-    cylinder2_mesh = cpt.meshes.predefined.mesh_vertical_cylinder(length=5.0, center = (5.0, 1.0, -0.5))
+    cylinder2_mesh = cpt.mesh_vertical_cylinder(length=5.0, center=(5.0, 1.0, -0.5))
     cylinder2 = cpt.FloatingBody(cylinder2_mesh, center_of_mass=[5.0, 1.0, -2.0])
     cylinder2.add_all_rigid_body_dofs()
     cylinder2.compute_rigid_body_inertia()

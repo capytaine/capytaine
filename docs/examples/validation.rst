@@ -13,5 +13,5 @@ This script compares them both with analytical expression for a simple geometric
 .. literalinclude:: src/V_hydrostatics.py
    :language: python
 
-.. literalinclude:: src/V_Malenica_forward_speed.py
-   :language: python
+.. .. literalinclude:: src/V_Malenica_forward_speed.py
+..    :language: python

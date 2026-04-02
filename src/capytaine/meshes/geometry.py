@@ -1,409 +1,259 @@
-"""Tools to describe geometric objects in 3D.
-Based on meshmagick <https://github.com/LHEEA/meshmagick> by François Rongère.
-"""
-# Copyright (C) 2017-2019 Matthieu Ancellin, based on the work of François Rongère
-# See LICENSE file at <https://github.com/mancellin/capytaine>
+# Copyright 2025 Mews Labs
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-from abc import ABC, abstractmethod
-from capytaine.tools.deprecation_handling import _get_water_depth
+from typing import List
+from functools import reduce
+from itertools import chain
 
 import numpy as np
-
-e_x = np.array((1, 0, 0))
-e_y = np.array((0, 1, 0))
-e_z = np.array((0, 0, 1))
+from numpy.typing import NDArray
 
 
-###########################################
-#  DECORATOR FOR INPLACE TRANSFORMATIONS  #
-###########################################
+def get_vertices_face(face, vertices):
+    if len(face) == 4 and face[2] != face[3]:
+        return (
+            vertices[face[0]],
+            vertices[face[1]],
+            vertices[face[2]],
+            vertices[face[3]],
+        )
+    else:
+        return vertices[face[0]], vertices[face[1]], vertices[face[2]]
 
-def inplace_transformation(inplace_function):
-    """Decorator for methods transforming 3D objects:
-    * Add the optional argument `inplace` to return a new object instead of doing the transformation in place.
-    * If the object has properties cached in an "__internals__" dict, they are deleted.
+
+def compute_faces_normals(vertices, faces):
+    normals = []
+    for face in faces:
+        if len(face) == 4 and face[2] != face[3]:
+            normal = _quad_normal(vertices, face[0], face[1], face[2], face[3])
+        else:
+            normal = _triangle_normal(vertices, face[0], face[1], face[2])
+        normals.append(normal)
+    return np.array(normals)
+
+
+def compute_faces_areas(vertices, faces):
+    areas = []
+    for face in faces:
+        verts = get_vertices_face(face, vertices)
+        if len(verts) == 4:
+            a, b, c, d = verts
+            area1 = 0.5 * np.linalg.norm(np.cross(b - a, c - a))
+            area2 = 0.5 * np.linalg.norm(np.cross(c - a, d - a))
+            areas.append(area1 + area2)
+        else:
+            a, b, c = verts
+            areas.append(0.5 * np.linalg.norm(np.cross(b - a, c - a)))
+    return np.array(areas)
+
+
+def compute_faces_centers(vertices, faces):
+    centers = []
+    for face in faces:
+        verts = get_vertices_face(face, vertices)
+        if len(verts) == 4:
+            a, b, c, d = verts
+            area1 = 0.5 * np.linalg.norm(np.cross(b - a, c - a))
+            area2 = 0.5 * np.linalg.norm(np.cross(c - a, d - a))
+            c1 = (a + b + c) / 3
+            c2 = (a + c + d) / 3
+            center = (c1 * area1 + c2 * area2) / (area1 + area2)
+        else:
+            a, b, c = verts
+            center = (a + b + c) / 3
+        centers.append(center)
+    return np.array(centers)
+
+
+def compute_faces_radii(vertices, faces):
+    centers = compute_faces_centers(vertices, faces)
+    distances = []
+    for face, center in zip(faces, centers):
+        d = compute_distance_between_points(vertices[face[0]], center)
+        distances.append(d)
+    return np.array(distances)
+
+
+def compute_gauss_legendre_2_quadrature(vertices, faces):
+    # Parameters of Gauss-Legendre 2 quadrature scheme
+    local_points = np.array([(+1/np.sqrt(3), +1/np.sqrt(3)),
+             (+1/np.sqrt(3), -1/np.sqrt(3)),
+             (-1/np.sqrt(3), +1/np.sqrt(3)),
+             (-1/np.sqrt(3), -1/np.sqrt(3))])
+    local_weights = np.array([1/4, 1/4, 1/4, 1/4])
+
+    # Application to mesh
+    faces = vertices[faces[:, :], :]
+    nb_faces = faces.shape[0]
+    nb_quad_points = len(local_weights)
+    points = np.empty((nb_faces, nb_quad_points, 3))
+    weights = np.empty((nb_faces, nb_quad_points))
+    for i_face in range(nb_faces):
+        for k_quad in range(nb_quad_points):
+            xk, yk = local_points[k_quad, :]
+            points[i_face, k_quad, :] = (
+                      (1+xk)*(1+yk) * faces[i_face, 0, :]
+                    + (1+xk)*(1-yk) * faces[i_face, 1, :]
+                    + (1-xk)*(1-yk) * faces[i_face, 2, :]
+                    + (1-xk)*(1+yk) * faces[i_face, 3, :]
+                    )/4
+            dxidx = ((1+yk)*faces[i_face, 0, :] + (1-yk)*faces[i_face, 1, :]
+                     - (1-yk)*faces[i_face, 2, :] - (1+yk)*faces[i_face, 3, :])/4
+            dxidy = ((1+xk)*faces[i_face, 0, :] - (1+xk)*faces[i_face, 1, :]
+                     - (1-xk)*faces[i_face, 2, :] + (1-xk)*faces[i_face, 3, :])/4
+            detJ = np.linalg.norm(np.cross(dxidx, dxidy))
+            weights[i_face, k_quad] = local_weights[k_quad] * 4 * detJ
+
+    return points, weights
+
+
+def _triangle_normal(vertices, v0_idx, v1_idx, v2_idx):
     """
-    def enhanced_inplace_function(self, *args, inplace=True, name=None, **kwargs):
-        if not inplace:
-            object3d = self.copy(name=name)
-        else:
-            object3d = self
-        inplace_function(object3d, *args, **kwargs)
-        if hasattr(object3d, '__internals__'):
-            object3d.__internals__.clear()
-        return object3d
-    return enhanced_inplace_function
+    Compute normal vector of a triangle face.
 
+    Parameters
+    ----------
+    vertices : ndarray
+        Vertex coordinate array.
+    v0_idx, v1_idx, v2_idx : int
+        Indices of triangle vertices.
 
-##############################
-#  ABSTRACT 3D OBJECT CLASS  #
-##############################
-
-class Abstract3DObject(ABC):
-    """Abstract class for 3d objects that can be transformed in 3d.
-    The child classes have to define `mirror`, `rotate` and `translate`,
-    then more routines such as `translate_x` and `translated` are automatically available."""
-
-    @abstractmethod
-    def translate(self, vector):
-        pass
-
-    @abstractmethod
-    def rotate(self, axis, angle):
-        pass
-
-    @abstractmethod
-    def mirror(self, plane):
-        pass
-
-    @inplace_transformation
-    def translate_x(self, tx):
-        return self.translate((tx, 0., 0.))
-
-    @inplace_transformation
-    def translate_y(self, ty):
-        return self.translate((0., ty, 0.))
-
-    @inplace_transformation
-    def translate_z(self, tz):
-        return self.translate((0., 0., tz))
-
-    @inplace_transformation
-    def translate_point_to_point(self, point_a, point_b):
-        return self.translate(np.asarray(point_b) - np.asarray(point_a))
-
-    @inplace_transformation
-    def rotate_x(self, thetax):
-        return self.rotate(Ox_axis, thetax)
-
-    @inplace_transformation
-    def rotate_y(self, thetay):
-        return self.rotate(Oy_axis, thetay)
-
-    @inplace_transformation
-    def rotate_z(self, thetaz):
-        return self.rotate(Oz_axis, thetaz)
-
-    @inplace_transformation
-    def rotate_around_center_to_align_vectors(self, center, vec1, vec2):
-        """Rotate self such that if vec1 is in self, then it will point in the same direction as vec2."""
-        vec1 = np.asarray(vec1)
-        vec2 = np.asarray(vec2)
-        if parallel_vectors_with_same_direction(vec1, vec2):
-            return self
-        else:
-            if parallel_vectors(vec1, vec2):
-                if parallel_vectors(vec1, e_x):
-                    axis = Axis(vector=np.cross(vec1, e_y), point=center)
-                else:
-                    axis = Axis(vector=np.cross(vec1, e_x), point=center)
-                return self.rotate(axis, np.pi)
-            else:
-                axis = Axis(vector=np.cross(vec1, vec2), point=center)
-                return self.rotate(axis, np.arccos(np.dot(vec1, vec2)))
-
-    def translated(self, *args, **kwargs):
-        return self.translate(*args, inplace=False, **kwargs)
-
-    def rotated(self, *args, **kwargs):
-        return self.rotate(*args, inplace=False, **kwargs)
-
-    def mirrored(self, *args, **kwargs):
-        return self.mirror(*args, inplace=False, **kwargs)
-
-    def translated_x(self, *args, **kwargs):
-        return self.translate_x(*args, inplace=False, **kwargs)
-
-    def translated_y(self, *args, **kwargs):
-        return self.translate_y(*args, inplace=False, **kwargs)
-
-    def translated_z(self, *args, **kwargs):
-        return self.translate_z(*args, inplace=False, **kwargs)
-
-    def translated_point_to_point(self, *args, **kwargs):
-        return self.translate_point_to_point(*args, inplace=False, **kwargs)
-
-    def rotated_x(self, *args, **kwargs):
-        return self.rotate_x(*args, inplace=False, **kwargs)
-
-    def rotated_y(self, *args, **kwargs):
-        return self.rotate_y(*args, inplace=False, **kwargs)
-
-    def rotated_z(self, *args, **kwargs):
-        return self.rotate_z(*args, inplace=False, **kwargs)
-
-    def rotated_around_center_to_align_vectors(self, *args, **kwargs):
-        return self.rotate_around_center_to_align_vectors(*args, inplace=False, **kwargs)
-
-
-class ClippableMixin(ABC):
-    """Abstract base class for object that can be clipped.
-    The child classes should implement a `clip` method, then this abstract
-    class will append the new methods `clipped`, `keep_immersed_part` and
-    `immersed_part`, all based on `clip`.
+    Returns
+    -------
+    np.ndarray
+        Normalized normal vector (3,)
     """
-
-    @abstractmethod
-    def clip(self, plane):
-        pass
-
-    def clipped(self, plane, **kwargs):
-        # Same API as for the other transformations
-        return self.clip(plane, inplace=False, **kwargs)
-
-    @inplace_transformation
-    def keep_immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None):
-        self.clip(Plane(normal=(0, 0, 1), point=(0, 0, free_surface)))
-        water_depth = _get_water_depth(free_surface, water_depth, sea_bottom,
-                                       default_water_depth=np.inf)
-        if water_depth < np.inf:
-            self.clip(Plane(normal=(0, 0, -1), point=(0, 0, free_surface-water_depth)))
-        return self
-
-    def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None):
-        return self.keep_immersed_part(free_surface, inplace=False, name=self.name,
-                                       sea_bottom=sea_bottom, water_depth=water_depth)
+    v0, v1, v2 = vertices[v0_idx], vertices[v1_idx], vertices[v2_idx]
+    normal = np.cross(v1 - v0, v2 - v0)
+    return normal / np.linalg.norm(normal)
 
 
-######################
-#  HELPER FUNCTIONS  #
-######################
+def _quad_normal(vertices, v0_idx, v1_idx, v2_idx, v3_idx):
+    """
+    Compute normal vector of a quadrilateral face via diagonals.
 
-def orthogonal_vectors(vec1, vec2) -> bool:
-    return np.linalg.norm(vec1 @ vec2) < 1e-6
+    Parameters
+    ----------
+    vertices : ndarray
+        Vertex coordinate array.
+    v0_idx, v1_idx, v2_idx, v3_idx : int
+        Indices of quad vertices.
+
+    Returns
+    -------
+    np.ndarray
+        Normalized normal vector (3,)
+    """
+    v0, v1, v2, v3 = (
+        vertices[v0_idx],
+        vertices[v1_idx],
+        vertices[v2_idx],
+        vertices[v3_idx],
+    )
+    ac = v2 - v0
+    bd = v3 - v1
+    normal = np.cross(ac, bd)
+    return normal / np.linalg.norm(normal)
 
 
-def parallel_vectors(vec1, vec2) -> bool:
-    return np.linalg.norm(np.cross(vec1, vec2)) < 1e-6
+def compute_distance_between_points(a, b):
+    """
+    Compute Euclidean distance between two points in n-dimensional space.
 
+    Parameters
+    ----------
+    a, b : array_like
+        Coordinate arrays (length 3 or more).
 
-def parallel_vectors_with_same_direction(vec1, vec2) -> bool:
-    return parallel_vectors(vec1, vec2) and np.dot(vec1, vec2) > 0
+    Returns
+    -------
+    float
+        Euclidean distance.
+    """
+    a = np.asarray(a)
+    b = np.asarray(b)
+    return np.linalg.norm(b - a)
 
+def faces_in_group(faces: NDArray[np.integer], group: NDArray[np.integer]) -> NDArray[np.bool_]:
+    """Identification of faces with vertices within group.
 
-################
-#  AXIS CLASS  #
-################
+    Parameters
+    ----------
+    faces : NDArray[np.integer]
+        Mesh faces. Expecting a numpy array of shape N_faces x N_vertices_per_face.
+    group : NDArray[np.integer]
+        Group of connected vertices
 
-class Axis(Abstract3DObject):
-    def __init__(self, vector=(1, 0, 0), point=(0, 0, 0)):
-        assert len(vector) == 3, "Vector of an axis should be given as a 3-ple of values."
-        assert len(point) == 3, "Point of an axis should be given as a 3-ple of values."
-        vector = np.array(vector, float)
-        self.vector = vector / np.linalg.norm(vector)
-        self.point = np.array(point, float)
+    Returns
+    -------
+    NDArray[np.bool]
+        Mask of faces containing vertices from the group
+    """
+    return np.any(np.isin(faces, group), axis=1)
 
-    def __repr__(self):
-        return f"Axis(vector={self.vector}, point={self.point})"
+def clustering(faces: NDArray[np.integer]) -> List[NDArray[np.integer]]:
+    """Clustering of vertices per connected faces.
 
-    def __contains__(self, other_point):
-        if len(other_point) == 3:
-            other_point = np.asarray(other_point, dtype=float)
-            return parallel_vectors(other_point - self.point, self.vector)
+    Parameters
+    ----------
+    faces : NDArray[np.integer]
+        Mesh faces. Expecting a numpy array of shape N_faces x N_vertices_per_face.
+
+    Returns
+    -------
+    list[NDArray[np.integer]]
+        Groups of connected vertices.
+    """
+    vert_groups: list[NDArray[np.integer]] = []
+    mask = np.ones(faces.shape[0], dtype=bool)
+    while np.any(mask):
+        # Consider faces whose vertices are not already identified in a group.
+        # Start new group by considering first face
+        remaining_faces = faces[mask]
+        group = remaining_faces[0]
+        rem_mask = np.ones(remaining_faces.shape[0], dtype=bool)
+        # Iterative update of vertices group. Output final result to frozenset
+        while not np.allclose(new:=faces_in_group(remaining_faces, group), rem_mask):
+            group = np.unique(remaining_faces[new])
+            rem_mask = new
         else:
-            raise NotImplementedError
-
-    def __eq__(self, other):
-        if isinstance(self, Axis):
-            return (self is other) or (self.point in other and parallel_vectors(self.vector, other.vector))
-        else:
-            return NotImplemented
-
-    def is_orthogonal_to(self, other):
-        if isinstance(other, Plane):
-            return parallel_vectors(self.vector, other.normal)
-        elif len(other) == 3:  # The other is supposed to be a vector given as a 3-ple
-            return orthogonal_vectors(self.vector, other)
-        else:
-            raise NotImplementedError
-
-    def is_parallel_to(self, other):
-        if isinstance(other, Plane):
-            return orthogonal_vectors(self.vector, other.normal)
-        elif isinstance(other, Axis):
-            return parallel_vectors(self.vector, other.vector)
-        elif len(other) == 3:  # The other is supposed to be a vector given as a 3-ple
-            return parallel_vectors(self.vector, other)
-        else:
-            raise NotImplementedError
-
-    def angle_with_respect_to(self, other_axis: 'Axis') -> float:
-        """Angle between two axes."""
-        return np.arccos(np.dot(self.vector, other_axis.vector))
-
-    ################################
-    #  Transformation of the axis  #
-    ################################
-
-    def copy(self, name=None):
-        return Axis(vector=self.vector.copy(), point=self.point.copy())
-
-    @inplace_transformation
-    def translate(self, vector):
-        self.point += vector
-        return self
-
-    @inplace_transformation
-    def rotate(self, axis, angle):
-        rot_matrix = axis.rotation_matrix(angle)
-        self.point = rot_matrix @ (self.point - axis.point) + axis.point
-        self.vector = rot_matrix @ self.vector
-        return self
-
-    @inplace_transformation
-    def mirror(self, plane):
-        self.point -= 2 * (self.point @ plane.normal - plane.c) * plane.normal
-        self.vector -= 2 * (self.vector @ plane.normal) * plane.normal
-        return self
-
-    ###########
-    #  Other  #
-    ###########
-
-    def rotation_matrix(self, theta):
-        """Rotation matrix around the vector according to Rodrigues' formula."""
-        ux, uy, uz = self.vector
-        W = np.array([[0, -uz, uy],
-                      [uz, 0, -ux],
-                      [-uy, ux, 0]])
-        return np.identity(3) + np.sin(theta)*W + 2*np.sin(theta/2)**2 * (W @ W)
-
-    def rotate_vectors(self, vectors, angle):
-        vectors = np.asarray(vectors)
-        return (self.rotation_matrix(angle) @ vectors.T).T
-
-    def rotate_points(self, points, angle):
-        points = np.asarray(points)
-        return self.rotate_vectors(points - self.point, angle) + self.point
+            group = np.unique(remaining_faces[new])
+        vert_groups.append(group)
+        # Identify faces that have no vertices in current groups
+        mask = ~reduce(np.logical_or, [faces_in_group(faces, group) for group in vert_groups])
+    return vert_groups
 
 
-Ox_axis = Axis(vector=e_x, point=(0, 0, 0))
-Oy_axis = Axis(vector=e_y, point=(0, 0, 0))
-Oz_axis = Axis(vector=e_z, point=(0, 0, 0))
+def connected_components(mesh):
+    """Returns a list of meshes that each corresponds to the a connected component in the original mesh.
+    Assumes the mesh is mostly conformal without duplicate vertices.
+    """
+    # Get connected vertices
+    vertices_components = clustering(mesh.faces)
+    # Verification
+    if sum(len(group) for group in vertices_components) != len(set(chain.from_iterable(vertices_components))):
+        raise ValueError("Error in connected components clustering. Some elements are duplicated")
+    # The components are found. The rest is just about retrieving the faces in each components.
+    faces_components = [np.argwhere(faces_in_group(mesh.faces, group)) for group in vertices_components]
+    components = [mesh.extract_faces(f) for f in faces_components]
+    return components
 
 
-#################
-#  PLANE CLASS  #
-#################
-
-class Plane(Abstract3DObject):
-    """3D plane, oriented by the direction of their normal."""
-    def __init__(self, normal=(0.0, 0.0, 1.0), point=(0.0, 0.0, 0.0)):
-        normal = np.asarray(normal, dtype=float)
-        self.normal = normal / np.linalg.norm(normal)
-        self.point = np.asarray(point, dtype=float)
-
-    def __repr__(self):
-        return f"Plane(normal={self.normal}, point={self.point})"
-
-    def __contains__(self, other):
-        if isinstance(other, Axis):
-            return other.point in self and orthogonal_vectors(self.normal, other.vector)
-        elif len(other) == 3:
-            return orthogonal_vectors(other - self.point, self.normal)
-        else:
-            raise NotImplementedError
-
-    def __eq__(self, other):
-        """Plane are considered equal only when their normal are pointing in the same direction."""
-        if isinstance(other, Plane):
-            return ((self is other) or
-                    (other.point in self and parallel_vectors_with_same_direction(self.normal, other.normal)))
-        else:
-            return NotImplemented
-
-    def is_orthogonal_to(self, other):
-        if isinstance(other, Axis):
-            return parallel_vectors(self.normal, other.vector)
-        elif isinstance(other, Plane):
-            return orthogonal_vectors(self.normal, other.normal)
-        elif len(other) == 3:  # The other is supposed to be a vector given as a 3-ple
-            return parallel_vectors(self.normal, other)
-        else:
-            raise NotImplementedError
-
-    @property
-    def c(self):
-        """Distance from plane to origin."""
-        return np.linalg.norm(self.normal @ self.point)
-
-    @property
-    def s(self):
-        """Distance from origin to plane along the normal"""
-        return np.dot(self.normal, self.point)
-
-    #################################
-    #  Transformation of the plane  #
-    #################################
-
-    def copy(self, name=None):
-        return Plane(normal=self.normal.copy(), point=self.point.copy())
-
-    @inplace_transformation
-    def translate(self, vector):
-        self.point = self.point + np.asarray(vector)
-        return self
-
-    @inplace_transformation
-    def rotate(self, axis, angle):
-        rot_matrix = axis.rotation_matrix(angle)
-        self.point = rot_matrix @ self.point
-        self.normal = rot_matrix @ self.normal
-        return self
-
-    @inplace_transformation
-    def mirror(self, plane):
-        self.point -= 2 * (self.point @ plane.normal - plane.c) * plane.normal
-        self.normal -= 2 * (self.normal @ plane.normal) * plane.normal
-        return self
-
-    ###########
-    #  Other  #
-    ###########
-
-    def distance_to_point(self, points):
-        """
-        Return the orthogonal distance of points with respect to the plane.
-        The distance is counted positively on one side of the plane and negatively on the other.
-
-        Parameters
-        ----------
-        points : ndarray
-            Array of points coordinates
-
-        Returns
-        -------
-        dist : ndarray
-            Array of distances of points with respect to the plane
-        """
-        return np.dot(points, self.normal) - np.dot(self.point, self.normal)
-
-    def get_edge_intersection(self, p0, p1):
-        """
-        Returns the coordinates of the intersection point between the plane and the edge P0P1.
-
-        Parameters
-        ----------
-        p0 : ndarray
-            Coordinates of point p0
-        p1 : ndarray
-            Coordinates of point P1
-
-        Returns
-        -------
-        I : ndarray
-            Coordinates of intersection point
-        """
-        assert len(p0) == 3 and len(p1) == 3
-
-        p0n = np.dot(p0, self.normal)
-        p1n = np.dot(p1, self.normal)
-        t = (p0n - self.s) / (p0n - p1n)
-        if t < 0. or t > 1.:
-            raise RuntimeError('Intersection is outside the edge')
-        return (1-t) * p0 + t * p1
-
-
-yOz_Plane = Plane(normal=e_x, point=(0, 0, 0))
-xOz_Plane = Plane(normal=e_y, point=(0, 0, 0))
-xOy_Plane = Plane(normal=e_z, point=(0, 0, 0))
+def connected_components_of_waterline(mesh, z=0.0):
+    if np.any(mesh.vertices[:, 2] > z + 1e-8):
+        mesh = mesh.immersed_part(free_surface=z)
+    fs_vertices_indices = np.where(np.isclose(mesh.vertices[:, 2], z))[0]
+    fs_faces_indices = np.where(np.any(np.isin(mesh.faces, fs_vertices_indices), axis=1))[0]
+    crown_mesh = mesh.extract_faces(fs_faces_indices)
+    return connected_components(crown_mesh)

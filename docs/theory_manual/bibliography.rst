@@ -24,3 +24,7 @@ Bibliography
 .. [N20] Newman, **A simplified derivation of the ordinary differential equations for the free-surface Green functions**, Applied Ocean Research, 2020
 
 .. [D22] Donatini et al., **Implementation of forward speed effects on an open source seakeeping solver**. In 6th MASHCON: International Conference on Ship Manoeuvring in Shallow and Confined Water, 2022
+
+.. [AN24] Ancellin and Nguyen, **Case studies of BEM solver accuracy with the open-source code Capytaine**, in ASME 2024 43rd International Conference on Ocean, Offshore and Arctic Engineering (OMAE2024)
+
+.. [A24] Ancellin, **On the accuracy of Linear Boundary-Element-Method Sea-Keeping Codes**, In Actes des journées de l'hydrodynamique, 2024, https://hal.science/hal-04822282 (slides: https://hal.science/hal-04822330/)

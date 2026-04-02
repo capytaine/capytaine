@@ -15,7 +15,7 @@ jobs:
     runs-on: windows-2025
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: fortran-lang/setup-fortran@v1
         with:
@@ -23,7 +23,7 @@ jobs:
           version: '13'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.2.0
+        uses: pypa/cibuildwheel@v3.3.0
         env:
           CIBW_SKIP: "*win32* cp314t*"
           CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
@@ -31,7 +31,7 @@ jobs:
           # Package the DLL dependencies in the wheel for windows (done by default for the other platforms).
           # delvewheel cannot mangle the libraries, stripping does not work.
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: wheels-windows
           path: ./wheelhouse/*.whl
@@ -41,19 +41,17 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: fortran-lang/setup-fortran@v1
-        with:
-          compiler: 'gcc'
-          version: '13'
+      # No need to setup fortran, it won't be used by CIbuildwheel which is
+      # using a Manylinux container
 
       - name: Build wheels on Ubuntu
-        uses: pypa/cibuildwheel@v3.2.0
+        uses: pypa/cibuildwheel@v3.3.0
         env:
           CIBW_SKIP: "*i686* *musllinux*"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: wheels-ubuntu
           path: ./wheelhouse/*.whl
@@ -61,12 +59,10 @@ jobs:
 
   "build_wheels_on_macos_intel":
     name: Build wheels on MacOS Intel
-    runs-on: macos-13
-    # Should be replaced by macos-15-intel soon, but it does not seem to be
-    # supported by setup-fortran?
+    runs-on: macos-15-intel
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: fortran-lang/setup-fortran@v1
         with:
@@ -74,11 +70,11 @@ jobs:
           version: '13'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.2.0
+        uses: pypa/cibuildwheel@v3.3.0
         env:
-          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=13.0
+          CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=15.0
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: wheels-macos-intel
           path: ./wheelhouse/*.whl
@@ -89,7 +85,7 @@ jobs:
     runs-on: macos-14
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: fortran-lang/setup-fortran@v1
         with:
@@ -97,11 +93,11 @@ jobs:
           version: '13'
 
       - name: Build wheels
-        uses: pypa/cibuildwheel@v3.2.0
+        uses: pypa/cibuildwheel@v3.3.0
         env:
           CIBW_ENVIRONMENT: MACOSX_DEPLOYMENT_TARGET=14.0
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: wheels-macos-arm
           path: ./wheelhouse/*.whl

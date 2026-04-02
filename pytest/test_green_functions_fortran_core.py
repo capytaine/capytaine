@@ -131,10 +131,10 @@ def test_exact_integration_of_rankine_terms():
     center = np.array([0.0, 0.0, 0.0])
     area = 1.0
     mesh = cpt.mesh_rectangle(size=(np.sqrt(area), np.sqrt(area)), center=center, resolution=(1, 1))
-    rankine_g_once = gf.evaluate_rankine_only(center.reshape(1, -1), mesh)[0]
+    rankine_g_once = gf.evaluate_rankine_only(center.reshape(1, -1), mesh, diagonal_term_in_double_layer=False)[0]
     mesh = cpt.mesh_rectangle(size=(np.sqrt(area), np.sqrt(area)), center=center, resolution=(11, 11))
     # Use odd number of panels to avoid having the center on a corner of a panel, which is not defined for the strong singularity of the derivative.
-    rankine_g_parts = gf.evaluate_rankine_only(center.reshape(1, -1), mesh)[0]
+    rankine_g_parts = gf.evaluate_rankine_only(center.reshape(1, -1), mesh, diagonal_term_in_double_layer=False)[0]
     assert rankine_g_once == pytest.approx(rankine_g_parts.sum(), abs=1e-2)
 
 
@@ -182,10 +182,10 @@ def test_low_freq_with_rankine_part_singularities():
     S1, K1 = gf1.evaluate(point, mesh, wavenumber=wavenumber, early_dot_product=False)
     S2, K2 = gf2.evaluate(point, mesh, wavenumber=wavenumber, early_dot_product=False)
     assert S1 == S2
-    assert np.allclose(K1[:, :, :2], K2[:, :, :2], atol=1e-12)
-    assert np.allclose(K1[:, :, 2].imag, K2[:, :, 2].imag, atol=1e-12)
-    assert not np.allclose(K1[0, 0, 2].real, K2[0, 0, 2].real, atol=1e-12)
-    assert np.allclose(K1[0, 0, 2].real, K2[0, 0, 2].real, atol=1e-1)
+    assert np.allclose(K1[:2, :, :], K2[:2, :, :], atol=1e-12)
+    assert np.allclose(K1[2, :, :].imag, K2[2, :, :].imag, atol=1e-12)
+    assert not np.allclose(K1[2, 0, 0].real, K2[2, 0, 0].real, atol=1e-12)
+    assert np.allclose(K1[2, 0, 0].real, K2[2, 0, 0].real, atol=1e-1)
 
 
 def test_liangwunoblesse_wave_term():
@@ -201,7 +201,7 @@ def test_full_liangwunoblesse(wavenumber):
     gf = cpt.LiangWuNoblesseGF()
     ref_gf = cpt.Delhommeau()
     mesh = cpt.mesh_sphere().immersed_part()
-    S, K = gf.evaluate(mesh, mesh, 0.0, np.inf, wavenumber)
-    ref_S, ref_K = ref_gf.evaluate(mesh, mesh, 0.0, np.inf, wavenumber)
+    S, K = gf.evaluate(mesh, mesh, wavenumber=wavenumber)
+    ref_S, ref_K = ref_gf.evaluate(mesh, mesh, wavenumber=wavenumber)
     np.testing.assert_allclose(S, ref_S, rtol=1e-2)
     np.testing.assert_allclose(K, ref_K, rtol=1e-2)

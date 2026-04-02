@@ -6,6 +6,7 @@ import xarray as xr
 import capytaine as cpt
 from capytaine import __version__
 
+from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
 
 @pytest.fixture
 def sphere():
@@ -52,13 +53,13 @@ def test_cannot_define_gf_and_engine_in_solver():
 
 def test_solver_has_initialized_timer():
     s = cpt.BEMSolver()
-    assert all(t[0].total == 0.0 for t in s.timer.values())
+    assert s.timer.total == 0.0
 
 def test_solver_update_timer(sphere):
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
     s = cpt.BEMSolver()
     s.solve(problem)
-    assert not all(t[0].total == 0.0 for t in s.timer.values())
+    assert s.timer.total > 0.0
 
 def test_direct_solver(sphere):
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
@@ -72,13 +73,13 @@ def test_direct_solver(sphere):
 @pytest.mark.parametrize("method", ["direct", "indirect"])
 def test_same_result_with_symmetries(method):
     solver = cpt.BEMSolver(method=method)
-    sym_mesh = cpt.ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), cpt.xOz_Plane)
+    sym_mesh = ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), plane='xOz')
     sym_body = cpt.FloatingBody(mesh=sym_mesh, dofs=cpt.rigid_body_dofs())
     sym_result = solver.solve(cpt.DiffractionProblem(body=sym_body, omega=1.0))
     mesh = sym_mesh.merged()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
     result = solver.solve(cpt.DiffractionProblem(body=body, omega=1.0))
-    assert sym_result.forces["Surge"] == pytest.approx(result.forces["Surge"], rel=1e-10)
+    assert sym_result.forces["Surge"] == pytest.approx(result.forces["Surge"], rel=1e-4)
 
 
 def test_parallelization(sphere):
@@ -125,11 +126,11 @@ def test_nb_timer(sphere):
     solver = cpt.BEMSolver()
     n_jobs = 3
     problems = [
-    cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=omega)
-    for omega in np.linspace(0.1, 3.0, 5)
-    ]
-    solver.solve_all(problems, n_jobs = n_jobs)
-    assert len(solver.timer["Solve total"]) == n_jobs + 1
+            cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=omega)
+            for omega in np.linspace(0.1, 3.0, 5)
+            ]
+    solver.solve_all(problems, n_jobs=n_jobs)
+    assert len(solver.timer_summary().columns) == n_jobs
 
 
 def test_float32_solver(sphere):

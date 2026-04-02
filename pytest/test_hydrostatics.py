@@ -8,6 +8,8 @@ import pytest
 import numpy as np
 import capytaine as cpt
 
+from capytaine.meshes.predefined import mesh_sphere, mesh_horizontal_cylinder, mesh_vertical_cylinder
+
 ######################################################################
 
 ################################
@@ -16,7 +18,7 @@ import capytaine as cpt
 
 @lru_cache
 def immersed_sphere():
-    return cpt.mesh_sphere(
+    return mesh_sphere(
         radius=1.0,
         center=(0, 0, -2),
         resolution=(30, 30)
@@ -63,7 +65,7 @@ def test_waterplane_center_of_submerged_sphere():
 
 @lru_cache
 def floating_sphere():
-    return cpt.mesh_sphere(
+    return mesh_sphere(
         radius=1.0,
         center=(0, 0, 0),
         resolution=(30, 30)
@@ -109,22 +111,6 @@ def test_waterplane_center_of_floating_sphere():
         [0.0, 0.0]
     )
 
-######################################################################
-
-def test_infer_rotation_center():
-    body = cpt.FloatingBody(
-        mesh=floating_sphere(),
-        dofs=cpt.rigid_body_dofs(rotation_center=(7, 8, 9))
-    )
-    assert np.allclose(body._infer_rotation_center(), (7, 8, 9))
-    body_ = cpt.FloatingBody(
-        mesh=floating_sphere(),
-        dofs=body.dofs,  # Copied from other body without the rotation center being explicitly copied
-    )
-    assert np.allclose(body_._infer_rotation_center(), (7, 8, 9))
-
-######################################################################
-
 #############
 # Stiffness #
 #############
@@ -157,7 +143,7 @@ def custom_dof_body():
     dof = np.array([(0, 0, z) for (x, y, z) in mesh.faces_centers])
     custom_dof_body = cpt.FloatingBody(
         mesh=mesh,
-        dofs = {"elongate_in_z": dof},
+        dofs={"elongate_in_z": dof},
         center_of_mass=mesh.center_of_buoyancy,
     )
     return custom_dof_body
@@ -177,6 +163,43 @@ def test_stiffness_invariance_by_translation(body):
     K1 = body().compute_hydrostatic_stiffness()
     K2 = body().translated([1.0, 0.0, 0.0]).compute_hydrostatic_stiffness()
     assert np.allclose(K1, K2)
+
+def test_stiffness_single_rotation_dof():
+    # Was actually not possible in version 2.x
+    mesh = cpt.mesh_parallelepiped()
+    body_1 = cpt.FloatingBody(
+        mesh=mesh,
+        dofs=cpt.rigid_body_dofs(only=["Pitch"], rotation_center=(0, 0, -2)),
+        center_of_mass=(0, 0, 0)
+    )
+    K_1 = body_1.compute_hydrostatic_stiffness()
+    assert K_1.shape == (1, 1)
+
+    ref_body = cpt.FloatingBody(
+        mesh=mesh,
+        dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -2)),
+        center_of_mass=(0, 0, 0)
+    )
+    full_K = ref_body.compute_hydrostatic_stiffness()
+    assert np.isclose(K_1.values[0, 0], full_K.values[3, 3])
+
+    body_2 = cpt.FloatingBody(mesh=mesh, center_of_mass=(0, 0, 0))
+    body_2.add_rotation_dof(rotation_center=(0, 0, -2), direction=(0, 1, 0), name="pitch oh mon pitch")
+    # Non standard name, but still a rigid body rotation
+    K_2 = body_2.compute_hydrostatic_stiffness()
+    assert K_2.shape == (1, 1)
+    assert np.isclose(K_2.values, K_1.values)
+
+    # Generalized dof approach despite standard name
+    body_3 = cpt.FloatingBody(
+        mesh=mesh,
+        dofs={"Pitch": body_1.dofs["Pitch"].evaluate_motion(mesh)},
+        center_of_mass=(0, 0, 0)
+    )
+    K_3 = body_3.compute_hydrostatic_stiffness()
+    assert K_3.shape == (1, 1)
+    assert not np.isclose(K_3.values, K_1.values)
+
 
 # DIVERGENCE
 
@@ -250,10 +273,11 @@ def test_joining_stiffness_when_joining_bodies():
 @pytest.mark.parametrize("rho", [1000, 444])
 def test_inertia_matrix_values_of_sphere(rho, mesh_and_immersed_volume):
     mesh, immersed_volume = mesh_and_immersed_volume
+    center = np.mean(mesh.vertices, axis=0)
     sphere = cpt.FloatingBody(
         mesh=mesh,
-        dofs=cpt.rigid_body_dofs(),
-        center_of_mass=mesh.center_of_mass_of_nodes,
+        dofs=cpt.rigid_body_dofs(rotation_center=center),
+        center_of_mass=center,
     )
     mass = rho*immersed_volume
     assert np.isclose(sphere.disp_mass(rho=rho), mass, rtol=5e-2)
@@ -273,7 +297,6 @@ def test_inertia_when_no_dofs():
         mesh=floating_sphere(),
         center_of_mass=(0, 0, -0.3),
     )
-    sphere.rotation_center = (0, 0, 0)
     m = sphere.compute_rigid_body_inertia()
     assert m.shape == (0, 0)
 
@@ -285,25 +308,47 @@ def test_inertia_no_cog():
     with pytest.raises(ValueError, match=".*no center of mass.*"):
         sphere.compute_rigid_body_inertia()
 
-# Output types
-
-def test_inertia_rigid_body_dofs():
-    sphere = rigid_body()
-    assert np.all(sphere.compute_rigid_body_inertia(output_type="rigid_dofs")
-            == sphere.compute_rigid_body_inertia(output_type="all_dofs"))
-    assert np.all(sphere.compute_rigid_body_inertia(output_type="rigid_dofs")
-            == sphere.compute_rigid_body_inertia(output_type="body_dofs"))
-
 def test_inertia_invariance_by_translation():
     sphere = rigid_body()
     M1 = sphere.compute_rigid_body_inertia()
     M2 = sphere.translated([1.0, 0.0, 0.0]).compute_rigid_body_inertia()
     assert np.allclose(M1, M2)
 
-def test_inertia_wrong_output_type():
-    sphere = rigid_body()
-    with pytest.raises(ValueError):
-        sphere.compute_rigid_body_inertia(output_type="foo")
+def test_inertia_single_rotation_dof():
+    # Was actually not possible in version 2.x
+    mesh = cpt.mesh_parallelepiped()
+    body_1 = cpt.FloatingBody(
+        mesh=mesh,
+        dofs=cpt.rigid_body_dofs(only=["Pitch"], rotation_center=(0, 0, -2)),
+        center_of_mass=(0, 0, 0)
+    )
+    M_1 = body_1.compute_rigid_body_inertia()
+    assert M_1.shape == (1, 1)
+
+    ref_body = cpt.FloatingBody(
+        mesh=mesh,
+        dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -2)),
+        center_of_mass=(0, 0, 0)
+    )
+    full_M = ref_body.compute_rigid_body_inertia()
+    assert np.isclose(M_1.values[0, 0], full_M.values[3, 3])
+
+    body_2 = cpt.FloatingBody(mesh=mesh, center_of_mass=(0, 0, 0))
+    body_2.add_rotation_dof(rotation_center=(0, 0, -2), direction=(0, 1, 0), name="pitch oh mon pitch")
+    # Non standard name, but still a rigid body rotation
+    M_2 = body_2.compute_rigid_body_inertia()
+    assert M_2.shape == (1, 1)
+    assert np.allclose(M_2.values, M_1.values)
+
+    # Generalized dof approach despite standard name
+    body_3 = cpt.FloatingBody(
+        mesh=mesh,
+        dofs={"Pitch": body_1.dofs["Pitch"].evaluate_motion(mesh)},
+        center_of_mass=(0, 0, 0)
+    )
+    K_3 = body_3.compute_rigid_body_inertia()
+    assert K_3.shape == (1, 1)
+    assert np.isnan(K_3.values[0, 0])
 
 # Multibody
 
@@ -358,17 +403,17 @@ def test_all_hydrostatics():
     density = 1000
     gravity = 9.80665
 
-    sphere = cpt.mesh_sphere(
+    sphere = mesh_sphere(
         radius=10.0,
         center=(0,0,-1),
         resolution=(100, 50)
     )
-    horizontal_cylinder = cpt.mesh_horizontal_cylinder(
+    horizontal_cylinder = mesh_horizontal_cylinder(
         length=10.0, radius=5.0,
         center=(0,10,-1),
         resolution=(100, 10, 100)
     )
-    vertical_cylinder = cpt.mesh_vertical_cylinder(
+    vertical_cylinder = mesh_vertical_cylinder(
         length=10.0, radius=5.0,
         center=(10,0,0),
         resolution=(200, 10, 200)
@@ -437,41 +482,42 @@ def test_all_hydrostatics():
 ###########################
 
 def test_mass_joined_bodies():
-    a = cpt.FloatingBody(mass=100)
-    b = cpt.FloatingBody(mass=300)
-    assert (a + b).mass == 400
+    a = cpt.FloatingBody(mass=100, name="body_1")
+    b = cpt.FloatingBody(mass=300, name="body_2")
+    assert (a + b).as_FloatingBody().mass == 400
 
 def test_mass_joined_bodies_with_missing_mass():
-    a = cpt.FloatingBody()
-    b = cpt.FloatingBody(mass=300)
-    assert (a + b).mass is None
+    a = cpt.FloatingBody(name="body_1")
+    b = cpt.FloatingBody(mass=300, name="body_2")
+    assert (a + b).as_FloatingBody().mass is None
 
 def test_center_of_mass_joined_bodies():
-    a = cpt.FloatingBody(mass=100, center_of_mass=(0, 0, 0))
-    b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0))
-    assert np.allclose((a + b).center_of_mass, (0.75, 0, 0))
+    a = cpt.FloatingBody(mass=100, center_of_mass=(0, 0, 0), name="body_1")
+    b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0), name="body_2")
+    assert np.allclose((a + b).as_FloatingBody().center_of_mass, (0.75, 0, 0))
 
 def test_center_of_mass_joined_bodies_with_missing_mass():
-    a = cpt.FloatingBody()
-    b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0))
-    assert (a + b).center_of_mass is None
+    a = cpt.FloatingBody(name="body_1")
+    b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0), name="body_2")
+    assert (a + b).as_FloatingBody().center_of_mass is None
 
 def test_not_single_rigid_and_non_neutrally_buoyant_body():
-    m = cpt.mesh_sphere()
+    m = mesh_sphere()
     a = cpt.FloatingBody(
         mesh=m, mass=100, center_of_mass=(0, 0, 0),
         dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
+        name="body_1",
     )
     b = cpt.FloatingBody(
         mesh=m.translated_x(2.0), mass=300, center_of_mass=(2, 0, 0),
         dofs=cpt.rigid_body_dofs(rotation_center=(2, 0, 0)),
+        name="body_2",
     )
-    with pytest.raises(NotImplementedError):
-        (a + b).compute_hydrostatic_stiffness()
+    (a + b).compute_hydrostatic_stiffness()
 
 @lru_cache
 def non_neutrally_buoyant_body(length=2.0):
-    mesh = cpt.mesh_vertical_cylinder(
+    mesh = mesh_vertical_cylinder(
         radius=1.0,
         length=length,
         center=(0.0, 0.0, 0.0),
@@ -511,7 +557,7 @@ def test_non_neutrally_buoyant_stiffness():
         dict(body_density=500,  z_cog=-0.50, K55=5.0),
         ])
 def test_non_neutrally_buoyant_K55(data):
-    mesh = cpt.mesh_vertical_cylinder(
+    mesh = mesh_vertical_cylinder(
         radius=1.0,
         length=2.0,
         center=(0.0, 0.0, 0.0),
@@ -537,7 +583,7 @@ def test_non_neutrally_buoyant_stiffness_invariance_by_translation():
     assert np.allclose(K1, K2)
 
 def test_non_neutrally_buoyant_inertia():
-    mesh = cpt.mesh_vertical_cylinder(
+    mesh = mesh_vertical_cylinder(
         radius=1.0,
         length=1.0,
         center=(0.0, 0.0, -0.5),

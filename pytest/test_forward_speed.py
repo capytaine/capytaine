@@ -10,8 +10,11 @@ import xarray as xr
 @pytest.fixture
 def body():
     mesh = cpt.mesh_vertical_cylinder(radius=1.0, length=1.01, center=(0.0, 0.0, -0.5), resolution=(2, 20, 10)).immersed_part(water_depth=1.0)
-    body = cpt.FloatingBody(mesh=mesh, name="body")
-    body.add_translation_dof(name="Surge")
+    body = cpt.FloatingBody(
+        mesh=mesh,
+        dofs=cpt.rigid_body_dofs(only=["Surge", "Heave", "Pitch"], rotation_center=(0, 0, -0.5)),
+        name="body"
+    )
     return body
 
 @pytest.fixture
@@ -45,11 +48,6 @@ def test_encounter_frequency_radiation_problem(body):
     pb = cpt.RadiationProblem(body=body, omega=2.0, forward_speed=1.0, wave_direction=0.0, radiating_dof="Surge")
     assert pb.forward_speed == 1.0
     assert pb.encounter_omega < pb.omega
-
-def test_multibody(body, solver):
-    two_bodies = body + body.translated_x(5.0, name="other_body")
-    with pytest.raises(NotImplementedError):
-        pb = cpt.RadiationProblem(body=two_bodies, omega=2.0, forward_speed=1.0, radiating_dof="body__Surge")
 
 def test_non_rigid_body(body, solver):
     body = body.copy(name="body")
@@ -192,6 +190,16 @@ def test_malenica_radiation_damping(body, solver, ref_data):
     )
     res = solver.solve(pb)
     assert np.abs(res.radiation_dampings["Surge"])/(rho*pb.encounter_omega) == approx(ref_data[1].normalized_radiation_damping, rel=1e-1)
+
+
+def test_multibody_with_very_distant_bodies(body, solver):
+    two_bodies = body + body.translated_x(50.0, name="other_body")
+    ref_pb = cpt.RadiationProblem(body=body, omega=2.0, forward_speed=1.0, radiating_dof="Pitch")
+    ref_res = solver.solve(ref_pb)
+    pb = cpt.RadiationProblem(body=two_bodies, omega=2.0, forward_speed=1.0, radiating_dof="body__Pitch")
+    assert np.allclose(pb.boundary_condition[:body.mesh.nb_faces], ref_pb.boundary_condition)  # m-terms
+    res = solver.solve(pb)
+    assert np.isclose(res.forces['body__Pitch'], ref_res.force['Pitch'], rtol=1e-2)
 
 
 def test_near_zero_encounter_frequency_radiation(body, solver):

@@ -6,7 +6,7 @@ import pytest
 import numpy as np
 import capytaine as cpt
 
-import capytaine.green_functions.libs.Delhommeau_float64 as fortran_core
+import capytaine.green_functions.Delhommeau_float64 as fortran_core
 
 # #----------------------------------------------------------------------------------#
 # gf = cpt.Delhommeau()

@@ -84,7 +84,25 @@ With respect to Nemoh and Aquadyn
 ---------------------------------
 
 Capytaine mostly follows the same conventions as `Nemoh <https://gitlab.com/lheea/Nemoh>`_, which are also the same as in Aquadyn.
-The main exception is the phase angle of the excitation force in Nemoh and Capytaine is the opposite of the one in Aquadyn.
+One exception is the phase angle of the excitation force in Nemoh and Capytaine is the opposite of the one in Aquadyn.
+
+Radiation problems are scaled differently in Capytaine and in Nemoh.
+In Nemoh, the boundary condition is taken as the displacement of the panel, that is for instance for surge:
+
+.. math::
+   \frac{\partial \phi}{\partial n} = n_x
+
+In Capytaine (version 2 and above), the boundary condition is taken as the velocity of the panel, that is for the same example:
+
+.. math::
+   \frac{\partial \phi}{\partial n} = -i \omega n_x
+
+which is closer to the correct physical meaning.
+Nemoh's choice is most likely to allow the resolution in the edge cases $\omega = 0$ and $\omega = \infty$, while Capytaine uses another approach to handle these cases.
+The expression for the added mass and radiation damping are adjusted accordingly in Nemoh, so the results of Capytaine and Nemoh should match.
+However, so intermediate results (pressure on hull) and post-processing (free surface elevation, kochin functions) are missing a :math:`-i\omega` factor in Nemoh, which they have in Capytaine.
+
+Scaling of diffraction problems is the same in both codes.
 
 
 With respect to HAMS
@@ -102,7 +120,7 @@ OrcaWave follows the same conventions as WAMIT.
 With respect to Hydrostar
 -------------------------
 
-From (Donatini et al., 2022) [D22]_: 
+From (Donatini et al., 2022) [D22]_:
 
 * Hydrostar provided phases as a phase lead, while Capytaine outputs the phase lag.
 

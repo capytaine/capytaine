@@ -6,7 +6,6 @@ import xarray as xr
 import capytaine as cpt
 from capytaine.green_functions.abstract_green_function import GreenFunctionEvaluationError
 
-
 ###########
 #  Setup  #
 ###########

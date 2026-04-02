@@ -22,8 +22,7 @@ Main concepts
 
     **Degrees of freedom (dof)**
         A degree of freedom (or dof) defines a small motion or deformation of a
-        floating body around its average position. The motion or deformation is
-        stored as a vector at the center of each faces of the mesh.
+        floating body around its average position.
 
         The degrees of freedom of the body are referred by a name (e.g. `Heave`).
         They should stay in the order in which they have been defined, but

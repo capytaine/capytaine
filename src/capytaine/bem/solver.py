@@ -10,10 +10,11 @@
 """
 
 import os
+import shutil
+import textwrap
 import logging
 
 import numpy as np
-import pandas as pd
 
 from datetime import datetime
 from collections import defaultdict
@@ -30,6 +31,14 @@ from capytaine.tools.symbolic_multiplication import supporting_symbolic_multipli
 from capytaine.tools.timer import Timer
 
 LOG = logging.getLogger(__name__)
+
+# Mapping between a dtype and its complex version
+COMPLEX_DTYPE = {
+                    np.float32: np.complex64,
+                    np.float64: np.complex128,
+                    np.complex64 : np.complex64,
+                    np.complex128 : np.complex128
+                }
 
 class BEMSolver:
     """
@@ -51,7 +60,7 @@ class BEMSolver:
 
     Attributes
     ----------
-    timer: dict[str, Timer]
+    timer: Timer
         Storing the time spent on each subtasks of the resolution
     exportable_settings : dict
         Settings of the solver that can be saved to reinit the same solver later.
@@ -72,9 +81,7 @@ class BEMSolver:
             raise ValueError(f"Unrecognized method when initializing solver: {repr(method)}. Expected \"direct\" or \"indirect\".")
         self.method = method.lower()
 
-        self.timer = {"Solve total": defaultdict(Timer), "  Green function": defaultdict(Timer), "  Linear solver": defaultdict(Timer)}
-
-        self.solve = self.timer["Solve total"][0].wraps_function(self.solve)
+        self.reset_timer()
 
         self.exportable_settings = {
             **self.engine.exportable_settings,
@@ -87,27 +94,31 @@ class BEMSolver:
     def __repr__(self):
         return self.__str__()
 
+    def reset_timer(self):
+        self.timer = Timer(default_tags={"process": 0})
+        self.solve = self.timer.wraps_function(step="Total solve function")(self._solve)
+
     def timer_summary(self):
-        nb_process = len(self.timer["Solve total"])
-        list_dataframe = [pd.DataFrame([
-                {
-                    "task": name,
-                    "total": self.timer[name][process_id].total,
-                    "nb_calls": self.timer[name][process_id].nb_timings,
-                    "mean": self.timer[name][process_id].mean
-                } for name in self.timer]).set_index("task")
-                        for process_id in range(nb_process)]
+        df = self.timer.as_dataframe()
+        df["step"] = df["step"].where(
+                df["step"].str.startswith("Total"), "  " + df["step"]
+                )
+        total = (
+                df.groupby(["step", "process"])
+                ["timing"].sum()
+                .unstack()
+                )
+        return total
 
-        if nb_process == 1 :
-            return list_dataframe[0]
-        else :
-            return self.concatenate_timer_summary(list_dataframe[1::])
-
-    def concatenate_timer_summary(self, list_of_timers):
-        return pd.concat([
-                data_frame[["total"]] for data_frame in list_of_timers],
-                axis = 1,
-                keys=[f"process {nb}" for nb in range(1,len(list_of_timers) + 1)])
+    def displayed_total_summary(self, width=None):
+        total = self.timer_summary()
+        if width is None:
+            width = shutil.get_terminal_size(fallback=(80, 20)).columns - 25
+        total_str = total.to_string(
+                float_format="{:.2f}".format,
+                line_width=width,
+                )
+        return textwrap.indent(total_str, "  ")
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
@@ -116,7 +127,7 @@ class BEMSolver:
     def from_exported_settings(settings):
         raise NotImplementedError
 
-    def solve(self, problem, method=None, keep_details=True, _check_wavelength=True):
+    def _solve(self, problem, method=None, keep_details=True, _check_wavelength=True):
         """Solve the linear potential flow problem.
 
         Parameters
@@ -159,6 +170,7 @@ class BEMSolver:
             omega, wavenumber = problem.encounter_omega, problem.encounter_wavenumber
         else:
             omega, wavenumber = problem.omega, problem.wavenumber
+        gf_params = dict(free_surface=problem.free_surface, water_depth=problem.water_depth, wavenumber=wavenumber)
 
         linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
         method = method if method is not None else self.method
@@ -166,29 +178,29 @@ class BEMSolver:
             if problem.forward_speed != 0.0:
                 raise NotImplementedError("Direct solver is not able to solve problems with forward speed.")
 
-            with self.timer["  Green function"][0]:
+            with self.timer(step="Green function"):
                 S, D = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        problem.free_surface, problem.water_depth, wavenumber,
-                        adjoint_double_layer=False
+                        **gf_params, adjoint_double_layer=False, diagonal_term_in_double_layer=True,
                         )
-            rhs = S @ problem.boundary_condition
-            with self.timer["  Linear solver"][0]:
-                rhs_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(D.dtype.type)
-                potential = linear_solver(D, rhs.astype(rhs_type))
+            with self.timer(step="Matrix-vector product"):
+                rhs = S @ problem.boundary_condition
+            with self.timer(step="Linear solver"):
+                rhs = rhs.astype(COMPLEX_DTYPE[D.dtype.type])
+                potential = linear_solver(D, rhs)
             pressure = 1j * omega * problem.rho * potential
             sources = None
         else:
-            with self.timer["  Green function"][0]:
+            with self.timer(step="Green function"):
                 S, K = self.engine.build_matrices(
                         problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        problem.free_surface, problem.water_depth, wavenumber,
-                        adjoint_double_layer=True
+                        **gf_params, adjoint_double_layer=True, diagonal_term_in_double_layer=True,
                         )
-            with self.timer["  Linear solver"][0]:
-                rhs_type = {np.float32: np.complex64, np.float64: np.complex128, np.complex64 : np.complex64, np.complex128 : np.complex128}.get(K.dtype.type)
-                sources = linear_solver(K, problem.boundary_condition.astype(rhs_type))
-            potential = S @ sources
+            with self.timer(step="Linear solver"):
+                rhs = problem.boundary_condition.astype(COMPLEX_DTYPE[K.dtype.type])
+                sources = linear_solver(K, rhs)
+            with self.timer(step="Matrix-vector product"):
+                potential = S @ sources
             pressure = 1j * omega * problem.rho * potential
             if problem.forward_speed != 0.0:
                 result = problem.make_results_container(sources=sources)
@@ -207,17 +219,40 @@ class BEMSolver:
 
         return result
 
-    def _solve_and_catch_errors(self, problem, *args, **kwargs):
+    def _solve_and_catch_errors(self, problem, *args, _display_errors, **kwargs):
         """Same as BEMSolver.solve() but returns a
         FailedLinearPotentialFlowResult when the resolution failed."""
         try:
             res = self.solve(problem, *args, **kwargs)
         except Exception as e:
-            LOG.info(f"Skipped {problem}\nbecause of {repr(e)}")
             res = problem.make_failed_results_container(e)
+            if _display_errors:
+                self._display_errors([res])
         return res
 
-    def solve_all(self, problems, *, method=None, n_jobs=1, n_threads=None, progress_bar=None, _check_wavelength=True, **kwargs):
+    @staticmethod
+    def _display_errors(results):
+        """Displays errors that occur during the solver execution and groups them according
+        to the problem type and exception type for easier reading."""
+        failed_results = defaultdict(list)
+        for res in results:
+            if hasattr(res, "exception") and hasattr(res, "problem"):
+                key = (type(res.exception), str(res.exception), res.problem.omega, res.problem.water_depth, res.problem.forward_speed)
+                failed_results[key].append(res.problem)
+
+        for (exc_type, exc_msg, omega, water_depth, forward_speed), problems in failed_results.items():
+            nb = len(problems)
+            if nb > 1:
+                if forward_speed != 0.0:
+                    LOG.warning("Skipped %d problems for body=%s, omega=%s, water_depth=%s, forward_speed=%s\nbecause of %s(%r)",
+                                nb, problems[0].body.__short_str__(), omega, water_depth, forward_speed, exc_type.__name__, exc_msg)
+                else:
+                    LOG.warning("Skipped %d problems for body=%s, omega=%s, water_depth=%s\nbecause of %s(%r)",
+                                nb, problems[0].body.__short_str__(), omega, water_depth, exc_type.__name__, exc_msg)
+            else:
+                LOG.warning("Skipped %s\nbecause of %s(%r)", problems[0], exc_type.__name__, exc_msg)
+
+    def solve_all(self, problems, *, method=None, n_jobs=1, n_threads=None, progress_bar=None, _check_wavelength=True, _display_errors=True, **kwargs):
         """Solve several problems.
         Optional keyword arguments are passed to `BEMSolver.solve`.
 
@@ -276,13 +311,13 @@ class BEMSolver:
             if progress_bar:
                 problems = track(problems, total=len(problems), description="Solving BEM problems")
             if n_threads is None:
-                results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+                results = [self._solve_and_catch_errors(pb, method=method, _display_errors=_display_errors, _check_wavelength=False, **kwargs) for pb in problems]
             else:
                 threadpoolctl = silently_import_optional_dependency("threadpoolctl")
                 if threadpoolctl is None:
                     raise ImportError(f"Setting the `n_threads` argument to {n_threads} with `n_jobs=1` requires the missing optional dependency 'threadpoolctl'.")
                 with threadpoolctl.threadpool_limits(limits=n_threads):
-                    results = [self._solve_and_catch_errors(pb, method=method, _check_wavelength=False, **kwargs) for pb in problems]
+                    results = [self._solve_and_catch_errors(pb, method=method, _display_errors=_display_errors, _check_wavelength=False, **kwargs) for pb in problems]
         else:
             joblib = silently_import_optional_dependency("joblib")
             if joblib is None:
@@ -290,30 +325,47 @@ class BEMSolver:
             groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
             with joblib.parallel_config(backend='loky', inner_max_num_threads=n_threads):
                 parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
-                groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_jobs=1, n_threads=None, progress_bar=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
+                groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_threads=None, progress_bar=False, _display_errors=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
             if progress_bar:
                 groups_of_results = track(groups_of_results,
                                           total=len(groups_of_problems),
                                           description=f"Solving BEM problems with {n_jobs} processes:")
             results = []
             process_id_mapping = {}
-            for grp_results, timer, process_id in groups_of_results:
+            for grp_results, other_timer, process_id in groups_of_results:
                 results.extend(grp_results)
+                self._display_errors(grp_results)
                 if process_id not in process_id_mapping:
                     process_id_mapping[process_id] = len(process_id_mapping) + 1
-                for timer_key in self.timer:
-                    id_process_that_solved_that_group = process_id_mapping[process_id]
-                    self.timer[timer_key][id_process_that_solved_that_group].add_data_from_other_timer(timer[timer_key][0])
+                self.timer.add_data_from_other_timer(other_timer, process=process_id_mapping[process_id])
         memory_peak = monitor.get_memory_peak()
         if memory_peak is None:
             LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
         else:
             LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")
-        LOG.info("Solver timer summary:\n%s", self.timer_summary())
+        LOG.info("Solver timer summary (in seconds):\n%s", self.displayed_total_summary())
         return results
 
-    def _solve_all_and_return_timer(self, grp, *,method, n_jobs, n_threads, progress_bar, _check_wavelength,**kwargs):
-        return self.solve_all(grp, method=method, n_jobs=n_jobs, n_threads=n_threads, progress_bar=progress_bar, _check_wavelength=_check_wavelength, **kwargs), self.timer, os.getpid()
+    def _solve_all_and_return_timer(
+        self, grp, *,
+        method, n_threads,
+        progress_bar, _check_wavelength, **kwargs
+    ):
+        # This method is only called in joblib's Parallel loop.
+        # It contains some pre-processing and post-processing that
+        # should be done in each process when solving the batch of problems.
+
+        self.reset_timer()
+        # Timer data will be concatenated to the Timer of process 0.
+        # We reset the timer at each call to avoid concatenating
+        # the same data twice in the main process.
+
+        results = self.solve_all(
+            grp, method=method, n_jobs=1,
+            n_threads=n_threads, progress_bar=progress_bar,
+            _check_wavelength=_check_wavelength, **kwargs
+        )
+        return results, self.timer, os.getpid()
 
     @staticmethod
     def _check_wavelength_and_mesh_resolution(problems):
@@ -323,24 +375,30 @@ class BEMSolver:
         risky_problems = [pb for pb in problems
                           if 0.0 < pb.wavelength < pb.body.minimal_computable_wavelength]
         nb_risky_problems = len(risky_problems)
+        if any(pb.body.lid_mesh is not None for pb in problems):
+            mesh_str = "mesh or lid_mesh"
+        else:
+            mesh_str = "mesh"
         if nb_risky_problems == 1:
             pb = risky_problems[0]
             freq_type = risky_problems[0].provided_freq_type
             freq = pb.__getattribute__(freq_type)
             LOG.warning(f"Mesh resolution for {pb}:\n"
-                        f"The resolution of the mesh of the body {pb.body.__short_str__()} might "
+                        f"The resolution of the {mesh_str} of body {pb.body.__short_str__()} might "
                         f"be insufficient for {freq_type}={freq}.\n"
-                        "This warning appears because the largest panel of this mesh "
-                        f"has radius {pb.body.mesh.faces_radiuses.max():.3f} > wavelength/8."
+                        f"This warning appears because the largest panel of the {mesh_str} "
+                        f"has radius ({pb.body.mesh_including_lid.faces_radiuses.max():.3f} m) > wavelength/8 ({pb.wavelength / 8:.3f} m)."
                         )
         elif nb_risky_problems > 1:
             freq_type = risky_problems[0].provided_freq_type
-            freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
+            risky_freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
+            risky_wavelengths = np.array([pb.wavelength for pb in risky_problems])
+            max_radius = max(pb.body.mesh_including_lid.faces_radiuses.max() for pb in risky_problems)
             LOG.warning(f"Mesh resolution for {nb_risky_problems} problems:\n"
-                        "The resolution of the mesh might be insufficient "
-                        f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
-                        "This warning appears when the largest panel of this mesh "
-                        "has radius > wavelength/8."
+                        f"The resolution of the {mesh_str} might be insufficient "
+                        f"for {freq_type} ranging from {risky_freqs.min():.3f} to {risky_freqs.max():.3f}.\n"
+                        f"This warning appears because the largest panel of the {mesh_str} "
+                        f"has radius ({max_radius:.3f} m) > wavelength/8 ({risky_wavelengths.min() / 8:.3f} to {risky_wavelengths.max() / 8:.3f} m)."
                         )
 
     @staticmethod
@@ -428,7 +486,7 @@ class BEMSolver:
         ----------
         dataset : xarray Dataset
             dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
-        bodies : FloatingBody or list of FloatingBody
+        bodies : FloatingBody or Multibody or list of FloatingBody or list of Multibody
             The body or bodies involved in the problems
             They should all have different names.
         method: string, optional
@@ -492,28 +550,40 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        points, output_shape = _normalize_points(points, keep_mesh=True)
+        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
+
+        points, output_shape = _normalize_points(points)
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
 
-        with self.timer["  Green function"][0]:
-            S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
-        potential = S @ result.sources  # Sum the contributions of all panels in the mesh
+        with self.timer(step="Post-processing potential"):
+            S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, **gf_params)
+            potential = S @ result.sources  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
     def _compute_potential_gradient(self, points, result):
         points, output_shape = _normalize_points(points, keep_mesh=True)
+        # keep_mesh, because we need the normal vectors associated with each collocation points to compute the fullK matrix
 
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
 
-        with self.timer["  Green function"][0]:
-            gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, result.free_surface, result.water_depth, result.encounter_wavenumber)
-        velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
+        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
+        with self.timer(step="Post-processing velocity"):
+            gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, **gf_params)
+            # gradG is either:
+            # - an array of shape (3, nb_points, mesh_including_lid.nb_faces)
+            # - a 3-ple of matrices of the shape (nb_points, mesh_including_lid), that could be stored as LazyMatrix.
+            vx = gradG[0] @ result.sources
+            vy = gradG[1] @ result.sources
+            vz = gradG[2] @ result.sources
+            # The matrix-vector product here computes the integral over the mesh of the contributions of each panel in the mesh
+            velocities = np.stack([vx, vy, vz], axis=-1)
+            # velocities.shape = (nb_points, 3)
         return velocities.reshape((*output_shape, 3))
 
     def compute_velocity(self, points, result):
@@ -587,7 +657,7 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        points, output_shape = _normalize_free_surface_points(points, keep_mesh=True)
+        points, output_shape = _normalize_free_surface_points(points)
 
         if result.forward_speed != 0:
             fs_elevation = -1/result.g * (-1j*result.encounter_omega) * self.compute_potential(points, result)
@@ -597,93 +667,3 @@ class BEMSolver:
             fs_elevation = -1/result.g * (-1j*result.omega) * self.compute_potential(points, result)
 
         return fs_elevation.reshape(output_shape)
-
-
-    ## Legacy
-
-    def get_potential_on_mesh(self, result, mesh, chunk_size=50):
-        """Compute the potential on a mesh for the potential field of a previously solved problem.
-        Since the interaction matrix does not need to be computed in full to compute the matrix-vector product,
-        only a few lines are evaluated at a time to reduce the memory cost of the operation.
-
-        The newer method :code:`compute_potential` should be preferred in the future.
-
-        Parameters
-        ----------
-        result : LinearPotentialFlowResult
-            the return of the BEM solver
-        mesh : MeshLike
-            a mesh
-        chunk_size: int, optional
-            Number of lines to compute in the matrix.
-            (legacy, should be passed as an engine setting instead).
-
-        Returns
-        -------
-        array of shape (mesh.nb_faces,)
-            potential on the faces of the mesh
-
-        Raises
-        ------
-        Exception: if the :code:`Result` object given as input does not contain the source distribution.
-        """
-        LOG.info(f"Compute potential on {mesh.name} for {result}.")
-
-        if result.sources is None:
-            raise Exception(f"""The values of the sources of {result} cannot been found.
-            They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
-            Please re-run the resolution with the indirect method and keep_details=True.""")
-
-        if chunk_size > mesh.nb_faces:
-            S = self.engine.build_S_matrix(
-                mesh,
-                result.body.mesh_including_lid,
-                result.free_surface, result.water_depth, result.wavenumber,
-            )
-            phi = S @ result.sources
-
-        else:
-            phi = np.empty((mesh.nb_faces,), dtype=np.complex128)
-            for i in range(0, mesh.nb_faces, chunk_size):
-                faces_to_extract = list(range(i, min(i+chunk_size, mesh.nb_faces)))
-                S = self.engine.build_S_matrix(
-                    mesh.extract_faces(faces_to_extract),
-                    result.body.mesh_including_lid,
-                    result.free_surface, result.water_depth, result.wavenumber,
-                )
-                phi[i:i+chunk_size] = S @ result.sources
-
-        LOG.debug(f"Done computing potential on {mesh.name} for {result}.")
-
-        return phi
-
-    def get_free_surface_elevation(self, result, free_surface, keep_details=False):
-        """Compute the elevation of the free surface on a mesh for a previously solved problem.
-
-        The newer method :code:`compute_free_surface_elevation` should be preferred in the future.
-
-        Parameters
-        ----------
-        result : LinearPotentialFlowResult
-            the return of the solver
-        free_surface : FreeSurface
-            a meshed free surface
-        keep_details : bool, optional
-            if True, keep the free surface elevation in the LinearPotentialFlowResult (default:False)
-
-        Returns
-        -------
-        array of shape (free_surface.nb_faces,)
-            the free surface elevation on each faces of the meshed free surface
-
-        Raises
-        ------
-        Exception: if the :code:`Result` object given as input does not contain the source distribution.
-        """
-        if result.forward_speed != 0.0:
-            raise NotImplementedError("For free surface elevation with forward speed, please use the `compute_free_surface_elevation` method.")
-
-        fs_elevation = 1j*result.omega/result.g * self.get_potential_on_mesh(result, free_surface.mesh)
-        if keep_details:
-            result.fs_elevation[free_surface] = fs_elevation
-        return fs_elevation

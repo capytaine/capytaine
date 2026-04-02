@@ -116,7 +116,7 @@ class Delhommeau(AbstractGreenFunction):
                  gf_singularities=_default_parameters["gf_singularities"],
                  ):
 
-        self.fortran_core = import_module(f"capytaine.green_functions.libs.Delhommeau_{floating_point_precision}")
+        self.fortran_core = import_module(f"capytaine.green_functions.Delhommeau_{floating_point_precision}")
 
         self.tabulation_grid_shape = tabulation_grid_shape
         fortran_enum = {
@@ -322,10 +322,12 @@ class Delhommeau(AbstractGreenFunction):
         else:
             raise ValueError(f"Unrecognized name for the Prony decomposition method: {repr(method)}. Expected 'python' or 'fortran'.")
 
-    def evaluate_rankine_only(self,
-                              mesh1, mesh2,
-                              adjoint_double_layer=True, early_dot_product=True
-                              ):
+    def evaluate_rankine_only(
+            self,
+            mesh1, mesh2, *,
+            adjoint_double_layer=True, early_dot_product=True,
+            diagonal_term_in_double_layer=True,
+            ):
         r"""Construct the matrices between mesh1 (that can also be a list of points)
         and mesh2 for a Rankine kernel.
 
@@ -343,6 +345,11 @@ class Delhommeau(AbstractGreenFunction):
         early_dot_product: boolean, optional
             if False, return K as a (n, m, 3) array storing ∫∇G
             if True, return K as a (n, m) array storing ∫∇G·n
+        diagonal_term_in_double_layer: boolean, optional
+            if True, add the I/2 term in the double layer operator
+            It is assumed that mesh1 == mesh2, or at least that
+            the `n := min(mesh1.nb_faces, mesh2.nb_faces)` first faces
+            of each mesh are identical.
 
         Returns
         -------
@@ -365,9 +372,10 @@ class Delhommeau(AbstractGreenFunction):
                 adjoint_double_layer,
                 S, K)
 
-        if mesh1 is mesh2:
+        if diagonal_term_in_double_layer:
+            n = min(K.shape[1], K.shape[2])
             self.fortran_core.matrices.add_diagonal_term(
-                    mesh2.faces_centers, early_dot_product_normals, np.inf, K,
+                    mesh2.faces_centers[:n, :], early_dot_product_normals, np.inf, K,
                     )
 
         S, K = np.real(S), np.real(K)
@@ -383,11 +391,12 @@ class Delhommeau(AbstractGreenFunction):
         return S, K
 
 
-    def evaluate(self,
-                 mesh1, mesh2,
-                 free_surface=0.0, water_depth=np.inf, wavenumber=1.0,
-                 adjoint_double_layer=True, early_dot_product=True
-                 ):
+    def evaluate(
+            self, mesh1, mesh2, *,
+            free_surface=0.0, water_depth=np.inf, wavenumber=1.0,
+            adjoint_double_layer=True, early_dot_product=True,
+            diagonal_term_in_double_layer=True,
+            ):
         r"""The main method of the class, called by the engine to assemble the influence matrices.
 
         Parameters
@@ -408,6 +417,11 @@ class Delhommeau(AbstractGreenFunction):
         early_dot_product: boolean, optional
             if False, return K as a (n, m, 3) array storing ∫∇G
             if True, return K as a (n, m) array storing ∫∇G·n
+        diagonal_term_in_double_layer: boolean, optional
+            if True, add the I/2 term in the double layer operator.
+            It is assumed that mesh1 == mesh2, or at least that
+            the `n := min(mesh1.nb_faces, mesh2.nb_faces)` first faces
+            of each mesh are identical.
 
         Returns
         -------
@@ -483,15 +497,11 @@ class Delhommeau(AbstractGreenFunction):
             S, K
         )
 
-        if mesh1 is mesh2:
+        if diagonal_term_in_double_layer:
+            n = min(K.shape[1], K.shape[2])
             self.fortran_core.matrices.add_diagonal_term(
-                    mesh2.faces_centers, early_dot_product_normals, free_surface, K,
+                    mesh2.faces_centers[:n, :], early_dot_product_normals, free_surface, K,
                     )
-
-        if np.any(np.isnan(S)) or np.any(np.isnan(K)):
-            raise GreenFunctionEvaluationError(
-                    "Green function returned a NaN in the interaction matrix.\n"
-                    "It could be due to overlapping panels.")
 
         if early_dot_product:
             K = K.reshape((collocation_points.shape[0], mesh2.nb_faces))

@@ -4,7 +4,8 @@
 
 import logging
 import numpy as np
-from typing import List, Union
+from functools import lru_cache
+from typing import List, Union, Sequence
 from numpy.typing import NDArray, ArrayLike
 import scipy.linalg as sl
 
@@ -39,12 +40,12 @@ class BlockCirculantMatrix:
 
     Parameters
     ----------
-    blocks: iterable of matrix-like
+    blocks: Sequence of matrix-like, can be also a ndarray of shape (nb_blocks, n, n, ...)
         The **first column** of blocks [a, b, c, d, ...]
         Each block should have the same shape.
     """
-    def __init__(self, blocks: List[ArrayLike]):
-        self.blocks = [b for b in blocks]
+    def __init__(self, blocks: Sequence[ArrayLike]):
+        self.blocks = blocks
         self.nb_blocks = len(blocks)
         assert all(self.blocks[0].shape == b.shape for b in self.blocks[1:])
         assert all(self.blocks[0].dtype == b.dtype for b in self.blocks[1:])
@@ -61,7 +62,7 @@ class BlockCirculantMatrix:
             raise NotImplementedError
         if dtype is None:
             dtype = self.dtype
-        full_blocks = [np.array(b) for b in self.blocks]  # Transform all blocks to numpy arrays
+        full_blocks = [np.asarray(b) for b in self.blocks]  # Transform all blocks to numpy arrays
         first_row = [full_blocks[0], *(full_blocks[1:][::-1])]
         if self.ndim >= 3:
             first_row = [leading_dimensions_at_the_end(b) for b in first_row]
@@ -84,12 +85,56 @@ class BlockCirculantMatrix:
         else:
             return NotImplemented
 
+    def __matmul__(self, other):
+        if self.nb_blocks == 2 and isinstance(other, np.ndarray) and other.ndim == 1:
+            a, b = self.blocks
+            x1, x2 = other[:len(other)//2], other[len(other)//2:]
+            y = np.concatenate([a @ x1 + b @ x2, b @ x1 + a @ x2], axis=0)
+            return y
+        elif self.nb_blocks == 3 and isinstance(other, np.ndarray) and other.ndim == 1:
+            a, b, c = self.blocks
+            n = len(other)
+            x1, x2, x3 = other[:n//3], other[n//3:2*n//3], other[2*n//3:]
+            y = np.concatenate([
+                a @ x1 + c @ x2 + b @ x3,
+                b @ x1 + a @ x2 + c @ x3,
+                c @ x1 + b @ x2 + a @ x3,
+            ], axis=0)
+            return y
+        elif isinstance(other, np.ndarray) and other.ndim == 1:
+            self.blocks
+            y = np.zeros(other.shape, dtype=np.result_type(self.dtype, other.dtype))
+            blocks_indices = list(range(self.nb_blocks))
+            for i, x_i in enumerate(np.split(other, self.nb_blocks)):
+                y += np.concatenate([self.blocks[j] @ x_i for j in circular_permutation(blocks_indices, i)])
+            return y
+        else:
+            return NotImplemented
+
+    def matvec(self, other):
+        return self.__matmul__(other)
+
     def block_diagonalize(self) -> "BlockDiagonalMatrix":
-        if self.ndim == 2 and all(isinstance(b, BlockCirculantMatrix) for b in self.blocks) and self.nb_blocks == 2:
+        if self.ndim == 2 and self.nb_blocks == 2:
             a, b = self.blocks
             return BlockDiagonalMatrix([a + b, a - b])
+        elif self.ndim == 2 and self.nb_blocks == 3:
+            a, b, c = self.blocks
+            return BlockDiagonalMatrix([
+                a + b + c,
+                a + np.exp(-2j*np.pi/3, dtype=self.dtype) * b + np.exp(2j*np.pi/3, dtype=self.dtype) * c,
+                a + np.exp(2j*np.pi/3, dtype=self.dtype) * b + np.exp(-2j*np.pi/3, dtype=self.dtype) * c,
+            ])
+        elif self.ndim == 2 and self.nb_blocks == 4:
+            a, b, c, d = self.blocks
+            return BlockDiagonalMatrix([
+                a + b + c + d,
+                a - 1j*b - c + 1j*d,
+                a - b + c - d,
+                a + 1j*b - c - 1j*d,
+            ])
         elif self.ndim == 2 and all(isinstance(b, np.ndarray) for b in self.blocks):
-            return BlockDiagonalMatrix(np.fft.fft(np.array(self.blocks), axis=0))
+            return BlockDiagonalMatrix(np.fft.fft(np.asarray(self.blocks), axis=0))
         else:
             raise NotImplementedError()
 
@@ -102,6 +147,147 @@ class BlockCirculantMatrix:
         res = np.fft.ifft(res_fft.reshape((n, b.shape[0]//n)), axis=0).reshape(b.shape)
         LOG.debug("Done")
         return res
+
+
+class NestedBlockCirculantMatrix:
+    """Data-sparse representation of a block matrix of the following form
+
+       ( a  b | e  d | c  f )
+       ( b  a | f  c | d  e )
+       ( ------------------ )
+       ( c  f | a  b | e  d )
+       ( d  e | b  a | f  c )
+       ( ------------------ )
+       ( e  d | c  f | a  b )
+       ( f  c | d  e | b  a )
+
+    where a, b, c, d, e and f are matrices of the same shape,
+    that is a block circulant matrix (here of size 3x3, but arbitrary outer sizes are supported),
+    where diagonal blocks are 2x2 block circulant matrices and off-diagonal blocks have subblocks in common.
+
+    Reordering the lines and columns, this matrix is equivalent to the following shape
+
+       ( a  e  c | b  d  f )
+       ( c  a  e | f  b  d )
+       ( e  c  a | d  f  b )
+       ( ----------------- )
+       ( b  f  d | a  c  e )
+       ( d  b  f | e  a  c )
+       ( f  d  b | c  e  a )
+
+    that is a 2x2 block matrix of block circulant matrices, the block circulant matrices of the bottom row being the transpose of the block circulant matrices of the top row.
+
+    In the 2x2x2x2 limit case, the matrix is a nested block circulant matrix
+
+       ( a  b | c  d )
+       ( b  a | d  c )
+       ( ----------- )
+       ( c  d | a  b )
+       ( d  c | b  a )
+
+    The 4x4x2x2 pattern reads
+
+       ( a  b | g  d | e  f | c  h )
+       ( b  a | h  c | f  e | d  g )
+       ( -----|------|------|----- )
+       ( c  h | a  b | g  d | e  f )
+       ( d  g | b  a | h  c | f  e )
+       ( -----|------|------|----- )
+       ( e  f | c  h | a  b | g  d )
+       ( f  e | d  g | b  a | h  c )
+       ( -----|------|------|----- )
+       ( g  d | e  f | c  h | a  b )
+       ( h  c | f  e | d  g | b  a )
+
+    Parameters
+    ----------
+    blocks: Sequence of matrix-like, can be also a ndarray of shape (nb_blocks, n, n, ...)
+        The **first column** of blocks [a, b, c, d, ...]
+        Each block should have the same shape, and the number of blocks should be even.
+    """
+    def __init__(self, blocks: Sequence[ArrayLike]):
+        self.blocks = blocks
+        self.nb_blocks = len(blocks)
+        assert self.nb_blocks % 2 == 0
+        assert all(self.blocks[0].shape == b.shape for b in self.blocks[1:])
+        assert all(self.blocks[0].dtype == b.dtype for b in self.blocks[1:])
+        self.shape = (
+            self.nb_blocks*self.blocks[0].shape[0],
+            self.nb_blocks*self.blocks[0].shape[1],
+            *self.blocks[0].shape[2:]
+        )
+        self.ndim = len(self.shape)
+        self.dtype = self.blocks[0].dtype
+
+    @lru_cache
+    def to_BlockCirculantMatrix(self):
+        """Convert to a BlockCirculantMatrix with combined macro-blocks.
+
+        The NestedBlockCirculantMatrix with blocks [a, b, c, d, e, f, ...]
+        (where nb_blocks = 2*n) is converted to a BlockCirculantMatrix with n macro-blocks.
+
+        Each macro-block i (for i in 0..n-1) is a 2x2 arrangement of the original blocks:
+        - For i=0: [[blocks[0], blocks[1]], [blocks[1], blocks[0]]]
+        - For i>0: [[blocks[2*i], blocks[2*n-2*i+1]], [blocks[2*i+1], blocks[2*n-2*i]]]
+        """
+        n = self.nb_blocks // 2
+
+        # Create the macro-blocks for the BlockCirculantMatrix
+        macro_blocks = []
+        for i in range(n):
+            if i == 0:
+                # First macro-block is a standard 2x2 circulant
+                top_row = np.hstack([self.blocks[0], self.blocks[1]])
+                bottom_row = np.hstack([self.blocks[1], self.blocks[0]])
+            else:
+                # Other macro-blocks follow the pattern
+                idx_top_left = 2 * i
+                idx_top_right = 2 * n - 2 * i + 1
+                idx_bottom_left = 2 * i + 1
+                idx_bottom_right = 2 * n - 2 * i
+
+                top_row = np.hstack([self.blocks[idx_top_left], self.blocks[idx_top_right]])
+                bottom_row = np.hstack([self.blocks[idx_bottom_left], self.blocks[idx_bottom_right]])
+
+            macro_block = np.vstack([top_row, bottom_row])
+            macro_blocks.append(macro_block)
+
+        # Create the outer BlockCirculantMatrix
+        return BlockCirculantMatrix(macro_blocks)
+
+    def __array__(self, dtype=None, copy=True):
+        return self.to_BlockCirculantMatrix().__array__(dtype=dtype, copy=copy)
+
+    def __matmul__(self, other):
+        return self.to_BlockCirculantMatrix() @ other
+
+    def matvec(self, other):
+        return self.__matmul__(other)
+
+    def block_diagonalize(self) -> "BlockDiagonalMatrix":
+        if self.nb_blocks == 4:
+            # Special case for 2x2x2x2: fully block-diagonalize both outer and inner structures
+            # Given blocks [a, b, c, d], the matrix is:
+            # ( a  b | c  d )
+            # ( b  a | d  c )
+            # ( ----------- )
+            # ( c  d | a  b )
+            # ( d  c | b  a )
+            # First diagonalize outer 2x2: gives BlockCirculantMatrix([a+c, b+d]) and BlockCirculantMatrix([a-c, b-d])
+            # Then diagonalize each inner 2x2: (a+c)±(b+d) and (a-c)±(b-d)
+            a, b, c, d = self.blocks
+            return BlockDiagonalMatrix([
+                a + b + c + d,
+                a - b + c - d,
+                a + b - c - d,
+                a - b - c + d
+            ])
+        else:
+            # Drop the inner structure
+            return self.to_BlockCirculantMatrix().block_diagonalize()
+
+    def solve(self, b: np.ndarray) -> np.ndarray:
+        return self.to_BlockCirculantMatrix().solve(b)
 
 
 class BlockDiagonalMatrix:
@@ -119,8 +305,8 @@ class BlockDiagonalMatrix:
     blocks: iterable of matrix-like
         The blocks [a, b, c, d, ...]
     """
-    def __init__(self, blocks):
-        self.blocks = [b for b in blocks]
+    def __init__(self, blocks: Sequence[ArrayLike]):
+        self.blocks = blocks
         self.nb_blocks = len(blocks)
         assert all(blocks[0].shape == b.shape for b in blocks[1:])
         self.shape = (
@@ -135,7 +321,7 @@ class BlockDiagonalMatrix:
             raise NotImplementedError
         if dtype is None:
             dtype = self.dtype
-        full_blocks = [np.array(b) for b in self.blocks]  # Transform all blocks to numpy arrays
+        full_blocks = [np.asarray(b) for b in self.blocks]  # Transform all blocks to numpy arrays
         if self.ndim >= 3:
             full_blocks = [leading_dimensions_at_the_end(b) for b in full_blocks]
         full_matrix = np.block([
@@ -157,7 +343,7 @@ class BlockDiagonalMatrix:
         return np.hstack(res)
 
 
-MatrixLike = Union[np.ndarray, BlockDiagonalMatrix, BlockCirculantMatrix]
+MatrixLike = Union[np.ndarray, BlockDiagonalMatrix, NestedBlockCirculantMatrix, BlockCirculantMatrix]
 
 
 def lu_decompose(A: MatrixLike, *, overwrite_a : bool = False):
@@ -167,6 +353,8 @@ def lu_decompose(A: MatrixLike, *, overwrite_a : bool = False):
         return LUDecomposedBlockDiagonalMatrix(A, overwrite_a=overwrite_a)
     elif isinstance(A, BlockCirculantMatrix):
         return LUDecomposedBlockCirculantMatrix(A, overwrite_a=overwrite_a)
+    elif isinstance(A, NestedBlockCirculantMatrix):
+        return LUDecomposedBlockCirculantMatrix(A.to_BlockCirculantMatrix(), overwrite_a=overwrite_a)
     else:
         raise NotImplementedError()
 

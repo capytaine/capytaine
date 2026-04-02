@@ -12,7 +12,7 @@ def test_sum_of_dofs(method):
     body2 = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(3, 8), center=(5, 3, -1.5)), name="body2")
     body2.add_translation_dof(name="Heave")
 
-    both = body1 + body2
+    both = (body1 + body2).as_FloatingBody()
     both.add_translation_dof(name="Heave")
 
     problems = [cpt.RadiationProblem(body=both, radiating_dof=dof, omega=1.0) for dof in both.dofs]
@@ -31,12 +31,15 @@ def test_sum_of_dofs(method):
 def test_rotation_axis(method):
     body = cpt.FloatingBody(mesh=cpt.mesh_parallelepiped(resolution=(4, 4, 4), center=(0, 0, -1), name="body"))
     body.add_translation_dof(name="Sway")
-    body.add_rotation_dof(axis=cpt.Axis(point=(0, 0, 0), vector=(0, 0, 1)), name="Yaw")
+    body.add_rotation_dof(rotation_center=(0, 0, 0), direction=(0, 0, 1), name="Yaw")
 
     l = 2.0
-    body.add_rotation_dof(axis=cpt.Axis(point=(l, 0, 0), vector=(0, 0, 1)), name="other_rotation")
+    body.add_rotation_dof(rotation_center=(l, 0, 0), direction=(0, 0, 1), name="other_rotation")
 
-    assert np.allclose(body.dofs['other_rotation'], (body.dofs['Yaw'] - l*body.dofs['Sway']))
+    assert np.allclose(
+        body.dofs['other_rotation'].evaluate_motion(body.mesh),
+        (body.dofs['Yaw'].evaluate_motion(body.mesh) - l*body.dofs['Sway'].evaluate_motion(body.mesh))
+    )
 
     problems = [cpt.RadiationProblem(body=body, radiating_dof=dof, omega=1.0) for dof in body.dofs]
     solver = cpt.BEMSolver(method=method)
