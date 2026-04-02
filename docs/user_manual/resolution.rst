@@ -295,6 +295,14 @@ Capytaine includes two kinds of parallelization.
 | and :code:`fill_dataset`) |                         |                       |
 +---------------------------+-------------------------+-----------------------+
 
+The method :meth:`~capytaine.bem.solver.BEMSolver.dispatch` should provide a
+good distribution of the work between processes and threads for a given amount
+of RAM (in GB)::
+
+    solver = cpt.BEMSolver()
+    solver.solve_all(problems, **solver.dispatch(memory_in_GB=16))
+
+
 Single problem with OpenMP
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 

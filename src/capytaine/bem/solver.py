@@ -13,11 +13,11 @@ import os
 import shutil
 import textwrap
 import logging
-
-import numpy as np
-
 from datetime import datetime
 from collections import defaultdict
+from dataclasses import dataclass
+
+import numpy as np
 
 from rich.progress import track
 
@@ -291,6 +291,11 @@ class BEMSolver:
             self._check_wavelength_and_mesh_resolution(problems)
             self._check_wavelength_and_irregular_frequencies(problems)
 
+        if isinstance(n_jobs, DispatchPlaceholder) or isinstance(n_threads, DispatchPlaceholder):
+            d = self._dispatch(problems, memory_in_GB=n_jobs.memory_in_GB, n_cpu=n_jobs.n_cpu)
+            n_jobs = d["n_jobs"]
+            n_threads = d["n_threads"]
+
         self._check_ram(problems, n_jobs)
 
         if progress_bar is None:
@@ -431,30 +436,35 @@ class BEMSolver:
                             f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
                             + recommendation
                             )
-                
-    def dispatch(self, problems, memory, n_cpu=None):
+
+    def dispatch(self, *, memory_in_GB, n_cpu=None):
+        return {"n_threads": DispatchPlaceholder(memory_in_GB=memory_in_GB, n_cpu=n_cpu),
+                "n_jobs": DispatchPlaceholder(memory_in_GB=memory_in_GB, n_cpu=n_cpu)}
+
+    def _dispatch(self, problems, *, memory_in_GB, n_cpu=None):
         """Manage the allocation of threads and processes based on the available RAM (in GB)."""
         joblib = import_optional_dependency("joblib")
 
         if not isinstance(problems, (list, tuple)):
             problems = [problems]
 
-        estimated_memory_per_job = max(self.engine.compute_ram_estimation(pb) for pb in problems)
-        max_jobs = min(int(memory // estimated_memory_per_job), 20) 
-        if max_jobs == 0:
-            LOG.warning(f"The given memory: {memory} GB might be not enough for the computation.")
-            max_jobs = 1
-
         if n_cpu is None:
             n_cpu = joblib.cpu_count(only_physical_cores=True)
 
-        nb_threads_per_jobs = int(n_cpu // max_jobs) if n_cpu is not None else None
-        if nb_threads_per_jobs == 0:
-            while nb_threads_per_jobs == 0:
-                max_jobs -= 1
-                nb_threads_per_jobs = int(n_cpu // max_jobs)
+        estimated_memory_per_job = max(self.engine.compute_ram_estimation(pb) for pb in problems)
+        if estimated_memory_per_job > memory_in_GB:
+            LOG.warning(f"The given memory: {memory_in_GB} GB might be not enough for the resolution.")
+            max_jobs = 1
+        else:
+            max_jobs = int(memory_in_GB / estimated_memory_per_job)
 
-        return {"n_jobs": max_jobs, "n_threads": nb_threads_per_jobs}
+        n_jobs = min(max_jobs, n_cpu)
+        nb_threads_per_jobs = int(n_cpu / n_jobs)
+
+        LOG.info(f"To solve the given {len(problems)} problems with {memory_in_GB} GB of RAM and {n_cpu} CPUs, "
+                 f"the solver will use {n_jobs} processes with each {nb_threads_per_jobs} threads")
+
+        return {"n_jobs": n_jobs, "n_threads": nb_threads_per_jobs}
 
     def _check_ram(self,problems, n_jobs=1):
         """Display a warning if the RAM estimation is larger than a certain limit."""
@@ -667,3 +677,9 @@ class BEMSolver:
             fs_elevation = -1/result.g * (-1j*result.omega) * self.compute_potential(points, result)
 
         return fs_elevation.reshape(output_shape)
+
+
+@dataclass
+class DispatchPlaceholder:
+    memory_in_GB: int
+    n_cpu: int
