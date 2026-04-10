@@ -1,7 +1,7 @@
 from typing import Optional
 from itertools import cycle
 
-from capytaine.meshes.visualization import PyVistaViewer
+from capytaine.meshes.visualization import PyVistaViewer, show_matplotlib as show_mesh_matplotlib
 from capytaine.bodies.dofs import AbstractDof
 
 
@@ -9,6 +9,7 @@ def show_3d(body, *, backend=None, **kwargs):
     """Dispatch the 3D viewing to one of the available backends below."""
     backends_functions = {
             "pyvista": show_pyvista,
+            "matplotlib": show_matplotlib,
             }
     if backend is not None:
         if backend in backends_functions:
@@ -22,7 +23,7 @@ def show_3d(body, *, backend=None, **kwargs):
             except (NotImplementedError, ImportError):
                 pass
         raise NotImplementedError(f"No compatible backend found to show the body {body}.\n"
-                                  "Consider installing `pyvista`.")
+                                  "Consider installing `matplotlib` or `pyvista`.")
 
 
 def show_pyvista(body, **kwargs) -> Optional["pv.Plotter"]:  # noqa: F821
@@ -78,3 +79,9 @@ class BodyPyVistaViewer(PyVistaViewer):
 
     def show_next_dof(self):
         self._show_dof(next(self._dofs_iterator))
+
+
+###################################################################################################
+
+def show_matplotlib(body, **kwargs):
+    return show_mesh_matplotlib(body.mesh_including_lid, **kwargs)
