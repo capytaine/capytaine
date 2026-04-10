@@ -33,7 +33,7 @@ or as a standalone executable (with some drawbacks) at https://github.com/capyta
 
 ## License
 
-Copyright (C) 2017-2024, Matthieu Ancellin
+Copyright (C) 2017-2026, Matthieu Ancellin
 
 Since April 2022, the development of Capytaine is funded by the Alliance for Sustainable Energy, LLC, Managing and Operating Contractor for the National Renewable Energy Laboratory (NREL) for the U.S. Department of Energy.
 
@@ -43,6 +43,4 @@ This program is distributed in the hope that it will be useful, but WITHOUT ANY 
 
 It is based on version 2 of [Nemoh](https://lheea.ec-nantes.fr/logiciels-et-brevets/nemoh-presentation-192863.kjsp), which has been developed by Gérard Delhommeau, Aurélien Babarit et al., (École Centrale de Nantes) and was distributed under the Apache License 2.0.
 
-Some core Fortran routines of Capytaine coming from Nemoh version 2 are also available under the Apache License 2.0. They can be found in the [`capytaine/green_functions/libDelhommeau`](https://github.com/capytaine/capytaine/tree/master/capytaine/green_functions/libDelhommeau) directory of Capytaine's repository.
-
-Capytaine includes code from [meshmagick](https://github.com/LHEEA/meshmagick/) by François Rongère (École Centrale de Nantes), licensed under the GNU General Public License (GPL).
+Some core Fortran routines of Capytaine coming from Nemoh version 2 are also available under the Apache License 2.0. They can be found in the [`capytaine/green_functions/libDelhommeau`](https://github.com/capytaine/capytaine/tree/master/libs/libDelhommeau) directory of Capytaine's repository.

@@ -14,6 +14,8 @@ def export_mesh(mesh, format: str):
         return export_to_meshio(mesh)
     elif format == "trimesh":
         return export_to_trimesh(mesh)
+    elif format == "vedo":
+        return export_to_vedo(mesh)
     else:
         raise ValueError(f"Unrecognized output format: {format}")
 
@@ -43,6 +45,11 @@ def export_to_pyvista(mesh):
     cell_types = np.array(cell_types, dtype=np.uint8)
 
     return pv.UnstructuredGrid(cells_array, cell_types, mesh.vertices.astype(np.float32))
+
+
+def export_to_vedo(mesh):
+    vedo = import_optional_dependency("vedo")
+    return vedo.Mesh([mesh.vertices, mesh.faces])
 
 
 def export_to_xarray(mesh):

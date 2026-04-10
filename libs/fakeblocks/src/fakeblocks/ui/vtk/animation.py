@@ -163,7 +163,7 @@ class Animation:
 
         Parameters
         ----------
-        free_surface: FreeSurface
+        free_surface: FloatingBody
             The free surface object
         faces_elevation: array of complex numbers
             The elevation of each face of the meshed free surface given as a complex number.

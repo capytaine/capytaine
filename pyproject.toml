@@ -31,6 +31,7 @@ optional = [
   "psutil", "joblib>=1.3", "threadpoolctl",
   "meshio", "trimesh", "h5py", "netcdf4",
 ]
+more_visualisation = ["vedo", "imageio[ffmpeg]"]
 
 [dependency-groups]
 test = [

@@ -109,6 +109,7 @@ def test_export_wamit_omega_zero(full_dataset, tmpdir):
         assert (
             len(fields) == 4
         ), f"For omega=0, each line in the .1 file must have 4 fields: {fields}"
+        assert float(fields[0]) == -1.0  # Infinite period
     expected_lines = len(dataset["omega"]) * 36
     assert (
         len(data_lines) == expected_lines
@@ -141,6 +142,7 @@ def test_export_wamit_omega_inf(full_dataset, tmpdir):
         assert (
             len(fields) == 4
         ), f"For omega=inf, each line in the .1 file must have 4 fields: {fields}"
+        assert float(fields[0]) == 0.0  # Zero period
     expected_lines = len(dataset["omega"]) * 36
     assert (
         len(data_lines) == expected_lines

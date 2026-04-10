@@ -62,6 +62,20 @@ def test_numpy_einsum():
     c = np.einsum('ij,j->i', A, b)
     assert (c/zero).shape == (10,)
 
+def test_numpy_concatenate():
+    zero = SymbolicMultiplication("0")
+    a = np.ones((10,)) * zero
+    b = np.zeros((10,)) * zero
+    ab = np.concatenate([a, b], axis=0)
+    assert ab.shape == (20,)
+
+def test_numpy_stack():
+    zero = SymbolicMultiplication("0")
+    a = np.ones((10,)) * zero
+    b = np.zeros((10,)) * zero
+    ab = np.stack([a, b], axis=0)
+    assert ab.shape == (2, 10)
+
 def test_comparison():
     a = SymbolicMultiplication("0", np.arange(10))
     assert np.all(a == 0)
