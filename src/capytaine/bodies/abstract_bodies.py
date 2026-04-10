@@ -154,3 +154,17 @@ class AbstractBody(ABC):
             If the specified backend is not supported.
         """
         return show_3d(self, backend=backend, **kwargs)
+
+    def show_pyvista(self, **kwargs):
+        """
+        Equivalent to show(backend="pyvista").
+        See also :func:`~capytaine.bodies.visualization.show_pyvista`
+        """
+        return self.show(backend="pyvista", **kwargs)
+
+    def show_matplotlib(self, **kwargs):
+        """
+        Equivalent to show(backend="matplotlib").
+        See also :func:`~capytaine.bodies.visualization.show_matplotlib`
+        """
+        return self.show(backend="matplotlib", **kwargs)
