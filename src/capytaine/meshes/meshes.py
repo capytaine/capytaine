@@ -341,7 +341,9 @@ class Mesh(AbstractMesh):
             faces=indexed_faces,
             quadrature_method=quadrature_method,
             faces_metadata=faces_metadata,
-            name=name
+            name=name,
+            auto_clean=auto_clean,
+            auto_check=auto_check
         )
 
     def as_list_of_faces(self) -> List[List[List[float]]]:
@@ -469,8 +471,8 @@ class Mesh(AbstractMesh):
         Returns
         -------
         tuple[np.ndarray, np.ndarray]
-            (points, weights) where points has shape (n_faces, 1, 3) and
-            weights has shape (n_faces, 1), using face centers and areas.
+            (points, weights) where points has shape (n_faces, nb_quad_points, 3) and
+            weights has shape (n_faces, nb_quad_points).
         """
         if self.quadrature_method is None:
             return (self.faces_centers.reshape((-1, 1, 3)), self.faces_areas.reshape(-1, 1))
@@ -627,7 +629,7 @@ class Mesh(AbstractMesh):
         else:
             return joined_mesh
 
-    def generate_lid(self, z=0.0, faces_max_radius=None, name=None):
+    def generate_lid(self, z=0.0, faces_max_radius=None, name=None) -> Mesh:
         """
         Return a mesh of the internal free surface of the body.
 

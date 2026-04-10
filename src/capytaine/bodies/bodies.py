@@ -21,15 +21,14 @@ from capytaine.bodies.dofs import (
         DofOnSubmesh,
         normalize_name,
         rigid_body_dofs,
-        add_dofs_labels_to_vector,
-        add_dofs_labels_to_matrix
         )
+from capytaine.bodies.abstract_bodies import AbstractBody
 from capytaine.bodies.hydrostatics import _HydrostaticsMixin
 
 LOG = logging.getLogger(__name__)
 
 
-class FloatingBody(_HydrostaticsMixin):
+class FloatingBody(_HydrostaticsMixin, AbstractBody):
     """A floating body described as a mesh and some degrees of freedom.
 
     The mesh structure is stored as a Mesh from capytaine.mesh.mesh or a
@@ -250,16 +249,6 @@ class FloatingBody(_HydrostaticsMixin):
 
         return body
 
-    def add_dofs_labels_to_vector(self, vector):
-        """Helper function turning a bare vector into a vector labelled by the name of the dofs of the body,
-        to be used for instance for the computation of RAO."""
-        return add_dofs_labels_to_vector(self.dofs.keys(), vector)
-
-    def add_dofs_labels_to_matrix(self, matrix):
-        """Helper function turning a bare matrix into a matrix labelled by the name of the dofs of the body,
-        to be used for instance for the computation of RAO."""
-        return add_dofs_labels_to_matrix(self.dofs.keys(), matrix)
-
     def _check_dofs_shape_consistency(self):
         for dof_name, dof in self.dofs.items():
             if (not isinstance(dof, AbstractDof) and
@@ -272,13 +261,6 @@ class FloatingBody(_HydrostaticsMixin):
     ###################
     # Transformations #
     ###################
-
-    def __add__(self, body_to_add: 'FloatingBody'):
-        return self.join_bodies(body_to_add)
-
-    def join_bodies(*bodies, name=None):
-        from capytaine.bodies.multibodies import Multibody
-        return Multibody(bodies, name=name)
 
     def copy(self, name=None) -> 'FloatingBody':
         """Return a deep copy of the body.
@@ -386,15 +368,6 @@ class FloatingBody(_HydrostaticsMixin):
             translated_self.rotation_center = self.rotation_center + shift
         return translated_self
 
-    def translated_x(self, dx: float, *, name=None) -> "FloatingBody":
-        return self.translated([dx, 0.0, 0.0], name=name)
-
-    def translated_y(self, dy: float, *, name=None) -> "FloatingBody":
-        return self.translated([0.0, dy, 0.0], name=name)
-
-    def translated_z(self, dz: float, *, name=None) -> "FloatingBody":
-        return self.translated([0.0, 0.0, dz], name=name)
-
     def rotated_with_matrix(self, R, *, name=None) -> "FloatingBody":
         def rotate_dof(d):
             if isinstance(d, TranslationDof):
@@ -419,21 +392,6 @@ class FloatingBody(_HydrostaticsMixin):
         if hasattr(self, 'rotation_center'):
             rotated_self.rotation_center = self.rotation_center @ R.T
         return rotated_self
-
-    def rotated_x(self, angle: float, *, name=None) -> "FloatingBody":
-        c, s = np.cos(angle), np.sin(angle)
-        R = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
-        return self.rotated_with_matrix(R, name=name)
-
-    def rotated_y(self, angle: float, *, name=None) -> "FloatingBody":
-        c, s = np.cos(angle), np.sin(angle)
-        R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
-        return self.rotated_with_matrix(R, name=name)
-
-    def rotated_z(self, angle: float, *, name=None) -> "FloatingBody":
-        c, s = np.cos(angle), np.sin(angle)
-        R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
-        return self.rotated_with_matrix(R, name=name)
 
     def _apply_on_mesh(self, func, args, kwargs):
         mesh_with_ids = self.mesh.with_metadata(origin_panel=np.arange(self.mesh.nb_faces))
@@ -486,7 +444,7 @@ class FloatingBody(_HydrostaticsMixin):
         )
         if name is None:
             name = self.name
-        return FloatingBody(
+        new_body = FloatingBody(
             mesh=clipped_mesh,
             lid_mesh=clipped_lid_mesh,
             dofs=updated_dofs,
@@ -494,6 +452,11 @@ class FloatingBody(_HydrostaticsMixin):
             mass=self.mass,
             name=name
         )
+        if hasattr(self, 'inertia_matrix'):
+            new_body.inertia_matrix = self.inertia_matrix
+        if hasattr(self, 'hydrostatic_stiffness'):
+            new_body.hydrostatic_stiffness = self.hydrostatic_stiffness
+        return new_body
 
     #############
     #  Display  #

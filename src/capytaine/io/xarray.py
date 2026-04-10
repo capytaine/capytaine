@@ -18,8 +18,7 @@ import pandas as pd
 import xarray as xr
 
 from capytaine import __version__
-from capytaine.bodies.bodies import FloatingBody
-from capytaine.bodies.multibodies import Multibody
+from capytaine.bodies.abstract_bodies import AbstractBody
 from capytaine.bem.problems_and_results import (
     LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem,
     LinearPotentialFlowResult, _default_parameters)
@@ -45,7 +44,7 @@ def _unsqueeze_dimensions(data_array, dimensions=None):
 
 
 def problems_from_dataset(dataset: xr.Dataset,
-                          bodies: Union[FloatingBody, Sequence[FloatingBody], Multibody, Sequence[Multibody]],
+                          bodies: Union[AbstractBody, Sequence[AbstractBody]],
                           ) -> List[LinearPotentialFlowProblem]:
     """Generate a list of problems from a test matrix.
 
@@ -53,7 +52,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     ----------
     dataset : xarray Dataset
         Test matrix containing the problems parameters.
-    bodies : FloatingBody or list of FloatingBody
+    bodies : AbstractBody or list of AbstractBody
         The bodies on which the computations of the test matrix will be applied.
         They should all have different names.
 
@@ -66,7 +65,7 @@ def problems_from_dataset(dataset: xr.Dataset,
     ValueError
         if required fields are missing in the dataset
     """
-    if isinstance(bodies, (FloatingBody, Multibody)):
+    if isinstance(bodies, AbstractBody):
         bodies = [bodies]
 
     # Should be done before looking for `frequency_keys`, otherwise
@@ -249,7 +248,7 @@ def _dataset_from_dataframe(df: pd.DataFrame,
     return da
 
 
-def hydrostatics_dataset(bodies: Sequence[FloatingBody]) -> xr.Dataset:
+def hydrostatics_dataset(bodies: Sequence[AbstractBody]) -> xr.Dataset:
     """Create a dataset by looking for 'inertia_matrix' and 'hydrostatic_stiffness'
     for each of the bodies in the list passed as argument.
     """

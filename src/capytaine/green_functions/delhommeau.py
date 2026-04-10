@@ -373,7 +373,7 @@ class Delhommeau(AbstractGreenFunction):
                 S, K)
 
         if diagonal_term_in_double_layer:
-            n = min(K.shape[0], K.shape[1])
+            n = min(K.shape[1], K.shape[2])
             self.fortran_core.matrices.add_diagonal_term(
                     mesh2.faces_centers[:n, :], early_dot_product_normals, np.inf, K,
                     )
@@ -498,7 +498,7 @@ class Delhommeau(AbstractGreenFunction):
         )
 
         if diagonal_term_in_double_layer:
-            n = min(K.shape[0], K.shape[1])
+            n = min(K.shape[1], K.shape[2])
             self.fortran_core.matrices.add_diagonal_term(
                     mesh2.faces_centers[:n, :], early_dot_product_normals, free_surface, K,
                     )

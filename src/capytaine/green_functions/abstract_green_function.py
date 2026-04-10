@@ -56,7 +56,7 @@ class AbstractGreenFunction(ABC):
                     )
 
         S = np.zeros(shape, order="F", dtype=dtype)
-        K = np.zeros((shape[0], shape[1], 1 if early_dot_product else 3), order="F", dtype=dtype)
+        K = np.zeros((1 if early_dot_product else 3, shape[0], shape[1]), order="F", dtype=dtype)
         return S, K
 
     @abstractmethod

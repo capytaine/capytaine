@@ -375,24 +375,30 @@ class BEMSolver:
         risky_problems = [pb for pb in problems
                           if 0.0 < pb.wavelength < pb.body.minimal_computable_wavelength]
         nb_risky_problems = len(risky_problems)
+        if any(pb.body.lid_mesh is not None for pb in problems):
+            mesh_str = "mesh or lid_mesh"
+        else:
+            mesh_str = "mesh"
         if nb_risky_problems == 1:
             pb = risky_problems[0]
             freq_type = risky_problems[0].provided_freq_type
             freq = pb.__getattribute__(freq_type)
             LOG.warning(f"Mesh resolution for {pb}:\n"
-                        f"The resolution of the mesh of the body {pb.body.__short_str__()} might "
+                        f"The resolution of the {mesh_str} of body {pb.body.__short_str__()} might "
                         f"be insufficient for {freq_type}={freq}.\n"
-                        "This warning appears because the largest panel of this mesh "
-                        f"has radius {pb.body.mesh.faces_radiuses.max():.3f} > wavelength/8."
+                        f"This warning appears because the largest panel of the {mesh_str} "
+                        f"has radius ({pb.body.mesh_including_lid.faces_radiuses.max():.3f} m) > wavelength/8 ({pb.wavelength / 8:.3f} m)."
                         )
         elif nb_risky_problems > 1:
             freq_type = risky_problems[0].provided_freq_type
-            freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
+            risky_freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
+            risky_wavelengths = np.array([pb.wavelength for pb in risky_problems])
+            max_radius = max(pb.body.mesh_including_lid.faces_radiuses.max() for pb in risky_problems)
             LOG.warning(f"Mesh resolution for {nb_risky_problems} problems:\n"
-                        "The resolution of the mesh might be insufficient "
-                        f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
-                        "This warning appears when the largest panel of this mesh "
-                        "has radius > wavelength/8."
+                        f"The resolution of the {mesh_str} might be insufficient "
+                        f"for {freq_type} ranging from {risky_freqs.min():.3f} to {risky_freqs.max():.3f}.\n"
+                        f"This warning appears because the largest panel of the {mesh_str} "
+                        f"has radius ({max_radius:.3f} m) > wavelength/8 ({risky_wavelengths.min() / 8:.3f} to {risky_wavelengths.max() / 8:.3f} m)."
                         )
 
     @staticmethod
@@ -545,7 +551,15 @@ class BEMSolver:
         gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
         with self.timer(step="Post-processing velocity"):
             gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, **gf_params)
-            velocities = np.einsum('ijk,j->ik', gradG, result.sources)  # Sum the contributions of all panels in the mesh
+            # gradG is either:
+            # - an array of shape (3, nb_points, mesh_including_lid.nb_faces)
+            # - a 3-ple of matrices of the shape (nb_points, mesh_including_lid), that could be stored as LazyMatrix.
+            vx = gradG[0] @ result.sources
+            vy = gradG[1] @ result.sources
+            vz = gradG[2] @ result.sources
+            # The matrix-vector product here computes the integral over the mesh of the contributions of each panel in the mesh
+            velocities = np.stack([vx, vy, vz], axis=-1)
+            # velocities.shape = (nb_points, 3)
         return velocities.reshape((*output_shape, 3))
 
     def compute_velocity(self, points, result):
@@ -629,90 +643,3 @@ class BEMSolver:
             fs_elevation = -1/result.g * (-1j*result.omega) * self.compute_potential(points, result)
 
         return fs_elevation.reshape(output_shape)
-
-
-    ## Legacy
-
-    def get_potential_on_mesh(self, result, mesh, chunk_size=50):
-        """Compute the potential on a mesh for the potential field of a previously solved problem.
-        Since the interaction matrix does not need to be computed in full to compute the matrix-vector product,
-        only a few lines are evaluated at a time to reduce the memory cost of the operation.
-
-        The newer method :code:`compute_potential` should be preferred in the future.
-
-        Parameters
-        ----------
-        result : LinearPotentialFlowResult
-            the return of the BEM solver
-        mesh : MeshLike
-            a mesh
-        chunk_size: int, optional
-            Number of lines to compute in the matrix.
-            (legacy, should be passed as an engine setting instead).
-
-        Returns
-        -------
-        array of shape (mesh.nb_faces,)
-            potential on the faces of the mesh
-
-        Raises
-        ------
-        Exception: if the :code:`Result` object given as input does not contain the source distribution.
-        """
-        LOG.info(f"Compute potential on {mesh.name} for {result}.")
-
-        if result.sources is None:
-            raise Exception(f"""The values of the sources of {result} cannot been found.
-            They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
-            Please re-run the resolution with the indirect method and keep_details=True.""")
-
-        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
-        if chunk_size > mesh.nb_faces:
-            S = self.engine.build_S_matrix(mesh, result.body.mesh_including_lid, **gf_params)
-            phi = S @ result.sources
-
-        else:
-            phi = np.empty((mesh.nb_faces,), dtype=np.complex128)
-            for i in range(0, mesh.nb_faces, chunk_size):
-                faces_to_extract = list(range(i, min(i+chunk_size, mesh.nb_faces)))
-                S = self.engine.build_S_matrix(
-                    mesh.extract_faces(faces_to_extract),
-                    result.body.mesh_including_lid,
-                    **gf_params
-                )
-                phi[i:i+chunk_size] = S @ result.sources
-
-        LOG.debug(f"Done computing potential on {mesh.name} for {result}.")
-
-        return phi
-
-    def get_free_surface_elevation(self, result, free_surface, keep_details=False):
-        """Compute the elevation of the free surface on a mesh for a previously solved problem.
-
-        The newer method :code:`compute_free_surface_elevation` should be preferred in the future.
-
-        Parameters
-        ----------
-        result : LinearPotentialFlowResult
-            the return of the solver
-        free_surface : FreeSurface
-            a meshed free surface
-        keep_details : bool, optional
-            if True, keep the free surface elevation in the LinearPotentialFlowResult (default:False)
-
-        Returns
-        -------
-        array of shape (free_surface.nb_faces,)
-            the free surface elevation on each faces of the meshed free surface
-
-        Raises
-        ------
-        Exception: if the :code:`Result` object given as input does not contain the source distribution.
-        """
-        if result.forward_speed != 0.0:
-            raise NotImplementedError("For free surface elevation with forward speed, please use the `compute_free_surface_elevation` method.")
-
-        fs_elevation = 1j*result.omega/result.g * self.get_potential_on_mesh(result, free_surface.mesh)
-        if keep_details:
-            result.fs_elevation[free_surface] = fs_elevation
-        return fs_elevation

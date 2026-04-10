@@ -257,7 +257,8 @@ class ReflectionSymmetricMesh(AbstractMesh):
     def merged(self, name=None) -> Mesh:
         return Mesh.join_meshes(
             self.half.merged(),
-            self.other_half.merged()
+            self.other_half.merged(),
+            name=name
         ).with_metadata(
             **self.faces_metadata
         )
@@ -602,7 +603,8 @@ class RotationSymmetricMesh(AbstractMesh):
     @lru_cache
     def merged(self, name=None) -> Mesh:
         return Mesh.join_meshes(
-                *[w.merged() for w in self.all_wedges]
+                *[w.merged() for w in self.all_wedges],
+                name=name
         ).with_metadata(
             **self.faces_metadata
         )

@@ -38,7 +38,7 @@ def show_3d(mesh, *, backend=None, **kwargs):
                 return backends_functions[backend](mesh, **kwargs)
             except (NotImplementedError, ImportError):
                 pass
-            raise NotImplementedError(f"No compatible backend found to show the mesh {mesh}"
+            raise NotImplementedError(f"No compatible backend found to show the mesh {mesh}.\n"
                                       "Consider installing `matplotlib` or `pyvista`.")
 
 
@@ -86,6 +86,7 @@ def show_pyvista(
     """
     pv = import_optional_dependency("pyvista")
 
+    from capytaine.meshes import Mesh  # Just for the typehint below
     all_meshes_in_scene: List[Mesh] = [mesh] if ghost_meshes is None else [mesh, *ghost_meshes]
     pv_meshes = [m.export_to_pyvista() for m in all_meshes_in_scene]
 
@@ -294,6 +295,7 @@ def show_matplotlib(
         ax = fig.add_subplot(111, projection="3d")
         ax.set_box_aspect([1, 1, 1])  # Equal aspect ratio
 
+    from capytaine.meshes import Mesh  # Just for the typehint below
     all_meshes_in_scene: List[Mesh] = [mesh] if ghost_meshes is None else [mesh, *ghost_meshes]
 
     faces = []

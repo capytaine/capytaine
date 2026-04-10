@@ -1,44 +1,56 @@
+"""This example shows how to animate the free surface elevation and pressure on a floating body using vedo."""
+
+import numpy as np
 import capytaine as cpt
-from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
-from capytaine.ui.vtk.animation import Animation
+from capytaine.bem.airy_waves import (
+    airy_waves_free_surface_elevation,
+    airy_waves_pressure,
+)
+from capytaine.ui.vedo_animations import Animation
 
-cpt.set_logging('INFO')
 
-# Generate the mesh of a sphere
+# Parameters
+omega = 3.0
+T = 2 * np.pi / omega
 
-full_mesh = cpt.mesh_sphere(radius=3, center=(0, 0, 0), resolution=(20, 20))
-full_sphere = cpt.FloatingBody(mesh=full_mesh)
-full_sphere.add_translation_dof(name="Heave")
 
-# Keep only the immersed part of the mesh
-sphere = full_sphere.immersed_part()
-
-# Set up and solve problem
+## RESOLUTION WITH CAPYTAINE
+positions = [
+    (np.cos(angle) * 5.0, np.sin(angle) * 5.0, 0.0)
+    for angle in [0.0, 2 * np.pi / 3, -2 * np.pi / 3]
+]
+meshes = [
+    cpt.mesh_vertical_cylinder(length=4.0, radius=2.0, center=p, faces_max_radius=0.3)
+    for p in positions
+]
+mesh = cpt.Mesh.join_meshes(*meshes)
+sphere = cpt.FloatingBody(mesh=mesh.immersed_part(), lid_mesh=mesh.generate_lid())
 solver = cpt.BEMSolver()
-
-diffraction_problem = cpt.DiffractionProblem(body=sphere, wave_direction=0.0, omega=2.0)
+diffraction_problem = cpt.DiffractionProblem(body=sphere, wave_direction=0.0, omega=omega)
+print("Solving the diffraction problem...")
 diffraction_result = solver.solve(diffraction_problem)
+print("Diffraction problem solved.")
 
-radiation_problem = cpt.RadiationProblem(body=sphere, radiating_dof="Heave", omega=2.0)
-radiation_result = solver.solve(radiation_problem)
 
-# Define a mesh of the free surface and compute the free surface elevation
-free_surface = cpt.FreeSurface(x_range=(-50, 50), y_range=(-50, 50), nx=150, ny=150)
-diffraction_elevation_at_faces = solver.compute_free_surface_elevation(free_surface, diffraction_result)
-radiation_elevation_at_faces = solver.compute_free_surface_elevation(free_surface, radiation_result)
+## POST-PROCESSING THE PRESSURE AND FREE SURFACE ELEVATION
+free_surface_mesh = cpt.mesh_rectangle(
+    size=(100.0, 100.0), center=(0.0, 0.0, 0.0), resolution=(300, 300)
+)
+amplitude = 0.2
+print("Computing the free surface elevation and pressure...")
+diffraction_elevation_at_faces = amplitude * (
+    solver.compute_free_surface_elevation(free_surface_mesh.vertices, diffraction_result)
+    + airy_waves_free_surface_elevation(free_surface_mesh.vertices, diffraction_problem)
+)
+pressure_on_sphere = amplitude * (
+    solver.compute_pressure(sphere.mesh.vertices, diffraction_result)
+    + airy_waves_pressure(sphere.mesh.vertices, diffraction_problem)
+)
+print("Free surface elevation and pressure computed.")
 
-# Add incoming waves
-diffraction_elevation_at_faces = diffraction_elevation_at_faces + airy_waves_free_surface_elevation(free_surface, diffraction_problem)
 
-# Run the animations
-animation = Animation(loop_duration=diffraction_result.period)
-animation.add_body(full_sphere, faces_motion=None)
-animation.add_free_surface(free_surface, faces_elevation=0.5*diffraction_elevation_at_faces)
-animation.run(camera_position=(-30, -30, 30))  # The camera is oriented towards (0, 0, 0) by default.
-# animation.save("path/to/the/video/file.ogv", camera_position=(-30, -30, 30))
-
-animation = Animation(loop_duration=radiation_result.period)
-animation.add_body(full_sphere, faces_motion=full_sphere.dofs["Heave"])
-animation.add_free_surface(free_surface, faces_elevation=3.0*radiation_elevation_at_faces)
-animation.run(camera_position=(-30, -30, 30))
-# animation.save("path/to/the/video/file.ogv", camera_position=(-30, -30, 30))
+## ANIMATION WITH VEDO
+anim = Animation(loop_duration=T, fps=24)
+anim.add_body(sphere, vertices_pressure=pressure_on_sphere)
+anim.add_free_surface(free_surface_mesh, vertices_elevation=diffraction_elevation_at_faces)
+anim.save("diffraction.mp4", size=(1024, 512))

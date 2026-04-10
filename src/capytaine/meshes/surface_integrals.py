@@ -22,8 +22,15 @@ class SurfaceIntegralsMixin(ABC):
     # There are located in this other module just to make the code more tidy.
 
     def surface_integral(self, data, **kwargs):
-        """Returns integral of given data along wet surface area."""
-        return np.sum(data * self.faces_areas, **kwargs)
+        """Returns integral of given data along wet surface area.
+
+        Parameters
+        ----------
+        data: np.ndarray
+            Array of values at the quadrature points
+            expected shape: (..., nb_faces, nb_quad_points)
+        """
+        return np.sum(data * self.quadrature_points[1], **kwargs)
 
     @property
     def wet_surface_area(self) -> float:
@@ -34,8 +41,12 @@ class SurfaceIntegralsMixin(ABC):
     def volumes(self) -> Tuple[float, float, float]:
         """Returns volumes using x, y, z components of the mesh.
         Should be the same for a regular mesh."""
-        norm_coord = self.faces_normals * self.faces_centers
-        return tuple(self.surface_integral(norm_coord.T, axis=1))
+        # norm_coord[i_dir, i_face, i_quad_point] = \
+        #       faces_normals[i_face, i_dir] * quad_point[i_face, i_quad_point, i_dir]
+        norm_coord = (
+            self.faces_normals[:, None, :] * self.quadrature_points[0]
+        ).transpose((2, 0, 1))
+        return tuple(self.surface_integral(norm_coord, axis=(-2, -1)))
 
     @property
     def volume(self) -> float:
@@ -43,9 +54,19 @@ class SurfaceIntegralsMixin(ABC):
         return np.mean(self.volumes)
 
     def waterplane_integral(self, data, **kwargs):
-        """Returns integral of given data along water plane area."""
+        """Returns integral of given data along water plane area.
+
+        Parameters
+        ----------
+        data: np.ndarray
+            Array of values at the quadrature points of the hull mesh.
+            Expected shape: (..., nb_faces, nb_quad_points)
+        """
         immersed_self = self.immersed_part()
-        return immersed_self.surface_integral(immersed_self.faces_normals[:,2] * data, **kwargs)
+        return -immersed_self.surface_integral(
+            immersed_self.faces_normals[:, None, 2] * data,
+            **kwargs
+        )
 
     @property
     def disp_volume(self) -> float:
@@ -58,18 +79,23 @@ class SurfaceIntegralsMixin(ABC):
     def center_of_buoyancy(self) -> np.ndarray:
         """Returns center of buoyancy of the mesh."""
         immersed_self = self.immersed_part()
-        coords_sq_norm = immersed_self.faces_normals * immersed_self.faces_centers**2
-        return immersed_self.surface_integral(coords_sq_norm.T, axis=1) / (2*immersed_self.volume)
+        # coords_sq_norm[i_dir, i_face, i_quad_point] = \
+        #       faces_normals[i_face, i_dir] * quad_point[i_face, i_quad_point, i_dir]**2
+        coords_sq_norm = (
+                immersed_self.faces_normals[:, None, :] * immersed_self.quadrature_points[0]**2
+                ).transpose((2, 0, 1))
+        return immersed_self.surface_integral(coords_sq_norm, axis=(-1, -2)) / (2*immersed_self.volume)
 
     @property
     def waterplane_area(self) -> float:
         """Returns water plane area of the mesh."""
         immersed_self = self.immersed_part()
-        return -immersed_self.waterplane_integral(1)
+        return immersed_self.waterplane_integral(1)
 
     @property
     def waterplane_center(self) -> Union[None, np.ndarray]:
         """Returns water plane center of the mesh.
+        Computed as (∫x/∫1, ∫y/∫1) on the water plane.
         Returns None if the mesh is full submerged.
         """
         immersed_self = self.immersed_part()
@@ -77,6 +103,10 @@ class SurfaceIntegralsMixin(ABC):
         if abs(waterplane_area) < 1e-10:
             return None
         else:
-            waterplane_center = -immersed_self.waterplane_integral(
-                immersed_self.faces_centers.T, axis=1) / waterplane_area
-            return waterplane_center[:-1]
+            x = immersed_self.quadrature_points[0][:, :, 0]
+            y = immersed_self.quadrature_points[0][:, :, 1]
+            waterplane_center = (
+                    immersed_self.waterplane_integral(x) / waterplane_area,
+                    immersed_self.waterplane_integral(y) / waterplane_area
+                    )
+            return waterplane_center

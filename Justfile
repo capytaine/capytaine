@@ -50,9 +50,8 @@ EXAMPLES_FILES := ' \
 # A5_benchmark_plane_symmetries.py \
 # A6_benchmark_axisymmetric_mesh.py \
 # A9_test_irregular_frequency_removal.py \ # Slow
-# B6_animate_free_surface.py  \           # Requires VTK
-# B7_boat_animation.py  \                 # Requires VTK
-# C6_axisymmetric_buoy.py  \              # Requires VTK
+# B6_animate_free_surface.py  \           # Requires Vedo
+# B7_boat_animation.py  \                 # Requires Vedo
 # C10_custom_linear_solver_on_gpu.py \    # Requires torch
 
 # Run the test suite and the example files assuming a virtual environment with

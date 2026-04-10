@@ -82,7 +82,7 @@ def mesh_rectangle(*, size=(5.0, 5.0), center=(0.0, 0.0, 0.0),
         panels = np.array([(j+i*(nh+1), j+1+i*(nh+1), j+1+(i+1)*(nh+1), j+(i+1)*(nh+1))
                              for (i, j) in product(range(nw), range(nh))])
 
-        mesh = Mesh(nodes, panels, name=name)
+        mesh = Mesh(nodes, panels, name=name, auto_clean=False, auto_check=False)
         mesh = mesh.rotated_such_that_vectors_are_aligned(mesh.faces_normals[0], normal)
 
     mesh = mesh.translated(center, name=name)

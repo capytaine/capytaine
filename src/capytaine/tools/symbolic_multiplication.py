@@ -25,8 +25,18 @@ class SymbolicMultiplication:
 
     def __array_function__(self, func, types, *args, **kwargs):
         actual_args = args[0]  # args = (actual_args, kwargs) for some reason
-        if func in {np.real, np.imag, np.sum} and len(actual_args) == 1 and len(kwargs) == 0:
+        if func in {np.real, np.imag, np.sum, np.transpose} and len(actual_args) == 1 and len(kwargs) == 0:
             return SymbolicMultiplication(self.symbol, func(self.value))
+        elif func in {np.concatenate, np.stack}:
+            arrays = actual_args[0]
+            if (all(isinstance(a, SymbolicMultiplication) for a in arrays) and
+                    all(a.symbol == arrays[0].symbol for a in arrays)):
+                return SymbolicMultiplication(arrays[0].symbol, func([a.value for a in arrays], **kwargs))
+            else:
+                raise ValueError(
+                    f"Cannot apply function {func} to mismatch of arrays with "
+                    f"different symbolic multiplication: {arrays}"
+                )
         elif (
                 func in {np.einsum} and
                 len([a for a in actual_args if isinstance(a, SymbolicMultiplication)]) == 1 and
