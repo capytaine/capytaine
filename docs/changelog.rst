@@ -263,7 +263,7 @@ Internals
 * The S matrix can now be computed even if the K matrix is not defined,
   for example when evaluating the :meth:`~capytaine.bem.solver.compute_free_surface_elevation` along the waterline.
 
-* New function implemented :func:`~capytaine.meshes.water_line_integral` to compute the integral of a function along the water line of a mesh.
+* New function implemented :func:`~capytaine.meshes.waterline_integral` to compute the integral of a function along the water line of a mesh.
 
 * "Full double-layer matrices" are now stored as array of shape (3, n, m)
   (or 3 matrices of shape (n, m)) instead of (n, m, 3) (:pull:`869`).
