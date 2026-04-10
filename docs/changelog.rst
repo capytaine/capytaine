@@ -144,6 +144,11 @@ Major changes
     both = body_1 + body_2  # `both` is now a Multibody
     both = (body_1 + body_2).as_FloatingBody()  # Recover former behavior of joining FloatingBody with a FloatingBody
 
+  :class:`~capytaine.bodies.bodies.FloatingBody` and
+  :class:`~capytaine.bodies.multibodies.Multibody` both inherits from the
+  abstract class :class:`~capytaine.bodies.abstract_bodies.AbstractBody`
+  (:pull:`873`)
+
 * New internal data model for rigid body dofs with the classes
   :class:`~capytaine.bodies.dofs.TranslationDof` and
   :class:`~capytaine.bodies.dofs.RotationDof`. (:pull:`838`)
