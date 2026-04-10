@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import copy
 import logging
 from itertools import chain, accumulate
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Literal
 from functools import cached_property, lru_cache
 
 import numpy as np
@@ -11,14 +12,13 @@ import xarray as xr
 from capytaine.bodies.dofs import (
     AbstractDof,
     DofOnSubmesh,
-    add_dofs_labels_to_vector,
-    add_dofs_labels_to_matrix
 )
+from capytaine.bodies.abstract_bodies import AbstractBody
 
 LOG = logging.getLogger(__name__)
 
 
-class Multibody:
+class Multibody(AbstractBody):
     def __init__(
         self,
         bodies: List[Union[FloatingBody, Multibody]],
@@ -79,13 +79,9 @@ class Multibody:
 
     def __str__(self):
         short_bodies = ', '.join(b.__short_str__() for b in self.bodies)
-        # short_dofs = '{' + ', '.join('"{}": ...'.format(d) for d in self.own_dofs) + '}'
-        return f"Multibody({short_bodies})" #, own_dofs={short_dofs})"
+        return f"Multibody({short_bodies})"
 
     def __short_str__(self):
-        return str(self)
-
-    def __repr__(self):
         return str(self)
 
     def _check_dofs_shape_consistency(self):
@@ -122,7 +118,7 @@ class Multibody:
 
     @property
     def nb_dofs(self):
-        return sum(b.nb_dofs for b in self.bodies) # + len(self.own_dofs)
+        return sum(b.nb_dofs for b in self.bodies)
 
     @cached_property
     def dofs(self):
@@ -153,16 +149,6 @@ class Multibody:
 
         return {**componenents_dofs} #, **self.own_dofs}
 
-    def add_dofs_labels_to_vector(self, vector):
-        """Helper function turning a bare vector into a vector labelled by the name of the dofs of the body,
-        to be used for instance for the computation of RAO."""
-        return add_dofs_labels_to_vector(self.dofs.keys(), vector)
-
-    def add_dofs_labels_to_matrix(self, matrix):
-        """Helper function turning a bare matrix into a matrix labelled by the name of the dofs of the body,
-        to be used for instance for the computation of RAO."""
-        return add_dofs_labels_to_matrix(self.dofs.keys(), matrix)
-
     def immersed_part(self, *args, **kwargs):
         new_multibody = Multibody(
                 [b.immersed_part() for b in self.bodies],
@@ -173,13 +159,6 @@ class Multibody:
         if hasattr(self, 'hydrostatic_stiffness'):
             new_multibody.hydrostatic_stiffness = self.hydrostatic_stiffness
         return new_multibody
-
-    def __add__(self, body_to_add):
-        return self.join_bodies(body_to_add)
-
-    def join_bodies(*bodies, name=None):
-        from capytaine.bodies.multibodies import Multibody
-        return Multibody(bodies, name=name)
 
     def integrate_pressure(self, pressure):
         return self.as_FloatingBody().integrate_pressure(pressure)
@@ -219,3 +198,39 @@ class Multibody:
 
     def compute_rigid_body_inertia(self, rho=1000.0):
         return self._combine_component_matrices([b.compute_rigid_body_inertia(rho=rho) for b in self.bodies])
+
+    # --- Geometric transforms ---
+
+    def copy(self, name=None) -> Multibody:
+        new_multibody = copy.deepcopy(self)
+        if name is None:
+            new_multibody.name = f"copy_of_{self.name}"
+        else:
+            new_multibody.name = name
+        return new_multibody
+
+    def translated(self, shift, *, name=None) -> Multibody:
+        return Multibody(
+            [b.translated(shift, name=b.name) for b in self.bodies],
+            name=name,
+        )
+
+    def rotated_with_matrix(self, R, *, name=None) -> Multibody:
+        return Multibody(
+            [b.rotated_with_matrix(R, name=b.name) for b in self.bodies],
+            name=name,
+        )
+
+    def mirrored(self, plane: Literal['xOz', 'yOz']) -> Multibody:
+        mirrored_bodies = []
+        for b in self.bodies:
+            mb = b.mirrored(plane)
+            mb.name = b.name
+            mirrored_bodies.append(mb)
+        return Multibody(mirrored_bodies)
+
+    def clipped(self, *, origin, normal, name=None) -> Multibody:
+        return Multibody(
+            [b.clipped(origin=origin, normal=normal, name=b.name) for b in self.bodies],
+            name=name,
+        )
