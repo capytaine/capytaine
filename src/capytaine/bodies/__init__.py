@@ -2,3 +2,4 @@
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 from capytaine.bodies.bodies import FloatingBody
+from capytaine.bodies.multibodies import Multibody

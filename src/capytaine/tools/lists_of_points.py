@@ -1,10 +1,10 @@
 import numpy as np
-from capytaine.bodies import FloatingBody
+from capytaine.bodies.abstract_bodies import AbstractBody
 from capytaine.meshes.abstract_meshes import AbstractMesh
 
 
 def _normalize_points(points, keep_mesh=False):
-    if isinstance(points, FloatingBody):
+    if isinstance(points, AbstractBody):
         if keep_mesh:
             return points.mesh, (points.mesh.nb_faces,)
         else:
@@ -37,7 +37,7 @@ def _normalize_points(points, keep_mesh=False):
     return points, output_shape
 
 def _normalize_free_surface_points(points, keep_mesh=False):
-    if keep_mesh and isinstance(points, FloatingBody):
+    if keep_mesh and isinstance(points, AbstractBody):
         return points.mesh, (points.mesh.nb_faces,)
 
     if keep_mesh and isinstance(points, AbstractMesh):
