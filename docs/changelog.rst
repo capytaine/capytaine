@@ -181,6 +181,12 @@ Minor changes
   Also a rotation center should be passed, because the properties of the body
   (e.g. `center_of_mass`) cannot be accessed at that stage. (:pull:`838`)
 
+* Mesh quadrature (if defined) is used for hydrostatics computations.
+  Since meshes have no quadrature by default, the default hydrostatics results remain the same.
+  Using `mesh.with_quadrature('Gauss-Legendre 2')` can lead to slightly better results,
+  although the limitation is often the geometric approximation of the shape by a flat panels mesh.
+  (:pull:`847`)
+  
 * Add function :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force` to compute the horizontal mean drift forces using far field formulation.
   Only the single-direction second-order term is currently implemented.
 
