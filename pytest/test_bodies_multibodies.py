@@ -214,3 +214,28 @@ def test_clip_component_of_multibody():
     both = body_1 + body_2
     body_2 = body_2.immersed_part()
     assert both.dofs["body_1__Heave"].evaluate_motion(both.mesh).shape[0] == both.mesh.nb_faces
+
+
+@pytest.mark.parametrize("lid_1", [True, False])
+@pytest.mark.parametrize("lid_2", [True, False])
+@pytest.mark.parametrize("sym_1", [True, False])
+@pytest.mark.parametrize("sym_2", [True, False])
+def test_join_with_and_without_symmetry_with_and_without_lid(lid_1, lid_2, sym_1, sym_2):
+    mesh_1 = cpt.mesh_horizontal_cylinder(reflection_symmetry=sym_1).immersed_part()
+    body_1 = cpt.FloatingBody(
+        mesh_1,
+        lid_mesh=mesh_1.generate_lid(faces_max_radius=0.3) if lid_1 else None,
+        dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
+        name="body_1"
+    )
+    mesh_2 = cpt.mesh_horizontal_cylinder(center=(3, 0, 0), reflection_symmetry=sym_2).immersed_part()
+    body_2 = cpt.FloatingBody(
+        mesh_2,
+        lid_mesh=mesh_2.generate_lid(faces_max_radius=0.3) if lid_2 else None,
+        dofs=cpt.rigid_body_dofs(rotation_center=(3, 0, 0)),
+        name="body_2"
+    )
+    both = cpt.Multibody([body_1, body_2])
+    both.lid_mesh
+    solver = cpt.BEMSolver()
+    pb = cpt.RadiationProblem(body=both, omega=1.0)
