@@ -149,6 +149,11 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
         """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name
 
+    @property
+    def bodies(self):
+        """For consistency with Multibody"""
+        return [self]
+
     ##########
     #  Dofs  #
     ##########

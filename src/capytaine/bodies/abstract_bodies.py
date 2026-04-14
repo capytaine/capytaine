@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Literal
+from typing import Literal, List, Union, Tuple
 
 import numpy as np
 
@@ -51,7 +51,7 @@ class AbstractBody(ABC):
     def __add__(self, body_to_add: AbstractBody) -> AbstractBody:
         return self.join_bodies(body_to_add)
 
-    def join_bodies(*bodies, name=None) -> AbstractBody:
+    def join_bodies(*bodies, name=None) -> Multibody:  # noqa: F821
         from capytaine.bodies.multibodies import Multibody
         return Multibody(bodies, name=name)
 
