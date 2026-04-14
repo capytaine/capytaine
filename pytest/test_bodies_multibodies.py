@@ -253,3 +253,21 @@ def test_with_and_without_symmetry_with_and_without_lid(lid_1, lid_2, sym_1, sym
     res = solver.solve(pb)
     both.dofs['body_1__Surge']
     assert res.forces['body_1__Surge'] == pytest.approx(2151.7+54.053j, rel=0.05)
+
+def test_no_nested_multibody():
+    bodies = []
+    for x in [0.0, 5.0, 10.0]:
+        bodies.append(cpt.FloatingBody(
+            mesh=cpt.mesh_sphere(center=(x, 0, 0)),
+            dofs=cpt.rigid_body_dofs(rotation_center=(x, 0, 0)),
+            name=f"body_at_{x}"
+        ))
+    multi_012 = cpt.Multibody(bodies)
+    multi_01_2 = (bodies[0] + bodies[1]) + bodies[2]
+    multi_0_12 = bodies[0] + (bodies[1] + bodies[2])
+    assert len(multi_012.bodies) == 3
+    assert all(isinstance(b, cpt.FloatingBody) for b in multi_012.bodies)
+    assert len(multi_01_2.bodies) == 3
+    assert all(isinstance(b, cpt.FloatingBody) for b in multi_01_2.bodies)
+    assert len(multi_0_12.bodies) == 3
+    assert all(isinstance(b, cpt.FloatingBody) for b in multi_0_12.bodies)
