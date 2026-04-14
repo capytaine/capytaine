@@ -81,6 +81,18 @@ class RotationDof(AbstractDof):
 
 
 class DofOnSubmesh(AbstractDof):
+    """Defines a dof that is zeros everywhere except on a given set of faces
+    on which another dof object is used for the definition.
+
+    Parameters
+    ----------
+    dof: AbstractDof
+        Some other dof
+    faces: boolean array (or slice or range)
+        The indices of the faces on which the `dof` should be evaluated.
+        Can be provided as a list of indices or a slice,
+        or as a boolean array of size `nb_faces` the total size of the mesh on which this dof is defined.
+    """
     def __init__(self, dof: AbstractDof, faces):
         self.dof = dof
         self.faces = faces
