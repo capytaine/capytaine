@@ -44,6 +44,50 @@ class Multibody(AbstractBody):
         else:
             self.name = name
 
+        # MESH MERGING
+        # Need to merge the meshes of the component bodies while keeping track of the origin of each panel.
+        self.mesh, self.body_masks = self.bodies[0].mesh.join_meshes(
+            *[b.mesh for b in self.bodies[1:]],
+            return_masks=True
+        )
+
+        # DOF MERGING
+        for body in self.bodies:
+            body._check_dofs_shape_consistency()
+        componenents_dofs = {}
+        total_nb_faces = self.mesh.nb_faces
+        for body, body_mask in zip(self.bodies, self.body_masks):
+            for name, dof in body.dofs.items():
+                if isinstance(dof, AbstractDof):
+                    new_dof = DofOnSubmesh(dof, body_mask)
+                else:
+                    new_dof = np.zeros((total_nb_faces, 3))
+                    new_dof[body_mask, :] = dof
+
+                if '__' not in name:
+                    new_dof_name = '__'.join([body.name, name])
+                else:
+                    # The body is probably a combination of bodies already.
+                    # So for the associativity of the + operation,
+                    # it is better to keep the same name.
+                    new_dof_name = name
+                componenents_dofs[new_dof_name] = new_dof
+
+        self.dofs = componenents_dofs
+
+        # LIDS MERGING
+        if all(body.lid_mesh is None for body in self.bodies):
+            self.lid_mesh = None
+            self.mesh_including_lid = self.mesh
+            self.hull_mask = np.full((self.mesh.nb_faces,), True)
+        else:
+            lid_meshes = [body.lid_mesh.copy() for body in self.bodies if body.lid_mesh is not None]
+            joined_lid = lid_meshes[0].join_meshes(*lid_meshes[1:], name=f"{self.name}_lid_mesh")
+            self.lid_mesh = joined_lid
+            self.mesh_including_lid, masks = self.mesh.join_meshes(self.lid_mesh, return_masks=True)
+            self.hull_mask = masks[0]
+
+        # HYDROSTATICS MERGING
         # Keep legacy behavior of former mesh joining
         for matrix_name in ["inertia_matrix", "hydrostatic_stiffness"]:
             if all(hasattr(body, matrix_name) for body in bodies):
@@ -95,59 +139,9 @@ class Multibody(AbstractBody):
     def first_irregular_frequency_estimate(self, *args, **kwargs):
         return min(b.first_irregular_frequency_estimate(*args, **kwargs) for b in self.bodies)
 
-    @cached_property
-    def mesh(self):
-        return self.bodies[0].mesh.join_meshes(*[b.mesh for b in self.bodies[1:]])
-
-    @cached_property
-    def lid_mesh(self):
-        if all(body.lid_mesh is None for body in self.bodies):
-            return None
-        else:
-            lid_meshes = [body.lid_mesh.copy() for body in self.bodies if body.lid_mesh is not None]
-            joined_lid = lid_meshes[0].join_meshes(*lid_meshes[1:], name=f"{self.name}_lid_mesh")
-            return joined_lid
-
-    @cached_property
-    def mesh_including_lid(self):
-        return self.bodies[0].mesh_including_lid.join_meshes(*[b.mesh_including_lid for b in self.bodies[1:]])
-
-    @cached_property
-    def hull_mask(self):
-        return np.concatenate([b.hull_mask for b in self.bodies])
-
     @property
     def nb_dofs(self):
-        return sum(b.nb_dofs for b in self.bodies)
-
-    @cached_property
-    def dofs(self):
-        for body in self.bodies:
-            body._check_dofs_shape_consistency()
-
-        componenents_dofs = {}
-        cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in self.bodies)))
-        total_nb_faces = sum(body.mesh.nb_faces for body in self.bodies)
-        for body, nbf in zip(self.bodies, cum_nb_faces):
-            # nbf is the cumulative number of faces of the previous subbodies,
-            # that is the offset of the indices of the faces of the current body.
-            for name, dof in body.dofs.items():
-                if isinstance(dof, AbstractDof):
-                    new_dof = DofOnSubmesh(dof, range(nbf, nbf+body.mesh.nb_faces))
-                else:
-                    new_dof = np.zeros((total_nb_faces, 3))
-                    new_dof[nbf:nbf+len(dof), :] = dof
-
-                if '__' not in name:
-                    new_dof_name = '__'.join([body.name, name])
-                else:
-                    # The body is probably a combination of bodies already.
-                    # So for the associativity of the + operation,
-                    # it is better to keep the same name.
-                    new_dof_name = name
-                componenents_dofs[new_dof_name] = new_dof
-
-        return {**componenents_dofs} #, **self.own_dofs}
+        return len(self.dofs)
 
     def immersed_part(self, *args, **kwargs):
         new_multibody = Multibody(

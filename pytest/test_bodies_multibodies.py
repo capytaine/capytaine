@@ -214,3 +214,42 @@ def test_clip_component_of_multibody():
     both = body_1 + body_2
     body_2 = body_2.immersed_part()
     assert both.dofs["body_1__Heave"].evaluate_motion(both.mesh).shape[0] == both.mesh.nb_faces
+
+
+@pytest.mark.parametrize("sym_2", [True, False])
+@pytest.mark.parametrize("sym_1", [True, False])
+@pytest.mark.parametrize("lid_2", [True, False])
+@pytest.mark.parametrize("lid_1", [True, False])
+def test_with_and_without_symmetry_with_and_without_lid(lid_1, lid_2, sym_1, sym_2):
+    mesh_1 = cpt.mesh_horizontal_cylinder(reflection_symmetry=sym_1).immersed_part()
+    body_1 = cpt.FloatingBody(
+        mesh_1,
+        lid_mesh=mesh_1.generate_lid(faces_max_radius=0.3) if lid_1 else None,
+        dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
+        name="body_1"
+    )
+    assert body_1.hull_mask.shape == (body_1.mesh_including_lid.nb_faces,)
+    mesh_2 = cpt.mesh_horizontal_cylinder(center=(12, 0, 0), reflection_symmetry=sym_2).immersed_part()
+    body_2 = cpt.FloatingBody(
+        mesh_2,
+        lid_mesh=mesh_2.generate_lid(faces_max_radius=0.3) if lid_2 else None,
+        dofs=cpt.rigid_body_dofs(rotation_center=(12, 0, 0)),
+        name="body_2"
+    )
+    assert body_2.hull_mask.shape == (body_2.mesh_including_lid.nb_faces,)
+    both = cpt.Multibody([body_1, body_2])
+    assert both.mesh.nb_faces == body_1.mesh.nb_faces + body_2.mesh.nb_faces
+    def nb_faces(lid_mesh):
+        if lid_mesh is None:
+            return 0
+        else:
+            return lid_mesh.nb_faces
+    assert nb_faces(both.lid_mesh) == nb_faces(body_1.lid_mesh) + nb_faces(body_2.lid_mesh)
+    assert both.mesh_including_lid.nb_faces == body_1.mesh_including_lid.nb_faces + body_2.mesh_including_lid.nb_faces
+    assert both.hull_mask.shape[0] == body_1.hull_mask.shape[0] + body_2.hull_mask.shape[0]
+    assert np.allclose(both.mesh_including_lid.faces_centers[~both.hull_mask, 2], 0.0)
+    pb = cpt.RadiationProblem(body=both, omega=1.0, radiating_dof='body_1__Surge')
+    solver = cpt.BEMSolver()
+    res = solver.solve(pb)
+    both.dofs['body_1__Surge']
+    assert res.forces['body_1__Surge'] == pytest.approx(2151.7+54.053j, rel=0.05)

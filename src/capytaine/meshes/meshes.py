@@ -586,13 +586,18 @@ class Mesh(AbstractMesh):
         -------
         Mesh
             New mesh containing vertices and faces from all meshes.
+        list of arrays
+            The boolean masks relating each faces to the component it came from
+            Only returned in return_masks==True
 
         See Also
         --------
         __add__ : Implements the + operator for mesh joining.
         """
-        if not all(isinstance(m, Mesh) for m in meshes):
-            raise TypeError("Only Mesh instances can be added together.")
+        if not all(isinstance(m, AbstractMesh) for m in meshes):
+            raise TypeError("Only AbstractMesh instances can be added together.")
+
+        meshes = [m.merged() for m in meshes]  # Discard symmetries, no-op for non-symmetric Mesh
 
         faces = sum((m.as_list_of_faces() for m in meshes), [])
 
