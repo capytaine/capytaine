@@ -638,27 +638,27 @@ Forces on body surfaces
 
 Forces acting on body surfaces are computed by integration of the pressure field.
 
-.. math:: F_i = \int_\Gamma p(x) \, n(x) \cdot \delta\!r_i(x) \, dx = j \omega \rho \int_\Gamma \Phi(x) \, n(x) \cdot \delta\!r_i(x) \, dx
+.. math:: F_j = - \int_\Gamma p(x) \, n(x) \cdot \delta\!r_j(x) \, dx = - i \omega \rho \int_\Gamma \Phi(x) \, n(x) \cdot \delta\!r_j(x) \, dx
 
-where :math:`p = j \omega \rho \Phi` stands for the complex-valued pressure fields in frequency-domain, :math:`n` is the normal vector on the hull :math:`\Gamma` (oriented towards the fluid in Capytaine, see :doc:`../user_manual/conventions`) and :math:`\delta\!r_i` is the local displacement of the hull of the degree of freedom :math:`i`.
+where :math:`p = i \omega \rho \Phi` stands for the complex-valued pressure fields in frequency-domain, :math:`n` is the normal vector on the hull :math:`\Gamma` (oriented towards the fluid in Capytaine, see :doc:`../user_manual/conventions`) and :math:`\delta\!r_j` is the local displacement of the hull of the degree of freedom :math:`j`.
 
 For a single rigid body, the degrees of freedom reads:
 
-+---------+----------------------------------------------------------------+
-| Dof     | Local hull displacement                                        |
-+=========+================================================================+
-| Surge   | :math:`\delta\!r(x) = (1, 0, 0)`                               |
-+---------+----------------------------------------------------------------+
-| Sway    | :math:`\delta\!r(x) = (0, 1, 0)`                               |
-+---------+----------------------------------------------------------------+
-| Heave   | :math:`\delta\!r(x) = (0, 0, 1)`                               |
-+---------+----------------------------------------------------------------+
-| Roll    | :math:`\delta\!r(x) = (1, 0, 0) \times (x-x_0, y-y_0, z-z_0)`  |
-+---------+----------------------------------------------------------------+
-| Pitch   | :math:`\delta\!r(x) = (0, 1, 0) \times (x-x_0, y-y_0, z-z_0)`  |
-+---------+----------------------------------------------------------------+
-| Yaw     | :math:`\delta\!r(x) = (0, 0, 1) \times (x-x_0, y-y_0, z-z_0)`  |
-+---------+----------------------------------------------------------------+
++---------------+-----------------------------------------------------------------+
+| Dof :math:`j` | Local hull displacement                                         |
++===============+=================================================================+
+| Surge         | :math:`\delta\!r_j(x) = (1, 0, 0)`                              |
++---------------+-----------------------------------------------------------------+
+| Sway          | :math:`\delta\!r_j(x) = (0, 1, 0)`                              |
++---------------+-----------------------------------------------------------------+
+| Heave         | :math:`\delta\!r_j(x) = (0, 0, 1)`                              |
++---------------+-----------------------------------------------------------------+
+| Roll          | :math:`\delta\!r_j(x) = (1, 0, 0) \times (x-x_0, y-y_0, z-z_0)` |
++---------------+-----------------------------------------------------------------+
+| Pitch         | :math:`\delta\!r_j(x) = (0, 1, 0) \times (x-x_0, y-y_0, z-z_0)` |
++---------------+-----------------------------------------------------------------+
+| Yaw           | :math:`\delta\!r_j(x) = (0, 0, 1) \times (x-x_0, y-y_0, z-z_0)` |
++---------------+-----------------------------------------------------------------+
 
 where :math:`(x_0, y_0, z_0)` is the rotation center and :math:`\times` denotes the cross product.
 
@@ -675,57 +675,57 @@ The potential field can be decomposed into three contributions, and so does the 
    the forces exerted by the fluid on the body in response to a motion of each
    degree of freedom.
 
-The component :math:`i` of the radiation force :math:`F_{R}` is further rewritten as
+The component :math:`j` of the radiation force :math:`F_{R}` is further rewritten as
 
-.. math:: F_{R, i} = \sum_k \left[\omega^2 A_{ik} + j \omega B_{ik}\right] X_k
+.. math:: F_{R, j} = \sum_k \left[\omega^2 A_{jk} + i \omega B_{jk}\right] X_k
 
-where :math:`A_{ik}` is the added mass matrix, :math:`B_{ik}` is the radiation
+where :math:`A_{jk}` is the added mass matrix, :math:`B_{jk}` is the radiation
 damping matrix and :math:`X_k` is the amplitude of the motion of the body along
 the degree of freedom :math:`k`.
 
 In other words, one has
 
 .. math::
-   A_{ik} & = \frac{1}{\omega^2} \Re \left[ j \omega \rho \int_\Gamma \Phi_k(x) \, n(x) \cdot \delta \! r_i(x) \, dx \right] \\
-          & = - \frac{\rho}{\omega} \int_\Gamma \Im [\Phi_k(x)] \, n(x) \cdot \delta \! r_i(x) \, dx
+   A_{jk} & = \frac{1}{\omega^2} \Re \left[ i \omega \rho \int_\Gamma \Phi_k(x) \, n(x) \cdot \delta \! r_j(x) \, dx \right] \\
+          & = - \frac{\rho}{\omega} \int_\Gamma \Im [\Phi_k(x)] \, n(x) \cdot \delta \! r_j(x) \, dx
 
 and
 
 .. math::
-   B_{ik} & = \frac{1}{\omega} \Im \left[ j \omega \rho \int_\Gamma \Phi_k(x) \, n(x) \cdot \delta \! r_i(x) \, dx \right] \\
-          & = \rho \int_\Gamma \Re [\Phi_k(x)] \, n(x) \cdot \delta \! r_i(x) \, dx
+   B_{jk} & = \frac{1}{\omega} \Im \left[ i \omega \rho \int_\Gamma \Phi_k(x) \, n(x) \cdot \delta \! r_j(x) \, dx \right] \\
+          & = \rho \int_\Gamma \Re [\Phi_k(x)] \, n(x) \cdot \delta \! r_j(x) \, dx
 
-where :math:`\Phi_k` is the potential field computed with the normal velocity on the hull :math:`\frac{\partial \Phi_k}{\partial n} = -j \omega \delta \! r_k \cdot n`.
-In Capytaine's wording, the degree of freedom :math:`k` defining the normal velocity on the hull is called ``radiating_dof``, while the degree of freedom :math:`i` used in the integration of the force is the ``influenced_dof``.
+where :math:`\Phi_k` is the potential field computed with the normal velocity on the hull :math:`\frac{\partial \Phi_k}{\partial n} = -i \omega \delta \! r_k \cdot n`.
+In Capytaine's wording, the degree of freedom :math:`k` defining the normal velocity on the hull is called ``radiating_dof``, while the degree of freedom :math:`j` used in the integration of the force is the ``influenced_dof``.
 
 .. note::
    From Green second identity
 
-   .. math:: \int_\Gamma \left[ \Phi_i \frac{\partial \Phi_k}{\partial n} - \Phi_k \frac{\partial \Phi_i}{\partial n}\right] dx = 0
+   .. math:: \int_\Gamma \left[ \Phi_j \frac{\partial \Phi_k}{\partial n} - \Phi_k \frac{\partial \Phi_j}{\partial n}\right] dx = 0
 
    one has, when using the definition of the normal velocity of the radiation problem above,
 
-   .. math:: \iint_{\Gamma} \Phi_i \; \delta\!r_k \cdot n = \iint_{\Gamma} \Phi_k \; \delta\!r_i \cdot n
+   .. math:: \iint_{\Gamma} \Phi_j \; \delta\!r_k \cdot n = \iint_{\Gamma} \Phi_k \; \delta\!r_j \cdot n
 
    from which we can deduce the symmetry of the added mass matrix and the radiation dampings matrix.
 
 
 .. note::
-   As an alternative to :math:`\frac{\partial \Phi_k}{\partial n} = -j \omega
+   As an alternative to :math:`\frac{\partial \Phi_k}{\partial n} = -i \omega
    \delta \! r_k \cdot n`, some software such as the version 1 of Capytaine use
    :math:`\frac{\partial \tilde \Phi_k}{\partial n} = \delta \! r_k \cdot n`,
-   that is :math:`\tilde \Phi_k = \frac{\Phi_k}{-j \omega}`.
+   that is :math:`\tilde \Phi_k = \frac{\Phi_k}{-i \omega}`.
 
    It leads to the following definition of the added mass and radiation damping
 
    .. math::
-      A_{ik} & = \frac{1}{\omega^2} \Re \left[ j \omega \rho \int_\Gamma (- j \omega \tilde \Phi_k(x)) \, n(x) \cdot \delta \! r_j(x) \, dx \right] \\
+      A_{jk} & = \frac{1}{\omega^2} \Re \left[ i \omega \rho \int_\Gamma (- i \omega \tilde \Phi_k(x)) \, n(x) \cdot \delta \! r_j(x) \, dx \right] \\
              & = \rho \int_\Gamma \Re [\tilde \Phi_k(x)] \, n(x) \cdot \delta \! r_j(x) \, dx
 
    and
 
    .. math::
-      B_{ik} & = \frac{1}{\omega} \Im \left[ j \omega \rho \int_\Gamma (- j \omega \tilde \Phi_k(x)) \, n(x) \cdot \delta \! r_j(x) \, dx \right] \\
+      B_{jk} & = \frac{1}{\omega} \Im \left[ i \omega \rho \int_\Gamma (- i \omega \tilde \Phi_k(x)) \, n(x) \cdot \delta \! r_j(x) \, dx \right] \\
              & = \rho \omega \int_\Gamma \Im [\tilde \Phi_k(x)] \, n(x) \cdot \delta \! r_j(x) \, dx
 
    This form is convenient since the all the :math:`\omega` in the expression
@@ -734,7 +734,7 @@ In Capytaine's wording, the degree of freedom :math:`k` defining the normal velo
 
    However, the implementation of :math:`\tilde \Phi` in version 1 of Capytaine
    was not consistent with the use of :math:`\Phi` for diffraction problem and
-   it was easy to forget the missing :math:`-j\omega` for some post-processing
+   it was easy to forget the missing :math:`-i\omega` for some post-processing
    of :math:`\tilde \Phi` for radiation problems.
 
    In version 2.0 of Capytaine, :math:`\Phi` is used everywhere instead of
@@ -748,23 +748,23 @@ Dynamic coupling and impedance
 ------------------------------
 Consider a body or a system of bodies. The general linear equation of motion can be expressed in time domain as
 
-.. math:: M_{ij} \ddot{x}_j + C_{ij} \dot{x}_j + K_{ij} x_j = F_i,
+.. math:: M_{jk} \ddot{x}_k + C_{jk} \dot{x}_k + K_{jk} x_k = F_j,
 
-and in frequency domain, with the assumed time dependence :math:`x(t) = \mathrm{Re} \left( X e^{-j \omega t} \right)`,
+and in frequency domain, with the assumed time dependence :math:`x(t) = \mathrm{Re} \left( X e^{-i \omega t} \right)`,
 
-.. math:: \left[-\omega^2M_{ij} - j \omega C_{ij} + K_{ij}\right] X_j = F_i,
+.. math:: \left[-\omega^2 M_{jk} - i \omega C_{jk} + K_{jk}\right] X_k = F_j,
 
-where :math:`M_{ij}` is the inertia matrix, accounting for the mass distribution, :math:`C_{ij}` is the mechanical damping matrix, :math:`K_{ij}` is the stiffness matrix which comprises mechanical and hydrostatic effects, and :math:`F_i` are generic external forces.
+where :math:`M_{jk}` is the inertia matrix, accounting for the mass distribution, :math:`C_{jk}` is the mechanical damping matrix, :math:`K_{jk}` is the stiffness matrix which comprises mechanical and hydrostatic effects, and :math:`F_j` are generic external forces.
 
-.. note:: The hydrostatic contribution to matrix :math:`K_{ij}` accounts for a variation of hydrostatic force in direction :math:`i` due to a unit motion in direction :math:`j`. It is a geometric property of the body.
+.. note:: The hydrostatic contribution to matrix :math:`K_{jk}` accounts for a variation of hydrostatic force in direction :math:`j` due to a unit motion in direction :math:`k`. It is a geometric property of the body.
 
-As seen above, forces :math:`F_i` can be decomposed as
+As seen above, forces :math:`F_j` can be decomposed as
 
-.. math:: F_i = F_{FK, i} + F_{D, i} + F_{R, i}
+.. math:: F_j = F_{FK, j} + F_{D, j} + F_{R, j}
 
 The full system becomes
 
-.. math:: \left[-\omega^2 (M_{ij} + A_{ij}) - j \omega (C_{ij} + B_{ij}) + K_{ij}\right] X_j = F_{FK, i} + F_{D, i}
+.. math:: \left[-\omega^2 (M_{jk} + A_{jk}) - i \omega (C_{jk} + B_{jk}) + K_{jk}\right] X_k = F_{FK, j} + F_{D, j}
 
 that is
 
@@ -772,15 +772,15 @@ that is
 
 where :math:`H` denotes the following transfer function matrix
 
-.. math:: H_{ij} = \left[-\omega^2 (M_{ij} + A_{ij}) - j \omega (C_{ij} + B_{ij}) + K_{ij}\right]
+.. math:: H_{jk} = \left[-\omega^2 (M_{jk} + A_{jk}) - i \omega (C_{jk} + B_{jk}) + K_{jk}\right]
 
 and :math:`F_{ex}` denotes the excitation force.
 
-.. math:: F_{ex, i} = F_{FK, i} + F_{D, i}.
+.. math:: F_{ex, j} = F_{FK, j} + F_{D, j}.
 
 The oscillation amplitude is obtained by solving the complex-valued linear system.
 
-.. note:: Matrices :math:`A_{ij}` and :math:`B_{ij}` depend on :math:`\omega`, and so does :math:`H_{ij}` and :math:`X_j`.
+.. note:: Matrices :math:`A_{jk}` and :math:`B_{jk}` depend on :math:`\omega`, and so does :math:`H_{jk}` and :math:`X_k`.
 
 Free surface elevation
 ----------------------
@@ -795,7 +795,7 @@ which, in frequency domain, is
 
 For a fully coupled problem (bodies free to oscillate, i.e. diffraction and radiation combined), the free surface elevation can be computed as
 
-.. math:: \eta = \eta_{\text{incident}} + \eta_{\text{diffracted}} + \sum_i \eta_{\text{radiated}, i} X_i.
+.. math:: \eta = \eta_{\text{incident}} + \eta_{\text{diffracted}} + \sum_k \eta_{\text{radiated}, k} X_k.
 
 
 Far-field coefficients
