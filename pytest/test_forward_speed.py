@@ -15,7 +15,7 @@ def body():
         dofs=cpt.rigid_body_dofs(only=["Surge", "Heave", "Pitch"], rotation_center=(0, 0, -0.5)),
         name="body"
     )
-    # No m-term with this body. Pitch has m-terms, but all the mesh faces have nz!=0.
+    # No m-term with this body. Pitch has m-terms, but all the mesh faces have nz==0.
     return body
 
 @pytest.fixture
