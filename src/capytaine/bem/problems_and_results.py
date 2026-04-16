@@ -440,8 +440,9 @@ class RadiationProblem(LinearPotentialFlowProblem):
             if self.forward_speed != 0.0:
                 # Adding the "m-terms":
                 try:
+                    # First column of the jacobian matrix at each faces:
                     ddofdx = dof.evaluate_gradient_of_motion(self.body.mesh)[:, :, 0]
-                    ddofdx_dot_n = np.sum(ddofdx * self.body.mesh.faces_normals)
+                    ddofdx_dot_n = np.sum(ddofdx * self.body.mesh.faces_normals, axis=1)
                 except AttributeError:
                     raise NotImplementedError(
                             "Radiation problem with forward speed is currently only implemented for rigid bodies.\n"
@@ -449,7 +450,7 @@ class RadiationProblem(LinearPotentialFlowProblem):
                             f"Got instead `radiating_dof={self.radiating_dof}`"
                             )
 
-                self.boundary_condition[self.body.hull_mask] += self.forward_speed * ddofdx_dot_n
+                self.boundary_condition[self.body.hull_mask] += - self.forward_speed * ddofdx_dot_n
 
 
 
