@@ -39,6 +39,10 @@ class AbstractDof(ABC):
     def evaluate_gradient_of_motion_at_points(self, points: np.ndarray) -> np.ndarray:
         # points is an array of shape (nb_points, 3)
         # output is of shape (nb_points, 3, 3)
+        # output is a Jacobian matrix, such that output[i_point, i_dir, i_deriv_dir]
+        # is the derivative with respect to `i_deriv_dir` of the `i_dir` component of the motion.
+        # In other words, output[:, 0, :] is the gradient of the x-component of the motion on each face and
+        # output[:, :, 0] is the derivative with respect to x of the motion vector on each face.
         ...
 
 
@@ -76,7 +80,9 @@ class RotationDof(AbstractDof):
         return np.cross(self.direction, points - self.rotation_center)
 
     def evaluate_gradient_of_motion_at_points(self, points: np.ndarray) -> np.ndarray:
-        grad = np.cross(self.direction, np.eye(3))
+        grad = np.cross(self.direction, np.eye(3)).T
+        # Transposing because np.cross compute the cross product row-wise,
+        # but we want it column-wise for the conventions of the Jacobian matrix.
         return np.tile(grad, (points.shape[0], 1, 1))
 
 

@@ -558,7 +558,7 @@ For this purpose, the ``wave_direction`` parameter can be passed to radiation pr
 2. **Normal velocity on hull:** The boundary condition on the body radiating with a dof defined by the displacement :math:`\delta\!r(x, y, z)` reads
 
 .. math::
-   \frac{\partial \phi}{\partial n} = - i \omega_e \delta\!r \cdot n + U \frac{\partial \delta\! r}{\partial x} \cdot n
+   \frac{\partial \phi}{\partial n} = - i \omega_e \delta\!r \cdot n - U \frac{\partial \delta\! r}{\partial x} \cdot n
 
 The above relationship has currently only been implemented for the six dofs of single rigid bodies, as follows
 
@@ -573,9 +573,9 @@ The above relationship has currently only been implemented for the six dofs of s
 +-------+---------------------+------------------------------------------------+
 | Roll  | :math:`(0, -z, y)`  | :math:`(0, 0, 0)`                              |
 +-------+---------------------+------------------------------------------------+
-| Pitch | :math:`(-z, 0, x)`  | :math:`(0, 0, 1)`                              |
+| Pitch | :math:`(z, 0, -x)`  | :math:`(0, 0, -1)`                             |
 +-------+---------------------+------------------------------------------------+
-| Yaw   | :math:`(y, -x, 0)`  | :math:`(0, -1, 0)`                             |
+| Yaw   | :math:`(-y, x, 0)`  | :math:`(0, 1, 0)`                              |
 +-------+---------------------+------------------------------------------------+
 
 In other words, the supplementary term is zero except for pitch and yaw.
@@ -854,15 +854,15 @@ The expression of the mean drift force for the degrees of freedom Surge and Sway
 .. math::
    \left\langle{\begin{matrix} F_x \\ F_y \end{matrix}}\right\rangle =
    -2 \pi \rho \omega\binom{\cos \beta}{\sin \beta} \Im( H(\beta))
-   -2 \pi \rho \frac{k\left(k_0 h\right)^2}{h\left[\left(k h\right)^2-\left(k_0 h\right)^2+k_0 h\right]} \int_0^{2 \pi}|H(\theta)|^2\binom{\cos \theta}{\sin \theta} d \theta 
+   -2 \pi \rho \frac{k\left(k_0 h\right)^2}{h\left[\left(k h\right)^2-\left(k_0 h\right)^2+k_0 h\right]} \int_0^{2 \pi}|H(\theta)|^2\binom{\cos \theta}{\sin \theta} d \theta
 
-where :math:`\beta` is the wave direction, :math:`H` the Kochin function, :math:`k` the wavenumber, :math:`h` the water depth and :math:`k_0` the deep water wavenumber. 
+where :math:`\beta` is the wave direction, :math:`H` the Kochin function, :math:`k` the wavenumber, :math:`h` the water depth and :math:`k_0` the deep water wavenumber.
 
 The Kochin function has to be rebuild from the contributions of all the radiation problems and the diffraction problem:
 
 .. math::
-   H(\theta) = e^{i\frac{\pi}{2}} ( H_D(\theta) + \sum_{k=1}^6 X_k H_{R_k} (\theta)) 
+   H(\theta) = e^{i\frac{\pi}{2}} ( H_D(\theta) + \sum_{k=1}^6 X_k H_{R_k} (\theta))
 
-where :math:`X_k` is the motion RAO of the body corresponding to the degree of freedom :math:`k`, 
+where :math:`X_k` is the motion RAO of the body corresponding to the degree of freedom :math:`k`,
 :math:`H_{R_k}` is the Kochin function associated with the radiated potential of degree of freedom :math:`k`
-and :math:`H_{D}` is the Kochin function associated with the diffracted potential. 
+and :math:`H_{D}` is the Kochin function associated with the diffracted potential.
