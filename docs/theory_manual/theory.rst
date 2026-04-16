@@ -558,7 +558,7 @@ For this purpose, the ``wave_direction`` parameter can be passed to radiation pr
 2. **Normal velocity on hull:** The boundary condition on the body radiating with a dof defined by the displacement :math:`\delta\!r(x, y, z)` reads
 
 .. math::
-   \frac{\partial \phi}{\partial n} = - i \omega_e \delta\!r \cdot n + U \frac{\partial \delta\! r}{\partial x} \cdot n
+   \frac{\partial \phi}{\partial n} = - i \omega_e \delta\!r \cdot n - U \frac{\partial \delta\! r}{\partial x} \cdot n
 
 The above relationship has currently only been implemented for the six dofs of single rigid bodies, as follows
 
@@ -573,9 +573,9 @@ The above relationship has currently only been implemented for the six dofs of s
 +-------+---------------------+------------------------------------------------+
 | Roll  | :math:`(0, -z, y)`  | :math:`(0, 0, 0)`                              |
 +-------+---------------------+------------------------------------------------+
-| Pitch | :math:`(-z, 0, x)`  | :math:`(0, 0, 1)`                              |
+| Pitch | :math:`(z, 0, -x)`  | :math:`(0, 0, -1)`                             |
 +-------+---------------------+------------------------------------------------+
-| Yaw   | :math:`(y, -x, 0)`  | :math:`(0, -1, 0)`                             |
+| Yaw   | :math:`(-y, x, 0)`  | :math:`(0, 1, 0)`                              |
 +-------+---------------------+------------------------------------------------+
 
 In other words, the supplementary term is zero except for pitch and yaw.

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import logging
-from itertools import chain, accumulate
 from typing import Union, List, Optional, Literal
 from functools import cached_property, lru_cache
 
@@ -14,6 +13,7 @@ from capytaine.bodies.dofs import (
     DofOnSubmesh,
 )
 from capytaine.bodies.abstract_bodies import AbstractBody
+from capytaine.bodies.bodies import FloatingBody
 
 LOG = logging.getLogger(__name__)
 
@@ -26,7 +26,9 @@ class Multibody(AbstractBody):
         *,
         name: Optional[str] = None
     ):
-        self.bodies = bodies
+
+        # `bodies` might be FloatingBody or Multibody, we extract a list of FloatingBody.
+        self.bodies: List[FloatingBody] = sum((b.bodies for b in bodies), [])
 
         if len(set(b.name for b in self.bodies)) < len(self.bodies):
             raise ValueError(
