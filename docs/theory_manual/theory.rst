@@ -638,7 +638,7 @@ Forces on body surfaces
 
 Forces acting on body surfaces are computed by integration of the pressure field.
 
-.. math:: F_i = \int_\Gamma p(x) \, n(x) \cdot \delta\!r_i(x) \, dx = j \omega \rho \int_\Gamma \Phi(x) \, n(x) \cdot \delta\!r_i(x) \, dx
+.. math:: F_i = - \int_\Gamma p(x) \, n(x) \cdot \delta\!r_i(x) \, dx = - j \omega \rho \int_\Gamma \Phi(x) \, n(x) \cdot \delta\!r_i(x) \, dx
 
 where :math:`p = j \omega \rho \Phi` stands for the complex-valued pressure fields in frequency-domain, :math:`n` is the normal vector on the hull :math:`\Gamma` (oriented towards the fluid in Capytaine, see :doc:`../user_manual/conventions`) and :math:`\delta\!r_i` is the local displacement of the hull of the degree of freedom :math:`i`.
 
@@ -854,15 +854,15 @@ The expression of the mean drift force for the degrees of freedom Surge and Sway
 .. math::
    \left\langle{\begin{matrix} F_x \\ F_y \end{matrix}}\right\rangle =
    -2 \pi \rho \omega\binom{\cos \beta}{\sin \beta} \Im( H(\beta))
-   -2 \pi \rho \frac{k\left(k_0 h\right)^2}{h\left[\left(k h\right)^2-\left(k_0 h\right)^2+k_0 h\right]} \int_0^{2 \pi}|H(\theta)|^2\binom{\cos \theta}{\sin \theta} d \theta 
+   -2 \pi \rho \frac{k\left(k_0 h\right)^2}{h\left[\left(k h\right)^2-\left(k_0 h\right)^2+k_0 h\right]} \int_0^{2 \pi}|H(\theta)|^2\binom{\cos \theta}{\sin \theta} d \theta
 
-where :math:`\beta` is the wave direction, :math:`H` the Kochin function, :math:`k` the wavenumber, :math:`h` the water depth and :math:`k_0` the deep water wavenumber. 
+where :math:`\beta` is the wave direction, :math:`H` the Kochin function, :math:`k` the wavenumber, :math:`h` the water depth and :math:`k_0` the deep water wavenumber.
 
 The Kochin function has to be rebuild from the contributions of all the radiation problems and the diffraction problem:
 
 .. math::
-   H(\theta) = e^{i\frac{\pi}{2}} ( H_D(\theta) + \sum_{k=1}^6 X_k H_{R_k} (\theta)) 
+   H(\theta) = e^{i\frac{\pi}{2}} ( H_D(\theta) + \sum_{k=1}^6 X_k H_{R_k} (\theta))
 
-where :math:`X_k` is the motion RAO of the body corresponding to the degree of freedom :math:`k`, 
+where :math:`X_k` is the motion RAO of the body corresponding to the degree of freedom :math:`k`,
 :math:`H_{R_k}` is the Kochin function associated with the radiated potential of degree of freedom :math:`k`
-and :math:`H_{D}` is the Kochin function associated with the diffracted potential. 
+and :math:`H_{D}` is the Kochin function associated with the diffracted potential.
