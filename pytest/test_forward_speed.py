@@ -15,6 +15,7 @@ def body():
         dofs=cpt.rigid_body_dofs(only=["Surge", "Heave", "Pitch"], rotation_center=(0, 0, -0.5)),
         name="body"
     )
+    # No m-term with this body. Pitch has m-terms, but all the mesh faces have nz!=0.
     return body
 
 @pytest.fixture
@@ -49,7 +50,25 @@ def test_encounter_frequency_radiation_problem(body):
     assert pb.forward_speed == 1.0
     assert pb.encounter_omega < pb.omega
 
-def test_non_rigid_body(body, solver):
+def test_m_terms():
+    mesh = cpt.mesh_sphere().immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)))
+    x, y, z = body.mesh.faces_centers.T
+    nx, ny, nz = body.mesh.faces_normals.T
+    pb = cpt.RadiationProblem(body=body, omega=1.0, forward_speed=1.0, wave_direction=0.0, radiating_dof="Surge")
+    assert np.allclose(pb.boundary_condition.real, 0.0)
+    assert np.allclose(pb.boundary_condition.imag, -pb.encounter_omega*nx)
+    pb = cpt.RadiationProblem(body=body, omega=1.0, forward_speed=1.0, wave_direction=0.0, radiating_dof="Roll")
+    assert np.allclose(pb.boundary_condition.real, 0.0)
+    assert np.allclose(pb.boundary_condition.imag, -pb.encounter_omega*(-z*ny + y*nz))
+    pb = cpt.RadiationProblem(body=body, omega=1.0, forward_speed=1.0, wave_direction=0.0, radiating_dof="Pitch")
+    assert np.allclose(pb.boundary_condition.real, pb.forward_speed*nz)
+    assert np.allclose(pb.boundary_condition.imag, -pb.encounter_omega*(z*nx - x*nz))
+    pb = cpt.RadiationProblem(body=body, omega=1.0, forward_speed=1.0, wave_direction=0.0, radiating_dof="Yaw")
+    assert np.allclose(pb.boundary_condition.real, -pb.forward_speed*ny)
+    assert np.allclose(pb.boundary_condition.imag, -pb.encounter_omega*(-y*nx + x*ny))
+
+def test_non_rigid_body(body):
     body = body.copy(name="body")
     body.dofs["Shear"] = np.array([[z, 0, 0] for (x, y, z) in body.mesh.faces_centers])
     with pytest.raises(NotImplementedError):
@@ -76,7 +95,7 @@ def test_free_surface_elevation(result, solver):
 
 # DATASETS
 
-def test_problem_from_dataset(body, solver):
+def test_problem_from_dataset(body):
     from capytaine.io.xarray import problems_from_dataset
     test_matrix = xr.Dataset(coords={
         "omega": [1.0],
@@ -157,7 +176,6 @@ MALENICA_ADDED_MASS = pd.DataFrame([
 
 @pytest.mark.parametrize("ref_data", MALENICA_ADDED_MASS.iterrows())
 def test_malenica_added_mass(body, solver, ref_data):
-    from capytaine.bem.airy_waves import froude_krylov_force
     pb = cpt.RadiationProblem(
         body=body,
         wavenumber=ref_data[1].wavenumber,
@@ -178,7 +196,6 @@ MALENICA_RADIATION_DAMPING = pd.DataFrame([
 
 @pytest.mark.parametrize("ref_data", MALENICA_RADIATION_DAMPING.iterrows())
 def test_malenica_radiation_damping(body, solver, ref_data):
-    from capytaine.bem.airy_waves import froude_krylov_force
     pb = cpt.RadiationProblem(
         body=body,
         wavenumber=ref_data[1].wavenumber,
