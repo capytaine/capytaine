@@ -514,15 +514,6 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
             yield "center_of_mass", tuple(self.center_of_mass)
         yield "name", self.name
 
-    def show(self, *args, **kwargs):
-        return self.mesh.show(*args, **kwargs)
-
-    def show_pyvista(self, *args, **kwargs):
-        return self.mesh.show_pyvista(*args, **kwargs)
-
-    def show_matplotlib(self, *args, **kwargs):
-        return self.mesh.show_matplotlib(*args, **kwargs)
-
     def animate(self, motion, *args, **kwargs):
         """Display a motion as a 3D animation.
 

@@ -12,6 +12,7 @@ from capytaine.bodies.dofs import (
     add_dofs_labels_to_vector,
     add_dofs_labels_to_matrix,
 )
+from capytaine.bodies.visualization import show_3d
 
 
 class AbstractBody(ABC):
@@ -129,3 +130,41 @@ class AbstractBody(ABC):
 
     def __repr__(self):
         return str(self)
+
+    def show(self, *, backend=None, **kwargs):
+        """Visualize the mesh using the specified backend.
+
+        Parameters
+        ----------
+        backend : str, optional
+            Visualization backend to use. Options are 'pyvista' or 'matplotlib'.
+            By default, try several until an installed one is found.
+        **kwargs
+            Additional keyword arguments passed to the visualization backend.
+            See :mod:`~capytaine.meshes.visualization`
+
+        Returns
+        -------
+        object
+            Visualization object returned by the backend (e.g., matplotlib figure).
+
+        Raises
+        ------
+        NotImplementedError
+            If the specified backend is not supported.
+        """
+        return show_3d(self, backend=backend, **kwargs)
+
+    def show_pyvista(self, **kwargs):
+        """
+        Equivalent to show(backend="pyvista").
+        See also :func:`~capytaine.bodies.visualization.show_pyvista`
+        """
+        return self.show(backend="pyvista", **kwargs)
+
+    def show_matplotlib(self, **kwargs):
+        """
+        Equivalent to show(backend="matplotlib").
+        See also :func:`~capytaine.bodies.visualization.show_matplotlib`
+        """
+        return self.show(backend="matplotlib", **kwargs)
