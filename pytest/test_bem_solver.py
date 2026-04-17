@@ -105,6 +105,34 @@ def test_control_threads(sphere, n_jobs, n_threads):
     solver.fill_dataset(test_matrix, sphere, n_jobs=n_jobs, n_threads=n_threads)
 
 
+@pytest.mark.parametrize("memory", [2, 3, 10])
+@pytest.mark.parametrize("n_cpu", [1, 2, 4])
+def test_dispatch(memory, n_cpu):
+    solver = cpt.BEMSolver()
+    mesh = cpt.mesh_sphere(radius=1.0, resolution=(100, 100)).immersed_part()
+    sphere = cpt.FloatingBody(mesh=mesh)
+    sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
+    problems = cpt.RadiationProblem(body=sphere, omega=0.2)
+    d = solver._dispatch(problems = problems, memory_in_GB=memory, n_cpu=n_cpu)
+    n_jobs = d["n_jobs"]
+    n_threads = d["n_threads"]
+    estimated_memory_per_job = solver.engine.compute_ram_estimation(problems)
+    assert n_jobs*estimated_memory_per_job <= memory
+    assert n_threads*n_jobs <= n_cpu
+
+
+def test_dispatch_ui():
+    cpt.set_logging('INFO')
+    solver = cpt.BEMSolver()
+    mesh = cpt.mesh_sphere(radius=1.0, resolution=(10, 10)).immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(only=["Surge"]))
+    test_matrix = xr.Dataset(coords={
+        'omega': np.linspace(0.1, 4.0, 10),
+        'radiating_dof': list(body.dofs.keys()),
+    })
+    solver.fill_dataset(test_matrix, body, **solver.dispatch(memory_in_GB=2, n_cpu=2))
+
+
 def test_nb_timer(sphere):
     pytest.importorskip("joblib")
     solver = cpt.BEMSolver()

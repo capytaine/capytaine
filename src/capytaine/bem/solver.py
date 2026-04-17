@@ -13,11 +13,11 @@ import os
 import shutil
 import textwrap
 import logging
-
-import numpy as np
-
 from datetime import datetime
 from collections import defaultdict
+from dataclasses import dataclass
+
+import numpy as np
 
 from rich.progress import track
 
@@ -25,7 +25,7 @@ from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, Diffr
 from capytaine.bem.engines import BasicMatrixEngine
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.memory_monitor import MemoryMonitor
-from capytaine.tools.optional_imports import silently_import_optional_dependency
+from capytaine.tools.optional_imports import silently_import_optional_dependency, import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
 from capytaine.tools.timer import Timer
@@ -291,6 +291,11 @@ class BEMSolver:
             self._check_wavelength_and_mesh_resolution(problems)
             self._check_wavelength_and_irregular_frequencies(problems)
 
+        if isinstance(n_jobs, DispatchPlaceholder) or isinstance(n_threads, DispatchPlaceholder):
+            d = self._dispatch(problems, memory_in_GB=n_jobs.memory_in_GB, n_cpu=n_jobs.n_cpu)
+            n_jobs = d["n_jobs"]
+            n_threads = d["n_threads"]
+
         self._check_ram(problems, n_jobs)
 
         if progress_bar is None:
@@ -432,7 +437,36 @@ class BEMSolver:
                             + recommendation
                             )
 
-    def _check_ram(self,problems, n_jobs = 1):
+    def dispatch(self, *, memory_in_GB, n_cpu=None):
+        return {"n_threads": DispatchPlaceholder(memory_in_GB=memory_in_GB, n_cpu=n_cpu),
+                "n_jobs": DispatchPlaceholder(memory_in_GB=memory_in_GB, n_cpu=n_cpu)}
+
+    def _dispatch(self, problems, *, memory_in_GB, n_cpu=None):
+        """Manage the allocation of threads and processes based on the available RAM (in GB)."""
+        joblib = import_optional_dependency("joblib")
+
+        if not isinstance(problems, (list, tuple)):
+            problems = [problems]
+
+        if n_cpu is None:
+            n_cpu = joblib.cpu_count(only_physical_cores=True)
+
+        estimated_memory_per_job = max(self.engine.compute_ram_estimation(pb) for pb in problems)
+        if estimated_memory_per_job > memory_in_GB:
+            LOG.warning(f"The given memory: {memory_in_GB} GB might be not enough for the resolution.")
+            max_jobs = 1
+        else:
+            max_jobs = int(memory_in_GB / estimated_memory_per_job)
+
+        n_jobs = min(max_jobs, n_cpu)
+        nb_threads_per_jobs = int(n_cpu / n_jobs)
+
+        LOG.info(f"To solve the given {len(problems)} problems with {memory_in_GB} GB of RAM and {n_cpu} CPUs, "
+                 f"the solver will use {n_jobs} processes with each {nb_threads_per_jobs} threads")
+
+        return {"n_jobs": n_jobs, "n_threads": nb_threads_per_jobs}
+
+    def _check_ram(self,problems, n_jobs=1):
         """Display a warning if the RAM estimation is larger than a certain limit."""
         LOG.debug("Check RAM estimation.")
         psutil = silently_import_optional_dependency("psutil")
@@ -643,3 +677,9 @@ class BEMSolver:
             fs_elevation = -1/result.g * (-1j*result.omega) * self.compute_potential(points, result)
 
         return fs_elevation.reshape(output_shape)
+
+
+@dataclass
+class DispatchPlaceholder:
+    memory_in_GB: int
+    n_cpu: int
