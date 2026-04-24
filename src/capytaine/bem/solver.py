@@ -17,7 +17,6 @@ import logging
 import numpy as np
 
 from datetime import datetime
-from collections import defaultdict
 
 from rich.progress import track
 
@@ -31,10 +30,12 @@ from capytaine.bem.problems_checks import (
 )
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.memory_monitor import MemoryMonitor
-from capytaine.tools.optional_imports import silently_import_optional_dependency
+from capytaine.tools.optional_imports import import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
 from capytaine.tools.timer import Timer
+from capytaine.ui.env_vars import look_for_boolean_var
+from capytaine.ui.error_messages import display_grouped_errors
 
 LOG = logging.getLogger(__name__)
 
@@ -102,7 +103,6 @@ class BEMSolver:
 
     def reset_timer(self):
         self.timer = Timer(default_tags={"process": 0})
-        self.solve = self.timer.wraps_function(step="Total solve function")(self._solve)
 
     def timer_summary(self):
         df = self.timer.as_dataframe()
@@ -226,6 +226,20 @@ class BEMSolver:
 
         return result
 
+    def solve(self, *args, n_threads=None, **kwargs):
+        # Thin wrapper around _solve
+        with self.timer(step="Total solve function"):
+            if n_threads is None:
+                return self._solve(*args, **kwargs)
+            else:
+                threadpoolctl = import_optional_dependency(
+                        "threadpoolctl",
+                        error_message=f"Setting the `n_threads` argument to {n_threads} with `n_jobs=1` requires the missing optional dependency 'threadpoolctl'."
+                        )
+                with threadpoolctl.threadpool_limits(limits=n_threads):
+                    return self._solve(*args, **kwargs)
+
+
     def _solve_and_catch_errors(self, problem, *args, _display_errors, **kwargs):
         """Same as BEMSolver.solve() but returns a
         FailedLinearPotentialFlowResult when the resolution failed."""
@@ -234,30 +248,9 @@ class BEMSolver:
         except Exception as e:
             res = problem.make_failed_results_container(e)
             if _display_errors:
-                self._display_errors([res])
+                display_grouped_errors([res])
         return res
 
-    @staticmethod
-    def _display_errors(results):
-        """Displays errors that occur during the solver execution and groups them according
-        to the problem type and exception type for easier reading."""
-        failed_results = defaultdict(list)
-        for res in results:
-            if hasattr(res, "exception") and hasattr(res, "problem"):
-                key = (type(res.exception), str(res.exception), res.problem.omega, res.problem.water_depth, res.problem.forward_speed)
-                failed_results[key].append(res.problem)
-
-        for (exc_type, exc_msg, omega, water_depth, forward_speed), problems in failed_results.items():
-            nb = len(problems)
-            if nb > 1:
-                if forward_speed != 0.0:
-                    LOG.warning("Skipped %d problems for body=%s, omega=%s, water_depth=%s, forward_speed=%s\nbecause of %s(%r)",
-                                nb, problems[0].body.__short_str__(), omega, water_depth, forward_speed, exc_type.__name__, exc_msg)
-                else:
-                    LOG.warning("Skipped %d problems for body=%s, omega=%s, water_depth=%s\nbecause of %s(%r)",
-                                nb, problems[0].body.__short_str__(), omega, water_depth, exc_type.__name__, exc_msg)
-            else:
-                LOG.warning("Skipped %s\nbecause of %s(%r)", problems[0], exc_type.__name__, exc_msg)
 
     def solve_all(self, problems, *, method=None, n_jobs=1, n_threads=None, progress_bar=None, _check_wavelength=True, _display_errors=True, **kwargs):
         """Solve several problems.
@@ -302,78 +295,68 @@ class BEMSolver:
         _check_ram(problems, self.engine, n_jobs)
 
         if progress_bar is None:
-            if "CAPYTAINE_PROGRESS_BAR" in os.environ:
-                env_var = os.environ["CAPYTAINE_PROGRESS_BAR"].lower()
-                if env_var in {'true', '1', 't'}:
-                    progress_bar = True
-                elif env_var in {'false', '0', 'f'}:
-                    progress_bar = False
-                else:
-                    raise ValueError("Invalid value '{}' for the environment variable CAPYTAINE_PROGRESS_BAR.".format(os.environ["CAPYTAINE_PROGRESS_BAR"]))
-            else:
-                progress_bar = True
+            progress_bar = look_for_boolean_var("CAPYTAINE_PROGRESS_BAR", default=True)
 
-        monitor = MemoryMonitor()
-        if n_jobs == 1:  # force sequential resolution
-            problems = sorted(problems)
-            if progress_bar:
-                problems = track(problems, total=len(problems), description="Solving BEM problems")
-            if n_threads is None:
-                results = [self._solve_and_catch_errors(pb, method=method, _display_errors=_display_errors, _check_wavelength=False, **kwargs) for pb in problems]
+        groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)  # or not parallel resolution
+
+        with MemoryMonitor():
+            if n_jobs == 1:  # force sequential resolution
+
+                def solve_single_pb(pb):
+                    return self._solve_and_catch_errors(pb, method=method, _display_errors=True,
+                                                        _check_wavelength=False, n_threads=n_threads, **kwargs)
+
+                if progress_bar:
+                    groups_of_problems = track(groups_of_problems, total=len(groups_of_problems), description="Solving BEM problems")
+
+                results = [solve_single_pb(pb) for group in groups_of_problems for pb in group]
+
             else:
-                threadpoolctl = silently_import_optional_dependency("threadpoolctl")
-                if threadpoolctl is None:
-                    raise ImportError(f"Setting the `n_threads` argument to {n_threads} with `n_jobs=1` requires the missing optional dependency 'threadpoolctl'.")
-                with threadpoolctl.threadpool_limits(limits=n_threads):
-                    results = [self._solve_and_catch_errors(pb, method=method, _display_errors=_display_errors, _check_wavelength=False, **kwargs) for pb in problems]
-        else:
-            joblib = silently_import_optional_dependency("joblib")
-            if joblib is None:
-                raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
-            groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
-            with joblib.parallel_config(backend='loky', inner_max_num_threads=n_threads):
-                parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
-                groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_threads=None, progress_bar=False, _display_errors=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
-            if progress_bar:
-                groups_of_results = track(groups_of_results,
-                                          total=len(groups_of_problems),
-                                          description=f"Solving BEM problems with {n_jobs} processes:")
-            results = []
-            process_id_mapping = {}
-            for grp_results, other_timer, process_id in groups_of_results:
-                results.extend(grp_results)
-                self._display_errors(grp_results)
-                if process_id not in process_id_mapping:
-                    process_id_mapping[process_id] = len(process_id_mapping) + 1
-                self.timer.add_data_from_other_timer(other_timer, process=process_id_mapping[process_id])
-        memory_peak = monitor.get_memory_peak()
-        if memory_peak is None:
-            LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
-        else:
-            LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")
+                joblib = import_optional_dependency(
+                    "joblib",
+                    error_message=f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'."
+                )
+
+                def solver_group_of_problems_in_other_process(group):
+                    # Meant to be called in another process by joblib's backend.
+
+                    self.reset_timer()
+                    # Timer data will be concatenated to the Timer of the main process.
+                    # We reset the timer at each call to avoid concatenating
+                    # the same data twice in the main process.
+
+                    group_results = [self._solve_and_catch_errors(
+                        pb,
+                        method=method,
+                        _display_errors=False,  # Will be displayed by the main process, see below
+                        _check_wavelength=False,  # Already checked, see above
+                        n_threads=None,  # Should be controlled by joblib outside of this function
+                        **kwargs
+                    ) for pb in group]
+
+                    return group_results, self.timer, os.getpid()
+
+                with joblib.parallel_config(backend='loky', inner_max_num_threads=n_threads):
+                    parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
+                    groups_of_results = parallel(joblib.delayed(solver_group_of_problems_in_other_process)(group) for group in groups_of_problems)
+
+                if progress_bar:
+                    # The progress bar is on the results iterator, because the inputs are consumed immediately by joblib
+                    groups_of_results = track(groups_of_results,
+                                              total=len(groups_of_problems),
+                                              description=f"Solving BEM problems with {n_jobs} processes:")
+
+                results = []
+                process_id_mapping = {}
+                for grp_results, other_timer, process_id in groups_of_results:
+                    results.extend(grp_results)
+                    display_grouped_errors(grp_results)
+                    if process_id not in process_id_mapping:
+                        process_id_mapping[process_id] = len(process_id_mapping) + 1
+                    self.timer.add_data_from_other_timer(other_timer, process=process_id_mapping[process_id])
+
         LOG.info("Solver timer summary (in seconds):\n%s", self.displayed_total_summary())
         return results
-
-    def _solve_all_and_return_timer(
-        self, grp, *,
-        method, n_threads,
-        progress_bar, _check_wavelength, **kwargs
-    ):
-        # This method is only called in joblib's Parallel loop.
-        # It contains some pre-processing and post-processing that
-        # should be done in each process when solving the batch of problems.
-
-        self.reset_timer()
-        # Timer data will be concatenated to the Timer of process 0.
-        # We reset the timer at each call to avoid concatenating
-        # the same data twice in the main process.
-
-        results = self.solve_all(
-            grp, method=method, n_jobs=1,
-            n_threads=n_threads, progress_bar=progress_bar,
-            _check_wavelength=_check_wavelength, **kwargs
-        )
-        return results, self.timer, os.getpid()
 
 
     def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, n_threads=None, _check_wavelength=True, progress_bar=None, **kwargs):
