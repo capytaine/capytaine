@@ -51,13 +51,15 @@ def _check_wavelength_and_water_depth(problems):
                 and (pb.water_depth > -2*pb.body.mesh.vertices[:, 2].min()))
     filtered_pbs = [pb for pb in problems if check(pb)]
     nb_filtered_pbs = len(filtered_pbs)
-    wd = list(np.unique([pb.water_depth for pb in filtered_pbs]))
-    if len(wd) == 1:
-        wd = wd[0]
-    LOG.warning(f"Water depth for {nb_filtered_pbs} problems:\n"
-                f"Very deep finite water depth have been set (`water_depth={wd}`).\n"
-                "Computation might be faster by using the infinite water depth instead: `water_depth=np.inf`."
-                )
+    if nb_filtered_pbs > 1:
+        wd = list(np.unique([pb.water_depth for pb in filtered_pbs]))
+        if len(wd) == 1:
+            wd = wd[0]
+
+        LOG.warning(f"Water depth for {nb_filtered_pbs} problems:\n"
+                    f"Very deep finite water depth have been set (`water_depth={wd}`).\n"
+                    "Computation might be faster by using the infinite water depth instead: `water_depth=np.inf`."
+                    )
 
 
 def _check_wavelength_and_irregular_frequencies(problems):
