@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2024 Matthieu Ancellin
+# Copyright (C) 2017-2026 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
 """Solver for the BEM problem.
 
@@ -23,6 +23,12 @@ from rich.progress import track
 
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem
 from capytaine.bem.engines import BasicMatrixEngine
+from capytaine.bem.problems_checks import (
+    _check_wavelength_and_mesh_resolution,
+    _check_wavelength_and_water_depth,
+    _check_wavelength_and_irregular_frequencies,
+    _check_ram
+)
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.memory_monitor import MemoryMonitor
 from capytaine.tools.optional_imports import silently_import_optional_dependency
@@ -153,8 +159,9 @@ class BEMSolver:
         LOG.info("Solve %s.", problem)
 
         if _check_wavelength:
-            self._check_wavelength_and_mesh_resolution([problem])
-            self._check_wavelength_and_irregular_frequencies([problem])
+            _check_wavelength_and_mesh_resolution([problem])
+            _check_wavelength_and_water_depth([problem])
+            _check_wavelength_and_irregular_frequencies([problem])
 
         if isinstance(problem, DiffractionProblem) and float(problem.encounter_omega) in {0.0, np.inf}:
             raise ValueError("Diffraction problems at zero or infinite frequency are not defined")
@@ -288,10 +295,11 @@ class BEMSolver:
             the solved problems
         """
         if _check_wavelength:
-            self._check_wavelength_and_mesh_resolution(problems)
-            self._check_wavelength_and_irregular_frequencies(problems)
+            _check_wavelength_and_mesh_resolution(problems)
+            _check_wavelength_and_water_depth(problems)
+            _check_wavelength_and_irregular_frequencies(problems)
 
-        self._check_ram(problems, n_jobs)
+        _check_ram(problems, self.engine, n_jobs)
 
         if progress_bar is None:
             if "CAPYTAINE_PROGRESS_BAR" in os.environ:
@@ -367,93 +375,6 @@ class BEMSolver:
         )
         return results, self.timer, os.getpid()
 
-    @staticmethod
-    def _check_wavelength_and_mesh_resolution(problems):
-        """Display a warning if some of the problems have a mesh resolution
-        that might not be sufficient for the given wavelength."""
-        LOG.debug("Check wavelength with mesh resolution.")
-        risky_problems = [pb for pb in problems
-                          if 0.0 < pb.wavelength < pb.body.minimal_computable_wavelength]
-        nb_risky_problems = len(risky_problems)
-        if any(pb.body.lid_mesh is not None for pb in problems):
-            mesh_str = "mesh or lid_mesh"
-        else:
-            mesh_str = "mesh"
-        if nb_risky_problems == 1:
-            pb = risky_problems[0]
-            freq_type = risky_problems[0].provided_freq_type
-            freq = pb.__getattribute__(freq_type)
-            LOG.warning(f"Mesh resolution for {pb}:\n"
-                        f"The resolution of the {mesh_str} of body {pb.body.__short_str__()} might "
-                        f"be insufficient for {freq_type}={freq}.\n"
-                        f"This warning appears because the largest panel of the {mesh_str} "
-                        f"has radius ({pb.body.mesh_including_lid.faces_radiuses.max():.3f} m) > wavelength/8 ({pb.wavelength / 8:.3f} m)."
-                        )
-        elif nb_risky_problems > 1:
-            freq_type = risky_problems[0].provided_freq_type
-            risky_freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
-            risky_wavelengths = np.array([pb.wavelength for pb in risky_problems])
-            max_radius = max(pb.body.mesh_including_lid.faces_radiuses.max() for pb in risky_problems)
-            LOG.warning(f"Mesh resolution for {nb_risky_problems} problems:\n"
-                        f"The resolution of the {mesh_str} might be insufficient "
-                        f"for {freq_type} ranging from {risky_freqs.min():.3f} to {risky_freqs.max():.3f}.\n"
-                        f"This warning appears because the largest panel of the {mesh_str} "
-                        f"has radius ({max_radius:.3f} m) > wavelength/8 ({risky_wavelengths.min() / 8:.3f} to {risky_wavelengths.max() / 8:.3f} m)."
-                        )
-
-    @staticmethod
-    def _check_wavelength_and_irregular_frequencies(problems):
-        """Display a warning if some of the problems might encounter irregular frequencies."""
-        LOG.debug("Check wavelength with estimated irregular frequency.")
-        risky_problems = [pb for pb in problems
-                          if pb.free_surface != np.inf and
-                          pb.body.first_irregular_frequency_estimate(g=pb.g) < pb.omega < np.inf]
-        nb_risky_problems = len(risky_problems)
-        if nb_risky_problems >= 1:
-            if any(pb.body.lid_mesh is None for pb in problems):
-                recommendation = "Setting a lid for the floating body is recommended."
-            else:
-                recommendation = "The lid might need to be closer to the free surface."
-            if nb_risky_problems == 1:
-                pb = risky_problems[0]
-                freq_type = risky_problems[0].provided_freq_type
-                freq = pb.__getattribute__(freq_type)
-                LOG.warning(f"Irregular frequencies for {pb}:\n"
-                            f"The body {pb.body.__short_str__()} might display irregular frequencies "
-                            f"for {freq_type}={freq}.\n"
-                            + recommendation
-                            )
-            elif nb_risky_problems > 1:
-                freq_type = risky_problems[0].provided_freq_type
-                freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
-                LOG.warning(f"Irregular frequencies for {nb_risky_problems} problems:\n"
-                            "Irregular frequencies might be encountered "
-                            f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
-                            + recommendation
-                            )
-
-    def _check_ram(self,problems, n_jobs = 1):
-        """Display a warning if the RAM estimation is larger than a certain limit."""
-        LOG.debug("Check RAM estimation.")
-        psutil = silently_import_optional_dependency("psutil")
-        if psutil is None:
-            ram_limit = 8
-        else :
-            ram_limit = psutil.virtual_memory().total / (1024**3) * 0.3
-
-        if n_jobs == - 1:
-            n_jobs = os.cpu_count()
-
-        estimated_peak_memory = n_jobs*max(self.engine.compute_ram_estimation(pb) for pb in problems)
-
-        if estimated_peak_memory < 0.5:
-            LOG.info("Estimated peak RAM usage: <1 GB.")
-
-        elif estimated_peak_memory < ram_limit:
-            LOG.info(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
-
-        else:
-            LOG.warning(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
 
     def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, n_threads=None, _check_wavelength=True, progress_bar=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.

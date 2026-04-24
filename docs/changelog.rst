@@ -191,7 +191,7 @@ Minor changes
   Using `mesh.with_quadrature('Gauss-Legendre 2')` can lead to slightly better results,
   although the limitation is often the geometric approximation of the shape by a flat panels mesh.
   (:pull:`847`)
-  
+
 * Add function :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force` to compute the horizontal mean drift forces using far field formulation.
   Only the single-direction second-order term is currently implemented.
 
@@ -199,6 +199,8 @@ Minor changes
   They can be replaced by just any mesh representation of the free surface and the methods :meth:`~capytaine.bem.solver.BEMSolver.compute_potential` and :meth:`~capytaine.bem.solvr.BEMSolver.compute_free_surface_elevation`.
 
 * Computing the pressure or free surface elevation in post-processing does not allocate a very large matrix for a single matrix-vector product, but instead allocate and evaluate only a few rows of the matrix at a time (:pull:`860`).
+
+* Warn the user if the ``water_depth`` would be better set to infinity than to a very large number (:pull:`880`).
 
 
 Bug fixes
