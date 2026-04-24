@@ -858,6 +858,15 @@ The expression of the mean drift force for the degrees of freedom Surge and Sway
 
 where :math:`\beta` is the wave direction, :math:`H` the Kochin function, :math:`k` the wavenumber, :math:`h` the water depth and :math:`k_0` the deep water wavenumber.
 
+Note that the introduction of a lid may induce slight variations in the Kochin function, consequently impacting the value of the integral :math:`\int_0^{2 \pi}|H(\theta)|^2\binom{\cos \theta}{\sin \theta} d \theta`. 
+Since the coefficient in front of the integral can become significantly large at high frequencies, this can introduce parasitic effects into the computation of mean drift forces."
+
+Here is the expression for the Yaw moment: 
+
+.. math:: 
+   \left\langle{M_z}\right\rangle = 2 \pi \frac{\rho \omega}{k}\Re (\dot H(\beta)) - 
+   \frac{2 \pi \rho (k_0h)^2}{h[(kh)^2 - (k_0h)^2 + k_0h]}\Im (\int_0^{2 \pi} H(\theta)^* \dot H(\theta) \mathrm{d} \theta )
+
 The Kochin function has to be rebuild from the contributions of all the radiation problems and the diffraction problem:
 
 .. math::
