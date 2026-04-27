@@ -231,6 +231,7 @@ Bug fixes
 
 * Fix resolution warning message to include ``lid_mesh`` (:issue:`867` and :pull:`868`)
 
+* Progress bar display progress of groups of problems solved, not single problems, leading to more accurate time estimation (:pull:`882`)
 
 Internals
 ~~~~~~~~~

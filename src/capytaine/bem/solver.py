@@ -13,11 +13,9 @@ import os
 import shutil
 import textwrap
 import logging
-
-import numpy as np
-
 from datetime import datetime
 
+import numpy as np
 from rich.progress import track
 
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem
@@ -134,28 +132,7 @@ class BEMSolver:
         raise NotImplementedError
 
     def _solve(self, problem, method=None, keep_details=True, _check_wavelength=True):
-        """Solve the linear potential flow problem.
-
-        Parameters
-        ----------
-        problem: LinearPotentialFlowProblem
-            the problem to be solved
-        method: string, optional
-            select boundary integral equation used to solve the problem.
-            It is recommended to set the method more globally when initializing the solver.
-            If provided here, the value in argument of `solve` overrides the global one.
-        keep_details: bool, optional
-            if True, store the sources and the potential on the floating body in the output object
-            (default: True)
-        _check_wavelength: bool, optional (default: True)
-            If True, the frequencies are compared to the mesh resolution and
-            the estimated first irregular frequency to warn the user.
-
-        Returns
-        -------
-        LinearPotentialFlowResult
-            an object storing the problem data and its results
-        """
+        """Called by BEMSolver.solve. See the documentation therein."""
         LOG.info("Solve %s.", problem)
 
         if _check_wavelength:
@@ -226,18 +203,43 @@ class BEMSolver:
 
         return result
 
-    def solve(self, *args, n_threads=None, **kwargs):
-        # Thin wrapper around _solve
+    def solve(self, problem, method=None, keep_details=True, n_threads=None, _check_wavelength=True):
+        """Solve the linear potential flow problem.
+
+        Parameters
+        ----------
+        problem: LinearPotentialFlowProblem
+            the problem to be solved
+        keep_details: bool, optional
+            if True, store the sources and the potential on the floating body in the output object
+            (default: True)
+        n_threads: int, optional
+            the number of threads to use for the resolution.
+            Requires the optional package `threadpoolctl` to set.
+        _check_wavelength: bool, optional (default: True)
+            If True, the frequencies are compared to the mesh resolution and
+            the estimated first irregular frequency to warn the user.
+        method: str, optional
+            select boundary integral equation used to solve the problems.
+            It is recommended to set the method more globally when initializing the solver.
+            If provided here, the value in argument of `solve` overrides the global one.
+
+        Returns
+        -------
+        LinearPotentialFlowResult
+            an object storing the problem data and its results
+        """
+        # Thin wrapper around _solve adding the timer and the threading control
         with self.timer(step="Total solve function"):
             if n_threads is None:
-                return self._solve(*args, **kwargs)
+                return self._solve(problem, method=method, keep_details=keep_details, _check_wavelength=_check_wavelength)
             else:
                 threadpoolctl = import_optional_dependency(
                         "threadpoolctl",
                         error_message=f"Setting the `n_threads` argument to {n_threads} with `n_jobs=1` requires the missing optional dependency 'threadpoolctl'."
                         )
                 with threadpoolctl.threadpool_limits(limits=n_threads):
-                    return self._solve(*args, **kwargs)
+                    return self._solve(problem, method=method, keep_details=keep_details, _check_wavelength=_check_wavelength)
 
 
     def _solve_and_catch_errors(self, problem, *args, _display_errors, **kwargs):
