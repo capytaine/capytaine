@@ -121,8 +121,9 @@ def test_waterplane_center_of_floating_sphere():
 
 def test_stiffness_when_no_dofs():
     body = cpt.FloatingBody(mesh=floating_sphere())
-    with pytest.raises(AttributeError, match=".* no dof .*"):
-        body.compute_hydrostatic_stiffness()
+    S = body.compute_hydrostatic_stiffness()
+    assert S.shape == (0, 0)
+
 
 def test_stiffness_no_center_of_mass():
     body = cpt.FloatingBody(

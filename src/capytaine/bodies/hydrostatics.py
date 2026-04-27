@@ -292,7 +292,11 @@ class _HydrostaticsMixin(ABC):
 
         """
         if len(self.dofs) == 0:
-            raise AttributeError("Cannot compute hydrostatics stiffness on {} since no dof has been defined.".format(self.name))
+            return xr.DataArray(
+                np.empty(shape=(0, 0), dtype=float),
+                coords={"influenced_dof": np.empty(shape=(0,)), "radiating_dof": np.empty(shape=(0,))},
+                dims=["influenced_dof", "radiating_dof"]
+            )
 
         def divergence_dof(influenced_dof):
             if is_rigid_body_dof(influenced_dof):
