@@ -858,6 +858,17 @@ The expression of the mean drift force for the degrees of freedom Surge and Sway
 
 where :math:`\beta` is the wave direction, :math:`H` the Kochin function, :math:`k` the wavenumber, :math:`h` the water depth and :math:`k_0` the deep water wavenumber.
 
+.. note::
+   The coefficient in front of the integral above can be very large at high frequency and can make the result very sensitive to small numerical inaccuracies in the Kochin function.
+   Unfortunately, numerical incurracies can be common at high frequency, that is when the wavelength is small with respect to the mesh resolution.
+   In other words, mesh convergence should be checked carefully for the mean drift force at high frequency.
+
+Here is the expression for the Yaw moment: 
+
+.. math:: 
+   \left\langle{M_z}\right\rangle = 2 \pi \frac{\rho \omega}{k}\Re (\dot H(\beta)) - 
+   \frac{2 \pi \rho (k_0h)^2}{h[(kh)^2 - (k_0h)^2 + k_0h]}\Im (\int_0^{2 \pi} H(\theta)^* \dot H(\theta) \mathrm{d} \theta )
+
 The Kochin function has to be rebuild from the contributions of all the radiation problems and the diffraction problem:
 
 .. math::

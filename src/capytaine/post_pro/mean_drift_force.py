@@ -65,7 +65,7 @@ def far_field_mean_drift_force(X, dataset):
         )
     
     Mz = xr.DataArray(
-        data=coef1/k*np.real(H_derivative_beta) - coef2/k*(np.conjugate(H_tot) * H_derivative).integrate("theta"),
+        data=coef1/k*np.real(H_derivative_beta) - coef2/k*np.imag((np.conjugate(H_tot) * H_derivative).integrate("theta")),
         coords=coords,
         dims=dims,
         name='drift_force_yaw'
