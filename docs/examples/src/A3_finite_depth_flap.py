@@ -46,6 +46,9 @@ base_body = cpt.FloatingBody(
 
 full_flap = flap_body + base_body
 
+M = full_flap.compute_rigid_body_inertia()
+S = full_flap.compute_hydrostatic_stiffness()
+
 test_matrix = xr.Dataset(
     coords={
         "wavelength": np.linspace(5.0, 30.0, 10),

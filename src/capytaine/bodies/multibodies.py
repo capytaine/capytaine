@@ -183,7 +183,8 @@ class Multibody(AbstractBody):
         return xr.concat(
             matrices,
             dim="radiating_dof",
-            fill_value=0.0
+            fill_value=0.0,
+            join="outer"
         ).sel(
             radiating_dof=list(self.dofs.keys()),
             influenced_dof=list(self.dofs.keys())

@@ -263,6 +263,7 @@ Internals
   metadata are automatically updated accordingly. (:pull:`791`)
 
 * Move hydrostatics routines in a dedicated module and rewrite corresponding tests (:pull:`794`)
+  Change behavior of hydrostatic stiffness when no dof is defined: return an empty matrix rather than raising an error, in order to better fit in multibody cases (:pull:`883`).
 
 * Refactor the implementation of the timer to make it easier to include more steps (:pull:`809`)
 
