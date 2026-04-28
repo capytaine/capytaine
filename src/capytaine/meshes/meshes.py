@@ -799,7 +799,6 @@ class Mesh(AbstractMesh):
         # No-op to be extended to symmetries
         return self.copy(name=name)
 
-    @lru_cache
     def clipped(self, *, origin, normal, name=None) -> "Mesh":
         """
         Clip the mesh by a plane defined by `origin` and `normal`.
