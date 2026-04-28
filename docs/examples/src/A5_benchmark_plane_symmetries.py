@@ -46,6 +46,7 @@ for mesh in [reference_mesh, simple_symmetric_mesh, nested_symmetric_mesh]:
         test_matrix,
         body.immersed_part(),
         n_threads=1,  # No parallel resolution for cleaner benchmark
+        hydrostatics=False,
     )
     print()
     print("--->", body.name)

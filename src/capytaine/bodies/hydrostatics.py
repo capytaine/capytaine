@@ -11,8 +11,8 @@ from capytaine.bodies.dofs import TranslationDof, RotationDof, is_rigid_body_dof
 
 LOG = logging.getLogger(__name__)
 
-class _HydrostaticsMixin(ABC):
-    # This class is not meant to be instantiated but only to be inherited by other classes to give them more methods.
+class _FloatingBodyHydrostaticsMixin(ABC):
+    # This class is not meant to be instantiated but only to be inherited by the FloatingBody class to give it more methods.
 
     @property
     def wet_surface_area(self):

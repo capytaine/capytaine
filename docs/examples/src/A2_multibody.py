@@ -49,20 +49,21 @@ print("Multibody centers of mass:", all_bodies.center_of_mass)
 all_bodies.inertia_matrix = M = all_bodies.compute_rigid_body_inertia()
 all_bodies.hydrostatic_stiffness = K = all_bodies.compute_hydrostatic_stiffness()
 
-with np.printoptions(precision=2, suppress=True):
-    print(M)
-    print(K)
-
 # Compute multibody hydrodynamics
 test_matrix = xr.Dataset(
     {
-        "omega": np.linspace(0.5, 2.0, 2),
+        "omega": np.linspace(0.5, 2.0, 20),
         "wave_direction": [0.0],
         "radiating_dof": list(all_bodies.dofs),
         "water_depth": [np.inf],
     }
 )
 solver = cpt.BEMSolver()
-dataset = solver.fill_dataset(test_matrix, all_bodies.immersed_part())
+dataset = solver.fill_dataset(test_matrix, all_bodies.immersed_part(), hydrostatics=True)
 
-print(dataset)
+with np.printoptions(precision=2, suppress=True):
+    print(dataset.influenced_dof.values)
+    print("M = ", dataset.inertia_matrix.values)
+    print("A = ", dataset.added_mass.sel(omega=0.5).values)
+    print("B = ", dataset.radiation_damping.sel(omega=0.5).values)
+    print("S = ", dataset.hydrostatic_stiffness.values)

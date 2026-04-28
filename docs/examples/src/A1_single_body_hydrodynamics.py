@@ -27,7 +27,7 @@ body = cpt.FloatingBody(
 # both for each frequency in the frequency range.
 test_matrix = xr.Dataset(
     {
-        "omega": np.linspace(0.1, 3.0, 20),
+        "omega": np.linspace(0.1, 3.0, 2),
         "wave_direction": [0.0, np.pi/2],
         "radiating_dof": list(body.dofs),
     }
@@ -37,7 +37,7 @@ test_matrix = xr.Dataset(
 
 # Solve all radiation problems
 solver = cpt.BEMSolver()
-dataset = solver.fill_dataset(test_matrix, body.immersed_part())
+dataset = solver.fill_dataset(test_matrix, body.immersed_part(), hydrostatics=False)
 
 
 # Export data in various formats

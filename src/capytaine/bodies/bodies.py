@@ -23,12 +23,12 @@ from capytaine.bodies.dofs import (
         rigid_body_dofs,
         )
 from capytaine.bodies.abstract_bodies import AbstractBody
-from capytaine.bodies.hydrostatics import _HydrostaticsMixin
+from capytaine.bodies.hydrostatics import _FloatingBodyHydrostaticsMixin
 
 LOG = logging.getLogger(__name__)
 
 
-class FloatingBody(_HydrostaticsMixin, AbstractBody):
+class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
     """A floating body described as a mesh and some degrees of freedom.
 
     The mesh structure is stored as a Mesh from capytaine.mesh.mesh or a
@@ -257,6 +257,25 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
                 raise ValueError(f"The array defining the dof {dof_name} of {self.__short_str__()} does not have the expected shape.\n"
                                  f"Expected shape: ({self.mesh.nb_faces}, 3)\n"
                                  f"  Actual shape: {dof.shape}")
+
+    @property
+    def rotation_center(self) -> np.array:
+        """Try to infer a rotation center by looking at the dofs.
+        Most bodies are rigid bodies with one and only one rotation center, but not all.
+        Only used for exporting data, as it might not be defined."""
+        centers = set()
+        for dof_name, dof in self.dofs.items():
+            if isinstance(dof, DofOnSubmesh) and hasattr(dof.dof, "rotation_center"):
+                centers.add(tuple(dof.dof.rotation_center))
+            if hasattr(dof, "rotation_center"):
+                centers.add(tuple(dof.rotation_center))
+        if len(centers) == 0:
+            return np.array([np.nan, np.nan, np.nan])
+        if len(centers) > 1:
+            LOG.warning(f"Body {self.name} has no uniquely defined rotation center. Returning an arbitrary one.\n"
+                        f"Exporting an arbitrary one among the found ones: {centers}.")
+        return np.array(next(iter(centers)))
+
 
 
     ###################

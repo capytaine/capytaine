@@ -58,14 +58,8 @@ test_matrix = xr.Dataset(
     }
 )
 solver = cpt.BEMSolver()
-dataset = solver.fill_dataset(test_matrix, cylinder)
-dataset["excitation_force"] = (
-    dataset["Froude_Krylov_force"] + dataset["diffraction_force"]
-)
+dataset = solver.fill_dataset(test_matrix, cylinder, hydrostatics=False)
 
-dataset.coords["encounter_omega"] = dataset["omega"] - dataset["wavenumber"] * dataset[
-    "forward_speed"
-] * np.cos(dataset["wave_direction"])
 dataset.coords["Froude_number"] = dataset.coords["forward_speed"] / np.sqrt(g * radius)
 
 plt.figure()
