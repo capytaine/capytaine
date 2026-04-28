@@ -1,5 +1,5 @@
 """Definition of the methods to build influence matrices, using possibly some sparse structures."""
-# Copyright (C) 2017-2019 Matthieu Ancellin
+# Copyright (C) 2017-2026 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
@@ -9,13 +9,13 @@ from typing import Tuple, Union, Optional, Callable
 import numpy as np
 import scipy.sparse.linalg as ssl
 
+from capytaine.meshes.abstract_meshes import AbstractMesh
 from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
 
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction, GreenFunctionEvaluationError
 from capytaine.green_functions.delhommeau import Delhommeau
 
 from capytaine.tools.lazy_matrices import LazyMatrix
-from capytaine.tools.lists_of_points import _normalize_points
 from capytaine.tools.block_circulant_matrices import (
     BlockCirculantMatrix,
     NestedBlockCirculantMatrix,
@@ -35,16 +35,26 @@ LOG = logging.getLogger(__name__)
 class MatrixEngine(ABC):
     """Abstract method to build a matrix."""
 
+    exportable_settings: dict
+
     @abstractmethod
-    def build_matrices(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer):
+    def build_matrices(self, mesh1: AbstractMesh, mesh2: AbstractMesh, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         pass
 
     @abstractmethod
-    def build_S_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+    def build_S_matrix(self, mesh1: AbstractMesh, mesh2: AbstractMesh, **kwargs) -> np.ndarray:
         pass
 
     @abstractmethod
-    def build_fullK_matrix(self, mesh1, mesh2, free_surface, water_depth, wavenumber):
+    def build_fullK_matrix(self, mesh1: AbstractMesh, mesh2: AbstractMesh, **kwargs) -> np.ndarray:
+        pass
+
+    @abstractmethod
+    def linear_solver(self, A: np.ndarray, b: np.ndarray) -> np.ndarray:
+        pass
+
+    @abstractmethod
+    def compute_ram_estimation(self, problem) -> float:
         pass
 
 

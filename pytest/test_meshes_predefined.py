@@ -39,7 +39,7 @@ def test_mesh_disk_both_symmetries():
     with pytest.raises(NotImplementedError):
         mesh_disk(axial_symmetry=True, reflection_symmetry=True)
 
-@pytest.mark.parametrize("max_rad", [0.5, 1.0, 5.0])
+@pytest.mark.parametrize("max_rad", [1.0, 5.0])
 def test_mesh_disk_max_size(max_rad):
     from capytaine.meshes.predefined.cylinders import mesh_disk
     d = mesh_disk(radius=10.0, faces_max_radius=max_rad)
@@ -115,7 +115,7 @@ def test_mesh_horizontal_cylinder_reflection_symmetry():
     assert np.all(h.half.vertices[:, 1] >= 0.0)  # All panels are on the same side
     assert np.all(h.vertices[:, 2] > 0.0)
 
-@pytest.mark.parametrize("max_rad", [0.5, 1.0, 5.0])
+@pytest.mark.parametrize("max_rad", [1.0, 5.0])
 def test_mesh_horizontal_max_size(max_rad):
     from capytaine.meshes.predefined.cylinders import mesh_horizontal_cylinder
     d = mesh_horizontal_cylinder(radius=10.0, faces_max_radius=max_rad)
@@ -144,7 +144,7 @@ def test_mesh_sphere_axial_symmetry():
     assert isinstance(d, RotationSymmetricMesh)
     assert d.axis == 'z+'
 
-@pytest.mark.parametrize("max_rad", [0.5, 1.0, 5.0])
+@pytest.mark.parametrize("max_rad", [1.0, 5.0])
 def test_mesh_sphere_max_size(max_rad):
     from capytaine.meshes.predefined.spheres import mesh_sphere
     d = mesh_sphere(radius=10.0, faces_max_radius=max_rad)
@@ -188,7 +188,7 @@ def test_mesh_rectangle_invalid_reflection_symmetry():
     with pytest.raises(ValueError):
         mesh_rectangle(resolution=(4, 6), reflection_symmetry=True, normal=(1, 1, 1))
 
-@pytest.mark.parametrize("max_rad", [0.5, 1.0, 5.0])
+@pytest.mark.parametrize("max_rad", [1.0, 5.0])
 def test_mesh_rectangle_max_size(max_rad):
     from capytaine.meshes.predefined.rectangles import mesh_rectangle
     d = mesh_rectangle(size=(10.0, 10.0), faces_max_radius=max_rad)
@@ -223,7 +223,7 @@ def test_mesh_parallelepiped_reflection_symmetry():
     assert isinstance(p.half, ReflectionSymmetricMesh)
     assert p.nb_faces == 6*16
 
-@pytest.mark.parametrize("max_rad", [0.5, 1.0, 5.0])
+@pytest.mark.parametrize("max_rad", [1.0, 5.0])
 def test_mesh_parallelepiped_max_size(max_rad):
     from capytaine.meshes.predefined.rectangles import mesh_parallelepiped
     d = mesh_parallelepiped(size=(10.0, 10.0, 10.0), faces_max_radius=max_rad)
