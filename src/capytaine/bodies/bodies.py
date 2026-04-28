@@ -195,12 +195,15 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
         if name is None:
             name = f"dof_{self.nb_dofs}_rotation"
         if rotation_center is None:
-            for point_attr in ('rotation_center', 'center_of_mass'):
-                if hasattr(self, point_attr) and getattr(self, point_attr) is not None:
-                    rotation_center = getattr(self, point_attr)
-                    LOG.info(f"The rotation dof {name} has been initialized around the point: "
-                             f"{self.__short_str__()}.{point_attr} = {getattr(self, point_attr)}")
-                    break
+            if not np.any(np.isnan(self.rotation_center)):
+                # Already has a rotation center from another dof
+                rotation_center = self.rotation_center
+                LOG.warning(f"The rotation dof {name} has been initialized around the point: "
+                            f"{self.__short_str__()}.rotation_center = {self.rotation_center}")
+            elif self.center_of_mass is not None:
+                rotation_center = self.center_of_mass
+                LOG.warning(f"The rotation dof {name} has been initialized around the point: "
+                            f"{self.__short_str__()}.center_of_mass = {self.center_of_mass}")
         if direction is None and normalize_name(name) in {"Roll", "Pitch", "Yaw"}:
             self.dofs[name] = rigid_body_dofs(rotation_center=rotation_center)[normalize_name(name)]
         else:

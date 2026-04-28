@@ -41,7 +41,6 @@ def test_rao_sphere_all(sphere_fb, solver):
     data = solver.fill_dataset(test_matrix, sphere_fb,
                                hydrostatics=True, mesh=True)
 
-
     RAO = cpt.post_pro.rao(data)
 
     assert RAO.radiating_dof.size == 6
