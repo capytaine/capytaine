@@ -145,10 +145,6 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
         mesh = load_mesh(filename, file_format, name=f"{name}_mesh")
         return FloatingBody(mesh, name=name)
 
-    def __lt__(self, other: 'FloatingBody') -> bool:
-        """Arbitrary order. The point is to sort together the problems involving the same body."""
-        return self.name < other.name
-
     @property
     def bodies(self):
         """For consistency with Multibody"""

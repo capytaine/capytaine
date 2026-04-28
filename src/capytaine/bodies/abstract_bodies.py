@@ -34,6 +34,10 @@ class AbstractBody(ABC):
 
     name: str
 
+    def __lt__(self, other: AbstractBody) -> bool:
+        """Arbitrary order. The point is to sort together the problems involving the same body."""
+        return self.name < other.name
+
     # --- Dof labelling (identical in both subclasses) ---
 
     def add_dofs_labels_to_vector(self, vector):

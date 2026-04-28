@@ -41,10 +41,7 @@ class Multibody(AbstractBody):
         # else:
         #     self.own_dofs = own_dofs
 
-        if name is None:
-            self.name = '+'.join(b.name for b in self.bodies)
-        else:
-            self.name = name
+        self._name = name
 
         # MESH MERGING
         # Need to merge the meshes of the component bodies while keeping track of the origin of each panel.
@@ -123,12 +120,26 @@ class Multibody(AbstractBody):
                 name=self.name,
                 )
 
+    @property
+    def name(self):
+        if self._name is None:
+            return '+'.join(b.name for b in self.bodies)
+        else:
+            return self._name
+
     def __str__(self):
         short_bodies = ', '.join(b.__short_str__() for b in self.bodies)
-        return f"Multibody({short_bodies})"
+        if self._name is not None:
+            name_str = f", name={self._name}"
+        else:
+            name_str = ""
+        return f"Multibody([{short_bodies}]{name_str})"
 
     def __short_str__(self):
-        return str(self)
+        if self._name is not None:
+            return f"Multibody(..., name={self._name})"
+        else:
+            return str(self)
 
     def _check_dofs_shape_consistency(self):
         # TODO
