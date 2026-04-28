@@ -15,7 +15,7 @@ solver = cpt.BEMSolver()
 def compute_excitation_force(body, omega_range):
     problems = [cpt.DiffractionProblem(body=body, omega=omega) for omega in omega_range]
     results = solver.solve_all(problems)
-    data = cpt.assemble_dataset(results)
+    data = cpt.assemble_dataset(results, hydrostatics=False)
     return data["excitation_force"]
 
 
