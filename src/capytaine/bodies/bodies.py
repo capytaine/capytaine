@@ -459,6 +459,7 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
             name=name
         )
 
+    @lru_cache
     def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None, name=None) -> "FloatingBody":
         clipped_mesh, clipped_lid_mesh, updated_dofs = self._apply_on_mesh(
             self.mesh.__class__.immersed_part,
