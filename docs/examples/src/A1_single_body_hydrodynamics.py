@@ -27,7 +27,7 @@ body = cpt.FloatingBody(
 # both for each frequency in the frequency range.
 test_matrix = xr.Dataset(
     {
-        "omega": np.linspace(0.1, 3.0, 2),
+        "omega": np.linspace(0.1, 3.0, 20),
         "wave_direction": [0.0, np.pi/2],
         "radiating_dof": list(body.dofs),
     }
