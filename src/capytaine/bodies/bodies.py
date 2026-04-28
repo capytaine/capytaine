@@ -276,7 +276,11 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
                         f"Exporting an arbitrary one among the found ones: {centers}.")
         return np.array(next(iter(centers)))
 
-
+    @rotation_center.setter
+    def rotation_center(self, _):
+        raise AttributeError("Deprecated: cannot set the rotation center of a body directly.\n"
+                             "Set it in the definition of the degrees of freedom instead, e.g. "
+                             "`body = cpt.FloatingBody(..., dofs=cpt.rigid_body_dofs(rotation_center=c))`.")
 
     ###################
     # Transformations #
@@ -363,8 +367,6 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
             center_of_mass=mirror(self.center_of_mass) if self.center_of_mass is not None else None,
             mass=self.mass,
             )
-        if hasattr(self, 'rotation_center'):
-            mirrored_self.rotation_center = mirror(self.rotation_center)
         return mirrored_self
 
     def translated(self, shift, *, name=None) -> "FloatingBody":
@@ -386,8 +388,6 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
             mass=self.mass,
             name=name
             )
-        if hasattr(self, 'rotation_center'):
-            translated_self.rotation_center = self.rotation_center + shift
         return translated_self
 
     def rotated_with_matrix(self, R, *, name=None) -> "FloatingBody":
@@ -411,8 +411,6 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
             mass=self.mass,
             name=name
             )
-        if hasattr(self, 'rotation_center'):
-            rotated_self.rotation_center = self.rotation_center @ R.T
         return rotated_self
 
     def _apply_on_mesh(self, func, args, kwargs):
