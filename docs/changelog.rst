@@ -202,6 +202,10 @@ Minor changes
 
 * Warn the user if the ``water_depth`` would be better set to infinity than to a very large number (:pull:`880`).
 
+* **Breaking** Remove the `body_name` dimension from output dataset, and the possibility to automatically stack together outputs for different "bodies" (that is geometries) in the same dataset.
+  Now :func:`~capytaine.io.xarray.problems_from_dataset` and :meth:`~capytaine.bem.solver.fill_dataset` can only take a single body as input (or a list with a single element for backward compatibility).
+  This decision is meant to make it easier to output multibody hydrostatics, meshes data and local pressures in the output dataset. (:pull:`885`)
+
 
 Bug fixes
 ~~~~~~~~~
