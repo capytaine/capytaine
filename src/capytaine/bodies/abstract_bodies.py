@@ -34,6 +34,9 @@ class AbstractBody(ABC):
 
     name: str
 
+    @abstractmethod
+    def rename(self, name): ...
+
     def __lt__(self, other: AbstractBody) -> bool:
         """Arbitrary order. The point is to sort together the problems involving the same body."""
         return self.name < other.name

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import logging
 from typing import Union, List, Optional, Literal
 from functools import cached_property, lru_cache
@@ -210,12 +209,13 @@ class Multibody(AbstractBody):
     # --- Geometric transforms ---
 
     def copy(self, name=None) -> Multibody:
-        new_multibody = copy.deepcopy(self)
-        if name is None:
-            new_multibody.name = f"copy_of_{self.name}"
-        else:
-            new_multibody.name = name
-        return new_multibody
+        return Multibody(
+            [b.copy(name=b.name) for b in self.bodies],
+            name=name,
+        )
+
+    def rename(self, name: 'str') -> Multibody:
+        return self.copy(name=name)
 
     def translated(self, shift, *, name=None) -> Multibody:
         return Multibody(
