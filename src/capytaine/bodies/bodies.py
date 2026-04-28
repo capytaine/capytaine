@@ -23,12 +23,12 @@ from capytaine.bodies.dofs import (
         rigid_body_dofs,
         )
 from capytaine.bodies.abstract_bodies import AbstractBody
-from capytaine.bodies.hydrostatics import _HydrostaticsMixin
+from capytaine.bodies.hydrostatics import _FloatingBodyHydrostaticsMixin
 
 LOG = logging.getLogger(__name__)
 
 
-class FloatingBody(_HydrostaticsMixin, AbstractBody):
+class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
     """A floating body described as a mesh and some degrees of freedom.
 
     The mesh structure is stored as a Mesh from capytaine.mesh.mesh or a
@@ -195,12 +195,15 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
         if name is None:
             name = f"dof_{self.nb_dofs}_rotation"
         if rotation_center is None:
-            for point_attr in ('rotation_center', 'center_of_mass'):
-                if hasattr(self, point_attr) and getattr(self, point_attr) is not None:
-                    rotation_center = getattr(self, point_attr)
-                    LOG.info(f"The rotation dof {name} has been initialized around the point: "
-                             f"{self.__short_str__()}.{point_attr} = {getattr(self, point_attr)}")
-                    break
+            if not np.any(np.isnan(self.rotation_center)):
+                # Already has a rotation center from another dof
+                rotation_center = self.rotation_center
+                LOG.warning(f"The rotation dof {name} has been initialized around the point: "
+                            f"{self.__short_str__()}.rotation_center = {self.rotation_center}")
+            elif self.center_of_mass is not None:
+                rotation_center = self.center_of_mass
+                LOG.warning(f"The rotation dof {name} has been initialized around the point: "
+                            f"{self.__short_str__()}.center_of_mass = {self.center_of_mass}")
         if direction is None and normalize_name(name) in {"Roll", "Pitch", "Yaw"}:
             self.dofs[name] = rigid_body_dofs(rotation_center=rotation_center)[normalize_name(name)]
         else:
@@ -258,6 +261,29 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
                                  f"Expected shape: ({self.mesh.nb_faces}, 3)\n"
                                  f"  Actual shape: {dof.shape}")
 
+    @property
+    def rotation_center(self) -> np.array:
+        """Try to infer a rotation center by looking at the dofs.
+        Most bodies are rigid bodies with one and only one rotation center, but not all.
+        Only used for exporting data, as it might not be defined."""
+        centers = set()
+        for dof_name, dof in self.dofs.items():
+            if isinstance(dof, DofOnSubmesh) and hasattr(dof.dof, "rotation_center"):
+                centers.add(tuple(dof.dof.rotation_center))
+            if hasattr(dof, "rotation_center"):
+                centers.add(tuple(dof.rotation_center))
+        if len(centers) == 0:
+            return np.array([np.nan, np.nan, np.nan])
+        if len(centers) > 1:
+            LOG.warning(f"Body {self.name} has no uniquely defined rotation center. Returning an arbitrary one.\n"
+                        f"Exporting an arbitrary one among the found ones: {centers}.")
+        return np.array(next(iter(centers)))
+
+    @rotation_center.setter
+    def rotation_center(self, _):
+        raise AttributeError("Deprecated: cannot set the rotation center of a body directly.\n"
+                             "Set it in the definition of the degrees of freedom instead, e.g. "
+                             "`body = cpt.FloatingBody(..., dofs=cpt.rigid_body_dofs(rotation_center=c))`.")
 
     ###################
     # Transformations #
@@ -344,8 +370,6 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
             center_of_mass=mirror(self.center_of_mass) if self.center_of_mass is not None else None,
             mass=self.mass,
             )
-        if hasattr(self, 'rotation_center'):
-            mirrored_self.rotation_center = mirror(self.rotation_center)
         return mirrored_self
 
     def translated(self, shift, *, name=None) -> "FloatingBody":
@@ -367,8 +391,6 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
             mass=self.mass,
             name=name
             )
-        if hasattr(self, 'rotation_center'):
-            translated_self.rotation_center = self.rotation_center + shift
         return translated_self
 
     def rotated_with_matrix(self, R, *, name=None) -> "FloatingBody":
@@ -392,8 +414,6 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
             mass=self.mass,
             name=name
             )
-        if hasattr(self, 'rotation_center'):
-            rotated_self.rotation_center = self.rotation_center @ R.T
         return rotated_self
 
     def _apply_on_mesh(self, func, args, kwargs):

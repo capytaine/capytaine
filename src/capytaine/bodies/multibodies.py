@@ -178,6 +178,10 @@ class Multibody(AbstractBody):
         return {b.name: b.center_of_mass for b in self.bodies}
 
     @cached_property
+    def rotation_center(self):
+        return {b.name: b.rotation_center for b in self.bodies}
+
+    @cached_property
     def volume(self):
         return {b.name: b.volume for b in self.bodies}
 

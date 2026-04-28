@@ -19,6 +19,8 @@ import xarray as xr
 
 from capytaine import __version__
 from capytaine.bodies.abstract_bodies import AbstractBody
+from capytaine.bodies.bodies import FloatingBody
+from capytaine.bodies.multibodies import Multibody
 from capytaine.bem.problems_and_results import (
     LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem,
     LinearPotentialFlowResult, _default_parameters)
@@ -245,19 +247,78 @@ def _dataset_from_dataframe(df: pd.DataFrame,
     return da
 
 
-def hydrostatics_dataset(bodies: Sequence[AbstractBody]) -> xr.Dataset:
-    """Create a dataset by looking for 'inertia_matrix' and 'hydrostatic_stiffness'
-    for each of the bodies in the list passed as argument.
-    """
-    dataset = xr.Dataset()
-    for body_property in ['inertia_matrix', 'hydrostatic_stiffness']:
-        bodies_properties = {body.name: body.__getattribute__(body_property) for body in bodies if hasattr(body, body_property)}
-        if len(bodies_properties) > 0:
-            # Will be updated in upcoming commit.
-            bodies_properties = xr.concat(bodies_properties.values(), pd.Index(bodies_properties.keys(), name='body'))
-            bodies_properties = _squeeze_dimensions(bodies_properties, dimensions=['body'])
-            dataset = xr.merge([dataset, {body_property: bodies_properties}], compat="no_conflicts", join="outer")
-    return dataset
+def _compute_hydrostatics_dataset(body: AbstractBody, *, g: float = 9.81, rho: float = 1000.0):
+    hs = xr.Dataset()
+    hs.coords["space_coordinate"] = xr.DataArray(["x", "y", "z"], dims=["space_coordinate"])
+    hs.coords["g"] = xr.DataArray([g], dims=["g"])
+    hs.coords["rho"] = xr.DataArray([rho], dims=["rho"])
+
+    # Putting them first such that we have an helpful error message if the dofs or the center of mass is not defined
+    hs.coords["influenced_dof"] = xr.DataArray(list(body.dofs.keys()), dims=["influenced_dof"])
+    hs.coords["radiating_dof"] = xr.DataArray(list(body.dofs.keys()), dims=["radiating_dof"])
+    if hasattr(body, 'hydrostatic_stiffness'):
+        hs["hydrostatic_stiffness"] = xr.DataArray([[body.hydrostatic_stiffness]], dims=["g", "rho", "influenced_dof", "radiating_dof"])
+    else:
+        hs["hydrostatic_stiffness"] = xr.DataArray([[body.compute_hydrostatic_stiffness(rho=rho, g=g)]], dims=["g", "rho", "influenced_dof", "radiating_dof"])
+
+    if hasattr(body, 'inertia_matrix'):
+        hs["inertia_matrix"] = xr.DataArray([body.inertia_matrix], dims=["rho", "influenced_dof", "radiating_dof"])
+    else:
+        hs["inertia_matrix"] = xr.DataArray([body.compute_rigid_body_inertia(rho=rho)], dims=["rho", "influenced_dof", "radiating_dof"])
+
+    # Other hydrostatics data
+    if isinstance(body, FloatingBody):
+        body = Multibody([body])
+        # Afterwards, body is a Multibody
+        # Not done before, because a single-body Multibody does not have the same dof naming than a FloatingBody.
+    hs.coords["body"] = xr.DataArray([b.name for b in body.bodies], dims=["body"])
+    hs["center_of_buoyancy"] = xr.DataArray(list(body.center_of_buoyancy.values()), dims=("body", "space_coordinate"))
+    hs["draught"] = xr.DataArray([np.abs(b.mesh.vertices[:, 2].min()) for b in body.bodies], dims=("body"))
+    hs["disp_mass"] = xr.DataArray(
+        [[b.disp_mass(rho=rho) for b in body.bodies]],
+        dims=("rho", "body"),
+        attrs=dict(long_name="Diplaced mass", units="kg")
+    )
+
+    try:
+        hs.coords["center_of_mass"] = xr.DataArray(list(body.center_of_mass.values()), dims=("body", "space_coordinate"))
+    except Exception as e:
+        LOG.debug(f"No center of mass could be found for some body. Skipping the `center_of_mass` coordinate.\nError message: {e}")
+
+    rotation_centers = np.array([b.rotation_center for b in body.bodies])
+    if not np.all(np.isnan(rotation_centers)):
+        hs.coords["rotation_center"] = xr.DataArray(rotation_centers, dims=("body", "space_coordinate"))
+    else:
+        LOG.debug("No rotation center could be found for any body. Skipping the `rotation_center` coordinate.")
+
+    return hs
+
+
+def compute_hydrostatics_dataset(
+        body: AbstractBody,
+        *,
+        g: Union[float, Sequence[float]] = 9.81,
+        rho: Union[float, Sequence[float]] = 1000.0
+        ):
+
+    if isinstance(g, np.ndarray) and g.shape == ():
+        g = [float(g)]
+    elif isinstance(g, (int, float)):
+        g = [g]
+    if isinstance(rho, np.ndarray) and rho.shape == ():
+        rho = [float(rho)]
+    elif isinstance(rho, (int, float)):
+        rho = [rho]
+
+    datasets = []
+    for g_ in g:
+        for rho_ in rho:
+            datasets.append(_compute_hydrostatics_dataset(body, g=g_, rho=rho_))
+    hs = xr.merge(datasets, compat="no_conflicts", join="outer")
+
+    optional_dims = ["g", "rho", "body"]
+    hs = _squeeze_dimensions(hs, dimensions=optional_dims)
+    return hs
 
 
 def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
@@ -518,8 +579,21 @@ def assemble_dataset(results,
         if bemio_import:
             LOG.warning('Bemio data import being used, hydrostatics=True is ignored.')
         else:
-            bodies = list({result.body for result in results})
-            dataset = xr.merge([dataset, hydrostatics_dataset(bodies)], compat="no_conflicts", join="outer")
+            body = results[0].body
+
+            try:
+                computed_hydrostatics = compute_hydrostatics_dataset(
+                        body,
+                        rho=dataset.coords["rho"].values,
+                        g=dataset.coords["g"].values,
+                        )
+            except Exception as e:
+                LOG.warning(f"An error occurred while computing hydrostatics for body {body.__short_str__()}'.\n"
+                            f"Error message: {e}\n"
+                            f"Hydrostatics data for this body will be skipped. You can pass `hydrostatics=False` to `assemble_dataset` or `fill_dataset` to avoid this warning.")
+                computed_hydrostatics = xr.Dataset()
+
+            dataset = xr.merge([dataset, computed_hydrostatics], compat="no_conflicts", join="outer")
 
     for var in set(dataset) | set(dataset.coords):
         if var in VARIABLES_ATTRIBUTES:
