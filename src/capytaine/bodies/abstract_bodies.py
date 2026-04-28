@@ -68,9 +68,6 @@ class AbstractBody(ABC):
     def integrate_pressure(self, pressure): ...
 
     @abstractmethod
-    def immersed_part(self, *args, **kwargs) -> AbstractBody: ...
-
-    @abstractmethod
     def minimal_computable_wavelength(self): ...
 
     @abstractmethod
@@ -122,6 +119,9 @@ class AbstractBody(ABC):
 
     @abstractmethod
     def clipped(self, *, origin, normal, name=None) -> AbstractBody: ...
+
+    @abstractmethod
+    def immersed_part(self, free_surface=0.0, *, sea_botton=None, water_depth=None, name=None) -> AbstractBody: ...
 
     @abstractmethod
     def copy(self, name=None) -> AbstractBody: ...

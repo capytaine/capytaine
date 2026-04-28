@@ -424,6 +424,7 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
 
         return transformed_mesh, transformed_lid_mesh, new_dofs
 
+    @lru_cache
     def clipped(self, *, origin, normal, name=None) -> "FloatingBody":
         clipped_mesh, clipped_lid_mesh, updated_dofs = self._apply_on_mesh(
             self.mesh.__class__.clipped,
@@ -439,6 +440,7 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
             name=name
         )
 
+    @lru_cache
     def immersed_part(self, free_surface=0.0, *, sea_bottom=None, water_depth=None, name=None) -> "FloatingBody":
         clipped_mesh, clipped_lid_mesh, updated_dofs = self._apply_on_mesh(
             self.mesh.__class__.immersed_part,
