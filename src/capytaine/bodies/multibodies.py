@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import copy
 import logging
 from typing import Union, List, Optional, Literal
 from functools import cached_property, lru_cache
@@ -41,10 +40,7 @@ class Multibody(AbstractBody):
         # else:
         #     self.own_dofs = own_dofs
 
-        if name is None:
-            self.name = '+'.join(b.name for b in self.bodies)
-        else:
-            self.name = name
+        self._name = name
 
         # MESH MERGING
         # Need to merge the meshes of the component bodies while keeping track of the origin of each panel.
@@ -123,12 +119,26 @@ class Multibody(AbstractBody):
                 name=self.name,
                 )
 
+    @property
+    def name(self):
+        if self._name is None:
+            return '+'.join(b.name for b in self.bodies)
+        else:
+            return self._name
+
     def __str__(self):
         short_bodies = ', '.join(b.__short_str__() for b in self.bodies)
-        return f"Multibody({short_bodies})"
+        if self._name is not None:
+            name_str = f", name={self._name}"
+        else:
+            name_str = ""
+        return f"Multibody([{short_bodies}]{name_str})"
 
     def __short_str__(self):
-        return str(self)
+        if self._name is not None:
+            return f"Multibody(..., name={self._name})"
+        else:
+            return str(self)
 
     def _check_dofs_shape_consistency(self):
         # TODO
@@ -199,12 +209,13 @@ class Multibody(AbstractBody):
     # --- Geometric transforms ---
 
     def copy(self, name=None) -> Multibody:
-        new_multibody = copy.deepcopy(self)
-        if name is None:
-            new_multibody.name = f"copy_of_{self.name}"
-        else:
-            new_multibody.name = name
-        return new_multibody
+        return Multibody(
+            [b.copy(name=b.name) for b in self.bodies],
+            name=name,
+        )
+
+    def rename(self, name: 'str') -> Multibody:
+        return self.copy(name=name)
 
     def translated(self, shift, *, name=None) -> Multibody:
         return Multibody(

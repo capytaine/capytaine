@@ -145,10 +145,6 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
         mesh = load_mesh(filename, file_format, name=f"{name}_mesh")
         return FloatingBody(mesh, name=name)
 
-    def __lt__(self, other: 'FloatingBody') -> bool:
-        """Arbitrary order. The point is to sort together the problems involving the same body."""
-        return self.name < other.name
-
     @property
     def bodies(self):
         """For consistency with Multibody"""
@@ -286,6 +282,9 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
             LOG.debug(f"Copy {self.name} under the name {name}.")
         return new_body
 
+    def rename(self, name: 'str') -> 'FloatingBody':
+        return self.copy(name=name)
+
     def assemble_regular_array(self, distance, nb_bodies):
         """Create an regular array of identical bodies.
 
@@ -301,8 +300,7 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
         FloatingBody
         """
         bodies = (self.translated((i*distance, j*distance, 0), name=f"{i}_{j}") for j in range(nb_bodies[1]) for i in range(nb_bodies[0]))
-        array = FloatingBody.join_bodies(*bodies)
-        array.name = f"array_of_{self.name}"
+        array = FloatingBody.join_bodies(*bodies, name=f"array_of_{self.name}")
         return array
 
     def assemble_arbitrary_array(self, locations:np.ndarray):
@@ -313,7 +311,7 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
         fb_list = []
         for idx, li in enumerate(locations):
             fb_list.append(self.translated(np.append(li, 0), name='arbitrary_array_body{:02d}'.format(idx)))
-        arbitrary_array = FloatingBody.join_bodies(*fb_list)
+        arbitrary_array = FloatingBody.join_bodies(*fb_list, name=f"array_of_{self.name}")
 
         return arbitrary_array
 
