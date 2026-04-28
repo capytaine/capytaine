@@ -91,12 +91,12 @@ def near_field_mean_drift_force(rao, results, solver):
     g = results[0].g
 
     total_free_surf_elev = free_surface_elevation_field(mesh, solver, results, rao)
-    normal = compute_faces_normals(mesh.vertices, mesh.faces_water_line)
+    normal = compute_faces_normals(mesh.vertices, mesh.faces_waterline)
     normal[:, -1] = 0
     normal_waterline = normal/np.linalg.norm(normal[:, :2], ord=2, axis=1, keepdims=True)
     data = total_free_surf_elev.values[:, :, None] * normal_waterline[None, :, :]
     # data[i_dir, i_face_waterline, xyz] = total_free_surf_elev[i_dir, i_face_waterline] * normal_waterline[i_face_waterline, xyz]
-    waterline_integral = -(rho * g / 4) * np.sum(data * mesh.length_edges_water_line[None, :, None], axis=1) # sum over the waterline edges 
+    waterline_integral = -(rho * g / 4) * np.sum(data * mesh.length_edges_waterline[None, :, None], axis=1) # sum over the waterline edges 
 
     forces_order1 = hydrodynamics_forces_order1(results, rao) + hydrostatics_forces_order1(mesh, rao, rho, g)
     rotation = rao.sel(radiating_dof=["Roll", "Pitch", "Yaw"]).values[0, :, :] # rotation[i_dir, xyz]
@@ -104,10 +104,10 @@ def near_field_mean_drift_force(rao, results, solver):
 
     z0 = mesh.faces_centers[:, -1]
     H = transformation_matrix(rao)
-    n = mesh.faces_normals
-    data = z0[None, :, None] * np.matvec(H[:, None, :, :], n[None, :, :])
-    # data[i_dir, i_face, xyz] = z0[i_face] * matvec(H[i_dir, xyz, xyz], n[i_face, xyz])
-    hydrostatics_order2 = -(1/4) * rho * g * np.sum(data * mesh.faces_areas[None, : , None], axis=1)
+    data = z0[None, :, None] * mesh.faces_normals[None, :, :]
+    forces_order0 = rho * g * np.sum(data * mesh.faces_areas[None, :, None], axis=1)
+    # data[i_dir, i_face, xyz] = z0[i_face] * n[i_face, xyz]
+    hydrostatics_order2 = (1/2) * np.matvec(H, forces_order0)
 
     all_terms = waterline_integral + rotation_forces_order1 + hydrostatics_order2
     pressure_field = pressure_field_order2(mesh, solver, results, rao, g)
