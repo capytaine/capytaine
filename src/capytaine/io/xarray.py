@@ -73,7 +73,8 @@ def problems_from_dataset(dataset: xr.Dataset,
                     "Passing a list of bodies to `fill_dataset` or `problems_from_dataset` has been deprecated in version 3.\n"
                     "Consider using `problems_from_dataset` on each body separately and (if suitable) concatenating the results."
                 )
-        raise TypeError(f"Unrecognized body type: {type(body)}. Expected a FloatingBody or a Multibody instance.")
+        else:
+            raise TypeError(f"Unrecognized body type: {type(body)}. Expected a FloatingBody or a Multibody instance.")
 
     # Should be done before looking for `frequency_keys`, otherwise
     # frequencies provided as a scalar dimension will be skipped.
@@ -384,13 +385,19 @@ def assemble_dataset(results,
     attrs: dict, optional
         Attributes that should be added to the output dataset.
     """
-    bodies = {r.body for r in results}
-    if len(bodies) > 1:
-        raise ValueError("Results from different bodies have been provided. This is not supported by `assemble_dataset`.\n"
-                         "Consider using `assemble_dataset` on each body separately and concatenating the results.")
-    body = next(iter(bodies))
-
     bemio_import = _detect_bemio_results(results, calling_function="assemble_dataset")
+
+    if not bemio_import:
+        if len(results) == 0:
+            raise ValueError("No results provided to `assemble_dataset`. Please provide a non-empty list of `LinearPotentialFlowResult` or a bemio.io dataset.")
+
+        # We want to test that all results comes from the same body.
+        # Checking that all body objects are the same is tricky because clipping or parallelisation can cause some body to be copies.
+        # We only check that all bodies have a few properties in common.
+        bodies = {(r.body.name, r.body.mesh.nb_faces, r.body.nb_dofs) for r in results}
+        if len(bodies) > 1:
+            raise ValueError("Results from different bodies have been provided. This is not supported by `assemble_dataset`.\n"
+                             "Consider using `assemble_dataset` on each body separately and concatenating the results.")
 
     records = assemble_dataframe(results)
 
@@ -501,9 +508,10 @@ def assemble_dataset(results,
         if bemio_import:
             LOG.warning('Bemio data does not include mesh data. mesh=True is ignored.')
         else:
-            # TODO: Store full mesh...
+            body = results[0].body
             dataset.coords['nb_faces'] = body.mesh.nb_faces
             dataset.coords['quadrature_method'] = body.mesh.quadrature_method
+            # TODO: Store full mesh...
 
     # HYDROSTATICS
     if hydrostatics:
