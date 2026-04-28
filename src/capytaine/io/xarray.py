@@ -44,7 +44,7 @@ def _unsqueeze_dimensions(data_array, dimensions=None):
 
 
 def problems_from_dataset(dataset: xr.Dataset,
-                          bodies: Union[AbstractBody, Sequence[AbstractBody]],
+                          body: AbstractBody,
                           ) -> List[LinearPotentialFlowProblem]:
     """Generate a list of problems from a test matrix.
 
@@ -52,9 +52,8 @@ def problems_from_dataset(dataset: xr.Dataset,
     ----------
     dataset : xarray Dataset
         Test matrix containing the problems parameters.
-    bodies : AbstractBody or list of AbstractBody
-        The bodies on which the computations of the test matrix will be applied.
-        They should all have different names.
+    body : AbstractBody
+        The body on which the computations of the test matrix will be applied.
 
     Returns
     -------
@@ -65,21 +64,27 @@ def problems_from_dataset(dataset: xr.Dataset,
     ValueError
         if required fields are missing in the dataset
     """
-    if isinstance(bodies, AbstractBody):
-        bodies = [bodies]
+    if not isinstance(body, AbstractBody):
+        if isinstance(body, (list, tuple)) and isinstance(body[0], AbstractBody):
+            if len(body) == 1:
+                body = body[0]
+            else:
+                raise DeprecationWarning(
+                    "Passing a list of bodies to `fill_dataset` or `problems_from_dataset` has been deprecated in version 3.\n"
+                    "Consider using `problems_from_dataset` on each body separately and (if suitable) concatenating the results."
+                )
+        else:
+            raise TypeError(f"Unrecognized body type: {type(body)}. Expected a FloatingBody or a Multibody instance.")
 
     # Should be done before looking for `frequency_keys`, otherwise
     # frequencies provided as a scalar dimension will be skipped.
     dataset = _unsqueeze_dimensions(dataset)
 
     # SANITY CHECKS
-    assert len(list(set(body.name for body in bodies))) == len(bodies), \
-        "All bodies should have different names."
-
     # Warn user in case of key with unrecognized name (e.g. misspells)
     keys_in_dataset = set(dataset.dims)
     accepted_keys = {'wave_direction', 'radiating_dof', 'influenced_dof',
-                     'body_name', 'omega', 'freq', 'period', 'wavelength', 'wavenumber',
+                     'omega', 'freq', 'period', 'wavelength', 'wavenumber',
                      'forward_speed', 'water_depth', 'rho', 'g', 'theta'}
     unrecognized_keys = keys_in_dataset.difference(accepted_keys)
     if len(unrecognized_keys) > 0:
@@ -111,31 +116,23 @@ def problems_from_dataset(dataset: xr.Dataset,
     radiating_dofs = dataset['radiating_dof'].data.astype(object) if 'radiating_dof' in dataset else None
     # astype(object) is meant to convert Numpy internal string type numpy.str_ to Python general string type.
 
-    if 'body_name' in dataset:
-        assert set(dataset['body_name'].data) <= {body.name for body in bodies}, \
-            "Some body named in the dataset was not given as argument to `problems_from_dataset`."
-        body_range = {body.name: body for body in bodies if body.name in dataset['body_name'].data}
-        # Only the bodies listed in the dataset have been kept
-    else:
-        body_range = {body.name: body for body in bodies}
-
     problems = []
     if wave_direction_range is not None:
-        for freq, wave_direction, water_depth, body_name, forward_speed, rho, g \
-                in product(freq_range, wave_direction_range, water_depth_range, body_range,
+        for freq, wave_direction, water_depth, forward_speed, rho, g \
+                in product(freq_range, wave_direction_range, water_depth_range,
                            forward_speed_range, rho_range, g_range):
             problems.append(
-                DiffractionProblem(body=body_range[body_name], **{freq_type: freq},
+                DiffractionProblem(body=body, **{freq_type: freq},
                                    wave_direction=wave_direction, water_depth=water_depth,
                                    forward_speed=forward_speed, rho=rho, g=g)
             )
 
     if radiating_dofs is not None:
-        for freq, radiating_dof, water_depth, body_name, forward_speed, rho, g \
-                in product(freq_range, radiating_dofs, water_depth_range, body_range, forward_speed_range, rho_range, g_range):
+        for freq, radiating_dof, water_depth, forward_speed, rho, g \
+                in product(freq_range, radiating_dofs, water_depth_range, forward_speed_range, rho_range, g_range):
             if forward_speed == 0.0:
                 problems.append(
-                    RadiationProblem(body=body_range[body_name], **{freq_type: freq},
+                    RadiationProblem(body=body, **{freq_type: freq},
                                      radiating_dof=radiating_dof, water_depth=water_depth,
                                      forward_speed=forward_speed, rho=rho, g=g)
                 )
@@ -145,7 +142,7 @@ def problems_from_dataset(dataset: xr.Dataset,
                     wave_direction_range = [0.0]
                 for wave_direction in wave_direction_range:
                     problems.append(
-                        RadiationProblem(body=body_range[body_name], **{freq_type: freq},
+                        RadiationProblem(body=body, **{freq_type: freq},
                                          radiating_dof=radiating_dof, water_depth=water_depth,
                                          forward_speed=forward_speed, wave_direction=wave_direction,
                                          rho=rho, g=g)
@@ -256,8 +253,9 @@ def hydrostatics_dataset(bodies: Sequence[AbstractBody]) -> xr.Dataset:
     for body_property in ['inertia_matrix', 'hydrostatic_stiffness']:
         bodies_properties = {body.name: body.__getattribute__(body_property) for body in bodies if hasattr(body, body_property)}
         if len(bodies_properties) > 0:
-            bodies_properties = xr.concat(bodies_properties.values(), pd.Index(bodies_properties.keys(), name='body_name'))
-            bodies_properties = _squeeze_dimensions(bodies_properties, dimensions=['body_name'])
+            # Will be updated in upcoming commit.
+            bodies_properties = xr.concat(bodies_properties.values(), pd.Index(bodies_properties.keys(), name='body'))
+            bodies_properties = _squeeze_dimensions(bodies_properties, dimensions=['body'])
             dataset = xr.merge([dataset, {body_property: bodies_properties}], compat="no_conflicts", join="outer")
     return dataset
 
@@ -289,7 +287,7 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
             records[records['kind'] == "RadiationResult"],
             variables=['kochin'],
             dimensions=[main_freq_type, 'radiating_dof', 'theta'],
-            optional_dims=['g', 'rho', 'body_name', 'water_depth', 'forward_speed', 'wave_direction']
+            optional_dims=['g', 'rho', 'water_depth', 'forward_speed', 'wave_direction']
         )
         kochin_data['kochin_radiation'] = radiation['kochin']
 
@@ -298,7 +296,7 @@ def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
             records[records['kind'] == "DiffractionResult"],
             ['kochin'],
             dimensions=[main_freq_type, 'wave_direction', 'theta'],
-            optional_dims=['g', 'rho', 'body_name', 'water_depth', 'forward_speed']
+            optional_dims=['g', 'rho', 'water_depth', 'forward_speed']
         )
         kochin_data['kochin_diffraction'] = diffraction['kochin']
 
@@ -389,6 +387,18 @@ def assemble_dataset(results,
     """
     bemio_import = _detect_bemio_results(results, calling_function="assemble_dataset")
 
+    if not bemio_import:
+        if len(results) == 0:
+            raise ValueError("No results provided to `assemble_dataset`. Please provide a non-empty list of `LinearPotentialFlowResult` or a bemio.io dataset.")
+
+        # We want to test that all results comes from the same body.
+        # Checking that all body objects are the same is tricky because clipping or parallelisation can cause some body to be copies.
+        # We only check that all bodies have a few properties in common.
+        bodies = {(r.body.name, r.body.mesh.nb_faces, r.body.nb_dofs) for r in results}
+        if len(bodies) > 1:
+            raise ValueError("Results from different bodies have been provided. This is not supported by `assemble_dataset`.\n"
+                             "Consider using `assemble_dataset` on each body separately and concatenating the results.")
+
     records = assemble_dataframe(results)
 
     if bemio_import:
@@ -408,7 +418,7 @@ def assemble_dataset(results,
 
     kinds_of_results = set(records['kind'])
 
-    optional_dims = ['g', 'rho', 'body_name', 'water_depth', 'forward_speed']
+    optional_dims = ['g', 'rho', 'water_depth', 'forward_speed']
 
     dataset = xr.Dataset()
 
@@ -498,23 +508,10 @@ def assemble_dataset(results,
         if bemio_import:
             LOG.warning('Bemio data does not include mesh data. mesh=True is ignored.')
         else:
+            body = results[0].body
+            dataset.coords['nb_faces'] = body.mesh.nb_faces
+            dataset.coords['quadrature_method'] = body.mesh.quadrature_method
             # TODO: Store full mesh...
-            bodies = list({result.body for result in results})  # Filter out duplicate bodies in the list of results
-            nb_faces = {body.name: body.mesh.nb_faces for body in bodies}
-
-            def name_or_str(c):
-                return c.name if hasattr(c, 'name') else str(c)
-            quad_methods = {body.name: name_or_str(body.mesh.quadrature_method) for body in bodies}
-
-            if len(nb_faces) > 1:
-                dataset.coords['nb_faces'] = ('body_name', [nb_faces[name] for name in dataset.coords['body_name'].data])
-                dataset.coords['quadrature_method'] = ('body_name', [quad_methods[name] for name in dataset.coords['body_name'].data])
-            else:
-                def the_only(d):
-                    """Return the only element of a 1-element dictionary"""
-                    return next(iter(d.values()))
-                dataset.coords['nb_faces'] = the_only(nb_faces)
-                dataset.coords['quadrature_method'] = the_only(quad_methods)
 
     # HYDROSTATICS
     if hydrostatics:
