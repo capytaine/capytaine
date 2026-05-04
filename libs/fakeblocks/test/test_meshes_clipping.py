@@ -2,10 +2,10 @@ import pytest
 import numpy as np
 from numpy.linalg import norm
 import capytaine as cpt
-from capytaine.meshes.meshes import Mesh as OldMesh
+from fakeblocks.meshes.meshes import Mesh as OldMesh
 
-from capytaine.meshes.predefined import mesh_sphere, mesh_rectangle, mesh_vertical_cylinder
-from capytaine.meshes.geometry import Plane
+from fakeblocks.meshes.predefined import mesh_sphere, mesh_rectangle, mesh_vertical_cylinder
+from fakeblocks.meshes.geometry import Plane
 
 sphere = mesh_sphere(radius=1)
 

@@ -136,13 +136,20 @@ class HierarchicalToeplitzMatrixEngine:
 
             LOG.debug(log_entry + " using translational symmetry.")
 
-            S_list, V_list = [], []
-            for submesh in mesh2:
+            S, V = self._build_matrices(
+                mesh1[0],
+                mesh2[0],
+                _rec_depth=_rec_depth+1,
+                diagonal_term_in_double_layer=diagonal_term_in_double_layer,
+                **gf_params
+            )
+            S_list, V_list = [S], [V]
+            for submesh in mesh2[1:]:
                 S, V = self._build_matrices(
                     mesh1[0],
                     submesh,
                     _rec_depth=_rec_depth+1,
-                    diagonal_term_in_double_layer=diagonal_term_in_double_layer,
+                    diagonal_term_in_double_layer=False,
                     **gf_params
                 )
                 S_list.append(S)

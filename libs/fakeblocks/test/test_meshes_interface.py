@@ -2,10 +2,10 @@ import numpy as np
 import xarray as xr
 import capytaine as cpt
 
-from capytaine.meshes.mesh_like_protocol import MeshLike
+from fakeblocks.meshes.mesh_like_protocol import MeshLike
 
-from capytaine.meshes.predefined import mesh_sphere
-from capytaine.meshes.collections import CollectionOfMeshes
+from fakeblocks.meshes.predefined import mesh_sphere
+from fakeblocks.meshes.collections import CollectionOfMeshes
 
 def test_existing_classes_are_meshlike():
     mesh = mesh_sphere()

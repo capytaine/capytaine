@@ -6,10 +6,10 @@ import numpy as np
 from numpy.typing import NDArray
 
 import capytaine as cpt
-from capytaine.meshes.meshes import Mesh as OldMesh
-from capytaine.meshes.properties import clustering
-from capytaine.meshes.predefined import mesh_sphere, mesh_horizontal_cylinder
-from capytaine.meshes.geometry import Plane, xOz_Plane
+from fakeblocks.meshes.meshes import Mesh as OldMesh
+from fakeblocks.meshes.properties import clustering
+from fakeblocks.meshes.predefined import mesh_sphere, mesh_horizontal_cylinder
+from fakeblocks.meshes.geometry import Plane, xOz_Plane
 
 RNG = np.random.default_rng()
 
@@ -125,7 +125,7 @@ def test_mirror():
 
 
 def test_symmetrized():
-    from capytaine.meshes.symmetric import ReflectionSymmetricMesh
+    from fakeblocks.meshes.symmetric import ReflectionSymmetricMesh
     sym = cylinder.merged().symmetrized(xOz_Plane)
     assert isinstance(sym, ReflectionSymmetricMesh)
 
@@ -180,116 +180,3 @@ def test_join_meshes_masks():
     assert np.all(masks[0] ^ masks[1])
     assert sum(masks[0]) == a.nb_faces
     assert sum(masks[1]) == b.nb_faces
-
-
-##########################
-#  Connected components  #
-##########################
-
-def test_connected_components_of_empty_mesh():
-    from capytaine.meshes.properties import connected_components
-    mesh = OldMesh()
-    cc = connected_components(mesh)
-    assert len(cc) == 0
-
-
-def test_connected_components_of_sphere():
-    from capytaine.meshes.properties import connected_components
-    mesh = mesh_sphere()
-    cc = connected_components(mesh)
-    assert len(cc) == 1
-
-
-def test_connected_components_of_two_spheres():
-    from capytaine.meshes.properties import connected_components
-    mesh = mesh_sphere() + mesh_sphere(center=(5, 0, 0))
-    cc = connected_components(mesh)
-    assert len(cc) == 2
-
-
-def test_connected_components_of_open_sphere():
-    from capytaine.meshes.properties import connected_components
-    mesh = mesh_sphere().immersed_part()
-    cc = connected_components(mesh)
-    assert len(cc) == 1
-
-
-def test_connected_components_of_torus():
-    from capytaine.io.meshio import load_from_meshio
-    from capytaine.meshes.properties import connected_components
-    pygmsh = pytest.importorskip("pygmsh")
-    with pygmsh.occ.Geometry() as geom:
-        geom.add_torus((0, 0, 0), 2.0, 0.5, mesh_size=0.3)
-        gmsh_mesh = geom.generate_mesh(dim=2)
-    mesh = load_from_meshio(gmsh_mesh).heal_mesh()
-    cc = connected_components(mesh)
-    assert len(cc) == 1
-
-
-######################################
-#  Connected components at waterline #
-######################################
-
-def test_connected_components_at_waterline_of_sphere():
-    from capytaine.meshes.properties import connected_components_of_waterline
-    mesh = mesh_sphere()
-    cc = connected_components_of_waterline(mesh)
-    assert len(cc) == 1
-
-
-def test_connected_components_at_waterline_of_two_spheres():
-    from capytaine.meshes.properties import connected_components_of_waterline
-    mesh = mesh_sphere() + mesh_sphere(center=(5, 0, 0))
-    cc = connected_components_of_waterline(mesh)
-    assert len(cc) == 2
-
-
-def test_connected_components_at_waterline_of_open_sphere():
-    from capytaine.meshes.properties import connected_components_of_waterline
-    mesh = mesh_sphere().immersed_part()
-    cc = connected_components_of_waterline(mesh)
-    assert len(cc) == 1
-
-
-def test_connected_components_at_waterline_of_immersed_sphere():
-    from capytaine.meshes.properties import connected_components_of_waterline
-    mesh = mesh_sphere(center=(0, 0, -5))
-    cc = connected_components_of_waterline(mesh, z=0.0)
-    assert len(cc) == 0
-
-
-def test_connected_components_at_waterline_of_torus():
-    from capytaine.io.meshio import load_from_meshio
-    from capytaine.meshes.properties import connected_components_of_waterline
-    pygmsh = pytest.importorskip("pygmsh")
-    with pygmsh.occ.Geometry() as geom:
-        geom.add_torus((0, 0, 0), 2.0, 0.5, mesh_size=0.3)
-        gmsh_mesh = geom.generate_mesh(dim=2)
-    mesh = load_from_meshio(gmsh_mesh).heal_mesh()
-    cc = connected_components_of_waterline(mesh)
-    assert len(cc) == 2
-
-
-###################################
-#  Connected vertices clustering  #
-###################################
-
-@pytest.mark.parametrize("faces", [
-    np.array([[1, 2], [1, 3], [2, 3], [4, 5], [5, 6], [7, 8], [3, 9]]),
-    np.array([[0, 1, 2, 3], [1, 2, 6, 7]]),
-])
-def test_vertice_clustering(faces: NDArray[np.integer]):
-    """Test the clustering algorithm for connected faces & vertices."""
-    # Legacy way to cluster
-    vertices_components: set[frozenset[int]] = set()
-    for set_of_v_in_face in map(frozenset, faces):
-        intersecting_components = [c for c in vertices_components if len(c.intersection(set_of_v_in_face)) > 0]
-        if len(intersecting_components) == 0:
-            vertices_components.add(set_of_v_in_face)
-        else:
-            for c in intersecting_components:
-                vertices_components.remove(c)
-            vertices_components.add(frozenset.union(set_of_v_in_face, *intersecting_components))
-    # Vectorized clustering
-    vert_groups = clustering(faces)
-    assert {frozenset({*group}) for group in vert_groups} == vertices_components

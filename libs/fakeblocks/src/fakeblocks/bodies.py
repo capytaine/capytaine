@@ -6,6 +6,7 @@ import xarray as xr
 from fakeblocks.meshes.collections import CollectionOfMeshes
 from fakeblocks.meshes.geometry import Plane
 from capytaine import FloatingBody
+from capytaine.bodies.dofs import AbstractDof
 
 
 def combine_dofs(bodies) -> dict:
@@ -19,6 +20,8 @@ def combine_dofs(bodies) -> dict:
         # nbf is the cumulative number of faces of the previous subbodies,
         # that is the offset of the indices of the faces of the current body.
         for name, dof in body.dofs.items():
+            if isinstance(dof, AbstractDof):
+                dof = dof.evaluate_motion(body.mesh)
             new_dof = np.zeros((total_nb_faces, 3))
             new_dof[nbf:nbf+len(dof), :] = dof
             if '__' not in name:
@@ -137,7 +140,7 @@ def minced(body, nb_slices=(8, 8, 4)):
     for planes in intermingled_x_y_z:
         if planes is not None:
             for plane in planes:
-                minced_body = minced_body.sliced_by_plane(plane)
+                minced_body = sliced_by_plane(minced_body, plane)
     return minced_body
 
 
@@ -187,6 +190,7 @@ def cluster_bodies(*bodies, name=None):
         all_buoys.name = name
 
     return all_buoys
+
 
 def animate(self, motion, *args, **kwargs):
     """Display a motion as a 3D animation.

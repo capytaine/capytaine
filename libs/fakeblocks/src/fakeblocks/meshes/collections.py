@@ -293,7 +293,7 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
         self.prune_empty_meshes()
 
     def symmetrized(self, plane):
-        from capytaine.meshes.symmetric import ReflectionSymmetricMesh
+        from fakeblocks.meshes.symmetric import ReflectionSymmetricMesh
         half = self.clipped(plane, name=f"{self.name}_half")
         return ReflectionSymmetricMesh(half, plane=plane, name=f"symmetrized_of_{self.name}")
 

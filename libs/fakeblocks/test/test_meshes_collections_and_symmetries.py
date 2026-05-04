@@ -3,12 +3,12 @@
 import pytest
 import numpy as np
 import capytaine as cpt
-from capytaine.meshes.meshes import Mesh as OldMesh
 
-from capytaine.meshes.predefined import mesh_sphere, mesh_disk, mesh_horizontal_cylinder, mesh_parallelepiped
-from capytaine.meshes.collections import CollectionOfMeshes as OldCollectionOfMeshes
-from capytaine.meshes.symmetric import AxialSymmetricMesh as OldAxialSymmetricMesh, TranslationalSymmetricMesh as OldTranslationalSymmetricMesh, ReflectionSymmetricMesh as OldReflectionSymmetricMesh
-from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
+from fakeblocks.meshes.meshes import Mesh as OldMesh
+from fakeblocks.meshes.predefined import mesh_sphere, mesh_disk, mesh_horizontal_cylinder, mesh_parallelepiped
+from fakeblocks.meshes.collections import CollectionOfMeshes as OldCollectionOfMeshes
+from fakeblocks.meshes.symmetric import AxialSymmetricMesh as OldAxialSymmetricMesh, TranslationalSymmetricMesh as OldTranslationalSymmetricMesh, ReflectionSymmetricMesh as OldReflectionSymmetricMesh
+from fakeblocks.meshes.geometry import xOz_Plane, yOz_Plane
 
 def test_collection_of_meshes():
     # Create some dummy meshes

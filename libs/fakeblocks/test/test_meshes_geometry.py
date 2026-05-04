@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from capytaine.meshes.geometry import (
+from fakeblocks.meshes.geometry import (
     e_x, e_y, e_z,
     Axis, Ox_axis, Oy_axis, Oz_axis,
     Plane, xOz_Plane, yOz_Plane, xOy_Plane,
