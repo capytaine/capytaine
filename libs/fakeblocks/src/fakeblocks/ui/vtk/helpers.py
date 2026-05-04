@@ -4,8 +4,8 @@
 
 from typing import Union
 
-from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.collections import CollectionOfMeshes
+from fakeblocks.meshes.meshes import Mesh
+from fakeblocks.meshes.collections import CollectionOfMeshes
 from capytaine.tools.optional_imports import import_optional_dependency
 
 vtk = import_optional_dependency("vtk")

@@ -73,10 +73,8 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
     def __init__(self, mesh=None, dofs=None, *, lid_mesh=None, center_of_mass=None, mass=None, name=None):
         if mesh is None:
             self.mesh = Mesh(name="dummy_mesh")
-        elif isinstance(mesh, AbstractMesh):
-            self.mesh = mesh
         else:
-            raise TypeError("Unrecognized `mesh` object passed to the FloatingBody constructor.")
+            self.mesh = mesh
 
         if lid_mesh is None:
             self.lid_mesh = None
@@ -523,28 +521,7 @@ class FloatingBody(_HydrostaticsMixin, AbstractBody):
         return self.mesh.show_matplotlib(*args, **kwargs)
 
     def animate(self, motion, *args, **kwargs):
-        """Display a motion as a 3D animation.
-
-        Parameters
-        ==========
-        motion: dict or pd.Series or str
-            A dict or series mapping the name of the dofs to its amplitude.
-            If a single string is passed, it is assumed to be the name of a dof
-            and this dof with a unit amplitude will be displayed.
-        """
-        from capytaine.ui.vtk.animation import Animation
-        if isinstance(motion, str):
-            motion = {motion: 1.0}
-        elif isinstance(motion, xr.DataArray):
-            motion = {k: motion.sel(radiating_dof=k).data for k in motion.coords["radiating_dof"].data}
-
-        if any(dof not in self.dofs for dof in motion):
-            missing_dofs = set(motion.keys()) - set(self.dofs.keys())
-            raise ValueError(f"Trying to animate the body {self.name} using dof(s) {missing_dofs}, but no dof of this name is defined for {self.name}.")
-
-        animation = Animation(*args, **kwargs)
-        animation._add_actor(self.mesh.merged(), faces_motion=sum(motion[dof_name] * dof for dof_name, dof in self.dofs.items() if dof_name in motion))
-        return animation
+        raise NotImplementedError("Not yet re-implemented in version 3")
 
     #################################
     # Irregular frequencies removal #

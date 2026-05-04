@@ -6,9 +6,9 @@ import logging
 import numpy as np
 from numpy import pi
 
-from capytaine.meshes.geometry import Axis
-from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.symmetric import AxialSymmetricMesh
+from fakeblocks.meshes.geometry import Axis
+from fakeblocks.meshes.meshes import Mesh
+from fakeblocks.meshes.symmetric import AxialSymmetricMesh
 
 LOG = logging.getLogger(__name__)
 

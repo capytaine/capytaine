@@ -2,6 +2,7 @@ import numpy as np
 import capytaine as cpt
 from fakeblocks.engines import HierarchicalToeplitzMatrixEngine, HierarchicalPrecondMatrixEngine
 from fakeblocks.bodies import join_bodies, cluster_bodies
+from fakeblocks.meshes.predefined import mesh_sphere
 from time import time
 
 radius = 2.
@@ -15,14 +16,12 @@ x, y = np.meshgrid(np.arange(nb_cols)*spacing, np.arange(nb_rows)*spacing)
 x = x.flatten()
 y = y.flatten()
 
-bodies = [cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=radius,
-                                                center=(x[ii], y[ii], 0),
-                                                resolution=(10,10)))
-            for ii in range(len(x))]
+bodies = [cpt.FloatingBody(
+    mesh=mesh_sphere(radius=radius, center=(x[ii], y[ii], 0), resolution=(10,10)).immersed_part(),
+) for ii in range(len(x))]
 
 for body in bodies:
-    body.keep_immersed_part()
-    body.add_translation_dof(name='Heave')
+    body.dofs["Heave"] = np.array([(0, 0, 1) for _ in range(body.mesh.nb_faces)])
 
 # Dense problem setup and solution
 print('Solving dense problem')

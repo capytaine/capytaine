@@ -5,8 +5,9 @@ import logging
 
 import numpy as np
 
+from fakeblocks.meshes.meshes import Mesh
+
 from capytaine.tools.optional_imports import import_optional_dependency
-from capytaine.meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 

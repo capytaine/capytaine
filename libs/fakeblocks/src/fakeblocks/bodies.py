@@ -1,5 +1,36 @@
+from itertools import chain, zip_longest, accumulate
+
 import numpy as np
-from capytaine import CollectionOfMeshes, FloatingBody
+import xarray as xr
+
+from fakeblocks.meshes.collections import CollectionOfMeshes
+from fakeblocks.meshes.geometry import Plane
+from capytaine import FloatingBody
+
+
+def combine_dofs(bodies) -> dict:
+    """Combine the degrees of freedom of several bodies."""
+    for body in bodies:
+        body._check_dofs_shape_consistency()
+    dofs = {}
+    cum_nb_faces = accumulate(chain([0], (body.mesh.nb_faces for body in bodies)))
+    total_nb_faces = sum(body.mesh.nb_faces for body in bodies)
+    for body, nbf in zip(bodies, cum_nb_faces):
+        # nbf is the cumulative number of faces of the previous subbodies,
+        # that is the offset of the indices of the faces of the current body.
+        for name, dof in body.dofs.items():
+            new_dof = np.zeros((total_nb_faces, 3))
+            new_dof[nbf:nbf+len(dof), :] = dof
+            if '__' not in name:
+                new_dof_name = '__'.join([body.name, name])
+            else:
+                # The body is probably a combination of bodies already.
+                # So for the associativity of the + operation,
+                # it is better to keep the same name.
+                new_dof_name = name
+            dofs[new_dof_name] = new_dof
+    return dofs
+
 
 def join_bodies(*bodies, name=None) -> 'FloatingBody':
     """Legacy FloatingBody.join_bodies from Capytaine"""
@@ -16,7 +47,7 @@ def join_bodies(*bodies, name=None) -> 'FloatingBody':
                 [body.lid_mesh.copy() for body in bodies if body.lid_mesh is not None],
                 name=f"{name}_lid_mesh"
                 )
-    dofs = FloatingBody.combine_dofs(bodies)
+    dofs = combine_dofs(bodies)
 
     if all(body.mass is not None for body in bodies):
         new_mass = sum(body.mass for body in bodies)
@@ -156,3 +187,27 @@ def cluster_bodies(*bodies, name=None):
         all_buoys.name = name
 
     return all_buoys
+
+def animate(self, motion, *args, **kwargs):
+    """Display a motion as a 3D animation.
+
+    Parameters
+    ==========
+    motion: dict or pd.Series or str
+        A dict or series mapping the name of the dofs to its amplitude.
+        If a single string is passed, it is assumed to be the name of a dof
+        and this dof with a unit amplitude will be displayed.
+    """
+    from capytaine.ui.vtk.animation import Animation
+    if isinstance(motion, str):
+        motion = {motion: 1.0}
+    elif isinstance(motion, xr.DataArray):
+        motion = {k: motion.sel(radiating_dof=k).data for k in motion.coords["radiating_dof"].data}
+
+    if any(dof not in self.dofs for dof in motion):
+        missing_dofs = set(motion.keys()) - set(self.dofs.keys())
+        raise ValueError(f"Trying to animate the body {self.name} using dof(s) {missing_dofs}, but no dof of this name is defined for {self.name}.")
+
+    animation = Animation(*args, **kwargs)
+    animation._add_actor(self.mesh.merged(), faces_motion=sum(motion[dof_name] * dof for dof_name, dof in self.dofs.items() if dof_name in motion))
+    return animation

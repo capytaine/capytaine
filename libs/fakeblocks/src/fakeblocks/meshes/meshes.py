@@ -9,13 +9,13 @@ from itertools import count
 
 import numpy as np
 
-from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation, xOy_Plane
-from capytaine.meshes.properties import compute_faces_properties, connected_components, connected_components_of_waterline
-from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
-from capytaine.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
+from fakeblocks.meshes.geometry import Abstract3DObject, ClippableMixin, Plane, inplace_transformation, xOy_Plane
+from fakeblocks.meshes.properties import compute_faces_properties, connected_components, connected_components_of_waterline
+from fakeblocks.meshes.surface_integrals import SurfaceIntegralsMixin
+from fakeblocks.meshes.quality import (merge_duplicates, heal_normals, remove_unused_vertices,
                                       heal_triangles, remove_degenerated_faces)
+from fakeblocks.meshes.quadratures import compute_quadrature_on_faces
 from capytaine.tools.optional_imports import import_optional_dependency
-from capytaine.meshes.quadratures import compute_quadrature_on_faces
 
 LOG = logging.getLogger(__name__)
 
@@ -254,7 +254,7 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
             return extracted_mesh
 
     def sliced_by_plane(self, plane: Plane):
-        from capytaine.meshes.collections import CollectionOfMeshes
+        from fakeblocks.meshes.collections import CollectionOfMeshes
         faces_ids_on_one_side = np.where(plane.distance_to_point(self.faces_centers) < 0)[0]
         if len(faces_ids_on_one_side) == 0 or len(faces_ids_on_one_side) == self.nb_faces:
             return self.copy()
@@ -436,7 +436,7 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
 
     def show_vtk(self, **kwargs):
         """Shows the mesh in the vtk viewer"""
-        from capytaine.ui.vtk.mesh_viewer import MeshViewer
+        from fakeblocks.ui.vtk.mesh_viewer import MeshViewer
 
         viewer = MeshViewer()
         viewer.add_mesh(self, **kwargs)
@@ -594,13 +594,13 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         return self
 
     def symmetrized(self, plane):
-        from capytaine.meshes.symmetric import ReflectionSymmetricMesh
+        from fakeblocks.meshes.symmetric import ReflectionSymmetricMesh
         half = self.clipped(plane, name=f"{self.name}_half")
         return ReflectionSymmetricMesh(half, plane=plane, name=f"symmetrized_of_{self.name}")
 
     @inplace_transformation
     def clip(self, plane) -> 'Mesh':
-        from capytaine.meshes.clipper import clip
+        from fakeblocks.meshes.clipper import clip
         clipped_self = clip(self, plane=plane)
         self.vertices = clipped_self.vertices
         self.faces = clipped_self.faces
@@ -645,7 +645,7 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
     ####################
 
     def join_meshes(*meshes, name=None, return_masks=False):
-        from capytaine.meshes.collections import CollectionOfMeshes
+        from fakeblocks.meshes.collections import CollectionOfMeshes
         coll = CollectionOfMeshes(meshes, name=name)
         if return_masks:
             masks = []
@@ -789,7 +789,7 @@ class Mesh(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject):
         Mesh
             lid of internal surface
         """
-        from capytaine.meshes.predefined.rectangles import mesh_rectangle
+        from fakeblocks.meshes.predefined.rectangles import mesh_rectangle
 
         clipped_hull_mesh = self.clipped(Plane(normal=(0, 0, 1), point=(0, 0, z)))
         # Alternatively: could keep only faces below z without proper clipping,

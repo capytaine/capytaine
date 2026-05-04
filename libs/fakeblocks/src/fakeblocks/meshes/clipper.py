@@ -8,8 +8,8 @@ import logging
 
 import numpy as np
 
-from capytaine.meshes.geometry import Plane
-from capytaine.meshes.meshes import Mesh
+from fakeblocks.meshes.geometry import Plane
+from fakeblocks.meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 

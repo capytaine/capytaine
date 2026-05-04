@@ -6,10 +6,10 @@ from itertools import product
 
 import numpy as np
 
-from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
-from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.symmetric import TranslationalSymmetricMesh, ReflectionSymmetricMesh
-from capytaine.meshes.collections import CollectionOfMeshes
+from fakeblocks.meshes.geometry import xOz_Plane, yOz_Plane
+from fakeblocks.meshes.meshes import Mesh
+from fakeblocks.meshes.symmetric import TranslationalSymmetricMesh, ReflectionSymmetricMesh
+from fakeblocks.meshes.collections import CollectionOfMeshes
 
 LOG = logging.getLogger(__name__)
 

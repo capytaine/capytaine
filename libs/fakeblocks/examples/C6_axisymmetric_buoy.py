@@ -2,6 +2,7 @@ import numpy as np
 import capytaine as cpt
 import capytaine.io.xarray
 from fakeblocks.engines import HierarchicalToeplitzMatrixEngine
+from fakeblocks.meshes.symmetric import AxialSymmetricMesh
 
 cpt.set_logging('INFO')
 
@@ -11,10 +12,10 @@ def shape(z):
 
 # Generate the mesh and display it with VTK.
 buoy = cpt.FloatingBody(
-    mesh=cpt.AxialSymmetricMesh.from_profile(shape, z_range=np.linspace(-5, 0, 30), nphi=40)
+    mesh=AxialSymmetricMesh.from_profile(shape, z_range=np.linspace(-5, 0, 30), nphi=40)
 )
 buoy.add_translation_dof(name="Heave")
-buoy.show()
+# buoy.show()
 
 # Set up problems
 omega_range = np.linspace(0.1, 5.0, 60)
@@ -23,6 +24,7 @@ problems = [cpt.RadiationProblem(body=buoy, radiating_dof='Heave', omega=omega)
 
 # Solve the problems using the axial symmetry
 solver = cpt.BEMSolver(engine=HierarchicalToeplitzMatrixEngine())
+solver.solve(problems[0])
 results = solver.solve_all(problems)
 dataset = capytaine.io.xarray.assemble_dataset(results)
 

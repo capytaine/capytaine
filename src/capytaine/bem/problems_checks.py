@@ -105,13 +105,18 @@ def _check_ram(problems, engine, n_jobs=1):
     if n_jobs == - 1:
         n_jobs = os.cpu_count()
 
-    estimated_peak_memory = n_jobs*max(engine.compute_ram_estimation(pb) for pb in problems)
+    try:
+        estimated_peak_memory = n_jobs*max(engine.compute_ram_estimation(pb) for pb in problems)
 
-    if estimated_peak_memory < 0.5:
-        LOG.info("Estimated peak RAM usage: <1 GB.")
+        if estimated_peak_memory < 0.5:
+            LOG.info("Estimated peak RAM usage: <1 GB.")
 
-    elif estimated_peak_memory < ram_limit:
-        LOG.info(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
+        elif estimated_peak_memory < ram_limit:
+            LOG.info(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
 
-    else:
-        LOG.warning(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
+        else:
+            LOG.warning(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
+
+    except (AttributeError, TypeError):
+        # Mainly if the engine does not implement `compute_ram_estimation`
+        LOG.info("Failed to estimate RAM usage.")

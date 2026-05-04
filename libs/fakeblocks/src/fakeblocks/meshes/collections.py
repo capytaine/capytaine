@@ -9,9 +9,9 @@ from typing import Iterable, Union
 
 import numpy as np
 
-from capytaine.meshes.geometry import Abstract3DObject, ClippableMixin, inplace_transformation
-from capytaine.meshes.surface_integrals import SurfaceIntegralsMixin
-from capytaine.meshes.meshes import Mesh
+from fakeblocks.meshes.geometry import Abstract3DObject, ClippableMixin, inplace_transformation
+from fakeblocks.meshes.surface_integrals import SurfaceIntegralsMixin
+from fakeblocks.meshes.meshes import Mesh
 
 LOG = logging.getLogger(__name__)
 
@@ -324,7 +324,7 @@ class CollectionOfMeshes(ClippableMixin, SurfaceIntegralsMixin, Abstract3DObject
             return tuple(np.zeros(6))
 
     def show(self, **kwargs):
-        from capytaine.ui.vtk.mesh_viewer import MeshViewer
+        from fakeblocks.ui.vtk.mesh_viewer import MeshViewer
 
         viewer = MeshViewer()
         for mesh in self:

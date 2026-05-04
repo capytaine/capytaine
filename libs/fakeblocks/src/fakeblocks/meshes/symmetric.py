@@ -8,9 +8,9 @@ from typing import Union, Callable, Iterable
 
 import numpy as np
 
-from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.collections import CollectionOfMeshes
-from capytaine.meshes.geometry import Axis, Plane, xOy_Plane, Oz_axis, inplace_transformation
+from fakeblocks.meshes.meshes import Mesh
+from fakeblocks.meshes.collections import CollectionOfMeshes
+from fakeblocks.meshes.geometry import Axis, Plane, xOy_Plane, Oz_axis, inplace_transformation
 
 LOG = logging.getLogger(__name__)
 

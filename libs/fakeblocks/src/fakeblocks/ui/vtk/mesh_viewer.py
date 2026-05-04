@@ -8,7 +8,7 @@ import datetime
 from itertools import cycle
 from os import getcwd
 
-from capytaine.ui.vtk.helpers import compute_vtk_polydata
+from fakeblocks.ui.vtk.helpers import compute_vtk_polydata
 from capytaine.tools.optional_imports import import_optional_dependency
 
 vtk = import_optional_dependency("vtk")

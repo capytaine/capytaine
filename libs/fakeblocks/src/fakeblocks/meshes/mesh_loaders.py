@@ -8,9 +8,9 @@ import os
 import logging
 import numpy as np
 
-from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.symmetric import ReflectionSymmetricMesh
-from capytaine.meshes.geometry import xOz_Plane, yOz_Plane
+from fakeblocks.meshes.meshes import Mesh
+from fakeblocks.meshes.symmetric import ReflectionSymmetricMesh
+from fakeblocks.meshes.geometry import xOz_Plane, yOz_Plane
 from capytaine.tools.optional_imports import import_optional_dependency, silently_import_optional_dependency
 
 LOG = logging.getLogger(__name__)

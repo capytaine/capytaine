@@ -8,8 +8,8 @@ import logging
 
 import numpy as np
 
-from capytaine.meshes.geometry import inplace_transformation
-from capytaine.meshes.properties import compute_connectivity
+from fakeblocks.meshes.geometry import inplace_transformation
+from fakeblocks.meshes.properties import compute_connectivity
 
 LOG = logging.getLogger(__name__)
 

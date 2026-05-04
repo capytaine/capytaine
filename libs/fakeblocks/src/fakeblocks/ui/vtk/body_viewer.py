@@ -3,7 +3,7 @@
 # See LICENSE file at <https://github.com/mancellin/capytaine>
 
 from capytaine.tools.optional_imports import import_optional_dependency
-from capytaine.ui.vtk.mesh_viewer import MeshViewer
+from fakeblocks.ui.vtk.mesh_viewer import MeshViewer
 
 vtk = import_optional_dependency("vtk")
 
