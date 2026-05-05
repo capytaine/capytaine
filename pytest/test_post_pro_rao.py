@@ -49,7 +49,7 @@ def test_rao_sphere_all(sphere_fb, solver):
     assert data.hydrostatic_stiffness.shape == (6,6)
     assert np.all(data.hydrostatic_stiffness.values == sphere_fb.hydrostatic_stiffness.values)
 
-    Fex_ = xr.dot(cpt.post_pro.rao_transfer_function(data), RAO, dim="radiating_dof")
+    Fex_ = xr.dot(cpt.post_pro.rao_transfer_function(data), RAO, dims="radiating_dof")
     assert np.allclose(Fex_.values.squeeze(), data["excitation_force"].values.squeeze())
     # # assert RAO == ? # TODO could test against known results
 
