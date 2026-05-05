@@ -397,6 +397,89 @@ def _export_wamit_excitation_force(
                     )
 
 
+def export_wamit_8(
+    dataset: xarray.Dataset,
+    filename: str,
+    length_scale: float = 1.0,
+    wave_amplitude: float = 1.0,
+) -> None:
+    """
+    Export far-field mean drift forces to a WAMIT .8 file.
+
+    Option 8 outputs only modes I=1 (surge), I=2 (sway), and I=6 (yaw).
+    For unidirectional waves BETA1 == BETA2.
+
+    Format:
+        PER     BETA1     BETA2     I     Mod(Fi)     Pha(Fi)     Re(Fi)     Im(Fi)
+
+    Nondimensionalization (WAMIT manual Section 3.8):
+        F̄i = Fi / (ρ g A² Lᵏ)
+    where k=1 for forces (I=1,2), k=2 for moments (I=6).
+
+    Parameters
+    ----------
+    dataset : xarray.Dataset
+        Must contain 'drift_force_surge', 'drift_force_sway', 'drift_force_yaw'.
+    filename : str
+        Output path for the .8 file.
+    length_scale : float
+        Reference length scale L for nondimensionalization.
+    wave_amplitude : float
+        Wave amplitude A used in nondimensionalization.
+    """
+    drift_fields = {
+        1: "drift_force_surge",
+        2: "drift_force_sway",
+        6: "drift_force_yaw",
+    }
+
+    for idx, field_name in drift_fields.items():
+        if field_name not in dataset:
+            raise ValueError(f"Missing field '{field_name}' in dataset.")
+
+    rho = dataset["rho"].item()
+    g = dataset["g"].item()
+
+    # k exponent: 1 for forces (surge, sway), 2 for moments (yaw)
+    k_exp = {1: 1, 2: 1, 6: 2}
+
+    betas = dataset["wave_direction"].values
+    if np.ndim(betas) == 0:
+        betas = np.atleast_1d(betas)
+
+    freq_key, freq_vals, period_vals = identify_frequency_axis(dataset=dataset)
+
+    # Sort by increasing period
+    sorted_indices = np.argsort(period_vals)
+    sorted_periods = period_vals[sorted_indices]
+    sorted_freqs = freq_vals[sorted_indices]
+
+    with open(filename, "w") as f:
+        for freq_val, period in zip(sorted_freqs, sorted_periods):
+            if np.isclose(freq_val, 0.0) or np.isinf(freq_val):
+                continue
+            for beta in betas:
+                beta_deg = np.degrees(beta)
+                for mode_idx, field_name in drift_fields.items():
+                    field = dataset[field_name]
+                    value = field.sel({freq_key: freq_val, "wave_direction": beta}).item()
+                    norm = rho * g * (wave_amplitude ** 2) * (length_scale ** k_exp[mode_idx])
+                    value_nd = value / norm
+
+                    # Drift forces are real for unidirectional waves
+                    force = complex(value_nd)
+                    mod_f = np.abs(force)
+                    pha_f = np.degrees(np.angle(force))
+                    re_f = force.real
+                    im_f = force.imag
+
+                    f.write(
+                        "{:12.6e}\t{:12.6f}\t{:12.6f}\t{:5d}\t{:12.6e}\t{:12.3f}\t{:12.6e}\t{:12.6e}\n".format(
+                            period, beta_deg, beta_deg, mode_idx, mod_f, pha_f, re_f, im_f
+                        )
+                    )
+
+
 def export_wamit_3(dataset: xarray.Dataset, filename: str) -> None:
     """Export total excitation to WAMIT .3 file.
 
@@ -439,7 +522,7 @@ def export_wamit_3sc(dataset: xarray.Dataset, filename: str) -> None:
 def export_to_wamit(
     dataset: xarray.Dataset,
     problem_name: str,
-    exports: Iterable[str] = ("1", "3", "3fk", "3sc", "hst"),
+    exports: Iterable[str] = ("1", "3", "3fk", "3sc", "8", "hst"),
 ) -> None:
     """
     Master function to export a Capytaine dataset to WAMIT-format files.
@@ -458,6 +541,7 @@ def export_to_wamit(
         "3": ("total excitation force", export_wamit_3, ".3"),
         "3fk": ("Froude-Krylov force", export_wamit_3fk, ".3fk"),
         "3sc": ("diffraction force", export_wamit_3sc, ".3sc"),
+        "8": ("mean drift force (far field)", export_wamit_8, ".8"),
         "hst": ("hydrostatics", export_wamit_hst, ".hst"),
     }
     check_dataset_ready_for_export(dataset)

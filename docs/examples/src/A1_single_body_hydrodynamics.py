@@ -30,6 +30,7 @@ test_matrix = xr.Dataset(
         "omega": np.linspace(0.1, 3.0, 20),
         "wave_direction": [0.0, np.pi/2],
         "radiating_dof": list(body.dofs),
+        "theta": np.linspace(0, 2*np.pi, 100),
     }
 )
 # Water density, gravity and water depth have not been specified.
