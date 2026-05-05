@@ -41,7 +41,6 @@ def test_rao_sphere_all(sphere_fb, solver):
     data = solver.fill_dataset(test_matrix, sphere_fb,
                                hydrostatics=True, mesh=True)
 
-
     RAO = cpt.post_pro.rao(data)
 
     assert RAO.radiating_dof.size == 6
@@ -49,6 +48,9 @@ def test_rao_sphere_all(sphere_fb, solver):
     assert np.all(data.inertia_matrix.values == sphere_fb.inertia_matrix.values)
     assert data.hydrostatic_stiffness.shape == (6,6)
     assert np.all(data.hydrostatic_stiffness.values == sphere_fb.hydrostatic_stiffness.values)
+
+    Fex_ = xr.dot(cpt.post_pro.rao_transfer_function(data), RAO, dims="radiating_dof")
+    assert np.allclose(Fex_.values.squeeze(), data["excitation_force"].values.squeeze())
     # # assert RAO == ? # TODO could test against known results
 
 
@@ -103,3 +105,37 @@ def test_rao_sphere_heave_indirect(sphere_heave_data):
     assert sphere_heave_data.inertia_matrix.size == 1
     assert sphere_heave_data.hydrostatic_stiffness.size == 1
     # assert RAO == ? # TODO could test against known results
+
+
+def test_asymmetric_matrices():
+    omega = 2.0
+    mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 4)).immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(only=["Surge", "Heave"]))
+    M = mesh.disp_mass() * np.array(
+            [[ 1.0 , 0.0 ],
+             [ 0.0 , 1.0 ]]
+            )
+    body.inertia_matrix = body.add_dofs_labels_to_matrix(M)
+    S = mesh.disp_mass() * np.array(
+            [[ 1.0 , 10.0 ],
+             [ 0.0 , 1.0 ]]
+            )
+    body.hydrostatic_stiffness = body.add_dofs_labels_to_matrix(S)
+    test_matrix = xr.Dataset(coords={
+        'omega': [omega],
+        'wave_direction': [0],
+        'radiating_dof': list(body.dofs),
+        })
+    solver = cpt.BEMSolver()
+    data = solver.fill_dataset(test_matrix, body, hydrostatics=True)
+    X = cpt.post_pro.rao(data)
+    assert np.allclose(
+        (cpt.post_pro.rao_transfer_function(data) @ X).values.squeeze(),
+        data["excitation_force"].values.squeeze()
+    )
+    A = data["added_mass"].sel(omega=omega).values
+    B = data["radiation_damping"].sel(omega=omega).values
+    Fex = data["excitation_force"].sel(omega=omega, wave_direction=0.0).values
+    H = -omega**2*(M + A) - 1j * omega * B + S
+    X_ref = np.linalg.solve(H, Fex)
+    assert np.allclose(X_ref, X.values.squeeze())

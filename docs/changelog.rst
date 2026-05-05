@@ -237,6 +237,8 @@ Bug fixes
 
 * Progress bar display progress of groups of problems solved, not single problems, leading to more accurate time estimation (:pull:`882`)
 
+* The RAO used to be computed wrongly with the transpose of the actual transfer function. (:issue:`891` and :pull:`892`)
+
 Internals
 ~~~~~~~~~
 
