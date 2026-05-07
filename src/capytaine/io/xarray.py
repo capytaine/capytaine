@@ -427,7 +427,7 @@ def assemble_dataset(results,
         radiation_cases = _dataset_from_dataframe(
             records[records['kind'] == "RadiationResult"],
             variables=['added_mass', 'radiation_damping'],
-            dimensions=[main_freq_type, 'radiating_dof', 'influenced_dof'],
+            dimensions=[main_freq_type, 'influenced_dof', 'radiating_dof'],
             optional_dims=optional_dims + ['wave_direction'])
         dataset = xr.merge([dataset, radiation_cases], compat="no_conflicts", join="outer")
 
