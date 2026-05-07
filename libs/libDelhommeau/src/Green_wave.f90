@@ -221,7 +221,7 @@ CONTAINS
             )
         ELSE
           ! Delhommeau's asymptotic expression of Green function for distant panels
-          integrals = asymptotic_approximations(MAX(r, 1e-10), z)
+          integrals = asymptotic_approximations(r, z)
         ENDIF
       ENDIF
 
