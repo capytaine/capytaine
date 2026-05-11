@@ -113,8 +113,8 @@ def dataframe_from_bemio(bemio_obj, wavenumber, wavelength):
                 temp_dict['wave_direction'] = 0.0
                 temp_dict['influenced_dof'] = dofs
                 temp_dict['radiating_dof'] = radiating_dof
-                temp_dict['added_mass'] = bemio_obj.body[i].am.all[radiating_dof_idx, :, omega_idx].flatten()
-                temp_dict['radiation_damping'] = bemio_obj.body[i].rd.all[radiating_dof_idx, :, omega_idx].flatten()
+                temp_dict['added_mass'] = bemio_obj.body[i].am.all[:, radiating_dof_idx, omega_idx].flatten()
+                temp_dict['radiation_damping'] = bemio_obj.body[i].rd.all[:, radiating_dof_idx, omega_idx].flatten()
 
                 if from_wamit:
                     temp_dict['added_mass'] = temp_dict['added_mass'] * rho

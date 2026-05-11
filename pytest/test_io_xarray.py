@@ -205,7 +205,7 @@ def test_fill_dataset(sphere, solver):
     sphere.add_all_rigid_body_dofs()
     test_matrix = xr.Dataset(coords={'omega': [1.0, 2.0, 3.0], 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
     dataset = solver.fill_dataset(test_matrix, [sphere])
-    assert dataset['added_mass'].data.shape == (3, 1, 6)
+    assert dataset['added_mass'].data.shape == (3, 6, 1)
     assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)
 
 
