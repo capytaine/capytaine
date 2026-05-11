@@ -615,12 +615,17 @@ def assemble_dataset(results,
         else:
             body = results[0].body
 
+            if "radiating_dof" in dataset.coords:
+                radiating_dofs = dataset.coords["radiating_dof"].values.astype(str)
+            else:
+                radiating_dofs = None
+
             try:
                 computed_hydrostatics = compute_hydrostatics_dataset(
                         body,
                         rho=dataset.coords["rho"].values,
                         g=dataset.coords["g"].values,
-                        only_dofs=dataset.coords["radiating_dof"].values.astype(str) if "radiating_dof" in dataset.coords else None
+                        only_dofs=radiating_dofs,
                         )
             except Exception as e:
                 LOG.warning(f"An error occurred while computing hydrostatics for body {body.__short_str__()}'.\n"
@@ -628,7 +633,12 @@ def assemble_dataset(results,
                             f"Hydrostatics data for this body will be skipped. You can pass `hydrostatics=False` to `assemble_dataset` or `fill_dataset` to avoid this warning.")
                 computed_hydrostatics = xr.Dataset()
 
-            computed_hydrostatics = computed_hydrostatics.assign_coords(radiating_dof=dataset.coords["radiating_dof"].to_index(), influenced_dof=dataset.coords["influenced_dof"].to_index())
+            # If these dimensions are already in the dataset, we use the exact same coordinates to avoid issues when merging the datasets just below.
+            if "radiating_dof" in dataset.coords:
+                computed_hydrostatics = computed_hydrostatics.assign_coords(radiating_dof=dataset.coords["radiating_dof"].to_index())
+            if "influenced_dof" in dataset.coords:
+                computed_hydrostatics = computed_hydrostatics.assign_coords(influenced_dofs=dataset.coords["influenced_dof"].to_index())
+
             dataset = xr.merge([dataset, computed_hydrostatics], compat="no_conflicts", join="outer")
 
     for var in set(dataset) | set(dataset.coords):
