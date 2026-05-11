@@ -246,13 +246,26 @@ def _dataset_from_dataframe(df: pd.DataFrame,
     return da
 
 
+def _rotation_center_data_array(body: AbstractBody) -> Optional[xr.DataArray]:
+    rotation_centers = np.array([b.rotation_center for b in body.bodies])
+    if not np.all(np.isnan(rotation_centers)):
+        hs = xr.DataArray(rotation_centers, dims=("body", "space_coordinate"))
+        hs.coords["space_coordinate"] = xr.DataArray(["x", "y", "z"], dims=["space_coordinate"])
+        hs.coords["body"] = xr.DataArray([b.name for b in body.bodies], dims=["body"])
+        hs = _squeeze_dimensions(hs, dimensions=["body"])
+        return hs
+    else:
+        LOG.debug("No rotation center could be found for any body. Skipping the `rotation_center` coordinate.")
+        return None
+
+
 def _compute_hydrostatics_dataset(
     body: AbstractBody,
     *,
     g: float = 9.81,
     rho: float = 1000.0,
     only_dofs: Optional[List[str]] = None,
-):
+) -> xr.Dataset:
     hs = xr.Dataset()
     hs.coords["space_coordinate"] = xr.DataArray(["x", "y", "z"], dims=["space_coordinate"])
     hs.coords["g"] = xr.DataArray([g], dims=["g"])
@@ -301,12 +314,6 @@ def _compute_hydrostatics_dataset(
         hs.coords["center_of_mass"] = xr.DataArray(list(body.center_of_mass.values()), dims=("body", "space_coordinate"))
     except Exception as e:
         LOG.debug(f"No center of mass could be found for some body. Skipping the `center_of_mass` coordinate.\nError message: {e}")
-
-    rotation_centers = np.array([b.rotation_center for b in body.bodies])
-    if not np.all(np.isnan(rotation_centers)):
-        hs.coords["rotation_center"] = xr.DataArray(rotation_centers, dims=("body", "space_coordinate"))
-    else:
-        LOG.debug("No rotation center could be found for any body. Skipping the `rotation_center` coordinate.")
 
     return hs
 
@@ -517,6 +524,10 @@ def assemble_dataset(results,
 
     dataset = xr.Dataset()
 
+    _rotation_center_da = _rotation_center_data_array(results[0].body)
+    if _rotation_center_da is not None:
+        dataset.coords['rotation_center'] = _rotation_center_da
+
     # RADIATION RESULTS
     if "RadiationResult" in kinds_of_results:
         radiation_cases = _dataset_from_dataframe(
@@ -637,7 +648,7 @@ def assemble_dataset(results,
             if "radiating_dof" in dataset.coords:
                 computed_hydrostatics = computed_hydrostatics.assign_coords(radiating_dof=dataset.coords["radiating_dof"].to_index())
             if "influenced_dof" in dataset.coords:
-                computed_hydrostatics = computed_hydrostatics.assign_coords(influenced_dofs=dataset.coords["influenced_dof"].to_index())
+                computed_hydrostatics = computed_hydrostatics.assign_coords(influenced_dof=dataset.coords["influenced_dof"].to_index())
 
             dataset = xr.merge([dataset, computed_hydrostatics], compat="no_conflicts", join="outer")
 

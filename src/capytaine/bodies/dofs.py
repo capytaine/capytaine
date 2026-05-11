@@ -66,11 +66,11 @@ class RotationDof(AbstractDof):
         self.direction = np.asarray(direction)
         assert self.direction.shape == (3,)
         if rotation_center is None:
-            self.rotation_center = np.array([0, 0, 0])
+            self.rotation_center = np.array([0.0, 0.0, 0.0])
             LOG.warning("Rigid body rotation dof has been initialized "
                         "around the origin of the domain (0, 0, 0).")
         else:
-            self.rotation_center = np.asarray(rotation_center)
+            self.rotation_center = np.asarray(rotation_center, dtype=float)
         assert self.rotation_center.shape == (3,)
 
     def __str__(self):
