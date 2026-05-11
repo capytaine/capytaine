@@ -4,6 +4,7 @@
 
 import os
 import logging
+from typing import Union, List
 
 import numpy as np
 
@@ -11,6 +12,7 @@ from capytaine.bem.solver import BEMSolver
 from capytaine.io.xarray import assemble_dataset
 from capytaine.meshes.io import load_mesh
 from capytaine.bodies.bodies import FloatingBody
+from capytaine.bodies.multibodies import Multibody
 from capytaine.bem.problems_and_results import DiffractionProblem, RadiationProblem
 
 LOG = logging.getLogger(__name__)
@@ -170,17 +172,21 @@ def _hydrostatics_writer(hydrostatics_file_path, kh_file_path, body):
     np.savetxt(kh_file_path, body.hydrostatic_stiffness.values, fmt='%1.6E')
 
 
-def export_hydrostatics(hydrostatics_directory, bodies):
+def export_hydrostatics(
+        hydrostatics_directory: str,
+        bodies: Union[FloatingBody, Multibody, List[FloatingBody]],
+) -> None:
     """Export rigid body hydrostatics in Nemoh's format (KH.dat and Hydrostatics.dat).
+    If the bodies have hydrostatics matrices already defined, uses them.
+    Otherwise, tires to compute the hydrostatics stiffness.
 
     Parameters
     ----------
     hydrostatics_directory: string
         Path to the directory in which the data will be written (two files per body)
-    bodies: FloatingBody or list of FloatingBody
-        The body or the list of bodies. Each body is assumed to be a single
-        rigid body with 6 dofs. Each FloatingBody object is expected to have an
-        `inertia_matrix` and a `hydrostatic_stiffness` parameter.
+    bodies: FloatingBody or Multibody
+        The body or bodies, which are all expected to be rigid bodies with 6 dofs.
+        A list of FloatingBody is also accepted for backward compatibility.
 
     Return
     ------
@@ -195,15 +201,16 @@ def export_hydrostatics(hydrostatics_directory, bodies):
 
     if isinstance(bodies, FloatingBody):
         bodies = [bodies]
-
-    hydrostatics_file_name = "Hydrostatics.dat"
-    kh_file_name = "KH.dat"
+    elif isinstance(bodies, Multibody):
+        if not all(hasattr(b, 'hydrostatic_stiffness') for b in bodies.bodies):
+            raise ValueError("All the bodies in the multibody should have a hydrostatic stiffness matrix defined separately to be able to export the hydrostatics with `io.legacy.export_hydrostatics`.")
+        bodies = bodies.bodies
 
     body_count = len(bodies)
     if body_count == 1:
         body = bodies[0]
-        hydrostatics_file_path = os.path.join(hydrostatics_directory, hydrostatics_file_name)
-        kh_file_path = os.path.join(hydrostatics_directory, kh_file_name)
+        hydrostatics_file_path = os.path.join(hydrostatics_directory, "Hydrostatics.dat")
+        kh_file_path = os.path.join(hydrostatics_directory, "KH.dat")
         _hydrostatics_writer(hydrostatics_file_path, kh_file_path, body)
     else:
         for (i, body) in enumerate(bodies):
