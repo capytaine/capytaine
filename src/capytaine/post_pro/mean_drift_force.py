@@ -210,11 +210,11 @@ def hydrodynamics_forces_order1(results, rao):
 
     for res in results:
         if isinstance(res, RadiationResult):
-            force += list(res.force.values()) * rao
+            force += list(res.force.values()) * rao.sel(radiating_dof=res.radiating_dof).values
         elif isinstance(res, DiffractionResult):
             force += np.array(list(res.force.values())) + np.array(list(froude_krylov_force(res).values()))
 
-    return force[0, :, :].values # forces[i_dir, influenced_dof]
+    return force[0, :, :] # forces[i_dir, influenced_dof]
 
 def transformation_matrix(rao):
     x = rao.sel(radiating_dof="Roll")
@@ -253,13 +253,14 @@ def integrate_pressure_waterline(body, pressure):
         normal = compute_faces_normals(body.mesh.vertices, body.mesh.faces_waterline)
         normal[:, -1] = 0
         normal_waterline = normal/np.linalg.norm(normal[:, :2], ord=2, axis=1, keepdims=True)
-        vertex_waterline = np.sort(body.mesh.edges_waterline[:,0])
+        vertex_waterline = (
+        body.mesh.vertices[body.mesh.edges_waterline[:, 0], :]
+        + body.mesh.vertices[body.mesh.edges_waterline[:, 1], :]
+    ) / 2
         for dof_name in body.dofs:
-            if isinstance(body.dofs[dof_name], AbstractDof):
-                dof = body.dofs[dof_name].evaluate_motion(body.mesh)
-            else:
-                dof = body.dofs[dof_name]
+            dof = body.dofs[dof_name].evaluate_motion_at_points(vertex_waterline)
+        
             # Scalar product on each edge:
-            normal_dof_amplitude_on_waterline = np.sum(dof[vertex_waterline] * normal_waterline, axis=1)
+            normal_dof_amplitude_on_waterline = np.sum(dof * normal_waterline, axis=1)
             forces[dof_name] = -np.sum(pressure * normal_dof_amplitude_on_waterline * body.mesh.length_edges_waterline)
         return forces
