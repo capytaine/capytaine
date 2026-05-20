@@ -86,74 +86,72 @@ def far_field_mean_drift_force(X, dataset):
     return xr.Dataset({Fx.name: Fx, Fy.name: Fy, Mz.name: Mz})
 
 
-def near_field_mean_drift_force(rao, results, solver):
+def near_field_mean_drift_force(rao, results, solver): 
     body = results[0].body
     mesh = body.mesh
     rho = results[0].rho
     g = results[0].g
-
+    omega = rao.coords["omega"].values
     nb_dir = rao.sizes["wave_direction"]
     zero_block = np.zeros((nb_dir, 3, 3))
-
-    z1 = motion_order1(mesh.faces_centers, rao)[:, :, -1] # z1[i_dir, i_face]
-    forces_order1 = hydrodynamics_forces_order1(results, rao) + hydrostatics_forces(body, rao, rho, g, z1)
-    rotation = rao.sel(radiating_dof=["Roll", "Pitch", "Yaw"]).values[0, :, :] # rotation[i_dir, xyz]
-    rotation_matrix = np.block([[skew_matrix(rotation), zero_block], [zero_block, skew_matrix(rotation)]])
-    rotation_forces_order1 = (1/2) * np.real(np.matvec(rotation_matrix, np.conjugate(forces_order1)))
-
-    z0 = np.tile(mesh.faces_centers[:, -1], (nb_dir, 1))
-    forces_order0 = hydrostatics_forces(body, rao, rho, g, z0)
-    H = np.block([[transformation_matrix(rao), zero_block], [transformation_matrix(rao), zero_block]])
-    hydrostatics_order2 = (1/2) * np.matvec(H, forces_order0)
+    zero_33 = zero_block[0, ...]
 
     translation = rao.sel(radiating_dof=["Surge", "Sway", "Heave"]).values[0, :, :] # translation[i_dir, xyz]
+    rotation = rao.sel(radiating_dof=["Roll", "Pitch", "Yaw"]).values[0, :, :] # rotation[i_dir, xyz]
     translation_matrix = np.block([[zero_block, zero_block], [skew_matrix(translation), zero_block]])
-    rotation_forces_order0 = np.matvec(rotation_matrix, forces_order0)
-    translation_moment = (1/2) * np.real(np.matvec(translation_matrix, np.conjugate(forces_order1 + rotation_forces_order0)))
+    rotation_matrix = np.block([[skew_matrix(rotation), zero_block], [zero_block, skew_matrix(rotation)]])
 
-    all_terms = rotation_forces_order1 + hydrostatics_order2 + translation_moment
-    pressure_field = pressure_field_order2(mesh, solver, results, rao, g)
-    field_waterline = pertubated_part(mesh, solver, results, rao, g)
+    z0 = np.tile(mesh.faces_centers[:, -1], (nb_dir, 1))
+    motion = motion_order1(mesh.faces_centers, translation, rotation) # motion[i_dir, i_face, xyz]
+    z1 = motion[:, :, -1] # z1[i_dir, i_face]
+    forces_order0 = hydrostatics_forces(body, rao, rho, g, z0)[0, ...] # same value for all wave directions at order 0 
+    forces_order1 = hydrodynamics_forces_order1(results, rao) + hydrostatics_forces(body, rao, rho, g, z1) # forces_order1[i_dir, influenced_dof]
+    rotation_forces_order0 = np.matvec(rotation_matrix, forces_order0) # rotation_forces_order0[i_dir, influenced_dof]
+    all_forces_order1 = forces_order1 + rotation_forces_order0 # all_forces_order1[i_dir, influenced_dof]
 
-    for idx, beta in enumerate(rao.coords["wave_direction"].values):
-        pressure_hull = body.integrate_pressure(pressure_field.sel(wave_direction=beta))
-        pressure_waterline = integrate_pressure_waterline(body, field_waterline.sel(wave_direction=beta))
-        all_terms[idx, :] += rho * (np.array(list(pressure_hull.values())) + np.array(list(pressure_waterline.values())))
+    gradient_potential = total_potential_gradient(solver, mesh, results, rao) # gradient_potential[i_dir, i_face, xyz]
+    edges_waterline = mesh.edges_waterline
+    vertices_middle_waterline = (mesh.vertices[edges_waterline[:, 0], :] + mesh.vertices[edges_waterline[:, 1], :]) / 2
+    free_surface_elevation = total_free_surface_elevation(solver, vertices_middle_waterline, results, rao) # free_surface_elevation[i_dir, i_vertex_waterline]
+    vertical_position = motion_order1(vertices_middle_waterline, translation, rotation)[:, :, -1] # vertical_position[i_dir, i_vertex_waterline]
 
-    coords = {
-        "wave_direction": rao.coords["wave_direction"],
-        "influenced_dof": list(pressure_hull.keys()),
-    }
+    F = np.full((nb_dir, nb_dir, 6), np.nan + 1j*np.nan, dtype=complex) 
+    for k in range(nb_dir):
+        for l in range(k, nb_dir):
+            h = transformation_matrix(rao.isel(wave_direction=k)[0, ...], rao.isel(wave_direction=l)[0, ...]) # h[xyz, xyz]
+            H = np.block([[h, zero_33], [h, zero_33]])
+            product = (np.sum(motion[k, ...] * np.conjugate(-1j * omega * gradient_potential[l, ...]), axis=1) + np.sum(np.conjugate(motion[l, ...]) * -1j * omega * gradient_potential[k, ...], axis=1)) / 2 # product[i_face] 
+            gradient_potential_square = np.sum(gradient_potential[k, ...] * np.conjugate(gradient_potential[l, ...]), axis=1) # gradient_potential_square[i_face]
+            z_order2 = np.matvec(h, mesh.faces_centers)[..., -1] # z_order2[i_face]
+            pressure_field = - (product + gradient_potential_square/2 + g * z_order2) # pressure_field[i_face]
+            waterline_field = (1/2) * g * (free_surface_elevation - vertical_position)[k, ...] * np.conjugate(free_surface_elevation - vertical_position)[l, ...] # waterline_field[i_vertex_waterline]
 
-    F = xr.DataArray(data=all_terms, coords=coords)
-    return F
+            hydrostatics_order2 = np.matvec(H, forces_order0) 
+            rotation_forces_order1 = (np.matvec(rotation_matrix[k, ...], np.conjugate(forces_order1[l, ...])) + np.matvec(np.conjugate(rotation_matrix[l, ...]), forces_order1[k, ...])) / 2
+            translation_moment = (np.matvec(translation_matrix[k, ...], np.conjugate(all_forces_order1[l, ...])) + np.matvec(np.conjugate(translation_matrix[l, ...]), all_forces_order1[k, ...])) / 2
+            pressure_hull = body.integrate_pressure(pressure_field)
+            pressure_waterline = integrate_pressure_waterline(body, waterline_field)
 
-def motion_order1(points, rao):
-    translation = rao.sel(radiating_dof=["Surge", "Sway", "Heave"]).values
-    rotation = rao.sel(radiating_dof=["Roll", "Pitch", "Yaw"]).values
-    results = translation[0, :, None, :] + np.cross(rotation[0, :, None, :], points[None, :, :])
+            F[k, l, :] = rotation_forces_order1 + hydrostatics_order2 + translation_moment + rho * (np.array(list(pressure_hull.values())) + np.array(list(pressure_waterline.values())))
+            F[l, k, :] = np.conjugate(F[k, l, :])
+
+    for k in range(nb_dir):
+        F[k, k, :] = np.real(F[k, k, :]) # real in theory but complex due to floating point round-off errors
+    
+    return xr.DataArray(
+        data=F/2,
+        dims=["wave_direction_k", "wave_direction_l", "influenced_dof"],
+        coords={
+            "wave_direction_k": rao.coords["wave_direction"].values,
+            "wave_direction_l": rao.coords["wave_direction"].values,
+            "influenced_dof": list(body.dofs.keys()),
+        }
+    )
+
+def motion_order1(points, translation, rotation):
+    results = translation[:, None, :] + np.cross(rotation[:, None, :], points[None, :, :])
     # results[i_dir, i_face, xyz] = translation[i_dir, xyz] + cross(rotation[i_dir, xyz], point[i_face, xyz])
     return results
-
-def pressure_field_order2(mesh, solver, results, rao, g):
-    gradient_potential = total_potential_gradient(solver, mesh, results, rao)
-    motion = motion_order1(mesh.faces_centers, rao)
-    product = np.real(np.sum(motion * np.conjugate(-1j * rao.coords["omega"].values * gradient_potential), axis=2))
-    gradient_potential_square = np.sum(np.abs(gradient_potential) ** 2, axis=2)
-    hydrostatic = np.matvec(transformation_matrix(rao)[:, None, :, :], mesh.faces_centers[None, :, :])
-    # hydrostatic[i_dir, i_face, xyz] = matvec(transofrmation_matrix[i_dir, xyz, xyz], faces_centers[i_face, xyz])
-    z_order2 = hydrostatic[:, :, -1] # z_order2[i_dir, i_face]
-    return - (1/2) * (product + gradient_potential_square/2 + g * z_order2)
-
-def pertubated_part(mesh, solver, results, rao, g):
-    edges_waterline = mesh.edges_waterline
-    vertices_middle_waterline = (
-        mesh.vertices[edges_waterline[:, 0], :]
-        + mesh.vertices[edges_waterline[:, 1], :]
-    ) / 2
-    free_surface_elevation = total_free_surface_elevation(solver, vertices_middle_waterline, results, rao)
-    vertical_position = motion_order1(vertices_middle_waterline, rao)[:, :, -1] # vertical_postion[i_dir, i_face]
-    return (1/4) * g * np.abs(free_surface_elevation - vertical_position) ** 2
 
 def total_potential_gradient(solver, mesh, results, rao):
     potential_gradient = xr.DataArray(
@@ -210,27 +208,31 @@ def hydrodynamics_forces_order1(results, rao):
 
     for res in results:
         if isinstance(res, RadiationResult):
-            force += list(res.force.values()) * rao.sel(radiating_dof=res.radiating_dof).values
+            force += np.array(list(res.force.values()))[None, :] * rao.sel(radiating_dof=res.radiating_dof).values[0, :, None]
         elif isinstance(res, DiffractionResult):
-            force += np.array(list(res.force.values())) + np.array(list(froude_krylov_force(res).values()))
+            idx = list(rao.coords["wave_direction"].values).index(res.wave_direction)
+            force[0, idx, :] += np.array(list(res.force.values())) + np.array(list(froude_krylov_force(res).values()))
 
     return force[0, :, :] # forces[i_dir, influenced_dof]
 
-def transformation_matrix(rao):
-    x = rao.sel(radiating_dof="Roll")
-    y = rao.sel(radiating_dof="Pitch")
-    z = rao.sel(radiating_dof="Yaw")
-    zero = np.zeros(x.shape)
+def transformation_matrix(rao_k, rao_l):
+    xk = rao_k.sel(radiating_dof="Roll")
+    yk = rao_k.sel(radiating_dof="Pitch")
+    zk = rao_k.sel(radiating_dof="Yaw")
+    xl = rao_l.sel(radiating_dof="Roll")
+    yl = rao_l.sel(radiating_dof="Pitch")
+    zl = rao_l.sel(radiating_dof="Yaw")
+    zero = np.zeros(xk.shape)
 
     H = (1/2) * (np.array([
-                [-(np.abs(y) ** 2 + np.abs(z) ** 2), zero, zero],  
-                [2 * np.real(x * np.conjugate(y)), -(np.abs(x) ** 2 + np.abs(z) ** 2), zero],
-                [2 * np.real(x * np.conjugate(z)), 2 * np.real(y * np.conjugate(z)), -(np.abs(x) ** 2 + np.abs(y) ** 2)]
+                [-(yk * np.conjugate(yl) + zk * np.conjugate(zl)), zero, zero],  
+                [xk * np.conjugate(yl) + np.conjugate(xl) * yk, -(xk * np.conjugate(xl) + zk * np.conjugate(zl)), zero],
+                [xk * np.conjugate(zl) + np.conjugate(xl) * zk, yk * np.conjugate(zl) + np.conjugate(yl) * zk, -(xk * np.conjugate(xl) + yk * np.conjugate(yl))]
             ],
             dtype=object)
         )
     
-    H = np.reshape(H, (rao.sizes['wave_direction'], 3, 3)) # H[i_dir, xyz, xyz]
+    H = np.reshape(H, (3, 3)) # H[xyz, xyz]
     return H
 
 def skew_matrix(a):
