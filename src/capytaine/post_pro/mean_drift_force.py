@@ -119,7 +119,7 @@ def near_field_mean_drift_force(rao, results, solver):
     for k in range(nb_dir):
         for l in range(k, nb_dir):
             h = transformation_matrix(rao.isel(wave_direction=k)[0, ...], rao.isel(wave_direction=l)[0, ...]) # h[xyz, xyz]
-            H = np.block([[h, zero_33], [h, zero_33]])
+            H = np.block([[h, zero_33], [zero_33, h]])
             product = (np.sum(motion[k, ...] * np.conjugate(-1j * omega * gradient_potential[l, ...]), axis=1) + np.sum(np.conjugate(motion[l, ...]) * -1j * omega * gradient_potential[k, ...], axis=1)) / 2 # product[i_face] 
             gradient_potential_square = np.sum(gradient_potential[k, ...] * np.conjugate(gradient_potential[l, ...]), axis=1) # gradient_potential_square[i_face]
             z_order2 = np.matvec(h, mesh.faces_centers)[..., -1] # z_order2[i_face]
