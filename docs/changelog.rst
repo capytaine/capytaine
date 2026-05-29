@@ -239,6 +239,8 @@ Bug fixes
 
 * The RAO used to be computed wrongly with the transpose of the actual transfer function. (:issue:`891` and :pull:`892`)
 
+* :func:`~capytaine.io.xarray.assemble_matrices` now returns the matrices ordered along the frequency axis like the input ``results``, instead of sorted by increasing frequency. (:issue:`797`)
+
 Internals
 ~~~~~~~~~
 
