@@ -15,7 +15,7 @@ def test_far_field_mean_drift_force():
     body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
     solver = cpt.BEMSolver()
     wave_direction = 0
-    theta = np.linspace(0, 2*np.pi, 20)
+    theta = np.linspace(-0.5, 2*np.pi, 20)
     k = np.array([0.92, 1.05])
     test_matrix = xr.Dataset(coords={
             'wavenumber': k, 'wave_direction': wave_direction, 'theta': theta, 'radiating_dof': list(body.dofs.keys())
@@ -38,7 +38,7 @@ def test_scale_far_field_mean_drift_force():
         body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
         solver = cpt.BEMSolver()
         wave_direction = 0
-        theta = np.linspace(0, 2*np.pi, 20)
+        theta = np.linspace(-0.5, 2*np.pi, 20)
         k = np.linspace(0.1,1,5)/r
         test_matrix = xr.Dataset(coords={
             'wavenumber': k, 'wave_direction': wave_direction, 'theta': theta, 'radiating_dof': list(body.dofs.keys())
