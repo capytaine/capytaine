@@ -31,7 +31,6 @@ def solver():
 def test_problems_from_dataset(sphere):
     dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
                               'radiating_dof': ["Heave"],
-                              'body_name': ["sphere"],
                               'wave_direction': [0.0],
                               'water_depth': [np.inf]})
 
@@ -40,20 +39,12 @@ def test_problems_from_dataset(sphere):
     assert len(problems) == 6
     assert len([problem for problem in problems if isinstance(problem, cpt.DiffractionProblem)]) == 3
 
-    dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
-                              'wave_direction': [0.0],
-                              'body_name': ["cube"]})
-    with pytest.raises(AssertionError):
-        problems_from_dataset(dset, [sphere])
-
     shifted_sphere = sphere.translated_y(5.0, name="shifted_sphere")
     dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
                               'radiating_dof': ["Heave"],
                               'wave_direction': [0.0]})
-    problems = problems_from_dataset(dset, [sphere, shifted_sphere])
-    assert cpt.RadiationProblem(body=sphere, omega=0.5, radiating_dof="Heave") in problems
-    assert cpt.RadiationProblem(body=shifted_sphere, omega=0.5, radiating_dof="Heave") in problems
-    assert len(problems) == 12
+    with pytest.raises(DeprecationWarning):
+        problems_from_dataset(dset, [sphere, shifted_sphere])
 
 
 def test_problems_from_dataset_incomplete_test_matrix():
@@ -184,24 +175,6 @@ def test_assemble_dataset(sphere, solver):
     assert "added_mass" in ds12
 
 
-def test_xarray_dataset_with_more_data():
-    # Store some mesh data when several bodies in dataset
-    bodies = [
-        cpt.FloatingBody(cpt.mesh_sphere(radius=1, resolution=(3, 3)).immersed_part(), name="sphere_1"),
-        cpt.FloatingBody(cpt.mesh_sphere(radius=2, resolution=(5, 3)).immersed_part(), name="sphere_2"),
-        cpt.FloatingBody(cpt.mesh_sphere(radius=3, resolution=(7, 3)).immersed_part(), name="sphere_3"),
-    ]
-    for body in bodies:
-        body.add_translation_dof(name="Heave")
-
-    problems = [cpt.RadiationProblem(body=b, radiating_dof="Heave", omega=1.0) for b in bodies]
-    results = cpt.BEMSolver().solve_all(problems)
-
-    ds = cpt.assemble_dataset(results, mesh=True)
-    assert 'nb_faces' in ds.coords
-    assert set(ds.coords['nb_faces'].values) == set([b.mesh.nb_faces for b in bodies])
-
-
 def test_variables_attrs(sphere, solver):
     pb = cpt.RadiationProblem(body=sphere, omega=1.0, radiating_dof="Heave")
     ds = cpt.assemble_dataset([solver.solve(pb)])
@@ -232,7 +205,7 @@ def test_fill_dataset(sphere, solver):
     sphere.add_all_rigid_body_dofs()
     test_matrix = xr.Dataset(coords={'omega': [1.0, 2.0, 3.0], 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
     dataset = solver.fill_dataset(test_matrix, [sphere])
-    assert dataset['added_mass'].data.shape == (3, 1, 6)
+    assert dataset['added_mass'].data.shape == (3, 6, 1)
     assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)
 
 

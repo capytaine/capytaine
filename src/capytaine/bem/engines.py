@@ -158,7 +158,7 @@ class BasicMatrixEngine(MatrixEngine):
         (that is the three components of the gradient, not just the normal one)"""
         # TODO: could use symmetries. In particular for forward, we compute the
         # full velocity on the same mesh so symmetries could be used.
-        gf_params.setdefault("diagonal_term_in_double_layer", True)
+        gf_params.setdefault("diagonal_term_in_double_layer", True)  # Unclear if this is a good default
         gf_params.setdefault("adjoint_double_layer", True)
         gf_params.setdefault("early_dot_product", False)
         _, fullK = self.green_function.evaluate(mesh1, mesh2, **gf_params)

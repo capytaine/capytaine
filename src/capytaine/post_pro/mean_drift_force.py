@@ -30,6 +30,14 @@ def far_field_mean_drift_force(X, dataset):
     g = dataset['g']
     H_diff = dataset['kochin_diffraction']
     H_rad = dataset['kochin_radiation'] 
+    theta_range = dataset['theta']
+
+    if (theta_range.min() > 0) or (theta_range.max() < 2*np.pi):
+        raise ValueError("Theta should takes values between 0 and 2pi")
+    if np.any(beta < theta_range.min()) or np.any(beta > theta_range.max()):
+        raise ValueError("The wave direction should be in the theta interval")
+    if np.any(beta == theta_range.min()) or np.any(beta == theta_range.min()):
+        raise ValueError("The wave direction should not be at the border of the theta interval, it is recommanded to extend the theta interval")
 
     H_rad_tot = sum(H_rad.sel(radiating_dof=d)*X.sel(radiating_dof=d) for d in X.radiating_dof) 
     H_tot = np.exp(1j*np.pi/2)*(H_diff + H_rad_tot)
@@ -48,24 +56,24 @@ def far_field_mean_drift_force(X, dataset):
     dims = [d for d in X.dims if d != 'radiating_dof']
     coords = {c: X.coords[c] for c in X.coords if c != 'radiating_dof'}
 
-    base = np.abs(H_tot)**2
+    base = np.abs(H_tot.sel(theta=slice(0, 2*np.pi)))**2
     
     Fx = xr.DataArray(
-        data=-coef1*np.cos(beta)*np.imag(H_beta) - coef2*(base * np.cos(H_tot.theta)).integrate("theta"),
+        data=-coef1*np.cos(beta)*np.imag(H_beta) - coef2*(base * np.cos(base.theta)).integrate("theta"),
         coords=coords,
         dims=dims,
         name='drift_force_surge'
         )
     
     Fy = xr.DataArray(
-        data=-coef1*np.sin(beta)*np.imag(H_beta) - coef2*(base * np.sin(H_tot.theta)).integrate("theta"),
+        data=-coef1*np.sin(beta)*np.imag(H_beta) - coef2*(base * np.sin(base.theta)).integrate("theta"),
         coords=coords,
         dims=dims,
         name='drift_force_sway'
         )
     
     Mz = xr.DataArray(
-        data=coef1/k*np.real(H_derivative_beta) - coef2/k*(np.conjugate(H_tot) * H_derivative).integrate("theta"),
+        data=coef1/k*np.real(H_derivative_beta) - coef2/k*np.imag((np.conjugate(H_tot.sel(theta=slice(0, 2*np.pi))) * H_derivative.sel(theta=slice(0, 2*np.pi))).integrate("theta")),
         coords=coords,
         dims=dims,
         name='drift_force_yaw'

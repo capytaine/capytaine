@@ -6,8 +6,6 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from capytaine.meshes.abstract_meshes import AbstractMesh
-
 
 class GreenFunctionEvaluationError(Exception):
     pass
@@ -19,15 +17,18 @@ class AbstractGreenFunction(ABC):
     floating_point_precision: str
 
     def _get_colocation_points_and_normals(self, mesh1, mesh2, adjoint_double_layer):
-        if isinstance(mesh1, AbstractMesh):
+        try:
             collocation_points = mesh1.faces_centers
             nb_collocation_points = mesh1.nb_faces
             if not adjoint_double_layer: # Computing the D matrix
                 early_dot_product_normals = mesh2.faces_normals
             else: # Computing the K matrix
                 early_dot_product_normals = mesh1.faces_normals
+            return collocation_points, early_dot_product_normals
+        except AttributeError:
+            pass
 
-        elif isinstance(mesh1, np.ndarray) and mesh1.ndim == 2 and mesh1.shape[1] == 3:
+        if isinstance(mesh1, np.ndarray) and mesh1.ndim == 2 and mesh1.shape[1] == 3:
             # This is used when computing potential or velocity at given points in postprocessing
             collocation_points = mesh1
             nb_collocation_points = mesh1.shape[0]
@@ -39,11 +40,11 @@ class AbstractGreenFunction(ABC):
                 # - to compute potential, then only S is needed and early_dot_product_normals is irrelevant,
                 # - to compute velocity, then the adjoint full gradient is needed and early_dot_product is False and this value is unused.
                 # TODO: add an only_S argument and return an error here if (early_dot_product and not only_S)
+            return collocation_points, early_dot_product_normals
 
         else:
             raise ValueError(f"Unrecognized first input for {self.__class__.__name__}.evaluate:\n{mesh1}")
 
-        return collocation_points, early_dot_product_normals
 
     def _init_matrices(self, shape, early_dot_product):
         if self.floating_point_precision == "float32":

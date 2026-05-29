@@ -1,4 +1,4 @@
-# Copyright (C) 2017-2024 Matthieu Ancellin
+# Copyright (C) 2017-2026 Matthieu Ancellin
 # See LICENSE file at <https://github.com/capytaine/capytaine>
 """Solver for the BEM problem.
 
@@ -13,22 +13,27 @@ import os
 import shutil
 import textwrap
 import logging
+from datetime import datetime
 
 import numpy as np
-
-from datetime import datetime
-from collections import defaultdict
-
 from rich.progress import track
 
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem
 from capytaine.bem.engines import BasicMatrixEngine
+from capytaine.bem.problems_checks import (
+    _check_wavelength_and_mesh_resolution,
+    _check_wavelength_and_water_depth,
+    _check_wavelength_and_irregular_frequencies,
+    _check_ram
+)
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.memory_monitor import MemoryMonitor
-from capytaine.tools.optional_imports import silently_import_optional_dependency
+from capytaine.tools.optional_imports import import_optional_dependency
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
 from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
 from capytaine.tools.timer import Timer
+from capytaine.ui.env_vars import look_for_boolean_var
+from capytaine.ui.error_messages import display_grouped_errors
 
 LOG = logging.getLogger(__name__)
 
@@ -96,7 +101,6 @@ class BEMSolver:
 
     def reset_timer(self):
         self.timer = Timer(default_tags={"process": 0})
-        self.solve = self.timer.wraps_function(step="Total solve function")(self._solve)
 
     def timer_summary(self):
         df = self.timer.as_dataframe()
@@ -128,33 +132,13 @@ class BEMSolver:
         raise NotImplementedError
 
     def _solve(self, problem, method=None, keep_details=True, _check_wavelength=True):
-        """Solve the linear potential flow problem.
-
-        Parameters
-        ----------
-        problem: LinearPotentialFlowProblem
-            the problem to be solved
-        method: string, optional
-            select boundary integral equation used to solve the problem.
-            It is recommended to set the method more globally when initializing the solver.
-            If provided here, the value in argument of `solve` overrides the global one.
-        keep_details: bool, optional
-            if True, store the sources and the potential on the floating body in the output object
-            (default: True)
-        _check_wavelength: bool, optional (default: True)
-            If True, the frequencies are compared to the mesh resolution and
-            the estimated first irregular frequency to warn the user.
-
-        Returns
-        -------
-        LinearPotentialFlowResult
-            an object storing the problem data and its results
-        """
+        """Called by BEMSolver.solve. See the documentation therein."""
         LOG.info("Solve %s.", problem)
 
         if _check_wavelength:
-            self._check_wavelength_and_mesh_resolution([problem])
-            self._check_wavelength_and_irregular_frequencies([problem])
+            _check_wavelength_and_mesh_resolution([problem])
+            _check_wavelength_and_water_depth([problem])
+            _check_wavelength_and_irregular_frequencies([problem])
 
         if isinstance(problem, DiffractionProblem) and float(problem.encounter_omega) in {0.0, np.inf}:
             raise ValueError("Diffraction problems at zero or infinite frequency are not defined")
@@ -219,6 +203,45 @@ class BEMSolver:
 
         return result
 
+    def solve(self, problem, method=None, keep_details=True, n_threads=None, _check_wavelength=True):
+        """Solve the linear potential flow problem.
+
+        Parameters
+        ----------
+        problem: LinearPotentialFlowProblem
+            the problem to be solved
+        keep_details: bool, optional
+            if True, store the sources and the potential on the floating body in the output object
+            (default: True)
+        n_threads: int, optional
+            the number of threads to use for the resolution.
+            Requires the optional package `threadpoolctl` to set.
+        _check_wavelength: bool, optional (default: True)
+            If True, the frequencies are compared to the mesh resolution and
+            the estimated first irregular frequency to warn the user.
+        method: str, optional
+            select boundary integral equation used to solve the problems.
+            It is recommended to set the method more globally when initializing the solver.
+            If provided here, the value in argument of `solve` overrides the global one.
+
+        Returns
+        -------
+        LinearPotentialFlowResult
+            an object storing the problem data and its results
+        """
+        # Thin wrapper around _solve adding the timer and the threading control
+        with self.timer(step="Total solve function"):
+            if n_threads is None:
+                return self._solve(problem, method=method, keep_details=keep_details, _check_wavelength=_check_wavelength)
+            else:
+                threadpoolctl = import_optional_dependency(
+                        "threadpoolctl",
+                        error_message=f"Setting the `n_threads` argument to {n_threads} with `n_jobs=1` requires the missing optional dependency 'threadpoolctl'."
+                        )
+                with threadpoolctl.threadpool_limits(limits=n_threads):
+                    return self._solve(problem, method=method, keep_details=keep_details, _check_wavelength=_check_wavelength)
+
+
     def _solve_and_catch_errors(self, problem, *args, _display_errors, **kwargs):
         """Same as BEMSolver.solve() but returns a
         FailedLinearPotentialFlowResult when the resolution failed."""
@@ -227,30 +250,9 @@ class BEMSolver:
         except Exception as e:
             res = problem.make_failed_results_container(e)
             if _display_errors:
-                self._display_errors([res])
+                display_grouped_errors([res])
         return res
 
-    @staticmethod
-    def _display_errors(results):
-        """Displays errors that occur during the solver execution and groups them according
-        to the problem type and exception type for easier reading."""
-        failed_results = defaultdict(list)
-        for res in results:
-            if hasattr(res, "exception") and hasattr(res, "problem"):
-                key = (type(res.exception), str(res.exception), res.problem.omega, res.problem.water_depth, res.problem.forward_speed)
-                failed_results[key].append(res.problem)
-
-        for (exc_type, exc_msg, omega, water_depth, forward_speed), problems in failed_results.items():
-            nb = len(problems)
-            if nb > 1:
-                if forward_speed != 0.0:
-                    LOG.warning("Skipped %d problems for body=%s, omega=%s, water_depth=%s, forward_speed=%s\nbecause of %s(%r)",
-                                nb, problems[0].body.__short_str__(), omega, water_depth, forward_speed, exc_type.__name__, exc_msg)
-                else:
-                    LOG.warning("Skipped %d problems for body=%s, omega=%s, water_depth=%s\nbecause of %s(%r)",
-                                nb, problems[0].body.__short_str__(), omega, water_depth, exc_type.__name__, exc_msg)
-            else:
-                LOG.warning("Skipped %s\nbecause of %s(%r)", problems[0], exc_type.__name__, exc_msg)
 
     def solve_all(self, problems, *, method=None, n_jobs=1, n_threads=None, progress_bar=None, _check_wavelength=True, _display_errors=True, **kwargs):
         """Solve several problems.
@@ -288,172 +290,76 @@ class BEMSolver:
             the solved problems
         """
         if _check_wavelength:
-            self._check_wavelength_and_mesh_resolution(problems)
-            self._check_wavelength_and_irregular_frequencies(problems)
+            _check_wavelength_and_mesh_resolution(problems)
+            _check_wavelength_and_water_depth(problems)
+            _check_wavelength_and_irregular_frequencies(problems)
 
-        self._check_ram(problems, n_jobs)
+        _check_ram(problems, self.engine, n_jobs)
 
         if progress_bar is None:
-            if "CAPYTAINE_PROGRESS_BAR" in os.environ:
-                env_var = os.environ["CAPYTAINE_PROGRESS_BAR"].lower()
-                if env_var in {'true', '1', 't'}:
-                    progress_bar = True
-                elif env_var in {'false', '0', 'f'}:
-                    progress_bar = False
-                else:
-                    raise ValueError("Invalid value '{}' for the environment variable CAPYTAINE_PROGRESS_BAR.".format(os.environ["CAPYTAINE_PROGRESS_BAR"]))
-            else:
-                progress_bar = True
+            progress_bar = look_for_boolean_var("CAPYTAINE_PROGRESS_BAR", default=True)
 
-        monitor = MemoryMonitor()
-        if n_jobs == 1:  # force sequential resolution
-            problems = sorted(problems)
-            if progress_bar:
-                problems = track(problems, total=len(problems), description="Solving BEM problems")
-            if n_threads is None:
-                results = [self._solve_and_catch_errors(pb, method=method, _display_errors=_display_errors, _check_wavelength=False, **kwargs) for pb in problems]
+        groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)  # or not parallel resolution
+
+        with MemoryMonitor():
+            if n_jobs == 1:  # force sequential resolution
+
+                def solve_single_pb(pb):
+                    return self._solve_and_catch_errors(pb, method=method, _display_errors=True,
+                                                        _check_wavelength=False, n_threads=n_threads, **kwargs)
+
+                if progress_bar:
+                    groups_of_problems = track(groups_of_problems, total=len(groups_of_problems), description="Solving BEM problems")
+
+                results = [solve_single_pb(pb) for group in groups_of_problems for pb in group]
+
             else:
-                threadpoolctl = silently_import_optional_dependency("threadpoolctl")
-                if threadpoolctl is None:
-                    raise ImportError(f"Setting the `n_threads` argument to {n_threads} with `n_jobs=1` requires the missing optional dependency 'threadpoolctl'.")
-                with threadpoolctl.threadpool_limits(limits=n_threads):
-                    results = [self._solve_and_catch_errors(pb, method=method, _display_errors=_display_errors, _check_wavelength=False, **kwargs) for pb in problems]
-        else:
-            joblib = silently_import_optional_dependency("joblib")
-            if joblib is None:
-                raise ImportError(f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'.")
-            groups_of_problems = LinearPotentialFlowProblem._group_for_parallel_resolution(problems)
-            with joblib.parallel_config(backend='loky', inner_max_num_threads=n_threads):
-                parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
-                groups_of_results = parallel(joblib.delayed(self._solve_all_and_return_timer)(grp, method=method, n_threads=None, progress_bar=False, _display_errors=False, _check_wavelength=False, **kwargs) for grp in groups_of_problems)
-            if progress_bar:
-                groups_of_results = track(groups_of_results,
-                                          total=len(groups_of_problems),
-                                          description=f"Solving BEM problems with {n_jobs} processes:")
-            results = []
-            process_id_mapping = {}
-            for grp_results, other_timer, process_id in groups_of_results:
-                results.extend(grp_results)
-                self._display_errors(grp_results)
-                if process_id not in process_id_mapping:
-                    process_id_mapping[process_id] = len(process_id_mapping) + 1
-                self.timer.add_data_from_other_timer(other_timer, process=process_id_mapping[process_id])
-        memory_peak = monitor.get_memory_peak()
-        if memory_peak is None:
-            LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
-        else:
-            LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")
+                joblib = import_optional_dependency(
+                    "joblib",
+                    error_message=f"Setting the `n_jobs` argument to {n_jobs} requires the missing optional dependency 'joblib'."
+                )
+
+                def solver_group_of_problems_in_other_process(group):
+                    # Meant to be called in another process by joblib's backend.
+
+                    self.reset_timer()
+                    # Timer data will be concatenated to the Timer of the main process.
+                    # We reset the timer at each call to avoid concatenating
+                    # the same data twice in the main process.
+
+                    group_results = [self._solve_and_catch_errors(
+                        pb,
+                        method=method,
+                        _display_errors=False,  # Will be displayed by the main process, see below
+                        _check_wavelength=False,  # Already checked, see above
+                        n_threads=None,  # Should be controlled by joblib outside of this function
+                        **kwargs
+                    ) for pb in group]
+
+                    return group_results, self.timer, os.getpid()
+
+                with joblib.parallel_config(backend='loky', inner_max_num_threads=n_threads):
+                    parallel = joblib.Parallel(return_as="generator", n_jobs=n_jobs)
+                    groups_of_results = parallel(joblib.delayed(solver_group_of_problems_in_other_process)(group) for group in groups_of_problems)
+
+                if progress_bar:
+                    # The progress bar is on the results iterator, because the inputs are consumed immediately by joblib
+                    groups_of_results = track(groups_of_results,
+                                              total=len(groups_of_problems),
+                                              description=f"Solving BEM problems with {n_jobs} processes:")
+
+                results = []
+                process_id_mapping = {}
+                for grp_results, other_timer, process_id in groups_of_results:
+                    results.extend(grp_results)
+                    display_grouped_errors(grp_results)
+                    if process_id not in process_id_mapping:
+                        process_id_mapping[process_id] = len(process_id_mapping) + 1
+                    self.timer.add_data_from_other_timer(other_timer, process=process_id_mapping[process_id])
+
         LOG.info("Solver timer summary (in seconds):\n%s", self.displayed_total_summary())
         return results
 
-    def _solve_all_and_return_timer(
-        self, grp, *,
-        method, n_threads,
-        progress_bar, _check_wavelength, **kwargs
-    ):
-        # This method is only called in joblib's Parallel loop.
-        # It contains some pre-processing and post-processing that
-        # should be done in each process when solving the batch of problems.
-
-        self.reset_timer()
-        # Timer data will be concatenated to the Timer of process 0.
-        # We reset the timer at each call to avoid concatenating
-        # the same data twice in the main process.
-
-        results = self.solve_all(
-            grp, method=method, n_jobs=1,
-            n_threads=n_threads, progress_bar=progress_bar,
-            _check_wavelength=_check_wavelength, **kwargs
-        )
-        return results, self.timer, os.getpid()
-
-    @staticmethod
-    def _check_wavelength_and_mesh_resolution(problems):
-        """Display a warning if some of the problems have a mesh resolution
-        that might not be sufficient for the given wavelength."""
-        LOG.debug("Check wavelength with mesh resolution.")
-        risky_problems = [pb for pb in problems
-                          if 0.0 < pb.wavelength < pb.body.minimal_computable_wavelength]
-        nb_risky_problems = len(risky_problems)
-        if any(pb.body.lid_mesh is not None for pb in problems):
-            mesh_str = "mesh or lid_mesh"
-        else:
-            mesh_str = "mesh"
-        if nb_risky_problems == 1:
-            pb = risky_problems[0]
-            freq_type = risky_problems[0].provided_freq_type
-            freq = pb.__getattribute__(freq_type)
-            LOG.warning(f"Mesh resolution for {pb}:\n"
-                        f"The resolution of the {mesh_str} of body {pb.body.__short_str__()} might "
-                        f"be insufficient for {freq_type}={freq}.\n"
-                        f"This warning appears because the largest panel of the {mesh_str} "
-                        f"has radius ({pb.body.mesh_including_lid.faces_radiuses.max():.3f} m) > wavelength/8 ({pb.wavelength / 8:.3f} m)."
-                        )
-        elif nb_risky_problems > 1:
-            freq_type = risky_problems[0].provided_freq_type
-            risky_freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
-            risky_wavelengths = np.array([pb.wavelength for pb in risky_problems])
-            max_radius = max(pb.body.mesh_including_lid.faces_radiuses.max() for pb in risky_problems)
-            LOG.warning(f"Mesh resolution for {nb_risky_problems} problems:\n"
-                        f"The resolution of the {mesh_str} might be insufficient "
-                        f"for {freq_type} ranging from {risky_freqs.min():.3f} to {risky_freqs.max():.3f}.\n"
-                        f"This warning appears because the largest panel of the {mesh_str} "
-                        f"has radius ({max_radius:.3f} m) > wavelength/8 ({risky_wavelengths.min() / 8:.3f} to {risky_wavelengths.max() / 8:.3f} m)."
-                        )
-
-    @staticmethod
-    def _check_wavelength_and_irregular_frequencies(problems):
-        """Display a warning if some of the problems might encounter irregular frequencies."""
-        LOG.debug("Check wavelength with estimated irregular frequency.")
-        risky_problems = [pb for pb in problems
-                          if pb.free_surface != np.inf and
-                          pb.body.first_irregular_frequency_estimate(g=pb.g) < pb.omega < np.inf]
-        nb_risky_problems = len(risky_problems)
-        if nb_risky_problems >= 1:
-            if any(pb.body.lid_mesh is None for pb in problems):
-                recommendation = "Setting a lid for the floating body is recommended."
-            else:
-                recommendation = "The lid might need to be closer to the free surface."
-            if nb_risky_problems == 1:
-                pb = risky_problems[0]
-                freq_type = risky_problems[0].provided_freq_type
-                freq = pb.__getattribute__(freq_type)
-                LOG.warning(f"Irregular frequencies for {pb}:\n"
-                            f"The body {pb.body.__short_str__()} might display irregular frequencies "
-                            f"for {freq_type}={freq}.\n"
-                            + recommendation
-                            )
-            elif nb_risky_problems > 1:
-                freq_type = risky_problems[0].provided_freq_type
-                freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
-                LOG.warning(f"Irregular frequencies for {nb_risky_problems} problems:\n"
-                            "Irregular frequencies might be encountered "
-                            f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
-                            + recommendation
-                            )
-
-    def _check_ram(self,problems, n_jobs = 1):
-        """Display a warning if the RAM estimation is larger than a certain limit."""
-        LOG.debug("Check RAM estimation.")
-        psutil = silently_import_optional_dependency("psutil")
-        if psutil is None:
-            ram_limit = 8
-        else :
-            ram_limit = psutil.virtual_memory().total / (1024**3) * 0.3
-
-        if n_jobs == - 1:
-            n_jobs = os.cpu_count()
-
-        estimated_peak_memory = n_jobs*max(self.engine.compute_ram_estimation(pb) for pb in problems)
-
-        if estimated_peak_memory < 0.5:
-            LOG.info("Estimated peak RAM usage: <1 GB.")
-
-        elif estimated_peak_memory < ram_limit:
-            LOG.info(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
-
-        else:
-            LOG.warning(f"Estimated peak RAM usage: {int(np.ceil(estimated_peak_memory))} GB.")
 
     def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, n_threads=None, _check_wavelength=True, progress_bar=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.

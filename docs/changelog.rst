@@ -191,7 +191,7 @@ Minor changes
   Using `mesh.with_quadrature('Gauss-Legendre 2')` can lead to slightly better results,
   although the limitation is often the geometric approximation of the shape by a flat panels mesh.
   (:pull:`847`)
-  
+
 * Add function :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force` to compute the horizontal mean drift forces using far field formulation.
   Only the single-direction second-order term is currently implemented.
 
@@ -199,6 +199,12 @@ Minor changes
   They can be replaced by just any mesh representation of the free surface and the methods :meth:`~capytaine.bem.solver.BEMSolver.compute_potential` and :meth:`~capytaine.bem.solvr.BEMSolver.compute_free_surface_elevation`.
 
 * Computing the pressure or free surface elevation in post-processing does not allocate a very large matrix for a single matrix-vector product, but instead allocate and evaluate only a few rows of the matrix at a time (:pull:`860`).
+
+* Warn the user if the ``water_depth`` would be better set to infinity than to a very large number (:pull:`880`).
+
+* **Breaking** Remove the `body_name` dimension from output dataset, and the possibility to automatically stack together outputs for different "bodies" (that is geometries) in the same dataset.
+  Now :func:`~capytaine.io.xarray.problems_from_dataset` and :meth:`~capytaine.bem.solver.fill_dataset` can only take a single body as input (or a list with a single element for backward compatibility).
+  This decision is meant to make it easier to output multibody hydrostatics, meshes data and local pressures in the output dataset. (:pull:`885`)
 
 
 Bug fixes
@@ -229,6 +235,9 @@ Bug fixes
 
 * Fix resolution warning message to include ``lid_mesh`` (:issue:`867` and :pull:`868`)
 
+* Progress bar display progress of groups of problems solved, not single problems, leading to more accurate time estimation (:pull:`882`)
+
+* The RAO used to be computed wrongly with the transpose of the actual transfer function. (:issue:`891` and :pull:`892`)
 
 Internals
 ~~~~~~~~~
@@ -260,6 +269,7 @@ Internals
   metadata are automatically updated accordingly. (:pull:`791`)
 
 * Move hydrostatics routines in a dedicated module and rewrite corresponding tests (:pull:`794`)
+  Change behavior of hydrostatic stiffness when no dof is defined: return an empty matrix rather than raising an error, in order to better fit in multibody cases (:pull:`883`).
 
 * Refactor the implementation of the timer to make it easier to include more steps (:pull:`809`)
 

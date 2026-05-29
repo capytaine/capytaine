@@ -16,7 +16,6 @@ class MemoryMonitor(Thread):
         self.stop = False
         self.memory_buffer = [0]
         self.psutil = silently_import_optional_dependency("psutil")
-        self.start()
 
     def get_memory(self):
         "Get memory of a process and its children."
@@ -37,9 +36,19 @@ class MemoryMonitor(Thread):
                 time.sleep(0.2)
 
     def get_memory_peak(self):
-        self.stop = True 
+        self.stop = True
         super().join()
         if self.psutil is None:
             return None
         else:
             return round(max(self.memory_buffer) / 1e9, 2)
+
+    def __enter__(self):
+        self.start()
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        memory_peak = self.get_memory_peak()
+        if memory_peak is None:
+            LOG.info("Actual peak RAM usage: Not measured since optional dependency `psutil` cannot be found.")
+        else:
+            LOG.info(f"Actual peak RAM usage: {memory_peak} GB.")

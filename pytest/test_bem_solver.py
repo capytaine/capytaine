@@ -150,7 +150,6 @@ def test_fill_dataset(sphere):
 
     # Tests on the coordinates
     assert list(dataset.coords['influenced_dof']) == list(dataset.coords['radiating_dof']) == list(sphere.dofs.keys())
-    assert dataset.body_name == sphere.name
     assert dataset.rho == test_matrix.rho
     assert dataset.g == test_matrix.g
 

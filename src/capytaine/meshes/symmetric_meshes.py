@@ -194,12 +194,13 @@ class ReflectionSymmetricMesh(AbstractMesh):
                         return_masks=False
                     )
 
+                all_meshes = [self, *meshes]
                 faces_metadata = {k: np.concatenate(
-                    [m.faces_metadata[k][:m.nb_faces//2] for m in chain([self], meshes)]
-                    + [m.faces_metadata[k][m.nb_faces//2:] for m in chain([self], meshes)],
+                    [m.faces_metadata[k][:m.nb_faces//2] for m in all_meshes]
+                    + [m.faces_metadata[k][m.nb_faces//2:] for m in all_meshes],
                     axis=0
                     )
-                                  for k in AbstractMesh._common_metadata_keys(*meshes)}
+                                  for k in AbstractMesh._common_metadata_keys(*all_meshes)}
 
                 joined_mesh = ReflectionSymmetricMesh(
                         half=joined_halves,

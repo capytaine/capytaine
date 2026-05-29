@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Literal
+from typing import Literal, List, Union, Tuple
 
 import numpy as np
 
@@ -35,6 +35,13 @@ class AbstractBody(ABC):
 
     name: str
 
+    @abstractmethod
+    def rename(self, name): ...
+
+    def __lt__(self, other: AbstractBody) -> bool:
+        """Arbitrary order. The point is to sort together the problems involving the same body."""
+        return self.name < other.name
+
     # --- Dof labelling (identical in both subclasses) ---
 
     def add_dofs_labels_to_vector(self, vector):
@@ -52,7 +59,7 @@ class AbstractBody(ABC):
     def __add__(self, body_to_add: AbstractBody) -> AbstractBody:
         return self.join_bodies(body_to_add)
 
-    def join_bodies(*bodies, name=None) -> AbstractBody:
+    def join_bodies(*bodies, name=None) -> Multibody:  # noqa: F821
         from capytaine.bodies.multibodies import Multibody
         return Multibody(bodies, name=name)
 
@@ -60,9 +67,6 @@ class AbstractBody(ABC):
 
     @abstractmethod
     def integrate_pressure(self, pressure): ...
-
-    @abstractmethod
-    def immersed_part(self, *args, **kwargs) -> AbstractBody: ...
 
     @abstractmethod
     def minimal_computable_wavelength(self): ...
@@ -116,6 +120,9 @@ class AbstractBody(ABC):
 
     @abstractmethod
     def clipped(self, *, origin, normal, name=None) -> AbstractBody: ...
+
+    @abstractmethod
+    def immersed_part(self, free_surface=0.0, *, sea_botton=None, water_depth=None, name=None) -> AbstractBody: ...
 
     @abstractmethod
     def copy(self, name=None) -> AbstractBody: ...
