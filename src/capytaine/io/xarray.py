@@ -427,7 +427,7 @@ def assemble_dataset(results,
         radiation_cases = _dataset_from_dataframe(
             records[records['kind'] == "RadiationResult"],
             variables=['added_mass', 'radiation_damping'],
-            dimensions=[main_freq_type, 'radiating_dof', 'influenced_dof'],
+            dimensions=[main_freq_type, 'influenced_dof', 'radiating_dof'],
             optional_dims=optional_dims + ['wave_direction'])
         dataset = xr.merge([dataset, radiation_cases], compat="no_conflicts", join="outer")
 
@@ -544,9 +544,26 @@ def assemble_matrices(results):
     3-ple of (np.arrays or None)
         The added mass matrix, the radiation damping matrix and the excitation force.
         If the data are no available in the results, returns None instead.
+
+        The matrices are ordered along their frequency axis in the same order as
+        the frequencies appear in ``results``, rather than sorted by increasing
+        frequency as in the dataset returned by :func:`assemble_dataset`.
     """
 
     ds = assemble_dataset(results)
+
+    # `assemble_dataset` sorts the frequencies by increasing value. For the bare
+    # matrices, reorder the frequency axis to match the order in which the
+    # frequencies appear in `results`, which is less surprising when the matrices
+    # are read without the labelled coordinates of the dataset.
+    # See https://github.com/capytaine/capytaine/issues/797
+    freq_type = next(
+        (ft for ft in ('omega', 'freq', 'period', 'wavelength', 'wavenumber') if ft in ds.dims),
+        None,
+    )
+    if freq_type is not None:
+        ordered_freqs = list(dict.fromkeys(getattr(result, freq_type) for result in results))
+        ds = ds.sel({freq_type: ordered_freqs})
 
     if "added_mass" in ds:
         A = np.atleast_2d(ds.added_mass.values.squeeze())

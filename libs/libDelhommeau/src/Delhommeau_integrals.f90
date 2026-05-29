@@ -145,25 +145,31 @@ contains
 
   pure function asymptotic_approximations(r, z) result(integrals)
     ! Evaluate the wave part of legacy's Delhommeau Green function
-    ! using an approximate expression for large r and |z|
+    ! using an approximate expression for large r or |z|
     real(kind=pre), intent(in) :: r
     real(kind=pre), intent(in) :: z
 
     real(kind=pre), dimension(nb_tabulated_values) :: integrals
 
-    real(kind=pre) :: r1, expz_sqr, sin_kr, cos_kr
+    real(kind=pre) :: one_over_r, one_over_r1, expz_sqr, sin_kr, cos_kr
 
-    r1 = hypot(r, z)
+    ! The expressions below are undefined for r = 0.
+    ! Since they are meant to be used only when either r or z is large,
+    ! taking r = 0 or r = 1e-10 should make no difference.
+    one_over_r = 1/MAX(r, 1e-10)
 
-    expz_sqr = exp(z) * sqrt(2*pi/r)
+    one_over_r1 = 1/hypot(r, z)
+
+    expz_sqr = exp(z) * sqrt(2*pi*one_over_r)
+
     cos_kr  = cos(r - pi/4)
     sin_kr  = sin(r - pi/4)
 
-    integrals(1) = -expz_sqr*sin_kr + z/r1**3 - 1/r1
-    integrals(2) = -expz_sqr*sin_kr + z/r1**3
+    integrals(1) = -expz_sqr*sin_kr + z*one_over_r1**3 - one_over_r1
+    integrals(2) = -expz_sqr*sin_kr + z*one_over_r1**3
     integrals(3) =  expz_sqr*cos_kr
-    integrals(4) = -expz_sqr*(cos_kr - sin_kr/(2*r)) + r/r1**3
-    integrals(5) = -expz_sqr*(sin_kr + cos_kr/(2*r))
+    integrals(4) = -expz_sqr*(cos_kr - sin_kr*one_over_r/2) + r*one_over_r1**3
+    integrals(5) = -expz_sqr*(sin_kr + cos_kr*one_over_r/2)
     integrals(:) = 2*integrals(:)
 
   end function asymptotic_approximations
