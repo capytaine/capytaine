@@ -12,7 +12,7 @@ from capytaine.bem.airy_waves import (
     airy_waves_velocity,
     froude_krylov_force,
 )
-from capytaine.bodies.dofs import AbstractDof
+from capytaine.bodies.dofs import TranslationDof, RotationDof
 from capytaine.meshes.geometry import compute_faces_normals
 from capytaine.bem.problems_and_results import DiffractionResult, RadiationResult
 
@@ -96,13 +96,13 @@ def near_field_mean_drift_force(rao, results, solver):
     zero_block = np.zeros((nb_dir, 3, 3))
     zero_33 = zero_block[0, ...]
 
-    translation = rao.sel(radiating_dof=["Surge", "Sway", "Heave"]).values[0, :, :] # translation[i_dir, xyz]
-    rotation = rao.sel(radiating_dof=["Roll", "Pitch", "Yaw"]).values[0, :, :] # rotation[i_dir, xyz]
+    translation = rao.sel(radiating_dof=[dof_name for dof_name, dof in body.dofs.items() if isinstance(dof, TranslationDof)]).values[0, :, :] # translation[i_dir, xyz]
+    rotation = rao.sel(radiating_dof=[dof_name for dof_name, dof in body.dofs.items() if isinstance(dof, RotationDof)]).values[0, :, :] # rotation[i_dir, xyz]
     translation_matrix = np.block([[zero_block, zero_block], [skew_matrix(translation), zero_block]])
     rotation_matrix = np.block([[skew_matrix(rotation), zero_block], [zero_block, skew_matrix(rotation)]])
 
     z0 = np.tile(mesh.faces_centers[:, -1], (nb_dir, 1))
-    motion = motion_order1(mesh.faces_centers, translation, rotation) # motion[i_dir, i_face, xyz]
+    motion = motion_order1(mesh.faces_centers, body, rao) # motion[i_dir, i_face, xyz]
     z1 = motion[:, :, -1] # z1[i_dir, i_face]
     forces_order0 = hydrostatics_forces(body, rao, rho, g, z0)[0, ...] # same value for all wave directions at order 0 
     forces_order1 = hydrodynamics_forces_order1(results, rao) + hydrostatics_forces(body, rao, rho, g, z1) # forces_order1[i_dir, influenced_dof]
@@ -113,7 +113,7 @@ def near_field_mean_drift_force(rao, results, solver):
     edges_waterline = mesh.edges_waterline
     vertices_middle_waterline = (mesh.vertices[edges_waterline[:, 0], :] + mesh.vertices[edges_waterline[:, 1], :]) / 2
     free_surface_elevation = total_free_surface_elevation(solver, vertices_middle_waterline, results, rao) # free_surface_elevation[i_dir, i_vertex_waterline]
-    vertical_position = motion_order1(vertices_middle_waterline, translation, rotation)[:, :, -1] # vertical_position[i_dir, i_vertex_waterline]
+    vertical_position = motion_order1(vertices_middle_waterline, body, rao)[:, :, -1] # vertical_position[i_dir, i_vertex_waterline]
 
     F = np.full((nb_dir, nb_dir, 6), np.nan + 1j*np.nan, dtype=complex) 
     for k in range(nb_dir):
@@ -134,9 +134,6 @@ def near_field_mean_drift_force(rao, results, solver):
 
             F[k, l, :] = rotation_forces_order1 + hydrostatics_order2 + translation_moment + rho * (np.array(list(pressure_hull.values())) + np.array(list(pressure_waterline.values())))
             F[l, k, :] = np.conjugate(F[k, l, :])
-
-    for k in range(nb_dir):
-        F[k, k, :] = np.real(F[k, k, :]) # real in theory but complex due to floating point round-off errors
     
     return xr.DataArray(
         data=F/2,
@@ -148,10 +145,8 @@ def near_field_mean_drift_force(rao, results, solver):
         }
     )
 
-def motion_order1(points, translation, rotation):
-    results = translation[:, None, :] + np.cross(rotation[:, None, :], points[None, :, :])
-    # results[i_dir, i_face, xyz] = translation[i_dir, xyz] + cross(rotation[i_dir, xyz], point[i_face, xyz])
-    return results
+def motion_order1(points, body, rao):
+    return np.sum(rao.sel(radiating_dof=dof).values[0,:,None,None] * body.dofs[dof].evaluate_motion_at_points(points) for dof in body.dofs)
 
 def total_potential_gradient(solver, mesh, results, rao):
     potential_gradient = xr.DataArray(
@@ -253,8 +248,7 @@ def skew_matrix(a):
 def integrate_pressure_waterline(body, pressure):
         forces = {}
         normal = compute_faces_normals(body.mesh.vertices, body.mesh.faces_waterline)
-        normal[:, -1] = 0
-        normal_waterline = normal/np.linalg.norm(normal[:, :2], ord=2, axis=1, keepdims=True)
+        normal_waterline = normal/np.sqrt(1-normal[:, -1]**2)[:, None] # normal_waterline[i_edge_waterline, xyz]
         vertex_waterline = (
         body.mesh.vertices[body.mesh.edges_waterline[:, 0], :]
         + body.mesh.vertices[body.mesh.edges_waterline[:, 1], :]
