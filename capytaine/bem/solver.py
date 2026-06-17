@@ -326,36 +326,35 @@ class BEMSolver:
                                  f"does not match the expected shape ({(problem.nb_faces_body,)})")
             # lid potentials
             potential_M = 2 * (-D_MN @ potential_N + S_MN @ qb_N)
-            # potential_M /= -2 # TODO
-            potential_M /= 2 # TODO
+            potential_M /= 2 # TODO -2?
             vertical_gradient = problem.omega**2/problem.g * potential_M
             sources = None
         else:
-            # raise NotImplementedError("Indirect method for fixed OWC not implemented.")
-            with self.timer["  Green function"]:
-                S, K = self.engine.build_matrices(
-                        problem.body.mesh_including_lid, problem.body.mesh_including_lid,
-                        problem.free_surface, problem.water_depth, problem.wavenumber,
-                        self.green_function, adjoint_double_layer=True
-                        )
-            # N cells on rigid body, M cells on internal free surface
-            N = problem.nb_faces_body
-            qb_N = problem.boundary_condition
-            # S_NM = S[:N, N:]
-            # S_NN = S[:N, :N]
-            S_MN = S[N:, :N]
-            # S_MM = S[N:, N:]
-            # K_NM = K[:N, N:]
-            K_NN = K[:N, :N]
-            # K_MN = K[N:, :N]
-            # K_MM = K[N:, N:]
-            with self.timer["  Linear solver"]:
-                sources = linear_solver(K_NN, qb_N)
-            if not sources.shape == (problem.nb_faces_body,):
-                raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({sources.shape}) "
-                                 f"does not match the expected shape ({problem.boundary_condition.shape})")
-            potential_M = S_MN @ sources
-            vertical_gradient = problem.omega**2/problem.g * potential_M
+            raise NotImplementedError("Indirect method for fixed OWC not implemented.")
+            # with self.timer["  Green function"]:
+            #     S, K = self.engine.build_matrices(
+            #             problem.body.mesh_including_lid, problem.body.mesh_including_lid,
+            #             problem.free_surface, problem.water_depth, problem.wavenumber,
+            #             self.green_function, adjoint_double_layer=True
+            #             )
+            # # N cells on rigid body, M cells on internal free surface
+            # N = problem.nb_faces_body
+            # qb_N = problem.boundary_condition
+            # # S_NM = S[:N, N:]
+            # # S_NN = S[:N, :N]
+            # S_MN = S[N:, :N]
+            # # S_MM = S[N:, N:]
+            # # K_NM = K[:N, N:]
+            # K_NN = K[:N, :N]
+            # # K_MN = K[N:, :N]
+            # # K_MM = K[N:, N:]
+            # with self.timer["  Linear solver"]:
+            #     sources = linear_solver(K_NN, qb_N)
+            # if not sources.shape == (problem.nb_faces_body,):
+            #     raise ValueError(f"Error in linear solver of {self.engine}: the shape of the output ({sources.shape}) "
+            #                      f"does not match the expected shape ({problem.boundary_condition.shape})")
+            # potential_M = S_MN @ sources
+            # vertical_gradient = problem.omega**2/problem.g * potential_M
 
 
         # volumetric flow in the chamber
