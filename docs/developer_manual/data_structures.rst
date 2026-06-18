@@ -19,7 +19,7 @@ An array storing a data field on the mesh is organised such that the first half 
 Taking advantage of the symmetries in the resolution requires the matrices to have a block circulant structure that would be too inconvenient to implement if the reference faces and the symmetric faces were ordered in a different way.
 
 
-.. raw::
+::
 
     |  half 1    |   half 2   |
 
@@ -34,7 +34,7 @@ Assume a FloatingBody defined with a hull mesh and a lid mesh:
 
 In general, the lid are the last panels of the boundary condition, but this will not be the case in the following more complicated cases, so to access only the panels on the hull, the attribute ``hull_masks``, stored as a boolean array, should be used.
 
-.. raw::
+::
 
                |  hull      |  lid  |
     dof:       |------------|
@@ -48,7 +48,7 @@ Body with lid and symmetry
 
 For a single body with a lid and symmetry, the last panels are always the symmetric part, so the data about the lid panels are distributed in the array:
 
-.. raw::
+::
 
                |  hull      |   lid   |  sym hull  | sym lid |
     dof:       |------------|         |------------|
@@ -63,7 +63,7 @@ Multibody
 For multibodies, the dofs in ``Multibody.dofs`` are stored in arrays of the length of the total number of panels of the mesh of all bodies, possibly using the ``DofOnSubmesh`` class.
 
 
-.. raw::
+::
 
                |  hull 1    |   hull2    |
     dof body 1:|------------|            |
@@ -82,7 +82,8 @@ Multibody with symmetry
 For multiple bodies composed of symmetric bodies
 
 
-.. raw::
+::
+
                |  hull 1    |   hull2    | sym hull 1 | sym hull 2 |
     dof body 1:|------------|            |------------|
     dof body 2:             |------------|            |------------|
@@ -96,7 +97,8 @@ For multiple bodies composed of symmetric bodies
 Multibody with lid
 ------------------
 
-.. raw::
+::
+
                |  hull 1    |  lid 1 |  hull2    | lid 2 |
     dof body 1:|------------|
     dof body 2:                      |-----------|
@@ -114,7 +116,8 @@ Multibody with lid
 Multibody with lid and symmetry
 -------------------------------
 
-.. raw::
+::
+
                |  hull 1    | hull 2     | lid 1     | lid 2     | sym hull 1 | sym hull 2 | sym lid 1 | sym lid 2 |
     dof body 1:|------------|                                    |------------|
     dof body 2:             |------------|                                    |------------|
