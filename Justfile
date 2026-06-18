@@ -166,8 +166,8 @@ test_fortran_compilation:
     meson setup --wipe {{TEMP_DIR}}/build && meson compile -C {{TEMP_DIR}}/build -j 1
 
 
+# Warning: uncommitted changes might be ignored
 build_docs:
-    rm -rf docs/_build
     uv run \
         --isolated \
         --no-editable --with "capytaine[optional,more_visualisation] @ ." --refresh-package="capytaine" \
