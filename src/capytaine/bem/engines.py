@@ -136,8 +136,9 @@ class BasicMatrixEngine(MatrixEngine):
         points: np.ndarray of shape (nb_collocations_points, 3)
             List of collocation points. Usually went through `_normalize_points`.
         """
+        full_mesh = mesh.merged()
         def build_S_rows(slice_):
-            S, _ = self.green_function.evaluate(points[slice_, :], mesh.merged(), **gf_params)
+            S, _ = self.green_function.evaluate(points[slice_, :], full_mesh, **gf_params)
             check_if_nan_in_matrix([S])
             return S
 
@@ -148,7 +149,7 @@ class BasicMatrixEngine(MatrixEngine):
         else:
             return LazyMatrix(
                 build_S_rows,
-                shape=(points.shape[0], mesh.merged().nb_faces),
+                shape=(points.shape[0], mesh.nb_faces),
                 dtype=complex,
                 chunk_size=100
             )
