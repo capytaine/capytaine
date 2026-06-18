@@ -29,7 +29,7 @@ def ending_dimensions_at_the_beginning(a):
 
 
 class BlockCirculantMatrix:
-    """Data-sparse representation of a block matrix of the following form
+    """Data-sparse representation of a block matrix of the following form::
 
         ( a  d  c  b )
         ( b  a  d  c )
@@ -223,12 +223,13 @@ class NestedBlockCirculantMatrix:
     def to_BlockCirculantMatrix(self):
         """Convert to a BlockCirculantMatrix with combined macro-blocks.
 
-        The NestedBlockCirculantMatrix with blocks [a, b, c, d, e, f, ...]
-        (where nb_blocks = 2*n) is converted to a BlockCirculantMatrix with n macro-blocks.
+        The NestedBlockCirculantMatrix with blocks ``[a, b, c, d, e, f, ...]``
+        (where ``nb_blocks = 2*n``) is converted to a BlockCirculantMatrix with n macro-blocks.
 
         Each macro-block i (for i in 0..n-1) is a 2x2 arrangement of the original blocks:
-        - For i=0: [[blocks[0], blocks[1]], [blocks[1], blocks[0]]]
-        - For i>0: [[blocks[2*i], blocks[2*n-2*i+1]], [blocks[2*i+1], blocks[2*n-2*i]]]
+
+        * For i=0: ``[[blocks[0], blocks[1]], [blocks[1], blocks[0]]]``
+        * For i>0: ``[[blocks[2*i], blocks[2*n-2*i+1]], [blocks[2*i+1], blocks[2*n-2*i]]]``
         """
         n = self.nb_blocks // 2
 
@@ -291,7 +292,7 @@ class NestedBlockCirculantMatrix:
 
 
 class BlockDiagonalMatrix:
-    """Data-sparse representation of a block matrix of the following form
+    """Data-sparse representation of a block matrix of the following form::
 
         ( a  0  0  0 )
         ( 0  b  0  0 )

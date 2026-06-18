@@ -167,9 +167,10 @@ test_fortran_compilation:
 
 
 build_docs:
+    rm -rf docs/_build
     uv run \
         --isolated \
-        --no-editable --with "capytaine[optional,more_visualisation] @ ." \
+        --no-editable --with "capytaine[optional,more_visualisation] @ ." --refresh-package="capytaine" \
         --group docs \
         -- \
         make --directory="./docs/"

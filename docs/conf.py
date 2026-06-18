@@ -20,11 +20,13 @@
 # the autodoc
 from capytaine import __version__
 
+import capytaine
+print(capytaine.__file__)
 
 # -- Project information -----------------------------------------------------
 
 project = 'capytaine'
-copyright = '2024, Matthieu Ancellin'
+copyright = '2026, Capytaine developpers'
 author = 'Matthieu Ancellin'
 
 # The short X.Y version
