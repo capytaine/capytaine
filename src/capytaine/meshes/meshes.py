@@ -302,11 +302,13 @@ class Mesh(AbstractMesh):
         Parameters
         ----------
         list_faces : list of list of list of float
-            Each face is defined by a list of 3D coordinates. For example:
-            [
-                [[x1, y1, z1], [x2, y2, z2], [x3, y3, z3]],
-                [[x4, y4, z4], [x5, y5, z5], [x6, y6, z6]]
-            ]
+            Each face is defined by a list of 3D coordinates. For example::
+
+                [
+                    [[x1, y1, z1], [x2, y2, z2], [x3, y3, z3]],
+                    [[x4, y4, z4], [x5, y5, z5], [x6, y6, z6]]
+                ]
+
         faces_metadata: Optional[Dict[str, np.ndarray]]
         name: str, optional
             A name for the new mesh.
@@ -353,11 +355,13 @@ class Mesh(AbstractMesh):
         Returns
         -------
         list of list of list of float
-            Each face is defined by a list of 3D coordinates. For example:
-            [
-                [[x1, y1, z1], [x2, y2, z2], [x3, y3, z3]],
-                [[x4, y4, z4], [x5, y5, z5], [x6, y6, z6]]
-            ]
+            Each face is defined by a list of 3D coordinates. For example::
+
+                [
+                    [[x1, y1, z1], [x2, y2, z2], [x3, y3, z3]],
+                    [[x4, y4, z4], [x5, y5, z5], [x6, y6, z6]]
+                ]
+
         """
         list_faces = []
         for face in self._faces:

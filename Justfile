@@ -169,7 +169,7 @@ test_fortran_compilation:
 build_docs:
     uv run \
         --isolated \
-        --no-editable --with "capytaine[optional] @ ." \
+        --no-editable --with "capytaine[optional,more_visualisation] @ ." \
         --group docs \
         -- \
         make --directory="./docs/"

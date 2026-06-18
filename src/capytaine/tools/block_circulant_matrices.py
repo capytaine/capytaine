@@ -150,7 +150,7 @@ class BlockCirculantMatrix:
 
 
 class NestedBlockCirculantMatrix:
-    """Data-sparse representation of a block matrix of the following form
+    """Data-sparse representation of a block matrix of the following form::
 
        ( a  b | e  d | c  f )
        ( b  a | f  c | d  e )
@@ -165,7 +165,7 @@ class NestedBlockCirculantMatrix:
     that is a block circulant matrix (here of size 3x3, but arbitrary outer sizes are supported),
     where diagonal blocks are 2x2 block circulant matrices and off-diagonal blocks have subblocks in common.
 
-    Reordering the lines and columns, this matrix is equivalent to the following shape
+    Reordering the lines and columns, this matrix is equivalent to the following shape::
 
        ( a  e  c | b  d  f )
        ( c  a  e | f  b  d )
@@ -177,7 +177,7 @@ class NestedBlockCirculantMatrix:
 
     that is a 2x2 block matrix of block circulant matrices, the block circulant matrices of the bottom row being the transpose of the block circulant matrices of the top row.
 
-    In the 2x2x2x2 limit case, the matrix is a nested block circulant matrix
+    In the 2x2x2x2 limit case, the matrix is a nested block circulant matrix::
 
        ( a  b | c  d )
        ( b  a | d  c )
@@ -185,7 +185,7 @@ class NestedBlockCirculantMatrix:
        ( c  d | a  b )
        ( d  c | b  a )
 
-    The 4x4x2x2 pattern reads
+    The 4x4x2x2 pattern reads::
 
        ( a  b | g  d | e  f | c  h )
        ( b  a | h  c | f  e | d  g )
