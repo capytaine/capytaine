@@ -91,52 +91,6 @@ For convenience, the radiation and diffraction data have been stored in separate
 Since this export method poorly supports complex number, the :func:`separate_complex_values <capytaine.io.xarray.separate_complex_values>` has been used to transform them to a pair of real numbers, as discussed for NetCDF export above.
 
 
-Saving the rotation center of rigid bodies in NetCDF files
-----------------------------------------------------------
-
-Saving rotation hydrodynamic coefficients without explicitly defining the rotation axes can be ambiguous and can lead to confusion downstream.
-While this is not done automatically by Capytaine at the moment, it can be added to the dataset manually.
-The example below, which is an extension of the :doc:`quickstart` example, saves the rotation centers of a multibody problem in a way that is understood notably by `BEMRosetta <https://github.com/BEMRosetta/BEMRosetta>`_::
-
-  import numpy as np
-  import xarray as xr
-  import capytaine as cpt
-
-  body_1 = cpt.FloatingBody(
-              mesh=cpt.mesh_sphere(center=(0, 0, 0)),
-              dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
-              center_of_mass=(0, 0, 0),
-              name="my_sphere",
-          )
-  body_1.inertia_matrix = body_1.compute_rigid_body_inertia()
-  body_1.hydrostatic_stiffness = body_1.immersed_part().compute_hydrostatic_stiffness()
-  # If you have several rigid bodies, copy the code above to define "body_2", "body_3", etc.
-
-  list_of_bodies = [body_1]  # Replace "[body_1]" by "[body_1, body_2, body_3]" for multibody problem.
-
-  all_bodies = cpt.FloatingBody.join_bodies(*list_of_bodies).immersed_part()
-
-  # Set up parameters
-  test_matrix = xr.Dataset({
-          "omega": np.linspace(0.1, 2.0, 20),  # Can also specify "period", "wavelength" or "wavenumber"
-          "wave_direction": np.linspace(0, np.pi, 3),
-          "radiating_dof": list(all_bodies.dofs),
-          })
-
-  # Do the resolution
-  solver = cpt.BEMSolver()
-  dataset = solver.fill_dataset(test_matrix, all_bodies)
-
-  dataset.coords["rigid_body_component"] = [body.name for body in list_of_bodies]
-  dataset["rotation_center"] = (["rigid_body_component", "point_coordinates"], [body.rotation_center for body in list_of_bodies])
-  dataset["center_of_mass"] = (["rigid_body_component", "point_coordinates"], [body.center_of_mass for body in list_of_bodies])
-
-  # Export to NetCDF file
-  cpt.export_dataset("dataset.nc", dataset, format="netcdf")
-
-The support for this in Capytaine should be improved in the future.
-
-
 Saving the hydrostatics data of rigid body(ies) in Nemoh's format
 -----------------------------------------------------------------
 
