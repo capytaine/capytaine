@@ -149,6 +149,7 @@ Finally, for :math:`x` in the bulk of the fluid, one has
 
     :math:`G` is in m¯¹.
 
+TODO: discuss direct method as in [AN24]_
 
 Discretization
 ==============

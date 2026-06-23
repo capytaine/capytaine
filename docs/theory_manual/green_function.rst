@@ -16,39 +16,43 @@ Green function's Hankel form
 The infinite depth Green function takes the following form
 
 .. math::
-   G(\xi, x) = - \frac{1}{4 \pi} \left( \frac{1}{\|x - \xi\|} + k \mathcal{G}\left(k \sqrt{(x_1 - \xi_1)^2 + (x_2 - \xi_2)^2}, k (x_3 + \xi_3) \right) \right)
+   -4\pi G(x, \xi) = \frac{1}{\|x - \xi\|} + k \mathcal{G}\left(k \sqrt{(x_1 - \xi_1)^2 + (x_2 - \xi_2)^2}, k (x_3 + \xi_3) \right)
    :label: green_function_inf_depth
 
 The first term of :math:`G` is the usual Green function for the 3D Laplace equation without our specific boundary conditions.
-The :math:`\mathcal{G}` term is complex-valued and it is introduced to satisfy the boundary conditions :eq:`bc_fs`.
+The wave term :math:`\mathcal{G}` is complex-valued and it is introduced to satisfy the boundary conditions :eq:`bc_fs`.
 
 .. prf:property::
+   Symmetries
+
    The infinite depth Green function :math:`G` is scaling-invariant in the sense of
 
    .. math::
 
         \forall x, \xi, \quad G(x, \xi, k) = G(k \xi, k x, 1).
 
-   as well as symmetric in the sense of
+   (hence the dependency to :math:`k` will never be explicitly written in the following formulas)
+
+   It is also symmetric in the sense of
 
    .. math::
 
         \forall x, \xi, \quad G(x, \xi) = G(\xi, x).
 
-   The first term of :eq:`green_function_inf_depth` is invariant under all rotations and translations, whereas the other terms are invariant under isometric transformations that don't change the vertical coordinate (reflection across a vertical plane, rotation around a vertical axis, translation following an horizontal vector).
+   The first term of :eq:`green_function_inf_depth` is invariant under all rotations and translations, whereas the wave term is invariant under isometric transformations that don't change the vertical coordinate (reflection across a vertical plane, rotation around a vertical axis, translation following an horizontal vector).
 
-Introducing the dimensionless variables :math:`r = k \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2}` and :math:`z = k (x_3 + \xi_3)`, the wave term reads in its usual `Hankel transform` form:
+Introducing the dimensionless variables :math:`r = k \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2}` and :math:`z = k (x_3 + \xi_3)`, the wave term in its usual `Hankel transform` form reads:
 
 .. math::
     \mathcal{G}(r, z) = \frac{1}{k} \int_0^\infty \frac{\kappa + k}{\kappa - k} \exp \left(\kappa z \right) J_0 \left(\kappa r \right) d \kappa
     :label: green_function_inf_depth_hankel_form
 
+where :math:`J_0` is the Bessel function of the first kind.
 The integrand above is singular for :math:`\kappa = k`.
 Avoiding the singularity with a proper integral path avoiding the singularity in the complex plane leads to
 
 .. math::
-    \mathcal{G}(r, z) & = \frac{1}{k} \mathop{PV} \int_0^\infty \frac{\kappa + k}{\kappa - k} \exp \left(\kappa z \right) J_0 \left(\kappa r \right) d \kappa
-    & \qquad \qquad \qquad \qquad + 2 \pi i e^{z} J_0(r)
+    \mathcal{G}(r, z) = \frac{1}{k} \mathop{PV} \int_0^\infty \frac{\kappa + k}{\kappa - k} \exp \left(\kappa z \right) J_0 \left(\kappa r \right) d \kappa + 2 \pi i e^{z} J_0(r)
 
 where :math:`\mathop{PV}` stands for the principal value of the integral.
 
@@ -56,17 +60,18 @@ Singularities extraction
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. prf:lemma::
+    Lipschitz integral
    :label: lipschitz-integral
-
-    Lipschitz integral:
 
     .. math::
        \frac{1}{\sqrt{r^2 + z^2}} = \int_0^\infty \exp \left(\kappa z \right) J_0 \left(\kappa r \right) d \kappa
 
+    (see e.g. https://mathworld.wolfram.com/LipschitzsIntegral.html):
+
 Using the Lipschitz integral, the wave part of the infinite depth Green function can be rewritten as:
 
 .. math::
-    \mathcal{G}(r, z) & = \frac{1}{\sqrt{\tilde{r}^2 + \tilde{z}^2}} + \frac{2}{k} \int_0^\infty \frac{k}{\kappa - k} \exp \left(\kappa z \right) J_0 \left(\kappa r \right) d \kappa
+    \mathcal{G}(r, z) & = \frac{1}{\sqrt{\tilde{r}^2 + \tilde{z}^2}} + \frac{2}{k} \int_0^\infty \frac{k}{\kappa - k} \exp \left(\kappa z \right) J_0 \left(\kappa r \right) d \kappa \\
                       & = \frac{1}{\sqrt{\tilde{r}^2 + \tilde{z}^2}} + \mathcal{G}^+(r, z)
     :label: green_function_inf_depth_hankel_form_low_freq
 
@@ -78,8 +83,8 @@ that is
 where :math:`S_0(\xi)` is the reflection of :math:`\xi` across the free surface :math:`S_0(\xi) = (\xi_1, \xi_2, -\xi_3)`.
 
 The newly introduced term is a similar to the Rankine term :math:`\frac{1}{|x - \xi|}` except one point has been mirrored across the free surface, and is thus referred to as the `reflected Rankine term`.
-It is singular when `x = S_0(\xi)`, which only appends when computing the interaction of a panel horizontal on the free surface with itself.
-Note that for horizontal panels on the free surface, there is another singularity in :math:`\mathcal{G}^+(kr, kz)` which needs to be handled.
+It is singular when :math:`x = S_0(\xi)`, which only appends when computing the interaction of a panel horizontal on the free surface with itself.
+Note that for horizontal panels on the free surface, there is another logarithmic singularity in :math:`\mathcal{G}^+(kr, kz)` which needs to be handled.
 
 .. note::
    For convenience, the reflected Rankine term :math:`\frac{1}{|x - S_0(\xi)|}` can also be written as :math:`\frac{1}{|S_0(x) - \xi|}`.
@@ -88,14 +93,14 @@ Note that for horizontal panels on the free surface, there is another singularit
 Alternatively, the Lipschitz integral can also be used to rewrite :eq:`green_function_inf_depth_hankel_form` as
 
 .. math::
-    \mathcal{G}(r, z) & = - \frac{1}{\sqrt{\tilde{r}^2 + \tilde{z}^2}} + \frac{2}{k} \int_0^\infty \frac{\kappa}{\kappa - k} \exp \left(\kappa z \right) J_0 \left(\kappa r \right) d \kappa
+    \mathcal{G}(r, z) & = - \frac{1}{\sqrt{\tilde{r}^2 + \tilde{z}^2}} + \frac{2}{k} \int_0^\infty \frac{\kappa}{\kappa - k} \exp \left(\kappa z \right) J_0 \left(\kappa r \right) d \kappa \\
                       & = - \frac{1}{\sqrt{\tilde{r}^2 + \tilde{z}^2}} + \mathcal{G}^-(r, z)
     :label: green_function_inf_depth_hankel_form_high_freq
 
 that is
 
 .. math::
-   -4 \pi G(x, \xi) = \frac{1}{|x - \xi|} - \frac{1}{|x - s(\xi)|} + k \, \mathcal{G}^-(kr, kz)
+   -4 \pi G(x, \xi) = \frac{1}{|x - \xi|} - \frac{1}{|x - S_0(\xi)|} + k \, \mathcal{G}^-(kr, kz)
 
 
 The notation :math:`\mathcal{G}^-` and :math:`\mathcal{G}^+` are based on the one from [X18]_.
@@ -127,7 +132,7 @@ As discussed in [A24]_, working with the low-frequency variant is usually more a
    From the definitions of :math:`\mathcal G^+` and :math:`\mathcal G^-`, we have
 
    .. math::
-     \frac{\partial \mathcal G^+}{ \partial \tilde z} = \mathcal G ^- = \mathcal{G}^+(r, z) + \frac{2}{\sqrt{ r^2 + z^2}}
+     \frac{\partial \mathcal G^+}{ \partial \tilde z} = \mathcal G ^-(r, z) = \mathcal{G}^+(r, z) + \frac{2}{\sqrt{ r^2 + z^2}}
 
 
 
@@ -135,26 +140,27 @@ Guével-Delhommeau formulation
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. prf:lemma::
+   Integral form of the Bessel function
    :label: integral-form-of-Bessel
-
-   Integral form of the Bessel function:
 
    .. math::
       J_0(x) = \frac{2}{\pi} \Re \int_0^{\pi/2} \exp\left(i x \cos \theta \right) d\theta
 
+   (see e.g. https://en.wikipedia.org/wiki/Bessel_function#Bessel's_integrals):
 
-Integrating the integral form of the Bessel function into :eq:`green_function_inf_depth_hankel_form_low_freq`
+
+Inputing the integral form of the Bessel function into :eq:`green_function_inf_depth_hankel_form_low_freq` gives:
 
 .. math::
-    \mathcal{G}^+(r, z) & = \frac{4}{\pi} \mathop{PV} \int_0^\infty \Re \int_0^{\pi/2} \frac{\exp \left(\kappa \left(z + i r \cos\theta \right) \right)}{\kappa - k} d\theta d\kappa
+    \mathcal{G}^+(r, z) & = \frac{4}{\pi} \mathop{PV} \int_0^\infty \Re \int_0^{\pi/2} \frac{\exp \left(\kappa \left(z + i r \cos\theta \right) \right)}{\kappa - k} d\theta d\kappa \\
     & \qquad \qquad \qquad \qquad + 4 i \Re \int_0^{\pi/2} \exp( z + i  r \cos \theta) d\theta
 
 which can be rewritten as
 
 .. math::
-    \mathcal{G}^+(r, z) & = \frac{4}{\pi} \Re \left( \int^0_{-\pi/2} e^\zeta(r, z, \theta) \left[ E_1(\zeta(r, z, \theta)) + i \pi \right] ) \, \mathrm{d} \theta \right) \\
-    & \qquad \qquad \qquad \qquad + 4 i \Re \left( \int^{0}_{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
-    :label: green_function_inf_depth_guevel_low_freq
+    \mathcal{G}^+(r, z) & = \frac{4}{\pi} \Re \left( \int_0^{\pi/2} e^{\zeta(r, z, \theta)} \left[ E_1(\zeta(r, z, \theta)) + i \pi \right] ) \, \mathrm{d} \theta \right) \\
+    & \qquad \qquad \qquad \qquad + 4 i \Re \left( \int_{0}^{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
+    :label: green_function_inf_depth_low_freq
 
 where
 
@@ -178,7 +184,7 @@ where we used the following property
 
 .. note::
    In [Del87]_ integrals of the form :math:`\int_{-\pi/2}^{\pi/2} \ldots d \theta` are used.
-   Given the parity of the integrand with respect to :math:`\theta`, we prefer to simplify them as :math:` 2\int_{0}^{\pi/2} \ldots d \theta`.
+   Given the parity of the integrand with respect to :math:`\theta`, we prefer to simplify them as :math:`2 \int_{0}^{\pi/2} \ldots d \theta`.
 
 .. prf:lemma::
    :label: integrate-one-over-zeta
@@ -194,8 +200,8 @@ where we used the following property
 The above lemma allows to retrieve the expression of the Green function found e.g. in [BD15]_:
 
 .. math::
-    \mathcal{G}^-(r, z) & =  \frac{4}{\pi} \Re \left( \int^{0}_{-\pi/2} \left( e^\zeta(r, z, \theta) \left[ E_1(\zeta(r, z, \theta)) + i \pi \right] - \frac{1}{\zeta(r, z, \theta)} \right) \, \mathrm{d} \theta \right) \\
-    & \qquad \qquad \qquad \qquad + 2 i \Re \left( \int^{\pi/2}_{-\pi/2} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
+    \mathcal{G}^-(r, z) & =  \frac{4}{\pi} \Re \left( \int_{0}^{\pi/2} \left( e^{\zeta(r, z, \theta)} \left[ E_1(\zeta(r, z, \theta)) + i \pi \right] - \frac{1}{\zeta(r, z, \theta)} \right) \, \mathrm{d} \theta \right) \\
+    & \qquad \qquad \qquad \qquad + 4 i \Re \left( \int^{\pi/2}_{0} e^{\zeta (r, z, \theta)} \, \mathrm{d} \theta \right)
     :label: green_function_inf_depth_high_freq
 
 Alternative formulations
@@ -283,13 +289,14 @@ Gradient of the Green function
 The gradient of the Green function with respect to its first variable (that is :math:`x`) can be written as
 
 .. math::
-   \nabla_1 G(x, \xi) = - \frac{1}{4 \pi} \left( - \frac{x - \xi}{\|x - \xi\|^3} + k
+   -4 \pi \nabla_1 G(x, \xi) =
+   - \frac{x - \xi}{\|x - \xi\|^3}
+   + k
       \begin{pmatrix}
         \frac{\partial r}{\partial x_1} \frac{\partial \mathcal{G}}{\partial r} \\
         \frac{\partial r}{\partial x_2} \frac{\partial \mathcal{G}}{\partial r} \\
         \frac{\partial z}{\partial x_3} \frac{\partial \mathcal{G}}{\partial z}
       \end{pmatrix}
-   \right)
 
 with
 
@@ -301,18 +308,18 @@ with
 or equivalently using :math:`\mathcal G^+` from :eq:`green_function_inf_depth_low_freq`:
 
 .. math::
-   \nabla_1 G(x, \xi) = - \frac{1}{4 \pi} \left( - \frac{x - \xi}{\|x - \xi\|^3} + k
-   - \frac{1}{4 \pi} \left( - \frac{x - S_0(\xi)}{\|x - S_0(\xi)\|^3} + k
+   -4 \pi \nabla_1 G(x, \xi) =
+   - \frac{x - \xi}{\|x - \xi\|^3}
+   - \frac{x - S_0(\xi)}{\|x - S_0(\xi)\|^3}
+   + k
       \begin{pmatrix}
-        \frac{\partial r}{\partial x_1} \frac{\partial \mathcal{G}}{\partial r} \\
-        \frac{\partial r}{\partial x_2} \frac{\partial \mathcal{G}}{\partial r} \\
-        \frac{\partial z}{\partial x_3} \frac{\partial \mathcal{G}}{\partial z}
+        \frac{\partial r}{\partial x_1} \frac{\partial \mathcal{G}^+}{\partial r} \\
+        \frac{\partial r}{\partial x_2} \frac{\partial \mathcal{G}^+}{\partial r} \\
+        \frac{\partial z}{\partial x_3} \frac{\partial \mathcal{G}^+}{\partial z}
       \end{pmatrix}
-   \right)
 
 The derivative of :math:`\mathcal G^+` with respect to :math:`z` can be handled with :prf:ref:`green_function_inf_depth_z_derivative`.
-Let us now focus on the derivative with respect to :math:`r`:
-
+Let us now focus on the derivative with respect to :math:`r`.
 From the definition of the exponential integral, we have
 
 .. math::
@@ -322,6 +329,12 @@ hence
 
 .. math::
    \frac{\partial \mathcal{G}^+}{\partial r} = & \frac{4}{\pi} \Re \left( \int_{0}^{\pi/2} \frac{\partial \zeta}{\partial r} \left( e^\zeta \left( E_1(\zeta) + i \pi \right) - \frac{1}{\zeta} \right) \, \mathrm{d}\theta \right) \\
+   & \qquad \qquad \qquad \qquad + 4 i \Re \left( \int^{\pi/2}_{0} \frac{\partial \zeta}{\partial r} e^{\zeta} \, \mathrm{d} \theta \right)
+
+that is
+
+.. math::
+   \frac{\partial \mathcal{G}^+}{\partial r} = & \frac{4}{\pi} \Re \left( \int_{0}^{\pi/2} i \cos(\theta) \left( e^\zeta \left( E_1(\zeta) + i \pi \right) - \frac{1}{\zeta} \right) \, \mathrm{d}\theta \right) \\
    & \qquad \qquad \qquad \qquad + 4 i \Re \left( \int^{\pi/2}_{0} i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right)
    :label: green_function_inf_depth_r_derivative
 
@@ -343,7 +356,7 @@ hence
 Higher order derivatives
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-From :eq:`green_function_inf_depth_z_derivative`, one has
+From :prf:ref:`green_function_inf_depth_z_derivative`, one has
 
 .. math::
    \frac{\partial \mathcal{G}}{\partial z} &= \mathcal{G}(r, z) + \left( 1 + \frac{\partial}{\partial z} \right) \frac{1}{\sqrt{r^2 + z^2}} \\
@@ -371,20 +384,22 @@ All higher order derivative can be expressed with the help of :math:`\mathcal{G}
    The same derivation is done in e.g. [N20]_ using instead the function :math:`F = \mathcal{G} - \frac{1}{\sqrt{r^2 + z^2}}` for which the expressions are slightly simpler.
 
 
-Delhommeau's method for computation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Delhommeau's method for evaluation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The current version of Capytaine can use either the low-frequency variant :eq:`green_function_inf_depth_low_freq` or high-frequency variant :eq:`green_function_inf_depth_high_freq` when evaluating the Green function and its integral over a panel.
 For this purpose, the following values needs to be computed:
 
 .. math::
-    I_1(r, z) & = \frac{4}{\pi} \Re \left( \int^{\pi/2}_{0} J(\zeta) \, \mathrm{d} \theta \right) \\
-    I_2(r, z) & = \frac{4}{\pi} \Re \left( \int^{\pi/2}_{0} \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    I_1(r, z) & = \frac{4}{\pi} \Re \left( \int^{\pi/2}_{0}  e^\zeta \left( E_1(\zeta) + i \pi \right) \, \mathrm{d} \theta \right) \\
+    I_2(r, z) & = \frac{4}{\pi} \Re \left( \int^{\pi/2}_{0} \left(  e^\zeta \left( E_1(\zeta) + i \pi \right) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
     I_3(r, z) & = 4 \Re \left( \int^{\pi/2}_{0} e^{\zeta} \, \mathrm{d} \theta \right) \\
-    I_4(r, z) & = \frac{4}{\pi} \Re \left( \int^{\pi/2}_{0} i \cos(\theta) \left( J(\zeta) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
+    I_4(r, z) & = \frac{4}{\pi} \Re \left( \int^{\pi/2}_{0} i \cos(\theta) \left( e^\zeta \left( E_1(\zeta) + i \pi \right) - \frac{1}{\zeta} \right) \, \mathrm{d} \theta \right) \\
     I_5(r, z) & = 4 \Re \left( \int^{\pi/2}_{0} i \cos(\theta) e^{\zeta} \, \mathrm{d} \theta \right)
 
-then :eq:`green_function_inf_depth_low_freq` and :eq:`green_function_inf_depth_r_derivative` reads
+The integral are computed using Simpson's rule for around 1000 points between :math:`0` and :math:`\pi/2`.
+
+Then :eq:`green_function_inf_depth_low_freq` and :eq:`green_function_inf_depth_r_derivative` reads
 
 .. math::
    \mathcal{G}^+(r, z) & = I_1(r, z) + i I_3(r, z) \\
@@ -393,7 +408,7 @@ then :eq:`green_function_inf_depth_low_freq` and :eq:`green_function_inf_depth_r
 and :eq:`green_function_inf_depth_high_freq` reads (still using :eq:`green_function_inf_depth_r_derivative` for the derivative):
 
 .. math::
-   \mathcal{G}^-(r, z) = I_2(r, z) + i I_3(r, z).
+   \mathcal{G}^-(r, z) & = I_2(r, z) + i I_3(r, z) \\
    \frac{\partial \mathcal{G}^+}{\partial r} & = I_4(r, z) + i I_5(r, z).
 
 To limit the computational cost of the evaluation of these integrals, they are precomputed for selected values of :math:`r` and :math:`z` and stored in a table.
@@ -422,7 +437,7 @@ Integration
 
 TODO
 
-As seen in :eq:`green_function_inf_depth_z_derivative`, new reflected-Rankine-type
+As seen in :prf:ref:`green_function_inf_depth_z_derivative`, new reflected-Rankine-type
 terms might appear in the derivative of the Green wave term.
 By default, they are integrated with the same method used for the same
 numerical quadrature method as the rest of the wave term.
