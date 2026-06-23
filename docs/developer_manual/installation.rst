@@ -25,7 +25,7 @@ As of February 2025, the build backend used by Capytaine since version 2.0 (meso
 You might need to have Python installed as well as common development tools such as ``git``, ``gfortran`` and ``just``.
 On Ubuntu or Debian, this can be done with::
 
-    sudo apt install python3 python3-pip python3-venv python-is-python3 git gfortran just
+    sudo apt install python3 python3-pip python3-venv python-is-python3 python3-dev git gfortran just
 
 Not that ``just`` is only available in this way in recent versions of Ubuntu (24.04 and newer) and Debian (13 and newer).
 
