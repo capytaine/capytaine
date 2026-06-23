@@ -1,9 +1,6 @@
 ================================
-Expression of the Green function
+Green function in infinite depth
 ================================
-
-In infinite depth
-=================
 
 The boundary integral equations relate the potential :math:`\Phi` to the normal velocity
 :math:`u \cdot n` via the Green function :math:`G`.
@@ -443,16 +440,3 @@ By default, they are integrated with the same method used for the same
 numerical quadrature method as the rest of the wave term.
 The setting ``gf_singularities="low_freq_with_rankine_term"`` is an attempt to
 integrate them exactly using the same code as the main reflected Rankine term.
-
-In finite depth
-===============
-
-Green function
-~~~~~~~~~~~~~~
-
-TODO
-
-Gradient of the Green function
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-TODO

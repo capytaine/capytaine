@@ -504,7 +504,7 @@ where :math:`\rho(x)` and :math:`\theta(x)` are the cylindrical coordinates of :
         & \sim \rho(x) - (\xi_1 \cos\theta(x) + \xi_2 \sin\theta(x))
       \end{align*}
 
-   Then the asymptotic behavior of the infinite depth Green function :eq:`green_function_asymptotical_approx` reads
+   Then the asymptotic behavior of the infinite depth Green function (see :doc:`inf_depth_green_function`) reads
 
    .. math:: - 4 \pi G(x, \xi) \sim 2 k \sqrt{\frac{\pi}{k r}} e^{k z + i k r}(1+i) + O\left(\frac{1}{r}\right)
 
