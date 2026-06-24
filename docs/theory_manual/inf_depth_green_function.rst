@@ -60,10 +60,13 @@ Singularities extraction
     Lipschitz integral
    :label: lipschitz-integral
 
-    .. math::
-       \frac{1}{\sqrt{r^2 + z^2}} = \int_0^\infty \exp \left(\kappa z \right) J_0 \left(\kappa r \right) d \kappa
+   Also called Lipschitz-Hankel integral
 
-    (see e.g. https://mathworld.wolfram.com/LipschitzsIntegral.html):
+    .. math::
+       \forall z < 0,\, \forall r \in \mathbb{R}, \quad \frac{1}{\sqrt{r^2 + z^2}} = \int_0^\infty \exp \left(\kappa z \right) J_0 \left(\kappa r \right) d \kappa
+
+
+    (see e.g. https://mathworld.wolfram.com/LipschitzsIntegral.html)
 
 Using the Lipschitz integral, the wave part of the infinite depth Green function can be rewritten as:
 
