@@ -2,6 +2,8 @@
 Green function in finite depth
 ==============================
 
+.. contents:: Contents
+
 Green function's Hankel form
 ----------------------------
 
@@ -17,7 +19,17 @@ where :math:`r = \sqrt{(\xi_1 - x_1)^2 + (\xi_2 - x_2)^2}` and :math:`S_h` denot
 .. math::
    S_h(\xi) = (\xi_1, \xi_2, -\xi_3 - 2h).
 
-.. Note that :math:`S_h(S_h(x)) = x` and :math:`| S_h(x) - S_h(\xi) | = | x - \xi |`.
+.. note::
+
+   .. math::
+      \frac{1}{|x - \xi|} = \frac{1}{\sqrt{r^2 + (x_3 - \xi_3)^2}}
+      :label: rankine_term
+
+   .. math::
+       \frac{1}{|x - S_h(\xi)|} & = \frac{1}{\sqrt{r^2 + (x_3 - (- \xi_3 - 2h))^2}} \\
+      & = \frac{1}{\sqrt{r^2 + ((- x_3 - 2h) - \xi_3)^2}} = \frac{1}{|S_h(x) - \xi|}
+      :label: rankine_term_sea_bottom_reflection
+
 
 And :math:`F` is defined as (eq. (2.36) from [Del87]_):
 
@@ -49,6 +61,8 @@ hence
    & \quad + \frac{1}{2} \int_0^\infty F(\kappa) e^{- 2 \kappa h}
    \left( e^{\kappa(x_3 + \xi_3 +2h)} + e^{\kappa(x_3 - \xi_3)} + e^{\kappa(- x_3 + \xi_3)} + e^{\kappa(-x_3 - \xi_3 - 2h)} \right)
    J_0 \left(\kappa r \right) d \kappa
+   :label: green_function_fin_depth_after_cosh_expansion
+
 
 Following Newman, we notice that the Green function can be written as two calls to a single function of three variables:
 
@@ -110,37 +124,6 @@ Namely,
 
 For the evaluation of the remaining term involving :math:`F_1`, the strategy chosen by Guével, Daubisse and Delhommeau is to approximate it by Prony decomposition, that is as a sum of exponentials, in order to employ the other kind of integral that was evaluated in :doc:`inf_depth_green_function`, namely the Lipschitz integrals.
 
-.. prf:lemma::
-   Hankel transform of Rankine terms
-
-   That is the application of the Lipschitz integral presented in :doc:`inf_depth_green_function`:
-
-   .. math::
-      \frac{1}{|x - \xi|} = \int_0^\infty e^{- \kappa |x_3 - \xi_3|} J_0(\kappa r) d\kappa
-
-   .. math::
-      \frac{1}{|x - S_h(\xi)|} = \frac{1}{|S_h(x) - \xi|} = \int_0^\infty e^{- \kappa |x_3 - (-\xi_3 - 2h)|} J_0(\kappa r) d\kappa
-
-   .. math::
-      \frac{1}{|x - S_0(\xi)|} = \frac{1}{|S_0(x) - \xi|} = \int_0^\infty e^{\kappa (x_3 - (-\xi_3))} J_0(\kappa r) d\kappa
-
-   .. math::
-      \frac{1}{|x - S_0(S_h(\xi))|} = \frac{1}{|S_h(S_0(x)) - \xi|} = \int_0^\infty e^{\kappa (x_3 - (\xi_3 + 2h))} J_0(\kappa r) d\kappa
-
-   .. math::
-      \frac{1}{|x - S_h(S_0(\xi))|} = \frac{1}{|S_0(S_h(x)) - \xi|} = \int_0^\infty e^{-\kappa (x_3 - (\xi_3 - 2h))} J_0(\kappa r) d\kappa
-
-   .. math::
-      & \frac{1}{|x - S_h(S_0(S_h(\xi)))|} = \frac{1}{|S_h(S_0(S_h(x))) - \xi|} \\
-       & \qquad \qquad = \frac{1}{|x - S_{2h}(\xi)|} = \frac{1}{|S_{2h}(x) - \xi|} = \int_0^\infty e^{-\kappa (x_3 - (-\xi_3 - 4h))} J_0(\kappa r) d\kappa
-
-   but also
-
-   .. math::
-      \forall \lambda > 0, \qquad \frac{1}{|x - S_0(S_{\lambda h}(\xi))|} = \int_0^\infty e^{\kappa (x_3 - (\xi_3 + 2 \lambda h))} J_0(\kappa r) d\kappa
-
-   .. math::
-      \forall \lambda > 0, \qquad \frac{1}{|x - S_{\lambda h}(\xi)|} = \int_0^\infty e^{\kappa (x_3 + \xi_3 + 2 \lambda h))} J_0(\kappa r) d\kappa
 
 
 We look for a Prony decomposition of :math:`F_1` of the following form:
@@ -148,7 +131,7 @@ We look for a Prony decomposition of :math:`F_1` of the following form:
 .. math::
    F_1(\kappa) \simeq 2 + \sum_{i=1}^N a_i e^{-\lambda_i h \kappa}
 
-with :math:`\forall i > 1, \lambda_i > 0` to always recover :math:`\lim_{\kappa \rightarrow \infty} F_1(\kappa) = 2`.
+with :math:`\forall i \ge 1, \lambda_i > 0` to always recover :math:`\lim_{\kappa \rightarrow \infty} F_1(\kappa) = 2`.
 Note that :math:`F_1` depends on the water depth and the frequency, and so does :math:`a_i` and :math:`\lambda_i`. They are recomputed for each new :math:`(k, h)`.
 The number of terms :math:`N` is chosen big enough to ensure a good accuracy of the approximation.
 
@@ -190,6 +173,164 @@ And the full unabrigde Green function reads:
    & \qquad + \frac{A(kh)}{4h} \mathcal{G}^+(r, x_3 + \xi_3) + \frac{A(kh)}{4h} \mathcal{G}^+(r, -(x_3 + \xi_3 + 4h)) \\
    &  \qquad \qquad + \sum_{i=1}^N \frac{a_i}{2} \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 - \lambda_i h)^2}}
       + \sum_{i=1}^N \frac{a_i}{2} \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 4h + \lambda_i h)^2}}
+   :label: green_function_fin_depth_full_expression
 
 
 Notice it contains six Rankine terms that appears in all expressions of the finite depth Green function, :math:`4N` other Rankine terms due to the approximation we used for the residual term, and four infinite-depth wave terms.
+
+.. note::
+   *Interpreting the Rankine terms as reflections*
+
+   Besides :eq:`rankine_term` and :eq:`rankine_term_sea_bottom_reflection`, the Green function contains the following Rankine terms:
+
+   .. math::
+      \frac{1}{\sqrt{r^2 + (x_3 - \xi_3 - 2h)^2}} = \frac{1}{|x - S_0(S_h(\xi))|} = \frac{1}{|S_h(S_0(x)) - \xi|}
+
+   .. math::
+      \frac{1}{\sqrt{r^2 + (x_3 - \xi_3 + 2h)^2}} = \frac{1}{|x - S_h(S_0(\xi))|} = \frac{1}{|S_0(S_h(x)) - \xi|}
+
+   .. math::
+      \frac{1}{\sqrt{r^2 + (x_3 + \xi_3)^2}} = \frac{1}{|x - S_0(\xi)|} = \frac{1}{|S_0(x) - \xi|}
+      :label: rankine_term_free_surface_reflection
+
+   .. math::
+      \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 4h)^2}} & = \frac{1}{|x - S_h(S_0(S_h(\xi)))|} = \frac{1}{|S_h(S_0(S_h(x))) - \xi|} \\
+       & = \frac{1}{|x - S_{2h}(\xi)|} = \frac{1}{|S_{2h}(x) - \xi|}
+
+   but also
+
+   .. math::
+      \frac{1}{\sqrt{r^2 + (x_3 - \xi_3 - 2h - \lambda_i h)^2}} = \frac{1}{|x - S_0(S_{(1 + \lambda_i/2)h}(\xi))|}
+
+   .. math::
+      \frac{1}{\sqrt{r^2 + (x_3 - \xi_3 + 2h + \lambda_i h)^2}} = \frac{1}{|x - S_{(1+\lambda_i/2)h}(S_0(\xi))|}
+
+   .. math::
+      \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 - \lambda_i h)^2}} = \frac{1}{|x - S_{(-\lambda_i/2) h}(\xi)|}
+
+   .. math::
+      \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 4h + \lambda_i h)^2}} = \frac{1}{|x - S_{(2+\lambda_i/2)h}(\xi)|}
+
+
+   such that most terms of the Green function can be interpreted as Rankine term with :math:`6 + 4N` reflexions of :math:`\xi` (or :math:`x`).
+
+   Since :math:`\lambda_i > 0`, all the reflected terms are outside of the fluid domain and do not need a special treatment when integrating the Green function on a panel to avoid a singularity.
+   The only terms that should be taken care of are :eq:`rankine_term` (always), :eq:rankine_term_free_surface_reflection` (when the panel is on the free surface) and :eq:`rankine_term_sea_bottom_reflection` (when the panel is on the sea bottom)
+
+Asymptotics
+-----------
+
+Deep water asymptotics
+~~~~~~~~~~~~~~~~~~~~~~
+
+When :math:`h \rightarrow \infty`, we have
+
+.. math::
+   F(\kappa) \sim_{h \rightarrow \infty} 2 \frac{\kappa + k}{\kappa - k}
+
+and :eq:`green_function_fin_depth_after_cosh_expansion` becomes:
+
+.. math::
+   -4 \pi G(x, \xi, \omega, h) = \frac{1}{|x - \xi|} + \int_0^\infty \frac{\kappa + k}{\kappa - k} e^{\kappa(x_3 + \xi_3)} J_0 \left(\kappa r \right) d \kappa
+
+recovering the expression found in :doc:`inf_depth_green_function`.
+
+Alternatively, showing that
+
+.. math::
+   A(kh) \sim_{h \rightarrow \infty} 4 kh
+
+and
+
+.. math::
+   F_1(\kappa) \sim_{h \rightarrow \infty} 2
+
+hence
+
+.. math::
+   \forall i \ge 1, \quad a_i(kh) \sim_{h \rightarrow \infty} 0
+
+makes :eq:`green_function_fin_depth_full_expression` simplify as follows
+
+.. math::
+   -4 \pi G(x, \xi, h)
+   & = \frac{1}{\sqrt{r^2 + (x_3-\xi_3)^2}} + \cancel{\frac{1}{\sqrt{r^2 + (x_3 - \xi_3 - 2h)^2}}} + \cancel{\frac{1}{\sqrt{r^2 + (x_3 - \xi_3 + 2h)^2}}} \\
+   & \qquad + \cancel{\frac{A(kh)}{4h} \mathcal{G}^+(r, x_3 - \xi_3 - 2h)} + \cancel{\frac{A(kh)}{4h} \mathcal{G}^+(r, -(x_3 - \xi_3 + 2h))} \\
+   &  \qquad \qquad + \sum_{i=1}^N \cancel{\frac{a_i}{2} \frac{1}{\sqrt{r^2 + (x_3 - \xi_3- 2h - \lambda_i h)^2}}}
+      + \sum_{i=1}^N \cancel{\frac{a_i}{2} \frac{1}{\sqrt{r^2 + (x_3 - \xi_3 + 2h + \lambda_i h)^2}}} \\
+   & + \cancel{\frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 2h)^2}}} + \frac{1}{\sqrt{r^2 + (x_3 + \xi_3)^2}} + \cancel{\frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 4h)^2}}} \\
+   & \qquad + \frac{A(kh)}{4h} \mathcal{G}^+(r, x_3 + \xi_3) + \cancel{\frac{A(kh)}{4h} \mathcal{G}^+(r, -(x_3 + \xi_3 + 4h))} \\
+   &  \qquad \qquad + \sum_{i=1}^N \cancel{\frac{a_i}{2} \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 - \lambda_i h)^2}}}
+      + \sum_{i=1}^N \frac{a_i}{2} \cancel{\frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 4h + \lambda_i h)^2}}}
+
+hence
+
+.. math::
+   -4 \pi G(x, \xi, h)
+   = \frac{1}{\sqrt{r^2 + (x_3-\xi_3)^2}} + \frac{1}{\sqrt{r^2 + (x_3 + \xi_3)^2}} + k \mathcal{G}^+(r, x_3 + \xi_3)
+
+where we also used the fact that
+
+.. math::
+   \mathcal{G}^+(r, z) \rightarrow_{z\rightarrow -\infty} 0
+
+Infinite frequency asymptotics
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+When :math:`k \rightarrow \infty`, we have
+
+.. math::
+   F(\kappa) \sim - (1 + \tanh(\kappa h)) = = - 2 \frac{1}{1 + e^{-2 \kappa h}} = - 2 - \sum_{i=1}^\infty (-1)^i e^{-2 i \kappa h}
+
+There is no :math:`\kappa - k` singularity directly visible anymore at the high-frequency asymptotics, so no infinite-depth wave terms, only Rankine terms are left.
+
+.. note::
+
+   .. math::
+      \lim_{k \rightarrow \infty} \lim_{\kappa \rightarrow \infty } F(\kappa) = 2 \neq
+      \lim_{\kappa \rightarrow \infty} \lim_{k \rightarrow \infty } F(\kappa) = -2
+
+   because the :math:`\kappa - k` singularity is still around and messing with us.
+
+A Prony decomposition of :math:`F` can be written as
+
+.. math::
+   a_i = - 2 (-1)^i, \qquad \lambda_i = 2i
+
+and the Green function reads
+
+.. math::
+   & -4 \pi G(x, \xi, h)  \\
+   & = \frac{1}{\sqrt{r^2 + (x_3-\xi_3)^2}} - \frac{1}{\sqrt{r^2 + (x_3 - \xi_3 - 2h)^2}} - \frac{1}{\sqrt{r^2 + (x_3 - \xi_3 + 2h)^2}} \\
+   &  \qquad \qquad - \sum_{i=1}^\infty (-1)^i \frac{1}{\sqrt{r^2 + (x_3 - \xi_3- 2(1+i)h)^2}}
+      - \sum_{i=1}^\infty (-1)^i \frac{1}{\sqrt{r^2 + (x_3 - \xi_3 + 2( 1 + i)h)^2}} \\
+   & + \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 2h)^2}} - \frac{1}{\sqrt{r^2 + (x_3 + \xi_3)^2}} - \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 4h)^2}} \\
+   &  \qquad \qquad - \sum_{i=1}^\infty (-1)^i \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 - 2 i h)^2}}
+      - \sum_{i=1}^\infty (-1)^i \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 2 (2 + i) h )^2}}
+
+or equivalently
+
+.. .. math::
+   -4 \pi G(x, \xi, h)
+   & = \frac{1}{\sqrt{r^2 + (x_3-\xi_3)^2}} + \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 2h)^2}} \\
+   &  \qquad \qquad - \sum_{i=0}^\infty (-1)^i \frac{1}{\sqrt{r^2 + (x_3 - \xi_3- 2(1+i)h)^2}}
+      - \sum_{i=0}^\infty (-1)^i \frac{1}{\sqrt{r^2 + (x_3 - \xi_3 + 2( 1 + i)h)^2}} \\
+   &  \qquad \qquad - \sum_{i=0}^\infty (-1)^i \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 - 2 i h)^2}}
+      - \sum_{i=0}^\infty (-1)^i \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 2 (2 + i) h )^2}}
+
+.. math::
+   & -4 \pi G(x, \xi, h) \\
+   & = - \sum_{i=0}^\infty (-1)^i \frac{1}{\sqrt{r^2 + (x_3 - \xi_3- 2(1+i)h)^2}}
+      + \sum_{i=0}^\infty (-1)^{i+1} \frac{1}{\sqrt{r^2 + (x_3 - \xi_3 + 2 i h)^2}} \\
+   &  \qquad - \sum_{i=0}^\infty (-1)^i \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 - 2 i h)^2}}
+      + \sum_{i=0}^\infty (-1)^{i+1} \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 2 (1 + i) h )^2}}
+
+That is an infinity of identical (up to the sign) reflected Rankine terms meant to enforce the boundary conditions
+
+.. math::
+   \Phi = 0, \text{ on } z = 0, \qquad \frac{\partial \Phi}{\partial z} = 0, \text{ on } z = -h.
+
+Gradient of the Green function
+------------------------------
+
+We already know from :doc:`inf_depth_green_function` how to compute the derivative of all the terms constituing the finite depth Green function.

@@ -2,6 +2,8 @@
 Green function in infinite depth
 ================================
 
+.. contents:: Contents
+
 The boundary integral equations relate the potential :math:`\Phi` to the normal velocity
 :math:`u \cdot n` via the Green function :math:`G`.
 Let us now discuss the evaluation of this function for an infinite water depth.
