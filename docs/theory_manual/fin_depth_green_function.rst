@@ -64,7 +64,7 @@ hence
    :label: green_function_fin_depth_after_cosh_expansion
 
 
-Following Newman, we notice that the Green function can be written as two calls to a single function of three variables:
+Following Newman [N85]_, we notice that the Green function can be written as two calls to a single function of three variables:
 
 .. math::
    -4 \pi G(x, \xi, \omega, h) = L(r, x_3 - \xi_3, h) + L(r, 2h + x_3 + \xi_3, h)
@@ -78,6 +78,20 @@ where
 
 Since :math:`x_3 \in [-h, 0]` and :math:`\xi_3 \in [-h, 0]`, we have :math:`x_3 - \xi_3 \in [-h, h]` and :math:`2h + x_3 + \xi_3 \in [0, 2h]`, hence :math:`\mathcal{L}` should be defined for :math:`z \in [-h, 2h]`.
 We kept a factor :math:`e^{-2\kappa h}` outside of :math:`F`, such that the exponent of the exponential is negative, in order to use Lipschitz-Hankel integral later.
+
+.. .. note::
+   Alternative decompositions (to be completed)
+
+   Chen [C93]_ writes instead the Green function as follows (up to the non-dimensionnalization of the parameters):
+
+   .. math::
+      -4 \pi G(x, \xi, \omega, h) = \frac{1}{|x - \xi|} + \frac{1}{|x - S_h(\xi)|} + G_M(r, x_3 - \xi_3, h) + G_P(r, x_3 + \xi_3, h)
+
+   where in our notations
+
+   .. math::
+      G_M(r, z, h) & = \mathcal{L}(r, z, h) \\
+      G_P(r, z, h) & = \mathcal{L}(r, 2h + z, h)
 
 Singularities extraction
 ------------------------
@@ -106,6 +120,11 @@ also written in [Del87]_ and in the code as
 .. math::
    A(kh) = \frac{(k h)^2 +  \left( kh \tanh(k h) \right)^2}{kh \tanh(kh) + kh^2 - \left(kh\tanh(kh)\right)^2}
 
+or
+
+.. math::
+   A(kh) = \frac{(1 + \tanh(kh))^2}{1 - \tanh(kh)^2 + \frac{\tanh(kh)}{kh}}
+
 Revisiting :math:`\mathcal{L}`:
 
 .. math::
@@ -113,7 +132,7 @@ Revisiting :math:`\mathcal{L}`:
                         & = \frac{A(kh)}{2h} \int_0^{\infty} \frac{e^{- 2 \kappa h} \left( e^{\kappa z} + e^{- \kappa z } \right)}{\kappa - k} J_0(\kappa r) \mathrm{d} \kappa \\
                            & \qquad + \frac{1}{2} \int_0^\infty F_1(\kappa) e^{- 2 \kappa h} \left( e^{\kappa z} + e^{- \kappa z } \right) J_0(\kappa r) \mathrm{d} \kappa \\
 
-Terms of the form :math:`\int_0^\infty \frac{e^\kappa Z}{\kappa - k} J_0(\kappa r) d\kappa` have been seen in :doc:`inf_depth_green_function` as infinite-depth free surface term, and the same numerical evaluation method can be used.
+Terms of the form :math:`\int_0^\infty \frac{e^{\kappa Z}}{\kappa - k} J_0(\kappa r) d\kappa` have been seen in :doc:`inf_depth_green_function` as infinite-depth free surface term, and the same numerical evaluation method can be used.
 
 Namely,
 
@@ -215,7 +234,24 @@ Notice it contains six Rankine terms that appears in all expressions of the fini
    such that most terms of the Green function can be interpreted as Rankine term with :math:`6 + 4N` reflexions of :math:`\xi` (or :math:`x`).
 
    Since :math:`\lambda_i > 0`, all the reflected terms are outside of the fluid domain and do not need a special treatment when integrating the Green function on a panel to avoid a singularity.
-   The only terms that should be taken care of are :eq:`rankine_term` (always), :eq:rankine_term_free_surface_reflection` (when the panel is on the free surface) and :eq:`rankine_term_sea_bottom_reflection` (when the panel is on the sea bottom)
+   The only terms that should be taken care of are :eq:`rankine_term` (always), :eq:`rankine_term_sea_bottom_reflection` (when the panel is on the sea bottom) and :eq:`rankine_term_free_surface_reflection` (when the panel is on the free surface).
+
+:label: prony-decomposition-evaluation
+
+Evaluation of the Prony decomposition
+-------------------------------------
+
+For each :math:`k` and :math:`h`, the coefficients :math:`a_i` and :math:`\lambda_i` need to be precomputed.
+
+The function :math:`\kappa h \mapsto F(\kappa h) - \frac{A(kh)}{\kappa h - k h} - 2` is evaluated for a range of values of :math:`\kappa h` in :math:`[-0.1, 20]`.
+Looking for an approximation as small as possible, we start by evaluating the function at a few reference points and fit a Prony decomposition with few exponentials. If the resulting accuracy computed with more reference evaluations of the function is not sufficient, the number of points and the number of exponentials is increased (until a maximal value of 30 exponential terms).
+
+Because of the singularity, the expression above cannot be evaluated when :math:`\kappa = k`, even if the function is mathematically smooth at this point. In Nemoh and in the legacy Fortran code of Capytaine, the function is replaced by a polynomial interpolation in :math:`[k - \max(0.1, 0.1k), k + \max(0.1, 0.1k)]` to avoid this.
+In practice we noticed that, in double floating point precision, the effect of the singularity on the computational accuracy is restricted to a much smaller interval. Instead of patching the function, we add some small noise on the choice of the reference points ensure that among the several tries with different resolutions, most of them will not hit the singularity.
+
+A remaining issue with this method is the second singularity of :math:`F`: the function has another pole of opposite sign in :math:`\kappa = -k`. When :math:`kh` is small, this singularity interferes with the evaluation of the Prony decomposition (see also GH635_). For this reason, it is currently not possible to compute finite depth problems in Capytaine with :math:`kh < 0.1`.
+
+.. _GH635: https://github.com/capytaine/capytaine/issues/635#issuecomment-2729948600
 
 Asymptotics
 -----------
@@ -329,6 +365,21 @@ That is an infinity of identical (up to the sign) reflected Rankine terms meant 
 
 .. math::
    \Phi = 0, \text{ on } z = 0, \qquad \frac{\partial \Phi}{\partial z} = 0, \text{ on } z = -h.
+
+Zero frequency asymptotics
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+As discussed in :ref:`prony-decomposition-evaluation`, the function :math:`F` has a second singularity in :math:`\kappa+k` cancelling out the :math:`\kappa-k` singularity for :math:`k = 0`.
+
+.. math::
+   F(\kappa) \sim \frac{1 + \tanh(\kappa h)}{\tanh(\kappa h)} = 2 + \sum_{i=1}^\infty e^{-2 i \kappa h}
+
+which would result in a infinite sum of Rankine kernels, similarly to the infinite-frequency case, ensuring the zero-frequency boundary conditions:
+
+.. math::
+   \frac{\partial \Phi}{\partial z} = 0, \text{ on } z = 0, \qquad \frac{\partial \Phi}{\partial z} = 0, \text{ on } z = -h.
+
+This is currently not implemented in Capytaine.
 
 Gradient of the Green function
 ------------------------------
