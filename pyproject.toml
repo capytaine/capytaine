@@ -94,5 +94,5 @@ log_cli_level = "info"
 testpaths = ["pytest/"]
 
 [tool.codespell]
-skip = "libs/libDelhommeau/src/old_Prony_decomposition.f90"
+skip = "libs/libDelhommeau/src/old_Prony_decomposition.f90,docs/theory_manual/bibliography.rst"
 ignore-words-list = "ans,ba,expors,informations,inout,ist,lamda,ment,noe,periode,sur"
