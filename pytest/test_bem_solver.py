@@ -7,6 +7,7 @@ import capytaine as cpt
 from capytaine import __version__
 
 from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
+from capytaine.tools.test_utils import TestEngine
 
 @pytest.fixture
 def sphere():
@@ -57,12 +58,12 @@ def test_solver_has_initialized_timer():
 
 def test_solver_update_timer(sphere):
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
-    s = cpt.BEMSolver()
+    s = cpt.BEMSolver(engine=TestEngine())
     s.solve(problem)
     assert s.timer.total > 0.0
 
 def test_direct_solver(sphere):
-    problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
+    problem = cpt.RadiationProblem(body=sphere, omega=0.0)
     direct_solver = cpt.BEMSolver(method='direct')
     direct_result = direct_solver.solve(problem)
     indirect_solver = cpt.BEMSolver(method='indirect')
@@ -84,7 +85,7 @@ def test_same_result_with_symmetries(method):
 
 def test_parallelization(sphere):
     pytest.importorskip("joblib")
-    solver = cpt.BEMSolver()
+    solver = cpt.BEMSolver(engine=TestEngine())
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
         'radiating_dof': list(sphere.dofs.keys()),
@@ -97,7 +98,7 @@ def test_parallelization(sphere):
 def test_control_threads(sphere, n_jobs, n_threads):
     pytest.importorskip("joblib")
     pytest.importorskip("threadpoolctl")
-    solver = cpt.BEMSolver()
+    solver = cpt.BEMSolver(engine=TestEngine())
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
         'radiating_dof': list(sphere.dofs.keys()),
@@ -107,7 +108,7 @@ def test_control_threads(sphere, n_jobs, n_threads):
 
 def test_nb_timer(sphere):
     pytest.importorskip("joblib")
-    solver = cpt.BEMSolver()
+    solver = cpt.BEMSolver(engine=TestEngine())
     n_jobs = 3
     problems = [
             cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=omega)
@@ -173,7 +174,7 @@ def test_fill_dataset(sphere):
 
 
 def test_warning_mesh_resolution(sphere, caplog):
-    solver = cpt.BEMSolver()
+    solver = cpt.BEMSolver(engine=TestEngine())
     pb = cpt.RadiationProblem(body=sphere, wavelength=0.1*sphere.minimal_computable_wavelength)
     with caplog.at_level("WARNING"):
         solver.solve(pb)
