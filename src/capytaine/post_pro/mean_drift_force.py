@@ -152,6 +152,10 @@ def _merge_far_field_mean_drift_variables(dataset):
 ####################################################################################################
 
 def near_field_mean_drift_force(rao, results, solver):
+    """
+    Current assumptions: all results are for the same body, the same frequency and the same rho and g.
+    Several wavelengths and dofs are taken into account at once.
+    """
     body = results[0].body
     mesh = body.mesh
     rho = results[0].rho
@@ -207,11 +211,12 @@ def near_field_mean_drift_force(rao, results, solver):
             "wave_direction_k": rao.coords["wave_direction"].values,
             "wave_direction_l": rao.coords["wave_direction"].values,
             "influenced_dof": list(body.dofs.keys()),
-        }
+        },
+        name="near_field_mean_drift_force"
     )
 
 def motion_order1(points, body, rao):
-    return np.sum(rao.sel(radiating_dof=dof).values[0,:,None,None] * body.dofs[dof].evaluate_motion_at_points(points) for dof in body.dofs)
+    return sum(rao.sel(radiating_dof=dof).values[0,:,None,None] * body.dofs[dof].evaluate_motion_at_points(points) for dof in body.dofs)
 
 def total_potential_gradient(solver, mesh, results, rao):
     potential_gradient = xr.DataArray(
