@@ -197,6 +197,8 @@ And the full unabrigde Green function reads:
 
 Notice it contains six Rankine terms that appears in all expressions of the finite depth Green function, :math:`4N` other Rankine terms due to the approximation we used for the residual term, and four infinite-depth wave terms.
 
+The Rankine terms are real-valued. The four infinite-depth Green functions :math:`\mathcal{G}^+` are complex-valued.
+
 .. note::
    *Interpreting the Rankine terms as reflections*
 
@@ -233,10 +235,17 @@ Notice it contains six Rankine terms that appears in all expressions of the fini
 
    such that most terms of the Green function can be interpreted as Rankine term with :math:`6 + 4N` reflexions of :math:`\xi` (or :math:`x`).
 
+
+.. note::
+   *Singularities*
+
    Since :math:`\lambda_i > 0`, all the reflected terms are outside of the fluid domain and do not need a special treatment when integrating the Green function on a panel to avoid a singularity.
+
    The only terms that should be taken care of are :eq:`rankine_term` (always), :eq:`rankine_term_sea_bottom_reflection` (when the panel is on the sea bottom) and :eq:`rankine_term_free_surface_reflection` (when the panel is on the free surface).
 
-:label: prony-decomposition-evaluation
+   Beside the singularities of Rankine term, the infinite-depth wave terms :math:`\mathcal{G}^+` have a logarithmic singularity, but only the :math:`\mathcal{G}^+(r, x_3 + \xi_3)` term may reach its singularity.
+
+.. _prony-decomposition-evaluation:
 
 Evaluation of the Prony decomposition
 -------------------------------------
