@@ -545,8 +545,8 @@ def export_wamit_8(dataset, *args, **kwargs):
         _merge_far_field_mean_drift_variables(dataset)["drift_force"], *args, **kwargs
     )
 
-# def export_wamit_9(dataset, *args, **kwargs):
-#     return _export_wamit_mean_drift(dataset["near_field_mean_drift_force"], *args, **kwargs)
+def export_wamit_9(dataset, *args, **kwargs):
+    return _export_wamit_mean_drift(dataset["near_field_mean_drift_force"], *args, **kwargs)
 
 ###############################################################################
 
