@@ -38,210 +38,230 @@ def show_3d(mesh, *, backend=None, **kwargs):
                 return backends_functions[backend](mesh, **kwargs)
             except (NotImplementedError, ImportError):
                 pass
-            raise NotImplementedError(f"No compatible backend found to show the mesh {mesh}.\n"
-                                      "Consider installing `matplotlib` or `pyvista`.")
+        raise NotImplementedError(f"No compatible backend found to show the mesh {mesh}.\n"
+                                  "Consider installing `matplotlib` or `pyvista`.")
 
 
-def show_pyvista(
-    mesh,
-    *,
-    ghost_meshes=None,
-    plotter=None,
-    normal_vectors=False,
-    display_free_surface=True,
-    water_depth=np.inf,
-    color_field=None,
-    cbar_label="",
-    **kwargs
-) -> Optional["pv.Plotter"]:  # noqa: F821
-    """
-    Visualize the mesh using PyVista.
+def show_pyvista(mesh, **kwargs) -> Optional["pv.Plotter"]:  # noqa: F821
+    """Visualize the mesh using PyVista. See :class:`PyVistaViewer` for parameters."""
+    viewer = PyVistaViewer(mesh, **kwargs)
+    return viewer.show()
 
-    PyVista default keyboards controls: https://docs.pyvista.org/api/plotting/plotting
+
+class PyVistaViewer:
+    """Interactive PyVista mesh viewer with toggleable features.
+
+    PyVista default keyboard controls: https://docs.pyvista.org/api/plotting/plotting
 
     Parameters
     ----------
     mesh : Mesh
         The mesh object to visualize.
     ghost_meshes: List[Mesh], optional
-        Additional meshes, shown in transparency
+        Additional meshes, shown in transparency, used for symmetric meshes
     plotter: pv.Plotter, optional
         If provided, use this PyVista plotter and return it at the end.
         Otherwise a new one is created and the 3D view is displayed at the end.
     normal_vectors: bool, optional
-        If True, display normal vector (default: True)
+        If True, display normal vector (default: False)
     display_free_surface: bool, optional
-        If True, display free surface and if `water_depth` is finite display the sea bottom.
+        If True, display free surface and if ``water_depth`` is finite display the sea bottom.
         (default: True)
     water_depth: float, optional
-        Where to display the sea bottom if `display_free_surface` is True
+        Where to display the sea bottom if ``display_free_surface`` is True
     color_field: array of shape (nb_faces, ), optional
         Scalar field to be plot on the mesh.
     cmap: matplotlib colormap, optional
         Colormap to use for scalar field plotting.
     cbar_label: string, optional
-        Label for colorbar show color field scale
-    kwargs : additional optional arguments
+        Label for colorbar showing color field scale
+    mesh_kwargs : additional optional arguments
         Additional arguments passed to PyVista's add_mesh methods for customization (e.g. mesh color).
     """
-    pv = import_optional_dependency("pyvista")
 
-    from capytaine.meshes import Mesh  # Just for the typehint below
-    all_meshes_in_scene: List[Mesh] = [mesh] if ghost_meshes is None else [mesh, *ghost_meshes]
-    pv_meshes = [m.export_to_pyvista() for m in all_meshes_in_scene]
+    help_text = [
+        f"Capytaine version {__version__}\n",
+        "Keyboard controls:",
+        "  b: toggle scale and bounding box",
+        "  h: toggle free surface (and sea bottom if water depth was given)",
+        "  n: toggle normal vectors",
+        "  T,B,P,S,F,R: view [T]op, [B]ottom, [P]ort, [S]tarboard, [F]ront, [R]ear",
+        "  X, Y: toggle displaying clipped mesh in x or y direction",
+        "  q: exit"
+    ]
 
-    if color_field is not None and isinstance(color_field, np.ndarray):
-        acc_faces = 0
-        # Split the content of color_fields into the meshes in the scene
-        for m in pv_meshes:
-            m.cell_data["color_field"] = color_field[acc_faces:acc_faces+m.n_cells]
-            acc_faces = acc_faces + m.n_cells
+    def __init__(
+        self,
+        mesh,
+        *,
+        ghost_meshes=None,
+        plotter=None,
+        normal_vectors=False,
+        display_free_surface=True,
+        water_depth=np.inf,
+        color_field=None,
+        cbar_label=None,
+        **mesh_kwargs,
+    ):
+        pv = import_optional_dependency("pyvista")
 
-    if plotter is None:
-        default_plotter = True
-        plotter = pv.Plotter()
-    else:
-        default_plotter = False
+        all_meshes = [mesh] if ghost_meshes is None else [mesh, *ghost_meshes]
 
-    if color_field is not None:
-        kwargs.setdefault("scalars", "color_field")
-    kwargs.setdefault("scalar_bar_args", {"title": cbar_label})
-    plotter.add_mesh(pv_meshes[0], name="hull", show_edges=True, **kwargs)
+        self.mesh = mesh
+        self.water_depth = water_depth
+        self.mesh_kwargs = mesh_kwargs
+        self.pv_meshes = [m.export_to_pyvista() for m in all_meshes]
 
-    for i_ghost, g_mesh in enumerate(pv_meshes[1:]):
-        plotter.add_mesh(
-                g_mesh,
-                name=f"symmetric_hull_{i_ghost}",
-                opacity=0.4,
-                show_edges=False,
-                **kwargs
-                )
+        # Distribute color field across sub-meshes
+        if color_field is not None and isinstance(color_field, np.ndarray):
+            acc = 0
+            for m in self.pv_meshes:
+                m.cell_data["color_field"] = color_field[acc:acc + m.n_cells]
+                acc += m.n_cells
 
-    # NORMALS
-    def show_normals():
-        mini = mesh.vertices.min()
-        maxi = mesh.vertices.max()
-        plotter.add_arrows(
-            mesh.faces_centers,
-            mesh.faces_normals,
-            name="normals",
-            mag=0.04*(maxi-mini),
-            show_scalar_bar=False
+        # Plotter
+        self._owns_plotter = plotter is None
+        self.plotter = pv.Plotter() if plotter is None else plotter
+
+        # Scene extents
+        self._scene_min = np.min([m.vertices.min(axis=0) for m in all_meshes], axis=0)
+        self._scene_max = np.max([m.vertices.max(axis=0) for m in all_meshes], axis=0)
+
+        # Build scene
+        if color_field is not None:
+            self.mesh_kwargs.setdefault("scalars", "color_field")
+        if cbar_label is not None:
+            self.mesh_kwargs.setdefault("scalar_bar_args", {"title": cbar_label})
+
+        self.plotter.add_mesh(
+            self.pv_meshes[0], name="hull", show_edges=True, **self.mesh_kwargs,
+        )
+        for i, g_mesh in enumerate(self.pv_meshes[1:]):
+            self.plotter.add_mesh(
+                g_mesh, name=f"symmetric_hull_{i}",
+                opacity=0.4, show_edges=False, **self.mesh_kwargs,
+            )
+
+        # Toggle states
+        self._normals_visible = normal_vectors
+        if self._normals_visible:
+            self._show_normals()
+        self._free_surface_visible = display_free_surface
+        if self._free_surface_visible:
+            self._show_free_surface()
+        self._bounds_visible = True
+        if self._bounds_visible:
+            self._show_bounds()
+        self._clipping = {'x': 0, 'y': 0}
+
+        p = self.plotter
+        p.add_key_event("n", self.toggle_normals)
+        p.add_key_event("h", self.toggle_free_surface)
+        p.add_key_event("b", self.toggle_bounds)
+        p.add_key_event("T", p.view_xy)
+        p.add_key_event("B", lambda: p.view_xy(negative=True))
+        p.add_key_event("S", p.view_xz)
+        p.add_key_event("P", lambda: p.view_xz(negative=True))
+        p.add_key_event("F", p.view_yz)
+        p.add_key_event("R", lambda: p.view_yz(negative=True))
+        p.add_key_event("X", lambda: self.toggle_clipping("x"))
+        p.add_key_event("Y", lambda: self.toggle_clipping("y"))
+
+        self.plotter.add_text("\n".join(self.help_text), position="upper_left", font_size=10)
+
+        self.plotter.show_axes()
+
+    # -- Normal vectors --
+
+    def _show_normals(self):
+        mini = self.mesh.vertices.min()
+        maxi = self.mesh.vertices.max()
+        self.plotter.add_arrows(
+            self.mesh.faces_centers, self.mesh.faces_normals,
+            name="normals", mag=0.04 * (maxi - mini), show_scalar_bar=False,
         )
 
-    def toggle_normals():
-        nonlocal normal_vectors
-        if normal_vectors:
-            normal_vectors = False
-            plotter.remove_actor('normals')
+    def toggle_normals(self):
+        if self._normals_visible:
+            self.plotter.remove_actor("normals")
+            self._normals_visible = False
         else:
-            normal_vectors = True
-            show_normals()
+            self._show_normals()
+            self._normals_visible = True
 
-    if normal_vectors:
-        show_normals()
-    plotter.add_key_event("n", lambda : toggle_normals())
+    # -- Free surface --
 
-    scene_min = np.min([m.vertices[:, :].min(axis=0) for m in all_meshes_in_scene], axis=0)
-    scene_max = np.max([m.vertices[:, :].max(axis=0) for m in all_meshes_in_scene], axis=0)
+    def _show_free_surface(self):
+        pv = import_optional_dependency("pyvista")
+        center = (self._scene_min[:2] + self._scene_max[:2]) / 2
+        diam = 1.1 * (self._scene_max[:2] - self._scene_min[:2])
+        plane = pv.Plane(
+            center=(*center, 0), direction=(0, 0, 1),
+            i_size=diam[0], j_size=diam[1],
+        )
+        self.plotter.add_mesh(plane, color="blue", opacity=0.5, name="display_free_surface")
+        if self.water_depth != np.inf:
+            plane = pv.Plane(
+                center=(*center, -self.water_depth), direction=(0, 0, 1),
+                i_size=diam[0], j_size=diam[1],
+            )
+            self.plotter.add_mesh(plane, color="brown", opacity=0.5, name="display_sea_bottom")
 
-    # FREE SURFACE
-    def show_free_surface():
-        center = (scene_min[:2] + scene_max[:2]) / 2
-        diam = 1.1*(scene_max[:2] - scene_min[:2])
-        plane = pv.Plane(center=(*center, 0), direction=(0, 0, 1), i_size=diam[0], j_size=diam[1])
-        plotter.add_mesh(plane, color="blue", opacity=0.5, name="display_free_surface")
-        if water_depth != np.inf:
-            plane = pv.Plane(center=(*center, -water_depth), direction=(0, 0, 1), i_size=diam[0], j_size=diam[1])
-            plotter.add_mesh(plane, color="brown", opacity=0.5, name="display_sea_bottom")
-
-
-    def toggle_free_surface():
-        nonlocal display_free_surface
-        if display_free_surface:
-            display_free_surface = False
-            plotter.remove_actor('display_free_surface')
-            if water_depth != np.inf:
-                plotter.remove_actor('display_sea_bottom')
+    def toggle_free_surface(self):
+        if self._free_surface_visible:
+            self.plotter.remove_actor("display_free_surface")
+            if self.water_depth != np.inf:
+                self.plotter.remove_actor("display_sea_bottom")
+            self._free_surface_visible = False
         else:
-            display_free_surface = True
-            show_free_surface()
+            self._show_free_surface()
+            self._free_surface_visible = True
 
-    if display_free_surface:
-        show_free_surface()
+    # -- Bounds --
 
-    plotter.add_key_event("h", lambda : toggle_free_surface())
+    def _show_bounds(self):
+        self.plotter.show_bounds(
+            grid="back", location="outer", n_xlabels=2, n_ylabels=2, n_zlabels=2,
+        )
 
-    # BOUNDS
-    def show_bounds():
-        plotter.show_bounds(grid='back', location='outer', n_xlabels=2, n_ylabels=2, n_zlabels=2)
-
-    bounds = True
-    show_bounds()
-    def toggle_bounds():
-        nonlocal bounds
-        if bounds:
-            plotter.remove_bounds_axes()
-            bounds = False
+    def toggle_bounds(self):
+        if self._bounds_visible:
+            self.plotter.remove_bounds_axes()
+            self._bounds_visible = False
         else:
-            show_bounds()
-            plotter.update()
-            bounds = True
+            self._show_bounds()
+            self.plotter.update()
+            self._bounds_visible = True
+
+    # -- Clipping --
+
+    def _clipped_mesh(self):
+        result = self.pv_meshes[0]
+        for axis in ["x", "y"]:
+            if self._clipping[axis] == 1:
+                result = result.clip(axis)
+            elif self._clipping[axis] == -1:
+                result = result.clip("-" + axis)
+        return result
+
+    def toggle_clipping(self, direction):
+        """Cycle clipping for *direction* (``'x'`` or ``'y'``): none → positive → negative → none."""
+        c = self._clipping[direction]
+        self._clipping[direction] = {0: 1, 1: -1, -1: 0}[c]
+        self.plotter.add_mesh(
+            self._clipped_mesh(), name="hull", show_edges=True, **self.mesh_kwargs,
+        )
+
+    # ── Show ────────────────────────────────────────────────────
+
+    def show(self):
+        """Display the viewer window (if plotter was created internally) and return plotter."""
+        if self._owns_plotter:
+            self.plotter.show()
+        return self.plotter
 
 
-    plotter.add_key_event("b", lambda: toggle_bounds())
-
-    plotter.add_key_event("T", lambda : plotter.view_xy())
-    plotter.add_key_event("B", lambda : plotter.view_xy(negative=True))
-    plotter.add_key_event("S", lambda : plotter.view_xz())
-    plotter.add_key_event("P", lambda : plotter.view_xz(negative=True))
-    plotter.add_key_event("F", lambda : plotter.view_yz())
-    plotter.add_key_event("R", lambda : plotter.view_yz(negative=True))
-
-    view_clipping = {'x': 0, 'y': 0}  # 0 = no clipping, +1 clipping one side, -1 clipping other side
-    def clipped_mesh():
-        nonlocal view_clipping
-        clipped_pv_mesh = pv_meshes[0]
-        for dir in ['x', 'y']:
-            if view_clipping[dir] == 1:
-                clipped_pv_mesh = clipped_pv_mesh.clip(dir)
-            elif view_clipping[dir] == -1:
-                clipped_pv_mesh = clipped_pv_mesh.clip("-" + dir)
-        return clipped_pv_mesh
-
-    def toggle_view_clipping(dir):
-        nonlocal view_clipping
-        if view_clipping[dir] == 0:
-            view_clipping[dir] = +1
-        elif view_clipping[dir] == +1:
-            view_clipping[dir] = -1
-        else:
-            view_clipping[dir] = 0
-        plotter.add_mesh(clipped_mesh(), name="hull", show_edges=True, **kwargs)
-
-    plotter.add_key_event("X", lambda : toggle_view_clipping("x"))
-    plotter.add_key_event("Y", lambda : toggle_view_clipping("y"))
-
-    plotter.add_text(
-        f"Capytaine version {__version__}\n\n"
-        """Keyboard controls:
-        b: toggle scale and bounding box
-        h: toggle free surface (and sea bottom if water depth was given)
-        n: toggle normal vectors
-        T,B,P,S,F,R: view [T]op, [B]ottom, [P]ort, [S]tarboard, [F]ront, [R]ear
-        X, Y: toggle displaying clipped mesh in x or y direction
-        q: exit
-        """,
-        position="upper_left",
-        font_size=10
-    )
-    plotter.show_axes()  # xyz in bottom left corner
-
-    if default_plotter:
-        plotter.show()
-    else:
-        return plotter
-
+###################################################################################################
 
 def show_matplotlib(
     mesh,
@@ -353,3 +373,4 @@ def show_matplotlib(
 
     if default_axis:
         plt.show()
+    return ax

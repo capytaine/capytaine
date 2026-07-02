@@ -45,8 +45,9 @@ def rao(dataset, wave_direction=None, dissipation=None, stiffness=None):
     # SOLVE LINEAR SYSTEMS
     # Match dimensions of the arrays to be sure to solve the right systems.
     H, fex = xr.broadcast(H, fex, exclude=["radiating_dof", "influenced_dof"])
-    H = H.transpose(..., 'radiating_dof', 'influenced_dof')
+    H = H.transpose(..., 'influenced_dof', 'radiating_dof')
     fex = fex.transpose(...,  'influenced_dof')
+    # Such that H @ X = Fex
 
     if wave_direction is not None:  # Legacy behavior for backward compatibility
         H = H.sel(wave_direction=wave_direction)

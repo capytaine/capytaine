@@ -12,8 +12,9 @@ def test_dataset_from_wamit_via_bemio():
     bemio_data = bemio.read(out_file)
 
     new_dataset = cpt.assemble_dataset(bemio_data)
-    assert (np.moveaxis(bemio_data.body[0].am.all, 2, 0) * bemio_data.body[0].rho == \
-        new_dataset['added_mass'].values).all()
+    ref_data = bemio_data.body[0].am.all * bemio_data.body[0].rho
+    ref_data = np.moveaxis(ref_data, 2, 0)  # (dof1, dof2, omega) -> (omega, dof1, dof2)
+    assert np.allclose(ref_data, new_dataset['added_mass'].values)
 
 
 def test_dataset_from_nemoh_via_bemio(tmp_path):
