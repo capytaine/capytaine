@@ -23,14 +23,14 @@ class AbstractBody(ABC):
 
     Subclasses must provide the following attributes (either as instance
     attributes set in __init__, or as properties/cached_properties):
-        name: str
-        mesh
-        lid_mesh
-        mesh_including_lid
-        hull_mask
-        dofs: dict
-        mass
-        center_of_mass
+    * name: str
+    * mesh
+    * lid_mesh
+    * mesh_including_lid
+    * hull_mask
+    * dofs: dict
+    * mass
+    * center_of_mass
     """
 
     name: str

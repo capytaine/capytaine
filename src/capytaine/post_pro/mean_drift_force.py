@@ -1,26 +1,26 @@
 """Computation of the mean drift force."""
-# Copyright (C) 2026 the Capytaine developpers
+# Copyright (C) 2026 the Capytaine developers
 # See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import numpy as np
 import xarray as xr
 
 def far_field_mean_drift_force(X, dataset):
-    """Compute the mean drift forces using far field formulation. 
-    Note that the forces are proportional to the square of the wave amplitude, but this implementation 
-    does not take into account the wave amplitude. 
+    """Compute the mean drift forces using far field formulation.
+    Note that the forces are proportional to the square of the wave amplitude, but this implementation
+    does not take into account the wave amplitude.
 
     Parameters
     ----------
     X : xarray DataArray
-        The motion RAO. 
+        The motion RAO.
     dataset : xarray Dataset
         This function supposes that variables named 'kochin_diffraction' and 'kochin_radiation' are in the dataset.
 
     Returns
     -------
     xarray Dataset
-        The horizontal mean drift forces, depending on omega and the wave direction. 
+        The horizontal mean drift forces, depending on omega and the wave direction.
     """
     omega = dataset['omega']
     m = dataset['wavenumber']
@@ -29,7 +29,7 @@ def far_field_mean_drift_force(X, dataset):
     rho = dataset['rho']
     g = dataset['g']
     H_diff = dataset['kochin_diffraction']
-    H_rad = dataset['kochin_radiation'] 
+    H_rad = dataset['kochin_radiation']
     theta_range = dataset['theta']
 
     if (theta_range.min() > 0) or (theta_range.max() < 2*np.pi):
@@ -37,19 +37,20 @@ def far_field_mean_drift_force(X, dataset):
     if np.any(beta < theta_range.min()) or np.any(beta > theta_range.max()):
         raise ValueError("The wave direction should be in the theta interval")
     if np.any(beta == theta_range.min()) or np.any(beta == theta_range.max()):
-        raise ValueError("The wave direction should not be at the border of the theta interval, it is recommanded to extend the theta interval")
+        raise ValueError("The wave direction should not be at the border of the theta interval, it is recommended to extend the theta interval")
 
-    H_rad_tot = sum(H_rad.sel(radiating_dof=d)*X.sel(radiating_dof=d) for d in X.radiating_dof) 
+    H_rad_tot = sum(H_rad.sel(radiating_dof=d)*X.sel(radiating_dof=d) for d in X.radiating_dof)
     H_tot = np.exp(1j*np.pi/2)*(H_diff + H_rad_tot)
-    H_beta = H_tot.interp(theta=beta.values) 
-    H_derivative = H_tot.differentiate("theta") 
+
+    H_beta = H_tot.interp(theta=beta.values)
+    H_derivative = H_tot.differentiate("theta")
     H_derivative_beta = H_derivative.interp(theta=beta.values)
 
     coef1 = 2*np.pi*rho*omega
     if h == np.inf:
         coef2 = 2*np.pi*rho*m**2
     else:
-        k0 = omega**2/g 
+        k0 = omega**2/g
         coef2 = 2*np.pi*rho*m*(k0*h)**2 / (h*((m*h)**2 - (k0*h)**2 + k0*h))
 
     dims = [X.dims[0], "wave_direction_k", "wave_direction_l"]
@@ -61,8 +62,8 @@ def far_field_mean_drift_force(X, dataset):
 
     freq = X.sizes[X.dims[0]]
     nb_dir = X.sizes["wave_direction"]
-    data_x = np.full((freq, nb_dir, nb_dir), np.nan + 1j*np.nan, dtype=complex) 
-    data_y = np.full((freq, nb_dir, nb_dir), np.nan + 1j*np.nan, dtype=complex) 
+    data_x = np.full((freq, nb_dir, nb_dir), np.nan + 1j*np.nan, dtype=complex)
+    data_y = np.full((freq, nb_dir, nb_dir), np.nan + 1j*np.nan, dtype=complex)
     data_z = np.full((freq, nb_dir, nb_dir), np.nan + 1j*np.nan, dtype=complex)
     H = H_tot.sel(theta=slice(0, 2*np.pi))
     H_derivative = H_derivative.sel(theta=slice(0, 2*np.pi))
@@ -74,13 +75,13 @@ def far_field_mean_drift_force(X, dataset):
             hk_derivative = H_derivative.sel(wave_direction=beta[k])
             hl_derivative = H_derivative.sel(wave_direction=beta[l])
 
-            data_x[:, k, l] = (-coef1 * (np.cos(beta[l]) * H_beta.sel(theta=beta[l], wave_direction=beta[k]) - np.cos(beta[k]) * np.conjugate(H_beta.sel(theta=beta[k], wave_direction=beta[l]))) / (2*1j) 
+            data_x[:, k, l] = (-coef1 * (np.cos(beta[l]) * H_beta.sel(theta=beta[l], wave_direction=beta[k]) - np.cos(beta[k]) * np.conjugate(H_beta.sel(theta=beta[k], wave_direction=beta[l]))) / (2*1j)
                                - coef2 * (hk* np.conjugate(hl) * np.cos(H.theta)).integrate("theta"))
             data_x[:, l, k] = np.conjugate(data_x[:, k, l])
-            data_y[:, k, l] = (-coef1 * (np.sin(beta[l]) * H_beta.sel(theta=beta[l], wave_direction=beta[k]) - np.sin(beta[k]) * np.conjugate(H_beta.sel(theta=beta[k], wave_direction=beta[l]))) / (2*1j) 
+            data_y[:, k, l] = (-coef1 * (np.sin(beta[l]) * H_beta.sel(theta=beta[l], wave_direction=beta[k]) - np.sin(beta[k]) * np.conjugate(H_beta.sel(theta=beta[k], wave_direction=beta[l]))) / (2*1j)
                                - coef2 * (hk* np.conjugate(hl) * np.sin(H.theta)).integrate("theta"))
             data_y[:, l, k] = np.conjugate(data_y[:, k, l])
-            data_z[:, k, l] = (coef1/m * (H_derivative_beta.sel(theta=beta[l], wave_direction=beta[k]) + np.conjugate(H_derivative_beta.sel(theta=beta[k], wave_direction=beta[l]))) / 2 
+            data_z[:, k, l] = (coef1/m * (H_derivative_beta.sel(theta=beta[l], wave_direction=beta[k]) + np.conjugate(H_derivative_beta.sel(theta=beta[k], wave_direction=beta[l]))) / 2
                                - coef2/m * ((np.conjugate(hk) * hl_derivative - hl * np.conjugate(hk_derivative)) / (2*1j)).integrate("theta"))
             data_z[:, l, k] = np.conjugate(data_z[:, k, l])
 
@@ -90,19 +91,43 @@ def far_field_mean_drift_force(X, dataset):
         coords=coords,
         name='drift_force_surge'
         )
-    
+
     Fy = xr.DataArray(
         data=data_y,
         coords=coords,
         dims=dims,
         name='drift_force_sway'
         )
-    
+
     Mz = xr.DataArray(
         data=data_z,
         coords=coords,
         dims=dims,
         name='drift_force_yaw'
         )
-
     return xr.Dataset({Fx.name: Fx, Fy.name: Fy, Mz.name: Mz})
+
+
+def _merge_far_field_mean_drift_variables(dataset):
+    """Merge the three drift force components into a single variable with an influenced_dof dimension.
+
+    Parameters
+    ----------
+    dataset : xarray Dataset
+        The dataset returned by far_field_mean_drift_force, containing 'drift_force_surge',
+        'drift_force_sway', and 'drift_force_yaw' variables.
+
+    Returns
+    -------
+    xarray Dataset
+        A dataset with a single 'drift_force' variable having an additional 'influenced_dof' dimension
+        with coordinates ["Surge", "Sway", "Yaw"].
+    """
+    # Stack the three force components along a new dimension
+    drift_force = xr.concat(
+        [dataset['drift_force_surge'], dataset['drift_force_sway'], dataset['drift_force_yaw']],
+        dim=xr.DataArray(['Surge', 'Sway', 'Yaw'], dims=['influenced_dof'], name='influenced_dof')
+    )
+    drift_force.name = 'drift_force'
+
+    return xr.Dataset({'drift_force': drift_force})
