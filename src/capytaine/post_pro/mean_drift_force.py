@@ -72,3 +72,28 @@ def far_field_mean_drift_force(X, dataset):
         )
 
     return xr.Dataset({Fx.name: Fx, Fy.name: Fy, Mz.name: Mz})
+
+
+def _merge_far_field_component(dataset):
+    """Merge the three drift force components into a single variable with an influenced_dof dimension.
+
+    Parameters
+    ----------
+    dataset : xarray Dataset
+        The dataset returned by far_field_mean_drift_force, containing 'drift_force_surge',
+        'drift_force_sway', and 'drift_force_yaw' variables.
+
+    Returns
+    -------
+    xarray Dataset
+        A dataset with a single 'drift_force' variable having an additional 'influenced_dof' dimension
+        with coordinates ["Surge", "Sway", "Yaw"].
+    """
+    # Stack the three force components along a new dimension
+    drift_force = xr.concat(
+        [dataset['drift_force_surge'], dataset['drift_force_sway'], dataset['drift_force_yaw']],
+        dim=xr.DataArray(['Surge', 'Sway', 'Yaw'], dims=['influenced_dof'], name='influenced_dof')
+    )
+    drift_force.name = 'drift_force'
+
+    return xr.Dataset({'drift_force': drift_force})
