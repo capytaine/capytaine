@@ -1,11 +1,9 @@
 """Computation of the mean drift force."""
-
-# Copyright (C) 2026 the Capytaine developpers
+# Copyright (C) 2026 the Capytaine developers
 # See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import numpy as np
 import xarray as xr
-from collections import Counter
 
 from capytaine.bem.airy_waves import (
     airy_waves_free_surface_elevation,
@@ -17,76 +15,143 @@ from capytaine.meshes.geometry import compute_faces_normals
 from capytaine.bem.problems_and_results import DiffractionResult, RadiationResult
 
 
+####################################################################################################
+# Far field
+####################################################################################################
+
 def far_field_mean_drift_force(X, dataset):
-    """Compute the mean drift forces using far field formulation. 
-    Note that the forces are proportional to the square of the wave amplitude, but this implementation 
-    does not take into account the wave amplitude. 
+    """Compute the mean drift forces using far field formulation.
+    Note that the forces are proportional to the square of the wave amplitude, but this implementation
+    does not take into account the wave amplitude.
 
     Parameters
     ----------
     X : xarray DataArray
-        The motion RAO. 
+        The motion RAO.
     dataset : xarray Dataset
         This function supposes that variables named 'kochin_diffraction' and 'kochin_radiation' are in the dataset.
 
     Returns
     -------
     xarray Dataset
-        The horizontal mean drift forces, depending on omega and the wave direction. 
+        The horizontal mean drift forces, depending on omega and the wave direction.
     """
     omega = dataset['omega']
-    k = dataset['wavenumber']
+    m = dataset['wavenumber']
     h = dataset['water_depth']
     beta = dataset['wave_direction']
     rho = dataset['rho']
     g = dataset['g']
     H_diff = dataset['kochin_diffraction']
-    H_rad = dataset['kochin_radiation'] 
+    H_rad = dataset['kochin_radiation']
+    theta_range = dataset['theta']
 
-    H_rad_tot = sum(H_rad.sel(radiating_dof=d)*X.sel(radiating_dof=d) for d in X.radiating_dof) 
+    if (theta_range.min() > 0) or (theta_range.max() < 2*np.pi):
+        raise ValueError("Theta should takes values between 0 and 2pi")
+    if np.any(beta < theta_range.min()) or np.any(beta > theta_range.max()):
+        raise ValueError("The wave direction should be in the theta interval")
+    if np.any(beta == theta_range.min()) or np.any(beta == theta_range.max()):
+        raise ValueError("The wave direction should not be at the border of the theta interval, it is recommended to extend the theta interval")
+
+    H_rad_tot = sum(H_rad.sel(radiating_dof=d)*X.sel(radiating_dof=d) for d in X.radiating_dof)
     H_tot = np.exp(1j*np.pi/2)*(H_diff + H_rad_tot)
-    H_beta = H_tot.interp(theta=beta)  
 
-    H_derivative = H_tot.differentiate("theta") 
-    H_derivative_beta = H_derivative.interp(theta=beta)
+    H_beta = H_tot.interp(theta=beta.values)
+    H_derivative = H_tot.differentiate("theta")
+    H_derivative_beta = H_derivative.interp(theta=beta.values)
 
     coef1 = 2*np.pi*rho*omega
     if h == np.inf:
-        coef2 = 2*np.pi*rho*k**2
+        coef2 = 2*np.pi*rho*m**2
     else:
-        k0 = omega**2/g 
-        coef2 = 2*np.pi*rho*k*(k0*h)**2 / (h*((k*h)**2 - (k0*h)**2 + k0*h))
+        k0 = omega**2/g
+        coef2 = 2*np.pi*rho*m*(k0*h)**2 / (h*((m*h)**2 - (k0*h)**2 + k0*h))
 
-    dims = [d for d in X.dims if d != 'radiating_dof']
-    coords = {c: X.coords[c] for c in X.coords if c != 'radiating_dof'}
+    dims = [X.dims[0], "wave_direction_k", "wave_direction_l"]
+    coords = {
+        X.dims[0]: X.coords[X.dims[0]].values,
+        "wave_direction_k": X.coords["wave_direction"].values,
+        "wave_direction_l": X.coords["wave_direction"].values,
+    }
 
-    base = np.abs(H_tot)**2
-    
+    freq = X.sizes[X.dims[0]]
+    nb_dir = X.sizes["wave_direction"]
+    data_x = np.full((freq, nb_dir, nb_dir), np.nan + 1j*np.nan, dtype=complex)
+    data_y = np.full((freq, nb_dir, nb_dir), np.nan + 1j*np.nan, dtype=complex)
+    data_z = np.full((freq, nb_dir, nb_dir), np.nan + 1j*np.nan, dtype=complex)
+    H = H_tot.sel(theta=slice(0, 2*np.pi))
+    H_derivative = H_derivative.sel(theta=slice(0, 2*np.pi))
+
+    for k in range(nb_dir):
+        for l in range(k, nb_dir):
+            hk = H.sel(wave_direction=beta[k])
+            hl = H.sel(wave_direction=beta[l])
+            hk_derivative = H_derivative.sel(wave_direction=beta[k])
+            hl_derivative = H_derivative.sel(wave_direction=beta[l])
+
+            data_x[:, k, l] = (-coef1 * (np.cos(beta[l]) * H_beta.sel(theta=beta[l], wave_direction=beta[k]) - np.cos(beta[k]) * np.conjugate(H_beta.sel(theta=beta[k], wave_direction=beta[l]))) / (2*1j)
+                               - coef2 * (hk* np.conjugate(hl) * np.cos(H.theta)).integrate("theta"))
+            data_x[:, l, k] = np.conjugate(data_x[:, k, l])
+            data_y[:, k, l] = (-coef1 * (np.sin(beta[l]) * H_beta.sel(theta=beta[l], wave_direction=beta[k]) - np.sin(beta[k]) * np.conjugate(H_beta.sel(theta=beta[k], wave_direction=beta[l]))) / (2*1j)
+                               - coef2 * (hk* np.conjugate(hl) * np.sin(H.theta)).integrate("theta"))
+            data_y[:, l, k] = np.conjugate(data_y[:, k, l])
+            data_z[:, k, l] = (coef1/m * (H_derivative_beta.sel(theta=beta[l], wave_direction=beta[k]) + np.conjugate(H_derivative_beta.sel(theta=beta[k], wave_direction=beta[l]))) / 2
+                               - coef2/m * ((np.conjugate(hk) * hl_derivative - hl * np.conjugate(hk_derivative)) / (2*1j)).integrate("theta"))
+            data_z[:, l, k] = np.conjugate(data_z[:, k, l])
+
     Fx = xr.DataArray(
-        data=-coef1*np.cos(beta)*np.imag(H_beta) - coef2*(base * np.cos(H_tot.theta)).integrate("theta"),
-        coords=coords,
+        data=data_x,
         dims=dims,
+        coords=coords,
         name='drift_force_surge'
         )
-    
+
     Fy = xr.DataArray(
-        data=-coef1*np.sin(beta)*np.imag(H_beta) - coef2*(base * np.sin(H_tot.theta)).integrate("theta"),
+        data=data_y,
         coords=coords,
         dims=dims,
         name='drift_force_sway'
         )
-    
+
     Mz = xr.DataArray(
-        data=coef1/k*np.real(H_derivative_beta) - coef2/k*np.imag((np.conjugate(H_tot) * H_derivative).integrate("theta")),
+        data=data_z,
         coords=coords,
         dims=dims,
         name='drift_force_yaw'
         )
-    
     return xr.Dataset({Fx.name: Fx, Fy.name: Fy, Mz.name: Mz})
 
 
-def near_field_mean_drift_force(rao, results, solver): 
+def _merge_far_field_mean_drift_variables(dataset):
+    """Merge the three drift force components into a single variable with an influenced_dof dimension.
+
+    Parameters
+    ----------
+    dataset : xarray Dataset
+        The dataset returned by far_field_mean_drift_force, containing 'drift_force_surge',
+        'drift_force_sway', and 'drift_force_yaw' variables.
+
+    Returns
+    -------
+    xarray Dataset
+        A dataset with a single 'drift_force' variable having an additional 'influenced_dof' dimension
+        with coordinates ["Surge", "Sway", "Yaw"].
+    """
+    # Stack the three force components along a new dimension
+    drift_force = xr.concat(
+        [dataset['drift_force_surge'], dataset['drift_force_sway'], dataset['drift_force_yaw']],
+        dim=xr.DataArray(['Surge', 'Sway', 'Yaw'], dims=['influenced_dof'], name='influenced_dof')
+    )
+    drift_force.name = 'drift_force'
+
+    return xr.Dataset({'drift_force': drift_force})
+
+
+####################################################################################################
+# Near field
+####################################################################################################
+
+def near_field_mean_drift_force(rao, results, solver):
     body = results[0].body
     mesh = body.mesh
     rho = results[0].rho
@@ -104,7 +169,7 @@ def near_field_mean_drift_force(rao, results, solver):
     z0 = np.tile(mesh.faces_centers[:, -1], (nb_dir, 1))
     motion = motion_order1(mesh.faces_centers, body, rao) # motion[i_dir, i_face, xyz]
     z1 = motion[:, :, -1] # z1[i_dir, i_face]
-    forces_order0 = hydrostatics_forces(body, rao, rho, g, z0)[0, ...] # same value for all wave directions at order 0 
+    forces_order0 = hydrostatics_forces(body, rao, rho, g, z0)[0, ...] # same value for all wave directions at order 0
     forces_order1 = hydrodynamics_forces_order1(results, rao) + hydrostatics_forces(body, rao, rho, g, z1) # forces_order1[i_dir, influenced_dof]
     rotation_forces_order0 = np.matvec(rotation_matrix, forces_order0) # rotation_forces_order0[i_dir, influenced_dof]
     all_forces_order1 = forces_order1 + rotation_forces_order0 # all_forces_order1[i_dir, influenced_dof]
@@ -115,18 +180,18 @@ def near_field_mean_drift_force(rao, results, solver):
     free_surface_elevation = total_free_surface_elevation(solver, vertices_middle_waterline, results, rao) # free_surface_elevation[i_dir, i_vertex_waterline]
     vertical_position = motion_order1(vertices_middle_waterline, body, rao)[:, :, -1] # vertical_position[i_dir, i_vertex_waterline]
 
-    F = np.full((nb_dir, nb_dir, 6), np.nan + 1j*np.nan, dtype=complex) 
+    F = np.full((nb_dir, nb_dir, 6), np.nan + 1j*np.nan, dtype=complex)
     for k in range(nb_dir):
         for l in range(k, nb_dir):
             h = transformation_matrix(rao.isel(wave_direction=k)[0, ...], rao.isel(wave_direction=l)[0, ...]) # h[xyz, xyz]
             H = np.block([[h, zero_33], [zero_33, h]])
-            product = (np.sum(motion[k, ...] * np.conjugate(-1j * omega * gradient_potential[l, ...]), axis=1) + np.sum(np.conjugate(motion[l, ...]) * -1j * omega * gradient_potential[k, ...], axis=1)) / 2 # product[i_face] 
+            product = (np.sum(motion[k, ...] * np.conjugate(-1j * omega * gradient_potential[l, ...]), axis=1) + np.sum(np.conjugate(motion[l, ...]) * -1j * omega * gradient_potential[k, ...], axis=1)) / 2 # product[i_face]
             gradient_potential_square = np.sum(gradient_potential[k, ...] * np.conjugate(gradient_potential[l, ...]), axis=1) # gradient_potential_square[i_face]
             z_order2 = np.matvec(h, mesh.faces_centers)[..., -1] # z_order2[i_face]
             pressure_field = - (product + gradient_potential_square/2 + g * z_order2) # pressure_field[i_face]
             waterline_field = (1/2) * g * (free_surface_elevation - vertical_position)[k, ...] * np.conjugate(free_surface_elevation - vertical_position)[l, ...] # waterline_field[i_vertex_waterline]
 
-            hydrostatics_order2 = np.matvec(H, forces_order0) 
+            hydrostatics_order2 = np.matvec(H, forces_order0)
             rotation_forces_order1 = (np.matvec(rotation_matrix[k, ...], np.conjugate(forces_order1[l, ...])) + np.matvec(np.conjugate(rotation_matrix[l, ...]), forces_order1[k, ...])) / 2
             translation_moment = (np.matvec(translation_matrix[k, ...], np.conjugate(all_forces_order1[l, ...])) + np.matvec(np.conjugate(translation_matrix[l, ...]), all_forces_order1[k, ...])) / 2
             pressure_hull = body.integrate_pressure(pressure_field)
@@ -134,7 +199,7 @@ def near_field_mean_drift_force(rao, results, solver):
 
             F[k, l, :] = rotation_forces_order1 + hydrostatics_order2 + translation_moment + rho * (np.array(list(pressure_hull.values())) + np.array(list(pressure_waterline.values())))
             F[l, k, :] = np.conjugate(F[k, l, :])
-    
+
     return xr.DataArray(
         data=F/2,
         dims=["wave_direction_k", "wave_direction_l", "influenced_dof"],
@@ -194,8 +259,8 @@ def hydrostatics_forces(body, rao, rho, g, z):
     force = np.zeros((rao.sizes["wave_direction"], rao.sizes["radiating_dof"]), dtype=z.dtype)
     for idx, _ in enumerate(rao.coords["wave_direction"].values):
         results = body.integrate_pressure(-g * z[idx, :])
-        force[idx, :] = rho * np.array(list(results.values())) 
-    return force  
+        force[idx, :] = rho * np.array(list(results.values()))
+    return force
 
 
 def hydrodynamics_forces_order1(results, rao):
@@ -220,21 +285,21 @@ def transformation_matrix(rao_k, rao_l):
     zero = np.zeros(xk.shape)
 
     H = (1/2) * (np.array([
-                [-(yk * np.conjugate(yl) + zk * np.conjugate(zl)), zero, zero],  
+                [-(yk * np.conjugate(yl) + zk * np.conjugate(zl)), zero, zero],
                 [xk * np.conjugate(yl) + np.conjugate(xl) * yk, -(xk * np.conjugate(xl) + zk * np.conjugate(zl)), zero],
                 [xk * np.conjugate(zl) + np.conjugate(xl) * zk, yk * np.conjugate(zl) + np.conjugate(yl) * zk, -(xk * np.conjugate(xl) + yk * np.conjugate(yl))]
             ],
             dtype=object)
         )
-    
+
     H = np.reshape(H, (3, 3)) # H[xyz, xyz]
     return H
 
 def skew_matrix(a):
     if a.shape[-1] != 3:
         raise ValueError("Last dimension should be of size 3.")
-    
-    results = np.zeros(a.shape[:-1] + (3,3), dtype=a.dtype) 
+
+    results = np.zeros(a.shape[:-1] + (3,3), dtype=a.dtype)
     x, y, z = a[..., 0], a[..., 1], a[..., 2]
     results[..., 0, 1] = -z
     results[..., 0, 2] = y
@@ -255,7 +320,7 @@ def integrate_pressure_waterline(body, pressure):
     ) / 2
         for dof_name in body.dofs:
             dof = body.dofs[dof_name].evaluate_motion_at_points(vertex_waterline)
-        
+
             # Scalar product on each edge:
             normal_dof_amplitude_on_waterline = np.sum(dof * normal_waterline, axis=1)
             forces[dof_name] = -np.sum(pressure * normal_dof_amplitude_on_waterline * body.mesh.length_edges_waterline)

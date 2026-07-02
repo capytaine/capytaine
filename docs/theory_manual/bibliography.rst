@@ -3,11 +3,15 @@ Bibliography
 
 .. [N82] Noblesse, **The Green function in the theory of radiation and diffraction of regular water waves by a body**, J. Engg. Math., 1982
 
+.. [N85] Newman, **Algorithms for the free-surface Green function**, 1985
+
 .. [Del87] Delhommeau, **Problèmes de diffraction-radiation et de résistance des vagues : étude théorique et résolution numérique par la méthode des singularités**, PhD Thesis, École Nationale Supérieure de Mécanique de Nantes, 1987
 
 .. [Del89] Delhommeau, **Amélioration des codes de calcul de diffraction-raditation au premier ordre**, 2émes Journées de l'Hydrodynamique, 1989
 
 .. [Del93] Delhommeau, **The seakeeping codes Aquadyn and Aquaplus**, 19th WEGEMT School, Numerical Simulation of Hydrodynamics: Ships and Offshore Structures, 1993
+
+.. [C93] Chen, **Évaluation de la fonction de Green du problème de diffraction/radiation en profondeur d'eau finie**, 4émes Journées de l'Hydrodynamique, 1993
 
 .. [BD15] Babarit and Delhommeau, **Theoretical and numerical aspects of the open source BEM solver NEMOH**, Proceedings of the 11th European Wave and Tidal Energy Conference (EWTEC2015), Nantes, France, 2015.
 
@@ -24,6 +28,8 @@ Bibliography
 .. [N20] Newman, **A simplified derivation of the ordinary differential equations for the free-surface Green functions**, Applied Ocean Research, 2020
 
 .. [D22] Donatini et al., **Implementation of forward speed effects on an open source seakeeping solver**. In 6th MASHCON: International Conference on Ship Manoeuvring in Shallow and Confined Water, 2022
+
+.. [W22] Wuillaume, **Study of the free surface Green function at zero forward speed in finite water depth using Newman’s method**, Applied Ocean Research, 120 (2022)
 
 .. [AN24] Ancellin and Nguyen, **Case studies of BEM solver accuracy with the open-source code Capytaine**, in ASME 2024 43rd International Conference on Ocean, Offshore and Arctic Engineering (OMAE2024)
 

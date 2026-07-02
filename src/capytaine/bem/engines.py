@@ -136,8 +136,9 @@ class BasicMatrixEngine(MatrixEngine):
         points: np.ndarray of shape (nb_collocations_points, 3)
             List of collocation points. Usually went through `_normalize_points`.
         """
+        full_mesh = mesh.merged()
         def build_S_rows(slice_):
-            S, _ = self.green_function.evaluate(points[slice_, :], mesh, **gf_params)
+            S, _ = self.green_function.evaluate(points[slice_, :], full_mesh, **gf_params)
             check_if_nan_in_matrix([S])
             return S
 
@@ -161,7 +162,7 @@ class BasicMatrixEngine(MatrixEngine):
         gf_params.setdefault("diagonal_term_in_double_layer", True)  # Unclear if this is a good default
         gf_params.setdefault("adjoint_double_layer", True)
         gf_params.setdefault("early_dot_product", False)
-        _, fullK = self.green_function.evaluate(mesh1, mesh2, **gf_params)
+        _, fullK = self.green_function.evaluate(mesh1, mesh2.merged(), **gf_params)
         check_if_nan_in_matrix([fullK])
         return fullK
 

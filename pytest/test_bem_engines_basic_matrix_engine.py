@@ -312,3 +312,11 @@ def test_lazy_S_matrix():
     assert isinstance(S, LazyMatrix)
     full_S, _ = engine.green_function.evaluate(points, mesh, wavenumber=1.0)
     assert np.allclose(np.array(S), full_S)
+
+
+def test_same_S_and_K_matrices_with_symmetries():
+    engine = cpt.BasicMatrixEngine()
+    sym_mesh = ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), plane='xOz')
+    mesh = sym_mesh.merged()
+    assert np.allclose(engine.build_S_matrix(sym_mesh.faces_centers, sym_mesh), engine.build_S_matrix(mesh.faces_centers, mesh))
+    assert np.allclose(engine.build_fullK_matrix(sym_mesh.faces_centers, sym_mesh), engine.build_fullK_matrix(mesh.faces_centers, mesh))
