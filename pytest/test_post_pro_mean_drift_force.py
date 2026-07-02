@@ -5,7 +5,7 @@ import xarray as xr
 import pytest
 
 import capytaine as cpt
-from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, _merge_far_field_component
+from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force
 
 def test_far_field_mean_drift_force():
     r = 1

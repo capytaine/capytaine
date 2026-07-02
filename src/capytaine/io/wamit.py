@@ -139,6 +139,10 @@ def identify_frequency_axis(
     return freq_key, freq_vals, period_vals
 
 
+###############################################################################
+# Hydrostatics
+###############################################################################
+
 def export_wamit_hst(
     dataset: xarray.Dataset, filename: str, length_scale: float = 1.0
 ) -> None:
@@ -182,6 +186,10 @@ def export_wamit_hst(
                 cij_nd = cij / norm
                 f.write(f"{i:5d} {j:5d} {cij_nd:12.6e}\n")
 
+
+###############################################################################
+# Added mass and radiation damping
+###############################################################################
 
 def export_wamit_1(
     dataset: xarray.Dataset, filename: str, length_scale: float = 1.0
@@ -280,6 +288,10 @@ def export_wamit_1(
         f.writelines(period_blocks["T_zero"])
         f.writelines(sorted_lines)
 
+
+###############################################################################
+# Diffraction and excitation force
+###############################################################################
 
 def _format_excitation_line(
     period: float, beta_deg: float, i_dof: int, force: complex
@@ -437,9 +449,12 @@ def export_wamit_3sc(dataset: xarray.Dataset, filename: str) -> None:
     """
     _export_wamit_excitation_force(dataset, "diffraction_force", filename)
 
+
+###############################################################################
+# Mean drift force
 ###############################################################################
 
-def export_wamit_mean_drift(
+def _export_wamit_mean_drift(
     drift_force: xarray.DataArray,
     filename: str,
     length_scale: float = 1.0,
@@ -523,12 +538,12 @@ def export_wamit_mean_drift(
                     )
 
 def export_wamit_8(dataset, *args, **kwargs):
-    return export_wamit_mean_drift(
+    return _export_wamit_mean_drift(
         _merge_far_field_mean_drift_variables(dataset)["drift_force"], *args, **kwargs
     )
 
 # def export_wamit_9(dataset, *args, **kwargs):
-#     return export_wamit_mean_drift(dataset["near_field_mean_drift_force"], *args, **kwargs)
+#     return _export_wamit_mean_drift(dataset["near_field_mean_drift_force"], *args, **kwargs)
 
 ###############################################################################
 
