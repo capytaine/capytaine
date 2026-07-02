@@ -3,6 +3,8 @@ import logging
 from typing import Union, Iterable, Tuple, TextIO
 import xarray
 
+from capytaine.post_pro.mean_drift_force import _merge_far_field_mean_drift_variables
+
 logger = logging.getLogger(__name__)
 
 DOF_INDEX = {"Surge": 1, "Sway": 2, "Heave": 3, "Roll": 4, "Pitch": 5, "Yaw": 6}
@@ -137,6 +139,10 @@ def identify_frequency_axis(
     return freq_key, freq_vals, period_vals
 
 
+###############################################################################
+# Hydrostatics
+###############################################################################
+
 def export_wamit_hst(
     dataset: xarray.Dataset, filename: str, length_scale: float = 1.0
 ) -> None:
@@ -180,6 +186,10 @@ def export_wamit_hst(
                 cij_nd = cij / norm
                 f.write(f"{i:5d} {j:5d} {cij_nd:12.6e}\n")
 
+
+###############################################################################
+# Added mass and radiation damping
+###############################################################################
 
 def export_wamit_1(
     dataset: xarray.Dataset, filename: str, length_scale: float = 1.0
@@ -278,6 +288,10 @@ def export_wamit_1(
         f.writelines(period_blocks["T_zero"])
         f.writelines(sorted_lines)
 
+
+###############################################################################
+# Diffraction and excitation force
+###############################################################################
 
 def _format_excitation_line(
     period: float, beta_deg: float, i_dof: int, force: complex
@@ -436,10 +450,107 @@ def export_wamit_3sc(dataset: xarray.Dataset, filename: str) -> None:
     _export_wamit_excitation_force(dataset, "diffraction_force", filename)
 
 
+###############################################################################
+# Mean drift force
+###############################################################################
+
+def _export_wamit_mean_drift(
+    drift_force: xarray.DataArray,
+    filename: str,
+    length_scale: float = 1.0,
+    wave_amplitude: float = 1.0,
+) -> None:
+    """
+    Export far-field mean drift forces to a WAMIT .8 file.
+
+    For unidirectional waves BETA1 == BETA2.
+
+    Format:
+        PER     BETA1     BETA2     I     Mod(Fi)     Pha(Fi)     Re(Fi)     Im(Fi)
+
+    Nondimensionalization (WAMIT manual Section 3.8):
+        F̄i = Fi / (ρ g A² Lᵏ)
+    where k=1 for forces (I=1,2,3), k=2 for moments (I=4,5,6).
+
+    Parameters
+    ----------
+    drift_force : xarray.DataArray
+        The drift force DataArray with 'influenced_dof' dimension.
+    filename : str
+        Output path for the .8 file.
+    length_scale : float
+        Reference length scale L for nondimensionalization.
+    wave_amplitude : float
+        Wave amplitude A used in nondimensionalization.
+    """
+    if "influenced_dof" not in drift_force.dims:
+        raise ValueError("'drift_force' must have an 'influenced_dof' dimension.")
+
+    rho = drift_force.coords["rho"].item()
+    g = drift_force.coords["g"].item()
+
+    betas = drift_force.coords["wave_direction"].values
+    if np.ndim(betas) == 0:
+        betas = np.atleast_1d(betas)
+
+    freq_key, freq_vals, period_vals = identify_frequency_axis(dataset=drift_force)
+
+    # Sort by increasing period
+    sorted_indices = np.argsort(period_vals)
+    sorted_periods = period_vals[sorted_indices]
+    sorted_freqs = freq_vals[sorted_indices]
+
+    with open(filename, "w") as f:
+        for freq_val, period in zip(sorted_freqs, sorted_periods):
+            if np.isclose(freq_val, 0.0) or np.isinf(freq_val):
+                continue
+            for beta in betas:
+                beta_deg = np.degrees(beta)
+                for dof_name in drift_force.influenced_dof.values:
+                    if dof_name not in DOF_INDEX:
+                        continue
+
+                    mode_idx = DOF_INDEX[dof_name]
+                    dof_type = DOF_TYPE[dof_name]
+                    # k exponent: 1 for translational forces, 2 for rotational moments
+                    k_exp = 1 if dof_type == "trans" else 2
+
+                    value = drift_force.sel({freq_key: freq_val, "wave_direction": beta, "influenced_dof": dof_name}).item()
+
+                    # Skip NaN values
+                    if np.isnan(value):
+                        continue
+
+                    norm = rho * g * (wave_amplitude ** 2) * (length_scale ** k_exp)
+                    value_nd = value / norm
+
+                    # Drift forces are real for unidirectional waves
+                    force = complex(value_nd)
+                    mod_f = np.abs(force)
+                    pha_f = np.degrees(np.angle(force))
+                    re_f = force.real
+                    im_f = force.imag
+
+                    f.write(
+                        "{:12.6e}\t{:12.6f}\t{:12.6f}\t{:5d}\t{:12.6e}\t{:12.3f}\t{:12.6e}\t{:12.6e}\n".format(
+                            period, beta_deg, beta_deg, mode_idx, mod_f, pha_f, re_f, im_f
+                        )
+                    )
+
+def export_wamit_8(dataset, *args, **kwargs):
+    return _export_wamit_mean_drift(
+        _merge_far_field_mean_drift_variables(dataset)["drift_force"], *args, **kwargs
+    )
+
+# def export_wamit_9(dataset, *args, **kwargs):
+#     return _export_wamit_mean_drift(dataset["near_field_mean_drift_force"], *args, **kwargs)
+
+###############################################################################
+
 def export_to_wamit(
     dataset: xarray.Dataset,
     problem_name: str,
-    exports: Iterable[str] = ("1", "3", "3fk", "3sc", "hst"),
+    exports: Iterable[str] = ("1", "3", "3fk", "3sc", "8", "hst"),
 ) -> None:
     """
     Master function to export a Capytaine dataset to WAMIT-format files.
@@ -458,6 +569,7 @@ def export_to_wamit(
         "3": ("total excitation force", export_wamit_3, ".3"),
         "3fk": ("Froude-Krylov force", export_wamit_3fk, ".3fk"),
         "3sc": ("diffraction force", export_wamit_3sc, ".3sc"),
+        "8": ("mean drift force (far field)", export_wamit_8, ".8"),
         "hst": ("hydrostatics", export_wamit_hst, ".hst"),
     }
     check_dataset_ready_for_export(dataset)
