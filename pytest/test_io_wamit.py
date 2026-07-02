@@ -8,8 +8,8 @@ import xarray as xr
 import pytest
 
 import capytaine as cpt
-from capytaine.io.wamit import export_to_wamit, export_wamit_8
-from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force
+from capytaine.io.wamit import export_to_wamit, export_wamit_8, export_wamit_9
+from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, near_field_mean_drift_force
 
 @pytest.fixture
 def full_dataset():
@@ -312,6 +312,10 @@ def test_export_wamit_frequency_axis_representations(export_type, omega_val, tmp
     compare_wamit_files(f_omega, f_wavelength)
 
 
+####################################################################################################
+# Far-field mean drift force
+####################################################################################################
+
 def test_export_wamit_8(tmpdir):
     """Test export of far-field mean drift forces to WAMIT .8 file."""
     mesh = cpt.mesh_sphere(resolution=(4, 4))
@@ -426,3 +430,60 @@ def test_export_wamit_8_while_exporting_everything(tmpdir):
     with open(wamit_8_path, "r", encoding="utf-8") as f:
         lines = [line.strip() for line in f if line.strip()]
     assert len(lines) == 3  # 1 period * 1 beta_k * 1 beta_l * 3 modes
+
+
+####################################################################################################
+# Near field mean drift force
+####################################################################################################
+
+def test_export_wamit_9(tmpdir):
+    """Test export of near-field mean drift forces to WAMIT .9 file."""
+    from capytaine.io.xarray import problems_from_dataset
+    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
+    body.inertia_matrix = body.compute_rigid_body_inertia()
+    body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
+    solver = cpt.BEMSolver()
+    wave_direction = [0, np.pi/4]
+    test_matrix = xr.Dataset(coords={
+            'wavenumber': [1.0], 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys())
+        })
+    pbs = problems_from_dataset(test_matrix, body)
+    results = solver.solve_all(pbs)
+    dataset = cpt.assemble_dataset(results)
+    rao = cpt.post_pro.rao(dataset)
+    mdf = near_field_mean_drift_force(rao, results, solver)
+    dataset = xr.merge([dataset, mdf])
+
+    filepath = str(tmpdir / "drift_test.9")
+    export_wamit_9(dataset, filepath)
+
+    assert Path(filepath).exists(), "File .9 was not generated."
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        lines = [line.strip() for line in f if line.strip()]
+
+    n_periods = 2
+    n_betas_k = 2
+    n_betas_l = 2
+    n_dofs = 6
+    expected_lines = n_periods * n_betas_k * n_betas_l * n_dofs
+    assert len(lines) == expected_lines, (
+        f"Expected {expected_lines} lines, got {len(lines)}"
+    )
+
+    # Check each line has 8 columns
+    for i, line in enumerate(lines):
+        fields = re.split(r"\s+", line)
+        assert len(fields) == 8, (
+            f"Line {i} should have 8 fields, got {len(fields)}: {line}"
+        )
+
+    # Check that BETA1 and BETA2 are present (can be same or different)
+    for i, line in enumerate(lines):
+        fields = re.split(r"\s+", line)
+        beta1 = float(fields[1])
+        beta2 = float(fields[2])
+        # Both should be valid angles
+        assert -180 <= beta1 <= 180 or 0 <= beta1 <= 360, f"Line {i}: BETA1={beta1} out of range"
+        assert -180 <= beta2 <= 180 or 0 <= beta2 <= 360, f"Line {i}: BETA2={beta2} out of range"
