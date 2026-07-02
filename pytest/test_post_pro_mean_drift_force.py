@@ -5,7 +5,7 @@ import xarray as xr
 import pytest
 
 import capytaine as cpt
-from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force
+from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, near_field_mean_drift_force
 
 def test_far_field_mean_drift_force():
     r = 1
@@ -52,3 +52,26 @@ def test_scale_far_field_mean_drift_force():
         force.append(far_field_mean_drift_force(X, dataset)/r)
 
     assert np.allclose(force[0]['drift_force_surge'].values, force[1]['drift_force_surge'].values)
+
+
+def test_near_field_mean_drift_force():
+    from capytaine.io.xarray import problems_from_dataset
+    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
+    body.inertia_matrix = body.compute_rigid_body_inertia()
+    body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
+    solver = cpt.BEMSolver()
+    wave_direction = [0, np.pi/4]
+    test_matrix = xr.Dataset(coords={
+            'wavenumber': [1.0], 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys())
+        })
+    pbs = problems_from_dataset(test_matrix, body)
+    results = solver.solve_all(pbs)
+    dataset = cpt.assemble_dataset(results)
+    rao = cpt.post_pro.rao(dataset)
+    mdf = near_field_mean_drift_force(rao, results, solver)
+    assert "wave_direction_k" in mdf.dims
+    assert "wave_direction_l" in mdf.dims
+    assert mdf.shape == (2, 2, 6)  # (dir, dir, dofs)
+    assert np.allclose(mdf.isel(wave_direction_k=0, wave_direction_l=1).values,
+                       np.conj(mdf.isel(wave_direction_k=1, wave_direction_l=0).values))
