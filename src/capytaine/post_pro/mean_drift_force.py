@@ -74,7 +74,7 @@ def far_field_mean_drift_force(X, dataset):
     return xr.Dataset({Fx.name: Fx, Fy.name: Fy, Mz.name: Mz})
 
 
-def _merge_far_field_component(dataset):
+def _merge_far_field_mean_drift_variables(dataset):
     """Merge the three drift force components into a single variable with an influenced_dof dimension.
 
     Parameters

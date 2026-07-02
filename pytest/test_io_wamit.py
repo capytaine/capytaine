@@ -389,7 +389,7 @@ def test_export_wamit_8_missing_field(tmpdir):
         export_wamit_8(ds, filepath)
 
 
-def test_export_wamit_8_via_master(tmpdir):
+def test_export_wamit_8_while_exporting_everything(tmpdir):
     """Test that .8 export works through the master export_to_wamit function."""
     mesh = cpt.mesh_sphere(resolution=(4, 4))
     dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
