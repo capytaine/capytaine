@@ -348,9 +348,10 @@ def test_export_wamit_8(tmpdir):
         lines = [line.strip() for line in f if line.strip()]
 
     n_periods = 2
-    n_betas = 2
+    n_betas_k = 2
+    n_betas_l = 2
     n_modes = 3  # surge, sway, yaw
-    expected_lines = n_periods * n_betas * n_modes
+    expected_lines = n_periods * n_betas_k * n_betas_l * n_modes
     assert len(lines) == expected_lines, (
         f"Expected {expected_lines} lines, got {len(lines)}"
     )
@@ -371,14 +372,14 @@ def test_export_wamit_8(tmpdir):
             f"Line {i}: expected mode {expected_mode}, got {mode_idx}"
         )
 
-    # Check BETA1 == BETA2 (unidirectional)
+    # Check that BETA1 and BETA2 are present (can be same or different)
     for i, line in enumerate(lines):
         fields = re.split(r"\s+", line)
         beta1 = float(fields[1])
         beta2 = float(fields[2])
-        assert np.isclose(beta1, beta2), (
-            f"Line {i}: BETA1={beta1} != BETA2={beta2}"
-        )
+        # Both should be valid angles
+        assert -180 <= beta1 <= 180 or 0 <= beta1 <= 360, f"Line {i}: BETA1={beta1} out of range"
+        assert -180 <= beta2 <= 180 or 0 <= beta2 <= 360, f"Line {i}: BETA2={beta2} out of range"
 
 
 def test_export_wamit_8_missing_field(tmpdir):
@@ -424,4 +425,4 @@ def test_export_wamit_8_while_exporting_everything(tmpdir):
 
     with open(wamit_8_path, "r", encoding="utf-8") as f:
         lines = [line.strip() for line in f if line.strip()]
-    assert len(lines) == 3  # 1 period * 1 beta * 3 modes
+    assert len(lines) == 3  # 1 period * 1 beta_k * 1 beta_l * 3 modes

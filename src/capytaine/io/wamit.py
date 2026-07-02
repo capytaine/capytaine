@@ -463,8 +463,6 @@ def _export_wamit_mean_drift(
     """
     Export far-field mean drift forces to a WAMIT .8 file.
 
-    For unidirectional waves BETA1 == BETA2.
-
     Format:
         PER     BETA1     BETA2     I     Mod(Fi)     Pha(Fi)     Re(Fi)     Im(Fi)
 
@@ -475,7 +473,7 @@ def _export_wamit_mean_drift(
     Parameters
     ----------
     drift_force : xarray.DataArray
-        The drift force DataArray with 'influenced_dof' dimension.
+        The drift force DataArray with 'influenced_dof', 'wave_direction_k', and 'wave_direction_l' dimensions.
     filename : str
         Output path for the .8 file.
     length_scale : float
@@ -489,9 +487,12 @@ def _export_wamit_mean_drift(
     rho = drift_force.coords["rho"].item()
     g = drift_force.coords["g"].item()
 
-    betas = drift_force.coords["wave_direction"].values
-    if np.ndim(betas) == 0:
-        betas = np.atleast_1d(betas)
+    betas_k = drift_force.coords["wave_direction_k"].values
+    betas_l = drift_force.coords["wave_direction_l"].values
+    if np.ndim(betas_k) == 0:
+        betas_k = np.atleast_1d(betas_k)
+    if np.ndim(betas_l) == 0:
+        betas_l = np.atleast_1d(betas_l)
 
     freq_key, freq_vals, period_vals = identify_frequency_axis(dataset=drift_force)
 
@@ -504,38 +505,40 @@ def _export_wamit_mean_drift(
         for freq_val, period in zip(sorted_freqs, sorted_periods):
             if np.isclose(freq_val, 0.0) or np.isinf(freq_val):
                 continue
-            for beta in betas:
-                beta_deg = np.degrees(beta)
-                for dof_name in drift_force.influenced_dof.values:
-                    if dof_name not in DOF_INDEX:
-                        continue
+            for beta_k in betas_k:
+                for beta_l in betas_l:
+                    beta_k_deg = np.degrees(beta_k)
+                    beta_l_deg = np.degrees(beta_l)
+                    for dof_name in drift_force.influenced_dof.values:
+                        if dof_name not in DOF_INDEX:
+                            continue
 
-                    mode_idx = DOF_INDEX[dof_name]
-                    dof_type = DOF_TYPE[dof_name]
-                    # k exponent: 1 for translational forces, 2 for rotational moments
-                    k_exp = 1 if dof_type == "trans" else 2
+                        mode_idx = DOF_INDEX[dof_name]
+                        dof_type = DOF_TYPE[dof_name]
+                        # k exponent: 1 for translational forces, 2 for rotational moments
+                        k_exp = 1 if dof_type == "trans" else 2
 
-                    value = drift_force.sel({freq_key: freq_val, "wave_direction": beta, "influenced_dof": dof_name}).item()
+                        value = drift_force.sel({freq_key: freq_val, "wave_direction_k": beta_k, "wave_direction_l": beta_l, "influenced_dof": dof_name}).item()
 
-                    # Skip NaN values
-                    if np.isnan(value):
-                        continue
+                        # Skip NaN values
+                        if np.isnan(value):
+                            continue
 
-                    norm = rho * g * (wave_amplitude ** 2) * (length_scale ** k_exp)
-                    value_nd = value / norm
+                        norm = rho * g * (wave_amplitude ** 2) * (length_scale ** k_exp)
+                        value_nd = value / norm
 
-                    # Drift forces are real for unidirectional waves
-                    force = complex(value_nd)
-                    mod_f = np.abs(force)
-                    pha_f = np.degrees(np.angle(force))
-                    re_f = force.real
-                    im_f = force.imag
+                        # Drift forces can be complex
+                        force = complex(value_nd)
+                        mod_f = np.abs(force)
+                        pha_f = np.degrees(np.angle(force))
+                        re_f = force.real
+                        im_f = force.imag
 
-                    f.write(
-                        "{:12.6e}\t{:12.6f}\t{:12.6f}\t{:5d}\t{:12.6e}\t{:12.3f}\t{:12.6e}\t{:12.6e}\n".format(
-                            period, beta_deg, beta_deg, mode_idx, mod_f, pha_f, re_f, im_f
+                        f.write(
+                            "{:12.6e}\t{:12.6f}\t{:12.6f}\t{:5d}\t{:12.6e}\t{:12.3f}\t{:12.6e}\t{:12.6e}\n".format(
+                                period, beta_k_deg, beta_l_deg, mode_idx, mod_f, pha_f, re_f, im_f
+                            )
                         )
-                    )
 
 def export_wamit_8(dataset, *args, **kwargs):
     return _export_wamit_mean_drift(
