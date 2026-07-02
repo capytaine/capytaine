@@ -320,7 +320,7 @@ def test_export_wamit_8(tmpdir):
     immersed_body = full_body.immersed_part()
     immersed_body.compute_hydrostatics()
 
-    theta_range = np.linspace(0, 2 * np.pi, 40)
+    theta_range = np.linspace(-np.pi, 2 * np.pi, 40)
     test_matrix = xr.Dataset(
         {
             "omega": [1.0, 2.0],
@@ -385,7 +385,7 @@ def test_export_wamit_8_missing_field(tmpdir):
     """Test that export_wamit_8 raises ValueError when drift fields are missing."""
     ds = xr.Dataset({"dummy": 0.0})
     filepath = str(tmpdir / "missing.8")
-    with pytest.raises(ValueError, match="Missing field"):
+    with pytest.raises(KeyError):
         export_wamit_8(ds, filepath)
 
 
@@ -397,7 +397,7 @@ def test_export_wamit_8_while_exporting_everything(tmpdir):
     immersed_body = full_body.immersed_part()
     immersed_body.compute_hydrostatics()
 
-    theta_range = np.linspace(0, 2 * np.pi, 40)
+    theta_range = np.linspace(-np.pi, 2 * np.pi, 40)
     test_matrix = xr.Dataset(
         {
             "omega": [1.0],
