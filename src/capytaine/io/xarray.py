@@ -817,8 +817,14 @@ def export_dataset(filename, dataset, format=None, **kwargs):
             ):
         from capytaine.io.legacy import write_dataset_as_tecplot_files, export_hydrostatics_from_dataset
         Path(filename).mkdir(exist_ok=True)
-        write_dataset_as_tecplot_files(filename, dataset, **kwargs)
-        export_hydrostatics_from_dataset(filename, dataset)
+        try:
+            write_dataset_as_tecplot_files(filename, dataset, **kwargs)
+        except Exception as e:
+            LOG.warning(f"Export to Nemoh format: did not export hydrodynamics in {filename}: {e}")
+        try:
+            export_hydrostatics_from_dataset(filename, dataset)
+        except Exception as e:
+            LOG.warning(f"Export to Nemoh format: did not export hydrostatics in {filename}: {e}")
     else:
         raise ValueError("`export_dataset` could not infer export format based on filename or `format` argument.\n"
                          f"provided filename: {filename}\nprovided format: {format}")
