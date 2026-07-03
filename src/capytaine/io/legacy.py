@@ -164,7 +164,7 @@ def _hydrostatics_writer(hydrostatics_file_path, kh_file_path, body):
         for j in range(3):
             line =  f'XF = {body.center_of_buoyancy[j]:7.4f} - XG = {body.center_of_mass[j]:7.4f} \n'
             hf.write(line)
-        line = f'Displacement = {body.volume:1.6E}'
+        line = f'Displacement = {body.disp_volume:1.6E}\n'
         hf.write(line)
         hf.close()
     np.savetxt(kh_file_path, body.hydrostatic_stiffness.values, fmt='%1.6E')
