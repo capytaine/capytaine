@@ -166,6 +166,8 @@ Other major changes
    contains body names, but cannot be stored body-by-body in the ``body``
    dimension).
    (:pull:`887`)
+   The xarray hydrostatics dataset can be expoted to Nemoh format with the new
+   :func:`~capytaine.io.legacy.export_hydrostatics_from_dataset`, which is called automatically by :func:`~capytaine.io.xarray.export_dataset` when choosing Nemoh's format. (:pull:`898`)
 
 
 * **New internal data model for rigid body dofs** with the classes

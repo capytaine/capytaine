@@ -18,7 +18,8 @@ mesh = cpt.mesh_horizontal_cylinder(
 body = cpt.FloatingBody(
     mesh=mesh,
     lid_mesh=mesh.generate_lid(),  # Generate a lid for irregular frequency removal
-    dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
+    dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.1)),
+    center_of_mass=(0, 0, -0.1),  # Needed for hydrostatics only
     name="floating cylinder",
 )
 
@@ -37,7 +38,7 @@ test_matrix = xr.Dataset(
 
 # Solve all radiation problems
 solver = cpt.BEMSolver()
-dataset = solver.fill_dataset(test_matrix, body.immersed_part(), hydrostatics=False)
+dataset = solver.fill_dataset(test_matrix, body.immersed_part(), hydrostatics=True)
 
 
 # Export data in various formats
