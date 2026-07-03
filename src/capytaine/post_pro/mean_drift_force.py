@@ -175,7 +175,7 @@ def near_field_mean_drift_force(rao, results, solver):
     z1 = motion[:, :, -1] # z1[i_dir, i_face]
     forces_order0 = hydrostatics_forces(body, rao, rho, g, z0)[0, ...] # same value for all wave directions at order 0
     forces_order1 = hydrodynamics_forces_order1(results, rao) + hydrostatics_forces(body, rao, rho, g, z1) # forces_order1[i_dir, influenced_dof]
-    rotation_forces_order0 = np.matvec(rotation_matrix, forces_order0) # rotation_forces_order0[i_dir, influenced_dof]
+    rotation_forces_order0 = rotation_matrix @ forces_order0 # rotation_forces_order0[i_dir, influenced_dof]
     all_forces_order1 = forces_order1 + rotation_forces_order0 # all_forces_order1[i_dir, influenced_dof]
 
     gradient_potential = total_potential_gradient(solver, mesh, results, rao) # gradient_potential[i_dir, i_face, xyz]
@@ -191,13 +191,13 @@ def near_field_mean_drift_force(rao, results, solver):
             H = np.block([[h, zero_33], [zero_33, h]])
             product = (np.sum(motion[k, ...] * np.conjugate(-1j * omega * gradient_potential[l, ...]), axis=1) + np.sum(np.conjugate(motion[l, ...]) * -1j * omega * gradient_potential[k, ...], axis=1)) / 2 # product[i_face]
             gradient_potential_square = np.sum(gradient_potential[k, ...] * np.conjugate(gradient_potential[l, ...]), axis=1) # gradient_potential_square[i_face]
-            z_order2 = np.matvec(h, mesh.faces_centers)[..., -1] # z_order2[i_face]
+            z_order2 = (h @ mesh.faces_centers[:, :, None])[..., -1, -1] # z_order2[i_face]
             pressure_field = - (product + gradient_potential_square/2 + g * z_order2) # pressure_field[i_face]
             waterline_field = (1/2) * g * (free_surface_elevation - vertical_position)[k, ...] * np.conjugate(free_surface_elevation - vertical_position)[l, ...] # waterline_field[i_vertex_waterline]
 
-            hydrostatics_order2 = np.matvec(H, forces_order0)
-            rotation_forces_order1 = (np.matvec(rotation_matrix[k, ...], np.conjugate(forces_order1[l, ...])) + np.matvec(np.conjugate(rotation_matrix[l, ...]), forces_order1[k, ...])) / 2
-            translation_moment = (np.matvec(translation_matrix[k, ...], np.conjugate(all_forces_order1[l, ...])) + np.matvec(np.conjugate(translation_matrix[l, ...]), all_forces_order1[k, ...])) / 2
+            hydrostatics_order2 = H @ forces_order0
+            rotation_forces_order1 = ((rotation_matrix[k, ...] @ np.conjugate(forces_order1[l, ...])) + (np.conjugate(rotation_matrix[l, ...]) @ forces_order1[k, ...])) / 2
+            translation_moment = ((translation_matrix[k, ...] @ np.conjugate(all_forces_order1[l, ...])) + (np.conjugate(translation_matrix[l, ...]) @ all_forces_order1[k, ...])) / 2
             pressure_hull = body.integrate_pressure(pressure_field)
             pressure_waterline = integrate_pressure_waterline(body, waterline_field)
 
@@ -281,12 +281,12 @@ def hydrodynamics_forces_order1(results, rao):
     return force[0, :, :] # forces[i_dir, influenced_dof]
 
 def transformation_matrix(rao_k, rao_l):
-    xk = rao_k.sel(radiating_dof="Roll")
-    yk = rao_k.sel(radiating_dof="Pitch")
-    zk = rao_k.sel(radiating_dof="Yaw")
-    xl = rao_l.sel(radiating_dof="Roll")
-    yl = rao_l.sel(radiating_dof="Pitch")
-    zl = rao_l.sel(radiating_dof="Yaw")
+    xk = rao_k.sel(radiating_dof="Roll").values
+    yk = rao_k.sel(radiating_dof="Pitch").values
+    zk = rao_k.sel(radiating_dof="Yaw").values
+    xl = rao_l.sel(radiating_dof="Roll").values
+    yl = rao_l.sel(radiating_dof="Pitch").values
+    zl = rao_l.sel(radiating_dof="Yaw").values
     zero = np.zeros(xk.shape)
 
     H = (1/2) * (np.array([
@@ -294,7 +294,7 @@ def transformation_matrix(rao_k, rao_l):
                 [xk * np.conjugate(yl) + np.conjugate(xl) * yk, -(xk * np.conjugate(xl) + zk * np.conjugate(zl)), zero],
                 [xk * np.conjugate(zl) + np.conjugate(xl) * zk, yk * np.conjugate(zl) + np.conjugate(yl) * zk, -(xk * np.conjugate(xl) + yk * np.conjugate(yl))]
             ],
-            dtype=object)
+            dtype=np.complex128)
         )
 
     H = np.reshape(H, (3, 3)) # H[xyz, xyz]
