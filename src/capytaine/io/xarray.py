@@ -529,9 +529,10 @@ def assemble_dataset(results,
 
     dataset = xr.Dataset()
 
-    _rotation_center_da = _rotation_center_data_array(results[0].body)
-    if _rotation_center_da is not None:
-        dataset.coords['rotation_center'] = _rotation_center_da
+    if not bemio_import:
+        _rotation_center_da = _rotation_center_data_array(results[0].body)
+        if _rotation_center_da is not None:
+            dataset.coords['rotation_center'] = _rotation_center_da
 
     # RADIATION RESULTS
     if "RadiationResult" in kinds_of_results:
