@@ -6,9 +6,11 @@ from pathlib import Path
 import pytest
 
 import numpy as np
+import xarray as xr
 import capytaine as cpt
 
 from capytaine.meshes.predefined import mesh_sphere, mesh_horizontal_cylinder, mesh_vertical_cylinder
+from capytaine.io.xarray import compute_hydrostatics_dataset
 
 ######################################################################
 
@@ -241,17 +243,20 @@ def test_stiffness_with_malformed_divergence(caplog):
 def several_bodies():
     a = cpt.FloatingBody(
             mesh=floating_sphere(),
+            center_of_mass=(0, 0, 0),
             name='foo'
             )
     a.add_translation_dof(name="Heave")
     b = cpt.FloatingBody(
             mesh=floating_sphere().translated_x(3.0),
             dofs=cpt.rigid_body_dofs(),
+            center_of_mass=(3, 0, 0),
             name='bar'
             )
     c = cpt.FloatingBody(
             mesh=floating_sphere().translated_y(-2.0),
             dofs=cpt.rigid_body_dofs(),
+            center_of_mass=(0, -2, 0),
             name='baz'
             )
     return a, b, c
@@ -479,6 +484,101 @@ def test_all_hydrostatics():
             assert np.isclose(capy_hsdb[var], mm_hsdb[var],
                               rtol=1e-2, atol=1e-3).all()
 
+###############################
+#  Full hydrostatics dataset  #
+###############################
+
+def test_dataset_single_body():
+    body = rigid_body()
+    ds = compute_hydrostatics_dataset(body)
+    assert "inertia_matrix" in ds
+    assert "hydrostatic_stiffness" in ds
+    assert "rho" not in ds["inertia_matrix"].dims
+
+def test_dataset_single_body_rho_range():
+    body = rigid_body()
+    ds = compute_hydrostatics_dataset(body, rho=[1000.0, 1025.0], g=9.81)
+    assert "inertia_matrix" in ds
+    assert "hydrostatic_stiffness" in ds
+    assert "rho" in ds["inertia_matrix"].dims
+
+def test_dataset_dof_names():
+    body = rigid_body().rename("body_1")
+    ds = compute_hydrostatics_dataset(body)
+    assert not np.any(ds.influenced_dof.str.startswith("body_"))
+    ds = compute_hydrostatics_dataset(cpt.Multibody([body]))
+    assert np.all(ds.influenced_dof.str.startswith("body_"))
+
+def test_dataset_two_bodies():
+    a, b, c = several_bodies()
+    ds = compute_hydrostatics_dataset(cpt.Multibody([a, b, c]))
+    assert ds["rotation_center"].shape == (3, 3)
+    assert np.all(np.isnan(ds["rotation_center"].values[0, :]))  # First body has no rotation center
+    assert not np.any(np.isnan(ds["rotation_center"].values[1:, :]))  # Other bodies have rotation center
+    assert ds["center_of_mass"].shape == (3, 3)
+    assert ds["hydrostatic_stiffness"].shape == (13, 13)
+    assert ds["inertia_matrix"].shape == (13, 13)
+    assert np.allclose(ds["draught"].values, [1.0, 1.0, 1.0])
+
+def test_dataset_two_bodies_rho_range():
+    a, b, c = several_bodies()
+    ds = compute_hydrostatics_dataset(cpt.Multibody([a, b, c]), rho=[1000.0, 1025.0])
+    assert ds["rotation_center"].shape == (3, 3)
+    assert ds["center_of_buoyancy"].shape == (3, 3)
+    assert ds["inertia_matrix"].shape == (2, 13, 13)
+    assert ds["hydrostatic_stiffness"].shape == (2, 13, 13)
+    assert ds["disp_mass"].dims == ("rho", "body")
+
+def test_dataset_use_predefined_matrices():
+    body = rigid_body()
+    body = body.copy()
+    body.hydrostatic_stiffness = body.add_dofs_labels_to_matrix(np.zeros((6, 6)))
+    body.inertia_matrix = body.add_dofs_labels_to_matrix(np.ones((6, 6)))
+    ds = compute_hydrostatics_dataset(body)
+    # Matrices not computed, predefined values are used instead
+    assert np.allclose(ds["hydrostatic_stiffness"].values, 0.0)
+    assert np.allclose(ds["inertia_matrix"].values, 1.0)
+
+def test_fill_dataset_single_body():
+    body = rigid_body().immersed_part()
+    test_matrix = xr.Dataset(coords={
+        "wavenumber": [1.0],
+        "radiating_dof": list(body.dofs),
+        "wave_direction": 0.0,
+        "rho": 1025.0,
+        })
+    solver = cpt.BEMSolver()
+    ds = solver.fill_dataset(test_matrix, body, hydrostatics=True)
+    assert "inertia_matrix" in ds
+    assert "hydrostatic_stiffness" in ds
+    assert "center_of_buoyancy" in ds
+
+def test_fill_dataset_single_body_rho_range():
+    body = rigid_body().immersed_part()
+    test_matrix = xr.Dataset(coords={
+        "wavenumber": [1.0],
+        "radiating_dof": list(body.dofs),
+        "wave_direction": [0.0],
+        "rho": [1000.0, 1025.0],
+        })
+    solver = cpt.BEMSolver()
+    ds = solver.fill_dataset(test_matrix, body, hydrostatics=True)
+    assert "rho" in ds["inertia_matrix"].dims
+    assert np.allclose(ds["inertia_matrix"].coords["rho"], test_matrix.coords["rho"])
+    assert ds["disp_mass"].shape == (2,)
+
+def test_fill_dataset_single_body_some_dofs():
+    body = rigid_body().immersed_part()
+    test_matrix = xr.Dataset(coords={
+        "wavenumber": [1.0],
+        "radiating_dof": ["Heave"],
+        "wave_direction": [0.0],
+        })
+    solver = cpt.BEMSolver()
+    ds = solver.fill_dataset(test_matrix, body, hydrostatics=True)
+    assert ds.radiating_dof.shape == (1,)
+    assert ds["inertia_matrix"].shape == (6, 1)
+    assert ds["added_mass"].shape == (1, 6, 1)
 
 ######################################################################
 

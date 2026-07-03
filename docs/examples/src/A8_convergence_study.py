@@ -6,6 +6,7 @@ import capytaine as cpt
 cpt.set_logging("INFO")
 
 resolutions = np.linspace(1.0, 8.0, 6)
+
 test_matrix = xr.Dataset(
     coords={
         "wavelength": [2.0],
