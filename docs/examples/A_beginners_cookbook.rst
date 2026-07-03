@@ -14,7 +14,7 @@ A1. Single rigid body hydrodynamics
 -----------------------------------
 
 .. literalinclude:: src/A1_single_body_hydrodynamics.py
-:language: python
+    :language: python
 
 
 A2. Simulation with several rigid bodies

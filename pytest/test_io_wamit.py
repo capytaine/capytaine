@@ -8,7 +8,8 @@ import xarray as xr
 import pytest
 
 import capytaine as cpt
-from capytaine.io.wamit import export_to_wamit
+from capytaine.io.wamit import export_to_wamit, export_wamit_8
+from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force
 
 @pytest.fixture
 def full_dataset():
@@ -309,3 +310,119 @@ def test_export_wamit_frequency_axis_representations(export_type, omega_val, tmp
     compare_wamit_files(f_omega, f_period)
     compare_wamit_files(f_omega, f_wavenumber)
     compare_wamit_files(f_omega, f_wavelength)
+
+
+def test_export_wamit_8(tmpdir):
+    """Test export of far-field mean drift forces to WAMIT .8 file."""
+    mesh = cpt.mesh_sphere(resolution=(4, 4))
+    dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
+    full_body = cpt.FloatingBody(mesh, dofs, center_of_mass=(0, 0, 0))
+    immersed_body = full_body.immersed_part()
+    immersed_body.compute_hydrostatics()
+
+    theta_range = np.linspace(-np.pi, 2 * np.pi, 40)
+    test_matrix = xr.Dataset(
+        {
+            "omega": [1.0, 2.0],
+            "wave_direction": [0.0, np.pi / 4],
+            "radiating_dof": list(immersed_body.dofs),
+            "water_depth": [np.inf],
+            "rho": [1025],
+            "theta": theta_range,
+        }
+    )
+
+    solver = cpt.BEMSolver()
+    dataset = solver.fill_dataset(test_matrix, immersed_body)
+
+    X = cpt.post_pro.rao(dataset)
+    drift_ds = far_field_mean_drift_force(X, dataset)
+    dataset = xr.merge([dataset, drift_ds])
+
+    filepath = str(tmpdir / "drift_test.8")
+    export_wamit_8(dataset, filepath)
+
+    assert Path(filepath).exists(), "File .8 was not generated."
+
+    with open(filepath, "r", encoding="utf-8") as f:
+        lines = [line.strip() for line in f if line.strip()]
+
+    n_periods = 2
+    n_betas_k = 2
+    n_betas_l = 2
+    n_modes = 3  # surge, sway, yaw
+    expected_lines = n_periods * n_betas_k * n_betas_l * n_modes
+    assert len(lines) == expected_lines, (
+        f"Expected {expected_lines} lines, got {len(lines)}"
+    )
+
+    # Check each line has 8 columns
+    for i, line in enumerate(lines):
+        fields = re.split(r"\s+", line)
+        assert len(fields) == 8, (
+            f"Line {i} should have 8 fields, got {len(fields)}: {line}"
+        )
+
+    # Check mode indices are 1, 2, 6 repeating
+    for i, line in enumerate(lines):
+        fields = re.split(r"\s+", line)
+        mode_idx = int(fields[3])
+        expected_mode = [1, 2, 6][i % 3]
+        assert mode_idx == expected_mode, (
+            f"Line {i}: expected mode {expected_mode}, got {mode_idx}"
+        )
+
+    # Check that BETA1 and BETA2 are present (can be same or different)
+    for i, line in enumerate(lines):
+        fields = re.split(r"\s+", line)
+        beta1 = float(fields[1])
+        beta2 = float(fields[2])
+        # Both should be valid angles
+        assert -180 <= beta1 <= 180 or 0 <= beta1 <= 360, f"Line {i}: BETA1={beta1} out of range"
+        assert -180 <= beta2 <= 180 or 0 <= beta2 <= 360, f"Line {i}: BETA2={beta2} out of range"
+
+
+def test_export_wamit_8_missing_field(tmpdir):
+    """Test that export_wamit_8 raises ValueError when drift fields are missing."""
+    ds = xr.Dataset({"dummy": 0.0})
+    filepath = str(tmpdir / "missing.8")
+    with pytest.raises(KeyError):
+        export_wamit_8(ds, filepath)
+
+
+def test_export_wamit_8_while_exporting_everything(tmpdir):
+    """Test that .8 export works through the master export_to_wamit function."""
+    mesh = cpt.mesh_sphere(resolution=(4, 4))
+    dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))
+    full_body = cpt.FloatingBody(mesh, dofs, center_of_mass=(0, 0, 0))
+    immersed_body = full_body.immersed_part()
+    immersed_body.compute_hydrostatics()
+
+    theta_range = np.linspace(-np.pi, 2 * np.pi, 40)
+    test_matrix = xr.Dataset(
+        {
+            "omega": [1.0],
+            "wave_direction": [0.0],
+            "radiating_dof": list(immersed_body.dofs),
+            "water_depth": [np.inf],
+            "rho": [1025],
+            "theta": theta_range,
+        }
+    )
+
+    solver = cpt.BEMSolver()
+    dataset = solver.fill_dataset(test_matrix, immersed_body)
+
+    X = cpt.post_pro.rao(dataset)
+    drift_ds = far_field_mean_drift_force(X, dataset)
+    dataset = xr.merge([dataset, drift_ds])
+
+    problem_name = str(tmpdir / "master_test")
+    export_to_wamit(dataset, problem_name=problem_name, exports=("8",))
+
+    wamit_8_path = tmpdir / "master_test.8"
+    assert wamit_8_path.exists(), "File .8 was not generated via export_to_wamit."
+
+    with open(wamit_8_path, "r", encoding="utf-8") as f:
+        lines = [line.strip() for line in f if line.strip()]
+    assert len(lines) == 3  # 1 period * 1 beta_k * 1 beta_l * 3 modes

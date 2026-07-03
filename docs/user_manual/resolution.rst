@@ -224,7 +224,7 @@ Solving the problem
 Once the solver has been initialized, it can be used to solve problems with the
 :meth:`~capytaine.bem.solver.BEMSolver.solve` method::
 
-	result = solver.solve(problem, keep_details=False)
+    result = solver.solve(problem, keep_details=False)
 
 The optional argument :code:`keep_details` (default value: :code:`True`)
 controls whether the source and potential distributions should be saved in the
@@ -236,7 +236,7 @@ discarded to save space in memory.
 
 A list of problems can be solved at once in an optimal order with::
 
-	list_of_results = solver.solve_all(list_of_problems, keep_details=False)
+    list_of_results = solver.solve_all(list_of_problems, keep_details=False)
 
 where :meth:`~capytaine.bem.solver.BEMSolver.solve_all` accepts the same
 optional keyword arguments as :meth:`~capytaine.bem.solver.BEMSolver.solve`.
@@ -325,6 +325,7 @@ as Numpy, Scipy or Capytaine::
 
 
 .. _joblib-resolution:
+
 Batch resolution with joblib
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

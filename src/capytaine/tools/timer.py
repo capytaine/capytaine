@@ -23,6 +23,7 @@ class Timer:
     Example
     -------
     ::
+
         from time import sleep  # For testing
 
         timer = Timer()
@@ -46,6 +47,7 @@ class Timer:
             with timer(tag="inner"):
                 sleep(0.3)
             sleep(0.3)
+
     """
     def __init__(self, *, default_tags=None):
         self.timings = []

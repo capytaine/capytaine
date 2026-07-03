@@ -93,15 +93,15 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         ...
 
     def translated_x(self, dx: float, *, name=None) -> AbstractMesh:
-        """Return a new Mesh translated in the x-direction along `dx`."""
+        """Return a new mesh translated in the x-direction along `dx`."""
         return self.translated([dx, 0.0, 0.0], name=name)
 
     def translated_y(self, dy: float, *, name=None) -> AbstractMesh:
-        """Return a new Mesh translated in the y-direction along `dy`."""
+        """Return a new mesh translated in the y-direction along `dy`."""
         return self.translated([0.0, dy, 0.0], name=name)
 
     def translated_z(self, dz: float, *, name=None) -> AbstractMesh:
-        """Return a new Mesh translated in the z-direction along `dz`."""
+        """Return a new mesh translated in the z-direction along `dz`."""
         return self.translated([0.0, 0.0, dz], name=name)
 
     @abstractmethod
@@ -109,19 +109,19 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         ...
 
     def rotated_x(self, angle: float, *, name=None) -> AbstractMesh:
-        """Return a new Mesh rotated around the x-axis using the provided rotation angle in radians"""
+        """Return a new mesh rotated around the x-axis using the provided rotation angle in radians"""
         c, s = np.cos(angle), np.sin(angle)
         R = np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
         return self.rotated_with_matrix(R, name=name)
 
     def rotated_y(self, angle: float, *, name=None) -> AbstractMesh:
-        """Return a new Mesh rotated around the y-axis using the provided rotation angle in radians"""
+        """Return a new mesh rotated around the y-axis using the provided rotation angle in radians"""
         c, s = np.cos(angle), np.sin(angle)
         R = np.array([[c, 0, s], [0, 1, 0], [-s, 0, c]])
         return self.rotated_with_matrix(R, name=name)
 
     def rotated_z(self, angle: float, *, name=None) -> AbstractMesh:
-        """Return a new Mesh rotated around the z-axis using the provided rotation angle in radians"""
+        """Return a new mesh rotated around the z-axis using the provided rotation angle in radians"""
         c, s = np.cos(angle), np.sin(angle)
         R = np.array([[c, -s, 0], [s, c, 0], [0, 0, 1]])
         return self.rotated_with_matrix(R, name=name)
@@ -253,12 +253,12 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
 
         Parameters
         ----------
-        other : Mesh
+        other : AbstractMesh
             Another mesh to combine with this one.
 
         Returns
         -------
-        Mesh
+        AbstractMesh
             New mesh containing vertices and faces from both meshes.
         """
         if self.name is not None or other.name is not None:
@@ -337,7 +337,7 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
 
         Returns
         -------
-        Mesh
+        AbstractMesh
             A new mesh containing the wedge sector with proper boundary faces.
 
         Examples
@@ -388,8 +388,8 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
 
         Returns
         -------
-        Mesh
-            A new Mesh instance that has been clipped.
+        AbstractMesh
+            A new mesh instance that has been clipped.
         """
         water_depth = _get_water_depth(free_surface, water_depth, sea_bottom,
                                        default_water_depth=np.inf)
