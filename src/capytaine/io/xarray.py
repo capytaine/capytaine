@@ -359,6 +359,11 @@ def compute_hydrostatics_dataset(
 
     optional_dims = ["g", "rho", "body"]
     hs = _squeeze_dimensions(hs, dimensions=optional_dims)
+
+    _rotation_center_da = _rotation_center_data_array(body)
+    if _rotation_center_da is not None:
+        hs.coords['rotation_center'] = _rotation_center_da
+
     return hs
 
 
