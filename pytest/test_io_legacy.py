@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import capytaine as cpt
-from capytaine.io.legacy import export_hydrostatics
+from capytaine.io.legacy import export_hydrostatics, export_hydrostatics_from_dataset
 
 
 @lru_cache
@@ -80,6 +80,10 @@ def check_two_bodies_hydrostatics_content(file_path):
     np.testing.assert_allclose(two_bodies_KH_1, ref_data["KH_1.dat"], atol=1e-6)
 
 
+#############
+# From body #
+#############
+
 def test_legacy_export_hydrostatics_single_body(tmp_path):
     cylinder1, _ = setup_two_bodies_with_precomputed_hydrostatics()
     export_hydrostatics(tmp_path, cylinder1)
@@ -108,3 +112,20 @@ def test_legacy_export_hydrostatics_two_bodies_computing_hydrostatics_on_multibo
     multibody.hydrostatic_stiffness = multibody.immersed_part().compute_hydrostatic_stiffness()
     with pytest.raises(ValueError):
         export_hydrostatics(tmp_path, multibody)
+
+
+################
+# From dataset #
+################
+
+def test_legacy_export_hydrostatics_single_body_in_dataset(tmp_path):
+    cylinder1, _ = setup_two_bodies_with_precomputed_hydrostatics()
+    dataset = cpt.compute_hydrostatics_dataset(cylinder1)
+    export_hydrostatics_from_dataset(tmp_path, dataset)
+    check_single_body_hydrostatics_content(tmp_path)
+
+def test_legacy_export_hydrostatics_two_bodies_in_dataset(tmp_path):
+    cylinder1, cylinder2 = setup_two_bodies_with_precomputed_hydrostatics()
+    dataset = cpt.compute_hydrostatics_dataset(cylinder1 + cylinder2)
+    export_hydrostatics_from_dataset(tmp_path, dataset)
+    check_two_bodies_hydrostatics_content(tmp_path)

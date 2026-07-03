@@ -4,6 +4,7 @@
 
 import os
 import logging
+from pathlib import Path
 from typing import Union, List
 
 import numpy as np
@@ -160,16 +161,23 @@ def write_dataset_as_tecplot_files(results_directory, data):
                     fi.write('\n')
 
 
-def _hydrostatics_writer(hydrostatics_file_path, kh_file_path, body):
+def _hydrostatics_writer(
+    hydrostatics_file_path,
+    kh_file_path,
+    center_of_buoyancy,
+    center_of_mass,
+    volume,
+    hydrostatic_stiffness
+):
     """Write the Hydrostatics.dat and KH.dat files"""
     with open(hydrostatics_file_path, 'w') as hf:
         for j in range(3):
-            line =  f'XF = {body.center_of_buoyancy[j]:7.4f} - XG = {body.center_of_mass[j]:7.4f} \n'
+            line =  f'XF = {center_of_buoyancy[j]:7.4f} - XG = {center_of_mass[j]:7.4f} \n'
             hf.write(line)
-        line = f'Displacement = {body.volume:1.6E}'
+        line = f'Displacement = {volume:1.6E}'
         hf.write(line)
         hf.close()
-    np.savetxt(kh_file_path, body.hydrostatic_stiffness.values, fmt='%1.6E')
+    np.savetxt(kh_file_path, hydrostatic_stiffness.values, fmt='%1.6E')
 
 
 def export_hydrostatics(
@@ -211,12 +219,68 @@ def export_hydrostatics(
         body = bodies[0]
         hydrostatics_file_path = os.path.join(hydrostatics_directory, "Hydrostatics.dat")
         kh_file_path = os.path.join(hydrostatics_directory, "KH.dat")
-        _hydrostatics_writer(hydrostatics_file_path, kh_file_path, body)
+        _hydrostatics_writer(
+            hydrostatics_file_path,
+            kh_file_path,
+            body.center_of_buoyancy,
+            body.center_of_mass,
+            body.disp_volume,
+            body.hydrostatic_stiffness
+        )
     else:
         for (i, body) in enumerate(bodies):
             hydrostatics_file_path = os.path.join(hydrostatics_directory, f"Hydrostatics_{i}.dat")
             kh_file_path = os.path.join(hydrostatics_directory, f"KH_{i}.dat")
-            _hydrostatics_writer(hydrostatics_file_path, kh_file_path, body)
+            _hydrostatics_writer(
+                hydrostatics_file_path,
+                kh_file_path,
+                body.center_of_buoyancy,
+                body.center_of_mass,
+                body.disp_volume,
+                body.hydrostatic_stiffness
+            )
+
+
+def export_hydrostatics_from_dataset(hydrostatics_directory: Union[str, Path], dataset):
+    """
+    """
+    if os.path.isdir(hydrostatics_directory):
+        LOG.warning(f"""Exporting problem in already existing directory: {hydrostatics_directory}
+             You might be overwriting existing files!""")
+    else:
+        os.makedirs(hydrostatics_directory)
+
+    bodies = dataset.coords["body"]
+    if bodies.shape == () or bodies.shape == (1,):
+        hydrostatics_file_path = os.path.join(hydrostatics_directory, "Hydrostatics.dat")
+        kh_file_path = os.path.join(hydrostatics_directory, "KH.dat")
+        _hydrostatics_writer(
+            hydrostatics_file_path,
+            kh_file_path,
+            dataset["center_of_buoyancy"].values,
+            dataset["center_of_mass"].values,
+            dataset["disp_mass"].values/dataset.coords["rho"].values,
+            dataset["hydrostatic_stiffness"],
+        )
+    else:
+        for (i, body_name) in enumerate(bodies.values):
+            hydrostatics_file_path = os.path.join(hydrostatics_directory, f"Hydrostatics_{i}.dat")
+            kh_file_path = os.path.join(hydrostatics_directory, f"KH_{i}.dat")
+            body_influenced_dofs = list(
+                dof for dof in dataset.coords["influenced_dof"].values if dof.startswith(body_name)
+            )
+            body_radiating_dofs = list(
+                dof for dof in dataset.coords["radiating_dof"].values if dof.startswith(body_name)
+            )
+            _hydrostatics_writer(
+                hydrostatics_file_path,
+                kh_file_path,
+                dataset["center_of_buoyancy"].sel(body=body_name).values,
+                dataset["center_of_mass"].sel(body=body_name).values,
+                dataset["disp_mass"].sel(body=body_name).values/dataset.coords["rho"].values,
+                dataset["hydrostatic_stiffness"].sel(influenced_dof=body_influenced_dofs,
+                                                     radiating_dof=body_radiating_dofs),
+            )
 
 
 def run_cal_file(paramfile):

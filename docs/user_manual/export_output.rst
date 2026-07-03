@@ -88,27 +88,6 @@ for a single rigid body or, e.g.,::
 
 for several rigid bodies.
 
-Hydrostatics
-~~~~~~~~~~~~
-
-Unlike other formats, exporting the hydrostatics in legacy Nemoh format currently still requires a few extra steps.
-
-For a rigid body, or a set of several rigid bodies, the following information can be saved as written by Nemoh's and read by BEMIO to produce :code:`.h5` files for WEC-Sim:
-
-- Hydrostatic stiffness matrix,
-- Centre of gravity,
-- Centre of buoyancy,
-- Displacement volume
-
-
-In order to use this function, please ensure that the body's centre of gravity has been defined as well as the six rigid body degrees of freedom::
-
-    body = cpt.FloatingBody(
-            ...,
-            dofs=cpt.rigid_body_dofs(rotation_center=...),
-            center_of_mass=...,
-            )
-
 
 Excel format
 ------------
