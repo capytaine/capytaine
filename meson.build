@@ -1,6 +1,6 @@
 project('capytaine',
   ['c', 'fortran'],
-  meson_version : '>= 1.0.0',
+  meson_version : '>= 1.1.0',
   version : '3.0.dev',
   default_options : ['warning_level=2'])
 
@@ -30,16 +30,11 @@ src_to_interface_with_python = [
       'libs/libDelhommeau/src/constants.f90',
       'libs/libDelhommeau/src/Delhommeau_integrals.f90',
       'libs/libDelhommeau/src/old_Prony_decomposition.f90',
-      'libs/LiangWuNoblesse/LiangWuNoblesseWaveTerm.f90',
       'libs/libDelhommeau/src/Green_Rankine.f90',
       'libs/libDelhommeau/src/Green_wave.f90',
       'libs/libDelhommeau/src/matrices.f90',
       'libs/libDelhommeau/src/interface.f90',
 ]
-
-other_src = [
-      'libs/FinGreen3D/FinGreen3D.f90',
-  ]
 
 Delhommeau_float32_f2py_wrapper = custom_target('Delhommeau_float32module.c',
                                            input : float32 + src_to_interface_with_python,
@@ -79,8 +74,18 @@ else
   omp = dependency('openmp')
 endif
 
+if not get_option('hams_green_function').disabled()
+  optional_src = [   # optional LGPL licensed src
+        'libs/FinGreen3D/FinGreen3D.f90',
+        'libs/LiangWuNoblesse/LiangWuNoblesseWaveTerm.f90',
+    ]
+  optional_dependencies_flags = ['-DLIANGWUNOBLESSE_OPTIONAL_DEPENDENCY', '-DFINGREEN3D_OPTIONAL_DEPENDENCY']
+else
+  optional_src = []
+  optional_dependencies_flags = []
+endif
+
 args = ['-cpp']
-optional_dependencies_flags = ['-DLIANGWUNOBLESSE_OPTIONAL_DEPENDENCY', '-DFINGREEN3D_OPTIONAL_DEPENDENCY']
 link_args = ['-lquadmath']  # Required for the Windows build with cibuildwheel
 deps = [py3_dep, omp]
 
@@ -94,7 +99,7 @@ py3.extension_module('Delhommeau_float32',
            subdir : 'capytaine/green_functions/')
 
 py3.extension_module('Delhommeau_float64',
-           float64, other_src, src_to_interface_with_python, Delhommeau_float64_f2py_wrapper, incdir_f2py+'/fortranobject.c',
+           float64, optional_src, src_to_interface_with_python, Delhommeau_float64_f2py_wrapper, incdir_f2py+'/fortranobject.c',
            include_directories: inc_np,
            dependencies : deps,
            fortran_args : args + optional_dependencies_flags,
