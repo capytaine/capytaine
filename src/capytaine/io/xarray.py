@@ -10,7 +10,7 @@ import logging
 from datetime import datetime
 from itertools import product
 from collections import Counter
-from typing import Sequence, List, Union
+from typing import Sequence, List, Union, Optional
 from pathlib import Path
 
 import numpy as np
@@ -19,6 +19,8 @@ import xarray as xr
 
 from capytaine import __version__
 from capytaine.bodies.abstract_bodies import AbstractBody
+from capytaine.bodies.bodies import FloatingBody
+from capytaine.bodies.multibodies import Multibody
 from capytaine.bem.problems_and_results import (
     LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem,
     LinearPotentialFlowResult, _default_parameters)
@@ -193,11 +195,10 @@ def assemble_dataframe(results, wavenumber=True, wavelength=True):
 
     all_dofs_in_order = list({k: None for r in results for k in r.body.dofs.keys()})
     # Using a dict above to remove duplicates while conserving ordering
-    inf_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order)
-    df["influenced_dof"] = df["influenced_dof"].astype(inf_dof_cat)
+    dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order)
+    df["influenced_dof"] = df["influenced_dof"].astype(dof_cat)
     if 'added_mass' in df.columns:
-        rad_dof_cat = pd.CategoricalDtype(categories=all_dofs_in_order)
-        df["radiating_dof"] = df["radiating_dof"].astype(rad_dof_cat)
+        df["radiating_dof"] = df["radiating_dof"].astype(dof_cat)
 
     return df
 
@@ -245,19 +246,125 @@ def _dataset_from_dataframe(df: pd.DataFrame,
     return da
 
 
-def hydrostatics_dataset(bodies: Sequence[AbstractBody]) -> xr.Dataset:
-    """Create a dataset by looking for 'inertia_matrix' and 'hydrostatic_stiffness'
-    for each of the bodies in the list passed as argument.
+def _rotation_center_data_array(body: AbstractBody) -> Optional[xr.DataArray]:
+    rotation_centers = np.array([b.rotation_center for b in body.bodies])
+    if not np.all(np.isnan(rotation_centers)):
+        hs = xr.DataArray(rotation_centers, dims=("body", "space_coordinate"))
+        hs.coords["space_coordinate"] = xr.DataArray(["x", "y", "z"], dims=["space_coordinate"])
+        hs.coords["body"] = xr.DataArray([b.name for b in body.bodies], dims=["body"])
+        hs = _squeeze_dimensions(hs, dimensions=["body"])
+        return hs
+    else:
+        LOG.debug("No rotation center could be found for any body. Skipping the `rotation_center` coordinate.")
+        return None
+
+
+def _compute_hydrostatics_dataset(
+    body: AbstractBody,
+    *,
+    g: float = 9.81,
+    rho: float = 1000.0,
+    only_dofs: Optional[List[str]] = None,
+) -> xr.Dataset:
+    hs = xr.Dataset()
+    hs.coords["space_coordinate"] = xr.DataArray(["x", "y", "z"], dims=["space_coordinate"])
+    hs.coords["g"] = xr.DataArray([g], dims=["g"])
+    hs.coords["rho"] = xr.DataArray([rho], dims=["rho"])
+
+    # Putting them first such that we have an helpful error message if the dofs or the center of mass is not defined
+    dof_cat = pd.CategoricalDtype(categories=list(body.dofs.keys()))
+    if only_dofs is None:
+        dofs = list(body.dofs.keys())
+    else:
+        if not all(d in body.dofs.keys() for d in only_dofs):
+            raise ValueError(f"Cannot keep only dofs {only_dofs} for body {body.__short_str__()} with dofs {list(body.dofs.keys())}")
+        dofs = only_dofs
+    hs.coords["radiating_dof"] = xr.DataArray(pd.Series(dofs, dtype=dof_cat).cat.remove_unused_categories(), dims=["radiating_dof"])
+    # Removing unused categories to match the behavior of `assemble_dataset` when the test matrix has only some of the possible radiating dofs.
+    hs.coords["influenced_dof"] = xr.DataArray(pd.Index(list(body.dofs.keys()), dtype=dof_cat), dims=["influenced_dof"])
+
+    hs.coords["influenced_dof"] = hs.coords["influenced_dof"].astype(str)
+    hs.coords["radiating_dof"] = hs.coords["radiating_dof"].astype(str)
+
+    if hasattr(body, 'hydrostatic_stiffness'):
+        hs["hydrostatic_stiffness"] = xr.DataArray([[body.hydrostatic_stiffness.sel(radiating_dof=dofs)]], dims=["g", "rho", "influenced_dof", "radiating_dof"])
+    else:
+        hs["hydrostatic_stiffness"] = xr.DataArray([[body.compute_hydrostatic_stiffness(rho=rho, g=g).sel(radiating_dof=dofs)]], dims=["g", "rho", "influenced_dof", "radiating_dof"])
+
+    if hasattr(body, 'inertia_matrix'):
+        hs["inertia_matrix"] = xr.DataArray([body.inertia_matrix.sel(radiating_dof=dofs)], dims=["rho", "influenced_dof", "radiating_dof"])
+    else:
+        hs["inertia_matrix"] = xr.DataArray([body.compute_rigid_body_inertia(rho=rho).sel(radiating_dof=dofs)], dims=["rho", "influenced_dof", "radiating_dof"])
+
+    # Other hydrostatics data
+    if isinstance(body, FloatingBody):
+        body = Multibody([body])
+        # Afterwards, treat even the single body as a one-element Multibody
+        # Not done before, because a single-body Multibody does not have the same dof naming than a FloatingBody.
+    hs.coords["body"] = xr.DataArray([b.name for b in body.bodies], dims=["body"])
+    hs["center_of_buoyancy"] = xr.DataArray(list(body.center_of_buoyancy.values()), dims=("body", "space_coordinate"))
+    hs["draught"] = xr.DataArray([np.abs(b.mesh.vertices[:, 2].min()) for b in body.bodies], dims=("body"))
+    hs["disp_mass"] = xr.DataArray(
+        [[b.disp_mass(rho=rho) for b in body.bodies]],
+        dims=("rho", "body"),
+        attrs=dict(long_name="Diplaced mass", units="kg")
+    )
+
+    try:
+        hs.coords["center_of_mass"] = xr.DataArray(list(body.center_of_mass.values()), dims=("body", "space_coordinate"))
+    except Exception as e:
+        LOG.debug(f"No center of mass could be found for some body. Skipping the `center_of_mass` coordinate.\nError message: {e}")
+
+    return hs
+
+
+def compute_hydrostatics_dataset(
+        body: AbstractBody,
+        *,
+        g: Union[float, Sequence[float]] = 9.81,
+        rho: Union[float, Sequence[float]] = 1000.0,
+        only_dofs: Optional[List[str]] = None,
+        ):
     """
-    dataset = xr.Dataset()
-    for body_property in ['inertia_matrix', 'hydrostatic_stiffness']:
-        bodies_properties = {body.name: body.__getattribute__(body_property) for body in bodies if hasattr(body, body_property)}
-        if len(bodies_properties) > 0:
-            # Will be updated in upcoming commit.
-            bodies_properties = xr.concat(bodies_properties.values(), pd.Index(bodies_properties.keys(), name='body'))
-            bodies_properties = _squeeze_dimensions(bodies_properties, dimensions=['body'])
-            dataset = xr.merge([dataset, {body_property: bodies_properties}], compat="no_conflicts", join="outer")
-    return dataset
+    Parameters
+    ----------
+    body: AbstractBody
+    g: float or sequence of floats, optional
+        Gravitational acceleration(s) to consider. If a sequence is provided, the output dataset will contain one entry per value of g.
+    rho: float or sequence of floats, optional
+        Fluid density(ies) to consider. If a sequence is provided, the output dataset will contain one entry per value of rho.
+    only_dofs: list of strings, optional
+        If provided, only the radiating dofs in this list will be kept in the output dataset. By default, all dofs of the body are kept.
+        Meant to mimic the behavior of `fill_dataset` when the test matrix has only some of the possible radiating dofs.
+
+    Returns
+    -------
+    xarray.Dataset
+    """
+
+    if isinstance(g, np.ndarray) and g.shape == ():
+        g = [float(g)]
+    elif isinstance(g, (int, float)):
+        g = [g]
+    if isinstance(rho, np.ndarray) and rho.shape == ():
+        rho = [float(rho)]
+    elif isinstance(rho, (int, float)):
+        rho = [rho]
+
+    datasets = []
+    for g_ in g:
+        for rho_ in rho:
+            datasets.append(_compute_hydrostatics_dataset(body, g=g_, rho=rho_, only_dofs=only_dofs))
+    hs = xr.merge(datasets, compat="no_conflicts", join="outer")
+
+    optional_dims = ["g", "rho", "body"]
+    hs = _squeeze_dimensions(hs, dimensions=optional_dims)
+
+    _rotation_center_da = _rotation_center_data_array(body)
+    if _rotation_center_da is not None:
+        hs.coords['rotation_center'] = _rotation_center_da
+
+    return hs
 
 
 def kochin_data_array(results: Sequence[LinearPotentialFlowResult],
@@ -422,6 +529,11 @@ def assemble_dataset(results,
 
     dataset = xr.Dataset()
 
+    if not bemio_import:
+        _rotation_center_da = _rotation_center_data_array(results[0].body)
+        if _rotation_center_da is not None:
+            dataset.coords['rotation_center'] = _rotation_center_da
+
     # RADIATION RESULTS
     if "RadiationResult" in kinds_of_results:
         radiation_cases = _dataset_from_dataframe(
@@ -518,8 +630,33 @@ def assemble_dataset(results,
         if bemio_import:
             LOG.warning('Bemio data import being used, hydrostatics=True is ignored.')
         else:
-            bodies = list({result.body for result in results})
-            dataset = xr.merge([dataset, hydrostatics_dataset(bodies)], compat="no_conflicts", join="outer")
+            body = results[0].body
+
+            if "radiating_dof" in dataset.coords:
+                radiating_dofs = dataset.coords["radiating_dof"].values.astype(str)
+            else:
+                radiating_dofs = None
+
+            try:
+                computed_hydrostatics = compute_hydrostatics_dataset(
+                        body,
+                        rho=dataset.coords["rho"].values,
+                        g=dataset.coords["g"].values,
+                        only_dofs=radiating_dofs,
+                        )
+            except Exception as e:
+                LOG.warning(f"An error occurred while computing hydrostatics for body {body.__short_str__()}'.\n"
+                            f"Error message: {e}\n"
+                            f"Hydrostatics data for this body will be skipped. You can pass `hydrostatics=False` to `assemble_dataset` or `fill_dataset` to avoid this warning.")
+                computed_hydrostatics = xr.Dataset()
+
+            # If these dimensions are already in the dataset, we use the exact same coordinates to avoid issues when merging the datasets just below.
+            if "radiating_dof" in dataset.coords:
+                computed_hydrostatics = computed_hydrostatics.assign_coords(radiating_dof=dataset.coords["radiating_dof"].to_index())
+            if "influenced_dof" in dataset.coords:
+                computed_hydrostatics = computed_hydrostatics.assign_coords(influenced_dof=dataset.coords["influenced_dof"].to_index())
+
+            dataset = xr.merge([dataset, computed_hydrostatics], compat="no_conflicts", join="outer")
 
     for var in set(dataset) | set(dataset.coords):
         if var in VARIABLES_ATTRIBUTES:
@@ -678,9 +815,16 @@ def export_dataset(filename, dataset, format=None, **kwargs):
     elif (
             (format is not None and format.lower() == "nemoh")
             ):
-        from capytaine.io.legacy import write_dataset_as_tecplot_files
+        from capytaine.io.legacy import write_dataset_as_tecplot_files, export_hydrostatics_from_dataset
         Path(filename).mkdir(exist_ok=True)
-        write_dataset_as_tecplot_files(filename, dataset, **kwargs)
+        try:
+            write_dataset_as_tecplot_files(filename, dataset, **kwargs)
+        except Exception as e:
+            LOG.warning(f"Export to Nemoh format: did not export hydrodynamics in {filename}: {e}")
+        try:
+            export_hydrostatics_from_dataset(filename, dataset)
+        except Exception as e:
+            LOG.warning(f"Export to Nemoh format: did not export hydrostatics in {filename}: {e}")
     else:
         raise ValueError("`export_dataset` could not infer export format based on filename or `format` argument.\n"
                          f"provided filename: {filename}\nprovided format: {format}")

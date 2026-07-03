@@ -325,7 +325,7 @@ Infinite frequency asymptotics
 When :math:`k \rightarrow \infty`, we have
 
 .. math::
-   F(\kappa) \sim - (1 + \tanh(\kappa h)) = = - 2 \frac{1}{1 + e^{-2 \kappa h}} = - 2 - \sum_{i=1}^\infty (-1)^i e^{-2 i \kappa h}
+   F(\kappa) \sim - (1 + \tanh(\kappa h)) = - 2 \frac{1}{1 + e^{-2 \kappa h}} = - 2 - 2 \sum_{i=1}^\infty (-1)^i e^{-2 i \kappa h}
 
 There is no :math:`\kappa - k` singularity directly visible anymore at the high-frequency asymptotics, so no infinite-depth wave terms, only Rankine terms are left.
 
@@ -366,9 +366,9 @@ or equivalently
 .. math::
    & -4 \pi G(x, \xi, h) \\
    & = - \sum_{i=0}^\infty (-1)^i \frac{1}{\sqrt{r^2 + (x_3 - \xi_3- 2(1+i)h)^2}}
-      + \sum_{i=0}^\infty (-1)^{i+1} \frac{1}{\sqrt{r^2 + (x_3 - \xi_3 + 2 i h)^2}} \\
+      - \sum_{i=0}^\infty (-1)^{i+1} \frac{1}{\sqrt{r^2 + (x_3 - \xi_3 + 2 i h)^2}} \\
    &  \qquad - \sum_{i=0}^\infty (-1)^i \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 - 2 i h)^2}}
-      + \sum_{i=0}^\infty (-1)^{i+1} \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 2 (1 + i) h )^2}}
+      - \sum_{i=0}^\infty (-1)^{i+1} \frac{1}{\sqrt{r^2 + (x_3 + \xi_3 + 2 (1 + i) h )^2}}
 
 That is an infinity of identical (up to the sign) reflected Rankine terms meant to enforce the boundary conditions
 
@@ -381,7 +381,7 @@ Zero frequency asymptotics
 As discussed in :ref:`prony-decomposition-evaluation`, the function :math:`F` has a second singularity in :math:`\kappa+k` cancelling out the :math:`\kappa-k` singularity for :math:`k = 0`.
 
 .. math::
-   F(\kappa) \sim \frac{1 + \tanh(\kappa h)}{\tanh(\kappa h)} = 2 + \sum_{i=1}^\infty e^{-2 i \kappa h}
+   F(\kappa) \sim \frac{1 + \tanh(\kappa h)}{\tanh(\kappa h)} = 2 + 2 \sum_{i=1}^\infty e^{-2 i \kappa h}
 
 which would result in a infinite sum of Rankine kernels, similarly to the infinite-frequency case, ensuring the zero-frequency boundary conditions:
 

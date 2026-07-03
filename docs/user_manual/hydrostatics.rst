@@ -2,24 +2,49 @@
 Hydrostatics
 ============
 
-Capytaine can compute some of the hydrostatic parameters of a given :code:`FloatingBody`.
+Capytaine can compute hydrostatic parameters of a given :code:`FloatingBody` or :code:`Multibody`.
 
-
-Hydrostatic parameters
-----------------------
-
-For each hydrostatic parameter a separate method is available in Capytaine.
 Some of them may require the definition of the center of mass of the body.
-It can be done by setting the ``center_of_mass`` at body initilization as in the example below::
+It can be done by setting the ``center_of_mass`` at body initialization as in the example below::
 
     import capytaine as cpt
     import numpy as np
 
     rigid_sphere = cpt.FloatingBody(
             mesh=cpt.mesh_sphere(radius=1.0, center=(0, 0, 0)),
-            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.3)),
-            center_of_mass=(0, 0, -0.3)
+            dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.2)),
+            center_of_mass=(0, 0, -0.4),
+            name="sphere"  # optional
             )
+
+The hydrostatic parameters can be computed and stored in an ``xarray.Dataset``
+with the :func:`~capytaine.compute_hydrostatics_dataset` function::
+
+   hs_dataset = cpt.compute_hydrostatics_dataset(rigid_sphere, rho=1025)
+
+   # <xarray.Dataset> Size: 956B
+   # Dimensions:                (space_coordinate: 3, influenced_dof: 6,
+   #                             radiating_dof: 6)
+   # Coordinates:
+   #   * space_coordinate       (space_coordinate) <U1 12B 'x' 'y' 'z'
+   #     center_of_mass         (space_coordinate) float64 24B 0.0 0.0 -0.4
+   #     rotation_center        (space_coordinate) float64 24B 0.0 0.0 -0.2
+   #   * influenced_dof         (influenced_dof) <U5 120B 'Surge' 'Sway' ... 'Yaw'
+   #   * radiating_dof          (radiating_dof) <U5 120B 'Surge' 'Sway' ... 'Yaw'
+   #     g                      float64 8B 9.81
+   #     rho                    int64 8B 1025
+   #     body                   <U6 24B 'sphere'
+   # Data variables:
+   #     hydrostatic_stiffness  (influenced_dof, radiating_dof) float64 288B 0.0 ....
+   #     inertia_matrix         (influenced_dof, radiating_dof) float64 288B 1.959...
+   #     center_of_buoyancy     (space_coordinate) float64 24B -2.178e-17 ... -0.3688
+   #     draught                float64 8B 1.0
+   #     disp_mass              float64 8B 1.959e+03
+
+This dataset is also by default computed and included in the hydrodynamical
+dataset created by :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset`.
+
+These hydrostatic parameters and others can each be accessed by a separate method::
 
     print("Volume:", rigid_sphere.volume)
     print("Center of buoyancy:", rigid_sphere.center_of_buoyancy)
@@ -41,7 +66,9 @@ The method :meth:`~capytaine.bodies.FloatingBody.compute_hydrostatic_stiffness`
 computes the hydrostatic stiffness and returns a (DOF count x DOF count) 2D
 matrix as an :code:`xarray.DataArray`. ::
 
-    hs = rigid_sphere.compute_hydrostatic_stiffness()
+    hs = rigid_sphere.compute_hydrostatic_stiffness(rho=1025)
+
+(It is also called in the backend of :func:`~capytaine.compute_hydrostatics_dataset`.)
 
 Capytaine has two built-in methods to compute the hydrostatic stiffness:
 
@@ -131,7 +158,7 @@ The inertia coefficient of other degrees of freedom are filled with :code:`NaN` 
 As for the hydrostatic stiffness, the mass is assumed to be the displaced mass
 of water for a body at equilibrium, unless a :code:`mass` attribute has been specified when setting up the body.
 
-When computing the inertia moments, the density of the body mass is assumed to be uniform whithin the body (which may or may not be consistent with the center of mass defined when initializing the floating body).
+When computing the inertia moments, the density of the body mass is assumed to be uniform within the body (which may or may not be consistent with the center of mass defined when initializing the floating body).
 Note also that unlike most other hydrostatics properties, the rigid body inertia depends not only on the shape of immersed part of the body but also on the shape above the free surface.
 Computing the inertia on only the immersed part leads to a different result since it neglects this contribution to the moment of inertia::
 
@@ -144,23 +171,3 @@ The best practice is usually to use another dedicated method or tool that is awa
 When providing a matrix computed externally, it is recommended to wrap it in a :code:`xarray.DataArray` with dof names as labels, for consistency with the data computed with Capytaine::
 
     elastic_sphere.inertia_matrix = elastic_sphere.add_dofs_labels_to_matrix(np.array([[1000.0]]))
-
-
-Compute all hydrostatics parameters
------------------------------------
-
-Instead of computing each hydrostatic parameters individually, :code:`compute_hydrostatics` returns a :code:`dict` containing all hydrostatic parameters.
-
-::
-
-    hydrostatics = rigid_sphere.compute_hydrostatics()
-
-    print(hydrostatics.keys())
-    # dict_keys(['g', 'rho', 'center_of_mass', 'wet_surface_area', 'disp_volumes',
-    # 'disp_volume', 'disp_mass', 'center_of_buoyancy', 'waterplane_center',
-    # 'waterplane_area', 'transversal_metacentric_radius',
-    # 'longitudinal_metacentric_radius' , 'transversal_metacentric_height',
-    # 'longitudinal_metacentric_height', 'hydrostatic_stiffness',
-    # 'length_overall', 'breadt h_overall', 'depth', 'draught',
-    # 'length_at_waterline', 'breadth_at_waterline',
-    # 'length_overall_submerged', 'breadth_overall_submerged', 'inertia_matrix'])

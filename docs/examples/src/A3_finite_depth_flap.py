@@ -43,11 +43,9 @@ base_body = cpt.FloatingBody(
     center_of_mass=(0, 0, -10.90),
     name="base",
 )
+# Hydrostatics are currently wrong for open bodies that not open at the free surface, like base_body which is open at the sea bottom.
 
 full_flap = flap_body + base_body
-
-M = full_flap.compute_rigid_body_inertia()
-S = full_flap.compute_hydrostatic_stiffness()
 
 test_matrix = xr.Dataset(
     coords={
