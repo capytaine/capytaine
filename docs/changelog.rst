@@ -44,7 +44,7 @@ About the new mesh module
     mesh = cpt.load_mesh("...").translated_x(1.0).immersed_part()
     mesh.show()
 
-  In the latter version, each line returns a new Python object of class ``Mesh`` which is the object now referred to by the variable name ``mesh``.
+  In the latter version, each method call returns a new Python object of class ``Mesh`` which is the object now referred to by the variable name ``mesh``.
   The new version makes it less error prone to have complex workflows such as::
 
     full_mesh = cpt.load_mesh("...")
@@ -54,8 +54,6 @@ About the new mesh module
     ...
 
   without any risk to overwriting the original ``full_mesh``.
-
-  Subsequently, the ``copy()`` method has been removed.
 
   The only usage of in-place transformations is for performance critical part of the code.
   Given that most hydrodynamical meshes are usually below 100k faces, Capytaine's mesh class is usually not the performance bottleneck.
@@ -78,9 +76,8 @@ About the new mesh module
 
     body = cpt.FloatingBody(
       mesh=mesh,
-      dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1))
+      dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -1), only=["Heave"])
     )
-    body = body.with_only_dofs(['Heave'])
     body = body.immersed_part()
     body = body.translated([0, 1, 0])
 
@@ -89,8 +86,8 @@ About the new mesh module
   Loading a mesh in a general purpose file format such as GMSH or STL is still easy, assuming a third party library supporting this file format is installed (see :doc:`user_manual/mesh`).
 
 * **No more mesh writers**
-  To reduce the burden of maintenance, mesh writers have been removed, but the
-  mesh objects can be exported to external libraries that can write mesh files.
+  To reduce the burden of maintenance, mesh writers have been removed.
+  The mesh objects can be exported to external libraries that can write mesh files.
   As a consequence ``export_as_Nemoh_directory`` has been moved out of Capytaine.
 
 * **Symmetries are only available around the main axis.**
@@ -101,8 +98,12 @@ About the new mesh module
   Most transformation can still be performed by combining translation, rotation and mirroring.
   More complex transformations should be done in a dedicated meshing software.
 
+* Consequently to the removal of ``Plane`` and ``Axis``, the methods
+  ``Mesh.clipped`` and ``FloatingBody.clipped`` don't take as argument a
+  ``Plane`` object, but directly a point and a normal (as two 3-ple of floats).
+
 * **Rotation symmetric meshes have been completely reworked.**
-  They are now well integrated with the other features such as irregular frequencies removal.
+  They are now well integrated with other features such as irregular frequencies removal.
   The user interface has been changed since the experimental methods from previous versions.
   See :class:`~capytaine.meshes.symmetric_meshes.RotationSymmetricMesh`.
   The method to create a symmetric mesh from a profile of points has also changed, see :meth:`~capytaine.meshes.symmetric_meshes.RotationSymmetricMesh.from_profile_points`.
@@ -111,10 +112,7 @@ About the new mesh module
 * **Prototype translation symmetry has been removed.**
   As a consequence, the ``translation_symmetry`` arguments of the mesh generations functions has been removed.
 
-* Different quality checks suite for given meshes.
-
-* ``Mesh.clipped`` and ``FloatingBody.clipped`` don't take as argument a
-  ``Plane`` object, but directly a point and a normal (as two 3-ple of floats).
+* Mesh quality checks have been reworked.
 
 * If no name is provided, no generic name is given to the mesh, no name is used.
   Meshes' names are only useful to keep track of Python objects, since printing the full list of points and faces is not very convenient.
@@ -122,17 +120,18 @@ About the new mesh module
 * Default 3D display now uses `pyvista <https://docs.pyvista.org/>`_ as a backend instead of raw ``vtk``. Please consider installing ``pyvista``.
   The ``matplotlib`` backend is also still available for static mesh viewing.
   Some keyword argument might have been changed to uniformize usage of the two 3D backends.
-  Former animation tooling has been replaced with new tools using the `vedo <https://vedo.embl.es/>`_ library as a backend. They can be found in :mod:`~capytaine.ui.vedo_animations` with examples of usage in the cookbook.
+  Former animation tooling has been replaced with new tools using the `vedo <https://vedo.embl.es/>`_ library as a backend.
+  They can be found in :mod:`~capytaine.ui.vedo_animations` with examples of usage in the cookbook.
 
 * The barely-used and barely-documented ``geometric_center`` attribute of the mesh and the bodies have been removed.
 
 * Support for optionally using quadratures from Quadpy has been removed.
 
-Major changes
-~~~~~~~~~~~~~
+Other major changes
+~~~~~~~~~~~~~~~~~~~
 
 * Add :class:`~capytaine.bodies.multibodies.Multibody` meant to represent a
-  multibody system. For hydrodynamics, this is equivalent to the previous
+  **multibody system**. For hydrodynamics, this is equivalent to the previous
   behavior of coalescing bodies together. For hydrostatics, the new class
   is slightly more powerful, for instance by being able to keep track of
   several center of buoyancy and center of mass. (:pull:`822`)
@@ -149,7 +148,27 @@ Major changes
   abstract class :class:`~capytaine.bodies.abstract_bodies.AbstractBody`
   (:pull:`873`)
 
-* New internal data model for rigid body dofs with the classes
+
+* **Hydrostatics (including multibody hydrostatics) are now stored in an xarray Dataset**.
+   The main way to get hydrostatics properties about a ``FloatingBody`` or a
+   new ``Multibody`` is through :func:`~capytaine.compute_hydrostatics_dataset`.
+   This function is called automatically by default when using
+   :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset`, such that hydrostatics
+   data should always be found near hydrodynamics data in datasets outputted by
+   Capytaine.
+   The new data stored by default in the output dataset include notably the definition
+   of the ``rotation_center`` of the bodies.
+   For multibody cases, the dataset contains a new `body` dimension to store
+   the rotation center, the center of mass and the center of buoyancy of each
+   body individually (other magnitudes such as hydrostatic stiffness, inertia
+   matrix, added mass, radiation damping and excitation forces are still stored
+   using the ``radiating_dof`` and ``influenced_dof`` dimensions which may
+   contains body names, but cannot be stored body-by-body in the ``body``
+   dimension).
+   (:pull:`887`)
+
+
+* **New internal data model for rigid body dofs** with the classes
   :class:`~capytaine.bodies.dofs.TranslationDof` and
   :class:`~capytaine.bodies.dofs.RotationDof`. (:pull:`838`)
   This should ensure that rigid dofs are detected and treated as such, without
@@ -158,6 +177,14 @@ Major changes
   * hydrostatics, where the exact hydrostatic stiffness formula for rigid body dofs can be used instead of the approximation for generalized dofs.
   * forward speed, where the m-term is currently only implemented for rigid dofs.
 
+  Subsequently :func:`~capytaine.bodies.dofs.rigid_body_dofs` now instantiates the new dof class instead of a placeholder.
+  It now has an additional input argument ``only`` to have only some of the six rigid body dofs.
+  Also a rotation center should be passed, because the properties of the body
+  (e.g. `center_of_mass`) cannot be accessed at that stage. (:pull:`838`)
+
+
+* **Far-field mean drift force** evaluation with :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force`.
+  Export of far-field mean drift force to WAMIT `.8` format has also been implemented.
 
 Minor changes
 ~~~~~~~~~~~~~
@@ -181,31 +208,24 @@ Minor changes
   or something equivalent, separating the geometric mesh generation from the
   floating body definition.
 
-* :func:`~capytaine.bodies.dofs.rigid_body_dofs` now instantiate the new dof class instead of a placeholder.
-  It now has an additional input argument ``only`` to have only some of the six rigid body dofs.
-  Also a rotation center should be passed, because the properties of the body
-  (e.g. `center_of_mass`) cannot be accessed at that stage. (:pull:`838`)
-
 * Mesh quadrature (if defined) is used for hydrostatics computations.
   Since meshes have no quadrature by default, the default hydrostatics results remain the same.
   Using `mesh.with_quadrature('Gauss-Legendre 2')` can lead to slightly better results,
   although the limitation is often the geometric approximation of the shape by a flat panels mesh.
   (:pull:`847`)
 
-* Add function :func:`~capytaine.post_pro.mean_drift_force.far_field_mean_drift_force` to compute the horizontal mean drift forces using far field formulation.
-  Only the single-direction second-order term is currently implemented.
-
 * **Breaking** The deprecated ``FreeSurface`` class and ``BEMSolver.get_potential_on_mesh`` and ``BEMSolver.get_free_surface_elevation`` methods have been removed.
   They can be replaced by just any mesh representation of the free surface and the methods :meth:`~capytaine.bem.solver.BEMSolver.compute_potential` and :meth:`~capytaine.bem.solvr.BEMSolver.compute_free_surface_elevation`.
 
-* Computing the pressure or free surface elevation in post-processing does not allocate a very large matrix for a single matrix-vector product, but instead allocate and evaluate only a few rows of the matrix at a time (:pull:`860`).
+* Computing the pressure or free surface elevation in post-processing does not
+  allocate a very large matrix for a single matrix-vector product, but instead
+  allocate and evaluate only a few rows of the matrix at a time (:pull:`860`).
 
 * Warn the user if the ``water_depth`` would be better set to infinity than to a very large number (:pull:`880`).
 
 * **Breaking** Remove the `body_name` dimension from output dataset, and the possibility to automatically stack together outputs for different "bodies" (that is geometries) in the same dataset.
   Now :func:`~capytaine.io.xarray.problems_from_dataset` and :meth:`~capytaine.bem.solver.fill_dataset` can only take a single body as input (or a list with a single element for backward compatibility).
-  This decision is meant to make it easier to output multibody hydrostatics, meshes data and local pressures in the output dataset. (:pull:`885`)
-
+  This decision is meant to make it easier to output multibody hydrostatics (see above), meshes data and local pressures in the output dataset. (:pull:`885`)
 
 Bug fixes
 ~~~~~~~~~
@@ -262,10 +282,6 @@ Internals
   Capytaine. For compatibility, they will remain accessible from a separate
   package. (:pull:`757`, :pull:`765`)
 
-* Instead of creating a ``CollectionOfMeshes``, now ``join_bodies`` merges the
-  meshes of the bodies together. The legacy behavior is still available from
-  Fakeblocks ``join_bodies``. (:pull:`779`)
-
 * The new ``Mesh`` class has a ``faces_metadata`` attribute storing fields
   defined on each faces of the mesh. When faces are added or removed, the
   metadata are automatically updated accordingly. (:pull:`791`)
@@ -288,5 +304,5 @@ Internals
 
 * New function implemented :func:`~capytaine.meshes.waterline_integral` to compute the integral of a function along the water line of a mesh.
 
-* "Full double-layer matrices" are now stored as array of shape (3, n, m)
+* **Breaking** "Full double-layer matrices" are now stored as array of shape (3, n, m)
   (or 3 matrices of shape (n, m)) instead of (n, m, 3) (:pull:`869`).
