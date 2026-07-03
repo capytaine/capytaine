@@ -160,7 +160,11 @@ Other major changes
    of the ``rotation_center`` of the bodies.
    For multibody cases, the dataset contains a new `body` dimension to store
    the rotation center, the center of mass and the center of buoyancy of each
-   body individually.
+   body individually (other magnitudes such as hydrostatic stiffness, inertia
+   matrix, added mass, radiation damping and excitation forces are still stored
+   using the ``radiating_dof`` and ``influenced_dof`` dimensions which may
+   contains body names, but cannot be stored body-by-body in the ``body``
+   dimension).
    (:pull:`887`)
 
 
