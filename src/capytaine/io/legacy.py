@@ -166,7 +166,7 @@ def _hydrostatics_writer(
     kh_file_path,
     center_of_buoyancy,
     center_of_mass,
-    volume,
+    disp_volume,
     hydrostatic_stiffness
 ):
     """Write the Hydrostatics.dat and KH.dat files"""
@@ -174,7 +174,7 @@ def _hydrostatics_writer(
         for j in range(3):
             line =  f'XF = {center_of_buoyancy[j]:7.4f} - XG = {center_of_mass[j]:7.4f} \n'
             hf.write(line)
-        line = f'Displacement = {volume:1.6E}'
+        line = f'Displacement = {disp_volume:1.6E}\n'
         hf.write(line)
         hf.close()
     np.savetxt(kh_file_path, hydrostatic_stiffness.values, fmt='%1.6E')
