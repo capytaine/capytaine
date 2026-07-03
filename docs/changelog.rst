@@ -261,6 +261,8 @@ Bug fixes
 
 * :func:`~capytaine.io.xarray.assemble_matrices` now returns the matrices ordered along the frequency axis like the input ``results``, instead of sorted by increasing frequency. (:issue:`797`)
 
+* Exporting to Nemoh's ``Hydrostatics.dat`` stores the displaced volume, not the total volume of the body.
+
 Internals
 ~~~~~~~~~
 
