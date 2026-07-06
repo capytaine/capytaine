@@ -74,7 +74,7 @@ else
   omp = dependency('openmp')
 endif
 
-if not get_option('hams_green_function').disabled()
+if get_option('hams_green_function').allowed()
   optional_src = [   # optional LGPL licensed src
         'libs/FinGreen3D/FinGreen3D.f90',
         'libs/LiangWuNoblesse/LiangWuNoblesseWaveTerm.f90',

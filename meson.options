@@ -1,1 +1,1 @@
-option('hams_green_function', type: 'feature', value: 'auto')
+option('hams_green_function', type: 'feature', value: 'enabled')

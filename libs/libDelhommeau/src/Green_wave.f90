@@ -214,6 +214,9 @@ CONTAINS
         nablaG(1) = drdx1 * dGdr
         nablaG(2) = drdx2 * dGdr
         nablaG(3) = dzdx3 * (G + 2/r1)
+#else
+        print*, "Need to be compiled with LIANGWUNOBLESSE_OPTIONAL_DEPENDENCY to evaluate Green function with this option"
+        error stop
 #endif
     ELSE
 
