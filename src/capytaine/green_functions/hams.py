@@ -36,6 +36,12 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__repr__())
 
+    @property
+    def all_tabulation_parameters(self):
+        """An alias meant to pass to the Fortran functions all the parameters controlling the tabulation in a single item."""
+        return (self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
+                self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals)
+
     def evaluate(
             self, mesh1, mesh2, *,
             free_surface=0.0, water_depth=np.inf, wavenumber,
@@ -65,8 +71,7 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
             wavenumber, np.inf,
-            self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
-            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
+            *self.all_tabulation_parameters,
             self.dummy_param, self.prony_decomposition, self.dispersion_relation_roots,
             gf_singularities_index, adjoint_double_layer,
             S, K
@@ -103,6 +108,7 @@ class FinGreen3D(AbstractGreenFunction):
     # Dummy arrays that won't actually be used by the fortran code.
     prony_decomposition = np.zeros((1, 1))
     tabulation_nb_integration_points = 1
+    tabulation_grid_shape_index = -999
     tabulated_r_range = np.empty(1)
     tabulated_z_range = np.empty(1)
     tabulated_integrals = np.empty(1)
@@ -123,6 +129,12 @@ class FinGreen3D(AbstractGreenFunction):
 
     def _repr_pretty_(self, p, cycle):
         p.text(self.__repr__())
+
+    @property
+    def all_tabulation_parameters(self):
+        """An alias meant to pass to the Fortran functions all the parameters controlling the tabulation in a single item."""
+        return (self.tabulation_nb_integration_points, self.tabulation_grid_shape_index,
+                self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals)
 
     def compute_dispersion_relation_roots(self, nk, wavenumber, depth):
         omega2_h_over_g = wavenumber*np.tanh(wavenumber*depth)*depth
@@ -162,8 +174,7 @@ class FinGreen3D(AbstractGreenFunction):
             mesh2.faces_areas,   mesh2.faces_radiuses,
             *mesh2.quadrature_points,
             wavenumber, water_depth,
-            self.tabulation_nb_integration_points, self.dummy_param,
-            self.tabulated_r_range, self.tabulated_z_range, self.tabulated_integrals,
+            *self.all_tabulation_parameters,
             self.finite_depth_method_index, self.prony_decomposition, dispersion_relation_roots,
             self.gf_singularities_index, adjoint_double_layer,
             S, K
