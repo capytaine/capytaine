@@ -108,6 +108,7 @@ class FinGreen3D(AbstractGreenFunction):
     # Dummy arrays that won't actually be used by the fortran code.
     prony_decomposition = np.zeros((1, 1))
     tabulation_nb_integration_points = 1
+    tabulation_grid_shape_index = -999
     tabulated_r_range = np.empty(1)
     tabulated_z_range = np.empty(1)
     tabulated_integrals = np.empty(1)
