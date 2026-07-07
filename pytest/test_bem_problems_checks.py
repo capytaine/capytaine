@@ -52,5 +52,5 @@ def test_warning_for_deep_water_multiple_problems(caplog):
     solver = cpt.BEMSolver()
     with caplog.at_level("WARNING"):
         solver.solve_all(problems)
-    assert "Water depth for 2 problems" in caplog.text
+    assert "Water depth for all problems" in caplog.text
     assert "wavelength ranging from" in caplog.text
