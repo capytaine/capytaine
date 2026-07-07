@@ -72,5 +72,15 @@ class AbstractGreenFunction(ABC):
         return S, K
 
     @abstractmethod
-    def evaluate(self, mesh1, mesh2, free_surface, water_depth, wavenumber, adjoint_double_layer=True, early_dot_product=True):
+    def evaluate(
+        self,
+        mesh1,
+        mesh2,
+        free_surface,
+        water_depth,
+        wavenumber,
+        adjoint_double_layer=True,
+        early_dot_product=True,
+        diagonal_term_in_double_layer=True,
+    ):
         pass

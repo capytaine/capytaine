@@ -191,7 +191,7 @@ Other major changes
 Minor changes
 ~~~~~~~~~~~~~
 
-* Add option :code:`'lu_decomposition_with_overwrite'` for the :code:`linear_solver` of :class:`~capytaine.bem.engines.BasicMatrixEngine`, which reduces the RAM usage of the solver (:pull:`775`).
+* Add option :code:`'lu_decomposition_with_overwrite'` for the :code:`linear_solver` of :class:`~capytaine.bem.engines.DefaultMatrixEngine`, which reduces the RAM usage of the solver (:pull:`775`).
 
 * Velocity in the fluid can be post-processed in the limit frequencies (:math:`\omega = 0` or :math:`\omega = \infty`). Divide it by :math:`\omega` to have a finite value (:pull:`777`).
 
@@ -270,14 +270,14 @@ Internals
 
 * **Breaking** The ``green_function`` is not an attribute of the :class:`~capytaine.bem.solver.BEMSolver` anymore, but of the engine.
   The motivation is that not all engines can be made compatible with all Green function implementations (although the builtins one are).
-  The possibility to call ``BEMSolver(green_function=...)`` is kept as a convenient shortcut to ``BEMSolver(engine=BasicMatrixEngine(green_function=...))``.
+  The possibility to call ``BEMSolver(green_function=...)`` is kept as a convenient shortcut to ``BEMSolver(engine=DefaultMatrixEngine(green_function=...))``.
   Calls to ``BEMSolver(green_function=..., engine=...)`` now raise an error. (:pull:`752`)
   Post-processing new requires the implementation of the methods ``build_S_matrix`` and ``build_fullK_matrix`` by the engine (:pull:`753`)
 
 * New implementation of the block symmetric matrices for mesh symmetry, now
-  used by :class:`~capytaine.bem.engines.BasicMatrixEngine` (:pull:`754`).
+  used by :class:`~capytaine.bem.engines.DefaultMatrixEngine` (:pull:`754`).
 
-* Rafactor of the :class:`~capytaine.bem.engines.BasicMatrixEngine` to make the
+* Rafactor of the :class:`~capytaine.bem.engines.DefaultMatrixEngine` to make the
   caching more straightforward and improve its interaction with LU
   decomposition and symmetries. (:pull:`755`)
 

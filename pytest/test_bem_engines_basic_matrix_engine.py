@@ -23,25 +23,25 @@ from capytaine.green_functions.abstract_green_function import GreenFunctionEvalu
 
 
 def test_engine_repr():
-    r = repr(cpt.BasicMatrixEngine())
+    r = repr(cpt.DefaultMatrixEngine())
     assert "Delhommeau" in r
 
 
 def test_cache_matrices():
-    """Test how the BasicMatrixEngine caches the interaction matrices."""
+    """Test how the DefaultMatrixEngine caches the interaction matrices."""
     mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 3)).immersed_part()
     params_1 = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, adjoint_double_layer=True)
     params_2 = dict(free_surface=0.0, water_depth=np.inf, wavenumber=2.0, adjoint_double_layer=True)
 
     # No cache
-    engine = cpt.BasicMatrixEngine()
+    engine = cpt.DefaultMatrixEngine()
     S, K             = engine._build_matrices_with_symmetries(mesh, mesh, **params_1)
     S_again, K_again = engine._build_matrices_with_symmetries(mesh, mesh, **params_1)
     assert S is not S_again
     assert K is not K_again
 
     # Cache
-    engine = cpt.BasicMatrixEngine()
+    engine = cpt.DefaultMatrixEngine()
     S, K                     = engine._build_and_cache_matrices_with_symmetries(mesh, mesh, **params_1)
     S_again, K_again         = engine._build_and_cache_matrices_with_symmetries(mesh, mesh, **params_1)
     _, _                     = engine._build_and_cache_matrices_with_symmetries(mesh, mesh, **params_2)
@@ -59,7 +59,7 @@ def test_custom_linear_solver(method):
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     problem = cpt.RadiationProblem(body=sphere, omega=1.0, water_depth=np.inf)
 
-    reference_solver = cpt.BEMSolver(engine=cpt.BasicMatrixEngine(), method=method)
+    reference_solver = cpt.BEMSolver(engine=cpt.DefaultMatrixEngine(), method=method)
     reference_result = reference_solver.solve(problem)
 
     def my_linear_solver(A, b):
@@ -67,7 +67,7 @@ def test_custom_linear_solver(method):
         return np.linalg.inv(A) @ b
 
     my_bem_solver = cpt.BEMSolver(
-        engine=cpt.BasicMatrixEngine(linear_solver=my_linear_solver),
+        engine=cpt.DefaultMatrixEngine(linear_solver=my_linear_solver),
         method=method
     )
     assert 'my_linear_solver' in my_bem_solver.exportable_settings['linear_solver']
@@ -88,7 +88,7 @@ def test_custom_linear_solver_returning_wrong_shape(method):
 
     my_bem_solver = cpt.BEMSolver(
         method=method,
-        engine=cpt.BasicMatrixEngine(linear_solver=my_linear_solver)
+        engine=cpt.DefaultMatrixEngine(linear_solver=my_linear_solver)
     )
     with pytest.raises(ValueError):
         my_bem_solver.solve(problem)
@@ -101,19 +101,19 @@ def test_all_linear_solvers_work():
     problem = cpt.RadiationProblem(body=sphere, omega=1.0, water_depth=np.inf)
 
     bem_solver_lu = cpt.BEMSolver(
-        engine=cpt.BasicMatrixEngine(linear_solver="lu_decomposition")
+        engine=cpt.DefaultMatrixEngine(linear_solver="lu_decomposition")
     )
 
     result_lu = bem_solver_lu.solve(problem)
 
     bem_solver_lu_with_overwrite = cpt.BEMSolver(
-        engine=cpt.BasicMatrixEngine(linear_solver="lu_decomposition_with_overwrite")
+        engine=cpt.DefaultMatrixEngine(linear_solver="lu_decomposition_with_overwrite")
     )
 
     result_lu_with_overwrite = bem_solver_lu_with_overwrite.solve(problem)
 
     bem_solver_gmres = cpt.BEMSolver(
-        engine=cpt.BasicMatrixEngine(linear_solver="lu_decomposition")
+        engine=cpt.DefaultMatrixEngine(linear_solver="lu_decomposition")
     )
 
     result_gmres = bem_solver_gmres.solve(problem)
@@ -128,7 +128,7 @@ def test_all_linear_solvers_work():
 def test_lu_overwrite():
     K = np.array(np.random.rand(100,100), order='F')
     K_copy = np.copy(K)
-    engine = cpt.BasicMatrixEngine(linear_solver="lu_decomposition_with_overwrite")
+    engine = cpt.DefaultMatrixEngine(linear_solver="lu_decomposition_with_overwrite")
     engine.last_computed_matrices = (None, K)
     engine.linear_solver(K, np.random.rand(100))
     assert np.any(K_copy != K)
@@ -137,7 +137,7 @@ def test_lu_overwrite():
 def test_lu_no_overwrite():
     K = np.array(np.random.rand(100,100), order='F')
     K_copy = np.copy(K)
-    engine = cpt.BasicMatrixEngine(linear_solver="lu_decomposition")
+    engine = cpt.DefaultMatrixEngine(linear_solver="lu_decomposition")
     engine.last_computed_matrices = (None, K)
     engine.linear_solver(K, np.random.rand(100))
     assert np.all(K_copy == K)
@@ -154,16 +154,16 @@ def test_ram_estimation():
         floating_point_precision="float32"
     )
 
-    reference_estimation = cpt.BasicMatrixEngine(
+    reference_estimation = cpt.DefaultMatrixEngine(
         linear_solver="gmres"
     ).compute_ram_estimation(problem)
-    float_estimation = cpt.BasicMatrixEngine(
+    float_estimation = cpt.DefaultMatrixEngine(
         linear_solver="gmres", green_function=green_function
     ).compute_ram_estimation(problem)
-    lu_estimation = cpt.BasicMatrixEngine(
+    lu_estimation = cpt.DefaultMatrixEngine(
         linear_solver="lu_decomposition"
     ).compute_ram_estimation(problem)
-    lu_and_float_estimation = cpt.BasicMatrixEngine(
+    lu_and_float_estimation = cpt.DefaultMatrixEngine(
         linear_solver="lu_decomposition", green_function=green_function
     ).compute_ram_estimation(problem)
 
@@ -189,16 +189,16 @@ def test_ram_1_reflection_symmetry_estimation():
         floating_point_precision="float32"
     )
 
-    gmres_estimation = cpt.BasicMatrixEngine(
+    gmres_estimation = cpt.DefaultMatrixEngine(
         linear_solver="gmres"
     ).compute_ram_estimation(problem)
-    gmres_estimation_float = cpt.BasicMatrixEngine(
+    gmres_estimation_float = cpt.DefaultMatrixEngine(
         linear_solver="gmres",  green_function=green_function
     ).compute_ram_estimation(problem)
-    lu_estimation = cpt.BasicMatrixEngine(
+    lu_estimation = cpt.DefaultMatrixEngine(
         linear_solver="lu_decomposition"
     ).compute_ram_estimation(problem)
-    lu_overwrite_estimation = cpt.BasicMatrixEngine(
+    lu_overwrite_estimation = cpt.DefaultMatrixEngine(
         linear_solver="lu_decomposition_with_overwrite"
     ).compute_ram_estimation(problem)
 
@@ -224,16 +224,16 @@ def test_ram_2_reflection_symmetries_estimation():
         floating_point_precision="float32"
     )
 
-    gmres_estimation = cpt.BasicMatrixEngine(
+    gmres_estimation = cpt.DefaultMatrixEngine(
         linear_solver="gmres"
     ).compute_ram_estimation(problem)
-    gmres_estimation_float = cpt.BasicMatrixEngine(
+    gmres_estimation_float = cpt.DefaultMatrixEngine(
         linear_solver="gmres",  green_function=green_function
     ).compute_ram_estimation(problem)
-    lu_estimation = cpt.BasicMatrixEngine(
+    lu_estimation = cpt.DefaultMatrixEngine(
         linear_solver="lu_decomposition"
     ).compute_ram_estimation(problem)
-    lu_overwrite_estimation = cpt.BasicMatrixEngine(
+    lu_overwrite_estimation = cpt.DefaultMatrixEngine(
         linear_solver="lu_decomposition_with_overwrite"
     ).compute_ram_estimation(problem)
 
@@ -260,16 +260,16 @@ def test_ram_rotation_symmetries_estimation(n):
         floating_point_precision="float32"
     )
 
-    gmres_estimation = cpt.BasicMatrixEngine(
+    gmres_estimation = cpt.DefaultMatrixEngine(
         linear_solver="gmres"
     ).compute_ram_estimation(problem)
-    gmres_estimation_float = cpt.BasicMatrixEngine(
+    gmres_estimation_float = cpt.DefaultMatrixEngine(
         linear_solver="gmres",  green_function=green_function
     ).compute_ram_estimation(problem)
-    lu_estimation = cpt.BasicMatrixEngine(
+    lu_estimation = cpt.DefaultMatrixEngine(
         linear_solver="lu_decomposition"
     ).compute_ram_estimation(problem)
-    lu_overwrite_estimation = cpt.BasicMatrixEngine(
+    lu_overwrite_estimation = cpt.DefaultMatrixEngine(
         linear_solver="lu_decomposition_with_overwrite"
     ).compute_ram_estimation(problem)
 
@@ -296,7 +296,7 @@ def single_panel():
     ], ids=["nested_reflections", "rotation+", "dihedral"])
 def test_symmetry(sym_mesh):
     ref_mesh = sym_mesh.merged()
-    engine = cpt.BasicMatrixEngine()
+    engine = cpt.DefaultMatrixEngine()
     params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
     S_ref, K_ref = engine.build_matrices(ref_mesh, ref_mesh, **params)
     S, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
@@ -320,7 +320,7 @@ def test_lazy_S_matrix():
     from capytaine.tools.lazy_matrices import LazyMatrix
     mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 3))
     points = np.random.rand(1000, 3)
-    engine = cpt.BasicMatrixEngine()
+    engine = cpt.DefaultMatrixEngine()
     S = engine.build_S_matrix(points, mesh, wavenumber=1.0)
     assert isinstance(S, LazyMatrix)
     full_S, _ = engine.green_function.evaluate(points, mesh, wavenumber=1.0)
@@ -328,7 +328,7 @@ def test_lazy_S_matrix():
 
 
 def test_same_S_and_K_matrices_with_symmetries():
-    engine = cpt.BasicMatrixEngine()
+    engine = cpt.DefaultMatrixEngine()
     sym_mesh = ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), plane='xOz')
     mesh = sym_mesh.merged()
     assert np.allclose(engine.build_S_matrix(sym_mesh.faces_centers, sym_mesh), engine.build_S_matrix(mesh.faces_centers, mesh))

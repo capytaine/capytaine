@@ -30,7 +30,7 @@ from capytaine.bodies.dofs import rigid_body_dofs
 
 from capytaine.bem.problems_and_results import RadiationProblem, DiffractionProblem
 from capytaine.bem.solver import BEMSolver
-from capytaine.bem.engines import BasicMatrixEngine
+from capytaine.bem.engines import DefaultMatrixEngine
 from capytaine.green_functions.delhommeau import Delhommeau, XieDelhommeau
 from capytaine.green_functions.hams import LiangWuNoblesseGF, FinGreen3D, HAMS_GF
 
