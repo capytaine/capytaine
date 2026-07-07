@@ -21,6 +21,8 @@ from capytaine.tools.optional_imports import silently_import_optional_dependency
 
 LOG = logging.getLogger(__name__)
 
+WATER_DEPTH_THRESHOLD_FACTOR = 5  # Threshold for suggesting infinite depth: water_depth > WATER_DEPTH_THRESHOLD_FACTOR * wavelength
+
 
 def _check_wavelength_and_mesh_resolution(problems):
     """Display a warning if some of the problems have a mesh resolution
@@ -48,7 +50,8 @@ def _check_wavelength_and_mesh_resolution(problems):
         risky_freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
         risky_wavelengths = np.array([pb.wavelength for pb in risky_problems])
         max_radius = max(pb.body.mesh_including_lid.faces_radiuses.max() for pb in risky_problems)
-        LOG.warning(f"Mesh resolution for {nb_risky_problems} problems:\n"
+        problems_str = "all" if nb_risky_problems == len(problems) else f"{nb_risky_problems}"
+        LOG.warning(f"Mesh resolution for {problems_str} problems:\n"
                     f"The resolution of the {mesh_str} might be insufficient "
                     f"for {freq_type} ranging from {risky_freqs.min():.3f} to {risky_freqs.max():.3f}.\n"
                     f"This warning appears because the largest panel of the {mesh_str} "
@@ -61,17 +64,49 @@ def _check_wavelength_and_water_depth(problems):
     LOG.debug("Check wavelength and water depth.")
     def check(pb):
         return ((pb.water_depth < np.inf)
-                and (pb.water_depth > 5*pb.wavelength)
+                and (pb.water_depth > WATER_DEPTH_THRESHOLD_FACTOR*pb.wavelength)
                 and (pb.water_depth > -2*pb.body.mesh.vertices[:, 2].min()))
     filtered_pbs = [pb for pb in problems if check(pb)]
     nb_filtered_pbs = len(filtered_pbs)
-    if nb_filtered_pbs > 1:
-        wd = list(np.unique([pb.water_depth for pb in filtered_pbs]))
-        if len(wd) == 1:
-            wd = wd[0]
+    if nb_filtered_pbs == 1:
+        pb = filtered_pbs[0]
+        freq_type = pb.provided_freq_type
+        freq = pb.__getattribute__(freq_type)
 
-        LOG.warning(f"Water depth for {nb_filtered_pbs} problems:\n"
-                    f"Very deep finite water depth have been set (`water_depth={wd}`).\n"
+        # Show freq_type only if it's not wavelength
+        if freq_type == 'wavelength':
+            freq_info = ""
+        else:
+            freq_info = f" ({freq_type}={freq})"
+
+        LOG.warning(f"Water depth for {pb}:\n"
+                    f"Deep finite water depth has been set (`water_depth={pb.water_depth:.1f}`) "
+                    f"for wavelength={pb.wavelength:.1f} m{freq_info}.\n"
+                    f"This warning appears because water_depth > {WATER_DEPTH_THRESHOLD_FACTOR}*wavelength ({pb.water_depth:.1f} > {WATER_DEPTH_THRESHOLD_FACTOR*pb.wavelength:.1f}).\n"
+                    "Computation might be faster by using the infinite water depth instead: `water_depth=np.inf`."
+                    )
+    elif nb_filtered_pbs > 1:
+        freq_type = filtered_pbs[0].provided_freq_type
+        freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in filtered_pbs])
+        wavelengths = np.array([pb.wavelength for pb in filtered_pbs])
+        water_depths = np.array([pb.water_depth for pb in filtered_pbs])
+
+        if len(np.unique(water_depths)) == 1:
+            wd_str = f"{water_depths[0]:.1f}"
+        else:
+            wd_str = f"ranging from {water_depths.min():.1f} to {water_depths.max():.1f}"
+
+        # Show freq_type only if it's not wavelength
+        if freq_type == 'wavelength':
+            freq_info = ""
+        else:
+            freq_info = f" ({freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f})"
+
+        problems_str = "all" if nb_filtered_pbs == len(problems) else f"{nb_filtered_pbs}"
+        LOG.warning(f"Water depth for {problems_str} problems:\n"
+                    f"Deep finite water depth has been set (`water_depth={wd_str}`) "
+                    f"for wavelength ranging from {wavelengths.min():.1f} to {wavelengths.max():.1f} m{freq_info}.\n"
+                    f"This warning appears because water_depth > {WATER_DEPTH_THRESHOLD_FACTOR}*wavelength.\n"
                     "Computation might be faster by using the infinite water depth instead: `water_depth=np.inf`."
                     )
 
@@ -100,7 +135,8 @@ def _check_wavelength_and_irregular_frequencies(problems):
         elif nb_risky_problems > 1:
             freq_type = risky_problems[0].provided_freq_type
             freqs = np.array([float(pb.__getattribute__(freq_type)) for pb in risky_problems])
-            LOG.warning(f"Irregular frequencies for {nb_risky_problems} problems:\n"
+            problems_str = "all" if nb_risky_problems == len(problems) else f"{nb_risky_problems}"
+            LOG.warning(f"Irregular frequencies for {problems_str} problems:\n"
                         "Irregular frequencies might be encountered "
                         f"for {freq_type} ranging from {freqs.min():.3f} to {freqs.max():.3f}.\n"
                         + recommendation
