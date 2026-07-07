@@ -16,7 +16,7 @@ The settings of the solver can be customized by passing parameters at the initia
 
    which is equivalent to
 
-       solver = cpt.BEMSolver(engine=BasicMatrixEngine(green_function=...), method=...)
+       solver = cpt.BEMSolver(engine=DefaultMatrixEngine(green_function=...), method=...)
 
 Method
 ~~~~~~
@@ -49,7 +49,7 @@ Engine
 A class to build a interaction matrix, deriving from :class:`MatrixEngine <capytaine.bem.engines.MatrixEngine>`.
 A single one is built-in, but others with other features can be found in other packages.
 
-:class:`~capytaine.bem.engines.BasicMatrixEngine` (Default)
+:class:`~capytaine.bem.engines.DefaultMatrixEngine` (Default)
    Capytaine's default engine, that should be a good compromise between robustness, complexity and speed.
 
    The object can be initialized with the following options:
@@ -79,7 +79,7 @@ A single one is built-in, but others with other features can be found in other p
                            return np.linalg.inv(A) @ b
 
                    my_bem_solver = cpt.BEMSolver(
-                      engine=BasicMatrixEngine(linear_solver=my_linear_solver)
+                      engine=DefaultMatrixEngine(linear_solver=my_linear_solver)
                       )
 
            This option can be used for instance to apply a custom preconditioning to

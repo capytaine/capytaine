@@ -17,7 +17,7 @@ def linear_solver_on_GPU(A, b):
     return res.cpu().numpy()
 
 naive_gpu_solver = cpt.BEMSolver(
-    engine=cpt.BasicMatrixEngine(linear_solver=linear_solver_on_GPU)
+    engine=cpt.DefaultMatrixEngine(linear_solver=linear_solver_on_GPU)
 )
 
 
@@ -38,7 +38,7 @@ def lu_linear_solver_with_cache_on_GPU(A, b):
     return res.cpu().numpy()
 
 gpu_solver = cpt.BEMSolver(
-    engine=cpt.BasicMatrixEngine(linear_solver=lu_linear_solver_with_cache_on_GPU)
+    engine=cpt.DefaultMatrixEngine(linear_solver=lu_linear_solver_with_cache_on_GPU)
 )
 
 

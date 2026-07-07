@@ -30,7 +30,7 @@ import numpy as np
 from rich.progress import track
 
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem
-from capytaine.bem.engines import BasicMatrixEngine
+from capytaine.bem.engines import DefaultMatrixEngine
 from capytaine.bem.problems_checks import (
     _check_wavelength_and_mesh_resolution,
     _check_wavelength_and_water_depth,
@@ -64,7 +64,7 @@ class BEMSolver:
     ----------
     engine: MatrixEngine, optional
         Object handling the building of matrices and the resolution of linear systems with these matrices.
-        (default: :class:`~capytaine.bem.engines.BasicMatrixEngine`)
+        (default: :class:`~capytaine.bem.engines.DefaultMatrixEngine`)
     method: string, optional
         select boundary integral equation used to solve the problems.
         Accepted values: "indirect" (as in e.g. Nemoh), "direct" (as in e.g. WAMIT)
@@ -85,7 +85,7 @@ class BEMSolver:
     def __init__(self, *, green_function=None, engine=None, method="indirect"):
 
         if engine is None:
-            self.engine = BasicMatrixEngine(green_function=green_function)
+            self.engine = DefaultMatrixEngine(green_function=green_function)
         else:
             if green_function is not None:
                 raise ValueError("If you are not using the default engine, set the Green function in the engine.\n"

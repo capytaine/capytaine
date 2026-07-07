@@ -92,10 +92,8 @@ def solve_gmres(A, b):
 LUDecomposedMatrixOrNot = Union[MatrixLike, LUDecomposedMatrixLike]
 
 
-class BasicMatrixEngine(MatrixEngine):
+class DefaultMatrixEngine(MatrixEngine):
     """
-    Default matrix engine.
-
     Features:
         - Caching of the last computed matrices.
         - Supports plane symmetries and nested plane symmetries.
@@ -126,14 +124,14 @@ class BasicMatrixEngine(MatrixEngine):
         self.last_computed_matrices = None
 
         self.exportable_settings = {
-            'engine': 'BasicMatrixEngine',
+            'engine': 'DefaultMatrixEngine',
             'linear_solver': str(linear_solver),
             **self.green_function.exportable_settings,
         }
 
     def __str__(self):
         params= [f"green_function={self.green_function}", f"linear_solver={repr(self._linear_solver)}"]
-        return f"BasicMatrixEngine({', '.join(params)})"
+        return f"DefaultMatrixEngine({', '.join(params)})"
 
     def __repr__(self):
         return self.__str__()
@@ -344,7 +342,7 @@ class BasicMatrixEngine(MatrixEngine):
 
         else:
             raise NotImplementedError(
-                f"Unknown `linear_solver` in BasicMatrixEngine: {self._linear_solver}"
+                f"Unknown `linear_solver` in DefaultMatrixEngine: {self._linear_solver}"
             )
 
     def compute_ram_estimation(self, problem):
