@@ -179,7 +179,13 @@ class ReflectionSymmetricMesh(AbstractMesh):
             name=name
         )
 
-    def join_meshes(self, *meshes, return_masks=False, name=None) -> Union[ReflectionSymmetricMesh, Mesh]:
+    def join_meshes(
+        self,
+        *meshes,
+        return_masks=False,
+        name=None,
+        symmetry_warning_detail=""
+    ) -> Union[ReflectionSymmetricMesh, Mesh]:
         if (all(isinstance(m, ReflectionSymmetricMesh) for m in meshes) and
             all(m.plane == self.plane for m in meshes)):
                 if return_masks:
@@ -215,11 +221,14 @@ class ReflectionSymmetricMesh(AbstractMesh):
                     return joined_mesh
 
         else:
+            # Warn if symmetry is being discarded
+            LOG.warning(f"Joining symmetric mesh with non-symmetric mesh or mesh with different symmetry{symmetry_warning_detail}. "
+                       "Symmetry will be discarded.")
             return Mesh.join_meshes(
                 self.merged(),
                 *[m.merged() for m in meshes],
                 return_masks=return_masks,
-                name=name
+                name=name,
             )
 
     def generate_lid(self, z=0.0, faces_max_radius=None, name=None):
@@ -524,7 +533,13 @@ class RotationSymmetricMesh(AbstractMesh):
     def _metadata_of_wedge(self, k, i):
         return self.faces_metadata[k][i*self.wedge.nb_faces:(i+1)*self.wedge.nb_faces]
 
-    def join_meshes(self, *meshes, return_masks=False, name=None) -> Union[RotationSymmetricMesh, Mesh]:
+    def join_meshes(
+        self,
+        *meshes,
+        return_masks=False,
+        name=None,
+        symmetry_warning_detail=""
+    ) -> Union[RotationSymmetricMesh, Mesh]:
         if (all(isinstance(m, RotationSymmetricMesh) for m in meshes) and
             all(m.n == self.n for m in meshes)):
                 if return_masks:
@@ -559,11 +574,14 @@ class RotationSymmetricMesh(AbstractMesh):
                     return joined_mesh
 
         else:
+            # Warn if symmetry is being discarded
+            LOG.warning(f"Joining symmetric mesh with non-symmetric mesh or mesh with different symmetry{symmetry_warning_detail}. "
+                       "Symmetry will be discarded.")
             return Mesh.join_meshes(
                 self.merged(),
                 *[m.merged() for m in meshes],
                 return_masks=return_masks,
-                name=name
+                name=name,
             )
 
     def generate_lid(self, z=0.0, faces_max_radius=None, name=None):

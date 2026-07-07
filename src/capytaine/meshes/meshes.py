@@ -572,12 +572,17 @@ class Mesh(AbstractMesh):
             auto_check=False
         )
 
-    def join_meshes(*meshes: List["Mesh"], return_masks=False, name=None) -> "Mesh":
+    def join_meshes(
+        *meshes: List[AbstractMesh],
+        return_masks=False,
+        name=None,
+        symmetry_warning_detail=""
+    ) -> "Mesh":
         """Join several meshes and return a new Mesh instance.
 
         Parameters
         ----------
-        meshes: List[Mesh]
+        meshes: List[AbstractMesh]
             Meshes to be joined
         return_masks: bool, optional
             If True, additionally return a list of numpy masks establishing the
@@ -585,6 +590,9 @@ class Mesh(AbstractMesh):
             (Default: False)
         name: str, optional
             A name for the new object
+        symmetry_warning_detail: str, optional
+            Additional context to include in symmetry warning messages
+            (e.g., "hull mesh and lid mesh")
 
         Returns
         -------
@@ -600,6 +608,12 @@ class Mesh(AbstractMesh):
         """
         if not all(isinstance(m, AbstractMesh) for m in meshes):
             raise TypeError("Only AbstractMesh instances can be added together.")
+
+        # Check if symmetry will be lost when joining meshes
+        from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
+        symmetric_meshes = [isinstance(m, (ReflectionSymmetricMesh, RotationSymmetricMesh)) for m in meshes]
+        if any(symmetric_meshes) and not all(symmetric_meshes):
+            LOG.warning(f"Joining symmetric mesh with non-symmetric mesh{symmetry_warning_detail}. Symmetry will be discarded.")
 
         meshes = [m.merged() for m in meshes]  # Discard symmetries, no-op for non-symmetric Mesh
 

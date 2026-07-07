@@ -103,7 +103,11 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
             self.mesh_including_lid = self.mesh
             self.hull_mask = np.full((self.mesh.nb_faces,), True)
         else:
-            self.mesh_including_lid, masks = self.mesh.join_meshes(self.lid_mesh, return_masks=True)
+            self.mesh_including_lid, masks = self.mesh.join_meshes(
+                self.lid_mesh,
+                return_masks=True,
+                symmetry_warning_detail=" (hull mesh and lid mesh)"
+            )
             self.hull_mask = masks[0]
 
         if name is None and mesh is None:
