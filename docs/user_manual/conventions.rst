@@ -7,10 +7,11 @@ Conventions and differences to other codes
 
 Unlike most other codes, angles (such as the incoming wave direction) are given in radians in Capytaine.
 
-With respect to WAMIT
----------------------
+With respect to WAMIT or Orcawave
+---------------------------------
 
-In this section, the index :math:`W` denotes a magnitude in `WAMIT <https://www.wamit.com/>`_ convention. Other magnitudes use Capytaine convention.
+In this section, the index :math:`W` denotes a magnitude in `WAMIT <https://www.wamit.com/>`_ convention (or Orcawave, since they follow the same conventions as WAMIT).
+Other magnitudes use Capytaine convention.
 
 Time dependency
 ~~~~~~~~~~~~~~~
@@ -51,6 +52,8 @@ Then the corresponding Froude-Krylov force and diffraction force (also called sc
 
 .. math::
    F_e = \overline{F_{e, W}}
+
+In other words, the phase angle of the loads returned by Capytaine is "lags" while WAMIT returns "leads".
 
 Normal vector
 ~~~~~~~~~~~~~
@@ -109,12 +112,6 @@ With respect to HAMS
 --------------------
 
 `HAMS <https://github.com/YingyiLiu/HAMS>`_ follows the same conventions :eq:`time_convention_in_capytaine` and :eq:`incoming_waves_in_capytaine` as Capytaine, but in its documentation follows the same convention as WAMIT for normal vectors and Green function.
-
-
-With respect to OrcaWave
-------------------------
-
-OrcaWave follows the same conventions as WAMIT.
 
 
 With respect to Hydrostar
