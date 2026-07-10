@@ -52,6 +52,8 @@ Then the corresponding Froude-Krylov force and diffraction force (also called sc
 .. math::
    F_e = \overline{F_{e, W}}
 
+In other words, the phase angle of the loads returned by Capytaine is "lags" while WAMIT returns "leads".
+
 Normal vector
 ~~~~~~~~~~~~~
 
