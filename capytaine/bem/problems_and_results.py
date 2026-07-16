@@ -363,7 +363,7 @@ class OWCRadiationProblem(LinearPotentialFlowProblem):
         self.nb_faces_body = body.mesh.nb_faces
         self.nb_faces_lid = body.lid_mesh.nb_faces
 
-        self.boundary_condition = np.ones(self.nb_faces_lid)
+        self.boundary_condition = -np.ones(self.nb_faces_lid)
 
     def make_results_container(self, *args, **kwargs):
         return OWCRadiationResult(self, *args, **kwargs)
@@ -671,7 +671,7 @@ class OWCRadiationResult(LinearPotentialFlowResult):
 
     @property
     def susceptance(self):
-        return np.imag(-self.flow)
+        return np.imag(self.flow)
 
 
 class FailedOWCRadiationResult(OWCRadiationResult):
@@ -702,7 +702,7 @@ class OWCDiffractionResult(LinearPotentialFlowResult):
         return self.flow + self.flow_airy
 
 
-class FailedOWCDiffractionResult(OWCRadiationResult):
+class FailedOWCDiffractionResult(OWCDiffractionResult):
     def __init__(self, problem, exception):
         OWCRadiationResult.__init__(self, problem, None)
         self.exception = exception
