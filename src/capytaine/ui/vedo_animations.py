@@ -104,7 +104,7 @@ class Animation:
                 component.vedo_mesh.cmap(component.cmap, colors, vmin=component.vmin, vmax=component.vmax)
 
 
-    def run(self, camera=None, resolution=(800, 600), **kwargs):
+    def run(self, camera=None, lights=[], resolution=(800, 600), **kwargs):
         if camera is None:
             camera = {}
         for k, v in _default_camera.items():
@@ -113,6 +113,7 @@ class Animation:
         plt = self.vedo.Plotter(axes=1, interactive=False, **kwargs)
         plt.show(
             *[comp.vedo_mesh for comp in self.components],
+            *lights,
             camera=camera
         )
         t_range = np.linspace(0.0, self.loop_duration, int(self.loop_duration * self.fps))
@@ -123,7 +124,7 @@ class Animation:
         plt.interactive()
 
 
-    def save(self, filename, camera=None, resolution=(800, 600), **kwargs):
+    def save(self, filename, camera=None, lights=[], resolution=(800, 600), **kwargs):
         if camera is None:
             camera = {}
         for k, v in _default_camera.items():
@@ -133,6 +134,7 @@ class Animation:
         plt = self.vedo.Plotter(axes=1, interactive=False, **kwargs)
         plt.show(
             *[comp.vedo_mesh for comp in self.components],
+            *lights,
             camera=camera
         )
         t_range = np.linspace(0.0, self.loop_duration, int(self.loop_duration * self.fps))
