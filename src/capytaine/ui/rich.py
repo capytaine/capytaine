@@ -14,5 +14,17 @@
 import logging
 from rich.logging import RichHandler
 
-def set_logging(level="INFO"):
-    logging.basicConfig(level=level, format="%(message)s", handlers=[RichHandler(level=level, log_time_format="[%X]", show_path=False)], force=True)
+
+def set_logging(level="INFO", force=False):
+    """Configure logging with a nice Rich handler.
+
+    If the root logger already has handlers (i.e., the user has set up their own
+    logging configuration), this function does nothing unless ``force=True``.
+    """
+    if force or not logging.root.handlers:
+        logging.basicConfig(
+            level=level,
+            format="%(message)s",
+            handlers=[RichHandler(level=level, log_time_format="[%X]", show_path=False)],
+            force=force,
+        )
