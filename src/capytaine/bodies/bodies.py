@@ -144,8 +144,8 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
         Kinda deprecated, use cpt.load_mesh instead."""
         LOG.warning("Deprecation warning: The method FloatingBody.from_meshio(...) is deprecated. "
                     "Please prefer FloatingBody(mesh=cpt.load_mesh(...), ...)")
-        from capytaine.io.meshio import load_from_meshio
-        return FloatingBody(mesh=load_from_meshio(mesh, name), name=name)
+        from capytaine.meshes.io import load_mesh
+        return FloatingBody(mesh=load_mesh(mesh), name=name)
 
     @staticmethod
     def from_file(filename: str, file_format=None, name=None) -> 'FloatingBody':
@@ -153,10 +153,10 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
         Kinda deprecated, use cpt.load_mesh instead."""
         LOG.warning("Deprecation warning: The method FloatingBody.from_file(...) is deprecated. "
                     "Please prefer FloatingBody(mesh=cpt.load_mesh(...), ...)")
-        from capytaine.io.mesh_loaders import load_mesh
         if name is None:
             name = filename
-        mesh = load_mesh(filename, file_format, name=f"{name}_mesh")
+        from capytaine.meshes.io import load_mesh
+        mesh = load_mesh(filename, file_format)
         return FloatingBody(mesh, name=name)
 
     @property
