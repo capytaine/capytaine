@@ -59,8 +59,8 @@ if __name__ == '__main__':
     anim = setup_animation(body, fs, omega=1.5, wave_amplitude=1.0, wave_direction=pi)
 
     params = dict(
-        camera={"pos": (120, 0, 30)},
-        lights=[Light([0, 0, 20], intensity=0.8)],
+        camera={"pos": (70, 70, 100)},
+        lights=[Light([0, 0, 100], intensity=0.8)],
         resolution=(800, 600)
     )
     # anim.run(**params)
