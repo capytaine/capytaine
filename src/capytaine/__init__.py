@@ -38,4 +38,4 @@ from capytaine.io.xarray import assemble_dataframe, assemble_dataset, assemble_m
 
 from capytaine.ui.rich import set_logging
 
-set_logging(level="WARNING")
+set_logging(level="WARNING", force=False)
