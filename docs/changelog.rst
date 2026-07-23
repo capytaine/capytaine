@@ -265,6 +265,10 @@ Bug fixes
 
 * Exporting to Nemoh's ``Hydrostatics.dat`` stores the displaced volume, not the total volume of the body.
 
+* The logging is not forcefully overridden by Capytaine on import. Capytaine
+  logging's setting are only set if no logging has been set before.
+  (:pull:`922`)
+
 Internals
 ~~~~~~~~~
 

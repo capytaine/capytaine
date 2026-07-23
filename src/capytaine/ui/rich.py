@@ -15,11 +15,14 @@ import logging
 from rich.logging import RichHandler
 
 
-def set_logging(level="INFO", force=False):
+def set_logging(level="INFO", force=True):
     """Configure logging with a nice Rich handler.
 
     If the root logger already has handlers (i.e., the user has set up their own
     logging configuration), this function does nothing unless ``force=True``.
+
+    In ``capytaine.__init__``, it is called with ``force=False`` to only trigger
+    if the user has not set any other logging.
     """
     if force or not logging.root.handlers:
         logging.basicConfig(
