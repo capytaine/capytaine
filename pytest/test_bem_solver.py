@@ -120,8 +120,9 @@ def test_control_threads(sphere, n_jobs, n_threads):
 
 def test_nb_timer(sphere):
     pytest.importorskip("joblib")
+    from joblib import cpu_count
     solver = cpt.BEMSolver()
-    n_jobs = 3
+    n_jobs = min(cpu_count(), 3)
     problems = [
             cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=omega)
             for omega in np.linspace(0.1, 3.0, 5)
