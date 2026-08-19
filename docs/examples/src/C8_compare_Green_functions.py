@@ -26,7 +26,7 @@ green_functions = [
 
 data = []
 for gf in green_functions:
-    data.append(cpt.BEMSolver(green_function=gf).fill_dataset(test_matrix, body))
+    data.append(cpt.BEMSolver(green_function=gf).fill_dataset(test_matrix, body, hydrostatics=False))
 
 fig, axs = plt.subplots(2, 1, sharex=True, layout="constrained")
 for gf, ds in zip(green_functions, data):
