@@ -108,11 +108,6 @@ class Multibody(AbstractBody):
                         block_diag(*[getattr(body, matrix_name) for body in bodies])
                         ))
 
-        LOG.debug(f"New multibody: {self.__str__()}.")
-
-    @lru_cache
-    def as_FloatingBody(self):
-        from capytaine.bodies.bodies import FloatingBody
         if all(body.mass is not None for body in self.bodies):
             total_mass = sum(body.mass for body in self.bodies)
         else:
@@ -124,7 +119,7 @@ class Multibody(AbstractBody):
         else:
             new_cog = None
 
-        return FloatingBody(
+        self.as_FloatingBody = FloatingBody(
                 mesh=self.mesh,
                 dofs=self.dofs,
                 lid_mesh=self.lid_mesh,
@@ -132,6 +127,8 @@ class Multibody(AbstractBody):
                 center_of_mass=new_cog,
                 name=self.name,
                 )
+
+        LOG.debug(f"New multibody: {self.__str__()}.")
 
     @property
     def name(self):
@@ -181,7 +178,7 @@ class Multibody(AbstractBody):
         return new_multibody
 
     def integrate_pressure(self, pressure):
-        return self.as_FloatingBody().integrate_pressure(pressure)
+        return self.as_FloatingBody.integrate_pressure(pressure)
 
     @cached_property
     def center_of_buoyancy(self):

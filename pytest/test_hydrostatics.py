@@ -602,22 +602,22 @@ def test_fill_dataset_single_body_some_dofs():
 def test_mass_joined_bodies():
     a = cpt.FloatingBody(mass=100, name="body_1")
     b = cpt.FloatingBody(mass=300, name="body_2")
-    assert (a + b).as_FloatingBody().mass == 400
+    assert (a + b).as_FloatingBody.mass == 400
 
 def test_mass_joined_bodies_with_missing_mass():
     a = cpt.FloatingBody(name="body_1")
     b = cpt.FloatingBody(mass=300, name="body_2")
-    assert (a + b).as_FloatingBody().mass is None
+    assert (a + b).as_FloatingBody.mass is None
 
 def test_center_of_mass_joined_bodies():
     a = cpt.FloatingBody(mass=100, center_of_mass=(0, 0, 0), name="body_1")
     b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0), name="body_2")
-    assert np.allclose((a + b).as_FloatingBody().center_of_mass, (0.75, 0, 0))
+    assert np.allclose((a + b).as_FloatingBody.center_of_mass, (0.75, 0, 0))
 
 def test_center_of_mass_joined_bodies_with_missing_mass():
     a = cpt.FloatingBody(name="body_1")
     b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0), name="body_2")
-    assert (a + b).as_FloatingBody().center_of_mass is None
+    assert (a + b).as_FloatingBody.center_of_mass is None
 
 def test_not_single_rigid_and_non_neutrally_buoyant_body():
     m = mesh_sphere()
