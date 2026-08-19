@@ -141,7 +141,7 @@ Other major changes
   :class:`~capytaine.bodies.bodies.FloatingBody` instance with::
 
     both = body_1 + body_2  # `both` is now a Multibody
-    both = (body_1 + body_2).as_FloatingBody()  # Recover former behavior of joining FloatingBody with a FloatingBody
+    both = (body_1 + body_2).as_FloatingBody  # Recover former behavior of joining FloatingBody with a FloatingBody
 
   :class:`~capytaine.bodies.bodies.FloatingBody` and
   :class:`~capytaine.bodies.multibodies.Multibody` both inherits from the

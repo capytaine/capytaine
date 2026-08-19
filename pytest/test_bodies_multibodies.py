@@ -54,11 +54,11 @@ def test_multibody_resolution():
     )
     solver = cpt.BEMSolver()
     res = solver.solve(cpt.DiffractionProblem(body=multi, omega=1.0, wave_direction=0.0))
-    ref_res = solver.solve(cpt.DiffractionProblem(body=multi.as_FloatingBody(), omega=1.0, wave_direction=0.0))
+    ref_res = solver.solve(cpt.DiffractionProblem(body=multi.as_FloatingBody, omega=1.0, wave_direction=0.0))
     assert all(np.isclose(ref_res.forces[k], res.forces[k]) for k in multi.dofs)
 
     res = solver.solve(cpt.RadiationProblem(body=multi, omega=1.0, radiating_dof="body_1__Heave"))
-    ref_res = solver.solve(cpt.RadiationProblem(body=multi.as_FloatingBody(), omega=1.0, radiating_dof="body_1__Heave"))
+    ref_res = solver.solve(cpt.RadiationProblem(body=multi.as_FloatingBody, omega=1.0, radiating_dof="body_1__Heave"))
     assert all(np.isclose(ref_res.forces[k], res.forces[k]) for k in multi.dofs)
 
 def test_multibody_hydrostatics():
