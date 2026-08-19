@@ -60,7 +60,8 @@ EXAMPLES_FILES := ' \
 _test:
     #!/usr/bin/env bash
     set -euxo pipefail
-    uv pip list | grep -Ei "numpy|xarray|capytaine" || true
+    python -c "import numpy; print(numpy.__version__)"
+    python -c "import xarray; print(xarray.__version__)"
     cd {{TEMP_DIR}}
     export {{ENV}}
     python -c "import capytaine; print(capytaine.__version__)"
@@ -109,6 +110,7 @@ _install_and_test:
 test_in_latest_env:
     uv run \
         --isolated --no-default-groups \
+        --python 3.14 \
         --no-editable --with "capytaine[optional] @ ." \
         --group test \
         -- \
