@@ -14,7 +14,7 @@ For older changelogs, see:
 
 
 -------------------------------
-New in version 3.0 (2026-??-??)
+New in version 3.0 (2026-08-21)
 -------------------------------
 
 Version 3 includes a major rewrite of several internal modules, most notably
