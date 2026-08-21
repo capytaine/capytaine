@@ -60,7 +60,11 @@ configure_file(
   output: '__about__.py',
   configuration: {
     'version': meson.project_version(),
-    'build_time': run_command('date', '+%Y-%m-%dT%H:%M:%SZ').stdout().strip(),
+    'build_time': run_command(
+        py3,
+        ['-c', 'from datetime import datetime, timezone; print(datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))'],
+        check: true,
+      ).stdout().strip(),
     'compiler': fc.get_id(),
     'compiler_version': fc.version(),
   },
