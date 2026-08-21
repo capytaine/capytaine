@@ -33,14 +33,14 @@ or as a standalone executable (with some drawbacks) at https://github.com/capyta
 
 ## License
 
-Copyright (C) 2017-2026, Matthieu Ancellin
+Copyright (C) 2017-2026, Matthieu Ancellin and the Capytaine developers.
 
 Since April 2022, the development of Capytaine is funded by the Alliance for Sustainable Energy, LLC, Managing and Operating Contractor for the National Renewable Energy Laboratory (NREL) for the U.S. Department of Energy.
 
-This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+Since April 2025, the development of Capytaine is also funded by [Mews Labs](https://www.mews-labs.com/) and BPI France.
 
 It is based on version 2 of [Nemoh](https://lheea.ec-nantes.fr/logiciels-et-brevets/nemoh-presentation-192863.kjsp), which has been developed by Gérard Delhommeau, Aurélien Babarit et al., (École Centrale de Nantes) and was distributed under the Apache License 2.0.
 
-Some core Fortran routines of Capytaine coming from Nemoh version 2 are also available under the Apache License 2.0. They can be found in the [`capytaine/green_functions/libDelhommeau`](https://github.com/capytaine/capytaine/tree/master/libs/libDelhommeau) directory of Capytaine's repository.
+Since version 3, Capytaine is licensed under the Apache License, Version 2.0.
+You may obtain a copy of the License at  http://www.apache.org/licenses/LICENSE-2.0
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
