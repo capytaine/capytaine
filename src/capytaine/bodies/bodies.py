@@ -187,7 +187,7 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
         if name is None:
             name = f"dof_{self.nb_dofs}_translation"
         if direction is None and normalize_name(name) in {"Surge", "Sway", "Heave"}:
-            self.dofs[name] = rigid_body_dofs()[normalize_name(name)]
+            self.dofs[name] = rigid_body_dofs(only=[normalize_name(name)])[normalize_name(name)]
         else:
             self.dofs[name] = TranslationDof(
                 direction=direction,
@@ -219,7 +219,7 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
                 LOG.warning(f"The rotation dof {name} has been initialized around the point: "
                             f"{self.__short_str__()}.center_of_mass = {self.center_of_mass}")
         if direction is None and normalize_name(name) in {"Roll", "Pitch", "Yaw"}:
-            self.dofs[name] = rigid_body_dofs(rotation_center=rotation_center)[normalize_name(name)]
+            self.dofs[name] = rigid_body_dofs(only=[normalize_name(name)], rotation_center=rotation_center)[normalize_name(name)]
         else:
             self.dofs[name] = RotationDof(
                     rotation_center=rotation_center,

@@ -284,3 +284,19 @@ def test_no_nested_multibody():
     assert all(isinstance(b, cpt.FloatingBody) for b in multi_01_2.bodies)
     assert len(multi_0_12.bodies) == 3
     assert all(isinstance(b, cpt.FloatingBody) for b in multi_0_12.bodies)
+
+def test_merge_multibody_to_add_dofs(caplog):
+    body_1 = cpt.FloatingBody(
+            mesh=cpt.mesh_sphere(center=(0, 0, 0)).immersed_part(),
+            dofs=cpt.rigid_body_dofs(only=["Heave"]),
+            name="body_1"
+            )
+    body_2 = cpt.FloatingBody(
+            mesh=cpt.mesh_sphere(center=(2, 0, 0)).immersed_part(),
+            dofs=cpt.rigid_body_dofs(only=["Heave"]),
+            name="body_2"
+            )
+    both = (body_1 + body_2).as_FloatingBody
+    both.add_translation_dof(name="Surge")
+    assert set(both.dofs) == {'Surge', 'body_1__Heave', 'body_2__Heave'}
+    assert 'rotation_center' not in caplog.text  # There should be no warning about missing rotation centers
