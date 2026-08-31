@@ -300,3 +300,26 @@ def test_merge_multibody_to_add_dofs(caplog):
     both.add_translation_dof(name="Surge")
     assert set(both.dofs) == {'Surge', 'body_1__Heave', 'body_2__Heave'}
     assert 'rotation_center' not in caplog.text  # There should be no warning about missing rotation centers
+
+def test_hydrostatics_with_global_dofs():
+    mesh_1 = cpt.mesh_sphere(radius=1.0, center=(0, 0, 0), resolution=(4, 4))
+    sphere = cpt.FloatingBody(
+        mesh=mesh_1,
+        lid_mesh=mesh_1.generate_lid(),
+        dofs=cpt.rigid_body_dofs(only=["Heave"], rotation_center=(0, 0, 0)),
+        center_of_mass=(0, 0, 0),
+        name="sphere_1",
+    )
+    mesh_2 = cpt.mesh_sphere(radius=0.5, center=(-2, -3, 0), resolution=(4, 4))
+    other_sphere = cpt.FloatingBody(
+        mesh=mesh_2,
+        lid_mesh=mesh_2.generate_lid(),
+        dofs=cpt.rigid_body_dofs(only=["Heave"], rotation_center=(-2, -3, 0)),
+        center_of_mass=(-2, -3, 0),
+        name="sphere_2",
+    )
+    all_bodies = (sphere + other_sphere).as_FloatingBody  # Global dofs not yet available otherwise
+    all_bodies.center_of_mass = (-1, -1, 0)
+    all_bodies.add_translation_dof(name="Surge")
+    all_bodies.compute_rigid_body_inertia()
+    all_bodies.compute_hydrostatic_stiffness()

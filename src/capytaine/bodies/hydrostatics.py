@@ -13,12 +13,13 @@
 # limitations under the License.
 
 import logging
+from typing import Union
 
 import numpy as np
 import xarray as xr
 from abc import ABC
 
-from capytaine.bodies.dofs import TranslationDof, RotationDof, is_rigid_body_dof
+from capytaine.bodies.dofs import AbstractDof, TranslationDof, RotationDof, is_rigid_body_dof
 
 LOG = logging.getLogger(__name__)
 
@@ -152,8 +153,8 @@ class _FloatingBodyHydrostaticsMixin(ABC):
 
         immersed_self = self.immersed_part()
         immersed_mesh = immersed_self.mesh
-        influenced_dof = immersed_self.dofs[influenced_dof_name]
-        radiating_dof = immersed_self.dofs[radiating_dof_name]
+        influenced_dof: Union[AbstractDof, np.ndarray] = immersed_self.dofs[influenced_dof_name]
+        radiating_dof: Union[AbstractDof, np.ndarray] = immersed_self.dofs[radiating_dof_name]
 
         if is_rigid_body_dof(influenced_dof) and is_rigid_body_dof(radiating_dof):
             # Check that the directions of both dofs are canonical directions (1, 0, 0), (0, 1, 0) or (0, 0, 1)
@@ -218,7 +219,7 @@ class _FloatingBodyHydrostaticsMixin(ABC):
             else:
                 norm_hs_stiff = 0.0
 
-        else:
+        else:  # either dof is not a rigid body dof
             if self.mass is not None and not np.isclose(self.mass, self.disp_mass(rho=rho), rtol=1e-4):
                 raise NotImplementedError(
                         f"Trying to compute the hydrostatic stiffness for dofs {radiating_dof_name} and {influenced_dof_name}"
@@ -232,8 +233,12 @@ class _FloatingBodyHydrostaticsMixin(ABC):
                         )
 
             # Newman (1994) formula for flexible DOFs
-            influenced_dof = np.array(immersed_self.dofs[influenced_dof_name])
-            radiating_dof = np.array(immersed_self.dofs[radiating_dof_name])
+            if isinstance(influenced_dof, AbstractDof):
+                influenced_dof = influenced_dof.evaluate_motion(immersed_mesh)
+            if isinstance(radiating_dof, AbstractDof):
+                radiating_dof = radiating_dof.evaluate_motion(immersed_mesh)
+            influenced_dof: np.ndarray = np.array(influenced_dof)
+            radiating_dof: np.ndarray = np.array(radiating_dof)
             influenced_dof_div_array = np.array(influenced_dof_div)
 
             if influenced_dof_div_array.shape == ():

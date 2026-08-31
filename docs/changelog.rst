@@ -11,6 +11,14 @@ For older changelogs, see:
    changelog_from_2_to_3
    changelog_before_2
 
+-------------------------------
+New in version 3.1 (2026-??-??)
+-------------------------------
+
+Bug fixes
+~~~~~~~~~
+
+* Fix computation of hydrostatic stiffness on multibodies treated as generalized dofs as in previous version.
 
 
 -------------------------------
