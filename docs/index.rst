@@ -13,7 +13,7 @@ Capytaine: a Python-based linear potential flow BEM solver
 
       .. container:: hero-tagline
 
-         Simulate the interaction between water waves and floating bodies in frequency domain — a full rewrite of the open-source BEM solver Nemoh_ with new features.
+         Simulate the interaction between water waves and floating bodies in frequency domain — a full rewrite of the reference open-source sea-keeping software Nemoh_.
 
       .. container:: cta-buttons
 
@@ -41,19 +41,19 @@ Capytaine: a Python-based linear potential flow BEM solver
 
       .. rubric:: Programmable interface
 
-      Easy-to-use while being modular to integrate your workflow.
+      Well-documented and easy-to-use, while being flexible to integrate your workflow.
 
    .. container:: philosophy-box
 
       .. rubric:: Free access and transparent
 
-      Install everywhere without bothering about a license.
+      Apache-licensed software: install everywhere without bothering about a license token.
 
    .. container:: philosophy-box
 
       .. rubric:: 21st century computing
 
-      Our experimental GPU backend can make your simulation 20x faster.
+      Experimenting with modern scientific computing: check our prototype GPU backend for 20x speedup.
 
 .. container:: philosophy-footer
 
@@ -119,9 +119,9 @@ Capytaine: a Python-based linear potential flow BEM solver
 
 .. container:: mews-support
 
-   .. rubric:: Private support from Mews Labs
+   .. rubric:: Private professional support available from Mews Labs
 
-   Mews Labs is a 30+ team of engineers and data scientists working on scientific computing, machine learning and artificial intelligence.
+   Mews Labs is a 30+-people team of engineers and data scientists working on scientific computing, machine learning and artificial intelligence.
    Beside Capytaine development, we help companies solve complex modelling problems and integrate simulation and data science toolchains in their workflow.
    Contact us for training, support or new features development in Capytaine.
 

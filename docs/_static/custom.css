@@ -39,8 +39,8 @@ img.logo {
 
 
 /* ------------------------------------------------------------------ */
-/* Homepage redesign (docs/index.rst only — these classes don't exist */
-/* on any other page, so nothing below leaks into the rest of the site */
+/* Capytaine brand palette — shared by the sitewide accents below and  */
+/* by the homepage-only redesign further down.                        */
 /* ------------------------------------------------------------------ */
 
 :root {
@@ -53,6 +53,83 @@ img.logo {
     --mews-teal-accent: #00C4C9;
     --mews-teal-light: #f7f9f9;
 }
+
+/* ------------------------------------------------------------------ */
+/* Sitewide color accents (all pages): subtle hints of the Capytaine   */
+/* palette layered on top of Alabaster's default gray/blue theme.      */
+/* Only overrides the properties that change color — everything else  */
+/* (spacing, borders, font weights, ...) is left to alabaster.css.     */
+/* ------------------------------------------------------------------ */
+
+a {
+    color: var(--capytaine-navy);
+}
+a:hover {
+    color: var(--capytaine-cyan);
+}
+
+div.body h1,
+div.body h2,
+div.body h3,
+div.body h4,
+div.body h5,
+div.body h6 {
+    color: var(--capytaine-navy);
+}
+
+div.sphinxsidebar h3,
+div.sphinxsidebar h4,
+div.sphinxsidebar h3 a {
+    color: var(--capytaine-navy);
+}
+
+div.sphinxsidebar a:hover {
+    color: var(--capytaine-cyan);
+    border-bottom-color: var(--capytaine-cyan);
+}
+
+/* Sphinx marks the current page's sidebar link with class "current" */
+div.sphinxsidebar a.current {
+    color: var(--capytaine-navy);
+    font-weight: bold;
+    border-bottom: 2px solid var(--capytaine-gold);
+}
+
+hr {
+    border-color: var(--capytaine-cyan);
+    opacity: 0.4;
+}
+
+a.headerlink:hover {
+    color: #fff;
+    background: var(--capytaine-cyan);
+}
+
+::selection {
+    background: var(--capytaine-gold);
+    color: var(--capytaine-navy);
+}
+
+/* Neutral admonitions (note/tip/hint/seealso/important/topic) get a
+   Capytaine-cyan accent stripe; warning/danger/error/caution/attention
+   are left untouched since their red color is semantic. */
+div.note, div.tip, div.hint, div.seealso, div.important, div.topic {
+    border-left: 4px solid var(--capytaine-cyan);
+}
+
+/* The "you're viewing the dev version" banner (see _templates/layout.html) */
+#new-doc-warning-banner {
+    width: 100%;
+    background-color: #E6F7FB;
+    border-bottom: 2px solid var(--capytaine-cyan);
+    padding: 6px 0;
+    text-align: center;
+}
+
+/* ------------------------------------------------------------------ */
+/* Homepage redesign (docs/index.rst only — these classes don't exist */
+/* on any other page, so nothing below leaks into the rest of the site */
+/* ------------------------------------------------------------------ */
 
 /* -- Full-width front page (no sidebar on this page, see html_sidebars) - */
 
@@ -93,8 +170,7 @@ div.hero {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 2rem;
-    margin: 1.5rem 0 2rem 0;
+    margin: 5rem 0 5rem 0;
 }
 
 div.hero-left {
@@ -102,11 +178,11 @@ div.hero-left {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 1.2rem;
 }
 
 div.hero-logo img {
-    width: 180px;
+    width: 240px;
+    align-self: center;
     max-width: 100%;
     height: auto;
 }
@@ -127,7 +203,7 @@ div.hero-illustration {
 
 div.hero-illustration video {
     width: 100%;
-    max-width: 320px;
+    max-width: 500px;
     height: auto;
     border-radius: 10px;
 }
@@ -188,7 +264,7 @@ div.philosophy-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 1.25rem;
-    margin: 2rem 0 0.75rem 0;
+    margin: 5rem 0 0.5rem 0;
 }
 
 div.philosophy-box {
@@ -216,7 +292,7 @@ div.philosophy-box p:not(.rubric) {
 div.philosophy-footer {
     text-align: right;
     font-size: 0.9em;
-    margin-bottom: 1.5rem;
+    margin-bottom: 5rem;
 }
 
 /* -- Documentation section: version tabs + doc boxes -------------------- */
@@ -278,7 +354,7 @@ div.doc-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 1.1rem;
-    margin: 0 0 2.25rem 0;
+    margin: 0 0 7rem 0;
 }
 
 div.doc-box {
@@ -319,7 +395,7 @@ div.mews-support {
     color: var(--mews-teal-light);
     border-radius: 8px;
     padding: 1.5rem 2rem;
-    margin: 0.5rem 0 2rem 0;
+    margin: 5rem 0 5rem 0;
 }
 
 div.mews-support p.rubric {
