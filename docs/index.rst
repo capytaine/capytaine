@@ -2,92 +2,186 @@
 Capytaine: a Python-based linear potential flow BEM solver
 ==========================================================
 
-Capytaine is a Python package for the simulation of the interaction between water waves and floating bodies in frequency domain.
+.. container:: hero
 
-It is built around a full rewrite of the open source Boundary Element Method (BEM) solver Nemoh_ for the linear potential flow wave theory.
+   .. container:: hero-left
 
-This documentation is for version |release| (released |today|).
+      .. container:: hero-logo
 
-The documentations of older versions are available there: `v2.1 <https://capytaine.github.io/v2.1>`_, `v2.2.1 <https://capytaine.github.io/v2.2.1>`_, `v2.3.1 <https://capytaine.github.io/v2.3.1>`_.
+         .. image:: _static/capytaine_logo.png
+            :alt: Capytaine
+
+      .. container:: hero-tagline
+
+         Simulate the interaction between water waves and floating bodies in frequency domain — a full rewrite of the open-source BEM solver Nemoh_ with new features.
+
+      .. container:: cta-buttons
+
+         .. container:: cta-button cta-button-primary
+
+            :doc:`Install <user_manual/installation>`
+
+         .. container:: cta-button cta-button-secondary
+
+            :doc:`Quickstart <user_manual/quickstart>`
+
+         .. container:: cta-button cta-button-tertiary
+
+            `View on GitHub <https://github.com/capytaine/capytaine>`_
+
+   .. container:: hero-illustration
+
+      .. raw:: html
+
+          <video src="_static/front_page_animation.webm" loop autoplay muted></video>
+
+.. container:: philosophy-grid
+
+   .. container:: philosophy-box
+
+      .. rubric:: Programmable interface
+
+      Easy-to-use while being modular to integrate your workflow.
+
+   .. container:: philosophy-box
+
+      .. rubric:: Free access and transparent
+
+      Install everywhere without bothering about a license.
+
+   .. container:: philosophy-box
+
+      .. rubric:: 21st century computing
+
+      Our experimental GPU backend can make your simulation 20x faster.
+
+.. container:: philosophy-footer
+
+   :doc:`See all features <features>` →
+
+.. container:: doc-section-caption
+
+   Version |release|, released |today|.
+
+.. container:: doc-version-tabs
+
+   .. container:: version-tab version-tab-active
+
+      v\ |release| (current)
+   .. container:: version-tab
+
+      `v2.3.1 <https://capytaine.github.io/v2.3.1>`_
+
+   .. container:: version-tab
+
+      `v2.2.1 <https://capytaine.github.io/v2.2.1>`_
+
+   .. container:: version-tab
+
+      `v2.1 <https://capytaine.github.io/v2.1>`_
+
+   .. container:: version-tab version-tab-changelog
+
+      :doc:`Changelog <changelog>`
+
+.. container:: doc-grid
+
+   .. container:: doc-box
+
+      .. rubric:: :doc:`User manual <user_manual/index>`
+
+      Installation, quickstart, tutorials and detailed usage guides.
+
+   .. container:: doc-box
+
+      .. rubric:: :doc:`Example scripts <examples/index>`
+
+      A cookbook of beginner to advanced example scripts.
+
+   .. container:: doc-box
+
+      .. rubric:: :doc:`Citing <citing>`
+
+      How to cite Capytaine in your publications.
+
+   .. container:: doc-box
+
+      .. rubric:: :doc:`Theory manual <theory_manual/index>`
+
+      The mathematical background behind the BEM solver.
+
+   .. container:: doc-box
+
+      .. rubric:: :doc:`For developers <developer_manual/index>`
+
+      Contribute to Capytaine: codebase overview and testing.
+
+
+.. container:: mews-support
+
+   .. rubric:: Private support from Mews Labs
+
+   Mews Labs is a 30+ team of engineers and data scientists working on scientific computing, machine learning and artificial intelligence.
+   Beside Capytaine development, we help companies solve complex modelling problems and integrate simulation and data science toolchains in their workflow.
+   Contact us for training, support or new features development in Capytaine.
+
+   `Contact Mews Labs <https://www.mews-labs.com/>`_ · contact@mews-labs.com
+
+For free community support, ask on the `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or open a `Github issue <https://github.com/capytaine/capytaine/issues/>`_ — please do not contact the developers directly by email, unless you are looking for private paid support.
 
 .. toctree::
    :maxdepth: 1
+   :hidden:
 
    features.rst
 
-Private support, custom developments and training can be provided by `Mews Labs <https://www.mews-labs.com/>`_ (contact@mews-labs.com).
-
-For free support, you can ask questions on the public `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
-Please do not contact the developers directly by email, unless you are looking for private paid support.
-
-Contributions are welcome!
-Please report bugs and suggest improvements as `Github issues <https://github.com/capytaine/capytaine/issues/>`_.
-
-.. raw:: html
-
-    <div style="float: right;">
-    <video src="_static/front_page_animation.mp4" loop autoplay muted playsinline width="320" height="240">
-    </video>
-    </div>
-
-Documentation
-=============
-
 .. toctree::
    :maxdepth: 2
+   :hidden:
 
    user_manual/index.rst
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
 
    examples/index.rst
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
 
    developer_manual/index.rst
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
 
    theory_manual/index.rst
 
 .. toctree::
    :maxdepth: 1
+   :hidden:
 
    citing.rst
    changelog.rst
 
-Source code
-===========
+.. container:: homepage-footer
 
-Available on `Github <https://github.com/capytaine/capytaine>`_
+   Capytaine is developed by Matthieu Ancellin with the welcome help of `several contributors <https://github.com/capytaine/capytaine/graphs/contributors>`_, and is available on `Github <https://github.com/capytaine/capytaine>`_.
 
-License
-=======
+   Since April 2022, its development is funded by the Alliance for Sustainable Energy, LLC, Managing and Operating Contractor for the National Renewable Energy Laboratory (NREL) for the U.S. Department of Energy; since April 2025, also by `Mews Labs <https://www.mews-labs.com/>`_ and BPI France; and from April 2017 to March 2019, at University College Dublin (UCD), by Science Foundation Ireland (SFI) under Marine Renewable Energy Ireland (MaREI).
 
-Capytaine is developed by Matthieu Ancellin with the welcome help of `several contributors <https://github.com/capytaine/capytaine/graphs/contributors>`_.
+   It is based on version 2 of `Nemoh <https://lheea.ec-nantes.fr/logiciels-et-brevets/nemoh-presentation-192863.kjsp>`_, developed by Gérard Delhommeau, Aurélien Babarit et al. (École Centrale de Nantes) and distributed under the Apache License 2.0.
 
-Since April 2022, the development of Capytaine is funded by the Alliance for Sustainable Energy, LLC, Managing and Operating Contractor for the National Renewable Energy Laboratory (NREL) for the U.S. Department of Energy.
+   Since version 3, Capytaine is licensed under the Apache License, Version 2.0.
 
-Since April 2025, the development of Capytaine is also funded by `Mews Labs <https://www.mews-labs.com/>`_ and BPI France.
+   This documentation is licensed under the `Creative Commons Attribution-ShareAlike 4.0 International License`_ |CCBYSA|.
 
-From April 2017 to March 2019, the development of Capytaine at University College Dublin (UCD) was funded by Science Foundation Ireland (SFI) under Marine Renewable Energy Ireland (MaREI), the SFI Centre for Marine Renewable Energy Research.
-
-It is based on version 2 of `Nemoh <https://lheea.ec-nantes.fr/logiciels-et-brevets/nemoh-presentation-192863.kjsp>`_, which has been developed by Gérard Delhommeau, Aurélien Babarit et al., (École Centrale de Nantes) and was distributed under the Apache License 2.0.
-
-Since version 3, Capytaine is licensed under the Apache License, Version 2.0.
-You may obtain a copy of the License at  http://www.apache.org/licenses/LICENSE-2.0
-Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
-
-This documentation is licensed under the `Creative Commons Attribution-ShareAlike 4.0 International License`_ |CCBYSA|.
+   The `boat mesh`_ in the animation above is in the public domain.
 
 .. |CCBYSA| image:: https://i.creativecommons.org/l/by-sa/4.0/80x15.png
 .. _`Creative Commons Attribution-ShareAlike 4.0 International License`: http://creativecommons.org/licenses/by-sa/4.0/
-
-The `boat mesh`_ in the animation above is in the public domain.
-
 .. _`boat mesh`: https://opengameart.org/content/low-poly-pirate-ship
 
 

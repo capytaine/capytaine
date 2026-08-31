@@ -16,3 +16,349 @@ dl{
 .py dl{
     margin: 0 0;
 }
+
+/* Sidebar logo (all pages): size the image, and keep it visible on the
+   mobile collapsed sidebar like the text logo it replaces used to be. */
+div.sphinxsidebarwrapper p.logo {
+    margin: 0 0 10px 0;
+    text-align: left;
+}
+img.logo {
+    width: 100%;
+    max-width: 140px;
+    height: auto;
+}
+@media screen and (max-width: 940px) {
+    div.sphinxsidebar p.logo {
+        display: block;
+    }
+    div.sphinxsidebar img.logo {
+        max-width: 110px;
+    }
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Homepage redesign (docs/index.rst only — these classes don't exist */
+/* on any other page, so nothing below leaks into the rest of the site */
+/* ------------------------------------------------------------------ */
+
+:root {
+    --capytaine-navy: #21355D;
+    --capytaine-cyan: #05A9D9;
+    --capytaine-gold: #FBC02D;
+    --capytaine-gold-hover: #e5ac1d;
+    --mews-teal-dark: #0d4c4e;
+    --mews-teal-darker: #085658;
+    --mews-teal-accent: #00C4C9;
+    --mews-teal-light: #f7f9f9;
+}
+
+/* -- Full-width front page (no sidebar on this page, see html_sidebars) - */
+
+body.index-page div.document {
+    width: 100%;
+    max-width: 1000px;
+    box-sizing: border-box;
+}
+
+/* basic.css caps div.body at 800px regardless of sidebar; lift that here */
+body.index-page div.body {
+    max-width: none;
+}
+
+body.index-page div.footer {
+    width: 100%;
+    max-width: 1000px;
+    box-sizing: border-box;
+}
+
+/* The page title is kept (for <title>/toctree) but its content is folded
+   into the hero tagline instead, so hide it visually only on this page. */
+body.index-page div.body h1 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* -- Hero ------------------------------------------------------------ */
+
+div.hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2rem;
+    margin: 1.5rem 0 2rem 0;
+}
+
+div.hero-left {
+    flex: 1 1 260px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.2rem;
+}
+
+div.hero-logo img {
+    width: 180px;
+    max-width: 100%;
+    height: auto;
+}
+
+div.hero-tagline {
+    max-width: 420px;
+    font-size: 1.05em;
+    line-height: 1.5;
+    color: #3E4349;
+    margin: 0;
+}
+
+div.hero-illustration {
+    flex: 1 1 280px;
+    display: flex;
+    justify-content: center;
+}
+
+div.hero-illustration video {
+    width: 100%;
+    max-width: 320px;
+    height: auto;
+    border-radius: 10px;
+}
+
+/* -- CTA buttons ------------------------------------------------------ */
+
+div.cta-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+div.cta-buttons p {
+    margin: 0;
+}
+
+div.cta-button a {
+    display: inline-block;
+    padding: 0.6em 1.4em;
+    border-radius: 6px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-weight: 600;
+    text-decoration: none;
+    border: 2px solid transparent;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+div.cta-button-primary a {
+    background-color: var(--capytaine-gold);
+    color: var(--capytaine-navy);
+}
+
+div.cta-button-primary a:hover {
+    background-color: var(--capytaine-gold-hover);
+}
+
+div.cta-button-secondary a {
+    background-color: transparent;
+    border-color: var(--capytaine-navy);
+    color: var(--capytaine-navy);
+}
+
+div.cta-button-secondary a:hover {
+    background-color: var(--capytaine-navy);
+    color: #fff;
+}
+
+div.cta-button-tertiary a {
+    padding: 0.6em 0.2em;
+    color: var(--capytaine-cyan);
+    text-decoration: underline;
+}
+
+/* -- Philosophy boxes -------------------------------------------------- */
+
+div.philosophy-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1.25rem;
+    margin: 2rem 0 0.75rem 0;
+}
+
+div.philosophy-box {
+    border: 1px solid #e0e0e0;
+    border-top: 4px solid var(--capytaine-cyan);
+    border-radius: 6px;
+    padding: 1.2rem 1.4rem;
+    background: #fafafa;
+}
+
+div.philosophy-box p.rubric {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--capytaine-navy);
+    font-size: 1.05em;
+    font-weight: 700;
+    margin: 0 0 0.5rem 0;
+}
+
+div.philosophy-box p:not(.rubric) {
+    margin: 0;
+    color: #3E4349;
+    font-size: 0.95em;
+}
+
+div.philosophy-footer {
+    text-align: right;
+    font-size: 0.9em;
+    margin-bottom: 1.5rem;
+}
+
+/* -- Documentation section: version tabs + doc boxes -------------------- */
+
+div.doc-section-caption {
+    font-size: 0.85em;
+    color: #767676;
+    margin: 0 0 0.5rem 0;
+}
+
+div.doc-version-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 0 1.5rem 0;
+}
+
+div.doc-version-tabs p {
+    margin: 0;
+}
+
+div.version-tab a,
+div.version-tab-active {
+    display: inline-block;
+    padding: 0.35em 1.1em;
+    border-radius: 999px;
+    font-size: 0.9em;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid #d8d8d8;
+    color: var(--capytaine-navy);
+    background: #fff;
+    transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+div.version-tab a:hover {
+    border-color: var(--capytaine-cyan);
+    color: var(--capytaine-cyan);
+}
+
+div.version-tab-active {
+    background: var(--capytaine-navy);
+    border-color: var(--capytaine-navy);
+    color: #fff;
+}
+
+div.version-tab-changelog {
+    margin-left: auto;
+}
+
+div.version-tab-changelog a {
+    border-style: dashed;
+    border-color: var(--capytaine-cyan);
+    color: var(--capytaine-cyan);
+}
+
+div.doc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1.1rem;
+    margin: 0 0 2.25rem 0;
+}
+
+div.doc-box {
+    border: 1px solid #e0e0e0;
+    border-top: 4px solid var(--capytaine-gold);
+    border-radius: 6px;
+    padding: 1.1rem 1.3rem;
+    background: #fafafa;
+}
+
+div.doc-box p.rubric {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 1em;
+    font-weight: 700;
+    margin: 0 0 0.4rem 0;
+}
+
+div.doc-box p.rubric a {
+    color: var(--capytaine-navy);
+    text-decoration: none;
+}
+
+div.doc-box p.rubric a:hover {
+    color: var(--capytaine-cyan);
+    text-decoration: underline;
+}
+
+div.doc-box p:not(.rubric) {
+    margin: 0;
+    color: #3E4349;
+    font-size: 0.9em;
+}
+
+/* -- Mews Labs callout -------------------------------------------------- */
+
+div.mews-support {
+    background: var(--mews-teal-dark);
+    color: var(--mews-teal-light);
+    border-radius: 8px;
+    padding: 1.5rem 2rem;
+    margin: 0.5rem 0 2rem 0;
+}
+
+div.mews-support p.rubric {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: var(--mews-teal-accent);
+    font-size: 1.1em;
+    font-weight: 700;
+    margin: 0 0 0.6rem 0;
+}
+
+div.mews-support p:not(.rubric) {
+    margin: 0 0 0.6rem 0;
+    line-height: 1.55;
+}
+
+div.mews-support p:last-child {
+    margin-bottom: 0;
+}
+
+div.mews-support a {
+    color: var(--mews-teal-accent);
+    font-weight: 600;
+}
+
+/* -- Condensed footer block ---------------------------------------------- */
+
+div.homepage-footer {
+    border-top: 1px solid #e0e0e0;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    font-size: 0.85em;
+    line-height: 1.6;
+    color: #767676;
+}
+
+div.homepage-footer a {
+    color: #767676;
+}
+
+div.homepage-footer img {
+    vertical-align: middle;
+}
