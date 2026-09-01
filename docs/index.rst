@@ -106,6 +106,12 @@ Capytaine: a Python-based linear potential flow BEM solver
 
    .. container:: doc-box
 
+      .. rubric:: Validation tests
+
+      Validation results on several geometries
+
+   .. container:: doc-box
+
       .. rubric:: :doc:`Theory manual <theory_manual/index>`
 
       The mathematical background behind the BEM solver.
@@ -119,15 +125,42 @@ Capytaine: a Python-based linear potential flow BEM solver
 
 .. container:: mews-support
 
-   .. rubric:: Private professional support available from Mews Labs
+   .. rubric:: Professional support available from `Mews Labs <https://www.mews-labs.com/>`_
 
    Mews Labs is a 30+-people team of engineers and data scientists working on scientific computing, machine learning and artificial intelligence.
-   Beside Capytaine development, we help companies solve complex modelling problems and integrate simulation and data science toolchains in their workflow.
+   Beside Capytaine development, we help industries solve complex modelling and optimization problems and integrate data science and AI toolchains in their workflow.
    Contact us for training, support or new features development in Capytaine.
 
-   `Contact Mews Labs <https://www.mews-labs.com/>`_ · contact@mews-labs.com
+   Contact `Mews Labs <https://www.mews-labs.com/>`_ · contact@mews-labs.com
+
 
 For free community support, ask on the `Github discussion page <https://github.com/capytaine/capytaine/discussions>`_ or open a `Github issue <https://github.com/capytaine/capytaine/issues/>`_ — please do not contact the developers directly by email, unless you are looking for private paid support.
+
+
+.. container:: sponsors-section
+
+   .. rubric:: Past and present sponsors:
+
+   .. container:: sponsors-row
+
+      .. image:: _static/logo_marei.png
+         :alt: MaREI - Centre for Marine and Renewable Energy
+
+      .. image:: _static/logo_NLR.png
+         :alt: National Laboratory of the Rockies
+
+      .. image:: _static/logo_Sandia.png
+         :alt: Sandia National Laboratories
+
+      .. image:: _static/logo_MewsLabs.png
+         :alt: Mews Labs
+
+      .. image:: _static/logo_BPI.png
+         :alt: Bpifrance
+
+      .. container:: sponsors-add
+
+         `Click to add your logo here <mailto:contact@mews-labs.com?subject=Funding%20a%20cool%20new%20feature%20in%20Capytaine&body=Hello%2C%0A%0AWe%20would%20like%20to%20support%20Capytaine%20by%20funding%20the%20development%20of%20the%20following%20cool%20new%20feature%0A%0A>`_
 
 .. toctree::
    :maxdepth: 1

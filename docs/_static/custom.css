@@ -352,7 +352,7 @@ div.version-tab-changelog a {
 
 div.doc-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1.1rem;
     margin: 0 0 7rem 0;
 }
@@ -395,7 +395,7 @@ div.mews-support {
     color: var(--mews-teal-light);
     border-radius: 8px;
     padding: 1.5rem 2rem;
-    margin: 5rem 0 5rem 0;
+    margin: 5rem 0 1rem 0;
 }
 
 div.mews-support p.rubric {
@@ -418,6 +418,59 @@ div.mews-support p:last-child {
 div.mews-support a {
     color: var(--mews-teal-accent);
     font-weight: 600;
+}
+
+/* -- Sponsors row -------------------------------------------------------- */
+
+div.sponsors-section {
+    margin: 5rem 0 5rem 0;
+}
+
+div.sponsors-section p.rubric {
+    color: var(--capytaine-navy);
+    font-size: 1.05em;
+    font-weight: 700;
+    margin: 0 0 1rem 0;
+}
+
+div.sponsors-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2.5rem;
+}
+
+div.sponsors-row img {
+    height: 45px;
+    width: auto;
+    max-width: 120px;
+    object-fit: contain;
+    filter: grayscale(100%);
+    opacity: 0.75;
+    transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+div.sponsors-row img:hover {
+    filter: grayscale(0%);
+    opacity: 1;
+}
+
+div.sponsors-add {
+    max-width: 140px;
+    text-align: center;
+    font-size: 0.9em;
+    color: #999;
+}
+
+div.sponsors-add a {
+    color: #999;
+    text-decoration: none;
+    border-bottom: 1px dashed #ccc;
+}
+
+div.sponsors-add a:hover {
+    color: var(--capytaine-cyan);
+    border-bottom-color: var(--capytaine-cyan);
 }
 
 /* -- Condensed footer block ---------------------------------------------- */
