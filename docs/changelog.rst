@@ -18,7 +18,7 @@ New in version 3.1 (2026-??-??)
 Bug fixes
 ~~~~~~~~~
 
-* Fix computation of hydrostatic stiffness on multibodies treated as generalized dofs as in previous version.
+* Fix computation of hydrostatic stiffness on multibodies treated as generalized dofs as in previous version. (:pull:`936`)
 
 
 -------------------------------
