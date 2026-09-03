@@ -147,7 +147,43 @@ class DofOnSubmesh(AbstractDof):
         return grad
 
 
+class CustomDof(AbstractDof):
+    """Defines a fully custom dof with the same interface as the other AbstractDof.
+    To be used for elastic dofs.
+
+    Parameters
+    ----------
+    motion: Callable
+        A function returning the motion at a given location. Required.
+        The function is expected to take a 3-element vector as input (location in space)
+        and return a 3-element vector (displacement at this location).
+    gradient_of_motion: Callable, optional
+        A function returning the gradient (actually jacobian matrix) of the motion
+        The function is expected to take a 3-element vector as input (location in space)
+        and return a 3×3-matrix (jacobian of the displacement at this location).
+        If none is provided, zero value is used, which makes no difference for first order hydrodynamics,
+        but loses some accuracy for hydrostatics and second-order forces.
+    """
+    def __init__(self, motion, gradient_of_motion=None):
+        self.motion = motion
+        self.gradient_of_motion = gradient_of_motion
+
+    def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
+        motion = np.zeros((points.shape[0], 3))
+        for i, p in enumerate(points):
+            motion[i, :] = self.motion(p)
+        return motion
+
+    def evaluate_gradient_of_motion_at_points(self, points: np.ndarray) -> np.ndarray:
+        grad = np.zeros((points.shape[0], 3, 3))
+        if self.gradient_of_motion is not None:
+            for i, p in enumerate(points):
+                grad[i, :] = self.gradient_of_motion(p)
+        return grad
+
+
 def is_rigid_body_dof(dof):
+    # is_single_rigid_body_dof for now...
     return (
             isinstance(dof, TranslationDof)
             or isinstance(dof, RotationDof)

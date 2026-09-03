@@ -157,13 +157,31 @@ def rigid_body():
     )
     return rigid_body
 
+# TODO: test with quadratures
+
 @lru_cache
-def custom_dof_body():
+def legacy_custom_dof_body():
+    """Legacy interface for custom dof, defining the dof as an array"""
     mesh = floating_sphere()
     dof = np.array([(0, 0, z) for (x, y, z) in mesh.faces_centers])
-    custom_dof_body = cpt.FloatingBody(
+    legacy_custom_dof_body = cpt.FloatingBody(
         mesh=mesh,
         dofs={"elongate_in_z": dof},
+        center_of_mass=mesh.center_of_buoyancy,
+    )
+    return legacy_custom_dof_body
+
+@lru_cache
+def custom_dof_body():
+    """Newer interface for custom dof, defining the dof as a function in an AbstactDof"""
+    mesh = floating_sphere()
+    def z_stretch_motion(p):
+        return np.array([0, 0, p[2]])
+    def gradient_of_z_stretch_motion(p):
+        return np.array([[0, 0, 0], [0, 0, 0], [0, 0, 1]])
+    custom_dof_body = cpt.FloatingBody(
+        mesh=mesh,
+        dofs={"elongate_in_z": cpt.CustomDof(z_stretch_motion, gradient_of_z_stretch_motion)},
         center_of_mass=mesh.center_of_buoyancy,
     )
     return custom_dof_body
@@ -172,13 +190,13 @@ def test_stiffness_dof_ordering():
     K = rigid_body().compute_hydrostatic_stiffness()
     assert np.all(K.coords["radiating_dof"].values == np.array(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw']))
 
-@pytest.mark.parametrize("body", [rigid_body, custom_dof_body])
+@pytest.mark.parametrize("body", [rigid_body, legacy_custom_dof_body, custom_dof_body])
 def test_stiffness_invariance_by_clipping_at_free_surface(body):
     K1 = body().compute_hydrostatic_stiffness()
     K2 = body().immersed_part().compute_hydrostatic_stiffness()
     assert np.allclose(K1, K2)
 
-@pytest.mark.parametrize("body", [rigid_body, custom_dof_body])
+@pytest.mark.parametrize("body", [rigid_body, legacy_custom_dof_body, custom_dof_body])
 def test_stiffness_invariance_by_translation(body):
     K1 = body().compute_hydrostatic_stiffness()
     K2 = body().translated([1.0, 0.0, 0.0]).compute_hydrostatic_stiffness()
@@ -223,21 +241,21 @@ def test_stiffness_single_rotation_dof():
 
 # DIVERGENCE
 
-def test_stiffness_elastic_dof_with_divergence():
-    body = custom_dof_body().immersed_part()
+def test_stiffness_legacy_elastic_dof_with_divergence():
+    body = legacy_custom_dof_body().immersed_part()
     hs_1 = body.compute_hydrostatic_stiffness()
     hs_2 = body.compute_hydrostatic_stiffness(divergence={"elongate_in_z": np.ones(body.mesh.nb_faces)})
     assert hs_1.values[0, 0] != hs_2.values[0, 0]
     analytical_hs = - 1000.0 * 9.81 * (4 * body.volume * body.center_of_buoyancy[2])
     assert np.isclose(hs_2.values[0, 0], analytical_hs)
 
-def test_stiffness_with_divergence_not_clipped():
-    body = custom_dof_body()
+def test_stiffness_legacy_with_divergence_not_clipped():
+    body = legacy_custom_dof_body()
     with pytest.raises(NotImplementedError):
         body.compute_hydrostatic_stiffness(divergence={"elongate_in_z": np.ones(body.mesh.nb_faces)})
 
-def test_stiffness_with_malformed_divergence(caplog):
-    body = custom_dof_body().immersed_part()
+def test_stiffness_legacy_with_malformed_divergence(caplog):
+    body = legacy_custom_dof_body().immersed_part()
     hs_1 = body.compute_hydrostatic_stiffness()
     with caplog.at_level(logging.WARNING):
         hs_2 = body.compute_hydrostatic_stiffness(
@@ -246,7 +264,23 @@ def test_stiffness_with_malformed_divergence(caplog):
             }
         )
     assert hs_1.values[0, 0] == hs_2.values[0, 0]
-    assert "without the divergence" in caplog.text
+    assert "does not seem to provide a value for elongate_in_z" in caplog.text
+
+def test_stiffness_new_elastic_dof_including_divergence():
+    body = custom_dof_body().immersed_part()
+    hs = body.compute_hydrostatic_stiffness()
+    analytical_hs = - 1000.0 * 9.81 * (4 * body.volume * body.center_of_buoyancy[2])
+    assert np.isclose(hs.values[0, 0], analytical_hs)
+
+def test_stiffness_mixing_older_and_new_divergence_interface(caplog):
+    body = custom_dof_body().immersed_part()
+    with caplog.at_level(logging.WARNING):
+        body.compute_hydrostatic_stiffness()
+    assert 'Ignoring the provided divergence' not in caplog.text
+    with caplog.at_level(logging.WARNING):
+        body.compute_hydrostatic_stiffness(divergence={"elongate_in_z": np.ones(body.mesh.nb_faces)})
+    assert 'Ignoring the provided divergence' in caplog.text
+
 
 # MULTIBODY
 

@@ -26,7 +26,7 @@ from capytaine.meshes.predefined.rectangles import mesh_rectangle, mesh_parallel
 
 from capytaine.bodies.bodies import FloatingBody
 from capytaine.bodies.multibodies import Multibody
-from capytaine.bodies.dofs import rigid_body_dofs
+from capytaine.bodies.dofs import rigid_body_dofs, CustomDof
 
 from capytaine.bem.problems_and_results import RadiationProblem, DiffractionProblem
 from capytaine.bem.solver import BEMSolver
