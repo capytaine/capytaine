@@ -15,6 +15,14 @@ For older changelogs, see:
 New in version 3.1 (2026-??-??)
 -------------------------------
 
+Major changes
+~~~~~~~~~~~~~
+
+* Add a :class:`~capytaine.bodies.dofs.CustomDof` to define any generalized body mode.
+  The legacy style of defining a dof with an array of motions allowed that already, but this new interface also allows optionally to give the gradient (actually jacobian) of the motion which is useful for hydrostatics, forward speed and second-order forces.
+  Passing the ``divergence`` parameter to :meth:`~capytaine.bodies.hydrostatics.compute_hydrostatic_stiffness` is discouraged in favor of this new construct.
+  (:pull:`939`)
+
 Bug fixes
 ~~~~~~~~~
 
