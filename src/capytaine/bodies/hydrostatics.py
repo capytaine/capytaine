@@ -203,42 +203,45 @@ class _FloatingBodyHydrostaticsMixin(ABC):
             research" 16.1 (1994): 47-59.
             http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
         """
-        if np.any(self.mesh.faces_centers[:, 2] > 1e-2) and np.any(influenced_dof_div != 0.0):
-            raise NotImplementedError(
-                    "When computing hydrostatics of flexible dofs while providing the divergence of the dof, please make sure the mesh is clipped beforehand and provide the divergence only on the immersed faces of the clipped mesh."
-                    )
-
-        all_points = mesh.quadrature_points[0].reshape(-1, 3)  # Flat list of quadrature points
-
         if isinstance(influenced_dof, AbstractDof):
-            influenced_dof_motion: np.ndarray = influenced_dof.evaluate_motion_at_points(all_points)
+            influenced_dof_motion: np.ndarray = influenced_dof.evaluate_motion_at_points(mesh.quadrature_points[0])
+            # shape: (nb_faces, nb_quad_points, 3)
 
-            influenced_dof_jacobian = influenced_dof.evaluate_gradient_of_motion_at_points(all_points)  # shape: (nb_quad_points, 3, 3)
-            influenced_dof_div: np.ndarray = np.einsum('kii->k', influenced_dof_jacobian)[:, None]  # shape: (nb_quad_points, 1)
+            influenced_dof_jacobian = influenced_dof.evaluate_gradient_of_motion_at_points(mesh.quadrature_points[0])
+            # shape: (nb_faces, nb_quad_points, 3, 3)
 
-        else:  # Legacy style dof definition
-            influenced_dof_motion: np.ndarray = np.array(influenced_dof)  # shape: (nb_faces, 3)
-            influenced_dof_div = np.array(influenced_dof_div)  # shape: (nb_faces)
+            influenced_dof_div: np.ndarray = np.einsum('...ii->...', influenced_dof_jacobian)
+            # shape: (nb_faces, nb_quad_points)
 
+        else:  # Legacy style dof definition, to be removed in Capytaine 4.0
+            influenced_dof_motion: np.ndarray = np.array(influenced_dof)[:, None, :]  # shape: (nb_faces, 1, 3)
+
+            influenced_dof_div = np.array(influenced_dof_div)
             if influenced_dof_div.shape == ():
-                pass
+                pass  # is a scalar (probably 0.0), will be broadcasted without issue
             elif influenced_dof_div.shape == (mesh.nb_faces,):
                 influenced_dof_div = influenced_dof_div.reshape(mesh.nb_faces, 1)
             elif influenced_dof_div.shape == mesh.quadrature_points[1].shape:
-                pass
+                pass  # is fine
             else:
-                raise ValueError(f"Incompatible shape of influenced_dof_div: {influenced_dof_div.shape}")
+                raise ValueError(f"Incompatible shape of dof divergence: {influenced_dof_div.shape}")
+            # influenced_dof_div.shape == (nb_faces, nb_quad_points)
 
         if isinstance(radiating_dof, AbstractDof):
-            radiating_dof_motion: np.ndarray = radiating_dof.evaluate_motion_at_points(all_points)
+            radiating_dof_motion: np.ndarray = radiating_dof.evaluate_motion_at_points(mesh.quadrature_points[0])
+            # shape: (nb_faces, nb_quad_points, 3)
         else:
-            radiating_dof_motion: np.ndarray = np.array(radiating_dof)
+            radiating_dof_motion: np.ndarray = np.array(radiating_dof)[:, None, :]
+            # shape: (nb_faces, 1, 3)
 
-        radiating_dof_normal = np.sum(mesh.faces_normals * radiating_dof_motion, axis=-1)  # dot product on each face
-        z = mesh.quadrature_points[0][:,:,2]
-        z_influenced_dof_div = influenced_dof_motion[:, None, 2] + z * influenced_dof_div
-        # z_influenced_dof_div[i_face, i_quad_point] = influenced_dof_motion[i_face, 2] + z[i_frac, i_quad_point, 2] * influenced_dof_div[i_face, i_quad_point]
-        norm_hs_stiff = mesh.surface_integral(-radiating_dof_normal[:, None] * z_influenced_dof_div)
+        radiating_dof_normal = np.sum(mesh.faces_normals[:, None, :] * radiating_dof_motion, axis=-1)  # dot product on each quad point
+        # shape: (nb_faces, nb_quad_points)
+
+        z = mesh.quadrature_points[0][:, :, 2]
+        z_influenced_dof_div = influenced_dof_motion[:, :, 2] + z * influenced_dof_div
+        # shape: (nb_faces, nb_quad_points)
+
+        norm_hs_stiff = mesh.surface_integral(-radiating_dof_normal * z_influenced_dof_div)
 
         return rho * g * norm_hs_stiff
 
@@ -292,6 +295,8 @@ class _FloatingBodyHydrostaticsMixin(ABC):
 
                 # Legacy implementation: the divergence can be passed
                 # as a argument to `compute_hydrostatic_stiffness`:
+                # ---------------------------------------------- >8 ----------------------------------------------
+                # divergence input parameter and this whole block could be removed in Capytaine 4.0
                 if divergence is None:
                     # Silently ignore the divergence given as argument
                     influenced_dof_div = 0.0
@@ -305,12 +310,20 @@ class _FloatingBodyHydrostaticsMixin(ABC):
                                 f"but this parameter does not seem to provide a value for {influenced_dof_name}")
                     influenced_dof_div = 0.0
 
-                if isinstance(influenced_dof, AbstractDof) and np.any(influenced_dof_div != 0.0):
-                    LOG.warning(
-                            f"Hydrostatic stiffness generic formula received a divergence for dof '{influenced_dof_name}', "
-                            "while the divergence can be computed directly from the dof object.\n"
-                            "Ignoring the provided divergence and using the one from the dof object."
-                            )
+                if np.any(influenced_dof_div != 0.0):
+                    if np.any(self.mesh.faces_centers[:, 2] > 1e-2):
+                        raise NotImplementedError(
+                                f"When computing hydrostatics of flexible dofs {influenced_dof_name} while providing the divergence of the dof through the legacy interface, "
+                                "please make sure the mesh is clipped beforehand and provide the divergence only on the immersed faces of the clipped mesh."
+                                )
+
+                    if isinstance(influenced_dof, AbstractDof):
+                        LOG.warning(
+                                f"Hydrostatic stiffness generic formula received a divergence for dof '{influenced_dof_name}', "
+                                "while the divergence can be computed directly from the dof object.\n"
+                                "Ignoring the provided divergence and using the one from the dof object."
+                                )
+                # ---------------------------------------------- >8 ----------------------------------------------
 
             coefficients_row = []
             for radiating_dof_name, radiating_dof in immersed_self.dofs.items():

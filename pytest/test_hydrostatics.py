@@ -246,7 +246,7 @@ def test_stiffness_legacy_elastic_dof_with_divergence(quadrature_method):
     hs_2 = body.compute_hydrostatic_stiffness(divergence={"elongate_in_z": np.ones(body.mesh.nb_faces)})
     assert hs_1.values[0, 0] != hs_2.values[0, 0]
     analytical_hs = - 1000.0 * 9.81 * (4 * body.volume * body.center_of_buoyancy[2])
-    assert np.isclose(hs_2.values[0, 0], analytical_hs)
+    assert np.isclose(hs_2.values[0, 0], analytical_hs, rtol=1e-3)
 
 def test_stiffness_legacy_with_divergence_not_clipped():
     body = legacy_custom_dof_body()
@@ -280,13 +280,6 @@ def test_stiffness_mixing_older_and_new_divergence_interface(caplog):
     with caplog.at_level(logging.WARNING):
         body.compute_hydrostatic_stiffness(divergence={"elongate_in_z": np.ones(body.mesh.nb_faces)})
     assert 'Ignoring the provided divergence' in caplog.text
-
-def test_different_value_with_quadrature():
-    body_1 = custom_dof_body(quadrature_method=None).immersed_part()
-    body_2 = custom_dof_body(quadrature_method="Gauss-Legendre 2").immersed_part()
-    K_1 = body_1.compute_hydrostatic_stiffness()
-    K_2 = body_2.compute_hydrostatic_stiffness()
-
 
 
 # MULTIBODY

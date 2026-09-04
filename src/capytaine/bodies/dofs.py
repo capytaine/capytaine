@@ -169,17 +169,19 @@ class CustomDof(AbstractDof):
         self.gradient_of_motion = gradient_of_motion
 
     def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
-        motion = np.zeros((points.shape[0], 3))
-        for i, p in enumerate(points):
+        flat_points = points.reshape(-1, 3)
+        motion = np.zeros((flat_points.shape[0], 3))
+        for i, p in enumerate(flat_points):
             motion[i, :] = self.motion(p)
-        return motion
+        return motion.reshape(*points.shape[:-1], 3)
 
     def evaluate_gradient_of_motion_at_points(self, points: np.ndarray) -> np.ndarray:
-        grad = np.zeros((points.shape[0], 3, 3))
+        flat_points = points.reshape(-1, 3)
+        grad = np.zeros((flat_points.shape[0], 3, 3))
         if self.gradient_of_motion is not None:
-            for i, p in enumerate(points):
-                grad[i, :] = self.gradient_of_motion(p)
-        return grad
+            for i, p in enumerate(flat_points):
+                grad[i, :, :] = self.gradient_of_motion(p)
+        return grad.reshape(*points.shape[:-1], 3, 3)
 
 
 def is_rigid_body_dof(dof):
