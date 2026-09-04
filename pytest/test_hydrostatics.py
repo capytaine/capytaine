@@ -84,7 +84,7 @@ def floating_sphere(quadrature_method=None):
         radius=1.0,
         center=(0, 0, 0),
         resolution=(30, 30)
-    ).with_quadrature(None)
+    ).with_quadrature(quadrature_method)
 
 def test_wet_surface_area_of_floating_sphere():
     assert np.isclose(
@@ -156,8 +156,6 @@ def rigid_body(quadrature_method=None):
         center_of_mass=(0, 0, -0.3)
     )
     return rigid_body
-
-# TODO: test with quadratures
 
 @lru_cache
 def legacy_custom_dof_body(quadrature_method=None):
@@ -271,7 +269,6 @@ def test_stiffness_legacy_with_malformed_divergence(caplog):
 def test_stiffness_new_elastic_dof_including_divergence(quadrature_method):
     body = custom_dof_body(quadrature_method=quadrature_method).immersed_part()
     hs = body.compute_hydrostatic_stiffness()
-    print(hs)
     analytical_hs = - 1000.0 * 9.81 * (4 * body.volume * body.center_of_buoyancy[2])
     assert np.isclose(hs.values[0, 0], analytical_hs)
 
@@ -283,6 +280,13 @@ def test_stiffness_mixing_older_and_new_divergence_interface(caplog):
     with caplog.at_level(logging.WARNING):
         body.compute_hydrostatic_stiffness(divergence={"elongate_in_z": np.ones(body.mesh.nb_faces)})
     assert 'Ignoring the provided divergence' in caplog.text
+
+def test_different_value_with_quadrature():
+    body_1 = custom_dof_body(quadrature_method=None).immersed_part()
+    body_2 = custom_dof_body(quadrature_method="Gauss-Legendre 2").immersed_part()
+    K_1 = body_1.compute_hydrostatic_stiffness()
+    K_2 = body_2.compute_hydrostatic_stiffness()
+
 
 
 # MULTIBODY
