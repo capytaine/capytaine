@@ -20,6 +20,18 @@ Bug fixes
 
 * Fix computation of hydrostatic stiffness on multibodies treated as generalized dofs as in previous version. (:pull:`936`)
 
+Internals
+~~~~~~~~~
+
+* Fix :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_motion_at_points` and
+  :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_motion_at_points`
+  to accept arrays of points of shape ``(..., 3)`` instead of only ``(nb_points, 3)``.
+  Also fix :class:`~capytaine.bodies.dofs.DofOnSubmesh`, whose
+  ``evaluate_motion_at_points`` and ``evaluate_gradient_of_motion_at_points``
+  methods were indexing arbitrary points as if they were mesh faces; they now
+  raise ``NotImplementedError`` and ``evaluate_motion``/``evaluate_gradient_of_motion``
+  should be used instead. (:pull:`938`)
+
 
 -------------------------------
 New in version 3.0 (2026-08-21)
