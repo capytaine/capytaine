@@ -204,10 +204,10 @@ class _FloatingBodyHydrostaticsMixin(ABC):
             http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
         """
         if isinstance(influenced_dof, AbstractDof):
-            influenced_dof_motion: np.ndarray = influenced_dof.evaluate_motion_at_points(mesh.quadrature_points[0])
+            influenced_dof_motion: np.ndarray = influenced_dof.evaluate_motion_at_quad_points(mesh)
             # shape: (nb_faces, nb_quad_points, 3)
 
-            influenced_dof_jacobian = influenced_dof.evaluate_gradient_of_motion_at_points(mesh.quadrature_points[0])
+            influenced_dof_jacobian = influenced_dof.evaluate_gradient_of_motion_at_quad_points(mesh)
             # shape: (nb_faces, nb_quad_points, 3, 3)
 
             influenced_dof_div: np.ndarray = np.einsum('...ii->...', influenced_dof_jacobian)
@@ -228,7 +228,7 @@ class _FloatingBodyHydrostaticsMixin(ABC):
             # influenced_dof_div.shape == (nb_faces, nb_quad_points)
 
         if isinstance(radiating_dof, AbstractDof):
-            radiating_dof_motion: np.ndarray = radiating_dof.evaluate_motion_at_points(mesh.quadrature_points[0])
+            radiating_dof_motion: np.ndarray = radiating_dof.evaluate_motion_at_quad_points(mesh)
             # shape: (nb_faces, nb_quad_points, 3)
         else:
             radiating_dof_motion: np.ndarray = np.array(radiating_dof)[:, None, :]

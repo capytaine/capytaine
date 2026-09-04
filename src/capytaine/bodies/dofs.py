@@ -28,13 +28,6 @@ class AbstractDof(ABC):
     def __repr__(self):
         return str(self)
 
-    @lru_cache
-    def evaluate_motion(self, mesh: AbstractMesh) -> np.ndarray:
-        if mesh.nb_faces == 0:
-            return np.empty((mesh.nb_faces, 3))
-        else:
-            return self.evaluate_motion_at_points(mesh.faces_centers)
-
     @abstractmethod
     def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
         # points is an array of shape (..., 3)
@@ -42,12 +35,18 @@ class AbstractDof(ABC):
         ...
 
     @lru_cache
-    def evaluate_gradient_of_motion(self, mesh: AbstractMesh) -> np.ndarray:
-        # output is of shape (nb_points, 3, 3)
+    def evaluate_motion(self, mesh: AbstractMesh) -> np.ndarray:
         if mesh.nb_faces == 0:
-            return np.empty((mesh.nb_faces, 3, 3))
+            return np.empty((mesh.nb_faces, 3))
         else:
-            return self.evaluate_gradient_of_motion_at_points(mesh.faces_centers)
+            return self.evaluate_motion_at_points(mesh.faces_centers)
+
+    @lru_cache
+    def evaluate_motion_at_quad_points(self, mesh: AbstractMesh) -> np.ndarray:
+        if mesh.nb_faces == 0:
+            return np.empty(mesh.quadrature_points[0].shape)
+        else:
+            return self.evaluate_motion_at_points(mesh.quadrature_points[0])
 
     @abstractmethod
     def evaluate_gradient_of_motion_at_points(self, points: np.ndarray) -> np.ndarray:
@@ -58,6 +57,22 @@ class AbstractDof(ABC):
         # In other words, output[..., 0, :] is the gradient of the x-component of the motion on each face and
         # output[..., :, 0] is the derivative with respect to x of the motion vector on each face.
         ...
+
+    @lru_cache
+    def evaluate_gradient_of_motion(self, mesh: AbstractMesh) -> np.ndarray:
+        # output is of shape (nb_faces, 3, 3)
+        if mesh.nb_faces == 0:
+            return np.empty((mesh.nb_faces, 3, 3))
+        else:
+            return self.evaluate_gradient_of_motion_at_points(mesh.faces_centers)
+
+    @lru_cache
+    def evaluate_gradient_of_motion_at_quad_points(self, mesh: AbstractMesh) -> np.ndarray:
+        # output is of shape (nb_faces, nb_quad_points, 3, 3)
+        if mesh.nb_faces == 0:
+            return np.empty((*mesh.quadrature_points[1].shape, 3, 3))
+        else:
+            return self.evaluate_gradient_of_motion_at_points(mesh.quadrature_points[0])
 
 
 class TranslationDof(AbstractDof):
@@ -144,6 +159,18 @@ class DofOnSubmesh(AbstractDof):
     def evaluate_gradient_of_motion(self, mesh: AbstractMesh) -> np.ndarray:
         grad = np.zeros((mesh.nb_faces, 3, 3))
         grad[self.faces, :, :] = self.dof.evaluate_gradient_of_motion_at_points(mesh.faces_centers[self.faces, :])
+        return grad
+
+    @lru_cache
+    def evaluate_motion_at_quad_points(self, mesh: AbstractMesh) -> np.ndarray:
+        motion = np.zeros((*mesh.quadrature_points[1].shape, 3))
+        motion[self.faces, :, :] = self.dof.evaluate_motion_at_points(mesh.quadrature_points[0][self.faces, :, :])
+        return motion
+
+    @lru_cache
+    def evaluate_gradient_of_motion_at_quad_points(self, mesh: AbstractMesh) -> np.ndarray:
+        grad = np.zeros((*mesh.quadrature_points[1].shape, 3, 3))
+        grad[self.faces, :, :, :] = self.dof.evaluate_gradient_of_motion_at_points(mesh.quadrature_points[0][self.faces, :, :])
         return grad
 
 
