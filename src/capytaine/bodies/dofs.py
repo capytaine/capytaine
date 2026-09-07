@@ -25,8 +25,8 @@ LOG = logging.getLogger(__name__)
 
 
 class AbstractDof(ABC):
-    def __repr__(self):
-        return str(self)
+    def __str__(self):
+        return repr(self)
 
     @abstractmethod
     def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
@@ -80,7 +80,7 @@ class TranslationDof(AbstractDof):
         self.direction = np.asarray(direction)
         assert self.direction.shape == (3,)
 
-    def __str__(self):
+    def __repr__(self):
         return f"TranslationDof(direction={self.direction})"
 
     def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
@@ -102,7 +102,7 @@ class RotationDof(AbstractDof):
             self.rotation_center = np.asarray(rotation_center, dtype=float)
         assert self.rotation_center.shape == (3,)
 
-    def __str__(self):
+    def __repr__(self):
         return f"RotationDof(rotation_center={self.rotation_center}, direction={self.direction})"
 
     def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
@@ -132,7 +132,7 @@ class DofOnSubmesh(AbstractDof):
         self.dof = dof
         self.faces = faces
 
-    def __str__(self):
+    def __repr__(self):
         return f"DofOnSubmesh(dof={self.dof}, faces={self.faces})"
 
     def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
@@ -194,6 +194,10 @@ class CustomDof(AbstractDof):
     def __init__(self, motion, gradient_of_motion=None):
         self.motion = motion
         self.gradient_of_motion = gradient_of_motion
+
+    def __repr__(self):
+        grad = f", gradient_of_motion={self.gradient_of_motion}" if self.gradient_of_motion is not None else ""
+        return f"CustomDof(motion={self.motion}{grad})"
 
     def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
         flat_points = points.reshape(-1, 3)

@@ -2,7 +2,9 @@
 Floating body
 =============
 
-As described in the :doc:`tutorial`, a floating body is defined as a mesh with degrees of freedom and optionally other properties, such as a mass and a center of mass.
+As described in the :doc:`tutorial`, a floating body is defined as a mesh with
+degrees of freedom and optionally a lid mesh and other properties, such as a
+mass and a center of mass.
 
 Initialization
 --------------
@@ -37,7 +39,7 @@ It is set as in the following example::
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh)
 
 where ``lid_mesh`` is a mesh object which can loaded in the same way as the
-main mesh (see :ref:`loading-a-mesh` or using the specific methods of
+main mesh (see :ref:`loading-a-mesh`) or using the specific methods of
 :ref:`lid-generation`.
 
 Once a lid mesh has been defined, it is automatically used for irregular
@@ -87,9 +89,43 @@ If only some dofs are of interest, you can use the following syntax::
    print(body.dofs.keys())
    # dict_keys(['Heave'])
 
-Generalized degrees of freedom can be defined as a Numpy array of shape ``(nb_faces, 3)``.
-This array stores the displacement vector at the center of each face of the
-mesh::
+Generalized degrees of freedom can be defined with a
+:class:`~capytaine.bodies.dofs.CustomDof` object, by giving a function
+computing the motion of a point on body hull::
+
+   body = cpt.FloatingBody(
+           mesh=mesh,
+           dofs={
+               "heave-like": cpt.CustomDof(lambda p: [0, 0, 1]),
+               "x-shear": cpt.CustomDof(lambda p: [np.cos(np.pi*p[2]/2), 0, 0]),
+               },
+           )
+
+The ``CustomDof`` object allows to optionally define the derivative of the
+motion field. This magnitude is used for hydrostatic stiffness, forward-speed
+(m-term) and second-order forces. It is not useful for first-order
+radiation-diffraction problems without forward-speed. The derivative is a
+Jacobian matrix at each point, such that the first column is the derivative
+with respect to :math:`x` of the motion, the second column is the derivative
+with respect to :math:`y` and the third column is the derivative with respect
+to :math:`z`::
+
+   body = cpt.FloatingBody(
+           mesh=mesh,
+           dofs={
+               "heave-like": cpt.CustomDof(
+                    motion=lambda p: [0, 0, 1],
+                    gradient_of_motion=lambda p: np.zeros((3, 3)),
+                    ),
+               "x-shear": cpt.CustomDof(
+                    motion=lambda p: [np.cos(np.pi*p[2]/2), 0, 0],
+                    gradient_of_motion=lambda p: [[0, 0, -np.pi/2*np.sin(np.pi*p[2]/2)], [0, 0, 0], [0, 0, 0]],
+                    )
+               },
+           )
+
+Alternatively, the legacy way of defining generalized degrees of freedom as a
+Numpy array of shape ``(nb_faces, 3)`` is still supported in Capytaine v3::
 
    body = cpt.FloatingBody(
            mesh=mesh,
@@ -105,9 +141,15 @@ speed. It makes a difference for the hydrostatic stiffness, when the
 generalized dofs are using a approximate formula, whereas exact values can be
 returned for rigid body dofs.
 
-For multiple bodies, the dofs of the component bodies should transparently be
-defined for the compound body object. See also the section dedicated to
-multiple bodies.
+Mixing rigid-body dofs and generalized dofs can be done as follows::
+
+   body = cpt.FloatingBody(
+           mesh=mesh,
+           dofs={
+               **cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
+               "x-shear": cpt.CustomDof(lambda p: [np.cos(np.pi*p[2]/2), 0, 0])
+               },
+           )
 
 
 Other parameters
@@ -126,14 +168,16 @@ If none of them are define, the rotation is defined around the origin of
 the domain :math:`(0, 0, 0)`.
 
 Finally, as the mesh objects, the floating body can be assigned a name.
+Names are necessary in multibody setups to distinguish the bodies.
+Otherwise, they are optional.
 
 
 Display and animation
 ---------------------
 
-The methods :meth:`~capytaine.bodies.bodies.FloatingBody.show()` and
-:meth:`~capytaine.bodies.bodies.FloatingBody.show_matplotlib()` of meshes can
-also be used on ``FloatingBody``.
+Assuming a 3D backend is installed, the method
+:meth:`~capytaine.bodies.bodies.FloatingBody.show()` can be used to visualise a
+body.
 
 .. Once a :code:`FloatingBody` with dofs has been defined, the
 .. :meth:`~capytaine.bodies.bodies.FloatingBody.animate`
