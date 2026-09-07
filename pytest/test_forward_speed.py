@@ -81,11 +81,21 @@ def test_m_terms():
     assert np.allclose(pb.boundary_condition.real, -pb.forward_speed*ny)
     assert np.allclose(pb.boundary_condition.imag, -pb.encounter_omega*(-y*nx + x*ny))
 
-def test_non_rigid_body(body):
+def test_non_rigid_body_with_legacy_dof(body):
     body = body.copy(name="body")
     body.dofs["Shear"] = np.array([[z, 0, 0] for (x, y, z) in body.mesh.faces_centers])
     with pytest.raises(NotImplementedError):
-        pb = cpt.RadiationProblem(body=body, omega=2.0, forward_speed=1.0, radiating_dof="Shear")
+        cpt.RadiationProblem(body=body, omega=2.0, forward_speed=1.0, radiating_dof="Shear")
+
+def test_non_rigid_body_with_new_dof(body):
+    body = body.copy(name="body")
+    body.dofs["Shear"] = cpt.CustomDof(
+            motion=lambda p: [p[2], 0, 0],
+            gradient_of_motion=lambda p: [[0, 0, 1], [0, 0, 0], [0, 0, 0]]
+            )
+    pb = cpt.RadiationProblem(body=body, omega=2.0, forward_speed=1.0, radiating_dof="Shear")
+    cpt.BEMSolver().solve(pb)
+
 
 # POST-PROCESSING
 
