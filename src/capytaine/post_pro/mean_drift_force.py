@@ -162,7 +162,7 @@ def _merge_far_field_mean_drift_variables(dataset):
 # Near field
 ####################################################################################################
 
-def near_field_mean_drift_force(rao, results, solver):
+def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
     """
     Current assumptions: all results are for the same body, the same rho and g.
     Several wavelengths and dofs are taken into account at once.
@@ -198,16 +198,21 @@ def near_field_mean_drift_force(rao, results, solver):
     vertical_position = motion_order1(vertices_middle_waterline, body, rao)[..., -1] # vertical_position[i_freq, i_dir, i_vertex_waterline]
 
     F = np.full((nb_freq, nb_dir, nb_dir, 6), np.nan + 1j*np.nan, dtype=complex)
+    if output_pressure:
+        p2 = np.full((nb_freq, nb_dir, nb_dir, mesh.nb_faces), np.nan + 1j*np.nan, dtype=complex)
     for w in range(nb_freq):
         omega = omegas.isel({freq_type: w}).values
         for k in range(nb_dir):
             for l in range(k, nb_dir):
                 h = transformation_matrix(rao.isel({freq_type: w, 'wave_direction': k}), rao.isel({freq_type: w, 'wave_direction': l})) # h[xyz, xyz]
                 H = np.block([[h, zero_33], [zero_33, h]])
-                product = (np.sum(motion[w, k, ...] * np.conjugate(-1j * omega * gradient_potential[w, l, ...]), axis=1) + np.sum(np.conjugate(motion[w, l, ...]) * -1j * omega * gradient_potential[w, k, ...], axis=1)) / 2 # product[i_face]
+                extrapolated_pressure = (np.sum(motion[w, k, ...] * np.conjugate(-1j * omega * gradient_potential[w, l, ...]), axis=1) + np.sum(np.conjugate(motion[w, l, ...]) * -1j * omega * gradient_potential[w, k, ...], axis=1)) / 2 # extrapolated_pressure[i_face]
                 gradient_potential_square = np.sum(gradient_potential[w, k, ...] * np.conjugate(gradient_potential[w, l, ...]), axis=1) # gradient_potential_square[i_face]
                 z_order2 = (h @ mesh.faces_centers[:, :, None])[..., -1, -1] # z_order2[i_face]
-                pressure_field = - (product + gradient_potential_square/2 + g * z_order2) # pressure_field[i_face]
+                pressure_field = - (extrapolated_pressure + gradient_potential_square/2 + g * z_order2) # pressure_field[i_face]
+                if output_pressure:
+                    p2[w, k, l, :] = pressure_field
+                    p2[w, l, k, :] = np.conjugate(pressure_field)
                 waterline_field = (1/2) * g * (free_surface_elevation - vertical_position)[w, k, ...] * np.conjugate(free_surface_elevation - vertical_position)[w, l, ...] # waterline_field[i_vertex_waterline]
 
                 hydrostatics_order2 = H @ forces_order0
@@ -219,17 +224,30 @@ def near_field_mean_drift_force(rao, results, solver):
                 F[w, k, l, :] = rotation_forces_order1 + hydrostatics_order2 + translation_moment + rho * (np.array(list(pressure_hull.values())) + np.array(list(pressure_waterline.values())))
                 F[w, l, k, :] = np.conjugate(F[w, k, l, :])
 
-    return xr.DataArray(
-        data=F/2,
-        dims=[freq_type, "wave_direction_k", "wave_direction_l", "influenced_dof"],
-        coords={
-            freq_type: rao.coords[freq_type].values,
-            "wave_direction_k": rao.coords["wave_direction"].values,
-            "wave_direction_l": rao.coords["wave_direction"].values,
-            "influenced_dof": list(body.dofs.keys()),
-        },
-        name="near_field_mean_drift_force"
-    )
+    dataset = xr.Dataset(
+            {"near_field_mean_drift_force": xr.DataArray(
+                data=F/2,
+                dims=[freq_type, "wave_direction_k", "wave_direction_l", "influenced_dof"],
+                coords={
+                    freq_type: rao.coords[freq_type].values,
+                    "wave_direction_k": rao.coords["wave_direction"].values,
+                    "wave_direction_l": rao.coords["wave_direction"].values,
+                    "influenced_dof": list(body.dofs.keys()),
+                    },
+                )
+             })
+
+    if output_pressure:
+        dataset["second_order_pressure"] = xr.DataArray(
+                data=p2,
+                dims=["wave_direction_k", "wave_direction_l", "mesh_face"],
+                coords={
+                    "wave_direction_k": rao.coords["wave_direction"].values,
+                    "wave_direction_l": rao.coords["wave_direction"].values,
+                    },
+                 )
+
+    return dataset
 
 def motion_order1(points, body, rao):
     return sum(rao.sel(radiating_dof=dof).values[...,None,None] * body.dofs[dof].evaluate_motion_at_points(points) for dof in body.dofs)

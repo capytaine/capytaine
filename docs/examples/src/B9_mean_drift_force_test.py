@@ -28,15 +28,15 @@ dataset = cpt.assemble_dataset(results)
 dataset.update(kochin_data_array(results, test_matrix.coords['theta']))
 
 rao = cpt.post_pro.rao(dataset)
-nf_mdf = near_field_mean_drift_force(rao, results, solver)
+nf_mdf = near_field_mean_drift_force(rao, results, solver, output_pressure=True)
 ff_mdf = far_field_mean_drift_force(rao, dataset)
 
 with np.printoptions(precision=2, suppress=True):
     print('Surge')
     print("Far field: ", ff_mdf['drift_force_surge'].values)
-    print("Near field: ", nf_mdf.sel(influenced_dof='Surge').values)
+    print("Near field: ", nf_mdf['near_field_mean_drift_force'].sel(influenced_dof='Surge').values)
 
     print()
     print('Yaw')
     print("Far field: ", ff_mdf['drift_force_yaw'].values)
-    print("Near field: ", nf_mdf.sel(influenced_dof='Yaw').values)
+    print("Near field: ", nf_mdf['near_field_mean_drift_force'].sel(influenced_dof='Yaw').values)
