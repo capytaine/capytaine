@@ -82,6 +82,14 @@ Similarly, the source distribution follows a different convention than in Capyta
 
 Together with the convention on the normal vector mentioned above, it results in a slightly different expression for the boundary integral expression.
 
+Coordinates
+~~~~~~~~~~~
+
+In WAMIT, some spatial coordinates, such as the center of gravity, are
+expressed in body-fixed coordinate system centered at ``XBODY`` scaled with
+reference length ``ULEN``.
+In Capytaine, all spatial coordinates are expressed in the global coordinate
+system, with reference scale 1 meter.
 
 With respect to Nemoh and Aquadyn
 ---------------------------------

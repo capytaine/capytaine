@@ -119,6 +119,9 @@ the following syntax::
     sphere.faces_centers[5]  # Center of the sixth face (Python arrays start at 0).
     sphere.faces_normals[5]  # Normal vector of the sixth face.
 
+Note that all input or output 3D coordinates used by Capytaine are in the
+global reference frame in which the free surface is at :math:`x_3=0`.
+
 If one of the 3D visualisation backend has been installed, the mesh can be displayed in 3D using::
 
     sphere.show()
