@@ -75,6 +75,9 @@ It is recommended to initialize them in the following way::
    )
 
 If no ``rotation_center`` is provided, :math:`(0, 0, 0)` is used as a default.
+Note that all coordinates are in the global reference frame, so :math:`(0, 0,
+0)` is an arbitrary point on the free surface.
+
 The standard names used to refer to the rigid body dofs are::
 
    print(body.dofs.keys())
@@ -160,12 +163,7 @@ defined with a ``mass``, given a floating point number and a
 ``center_of_mass``, given a three coordinates.
 These two arguments are required for :doc:`hydrostatics` but not for
 first-order wave-structure interaction.
-Their only role then is for the definition of the rotation degrees of freedom.
-When defining a rotation dof, the code looks for attributes called
-:code:`rotation_center`, :code:`center_of_mass` or :code:`geometric_center` (in
-that order), and use them to define the rotation axis.
-If none of them are define, the rotation is defined around the origin of
-the domain :math:`(0, 0, 0)`.
+
 
 Finally, as the mesh objects, the floating body can be assigned a name.
 Names are necessary in multibody setups to distinguish the bodies.
