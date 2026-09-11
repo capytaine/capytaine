@@ -30,9 +30,12 @@ The xarray dataset produced by :func:`assemble_dataset <capytaine.io.xarray.asse
     See also https://github.com/PlasmaFAIR/nc-complex for more context and alternatives.
 
 .. note::
-    Exporting more outputs such as pressure field on the hull in a NetCDF
-    file is considered in the future.
-    See https://github.com/capytaine/capytaine/issues/520 for examples of such outputs.
+    If :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has been called with
+    :code:`keep_details=True`, the dataset also contains the pressure field on
+    the hull (:code:`diffraction_pressure`, :code:`Froude_Krylov_pressure` and
+    :code:`radiation_pressure`), which is exported to the NetCDF file as well.
+    See the section :doc:`post_pro` and
+    https://github.com/capytaine/capytaine/issues/520 for more context.
 
 Wamit format
 ------------

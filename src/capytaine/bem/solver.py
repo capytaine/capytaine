@@ -388,6 +388,10 @@ class BEMSolver:
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency ``joblib``.
             By defaults: do not use joblib and solve sequentially.
+        keep_details: bool, optional (default: False)
+            if True, keep the sources, potential and pressure distributions computed for each
+            problem. The pressure on the hull is then included in the returned dataset as
+            ``diffraction_pressure``, ``Froude_Krylov_pressure`` and ``radiation_pressure``.
         n_threads: int, optional
             the number of threads used to solve each problem.
             The total number of used CPU will be n_jobs×n_threads.

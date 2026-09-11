@@ -23,6 +23,10 @@ Major changes
   Passing the ``divergence`` parameter to :meth:`~capytaine.bodies.hydrostatics.compute_hydrostatic_stiffness` is discouraged in favor of this new construct.
   (:pull:`939`)
 
+* :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has a new keyword argument ``keep_details`` (default: ``False``).
+  When set to ``True``, the pressure field on the hull is kept for each problem and automatically included in the returned dataset as the data variables ``diffraction_pressure``, ``Froude_Krylov_pressure`` and ``radiation_pressure``.
+  See :doc:`user_manual/post_pro` for more details.
+
 Bug fixes
 ~~~~~~~~~
 
@@ -39,6 +43,11 @@ Internals
   methods were indexing arbitrary points as if they were mesh faces; they now
   raise ``NotImplementedError`` and ``evaluate_motion``/``evaluate_gradient_of_motion``
   should be used instead. (:pull:`938`)
+
+* Add a :code:`pressure_on_hull` attribute to
+  :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowResult`, equal
+  to :code:`pressure` restricted to the faces of the hull mesh, excluding the
+  lid used to remove irregular frequencies (if any).
 
 
 -------------------------------

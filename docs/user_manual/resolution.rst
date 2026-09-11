@@ -247,6 +247,13 @@ displayed in the log and the output result is replaced by a
 :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or a
 :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`.
 
+:meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` also accepts a
+:code:`keep_details` argument, defaulting to :code:`False` this time, since the
+source and potential distributions of every problem in the test matrix would
+otherwise be kept in memory at once. When set to :code:`True`, the pressure
+field on the hull is added to the output dataset, as described in
+:doc:`post_pro`.
+
 Progress bar
 ------------
 
