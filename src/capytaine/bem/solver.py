@@ -372,7 +372,7 @@ class BEMSolver:
         return results
 
 
-    def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, n_threads=None, _check_wavelength=True, progress_bar=None, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, keep_details=False, n_threads=None, _check_wavelength=True, progress_bar=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
@@ -418,7 +418,7 @@ class BEMSolver:
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
             dataset.update(kochin)
         else:
-            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs, n_threads=n_threads, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
+            results = self.solve_all(problems, keep_details=keep_details, method=method, n_jobs=n_jobs, n_threads=n_threads, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 

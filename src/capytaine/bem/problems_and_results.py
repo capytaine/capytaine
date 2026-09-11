@@ -14,9 +14,11 @@
 """Definition of the problems to solve with the BEM solver, and the results of this resolution."""
 
 import logging
+from typing import Optional, Dict
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 from scipy.optimize import newton
 
 from capytaine.tools.deprecation_handling import _get_water_depth
@@ -492,27 +494,29 @@ class RadiationProblem(LinearPotentialFlowProblem):
 class LinearPotentialFlowResult:
 
     def __init__(self, problem, forces=None, sources=None, potential=None, pressure=None):
-        self.problem = problem
+        self.problem: LinearPotentialFlowProblem = problem
 
-        self.forces = forces if forces is not None else {}
-        self.sources = sources
-        self.potential = potential
-        self.pressure = pressure
-
-        self.fs_elevation = {}  # Only used in legacy `get_free_surface_elevation`. To be removed?
+        self.forces: Dict[str, complex] = forces if forces is not None else {}
+        self.sources: Optional[np.ndarray] = sources
+        self.potential: Optional[np.ndarray] = potential
+        self.pressure: Optional[np.ndarray] = pressure
+        if self.pressure is not None and self.problem.body is not None:
+            self.pressure_on_hull = self.pressure[:self.problem.body.mesh.nb_faces]
+        else:
+            self.pressure_on_hull = None
 
         # Copy data from problem
         self.body               = self.problem.body
         self.free_surface       = self.problem.free_surface
         self.omega              = self.problem.omega
-        self.freq              = self.problem.freq
+        self.freq               = self.problem.freq
         self.period             = self.problem.period
         self.wavenumber         = self.problem.wavenumber
         self.wavelength         = self.problem.wavelength
         self.forward_speed      = self.problem.forward_speed
         self.wave_direction     = self.problem.wave_direction
         self.encounter_omega    = self.problem.encounter_omega
-        self.encounter_freq    = self.problem.encounter_freq
+        self.encounter_freq     = self.problem.encounter_freq
         self.encounter_period   = self.problem.encounter_period
         self.encounter_wavenumber = self.problem.encounter_wavenumber
         self.encounter_wavelength = self.problem.encounter_wavelength
@@ -530,6 +534,19 @@ class LinearPotentialFlowResult:
     def force(self):
         # Just an alias
         return self.forces
+
+    def pressure_dataarray(self) -> xr.DataArray:
+        dims = ['g', 'rho', 'water_depth', 'forward_speed', self.provided_freq_type, 'wave_direction']
+        if isinstance(self, RadiationResult):
+            dims += ['radiating_dof']
+        all_params = self.problem._asdict()
+        data = self.pressure_on_hull if self.pressure_on_hull is not None else np.full((self.mesh.nb_faces,), np.nan + 1j*np.nan)
+        return xr.DataArray(
+                data.reshape([1]*len(dims) + [-1]),
+                dims=dims + ['hull_face'],
+                coords={d: [all_params[d]] for d in dims},
+                name="pressure"
+                )
 
     __str__ = LinearPotentialFlowProblem.__str__
     __repr__ = LinearPotentialFlowProblem.__repr__
@@ -562,7 +579,6 @@ class DiffractionResult(LinearPotentialFlowResult):
                      Froude_Krylov_force=FK[dof],
                      kind="DiffractionResult")
                 for dof in self.influenced_dofs]
-
 
 class FailedDiffractionResult(DiffractionResult):
     def __init__(self, problem, exception):

@@ -38,7 +38,7 @@ test_matrix = xr.Dataset(
 
 # Solve all radiation problems
 solver = cpt.BEMSolver()
-dataset = solver.fill_dataset(test_matrix, body.immersed_part(), hydrostatics=True)
+dataset = solver.fill_dataset(test_matrix, body.immersed_part(), hydrostatics=True, keep_details=True)
 
 
 # Export data in various formats

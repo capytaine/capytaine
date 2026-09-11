@@ -35,6 +35,7 @@ from capytaine.bodies.multibodies import Multibody
 from capytaine.bem.problems_and_results import (
     LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem,
     LinearPotentialFlowResult, _default_parameters)
+from capytaine.bem.airy_waves import airy_waves_pressure_dataarray
 from capytaine.post_pro.kochin import compute_kochin
 from capytaine.io.bemio import dataframe_from_bemio
 
@@ -672,6 +673,22 @@ def assemble_dataset(results,
     for var in set(dataset) | set(dataset.coords):
         if var in VARIABLES_ATTRIBUTES:
             dataset[var].attrs.update(VARIABLES_ATTRIBUTES[var])
+
+    if not bemio_import and any(r.pressure is not None for r in results):
+        if any(isinstance(r, DiffractionProblem) for r in results):
+            dataset["diffraction_pressure"] = _squeeze_dimensions(xr.merge(
+                    [r.pressure_dataarray() for r in results if isinstance(r.problem, DiffractionProblem)],
+                    compat="no_conflicts", join="outer"
+                    )['pressure'], dimensions=optional_dims)
+            dataset["Froude_Krylov_pressure"] = _squeeze_dimensions(xr.merge(
+                    [airy_waves_pressure_dataarray(r.problem) for r in results if isinstance(r.problem, DiffractionProblem)],
+                    compat="no_conflicts", join="outer"
+                    )['pressure'], dimensions=optional_dims)
+        if any(isinstance(r, RadiationProblem) for r in results):
+            dataset["radiation_pressure"] = _squeeze_dimensions(xr.merge(
+                    [r.pressure_dataarray() for r in results if isinstance(r.problem, RadiationProblem)],
+                    compat="no_conflicts", join="outer"
+                    )['pressure'], dimensions=optional_dims + ['wave_direction'])
 
     dataset.attrs.update(attrs)
     dataset.attrs['capytaine_version'] = __version__

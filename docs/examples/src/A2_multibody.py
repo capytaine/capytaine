@@ -59,7 +59,7 @@ test_matrix = xr.Dataset(
     }
 )
 solver = cpt.BEMSolver()
-dataset = solver.fill_dataset(test_matrix, all_bodies.immersed_part(), hydrostatics=True)
+dataset = solver.fill_dataset(test_matrix, all_bodies.immersed_part(), hydrostatics=True, keep_details=True)
 
 with np.printoptions(precision=2, suppress=True):
     print(dataset.influenced_dof.values)
