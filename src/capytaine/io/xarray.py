@@ -318,7 +318,7 @@ def _compute_hydrostatics_dataset(
     hs["disp_mass"] = xr.DataArray(
         [[b.disp_mass(rho=rho) for b in body.bodies]],
         dims=("rho", "body"),
-        attrs=dict(long_name="Diplaced mass", units="kg")
+        attrs=dict(long_name="Displaced mass", units="kg")
     )
 
     try:
@@ -749,7 +749,8 @@ def separate_complex_values(ds: xr.Dataset) -> xr.Dataset:
         if ds[variable].dtype == complex:
             da = ds[variable]
             new_da = xr.DataArray(np.asarray((np.real(da).data, np.imag(da).data)),
-                                  dims=('complex',) + da.dims)
+                                  dims=('complex',) + da.dims,
+                                  attrs=da.attrs)
             ds[variable] = new_da
             ds.coords['complex'] = ['re', 'im']
     return ds
