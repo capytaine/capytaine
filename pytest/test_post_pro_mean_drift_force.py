@@ -171,3 +171,34 @@ def test_caisson():
     assert np.isclose(mdf_ff['drift_force_surge'], target_fx, rtol=4e-1)
     assert np.isclose(mdf_nf[..., 2], target_fz, rtol=4e-1)
     assert np.isclose(mdf_nf[..., 4], target_my, rtol=4e-1)
+
+
+def test_symmetry_mean_drift_force():
+    mesh = cpt.mesh_parallelepiped().immersed_part()
+    mesh_sym = cpt.mesh_parallelepiped(reflection_symmetry=True).immersed_part()
+
+    wave_direction = np.pi/4
+    theta = np.linspace(-0.5, 2*np.pi, 20)
+    k = np.array([2.5])
+    solver = cpt.BEMSolver()
+
+    mdf_ff = []
+    mdf_nf = []
+    for m in [mesh, mesh_sym]:
+        body = cpt.FloatingBody(mesh=m, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
+        body.inertia_matrix = body.compute_rigid_body_inertia()
+        body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
+        test_matrix = xr.Dataset(coords={
+                'wavenumber': k, 'wave_direction': wave_direction, 'theta': theta, 'radiating_dof': list(body.dofs.keys())
+            })
+        pbs = problems_from_dataset(test_matrix, body)
+        results = solver.solve_all(pbs)
+        data_kochin = kochin_data_array(results, theta)
+        dataset = cpt.assemble_dataset(results)
+        dataset.update(data_kochin)
+        rao = cpt.post_pro.rao(dataset)
+        mdf_nf.append(near_field_mean_drift_force(rao, results, solver))
+        mdf_ff.append(far_field_mean_drift_force(rao, dataset))
+
+    assert np.allclose(mdf_nf[0][...,0], mdf_nf[1][...,0])
+    assert all(np.allclose(mdf_ff[0][var].data, mdf_ff[1][var].data) for var in mdf_ff[0].data_vars)

@@ -157,7 +157,7 @@ def near_field_mean_drift_force(rao, results, solver):
     Several wavelengths and dofs are taken into account at once.
     """
     body = results[0].body
-    mesh = body.mesh
+    mesh = body.mesh.merged()
     rho = results[0].rho
     g = results[0].g
     omega = rao.coords["omega"].values
@@ -199,7 +199,7 @@ def near_field_mean_drift_force(rao, results, solver):
             rotation_forces_order1 = ((rotation_matrix[k, ...] @ np.conjugate(forces_order1[l, ...])) + (np.conjugate(rotation_matrix[l, ...]) @ forces_order1[k, ...])) / 2
             translation_moment = ((translation_matrix[k, ...] @ np.conjugate(all_forces_order1[l, ...])) + (np.conjugate(translation_matrix[l, ...]) @ all_forces_order1[k, ...])) / 2
             pressure_hull = body.integrate_pressure(pressure_field)
-            pressure_waterline = integrate_pressure_waterline(body, waterline_field)
+            pressure_waterline = integrate_pressure_waterline(body, mesh, waterline_field)
 
             F[k, l, :] = rotation_forces_order1 + hydrostatics_order2 + translation_moment + rho * (np.array(list(pressure_hull.values())) + np.array(list(pressure_waterline.values())))
             F[l, k, :] = np.conjugate(F[k, l, :])
@@ -315,18 +315,18 @@ def skew_matrix(a):
 
     return results
 
-def integrate_pressure_waterline(body, pressure):
+def integrate_pressure_waterline(body, mesh, pressure):
         forces = {}
-        normal = compute_faces_normals(body.mesh.vertices, body.mesh.faces_waterline)
+        normal = compute_faces_normals(mesh.vertices, mesh.faces_waterline)
         normal_waterline = normal/np.sqrt(1-normal[:, -1]**2)[:, None] # normal_waterline[i_edge_waterline, xyz]
         vertex_waterline = (
-        body.mesh.vertices[body.mesh.edges_waterline[:, 0], :]
-        + body.mesh.vertices[body.mesh.edges_waterline[:, 1], :]
+        mesh.vertices[mesh.edges_waterline[:, 0], :]
+        + mesh.vertices[mesh.edges_waterline[:, 1], :]
     ) / 2
         for dof_name in body.dofs:
             dof = body.dofs[dof_name].evaluate_motion_at_points(vertex_waterline)
 
             # Scalar product on each edge:
             normal_dof_amplitude_on_waterline = np.sum(dof * normal_waterline, axis=1)
-            forces[dof_name] = -np.sum(pressure * normal_dof_amplitude_on_waterline * body.mesh.length_edges_waterline)
+            forces[dof_name] = -np.sum(pressure * normal_dof_amplitude_on_waterline * mesh.length_edges_waterline)
         return forces
