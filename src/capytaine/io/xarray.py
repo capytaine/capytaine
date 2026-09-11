@@ -21,7 +21,7 @@ import logging
 from datetime import datetime
 from itertools import product
 from collections import Counter
-from typing import Sequence, List, Union, Optional, Dict, Any
+from typing import Sequence, List, Union, Optional
 from pathlib import Path
 
 import numpy as np
@@ -470,6 +470,18 @@ VARIABLES_ATTRIBUTES = {
             },
         "Froude_Krylov_force": {
             'long_name': "Froude Krylov force",
+            },
+        "radiation_pressure": {
+            'long_name': "Radiation pressure",
+            'units': 'Pa',
+            },
+        "diffraction_pressure": {
+            'long_name': "Diffraction pressure",
+            'units': 'Pa',
+            },
+        "Froude_Krylov_pressure": {
+            'long_name': "Froude Krylov pressure",
+            'units': 'Pa',
             },
         }
 
