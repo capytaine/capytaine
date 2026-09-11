@@ -669,25 +669,31 @@ def assemble_dataset(results,
 
             dataset = xr.merge([dataset, computed_hydrostatics], compat="no_conflicts", join="outer")
 
-    for var in set(dataset) | set(dataset.coords):
-        if var in VARIABLES_ATTRIBUTES:
-            dataset[var].attrs.update(VARIABLES_ATTRIBUTES[var])
+    if not bemio_import:
+        # Only keep results with a free surface, consistently with `records` above.
+        pressure_results = [r for r in results if r.free_surface == 0.0]
+    else:
+        pressure_results = []
 
-    if not bemio_import and any(r.pressure is not None for r in results):
-        if any(isinstance(r, DiffractionProblem) for r in results):
+    if any(r.pressure is not None for r in pressure_results):
+        if any(isinstance(r.problem, DiffractionProblem) for r in pressure_results):
             dataset["diffraction_pressure"] = _squeeze_dimensions(xr.merge(
-                    [r.pressure_dataarray() for r in results if isinstance(r.problem, DiffractionProblem)],
+                    [r.pressure_dataarray() for r in pressure_results if isinstance(r.problem, DiffractionProblem)],
                     compat="no_conflicts", join="outer"
                     )['pressure'], dimensions=optional_dims)
             dataset["Froude_Krylov_pressure"] = _squeeze_dimensions(xr.merge(
-                    [airy_waves_pressure_dataarray(r.problem) for r in results if isinstance(r.problem, DiffractionProblem)],
+                    [airy_waves_pressure_dataarray(r.problem) for r in pressure_results if isinstance(r.problem, DiffractionProblem)],
                     compat="no_conflicts", join="outer"
                     )['pressure'], dimensions=optional_dims)
-        if any(isinstance(r, RadiationProblem) for r in results):
+        if any(isinstance(r.problem, RadiationProblem) for r in pressure_results):
             dataset["radiation_pressure"] = _squeeze_dimensions(xr.merge(
-                    [r.pressure_dataarray() for r in results if isinstance(r.problem, RadiationProblem)],
+                    [r.pressure_dataarray() for r in pressure_results if isinstance(r.problem, RadiationProblem)],
                     compat="no_conflicts", join="outer"
                     )['pressure'], dimensions=optional_dims + ['wave_direction'])
+
+    for var in set(dataset) | set(dataset.coords):
+        if var in VARIABLES_ATTRIBUTES:
+            dataset[var].attrs.update(VARIABLES_ATTRIBUTES[var])
 
     dataset.attrs.update(attrs)
     dataset.attrs['capytaine_version'] = __version__

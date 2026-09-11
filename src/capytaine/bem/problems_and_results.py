@@ -268,9 +268,9 @@ class LinearPotentialFlowProblem:
     def _wrap_dataarray(self, da):
         """Add metadata defining the problem to a DataArray"""
         dims = ['g', 'rho', 'water_depth', 'forward_speed', self.provided_freq_type, 'wave_direction']
-        if isinstance(self, RadiationResult):
+        if isinstance(self, RadiationProblem):
             dims += ['radiating_dof']
-        all_params = self.problem._asdict()
+        all_params = self._asdict()
         coords = {d: [all_params[d]] for d in dims}
         return da.expand_dims(coords)
 
@@ -511,7 +511,7 @@ class LinearPotentialFlowResult:
         self.potential: Optional[np.ndarray] = potential
         self.pressure: Optional[np.ndarray] = pressure
         if self.pressure is not None and self.problem.body is not None:
-            self.pressure_on_hull = self.pressure[:self.problem.body.mesh.nb_faces]
+            self.pressure_on_hull = self.pressure[self.problem.body.hull_mask]
         else:
             self.pressure_on_hull = None
 
@@ -546,7 +546,7 @@ class LinearPotentialFlowResult:
         return self.forces
 
     def pressure_dataarray(self) -> xr.DataArray:
-        data = self.pressure_on_hull if self.pressure_on_hull is not None else np.full((self.mesh.nb_faces,), np.nan + 1j*np.nan)
+        data = self.pressure_on_hull if self.pressure_on_hull is not None else np.full((self.body.mesh.nb_faces,), np.nan + 1j*np.nan)
         dataarray = xr.DataArray(data, dims=["hull_face"], name="pressure")
         return self.problem._wrap_dataarray(dataarray)
 
