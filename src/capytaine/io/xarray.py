@@ -21,7 +21,7 @@ import logging
 from datetime import datetime
 from itertools import product
 from collections import Counter
-from typing import Sequence, List, Union, Optional
+from typing import Sequence, List, Union, Optional, Dict, Any
 from pathlib import Path
 
 import numpy as np
@@ -256,7 +256,6 @@ def _dataset_from_dataframe(df: pd.DataFrame,
     da = df.to_xarray()[variables]
     da = _squeeze_dimensions(da, dimensions=optional_dims)
     return da
-
 
 def _rotation_center_data_array(body: AbstractBody) -> Optional[xr.DataArray]:
     rotation_centers = np.array([b.rotation_center for b in body.bodies])

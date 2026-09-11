@@ -265,6 +265,16 @@ class LinearPotentialFlowProblem:
                 "rho": self.rho,
                 "g": self.g}
 
+    def _wrap_dataarray(self, da):
+        """Add metadata defining the problem to a DataArray"""
+        dims = ['g', 'rho', 'water_depth', 'forward_speed', self.provided_freq_type, 'wave_direction']
+        if isinstance(self, RadiationResult):
+            dims += ['radiating_dof']
+        all_params = self.problem._asdict()
+        coords = {d: [all_params[d]] for d in dims}
+        return da.expand_dims(coords)
+
+
     @staticmethod
     def _group_for_parallel_resolution(problems):
         """Given a list of problems, returns a list of groups of problems, such
@@ -536,17 +546,9 @@ class LinearPotentialFlowResult:
         return self.forces
 
     def pressure_dataarray(self) -> xr.DataArray:
-        dims = ['g', 'rho', 'water_depth', 'forward_speed', self.provided_freq_type, 'wave_direction']
-        if isinstance(self, RadiationResult):
-            dims += ['radiating_dof']
-        all_params = self.problem._asdict()
         data = self.pressure_on_hull if self.pressure_on_hull is not None else np.full((self.mesh.nb_faces,), np.nan + 1j*np.nan)
-        return xr.DataArray(
-                data.reshape([1]*len(dims) + [-1]),
-                dims=dims + ['hull_face'],
-                coords={d: [all_params[d]] for d in dims},
-                name="pressure"
-                )
+        dataarray = xr.DataArray(data, dims=["hull_face"], name="pressure")
+        return self.problem._wrap_dataarray(dataarray)
 
     __str__ = LinearPotentialFlowProblem.__str__
     __repr__ = LinearPotentialFlowProblem.__repr__
