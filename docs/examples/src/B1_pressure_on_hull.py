@@ -14,12 +14,14 @@ solver = cpt.BEMSolver()
 res = solver.solve(pb, keep_details=True)
 
 body.mesh.show(
+        backend="matplotlib",
         color_field=np.real(res.pressure_on_hull),
         cmap=plt.get_cmap("viridis"),  # Colormap
         )
 
 # # Plotting also the (not physically meaningful) pressure on the lid
 # body.mesh_including_lid.show(
+#         backend="matplotlib",
 #         color_field=np.real(res.pressure),
 #         cmap=plt.get_cmap("viridis"),  # Colormap
 #         )
