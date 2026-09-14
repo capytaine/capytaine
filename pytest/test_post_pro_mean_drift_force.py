@@ -23,6 +23,7 @@ def test_far_field_mean_drift_force():
         })
     dataset = solver.fill_dataset(test_matrix, body, hydrostatics=True)
     rao = cpt.post_pro.rao(dataset)
+    print(rao)
     mdf = far_field_mean_drift_force(rao, dataset)
     force_analytical = dataset['g'].values * dataset['rho'].values * r * np.array([0.26, 0.7])
     assert np.allclose(mdf.sel(wave_direction_k=0, wave_direction_l=0)['drift_force_surge'], force_analytical, rtol=2e-1)
@@ -41,7 +42,7 @@ def test_near_field_mean_drift_force():
     body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
     solver = cpt.BEMSolver()
     wave_direction = [0, np.pi/4]
-    k = 0.92 # test with several omega when near_field method will handle it
+    k = np.array([0.92, 1.05]) 
     test_matrix = xr.Dataset(coords={
             'wavenumber': k, 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys())
         })
@@ -50,11 +51,11 @@ def test_near_field_mean_drift_force():
     dataset = cpt.assemble_dataset(results)
     rao = cpt.post_pro.rao(dataset)
     mdf = near_field_mean_drift_force(rao, results, solver)
-    force_analytical = dataset['g'].values * dataset['rho'].values * r * 0.26
+    force_analytical = dataset['g'].values * dataset['rho'].values * r * np.array([0.26, 0.7])
     assert np.allclose(mdf.sel(wave_direction_k=0, wave_direction_l=0, influenced_dof='Surge'), force_analytical, rtol=2e-1)
     assert "wave_direction_k" in mdf.dims
     assert "wave_direction_l" in mdf.dims
-    assert mdf.shape == (2, 2, 6)  # (dir, dir, dofs)
+    assert mdf.shape == (2, 2, 2, 6)  # (wavenumber, dir, dir, dofs)
     assert np.allclose(mdf.isel(wave_direction_k=0, wave_direction_l=1).values,
                         np.conj(mdf.isel(wave_direction_k=1, wave_direction_l=0).values))
 
@@ -92,7 +93,7 @@ def test_scale_near_field_mean_drift_force():
         solver = cpt.BEMSolver()
         wave_direction = 0
         theta = np.linspace(-0.5, 2*np.pi, 20)
-        k = 0.1/r # test with several omega when near_field will handle it
+        k = np.linspace(0.1,1,5)/r
         test_matrix = xr.Dataset(coords={
             'wavenumber': k, 'wave_direction': wave_direction, 'theta': theta, 'radiating_dof': list(body.dofs.keys())
         })
@@ -202,3 +203,34 @@ def test_symmetry_mean_drift_force():
 
     assert np.allclose(mdf_nf[0][...,0], mdf_nf[1][...,0])
     assert all(np.allclose(mdf_ff[0][var].data, mdf_ff[1][var].data) for var in mdf_ff[0].data_vars)
+
+
+def test_period_equivalent_omega_mean_drift_force():
+    mesh = cpt.mesh_sphere().immersed_part()
+    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
+    body.inertia_matrix = body.compute_rigid_body_inertia()
+    body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
+    solver = cpt.BEMSolver()
+    wave_direction = [np.pi/3]
+    period = np.array([1.6, 1.9, 2.4]) 
+
+    test_matrix = xr.Dataset(coords={
+            'period': period, 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys())
+        })
+    pbs = problems_from_dataset(test_matrix, body)
+    results = solver.solve_all(pbs)
+    dataset = cpt.assemble_dataset(results)
+    rao = cpt.post_pro.rao(dataset)
+    mdf_period = near_field_mean_drift_force(rao, results, solver)
+
+    omega = 2*np.pi/period
+    test_matrix = xr.Dataset(coords={
+                'omega': omega, 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys())
+            })
+    pbs = problems_from_dataset(test_matrix, body)
+    results = solver.solve_all(pbs)
+    dataset = cpt.assemble_dataset(results)
+    rao = cpt.post_pro.rao(dataset)
+    mdf_omega = near_field_mean_drift_force(rao, results, solver)
+
+    assert np.allclose(np.flip(mdf_period.values, axis=0), mdf_omega)
