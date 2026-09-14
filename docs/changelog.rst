@@ -27,6 +27,9 @@ Major changes
   When set to ``True``, the pressure field on the hull is kept for each problem and automatically included in the returned dataset as the data variables ``diffraction_pressure``, ``Froude_Krylov_pressure`` and ``radiation_pressure``.
   See :doc:`user_manual/post_pro` for more details.
 
+* The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the data variables ``mesh_vertices``, ``mesh_faces_center``, ``lid_mesh_vertices``, ``lid_mesh_faces_center``, ``dof_motions`` and ``dof_gradient_of_motions``, instead of just the number of faces.
+  See :doc:`user_manual/post_pro` for more details.
+
 Bug fixes
 ~~~~~~~~~
 

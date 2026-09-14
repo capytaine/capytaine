@@ -131,6 +131,10 @@ class ReflectionSymmetricMesh(AbstractMesh):
                 np.concatenate([self.half.quadrature_points[1], self.other_half.quadrature_points[1]]),
                 )
 
+    @property
+    def quadrature_method(self):
+        return self.half.quadrature_method
+
     def with_quadrature(self, quadrature_method):
         return ReflectionSymmetricMesh(
                 self.half.with_quadrature(quadrature_method),
@@ -460,6 +464,10 @@ class RotationSymmetricMesh(AbstractMesh):
                 np.concatenate([w.quadrature_points[0] for w in self.all_wedges]),
                 np.concatenate([w.quadrature_points[1] for w in self.all_wedges]),
                 )
+
+    @property
+    def quadrature_method(self):
+        return self.wedge.quadrature_method
 
     def with_quadrature(self, quadrature_method):
         return RotationSymmetricMesh(

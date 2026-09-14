@@ -32,6 +32,7 @@ from capytaine import __version__
 from capytaine.bodies.abstract_bodies import AbstractBody
 from capytaine.bodies.bodies import FloatingBody
 from capytaine.bodies.multibodies import Multibody
+from capytaine.bodies.dofs import AbstractDof
 from capytaine.bem.problems_and_results import (
     LinearPotentialFlowProblem, DiffractionProblem, RadiationProblem,
     LinearPotentialFlowResult, _default_parameters)
@@ -490,10 +491,6 @@ def assemble_dataset(results,
                      mesh=False, hydrostatics=True, attrs=None) -> xr.Dataset:
     """Transform a list of :class:`LinearPotentialFlowResult` into a :class:`xarray.Dataset`.
 
-    .. todo:: The :code:`mesh` option to store information on the mesh could be improved.
-              It could store the full mesh in the dataset to ensure the reproducibility of
-              the results.
-
     Parameters
     ----------
     results: list of LinearPotentialFlowResult or BEMIO dataset
@@ -509,7 +506,12 @@ def assemble_dataset(results,
     period: bool, optional
         If True, the coordinate 'period' will be added to the output dataset.
     mesh: bool, optional
-        If True, store some infos on the mesh in the output dataset.
+        If True, store the mesh (vertices and centers of each face of the hull,
+        and of the lid if any) and the dofs (motion, and when available its
+        gradient, of each dof evaluated on the hull) in the output dataset, as
+        the data variables ``mesh_vertices``, ``mesh_faces_center``,
+        ``lid_mesh_vertices``, ``lid_mesh_faces_center``, ``dof_motions`` and
+        ``dof_gradient_of_motions``.
     hydrostatics: bool, optional
         If True, store the hydrostatic data in the output dataset if they exist.
     attrs: dict, optional
@@ -643,10 +645,56 @@ def assemble_dataset(results,
         if bemio_import:
             LOG.warning('Bemio data does not include mesh data. mesh=True is ignored.')
         else:
-            body = results[0].body
-            dataset.coords['nb_faces'] = body.mesh.nb_faces
-            dataset.coords['quadrature_method'] = body.mesh.quadrature_method
-            # TODO: Store full mesh...
+            body = results[0].body  # Assumed to be all the same
+            dataset.coords['quadrature_method'] = str(body.mesh.quadrature_method)
+            dataset.coords["space_coordinate"] = xr.DataArray(["x", "y", "z"], dims=["space_coordinate"])
+            # `as_array_of_faces` is only defined on plain `Mesh`, not on a
+            # symmetric mesh (e.g. ReflectionSymmetricMesh/RotationSymmetricMesh)
+            # or a Multibody's joined mesh, so `.merged()` is used to get a plain
+            # mesh first. This does not change `nb_faces` or the order of the
+            # faces (matching `faces_centers` below), but it does mean any
+            # symmetry of the original mesh is not preserved in the dataset.
+            dataset["mesh_vertices"] = (["hull_face", "vertices_of_face", "space_coordinate"], body.mesh.merged().as_array_of_faces())
+            dataset["mesh_faces_center"] = (["hull_face", "space_coordinate"], body.mesh.faces_centers)
+
+            if body.lid_mesh is not None:
+                dataset["lid_mesh_vertices"] = (["lid_face", "vertices_of_face", "space_coordinate"], body.lid_mesh.merged().as_array_of_faces())
+                dataset["lid_mesh_faces_center"] = (["lid_face", "space_coordinate"], body.lid_mesh.faces_centers)
+
+            if len(body.dofs) > 0:
+                # `influenced_dof` (rather than `radiating_dof`) is used here because it
+                # always covers the full set of body.dofs and is present as soon as any
+                # radiation or diffraction result exists, whereas `radiating_dof` may be
+                # a user-restricted subset, or absent entirely for diffraction-only results.
+                if "influenced_dof" in dataset.coords:
+                    dof_names = list(dataset.coords["influenced_dof"].values)
+                else:
+                    dof_names = list(body.dofs.keys())
+
+                dof_motions = []
+                dof_gradient_of_motions = []
+                any_abstract_dof = False
+                for dof_name in dof_names:
+                    dof = body.dofs[dof_name]
+                    if isinstance(dof, AbstractDof):
+                        any_abstract_dof = True
+                        dof_motions.append(dof.evaluate_motion(body.mesh))
+                        dof_gradient_of_motions.append(dof.evaluate_gradient_of_motion(body.mesh))
+                    else:
+                        dof_motions.append(dof)
+                        dof_gradient_of_motions.append(np.full((body.mesh.nb_faces, 3, 3), np.nan))
+
+                mesh_dofs_dataset = xr.Dataset(
+                        coords={"influenced_dof": dof_names},
+                        data_vars={
+                            "dof_motions": (["influenced_dof", "hull_face", "space_coordinate"], dof_motions),
+                            },
+                        )
+                if any_abstract_dof:
+                    mesh_dofs_dataset.coords["gradient"] = xr.DataArray(["dx", "dy", "dz"], dims=["gradient"])
+                    mesh_dofs_dataset["dof_gradient_of_motions"] = (
+                            ["influenced_dof", "hull_face", "space_coordinate", "gradient"], dof_gradient_of_motions)
+                dataset = xr.merge([dataset, mesh_dofs_dataset], compat="no_conflicts", join="outer")
 
     # HYDROSTATICS
     if hydrostatics:
