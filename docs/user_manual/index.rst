@@ -9,10 +9,10 @@ User manual
    quickstart.rst
    tutorial.rst
    mesh.rst
+   symmetries.rst
    body.rst
    multibody.rst
    hydrostatics.rst
-   symmetries.rst
    problem_setup.rst
    resolution.rst
    post_pro.rst
