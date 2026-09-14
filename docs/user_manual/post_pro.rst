@@ -103,40 +103,15 @@ arguments to store more information in the dataset:
   (default: all `True`): control whether which of the representations of the
   wave frequency are stored in the dataset. At least one should be included, by
   default they all are.
-- :code:`mesh` (default: :code:`False`): add the mesh and the dofs to the
-  dataset, as described below.
-- :code:`hydrostatics` (default: :code:`True`): if hydrostatics data are
-  available in the :code:`FloatingBody`, they are added to the dataset.
-
-When :code:`mesh=True`, the dataset gains the quadrature method used on the
-mesh (:code:`quadrature_method`) and, for the hull (using the same
-:code:`hull_face` dimension as the pressure fields below, so the two can be
-related directly) and for the lid if any (using a :code:`lid_face`
-dimension):
-
-- :code:`mesh_vertices`/:code:`lid_mesh_vertices`: the vertices of each face,
-  as an array of shape :code:`(nb_faces, 3, 3)` if the mesh is made only of
-  triangles, or :code:`(nb_faces, 4, 3)` otherwise (with the last vertex
-  repeated for triangular faces).
-- :code:`mesh_faces_center`/:code:`lid_mesh_faces_center`: the center of each face.
-
-If the body also has dofs, the dataset additionally gains, with an
-:code:`influenced_dof` dimension matching the one used for e.g.
-:code:`added_mass` above (this dimension, rather than :code:`radiating_dof`,
-is used because it always covers every dof of the body and is present as
-soon as any result is available, whereas :code:`radiating_dof` may be a
-user-restricted subset, or absent entirely for diffraction-only results):
-
-- :code:`dof_motions`: for each dof, its motion evaluated at the center of
-  each hull face.
-- :code:`dof_gradient_of_motions`: for each dof defined with a
-  :class:`~capytaine.bodies.dofs.AbstractDof` (e.g. rigid body dofs or a
-  :class:`~capytaine.bodies.dofs.CustomDof` with a ``gradient_of_motion``),
-  the gradient (Jacobian) of its motion at the center of each hull face, with
-  the motion component indexed by :code:`space_coordinate` (as elsewhere) and
-  the derivative direction indexed by a new :code:`gradient` coordinate
-  (:code:`["dx", "dy", "dz"]`). For a legacy dof defined as a plain array (no
-  gradient available), this is filled with ``NaN``.
+- :code:`hydrostatics` (default: :code:`True`): tries to compute the
+  hydrostatic properties of the ``FloatingBody`` and add them to the dataset.
+- :code:`mesh` (default: :code:`False`): stores in the dataset the full mesh for
+  the hull and the lid, as well as the dofs.
+  - The hull mesh is stored using the ``hull_face`` dimension in the arrays :code:`mesh_vertices` (shape `(hull_face, 4, 3)`` and :code:`mesh_faces_center` (shape: ``(hull_face, 3)``).
+  - If the body has a lid, it is stored similarly using the ``lid_face`` dimension in the arrays :code:`lid_mesh_vertices` (shape ``(lid_face, 4, 3)`` and :code:`lid_mesh_faces_center` (shape: ``(lid_face, 3)``).
+  - If the body has dofs, the array ``dof_motions`` (shape: ``(influenced_dof, hull_face, 3)``) stores the displacement at each face center due to each dof.
+  - If the dofs have a Jacobian defined (as do rigid body dofs or :class:`~capytaine.bodies.dofs.CustomDof` when setting the ``gradient_of_motion`` parameter), it is stored also in an array of shape ``(influenced_dof, hull_face, 3, 3)``.
+  - The name of the quadrature scheme used for the mesh is stored as a string in the :code:`quadrature_method` variable.
 
 .. note:: If the body's mesh takes advantage of a planar or rotational
           symmetry (e.g. a :class:`~capytaine.meshes.symmetric_meshes.ReflectionSymmetricMesh`),
@@ -181,7 +156,7 @@ option is disabled by default.
           cases with a free surface.
           Cases without a free surface (:code:`free_surface=inf`) are ignored.
 
-The results can also be collected by :func:`~capytaine.io.xarray.assemble_matrices`, which returns the matrices of :func:`~capytaine.io.xarray.assemble_dataset` as numpy arrays stripped of their metadata.
+The results can also be collected by :func:`~capytaine.io.xarray.assemble_matrices`, which returns some matrices of :func:`~capytaine.io.xarray.assemble_dataset` as numpy arrays stripped of their metadata.
 This function is meant to be used for teaching, to assemble the matrices without getting the students in contact with ``xarray``.
 
 
