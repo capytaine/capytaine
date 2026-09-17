@@ -212,7 +212,7 @@ def near_field_mean_drift_force(rao, results, solver):
         data=F/2,
         dims=[freq_type, "wave_direction_k", "wave_direction_l", "influenced_dof"],
         coords={
-            freq_type: rao.coords[freq_type].values, 
+            freq_type: rao.coords[freq_type].values,
             "wave_direction_k": rao.coords["wave_direction"].values,
             "wave_direction_l": rao.coords["wave_direction"].values,
             "influenced_dof": list(body.dofs.keys()),

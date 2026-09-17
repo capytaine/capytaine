@@ -15,7 +15,7 @@ body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
 
 wave_direction = [0, np.pi/4]
 test_matrix = xr.Dataset(coords={
-    'wavenumber': [1.0],
+    'wavenumber': [1.0, 2.0],
     'wave_direction': wave_direction,
     'theta': np.linspace(-np.pi/8, 2*np.pi, 100),
     'radiating_dof': list(body.dofs.keys())

@@ -42,7 +42,7 @@ def test_near_field_mean_drift_force():
     body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
     solver = cpt.BEMSolver()
     wave_direction = [0, np.pi/4]
-    k = np.array([0.92, 1.05]) 
+    k = np.array([0.92, 1.05])
     test_matrix = xr.Dataset(coords={
             'wavenumber': k, 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys())
         })
@@ -113,7 +113,7 @@ def test_cylinder_mean_drift_force():
     body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
     solver = cpt.BEMSolver()
     wave_direction = 27*np.pi/180
-    omega = [3.]  
+    omega = [3.]
     theta = np.linspace(-0.5, 2*np.pi, 20)
     test_matrix = xr.Dataset(coords={
                 'omega': omega, 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys()), 'theta': theta,
@@ -150,7 +150,7 @@ def test_caisson():
     body.inertia_matrix = body.compute_rigid_body_inertia()
     body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
     solver = cpt.BEMSolver()
-    period = [14.20]  
+    period = [14.20]
     theta = np.linspace(-0.5, 2*np.pi, 20)
     test_matrix = xr.Dataset(coords={
                 'period': period, 'wave_direction': 0, 'radiating_dof': list(body.dofs.keys()), 'theta': theta,
@@ -212,7 +212,7 @@ def test_period_equivalent_omega_mean_drift_force():
     body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
     solver = cpt.BEMSolver()
     wave_direction = [np.pi/3]
-    period = np.array([1.6, 1.9, 2.4]) 
+    period = np.array([1.6, 1.9, 2.4])
 
     test_matrix = xr.Dataset(coords={
             'period': period, 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys())
