@@ -221,7 +221,7 @@ def test_period_equivalent_omega_mean_drift_force():
     results = solver.solve_all(pbs)
     dataset = cpt.assemble_dataset(results)
     rao = cpt.post_pro.rao(dataset)
-    mdf_period = near_field_mean_drift_force(rao, results, solver)
+    mdf_period = near_field_mean_drift_force(rao, results, solver)["near_field_mean_drift_force"]
 
     omega = 2*np.pi/period
     test_matrix = xr.Dataset(coords={
@@ -231,7 +231,7 @@ def test_period_equivalent_omega_mean_drift_force():
     results = solver.solve_all(pbs)
     dataset = cpt.assemble_dataset(results)
     rao = cpt.post_pro.rao(dataset)
-    mdf_omega = near_field_mean_drift_force(rao, results, solver)
+    mdf_omega = near_field_mean_drift_force(rao, results, solver)["near_field_mean_drift_force"]
 
     assert np.allclose(np.flip(mdf_period.values, axis=0), mdf_omega)
 
