@@ -254,3 +254,15 @@ def test_clipped_symmetric_mesh():
     assert np.isclose(imm_sym.faces_areas.sum(), 0.5*sym.faces_areas.sum())
     assert imm_sym.faces_metadata['foo'].shape[0] == imm_sym.nb_faces
     assert np.allclose(imm_sym.faces_metadata['bar'][imm_sym.faces_centers[:, 1] > 0.0], 2.0)
+
+
+def test_quadrature_method():
+    sym = ReflectionSymmetricMesh(half=single_panel(), plane="xOz")
+    assert sym.quadrature_method is None
+    sym_q = sym.with_quadrature("Gauss-Legendre 2")
+    assert sym_q.quadrature_method == "Gauss-Legendre 2"
+
+    # Nested symmetry: the property should recurse down to the innermost plain Mesh.
+    nested = ReflectionSymmetricMesh(half=sym, plane="yOz")
+    nested_q = nested.with_quadrature("Gauss-Legendre 2")
+    assert nested_q.quadrature_method == "Gauss-Legendre 2"

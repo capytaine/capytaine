@@ -230,3 +230,15 @@ def test_nested_symmetry_with_outer_reflection():
     # Merge to get full mesh
     merged = outer_sym.merged()
     assert merged.nb_faces == 8
+
+
+def test_quadrature_method():
+    sym = RotationSymmetricMesh(wedge=single_panel(), n=4)
+    assert sym.quadrature_method is None
+    sym_q = sym.with_quadrature("Gauss-Legendre 2")
+    assert sym_q.quadrature_method == "Gauss-Legendre 2"
+
+    # Nested symmetry: the property should recurse down to the innermost plain Mesh.
+    nested = RotationSymmetricMesh(wedge=ReflectionSymmetricMesh(half=single_panel(), plane="xOz"), n=4)
+    nested_q = nested.with_quadrature("Gauss-Legendre 2")
+    assert nested_q.quadrature_method == "Gauss-Legendre 2"

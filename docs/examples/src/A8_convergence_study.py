@@ -42,7 +42,7 @@ for resolution in resolutions:
     # When `mesh=True`, some extra data about the mesh is stored in the dataset, including the number of faces.
 
 
-nb_faces = [ds.coords["nb_faces"] for ds in datasets]
+nb_faces = [ds.sizes["hull_face"] for ds in datasets]
 added_mass = [ds["added_mass"].values.squeeze() for ds in datasets]
 plt.plot(nb_faces, added_mass)
 plt.xlabel("nb faces")
