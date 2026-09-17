@@ -558,15 +558,15 @@ def export_wamit_8(dataset, *args, **kwargs):
         _merge_far_field_mean_drift_variables(dataset)["drift_force"], *args, **kwargs
     )
 
-# def export_wamit_9(dataset, *args, **kwargs):
-#     return _export_wamit_mean_drift(dataset["near_field_mean_drift_force"], *args, **kwargs)
+def export_wamit_9(dataset, *args, **kwargs):
+    return _export_wamit_mean_drift(dataset["near_field_mean_drift_force"], *args, **kwargs)
 
 ###############################################################################
 
 def export_to_wamit(
     dataset: xarray.Dataset,
     problem_name: str,
-    exports: Iterable[str] = ("1", "3", "3fk", "3sc", "8", "hst"),
+    exports: Iterable[str] = ("1", "3", "3fk", "3sc", "8", "9", "hst"),
 ) -> None:
     """
     Master function to export a Capytaine dataset to WAMIT-format files.
@@ -578,7 +578,7 @@ def export_to_wamit(
     problem_name: str
         Base filename for WAMIT files (e.g. "output" → output.1, output.3fk, etc.).
     exports: iterable of str
-        Which files to export: any combination of "1", "3", "3fk", "3sc", "hst".
+        Which files to export: any combination of "1", "3", "3fk", "3sc", "hst", "8", "9".
     """
     export_map = {
         "1": ("radiation coefficients", export_wamit_1, ".1"),
@@ -586,6 +586,7 @@ def export_to_wamit(
         "3fk": ("Froude-Krylov force", export_wamit_3fk, ".3fk"),
         "3sc": ("diffraction force", export_wamit_3sc, ".3sc"),
         "8": ("mean drift force (far field)", export_wamit_8, ".8"),
+        "9": ("mean drift force (near field)", export_wamit_9, ".9"),
         "hst": ("hydrostatics", export_wamit_hst, ".hst"),
     }
     check_dataset_ready_for_export(dataset)
