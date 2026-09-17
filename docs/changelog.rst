@@ -27,6 +27,8 @@ Major changes
   When set to ``True``, the pressure field on the hull is kept for each problem and automatically included in the returned dataset as the data variables ``diffraction_pressure``, ``Froude_Krylov_pressure`` and ``radiation_pressure``.
   See :doc:`user_manual/post_pro` for more details.
 
+* Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force (for now for a single rigid body). (:pull:`871`)
+
 Bug fixes
 ~~~~~~~~~
 
