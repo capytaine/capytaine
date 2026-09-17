@@ -237,7 +237,12 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         ...
 
     @abstractmethod
-    def join_meshes(*meshes, return_masks=False, name=None) -> AbstractMesh:
+    def join_meshes(
+        *meshes,
+        return_masks=False,
+        name=None,
+        symmetry_warning_detail=""
+    ) -> AbstractMesh:
         ...
 
     def _common_metadata_keys(*meshes):
@@ -291,7 +296,7 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         ...
 
     @abstractmethod
-    def copy(self) -> AbstractMesh:
+    def copy(self, *, name, faces_metadata) -> AbstractMesh:
         ...
 
     def with_metadata(self, **new_metadata) -> AbstractMesh:

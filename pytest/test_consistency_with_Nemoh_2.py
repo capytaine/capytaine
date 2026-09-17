@@ -1,3 +1,16 @@
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Quantitatively compare the results of Capytaine with the results from Nemoh 2."""
 
 import pytest
@@ -202,7 +215,7 @@ def test_two_distant_spheres_in_finite_depth(nemoh2_solver):
         name="buoy"
     )
     other_buoy = buoy.translated_x(20, name="other_buoy")
-    both_buoys = buoy.join_bodies(other_buoy).as_FloatingBody()
+    both_buoys = buoy.join_bodies(other_buoy).as_FloatingBody
     both_buoys.add_translation_dof(name="Surge")
     problem = cpt.RadiationProblem(body=both_buoys, radiating_dof="Surge", water_depth=10, omega=7.0)
     result = nemoh2_solver.solve(problem)

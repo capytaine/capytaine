@@ -1,5 +1,16 @@
-# Copyright (C) 2017-2022 Matthieu Ancellin
-# See LICENSE file at <https://github.com/capytaine/capytaine>
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 from abc import ABC, abstractmethod
 from functools import lru_cache
@@ -14,6 +25,15 @@ LOG = logging.getLogger(__name__)
 
 
 class AbstractDof(ABC):
+    def __str__(self):
+        return repr(self)
+
+    @abstractmethod
+    def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
+        # points is an array of shape (..., 3)
+        # output is of shape (..., 3)
+        ...
+
     @lru_cache
     def evaluate_motion(self, mesh: AbstractMesh) -> np.ndarray:
         if mesh.nb_faces == 0:
@@ -21,29 +41,38 @@ class AbstractDof(ABC):
         else:
             return self.evaluate_motion_at_points(mesh.faces_centers)
 
+    @lru_cache
+    def evaluate_motion_at_quad_points(self, mesh: AbstractMesh) -> np.ndarray:
+        if mesh.nb_faces == 0:
+            return np.empty(mesh.quadrature_points[0].shape)
+        else:
+            return self.evaluate_motion_at_points(mesh.quadrature_points[0])
+
     @abstractmethod
-    def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
-        # points is an array of shape (nb_points, 3)
-        # output is of shape (nb_points, 3)
+    def evaluate_gradient_of_motion_at_points(self, points: np.ndarray) -> np.ndarray:
+        # points is an array of shape (..., 3)
+        # output is of shape (..., 3, 3)
+        # output is a Jacobian matrix, such that output[..., i_dir, i_deriv_dir]
+        # is the derivative with respect to `i_deriv_dir` of the `i_dir` component of the motion.
+        # In other words, output[..., 0, :] is the gradient of the x-component of the motion on each face and
+        # output[..., :, 0] is the derivative with respect to x of the motion vector on each face.
         ...
 
     @lru_cache
     def evaluate_gradient_of_motion(self, mesh: AbstractMesh) -> np.ndarray:
-        # output is of shape (nb_points, 3, 3)
+        # output is of shape (nb_faces, 3, 3)
         if mesh.nb_faces == 0:
             return np.empty((mesh.nb_faces, 3, 3))
         else:
             return self.evaluate_gradient_of_motion_at_points(mesh.faces_centers)
 
-    @abstractmethod
-    def evaluate_gradient_of_motion_at_points(self, points: np.ndarray) -> np.ndarray:
-        # points is an array of shape (nb_points, 3)
-        # output is of shape (nb_points, 3, 3)
-        # output is a Jacobian matrix, such that output[i_point, i_dir, i_deriv_dir]
-        # is the derivative with respect to `i_deriv_dir` of the `i_dir` component of the motion.
-        # In other words, output[:, 0, :] is the gradient of the x-component of the motion on each face and
-        # output[:, :, 0] is the derivative with respect to x of the motion vector on each face.
-        ...
+    @lru_cache
+    def evaluate_gradient_of_motion_at_quad_points(self, mesh: AbstractMesh) -> np.ndarray:
+        # output is of shape (nb_faces, nb_quad_points, 3, 3)
+        if mesh.nb_faces == 0:
+            return np.empty((*mesh.quadrature_points[1].shape, 3, 3))
+        else:
+            return self.evaluate_gradient_of_motion_at_points(mesh.quadrature_points[0])
 
 
 class TranslationDof(AbstractDof):
@@ -51,14 +80,14 @@ class TranslationDof(AbstractDof):
         self.direction = np.asarray(direction)
         assert self.direction.shape == (3,)
 
-    def __str__(self):
+    def __repr__(self):
         return f"TranslationDof(direction={self.direction})"
 
     def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
-        return np.tile(self.direction, (points.shape[0], 1))
+        return np.tile(self.direction, (*points.shape[:-1], 1))
 
     def evaluate_gradient_of_motion_at_points(self, points: np.ndarray) -> np.ndarray:
-        return np.zeros((points.shape[0], 3, 3))
+        return np.zeros((*points.shape[:-1], 3, 3))
 
 
 class RotationDof(AbstractDof):
@@ -66,14 +95,14 @@ class RotationDof(AbstractDof):
         self.direction = np.asarray(direction)
         assert self.direction.shape == (3,)
         if rotation_center is None:
-            self.rotation_center = np.array([0, 0, 0])
+            self.rotation_center = np.array([0.0, 0.0, 0.0])
             LOG.warning("Rigid body rotation dof has been initialized "
                         "around the origin of the domain (0, 0, 0).")
         else:
-            self.rotation_center = np.asarray(rotation_center)
+            self.rotation_center = np.asarray(rotation_center, dtype=float)
         assert self.rotation_center.shape == (3,)
 
-    def __str__(self):
+    def __repr__(self):
         return f"RotationDof(rotation_center={self.rotation_center}, direction={self.direction})"
 
     def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
@@ -83,7 +112,7 @@ class RotationDof(AbstractDof):
         grad = np.cross(self.direction, np.eye(3)).T
         # Transposing because np.cross compute the cross product row-wise,
         # but we want it column-wise for the conventions of the Jacobian matrix.
-        return np.tile(grad, (points.shape[0], 1, 1))
+        return np.tile(grad, (*points.shape[:-1], 1, 1))
 
 
 class DofOnSubmesh(AbstractDof):
@@ -103,21 +132,91 @@ class DofOnSubmesh(AbstractDof):
         self.dof = dof
         self.faces = faces
 
-    def __str__(self):
+    def __repr__(self):
         return f"DofOnSubmesh(dof={self.dof}, faces={self.faces})"
 
     def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
-        motion = np.zeros((points.shape[0], 3))
-        motion[self.faces, :] = self.dof.evaluate_motion_at_points(points[self.faces, :])
-        return motion
+        raise NotImplementedError(
+            "DofOnSubmesh.evaluate_motion_at_points() is not defined for arbitrary points: "
+            "membership in the submesh is only meaningful relative to the faces of the mesh "
+            "this dof was built from. Use evaluate_motion(mesh) instead."
+        )
 
     def evaluate_gradient_of_motion_at_points(self, points: np.ndarray) -> np.ndarray:
-        grad = np.zeros((points.shape[0], 3, 3))
-        grad[self.faces, :, :] = self.dof.evaluate_gradient_of_motion_at_points(points[self.faces, :])
+        raise NotImplementedError(
+            "DofOnSubmesh.evaluate_gradient_of_motion_at_points() is not defined for arbitrary points: "
+            "membership in the submesh is only meaningful relative to the faces of the mesh "
+            "this dof was built from. Use evaluate_gradient_of_motion(mesh) instead."
+        )
+
+    @lru_cache
+    def evaluate_motion(self, mesh: AbstractMesh) -> np.ndarray:
+        motion = np.zeros((mesh.nb_faces, 3))
+        motion[self.faces, :] = self.dof.evaluate_motion_at_points(mesh.faces_centers[self.faces, :])
+        return motion
+
+    @lru_cache
+    def evaluate_gradient_of_motion(self, mesh: AbstractMesh) -> np.ndarray:
+        grad = np.zeros((mesh.nb_faces, 3, 3))
+        grad[self.faces, :, :] = self.dof.evaluate_gradient_of_motion_at_points(mesh.faces_centers[self.faces, :])
+        return grad
+
+    @lru_cache
+    def evaluate_motion_at_quad_points(self, mesh: AbstractMesh) -> np.ndarray:
+        motion = np.zeros((*mesh.quadrature_points[1].shape, 3))
+        motion[self.faces, :, :] = self.dof.evaluate_motion_at_points(mesh.quadrature_points[0][self.faces, :, :])
+        return motion
+
+    @lru_cache
+    def evaluate_gradient_of_motion_at_quad_points(self, mesh: AbstractMesh) -> np.ndarray:
+        grad = np.zeros((*mesh.quadrature_points[1].shape, 3, 3))
+        grad[self.faces, :, :, :] = self.dof.evaluate_gradient_of_motion_at_points(mesh.quadrature_points[0][self.faces, :, :])
         return grad
 
 
+class CustomDof(AbstractDof):
+    """Defines a fully custom dof with the same interface as the other AbstractDof.
+    To be used for elastic dofs.
+
+    Parameters
+    ----------
+    motion: Callable
+        A function returning the motion at a given location. Required.
+        The function is expected to take a 3-element vector as input (location in space)
+        and return a 3-element vector (displacement at this location).
+    gradient_of_motion: Callable, optional
+        A function returning the gradient (actually jacobian matrix) of the motion
+        The function is expected to take a 3-element vector as input (location in space)
+        and return a 3×3-matrix (jacobian of the displacement at this location).
+        If none is provided, zero value is used, which makes no difference for first order hydrodynamics,
+        but loses some accuracy for hydrostatics and second-order forces.
+    """
+    def __init__(self, motion, gradient_of_motion=None):
+        self.motion = motion
+        self.gradient_of_motion = gradient_of_motion
+
+    def __repr__(self):
+        grad = f", gradient_of_motion={self.gradient_of_motion}" if self.gradient_of_motion is not None else ""
+        return f"CustomDof(motion={self.motion}{grad})"
+
+    def evaluate_motion_at_points(self, points: np.ndarray) -> np.ndarray:
+        flat_points = points.reshape(-1, 3)
+        motion = np.zeros((flat_points.shape[0], 3))
+        for i, p in enumerate(flat_points):
+            motion[i, :] = self.motion(p)
+        return motion.reshape(*points.shape[:-1], 3)
+
+    def evaluate_gradient_of_motion_at_points(self, points: np.ndarray) -> np.ndarray:
+        flat_points = points.reshape(-1, 3)
+        grad = np.zeros((flat_points.shape[0], 3, 3))
+        if self.gradient_of_motion is not None:
+            for i, p in enumerate(flat_points):
+                grad[i, :, :] = self.gradient_of_motion(p)
+        return grad.reshape(*points.shape[:-1], 3, 3)
+
+
 def is_rigid_body_dof(dof):
+    # is_single_rigid_body_dof for now...
     return (
             isinstance(dof, TranslationDof)
             or isinstance(dof, RotationDof)

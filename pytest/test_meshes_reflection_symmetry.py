@@ -16,8 +16,10 @@
 from functools import lru_cache
 
 import numpy as np
+import xarray as xr
 import pytest
 
+import capytaine as cpt
 from capytaine.meshes import (
     Mesh,
     ReflectionSymmetricMesh,
@@ -168,7 +170,7 @@ def test_join_nested_symmetries():
     assert isinstance(result, ReflectionSymmetricMesh)
     assert result.nb_faces == 8  # 2 quarter faces * 4 with both symmetries
 
-def test_join_with_regular_mesh_with_warning():
+def test_join_with_regular_mesh_with_warnings(caplog):
     """Join ReflectionSymmetricMesh with regular Mesh."""
     vertices1 = np.array([[0, 0.5, 0], [1, 0.5, 0], [1, 1, 0], [0, 1, 0]])
     faces1 = [[0, 1, 2, 3]]
@@ -179,11 +181,53 @@ def test_join_with_regular_mesh_with_warning():
     faces2 = [[0, 1, 2, 3]]
     mesh2 = Mesh(vertices=vertices2, faces=faces2)
 
-    result = sym1 + mesh2
+    with caplog.at_level("WARNING"):
+        result = sym1 + mesh2
 
     # Should return regular Mesh
     assert isinstance(result, Mesh)
     assert not isinstance(result, ReflectionSymmetricMesh)
+    assert "Symmetry will be discarded." in caplog.text
+
+def test_join_with_regular_mesh_not_too_many_warnings(caplog):
+    # Used to fill a wall of warning because of discarded symmetries
+    pytest.importorskip("joblib")
+    from joblib import cpu_count
+    n_jobs = min(cpu_count(), 2)
+
+    vertices1 = np.array([[0, 0.5, 0], [1, 0.5, 0], [1, 1, 0], [0, 1, 0]])
+    faces1 = [[0, 1, 2, 3]]
+    half1 = Mesh(vertices=vertices1, faces=faces1)
+    sym1 = ReflectionSymmetricMesh(half=half1, plane="xOz")
+    bd1 = cpt.FloatingBody(
+        mesh=sym1.translated_z(-0.5),
+        lid_mesh=sym1,
+        dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
+        name="sym"
+    )
+
+    vertices2 = np.array([[2, 0, 0], [3, 0, 0], [3, 1, 0], [2, 1, 0]])
+    faces2 = [[0, 1, 2, 3]]
+    mesh2 = Mesh(vertices=vertices2, faces=faces2)
+    bd2 = cpt.FloatingBody(
+        mesh=mesh2.translated_z(-0.5),
+        dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)),
+        name="nosym"
+    )
+
+    both = bd1 + bd2
+
+    test_matrix = xr.Dataset(coords={
+        "omega": np.linspace(0.1, 4.0, 10),
+        "radiating_dof": list(both.dofs),
+        "wave_direction": [0.0, np.pi/2]
+                })
+
+    solver = cpt.BEMSolver()
+    caplog.clear()
+    with caplog.at_level("WARNING"):
+        solver.fill_dataset(test_matrix, both, hydrostatics=False)#, n_jobs=n_jobs)
+    assert "Symmetry will be discarded" not in caplog.text
 
 def test_join_with_metadata():
     sym1 = ReflectionSymmetricMesh(

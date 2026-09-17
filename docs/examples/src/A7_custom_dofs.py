@@ -1,7 +1,7 @@
 import numpy as np
 import capytaine as cpt
 
-mesh = cpt.mesh_sphere(radius=1.0, center=(0, 0, 0), faces_max_radius=0.2)
+mesh = cpt.mesh_sphere(radius=1.0, center=(0, 0, 0), faces_max_radius=0.2).immersed_part()
 
 # Initialize floating body
 body = cpt.FloatingBody(mesh, lid_mesh=mesh.generate_lid())

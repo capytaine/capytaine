@@ -10,6 +10,15 @@ We refer also to [Del87]_ [Del89]_ [Del93]_ [BD15]_ and [AD18]_.
 
 .. contents:: Contents
 
+Notations and conventions
+=========================
+
+Unless stated otherwise, all points :math:`x` in space are in the global
+coordinate system with the free surface at :math:`x_3 = 0`.
+Without forward speed, this coordinate system is fixed with respect to the earth.
+With forward speed, it is moving horizontally at this speed.
+
+
 Linear boundary value problem
 =============================
 

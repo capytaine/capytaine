@@ -74,6 +74,14 @@ compressed files formats such as `gz
         mesh = cpt.load_mesh(f, file_format='nemoh')
 
 
+.. note::
+   In Capytaine, all 3D coordinates are expressed in the same global reference
+   frame such that the rest free surface is horizontal at altitude :math:`0`.
+   If the mesh file has been created with coordinates in a difference reference
+   frame (e.g. using the center of mass as reference), you can easily adjust it
+   after loading using the :meth:`~capytaine.meshes.meshes.Mesh.translated`
+   method as seen below.
+
 Importing through external library
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

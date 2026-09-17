@@ -1,11 +1,24 @@
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Definition of the problems to solve with the BEM solver, and the results of this resolution."""
-# Copyright (C) 2017-2023 Matthieu Ancellin
-# See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
+from typing import Optional, Dict
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 from scipy.optimize import newton
 
 from capytaine.tools.deprecation_handling import _get_water_depth
@@ -252,6 +265,16 @@ class LinearPotentialFlowProblem:
                 "rho": self.rho,
                 "g": self.g}
 
+    def _wrap_dataarray(self, da):
+        """Add metadata defining the problem to a DataArray"""
+        dims = ['g', 'rho', 'water_depth', 'forward_speed', self.provided_freq_type, 'wave_direction']
+        if isinstance(self, RadiationProblem):
+            dims += ['radiating_dof']
+        all_params = self._asdict()
+        coords = {d: [all_params[d]] for d in dims}
+        return da.expand_dims(coords)
+
+
     @staticmethod
     def _group_for_parallel_resolution(problems):
         """Given a list of problems, returns a list of groups of problems, such
@@ -481,27 +504,29 @@ class RadiationProblem(LinearPotentialFlowProblem):
 class LinearPotentialFlowResult:
 
     def __init__(self, problem, forces=None, sources=None, potential=None, pressure=None):
-        self.problem = problem
+        self.problem: LinearPotentialFlowProblem = problem
 
-        self.forces = forces if forces is not None else {}
-        self.sources = sources
-        self.potential = potential
-        self.pressure = pressure
-
-        self.fs_elevation = {}  # Only used in legacy `get_free_surface_elevation`. To be removed?
+        self.forces: Dict[str, complex] = forces if forces is not None else {}
+        self.sources: Optional[np.ndarray] = sources
+        self.potential: Optional[np.ndarray] = potential
+        self.pressure: Optional[np.ndarray] = pressure
+        if self.pressure is not None and self.problem.body is not None:
+            self.pressure_on_hull = self.pressure[self.problem.body.hull_mask]
+        else:
+            self.pressure_on_hull = None
 
         # Copy data from problem
         self.body               = self.problem.body
         self.free_surface       = self.problem.free_surface
         self.omega              = self.problem.omega
-        self.freq              = self.problem.freq
+        self.freq               = self.problem.freq
         self.period             = self.problem.period
         self.wavenumber         = self.problem.wavenumber
         self.wavelength         = self.problem.wavelength
         self.forward_speed      = self.problem.forward_speed
         self.wave_direction     = self.problem.wave_direction
         self.encounter_omega    = self.problem.encounter_omega
-        self.encounter_freq    = self.problem.encounter_freq
+        self.encounter_freq     = self.problem.encounter_freq
         self.encounter_period   = self.problem.encounter_period
         self.encounter_wavenumber = self.problem.encounter_wavenumber
         self.encounter_wavelength = self.problem.encounter_wavelength
@@ -519,6 +544,11 @@ class LinearPotentialFlowResult:
     def force(self):
         # Just an alias
         return self.forces
+
+    def pressure_dataarray(self) -> xr.DataArray:
+        data = self.pressure_on_hull if self.pressure_on_hull is not None else np.full((self.body.mesh.nb_faces,), np.nan + 1j*np.nan)
+        dataarray = xr.DataArray(data, dims=["hull_face"], name="pressure")
+        return self.problem._wrap_dataarray(dataarray)
 
     __str__ = LinearPotentialFlowProblem.__str__
     __repr__ = LinearPotentialFlowProblem.__repr__
@@ -551,7 +581,6 @@ class DiffractionResult(LinearPotentialFlowResult):
                      Froude_Krylov_force=FK[dof],
                      kind="DiffractionResult")
                 for dof in self.influenced_dofs]
-
 
 class FailedDiffractionResult(DiffractionResult):
     def __init__(self, problem, exception):

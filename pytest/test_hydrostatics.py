@@ -1,3 +1,16 @@
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from functools import lru_cache
 import logging
 import json
@@ -6,9 +19,11 @@ from pathlib import Path
 import pytest
 
 import numpy as np
+import xarray as xr
 import capytaine as cpt
 
 from capytaine.meshes.predefined import mesh_sphere, mesh_horizontal_cylinder, mesh_vertical_cylinder
+from capytaine.io.xarray import compute_hydrostatics_dataset
 
 ######################################################################
 
@@ -64,12 +79,12 @@ def test_waterplane_center_of_submerged_sphere():
 ######################################################################
 
 @lru_cache
-def floating_sphere():
+def floating_sphere(quadrature_method=None):
     return mesh_sphere(
         radius=1.0,
         center=(0, 0, 0),
         resolution=(30, 30)
-    )
+    ).with_quadrature(quadrature_method)
 
 def test_wet_surface_area_of_floating_sphere():
     assert np.isclose(
@@ -134,21 +149,37 @@ def test_stiffness_no_center_of_mass():
         body.compute_hydrostatic_stiffness()
 
 @lru_cache
-def rigid_body():
+def rigid_body(quadrature_method=None):
     rigid_body = cpt.FloatingBody(
-        mesh=floating_sphere(),
+        mesh=floating_sphere(quadrature_method=quadrature_method),
         dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -0.3)),
         center_of_mass=(0, 0, -0.3)
     )
     return rigid_body
 
 @lru_cache
-def custom_dof_body():
-    mesh = floating_sphere()
+def legacy_custom_dof_body(quadrature_method=None):
+    """Legacy interface for custom dof, defining the dof as an array"""
+    mesh = floating_sphere(quadrature_method=quadrature_method)
     dof = np.array([(0, 0, z) for (x, y, z) in mesh.faces_centers])
-    custom_dof_body = cpt.FloatingBody(
+    legacy_custom_dof_body = cpt.FloatingBody(
         mesh=mesh,
         dofs={"elongate_in_z": dof},
+        center_of_mass=mesh.center_of_buoyancy,
+    )
+    return legacy_custom_dof_body
+
+@lru_cache
+def custom_dof_body(quadrature_method=None):
+    """Newer interface for custom dof, defining the dof as a function in an AbstactDof"""
+    mesh = floating_sphere(quadrature_method=quadrature_method)
+    def z_stretch_motion(p):
+        return np.array([0, 0, p[2]])
+    def gradient_of_z_stretch_motion(p):
+        return np.array([[0, 0, 0], [0, 0, 0], [0, 0, 1]])
+    custom_dof_body = cpt.FloatingBody(
+        mesh=mesh,
+        dofs={"elongate_in_z": cpt.CustomDof(z_stretch_motion, gradient_of_z_stretch_motion)},
         center_of_mass=mesh.center_of_buoyancy,
     )
     return custom_dof_body
@@ -157,13 +188,13 @@ def test_stiffness_dof_ordering():
     K = rigid_body().compute_hydrostatic_stiffness()
     assert np.all(K.coords["radiating_dof"].values == np.array(['Surge', 'Sway', 'Heave', 'Roll', 'Pitch', 'Yaw']))
 
-@pytest.mark.parametrize("body", [rigid_body, custom_dof_body])
+@pytest.mark.parametrize("body", [rigid_body, legacy_custom_dof_body, custom_dof_body])
 def test_stiffness_invariance_by_clipping_at_free_surface(body):
     K1 = body().compute_hydrostatic_stiffness()
     K2 = body().immersed_part().compute_hydrostatic_stiffness()
     assert np.allclose(K1, K2)
 
-@pytest.mark.parametrize("body", [rigid_body, custom_dof_body])
+@pytest.mark.parametrize("body", [rigid_body, legacy_custom_dof_body, custom_dof_body])
 def test_stiffness_invariance_by_translation(body):
     K1 = body().compute_hydrostatic_stiffness()
     K2 = body().translated([1.0, 0.0, 0.0]).compute_hydrostatic_stiffness()
@@ -208,21 +239,22 @@ def test_stiffness_single_rotation_dof():
 
 # DIVERGENCE
 
-def test_stiffness_elastic_dof_with_divergence():
-    body = custom_dof_body().immersed_part()
+@pytest.mark.parametrize("quadrature_method", [None, "Gauss-Legendre 2"])
+def test_stiffness_legacy_elastic_dof_with_divergence(quadrature_method):
+    body = legacy_custom_dof_body(quadrature_method=quadrature_method).immersed_part()
     hs_1 = body.compute_hydrostatic_stiffness()
     hs_2 = body.compute_hydrostatic_stiffness(divergence={"elongate_in_z": np.ones(body.mesh.nb_faces)})
     assert hs_1.values[0, 0] != hs_2.values[0, 0]
     analytical_hs = - 1000.0 * 9.81 * (4 * body.volume * body.center_of_buoyancy[2])
-    assert np.isclose(hs_2.values[0, 0], analytical_hs)
+    assert np.isclose(hs_2.values[0, 0], analytical_hs, rtol=1e-3)
 
-def test_stiffness_with_divergence_not_clipped():
-    body = custom_dof_body()
+def test_stiffness_legacy_with_divergence_not_clipped():
+    body = legacy_custom_dof_body()
     with pytest.raises(NotImplementedError):
         body.compute_hydrostatic_stiffness(divergence={"elongate_in_z": np.ones(body.mesh.nb_faces)})
 
-def test_stiffness_with_malformed_divergence(caplog):
-    body = custom_dof_body().immersed_part()
+def test_stiffness_legacy_with_malformed_divergence(caplog):
+    body = legacy_custom_dof_body().immersed_part()
     hs_1 = body.compute_hydrostatic_stiffness()
     with caplog.at_level(logging.WARNING):
         hs_2 = body.compute_hydrostatic_stiffness(
@@ -231,7 +263,24 @@ def test_stiffness_with_malformed_divergence(caplog):
             }
         )
     assert hs_1.values[0, 0] == hs_2.values[0, 0]
-    assert "without the divergence" in caplog.text
+    assert "does not seem to provide a value for elongate_in_z" in caplog.text
+
+@pytest.mark.parametrize("quadrature_method", [None, "Gauss-Legendre 2"])
+def test_stiffness_new_elastic_dof_including_divergence(quadrature_method):
+    body = custom_dof_body(quadrature_method=quadrature_method).immersed_part()
+    hs = body.compute_hydrostatic_stiffness()
+    analytical_hs = - 1000.0 * 9.81 * (4 * body.volume * body.center_of_buoyancy[2])
+    assert np.isclose(hs.values[0, 0], analytical_hs)
+
+def test_stiffness_mixing_older_and_new_divergence_interface(caplog):
+    body = custom_dof_body().immersed_part()
+    with caplog.at_level(logging.WARNING):
+        body.compute_hydrostatic_stiffness()
+    assert 'Ignoring the provided divergence' not in caplog.text
+    with caplog.at_level(logging.WARNING):
+        body.compute_hydrostatic_stiffness(divergence={"elongate_in_z": np.ones(body.mesh.nb_faces)})
+    assert 'Ignoring the provided divergence' in caplog.text
+
 
 # MULTIBODY
 
@@ -241,17 +290,20 @@ def test_stiffness_with_malformed_divergence(caplog):
 def several_bodies():
     a = cpt.FloatingBody(
             mesh=floating_sphere(),
+            center_of_mass=(0, 0, 0),
             name='foo'
             )
     a.add_translation_dof(name="Heave")
     b = cpt.FloatingBody(
             mesh=floating_sphere().translated_x(3.0),
             dofs=cpt.rigid_body_dofs(),
+            center_of_mass=(3, 0, 0),
             name='bar'
             )
     c = cpt.FloatingBody(
             mesh=floating_sphere().translated_y(-2.0),
             dofs=cpt.rigid_body_dofs(),
+            center_of_mass=(0, -2, 0),
             name='baz'
             )
     return a, b, c
@@ -479,6 +531,101 @@ def test_all_hydrostatics():
             assert np.isclose(capy_hsdb[var], mm_hsdb[var],
                               rtol=1e-2, atol=1e-3).all()
 
+###############################
+#  Full hydrostatics dataset  #
+###############################
+
+def test_dataset_single_body():
+    body = rigid_body()
+    ds = compute_hydrostatics_dataset(body)
+    assert "inertia_matrix" in ds
+    assert "hydrostatic_stiffness" in ds
+    assert "rho" not in ds["inertia_matrix"].dims
+
+def test_dataset_single_body_rho_range():
+    body = rigid_body()
+    ds = compute_hydrostatics_dataset(body, rho=[1000.0, 1025.0], g=9.81)
+    assert "inertia_matrix" in ds
+    assert "hydrostatic_stiffness" in ds
+    assert "rho" in ds["inertia_matrix"].dims
+
+def test_dataset_dof_names():
+    body = rigid_body().rename("body_1")
+    ds = compute_hydrostatics_dataset(body)
+    assert not np.any(ds.influenced_dof.str.startswith("body_"))
+    ds = compute_hydrostatics_dataset(cpt.Multibody([body]))
+    assert np.all(ds.influenced_dof.str.startswith("body_"))
+
+def test_dataset_two_bodies():
+    a, b, c = several_bodies()
+    ds = compute_hydrostatics_dataset(cpt.Multibody([a, b, c]))
+    assert ds["rotation_center"].shape == (3, 3)
+    assert np.all(np.isnan(ds["rotation_center"].values[0, :]))  # First body has no rotation center
+    assert not np.any(np.isnan(ds["rotation_center"].values[1:, :]))  # Other bodies have rotation center
+    assert ds["center_of_mass"].shape == (3, 3)
+    assert ds["hydrostatic_stiffness"].shape == (13, 13)
+    assert ds["inertia_matrix"].shape == (13, 13)
+    assert np.allclose(ds["draught"].values, [1.0, 1.0, 1.0])
+
+def test_dataset_two_bodies_rho_range():
+    a, b, c = several_bodies()
+    ds = compute_hydrostatics_dataset(cpt.Multibody([a, b, c]), rho=[1000.0, 1025.0])
+    assert ds["rotation_center"].shape == (3, 3)
+    assert ds["center_of_buoyancy"].shape == (3, 3)
+    assert ds["inertia_matrix"].shape == (2, 13, 13)
+    assert ds["hydrostatic_stiffness"].shape == (2, 13, 13)
+    assert ds["disp_mass"].dims == ("rho", "body")
+
+def test_dataset_use_predefined_matrices():
+    body = rigid_body()
+    body = body.copy()
+    body.hydrostatic_stiffness = body.add_dofs_labels_to_matrix(np.zeros((6, 6)))
+    body.inertia_matrix = body.add_dofs_labels_to_matrix(np.ones((6, 6)))
+    ds = compute_hydrostatics_dataset(body)
+    # Matrices not computed, predefined values are used instead
+    assert np.allclose(ds["hydrostatic_stiffness"].values, 0.0)
+    assert np.allclose(ds["inertia_matrix"].values, 1.0)
+
+def test_fill_dataset_single_body():
+    body = rigid_body().immersed_part()
+    test_matrix = xr.Dataset(coords={
+        "wavenumber": [1.0],
+        "radiating_dof": list(body.dofs),
+        "wave_direction": 0.0,
+        "rho": 1025.0,
+        })
+    solver = cpt.BEMSolver()
+    ds = solver.fill_dataset(test_matrix, body, hydrostatics=True)
+    assert "inertia_matrix" in ds
+    assert "hydrostatic_stiffness" in ds
+    assert "center_of_buoyancy" in ds
+
+def test_fill_dataset_single_body_rho_range():
+    body = rigid_body().immersed_part()
+    test_matrix = xr.Dataset(coords={
+        "wavenumber": [1.0],
+        "radiating_dof": list(body.dofs),
+        "wave_direction": [0.0],
+        "rho": [1000.0, 1025.0],
+        })
+    solver = cpt.BEMSolver()
+    ds = solver.fill_dataset(test_matrix, body, hydrostatics=True)
+    assert "rho" in ds["inertia_matrix"].dims
+    assert np.allclose(ds["inertia_matrix"].coords["rho"], test_matrix.coords["rho"])
+    assert ds["disp_mass"].shape == (2,)
+
+def test_fill_dataset_single_body_some_dofs():
+    body = rigid_body().immersed_part()
+    test_matrix = xr.Dataset(coords={
+        "wavenumber": [1.0],
+        "radiating_dof": ["Heave"],
+        "wave_direction": [0.0],
+        })
+    solver = cpt.BEMSolver()
+    ds = solver.fill_dataset(test_matrix, body, hydrostatics=True)
+    assert ds.radiating_dof.shape == (1,)
+    assert ds["inertia_matrix"].shape == (6, 1)
+    assert ds["added_mass"].shape == (1, 6, 1)
 
 ######################################################################
 
@@ -489,22 +636,22 @@ def test_all_hydrostatics():
 def test_mass_joined_bodies():
     a = cpt.FloatingBody(mass=100, name="body_1")
     b = cpt.FloatingBody(mass=300, name="body_2")
-    assert (a + b).as_FloatingBody().mass == 400
+    assert (a + b).as_FloatingBody.mass == 400
 
 def test_mass_joined_bodies_with_missing_mass():
     a = cpt.FloatingBody(name="body_1")
     b = cpt.FloatingBody(mass=300, name="body_2")
-    assert (a + b).as_FloatingBody().mass is None
+    assert (a + b).as_FloatingBody.mass is None
 
 def test_center_of_mass_joined_bodies():
     a = cpt.FloatingBody(mass=100, center_of_mass=(0, 0, 0), name="body_1")
     b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0), name="body_2")
-    assert np.allclose((a + b).as_FloatingBody().center_of_mass, (0.75, 0, 0))
+    assert np.allclose((a + b).as_FloatingBody.center_of_mass, (0.75, 0, 0))
 
 def test_center_of_mass_joined_bodies_with_missing_mass():
     a = cpt.FloatingBody(name="body_1")
     b = cpt.FloatingBody(mass=300, center_of_mass=(1, 0, 0), name="body_2")
-    assert (a + b).as_FloatingBody().center_of_mass is None
+    assert (a + b).as_FloatingBody.center_of_mass is None
 
 def test_not_single_rigid_and_non_neutrally_buoyant_body():
     m = mesh_sphere()

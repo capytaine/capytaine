@@ -1,6 +1,17 @@
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Definition of the methods to build influence matrices, using possibly some sparse structures."""
-# Copyright (C) 2017-2019 Matthieu Ancellin
-# See LICENSE file at <https://github.com/capytaine/capytaine>
 
 import logging
 from abc import ABC, abstractmethod
@@ -81,10 +92,8 @@ def solve_gmres(A, b):
 LUDecomposedMatrixOrNot = Union[MatrixLike, LUDecomposedMatrixLike]
 
 
-class BasicMatrixEngine(MatrixEngine):
+class DefaultMatrixEngine(MatrixEngine):
     """
-    Default matrix engine.
-
     Features:
         - Caching of the last computed matrices.
         - Supports plane symmetries and nested plane symmetries.
@@ -115,14 +124,14 @@ class BasicMatrixEngine(MatrixEngine):
         self.last_computed_matrices = None
 
         self.exportable_settings = {
-            'engine': 'BasicMatrixEngine',
+            'engine': 'DefaultMatrixEngine',
             'linear_solver': str(linear_solver),
             **self.green_function.exportable_settings,
         }
 
     def __str__(self):
         params= [f"green_function={self.green_function}", f"linear_solver={repr(self._linear_solver)}"]
-        return f"BasicMatrixEngine({', '.join(params)})"
+        return f"DefaultMatrixEngine({', '.join(params)})"
 
     def __repr__(self):
         return self.__str__()
@@ -333,7 +342,7 @@ class BasicMatrixEngine(MatrixEngine):
 
         else:
             raise NotImplementedError(
-                f"Unknown `linear_solver` in BasicMatrixEngine: {self._linear_solver}"
+                f"Unknown `linear_solver` in DefaultMatrixEngine: {self._linear_solver}"
             )
 
     def compute_ram_estimation(self, problem):

@@ -1,3 +1,16 @@
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import pytest
 
 import numpy as np
@@ -31,15 +44,15 @@ def test_exportable_settings():
     gf2 = cpt.XieDelhommeau()
     assert gf2.exportable_settings['green_function'] == 'XieDelhommeau'
 
-    engine = cpt.BasicMatrixEngine(green_function=gf)
-    assert engine.exportable_settings['engine'] == 'BasicMatrixEngine'
+    engine = cpt.DefaultMatrixEngine(green_function=gf)
+    assert engine.exportable_settings['engine'] == 'DefaultMatrixEngine'
     assert engine.exportable_settings['linear_solver'] == 'lu_decomposition'
 
     solver = cpt.BEMSolver(engine=engine)
     assert solver.exportable_settings['green_function'] == 'Delhommeau'
     assert solver.exportable_settings['tabulation_nb_integration_points'] == 50
     assert solver.exportable_settings['finite_depth_prony_decomposition_method'] == 'fortran'
-    assert solver.exportable_settings['engine'] == 'BasicMatrixEngine'
+    assert solver.exportable_settings['engine'] == 'DefaultMatrixEngine'
     assert solver.exportable_settings['linear_solver'] == 'lu_decomposition'
 
     solver = cpt.BEMSolver(green_function=gf)
@@ -49,7 +62,7 @@ def test_exportable_settings():
 
 def test_cannot_define_gf_and_engine_in_solver():
     with pytest.raises(ValueError):
-        cpt.BEMSolver(engine=cpt.BasicMatrixEngine(), green_function=cpt.Delhommeau())
+        cpt.BEMSolver(engine=cpt.DefaultMatrixEngine(), green_function=cpt.Delhommeau())
 
 def test_solver_has_initialized_timer():
     s = cpt.BEMSolver()
@@ -107,8 +120,9 @@ def test_control_threads(sphere, n_jobs, n_threads):
 
 def test_nb_timer(sphere):
     pytest.importorskip("joblib")
+    from joblib import cpu_count
     solver = cpt.BEMSolver()
-    n_jobs = 3
+    n_jobs = min(cpu_count(), 3)
     problems = [
             cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=omega)
             for omega in np.linspace(0.1, 3.0, 5)

@@ -1,3 +1,16 @@
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Tests for the computation of the Green function using Fortran routines."""
 
 import pytest
@@ -189,11 +202,14 @@ def test_low_freq_with_rankine_part_singularities():
 
 
 def test_liangwunoblesse_wave_term():
-    core = cpt.LiangWuNoblesseGF().fortran_core
-    gf, gf_r = core.liangwunoblessewaveterm.havelockgf(1.0, -1.0)
-    re_gf, _, im_gf, re_gf_r, im_gf_r = core.delhommeau_integrals(1.0, -1.0, 1000)
-    assert gf == pytest.approx(- re_gf - im_gf*1j, rel=5e-2)
-    assert gf_r == pytest.approx(- re_gf_r - im_gf_r*1j, rel=5e-2)
+    gf_1, gf_2 = cpt.LiangWuNoblesseGF(), cpt.Delhommeau()
+    xi, xj = np.array([0.0, 0.0, -1.0]), np.array([1.0, 0.0, -2.0])
+    k = 1.0
+    s = gf_2.gf_singularities_fortran_enum["low_freq"]
+    gf_1_value, dgf_1_value = gf_1.fortran_core.green_wave.wave_part_infinite_depth(xi, xj, k, *gf_1.all_tabulation_parameters, s)
+    gf_2_value, dgf_2_value = gf_2.fortran_core.green_wave.wave_part_infinite_depth(xi, xj, k, *gf_2.all_tabulation_parameters, s)
+    assert gf_1_value == pytest.approx(gf_2_value, rel=5e-2)
+    assert dgf_1_value == pytest.approx(dgf_2_value, rel=5e-2)
 
 
 @pytest.mark.parametrize("wavenumber", [0.0, 1.0, np.inf])

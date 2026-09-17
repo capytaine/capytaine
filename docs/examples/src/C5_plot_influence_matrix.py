@@ -10,7 +10,7 @@ cylinder = cpt.FloatingBody(
             ))
 
 green_function = cpt.Delhommeau()
-engine = cpt.BasicMatrixEngine(green_function=green_function)
+engine = cpt.DefaultMatrixEngine(green_function=green_function)
 
 S, K = engine.build_matrices(
     cylinder.mesh, cylinder.mesh,

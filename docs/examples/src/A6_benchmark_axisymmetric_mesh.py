@@ -46,6 +46,7 @@ for body in [full_body, symmetric_body]:
         body,
         n_threads=1,  # No parallel resolution for cleaner benchmark
         progress_bar=False,
+        hydrostatics=False,
     )
 
     print()

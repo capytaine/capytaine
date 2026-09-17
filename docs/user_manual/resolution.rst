@@ -16,7 +16,7 @@ The settings of the solver can be customized by passing parameters at the initia
 
    which is equivalent to
 
-       solver = cpt.BEMSolver(engine=BasicMatrixEngine(green_function=...), method=...)
+       solver = cpt.BEMSolver(engine=DefaultMatrixEngine(green_function=...), method=...)
 
 Method
 ~~~~~~
@@ -49,7 +49,7 @@ Engine
 A class to build a interaction matrix, deriving from :class:`MatrixEngine <capytaine.bem.engines.MatrixEngine>`.
 A single one is built-in, but others with other features can be found in other packages.
 
-:class:`~capytaine.bem.engines.BasicMatrixEngine` (Default)
+:class:`~capytaine.bem.engines.DefaultMatrixEngine` (Default)
    Capytaine's default engine, that should be a good compromise between robustness, complexity and speed.
 
    The object can be initialized with the following options:
@@ -79,7 +79,7 @@ A single one is built-in, but others with other features can be found in other p
                            return np.linalg.inv(A) @ b
 
                    my_bem_solver = cpt.BEMSolver(
-                      engine=BasicMatrixEngine(linear_solver=my_linear_solver)
+                      engine=DefaultMatrixEngine(linear_solver=my_linear_solver)
                       )
 
            This option can be used for instance to apply a custom preconditioning to
@@ -246,6 +246,13 @@ raising an error do not interrupt the full resolution. Instead, the error is
 displayed in the log and the output result is replaced by a
 :class:`~capytaine.bem.problems_and_results.FailedDiffractionResult` or a
 :class:`~capytaine.bem.problems_and_results.FailedRadiationResult`.
+
+:meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` also accepts a
+:code:`keep_details` argument, defaulting to :code:`False` this time, since the
+source and potential distributions of every problem in the test matrix would
+otherwise be kept in memory at once. When set to :code:`True`, the pressure
+field on the hull is added to the output dataset, as described in
+:doc:`post_pro`.
 
 Progress bar
 ------------

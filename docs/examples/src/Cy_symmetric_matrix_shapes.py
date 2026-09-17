@@ -41,7 +41,7 @@ def rotation_of_reflection(n=4):
 
 def test(sym_mesh):
     ref_mesh = sym_mesh.merged()
-    engine = cpt.BasicMatrixEngine(
+    engine = cpt.DefaultMatrixEngine(
         green_function=DistanceKernelFunction()
     )
     params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0)

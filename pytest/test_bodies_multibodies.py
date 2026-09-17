@@ -1,3 +1,16 @@
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import pytest
 
 import numpy as np
@@ -41,11 +54,11 @@ def test_multibody_resolution():
     )
     solver = cpt.BEMSolver()
     res = solver.solve(cpt.DiffractionProblem(body=multi, omega=1.0, wave_direction=0.0))
-    ref_res = solver.solve(cpt.DiffractionProblem(body=multi.as_FloatingBody(), omega=1.0, wave_direction=0.0))
+    ref_res = solver.solve(cpt.DiffractionProblem(body=multi.as_FloatingBody, omega=1.0, wave_direction=0.0))
     assert all(np.isclose(ref_res.forces[k], res.forces[k]) for k in multi.dofs)
 
     res = solver.solve(cpt.RadiationProblem(body=multi, omega=1.0, radiating_dof="body_1__Heave"))
-    ref_res = solver.solve(cpt.RadiationProblem(body=multi.as_FloatingBody(), omega=1.0, radiating_dof="body_1__Heave"))
+    ref_res = solver.solve(cpt.RadiationProblem(body=multi.as_FloatingBody, omega=1.0, radiating_dof="body_1__Heave"))
     assert all(np.isclose(ref_res.forces[k], res.forces[k]) for k in multi.dofs)
 
 def test_multibody_hydrostatics():
@@ -271,3 +284,42 @@ def test_no_nested_multibody():
     assert all(isinstance(b, cpt.FloatingBody) for b in multi_01_2.bodies)
     assert len(multi_0_12.bodies) == 3
     assert all(isinstance(b, cpt.FloatingBody) for b in multi_0_12.bodies)
+
+def test_merge_multibody_to_add_dofs(caplog):
+    body_1 = cpt.FloatingBody(
+            mesh=cpt.mesh_sphere(center=(0, 0, 0)).immersed_part(),
+            dofs=cpt.rigid_body_dofs(only=["Heave"]),
+            name="body_1"
+            )
+    body_2 = cpt.FloatingBody(
+            mesh=cpt.mesh_sphere(center=(2, 0, 0)).immersed_part(),
+            dofs=cpt.rigid_body_dofs(only=["Heave"]),
+            name="body_2"
+            )
+    both = (body_1 + body_2).as_FloatingBody
+    both.add_translation_dof(name="Surge")
+    assert set(both.dofs) == {'Surge', 'body_1__Heave', 'body_2__Heave'}
+    assert 'rotation_center' not in caplog.text  # There should be no warning about missing rotation centers
+
+def test_hydrostatics_with_global_dofs():
+    mesh_1 = cpt.mesh_sphere(radius=1.0, center=(0, 0, 0), resolution=(4, 4))
+    sphere = cpt.FloatingBody(
+        mesh=mesh_1,
+        lid_mesh=mesh_1.generate_lid(),
+        dofs=cpt.rigid_body_dofs(only=["Heave"], rotation_center=(0, 0, 0)),
+        center_of_mass=(0, 0, 0),
+        name="sphere_1",
+    )
+    mesh_2 = cpt.mesh_sphere(radius=0.5, center=(-2, -3, 0), resolution=(4, 4))
+    other_sphere = cpt.FloatingBody(
+        mesh=mesh_2,
+        lid_mesh=mesh_2.generate_lid(),
+        dofs=cpt.rigid_body_dofs(only=["Heave"], rotation_center=(-2, -3, 0)),
+        center_of_mass=(-2, -3, 0),
+        name="sphere_2",
+    )
+    all_bodies = (sphere + other_sphere).as_FloatingBody  # Global dofs not yet available otherwise
+    all_bodies.center_of_mass = (-1, -1, 0)
+    all_bodies.add_translation_dof(name="Surge")
+    all_bodies.compute_rigid_body_inertia()
+    all_bodies.compute_hydrostatic_stiffness()

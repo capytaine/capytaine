@@ -1,3 +1,16 @@
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 from __future__ import annotations
 
 from typing import Optional
@@ -91,7 +104,7 @@ class Animation:
                 component.vedo_mesh.cmap(component.cmap, colors, vmin=component.vmin, vmax=component.vmax)
 
 
-    def run(self, camera=None, resolution=(800, 600), **kwargs):
+    def run(self, camera=None, lights=[], resolution=(800, 600), **kwargs):
         if camera is None:
             camera = {}
         for k, v in _default_camera.items():
@@ -100,6 +113,7 @@ class Animation:
         plt = self.vedo.Plotter(axes=1, interactive=False, **kwargs)
         plt.show(
             *[comp.vedo_mesh for comp in self.components],
+            *lights,
             camera=camera
         )
         t_range = np.linspace(0.0, self.loop_duration, int(self.loop_duration * self.fps))
@@ -110,7 +124,7 @@ class Animation:
         plt.interactive()
 
 
-    def save(self, filename, camera=None, resolution=(800, 600), **kwargs):
+    def save(self, filename, camera=None, lights=[], resolution=(800, 600), **kwargs):
         if camera is None:
             camera = {}
         for k, v in _default_camera.items():
@@ -120,6 +134,7 @@ class Animation:
         plt = self.vedo.Plotter(axes=1, interactive=False, **kwargs)
         plt.show(
             *[comp.vedo_mesh for comp in self.components],
+            *lights,
             camera=camera
         )
         t_range = np.linspace(0.0, self.loop_duration, int(self.loop_duration * self.fps))

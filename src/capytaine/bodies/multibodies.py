@@ -1,3 +1,17 @@
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 from __future__ import annotations
 
 import logging
@@ -94,11 +108,6 @@ class Multibody(AbstractBody):
                         block_diag(*[getattr(body, matrix_name) for body in bodies])
                         ))
 
-        LOG.debug(f"New multibody: {self.__str__()}.")
-
-    @lru_cache
-    def as_FloatingBody(self):
-        from capytaine.bodies.bodies import FloatingBody
         if all(body.mass is not None for body in self.bodies):
             total_mass = sum(body.mass for body in self.bodies)
         else:
@@ -110,7 +119,7 @@ class Multibody(AbstractBody):
         else:
             new_cog = None
 
-        return FloatingBody(
+        self.as_FloatingBody = FloatingBody(
                 mesh=self.mesh,
                 dofs=self.dofs,
                 lid_mesh=self.lid_mesh,
@@ -118,6 +127,8 @@ class Multibody(AbstractBody):
                 center_of_mass=new_cog,
                 name=self.name,
                 )
+
+        LOG.debug(f"New multibody: {self.__str__()}.")
 
     @property
     def name(self):
@@ -167,7 +178,7 @@ class Multibody(AbstractBody):
         return new_multibody
 
     def integrate_pressure(self, pressure):
-        return self.as_FloatingBody().integrate_pressure(pressure)
+        return self.as_FloatingBody.integrate_pressure(pressure)
 
     @cached_property
     def center_of_buoyancy(self):
@@ -176,6 +187,10 @@ class Multibody(AbstractBody):
     @cached_property
     def center_of_mass(self):
         return {b.name: b.center_of_mass for b in self.bodies}
+
+    @cached_property
+    def rotation_center(self):
+        return {b.name: b.rotation_center for b in self.bodies}
 
     @cached_property
     def volume(self):

@@ -1,3 +1,16 @@
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import pytest
 from pytest import approx
 import numpy as np
@@ -68,11 +81,21 @@ def test_m_terms():
     assert np.allclose(pb.boundary_condition.real, -pb.forward_speed*ny)
     assert np.allclose(pb.boundary_condition.imag, -pb.encounter_omega*(-y*nx + x*ny))
 
-def test_non_rigid_body(body):
+def test_non_rigid_body_with_legacy_dof(body):
     body = body.copy(name="body")
     body.dofs["Shear"] = np.array([[z, 0, 0] for (x, y, z) in body.mesh.faces_centers])
     with pytest.raises(NotImplementedError):
-        pb = cpt.RadiationProblem(body=body, omega=2.0, forward_speed=1.0, radiating_dof="Shear")
+        cpt.RadiationProblem(body=body, omega=2.0, forward_speed=1.0, radiating_dof="Shear")
+
+def test_non_rigid_body_with_new_dof(body):
+    body = body.copy(name="body")
+    body.dofs["Shear"] = cpt.CustomDof(
+            motion=lambda p: [p[2], 0, 0],
+            gradient_of_motion=lambda p: [[0, 0, 1], [0, 0, 0], [0, 0, 0]]
+            )
+    pb = cpt.RadiationProblem(body=body, omega=2.0, forward_speed=1.0, radiating_dof="Shear")
+    cpt.BEMSolver().solve(pb)
+
 
 # POST-PROCESSING
 

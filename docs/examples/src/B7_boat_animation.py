@@ -4,6 +4,8 @@ import capytaine as cpt
 from capytaine.bem.airy_waves import airy_waves_free_surface_elevation
 from capytaine.ui.vedo_animations import Animation
 
+from vedo import Light
+
 
 bem_solver = cpt.BEMSolver()
 
@@ -14,10 +16,8 @@ def generate_boat():
             mesh=boat_mesh,
             dofs=cpt.rigid_body_dofs(rotation_center=boat_mesh.center_of_buoyancy),
             center_of_mass = boat_mesh.center_of_buoyancy,
-            name="pirate ship"
             )
-    boat.inertia_matrix = boat.compute_rigid_body_inertia() / 10 # Artificially lower to have a more appealing animation
-    boat.hydrostatic_stiffness = boat.immersed_part().compute_hydrostatic_stiffness()
+    boat.inertia_matrix = boat.compute_rigid_body_inertia() / 40 # Artificially lower to have a more appealing animation
     return boat
 
 
@@ -29,8 +29,6 @@ def setup_animation(body, fs, omega, wave_amplitude, wave_direction):
     diffraction_result = bem_solver.solve(diffraction_problem)
 
     dataset = cpt.assemble_dataset(radiation_results + [diffraction_result])
-    dataset["inertia_matrix"] = body.inertia_matrix
-    dataset["hydrostatic_stiffness"] = body.hydrostatic_stiffness
     rao = cpt.post_pro.rao(dataset, wave_direction=wave_direction)
 
     # COMPUTE FREE SURFACE ELEVATION
@@ -58,6 +56,12 @@ if __name__ == '__main__':
     body = generate_boat()
     fs = cpt.mesh_rectangle(size=(200.0, 200.0), resolution=(100, 100))
 
-    anim = setup_animation(body, fs, omega=1.5, wave_amplitude=0.5, wave_direction=pi)
-    # anim.run(camera_position=(70, 70, 100), resolution=(800, 600))
-    anim.save("animated_boat.mp4", camera={"pos": (70, 70, 100)}, resolution=(800, 600))
+    anim = setup_animation(body, fs, omega=1.5, wave_amplitude=1.0, wave_direction=pi)
+
+    params = dict(
+        camera={"pos": (70, 70, 100)},
+        lights=[Light([0, 0, 100], intensity=0.8)],
+        resolution=(800, 600)
+    )
+    # anim.run(**params)
+    anim.save("animated_boat.mp4", **params)

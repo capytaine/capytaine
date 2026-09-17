@@ -6,6 +6,7 @@ import capytaine as cpt
 cpt.set_logging("INFO")
 
 resolutions = np.linspace(1.0, 8.0, 6)
+
 test_matrix = xr.Dataset(
     coords={
         "wavelength": [2.0],
@@ -37,7 +38,7 @@ for resolution in resolutions:
         name=f"cylinder_with_resolution_{resolution:.1f}"
     )
 
-    datasets.append(solver.fill_dataset(test_matrix, body, mesh=True))
+    datasets.append(solver.fill_dataset(test_matrix, body, mesh=True, hydrostatics=False))
     # When `mesh=True`, some extra data about the mesh is stored in the dataset, including the number of faces.
 
 

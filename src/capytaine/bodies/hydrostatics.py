@@ -1,18 +1,31 @@
-# Copyright (C) 2025 Capytaine developers
-# See LICENSE file at <https://github.com/capytaine/capytaine>
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import logging
+from typing import Union
 
 import numpy as np
 import xarray as xr
 from abc import ABC
 
-from capytaine.bodies.dofs import TranslationDof, RotationDof, is_rigid_body_dof
+from capytaine.bodies.dofs import AbstractDof, TranslationDof, RotationDof, is_rigid_body_dof
+from capytaine.meshes.abstract_meshes import AbstractMesh
 
 LOG = logging.getLogger(__name__)
 
-class _HydrostaticsMixin(ABC):
-    # This class is not meant to be instantiated but only to be inherited by other classes to give them more methods.
+class _FloatingBodyHydrostaticsMixin(ABC):
+    # This class is not meant to be instantiated but only to be inherited by the FloatingBody class to give it more methods.
 
     @property
     def wet_surface_area(self):
@@ -80,192 +93,172 @@ class _HydrostaticsMixin(ABC):
         gb = self.center_of_mass - self.center_of_buoyancy
         return self.longitudinal_metacentric_radius - gb[2]
 
-    def dof_normals(self, dof):
-        """Returns dot product of the surface face normals and DOF.
-        Shape: (nb_faces,)
+    def _rigid_body_hydrostatic_stiffness_coef(
+        self,
+        mesh: AbstractMesh,
+        influenced_dof: Union[TranslationDof, RotationDof],
+        radiating_dof: Union[TranslationDof, RotationDof],
+        *,
+        rho: float,
+        g: float
+    ):
+        """Hydrostatic stiffness coefficient for a pair of rigid-body dofs,
+        using the general integral formulas for a rigid body.
         """
-        return np.sum(self.mesh.faces_normals * dof, axis=1)
 
-    def each_hydrostatic_stiffness(self, influenced_dof_name, radiating_dof_name, *,
-                                         influenced_dof_div=0.0, rho=1000.0, g=9.81):
-        r"""
-        Return the hydrostatic stiffness for a pair of DOFs.
+        # Check that the directions of both dofs are canonical directions (1, 0, 0), (0, 1, 0) or (0, 0, 1)
+        for dof in (influenced_dof, radiating_dof):
+            if not hasattr(dof, "_standard_name"):
+                standard_dir = np.all(np.isclose(dof.direction, np.eye(3)), axis=1)
+                if not np.any(standard_dir):
+                    raise NotImplementedError("Cannot evaluate hydrostatic stiffness for rigid body dof with non-standard directions. "
+                                     f"Got direction: {dof.direction}")
+                if isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 0:
+                    dof._standard_name = "Surge"
+                elif isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 1:
+                    dof._standard_name = "Sway"
+                elif isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 2:
+                    dof._standard_name = "Heave"
+                elif isinstance(dof, RotationDof) and np.where(standard_dir)[0] == 0:
+                    dof._standard_name = "Roll"
+                elif isinstance(dof, RotationDof) and np.where(standard_dir)[0] == 1:
+                    dof._standard_name = "Pitch"
+                elif isinstance(dof, RotationDof) and np.where(standard_dir)[0] == 2:
+                    dof._standard_name = "Yaw"
+                else:
+                    raise ValueError("Hydrostatic stiffness: tried to use the rigid body formula "
+                                     "for dofs that does not seem to be rigid")
+
+        if self.center_of_mass is None:
+            raise ValueError(f"Trying to compute rigid-body hydrostatic stiffness for {self.name}, but no center of mass has been defined.\n"
+                             f"Suggested solution: define a `center_of_mass` when initializing the FloatingBody {self.__short_str__()}.")
+        mass = self.disp_mass(rho=rho) if self.mass is None else self.mass
+
+        if isinstance(influenced_dof, RotationDof) or isinstance(radiating_dof, RotationDof):
+            if isinstance(influenced_dof, RotationDof) and isinstance(radiating_dof, RotationDof):
+                if not np.allclose(influenced_dof.rotation_center, radiating_dof.rotation_center):
+                    raise NotImplementedError("Cannot evaluate hydrostatic stiffness when rotation dofs have different rotation center.")
+            if isinstance(influenced_dof, RotationDof):
+                xc, yc, zc = influenced_dof.rotation_center
+            else:
+                xc, yc, zc = radiating_dof.rotation_center
+
+        dof_pair = (influenced_dof._standard_name, radiating_dof._standard_name)
+        x = mesh.quadrature_points[0][:,:,0]
+        y = mesh.quadrature_points[0][:,:,1]
+        if dof_pair == ("Heave", "Heave"):
+            norm_hs_stiff = mesh.waterplane_area
+        elif dof_pair in [("Heave", "Roll"), ("Roll", "Heave")]:
+            norm_hs_stiff = mesh.waterplane_integral(y - yc)
+        elif dof_pair in [("Heave", "Pitch"), ("Pitch", "Heave")]:
+            norm_hs_stiff = -mesh.waterplane_integral(x - xc)
+        elif dof_pair == ("Roll", "Roll"):
+            norm_hs_stiff = (
+                    mesh.waterplane_integral((y - yc)**2)
+                    + mesh.volume*(mesh.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
+            )
+        elif dof_pair in [("Roll", "Pitch"), ("Pitch", "Roll")]:
+            norm_hs_stiff = -mesh.waterplane_integral((x - xc) * (y - yc))
+        elif dof_pair == ("Roll", "Yaw"):
+            norm_hs_stiff = - mesh.volume*(mesh.center_of_buoyancy[0] - xc) + mass/rho*(self.center_of_mass[0] - xc)
+        elif dof_pair == ("Pitch", "Pitch"):
+            norm_hs_stiff = (
+                    mesh.waterplane_integral((x - xc)**2)
+                    + mesh.volume*(mesh.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
+                    )
+        elif dof_pair == ("Pitch", "Yaw"):
+            norm_hs_stiff = - mesh.volume*(mesh.center_of_buoyancy[1] - yc) + mass/rho*(self.center_of_mass[1] - yc)
+        else:
+            norm_hs_stiff = 0.0
+
+        return rho * g * norm_hs_stiff
+
+    def _generalized_hydrostatic_stiffness_coef(
+        self,
+        mesh: AbstractMesh,
+        influenced_dof: Union[AbstractDof, np.ndarray],
+        radiating_dof: Union[AbstractDof, np.ndarray],
+        *,
+        influenced_dof_div: Union[float, np.ndarray],
+        rho: float,
+        g: float
+    ):
+        r"""Hydrostatic stiffness coefficient for a pair of dofs where at least
+        one is not a rigid-body dof, using the Neumann (1994) method for flexible modes.
 
         :math:`C_{ij} = \rho g\iint_S (\hat{n} \cdot V_j) (w_i + z D_i) dS`
 
         where :math:`\hat{n}` is surface normal,
 
-        :math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is DOF vector and
+        :math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is DOF displacement vector and
 
         :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
 
-        Parameters
-        ----------
-        influenced_dof_name : str
-            Name of influenced DOF vector of the FloatingBody
-        radiating_dof_name: str
-            Name of radiating DOF vector of the FloatingBody
-        influenced_dof_div: np.ndarray (Face_count), optional
-            Influenced DOF divergence of the FloatingBody, by default 0.0.
-        rho: float, optional
-            water density, by default 1000.0
-        g: float, optional
-            Gravity acceleration, by default 9.81
-
-        Returns
-        -------
-        hs_ij: xarray.variable
-            hydrostatic_stiffness of ith DOF and jth DOF.
-
-        Note
-        ----
-            This function computes the hydrostatic stiffness assuming :math:`D_{i} = 0`.
-            If :math:`D_i \neq 0`, input the divergence interpolated to face centers.
-
-            General integral equations are used for the rigid body modes and
-            Neumann (1994) method is used for flexible modes.
+        This formula is not 'complete' as recovering the rigid body
+        terms is not possible. https://doi.org/10.1115/1.3058702.
 
         References
         ----------
             Newman, John Nicholas. "Wave effects on deformable bodies."Applied ocean
             research" 16.1 (1994): 47-59.
             http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
-
         """
-        # Newman (1994) formula is not 'complete' as recovering the rigid body
-        # terms is not possible. https://doi.org/10.1115/1.3058702.
+        if isinstance(influenced_dof, AbstractDof):
+            influenced_dof_motion: np.ndarray = influenced_dof.evaluate_motion_at_quad_points(mesh)
+            # shape: (nb_faces, nb_quad_points, 3)
 
-        # Alternative is to use the general equation of hydrostatic and
-        # restoring coefficient for rigid modes and use Newman equation for elastic
-        # modes.
+            influenced_dof_jacobian = influenced_dof.evaluate_gradient_of_motion_at_quad_points(mesh)
+            # shape: (nb_faces, nb_quad_points, 3, 3)
 
-        immersed_self = self.immersed_part()
-        immersed_mesh = immersed_self.mesh
-        influenced_dof = immersed_self.dofs[influenced_dof_name]
-        radiating_dof = immersed_self.dofs[radiating_dof_name]
+            influenced_dof_div: np.ndarray = np.einsum('...ii->...', influenced_dof_jacobian)
+            # shape: (nb_faces, nb_quad_points)
 
-        if is_rigid_body_dof(influenced_dof) and is_rigid_body_dof(radiating_dof):
-            # Check that the directions of both dofs are canonical directions (1, 0, 0), (0, 1, 0) or (0, 0, 1)
-            for dof in (influenced_dof, radiating_dof):
-                if not hasattr(dof, "_standard_name"):
-                    standard_dir = np.all(np.isclose(dof.direction, np.eye(3)), axis=1)
-                    if not np.any(standard_dir):
-                        raise NotImplementedError("Cannot evaluate hydrostatic stiffness for rigid body dof with non-standard directions. "
-                                         f"Got direction: {dof.direction}")
-                    if isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 0:
-                        dof._standard_name = "Surge"
-                    elif isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 1:
-                        dof._standard_name = "Sway"
-                    elif isinstance(dof, TranslationDof) and np.where(standard_dir)[0] == 2:
-                        dof._standard_name = "Heave"
-                    elif isinstance(dof, RotationDof) and np.where(standard_dir)[0] == 0:
-                        dof._standard_name = "Roll"
-                    elif isinstance(dof, RotationDof) and np.where(standard_dir)[0] == 1:
-                        dof._standard_name = "Pitch"
-                    elif isinstance(dof, RotationDof) and np.where(standard_dir)[0] == 2:
-                        dof._standard_name = "Yaw"
+        else:  # Legacy style dof definition, to be removed in Capytaine 4.0
+            influenced_dof_motion: np.ndarray = np.array(influenced_dof)[:, None, :]  # shape: (nb_faces, 1, 3)
 
-            if self.center_of_mass is None:
-                raise ValueError(f"Trying to compute rigid-body hydrostatic stiffness for {self.name}, but no center of mass has been defined.\n"
-                                 f"Suggested solution: define a `center_of_mass` when initializing the FloatingBody {self.__short_str__()}.")
-            mass = self.disp_mass(rho=rho) if self.mass is None else self.mass
-
-            if isinstance(influenced_dof, RotationDof) or isinstance(radiating_dof, RotationDof):
-                if isinstance(influenced_dof, RotationDof) and isinstance(radiating_dof, RotationDof):
-                    if not np.allclose(influenced_dof.rotation_center, radiating_dof.rotation_center):
-                        raise NotImplementedError("Cannot evaluate hydrostatic stiffness when rotation dofs have different rotation center.")
-                if isinstance(influenced_dof, RotationDof):
-                    xc, yc, zc = influenced_dof.rotation_center
-                else:
-                    xc, yc, zc = radiating_dof.rotation_center
-
-            dof_pair = (influenced_dof._standard_name, radiating_dof._standard_name)
-            x = immersed_mesh.quadrature_points[0][:,:,0]
-            y = immersed_mesh.quadrature_points[0][:,:,1]
-            if dof_pair == ("Heave", "Heave"):
-                norm_hs_stiff = immersed_mesh.waterplane_area
-            elif dof_pair in [("Heave", "Roll"), ("Roll", "Heave")]:
-                norm_hs_stiff = immersed_mesh.waterplane_integral(y - yc)
-            elif dof_pair in [("Heave", "Pitch"), ("Pitch", "Heave")]:
-                norm_hs_stiff = -immersed_mesh.waterplane_integral(x - xc)
-            elif dof_pair == ("Roll", "Roll"):
-                norm_hs_stiff = (
-                        immersed_mesh.waterplane_integral((y - yc)**2)
-                        + immersed_mesh.volume*(immersed_mesh.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
-                )
-            elif dof_pair in [("Roll", "Pitch"), ("Pitch", "Roll")]:
-                norm_hs_stiff = -immersed_mesh.waterplane_integral((x - xc) * (y - yc))
-            elif dof_pair == ("Roll", "Yaw"):
-                norm_hs_stiff = - immersed_mesh.volume*(immersed_mesh.center_of_buoyancy[0] - xc) + mass/rho*(self.center_of_mass[0] - xc)
-            elif dof_pair == ("Pitch", "Pitch"):
-                norm_hs_stiff = (
-                        immersed_mesh.waterplane_integral((x - xc)**2)
-                        + immersed_mesh.volume*(immersed_mesh.center_of_buoyancy[2] - zc) - mass/rho*(self.center_of_mass[2] - zc)
-                        )
-            elif dof_pair == ("Pitch", "Yaw"):
-                norm_hs_stiff = - immersed_mesh.volume*(immersed_mesh.center_of_buoyancy[1] - yc) + mass/rho*(self.center_of_mass[1] - yc)
+            influenced_dof_div = np.array(influenced_dof_div)
+            if influenced_dof_div.shape == ():
+                pass  # is a scalar (probably 0.0), will be broadcasted without issue
+            elif influenced_dof_div.shape == (mesh.nb_faces,):
+                influenced_dof_div = influenced_dof_div.reshape(mesh.nb_faces, 1)
+            elif influenced_dof_div.shape == mesh.quadrature_points[1].shape:
+                pass  # is fine
             else:
-                norm_hs_stiff = 0.0
+                raise ValueError(f"Incompatible shape of dof divergence: {influenced_dof_div.shape}")
+            # influenced_dof_div.shape == (nb_faces, nb_quad_points)
 
+        if isinstance(radiating_dof, AbstractDof):
+            radiating_dof_motion: np.ndarray = radiating_dof.evaluate_motion_at_quad_points(mesh)
+            # shape: (nb_faces, nb_quad_points, 3)
         else:
-            if self.mass is not None and not np.isclose(self.mass, self.disp_mass(rho=rho), rtol=1e-4):
-                raise NotImplementedError(
-                        f"Trying to compute the hydrostatic stiffness for dofs {radiating_dof_name} and {influenced_dof_name}"
-                        f"of body {self.name}, which is not neutrally buoyant (mass={self.mass}, disp_mass={self.disp_mass(rho=rho)}).\n"
-                        f"This case has not been implemented in Capytaine. You need either a single rigid body or a neutrally buoyant body."
-                        )
+            radiating_dof_motion: np.ndarray = np.array(radiating_dof)[:, None, :]
+            # shape: (nb_faces, 1, 3)
 
-            if np.any(self.mesh.faces_centers[:, 2] > 1e-2) and np.any(influenced_dof_div != 0.0):
-                raise NotImplementedError(
-                        "When computing hydrostatics of flexible dofs while providing the divergence of the dof, please make sure the mesh is clipped beforehand and provide the divergence only on the immersed faces of the clipped mesh."
-                        )
+        radiating_dof_normal = np.sum(mesh.faces_normals[:, None, :] * radiating_dof_motion, axis=-1)  # dot product on each quad point
+        # shape: (nb_faces, nb_quad_points)
 
-            # Newman (1994) formula for flexible DOFs
-            influenced_dof = np.array(immersed_self.dofs[influenced_dof_name])
-            radiating_dof = np.array(immersed_self.dofs[radiating_dof_name])
-            influenced_dof_div_array = np.array(influenced_dof_div)
+        z = mesh.quadrature_points[0][:, :, 2]
+        z_influenced_dof_div = influenced_dof_motion[:, :, 2] + z * influenced_dof_div
+        # shape: (nb_faces, nb_quad_points)
 
-            if influenced_dof_div_array.shape == ():
-                pass
-            elif influenced_dof_div_array.shape == (immersed_self.mesh.nb_faces,):
-                influenced_dof_div_array = influenced_dof_div_array.reshape(immersed_self.mesh.nb_faces, 1)
-            elif influenced_dof_div_array.shape == immersed_self.mesh.quadrature_points[1].shape:
-                pass
-            else:
-                raise ValueError(f"Incompatible shape of influenced_dof_div: {influenced_dof_div_array.shape}")
+        norm_hs_stiff = mesh.surface_integral(-radiating_dof_normal * z_influenced_dof_div)
 
-            radiating_dof_normal = immersed_self.dof_normals(radiating_dof)
-            z = immersed_mesh.quadrature_points[0][:,:,2]
-            z_influenced_dof_div = influenced_dof[:, None, 2] + z * influenced_dof_div_array
-            # z_influenced_dof_div[i_face, i_quad_point] = influenced_dof[i_face, 2] + z[i_frac, i_quad_point, 2] * influenced_dof_div[i_face, i_quad_point]
-            norm_hs_stiff = immersed_self.mesh.surface_integral(-radiating_dof_normal[:, None] * z_influenced_dof_div)
-
-        hs_stiff = rho * g * norm_hs_stiff
-
-        return xr.DataArray([[hs_stiff]],
-                            dims=['influenced_dof', 'radiating_dof'],
-                            coords={'influenced_dof': [influenced_dof_name],
-                            'radiating_dof': [radiating_dof_name]},
-                            name="hydrostatic_stiffness"
-                            )
+        return rho * g * norm_hs_stiff
 
     def compute_hydrostatic_stiffness(self, *, divergence=None, rho=1000.0, g=9.81):
         r"""
         Compute hydrostatic stiffness matrix for all DOFs of the body.
-
-        :math:`C_{ij} = \rho g\iint_S (\hat{n} \cdot V_j) (w_i + z D_i) dS`
-
-        where :math:`\hat{n}` is surface normal,
-
-        :math:`V_i = u_i \hat{n}_x + v_i \hat{n}_y + w_i \hat{n}_z` is DOF vector and
-
-        :math:`D_i = \nabla \cdot V_i` is the divergence of the DOF.
+        General integral equations are used for the rigid body modes and
+        Neumann (1994) method is used for flexible modes.
 
         Parameters
         ----------
         divergence : dict mapping a dof name to an array of shape (nb_faces) or
                         xarray.DataArray of shape (nb_dofs × nb_faces), optional
-            Divergence of the DOFs, by default None
+            Divergence of the DOFs, by default None.
+            This parameter is kept for backward compatibility.
+            It is recommended to define `cpt.CustomDof` with the dof gradient
+            and assign it to the body instead.
         rho : float, optional
             Water density, by default 1000.0
         g: float, optional
@@ -276,20 +269,11 @@ class _HydrostaticsMixin(ABC):
         xr.DataArray
             Matrix of hydrostatic stiffness
 
-        Note
-        ----
-            This function computes the hydrostatic stiffness assuming :math:`D_{i} = 0`.
-            If :math:`D_i \neq 0`, input the divergence interpolated to face centers.
-
-            General integral equations are used for the rigid body modes and
-            Neumann (1994) method is used for flexible modes.
-
         References
         ----------
             Newman, John Nicholas. "Wave effects on deformable bodies."Applied ocean
             research" 16.1 (1994): 47-59.
             http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
-
         """
         if len(self.dofs) == 0:
             return xr.DataArray(
@@ -298,32 +282,85 @@ class _HydrostaticsMixin(ABC):
                 dims=["influenced_dof", "radiating_dof"]
             )
 
-        def divergence_dof(influenced_dof):
-            if is_rigid_body_dof(influenced_dof):
-                return 0.0  # Dummy value that is not actually used afterwards.
-            elif divergence is None:
-                return 0.0
-            elif isinstance(divergence, dict) and influenced_dof in divergence.keys():
-                return divergence[influenced_dof]
-            elif isinstance(divergence, xr.DataArray) and influenced_dof in divergence.coords["influenced_dof"]:
-                return divergence.sel(influenced_dof=influenced_dof).values
-            else:
-                LOG.warning("Computing hydrostatic stiffness without the divergence of {}".format(influenced_dof))
-                return 0.0
+        immersed_self = self.immersed_part()
 
-        hs_set =  xr.merge([
-            self.each_hydrostatic_stiffness(
-                influenced_dof_name, radiating_dof_name,
-                influenced_dof_div = divergence_dof(influenced_dof_name),
-                rho=rho, g=g
+        coefficients = []
+        for influenced_dof_name, influenced_dof in immersed_self.dofs.items():
+
+            if not is_rigid_body_dof(influenced_dof):
+                # We will use _generalized_hydrostatic_stiffness_coef below
+                # so we check if a divergence is provided for this dof.
+                # Doing it outside of the `radiating_dof` loop to avoid
+                # outputting several time the same warning.
+
+                # Legacy implementation: the divergence can be passed
+                # as a argument to `compute_hydrostatic_stiffness`:
+                # ---------------------------------------------- >8 ----------------------------------------------
+                # divergence input parameter and this whole block could be removed in Capytaine 4.0
+                if divergence is None:
+                    # Silently ignore the divergence given as argument
+                    influenced_dof_div = 0.0
+                elif isinstance(divergence, dict) and influenced_dof_name in divergence.keys():
+                    influenced_dof_div = divergence[influenced_dof_name]
+                elif isinstance(divergence, xr.DataArray) and influenced_dof_name in divergence.coords["influenced_dof"]:
+                    influenced_dof_div = divergence.sel(influenced_dof=influenced_dof_name).values
+                else:
+                    LOG.warning("`compute_hydrostatic_stiffness` received a (legacy) `divergence` parameter "
+                                "to use the divergence of the dof in generalized dof hydrostatic stiffness, "
+                                f"but this parameter does not seem to provide a value for {influenced_dof_name}")
+                    influenced_dof_div = 0.0
+
+                if np.any(influenced_dof_div != 0.0):
+                    if np.any(self.mesh.faces_centers[:, 2] > 1e-2):
+                        raise NotImplementedError(
+                                f"When computing hydrostatics of flexible dofs {influenced_dof_name} while providing the divergence of the dof through the legacy interface, "
+                                "please make sure the mesh is clipped beforehand and provide the divergence only on the immersed faces of the clipped mesh."
+                                )
+
+                    if isinstance(influenced_dof, AbstractDof):
+                        LOG.warning(
+                                f"Hydrostatic stiffness generic formula received a divergence for dof '{influenced_dof_name}', "
+                                "while the divergence can be computed directly from the dof object.\n"
+                                "Ignoring the provided divergence and using the one from the dof object."
+                                )
+                # ---------------------------------------------- >8 ----------------------------------------------
+
+            coefficients_row = []
+            for radiating_dof_name, radiating_dof in immersed_self.dofs.items():
+
+                if is_rigid_body_dof(influenced_dof) and is_rigid_body_dof(radiating_dof):
+                    coefficients_row.append(
+                            self._rigid_body_hydrostatic_stiffness_coef(
+                                immersed_self.mesh, influenced_dof, radiating_dof, rho=rho, g=g
+                                )
+                            )
+
+                else:  # Either one is not rigid
+
+                    # This error message is here instead of the beginning of _generalized_hydrostatic_stiffness_coef
+                    # just to be able to access the name of the dofs for clearer error messages.
+                    if self.mass is not None and not np.isclose(self.mass, self.disp_mass(rho=rho), rtol=1e-4):
+                        raise NotImplementedError(
+                                f"Trying to compute the hydrostatic stiffness for dofs {radiating_dof_name} and {influenced_dof_name}"
+                                f"of body {self.name}, which is not neutrally buoyant (mass={self.mass}, disp_mass={self.disp_mass(rho=rho)}).\n"
+                                f"This case has not been implemented in Capytaine. You need either a single rigid body or a neutrally buoyant body."
+                                )
+
+                    coefficients_row.append(
+                            self._generalized_hydrostatic_stiffness_coef(
+                                immersed_self.mesh, influenced_dof, radiating_dof,
+                                influenced_dof_div=influenced_dof_div, rho=rho, g=g
+                                )
+                            )
+            coefficients.append(coefficients_row)
+
+        return xr.DataArray(
+                np.array(coefficients),
+                dims=['influenced_dof', 'radiating_dof'],
+                coords={'influenced_dof': list(self.dofs.keys()),
+                        'radiating_dof': list(self.dofs.keys())},
+                name="hydrostatic_stiffness"
                 )
-            for radiating_dof_name in self.dofs
-            for influenced_dof_name in self.dofs
-            ], compat='no_conflicts', join="outer")
-
-        # Reorder dofs
-        K = hs_set.hydrostatic_stiffness.sel(influenced_dof=list(self.dofs.keys()), radiating_dof=list(self.dofs.keys()))
-        return K
 
     def compute_rigid_body_inertia(self, *, rho=1000.0, output_type="body_dofs"):
         """

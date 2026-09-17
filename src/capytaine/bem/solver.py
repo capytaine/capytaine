@@ -1,5 +1,16 @@
-# Copyright (C) 2017-2026 Matthieu Ancellin
-# See LICENSE file at <https://github.com/capytaine/capytaine>
+# Copyright 2026 Capytaine developers
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 """Solver for the BEM problem.
 
 .. code-block:: python
@@ -19,7 +30,7 @@ import numpy as np
 from rich.progress import track
 
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, DiffractionProblem
-from capytaine.bem.engines import BasicMatrixEngine
+from capytaine.bem.engines import DefaultMatrixEngine
 from capytaine.bem.problems_checks import (
     _check_wavelength_and_mesh_resolution,
     _check_wavelength_and_water_depth,
@@ -53,7 +64,7 @@ class BEMSolver:
     ----------
     engine: MatrixEngine, optional
         Object handling the building of matrices and the resolution of linear systems with these matrices.
-        (default: :class:`~capytaine.bem.engines.BasicMatrixEngine`)
+        (default: :class:`~capytaine.bem.engines.DefaultMatrixEngine`)
     method: string, optional
         select boundary integral equation used to solve the problems.
         Accepted values: "indirect" (as in e.g. Nemoh), "direct" (as in e.g. WAMIT)
@@ -74,7 +85,7 @@ class BEMSolver:
     def __init__(self, *, green_function=None, engine=None, method="indirect"):
 
         if engine is None:
-            self.engine = BasicMatrixEngine(green_function=green_function)
+            self.engine = DefaultMatrixEngine(green_function=green_function)
         else:
             if green_function is not None:
                 raise ValueError("If you are not using the default engine, set the Green function in the engine.\n"
@@ -361,16 +372,15 @@ class BEMSolver:
         return results
 
 
-    def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, n_threads=None, _check_wavelength=True, progress_bar=None, **kwargs):
+    def fill_dataset(self, dataset, bodies, *, method=None, n_jobs=1, keep_details=False, n_threads=None, _check_wavelength=True, progress_bar=None, **kwargs):
         """Solve a set of problems defined by the coordinates of an xarray dataset.
 
         Parameters
         ----------
         dataset : xarray Dataset
             dataset containing the problems parameters: frequency, radiating_dof, water_depth, ...
-        bodies : FloatingBody or Multibody or list of FloatingBody or list of Multibody
+        bodies : FloatingBody or Multibody
             The body or bodies involved in the problems
-            They should all have different names.
         method: string, optional
             select boundary integral equation used to solve the problems.
             It is recommended to set the method more globally when initializing the solver.
@@ -378,6 +388,10 @@ class BEMSolver:
         n_jobs: int, optional (default: 1)
             the number of jobs to run in parallel using the optional dependency ``joblib``.
             By defaults: do not use joblib and solve sequentially.
+        keep_details: bool, optional (default: False)
+            if True, keep the sources, potential and pressure distributions computed for each
+            problem. The pressure on the hull is then included in the returned dataset as
+            ``diffraction_pressure``, ``Froude_Krylov_pressure`` and ``radiation_pressure``.
         n_threads: int, optional
             the number of threads used to solve each problem.
             The total number of used CPU will be n_jobs×n_threads.
@@ -408,7 +422,7 @@ class BEMSolver:
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
             dataset.update(kochin)
         else:
-            results = self.solve_all(problems, keep_details=False, method=method, n_jobs=n_jobs, n_threads=n_threads, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
+            results = self.solve_all(problems, keep_details=keep_details, method=method, n_jobs=n_jobs, n_threads=n_threads, _check_wavelength=_check_wavelength, progress_bar=progress_bar)
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 

@@ -31,7 +31,7 @@ test_matrix = xr.Dataset(coords={
 
 # Solve all radiation problems
 solver = cpt.BEMSolver()
-data = solver.fill_dataset(test_matrix, body)
+data = solver.fill_dataset(test_matrix, body, hydrostatics=False)
 
 # Note that the solver could not solve the most shallow case and returned NaN:
 data.added_mass.sel(radiating_dof="Heave", influenced_dof="Heave", water_depth=2.0).values

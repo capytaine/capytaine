@@ -31,7 +31,9 @@ For radiation problems, the result object also contain ``added_mass`` and
 ``radiation_damping`` attributes, with the same shape of a Python dictionary.
 
 It the solver was called with ``keep_details=True``, the result object also
-contains the potential and pressure fields on each face of the mesh of the hull::
+contains the potential and pressure fields on each face of the mesh used for
+the resolution (that is, including the lid faces, if a lid has been defined
+on the body to remove irregular frequencies)::
 
   print(result.potential)
   # [-1.72534485e-03+0.14128629j -3.98932611e-03+0.33387497j
@@ -44,9 +46,16 @@ contains the potential and pressure fields on each face of the mesh of the hull:
   #  -2.18441640e+00-0.58402701j -2.22777755e+00-0.59562008j]
 
 These magnitudes are stored in an one-dimensional array as long as the number
-of faces of the mesh, and stored in the same order as the faces in the ``Mesh``
-object. In other words, ``result.pressure[3]`` contains the pressure on the
-face of center ``body.mesh.faces_centers[3]``.
+of faces of the mesh, and stored in the same order as the faces in the
+``mesh_including_lid`` object. In other words, ``result.pressure[3]``
+contains the pressure on the face of center
+``body.mesh_including_lid.faces_centers[3]``.
+
+Since the pressure on the lid is not physically meaningful, the result object
+also provides ``result.pressure_on_hull``, which is ``result.pressure``
+restricted to the faces of ``body.mesh`` (that is, excluding the lid). When no
+lid has been defined, ``result.pressure_on_hull`` and ``result.pressure`` are
+the same.
 
 Recall that the potential and the pressure are related by :math:`p = j \rho
 \omega \Phi`, where :math:`\rho` is the fluid density and :math:`\omega` is the
@@ -98,6 +107,20 @@ arguments to store more information in the dataset:
   the dataset (number of faces, quadrature method).
 - :code:`hydrostatics` (default: :code:`True`): if hydrostatics data are
   available in the :code:`FloatingBody`, they are added to the dataset.
+
+In addition, :code:`fill_dataset` accepts a :code:`keep_details` keyword
+argument (default: :code:`False`), forwarded to :meth:`~capytaine.bem.solver.BEMSolver.solve_all`.
+When set to :code:`True`, the potential, pressure and sources computed for
+each problem are kept and the resulting dataset contains the pressure
+distribution on the hull as the data variables :code:`diffraction_pressure`,
+:code:`Froude_Krylov_pressure` and :code:`radiation_pressure` (with a
+:code:`hull_face` dimension, in the same order as the faces of :code:`body.mesh`)::
+
+    dataset = solver.fill_dataset(test_matrix, body, keep_details=True)
+    print(dataset["diffraction_pressure"])
+
+Keeping these details increases the memory usage of the dataset, so this
+option is disabled by default.
 
 .. note:: The code does its best to keep the degrees of freedom in the same
           order as they have been provided by the user, but there is no
