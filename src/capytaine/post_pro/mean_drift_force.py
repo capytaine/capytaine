@@ -163,9 +163,32 @@ def _merge_far_field_mean_drift_variables(dataset):
 ####################################################################################################
 
 def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
-    """
+    """Compute the mean drift force using the near field formulation.
+
     Current assumptions: all results are for the same body, the same rho and g.
     Several wavelengths and dofs are taken into account at once.
+
+    Parameters
+    ----------
+    rao : xarray DataArray
+        The motion RAO, as returned by :func:`capytaine.post_pro.rao.rao`.
+    results : list of LinearPotentialFlowResult
+        The diffraction and radiation results used to compute the RAO, for all the wavelengths
+        and wave directions of interest.
+    solver : BEMSolver
+        The solver used to compute the potential and its gradient on the hull at the requested
+        points.
+    output_pressure : bool, optional
+        If True, also return the second-order pressure field on the hull. Default: False.
+
+    Returns
+    -------
+    xarray Dataset
+        A dataset with a ``near_field_mean_drift_force`` variable of shape
+        ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
+        If ``output_pressure`` is True, the dataset also contains a ``second_order_pressure``
+        variable with the mean drift pressure field on the hull, of shape
+        ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``.
     """
     body = results[0].body
     mesh = body.mesh.merged()
