@@ -31,6 +31,7 @@ Major changes
   See :doc:`user_manual/post_pro` for more details.
 
 * Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force (for now for a single rigid body). (:pull:`871`)
+  The near field mean drift force can be expoted to WAMIT's `.9` file format. (:pull:`909`)
 
 Bug fixes
 ~~~~~~~~~
