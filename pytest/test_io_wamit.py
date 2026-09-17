@@ -483,7 +483,7 @@ def test_export_wamit_9(tmpdir):
     n_periods = dataset.sizes["wavenumber"]
     n_betas_k = dataset.sizes["wave_direction"]
     n_betas_l = dataset.sizes["wave_direction"]
-    n_dofs = len(dataset.sizes["radiating_dof"])
+    n_dofs = dataset.sizes["radiating_dof"]
     expected_lines = n_periods * n_betas_k * n_betas_l * n_dofs
     assert len(lines) == expected_lines, (
         f"Expected {expected_lines} lines, got {len(lines)}"
