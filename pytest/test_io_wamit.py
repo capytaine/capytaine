@@ -14,6 +14,7 @@
 import re
 import logging
 from pathlib import Path
+from functools import lru_cache
 
 import numpy as np
 import pandas as pd
@@ -449,24 +450,27 @@ def test_export_wamit_8_while_exporting_everything(tmpdir):
 # Near field mean drift force
 ####################################################################################################
 
-def test_export_wamit_9(tmpdir):
-    """Test export of near-field mean drift forces to WAMIT .9 file."""
+@lru_cache
+def dataset_with_near_field_mean_drift_force():
     from capytaine.io.xarray import problems_from_dataset
     mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
-    body.inertia_matrix = body.compute_rigid_body_inertia()
-    body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
     solver = cpt.BEMSolver()
     wave_direction = [0, np.pi/4]
     test_matrix = xr.Dataset(coords={
-            'wavenumber': [1.0], 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys())
+            'wavenumber': [1.0, 2.0], 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys())
         })
     pbs = problems_from_dataset(test_matrix, body)
     results = solver.solve_all(pbs)
     dataset = cpt.assemble_dataset(results)
     rao = cpt.post_pro.rao(dataset)
     mdf = near_field_mean_drift_force(rao, results, solver)
-    dataset = xr.merge([dataset, mdf])
+    return xr.merge([dataset, mdf])
+
+
+def test_export_wamit_9(tmpdir):
+    """Test export of near-field mean drift forces to WAMIT .9 file."""
+    dataset = dataset_with_near_field_mean_drift_force()
 
     filepath = str(tmpdir / "drift_test.9")
     export_wamit_9(dataset, filepath)
@@ -476,10 +480,10 @@ def test_export_wamit_9(tmpdir):
     with open(filepath, "r", encoding="utf-8") as f:
         lines = [line.strip() for line in f if line.strip()]
 
-    n_periods = 2
-    n_betas_k = 2
-    n_betas_l = 2
-    n_dofs = 6
+    n_periods = dataset.sizes["wavenumber"]
+    n_betas_k = dataset.sizes["wave_direction"]
+    n_betas_l = dataset.sizes["wave_direction"]
+    n_dofs = dataset.sizes["radiating_dof"]
     expected_lines = n_periods * n_betas_k * n_betas_l * n_dofs
     assert len(lines) == expected_lines, (
         f"Expected {expected_lines} lines, got {len(lines)}"
@@ -500,3 +504,18 @@ def test_export_wamit_9(tmpdir):
         # Both should be valid angles
         assert -180 <= beta1 <= 180 or 0 <= beta1 <= 360, f"Line {i}: BETA1={beta1} out of range"
         assert -180 <= beta2 <= 180 or 0 <= beta2 <= 360, f"Line {i}: BETA2={beta2} out of range"
+
+
+def test_export_wamit_9_while_exporting_everything(tmpdir):
+    """Test that .9 export works through the master export_to_wamit function."""
+    dataset = dataset_with_near_field_mean_drift_force()
+
+    problem_name = str(tmpdir / "master_test")
+    export_to_wamit(dataset, problem_name=problem_name, exports=("9",))
+
+    wamit_9_path = tmpdir / "master_test.9"
+    assert wamit_9_path.exists(), "File .9 was not generated via export_to_wamit."
+
+    with open(wamit_9_path, "r", encoding="utf-8") as f:
+        lines = [line.strip() for line in f if line.strip()]
+    assert len(lines) == 48  # 2 period * 2 beta_k * 2 beta_l * 6 modes

@@ -33,6 +33,7 @@ Major changes
 * Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force (for now for a single rigid body). (:pull:`871`)
   This function returns a dataset with a ``near_field_mean_drift_force`` variable of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
   Optional parameter ``output_pressure`` allows to return a mead drift pressure field of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``.
+  The near field mean drift force can be expoted to WAMIT's `.9` file format. (:pull:`909`)
 
 Bug fixes
 ~~~~~~~~~
