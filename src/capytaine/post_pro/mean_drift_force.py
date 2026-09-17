@@ -240,8 +240,9 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
     if output_pressure:
         dataset["second_order_pressure"] = xr.DataArray(
                 data=p2,
-                dims=["wave_direction_k", "wave_direction_l", "mesh_face"],
+                dims=[freq_type, "wave_direction_k", "wave_direction_l", "hull_face"],
                 coords={
+                    freq_type: rao.coords[freq_type].values,
                     "wave_direction_k": rao.coords["wave_direction"].values,
                     "wave_direction_l": rao.coords["wave_direction"].values,
                     },

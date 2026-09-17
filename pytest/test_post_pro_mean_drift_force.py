@@ -21,12 +21,11 @@ import capytaine as cpt
 from capytaine.io.xarray import problems_from_dataset, kochin_data_array
 from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, near_field_mean_drift_force
 
+
 def test_far_field_mean_drift_force():
     r = 1
     mesh = cpt.mesh_sphere(radius=r).immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
-    body.inertia_matrix = body.compute_rigid_body_inertia()
-    body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
     solver = cpt.BEMSolver()
     wave_direction = [0, np.pi/4]
     theta = np.linspace(-0.5, 2*np.pi, 20)
@@ -51,8 +50,6 @@ def test_near_field_mean_drift_force():
     r = 1
     mesh = cpt.mesh_sphere(radius=r).immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
-    body.inertia_matrix = body.compute_rigid_body_inertia()
-    body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
     solver = cpt.BEMSolver()
     wave_direction = [0, np.pi/4]
     k = np.array([0.92, 1.05])
@@ -79,8 +76,6 @@ def test_scale_far_field_mean_drift_force():
     for r in radius:
         mesh = cpt.mesh_sphere(radius=r).immersed_part()
         body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
-        body.inertia_matrix = body.compute_rigid_body_inertia()
-        body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
         solver = cpt.BEMSolver()
         wave_direction = 0
         theta = np.linspace(-0.5, 2*np.pi, 20)
@@ -122,8 +117,6 @@ def test_scale_near_field_mean_drift_force():
 def test_cylinder_mean_drift_force():
     mesh = cpt.mesh_vertical_cylinder(length=1., resolution=(4,12,8)).immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
-    body.inertia_matrix = body.compute_rigid_body_inertia()
-    body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
     solver = cpt.BEMSolver()
     wave_direction = 27*np.pi/180
     omega = [3.]
@@ -160,8 +153,6 @@ def test_cylinder_mean_drift_force():
 def test_caisson():
     mesh = cpt.mesh_parallelepiped(size=(90,90,80)).immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
-    body.inertia_matrix = body.compute_rigid_body_inertia()
-    body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
     solver = cpt.BEMSolver()
     period = [14.20]
     theta = np.linspace(-0.5, 2*np.pi, 20)
@@ -200,8 +191,6 @@ def test_symmetry_mean_drift_force():
     mdf_nf = []
     for m in [mesh, mesh_sym]:
         body = cpt.FloatingBody(mesh=m, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
-        body.inertia_matrix = body.compute_rigid_body_inertia()
-        body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
         test_matrix = xr.Dataset(coords={
                 'wavenumber': k, 'wave_direction': wave_direction, 'theta': theta, 'radiating_dof': list(body.dofs.keys())
             })
@@ -221,8 +210,6 @@ def test_symmetry_mean_drift_force():
 def test_period_equivalent_omega_mean_drift_force():
     mesh = cpt.mesh_sphere().immersed_part()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
-    body.inertia_matrix = body.compute_rigid_body_inertia()
-    body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
     solver = cpt.BEMSolver()
     wave_direction = [np.pi/3]
     period = np.array([1.6, 1.9, 2.4])
@@ -247,3 +234,28 @@ def test_period_equivalent_omega_mean_drift_force():
     mdf_omega = near_field_mean_drift_force(rao, results, solver)
 
     assert np.allclose(np.flip(mdf_period.values, axis=0), mdf_omega)
+
+################################################################################
+#                          Mean drift force pressure                           #
+################################################################################
+
+def test_mean_drift_force_pressure():
+    mesh = cpt.mesh_sphere().immersed_part()
+    body = cpt.FloatingBody(
+        mesh=mesh,
+        lid_mesh=mesh.generate_lid(),
+        dofs=cpt.rigid_body_dofs(),
+        center_of_mass=(0,0,0)
+    )
+    solver = cpt.BEMSolver()
+    wave_direction = [0]
+    k = np.array([0.92])
+    test_matrix = xr.Dataset(coords={
+            'wavenumber': k, 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys())
+        })
+    pbs = problems_from_dataset(test_matrix, body)
+    results = solver.solve_all(pbs)
+    dataset = cpt.assemble_dataset(results)
+    rao = cpt.post_pro.rao(dataset)
+    mdf = near_field_mean_drift_force(rao, results, solver, output_pressure=True)
+    assert mdf["second_order_pressure"].shape == (1, 1, 1, mesh.nb_faces)
