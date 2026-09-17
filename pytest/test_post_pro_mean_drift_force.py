@@ -200,7 +200,7 @@ def test_symmetry_mean_drift_force():
         dataset = cpt.assemble_dataset(results)
         dataset.update(data_kochin)
         rao = cpt.post_pro.rao(dataset)
-        mdf_nf.append(near_field_mean_drift_force(rao, results, solver))
+        mdf_nf.append(near_field_mean_drift_force(rao, results, solver)['near_field_mean_drift_force'])
         mdf_ff.append(far_field_mean_drift_force(rao, dataset))
 
     assert np.allclose(mdf_nf[0][...,0], mdf_nf[1][...,0])
