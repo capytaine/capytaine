@@ -45,6 +45,10 @@ Bug fixes
 Internals
 ~~~~~~~~~
 
+* :func:`~capytaine.tools.block_circulant_matrices.lu_decompose` is now a :func:`functools.singledispatch` function,
+  and the LU decompositions are subclasses of the new abstract class :class:`~capytaine.tools.block_circulant_matrices.AbstractLUDecomposedMatrix`.
+  The LU decomposition of a new type of matrices can be supported by the linear solver of the :class:`~capytaine.bem.engines.DefaultMatrixEngine` by registering it with ``lu_decompose.register``.
+
 * Fix :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_motion_at_points` and
   :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_motion_at_points`
   to accept arrays of points of shape ``(..., 3)`` instead of only ``(nb_points, 3)``.
