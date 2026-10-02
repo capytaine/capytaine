@@ -42,8 +42,12 @@ Bug fixes
 
 * Fix double layer term when computing the value at field points without a free surface.
 
+* Fix the hash of Green functions, which depended on the identity of the object instead of on its settings: two identical Green functions now have the same hash.
+
 Internals
 ~~~~~~~~~
+
+* The string representation (``__str__``, ``__repr__``) and the hash of Green functions are now implemented once in :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`, driven by ``exportable_settings`` and a ``_default_parameters`` class attribute.
 
 * Fix :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_motion_at_points` and
   :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_motion_at_points`
