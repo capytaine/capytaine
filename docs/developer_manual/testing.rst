@@ -37,7 +37,7 @@ Testing in isolated environments
 --------------------------------
 
 The ``Justfile`` contains recipes to run the test suite as well as some of the example code from
-the cookbook (``docs/user_manual/examples/`` directory) in isolated environements using ``UV``.
+the cookbook (``docs/user_manual/examples/`` directory) in isolated environments using ``UV``.
 
 The ``test_in_*_reference_env`` recipes is used to test the current source code
 in an environment with fixed versions of Capytaine's dependencies.
@@ -46,13 +46,13 @@ changes in dependencies.
 Two environments are predefined for this test, one is older and meant to be
 used with the oldest version of Python supported by Capytaine (Python 3.8 at
 the time of writing), while the other is more recent and is meant to be used
-with a recent version of Python (Python 3.12 at the time of writing).
+with a recent version of Python (Python 3.14 at the time of writing).
 Their lockfiles can be found in the ``pytest/envs/`` directory.
 
 You can run them locally with::
 
     just test_in_py38_reference_env
-    just test_in_py312_reference_env
+    just test_in_py314_reference_env
 
 assuming you have UV installed.
 
@@ -107,7 +107,7 @@ Capytaine repository includes a config file for `pre-commit`_.
 It is meant to catch common mistakes before creating a new commit.
 While not as important as the functional tests described above, it is
 recommended to install pre-commit and set it up in Capytaine repository while
-developping Capytaine.
+developing Capytaine.
 
 .. _`pre-commit`: https://pre-commit.com/
 
