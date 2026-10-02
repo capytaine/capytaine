@@ -83,4 +83,37 @@ class AbstractGreenFunction(ABC):
         early_dot_product=True,
         diagonal_term_in_double_layer=True,
     ):
+        """Assemble the influence matrices between mesh1 and mesh2.
+
+        Parameters
+        ----------
+        mesh1: MeshLike or array of shape (n, 3)
+            mesh of the receiving body (where the potential is measured), or
+            an array of points (only supported if only S is wanted or
+            early_dot_product is False).
+        mesh2: MeshLike
+            mesh of the source body (over which the source distribution is integrated)
+        free_surface: float
+            position of the free surface
+        water_depth: float
+            constant depth of water
+        wavenumber: float
+            wavenumber
+        adjoint_double_layer: bool, optional
+            compute double layer for direct method (D) or adjoint double layer
+            for indirect method (K) matrices (default: True)
+        early_dot_product: bool, optional
+            if True, K is the matrix of ∫∇G·n, if False it is the gradient ∫∇G
+            (default: True)
+        diagonal_term_in_double_layer: bool, optional
+            if True, add the I/2 term in the double layer operator (default: True)
+
+        Returns
+        -------
+        tuple of arrays
+            the matrices S and K, with shapes (n, m) for S and
+            (n, m) for K if early_dot_product is True or (3, n, m) otherwise,
+            where n is the number of receiving points of mesh1 and m the
+            number of faces of mesh2.
+        """
         pass

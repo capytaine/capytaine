@@ -40,6 +40,8 @@ Bug fixes
 
 * Fix computation of hydrostatic stiffness on multibodies treated as generalized dofs as in previous version. (:pull:`936`)
 
+* Fix double layer term when computing the value at field points without a free surface.
+
 Internals
 ~~~~~~~~~
 

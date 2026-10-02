@@ -354,7 +354,7 @@ class Delhommeau(AbstractGreenFunction):
             compute double layer for direct method (F) or adjoint double layer
             for indirect method (T) matrices (default: True)
         early_dot_product: boolean, optional
-            if False, return K as a (n, m, 3) array storing ∫∇G
+            if False, return K as a (3, n, m) array storing ∫∇G
             if True, return K as a (n, m) array storing ∫∇G·n
         diagonal_term_in_double_layer: boolean, optional
             if True, add the I/2 term in the double layer operator
@@ -426,7 +426,7 @@ class Delhommeau(AbstractGreenFunction):
         adjoint_double_layer: bool, optional
             compute double layer for direct method (F) or adjoint double layer for indirect method (T) matrices (default: True)
         early_dot_product: boolean, optional
-            if False, return K as a (n, m, 3) array storing ∫∇G
+            if False, return K as a (3, n, m) array storing ∫∇G
             if True, return K as a (n, m) array storing ∫∇G·n
         diagonal_term_in_double_layer: boolean, optional
             if True, add the I/2 term in the double layer operator.
@@ -451,6 +451,7 @@ class Delhommeau(AbstractGreenFunction):
                 mesh1, mesh2,
                 adjoint_double_layer=adjoint_double_layer,
                 early_dot_product=early_dot_product,
+                diagonal_term_in_double_layer=diagonal_term_in_double_layer,
             )
 
         # Main case:
