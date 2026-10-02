@@ -457,8 +457,5 @@ def _lu_decompose_nested_block_circulant(A, *, overwrite_a: bool = False):
     return LUDecomposedBlockCirculantMatrix(A.to_BlockCirculantMatrix(), overwrite_a=overwrite_a)
 
 
-LUDecomposedMatrixLike = AbstractLUDecomposedMatrix
-
-
 def has_been_lu_decomposed(A):
     return isinstance(A, AbstractLUDecomposedMatrix)
