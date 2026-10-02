@@ -27,20 +27,6 @@ from capytaine.green_functions.abstract_green_function import AbstractGreenFunct
 
 LOG = logging.getLogger(__name__)
 
-_default_parameters = dict(
-    tabulation_nr=676,
-    tabulation_rmax=100.0,
-    tabulation_nz=372,
-    tabulation_zmin=-251.0,
-    tabulation_nb_integration_points=1001,
-    tabulation_grid_shape="scaled_nemoh3",
-    finite_depth_method="newer",
-    finite_depth_prony_decomposition_method="python",
-    floating_point_precision="float64",
-    gf_singularities="low_freq",
-)
-
-
 class Delhommeau(AbstractGreenFunction):
     """The Green function as implemented in Aquadyn and Nemoh.
 
@@ -110,8 +96,20 @@ class Delhommeau(AbstractGreenFunction):
         Tabulated Delhommeau integrals.
     """
 
-    dispersion_relation_roots = np.empty(1)  # dummy array
+    _default_parameters = dict(
+            tabulation_nr=676,
+            tabulation_rmax=100.0,
+            tabulation_nz=372,
+            tabulation_zmin=-251.0,
+            tabulation_nb_integration_points=1001,
+            tabulation_grid_shape="scaled_nemoh3",
+            finite_depth_method="newer",
+            finite_depth_prony_decomposition_method="python",
+            floating_point_precision="float64",
+            gf_singularities="low_freq",
+    )
 
+    dispersion_relation_roots = np.empty(1)  # dummy array
 
     def __init__(self, *,
                  tabulation_nr=_default_parameters["tabulation_nr"],
@@ -179,31 +177,6 @@ class Delhommeau(AbstractGreenFunction):
             'floating_point_precision': floating_point_precision,
             'gf_singularities': gf_singularities,
         }
-
-        self._hash = hash(self.exportable_settings.values())
-
-    def __hash__(self):
-        return self._hash
-
-    def __str__(self):
-        # Print only the non-default values.
-        to_be_printed = []
-        for name, value in self.exportable_settings.items():
-            if name in _default_parameters and value != _default_parameters[name]:
-                to_be_printed.append(f"{name}={repr(value)}")
-        return f"{self.__class__.__name__}({', '.join(to_be_printed)})"
-
-    def __repr__(self):
-        # Same as __str__ except all values are printed even when they are the
-        # default value.
-        to_be_printed = []
-        for name, value in self.exportable_settings.items():
-            if name in _default_parameters:
-                to_be_printed.append(f"{name}={repr(value)}")
-        return f"{self.__class__.__name__}({', '.join(to_be_printed)})"
-
-    def _repr_pretty_(self, p, cycle):
-        p.text(self.__repr__())
 
     def _create_or_load_tabulation(self, tabulation_nr, tabulation_rmax,
                                    tabulation_nz, tabulation_zmin,

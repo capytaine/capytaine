@@ -40,15 +40,6 @@ class LiangWuNoblesseGF(AbstractGreenFunction):
     tabulated_integrals = np.empty(1)
     dummy_param = -999
 
-    def __str__(self):
-        return "LiangWuNoblesseGF()"
-
-    def __repr__(self):
-        return "LiangWuNoblesseGF()"
-
-    def _repr_pretty_(self, p, cycle):
-        p.text(self.__repr__())
-
     @property
     def all_tabulation_parameters(self):
         """An alias meant to pass to the Fortran functions all the parameters controlling the tabulation in a single item."""
@@ -127,21 +118,14 @@ class FinGreen3D(AbstractGreenFunction):
     tabulated_integrals = np.empty(1)
     dummy_param = -999
 
-    def __init__(self, *, nb_dispersion_roots=200):
+    _default_parameters = {"nb_dispersion_roots": 200}
+
+    def __init__(self, *, nb_dispersion_roots=_default_parameters["nb_dispersion_roots"]):
         self.nb_dispersion_roots = nb_dispersion_roots
         self.exportable_settings = {
             'green_function': "FinGreen3D",
             'nb_dispersion_roots': nb_dispersion_roots
         }
-
-    def __str__(self):
-        return f"FinGreen3D(nb_dispersion_roots={self.nb_dispersion_roots})"
-
-    def __repr__(self):
-        return f"FinGreen3D(nb_dispersion_roots={self.nb_dispersion_roots})"
-
-    def _repr_pretty_(self, p, cycle):
-        p.text(self.__repr__())
 
     @property
     def all_tabulation_parameters(self):
@@ -217,15 +201,6 @@ class HAMS_GF(AbstractGreenFunction):
     def __init__(self):
         self.infinite_depth_gf = LiangWuNoblesseGF()
         self.finite_depth_gf = FinGreen3D(nb_dispersion_roots=200)
-
-    def __str__(self):
-        return "HAMS_GF()"
-
-    def __repr__(self):
-        return "HAMS_GF()"
-
-    def _repr_pretty_(self, p, cycle):
-        p.text(self.__repr__())
 
     def evaluate(self, mesh1, mesh2, *, water_depth=np.inf, **kwargs):
         if water_depth == np.inf:

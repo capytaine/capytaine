@@ -75,3 +75,29 @@ def test_evaluate_at_array_of_points(gf_class, config, early_dot_product):
     )
     assert S.shape == (3, mesh.nb_faces)
     assert K.shape == ((3, mesh.nb_faces) if early_dot_product else (3, 3, mesh.nb_faces))
+
+
+@pytest.mark.parametrize("gf_class", [cpt.Delhommeau, cpt.LiangWuNoblesseGF, cpt.FinGreen3D, cpt.HAMS_GF])
+def test_identical_green_functions_have_same_hash(gf_class):
+    assert hash(gf_class()) == hash(gf_class())
+
+
+def test_different_green_functions_have_different_hash():
+    assert hash(cpt.FinGreen3D(nb_dispersion_roots=100)) != hash(cpt.FinGreen3D(nb_dispersion_roots=200))
+    assert hash(cpt.Delhommeau(tabulation_nr=100)) != hash(cpt.Delhommeau())
+
+
+@pytest.mark.parametrize("gf, expected_str, expected_repr", [
+    (cpt.LiangWuNoblesseGF(), "LiangWuNoblesseGF()", "LiangWuNoblesseGF()"),
+    (cpt.HAMS_GF(), "HAMS_GF()", "HAMS_GF()"),
+    (cpt.FinGreen3D(), "FinGreen3D()", "FinGreen3D(nb_dispersion_roots=200)"),
+    (cpt.FinGreen3D(nb_dispersion_roots=100), "FinGreen3D(nb_dispersion_roots=100)", "FinGreen3D(nb_dispersion_roots=100)"),
+    (cpt.Delhommeau(), "Delhommeau()", None),
+    (cpt.Delhommeau(gf_singularities="high_freq"), "Delhommeau(gf_singularities='high_freq')", None),
+])
+def test_str_and_repr(gf, expected_str, expected_repr):
+    assert str(gf) == expected_str
+    if expected_repr is not None:
+        assert repr(gf) == expected_repr
+    else:  # repr shows all the settings
+        assert repr(gf).startswith(f"{gf.__class__.__name__}(tabulation_nr=676")
