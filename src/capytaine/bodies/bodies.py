@@ -262,7 +262,7 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
                 dof_grad = np.zeros((self.mesh.faces_centers.shape[0], 3, 3))
                 LOG.warning(f"For dof {dof_name}, no gradient of motion specified, computing the following assuming 0.")
             # Scalar product on each face:
-            normal_moving_dof_amplitude_on_face = - np.sum(np.matvec(dof_grad, motion) * self.mesh.faces_normals + dof * np.matvec(A,self.mesh.faces_normals), axis=1)
+            normal_moving_dof_amplitude_on_face = - np.sum((dof_grad @ motion[..., None]).squeeze(-1) * self.mesh.faces_normals + dof * (A @ self.mesh.faces_normals[..., None]).squeeze(-1), axis=1)
             # The minus sign in the above line is because we want the force of the fluid on the body and not the force of the body on the fluid.
             # Sum over all faces:
             forces[dof_name] = np.sum(pressure * normal_moving_dof_amplitude_on_face * self.mesh.faces_areas)
