@@ -27,6 +27,32 @@ class AbstractGreenFunction(ABC):
 
     floating_point_precision: str
 
+    # Settings of the Green function, as a dict of hashable values. It is used
+    # for the string representation, the hash and the export in the outputs.
+    exportable_settings: dict
+    # Default values of the settings that can be passed to the constructor
+    # (subset of `exportable_settings`). Only those are shown in `repr` and `str`.
+    _default_parameters: dict = {}
+
+    def __str__(self):
+        # Print only the non-default values.
+        to_be_printed = [f"{name}={value!r}" for name, value in self.exportable_settings.items()
+                         if name in self._default_parameters and value != self._default_parameters[name]]
+        return f"{self.__class__.__name__}({', '.join(to_be_printed)})"
+
+    def __repr__(self):
+        # Same as __str__ except all values are printed even when they are the
+        # default value.
+        to_be_printed = [f"{name}={value!r}" for name, value in self.exportable_settings.items()
+                         if name in self._default_parameters]
+        return f"{self.__class__.__name__}({', '.join(to_be_printed)})"
+
+    def _repr_pretty_(self, p, cycle):
+        p.text(self.__repr__())
+
+    def __hash__(self):
+        return hash(tuple(self.exportable_settings.items()))
+
     def _get_colocation_points_and_normals(self, mesh1, mesh2, adjoint_double_layer):
         try:
             collocation_points = mesh1.faces_centers
@@ -58,6 +84,9 @@ class AbstractGreenFunction(ABC):
 
 
     def _init_matrices(self, shape, early_dot_product):
+        # Helper for the Fortran-based implementations, which fill
+        # Fortran-ordered NumPy arrays in place. Green functions using another
+        # array library do not need to call it.
         if self.floating_point_precision == "float32":
             dtype = "complex64"
         elif self.floating_point_precision == "float64":
