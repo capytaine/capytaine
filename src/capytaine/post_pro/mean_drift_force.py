@@ -196,63 +196,70 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
     rho = results[0].rho
     g = results[0].g
     freq_type = results[0].provided_freq_type
-    omegas = rao.coords["omega"]
+    omegas = rao.coords["omega"].values
     nb_freq = len(omegas)
     nb_dir = rao.sizes["wave_direction"]
-    zero_block = np.zeros((nb_freq, nb_dir, 3, 3))
-    zero_33 = zero_block[0, 0, ...]
 
-    z0 = np.tile(mesh.faces_centers[:, -1], (nb_freq, nb_dir, 1))
+    # order 1 
     u1 = displacement_order1(mesh.faces_centers, body, rao) # motion[i_freq, i_dir, i_face, xyz]
     z1 = u1[..., -1] # z1[i_freq, i_dir, i_face]
-    p1_hd = pressure_hydrodynamic_order1(mesh, results, rao, body)
+    p1_hd = pressure_hydrodynamic_order1(mesh, results, rao, body) # p1_hd[i_freq, i_dir, i_face]
     gradient_potential = total_potential_gradient(solver, mesh, results, rao) # gradient_potential[i_freq, i_dir, i_face, xyz]
     edges_waterline = mesh.edges_waterline
     vertices_middle_waterline = (mesh.vertices[edges_waterline[:, 0], :] + mesh.vertices[edges_waterline[:, 1], :]) / 2
     free_surface_elevation = total_free_surface_elevation(solver, vertices_middle_waterline, results, rao) # free_surface_elevation[i_freq, i_dir, i_vertex_waterline]
-    z1_wl = displacement_order1(vertices_middle_waterline, body, rao)[..., -1] # tester avec z1[id_waterline]
-    A1 = deformation_order1(mesh, body, rao)
+    z1_wl = displacement_order1(vertices_middle_waterline, body, rao)[..., -1] # z1_wl[i_freq, i_dir, i_vertex_waterline]
+    A1 = deformation_order1(mesh, body, rao) #A[i_freq, i_dir, i_face, xyz, xyz]
 
+    # order 2
+    gradient_potential_square = np.sum(gradient_potential * np.conjugate(gradient_potential), axis=-1) # gradient_potential_square[i_freq, i_dir, i_face]
+    extrapolated_pressure = ( # extrapolated_pressure[i_freq, i_dir, i_face]
+        np.sum(u1 * np.conjugate(-1j * omegas[:, None, None, None] * gradient_potential), axis=-1) 
+        + np.sum(np.conjugate(u1) * -1j * omegas[:, None, None, None] * gradient_potential, axis=-1)
+        ) / 2
+    waterline_field = (1/2) * g * (free_surface_elevation - z1_wl) * np.conjugate(free_surface_elevation - z1_wl)
+
+    # needed for hydrostatic, to be removed
+    # the hydrostatics terms are specific to rigid body for now 
+    zero_block = np.zeros((nb_freq, nb_dir, 3, 3))
+    zero_33 = zero_block[0, 0, ...]
     translation = rao.sel(radiating_dof=[dof_name for dof_name, dof in body.dofs.items() if isinstance(dof, TranslationDof)]).values # translation[i_freq, i_dir, xyz]
     rotation = rao.sel(radiating_dof=[dof_name for dof_name, dof in body.dofs.items() if isinstance(dof, RotationDof)]).values # rotation[i_freq, i_dir, xyz]
     translation_matrix = np.block([[zero_block, zero_block], [skew_matrix(translation), zero_block]])
     rotation_matrix = np.block([[skew_matrix(rotation), zero_block], [zero_block, skew_matrix(rotation)]])
-
+    z0 = np.tile(mesh.faces_centers[:, -1], (nb_freq, nb_dir, 1))
     forces_order0 = hydrostatics_forces(body, rao, rho, g, z0)[0, 0, :] # same value for all wave directions and frequencies at order 0 forces_order0[i_freq, influenced_dof]
-    forces_order1 = hydrodynamics_forces_order1(results, rao) + hydrostatics_forces(body, rao, rho, g, z1) # forces_order1[i_freq, i_dir, influenced_dof]
     rotation_forces_order0 = rotation_matrix @ forces_order0 # rotation_forces_order0[i_freq, i_dir, influenced_dof]
-    all_forces_order1 = forces_order1 + rotation_forces_order0 # all_forces_order1[i_freq, i_dir, influenced_dof]    
+    forces_hs1_tilde = hydrostatics_forces(body, rao, rho, g, z1)
+    forces_hs1 = forces_hs1_tilde + rotation_forces_order0
 
     F = np.full((nb_freq, nb_dir, nb_dir, 6), np.nan + 1j*np.nan, dtype=complex)
     if output_pressure:
         p2 = np.full((nb_freq, nb_dir, nb_dir, mesh.nb_faces), np.nan + 1j*np.nan, dtype=complex)
 
     for w in range(nb_freq):
-        omega = omegas.isel({freq_type: w}).values
         for k in range(nb_dir):
             for l in range(k, nb_dir):
                 # hydrostatics terms 
                 h = transformation_matrix(rao.isel({freq_type: w, 'wave_direction': k}), rao.isel({freq_type: w, 'wave_direction': l})) # h[xyz, xyz]
                 H = np.block([[h, zero_33], [zero_33, h]])
                 hydrostatics_order2 = H @ forces_order0
-                # pressure_on_moving_body = 
-                rotation_forces_order1 = ((rotation_matrix[w, k, ...] @ np.conjugate(forces_order1[w, l, ...])) + (np.conjugate(rotation_matrix[w, l, ...]) @ forces_order1[w, k, ...])) / 2
-                translation_moment = ((translation_matrix[w, k, ...] @ np.conjugate(all_forces_order1[w, l, ...])) + (np.conjugate(translation_matrix[w, l, ...]) @ all_forces_order1[w, k, ...])) / 2
-
-                waterline_field = (1/2) * g * (free_surface_elevation - z1_wl)[w, k, ...] * np.conjugate(free_surface_elevation - z1_wl)[w, l, ...] # waterline_field[i_vertex_waterline] (je pense possible de faire hors la boucle for)
-
-                extrapolated_pressure = (np.sum(u1[w, k, ...] * np.conjugate(-1j * omega * gradient_potential[w, l, ...]), axis=1) + np.sum(np.conjugate(u1[w, l, ...]) * -1j * omega * gradient_potential[w, k, ...], axis=1)) / 2 # extrapolated_pressure[i_face]
-                gradient_potential_square = np.sum(gradient_potential[w, k, ...] * np.conjugate(gradient_potential[w, l, ...]), axis=1) # gradient_potential_square[i_face]
+                rotation_forces_order1 = ((rotation_matrix[w, k, ...] @ np.conjugate(forces_hs1_tilde[w, l, ...])) + (np.conjugate(rotation_matrix[w, l, ...]) @ forces_hs1_tilde[w, k, ...])) / 2 
+                translation_moment = ((translation_matrix[w, k, ...] @ np.conjugate(forces_hs1[w, l, ...])) + (np.conjugate(translation_matrix[w, l, ...]) @ forces_hs1[w, k, ...])) / 2 
+                hydrostatics_remainder = rotation_forces_order1 + translation_moment
                 z2 = (h @ mesh.faces_centers[:, :, None])[..., -1, -1] # z_order2[i_face]
-                pressure_field = - (extrapolated_pressure + gradient_potential_square/2 + g * z2) # pressure_field[i_face]
+
+                pressure_field = - (extrapolated_pressure[w, l, ...] + gradient_potential_square[w, l, ...]/2 + g * z2) # pressure_field[i_face]
                 if output_pressure:
                     p2[w, k, l, :] = pressure_field
                     p2[w, l, k, :] = np.conjugate(pressure_field)
 
                 pressure_hull = body.integrate_pressure(pressure_field)
-                pressure_waterline = body.integrate_pressure_on_waterline(waterline_field) 
+                pressure_waterline = body.integrate_pressure_on_waterline(waterline_field[w, k, ...]) 
+                pressure_on_moving_body = (np.array(list(body.integrate_pressure_on_moving_body(p1_hd[w, k, ...], np.conjugate(u1[w, l, ...]), np.conjugate(A1[w, l, ...])).values())) 
+                                            + np.array(list(body.integrate_pressure_on_moving_body(np.conjugate(p1_hd[w, l, ...]), u1[w, k, ...], A1[w, k, ...]).values()))) / 2 
 
-                F[w, k, l, :] = rotation_forces_order1 + hydrostatics_order2 + translation_moment + rho * (np.array(list(pressure_hull.values())) + np.array(list(pressure_waterline.values())))
+                F[w, k, l, :] = hydrostatics_order2 + hydrostatics_remainder + pressure_on_moving_body + rho * (np.array(list(pressure_hull.values())) + np.array(list(pressure_waterline.values())))
                 F[w, l, k, :] = np.conjugate(F[w, k, l, :])
 
     dataset = xr.Dataset(
@@ -281,8 +288,6 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
 
     return dataset
 
-
-# TODO : verifier si c'est toujours face pour points
 def displacement_order1(points, body, rao):
     sum = 0
     for dof in body.dofs:
@@ -301,7 +306,7 @@ def deformation_order1(mesh, body, rao):
         )
     A = (
         np.eye(3)[None, None, None, ...] * np.trace(gradient_displacement, axis1=-2, axis2=-1)[..., None, None] # trace
-        + np.transpose(gradient_displacement, (0,1,2,-1,-2)) 
+        - np.transpose(gradient_displacement, (0,1,2,-1,-2)) 
     )
     return A # A[i_freq, i_dir, i_face, xyz, xyz]
 
@@ -369,13 +374,12 @@ def pressure_hydrodynamic_order1(mesh, results, rao, body):
         elif isinstance(res, RadiationResult):
             rao_rad = rao.sel({freq_type: getattr(res, freq_type), "radiating_dof": res.radiating_dof}).values
             pressure.loc[{freq_type: getattr(res, freq_type)}] += rao_rad[:, None] * res.pressure[None, body.hull_mask] # radiated
+            # pressure[i_freq, i_dir, i_face] = rao_rad[i_dir] * pressure[i_face]
 
     return pressure
 
 
-
-
-# TODO
+# needed for hydrostatic, to be removed
 
 def hydrostatics_forces(body, rao, rho, g, z):
     force = np.zeros(list(rao.sizes.values()), dtype=z.dtype)
@@ -384,21 +388,6 @@ def hydrostatics_forces(body, rao, rho, g, z):
             results = body.integrate_pressure(-g * z[freq, dir, :])
             force[freq, dir, :] = rho * np.array(list(results.values()))
     return force
-
-def hydrodynamics_forces_order1(results, rao):
-    force = np.zeros(list(rao.sizes.values()), dtype=complex)
-    freq_type = results[0].provided_freq_type
-
-    for res in results:
-        freq = list(rao.coords[freq_type].values).index(getattr(res, freq_type))
-        if isinstance(res, RadiationResult):
-            rao_rad = rao.sel({freq_type: getattr(res, freq_type), "radiating_dof": res.radiating_dof}).values
-            force[freq, :, :] += np.array(list(res.force.values()))[None, :] * rao_rad[:, None]
-        elif isinstance(res, DiffractionResult):
-            dir = list(rao.coords["wave_direction"].values).index(res.wave_direction)
-            force[freq, dir, :] += np.array(list(res.force.values())) + np.array(list(froude_krylov_force(res).values()))
-
-    return force # forces[i_freq, i_dir, influenced_dof]
 
 def transformation_matrix(rao_k, rao_l):
     xk = rao_k.sel(radiating_dof="Roll").values

@@ -236,6 +236,7 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
         self.add_rotation_dof(rotation_center=rotation_center, name="Yaw")
 
     def integrate_pressure(self, pressure):
+        # Integration over a fixed mesh 
         forces = {}
         for dof_name in self.dofs:
             if isinstance(self.dofs[dof_name], AbstractDof):
@@ -247,6 +248,58 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
             # The minus sign in the above line is because we want the force of the fluid on the body and not the force of the body on the fluid.
             # Sum over all faces:
             forces[dof_name] = np.sum(pressure * normal_dof_amplitude_on_face * self.mesh.faces_areas)
+        return forces
+
+    def integrate_pressure_on_moving_body(self, pressure, motion, A): 
+    # Integration over a moving mesh at order 1 
+        forces = {}
+        for dof_name in self.dofs:
+            if isinstance(self.dofs[dof_name], AbstractDof):
+                dof = self.dofs[dof_name].evaluate_motion(self.mesh)
+                dof_grad = self.dofs[dof_name].evaluate_gradient_of_motion(self.mesh)
+            else:
+                dof = self.dofs[dof_name]
+                dof_grad = np.zeros((self.mesh.faces_centers.shape[0], 3, 3))
+                LOG.warning(f"For dof {dof_name}, no gradient of motion specified, computing the following assuming 0.")
+            # Scalar product on each face:
+            normal_moving_dof_amplitude_on_face = - np.sum(np.matvec(dof_grad, motion) * self.mesh.faces_normals + dof * np.matvec(A,self.mesh.faces_normals), axis=1)
+            # The minus sign in the above line is because we want the force of the fluid on the body and not the force of the body on the fluid.
+            # Sum over all faces:
+            forces[dof_name] = np.sum(pressure * normal_moving_dof_amplitude_on_face * self.mesh.faces_areas)
+        return forces
+
+    def integrate_pressure_on_waterline(self, pressure):
+        """Integrate the pressure over the waterline. 
+
+        Parameters
+        ----------
+        pressure : xarray DataArray
+            Array of size (mesh.nb_faces_waterline,) ordered according to mesh.id_faces_waterline.
+
+        Returns
+        -------
+        dict[str, float]
+            The associated forces as a dictionary with the name of the dofs as keys. 
+        """
+        forces = {}
+        id_waterline = self.mesh.id_faces_waterline
+        normal = self.mesh.faces_normals[id_waterline, :]
+        normal_waterline = normal/np.sqrt(1-normal[:, -1, None]**2)
+        edges_waterline = self.mesh.edges_waterline
+        vertex_waterline = (
+            self.mesh.vertices[edges_waterline[:, 0], :]
+            + self.mesh.vertices[edges_waterline[:, 1], :]
+        ) / 2
+        for dof_name in self.dofs:
+            if isinstance(self.dofs[dof_name], AbstractDof):
+                dof = self.dofs[dof_name].evaluate_motion_at_points(vertex_waterline)
+            else:
+                dof =  self.dofs[dof_name][id_waterline, :]
+            # Scalar product on each face:
+            normal_dof_amplitude_on_waterline = -np.sum(dof * normal_waterline, axis=1)
+            # The minus sign in the above line is because we want the force of the fluid on the body and not the force of the body on the fluid.
+            # Sum over all faces:
+            forces[dof_name] = np.sum(pressure * normal_dof_amplitude_on_waterline * self.mesh.length_edges_waterline)
         return forces
 
     def keep_only_dofs(self, *args, **kwargs):
