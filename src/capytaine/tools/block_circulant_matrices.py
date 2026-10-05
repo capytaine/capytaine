@@ -15,7 +15,8 @@
 
 import logging
 import numpy as np
-from functools import lru_cache
+from abc import ABC, abstractmethod
+from functools import lru_cache, singledispatch
 from typing import List, Union, Sequence
 from numpy.typing import NDArray, ArrayLike
 import scipy.linalg as sl
@@ -358,20 +359,33 @@ class BlockDiagonalMatrix:
 MatrixLike = Union[np.ndarray, BlockDiagonalMatrix, NestedBlockCirculantMatrix, BlockCirculantMatrix]
 
 
-def lu_decompose(A: MatrixLike, *, overwrite_a : bool = False):
-    if isinstance(A, np.ndarray):
-        return LUDecomposedMatrix(A, overwrite_a=overwrite_a)
-    elif isinstance(A, BlockDiagonalMatrix):
-        return LUDecomposedBlockDiagonalMatrix(A, overwrite_a=overwrite_a)
-    elif isinstance(A, BlockCirculantMatrix):
-        return LUDecomposedBlockCirculantMatrix(A, overwrite_a=overwrite_a)
-    elif isinstance(A, NestedBlockCirculantMatrix):
-        return LUDecomposedBlockCirculantMatrix(A.to_BlockCirculantMatrix(), overwrite_a=overwrite_a)
-    else:
-        raise NotImplementedError()
+class AbstractLUDecomposedMatrix(ABC):
+    """Base class of the LU decompositions of matrices.
+
+    New matrix types (e.g. matrices stored with another array library) can be
+    supported by the linear solvers of Capytaine by registering a function
+    returning a subclass of this class with :func:`lu_decompose`.
+    """
+    shape: tuple
+    dtype: object
+
+    @abstractmethod
+    def solve(self, b):
+        """Solve the linear system with the decomposed matrix as left-hand side and `b` as right-hand side."""
 
 
-class LUDecomposedMatrix:
+@singledispatch
+def lu_decompose(A, *, overwrite_a: bool = False) -> AbstractLUDecomposedMatrix:
+    """Compute the LU decomposition of `A`.
+
+    This is a :func:`functools.singledispatch` function: the implementation for
+    a new type of matrix can be added with ``lu_decompose.register(MyMatrix, my_function)``,
+    where ``my_function(A, *, overwrite_a=False)`` returns an :class:`AbstractLUDecomposedMatrix`.
+    """
+    raise NotImplementedError(f"No LU decomposition registered for {type(A)}")
+
+
+class LUDecomposedMatrix(AbstractLUDecomposedMatrix):
     def __init__(self, A: NDArray, *, overwrite_a : bool = False):
         LOG.debug("LU decomp of %s of shape %s",
                   A.__class__.__name__, A.shape)
@@ -385,7 +399,7 @@ class LUDecomposedMatrix:
         return sl.lu_solve(self._lu_decomp, b)
 
 
-class LUDecomposedBlockDiagonalMatrix:
+class LUDecomposedBlockDiagonalMatrix(AbstractLUDecomposedMatrix):
     """LU decomposition of a BlockDiagonalMatrix,
     stored as the LU decomposition of each block."""
     def __init__(self, bdm: BlockDiagonalMatrix, *, overwrite_a : bool = False):
@@ -404,7 +418,7 @@ class LUDecomposedBlockDiagonalMatrix:
         return np.hstack(res)
 
 
-class LUDecomposedBlockCirculantMatrix:
+class LUDecomposedBlockCirculantMatrix(AbstractLUDecomposedMatrix):
     def __init__(self, bcm: BlockCirculantMatrix, *, overwrite_a : bool = False):
         LOG.debug("LU decomp of %s of shape %s",
                   bcm.__class__.__name__, bcm.shape)
@@ -423,9 +437,25 @@ class LUDecomposedBlockCirculantMatrix:
         return res
 
 
-LUDecomposedMatrixLike = Union[LUDecomposedMatrix, LUDecomposedBlockDiagonalMatrix, LUDecomposedBlockCirculantMatrix]
+@lu_decompose.register(np.ndarray)
+def _lu_decompose_ndarray(A, *, overwrite_a: bool = False):
+    return LUDecomposedMatrix(A, overwrite_a=overwrite_a)
+
+
+@lu_decompose.register(BlockDiagonalMatrix)
+def _lu_decompose_block_diagonal(A, *, overwrite_a: bool = False):
+    return LUDecomposedBlockDiagonalMatrix(A, overwrite_a=overwrite_a)
+
+
+@lu_decompose.register(BlockCirculantMatrix)
+def _lu_decompose_block_circulant(A, *, overwrite_a: bool = False):
+    return LUDecomposedBlockCirculantMatrix(A, overwrite_a=overwrite_a)
+
+
+@lu_decompose.register(NestedBlockCirculantMatrix)
+def _lu_decompose_nested_block_circulant(A, *, overwrite_a: bool = False):
+    return LUDecomposedBlockCirculantMatrix(A.to_BlockCirculantMatrix(), overwrite_a=overwrite_a)
 
 
 def has_been_lu_decomposed(A):
-    # Python 3.8 does not support isinstance(A, LUDecomposedMatrixLike)
-    return isinstance(A, (LUDecomposedMatrix, LUDecomposedBlockDiagonalMatrix, LUDecomposedBlockCirculantMatrix))
+    return isinstance(A, AbstractLUDecomposedMatrix)

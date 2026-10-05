@@ -33,7 +33,7 @@ from capytaine.tools.block_circulant_matrices import (
     lu_decompose,
     has_been_lu_decomposed,
     MatrixLike,
-    LUDecomposedMatrixLike
+    AbstractLUDecomposedMatrix
 )
 
 LOG = logging.getLogger(__name__)
@@ -89,7 +89,7 @@ def solve_gmres(A, b):
     return x
 
 
-LUDecomposedMatrixOrNot = Union[MatrixLike, LUDecomposedMatrixLike]
+LUDecomposedMatrixOrNot = Union[MatrixLike, AbstractLUDecomposedMatrix]
 
 
 class DefaultMatrixEngine(MatrixEngine):
@@ -334,7 +334,7 @@ class DefaultMatrixEngine(MatrixEngine):
                     # cache to avoid doing the decomposition again.
                     self.last_computed_matrices = (self.last_computed_matrices[0], luA)
             else:
-                luA: LUDecomposedMatrixLike = A
+                luA: AbstractLUDecomposedMatrix = A
             return luA.solve(b)
 
         elif self._linear_solver == "gmres":

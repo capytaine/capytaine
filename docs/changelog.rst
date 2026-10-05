@@ -47,6 +47,10 @@ Bug fixes
 Internals
 ~~~~~~~~~
 
+* :func:`~capytaine.tools.block_circulant_matrices.lu_decompose` is now a :func:`functools.singledispatch` function,
+  and the LU decompositions are subclasses of the new abstract class :class:`~capytaine.tools.block_circulant_matrices.AbstractLUDecomposedMatrix`.
+  The LU decomposition of a new type of matrices can be supported by the linear solver of the :class:`~capytaine.bem.engines.DefaultMatrixEngine` by registering it with ``lu_decompose.register``. (:pull:`954`)
+
 * The string representation (``__str__``, ``__repr__``) and the hash of Green functions are now implemented once in :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`, driven by ``exportable_settings`` and a ``_default_parameters`` class attribute.
 
 * Fix :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_motion_at_points` and
