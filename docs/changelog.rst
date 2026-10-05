@@ -53,6 +53,10 @@ Internals
 
 * The string representation (``__str__``, ``__repr__``) and the hash of Green functions are now implemented once in :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`, driven by ``exportable_settings`` and a ``_default_parameters`` class attribute.
 
+* Add the dependency `array-api-compat <https://data-apis.org/array-api-compat/>`_ (and `array-api-strict <https://github.com/data-apis/array-api-strict>`_ to the test dependencies).
+  The new module :mod:`capytaine.tools.array_backend` provides helpers (``is_array``, ``complex_dtype``, ``asarray_like``, ``to_numpy``) to write code that works with any array library implementing the array API standard.
+  It is not used yet by the rest of the code.
+
 * Fix :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_motion_at_points` and
   :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_motion_at_points`
   to accept arrays of points of shape ``(..., 3)`` instead of only ``(nb_points, 3)``.

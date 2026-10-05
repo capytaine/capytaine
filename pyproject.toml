@@ -7,6 +7,7 @@ dependencies = [
    "numpy>=1.20; python_version>='3.9'",
    "numpy>=1.24; python_version=='3.8'",  # https://github.com/capytaine/capytaine/issues/562
    "scipy",
+   "array-api-compat>=1.5",
    "pandas>=1.3,<3",
    "xarray",
    "rich"
@@ -37,6 +38,7 @@ more_visualisation = ["vedo", "imageio[ffmpeg]"]
 [dependency-groups]
 test = [
   "pytest",
+  "array-api-strict; python_version>='3.9'",
   "matplotlib",  # No for the pytest suite but for the docs examples which are run in CI
 ]
 more_optional = [
