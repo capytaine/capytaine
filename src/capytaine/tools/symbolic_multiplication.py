@@ -22,7 +22,7 @@ output of the form `SymbolicMultiplication("0", np.array(...))`
 """
 
 import numpy as np
-from functools import wraps, total_ordering
+from functools import wraps
 
 class SymbolicMultiplication:
     def __init__(self, symbol, value=1.0):
@@ -168,17 +168,17 @@ class SymbolicMultiplication:
         return SymbolicMultiplication(self.symbol, self.value.T)
 
 
-def supporting_symbolic_multiplication(f):
+def method_supporting_symbolic_multiplication(f):
     """
-    When this decorator is applied to a function, this function can now take
-    as input a `SymbolicMultiplication` object. The function is applied on the
-    `value` part of the `SymbolicMultiplication` without modifying the
-    `symbol`.
+    When this decorator is applied to a method `f(self, a, x, ...)`, this method
+    can now take as input a `SymbolicMultiplication` object as `x`. The method
+    is applied on the `value` part of the `SymbolicMultiplication` without
+    modifying the `symbol`. Further arguments are passed to the method unchanged.
     """
     @wraps(f)
-    def wrapped_f(a, x):
+    def wrapped_f(self, a, x, *args, **kwargs):
         if hasattr(x, 'symbol'):
-            return SymbolicMultiplication(x.symbol, f(a, x.value))
+            return SymbolicMultiplication(x.symbol, f(self, a, x.value, *args, **kwargs))
         else:
-            return f(a, x)
+            return f(self, a, x, *args, **kwargs)
     return wrapped_f

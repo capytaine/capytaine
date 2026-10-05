@@ -32,3 +32,11 @@ def test_mvp():
     full_ones = np.ones(lazy_ones.shape)
     y2 = full_ones @ x
     assert np.allclose(y1, y2)
+
+
+def test_array_library_of_lazy_matrix():
+    import array_api_compat
+    A = LazyMatrix(lambda sl: np.ones((sl.stop - sl.start, 3)), shape=(10, 3), chunk_size=5, dtype=np.float64)
+    assert A.__array_namespace__() is array_api_compat.array_namespace(np.zeros(1))
+    assert A.device == "cpu"
+    assert A.dtype == np.float64

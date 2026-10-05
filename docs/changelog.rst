@@ -47,6 +47,12 @@ Bug fixes
 Internals
 ~~~~~~~~~
 
+* The :class:`~capytaine.bem.solver.BEMSolver` and the :class:`~capytaine.bem.engines.DefaultMatrixEngine` can now work with a Green function returning matrices from another array library than NumPy, as long as it implements the array API standard (using ``array-api-compat``) and an LU decomposition has been registered with :func:`~capytaine.tools.block_circulant_matrices.lu_decompose`.
+  The subclasses of :class:`~capytaine.tools.block_circulant_matrices.AbstractLUDecomposedMatrix` now have to define ``__array_namespace__`` and ``device``, as arrays of the array API standard do.
+  The Green functions have new attributes ``matrices_namespace`` and ``matrices_device`` to declare the array library and the device of their matrices (NumPy and ``"cpu"`` by default).
+  The results and the post-processing stay NumPy arrays.
+  The ``gmres`` linear solver raises ``NotImplementedError`` for matrices that are not NumPy arrays.
+
 * :func:`~capytaine.tools.block_circulant_matrices.lu_decompose` is now a :func:`functools.singledispatch` function,
   and the LU decompositions are subclasses of the new abstract class :class:`~capytaine.tools.block_circulant_matrices.AbstractLUDecomposedMatrix`.
   The LU decomposition of a new type of matrices can be supported by the linear solver of the :class:`~capytaine.bem.engines.DefaultMatrixEngine` by registering it with ``lu_decompose.register``. (:pull:`954`)
@@ -54,8 +60,7 @@ Internals
 * The string representation (``__str__``, ``__repr__``) and the hash of Green functions are now implemented once in :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`, driven by ``exportable_settings`` and a ``_default_parameters`` class attribute.
 
 * Add the dependency `array-api-compat <https://data-apis.org/array-api-compat/>`_ (and `array-api-strict <https://github.com/data-apis/array-api-strict>`_ to the test dependencies).
-  The new module :mod:`capytaine.tools.array_backend` provides helpers (``is_array``, ``complex_dtype``, ``asarray_like``, ``to_numpy``) to write code that works with any array library implementing the array API standard.
-  It is not used yet by the rest of the code.
+  The new module :mod:`capytaine.tools.array_backend` provides helpers (``is_array``, ``complex_dtype``, ``to_backend_of``, ``to_numpy``) to write code that works with any array library implementing the array API standard. (:pull:`956`)
 
 * Fix :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_motion_at_points` and
   :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_motion_at_points`

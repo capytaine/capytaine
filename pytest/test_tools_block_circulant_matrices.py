@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import numpy as np
+import pytest
 from capytaine.tools.block_circulant_matrices import (
         BlockCirculantMatrix, NestedBlockCirculantMatrix, lu_decompose,
         leading_dimensions_at_the_end, ending_dimensions_at_the_beginning
@@ -354,3 +355,20 @@ def test_nested_block_circulant_lu_decompose():
     x_direct = np.linalg.solve(full_A, b)
 
     assert np.allclose(x_lu, x_direct)
+
+
+def test_lu_decomposed_matrices_know_their_array_library():
+    from capytaine.tools.array_backend import array_namespace
+    from capytaine.tools.block_circulant_matrices import BlockDiagonalMatrix
+    blocks = [2*np.eye(2) + _rand(2, 2) for _ in range(4)]
+    matrices = [
+        np.eye(3) + _rand(3, 3),
+        BlockDiagonalMatrix(blocks),
+        BlockCirculantMatrix(blocks),
+        NestedBlockCirculantMatrix(blocks),
+    ]
+    for A in matrices:
+        lu = lu_decompose(A)
+        assert lu.__array_namespace__() is array_namespace(np.zeros(1))
+        assert lu.device == "cpu"
+        assert array_namespace(lu) is array_namespace(np.zeros(1))
