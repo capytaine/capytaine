@@ -16,7 +16,7 @@ import pytest
 import numpy as np
 xps = pytest.importorskip("array_api_strict")  # Not available on Python 3.8
 
-from capytaine.tools.array_backend import is_array, complex_dtype, to_backend_of, to_numpy
+from capytaine.tools.array_backend import is_array, is_numpy_namespace, complex_dtype, to_backend_of, to_numpy
 from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 
 
@@ -80,3 +80,9 @@ def test_to_numpy_of_symbolic_multiplication():
     assert isinstance(back.value, np.ndarray)
     assert back.value.dtype == np.complex64
     np.testing.assert_allclose(back.value, [1.0, 2.0])
+
+
+def test_is_numpy_namespace():
+    from capytaine.tools.array_backend import array_namespace
+    assert is_numpy_namespace(array_namespace(np.zeros(3)))
+    assert not is_numpy_namespace(array_namespace(xps.zeros(3)))

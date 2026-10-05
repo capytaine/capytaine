@@ -14,7 +14,7 @@
 """Helpers to write code that works with any array library implementing the array API standard."""
 
 import numpy as np
-from array_api_compat import array_namespace, device, is_numpy_array, is_numpy_namespace, to_device
+from array_api_compat import array_namespace, device, is_numpy_array, to_device
 
 from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 
@@ -28,6 +28,12 @@ def is_array(x):
         return True
     except TypeError:
         return False
+
+
+def is_numpy_namespace(xp):
+    """True if `xp` is the NumPy namespace.
+    (`array_api_compat.is_numpy_namespace` is only available since array-api-compat 1.9.)"""
+    return xp is array_namespace(np.empty(0))
 
 
 def complex_dtype(xp, dtype):
