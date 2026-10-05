@@ -137,21 +137,21 @@ test_in_py38_reference_env:
         --isolated --no-default-groups \
         --python 3.8 \
         --no-editable \
-        --with-requirements {{TEST_DIR}}/envs/2023-08-01-py3.8.txt \
+        --with-requirements {{TEST_DIR}}/envs/2024-02-01-py3.8.txt \
         -- \
         just _install_and_test
 
-test_in_py313_reference_env:
+test_in_py314_reference_env:
     uv run \
         --isolated --no-default-groups \
-        --python 3.13 \
+        --python 3.14 \
         --no-editable \
-        --with-requirements {{TEST_DIR}}/envs/2025-11-25-py3.13.txt \
+        --with-requirements {{TEST_DIR}}/envs/2026-10-01-py3.14.txt \
         -- \
         just _install_and_test
 
 # How the requirements files from the above recipes where generated.
-create_test_env_file python="3.8" date="2023-08-01":
+create_test_env_file python="3.8" date="2024-02-01":
     uv pip compile \
         pyproject.toml \
         --python-version {{python}} \
