@@ -13,7 +13,7 @@
 # limitations under the License.
 """Lazy matrix where the rows are computed and stored on demand when the matrix-vector product is requested."""
 
-from typing import Callable
+from typing import Any, Callable
 import numpy as np
 
 from capytaine.tools.array_backend import array_namespace, is_array, to_numpy
@@ -57,7 +57,7 @@ class LazyMatrix:
         device: device, optional
             The device of the rows (default: "cpu").
         """
-        self.row_constructor: Callable[range, np.ndarray] = row_constructor
+        self.row_constructor: Callable[[slice], Any] = row_constructor
         self.shape = shape
         self.chunk_size = chunk_size
         self.dtype = dtype
@@ -72,10 +72,10 @@ class LazyMatrix:
     def __array__(self, dtype=None, copy=True):
         if not copy:
             raise NotImplementedError
-        if dtype is None:
-            dtype = self.dtype
         rows = [to_numpy(self.row_constructor(sl)) for sl in self._slices]
-        return np.concatenate(rows).astype(dtype)
+        matrix = np.concatenate(rows)
+        # `self.dtype` is not used because it can be a dtype of another array library.
+        return matrix if dtype is None else matrix.astype(dtype)
 
     def __matmul__(self, other):
         if is_array(other) and other.ndim == 1 and other.shape[0] == self.shape[1]:
@@ -85,4 +85,4 @@ class LazyMatrix:
             return self._namespace.concat(output_chunks)
         else:
             return NotImplemented
-            # Usually fallback on building the full matrix with __array__ above.
+            # Usually fallback on building the full NumPy matrix with __array__ above.

@@ -152,6 +152,9 @@ def test_lazy_matrix_of_strict_arrays_is_used_for_many_points():
     assert S.__array_namespace__() is xps
     assert S.dtype == xps.complex128
     assert S.shape == (600, sphere().mesh.nb_faces)
+    # Conversion to a NumPy array does not use the dtype of the other library
+    S_numpy = cpt.DefaultMatrixEngine().build_S_matrix(points, sphere().mesh, free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
+    np.testing.assert_allclose(np.asarray(S), np.asarray(S_numpy), rtol=1e-8)
 
 
 def test_fill_dataset():
