@@ -21,6 +21,8 @@ from typing import List, Union, Sequence
 from numpy.typing import NDArray, ArrayLike
 import scipy.linalg as sl
 
+from capytaine.tools.array_backend import array_namespace, device
+
 LOG = logging.getLogger(__name__)
 
 
@@ -40,7 +42,18 @@ def ending_dimensions_at_the_beginning(a):
     return np.moveaxis(a, [-2, -1], [0, 1])
 
 
-class BlockCirculantMatrix:
+class _BlockMatrixBackendMixin:
+    """Make the array library and the device of the blocks accessible, as for an array."""
+
+    def __array_namespace__(self, *, api_version=None):
+        return array_namespace(self.blocks[0])
+
+    @property
+    def device(self):
+        return device(self.blocks[0])
+
+
+class BlockCirculantMatrix(_BlockMatrixBackendMixin):
     """Data-sparse representation of a block matrix of the following form::
 
         ( a  d  c  b )
@@ -161,7 +174,7 @@ class BlockCirculantMatrix:
         return res
 
 
-class NestedBlockCirculantMatrix:
+class NestedBlockCirculantMatrix(_BlockMatrixBackendMixin):
     """Data-sparse representation of a block matrix of the following form::
 
        ( a  b | e  d | c  f )
@@ -303,7 +316,7 @@ class NestedBlockCirculantMatrix:
         return self.to_BlockCirculantMatrix().solve(b)
 
 
-class BlockDiagonalMatrix:
+class BlockDiagonalMatrix(_BlockMatrixBackendMixin):
     """Data-sparse representation of a block matrix of the following form::
 
         ( a  0  0  0 )
@@ -370,6 +383,15 @@ class AbstractLUDecomposedMatrix(ABC):
     dtype: object
 
     @abstractmethod
+    def __array_namespace__(self, *, api_version=None):
+        """Array library of the matrix that has been decomposed, as for an array of the array API standard."""
+
+    @property
+    @abstractmethod
+    def device(self):
+        """Device of the matrix that has been decomposed, as for an array of the array API standard."""
+
+    @abstractmethod
     def solve(self, b):
         """Solve the linear system with the decomposed matrix as left-hand side and `b` as right-hand side."""
 
@@ -392,6 +414,15 @@ class LUDecomposedMatrix(AbstractLUDecomposedMatrix):
         self._lu_decomp = sl.lu_factor(A, overwrite_a=overwrite_a)
         self.shape = A.shape
         self.dtype = A.dtype
+        self._array_namespace = array_namespace(A)
+        self._device = device(A)
+
+    def __array_namespace__(self, *, api_version=None):
+        return self._array_namespace
+
+    @property
+    def device(self):
+        return self._device
 
     def solve(self, b: np.ndarray) -> np.ndarray:
         LOG.debug("Called solve on %s of shape %s",
@@ -410,6 +441,13 @@ class LUDecomposedBlockDiagonalMatrix(AbstractLUDecomposedMatrix):
         self.nb_blocks = bdm.nb_blocks
         self.dtype = bdm.dtype
 
+    def __array_namespace__(self, *, api_version=None):
+        return self._lu_decomp[0].__array_namespace__()
+
+    @property
+    def device(self):
+        return self._lu_decomp[0].device
+
     def solve(self, b: np.ndarray) -> np.ndarray:
         LOG.debug("Called solve on %s of shape %s",
                   self.__class__.__name__, self.shape)
@@ -426,6 +464,13 @@ class LUDecomposedBlockCirculantMatrix(AbstractLUDecomposedMatrix):
         self.shape = bcm.shape
         self.nb_blocks = bcm.nb_blocks
         self.dtype = bcm.dtype
+
+    def __array_namespace__(self, *, api_version=None):
+        return self._lu_decomp.__array_namespace__()
+
+    @property
+    def device(self):
+        return self._lu_decomp.device
 
     def solve(self, b: np.ndarray) -> np.ndarray:
         LOG.debug("Called solve on %s of shape %s",

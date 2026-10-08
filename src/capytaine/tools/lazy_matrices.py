@@ -13,8 +13,10 @@
 # limitations under the License.
 """Lazy matrix where the rows are computed and stored on demand when the matrix-vector product is requested."""
 
-from typing import Callable
+from typing import Any, Callable
 import numpy as np
+
+from capytaine.tools.array_backend import array_namespace, is_array, to_numpy
 
 
 def slices(start, stop, chunk_size):
@@ -34,44 +36,53 @@ def slices(start, stop, chunk_size):
 
 
 class LazyMatrix:
-    def __init__(self, row_constructor, shape, *, chunk_size=10, dtype=float):
+    def __init__(self, row_constructor, shape, *, chunk_size=10, dtype=float, namespace=None, device="cpu"):
         """
         A matrix (2D array) that is never fully stored in memory, but instead recomputed from a `row_constructor` method when required.
 
         Parameters
         ----------
         row_constructor: callable
-            Function returning a numpy array containing a few rows of the matrix.
-            We assume that row_constructor(slice(n, n+m)) returns a numpy array of shape (m, d) corresponding to the m rows of indices between n and n+m.
-            The dtype of the output of row_constructor should match self.dtype.
+            Function returning an array containing a few rows of the matrix.
+            We assume that row_constructor(slice(n, n+m)) returns an array of shape (m, d) corresponding to the m rows of indices between n and n+m.
+            The dtype, array library and device of the output of row_constructor should match the ones given below.
         shape: 2-ple of int
             The shape of the matrix.
         chunk_size: int
             The number of row requested to row_constructor at each call.
-        dtype: numpy.dtype
+        dtype: dtype
             The type of data contained in the matrix.
+        namespace: array namespace, optional
+            The array library (supporting the array API standard) of the rows (default: NumPy).
+        device: device, optional
+            The device of the rows (default: "cpu").
         """
-        self.row_constructor: Callable[range, np.ndarray] = row_constructor
+        self.row_constructor: Callable[[slice], Any] = row_constructor
         self.shape = shape
         self.chunk_size = chunk_size
         self.dtype = dtype
         self.ndim = 2  # Other shapes not implemented
         self._slices = list(slices(0, self.shape[0], self.chunk_size))
+        self._namespace = array_namespace(np.empty(0)) if namespace is None else namespace
+        self.device = device
+
+    def __array_namespace__(self, *, api_version=None):
+        return self._namespace
 
     def __array__(self, dtype=None, copy=True):
         if not copy:
             raise NotImplementedError
-        if dtype is None:
-            dtype = self.dtype
-        rows = [self.row_constructor(sl) for sl in self._slices]
-        return np.concatenate(rows).astype(dtype)
+        rows = [to_numpy(self.row_constructor(sl)) for sl in self._slices]
+        matrix = np.concatenate(rows)
+        # `self.dtype` is not used because it can be a dtype of another array library.
+        return matrix if dtype is None else matrix.astype(dtype)
 
     def __matmul__(self, other):
-        if isinstance(other, np.ndarray) and other.ndim == 1 and other.shape[0] == self.shape[1]:
+        if is_array(other) and other.ndim == 1 and other.shape[0] == self.shape[1]:
             # Only matrix-vector product is actually implemented
             # Compute `chunk_size` rows and multiply them by `other`
             output_chunks = [self.row_constructor(sl) @ other for sl in self._slices]
-            return np.concatenate(output_chunks)
+            return self._namespace.concat(output_chunks)
         else:
             return NotImplemented
-            # Usually fallback on building the full matrix with __array__ above.
+            # Usually fallback on building the full NumPy matrix with __array__ above.

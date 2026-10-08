@@ -25,6 +25,7 @@ from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationS
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction, GreenFunctionEvaluationError
 from capytaine.green_functions.delhommeau import Delhommeau
 
+from capytaine.tools.array_backend import array_namespace, complex_dtype, is_numpy_namespace
 from capytaine.tools.lazy_matrices import LazyMatrix
 from capytaine.tools.lists_of_points import _normalize_points
 from capytaine.tools.block_circulant_matrices import (
@@ -139,11 +140,16 @@ class DefaultMatrixEngine(MatrixEngine):
     def _repr_pretty_(self, p, cycle):
         p.text(self.__str__())
 
-    def build_S_matrix(self, points, mesh, **gf_params) -> np.ndarray:
+    def build_S_matrix(self, points, mesh, **gf_params):
         """Similar to :code:`build_matrices`, but returning only :math:`S`
 
         points: np.ndarray of shape (nb_collocations_points, 3)
             List of collocation points. Usually went through `_normalize_points`.
+
+        Returns
+        -------
+        array or LazyMatrix
+            The array library of the matrix is the one of the Green function.
         """
         full_mesh = mesh.merged()
         def build_S_rows(slice_):
@@ -156,16 +162,21 @@ class DefaultMatrixEngine(MatrixEngine):
         if nb_points < 500:
             return build_S_rows(slice(0, nb_points))  # Just the full matrix
         else:
+            xp = self.green_function.matrices_namespace
+            real_dtype = xp.float32 if self.green_function.floating_point_precision == "float32" else xp.float64
             return LazyMatrix(
                 build_S_rows,
                 shape=(points.shape[0], mesh.nb_faces),
-                dtype=complex,
-                chunk_size=100
+                chunk_size=100,
+                dtype=complex_dtype(xp, real_dtype),
+                namespace=xp,
+                device=self.green_function.matrices_device,
             )
 
-    def build_fullK_matrix(self, mesh1, mesh2, **gf_params) -> np.ndarray:
+    def build_fullK_matrix(self, mesh1, mesh2, **gf_params):
         """Similar to :code:`build_matrices`, but returning only full :math:`K`
-        (that is the three components of the gradient, not just the normal one)"""
+        (that is the three components of the gradient, not just the normal one).
+        The array library of the returned array is the one of the Green function."""
         # TODO: could use symmetries. In particular for forward, we compute the
         # full velocity on the same mesh so symmetries could be used.
         gf_params.setdefault("diagonal_term_in_double_layer", True)  # Unclear if this is a good default
@@ -290,27 +301,27 @@ class DefaultMatrixEngine(MatrixEngine):
 
         Returns
         -------
-        tuple of matrix-like (Numpy arrays or BlockCirculantMatrix)
+        tuple of matrix-like (arrays of the array library of the Green function, or BlockCirculantMatrix)
             the matrices :math:`S` and :math:`K`
         """
         return self._build_and_cache_matrices_with_symmetries(
             mesh1, mesh2, **gf_params
         )
 
-    def linear_solver(self, A: LUDecomposedMatrixOrNot, b: np.ndarray) -> np.ndarray:
+    def linear_solver(self, A: LUDecomposedMatrixOrNot, b):
         """Solve a linear system with left-hand side A and right-hand-side b
 
         Parameters
         ----------
         A: matrix-like
             Expected to be the second output of `build_matrices`
-        b: np.ndarray
-            Vector of the correct length
+        b: array
+            Vector of the correct length, from the same array library as A
 
         Returns
         -------
-        x: np.ndarray
-            Vector such that A@x = b
+        x: array
+            Vector such that A@x = b, from the same array library as A
         """
         if not isinstance(self._linear_solver, str):
             # If not a string, it is expected to be a custom function that can
@@ -338,6 +349,10 @@ class DefaultMatrixEngine(MatrixEngine):
             return luA.solve(b)
 
         elif self._linear_solver == "gmres":
+            if not is_numpy_namespace(array_namespace(A)):
+                raise NotImplementedError(
+                    "The 'gmres' linear solver is only available for matrices stored as NumPy arrays."
+                )
             return solve_gmres(A, b)
 
         else:
@@ -399,7 +414,8 @@ class DefaultMatrixEngine(MatrixEngine):
 
 def check_if_nan_in_matrix(matrices):
     for matrix in matrices:
-        if np.any(np.isnan(matrix)):
+        xp = array_namespace(matrix)
+        if bool(xp.any(xp.isnan(matrix))):
             raise GreenFunctionEvaluationError(
                     "Green function returned a NaN in the interaction matrix.\n"
                     "It could be due to overlapping panels.")

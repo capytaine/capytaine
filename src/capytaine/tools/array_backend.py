@@ -18,7 +18,7 @@ from array_api_compat import array_namespace, device, is_numpy_array, to_device
 
 from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 
-__all__ = ["array_namespace", "is_array", "complex_dtype", "asarray_like", "to_numpy"]
+__all__ = ["array_namespace", "device", "is_array", "is_numpy_namespace", "complex_dtype", "to_backend_of", "to_numpy"]
 
 
 def is_array(x):
@@ -30,15 +30,19 @@ def is_array(x):
         return False
 
 
+def is_numpy_namespace(xp):
+    """True if `xp` is the NumPy namespace.
+    (`array_api_compat.is_numpy_namespace` is only available since array-api-compat 1.9.)"""
+    return xp is array_namespace(np.empty(0))
+
+
 def complex_dtype(xp, dtype):
     """Complex dtype with the same precision as `dtype`."""
     return xp.complex64 if dtype in (xp.float32, xp.complex64) else xp.complex128
 
 
-def asarray_like(x, like, *, complex_=False):
+def to_backend_of(x, like, *, complex_=False):
     """Convert `x` to the array library, device and (complex) precision of `like`."""
-    if isinstance(x, SymbolicMultiplication):
-        return SymbolicMultiplication(x.symbol, asarray_like(x.value, like, complex_=complex_))
     xp = array_namespace(like)
     dtype = complex_dtype(xp, like.dtype) if complex_ else like.dtype
     return xp.asarray(x, dtype=dtype, device=device(like))

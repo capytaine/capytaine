@@ -13,7 +13,7 @@
 # limitations under the License.
 import pytest
 import numpy as np
-from capytaine.tools.symbolic_multiplication import SymbolicMultiplication, supporting_symbolic_multiplication
+from capytaine.tools.symbolic_multiplication import SymbolicMultiplication, method_supporting_symbolic_multiplication
 
 def test_definition():
     zero = SymbolicMultiplication("0")
@@ -103,14 +103,30 @@ def test_undefined_case():
     assert np.isnan(float(SymbolicMultiplication("0", np.inf)))
     assert np.isnan(float(SymbolicMultiplication("∞", 0.0)))
 
-def test_supporting_symbolic_multiplication():
+class _Solver:
+    @method_supporting_symbolic_multiplication
+    def solve(self, A, x, *, scale=1.0):
+        return scale * np.linalg.solve(A, x)
+
+
+def test_method_supporting_symbolic_multiplication():
     zero = SymbolicMultiplication("0")
-
-    @supporting_symbolic_multiplication
-    def my_linear_operator(A, x):
-        return np.linalg.solve(A, x)
-
     b = np.random.rand(10) * zero
     A = np.random.rand(10, 10)
-    c = my_linear_operator(A, b)
+    c = _Solver().solve(A, b)
     assert (c/zero).shape == (10,)
+
+
+def test_method_supporting_symbolic_multiplication_forwards_other_arguments():
+    zero = SymbolicMultiplication("0")
+    A = 2*np.eye(3)
+    assert np.allclose(_Solver().solve(A, np.ones(3), scale=4.0), 2.0)
+    c = _Solver().solve(A, np.ones(3) * zero, scale=4.0)
+    assert c.symbol == "0"
+    assert np.allclose(c.value, 2.0)
+
+
+def test_ndarray_matmul_symbolic_multiplication():
+    result = np.ones((2, 3)) @ SymbolicMultiplication("0", np.arange(3.0))
+    assert result.symbol == "0"
+    assert np.allclose(result.value, [3.0, 3.0])

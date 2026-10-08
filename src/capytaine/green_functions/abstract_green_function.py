@@ -17,6 +17,8 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
+from capytaine.tools.array_backend import array_namespace
+
 
 class GreenFunctionEvaluationError(Exception):
     pass
@@ -26,6 +28,11 @@ class AbstractGreenFunction(ABC):
     """Abstract method to evaluate the Green function."""
 
     floating_point_precision: str
+
+    # Array library (supporting the array API standard) and device of the
+    # matrices returned by `evaluate`. NumPy arrays on the CPU by default.
+    matrices_namespace = array_namespace(np.empty(0))
+    matrices_device = "cpu"
 
     # Settings of the Green function, as a dict of hashable values. It is used
     # for the string representation, the hash and the export in the outputs.

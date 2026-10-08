@@ -40,21 +40,14 @@ from capytaine.bem.problems_checks import (
 from capytaine.io.xarray import problems_from_dataset, assemble_dataset, kochin_data_array
 from capytaine.tools.memory_monitor import MemoryMonitor
 from capytaine.tools.optional_imports import import_optional_dependency
+from capytaine.tools.array_backend import to_backend_of, to_numpy
 from capytaine.tools.lists_of_points import _normalize_points, _normalize_free_surface_points
-from capytaine.tools.symbolic_multiplication import supporting_symbolic_multiplication
+from capytaine.tools.symbolic_multiplication import method_supporting_symbolic_multiplication
 from capytaine.tools.timer import Timer
 from capytaine.ui.env_vars import look_for_boolean_var
 from capytaine.ui.error_messages import display_grouped_errors
 
 LOG = logging.getLogger(__name__)
-
-# Mapping between a dtype and its complex version
-COMPLEX_DTYPE = {
-                    np.float32: np.complex64,
-                    np.float64: np.complex128,
-                    np.complex64 : np.complex64,
-                    np.complex128 : np.complex128
-                }
 
 class BEMSolver:
     """
@@ -142,6 +135,21 @@ class BEMSolver:
     def from_exported_settings(settings):
         raise NotImplementedError
 
+    @method_supporting_symbolic_multiplication
+    def _matmul(self, A, x):
+        """Matrix-vector product, where the (complex) vector `x` is first converted to the array library, device and precision of the matrix `A`.
+        The vector can be a `SymbolicMultiplication` (for zero and infinite frequency).
+        """
+        return A @ to_backend_of(x, A, complex_=True)
+
+    @method_supporting_symbolic_multiplication
+    def _solve_linear_system(self, A, b):
+        """Solve `A x = b` with the linear solver of the engine, where the (complex) right-hand side `b` is first converted to the
+        array library, device and precision of the matrix `A`.
+        The right-hand side can be a `SymbolicMultiplication` (for zero and infinite frequency).
+        """
+        return self.engine.linear_solver(A, to_backend_of(b, A, complex_=True))
+
     def _solve(self, problem, method=None, keep_details=True, _check_wavelength=True):
         """Called by BEMSolver.solve. See the documentation therein."""
         LOG.info("Solve %s.", problem)
@@ -167,7 +175,6 @@ class BEMSolver:
             omega, wavenumber = problem.omega, problem.wavenumber
         gf_params = dict(free_surface=problem.free_surface, water_depth=problem.water_depth, wavenumber=wavenumber)
 
-        linear_solver = supporting_symbolic_multiplication(self.engine.linear_solver)
         method = method if method is not None else self.method
         if (method == 'direct'):
             if problem.forward_speed != 0.0:
@@ -179,11 +186,11 @@ class BEMSolver:
                         **gf_params, adjoint_double_layer=False, diagonal_term_in_double_layer=True,
                         )
             with self.timer(step="Matrix-vector product"):
-                rhs = S @ problem.boundary_condition
+                rhs = self._matmul(S, problem.boundary_condition)
             with self.timer(step="Linear solver"):
-                rhs = rhs.astype(COMPLEX_DTYPE[D.dtype.type])
-                potential = linear_solver(D, rhs)
+                potential = self._solve_linear_system(D, rhs)
             pressure = 1j * omega * problem.rho * potential
+            potential, pressure = to_numpy(potential), to_numpy(pressure)
             sources = None
         else:
             with self.timer(step="Green function"):
@@ -192,11 +199,13 @@ class BEMSolver:
                         **gf_params, adjoint_double_layer=True, diagonal_term_in_double_layer=True,
                         )
             with self.timer(step="Linear solver"):
-                rhs = problem.boundary_condition.astype(COMPLEX_DTYPE[K.dtype.type])
-                sources = linear_solver(K, rhs)
+                sources = self._solve_linear_system(K, problem.boundary_condition)
             with self.timer(step="Matrix-vector product"):
-                potential = S @ sources
+                potential = self._matmul(S, sources)
             pressure = 1j * omega * problem.rho * potential
+            sources, potential, pressure = to_numpy(sources), to_numpy(potential), to_numpy(pressure)
+            # The solver and the matrices can use another array library than NumPy.
+            # Everything after this point is NumPy only.
             if problem.forward_speed != 0.0:
                 result = problem.make_results_container(sources=sources)
                 # Temporary result object to compute the ∇Φ term
@@ -456,7 +465,7 @@ class BEMSolver:
 
         with self.timer(step="Post-processing potential"):
             S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, **gf_params)
-            potential = S @ result.sources  # Sum the contributions of all panels in the mesh
+            potential = to_numpy(self._matmul(S, result.sources))  # Sum the contributions of all panels in the mesh
         return potential.reshape(output_shape)
 
     def _compute_potential_gradient(self, points, result):
@@ -474,9 +483,7 @@ class BEMSolver:
             # gradG is either:
             # - an array of shape (3, nb_points, mesh_including_lid.nb_faces)
             # - a 3-ple of matrices of the shape (nb_points, mesh_including_lid), that could be stored as LazyMatrix.
-            vx = gradG[0] @ result.sources
-            vy = gradG[1] @ result.sources
-            vz = gradG[2] @ result.sources
+            vx, vy, vz = (to_numpy(self._matmul(gradG[i, ...], result.sources)) for i in range(3))
             # The matrix-vector product here computes the integral over the mesh of the contributions of each panel in the mesh
             velocities = np.stack([vx, vy, vz], axis=-1)
             # velocities.shape = (nb_points, 3)
