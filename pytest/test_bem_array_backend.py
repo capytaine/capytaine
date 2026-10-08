@@ -32,14 +32,17 @@ xps = pytest.importorskip("array_api_strict")  # Not available on Python 3.8
 class StrictArrayGreenFunction(AbstractGreenFunction):
     """Delhommeau Green function returning `array_api_strict` arrays instead of NumPy arrays."""
     _default_parameters = {}
-    floating_point_precision = "float64"
     matrices_namespace = xps
     matrices_device = xps.asarray(0.0).device
 
-    def __init__(self, *, nan=False):
+    def __init__(self, *, nan=False, floating_point_precision="float64"):
         self.nan = nan
-        self.wrapped = cpt.Delhommeau()
-        self.exportable_settings = {"green_function": "StrictArrayGreenFunction", "nan": nan}
+        self.floating_point_precision = floating_point_precision
+        self.wrapped = cpt.Delhommeau(floating_point_precision=floating_point_precision)
+        self.exportable_settings = {
+            "green_function": "StrictArrayGreenFunction", "nan": nan,
+            "floating_point_precision": floating_point_precision,
+        }
 
     def evaluate(self, *args, **kwargs):
         S, K = self.wrapped.evaluate(*args, **kwargs)
@@ -203,3 +206,91 @@ def test_potential_without_free_surface_keeps_the_imaginary_part_of_the_sources(
         actual = getattr(solver_strict, compute)(points, res_strict)
         assert np.abs(actual.imag).max() > 0  # Casting the sources to real used to discard the imaginary part
         np.testing.assert_allclose(actual, getattr(solver, compute)(points, res), rtol=1e-8)
+
+
+#############################
+#  Meshes with symmetries   #
+#############################
+
+@lru_cache
+def single_panel():
+    vertices = np.array([[0.5, 0.0, 0.0], [0.5, 0.0, -0.5], [0.5, 0.5, -0.3], [0.5, 0.5, -0.2]])
+    return cpt.Mesh(vertices=vertices, faces=np.array([[0, 1, 2, 3]]))
+
+
+def symmetric_meshes_of_single_panel():
+    from capytaine.meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
+    return {
+        "reflection": ReflectionSymmetricMesh(single_panel(), plane="xOz"),
+        "nested_reflections": ReflectionSymmetricMesh(ReflectionSymmetricMesh(single_panel(), plane="xOz"), plane="yOz"),
+        "rotation_2": RotationSymmetricMesh(single_panel(), n=2, axis='z+'),
+        "rotation_3": RotationSymmetricMesh(single_panel(), n=3, axis='z+'),
+        "rotation_4": RotationSymmetricMesh(single_panel(), n=4, axis='z+'),
+        "rotation_5": RotationSymmetricMesh(single_panel(), n=5, axis='z+'),
+        "dihedral": RotationSymmetricMesh(ReflectionSymmetricMesh(single_panel(), plane="xOz"), n=3, axis='z+'),
+    }
+
+
+@pytest.mark.parametrize("name", symmetric_meshes_of_single_panel().keys())
+@pytest.mark.parametrize("linear_solver", ["lu_decomposition", "lu_decomposition_with_overwrite"])
+def test_matrices_and_linear_solver_with_symmetries(name, linear_solver):
+    sym_mesh = symmetric_meshes_of_single_panel()[name]
+    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
+    S_ref, K_ref = cpt.DefaultMatrixEngine().build_matrices(sym_mesh.merged(), sym_mesh.merged(), **params)
+
+    engine = cpt.DefaultMatrixEngine(green_function=StrictArrayGreenFunction(), linear_solver=linear_solver)
+    S, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
+    assert K.__array_namespace__() is xps
+    np.testing.assert_allclose(np.array(S), S_ref, atol=1e-12)
+    np.testing.assert_allclose(np.array(K), K_ref, atol=1e-12)
+
+    rng = np.random.default_rng(0)
+    b = rng.normal(size=K.shape[0]) + 1j*rng.normal(size=K.shape[0])
+    x = engine.linear_solver(K, xps.asarray(b))
+    assert isinstance(x, type(xps.asarray(b)))
+    np.testing.assert_allclose(np.asarray(x), np.linalg.solve(K_ref, b), atol=1e-10)
+    # The matrix-vector product is also available for the block matrices
+    np.testing.assert_allclose(np.asarray(S @ xps.asarray(b)), S_ref @ b, atol=1e-10)
+
+
+def symmetric_sphere_bodies():
+    from capytaine.meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
+    parallelepiped = cpt.mesh_parallelepiped(resolution=(4, 4, 4), center=(0, 0, -2))
+    half = parallelepiped.clipped(origin=(0, 0, 0), normal=(1, 0, 0))
+    quarter = half.clipped(origin=(0, 0, 0), normal=(0, 1, 0))
+    sphere_wedge = cpt.mesh_sphere(radius=1, resolution=(6, 6), center=(0, 0, -2)).extract_wedge(n=3)
+    return {
+        "reflection": ReflectionSymmetricMesh(half=half, plane="yOz"),
+        "nested_reflections": ReflectionSymmetricMesh(ReflectionSymmetricMesh(half=quarter, plane="xOz"), plane="yOz"),
+        "rotation": RotationSymmetricMesh(wedge=sphere_wedge, n=3),
+    }
+
+
+@pytest.mark.parametrize("name", ["reflection", "nested_reflections", "rotation"])
+@pytest.mark.parametrize("linear_solver", ["lu_decomposition", "lu_decomposition_with_overwrite"])
+@pytest.mark.parametrize("method", ["direct", "indirect"])
+def test_solve_with_symmetries(name, linear_solver, method):
+    sym_mesh = symmetric_sphere_bodies()[name]
+    dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, -2))
+    body = cpt.FloatingBody(mesh=sym_mesh, dofs=dofs)
+    ref_body = cpt.FloatingBody(mesh=sym_mesh.merged(), dofs=dofs)
+    solver_strict = cpt.BEMSolver(method=method, engine=cpt.DefaultMatrixEngine(
+        green_function=StrictArrayGreenFunction(), linear_solver=linear_solver))
+    solver_ref = cpt.BEMSolver(method=method)
+    for dof in ["Heave", "Surge"]:
+        res_strict = solver_strict.solve(cpt.RadiationProblem(body=body, omega=1.0, radiating_dof=dof))
+        res_ref = solver_ref.solve(cpt.RadiationProblem(body=ref_body, omega=1.0, radiating_dof=dof))
+        assert res_strict.forces[dof] == pytest.approx(res_ref.forces[dof], rel=1e-6)
+
+
+def test_float32_precision_with_symmetries():
+    sym_mesh = symmetric_meshes_of_single_panel()["dihedral"]
+    params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
+    _, K_ref = cpt.DefaultMatrixEngine().build_matrices(sym_mesh.merged(), sym_mesh.merged(), **params)
+    engine = cpt.DefaultMatrixEngine(green_function=StrictArrayGreenFunction(floating_point_precision="float32"))
+    _, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
+    assert K.dtype == xps.complex64
+    b = np.ones(K.shape[0], dtype=np.complex64)
+    x = engine.linear_solver(K, xps.asarray(b))
+    assert x.dtype == xps.complex64
+    np.testing.assert_allclose(np.asarray(x), np.linalg.solve(K_ref, b), rtol=1e-3, atol=1e-4)

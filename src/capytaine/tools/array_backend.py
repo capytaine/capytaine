@@ -18,7 +18,10 @@ from array_api_compat import array_namespace, device, is_numpy_array, to_device
 
 from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 
-__all__ = ["array_namespace", "device", "is_array", "is_numpy_namespace", "complex_dtype", "to_backend_of", "to_numpy"]
+__all__ = [
+    "array_namespace", "device", "is_array", "is_numpy_namespace", "complex_dtype", "to_backend_of", "to_numpy",
+    "IterableTensor", "split", "leading_dimensions_at_the_end", "ending_dimensions_at_the_beginning",
+]
 
 
 def is_array(x):
@@ -58,3 +61,54 @@ def to_numpy(x):
         return np.from_dlpack(x)                  # Arrays in host memory, any library
     except (BufferError, RuntimeError, TypeError):
         return np.asarray(to_device(x, "cpu"))    # e.g. torch tensors on GPU
+
+
+def split(x, n):
+    """Split an array in `n` parts of equal sizes along its first axis (replaces `np.split`, that is not in the array API standard)."""
+    size = x.shape[0] // n
+    return [x[i*size:(i+1)*size, ...] for i in range(n)]
+
+
+def leading_dimensions_at_the_end(a):
+    """Transform an array of shape (n, m, ...) into (..., n, m).
+    Invert of `ending_dimensions_at_the_beginning`"""
+    xp = array_namespace(a)
+    return xp.permute_dims(a, (*range(2, a.ndim), 0, 1))
+
+
+def ending_dimensions_at_the_beginning(a):
+    """Transform an array of shape (..., n, m) into (n, m, ...).
+    Invert of `leading_dimensions_at_the_end`"""
+    xp = array_namespace(a)
+    return xp.permute_dims(a, (a.ndim - 2, a.ndim - 1, *range(a.ndim - 2)))
+
+
+class IterableTensor:
+    """Sequence of the sub-arrays along the first axis of an array, or of a list of arrays.
+
+    It can be built from a list of arrays of the same shape or from a single array
+    of shape (n, ...), which is then kept as it is (no copy, e.g. to apply a FFT across the first axis)
+    and the items are the views `array[i, ...]`.
+
+    Arrays of the array API standard can not always be iterated, sliced, unpacked or measured with `len`
+    (unlike the ones of NumPy, PyTorch or JAX), and an index has to cover all the dimensions of the array.
+    This class gives the usual behavior of a sequence in all cases.
+    """
+    def __init__(self, tensor):
+        self._array = tensor if is_array(tensor) else None
+        self._list = None if is_array(tensor) else list(tensor)
+
+    def __len__(self):
+        return self._array.shape[0] if self._array is not None else len(self._list)
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return [self[i] for i in range(*index.indices(len(self)))]
+        return self._array[index, ...] if self._array is not None else self._list[index]
+
+    def __iter__(self):
+        return (self[i] for i in range(len(self)))
+
+    def as_array(self, xp):
+        """All the items in a single array of shape (n, ...)"""
+        return self._array if self._array is not None else xp.stack(self._list)

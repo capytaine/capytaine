@@ -204,7 +204,7 @@ class DefaultMatrixEngine(MatrixEngine):
                 )
                 check_if_nan_in_matrix([S, K])
                 block_shape = (mesh2.half.half.nb_faces, mesh2.half.half.nb_faces)
-                return NestedBlockCirculantMatrix(S.reshape((4, *block_shape))), NestedBlockCirculantMatrix(K.reshape((4, *block_shape)))
+                return NestedBlockCirculantMatrix(_reshape(S, (4, *block_shape))), NestedBlockCirculantMatrix(_reshape(K, (4, *block_shape)))
 
             # elif (isinstance(mesh1.half, RotationSymmetricMesh)
             #         and isinstance(mesh2.half, RotationSymmetricMesh)
@@ -219,7 +219,7 @@ class DefaultMatrixEngine(MatrixEngine):
                 )
                 check_if_nan_in_matrix([S, K])
                 block_shape = (mesh2.half.nb_faces, mesh2.half.nb_faces)
-                return BlockCirculantMatrix(S.reshape((2, *block_shape))), BlockCirculantMatrix(K.reshape((2, *block_shape)))
+                return BlockCirculantMatrix(_reshape(S, (2, *block_shape))), BlockCirculantMatrix(_reshape(K, (2, *block_shape)))
 
         elif (isinstance(mesh1, RotationSymmetricMesh)
                 and isinstance(mesh2, RotationSymmetricMesh)
@@ -237,7 +237,7 @@ class DefaultMatrixEngine(MatrixEngine):
                 check_if_nan_in_matrix([S, K])
                 n_blocks = 2*mesh1.n # == mesh2.n
                 block_shape = (mesh2.wedge.half.nb_faces, mesh2.wedge.half.nb_faces)
-                return NestedBlockCirculantMatrix(S.reshape((n_blocks, *block_shape))), NestedBlockCirculantMatrix(K.reshape((n_blocks, *block_shape)))
+                return NestedBlockCirculantMatrix(_reshape(S, (n_blocks, *block_shape))), NestedBlockCirculantMatrix(_reshape(K, (n_blocks, *block_shape)))
 
             else:
                 # Rotation symmetry
@@ -253,8 +253,8 @@ class DefaultMatrixEngine(MatrixEngine):
                 block_shape = (mesh2.wedge.nb_faces, mesh2.wedge.nb_faces)
 
                 return (
-                        BlockCirculantMatrix(S_cols.reshape((n_blocks, *block_shape))),
-                        BlockCirculantMatrix(K_cols.reshape((n_blocks, *block_shape))),
+                        BlockCirculantMatrix(_reshape(S_cols, (n_blocks, *block_shape))),
+                        BlockCirculantMatrix(_reshape(K_cols, (n_blocks, *block_shape))),
                         )
 
         else:
@@ -411,6 +411,11 @@ class DefaultMatrixEngine(MatrixEngine):
 
         memory_peak = symmetry_factor * nb_faces**2 * nb_matrices * nb_bytes/1e9
         return memory_peak
+
+def _reshape(array, shape):
+    """Reshape an array, whatever its array library (arrays of the array API standard have no `reshape` method)."""
+    return array_namespace(array).reshape(array, shape)
+
 
 def check_if_nan_in_matrix(matrices):
     for matrix in matrices:

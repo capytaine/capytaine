@@ -38,6 +38,8 @@ Major changes
 Bug fixes
 ~~~~~~~~~
 
+* Fix the conversion of a :class:`~capytaine.tools.block_circulant_matrices.BlockDiagonalMatrix` to a NumPy array, that was raising an ``AttributeError``. (:pull:`958`)
+
 * Fix computation of hydrostatic stiffness on multibodies treated as generalized dofs as in previous version. (:pull:`936`)
 
 * Fix double layer term when computing the value at field points without a free surface.
@@ -47,11 +49,14 @@ Bug fixes
 Internals
 ~~~~~~~~~
 
-* The :class:`~capytaine.bem.solver.BEMSolver` and the :class:`~capytaine.bem.engines.DefaultMatrixEngine` can now work with a Green function returning matrices from another array library than NumPy, as long as it implements the array API standard (using ``array-api-compat``) and an LU decomposition has been registered with :func:`~capytaine.tools.block_circulant_matrices.lu_decompose`.
+* The :class:`~capytaine.bem.solver.BEMSolver` and the :class:`~capytaine.bem.engines.DefaultMatrixEngine` can now work with a Green function returning matrices from another array library than NumPy, as long as it implements the array API standard (using ``array-api-compat``) and an LU decomposition has been registered with :func:`~capytaine.tools.block_circulant_matrices.lu_decompose`. (:pull:`957`)
   The subclasses of :class:`~capytaine.tools.block_circulant_matrices.AbstractLUDecomposedMatrix` now have to define ``__array_namespace__`` and ``device``, as arrays of the array API standard do.
   The Green functions have new attributes ``matrices_namespace`` and ``matrices_device`` to declare the array library and the device of their matrices (NumPy and ``"cpu"`` by default).
   The results and the post-processing stay NumPy arrays.
   The ``gmres`` linear solver raises ``NotImplementedError`` for matrices that are not NumPy arrays.
+  Meshes with symmetries are supported: the block matrices of :mod:`capytaine.tools.block_circulant_matrices` are now implemented with the array API standard instead of NumPy. (:pull:`958`)
+  They can be built from an array of shape ``(nb_blocks, n, m)`` or a list of blocks.
+  The blocks of a :class:`~capytaine.tools.block_circulant_matrices.BlockCirculantMatrix` have to be arrays and not other block matrices anymore (use :class:`~capytaine.tools.block_circulant_matrices.NestedBlockCirculantMatrix` instead).
 
 * :func:`~capytaine.tools.block_circulant_matrices.lu_decompose` is now a :func:`functools.singledispatch` function,
   and the LU decompositions are subclasses of the new abstract class :class:`~capytaine.tools.block_circulant_matrices.AbstractLUDecomposedMatrix`.
