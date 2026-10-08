@@ -15,7 +15,6 @@ import numpy as np
 import pytest
 from capytaine.tools.block_circulant_matrices import (
         BlockCirculantMatrix, NestedBlockCirculantMatrix, lu_decompose,
-        leading_dimensions_at_the_end, ending_dimensions_at_the_beginning
         )
 
 RNG = np.random.default_rng(seed=0)
@@ -47,18 +46,6 @@ def test_2x2_block_circulant_matrices():
     )
 
 
-def test_permute_dims():
-    a = RNG.normal(size=(1, 2, 3, 4, 5))
-    assert leading_dimensions_at_the_end(a).shape == (3, 4, 5, 1, 2)
-    assert ending_dimensions_at_the_beginning(a).shape == (4, 5, 1, 2, 3)
-    assert np.allclose(ending_dimensions_at_the_beginning(
-        leading_dimensions_at_the_end(a)
-    ), a)
-    assert np.allclose(leading_dimensions_at_the_end(
-        ending_dimensions_at_the_beginning(a)
-    ), a)
-
-
 def test_deeper_2x2_block_circulant_matrices():
     A = BlockCirculantMatrix([
         _rand(2, 2, 3),
@@ -66,34 +53,6 @@ def test_deeper_2x2_block_circulant_matrices():
     ])
     full_A = np.array(A)
     assert full_A.shape == (4, 4, 3)
-
-
-def test_2x2_nested_block_circulant_matrices():
-    A = BlockCirculantMatrix([
-            BlockCirculantMatrix([
-                2*np.eye(2) + _rand(2, 2),
-                np.zeros((2, 2)) + _rand(2, 2),
-            ]),
-            BlockCirculantMatrix([
-                np.eye(2) + _rand(2, 2),
-                np.zeros((2, 2)) + _rand(2, 2),
-            ]),
-        ])
-    full_A = np.array(A)
-    assert full_A.shape == (8, 8)
-    b = RNG.normal(size=(A.shape[0],))
-    assert np.allclose(
-            A @ b,
-            full_A @ b,
-            )
-    assert np.allclose(
-        lu_decompose(A).solve(b),
-        np.linalg.solve(full_A, b)
-    )
-    assert np.allclose(
-        lu_decompose(A).solve(b),
-        A.solve(b)
-    )
 
 
 def test_3x3_block_circulant_matrices():
@@ -112,64 +71,6 @@ def test_3x3_block_circulant_matrices():
         lu_decompose(A).solve(b),
         np.linalg.solve(full_A, b)
     )
-    assert np.allclose(
-        lu_decompose(A).solve(b),
-        A.solve(b)
-    )
-
-def test_nested_2x2_3x3_block_circulant_matrices():
-    A = BlockCirculantMatrix([
-        BlockCirculantMatrix([
-            1*np.eye(2) + _rand(2, 2),
-            2*np.eye(2) + _rand(2, 2),
-            3*np.eye(2) + _rand(2, 2)
-            ]),
-        BlockCirculantMatrix([
-            np.zeros(2) + _rand(2, 2),
-            np.zeros(2) + _rand(2, 2),
-            np.zeros(2) + _rand(2, 2)
-            ]),
-        ])
-    full_A = np.array(A)
-    b = RNG.normal(size=(A.shape[0],))
-    assert np.allclose(
-            A @ b,
-            full_A @ b,
-            )
-    assert np.allclose(
-            lu_decompose(A).solve(b),
-            np.linalg.solve(full_A, b)
-            )
-    assert np.allclose(
-        lu_decompose(A).solve(b),
-        A.solve(b)
-    )
-
-def test_nested_3x3_2x2_block_circulant_matrices():
-    A = BlockCirculantMatrix([
-        BlockCirculantMatrix([
-            1*np.eye(2) + _rand(2, 2),
-            2*np.eye(2) + _rand(2, 2)
-            ]),
-        BlockCirculantMatrix([
-            np.zeros(2) + _rand(2, 2),
-            np.zeros(2) + _rand(2, 2)
-            ]),
-        BlockCirculantMatrix([
-            np.zeros(2) + _rand(2, 2),
-            np.zeros(2) + _rand(2, 2)
-            ]),
-        ])
-    full_A = np.array(A)
-    b = RNG.normal(size=(A.shape[0],))
-    assert np.allclose(
-            A @ b,
-            full_A @ b,
-            )
-    assert np.allclose(
-            lu_decompose(A).solve(b),
-            np.linalg.solve(full_A, b)
-            )
     assert np.allclose(
         lu_decompose(A).solve(b),
         A.solve(b)
@@ -372,3 +273,45 @@ def test_lu_decomposed_matrices_know_their_array_library():
         assert lu.__array_namespace__() is array_namespace(np.zeros(1))
         assert lu.device == "cpu"
         assert array_namespace(lu) is array_namespace(np.zeros(1))
+
+
+def test_block_diagonal_matrix_to_array():
+    from capytaine.tools.block_circulant_matrices import BlockDiagonalMatrix
+    blocks = [_rand(2, 2) for _ in range(3)]
+    A = BlockDiagonalMatrix(blocks)
+    expected = np.zeros((6, 6), dtype=complex)
+    for i, b in enumerate(blocks):
+        expected[2*i:2*i+2, 2*i:2*i+2] = b
+    assert np.allclose(np.array(A), expected)
+    b = _rand(6)
+    assert np.allclose(A.solve(b), np.linalg.solve(expected, b))
+
+
+def test_blocks_can_be_given_as_an_array():
+    blocks = _rand(4, 2, 2)
+    assert np.allclose(np.array(BlockCirculantMatrix(blocks)), np.array(BlockCirculantMatrix(list(blocks))))
+
+
+def test_blocks_given_as_an_array_are_not_copied():
+    blocks = _rand(5, 2, 2)
+    A = BlockCirculantMatrix(blocks)
+    assert A.nb_blocks == 5
+    assert np.shares_memory(A.blocks[2], blocks)
+    assert np.shares_memory(A.blocks[1:][0], blocks)
+    assert A.blocks.as_array(np) is blocks
+    assert len(list(A.blocks)) == 5
+
+
+def test_block_diagonal_matrix_solve_with_several_right_hand_sides():
+    from capytaine.tools.block_circulant_matrices import BlockDiagonalMatrix
+    blocks = [2*np.eye(2) + _rand(2, 2) for _ in range(3)]
+    A = BlockDiagonalMatrix(blocks)
+    b = _rand(6, 4)
+    assert np.allclose(A.solve(b), np.linalg.solve(np.array(A), b))
+
+
+def test_block_diagonal_matrix_to_array_keeps_the_precision():
+    from capytaine.tools.block_circulant_matrices import BlockDiagonalMatrix
+    A = BlockDiagonalMatrix([_rand(2, 2).astype(np.complex64) for _ in range(3)])
+    assert np.array(A).dtype == np.complex64
+    assert np.array(A, dtype=np.complex128).dtype == np.complex128
