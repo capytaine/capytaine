@@ -17,7 +17,7 @@ import numpy as np
 import xarray as xr
 
 from capytaine.bem.airy_waves import (
-    airy_waves_free_surface_elevation,
+    airy_waves_pressure,
     airy_waves_velocity,
     froude_krylov_force,
 )
@@ -215,10 +215,15 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
     all_forces_order1 = forces_order1 + rotation_forces_order0 # all_forces_order1[i_freq, i_dir, influenced_dof]
 
     gradient_potential = total_potential_gradient(solver, mesh, results, rao) # gradient_potential[i_freq, i_dir, i_face, xyz]
+
+    # Waterline stuff
     edges_waterline = mesh.edges_waterline
     vertices_middle_waterline = (mesh.vertices[edges_waterline[:, 0], :] + mesh.vertices[edges_waterline[:, 1], :]) / 2
-    free_surface_elevation = total_free_surface_elevation(solver, vertices_middle_waterline, results, rao) # free_surface_elevation[i_freq, i_dir, i_vertex_waterline]
-    vertical_position = motion_order1(vertices_middle_waterline, body, rao)[..., -1] # vertical_position[i_freq, i_dir, i_vertex_waterline]
+    hydrodynamic_pressure_at_waterline = total_pressure(solver, vertices_middle_waterline, results, rao) # hydrodynamic_pressure_at_waterline[i_freq, i_dir, i_vertex_waterline]
+    free_surface_elevation_at_waterline = hydrodynamic_pressure_at_waterline / (rho * g)
+    vertical_motion_at_waterline = motion_order1(vertices_middle_waterline, body, rao)[..., -1] # vertical_motion[i_freq, i_dir, i_vertex_waterline]
+    p_waterline = - rho * g * (free_surface_elevation_at_waterline + vertical_motion_at_waterline)/2 + hydrodynamic_pressure_at_waterline
+    h_waterline = (free_surface_elevation_at_waterline - vertical_motion_at_waterline)
 
     F = np.full((nb_freq, nb_dir, nb_dir, 6), np.nan + 1j*np.nan, dtype=complex)
     if output_pressure:
@@ -232,19 +237,23 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
                 extrapolated_pressure = (np.sum(motion[w, k, ...] * np.conjugate(-1j * omega * gradient_potential[w, l, ...]), axis=1) + np.sum(np.conjugate(motion[w, l, ...]) * -1j * omega * gradient_potential[w, k, ...], axis=1)) / 2 # extrapolated_pressure[i_face]
                 gradient_potential_square = np.sum(gradient_potential[w, k, ...] * np.conjugate(gradient_potential[w, l, ...]), axis=1) # gradient_potential_square[i_face]
                 z_order2 = (h @ mesh.faces_centers[:, :, None])[..., -1, -1] # z_order2[i_face]
-                pressure_field = - (extrapolated_pressure + gradient_potential_square/2 + g * z_order2) # pressure_field[i_face]
+                pressure_field = - rho * (extrapolated_pressure + gradient_potential_square/2 + g * z_order2) # pressure_field[i_face]
                 if output_pressure:
                     p2[w, k, l, :] = pressure_field
                     p2[w, l, k, :] = np.conjugate(pressure_field)
-                waterline_field = (1/2) * g * (free_surface_elevation - vertical_position)[w, k, ...] * np.conjugate(free_surface_elevation - vertical_position)[w, l, ...] # waterline_field[i_vertex_waterline]
 
                 hydrostatics_order2 = H @ forces_order0
                 rotation_forces_order1 = ((rotation_matrix[w, k, ...] @ np.conjugate(forces_order1[w, l, ...])) + (np.conjugate(rotation_matrix[w, l, ...]) @ forces_order1[w, k, ...])) / 2
                 translation_moment = ((translation_matrix[w, k, ...] @ np.conjugate(all_forces_order1[w, l, ...])) + (np.conjugate(translation_matrix[w, l, ...]) @ all_forces_order1[w, k, ...])) / 2
                 pressure_hull = body.integrate_pressure(pressure_field)
-                pressure_waterline = integrate_pressure_waterline(body, mesh, waterline_field)
 
-                F[w, k, l, :] = rotation_forces_order1 + hydrostatics_order2 + translation_moment + rho * (np.array(list(pressure_hull.values())) + np.array(list(pressure_waterline.values())))
+                waterline_force = integrate_pressure_waterline(
+                        body, mesh,
+                        (p_waterline[w, l, ...] * np.conjugate(h_waterline[w, k, ...])
+                          + np.conjugate(p_waterline[w, k, ...]) * h_waterline[w, l, ...])/2
+                        )
+
+                F[w, k, l, :] = rotation_forces_order1 + hydrostatics_order2 + translation_moment + np.array(list(pressure_hull.values())) + np.array(list(waterline_force.values()))
                 F[w, l, k, :] = np.conjugate(F[w, k, l, :])
 
     dataset = xr.Dataset(
@@ -270,6 +279,26 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
                     "wave_direction_l": rao.coords["wave_direction"].values,
                     },
                  )
+        dataset["waterline_pressure"] = xr.DataArray(
+                p_waterline,
+                dims=[freq_type, "wave_direction", "waterline_segment"],
+                coords={
+                    freq_type: rao.coords[freq_type].values,
+                    "wave_direction": rao.coords["wave_direction"].values,
+                    },
+                 )
+        dataset["waterline_relative_elevation"] = xr.DataArray(
+                h_waterline,
+                dims=[freq_type, "wave_direction", "waterline_segment"],
+                coords={
+                    freq_type: rao.coords[freq_type].values,
+                    "wave_direction": rao.coords["wave_direction"].values,
+                    },
+                 )
+        dataset["waterline_mesh"] = xr.DataArray(
+                mesh.vertices[edges_waterline[:, :], :],
+                dims=["waterline_segment", "point_per_segment", "space_coordinate"],
+                )
 
     return dataset
 
@@ -299,28 +328,28 @@ def total_potential_gradient(solver, mesh, results, rao):
 
     return potential_gradient
 
-def total_free_surface_elevation(solver, vertices_middle, results, rao):
+def total_pressure(solver, vertices_middle, results, rao):
     nb_vertices_waterline = np.shape(vertices_middle)[0]
     freq_type = results[0].provided_freq_type
-    free_surface_elevation = xr.DataArray(
+    pressure = xr.DataArray(
         data=np.zeros((rao.sizes[freq_type], rao.sizes["wave_direction"], nb_vertices_waterline), dtype=complex),
         coords={
             freq_type: rao.coords[freq_type],
             "wave_direction": rao.coords["wave_direction"],
-            "vertices_waterline": np.arange(nb_vertices_waterline),
+            "waterline_segment": np.arange(nb_vertices_waterline),
         },
     )
     for res in results:
         if isinstance(res, DiffractionResult):
-            free_surface_elevation.loc[{freq_type: getattr(res, freq_type), "wave_direction": res.wave_direction}] += airy_waves_free_surface_elevation(vertices_middle, res) # incident
-            free_surface_elevation.loc[{freq_type: getattr(res, freq_type), "wave_direction": res.wave_direction}] += solver.compute_free_surface_elevation(vertices_middle, res) # diffracted
+            pressure.loc[{freq_type: getattr(res, freq_type), "wave_direction": res.wave_direction}] += airy_waves_pressure(vertices_middle, res) # incident
+            pressure.loc[{freq_type: getattr(res, freq_type), "wave_direction": res.wave_direction}] += solver.compute_pressure(vertices_middle, res) # diffracted
 
         elif isinstance(res, RadiationResult):
             rao_rad = rao.sel({freq_type: getattr(res, freq_type), "radiating_dof": res.radiating_dof}).values
-            free_surface_elevation.loc[{freq_type: getattr(res, freq_type)}] += rao_rad[:, None] * solver.compute_free_surface_elevation(vertices_middle, res)[None, :] # radiated
-            # free_surface_elevation[i_freq, i_dir, i_edge_waterline] = rao_rad[i_dir] * compute_free_surface_elevation[i_edge_waterline]
+            pressure.loc[{freq_type: getattr(res, freq_type)}] += rao_rad[:, None] * solver.compute_pressure(vertices_middle, res)[None, :] # radiated
+            # pressure[i_freq, i_dir, i_edge_waterline] = rao_rad[i_dir] * compute_pressure[i_edge_waterline]
 
-    return free_surface_elevation
+    return pressure
 
 def hydrostatics_forces(body, rao, rho, g, z):
     force = np.zeros(list(rao.sizes.values()), dtype=z.dtype)

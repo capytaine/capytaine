@@ -130,7 +130,7 @@ def test_cylinder_mean_drift_force():
     dataset = cpt.assemble_dataset(results)
     dataset.update(data_kochin)
     rao = cpt.post_pro.rao(dataset)
-    mdf_nf = near_field_mean_drift_force(rao, results, solver)['near_field_mean_drift_force']/1e3
+    mdf_nf = near_field_mean_drift_force(rao, results, solver)['near_field_mean_drift_force'].values/1e3
     mdf_ff = far_field_mean_drift_force(rao, dataset)/1e3
     target_fx = 3.22
     target_fy = 1.67
@@ -165,7 +165,7 @@ def test_caisson():
     dataset = cpt.assemble_dataset(results)
     dataset.update(data_kochin)
     rao = cpt.post_pro.rao(dataset)
-    mdf_nf = near_field_mean_drift_force(rao, results, solver)['near_field_mean_drift_force']
+    mdf_nf = near_field_mean_drift_force(rao, results, solver)['near_field_mean_drift_force'].values
     mdf_ff = far_field_mean_drift_force(rao, dataset)
 
     target_fx = 233204.32
