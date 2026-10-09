@@ -20,6 +20,7 @@ import xarray as xr
 import pytest
 
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 from capytaine.meshes import (
     Mesh,
     ReflectionSymmetricMesh,
@@ -223,7 +224,7 @@ def test_join_with_regular_mesh_not_too_many_warnings(caplog):
         "wave_direction": [0.0, np.pi/2]
                 })
 
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     caplog.clear()
     with caplog.at_level("WARNING"):
         solver.fill_dataset(test_matrix, both, hydrostatics=False)#, n_jobs=n_jobs)

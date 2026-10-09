@@ -82,6 +82,12 @@ Internals
   to :code:`pressure` restricted to the faces of the hull mesh, excluding the
   lid used to remove irregular frequencies (if any).
 
+* Speed up the test suite by about a factor of 2, by running it with
+  ``OMP_NUM_THREADS=1`` (multithreading is mostly overhead on the small meshes of
+  the tests) and by sharing the Green function instances between tests (instead
+  of reloading the tabulation at each test). Helpers shared by several test
+  files are gathered in ``pytest/capytaine_test_helpers.py``.
+
 
 -------------------------------
 New in version 3.0 (2026-08-21)

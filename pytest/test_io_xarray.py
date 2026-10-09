@@ -17,31 +17,17 @@ import numpy as np
 import xarray as xr
 
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 
 from capytaine.io.xarray import problems_from_dataset, separate_complex_values, merge_complex_values
-
-
-@pytest.fixture
-def sphere():
-    sphere = cpt.FloatingBody(
-            mesh=cpt.mesh_sphere(center=(0, 0, -2), radius=1.0, resolution=(10, 20)),
-            name="sphere",
-            )
-    sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    return sphere
-
-
-@pytest.fixture
-def solver():
-    solver = cpt.BEMSolver()
-    return solver
 
 
 #######################################################################
 #                       Problems from datasets                        #
 #######################################################################
 
-def test_problems_from_dataset(sphere):
+def test_problems_from_dataset():
+    sphere = helpers.small_sphere_body(["Heave"], name="sphere")
     dset = xr.Dataset(coords={'omega': [0.5, 1.0, 1.5],
                               'radiating_dof': ["Heave"],
                               'wave_direction': [0.0],
@@ -61,7 +47,7 @@ def test_problems_from_dataset(sphere):
 
 
 def test_problems_from_dataset_incomplete_test_matrix():
-    body = cpt.FloatingBody(cpt.mesh_sphere())
+    body = helpers.small_sphere_body()
     test_matrix = xr.Dataset(coords={
         "omega": np.linspace(0, 1, 2),
         })
@@ -69,27 +55,31 @@ def test_problems_from_dataset_incomplete_test_matrix():
         problems_from_dataset(test_matrix, body)
 
 
-def test_problems_from_dataset_with_wavelength(sphere):
+def test_problems_from_dataset_with_wavelength():
+    sphere = helpers.small_sphere_body(["Heave"])
     dset = xr.Dataset(coords={'wavelength': [12.0], 'radiating_dof': ["Heave"]})
     problems = problems_from_dataset(dset, sphere)
     for pb in problems:
         assert np.isclose(pb.wavelength, 12.0)
 
 
-def test_problems_from_dataset_with_too_many_frequencies(sphere):
+def test_problems_from_dataset_with_too_many_frequencies():
+    sphere = helpers.small_sphere_body(["Heave"])
     dset = xr.Dataset(coords={'wavelength': [12.0], 'period': [3.0], 'radiating_dof': ["Heave"]})
     with pytest.raises(ValueError, match="at most one"):
         problems_from_dataset(dset, sphere)
 
 
-def test_problems_from_dataset_without_list(sphere):
+def test_problems_from_dataset_without_list():
+    sphere = helpers.small_sphere_body(["Heave"])
     dset = xr.Dataset(coords={'omega': 1.5, 'radiating_dof': "Heave"})
     problems = problems_from_dataset(dset, sphere)
     assert all(pb.omega == 1.5 for pb in problems)
     assert all(pb.radiating_dof == "Heave" for pb in problems)
 
 
-def test_problems_from_dataset_without_list_with_too_many_frequencies(sphere):
+def test_problems_from_dataset_without_list_with_too_many_frequencies():
+    sphere = helpers.small_sphere_body(["Heave"])
     dset = xr.Dataset(coords={'omega': 1.5, 'period': 1.5, 'radiating_dof': "Heave"})
     with pytest.raises(ValueError, match="at most one"):
         problems_from_dataset(dset, sphere)
@@ -99,14 +89,16 @@ def test_problems_from_dataset_without_list_with_too_many_frequencies(sphere):
 #                         Assemble dataframes                         #
 #######################################################################
 
-def test_assemble_dataframe(sphere, solver):
+def test_assemble_dataframe():
+    sphere = helpers.small_sphere_body()
+    solver = helpers.solver()
     pb_1 = cpt.DiffractionProblem(body=sphere, wave_direction=1.0, omega=1.0)
     res_1 = solver.solve(pb_1)
     df1 = cpt.assemble_dataframe([res_1])
     assert "diffraction_force" in df1
     assert "added_mass" not in df1
 
-    pb_2 = cpt.RadiationProblem(body=sphere, radiating_dof="Heave", omega=1.0)
+    pb_2 = cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=1.0)
     res_2 = solver.solve(pb_2)
     df2 = cpt.assemble_dataframe([res_2])
     assert "added_mass" in df2
@@ -117,7 +109,9 @@ def test_assemble_dataframe(sphere, solver):
     assert "added_mass" in df12
 
 
-def test_assemble_dataframe_with_infinite_free_surface(sphere, solver):
+def test_assemble_dataframe_with_infinite_free_surface():
+    sphere = helpers.small_sphere_body()
+    solver = helpers.solver()
     pb = cpt.RadiationProblem(body=sphere, free_surface=np.inf)
     res = solver.solve(pb)
     df = cpt.assemble_dataframe([res])
@@ -128,7 +122,9 @@ def test_assemble_dataframe_with_infinite_free_surface(sphere, solver):
 #                          Assemble matrices                          #
 #######################################################################
 
-def test_assemble_matrices(sphere, solver):
+def test_assemble_matrices():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     pbs = [cpt.DiffractionProblem(body=sphere, wave_direction=1.0, omega=1.0),
            cpt.RadiationProblem(body=sphere, wave_direction=1.0, radiating_dof="Heave")]
     res = solver.solve_all(pbs)
@@ -141,7 +137,9 @@ def test_assemble_matrices(sphere, solver):
     assert F.dtype == np.complex128
 
 
-def test_assemble_matrices_rad_only(sphere, solver):
+def test_assemble_matrices_rad_only():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     pbs = [cpt.RadiationProblem(body=sphere, wave_direction=1.0, radiating_dof="Heave")]
     res = solver.solve_all(pbs)
     A, B, F = cpt.assemble_matrices(res)
@@ -152,7 +150,9 @@ def test_assemble_matrices_rad_only(sphere, solver):
     assert F is None
 
 
-def test_assemble_matrices_dif_only(sphere, solver):
+def test_assemble_matrices_dif_only():
+    sphere = helpers.small_sphere_body()
+    solver = helpers.solver()
     pbs = [cpt.DiffractionProblem(body=sphere, wave_direction=1.0, omega=1.0)]
     res = solver.solve_all(pbs)
     A, B, F = cpt.assemble_matrices(res)
@@ -167,7 +167,9 @@ def test_assemble_matrices_no_data():
         cpt.assemble_matrices([])
 
 
-def test_assemble_matrices_frequency_order(sphere, solver):
+def test_assemble_matrices_frequency_order():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     # The matrices should be ordered like the input results, and not sorted by
     # increasing frequency as in `assemble_dataset`.
     # See https://github.com/capytaine/capytaine/issues/797
@@ -187,7 +189,9 @@ def test_assemble_matrices_frequency_order(sphere, solver):
 #                          Assemble dataset                           #
 #######################################################################
 
-def test_assemble_dataset(sphere, solver):
+def test_assemble_dataset():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     pb_1 = cpt.DiffractionProblem(body=sphere, wave_direction=1.0, omega=1.0)
     res_1 = solver.solve(pb_1)
     ds1 = cpt.assemble_dataset([res_1])
@@ -205,7 +209,9 @@ def test_assemble_dataset(sphere, solver):
     assert "added_mass" in ds12
 
 
-def test_variables_attrs(sphere, solver):
+def test_variables_attrs():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     pb = cpt.RadiationProblem(body=sphere, omega=1.0, radiating_dof="Heave")
     ds = cpt.assemble_dataset([solver.solve(pb)])
     assert 'long_name' in ds.omega.attrs
@@ -214,7 +220,9 @@ def test_variables_attrs(sphere, solver):
     assert 'long_name' in ds.added_mass.attrs
 
 
-def test_assemble_dataset_with_infinite_free_surface(caplog, sphere, solver):
+def test_assemble_dataset_with_infinite_free_surface(caplog):
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     pb = cpt.RadiationProblem(body=sphere, free_surface=np.inf)
     res = solver.solve(pb)
     with caplog.at_level("WARNING"):
@@ -223,7 +231,8 @@ def test_assemble_dataset_with_infinite_free_surface(caplog, sphere, solver):
     assert len(ds) == 0
 
 
-def test_assemble_dataset_with_nans(sphere):
+def test_assemble_dataset_with_nans():
+    sphere = helpers.small_sphere_body(["Heave"])
     pb = cpt.DiffractionProblem(body=sphere, wave_direction=1.0, omega=1.0)
     res = pb.make_results_container(forces={dof: np.nan for dof in pb.influenced_dofs})
     ds = cpt.assemble_dataset([res])
@@ -231,7 +240,9 @@ def test_assemble_dataset_with_nans(sphere):
     assert np.all(np.isnan(ds.diffraction_force.values))
 
 
-def test_fill_dataset(sphere, solver):
+def test_fill_dataset():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     sphere.add_all_rigid_body_dofs()
     test_matrix = xr.Dataset(coords={'omega': [1.0, 2.0, 3.0], 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
     dataset = solver.fill_dataset(test_matrix, [sphere])
@@ -239,7 +250,9 @@ def test_fill_dataset(sphere, solver):
     assert dataset['Froude_Krylov_force'].data.shape == (3, 2, 6)
 
 
-def test_fill_dataset_with_freqs(sphere, solver):
+def test_fill_dataset_with_freqs():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     f_range = np.linspace(0.1, 1, 3)
     test_matrix = xr.Dataset(coords={'freq': f_range, 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
     dataset = solver.fill_dataset(test_matrix, [sphere])
@@ -251,7 +264,9 @@ def test_fill_dataset_with_freqs(sphere, solver):
     assert set(dataset.period.dims)     == {'freq'}
 
 
-def test_fill_dataset_with_wavenumbers(sphere, solver):
+def test_fill_dataset_with_wavenumbers():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     k_range = np.linspace(1.0, 3.0, 3)
     test_matrix = xr.Dataset(coords={'wavenumber': k_range, 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
     dataset = solver.fill_dataset(test_matrix, [sphere])
@@ -263,10 +278,12 @@ def test_fill_dataset_with_wavenumbers(sphere, solver):
     assert set(dataset.period.dims)     == {'wavenumber'}
 
 
-def test_fill_dataset_with_periods(sphere, solver):
+def test_fill_dataset_with_periods():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     T_range = np.linspace(1.0, 3.0, 3)
     test_matrix = xr.Dataset(coords={'period': T_range, 'wave_direction': [0, np.pi/2], 'radiating_dof': ['Heave']})
-    dataset = solver.fill_dataset(test_matrix, [sphere])
+    dataset = solver.fill_dataset(test_matrix, sphere)
 
     np.testing.assert_allclose(sorted(dataset.coords['period']), sorted(T_range))
     assert set(dataset.added_mass.dims) == {'period', 'radiating_dof', 'influenced_dof'}
@@ -276,12 +293,14 @@ def test_fill_dataset_with_periods(sphere, solver):
     assert set(dataset.period.dims)     == {'period'}
 
 
-def test_fill_dataset_with_wavenumbers_and_several_water_depths(sphere, solver):
+def test_fill_dataset_with_wavenumbers_and_several_water_depths():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     k_range = np.linspace(1.0, 3.0, 3)
     test_matrix = xr.Dataset(coords={
         'wavenumber': k_range, 'radiating_dof': ['Heave'], 'water_depth': [4.0, 6.0],
     })
-    dataset = solver.fill_dataset(test_matrix, [sphere])
+    dataset = solver.fill_dataset(test_matrix, sphere)
 
     np.testing.assert_allclose(dataset.coords['wavenumber'], k_range)
     assert set(dataset.added_mass.dims) == {'wavenumber', 'radiating_dof', 'influenced_dof', 'water_depth'}
@@ -291,26 +310,15 @@ def test_fill_dataset_with_wavenumbers_and_several_water_depths(sphere, solver):
     assert set(dataset.period.dims)     == {'wavenumber', 'water_depth'}
 
 
-@pytest.fixture
-def broken_bem_solver():
-    ref_gf = cpt.Delhommeau()
-    class BrokenGreenFunction:
-        floating_point_precision = None
-        exportable_settings = {}
-        def evaluate(self, m1, m2, fs, wd, wavenumber, *args, **kwargs):
-            if wavenumber < 2.0:
-                raise NotImplementedError("I'm potato")
-            else:
-                return ref_gf.evaluate(m1, m2, fs, wd, wavenumber, *args, **kwargs)
-    broken_bem_solver = cpt.BEMSolver(green_function=BrokenGreenFunction())
-    return broken_bem_solver
-
-
-def test_failed_resolution_in_dataset(broken_bem_solver, sphere):
+def test_failed_resolution_in_dataset():
+    sphere = helpers.small_sphere_body(["Heave"])
+    broken_bem_solver = helpers.broken_bem_solver()
     test_matrix = xr.Dataset(coords={"wavenumber": np.linspace(0.1, 5.0, 5), "wave_direction": [0.0], "radiating_dof": ["Heave"]})
     ds = broken_bem_solver.fill_dataset(test_matrix, sphere)
     assert len(ds.wavenumber) == 5
-    assert np.any(np.isnan(ds.added_mass.values))
+    failed = ds.wavenumber < 2.0
+    assert np.all(np.isnan(ds.added_mass.where(failed, drop=True).values))
+    assert not np.any(np.isnan(ds.added_mass.where(~failed, drop=True).values))
 
 
 #######################################################################

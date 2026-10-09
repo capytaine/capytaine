@@ -17,17 +17,10 @@ import numpy as np
 import xarray as xr
 
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 from capytaine import __version__
 
 from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
-
-@pytest.fixture
-def sphere():
-    mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 4)).immersed_part()
-    sphere = cpt.FloatingBody(mesh=mesh)
-    sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
-    return sphere
-
 
 def test_exportable_settings():
     gf = cpt.Delhommeau(
@@ -65,27 +58,29 @@ def test_cannot_define_gf_and_engine_in_solver():
         cpt.BEMSolver(engine=cpt.DefaultMatrixEngine(), green_function=cpt.Delhommeau())
 
 def test_solver_has_initialized_timer():
-    s = cpt.BEMSolver()
+    s = helpers.solver()
     assert s.timer.total == 0.0
 
-def test_solver_update_timer(sphere):
+def test_solver_update_timer():
+    sphere = helpers.small_sphere_body()
+    solver = helpers.solver()
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
-    s = cpt.BEMSolver()
-    s.solve(problem)
-    assert s.timer.total > 0.0
+    solver.solve(problem)
+    assert solver.timer.total > 0.0
 
-def test_direct_solver(sphere):
+def test_direct_solver():
+    sphere = helpers.small_sphere_body()
     problem = cpt.DiffractionProblem(body=sphere, omega=1.0)
-    direct_solver = cpt.BEMSolver(method='direct')
+    direct_solver = helpers.solver(method='direct')
     direct_result = direct_solver.solve(problem)
-    indirect_solver = cpt.BEMSolver(method='indirect')
+    indirect_solver = helpers.solver(method='indirect')
     indirect_result = indirect_solver.solve(problem)
     assert direct_result.forces["Surge"] == pytest.approx(indirect_result.forces["Surge"], rel=1e-1)
 
 
 @pytest.mark.parametrize("method", ["direct", "indirect"])
 def test_same_result_with_symmetries(method):
-    solver = cpt.BEMSolver(method=method)
+    solver = helpers.solver(method=method)
     sym_mesh = ReflectionSymmetricMesh(cpt.mesh_sphere(center=(0, 2, 0)).immersed_part(), plane='xOz')
     sym_body = cpt.FloatingBody(mesh=sym_mesh, dofs=cpt.rigid_body_dofs())
     sym_result = solver.solve(cpt.DiffractionProblem(body=sym_body, omega=1.0))
@@ -95,9 +90,10 @@ def test_same_result_with_symmetries(method):
     assert sym_result.forces["Surge"] == pytest.approx(result.forces["Surge"], rel=1e-4)
 
 
-def test_parallelization(sphere):
+def test_parallelization():
+    sphere = helpers.small_sphere_body()
     pytest.importorskip("joblib")
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
         'radiating_dof': list(sphere.dofs.keys()),
@@ -107,10 +103,11 @@ def test_parallelization(sphere):
 
 @pytest.mark.parametrize("n_jobs", [1, 2])
 @pytest.mark.parametrize("n_threads", [1, 2])
-def test_control_threads(sphere, n_jobs, n_threads):
+def test_control_threads(n_jobs, n_threads):
+    sphere = helpers.small_sphere_body()
     pytest.importorskip("joblib")
     pytest.importorskip("threadpoolctl")
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
         'radiating_dof': list(sphere.dofs.keys()),
@@ -118,10 +115,11 @@ def test_control_threads(sphere, n_jobs, n_threads):
     solver.fill_dataset(test_matrix, sphere, n_jobs=n_jobs, n_threads=n_threads)
 
 
-def test_nb_timer(sphere):
+def test_nb_timer():
+    sphere = helpers.small_sphere_body()
     pytest.importorskip("joblib")
     from joblib import cpu_count
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     n_jobs = min(cpu_count(), 3)
     problems = [
             cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=omega)
@@ -131,27 +129,30 @@ def test_nb_timer(sphere):
     assert len(solver.timer_summary().columns) == n_jobs
 
 
-def test_float32_solver(sphere):
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(floating_point_precision="float32"))
+def test_float32_solver():
+    sphere = helpers.small_sphere_body()
+    solver = helpers.solver(floating_point_precision="float32")
     pb = cpt.RadiationProblem(body=sphere, radiating_dof="Surge", omega=1.0)
     result = solver.solve(pb)
     assert result.pressure.dtype == 'complex64' and result.potential.dtype == 'complex64'
 
 
-def test_LiangWuNoblesseGF(sphere):
+def test_LiangWuNoblesseGF():
+    sphere = helpers.small_sphere_body()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
         'radiating_dof': list(sphere.dofs),
     })
     solver = cpt.BEMSolver(green_function=cpt.LiangWuNoblesseGF())
-    ref_solver = cpt.BEMSolver(green_function=cpt.Delhommeau())
+    ref_solver = helpers.solver()
     ds = solver.fill_dataset(test_matrix, sphere)
     ref_ds = ref_solver.fill_dataset(test_matrix, sphere)
     assert np.allclose(ds.added_mass.values, ref_ds.added_mass.values, rtol=1e-2)
 
 
-def test_fill_dataset(sphere):
-    solver = cpt.BEMSolver()
+def test_fill_dataset():
+    sphere = helpers.small_sphere_body()
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.1, 4.0, 3),
         'wave_direction': np.linspace(0.0, np.pi, 3),
@@ -186,8 +187,9 @@ def test_fill_dataset(sphere):
     assert np.allclose(recomputed_dataset["added_mass"].data, dataset["added_mass"].data)
 
 
-def test_warning_mesh_resolution(sphere, caplog):
-    solver = cpt.BEMSolver()
+def test_warning_mesh_resolution(caplog):
+    sphere = helpers.small_sphere_body()
+    solver = helpers.solver()
     pb = cpt.RadiationProblem(body=sphere, wavelength=0.1*sphere.minimal_computable_wavelength)
     with caplog.at_level("WARNING"):
         solver.solve(pb)

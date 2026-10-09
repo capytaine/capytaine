@@ -15,6 +15,7 @@ import pytest
 import numpy as np
 import xarray as xr
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 
 from capytaine.meshes.predefined import mesh_sphere, mesh_horizontal_cylinder
 
@@ -57,7 +58,7 @@ def test_resolution():
         "radiating_dof": ["Heave"],
     })
 
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
 
     data_0 = solver.fill_dataset(test_matrix, [body], mesh=True)
 

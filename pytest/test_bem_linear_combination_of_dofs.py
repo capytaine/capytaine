@@ -13,6 +13,7 @@
 # limitations under the License.
 import numpy as np
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 import pytest
 
 method = ['indirect', 'direct']
@@ -29,7 +30,7 @@ def test_sum_of_dofs(method):
     both.add_translation_dof(name="Heave")
 
     problems = [cpt.RadiationProblem(body=both, radiating_dof=dof, omega=1.0) for dof in both.dofs]
-    solver = cpt.BEMSolver(method=method)
+    solver = helpers.solver(method=method)
     results = solver.solve_all(problems)
     dataset = cpt.assemble_dataset(results)
 
@@ -55,7 +56,7 @@ def test_rotation_axis(method):
     )
 
     problems = [cpt.RadiationProblem(body=body, radiating_dof=dof, omega=1.0) for dof in body.dofs]
-    solver = cpt.BEMSolver(method=method)
+    solver = helpers.solver(method=method)
     results = solver.solve_all(problems, keep_details=True)
     dataset = cpt.assemble_dataset(results)
 

@@ -21,45 +21,19 @@ import numpy as np
 import xarray as xr
 
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 
 from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
 from capytaine.meshes.predefined import mesh_horizontal_cylinder, mesh_rectangle
-
-
-@pytest.fixture
-def sphere():
-    sphere = cpt.FloatingBody(
-            mesh=cpt.mesh_sphere(center=(0, 0, -2), radius=1.0, resolution=(6, 6)),
-            dofs=cpt.rigid_body_dofs(only=["Heave"]),
-            name="sphere",
-            )
-    return sphere
-
-
-@pytest.fixture
-def solver():
-    return cpt.BEMSolver()
-
-
-@pytest.fixture
-def broken_bem_solver():
-    ref_gf = cpt.Delhommeau()
-    class BrokenGreenFunction:
-        floating_point_precision = None
-        exportable_settings = {}
-        def evaluate(self, m1, m2, *, wavenumber, **kwargs):
-            if wavenumber < 2.0:
-                raise NotImplementedError("I'm potato")
-            else:
-                return ref_gf.evaluate(m1, m2, wavenumber=wavenumber, **kwargs)
-    return cpt.BEMSolver(green_function=BrokenGreenFunction())
 
 
 #######################################################################
 #                       fill_dataset(keep_details=...)                #
 #######################################################################
 
-def test_pressure_variables_present_with_keep_details(sphere, solver):
+def test_pressure_variables_present_with_keep_details():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={
         'omega': [1.0, 2.0], 'wave_direction': [0.0], 'radiating_dof': ['Heave'],
     })
@@ -70,7 +44,9 @@ def test_pressure_variables_present_with_keep_details(sphere, solver):
         assert dataset[var].sizes["hull_face"] == sphere.mesh.nb_faces
 
 
-def test_pressure_variables_absent_by_default(sphere, solver):
+def test_pressure_variables_absent_by_default():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={
         'omega': [1.0, 2.0], 'wave_direction': [0.0], 'radiating_dof': ['Heave'],
     })
@@ -80,7 +56,9 @@ def test_pressure_variables_absent_by_default(sphere, solver):
         assert var not in dataset
 
 
-def test_radiation_pressure_has_radiating_dof_dimension(sphere, solver):
+def test_radiation_pressure_has_radiating_dof_dimension():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     sphere.add_translation_dof(direction=(1, 0, 0), name="Surge")
     test_matrix = xr.Dataset(coords={
         'omega': [1.0], 'radiating_dof': ['Heave', 'Surge'],
@@ -95,7 +73,9 @@ def test_radiation_pressure_has_radiating_dof_dimension(sphere, solver):
     assert not np.allclose(heave_pressure, surge_pressure)
 
 
-def test_failed_results_do_not_crash_pressure_export(broken_bem_solver, sphere):
+def test_failed_results_do_not_crash_pressure_export():
+    sphere = helpers.small_sphere_body(["Heave"])
+    broken_bem_solver = helpers.broken_bem_solver()
     test_matrix = xr.Dataset(coords={
         "wavenumber": np.linspace(0.1, 5.0, 5), "wave_direction": [0.0], "radiating_dof": ["Heave"],
     })
@@ -108,14 +88,18 @@ def test_failed_results_do_not_crash_pressure_export(broken_bem_solver, sphere):
     assert np.all(np.isfinite(dataset["Froude_Krylov_pressure"].values))
 
 
-def test_pressure_ignored_for_infinite_free_surface(sphere, solver):
+def test_pressure_ignored_for_infinite_free_surface():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     pb = cpt.RadiationProblem(body=sphere, free_surface=np.inf, radiating_dof="Heave")
     res = solver.solve(pb, keep_details=True)
     dataset = cpt.assemble_dataset([res])
     assert "radiation_pressure" not in dataset
 
 
-def test_keep_details_forced_by_kochin_export(sphere, solver):
+def test_keep_details_forced_by_kochin_export():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={
         'omega': [1.0], 'wave_direction': [0.0], 'radiating_dof': ['Heave'],
         'theta': np.linspace(0, 2*np.pi, 5),
@@ -129,7 +113,9 @@ def test_keep_details_forced_by_kochin_export(sphere, solver):
 #                  LinearPotentialFlowResult.pressure_on_hull          #
 #######################################################################
 
-def test_pressure_on_hull_matches_hull_mask(sphere, solver):
+def test_pressure_on_hull_matches_hull_mask():
+    sphere = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     pb = cpt.RadiationProblem(body=sphere, omega=1.0, radiating_dof="Heave")
     res = solver.solve(pb, keep_details=True)
     np.testing.assert_array_equal(res.pressure_on_hull, res.pressure[sphere.hull_mask])
@@ -144,7 +130,7 @@ def test_pressure_on_hull_with_symmetric_mesh_and_lid():
             )
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     res = solver.solve(pb, keep_details=True)
 
     ref_body = cpt.FloatingBody(mesh=mesh.merged(), lid_mesh=lid_mesh.merged(), dofs=cpt.rigid_body_dofs())

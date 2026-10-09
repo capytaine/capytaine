@@ -11,13 +11,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from functools import lru_cache
 
 import pytest
 
 import numpy as np
 import capytaine as cpt
-from capytaine.meshes import Mesh, RotationSymmetricMesh, ReflectionSymmetricMesh
+import capytaine_test_helpers as helpers
+from capytaine.meshes import RotationSymmetricMesh, ReflectionSymmetricMesh
 from capytaine.green_functions.abstract_green_function import GreenFunctionEvaluationError
 
 
@@ -279,22 +279,9 @@ def test_ram_rotation_symmetries_estimation(n):
     assert lu_overwrite_estimation == nb_faces**2 * 16 * (2 * 1/n + 1/n) / 1e9
 
 
-@lru_cache
-def single_panel():
-    vertices = np.array(
-        [[0.5, 0.0, 0.0], [0.5, 0.0, -0.5], [0.5, 0.5, -0.3], [0.5, 0.5, -0.2]]
-    )
-    faces = np.array([[0, 1, 2, 3]])
-    single_panel = Mesh(vertices=vertices, faces=faces)
-    return single_panel
-
-
-@pytest.mark.parametrize("sym_mesh", [
-    ReflectionSymmetricMesh(ReflectionSymmetricMesh(single_panel(), plane="xOz"), plane="yOz"),
-    RotationSymmetricMesh(single_panel(), n=4, axis='z+'),
-    RotationSymmetricMesh(ReflectionSymmetricMesh(single_panel(), plane="xOz"), n=3, axis='z+'),
-    ], ids=["nested_reflections", "rotation+", "dihedral"])
-def test_symmetry(sym_mesh):
+@pytest.mark.parametrize("name", ["nested_reflections", "rotation_4", "dihedral"])
+def test_symmetry(name):
+    sym_mesh = helpers.symmetric_meshes_of_single_panel()[name]
     ref_mesh = sym_mesh.merged()
     engine = cpt.DefaultMatrixEngine()
     params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
@@ -308,7 +295,7 @@ def test_build_S_matrix_despite_invalid_K_matrix():
     mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 3))
     sphere = cpt.FloatingBody(mesh=mesh).immersed_part()
     problem = cpt.DiffractionProblem(body=sphere, wavenumber=1, wave_direction=0)
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     result = solver._solve(problem)
     gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
     pytest.raises(GreenFunctionEvaluationError, solver.engine.build_fullK_matrix, mesh.vertices[2:5,:], result.body.mesh_including_lid, **gf_params)

@@ -15,6 +15,7 @@ import numpy as np
 import pytest
 
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 
 
 @pytest.mark.parametrize("z_center", [-10.0, 0.0, 10.0])
@@ -23,7 +24,7 @@ def test_analytical_solution(z_center):
     mesh = cpt.mesh_sphere(center=(0, 0, z_center), radius=radius, resolution=(10, 10))
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, free_surface=np.inf, radiating_dof="Surge")
-    solver = cpt.BEMSolver(method="direct")
+    solver = helpers.solver(method="direct")
     res = solver.solve(pb)
     assert res.forces["Surge"] == pytest.approx(2/3*np.pi*pb.rho*radius**3, rel=1e-2)
 
@@ -33,7 +34,7 @@ def test_translation_invariance_of_no_free_surface_case():
         mesh = cpt.mesh_parallelepiped(center=(0, 0, z))
         body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)))
         pb = cpt.RadiationProblem(body=body, free_surface=np.inf, water_depth=np.inf, radiating_dof="Surge")
-        solver = cpt.BEMSolver(method="direct")
+        solver = helpers.solver(method="direct")
         res = solver.solve(pb)
         return res.force["Surge"]
     assert np.isclose(force_on_body(0.0), force_on_body(-1.0))
@@ -49,7 +50,7 @@ def test_potential_and_velocity_at_field_points_of_translating_sphere():
     mesh = cpt.mesh_sphere(center=(0, 0, 0), radius=a, resolution=(40, 40))
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)))
     pb = cpt.RadiationProblem(body=body, free_surface=np.inf, radiating_dof="Surge", omega=1.5)
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     res = solver.solve(pb, keep_details=True)
 
     points = np.array([[2.0, 0.0, 0.0], [0.0, 2.0, 1.0], [1.0, 1.0, 3.0], [-1.5, 0.5, 0.5]])

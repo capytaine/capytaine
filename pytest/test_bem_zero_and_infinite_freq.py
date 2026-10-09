@@ -17,6 +17,7 @@ import numpy as np
 import xarray as xr
 
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 from capytaine.green_functions.abstract_green_function import GreenFunctionEvaluationError
 
 ###########
@@ -24,10 +25,7 @@ from capytaine.green_functions.abstract_green_function import GreenFunctionEvalu
 ###########
 
 def make_simple_body():
-    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
-    body = cpt.FloatingBody(mesh=mesh)
-    body.add_translation_dof(direction=(1, 0, 0), name="Surge")
-    return body
+    return helpers.small_sphere_body(["Surge"])
 
 def make_symmetric_body():
     mesh = cpt.mesh_parallelepiped(resolution=(2, 2, 2), reflection_symmetry=True).immersed_part()
@@ -36,14 +34,11 @@ def make_symmetric_body():
     return body
 
 def make_lid_body():
-    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
-    body = cpt.FloatingBody(mesh=mesh, lid_mesh=mesh.generate_lid())
-    body.add_translation_dof(direction=(1, 0, 0), name="Surge")
-    return body
+    return helpers.small_sphere_body(["Surge"], lid=True)
 
 BODIES = [make_simple_body, make_symmetric_body, make_lid_body]
 
-SOLVERS = [cpt.BEMSolver(method='direct'), cpt.BEMSolver(method='indirect')]
+SOLVERS = [helpers.solver(method='direct'), helpers.solver(method='indirect')]
 
 
 ####################################################
@@ -213,7 +208,7 @@ def test_dataset_with_limit_frequency_including_radiation_and_diffraction(caplog
         'wave_direction': [0.0],
         'radiating_dof': list(sphere.dofs),
     })
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     with caplog.at_level("INFO"):
         ds = solver.fill_dataset(test_matrix, sphere)
     assert np.all(np.isnan(ds.diffraction_force.sel(omega=0.0)))

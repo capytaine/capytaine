@@ -17,6 +17,7 @@ import pytest
 
 import numpy as np
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 
 
 @pytest.mark.parametrize("adjoint_double_layer", [True, False])
@@ -27,7 +28,7 @@ def test_gradiant_G_shape(adjoint_double_layer):
 
 
 def test_gradient_G_a_posteriori_scalar_product():
-    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
+    mesh = helpers.small_sphere_mesh()
     S, gradG = cpt.Delhommeau().evaluate(mesh, mesh, wavenumber=1.0, early_dot_product=False)
     S, K = cpt.Delhommeau().evaluate(mesh, mesh, wavenumber=1.0, early_dot_product=True)
 
@@ -46,7 +47,7 @@ def test_gradient_G_a_posteriori_scalar_product():
 
 
 def test_gradient_G_a_posteriori_scalar_product_directBIE():
-    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
+    mesh = helpers.small_sphere_mesh()
     S, gradG = cpt.Delhommeau().evaluate(mesh, mesh, wavenumber=1.0, early_dot_product=False, adjoint_double_layer=False)
     S, D = cpt.Delhommeau().evaluate(mesh, mesh, wavenumber=1.0, early_dot_product=True, adjoint_double_layer=False)
 

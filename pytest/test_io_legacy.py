@@ -21,7 +21,6 @@ import capytaine as cpt
 from capytaine.io.legacy import export_hydrostatics, export_hydrostatics_from_dataset
 
 
-@lru_cache
 def setup_two_bodies():
     cylinder1_mesh = cpt.mesh_vertical_cylinder(length=5.0, center=(1.0, 1.0, -0.5))
     cylinder1 = cpt.FloatingBody(
@@ -40,6 +39,7 @@ def setup_two_bodies():
     )
     return cylinder1, cylinder2
 
+@lru_cache
 def setup_two_bodies_with_precomputed_hydrostatics():
     cylinder1, cylinder2 = setup_two_bodies()
     cylinder1.hydrostatic_stiffness = cylinder1.immersed_part().compute_hydrostatic_stiffness()

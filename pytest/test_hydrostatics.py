@@ -21,6 +21,7 @@ import pytest
 import numpy as np
 import xarray as xr
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 
 from capytaine.meshes.predefined import mesh_sphere, mesh_horizontal_cylinder, mesh_vertical_cylinder
 from capytaine.io.xarray import compute_hydrostatics_dataset
@@ -594,7 +595,7 @@ def test_fill_dataset_single_body():
         "wave_direction": 0.0,
         "rho": 1025.0,
         })
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     ds = solver.fill_dataset(test_matrix, body, hydrostatics=True)
     assert "inertia_matrix" in ds
     assert "hydrostatic_stiffness" in ds
@@ -608,7 +609,7 @@ def test_fill_dataset_single_body_rho_range():
         "wave_direction": [0.0],
         "rho": [1000.0, 1025.0],
         })
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     ds = solver.fill_dataset(test_matrix, body, hydrostatics=True)
     assert "rho" in ds["inertia_matrix"].dims
     assert np.allclose(ds["inertia_matrix"].coords["rho"], test_matrix.coords["rho"])
@@ -621,7 +622,7 @@ def test_fill_dataset_single_body_some_dofs():
         "radiating_dof": ["Heave"],
         "wave_direction": [0.0],
         })
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     ds = solver.fill_dataset(test_matrix, body, hydrostatics=True)
     assert ds.radiating_dof.shape == (1,)
     assert ds["inertia_matrix"].shape == (6, 1)

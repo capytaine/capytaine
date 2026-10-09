@@ -65,7 +65,7 @@ _test:
     cd {{TEMP_DIR}}
     export {{ENV}}
     python -c "import capytaine; print(capytaine.__version__)"
-    python -m pytest {{TEST_DIR}}
+    OMP_NUM_THREADS=1 python -m pytest {{TEST_DIR}}  # Multithreading is mostly overhead on the small meshes of the tests
     capytaine --help
     capytaine {{NEMOH_CASES}}/Nemoh.cal
     capytaine {{NEMOH_CASES}}/Nemoh_v3.cal
@@ -81,7 +81,9 @@ _test:
     #! powershell
     cd {{TEMP_DIR}}
     python -c "import capytaine; print(capytaine.__version__)"
+    $env:OMP_NUM_THREADS=1
     python -m pytest {{TEST_DIR}}
+    Remove-Item Env:OMP_NUM_THREADS
     capytaine --help
     capytaine {{NEMOH_CASES}}/Nemoh.cal
     capytaine {{NEMOH_CASES}}/Nemoh_v3.cal

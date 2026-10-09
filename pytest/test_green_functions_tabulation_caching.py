@@ -27,7 +27,7 @@ def test_tabulation_caching_write_files():
     assert len(glob(os.path.join(dir, "tabulation*.npz"))) > 0
 
 
-def test_tabulation_caching_write_files(caplog):
+def test_tabulation_caching_corrupted_file(caplog):
     dir = cache_directory()
     filename = cpt.Delhommeau()._create_or_load_tabulation(
         tabulation_nr=3,

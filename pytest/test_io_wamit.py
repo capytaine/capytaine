@@ -22,6 +22,7 @@ import xarray as xr
 import pytest
 
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 from capytaine.io.wamit import export_to_wamit, export_wamit_8, export_wamit_9
 from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, near_field_mean_drift_force
 
@@ -41,7 +42,7 @@ def full_dataset():
             "rho": [1025],
         }
     )
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     dataset = solver.fill_dataset(test_matrix, immersed_body)
 
     return dataset
@@ -65,7 +66,7 @@ def dataset_with_multiple_rho():
         }
     )
 
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     dataset = solver.fill_dataset(test_matrix, immersed_body)
     return dataset
 
@@ -287,7 +288,7 @@ def test_export_wamit_frequency_axis_representations(export_type, omega_val, tmp
         }
     )
 
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     ds_omega = solver.fill_dataset(test_matrix_omega, immersed_body)
 
     # Create period-based version
@@ -350,7 +351,7 @@ def test_export_wamit_8(tmpdir):
         }
     )
 
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     dataset = solver.fill_dataset(test_matrix, immersed_body)
 
     X = cpt.post_pro.rao(dataset)
@@ -428,7 +429,7 @@ def test_export_wamit_8_while_exporting_everything(tmpdir):
         }
     )
 
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     dataset = solver.fill_dataset(test_matrix, immersed_body)
 
     X = cpt.post_pro.rao(dataset)
@@ -453,9 +454,9 @@ def test_export_wamit_8_while_exporting_everything(tmpdir):
 @lru_cache
 def dataset_with_near_field_mean_drift_force():
     from capytaine.io.xarray import problems_from_dataset
-    mesh = cpt.mesh_sphere(resolution=(4, 4)).immersed_part()
+    mesh = helpers.small_sphere_mesh()
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     wave_direction = [0, np.pi/4]
     test_matrix = xr.Dataset(coords={
             'wavenumber': [1.0, 2.0], 'wave_direction': wave_direction, 'radiating_dof': list(body.dofs.keys())
