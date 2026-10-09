@@ -13,15 +13,30 @@
 # limitations under the License.
 """Helpers to write code that works with any array library implementing the array API standard."""
 
+from typing import Any, Protocol, Tuple
+
 import numpy as np
 from array_api_compat import array_namespace, device, is_numpy_array, to_device
 
 from capytaine.tools.symbolic_multiplication import SymbolicMultiplication
 
 __all__ = [
-    "array_namespace", "device", "is_array", "is_numpy_namespace", "complex_dtype", "to_backend_of", "to_numpy",
+    "MatrixLike", "array_namespace", "device", "is_array", "is_numpy_namespace", "complex_dtype", "to_backend_of", "to_numpy",
     "IterableTensor", "split", "leading_dimensions_at_the_end", "ending_dimensions_at_the_beginning",
 ]
+
+
+class MatrixLike(Protocol):
+    """Any 2D (or batched) matrix: an array of any library supported by array-api-compat,
+    or a custom data-sparse matrix such as BlockCirculantMatrix.
+
+    Only used for type annotations. `__array_namespace__` is not required, since
+    some arrays (e.g. torch tensors) get it from array-api-compat instead of defining it."""
+    @property
+    def shape(self) -> Tuple[int, ...]: ...
+    @property
+    def dtype(self) -> Any: ...
+    def __matmul__(self, other: Any) -> Any: ...
 
 
 def is_array(x):

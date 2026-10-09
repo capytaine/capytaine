@@ -32,7 +32,7 @@ xps = pytest.importorskip("array_api_strict")  # Not available on Python 3.8
 class StrictArrayGreenFunction(AbstractGreenFunction):
     """Delhommeau Green function returning `array_api_strict` arrays instead of NumPy arrays."""
     _default_parameters = {}
-    matrices_namespace = xps
+    matrices_array_backend = xps
     matrices_device = xps.asarray(0.0).device
 
     def __init__(self, *, nan=False, floating_point_precision="float64"):

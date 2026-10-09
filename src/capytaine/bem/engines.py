@@ -25,17 +25,18 @@ from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh, RotationS
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction, GreenFunctionEvaluationError
 from capytaine.green_functions.delhommeau import Delhommeau
 
-from capytaine.tools.array_backend import array_namespace, complex_dtype, is_numpy_namespace
+from capytaine.tools.array_backend import MatrixLike, array_namespace, complex_dtype, is_numpy_namespace
 from capytaine.tools.lazy_matrices import LazyMatrix
-from capytaine.tools.lists_of_points import _normalize_points
 from capytaine.tools.block_circulant_matrices import (
     BlockCirculantMatrix,
     NestedBlockCirculantMatrix,
+)
+from capytaine.bem.linear_solvers import (
     lu_decompose,
     has_been_lu_decomposed,
-    MatrixLike,
     AbstractLUDecomposedMatrix
 )
+
 
 LOG = logging.getLogger(__name__)
 
@@ -162,14 +163,14 @@ class DefaultMatrixEngine(MatrixEngine):
         if nb_points < 500:
             return build_S_rows(slice(0, nb_points))  # Just the full matrix
         else:
-            xp = self.green_function.matrices_namespace
+            xp = self.green_function.matrices_array_backend
             real_dtype = xp.float32 if self.green_function.floating_point_precision == "float32" else xp.float64
             return LazyMatrix(
                 build_S_rows,
                 shape=(points.shape[0], mesh.nb_faces),
                 chunk_size=100,
                 dtype=complex_dtype(xp, real_dtype),
-                namespace=xp,
+                array_backend=xp,
                 device=self.green_function.matrices_device,
             )
 
