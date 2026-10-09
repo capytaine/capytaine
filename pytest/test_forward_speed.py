@@ -16,6 +16,7 @@ from pytest import approx
 import numpy as np
 import pandas as pd
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 import xarray as xr
 
 # PROBLEM DEFINITION
@@ -30,10 +31,6 @@ def body():
     )
     # No m-term with this body. Pitch has m-terms, but all the mesh faces have nz==0.
     return body
-
-@pytest.fixture
-def solver():
-    return cpt.BEMSolver()
 
 def test_encouter_frequency_along_waves(body):
     pb = cpt.DiffractionProblem(body=body, omega=2.0, forward_speed=1.0, wave_direction=0.0)
@@ -64,8 +61,7 @@ def test_encounter_frequency_radiation_problem(body):
     assert pb.encounter_omega < pb.omega
 
 def test_m_terms():
-    mesh = cpt.mesh_sphere().immersed_part()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, 0)))
+    body = helpers.small_sphere_body("rigid")
     x, y, z = body.mesh.faces_centers.T
     nx, ny, nz = body.mesh.faces_normals.T
     pb = cpt.RadiationProblem(body=body, omega=1.0, forward_speed=1.0, wave_direction=0.0, radiating_dof="Surge")
@@ -94,25 +90,29 @@ def test_non_rigid_body_with_new_dof(body):
             gradient_of_motion=lambda p: [[0, 0, 1], [0, 0, 0], [0, 0, 0]]
             )
     pb = cpt.RadiationProblem(body=body, omega=2.0, forward_speed=1.0, radiating_dof="Shear")
-    cpt.BEMSolver().solve(pb)
+    helpers.solver().solve(pb)
 
 
 # POST-PROCESSING
 
 @pytest.fixture
-def result(body, solver):
+def result(body):
+    solver = helpers.solver()
     pb = cpt.DiffractionProblem(body=body, omega=2.0, forward_speed=1.0, wave_direction=0.0)
     return solver.solve(pb)
 
-def test_pressure_reconstruction(result, solver):
+def test_pressure_reconstruction(result):
+    solver = helpers.solver()
     pressure = solver.compute_pressure(result.body.mesh, result)
     assert result.body.integrate_pressure(pressure) == approx(result.forces)
 
-def test_velocity_reconstruction(result, solver):
+def test_velocity_reconstruction(result):
+    solver = helpers.solver()
     points = np.meshgrid(np.linspace(-10.0, 10.0, 3), np.linspace(-10.0, 10.0, 3), np.linspace(-10.0, -1.0, 2))
     velocity = solver.compute_velocity(points, result)
 
-def test_free_surface_elevation(result, solver):
+def test_free_surface_elevation(result):
+    solver = helpers.solver()
     points = np.meshgrid(np.linspace(-10.0, 10.0, 3), np.linspace(-10.0, 10.0, 3))
     fse = solver.compute_free_surface_elevation(points, result)
 
@@ -130,7 +130,8 @@ def test_problem_from_dataset(body):
     assert len(pbs) == 7
     # Four diffraction problems + Three radiation problems, since the wave_direction is only relevant when forward_speed is non 0.0
 
-def test_fill_dataset_with_forward_speed(body, solver):
+def test_fill_dataset_with_forward_speed(body):
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={
         "omega": [1.0],
         "forward_speed": [0.0, 1.0],
@@ -142,7 +143,8 @@ def test_fill_dataset_with_forward_speed(body, solver):
     assert "encounter_omega" in ds.coords
     assert "encounter_wave_direction" in ds.coords
 
-def test_fill_dataset_without_forward_speed(body, solver):
+def test_fill_dataset_without_forward_speed(body):
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={
         "omega": [1.0],
         "wave_direction": [0.0, np.pi/2],
@@ -159,7 +161,7 @@ def test_no_explicit_wave_direction(body):
         "forward_speed": [0.0, 10.0],
         "radiating_dof": ["Surge"],
         })
-    ds = cpt.BEMSolver().fill_dataset(test_matrix, body)
+    ds = helpers.solver().fill_dataset(test_matrix, body)
     assert ds.wave_direction.values == np.array([0.0])
 
 
@@ -176,7 +178,8 @@ MALENICA_EXCITATION_FORCE = pd.DataFrame([
     ], columns=["wavenumber", "normalized_force", "froude_number"])
 
 @pytest.mark.parametrize("ref_data", MALENICA_EXCITATION_FORCE.iterrows())
-def test_malenica_excitation_force(body, solver, ref_data):
+def test_malenica_excitation_force(body, ref_data):
+    solver = helpers.solver()
     from capytaine.bem.airy_waves import froude_krylov_force
     pb = cpt.DiffractionProblem(
         body=body,
@@ -198,7 +201,8 @@ MALENICA_ADDED_MASS = pd.DataFrame([
     ], columns=["wavenumber", "normalized_added_mass", "froude_number"])
 
 @pytest.mark.parametrize("ref_data", MALENICA_ADDED_MASS.iterrows())
-def test_malenica_added_mass(body, solver, ref_data):
+def test_malenica_added_mass(body, ref_data):
+    solver = helpers.solver()
     pb = cpt.RadiationProblem(
         body=body,
         wavenumber=ref_data[1].wavenumber,
@@ -218,7 +222,8 @@ MALENICA_RADIATION_DAMPING = pd.DataFrame([
     ], columns=["wavenumber", "normalized_radiation_damping", "froude_number"])
 
 @pytest.mark.parametrize("ref_data", MALENICA_RADIATION_DAMPING.iterrows())
-def test_malenica_radiation_damping(body, solver, ref_data):
+def test_malenica_radiation_damping(body, ref_data):
+    solver = helpers.solver()
     pb = cpt.RadiationProblem(
         body=body,
         wavenumber=ref_data[1].wavenumber,
@@ -232,7 +237,8 @@ def test_malenica_radiation_damping(body, solver, ref_data):
     assert np.abs(res.radiation_dampings["Surge"])/(rho*pb.encounter_omega) == approx(ref_data[1].normalized_radiation_damping, rel=1e-1)
 
 
-def test_multibody_with_very_distant_bodies(body, solver):
+def test_multibody_with_very_distant_bodies(body):
+    solver = helpers.solver()
     two_bodies = body + body.translated_x(50.0, name="other_body")
     ref_pb = cpt.RadiationProblem(body=body, omega=2.0, forward_speed=1.0, radiating_dof="Pitch")
     ref_res = solver.solve(ref_pb)
@@ -242,20 +248,23 @@ def test_multibody_with_very_distant_bodies(body, solver):
     assert np.isclose(res.forces['body__Pitch'], ref_res.force['Pitch'], rtol=1e-2)
 
 
-def test_near_zero_encounter_frequency_radiation(body, solver):
+def test_near_zero_encounter_frequency_radiation(body):
+    solver = helpers.solver()
     pb = cpt.RadiationProblem(body=body, omega=1.0, forward_speed=9.805, radiating_dof="Surge")
     assert pb.encounter_omega > 0.0
     solver.solve(pb)
 
 
-def test_near_zero_encounter_frequency_diffraction(body, solver):
+def test_near_zero_encounter_frequency_diffraction(body):
+    solver = helpers.solver()
     pb = cpt.DiffractionProblem(body=body, omega=1.0, forward_speed=9.805)
     assert pb.encounter_omega > 0.0
     solver.solve(pb)
 
 
 @pytest.mark.xfail
-def test_zero_encounter_frequency_radiation(body, solver):
+def test_zero_encounter_frequency_radiation(body):
+    solver = helpers.solver()
     pb = cpt.RadiationProblem(body=body, omega=1.0, forward_speed=9.81, radiating_dof="Surge")
     assert float(pb.encounter_omega) == 0.0
     res = solver.solve(pb)
@@ -265,7 +274,8 @@ def test_zero_encounter_frequency_radiation(body, solver):
     assert np.isnan(res.radiation_dampings["Surge"])
 
 
-def test_zero_encounter_frequency_diffraction(body, solver):
+def test_zero_encounter_frequency_diffraction(body):
+    solver = helpers.solver()
     pb = cpt.DiffractionProblem(body=body, omega=1.0, forward_speed=9.81)
     assert float(pb.encounter_omega) == 0.0
     with pytest.raises(ValueError):

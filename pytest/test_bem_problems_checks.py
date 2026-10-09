@@ -15,14 +15,13 @@
 import numpy as np
 
 import capytaine as cpt
-from capytaine.bem.problems_checks import _check_wavelength_and_water_depth
+import capytaine_test_helpers as helpers
 from capytaine.meshes.predefined import mesh_parallelepiped
 
 
 def test_warning_mesh_resolution(caplog):
-    mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 4)).immersed_part()
-    sphere = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver()
+    sphere = helpers.small_sphere_body()
+    solver = helpers.solver()
     pb = cpt.RadiationProblem(body=sphere, wavelength=0.1*sphere.minimal_computable_wavelength)
     with caplog.at_level("WARNING"):
         solver.solve(pb)
@@ -31,10 +30,9 @@ def test_warning_mesh_resolution(caplog):
 
 def test_warning_for_deep_water_single_problem(caplog):
     """Test warning for a single problem with very deep water."""
-    mesh = mesh_parallelepiped(size=(1, 1, 1), center=(0, 0, -0.5))
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    body = helpers.small_sphere_body()
     pb = cpt.DiffractionProblem(body=body, omega=1.0, water_depth=500.0)
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     with caplog.at_level("WARNING"):
         solver.solve(pb)
     assert "Water depth" in caplog.text
@@ -43,13 +41,12 @@ def test_warning_for_deep_water_single_problem(caplog):
 
 def test_warning_for_deep_water_multiple_problems(caplog):
     """Test warning for multiple problems with deep water."""
-    mesh = mesh_parallelepiped(size=(1, 1, 1), center=(0, 0, -0.5))
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
+    body = helpers.small_sphere_body()
     problems = [
         cpt.DiffractionProblem(body=body, omega=1.0, water_depth=500.0),
         cpt.DiffractionProblem(body=body, omega=1.5, water_depth=500.0),
     ]
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     with caplog.at_level("WARNING"):
         solver.solve_all(problems)
     assert "Water depth for all problems" in caplog.text

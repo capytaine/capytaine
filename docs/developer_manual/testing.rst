@@ -30,7 +30,40 @@ Some useful features of Pytest include:
 
    python -m pytest --failed-first
 
+The test suite runs much faster when the OpenMP parallelization of the Fortran
+core is disabled, since most tests use small meshes for which multithreading is
+mostly overhead::
+
+    OMP_NUM_THREADS=1 python -m pytest
+
 .. _`Pytest`: https://docs.pytest.org/
+
+
+Writing tests
+-------------
+
+Pytest fixtures are avoided in Capytaine's test suite: simple fixtures are
+replaced by plain functions, possibly cached with :func:`functools.lru_cache`.
+
+Helpers shared by several test files are gathered in
+``pytest/capytaine_test_helpers.py``, that can be imported in a test file as::
+
+    import capytaine_test_helpers as helpers
+
+It provides in particular:
+
+- ``helpers.solver(method=..., **gf_kwargs)``, to be used instead of
+  ``cpt.BEMSolver()``. It returns a new solver using a Green function shared
+  between all the tests (``helpers.green_function(**gf_kwargs)``), since
+  building a new :class:`~capytaine.green_functions.delhommeau.Delhommeau`
+  requires to load its tabulation from the disk.
+- ``helpers.small_sphere_mesh()`` and ``helpers.small_sphere_body(...)``, a
+  coarse floating sphere for tests that need a body but whose results do not
+  depend on its geometry.
+
+Only the objects that are not modified by the tests (such as meshes and Green
+functions) should be cached. Bodies and solvers are mutable and are thus built
+anew at each call.
 
 
 Testing in isolated environments

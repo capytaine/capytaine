@@ -14,7 +14,6 @@
 """Check that the solver works with a Green function returning matrices from another array library.
 `array_api_strict` is used as the second library: any left-over call to NumPy on the matrices fails loudly."""
 
-from functools import lru_cache
 
 import pytest
 
@@ -22,6 +21,7 @@ import numpy as np
 import scipy.linalg as sl
 import xarray as xr
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 from capytaine.green_functions.abstract_green_function import AbstractGreenFunction, GreenFunctionEvaluationError
 from capytaine.tools.block_circulant_matrices import AbstractLUDecomposedMatrix, lu_decompose
 from capytaine.tools.lazy_matrices import LazyMatrix
@@ -38,7 +38,7 @@ class StrictArrayGreenFunction(AbstractGreenFunction):
     def __init__(self, *, nan=False, floating_point_precision="float64"):
         self.nan = nan
         self.floating_point_precision = floating_point_precision
-        self.wrapped = cpt.Delhommeau(floating_point_precision=floating_point_precision)
+        self.wrapped = helpers.green_function(floating_point_precision=floating_point_precision)
         self.exportable_settings = {
             "green_function": "StrictArrayGreenFunction", "nan": nan,
             "floating_point_precision": floating_point_precision,
@@ -73,15 +73,9 @@ class LUDecomposedStrictArray(AbstractLUDecomposedMatrix):
 lu_decompose.register(type(xps.asarray(0.0)), LUDecomposedStrictArray)
 
 
-@lru_cache
-def sphere():
-    mesh = cpt.mesh_sphere(radius=1, center=(0, 0, -2), resolution=(6, 6)).immersed_part()
-    return cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(rotation_center=(0, 0, -2)))
-
-
 def solvers(method):
     return (
-        cpt.BEMSolver(green_function=cpt.Delhommeau(), method=method),
+        helpers.solver(method=method),
         cpt.BEMSolver(green_function=StrictArrayGreenFunction(), method=method),
     )
 
@@ -105,7 +99,8 @@ def assert_same_results(res, res_strict):
 @pytest.mark.parametrize("omega", [1.0, 0.0, np.inf])
 def test_radiation_problem(method, omega):
     solver, solver_strict = solvers(method)
-    pb = cpt.RadiationProblem(body=sphere(), omega=omega, radiating_dof="Heave")
+    body = helpers.small_sphere_body()
+    pb = cpt.RadiationProblem(body=body, omega=omega, radiating_dof="Surge")
     res = solver.solve(pb, keep_details=True)
     res_strict = solver_strict.solve(pb, keep_details=True)
     assert_same_results(res, res_strict)
@@ -119,20 +114,21 @@ def test_radiation_problem(method, omega):
 @pytest.mark.parametrize("method", ["direct", "indirect"])
 def test_diffraction_problem(method):
     solver, solver_strict = solvers(method)
-    pb = cpt.DiffractionProblem(body=sphere(), omega=1.0, wave_direction=0.3)
+    pb = cpt.DiffractionProblem(body=helpers.small_sphere_body(), omega=1.0, wave_direction=0.3)
     assert_same_results(solver.solve(pb), solver_strict.solve(pb))
 
 
 def test_forward_speed():
     solver, solver_strict = solvers("indirect")
-    pb = cpt.RadiationProblem(body=sphere(), wavelength=3.0, radiating_dof="Heave", forward_speed=1.0, wave_direction=np.pi)
+    pb = cpt.RadiationProblem(body=helpers.small_sphere_body(), wavelength=3.0, radiating_dof="Surge",
+                              forward_speed=1.0, wave_direction=np.pi)
     assert_same_results(solver.solve(pb), solver_strict.solve(pb))
 
 
 @pytest.mark.parametrize("nb_points", [3, 600])  # Above 500 points, the matrix is a LazyMatrix
 def test_potential_and_velocity_at_points(nb_points):
     solver, solver_strict = solvers("indirect")
-    pb = cpt.RadiationProblem(body=sphere(), omega=1.0, radiating_dof="Heave")
+    pb = cpt.RadiationProblem(body=helpers.small_sphere_body(), omega=1.0, radiating_dof="Surge")
     res = solver.solve(pb, keep_details=True)
     res_strict = solver_strict.solve(pb, keep_details=True)
     rng = np.random.default_rng(0)
@@ -150,22 +146,23 @@ def test_lazy_matrix_of_strict_arrays_is_used_for_many_points():
     engine = cpt.DefaultMatrixEngine(green_function=StrictArrayGreenFunction())
     points = np.zeros((600, 3)) + [3.0, 0.0, -1.0]
     points[:, 0] += np.linspace(0, 1, 600)
-    S = engine.build_S_matrix(points, sphere().mesh, free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
+    mesh = helpers.small_sphere_mesh()
+    S = engine.build_S_matrix(points, mesh, free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
     assert isinstance(S, LazyMatrix)
     assert S.__array_namespace__() is xps
     assert S.dtype == xps.complex128
-    assert S.shape == (600, sphere().mesh.nb_faces)
+    assert S.shape == (600, mesh.nb_faces)
     # Conversion to a NumPy array does not use the dtype of the other library
-    S_numpy = cpt.DefaultMatrixEngine().build_S_matrix(points, sphere().mesh, free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
+    S_numpy = cpt.DefaultMatrixEngine(green_function=helpers.green_function()).build_S_matrix(points, helpers.small_sphere_mesh(), free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
     np.testing.assert_allclose(np.asarray(S), np.asarray(S_numpy), rtol=1e-8)
 
 
 def test_fill_dataset():
     solver, solver_strict = solvers("indirect")
-    kwargs = dict(wave_direction=[0.0], radiating_dof=["Heave"], omega=[0.5, 1.0])
+    kwargs = dict(wave_direction=[0.0], radiating_dof=["Surge"], omega=[0.5, 1.0])
     dataset = xr.Dataset(coords={k: v for k, v in kwargs.items()})
-    ds = solver.fill_dataset(dataset, [sphere()])
-    ds_strict = solver_strict.fill_dataset(dataset, [sphere()])
+    ds = solver.fill_dataset(dataset, helpers.small_sphere_body())
+    ds_strict = solver_strict.fill_dataset(dataset, helpers.small_sphere_body())
     np.testing.assert_allclose(ds_strict["added_mass"].values, ds["added_mass"].values, rtol=1e-8)
     np.testing.assert_allclose(ds_strict["radiation_damping"].values, ds["radiation_damping"].values, rtol=1e-8, atol=1e-12)
     np.testing.assert_allclose(ds_strict["excitation_force"].values, ds["excitation_force"].values, rtol=1e-8)
@@ -173,14 +170,14 @@ def test_fill_dataset():
 
 def test_nan_in_matrix_of_another_array_library():
     solver = cpt.BEMSolver(green_function=StrictArrayGreenFunction(nan=True))
-    pb = cpt.RadiationProblem(body=sphere(), omega=1.0, radiating_dof="Heave")
+    pb = cpt.RadiationProblem(body=helpers.small_sphere_body(), omega=1.0, radiating_dof="Surge")
     with pytest.raises(GreenFunctionEvaluationError):
         solver.solve(pb)
 
 
 def test_gmres_with_matrix_of_another_array_library():
     solver = cpt.BEMSolver(engine=cpt.DefaultMatrixEngine(green_function=StrictArrayGreenFunction(), linear_solver="gmres"))
-    pb = cpt.RadiationProblem(body=sphere(), omega=1.0, radiating_dof="Heave")
+    pb = cpt.RadiationProblem(body=helpers.small_sphere_body(), omega=1.0, radiating_dof="Surge")
     with pytest.raises(NotImplementedError):
         solver.solve(pb)
 
@@ -188,7 +185,8 @@ def test_gmres_with_matrix_of_another_array_library():
 @pytest.mark.parametrize("method", ["direct", "indirect"])
 def test_several_dofs_reuse_the_cached_lu_decomposition(method):
     solver, solver_strict = solvers(method)
-    problems = [cpt.RadiationProblem(body=sphere(), omega=1.0, radiating_dof=dof) for dof in ["Heave", "Surge", "Pitch"]]
+    problems = [cpt.RadiationProblem(body=helpers.small_sphere_body("rigid"), omega=1.0, radiating_dof=dof)
+                for dof in ["Surge", "Surge", "Pitch"]]
     for res, res_strict in zip(solver.solve_all(problems), solver_strict.solve_all(problems)):
         assert_same_results(res, res_strict)
     assert isinstance(solver_strict.engine.last_computed_matrices[1], LUDecomposedStrictArray)
@@ -196,8 +194,8 @@ def test_several_dofs_reuse_the_cached_lu_decomposition(method):
 
 def test_potential_without_free_surface_keeps_the_imaginary_part_of_the_sources():
     # Without free surface, the matrix S is real while the sources are complex.
-    solver, solver_strict = (cpt.BEMSolver(green_function=gf) for gf in [cpt.Delhommeau(), StrictArrayGreenFunction()])
-    pb = cpt.RadiationProblem(body=sphere(), free_surface=np.inf, omega=1.5, radiating_dof="Heave")
+    solver, solver_strict = (cpt.BEMSolver(green_function=gf) for gf in [helpers.green_function(), StrictArrayGreenFunction()])
+    pb = cpt.RadiationProblem(body=helpers.small_sphere_body(), free_surface=np.inf, omega=1.5, radiating_dof="Surge")
     res = solver.solve(pb, keep_details=True)
     res_strict = solver_strict.solve(pb, keep_details=True)
     points = np.array([[2.0, 0.0, -1.0], [0.0, 3.0, -2.0]])
@@ -212,31 +210,12 @@ def test_potential_without_free_surface_keeps_the_imaginary_part_of_the_sources(
 #  Meshes with symmetries   #
 #############################
 
-@lru_cache
-def single_panel():
-    vertices = np.array([[0.5, 0.0, 0.0], [0.5, 0.0, -0.5], [0.5, 0.5, -0.3], [0.5, 0.5, -0.2]])
-    return cpt.Mesh(vertices=vertices, faces=np.array([[0, 1, 2, 3]]))
-
-
-def symmetric_meshes_of_single_panel():
-    from capytaine.meshes import ReflectionSymmetricMesh, RotationSymmetricMesh
-    return {
-        "reflection": ReflectionSymmetricMesh(single_panel(), plane="xOz"),
-        "nested_reflections": ReflectionSymmetricMesh(ReflectionSymmetricMesh(single_panel(), plane="xOz"), plane="yOz"),
-        "rotation_2": RotationSymmetricMesh(single_panel(), n=2, axis='z+'),
-        "rotation_3": RotationSymmetricMesh(single_panel(), n=3, axis='z+'),
-        "rotation_4": RotationSymmetricMesh(single_panel(), n=4, axis='z+'),
-        "rotation_5": RotationSymmetricMesh(single_panel(), n=5, axis='z+'),
-        "dihedral": RotationSymmetricMesh(ReflectionSymmetricMesh(single_panel(), plane="xOz"), n=3, axis='z+'),
-    }
-
-
-@pytest.mark.parametrize("name", symmetric_meshes_of_single_panel().keys())
+@pytest.mark.parametrize("name", helpers.symmetric_meshes_of_single_panel().keys())
 @pytest.mark.parametrize("linear_solver", ["lu_decomposition", "lu_decomposition_with_overwrite"])
 def test_matrices_and_linear_solver_with_symmetries(name, linear_solver):
-    sym_mesh = symmetric_meshes_of_single_panel()[name]
+    sym_mesh = helpers.symmetric_meshes_of_single_panel()[name]
     params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
-    S_ref, K_ref = cpt.DefaultMatrixEngine().build_matrices(sym_mesh.merged(), sym_mesh.merged(), **params)
+    S_ref, K_ref = cpt.DefaultMatrixEngine(green_function=helpers.green_function()).build_matrices(sym_mesh.merged(), sym_mesh.merged(), **params)
 
     engine = cpt.DefaultMatrixEngine(green_function=StrictArrayGreenFunction(), linear_solver=linear_solver)
     S, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
@@ -276,17 +255,17 @@ def test_solve_with_symmetries(name, linear_solver, method):
     ref_body = cpt.FloatingBody(mesh=sym_mesh.merged(), dofs=dofs)
     solver_strict = cpt.BEMSolver(method=method, engine=cpt.DefaultMatrixEngine(
         green_function=StrictArrayGreenFunction(), linear_solver=linear_solver))
-    solver_ref = cpt.BEMSolver(method=method)
-    for dof in ["Heave", "Surge"]:
+    solver_ref = helpers.solver(method=method)
+    for dof in ["Surge", "Surge"]:
         res_strict = solver_strict.solve(cpt.RadiationProblem(body=body, omega=1.0, radiating_dof=dof))
         res_ref = solver_ref.solve(cpt.RadiationProblem(body=ref_body, omega=1.0, radiating_dof=dof))
         assert res_strict.forces[dof] == pytest.approx(res_ref.forces[dof], rel=1e-6)
 
 
 def test_float32_precision_with_symmetries():
-    sym_mesh = symmetric_meshes_of_single_panel()["dihedral"]
+    sym_mesh = helpers.symmetric_meshes_of_single_panel()["dihedral"]
     params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0, diagonal_term_in_double_layer=True)
-    _, K_ref = cpt.DefaultMatrixEngine().build_matrices(sym_mesh.merged(), sym_mesh.merged(), **params)
+    _, K_ref = cpt.DefaultMatrixEngine(green_function=helpers.green_function()).build_matrices(sym_mesh.merged(), sym_mesh.merged(), **params)
     engine = cpt.DefaultMatrixEngine(green_function=StrictArrayGreenFunction(floating_point_precision="float32"))
     _, K = engine.build_matrices(sym_mesh, sym_mesh, **params)
     assert K.dtype == xps.complex64

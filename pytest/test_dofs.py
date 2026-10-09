@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 
-from capytaine.bodies.dofs import TranslationDof, RotationDof, DofOnSubmesh
+from capytaine.bodies.dofs import TranslationDof, RotationDof
 
 RNG = np.random.default_rng()
 

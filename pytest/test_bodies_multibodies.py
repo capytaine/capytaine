@@ -15,6 +15,7 @@ import pytest
 
 import numpy as np
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 import xarray as xr
 
 from capytaine.bodies.multibodies import Multibody
@@ -52,7 +53,7 @@ def test_multibody_resolution():
         #     "Heave": np.array([[0.0, 0.0, 1.0] for _ in range(body_1.mesh.nb_faces + body_2.mesh.nb_faces)])
         # }
     )
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     res = solver.solve(cpt.DiffractionProblem(body=multi, omega=1.0, wave_direction=0.0))
     ref_res = solver.solve(cpt.DiffractionProblem(body=multi.as_FloatingBody, omega=1.0, wave_direction=0.0))
     assert all(np.isclose(ref_res.forces[k], res.forces[k]) for k in multi.dofs)
@@ -164,7 +165,7 @@ def test_consistent_dofs_to_faces(fb_array):
 
 
 def test_solve_hydrodynamics(fb_array):
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={
           'rho': 1e3,
           'water_depth': [np.inf],
@@ -262,7 +263,7 @@ def test_with_and_without_symmetry_with_and_without_lid(lid_1, lid_2, sym_1, sym
     assert both.hull_mask.shape[0] == body_1.hull_mask.shape[0] + body_2.hull_mask.shape[0]
     assert np.allclose(both.mesh_including_lid.faces_centers[~both.hull_mask, 2], 0.0)
     pb = cpt.RadiationProblem(body=both, omega=1.0, radiating_dof='body_1__Surge')
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     res = solver.solve(pb)
     both.dofs['body_1__Surge']
     assert res.forces['body_1__Surge'] == pytest.approx(2151.7+54.053j, rel=0.05)

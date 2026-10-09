@@ -13,12 +13,12 @@
 # limitations under the License.
 """Tests of the contract shared by all the Green functions: shapes of the matrices returned by `evaluate`."""
 
-from functools import lru_cache
 
 import pytest
 
 import numpy as np
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 
 
 # Each Green function with the configurations (free_surface, water_depth) in which it is expected to work.
@@ -42,16 +42,11 @@ def _id(param):
     return f"{gf_class.__name__}-depth={config['water_depth']}-fs={config['free_surface']}"
 
 
-@lru_cache
-def sphere_mesh():
-    return cpt.mesh_sphere(radius=1, center=(0, 0, -2), resolution=(6, 6)).immersed_part()
-
-
 @pytest.mark.parametrize("gf_class, config", GREEN_FUNCTIONS, ids=[_id(p) for p in GREEN_FUNCTIONS])
 @pytest.mark.parametrize("adjoint_double_layer", [True, False])
 @pytest.mark.parametrize("early_dot_product", [True, False])
 def test_shapes_of_S_and_K(gf_class, config, adjoint_double_layer, early_dot_product):
-    mesh = sphere_mesh()
+    mesh = helpers.small_sphere_mesh()
     n = mesh.nb_faces
     S, K = gf_class().evaluate(
         mesh, mesh, wavenumber=1.0,
@@ -65,7 +60,7 @@ def test_shapes_of_S_and_K(gf_class, config, adjoint_double_layer, early_dot_pro
 @pytest.mark.parametrize("gf_class, config", GREEN_FUNCTIONS, ids=[_id(p) for p in GREEN_FUNCTIONS])
 @pytest.mark.parametrize("early_dot_product", [True, False])
 def test_evaluate_at_array_of_points(gf_class, config, early_dot_product):
-    mesh = sphere_mesh()
+    mesh = helpers.small_sphere_mesh()
     points = np.array([[2.0, 0.0, -1.0], [0.0, 3.0, -2.0], [1.0, 1.0, -4.0]])
     # The diagonal term requires the normals of the receiving mesh, so it cannot be used with points.
     S, K = gf_class().evaluate(

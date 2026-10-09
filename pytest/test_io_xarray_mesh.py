@@ -16,31 +16,18 @@ via the `mesh=True` keyword (`mesh_vertices`, `mesh_faces_center`,
 `lid_mesh_vertices`, `lid_mesh_faces_center`, `dof_motions` and
 `dof_gradient_of_motions` dataset variables).
 """
-import pytest
 
 import numpy as np
 import xarray as xr
 
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 from capytaine.meshes.predefined import mesh_horizontal_cylinder
 
 
-@pytest.fixture
-def sphere():
-    sphere = cpt.FloatingBody(
-            mesh=cpt.mesh_sphere(center=(0, 0, -2), radius=1.0, resolution=(4, 4)),
-            dofs=cpt.rigid_body_dofs(),
-            name="sphere",
-            )
-    return sphere
-
-
-@pytest.fixture
-def solver():
-    return cpt.BEMSolver()
-
-
-def test_mesh_vertices_and_faces_center(sphere, solver):
+def test_mesh_vertices_and_faces_center():
+    sphere = helpers.small_sphere_body("rigid")
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave']})
     dataset = solver.fill_dataset(test_matrix, sphere, mesh=True, hydrostatics=False)
 
@@ -55,7 +42,9 @@ def test_mesh_vertices_and_faces_center(sphere, solver):
     assert "lid_mesh_faces_center" not in dataset
 
 
-def test_mesh_export_shares_hull_face_dimension_with_pressure(sphere, solver):
+def test_mesh_export_shares_hull_face_dimension_with_pressure():
+    sphere = helpers.small_sphere_body("rigid")
+    solver = helpers.solver()
     # mesh_faces_center should let an external reader recover the position of
     # each `hull_face` index used by the pressure variables.
     test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave']})
@@ -63,7 +52,9 @@ def test_mesh_export_shares_hull_face_dimension_with_pressure(sphere, solver):
     assert dataset["mesh_faces_center"].sizes["hull_face"] == dataset["radiation_pressure"].sizes["hull_face"]
 
 
-def test_dof_motions_matches_dof_evaluation(sphere, solver):
+def test_dof_motions_matches_dof_evaluation():
+    sphere = helpers.small_sphere_body("rigid")
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave', 'Surge']})
     dataset = solver.fill_dataset(test_matrix, sphere, mesh=True, hydrostatics=False)
 
@@ -78,7 +69,9 @@ def test_dof_motions_matches_dof_evaluation(sphere, solver):
             )
 
 
-def test_dof_gradient_of_motions(sphere, solver):
+def test_dof_gradient_of_motions():
+    sphere = helpers.small_sphere_body("rigid")
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave', 'Roll']})
     dataset = solver.fill_dataset(test_matrix, sphere, mesh=True, hydrostatics=False)
 
@@ -96,7 +89,9 @@ def test_dof_gradient_of_motions(sphere, solver):
             )
 
 
-def test_mesh_export_with_raw_array_dof(sphere, solver):
+def test_mesh_export_with_raw_array_dof():
+    sphere = helpers.small_sphere_body("rigid")
+    solver = helpers.solver()
     sphere.dofs = {"Heave": sphere.dofs["Heave"], "LegacyCustom": np.ones((sphere.mesh.nb_faces, 3))}
     test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave', 'LegacyCustom']})
     dataset = solver.fill_dataset(test_matrix, sphere, mesh=True, hydrostatics=False)
@@ -111,7 +106,8 @@ def test_mesh_export_with_raw_array_dof(sphere, solver):
     assert np.all(np.isfinite(heave_grad.values))
 
 
-def test_mesh_export_with_lid(solver):
+def test_mesh_export_with_lid():
+    solver = helpers.solver()
     mesh = cpt.mesh_parallelepiped(center=(0, 0, -1.0), size=(2.0, 2.0, 2.0))
     hull_mesh, lid_mesh = mesh.extract_lid()
     body = cpt.FloatingBody(mesh=hull_mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs(only=["Heave"]))
@@ -126,12 +122,9 @@ def test_mesh_export_with_lid(solver):
     assert dataset.sizes["hull_face"] == body.mesh.nb_faces
 
 
-def test_mesh_export_with_multibody_dof_on_submesh(solver):
-    body1 = cpt.FloatingBody(
-            mesh=cpt.mesh_sphere(center=(0, 0, -2), radius=1.0, resolution=(4, 4)),
-            dofs=cpt.rigid_body_dofs(only=["Heave"]),
-            name="body1",
-            )
+def test_mesh_export_with_multibody_dof_on_submesh():
+    solver = helpers.solver()
+    body1 = helpers.small_sphere_body(["Heave"], name="body1")
     body2 = body1.translated_x(10.0, name="body2")
     both = body1 + body2
 
@@ -146,7 +139,8 @@ def test_mesh_export_with_multibody_dof_on_submesh(solver):
                 )
 
 
-def test_mesh_export_with_symmetric_mesh(solver):
+def test_mesh_export_with_symmetric_mesh():
+    solver = helpers.solver()
     sym_mesh = mesh_horizontal_cylinder(reflection_symmetry=True).immersed_part()
     sym_body = cpt.FloatingBody(mesh=sym_mesh, dofs=cpt.rigid_body_dofs(only=["Heave"]), name="sym_body")
 

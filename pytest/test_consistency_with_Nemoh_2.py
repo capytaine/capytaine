@@ -13,27 +13,25 @@
 # limitations under the License.
 """Quantitatively compare the results of Capytaine with the results from Nemoh 2."""
 
-import pytest
 import numpy as np
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 
 from capytaine.post_pro.kochin import compute_kochin
 
 
-@pytest.fixture
-def nemoh2_solver():
-    gf = cpt.Delhommeau(
+def make_nemoh2_solver():
+    return helpers.solver(
             tabulation_nr=328, tabulation_nz=46,
             tabulation_grid_shape='legacy', tabulation_nb_integration_points=251,
             finite_depth_method="legacy",
             finite_depth_prony_decomposition_method="fortran",
             gf_singularities="high_freq",
             )
-    solver = cpt.BEMSolver(green_function=gf)
-    return solver
 
 
-def test_immersed_sphere(nemoh2_solver):
+def test_immersed_sphere():
+    nemoh2_solver = make_nemoh2_solver()
     """Compare with Nemoh 2.0 for a sphere in infinite fluid.
 
     The test is ran for two degrees of freedom; due to the symmetries of the problem, the results should be the same.
@@ -58,7 +56,8 @@ def test_immersed_sphere(nemoh2_solver):
     assert np.isclose(result.radiation_dampings["Heave"],  0.0, atol=1e-3*sphere.volume*problem.rho)
 
 
-def test_build_matrix_of_rankine_and_reflected_rankine(nemoh2_solver):
+def test_build_matrix_of_rankine_and_reflected_rankine():
+    nemoh2_solver = make_nemoh2_solver()
     gf = nemoh2_solver.engine.green_function
     vertices = np.array(
         [[-5.00000000e-01, -8.66025404e-01, -6.12323400e-17],
@@ -98,7 +97,8 @@ def test_build_matrix_of_rankine_and_reflected_rankine(nemoh2_solver):
     assert np.allclose(S, S_ref)
 
 
-def test_floating_sphere_finite_freq(nemoh2_solver):
+def test_floating_sphere_finite_freq():
+    nemoh2_solver = make_nemoh2_solver()
     """Compare with Nemoh 2.0 for some cases of a heaving sphere at the free surface in infinite depth."""
     sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(6, 12)).immersed_part())
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
@@ -152,7 +152,8 @@ def test_floating_sphere_finite_freq(nemoh2_solver):
     assert np.isclose(result.forces["Heave"], 5846.6 * np.exp(-2.623j), rtol=1e-3)
 
 
-def test_alien_sphere(nemoh2_solver):
+def test_alien_sphere():
+    nemoh2_solver = make_nemoh2_solver()
     """Compare with Nemoh 2.0 for some cases of a heaving sphere at the free surface in infinite depth
     for a non-usual gravity and density."""
     sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(6, 12)).immersed_part())
@@ -171,7 +172,8 @@ def test_alien_sphere(nemoh2_solver):
     assert np.isclose(result.forces["Heave"], 548.5 * np.exp(-2.521j), rtol=1e-2)
 
 
-def test_floating_sphere_finite_depth(nemoh2_solver):
+def test_floating_sphere_finite_depth():
+    nemoh2_solver = make_nemoh2_solver()
     """Compare with Nemoh 2.0 for some cases of a heaving sphere at the free surface in finite depth."""
     sphere = cpt.FloatingBody(mesh=cpt.mesh_sphere(radius=1.0, resolution=(6, 12)).immersed_part())
     sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
@@ -203,7 +205,8 @@ def test_floating_sphere_finite_depth(nemoh2_solver):
     assert np.isclose(result.forces["Heave"], 5872.8 * np.exp(-2.627j), rtol=1e-2)
 
 
-def test_two_distant_spheres_in_finite_depth(nemoh2_solver):
+def test_two_distant_spheres_in_finite_depth():
+    nemoh2_solver = make_nemoh2_solver()
     radius = 0.5
     resolution = 4
     perimeter = 2*np.pi*radius
@@ -225,7 +228,8 @@ def test_two_distant_spheres_in_finite_depth(nemoh2_solver):
     assert np.isclose(result.radiation_dampings['Surge'], 913.3, atol=1e-2*total_volume*problem.rho)
 
 
-def test_multibody(nemoh2_solver):
+def test_multibody():
+    nemoh2_solver = make_nemoh2_solver()
     """Compare with Nemoh 2.0 for two bodies."""
     sphere = cpt.FloatingBody(
         cpt.mesh_sphere(radius=1.0, center=(0, 0, -2), resolution=(5, 20)),

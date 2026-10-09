@@ -18,6 +18,7 @@ import numpy as np
 import pytest
 
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 from capytaine.meshes.meshes import Mesh
 from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
 from capytaine.bem.problems_and_results import LinearPotentialFlowProblem, \
@@ -112,16 +113,6 @@ def test_define_problem_with_subtype_arguments():
 #  Body and boundary condition  #
 #################################
 
-@pytest.fixture
-def sphere():
-    sphere = cpt.FloatingBody(
-            mesh=cpt.mesh_sphere(center=(0, 0, -2), radius=1.0, resolution=(5, 5)),
-            name="sphere",
-            )
-    sphere.add_translation_dof(direction=(0, 0, 1), name="Heave")
-    return sphere
-
-
 def test_define_problem_without_body():
     assert LinearPotentialFlowProblem().body is None
 
@@ -131,18 +122,21 @@ def test_define_problem_with_empty_body():
         LinearPotentialFlowProblem(body=cpt.FloatingBody(mesh=cpt.Mesh([], [])))
 
 
-def test_define_generic_problem_with_its_boundary_condition(sphere):
+def test_define_generic_problem_with_its_boundary_condition():
+    sphere = helpers.small_sphere_body()
     bc = sphere.mesh.faces_normals @ (1, 1, 1)
     pb = LinearPotentialFlowProblem(body=sphere, boundary_condition=bc)
     np.testing.assert_allclose(pb.boundary_condition, bc)
 
 
-def test_influenced_dofs(sphere):
+def test_influenced_dofs():
+    sphere = helpers.small_sphere_body(["Heave"])
     pb = LinearPotentialFlowProblem(body=sphere)
     assert list(pb.influenced_dofs.keys()) == ['Heave']
 
 
-def test_mesh_inconsistent_with_dofs(sphere):
+def test_mesh_inconsistent_with_dofs():
+    sphere = helpers.small_sphere_body()
     n = sphere.mesh.nb_faces
     sphere.dofs["dof_with_wrong_shape"] = np.ones((n//2, 3))
     with pytest.raises(ValueError):
@@ -170,7 +164,8 @@ def test_mesh_below_the_sea_bottom(caplog):
     assert np.all(pb.body.mesh.vertices[:, 2].min() >= -1.0)
 
 
-def test_diffraction_boundary_condition(sphere):
+def test_diffraction_boundary_condition():
+    sphere = helpers.small_sphere_body()
     pb = cpt.DiffractionProblem(body=sphere, wave_direction=1.0, wavenumber=1.0)
     assert len(pb.boundary_condition) == sphere.mesh.nb_faces
 
@@ -184,7 +179,8 @@ def test_diffraction_problem_str():
     assert "DiffractionProblem" in str(cpt.DiffractionProblem(wavenumber=1.0, g=10, rho=1025, free_surface=np.inf))
 
 
-def test_wave_direction_radians_warning(sphere, caplog):
+def test_wave_direction_radians_warning(caplog):
+    sphere = helpers.small_sphere_body()
     with caplog.at_level(logging.WARNING):
         cpt.DiffractionProblem(body=sphere, omega=1.0, wave_direction=180)
     assert 'in radians and not in degrees' in caplog.text
@@ -197,7 +193,8 @@ def test_radiation_problem_with_wrong_dof_name():
         cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Flurp")
 
 
-def test_radiation_problem_boundary_condition(sphere):
+def test_radiation_problem_boundary_condition():
+    sphere = helpers.small_sphere_body()
     pb = cpt.RadiationProblem(body=sphere, omega=1.0)
     assert len(pb.boundary_condition) == sphere.mesh.nb_faces
 
@@ -210,7 +207,8 @@ def test_radiation_problem_str():
 #  Resolution and results  #
 ############################
 
-def test_transform_into_result(sphere):
+def test_transform_into_result():
+    sphere = helpers.small_sphere_body()
     pb = LinearPotentialFlowProblem(body=sphere)
     res = pb.make_results_container()
     assert isinstance(res, LinearPotentialFlowResult)
@@ -219,7 +217,7 @@ def test_transform_into_result(sphere):
     assert res.period == pb.period
     assert res.body is pb.body
 
-def test_transform_into_result_and_set_result_values(sphere):
+def test_transform_into_result_and_set_result_values():
     pb = LinearPotentialFlowProblem()
     res = pb.make_results_container(forces={"Heave": 1.0 + 2.0j}, potential=np.array([]), sources=np.array([]), pressure=np.array([]))
     assert res.forces["Heave"] == 1.0 + 2.0j
@@ -266,35 +264,26 @@ def test_transform_radiation_problem_into_radiation_result_and_setting_force():
 #  Failed results  #
 ####################
 
-@pytest.fixture
-def broken_bem_solver():
-    ref_gf = cpt.Delhommeau()
-    class BrokenGreenFunction:
-        floating_point_precision = None
-        exportable_settings = {}
-        def evaluate(self, m1, m2, *, wavenumber, **kwargs):
-            if wavenumber < 2.0:
-                raise NotImplementedError("I'm potato")
-            else:
-                return ref_gf.evaluate(m1, m2, wavenumber=wavenumber, **kwargs)
-    broken_bem_solver = cpt.BEMSolver(green_function=BrokenGreenFunction())
-    return broken_bem_solver
-
-
-def test_failed_resolution_failing(broken_bem_solver, sphere):
+def test_failed_resolution_failing():
+    sphere = helpers.small_sphere_body()
+    broken_bem_solver = helpers.broken_bem_solver()
     pb = cpt.DiffractionProblem(body=sphere, wavenumber=1.0, wave_direction=0.0)
     with pytest.raises(NotImplementedError):
         broken_bem_solver.solve(pb)
 
 
-def test_failed_resolution_catched(broken_bem_solver, sphere):
+def test_failed_resolution_catched():
+    sphere = helpers.small_sphere_body()
+    broken_bem_solver = helpers.broken_bem_solver()
     from capytaine.bem.problems_and_results import FailedDiffractionResult
     pb = cpt.DiffractionProblem(body=sphere, wavenumber=1.0, wave_direction=0.0)
     failed_res = broken_bem_solver.solve_all([pb])[0]
     assert isinstance(failed_res, FailedDiffractionResult)
 
 
-def test_failed_resolution_replaced_by_nan(broken_bem_solver, sphere):
+def test_failed_resolution_replaced_by_nan():
+    sphere = helpers.small_sphere_body(["Heave"])
+    broken_bem_solver = helpers.broken_bem_solver()
     pb = cpt.RadiationProblem(body=sphere, wavenumber=1.0, radiating_dof="Heave")
     failed_ds = cpt.assemble_dataset(broken_bem_solver.solve_all([pb]))
     assert np.isnan(failed_ds.added_mass.values[0, 0, 0])

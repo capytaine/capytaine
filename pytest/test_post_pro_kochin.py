@@ -20,13 +20,13 @@ import xarray as xr
 import pytest
 
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 from capytaine.io.xarray import kochin_data_array
 
 
 def test_kochin_array_diffraction():
-    mesh = cpt.mesh_sphere().immersed_part()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver()
+    body = helpers.small_sphere_body()
+    solver = helpers.solver()
     pb_diff = cpt.DiffractionProblem(body=body, wavelength=2.0, wave_direction=0.0)
     res_diff = solver.solve(pb_diff)
     kds_diff = kochin_data_array([res_diff], np.linspace(0.0, np.pi, 3))
@@ -35,9 +35,8 @@ def test_kochin_array_diffraction():
     assert kds_diff.sizes == ({'wavelength': 1, 'wave_direction': 1, 'theta': 3})
 
 def test_kochin_array_radiation():
-    mesh = cpt.mesh_sphere().immersed_part()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver()
+    body = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     pb_rad = cpt.RadiationProblem(body=body, wavelength=2.0, radiating_dof="Heave")
     res_rad = solver.solve(pb_rad)
     kds_rad = kochin_data_array([res_rad], np.linspace(0.0, np.pi, 3))
@@ -46,9 +45,8 @@ def test_kochin_array_radiation():
     assert kds_rad.sizes == ({'wavelength': 1, 'radiating_dof': 1, 'theta': 3})
 
 def test_kochin_array_both_radiation_and_diffraction():
-    mesh = cpt.mesh_sphere().immersed_part()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver()
+    body = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     pb_diff = cpt.DiffractionProblem(body=body, wavelength=2.0, wave_direction=0.0)
     pb_rad = cpt.RadiationProblem(body=body, wavelength=2.0, radiating_dof="Heave")
     res_both = solver.solve_all([pb_rad, pb_diff])
@@ -58,9 +56,8 @@ def test_kochin_array_both_radiation_and_diffraction():
     assert kds_both.sizes == ({'wavelength': 1, 'wave_direction': 1, 'radiating_dof': 1, 'theta': 3})
 
 def test_kochin_array_diffraction_with_forward_speed():
-    mesh = cpt.mesh_sphere().immersed_part()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver()
+    body = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     pb_diff = [cpt.DiffractionProblem(body=body, wavelength=2.0, wave_direction=0.0, forward_speed=u) for u in [0.0, 1.0]]
     res_diff = solver.solve_all(pb_diff)
     kds_diff = kochin_data_array(res_diff, np.linspace(0.0, np.pi, 3))
@@ -69,9 +66,8 @@ def test_kochin_array_diffraction_with_forward_speed():
     assert kds_diff.sizes == ({'wavelength': 1, 'wave_direction': 1, 'forward_speed': 2, 'theta': 3})
 
 def test_kochin_array_radiation_with_forward_speed():
-    mesh = cpt.mesh_sphere().immersed_part()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver()
+    body = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     pb_rad = [cpt.RadiationProblem(body=body, wavelength=2.0, radiating_dof="Heave", forward_speed=u, wave_direction=pi) for u in [0.0, 1.0]]
     res_rad = solver.solve_all(pb_rad)
     kds_rad = kochin_data_array(res_rad, np.linspace(0.0, np.pi, 3))
@@ -80,9 +76,8 @@ def test_kochin_array_radiation_with_forward_speed():
     assert kds_rad.sizes == ({'wavelength': 1, 'radiating_dof': 1, 'forward_speed': 2, 'theta': 3})
 
 def test_kochin_array_both_radiation_and_diffraction_with_forward_speed():
-    mesh = cpt.mesh_sphere().immersed_part()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    solver = cpt.BEMSolver()
+    body = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
     pb_diff = [cpt.DiffractionProblem(body=body, wavelength=2.0, wave_direction=pi, forward_speed=u) for u in [0.0, 1.0]]
     pb_rad = [cpt.RadiationProblem(body=body, wavelength=2.0, radiating_dof="Heave", wave_direction=pi, forward_speed=u) for u in [0.0, 1.0]]
     res_both = solver.solve_all(pb_rad + pb_diff)
@@ -92,17 +87,15 @@ def test_kochin_array_both_radiation_and_diffraction_with_forward_speed():
     assert kds_both.sizes == ({'wavelength': 1, 'wave_direction': 1, 'radiating_dof': 1, 'forward_speed': 2, 'theta': 3})
 
 def test_fill_dataset_with_kochin_functions():
-    mesh = cpt.mesh_sphere().immersed_part()
-    sphere = cpt.FloatingBody(mesh=mesh)
-    sphere.add_translation_dof(name="Heave")
-    solver = cpt.BEMSolver()
+    body = helpers.small_sphere_body(["Heave"])
+    solver = helpers.solver()
 
     test_matrix = xr.Dataset(coords={
         'omega': [1.0],
         'theta': [0.0, pi/2],
         'radiating_dof': ["Heave"],
     })
-    ds = solver.fill_dataset(test_matrix, [sphere])
+    ds = solver.fill_dataset(test_matrix, body)
     assert 'theta' in ds.coords
     assert 'kochin_radiation' in ds
     assert 'kochin_diffraction' not in ds
@@ -117,7 +110,7 @@ def test_fill_dataset_with_kochin_functions():
         'wave_direction': [-pi/2, 0.0],
         'theta': [0.0, pi/2],
     })
-    ds = solver.fill_dataset(test_matrix, [sphere])
+    ds = solver.fill_dataset(test_matrix, body)
     assert 'theta' in ds.coords
     assert 'kochin_radiation' in ds
     assert 'kochin_diffraction' in ds
@@ -127,14 +120,12 @@ def test_fill_dataset_with_kochin_functions():
                       ds['kochin_diffraction'].sel(wave_direction=0.0, theta=pi/2))
 
 def test_kochin_mesh_lid():
-    mesh = cpt.mesh_sphere().immersed_part()
-    lid_mesh = mesh.generate_lid()
-    body_without_lid = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
-    body_with_lid = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), lid_mesh=lid_mesh)
+    body_without_lid = helpers.small_sphere_body(lid=False)
+    body_with_lid = helpers.small_sphere_body(lid=True)
     omega = 0.3
     problem_without_lid = cpt.RadiationProblem(body=body_without_lid, radiating_dof='Surge', omega=omega)
     problem_with_lid = cpt.RadiationProblem(body=body_with_lid, radiating_dof='Surge', omega=omega)
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     res_without_lid = solver.solve(problem_without_lid)
     res_with_lid = solver.solve(problem_with_lid)
     theta = 0.2

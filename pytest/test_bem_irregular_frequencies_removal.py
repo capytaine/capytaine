@@ -15,6 +15,7 @@ import pytest
 
 import numpy as np
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 
 from capytaine.meshes.symmetric_meshes import ReflectionSymmetricMesh
 from capytaine.meshes.predefined import mesh_parallelepiped, mesh_rectangle, mesh_vertical_cylinder, mesh_horizontal_cylinder
@@ -79,7 +80,7 @@ def test_effect_of_lid_on_froude_krylov_force(body_without_lid, body_with_lid):
 
 def test_effect_of_lid_on_matrices(body_without_lid, body_with_lid):
     n_hull_mesh = body_without_lid.mesh.nb_faces
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
+    solver = helpers.solver(gf_singularities='low_freq')
 
     params = dict(free_surface=0.0, water_depth=np.inf, wavenumber=1.0)
     S_with, K_with = solver.engine.build_matrices(
@@ -109,7 +110,7 @@ def test_effect_of_lid_on_matrices(body_without_lid, body_with_lid):
 def test_effect_of_lid_on_regular_frequency_diffraction_force(
         body_without_lid, body_with_lid, water_depth, forward_speed,
         ):
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
+    solver = helpers.solver(gf_singularities='low_freq')
 
     pb_with = cpt.DiffractionProblem(
             body=body_with_lid, wavelength=3.0,
@@ -131,7 +132,7 @@ def test_effect_of_lid_on_regular_frequency_diffraction_force(
 def test_effect_of_lid_on_infinite_frequency(
         body_without_lid, body_with_lid,
         ):
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
+    solver = helpers.solver(gf_singularities='low_freq')
 
     pb_with = cpt.RadiationProblem(
             body=body_with_lid, wavenumber=np.inf, radiating_dof="Heave"
@@ -154,7 +155,7 @@ def test_effect_of_lid_on_regular_frequency_free_surface_elevation(
         body_without_lid, body_with_lid,
         water_depth, forward_speed,
         ):
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
+    solver = helpers.solver(gf_singularities='low_freq')
     point = np.array([[4.0, 4.0]])
 
     pb_with = cpt.DiffractionProblem(
@@ -180,7 +181,7 @@ def test_effect_of_lid_on_regular_frequency_field_velocity(
         body_without_lid, body_with_lid,
         water_depth, forward_speed,
         ):
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
+    solver = helpers.solver(gf_singularities='low_freq')
     point = np.array([[4.0, 4.0, -2.0]])
 
     pb_with = cpt.DiffractionProblem(
@@ -220,7 +221,7 @@ def test_lid_multibody(body_with_lid):
     )
 
     pb = cpt.DiffractionProblem(body=two_bodies, wavelength=3.0)
-    solver = cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities='low_freq'))
+    solver = helpers.solver(gf_singularities='low_freq')
     solver.solve(pb)
 
 
@@ -232,7 +233,7 @@ def test_lid_with_plane_symmetry():
             )
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
                                         free_surface=pb.free_surface, water_depth=pb.water_depth,
                                         wavenumber=pb.wavenumber)
@@ -253,7 +254,7 @@ def test_lid_with_nested_plane_symmetry():
     hull_mesh, lid_mesh = mesh.extract_lid()
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
                                         free_surface=pb.free_surface, water_depth=pb.water_depth,
                                         wavenumber=pb.wavenumber)
@@ -274,7 +275,7 @@ def test_lid_with_rotation_symmetry():
     hull_mesh, lid_mesh = mesh.extract_lid()
     body = cpt.FloatingBody(mesh=mesh, lid_mesh=lid_mesh, dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     S, K = solver.engine.build_matrices(pb.body.mesh_including_lid, pb.body.mesh_including_lid,
                                         free_surface=pb.free_surface, water_depth=pb.water_depth,
                                         wavenumber=pb.wavenumber)
@@ -294,14 +295,14 @@ def test_panel_on_free_surface(water_depth):
     mesh = mesh_parallelepiped(center=(0.0, 0.0, -0.5)).with_quadrature("Gauss-Legendre 2")
     body = cpt.FloatingBody(mesh, cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, water_depth=water_depth, radiating_dof="Heave")
-    cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="low_freq")).solve(pb)
+    helpers.solver(gf_singularities="low_freq").solve(pb)
 
 
 def test_panel_on_free_surface_with_high_freq(caplog):
     mesh = mesh_rectangle(center=(0.0, 0.0, 0.0), size=(1.0, 1.0))
     body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs())
     pb = cpt.RadiationProblem(body=body, wavelength=1.0, radiating_dof="Heave")
-    cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="low_freq")).solve(pb)
+    helpers.solver(gf_singularities="low_freq").solve(pb)
     with caplog.at_level("WARNING"):
-        cpt.BEMSolver(green_function=cpt.Delhommeau(gf_singularities="high_freq")).solve(pb)
+        helpers.solver(gf_singularities="high_freq").solve(pb)
     assert "free surface panel" in caplog.text

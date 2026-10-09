@@ -15,6 +15,7 @@ import pytest
 import numpy as np
 import xarray as xr
 import capytaine as cpt
+import capytaine_test_helpers as helpers
 
 
 @pytest.fixture
@@ -40,11 +41,8 @@ def sphere_fb():
             )
     return body
 
-@pytest.fixture
-def solver():
-    return cpt.BEMSolver()
-
-def test_rao_sphere_all(sphere_fb, solver):
+def test_rao_sphere_all(sphere_fb):
+    solver = helpers.solver()
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.5, 10.0, 5),
         'wave_direction': [0],
@@ -68,7 +66,8 @@ def test_rao_sphere_all(sphere_fb, solver):
     # # assert RAO == ? # TODO could test against known results
 
 
-def test_rao_from_wavelengths(sphere_fb, solver):
+def test_rao_from_wavelengths(sphere_fb):
+    solver = helpers.solver()
     # From https://github.com/capytaine/capytaine/issues/316
     test_matrix = xr.Dataset(coords={
         'wavelength': np.linspace(0.5, 10.0, 5),
@@ -81,7 +80,8 @@ def test_rao_from_wavelengths(sphere_fb, solver):
     RAO = cpt.post_pro.rao(data)
 
 
-def test_rao_several_water_depth(sphere_fb, solver):
+def test_rao_several_water_depth(sphere_fb):
+    solver = helpers.solver()
     # From https://github.com/capytaine/capytaine/issues/405
     test_matrix = xr.Dataset(coords={
         'omega': np.linspace(0.5, 10.0, 3),
@@ -96,7 +96,8 @@ def test_rao_several_water_depth(sphere_fb, solver):
 
 
 @pytest.fixture
-def sphere_heave_data(solver, sphere_fb):
+def sphere_heave_data(sphere_fb):
+    solver = helpers.solver()
     body = sphere_fb.with_only_dofs(['Heave'])
     test_matrix = xr.Dataset(coords={
           'omega': np.linspace(0.5, 10.0, 5),
@@ -123,8 +124,8 @@ def test_rao_sphere_heave_indirect(sphere_heave_data):
 
 def test_asymmetric_matrices():
     omega = 2.0
-    mesh = cpt.mesh_sphere(radius=1.0, resolution=(4, 4)).immersed_part()
-    body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(only=["Surge", "Heave"]))
+    mesh = helpers.small_sphere_mesh()
+    body = helpers.small_sphere_body(["Surge", "Heave"])
     M = mesh.disp_mass() * np.array(
             [[ 1.0 , 0.0 ],
              [ 0.0 , 1.0 ]]
@@ -140,7 +141,7 @@ def test_asymmetric_matrices():
         'wave_direction': [0],
         'radiating_dof': list(body.dofs),
         })
-    solver = cpt.BEMSolver()
+    solver = helpers.solver()
     data = solver.fill_dataset(test_matrix, body, hydrostatics=True)
     X = cpt.post_pro.rao(data)
     assert np.allclose(
