@@ -16,12 +16,10 @@
 import cmath
 import logging
 import numpy as np
-from abc import ABC, abstractmethod
-from functools import lru_cache, singledispatch
+from functools import lru_cache
 from typing import Any, List, Union, Sequence
-from numpy.typing import NDArray
-import scipy.linalg as sl
 
+from capytaine.bem.linear_solvers import lu_decompose, AbstractLUDecomposedMatrix
 from capytaine.tools.array_backend import (
     IterableTensor, array_namespace, device, ending_dimensions_at_the_beginning, is_array,
     leading_dimensions_at_the_end, split, to_numpy,
@@ -38,11 +36,11 @@ class _BlockMatrixBackendMixin:
     """Make the array library and the device of the blocks accessible, as for an array."""
 
     @property
-    def _namespace(self):
+    def _array_backend(self):
         return array_namespace(self.blocks[0])
 
     def __array_namespace__(self, *, api_version=None):
-        return self._namespace
+        return self._array_backend
 
     @property
     def device(self):
@@ -108,7 +106,7 @@ class BlockCirculantMatrix(_BlockMatrixBackendMixin):
     def __matmul__(self, other):
         if not (is_array(other) and other.ndim == 1):
             return NotImplemented
-        xp = self._namespace
+        xp = self._array_backend
         n = other.shape[0]
         if self.nb_blocks == 2:
             a, b = self.blocks
@@ -153,7 +151,7 @@ class BlockCirculantMatrix(_BlockMatrixBackendMixin):
                 a + 1j*b - c - 1j*d,
             ])
         elif self.ndim == 2:
-            xp = self._namespace
+            xp = self._array_backend
             return BlockDiagonalMatrix(xp.fft.fft(self.blocks.as_array(xp), axis=0))
         else:
             raise NotImplementedError()
@@ -161,7 +159,7 @@ class BlockCirculantMatrix(_BlockMatrixBackendMixin):
     def solve(self, b):
         LOG.debug("Called solve on %s of shape %s",
                   self.__class__.__name__, self.shape)
-        xp, n = self._namespace, self.nb_blocks
+        xp, n = self._array_backend, self.nb_blocks
         b_fft = xp.reshape(xp.fft.fft(xp.reshape(b, (n, -1)), axis=0), b.shape)
         res_fft = self.block_diagonalize().solve(b_fft)
         res = xp.reshape(xp.fft.ifft(xp.reshape(res_fft, (n, -1)), axis=0), b.shape)
@@ -252,7 +250,7 @@ class NestedBlockCirculantMatrix(_BlockMatrixBackendMixin):
         * For i>0: ``[[blocks[2*i], blocks[2*n-2*i+1]], [blocks[2*i+1], blocks[2*n-2*i]]]``
         """
         n = self.nb_blocks // 2
-        xp = self._namespace
+        xp = self._array_backend
 
         # Create the macro-blocks for the BlockCirculantMatrix
         macro_blocks = []
@@ -356,7 +354,7 @@ class BlockDiagonalMatrix(_BlockMatrixBackendMixin):
     def solve(self, b):
         LOG.debug("Called solve on %s of shape %s",
                   self.__class__.__name__, self.shape)
-        xp = self._namespace
+        xp = self._array_backend
         rhs = split(b, self.nb_blocks)
         # The right-hand side is always given to `solve` as a 2D array (with a single column
         # for a vector), because the behaviour of `solve` for a 1D right-hand side depends
@@ -365,71 +363,6 @@ class BlockDiagonalMatrix(_BlockMatrixBackendMixin):
                for (Ai, bi) in zip(self.blocks, rhs)]
         LOG.debug("Done")
         return xp.concat(res, axis=0)
-
-
-MatrixLike = Union[np.ndarray, BlockDiagonalMatrix, NestedBlockCirculantMatrix, BlockCirculantMatrix]
-
-
-class AbstractLUDecomposedMatrix(ABC):
-    """Base class of the LU decompositions of matrices.
-
-    New matrix types (e.g. matrices stored with another array library) can be
-    supported by the linear solvers of Capytaine by registering a function
-    returning a subclass of this class with :func:`lu_decompose`.
-    """
-    shape: tuple
-    dtype: object
-
-    @property
-    def _namespace(self):
-        return self.__array_namespace__()
-
-    @abstractmethod
-    def __array_namespace__(self, *, api_version=None):
-        """Array library of the matrix that has been decomposed, as for an array of the array API standard."""
-
-    @property
-    @abstractmethod
-    def device(self):
-        """Device of the matrix that has been decomposed, as for an array of the array API standard."""
-
-    @abstractmethod
-    def solve(self, b):
-        """Solve the linear system with the decomposed matrix as left-hand side and `b` as right-hand side."""
-
-
-@singledispatch
-def lu_decompose(A, *, overwrite_a: bool = False) -> AbstractLUDecomposedMatrix:
-    """Compute the LU decomposition of `A`.
-
-    This is a :func:`functools.singledispatch` function: the implementation for
-    a new type of matrix can be added with ``lu_decompose.register(MyMatrix, my_function)``,
-    where ``my_function(A, *, overwrite_a=False)`` returns an :class:`AbstractLUDecomposedMatrix`.
-    """
-    raise NotImplementedError(f"No LU decomposition registered for {type(A)}")
-
-
-class LUDecomposedMatrix(AbstractLUDecomposedMatrix):
-    def __init__(self, A: NDArray, *, overwrite_a : bool = False):
-        LOG.debug("LU decomp of %s of shape %s",
-                  A.__class__.__name__, A.shape)
-        self._lu_decomp = sl.lu_factor(A, overwrite_a=overwrite_a)
-        self.shape = A.shape
-        self.dtype = A.dtype
-        self._array_namespace = array_namespace(A)
-        self._device = device(A)
-
-    def __array_namespace__(self, *, api_version=None):
-        return self._array_namespace
-
-    @property
-    def device(self):
-        return self._device
-
-    def solve(self, b: np.ndarray) -> np.ndarray:
-        LOG.debug("Called solve on %s of shape %s",
-                  self.__class__.__name__, self.shape)
-        return sl.lu_solve(self._lu_decomp, b)
 
 
 class LUDecomposedBlockDiagonalMatrix(AbstractLUDecomposedMatrix):
@@ -442,18 +375,16 @@ class LUDecomposedBlockDiagonalMatrix(AbstractLUDecomposedMatrix):
         self.shape = bdm.shape
         self.nb_blocks = bdm.nb_blocks
         self.dtype = bdm.dtype
+        self._array_backend = array_namespace(bdm)
+        self.device = device(bdm)
 
     def __array_namespace__(self, *, api_version=None):
-        return self._lu_decomp[0].__array_namespace__()
-
-    @property
-    def device(self):
-        return self._lu_decomp[0].device
+        return self._array_backend
 
     def solve(self, b):
         LOG.debug("Called solve on %s of shape %s",
                   self.__class__.__name__, self.shape)
-        xp = self._namespace
+        xp = self._array_backend
         rhs = split(b, self.nb_blocks)
         res = [Ai.solve(bi) for (Ai, bi) in zip(self._lu_decomp, rhs)]
         return xp.concat(res, axis=0)
@@ -467,26 +398,19 @@ class LUDecomposedBlockCirculantMatrix(AbstractLUDecomposedMatrix):
         self.shape = bcm.shape
         self.nb_blocks = bcm.nb_blocks
         self.dtype = bcm.dtype
+        self._array_backend = array_namespace(bcm)
+        self.device = device(bcm)
 
     def __array_namespace__(self, *, api_version=None):
-        return self._lu_decomp.__array_namespace__()
-
-    @property
-    def device(self):
-        return self._lu_decomp.device
+        return self._array_backend
 
     def solve(self, b):
         LOG.debug("Called solve on %s of shape %s",
                   self.__class__.__name__, self.shape)
-        xp, n = self._namespace, self.nb_blocks
+        xp, n = self._array_backend, self.nb_blocks
         b_fft = xp.reshape(xp.fft.fft(xp.reshape(b, (n, -1)), axis=0), b.shape)
         res_fft = self._lu_decomp.solve(b_fft)
         return xp.reshape(xp.fft.ifft(xp.reshape(res_fft, (n, -1)), axis=0), b.shape)
-
-
-@lu_decompose.register(np.ndarray)
-def _lu_decompose_ndarray(A, *, overwrite_a: bool = False):
-    return LUDecomposedMatrix(A, overwrite_a=overwrite_a)
 
 
 @lu_decompose.register(BlockDiagonalMatrix)
@@ -501,8 +425,5 @@ def _lu_decompose_block_circulant(A, *, overwrite_a: bool = False):
 
 @lu_decompose.register(NestedBlockCirculantMatrix)
 def _lu_decompose_nested_block_circulant(A, *, overwrite_a: bool = False):
+    # Drop the nested block circulant structure and LU-decompose the outer block circulant structure only.
     return LUDecomposedBlockCirculantMatrix(A.to_BlockCirculantMatrix(), overwrite_a=overwrite_a)
-
-
-def has_been_lu_decomposed(A):
-    return isinstance(A, AbstractLUDecomposedMatrix)

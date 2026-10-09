@@ -36,7 +36,7 @@ def slices(start, stop, chunk_size):
 
 
 class LazyMatrix:
-    def __init__(self, row_constructor, shape, *, chunk_size=10, dtype=float, namespace=None, device="cpu"):
+    def __init__(self, row_constructor, shape, *, chunk_size=10, dtype=float, array_backend=None, device="cpu"):
         """
         A matrix (2D array) that is never fully stored in memory, but instead recomputed from a `row_constructor` method when required.
 
@@ -52,7 +52,7 @@ class LazyMatrix:
             The number of row requested to row_constructor at each call.
         dtype: dtype
             The type of data contained in the matrix.
-        namespace: array namespace, optional
+        array_backend: array namespace, optional
             The array library (supporting the array API standard) of the rows (default: NumPy).
         device: device, optional
             The device of the rows (default: "cpu").
@@ -63,11 +63,11 @@ class LazyMatrix:
         self.dtype = dtype
         self.ndim = 2  # Other shapes not implemented
         self._slices = list(slices(0, self.shape[0], self.chunk_size))
-        self._namespace = array_namespace(np.empty(0)) if namespace is None else namespace
+        self._array_backend = array_namespace(np.empty(0)) if array_backend is None else array_backend
         self.device = device
 
     def __array_namespace__(self, *, api_version=None):
-        return self._namespace
+        return self._array_backend
 
     def __array__(self, dtype=None, copy=True):
         if not copy:
@@ -82,7 +82,7 @@ class LazyMatrix:
             # Only matrix-vector product is actually implemented
             # Compute `chunk_size` rows and multiply them by `other`
             output_chunks = [self.row_constructor(sl) @ other for sl in self._slices]
-            return self._namespace.concat(output_chunks)
+            return self._array_backend.concat(output_chunks)
         else:
             return NotImplemented
             # Usually fallback on building the full NumPy matrix with __array__ above.

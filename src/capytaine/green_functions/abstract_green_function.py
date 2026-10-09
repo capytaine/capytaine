@@ -31,7 +31,7 @@ class AbstractGreenFunction(ABC):
 
     # Array library (supporting the array API standard) and device of the
     # matrices returned by `evaluate`. NumPy arrays on the CPU by default.
-    matrices_namespace = array_namespace(np.empty(0))
+    matrices_array_backend = array_namespace(np.empty(0))
     matrices_device = "cpu"
 
     # Settings of the Green function, as a dict of hashable values. It is used
