@@ -36,7 +36,6 @@ def test_far_field_mean_drift_force():
         })
     dataset = solver.fill_dataset(test_matrix, body, hydrostatics=True)
     rao = cpt.post_pro.rao(dataset)
-    print(rao)
     mdf = far_field_mean_drift_force(rao, dataset)
     force_analytical = dataset['g'].values * dataset['rho'].values * r * np.array([0.26, 0.7])
     assert np.allclose(mdf.sel(wave_direction_k=0, wave_direction_l=0)['drift_force_surge'], force_analytical, rtol=2e-1)
@@ -139,7 +138,6 @@ def test_cylinder_mean_drift_force():
     target_mx = -0.93
     target_my = 1.74
     target_mz = 0.
-
     assert np.isclose(mdf_nf[...,0], target_fx, atol=1e-2, rtol=5e-1)
     assert np.isclose(mdf_ff['drift_force_surge'], target_fx, atol=1e-2, rtol=5e-1)
     assert np.isclose(mdf_nf[...,1], target_fy, atol=1e-2, rtol=5e-1)
