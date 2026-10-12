@@ -45,10 +45,22 @@ second_order_field = second_order_field.real
 waterline_pressure = amplitude*ds["waterline_pressure"].values  # complex, oscillates in time
 waterline_elevation = amplitude*ds["waterline_relative_elevation"].values  # complex, oscillates in time
 
+# Time average of the waterline pressure, remapped on the hull around the mean waterline:
+# semi-elliptic profile in the vertical coordinate s, of half-width |h| and integral Re(p conj(h))/2
+n_s = 20
+s_levels = np.linspace(-1, 1, n_s + 1)[None, :] * np.abs(waterline_elevation)[:, None]  # (segment, level)
+s_middles = (s_levels[:, 1:] + s_levels[:, :-1])/2
+mean_waterline_pressure = (
+        (waterline_pressure * np.conjugate(waterline_elevation)).real[:, None]
+        / (np.pi * np.abs(waterline_elevation)[:, None])
+        * np.sqrt(1 - (s_middles/np.abs(waterline_elevation)[:, None])**2)
+        )  # (segment, level)
+
 cmap = plt.get_cmap('coolwarm')
 vabs = max(np.abs(amplitude*first_order_hull_pressure).max(),
            np.abs(second_order_field).max(),
-           np.abs(waterline_pressure).max())
+           np.abs(waterline_pressure).max(),
+           np.abs(mean_waterline_pressure).max())
 norm = plt.Normalize(vmin=-vabs, vmax=vabs)
 mappable = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
 
@@ -87,12 +99,21 @@ p0 = ds["waterline_mesh"].values[:, 0, :]
 p1 = ds["waterline_mesh"].values[:, 1, :]
 
 
-def waterline_quads(elevation):
+def waterline_quads(elevation, bottom=None):
+    if bottom is None:
+        bottom = np.zeros_like(elevation)
     return [
-            [(p0[i, 0], p0[i, 1], 0), (p1[i, 0], p1[i, 1], 0),
+            [(p0[i, 0], p0[i, 1], bottom[i]), (p1[i, 0], p1[i, 1], bottom[i]),
              (p1[i, 0], p1[i, 1], elevation[i]), (p0[i, 0], p0[i, 1], elevation[i])]
             for i in range(len(p0))
             ]
+
+
+mean_curtain = Poly3DCollection(
+        [quad for j in range(n_s) for quad in waterline_quads(s_levels[:, j+1], bottom=s_levels[:, j])],
+        facecolors=cmap(norm(mean_waterline_pressure.T.ravel())),
+        )
+ax3.add_collection3d(mean_curtain)
 
 
 curtain = Poly3DCollection(waterline_quads(waterline_elevation.real), facecolors=cmap(norm(waterline_pressure.real)))
@@ -110,8 +131,8 @@ def update(frame):
     hull_pressure_t = (amplitude*first_order_hull_pressure * phase).real
     hull_collection.set_facecolor(cmap(norm(hull_pressure_t)))
 
-    waterline_pressure_t = np.abs((waterline_pressure * phase).real)
     waterline_elevation_t = (waterline_elevation * phase).real
+    waterline_pressure_t = np.sign(waterline_elevation_t) * (waterline_pressure * phase).real
     curtain.set_verts(waterline_quads(waterline_elevation_t))
     curtain.set_facecolor(cmap(norm(waterline_pressure_t)))
 
