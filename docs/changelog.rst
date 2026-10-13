@@ -88,6 +88,10 @@ Internals
   of reloading the tabulation at each test). Helpers shared by several test
   files are gathered in ``pytest/capytaine_test_helpers.py``.
 
+* Add :class:`~capytaine.tools.perturbation_expansion.PerturbationExpansion` to
+  compute product of first and second order expansions, for the second-order
+  forces.
+
 
 -------------------------------
 New in version 3.0 (2026-08-21)
