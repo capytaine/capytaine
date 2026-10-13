@@ -172,42 +172,42 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         R = np.eye(3) + K + K @ K * ((1 - c) / (s ** 2))
         return self.rotated_with_matrix(R, name=name)
 
-    def edges_faces_waterline(self):
-        """Extract the water line of the mesh.
+    @cached_property
+    def _waterline_data(self):
+        """Extract the waterline data of the mesh.
 
         Returns
         -------
         (np.ndarray, np.ndarray)
-            A tuple (edges, faces) where the edges are the edges of the water line (pairs of vertex indices)
-            and the faces are the corresponding faces of the mesh that contain these edges (quadruplet of vertex indices).
+            A tuple (edges, faces) where the edges are the edges of the waterline (pairs of vertex indices)
+            and the faces are the corresponding faces id of the mesh that contain these edges.
         """
         epsilon = 1e-6
         edges_waterline = []
-        faces_waterline = []
+        id_face = []
 
         indices_vertices = [v for v in range(self.nb_vertices) if np.abs(self.vertices[v,-1]) <= epsilon]
         for k in range(self.nb_faces):
             set_indices = {index for index in self.faces[k,:] if index in indices_vertices}
             if len(set_indices) == 2:
-                edges_waterline.append(list(set_indices))
-                faces_waterline.append(self.faces[k,:])
+                edges_waterline.append(sorted(list(set_indices)))
+                id_face.append(k)
 
-        return np.array(edges_waterline), np.array(faces_waterline)
+        return np.array(edges_waterline), np.array(id_face)
 
     @property
     def nb_edges_waterline(self) -> int:
         """Number of edges in the water line."""
         return np.shape(self.edges_waterline)[0]
 
+    @property
+    def id_faces_waterline(self):
+        return self._waterline_data[1]
+
     @cached_property
     def edges_waterline(self):
         """Return an array with the edges of the water line as pairs of vertex indices with shape (nb_edges_waterline,2)."""
-        return self.edges_faces_waterline()[0]
-
-    @cached_property
-    def faces_waterline(self):
-        """Return an array with the faces of the water line as quadruplets of vertex indices with shape (nb_edges_waterline,4)."""
-        return self.edges_faces_waterline()[1]
+        return self._waterline_data[0]
 
     @cached_property
     def length_edges_waterline(self):
