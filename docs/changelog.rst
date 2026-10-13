@@ -94,6 +94,9 @@ Internals
   It is zero except for pairs of rotations around the same center, for which it follows the roll-pitch-yaw
   sequence of rotations of WAMIT (``R = R_roll R_pitch R_yaw``).
 
+* Add :class:`~capytaine.tools.perturbation_expansion.PerturbationExpansion` to
+  compute product of first and second order expansions, for the second-order
+  forces.
 
 -------------------------------
 New in version 3.0 (2026-08-21)
