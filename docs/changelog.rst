@@ -88,6 +88,12 @@ Internals
   of reloading the tabulation at each test). Helpers shared by several test
   files are gathered in ``pytest/capytaine_test_helpers.py``.
 
+* Add :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_second_order_motion_at_points` and
+  :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_second_order_motion` to the dofs,
+  returning the second-order term of the expansion of the motion with respect to the amplitude of a pair of dofs.
+  It is zero except for pairs of rotations around the same center, for which it follows the roll-pitch-yaw
+  sequence of rotations of WAMIT (``R = R_roll R_pitch R_yaw``).
+
 
 -------------------------------
 New in version 3.0 (2026-08-21)
