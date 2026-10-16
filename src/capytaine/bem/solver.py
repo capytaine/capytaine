@@ -435,43 +435,6 @@ class BEMSolver:
             dataset = assemble_dataset(results, attrs=attrs, **kwargs)
         return dataset
 
-
-    def compute_potential(self, points, result):
-        """Compute the value of the potential at given points for a previously solved potential flow problem.
-
-        Parameters
-        ----------
-        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or MeshLike object
-            Coordinates of the point(s) at which the potential should be computed
-        result: LinearPotentialFlowResult
-            The return of the BEM solver
-
-        Returns
-        -------
-        complex-valued array of shape (1,) or (N,) or (nx, ny, nz) or (mesh.nb_faces,) depending of the kind of input
-            The value of the potential at the points
-
-        Raises
-        ------
-        Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
-        """
-        return self._compute_potential_from_sources(
-            points, result.body.mesh_including_lid, self._sources_of(result),
-            **self._gf_params_of(result)
-        )
-
-    @staticmethod
-    def _gf_params_of(result):
-        return dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
-
-    @staticmethod
-    def _sources_of(result):
-        if result.sources is None:
-            raise Exception(f"""The values of the sources of {result} cannot been found.
-            They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
-            Please re-run the resolution with the indirect method and keep_details=True.""")
-        return result.sources
-
     def _compute_potential_from_sources(self, points, mesh, sources, **gf_params):
         """Potential at `points` of source distributions on `mesh` (hull and lid).
 
@@ -493,14 +456,9 @@ class BEMSolver:
         batch_shape = tuple(sources.shape[:-1])
         with self.timer(step="Post-processing potential"):
             S = self.engine.build_S_matrix(points, mesh, **gf_params)
-            potential = to_numpy(self._matmul(S, self._flatten_sources(sources)))  # Sum the contributions of all panels in the mesh
+            potential = to_numpy(self._matmul(S, sources.reshape(-1, sources.shape[-1]).T))  # Sum the contributions of all panels in the mesh
             # potential.shape = (nb_points, nb_sources)
         return potential.T.reshape((*batch_shape, *output_shape))
-
-    @staticmethod
-    def _flatten_sources(sources):
-        """Transform sources of shape (..., nb_faces) into the (nb_faces, nb_distributions) right-hand side of a matrix product."""
-        return sources.reshape(-1, sources.shape[-1]).T
 
     def _compute_potential_gradient_from_sources(self, points, mesh, sources, **gf_params):
         """Same as `_compute_potential_from_sources`, but for the gradient of the potential.
@@ -517,12 +475,40 @@ class BEMSolver:
             # gradG is either:
             # - an array of shape (3, nb_points, mesh.nb_faces)
             # - a 3-ple of matrices of the shape (nb_points, mesh.nb_faces), that could be stored as LazyMatrix.
-            rhs = self._flatten_sources(sources)
+            rhs = sources.reshape(-1, sources.shape[-1]).T
             vx, vy, vz = (to_numpy(self._matmul(gradG[i, ...], rhs)) for i in range(3))
             # The matrix-matrix product here computes the integral over the mesh of the contributions of each panel in the mesh
             velocities = np.stack([vx.T, vy.T, vz.T], axis=-1)
             # velocities.shape = (nb_sources, nb_points, 3)
         return velocities.reshape((*batch_shape, *output_shape, 3))
+
+    def compute_potential(self, points, result):
+        """Compute the value of the potential at given points for a previously solved potential flow problem.
+
+        Parameters
+        ----------
+        points: array of shape (3,) or (N, 3), or 3-ple of arrays returned by meshgrid, or MeshLike object
+            Coordinates of the point(s) at which the potential should be computed
+        result: LinearPotentialFlowResult
+            The return of the BEM solver
+
+        Returns
+        -------
+        complex-valued array of shape (1,) or (N,) or (nx, ny, nz) or (mesh.nb_faces,) depending of the kind of input
+            The value of the potential at the points
+
+        Raises
+        ------
+        Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
+        """
+        if result.sources is None:
+            raise Exception(f"""The values of the sources of {result} cannot been found.
+            They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
+            Please re-run the resolution with the indirect method and keep_details=True.""")
+        return self._compute_potential_from_sources(
+            points, result.body.mesh_including_lid, result.sources,
+            free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber
+        )
 
     def _compute_potential_gradient(self, points, result):
         if result.sources is None:
@@ -531,7 +517,7 @@ class BEMSolver:
             Please re-run the resolution with this option.""")
         return self._compute_potential_gradient_from_sources(
             points, result.body.mesh_including_lid, result.sources,
-            **self._gf_params_of(result)
+            free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber
         )
 
     def compute_velocity(self, points, result):
