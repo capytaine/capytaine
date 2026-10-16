@@ -9,9 +9,6 @@ from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, near
 
 mesh = cpt.mesh_parallelepiped(resolution=(30, 30, 30)).immersed_part()
 body = cpt.FloatingBody(mesh=mesh, dofs=cpt.rigid_body_dofs(), center_of_mass=(0,0,0))
-body.inertia_matrix = body.compute_rigid_body_inertia()
-body.hydrostatic_stiffness = body.compute_hydrostatic_stiffness()
-
 
 wave_direction = [0, np.pi/4]
 test_matrix = xr.Dataset(coords={
