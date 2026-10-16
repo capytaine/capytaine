@@ -25,6 +25,8 @@ Major changes
 
 * :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has a new keyword argument ``keep_details`` (default: ``False``).
   When set to ``True``, the pressure field on the hull is kept for each problem and automatically included in the returned dataset as the data variables ``diffraction_pressure``, ``Froude_Krylov_pressure`` and ``radiation_pressure``.
+  The source distribution of the indirect method is also stored, as ``diffraction_sources`` and ``radiation_sources`` (on the hull, with dimension ``hull_face``) and ``diffraction_lid_sources`` and ``radiation_lid_sources`` (on the lid, if any, with dimension ``lid_face``).
+  With the direct method, the potential is stored instead, as ``diffraction_potential``, ``radiation_potential``, ``diffraction_lid_potential`` and ``radiation_lid_potential``.
   See :doc:`user_manual/post_pro` for more details.
 
 * The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the data variables ``mesh_vertices``, ``mesh_faces_center``, ``lid_mesh_vertices``, ``lid_mesh_faces_center``, ``dof_motions`` and ``dof_gradient_of_motions``, instead of just the number of faces.
@@ -34,12 +36,6 @@ Major changes
   This function returns a dataset with a ``near_field_mean_drift_force`` variable of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
   Optional parameter ``output_pressure`` allows to return a mean drift pressure field of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``.
   The near field mean drift force can be expoted to WAMIT's `.9` file format. (:pull:`909`)
-
-Minor changes
-~~~~~~~~~~~~~
-
-* With ``keep_details=True``, :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` and :func:`~capytaine.io.xarray.assemble_dataset` now also store the source distribution of the indirect method as the data variables ``diffraction_sources`` and ``radiation_sources`` (on the hull, with dimension ``hull_face``) and ``diffraction_lid_sources`` and ``radiation_lid_sources`` (on the lid, if any, with dimension ``lid_face``).
-  With the direct method, the potential is stored instead as ``diffraction_potential``, ``radiation_potential``, ``diffraction_lid_potential`` and ``radiation_lid_potential``.
 
 Bug fixes
 ~~~~~~~~~
