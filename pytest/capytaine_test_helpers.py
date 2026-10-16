@@ -66,7 +66,7 @@ def small_sphere_mesh():
     return cpt.mesh_sphere(radius=1.0, resolution=(4, 4)).immersed_part()
 
 
-def small_sphere_body(dofs=("Surge",), *, lid=False, name=None):
+def small_sphere_body(dofs=("Surge",), *, plane_symmetry=False, lid=False, name=None):
     """New FloatingBody with the mesh `small_sphere_mesh()`.
 
     Parameters
@@ -75,9 +75,13 @@ def small_sphere_body(dofs=("Surge",), *, lid=False, name=None):
         Either all six rigid body dofs (around the origin) or the names of the subset of them.
     lid: bool
         Add a lid on the free surface for irregular frequency removal.
+    plane_symmetry: bool
+        Make the mesh a ReflectionSymmetricMesh
     name: str, optional
     """
     mesh = small_sphere_mesh()
+    if plane_symmetry:
+        mesh = cpt.ReflectionSymmetricMesh(half=mesh.clipped(normal=(1, 0, 0), origin=(0, 0, 0)), plane="yOz")
     lid_mesh = mesh.generate_lid() if lid else None
     if dofs == "rigid":
         dofs = cpt.rigid_body_dofs(rotation_center=(0, 0, 0))

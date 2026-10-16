@@ -103,6 +103,12 @@ Internals
   compute product of first and second order expansions, for the second-order
   forces.
 
+* Add the private methods ``BEMSolver._compute_potential_from_sources`` and ``BEMSolver._compute_potential_gradient_from_sources``, evaluating the potential or its gradient from bare source distributions (given with the mesh and the Green function parameters, without a result object).
+  The sources can have leading batch axes, in which case the influence matrix is built only once and multiplied by all the source distributions at once.
+  :meth:`~capytaine.bem.solver.BEMSolver.compute_potential`, :meth:`~capytaine.bem.solver.BEMSolver.compute_velocity`, :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation` are now thin wrappers around them.
+  The ``LazyMatrix`` class now supports products with a 2D right-hand side.
+
+
 -------------------------------
 New in version 3.0 (2026-08-21)
 -------------------------------

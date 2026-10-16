@@ -40,3 +40,10 @@ def test_array_library_of_lazy_matrix():
     assert A.__array_namespace__() is array_api_compat.array_namespace(np.zeros(1))
     assert A.device == "cpu"
     assert A.dtype == np.float64
+
+def test_lazy_matrix_with_2d_right_hand_side():
+    full = np.random.default_rng(0).normal(size=(30, 7)) + 0j
+    lazy = LazyMatrix(lambda sl: full[sl, :], (30, 7), chunk_size=4, dtype=complex)
+    rhs = np.random.default_rng(1).normal(size=(7, 3)) + 1j
+    np.testing.assert_allclose(lazy @ rhs, full @ rhs)
+    np.testing.assert_allclose(lazy @ rhs[:, 0], full @ rhs[:, 0])

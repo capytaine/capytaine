@@ -78,8 +78,8 @@ class LazyMatrix:
         return matrix if dtype is None else matrix.astype(dtype)
 
     def __matmul__(self, other):
-        if is_array(other) and other.ndim == 1 and other.shape[0] == self.shape[1]:
-            # Only matrix-vector product is actually implemented
+        if is_array(other) and other.ndim in (1, 2) and other.shape[0] == self.shape[1]:
+            # Matrix-vector and matrix-matrix products (with a 2D right-hand side of shape (shape[1], k)) are implemented
             # Compute `chunk_size` rows and multiply them by `other`
             output_chunks = [self.row_constructor(sl) @ other for sl in self._slices]
             return self._array_backend.concat(output_chunks)
