@@ -455,39 +455,84 @@ class BEMSolver:
         ------
         Exception: if the :code:`LinearPotentialFlowResult` object given as input does not contain the source distribution.
         """
-        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
+        return self._compute_potential_from_sources(
+            points, result.body.mesh_including_lid, self._sources_of(result),
+            **self._gf_params_of(result)
+        )
 
-        points, output_shape = _normalize_points(points)
+    @staticmethod
+    def _gf_params_of(result):
+        return dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
+
+    @staticmethod
+    def _sources_of(result):
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
             They probably have not been stored by the solver because the option keep_details=True have not been set or the direct method has been used.
             Please re-run the resolution with the indirect method and keep_details=True.""")
+        return result.sources
 
+    def _compute_potential_from_sources(self, points, mesh, sources, **gf_params):
+        """Potential at `points` of source distributions on `mesh` (hull and lid).
+
+        Parameters
+        ----------
+        points: see `compute_potential`
+        mesh: MeshLike
+            Mesh supporting the sources (including the lid)
+        sources: array of shape (..., mesh.nb_faces)
+            One or several source distributions (the leading axes are batch axes).
+            All distributions share `gf_params`, so the matrix is built only once.
+        gf_params: free_surface, water_depth and wavenumber (encounter wavenumber)
+
+        Returns
+        -------
+        complex-valued array of shape (..., *points_shape)
+        """
+        points, output_shape = _normalize_points(points)
+        batch_shape = tuple(sources.shape[:-1])
         with self.timer(step="Post-processing potential"):
-            S = self.engine.build_S_matrix(points, result.body.mesh_including_lid, **gf_params)
-            potential = to_numpy(self._matmul(S, result.sources))  # Sum the contributions of all panels in the mesh
-        return potential.reshape(output_shape)
+            S = self.engine.build_S_matrix(points, mesh, **gf_params)
+            potential = to_numpy(self._matmul(S, self._flatten_sources(sources)))  # Sum the contributions of all panels in the mesh
+            # potential.shape = (nb_points, nb_sources)
+        return potential.T.reshape((*batch_shape, *output_shape))
 
-    def _compute_potential_gradient(self, points, result):
+    @staticmethod
+    def _flatten_sources(sources):
+        """Transform sources of shape (..., nb_faces) into the (nb_faces, nb_distributions) right-hand side of a matrix product."""
+        return sources.reshape(-1, sources.shape[-1]).T
+
+    def _compute_potential_gradient_from_sources(self, points, mesh, sources, **gf_params):
+        """Same as `_compute_potential_from_sources`, but for the gradient of the potential.
+
+        Returns
+        -------
+        complex-valued array of shape (..., *points_shape, 3)
+        """
         points, output_shape = _normalize_points(points, keep_mesh=True)
         # keep_mesh, because we need the normal vectors associated with each collocation points to compute the fullK matrix
+        batch_shape = tuple(sources.shape[:-1])
+        with self.timer(step="Post-processing velocity"):
+            gradG = self.engine.build_fullK_matrix(points, mesh, **gf_params)
+            # gradG is either:
+            # - an array of shape (3, nb_points, mesh.nb_faces)
+            # - a 3-ple of matrices of the shape (nb_points, mesh.nb_faces), that could be stored as LazyMatrix.
+            rhs = self._flatten_sources(sources)
+            vx, vy, vz = (to_numpy(self._matmul(gradG[i, ...], rhs)) for i in range(3))
+            # The matrix-matrix product here computes the integral over the mesh of the contributions of each panel in the mesh
+            velocities = np.stack([vx.T, vy.T, vz.T], axis=-1)
+            # velocities.shape = (nb_sources, nb_points, 3)
+        return velocities.reshape((*batch_shape, *output_shape, 3))
 
+    def _compute_potential_gradient(self, points, result):
         if result.sources is None:
             raise Exception(f"""The values of the sources of {result} cannot been found.
             They probably have not been stored by the solver because the option keep_details=True have not been set.
             Please re-run the resolution with this option.""")
-
-        gf_params = dict(free_surface=result.free_surface, water_depth=result.water_depth, wavenumber=result.encounter_wavenumber)
-        with self.timer(step="Post-processing velocity"):
-            gradG = self.engine.build_fullK_matrix(points, result.body.mesh_including_lid, **gf_params)
-            # gradG is either:
-            # - an array of shape (3, nb_points, mesh_including_lid.nb_faces)
-            # - a 3-ple of matrices of the shape (nb_points, mesh_including_lid), that could be stored as LazyMatrix.
-            vx, vy, vz = (to_numpy(self._matmul(gradG[i, ...], result.sources)) for i in range(3))
-            # The matrix-vector product here computes the integral over the mesh of the contributions of each panel in the mesh
-            velocities = np.stack([vx, vy, vz], axis=-1)
-            # velocities.shape = (nb_points, 3)
-        return velocities.reshape((*output_shape, 3))
+        return self._compute_potential_gradient_from_sources(
+            points, result.body.mesh_including_lid, result.sources,
+            **self._gf_params_of(result)
+        )
 
     def compute_velocity(self, points, result):
         """Compute the value of the velocity vector at given points for a previously solved potential flow problem.
