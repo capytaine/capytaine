@@ -32,8 +32,8 @@ The xarray dataset produced by :func:`assemble_dataset <capytaine.io.xarray.asse
 .. note::
     If :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has been called with
     :code:`keep_details=True`, the dataset also contains the pressure field on
-    the hull (:code:`diffraction_pressure`, :code:`Froude_Krylov_pressure` and
-    :code:`radiation_pressure`), which is exported to the NetCDF file as well.
+    the hull (:code:`pressure_diffraction`, :code:`pressure_Froude_Krylov` and
+    :code:`pressure_radiation`), which is exported to the NetCDF file as well.
     See the section :doc:`post_pro` and
     https://github.com/capytaine/capytaine/issues/520 for more context.
 

@@ -49,7 +49,7 @@ def test_mesh_export_shares_hull_face_dimension_with_pressure():
     # each `hull_face` index used by the pressure variables.
     test_matrix = xr.Dataset(coords={'omega': [1.0], 'radiating_dof': ['Heave']})
     dataset = solver.fill_dataset(test_matrix, sphere, mesh=True, keep_details=True, hydrostatics=False)
-    assert dataset["mesh_faces_center"].sizes["hull_face"] == dataset["radiation_pressure"].sizes["hull_face"]
+    assert dataset["mesh_faces_center"].sizes["hull_face"] == dataset["pressure_radiation"].sizes["hull_face"]
 
 
 def test_dof_motions_matches_dof_evaluation():
