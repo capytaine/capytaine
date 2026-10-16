@@ -101,7 +101,12 @@ Internals
 
 * Add :class:`~capytaine.tools.perturbation_expansion.PerturbationExpansion` to
   compute product of first and second order expansions, for the second-order
-  forces.
+  forces. It supports batched fields (e.g. one matrix per face), accepts plain
+  arrays and scalars as order-0 operands, and provides ``trace``, ``sum``,
+  ``expand_dims``, ``squeeze``, ``det`` and ``inv``.
+  Its subclass :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`
+  holds complex amplitudes for several wave components at once, and computes the full
+  difference-frequency QTF of an expression in one evaluation.
 
 * Add the private methods ``BEMSolver._compute_potential_from_sources`` and ``BEMSolver._compute_potential_gradient_from_sources``, evaluating the potential or its gradient from bare source distributions (given with the mesh and the Green function parameters, without a result object).
   The sources can have leading batch axes, in which case the influence matrix is built only once and multiplied by all the source distributions at once.
