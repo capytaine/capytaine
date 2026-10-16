@@ -96,7 +96,12 @@ Internals
 
 * Add :class:`~capytaine.tools.perturbation_expansion.PerturbationExpansion` to
   compute product of first and second order expansions, for the second-order
-  forces.
+  forces. It supports batched fields (e.g. one matrix per face), accepts plain
+  arrays and scalars as order-0 operands, and provides ``trace``, ``sum``,
+  ``expand_dims``, ``squeeze``, ``det`` and ``inv``.
+  Its subclass :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`
+  holds complex amplitudes for several wave components at once, and computes the full
+  difference-frequency QTF of an expression in one evaluation.
 
 -------------------------------
 New in version 3.0 (2026-08-21)
