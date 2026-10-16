@@ -527,9 +527,9 @@ def _face_data_array(result, name, values, on_hull):
     return result.problem._wrap_dataarray(dataarray)
 
 
-def _add_face_distributions(dataset, results, attribute, names, optional_dims):
+def _add_face_distributions(dataset, results, attribute, names, optional_dims, lid=True):
     """Add to the dataset the variables '<name>_diffraction' and '<name>_radiation'
-    (and '<name>_lid_diffraction', '<name>_lid_radiation' on the lid) for the distributions `attribute` of the results."""
+    (and '<name>_lid_diffraction', '<name>_lid_radiation' on the lid, if `lid`) for the distributions `attribute` of the results."""
     if not any(getattr(r, attribute) is not None for r in results):
         return
     for kind, problem_class, dims in [
@@ -539,7 +539,7 @@ def _add_face_distributions(dataset, results, attribute, names, optional_dims):
         if len(selected) == 0:
             continue
         for on_hull, var_name in [(True, f"{names}_{kind}"), (False, f"{names}_lid_{kind}")]:
-            if not on_hull and all(r.body.lid_mesh is None for r in selected):
+            if not on_hull and (not lid or all(r.body.lid_mesh is None for r in selected)):
                 continue
             dataset[var_name] = _squeeze_dimensions(xr.merge(
                 [_face_data_array(r, "distribution", getattr(r, attribute), on_hull) for r in selected],
@@ -795,21 +795,13 @@ def assemble_dataset(results,
     else:
         pressure_results = []
 
-    if any(r.pressure is not None for r in pressure_results):
-        if any(isinstance(r.problem, DiffractionProblem) for r in pressure_results):
-            dataset["pressure_diffraction"] = _squeeze_dimensions(xr.merge(
-                    [r.pressure_dataarray() for r in pressure_results if isinstance(r.problem, DiffractionProblem)],
-                    compat="no_conflicts", join="outer"
-                    )['pressure'], dimensions=optional_dims)
-            dataset["pressure_Froude_Krylov"] = _squeeze_dimensions(xr.merge(
-                    [airy_waves_pressure_dataarray(r.problem) for r in pressure_results if isinstance(r.problem, DiffractionProblem)],
-                    compat="no_conflicts", join="outer"
-                    )['pressure'], dimensions=optional_dims)
-        if any(isinstance(r.problem, RadiationProblem) for r in pressure_results):
-            dataset["pressure_radiation"] = _squeeze_dimensions(xr.merge(
-                    [r.pressure_dataarray() for r in pressure_results if isinstance(r.problem, RadiationProblem)],
-                    compat="no_conflicts", join="outer"
-                    )['pressure'], dimensions=optional_dims + ['wave_direction'])
+    # No pressure on the lid: it is not a physical surface.
+    _add_face_distributions(dataset, pressure_results, "pressure", "pressure", optional_dims, lid=False)
+    if "pressure_diffraction" in dataset:
+        dataset["pressure_Froude_Krylov"] = _squeeze_dimensions(xr.merge(
+                [airy_waves_pressure_dataarray(r.problem) for r in pressure_results if isinstance(r.problem, DiffractionProblem)],
+                compat="no_conflicts", join="outer"
+                )['pressure'], dimensions=optional_dims)
 
     # Indirect method: sources. Direct method: potential (which is then the unknown of the linear system)
     # (The potential is not stored for the indirect method, since it can be recomputed from the sources.)
