@@ -162,13 +162,6 @@ class RotationDof(AbstractDof):
             )
         return int(axis[0])
 
-    def evaluate_second_order_motion_at_points(self, other: AbstractDof, points: np.ndarray) -> np.ndarray:
-        if isinstance(other, RotationDof):
-            outer, inner = self._outer_and_inner_rotations(other)
-            return np.cross(outer.direction, np.cross(inner.direction, points - self.rotation_center))
-        else:
-            return np.zeros((*points.shape[:-1], 3))
-
     def _outer_and_inner_rotations(self, other: RotationDof):
         if not np.allclose(self.rotation_center, other.rotation_center):
             raise ValueError("For second order motion, all rotations should have the same rotation center")
@@ -181,6 +174,13 @@ class RotationDof(AbstractDof):
             return self, other
         else:
             return other, self
+
+    def evaluate_second_order_motion_at_points(self, other: AbstractDof, points: np.ndarray) -> np.ndarray:
+        if isinstance(other, RotationDof):
+            outer, inner = self._outer_and_inner_rotations(other)
+            return np.cross(outer.direction, np.cross(inner.direction, points - self.rotation_center))
+        else:
+            return np.zeros((*points.shape[:-1], 3))
 
     def evaluate_gradient_of_second_order_motion_at_points(self, other: AbstractDof, points: np.ndarray) -> np.ndarray:
         if isinstance(other, RotationDof):

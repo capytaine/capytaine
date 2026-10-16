@@ -66,8 +66,6 @@ Internals
   They can be built from an array of shape ``(nb_blocks, n, m)`` or a list of blocks.
   The blocks of a :class:`~capytaine.tools.block_circulant_matrices.BlockCirculantMatrix` have to be arrays and not other block matrices anymore (use :class:`~capytaine.tools.block_circulant_matrices.NestedBlockCirculantMatrix` instead).
 
-* Add methods ``evaluate_gradient_of_second_order_motion_at_points`` and ``evaluate_gradient_of_second_order_motion`` to the dofs, returning the gradient of the second-order motion (for rotations, :math:`S(\omega_\text{outer}) S(\omega_\text{inner})`, and zero otherwise).
-
 * The string representation (``__str__``, ``__repr__``) and the hash of Green functions are now implemented once in :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`, driven by ``exportable_settings`` and a ``_default_parameters`` class attribute.
 
 * Fix :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_motion_at_points` and
@@ -95,6 +93,9 @@ Internals
   returning the second-order term of the expansion of the motion with respect to the amplitude of a pair of dofs.
   It is zero except for pairs of rotations around the same center, for which it follows the roll-pitch-yaw
   sequence of rotations of WAMIT (``R = R_roll R_pitch R_yaw``).
+  Also adds :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_second_order_motion_at_points``
+  and :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_second_order_motion``
+  returning the gradient of the second-order motion.
 
 * Add :class:`~capytaine.tools.perturbation_expansion.PerturbationExpansion` to
   compute product of first and second order expansions, for the second-order
