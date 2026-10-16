@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import annotations
 from abc import ABC, abstractmethod
 from functools import lru_cache
 import logging
@@ -22,7 +23,6 @@ import xarray as xr
 from capytaine.meshes.abstract_meshes import AbstractMesh
 
 LOG = logging.getLogger(__name__)
-
 
 class AbstractDof(ABC):
     def __str__(self):
@@ -74,6 +74,45 @@ class AbstractDof(ABC):
         else:
             return self.evaluate_gradient_of_motion_at_points(mesh.quadrature_points[0])
 
+    def evaluate_second_order_motion_at_points(self, other: AbstractDof, points: np.ndarray) -> np.ndarray:
+        # Generally a motion/deformation of a body can be expanded
+        # to second-order with respect to the amplitude of the dofs (q_k) as
+        # δu_k = dofs[k].evaluate_motion_at_points(X)
+        # δ²u_kj = dofs[k].evaluate_second_order_motion_at_points(dofs[j], X)
+        # u(X) = Σ_k q_k δu_k + 1/2 Σ_kj q_k q_j δ²u_kj
+
+        # This method returning δ²u_kj is zero for all pair of dofs, except for some pairs of rotations.
+        # At the moment, it is not possible for users to define their own for generalized body modes.
+
+        # points is an array of shape (..., 3)
+        # output is of shape (..., 3)
+        return np.zeros((*points.shape[:-1], 3))
+
+    @lru_cache
+    def evaluate_second_order_motion(self, other: AbstractDof, mesh: AbstractMesh) -> np.ndarray:
+        # output is of shape (nb_faces, 3)
+        if mesh.nb_faces == 0:
+            return np.empty((mesh.nb_faces, 3))
+        else:
+            return self.evaluate_second_order_motion_at_points(other, mesh.faces_centers)
+
+    def evaluate_gradient_of_second_order_motion_at_points(self, other: AbstractDof, points: np.ndarray) -> np.ndarray:
+        # Gradient (Jacobian matrix, with the same conventions as `evaluate_gradient_of_motion_at_points`)
+        # of δ²u_kj = dofs[k].evaluate_second_order_motion_at_points(dofs[j], X).
+        # Zero for all pair of dofs, except for some pairs of rotations.
+
+        # points is an array of shape (..., 3)
+        # output is of shape (..., 3, 3)
+        return np.zeros((*points.shape[:-1], 3, 3))
+
+    @lru_cache
+    def evaluate_gradient_of_second_order_motion(self, other: AbstractDof, mesh: AbstractMesh) -> np.ndarray:
+        # output is of shape (nb_faces, 3, 3)
+        if mesh.nb_faces == 0:
+            return np.empty((mesh.nb_faces, 3, 3))
+        else:
+            return self.evaluate_gradient_of_second_order_motion_at_points(other, mesh.faces_centers)
+
 
 class TranslationDof(AbstractDof):
     def __init__(self, direction):
@@ -114,6 +153,62 @@ class RotationDof(AbstractDof):
         # but we want it column-wise for the conventions of the Jacobian matrix.
         return np.tile(grad, (*points.shape[:-1], 1, 1))
 
+    def _roll_pitch_yaw_rank(self) -> int:
+        # 0 for roll (around x), 1 for pitch (around y), 2 for yaw (around z)
+        axis = np.flatnonzero(self.direction)
+        if len(axis) != 1:
+            raise NotImplementedError(
+                "Second order motion is only implemented for rotations around the x, y or z axes."
+            )
+        return int(axis[0])
+
+    def _outer_and_inner_rotations(self, other: RotationDof):
+        if not np.allclose(self.rotation_center, other.rotation_center):
+            raise ValueError("For second order motion, all rotations should have the same rotation center")
+        # The rotations are composed in the roll-pitch-yaw sequence of WAMIT
+        # (WAMIT manual v7.6, eq. 15.48-15.49), R = R_roll R_pitch R_yaw.
+        # The second-order term of the product of two different rotations depends on this order:
+        # δ²u_kj = δ²u_jk = ω_outer × (ω_inner × (X - X_center))
+        # with the outer rotation being the one applied last (roll, then pitch, then yaw).
+        if self._roll_pitch_yaw_rank() <= other._roll_pitch_yaw_rank():
+            return self, other
+        else:
+            return other, self
+
+    def evaluate_second_order_motion_at_points(self, other: AbstractDof, points: np.ndarray) -> np.ndarray:
+        if isinstance(other, RotationDof):
+            outer, inner = self._outer_and_inner_rotations(other)
+            return np.cross(outer.direction, np.cross(inner.direction, points - self.rotation_center))
+        else:
+            return np.zeros((*points.shape[:-1], 3))
+
+    def evaluate_gradient_of_second_order_motion_at_points(self, other: AbstractDof, points: np.ndarray) -> np.ndarray:
+        if isinstance(other, RotationDof):
+            outer, inner = self._outer_and_inner_rotations(other)
+            # ∇(ω_outer × (ω_inner × r)) = S(ω_outer) S(ω_inner), see `evaluate_gradient_of_motion_at_points`
+            # for the transposition.
+            S_outer = np.cross(outer.direction, np.eye(3)).T
+            S_inner = np.cross(inner.direction, np.eye(3)).T
+            return np.tile(S_outer @ S_inner, (*points.shape[:-1], 1, 1))
+        else:
+            return np.zeros((*points.shape[:-1], 3, 3))
+
+    @lru_cache
+    def evaluate_second_order_motion(self, other: AbstractDof, mesh: AbstractMesh) -> np.ndarray:
+        if isinstance(other, DofOnSubmesh):
+            # δ²u_kj is symmetric, so let the submesh dof handle the restriction to its faces.
+            return other.evaluate_second_order_motion(self, mesh)
+        else:
+            # Most likely sent to `RotationDof.evaluate_second_order_motion_at_points`
+            return super().evaluate_second_order_motion(other, mesh)
+
+    @lru_cache
+    def evaluate_gradient_of_second_order_motion(self, other: AbstractDof, mesh: AbstractMesh) -> np.ndarray:
+        if isinstance(other, DofOnSubmesh):
+            return other.evaluate_gradient_of_second_order_motion(self, mesh)
+        else:
+            return super().evaluate_gradient_of_second_order_motion(other, mesh)
+
 
 class DofOnSubmesh(AbstractDof):
     """Defines a dof that is zeros everywhere except on a given set of faces
@@ -149,6 +244,20 @@ class DofOnSubmesh(AbstractDof):
             "this dof was built from. Use evaluate_gradient_of_motion(mesh) instead."
         )
 
+    def evaluate_second_order_motion_at_points(self, other: AbstractDof, points: np.ndarray) -> np.ndarray:
+        raise NotImplementedError(
+            "DofOnSubmesh.evaluate_second_order_motion_at_points() is not defined for arbitrary points: "
+            "membership in the submesh is only meaningful relative to the faces of the mesh "
+            "this dof was built from. Use evaluate_second_order_motion(mesh) instead."
+        )
+
+    def evaluate_gradient_of_second_order_motion_at_points(self, other: AbstractDof, points: np.ndarray) -> np.ndarray:
+        raise NotImplementedError(
+            "DofOnSubmesh.evaluate_gradient_of_second_order_motion_at_points() is not defined for arbitrary points: "
+            "membership in the submesh is only meaningful relative to the faces of the mesh "
+            "this dof was built from. Use evaluate_gradient_of_second_order_motion(mesh) instead."
+        )
+
     @lru_cache
     def evaluate_motion(self, mesh: AbstractMesh) -> np.ndarray:
         motion = np.zeros((mesh.nb_faces, 3))
@@ -171,6 +280,33 @@ class DofOnSubmesh(AbstractDof):
     def evaluate_gradient_of_motion_at_quad_points(self, mesh: AbstractMesh) -> np.ndarray:
         grad = np.zeros((*mesh.quadrature_points[1].shape, 3, 3))
         grad[self.faces, :, :, :] = self.dof.evaluate_gradient_of_motion_at_points(mesh.quadrature_points[0][self.faces, :, :])
+        return grad
+
+    def faces_mask(self, mesh: AbstractMesh) -> np.ndarray:
+        """Boolean array of size `mesh.nb_faces`, True on the faces of the submesh."""
+        mask = np.zeros(mesh.nb_faces, dtype=bool)
+        mask[self.faces] = True
+        return mask
+
+    @lru_cache
+    def evaluate_second_order_motion(self, other: AbstractDof, mesh: AbstractMesh) -> np.ndarray:
+        mask = self.faces_mask(mesh)
+        if isinstance(other, DofOnSubmesh):
+            # Non-zero only where both dofs are defined
+            mask &= other.faces_mask(mesh)
+            other = other.dof
+        motion = np.zeros((mesh.nb_faces, 3))
+        motion[mask, :] = self.dof.evaluate_second_order_motion_at_points(other, mesh.faces_centers[mask, :])
+        return motion
+
+    @lru_cache
+    def evaluate_gradient_of_second_order_motion(self, other: AbstractDof, mesh: AbstractMesh) -> np.ndarray:
+        mask = self.faces_mask(mesh)
+        if isinstance(other, DofOnSubmesh):
+            mask &= other.faces_mask(mesh)
+            other = other.dof
+        grad = np.zeros((mesh.nb_faces, 3, 3))
+        grad[mask, :, :] = self.dof.evaluate_gradient_of_second_order_motion_at_points(other, mesh.faces_centers[mask, :])
         return grad
 
 

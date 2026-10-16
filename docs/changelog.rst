@@ -24,7 +24,9 @@ Major changes
   (:pull:`939`)
 
 * :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` has a new keyword argument ``keep_details`` (default: ``False``).
-  When set to ``True``, the pressure field on the hull is kept for each problem and automatically included in the returned dataset as the data variables ``diffraction_pressure``, ``Froude_Krylov_pressure`` and ``radiation_pressure``.
+  When set to ``True``, the pressure field on the hull is kept for each problem and automatically included in the returned dataset as the data variables ``pressure_diffraction``, ``pressure_Froude_Krylov`` and ``pressure_radiation``.
+  The source distribution of the indirect method is also stored, as ``sources_diffraction`` and ``sources_radiation`` (on the hull, with dimension ``hull_face``) and ``sources_lid_diffraction`` and ``sources_lid_radiation`` (on the lid, if any, with dimension ``lid_face``).
+  With the direct method, the potential is stored instead, as ``potential_diffraction``, ``potential_radiation``, ``potential_lid_diffraction`` and ``potential_lid_radiation``.
   See :doc:`user_manual/post_pro` for more details.
 
 * The ``mesh=True`` option of :func:`~capytaine.io.xarray.assemble_dataset` and :meth:`~capytaine.bem.solver.BEMSolver.fill_dataset` now stores the full mesh of the hull (and lid, if any) and the dofs of the body in the dataset, as the data variables ``mesh_vertices``, ``mesh_faces_center``, ``lid_mesh_vertices``, ``lid_mesh_faces_center``, ``dof_motions`` and ``dof_gradient_of_motions``, instead of just the number of faces.
@@ -87,6 +89,29 @@ Internals
   the tests) and by sharing the Green function instances between tests (instead
   of reloading the tabulation at each test). Helpers shared by several test
   files are gathered in ``pytest/capytaine_test_helpers.py``.
+
+* Add :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_second_order_motion_at_points` and
+  :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_second_order_motion` to the dofs,
+  returning the second-order term of the expansion of the motion with respect to the amplitude of a pair of dofs.
+  It is zero except for pairs of rotations around the same center, for which it follows the roll-pitch-yaw
+  sequence of rotations of WAMIT (``R = R_roll R_pitch R_yaw``).
+  Also adds :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_second_order_motion_at_points`
+  and :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_second_order_motion`
+  returning the gradient of the second-order motion.
+
+* Add :class:`~capytaine.tools.perturbation_expansion.PerturbationExpansion` to
+  compute product of first and second order expansions, for the second-order
+  forces. It supports batched fields (e.g. one matrix per face), accepts plain
+  arrays and scalars as order-0 operands, and provides ``trace``, ``sum``,
+  ``expand_dims``, ``squeeze``, ``det`` and ``inv``.
+  Its subclass :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`
+  holds complex amplitudes for several wave components at once, and computes the full
+  difference-frequency QTF of an expression in one evaluation.
+
+* Add the private methods ``BEMSolver._compute_potential_from_sources`` and ``BEMSolver._compute_potential_gradient_from_sources``, evaluating the potential or its gradient from bare source distributions (given with the mesh and the Green function parameters, without a result object).
+  The sources can have leading batch axes, in which case the influence matrix is built only once and multiplied by all the source distributions at once.
+  :meth:`~capytaine.bem.solver.BEMSolver.compute_potential`, :meth:`~capytaine.bem.solver.BEMSolver.compute_velocity`, :meth:`~capytaine.bem.solver.BEMSolver.compute_pressure` and :meth:`~capytaine.bem.solver.BEMSolver.compute_free_surface_elevation` are now thin wrappers around them.
+  The ``LazyMatrix`` class now supports products with a 2D right-hand side.
 
 
 -------------------------------

@@ -532,38 +532,3 @@ Capytaine computes the Kochin function in finite depth as
 
 
 Note that other work might define the Kochin function slightly differently, with a different normalization.
-
-
-Mean drift force
-----------------
-
-**Far field formulation**:
-
-The expression of the mean drift force for the degrees of freedom Surge and Sway is the following:
-
-.. math::
-   \left\langle{\begin{matrix} F_x \\ F_y \end{matrix}}\right\rangle =
-   -2 \pi \rho \omega\binom{\cos \beta}{\sin \beta} \Im( H(\beta))
-   -2 \pi \rho \frac{k\left(k_0 h\right)^2}{h\left[\left(k h\right)^2-\left(k_0 h\right)^2+k_0 h\right]} \int_0^{2 \pi}|H(\theta)|^2\binom{\cos \theta}{\sin \theta} d \theta
-
-where :math:`\beta` is the wave direction, :math:`H` the Kochin function, :math:`k` the wavenumber, :math:`h` the water depth and :math:`k_0` the deep water wavenumber.
-
-.. note::
-   The coefficient in front of the integral above can be very large at high frequency and can make the result very sensitive to small numerical inaccuracies in the Kochin function.
-   Unfortunately, numerical incurracies can be common at high frequency, that is when the wavelength is small with respect to the mesh resolution.
-   In other words, mesh convergence should be checked carefully for the mean drift force at high frequency.
-
-Here is the expression for the Yaw moment:
-
-.. math::
-   \left\langle{M_z}\right\rangle = 2 \pi \frac{\rho \omega}{k}\Re (\dot H(\beta)) -
-   \frac{2 \pi \rho (k_0h)^2}{h[(kh)^2 - (k_0h)^2 + k_0h]}\Im (\int_0^{2 \pi} H(\theta)^* \dot H(\theta) \mathrm{d} \theta )
-
-The Kochin function has to be rebuild from the contributions of all the radiation problems and the diffraction problem:
-
-.. math::
-   H(\theta) = e^{i\frac{\pi}{2}} ( H_D(\theta) + \sum_{k=1}^6 X_k H_{R_k} (\theta))
-
-where :math:`X_k` is the motion RAO of the body corresponding to the degree of freedom :math:`k`,
-:math:`H_{R_k}` is the Kochin function associated with the radiated potential of degree of freedom :math:`k`
-and :math:`H_{D}` is the Kochin function associated with the diffracted potential.

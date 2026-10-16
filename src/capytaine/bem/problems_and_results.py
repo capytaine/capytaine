@@ -18,7 +18,6 @@ from typing import Optional, Dict
 
 import numpy as np
 import pandas as pd
-import xarray as xr
 from scipy.optimize import newton
 
 from capytaine.tools.deprecation_handling import _get_water_depth
@@ -544,11 +543,6 @@ class LinearPotentialFlowResult:
     def force(self):
         # Just an alias
         return self.forces
-
-    def pressure_dataarray(self) -> xr.DataArray:
-        data = self.pressure_on_hull if self.pressure_on_hull is not None else np.full((self.body.mesh.nb_faces,), np.nan + 1j*np.nan)
-        dataarray = xr.DataArray(data, dims=["hull_face"], name="pressure")
-        return self.problem._wrap_dataarray(dataarray)
 
     __str__ = LinearPotentialFlowProblem.__str__
     __repr__ = LinearPotentialFlowProblem.__repr__
