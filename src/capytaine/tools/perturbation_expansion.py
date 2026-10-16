@@ -11,11 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Truncated perturbation series ("higher-order dual numbers").
-
-Only NumPy functions with an equivalent in the array API standard are used,
-so that moving to `array_namespace` later is a renaming.
-"""
+"""Truncated perturbation series ("higher-order dual numbers")."""
 
 import operator
 
@@ -31,10 +27,10 @@ def _check_same_order(a, b):
 
 
 def _field_axis(axis):
-    """Check that `axis` (int or tuple of int) counts field axes from the end."""
+    """Check that `axis` (int or tuple of int) is negative: the field axes are at the end."""
     for a in (axis if isinstance(axis, tuple) else (axis,)):
         if a >= 0:
-            raise ValueError(f"Field axes are counted from the end: use a negative axis instead of {a}.")
+            raise ValueError(f"Use a negative axis instead of {a}: the field axes are at the end, after the batch axes.")
     return axis
 
 
@@ -46,11 +42,11 @@ class PerturbationExpansion:
     Two expansions can only be combined if they share the same truncation order N.
     Plain scalars and arrays used as operands are constants: `x` stands for `x + 0*eps + ...`.
 
-    The array axes of the coefficients are the axes of the "field" (e.g. `(nb_faces, 3)` for a vector field).
+    The axes of the "field" (e.g. `(nb_faces, 3)` for a vector field) are at the end of the coefficients.
+    Leading axes are batch axes, such as the wave axes of `DifferenceFrequencyExpansion`.
     Operations act on each coefficient with the usual NumPy broadcasting rules.
-    Methods taking an axis (`sum`, `expand_dims`, `squeeze`) count the field axes from the end
-    (`axis=-1` for the last one), and `trace` and `T` act on the last two axes.
-    Subclasses can then add leading axes to the coefficients, see `DifferenceFrequencyExpansion`.
+    Methods taking an axis (`sum`, `expand_dims`, `squeeze`) take a negative axis (`axis=-1` for the last one),
+    and `trace` and `T` act on the last two axes.
     """
 
     # Ensure numpy defers to our __radd__/__rmul__/etc. when a bare ndarray is on
@@ -146,17 +142,17 @@ class PerturbationExpansion:
         return self._new(self._cauchy_product(b, a, np.matmul))
 
     def sum(self, axis):
-        """Sum over the field axis (or tuple of axes) `axis`, counted from the end."""
+        """Sum over the field axis (or tuple of axes) `axis` (negative)."""
         axis = _field_axis(axis)
         return self._map(lambda c: np.sum(c, axis=axis))
 
     def expand_dims(self, axis):
-        """Insert a field axis of size 1 at position `axis`, counted from the end."""
+        """Insert a field axis of size 1 at position `axis` (negative)."""
         axis = _field_axis(axis)
         return self._map(lambda c: np.expand_dims(c, axis=axis))
 
     def squeeze(self, axis):
-        """Remove the field axis of size 1 at position `axis`, counted from the end."""
+        """Remove the field axis of size 1 at position `axis` (negative)."""
         axis = _field_axis(axis)
         return self._map(lambda c: np.squeeze(c, axis=axis))
 
@@ -221,7 +217,7 @@ class DifferenceFrequencyExpansion(PerturbationExpansion):
     The order-0 and order-2 coefficients can be given as scalars (e.g. 0), and are then broadcast.
     When two operands have a different number of field axes, size-1 axes are inserted in front
     of the field axes of the one that has fewer (NumPy broadcasting of the field axes only).
-    Field axes are counted from the end: index with `x[..., i]`.
+    The wave axes are leading batch axes and the field axes are at the end: index with `x[..., i]`.
     """
 
     def __init__(self, coefficients):
@@ -300,7 +296,7 @@ class DifferenceFrequencyExpansion(PerturbationExpansion):
 
     def __getitem__(self, index):
         if not (isinstance(index, tuple) and len(index) > 0 and index[0] is Ellipsis):
-            raise IndexError("Field axes are counted from the end: index with `x[..., i]`.")
+            raise IndexError("The field axes are at the end, after the wave axes: index with `x[..., i]`.")
         return super().__getitem__(index)
 
     def evaluate(self, eps):

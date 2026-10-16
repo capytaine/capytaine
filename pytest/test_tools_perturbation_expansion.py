@@ -204,7 +204,7 @@ def test_trace_sum_expand_dims_squeeze():
     assert [co.shape for co in e.coefficients] == [(4, 1, 3, 3)] * 3
     assert e.squeeze(-3).coefficients[1].shape == (4, 3, 3)
     for method in [x.sum, x.expand_dims, x.squeeze]:
-        with pytest.raises(ValueError, match="counted from the end"):
+        with pytest.raises(ValueError, match="negative axis"):
             method(0)
 
 
