@@ -93,6 +93,9 @@ Internals
   returning the second-order term of the expansion of the motion with respect to the amplitude of a pair of dofs.
   It is zero except for pairs of rotations around the same center, for which it follows the roll-pitch-yaw
   sequence of rotations of WAMIT (``R = R_roll R_pitch R_yaw``).
+  Also adds :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_second_order_motion_at_points`
+  and :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_second_order_motion`
+  returning the gradient of the second-order motion.
 
 * Add :class:`~capytaine.tools.perturbation_expansion.PerturbationExpansion` to
   compute product of first and second order expansions, for the second-order
