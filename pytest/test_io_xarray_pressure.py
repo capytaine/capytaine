@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Tests for the pressure-on-hull export added to `fill_dataset`/`assemble_dataset`
-via the `keep_details` keyword (`diffraction_pressure`, `Froude_Krylov_pressure`,
-`radiation_pressure` dataset variables, and `LinearPotentialFlowResult.pressure_on_hull`).
+via the `keep_details` keyword (`pressure_diffraction`, `pressure_Froude_Krylov`,
+`pressure_radiation` dataset variables, and `LinearPotentialFlowResult.pressure_on_hull`).
 """
 import pytest
 
@@ -39,7 +39,7 @@ def test_pressure_variables_present_with_keep_details():
     })
     dataset = solver.fill_dataset(test_matrix, sphere, keep_details=True)
 
-    for var in ("diffraction_pressure", "Froude_Krylov_pressure", "radiation_pressure"):
+    for var in ("pressure_diffraction", "pressure_Froude_Krylov", "pressure_radiation"):
         assert var in dataset
         assert dataset[var].sizes["hull_face"] == sphere.mesh.nb_faces
 
@@ -52,7 +52,7 @@ def test_pressure_variables_absent_by_default():
     })
     dataset = solver.fill_dataset(test_matrix, sphere)  # keep_details defaults to False
 
-    for var in ("diffraction_pressure", "Froude_Krylov_pressure", "radiation_pressure"):
+    for var in ("pressure_diffraction", "pressure_Froude_Krylov", "pressure_radiation"):
         assert var not in dataset
 
 
@@ -65,11 +65,11 @@ def test_radiation_pressure_has_radiating_dof_dimension():
     })
     dataset = solver.fill_dataset(test_matrix, sphere, keep_details=True)
 
-    assert "radiating_dof" in dataset["radiation_pressure"].dims
-    assert dataset["radiation_pressure"].sizes["radiating_dof"] == 2
+    assert "radiating_dof" in dataset["pressure_radiation"].dims
+    assert dataset["pressure_radiation"].sizes["radiating_dof"] == 2
 
-    heave_pressure = dataset["radiation_pressure"].sel(radiating_dof="Heave").values
-    surge_pressure = dataset["radiation_pressure"].sel(radiating_dof="Surge").values
+    heave_pressure = dataset["pressure_radiation"].sel(radiating_dof="Heave").values
+    surge_pressure = dataset["pressure_radiation"].sel(radiating_dof="Surge").values
     assert not np.allclose(heave_pressure, surge_pressure)
 
 
@@ -82,10 +82,10 @@ def test_failed_results_do_not_crash_pressure_export():
     dataset = broken_bem_solver.fill_dataset(test_matrix, sphere, keep_details=True)
 
     assert np.any(np.isnan(dataset.added_mass.values))
-    assert np.any(np.isnan(dataset["radiation_pressure"].values))
+    assert np.any(np.isnan(dataset["pressure_radiation"].values))
     # Froude-Krylov pressure is computed analytically from the problem alone,
     # so it should stay finite even for the wavenumbers where the solve failed.
-    assert np.all(np.isfinite(dataset["Froude_Krylov_pressure"].values))
+    assert np.all(np.isfinite(dataset["pressure_Froude_Krylov"].values))
 
 
 def test_pressure_ignored_for_infinite_free_surface():
@@ -94,7 +94,7 @@ def test_pressure_ignored_for_infinite_free_surface():
     pb = cpt.RadiationProblem(body=sphere, free_surface=np.inf, radiating_dof="Heave")
     res = solver.solve(pb, keep_details=True)
     dataset = cpt.assemble_dataset([res])
-    assert "radiation_pressure" not in dataset
+    assert "pressure_radiation" not in dataset
 
 
 def test_keep_details_forced_by_kochin_export():
@@ -105,8 +105,8 @@ def test_keep_details_forced_by_kochin_export():
         'theta': np.linspace(0, 2*np.pi, 5),
     })
     dataset = solver.fill_dataset(test_matrix, sphere, keep_details=False)
-    assert "radiation_pressure" in dataset
-    assert "diffraction_pressure" in dataset
+    assert "pressure_radiation" in dataset
+    assert "pressure_diffraction" in dataset
 
 
 #######################################################################

@@ -472,40 +472,40 @@ VARIABLES_ATTRIBUTES = {
         "Froude_Krylov_force": {
             'long_name': "Froude Krylov force",
             },
-        "radiation_pressure": {
+        "pressure_radiation": {
             'long_name': "Radiation pressure",
             'units': 'Pa',
             },
-        "diffraction_pressure": {
+        "pressure_diffraction": {
             'long_name': "Diffraction pressure",
             'units': 'Pa',
             },
-        "Froude_Krylov_pressure": {
+        "pressure_Froude_Krylov": {
             'long_name': "Froude Krylov pressure",
             'units': 'Pa',
             },
-        "diffraction_sources": {
+        "sources_diffraction": {
             'long_name': "Diffraction source distribution on the hull",
             },
-        "radiation_sources": {
+        "sources_radiation": {
             'long_name': "Radiation source distribution on the hull",
             },
-        "diffraction_lid_sources": {
+        "sources_lid_diffraction": {
             'long_name': "Diffraction source distribution on the lid",
             },
-        "radiation_lid_sources": {
+        "sources_lid_radiation": {
             'long_name': "Radiation source distribution on the lid",
             },
-        "diffraction_potential": {
+        "potential_diffraction": {
             'long_name': "Diffraction potential on the hull",
             },
-        "radiation_potential": {
+        "potential_radiation": {
             'long_name': "Radiation potential on the hull",
             },
-        "diffraction_lid_potential": {
+        "potential_lid_diffraction": {
             'long_name': "Diffraction potential on the lid",
             },
-        "radiation_lid_potential": {
+        "potential_lid_radiation": {
             'long_name': "Radiation potential on the lid",
             },
         }
@@ -528,8 +528,8 @@ def _face_data_array(result, name, values, on_hull):
 
 
 def _add_face_distributions(dataset, results, attribute, names, optional_dims):
-    """Add to the dataset the variables 'diffraction_<name>' and 'radiation_<name>'
-    (and the same with 'lid' on the lid) for the distributions `attribute` of the results."""
+    """Add to the dataset the variables '<name>_diffraction' and '<name>_radiation'
+    (and '<name>_lid_diffraction', '<name>_lid_radiation' on the lid) for the distributions `attribute` of the results."""
     if not any(getattr(r, attribute) is not None for r in results):
         return
     for kind, problem_class, dims in [
@@ -538,7 +538,7 @@ def _add_face_distributions(dataset, results, attribute, names, optional_dims):
         selected = [r for r in results if isinstance(r.problem, problem_class)]
         if len(selected) == 0:
             continue
-        for on_hull, var_name in [(True, f"{kind}_{names}"), (False, f"{kind}_lid_{names}")]:
+        for on_hull, var_name in [(True, f"{names}_{kind}"), (False, f"{names}_lid_{kind}")]:
             if not on_hull and all(r.body.lid_mesh is None for r in selected):
                 continue
             dataset[var_name] = _squeeze_dimensions(xr.merge(
@@ -797,16 +797,16 @@ def assemble_dataset(results,
 
     if any(r.pressure is not None for r in pressure_results):
         if any(isinstance(r.problem, DiffractionProblem) for r in pressure_results):
-            dataset["diffraction_pressure"] = _squeeze_dimensions(xr.merge(
+            dataset["pressure_diffraction"] = _squeeze_dimensions(xr.merge(
                     [r.pressure_dataarray() for r in pressure_results if isinstance(r.problem, DiffractionProblem)],
                     compat="no_conflicts", join="outer"
                     )['pressure'], dimensions=optional_dims)
-            dataset["Froude_Krylov_pressure"] = _squeeze_dimensions(xr.merge(
+            dataset["pressure_Froude_Krylov"] = _squeeze_dimensions(xr.merge(
                     [airy_waves_pressure_dataarray(r.problem) for r in pressure_results if isinstance(r.problem, DiffractionProblem)],
                     compat="no_conflicts", join="outer"
                     )['pressure'], dimensions=optional_dims)
         if any(isinstance(r.problem, RadiationProblem) for r in pressure_results):
-            dataset["radiation_pressure"] = _squeeze_dimensions(xr.merge(
+            dataset["pressure_radiation"] = _squeeze_dimensions(xr.merge(
                     [r.pressure_dataarray() for r in pressure_results if isinstance(r.problem, RadiationProblem)],
                     compat="no_conflicts", join="outer"
                     )['pressure'], dimensions=optional_dims + ['wave_direction'])

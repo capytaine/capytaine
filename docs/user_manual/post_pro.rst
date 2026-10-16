@@ -129,12 +129,12 @@ In addition, :code:`fill_dataset` accepts a :code:`keep_details` keyword
 argument (default: :code:`False`), forwarded to :meth:`~capytaine.bem.solver.BEMSolver.solve_all`.
 When set to :code:`True`, the potential, pressure and sources computed for
 each problem are kept and the resulting dataset contains the pressure
-distribution on the hull as the data variables :code:`diffraction_pressure`,
-:code:`Froude_Krylov_pressure` and :code:`radiation_pressure` (with a
+distribution on the hull as the data variables :code:`pressure_diffraction`,
+:code:`pressure_Froude_Krylov` and :code:`pressure_radiation` (with a
 :code:`hull_face` dimension, in the same order as the faces of :code:`body.mesh`)::
 
     dataset = solver.fill_dataset(test_matrix, body, keep_details=True)
-    print(dataset["diffraction_pressure"])
+    print(dataset["pressure_diffraction"])
 
 Keeping these details increases the memory usage of the dataset, so this
 option is disabled by default.
