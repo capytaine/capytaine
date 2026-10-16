@@ -1,12 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from scipy.spatial import cKDTree
 
 import capytaine as cpt
 from capytaine.post_pro.mean_drift_force import near_field_mean_drift_force
+from capytaine.tools.perturbation_expansion import DifferenceFrequencyExpansion
 
-mesh = cpt.mesh_parallelepiped(resolution=(30, 30, 30)).immersed_part()
+full_mesh = cpt.mesh_parallelepiped(resolution=(30, 30, 30))
+mesh = full_mesh.immersed_part()
 body = cpt.FloatingBody(
     mesh=mesh,
     lid_mesh=mesh.generate_lid(),
@@ -15,128 +17,131 @@ body = cpt.FloatingBody(
 )
 
 wavelength = 2.0
+wave_directions = [0.0, np.pi/3]
 
 solver = cpt.BEMSolver()
-pbs = [cpt.DiffractionProblem(body=body, wavelength=wavelength, wave_direction=0.0)]
+pbs = [cpt.DiffractionProblem(body=body, wavelength=wavelength, wave_direction=beta) for beta in wave_directions]
 pbs += [cpt.RadiationProblem(body=body, wavelength=wavelength, radiating_dof=dof) for dof in body.dofs]
 results = solver.solve_all(pbs)
 dataset = cpt.assemble_dataset(results)
-rao = cpt.post_pro.rao(dataset) * 0.0
+rao = cpt.post_pro.rao(dataset)
 dataset.update(near_field_mean_drift_force(rao, results, solver, output_pressure=True))
 
-ds = dataset.isel(wavelength=0, wave_direction_k=0, wave_direction_l=0, wave_direction=0)
-
-amplitude = 0.1
-
-first_order_hull_pressure = (
-        ds["diffraction_pressure"] + ds["Froude_Krylov_pressure"]
-        + (ds["radiation_pressure"] * rao.isel(wavelength=0, wave_direction=0)).sum("radiating_dof")
-        ).values
-
-first_order_field_real = amplitude*first_order_hull_pressure.real
-first_order_field_imag = amplitude*first_order_hull_pressure.imag
+ds = dataset.isel(wavelength=0)
+rao = rao.isel(wavelength=0)
 omega = float(ds["omega"].values)
 period = 2*np.pi/omega
 
-second_order_field = amplitude**2*ds["second_order_pressure"].values
-assert np.max(np.abs(second_order_field.imag)) < 1e-13
-second_order_field = second_order_field.real
+# The sea is made of the two waves, with the same frequency.
+# Their complex amplitudes set their heights and their phases (at the origin, at t=0).
+amplitude = np.array([0.1, 0.05*np.exp(1j*np.pi/3)])
 
-waterline_pressure = amplitude*ds["waterline_pressure"].values  # complex, oscillates in time
-waterline_elevation = amplitude*ds["waterline_relative_elevation"].values  # complex, oscillates in time
 
-# Time average of the waterline pressure, remapped on the hull around the mean waterline:
-# semi-elliptic profile in the vertical coordinate s, of half-width |h| and integral Re(p conj(h))/2
-n_s = 20
-s_levels = np.linspace(-1, 1, n_s + 1)[None, :] * np.abs(waterline_elevation)[:, None]  # (segment, level)
-s_middles = (s_levels[:, 1:] + s_levels[:, :-1])/2
-mean_waterline_pressure = (
-        (waterline_pressure * np.conjugate(waterline_elevation)).real[:, None]
-        / (np.pi * np.abs(waterline_elevation)[:, None])
-        * np.sqrt(1 - (s_middles/np.abs(waterline_elevation)[:, None])**2)
-        )  # (segment, level)
+def remap_waterline_pressure(amplitude, waterline_pressure, waterline_relative_elevation, waterline_mesh, box_mesh):
+    """Mean waterline pressure of the sea made of all the waves, spread on the faces of a box around the mean waterline.
+
+    The waterline term of the mean drift force is a lineic force <p h> per unit length of waterline, where p is the
+    pressure of the waterline strip and h the relative elevation of the free surface. It is spread in the vertical
+    coordinate z around the mean waterline along a semi-elliptic profile of half-width |h| (the amplitude of h):
+
+        <p>(z) = 2 <p h> / (pi |h|) * sqrt(1 - (z/|h|)^2)    for |z| < |h|,
+
+    whose integral over z is <p h>. Each face of the box gets the value of this profile at its center, using the
+    waterline segment with the same horizontal position.
+
+    The waves have the same frequency: the mean value in the sea made of all of them is the sum over all pairs of
+    waves (m, n) of the difference-frequency QTF, which includes the cross terms between different waves.
+
+    Parameters
+    ----------
+    amplitude: complex or array of shape (nb_waves,), complex
+        Complex amplitude of each wave.
+    waterline_pressure, waterline_relative_elevation: arrays of shape (nb_waves, nb_waterline_segments), complex
+        Outputs of `near_field_mean_drift_force(..., output_pressure=True)`, for a unit amplitude.
+    waterline_mesh: array of shape (nb_waterline_segments, 2, 3)
+        Output of `near_field_mean_drift_force(..., output_pressure=True)`.
+    box_mesh: Mesh
+        Mesh of the whole box, including its part above the waterline, with the same horizontal resolution as the
+        immersed mesh.
+
+    Returns
+    -------
+    array of shape (box_mesh.nb_faces,), real
+    """
+    amplitude = np.broadcast_to(amplitude, waterline_pressure.shape[:1])[:, None]
+    p = DifferenceFrequencyExpansion([0.0, amplitude*waterline_pressure, 0.0])
+    h = DifferenceFrequencyExpansion([0.0, amplitude*waterline_relative_elevation, 0.0])
+    mean_ph = (p * h).coefficients[2].sum(axis=(0, 1)).real  # (segment,)
+    abs_h = np.sqrt(2*(h * h).coefficients[2].sum(axis=(0, 1)).real)  # (segment,), since <h h> = |h|^2/2
+
+    _, segment = cKDTree(waterline_mesh.mean(axis=1)[:, :2]).query(box_mesh.faces_centers[:, :2])
+    u = box_mesh.faces_centers[:, 2] / abs_h[segment]
+    # Value at the center of the faces. When |h| is not much larger than the faces, their average
+    # (with the antiderivative u sqrt(1 - u^2) + arcsin(u) of 2 sqrt(1 - u^2)) is more accurate.
+    return 2 * mean_ph[segment] / (np.pi * abs_h[segment]) * np.sqrt(np.clip(1 - u**2, 0.0, None))  # zero for |u| > 1
+
+
+# First-order pressure on the hull of each wave (wave_direction, hull_face), and of the sea (hull_face,)
+first_order_hull_pressure = (amplitude[:, None] * (
+        ds["pressure_diffraction"] + ds["pressure_Froude_Krylov"]
+        + (ds["pressure_radiation"] * rao).sum("radiating_dof")
+        ).transpose("wave_direction", "hull_face").values).sum(axis=0)  # Sum on incoming waves
+
+# Mean pressure on the hull: sum over all pairs of waves of the difference-frequency QTF
+amplitude_kl = amplitude[:, None] * np.conjugate(amplitude[None, :])  # The QTF of the waves (k, l) scales as a_k conj(a_l)
+second_order_pressure = amplitude_kl[:, :, None] * ds["second_order_pressure"].transpose("wave_direction_k", "wave_direction_l", "hull_face").values
+assert np.max(np.abs(second_order_pressure.sum(axis=(0, 1)).imag)) < 1e-10
+mean_hull_pressure = second_order_pressure.sum(axis=(0, 1)).real
+
+mean_waterline_pressure = remap_waterline_pressure(
+        amplitude,
+        ds["waterline_pressure"].transpose("wave_direction", "waterline_segment").values,
+        ds["waterline_relative_elevation"].transpose("wave_direction", "waterline_segment").values,
+        ds["waterline_mesh"].values,
+        full_mesh,
+        )
+
+# Pressures on the immersed hull, transferred to the faces of the full mesh (zero on the emerged part)
+distance, immersed_face = cKDTree(mesh.faces_centers).query(full_mesh.faces_centers)
+is_immersed = distance < 1e-8
+first_order_pressure = np.where(is_immersed, first_order_hull_pressure[immersed_face], 0.0)
+mean_pressure = np.where(is_immersed, mean_hull_pressure[immersed_face], 0.0)
 
 cmap = plt.get_cmap('coolwarm')
-vabs = max(np.abs(amplitude*first_order_hull_pressure).max(),
-           np.abs(second_order_field).max(),
-           np.abs(waterline_pressure).max(),
-           np.abs(mean_waterline_pressure).max())
-norm = plt.Normalize(vmin=-vabs, vmax=vabs)
-mappable = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+first_order_vabs = np.abs(first_order_pressure).max()
+first_order_norm = plt.Normalize(vmin=-first_order_vabs, vmax=first_order_vabs)
+mean_vabs = max(np.abs(mean_pressure).max(), np.abs(mean_waterline_pressure).max())
+mean_norm = plt.Normalize(vmin=-mean_vabs, vmax=mean_vabs)
+
+fields = [
+        ("First order pressure", first_order_pressure.real, first_order_norm),
+        ("Mean pressure on hull", mean_pressure, mean_norm),
+        ("Mean waterline pressure", mean_waterline_pressure, mean_norm),
+        ]
 
 fig = plt.figure(figsize=(15, 5))
-gs = fig.add_gridspec(1, 3)
-
-ax1 = fig.add_subplot(gs[0, 0], projection='3d')
-body.mesh.show(
-        backend="matplotlib",
-        ax=ax1,
-        facecolors=cmap(norm(first_order_field_real)),
-        linewidth=0.1,
-        )
-hull_collection = ax1.collections[-1]
-ax1.set_title("First order pressure")
-
-ax4 = fig.add_subplot(gs[0, 1], projection='3d')
-body.mesh.show(
-    backend="matplotlib",
-    ax=ax4,
-    facecolors="none",
-    edgecolor="k",
-    linewidth=0.1,
-)
-
-ax3 = fig.add_subplot(gs[0, 2], projection='3d')
-body.mesh.show(
-        backend="matplotlib",
-        ax=ax3,
-        facecolors=cmap(norm(second_order_field)),
-        linewidth=0.1,
-        )
-ax3.set_title("Mean drift pressure")
-
-p0 = ds["waterline_mesh"].values[:, 0, :]
-p1 = ds["waterline_mesh"].values[:, 1, :]
-
-
-def waterline_quads(elevation, bottom=None):
-    if bottom is None:
-        bottom = np.zeros_like(elevation)
-    return [
-            [(p0[i, 0], p0[i, 1], bottom[i]), (p1[i, 0], p1[i, 1], bottom[i]),
-             (p1[i, 0], p1[i, 1], elevation[i]), (p0[i, 0], p0[i, 1], elevation[i])]
-            for i in range(len(p0))
-            ]
-
-
-mean_curtain = Poly3DCollection(
-        [quad for j in range(n_s) for quad in waterline_quads(s_levels[:, j+1], bottom=s_levels[:, j])],
-        facecolors=cmap(norm(mean_waterline_pressure.T.ravel())),
-        )
-ax3.add_collection3d(mean_curtain)
-
-
-curtain = Poly3DCollection(waterline_quads(waterline_elevation.real), facecolors=cmap(norm(waterline_pressure.real)))
-ax4.add_collection3d(curtain)
-ax4.set_title("Waterline")
-fig.suptitle(f"Amplitude = {amplitude}m")
-
-fig.colorbar(mappable, ax=[ax1, ax3, ax4], shrink=0.6)
+axs = [fig.add_subplot(1, len(fields), i+1, projection='3d') for i in range(len(fields))]
+for ax, (title, field, norm) in zip(axs, fields):
+    full_mesh.show(
+            backend="matplotlib",
+            ax=ax,
+            facecolors=cmap(norm(field)),
+            linewidth=0.1,
+            )
+    ax.set_title(title)
+    ax.view_init(elev=30, azim=-135)  # Show the faces x = -0.5 and y = -0.5, on which the incoming waves hit
+first_order_collection = axs[0].collections[-1]
+fig.suptitle(", ".join(f"wave from {np.degrees(beta):.0f}°: amplitude {np.abs(a):.2f}m, phase {np.degrees(np.angle(a)):.0f}°"
+                       for beta, a in zip(wave_directions, amplitude)))
+fig.colorbar(plt.cm.ScalarMappable(norm=first_order_norm, cmap=cmap), ax=axs[0], shrink=0.6)
+fig.colorbar(plt.cm.ScalarMappable(norm=mean_norm, cmap=cmap), ax=axs[1:], shrink=0.6)
 
 
 def update(frame):
     t = frame/n_frames * period
     phase = np.exp(-1j*omega*t)
-
-    hull_pressure_t = (amplitude*first_order_hull_pressure * phase).real
-    hull_collection.set_facecolor(cmap(norm(hull_pressure_t)))
-
-    waterline_elevation_t = (waterline_elevation * phase).real
-    waterline_pressure_t = np.sign(waterline_elevation_t) * (waterline_pressure * phase).real
-    curtain.set_verts(waterline_quads(waterline_elevation_t))
-    curtain.set_facecolor(cmap(norm(waterline_pressure_t)))
-
-    return hull_collection, curtain
+    first_order_collection.set_facecolor(cmap(first_order_norm((first_order_pressure * phase).real)))
+    return first_order_collection,
 
 
 n_frames = 30

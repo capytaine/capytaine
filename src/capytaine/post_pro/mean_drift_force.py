@@ -189,6 +189,8 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
         If ``output_pressure`` is True, the dataset also contains a ``second_order_pressure``
         variable with the mean drift pressure field on the hull, of shape
         ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``.
+        It has the same normalization as ``near_field_mean_drift_force``: its diagonal is the
+        mean pressure in a single wave of unit amplitude.
     """
     body = results[0].body
     mesh = body.mesh.merged()
@@ -249,8 +251,8 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
 
                 waterline_force = integrate_pressure_waterline(
                         body, mesh,
-                        (p_waterline[w, l, ...] * np.conjugate(h_waterline[w, k, ...])
-                          + np.conjugate(p_waterline[w, k, ...]) * h_waterline[w, l, ...])/2
+                        (p_waterline[w, k, ...] * np.conjugate(h_waterline[w, l, ...])
+                          + np.conjugate(p_waterline[w, l, ...]) * h_waterline[w, k, ...])/2
                         )
 
                 F[w, k, l, :] = rotation_forces_order1 + hydrostatics_order2 + translation_moment + np.array(list(pressure_hull.values())) + np.array(list(waterline_force.values()))
@@ -271,7 +273,7 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
 
     if output_pressure:
         dataset["second_order_pressure"] = xr.DataArray(
-                data=p2,
+                data=p2/2,
                 dims=[freq_type, "wave_direction_k", "wave_direction_l", "hull_face"],
                 coords={
                     freq_type: rao.coords[freq_type].values,
