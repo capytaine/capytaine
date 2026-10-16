@@ -484,7 +484,67 @@ VARIABLES_ATTRIBUTES = {
             'long_name': "Froude Krylov pressure",
             'units': 'Pa',
             },
+        "diffraction_sources": {
+            'long_name': "Diffraction source distribution on the hull",
+            },
+        "radiation_sources": {
+            'long_name': "Radiation source distribution on the hull",
+            },
+        "diffraction_lid_sources": {
+            'long_name': "Diffraction source distribution on the lid",
+            },
+        "radiation_lid_sources": {
+            'long_name': "Radiation source distribution on the lid",
+            },
+        "diffraction_potential": {
+            'long_name': "Diffraction potential on the hull",
+            },
+        "radiation_potential": {
+            'long_name': "Radiation potential on the hull",
+            },
+        "diffraction_lid_potential": {
+            'long_name': "Diffraction potential on the lid",
+            },
+        "radiation_lid_potential": {
+            'long_name': "Radiation potential on the lid",
+            },
         }
+
+
+def _face_data_array(result, name, values, on_hull):
+    """Part of a distribution defined on all the faces of the mesh including lid
+    (`values`, or None if missing) that is on the hull (or on the lid), as a
+    DataArray with the metadata of the problem.
+    The hull and lid are separated with the hull mask of the body, the order of
+    the faces in the mesh including lid being not necessarily hull first."""
+    mask = result.body.hull_mask
+    mask = mask if on_hull else ~mask
+    if values is None:
+        values = np.full((int(np.count_nonzero(mask)),), np.nan + 1j*np.nan)
+    else:
+        values = np.asarray(values)[mask]
+    dataarray = xr.DataArray(values, dims=["hull_face" if on_hull else "lid_face"], name=name)
+    return result.problem._wrap_dataarray(dataarray)
+
+
+def _add_face_distributions(dataset, results, attribute, names, optional_dims):
+    """Add to the dataset the variables 'diffraction_<name>' and 'radiation_<name>'
+    (and the same with 'lid' on the lid) for the distributions `attribute` of the results."""
+    if not any(getattr(r, attribute) is not None for r in results):
+        return
+    for kind, problem_class, dims in [
+            ("diffraction", DiffractionProblem, optional_dims),
+            ("radiation", RadiationProblem, optional_dims + ['wave_direction'])]:
+        selected = [r for r in results if isinstance(r.problem, problem_class)]
+        if len(selected) == 0:
+            continue
+        for on_hull, var_name in [(True, f"{kind}_{names}"), (False, f"{kind}_lid_{names}")]:
+            if not on_hull and all(r.body.lid_mesh is None for r in selected):
+                continue
+            dataset[var_name] = _squeeze_dimensions(xr.merge(
+                [_face_data_array(r, "distribution", getattr(r, attribute), on_hull) for r in selected],
+                compat="no_conflicts", join="outer"
+                )["distribution"], dimensions=dims)
 
 def assemble_dataset(results,
                      omega=True, freq=True, wavenumber=True, wavelength=True, period=True,
@@ -750,6 +810,13 @@ def assemble_dataset(results,
                     [r.pressure_dataarray() for r in pressure_results if isinstance(r.problem, RadiationProblem)],
                     compat="no_conflicts", join="outer"
                     )['pressure'], dimensions=optional_dims + ['wave_direction'])
+
+    # Indirect method: sources. Direct method: potential (which is then the unknown of the linear system)
+    # (The potential is not stored for the indirect method, since it can be recomputed from the sources.)
+    _add_face_distributions(dataset, [r for r in pressure_results if r.sources is not None],
+                            "sources", "sources", optional_dims)
+    _add_face_distributions(dataset, [r for r in pressure_results if r.sources is None],
+                            "potential", "potential", optional_dims)
 
     for var in set(dataset) | set(dataset.coords):
         if var in VARIABLES_ATTRIBUTES:

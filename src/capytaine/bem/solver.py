@@ -401,6 +401,10 @@ class BEMSolver:
             if True, keep the sources, potential and pressure distributions computed for each
             problem. The pressure on the hull is then included in the returned dataset as
             ``diffraction_pressure``, ``Froude_Krylov_pressure`` and ``radiation_pressure``.
+            The sources (indirect method) are also included as ``diffraction_sources``, ``radiation_sources``
+            (and ``diffraction_lid_sources``, ``radiation_lid_sources`` on the lid, if any).
+            With the direct method, the potential is included instead
+            (``diffraction_potential``, ``radiation_potential`` and the same on the lid).
         n_threads: int, optional
             the number of threads used to solve each problem.
             The total number of used CPU will be n_jobs×n_threads.
