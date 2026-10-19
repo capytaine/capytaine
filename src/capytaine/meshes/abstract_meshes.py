@@ -218,6 +218,12 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
         length_waterline = np.linalg.norm(vertices_left - vertices_right, ord=2, axis=1)
         return length_waterline
 
+    @cached_property
+    def middle_edges_waterline(self):
+        """Return an array with the middles of the edges of the water line with shape (nb_edges_waterline, 3)."""
+        edges = self.edges_waterline
+        return (self.vertices[edges[:, 0], :] + self.vertices[edges[:, 1], :]) / 2
+
     def waterline_integral(self, data):
         """Returns integral of given data along the water line.
 
