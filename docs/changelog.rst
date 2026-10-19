@@ -41,6 +41,8 @@ Major changes
 Bug fixes
 ~~~~~~~~~
 
+* For a mesh without waterline (e.g. a fully submerged body), ``edges_waterline`` and ``faces_waterline`` are now empty 2D arrays (of shape ``(0, 2)`` and ``(0, 4)``) instead of 1D arrays, so that the computations on the waterline do not fail.
+
 * Fix the conversion of a :class:`~capytaine.tools.block_circulant_matrices.BlockDiagonalMatrix` to a NumPy array, that was raising an ``AttributeError``. (:pull:`958`)
 
 * Fix computation of hydrostatic stiffness on multibodies treated as generalized dofs as in previous version. (:pull:`936`)
@@ -109,7 +111,7 @@ Internals
   holds complex amplitudes for several wave components at once, and computes the full
   difference-frequency QTF of an expression in one evaluation.
   First-order quantities are built with :meth:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion.first_order`.
-  :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` is now computed with it,
+  :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` is now computed with :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`,
   from the unexpanded integral of the pressure on the moving body, for any dofs
   with a gradient of motion, with the help of
   :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_moving_body`

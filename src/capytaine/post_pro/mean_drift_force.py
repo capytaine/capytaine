@@ -21,6 +21,7 @@ from capytaine.bem.airy_waves import (
     airy_waves_velocity,
 )
 from capytaine.bodies.bodies import FloatingBody
+from capytaine.bodies.dofs import AbstractDof
 from capytaine.bem.problems_and_results import DiffractionResult, RadiationResult
 from capytaine.tools.perturbation_expansion import DifferenceFrequencyExpansion as Expansion
 
@@ -201,6 +202,9 @@ def near_field_mean_drift_force(first_order_motion_amplitude, results, solver, *
           pressure field on the hull. It has the same normalization as
           ``near_field_mean_drift_force``: its diagonal is the mean pressure in a single wave of
           unit amplitude. It does not include the waterline term.
+          For a fixed body, the hull term of the force is the integral of this pressure on the mean hull.
+          For a moving body, it also includes the first-order pressure times the first-order
+          variations of the normals and of the motion of the dofs on the moving hull.
         - ``pressure_waterline_total``, of shape
           ``(nb_freq, nb_wave_direction, nb_waterline_segments)``: the complex first-order
           pressure ``p`` in the strip between the mean waterline and the free surface, at the
@@ -215,12 +219,15 @@ def near_field_mean_drift_force(first_order_motion_amplitude, results, solver, *
           the two ends of each segment of the waterline.
 
         For the waves ``k`` and ``l``, the waterline term of ``near_field_mean_drift_force`` is
-        the integral along the waterline of ``(p_k conj(h_l) + conj(p_l) h_k)/2``, projected on
-        the dofs.
+        the integral along the waterline of ``(p_k conj(w_l) + conj(p_l) w_k)/4 * (-n·δu_j)`` for the dof ``j``,
+        where ``w = h / sqrt(1 - n_z²)`` is the width of the strip along the hull and ``n`` the normal of the
+        face containing the segment of the waterline.
     """
     body = results[0].body
     if not isinstance(body, FloatingBody):
         raise NotImplementedError(f"The near field mean drift force is only implemented for a single FloatingBody, not for {body}.")
+    if not all(isinstance(dof, AbstractDof) for dof in body.dofs.values()):
+        raise NotImplementedError("The near field mean drift force is only implemented for dofs defined as AbstractDof (e.g. TranslationDof, RotationDof, CustomDof), not as arrays.")
     mesh = body.mesh.merged()
     rho = results[0].rho
     g = results[0].g
@@ -252,9 +259,9 @@ def near_field_mean_drift_force(first_order_motion_amplitude, results, solver, *
     for w in range(nb_freq):
         u, _ = body._displacement_expansions(motion_amplitude[w]) # field (nb_faces, 3)
         velocity = Expansion.first_order(gradient_potential[w]) # field (nb_faces, 3)
-        gradient_pressure = Expansion([gradient_hydrostatic_pressure, 1j * omegas[w] * rho * gradient_potential[w], 0.0]) # field (nb_faces, 3)
+        gradient_pressure = gradient_hydrostatic_pressure + Expansion.first_order(1j * omegas[w] * rho * gradient_potential[w]) # field (nb_faces, 3)
         # Bernoulli (without second-order potential) at the displaced point X + u
-        pressure = Expansion([hydrostatic_pressure, pressure_hull[w], 0.0]) - rho/2 * (velocity * velocity).sum(-1) + (gradient_pressure * u).sum(-1) # field (nb_faces,)
+        pressure = hydrostatic_pressure + Expansion.first_order(pressure_hull[w]) - rho/2 * (velocity * velocity).sum(-1) + (gradient_pressure * u).sum(-1) # field (nb_faces,)
         # The second-order motion at the waterline would only multiply order-0 quantities, which are zero at the waterline.
         waterline_term = Expansion.first_order(pressure_waterline[w]) * Expansion.first_order(strip_width_waterline[w]) # field (nb_waterline_segments,)
         force = body.integrate_pressure_on_moving_body(pressure, motion_amplitude[w]) + body.integrate_pressure_on_waterline(waterline_term)
