@@ -25,7 +25,7 @@ import xarray as xr
 
 from capytaine.meshes.abstract_meshes import AbstractMesh
 from capytaine.meshes.meshes import Mesh
-from capytaine.meshes.geometry import connected_components, connected_components_of_waterline
+from capytaine.meshes.geometry import connected_components, connected_components_of_waterline, compute_faces_normals
 from capytaine.bodies.dofs import (
         AbstractDof,
         TranslationDof,
@@ -36,6 +36,7 @@ from capytaine.bodies.dofs import (
         )
 from capytaine.bodies.abstract_bodies import AbstractBody
 from capytaine.bodies.hydrostatics import _FloatingBodyHydrostaticsMixin
+from capytaine.tools.perturbation_expansion import PerturbationExpansion, DifferenceFrequencyExpansion
 
 LOG = logging.getLogger(__name__)
 
@@ -248,6 +249,117 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
             # Sum over all faces:
             forces[dof_name] = np.sum(pressure * normal_dof_amplitude_on_face * self.mesh.faces_areas)
         return forces
+
+    def _dofs_on_faces(self):
+        """Motion of the dofs and their gradients at the faces centers.
+
+        Returns
+        -------
+        motion: array of shape (nb_dofs, nb_faces, 3)
+        gradient: array of shape (nb_dofs, nb_faces, 3, 3)
+        second_order: dict
+            ``{(j, k): (δ²u_jk, ∇δ²u_jk)}`` with arrays of shape (nb_faces, 3) and (nb_faces, 3, 3),
+            only for the pairs of dofs with a non-zero second-order motion (some pairs of rotations).
+        """
+        motion = np.zeros((len(self.dofs), self.mesh.nb_faces, 3))
+        gradient = np.zeros((len(self.dofs), self.mesh.nb_faces, 3, 3))
+        for j, (dof_name, dof) in enumerate(self.dofs.items()):
+            if isinstance(dof, AbstractDof):
+                motion[j] = dof.evaluate_motion(self.mesh)
+                gradient[j] = dof.evaluate_gradient_of_motion(self.mesh)
+            else:
+                motion[j] = dof
+                LOG.warning(f"For dof {dof_name}, no gradient of motion specified, computing the following assuming 0.")
+
+        second_order = {}
+        abstract_dofs = [(j, dof) for j, dof in enumerate(self.dofs.values()) if isinstance(dof, AbstractDof)]
+        for j, dof_j in abstract_dofs:
+            for k, dof_k in abstract_dofs:
+                motion_jk = dof_j.evaluate_second_order_motion(dof_k, self.mesh)
+                gradient_jk = dof_j.evaluate_gradient_of_second_order_motion(dof_k, self.mesh)
+                if np.any(motion_jk != 0.0) or np.any(gradient_jk != 0.0):
+                    second_order[(j, k)] = (motion_jk, gradient_jk)
+        return motion, gradient, second_order
+
+    def _displacement_expansions(self, first_order_motion_amplitude):
+        """Displacement u = Σ_j q_j δu_j + 1/2 Σ_jk q_j q_k δ²u_jk at the faces centers, and its gradient.
+
+        Parameters
+        ----------
+        first_order_motion_amplitude: array of shape (nb_wave_directions, nb_dofs)
+            Complex amplitudes q of the dofs at one frequency, for each wave direction.
+
+        Returns
+        -------
+        DifferenceFrequencyExpansion with field (nb_faces, 3), and DifferenceFrequencyExpansion with field (nb_faces, 3, 3)
+        """
+        Expansion = DifferenceFrequencyExpansion
+        q = np.asarray(first_order_motion_amplitude)
+        motion, gradient, second_order = self._dofs_on_faces()
+        u = Expansion([0.0, np.sum(q[:, :, None, None] * motion[None], axis=1), 0.0])
+        grad_u = Expansion([0.0, np.sum(q[:, :, None, None, None] * gradient[None], axis=1), 0.0])
+        for (j, k), (motion_jk, gradient_jk) in second_order.items():
+            q_jk = Expansion([0.0, q[:, j], 0.0]) * Expansion([0.0, q[:, k], 0.0])  # Field ()
+            u = u + 0.5 * q_jk * motion_jk
+            grad_u = grad_u + 0.5 * q_jk * gradient_jk
+        return u, grad_u
+
+    def integrate_pressure_on_moving_body(self, pressure, first_order_motion_amplitude):
+        """Integrate the pressure on the moving body, up to second order. Experimental.
+
+        Computes the order-2 expansion of F_j = -∫ p(X+u) δu_j(X+u)·(A n) dS on the mean body surface,
+        where u is the displacement of the body for the motion given by `first_order_motion_amplitude`,
+        δu_j(X+u) the motion of dof j at the displaced point, and A n dS the displaced
+        normal and surface element (Nanson's formula, A = det(F) F^-T with F = I + ∇u).
+
+        Parameters
+        ----------
+        pressure: DifferenceFrequencyExpansion
+            Pressure at the displaced faces centers p(X+u), with field (nb_faces,).
+        first_order_motion_amplitude: array of shape (nb_wave_directions, nb_dofs)
+            Complex amplitudes of the dofs at one frequency, for each of the wave directions of `pressure`.
+
+        Returns
+        -------
+        DifferenceFrequencyExpansion
+            The generalized forces, with field (nb_dofs,).
+        """
+        u, grad_u = self._displacement_expansions(first_order_motion_amplitude)
+        motion, gradient, _ = self._dofs_on_faces()
+        deformation = np.eye(3) + grad_u  # F
+        nanson = deformation.det().expand_dims(-1).expand_dims(-1) * deformation.inv().T
+        displaced_normals = (nanson @ np.expand_dims(self.mesh.faces_normals, axis=-1)).squeeze(-1)  # (nb_faces, 3)
+        displaced_dofs = motion + (gradient @ u.expand_dims(-3).expand_dims(-1)).squeeze(-1)  # (nb_dofs, nb_faces, 3), Hessian of the dofs neglected
+        # The minus sign is because we want the force of the fluid on the body and not the force of the body on the fluid.
+        normal_dof_amplitude_on_face = -(displaced_dofs * displaced_normals.expand_dims(-3)).sum(-1) * self.mesh.faces_areas
+        return (pressure.expand_dims(-2) * normal_dof_amplitude_on_face).sum(-1)
+
+    def integrate_pressure_on_waterline(self, pressure):
+        """Integrate a lineic pressure along the mean waterline.
+
+        Parameters
+        ----------
+        pressure: array of shape (nb_edges_waterline,) or DifferenceFrequencyExpansion
+            Integrated pressure over the height of the strip between the mean waterline and the free surface
+            (force per unit length), at the middle of the edges of the waterline of `self.mesh.merged()`.
+            It is projected on the horizontal normal of the faces of the waterline, scaled by 1/sqrt(1 - nz²).
+
+        Returns
+        -------
+        dict[str, complex] or DifferenceFrequencyExpansion
+            For an array, the forces as a dictionary with the names of the dofs as keys.
+            For a DifferenceFrequencyExpansion (experimental), an expansion with field (nb_dofs,).
+        """
+        mesh = self.mesh.merged()  # The waterline data of symmetric meshes is computed on the merged mesh.
+        normal = compute_faces_normals(mesh.vertices, mesh.faces_waterline)
+        normal_waterline = normal/np.sqrt(1-normal[:, -1]**2)[:, None]  # (nb_edges_waterline, 3)
+        motion = np.array([dof.evaluate_motion_at_points(mesh.middle_edges_waterline) for dof in self.dofs.values()])
+        # The minus sign is because we want the force of the fluid on the body and not the force of the body on the fluid.
+        normal_dof_amplitude_on_waterline = -np.sum(motion * normal_waterline, axis=-1) * mesh.length_edges_waterline  # (nb_dofs, nb_edges_waterline)
+        if isinstance(pressure, PerturbationExpansion):
+            return (pressure.expand_dims(-2) * normal_dof_amplitude_on_waterline).sum(-1)
+        else:
+            return dict(zip(self.dofs.keys(), np.sum(pressure * normal_dof_amplitude_on_waterline, axis=-1)))
 
     def keep_only_dofs(self, *args, **kwargs):
         raise NotImplementedError("`keep_only_dofs` has been removed. Consider using `body = body.with_only_dofs(['dof_name'])` instead.")

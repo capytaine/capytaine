@@ -108,6 +108,13 @@ Internals
   Its subclass :class:`~capytaine.tools.perturbation_expansion.DifferenceFrequencyExpansion`
   holds complex amplitudes for several wave components at once, and computes the full
   difference-frequency QTF of an expression in one evaluation.
+  The hydrodynamic part of :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` is now computed with it,
+  from the unexpanded integral of the pressure on the moving body, for any dofs
+  with a gradient of motion, with the help of
+  :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_moving_body`
+  and
+  :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_waterline`.
+  Add the property ``middle_edges_waterline`` to the meshes.
 
 * Add the private methods ``BEMSolver._compute_potential_from_sources`` and ``BEMSolver._compute_potential_gradient_from_sources``, evaluating the potential or its gradient from bare source distributions (given with the mesh and the Green function parameters, without a result object).
   The sources can have leading batch axes, in which case the influence matrix is built only once and multiplied by all the source distributions at once.

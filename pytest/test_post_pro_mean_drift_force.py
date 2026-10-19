@@ -20,7 +20,7 @@ import pytest
 import capytaine as cpt
 import capytaine_test_helpers as helpers
 from capytaine.io.xarray import problems_from_dataset, kochin_data_array
-from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, near_field_mean_drift_force, integrate_pressure_waterline
+from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, near_field_mean_drift_force, _near_field_hydrodynamics
 
 
 def test_far_field_mean_drift_force():
@@ -236,6 +236,26 @@ def test_period_equivalent_omega_mean_drift_force():
 
     assert np.allclose(np.flip(mdf_period.values, axis=0), mdf_omega)
 
+
+def test_near_field_hydrodynamics_of_generic_dofs():
+    # Smoke test for dofs that are not rigid body motions (no reference value).
+    bending = cpt.CustomDof(motion=lambda x: np.array([0.0, 0.0, x[0]**2]),
+                            gradient_of_motion=lambda x: np.array([[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [2*x[0], 0.0, 0.0]]))
+    body = cpt.FloatingBody(mesh=helpers.small_sphere_mesh(),
+                            dofs={**cpt.rigid_body_dofs(only=["Heave", "Pitch"], rotation_center=(0, 0, 0)), "Bending": bending})
+    solver = helpers.solver()
+    test_matrix = xr.Dataset(coords={'omega': [1.0], 'wave_direction': [0.0, np.pi/2], 'radiating_dof': list(body.dofs)})
+    results = solver.solve_all(problems_from_dataset(test_matrix, body))
+    rng = np.random.default_rng(3)
+    rao = xr.DataArray(rng.normal(size=(1, 2, 3)) + 1j * rng.normal(size=(1, 2, 3)),
+                       dims=["omega", "wave_direction", "radiating_dof"],
+                       coords={"omega": [1.0], "wave_direction": [0.0, np.pi/2], "radiating_dof": list(body.dofs)})
+    force, pressure_hull, pressure_waterline, relative_elevation = _near_field_hydrodynamics(rao, results, solver)
+    assert force.shape == (1, 2, 2, 3)
+    assert np.all(np.isfinite(force))
+    np.testing.assert_allclose(force, np.conj(np.swapaxes(force, 1, 2)), atol=1e-10)
+
+
 ################################################################################
 #                          Mean drift force pressure                           #
 ################################################################################
@@ -273,8 +293,7 @@ def test_mean_drift_force_from_exported_pressures_of_fixed_body():
     for k in range(2):
         for l in range(2):
             hull = body.integrate_pressure(mdf["pressure_hull_mean_drift"].isel(wave_direction_k=k, wave_direction_l=l).values)
-            waterline = integrate_pressure_waterline(
-                    body, body.mesh.merged(),
+            waterline = body.integrate_pressure_on_waterline(
                     (p_wl[k] * np.conjugate(h_wl[l]) + np.conjugate(p_wl[l]) * h_wl[k])/4
                     )
             force = mdf["near_field_mean_drift_force"].isel(wave_direction_k=k, wave_direction_l=l).values
