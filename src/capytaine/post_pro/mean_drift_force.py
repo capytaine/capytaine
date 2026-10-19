@@ -20,7 +20,7 @@ from capytaine.bem.airy_waves import (
     airy_waves_pressure,
     airy_waves_velocity,
 )
-from capytaine.bodies.dofs import TranslationDof, RotationDof
+from capytaine.bodies.bodies import FloatingBody
 from capytaine.bem.problems_and_results import DiffractionResult, RadiationResult
 from capytaine.tools.perturbation_expansion import DifferenceFrequencyExpansion as Expansion
 
@@ -161,15 +161,22 @@ def _merge_far_field_mean_drift_variables(dataset):
 # Near field
 ####################################################################################################
 
-def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
+def near_field_mean_drift_force(first_order_motion_amplitude, results, solver, *, output_pressure=False):
     """Compute the mean drift force using the near field formulation.
 
-    Current assumptions: all results are for the same body, the same rho and g.
+    The force is the second-order part of the integral of the pressure on the moving body and along
+    the waterline, for any dofs (rigid body motions or generalized modes with a gradient of motion).
+    All the wave components have the same frequency, so all the terms of the result (for the same or for
+    different wave directions) are at difference frequency zero, where the second-order potential does
+    not contribute to the pressure.
+
+    Current assumptions: all results are for the same :class:`~capytaine.bodies.bodies.FloatingBody`
+    (multibodies are not supported yet), the same rho and g.
     Several wavelengths and dofs are taken into account at once.
 
     Parameters
     ----------
-    rao : xarray DataArray
+    first_order_motion_amplitude : xarray DataArray
         The motion RAO, as returned by :func:`capytaine.post_pro.rao.rao`.
     results : list of LinearPotentialFlowResult
         The diffraction and radiation results used to compute the RAO, for all the wavelengths
@@ -199,7 +206,7 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
           pressure ``p`` in the strip between the mean waterline and the free surface, at the
           middle of each segment of the waterline, for a wave of unit amplitude.
           It is the total pressure on the freely floating body: incident, diffracted and
-          radiated (with the motion given by ``rao``) waves, as well as the hydrostatic pressure
+          radiated (with the motion given by ``first_order_motion_amplitude``) waves, as well as the hydrostatic pressure
           averaged over the height of the strip.
         - ``relative_elevation_waterline``, of the same shape: the complex first-order relative
           elevation ``h`` of the free surface with respect to the body, at the same points, for
@@ -212,74 +219,58 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
         the dofs.
     """
     body = results[0].body
+    if not isinstance(body, FloatingBody):
+        raise NotImplementedError(f"The near field mean drift force is only implemented for a single FloatingBody, not for {body}.")
     mesh = body.mesh.merged()
     rho = results[0].rho
     g = results[0].g
     freq_type = results[0].provided_freq_type
-    nb_freq = rao.sizes[freq_type]
-    nb_dir = rao.sizes["wave_direction"]
+    first_order_motion_amplitude = first_order_motion_amplitude.transpose(freq_type, "wave_direction", "radiating_dof")
+    omegas = first_order_motion_amplitude.coords["omega"].values
+    motion_amplitude = first_order_motion_amplitude.sel(radiating_dof=list(body.dofs)).values # motion_amplitude[i_freq, i_dir, i_dof]
 
-    force_hydrodynamics, pressure_hull_hydrodynamics, hydrodynamic_pressure_at_waterline, h_waterline = _near_field_hydrodynamics(rao, results, solver)
+    # First-order amplitudes
+    pressure_hull = total_pressure_on_hull(mesh, results, first_order_motion_amplitude).values # pressure_hull[i_freq, i_dir, i_face]
+    gradient_potential = total_potential_gradient(solver, mesh, results, first_order_motion_amplitude).values # gradient_potential[i_freq, i_dir, i_face, xyz]
+    hydrodynamic_pressure_waterline = total_pressure(solver, mesh.middle_edges_waterline, results, first_order_motion_amplitude).values # hydrodynamic_pressure_waterline[i_freq, i_dir, i_vertex_waterline]
+    dofs_motion_waterline = body._dofs_on_waterline() # dofs_motion_waterline[i_dof, i_vertex_waterline, xyz]
+    vertical_motion_waterline = np.sum(motion_amplitude[..., None] * dofs_motion_waterline[None, None, :, :, 2], axis=2) # vertical_motion_waterline[i_freq, i_dir, i_vertex_waterline]
+    free_surface_elevation_waterline = hydrodynamic_pressure_waterline / (rho * g)
+    # Pressure averaged over the height of the strip between the mean waterline and the free surface,
+    # height of this strip, and its width along the (possibly inclined) hull.
+    pressure_waterline = hydrodynamic_pressure_waterline - rho * g * (free_surface_elevation_waterline + vertical_motion_waterline)/2
+    relative_elevation_waterline = free_surface_elevation_waterline - vertical_motion_waterline
+    strip_width_waterline = relative_elevation_waterline / np.sqrt(1 - mesh.normals_edges_waterline[:, 2]**2)
 
-    # Hydrostatics, only for a rigid body for now
-    zero_block = np.zeros((nb_freq, nb_dir, 3, 3))
-    zero_33 = zero_block[0, 0, ...]
+    # Hydrostatic pressure on the hull (order 0)
+    hydrostatic_pressure = - rho * g * mesh.faces_centers[:, 2] # hydrostatic_pressure[i_face]
+    gradient_hydrostatic_pressure = np.array([0.0, 0.0, - rho * g])
 
-    translation = rao.sel(radiating_dof=[dof_name for dof_name, dof in body.dofs.items() if isinstance(dof, TranslationDof)]).values # translation[i_freq, i_dir, xyz]
-    rotation = rao.sel(radiating_dof=[dof_name for dof_name, dof in body.dofs.items() if isinstance(dof, RotationDof)]).values # rotation[i_freq, i_dir, xyz]
-    translation_matrix = np.block([[zero_block, zero_block], [skew_matrix(translation), zero_block]])
-    rotation_matrix = np.block([[skew_matrix(rotation), zero_block], [zero_block, skew_matrix(rotation)]])
-
-    z0 = np.tile(mesh.faces_centers[:, -1], (nb_freq, nb_dir, 1))
-    z1 = motion_order1(mesh.faces_centers, body, rao)[..., -1] # z1[i_freq, i_dir, i_face]
-    forces_order0 = hydrostatics_forces(body, rao, rho, g, z0)[0, 0, :] # same value for all wave directions and frequencies at order 0 forces_order0[influenced_dof]
-    forces_order1 = hydrostatics_forces(body, rao, rho, g, z1) # forces_order1[i_freq, i_dir, influenced_dof]
-    all_forces_order1 = forces_order1 + rotation_matrix @ forces_order0 # all_forces_order1[i_freq, i_dir, influenced_dof]
-    # The coupling of the first-order hydrodynamic forces with the motion is in `force_hydrodynamics`.
-
-    free_surface_elevation_at_waterline = hydrodynamic_pressure_at_waterline / (rho * g)
-    vertical_motion_at_waterline = motion_order1(mesh.middle_edges_waterline, body, rao)[..., -1] # vertical_motion[i_freq, i_dir, i_vertex_waterline]
-    hydrostatic_pressure_at_waterline = - rho * g * (free_surface_elevation_at_waterline + vertical_motion_at_waterline)/2 # mean over the height of the strip
-
-    F = np.full((nb_freq, nb_dir, nb_dir, len(body.dofs)), np.nan + 1j*np.nan, dtype=complex)
-    p2 = np.full((nb_freq, nb_dir, nb_dir, mesh.nb_faces), np.nan + 1j*np.nan, dtype=complex)
+    nb_freq, nb_dir = motion_amplitude.shape[:2]
+    F = np.empty((nb_freq, nb_dir, nb_dir, len(body.dofs)), dtype=complex)
+    p2 = np.empty((nb_freq, nb_dir, nb_dir, mesh.nb_faces), dtype=complex)
     for w in range(nb_freq):
-        for k in range(nb_dir):
-            for l in range(k, nb_dir):
-                h = transformation_matrix(rao.isel({freq_type: w, 'wave_direction': k}), rao.isel({freq_type: w, 'wave_direction': l})) # h[xyz, xyz]
-                H = np.block([[h, zero_33], [zero_33, h]])
-                z_order2 = (h @ mesh.faces_centers[:, :, None])[..., -1, -1] # z_order2[i_face]
-                pressure_field = - rho * g * z_order2 # pressure_field[i_face]
-                p2[w, k, l, :] = pressure_field
-                p2[w, l, k, :] = np.conjugate(pressure_field)
+        u, _ = body._displacement_expansions(motion_amplitude[w]) # field (nb_faces, 3)
+        velocity = Expansion.first_order(gradient_potential[w]) # field (nb_faces, 3)
+        gradient_pressure = Expansion([gradient_hydrostatic_pressure, 1j * omegas[w] * rho * gradient_potential[w], 0.0]) # field (nb_faces, 3)
+        # Bernoulli (without second-order potential) at the displaced point X + u
+        pressure = Expansion([hydrostatic_pressure, pressure_hull[w], 0.0]) - rho/2 * (velocity * velocity).sum(-1) + (gradient_pressure * u).sum(-1) # field (nb_faces,)
+        # The second-order motion at the waterline would only multiply order-0 quantities, which are zero at the waterline.
+        waterline_term = Expansion.first_order(pressure_waterline[w]) * Expansion.first_order(strip_width_waterline[w]) # field (nb_waterline_segments,)
+        force = body.integrate_pressure_on_moving_body(pressure, motion_amplitude[w]) + body.integrate_pressure_on_waterline(waterline_term)
+        F[w] = force.coefficients[2]
+        p2[w] = pressure.coefficients[2]
 
-                hydrostatics_order2 = H @ forces_order0
-                rotation_forces_order1 = ((rotation_matrix[w, k, ...] @ np.conjugate(forces_order1[w, l, ...])) + (np.conjugate(rotation_matrix[w, l, ...]) @ forces_order1[w, k, ...])) / 2
-                translation_moment = ((translation_matrix[w, k, ...] @ np.conjugate(all_forces_order1[w, l, ...])) + (np.conjugate(translation_matrix[w, l, ...]) @ all_forces_order1[w, k, ...])) / 2
-                pressure_hull = body.integrate_pressure(pressure_field)
-
-                waterline_force = body.integrate_pressure_on_waterline(
-                        (hydrostatic_pressure_at_waterline[w, k, ...] * np.conjugate(h_waterline[w, l, ...])
-                          + np.conjugate(hydrostatic_pressure_at_waterline[w, l, ...]) * h_waterline[w, k, ...])/2
-                        )
-
-                F[w, k, l, :] = rotation_forces_order1 + hydrostatics_order2 + translation_moment + np.array(list(pressure_hull.values())) + np.array(list(waterline_force.values()))
-                F[w, l, k, :] = np.conjugate(F[w, k, l, :])
-
-    F = force_hydrodynamics + F/2
-    p2 = pressure_hull_hydrodynamics + p2/2
-    p_waterline = hydrodynamic_pressure_at_waterline + hydrostatic_pressure_at_waterline
-
+    coords = {
+        freq_type: first_order_motion_amplitude.coords[freq_type].values,
+        "wave_direction_k": first_order_motion_amplitude.coords["wave_direction"].values,
+        "wave_direction_l": first_order_motion_amplitude.coords["wave_direction"].values,
+        }
     dataset = xr.Dataset(
             {"near_field_mean_drift_force": xr.DataArray(
                 data=F,
                 dims=[freq_type, "wave_direction_k", "wave_direction_l", "influenced_dof"],
-                coords={
-                    freq_type: rao.coords[freq_type].values,
-                    "wave_direction_k": rao.coords["wave_direction"].values,
-                    "wave_direction_l": rao.coords["wave_direction"].values,
-                    "influenced_dof": list(body.dofs.keys()),
-                    },
+                coords={**coords, "influenced_dof": list(body.dofs.keys())},
                 )
              })
 
@@ -287,27 +278,21 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
         dataset["pressure_hull_mean_drift"] = xr.DataArray(
                 data=p2,
                 dims=[freq_type, "wave_direction_k", "wave_direction_l", "hull_face"],
-                coords={
-                    freq_type: rao.coords[freq_type].values,
-                    "wave_direction_k": rao.coords["wave_direction"].values,
-                    "wave_direction_l": rao.coords["wave_direction"].values,
-                    },
+                coords=coords,
                  )
+        waterline_coords = {
+            freq_type: first_order_motion_amplitude.coords[freq_type].values,
+            "wave_direction": first_order_motion_amplitude.coords["wave_direction"].values,
+            }
         dataset["pressure_waterline_total"] = xr.DataArray(
-                p_waterline,
+                pressure_waterline,
                 dims=[freq_type, "wave_direction", "waterline_segment"],
-                coords={
-                    freq_type: rao.coords[freq_type].values,
-                    "wave_direction": rao.coords["wave_direction"].values,
-                    },
+                coords=waterline_coords,
                  )
         dataset["relative_elevation_waterline"] = xr.DataArray(
-                h_waterline,
+                relative_elevation_waterline,
                 dims=[freq_type, "wave_direction", "waterline_segment"],
-                coords={
-                    freq_type: rao.coords[freq_type].values,
-                    "wave_direction": rao.coords["wave_direction"].values,
-                    },
+                coords=waterline_coords,
                  )
         dataset["mesh_waterline"] = xr.DataArray(
                 mesh.vertices[mesh.edges_waterline, :],
@@ -315,56 +300,6 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
                 )
 
     return dataset
-
-def _near_field_hydrodynamics(rao, results, solver):
-    """Hydrodynamic part of the near field mean drift force: second-order expansion of the integral of the
-    pressure on the moving body and along the waterline, without the hydrostatic pressure.
-
-    Returns
-    -------
-    force: array of shape (nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)
-    pressure_hull: array of shape (nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)
-        Second-order hydrodynamic pressure at the displaced faces centers, without the terms of the change of frame.
-    pressure_waterline: array of shape (nb_freq, nb_wave_direction, nb_waterline_segments)
-        First-order hydrodynamic pressure at the middles of the edges of the waterline.
-    relative_elevation_waterline: array of shape (nb_freq, nb_wave_direction, nb_waterline_segments)
-        First-order relative elevation of the free surface with respect to the body, at the same points.
-    """
-    body = results[0].body
-    mesh = body.mesh.merged()
-    rho = results[0].rho
-    g = results[0].g
-    freq_type = results[0].provided_freq_type
-    rao = rao.transpose(freq_type, "wave_direction", "radiating_dof")
-    omegas = rao.coords["omega"].values
-    motion_amplitude = rao.sel(radiating_dof=list(body.dofs)).values # motion_amplitude[i_freq, i_dir, i_dof]
-
-    # First-order amplitudes
-    pressure_hull = total_pressure_on_hull(mesh, results, rao).values # pressure_hull[i_freq, i_dir, i_face]
-    gradient_potential = total_potential_gradient(solver, mesh, results, rao).values # gradient_potential[i_freq, i_dir, i_face, xyz]
-    pressure_waterline = total_pressure(solver, mesh.middle_edges_waterline, results, rao).values # pressure_waterline[i_freq, i_dir, i_vertex_waterline]
-    vertical_motion_waterline = motion_order1(mesh.middle_edges_waterline, body, rao)[..., -1] # vertical_motion_waterline[i_freq, i_dir, i_vertex_waterline]
-    relative_elevation_waterline = pressure_waterline / (rho * g) - vertical_motion_waterline
-
-    nb_freq, nb_dir = motion_amplitude.shape[:2]
-    force = np.empty((nb_freq, nb_dir, nb_dir, len(body.dofs)), dtype=complex)
-    pressure_hull_order2 = np.empty((nb_freq, nb_dir, nb_dir, mesh.nb_faces), dtype=complex)
-    for w in range(nb_freq):
-        u, _ = body._displacement_expansions(motion_amplitude[w]) # field (nb_faces, 3)
-        velocity = Expansion([0.0, gradient_potential[w], 0.0]) # field (nb_faces, 3)
-        gradient_pressure = Expansion([0.0, 1j * omegas[w] * rho * gradient_potential[w], 0.0]) # field (nb_faces, 3)
-        # Bernoulli (without second-order potential) at the displaced point X + u
-        pressure = Expansion([0.0, pressure_hull[w], 0.0]) - rho/2 * (velocity * velocity).sum(-1) + (gradient_pressure * u).sum(-1) # field (nb_faces,)
-        # The second-order motion at the waterline would only multiply order-0 quantities, which are zero at the waterline.
-        waterline_term = Expansion([0.0, pressure_waterline[w], 0.0]) * Expansion([0.0, relative_elevation_waterline[w], 0.0]) # field (nb_waterline_segments,)
-        force_w = body.integrate_pressure_on_moving_body(pressure, motion_amplitude[w]) + body.integrate_pressure_on_waterline(waterline_term)
-        force[w] = force_w.coefficients[2]
-        pressure_hull_order2[w] = pressure.coefficients[2]
-
-    return force, pressure_hull_order2, pressure_waterline, relative_elevation_waterline
-
-def motion_order1(points, body, rao):
-    return sum(rao.sel(radiating_dof=dof).values[...,None,None] * body.dofs[dof].evaluate_motion_at_points(points) for dof in body.dofs)
 
 def total_potential_gradient(solver, mesh, results, rao):
     freq_type = results[0].provided_freq_type
@@ -433,48 +368,3 @@ def total_pressure_on_hull(mesh, results, rao):
             # pressure[i_freq, i_dir, i_face] = rao_rad[i_dir] * pressure_on_hull[i_face]
 
     return pressure
-
-def hydrostatics_forces(body, rao, rho, g, z):
-    force = np.zeros(list(rao.sizes.values()), dtype=z.dtype)
-    for freq, _ in enumerate(rao.coords[rao.dims[0]].values):
-        for dir, _ in enumerate(rao.coords["wave_direction"].values):
-            results = body.integrate_pressure(-g * z[freq, dir, :])
-            force[freq, dir, :] = rho * np.array(list(results.values()))
-    return force
-
-
-
-def transformation_matrix(rao_k, rao_l):
-    xk = rao_k.sel(radiating_dof="Roll").values
-    yk = rao_k.sel(radiating_dof="Pitch").values
-    zk = rao_k.sel(radiating_dof="Yaw").values
-    xl = rao_l.sel(radiating_dof="Roll").values
-    yl = rao_l.sel(radiating_dof="Pitch").values
-    zl = rao_l.sel(radiating_dof="Yaw").values
-    zero = np.zeros(xk.shape)
-
-    H = (1/2) * (np.array([
-                [-(yk * np.conjugate(yl) + zk * np.conjugate(zl)), zero, zero],
-                [xk * np.conjugate(yl) + np.conjugate(xl) * yk, -(xk * np.conjugate(xl) + zk * np.conjugate(zl)), zero],
-                [xk * np.conjugate(zl) + np.conjugate(xl) * zk, yk * np.conjugate(zl) + np.conjugate(yl) * zk, -(xk * np.conjugate(xl) + yk * np.conjugate(yl))]
-            ],
-            dtype=np.complex128)
-        )
-
-    H = np.reshape(H, (3, 3)) # H[xyz, xyz]
-    return H
-
-def skew_matrix(a):
-    if a.shape[-1] != 3:
-        raise ValueError("Last dimension should be of size 3.")
-
-    results = np.zeros(a.shape[:-1] + (3,3), dtype=a.dtype)
-    x, y, z = a[..., 0], a[..., 1], a[..., 2]
-    results[..., 0, 1] = -z
-    results[..., 0, 2] = y
-    results[..., 1, 0] = z
-    results[..., 1, 2] = -x
-    results[..., 2, 0] = -y
-    results[..., 2, 1] = x
-
-    return results
