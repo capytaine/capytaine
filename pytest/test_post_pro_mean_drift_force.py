@@ -20,7 +20,7 @@ import pytest
 import capytaine as cpt
 import capytaine_test_helpers as helpers
 from capytaine.io.xarray import problems_from_dataset, kochin_data_array
-from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, near_field_mean_drift_force
+from capytaine.post_pro.mean_drift_force import far_field_mean_drift_force, near_field_mean_drift_force, integrate_pressure_waterline
 
 
 def test_far_field_mean_drift_force():
@@ -131,7 +131,7 @@ def test_cylinder_mean_drift_force():
     dataset = cpt.assemble_dataset(results)
     dataset.update(data_kochin)
     rao = cpt.post_pro.rao(dataset)
-    mdf_nf = near_field_mean_drift_force(rao, results, solver)['near_field_mean_drift_force']/1e3
+    mdf_nf = near_field_mean_drift_force(rao, results, solver)['near_field_mean_drift_force'].values/1e3
     mdf_ff = far_field_mean_drift_force(rao, dataset)/1e3
     target_fx = 3.22
     target_fy = 1.67
@@ -166,7 +166,7 @@ def test_caisson():
     dataset = cpt.assemble_dataset(results)
     dataset.update(data_kochin)
     rao = cpt.post_pro.rao(dataset)
-    mdf_nf = near_field_mean_drift_force(rao, results, solver)['near_field_mean_drift_force']
+    mdf_nf = near_field_mean_drift_force(rao, results, solver)['near_field_mean_drift_force'].values
     mdf_ff = far_field_mean_drift_force(rao, dataset)
 
     target_fx = 233204.32
@@ -253,4 +253,31 @@ def test_mean_drift_force_pressure():
     dataset = cpt.assemble_dataset(results)
     rao = cpt.post_pro.rao(dataset)
     mdf = near_field_mean_drift_force(rao, results, solver, output_pressure=True)
-    assert mdf["second_order_pressure"].shape == (1, 1, 1, body.mesh.nb_faces)
+    assert mdf["pressure_hull_mean_drift"].shape == (1, 1, 1, body.mesh.nb_faces)
+
+
+def test_mean_drift_force_from_exported_pressures_of_fixed_body():
+    # Without body motion, the near-field force is the integral of the second-order
+    # pressure on the hull, plus the waterline term, for each pair of wave directions.
+    body = helpers.small_sphere_body("rigid", lid=True)
+    solver = helpers.solver()
+    test_matrix = xr.Dataset(coords={
+            'wavenumber': [0.92], 'wave_direction': [0.0, np.pi/3], 'radiating_dof': list(body.dofs.keys())
+        })
+    results = solver.solve_all(problems_from_dataset(test_matrix, body))
+    rao = 0.0 * cpt.post_pro.rao(cpt.assemble_dataset(results))
+    mdf = near_field_mean_drift_force(rao, results, solver, output_pressure=True).isel(wavenumber=0)
+
+    p_wl = mdf["pressure_waterline_total"].transpose("wave_direction", "waterline_segment").values
+    h_wl = mdf["relative_elevation_waterline"].transpose("wave_direction", "waterline_segment").values
+    for k in range(2):
+        for l in range(2):
+            hull = body.integrate_pressure(mdf["pressure_hull_mean_drift"].isel(wave_direction_k=k, wave_direction_l=l).values)
+            waterline = integrate_pressure_waterline(
+                    body, body.mesh.merged(),
+                    (p_wl[k] * np.conjugate(h_wl[l]) + np.conjugate(p_wl[l]) * h_wl[k])/4
+                    )
+            force = mdf["near_field_mean_drift_force"].isel(wave_direction_k=k, wave_direction_l=l).values
+            np.testing.assert_allclose(
+                    np.array(list(hull.values())) + np.array(list(waterline.values())),
+                    force, rtol=1e-10, atol=1e-10)

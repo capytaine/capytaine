@@ -34,7 +34,8 @@ Major changes
 
 * Add :func:`~capytaine.post_pro.mean_drift_force.near_field_mean_drift_force` to compute the mean drift force (for now for a single rigid body). (:pull:`871`)
   This function returns a dataset with a ``near_field_mean_drift_force`` variable of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
-  Optional parameter ``output_pressure`` allows to return a mean drift pressure field of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``.
+  Optional parameter ``output_pressure`` allows to return the mean drift pressure field on the hull as ``pressure_hull_mean_drift``, of shape ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``,
+  as well as the first-order fields on the waterline from which the waterline term of the force is computed: ``pressure_waterline_total`` and ``relative_elevation_waterline``, of shape ``(nb_freq, nb_wave_direction, nb_waterline_segments)``, and the waterline segments ``mesh_waterline``.
   The near field mean drift force can be expoted to WAMIT's `.9` file format. (:pull:`909`)
 
 Bug fixes
