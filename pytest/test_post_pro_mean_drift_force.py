@@ -253,7 +253,7 @@ def test_mean_drift_force_pressure():
     dataset = cpt.assemble_dataset(results)
     rao = cpt.post_pro.rao(dataset)
     mdf = near_field_mean_drift_force(rao, results, solver, output_pressure=True)
-    assert mdf["second_order_pressure"].shape == (1, 1, 1, body.mesh.nb_faces)
+    assert mdf["pressure_hull_mean_drift"].shape == (1, 1, 1, body.mesh.nb_faces)
 
 
 def test_mean_drift_force_from_exported_pressures_of_fixed_body():
@@ -268,11 +268,11 @@ def test_mean_drift_force_from_exported_pressures_of_fixed_body():
     rao = 0.0 * cpt.post_pro.rao(cpt.assemble_dataset(results))
     mdf = near_field_mean_drift_force(rao, results, solver, output_pressure=True).isel(wavenumber=0)
 
-    p_wl = mdf["waterline_pressure"].transpose("wave_direction", "waterline_segment").values
-    h_wl = mdf["waterline_relative_elevation"].transpose("wave_direction", "waterline_segment").values
+    p_wl = mdf["pressure_waterline_total"].transpose("wave_direction", "waterline_segment").values
+    h_wl = mdf["relative_elevation_waterline"].transpose("wave_direction", "waterline_segment").values
     for k in range(2):
         for l in range(2):
-            hull = body.integrate_pressure(mdf["second_order_pressure"].isel(wave_direction_k=k, wave_direction_l=l).values)
+            hull = body.integrate_pressure(mdf["pressure_hull_mean_drift"].isel(wave_direction_k=k, wave_direction_l=l).values)
             waterline = integrate_pressure_waterline(
                     body, body.mesh.merged(),
                     (p_wl[k] * np.conjugate(h_wl[l]) + np.conjugate(p_wl[l]) * h_wl[k])/4

@@ -179,18 +179,38 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
         The solver used to compute the potential and its gradient on the hull at the requested
         points.
     output_pressure : bool, optional
-        If True, also return the second-order pressure field on the hull. Default: False.
+        If True, also return the second-order pressure field on the hull and the first-order
+        fields on the waterline from which the waterline term of the force is computed.
+        Default: False.
 
     Returns
     -------
     xarray Dataset
         A dataset with a ``near_field_mean_drift_force`` variable of shape
         ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_dofs)``.
-        If ``output_pressure`` is True, the dataset also contains a ``second_order_pressure``
-        variable with the mean drift pressure field on the hull, of shape
-        ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``.
-        It has the same normalization as ``near_field_mean_drift_force``: its diagonal is the
-        mean pressure in a single wave of unit amplitude.
+        If ``output_pressure`` is True, the dataset also contains the following variables:
+
+        - ``pressure_hull_mean_drift``, of shape
+          ``(nb_freq, nb_wave_direction, nb_wave_direction, nb_hull_faces)``: the mean drift
+          pressure field on the hull. It has the same normalization as
+          ``near_field_mean_drift_force``: its diagonal is the mean pressure in a single wave of
+          unit amplitude. It does not include the waterline term.
+        - ``pressure_waterline_total``, of shape
+          ``(nb_freq, nb_wave_direction, nb_waterline_segments)``: the complex first-order
+          pressure ``p`` in the strip between the mean waterline and the free surface, at the
+          middle of each segment of the waterline, for a wave of unit amplitude.
+          It is the total pressure on the freely floating body: incident, diffracted and
+          radiated (with the motion given by ``rao``) waves, as well as the hydrostatic pressure
+          averaged over the height of the strip.
+        - ``relative_elevation_waterline``, of the same shape: the complex first-order relative
+          elevation ``h`` of the free surface with respect to the body, at the same points, for
+          a wave of unit amplitude.
+        - ``mesh_waterline``, of shape ``(nb_waterline_segments, 2, 3)``: the coordinates of
+          the two ends of each segment of the waterline.
+
+        For the waves ``k`` and ``l``, the waterline term of ``near_field_mean_drift_force`` is
+        the integral along the waterline of ``(p_k conj(h_l) + conj(p_l) h_k)/2``, projected on
+        the dofs.
     """
     body = results[0].body
     mesh = body.mesh.merged()
@@ -272,7 +292,7 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
              })
 
     if output_pressure:
-        dataset["second_order_pressure"] = xr.DataArray(
+        dataset["pressure_hull_mean_drift"] = xr.DataArray(
                 data=p2/2,
                 dims=[freq_type, "wave_direction_k", "wave_direction_l", "hull_face"],
                 coords={
@@ -281,7 +301,7 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
                     "wave_direction_l": rao.coords["wave_direction"].values,
                     },
                  )
-        dataset["waterline_pressure"] = xr.DataArray(
+        dataset["pressure_waterline_total"] = xr.DataArray(
                 p_waterline,
                 dims=[freq_type, "wave_direction", "waterline_segment"],
                 coords={
@@ -289,7 +309,7 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
                     "wave_direction": rao.coords["wave_direction"].values,
                     },
                  )
-        dataset["waterline_relative_elevation"] = xr.DataArray(
+        dataset["relative_elevation_waterline"] = xr.DataArray(
                 h_waterline,
                 dims=[freq_type, "wave_direction", "waterline_segment"],
                 coords={
@@ -297,7 +317,7 @@ def near_field_mean_drift_force(rao, results, solver, *, output_pressure=False):
                     "wave_direction": rao.coords["wave_direction"].values,
                     },
                  )
-        dataset["waterline_mesh"] = xr.DataArray(
+        dataset["mesh_waterline"] = xr.DataArray(
                 mesh.vertices[edges_waterline[:, :], :],
                 dims=["waterline_segment", "point_per_segment", "space_coordinate"],
                 )

@@ -41,6 +41,8 @@ EXAMPLES_FILES := ' \
     B4_kochin.py \
     B5_plot_velocity_in_domain.py \
     B8_pressure_infinite_frequency.py \
+    B9_mean_drift_force.py \
+    B10_second_order_pressure_field.py \
     C5_plot_influence_matrix.py \
     C8_compare_Green_functions.py \
     C9_custom_Green_function.py \

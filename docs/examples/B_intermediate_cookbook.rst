@@ -91,3 +91,23 @@ The example below shows an example of extracting this value.
 
 .. literalinclude:: src/B8_pressure_infinite_frequency.py
    :language: python
+
+B9. Mean drift force
+--------------------
+
+This example computes the mean drift force on a floating box with both the near field and the far field formulations, and compares them.
+The near field mean drift force is still an experimental feature, whose interface may change in the future.
+
+.. literalinclude:: src/B9_mean_drift_force.py
+   :language: python
+
+B10. Mean drift pressure field
+------------------------------
+
+This example extracts the pressure fields from the near field mean drift force computation, for a sea made of two waves with the same frequency:
+the first-order pressure on the hull, the mean drift pressure on the hull, and the waterline term spread along a semi-elliptic profile around the mean waterline.
+They are plotted on the mesh of the whole box, and the first-order pressure is animated over a wave period.
+To save the animation as a video, uncomment the call to ``anim.save`` (requires `ffmpeg <https://ffmpeg.org/>`_).
+
+.. literalinclude:: src/B10_second_order_pressure_field.py
+   :language: python

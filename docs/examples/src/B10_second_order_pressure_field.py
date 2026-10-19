@@ -64,7 +64,7 @@ first_order_pressure_full_mesh = remap_from_mesh_to_full_mesh(first_order_pressu
 # Sum over all pairs of waves of the difference-frequency QTF
 amplitude_kl = (amplitude.rename({"wave_direction": "wave_direction_k"})
                     * np.conjugate(amplitude.rename({"wave_direction": "wave_direction_l"})))
-mean_drift_hull_pressure_per_pair_of_waves = amplitude_kl * ds["second_order_pressure"]
+mean_drift_hull_pressure_per_pair_of_waves = amplitude_kl * ds["pressure_hull_mean_drift"]
 mean_drift_hull_pressure = mean_drift_hull_pressure_per_pair_of_waves.sum(dim=["wave_direction_k", "wave_direction_l"])
 # dims = (wavelength, hull_face)
 assert np.max(np.abs(mean_drift_hull_pressure.values.imag)) < 1e-10
@@ -85,7 +85,7 @@ def mean_of_product(a, b):
     return qtf.sum(["wave_direction_k", "wave_direction_l"]).real  # The imaginary part is zero.
 
 
-def remap_waterline_pressure(amplitude, waterline_pressure, waterline_relative_elevation, waterline_mesh, box_mesh):
+def remap_waterline_pressure(amplitude, pressure_waterline_total, relative_elevation_waterline, mesh_waterline, box_mesh):
     """Mean waterline pressure of the sea made of all the waves, spread on the faces of a box around the mean waterline.
 
     The waterline term of the mean drift force is a lineic force <p h> per unit length of waterline, where p is the
@@ -104,9 +104,9 @@ def remap_waterline_pressure(amplitude, waterline_pressure, waterline_relative_e
     ----------
     amplitude: DataArray with dims (..., wave_direction), complex
         Complex amplitude of each wave, possibly with other dimensions such as `wavelength`.
-    waterline_pressure, waterline_relative_elevation: DataArrays with dims (..., wave_direction, waterline_segment), complex
+    pressure_waterline_total, relative_elevation_waterline: DataArrays with dims (..., wave_direction, waterline_segment), complex
         Outputs of `near_field_mean_drift_force(..., output_pressure=True)`, for a unit amplitude.
-    waterline_mesh: DataArray with dims (waterline_segment, 2, 3)
+    mesh_waterline: DataArray with dims (waterline_segment, 2, 3)
         Output of `near_field_mean_drift_force(..., output_pressure=True)`.
     box_mesh: Mesh
         Mesh of the whole box, including its part above the waterline, with the same horizontal resolution as the
@@ -117,12 +117,12 @@ def remap_waterline_pressure(amplitude, waterline_pressure, waterline_relative_e
     DataArray with dims (..., full_mesh_face), real
         The other dimensions (such as `wavelength`) of the inputs are kept.
     """
-    p = amplitude * waterline_pressure
-    h = amplitude * waterline_relative_elevation
+    p = amplitude * pressure_waterline_total
+    h = amplitude * relative_elevation_waterline
     ph = mean_of_product(p, h)  # dims = (..., waterline_segment)
     abs_h = np.sqrt(2*mean_of_product(h, h))  # dims = (..., waterline_segment), since <h h> = |h|^2/2
 
-    _, segment = cKDTree(waterline_mesh.mean(axis=1)[:, :2]).query(box_mesh.faces_centers[:, :2])
+    _, segment = cKDTree(mesh_waterline.mean(axis=1)[:, :2]).query(box_mesh.faces_centers[:, :2])
     segment = xr.DataArray(segment, dims=["full_mesh_face"])
     u = xr.DataArray(box_mesh.faces_centers[:, 2], dims=["full_mesh_face"]) / abs_h.isel(waterline_segment=segment)
 
@@ -134,9 +134,9 @@ def remap_waterline_pressure(amplitude, waterline_pressure, waterline_relative_e
 
 mean_drift_waterline_pressure_full_mesh = remap_waterline_pressure(
         amplitude,
-        ds["waterline_pressure"],
-        ds["waterline_relative_elevation"],
-        ds["waterline_mesh"],
+        ds["pressure_waterline_total"],
+        ds["relative_elevation_waterline"],
+        ds["mesh_waterline"],
         full_mesh,
         )
 # dims = (wavelength, full_mesh_face)
@@ -195,6 +195,5 @@ def update(frame):
 
 anim = animation.FuncAnimation(fig, update, frames=n_frames, interval=1000*animation_duration/n_frames, blit=False)
 
-anim.save("second_order_pressure_field.mp4", fps=n_frames/animation_duration)
-
+# anim.save("second_order_pressure_field.mp4", fps=n_frames/animation_duration)
 plt.show()
