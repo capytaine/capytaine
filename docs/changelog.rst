@@ -73,14 +73,39 @@ Internals
 
 * The string representation (``__str__``, ``__repr__``) and the hash of Green functions are now implemented once in :class:`~capytaine.green_functions.abstract_green_function.AbstractGreenFunction`, driven by ``exportable_settings`` and a ``_default_parameters`` class attribute.
 
-* Fix :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_motion_at_points` and
-  :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_motion_at_points`
-  to accept arrays of points of shape ``(..., 3)`` instead of only ``(nb_points, 3)``.
-  Also fix :class:`~capytaine.bodies.dofs.DofOnSubmesh`, whose
-  ``evaluate_motion_at_points`` and ``evaluate_gradient_of_motion_at_points``
-  methods were indexing arbitrary points as if they were mesh faces; they now
-  raise ``NotImplementedError`` and ``evaluate_motion``/``evaluate_gradient_of_motion``
-  should be used instead. (:pull:`938`)
+* **Rework the dof module**:
+
+  * The rest of the code now only evaluates dofs on meshes.
+    :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_motion` and
+    :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_motion`
+    take an optional argument ``location`` (``"faces_centers"`` by default,
+    ``"quadrature_points"`` or ``"waterline"``).
+    ``evaluate_motion_at_points`` and ``evaluate_gradient_of_motion_at_points`` are now considered
+    the low-level definition of the dofs, to be implemented by most subclasses of
+    :class:`~capytaine.bodies.dofs.AbstractDof`, except when reference to the mesh is required
+    like for :class:`~capytaine.bodies.dofs.DofOnSubmesh`.
+    User implemented subclasses of ``AbstractDof`` needs no change.
+
+  * The implementations of :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_motion_at_points` and
+    :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_motion_at_points`
+    accept arrays of points of shape ``(..., 3)`` instead of only ``(nb_points, 3)``.
+
+  * Remove the ``evaluate_motion_at_points`` and ``evaluate_gradient_of_motion_at_points``
+    methods of :class:`~capytaine.bodies.dofs.DofOnSubmesh` which
+    were indexing arbitrary points as if they were mesh faces. (:pull:`938`)
+
+  * :class:`~capytaine.bodies.dofs.DofOnSubmesh` now only accepts a boolean array of size
+    ``nb_faces`` to define its faces (not anymore a list of indices or a slice).
+
+  * Add :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_second_order_motion` to the dofs,
+    returning the second-order term of the expansion of the motion with respect to the amplitude of a pair of dofs.
+    It is zero except for pairs of rotations around the same center, for which it follows the roll-pitch-yaw
+    sequence of rotations of WAMIT (``R = R_roll R_pitch R_yaw``).
+    Also add :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_second_order_motion`
+    returning the gradient of the second-order motion.
+    They take a location argument like the first order ones.
+    For :class:`~capytaine.bodies.dofs.DofOnSubmesh`, it is zero outside of the faces common to both dofs
+    (e.g. for two rotations of two different bodies of a multibody).
 
 * Add a :code:`pressure_on_hull` attribute to
   :class:`~capytaine.bem.problems_and_results.LinearPotentialFlowResult`, equal
@@ -92,15 +117,6 @@ Internals
   the tests) and by sharing the Green function instances between tests (instead
   of reloading the tabulation at each test). Helpers shared by several test
   files are gathered in ``pytest/capytaine_test_helpers.py``.
-
-* Add :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_second_order_motion_at_points` and
-  :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_second_order_motion` to the dofs,
-  returning the second-order term of the expansion of the motion with respect to the amplitude of a pair of dofs.
-  It is zero except for pairs of rotations around the same center, for which it follows the roll-pitch-yaw
-  sequence of rotations of WAMIT (``R = R_roll R_pitch R_yaw``).
-  Also adds :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_second_order_motion_at_points`
-  and :meth:`~capytaine.bodies.dofs.AbstractDof.evaluate_gradient_of_second_order_motion`
-  returning the gradient of the second-order motion.
 
 * Add :class:`~capytaine.tools.perturbation_expansion.PerturbationExpansion` to
   compute product of first and second order expansions, for the second-order
@@ -117,7 +133,7 @@ Internals
   :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_moving_body`
   and
   :meth:`~capytaine.bodies.bodies.FloatingBody.integrate_pressure_on_waterline`.
-  Add the properties ``middle_edges_waterline`` and ``normals_edges_waterline`` to the meshes.
+  Add the properties ``middle_edges_waterline``, ``normals_edges_waterline`` and ``indices_faces_waterline`` to the meshes.
 
 * Add the private methods ``BEMSolver._compute_potential_from_sources`` and ``BEMSolver._compute_potential_gradient_from_sources``, evaluating the potential or its gradient from bare source distributions (given with the mesh and the Green function parameters, without a result object).
   The sources can have leading batch axes, in which case the influence matrix is built only once and multiplied by all the source distributions at once.

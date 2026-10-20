@@ -288,8 +288,8 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
         -------
         motion: array of shape (nb_dofs, nb_edges_waterline, 3)
         """
-        middle_edges_waterline = self.mesh.merged().middle_edges_waterline
-        return np.array([dof.evaluate_motion_at_points(middle_edges_waterline) for dof in self.dofs.values()])
+        mesh = self.mesh.merged()  # The waterline data of symmetric meshes is computed on the merged mesh.
+        return np.array([dof.evaluate_motion(mesh, location="waterline") for dof in self.dofs.values()])
 
     def _displacement_expansions(self, first_order_motion_amplitude):
         """Displacement u = Σ_j q_j δu_j + 1/2 Σ_jk q_j q_k δ²u_jk at the faces centers, and its gradient.
@@ -567,10 +567,7 @@ class FloatingBody(_FloatingBodyHydrostaticsMixin, AbstractBody):
         new_dofs = {}
         for name, dof in self.dofs.items():
             if isinstance(dof, DofOnSubmesh):
-                former_mask = np.zeros(self.mesh.nb_faces, dtype=bool)
-                former_mask[dof.faces] = True
-                new_mask = former_mask[faces_ids]
-                new_dofs[name] = DofOnSubmesh(dof.dof, np.where(new_mask)[0])
+                new_dofs[name] = DofOnSubmesh(dof.dof, dof.faces[faces_ids])
             elif isinstance(dof, AbstractDof):
                 new_dofs[name] = dof
             else:

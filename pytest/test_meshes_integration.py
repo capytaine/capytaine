@@ -28,3 +28,18 @@ def test_integration_on_rectangle(l, L, h):
     mesh_rectangle = cpt.mesh_parallelepiped(size=(l,L,h), reflection_symmetry=True).immersed_part()
     integral_rectangle = mesh_rectangle.waterline_integral(np.ones(mesh_rectangle.nb_edges_waterline))
     assert np.isclose(integral_rectangle, 2*(l+L))
+
+
+def test_indices_faces_waterline():
+    mesh = cpt.mesh_parallelepiped(size=(2, 3, 4), resolution=(4, 4, 4)).immersed_part()
+    assert mesh.indices_faces_waterline.shape == (mesh.nb_edges_waterline,)
+    faces = mesh.faces[mesh.indices_faces_waterline]
+    assert np.all(faces == mesh.faces_waterline)
+    # Both ends of each edge are vertices of the face containing it.
+    assert all(set(edge) <= set(face) for edge, face in zip(mesh.edges_waterline, faces))
+    assert np.allclose(mesh.faces_normals[mesh.indices_faces_waterline], mesh.normals_edges_waterline)
+
+
+def test_indices_faces_waterline_of_submerged_mesh():
+    mesh = cpt.mesh_sphere(center=(0, 0, -3)).immersed_part()
+    assert mesh.indices_faces_waterline.shape == (0,)

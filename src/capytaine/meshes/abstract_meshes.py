@@ -181,19 +181,24 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
             A tuple (edges, faces) where the edges are the edges of the water line (pairs of vertex indices)
             and the faces are the corresponding faces of the mesh that contain these edges (quadruplet of vertex indices).
         """
+        edges_waterline, indices_faces_waterline = self._edges_and_indices_faces_waterline
+        return edges_waterline, self.faces[indices_faces_waterline, :]
+
+    @cached_property
+    def _edges_and_indices_faces_waterline(self):
         epsilon = 1e-6
         edges_waterline = []
-        faces_waterline = []
+        indices_faces_waterline = []
 
         indices_vertices = [v for v in range(self.nb_vertices) if np.abs(self.vertices[v,-1]) <= epsilon]
         for k in range(self.nb_faces):
             set_indices = {index for index in self.faces[k,:] if index in indices_vertices}
             if len(set_indices) == 2:
                 edges_waterline.append(list(set_indices))
-                faces_waterline.append(self.faces[k,:])
+                indices_faces_waterline.append(k)
 
         # Reshape to keep two dimensions when the mesh has no waterline.
-        return np.array(edges_waterline, dtype=int).reshape(-1, 2), np.array(faces_waterline, dtype=int).reshape(-1, self.faces.shape[1])
+        return np.array(edges_waterline, dtype=int).reshape(-1, 2), np.array(indices_faces_waterline, dtype=int)
 
     @property
     def nb_edges_waterline(self) -> int:
@@ -209,6 +214,11 @@ class AbstractMesh(SurfaceIntegralsMixin, ABC):
     def faces_waterline(self):
         """Return an array with the faces of the water line as quadruplets of vertex indices with shape (nb_edges_waterline,4)."""
         return self.edges_faces_waterline()[1]
+
+    @cached_property
+    def indices_faces_waterline(self):
+        """Return an array with the indices of the faces containing the edges of the water line with shape (nb_edges_waterline,)."""
+        return self._edges_and_indices_faces_waterline[1]
 
     @cached_property
     def length_edges_waterline(self):

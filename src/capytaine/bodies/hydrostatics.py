@@ -19,10 +19,15 @@ import numpy as np
 import xarray as xr
 from abc import ABC
 
-from capytaine.bodies.dofs import AbstractDof, TranslationDof, RotationDof, is_rigid_body_dof
+from capytaine.bodies.dofs import AbstractDof, TranslationDof, RotationDof
 from capytaine.meshes.abstract_meshes import AbstractMesh
 
 LOG = logging.getLogger(__name__)
+
+
+def _is_rigid_body_dof(dof):
+    return isinstance(dof, TranslationDof) or isinstance(dof, RotationDof)
+
 
 class _FloatingBodyHydrostaticsMixin(ABC):
     # This class is not meant to be instantiated but only to be inherited by the FloatingBody class to give it more methods.
@@ -204,10 +209,10 @@ class _FloatingBodyHydrostaticsMixin(ABC):
             http://resolver.tudelft.nl/uuid:0adff84c-43c7-43aa-8cd8-d4c44240bed8
         """
         if isinstance(influenced_dof, AbstractDof):
-            influenced_dof_motion: np.ndarray = influenced_dof.evaluate_motion_at_quad_points(mesh)
+            influenced_dof_motion: np.ndarray = influenced_dof.evaluate_motion(mesh, location="quadrature_points")
             # shape: (nb_faces, nb_quad_points, 3)
 
-            influenced_dof_jacobian = influenced_dof.evaluate_gradient_of_motion_at_quad_points(mesh)
+            influenced_dof_jacobian = influenced_dof.evaluate_gradient_of_motion(mesh, location="quadrature_points")
             # shape: (nb_faces, nb_quad_points, 3, 3)
 
             influenced_dof_div: np.ndarray = np.einsum('...ii->...', influenced_dof_jacobian)
@@ -228,7 +233,7 @@ class _FloatingBodyHydrostaticsMixin(ABC):
             # influenced_dof_div.shape == (nb_faces, nb_quad_points)
 
         if isinstance(radiating_dof, AbstractDof):
-            radiating_dof_motion: np.ndarray = radiating_dof.evaluate_motion_at_quad_points(mesh)
+            radiating_dof_motion: np.ndarray = radiating_dof.evaluate_motion(mesh, location="quadrature_points")
             # shape: (nb_faces, nb_quad_points, 3)
         else:
             radiating_dof_motion: np.ndarray = np.array(radiating_dof)[:, None, :]
@@ -287,7 +292,7 @@ class _FloatingBodyHydrostaticsMixin(ABC):
         coefficients = []
         for influenced_dof_name, influenced_dof in immersed_self.dofs.items():
 
-            if not is_rigid_body_dof(influenced_dof):
+            if not _is_rigid_body_dof(influenced_dof):
                 # We will use _generalized_hydrostatic_stiffness_coef below
                 # so we check if a divergence is provided for this dof.
                 # Doing it outside of the `radiating_dof` loop to avoid
@@ -328,7 +333,7 @@ class _FloatingBodyHydrostaticsMixin(ABC):
             coefficients_row = []
             for radiating_dof_name, radiating_dof in immersed_self.dofs.items():
 
-                if is_rigid_body_dof(influenced_dof) and is_rigid_body_dof(radiating_dof):
+                if _is_rigid_body_dof(influenced_dof) and _is_rigid_body_dof(radiating_dof):
                     coefficients_row.append(
                             self._rigid_body_hydrostatic_stiffness_coef(
                                 immersed_self.mesh, influenced_dof, radiating_dof, rho=rho, g=g
@@ -408,7 +413,7 @@ class _FloatingBodyHydrostaticsMixin(ABC):
             rc = rcs[0]
 
         for dof in self.dofs.values():
-            if is_rigid_body_dof(dof) and not hasattr(dof, "_standard_name"):
+            if _is_rigid_body_dof(dof) and not hasattr(dof, "_standard_name"):
                 standard_dir = np.all(np.isclose(dof.direction, np.eye(3)), axis=1)
                 if not np.any(standard_dir):
                     raise NotImplementedError("Cannot evaluate hydrostatic stiffness for rigid body dof with non-standard directions. "
@@ -467,7 +472,7 @@ class _FloatingBodyHydrostaticsMixin(ABC):
                                     },
                             name="inertia_matrix")
 
-        rigid_dofs = {name: dof for name, dof in self.dofs.items() if is_rigid_body_dof(dof)}
+        rigid_dofs = {name: dof for name, dof in self.dofs.items() if _is_rigid_body_dof(dof)}
         rigid_dof_names = list(rigid_dofs.keys())
         if len(rigid_dof_names) > 0:
             data = [
