@@ -21,6 +21,7 @@ from capytaine.bem.airy_waves import (
     airy_waves_velocity,
 )
 from capytaine.bodies.bodies import FloatingBody
+from capytaine.bodies.multibodies import Multibody
 from capytaine.bodies.dofs import AbstractDof
 from capytaine.bem.problems_and_results import DiffractionResult, RadiationResult
 from capytaine.tools.perturbation_expansion import DifferenceFrequencyExpansion as Expansion
@@ -172,7 +173,7 @@ def near_field_mean_drift_force(first_order_motion_amplitude, results, solver, *
     not contribute to the pressure.
 
     Current assumptions: all results are for the same :class:`~capytaine.bodies.bodies.FloatingBody`
-    (multibodies are not supported yet), the same rho and g.
+    or :class:`~capytaine.bodies.multibodies.Multibody`, the same rho and g.
     Several wavelengths and dofs are taken into account at once.
 
     Parameters
@@ -224,8 +225,10 @@ def near_field_mean_drift_force(first_order_motion_amplitude, results, solver, *
         face containing the segment of the waterline.
     """
     body = results[0].body
+    if isinstance(body, Multibody):
+        body = body.as_FloatingBody  # Same mesh and dofs (`DofOnSubmesh`), with the methods of FloatingBody.
     if not isinstance(body, FloatingBody):
-        raise NotImplementedError(f"The near field mean drift force is only implemented for a single FloatingBody, not for {body}.")
+        raise NotImplementedError(f"The near field mean drift force is only implemented for a FloatingBody or a Multibody, not for {body}.")
     if not all(isinstance(dof, AbstractDof) for dof in body.dofs.values()):
         raise NotImplementedError("The near field mean drift force is only implemented for dofs defined as AbstractDof (e.g. TranslationDof, RotationDof, CustomDof), not as arrays.")
     mesh = body.mesh.merged()
