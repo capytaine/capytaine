@@ -351,7 +351,7 @@ def exact_hydrostatic_force_on_displaced_body(mesh, motion, rotation_center, rho
     pressure = -rho * g * wet.quadrature_points[0][:, :, 2]
     dofs = cpt.rigid_body_dofs(rotation_center=rotation_center)
     return np.array([
-        wet.surface_integral(-pressure * np.sum(dof.evaluate_motion_at_quad_points(wet) * wet.faces_normals[:, None, :], axis=-1))
+        wet.surface_integral(-pressure * np.sum(dof.evaluate_motion(wet, location="quadrature_points") * wet.faces_normals[:, None, :], axis=-1))
         for dof in dofs.values()
         ])
 

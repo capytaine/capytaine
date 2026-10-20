@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 import pytest
 import numpy as np
 
@@ -71,28 +73,51 @@ def test_second_order_rotation_different_centers():
             RotationDof((1, 0, 0), (0, 1, 0)), RNG.uniform(size=(3, 3)))
 
 
-@pytest.mark.parametrize("faces_a", [slice(0, 5), range(2, 7), [0, 2, 4, 6], "mask"])
+def submesh_mask(mesh, faces):
+    mask = np.zeros(mesh.nb_faces, dtype=bool)
+    mask[faces] = True
+    return mask
+
+
+def test_submesh_is_not_defined_at_arbitrary_points():
+    mesh = helpers.small_sphere_mesh()
+    dof = DofOnSubmesh(TranslationDof((0, 0, 1)), submesh_mask(mesh, slice(0, 5)))
+    with pytest.raises(NotImplementedError):
+        dof.evaluate_motion_at_points(mesh.faces_centers)
+
+
+def test_submesh_at_quadrature_points():
+    mesh = helpers.small_sphere_mesh().with_quadrature("Gauss-Legendre 2")
+    roll = RotationDof((0, 0, 0), (1, 0, 0))
+    mask = submesh_mask(mesh, [0, 2, 4, 6])
+    sub = DofOnSubmesh(roll, mask)
+    points = mesh.quadrature_points[0]
+    motion = sub.evaluate_motion(mesh, location="quadrature_points")
+    gradient = sub.evaluate_gradient_of_motion(mesh, location="quadrature_points")
+    assert motion.shape == (mesh.nb_faces, 4, 3)
+    assert np.allclose(motion, np.where(mask[:, None, None], roll.evaluate_motion_at_points(points), 0.0))
+    assert np.allclose(gradient, np.where(mask[:, None, None, None], roll.evaluate_gradient_of_motion_at_points(points), 0.0))
+
+
+@pytest.mark.parametrize("faces_a", [slice(0, 5), range(2, 7), [0, 2, 4, 6], "random"])
 @pytest.mark.parametrize("faces_b", [slice(3, 8), [4, 5, 6, 7], None])
 def test_second_order_motion_on_submeshes(faces_a, faces_b):
     mesh = helpers.small_sphere_mesh()
-    if isinstance(faces_a, str):
+    if faces_a == "random":
         faces_a = RNG.uniform(size=mesh.nb_faces) > 0.5
     roll = RotationDof((0, 0, 0), (1, 0, 0))
     pitch = RotationDof((0, 0, 0), (0, 1, 0))
     full = roll.evaluate_second_order_motion(pitch, mesh)
     assert np.abs(full).max() > 0.0
 
-    expected_mask = np.zeros(mesh.nb_faces, dtype=bool)
-    expected_mask[faces_a] = True
-    sub_a = DofOnSubmesh(roll, faces_a)
+    expected_mask = submesh_mask(mesh, faces_a)
+    sub_a = DofOnSubmesh(roll, submesh_mask(mesh, faces_a))
     if faces_b is None:  # only one of the two dofs is on a submesh
-        other, result = pitch, sub_a.evaluate_second_order_motion(pitch, mesh)
+        result = sub_a.evaluate_second_order_motion(pitch, mesh)
         reverse = pitch.evaluate_second_order_motion(sub_a, mesh)
     else:
-        mask_b = np.zeros(mesh.nb_faces, dtype=bool)
-        mask_b[faces_b] = True
-        expected_mask &= mask_b
-        sub_b = DofOnSubmesh(pitch, faces_b)
+        expected_mask &= submesh_mask(mesh, faces_b)
+        sub_b = DofOnSubmesh(pitch, submesh_mask(mesh, faces_b))
         result = sub_a.evaluate_second_order_motion(sub_b, mesh)
         reverse = sub_b.evaluate_second_order_motion(sub_a, mesh)
 
@@ -100,6 +125,18 @@ def test_second_order_motion_on_submeshes(faces_a, faces_b):
     assert result.shape == (mesh.nb_faces, 3)
     assert np.allclose(result, expected)
     assert np.allclose(reverse, expected)
+
+
+def test_second_order_motion_on_submeshes_of_different_bodies():
+    # Rotations of two bodies around different centers: no common face, so no second-order motion and no error.
+    mesh = helpers.small_sphere_mesh()
+    mask_a = submesh_mask(mesh, slice(0, 5))
+    roll_a = DofOnSubmesh(RotationDof((0, 0, 0), (1, 0, 0)), mask_a)
+    pitch_b = DofOnSubmesh(RotationDof((1, 0, 0), (0, 1, 0)), ~mask_a)
+    assert np.all(roll_a.evaluate_second_order_motion(pitch_b, mesh) == 0.0)
+    assert np.all(pitch_b.evaluate_second_order_motion(roll_a, mesh) == 0.0)
+    assert np.all(roll_a.evaluate_gradient_of_second_order_motion(pitch_b, mesh) == 0.0)
+    assert np.all(pitch_b.evaluate_gradient_of_second_order_motion(roll_a, mesh) == 0.0)
 
 
 def _rotation_dofs_and_translation():
@@ -154,19 +191,45 @@ def test_gradient_of_second_order_motion_on_submeshes(faces_a, faces_b):
         lambda x: roll.evaluate_second_order_motion_at_points(pitch, x), mesh.faces_centers)
     assert np.allclose(full, expected_fd, atol=1e-8)
 
-    expected_mask = np.zeros(mesh.nb_faces, dtype=bool)
-    expected_mask[faces_a] = True
-    sub_a = DofOnSubmesh(roll, faces_a)
+    expected_mask = submesh_mask(mesh, faces_a)
+    sub_a = DofOnSubmesh(roll, submesh_mask(mesh, faces_a))
     if faces_b is None:
         result = sub_a.evaluate_gradient_of_second_order_motion(pitch, mesh)
         reverse = pitch.evaluate_gradient_of_second_order_motion(sub_a, mesh)
     else:
-        mask_b = np.zeros(mesh.nb_faces, dtype=bool)
-        mask_b[faces_b] = True
-        expected_mask &= mask_b
-        sub_b = DofOnSubmesh(pitch, faces_b)
+        expected_mask &= submesh_mask(mesh, faces_b)
+        sub_b = DofOnSubmesh(pitch, submesh_mask(mesh, faces_b))
         result = sub_a.evaluate_gradient_of_second_order_motion(sub_b, mesh)
         reverse = sub_b.evaluate_gradient_of_second_order_motion(sub_a, mesh)
     expected = np.where(expected_mask[:, None, None], full, 0.0)
     assert np.allclose(result, expected)
     assert np.allclose(reverse, expected)
+
+
+def test_submesh_on_waterline():
+    mesh = helpers.small_sphere_mesh()
+    roll = RotationDof((0, 0, 0), (1, 0, 0))
+    mask = mesh.faces_centers[:, 0] > 0.0
+    sub = DofOnSubmesh(roll, mask)
+    expected = np.where(mask[mesh.indices_faces_waterline, None], roll.evaluate_motion_at_points(mesh.middle_edges_waterline), 0.0)
+    assert 0 < np.count_nonzero(mask[mesh.indices_faces_waterline]) < mesh.nb_edges_waterline
+    assert np.allclose(sub.evaluate_motion(mesh, location="waterline"), expected)
+
+
+class CustomSecondOrderDof(TranslationDof):
+    # A dof redefining the public second-order methods, with a non-zero second-order motion with any other dof.
+    @lru_cache
+    def evaluate_second_order_motion(self, other, mesh, location="faces_centers"):
+        return np.ones((mesh.nb_faces, 3))
+
+    @lru_cache
+    def evaluate_gradient_of_second_order_motion(self, other, mesh, location="faces_centers"):
+        return np.ones((mesh.nb_faces, 3, 3))
+
+
+def test_redefined_second_order_motion_is_used_in_both_orders():
+    mesh = helpers.small_sphere_mesh()
+    custom = CustomSecondOrderDof((1, 0, 0))
+    roll = RotationDof((0, 0, 0), (1, 0, 0))
+    assert np.all(roll.evaluate_second_order_motion(custom, mesh) == 1.0)
+    assert np.all(roll.evaluate_gradient_of_second_order_motion(custom, mesh) == 1.0)
